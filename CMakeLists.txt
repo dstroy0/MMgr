@@ -53,28 +53,11 @@ set(MMGR_ENVIRONMENTS
   "checks|MMGR_DEBUG_CHECKS=1"
 )
 
-# The modules, in one list so the per-directory CMakeLists stay uniform and a rename is one edit
-# here rather than seventeen.
-set(MMGR_MODULES
-  arena
-  bitio
-  bytes
-  dma
-  endian
-  float_bits
-  membuild
-  plaintext
-  protoframe
-  protomem
-  protostr
-  psram_pool
-  rawmemcpy
-  ring
-  secure
-  span
-  swar
-)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(MMgrModule)
 
+# No list of modules here. Each directory declares itself with mmgr_add_module(), so adding one is
+# a new directory plus a line in src/mmgr/CMakeLists.txt, and nothing central has to be kept in step.
 add_subdirectory(src)
 
 if(MMGR_BUILD_TESTS)

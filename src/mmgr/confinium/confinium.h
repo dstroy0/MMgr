@@ -9,6 +9,10 @@ MMGR_BEGIN_DECLS
 
 int mmgr_worker_count(void);
 
+// With one worker there is nothing to bind: self is always 0, so both entries fold away and the
+// library needs no notion of a platform context at all. The setter is gated with the getter rather
+// than left declared, because a setter whose getter is a constant is not an API, it is a symbol
+// that pulls in mmgr_platform_context_id() for no reachable effect.
 #if MMGR_WORKER_COUNT == 1
 MMGR_INLINE int mmgr_worker_self(void)
 {
@@ -16,9 +20,8 @@ MMGR_INLINE int mmgr_worker_self(void)
 }
 #else
 int mmgr_worker_self(void);
-#endif
-
 void mmgr_worker_set_self(int id);
+#endif
 
 #define MMGR_ARENA_ALIGN 8u
 

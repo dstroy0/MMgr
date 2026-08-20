@@ -14,7 +14,14 @@ mmgr_scrut_word mmgr_scrut_le(mmgr_scrut_word a, mmgr_scrut_word v)
 
 mmgr_scrut_word mmgr_scrut_spread(mmgr_scrut_word m)
 {
-    return m + (m - (m >> 7));
+    // The cast is not decoration. When the lane is 16 bits the word is narrower than int, so C
+    // promotes every operand here to int, does the arithmetic in 32 bits, and then narrows on
+    // return - which -Wconversion reports, correctly, as a conversion that may change the value.
+    //
+    // SWAR arithmetic is modular on purpose: the carries that leave the top of the lane are exactly
+    // the ones being discarded. Saying so with a cast keeps the intent explicit and keeps the
+    // 16-bit build warning-clean, without changing what any lane width computes.
+    return (mmgr_scrut_word)(m + (m - (m >> 7)));
 }
 
 mmgr_scrut_word mmgr_scrut_sub7(mmgr_scrut_word a, mmgr_scrut_word lo)

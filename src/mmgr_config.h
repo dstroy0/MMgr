@@ -99,16 +99,8 @@ MMGR_STATIC_ASSERT(MMGR_SWAR_BITS <= MMGR_WORD_BITS,
 #define MMGR_DEBUG_CHECKS 0
 #endif
 
-#if MMGR_DEBUG_CHECKS
-// Supplied by the integrator, not by this library: it has no idea what a "context" is on the target
-// - a FreeRTOS task handle, a pthread_t, a core id, or 0 on something single-threaded.
-//
-// It backs the single-owner check, which records which context first borrowed a pool slot and
-// MMGR_ASSERTs that every later borrow of that slot comes from the same one. Declared only under
-// MMGR_DEBUG_CHECKS, so a release build neither calls it nor requires anyone to have written it.
-#include <stdint.h>
-uintptr_t mmgr_platform_context_id(void);
-#endif
+// The platform hook is declared further down, once MMGR_WORKER_COUNT is known - it has two callers
+// and the debug checks are only one of them.
 
 // ---------------------------------------------------------------------------------------------
 // Pools
@@ -121,6 +113,32 @@ uintptr_t mmgr_platform_context_id(void);
 #endif
 #ifndef MMGR_GHOST_WORKER_SLOT
 #define MMGR_GHOST_WORKER_SLOT (MMGR_WORKER_COUNT)
+#endif
+
+// ---------------------------------------------------------------------------------------------
+// The one hook this library does not supply
+// ---------------------------------------------------------------------------------------------
+// mmgr_platform_context_id() is written by the integrator, because this library has no idea what a
+// "context" is on the target: a FreeRTOS task handle, a pthread_t, a core id.
+//
+// It has exactly two callers, and BOTH have to be considered or the default build stops linking:
+//
+//   * the context-to-worker binding in confinium, when there is more than one worker. With one
+//     worker mmgr_worker_self() is an inline returning 0 and the binding does not exist.
+//   * the single-owner check in the two pools, under MMGR_DEBUG_CHECKS.
+//
+// Guarding the declaration on only the second of those is what made the default configuration call
+// an undeclared function - which C does not reject, it assumes int, and the 64-bit context id was
+// silently truncated on assignment. MMGR_NEEDS_CONTEXT_ID names the real condition so the
+// declaration and the calls cannot drift apart again.
+#if (MMGR_WORKER_COUNT != 1) || MMGR_DEBUG_CHECKS
+#define MMGR_NEEDS_CONTEXT_ID 1
+#else
+#define MMGR_NEEDS_CONTEXT_ID 0
+#endif
+
+#if MMGR_NEEDS_CONTEXT_ID
+uintptr_t mmgr_platform_context_id(void);
 #endif
 
 // Arena sizes.

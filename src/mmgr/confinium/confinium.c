@@ -3,18 +3,30 @@
 #include "mmgr/confinium/confinium.h"
 #include "mmgr/memoria_operor/memoria_operor.h"
 
+int mmgr_worker_count(void)
+{
+    return MMGR_WORKER_COUNT;
+}
+
+// The context-to-worker binding table, and the two entries that maintain it.
+//
+// All of it is gated on there being more than one worker. With a single worker mmgr_worker_self()
+// is an inline in the header that returns 0, so there is nothing a binding could answer - and
+// leaving the setter ungated made a single-worker build call mmgr_platform_context_id() anyway.
+// That is an integrator-supplied symbol, so the default configuration of a library that is meant to
+// need nothing but stddef/stdint/stdatomic did not link without one.
+//
+// It was worse than a missing symbol: the declaration is guarded too, so the call compiled under an
+// implicit declaration, gcc assumed it returned int, and the result was assigned to a 64-bit
+// uintptr_t. Caught by -Wimplicit-function-declaration once the CMake build turned the warnings on.
+#if MMGR_WORKER_COUNT != 1
+
 #define MMGR_WORKER_BINDINGS (MMGR_WORKER_COUNT + 1)
 
 static uintptr_t s_ctx[MMGR_WORKER_BINDINGS];
 static int s_ctx_worker[MMGR_WORKER_BINDINGS];
 static int s_bound;
 
-int mmgr_worker_count(void)
-{
-    return MMGR_WORKER_COUNT;
-}
-
-#if MMGR_WORKER_COUNT != 1
 int mmgr_worker_self(void)
 {
     const uintptr_t me = mmgr_platform_context_id();
@@ -27,7 +39,6 @@ int mmgr_worker_self(void)
     }
     return 0;
 }
-#endif
 
 void mmgr_worker_set_self(int id)
 {
@@ -47,6 +58,8 @@ void mmgr_worker_set_self(int id)
         s_bound++;
     }
 }
+
+#endif // MMGR_WORKER_COUNT != 1
 
 typedef struct
 {
