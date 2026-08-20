@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using these metadata."
+title: MMgr
+abstract: >-
+  Zero-heap memory manager in C11 with a fully deterministic footprint. Arenas,
+  pools, spans and rings are carved out of a single borrowed region and reached by
+  asserted offset, so every allocation is decided at compile time and there is no
+  malloc anywhere. Scanning is SWAR-accelerated, with the word width chosen at the
+  ingestion path so the rest of the code is width-agnostic. Every translation unit
+  is host-buildable and host-testable.
+type: software
+authors:
+  - given-names: Douglas
+    family-names: Quigg
+    email: dquigg123@gmail.com
+    alias: dstroy0
+repository-code: "https://github.com/dstroy0/MMgr"
+url: "https://github.com/dstroy0/MMgr"
+license: AGPL-3.0-or-later
+version: 0.1.0
+date-released: "2026-08-20"
+keywords:
+  - memory
+  - allocator
+  - arena
+  - ring-buffer
+  - span
+  - swar
+  - zero-heap
+  - deterministic
+  - embedded
+  - c11

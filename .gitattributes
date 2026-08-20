@@ -1,0 +1,24 @@
+# Line endings are the repo's decision, not each machine's.
+#
+# Without this, Windows' default core.autocrlf=true checks out CRLF while the repo stores LF, so
+# anything that writes LF - a generator run under WSL, most editors, every tool in tools/dev_env -
+# makes the whole tree look modified. Pinning it here fixes it for every clone rather than per
+# developer. This repo was seeing "LF will be replaced by CRLF" on all 54 files before this existed.
+* text=auto eol=lf
+
+# Shell scripts must keep LF or the shebang breaks on Linux/WSL/macOS.
+*.sh text eol=lf
+
+# Git hooks are executed directly by git and are extensionless, so the *.sh rule does not reach
+# them. Checked out with CRLF they die on Linux/WSL with
+#   /usr/bin/env: 'bash\r': No such file or directory
+# which silently disables every auto-format step for anyone on a non-Windows clone.
+tools/git-hooks/** text eol=lf
+
+# Binary, never touched.
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
+*.a binary
+*.o binary

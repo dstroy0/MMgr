@@ -1,0 +1,77 @@
+name: "CodeQL Advanced"
+
+# Advanced setup rather than GitHub default setup, because C has to be analyzed from a real compile.
+# CodeQL extracts what the traced compiler actually did, so a translation unit is in the database
+# only if something below compiled it - which is why the manual build configures the whole project
+# rather than a hand-picked subset.
+#
+# Two languages are analyzed:
+#   c-cpp    the library. build-mode manual: cmake, traced.
+#   actions  the workflows in this directory. build-mode none: nothing to compile.
+#            Worth having precisely because this repo auto-merges Dependabot PRs - the actions
+#            scanner is what flags an injectable ${{ }} expansion or an unpinned third-party action.
+#
+# The analyze step publishes a code-scanning check per language. Require them in the branch ruleset
+# for main. If GitHub default code scanning is also enabled for C/C++, turn it off under
+# Settings -> Code security -> Code scanning, or this workflow will not run.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "20 8 * * 0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # required for all workflows
+      packages: read # required to fetch internal or private CodeQL packs
+      actions: read # only required for workflows in private repositories
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: c-cpp
+            build-mode: manual
+          - language: actions
+            build-mode: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-and-quality
+          config-file: ./.github/codeql/codeql-config.yml
+
+      # Everything here is host-buildable by design, so there is no cross-toolchain to install and
+      # the runner's default compiler is the one traced. --fresh so a stale CMakeCache.txt cannot
+      # turn this into a no-op build that extracts nothing and reports a clean scan.
+      - name: Build (traced by CodeQL)
+        if: matrix.build-mode == 'manual'
+        shell: bash
+        run: |
+          cmake -S . -B build --fresh -DCMAKE_BUILD_TYPE=Debug -DMMGR_BUILD_TESTS=ON
+          cmake --build build --parallel
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"

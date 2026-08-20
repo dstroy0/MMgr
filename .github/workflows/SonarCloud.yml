@@ -1,0 +1,78 @@
+name: SonarQube
+
+# Analysis plus coverage.
+#
+# C is not a language SonarQube can analyze from source alone - it needs to know how each
+# translation unit was actually compiled. That is what the build wrapper is for: it wraps the real
+# build and records every compiler invocation, and the scanner reads that. Without it the C files
+# are skipped and the dashboard shows a green project that analyzed nothing.
+#
+# Coverage comes from gcov. The build is configured with --coverage so every TU emits .gcno at
+# compile time and .gcda when a test runs it, then ctest runs the whole suite to produce the .gcda,
+# then gcovr merges them. Order matters: no .gcda exists until the tests have run, so a scanner
+# invoked before ctest reports 0%.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Shallow clones break blame-based new-code detection, so Sonar cannot tell which
+          # findings are new.
+          fetch-depth: 0
+
+      - name: Install gcovr
+        run: pip install --upgrade gcovr
+
+      - name: Install build wrapper
+        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
+
+      # --coverage on both compile and link: it implies -fprofile-arcs -ftest-coverage when
+      # compiling and -lgcov when linking, and setting only the compile half fails at link time.
+      - name: Configure
+        run: >
+          cmake -S . -B build --fresh
+          -DCMAKE_BUILD_TYPE=Debug
+          -DMMGR_BUILD_TESTS=ON
+          -DCMAKE_C_FLAGS="--coverage -O0 -g"
+          -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+
+      - name: Build (wrapped)
+        run: build-wrapper-linux-x86-64 --out-dir bw-output cmake --build build --parallel
+
+      # The suite is the thing that produces .gcda. It is also a real gate: a failing test should
+      # fail this job rather than quietly reporting the coverage of a broken build.
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Coverage report
+        run: >
+          gcovr --root . --sonarqube coverage.xml
+          --exclude 'test/'
+          --exclude 'build/'
+          --print-summary
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            --define sonar.cfamily.compile-commands=bw-output/compile_commands.json
+            --define sonar.coverageReportPaths=coverage.xml

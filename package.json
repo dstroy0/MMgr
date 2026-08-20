@@ -1,0 +1,25 @@
+{
+  "name": "mmgr-ci-tooling",
+  "version": "v0.0.0",
+  "private": true,
+  "description": "Dev/CI tooling manifest for MMgr. Node is here for prettier and cspell only; the library itself has no JavaScript.",
+  "license": "AGPL-3.0-or-later",
+  "homepage": "https://github.com/dstroy0/MMgr",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dstroy0/MMgr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dstroy0/MMgr/issues"
+  },
+  "scripts": {
+    "format": "prettier --write \"**/*.{md,json,yml,yaml,css,html,js,cjs,mjs}\"",
+    "format:check": "prettier --check \"**/*.{md,json,yml,yaml,css,html,js,cjs,mjs}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,38 @@
+# MMgr Library Keywords
+# Loaded by the Arduino IDE for syntax highlighting.
+# Generated from src/ - regenerate after any public rename.
+
+##############################
+# Types (KEYWORD1)
+##############################
+
+BitwNs	KEYWORD1
+BytesNs	KEYWORD1
+DblNs	KEYWORD1
+EndianNs	KEYWORD1
+FrameNs	KEYWORD1
+MemNs	KEYWORD1
+PingPong	KEYWORD1
+PlainNs	KEYWORD1
+RawNs	KEYWORD1
+SbNs	KEYWORD1
+SecureNs	KEYWORD1
+SpanNs	KEYWORD1
+StrNs	KEYWORD1
+SwarNs	KEYWORD1
+
+##############################
+# Namespace instances (KEYWORD2)
+##############################
+
+bitw	KEYWORD2
+bytes	KEYWORD2
+dbl	KEYWORD2
+endian	KEYWORD2
+frame	KEYWORD2
+mem	KEYWORD2
+plain	KEYWORD2
+raw	KEYWORD2
+secure	KEYWORD2
+span	KEYWORD2
+swar	KEYWORD2

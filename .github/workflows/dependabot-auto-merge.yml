@@ -1,0 +1,63 @@
+name: Dependabot auto-merge
+
+# Turns a green Dependabot PR into a merge without a human in the loop.
+#
+# It does NOT merge immediately. `gh pr merge --auto` arms auto-merge, and GitHub then merges only
+# once every required status check passes. So the gate is the branch protection rule on main, not
+# this file: if build-and-test / CodeQL / Sonar are required contexts there, a red one blocks the
+# merge and the PR just sits. With no required checks configured, auto-merge fires as soon as the
+# PR is mergeable - which is why the branch ruleset is the thing to get right, not this workflow.
+#
+# Major version bumps are deliberately left alone. A major is an announced breaking change and the
+# point of reading it is to find out what broke.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependabot-automerge-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  automerge:
+    # pull_request_target runs with a write-capable token against the BASE repo, so it must never
+    # check out or execute the PR's code. Nothing below does: the only thing this job runs is the
+    # metadata action and gh, both against the API.
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # merge the PR
+      pull-requests: write # approve, and leave the auto-merge note
+    steps:
+      - name: Fetch Dependabot metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Leave majors to a human
+        if: steps.meta.outputs.update-type == 'version-update:semver-major'
+        run: |
+          gh pr comment "$PR_URL" --body \
+            "Major version bump (${{ steps.meta.outputs.dependency-names }} -> ${{ steps.meta.outputs.new-version }}). Not auto-merged: a major is an announced breaking change, so this one wants reading."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

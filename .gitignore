@@ -1,0 +1,41 @@
+# Build trees. CMake is driven out-of-source; every configure lands in one of these.
+build/
+build-*/
+cmake-build-*/
+CMakeUserPresets.json
+
+# CMake/CTest droppings when a configure is run in-source by accident.
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+Testing/
+install_manifest.txt
+compile_commands.json
+
+# Coverage. gcov/lcov emit one pair per object plus the merged report SonarCloud reads.
+*.gcno
+*.gcda
+*.gcov
+coverage/
+coverage.xml
+coverage.info
+sonar-coverage.xml
+.scannerwork/
+bw-output/
+
+# Python. The tools in tools/dev_env are run directly and cache next to themselves.
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node, for prettier and cspell only. package-lock.json IS tracked - the whole point of a lock file
+# is that CI installs what was tested.
+node_modules/
+
+# Editors and OS.
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

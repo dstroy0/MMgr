@@ -1,0 +1,20 @@
+# prettier formats the markup and data files: md, json, yml, yaml, css, html, js.
+# C and Python are not prettier's - .clang-format and black own those.
+
+# Lock files are generated and rewriting them defeats the lock.
+package-lock.json
+
+# Build and coverage output. Machine-written, regenerated on every run.
+build/
+build-*/
+coverage/
+.scannerwork/
+bw-output/
+compile_commands.json
+
+# Vendored third-party. Unity ships formatted its own way and a reformat makes every future
+# vendor bump a conflict.
+vendor/
+test/vendor/
+
+node_modules/
