@@ -136,6 +136,10 @@ foreach(suite_src ${MMGR_SUITE_SOURCES})
     endforeach()
 endforeach()
 
+if(MMGR_BUILD_BENCH)
+    add_subdirectory(bench)
+endif()
+
 list(LENGTH MMGR_BUILT MMGR_BUILT_COUNT)
 message(STATUS "MMgr: ${MMGR_BUILT_COUNT} test targets")
 if(MMGR_SKIPPED)
