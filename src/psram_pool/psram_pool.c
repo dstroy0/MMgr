@@ -1,17 +1,9 @@
 // ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
-
-/**
- * @file psram_pool.c
- * @brief Buffer placement policy + SPI DMA ping-pong index manager (see psram_pool.h).
- */
-
 #include "mmgr/psram_pool/psram_pool.h"
 
 #if PROTOCORE_ENABLE_PSRAM_POOL
 
-// Does `size` fit in DRAM while still leaving `reserve` free? Subtracts instead of summing, so no
-// width of size_t can wrap the comparison.
 static proto_bool dram_fits(size_t size, size_t free_dram, size_t reserve)
 {
     return size <= free_dram && (free_dram - size) >= reserve;
@@ -28,12 +20,12 @@ protocore_place protocore_psram_place(size_t size, proto_bool dma_required, size
     proto_bool d_fits = dram_fits(size, free_dram, dram_reserve);
     proto_bool p_fits = size <= free_psram;
 
-    if (dma_required) // PSRAM is not DMA-capable: DRAM or bust.
+    if (dma_required)
     {
         return d_fits ? PLACE_DRAM : PLACE_FAIL;
     }
 
-    if (size >= psram_threshold) // large / cold: prefer PSRAM.
+    if (size >= psram_threshold)
     {
         if (p_fits)
         {
@@ -46,7 +38,6 @@ protocore_place protocore_psram_place(size_t size, proto_bool dma_required, size
         return PLACE_FAIL;
     }
 
-    // small / hot: prefer DRAM.
     if (d_fits)
     {
         return PLACE_DRAM;
@@ -86,4 +77,4 @@ uint8_t protocore_pingpong_swap(PingPong *pp)
     return pp->fill_idx;
 }
 
-#endif // PROTOCORE_ENABLE_PSRAM_POOL
+#endif

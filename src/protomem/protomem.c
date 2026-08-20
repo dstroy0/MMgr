@@ -1,25 +1,10 @@
 // ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
-
-/**
- * @file protomem.c
- * @brief The byte-span operations - see protomem.h.
- *
- * Every access is one register-width load or store. A span that does not end on a boundary is not
- * walked a byte at a time: the partial word is merged and stored whole, the lane mask choosing the
- * span's bytes from the source and the destination's own word for the lanes past it. A source that
- * is not co-aligned with the destination is funnelled, the way the raw mover above it does it.
- *
- * The one symbol this file exports is @ref mem.
- */
-
 #include "mmgr/protomem/protomem.h"
-#include "mmgr/swar/swar.h" // the lane math the ordering walk reads its answer out of
+#include "mmgr/swar/swar.h"
 
 #define PROTOCORE_MEM_MASK ((uintptr_t)(PROTO_RAW_WORD - 1u))
 
-// The low @p nbytes lanes of a word, as bits. A count at or past the width is the whole word, which
-// is the case a shift by the full width would leave undefined.
 static proto_mv_word lo_lanes(size_t nbytes)
 {
     if (nbytes >= PROTO_RAW_WORD)
@@ -29,9 +14,6 @@ static proto_mv_word lo_lanes(size_t nbytes)
     return (proto_mv_word)(((proto_mv_word)1 << (nbytes * 8u)) - (proto_mv_word)1);
 }
 
-// Bits covering byte lanes [from, to) of a word in ADDRESS order. Address order is where byte order
-// enters: the lowest-addressed lane sits in the low bits on a little-endian load and the high bits on
-// a big-endian one, so the two ends are named from opposite sides.
 static proto_mv_word span_lanes(size_t from, size_t to)
 {
 #if PROTOCORE_HW_BIG_ENDIAN
@@ -41,9 +23,6 @@ static proto_mv_word span_lanes(size_t from, size_t to)
 #endif
 }
 
-// The word of source bytes beginning at @p p, assembled from the aligned words that hold it. @p avail
-// is what the span still has past @p p, so the second load is taken only when the wanted bytes reach
-// into the next word and never past the span's own allocation.
 static proto_mv_word src_word(const unsigned char *p, size_t avail)
 {
     const size_t off = (size_t)((uintptr_t)p & PROTOCORE_MEM_MASK);
@@ -102,8 +81,6 @@ void protocore_mem_move(void *dst, const void *src, size_t n)
         return;
     }
 
-    // Destination ahead of the source and inside it: walk down so a word is read before the store
-    // that would overwrite it. The trailing partial goes first, for the same reason.
     size_t i = n & ~(size_t)PROTOCORE_MEM_MASK;
     if (i < n)
     {
@@ -117,16 +94,6 @@ void protocore_mem_move(void *dst, const void *src, size_t n)
     }
 }
 
-/**
- * @brief Order @p n bytes at @p a against @p b, as unsigned.
- *
- * A word per step: XOR zeroes every lane that matches, so a nonzero syndrome means the two part
- * inside this word and the lane math names which byte. That byte is the whole answer, because the
- * ordering of two spans is decided where they first disagree and nothing after it is read.
- *
- * The tail runs the same rule a byte at a time. A partial word cannot be loaded whole without
- * reading past what the caller offered: @p n is a promise about both operands, not a hint.
- */
 int protocore_mem_cmp(const void *a, const void *b, size_t n)
 {
     const char *x = (const char *)a;
@@ -138,7 +105,7 @@ int protocore_mem_cmp(const void *a, const void *b, size_t n)
         protocore_swar_word d = swar.load(x + i) ^ swar.load(y + i);
         if (d != 0)
         {
-            // The guard bit stands on every lane that differs, and the lowest one is where they part.
+
             i += swar.zero_lane(PROTOCORE_SWAR_HIGH & ~swar.has_zero(d));
             return (int)(unsigned char)x[i] - (int)(unsigned char)y[i];
         }
@@ -155,16 +122,6 @@ int protocore_mem_cmp(const void *a, const void *b, size_t n)
     return 0;
 }
 
-/**
- * @brief The first byte equal to @p c in @p n bytes at @p p, or NULL.
- *
- * A word per step: ::SwarNs::eq marks every lane holding @p c, and the lane math names the lowest
- * one. @p n is the whole bound - there is no terminator test, because a span has no terminator, and
- * the caller has already stated how far the bytes go.
- *
- * That is what separates this from ::StrNs::find, which stops at a NUL because it searches a string.
- * A buffer that deliberately carries NULs - a decoded credential, a wire frame - needs this one.
- */
 const void *protocore_mem_chr(const void *p, size_t n, uint8_t c)
 {
     const char *s = (const char *)p;
@@ -187,7 +144,7 @@ const void *protocore_mem_chr(const void *p, size_t n, uint8_t c)
         }
         i += PROTOCORE_SWAR_BYTES;
     }
-    // The final partial word, a byte at a time: a whole load would read past what @p n offers.
+
     while (i < n)
     {
         if ((uint8_t)s[i] == c)
@@ -204,8 +161,6 @@ void protocore_mem_set(void *dst, unsigned char v, size_t n)
     unsigned char *d = (unsigned char *)dst;
     size_t i = 0;
 
-    // The splat comes from the identity swar.h derives its lane masks with: the all-ones word over
-    // 0xFF leaves bit 0 of every lane, so multiplying by the byte puts it in every lane at once.
     const proto_mv_word ones = (proto_mv_word)((proto_mv_word) ~(proto_mv_word)0 / 0xFFu);
     const proto_mv_word w = (proto_mv_word)(ones * (proto_mv_word)v);
 

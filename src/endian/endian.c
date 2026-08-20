@@ -1,20 +1,6 @@
 // ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
-
-/**
- * @file endian.c
- * @brief A fixed width moved between an integer and the bytes at a pointer - see endian.h.
- *
- * One byte per step, never a cast to a wider pointer: a store lands on a byte boundary, so a target
- * that faults on an unaligned wide access is served, and the shift naming each byte fixes the order
- * regardless of the machine's own.
- *
- * The one symbol this file exports is @ref endian.
- */
-
 #include "mmgr/endian/endian.h"
-
-// --- little-endian ------------------------------------------------------------------------------
 
 size_t protocore_wr16le(uint8_t *p, uint16_t v)
 {
@@ -60,8 +46,6 @@ uint64_t protocore_rd64le(const uint8_t *p)
     }
     return v;
 }
-
-// --- big-endian (network order) -----------------------------------------------------------------
 
 size_t protocore_wr16be(uint8_t *p, uint16_t v)
 {

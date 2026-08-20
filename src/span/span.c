@@ -1,18 +1,5 @@
 // ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
-
-/**
- * @file span.c
- * @brief The bounded byte-region accessors - see span.h.
- *
- * A constructor normalizes the empty case: a pointer with no capacity, or a capacity with no
- * pointer, becomes `{NULL, 0}`, so the two fields never disagree. A sub-region clamps its offset and
- * its length to what the parent holds, so a truncated frame yields a zero-capacity region instead of
- * a pointer past the allocation.
- *
- * The one symbol this file exports is @ref span.
- */
-
 #include "mmgr/span/span.h"
 
 protocore_span protocore_span_from(uint8_t *p, size_t cap)

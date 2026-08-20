@@ -1,30 +1,8 @@
 // ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
-
-/**
- * @file arena.c
- * @brief Unified double-ended server arena. See arena.h for the model.
- */
-
 #include "mmgr/arena/arena.h"
 #include "mmgr/protomem/protomem.h"
 
-// ---------------------------------------------------------------------------
-// Slot identity
-// ---------------------------------------------------------------------------
-//
-// Per-task worker id, for a genuine multi-worker build. Default 0: the user loop(), the lwIP
-// thread, and unit tests all read worker 0.
-//
-// The binding is a table keyed on the platform's own answer to "which execution context is running
-// me", not a `_Thread_local`. Both reach the same place on an RTOS - the task's own storage - but a
-// thread-local makes the compiler emit __emutls_get_address, and libgcc's emulated-TLS allocates
-// each block with malloc and calls abort when it cannot. A build that owns no heap after boot
-// cannot link that, so the identity is held here instead.
-//
-// One entry per worker plus the ghost slot, which is every context that can ever bind one; the
-// count is fixed at build time, so this is BSS and the claim is a bounded walk. `s_bound` is the
-// counter: a context that has never bound reads worker 0.
 #define PROTOCORE_WORKER_BINDINGS (PROTOCORE_WORKER_COUNT + 1)
 
 static uintptr_t s_ctx[PROTOCORE_WORKER_BINDINGS];
@@ -58,7 +36,7 @@ void protocore_worker_set_self(int id)
     {
         if (s_ctx[i] == me)
         {
-            s_ctx_worker[i] = id; // this context rebinding itself
+            s_ctx_worker[i] = id;
             return;
         }
     }
@@ -70,25 +48,22 @@ void protocore_worker_set_self(int id)
     }
 }
 
-// Persistent-pool block header: a chain of these spans [0, persist_end).
 typedef struct
 {
-    size_t size; ///< payload bytes
-    size_t used; ///< 0 = free, 1 = in use
+    size_t size;
+    size_t used;
 } ABlk;
 
-// Header size, rounded up to the arena alignment so payloads stay aligned.
 static const size_t AHDR = (sizeof(ABlk) + (PROTOCORE_ARENA_ALIGN - 1)) & ~(size_t)(PROTOCORE_ARENA_ALIGN - 1);
 
-static inline size_t align_up(size_t n) // persist path only; the scratch path uses protocore_arena_align_up
+static inline size_t align_up(size_t n)
 {
     return (n + (PROTOCORE_ARENA_ALIGN - 1)) & ~(size_t)(PROTOCORE_ARENA_ALIGN - 1);
 }
 
 void protocore_arena_init(protocore_arena *a, void *base, size_t size)
 {
-    // Align the base up to the strongest supported alignment and the size down, so a
-    // scratch borrow up to PROTOCORE_ARENA_MAX_ALIGN is met by aligning its offset alone.
+
     uintptr_t b = (uintptr_t)base;
     uintptr_t ab = (b + (PROTOCORE_ARENA_MAX_ALIGN - 1)) & ~(uintptr_t)(PROTOCORE_ARENA_MAX_ALIGN - 1);
     size_t adj = (size_t)(ab - b);
@@ -101,22 +76,17 @@ void protocore_arena_init(protocore_arena *a, void *base, size_t size)
     a->scratch_hw = 0;
 }
 
-// ---------------------------------------------------------------------------
-// Persistent end (first-fit, grows up from the bottom)
-// ---------------------------------------------------------------------------
-
 void *protocore_arena_persist_alloc(protocore_arena *a, size_t n)
 {
     n = align_up(n ? n : PROTOCORE_ARENA_ALIGN);
 
-    // First-fit over the existing block chain.
     size_t off = 0;
     while (off < a->persist_end)
     {
         ABlk *b = (ABlk *)(a->base + off);
         if (!b->used && b->size >= n)
         {
-            // Split if the remainder can hold another header + a minimum payload.
+
             if (b->size >= n + AHDR + PROTOCORE_ARENA_ALIGN)
             {
                 ABlk *nb = (ABlk *)(a->base + off + AHDR + n);
@@ -133,8 +103,6 @@ void *protocore_arena_persist_alloc(protocore_arena *a, size_t n)
         off += AHDR + b->size;
     }
 
-    // No reusable block: carve a fresh one from the free middle (grow the boundary up),
-    // but only if it will not cross the scratch end.
     size_t need = AHDR + n;
     if (a->persist_end + need <= a->scratch_top && a->persist_end + need >= need)
     {
@@ -151,7 +119,7 @@ void *protocore_arena_persist_alloc(protocore_arena *a, size_t n)
         mem.set(pl, 0, n);
         return pl;
     }
-    return NULL; // fail closed
+    return NULL;
 }
 
 void protocore_arena_persist_free(protocore_arena *a, void *p)
@@ -164,15 +132,13 @@ void protocore_arena_persist_free(protocore_arena *a, void *p)
     if (b->used)
     {
         b->used = 0;
-        // The false half is unreachable: persist_used only ever accumulates this same block's
-        // own size (at alloc time), so it can never be smaller than b->size while b->used was true.
+
         if (a->persist_used >= b->size)
         {
             a->persist_used -= b->size;
         }
     }
 
-    // Coalesce adjacent free blocks front-to-back.
     size_t off = 0;
     while (off < a->persist_end)
     {
@@ -183,14 +149,13 @@ void protocore_arena_persist_free(protocore_arena *a, void *p)
             ABlk *nxt = (ABlk *)(a->base + next_off);
             if (!nxt->used)
             {
-                cur->size += AHDR + nxt->size; // merge; recheck this block
+                cur->size += AHDR + nxt->size;
                 continue;
             }
         }
         off = next_off;
     }
 
-    // If the last block is free, hand it back to the free middle (shrink the boundary).
     off = 0;
     size_t last = 0;
     while (off < a->persist_end)
@@ -205,33 +170,21 @@ void protocore_arena_persist_free(protocore_arena *a, void *p)
     }
 }
 
-// ---------------------------------------------------------------------------
-// Scratch end (bump, grows down from the top)
-// ---------------------------------------------------------------------------
-
 void *protocore_arena_scratch_alloc(protocore_arena *a, size_t n)
 {
     return protocore_arena_scratch_alloc_aligned(a, n, PROTOCORE_ARENA_ALIGN);
 }
 
-// ---------------------------------------------------------------------------
-// Observability
-// ---------------------------------------------------------------------------
-
 size_t protocore_arena_free_bytes(const protocore_arena *a)
 {
     size_t mid = (a->scratch_top > a->persist_end) ? a->scratch_top - a->persist_end : 0;
-    return mid > AHDR ? mid - AHDR : 0; // usable payload of one new persistent block
+    return mid > AHDR ? mid - AHDR : 0;
 }
 
 size_t protocore_arena_persist_used(const protocore_arena *a)
 {
     return a->persist_used;
 }
-
-// ===========================================================================
-// Multi-region set (DRAM base + PSRAM extension)
-// ===========================================================================
 
 void protocore_arena_set_init(protocore_arena_set *s)
 {
@@ -248,7 +201,7 @@ proto_bool protocore_arena_set_add(protocore_arena_set *s, void *base, size_t si
     protocore_arena_init(r, base, size);
     if (r->size < AHDR + PROTOCORE_ARENA_ALIGN)
     {
-        return PROTO_FALSE; // too small to hold even one block
+        return PROTO_FALSE;
     }
     s->count++;
     return PROTO_TRUE;
@@ -264,7 +217,7 @@ void *protocore_arena_set_persist_alloc(protocore_arena_set *s, size_t n)
             return p;
         }
     }
-    return NULL; // fail closed
+    return NULL;
 }
 
 void protocore_arena_set_persist_free(protocore_arena_set *s, void *p)
@@ -295,7 +248,7 @@ void *protocore_arena_set_scratch_alloc_aligned(protocore_arena_set *s, size_t n
             return p;
         }
     }
-    return NULL; // fail closed
+    return NULL;
 }
 
 void *protocore_arena_set_scratch_alloc(protocore_arena_set *s, size_t n)

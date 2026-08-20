@@ -1,20 +1,9 @@
 // ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
-
-/**
- * @file dma.c
- * @brief DMA peripheral ingest / egress - implementation.
- *
- * The front end validates and dispatches to the weak protocore_dma_hw_* hooks a driver overrides.
- * The host build overrides them too (test/core_setup/hal/host/protocore_dma_host.h), so the arm that runs on
- * silicon is the arm the tests drive.
- */
-
 #include "mmgr/dma/dma.h"
 
 #if PROTOCORE_ENABLE_DMA
 
-// The driver stamps a completion, so the clock is its dependency rather than this front end's.
 __attribute__((weak)) proto_bool protocore_dma_hw_open(const protocore_dma_config *cfg)
 {
     (void)cfg;
@@ -66,4 +55,4 @@ void protocore_dma_poll(void)
     protocore_dma_hw_poll();
 }
 
-#endif // PROTOCORE_ENABLE_DMA
+#endif
