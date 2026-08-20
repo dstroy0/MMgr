@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "mmgr/bitio/bitio.h"
 
-void mmgr_bitw_put(mmgr_bit_writer *w, uint32_t bits, int n)
+void mmgr_bitio_put(mmgr_bitio_writer *w, uint32_t bits, int n)
 {
     if (w->overflow)
     {
@@ -28,7 +28,7 @@ void mmgr_bitw_put(mmgr_bit_writer *w, uint32_t bits, int n)
     }
 }
 
-void mmgr_bitw_align(mmgr_bit_writer *w)
+void mmgr_bitio_align(mmgr_bitio_writer *w)
 {
     if (w->nbits > 0)
     {
