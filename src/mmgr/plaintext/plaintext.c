@@ -1,9 +1,7 @@
 // ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "mmgr/plaintext/plaintext.h"
-#include "config/platform/platform.h"
 #include "mmgr/arena/arena.h"
-#include <assert.h>
 
 #define PLAIN_BLOCK_BYTES ((uintptr_t)MMGR_REG_POOL_SLOTS * (uintptr_t)MMGR_PLAINTEXT_ARENA_SIZE)
 
@@ -59,7 +57,7 @@ static inline void assert_single_owner(struct PlainInternal *ctx, int w)
     }
     else
     {
-        assert(ctx->owner[w] == cur && "plaintext pool borrowed from a foreign task");
+        MMGR_ASSERT(ctx->owner[w] == cur, "plaintext pool borrowed from a foreign task");
     }
 #else
     (void)ctx;
@@ -90,7 +88,7 @@ void *mmgr_plaintext_alloc(size_t n, size_t align)
     int w = cur_worker();
     assert_single_owner(ctx, w);
 
-    assert((align & (align - 1)) == 0 && "plaintext alignment must be a power of two");
+    MMGR_ASSERT((align & (align - 1)) == 0, "plaintext alignment must be a power of two");
     return mmgr_arena_scratch_alloc_aligned(bind(ctx, w), n, align);
 }
 

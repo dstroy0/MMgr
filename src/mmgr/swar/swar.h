@@ -24,7 +24,8 @@ typedef uint8_t mmgr_swar_word;
 
 #define MMGR_SWAR_BYTES ((size_t)(MMGR_SWAR_BITS / 8u))
 
-static_assert(sizeof(mmgr_swar_word) * 8u == MMGR_SWAR_BITS, "the lane carrier must be exactly MMGR_SWAR_BITS wide");
+MMGR_STATIC_ASSERT(sizeof(mmgr_swar_word) * 8u == MMGR_SWAR_BITS,
+                   "the lane carrier must be exactly MMGR_SWAR_BITS wide");
 
 #define MMGR_SWAR_ONES (((mmgr_swar_word) ~(mmgr_swar_word)0) / 0xFFu)
 #define MMGR_SWAR_HIGH (MMGR_SWAR_ONES * 0x80u)

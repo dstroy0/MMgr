@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "mmgr/protoframe/protoframe.h"
 #include "mmgr/protostr/protostr.h"
-#include "shared/speed_opt/speed_opt.h"
 
 #ifndef MMGR_FRAME_SCAN_LITERALS
 #define MMGR_FRAME_SCAN_LITERALS 0
