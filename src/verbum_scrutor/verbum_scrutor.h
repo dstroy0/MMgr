@@ -9,37 +9,31 @@
 
 MMGR_BEGIN_DECLS
 
-#if MMGR_SWAR_BITS == 64
-typedef uint64_t mmgr_scrut_word;
-#elif MMGR_SWAR_BITS == 32
-typedef uint32_t mmgr_scrut_word;
-#elif MMGR_SWAR_BITS == 16
-typedef uint16_t mmgr_scrut_word;
-#elif MMGR_SWAR_BITS == 8
+// The carrier is the machine word. Always, on every target, with no choice about it.
+//
+// A narrower carrier is never faster. A 16-bit load on a 32-bit machine moves the same cache line,
+// occupies the same load port and then processes a quarter of the lanes; on most ISAs it also costs
+// an extra zero- or sign-extend, and in C every operand narrower than int is promoted to int before
+// the arithmetic happens anyway. So the lane count follows the register, and the only thing that
+// varies between targets is how many lanes a register holds.
+typedef mmgr_word mmgr_scrut_word;
 
-typedef uint8_t mmgr_scrut_word;
-#else
-#error "MMGR_SWAR_BITS must be 8, 16, 32 or 64"
-#endif
+#define MMGR_SWAR_BYTES (sizeof(mmgr_scrut_word))
+#define MMGR_SWAR_LANE_BITS (MMGR_WORD_BITS)
 
-#define MMGR_SWAR_BYTES ((size_t)(MMGR_SWAR_BITS / 8u))
-
-MMGR_STATIC_ASSERT(sizeof(mmgr_scrut_word) * 8u == MMGR_SWAR_BITS,
-                   "the lane carrier must be exactly MMGR_SWAR_BITS wide");
+MMGR_STATIC_ASSERT(sizeof(mmgr_scrut_word) == sizeof(mmgr_word),
+                   "the lane carrier is the machine word - it is not separately sized");
 
 #define MMGR_SWAR_ONES (((mmgr_scrut_word) ~(mmgr_scrut_word)0) / 0xFFu)
 #define MMGR_VERBUM_SCRUTOR_HIGH (MMGR_SWAR_ONES * 0x80u)
 #define MMGR_SWAR_LOW7 (MMGR_SWAR_ONES * 0x7Fu)
 
-#if MMGR_SWAR_BITS <= 32
-#define MMGR_SWAR_CTZ(v) __builtin_ctz((unsigned)(v))
-#define MMGR_SWAR_CLZ(v) __builtin_clz((unsigned)(v))
-#define MMGR_SWAR_CLZ_WIDTH 32u
-#else
+// One spelling for the bit scan. ctz reads the low end, so widening the operand cannot move the
+// answer and the 64-bit builtin serves every width. clz reads the high end, so a value widened to
+// 64 bits gains leading zeros and the count has to be pulled back by the difference.
 #define MMGR_SWAR_CTZ(v) __builtin_ctzll((unsigned long long)(v))
 #define MMGR_SWAR_CLZ(v) __builtin_clzll((unsigned long long)(v))
 #define MMGR_SWAR_CLZ_WIDTH 64u
-#endif
 
 #define MMGR_SWAR_GO 0
 #define MMGR_SWAR_YES 1

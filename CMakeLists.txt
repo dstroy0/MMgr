@@ -72,9 +72,8 @@ target_compile_options(mmgr_flags INTERFACE
 #             fails a test rather than being a no-op nobody notices.
 set(MMGR_ENVIRONMENTS
   "host|"
-  "swar32|MMGR_SWAR_BITS=32"
-  "swar16|MMGR_SWAR_BITS=16"
   "word32|MMGR_WORD_BITS=32"
+  "word16|MMGR_WORD_BITS=16"
   "idx16|MMGR_INDEX_BITS=16"
   "checks|MMGR_DEBUG_CHECKS=1"
 )

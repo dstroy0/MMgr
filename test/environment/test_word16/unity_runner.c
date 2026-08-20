@@ -7,8 +7,8 @@
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_swar32_widths_are_what_was_asked_for(void);
-extern void test_swar32_types_match_the_widths(void);
+extern void test_word16_widths_are_what_was_asked_for(void);
+extern void test_word16_types_match_the_widths(void);
 
 
 /*=======Mock Management=====*/
@@ -75,9 +75,9 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/environment/test_swar32\\test_swar32.c");
-  run_test(test_swar32_widths_are_what_was_asked_for, "test_swar32_widths_are_what_was_asked_for", 8);
-  run_test(test_swar32_types_match_the_widths, "test_swar32_types_match_the_widths", 20);
+  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/environment/test_word16\\test_word16.c");
+  run_test(test_word16_widths_are_what_was_asked_for, "test_word16_widths_are_what_was_asked_for", 8);
+  run_test(test_word16_types_match_the_widths, "test_word16_types_match_the_widths", 20);
 
   return UNITY_END();
 }

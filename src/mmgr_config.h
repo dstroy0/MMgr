@@ -17,21 +17,30 @@
 #endif
 #endif
 
+// 32 is more slots than any statically sized pool here can hold, so it is the default wherever the
+// register can carry it. On a 16-bit machine it cannot, and an index wider than the register is
+// spilled arithmetic on every use.
 #ifndef MMGR_INDEX_BITS
+#if MMGR_WORD_BITS < 32
+#define MMGR_INDEX_BITS MMGR_WORD_BITS
+#else
 #define MMGR_INDEX_BITS 32
+#endif
 #endif
 
 #include "mmgr_types.h"
 
-#ifndef MMGR_SWAR_BITS
-#define MMGR_SWAR_BITS MMGR_WORD_BITS
+// The scan width is the word width. Not a separate knob, and not overridable.
+//
+// It was one, and that was wrong: setting it below MMGR_WORD_BITS asks the machine to load and
+// operate on less than a register, which is never faster. The same cache line moves, the same load
+// port is occupied, C promotes the operand to int before the arithmetic anyway, and the code
+// processes a quarter or an eighth of the lanes for the trouble. To model a narrower machine,
+// narrow the machine: pass -DMMGR_WORD_BITS=16 and everything follows from it.
+#ifdef MMGR_SWAR_BITS
+#undef MMGR_SWAR_BITS
 #endif
-
-MMGR_STATIC_ASSERT(MMGR_SWAR_BITS == 16 || MMGR_SWAR_BITS == 32 || MMGR_SWAR_BITS == 64,
-                   "MMGR_SWAR_BITS must be 16, 32 or 64");
-MMGR_STATIC_ASSERT(MMGR_SWAR_BITS <= MMGR_WORD_BITS,
-                   "MMGR_SWAR_BITS exceeds MMGR_WORD_BITS - a lane wider than the register it is scanned in "
-                   "does not degrade, it reads the wrong bytes");
+#define MMGR_SWAR_BITS MMGR_WORD_BITS
 
 #ifndef MMGR_HW_BIG_ENDIAN
 #if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
