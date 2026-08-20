@@ -123,10 +123,10 @@ def mode_headers(go):
     pairs = []
     for m in modules:
         old, latin = m["old"], m["latin"]
-        pairs.append(('"mmgr/%s/%s.h"' % (old, old), '"mmgr/%s/%s.h"' % (latin, latin)))
+        pairs.append(('"%s/%s.h"' % (old, old), '"%s/%s.h"' % (latin, latin)))
         pairs.append(("MMGR_%s_H" % old.upper(), "MMGR_%s_H" % latin.upper()))
     # ring arrived as a bare header rather than a directory.
-    pairs.append(('"mmgr/ring.h"', '"mmgr/confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"'))
+    pairs.append(('"ring.h"', '"confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"'))
     pairs.append(("MMGR_RING_H", "MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H"))
 
     files = hits = 0
@@ -200,20 +200,20 @@ def mode_files(go):
     moves = []
     for m in modules:
         old, latin = m["old"], m["latin"]
-        d = os.path.join(SRC, "mmgr", old)
+        d = os.path.join(SRC, old)
         if old == "ring":
-            bare = os.path.join(SRC, "mmgr", "ring.h")
+            bare = os.path.join(SRC, "ring.h")
             if os.path.exists(bare):
-                moves.append((bare, os.path.join(SRC, "mmgr", latin, latin + ".h")))
+                moves.append((bare, os.path.join(SRC, latin, latin + ".h")))
             continue
         if not os.path.isdir(d):
             continue
         for fn in sorted(os.listdir(d)):
             src = os.path.join(d, fn)
             if fn == old + ".c" or fn == old + ".h":
-                dst = os.path.join(SRC, "mmgr", latin, latin + fn[len(old) :])
+                dst = os.path.join(SRC, latin, latin + fn[len(old) :])
             else:
-                dst = os.path.join(SRC, "mmgr", latin, fn)
+                dst = os.path.join(SRC, latin, fn)
             # bitio, dma and endian are already their own category name, so every file in them maps
             # to itself. git mv refuses that ("cannot move directory into itself") rather than
             # treating it as a no-op, so the no-ops are dropped here instead.
@@ -233,7 +233,7 @@ def mode_files(go):
     print("%d moves" % len(moves))
     if go:
         for m in modules:
-            d = os.path.join(SRC, "mmgr", m["old"])
+            d = os.path.join(SRC, m["old"])
             if os.path.isdir(d) and not os.listdir(d):
                 os.rmdir(d)
     return 0

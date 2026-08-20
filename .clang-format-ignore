@@ -1,0 +1,4 @@
+# Unity's generator writes these, and it is rewritten on every build whose cases changed. Formatting
+# it by hand is undone immediately, and formatting it in CI makes every build that regenerates one
+# report a dirty tree.
+test/**/unity_runner.c
