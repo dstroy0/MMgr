@@ -41,7 +41,7 @@ jobs:
         run: pip install --upgrade gcovr
 
       - name: Install build wrapper
-        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
+        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v8
 
       # --coverage on both compile and link: it implies -fprofile-arcs -ftest-coverage when
       # compiling and -lgcov when linking, and setting only the compile half fails at link time.
@@ -69,7 +69,7 @@ jobs:
           --print-summary
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
