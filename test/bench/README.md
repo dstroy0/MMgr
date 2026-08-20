@@ -30,7 +30,7 @@ the lane widens. It does — roughly halving per doubling, measured on gcc 13.2 
 | spread   |   7.74 |   2.89 |   1.33 |     5.8x |
 | eq       |  10.09 |   4.30 |   2.32 |     4.4x |
 
-`eq` scales worst of the five and is the most expensive at every width. Not yet explained; it is the
+`eq` sits about 11% above `has_zero`, which is the movzbl, imul and xor it adds. Nothing to explain.
 one row here that looks like a question rather than an answer.
 
 ## Writing one

@@ -76,8 +76,8 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/spatium/test_spatium\\test_spatium.c");
-  run_test(test_spat_header_is_self_contained, "test_spat_header_is_self_contained", 15);
-  run_test(test_spat_namespace_is_wired, "test_spat_namespace_is_wired", 22);
+  run_test(test_spat_header_is_self_contained, "test_spat_header_is_self_contained", 8);
+  run_test(test_spat_namespace_is_wired, "test_spat_namespace_is_wired", 13);
 
   return UNITY_END();
 }

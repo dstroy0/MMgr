@@ -1,4 +1,4 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #ifndef MMGR_VERBUM_SCRUTOR_H
 #define MMGR_VERBUM_SCRUTOR_H
@@ -59,18 +59,91 @@ typedef struct
     mmgr_scrut_word (*load_al)(const char *p);
 } VerbumScrutorNs;
 
-mmgr_scrut_word mmgr_scrut_ge(mmgr_scrut_word a, mmgr_scrut_word v);
-mmgr_scrut_word mmgr_scrut_le(mmgr_scrut_word a, mmgr_scrut_word v);
-mmgr_scrut_word mmgr_scrut_spread(mmgr_scrut_word m);
-mmgr_scrut_word mmgr_scrut_sub7(mmgr_scrut_word a, mmgr_scrut_word lo);
-mmgr_scrut_word mmgr_scrut_has_zero(mmgr_scrut_word w);
-mmgr_scrut_word mmgr_scrut_eq(mmgr_scrut_word w, uint8_t c);
-mmgr_scrut_word mmgr_scrut_eq_ci(mmgr_scrut_word w, uint8_t c);
-mmgr_scrut_word mmgr_scrut_eq_sel(mmgr_scrut_word w, uint8_t c, mmgr_bool ci);
-mmgr_scrut_word mmgr_scrut_xor(mmgr_scrut_word wa, mmgr_scrut_word wb);
-mmgr_scrut_word mmgr_scrut_xor_ci(mmgr_scrut_word wa, mmgr_scrut_word wb);
-mmgr_scrut_word mmgr_scrut_xor_sel(mmgr_scrut_word wa, mmgr_scrut_word wb, mmgr_bool ci);
-size_t mmgr_scrut_zero_lane(mmgr_scrut_word m);
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_ge(mmgr_scrut_word a, mmgr_scrut_word v)
+{
+    return ((a | MMGR_VERBUM_SCRUTOR_HIGH) - v * MMGR_SWAR_ONES) & MMGR_VERBUM_SCRUTOR_HIGH;
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_le(mmgr_scrut_word a, mmgr_scrut_word v)
+{
+    return ((v * MMGR_SWAR_ONES | MMGR_VERBUM_SCRUTOR_HIGH) - a) & MMGR_VERBUM_SCRUTOR_HIGH;
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_spread(mmgr_scrut_word m)
+{
+
+    return (mmgr_scrut_word)(m + (m - (m >> 7)));
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_sub7(mmgr_scrut_word a, mmgr_scrut_word lo)
+{
+    return ((a | MMGR_VERBUM_SCRUTOR_HIGH) - lo * MMGR_SWAR_ONES) & MMGR_SWAR_LOW7;
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_has_zero(mmgr_scrut_word w)
+{
+    return ~(((w & MMGR_SWAR_LOW7) + MMGR_SWAR_LOW7) | w) & MMGR_VERBUM_SCRUTOR_HIGH;
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_eq(mmgr_scrut_word w, uint8_t c)
+{
+    return mmgr_scrut_has_zero(w ^ (MMGR_SWAR_ONES * (mmgr_scrut_word)c));
+}
+
+MMGR_INLINE size_t mmgr_scrut_zero_lane(mmgr_scrut_word m)
+{
+#if MMGR_HW_BIG_ENDIAN
+    return (size_t)((MMGR_SWAR_CLZ(m) - (MMGR_SWAR_CLZ_WIDTH - MMGR_SWAR_BITS)) >> 3);
+#else
+    return (size_t)(MMGR_SWAR_CTZ(m) >> 3);
+#endif
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_load(const char *p)
+{
+    return (mmgr_scrut_word)mmgr_proxim_load(p, MMGR_SWAR_BYTES);
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_load_al(const char *p)
+{
+    return (mmgr_scrut_word)mmgr_aequus_load(p, MMGR_SWAR_BYTES);
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_xor(mmgr_scrut_word wa, mmgr_scrut_word wb)
+{
+    return wa ^ wb;
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_xor_ci(mmgr_scrut_word wa, mmgr_scrut_word wb)
+{
+    mmgr_scrut_word x = wa ^ wb;
+    mmgr_scrut_word lo = wa | (MMGR_SWAR_ONES * 0x20u);
+    mmgr_scrut_word alpha = mmgr_scrut_ge(lo, 'a') & mmgr_scrut_le(lo, 'z') & ~lo;
+    return x & ~(alpha >> 2);
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_eq_ci(mmgr_scrut_word w, uint8_t c)
+{
+    return mmgr_scrut_has_zero(mmgr_scrut_xor_ci(w, MMGR_SWAR_ONES * (mmgr_scrut_word)c));
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_eq_sel(mmgr_scrut_word w, uint8_t c, mmgr_bool ci)
+{
+    if (ci)
+    {
+        return mmgr_scrut_eq_ci(w, c);
+    }
+    return mmgr_scrut_eq(w, c);
+}
+
+MMGR_INLINE mmgr_scrut_word mmgr_scrut_xor_sel(mmgr_scrut_word wa, mmgr_scrut_word wb, mmgr_bool ci)
+{
+    if (ci)
+    {
+        return mmgr_scrut_xor_ci(wa, wb);
+    }
+    return mmgr_scrut_xor(wa, wb);
+}
 mmgr_scrut_word mmgr_scrut_load(const char *p);
 mmgr_scrut_word mmgr_scrut_load_al(const char *p);
 

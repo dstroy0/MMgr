@@ -75,7 +75,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/confinium/test_confinium\\test_confinium.c");
-  run_test(test_confin_header_is_self_contained, "test_confin_header_is_self_contained", 15);
+  run_test(test_confin_header_is_self_contained, "test_confin_header_is_self_contained", 8);
 
   return UNITY_END();
 }

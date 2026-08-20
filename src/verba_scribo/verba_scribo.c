@@ -7,11 +7,6 @@
 
 #define MMGR_G_WORK_BITS 58u
 
-// The digit table, local because exactly one line in this library reads it.
-//
-// ProtoCore reached for shared/hex/hex.h, a whole module with its own Args/Vars/Ns shape, an entry
-// per conversion and a published namespace - and took one string out of it. Depending on all of
-// that for sixteen bytes of constant is the dependency this library is being extracted to lose.
 static const char mmgr_hex_lower[] = "0123456789abcdef";
 
 void mmgr_verba_put_n(mmgr_verba *b, const char *s, size_t sl)

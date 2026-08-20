@@ -75,7 +75,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/confinium_exclusivum_infinitas/test_confinium_exclusivum_infinitas\\test_confinium_exclusivum_infinitas.c");
-  run_test(test_infin_header_is_self_contained, "test_infin_header_is_self_contained", 15);
+  run_test(test_infin_header_is_self_contained, "test_infin_header_is_self_contained", 8);
 
   return UNITY_END();
 }

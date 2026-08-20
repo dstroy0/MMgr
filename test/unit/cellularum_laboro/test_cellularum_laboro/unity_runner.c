@@ -3,12 +3,28 @@
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
 #include "cellularum_laboro/cellularum_laboro.h"
+#include <string.h>
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_cellul_header_is_self_contained(void);
-extern void test_cellul_namespace_is_wired(void);
+extern void test_len_stops_at_nul_and_at_cap(void);
+extern void test_find_empty_needle_matches_at_zero(void);
+extern void test_find_at_every_offset(void);
+extern void test_find_spans_a_word_boundary(void);
+extern void test_find_needle_longer_than_one_word(void);
+extern void test_find_needle_lengths_one_through_nine(void);
+extern void test_find_prefers_the_first_of_several_matches(void);
+extern void test_find_near_miss_shares_a_prefix(void);
+extern void test_find_absent(void);
+extern void test_find_ci_folds_only_letters(void);
+extern void test_has_agrees_with_find(void);
+extern void test_eq_both_cases(void);
+extern void test_starts_both_cases(void);
+extern void test_diff_returns_the_first_differing_offset(void);
+extern void test_diff_crossing_a_word_boundary(void);
+extern void test_copy_truncates_and_terminates(void);
+extern void test_classifiers(void);
 
 
 /*=======Mock Management=====*/
@@ -76,8 +92,23 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/cellularum_laboro/test_cellularum_laboro\\test_cellularum_laboro.c");
-  run_test(test_cellul_header_is_self_contained, "test_cellul_header_is_self_contained", 15);
-  run_test(test_cellul_namespace_is_wired, "test_cellul_namespace_is_wired", 22);
+  run_test(test_len_stops_at_nul_and_at_cap, "test_len_stops_at_nul_and_at_cap", 27);
+  run_test(test_find_empty_needle_matches_at_zero, "test_find_empty_needle_matches_at_zero", 34);
+  run_test(test_find_at_every_offset, "test_find_at_every_offset", 40);
+  run_test(test_find_spans_a_word_boundary, "test_find_spans_a_word_boundary", 51);
+  run_test(test_find_needle_longer_than_one_word, "test_find_needle_longer_than_one_word", 61);
+  run_test(test_find_needle_lengths_one_through_nine, "test_find_needle_lengths_one_through_nine", 69);
+  run_test(test_find_prefers_the_first_of_several_matches, "test_find_prefers_the_first_of_several_matches", 81);
+  run_test(test_find_near_miss_shares_a_prefix, "test_find_near_miss_shares_a_prefix", 86);
+  run_test(test_find_absent, "test_find_absent", 93);
+  run_test(test_find_ci_folds_only_letters, "test_find_ci_folds_only_letters", 99);
+  run_test(test_has_agrees_with_find, "test_has_agrees_with_find", 108);
+  run_test(test_eq_both_cases, "test_eq_both_cases", 115);
+  run_test(test_starts_both_cases, "test_starts_both_cases", 124);
+  run_test(test_diff_returns_the_first_differing_offset, "test_diff_returns_the_first_differing_offset", 132);
+  run_test(test_diff_crossing_a_word_boundary, "test_diff_crossing_a_word_boundary", 139);
+  run_test(test_copy_truncates_and_terminates, "test_copy_truncates_and_terminates", 145);
+  run_test(test_classifiers, "test_classifiers", 154);
 
   return UNITY_END();
 }

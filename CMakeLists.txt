@@ -15,6 +15,32 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(MMGR_BUILD_TESTS "Build the unit tests" ON)
 option(MMGR_BUILD_BENCH "Build the benchmarks" OFF)
 option(MMGR_WERROR "Treat warnings as errors" OFF)
+option(MMGR_LTO "Link-time optimization" ON)
+
+# ------------------------------------------------------------------------------------------------
+# Optimization
+# ------------------------------------------------------------------------------------------------
+# LTO, because this library is seventeen small modules that call each other and the calls between
+# them are the cost. Measured in test/bench: mmgr_memor_chr over 512 bytes is 610 cycles when its
+# SWAR entries are out-of-line calls and 187 when the linker may inline them. The hot entries are
+# MMGR_INLINE in their headers now, so LTO is no longer load-bearing for those - it still is for
+# every cross-module call that is not.
+if(MMGR_LTO)
+  include(CheckIPOSupported)
+  check_ipo_supported(RESULT _ipo OUTPUT _ipo_why)
+  if(_ipo)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+  else()
+    message(STATUS "MMgr: LTO unavailable, continuing without it (${_ipo_why})")
+  endif()
+endif()
+
+# MinSizeRel is -Os by default, and -Os is the wrong trade for this library: it declines to inline
+# the small branch-free entries that ARE the library, so the calls it saves space on are the calls
+# that cost the most. An embedded build reaching for MinSizeRel wants small, not slow-and-small.
+foreach(_lang C)
+  string(REPLACE "-Os" "-O2" CMAKE_${_lang}_FLAGS_MINSIZEREL "${CMAKE_${_lang}_FLAGS_MINSIZEREL}")
+endforeach()
 
 # One place, so a warning that matters is on for the library, the tests and the benches alike.
 add_library(mmgr_flags INTERFACE)
@@ -63,4 +89,11 @@ add_subdirectory(src)
 if(MMGR_BUILD_TESTS)
   enable_testing()
   add_subdirectory(test)
+endif()
+
+# Added here rather than from test/CMakeLists.txt, so it does not depend on the tests being on.
+# Nested under MMGR_BUILD_TESTS it silently produced nothing for -DMMGR_BUILD_BENCH=ON alone, which
+# is exactly how a bench gets measured against a build nobody meant to measure.
+if(MMGR_BUILD_BENCH)
+  add_subdirectory(test/bench)
 endif()
