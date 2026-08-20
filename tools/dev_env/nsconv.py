@@ -103,7 +103,7 @@ def _brace_is_compound_literal(s, brace, mask):
     nothing. What separates them is the character immediately before the '(' that ')' closes: an
     identifier character means a call, a definition or a control statement, so the brace opens a
     block; anything else (a comma, an '=', an open paren, the start of a statement) means the parens
-    were a cast, so the brace opens an initialiser.
+    were a cast, so the brace opens an initializer.
     """
     j = brace - 1
     while j > 0 and (not mask[j] or s[j] in " \t\r\n"):
@@ -172,7 +172,7 @@ def statement_start(s, pos, mask=None):
             depth += 1
         elif c == "{":
             # `(T[]){ ... }` is a compound literal, not a block: stopping at its brace put the
-            # staging inside the initialiser. `if (x) {` looks the same until you read past the '('.
+            # staging inside the initializer. `if (x) {` looks the same until you read past the '('.
             if depth:
                 depth -= 1
             elif _brace_is_compound_literal(s, i - 1, mask):
@@ -453,7 +453,7 @@ def calls_in_statement(s, pos, pattern, mask=None):
         elif c == ";" and depth == 0:
             break
         end += 1
-    # count only matches that are code: a bench label like "protocore_config_get_str (trunc)"
+    # count only matches that are code: a bench label like "mmgr_config_get_str (trunc)"
     # names the entry inside a string literal, and that is text, not a second call.
     return sum(1 for m in pattern.finditer(s, st, end + 1) if mask[m.start()])
 

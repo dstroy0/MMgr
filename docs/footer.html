@@ -1,0 +1,43 @@
+<!--
+  memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+  SPDX-License-Identifier: AGPL-3.0-or-later
+
+  Doxygen footer template. No script, no mascot, no animation: everything a reader needs from a
+  footer is where they are, what version this is, and where the source lives.
+
+  DO NOT drop `id="nav-path"`. navtree.js does `footer = $("#nav-path")` and then sets
+  footer.style.marginLeft on every resize; without the id it is null, initResizable throws, and
+  #doc-content never receives its left margin - so the sidebar paints on top of the first paragraph
+  and the whole page looks broken for a reason nothing in the CSS explains. Doxygen's own default
+  template carries the same warning.
+
+  Both branches below are kept. GENERATE_TREEVIEW is YES today, but the !TREEVIEW branch is what
+  closes #doc-content, and losing it would leave the div open if the setting ever changed.
+-->
+<!-- start footer part -->
+<!--BEGIN GENERATE_TREEVIEW-->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    $navpath
+    <li class="footer mg-colophon">
+      <span class="mg-project">MMgr $projectnumber</span>
+      <span class="mg-sep">&#183;</span>
+      <a href="https://github.com/dstroy0/MMgr">github.com/dstroy0/MMgr</a>
+      <span class="mg-sep">&#183;</span>
+      <span class="mg-license">AGPL-3.0-or-later</span>
+      <span class="mg-sep">&#183;</span>
+      <span class="mg-gen">$generatedby doxygen $doxygenversion</span>
+    </li>
+  </ul>
+</div>
+<!--END GENERATE_TREEVIEW-->
+<!--BEGIN !GENERATE_TREEVIEW-->
+<hr class="footer"/>
+<address class="footer"><small>
+MMgr $projectnumber &#183; <a href="https://github.com/dstroy0/MMgr">github.com/dstroy0/MMgr</a>
+&#183; AGPL-3.0-or-later &#183; $generatedby doxygen $doxygenversion
+</small></address>
+</div><!-- doc-content -->
+<!--END !GENERATE_TREEVIEW-->
+</body>
+</html>

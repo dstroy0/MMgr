@@ -1,10 +1,19 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #ifndef MMGR_NUMEROS_SCRIBO_H
 #define MMGR_NUMEROS_SCRIBO_H
 
 #include "verba_scribo/verba_scribo.h"
 
+/**
+ * @file numeros_scribo.h
+ * @brief Build a formatted line from a field spec and a value list.
+ *
+ * The spec is data, not a format string. Nothing is parsed at run time and nothing is variadic, so
+ * a wrong value type is a compile error rather than a crash.
+ */
+
+/** @brief What a field holds. */
 typedef enum
 {
     MMGR_FK_END = 0,
@@ -23,6 +32,11 @@ typedef enum
     MMGR_FK_XML,
 } mmgr_fk;
 
+/**
+ * @brief One field of a spec.
+ *
+ * @c lit is the literal text for MMGR_FK_LIT and NULL otherwise.
+ */
 typedef struct mmgr_field
 {
     uint8_t kind;
@@ -31,6 +45,7 @@ typedef struct mmgr_field
     const char *lit;
 } mmgr_field;
 
+/** @brief Field spec shorthands. */
 #define MMGR_STR {MMGR_FK_STR, 0, 0, NULL}
 #define MMGR_U32 {MMGR_FK_U32, 0, 0, NULL}
 #define MMGR_U64 {MMGR_FK_U64, 0, 0, NULL}
@@ -40,6 +55,7 @@ typedef struct mmgr_field
 #define MMGR_XML {MMGR_FK_XML, 0, 0, NULL}
 #define MMGR_END {MMGR_FK_END, 0, 0, NULL}
 
+/** @brief One value, tagged with the kind it satisfies. */
 typedef struct mmgr_fval
 {
     uint8_t kind;
@@ -53,6 +69,7 @@ typedef struct mmgr_fval
     } as;
 } mmgr_fval;
 
+/** @brief Value shorthands. The tag has to match the spec's kind. */
 #define MMGR_VSTR(x)                                                                                                   \
     {                                                                                                                  \
         MMGR_FK_STR,                                                                                                   \
@@ -138,16 +155,40 @@ typedef struct mmgr_fval
         }                                                                                                              \
     }
 
+/**
+ * @brief Render a spec into @p out, replacing what was there.
+ * @param out Destination.
+ * @param cap Its size including the terminator.
+ * @param spec Field list, ending in MMGR_END.
+ * @param v Values.
+ * @param nv How many.
+ * @return Length written.
+ */
 size_t mmgr_numer_build(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv);
 
+/**
+ * @brief Render a spec onto the end of @p out.
+ * @param out Destination, already holding a string.
+ * @param cap Its size including the terminator.
+ * @param spec Field list, ending in MMGR_END.
+ * @param v Values.
+ * @param nv How many.
+ * @return New total length.
+ */
 size_t mmgr_numer_append(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv);
 
+/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
 typedef struct
 {
     size_t (*build)(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv);
     size_t (*append)(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv);
 } NumerosScriboNs;
+MMGR_NS_LAYOUT(NumerosScriboNs, build, append);
 
-static const NumerosScriboNs numer __attribute__((unused)) = {mmgr_numer_build, mmgr_numer_append};
+/** @brief Module namespace. */
+MMGR_NS NumerosScriboNs numer MMGR_UNUSED = {
+    .build = mmgr_numer_build,
+    .append = mmgr_numer_append,
+};
 
 #endif

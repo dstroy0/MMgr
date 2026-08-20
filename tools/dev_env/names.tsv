@@ -4,12 +4,12 @@
 # ================================================================================================
 # MODULES   old  latin  stem  pascal
 # ================================================================================================
-# old      the directory the module arrived in, from ProtoCore
+# old      the directory the module arrived in
 # latin    the category name: directory, filename, include path, header guard, typedef prefix
 # stem     the shortened Latin stem: namespace instance, and the default symbol infix
 # pascal   the latin name in PascalCase, for the Ns / Vars / V / Ctx / Args typedefs
 #
-MODULE	arena	confinium	confin	Confinium
+MODULE	confinium	confinium	confin	Confinium
 MODULE	bitio	bitio	bitio	Bitio
 MODULE	bytes	byteio	byteio	Byteio
 MODULE	dma	dma	dma	Dma
@@ -39,7 +39,7 @@ MODULE	swar	verbum_scrutor	scrut	VerbumScrutor
 # rawmemcpy's three onto one stem merged seven symbol pairs including the aligned and the unaligned
 # load, and collapsing cspan onto span merged the const and non-const constructors.
 #
-INFIX	arena	confin
+INFIX	confin	confin
 INFIX	bitw	bitio
 INFIX	bw	byteio
 INFIX	br	byteio
@@ -97,12 +97,12 @@ VERB	release	reddo
 # ================================================================================================
 # The data typedefs keep the existing lowercase mmgr_ convention - they are the public C API types
 # and the prefix is what namespaces them. They take the STEM rather than the long Latin, because the
-# symbol pass already produced mmgr_confin_set from mmgr_arena_set, and a type spelled
-# mmgr_confinium beside a function spelled mmgr_confin_set_add reads as two different modules.
+# symbol pass already produced mmgr_confin_set, and a type spelled mmgr_confinium beside a function
+# spelled mmgr_confin_set_add reads as two different modules.
 #
 TYPE	mmgr_span	mmgr_spat
 TYPE	mmgr_cspan	mmgr_fspat
-TYPE	mmgr_arena	mmgr_confin
+TYPE	mmgr_confin	mmgr_confin
 TYPE	mmgr_sb	mmgr_verba
 TYPE	mmgr_bit_writer	mmgr_bitio_writer
 #

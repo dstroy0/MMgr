@@ -1,4 +1,4 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #ifndef MMGR_CLARUS_CUSTODIAE_H
 #define MMGR_CLARUS_CUSTODIAE_H
@@ -9,10 +9,22 @@
 
 MMGR_BEGIN_DECLS
 
+/**
+ * @file clarus_custodiae.h
+ * @brief The plaintext guardian. Hands out tenants and takes them back.
+ *
+ * One slot per worker plus a ghost slot for a borrow with no worker behind it. Nothing is freed
+ * individually and nothing is ever reallocated: take what you need, release back to a mark.
+ */
+
+/** @brief Slot count. One per worker, plus the ghost. */
 #define MMGR_REG_POOL_SLOTS (MMGR_GHOST_WORKER_SLOT + 1)
 
+/** @brief Opaque pool state. */
 struct PlainInternal;
 
+/** @brief Dispatch table, with state behind the entries. The layout assert pins where the
+ *         run ends. */
 typedef struct
 {
     void *(*alloc)(size_t n, size_t align);
@@ -29,32 +41,88 @@ typedef struct
 
     struct PlainInternal *internal;
 } ClarusCustodiaeNs;
+MMGR_NS_LAYOUT_OPEN(ClarusCustodiaeNs, internal, alloc, span, persist, reset, mark, release, used, high_water, capacity, owns, slot_of);
 
+/** @brief The pool. */
 extern struct PlainInternal mmgr_clarus_internal;
 
+/**
+ * @brief Take @p n bytes from the calling worker's tenant.
+ * @param n Byte count.
+ * @param align Alignment, a power of two.
+ * @return The bytes, or NULL if the tenant is full.
+ */
 void *mmgr_clarus_capio(size_t n, size_t align);
 
+/**
+ * @brief Take @p n bytes as a writable span.
+ * @param n Byte count.
+ * @param align Alignment, a power of two.
+ * @return The span. Empty with no storage if the tenant is full.
+ */
 mmgr_spat mmgr_clarus_span(size_t n, size_t align);
 
+/**
+ * @brief Take @p n bytes that a release will not reclaim.
+ * @param n Byte count.
+ * @return The span. Empty with no storage if the tenant is full.
+ */
 mmgr_spat mmgr_clarus_persist_span(size_t n);
 
+/**
+ * @brief Release everything the calling worker holds.
+ */
 void mmgr_clarus_reset(void);
 
+/**
+ * @brief Current fill point, to release back to later.
+ * @return The mark.
+ */
 size_t mmgr_clarus_mark(void);
 
+/**
+ * @brief Release everything taken since @p mark.
+ * @param mark A mark from this tenant.
+ *
+ * Nothing is freed and nothing moves. The fill point moves back, so every pointer handed out after
+ * @p mark is dead.
+ */
 void mmgr_clarus_reddo(size_t mark);
 
+/**
+ * @brief How much of the tenant is taken.
+ * @return Byte count.
+ */
 size_t mmgr_clarus_used(void);
 
+/**
+ * @brief The most that has ever been taken.
+ * @return Byte count. Never falls.
+ */
 size_t mmgr_clarus_high_water(void);
 
+/**
+ * @brief Size of one tenant.
+ * @return Byte count.
+ */
 size_t mmgr_clarus_capacity(void);
 
+/**
+ * @brief Did this pool hand out @p p.
+ * @param p Pointer.
+ * @return MMGR_TRUE if it did.
+ */
 mmgr_bool mmgr_clarus_owns(const void *p);
 
+/**
+ * @brief Which slot holds @p p.
+ * @param p Pointer.
+ * @return Slot index, or negative if this pool does not own it.
+ */
 int mmgr_clarus_slot_of(const void *p);
 
-static const ClarusCustodiaeNs clarus __attribute__((unused)) = {.alloc = mmgr_clarus_capio,
+/** @brief Module namespace. */
+MMGR_NS ClarusCustodiaeNs clarus MMGR_UNUSED = {.alloc = mmgr_clarus_capio,
                                                                  .span = mmgr_clarus_span,
                                                                  .persist = mmgr_clarus_persist_span,
                                                                  .reset = mmgr_clarus_reset,

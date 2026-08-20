@@ -6,24 +6,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#if defined(__cplusplus)
-#define MMGR_STATIC_ASSERT(cond, msg) static_assert(cond, msg)
-#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 202311L
-#define MMGR_STATIC_ASSERT(cond, msg) static_assert(cond, msg)
-#else
-#define MMGR_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
-#endif
+#include "mmgr_compiler_directives.h"
 
-#ifdef __cplusplus
-#define MMGR_BEGIN_DECLS                                                                                               \
-    extern "C"                                                                                                         \
-    {
-#define MMGR_END_DECLS }
-#else
-#define MMGR_BEGIN_DECLS
-#define MMGR_END_DECLS
-#endif
+/**
+ * @file mmgr_types.h
+ * @brief Fixed width types, and the two widths everything else derives from.
+ *
+ * Not standalone. mmgr_config.h sets MMGR_WORD_BITS and MMGR_INDEX_BITS first.
+ */
 
+/** @brief Fixed width integers. */
 typedef uint8_t mmgr_u8;
 typedef uint16_t mmgr_u16;
 typedef uint32_t mmgr_u32;
@@ -33,38 +25,21 @@ typedef int16_t mmgr_i16;
 typedef int32_t mmgr_i32;
 typedef int64_t mmgr_i64;
 
+/** @brief Boolean. */
 #ifdef __cplusplus
 typedef bool mmgr_bool;
 #else
 typedef _Bool mmgr_bool;
 #endif
+/** @brief Boolean constants. */
 #define MMGR_TRUE ((mmgr_bool)1)
 #define MMGR_FALSE ((mmgr_bool)0)
-
-#if defined(__GNUC__) || defined(__clang__)
-#define MMGR_ENUM_PACKED __attribute__((packed))
-#define MMGR_ALIGN(n) __attribute__((aligned(n)))
-#define MMGR_ALIAS __attribute__((may_alias))
-#define MMGR_UNUSED __attribute__((unused))
-#else
-#define MMGR_ENUM_PACKED
-#define MMGR_ALIGN(n)
-#define MMGR_ALIAS
-#define MMGR_UNUSED
-#endif
-
-#ifndef MMGR_INLINE
-#if defined(__GNUC__)
-#define MMGR_INLINE static inline __attribute__((always_inline))
-#else
-#define MMGR_INLINE static inline
-#endif
-#endif
 
 #if !defined(MMGR_WORD_BITS) || !defined(MMGR_INDEX_BITS)
 #error "mmgr_types.h is not a standalone header - include mmgr_config.h, which sets the widths first"
 #endif
 
+/** @brief The machine word. Every SWAR lane count follows it. */
 #if MMGR_WORD_BITS == 64
 typedef mmgr_u64 mmgr_word;
 #elif MMGR_WORD_BITS == 32
@@ -75,6 +50,7 @@ typedef mmgr_u16 mmgr_word;
 #error "MMGR_WORD_BITS must be 16, 32 or 64 - see mmgr_config.h"
 #endif
 
+/** @brief A slot index. Never wider than the register that carries it. */
 #if MMGR_INDEX_BITS == 32
 typedef mmgr_u32 mmgr_idx;
 #elif MMGR_INDEX_BITS == 16
@@ -91,6 +67,12 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_word) * 8u == MMGR_WORD_BITS, "mmgr_word must be 
 MMGR_STATIC_ASSERT(sizeof(mmgr_idx) * 8u == MMGR_INDEX_BITS, "mmgr_idx must be exactly MMGR_INDEX_BITS wide");
 MMGR_STATIC_ASSERT(sizeof(mmgr_idx) <= sizeof(mmgr_word), "an index must fit the register it is carried in");
 
+/**
+ * @brief Probe that proves MMGR_ENUM_PACKED was honoured.
+ *
+ * An enum that silently becomes an int moves every field after it in every struct, and the library
+ * addresses borrows by offset. Nothing at the use site can detect that, so it is asserted here.
+ */
 typedef enum MMGR_ENUM_PACKED
 {
     MMGR_ENUM_PROBE_MIN = 0,

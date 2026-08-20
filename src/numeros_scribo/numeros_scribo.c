@@ -1,7 +1,12 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "numeros_scribo/numeros_scribo.h"
 #include "cellularum_laboro/cellularum_laboro.h"
+
+/**
+ * @file numeros_scribo.c
+ * @brief Render a field spec and a value list into text.
+ */
 
 #ifndef MMGR_FRAME_SCAN_LITERALS
 #define MMGR_FRAME_SCAN_LITERALS 0
@@ -9,6 +14,11 @@
 
 MMGR_OPTIMIZE_O2
 
+/**
+ * @brief @p s, or the empty string if it is NULL.
+ * @param s String.
+ * @return Never NULL.
+ */
 static const char *str_or_empty(const char *s)
 {
     if (s == NULL)

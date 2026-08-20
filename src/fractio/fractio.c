@@ -1,7 +1,12 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "fractio/fractio.h"
 #include "proximus_operor/proximus_operor.h"
+
+/**
+ * @file fractio.c
+ * @brief IEEE 754 binary64 field access, without <math.h>.
+ */
 
 mmgr_u64 mmgr_fract_sign(double v)
 {

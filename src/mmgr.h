@@ -3,6 +3,14 @@
 #ifndef MMGR_H
 #define MMGR_H
 
+/**
+ * @file mmgr.h
+ * @brief Everything, in one include. Also the Arduino compatibility name.
+ *
+ * A translation unit that wants one module should include that module. This exists so a sketch can
+ * say `#include <mmgr.h>` and be done.
+ */
+
 #include "mmgr_config.h"
 
 #include "bitio/bitio.h"

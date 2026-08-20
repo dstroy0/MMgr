@@ -1,6 +1,11 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "spatium/spatium.h"
+
+/**
+ * @file spatium.c
+ * @brief Bounded views over caller memory. A span owns nothing.
+ */
 
 mmgr_spat mmgr_spat_from(uint8_t *p, size_t cap)
 {

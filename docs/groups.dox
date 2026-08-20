@@ -1,0 +1,214 @@
+/**
+ * memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * @file groups.dox
+ * @brief The group tree. Titles, briefs and ordering live here and nowhere else.
+ *
+ * A header JOINS a group; it never declares one. So retitling a section, moving a module between
+ * sections or reordering the sidebar is an edit to this file, and the edit in src/ is two lines
+ * added once and never revisited.
+ *
+ * SORT_GROUP_NAMES is NO, so declaration order below is sidebar order. It is ordered to read as the
+ * data path rather than alphabetically: where the memory comes from, how it is addressed, how it is
+ * scanned, how it goes onto a wire, how it comes back out as text.
+ */
+
+/** @defgroup grp_mmgr MMgr
+ *  @brief Zero-heap memory manager. Nineteen modules over one borrowed region.
+ *
+ *  Nothing here allocates. A caller supplies storage, a confinium carves it, and every other module
+ *  is a view over what was carved.
+ */
+
+/* ================================================================================================
+ * Core
+ * ============================================================================================== */
+
+/** @defgroup grp_core Core
+ *  @ingroup grp_mmgr
+ *  @brief The widths, the knobs and the compiler policy every other module is written against.
+ *
+ *  Four headers with no directory of their own. They decide what a word is, what an index is, and
+ *  what the library is allowed to assume about the toolchain.
+ */
+
+/** @defgroup mod_config Configuration
+ *  @ingroup grp_core
+ *  @brief Every compile-time knob, and the ladders that derive one width from another.
+ */
+
+/** @defgroup mod_types Types
+ *  @ingroup grp_core
+ *  @brief mmgr_word, mmgr_idx and the fixed widths, plus the static asserts that police them.
+ */
+
+/** @defgroup mod_directives Compiler directives
+ *  @ingroup grp_core
+ *  @brief Every compiler conditional in the library, by policy. A new toolchain is one file to read.
+ */
+
+/** @defgroup mod_shim String shim
+ *  @ingroup grp_core
+ *  @brief Opt-in drop-in for <string.h>. Claims libc's include guards, so it must come first.
+ */
+
+/* ================================================================================================
+ * Region
+ * ============================================================================================== */
+
+/** @defgroup grp_region Region
+ *  @ingroup grp_mmgr
+ *  @brief Where the memory comes from. One borrowed buffer, carved by asserted offset.
+ *
+ *  A confinium is double-ended: persist grows up from the base, interim grows down from the top,
+ *  and a take fails rather than let them cross. The custodiae hand out tenants cut from that.
+ */
+
+/** @defgroup mod_confin Confinium
+ *  @ingroup grp_region
+ *  @brief One tenant, two ends growing toward each other, and nothing between is ever freed.
+ */
+
+/** @defgroup mod_clarus Clarus custodiae
+ *  @ingroup grp_region
+ *  @brief Plaintext pool. Per-worker-slot tenants over static storage.
+ */
+
+/** @defgroup mod_occult Occultum custodiae
+ *  @ingroup grp_region
+ *  @brief Secure pool. Same surface as the plaintext one, plus a wipe the optimizer cannot elide.
+ */
+
+/** @defgroup mod_exter Confinium externum
+ *  @ingroup grp_region
+ *  @brief External pool. Decides DRAM against PSRAM given a size, a threshold and a DMA
+ *         requirement. Compiled only when MMGR_ENABLE_PSRAM_POOL is set.
+ */
+
+/** @defgroup mod_infin Confinium exclusivum infinitas
+ *  @ingroup grp_region
+ *  @brief The lock-free edge. Single-producer single-consumer ring, segment queue, slot bitmap.
+ */
+
+/* ================================================================================================
+ * Views
+ * ============================================================================================== */
+
+/** @defgroup grp_view Views
+ *  @ingroup grp_mmgr
+ *  @brief How a caller addresses memory it does not own.
+ *
+ *  A span is a bounded window with a latching overflow flag. The access strategies underneath it
+ *  are three separate things, not one thing under three names.
+ */
+
+/** @defgroup mod_spat Spatium
+ *  @ingroup grp_view
+ *  @brief Bounded views over caller memory. A span owns nothing and never allocates.
+ */
+
+/** @defgroup mod_proxim Proximus operor
+ *  @ingroup grp_view
+ *  @brief Load and store primitives. proxim is unaligned, aequus is aligned, migro may alias -
+ *         merging them is a miscompile the compiler cannot report.
+ */
+
+/* ================================================================================================
+ * Scanning
+ * ============================================================================================== */
+
+/** @defgroup grp_scan Scanning
+ *  @ingroup grp_mmgr
+ *  @brief SWAR. A word at a time, branch-free, with the carrier fixed to the machine word.
+ *
+ *  The claim these modules make is measured rather than asserted: see @ref ref_performance.
+ */
+
+/** @defgroup mod_scrut Verbum scrutor
+ *  @ingroup grp_scan
+ *  @brief The SWAR lane primitives. Header-only, and the performance core of the library.
+ */
+
+/** @defgroup mod_memor Memoria operor
+ *  @ingroup grp_scan
+ *  @brief Bulk memory work, a word at a time. The mem-family, bounded.
+ */
+
+/** @defgroup mod_cellul Cellularum laboro
+ *  @ingroup grp_scan
+ *  @brief Bounded string work. Every entry takes a read cap and never runs past it.
+ */
+
+/** @defgroup mod_ascii ASCII mask
+ *  @ingroup grp_scan
+ *  @brief Character classes as sixteen-byte bitmaps, byte-indexed so they survive a 16-bit word.
+ */
+
+/** @defgroup mod_anchor Anchor cost
+ *  @ingroup grp_scan
+ *  @brief Byte-frequency cost table. Substring search anchors on the rarest byte of the needle.
+ */
+
+/* ================================================================================================
+ * Serialization
+ * ============================================================================================== */
+
+/** @defgroup grp_serial Serialization
+ *  @ingroup grp_mmgr
+ *  @brief Bytes on a wire, with the byte order stated rather than inherited.
+ */
+
+/** @defgroup mod_byteio Byteio
+ *  @ingroup grp_serial
+ *  @brief Byte and wire serialization over spans.
+ */
+
+/** @defgroup mod_bitio Bitio
+ *  @ingroup grp_serial
+ *  @brief Bit-level writer.
+ */
+
+/** @defgroup mod_endian Endian
+ *  @ingroup grp_serial
+ *  @brief Explicit byte-order reads and writes. Never the host's, unless the host's is asked for.
+ */
+
+/** @defgroup mod_fract Fractio
+ *  @ingroup grp_serial
+ *  @brief IEEE-754 field access: sign, exponent, mantissa, and the merge back.
+ */
+
+/* ================================================================================================
+ * Text
+ * ============================================================================================== */
+
+/** @defgroup grp_text Text
+ *  @ingroup grp_mmgr
+ *  @brief Getting numbers and strings out, without printf and without a heap.
+ */
+
+/** @defgroup mod_verba Verba scribo
+ *  @ingroup grp_text
+ *  @brief String builder. Bounded, latching, and no format string anywhere.
+ */
+
+/** @defgroup mod_numer Numeros scribo
+ *  @ingroup grp_text
+ *  @brief Declarative field-spec formatter. The layout is data, not a format string.
+ */
+
+/* ================================================================================================
+ * Hardware
+ * ============================================================================================== */
+
+/** @defgroup grp_hw Hardware
+ *  @ingroup grp_mmgr
+ *  @brief The gated modules. Absent unless their flag is set, and their suites skip loudly.
+ */
+
+/** @defgroup mod_dma DMA
+ *  @ingroup grp_hw
+ *  @brief Transfer submission and completion. The hardware hooks are weak, so a board file
+ *         overrides them. Compiled only when MMGR_ENABLE_DMA is set.
+ */

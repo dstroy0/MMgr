@@ -1,6 +1,11 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "byteio/byteio.h"
+
+/**
+ * @file byteio.c
+ * @brief Byte field reads and writes, big endian on the wire.
+ */
 
 void mmgr_byteio_put(mmgr_spat *w, uint8_t b)
 {

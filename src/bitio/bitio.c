@@ -1,6 +1,11 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "bitio/bitio.h"
+
+/**
+ * @file bitio.c
+ * @brief Bit writer. Bits accumulate most significant first and flush a byte at a time.
+ */
 
 void mmgr_bitio_put(mmgr_bitio_writer *w, uint32_t bits, int n)
 {

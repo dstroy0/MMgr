@@ -5,4 +5,6 @@ mmgr_add_module(cellularum_laboro
   SOURCES cellularum_laboro.c
   DEPS
     verbum_scrutor
+    anchor_cost
+    ascii_mask
 )

@@ -6,9 +6,10 @@
   harness.py suites                          every suite, its cases, and the capabilities it needs
   harness.py runners gen <dir> --unity <rb>  write <dir>/unity_runner.c
   harness.py cases <dir>                     what Unity will register, and what it will walk past
+  harness.py generated                       are the generated headers what their generators emit
 
-Ported from idemIP's test/harness.py. The mechanisms are that file's; the names, the paths and the
-two patterns that key on a per-project idiom are this one's.
+The mechanisms here are generic; the names, the paths and the two patterns that key on a per-project
+idiom are this tree's.
 
 A capability is a set of translation units the config selects, so a suite whose capabilities are off
 is not built at all:
@@ -22,6 +23,11 @@ fails while the full one passes.
 A case Unity's generator does not collect is not an error to the generator: it is simply never
 registered, so the suite passes while the case never ran. `cases` and `runners gen` both break that
 silence by naming the near misses.
+
+Two headers in src/ are generated rather than written, because they are tables nobody can check by
+eye - the ASCII class bitmaps and the anchor cost profiles. Editing them by hand is silently undone
+the next time anyone runs the generator, so `generated` compares what is on disk against what the
+generators emit and says which is which.
 """
 
 import argparse
@@ -33,7 +39,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# The same four-way split idemIP and ProtoCore use. A suite is a directory holding exactly one .c
+# A four-way split. A suite is a directory holding exactly one .c
 # with cases, and its generated runner sits beside it.
 #
 #   unit/<module>/test_<name>/     one per translation unit, mirroring src/<module>/
@@ -198,10 +204,9 @@ def generate_runner(suite_dir, unity_rb):
 
 # A suite that borrows a region and never drives it looks covered and is not.
 #
-# idemIP keys this on its own idiom, `bind_args.x = y_mem`. This tree's shape is the golden one:
-# operands go into <Mod>V.<entry>_args and the entry is then called with the borrow. So the pattern
-# adapted is the assignment into an Args record, and "driven" means the borrow is named somewhere
-# that is not its declaration, its assignment, or a clear.
+# This tree's shape is the golden one: operands go into <Mod>V.<entry>_args and the entry is then
+# called with the borrow. So the pattern matched is the assignment into an Args record, and "driven"
+# means the borrow is named somewhere that is not its declaration, its assignment, or a clear.
 BIND_DEP = re.compile(r"(\w+)V\.\w*_?args\.(\w+)\s*=\s*(\w+_work)\b")
 
 
@@ -324,6 +329,77 @@ def cmd_runners_gen(a):
     return 0
 
 
+# ------------------------------------------------------------------------------------------------
+# Generated headers
+# ------------------------------------------------------------------------------------------------
+# A generated header that someone edited by hand looks fine until the next regeneration throws the
+# edit away. These pair each output with the tool that owns it, so the check is mechanical.
+GENERATED = (
+    ("tools/dev_env/gen_ascii_masks.py", ("src/ascii_mask/ascii_mask.h",)),
+    (
+        "tools/dev_env/gen_anchor_profiles.py",
+        (
+            "src/anchor_cost/anchor_cost_generic.h",
+            "src/anchor_cost/anchor_cost_english.h",
+            "src/anchor_cost/anchor_cost_uri.h",
+            "src/anchor_cost/anchor_cost_inet.h",
+            "src/anchor_cost/anchor_cost_route.h",
+        ),
+    ),
+)
+
+
+def cmd_generated(a):
+    """Regenerate into a scratch copy and diff, so a check never writes."""
+    stale, missing = [], []
+
+    for tool, outs in GENERATED:
+        tool_path = os.path.join(ROOT, tool)
+        if not os.path.exists(tool_path):
+            missing.append(tool)
+            continue
+
+        before = {}
+        for rel in outs:
+            p = os.path.join(ROOT, rel)
+            before[rel] = open(p, "rb").read() if os.path.exists(p) else None
+
+        r = subprocess.run([sys.executable, tool_path], capture_output=True, text=True)
+        if r.returncode != 0:
+            print("%s failed:" % tool)
+            print(r.stderr.strip())
+            return 1
+
+        for rel in outs:
+            p = os.path.join(ROOT, rel)
+            after = open(p, "rb").read() if os.path.exists(p) else None
+            if before[rel] is None:
+                print("  created  %s" % rel)
+            elif before[rel] != after:
+                stale.append(rel)
+                if not a.write:
+                    open(p, "wb").write(before[rel])  # a check does not write
+                print("  STALE    %s" % rel)
+            else:
+                print("  ok       %s" % rel)
+
+    for tool in missing:
+        print("  MISSING  %s" % tool)
+
+    if missing:
+        print("\n%d generator(s) missing" % len(missing))
+    if stale:
+        verb = "regenerated" if a.write else "left as they were"
+        print("\n%d header(s) differ from their generator, %s" % (len(stale), verb))
+        print("fix with: python test/harness.py generated --write")
+    if not stale and not missing:
+        print("\nevery generated header matches its generator")
+
+    if a.strict and (stale or missing):
+        return 1
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -346,6 +422,11 @@ def main():
     g.add_argument("suite", nargs="+")
     g.add_argument("--unity", required=True, help="path to Unity's auto/generate_test_runner.rb")
     g.set_defaults(fn=cmd_runners_gen)
+
+    p = sub.add_parser("generated", help="are the generated headers what their generators emit")
+    p.add_argument("--write", action="store_true", help="keep the regenerated output instead of restoring")
+    p.add_argument("--strict", action="store_true", help="exit non-zero on a finding, for a CI gate")
+    p.set_defaults(fn=cmd_generated)
 
     a = ap.parse_args()
     return a.fn(a)

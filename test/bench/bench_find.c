@@ -20,7 +20,7 @@
 #include "verbum_scrutor/verbum_scrutor.h"
 
 #define HAY_BYTES 16384u
-#define ITERS 100000ul
+#define ITERS 8000ul
 
 static char g_hay[HAY_BYTES + 64u];
 static char g_needle[64];

@@ -1,6 +1,11 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "endian/endian.h"
+
+/**
+ * @file endian.c
+ * @brief Fixed width integer reads and writes in an explicit byte order.
+ */
 
 size_t mmgr_wr16le(uint8_t *p, uint16_t v)
 {

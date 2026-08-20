@@ -5,9 +5,9 @@
 # file-scope `void test_<name>(void)` cases; harness.py turns that into unity_runner.c through
 # Unity's own generator, and refuses a suite whose cases the generator would walk past.
 #
-# Ported from idemIP's test/CMakeLists.txt. The one structural addition is the environment loop: a
-# unit suite is built and registered once per entry in MMGR_ENVIRONMENTS, against that environment's
-# own library targets, so a defect that only shows at a 16-bit scan lane fails a run here.
+# The one structural feature worth naming is the environment loop: a unit suite is built and
+# registered once per entry in MMGR_ENVIRONMENTS, against that environment's own library targets, so
+# a defect that only shows at a 16-bit scan lane fails a run here.
 
 include(FetchContent)
 
@@ -80,7 +80,7 @@ foreach(suite_src ${MMGR_SUITE_SOURCES})
     # a file with no main(). That surfaced as `undefined reference to WinMain`, because the linker
     # falls back to looking for an entry point when main() is absent.
     #
-    # idemIP does not need this: it builds one executable per suite, so its OUTPUT has exactly one
+    # A tree that builds one executable per suite does not need this: its OUTPUT has exactly one
     # consumer. The environment loop is what makes the wrapper necessary here.
     add_custom_command(
         OUTPUT "${runner}"

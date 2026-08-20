@@ -1,16 +1,21 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "clarus_custodiae/clarus_custodiae.h"
 #include "confinium/confinium.h"
 
-#define PLAIN_BLOCK_BYTES ((uintptr_t)MMGR_REG_POOL_SLOTS * (uintptr_t)MMGR_PLAINTEXT_ARENA_SIZE)
+/**
+ * @file clarus_custodiae.c
+ * @brief The plaintext guardian. One tenant per worker, plus a ghost slot.
+ */
+
+#define PLAIN_BLOCK_BYTES ((uintptr_t)MMGR_REG_POOL_SLOTS * (uintptr_t)MMGR_PLAINTEXT_CONFIN_SIZE)
 
 #define PLAIN_NO_OFFSET (~(uintptr_t)0)
 
 struct PlainStorage
 {
 
-    _Alignas(32) uint8_t mem[MMGR_REG_POOL_SLOTS][MMGR_PLAINTEXT_ARENA_SIZE];
+    _Alignas(32) uint8_t mem[MMGR_REG_POOL_SLOTS][MMGR_PLAINTEXT_CONFIN_SIZE];
 };
 
 struct PlainInternal
@@ -27,11 +32,21 @@ static struct PlainStorage s_storage;
 
 struct PlainInternal mmgr_clarus_internal;
 
+/**
+ * @brief The pool.
+ * @return Pointer to it.
+ */
 static inline struct PlainInternal *plain_self(void)
 {
     return &mmgr_clarus_internal;
 }
 
+/**
+ * @brief Offset of @p p into the pool's store.
+ * @param ctx Pool.
+ * @param p Pointer.
+ * @return The offset, or PLAIN_NO_OFFSET when the pool has no store.
+ */
 static inline uintptr_t plain_offset(const struct PlainInternal *ctx, const void *p)
 {
     if (ctx->store == NULL)
@@ -41,12 +56,24 @@ static inline uintptr_t plain_offset(const struct PlainInternal *ctx, const void
     return (uintptr_t)p - (uintptr_t)ctx->store->mem;
 }
 
+/**
+ * @brief Which slot the caller gets.
+ * @return The worker's slot, or the ghost slot when there is no worker behind the call.
+ */
 static inline int cur_worker(void)
 {
     int w = mmgr_worker_self();
     return (w >= 0 && w < MMGR_REG_POOL_SLOTS) ? w : MMGR_GHOST_WORKER_SLOT;
 }
 
+/**
+ * @brief Check that one worker is not using another's tenant.
+ * @param ctx Pool.
+ * @param w Slot.
+ *
+ * Only compiled when MMGR_DEBUG_CHECKS is on. Records the first context id to touch a slot and
+ * complains if a different one turns up.
+ */
 static inline void assert_single_owner(struct PlainInternal *ctx, int w)
 {
 #if MMGR_DEBUG_CHECKS
@@ -71,11 +98,17 @@ static inline mmgr_confin *bind(struct PlainInternal *ctx, int w)
     if (a->base == NULL)
     {
         ctx->store = &s_storage;
-        mmgr_confin_init(a, ctx->store->mem[w], MMGR_PLAINTEXT_ARENA_SIZE);
+        mmgr_confin_init(a, ctx->store->mem[w], MMGR_PLAINTEXT_CONFIN_SIZE);
     }
     return a;
 }
 
+/**
+ * @brief The tenant in slot @p w, if it has been bound.
+ * @param ctx Pool.
+ * @param w Slot.
+ * @return The tenant, or NULL.
+ */
 static inline mmgr_confin *peek(struct PlainInternal *ctx, int w)
 {
     mmgr_confin *a = &ctx->pool[w];
@@ -160,7 +193,7 @@ size_t mmgr_clarus_high_water(void)
 
 size_t mmgr_clarus_capacity(void)
 {
-    return MMGR_PLAINTEXT_ARENA_SIZE;
+    return MMGR_PLAINTEXT_CONFIN_SIZE;
 }
 
 mmgr_bool mmgr_clarus_owns(const void *p)
@@ -176,5 +209,5 @@ int mmgr_clarus_slot_of(const void *p)
         return -1;
     }
 
-    return (int)(off / MMGR_PLAINTEXT_ARENA_SIZE);
+    return (int)(off / MMGR_PLAINTEXT_CONFIN_SIZE);
 }

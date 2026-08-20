@@ -1,11 +1,16 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "occultum_custodiae/occultum_custodiae.h"
 #include "confinium/confinium.h"
 
+/**
+ * @file occultum_custodiae.c
+ * @brief The secure guardian. Same shape as clarus, but released bytes are wiped.
+ */
+
 struct SecureStorage
 {
-    _Alignas(32) uint8_t mem[MMGR_SEC_POOL_SLOTS][MMGR_SECURE_ARENA_SIZE];
+    _Alignas(32) uint8_t mem[MMGR_SEC_POOL_SLOTS][MMGR_SECURE_CONFIN_SIZE];
 };
 
 struct SecureInternal
@@ -21,22 +26,44 @@ static struct SecureStorage s_store;
 
 struct SecureInternal mmgr_occult_state;
 
+/**
+ * @brief The pool.
+ * @return Pointer to it.
+ */
 static inline struct SecureInternal *secure_ctx(void)
 {
     return &mmgr_occult_state;
 }
 
+/**
+ * @brief Offset of @p p into the pool's store.
+ * @param ctx Pool.
+ * @param p Pointer.
+ * @return The offset, or the no-offset sentinel when the pool has no store.
+ */
 static inline uintptr_t secure_offset(const struct SecureInternal *ctx, const void *p)
 {
     return (uintptr_t)p - (uintptr_t)ctx->store;
 }
 
+/**
+ * @brief Which slot the caller gets.
+ * @return The worker's slot, or the ghost slot when there is no worker behind the call.
+ */
 static inline int cur_worker(void)
 {
     int w = mmgr_worker_self();
     return (w >= 0 && w < MMGR_SEC_POOL_SLOTS) ? w : MMGR_GHOST_WORKER_SLOT;
 }
 
+/**
+ * @brief Check that one worker is not using another's tenant.
+ * @param ctx Pool.
+ * @param w Slot.
+ *
+ * Only compiled when MMGR_DEBUG_CHECKS is on. Records the first context id to touch a slot and
+ * complains if a different one turns up.
+ */
 static inline void assert_single_owner(struct SecureInternal *ctx, int w)
 {
 #if MMGR_DEBUG_CHECKS
@@ -62,17 +89,31 @@ static inline mmgr_confin *bind(struct SecureInternal *ctx, int w)
     if (a->base == NULL)
     {
         ctx->store = &s_store;
-        mmgr_confin_init(a, ctx->store->mem[w], MMGR_SECURE_ARENA_SIZE);
+        mmgr_confin_init(a, ctx->store->mem[w], MMGR_SECURE_CONFIN_SIZE);
     }
     return a;
 }
 
+/**
+ * @brief The tenant in slot @p w, if it has been bound.
+ * @param ctx Pool.
+ * @param w Slot.
+ * @return The tenant, or NULL.
+ */
 static inline mmgr_confin *peek(struct SecureInternal *ctx, int w)
 {
     mmgr_confin *a = &ctx->pool[w];
     return (a->base != NULL) ? a : NULL;
 }
 
+/**
+ * @brief Release interim back to @p mark, wiping what is given up.
+ * @param a Tenant.
+ * @param mark Where to release to.
+ *
+ * This is what makes the secure pool secure. Releasing a mark hands the bytes back for reuse, so
+ * they are zeroed before the fill point moves.
+ */
 static inline void wipe_down_to(mmgr_confin *a, size_t mark)
 {
     const size_t top = mmgr_confin_interim_mark(a);
@@ -157,7 +198,7 @@ size_t mmgr_occult_high_water(void)
 
 size_t mmgr_occult_capacity(void)
 {
-    return MMGR_SECURE_ARENA_SIZE;
+    return MMGR_SECURE_CONFIN_SIZE;
 }
 
 mmgr_bool mmgr_occult_owns(const void *p)
@@ -180,5 +221,5 @@ int mmgr_occult_slot_of(const void *p)
         return -1;
     }
 
-    return (int)(off / MMGR_SECURE_ARENA_SIZE);
+    return (int)(off / MMGR_SECURE_CONFIN_SIZE);
 }

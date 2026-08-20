@@ -1,9 +1,21 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "confinium_externum/confinium_externum.h"
 
+/**
+ * @file confinium_externum.c
+ * @brief Placement across DRAM and PSRAM, and the ping-pong buffer pair.
+ */
+
 #if MMGR_ENABLE_PSRAM_POOL
 
+/**
+ * @brief Would this request still leave the DRAM reserve intact.
+ * @param size Byte count.
+ * @param free_dram Bytes free.
+ * @param dram_reserve Bytes to keep free.
+ * @return MMGR_TRUE if it fits.
+ */
 static mmgr_bool dram_fits(size_t size, size_t free_dram, size_t reserve)
 {
     return size <= free_dram && (free_dram - size) >= reserve;

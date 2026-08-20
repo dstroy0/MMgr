@@ -1,9 +1,14 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "verba_scribo/verba_scribo.h"
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "fractio/fractio.h"
 #include "proximus_operor/proximus_operor.h"
+
+/**
+ * @file verba_scribo.c
+ * @brief Text building over caller memory. Overflow latches; the buffer is always terminated.
+ */
 
 #define MMGR_G_WORK_BITS 58u
 
@@ -256,6 +261,13 @@ mmgr_bool mmgr_isnan(double v)
     return mmgr_fract_exp(v) == 0x7FFu && mmgr_fract_mant(v) != 0u;
 }
 
+/**
+ * @brief Append @p digits decimal digits of @p mant, with a point after @p point_after of them.
+ * @param b Builder.
+ * @param mant Mantissa.
+ * @param digits How many digits to emit.
+ * @param point_after Where the decimal point goes. Zero means no point.
+ */
 static void sb_digits(mmgr_verba *b, uint64_t mant, unsigned digits, unsigned point_after)
 {
     uint64_t div = 1;
@@ -274,6 +286,14 @@ static void sb_digits(mmgr_verba *b, uint64_t mant, unsigned digits, unsigned po
     }
 }
 
+/**
+ * @brief Renormalise a mantissa and scale pair so the mantissa sits in the working range.
+ * @param n In/out. Mantissa.
+ * @param s In/out. Binary scale.
+ *
+ * The pair is a fixed point value, not a double. Doing the decimal conversion in integers is what
+ * keeps this module free of <math.h> and of any rounding the FPU would apply on the way.
+ */
 static void g_renorm(mmgr_u64 *n, mmgr_i32 *s)
 {
     if (*n == 0u)
@@ -292,12 +312,24 @@ static void g_renorm(mmgr_u64 *n, mmgr_i32 *s)
     }
 }
 
+/**
+ * @brief Multiply the pair by ten.
+ * @param n In/out. Mantissa.
+ * @param s In/out. Binary scale.
+ */
 static void g_mul10(mmgr_u64 *n, mmgr_i32 *s)
 {
     *n *= 10u;
     g_renorm(n, s);
 }
 
+/**
+ * @brief Divide the pair by ten.
+ * @param n In/out. Mantissa.
+ * @param s In/out. Binary scale.
+ *
+ * Shifts up by four before dividing so the division keeps its low bits.
+ */
 static void g_div10(mmgr_u64 *n, mmgr_i32 *s)
 {
     *n <<= 4;
@@ -306,6 +338,12 @@ static void g_div10(mmgr_u64 *n, mmgr_i32 *s)
     g_renorm(n, s);
 }
 
+/**
+ * @brief Collapse the pair to an integer, rounding.
+ * @param n Mantissa.
+ * @param s Binary scale.
+ * @return The integer.
+ */
 static mmgr_u64 g_round(mmgr_u64 n, mmgr_i32 s)
 {
     if (s >= 0)

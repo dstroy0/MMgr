@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it using these metadata."
 title: MMgr
 abstract: >-
-  Zero-heap memory manager in C11 with a fully deterministic footprint. Arenas,
+  Zero-heap memory manager in C11 with a fully deterministic footprint. Confinia,
   pools, spans and rings are carved out of a single borrowed region and reached by
   asserted offset, so every allocation is decided at compile time and there is no
   malloc anywhere. Scanning is SWAR-accelerated, with the word width chosen at the
@@ -22,7 +22,7 @@ date-released: "2026-08-20"
 keywords:
   - memory
   - allocator
-  - arena
+  - confinium
   - ring-buffer
   - span
   - swar

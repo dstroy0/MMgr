@@ -1,0 +1,249 @@
+# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Run from the repository root:  doxygen docs/Doxyfile
+#
+# Only settings that were chosen are written here. Everything else takes its default, so this file
+# reads as a list of decisions rather than the 400-odd tags `doxygen -g` emits. A setting that is
+# here has a reason next to it.
+#
+# The docs workflow runs this file a second time with GENERATE_XML=YES appended from stdin, to feed
+# the documented-symbol coverage generator. It does not keep a second config.
+
+# -------------------------------------------------------------------------------------------------
+# Identity
+# -------------------------------------------------------------------------------------------------
+PROJECT_NAME           = "MMgr"
+PROJECT_BRIEF          = "Zero-heap memory manager in C11. One borrowed buffer, carved by asserted offset."
+PROJECT_NUMBER         = "v0.1.0"
+PROJECT_LOGO           = docs/assets/mark.svg
+OUTPUT_DIRECTORY       = docs
+CREATE_SUBDIRS         = NO
+
+# -------------------------------------------------------------------------------------------------
+# Input
+# -------------------------------------------------------------------------------------------------
+# *.c is absent on purpose. Every public entity is DECLARED in a header, so nothing documentable is
+# lost by leaving bodies out - and leaving them out is what makes EXTRACT_STATIC safe below. With
+# .c in, EXTRACT_STATIC would pull in every file-local helper in the library.
+#
+# The root README.md is also absent on purpose. It is the GitHub front door; docs/README.md is the
+# site front door. Both in INPUT gives two pages called "README" competing for the main page.
+INPUT                  = src docs CONTRIBUTING.md SECURITY.md CHANGELOG.md
+FILE_PATTERNS          = *.h *.md *.dox
+RECURSIVE              = YES
+USE_MDFILE_AS_MAINPAGE = docs/README.md
+IMAGE_PATH             = docs/assets
+
+# \snippet pulls worked examples straight out of the test suite, so an example in the docs is a
+# compiled, passing test rather than prose that drifts.
+EXAMPLE_PATH           = .
+EXAMPLE_RECURSIVE      = YES
+
+# Excluding docs/html matters: without it a second run documents the first run's output.
+EXCLUDE_PATTERNS       = */docs/html/* \
+                         */docs/xml/* \
+                         */build/* \
+                         */build-*/* \
+                         */node_modules/* \
+                         */anchor_cost/anchor_cost_*.h
+
+# -------------------------------------------------------------------------------------------------
+# Extraction
+# -------------------------------------------------------------------------------------------------
+# EXTRACT_ALL = NO, and it is not a style preference. Doxygen disables WARN_IF_UNDOCUMENTED whenever
+# EXTRACT_ALL is YES, so YES does not weaken the coverage signal - it switches it off, and the run
+# then reports a clean tree no matter how much is undocumented. NO also keeps the site honest: an
+# undocumented entity is absent rather than rendered as a bare signature that looks the same as a
+# documented one.
+EXTRACT_ALL            = NO
+
+# Not optional for this library. MMGR_NS is `static const`, so the dispatch tables - spat, memor,
+# scrut and the rest, which ARE the call-site API - are file-scope statics. With NO they do not
+# appear anywhere in the reference.
+EXTRACT_STATIC         = YES
+
+EXTRACT_PRIVATE        = NO
+EXTRACT_LOCAL_CLASSES  = NO
+INTERNAL_DOCS          = NO
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+
+# Every struct here is `typedef struct { ... } mmgr_spat;`. Without this each one documents twice:
+# once as an anonymous struct and once as the typedef.
+TYPEDEF_HIDES_STRUCT   = YES
+
+# C, not C++. Drops the C++-only tabs and renames "Classes" to "Data Structures".
+OPTIMIZE_OUTPUT_FOR_C  = YES
+
+# src/ is the include root, so the include path a caller writes IS part of the contract. Print it.
+SHOW_HEADERFILE        = YES
+SHOW_INCLUDE_FILES     = YES
+
+# -------------------------------------------------------------------------------------------------
+# Ordering
+# -------------------------------------------------------------------------------------------------
+# Load-bearing, not cosmetic. MMGR_NS_LAYOUT static-asserts the byte offset of every dispatch slot,
+# so the declaration order of an Ns struct IS the table's layout. Sorting members alphabetically
+# would document slot 0 of SpatiumNs as `after` when it is `from`.
+SORT_MEMBER_DOCS       = NO
+SORT_BRIEF_DOCS        = NO
+SORT_MEMBERS_CTORS_1ST = NO
+
+# The group tree in docs/groups.dox is ordered to read as the data path: region -> view -> scan ->
+# serialize -> emit. Alphabetizing it would scatter that.
+SORT_GROUP_NAMES       = NO
+DISTRIBUTE_GROUP_DOC   = NO
+GROUP_NESTED_COMPOUNDS = NO
+
+# -------------------------------------------------------------------------------------------------
+# Preprocessing
+# -------------------------------------------------------------------------------------------------
+# The highest-risk block in this file. Without the blanks below, `MMGR_INLINE mmgr_word f(void)`
+# parses as a function whose return type is MMGR_INLINE, and every inline entry in verbum_scrutor.h
+# and proximus_operor.h reports undocumented no matter what comment sits above it.
+#
+# MMGR_NS_LAYOUT is a 24-way recursive macro expanding to a chain of _Static_assert. Left expanding
+# it produces pages of noise per module.
+#
+# The two ENABLE flags default to 0, which would document dma.h and confinium_externum.h as empty
+# files - their entire contents sit behind the gate. Set to 1 here so the gated API is documented;
+# the module guides say plainly that the gate is off by default.
+#
+# The width macros pin one branch of the ladders in mmgr_config.h so mmgr_word resolves to a single
+# concrete type in the output. reference/environments.md carries the note that the reference is
+# generated at the 64-bit configuration and the other four environments differ only in these
+# typedefs.
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+SKIP_FUNCTION_MACROS   = YES
+PREDEFINED             = DOXYGEN \
+                         MMGR_BEGIN_DECLS= \
+                         MMGR_END_DECLS= \
+                         MMGR_INLINE="static inline" \
+                         MMGR_NS="static const" \
+                         MMGR_UNUSED= \
+                         MMGR_WEAK= \
+                         MMGR_ALIAS= \
+                         MMGR_RAW= \
+                         MMGR_ENUM_PACKED= \
+                         MMGR_ALIGN(x)= \
+                         MMGR_OPTIMIZE_O2= \
+                         MMGR_CALL(x)= \
+                         MMGR_STATIC_ASSERT(c,m)= \
+                         MMGR_NS_LAYOUT(...)= \
+                         MMGR_NS_LAYOUT_OPEN(...)= \
+                         MMGR_ENABLE_DMA=1 \
+                         MMGR_ENABLE_PSRAM_POOL=1 \
+                         MMGR_WORD_BITS=64 \
+                         MMGR_INDEX_BITS=32 \
+                         MMGR_WORKER_COUNT=1
+
+# The Ns table initializers are seventeen blocks of `.member = mmgr_x_y,` about fifteen lines each,
+# and the ASCII and anchor-cost tables are 256-entry arrays. The struct is the contract; the
+# initializer is noise. Values that matter are stated in prose.
+MAX_INITIALIZER_LINES  = 0
+
+# -------------------------------------------------------------------------------------------------
+# Markdown and linking
+# -------------------------------------------------------------------------------------------------
+MARKDOWN_SUPPORT       = YES
+# GITHUB so a heading anchor is spelled the same here and on github.com, and one link works in both.
+MARKDOWN_ID_STYLE      = GITHUB
+TOC_INCLUDE_HEADINGS   = 3
+AUTOLINK_SUPPORT       = YES
+ENUM_VALUES_PER_LINE   = 1
+
+# Repo-specific commands, so a comment can be terse and the output stays consistent.
+ALIASES                = "ns{1}=@par Namespace^^`\1`" \
+                         "slot{1}=@par Dispatch slot^^\1" \
+                         "borrows=@par Borrows^^Does not allocate. Writes only into storage the caller supplied." \
+                         "bounded{1}=@par Bounded^^Reads at most \1 bytes and stops." \
+                         "widthdep=@par Width^^Behavior follows MMGR_WORD_BITS. See @ref ref_environments."
+
+# -------------------------------------------------------------------------------------------------
+# Source browser
+# -------------------------------------------------------------------------------------------------
+# STRIP_CODE_COMMENTS = NO because in this library the discursive engineering prose in the comments
+# IS the value of reading the source. Stripping it leaves the half a reader can already infer.
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = NO
+VERBATIM_HEADERS       = YES
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+# -------------------------------------------------------------------------------------------------
+# Warnings
+# -------------------------------------------------------------------------------------------------
+# src/ carries real Doxygen comments, so these have something to say. The log is a product of the
+# docs job rather than a side effect: it is captured, summarized into the job summary, and ratcheted
+# so a NEW undocumented symbol fails a pull request while the existing backlog does not.
+#
+# WARN_AS_ERROR becomes FAIL_ON_WARNINGS_PRINT once the count reaches zero. Not YES: YES aborts at
+# the first warning, so you fix one, re-run, and find the next. FAIL_ON_WARNINGS_PRINT completes the
+# run, prints everything, then exits non-zero.
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_IF_INCOMPLETE_DOC = YES
+WARN_IF_UNDOC_ENUM_VAL = YES
+WARN_NO_PARAMDOC       = YES
+WARN_AS_ERROR          = NO
+WARN_LOGFILE           = docs/doxygen-warnings.log
+
+# -------------------------------------------------------------------------------------------------
+# Output
+# -------------------------------------------------------------------------------------------------
+# html/ and xml/ as siblings under docs/, so the Pages artifact uploads docs/html alone and the XML
+# the coverage generator reads is never published.
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_XML           = NO
+XML_OUTPUT             = xml
+XML_PROGRAMLISTING     = NO
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+
+# The default template plus the IBM Plex <link> tags. Regenerate with
+#   doxygen -w html docs/header.html /dev/null /dev/null
+# on a doxygen upgrade, then re-add the font block - the rest of the file is doxygen's.
+HTML_HEADER            = docs/header.html
+HTML_FOOTER            = docs/footer.html
+HTML_EXTRA_STYLESHEET  = docs/mmgr.css
+LAYOUT_FILE            = docs/DoxygenLayout.xml
+
+# TOGGLE gives the reader a light/dark switch. The HUE/SAT/GAMMA below only tint doxygen's own
+# generated values, which docs/mmgr.css overrides - they matter for the pre-JS paint and for any
+# variable the stylesheet fails to map, and 222/35/95 makes those look like a muted indigo miss
+# rather than a doxygen-blue one.
+HTML_COLORSTYLE        = TOGGLE
+HTML_COLORSTYLE_HUE    = 222
+HTML_COLORSTYLE_SAT    = 35
+HTML_COLORSTYLE_GAMMA  = 95
+
+HTML_DYNAMIC_MENUS     = YES
+# Collapsed-by-default sections hide content from the reader and from Ctrl-F. A printed spec does
+# not fold.
+HTML_DYNAMIC_SECTIONS  = NO
+HTML_COPY_CLIPBOARD    = YES
+HTML_CODE_FOLDING      = YES
+HTML_INDEX_NUM_ENTRIES = 100
+
+# 300 rather than doxygen's 260: confinium_exclusivum_infinitas is thirty characters and ellipsises.
+GENERATE_TREEVIEW      = YES
+FULL_SIDEBAR           = YES
+TREEVIEW_WIDTH         = 300
+
+SEARCHENGINE           = YES
+SERVER_BASED_SEARCH    = NO
+
+# No graphviz dependency in the docs job, and a call graph of mmgr_scrut_has_zero is not
+# information. The one graph worth having - which module depends on which - is rendered from
+# docs/diagrams/module-deps.dot by standalone dot, and the structural diagrams in docs/assets are
+# drawn by hand.
+HAVE_DOT               = NO
+
+QUIET                  = NO
+NUM_PROC_THREADS       = 0

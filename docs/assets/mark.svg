@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" role="img" aria-label="MMgr">
+  <!--
+    memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+    SPDX-License-Identifier: AGPL-3.0-or-later
+
+    One borrowed region, carved from both ends. The filled block top-left is persist growing up from
+    the base; the block bottom-right is interim growing down from the top; the dashed line is where
+    a take fails rather than let them cross. That is the whole library in one figure.
+
+    Doxygen references this through <img src>, which makes it a SEPARATE DOCUMENT: it cannot see the
+    page's custom properties and currentColor resolves to its own black, not the page's ink. So the
+    colors are literal here, and chosen to read on both #FAF9F7 and #15171A - this is the one file
+    in the theme that is allowed to carry a hex.
+  -->
+  <rect x="3.5" y="6.5" width="33" height="27" rx="2" fill="none" stroke="#8090c0" stroke-width="1.6"/>
+  <rect x="6" y="9" width="11" height="9" fill="#6c80be"/>
+  <rect x="6" y="20" width="7" height="4" fill="#6c80be" opacity="0.5"/>
+  <rect x="23" y="22" width="11" height="9" fill="#6c80be"/>
+  <rect x="27" y="16" width="7" height="4" fill="#6c80be" opacity="0.5"/>
+  <line x1="20" y1="9" x2="20" y2="31" stroke="#9a7b3f" stroke-width="1.2" stroke-dasharray="2 2.5"/>
+</svg>

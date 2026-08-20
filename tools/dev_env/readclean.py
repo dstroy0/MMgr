@@ -15,15 +15,15 @@ clear something. With those names replaced, only what the statements actually do
 that then looks wrong IS wrong, rather than being a mismatch the reader was primed not to see.
 
 WHAT BLIND KEEPS, AND WHY IT IS NOT A GENERIC RENAMER. This tree has one shape, and the shape is
-grammar rather than vocabulary: an entry takes `uint8_t *restrict work` and nothing else, operands
+grammar rather than vocabulary: an entry is a function-pointer member of an `<X>Ns` table, operands
 are members of `<X>V`, state is carved out of `MMGR_<X>_BORROW` at `<X>_OFF_*` offsets under a
 static_assert. Blinding that away would leave text no one can check conformity against. So the
 suffixes and the fixed vocabulary survive and only the IDENTITY moves:
 
-    ArenaNs ArenaVars ArenaV ArenaCtx      ->  X1Ns X1Vars X1V X1Ctx
-    MMGR_ARENA_BORROW ARENA_OFF_W          ->  MMGR_X1_BORROW X1_OFF_A
-    mmgr_arena_alloc                       ->  mmgr_fn3
-    work, uint8_t, size_t, static_assert, atomic_load   ->  unchanged
+    ConfiniumNs ConfiniumVars ConfiniumV ConfiniumCtx  ->  X1Ns X1Vars X1V X1Ctx
+    MMGR_CONFIN_BORROW CONFIN_OFF_W                    ->  MMGR_X1_BORROW X1_OFF_A
+    mmgr_confin_persist_capio                          ->  mmgr_fn3
+    mmgr_word, uint8_t, size_t, static_assert, atomic_load  ->  unchanged
 
 What is left reads as "an entry, taking the borrow, casting a region at an asserted offset" with no
 opinion about whether that region is a hash state or a parser. That is the question worth asking.
@@ -55,8 +55,8 @@ from strip_comments import rewrite
 from codemask import code_mask
 
 # Path arguments are resolved against the working directory FIRST, so the spelling a reader types
-# is the spelling that works, then against the library and the repo. `src/arena/arena.h` and
-# `mmgr/src/arena/arena.h` both land on the same file from either directory.
+# is the spelling that works, then against the library and the repo. `src/confinium/confinium.h` and
+# `mmgr/src/confinium/confinium.h` both land on the same file from either directory.
 ROOT = os.getcwd()
 BASES = (ROOT, LIB, REPO)
 
@@ -191,26 +191,28 @@ STDLIB = {
     "CHAR_BIT",
     "EOF",
 }
-# ProtoCore's own grammar: the fixed words the shape is written in. `work` is the borrow every entry
-# takes, `ok` is where every entry states its outcome, and the DECLS macros bracket every header.
-# These say nothing about which module is being read, so blinding them costs the reader the shape
-# and buys no independence.
+# This library's own grammar: the fixed words the shape is written in. `ok` is where an entry states
+# its outcome, the width typedefs are what every signature is spelled in, and the DECLS macros
+# bracket every header. These say nothing about which module is being read, so blinding them costs
+# the reader the shape and buys no independence.
 SHAPE = {
-    "work",
     "ok",
-    "proto_bool",
-    "proto_u32",
-    "proto_u16",
-    "proto_u8",
-    "proto_i32",
-    "proto_i16",
-    "PROTO_TRUE",
-    "PROTO_FALSE",
-    "PROTOCORE_BEGIN_DECLS",
-    "PROTOCORE_END_DECLS",
-    "PROTOCORE_ARENA_ALIGN",
-    "PROTOCORE_ARENA_MAX_ALIGN",
-    "protocore_config",
+    "mmgr_bool",
+    "mmgr_word",
+    "mmgr_idx",
+    "mmgr_u64",
+    "mmgr_u32",
+    "mmgr_u16",
+    "mmgr_u8",
+    "mmgr_i32",
+    "mmgr_i16",
+    "MMGR_TRUE",
+    "MMGR_FALSE",
+    "MMGR_BEGIN_DECLS",
+    "MMGR_END_DECLS",
+    "MMGR_CONFIN_ALIGN",
+    "MMGR_CONFIN_MAX_ALIGN",
+    "mmgr_config",
 }
 # An __attribute__ argument is grammar too. `__attribute__((unused))` came out as
 # `__attribute__((v7))`, which reads as a call on a variable rather than as the attribute that lets
@@ -259,8 +261,10 @@ SAFE = KEYWORDS | STDLIB | SHAPE | ATTRS
 IDENT = re.compile(r"\b[A-Za-z_]\w*\b")
 # The shape suffixes, longest first so `Vars` is tested before the bare object name.
 ROLE_SUFFIX = ("Vars", "Args", "Ctx", "Ns", "V")
-# The one member whose type IS the shape: an entry takes the borrow and nothing else.
-ENTRY_MEMBER = re.compile(r"\(\s*\*\s*const\s+(\w+)\s*\)\s*\(\s*uint8_t\s*\*\s*restrict\s+work\s*\)")
+# The member whose type IS the shape: a function pointer inside a dispatch table. The signature is
+# not fixed here - entries take spans, caps and flags, and every table spells them differently - so
+# what identifies an entry is the pointer-to-function member itself, not its argument list.
+ENTRY_MEMBER = re.compile(r"\(\s*\*\s*(?:const\s+)?(\w+)\s*\)\s*\(")
 # A function-like macro and its body: the cast that reads a region off the borrow.
 REGION_MACRO = re.compile(r"^[ \t]*#[ \t]*define[ \t]+(\w+)\([^)]*\)[ \t]*(.*)$", re.M)
 
@@ -297,7 +301,7 @@ def banner(p):
 
 
 def stripped(p):
-    """The file with every comment gone, the licence and @file block included.
+    """The file with every comment gone, the license and @file block included.
 
     Not a formality: a doc block states what the code is MEANT to do, and reading it first is how a
     conformity pass ends up confirming the prose instead of the code.
@@ -413,9 +417,9 @@ class Blinder(object):
           - the bytes inside a STRING LITERAL. Every static_assert message came out as
             `"MMGR_X1_BORROW v10 short v11 v12"` - the diagnostic a build would print,
             rewritten into nonsense. code_mask already marks a literal as non-code, so it is asked.
-          - a DIRECTIVE keyword. `#ifndef MMGR_ARENA_H` became `#v1 MMGR_X1_H`, losing
+          - a DIRECTIVE keyword. `#ifndef MMGR_CONFINIUM_H` became `#v1 MMGR_X1_H`, losing
             the guard, the gate and every conditional arm.
-          - an #include PATH. It is a location, not a claim about behaviour, and blinding it leaves
+          - an #include PATH. It is a location, not a claim about behavior, and blinding it leaves
             a file nothing can place in the tree.
         """
         mask = code_mask(text)

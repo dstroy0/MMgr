@@ -1,4 +1,4 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #ifndef MMGR_OCCULTUM_CUSTODIAE_H
 #define MMGR_OCCULTUM_CUSTODIAE_H
@@ -10,10 +10,19 @@
 
 MMGR_BEGIN_DECLS
 
+/**
+ * @file occultum_custodiae.h
+ * @brief The secure guardian. Same shape as clarus, but released bytes are wiped.
+ */
+
+/** @brief Slot count. One per worker, plus the ghost. */
 #define MMGR_SEC_POOL_SLOTS (MMGR_GHOST_WORKER_SLOT + 1)
 
+/** @brief Opaque pool state. */
 struct SecureInternal;
 
+/** @brief Dispatch table, with state behind the entries. The layout assert pins where the
+ *         run ends. */
 typedef struct
 {
     void *(*alloc)(size_t n, size_t align);
@@ -30,9 +39,20 @@ typedef struct
 
     struct SecureInternal *internal;
 } OccultumCustodiaeNs;
+MMGR_NS_LAYOUT_OPEN(OccultumCustodiaeNs, internal, alloc, span, persist_span, reset, mark, release, used, high_water, capacity, owns, slot_of);
 
+/** @brief The pool. */
 extern struct SecureInternal mmgr_occult_state;
 
+/**
+ * @brief Zero @p len bytes so the compiler cannot remove the writes.
+ * @param ptr Region.
+ * @param len Byte count.
+ *
+ * volatile is the whole point. A plain loop over memory about to be released is dead code and the
+ * optimiser is entitled to delete it, which is how a secret survives its own erasure. Bytes to the
+ * first word boundary, then words, then the tail.
+ */
 static inline void mmgr_occult_wipe(void *ptr, size_t len)
 {
 
@@ -56,29 +76,83 @@ static inline void mmgr_occult_wipe(void *ptr, size_t len)
     }
 }
 
+/**
+ * @brief Take @p n bytes from the calling worker's tenant.
+ * @param n Byte count.
+ * @param align Alignment, a power of two.
+ * @return The bytes, or NULL if the tenant is full.
+ */
 void *mmgr_occult_capio(size_t n, size_t align);
 
+/**
+ * @brief Take @p n bytes as a writable span.
+ * @param n Byte count.
+ * @param align Alignment, a power of two.
+ * @return The span. Empty with no storage if the tenant is full.
+ */
 mmgr_spat mmgr_occult_span(size_t n, size_t align);
 
+/**
+ * @brief Take @p n bytes that a release will not reclaim.
+ * @param n Byte count.
+ * @return The span. Empty with no storage if the tenant is full.
+ */
 mmgr_spat mmgr_occult_persist_span(size_t n);
 
+/**
+ * @brief Current fill point, to release back to later.
+ * @return The mark.
+ */
 size_t mmgr_occult_mark(void);
 
+/**
+ * @brief Release everything taken since @p mark.
+ * @param mark A mark from this tenant.
+ *
+ * Nothing is freed and nothing moves. The fill point moves back, so every pointer handed out after
+ * @p mark is dead.
+ */
 void mmgr_occult_reddo(size_t mark);
 
+/**
+ * @brief Release everything the calling worker holds.
+ */
 void mmgr_occult_reset(void);
 
+/**
+ * @brief How much of the tenant is taken.
+ * @return Byte count.
+ */
 size_t mmgr_occult_used(void);
 
+/**
+ * @brief The most that has ever been taken.
+ * @return Byte count. Never falls.
+ */
 size_t mmgr_occult_high_water(void);
 
+/**
+ * @brief Size of one tenant.
+ * @return Byte count.
+ */
 size_t mmgr_occult_capacity(void);
 
+/**
+ * @brief Did this pool hand out @p p.
+ * @param p Pointer.
+ * @return MMGR_TRUE if it did.
+ */
 mmgr_bool mmgr_occult_owns(const void *p);
 
+/**
+ * @brief Which slot holds @p p.
+ * @param p Pointer.
+ * @return Slot index, or negative if this pool does not own it.
+ */
 int mmgr_occult_slot_of(const void *p);
 
-static const OccultumCustodiaeNs occult __attribute__((unused)) = {.alloc = mmgr_occult_capio,
+/** @brief Module namespace. */
+MMGR_NS OccultumCustodiaeNs occult MMGR_UNUSED = {.alloc = mmgr_occult_capio,
                                                                    .span = mmgr_occult_span,
                                                                    .persist_span = mmgr_occult_persist_span,
                                                                    .reset = mmgr_occult_reset,

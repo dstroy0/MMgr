@@ -1,7 +1,12 @@
-// ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "confinium/confinium.h"
 #include "memoria_operor/memoria_operor.h"
+
+/**
+ * @file confinium.c
+ * @brief Tenant bookkeeping. Persist grows up, interim grows down, and they meet in the middle.
+ */
 
 int mmgr_worker_count(void)
 {
@@ -56,21 +61,26 @@ typedef struct
     size_t used;
 } ABlk;
 
-static const size_t AHDR = (sizeof(ABlk) + (MMGR_ARENA_ALIGN - 1)) & ~(size_t)(MMGR_ARENA_ALIGN - 1);
+static const size_t AHDR = (sizeof(ABlk) + (MMGR_CONFIN_ALIGN - 1)) & ~(size_t)(MMGR_CONFIN_ALIGN - 1);
 
+/**
+ * @brief Round @p n up to MMGR_CONFIN_ALIGN.
+ * @param n Byte count.
+ * @return Rounded count.
+ */
 static inline size_t align_up(size_t n)
 {
-    return (n + (MMGR_ARENA_ALIGN - 1)) & ~(size_t)(MMGR_ARENA_ALIGN - 1);
+    return (n + (MMGR_CONFIN_ALIGN - 1)) & ~(size_t)(MMGR_CONFIN_ALIGN - 1);
 }
 
 void mmgr_confin_init(mmgr_confin *a, void *base, size_t size)
 {
 
     uintptr_t b = (uintptr_t)base;
-    uintptr_t ab = (b + (MMGR_ARENA_MAX_ALIGN - 1)) & ~(uintptr_t)(MMGR_ARENA_MAX_ALIGN - 1);
+    uintptr_t ab = (b + (MMGR_CONFIN_MAX_ALIGN - 1)) & ~(uintptr_t)(MMGR_CONFIN_MAX_ALIGN - 1);
     size_t adj = (size_t)(ab - b);
     a->base = (uint8_t *)ab;
-    a->size = (size > adj) ? ((size - adj) & ~(size_t)(MMGR_ARENA_ALIGN - 1)) : 0;
+    a->size = (size > adj) ? ((size - adj) & ~(size_t)(MMGR_CONFIN_ALIGN - 1)) : 0;
     a->persist_end = 0;
     a->scratch_top = a->size;
     a->persist_used = 0;
@@ -80,7 +90,7 @@ void mmgr_confin_init(mmgr_confin *a, void *base, size_t size)
 
 void *mmgr_confin_persist_capio(mmgr_confin *a, size_t n)
 {
-    n = align_up(n ? n : MMGR_ARENA_ALIGN);
+    n = align_up(n ? n : MMGR_CONFIN_ALIGN);
 
     size_t off = 0;
     while (off < a->persist_end)
@@ -89,7 +99,7 @@ void *mmgr_confin_persist_capio(mmgr_confin *a, size_t n)
         if (!b->used && b->size >= n)
         {
 
-            if (b->size >= n + AHDR + MMGR_ARENA_ALIGN)
+            if (b->size >= n + AHDR + MMGR_CONFIN_ALIGN)
             {
                 ABlk *nb = (ABlk *)(a->base + off + AHDR + n);
                 nb->size = b->size - n - AHDR;
@@ -174,7 +184,7 @@ void mmgr_confin_persist_reddo(mmgr_confin *a, void *p)
 
 void *mmgr_confin_interim_capio(mmgr_confin *a, size_t n)
 {
-    return mmgr_confin_interim_capio_aligned(a, n, MMGR_ARENA_ALIGN);
+    return mmgr_confin_interim_capio_aligned(a, n, MMGR_CONFIN_ALIGN);
 }
 
 size_t mmgr_confin_octas_praesto(const mmgr_confin *a)
@@ -195,13 +205,13 @@ void mmgr_confin_set_init(mmgr_confin_set *s)
 
 mmgr_bool mmgr_confin_set_add(mmgr_confin_set *s, void *base, size_t size)
 {
-    if (s->count >= MMGR_ARENA_MAX_REGIONS)
+    if (s->count >= MMGR_CONFIN_MAX_REGIONS)
     {
         return MMGR_FALSE;
     }
     mmgr_confin *r = &s->region[s->count];
     mmgr_confin_init(r, base, size);
-    if (r->size < AHDR + MMGR_ARENA_ALIGN)
+    if (r->size < AHDR + MMGR_CONFIN_ALIGN)
     {
         return MMGR_FALSE;
     }
@@ -255,7 +265,7 @@ void *mmgr_confin_set_interim_capio_aligned(mmgr_confin_set *s, size_t n, size_t
 
 void *mmgr_confin_set_interim_capio(mmgr_confin_set *s, size_t n)
 {
-    return mmgr_confin_set_interim_capio_aligned(s, n, MMGR_ARENA_ALIGN);
+    return mmgr_confin_set_interim_capio_aligned(s, n, MMGR_CONFIN_ALIGN);
 }
 
 mmgr_confin_mark mmgr_confin_set_interim_mark(const mmgr_confin_set *s)

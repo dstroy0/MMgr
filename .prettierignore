@@ -18,3 +18,13 @@ vendor/
 test/vendor/
 
 node_modules/
+
+# Doxygen HTML templates. Not standalone HTML - they carry $placeholders and conditional
+# <!--BEGIN X--> blocks that prettier cannot parse.
+docs/header.html
+docs/footer.html
+
+# Generated documentation. Rebuilt by docs.yml on every run.
+docs/html/
+docs/xml/
+docs/doxygen-warnings.log
