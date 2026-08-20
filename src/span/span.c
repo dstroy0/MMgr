@@ -2,89 +2,89 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "mmgr/span/span.h"
 
-protocore_span protocore_span_from(uint8_t *p, size_t cap)
+mmgr_span mmgr_span_from(uint8_t *p, size_t cap)
 {
-    protocore_span s;
+    mmgr_span s;
     s.buf = (p != NULL && cap != 0) ? p : NULL;
     s.cap = (s.buf != NULL) ? cap : 0;
     s.pos = 0;
-    s.overflow = PROTO_FALSE;
+    s.overflow = MMGR_FALSE;
     return s;
 }
 
-protocore_cspan protocore_cspan_from(const uint8_t *p, size_t len)
+mmgr_cspan mmgr_cspan_from(const uint8_t *p, size_t len)
 {
-    protocore_cspan s;
+    mmgr_cspan s;
     s.buf = (p != NULL && len != 0) ? p : NULL;
     s.len = (s.buf != NULL) ? len : 0;
     s.pos = 0;
-    s.err = PROTO_FALSE;
+    s.err = MMGR_FALSE;
     return s;
 }
 
-proto_bool protocore_span_ok(protocore_span s)
+mmgr_bool mmgr_span_ok(mmgr_span s)
 {
     return s.buf != NULL && !s.overflow;
 }
 
-proto_bool protocore_span_has_storage(protocore_span s)
+mmgr_bool mmgr_span_has_storage(mmgr_span s)
 {
     return s.buf != NULL;
 }
 
-proto_bool protocore_cspan_ok(protocore_cspan s)
+mmgr_bool mmgr_cspan_ok(mmgr_cspan s)
 {
     return s.buf != NULL && !s.err;
 }
 
-size_t protocore_span_len(protocore_span s)
+size_t mmgr_span_len(mmgr_span s)
 {
     return s.pos;
 }
 
-size_t protocore_span_room(protocore_span s)
+size_t mmgr_span_room(mmgr_span s)
 {
     return (s.pos < s.cap) ? (s.cap - s.pos) : 0;
 }
 
-void protocore_span_reset(protocore_span *s)
+void mmgr_span_reset(mmgr_span *s)
 {
     s->pos = 0;
-    s->overflow = PROTO_FALSE;
+    s->overflow = MMGR_FALSE;
 }
 
-protocore_span protocore_span_after(protocore_span s, size_t off)
+mmgr_span mmgr_span_after(mmgr_span s, size_t off)
 {
-    if (!protocore_span_has_storage(s) || off >= s.cap)
+    if (!mmgr_span_has_storage(s) || off >= s.cap)
     {
-        return protocore_span_from(NULL, 0);
+        return mmgr_span_from(NULL, 0);
     }
-    return protocore_span_from(s.buf + off, s.cap - off);
+    return mmgr_span_from(s.buf + off, s.cap - off);
 }
 
-protocore_span protocore_span_first(protocore_span s, size_t n)
+mmgr_span mmgr_span_first(mmgr_span s, size_t n)
 {
-    if (!protocore_span_has_storage(s))
+    if (!mmgr_span_has_storage(s))
     {
-        return protocore_span_from(NULL, 0);
+        return mmgr_span_from(NULL, 0);
     }
-    return protocore_span_from(s.buf, (n < s.cap) ? n : s.cap);
+    return mmgr_span_from(s.buf, (n < s.cap) ? n : s.cap);
 }
 
-protocore_cspan protocore_span_produced(protocore_span s)
+mmgr_cspan mmgr_span_produced(mmgr_span s)
 {
-    if (!protocore_span_ok(s))
+    if (!mmgr_span_ok(s))
     {
-        return protocore_cspan_from(NULL, 0);
+        return mmgr_cspan_from(NULL, 0);
     }
-    return protocore_cspan_from(s.buf, s.pos);
+    return mmgr_cspan_from(s.buf, s.pos);
 }
 
-protocore_cspan protocore_span_read(protocore_span s, size_t len)
+mmgr_cspan mmgr_span_read(mmgr_span s, size_t len)
 {
-    if (!protocore_span_has_storage(s))
+    if (!mmgr_span_has_storage(s))
     {
-        return protocore_cspan_from(NULL, 0);
+        return mmgr_cspan_from(NULL, 0);
     }
-    return protocore_cspan_from(s.buf, (len < s.cap) ? len : s.cap);
+    return mmgr_cspan_from(s.buf, (len < s.cap) ? len : s.cap);
 }

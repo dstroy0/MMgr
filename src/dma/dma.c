@@ -2,57 +2,57 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "mmgr/dma/dma.h"
 
-#if PROTOCORE_ENABLE_DMA
+#if MMGR_ENABLE_DMA
 
-__attribute__((weak)) proto_bool protocore_dma_hw_open(const protocore_dma_config *cfg)
+__attribute__((weak)) mmgr_bool mmgr_dma_hw_open(const mmgr_dma_config *cfg)
 {
     (void)cfg;
-    return PROTO_FALSE;
+    return MMGR_FALSE;
 }
-__attribute__((weak)) proto_bool protocore_dma_hw_tx_submit(uint8_t ch, const uint8_t *buf, uint16_t len)
+__attribute__((weak)) mmgr_bool mmgr_dma_hw_tx_submit(uint8_t ch, const uint8_t *buf, uint16_t len)
 {
     (void)ch;
     (void)buf;
     (void)len;
-    return PROTO_FALSE;
+    return MMGR_FALSE;
 }
-__attribute__((weak)) void protocore_dma_hw_close(uint8_t ch)
+__attribute__((weak)) void mmgr_dma_hw_close(uint8_t ch)
 {
     (void)ch;
 }
-__attribute__((weak)) void protocore_dma_hw_poll(void)
+__attribute__((weak)) void mmgr_dma_hw_poll(void)
 {
 }
 
-proto_bool protocore_dma_open(const protocore_dma_config *cfg)
+mmgr_bool mmgr_dma_open(const mmgr_dma_config *cfg)
 {
-    if (!cfg || !cfg->on_complete || cfg->channel >= PROTOCORE_DMA_CHANNELS)
+    if (!cfg || !cfg->on_complete || cfg->channel >= MMGR_DMA_CHANNELS)
     {
-        return PROTO_FALSE;
+        return MMGR_FALSE;
     }
-    return protocore_dma_hw_open(cfg);
+    return mmgr_dma_hw_open(cfg);
 }
 
-proto_bool protocore_dma_tx_submit(uint8_t ch, const uint8_t *buf, uint16_t len)
+mmgr_bool mmgr_dma_tx_submit(uint8_t ch, const uint8_t *buf, uint16_t len)
 {
-    if (ch >= PROTOCORE_DMA_CHANNELS || !buf || len == 0 || len > PROTOCORE_DMA_BUF_SIZE)
+    if (ch >= MMGR_DMA_CHANNELS || !buf || len == 0 || len > MMGR_DMA_BUF_SIZE)
     {
-        return PROTO_FALSE;
+        return MMGR_FALSE;
     }
-    return protocore_dma_hw_tx_submit(ch, buf, len);
+    return mmgr_dma_hw_tx_submit(ch, buf, len);
 }
 
-void protocore_dma_close(uint8_t ch)
+void mmgr_dma_close(uint8_t ch)
 {
-    if (ch < PROTOCORE_DMA_CHANNELS)
+    if (ch < MMGR_DMA_CHANNELS)
     {
-        protocore_dma_hw_close(ch);
+        mmgr_dma_hw_close(ch);
     }
 }
 
-void protocore_dma_poll(void)
+void mmgr_dma_poll(void)
 {
-    protocore_dma_hw_poll();
+    mmgr_dma_hw_poll();
 }
 
 #endif

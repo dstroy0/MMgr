@@ -4,11 +4,11 @@
 #include "mmgr/protostr/protostr.h"
 #include "shared/speed_opt/speed_opt.h"
 
-#ifndef PROTOCORE_FRAME_SCAN_LITERALS
-#define PROTOCORE_FRAME_SCAN_LITERALS 0
+#ifndef MMGR_FRAME_SCAN_LITERALS
+#define MMGR_FRAME_SCAN_LITERALS 0
 #endif
 
-PROTOCORE_OPTIMIZE_O2
+MMGR_OPTIMIZE_O2
 
 static const char *str_or_empty(const char *s)
 {
@@ -19,19 +19,19 @@ static const char *str_or_empty(const char *s)
     return s;
 }
 
-size_t protocore_frame_build(char *out, size_t cap, const protocore_field *spec, const protocore_fval *v, size_t nv)
+size_t mmgr_frame_build(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv)
 {
     if (!out || cap == 0 || !spec)
     {
         return 0;
     }
-    protocore_sb b = {out, cap, 0, PROTO_TRUE};
+    mmgr_sb b = {out, cap, 0, MMGR_TRUE};
     size_t k = 0;
-    for (const protocore_field *f = spec; f->kind != PROTOCORE_FK_END; f++)
+    for (const mmgr_field *f = spec; f->kind != MMGR_FK_END; f++)
     {
-        if (f->kind == PROTOCORE_FK_LIT)
+        if (f->kind == MMGR_FK_LIT)
         {
-#if PROTOCORE_FRAME_SCAN_LITERALS
+#if MMGR_FRAME_SCAN_LITERALS
             Sb.put(&b, f->lit);
 #else
 
@@ -45,44 +45,44 @@ size_t protocore_frame_build(char *out, size_t cap, const protocore_field *spec,
             out[0] = '\0';
             return 0;
         }
-        const protocore_fval *a = &v[k];
+        const mmgr_fval *a = &v[k];
         k++;
         switch (f->kind)
         {
-        case PROTOCORE_FK_STR:
+        case MMGR_FK_STR:
             Sb.put(&b, str_or_empty(a->as.s));
             break;
-        case PROTOCORE_FK_U32:
+        case MMGR_FK_U32:
             Sb.u32(&b, a->as.u32);
             break;
-        case PROTOCORE_FK_U64:
+        case MMGR_FK_U64:
             Sb.u64(&b, a->as.u64);
             break;
-        case PROTOCORE_FK_I64:
+        case MMGR_FK_I64:
             Sb.i64(&b, a->as.i64);
             break;
-        case PROTOCORE_FK_DEC:
+        case MMGR_FK_DEC:
             Sb.u32w(&b, a->as.u32, f->width);
             break;
-        case PROTOCORE_FK_HEX:
+        case MMGR_FK_HEX:
             Sb.hex(&b, a->as.u64, f->width ? f->width : 1);
             break;
-        case PROTOCORE_FK_OCT:
+        case MMGR_FK_OCT:
             Sb.uint(&b, a->as.u64, 8, f->width ? f->width : 1);
             break;
-        case PROTOCORE_FK_G:
+        case MMGR_FK_G:
             Sb.g(&b, a->as.d, f->width ? f->width : 6);
             break;
-        case PROTOCORE_FK_FIX:
+        case MMGR_FK_FIX:
             Sb.fixed(&b, a->as.d, f->width);
             break;
-        case PROTOCORE_FK_CH:
+        case MMGR_FK_CH:
             Sb.ch(&b, a->as.c);
             break;
-        case PROTOCORE_FK_JSON:
+        case MMGR_FK_JSON:
             Sb.json(&b, str_or_empty(a->as.s));
             break;
-        case PROTOCORE_FK_XML:
+        case MMGR_FK_XML:
             Sb.xml(&b, str_or_empty(a->as.s));
             break;
         default:
@@ -105,7 +105,7 @@ size_t protocore_frame_build(char *out, size_t cap, const protocore_field *spec,
     return n;
 }
 
-size_t protocore_frame_append(char *out, size_t cap, const protocore_field *spec, const protocore_fval *v, size_t nv)
+size_t mmgr_frame_append(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv)
 {
     if (!out || cap == 0 || !spec)
     {
@@ -116,7 +116,7 @@ size_t protocore_frame_append(char *out, size_t cap, const protocore_field *spec
     {
         return 0;
     }
-    size_t n = protocore_frame_build(out + used, cap - used, spec, v, nv);
+    size_t n = mmgr_frame_build(out + used, cap - used, spec, v, nv);
     if (n == 0)
     {
         out[used] = '\0';

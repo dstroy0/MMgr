@@ -7,7 +7,7 @@ static inline size_t len(const char *s, size_t nul_cap)
 {
 
     size_t i = 0;
-    while (i < nul_cap && ((uintptr_t)(s + i) & (PROTOCORE_SWAR_BYTES - 1u)) != 0u)
+    while (i < nul_cap && ((uintptr_t)(s + i) & (MMGR_SWAR_BYTES - 1u)) != 0u)
     {
         if (s[i] == '\0')
         {
@@ -15,14 +15,14 @@ static inline size_t len(const char *s, size_t nul_cap)
         }
         ++i;
     }
-    while (i + PROTOCORE_SWAR_BYTES <= nul_cap)
+    while (i + MMGR_SWAR_BYTES <= nul_cap)
     {
-        protocore_swar_word m = swar.has_zero(swar.load_al(s + i));
+        mmgr_swar_word m = swar.has_zero(swar.load_al(s + i));
         if (m != 0)
         {
             return i + swar.zero_lane(m);
         }
-        i += PROTOCORE_SWAR_BYTES;
+        i += MMGR_SWAR_BYTES;
     }
 
     while (i < nul_cap && s[i] != '\0')
@@ -32,7 +32,7 @@ static inline size_t len(const char *s, size_t nul_cap)
     return i;
 }
 
-PROTOCORE_INLINE int byte_same_ci(uint8_t a, uint8_t b)
+MMGR_INLINE int byte_same_ci(uint8_t a, uint8_t b)
 {
     if (a == b)
     {
@@ -58,15 +58,15 @@ PROTOCORE_INLINE int byte_same_ci(uint8_t a, uint8_t b)
 static inline size_t diff_cs(const char *a, const char *b, size_t read_cap)
 {
     size_t i = 0;
-    while (i + PROTOCORE_SWAR_BYTES <= read_cap)
+    while (i + MMGR_SWAR_BYTES <= read_cap)
     {
-        protocore_swar_word d = swar.load(a + i) ^ swar.load(b + i);
+        mmgr_swar_word d = swar.load(a + i) ^ swar.load(b + i);
         if (d != 0)
         {
 
-            return i + swar.zero_lane(PROTOCORE_SWAR_HIGH & ~swar.has_zero(d));
+            return i + swar.zero_lane(MMGR_SWAR_HIGH & ~swar.has_zero(d));
         }
-        i += PROTOCORE_SWAR_BYTES;
+        i += MMGR_SWAR_BYTES;
     }
     while (i < read_cap && a[i] == b[i])
     {
@@ -78,38 +78,38 @@ static inline size_t diff_cs(const char *a, const char *b, size_t read_cap)
 static inline size_t diff_ci(const char *a, const char *b, size_t read_cap)
 {
     size_t i = 0;
-    while (i + PROTOCORE_SWAR_BYTES <= read_cap)
+    while (i + MMGR_SWAR_BYTES <= read_cap)
     {
-        protocore_swar_word d = swar.xor_(swar.load(a + i), swar.load(b + i), PROTO_TRUE);
+        mmgr_swar_word d = swar.xor_(swar.load(a + i), swar.load(b + i), MMGR_TRUE);
         if (d != 0)
         {
-            return i + swar.zero_lane(PROTOCORE_SWAR_HIGH & ~swar.has_zero(d));
+            return i + swar.zero_lane(MMGR_SWAR_HIGH & ~swar.has_zero(d));
         }
-        i += PROTOCORE_SWAR_BYTES;
+        i += MMGR_SWAR_BYTES;
     }
 
-    while (i < read_cap && swar.xor_((protocore_swar_word)(unsigned char)a[i], (protocore_swar_word)(unsigned char)b[i],
-                                     PROTO_TRUE) == 0)
+    while (i < read_cap &&
+           swar.xor_((mmgr_swar_word)(unsigned char)a[i], (mmgr_swar_word)(unsigned char)b[i], MMGR_TRUE) == 0)
     {
         ++i;
     }
     return i;
 }
 
-PROTOCORE_INLINE int step_word_cs(protocore_swar_word wa, protocore_swar_word wb, int end_wins)
+MMGR_INLINE int step_word_cs(mmgr_swar_word wa, mmgr_swar_word wb, int end_wins)
 {
-    protocore_swar_word x = wa ^ wb;
-    protocore_swar_word z = swar.has_zero(wa);
+    mmgr_swar_word x = wa ^ wb;
+    mmgr_swar_word z = swar.has_zero(wa);
     if ((x | z) == 0)
     {
-        return PROTOCORE_SWAR_GO;
+        return MMGR_SWAR_GO;
     }
-    size_t dl = PROTOCORE_SWAR_BYTES;
+    size_t dl = MMGR_SWAR_BYTES;
     if (x != 0)
     {
-        dl = swar.zero_lane(PROTOCORE_SWAR_HIGH & ~swar.has_zero(x));
+        dl = swar.zero_lane(MMGR_SWAR_HIGH & ~swar.has_zero(x));
     }
-    size_t el = PROTOCORE_SWAR_BYTES;
+    size_t el = MMGR_SWAR_BYTES;
     if (z != 0)
     {
         el = swar.zero_lane(z);
@@ -118,31 +118,31 @@ PROTOCORE_INLINE int step_word_cs(protocore_swar_word wa, protocore_swar_word wb
     {
         if (el <= dl)
         {
-            return PROTOCORE_SWAR_YES;
+            return MMGR_SWAR_YES;
         }
-        return PROTOCORE_SWAR_NO;
+        return MMGR_SWAR_NO;
     }
     if (el < dl)
     {
-        return PROTOCORE_SWAR_YES;
+        return MMGR_SWAR_YES;
     }
-    return PROTOCORE_SWAR_NO;
+    return MMGR_SWAR_NO;
 }
 
-PROTOCORE_INLINE int step_word_ci(protocore_swar_word wa, protocore_swar_word wb, int end_wins)
+MMGR_INLINE int step_word_ci(mmgr_swar_word wa, mmgr_swar_word wb, int end_wins)
 {
-    protocore_swar_word x = swar.xor_(wa, wb, PROTO_TRUE);
-    protocore_swar_word z = swar.has_zero(wa);
+    mmgr_swar_word x = swar.xor_(wa, wb, MMGR_TRUE);
+    mmgr_swar_word z = swar.has_zero(wa);
     if ((x | z) == 0)
     {
-        return PROTOCORE_SWAR_GO;
+        return MMGR_SWAR_GO;
     }
-    size_t dl = PROTOCORE_SWAR_BYTES;
+    size_t dl = MMGR_SWAR_BYTES;
     if (x != 0)
     {
-        dl = swar.zero_lane(PROTOCORE_SWAR_HIGH & ~swar.has_zero(x));
+        dl = swar.zero_lane(MMGR_SWAR_HIGH & ~swar.has_zero(x));
     }
-    size_t el = PROTOCORE_SWAR_BYTES;
+    size_t el = MMGR_SWAR_BYTES;
     if (z != 0)
     {
         el = swar.zero_lane(z);
@@ -151,79 +151,79 @@ PROTOCORE_INLINE int step_word_ci(protocore_swar_word wa, protocore_swar_word wb
     {
         if (el <= dl)
         {
-            return PROTOCORE_SWAR_YES;
+            return MMGR_SWAR_YES;
         }
-        return PROTOCORE_SWAR_NO;
+        return MMGR_SWAR_NO;
     }
     if (el < dl)
     {
-        return PROTOCORE_SWAR_YES;
+        return MMGR_SWAR_YES;
     }
-    return PROTOCORE_SWAR_NO;
+    return MMGR_SWAR_NO;
 }
 
-PROTOCORE_INLINE int step_byte_cs(unsigned char ca, unsigned char cb, int end_wins)
+MMGR_INLINE int step_byte_cs(unsigned char ca, unsigned char cb, int end_wins)
 {
     if (ca == 0)
     {
         if (ca == cb)
         {
-            return PROTOCORE_SWAR_YES;
+            return MMGR_SWAR_YES;
         }
         if (end_wins != 0)
         {
-            return PROTOCORE_SWAR_YES;
+            return MMGR_SWAR_YES;
         }
-        return PROTOCORE_SWAR_NO;
+        return MMGR_SWAR_NO;
     }
     if (ca != cb)
     {
-        return PROTOCORE_SWAR_NO;
+        return MMGR_SWAR_NO;
     }
-    return PROTOCORE_SWAR_GO;
+    return MMGR_SWAR_GO;
 }
 
-PROTOCORE_INLINE int step_byte_ci(unsigned char ca, unsigned char cb, int end_wins)
+MMGR_INLINE int step_byte_ci(unsigned char ca, unsigned char cb, int end_wins)
 {
-    protocore_swar_word d = swar.xor_((protocore_swar_word)ca, (protocore_swar_word)cb, PROTO_TRUE);
+    mmgr_swar_word d = swar.xor_((mmgr_swar_word)ca, (mmgr_swar_word)cb, MMGR_TRUE);
     if (ca == 0)
     {
         if (d == 0)
         {
-            return PROTOCORE_SWAR_YES;
+            return MMGR_SWAR_YES;
         }
         if (end_wins != 0)
         {
-            return PROTOCORE_SWAR_YES;
+            return MMGR_SWAR_YES;
         }
-        return PROTOCORE_SWAR_NO;
+        return MMGR_SWAR_NO;
     }
     if (d != 0)
     {
-        return PROTOCORE_SWAR_NO;
+        return MMGR_SWAR_NO;
     }
-    return PROTOCORE_SWAR_GO;
+    return MMGR_SWAR_GO;
 }
 
-static inline proto_bool agree_cs(const char *a, const char *b, size_t read_cap, int end_wins)
+static inline mmgr_bool agree_cs(const char *a, const char *b, size_t read_cap, int end_wins)
 {
 
     size_t i = 0;
     while (i < read_cap)
     {
-        if (((uintptr_t)(a + i) & (PROTOCORE_SWAR_BYTES - 1u)) == 0u && i + PROTOCORE_SWAR_BYTES <= read_cap)
+        if (((uintptr_t)(a + i) & (MMGR_SWAR_BYTES - 1u)) == 0u && i + MMGR_SWAR_BYTES <= read_cap)
         {
-            protocore_swar_word wa = swar.load_al(a + i);
-            protocore_swar_word wb = swar.load(b + i);
-            protocore_swar_word x = wa ^ wb;
-            protocore_swar_word z = swar.has_zero(wa);
+            mmgr_swar_word wa = swar.load_al(a + i);
+            mmgr_swar_word wb = swar.load(b + i);
+            mmgr_swar_word x = wa ^ wb;
+            mmgr_swar_word z = swar.has_zero(wa);
             if ((x | z) != 0)
             {
 
-                protocore_swar_word xm = PROTOCORE_SWAR_HIGH & ~swar.has_zero(x);
-                protocore_swar_word zl = (z - (protocore_swar_word)1) & ~z;
-                protocore_swar_word xl = (xm - (protocore_swar_word)1) & ~xm;
-#if PROTOCORE_HW_BIG_ENDIAN
+                mmgr_swar_word xm = MMGR_SWAR_HIGH & ~swar.has_zero(x);
+                mmgr_swar_word zl = (z - (mmgr_swar_word)1) & ~z;
+                mmgr_swar_word xl = (xm - (mmgr_swar_word)1) & ~xm;
+#if MMGR_HW_BIG_ENDIAN
 
                 if (end_wins)
                 {
@@ -238,7 +238,7 @@ static inline proto_bool agree_cs(const char *a, const char *b, size_t read_cap,
                 return zl < xl;
 #endif
             }
-            i += PROTOCORE_SWAR_BYTES;
+            i += MMGR_SWAR_BYTES;
             continue;
         }
         unsigned char ca = (unsigned char)a[i];
@@ -249,7 +249,7 @@ static inline proto_bool agree_cs(const char *a, const char *b, size_t read_cap,
         }
         if (ca != cb)
         {
-            return PROTO_FALSE;
+            return MMGR_FALSE;
         }
         ++i;
     }
@@ -257,23 +257,23 @@ static inline proto_bool agree_cs(const char *a, const char *b, size_t read_cap,
     return end_wins != 0;
 }
 
-static inline proto_bool agree_ci(const char *a, const char *b, size_t read_cap, int end_wins)
+static inline mmgr_bool agree_ci(const char *a, const char *b, size_t read_cap, int end_wins)
 {
     size_t i = 0;
     while (i < read_cap)
     {
-        if (((uintptr_t)(a + i) & (PROTOCORE_SWAR_BYTES - 1u)) == 0u && i + PROTOCORE_SWAR_BYTES <= read_cap)
+        if (((uintptr_t)(a + i) & (MMGR_SWAR_BYTES - 1u)) == 0u && i + MMGR_SWAR_BYTES <= read_cap)
         {
-            protocore_swar_word wa = swar.load_al(a + i);
-            protocore_swar_word wb = swar.load(b + i);
-            protocore_swar_word x = swar.xor_(wa, wb, PROTO_TRUE);
-            protocore_swar_word z = swar.has_zero(wa);
+            mmgr_swar_word wa = swar.load_al(a + i);
+            mmgr_swar_word wb = swar.load(b + i);
+            mmgr_swar_word x = swar.xor_(wa, wb, MMGR_TRUE);
+            mmgr_swar_word z = swar.has_zero(wa);
             if ((x | z) != 0)
             {
-                protocore_swar_word xm = PROTOCORE_SWAR_HIGH & ~swar.has_zero(x);
-                protocore_swar_word zl = (z - (protocore_swar_word)1) & ~z;
-                protocore_swar_word xl = (xm - (protocore_swar_word)1) & ~xm;
-#if PROTOCORE_HW_BIG_ENDIAN
+                mmgr_swar_word xm = MMGR_SWAR_HIGH & ~swar.has_zero(x);
+                mmgr_swar_word zl = (z - (mmgr_swar_word)1) & ~z;
+                mmgr_swar_word xl = (xm - (mmgr_swar_word)1) & ~xm;
+#if MMGR_HW_BIG_ENDIAN
                 if (end_wins)
                 {
                     return zl >= xl;
@@ -287,81 +287,80 @@ static inline proto_bool agree_ci(const char *a, const char *b, size_t read_cap,
                 return zl < xl;
 #endif
             }
-            i += PROTOCORE_SWAR_BYTES;
+            i += MMGR_SWAR_BYTES;
             continue;
         }
         unsigned char ca = (unsigned char)a[i];
         unsigned char cb = (unsigned char)b[i];
-        protocore_swar_word d = swar.xor_((protocore_swar_word)ca, (protocore_swar_word)cb, PROTO_TRUE);
+        mmgr_swar_word d = swar.xor_((mmgr_swar_word)ca, (mmgr_swar_word)cb, MMGR_TRUE);
         if (ca == 0)
         {
             return (d == 0) || (end_wins != 0);
         }
         if (d != 0)
         {
-            return PROTO_FALSE;
+            return MMGR_FALSE;
         }
         ++i;
     }
     return end_wins != 0;
 }
 
-static inline proto_bool eq_cs(const char *a, const char *b, size_t read_cap)
+static inline mmgr_bool eq_cs(const char *a, const char *b, size_t read_cap)
 {
     return agree_cs(a, b, read_cap, 0);
 }
-static inline proto_bool eq_ci(const char *a, const char *b, size_t read_cap)
+static inline mmgr_bool eq_ci(const char *a, const char *b, size_t read_cap)
 {
     return agree_ci(a, b, read_cap, 0);
 }
-static inline proto_bool starts_cs(const char *s, const char *pre, size_t read_cap)
+static inline mmgr_bool starts_cs(const char *s, const char *pre, size_t read_cap)
 {
     return agree_cs(pre, s, read_cap, 1);
 }
-static inline proto_bool starts_ci(const char *s, const char *pre, size_t read_cap)
+static inline mmgr_bool starts_ci(const char *s, const char *pre, size_t read_cap)
 {
     return agree_ci(pre, s, read_cap, 1);
 }
 
-PROTOCORE_INLINE size_t lane_of(protocore_swar_word m, int rev)
+MMGR_INLINE size_t lane_of(mmgr_swar_word m, int rev)
 {
-#if PROTOCORE_HW_BIG_ENDIAN
+#if MMGR_HW_BIG_ENDIAN
     if (rev)
     {
-        return (size_t)((PROTO_SWAR_BITS - 1u - (unsigned)PROTOCORE_SWAR_CTZ(m)) >> 3);
+        return (size_t)((MMGR_SWAR_BITS - 1u - (unsigned)MMGR_SWAR_CTZ(m)) >> 3);
     }
 #else
     if (rev)
     {
-        return (size_t)((PROTOCORE_SWAR_CLZ_WIDTH - 1u - (unsigned)PROTOCORE_SWAR_CLZ(m)) >> 3);
+        return (size_t)((MMGR_SWAR_CLZ_WIDTH - 1u - (unsigned)MMGR_SWAR_CLZ(m)) >> 3);
     }
 #endif
     return swar.zero_lane(m);
 }
 
-PROTOCORE_INLINE protocore_swar_word drop_lane(protocore_swar_word m, int rev)
+MMGR_INLINE mmgr_swar_word drop_lane(mmgr_swar_word m, int rev)
 {
 
-#if PROTOCORE_HW_BIG_ENDIAN
+#if MMGR_HW_BIG_ENDIAN
     const int clear_low = (rev != 0);
 #else
     const int clear_low = (rev == 0);
 #endif
     if (clear_low)
     {
-        return (protocore_swar_word)(m & (m - (protocore_swar_word)1));
+        return (mmgr_swar_word)(m & (m - (mmgr_swar_word)1));
     }
-    return (protocore_swar_word)(m & ~((protocore_swar_word)1
-                                       << (PROTOCORE_SWAR_CLZ_WIDTH - 1u - (unsigned)PROTOCORE_SWAR_CLZ(m))));
+    return (mmgr_swar_word)(m & ~((mmgr_swar_word)1 << (MMGR_SWAR_CLZ_WIDTH - 1u - (unsigned)MMGR_SWAR_CLZ(m))));
 }
 
 static const char *find_cs(const char *hay, size_t read_cap, const char *needle, size_t needle_cap)
 {
 
     size_t w = 1u;
-    if (needle_cap >= PROTOCORE_SWAR_BYTES)
+    if (needle_cap >= MMGR_SWAR_BYTES)
     {
-        w = PROTOCORE_SWAR_BYTES;
+        w = MMGR_SWAR_BYTES;
     }
     else if (needle_cap >= 4u)
     {
@@ -372,10 +371,10 @@ static const char *find_cs(const char *hay, size_t read_cap, const char *needle,
         w = 2u;
     }
 
-    const protocore_swar_word n_raw = (protocore_swar_word)raw.load(needle, w);
-    const protocore_swar_word nz = swar.has_zero(n_raw);
+    const mmgr_swar_word n_raw = (mmgr_swar_word)raw.load(needle, w);
+    const mmgr_swar_word nz = swar.has_zero(n_raw);
 
-    size_t j0 = PROTOCORE_SWAR_BYTES;
+    size_t j0 = MMGR_SWAR_BYTES;
     if (nz != 0)
     {
         j0 = swar.zero_lane(nz);
@@ -403,19 +402,18 @@ static const char *find_cs(const char *hay, size_t read_cap, const char *needle,
         take = nlen;
     }
 
-    const protocore_swar_word all = (protocore_swar_word) ~(protocore_swar_word)0;
-#if PROTOCORE_HW_BIG_ENDIAN
-    const protocore_swar_word nm =
-        (protocore_swar_word)((all >> (PROTOCORE_SWAR_BYTES * 8u - take * 8u)) << ((w - take) * 8u));
+    const mmgr_swar_word all = (mmgr_swar_word) ~(mmgr_swar_word)0;
+#if MMGR_HW_BIG_ENDIAN
+    const mmgr_swar_word nm = (mmgr_swar_word)((all >> (MMGR_SWAR_BYTES * 8u - take * 8u)) << ((w - take) * 8u));
 #else
-    const protocore_swar_word nm = (protocore_swar_word)(all >> (PROTOCORE_SWAR_BYTES * 8u - take * 8u));
+    const mmgr_swar_word nm = (mmgr_swar_word)(all >> (MMGR_SWAR_BYTES * 8u - take * 8u));
 #endif
-    const protocore_swar_word nw = n_raw & nm;
+    const mmgr_swar_word nw = n_raw & nm;
 
     const uint8_t c_first = (uint8_t)needle[0];
 
-    size_t ka = PROTOCORE_SWAR_BYTES - 1u;
-    if ((nlen / 2u) < PROTOCORE_SWAR_BYTES)
+    size_t ka = MMGR_SWAR_BYTES - 1u;
+    if ((nlen / 2u) < MMGR_SWAR_BYTES)
     {
         ka = nlen / 2u;
     }
@@ -423,7 +421,7 @@ static const char *find_cs(const char *hay, size_t read_cap, const char *needle,
 
     size_t i = 0;
 
-    while (i < read_cap && ((uintptr_t)(hay + i) & (PROTOCORE_SWAR_BYTES - 1u)) != 0u)
+    while (i < read_cap && ((uintptr_t)(hay + i) & (MMGR_SWAR_BYTES - 1u)) != 0u)
     {
         if (hay[i] == '\0')
         {
@@ -446,20 +444,20 @@ static const char *find_cs(const char *hay, size_t read_cap, const char *needle,
 
     if (nlen == 1u)
     {
-        while (i + PROTOCORE_SWAR_BYTES <= read_cap)
+        while (i + MMGR_SWAR_BYTES <= read_cap)
         {
-            protocore_swar_word w0 = swar.load_al(hay + i);
-            protocore_swar_word z = swar.has_zero(w0);
-            protocore_swar_word m = swar.eq(w0, c_first, PROTO_FALSE);
+            mmgr_swar_word w0 = swar.load_al(hay + i);
+            mmgr_swar_word z = swar.has_zero(w0);
+            mmgr_swar_word m = swar.eq(w0, c_first, MMGR_FALSE);
             if ((m | z) != 0)
             {
 
-                size_t km = PROTOCORE_SWAR_BYTES;
+                size_t km = MMGR_SWAR_BYTES;
                 if (m != 0)
                 {
                     km = swar.zero_lane(m);
                 }
-                size_t kz = PROTOCORE_SWAR_BYTES;
+                size_t kz = MMGR_SWAR_BYTES;
                 if (z != 0)
                 {
                     kz = swar.zero_lane(z);
@@ -470,37 +468,37 @@ static const char *find_cs(const char *hay, size_t read_cap, const char *needle,
                 }
                 return NULL;
             }
-            i += PROTOCORE_SWAR_BYTES;
+            i += MMGR_SWAR_BYTES;
         }
     }
 
-    while (nlen >= 2u && nlen <= 3u && nlen <= PROTOCORE_SWAR_BYTES && i + (2u * PROTOCORE_SWAR_BYTES) <= read_cap)
+    while (nlen >= 2u && nlen <= 3u && nlen <= MMGR_SWAR_BYTES && i + (2u * MMGR_SWAR_BYTES) <= read_cap)
     {
-        protocore_swar_word w0 = swar.load_al(hay + i);
-        protocore_swar_word w1 = swar.load_al(hay + i + PROTOCORE_SWAR_BYTES);
-        protocore_swar_word m = swar.eq(w0, c_first, PROTO_FALSE);
+        mmgr_swar_word w0 = swar.load_al(hay + i);
+        mmgr_swar_word w1 = swar.load_al(hay + i + MMGR_SWAR_BYTES);
+        mmgr_swar_word m = swar.eq(w0, c_first, MMGR_FALSE);
         for (size_t k = 1u; k < nlen; ++k)
         {
-#if PROTOCORE_HW_BIG_ENDIAN
-            protocore_swar_word fk = (protocore_swar_word)((w0 << (8u * k)) | (w1 >> (PROTO_SWAR_BITS - 8u * k)));
+#if MMGR_HW_BIG_ENDIAN
+            mmgr_swar_word fk = (mmgr_swar_word)((w0 << (8u * k)) | (w1 >> (MMGR_SWAR_BITS - 8u * k)));
 #else
-            protocore_swar_word fk = (protocore_swar_word)((w0 >> (8u * k)) | (w1 << (PROTO_SWAR_BITS - 8u * k)));
+            mmgr_swar_word fk = (mmgr_swar_word)((w0 >> (8u * k)) | (w1 << (MMGR_SWAR_BITS - 8u * k)));
 #endif
-            m &= swar.eq(fk, (uint8_t)needle[k], PROTO_FALSE);
+            m &= swar.eq(fk, (uint8_t)needle[k], MMGR_FALSE);
         }
-        protocore_swar_word z = swar.has_zero(w0);
-#if PROTOCORE_HW_BIG_ENDIAN
-        size_t zend = PROTOCORE_SWAR_BYTES;
+        mmgr_swar_word z = swar.has_zero(w0);
+#if MMGR_HW_BIG_ENDIAN
+        size_t zend = MMGR_SWAR_BYTES;
         if (z != 0)
         {
             zend = swar.zero_lane(z);
         }
-        if (zend != PROTOCORE_SWAR_BYTES)
+        if (zend != MMGR_SWAR_BYTES)
         {
-            m &= (protocore_swar_word)(all << (PROTO_SWAR_BITS - 8u * zend));
+            m &= (mmgr_swar_word)(all << (MMGR_SWAR_BITS - 8u * zend));
         }
 #else
-        m &= (protocore_swar_word)((z - 1u) & ~z);
+        m &= (mmgr_swar_word)((z - 1u) & ~z);
 #endif
         if (m != 0)
         {
@@ -510,26 +508,26 @@ static const char *find_cs(const char *hay, size_t read_cap, const char *needle,
         {
             return NULL;
         }
-        i += PROTOCORE_SWAR_BYTES;
+        i += MMGR_SWAR_BYTES;
     }
 
-    while ((nlen > 3u || nlen > PROTOCORE_SWAR_BYTES) && nlen >= 2u && i + (2u * PROTOCORE_SWAR_BYTES) <= read_cap)
+    while ((nlen > 3u || nlen > MMGR_SWAR_BYTES) && nlen >= 2u && i + (2u * MMGR_SWAR_BYTES) <= read_cap)
     {
-        protocore_swar_word w0 = swar.load_al(hay + i);
-        protocore_swar_word w1 = swar.load_al(hay + i + PROTOCORE_SWAR_BYTES);
-        protocore_swar_word z = swar.has_zero(w0);
+        mmgr_swar_word w0 = swar.load_al(hay + i);
+        mmgr_swar_word w1 = swar.load_al(hay + i + MMGR_SWAR_BYTES);
+        mmgr_swar_word z = swar.has_zero(w0);
 
-        protocore_swar_word wa = w0;
+        mmgr_swar_word wa = w0;
         if (ka != 0u)
         {
-#if PROTOCORE_HW_BIG_ENDIAN
-            wa = (protocore_swar_word)((w0 << (8u * ka)) | (w1 >> (PROTO_SWAR_BITS - 8u * ka)));
+#if MMGR_HW_BIG_ENDIAN
+            wa = (mmgr_swar_word)((w0 << (8u * ka)) | (w1 >> (MMGR_SWAR_BITS - 8u * ka)));
 #else
-            wa = (protocore_swar_word)((w0 >> (8u * ka)) | (w1 << (PROTO_SWAR_BITS - 8u * ka)));
+            wa = (mmgr_swar_word)((w0 >> (8u * ka)) | (w1 << (MMGR_SWAR_BITS - 8u * ka)));
 #endif
         }
-        protocore_swar_word m = swar.eq(wa, c_anchor, PROTO_FALSE);
-        size_t end = PROTOCORE_SWAR_BYTES;
+        mmgr_swar_word m = swar.eq(wa, c_anchor, MMGR_FALSE);
+        size_t end = MMGR_SWAR_BYTES;
         if (z != 0)
         {
             end = swar.zero_lane(z);
@@ -543,16 +541,16 @@ static const char *find_cs(const char *hay, size_t read_cap, const char *needle,
                 break;
             }
 
-            protocore_swar_word wk = w0;
+            mmgr_swar_word wk = w0;
             if (k != 0)
             {
-#if PROTOCORE_HW_BIG_ENDIAN
-                wk = (protocore_swar_word)((w0 << (8u * k)) | (w1 >> (PROTO_SWAR_BITS - 8u * k)));
+#if MMGR_HW_BIG_ENDIAN
+                wk = (mmgr_swar_word)((w0 << (8u * k)) | (w1 >> (MMGR_SWAR_BITS - 8u * k)));
 #else
-                wk = (protocore_swar_word)((w0 >> (8u * k)) | (w1 << (PROTO_SWAR_BITS - 8u * k)));
+                wk = (mmgr_swar_word)((w0 >> (8u * k)) | (w1 << (MMGR_SWAR_BITS - 8u * k)));
 #endif
             }
-            protocore_swar_word syn = (protocore_swar_word)(wk ^ nw);
+            mmgr_swar_word syn = (mmgr_swar_word)(wk ^ nw);
             size_t rest = nlen - take;
             if ((syn & nm) == 0 && (take == nlen || (i + k + nlen <= read_cap &&
                                                      diff_cs(hay + i + k + take, needle + take, rest) == rest)))
@@ -566,35 +564,35 @@ static const char *find_cs(const char *hay, size_t read_cap, const char *needle,
         {
             return NULL;
         }
-        i += PROTOCORE_SWAR_BYTES;
+        i += MMGR_SWAR_BYTES;
     }
 
-    if (nlen <= PROTOCORE_SWAR_BYTES && i + PROTOCORE_SWAR_BYTES <= read_cap)
+    if (nlen <= MMGR_SWAR_BYTES && i + MMGR_SWAR_BYTES <= read_cap)
     {
-        protocore_swar_word w0 = swar.load_al(hay + i);
-        protocore_swar_word z = swar.has_zero(w0);
-        protocore_swar_word m = swar.eq(w0, c_first, PROTO_FALSE);
+        mmgr_swar_word w0 = swar.load_al(hay + i);
+        mmgr_swar_word z = swar.has_zero(w0);
+        mmgr_swar_word m = swar.eq(w0, c_first, MMGR_FALSE);
         for (size_t k = 1u; k < nlen; ++k)
         {
-#if PROTOCORE_HW_BIG_ENDIAN
-            protocore_swar_word fk = (protocore_swar_word)(w0 << (8u * k));
+#if MMGR_HW_BIG_ENDIAN
+            mmgr_swar_word fk = (mmgr_swar_word)(w0 << (8u * k));
 #else
-            protocore_swar_word fk = (protocore_swar_word)(w0 >> (8u * k));
+            mmgr_swar_word fk = (mmgr_swar_word)(w0 >> (8u * k));
 #endif
-            m &= swar.eq(fk, (uint8_t)needle[k], PROTO_FALSE);
+            m &= swar.eq(fk, (uint8_t)needle[k], MMGR_FALSE);
         }
-#if PROTOCORE_HW_BIG_ENDIAN
-        size_t zend = PROTOCORE_SWAR_BYTES;
+#if MMGR_HW_BIG_ENDIAN
+        size_t zend = MMGR_SWAR_BYTES;
         if (z != 0)
         {
             zend = swar.zero_lane(z);
         }
-        if (zend != PROTOCORE_SWAR_BYTES)
+        if (zend != MMGR_SWAR_BYTES)
         {
-            m &= (protocore_swar_word)(all << (PROTO_SWAR_BITS - 8u * zend));
+            m &= (mmgr_swar_word)(all << (MMGR_SWAR_BITS - 8u * zend));
         }
 #else
-        m &= (protocore_swar_word)((z - 1u) & ~z);
+        m &= (mmgr_swar_word)((z - 1u) & ~z);
 #endif
         if (m != 0)
         {
@@ -604,7 +602,7 @@ static const char *find_cs(const char *hay, size_t read_cap, const char *needle,
         {
             return NULL;
         }
-        i += PROTOCORE_SWAR_BYTES - nlen + 1u;
+        i += MMGR_SWAR_BYTES - nlen + 1u;
     }
 
     while (i < read_cap && hay[i] != '\0')
@@ -629,9 +627,9 @@ static const char *find_cs(const char *hay, size_t read_cap, const char *needle,
 static const char *find_ci(const char *hay, size_t read_cap, const char *needle, size_t needle_cap)
 {
     size_t w = 1u;
-    if (needle_cap >= PROTOCORE_SWAR_BYTES)
+    if (needle_cap >= MMGR_SWAR_BYTES)
     {
-        w = PROTOCORE_SWAR_BYTES;
+        w = MMGR_SWAR_BYTES;
     }
     else if (needle_cap >= 4u)
     {
@@ -642,9 +640,9 @@ static const char *find_ci(const char *hay, size_t read_cap, const char *needle,
         w = 2u;
     }
 
-    const protocore_swar_word n_raw = (protocore_swar_word)raw.load(needle, w);
-    const protocore_swar_word nz = swar.has_zero(n_raw);
-    size_t j0 = PROTOCORE_SWAR_BYTES;
+    const mmgr_swar_word n_raw = (mmgr_swar_word)raw.load(needle, w);
+    const mmgr_swar_word nz = swar.has_zero(n_raw);
+    size_t j0 = MMGR_SWAR_BYTES;
     if (nz != 0)
     {
         j0 = swar.zero_lane(nz);
@@ -672,18 +670,17 @@ static const char *find_ci(const char *hay, size_t read_cap, const char *needle,
         take = nlen;
     }
 
-    const protocore_swar_word all = (protocore_swar_word) ~(protocore_swar_word)0;
-#if PROTOCORE_HW_BIG_ENDIAN
-    const protocore_swar_word nm =
-        (protocore_swar_word)((all >> (PROTOCORE_SWAR_BYTES * 8u - take * 8u)) << ((w - take) * 8u));
+    const mmgr_swar_word all = (mmgr_swar_word) ~(mmgr_swar_word)0;
+#if MMGR_HW_BIG_ENDIAN
+    const mmgr_swar_word nm = (mmgr_swar_word)((all >> (MMGR_SWAR_BYTES * 8u - take * 8u)) << ((w - take) * 8u));
 #else
-    const protocore_swar_word nm = (protocore_swar_word)(all >> (PROTOCORE_SWAR_BYTES * 8u - take * 8u));
+    const mmgr_swar_word nm = (mmgr_swar_word)(all >> (MMGR_SWAR_BYTES * 8u - take * 8u));
 #endif
-    const protocore_swar_word nw = n_raw & nm;
+    const mmgr_swar_word nw = n_raw & nm;
 
     const uint8_t c_first = (uint8_t)needle[0];
-    size_t ka = PROTOCORE_SWAR_BYTES - 1u;
-    if ((nlen / 2u) < PROTOCORE_SWAR_BYTES)
+    size_t ka = MMGR_SWAR_BYTES - 1u;
+    if ((nlen / 2u) < MMGR_SWAR_BYTES)
     {
         ka = nlen / 2u;
     }
@@ -691,7 +688,7 @@ static const char *find_ci(const char *hay, size_t read_cap, const char *needle,
 
     size_t i = 0;
 
-    while (i < read_cap && ((uintptr_t)(hay + i) & (PROTOCORE_SWAR_BYTES - 1u)) != 0u)
+    while (i < read_cap && ((uintptr_t)(hay + i) & (MMGR_SWAR_BYTES - 1u)) != 0u)
     {
         if (hay[i] == '\0')
         {
@@ -714,19 +711,19 @@ static const char *find_ci(const char *hay, size_t read_cap, const char *needle,
 
     if (nlen == 1u)
     {
-        while (i + PROTOCORE_SWAR_BYTES <= read_cap)
+        while (i + MMGR_SWAR_BYTES <= read_cap)
         {
-            protocore_swar_word w0 = swar.load_al(hay + i);
-            protocore_swar_word z = swar.has_zero(w0);
-            protocore_swar_word m = swar.eq(w0, c_first, PROTO_TRUE);
+            mmgr_swar_word w0 = swar.load_al(hay + i);
+            mmgr_swar_word z = swar.has_zero(w0);
+            mmgr_swar_word m = swar.eq(w0, c_first, MMGR_TRUE);
             if ((m | z) != 0)
             {
-                size_t km = PROTOCORE_SWAR_BYTES;
+                size_t km = MMGR_SWAR_BYTES;
                 if (m != 0)
                 {
                     km = swar.zero_lane(m);
                 }
-                size_t kz = PROTOCORE_SWAR_BYTES;
+                size_t kz = MMGR_SWAR_BYTES;
                 if (z != 0)
                 {
                     kz = swar.zero_lane(z);
@@ -737,37 +734,37 @@ static const char *find_ci(const char *hay, size_t read_cap, const char *needle,
                 }
                 return NULL;
             }
-            i += PROTOCORE_SWAR_BYTES;
+            i += MMGR_SWAR_BYTES;
         }
     }
 
-    while (nlen >= 2u && nlen <= 3u && nlen <= PROTOCORE_SWAR_BYTES && i + (2u * PROTOCORE_SWAR_BYTES) <= read_cap)
+    while (nlen >= 2u && nlen <= 3u && nlen <= MMGR_SWAR_BYTES && i + (2u * MMGR_SWAR_BYTES) <= read_cap)
     {
-        protocore_swar_word w0 = swar.load_al(hay + i);
-        protocore_swar_word w1 = swar.load_al(hay + i + PROTOCORE_SWAR_BYTES);
-        protocore_swar_word m = swar.eq(w0, c_first, PROTO_TRUE);
+        mmgr_swar_word w0 = swar.load_al(hay + i);
+        mmgr_swar_word w1 = swar.load_al(hay + i + MMGR_SWAR_BYTES);
+        mmgr_swar_word m = swar.eq(w0, c_first, MMGR_TRUE);
         for (size_t k = 1u; k < nlen; ++k)
         {
-#if PROTOCORE_HW_BIG_ENDIAN
-            protocore_swar_word fk = (protocore_swar_word)((w0 << (8u * k)) | (w1 >> (PROTO_SWAR_BITS - 8u * k)));
+#if MMGR_HW_BIG_ENDIAN
+            mmgr_swar_word fk = (mmgr_swar_word)((w0 << (8u * k)) | (w1 >> (MMGR_SWAR_BITS - 8u * k)));
 #else
-            protocore_swar_word fk = (protocore_swar_word)((w0 >> (8u * k)) | (w1 << (PROTO_SWAR_BITS - 8u * k)));
+            mmgr_swar_word fk = (mmgr_swar_word)((w0 >> (8u * k)) | (w1 << (MMGR_SWAR_BITS - 8u * k)));
 #endif
-            m &= swar.eq(fk, (uint8_t)needle[k], PROTO_TRUE);
+            m &= swar.eq(fk, (uint8_t)needle[k], MMGR_TRUE);
         }
-        protocore_swar_word z = swar.has_zero(w0);
-#if PROTOCORE_HW_BIG_ENDIAN
-        size_t zend = PROTOCORE_SWAR_BYTES;
+        mmgr_swar_word z = swar.has_zero(w0);
+#if MMGR_HW_BIG_ENDIAN
+        size_t zend = MMGR_SWAR_BYTES;
         if (z != 0)
         {
             zend = swar.zero_lane(z);
         }
-        if (zend != PROTOCORE_SWAR_BYTES)
+        if (zend != MMGR_SWAR_BYTES)
         {
-            m &= (protocore_swar_word)(all << (PROTO_SWAR_BITS - 8u * zend));
+            m &= (mmgr_swar_word)(all << (MMGR_SWAR_BITS - 8u * zend));
         }
 #else
-        m &= (protocore_swar_word)((z - 1u) & ~z);
+        m &= (mmgr_swar_word)((z - 1u) & ~z);
 #endif
         if (m != 0)
         {
@@ -777,25 +774,25 @@ static const char *find_ci(const char *hay, size_t read_cap, const char *needle,
         {
             return NULL;
         }
-        i += PROTOCORE_SWAR_BYTES;
+        i += MMGR_SWAR_BYTES;
     }
 
-    while ((nlen > 3u || nlen > PROTOCORE_SWAR_BYTES) && nlen >= 2u && i + (2u * PROTOCORE_SWAR_BYTES) <= read_cap)
+    while ((nlen > 3u || nlen > MMGR_SWAR_BYTES) && nlen >= 2u && i + (2u * MMGR_SWAR_BYTES) <= read_cap)
     {
-        protocore_swar_word w0 = swar.load_al(hay + i);
-        protocore_swar_word w1 = swar.load_al(hay + i + PROTOCORE_SWAR_BYTES);
-        protocore_swar_word z = swar.has_zero(w0);
-        protocore_swar_word wa = w0;
+        mmgr_swar_word w0 = swar.load_al(hay + i);
+        mmgr_swar_word w1 = swar.load_al(hay + i + MMGR_SWAR_BYTES);
+        mmgr_swar_word z = swar.has_zero(w0);
+        mmgr_swar_word wa = w0;
         if (ka != 0u)
         {
-#if PROTOCORE_HW_BIG_ENDIAN
-            wa = (protocore_swar_word)((w0 << (8u * ka)) | (w1 >> (PROTO_SWAR_BITS - 8u * ka)));
+#if MMGR_HW_BIG_ENDIAN
+            wa = (mmgr_swar_word)((w0 << (8u * ka)) | (w1 >> (MMGR_SWAR_BITS - 8u * ka)));
 #else
-            wa = (protocore_swar_word)((w0 >> (8u * ka)) | (w1 << (PROTO_SWAR_BITS - 8u * ka)));
+            wa = (mmgr_swar_word)((w0 >> (8u * ka)) | (w1 << (MMGR_SWAR_BITS - 8u * ka)));
 #endif
         }
-        protocore_swar_word m = swar.eq(wa, c_anchor, PROTO_TRUE);
-        size_t end = PROTOCORE_SWAR_BYTES;
+        mmgr_swar_word m = swar.eq(wa, c_anchor, MMGR_TRUE);
+        size_t end = MMGR_SWAR_BYTES;
         if (z != 0)
         {
             end = swar.zero_lane(z);
@@ -808,16 +805,16 @@ static const char *find_ci(const char *hay, size_t read_cap, const char *needle,
             {
                 break;
             }
-            protocore_swar_word wk = w0;
+            mmgr_swar_word wk = w0;
             if (k != 0)
             {
-#if PROTOCORE_HW_BIG_ENDIAN
-                wk = (protocore_swar_word)((w0 << (8u * k)) | (w1 >> (PROTO_SWAR_BITS - 8u * k)));
+#if MMGR_HW_BIG_ENDIAN
+                wk = (mmgr_swar_word)((w0 << (8u * k)) | (w1 >> (MMGR_SWAR_BITS - 8u * k)));
 #else
-                wk = (protocore_swar_word)((w0 >> (8u * k)) | (w1 << (PROTO_SWAR_BITS - 8u * k)));
+                wk = (mmgr_swar_word)((w0 >> (8u * k)) | (w1 << (MMGR_SWAR_BITS - 8u * k)));
 #endif
             }
-            protocore_swar_word syn = swar.xor_(wk, nw, PROTO_TRUE);
+            mmgr_swar_word syn = swar.xor_(wk, nw, MMGR_TRUE);
             size_t rest = nlen - take;
             if ((syn & nm) == 0 && (take == nlen || (i + k + nlen <= read_cap &&
                                                      diff_ci(hay + i + k + take, needle + take, rest) == rest)))
@@ -831,35 +828,35 @@ static const char *find_ci(const char *hay, size_t read_cap, const char *needle,
         {
             return NULL;
         }
-        i += PROTOCORE_SWAR_BYTES;
+        i += MMGR_SWAR_BYTES;
     }
 
-    if (nlen <= PROTOCORE_SWAR_BYTES && i + PROTOCORE_SWAR_BYTES <= read_cap)
+    if (nlen <= MMGR_SWAR_BYTES && i + MMGR_SWAR_BYTES <= read_cap)
     {
-        protocore_swar_word w0 = swar.load_al(hay + i);
-        protocore_swar_word z = swar.has_zero(w0);
-        protocore_swar_word m = swar.eq(w0, c_first, PROTO_TRUE);
+        mmgr_swar_word w0 = swar.load_al(hay + i);
+        mmgr_swar_word z = swar.has_zero(w0);
+        mmgr_swar_word m = swar.eq(w0, c_first, MMGR_TRUE);
         for (size_t k = 1u; k < nlen; ++k)
         {
-#if PROTOCORE_HW_BIG_ENDIAN
-            protocore_swar_word fk = (protocore_swar_word)(w0 << (8u * k));
+#if MMGR_HW_BIG_ENDIAN
+            mmgr_swar_word fk = (mmgr_swar_word)(w0 << (8u * k));
 #else
-            protocore_swar_word fk = (protocore_swar_word)(w0 >> (8u * k));
+            mmgr_swar_word fk = (mmgr_swar_word)(w0 >> (8u * k));
 #endif
-            m &= swar.eq(fk, (uint8_t)needle[k], PROTO_TRUE);
+            m &= swar.eq(fk, (uint8_t)needle[k], MMGR_TRUE);
         }
-#if PROTOCORE_HW_BIG_ENDIAN
-        size_t zend = PROTOCORE_SWAR_BYTES;
+#if MMGR_HW_BIG_ENDIAN
+        size_t zend = MMGR_SWAR_BYTES;
         if (z != 0)
         {
             zend = swar.zero_lane(z);
         }
-        if (zend != PROTOCORE_SWAR_BYTES)
+        if (zend != MMGR_SWAR_BYTES)
         {
-            m &= (protocore_swar_word)(all << (PROTO_SWAR_BITS - 8u * zend));
+            m &= (mmgr_swar_word)(all << (MMGR_SWAR_BITS - 8u * zend));
         }
 #else
-        m &= (protocore_swar_word)((z - 1u) & ~z);
+        m &= (mmgr_swar_word)((z - 1u) & ~z);
 #endif
         if (m != 0)
         {
@@ -869,7 +866,7 @@ static const char *find_ci(const char *hay, size_t read_cap, const char *needle,
         {
             return NULL;
         }
-        i += PROTOCORE_SWAR_BYTES - nlen + 1u;
+        i += MMGR_SWAR_BYTES - nlen + 1u;
     }
 
     while (i < read_cap && hay[i] != '\0')
@@ -904,7 +901,7 @@ static inline size_t copy(char *dst, const char *src, size_t dst_cap)
     return n;
 }
 
-static size_t diff(const char *a, const char *b, size_t read_cap, proto_bool ci)
+static size_t diff(const char *a, const char *b, size_t read_cap, mmgr_bool ci)
 {
     if (ci)
     {
@@ -913,7 +910,7 @@ static size_t diff(const char *a, const char *b, size_t read_cap, proto_bool ci)
     return diff_cs(a, b, read_cap);
 }
 
-static proto_bool eq(const char *a, const char *b, size_t read_cap, proto_bool ci)
+static mmgr_bool eq(const char *a, const char *b, size_t read_cap, mmgr_bool ci)
 {
     if (ci)
     {
@@ -922,7 +919,7 @@ static proto_bool eq(const char *a, const char *b, size_t read_cap, proto_bool c
     return eq_cs(a, b, read_cap);
 }
 
-static proto_bool starts(const char *s, const char *pre, size_t read_cap, proto_bool ci)
+static mmgr_bool starts(const char *s, const char *pre, size_t read_cap, mmgr_bool ci)
 {
     if (ci)
     {
@@ -931,7 +928,7 @@ static proto_bool starts(const char *s, const char *pre, size_t read_cap, proto_
     return starts_cs(s, pre, read_cap);
 }
 
-static const char *find(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, proto_bool ci)
+static const char *find(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, mmgr_bool ci)
 {
     if (ci)
     {
@@ -940,7 +937,7 @@ static const char *find(const char *hay, size_t read_cap, const char *needle, si
     return find_cs(hay, read_cap, needle, needle_cap);
 }
 
-static proto_bool has(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, proto_bool ci)
+static mmgr_bool has(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, mmgr_bool ci)
 {
     if (ci)
     {
@@ -949,7 +946,7 @@ static proto_bool has(const char *hay, size_t read_cap, const char *needle, size
     return find_cs(hay, read_cap, needle, needle_cap) != NULL;
 }
 
-static int step_word(protocore_swar_word wa, protocore_swar_word wb, proto_bool ci, int end_wins)
+static int step_word(mmgr_swar_word wa, mmgr_swar_word wb, mmgr_bool ci, int end_wins)
 {
     if (ci)
     {
@@ -958,7 +955,7 @@ static int step_word(protocore_swar_word wa, protocore_swar_word wb, proto_bool 
     return step_word_cs(wa, wb, end_wins);
 }
 
-static int step_byte(unsigned char ca, unsigned char cb, proto_bool ci, int end_wins)
+static int step_byte(unsigned char ca, unsigned char cb, mmgr_bool ci, int end_wins)
 {
     if (ci)
     {
@@ -967,12 +964,12 @@ static int step_byte(unsigned char ca, unsigned char cb, proto_bool ci, int end_
     return step_byte_cs(ca, cb, end_wins);
 }
 
-static proto_bool ws(char c)
+static mmgr_bool ws(char c)
 {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
 }
 
-static proto_bool digit(char c)
+static mmgr_bool digit(char c)
 {
     return c >= '0' && c <= '9';
 }
@@ -984,7 +981,7 @@ static long to_long(const char *s, const char **end)
     {
         p++;
     }
-    proto_bool neg = PROTO_FALSE;
+    mmgr_bool neg = MMGR_FALSE;
     if (*p == '+' || *p == '-')
     {
         neg = (*p++ == '-');
@@ -1038,7 +1035,7 @@ static unsigned long to_ulong(const char *s, const char **end)
     return v;
 }
 
-static void frac(const char **p, double *val, proto_bool *any)
+static void frac(const char **p, double *val, mmgr_bool *any)
 {
     (*p)++;
     double scale = 1.0;
@@ -1046,14 +1043,14 @@ static void frac(const char **p, double *val, proto_bool *any)
     {
         scale *= 10.0;
         *val += (double)(*(*p)++ - '0') / scale;
-        *any = PROTO_TRUE;
+        *any = MMGR_TRUE;
     }
 }
 
 static void expo(const char **p, double *val)
 {
     (*p)++;
-    proto_bool eneg = PROTO_FALSE;
+    mmgr_bool eneg = MMGR_FALSE;
     if (**p == '+' || **p == '-')
     {
         eneg = (*(*p)++ == '-');
@@ -1087,17 +1084,17 @@ static double to_double(const char *s, const char **end)
     {
         p++;
     }
-    proto_bool neg = PROTO_FALSE;
+    mmgr_bool neg = MMGR_FALSE;
     if (*p == '+' || *p == '-')
     {
         neg = (*p++ == '-');
     }
-    proto_bool any = PROTO_FALSE;
+    mmgr_bool any = MMGR_FALSE;
     double val = 0.0;
     while (digit(*p))
     {
         val = val * 10.0 + (*p++ - '0');
-        any = PROTO_TRUE;
+        any = MMGR_TRUE;
     }
     if (*p == '.')
     {

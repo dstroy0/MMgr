@@ -1,39 +1,39 @@
 // ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
-#ifndef PROTOCORE_SECURE_H
-#define PROTOCORE_SECURE_H
+#ifndef MMGR_SECURE_H
+#define MMGR_SECURE_H
 
 #include "mmgr/protomem/protomem.h"
 #include "mmgr/span/span.h"
 
-#include "protocore_config.h"
+#include "mmgr_config.h"
 
-PROTOCORE_BEGIN_DECLS
+MMGR_BEGIN_DECLS
 
-#define PROTOCORE_SEC_POOL_SLOTS (PROTOCORE_GHOST_WORKER_SLOT + 1)
+#define MMGR_SEC_POOL_SLOTS (MMGR_GHOST_WORKER_SLOT + 1)
 
 struct SecureInternal;
 
 typedef struct
 {
     void *(*alloc)(size_t n, size_t align);
-    protocore_span (*span)(size_t n, size_t align);
-    protocore_span (*persist_span)(size_t n);
+    mmgr_span (*span)(size_t n, size_t align);
+    mmgr_span (*persist_span)(size_t n);
     void (*reset)(void);
     size_t (*mark)(void);
     void (*release)(size_t mark);
     size_t (*used)(void);
     size_t (*high_water)(void);
     size_t (*capacity)(void);
-    proto_bool (*owns)(const void *p);
+    mmgr_bool (*owns)(const void *p);
     int (*slot_of)(const void *p);
 
     struct SecureInternal *internal;
 } SecureNs;
 
-extern struct SecureInternal protocore_secure_state;
+extern struct SecureInternal mmgr_secure_state;
 
-static inline void protocore_secure_wipe(void *ptr, size_t len)
+static inline void mmgr_secure_wipe(void *ptr, size_t len)
 {
 
     volatile uint8_t *b = (volatile uint8_t *)ptr;
@@ -56,41 +56,41 @@ static inline void protocore_secure_wipe(void *ptr, size_t len)
     }
 }
 
-void *protocore_secure_alloc(size_t n, size_t align);
+void *mmgr_secure_alloc(size_t n, size_t align);
 
-protocore_span protocore_secure_span(size_t n, size_t align);
+mmgr_span mmgr_secure_span(size_t n, size_t align);
 
-protocore_span protocore_secure_persist_span(size_t n);
+mmgr_span mmgr_secure_persist_span(size_t n);
 
-size_t protocore_secure_mark(void);
+size_t mmgr_secure_mark(void);
 
-void protocore_secure_release(size_t mark);
+void mmgr_secure_release(size_t mark);
 
-void protocore_secure_reset(void);
+void mmgr_secure_reset(void);
 
-size_t protocore_secure_used(void);
+size_t mmgr_secure_used(void);
 
-size_t protocore_secure_high_water(void);
+size_t mmgr_secure_high_water(void);
 
-size_t protocore_secure_capacity(void);
+size_t mmgr_secure_capacity(void);
 
-proto_bool protocore_secure_owns(const void *p);
+mmgr_bool mmgr_secure_owns(const void *p);
 
-int protocore_secure_slot_of(const void *p);
+int mmgr_secure_slot_of(const void *p);
 
-static const SecureNs secure __attribute__((unused)) = {.alloc = protocore_secure_alloc,
-                                                        .span = protocore_secure_span,
-                                                        .persist_span = protocore_secure_persist_span,
-                                                        .reset = protocore_secure_reset,
-                                                        .mark = protocore_secure_mark,
-                                                        .release = protocore_secure_release,
-                                                        .used = protocore_secure_used,
-                                                        .high_water = protocore_secure_high_water,
-                                                        .capacity = protocore_secure_capacity,
-                                                        .owns = protocore_secure_owns,
-                                                        .slot_of = protocore_secure_slot_of,
-                                                        .internal = &protocore_secure_state};
+static const SecureNs secure __attribute__((unused)) = {.alloc = mmgr_secure_alloc,
+                                                        .span = mmgr_secure_span,
+                                                        .persist_span = mmgr_secure_persist_span,
+                                                        .reset = mmgr_secure_reset,
+                                                        .mark = mmgr_secure_mark,
+                                                        .release = mmgr_secure_release,
+                                                        .used = mmgr_secure_used,
+                                                        .high_water = mmgr_secure_high_water,
+                                                        .capacity = mmgr_secure_capacity,
+                                                        .owns = mmgr_secure_owns,
+                                                        .slot_of = mmgr_secure_slot_of,
+                                                        .internal = &mmgr_secure_state};
 
-PROTOCORE_END_DECLS
+MMGR_END_DECLS
 
 #endif

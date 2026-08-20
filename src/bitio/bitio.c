@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "mmgr/bitio/bitio.h"
 
-void protocore_bitw_put(protocore_bit_writer *w, uint32_t bits, int n)
+void mmgr_bitw_put(mmgr_bit_writer *w, uint32_t bits, int n)
 {
     if (w->overflow)
     {
@@ -16,7 +16,7 @@ void protocore_bitw_put(protocore_bit_writer *w, uint32_t bits, int n)
     {
         if (w->cnt >= w->cap)
         {
-            w->overflow = PROTO_TRUE;
+            w->overflow = MMGR_TRUE;
             w->nbits = 0;
             w->acc = 0;
             return;
@@ -28,13 +28,13 @@ void protocore_bitw_put(protocore_bit_writer *w, uint32_t bits, int n)
     }
 }
 
-void protocore_bitw_align(protocore_bit_writer *w)
+void mmgr_bitw_align(mmgr_bit_writer *w)
 {
     if (w->nbits > 0)
     {
         if (w->cnt >= w->cap)
         {
-            w->overflow = PROTO_TRUE;
+            w->overflow = MMGR_TRUE;
             return;
         }
         w->out[w->cnt++] = (uint8_t)(w->acc & 0xFF);

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "mmgr/bytes/bytes.h"
 
-void protocore_bw_put(protocore_span *w, uint8_t b)
+void mmgr_bw_put(mmgr_span *w, uint8_t b)
 {
     if (w->pos < w->cap)
     {
@@ -10,20 +10,20 @@ void protocore_bw_put(protocore_span *w, uint8_t b)
     }
     else
     {
-        w->overflow = PROTO_TRUE;
+        w->overflow = MMGR_TRUE;
     }
     w->pos++;
 }
 
-void protocore_bw_put_be(protocore_span *w, uint64_t val, int32_t nbytes)
+void mmgr_bw_put_be(mmgr_span *w, uint64_t val, int32_t nbytes)
 {
     for (int32_t s = (nbytes - 1) * 8; s >= 0; s -= 8)
     {
-        protocore_bw_put(w, (uint8_t)(val >> s));
+        mmgr_bw_put(w, (uint8_t)(val >> s));
     }
 }
 
-void protocore_bw_bytes(protocore_span *w, const void *src, size_t n)
+void mmgr_bw_bytes(mmgr_span *w, const void *src, size_t n)
 {
     if (w->buf != NULL && w->pos <= w->cap && w->cap - w->pos >= n)
     {
@@ -31,17 +31,17 @@ void protocore_bw_bytes(protocore_span *w, const void *src, size_t n)
     }
     else if (n > 0)
     {
-        w->overflow = PROTO_TRUE;
+        w->overflow = MMGR_TRUE;
     }
     w->pos += n;
 }
 
-proto_bool protocore_br_take_be(protocore_cspan *r, size_t nbytes, uint64_t *out)
+mmgr_bool mmgr_br_take_be(mmgr_cspan *r, size_t nbytes, uint64_t *out)
 {
     if (r->pos > r->len || r->len - r->pos < nbytes)
     {
-        r->err = PROTO_TRUE;
-        return PROTO_FALSE;
+        r->err = MMGR_TRUE;
+        return MMGR_FALSE;
     }
     uint64_t v = 0;
     for (size_t i = 0; i < nbytes; i++)
@@ -50,40 +50,40 @@ proto_bool protocore_br_take_be(protocore_cspan *r, size_t nbytes, uint64_t *out
     }
     *out = v;
     r->pos += nbytes;
-    return PROTO_TRUE;
+    return MMGR_TRUE;
 }
 
-proto_bool protocore_rd_u32(const uint8_t *p, size_t len, size_t *off, uint32_t *out)
+mmgr_bool mmgr_rd_u32(const uint8_t *p, size_t len, size_t *off, uint32_t *out)
 {
     if (*off > len || len - *off < 4)
     {
-        return PROTO_FALSE;
+        return MMGR_FALSE;
     }
-    *out = protocore_rd32be(p + *off);
+    *out = mmgr_rd32be(p + *off);
     *off += 4;
-    return PROTO_TRUE;
+    return MMGR_TRUE;
 }
 
-proto_bool protocore_rd_str(const uint8_t *p, size_t len, size_t *off, const uint8_t **out, uint32_t *slen)
+mmgr_bool mmgr_rd_str(const uint8_t *p, size_t len, size_t *off, const uint8_t **out, uint32_t *slen)
 {
     size_t start = *off;
     uint32_t n = 0;
-    if (!protocore_rd_u32(p, len, off, &n))
+    if (!mmgr_rd_u32(p, len, off, &n))
     {
-        return PROTO_FALSE;
+        return MMGR_FALSE;
     }
     if (n > len - *off)
     {
         *off = start;
-        return PROTO_FALSE;
+        return MMGR_FALSE;
     }
     *out = p + *off;
     *slen = n;
     *off += n;
-    return PROTO_TRUE;
+    return MMGR_TRUE;
 }
 
-proto_bool protocore_mpint_to_fixed(const uint8_t *m, uint32_t mlen, uint8_t *out, size_t outlen)
+mmgr_bool mmgr_mpint_to_fixed(const uint8_t *m, uint32_t mlen, uint8_t *out, size_t outlen)
 {
     uint32_t off = 0;
     while (off < mlen && m[off] == 0)
@@ -93,9 +93,9 @@ proto_bool protocore_mpint_to_fixed(const uint8_t *m, uint32_t mlen, uint8_t *ou
     uint32_t vlen = mlen - off;
     if (vlen > outlen)
     {
-        return PROTO_FALSE;
+        return MMGR_FALSE;
     }
     mem.set(out, 0, outlen);
     mem.cpy(out + (outlen - vlen), m + off, vlen);
-    return PROTO_TRUE;
+    return MMGR_TRUE;
 }

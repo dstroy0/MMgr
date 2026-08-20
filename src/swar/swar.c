@@ -2,88 +2,88 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "mmgr/swar/swar.h"
 
-protocore_swar_word protocore_swar_ge(protocore_swar_word a, protocore_swar_word v)
+mmgr_swar_word mmgr_swar_ge(mmgr_swar_word a, mmgr_swar_word v)
 {
-    return ((a | PROTOCORE_SWAR_HIGH) - v * PROTOCORE_SWAR_ONES) & PROTOCORE_SWAR_HIGH;
+    return ((a | MMGR_SWAR_HIGH) - v * MMGR_SWAR_ONES) & MMGR_SWAR_HIGH;
 }
 
-protocore_swar_word protocore_swar_le(protocore_swar_word a, protocore_swar_word v)
+mmgr_swar_word mmgr_swar_le(mmgr_swar_word a, mmgr_swar_word v)
 {
-    return ((v * PROTOCORE_SWAR_ONES | PROTOCORE_SWAR_HIGH) - a) & PROTOCORE_SWAR_HIGH;
+    return ((v * MMGR_SWAR_ONES | MMGR_SWAR_HIGH) - a) & MMGR_SWAR_HIGH;
 }
 
-protocore_swar_word protocore_swar_spread(protocore_swar_word m)
+mmgr_swar_word mmgr_swar_spread(mmgr_swar_word m)
 {
     return m + (m - (m >> 7));
 }
 
-protocore_swar_word protocore_swar_sub7(protocore_swar_word a, protocore_swar_word lo)
+mmgr_swar_word mmgr_swar_sub7(mmgr_swar_word a, mmgr_swar_word lo)
 {
-    return ((a | PROTOCORE_SWAR_HIGH) - lo * PROTOCORE_SWAR_ONES) & PROTOCORE_SWAR_LOW7;
+    return ((a | MMGR_SWAR_HIGH) - lo * MMGR_SWAR_ONES) & MMGR_SWAR_LOW7;
 }
 
-protocore_swar_word protocore_swar_has_zero(protocore_swar_word w)
+mmgr_swar_word mmgr_swar_has_zero(mmgr_swar_word w)
 {
-    return ~(((w & PROTOCORE_SWAR_LOW7) + PROTOCORE_SWAR_LOW7) | w) & PROTOCORE_SWAR_HIGH;
+    return ~(((w & MMGR_SWAR_LOW7) + MMGR_SWAR_LOW7) | w) & MMGR_SWAR_HIGH;
 }
 
-protocore_swar_word protocore_swar_eq(protocore_swar_word w, uint8_t c)
+mmgr_swar_word mmgr_swar_eq(mmgr_swar_word w, uint8_t c)
 {
-    return protocore_swar_has_zero(w ^ (PROTOCORE_SWAR_ONES * (protocore_swar_word)c));
+    return mmgr_swar_has_zero(w ^ (MMGR_SWAR_ONES * (mmgr_swar_word)c));
 }
 
-size_t protocore_swar_zero_lane(protocore_swar_word m)
+size_t mmgr_swar_zero_lane(mmgr_swar_word m)
 {
-#if PROTOCORE_HW_BIG_ENDIAN
+#if MMGR_HW_BIG_ENDIAN
 
-    return (size_t)((PROTOCORE_SWAR_CLZ(m) - (PROTOCORE_SWAR_CLZ_WIDTH - PROTO_SWAR_BITS)) >> 3);
+    return (size_t)((MMGR_SWAR_CLZ(m) - (MMGR_SWAR_CLZ_WIDTH - MMGR_SWAR_BITS)) >> 3);
 #else
-    return (size_t)(PROTOCORE_SWAR_CTZ(m) >> 3);
+    return (size_t)(MMGR_SWAR_CTZ(m) >> 3);
 #endif
 }
 
-protocore_swar_word protocore_swar_load(const char *p)
+mmgr_swar_word mmgr_swar_load(const char *p)
 {
-    return (protocore_swar_word)proto_raw_load(p, PROTOCORE_SWAR_BYTES);
+    return (mmgr_swar_word)mmgr_raw_load(p, MMGR_SWAR_BYTES);
 }
 
-protocore_swar_word protocore_swar_load_al(const char *p)
+mmgr_swar_word mmgr_swar_load_al(const char *p)
 {
-    return (protocore_swar_word)proto_al_load(p, PROTOCORE_SWAR_BYTES);
+    return (mmgr_swar_word)mmgr_al_load(p, MMGR_SWAR_BYTES);
 }
 
-protocore_swar_word protocore_swar_xor(protocore_swar_word wa, protocore_swar_word wb)
+mmgr_swar_word mmgr_swar_xor(mmgr_swar_word wa, mmgr_swar_word wb)
 {
     return wa ^ wb;
 }
 
-protocore_swar_word protocore_swar_xor_ci(protocore_swar_word wa, protocore_swar_word wb)
+mmgr_swar_word mmgr_swar_xor_ci(mmgr_swar_word wa, mmgr_swar_word wb)
 {
-    protocore_swar_word x = wa ^ wb;
-    protocore_swar_word lo = wa | (PROTOCORE_SWAR_ONES * 0x20u);
-    protocore_swar_word alpha = protocore_swar_ge(lo, 'a') & protocore_swar_le(lo, 'z') & ~lo;
+    mmgr_swar_word x = wa ^ wb;
+    mmgr_swar_word lo = wa | (MMGR_SWAR_ONES * 0x20u);
+    mmgr_swar_word alpha = mmgr_swar_ge(lo, 'a') & mmgr_swar_le(lo, 'z') & ~lo;
     return x & ~(alpha >> 2);
 }
 
-protocore_swar_word protocore_swar_eq_ci(protocore_swar_word w, uint8_t c)
+mmgr_swar_word mmgr_swar_eq_ci(mmgr_swar_word w, uint8_t c)
 {
-    return protocore_swar_has_zero(protocore_swar_xor_ci(w, PROTOCORE_SWAR_ONES * (protocore_swar_word)c));
+    return mmgr_swar_has_zero(mmgr_swar_xor_ci(w, MMGR_SWAR_ONES * (mmgr_swar_word)c));
 }
 
-protocore_swar_word protocore_swar_eq_sel(protocore_swar_word w, uint8_t c, proto_bool ci)
+mmgr_swar_word mmgr_swar_eq_sel(mmgr_swar_word w, uint8_t c, mmgr_bool ci)
 {
     if (ci)
     {
-        return protocore_swar_eq_ci(w, c);
+        return mmgr_swar_eq_ci(w, c);
     }
-    return protocore_swar_eq(w, c);
+    return mmgr_swar_eq(w, c);
 }
 
-protocore_swar_word protocore_swar_xor_sel(protocore_swar_word wa, protocore_swar_word wb, proto_bool ci)
+mmgr_swar_word mmgr_swar_xor_sel(mmgr_swar_word wa, mmgr_swar_word wb, mmgr_bool ci)
 {
     if (ci)
     {
-        return protocore_swar_xor_ci(wa, wb);
+        return mmgr_swar_xor_ci(wa, wb);
     }
-    return protocore_swar_xor(wa, wb);
+    return mmgr_swar_xor(wa, wb);
 }

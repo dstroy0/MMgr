@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# idemIP v0.1.0 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Find the same code written twice, when it was written twice under different names.
 
@@ -36,6 +36,7 @@ reorder rather than a copy - which is the case a sequence hash silently misses.
   --nums       fold integer literals to one token as well
   --json       machine-readable, for a script that wants the groups rather than the report
 """
+
 import hashlib
 import io
 import json
@@ -50,13 +51,11 @@ ROOT = os.getcwd()
 
 # C11 sec 6.4.1 keywords plus the ones this tree's dialect adds. A keyword is structure, not a name,
 # so it never renames: `while` and `for` must not collide.
-KEYWORDS = set(
-    """auto break case char const continue default do double else enum extern float for goto if
+KEYWORDS = set("""auto break case char const continue default do double else enum extern float for goto if
     inline int long register restrict return short signed sizeof static struct switch typedef union
     unsigned void volatile while _Alignas _Alignof _Atomic _Bool _Complex _Generic _Imaginary
     _Noreturn _Static_assert _Thread_local static_assert alignas alignof bool true false NULL
-    defined include define ifndef ifdef endif elif pragma error undef line""".split()
-)
+    defined include define ifndef ifdef endif elif pragma error undef line""".split())
 
 TOKEN = re.compile(
     r"""
@@ -466,7 +465,10 @@ def report(units, mode, top, as_json):
             )
         )
     print()
-    print("%d shapes, %d tokens duplicated. `dedup.py show <shape>` for one in full." % (len(rows), sum(r["saving"] for r in rows)))
+    print(
+        "%d shapes, %d tokens duplicated. `dedup.py show <shape>` for one in full."
+        % (len(rows), sum(r["saving"] for r in rows))
+    )
 
     if mode == "shape":
         for r in rows[:top]:

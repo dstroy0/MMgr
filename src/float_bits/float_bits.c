@@ -3,30 +3,30 @@
 #include "mmgr/float_bits/float_bits.h"
 #include "mmgr/rawmemcpy/rawmemcpy.h"
 
-proto_u64 proto_dbl_sign(double v)
+mmgr_u64 mmgr_dbl_sign(double v)
 {
-    return (proto_raw_u64(&v) & PROTO_DBL_SIGN_MASK) >> PROTO_DBL_SIGN_SHIFT;
+    return (mmgr_raw_u64(&v) & MMGR_DBL_SIGN_MASK) >> MMGR_DBL_SIGN_SHIFT;
 }
 
-proto_u64 proto_dbl_exp(double v)
+mmgr_u64 mmgr_dbl_exp(double v)
 {
-    return (proto_raw_u64(&v) & PROTO_DBL_EXP_MASK) >> PROTO_DBL_MANT_BITS;
+    return (mmgr_raw_u64(&v) & MMGR_DBL_EXP_MASK) >> MMGR_DBL_MANT_BITS;
 }
 
-proto_u64 proto_dbl_mant(double v)
+mmgr_u64 mmgr_dbl_mant(double v)
 {
-    return proto_raw_u64(&v) & PROTO_DBL_MANT_MASK;
+    return mmgr_raw_u64(&v) & MMGR_DBL_MANT_MASK;
 }
 
-proto_u64 proto_dbl_merge(proto_u64 sign, proto_u64 exp, proto_u64 mant)
+mmgr_u64 mmgr_dbl_merge(mmgr_u64 sign, mmgr_u64 exp, mmgr_u64 mant)
 {
-    return ((sign & PROTO_DBL_SIGN_ONE) << PROTO_DBL_SIGN_SHIFT) | ((exp & PROTO_DBL_EXP_ALL) << PROTO_DBL_MANT_BITS) |
-           (mant & PROTO_DBL_MANT_MASK);
+    return ((sign & MMGR_DBL_SIGN_ONE) << MMGR_DBL_SIGN_SHIFT) | ((exp & MMGR_DBL_EXP_ALL) << MMGR_DBL_MANT_BITS) |
+           (mant & MMGR_DBL_MANT_MASK);
 }
 
-double proto_dbl_from_bits(proto_u64 bits)
+double mmgr_dbl_from_bits(mmgr_u64 bits)
 {
     double v = 0.0;
-    proto_raw_read(&v, &bits, sizeof(v));
+    mmgr_raw_read(&v, &bits, sizeof(v));
     return v;
 }

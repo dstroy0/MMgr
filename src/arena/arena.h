@@ -1,33 +1,33 @@
 // ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
-#ifndef PROTOCORE_ARENA_H
-#define PROTOCORE_ARENA_H
+#ifndef MMGR_ARENA_H
+#define MMGR_ARENA_H
 
-#include "protocore_config.h"
+#include "mmgr_config.h"
 
-PROTOCORE_BEGIN_DECLS
+MMGR_BEGIN_DECLS
 
-int protocore_worker_count(void);
+int mmgr_worker_count(void);
 
-#if PROTOCORE_WORKER_COUNT == 1
-PROTOCORE_INLINE int protocore_worker_self(void)
+#if MMGR_WORKER_COUNT == 1
+MMGR_INLINE int mmgr_worker_self(void)
 {
     return 0;
 }
 #else
-int protocore_worker_self(void);
+int mmgr_worker_self(void);
 #endif
 
-void protocore_worker_set_self(int id);
+void mmgr_worker_set_self(int id);
 
-#define PROTOCORE_ARENA_ALIGN 8u
+#define MMGR_ARENA_ALIGN 8u
 
-PROTOCORE_INLINE size_t protocore_arena_align_up(size_t n)
+MMGR_INLINE size_t mmgr_arena_align_up(size_t n)
 {
-    return (n + (PROTOCORE_ARENA_ALIGN - 1)) & ~(size_t)(PROTOCORE_ARENA_ALIGN - 1);
+    return (n + (MMGR_ARENA_ALIGN - 1)) & ~(size_t)(MMGR_ARENA_ALIGN - 1);
 }
 
-#define PROTOCORE_ARENA_MAX_ALIGN 16u
+#define MMGR_ARENA_MAX_ALIGN 16u
 
 typedef struct
 {
@@ -38,25 +38,25 @@ typedef struct
     size_t persist_used;
     size_t persist_hw;
     size_t scratch_hw;
-} protocore_arena;
+} mmgr_arena;
 
-void protocore_arena_init(protocore_arena *a, void *base, size_t size);
+void mmgr_arena_init(mmgr_arena *a, void *base, size_t size);
 
-void *protocore_arena_persist_alloc(protocore_arena *a, size_t n);
+void *mmgr_arena_persist_alloc(mmgr_arena *a, size_t n);
 
-void protocore_arena_persist_free(protocore_arena *a, void *p);
+void mmgr_arena_persist_free(mmgr_arena *a, void *p);
 
-PROTOCORE_INLINE void *protocore_arena_scratch_alloc_aligned(protocore_arena *a, size_t n, size_t align)
+MMGR_INLINE void *mmgr_arena_scratch_alloc_aligned(mmgr_arena *a, size_t n, size_t align)
 {
-    if (align < PROTOCORE_ARENA_ALIGN)
+    if (align < MMGR_ARENA_ALIGN)
     {
-        align = PROTOCORE_ARENA_ALIGN;
+        align = MMGR_ARENA_ALIGN;
     }
-    if (align > PROTOCORE_ARENA_MAX_ALIGN)
+    if (align > MMGR_ARENA_MAX_ALIGN)
     {
-        align = PROTOCORE_ARENA_MAX_ALIGN;
+        align = MMGR_ARENA_MAX_ALIGN;
     }
-    n = protocore_arena_align_up(n ? n : PROTOCORE_ARENA_ALIGN);
+    n = mmgr_arena_align_up(n ? n : MMGR_ARENA_ALIGN);
     if (a->scratch_top < n)
     {
         return NULL;
@@ -77,14 +77,14 @@ PROTOCORE_INLINE void *protocore_arena_scratch_alloc_aligned(protocore_arena *a,
     return a->base + a->scratch_top;
 }
 
-void *protocore_arena_scratch_alloc(protocore_arena *a, size_t n);
+void *mmgr_arena_scratch_alloc(mmgr_arena *a, size_t n);
 
-PROTOCORE_INLINE size_t protocore_arena_scratch_mark(const protocore_arena *a)
+MMGR_INLINE size_t mmgr_arena_scratch_mark(const mmgr_arena *a)
 {
     return a->scratch_top;
 }
 
-PROTOCORE_INLINE void protocore_arena_scratch_release(protocore_arena *a, size_t mark)
+MMGR_INLINE void mmgr_arena_scratch_release(mmgr_arena *a, size_t mark)
 {
 
     if (mark >= a->scratch_top && mark <= a->size)
@@ -93,66 +93,66 @@ PROTOCORE_INLINE void protocore_arena_scratch_release(protocore_arena *a, size_t
     }
 }
 
-PROTOCORE_INLINE void protocore_arena_scratch_reset(protocore_arena *a)
+MMGR_INLINE void mmgr_arena_scratch_reset(mmgr_arena *a)
 {
     a->scratch_top = a->size;
 }
 
-PROTOCORE_INLINE proto_bool protocore_arena_owns(const protocore_arena *a, const void *p)
+MMGR_INLINE mmgr_bool mmgr_arena_owns(const mmgr_arena *a, const void *p)
 {
     const uint8_t *q = (const uint8_t *)p;
     return a->base != NULL && q >= a->base && q < a->base + a->size;
 }
 
-size_t protocore_arena_free_bytes(const protocore_arena *a);
+size_t mmgr_arena_free_bytes(const mmgr_arena *a);
 
-size_t protocore_arena_persist_used(const protocore_arena *a);
+size_t mmgr_arena_persist_used(const mmgr_arena *a);
 
-PROTOCORE_INLINE size_t protocore_arena_scratch_used(const protocore_arena *a)
+MMGR_INLINE size_t mmgr_arena_scratch_used(const mmgr_arena *a)
 {
     return a->size - a->scratch_top;
 }
 
-#ifndef PROTOCORE_ARENA_MAX_REGIONS
-#define PROTOCORE_ARENA_MAX_REGIONS 2u
+#ifndef MMGR_ARENA_MAX_REGIONS
+#define MMGR_ARENA_MAX_REGIONS 2u
 #endif
 
 typedef struct
 {
-    protocore_arena region[PROTOCORE_ARENA_MAX_REGIONS];
+    mmgr_arena region[MMGR_ARENA_MAX_REGIONS];
     size_t count;
-} protocore_arena_set;
+} mmgr_arena_set;
 
 typedef struct
 {
-    size_t top[PROTOCORE_ARENA_MAX_REGIONS];
+    size_t top[MMGR_ARENA_MAX_REGIONS];
     size_t count;
-} protocore_arena_mark;
+} mmgr_arena_mark;
 
-void protocore_arena_set_init(protocore_arena_set *s);
+void mmgr_arena_set_init(mmgr_arena_set *s);
 
-proto_bool protocore_arena_set_add(protocore_arena_set *s, void *base, size_t size);
+mmgr_bool mmgr_arena_set_add(mmgr_arena_set *s, void *base, size_t size);
 
-void *protocore_arena_set_persist_alloc(protocore_arena_set *s, size_t n);
+void *mmgr_arena_set_persist_alloc(mmgr_arena_set *s, size_t n);
 
-void protocore_arena_set_persist_free(protocore_arena_set *s, void *p);
+void mmgr_arena_set_persist_free(mmgr_arena_set *s, void *p);
 
-void *protocore_arena_set_scratch_alloc_aligned(protocore_arena_set *s, size_t n, size_t align);
+void *mmgr_arena_set_scratch_alloc_aligned(mmgr_arena_set *s, size_t n, size_t align);
 
-void *protocore_arena_set_scratch_alloc(protocore_arena_set *s, size_t n);
+void *mmgr_arena_set_scratch_alloc(mmgr_arena_set *s, size_t n);
 
-protocore_arena_mark protocore_arena_set_scratch_mark(const protocore_arena_set *s);
+mmgr_arena_mark mmgr_arena_set_scratch_mark(const mmgr_arena_set *s);
 
-void protocore_arena_set_scratch_release(protocore_arena_set *s, const protocore_arena_mark *m);
+void mmgr_arena_set_scratch_release(mmgr_arena_set *s, const mmgr_arena_mark *m);
 
-void protocore_arena_set_scratch_reset(protocore_arena_set *s);
+void mmgr_arena_set_scratch_reset(mmgr_arena_set *s);
 
-size_t protocore_arena_set_free_bytes(const protocore_arena_set *s);
+size_t mmgr_arena_set_free_bytes(const mmgr_arena_set *s);
 
-size_t protocore_arena_set_persist_used(const protocore_arena_set *s);
+size_t mmgr_arena_set_persist_used(const mmgr_arena_set *s);
 
-size_t protocore_arena_set_scratch_used(const protocore_arena_set *s);
+size_t mmgr_arena_set_scratch_used(const mmgr_arena_set *s);
 
-PROTOCORE_END_DECLS
+MMGR_END_DECLS
 
 #endif

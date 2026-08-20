@@ -6,9 +6,9 @@
 #include "mmgr/rawmemcpy/rawmemcpy.h"
 #include "shared/hex/hex.h"
 
-#define PROTOCORE_G_WORK_BITS 58u
+#define MMGR_G_WORK_BITS 58u
 
-void protocore_sb_put_n(protocore_sb *b, const char *s, size_t sl)
+void mmgr_sb_put_n(mmgr_sb *b, const char *s, size_t sl)
 {
     if (!b->ok)
     {
@@ -16,24 +16,24 @@ void protocore_sb_put_n(protocore_sb *b, const char *s, size_t sl)
     }
     if (b->len + sl >= b->cap)
     {
-        b->ok = PROTO_FALSE;
+        b->ok = MMGR_FALSE;
         return;
     }
 
-    proto_raw_read(b->p + b->len, s, sl);
+    mmgr_raw_read(b->p + b->len, s, sl);
     b->len += sl;
 }
 
-void protocore_sb_put(protocore_sb *b, const char *s)
+void mmgr_sb_put(mmgr_sb *b, const char *s)
 {
     if (!b->ok)
     {
         return;
     }
-    protocore_sb_put_n(b, s, str.len(s, b->cap));
+    mmgr_sb_put_n(b, s, str.len(s, b->cap));
 }
 
-void protocore_sb_put_clip(protocore_sb *b, const char *s)
+void mmgr_sb_put_clip(mmgr_sb *b, const char *s)
 {
     if (!b->ok || !s || b->len + 1 >= b->cap)
     {
@@ -42,11 +42,11 @@ void protocore_sb_put_clip(protocore_sb *b, const char *s)
     size_t room = b->cap - b->len - 1;
     size_t sl = str.len(s, room);
 
-    proto_raw_read(b->p + b->len, s, sl);
+    mmgr_raw_read(b->p + b->len, s, sl);
     b->len += sl;
 }
 
-void protocore_sb_u64_clip(protocore_sb *b, uint64_t v, uint8_t columns)
+void mmgr_sb_u64_clip(mmgr_sb *b, uint64_t v, uint8_t columns)
 {
     if (!b->ok)
     {
@@ -76,7 +76,7 @@ void protocore_sb_u64_clip(protocore_sb *b, uint64_t v, uint8_t columns)
     b->len += width;
 }
 
-void protocore_sb_xml(protocore_sb *b, const char *s)
+void mmgr_sb_xml(mmgr_sb *b, const char *s)
 {
     if (!b->ok || !s)
     {
@@ -104,13 +104,13 @@ void protocore_sb_xml(protocore_sb *b, const char *s)
         }
         if (rep)
         {
-            protocore_sb_put(b, rep);
+            mmgr_sb_put(b, rep);
         }
         else
         {
             if (b->len + 1 >= b->cap)
             {
-                b->ok = PROTO_FALSE;
+                b->ok = MMGR_FALSE;
                 return;
             }
             b->p[b->len] = *s;
@@ -119,7 +119,7 @@ void protocore_sb_xml(protocore_sb *b, const char *s)
     }
 }
 
-void protocore_sb_ch(protocore_sb *b, char c)
+void mmgr_sb_ch(mmgr_sb *b, char c)
 {
     if (!b->ok)
     {
@@ -127,13 +127,13 @@ void protocore_sb_ch(protocore_sb *b, char c)
     }
     if (b->len + 1 >= b->cap)
     {
-        b->ok = PROTO_FALSE;
+        b->ok = MMGR_FALSE;
         return;
     }
     b->p[b->len++] = c;
 }
 
-void protocore_sb_uint(protocore_sb *b, uint64_t v, unsigned base, unsigned min_digits)
+void mmgr_sb_uint(mmgr_sb *b, uint64_t v, unsigned base, unsigned min_digits)
 {
     if (!b->ok)
     {
@@ -141,10 +141,10 @@ void protocore_sb_uint(protocore_sb *b, uint64_t v, unsigned base, unsigned min_
     }
 
     const unsigned bits_per_digit = (base == 16) ? 4u : (base == 8) ? 3u : 0u;
-    const proto_bool power_of_two = bits_per_digit != 0;
+    const mmgr_bool power_of_two = bits_per_digit != 0;
     const uint64_t digit_mask = power_of_two ? ((1ull << bits_per_digit) - 1u) : 0u;
 
-    const proto_bool narrow = !power_of_two && v <= 0xFFFFFFFFu;
+    const mmgr_bool narrow = !power_of_two && v <= 0xFFFFFFFFu;
 
     uint64_t probe = v;
     unsigned digits = 1;
@@ -178,14 +178,14 @@ void protocore_sb_uint(protocore_sb *b, uint64_t v, unsigned base, unsigned min_
     }
     if (b->len + digits >= b->cap)
     {
-        b->ok = PROTO_FALSE;
+        b->ok = MMGR_FALSE;
         return;
     }
     if (power_of_two)
     {
         for (unsigned i = digits; i-- > 0;)
         {
-            b->p[b->len + i] = PROTOCORE_HEX.lower[v & digit_mask];
+            b->p[b->len + i] = MMGR_HEX.lower[v & digit_mask];
             v >>= bits_per_digit;
         }
     }
@@ -209,53 +209,53 @@ void protocore_sb_uint(protocore_sb *b, uint64_t v, unsigned base, unsigned min_
     b->len += digits;
 }
 
-void protocore_sb_u32w(protocore_sb *b, uint32_t v, unsigned min_digits)
+void mmgr_sb_u32w(mmgr_sb *b, uint32_t v, unsigned min_digits)
 {
-    protocore_sb_uint(b, v, 10, min_digits);
+    mmgr_sb_uint(b, v, 10, min_digits);
 }
 
-void protocore_sb_hex(protocore_sb *b, uint64_t v, unsigned min_digits)
+void mmgr_sb_hex(mmgr_sb *b, uint64_t v, unsigned min_digits)
 {
-    protocore_sb_uint(b, v, 16, min_digits);
+    mmgr_sb_uint(b, v, 16, min_digits);
 }
 
-void protocore_sb_u32(protocore_sb *b, uint32_t v)
+void mmgr_sb_u32(mmgr_sb *b, uint32_t v)
 {
-    protocore_sb_uint(b, v, 10, 1);
+    mmgr_sb_uint(b, v, 10, 1);
 }
 
-void protocore_sb_u64(protocore_sb *b, uint64_t v)
+void mmgr_sb_u64(mmgr_sb *b, uint64_t v)
 {
-    protocore_sb_uint(b, v, 10, 1);
+    mmgr_sb_uint(b, v, 10, 1);
 }
 
-void protocore_sb_i64(protocore_sb *b, int64_t v)
+void mmgr_sb_i64(mmgr_sb *b, int64_t v)
 {
 
     uint64_t mag = (v < 0) ? (uint64_t)(-(v + 1)) + 1u : (uint64_t)v;
     if (v < 0)
     {
-        protocore_sb_ch(b, '-');
+        mmgr_sb_ch(b, '-');
     }
-    protocore_sb_uint(b, mag, 10, 1);
+    mmgr_sb_uint(b, mag, 10, 1);
 }
 
-proto_bool protocore_signbit(double v)
+mmgr_bool mmgr_signbit(double v)
 {
-    return proto_dbl_sign(v) != 0u;
+    return mmgr_dbl_sign(v) != 0u;
 }
 
-proto_bool protocore_isinf(double v)
+mmgr_bool mmgr_isinf(double v)
 {
-    return proto_dbl_exp(v) == 0x7FFu && proto_dbl_mant(v) == 0u;
+    return mmgr_dbl_exp(v) == 0x7FFu && mmgr_dbl_mant(v) == 0u;
 }
 
-proto_bool protocore_isnan(double v)
+mmgr_bool mmgr_isnan(double v)
 {
-    return proto_dbl_exp(v) == 0x7FFu && proto_dbl_mant(v) != 0u;
+    return mmgr_dbl_exp(v) == 0x7FFu && mmgr_dbl_mant(v) != 0u;
 }
 
-static void sb_digits(protocore_sb *b, uint64_t mant, unsigned digits, unsigned point_after)
+static void sb_digits(mmgr_sb *b, uint64_t mant, unsigned digits, unsigned point_after)
 {
     uint64_t div = 1;
     for (unsigned i = 1; i < digits; i++)
@@ -266,38 +266,38 @@ static void sb_digits(protocore_sb *b, uint64_t mant, unsigned digits, unsigned 
     {
         if (i == point_after && i != 0)
         {
-            protocore_sb_ch(b, '.');
+            mmgr_sb_ch(b, '.');
         }
-        protocore_sb_ch(b, (char)('0' + (unsigned)((mant / div) % 10)));
+        mmgr_sb_ch(b, (char)('0' + (unsigned)((mant / div) % 10)));
         div /= 10;
     }
 }
 
-static void g_renorm(proto_u64 *n, proto_i32 *s)
+static void g_renorm(mmgr_u64 *n, mmgr_i32 *s)
 {
     if (*n == 0u)
     {
         return;
     }
-    while (*n >= (1ull << PROTOCORE_G_WORK_BITS))
+    while (*n >= (1ull << MMGR_G_WORK_BITS))
     {
         *n >>= 1;
         *s += 1;
     }
-    while (*n < (1ull << (PROTOCORE_G_WORK_BITS - 1u)))
+    while (*n < (1ull << (MMGR_G_WORK_BITS - 1u)))
     {
         *n <<= 1;
         *s -= 1;
     }
 }
 
-static void g_mul10(proto_u64 *n, proto_i32 *s)
+static void g_mul10(mmgr_u64 *n, mmgr_i32 *s)
 {
     *n *= 10u;
     g_renorm(n, s);
 }
 
-static void g_div10(proto_u64 *n, proto_i32 *s)
+static void g_div10(mmgr_u64 *n, mmgr_i32 *s)
 {
     *n <<= 4;
     *s -= 4;
@@ -305,7 +305,7 @@ static void g_div10(proto_u64 *n, proto_i32 *s)
     g_renorm(n, s);
 }
 
-static proto_u64 g_round(proto_u64 n, proto_i32 s)
+static mmgr_u64 g_round(mmgr_u64 n, mmgr_i32 s)
 {
     if (s >= 0)
     {
@@ -316,9 +316,9 @@ static proto_u64 g_round(proto_u64 n, proto_i32 s)
     {
         return 0u;
     }
-    proto_u64 r = n >> sh;
-    proto_u64 rem = n - (r << sh);
-    proto_u64 half = 1ull << (sh - 1u);
+    mmgr_u64 r = n >> sh;
+    mmgr_u64 rem = n - (r << sh);
+    mmgr_u64 half = 1ull << (sh - 1u);
     if (rem > half || (rem == half && (r & 1u) != 0u))
     {
         r++;
@@ -326,7 +326,7 @@ static proto_u64 g_round(proto_u64 n, proto_i32 s)
     return r;
 }
 
-void protocore_sb_g(protocore_sb *b, double v, unsigned sig)
+void mmgr_sb_g(mmgr_sb *b, double v, unsigned sig)
 {
     if (!b->ok)
     {
@@ -336,45 +336,45 @@ void protocore_sb_g(protocore_sb *b, double v, unsigned sig)
     {
         sig = 1;
     }
-    if (protocore_isnan(v))
+    if (mmgr_isnan(v))
     {
-        protocore_sb_put(b, "nan");
+        mmgr_sb_put(b, "nan");
         return;
     }
 
-    if (protocore_signbit(v))
+    if (mmgr_signbit(v))
     {
-        protocore_sb_ch(b, '-');
+        mmgr_sb_ch(b, '-');
         v = -v;
     }
-    if (protocore_isinf(v))
+    if (mmgr_isinf(v))
     {
-        protocore_sb_put(b, "inf");
+        mmgr_sb_put(b, "inf");
         return;
     }
-    proto_u64 be = proto_dbl_exp(v);
-    proto_u64 n = proto_dbl_mant(v);
+    mmgr_u64 be = mmgr_dbl_exp(v);
+    mmgr_u64 n = mmgr_dbl_mant(v);
     if (be == 0u && n == 0u)
     {
-        protocore_sb_ch(b, '0');
+        mmgr_sb_ch(b, '0');
         return;
     }
 
-    proto_i32 s = 1 - PROTO_DBL_BIAS - (proto_i32)PROTO_DBL_MANT_BITS;
+    mmgr_i32 s = 1 - MMGR_DBL_BIAS - (mmgr_i32)MMGR_DBL_MANT_BITS;
     if (be != 0u)
     {
-        n |= 1ull << PROTO_DBL_MANT_BITS;
-        s = (proto_i32)be - PROTO_DBL_BIAS - (proto_i32)PROTO_DBL_MANT_BITS;
+        n |= 1ull << MMGR_DBL_MANT_BITS;
+        s = (mmgr_i32)be - MMGR_DBL_BIAS - (mmgr_i32)MMGR_DBL_MANT_BITS;
     }
     g_renorm(&n, &s);
 
-    proto_u64 limit = 1u;
+    mmgr_u64 limit = 1u;
     for (unsigned i = 0; i < sig; i++)
     {
         limit *= 10u;
     }
 
-    int e = (int)(((int64_t)((int)PROTOCORE_G_WORK_BITS - 1 + s) * 78913) >> 18);
+    int e = (int)(((int64_t)((int)MMGR_G_WORK_BITS - 1 + s) * 78913) >> 18);
 
     int p = (int)sig - 1 - e;
     while (p > 0)
@@ -388,7 +388,7 @@ void protocore_sb_g(protocore_sb *b, double v, unsigned sig)
         p++;
     }
 
-    proto_u64 mant = g_round(n, s);
+    mmgr_u64 mant = g_round(n, s);
     for (unsigned guard = 0; guard < 4u; guard++)
     {
         if (mant >= limit)
@@ -418,10 +418,10 @@ void protocore_sb_g(protocore_sb *b, double v, unsigned sig)
     if (e < -4 || e >= (int)sig)
     {
         sb_digits(b, mant, digits, 1);
-        protocore_sb_ch(b, 'e');
-        protocore_sb_ch(b, e < 0 ? '-' : '+');
+        mmgr_sb_ch(b, 'e');
+        mmgr_sb_ch(b, e < 0 ? '-' : '+');
         unsigned mag = (unsigned)(e < 0 ? -e : e);
-        protocore_sb_u32w(b, mag, 2);
+        mmgr_sb_u32w(b, mag, 2);
         return;
     }
     if (e >= (int)digits - 1)
@@ -429,7 +429,7 @@ void protocore_sb_g(protocore_sb *b, double v, unsigned sig)
         sb_digits(b, mant, digits, 0);
         for (int i = 0; i < e - (int)digits + 1; i++)
         {
-            protocore_sb_ch(b, '0');
+            mmgr_sb_ch(b, '0');
         }
         return;
     }
@@ -438,63 +438,63 @@ void protocore_sb_g(protocore_sb *b, double v, unsigned sig)
         sb_digits(b, mant, digits, (unsigned)e + 1);
         return;
     }
-    protocore_sb_put(b, "0.");
+    mmgr_sb_put(b, "0.");
     for (int i = 0; i < -e - 1; i++)
     {
-        protocore_sb_ch(b, '0');
+        mmgr_sb_ch(b, '0');
     }
     sb_digits(b, mant, digits, 0);
 }
 
-void protocore_sb_fixed(protocore_sb *b, double v, unsigned decimals)
+void mmgr_sb_fixed(mmgr_sb *b, double v, unsigned decimals)
 {
     if (!b->ok)
     {
         return;
     }
-    if (protocore_isnan(v))
+    if (mmgr_isnan(v))
     {
-        protocore_sb_put(b, "nan");
+        mmgr_sb_put(b, "nan");
         return;
     }
 
-    if (protocore_signbit(v))
+    if (mmgr_signbit(v))
     {
-        protocore_sb_ch(b, '-');
+        mmgr_sb_ch(b, '-');
         v = -v;
     }
-    if (protocore_isinf(v))
+    if (mmgr_isinf(v))
     {
-        protocore_sb_put(b, "inf");
+        mmgr_sb_put(b, "inf");
         return;
     }
 
-    if (proto_dbl_exp(v) >= (PROTO_DBL_BIAS + 64))
+    if (mmgr_dbl_exp(v) >= (MMGR_DBL_BIAS + 64))
     {
-        protocore_sb_g(b, v, 10);
+        mmgr_sb_g(b, v, 10);
         return;
     }
     if (decimals > 18u)
     {
         decimals = 18u;
     }
-    proto_u64 scale = 1u;
+    mmgr_u64 scale = 1u;
     for (unsigned i = 0; i < decimals; i++)
     {
         scale *= 10u;
     }
 
-    proto_u64 mant = proto_dbl_mant(v);
-    proto_u64 be = proto_dbl_exp(v);
-    proto_i32 exp2 = 1 - PROTO_DBL_BIAS - (proto_i32)PROTO_DBL_MANT_BITS;
+    mmgr_u64 mant = mmgr_dbl_mant(v);
+    mmgr_u64 be = mmgr_dbl_exp(v);
+    mmgr_i32 exp2 = 1 - MMGR_DBL_BIAS - (mmgr_i32)MMGR_DBL_MANT_BITS;
     if (be != 0u)
     {
-        mant |= 1ull << PROTO_DBL_MANT_BITS;
-        exp2 = (proto_i32)be - PROTO_DBL_BIAS - (proto_i32)PROTO_DBL_MANT_BITS;
+        mant |= 1ull << MMGR_DBL_MANT_BITS;
+        exp2 = (mmgr_i32)be - MMGR_DBL_BIAS - (mmgr_i32)MMGR_DBL_MANT_BITS;
     }
 
-    proto_u64 ip = 0u;
-    proto_u64 frac = 0u;
+    mmgr_u64 ip = 0u;
+    mmgr_u64 frac = 0u;
     if (exp2 >= 0)
     {
         ip = mant << (unsigned)exp2;
@@ -502,7 +502,7 @@ void protocore_sb_fixed(protocore_sb *b, double v, unsigned decimals)
     else
     {
         unsigned shift = (unsigned)(-exp2);
-        proto_u64 num = mant;
+        mmgr_u64 num = mant;
         if (shift < 64u)
         {
             ip = mant >> shift;
@@ -514,16 +514,16 @@ void protocore_sb_fixed(protocore_sb *b, double v, unsigned decimals)
             num >>= (shift - 60u);
             shift = 60u;
         }
-        const proto_u64 den = 1ull << shift;
+        const mmgr_u64 den = 1ull << shift;
         for (unsigned i = 0; i < decimals; i++)
         {
             num *= 10u;
-            proto_u64 digit = num >> shift;
+            mmgr_u64 digit = num >> shift;
             num -= digit << shift;
             frac = frac * 10u + digit;
         }
 
-        proto_u64 twice = num * 2u;
+        mmgr_u64 twice = num * 2u;
         if (twice > den || (twice == den && (frac & 1u) != 0u))
         {
             frac++;
@@ -534,18 +534,18 @@ void protocore_sb_fixed(protocore_sb *b, double v, unsigned decimals)
         ip++;
         frac = 0u;
     }
-    protocore_sb_u64(b, ip);
+    mmgr_sb_u64(b, ip);
     if (decimals)
     {
-        protocore_sb_ch(b, '.');
-        protocore_sb_uint(b, frac, 10, decimals);
+        mmgr_sb_ch(b, '.');
+        mmgr_sb_uint(b, frac, 10, decimals);
     }
 }
 
 static const char JSON_CTRL_ESC[32] = {0, 0, 0, 0, 0, 0, 0, 0, 'b', 't', 'n', 0, 'f', 'r', 0, 0,
                                        0, 0, 0, 0, 0, 0, 0, 0, 0,   0,   0,   0, 0,   0,   0, 0};
 
-void protocore_sb_json(protocore_sb *b, const char *s)
+void mmgr_sb_json(mmgr_sb *b, const char *s)
 {
     static const char HEX[] = "0123456789abcdef";
 
@@ -553,7 +553,7 @@ void protocore_sb_json(protocore_sb *b, const char *s)
     {
         return;
     }
-    protocore_sb_put(b, "\"");
+    mmgr_sb_put(b, "\"");
 
     for (const char *p = s ? s : ""; *p; p++)
     {
@@ -563,7 +563,7 @@ void protocore_sb_json(protocore_sb *b, const char *s)
         {
             if (b->len + 2 >= b->cap)
             {
-                b->ok = PROTO_FALSE;
+                b->ok = MMGR_FALSE;
                 return;
             }
             b->p[b->len++] = '\\';
@@ -573,7 +573,7 @@ void protocore_sb_json(protocore_sb *b, const char *s)
         {
             if (b->len + 6 >= b->cap)
             {
-                b->ok = PROTO_FALSE;
+                b->ok = MMGR_FALSE;
                 return;
             }
             b->p[b->len++] = '\\';
@@ -589,13 +589,13 @@ void protocore_sb_json(protocore_sb *b, const char *s)
         }
         else
         {
-            b->ok = PROTO_FALSE;
+            b->ok = MMGR_FALSE;
         }
     }
-    protocore_sb_put(b, "\"");
+    mmgr_sb_put(b, "\"");
 }
 
-size_t protocore_sb_finish(protocore_sb *b)
+size_t mmgr_sb_finish(mmgr_sb *b)
 {
 
     if (!b->ok || b->cap == 0)

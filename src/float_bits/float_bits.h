@@ -1,39 +1,39 @@
 // ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
-#ifndef PROTOCORE_FLOAT_BITS_H
-#define PROTOCORE_FLOAT_BITS_H
+#ifndef MMGR_FLOAT_BITS_H
+#define MMGR_FLOAT_BITS_H
 
-#include "protocore_config.h"
+#include "mmgr_config.h"
 
-PROTOCORE_BEGIN_DECLS
+MMGR_BEGIN_DECLS
 
-#define PROTO_DBL_SIGN_MASK 0x8000000000000000ull
-#define PROTO_DBL_EXP_MASK 0x7FF0000000000000ull
-#define PROTO_DBL_MANT_MASK 0x000FFFFFFFFFFFFFull
-#define PROTO_DBL_SIGN_SHIFT 63u
-#define PROTO_DBL_MANT_BITS 52u
-#define PROTO_DBL_SIGN_ONE 0x1ull
-#define PROTO_DBL_EXP_ALL 0x7FFull
-#define PROTO_DBL_BIAS 1023
+#define MMGR_DBL_SIGN_MASK 0x8000000000000000ull
+#define MMGR_DBL_EXP_MASK 0x7FF0000000000000ull
+#define MMGR_DBL_MANT_MASK 0x000FFFFFFFFFFFFFull
+#define MMGR_DBL_SIGN_SHIFT 63u
+#define MMGR_DBL_MANT_BITS 52u
+#define MMGR_DBL_SIGN_ONE 0x1ull
+#define MMGR_DBL_EXP_ALL 0x7FFull
+#define MMGR_DBL_BIAS 1023
 
 typedef struct
 {
-    proto_u64 (*sign)(double v);
-    proto_u64 (*exp)(double v);
-    proto_u64 (*mant)(double v);
-    proto_u64 (*merge)(proto_u64 sign, proto_u64 exp, proto_u64 mant);
-    double (*from_bits)(proto_u64 bits);
+    mmgr_u64 (*sign)(double v);
+    mmgr_u64 (*exp)(double v);
+    mmgr_u64 (*mant)(double v);
+    mmgr_u64 (*merge)(mmgr_u64 sign, mmgr_u64 exp, mmgr_u64 mant);
+    double (*from_bits)(mmgr_u64 bits);
 } DblNs;
 
-proto_u64 proto_dbl_sign(double v);
-proto_u64 proto_dbl_exp(double v);
-proto_u64 proto_dbl_mant(double v);
-proto_u64 proto_dbl_merge(proto_u64 sign, proto_u64 exp, proto_u64 mant);
-double proto_dbl_from_bits(proto_u64 bits);
+mmgr_u64 mmgr_dbl_sign(double v);
+mmgr_u64 mmgr_dbl_exp(double v);
+mmgr_u64 mmgr_dbl_mant(double v);
+mmgr_u64 mmgr_dbl_merge(mmgr_u64 sign, mmgr_u64 exp, mmgr_u64 mant);
+double mmgr_dbl_from_bits(mmgr_u64 bits);
 
 static const DblNs dbl
-    __attribute__((unused)) = {proto_dbl_sign, proto_dbl_exp, proto_dbl_mant, proto_dbl_merge, proto_dbl_from_bits};
+    __attribute__((unused)) = {mmgr_dbl_sign, mmgr_dbl_exp, mmgr_dbl_mant, mmgr_dbl_merge, mmgr_dbl_from_bits};
 
-PROTOCORE_END_DECLS
+MMGR_END_DECLS
 
 #endif

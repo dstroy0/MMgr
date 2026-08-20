@@ -1,26 +1,26 @@
 // ProtoCore v1.0.16 - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
-#ifndef PROTOCORE_DMA_H
-#define PROTOCORE_DMA_H
+#ifndef MMGR_DMA_H
+#define MMGR_DMA_H
 
-#include "protocore_config.h"
+#include "mmgr_config.h"
 
-#if PROTOCORE_ENABLE_DMA
+#if MMGR_ENABLE_DMA
 
-PROTOCORE_BEGIN_DECLS
+MMGR_BEGIN_DECLS
 
-typedef enum PROTO_ENUM_PACKED
+typedef enum MMGR_ENUM_PACKED
 {
-    PROTOCORE_DMA_UART = 0,
-    PROTOCORE_DMA_I2C = 1,
-    PROTOCORE_DMA_SPI = 2,
-} protocore_dma_periph;
+    MMGR_DMA_UART = 0,
+    MMGR_DMA_I2C = 1,
+    MMGR_DMA_SPI = 2,
+} mmgr_dma_periph;
 
-typedef enum PROTO_ENUM_PACKED
+typedef enum MMGR_ENUM_PACKED
 {
-    PROTOCORE_DMA_RX = 0,
-    PROTOCORE_DMA_TX = 1,
-} protocore_dma_dir;
+    MMGR_DMA_RX = 0,
+    MMGR_DMA_TX = 1,
+} mmgr_dma_dir;
 
 typedef struct
 {
@@ -31,31 +31,31 @@ typedef struct
     uint16_t len;
     uint16_t seq;
     uint8_t channel;
-    protocore_dma_periph periph;
-    protocore_dma_dir dir;
+    mmgr_dma_periph periph;
+    mmgr_dma_dir dir;
     uint8_t _pad;
-} protocore_dma_event;
+} mmgr_dma_event;
 
-typedef void (*protocore_dma_cb)(const protocore_dma_event *ev, void *ctx);
+typedef void (*mmgr_dma_cb)(const mmgr_dma_event *ev, void *ctx);
 
 typedef struct
 {
     uint8_t channel;
-    protocore_dma_periph periph;
-    proto_bool loopback;
-    protocore_dma_cb on_complete;
+    mmgr_dma_periph periph;
+    mmgr_bool loopback;
+    mmgr_dma_cb on_complete;
     void *ctx;
-} protocore_dma_config;
+} mmgr_dma_config;
 
-proto_bool protocore_dma_open(const protocore_dma_config *cfg);
+mmgr_bool mmgr_dma_open(const mmgr_dma_config *cfg);
 
-proto_bool protocore_dma_tx_submit(uint8_t ch, const uint8_t *buf, uint16_t len);
+mmgr_bool mmgr_dma_tx_submit(uint8_t ch, const uint8_t *buf, uint16_t len);
 
-void protocore_dma_close(uint8_t ch);
+void mmgr_dma_close(uint8_t ch);
 
-void protocore_dma_poll(void);
+void mmgr_dma_poll(void);
 
-PROTOCORE_END_DECLS
+MMGR_END_DECLS
 
 #endif
 

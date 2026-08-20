@@ -2,23 +2,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "mmgr/psram_pool/psram_pool.h"
 
-#if PROTOCORE_ENABLE_PSRAM_POOL
+#if MMGR_ENABLE_PSRAM_POOL
 
-static proto_bool dram_fits(size_t size, size_t free_dram, size_t reserve)
+static mmgr_bool dram_fits(size_t size, size_t free_dram, size_t reserve)
 {
     return size <= free_dram && (free_dram - size) >= reserve;
 }
 
-protocore_place protocore_psram_place(size_t size, proto_bool dma_required, size_t free_dram, size_t free_psram,
-                                      size_t psram_threshold, size_t dram_reserve)
+mmgr_place mmgr_psram_place(size_t size, mmgr_bool dma_required, size_t free_dram, size_t free_psram,
+                            size_t psram_threshold, size_t dram_reserve)
 {
     if (size == 0)
     {
         return PLACE_FAIL;
     }
 
-    proto_bool d_fits = dram_fits(size, free_dram, dram_reserve);
-    proto_bool p_fits = size <= free_psram;
+    mmgr_bool d_fits = dram_fits(size, free_dram, dram_reserve);
+    mmgr_bool p_fits = size <= free_psram;
 
     if (dma_required)
     {
@@ -49,7 +49,7 @@ protocore_place protocore_psram_place(size_t size, proto_bool dma_required, size
     return PLACE_FAIL;
 }
 
-void protocore_pingpong_init(PingPong *pp)
+void mmgr_pingpong_init(PingPong *pp)
 {
     if (pp)
     {
@@ -57,17 +57,17 @@ void protocore_pingpong_init(PingPong *pp)
     }
 }
 
-uint8_t protocore_pingpong_fill_index(const PingPong *pp)
+uint8_t mmgr_pingpong_fill_index(const PingPong *pp)
 {
     return pp ? pp->fill_idx : 0;
 }
 
-uint8_t protocore_pingpong_drain_index(const PingPong *pp)
+uint8_t mmgr_pingpong_drain_index(const PingPong *pp)
 {
     return pp ? (uint8_t)(pp->fill_idx ^ 1u) : 1;
 }
 
-uint8_t protocore_pingpong_swap(PingPong *pp)
+uint8_t mmgr_pingpong_swap(PingPong *pp)
 {
     if (!pp)
     {
