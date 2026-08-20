@@ -30,7 +30,7 @@ jobs:
   format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # continue-on-error on each step so one failure does not hide the other two: three separate
       # red steps tell you everything that needs fixing in one run, where a hard fail on the first
