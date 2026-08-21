@@ -62,7 +62,7 @@ MMGR_INLINE void verba_put_n(VerbaCtx *c)
         return;
     }
 
-    mmgr_proxim_read(b->p + b->len, c->s, c->sl);
+    proxim.read(b->p + b->len, c->s, c->sl);
     b->len += c->sl;
 }
 
@@ -96,7 +96,7 @@ MMGR_INLINE void verba_put_clip(VerbaCtx *c)
     const size_t room = b->cap - b->len - 1u;
     const size_t sl = cellul.len(c->s, room);
 
-    mmgr_proxim_read(b->p + b->len, c->s, sl);
+    proxim.read(b->p + b->len, c->s, sl);
     b->len += sl;
 }
 
@@ -417,18 +417,18 @@ MMGR_INLINE void verba_digits(VerbaCtx *c)
  */
 MMGR_INLINE mmgr_bool verba_non_finite(VerbaCtx *c)
 {
-    if (mmgr_fract_exp(c->d) != MMGR_DBL_EXP_ALL)
+    if (fract.exp(c->d) != MMGR_DBL_EXP_ALL)
     {
         return MMGR_FALSE;
     }
 
-    if (mmgr_fract_mant(c->d) != 0U)
+    if (fract.mant(c->d) != 0U)
     {
         c->s = "nan";
         verba_put(c);
         return MMGR_TRUE;
     }
-    if (mmgr_fract_sign(c->d) != 0U)
+    if (fract.sign(c->d) != 0U)
     {
         c->c = '-';
         verba_ch(c);
@@ -461,15 +461,15 @@ MMGR_INLINE void verba_g(VerbaCtx *c)
     }
 
     double v = c->d;
-    if (mmgr_fract_sign(v) != 0U)
+    if (fract.sign(v) != 0U)
     {
         c->c = '-';
         verba_ch(c);
         v = -v;
     }
 
-    const mmgr_u64 be = mmgr_fract_exp(v);
-    mmgr_u64 n = mmgr_fract_mant(v);
+    const mmgr_u64 be = fract.exp(v);
+    mmgr_u64 n = fract.mant(v);
     if ((be == 0U) && (n == 0U))
     {
         c->c = '0';
@@ -493,7 +493,7 @@ MMGR_INLINE void verba_g(VerbaCtx *c)
     /* Where the decimal point wants to be. The value is near two to the bit length less one plus
        the binary exponent, and 78913 over two to the eighteenth is log ten of two, so this lands on
        the right power of ten or one either side of it. The fit below settles which. */
-    int e = (int)(((int64_t)(63 - mmgr_muto_clz(n) + s) * 78913) >> 18);
+    int e = (int)(((int64_t)(63 - muto.clz(n) + s) * 78913) >> 18);
     int p = (int)sig - 1 - e;
 
     /* One call site on purpose. The scale is a call now rather than an inline body, but a second
@@ -504,7 +504,7 @@ MMGR_INLINE void verba_g(VerbaCtx *c)
     mmgr_u64 mant = 0U;
     for (unsigned guard = 0; guard < 4U; guard++) /* GCOVR_EXCL_BR_LINE */
     {
-        mant = mmgr_muto_scale_to_u64(n, s, p, 0U);
+        mant = muto.scale_to_u64(n, s, p, 0U);
         if (mant >= limit)
         {
             e++;
@@ -589,14 +589,14 @@ MMGR_INLINE void verba_fixed(VerbaCtx *c)
 
     /* Same order as g: the one look, then the rejection, then the work. Negating the value
      * afterwards flips the sign bit and leaves the exponent alone, so this reading stays good. */
-    const mmgr_u64 klass = mmgr_fract_exp(c->d);
+    const mmgr_u64 klass = fract.exp(c->d);
     if (verba_non_finite(c))
     {
         return;
     }
 
     double v = c->d;
-    if (mmgr_fract_sign(v) != 0U)
+    if (fract.sign(v) != 0U)
     {
         c->c = '-';
         verba_ch(c);
@@ -625,8 +625,8 @@ MMGR_INLINE void verba_fixed(VerbaCtx *c)
         scale *= 10U;
     }
 
-    mmgr_u64 mant = mmgr_fract_mant(v);
-    const mmgr_u64 be = mmgr_fract_exp(v);
+    mmgr_u64 mant = fract.mant(v);
+    const mmgr_u64 be = fract.exp(v);
     mmgr_i32 exp2 = 1 - MMGR_DBL_BIAS - (mmgr_i32)MMGR_DBL_MANT_BITS;
     if (be != 0U)
     {
@@ -662,7 +662,7 @@ MMGR_INLINE void verba_fixed(VerbaCtx *c)
      * that is the engine's job rather than something to open code with shifts. It was open coded,
      * and it took the scale off the remainder only when the shift was under 64 and then shifted a
      * word by more than its width, which C does not define. */
-    mmgr_u64 frac = mmgr_muto_scale_to_u64(rem, exp2, (int)decimals, (decimals == 0U) ? (unsigned)(ip & 1U) : 0U);
+    mmgr_u64 frac = muto.scale_to_u64(rem, exp2, (int)decimals, (decimals == 0U) ? (unsigned)(ip & 1U) : 0U);
 
     if (frac >= scale)
     {
@@ -785,15 +785,15 @@ size_t mmgr_verba_finish(mmgr_verba *b)
 
 mmgr_bool mmgr_signbit(double v)
 {
-    return mmgr_fract_sign(v) != 0U;
+    return fract.sign(v) != 0U;
 }
 
 mmgr_bool mmgr_isinf(double v)
 {
-    return (mmgr_fract_exp(v) == 0x7FFU) && (mmgr_fract_mant(v) == 0U);
+    return (fract.exp(v) == 0x7FFU) && (fract.mant(v) == 0U);
 }
 
 mmgr_bool mmgr_isnan(double v)
 {
-    return (mmgr_fract_exp(v) == 0x7FFU) && (mmgr_fract_mant(v) != 0U);
+    return (fract.exp(v) == 0x7FFU) && (fract.mant(v) != 0U);
 }

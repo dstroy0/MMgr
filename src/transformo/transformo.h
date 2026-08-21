@@ -32,6 +32,13 @@ MMGR_INCIPE_DECLS
  * This is the engine, not a policy. It was written inside the parser and lives here because the
  * render side has the same problem in the other direction and should not solve it twice. See
  * @ref qa_numeric.
+ *
+ * The table is the whole surface. There are no free functions to call.
+ *
+ * take and clz are in this header rather than the .c because both sit inside a digit loop, where a
+ * call frame costs more than the body. The two that carry the intermediate are in the .c, because
+ * always_inline put a whole copy of the engine into every module that converted a number once
+ * there were two of them.
  */
 
 /** @brief Largest mantissa that can still take another digit without wrapping. */
@@ -59,8 +66,12 @@ MMGR_INLINE mmgr_bool mmgr_muto_take(mmgr_u64 *mant, char c)
     return MMGR_TRUE;
 }
 /**
- * @brief Bring the top bit up, moving the exponent to match.
- * @param f In/out. The fraction.
+ * @brief How many leading zero bits @p x has.
+ * @param x The value. Must not be zero.
+ * @return The count, 0 through 63.
+ *
+ * What normalising reads to find out how far the fraction has to come up, and how far the exponent
+ * has to move to match.
  */
 MMGR_INLINE int mmgr_muto_clz(mmgr_u64 x)
 {
@@ -100,25 +111,37 @@ MMGR_INLINE int mmgr_muto_clz(mmgr_u64 x)
     return n;
 }
 
-/**
- * @brief @p mant times ten to the @p ex, as the double it names.
- * @param mant Mantissa.
- * @param ex Decimal exponent.
- * @param rest Whether digits were dropped past what the mantissa could hold.
- * @param neg Whether the value was negative.
- * @return The double, correctly rounded.
- */
+/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
+typedef struct
+{
+    mmgr_bool (*take)(mmgr_u64 *mant, char c);
+    int (*clz)(mmgr_u64 x);
+    double (*scale)(mmgr_u64 mant, int ex, int rest, mmgr_bool neg);
+    mmgr_u64 (*scale_to_u64)(mmgr_u64 mant, int e2, int ex, unsigned above);
+} TransformoNs;
+MMGR_NS_LAYOUT(TransformoNs, take, clz, scale, scale_to_u64);
+
+/** @name The entries the table points at that are not inline above.
+ *  @brief Nameable so a static const table can name them, and for no other reason. The table is
+ *         still the whole surface: call through it.
+ *  @{ */
 double mmgr_muto_scale(mmgr_u64 mant, int ex, int rest, mmgr_bool neg);
+mmgr_u64 mmgr_muto_scale_to_u64(mmgr_u64 mant, int e2, int ex, unsigned above);
+/** @} */
 
 /**
- * @brief @p mant times two to the @p e2, times ten to the @p ex, rounded to a whole number.
- * @param mant Mantissa.
- * @param e2 Binary exponent that goes with it.
- * @param ex Decimal exponent to apply.
- * @param above Parity of the rest of the number this is a field of; zero when it stands alone.
- * @return The integer, ties to even.
+ * @brief Module namespace.
+ *
+ * static const, like every other module's. gcc devirtualizes a call through one down to the
+ * inlined body and cannot do that through an extern one, where the table is in another
+ * translation unit and every call is a load and an indirect jump.
  */
-mmgr_u64 mmgr_muto_scale_to_u64(mmgr_u64 mant, int e2, int ex, unsigned above);
+MMGR_NS TransformoNs muto MMGR_UNUSED = {
+    .take = mmgr_muto_take,
+    .clz = mmgr_muto_clz,
+    .scale = mmgr_muto_scale,
+    .scale_to_u64 = mmgr_muto_scale_to_u64,
+};
 
 MMGR_FINIS_DECLS
 

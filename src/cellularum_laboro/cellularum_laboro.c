@@ -404,7 +404,7 @@ MMGR_INLINE size_t cellul_pick_rows(CellulCtx *c)
             }
             /* GCOVR_EXCL_STOP */
             c->k = k;
-            const uint8_t cost = mmgr_ancorae_impensa(cellul_ancorae_fold(c));
+            const uint8_t cost = ancorae.impensa(cellul_ancorae_fold(c));
             if (!taken && (cost < best_cost)) /* GCOVR_EXCL_BR_LINE */
             {
                 best_cost = cost;
@@ -985,7 +985,7 @@ MMGR_INLINE double cellul_to_double(CellulCtx *c)
 
     while (cellul_is_digit(*p))
     {
-        if (!mmgr_muto_take(&mant, *p))
+        if (!muto.take(&mant, *p))
         {
             ++over;
             lost |= (*p != '0') ? 1 : 0;
@@ -998,7 +998,7 @@ MMGR_INLINE double cellul_to_double(CellulCtx *c)
         ++p;
         while (cellul_is_digit(*p))
         {
-            if (mmgr_muto_take(&mant, *p))
+            if (muto.take(&mant, *p))
             {
                 ++drop;
             }
@@ -1019,7 +1019,7 @@ MMGR_INLINE double cellul_to_double(CellulCtx *c)
         cellul_expo(c);
     }
 
-    const double val = mmgr_muto_scale(mant, ex + over - drop, lost, neg);
+    const double val = muto.scale(mant, ex + over - drop, lost, neg);
 
     if (c->end != NULL)
     {

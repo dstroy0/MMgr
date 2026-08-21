@@ -10,6 +10,15 @@ MMGR_INCIPE_DECLS
 /**
  * @file fractio.h
  * @brief Take an IEEE 754 double apart and put it back together, without <math.h>.
+ *
+ * A double is a sign, an exponent and a mantissa at fixed bit positions. Reading one of the three
+ * is a mask and a shift; writing all three back is three masks and two shifts. Nothing here
+ * computes, rounds or normalizes - that is transformo's job, and this is what it reads through.
+ *
+ * The positions are asserted below rather than assumed, because a target whose double is not
+ * binary64 would read the wrong bits of a smaller value without complaint.
+ *
+ * The table is the whole surface. There are no free functions to call.
  */
 
 /** @brief IEEE 754 binary64 field masks, shifts and bias. */
@@ -96,50 +105,25 @@ typedef struct
 } FractioNs;
 MMGR_NS_LAYOUT(FractioNs, sign, exp, mant, merge, from_bits, to_bits);
 
-/**
- * @brief Sign bit.
- * @param v Value.
- * @return 0 or 1.
- */
+/** @name The entries the table points at.
+ *  @brief Nameable so a static const table can name them, and for no other reason. The table is
+ *         still the whole surface: call through it.
+ *  @{ */
 mmgr_u64 mmgr_fract_sign(double v);
-/**
- * @brief Raw exponent field, unbiased.
- * @param v Value.
- * @return Exponent bits.
- */
 mmgr_u64 mmgr_fract_exp(double v);
-/**
- * @brief Mantissa field, without the implicit leading bit.
- * @param v Value.
- * @return Mantissa bits.
- */
 mmgr_u64 mmgr_fract_mant(double v);
-/**
- * @brief Assemble the three fields into a bit pattern.
- * @param sign Sign bit.
- * @param exp Raw exponent.
- * @param mant Mantissa.
- * @return The bit pattern.
- */
 mmgr_u64 mmgr_fract_merge(mmgr_u64 sign, mmgr_u64 exp, mmgr_u64 mant);
-/**
- * @brief Reinterpret a bit pattern as a double.
- * @param bits Bit pattern.
- * @return The value.
- */
 double mmgr_fract_from_bits(mmgr_u64 bits);
-/**
- * @brief Reinterpret a double as its bit pattern.
- * @param v Value.
- * @return The bits.
- *
- * The other direction of from_bits. Taking a value apart into its three fields and putting them
- * back together gets the same number out, and costs three reads and four operations to recover
- * something that was already sitting there.
- */
 mmgr_u64 mmgr_fract_to_bits(double v);
+/** @} */
 
-/** @brief Module namespace. */
+/**
+ * @brief Module namespace.
+ *
+ * static const, like every other module's. gcc devirtualizes a call through one down to the
+ * inlined body and cannot do that through an extern one, where the table is in another
+ * translation unit and every call is a load and an indirect jump.
+ */
 MMGR_NS FractioNs fract MMGR_UNUSED = {
     .sign = mmgr_fract_sign,
     .exp = mmgr_fract_exp,

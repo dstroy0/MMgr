@@ -91,6 +91,14 @@ MMGR_INLINE void bitor_align(mmgr_bitor_writer *w)
     }
 }
 
+/* The namespace is a table of function pointers with the caller's argument lists in their types,
+   so these are what it points at. Each builds the context and hands it to the body above.
+
+   They are nameable rather than file local because a static const table in the header has to be
+   able to point at them, and a static const table is what gcc devirtualizes. Through an extern one
+   every call from another translation unit is a load of the table, a load of the entry, and an
+   indirect call it cannot see through. */
+
 void mmgr_bitor_put(mmgr_bitor_writer *w, uint32_t bits, int n)
 {
     MMGR_CALL(bitor_put, BitorCtx, .w = w, .bits = bits, .n = n);

@@ -14,6 +14,8 @@ MMGR_INCIPE_DECLS
  * @brief Bulk memory work, a word at a time.
  *
  * Every entry takes an explicit length. Nothing here scans for a terminator.
+ *
+ * The table is the whole surface. There are no free functions to call.
  */
 
 /** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
@@ -28,56 +30,25 @@ typedef struct
 } MemoriaOperorNs;
 MMGR_NS_LAYOUT(MemoriaOperorNs, cpy, move, cmp, chr, set, zero);
 
-/**
- * @brief Copy @p n bytes. Regions must not overlap.
- * @param dst Destination.
- * @param src Source.
- * @param n Byte count.
- */
+/** @name The entries the table points at.
+ *  @brief Nameable so a static const table can name them, and for no other reason. The table is
+ *         still the whole surface: call through it.
+ *  @{ */
 void mmgr_memor_cpy(void *dst, const void *src, size_t n);
-
-/**
- * @brief Copy @p n bytes. Regions may overlap.
- * @param dst Destination.
- * @param src Source.
- * @param n Byte count.
- */
 void mmgr_memor_move(void *dst, const void *src, size_t n);
-
-/**
- * @brief Compare @p n bytes.
- * @param a First region.
- * @param b Second region.
- * @param n Byte count.
- * @return Difference of the first bytes that differ, or 0.
- */
 int mmgr_memor_cmp(const void *a, const void *b, size_t n);
-
-/**
- * @brief Find @p c in the first @p n bytes.
- * @param p Region.
- * @param n Byte count.
- * @param c Byte to find.
- * @return Pointer to it, or NULL.
- */
 const void *mmgr_memor_chr(const void *p, size_t n, uint8_t c);
-
-/**
- * @brief Fill @p n bytes with @p v.
- * @param dst Destination.
- * @param v Byte to write.
- * @param n Byte count.
- */
 void mmgr_memor_set(void *dst, unsigned char v, size_t n);
+void mmgr_memor_zero(void *dst, size_t n);
+/** @} */
 
 /**
- * @brief Zero @p n bytes.
- * @param dst Destination.
- * @param n Byte count.
+ * @brief Module namespace.
+ *
+ * static const, like every other module's. gcc devirtualizes a call through one down to the
+ * inlined body and cannot do that through an extern one, where the table is in another
+ * translation unit and every call is a load and an indirect jump.
  */
-void mmgr_memor_zero(void *dst, size_t n);
-
-/** @brief Module namespace. const is what lets the compiler devirtualize a call through it. */
 MMGR_NS MemoriaOperorNs memor MMGR_UNUSED = {
     .cpy = mmgr_memor_cpy,
     .move = mmgr_memor_move,

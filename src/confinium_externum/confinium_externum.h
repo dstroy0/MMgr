@@ -14,6 +14,12 @@ MMGR_INCIPE_DECLS
  * @brief Where a request should be placed when there is more than one kind of memory.
  *
  * Built only when MMGR_ENABLE_PSRAM_POOL is set.
+ *
+ * The table is the whole surface. There are no free functions to call.
+ *
+ * The placement decision and the ping-pong pair are one table because they are one module: a
+ * request is placed and then filled, and the two questions belong to the same caller. Neither is
+ * large enough to be its own namespace.
  */
 
 /** @brief Where a request landed. */
@@ -24,51 +30,50 @@ typedef enum MMGR_ENUM_PACKED
     PLACE_FAIL = 2
 } mmgr_place;
 
-/**
- * @brief Decide where a request goes.
- * @param size Byte count.
- * @param dma_required Whether it must be DMA capable, which rules out PSRAM.
- * @param free_dram Bytes free in DRAM.
- * @param free_psram Bytes free in PSRAM.
- * @param psram_threshold At or above this, prefer PSRAM.
- * @param dram_reserve Keep this much DRAM free.
- * @return PLACE_DRAM, PLACE_PSRAM or PLACE_FAIL.
- */
-mmgr_place mmgr_exter_place(size_t size, mmgr_bool dma_required, size_t free_dram, size_t free_psram,
-                            size_t psram_threshold, size_t dram_reserve);
-
 /** @brief Two buffers, one filling and one draining. */
 typedef struct
 {
-    uint8_t fill_idx;
+    uint8_t fill_idx; /**< Which of the two is filling. The other is draining. */
 } PingPong;
 
-/**
- * @brief Start with buffer 0 filling.
- * @param pp State.
- */
+/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
+typedef struct
+{
+    mmgr_place (*place)(size_t size, mmgr_bool dma_required, size_t free_dram, size_t free_psram,
+                        size_t psram_threshold, size_t dram_reserve);
+    void (*pingpong_init)(PingPong *const pp);
+    uint8_t (*pingpong_fill)(PingPong *const pp);
+    uint8_t (*pingpong_drain)(PingPong *const pp);
+    uint8_t (*pingpong_swap)(PingPong *const pp);
+} ConfiniumExternumNs;
+MMGR_NS_LAYOUT(ConfiniumExternumNs, place, pingpong_init, pingpong_fill, pingpong_drain, pingpong_swap);
+
+/** @name The entries the table points at.
+ *  @brief Nameable so a static const table can name them, and for no other reason. The table is
+ *         still the whole surface: call through it.
+ *  @{ */
+mmgr_place mmgr_exter_place(size_t size, mmgr_bool dma_required, size_t free_dram, size_t free_psram,
+                            size_t psram_threshold, size_t dram_reserve);
 void mmgr_pingpong_init(PingPong *const pp);
-
-/**
- * @brief Which buffer is filling.
- * @param pp State.
- * @return 0 or 1.
- */
 uint8_t mmgr_pingpong_fill_index(PingPong *const pp);
-
-/**
- * @brief Which buffer is draining.
- * @param pp State.
- * @return 0 or 1.
- */
 uint8_t mmgr_pingpong_drain_index(PingPong *const pp);
+uint8_t mmgr_pingpong_swap(PingPong *const pp);
+/** @} */
 
 /**
- * @brief Swap the two.
- * @param pp State.
- * @return The new fill index.
+ * @brief Module namespace.
+ *
+ * static const, like every other module's. gcc devirtualizes a call through one down to the
+ * inlined body and cannot do that through an extern one, where the table is in another
+ * translation unit and every call is a load and an indirect jump.
  */
-uint8_t mmgr_pingpong_swap(PingPong *const pp);
+MMGR_NS ConfiniumExternumNs exter MMGR_UNUSED = {
+    .place = mmgr_exter_place,
+    .pingpong_init = mmgr_pingpong_init,
+    .pingpong_fill = mmgr_pingpong_fill_index,
+    .pingpong_drain = mmgr_pingpong_drain_index,
+    .pingpong_swap = mmgr_pingpong_swap,
+};
 
 MMGR_FINIS_DECLS
 

@@ -135,6 +135,15 @@ MMGR_INLINE uint8_t exter_pingpong_swap(PingPong *const pp)
     return pp->fill_idx;
 }
 
+/* The namespace is a table of function pointers with the caller's argument lists in their types,
+   so these are what it points at. Each builds the context, where there is one, and hands it to the
+   body above.
+
+   They are nameable rather than file local because a static const table in the header has to be
+   able to point at them, and a static const table is what gcc devirtualizes. Through an extern one
+   every call from another translation unit is a load of the table, a load of the entry, and an
+   indirect call it cannot see through. */
+
 mmgr_place mmgr_exter_place(size_t size, mmgr_bool dma_required, size_t free_dram, size_t free_psram,
                             size_t psram_threshold, size_t dram_reserve)
 {

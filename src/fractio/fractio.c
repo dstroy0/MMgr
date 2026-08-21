@@ -23,42 +23,119 @@
  */
 MMGR_INLINE mmgr_u64 fract_bits(double v)
 {
-    return mmgr_proxim_u64(&v);
+    return proxim.u64(&v);
 }
 
-mmgr_u64 mmgr_fract_sign(double v)
+/**
+ * @brief Sign bit.
+ * @param v The value.
+ * @return 0 or 1.
+ */
+MMGR_INLINE mmgr_u64 fract_sign(double v)
 {
     return (fract_bits(v) & MMGR_DBL_SIGN_MASK) >> MMGR_DBL_SIGN_SHIFT;
 }
 
-mmgr_u64 mmgr_fract_exp(double v)
+/**
+ * @brief Raw exponent field, still biased.
+ * @param v The value.
+ * @return Exponent bits.
+ */
+MMGR_INLINE mmgr_u64 fract_exp(double v)
 {
     return (fract_bits(v) & MMGR_DBL_EXP_MASK) >> MMGR_DBL_MANT_BITS;
 }
 
-mmgr_u64 mmgr_fract_mant(double v)
+/**
+ * @brief Mantissa field, without the implicit leading bit.
+ * @param v The value.
+ * @return Mantissa bits.
+ */
+MMGR_INLINE mmgr_u64 fract_mant(double v)
 {
     return fract_bits(v) & MMGR_DBL_MANT_MASK;
 }
 
-mmgr_u64 mmgr_fract_merge(mmgr_u64 sign, mmgr_u64 exp, mmgr_u64 mant)
+/**
+ * @brief Assemble the three fields into a bit pattern.
+ * @param sign Sign bit.
+ * @param exp Raw exponent.
+ * @param mant Mantissa.
+ * @return The bit pattern.
+ *
+ * Each field is masked to its own width before it is shifted, so a caller that hands over a value
+ * too wide for the field cannot spill it into the field above.
+ */
+MMGR_INLINE mmgr_u64 fract_merge(mmgr_u64 sign, mmgr_u64 exp, mmgr_u64 mant)
 {
     return ((sign & MMGR_DBL_SIGN_ONE) << MMGR_DBL_SIGN_SHIFT) | ((exp & MMGR_DBL_EXP_ALL) << MMGR_DBL_MANT_BITS) |
            (mant & MMGR_DBL_MANT_MASK);
 }
 
-double mmgr_fract_from_bits(mmgr_u64 bits)
+/**
+ * @brief Reinterpret a bit pattern as a double.
+ * @param bits The bit pattern.
+ * @return The value.
+ */
+MMGR_INLINE double fract_from_bits(mmgr_u64 bits)
 {
     double v = 0.0;
 
-    mmgr_proxim_read(&v, &bits, sizeof(v));
+    proxim.read(&v, &bits, sizeof(v));
     return v;
+}
+
+/**
+ * @brief Reinterpret a double as its bit pattern.
+ * @param v The value.
+ * @return The bits.
+ *
+ * The other direction of from_bits. Taking a value apart into its three fields and putting them
+ * back together gets the same number out, and costs three reads and four operations to recover
+ * something that was already sitting there.
+ */
+MMGR_INLINE mmgr_u64 fract_to_bits(double v)
+{
+    mmgr_u64 bits = 0;
+
+    proxim.read(&bits, &v, sizeof(bits));
+    return bits;
+}
+
+/* The namespace is a table of function pointers with the caller's argument lists in their types,
+   so these are what it points at. Each hands its arguments to the body above.
+
+   They are nameable rather than file local because a static const table in the header has to be
+   able to point at them, and a static const table is what gcc devirtualizes. Through an extern one
+   every call from another translation unit is a load of the table, a load of the entry, and an
+   indirect call it cannot see through. */
+
+mmgr_u64 mmgr_fract_sign(double v)
+{
+    return fract_sign(v);
+}
+
+mmgr_u64 mmgr_fract_exp(double v)
+{
+    return fract_exp(v);
+}
+
+mmgr_u64 mmgr_fract_mant(double v)
+{
+    return fract_mant(v);
+}
+
+mmgr_u64 mmgr_fract_merge(mmgr_u64 sign, mmgr_u64 exp, mmgr_u64 mant)
+{
+    return fract_merge(sign, exp, mant);
+}
+
+double mmgr_fract_from_bits(mmgr_u64 bits)
+{
+    return fract_from_bits(bits);
 }
 
 mmgr_u64 mmgr_fract_to_bits(double v)
 {
-    mmgr_u64 bits = 0;
-
-    mmgr_proxim_read(&bits, &v, sizeof(bits));
-    return bits;
+    return fract_to_bits(v);
 }

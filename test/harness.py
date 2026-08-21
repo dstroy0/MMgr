@@ -43,10 +43,12 @@ A case Unity's generator does not collect is not an error to the generator: it i
 registered, so the suite passes while the case never ran. `cases` and `runners gen` both break that
 silence by naming the near misses.
 
-Two headers in src/ are generated rather than written, because they are tables nobody can check by
-eye - the ASCII class bitmaps and the anchor cost profiles. Editing them by hand is silently undone
-the next time anyone runs the generator, so `generated` compares what is on disk against what the
-generators emit and says which is which.
+Some of src/ is generated rather than written, because it is tables nobody can check by eye - the
+ASCII class bitmaps, the anchor cost profiles and the powers of five. Editing any of it by hand is
+silently undone the next time anyone runs the generator, so `generated` compares what is on disk
+against what the generators emit and says which is which. It covers whole modules, not just
+headers: the ASCII module's .c and its CMakeLists.txt come out of the same generator as its header,
+and a profile is a .c.
 """
 
 import argparse
@@ -554,16 +556,23 @@ def cmd_runners_gen(a):
 # A generated header that someone edited by hand looks fine until the next regeneration throws the
 # edit away. These pair each output with the tool that owns it, so the check is mechanical.
 GENERATED = (
-    ("tools/dev_env/gen_ascii_persona_bitorum.py", ("src/ascii_persona_bitorum/ascii_persona_bitorum.h",)),
+    (
+        "tools/dev_env/gen_ascii_persona_bitorum.py",
+        (
+            "src/ascii_persona_bitorum/ascii_persona_bitorum.h",
+            "src/ascii_persona_bitorum/ascii_persona_bitorum.c",
+            "src/ascii_persona_bitorum/CMakeLists.txt",
+        ),
+    ),
     ("tools/dev_env/gen_pow5.py", ("src/pow5/pow5.h",)),
     (
         "tools/dev_env/gen_ancorae_formae.py",
         (
-            "src/impensa_ancorae_acus/impensa_ancorae_acus_generic.h",
-            "src/impensa_ancorae_acus/impensa_ancorae_acus_english.h",
-            "src/impensa_ancorae_acus/impensa_ancorae_acus_uri.h",
-            "src/impensa_ancorae_acus/impensa_ancorae_acus_inet.h",
-            "src/impensa_ancorae_acus/impensa_ancorae_acus_route.h",
+            "src/impensa_ancorae_acus/impensa_ancorae_acus_generic.c",
+            "src/impensa_ancorae_acus/impensa_ancorae_acus_english.c",
+            "src/impensa_ancorae_acus/impensa_ancorae_acus_uri.c",
+            "src/impensa_ancorae_acus/impensa_ancorae_acus_inet.c",
+            "src/impensa_ancorae_acus/impensa_ancorae_acus_route.c",
         ),
     ),
 )
@@ -593,7 +602,13 @@ def cmd_generated(a):
         for rel in outs:
             p = os.path.join(ROOT, rel)
             after = open(p, "rb").read() if os.path.exists(p) else None
-            if before[rel] is None:
+            if after is None:
+                # The generator no longer emits something this table says it owns. Reporting that
+                # as "created" is how a dropped output passes a green check: the file is absent
+                # before and after, and nothing compares absent to absent.
+                missing.append("%s (no output from %s)" % (rel, tool))
+                print("  ABSENT   %s" % rel)
+            elif before[rel] is None:
                 print("  created  %s" % rel)
             elif before[rel] != after:
                 stale.append(rel)

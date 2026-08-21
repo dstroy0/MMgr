@@ -39,14 +39,34 @@ MMGR_INCIPE_DECLS
  *
  * One profile is compiled in. Selecting one does not carry the others - the build compiles that
  * .c and no other, so the four it did not pick are not in the image at all.
+ *
+ * The table is the whole surface. There are no free functions to call.
  */
 
-/**
- * @brief What @p b costs as an anchor.
- * @param b The byte.
- * @return Its cost. Lower is rarer, so lower is a better anchor. NUL is pinned worst.
- */
+/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
+typedef struct
+{
+    uint8_t (*impensa)(uint8_t b);
+} ImpensaAncoraeAcusNs;
+MMGR_NS_LAYOUT(ImpensaAncoraeAcusNs, impensa);
+
+/** @name The entries the table points at.
+ *  @brief Nameable so a static const table can name them, and for no other reason. The table is
+ *         still the whole surface: call through it.
+ *  @{ */
 uint8_t mmgr_ancorae_impensa(uint8_t b);
+/** @} */
+
+/**
+ * @brief Module namespace.
+ *
+ * static const, like every other module's. gcc devirtualizes a call through one down to the
+ * inlined body and cannot do that through an extern one, where the table is in another
+ * translation unit and every call is a load and an indirect jump.
+ */
+MMGR_NS ImpensaAncoraeAcusNs ancorae MMGR_UNUSED = {
+    .impensa = mmgr_ancorae_impensa,
+};
 
 MMGR_FINIS_DECLS
 

@@ -14,6 +14,12 @@ MMGR_INCIPE_DECLS
  * The proxim entries read at any alignment; the aequus entries require it. On every target measured
  * these are the same single instruction, so the scans do not peel to a boundary to reach the second
  * set - alignment buys a property nothing here needs.
+ *
+ * The table is the whole surface. There are no free functions to call.
+ *
+ * The bodies are in this header rather than the .c because every one of them is a single load or a
+ * single store, and a call frame costs more than the body. Out of line they would be a call from
+ * every scan in the library; here each expansion is the instruction it stands for.
  */
 
 /** @brief A type readable at any alignment. For a caller's punned pointer, not for our own use -
@@ -242,29 +248,36 @@ MMGR_INLINE void mmgr_migro_put(unsigned char *p, mmgr_migro_word v)
 #endif
 }
 
-/**
- * @brief Copy @p sz bytes.
- * @param dst Destination.
- * @param p Source.
- * @param sz Byte count.
- */
+/** @name The one entry that is not inline.
+ *  @brief Nameable so a static const table can name it, and for no other reason. The table is
+ *         still the whole surface: call through it.
+ *  @{ */
 void mmgr_proxim_read(void *dst, const void *p, size_t sz);
+/** @} */
 
-/** @brief Module namespace. */
-MMGR_NS ProximusOperorNs proxim MMGR_UNUSED = {.u16 = mmgr_proxim_u16,
-                                               .u32 = mmgr_proxim_u32,
-                                               .u64 = mmgr_proxim_u64,
-                                               .load = mmgr_proxim_load,
-                                               .put_u16 = mmgr_proxim_put_u16,
-                                               .put_u32 = mmgr_proxim_put_u32,
-                                               .put_u64 = mmgr_proxim_put_u64,
-                                               .al_load = mmgr_aequus_load,
-                                               .al_put_u16 = mmgr_aequus_put_u16,
-                                               .al_put_u32 = mmgr_aequus_put_u32,
-                                               .al_put_u64 = mmgr_aequus_put_u64,
-                                               .mv_load = mmgr_migro_load,
-                                               .mv_put = mmgr_migro_put,
-                                               .read = mmgr_proxim_read};
+/**
+ * @brief Module namespace.
+ *
+ * static const, like every other module's. gcc devirtualizes a call through one down to the
+ * inlined body and cannot do that through an extern one, where the table is in another
+ * translation unit and every call is a load and an indirect jump.
+ */
+MMGR_NS ProximusOperorNs proxim MMGR_UNUSED = {
+    .u16 = mmgr_proxim_u16,
+    .u32 = mmgr_proxim_u32,
+    .u64 = mmgr_proxim_u64,
+    .load = mmgr_proxim_load,
+    .put_u16 = mmgr_proxim_put_u16,
+    .put_u32 = mmgr_proxim_put_u32,
+    .put_u64 = mmgr_proxim_put_u64,
+    .al_load = mmgr_aequus_load,
+    .al_put_u16 = mmgr_aequus_put_u16,
+    .al_put_u32 = mmgr_aequus_put_u32,
+    .al_put_u64 = mmgr_aequus_put_u64,
+    .mv_load = mmgr_migro_load,
+    .mv_put = mmgr_migro_put,
+    .read = mmgr_proxim_read,
+};
 
 MMGR_FINIS_DECLS
 

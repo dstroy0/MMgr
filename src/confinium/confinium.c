@@ -398,6 +398,15 @@ MMGR_INLINE size_t confin_set_interim_used(const ConfinCtx *c)
     return t;
 }
 
+/* The namespaces are tables of function pointers with the caller's argument lists in their types,
+   so these are what they point at. Each builds the context, where there is one, and hands it to
+   the body above.
+
+   They are nameable rather than file local because a static const table in the header has to be
+   able to point at them, and a static const table is what gcc devirtualizes. Through an extern one
+   every call from another translation unit is a load of the table, a load of the entry, and an
+   indirect call it cannot see through. */
+
 void mmgr_confin_init(mmgr_confin *const a, void *base, size_t size)
 {
     MMGR_CALL(confin_init, ConfinCtx, .a = a, .base = base, .n = size);

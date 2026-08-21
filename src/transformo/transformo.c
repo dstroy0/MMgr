@@ -286,8 +286,8 @@ MMGR_INLINE double muto_round(const MutoCtx *c)
         const double big = 1.0e308 * 10.0;
         return c->neg ? -big : big;
     }
-    return mmgr_fract_from_bits(
-        mmgr_fract_merge(c->neg ? MMGR_DBL_SIGN_ONE : 0u, (mmgr_u64)be, mant & MMGR_DBL_MANT_MASK));
+    return fract.from_bits(
+        fract.merge(c->neg ? MMGR_DBL_SIGN_ONE : 0u, (mmgr_u64)be, mant & MMGR_DBL_MANT_MASK));
 }
 
 /**
@@ -425,6 +425,14 @@ MMGR_INLINE mmgr_u64 muto_scale_to_u64(MutoCtx *c)
     muto_apply_pow10(c);
     return muto_to_u64(c);
 }
+
+/* The namespace is a table of function pointers with the caller's argument lists in their types,
+   so these are what it points at. Each builds the context and hands it to the body above.
+
+   They are nameable rather than file local because a static const table in the header has to be
+   able to point at them, and a static const table is what gcc devirtualizes. Through an extern one
+   every call from another translation unit is a load of the table, a load of the entry, and an
+   indirect call it cannot see through. */
 
 double mmgr_muto_scale(mmgr_u64 mant, int ex, int rest, mmgr_bool neg)
 {

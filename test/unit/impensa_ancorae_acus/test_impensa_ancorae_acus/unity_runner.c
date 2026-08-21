@@ -79,11 +79,11 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/impensa_ancorae_acus/test_impensa_ancorae_acus\\test_impensa_ancorae_acus.c");
-  run_test(test_anchor_header_is_self_contained, "test_anchor_header_is_self_contained", 8);
-  run_test(test_anchor_table_covers_every_byte, "test_anchor_table_covers_every_byte", 13);
-  run_test(test_anchor_never_picks_the_terminator, "test_anchor_never_picks_the_terminator", 18);
-  run_test(test_impensa_ancorae_acus_is_never_zero, "test_impensa_ancorae_acus_is_never_zero", 24);
-  run_test(test_anchor_prefers_rare_bytes_to_common_ones, "test_anchor_prefers_rare_bytes_to_common_ones", 32);
+  run_test(test_anchor_header_is_self_contained, "test_anchor_header_is_self_contained", 11);
+  run_test(test_anchor_table_covers_every_byte, "test_anchor_table_covers_every_byte", 16);
+  run_test(test_anchor_never_picks_the_terminator, "test_anchor_never_picks_the_terminator", 33);
+  run_test(test_impensa_ancorae_acus_is_never_zero, "test_impensa_ancorae_acus_is_never_zero", 39);
+  run_test(test_anchor_prefers_rare_bytes_to_common_ones, "test_anchor_prefers_rare_bytes_to_common_ones", 48);
 
   return UNITY_END();
 }

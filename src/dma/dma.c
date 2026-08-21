@@ -84,6 +84,15 @@ MMGR_INLINE void dma_close(uint8_t ch)
     }
 }
 
+/* The namespace is a table of function pointers with the caller's argument lists in their types,
+   so these are what it points at. Each builds the context, where there is one, and hands it to the
+   body above.
+
+   They are nameable rather than file local because a static const table in the header has to be
+   able to point at them, and a static const table is what gcc devirtualizes. Through an extern one
+   every call from another translation unit is a load of the table, a load of the entry, and an
+   indirect call it cannot see through. */
+
 mmgr_bool mmgr_dma_open(const mmgr_dma_config *cfg)
 {
     return dma_open(cfg);

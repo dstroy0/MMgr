@@ -15,6 +15,8 @@ MMGR_INCIPE_DECLS
  *
  * Built only when MMGR_ENABLE_DMA is set. A board supplies the hooks; a host build links without
  * them and the weak stubs do nothing.
+ *
+ * The table is the whole surface. There are no free functions to call.
  */
 
 /** @brief Which peripheral a channel is bound to. */
@@ -64,34 +66,41 @@ typedef struct
     void *ctx;
 } mmgr_dma_config;
 
-/**
- * @brief Open a channel.
- * @param cfg Configuration.
- * @return MMGR_FALSE if the channel is taken or the hardware refused.
- */
-mmgr_bool mmgr_dma_open(const mmgr_dma_config *cfg);
+/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
+typedef struct
+{
+    mmgr_bool (*open)(const mmgr_dma_config *cfg);
+    mmgr_bool (*tx_submit)(uint8_t ch, const uint8_t *buf, uint16_t len);
+    void (*close)(uint8_t ch);
+    void (*poll)(void);
+} DmaNs;
+MMGR_NS_LAYOUT(DmaNs, open, tx_submit, close, poll);
 
-/**
- * @brief Queue a transmit.
- * @param ch Channel.
- * @param buf Data. Must outlive the transfer.
- * @param len Byte count.
- * @return MMGR_FALSE if the channel is closed or busy.
- */
-mmgr_bool mmgr_dma_tx_submit(uint8_t ch, const uint8_t *buf, uint16_t len);
-
-/**
- * @brief Close a channel.
- * @param ch Channel.
- */
-void mmgr_dma_close(uint8_t ch);
-
-/**
- * @brief Service completed transfers and run their callbacks.
+/** @name The entries the table points at.
+ *  @brief Nameable so a static const table can name them, and for no other reason. The table is
+ *         still the whole surface: call through it.
  *
- * Nothing is delivered until this is called. There is no interrupt context here.
- */
+ *  Nothing is delivered until poll is called. There is no interrupt context here.
+ *  @{ */
+mmgr_bool mmgr_dma_open(const mmgr_dma_config *cfg);
+mmgr_bool mmgr_dma_tx_submit(uint8_t ch, const uint8_t *buf, uint16_t len);
+void mmgr_dma_close(uint8_t ch);
 void mmgr_dma_poll(void);
+/** @} */
+
+/**
+ * @brief Module namespace.
+ *
+ * static const, like every other module's. gcc devirtualizes a call through one down to the
+ * inlined body and cannot do that through an extern one, where the table is in another
+ * translation unit and every call is a load and an indirect jump.
+ */
+MMGR_NS DmaNs dma MMGR_UNUSED = {
+    .open = mmgr_dma_open,
+    .tx_submit = mmgr_dma_tx_submit,
+    .close = mmgr_dma_close,
+    .poll = mmgr_dma_poll,
+};
 
 MMGR_FINIS_DECLS
 

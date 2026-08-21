@@ -13,6 +13,8 @@ MMGR_INCIPE_DECLS
 /**
  * @file occultum_custodiae.h
  * @brief The secure guardian. Same shape as clarus, but released bytes are wiped.
+ *
+ * The table is the whole surface. There are no free functions to call.
  */
 
 
@@ -38,9 +40,6 @@ typedef struct
 } OccultumCustodiaeNs;
 MMGR_NS_LAYOUT_OPEN(OccultumCustodiaeNs, internal, alloc, span, persist_span, reset, mark, release, used, high_water,
                     capacity, owns);
-
-/** @brief The pool. */
-extern struct SecureInternal mmgr_occult_state;
 
 /**
  * @brief Zero @p len bytes so the compiler cannot remove the writes.
@@ -74,87 +73,43 @@ static inline void mmgr_occult_wipe(void *ptr, size_t len)
     }
 }
 
-/**
- * @brief Take @p n bytes from the tenant.
- * @param n Byte count.
- * @param align Alignment, a power of two.
- * @return The bytes, or NULL if the tenant is full.
- */
+/** @name The entries the table points at.
+ *  @brief Nameable so a static const table can name them, and for no other reason. The table is
+ *         still the whole surface: call through it.
+ *  @{ */
+extern struct SecureInternal mmgr_occult_state;
 void *mmgr_occult_capio(size_t n, size_t align);
-
-/**
- * @brief Take @p n bytes as a writable span.
- * @param n Byte count.
- * @param align Alignment, a power of two.
- * @return The span. Empty with no storage if the tenant is full.
- */
 mmgr_spat mmgr_occult_span(size_t n, size_t align);
-
-/**
- * @brief Take @p n bytes that a release will not reclaim.
- * @param n Byte count.
- * @return The span. Empty with no storage if the tenant is full.
- */
 mmgr_spat mmgr_occult_persist_span(size_t n);
-
-/**
- * @brief Current fill point, to release back to later.
- * @return The mark.
- */
 size_t mmgr_occult_mark(void);
-
-/**
- * @brief Release everything taken since @p mark.
- * @param mark A mark from this tenant.
- *
- * Nothing is freed and nothing moves. The fill point moves back, so every pointer handed out after
- * @p mark is dead.
- */
 void mmgr_occult_reddo(size_t mark);
-
-/**
- * @brief Release everything the tenant holds.
- */
 void mmgr_occult_reset(void);
-
-/**
- * @brief How much of the tenant is taken.
- * @return Byte count.
- */
 size_t mmgr_occult_used(void);
-
-/**
- * @brief The most that has ever been taken.
- * @return Byte count. Never falls.
- */
 size_t mmgr_occult_high_water(void);
-
-/**
- * @brief Size of one tenant.
- * @return Byte count.
- */
 size_t mmgr_occult_capacity(void);
+mmgr_bool mmgr_occult_owns(const void *p);
+/** @} */
 
 /**
- * @brief Did this pool hand out @p p.
- * @param p Pointer.
- * @return MMGR_TRUE if it did.
+ * @brief Module namespace.
+ *
+ * static const, like every other module's. gcc devirtualizes a call through one down to the
+ * inlined body and cannot do that through an extern one, where the table is in another
+ * translation unit and every call is a load and an indirect jump.
  */
-mmgr_bool mmgr_occult_owns(const void *p);
-
-
-/** @brief Module namespace. */
-MMGR_NS OccultumCustodiaeNs occult MMGR_UNUSED = {.alloc = mmgr_occult_capio,
-                                                  .span = mmgr_occult_span,
-                                                  .persist_span = mmgr_occult_persist_span,
-                                                  .reset = mmgr_occult_reset,
-                                                  .mark = mmgr_occult_mark,
-                                                  .release = mmgr_occult_reddo,
-                                                  .used = mmgr_occult_used,
-                                                  .high_water = mmgr_occult_high_water,
-                                                  .capacity = mmgr_occult_capacity,
-                                                  .owns = mmgr_occult_owns,
-                                                  .internal = &mmgr_occult_state};
+MMGR_NS OccultumCustodiaeNs occult MMGR_UNUSED = {
+    .alloc = mmgr_occult_capio,
+    .span = mmgr_occult_span,
+    .persist_span = mmgr_occult_persist_span,
+    .reset = mmgr_occult_reset,
+    .mark = mmgr_occult_mark,
+    .release = mmgr_occult_reddo,
+    .used = mmgr_occult_used,
+    .high_water = mmgr_occult_high_water,
+    .capacity = mmgr_occult_capacity,
+    .owns = mmgr_occult_owns,
+    .internal = &mmgr_occult_state,
+};
 
 MMGR_FINIS_DECLS
 

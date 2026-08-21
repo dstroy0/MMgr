@@ -477,7 +477,7 @@ MMGR_INLINE mmgr_scrut_word mmgr_scrut_run_edge(size_t n)
  */
 MMGR_INLINE mmgr_scrut_word mmgr_scrut_load(const char *p)
 {
-    return (mmgr_scrut_word)mmgr_proxim_load(p, MMGR_SWAR_BYTES);
+    return (mmgr_scrut_word)proxim.load(p, MMGR_SWAR_BYTES);
 }
 
 /**
@@ -487,7 +487,7 @@ MMGR_INLINE mmgr_scrut_word mmgr_scrut_load(const char *p)
  */
 MMGR_INLINE mmgr_scrut_word mmgr_scrut_load_al(const char *p)
 {
-    return (mmgr_scrut_word)mmgr_aequus_load(p, MMGR_SWAR_BYTES);
+    return (mmgr_scrut_word)proxim.al_load(p, MMGR_SWAR_BYTES);
 }
 
 /**

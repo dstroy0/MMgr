@@ -11,6 +11,8 @@
  *
  * The spec is data, not a format string. Nothing is parsed at run time and nothing is variadic, so
  * a wrong value type is a compile error rather than a crash.
+ *
+ * The table is the whole surface. There are no free functions to call.
  */
 
 /** @brief What a field holds. */
@@ -182,7 +184,13 @@ typedef struct
 } NumerosScriboNs;
 MMGR_NS_LAYOUT(NumerosScriboNs, build, append, emit, emit_append);
 
-/** @brief Module namespace. */
+/**
+ * @brief Module namespace.
+ *
+ * static const, like every other module's. gcc devirtualizes a call through one down to the
+ * inlined body and cannot do that through an extern one, where the table is in another
+ * translation unit and every call is a load and an indirect jump.
+ */
 MMGR_NS NumerosScriboNs numer MMGR_UNUSED = {
     .build = mmgr_numer_build,
     .append = mmgr_numer_append,

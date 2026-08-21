@@ -112,6 +112,14 @@ MMGR_INLINE void proxim_read(ProximCtx *c)
     proxim_tail(c);
 }
 
+/* The namespace is a table of function pointers with the caller's argument lists in their types,
+   so this is what it points at. It builds the context and hands it to the body above.
+
+   It is nameable rather than file local because a static const table in the header has to be able
+   to point at it, and a static const table is what gcc devirtualizes. Through an extern one every
+   call from another translation unit is a load of the table, a load of the entry, and an indirect
+   call it cannot see through. */
+
 void mmgr_proxim_read(void *dst, const void *p, size_t sz)
 {
     MMGR_CALL(proxim_read, ProximCtx, .d = (unsigned char *)dst, .u = (const unsigned char *)p, .sz = sz);

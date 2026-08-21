@@ -42,7 +42,29 @@ static const uint8_t s_impensa[256] = {
       1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1
 };
 
-uint8_t mmgr_ancorae_impensa(uint8_t b)
+/**
+ * @brief What @p b costs as an anchor.
+ * @param b The byte.
+ * @return Its cost. Lower is rarer, so lower is a better anchor. NUL is pinned worst.
+ *
+ * No context. One byte in, one answer out - a struct to carry it would be a store and a load to
+ * reach what was already in a register, and the entry is an array subscript whose argument is the
+ * index.
+ */
+MMGR_INLINE uint8_t ancorae_impensa(uint8_t b)
 {
     return s_impensa[b];
+}
+
+/* The namespace is a table of function pointers with the caller's argument lists in their types,
+   so this is what it points at. It hands the argument to the body above.
+
+   It is nameable rather than file local because a static const table in the header has to be able
+   to point at it, and a static const table is what gcc devirtualizes. Through an extern one every
+   call from another translation unit is a load of the table, a load of the entry, and an indirect
+   call it cannot see through. */
+
+uint8_t mmgr_ancorae_impensa(uint8_t b)
+{
+    return ancorae_impensa(b);
 }

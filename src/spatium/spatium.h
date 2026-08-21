@@ -19,54 +19,45 @@ MMGR_INCIPE_DECLS
  *
  * @c cap is kept for the assert to read. Nothing else looks at it.
  *
- * There is no read side. A read is a pointer, how far it may go, and where it is - which is
- * the argument list byteio's readers already take, and the same one cellularum_laboro passes
- * as (s, read_cap). A struct holding those three added a second spelling and no information.
+ * There is no read side. A read is a pointer, how far it may go, and where it is - which is the
+ * argument list byteio's readers already take, and the same one cellularum_laboro passes as
+ * (s, read_cap). A struct holding those three added a second spelling and no information.
+ *
+ * The table is the whole surface. There are no free functions to call.
  */
 
 /** @brief Writable span. */
 typedef struct
 {
-    uint8_t *buf;
-    size_t cap;
-    size_t pos;
+    uint8_t *buf; /**< The memory. */
+    size_t cap;   /**< Its size. Read by the assert, and by nothing else. */
+    size_t pos;   /**< How far along it we are. */
 } mmgr_spat;
-
-/** @brief What a span is built from. */
-typedef struct
-{
-    uint8_t *buf; /**< Buffer. */
-    size_t cap;   /**< Its size. */
-} mmgr_spat_cfg;
-
-/**
- * @brief Wrap a buffer.
- * @param cfg The configuration.
- * @return The span, empty.
- */
-mmgr_spat mmgr_spat_from_backend(const mmgr_spat_cfg *cfg);
 
 /** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
 typedef struct
 {
-    mmgr_spat (*from_impl)(const mmgr_spat_cfg *cfg);
+    mmgr_spat (*from)(uint8_t *buf, size_t cap);
 } SpatiumNs;
-MMGR_NS_LAYOUT(SpatiumNs, from_impl);
+MMGR_NS_LAYOUT(SpatiumNs, from);
 
-/** @brief Module namespace. */
-MMGR_NS SpatiumNs spat MMGR_UNUSED = {.from_impl = mmgr_spat_from_backend};
+/** @name The entries the table points at.
+ *  @brief Nameable so a static const table can name them, and for no other reason. The table is
+ *         still the whole surface: call through it.
+ *  @{ */
+mmgr_spat mmgr_spat_from(uint8_t *buf, size_t cap);
+/** @} */
 
 /**
- * @brief Build the configuration where the call is written.
+ * @brief Module namespace.
  *
- *     spat.from(mem, sizeof mem);   ->   spat.from_impl(&(const mmgr_spat_cfg){mem, sizeof mem});
- *
- * A function-like macro expands wherever its name is followed by an open parenthesis, and the
- * member access in front does not stop that. The replacement names from_impl, so nothing expands
- * twice, and the member declaration, the initializer and the layout assert are untouched because
- * in none of those is the name followed by an open parenthesis.
+ * static const, like every other module's. gcc devirtualizes a call through one down to the
+ * inlined body and cannot do that through an extern one, where the table is in another
+ * translation unit and every call is a load and an indirect jump.
  */
-#define from(...) from_impl(&(const mmgr_spat_cfg){__VA_ARGS__})
+MMGR_NS SpatiumNs spat MMGR_UNUSED = {
+    .from = mmgr_spat_from,
+};
 
 MMGR_FINIS_DECLS
 
