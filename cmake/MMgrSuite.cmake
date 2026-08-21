@@ -65,6 +65,11 @@ function(mmgr_add_suite suite_name)
 
         set(target ${suite_name}_${env})
 
+        # support/guard_page.c arms a no-access page either side of a buffer, which is the only
+        # instrument that catches a read past a bound - a read leaves nothing behind for a poison
+        # pattern to notice. Linked into every suite for the same reason platform_host.c is: which
+        # suites want it is their business, and where nothing calls it the linker drops it.
+        #
         # support/platform_host.c supplies mmgr_platform_context_id(), which the library declares
         # and does not define. Linked into every suite rather than only the ones that need it: which
         # environments call it is MMGR_NEEDS_CONTEXT_ID's business, and a suite list that has to
@@ -74,7 +79,8 @@ function(mmgr_add_suite suite_name)
             "${suite_src}"
             "${runner}"
             "${unity_SOURCE_DIR}/src/unity.c"
-            "${MMGR_TEST_ROOT}/support/platform_host.c")
+            "${MMGR_TEST_ROOT}/support/platform_host.c"
+            "${MMGR_TEST_ROOT}/support/guard_page.c")
         add_dependencies(${target} ${suite_name}_runner)
         target_include_directories(${target} PRIVATE
             "${unity_SOURCE_DIR}/src"
