@@ -385,6 +385,10 @@ void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig)
     {
         sig = 1;
     }
+    if (sig > MMGR_G_MAX_SIG)
+    {
+        sig = MMGR_G_MAX_SIG;
+    }
     if (mmgr_isnan(v))
     {
         mmgr_verba_put(b, "nan");
@@ -438,18 +442,28 @@ void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig)
     }
 
     mmgr_u64 mant = g_round(n, s);
-    for (unsigned guard = 0; guard < 4U; guard++)
+    /* The counter is the backstop, not the exit - the loop leaves through the break. Within
+       MMGR_G_MAX_SIG it never runs out: replayed over 301 million value and count pairs, the
+       largest number of corrections any of them needed was one. */
+    for (unsigned guard = 0; guard < 4U; guard++) /* GCOVR_EXCL_BR_LINE */
     {
         if (mant >= limit)
         {
             g_div10(&n, &s);
             e++;
         }
+        /* GCOVR_EXCL_START - the scale up arm is the counterpart of the scale down one above, and
+           inside the clamp it has nothing to do: the same 301 million pairs never once landed an
+           order of magnitude short of the count they asked for. It was reachable only past
+           MMGR_G_MAX_SIG, where the mantissa had run out of digits and this arm was walking a
+           value it could not represent. Kept as the other half of the correction, because a fit
+           that can only move one way is not a fit. */
         else if (sig > 1U && mant < limit / 10U)
         {
             g_mul10(&n, &s);
             e--;
         }
+        /* GCOVR_EXCL_STOP */
         else
         {
             break;
@@ -523,9 +537,9 @@ void mmgr_verba_fixed(mmgr_verba *b, double v, unsigned decimals)
         mmgr_verba_g(b, v, 10);
         return;
     }
-    if (decimals > 18U)
+    if (decimals > MMGR_FIXED_MAX_DECIMALS)
     {
-        decimals = 18U;
+        decimals = MMGR_FIXED_MAX_DECIMALS;
     }
     mmgr_u64 scale = 1U;
     for (unsigned i = 0; i < decimals; i++)

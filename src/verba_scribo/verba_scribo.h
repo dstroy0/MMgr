@@ -158,10 +158,38 @@ mmgr_bool mmgr_isinf(double v);
  */
 mmgr_bool mmgr_isnan(double v);
 /**
+ * @brief Most significant digits mmgr_verba_g will produce. A larger request is clamped to it.
+ *
+ * The conversion runs in a fixed point pair, not in the FPU, and the mantissa half of that pair is
+ * a 58 bit working word - a little over seventeen decimal digits. Asking for more digits than the
+ * word carries does not get more of the value, it gets the digit fit walking a mantissa it cannot
+ * represent until its own guard stops it, and a scale that is wrong by orders of magnitude.
+ *
+ * Eighteen is measured, not assumed: swept over 130944 doubles, every count from one to eighteen
+ * reads back as the value it was given, and nineteen is wrong on 321 of them - worst at
+ * 1.8446744073709552e+22, which is 2^64 and names what ran out.
+ *
+ * Seventeen digits round trip a double, so nothing above this is information about the value
+ * anyway. printf will keep going and print the exact binary expansion, which is well defined and
+ * takes up to 767 digits for a subnormal. This clamps instead. It is one compare at the entry,
+ * before any of the conversion work, so it costs nothing on an ordinary call and saves the whole
+ * digit fit on an extreme one.
+ */
+#define MMGR_G_MAX_SIG 18u
+
+/**
+ * @brief Most decimals mmgr_verba_fixed will produce. A larger request is clamped to it.
+ *
+ * The fractional part is scaled by 10^decimals in a 64 bit integer, and that is where it stops
+ * fitting. Same shape as MMGR_G_MAX_SIG, and the same one compare at the entry.
+ */
+#define MMGR_FIXED_MAX_DECIMALS 18u
+
+/**
  * @brief Append a double in the shorter of fixed and exponent form.
  * @param b Builder.
  * @param v Value.
- * @param sig Significant digits.
+ * @param sig Significant digits, clamped into 1..MMGR_G_MAX_SIG.
  */
 void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig);
 /**
@@ -199,10 +227,19 @@ size_t mmgr_verba_finish(mmgr_verba *b);
 MMGR_INLINE void mmgr_oracle_verba_g(mmgr_verba *b, double v, unsigned sig)
 {
     char tmp[64];
-    /* mmgr_verba_g reads a request for no digits as a request for one. printf reads it as six.
-       The adapter has to spell the library's rule, not printf's, or the A and B runs are being
-       asked two different questions. */
-    const int n = snprintf(tmp, sizeof tmp, "%.*g", (int)(sig ? sig : 1u), v);
+    /* Mirror the entry's behavior, not printf's. How many digits get asked for is this
+       library's contract - no digits means one, and the count stops at MMGR_G_MAX_SIG - so the
+       adapter normalizes the same way before handing over. What happens to those digits after
+       that is printf's business, which is the whole reason the oracle exists. */
+    if (sig == 0u)
+    {
+        sig = 1u;
+    }
+    if (sig > MMGR_G_MAX_SIG)
+    {
+        sig = MMGR_G_MAX_SIG;
+    }
+    const int n = snprintf(tmp, sizeof tmp, "%.*g", (int)sig, v);
     if (n > 0)
     {
         mmgr_verba_put_n(b, tmp, (size_t)n);
@@ -212,6 +249,11 @@ MMGR_INLINE void mmgr_oracle_verba_g(mmgr_verba *b, double v, unsigned sig)
 MMGR_INLINE void mmgr_oracle_verba_fixed(mmgr_verba *b, double v, unsigned decimals)
 {
     char tmp[64];
+    /* Same rule as g: the count is normalized the library's way, and the digits are printf's. */
+    if (decimals > MMGR_FIXED_MAX_DECIMALS)
+    {
+        decimals = MMGR_FIXED_MAX_DECIMALS;
+    }
     const int n = snprintf(tmp, sizeof tmp, "%.*f", (int)decimals, v);
     if (n > 0)
     {

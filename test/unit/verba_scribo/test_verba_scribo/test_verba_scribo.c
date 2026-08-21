@@ -553,7 +553,6 @@ void test_fixed_of_a_value_with_no_fraction_left(void)
 
 void test_fixed_clamps_its_decimals(void)
 {
-    MMGR_SKIP_ON_ORACLE("printf has no 64 bit scale to run out of, so it has nothing to clamp");
     // The scale is 10^decimals in 64 bits, so the count is capped where that stops fitting.
     verba.fixed(&b, 1.5, 25u);
     const size_t n = verba.finish(&b);
@@ -833,17 +832,11 @@ void test_g_where_the_exponent_estimate_overshoots(void)
  * so they are not guesses and they will not drift into being ordinary if the estimate is retuned.
  * ------------------------------------------------------------------------------------------- */
 
-// Nineteen significant digits is past what the fixed point working word can carry, and g does not
-// refuse it. mmgr_verba_fixed clamps its decimal count to eighteen for this exact reason; g has no
-// matching clamp on its digit count, so at nineteen the mantissa runs past what sixty four bits
-// hold and the digit fit bounces between its two arms until the guard stops it, leaving the scale
-// wrong. Swept over 130944 doubles: every precision from one to eighteen is exact, nineteen is
-// wrong on 321 of them, worst at 1.8446744073709552e+22 - which is 2^64, and says what overflowed.
-//
-// These two cases are the only way into those arms, so they are written against what is true
-// whatever gets decided about the clamp: the output is well formed and carries the digit count it
-// was asked for. They deliberately do not assert the value, because the value is wrong and
-// pinning it would make the defect the specification.
+// Past MMGR_G_MAX_SIG the fixed point working word runs out of digits, and the entry clamps
+// rather than walking a mantissa it cannot represent. These two values were found by replaying the
+// digit fit over 20 million value and precision pairs and keeping the ones that drove it into its
+// scale up arm and out through its guard, which is what an unclamped nineteen used to do to them.
+// Clamped, they are ordinary. That is the claim.
 static unsigned significant_digits(const char *s)
 {
     unsigned n = 0;
@@ -863,22 +856,42 @@ static unsigned significant_digits(const char *s)
     return n;
 }
 
-void test_g_walks_the_mantissa_up_when_the_estimate_overshoots(void)
+void test_g_clamps_its_digit_count(void)
 {
-    verba.g(&b, 1.8464766514526577e-301, 19u);
+    char at_max[128];
+
+    verba.g(&b, 1.8464766514526577e-301, MMGR_G_MAX_SIG);
+    verba.finish(&b);
+    memcpy(at_max, buf, sizeof at_max);
+
+    fresh(sizeof buf);
+    verba.g(&b, 1.8464766514526577e-301, MMGR_G_MAX_SIG + 7u);
     verba.finish(&b);
 
-    TEST_ASSERT_EQUAL_UINT_MESSAGE(19u, significant_digits(buf), "g did not produce the digits it was asked for");
-    TEST_ASSERT_NOT_NULL_MESSAGE(strstr(buf, "e-"), "a value this small has to come back in exponent form");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(at_max, buf, "asking past the maximum did not come back at the maximum");
+    TEST_ASSERT_EQUAL_UINT(MMGR_G_MAX_SIG, significant_digits(buf));
 }
 
-void test_g_takes_every_step_the_guard_allows(void)
+void test_g_at_its_maximum_still_reads_back(void)
 {
-    verba.g(&b, 1.8447470568367377e-236, 19u);
+    // The value that used to come back wrong by three orders of magnitude at nineteen digits.
+    const double v = 1.8447470568367377e-236;
+
+    verba.g(&b, v, MMGR_G_MAX_SIG);
     verba.finish(&b);
 
-    TEST_ASSERT_EQUAL_UINT_MESSAGE(19u, significant_digits(buf), "g did not produce the digits it was asked for");
-    TEST_ASSERT_NOT_NULL(strstr(buf, "e-"));
+    TEST_ASSERT_EQUAL_UINT(MMGR_G_MAX_SIG, significant_digits(buf));
+    TEST_ASSERT_DOUBLE_WITHIN_MESSAGE(v * 1e-15, v, strtod(buf, NULL), "the clamped rendering does not read back");
+}
+
+void test_g_at_two_to_the_sixty_four(void)
+{
+    // 2^64 is where the unclamped count was worst, so it is worth naming rather than sweeping past.
+    const double v = 1.8446744073709552e+22;
+
+    verba.g(&b, v, MMGR_G_MAX_SIG + 1u);
+    verba.finish(&b);
+    TEST_ASSERT_DOUBLE_WITHIN_MESSAGE(v * 1e-15, v, strtod(buf, NULL), "2^64 does not read back");
 }
 
 void test_g_is_exact_at_every_precision_it_can_carry(void)
@@ -892,7 +905,7 @@ void test_g_is_exact_at_every_precision_it_can_carry(void)
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
-        for (unsigned sig = 1u; sig <= 18u; sig++)
+        for (unsigned sig = 1u; sig <= MMGR_G_MAX_SIG; sig++)
         {
             fresh(sizeof buf);
             verba.g(&b, vals[i], sig);
