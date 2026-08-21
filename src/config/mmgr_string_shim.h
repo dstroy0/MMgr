@@ -5,7 +5,7 @@
 
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "memoria_operor/memoria_operor.h"
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 /**
  * @file mmgr_string_shim.h

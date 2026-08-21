@@ -5,7 +5,7 @@
 
 #include "verbum_scrutor/verbum_scrutor.h"
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 MMGR_BEGIN_DECLS
 

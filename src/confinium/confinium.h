@@ -3,7 +3,7 @@
 #ifndef MMGR_CONFINIUM_H
 #define MMGR_CONFINIUM_H
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 MMGR_BEGIN_DECLS
 

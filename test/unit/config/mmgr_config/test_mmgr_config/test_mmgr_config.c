@@ -3,7 +3,7 @@
 //
 #include "unity.h"
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 void test_config_header_is_self_contained(void)
 {

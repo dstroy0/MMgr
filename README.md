@@ -27,7 +27,7 @@ mmgr_spat  s = spat.from(p, 256);                      /* a view; owns nothing  
 | ---------------------------------------- | ----------------------------------------------------------------------- |
 | [`src/`](src)                            | the library, one directory per module                                   |
 | [`src/mmgr.h`](src/mmgr.h)               | the single header a consumer includes                                   |
-| [`src/mmgr_config.h`](src/mmgr_config.h) | every size and width, all compile-time                                  |
+| [`src/config/mmgr_config.h`](src/config/mmgr_config.h) | every size and width, all compile-time                                  |
 | [`test/`](test)                          | `test/unit` mirrors `src/`, `test/integration` is the cross-module work |
 | [`test/harness.py`](test/harness.py)     | build, run, the A/B, coverage, suite discovery                          |
 | [`tools/dev_env/`](tools/dev_env)        | generators for the tables in `src/`, and the size sweep                 |

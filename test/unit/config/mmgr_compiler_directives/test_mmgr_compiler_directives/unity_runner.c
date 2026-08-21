@@ -2,17 +2,19 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
-#include "mmgr_config.h"
+#include "config/mmgr_compiler_directives.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_types_header_is_self_contained(void);
-extern void test_fixed_width_types_are_their_widths(void);
-extern void test_word_matches_the_configured_width(void);
-extern void test_index_fits_the_register_that_carries_it(void);
-extern void test_packed_enum_keeps_its_declared_width(void);
-extern void test_bool_constants(void);
+extern void test_directives_header_is_self_contained(void);
+extern void test_narg_counts_its_arguments(void);
+extern void test_cat_expands_before_it_pastes(void);
+extern void test_dispatch_layout_holds(void);
+extern void test_call_macro_passes_the_aggregate(void);
+extern void test_call_macro_zeroes_what_is_not_named(void);
+extern void test_inline_and_unused_are_defined(void);
+extern void test_byte_order_is_one_of_two(void);
 
 
 /*=======Mock Management=====*/
@@ -79,13 +81,15 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/mmgr_types/test_mmgr_types\\test_mmgr_types.c");
-  run_test(test_types_header_is_self_contained, "test_types_header_is_self_contained", 8);
-  run_test(test_fixed_width_types_are_their_widths, "test_fixed_width_types_are_their_widths", 13);
-  run_test(test_word_matches_the_configured_width, "test_word_matches_the_configured_width", 25);
-  run_test(test_index_fits_the_register_that_carries_it, "test_index_fits_the_register_that_carries_it", 30);
-  run_test(test_packed_enum_keeps_its_declared_width, "test_packed_enum_keeps_its_declared_width", 37);
-  run_test(test_bool_constants, "test_bool_constants", 44);
+  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/config/mmgr_compiler_directives/test_mmgr_compiler_directives\\test_mmgr_compiler_directives.c");
+  run_test(test_directives_header_is_self_contained, "test_directives_header_is_self_contained", 36);
+  run_test(test_narg_counts_its_arguments, "test_narg_counts_its_arguments", 41);
+  run_test(test_cat_expands_before_it_pastes, "test_cat_expands_before_it_pastes", 49);
+  run_test(test_dispatch_layout_holds, "test_dispatch_layout_holds", 58);
+  run_test(test_call_macro_passes_the_aggregate, "test_call_macro_passes_the_aggregate", 68);
+  run_test(test_call_macro_zeroes_what_is_not_named, "test_call_macro_zeroes_what_is_not_named", 73);
+  run_test(test_inline_and_unused_are_defined, "test_inline_and_unused_are_defined", 79);
+  run_test(test_byte_order_is_one_of_two, "test_byte_order_is_one_of_two", 85);
 
   return UNITY_END();
 }

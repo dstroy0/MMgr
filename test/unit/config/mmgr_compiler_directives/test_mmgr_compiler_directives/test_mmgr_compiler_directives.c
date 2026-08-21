@@ -3,7 +3,7 @@
 //
 #include "unity.h"
 
-#include "mmgr_compiler_directives.h"
+#include "config/mmgr_compiler_directives.h"
 
 typedef struct
 {

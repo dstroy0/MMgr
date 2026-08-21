@@ -3,7 +3,7 @@
 #ifndef MMGR_DMA_H
 #define MMGR_DMA_H
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 #if MMGR_ENABLE_DMA
 

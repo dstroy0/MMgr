@@ -2,7 +2,7 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);

@@ -3,7 +3,7 @@
 #ifndef MMGR_BITIO_H
 #define MMGR_BITIO_H
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 MMGR_BEGIN_DECLS
 

@@ -5,7 +5,7 @@
 
 #include "proximus_operor/proximus_operor.h"
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 MMGR_BEGIN_DECLS
 

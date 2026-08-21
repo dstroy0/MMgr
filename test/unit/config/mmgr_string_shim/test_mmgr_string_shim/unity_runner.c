@@ -2,7 +2,7 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
-#include "mmgr_string_shim.h"
+#include "config/mmgr_string_shim.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
@@ -83,7 +83,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/mmgr_string_shim/test_mmgr_string_shim\\test_mmgr_string_shim.c");
+  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/config/mmgr_string_shim/test_mmgr_string_shim\\test_mmgr_string_shim.c");
   run_test(test_shim_header_is_self_contained, "test_shim_header_is_self_contained", 8);
   run_test(test_shim_bound_is_a_compile_time_constant, "test_shim_bound_is_a_compile_time_constant", 13);
   run_test(test_shim_strlen, "test_shim_strlen", 18);

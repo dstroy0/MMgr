@@ -1065,7 +1065,7 @@ static float MMGR_UNUSED to_float(const char *s, const char **end)
 }
 
 #if defined(MMGR_ORACLE_LIBC) && MMGR_ORACLE_LIBC
-#include "mmgr_oracle_libc.h"
+#include "config/mmgr_oracle_libc.h"
 
 /**
  * @brief Module namespace, pointed at libc where libc has an equivalent.

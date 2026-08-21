@@ -4,7 +4,7 @@
 #define MMGR_TRANSFORMO_H
 
 #include "fractio/fractio.h"
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 #include "pow5/pow5.h"
 
 MMGR_BEGIN_DECLS

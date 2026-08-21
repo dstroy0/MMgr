@@ -3,7 +3,7 @@
 //
 #include "unity.h"
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 void test_word32_widths_are_what_was_asked_for(void)
 {

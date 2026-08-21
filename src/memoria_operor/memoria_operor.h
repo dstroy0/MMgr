@@ -5,7 +5,7 @@
 
 #include "proximus_operor/proximus_operor.h"
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 MMGR_BEGIN_DECLS
 
@@ -78,7 +78,7 @@ void mmgr_memor_set(void *dst, unsigned char v, size_t n);
 void mmgr_memor_zero(void *dst, size_t n);
 
 #if defined(MMGR_ORACLE_LIBC) && MMGR_ORACLE_LIBC
-#include "mmgr_oracle_libc.h"
+#include "config/mmgr_oracle_libc.h"
 
 /**
  * @brief Module namespace, pointed at libc.

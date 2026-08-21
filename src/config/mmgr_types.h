@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "mmgr_compiler_directives.h"
+#include "config/mmgr_compiler_directives.h"
 
 /**
  * @file mmgr_types.h

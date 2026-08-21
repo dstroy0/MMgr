@@ -11,7 +11,7 @@
  * say `#include <mmgr.h>` and be done.
  */
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 #include "bitio/bitio.h"
 #include "byteio/byteio.h"

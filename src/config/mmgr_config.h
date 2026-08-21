@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-#include "mmgr_compiler_directives.h"
+#include "config/mmgr_compiler_directives.h"
 
 /**
  * @file mmgr_config.h
@@ -47,7 +47,7 @@
 #endif
 #endif
 
-#include "mmgr_types.h"
+#include "config/mmgr_types.h"
 
 /**
  * @brief Scan width. Always the word width, and not overridable.

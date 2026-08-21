@@ -104,7 +104,7 @@ HDR = f"""// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@
 #ifndef MMGR_ASCII_MASK_H
 #define MMGR_ASCII_MASK_H
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 MMGR_BEGIN_DECLS
 

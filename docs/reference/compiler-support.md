@@ -5,7 +5,7 @@ read.
 
 ## The policy
 
-`src/mmgr_compiler_directives.h` holds **every** `#if` that asks about a compiler. No other file in
+`src/config/mmgr_compiler_directives.h` holds **every** `#if` that asks about a compiler. No other file in
 the library tests for GNU, Clang, MSVC or a version. That is a rule, not a tendency, and it has two
 consequences worth stating:
 

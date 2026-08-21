@@ -3,7 +3,7 @@
 #ifndef MMGR_ANCHOR_COST_H
 #define MMGR_ANCHOR_COST_H
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 /**
  * @file anchor_cost.h

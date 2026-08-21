@@ -3,7 +3,7 @@
 #ifndef MMGR_VERBA_SCRIBO_H
 #define MMGR_VERBA_SCRIBO_H
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 MMGR_BEGIN_DECLS
 

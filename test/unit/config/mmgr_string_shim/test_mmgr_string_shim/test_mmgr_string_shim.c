@@ -3,7 +3,7 @@
 //
 #include "unity.h"
 
-#include "mmgr_string_shim.h"
+#include "config/mmgr_string_shim.h"
 
 void test_shim_header_is_self_contained(void)
 {

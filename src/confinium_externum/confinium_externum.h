@@ -3,7 +3,7 @@
 #ifndef MMGR_CONFINIUM_EXTERNUM_H
 #define MMGR_CONFINIUM_EXTERNUM_H
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 #if MMGR_ENABLE_PSRAM_POOL
 
