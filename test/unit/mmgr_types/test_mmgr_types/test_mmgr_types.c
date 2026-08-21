@@ -38,7 +38,7 @@ void test_packed_enum_keeps_its_declared_width(void)
 {
     // losing this moves every field after an enum in every struct, and borrows are addressed by
     // offset
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, sizeof(MmgrEnumProbe), "MMGR_ENUM_PACKED was not honoured");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, sizeof(MmgrEnumProbe), "MMGR_ENUM_PACKED was not honored");
 }
 
 void test_bool_constants(void)

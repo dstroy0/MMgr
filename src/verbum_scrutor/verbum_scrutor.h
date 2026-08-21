@@ -537,7 +537,7 @@ MMGR_INLINE mmgr_scrut_word mmgr_scrut_eq_ci(mmgr_scrut_word w, uint8_t c)
  * @return High bit set in each matching lane.
  *
  * @p ci is a compile time fact at every call site. Callers that reach this from a runtime value
- * must specialise first, or the branch lands in the scan loop.
+ * must specialize first, or the branch lands in the scan loop.
  */
 MMGR_INLINE mmgr_scrut_word mmgr_scrut_eq_sel(mmgr_scrut_word w, uint8_t c, mmgr_bool ci)
 {
@@ -564,7 +564,7 @@ MMGR_INLINE mmgr_scrut_word mmgr_scrut_xor_sel(mmgr_scrut_word wa, mmgr_scrut_wo
     return mmgr_scrut_xor(wa, wb);
 }
 
-/** @brief Module namespace. const is what lets the compiler devirtualise a call through it. */
+/** @brief Module namespace. const is what lets the compiler devirtualize a call through it. */
 MMGR_NS VerbumScrutorNs scrut MMGR_UNUSED = {
     .ge = mmgr_scrut_ge,
     .le = mmgr_scrut_le,

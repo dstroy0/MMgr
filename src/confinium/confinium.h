@@ -54,7 +54,7 @@ MMGR_INLINE size_t mmgr_confin_align_up(size_t n)
     return (n + (MMGR_CONFIN_ALIGN - 1)) & ~(size_t)(MMGR_CONFIN_ALIGN - 1);
 }
 
-/** @brief Largest alignment a take will honour. Anything above is clamped to it. */
+/** @brief Largest alignment a take will honor. Anything above is clamped to it. */
 #define MMGR_CONFIN_MAX_ALIGN 16u
 
 /**
@@ -122,7 +122,10 @@ MMGR_INLINE void *mmgr_confin_interim_capio_aligned(mmgr_confin *a, size_t n, si
 
     size_t nt = (a->scratch_top - n) & ~(size_t)(align - 1);
 
-    if (nt < a->persist_end || nt > a->scratch_top)
+    /* The second half cannot fire: nt is scratch_top less a positive size and then masked down,
+       so it is below scratch_top by construction. Kept as the other half of the bound, because
+       reading it as one range check is what makes it obvious. */
+    if (nt < a->persist_end || nt > a->scratch_top) /* GCOVR_EXCL_BR_LINE */
     {
         return NULL;
     }

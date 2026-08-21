@@ -417,7 +417,7 @@ MMGR_INLINE uint8_t anchor_fold(const char *needle, size_t k, mmgr_bool ci)
  * @param rows Out. At least MMGR_SIEVE_ROWS entries.
  * @return How many rows were filled.
  *
- * One decision, at entry, amortised over the whole haystack. The needle is a handful of bytes and
+ * One decision, at entry, amortized over the whole haystack. The needle is a handful of bytes and
  * the haystack is everything.
  *
  * Selection sort because the array is at most MMGR_SIEVE_ROWS long. Anything cleverer costs more
@@ -438,6 +438,10 @@ MMGR_INLINE size_t pick_rows(const char *needle, size_t nlen, mmgr_bool ci, size
         for (size_t k = 0; k < limit; ++k)
         {
             size_t taken = 0;
+            /* GCOVR_EXCL_START - MMGR_SIEVE_ROWS is 1, so r is 0 on the only pass and there is no
+               earlier row to have taken this position. Measured: four rows lost to newlib on three
+               of four needles, which is why the default is one. Raise MMGR_SIEVE_ROWS and this is
+               live again. */
             for (size_t q = 0; q < r; ++q)
             {
                 if (rows[q] == k)
@@ -445,7 +449,8 @@ MMGR_INLINE size_t pick_rows(const char *needle, size_t nlen, mmgr_bool ci, size
                     taken = 1;
                 }
             }
-            if (!taken && mmgr_anchor_cost[anchor_fold(needle, k, ci)] < best_cost)
+            /* GCOVR_EXCL_STOP */
+            if (!taken && mmgr_anchor_cost[anchor_fold(needle, k, ci)] < best_cost) /* GCOVR_EXCL_BR_LINE */
             {
                 best_cost = mmgr_anchor_cost[anchor_fold(needle, k, ci)];
                 best = k;
@@ -655,10 +660,13 @@ MMGR_INLINE const char *find_core(const char *hay, size_t read_cap, const char *
 #endif
         {
             m = scrut.eq(scrut.load(hay + at + rows[0]), (uint8_t)needle[rows[0]], ci);
+            /* GCOVR_EXCL_START - same reason: nrows is 1 while MMGR_SIEVE_ROWS is 1, so row 0 is
+               the whole sieve and there is no second row to fold in. */
             for (size_t r = 1; r < nrows; ++r)
             {
                 m &= scrut.eq(scrut.load(hay + at + rows[r]), (uint8_t)needle[rows[r]], ci);
             }
+            /* GCOVR_EXCL_STOP */
         }
 
         if (end != 0)

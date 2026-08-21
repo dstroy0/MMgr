@@ -9,6 +9,39 @@ extern void setUp(void);
 extern void tearDown(void);
 extern void test_scrut_header_is_self_contained(void);
 extern void test_scrut_namespace_is_wired(void);
+extern void test_the_word_constants_agree_with_each_other(void);
+extern void test_ge_and_le_against_a_scalar_loop(void);
+extern void test_ge_and_le_set_only_the_lanes_that_pass(void);
+extern void test_sub7_is_a_per_lane_difference(void);
+extern void test_spread_fills_a_lane_from_its_high_bit(void);
+extern void test_has_zero_finds_a_zero_lane_and_only_a_zero_lane(void);
+extern void test_eq_finds_a_byte_at_every_lane(void);
+extern void test_eq_ignoring_case_matches_either_case(void);
+extern void test_xor_reports_the_lanes_that_differ(void);
+extern void test_lanes_counts_set_lanes(void);
+extern void test_lane_lo_and_lane_hi_find_the_ends(void);
+extern void test_lane_first_and_last_follow_address_order(void);
+extern void test_drop_lo_and_drop_hi_clear_one_lane_each(void);
+extern void test_drop_first_and_last_follow_address_order(void);
+extern void test_walking_a_mask_visits_every_lane_once(void);
+extern void test_words_is_the_load_count(void);
+extern void test_the_worst_case_word_count_covers_the_largest_tenant(void);
+extern void test_bytes_below_keeps_the_first_n_lanes(void);
+extern void test_lanes_below_is_the_high_bit_of_bytes_below(void);
+extern void test_tail_mask_keeps_everything_but_the_last_word(void);
+extern void test_lanes_before_drops_everything_from_the_first_hit_on(void);
+extern void test_fam_eq_selects_a_block(void);
+extern void test_any_upper_is_a_gate_and_not_a_test(void);
+extern void test_any_digit_is_a_gate_and_not_a_test(void);
+extern void test_alpha_is_exact_where_the_gates_are_not(void);
+extern void test_fold_lower_touches_letters_and_nothing_else(void);
+extern void test_run_of_one_is_the_mask_itself(void);
+extern void test_run_keeps_only_the_lanes_a_run_starts_at(void);
+extern void test_run_of_a_broken_mask(void);
+extern void test_run_edge_names_the_lanes_a_run_cannot_be_tested_at(void);
+extern void test_load_reads_a_word_at_any_alignment(void);
+extern void test_load_al_reads_a_word_from_an_aligned_address(void);
+extern void test_a_load_puts_the_first_byte_in_the_first_lane(void);
 
 
 /*=======Mock Management=====*/
@@ -21,12 +54,6 @@ static void CMock_Verify(void)
 static void CMock_Destroy(void)
 {
 }
-
-/*=======Setup (stub)=====*/
-void setUp(void) {}
-
-/*=======Teardown (stub)=====*/
-void tearDown(void) {}
 
 /*=======Test Reset Options=====*/
 void resetTest(void);
@@ -76,8 +103,41 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/verbum_scrutor/test_verbum_scrutor\\test_verbum_scrutor.c");
-  run_test(test_scrut_header_is_self_contained, "test_scrut_header_is_self_contained", 8);
-  run_test(test_scrut_namespace_is_wired, "test_scrut_namespace_is_wired", 13);
+  run_test(test_scrut_header_is_self_contained, "test_scrut_header_is_self_contained", 51);
+  run_test(test_scrut_namespace_is_wired, "test_scrut_namespace_is_wired", 56);
+  run_test(test_the_word_constants_agree_with_each_other, "test_the_word_constants_agree_with_each_other", 64);
+  run_test(test_ge_and_le_against_a_scalar_loop, "test_ge_and_le_against_a_scalar_loop", 78);
+  run_test(test_ge_and_le_set_only_the_lanes_that_pass, "test_ge_and_le_set_only_the_lanes_that_pass", 99);
+  run_test(test_sub7_is_a_per_lane_difference, "test_sub7_is_a_per_lane_difference", 113);
+  run_test(test_spread_fills_a_lane_from_its_high_bit, "test_spread_fills_a_lane_from_its_high_bit", 126);
+  run_test(test_has_zero_finds_a_zero_lane_and_only_a_zero_lane, "test_has_zero_finds_a_zero_lane_and_only_a_zero_lane", 143);
+  run_test(test_eq_finds_a_byte_at_every_lane, "test_eq_finds_a_byte_at_every_lane", 161);
+  run_test(test_eq_ignoring_case_matches_either_case, "test_eq_ignoring_case_matches_either_case", 176);
+  run_test(test_xor_reports_the_lanes_that_differ, "test_xor_reports_the_lanes_that_differ", 191);
+  run_test(test_lanes_counts_set_lanes, "test_lanes_counts_set_lanes", 207);
+  run_test(test_lane_lo_and_lane_hi_find_the_ends, "test_lane_lo_and_lane_hi_find_the_ends", 218);
+  run_test(test_lane_first_and_last_follow_address_order, "test_lane_first_and_last_follow_address_order", 232);
+  run_test(test_drop_lo_and_drop_hi_clear_one_lane_each, "test_drop_lo_and_drop_hi_clear_one_lane_each", 241);
+  run_test(test_drop_first_and_last_follow_address_order, "test_drop_first_and_last_follow_address_order", 251);
+  run_test(test_walking_a_mask_visits_every_lane_once, "test_walking_a_mask_visits_every_lane_once", 260);
+  run_test(test_words_is_the_load_count, "test_words_is_the_load_count", 278);
+  run_test(test_the_worst_case_word_count_covers_the_largest_tenant, "test_the_worst_case_word_count_covers_the_largest_tenant", 287);
+  run_test(test_bytes_below_keeps_the_first_n_lanes, "test_bytes_below_keeps_the_first_n_lanes", 292);
+  run_test(test_lanes_below_is_the_high_bit_of_bytes_below, "test_lanes_below_is_the_high_bit_of_bytes_below", 309);
+  run_test(test_tail_mask_keeps_everything_but_the_last_word, "test_tail_mask_keeps_everything_but_the_last_word", 318);
+  run_test(test_lanes_before_drops_everything_from_the_first_hit_on, "test_lanes_before_drops_everything_from_the_first_hit_on", 328);
+  run_test(test_fam_eq_selects_a_block, "test_fam_eq_selects_a_block", 346);
+  run_test(test_any_upper_is_a_gate_and_not_a_test, "test_any_upper_is_a_gate_and_not_a_test", 356);
+  run_test(test_any_digit_is_a_gate_and_not_a_test, "test_any_digit_is_a_gate_and_not_a_test", 367);
+  run_test(test_alpha_is_exact_where_the_gates_are_not, "test_alpha_is_exact_where_the_gates_are_not", 374);
+  run_test(test_fold_lower_touches_letters_and_nothing_else, "test_fold_lower_touches_letters_and_nothing_else", 389);
+  run_test(test_run_of_one_is_the_mask_itself, "test_run_of_one_is_the_mask_itself", 404);
+  run_test(test_run_keeps_only_the_lanes_a_run_starts_at, "test_run_keeps_only_the_lanes_a_run_starts_at", 409);
+  run_test(test_run_of_a_broken_mask, "test_run_of_a_broken_mask", 421);
+  run_test(test_run_edge_names_the_lanes_a_run_cannot_be_tested_at, "test_run_edge_names_the_lanes_a_run_cannot_be_tested_at", 430);
+  run_test(test_load_reads_a_word_at_any_alignment, "test_load_reads_a_word_at_any_alignment", 448);
+  run_test(test_load_al_reads_a_word_from_an_aligned_address, "test_load_al_reads_a_word_from_an_aligned_address", 460);
+  run_test(test_a_load_puts_the_first_byte_in_the_first_lane, "test_a_load_puts_the_first_byte_in_the_first_lane", 468);
 
   return UNITY_END();
 }

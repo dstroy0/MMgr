@@ -20,10 +20,14 @@
  */
 static mmgr_migro_word lo_lanes(size_t nbytes)
 {
+    /* GCOVR_EXCL_START - only span_lanes calls this, and only its big endian arm asks for a whole
+       word: on little endian the count is always the ragged tail, which is one to word size minus
+       one. There is no big endian environment in MMGR_ENVIRONMENTS to run it on. */
     if (nbytes >= MMGR_RAW_WORD)
     {
         return (mmgr_migro_word) ~(mmgr_migro_word)0;
     }
+    /* GCOVR_EXCL_STOP */
     return (mmgr_migro_word)(((mmgr_migro_word)1 << (nbytes * 8u)) - (mmgr_migro_word)1);
 }
 

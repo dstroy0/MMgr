@@ -4,7 +4,10 @@
 
 /**
  * @file bitio.c
- * @brief Bit writer. Bits accumulate most significant first and flush a byte at a time.
+ * @brief Bit writer. Bits accumulate from the low end and flush a byte at a time.
+ *
+ * The first bits put land in the low bits of the first output byte: acc |= bits << nbits, and
+ * the flush takes acc & 0xFF.
  */
 
 void mmgr_bitio_put(mmgr_bitio_writer *w, uint32_t bits, int n)

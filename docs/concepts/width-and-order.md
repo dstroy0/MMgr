@@ -29,7 +29,7 @@ That is not detectable at the use site, so it is asserted at the source:
 
 ```c
 MMGR_STATIC_ASSERT(sizeof(MmgrEnumProbe) == 1,
-    "MMGR_ENUM_PACKED is not honoured here, so no enum keeps its declared width ...");
+    "MMGR_ENUM_PACKED is not honored here, so no enum keeps its declared width ...");
 ```
 
 `MMGR_ENUM_PACKED` is `__attribute__((packed))` where the attribute exists and empty where it does

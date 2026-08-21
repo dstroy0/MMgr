@@ -111,11 +111,11 @@
  * traffic the flat argument list needed anyway.
  *
  * Two properties come from the standard rather than the compiler, so they hold everywhere: unnamed
- * fields are zero initialised, which is how a default costs nothing and is never spelled; and a
+ * fields are zero initialized, which is how a default costs nothing and is never spelled; and a
  * compound literal in argument position lives until the end of the enclosing block, so the backend
  * may hold the pointer for the whole call.
  *
- * Designated initialisers are the intended spelling. A positional call still compiles, but -Wextra
+ * Designated initializers are the intended spelling. A positional call still compiles, but -Wextra
  * reports the fields it left behind and designated calls it does not.
  */
 #define MMGR_CALL(backend, ArgsType, ...) backend(&(ArgsType){__VA_ARGS__})
@@ -178,7 +178,7 @@
  *     MMGR_NS_LAYOUT(VerbumScrutorNs, ge, le, spread, sub7, has_zero, eq, xor_, zero_lane, load);
  *
  * A `<Mod>Ns` is a run of function pointers the library addresses by offset, and a positional
- * initialiser mis-wires silently when a member is inserted, removed or moved. This asserts each
+ * initializer mis-wires silently when a member is inserted, removed or moved. This asserts each
  * named member is at its own slot, in the order given, and that sizeof is exactly that many
  * pointers - so a member added and not listed, a member reordered, or padding appearing between
  * them all fail the build at the declaration rather than at a wrong call.
@@ -206,9 +206,9 @@
 /**
  * @brief Storage for a dispatch table. The const is load bearing.
  *
- * Measured: gcc devirtualises a call through a static const `<Mod>Ns` down to the inlined body,
- * identical instructions to calling the entry directly, and does not devirtualise the same call
- * through a non-const one - that becomes a real call with an 88 byte frame. clang devirtualises
+ * Measured: gcc devirtualizes a call through a static const `<Mod>Ns` down to the inlined body,
+ * identical instructions to calling the entry directly, and does not devirtualize the same call
+ * through a non-const one - that becomes a real call with an 88 byte frame. clang devirtualizes
  * both, so const is what makes the two agree.
  */
 #define MMGR_NS static const

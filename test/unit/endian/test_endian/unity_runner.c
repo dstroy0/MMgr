@@ -8,7 +8,15 @@
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_endian_header_is_self_contained(void);
-extern void test_endian_namespace_is_wired(void);
+extern void test_little_endian_puts_the_low_byte_first(void);
+extern void test_big_endian_puts_the_high_byte_first(void);
+extern void test_every_width_round_trips_little_endian(void);
+extern void test_every_width_round_trips_big_endian(void);
+extern void test_the_two_orders_are_byte_reverses_of_each_other(void);
+extern void test_a_read_of_the_other_order_is_the_byte_swap(void);
+extern void test_writes_touch_exactly_their_width(void);
+extern void test_reads_are_unaffected_by_the_bytes_after_them(void);
+extern void test_namespace_is_wired(void);
 
 
 /*=======Mock Management=====*/
@@ -21,12 +29,6 @@ static void CMock_Verify(void)
 static void CMock_Destroy(void)
 {
 }
-
-/*=======Setup (stub)=====*/
-void setUp(void) {}
-
-/*=======Teardown (stub)=====*/
-void tearDown(void) {}
 
 /*=======Test Reset Options=====*/
 void resetTest(void);
@@ -76,8 +78,16 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/endian/test_endian\\test_endian.c");
-  run_test(test_endian_header_is_self_contained, "test_endian_header_is_self_contained", 8);
-  run_test(test_endian_namespace_is_wired, "test_endian_namespace_is_wired", 13);
+  run_test(test_endian_header_is_self_contained, "test_endian_header_is_self_contained", 22);
+  run_test(test_little_endian_puts_the_low_byte_first, "test_little_endian_puts_the_low_byte_first", 27);
+  run_test(test_big_endian_puts_the_high_byte_first, "test_big_endian_puts_the_high_byte_first", 42);
+  run_test(test_every_width_round_trips_little_endian, "test_every_width_round_trips_little_endian", 57);
+  run_test(test_every_width_round_trips_big_endian, "test_every_width_round_trips_big_endian", 84);
+  run_test(test_the_two_orders_are_byte_reverses_of_each_other, "test_the_two_orders_are_byte_reverses_of_each_other", 111);
+  run_test(test_a_read_of_the_other_order_is_the_byte_swap, "test_a_read_of_the_other_order_is_the_byte_swap", 124);
+  run_test(test_writes_touch_exactly_their_width, "test_writes_touch_exactly_their_width", 136);
+  run_test(test_reads_are_unaffected_by_the_bytes_after_them, "test_reads_are_unaffected_by_the_bytes_after_them", 156);
+  run_test(test_namespace_is_wired, "test_namespace_is_wired", 164);
 
   return UNITY_END();
 }

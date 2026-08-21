@@ -2,7 +2,13 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
+#include "oracle_divergence.h"
 #include "cellularum_laboro/cellularum_laboro.h"
+#include "verbum_scrutor/verbum_scrutor.h"
+#include <ctype.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /*=======External Functions This Runner Calls=====*/
@@ -25,6 +31,48 @@ extern void test_diff_returns_the_first_differing_offset(void);
 extern void test_diff_crossing_a_word_boundary(void);
 extern void test_copy_truncates_and_terminates(void);
 extern void test_classifiers(void);
+extern void test_to_long_matches_strtol(void);
+extern void test_to_ulong_matches_strtoul(void);
+extern void test_to_long_without_an_end_pointer(void);
+extern void test_to_double_matches_strtod(void);
+extern void test_to_double_handles_an_exponent(void);
+extern void test_to_float_matches_to_double(void);
+extern void test_to_double_without_an_end_pointer(void);
+extern void test_step_word_keeps_going_while_equal(void);
+extern void test_step_word_stops_on_a_difference(void);
+extern void test_step_word_stops_at_the_terminator(void);
+extern void test_step_word_folds_case(void);
+extern void test_step_byte_covers_the_same_three_verdicts(void);
+extern void test_chr_matches_strchr(void);
+extern void test_chr_at_every_alignment(void);
+extern void test_chr_respects_the_cap(void);
+extern void test_find_matches_strstr_over_a_corpus(void);
+extern void test_find_ci_matches_a_folded_search(void);
+extern void test_find_needle_longer_than_the_haystack(void);
+extern void test_diff_matches_a_byte_loop(void);
+extern void test_copy_of_an_empty_destination(void);
+extern void test_ws_and_digit_agree_with_ctype(void);
+extern void test_step_word_ignoring_case_agrees_on_a_folded_word(void);
+extern void test_step_word_ignoring_case_still_sees_a_real_difference(void);
+extern void test_step_word_ignoring_case_ends_before_a_difference(void);
+extern void test_step_word_ignoring_case_ends_in_the_same_lane_as_a_difference(void);
+extern void test_step_word_matching_case_ends_before_a_difference(void);
+extern void test_step_word_matching_case_ends_in_the_same_lane_as_a_difference(void);
+extern void test_step_word_of_a_difference_that_beats_the_end(void);
+extern void test_step_word_of_two_words_that_both_run_on(void);
+extern void test_step_byte_over_both_foldings_and_both_endings(void);
+extern void test_diff_finds_the_first_differing_byte(void);
+extern void test_diff_of_runs_that_agree_is_the_whole_run(void);
+extern void test_diff_past_the_first_word(void);
+extern void test_diff_ignoring_case(void);
+extern void test_to_double_takes_a_leading_plus(void);
+extern void test_to_double_takes_a_signed_exponent(void);
+extern void test_to_double_clamps_an_absurd_exponent(void);
+extern void test_to_double_of_a_negative_absurd_exponent(void);
+extern void test_to_float_narrows_what_to_double_parses(void);
+extern void test_starts_when_the_read_cap_ends_first(void);
+extern void test_eq_when_the_read_cap_ends_first(void);
+extern void test_starts_finds_a_difference_with_no_terminator_in_the_word(void);
 
 
 /*=======Mock Management=====*/
@@ -92,23 +140,65 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/cellularum_laboro/test_cellularum_laboro\\test_cellularum_laboro.c");
-  run_test(test_len_stops_at_nul_and_at_cap, "test_len_stops_at_nul_and_at_cap", 27);
-  run_test(test_find_empty_needle_matches_at_zero, "test_find_empty_needle_matches_at_zero", 34);
-  run_test(test_find_at_every_offset, "test_find_at_every_offset", 40);
-  run_test(test_find_spans_a_word_boundary, "test_find_spans_a_word_boundary", 51);
-  run_test(test_find_needle_longer_than_one_word, "test_find_needle_longer_than_one_word", 61);
-  run_test(test_find_needle_lengths_one_through_nine, "test_find_needle_lengths_one_through_nine", 69);
-  run_test(test_find_prefers_the_first_of_several_matches, "test_find_prefers_the_first_of_several_matches", 81);
-  run_test(test_find_near_miss_shares_a_prefix, "test_find_near_miss_shares_a_prefix", 86);
-  run_test(test_find_absent, "test_find_absent", 93);
-  run_test(test_find_ci_folds_only_letters, "test_find_ci_folds_only_letters", 99);
-  run_test(test_has_agrees_with_find, "test_has_agrees_with_find", 108);
-  run_test(test_eq_both_cases, "test_eq_both_cases", 115);
-  run_test(test_starts_both_cases, "test_starts_both_cases", 124);
-  run_test(test_diff_returns_the_first_differing_offset, "test_diff_returns_the_first_differing_offset", 132);
-  run_test(test_diff_crossing_a_word_boundary, "test_diff_crossing_a_word_boundary", 139);
-  run_test(test_copy_truncates_and_terminates, "test_copy_truncates_and_terminates", 145);
-  run_test(test_classifiers, "test_classifiers", 154);
+  run_test(test_len_stops_at_nul_and_at_cap, "test_len_stops_at_nul_and_at_cap", 33);
+  run_test(test_find_empty_needle_matches_at_zero, "test_find_empty_needle_matches_at_zero", 40);
+  run_test(test_find_at_every_offset, "test_find_at_every_offset", 46);
+  run_test(test_find_spans_a_word_boundary, "test_find_spans_a_word_boundary", 57);
+  run_test(test_find_needle_longer_than_one_word, "test_find_needle_longer_than_one_word", 67);
+  run_test(test_find_needle_lengths_one_through_nine, "test_find_needle_lengths_one_through_nine", 75);
+  run_test(test_find_prefers_the_first_of_several_matches, "test_find_prefers_the_first_of_several_matches", 87);
+  run_test(test_find_near_miss_shares_a_prefix, "test_find_near_miss_shares_a_prefix", 92);
+  run_test(test_find_absent, "test_find_absent", 99);
+  run_test(test_find_ci_folds_only_letters, "test_find_ci_folds_only_letters", 105);
+  run_test(test_has_agrees_with_find, "test_has_agrees_with_find", 114);
+  run_test(test_eq_both_cases, "test_eq_both_cases", 121);
+  run_test(test_starts_both_cases, "test_starts_both_cases", 130);
+  run_test(test_diff_returns_the_first_differing_offset, "test_diff_returns_the_first_differing_offset", 138);
+  run_test(test_diff_crossing_a_word_boundary, "test_diff_crossing_a_word_boundary", 145);
+  run_test(test_copy_truncates_and_terminates, "test_copy_truncates_and_terminates", 151);
+  run_test(test_classifiers, "test_classifiers", 160);
+  run_test(test_to_long_matches_strtol, "test_to_long_matches_strtol", 204);
+  run_test(test_to_ulong_matches_strtoul, "test_to_ulong_matches_strtoul", 226);
+  run_test(test_to_long_without_an_end_pointer, "test_to_long_without_an_end_pointer", 248);
+  run_test(test_to_double_matches_strtod, "test_to_double_matches_strtod", 254);
+  run_test(test_to_double_handles_an_exponent, "test_to_double_handles_an_exponent", 275);
+  run_test(test_to_float_matches_to_double, "test_to_float_matches_to_double", 285);
+  run_test(test_to_double_without_an_end_pointer, "test_to_double_without_an_end_pointer", 295);
+  run_test(test_step_word_keeps_going_while_equal, "test_step_word_keeps_going_while_equal", 310);
+  run_test(test_step_word_stops_on_a_difference, "test_step_word_stops_on_a_difference", 317);
+  run_test(test_step_word_stops_at_the_terminator, "test_step_word_stops_at_the_terminator", 325);
+  run_test(test_step_word_folds_case, "test_step_word_folds_case", 336);
+  run_test(test_step_byte_covers_the_same_three_verdicts, "test_step_byte_covers_the_same_three_verdicts", 344);
+  run_test(test_chr_matches_strchr, "test_chr_matches_strchr", 364);
+  run_test(test_chr_at_every_alignment, "test_chr_at_every_alignment", 383);
+  run_test(test_chr_respects_the_cap, "test_chr_respects_the_cap", 397);
+  run_test(test_find_matches_strstr_over_a_corpus, "test_find_matches_strstr_over_a_corpus", 409);
+  run_test(test_find_ci_matches_a_folded_search, "test_find_ci_matches_a_folded_search", 437);
+  run_test(test_find_needle_longer_than_the_haystack, "test_find_needle_longer_than_the_haystack", 474);
+  run_test(test_diff_matches_a_byte_loop, "test_diff_matches_a_byte_loop", 480);
+  run_test(test_copy_of_an_empty_destination, "test_copy_of_an_empty_destination", 505);
+  run_test(test_ws_and_digit_agree_with_ctype, "test_ws_and_digit_agree_with_ctype", 511);
+  run_test(test_step_word_ignoring_case_agrees_on_a_folded_word, "test_step_word_ignoring_case_agrees_on_a_folded_word", 528);
+  run_test(test_step_word_ignoring_case_still_sees_a_real_difference, "test_step_word_ignoring_case_still_sees_a_real_difference", 535);
+  run_test(test_step_word_ignoring_case_ends_before_a_difference, "test_step_word_ignoring_case_ends_before_a_difference", 553);
+  run_test(test_step_word_ignoring_case_ends_in_the_same_lane_as_a_difference, "test_step_word_ignoring_case_ends_in_the_same_lane_as_a_difference", 561);
+  run_test(test_step_word_matching_case_ends_before_a_difference, "test_step_word_matching_case_ends_before_a_difference", 569);
+  run_test(test_step_word_matching_case_ends_in_the_same_lane_as_a_difference, "test_step_word_matching_case_ends_in_the_same_lane_as_a_difference", 575);
+  run_test(test_step_word_of_a_difference_that_beats_the_end, "test_step_word_of_a_difference_that_beats_the_end", 581);
+  run_test(test_step_word_of_two_words_that_both_run_on, "test_step_word_of_two_words_that_both_run_on", 589);
+  run_test(test_step_byte_over_both_foldings_and_both_endings, "test_step_byte_over_both_foldings_and_both_endings", 596);
+  run_test(test_diff_finds_the_first_differing_byte, "test_diff_finds_the_first_differing_byte", 619);
+  run_test(test_diff_of_runs_that_agree_is_the_whole_run, "test_diff_of_runs_that_agree_is_the_whole_run", 626);
+  run_test(test_diff_past_the_first_word, "test_diff_past_the_first_word", 633);
+  run_test(test_diff_ignoring_case, "test_diff_ignoring_case", 644);
+  run_test(test_to_double_takes_a_leading_plus, "test_to_double_takes_a_leading_plus", 654);
+  run_test(test_to_double_takes_a_signed_exponent, "test_to_double_takes_a_signed_exponent", 661);
+  run_test(test_to_double_clamps_an_absurd_exponent, "test_to_double_clamps_an_absurd_exponent", 668);
+  run_test(test_to_double_of_a_negative_absurd_exponent, "test_to_double_of_a_negative_absurd_exponent", 680);
+  run_test(test_to_float_narrows_what_to_double_parses, "test_to_float_narrows_what_to_double_parses", 685);
+  run_test(test_starts_when_the_read_cap_ends_first, "test_starts_when_the_read_cap_ends_first", 700);
+  run_test(test_eq_when_the_read_cap_ends_first, "test_eq_when_the_read_cap_ends_first", 712);
+  run_test(test_starts_finds_a_difference_with_no_terminator_in_the_word, "test_starts_finds_a_difference_with_no_terminator_in_the_word", 727);
 
   return UNITY_END();
 }

@@ -95,7 +95,7 @@ MMGR_NS MemoriaOperorNs memor MMGR_UNUSED = {
     .zero = mmgr_oracle_zero,
 };
 #else
-/** @brief Module namespace. const is what lets the compiler devirtualise a call through it. */
+/** @brief Module namespace. const is what lets the compiler devirtualize a call through it. */
 MMGR_NS MemoriaOperorNs memor MMGR_UNUSED = {
     .cpy = mmgr_memor_cpy,
     .move = mmgr_memor_move,

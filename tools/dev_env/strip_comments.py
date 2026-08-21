@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Strip C comments from a file or tree, leaving the code and the licence header.
+"""Strip C comments from a file or tree, leaving the code and the license header.
 
 An API conversion is driven by patterns over source lines, and prose is what those patterns trip
 over: a line-anchored rewrite cannot tell a call from a sentence naming the same call, and a match
@@ -9,7 +9,7 @@ that crosses a comment boundary splices the sentence into the code. Removing the
 makes the rewrite mechanical.
 
 What is preserved:
-  - the leading copyright / SPDX block, which states a licence rather than describing code
+  - the leading copyright / SPDX block, which states a license rather than describing code
   - string and character literals, including escapes, so "http://x" is not read as a comment
   - the line count of block comments, so a compiler error still points at the right line
 

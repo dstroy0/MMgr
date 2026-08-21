@@ -2,13 +2,80 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
+#include "oracle_divergence.h"
 #include "verba_scribo/verba_scribo.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_verba_header_is_self_contained(void);
-extern void test_verba_namespace_is_wired(void);
+extern void test_put_and_put_n(void);
+extern void test_put_of_nothing(void);
+extern void test_ch(void);
+extern void test_unsigned_decimal_matches_printf(void);
+extern void test_u32_matches_printf(void);
+extern void test_signed_decimal_matches_printf(void);
+extern void test_hex_matches_printf(void);
+extern void test_hex_zero_pads_like_printf(void);
+extern void test_u32w_zero_pads_like_printf(void);
+extern void test_uint_in_every_base(void);
+extern void test_u64_clip_pads_to_a_column(void);
+extern void test_put_clip_truncates_instead_of_latching(void);
+extern void test_json_wraps_and_escapes(void);
+extern void test_json_escapes_control_bytes(void);
+extern void test_json_of_null_is_an_empty_string(void);
+extern void test_xml_escapes_its_five(void);
+extern void test_xml_passes_ordinary_text_through(void);
+extern void test_float_predicates(void);
+extern void test_fixed_matches_printf(void);
+extern void test_fixed_truncates_at_an_exact_tie(void);
+extern void test_g_rounds_a_tie(void);
+extern void test_g_matches_printf(void);
+extern void test_g_and_fixed_of_the_specials(void);
+extern void test_overflow_latches_and_finish_reports_it(void);
+extern void test_writes_after_overflow_are_ignored(void);
+extern void test_each_entry_can_overflow_on_its_own(void);
+extern void test_a_zero_capacity_builder_cannot_write(void);
+extern void test_the_literal_helper(void);
+extern void test_namespace_is_wired(void);
+extern void test_the_clipping_entries_stay_quiet_after_overflow(void);
+extern void test_put_clip_of_null_writes_nothing(void);
+extern void test_put_clip_with_no_room_left_writes_nothing(void);
+extern void test_u64_clip_that_does_not_fit_writes_nothing(void);
+extern void test_xml_of_null_writes_nothing(void);
+extern void test_fixed_of_nan(void);
+extern void test_fixed_of_the_infinities(void);
+extern void test_fixed_of_a_value_too_large_for_the_integer_path(void);
+extern void test_fixed_of_a_value_with_no_fraction_left(void);
+extern void test_fixed_clamps_its_decimals(void);
+extern void test_fixed_carries_a_fraction_that_rounds_to_one(void);
+extern void test_fixed_of_negative_zero(void);
+extern void test_g_of_nan(void);
+extern void test_g_of_zero(void);
+extern void test_g_of_a_very_small_value(void);
+extern void test_g_of_a_very_large_value(void);
+extern void test_g_of_one_significant_digit(void);
+extern void test_g_of_zero_significant_digits_is_one(void);
+extern void test_json_escapes_the_two_character_forms(void);
+extern void test_json_escapes_the_named_control_bytes(void);
+extern void test_json_escapes_an_unnamed_control_byte_as_a_code_point(void);
+extern void test_json_overflows_on_each_escape_form(void);
+extern void test_finish_of_a_zero_capacity_builder_reports_nothing(void);
+extern void test_g_over_every_precision(void);
+extern void test_g_of_a_subnormal(void);
+extern void test_g_of_the_largest_finite_double(void);
+extern void test_is_inf_says_no_to_a_nan(void);
+extern void test_fixed_over_every_decimal_count(void);
+extern void test_fixed_of_a_fraction_that_lands_on_a_tie(void);
+extern void test_g_where_the_exponent_estimate_overshoots(void);
+extern void test_g_walks_the_mantissa_up_when_the_estimate_overshoots(void);
+extern void test_g_takes_every_step_the_guard_allows(void);
+extern void test_g_is_exact_at_every_precision_it_can_carry(void);
+extern void test_g_of_the_smallest_normal_double(void);
 
 
 /*=======Mock Management=====*/
@@ -21,12 +88,6 @@ static void CMock_Verify(void)
 static void CMock_Destroy(void)
 {
 }
-
-/*=======Setup (stub)=====*/
-void setUp(void) {}
-
-/*=======Teardown (stub)=====*/
-void tearDown(void) {}
 
 /*=======Test Reset Options=====*/
 void resetTest(void);
@@ -76,8 +137,70 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/verba_scribo/test_verba_scribo\\test_verba_scribo.c");
-  run_test(test_verba_header_is_self_contained, "test_verba_header_is_self_contained", 8);
-  run_test(test_verba_namespace_is_wired, "test_verba_namespace_is_wired", 13);
+  run_test(test_verba_header_is_self_contained, "test_verba_header_is_self_contained", 68);
+  run_test(test_put_and_put_n, "test_put_and_put_n", 73);
+  run_test(test_put_of_nothing, "test_put_of_nothing", 81);
+  run_test(test_ch, "test_ch", 89);
+  run_test(test_unsigned_decimal_matches_printf, "test_unsigned_decimal_matches_printf", 99);
+  run_test(test_u32_matches_printf, "test_u32_matches_printf", 112);
+  run_test(test_signed_decimal_matches_printf, "test_signed_decimal_matches_printf", 123);
+  run_test(test_hex_matches_printf, "test_hex_matches_printf", 136);
+  run_test(test_hex_zero_pads_like_printf, "test_hex_zero_pads_like_printf", 148);
+  run_test(test_u32w_zero_pads_like_printf, "test_u32w_zero_pads_like_printf", 158);
+  run_test(test_uint_in_every_base, "test_uint_in_every_base", 168);
+  run_test(test_u64_clip_pads_to_a_column, "test_u64_clip_pads_to_a_column", 189);
+  run_test(test_put_clip_truncates_instead_of_latching, "test_put_clip_truncates_instead_of_latching", 206);
+  run_test(test_json_wraps_and_escapes, "test_json_wraps_and_escapes", 215);
+  run_test(test_json_escapes_control_bytes, "test_json_escapes_control_bytes", 222);
+  run_test(test_json_of_null_is_an_empty_string, "test_json_of_null_is_an_empty_string", 234);
+  run_test(test_xml_escapes_its_five, "test_xml_escapes_its_five", 241);
+  run_test(test_xml_passes_ordinary_text_through, "test_xml_passes_ordinary_text_through", 248);
+  run_test(test_float_predicates, "test_float_predicates", 255);
+  run_test(test_fixed_matches_printf, "test_fixed_matches_printf", 274);
+  run_test(test_fixed_truncates_at_an_exact_tie, "test_fixed_truncates_at_an_exact_tie", 290);
+  run_test(test_g_rounds_a_tie, "test_g_rounds_a_tie", 323);
+  run_test(test_g_matches_printf, "test_g_matches_printf", 343);
+  run_test(test_g_and_fixed_of_the_specials, "test_g_and_fixed_of_the_specials", 360);
+  run_test(test_overflow_latches_and_finish_reports_it, "test_overflow_latches_and_finish_reports_it", 386);
+  run_test(test_writes_after_overflow_are_ignored, "test_writes_after_overflow_are_ignored", 394);
+  run_test(test_each_entry_can_overflow_on_its_own, "test_each_entry_can_overflow_on_its_own", 410);
+  run_test(test_a_zero_capacity_builder_cannot_write, "test_a_zero_capacity_builder_cannot_write", 433);
+  run_test(test_the_literal_helper, "test_the_literal_helper", 440);
+  run_test(test_namespace_is_wired, "test_namespace_is_wired", 447);
+  run_test(test_the_clipping_entries_stay_quiet_after_overflow, "test_the_clipping_entries_stay_quiet_after_overflow", 461);
+  run_test(test_put_clip_of_null_writes_nothing, "test_put_clip_of_null_writes_nothing", 475);
+  run_test(test_put_clip_with_no_room_left_writes_nothing, "test_put_clip_with_no_room_left_writes_nothing", 482);
+  run_test(test_u64_clip_that_does_not_fit_writes_nothing, "test_u64_clip_that_does_not_fit_writes_nothing", 494);
+  run_test(test_xml_of_null_writes_nothing, "test_xml_of_null_writes_nothing", 501);
+  run_test(test_fixed_of_nan, "test_fixed_of_nan", 515);
+  run_test(test_fixed_of_the_infinities, "test_fixed_of_the_infinities", 524);
+  run_test(test_fixed_of_a_value_too_large_for_the_integer_path, "test_fixed_of_a_value_too_large_for_the_integer_path", 536);
+  run_test(test_fixed_of_a_value_with_no_fraction_left, "test_fixed_of_a_value_with_no_fraction_left", 547);
+  run_test(test_fixed_clamps_its_decimals, "test_fixed_clamps_its_decimals", 554);
+  run_test(test_fixed_carries_a_fraction_that_rounds_to_one, "test_fixed_carries_a_fraction_that_rounds_to_one", 566);
+  run_test(test_fixed_of_negative_zero, "test_fixed_of_negative_zero", 574);
+  run_test(test_g_of_nan, "test_g_of_nan", 585);
+  run_test(test_g_of_zero, "test_g_of_zero", 592);
+  run_test(test_g_of_a_very_small_value, "test_g_of_a_very_small_value", 600);
+  run_test(test_g_of_a_very_large_value, "test_g_of_a_very_large_value", 608);
+  run_test(test_g_of_one_significant_digit, "test_g_of_one_significant_digit", 616);
+  run_test(test_g_of_zero_significant_digits_is_one, "test_g_of_zero_significant_digits_is_one", 627);
+  run_test(test_json_escapes_the_two_character_forms, "test_json_escapes_the_two_character_forms", 644);
+  run_test(test_json_escapes_the_named_control_bytes, "test_json_escapes_the_named_control_bytes", 651);
+  run_test(test_json_escapes_an_unnamed_control_byte_as_a_code_point, "test_json_escapes_an_unnamed_control_byte_as_a_code_point", 660);
+  run_test(test_json_overflows_on_each_escape_form, "test_json_overflows_on_each_escape_form", 668);
+  run_test(test_finish_of_a_zero_capacity_builder_reports_nothing, "test_finish_of_a_zero_capacity_builder_reports_nothing", 684);
+  run_test(test_g_over_every_precision, "test_g_over_every_precision", 699);
+  run_test(test_g_of_a_subnormal, "test_g_of_a_subnormal", 724);
+  run_test(test_g_of_the_largest_finite_double, "test_g_of_the_largest_finite_double", 736);
+  run_test(test_is_inf_says_no_to_a_nan, "test_is_inf_says_no_to_a_nan", 744);
+  run_test(test_fixed_over_every_decimal_count, "test_fixed_over_every_decimal_count", 755);
+  run_test(test_fixed_of_a_fraction_that_lands_on_a_tie, "test_fixed_of_a_fraction_that_lands_on_a_tie", 777);
+  run_test(test_g_where_the_exponent_estimate_overshoots, "test_g_where_the_exponent_estimate_overshoots", 795);
+  run_test(test_g_walks_the_mantissa_up_when_the_estimate_overshoots, "test_g_walks_the_mantissa_up_when_the_estimate_overshoots", 866);
+  run_test(test_g_takes_every_step_the_guard_allows, "test_g_takes_every_step_the_guard_allows", 875);
+  run_test(test_g_is_exact_at_every_precision_it_can_carry, "test_g_is_exact_at_every_precision_it_can_carry", 884);
+  run_test(test_g_of_the_smallest_normal_double, "test_g_of_the_smallest_normal_double", 907);
 
   return UNITY_END();
 }

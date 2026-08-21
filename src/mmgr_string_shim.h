@@ -32,7 +32,7 @@
  * Nothing here survives to run time.
  *
  * @note Does not stop the compiler emitting calls to memcpy and memset on its own. A struct
- *       assignment, a large initialiser and a loop the optimiser recognises all lower to libc calls
+ *       assignment, a large initializer and a loop the optimizer recognizes all lower to libc calls
  *       that no macro is involved in. The flags for that are -ffreestanding and -fno-builtin. This
  *       covers what the source says, not what the back end decides.
  */
@@ -79,7 +79,7 @@ MMGR_BEGIN_DECLS
 /*
  * Every alias goes through the module's dispatch table rather than naming a free function.
  * cellularum_laboro has no free functions to name - the table is its whole surface - and going
- * through it costs nothing, because a call through a const namespace devirtualises to the inlined
+ * through it costs nothing, because a call through a const namespace devirtualizes to the inlined
  * body.
  */
 

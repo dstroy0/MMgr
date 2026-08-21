@@ -116,7 +116,10 @@ void *mmgr_confin_persist_capio(mmgr_confin *a, size_t n)
     }
 
     size_t need = AHDR + n;
-    if (a->persist_end + need <= a->scratch_top && a->persist_end + need >= need)
+    /* The second half is the wrap check. persist_end and need are both bounded by the tenant
+       size, so their sum cannot come back below need without a tenant larger than the address
+       space. Kept because it is what stops a bad size from being read as a small one. */
+    if (a->persist_end + need <= a->scratch_top && a->persist_end + need >= need) /* GCOVR_EXCL_BR_LINE */
     {
         ABlk *b = (ABlk *)(a->base + a->persist_end);
         b->size = n;
@@ -145,7 +148,10 @@ void mmgr_confin_persist_reddo(mmgr_confin *a, void *p)
     {
         b->used = 0;
 
-        if (a->persist_used >= b->size)
+        /* persist_used is the sum of the sizes of the blocks in use and this block is one of
+           them, so it cannot be the smaller of the two. Kept so a corrupted header cannot
+           underflow the tally. */
+        if (a->persist_used >= b->size) /* GCOVR_EXCL_BR_LINE */
         {
             a->persist_used -= b->size;
         }

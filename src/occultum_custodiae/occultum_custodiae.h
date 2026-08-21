@@ -51,7 +51,7 @@ extern struct SecureInternal mmgr_occult_state;
  * @param len Byte count.
  *
  * volatile is the whole point. A plain loop over memory about to be released is dead code and the
- * optimiser is entitled to delete it, which is how a secret survives its own erasure. Bytes to the
+ * optimizer is entitled to delete it, which is how a secret survives its own erasure. Bytes to the
  * first word boundary, then words, then the tail.
  */
 static inline void mmgr_occult_wipe(void *ptr, size_t len)

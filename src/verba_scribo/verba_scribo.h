@@ -78,10 +78,13 @@ void mmgr_verba_put(mmgr_verba *b, const char *s);
  */
 void mmgr_verba_put_clip(mmgr_verba *b, const char *s);
 /**
- * @brief Append an unsigned value in a fixed column width, truncating if it does not fit.
+ * @brief Append an unsigned value right aligned in at least @p columns.
  * @param b Builder.
  * @param v Value.
- * @param columns Field width.
+ * @param columns Minimum field width.
+ *
+ * Pads, never truncates: a value wider than the column takes the room it needs. A value that does
+ * not fit the buffer is dropped silently, without latching overflow.
  */
 void mmgr_verba_u64_clip(mmgr_verba *b, uint64_t v, uint8_t columns);
 /**
@@ -100,7 +103,7 @@ void mmgr_verba_ch(mmgr_verba *b, char c);
  * @brief Append an unsigned value in @p base.
  * @param b Builder.
  * @param v Value.
- * @param base 2 through 16.
+ * @param base 8, 10 or 16. Anything else takes the decimal path rather than being rejected.
  * @param min_digits Zero pad to at least this many.
  */
 void mmgr_verba_uint(mmgr_verba *b, uint64_t v, unsigned base, unsigned min_digits);
@@ -196,7 +199,10 @@ size_t mmgr_verba_finish(mmgr_verba *b);
 MMGR_INLINE void mmgr_oracle_verba_g(mmgr_verba *b, double v, unsigned sig)
 {
     char tmp[64];
-    const int n = snprintf(tmp, sizeof tmp, "%.*g", (int)(sig ? sig : 6u), v);
+    /* mmgr_verba_g reads a request for no digits as a request for one. printf reads it as six.
+       The adapter has to spell the library's rule, not printf's, or the A and B runs are being
+       asked two different questions. */
+    const int n = snprintf(tmp, sizeof tmp, "%.*g", (int)(sig ? sig : 1u), v);
     if (n > 0)
     {
         mmgr_verba_put_n(b, tmp, (size_t)n);

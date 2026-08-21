@@ -45,12 +45,18 @@ jobs:
 
       # --coverage on both compile and link: it implies -fprofile-arcs -ftest-coverage when
       # compiling and -lgcov when linking, and setting only the compile half fails at link time.
+      #
+      # -include test/support/coverage_inline.h drops always_inline off MMGR_INLINE for this build
+      # only. gcc honors always_inline at -O0, so without it a header entry gets a full set of
+      # branch records at every call site and the report counts optimizer copies instead of source
+      # branches. The header says the rest.
       - name: Configure
         run: >
           cmake -S . -B build --fresh
           -DCMAKE_BUILD_TYPE=Debug
           -DMMGR_BUILD_TESTS=ON
-          -DCMAKE_C_FLAGS="--coverage -O0 -g"
+          -DMMGR_LTO=OFF
+          -DCMAKE_C_FLAGS="--coverage -O0 -g -include ${{ github.workspace }}/test/support/coverage_inline.h"
           -DCMAKE_EXE_LINKER_FLAGS="--coverage"
 
       - name: Build (wrapped)

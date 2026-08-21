@@ -7,8 +7,18 @@
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_fract_header_is_self_contained(void);
-extern void test_fract_namespace_is_wired(void);
+extern void test_fractio_header_is_self_contained(void);
+extern void test_sign_of_positive_and_negative(void);
+extern void test_negative_zero_keeps_its_sign(void);
+extern void test_exponent_of_one_is_the_bias(void);
+extern void test_zero_has_no_exponent_and_no_mantissa(void);
+extern void test_mantissa_drops_the_implicit_bit(void);
+extern void test_infinities(void);
+extern void test_a_nan_has_a_full_exponent_and_a_mantissa(void);
+extern void test_merge_and_from_bits_reverse_the_accessors(void);
+extern void test_a_subnormal_keeps_its_mantissa(void);
+extern void test_merge_masks_each_field(void);
+extern void test_namespace_is_wired(void);
 
 
 /*=======Mock Management=====*/
@@ -76,8 +86,18 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/fractio/test_fractio\\test_fractio.c");
-  run_test(test_fract_header_is_self_contained, "test_fract_header_is_self_contained", 8);
-  run_test(test_fract_namespace_is_wired, "test_fract_namespace_is_wired", 13);
+  run_test(test_fractio_header_is_self_contained, "test_fractio_header_is_self_contained", 8);
+  run_test(test_sign_of_positive_and_negative, "test_sign_of_positive_and_negative", 13);
+  run_test(test_negative_zero_keeps_its_sign, "test_negative_zero_keeps_its_sign", 20);
+  run_test(test_exponent_of_one_is_the_bias, "test_exponent_of_one_is_the_bias", 27);
+  run_test(test_zero_has_no_exponent_and_no_mantissa, "test_zero_has_no_exponent_and_no_mantissa", 34);
+  run_test(test_mantissa_drops_the_implicit_bit, "test_mantissa_drops_the_implicit_bit", 40);
+  run_test(test_infinities, "test_infinities", 47);
+  run_test(test_a_nan_has_a_full_exponent_and_a_mantissa, "test_a_nan_has_a_full_exponent_and_a_mantissa", 60);
+  run_test(test_merge_and_from_bits_reverse_the_accessors, "test_merge_and_from_bits_reverse_the_accessors", 68);
+  run_test(test_a_subnormal_keeps_its_mantissa, "test_a_subnormal_keeps_its_mantissa", 84);
+  run_test(test_merge_masks_each_field, "test_merge_masks_each_field", 92);
+  run_test(test_namespace_is_wired, "test_namespace_is_wired", 101);
 
   return UNITY_END();
 }

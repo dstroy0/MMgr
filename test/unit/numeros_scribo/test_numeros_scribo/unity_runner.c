@@ -2,6 +2,7 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
+#include "cellularum_laboro/cellularum_laboro.h"
 #include "numeros_scribo/numeros_scribo.h"
 
 /*=======External Functions This Runner Calls=====*/
@@ -20,6 +21,31 @@ extern void test_write_escapes(void);
 extern void test_write_matches_the_namespace_entry(void);
 extern void test_emit_rejects_an_unknown_kind(void);
 extern void test_emit_of_nothing_is_empty_not_garbage(void);
+extern void test_build_renders_a_spec(void);
+extern void test_build_rejects_a_value_of_the_wrong_kind(void);
+extern void test_build_rejects_too_few_and_too_many_values(void);
+extern void test_build_guards_its_arguments(void);
+extern void test_build_of_a_spec_with_only_literals(void);
+extern void test_build_covers_every_kind(void);
+extern void test_build_covers_the_width_bearing_kinds(void);
+extern void test_build_of_a_null_string_value(void);
+extern void test_build_overflow_leaves_an_empty_buffer(void);
+extern void test_build_rejects_an_unknown_kind(void);
+extern void test_append_builds_on_what_is_there(void);
+extern void test_append_guards_its_arguments(void);
+extern void test_append_that_does_not_fit_leaves_the_original(void);
+extern void test_append_to_a_full_buffer(void);
+extern void test_emit_guards_its_arguments(void);
+extern void test_emit_append_guards_its_arguments(void);
+extern void test_emit_covers_the_width_bearing_kinds(void);
+extern void test_a_g_field_with_no_width_gets_six_digits(void);
+extern void test_a_hex_field_with_no_width_gets_one_digit(void);
+extern void test_an_oct_field_with_no_width_gets_one_digit(void);
+extern void test_append_to_a_buffer_with_no_terminator_is_refused(void);
+extern void test_an_append_that_does_not_fit_puts_the_terminator_back(void);
+extern void test_the_variadic_path_carries_every_kind(void);
+extern void test_a_u64_of_its_largest_value(void);
+extern void test_an_emit_append_that_does_not_fit_puts_the_terminator_back(void);
 
 
 /*=======Mock Management=====*/
@@ -87,19 +113,44 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/numeros_scribo/test_numeros_scribo\\test_numeros_scribo.c");
-  run_test(test_numer_header_is_self_contained, "test_numer_header_is_self_contained", 8);
-  run_test(test_numer_namespace_is_wired, "test_numer_namespace_is_wired", 13);
-  run_test(test_write_literal, "test_write_literal", 21);
-  run_test(test_write_mixes_kinds, "test_write_mixes_kinds", 28);
-  run_test(test_write_carries_width, "test_write_carries_width", 35);
-  run_test(test_write_default_width_when_unstated, "test_write_default_width_when_unstated", 42);
-  run_test(test_write_counts_its_own_arguments, "test_write_counts_its_own_arguments", 49);
-  run_test(test_write_overflow_reports_and_terminates, "test_write_overflow_reports_and_terminates", 58);
-  run_test(test_write_append_builds_on_what_is_there, "test_write_append_builds_on_what_is_there", 65);
-  run_test(test_write_escapes, "test_write_escapes", 73);
-  run_test(test_write_matches_the_namespace_entry, "test_write_matches_the_namespace_entry", 83);
-  run_test(test_emit_rejects_an_unknown_kind, "test_emit_rejects_an_unknown_kind", 94);
-  run_test(test_emit_of_nothing_is_empty_not_garbage, "test_emit_of_nothing_is_empty_not_garbage", 103);
+  run_test(test_numer_header_is_self_contained, "test_numer_header_is_self_contained", 9);
+  run_test(test_numer_namespace_is_wired, "test_numer_namespace_is_wired", 14);
+  run_test(test_write_literal, "test_write_literal", 22);
+  run_test(test_write_mixes_kinds, "test_write_mixes_kinds", 29);
+  run_test(test_write_carries_width, "test_write_carries_width", 36);
+  run_test(test_write_default_width_when_unstated, "test_write_default_width_when_unstated", 43);
+  run_test(test_write_counts_its_own_arguments, "test_write_counts_its_own_arguments", 50);
+  run_test(test_write_overflow_reports_and_terminates, "test_write_overflow_reports_and_terminates", 59);
+  run_test(test_write_append_builds_on_what_is_there, "test_write_append_builds_on_what_is_there", 66);
+  run_test(test_write_escapes, "test_write_escapes", 74);
+  run_test(test_write_matches_the_namespace_entry, "test_write_matches_the_namespace_entry", 84);
+  run_test(test_emit_rejects_an_unknown_kind, "test_emit_rejects_an_unknown_kind", 95);
+  run_test(test_emit_of_nothing_is_empty_not_garbage, "test_emit_of_nothing_is_empty_not_garbage", 104);
+  run_test(test_build_renders_a_spec, "test_build_renders_a_spec", 116);
+  run_test(test_build_rejects_a_value_of_the_wrong_kind, "test_build_rejects_a_value_of_the_wrong_kind", 126);
+  run_test(test_build_rejects_too_few_and_too_many_values, "test_build_rejects_too_few_and_too_many_values", 136);
+  run_test(test_build_guards_its_arguments, "test_build_guards_its_arguments", 147);
+  run_test(test_build_of_a_spec_with_only_literals, "test_build_of_a_spec_with_only_literals", 160);
+  run_test(test_build_covers_every_kind, "test_build_covers_every_kind", 168);
+  run_test(test_build_covers_the_width_bearing_kinds, "test_build_covers_the_width_bearing_kinds", 180);
+  run_test(test_build_of_a_null_string_value, "test_build_of_a_null_string_value", 193);
+  run_test(test_build_overflow_leaves_an_empty_buffer, "test_build_overflow_leaves_an_empty_buffer", 206);
+  run_test(test_build_rejects_an_unknown_kind, "test_build_rejects_an_unknown_kind", 214);
+  run_test(test_append_builds_on_what_is_there, "test_append_builds_on_what_is_there", 224);
+  run_test(test_append_guards_its_arguments, "test_append_guards_its_arguments", 235);
+  run_test(test_append_that_does_not_fit_leaves_the_original, "test_append_that_does_not_fit_leaves_the_original", 245);
+  run_test(test_append_to_a_full_buffer, "test_append_to_a_full_buffer", 253);
+  run_test(test_emit_guards_its_arguments, "test_emit_guards_its_arguments", 260);
+  run_test(test_emit_append_guards_its_arguments, "test_emit_append_guards_its_arguments", 271);
+  run_test(test_emit_covers_the_width_bearing_kinds, "test_emit_covers_the_width_bearing_kinds", 278);
+  run_test(test_a_g_field_with_no_width_gets_six_digits, "test_a_g_field_with_no_width_gets_six_digits", 291);
+  run_test(test_a_hex_field_with_no_width_gets_one_digit, "test_a_hex_field_with_no_width_gets_one_digit", 306);
+  run_test(test_an_oct_field_with_no_width_gets_one_digit, "test_an_oct_field_with_no_width_gets_one_digit", 316);
+  run_test(test_append_to_a_buffer_with_no_terminator_is_refused, "test_append_to_a_buffer_with_no_terminator_is_refused", 323);
+  run_test(test_an_append_that_does_not_fit_puts_the_terminator_back, "test_an_append_that_does_not_fit_puts_the_terminator_back", 337);
+  run_test(test_the_variadic_path_carries_every_kind, "test_the_variadic_path_carries_every_kind", 350);
+  run_test(test_a_u64_of_its_largest_value, "test_a_u64_of_its_largest_value", 364);
+  run_test(test_an_emit_append_that_does_not_fit_puts_the_terminator_back, "test_an_emit_append_that_does_not_fit_puts_the_terminator_back", 371);
 
   return UNITY_END();
 }

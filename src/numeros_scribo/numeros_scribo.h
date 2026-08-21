@@ -59,7 +59,7 @@ typedef struct mmgr_field
  * @brief One value, tagged with the kind it satisfies.
  *
  * @c width is only read by the kinds that take one - DEC, HEX, OCT, G, FIX - and zero means the
- * default for that kind. It sits after the union so every initialiser written before it existed
+ * default for that kind. It sits after the union so every initializer written before it existed
  * still compiles and leaves it zero.
  */
 typedef struct mmgr_fval

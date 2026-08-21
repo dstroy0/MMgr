@@ -85,6 +85,10 @@ function(mmgr_add_suite suite_name)
         # compiled with exactly the widths the library under it was compiled with. mmgr_flags is
         # deliberately not linked: test/ is exempt from the src/ warning set, and Unity's assertion
         # macros do not survive -Wconversion.
+        # Unity compiles its float and double assertions out unless asked. unity.c is built into
+        # each suite target rather than shared, so defining it here reaches both the cases and the
+        # assertion bodies they call.
+        target_compile_definitions(${target} PRIVATE UNITY_INCLUDE_DOUBLE UNITY_INCLUDE_FLOAT)
         target_link_libraries(${target} PRIVATE mmgr_${env})
         set_target_properties(${target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test/${env}")
 

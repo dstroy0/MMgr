@@ -7,7 +7,53 @@
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_confin_header_is_self_contained(void);
+extern void test_confinium_header_is_self_contained(void);
+extern void test_worker_identity(void);
+extern void test_align_up_rounds_to_the_grain(void);
+extern void test_a_fresh_tenant_is_empty(void);
+extern void test_init_aligns_the_base_up_and_loses_the_slack(void);
+extern void test_init_of_a_region_too_small_to_align_leaves_nothing(void);
+extern void test_persist_hands_out_zeroed_bytes(void);
+extern void test_a_zero_sized_persist_still_gives_a_block(void);
+extern void test_persist_blocks_do_not_overlap(void);
+extern void test_a_freed_block_is_reused(void);
+extern void test_a_large_free_block_splits(void);
+extern void test_an_exact_fit_does_not_split(void);
+extern void test_freeing_null_is_a_no_op(void);
+extern void test_freeing_twice_does_not_double_count(void);
+extern void test_adjacent_free_blocks_coalesce(void);
+extern void test_persist_fails_rather_than_meeting_the_other_end(void);
+extern void test_interim_grows_down_from_the_top(void);
+extern void test_interim_honours_alignment(void);
+extern void test_a_zero_sized_interim_still_gives_bytes(void);
+extern void test_interim_mark_and_release(void);
+extern void test_a_stale_or_forward_mark_is_ignored(void);
+extern void test_interim_reset_releases_everything(void);
+extern void test_interim_fails_rather_than_meeting_the_other_end(void);
+extern void test_the_two_ends_meet_and_stop(void);
+extern void test_owns_rejects_what_it_did_not_hand_out(void);
+extern void test_free_space_falls_as_it_is_taken(void);
+extern void test_a_set_starts_empty(void);
+extern void test_a_set_takes_regions_until_it_is_full(void);
+extern void test_a_set_refuses_a_region_too_small_to_hold_anything(void);
+extern void test_a_set_hands_out_from_its_regions(void);
+extern void test_a_set_mark_covers_every_region(void);
+extern void test_a_set_reset_releases_every_region(void);
+extern void test_a_set_request_larger_than_any_region_fails(void);
+extern void test_a_persist_request_walks_past_a_block_that_is_still_in_use(void);
+extern void test_a_persist_request_walks_past_a_free_block_that_is_too_small(void);
+extern void test_a_reused_block_is_split_when_there_is_enough_left_over(void);
+extern void test_a_persist_request_larger_than_the_tenant_is_refused(void);
+extern void test_a_persist_request_that_would_meet_the_interim_end_is_refused(void);
+extern void test_releasing_the_same_block_twice_is_ignored(void);
+extern void test_releasing_nothing_is_ignored(void);
+extern void test_free_space_is_zero_once_the_two_ends_meet(void);
+extern void test_free_space_never_reports_less_than_a_header(void);
+extern void test_an_aligned_interim_request_that_does_not_fit_is_refused(void);
+extern void test_owns_says_no_to_addresses_on_either_side(void);
+extern void test_a_set_release_finds_the_region_the_pointer_came_from(void);
+extern void test_a_set_release_of_an_address_it_does_not_hold(void);
+extern void test_a_set_release_on_an_empty_set(void);
 
 
 /*=======Mock Management=====*/
@@ -20,12 +66,6 @@ static void CMock_Verify(void)
 static void CMock_Destroy(void)
 {
 }
-
-/*=======Setup (stub)=====*/
-void setUp(void) {}
-
-/*=======Teardown (stub)=====*/
-void tearDown(void) {}
 
 /*=======Test Reset Options=====*/
 void resetTest(void);
@@ -75,7 +115,53 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/confinium/test_confinium\\test_confinium.c");
-  run_test(test_confin_header_is_self_contained, "test_confin_header_is_self_contained", 8);
+  run_test(test_confinium_header_is_self_contained, "test_confinium_header_is_self_contained", 27);
+  run_test(test_worker_identity, "test_worker_identity", 32);
+  run_test(test_align_up_rounds_to_the_grain, "test_align_up_rounds_to_the_grain", 40);
+  run_test(test_a_fresh_tenant_is_empty, "test_a_fresh_tenant_is_empty", 48);
+  run_test(test_init_aligns_the_base_up_and_loses_the_slack, "test_init_aligns_the_base_up_and_loses_the_slack", 55);
+  run_test(test_init_of_a_region_too_small_to_align_leaves_nothing, "test_init_of_a_region_too_small_to_align_leaves_nothing", 63);
+  run_test(test_persist_hands_out_zeroed_bytes, "test_persist_hands_out_zeroed_bytes", 71);
+  run_test(test_a_zero_sized_persist_still_gives_a_block, "test_a_zero_sized_persist_still_gives_a_block", 83);
+  run_test(test_persist_blocks_do_not_overlap, "test_persist_blocks_do_not_overlap", 89);
+  run_test(test_a_freed_block_is_reused, "test_a_freed_block_is_reused", 98);
+  run_test(test_a_large_free_block_splits, "test_a_large_free_block_splits", 111);
+  run_test(test_an_exact_fit_does_not_split, "test_an_exact_fit_does_not_split", 127);
+  run_test(test_freeing_null_is_a_no_op, "test_freeing_null_is_a_no_op", 139);
+  run_test(test_freeing_twice_does_not_double_count, "test_freeing_twice_does_not_double_count", 146);
+  run_test(test_adjacent_free_blocks_coalesce, "test_adjacent_free_blocks_coalesce", 155);
+  run_test(test_persist_fails_rather_than_meeting_the_other_end, "test_persist_fails_rather_than_meeting_the_other_end", 172);
+  run_test(test_interim_grows_down_from_the_top, "test_interim_grows_down_from_the_top", 177);
+  run_test(test_interim_honours_alignment, "test_interim_honours_alignment", 189);
+  run_test(test_a_zero_sized_interim_still_gives_bytes, "test_a_zero_sized_interim_still_gives_bytes", 201);
+  run_test(test_interim_mark_and_release, "test_interim_mark_and_release", 206);
+  run_test(test_a_stale_or_forward_mark_is_ignored, "test_a_stale_or_forward_mark_is_ignored", 220);
+  run_test(test_interim_reset_releases_everything, "test_interim_reset_releases_everything", 232);
+  run_test(test_interim_fails_rather_than_meeting_the_other_end, "test_interim_fails_rather_than_meeting_the_other_end", 239);
+  run_test(test_the_two_ends_meet_and_stop, "test_the_two_ends_meet_and_stop", 245);
+  run_test(test_owns_rejects_what_it_did_not_hand_out, "test_owns_rejects_what_it_did_not_hand_out", 260);
+  run_test(test_free_space_falls_as_it_is_taken, "test_free_space_falls_as_it_is_taken", 267);
+  run_test(test_a_set_starts_empty, "test_a_set_starts_empty", 278);
+  run_test(test_a_set_takes_regions_until_it_is_full, "test_a_set_takes_regions_until_it_is_full", 289);
+  run_test(test_a_set_refuses_a_region_too_small_to_hold_anything, "test_a_set_refuses_a_region_too_small_to_hold_anything", 306);
+  run_test(test_a_set_hands_out_from_its_regions, "test_a_set_hands_out_from_its_regions", 313);
+  run_test(test_a_set_mark_covers_every_region, "test_a_set_mark_covers_every_region", 338);
+  run_test(test_a_set_reset_releases_every_region, "test_a_set_reset_releases_every_region", 353);
+  run_test(test_a_set_request_larger_than_any_region_fails, "test_a_set_request_larger_than_any_region_fails", 364);
+  run_test(test_a_persist_request_walks_past_a_block_that_is_still_in_use, "test_a_persist_request_walks_past_a_block_that_is_still_in_use", 381);
+  run_test(test_a_persist_request_walks_past_a_free_block_that_is_too_small, "test_a_persist_request_walks_past_a_free_block_that_is_too_small", 396);
+  run_test(test_a_reused_block_is_split_when_there_is_enough_left_over, "test_a_reused_block_is_split_when_there_is_enough_left_over", 415);
+  run_test(test_a_persist_request_larger_than_the_tenant_is_refused, "test_a_persist_request_larger_than_the_tenant_is_refused", 430);
+  run_test(test_a_persist_request_that_would_meet_the_interim_end_is_refused, "test_a_persist_request_that_would_meet_the_interim_end_is_refused", 435);
+  run_test(test_releasing_the_same_block_twice_is_ignored, "test_releasing_the_same_block_twice_is_ignored", 442);
+  run_test(test_releasing_nothing_is_ignored, "test_releasing_nothing_is_ignored", 457);
+  run_test(test_free_space_is_zero_once_the_two_ends_meet, "test_free_space_is_zero_once_the_two_ends_meet", 468);
+  run_test(test_free_space_never_reports_less_than_a_header, "test_free_space_never_reports_less_than_a_header", 480);
+  run_test(test_an_aligned_interim_request_that_does_not_fit_is_refused, "test_an_aligned_interim_request_that_does_not_fit_is_refused", 493);
+  run_test(test_owns_says_no_to_addresses_on_either_side, "test_owns_says_no_to_addresses_on_either_side", 503);
+  run_test(test_a_set_release_finds_the_region_the_pointer_came_from, "test_a_set_release_finds_the_region_the_pointer_came_from", 520);
+  run_test(test_a_set_release_of_an_address_it_does_not_hold, "test_a_set_release_of_an_address_it_does_not_hold", 537);
+  run_test(test_a_set_release_on_an_empty_set, "test_a_set_release_on_an_empty_set", 549);
 
   return UNITY_END();
 }

@@ -68,7 +68,7 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_idx) * 8u == MMGR_INDEX_BITS, "mmgr_idx must be e
 MMGR_STATIC_ASSERT(sizeof(mmgr_idx) <= sizeof(mmgr_word), "an index must fit the register it is carried in");
 
 /**
- * @brief Probe that proves MMGR_ENUM_PACKED was honoured.
+ * @brief Probe that proves MMGR_ENUM_PACKED was honored.
  *
  * An enum that silently becomes an int moves every field after it in every struct, and the library
  * addresses borrows by offset. Nothing at the use site can detect that, so it is asserted here.
@@ -79,7 +79,7 @@ typedef enum MMGR_ENUM_PACKED
     MMGR_ENUM_PROBE_MAX = 255,
 } MmgrEnumProbe;
 MMGR_STATIC_ASSERT(sizeof(MmgrEnumProbe) == 1,
-                   "MMGR_ENUM_PACKED is not honoured here, so no enum keeps its declared width and every "
+                   "MMGR_ENUM_PACKED is not honored here, so no enum keeps its declared width and every "
                    "borrow offset computed from a struct containing one is wrong (TI: pass --small_enum)");
 
 #endif

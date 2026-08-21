@@ -53,7 +53,9 @@ static inline uintptr_t secure_offset(const struct SecureInternal *ctx, const vo
 static inline int cur_worker(void)
 {
     int w = mmgr_worker_self();
-    return (w >= 0 && w < MMGR_SEC_POOL_SLOTS) ? w : MMGR_GHOST_WORKER_SLOT;
+    /* MMGR_WORKER_COUNT is 1, so mmgr_worker_self is a compile time 0 and both halves of the
+       range check are constant. See clarus_custodiae.c. */
+    return (w >= 0 && w < MMGR_SEC_POOL_SLOTS) ? w : MMGR_GHOST_WORKER_SLOT; /* GCOVR_EXCL_BR_LINE */
 }
 
 /**

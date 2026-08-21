@@ -50,10 +50,10 @@ So there is a probe:
 typedef enum MMGR_ENUM_PACKED { MMGR_ENUM_PROBE_MIN = 0, MMGR_ENUM_PROBE_MAX = 1 } MmgrEnumProbe;
 
 MMGR_STATIC_ASSERT(sizeof(MmgrEnumProbe) == 1,
-    "MMGR_ENUM_PACKED is not honoured here, so no enum keeps its declared width ...");
+    "MMGR_ENUM_PACKED is not honored here, so no enum keeps its declared width ...");
 ```
 
-If the attribute was not honoured, the build stops at the source of the problem with a message that
+If the attribute was not honored, the build stops at the source of the problem with a message that
 names the cause — instead of producing a binary whose struct offsets are wrong.
 
 @note On TI toolchains, pass `--small_enum`. The assert message says so.

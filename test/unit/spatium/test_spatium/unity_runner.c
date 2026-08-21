@@ -9,6 +9,26 @@ extern void setUp(void);
 extern void tearDown(void);
 extern void test_spat_header_is_self_contained(void);
 extern void test_spat_namespace_is_wired(void);
+extern void test_from_takes_a_buffer(void);
+extern void test_from_a_null_pointer_is_a_sizing_pass(void);
+extern void test_from_a_zero_capacity_has_no_storage(void);
+extern void test_cfrom_takes_a_read_only_buffer(void);
+extern void test_cfrom_guards_the_same_two_ways(void);
+extern void test_ok_is_storage_and_no_overflow(void);
+extern void test_cok_is_storage_and_no_error(void);
+extern void test_len_is_what_was_written(void);
+extern void test_room_is_what_is_left(void);
+extern void test_room_of_a_position_past_the_end_is_zero(void);
+extern void test_reset_clears_the_position_and_the_latch(void);
+extern void test_after_moves_the_start(void);
+extern void test_after_the_end_has_no_storage(void);
+extern void test_first_takes_a_prefix(void);
+extern void test_first_clamps_to_the_capacity(void);
+extern void test_first_of_zero_has_no_storage(void);
+extern void test_produced_is_the_written_part(void);
+extern void test_produced_of_a_bad_span_is_empty(void);
+extern void test_read_takes_a_prefix_of_the_storage(void);
+extern void test_read_clamps_and_guards(void);
 
 
 /*=======Mock Management=====*/
@@ -78,6 +98,26 @@ int main(void)
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/spatium/test_spatium\\test_spatium.c");
   run_test(test_spat_header_is_self_contained, "test_spat_header_is_self_contained", 8);
   run_test(test_spat_namespace_is_wired, "test_spat_namespace_is_wired", 13);
+  run_test(test_from_takes_a_buffer, "test_from_takes_a_buffer", 24);
+  run_test(test_from_a_null_pointer_is_a_sizing_pass, "test_from_a_null_pointer_is_a_sizing_pass", 35);
+  run_test(test_from_a_zero_capacity_has_no_storage, "test_from_a_zero_capacity_has_no_storage", 44);
+  run_test(test_cfrom_takes_a_read_only_buffer, "test_cfrom_takes_a_read_only_buffer", 53);
+  run_test(test_cfrom_guards_the_same_two_ways, "test_cfrom_guards_the_same_two_ways", 64);
+  run_test(test_ok_is_storage_and_no_overflow, "test_ok_is_storage_and_no_overflow", 75);
+  run_test(test_cok_is_storage_and_no_error, "test_cok_is_storage_and_no_error", 88);
+  run_test(test_len_is_what_was_written, "test_len_is_what_was_written", 99);
+  run_test(test_room_is_what_is_left, "test_room_is_what_is_left", 109);
+  run_test(test_room_of_a_position_past_the_end_is_zero, "test_room_of_a_position_past_the_end_is_zero", 122);
+  run_test(test_reset_clears_the_position_and_the_latch, "test_reset_clears_the_position_and_the_latch", 131);
+  run_test(test_after_moves_the_start, "test_after_moves_the_start", 148);
+  run_test(test_after_the_end_has_no_storage, "test_after_the_end_has_no_storage", 158);
+  run_test(test_first_takes_a_prefix, "test_first_takes_a_prefix", 166);
+  run_test(test_first_clamps_to_the_capacity, "test_first_clamps_to_the_capacity", 175);
+  run_test(test_first_of_zero_has_no_storage, "test_first_of_zero_has_no_storage", 183);
+  run_test(test_produced_is_the_written_part, "test_produced_is_the_written_part", 189);
+  run_test(test_produced_of_a_bad_span_is_empty, "test_produced_of_a_bad_span_is_empty", 200);
+  run_test(test_read_takes_a_prefix_of_the_storage, "test_read_takes_a_prefix_of_the_storage", 211);
+  run_test(test_read_clamps_and_guards, "test_read_clamps_and_guards", 220);
 
   return UNITY_END();
 }

@@ -36,7 +36,7 @@ void test_bytes_come_back_owned_and_aligned(void)
 {
     void *p = clarus.alloc(32u, 8u);
     TEST_ASSERT_NOT_NULL(p);
-    TEST_ASSERT_TRUE_MESSAGE(clarus.owns(p), "the pool must recognise what it just handed out");
+    TEST_ASSERT_TRUE_MESSAGE(clarus.owns(p), "the pool must recognize what it just handed out");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (uintptr_t)p & 7u, "alignment was requested and must hold");
     TEST_ASSERT_GREATER_OR_EQUAL_size_t(32u, clarus.used());
 }
@@ -79,7 +79,7 @@ void test_a_span_over_pool_bytes_writes_inside_the_pool(void)
 void test_the_pool_refuses_rather_than_overruns(void)
 {
     // one request larger than a whole tenant cannot be satisfied, and must fail rather than
-    // wander into the neighbouring slot
+    // wander into the neighboring slot
     void *p = clarus.alloc(clarus.capacity() + 1u, 8u);
     TEST_ASSERT_NULL_MESSAGE(p, "a request past the tenant must fail, not overrun");
     TEST_ASSERT_EQUAL_size_t(0u, clarus.used());
