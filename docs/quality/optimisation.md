@@ -167,6 +167,32 @@ a separate concern and not what this table is about.
 Bytes is 1.26x, which is the honest number for a fair fight: `memcpy` against `memcpy` is nearly a
 wash, because there is not much room in either.
 
+### And the speed, on a libc that can be measured
+
+Size is measured cross-compiled for a cortex-m4, which cannot be run here. Speed is measured on the
+host against glibc — a different target and a different libc, so the two tables are about different
+things and neither transfers to the other.
+
+gcc 13.3, glibc 2.39, x86-64. Same corpus, same order, best of fifteen:
+
+| entry              |     MMgr | glibc              |           |
+| ------------------ | -------: | ------------------ | --------: |
+| `cellul.to_double` | 179.2 ns | `strtod` 292.1 ns  | **1.63x** |
+| `verba.g`          | 397.5 ns | `snprintf` 954.2 ns | **2.40x** |
+
+Correctness on the same run, because a speed number for a wrong answer is not a number: `to_double`
+differs from glibc's `strtod` on **0 of 2000** random bit patterns, and `verba.g` rendered at
+seventeen digits and read back by glibc names its own value on **0 of 2000**.
+
+So the comparison is identical accuracy, fewer bytes, and fewer cycles, on both directions of the
+conversion. Not a trade.
+
+Two things that number is not. It is one host, and msvcrt's `strtod` — hand-written x86 assembly —
+is faster than both. And the parser has not had the treatment the rest of the library has had:
+`cellularum_laboro` is still a single translation unit holding the scans and the decimal parser
+together, and it is the one module that has not been cut back to the shape the others are in. The
+1.63x is what it does before that, not after.
+
 ## The honest caveat
 
 These are one compiler on one target - gcc 13.2 on x86-64. The shape of the argument holds
