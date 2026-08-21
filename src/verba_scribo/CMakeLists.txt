@@ -9,6 +9,7 @@ mmgr_add_module(verba_scribo
   DEPS
     cellularum_laboro
     fractio
+    transformo
     proximus_operor
   OPTIMIZE -O2
 )

@@ -3,6 +3,7 @@
 #include "verba_scribo/verba_scribo.h"
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "fractio/fractio.h"
+#include "transformo/transformo.h"
 #include "proximus_operor/proximus_operor.h"
 
 /**
@@ -575,42 +576,37 @@ void mmgr_verba_fixed(mmgr_verba *b, double v, unsigned decimals)
         exp2 = (mmgr_i32)be - MMGR_DBL_BIAS - (mmgr_i32)MMGR_DBL_MANT_BITS;
     }
 
+    /* The whole part, and the bits left over that are not part of it. Both exact: one is a shift
+     * of the mantissa and the other is what the shift left behind. */
     mmgr_u64 ip = 0U;
-    mmgr_u64 frac = 0U;
+    mmgr_u64 rem = 0U;
+
     if (exp2 >= 0)
     {
         ip = mant << (unsigned)exp2;
     }
     else
     {
-        unsigned shift = (unsigned)(-exp2);
-        mmgr_u64 num = mant;
+        const unsigned shift = (unsigned)(-exp2);
+
         if (shift < 64U)
         {
             ip = mant >> shift;
-            num = mant - (ip << shift);
+            rem = mant - (ip << shift);
         }
-
-        if (shift > 60U)
+        else
         {
-            num >>= (shift - 60U);
-            shift = 60U;
-        }
-        const mmgr_u64 den = 1ULL << shift;
-        for (unsigned i = 0; i < decimals; i++)
-        {
-            num *= 10U;
-            mmgr_u64 digit = num >> shift;
-            num -= digit << shift;
-            frac = frac * 10U + digit;
-        }
-
-        mmgr_u64 twice = num * 2U;
-        if (twice > den || (twice == den && (frac & 1U) != 0U))
-        {
-            frac++;
+            rem = mant; /* the value is below one, so all of it is the remainder */
         }
     }
+
+    /* The digits after the point are the remainder scaled by ten to the decimals and rounded, and
+     * that is the engine's job rather than something to open code with shifts. It was open coded,
+     * and it took the scale off the remainder only when the shift was under 64 and then shifted a
+     * word by more than its width, which C does not define. */
+    mmgr_u64 frac = mmgr_muto_scale_to_u64(rem, exp2, (int)decimals,
+                                           (decimals == 0U) ? (unsigned)(ip & 1U) : 0U);
+
     if (frac >= scale)
     {
         ip++;

@@ -47,7 +47,7 @@ void test_the_middle_column_carries_into_the_top(void)
 {
     // Solved for: the middle column lands two short of wrapping with two waiting below it, so the
     // add of the low carry takes it over and the top word has to take one.
-    mmgr_fix f;
+    mmgr_muto_fix f;
     MmgrPow5 g;
 
     f.hi = 0xC000000000000000ULL;
@@ -59,7 +59,7 @@ void test_the_middle_column_carries_into_the_top(void)
     g.lo = 0xFFFFFFFFFFFFFFFFULL;
     g.e2 = 0;
 
-    mmgr_dec_mul_pow5(&f, &g);
+    mmgr_muto_mul_pow5(&f, &g);
 
     // The full 256 bit product of these two is 0x6000000000000002 in its top word and nothing in
     // the one below, which is the carry arriving: without it the top word would read ...0000. The
@@ -83,7 +83,7 @@ void test_the_multiply_agrees_with_halves_done_by_hand(void)
         {
             mmgr_u64 hi = 0;
             mmgr_u64 lo = 0;
-            mmgr_dec_mul(vals[i], vals[j], &hi, &lo);
+            mmgr_muto_mul(vals[i], vals[j], &hi, &lo);
 
             // The same product, one 32 bit column at a time.
             const mmgr_u64 m = 0xFFFFFFFFULL;
@@ -109,14 +109,14 @@ void test_the_multiply_agrees_with_halves_done_by_hand(void)
 
 void test_normalising_a_fraction_whose_high_word_is_empty(void)
 {
-    mmgr_fix f;
+    mmgr_muto_fix f;
 
     f.hi = 0u;
     f.lo = 0x0000000000000001ULL;
     f.e2 = 0;
     f.rest = 0;
 
-    mmgr_dec_norm(&f);
+    mmgr_muto_norm(&f);
 
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(0x8000000000000000ULL, f.hi, "the low word should have come up and been shifted");
     TEST_ASSERT_EQUAL_HEX64(0u, f.lo);
@@ -125,14 +125,14 @@ void test_normalising_a_fraction_whose_high_word_is_empty(void)
 
 void test_normalising_nothing_leaves_it_alone(void)
 {
-    mmgr_fix f;
+    mmgr_muto_fix f;
 
     f.hi = 0u;
     f.lo = 0u;
     f.e2 = 7;
     f.rest = 0;
 
-    mmgr_dec_norm(&f);
+    mmgr_muto_norm(&f);
 
     TEST_ASSERT_EQUAL_HEX64(0u, f.hi);
     TEST_ASSERT_EQUAL_HEX64(0u, f.lo);
@@ -144,9 +144,9 @@ void test_the_leading_zero_count_at_every_position(void)
     for (unsigned bit = 0; bit < 64u; bit++)
     {
         const mmgr_u64 x = (mmgr_u64)1 << bit;
-        TEST_ASSERT_EQUAL_INT_MESSAGE(63 - (int)bit, mmgr_dec_clz(x), "wrong count for a single set bit");
+        TEST_ASSERT_EQUAL_INT_MESSAGE(63 - (int)bit, mmgr_muto_clz(x), "wrong count for a single set bit");
         // And with noise below it, which must not change the answer.
-        TEST_ASSERT_EQUAL_INT(63 - (int)bit, mmgr_dec_clz(x | (x - 1u)));
+        TEST_ASSERT_EQUAL_INT(63 - (int)bit, mmgr_muto_clz(x | (x - 1u)));
     }
 }
 
@@ -157,7 +157,7 @@ void test_the_leading_zero_count_at_every_position(void)
 /** @brief A fraction that will round to a mantissa with the given low bit, at a chosen tie. */
 static double round_of(mmgr_u64 mant53, unsigned half, unsigned rest, int e2)
 {
-    mmgr_fix f;
+    mmgr_muto_fix f;
 
     // A 128 bit fraction whose high word is mant53 shifted up eleven stands for mant53 times two
     // to the eleven plus sixty four plus e2, so e2 of minus seventy five makes the value mant53.
@@ -165,7 +165,7 @@ static double round_of(mmgr_u64 mant53, unsigned half, unsigned rest, int e2)
     f.lo = 0u;
     f.e2 = e2;
     f.rest = (int)rest;
-    return mmgr_dec_round(&f, MMGR_FALSE);
+    return mmgr_muto_round(&f, MMGR_FALSE);
 }
 
 void test_an_exact_tie_goes_to_even(void)
@@ -201,13 +201,13 @@ void test_below_the_tie_goes_down(void)
 
 void test_rounding_a_fraction_of_nothing(void)
 {
-    mmgr_fix f;
+    mmgr_muto_fix f;
 
     f.hi = 0u;
     f.lo = 0u;
     f.e2 = 0;
     f.rest = 0;
 
-    TEST_ASSERT_EQUAL_DOUBLE(0.0, mmgr_dec_round(&f, MMGR_FALSE));
-    TEST_ASSERT_TRUE_MESSAGE(mmgr_fract_sign(mmgr_dec_round(&f, MMGR_TRUE)) != 0u, "and it keeps a sign it was given");
+    TEST_ASSERT_EQUAL_DOUBLE(0.0, mmgr_muto_round(&f, MMGR_FALSE));
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_fract_sign(mmgr_muto_round(&f, MMGR_TRUE)) != 0u, "and it keeps a sign it was given");
 }
