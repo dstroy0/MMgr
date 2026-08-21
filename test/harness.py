@@ -6,7 +6,7 @@
   harness.py build [--tree T]                 configure if needed, then build
   harness.py test [--tree T] [--filter RE]    build, then run the suites
   harness.py ab                               both sides of the A/B, one after the other
-  harness.py coverage [--worst N]             build, run and report what src/ the suites reached
+  harness.py coverage [--worst N] [--gaps]    build, run and report what src/ the suites reached
   harness.py suites                          every suite, its cases, and the capabilities it needs
   harness.py runners gen <dir> --unity <rb>  write <dir>/unity_runner.c
   harness.py cases <dir>                     what Unity will register, and what it will walk past
@@ -23,6 +23,15 @@ The last two matter. always_inline is honoured at -O0, so without turning it off
 a header entry gets its own copy of that entry's branch records and the report counts optimiser
 copies instead of source branches. Link time optimisation rewrites the code across translation
 units before the counters are read, which measures something that is not what anyone wrote.
+
+Two environment variables, because a first build has nothing to infer them from:
+
+  MMGR_BUILD_ROOT   where the trees are made, ROOT by default. Windows caps a full object path at
+                    250 characters and this tree's deepest object sits ~180 below its build dir, so
+                    a checkout more than ~60 characters down cannot build in place at all.
+  MMGR_CMAKE_ARGS   extra configure arguments, split like a shell would. The generator and the
+                    compiler are otherwise read off a tree that already built, which answers
+                    nothing in a fresh clone or worktree whose first build is this one.
 
 `ab` runs the two sides one after the other, never at once. Two full builds at the same time is
 what makes this machine unusable, and the comparison does not need them concurrent.
@@ -53,13 +62,34 @@ and a profile is a .c.
 
 import argparse
 import csv
+import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Where the build trees live. ROOT by default, because a tree beside the source is what anyone
+# expects to find. MMGR_BUILD_ROOT moves them, which is not a convenience: Windows caps a full
+# object path at 250 characters, and this tree's deepest object sits ~180 below its build dir, so a
+# checkout more than ~60 characters down - a git worktree under .claude/worktrees/ is already past
+# it - cannot build in place at all. The cap is the compiler's, so the only fix is a shorter prefix.
+BUILD_ROOT = os.path.abspath(os.environ.get("MMGR_BUILD_ROOT", ROOT))
+
+# Extra configure arguments, split like a shell would. borrowed_toolchain() reads the generator and
+# the compiler off a tree that already built, which answers the question everywhere there is such a
+# tree - and nowhere there is not, which is any fresh clone or worktree whose first build is this
+# one. cmake's default generator is not always one that works on a given machine, so a first build
+# with nothing to borrow from needs somewhere to be told.
+CMAKE_ARGS = os.environ.get("MMGR_CMAKE_ARGS", "")
+
+
+def tree_path(tree):
+    """Absolute path of build tree @p tree."""
+    return os.path.join(BUILD_ROOT, tree)
 
 # A four-way split. A suite is a directory holding exactly one .c
 # with cases, and its generated runner sits beside it.
@@ -311,7 +341,7 @@ def borrowed_toolchain(skip):
     for tree in TREES:
         if tree == skip:
             continue
-        cache = os.path.join(ROOT, tree, "CMakeCache.txt")
+        cache = os.path.join(tree_path(tree), "CMakeCache.txt")
         if not os.path.isfile(cache):
             continue
         out = []
@@ -329,10 +359,10 @@ def borrowed_toolchain(skip):
 
 def configure(tree):
     """Configure @p tree if it is not there yet."""
-    if os.path.isfile(os.path.join(ROOT, tree, "CMakeCache.txt")):
+    if os.path.isfile(os.path.join(tree_path(tree), "CMakeCache.txt")):
         return 0
-    cmd = ["cmake", "-S", ".", "-B", tree, "-DCMAKE_BUILD_TYPE=Debug", "-DMMGR_BUILD_TESTS=ON"]
-    cmd += TREES[tree]["args"] + borrowed_toolchain(tree)
+    cmd = ["cmake", "-S", ".", "-B", tree_path(tree), "-DCMAKE_BUILD_TYPE=Debug", "-DMMGR_BUILD_TESTS=ON"]
+    cmd += TREES[tree]["args"] + borrowed_toolchain(tree) + shlex.split(CMAKE_ARGS)
     r = run(cmd)
     if r.returncode != 0:
         sys.stderr.write(r.stdout[-3000:] + r.stderr[-3000:])
@@ -346,7 +376,7 @@ def build(tree, jobs):
     """Build @p tree, reporting only what went wrong."""
     if configure(tree) != 0:
         return 1
-    r = run(["cmake", "--build", tree, "-j", str(jobs)])
+    r = run(["cmake", "--build", tree_path(tree), "-j", str(jobs)])
     if r.returncode != 0:
         sys.stdout.write(r.stdout[-4000:])
         sys.stderr.write(r.stderr[-4000:])
@@ -358,7 +388,7 @@ def build(tree, jobs):
 
 def ctest(tree, pattern):
     """Run @p tree's suites, and name the ones that failed."""
-    cmd = ["ctest", "--test-dir", tree, "--output-on-failure"]
+    cmd = ["ctest", "--test-dir", tree_path(tree), "--output-on-failure"]
     if pattern:
         cmd += ["-R", pattern]
     r = run(cmd)
@@ -414,19 +444,25 @@ def cmd_coverage(a):
 
     if not a.no_run:
         stale = []
-        for base, _dirs, files in os.walk(os.path.join(ROOT, tree)):
+        for base, _dirs, files in os.walk(tree_path(tree)):
             stale += [os.path.join(base, f) for f in files if f.endswith(".gcda")]
         for f in stale:
             os.unlink(f)
         print("cleared %d counter files" % len(stale))
         ctest(tree, None)
 
-    out = os.path.join(ROOT, tree, "coverage.csv")
+    out = os.path.join(tree_path(tree), "coverage.csv")
+    js = os.path.join(tree_path(tree), "coverage.json")
+    # No --exclude-unreachable-branches. It drops branches gcov attributes to a line gcovr believes
+    # cannot be reached, which is the tool deciding what does not have to be covered - and it decides
+    # it from the compiler's records, not from the source. A branch this report does not print is a
+    # branch nobody looked at. Anything genuinely unreachable is established by reading it and
+    # written down, not silently dropped from the denominator.
     r = run(
         [
             sys.executable, "-m", "gcovr", "--root", ".", "--filter", "src/",
-            "--exclude-unreachable-branches", "--print-summary", "--txt-metric", "branch",
-            "--csv", "-o", out, tree,
+            "--print-summary", "--txt-metric", "branch",
+            "--csv", "-o", out, "--json", js, tree_path(tree),
         ]
     )
     if r.returncode != 0:
@@ -458,7 +494,91 @@ def cmd_coverage(a):
                 "  %-46s %5d/%-5d%3d%% %5d/%-5d%3d%%"
                 % (row["filename"], lc, lt, 100 * lc // max(lt, 1), bc, bt, 100 * bc // max(bt, 1))
             )
+
+    if a.gaps:
+        report_gaps(js)
     return 0
+
+
+def line_runs(nums):
+    """Collapse sorted line numbers into (first, last) runs.
+
+    A function no case ever calls is a run of uncovered lines, so printed one per line it is forty
+    entries that say one thing. Printed as a range it says the one thing.
+    """
+    out = []
+    for n in nums:
+        if out and n == out[-1][1] + 1:
+            out[-1] = (out[-1][0], n)
+        else:
+            out.append((n, n))
+    return out
+
+
+def src_line(path, n):
+    """Line @p n of @p path, for a report that names a gap and shows it."""
+    try:
+        with open(os.path.join(ROOT, path), encoding="utf-8", errors="replace") as fh:
+            for i, line in enumerate(fh, 1):
+                if i == n:
+                    return line.strip()
+    except OSError:
+        pass
+    return "<unavailable>"
+
+
+def report_gaps(js):
+    """Name every uncovered line and branch, with the source that is not being reached.
+
+    gcovr's JSON carries one entry per line per translation unit that compiled it, and this library
+    compiles every source once per environment - so the same physical line arrives five times. They
+    are merged before anything is counted: a line is covered if any environment reached it, and a
+    branch if any environment took it. Summing them instead counts an untested line once per
+    environment and reports a gap five times its real size.
+
+    Lines and branches fail in different places and both are printed. A function no case calls has
+    no uncovered branch at all - it has no *covered* branch either, and a branch-only report calls
+    it clean.
+    """
+    with open(js, encoding="utf-8") as fh:
+        doc = json.load(fh)
+
+    files = []
+    for f in doc["files"]:
+        lines, branches = {}, {}
+        for ln in f["lines"]:
+            if ln.get("gcovr/noncode"):
+                continue
+            n = ln["line_number"]
+            lines[n] = lines.get(n, 0) + ln["count"]
+            for i, b in enumerate(ln.get("branches", [])):
+                branches[(n, i)] = branches.get((n, i), 0) + b["count"]
+        ul = sorted(n for n, c in lines.items() if c == 0)
+        ub = sorted({n for (n, _i), c in branches.items() if c == 0})
+        if ul or ub:
+            files.append((len(ul) + len(ub), f["file"].replace("\\", "/"), lines, branches, ul, ub))
+
+    files.sort(reverse=True)
+    for _gap, path, lines, branches, ul, ub in files:
+        lc = sum(1 for c in lines.values() if c > 0)
+        bc = sum(1 for c in branches.values() if c > 0)
+        print(
+            "\n=== %s  %d/%d lines, %d/%d branches"
+            % (path, lc, len(lines), bc, len(branches))
+        )
+        for lo, hi in line_runs(ul):
+            if lo == hi:
+                print("  line   %s:%d | %s" % (path, lo, src_line(path, lo)))
+            else:
+                print("  lines  %s:%d-%d (%d) | %s" % (path, lo, hi, hi - lo + 1, src_line(path, lo)))
+        for n in ub:
+            taken = sum(1 for (ln, _i), c in branches.items() if ln == n and c > 0)
+            total = sum(1 for (ln, _i) in branches if ln == n)
+            print("  branch %s:%d %d/%d | %s" % (path, n, taken, total, src_line(path, n)))
+
+    tl = sum(len(r[4]) for r in files)
+    tb = sum(len(r[5]) for r in files)
+    print("\n%d files with gaps: %d uncovered lines, %d uncovered branches" % (len(files), tl, tb))
 
 
 def cmd_deps(a):
@@ -657,6 +777,7 @@ def main():
 
     p = sub.add_parser("coverage", help="what of src/ the suites reached")
     p.add_argument("--worst", type=int, default=0, help="list the N thinnest files")
+    p.add_argument("--gaps", action="store_true", help="name every uncovered line and branch")
     p.add_argument("--no-build", action="store_true", help="report on what is already built")
     p.add_argument("--no-run", action="store_true", help="report on the counters already there")
     p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")

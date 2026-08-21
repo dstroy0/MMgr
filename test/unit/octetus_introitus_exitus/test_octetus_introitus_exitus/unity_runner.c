@@ -23,6 +23,7 @@ extern void test_rd_str_reads_a_length_prefixed_run(void);
 extern void test_rd_str_reads_an_empty_run(void);
 extern void test_rd_str_rewinds_when_the_run_is_cut_short(void);
 extern void test_rd_str_refuses_a_missing_length(void);
+extern void test_rd_str_refuses_a_cursor_already_past_the_end(void);
 extern void test_mpint_fixed_right_aligns_and_pads(void);
 extern void test_mpint_fixed_drops_the_sign_padding(void);
 extern void test_mpint_fixed_of_an_exact_width(void);
@@ -111,11 +112,12 @@ int main(void)
   run_test(test_rd_str_reads_an_empty_run, "test_rd_str_reads_an_empty_run", 171);
   run_test(test_rd_str_rewinds_when_the_run_is_cut_short, "test_rd_str_rewinds_when_the_run_is_cut_short", 183);
   run_test(test_rd_str_refuses_a_missing_length, "test_rd_str_refuses_a_missing_length", 194);
-  run_test(test_mpint_fixed_right_aligns_and_pads, "test_mpint_fixed_right_aligns_and_pads", 209);
-  run_test(test_mpint_fixed_drops_the_sign_padding, "test_mpint_fixed_drops_the_sign_padding", 221);
-  run_test(test_mpint_fixed_of_an_exact_width, "test_mpint_fixed_of_an_exact_width", 232);
-  run_test(test_mpint_fixed_of_zero_is_all_zero, "test_mpint_fixed_of_zero_is_all_zero", 242);
-  run_test(test_mpint_fixed_refuses_a_value_too_wide, "test_mpint_fixed_refuses_a_value_too_wide", 254);
+  run_test(test_rd_str_refuses_a_cursor_already_past_the_end, "test_rd_str_refuses_a_cursor_already_past_the_end", 205);
+  run_test(test_mpint_fixed_right_aligns_and_pads, "test_mpint_fixed_right_aligns_and_pads", 225);
+  run_test(test_mpint_fixed_drops_the_sign_padding, "test_mpint_fixed_drops_the_sign_padding", 237);
+  run_test(test_mpint_fixed_of_an_exact_width, "test_mpint_fixed_of_an_exact_width", 248);
+  run_test(test_mpint_fixed_of_zero_is_all_zero, "test_mpint_fixed_of_zero_is_all_zero", 258);
+  run_test(test_mpint_fixed_refuses_a_value_too_wide, "test_mpint_fixed_refuses_a_value_too_wide", 270);
 
   return UNITY_END();
 }

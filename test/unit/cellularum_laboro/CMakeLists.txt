@@ -2,3 +2,4 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 add_subdirectory(test_cellularum_laboro)
+add_subdirectory(test_cellularum_laboro_sieve)

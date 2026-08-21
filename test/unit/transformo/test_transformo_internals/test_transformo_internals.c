@@ -223,3 +223,69 @@ void test_rounding_a_fraction_of_nothing(void)
     TEST_ASSERT_EQUAL_DOUBLE(0.0, muto_round_probe(&f, MMGR_FALSE));
     TEST_ASSERT_TRUE_MESSAGE(mmgr_fract_sign(muto_round_probe(&f, MMGR_TRUE)) != 0u, "and it keeps a sign it was given");
 }
+
+/* ---------------------------------------------------------------------------------------------
+ * to_u64
+ *
+ * The renderer holds a number as ip.10^d + frac and asks this for the integer part, so it only
+ * ever hands over a fraction it has already established will fit. Three of the answers below are
+ * therefore ones the renderer never asks for: an empty fraction, one whose point sits so high the
+ * whole number needs more than 64 bits, and one whose point lands exactly on the word boundary.
+ * Each is a written answer, and a written answer that never runs is one nobody knows is right.
+ * ------------------------------------------------------------------------------------------- */
+
+/** @brief A fraction with everything but the four fields to_u64 reads left at zero. */
+static mmgr_u64 to_u64_of(mmgr_u64 hi, mmgr_u64 lo, int fe2, int rest, unsigned above)
+{
+    MutoCtx f;
+
+    memset(&f, 0, sizeof f);
+    f.hi = hi;
+    f.lo = lo;
+    f.fe2 = fe2;
+    f.rest = rest;
+    f.above = above;
+    return muto_to_u64(&f);
+}
+
+void test_to_u64_of_an_empty_fraction_is_zero(void)
+{
+    // Nothing set anywhere, so there is no exponent worth consulting and it says so before it
+    // looks at one.
+    TEST_ASSERT_EQUAL_UINT64(0u, to_u64_of(0u, 0u, -100, 0, 0u));
+}
+
+void test_to_u64_of_a_number_wider_than_the_word_saturates(void)
+{
+    // The point is 32 places down, so the whole number needs 96 bits. This cannot answer that and
+    // does not try: it returns the saturated value for a caller that was supposed to have checked.
+    TEST_ASSERT_EQUAL_UINT64(~(mmgr_u64)0, to_u64_of(1u, 0u, -32, 0, 0u));
+}
+
+void test_to_u64_with_the_point_on_the_word_boundary(void)
+{
+    // k is 64 exactly: the integer is the high word untouched and everything below the point is in
+    // the low one. Nothing is set under the round bit, so nothing rounds up.
+    TEST_ASSERT_EQUAL_UINT64(7u, to_u64_of(7u, 0u, -64, 0, 0u));
+}
+
+void test_to_u64_on_the_boundary_rounds_a_tie_to_even(void)
+{
+    // The round bit is the top of the low word and nothing at all is under it, which is the tie
+    // the rule exists for: four stays, five goes up.
+    TEST_ASSERT_EQUAL_UINT64_MESSAGE(4u, to_u64_of(4u, (mmgr_u64)1 << 63, 0 - 64, 0, 0u), "even stays");
+    TEST_ASSERT_EQUAL_UINT64_MESSAGE(6u, to_u64_of(5u, (mmgr_u64)1 << 63, 0 - 64, 0, 0u), "odd goes up");
+}
+
+void test_to_u64_on_the_boundary_sees_what_is_under_the_round_bit(void)
+{
+    // Bit 62 set as well, so it is no longer a tie and an even integer rounds up too.
+    TEST_ASSERT_EQUAL_UINT64(5u, to_u64_of(4u, ((mmgr_u64)1 << 63) | ((mmgr_u64)1 << 62), -64, 0, 0u));
+}
+
+void test_to_u64_on_the_boundary_takes_the_parity_of_the_whole_number(void)
+{
+    // above is the parity of the rest of the number this integer is a field of. An even integer
+    // with an odd remainder is an odd number, so the tie goes up rather than staying.
+    TEST_ASSERT_EQUAL_UINT64(5u, to_u64_of(4u, (mmgr_u64)1 << 63, -64, 0, 1u));
+}

@@ -16,6 +16,12 @@ extern void test_an_exact_tie_goes_to_even(void);
 extern void test_a_tie_with_anything_under_it_goes_up(void);
 extern void test_below_the_tie_goes_down(void);
 extern void test_rounding_a_fraction_of_nothing(void);
+extern void test_to_u64_of_an_empty_fraction_is_zero(void);
+extern void test_to_u64_of_a_number_wider_than_the_word_saturates(void);
+extern void test_to_u64_with_the_point_on_the_word_boundary(void);
+extern void test_to_u64_on_the_boundary_rounds_a_tie_to_even(void);
+extern void test_to_u64_on_the_boundary_sees_what_is_under_the_round_bit(void);
+extern void test_to_u64_on_the_boundary_takes_the_parity_of_the_whole_number(void);
 
 
 /*=======Mock Management=====*/
@@ -86,6 +92,12 @@ int main(void)
   run_test(test_a_tie_with_anything_under_it_goes_up, "test_a_tie_with_anything_under_it_goes_up", 198);
   run_test(test_below_the_tie_goes_down, "test_below_the_tie_goes_down", 206);
   run_test(test_rounding_a_fraction_of_nothing, "test_rounding_a_fraction_of_nothing", 214);
+  run_test(test_to_u64_of_an_empty_fraction_is_zero, "test_to_u64_of_an_empty_fraction_is_zero", 251);
+  run_test(test_to_u64_of_a_number_wider_than_the_word_saturates, "test_to_u64_of_a_number_wider_than_the_word_saturates", 258);
+  run_test(test_to_u64_with_the_point_on_the_word_boundary, "test_to_u64_with_the_point_on_the_word_boundary", 265);
+  run_test(test_to_u64_on_the_boundary_rounds_a_tie_to_even, "test_to_u64_on_the_boundary_rounds_a_tie_to_even", 272);
+  run_test(test_to_u64_on_the_boundary_sees_what_is_under_the_round_bit, "test_to_u64_on_the_boundary_sees_what_is_under_the_round_bit", 280);
+  run_test(test_to_u64_on_the_boundary_takes_the_parity_of_the_whole_number, "test_to_u64_on_the_boundary_takes_the_parity_of_the_whole_number", 286);
 
   return UNITY_END();
 }

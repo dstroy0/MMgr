@@ -2,3 +2,4 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 add_subdirectory(test_memoria_operor)
+add_subdirectory(test_memoria_operor_internals)

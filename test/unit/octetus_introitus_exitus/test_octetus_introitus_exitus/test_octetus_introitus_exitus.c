@@ -202,6 +202,22 @@ void test_rd_str_refuses_a_missing_length(void)
     TEST_ASSERT_EQUAL_size_t(0u, off);
 }
 
+void test_rd_str_refuses_a_cursor_already_past_the_end(void)
+{
+    // The cursor is the caller's, and nothing in the signature stops one arriving beyond the
+    // buffer. The bound is written as two halves for that reason: the subtraction that measures
+    // what is left is only meaningful once the cursor is known to be inside, and past the end it
+    // would wrap to a huge count and read the length prefix out of somebody else's memory.
+    static const uint8_t buf[8] = {0u, 0u, 0u, 1u, 'x', 0u, 0u, 0u};
+    size_t off = sizeof buf + 1u;
+    const uint8_t *s = NULL;
+    uint32_t slen = 0;
+
+    TEST_ASSERT_FALSE(byteio.rd_str(buf, sizeof buf, &off, &s, &slen));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof buf + 1u, off, "a refused read leaves the cursor alone");
+    TEST_ASSERT_NULL(s);
+}
+
 /* ---------------------------------------------------------------------------------------------
  * mpint
  * ------------------------------------------------------------------------------------------- */
