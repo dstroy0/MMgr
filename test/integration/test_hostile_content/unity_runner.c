@@ -46,6 +46,7 @@ extern void test_the_parsers_against_content_that_never_terminates(void);
 extern void test_the_parsers_agree_with_libc_on_rubbish(void);
 extern void test_the_parser_takes_decimal_and_stops_at_anything_else(void);
 extern void test_an_exponent_with_no_digits_after_it(void);
+extern void test_an_exponent_that_is_real_is_still_taken(void);
 extern void test_a_number_made_entirely_of_leading_zeros(void);
 
 
@@ -138,7 +139,8 @@ int main(void)
   run_test(test_the_parsers_agree_with_libc_on_rubbish, "test_the_parsers_agree_with_libc_on_rubbish", 548);
   run_test(test_the_parser_takes_decimal_and_stops_at_anything_else, "test_the_parser_takes_decimal_and_stops_at_anything_else", 585);
   run_test(test_an_exponent_with_no_digits_after_it, "test_an_exponent_with_no_digits_after_it", 606);
-  run_test(test_a_number_made_entirely_of_leading_zeros, "test_a_number_made_entirely_of_leading_zeros", 630);
+  run_test(test_an_exponent_that_is_real_is_still_taken, "test_an_exponent_that_is_real_is_still_taken", 635);
+  run_test(test_a_number_made_entirely_of_leading_zeros, "test_a_number_made_entirely_of_leading_zeros", 643);
 
   return UNITY_END();
 }
