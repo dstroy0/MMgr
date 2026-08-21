@@ -95,6 +95,47 @@ command line is the one that counts, so nothing has to be removed for it to take
 `cellularum_laboro` is left at the build's level: -O3 costs it 2,736 bytes and returns 14% on
 `to_double`, which is a real workload rather than a microbenchmark artefact.
 
+## Against the libc it would replace
+
+`tools/dev_env/against_libc.py` weighs this library against newlib for the same core at the same
+level. newlib because it is the libc an embedded target actually ships, it is a static archive with
+one object per entry so a single function can be weighed, and it is built by the same compiler
+family. Only `.text` is counted: an archive member also carries relocations and symbol tables that
+never reach flash, and the linker pulls whole members, so a member is the unit whether or not every
+entry in it is called.
+
+cortex-m4, -Os, newlib from armv7e-m:
+
+| family                     | MMgr |    newlib |      |
+| -------------------------- | ---: | --------: | ---: |
+| moving and comparing bytes |  736 |       924 | 1.26x |
+| searching and parsing text | 5084 |     15816 | 3.11x |
+| rendering numbers and text | 5592 |     21364 | 3.82x |
+| **total**                  | **11412** | **38104** | **3.34x** |
+
+**26,692 bytes of flash**, for the same set of jobs.
+
+The families are drawn where the code actually is rather than where the header names suggest.
+`cellularum_laboro` holds the bounded scans and the decimal parser in one translation unit, which on
+the newlib side is `str*` plus the whole `strtod`, `dtoa` and `mprec` apparatus. Every newlib member
+is named once across all three families - `dtoa` and `mprec` serve both parsing and printing there,
+and counting them twice would flatter this library by six kilobytes.
+
+Where the gap comes from is worth being precise about, because most of it is not cleverness.
+Parsing is 3.11x because newlib spends 10,272 bytes on `strtod` + `dtoa` + `mprec`, and `mprec` is
+an arbitrary-precision bignum: it is exact for every input by carrying however many limbs the input
+needs. This library is exact for every input by carrying 128 bits and never growing, because 128
+bits is enough to decide a rounding and the rest of the expansion was never needed. See
+@ref qa_numeric.
+
+Rendering is 3.82x because the newlib side is `printf`, and `printf` parses a format string at run
+time and carries a `FILE` layer with it - `vfprintf`, `fvwrite`, `findfp`, `fflush`, `makebuf`,
+`wsetup`. This library has no format string and no stream. That is a narrower job, not a better
+implementation of the same one.
+
+Bytes is 1.26x, which is the honest number for a fair fight: `memcpy` against `memcpy` is nearly a
+wash, because there is not much room in either.
+
 ## The honest caveat
 
 These are one compiler on one target - gcc 13.2 on x86-64. The shape of the argument holds
