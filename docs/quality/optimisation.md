@@ -22,7 +22,7 @@ an object also carries relocations, symbol tables and debug records that never g
 | translation unit           |   -O0 |   -O1 |       -Os |   -O2 |   -O3 |
 | -------------------------- | ----: | ----: | --------: | ----: | ----: |
 | `cellularum_laboro`        | 17536 |  8704 |  **5936** |  8736 | 11472 |
-| `verba_scribo`             | 11376 |  5216 |  **4320** |  6624 | 10304 |
+| `verba_scribo`             | 14784 |  6240 |  **5280** |  7712 | 12144 |
 | `memoria_operor`           |  3968 |  1040 |   **912** |  1424 |  1728 |
 | `confinium`                |  3856 |  1392 |  **1120** |  1536 |  2048 |
 | `numeros_scribo`           |  3488 |  1536 |      1536 |  1536 |  1536 |
@@ -34,7 +34,7 @@ an object also carries relocations, symbol tables and debug records that never g
 | `endian`                   |   848 |   336 |   **192** |   320 |   352 |
 | `bitorum_introitus_exitus` |   416 |   176 |   **160** |   208 |   208 |
 | `spatium`                  |    96 |    32 |    **32** |    32 |    32 |
-| **total**                  | 50512 | 20976 | **16112** | 23408 | 31664 |
+| **total**                  | 53920 | 22000 | **17072** | 24496 | 33504 |
 
 Four of those moved for reasons that are not the optimiser.
 
@@ -47,9 +47,10 @@ rather than a branch: the caller has the buffer and the field width in front of 
 says it for nothing in a shipping build and an abort in `checks`. `clarus_custodiae` and
 `occultum_custodiae` shed the per-worker indexing.
 
-`verba_scribo` went the other way, 5360 to 6624. That is the decimal engine it now inlines to render
-a fixed-point number exactly. It was 15.87% wrong below about 1e-41 before, and it is 0.0000% wrong
-now; the 1264 bytes are what that costs. See @ref qa_numeric.
+`verba_scribo` went the other way, 5360 to 7712. That is the decimal engine it now inlines, and both
+of its render entries were wrong without it. `verba.fixed` was 15.87% wrong below about 1e-41 and
+`verba.g` failed to name its own value back 87.07% of the time; both are 0.0000% now. 1264 bytes for
+the first and 1088 for the second is what that costs. See @ref qa_numeric.
 
 Constants barely move: 2576 bytes at -O2 against 2608 at -O3. All of the growth is instructions.
 
@@ -89,7 +90,7 @@ command line is the one that counts, so nothing has to be removed for it to take
 
 | module            | level | why                                                                                                                                                      |
 | ----------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `verba_scribo`    | -O2   | -O3 costs 3680 bytes, 56% more than the whole module at -O2, for 1.5% on a render. The digit loops are short and already shaped.                        |
+| `verba_scribo`    | -O2   | -O3 costs 4432 bytes, 57% more than the whole module at -O2, for 1.5% on a render. The digit loops are short and already shaped.                        |
 | `proximus_operor` | -O2   | -O3 more than doubles it, 336 bytes to 816, and moves nothing measurable. The entries are single loads and stores that are already one instruction each. |
 
 `cellularum_laboro` is left at the build's level: -O3 costs it 2,736 bytes and returns 14% on
@@ -106,14 +107,19 @@ entry in it is called.
 
 cortex-m4, -Os, newlib from armv7e-m:
 
-| family                     | MMgr |    newlib |      |
-| -------------------------- | ---: | --------: | ---: |
+| family                     | MMgr |    newlib |       |
+| -------------------------- | ---: | --------: | ----: |
 | moving and comparing bytes |  736 |       924 | 1.26x |
 | searching and parsing text | 5084 |     15816 | 3.11x |
-| rendering numbers and text | 5592 |     21364 | 3.82x |
-| **total**                  | **11412** | **38104** | **3.34x** |
+| rendering numbers and text | 7256 |     21364 | 2.94x |
+| **total**                  | **13076** | **38104** | **2.91x** |
 
-**26,692 bytes of flash**, for the same set of jobs.
+**25,028 bytes of flash**, for the same set of jobs.
+
+Every entry on both sides is bounded, which is why the libc column names `strnlen` and `strncmp`
+rather than their unbounded twins, and `snprintf` and `vsnprintf` rather than `printf`. A bounded
+string constructor is what `verba` is; comparing it against something that writes until it is
+finished would be comparing two different contracts.
 
 The families are drawn where the code actually is rather than where the header names suggest.
 `cellularum_laboro` holds the bounded scans and the decimal parser in one translation unit, which on
@@ -121,17 +127,42 @@ the newlib side is `str*` plus the whole `strtod`, `dtoa` and `mprec` apparatus.
 is named once across all three families - `dtoa` and `mprec` serve both parsing and printing there,
 and counting them twice would flatter this library by six kilobytes.
 
-Where the gap comes from is worth being precise about, because most of it is not cleverness.
-Parsing is 3.11x because newlib spends 10,272 bytes on `strtod` + `dtoa` + `mprec`, and `mprec` is
-an arbitrary-precision bignum: it is exact for every input by carrying however many limbs the input
-needs. This library is exact for every input by carrying 128 bits and never growing, because 128
-bits is enough to decide a rounding and the rest of the expansion was never needed. See
-@ref qa_numeric.
+Where the gap comes from is worth being precise about.
 
-Rendering is 3.82x because the newlib side is `printf`, and `printf` parses a format string at run
-time and carries a `FILE` layer with it - `vfprintf`, `fvwrite`, `findfp`, `fflush`, `makebuf`,
-`wsetup`. This library has no format string and no stream. That is a narrower job, not a better
-implementation of the same one.
+Parsing is 3.11x because newlib spends 10,272 bytes on `strtod` + `dtoa` + `mprec`, and `mprec` is
+an arbitrary-precision bignum. It is exact for every input by carrying however many limbs the input
+needs. This library is exact for every input by carrying 128 bits and never growing, because 128
+bits is enough to decide a rounding and the rest of the expansion is never looked at. That is a
+real difference in approach and not a trick of accounting, so the obvious question is why the other
+side does not do the same. Three answers, and the third is the one that matters here.
+
+**The result is newer than the code.** newlib's is David Gay's `dtoa` and `mprec`, which date from
+1990 and are the reference implementation everyone inherited. That a fixed-width intermediate always
+suffices — that you need enough bits to decide guard, round and sticky and never the full expansion
+— is Grisu in 2010, Ryu in 2018, Eisel-Lemire in 2020. Twenty to thirty years later. Gay's code is
+not naive; it is correct, and it predates the result that makes it unnecessary.
+
+**A bignum serves every width with one body.** `mprec` is exact for `double`, `long double` and
+whatever else the target has, because limbs do not care. The table here is 360 bytes of powers of
+five sized for binary64 and nothing else. libc has to answer for all of them; this library answers
+for one, and bought the difference by narrowing what it promises.
+
+**And a bignum has to put its limbs somewhere.** `mprec.o` in this newlib carries undefined
+references to `malloc` and `_calloc_r`. On a target with a heap that is a cost. On a target without
+one it is not a trade at all — the entry does not link. So the table is not a smaller way of doing
+what libc does. It is the only way available to a library that must not allocate, and it happens to
+also be smaller. See @ref qa_numeric.
+
+Rendering is 2.94x and the `FILE` members are counted, which needs saying plainly: newlib's
+`snprintf` is built on its `FILE` machinery. It constructs a fake stream over the caller's buffer
+and goes through `vfprintf`, so linking `snprintf` links `fvwrite`, `findfp`, `fflush`, `makebuf`
+and `wsetup` whether or not a stream is ever opened. That is what a caller pays for the entry they
+called, so it is counted - not because printing to a stream is a wider job. The rest of the gap is
+the format string: newlib parses one at run time, and `verba` has none, because a call names the
+entry it wants.
+
+Nothing stops this library sitting under a file layer once the pieces below it are correct. That is
+a separate concern and not what this table is about.
 
 Bytes is 1.26x, which is the honest number for a fair fight: `memcpy` against `memcpy` is nearly a
 wash, because there is not much room in either.

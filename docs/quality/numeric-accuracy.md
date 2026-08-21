@@ -1,7 +1,7 @@
 # Numbers, and how far they can be trusted {#qa_numeric}
 
-`to_double` returns the correctly rounded double for every input, `verba.fixed` renders one
-exactly, and `verba.g` does neither. All three are measured rather than believed, and this page says how, because a numeric routine that
+`to_double` returns the correctly rounded double for every input, and `verba.g` and `verba.fixed`
+render one exactly. All three are measured rather than believed, and this page says how, because a numeric routine that
 nobody checked is a routine that is wrong in a way nobody has noticed yet.
 
 ## What correct means here
@@ -164,20 +164,39 @@ the rule the test asserts.
 
 The 1264 bytes `verba_scribo` grew at -O2 are the engine being inlined. See @ref qa_optimisation.
 
+## And the same for verba.g
+
+`verba.g` was the last one. It ran its conversion in a 58 bit working word - a little over seventeen
+decimal digits - and `g_mul10` and `g_div10` renormalised on every step, which shifts bits off the
+bottom. The digits it was trying to produce are made of exactly those bits, so a seventeen digit
+render failed to name its own value back **87.1%** of the time even when parsed by a correctly
+rounded reader, worst 6 ulp.
+
+The scale is one call now:
+
+```c
+mant = mmgr_muto_scale_to_u64(n, s, p, 0u);
+```
+
+`n` and `s` are the mantissa and binary exponent the extraction already had, `p` is how many powers
+of ten the requested digit count is away from where the value sits. That is the same entry
+`verba.fixed` takes and the same machinery the parser takes in the other direction. What is left in
+`verba.g` is choosing `p` and placing the point.
+
+Measured the same way as the parse - 500,000 random bit patterns, rendered at seventeen digits, read
+back by a correctly rounded reader, bit patterns compared: **87.07% wrong to 0.0000%**.
+
+It cost 1088 bytes at -O2, and one shape decision. The engine is `always_inline`, so it is copied
+wherever it is written; the correction loop calls it from one place on purpose, because a second
+call site is a second copy of the whole thing. Written the obvious way, with a call before the loop
+and another inside it, the module was 1200 bytes larger for no change in output.
+
+`MMGR_G_MAX_SIG` still clamps at 18. The reason changed - the working word no longer runs out, but
+the result is a `uint64_t` and nineteen digits is where that stops being able to hold one.
+
 ## What is still not exact
 
-`verba.g` is not correctly rounded. It is the last of the three that has not been moved onto the
-engine.
-
-It runs its conversion in a 58 bit working word - a little over seventeen decimal digits - and
-`g_mul10` and `g_div10` renormalise on every step, which shifts bits off the bottom. Measured on
-500,000 random doubles, its output fails to name the value back 87.1% of the time even when parsed
-by a correctly rounded reader, worst 6 ulp.
-
-That is a real limit and it is written down here rather than left to be discovered. It is fine for
-a log line and wrong for anything that has to persist a value and get it back. `MMGR_G_MAX_SIG`
-clamps the digit count at 18 because past that the working word has run out of digits entirely and
-the answer stops being merely imprecise - swept over 130,944 doubles, one to eighteen digits all
-read back, nineteen was wrong on 321 of them, worst at 2^64.
-
-The engine that fixed the parse and `verba.fixed` would fix this one too. It has not been done yet.
+Nothing, on the three paths above. `to_float` is `(float)to_double`, so it rounds twice - once to a
+double and once down again - and double rounding can land on the wrong neighbour where a single
+rounding would not. Measured against `strtof` over 500,000 patterns it has not yet been seen to,
+but it is a real property of the shape and not something the numbers rule out.

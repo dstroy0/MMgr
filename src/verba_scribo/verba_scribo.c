@@ -11,7 +11,6 @@
  * @brief Text building over caller memory. Overflow latches; the buffer is always terminated.
  */
 
-#define MMGR_G_WORK_BITS 58U
 
 static const char mmgr_hex_lower[] = "0123456789abcdef";
 
@@ -287,95 +286,6 @@ static void sb_digits(mmgr_verba *b, uint64_t mant, unsigned digits, unsigned po
     }
 }
 
-/**
- * @brief Renormalize a mantissa and scale pair so the mantissa sits in the working range.
- * @param n In/out. Mantissa.
- * @param s In/out. Binary scale.
- *
- * The pair is a fixed point value, not a double. Doing the decimal conversion in integers is what
- * keeps this module free of <math.h> and of any rounding the FPU would apply on the way.
- */
-static void g_renorm(mmgr_u64 *n, mmgr_i32 *s)
-{
-    /* GCOVR_EXCL_START - mmgr_verba_g answers a zero before it gets here, and the two callers that
-       loop through this multiply by ten or shift up four and divide by ten, neither of which can
-       turn a mantissa in the working range into nothing. Kept because a renormalize that spins on
-       zero would not come back. */
-    if (*n == 0U)
-    {
-        return;
-    }
-    /* GCOVR_EXCL_STOP */
-    while (*n >= (1ULL << MMGR_G_WORK_BITS))
-    {
-        *n >>= 1;
-        *s += 1;
-    }
-    while (*n < (1ULL << (MMGR_G_WORK_BITS - 1U)))
-    {
-        *n <<= 1;
-        *s -= 1;
-    }
-}
-
-/**
- * @brief Multiply the pair by ten.
- * @param n In/out. Mantissa.
- * @param s In/out. Binary scale.
- */
-static void g_mul10(mmgr_u64 *n, mmgr_i32 *s)
-{
-    *n *= 10U;
-    g_renorm(n, s);
-}
-
-/**
- * @brief Divide the pair by ten.
- * @param n In/out. Mantissa.
- * @param s In/out. Binary scale.
- *
- * Shifts up by four before dividing so the division keeps its low bits.
- */
-static void g_div10(mmgr_u64 *n, mmgr_i32 *s)
-{
-    *n <<= 4;
-    *s -= 4;
-    *n /= 10U;
-    g_renorm(n, s);
-}
-
-/**
- * @brief Collapse the pair to an integer, rounding.
- * @param n Mantissa.
- * @param s Binary scale.
- * @return The integer.
- */
-static mmgr_u64 g_round(mmgr_u64 n, mmgr_i32 s)
-{
-    if (s >= 0)
-    {
-        return n << (unsigned)s;
-    }
-    unsigned sh = (unsigned)(-s);
-    /* GCOVR_EXCL_START - the digit fit leaves the scale near 3.32 times the precision less the
-       working width, which bottoms out around -58 at one significant digit. Swept over 20 million
-       value and precision pairs without reaching -64. Kept because a shift of the full width is
-       undefined and this is the only thing standing between it and the caller. */
-    if (sh >= 64U)
-    {
-        return 0U;
-    }
-    /* GCOVR_EXCL_STOP */
-    mmgr_u64 r = n >> sh;
-    mmgr_u64 rem = n - (r << sh);
-    mmgr_u64 half = 1ULL << (sh - 1U);
-    if (rem > half || (rem == half && (r & 1U) != 0U))
-    {
-        r++;
-    }
-    return r;
-}
-
 void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig)
 {
     if (!b->ok)
@@ -429,56 +339,41 @@ void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig)
         n |= 1ULL << MMGR_DBL_MANT_BITS;
         s = (mmgr_i32)be - MMGR_DBL_BIAS - (mmgr_i32)MMGR_DBL_MANT_BITS;
     }
-    g_renorm(&n, &s);
-
     mmgr_u64 limit = 1U;
     for (unsigned i = 0; i < sig; i++)
     {
         limit *= 10U;
     }
 
-    int e = (int)(((int64_t)((int)MMGR_G_WORK_BITS - 1 + s) * 78913) >> 18);
-
+    /* Where the decimal point wants to be. The value is near two to the bit length less one plus
+       the binary exponent, and 78913 over two to the eighteenth is log ten of two, so this lands on
+       the right power of ten or one either side of it. The fit below settles which. */
+    int e = (int)(((int64_t)(63 - mmgr_muto_clz(n) + s) * 78913) >> 18);
     int p = (int)sig - 1 - e;
-    while (p > 0)
-    {
-        g_mul10(&n, &s);
-        p--;
-    }
-    while (p < 0)
-    {
-        g_div10(&n, &s);
-        p++;
-    }
 
-    mmgr_u64 mant = g_round(n, s);
-    /* The counter is the backstop, not the exit - the loop leaves through the break. Within
-       MMGR_G_MAX_SIG it never runs out: replayed over 301 million value and count pairs, the
-       largest number of corrections any of them needed was one. */
+    /* One call site on purpose. The scale is inlined wherever it is written, so a second one here
+       would be a second copy of the whole engine in this translation unit.
+
+       The counter is the backstop, not the exit - the loop leaves through the break. The estimate
+       is never more than one power of ten out, so one correction is all it ever takes. */
+    mmgr_u64 mant = 0U;
     for (unsigned guard = 0; guard < 4U; guard++) /* GCOVR_EXCL_BR_LINE */
     {
+        mant = mmgr_muto_scale_to_u64(n, s, p, 0U);
         if (mant >= limit)
         {
-            g_div10(&n, &s);
             e++;
+            p--;
         }
-        /* GCOVR_EXCL_START - the scale up arm is the counterpart of the scale down one above, and
-           inside the clamp it has nothing to do: the same 301 million pairs never once landed an
-           order of magnitude short of the count they asked for. It was reachable only past
-           MMGR_G_MAX_SIG, where the mantissa had run out of digits and this arm was walking a
-           value it could not represent. Kept as the other half of the correction, because a fit
-           that can only move one way is not a fit. */
-        else if (sig > 1U && mant < limit / 10U)
+        else if ((sig > 1U) && (mant < (limit / 10U)))
         {
-            g_mul10(&n, &s);
             e--;
+            p++;
         }
-        /* GCOVR_EXCL_STOP */
         else
         {
             break;
         }
-        mant = g_round(n, s);
     }
 
     unsigned digits = sig;

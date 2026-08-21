@@ -4,13 +4,6 @@ What is next, and what is deliberately not.
 
 ## Next
 
-**Make `verba.g` correctly rounded.** The parse side is exact and the render side is not. `verba.g`
-works in a 58 bit word and renormalises on every step, so its output fails to name the value back
-87% of the time even when read by a correct parser — worst 6 ulp. The approach that fixed
-`to_double` fixes this one: carry the exact mantissa the extraction already has, in a fixed width
-intermediate, and decide the rounding from the three bits that always decide it. See @ref
-qa_numeric.
-
 **Interop suites.** `test/interop/` is a directory with a README and no suites, because interop
 means checking the wire formats against another implementation and there is not one yet. The
 integration directory is no longer empty: `test_read_bounds`, `test_hostile_content`,
