@@ -960,16 +960,27 @@ static void MMGR_UNUSED frac(const char **p, double *val, mmgr_bool *any)
 
 /**
  * @brief Consume an exponent and apply it to @p val.
- * @param p In/out. Cursor.
+ * @param p In/out. Cursor. Left where it was when there is no exponent to take.
  * @param val In/out. Running value.
+ *
+ * An e with no digits behind it is not an exponent, it is the byte that ended the number. The
+ * cursor is put back on it, because what the caller reads to find out whether the whole string
+ * parsed is where the cursor stopped.
  */
 static void MMGR_UNUSED expo(const char **p, double *val)
 {
+    const char *const mark = *p;
+
     (*p)++;
     mmgr_bool eneg = MMGR_FALSE;
     if (**p == '+' || **p == '-')
     {
         eneg = (*(*p)++ == '-');
+    }
+    if (!digit(**p))
+    {
+        *p = mark;
+        return;
     }
     int ex = 0;
     while (digit(**p))

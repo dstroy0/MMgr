@@ -606,25 +606,38 @@ void test_the_parser_takes_decimal_and_stops_at_anything_else(void)
 void test_an_exponent_with_no_digits_after_it(void)
 {
     // C says the number is the longest leading run that is actually of the expected form, so "1e"
-    // is the number 1 and the e is what stopped it - strtod reports the e as where it stopped.
-    // This parser consumes the e, and the sign after it if there is one, before it looks for a
-    // digit, and does not put the cursor back when it does not find one. The value is right either
-    // way, because an exponent of nothing is a multiplier of one.
-    //
-    // So the value is pinned and the cursor is not. A caller reading the cursor to find out
-    // whether the whole string was a number is told yes here, and should be told no.
-    static const char *cases[] = {"1e", "1e+", "1e-", "2.5E", "2.5E-"};
+    // is the number 1 and the e is the byte that ended it. The parser takes the e, and a sign
+    // after it, before it looks for a digit, and puts the cursor back on the e when there is not
+    // one - so a caller reading the cursor to find out whether the whole string was a number is
+    // told no, which it is.
+    static const struct
+    {
+        const char *text;
+        double want;
+        size_t stops_at;
+    } cases[] = {
+        {"1e", 1.0, 1u}, {"1e+", 1.0, 1u},   {"1e-", 1.0, 1u},      {"2.5E", 2.5, 3u},      {"2.5E-", 2.5, 3u},
+        {"7e", 7.0, 1u}, {"0.5e+", 0.5, 3u}, {"1e5", 100000.0, 3u}, {"1e+5", 100000.0, 4u},
+    };
 
     for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++)
     {
         const char *end = NULL;
-        const double v = cellul.to_double(cases[i], &end);
+        const double v = cellul.to_double(cases[i].text, &end);
 
         char msg[96];
-        (void)snprintf(msg, sizeof msg, "\"%s\" did not come back as its mantissa", cases[i]);
-        TEST_ASSERT_DOUBLE_WITHIN_MESSAGE(1e-12, cases[i][0] == '1' ? 1.0 : 2.5, v, msg);
-        TEST_ASSERT_NOT_NULL(end);
+        (void)snprintf(msg, sizeof msg, "\"%s\"", cases[i].text);
+        TEST_ASSERT_DOUBLE_WITHIN_MESSAGE(1e-12, cases[i].want, v, msg);
+        TEST_ASSERT_EQUAL_PTR_MESSAGE(cases[i].text + cases[i].stops_at, end, msg);
     }
+}
+
+void test_an_exponent_that_is_real_is_still_taken(void)
+{
+    // The other half: the early return must not have eaten the ordinary path.
+    TEST_ASSERT_DOUBLE_WITHIN(1e-6, 25000000000.0, cellul.to_double("2.5e10", NULL));
+    TEST_ASSERT_DOUBLE_WITHIN(1e-18, 0.00125, cellul.to_double("1.25e-3", NULL));
+    TEST_ASSERT_DOUBLE_WITHIN(1e-6, 602200.0, cellul.to_double("6.022E5", NULL));
 }
 
 void test_a_number_made_entirely_of_leading_zeros(void)
