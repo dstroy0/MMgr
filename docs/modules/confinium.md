@@ -12,7 +12,7 @@ One tenant. Two ends, growing toward each other, and nothing in between is ever 
 
 Everything sits on top of it. @ref mod_clarus_guide and @ref mod_occult_guide are pools built over
 confinia; @ref mod_spat_guide views what a confinium hands out; @ref mod_infin_guide moves those
-views between workers.
+views between a producer and a consumer.
 
 It is the one module with **no dispatch table**. Its surface is a set of verbs on an explicit
 `mmgr_confin *`, so a table would add indirection without shortening a call site.

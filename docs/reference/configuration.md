@@ -22,8 +22,8 @@ exists to reach them.
 
 | knob                         |               default | what it changes                                                 |
 | ---------------------------- | --------------------: | --------------------------------------------------------------- |
-| `MMGR_PLAINTEXT_CONFIN_SIZE` |                `4096` | bytes per worker loculus in `clarus_custodiae`                     |
-| `MMGR_SECURE_CONFIN_SIZE`    |                `4096` | bytes per worker loculus in `occultum_custodiae`                   |
+| `MMGR_PLAINTEXT_CONFIN_SIZE` |                `4096` | bytes in `clarus_custodiae`'s tenant                               |
+| `MMGR_SECURE_CONFIN_SIZE`    |                `4096` | bytes in `occultum_custodiae`'s tenant                             |
 | `MMGR_CONFIN_MAX`            | the larger of the two | **derived.** The largest single region the library will address |
 | `MMGR_CONFIN_ALIGN`          |              platform | default alignment of a take                                     |
 | `MMGR_CONFIN_MAX_ALIGN`      |              platform | the largest alignment a take may ask for                        |
@@ -35,15 +35,10 @@ for reading the high-water marks.
 
 | knob                     |             default | what it changes                                               |
 | ------------------------ | ------------------: | ------------------------------------------------------------- |
-| `MMGR_WORKER_COUNT`      |                 `1` | how many loculi each pool carves. One loculus per worker          |
-| `MMGR_GHOST_WORKER_SLOT` | `MMGR_WORKER_COUNT` | the loculus index used when no worker owns the call              |
-| `MMGR_NEEDS_CONTEXT_ID`  |             derived | **derived.** 1 when `MMGR_WORKER_COUNT != 1` or checks are on |
 
-At the default of 1 there is no synchronization anywhere in the library, because there is nothing to
-synchronize, and `mmgr_worker_self()` is a compile-time constant with no platform hook to supply.
-
-Above 1 you must supply `mmgr_platform_context_id()`. `test/support/platform_host.c` is the
-reference implementation.
+There is no synchronization anywhere in the allocator, because there is nothing to synchronize. A
+region is a pointer, an extent, and two offsets, used by whoever holds it. Two contexts that must
+not share get two regions.
 
 ## Debug
 

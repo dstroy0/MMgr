@@ -19,22 +19,37 @@ an object also carries relocations, symbol tables and debug records that never g
 
 `.text`, in bytes, per translation unit.
 
-| translation unit     |   -O0 |   -O1 |       -Os |   -O2 |   -O3 |
-| -------------------- | ----: | ----: | --------: | ----: | ----: |
-| `cellularum_laboro`  | 17536 |  8704 |  **5936** |  8736 | 11472 |
-| `verba_scribo`       |  7856 |  3984 |  **3248** |  5360 |  9008 |
-| `memoria_operor`     |  3968 |  1040 |   **912** |  1424 |  1728 |
-| `confinium`          |  3856 |  1392 |  **1120** |  1552 |  2064 |
-| `numeros_scribo`     |  3488 |  1536 |      1536 |  1536 |  1536 |
-| `byteio`             |  3024 |   576 |   **496** |   720 |   736 |
-| `occultum_custodiae` |  2368 |   992 |   **656** |  1136 |  1456 |
-| `proximus_operor`    |  1584 |   320 |   **224** |   336 |   816 |
-| `spatium`            |  1040 |   464 |   **400** |   464 |   464 |
-| `clarus_custodiae`   |  1456 |   688 |   **528** |   816 |  1008 |
-| `fractio`            |   960 |   192 |       192 |   240 |   240 |
-| `endian`             |   848 |   336 |   **192** |   320 |   352 |
-| `bitio`              |   416 |   176 |   **160** |   208 |   208 |
-| **total**            | 48400 | 20400 | **15600** | 22848 | 31088 |
+| translation unit           |   -O0 |   -O1 |       -Os |   -O2 |   -O3 |
+| -------------------------- | ----: | ----: | --------: | ----: | ----: |
+| `cellularum_laboro`        | 17536 |  8704 |  **5936** |  8736 | 11472 |
+| `verba_scribo`             | 11376 |  5216 |  **4320** |  6624 | 10304 |
+| `memoria_operor`           |  3968 |  1040 |   **912** |  1424 |  1728 |
+| `confinium`                |  3856 |  1392 |  **1120** |  1536 |  2048 |
+| `numeros_scribo`           |  3488 |  1536 |      1536 |  1536 |  1536 |
+| `octetus_introitus_exitus` |  3296 |   448 |   **400** |   560 |   560 |
+| `occultum_custodiae`       |  1984 |   944 |   **608** |  1088 |  1408 |
+| `proximus_operor`          |  1584 |   320 |   **224** |   336 |   816 |
+| `clarus_custodiae`         |  1104 |   640 |   **480** |   768 |   960 |
+| `fractio`                  |   960 |   192 |       192 |   240 |   240 |
+| `endian`                   |   848 |   336 |   **192** |   320 |   352 |
+| `bitorum_introitus_exitus` |   416 |   176 |   **160** |   208 |   208 |
+| `spatium`                  |    96 |    32 |    **32** |    32 |    32 |
+| **total**                  | 50512 | 20976 | **16112** | 23408 | 31664 |
+
+Four of those moved for reasons that are not the optimiser.
+
+`spatium` was 464 bytes at -O2 and is 32. Eleven of its twelve entries had no caller anywhere in the
+library — they were names on field reads, and the one module that writes through a span reads the
+fields directly. What is left is `from`.
+
+`octetus_introitus_exitus` was 720 and is 560, because a write that does not fit is a contract now
+rather than a branch: the caller has the buffer and the field width in front of it, so `MMGR_ASSERT`
+says it for nothing in a shipping build and an abort in `checks`. `clarus_custodiae` and
+`occultum_custodiae` shed the per-worker indexing.
+
+`verba_scribo` went the other way, 5360 to 6624. That is the decimal engine it now inlines to render
+a fixed-point number exactly. It was 15.87% wrong below about 1e-41 before, and it is 0.0000% wrong
+now; the 1264 bytes are what that costs. See @ref qa_numeric.
 
 Constants barely move: 2576 bytes at -O2 against 2608 at -O3. All of the growth is instructions.
 
@@ -53,17 +68,17 @@ harness is always built at -O2 so only the library moves between rows.
 
 ## What the numbers say
 
-**-O1 to -O2 is where the speed is.** `memor.cpy` goes 0.703 to 0.258, a 2.7 times step, for 4,800
+**-O1 to -O2 is where the speed is.** `memor.cpy` goes 0.703 to 0.258, a 2.7 times step, for 2,432
 bytes across the library. That is the one jump that clearly pays.
 
-**-O2 to -O3 buys about 2% on the scans for 8,240 bytes.** `find` moves 0.985 to 0.974. `len` and
+**-O2 to -O3 buys about 2% on the scans for 8,256 bytes.** `find` moves 0.985 to 0.974. `len` and
 `copy` do not move at all. The scanning entries are already the shape they want to be: there is no
 loop left for -O3 to unroll into something better, so it inlines and unrolls anyway and the code
 gets bigger for nothing.
 
 The exception is `to_double` at -14%, which is real - it has an actual loop over the table.
 
-**-Os is not uniformly slow.** It is the smallest by a distance, 32% under -O2, and `len` is the
+**-Os is not uniformly slow.** It is the smallest by a distance, 31% under -O2, and `len` is the
 fastest of any level there while `copy` is within 1% of -O2. What falls off a cliff is `verba.g`,
 at 1073 against 453 - worse than -O1.
 
@@ -74,7 +89,7 @@ command line is the one that counts, so nothing has to be removed for it to take
 
 | module            | level | why                                                                                                                                                      |
 | ----------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `verba_scribo`    | -O2   | -O3 costs 3648 bytes, 68% more than the whole module at -O2, for 1.5% on a render. The digit loops are short and already shaped.                         |
+| `verba_scribo`    | -O2   | -O3 costs 3680 bytes, 56% more than the whole module at -O2, for 1.5% on a render. The digit loops are short and already shaped.                        |
 | `proximus_operor` | -O2   | -O3 more than doubles it, 336 bytes to 816, and moves nothing measurable. The entries are single loads and stores that are already one instruction each. |
 
 `cellularum_laboro` is left at the build's level: -O3 costs it 2,736 bytes and returns 14% on

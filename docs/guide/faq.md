@@ -13,11 +13,12 @@ observation about one run. The long answer, including what it costs you, is @ref
 
 ## Is it thread-safe?
 
-At `MMGR_WORKER_COUNT == 1`, the question does not arise: there is no shared mutable state and no
+The question does not arise for the allocator: there is no shared mutable state in it and no
 synchronization, because there is nothing to synchronize.
 
-Above 1, the pools are partitioned by worker loculus, and that is safe **as long as a pointer does not
-cross workers**. Nothing enforces it.
+The allocator synchronizes nothing, because there is nothing to synchronize: a region is a pointer,
+an extent, and two offsets, used by whoever holds it. Two contexts that must not share get two
+regions.
 
 The one genuinely concurrent module is `confinium_exclusivum_infinitas`, which is single-producer
 single-consumer only. Two producers on one ring is broken, not slow. See @ref concept_ownership.

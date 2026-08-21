@@ -4,7 +4,8 @@ Zero-heap memory manager in C11.
 
 You lend it a buffer. A confinium carves that buffer from both ends: persist grows up from the base,
 interim grows down from the top, and a take fails rather than let the two cross. Pools hand out
-tenants cut from it, spans are bounded views over those, and rings move them between workers.
+tenants cut from it, spans are bounded views over those, and rings move them between a producer and
+a consumer.
 
 Nothing calls `malloc`. Every size is fixed before the program runs, so the footprint is a number you
 can check against a budget rather than a thing you find out at runtime.

@@ -106,8 +106,8 @@ static mmgr_bool handle(mmgr_confin *c, const uint8_t *msg, size_t len)
     }
 
     memor.cpy(work, msg, len);
-    mmgr_fspat in = spat.cfrom(work, len);
-    /* ... parse from `in` ... */
+    size_t at = 0u;
+    /* ... parse from work, bounded by len, at cursor `at` ... */
 
     mmgr_confin_interim_reddo(c, m);          /* one line, whatever happened above */
     return MMGR_TRUE;

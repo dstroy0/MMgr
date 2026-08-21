@@ -4,7 +4,7 @@ Single-producer, single-consumer. A byte ring, a segment queue, and a loculus bi
 
 ## When to reach for it
 
-- One worker produces and exactly one consumes.
+- One context produces and exactly one consumes.
 - An interrupt hands bytes to a task, or a task hands buffers to a driver.
 - You want that handover without a lock.
 
@@ -58,7 +58,7 @@ see @ref concept_swar.
 
 ## Reference
 
-@ref mod_infin "Generated reference" · @ref concept_ownership for what crossing workers costs
+@ref mod_infin "Generated reference" · @ref concept_ownership for what a pointer's lifetime is
 
 ---
 

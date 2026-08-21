@@ -1,6 +1,6 @@
 # Where a symbol lives {#ref_api_map}
 
-You saw `spat.produced` in a diff. This page says which module it came from.
+You saw `spat.from` in a diff. This page says which module it came from.
 
 ## The naming law
 
@@ -31,7 +31,7 @@ function reached two ways. See @ref concept_ns_idiom.
 | `exter`                       | `confinium_externum`             | DRAM against PSRAM placement           |
 | `clarus`                      | `clarus_custodiae`               | plaintext pool                         |
 | `occult`                      | `occultum_custodiae`             | secure pool, with a wipe               |
-| `spat` / `fspat`              | `spatium`                        | writable span / read-only span         |
+| `spat`                        | `spatium`                        | a bounded view over caller memory      |
 | `proxim` / `aequus` / `migro` | `proximus_operor`                | unaligned / aligned / may-alias access |
 | `scrut`                       | `verbum_scrutor`                 | SWAR lane primitives                   |
 | `memor`                       | `memoria_operor`                 | the `mem*` family                      |
@@ -43,7 +43,6 @@ function reached two ways. See @ref concept_ns_idiom.
 | `byteio`                      | `byteio`                         | byte and wire serialization            |
 | `endian`                      | `endian`                         | explicit byte order                    |
 | `dma`                         | `dma`                            | transfer submission, gated             |
-| `worker`                      | `confinium`                      | worker identity, used by the pools     |
 
 ## The three exceptions
 
@@ -51,8 +50,6 @@ function reached two ways. See @ref concept_ns_idiom.
 because they name three **strategies**, not three spellings of one thing: unaligned, aligned, and
 may-alias. Merging them is a miscompile the compiler cannot report, so the naming keeps them apart.
 
-`worker` is declared by `confinium` but used by the pools, so it names a cross-cutting concept rather
-than a module.
 
 Three modules have no stem at all because they expose only data, not entries: `ascii_persona_bitorum`
 (character classes as bitmaps), `impensa_ancorae_acus` (byte-frequency tables) and `pow5` (the powers of five

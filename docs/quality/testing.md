@@ -29,7 +29,7 @@ test/unit/<module>/test_<name>/test_<name>.c    one per module
 test/environment/test_<env>/test_<env>.c        one per environment
 test/integration/                               across modules
 test/interop/                                   against other implementations
-test/support/platform_host.c                    supplies mmgr_platform_context_id()
+test/support/platform_host.c                    the host side of the environment shims
 test/bench/                                     benchmarks, off by default
 ```
 

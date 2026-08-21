@@ -58,13 +58,13 @@ it is worth reading twice.
 
 ## 3. Custodiae hand out tenants
 
-A _custodia_ is a pool over static storage, carved into one loculus per worker. A _tenant_ is one
-loculus's worth. There are two, with deliberately near-identical surfaces:
+A _custodia_ is a pool over static storage. A _tenant_ is what it hands out of it. There are two,
+with deliberately near-identical surfaces:
 
 |         | `clarus_custodiae`                    | `occultum_custodiae`                     |
 | ------- | ------------------------------------- | ---------------------------------------- |
 | holds   | plaintext                             | secrets                                  |
-| storage | `MMGR_PLAINTEXT_CONFIN_SIZE` per loculus | `MMGR_SECURE_CONFIN_SIZE` per loculus       |
+| storage | `MMGR_PLAINTEXT_CONFIN_SIZE`          | `MMGR_SECURE_CONFIN_SIZE`                |
 | release | `reset`                               | `reset`, and `wipe`                      |
 | wipe    | none                                  | `volatile`, word at a time, not elidable |
 
@@ -78,14 +78,14 @@ whose result is never read.
 A span is a pointer, a length and a position. `spat.from(p, cap)` borrows; it does not allocate, and
 the span dies with the buffer it was given.
 
-There are two, and the difference is not const-correctness pedantry:
+It carries no flag. Whether a write fits is decided where the call is written - the caller has the
+buffer and the length in front of it - so a write past the end is a program that should not have
+been built, and `MMGR_ASSERT` says so: nothing in a shipping build, an abort in `checks`. There is
+no state to carry the answer and nothing to check afterwards.
 
-- `mmgr_spat` writes. It carries `overflow`, which **latches**.
-- `mmgr_fspat` reads. It carries `err`, which also latches. The `f` is _fixus_.
-
-Latching is the design. A long run of appends is checked once at the end rather than after each
-call, and no intermediate check can be forgotten, because the flag cannot be cleared by the next
-successful write.
+A read is a buffer, how far it may go, and where it is. That is the argument list
+@ref mod_byteio_guide's readers take, and the same one @ref mod_cellul_guide passes as
+`(s, read_cap)`. A struct holding those three added a second spelling and no information.
 
 ```c
 verba.put(&b, "id=");
@@ -95,7 +95,7 @@ verba.u32(&b, len);
 if (!b.ok) { /* one check, covering all four */ }
 ```
 
-## 5. Rings move bytes between workers
+## 5. Rings move bytes between a producer and a consumer
 
 `confinium_exclusivum_infinitas` is the only part of the library that is concurrent, and only in one
 shape: **single producer, single consumer**. It is header-only and built on `<stdatomic.h>`.
@@ -112,7 +112,7 @@ copying them, and a 32-loculus bitmap allocator. The loculus count is 32 because
 | confinium       | nothing         | nothing           | the buffer's               |
 | persist take    | bumps a pointer | only by unwinding | the confinium's            |
 | interim take    | bumps a pointer | by mark           | until its mark is released |
-| tenant          | a pool loculus     | `reset`           | until reset                |
+| tenant          | a pool's buffer | `reset`           | until reset                |
 | span            | nothing         | nothing           | its target's               |
 | ring loculus       | a bit in a mask | `drop`            | until dropped              |
 

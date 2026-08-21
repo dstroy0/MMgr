@@ -1,7 +1,7 @@
 # Numbers, and how far they can be trusted {#qa_numeric}
 
-`to_double` returns the correctly rounded double for every input, and `verba.g` does not. Both of
-those are measured rather than believed, and this page says how, because a numeric routine that
+`to_double` returns the correctly rounded double for every input, `verba.fixed` renders one
+exactly, and `verba.g` does neither. All three are measured rather than believed, and this page says how, because a numeric routine that
 nobody checked is a routine that is wrong in a way nobody has noticed yet.
 
 ## What correct means here
@@ -85,6 +85,12 @@ step keeps the fraction in place and pushes the growth into an `int` exponent.
 
 ## What is in the module
 
+The engine is `src/transformo`, and it is a module rather than something the parser keeps to itself.
+It was written inside `cellularum_laboro` because that is where a decimal first had to become a
+double, but turning a mantissa and an exponent into the value they name is not a parsing problem -
+the render side has the same problem in the other direction and should not solve it twice. Its
+entries are `mmgr_muto_*`.
+
 `src/pow5/pow5.h` is 360 bytes: nine powers of five and nine reciprocals, as 128 bit fractions with
 their own binary exponents. Any decimal exponent below 512 is the product of at most nine of them,
 so a loop that ran four hundred times runs nine. The reciprocals are what keep a negative exponent a
@@ -102,6 +108,12 @@ same shape at any word width.
 below them, and whether anything is set under that. Clear is down. Set with something below is up.
 Set with nothing below is the tie, and the tie goes to even. Nothing in it looks at what the value
 was.
+
+`mmgr_muto_to_u64` is the same rounding stopping at an integer instead of going on to assemble a
+double, which is the end a digit string needs. It is told the parity of whatever sits above it,
+because ties go to even and even means even *in the number that gets written*: past the point that
+is the last digit of the fraction, but ask for no decimals and the tie is decided by the integer
+part instead.
 
 ## How it is tested
 
@@ -137,10 +149,25 @@ live there:
 - The normalise path for a fraction with an empty high word, which the conversion never produces
   because it guards the mantissa first.
 
+## What the render side got from it
+
+`verba.fixed` was wrong for about one value in six below roughly 1e-41. Two faults stacked. The
+scale came off the mantissa only while the shift was under 64, so past that the remainder was the
+whole mantissa unscaled; then the correction that followed shifted a 64 bit word by more than 64,
+which C does not define and x86 turns into no shift at all. Together they put the answer out by
+2^128, and two times ten to the minus forty one printed as `0.006958041`.
+
+It goes through the engine now. Measured against a correctly rounding reference over 66,000 cases:
+**15.87% wrong to 0.0000%**. The tie went with it - `fixed` truncated an exact tie toward zero while
+`g` rounded it, so one library rendered one number two ways. That was pinned as a finding and is now
+the rule the test asserts.
+
+The 1264 bytes `verba_scribo` grew at -O2 are the engine being inlined. See @ref qa_optimisation.
+
 ## What is still not exact
 
-`verba.g` is not correctly rounded. Rendering and parsing are different problems and only the parse
-has been done properly.
+`verba.g` is not correctly rounded. It is the last of the three that has not been moved onto the
+engine.
 
 It runs its conversion in a 58 bit working word - a little over seventeen decimal digits - and
 `g_mul10` and `g_div10` renormalise on every step, which shifts bits off the bottom. Measured on
@@ -153,4 +180,4 @@ clamps the digit count at 18 because past that the working word has run out of d
 the answer stops being merely imprecise - swept over 130,944 doubles, one to eighteen digits all
 read back, nineteen was wrong on 321 of them, worst at 2^64.
 
-The same approach that fixed the parse would fix this one. It has not been done yet.
+The engine that fixed the parse and `verba.fixed` would fix this one too. It has not been done yet.

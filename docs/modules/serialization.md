@@ -13,8 +13,9 @@ byteio.put(&s, 0x01);                   /* one byte              */
 byteio.put_be(&s, 0x1234, 2);           /* big-endian, 2 bytes   */
 byteio.raw(&s, payload, payload_len);   /* opaque bytes          */
 
-mmgr_fspat in = spat.cfrom(frame, frame_len);
-uint32_t v = byteio.rd_u32(&in);
+size_t at = 0u;
+uint32_t v = 0;
+byteio.rd_u32(frame, frame_len, &at, &v);
 ```
 
 `mpint_fixed` writes an SSH-style multi-precision integer into a fixed width, which is the one entry
@@ -22,11 +23,13 @@ here that encodes a format rather than a primitive.
 
 ## Gotchas
 
-**Every entry takes a span, and the span's flag latches.** Check once at the end, not per field. See
-@ref ref_error_handling.
+**Nothing here checks whether the bytes fit.** The caller has the buffer and the field width in
+front of it, so a field that runs past the end is a contract violation - nothing in a shipping
+build, an abort in `checks`. See @ref ref_error_handling.
 
-**A short read sets `err` and returns zero.** Zero is a legal value, so the flag is the only way to
-tell the difference.
+**`rd_str` and `mpint_fixed` do check, and return `MMGR_FALSE`.** Their lengths arrive off the wire
+rather than from the caller, so whether they fit is a fact about the data and not a promise anyone
+made.
 
 @ref mod_byteio "Generated reference"
 

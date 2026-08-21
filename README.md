@@ -7,7 +7,7 @@ out at runtime.
 You lend it a buffer. A **confinium** carves that buffer from both ends — persistent allocations
 grow up from the base, interim ones grow down from the top, and a request fails rather than let the
 two cross. Pools hand out tenants cut from it, spans are bounded views over those, and rings move
-them between workers.
+them between a producer and a consumer.
 
 ```c
 #include "mmgr.h"
@@ -49,7 +49,7 @@ Latin names, because they were carved out of a larger tree and the short English
 | [`proximus_operor`](src/proximus_operor)                               | word-width loads and stores at any alignment               |
 | [`verba_scribo`](src/verba_scribo)                                     | text out: integers, hex, floats, JSON, XML                 |
 | [`numeros_scribo`](src/numeros_scribo)                                 | records built from a field spec                            |
-| [`byteio`](src/byteio) / [`bitio`](src/bitio) / [`endian`](src/endian) | the wire                                                   |
+| [`byteio`](src/octetus_introitus_exitus) / [`bitio`](src/bitorum_introitus_exitus) / [`endian`](src/endian) | the wire                                                   |
 | [`fractio`](src/fractio)                                               | takes a double apart, without `<math.h>`                   |
 | [`pow5`](src/pow5)                                                     | generated: the powers of five the decimal conversion needs |
 | [`ascii_persona_bitorum`](src/ascii_persona_bitorum) / [`impensa_ancorae_acus`](src/impensa_ancorae_acus)      | generated: character classes and byte rarity               |

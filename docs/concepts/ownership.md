@@ -17,7 +17,7 @@ has the position it was taken from moved back past it".
 | ------------------- | ------------------------------------------ |
 | an interim pointer  | its mark is released, or the region resets |
 | a span over interim | same, and it does not know                 |
-| a tenant pointer    | the pool loculus is `reset`                   |
+| a tenant pointer    | the pool is `reset`                        |
 | a persist pointer   | the region does                            |
 | the region          | your buffer does                           |
 | your buffer         | you say so                                 |
@@ -49,49 +49,39 @@ mmgr_spat s = spat.from(p, 256);
 ```
 
 `s` holds `p`. It does not own it, cannot extend it, and will not notice when it dies.
-`spat.has_storage(s)` asks whether the span was given a buffer at all — not whether that buffer is
-still alive, which is not a question a span can answer.
+`s.buf` says which buffer it was given. Whether that buffer is still alive is not a question a span
+can answer.
 
 Consequence worth stating: a span is safe to copy by value, safe to pass by value, and safe to
 return **only if its target outlives the return**. Returning a span over interim from a function that
 rewinds its own mark is a use-after-free with extra steps.
 
-## Tenants and worker loculi
+## Tenants
 
-A pool carves its static storage into one loculus per worker plus a ghost loculus:
+A pool is one tenant over one static buffer. It does not carve that buffer up and it does not ask
+who is calling — a memory manager has no concept of a worker, and the moment it tries to have one it
+needs a count of them, an index per take, a registry mapping platform contexts to that index, and a
+spare tenant for when the index is wrong.
 
-```
-MMGR_WORKER_COUNT = 4
-
-  loculus 0   loculus 1   loculus 2   loculus 3   loculus 4 (ghost)
-  worker0  worker1  worker2  worker3  no owner
-```
-
-`mmgr_worker_self()` decides which loculus a call gets. At `MMGR_WORKER_COUNT == 1` it is a compile-time
-constant `0` and there is no platform hook to supply; above 1 you must provide
-`mmgr_platform_context_id()`.
-
-`MMGR_GHOST_WORKER_SLOT` is where a call with no owning worker lands — an interrupt, or
-initialization before the scheduler exists. It is a real loculus with real storage, not an error value.
-
-Two entries answer ownership questions directly:
+One entry answers an ownership question directly:
 
 ```c
-clarus.owns(p)      /* is this pointer inside this pool at all */
-clarus.loculus_of(p)   /* which worker's loculus, if so */
+clarus.owns(p)   /* is this pointer inside this pool at all */
 ```
 
-They exist for asserts and for debugging, not for control flow. Code that has to ask which loculus a
-pointer came from usually wants to be passing the loculus around instead.
+It exists for asserts and for debugging, not for control flow.
+
+If two execution contexts must not share, declare two regions and hand each context its own. The
+region never learns there were two, so there is nothing to count, nothing to index, and nothing to
+check. See @ref mod_confin_guide.
 
 ## Concurrency
 
 There isn't any, unless you configured it.
 
-At `MMGR_WORKER_COUNT == 1` there is no synchronization anywhere in the library, because there is
-nothing to synchronize. Above 1, the pools are partitioned by loculus — each worker touches its own
-tenant and no locking is needed **as long as a pointer does not cross workers**. Nothing enforces
-that.
+There is no synchronization anywhere in the allocator, because there is nothing to synchronize. A
+region is a pointer, an extent, and two offsets, and it is used by whoever holds it. Two contexts
+that must not share get two regions.
 
 The one genuinely concurrent module is `confinium_exclusivum_infinitas`, and it is
 **single-producer, single-consumer only**. Two producers on one ring is not a slower correct program,

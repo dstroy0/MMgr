@@ -1,16 +1,16 @@
 # Clarus custodiae — the plaintext pool {#mod_clarus_guide}
 
-Per-worker tenants over static storage.
+A tenant over static storage.
 
 ## When to reach for it
 
 - You want interim storage without threading a `mmgr_confin *` through every call.
-- You have more than one worker and each needs its own space with no locking.
+- You want a region without declaring the buffer yourself.
 - The lifetime is "until this operation finishes", and you want one call to reclaim it.
 
 ## What it composes with
 
-It carves static storage into one tenant per worker. @ref mod_spat_guide views what it hands out;
+It is one tenant over one static buffer. @ref mod_spat_guide views what it hands out;
 @ref mod_occult_guide is the same shape for secrets.
 
 ## Worked example
@@ -19,7 +19,7 @@ It carves static storage into one tenant per worker. @ref mod_spat_guide views w
 /* No init, no buffer to supply - the storage is static and already there. */
 uint8_t *p = clarus.alloc(256);
 if (p == NULL) {
-    return -1;                      /* this worker's tenant is full */
+    return -1;                      /* the tenant is full */
 }
 
 mmgr_spat s = clarus.span(256);     /* the same thing, as a span */
@@ -43,12 +43,12 @@ size_t cap  = clarus.capacity();
 
 ## Gotchas
 
-**One tenant per worker, decided by `mmgr_worker_self()`.** At `MMGR_WORKER_COUNT == 1` that is a
-compile-time constant. Above 1 you must supply `mmgr_platform_context_id()`.
+**One tenant, and it does not ask who is calling.** A pool is one region over one static buffer.
+If two execution contexts must not share, declare two regions with @ref mod_confin_guide and hand
+each context its own - the region never learns there were two.
 
-**A pointer must not cross workers.** Nothing enforces it. `clarus.owns(p)` and `clarus.loculus_of(p)`
-exist for asserts and debugging — code that needs to ask which loculus a pointer came from usually
-wants to pass the loculus instead.
+**A pointer outlives nothing.** `clarus.owns(p)` says whether a pointer is inside the pool at all.
+It exists for asserts and debugging, not for control flow.
 
 **`persist` here is not the confinium's persist.** It is the pool's long-lived half of one tenant.
 
@@ -83,10 +83,10 @@ deleted by the compiler as a dead store — the value is never read again, so th
 observable effect under the abstract machine. `volatile` makes it observable, so it survives.
 
 That is the whole difference. Everything else — `alloc`, `span`, `mark`, `release`, `reset`,
-`used`, `high_water`, `capacity`, `owns`, `loculus_of` — matches `clarus` entry for entry, deliberately,
+`used`, `high_water`, `capacity`, `owns` — matches `clarus` entry for entry, deliberately,
 so moving a buffer from plaintext to secure storage is a change of namespace and not a rewrite.
 
-Its storage is `MMGR_SECURE_CONFIN_SIZE` per loculus.
+Its storage is `MMGR_SECURE_CONFIN_SIZE`.
 
 ## Gotchas
 

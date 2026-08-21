@@ -64,7 +64,6 @@ last persistent take_.
 | ------------- | ---------------------------------------------------------------------- |
 | `mmgr_confin` | a region: base, both ends, and the limits                              |
 | `mmgr_spat`   | a writable span. `pos` is how much was written; `overflow` latches     |
-| `mmgr_fspat`  | a read-only span. `f` is _fixus_, fixed. `err` latches on a short read |
 | `mmgr_verba`  | a string builder over a span                                           |
 | `mmgr_word`   | the machine word — the SWAR carrier                                    |
 | `mmgr_idx`    | an index into a region, narrower than a word on some builds            |
@@ -75,7 +74,7 @@ last persistent take_.
 | term            | means                                                                   |
 | --------------- | ----------------------------------------------------------------------- |
 | **borrow**      | storage the library was handed and does not own. Everything is a borrow |
-| **tenant**      | one worker's loculus in a pool                                             |
+| **tenant**      | a pool's region over its static buffer                                    |
 | **custodia**    | a guarded pool that hands out tenants — `clarus` or `occult`            |
 | **carrier**     | the integer a SWAR operation runs on. Always the machine word           |
 | **lane**        | one byte inside the carrier                                             |

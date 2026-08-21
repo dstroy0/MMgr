@@ -53,12 +53,13 @@ int main(void)
     verba.put(&b, "bytes at hand: ");
     verba.u32(&b, (uint32_t)mmgr_confin_octas_praesto(&c));
 
-    /* One check, at the end. The overflow flag latches. */
+    /* One check, at the end. verba latches, because a formatted number is as
+       long as it turns out to be. */
     if (!verba.finish(&b)) {
         return 2;
     }
 
-    printf("%.*s\n", (int)spat.len(b.out), (const char *)store);
+    printf("%.*s\n", (int)b.out.pos, (const char *)store);
     return 0;
 }
 ```

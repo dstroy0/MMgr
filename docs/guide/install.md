@@ -57,7 +57,7 @@ Every knob is a preprocessor define with a default, so you set only what you are
 ```cmake
 target_compile_definitions(my_app PRIVATE
     MMGR_PLAINTEXT_CONFIN_SIZE=8192
-    MMGR_WORKER_COUNT=4
+    MMGR_SECURE_CONFIN_SIZE=2048
 )
 ```
 
