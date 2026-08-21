@@ -158,7 +158,7 @@ void mmgr_confin_persist_reddo(mmgr_confin *a, void *p)
         size_t next_off = off + AHDR + cur->size;
         if (!cur->used && next_off < a->persist_end)
         {
-            ABlk *nxt = (ABlk *)(a->base + next_off);
+            const ABlk *nxt = (const ABlk *)(a->base + next_off);
             if (!nxt->used)
             {
                 cur->size += AHDR + nxt->size;
@@ -173,7 +173,7 @@ void mmgr_confin_persist_reddo(mmgr_confin *a, void *p)
     while (off < a->persist_end)
     {
         last = off;
-        ABlk *cur = (ABlk *)(a->base + off);
+        const ABlk *cur = (const ABlk *)(a->base + off);
         off += AHDR + cur->size;
     }
     if (a->persist_end > 0 && !((ABlk *)(a->base + last))->used)
@@ -238,7 +238,7 @@ void mmgr_confin_set_persist_reddo(mmgr_confin_set *s, void *p)
     {
         return;
     }
-    uint8_t *b = (uint8_t *)p;
+    const uint8_t *b = (const uint8_t *)p;
     for (size_t i = 0; i < s->count; i++)
     {
         mmgr_confin *r = &s->region[i];

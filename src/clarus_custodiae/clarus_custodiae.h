@@ -41,7 +41,8 @@ typedef struct
 
     struct PlainInternal *internal;
 } ClarusCustodiaeNs;
-MMGR_NS_LAYOUT_OPEN(ClarusCustodiaeNs, internal, alloc, span, persist, reset, mark, release, used, high_water, capacity, owns, slot_of);
+MMGR_NS_LAYOUT_OPEN(ClarusCustodiaeNs, internal, alloc, span, persist, reset, mark, release, used, high_water, capacity,
+                    owns, slot_of);
 
 /** @brief The pool. */
 extern struct PlainInternal mmgr_clarus_internal;
@@ -123,17 +124,17 @@ int mmgr_clarus_slot_of(const void *p);
 
 /** @brief Module namespace. */
 MMGR_NS ClarusCustodiaeNs clarus MMGR_UNUSED = {.alloc = mmgr_clarus_capio,
-                                                                 .span = mmgr_clarus_span,
-                                                                 .persist = mmgr_clarus_persist_span,
-                                                                 .reset = mmgr_clarus_reset,
-                                                                 .mark = mmgr_clarus_mark,
-                                                                 .release = mmgr_clarus_reddo,
-                                                                 .used = mmgr_clarus_used,
-                                                                 .high_water = mmgr_clarus_high_water,
-                                                                 .capacity = mmgr_clarus_capacity,
-                                                                 .owns = mmgr_clarus_owns,
-                                                                 .slot_of = mmgr_clarus_slot_of,
-                                                                 .internal = &mmgr_clarus_internal};
+                                                .span = mmgr_clarus_span,
+                                                .persist = mmgr_clarus_persist_span,
+                                                .reset = mmgr_clarus_reset,
+                                                .mark = mmgr_clarus_mark,
+                                                .release = mmgr_clarus_reddo,
+                                                .used = mmgr_clarus_used,
+                                                .high_water = mmgr_clarus_high_water,
+                                                .capacity = mmgr_clarus_capacity,
+                                                .owns = mmgr_clarus_owns,
+                                                .slot_of = mmgr_clarus_slot_of,
+                                                .internal = &mmgr_clarus_internal};
 
 MMGR_END_DECLS
 

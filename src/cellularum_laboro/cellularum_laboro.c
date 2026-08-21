@@ -22,7 +22,7 @@
  * @param nul_cap How far it may read.
  * @return Offset of the terminator, or @p nul_cap if there is none in range.
  */
-static inline size_t len(const char *s, size_t nul_cap)
+static inline size_t MMGR_UNUSED len(const char *s, size_t nul_cap)
 {
     const size_t nw = mmgr_scrut_words(nul_cap);
 
@@ -66,8 +66,7 @@ static inline const char *chr(const char *s, size_t nul_cap, uint8_t c)
         mmgr_scrut_word w = scrut.load(s + at);
         mmgr_scrut_word keep = mmgr_scrut_tail_mask(nul_cap, wi);
         mmgr_scrut_word end = (mmgr_scrut_word)(scrut.has_zero(w) & keep);
-        mmgr_scrut_word hit =
-            (mmgr_scrut_word)(scrut.eq(w, c, MMGR_FALSE) & keep & mmgr_scrut_lanes_before(end));
+        mmgr_scrut_word hit = (mmgr_scrut_word)(scrut.eq(w, c, MMGR_FALSE) & keep & mmgr_scrut_lanes_before(end));
 
         if (hit != 0)
         {
@@ -82,42 +81,13 @@ static inline const char *chr(const char *s, size_t nul_cap, uint8_t c)
 }
 
 /**
- * @brief Do two bytes match ignoring case.
- * @param a First byte.
- * @param b Second byte.
- * @return 1 if they match.
- */
-MMGR_INLINE int byte_same_ci(uint8_t a, uint8_t b)
-{
-    if (a == b)
-    {
-        return 1;
-    }
-    uint8_t la = (uint8_t)(a | 0x20u);
-    uint8_t lb = (uint8_t)(b | 0x20u);
-    if (la != lb)
-    {
-        return 0;
-    }
-    if (la < 'a')
-    {
-        return 0;
-    }
-    if (la > 'z')
-    {
-        return 0;
-    }
-    return 1;
-}
-
-/**
  * @brief Where two strings first differ.
  * @param a First string.
  * @param b Second string.
  * @param read_cap How far it may read.
  * @return Offset of the first difference, or @p read_cap if they agree that far.
  */
-static inline size_t diff_cs(const char *a, const char *b, size_t read_cap)
+static inline size_t MMGR_UNUSED diff_cs(const char *a, const char *b, size_t read_cap)
 {
     const size_t nw = mmgr_scrut_words(read_cap);
 
@@ -142,7 +112,7 @@ static inline size_t diff_cs(const char *a, const char *b, size_t read_cap)
  * @param read_cap How far it may read.
  * @return Offset of the first difference, or @p read_cap if they agree that far.
  */
-static inline size_t diff_ci(const char *a, const char *b, size_t read_cap)
+static inline size_t MMGR_UNUSED diff_ci(const char *a, const char *b, size_t read_cap)
 {
     const size_t nw = mmgr_scrut_words(read_cap);
 
@@ -311,7 +281,7 @@ MMGR_INLINE int step_byte_ci(unsigned char ca, unsigned char cb, int end_wins)
  * Comparing lane indices rather than trailing bit masks is what removes the endian branch. A
  * trailing bit mask means below, and below is the wrong direction on a big endian load.
  */
-static inline mmgr_bool agree_cs(const char *a, const char *b, size_t read_cap, int end_wins)
+static inline mmgr_bool MMGR_UNUSED agree_cs(const char *a, const char *b, size_t read_cap, int end_wins)
 {
     const size_t nw = mmgr_scrut_words(read_cap);
 
@@ -322,8 +292,7 @@ static inline mmgr_bool agree_cs(const char *a, const char *b, size_t read_cap, 
         const mmgr_scrut_word wa = scrut.load(a + at);
         const mmgr_scrut_word wb = scrut.load(b + at);
         const mmgr_scrut_word z = (mmgr_scrut_word)(scrut.has_zero(wa) & keep);
-        const mmgr_scrut_word x =
-            (mmgr_scrut_word)((MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(wa ^ wb)) & keep);
+        const mmgr_scrut_word x = (mmgr_scrut_word)((MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(wa ^ wb)) & keep);
 
         if ((x | z) != 0)
         {
@@ -343,7 +312,7 @@ static inline mmgr_bool agree_cs(const char *a, const char *b, size_t read_cap, 
  * @param end_wins What happens when the terminator and the difference land in the same lane.
  * @return MMGR_TRUE if they agree.
  */
-static inline mmgr_bool agree_ci(const char *a, const char *b, size_t read_cap, int end_wins)
+static inline mmgr_bool MMGR_UNUSED agree_ci(const char *a, const char *b, size_t read_cap, int end_wins)
 {
     const size_t nw = mmgr_scrut_words(read_cap);
 
@@ -354,8 +323,8 @@ static inline mmgr_bool agree_ci(const char *a, const char *b, size_t read_cap, 
         const mmgr_scrut_word wa = scrut.load(a + at);
         const mmgr_scrut_word wb = scrut.load(b + at);
         const mmgr_scrut_word z = (mmgr_scrut_word)(scrut.has_zero(wa) & keep);
-        const mmgr_scrut_word x = (mmgr_scrut_word)(
-            (MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(scrut.xor_(wa, wb, MMGR_TRUE))) & keep);
+        const mmgr_scrut_word x =
+            (mmgr_scrut_word)((MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(scrut.xor_(wa, wb, MMGR_TRUE))) & keep);
 
         if ((x | z) != 0)
         {
@@ -374,7 +343,7 @@ static inline mmgr_bool agree_ci(const char *a, const char *b, size_t read_cap, 
  * @param read_cap How far it may read.
  * @return MMGR_TRUE if equal.
  */
-static inline mmgr_bool eq_cs(const char *a, const char *b, size_t read_cap)
+static inline mmgr_bool MMGR_UNUSED eq_cs(const char *a, const char *b, size_t read_cap)
 {
     return agree_cs(a, b, read_cap, 0);
 }
@@ -385,7 +354,7 @@ static inline mmgr_bool eq_cs(const char *a, const char *b, size_t read_cap)
  * @param read_cap How far it may read.
  * @return MMGR_TRUE if equal.
  */
-static inline mmgr_bool eq_ci(const char *a, const char *b, size_t read_cap)
+static inline mmgr_bool MMGR_UNUSED eq_ci(const char *a, const char *b, size_t read_cap)
 {
     return agree_ci(a, b, read_cap, 0);
 }
@@ -396,7 +365,7 @@ static inline mmgr_bool eq_ci(const char *a, const char *b, size_t read_cap)
  * @param read_cap How far it may read.
  * @return MMGR_TRUE if it does.
  */
-static inline mmgr_bool starts_cs(const char *s, const char *pre, size_t read_cap)
+static inline mmgr_bool MMGR_UNUSED starts_cs(const char *s, const char *pre, size_t read_cap)
 {
     return agree_cs(pre, s, read_cap, 1);
 }
@@ -407,31 +376,9 @@ static inline mmgr_bool starts_cs(const char *s, const char *pre, size_t read_ca
  * @param read_cap How far it may read.
  * @return MMGR_TRUE if it does.
  */
-static inline mmgr_bool starts_ci(const char *s, const char *pre, size_t read_cap)
+static inline mmgr_bool MMGR_UNUSED starts_ci(const char *s, const char *pre, size_t read_cap)
 {
     return agree_ci(pre, s, read_cap, 1);
-}
-
-/**
- * @brief Lane of a match, in scan direction.
- * @param m Lane mask, non-zero.
- * @param rev Scan backwards.
- * @return Lane index.
- */
-MMGR_INLINE size_t lane_of(mmgr_scrut_word m, int rev)
-{
-    return rev ? mmgr_scrut_lane_last(m) : mmgr_scrut_lane_first(m);
-}
-
-/**
- * @brief Clear a consumed lane, in scan direction.
- * @param m Lane mask.
- * @param rev Scan backwards.
- * @return @p m without that lane.
- */
-MMGR_INLINE mmgr_scrut_word drop_lane(mmgr_scrut_word m, int rev)
-{
-    return rev ? mmgr_scrut_drop_last(m) : mmgr_scrut_drop_first(m);
 }
 
 #ifndef MMGR_FAM_MIN_RUN
@@ -516,7 +463,7 @@ MMGR_INLINE size_t pick_rows(const char *needle, size_t nlen, mmgr_bool ci, size
  * @param dst_cap Size of @p dst including the terminator.
  * @return Length written.
  */
-static inline size_t copy(char *dst, const char *src, size_t dst_cap)
+static inline size_t MMGR_UNUSED copy(char *dst, const char *src, size_t dst_cap)
 {
     if (dst_cap == 0)
     {
@@ -537,7 +484,7 @@ static inline size_t copy(char *dst, const char *src, size_t dst_cap)
  * @param ci Fold case.
  * @return Offset of the first difference, or @p read_cap if they agree that far.
  */
-static size_t diff(const char *a, const char *b, size_t read_cap, mmgr_bool ci)
+static size_t MMGR_UNUSED diff(const char *a, const char *b, size_t read_cap, mmgr_bool ci)
 {
     if (ci)
     {
@@ -554,7 +501,7 @@ static size_t diff(const char *a, const char *b, size_t read_cap, mmgr_bool ci)
  * @param ci Fold case.
  * @return MMGR_TRUE if equal.
  */
-static mmgr_bool eq(const char *a, const char *b, size_t read_cap, mmgr_bool ci)
+static mmgr_bool MMGR_UNUSED eq(const char *a, const char *b, size_t read_cap, mmgr_bool ci)
 {
     if (ci)
     {
@@ -571,7 +518,7 @@ static mmgr_bool eq(const char *a, const char *b, size_t read_cap, mmgr_bool ci)
  * @param ci Fold case.
  * @return MMGR_TRUE if it does.
  */
-static mmgr_bool starts(const char *s, const char *pre, size_t read_cap, mmgr_bool ci)
+static mmgr_bool MMGR_UNUSED starts(const char *s, const char *pre, size_t read_cap, mmgr_bool ci)
 {
     if (ci)
     {
@@ -580,6 +527,7 @@ static mmgr_bool starts(const char *s, const char *pre, size_t read_cap, mmgr_bo
     return starts_cs(s, pre, read_cap);
 }
 
+#if MMGR_FAM_MIN_RUN != 0u
 /**
  * @brief Longest stretch of the needle whose bytes share one ASCII family.
  * @param needle Needle.
@@ -617,6 +565,7 @@ MMGR_INLINE size_t fam_run(const char *needle, size_t nlen, unsigned fmask, size
     *off = best_off;
     return best_len;
 }
+#endif
 
 /**
  * @brief Find @p needle in @p hay.
@@ -645,8 +594,7 @@ MMGR_INLINE size_t fam_run(const char *needle, size_t nlen, unsigned fmask, size
  * on it, once per row per word. Measured, that cost 1.349 cycles per byte against 0.887. find()
  * below is what makes it constant.
  */
-MMGR_INLINE const char *find_core(const char *hay, size_t read_cap, const char *needle, size_t needle_cap,
-                                  mmgr_bool ci)
+MMGR_INLINE const char *find_core(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, mmgr_bool ci)
 {
     const size_t nlen = len(needle, needle_cap);
 
@@ -776,7 +724,7 @@ static const char *find(const char *hay, size_t read_cap, const char *needle, si
  * @param ci Fold case.
  * @return MMGR_TRUE if found.
  */
-static mmgr_bool has(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, mmgr_bool ci)
+static mmgr_bool MMGR_UNUSED has(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, mmgr_bool ci)
 {
     return (mmgr_bool)(find(hay, read_cap, needle, needle_cap, ci) != NULL);
 }
@@ -789,7 +737,7 @@ static mmgr_bool has(const char *hay, size_t read_cap, const char *needle, size_
  * @param end_wins Whether the pattern ending counts as a match.
  * @return MMGR_SWAR_GO, MMGR_SWAR_YES or MMGR_SWAR_NO.
  */
-static int step_word(mmgr_scrut_word wa, mmgr_scrut_word wb, mmgr_bool ci, int end_wins)
+static int MMGR_UNUSED step_word(mmgr_scrut_word wa, mmgr_scrut_word wb, mmgr_bool ci, int end_wins)
 {
     if (ci)
     {
@@ -806,7 +754,7 @@ static int step_word(mmgr_scrut_word wa, mmgr_scrut_word wb, mmgr_bool ci, int e
  * @param end_wins Whether the pattern ending counts as a match.
  * @return MMGR_SWAR_GO, MMGR_SWAR_YES or MMGR_SWAR_NO.
  */
-static int step_byte(unsigned char ca, unsigned char cb, mmgr_bool ci, int end_wins)
+static int MMGR_UNUSED step_byte(unsigned char ca, unsigned char cb, mmgr_bool ci, int end_wins)
 {
     if (ci)
     {
@@ -822,7 +770,7 @@ static int step_byte(unsigned char ca, unsigned char cb, mmgr_bool ci, int end_w
  *
  * Was six compares and a branch. One shift and one and now.
  */
-static mmgr_bool ws(char c)
+static mmgr_bool MMGR_UNUSED ws(char c)
 {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
 }
@@ -832,7 +780,7 @@ static mmgr_bool ws(char c)
  * @param c Byte.
  * @return MMGR_TRUE if it is.
  */
-static mmgr_bool digit(char c)
+static mmgr_bool MMGR_UNUSED digit(char c)
 {
     return c >= '0' && c <= '9';
 }
@@ -843,7 +791,7 @@ static mmgr_bool digit(char c)
  * @param end Out. Where parsing stopped. May be NULL.
  * @return The value, or 0 if nothing parsed.
  */
-static long to_long(const char *s, const char **end)
+static long MMGR_UNUSED to_long(const char *s, const char **end)
 {
     const char *p = s;
     while (ws(*p))
@@ -882,7 +830,7 @@ static long to_long(const char *s, const char **end)
  * @param end Out. Where parsing stopped. May be NULL.
  * @return The value, or 0 if nothing parsed.
  */
-static unsigned long to_ulong(const char *s, const char **end)
+static unsigned long MMGR_UNUSED to_ulong(const char *s, const char **end)
 {
     const char *p = s;
     while (ws(*p))
@@ -916,7 +864,7 @@ static unsigned long to_ulong(const char *s, const char **end)
  * @param val In/out. Running value.
  * @param any Out. Set when at least one digit was consumed.
  */
-static void frac(const char **p, double *val, mmgr_bool *any)
+static void MMGR_UNUSED frac(const char **p, double *val, mmgr_bool *any)
 {
     (*p)++;
     double scale = 1.0;
@@ -933,7 +881,7 @@ static void frac(const char **p, double *val, mmgr_bool *any)
  * @param p In/out. Cursor.
  * @param val In/out. Running value.
  */
-static void expo(const char **p, double *val)
+static void MMGR_UNUSED expo(const char **p, double *val)
 {
     (*p)++;
     mmgr_bool eneg = MMGR_FALSE;
@@ -969,7 +917,7 @@ static void expo(const char **p, double *val)
  * @param end Out. Where parsing stopped. May be NULL.
  * @return The value, or 0 if nothing parsed.
  */
-static double to_double(const char *s, const char **end)
+static double MMGR_UNUSED to_double(const char *s, const char **end)
 {
     const char *p = s;
     while (ws(*p))
@@ -1017,11 +965,39 @@ static double to_double(const char *s, const char **end)
  * @param end Out. Where parsing stopped. May be NULL.
  * @return The value, or 0 if nothing parsed.
  */
-static float to_float(const char *s, const char **end)
+static float MMGR_UNUSED to_float(const char *s, const char **end)
 {
     return (float)to_double(s, end);
 }
 
+#if defined(MMGR_ORACLE_LIBC) && MMGR_ORACLE_LIBC
+#include "mmgr_oracle_libc.h"
+
+/**
+ * @brief Module namespace, pointed at libc where libc has an equivalent.
+ *
+ * Test only. diff, step_word and step_byte keep this library's own implementation because libc
+ * has nothing to compare them against - see mmgr_oracle_libc.h.
+ */
+const CellularumLaboroNs cellul = {
+    .len = mmgr_oracle_len,
+    .diff = diff,
+    .eq = mmgr_oracle_eq,
+    .starts = mmgr_oracle_starts,
+    .find = mmgr_oracle_find,
+    .has = mmgr_oracle_has,
+    .chr = mmgr_oracle_strchr,
+    .copy = mmgr_oracle_copy,
+    .step_word = step_word,
+    .step_byte = step_byte,
+    .ws = mmgr_oracle_ws,
+    .digit = mmgr_oracle_digit,
+    .to_long = mmgr_oracle_to_long,
+    .to_ulong = mmgr_oracle_to_ulong,
+    .to_double = mmgr_oracle_to_double,
+    .to_float = mmgr_oracle_to_float,
+};
+#else
 const CellularumLaboroNs cellul = {
     .len = len,
     .diff = diff,
@@ -1040,3 +1016,4 @@ const CellularumLaboroNs cellul = {
     .to_double = to_double,
     .to_float = to_float,
 };
+#endif

@@ -39,7 +39,8 @@ typedef struct
 
     struct SecureInternal *internal;
 } OccultumCustodiaeNs;
-MMGR_NS_LAYOUT_OPEN(OccultumCustodiaeNs, internal, alloc, span, persist_span, reset, mark, release, used, high_water, capacity, owns, slot_of);
+MMGR_NS_LAYOUT_OPEN(OccultumCustodiaeNs, internal, alloc, span, persist_span, reset, mark, release, used, high_water,
+                    capacity, owns, slot_of);
 
 /** @brief The pool. */
 extern struct SecureInternal mmgr_occult_state;
@@ -153,17 +154,17 @@ int mmgr_occult_slot_of(const void *p);
 
 /** @brief Module namespace. */
 MMGR_NS OccultumCustodiaeNs occult MMGR_UNUSED = {.alloc = mmgr_occult_capio,
-                                                                   .span = mmgr_occult_span,
-                                                                   .persist_span = mmgr_occult_persist_span,
-                                                                   .reset = mmgr_occult_reset,
-                                                                   .mark = mmgr_occult_mark,
-                                                                   .release = mmgr_occult_reddo,
-                                                                   .used = mmgr_occult_used,
-                                                                   .high_water = mmgr_occult_high_water,
-                                                                   .capacity = mmgr_occult_capacity,
-                                                                   .owns = mmgr_occult_owns,
-                                                                   .slot_of = mmgr_occult_slot_of,
-                                                                   .internal = &mmgr_occult_state};
+                                                  .span = mmgr_occult_span,
+                                                  .persist_span = mmgr_occult_persist_span,
+                                                  .reset = mmgr_occult_reset,
+                                                  .mark = mmgr_occult_mark,
+                                                  .release = mmgr_occult_reddo,
+                                                  .used = mmgr_occult_used,
+                                                  .high_water = mmgr_occult_high_water,
+                                                  .capacity = mmgr_occult_capacity,
+                                                  .owns = mmgr_occult_owns,
+                                                  .slot_of = mmgr_occult_slot_of,
+                                                  .internal = &mmgr_occult_state};
 
 MMGR_END_DECLS
 

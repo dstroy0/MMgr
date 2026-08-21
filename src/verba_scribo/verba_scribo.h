@@ -55,7 +55,8 @@ typedef struct
     void (*json)(mmgr_verba *b, const char *s);
     size_t (*finish)(mmgr_verba *b);
 } VerbaScriboNs;
-MMGR_NS_LAYOUT(VerbaScriboNs, put_n, put, put_clip, u64_clip, xml, ch, uint, u32w, hex, u32, u64, i64, sign_bit, is_inf, is_nan, g, fixed, json, finish);
+MMGR_NS_LAYOUT(VerbaScriboNs, put_n, put, put_clip, u64_clip, xml, ch, uint, u32w, hex, u32, u64, i64, sign_bit, is_inf,
+               is_nan, g, fixed, json, finish);
 
 /**
  * @brief Append @p sl bytes.
@@ -180,26 +181,103 @@ void mmgr_verba_json(mmgr_verba *b, const char *s);
  */
 size_t mmgr_verba_finish(mmgr_verba *b);
 
+#if defined(MMGR_ORACLE_LIBC) && MMGR_ORACLE_LIBC
+#include <math.h>
+#include <stdio.h>
+
+/*
+ * Test only. The parse side of this library was already oracled through strtod and strtof; these
+ * are the render side and the three predicates, which is the last real numeric logic that was only
+ * ever tested against itself.
+ *
+ * g and fixed take a builder rather than a buffer, so the adapter is a stack buffer and a put_n.
+ * The formatting itself - every digit, every rounding decision - is libc's.
+ */
+MMGR_INLINE void mmgr_oracle_verba_g(mmgr_verba *b, double v, unsigned sig)
+{
+    char tmp[64];
+    const int n = snprintf(tmp, sizeof tmp, "%.*g", (int)(sig ? sig : 6u), v);
+    if (n > 0)
+    {
+        mmgr_verba_put_n(b, tmp, (size_t)n);
+    }
+}
+
+MMGR_INLINE void mmgr_oracle_verba_fixed(mmgr_verba *b, double v, unsigned decimals)
+{
+    char tmp[64];
+    const int n = snprintf(tmp, sizeof tmp, "%.*f", (int)decimals, v);
+    if (n > 0)
+    {
+        mmgr_verba_put_n(b, tmp, (size_t)n);
+    }
+}
+
+/*
+ * The three predicates are type generic macros. Their dispatch narrows in an arm this call
+ * never takes, and the warning is about libc's expansion rather than about anything here.
+ */
+MMGR_DIAG_PUSH
+MMGR_DIAG_IGNORE("-Wfloat-conversion")
+MMGR_INLINE mmgr_bool mmgr_oracle_signbit(double v)
+{
+    return (mmgr_bool)(signbit(v) != 0);
+}
+
+MMGR_INLINE mmgr_bool mmgr_oracle_isinf(double v)
+{
+    return (mmgr_bool)(isinf(v) != 0);
+}
+
+MMGR_INLINE mmgr_bool mmgr_oracle_isnan(double v)
+{
+    return (mmgr_bool)(isnan(v) != 0);
+}
+
+MMGR_DIAG_POP
+
+/** @brief Module namespace, with the float entries pointed at libc. */
+MMGR_NS VerbaScriboNs verba MMGR_UNUSED = {.put_n = mmgr_verba_put_n,
+                                           .put = mmgr_verba_put,
+                                           .put_clip = mmgr_verba_put_clip,
+                                           .u64_clip = mmgr_verba_u64_clip,
+                                           .xml = mmgr_verba_xml,
+                                           .ch = mmgr_verba_ch,
+                                           .uint = mmgr_verba_uint,
+                                           .u32w = mmgr_verba_u32w,
+                                           .hex = mmgr_verba_hex,
+                                           .u32 = mmgr_verba_u32,
+                                           .u64 = mmgr_verba_u64,
+                                           .i64 = mmgr_verba_i64,
+                                           .sign_bit = mmgr_oracle_signbit,
+                                           .is_inf = mmgr_oracle_isinf,
+                                           .is_nan = mmgr_oracle_isnan,
+                                           .g = mmgr_oracle_verba_g,
+                                           .fixed = mmgr_oracle_verba_fixed,
+                                           .json = mmgr_verba_json,
+                                           .finish = mmgr_verba_finish};
+#else
 /** @brief Module namespace. */
 MMGR_NS VerbaScriboNs verba MMGR_UNUSED = {.put_n = mmgr_verba_put_n,
-                                                            .put = mmgr_verba_put,
-                                                            .put_clip = mmgr_verba_put_clip,
-                                                            .u64_clip = mmgr_verba_u64_clip,
-                                                            .xml = mmgr_verba_xml,
-                                                            .ch = mmgr_verba_ch,
-                                                            .uint = mmgr_verba_uint,
-                                                            .u32w = mmgr_verba_u32w,
-                                                            .hex = mmgr_verba_hex,
-                                                            .u32 = mmgr_verba_u32,
-                                                            .u64 = mmgr_verba_u64,
-                                                            .i64 = mmgr_verba_i64,
-                                                            .sign_bit = mmgr_signbit,
-                                                            .is_inf = mmgr_isinf,
-                                                            .is_nan = mmgr_isnan,
-                                                            .g = mmgr_verba_g,
-                                                            .fixed = mmgr_verba_fixed,
-                                                            .json = mmgr_verba_json,
-                                                            .finish = mmgr_verba_finish};
+                                           .put = mmgr_verba_put,
+                                           .put_clip = mmgr_verba_put_clip,
+                                           .u64_clip = mmgr_verba_u64_clip,
+                                           .xml = mmgr_verba_xml,
+                                           .ch = mmgr_verba_ch,
+                                           .uint = mmgr_verba_uint,
+                                           .u32w = mmgr_verba_u32w,
+                                           .hex = mmgr_verba_hex,
+                                           .u32 = mmgr_verba_u32,
+                                           .u64 = mmgr_verba_u64,
+                                           .i64 = mmgr_verba_i64,
+                                           .sign_bit = mmgr_signbit,
+                                           .is_inf = mmgr_isinf,
+                                           .is_nan = mmgr_isnan,
+                                           .g = mmgr_verba_g,
+                                           .fixed = mmgr_verba_fixed,
+                                           .json = mmgr_verba_json,
+                                           .finish = mmgr_verba_finish};
+#endif
 
 MMGR_END_DECLS
 

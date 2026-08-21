@@ -69,7 +69,8 @@ typedef struct
     void (*mv_put)(unsigned char *p, mmgr_migro_word v);
     void (*read)(void *dst, const void *p, size_t sz);
 } ProximusOperorNs;
-MMGR_NS_LAYOUT(ProximusOperorNs, u16, u32, u64, load, put_u16, put_u32, put_u64, al_load, al_put_u16, al_put_u32, al_put_u64, mv_load, mv_put, read);
+MMGR_NS_LAYOUT(ProximusOperorNs, u16, u32, u64, load, put_u16, put_u32, put_u64, al_load, al_put_u16, al_put_u32,
+               al_put_u64, mv_load, mv_put, read);
 
 /**
  * @brief Read a uint16 at any alignment.
@@ -119,8 +120,12 @@ MMGR_INLINE uint64_t mmgr_proxim_load(const void *p, size_t n)
         return mmgr_proxim_u32(p);
     case 8:
         return mmgr_proxim_u64(p);
+    /* GCOVR_EXCL_START - unreachable from inside the library: every internal call passes
+       MMGR_SWAR_BYTES or MMGR_RAW_WORD, which are 2, 4 or 8 on every target. Kept because these are
+       public entries and a caller can pass anything. */
     default:
         return 0;
+        /* GCOVR_EXCL_STOP */
     }
 }
 
@@ -172,8 +177,12 @@ MMGR_INLINE uint64_t mmgr_aequus_load(const void *p, size_t n)
         return *(const mmgr_aequus_u32_t *)p;
     case 8:
         return *(const mmgr_aequus_u64_t *)p;
+    /* GCOVR_EXCL_START - unreachable from inside the library: every internal call passes
+       MMGR_SWAR_BYTES or MMGR_RAW_WORD, which are 2, 4 or 8 on every target. Kept because these are
+       public entries and a caller can pass anything. */
     default:
         return 0;
+        /* GCOVR_EXCL_STOP */
     }
 }
 
@@ -243,19 +252,19 @@ void mmgr_proxim_read(void *dst, const void *p, size_t sz);
 
 /** @brief Module namespace. */
 MMGR_NS ProximusOperorNs proxim MMGR_UNUSED = {.u16 = mmgr_proxim_u16,
-                                                                .u32 = mmgr_proxim_u32,
-                                                                .u64 = mmgr_proxim_u64,
-                                                                .load = mmgr_proxim_load,
-                                                                .put_u16 = mmgr_proxim_put_u16,
-                                                                .put_u32 = mmgr_proxim_put_u32,
-                                                                .put_u64 = mmgr_proxim_put_u64,
-                                                                .al_load = mmgr_aequus_load,
-                                                                .al_put_u16 = mmgr_aequus_put_u16,
-                                                                .al_put_u32 = mmgr_aequus_put_u32,
-                                                                .al_put_u64 = mmgr_aequus_put_u64,
-                                                                .mv_load = mmgr_migro_load,
-                                                                .mv_put = mmgr_migro_put,
-                                                                .read = mmgr_proxim_read};
+                                               .u32 = mmgr_proxim_u32,
+                                               .u64 = mmgr_proxim_u64,
+                                               .load = mmgr_proxim_load,
+                                               .put_u16 = mmgr_proxim_put_u16,
+                                               .put_u32 = mmgr_proxim_put_u32,
+                                               .put_u64 = mmgr_proxim_put_u64,
+                                               .al_load = mmgr_aequus_load,
+                                               .al_put_u16 = mmgr_aequus_put_u16,
+                                               .al_put_u32 = mmgr_aequus_put_u32,
+                                               .al_put_u64 = mmgr_aequus_put_u64,
+                                               .mv_load = mmgr_migro_load,
+                                               .mv_put = mmgr_migro_put,
+                                               .read = mmgr_proxim_read};
 
 MMGR_END_DECLS
 

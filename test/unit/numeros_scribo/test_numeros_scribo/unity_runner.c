@@ -9,6 +9,17 @@ extern void setUp(void);
 extern void tearDown(void);
 extern void test_numer_header_is_self_contained(void);
 extern void test_numer_namespace_is_wired(void);
+extern void test_write_literal(void);
+extern void test_write_mixes_kinds(void);
+extern void test_write_carries_width(void);
+extern void test_write_default_width_when_unstated(void);
+extern void test_write_counts_its_own_arguments(void);
+extern void test_write_overflow_reports_and_terminates(void);
+extern void test_write_append_builds_on_what_is_there(void);
+extern void test_write_escapes(void);
+extern void test_write_matches_the_namespace_entry(void);
+extern void test_emit_rejects_an_unknown_kind(void);
+extern void test_emit_of_nothing_is_empty_not_garbage(void);
 
 
 /*=======Mock Management=====*/
@@ -78,6 +89,17 @@ int main(void)
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/numeros_scribo/test_numeros_scribo\\test_numeros_scribo.c");
   run_test(test_numer_header_is_self_contained, "test_numer_header_is_self_contained", 8);
   run_test(test_numer_namespace_is_wired, "test_numer_namespace_is_wired", 13);
+  run_test(test_write_literal, "test_write_literal", 21);
+  run_test(test_write_mixes_kinds, "test_write_mixes_kinds", 28);
+  run_test(test_write_carries_width, "test_write_carries_width", 35);
+  run_test(test_write_default_width_when_unstated, "test_write_default_width_when_unstated", 42);
+  run_test(test_write_counts_its_own_arguments, "test_write_counts_its_own_arguments", 49);
+  run_test(test_write_overflow_reports_and_terminates, "test_write_overflow_reports_and_terminates", 58);
+  run_test(test_write_append_builds_on_what_is_there, "test_write_append_builds_on_what_is_there", 65);
+  run_test(test_write_escapes, "test_write_escapes", 73);
+  run_test(test_write_matches_the_namespace_entry, "test_write_matches_the_namespace_entry", 83);
+  run_test(test_emit_rejects_an_unknown_kind, "test_emit_rejects_an_unknown_kind", 94);
+  run_test(test_emit_of_nothing_is_empty_not_garbage, "test_emit_of_nothing_is_empty_not_garbage", 103);
 
   return UNITY_END();
 }

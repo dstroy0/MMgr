@@ -40,7 +40,8 @@ typedef struct
     double (*to_double)(const char *s, const char **end);
     float (*to_float)(const char *s, const char **end);
 } CellularumLaboroNs;
-MMGR_NS_LAYOUT(CellularumLaboroNs, len, diff, eq, starts, find, has, chr, copy, step_word, step_byte, ws, digit, to_long, to_ulong, to_double, to_float);
+MMGR_NS_LAYOUT(CellularumLaboroNs, len, diff, eq, starts, find, has, chr, copy, step_word, step_byte, ws, digit,
+               to_long, to_ulong, to_double, to_float);
 
 /** @brief Module namespace. */
 extern const CellularumLaboroNs cellul;

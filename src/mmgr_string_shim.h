@@ -14,14 +14,17 @@
  * Nothing in the library includes this and nothing changes if it is never included. Include it in a
  * translation unit and two things happen there:
  *
- * <string.h> stops being includable, whatever the include order, because this claims its include
- * guards first. A later include of it expands to nothing.
- *
  * memcpy, memmove, memcmp, memchr, memset, strlen, strstr, strcmp, strncmp and the rest become the
- * library's own entries. Existing code keeps its spelling and gets the SWAR implementations.
+ * library's own entries, from this line to the end of the translation unit. Existing code keeps its
+ * spelling and gets the SWAR implementations.
  *
- * It has to be first. Claiming a guard only works before the real header has been read. If
- * <string.h> is already in, this says so rather than half apply.
+ * <string.h> stops being includable, because this claims its include guards. A later include of it
+ * expands to nothing.
+ *
+ * Include order does not matter. Claiming a guard only helps when this comes first, but the aliases
+ * do not depend on it: they are macros, so every call site below this line is rewritten whether or
+ * not libc's declarations are already in scope. Coming first avoids pulling a header nobody needs;
+ * coming later still redirects every call after it.
  *
  * These are aliases, not wrappers. The library's entries are bounded and libc's are not, but the
  * bound is not a runtime argument being smuggled in - it is MMGR_STR_MAX, a compile time constant
@@ -47,21 +50,29 @@
 #define MMGR_STR_MAX MMGR_CONFIN_MAX
 #endif
 
-#if defined(_STRING_H) || defined(_STRING_H_) || defined(__STRING_H__) || defined(_INC_STRING) ||                       \
-    defined(_STRING_H_INCLUDED)
-#error "mmgr_string_shim.h must be included before <string.h> - something above it already pulled string.h in"
-#endif
-
 /*
  * Claimed for the libcs that matter: glibc and musl (_STRING_H), newlib, Cygwin and the BSDs
- * (_STRING_H_), and the odd spellings. A libc whose guard is not listed will still include its
- * header; the macros below then win at every call site, which is the same result by a longer road.
+ * (_STRING_H_), and the odd spellings. Setting one that is already set is a no-op, which is why
+ * this needs no guard and no complaint about include order - a libc already in scope keeps its
+ * declarations, and the macros below still win at every call site from here down.
+ *
+ * A libc whose guard is not listed will still include its header. Same result by a longer road.
  */
+#ifndef _STRING_H
 #define _STRING_H 1
+#endif
+#ifndef _STRING_H_
 #define _STRING_H_ 1
+#endif
+#ifndef __STRING_H__
 #define __STRING_H__ 1
+#endif
+#ifndef _STRING_H_INCLUDED
 #define _STRING_H_INCLUDED 1
+#endif
+#ifndef _INC_STRING
 #define _INC_STRING 1
+#endif
 
 MMGR_BEGIN_DECLS
 

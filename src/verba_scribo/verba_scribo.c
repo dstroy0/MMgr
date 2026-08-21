@@ -10,7 +10,7 @@
  * @brief Text building over caller memory. Overflow latches; the buffer is always terminated.
  */
 
-#define MMGR_G_WORK_BITS 58u
+#define MMGR_G_WORK_BITS 58U
 
 static const char mmgr_hex_lower[] = "0123456789abcdef";
 
@@ -146,11 +146,11 @@ void mmgr_verba_uint(mmgr_verba *b, uint64_t v, unsigned base, unsigned min_digi
         return;
     }
 
-    const unsigned bits_per_digit = (base == 16) ? 4u : (base == 8) ? 3u : 0u;
+    const unsigned bits_per_digit = (base == 16) ? 4U : (base == 8) ? 3U : 0U;
     const mmgr_bool power_of_two = bits_per_digit != 0;
-    const uint64_t digit_mask = power_of_two ? ((1ull << bits_per_digit) - 1u) : 0u;
+    const uint64_t digit_mask = power_of_two ? ((1ULL << bits_per_digit) - 1U) : 0U;
 
-    const mmgr_bool narrow = !power_of_two && v <= 0xFFFFFFFFu;
+    const mmgr_bool narrow = !power_of_two && v <= 0xFFFFFFFFU;
 
     uint64_t probe = v;
     unsigned digits = 1;
@@ -164,9 +164,9 @@ void mmgr_verba_uint(mmgr_verba *b, uint64_t v, unsigned base, unsigned min_digi
     else if (narrow)
     {
         uint32_t p32 = (uint32_t)v;
-        while (p32 >= 10u)
+        while (p32 >= 10U)
         {
-            p32 /= 10u;
+            p32 /= 10U;
             digits++;
         }
     }
@@ -200,8 +200,8 @@ void mmgr_verba_uint(mmgr_verba *b, uint64_t v, unsigned base, unsigned min_digi
         uint32_t v32 = (uint32_t)v;
         for (unsigned i = digits; i-- > 0;)
         {
-            b->p[b->len + i] = (char)('0' + (unsigned)(v32 % 10u));
-            v32 /= 10u;
+            b->p[b->len + i] = (char)('0' + (unsigned)(v32 % 10U));
+            v32 /= 10U;
         }
     }
     else
@@ -238,7 +238,7 @@ void mmgr_verba_u64(mmgr_verba *b, uint64_t v)
 void mmgr_verba_i64(mmgr_verba *b, int64_t v)
 {
 
-    uint64_t mag = (v < 0) ? (uint64_t)(-(v + 1)) + 1u : (uint64_t)v;
+    uint64_t mag = (v < 0) ? (uint64_t)(-(v + 1)) + 1U : (uint64_t)v;
     if (v < 0)
     {
         mmgr_verba_ch(b, '-');
@@ -248,17 +248,17 @@ void mmgr_verba_i64(mmgr_verba *b, int64_t v)
 
 mmgr_bool mmgr_signbit(double v)
 {
-    return mmgr_fract_sign(v) != 0u;
+    return mmgr_fract_sign(v) != 0U;
 }
 
 mmgr_bool mmgr_isinf(double v)
 {
-    return mmgr_fract_exp(v) == 0x7FFu && mmgr_fract_mant(v) == 0u;
+    return mmgr_fract_exp(v) == 0x7FFU && mmgr_fract_mant(v) == 0U;
 }
 
 mmgr_bool mmgr_isnan(double v)
 {
-    return mmgr_fract_exp(v) == 0x7FFu && mmgr_fract_mant(v) != 0u;
+    return mmgr_fract_exp(v) == 0x7FFU && mmgr_fract_mant(v) != 0U;
 }
 
 /**
@@ -296,16 +296,16 @@ static void sb_digits(mmgr_verba *b, uint64_t mant, unsigned digits, unsigned po
  */
 static void g_renorm(mmgr_u64 *n, mmgr_i32 *s)
 {
-    if (*n == 0u)
+    if (*n == 0U)
     {
         return;
     }
-    while (*n >= (1ull << MMGR_G_WORK_BITS))
+    while (*n >= (1ULL << MMGR_G_WORK_BITS))
     {
         *n >>= 1;
         *s += 1;
     }
-    while (*n < (1ull << (MMGR_G_WORK_BITS - 1u)))
+    while (*n < (1ULL << (MMGR_G_WORK_BITS - 1U)))
     {
         *n <<= 1;
         *s -= 1;
@@ -319,7 +319,7 @@ static void g_renorm(mmgr_u64 *n, mmgr_i32 *s)
  */
 static void g_mul10(mmgr_u64 *n, mmgr_i32 *s)
 {
-    *n *= 10u;
+    *n *= 10U;
     g_renorm(n, s);
 }
 
@@ -334,7 +334,7 @@ static void g_div10(mmgr_u64 *n, mmgr_i32 *s)
 {
     *n <<= 4;
     *s -= 4;
-    *n /= 10u;
+    *n /= 10U;
     g_renorm(n, s);
 }
 
@@ -351,14 +351,14 @@ static mmgr_u64 g_round(mmgr_u64 n, mmgr_i32 s)
         return n << (unsigned)s;
     }
     unsigned sh = (unsigned)(-s);
-    if (sh >= 64u)
+    if (sh >= 64U)
     {
-        return 0u;
+        return 0U;
     }
     mmgr_u64 r = n >> sh;
     mmgr_u64 rem = n - (r << sh);
-    mmgr_u64 half = 1ull << (sh - 1u);
-    if (rem > half || (rem == half && (r & 1u) != 0u))
+    mmgr_u64 half = 1ULL << (sh - 1U);
+    if (rem > half || (rem == half && (r & 1U) != 0U))
     {
         r++;
     }
@@ -393,24 +393,24 @@ void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig)
     }
     mmgr_u64 be = mmgr_fract_exp(v);
     mmgr_u64 n = mmgr_fract_mant(v);
-    if (be == 0u && n == 0u)
+    if (be == 0U && n == 0U)
     {
         mmgr_verba_ch(b, '0');
         return;
     }
 
     mmgr_i32 s = 1 - MMGR_DBL_BIAS - (mmgr_i32)MMGR_DBL_MANT_BITS;
-    if (be != 0u)
+    if (be != 0U)
     {
-        n |= 1ull << MMGR_DBL_MANT_BITS;
+        n |= 1ULL << MMGR_DBL_MANT_BITS;
         s = (mmgr_i32)be - MMGR_DBL_BIAS - (mmgr_i32)MMGR_DBL_MANT_BITS;
     }
     g_renorm(&n, &s);
 
-    mmgr_u64 limit = 1u;
+    mmgr_u64 limit = 1U;
     for (unsigned i = 0; i < sig; i++)
     {
-        limit *= 10u;
+        limit *= 10U;
     }
 
     int e = (int)(((int64_t)((int)MMGR_G_WORK_BITS - 1 + s) * 78913) >> 18);
@@ -428,14 +428,14 @@ void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig)
     }
 
     mmgr_u64 mant = g_round(n, s);
-    for (unsigned guard = 0; guard < 4u; guard++)
+    for (unsigned guard = 0; guard < 4U; guard++)
     {
         if (mant >= limit)
         {
             g_div10(&n, &s);
             e++;
         }
-        else if (sig > 1u && mant < limit / 10u)
+        else if (sig > 1U && mant < limit / 10U)
         {
             g_mul10(&n, &s);
             e--;
@@ -513,27 +513,27 @@ void mmgr_verba_fixed(mmgr_verba *b, double v, unsigned decimals)
         mmgr_verba_g(b, v, 10);
         return;
     }
-    if (decimals > 18u)
+    if (decimals > 18U)
     {
-        decimals = 18u;
+        decimals = 18U;
     }
-    mmgr_u64 scale = 1u;
+    mmgr_u64 scale = 1U;
     for (unsigned i = 0; i < decimals; i++)
     {
-        scale *= 10u;
+        scale *= 10U;
     }
 
     mmgr_u64 mant = mmgr_fract_mant(v);
     mmgr_u64 be = mmgr_fract_exp(v);
     mmgr_i32 exp2 = 1 - MMGR_DBL_BIAS - (mmgr_i32)MMGR_DBL_MANT_BITS;
-    if (be != 0u)
+    if (be != 0U)
     {
-        mant |= 1ull << MMGR_DBL_MANT_BITS;
+        mant |= 1ULL << MMGR_DBL_MANT_BITS;
         exp2 = (mmgr_i32)be - MMGR_DBL_BIAS - (mmgr_i32)MMGR_DBL_MANT_BITS;
     }
 
-    mmgr_u64 ip = 0u;
-    mmgr_u64 frac = 0u;
+    mmgr_u64 ip = 0U;
+    mmgr_u64 frac = 0U;
     if (exp2 >= 0)
     {
         ip = mant << (unsigned)exp2;
@@ -542,28 +542,28 @@ void mmgr_verba_fixed(mmgr_verba *b, double v, unsigned decimals)
     {
         unsigned shift = (unsigned)(-exp2);
         mmgr_u64 num = mant;
-        if (shift < 64u)
+        if (shift < 64U)
         {
             ip = mant >> shift;
             num = mant - (ip << shift);
         }
 
-        if (shift > 60u)
+        if (shift > 60U)
         {
-            num >>= (shift - 60u);
-            shift = 60u;
+            num >>= (shift - 60U);
+            shift = 60U;
         }
-        const mmgr_u64 den = 1ull << shift;
+        const mmgr_u64 den = 1ULL << shift;
         for (unsigned i = 0; i < decimals; i++)
         {
-            num *= 10u;
+            num *= 10U;
             mmgr_u64 digit = num >> shift;
             num -= digit << shift;
-            frac = frac * 10u + digit;
+            frac = frac * 10U + digit;
         }
 
-        mmgr_u64 twice = num * 2u;
-        if (twice > den || (twice == den && (frac & 1u) != 0u))
+        mmgr_u64 twice = num * 2U;
+        if (twice > den || (twice == den && (frac & 1U) != 0U))
         {
             frac++;
         }
@@ -571,7 +571,7 @@ void mmgr_verba_fixed(mmgr_verba *b, double v, unsigned decimals)
     if (frac >= scale)
     {
         ip++;
-        frac = 0u;
+        frac = 0U;
     }
     mmgr_verba_u64(b, ip);
     if (decimals)
@@ -597,7 +597,7 @@ void mmgr_verba_json(mmgr_verba *b, const char *s)
     for (const char *p = s ? s : ""; *p; p++)
     {
         const unsigned char c = (unsigned char)*p;
-        const char two = (c == '"' || c == '\\') ? (char)c : (c < 0x20u ? JSON_CTRL_ESC[c] : 0);
+        const char two = (c == '"' || c == '\\') ? (char)c : (c < 0x20U ? JSON_CTRL_ESC[c] : 0);
         if (two)
         {
             if (b->len + 2 >= b->cap)
@@ -608,7 +608,7 @@ void mmgr_verba_json(mmgr_verba *b, const char *s)
             b->p[b->len++] = '\\';
             b->p[b->len++] = two;
         }
-        else if (c < 0x20u)
+        else if (c < 0x20U)
         {
             if (b->len + 6 >= b->cap)
             {
@@ -619,8 +619,8 @@ void mmgr_verba_json(mmgr_verba *b, const char *s)
             b->p[b->len++] = 'u';
             b->p[b->len++] = '0';
             b->p[b->len++] = '0';
-            b->p[b->len++] = HEX[(c >> 4) & 0xFu];
-            b->p[b->len++] = HEX[c & 0xFu];
+            b->p[b->len++] = HEX[(c >> 4) & 0xFU];
+            b->p[b->len++] = HEX[c & 0xFU];
         }
         else if (b->len + 1 < b->cap)
         {

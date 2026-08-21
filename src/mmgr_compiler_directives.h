@@ -91,9 +91,12 @@
 #define MMGR_CAT(a, b) MMGR_CAT_(a, b)
 
 /** @brief Count variadic arguments, up to 24. */
-#define MMGR_NARG(...) MMGR_NARG_(__VA_ARGS__, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+#define MMGR_NARG(...)                                                                                                 \
+    MMGR_NARG_(__VA_ARGS__, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
 #define MMGR_NARG_(...) MMGR_ARG_N(__VA_ARGS__)
-#define MMGR_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, N, ...) N
+#define MMGR_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21,     \
+                   _22, _23, _24, N, ...)                                                                              \
+    N
 
 /**
  * @brief Call a backend with a compound literal, so the aggregate never appears at the call site.
@@ -140,33 +143,33 @@
 #define MMGR_NS_L8(T, a, b, c, d, e, f, g, h) MMGR_NS_L7(T, a, b, c, d, e, f, g) MMGR_NS_SLOT(T, h, 7);
 #define MMGR_NS_L9(T, a, b, c, d, e, f, g, h, i) MMGR_NS_L8(T, a, b, c, d, e, f, g, h) MMGR_NS_SLOT(T, i, 8);
 #define MMGR_NS_L10(T, a, b, c, d, e, f, g, h, i, j) MMGR_NS_L9(T, a, b, c, d, e, f, g, h, i) MMGR_NS_SLOT(T, j, 9);
-#define MMGR_NS_L11(T, a, b, c, d, e, f, g, h, i, j, k)                                                             \
+#define MMGR_NS_L11(T, a, b, c, d, e, f, g, h, i, j, k)                                                                \
     MMGR_NS_L10(T, a, b, c, d, e, f, g, h, i, j) MMGR_NS_SLOT(T, k, 10);
-#define MMGR_NS_L12(T, a, b, c, d, e, f, g, h, i, j, k, l)                                                          \
+#define MMGR_NS_L12(T, a, b, c, d, e, f, g, h, i, j, k, l)                                                             \
     MMGR_NS_L11(T, a, b, c, d, e, f, g, h, i, j, k) MMGR_NS_SLOT(T, l, 11);
-#define MMGR_NS_L13(T, a, b, c, d, e, f, g, h, i, j, k, l, m)                                                       \
+#define MMGR_NS_L13(T, a, b, c, d, e, f, g, h, i, j, k, l, m)                                                          \
     MMGR_NS_L12(T, a, b, c, d, e, f, g, h, i, j, k, l) MMGR_NS_SLOT(T, m, 12);
-#define MMGR_NS_L14(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n)                                                    \
+#define MMGR_NS_L14(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n)                                                       \
     MMGR_NS_L13(T, a, b, c, d, e, f, g, h, i, j, k, l, m) MMGR_NS_SLOT(T, n, 13);
-#define MMGR_NS_L15(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)                                                 \
+#define MMGR_NS_L15(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)                                                    \
     MMGR_NS_L14(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n) MMGR_NS_SLOT(T, o, 14);
-#define MMGR_NS_L16(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)                                              \
+#define MMGR_NS_L16(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)                                                 \
     MMGR_NS_L15(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) MMGR_NS_SLOT(T, p, 15);
-#define MMGR_NS_L17(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)                                           \
+#define MMGR_NS_L17(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)                                              \
     MMGR_NS_L16(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) MMGR_NS_SLOT(T, q, 16);
-#define MMGR_NS_L18(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)                                        \
+#define MMGR_NS_L18(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)                                           \
     MMGR_NS_L17(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) MMGR_NS_SLOT(T, r, 17);
-#define MMGR_NS_L19(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)                                     \
+#define MMGR_NS_L19(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)                                        \
     MMGR_NS_L18(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) MMGR_NS_SLOT(T, s, 18);
-#define MMGR_NS_L20(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)                                  \
+#define MMGR_NS_L20(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)                                     \
     MMGR_NS_L19(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) MMGR_NS_SLOT(T, t, 19);
-#define MMGR_NS_L21(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)                               \
+#define MMGR_NS_L21(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)                                  \
     MMGR_NS_L20(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) MMGR_NS_SLOT(T, u, 20);
-#define MMGR_NS_L22(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)                            \
+#define MMGR_NS_L22(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)                               \
     MMGR_NS_L21(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) MMGR_NS_SLOT(T, v, 21);
-#define MMGR_NS_L23(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w)                         \
+#define MMGR_NS_L23(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w)                            \
     MMGR_NS_L22(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) MMGR_NS_SLOT(T, w, 22);
-#define MMGR_NS_L24(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x)                      \
+#define MMGR_NS_L24(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x)                         \
     MMGR_NS_L23(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) MMGR_NS_SLOT(T, x, 23);
 
 /**
@@ -184,8 +187,8 @@
  */
 #define MMGR_NS_LAYOUT(T, ...)                                                                                         \
     MMGR_CAT(MMGR_NS_L, MMGR_NARG(__VA_ARGS__))(T, __VA_ARGS__)                                                        \
-    MMGR_STATIC_ASSERT(sizeof(T) == (size_t)MMGR_NARG(__VA_ARGS__) * MMGR_FP_SIZE,                                     \
-                       #T " has a member that is not in its dispatch list, or is padded")
+        MMGR_STATIC_ASSERT(sizeof(T) == (size_t)MMGR_NARG(__VA_ARGS__) * MMGR_FP_SIZE,                                 \
+                           #T " has a member that is not in its dispatch list, or is padded")
 
 /**
  * @brief Pin the dispatch slots of a table that carries state after its entries.
@@ -197,8 +200,8 @@
  */
 #define MMGR_NS_LAYOUT_OPEN(T, tail, ...)                                                                              \
     MMGR_CAT(MMGR_NS_L, MMGR_NARG(__VA_ARGS__))(T, __VA_ARGS__)                                                        \
-    MMGR_STATIC_ASSERT(offsetof(T, tail) == (size_t)MMGR_NARG(__VA_ARGS__) * MMGR_FP_SIZE,                             \
-                       #T "." #tail " does not begin where the dispatch run ends")
+        MMGR_STATIC_ASSERT(offsetof(T, tail) == (size_t)MMGR_NARG(__VA_ARGS__) * MMGR_FP_SIZE,                         \
+                           #T "." #tail " does not begin where the dispatch run ends")
 
 /**
  * @brief Storage for a dispatch table. The const is load bearing.
@@ -289,6 +292,36 @@
 #define MMGR_TU_PRAGMA(directive)
 #endif
 #define MMGR_OPTIMIZE_O2 MMGR_TU_PRAGMA(GCC optimize("O2"))
+
+/**
+ * @def MMGR_DIAG_PUSH
+ * @brief Save the diagnostic state.
+ * @def MMGR_DIAG_POP
+ * @brief Restore it.
+ * @def MMGR_DIAG_IGNORE
+ * @brief Silence one warning by its -W name, as a string.
+ *
+ * For a warning raised inside somebody else's macro, where the code that would have to change is
+ * not ours. A type-generic macro from <math.h> that narrows in an arm it does not take is the case
+ * this exists for. Never for a warning about code in this library - fix that instead.
+ *
+ * clang spells the pragma the same way but under its own name, so both are given.
+ */
+#if defined(__clang__)
+#define MMGR_DIAG_PUSH _Pragma("clang diagnostic push")
+#define MMGR_DIAG_POP _Pragma("clang diagnostic pop")
+#define MMGR_DIAG_IGNORE(w) _Pragma(MMGR_DIAG_STR(clang diagnostic ignored w))
+#define MMGR_DIAG_STR(x) #x
+#elif defined(__GNUC__)
+#define MMGR_DIAG_PUSH _Pragma("GCC diagnostic push")
+#define MMGR_DIAG_POP _Pragma("GCC diagnostic pop")
+#define MMGR_DIAG_STR(x) #x
+#define MMGR_DIAG_IGNORE(w) _Pragma(MMGR_DIAG_STR(GCC diagnostic ignored w))
+#else
+#define MMGR_DIAG_PUSH
+#define MMGR_DIAG_POP
+#define MMGR_DIAG_IGNORE(w)
+#endif
 
 /**
  * @brief 1 on a big endian target.

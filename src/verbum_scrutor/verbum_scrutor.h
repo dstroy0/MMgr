@@ -267,7 +267,7 @@ MMGR_INLINE size_t mmgr_scrut_words(size_t bytes)
  */
 #define MMGR_SCAN_MAX_WORDS ((MMGR_CONFIN_MAX + (MMGR_SWAR_BYTES - 1u)) / MMGR_SWAR_BYTES)
 
-MMGR_STATIC_ASSERT(MMGR_SCAN_MAX_WORDS * MMGR_SWAR_BYTES >= MMGR_CONFIN_MAX,
+MMGR_STATIC_ASSERT(MMGR_SCAN_MAX_WORDS *MMGR_SWAR_BYTES >= MMGR_CONFIN_MAX,
                    "the worst-case scan does not cover the largest tenant");
 MMGR_STATIC_ASSERT((MMGR_SCAN_MAX_WORDS - 1u) * MMGR_SWAR_BYTES < MMGR_CONFIN_MAX,
                    "the worst-case scan is padded by a whole word - the word count is not tight");

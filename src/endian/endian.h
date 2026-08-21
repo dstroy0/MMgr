@@ -31,7 +31,8 @@ typedef struct
     uint32_t (*rd32be)(const uint8_t *p);
     uint64_t (*rd64be)(const uint8_t *p);
 } EndianNs;
-MMGR_NS_LAYOUT(EndianNs, wr16le, wr32le, wr64le, rd16le, rd32le, rd64le, wr16be, wr32be, wr64be, rd16be, rd32be, rd64be);
+MMGR_NS_LAYOUT(EndianNs, wr16le, wr32le, wr64le, rd16le, rd32le, rd64le, wr16be, wr32be, wr64be, rd16be, rd32be,
+               rd64be);
 
 /**
  * @brief Write a uint16 in little endian order.
@@ -114,17 +115,17 @@ uint64_t mmgr_rd64be(const uint8_t *p);
 
 /** @brief Module namespace. */
 MMGR_NS EndianNs endian MMGR_UNUSED = {.wr16le = mmgr_wr16le,
-                                                        .wr32le = mmgr_wr32le,
-                                                        .wr64le = mmgr_wr64le,
-                                                        .rd16le = mmgr_rd16le,
-                                                        .rd32le = mmgr_rd32le,
-                                                        .rd64le = mmgr_rd64le,
-                                                        .wr16be = mmgr_wr16be,
-                                                        .wr32be = mmgr_wr32be,
-                                                        .wr64be = mmgr_wr64be,
-                                                        .rd16be = mmgr_rd16be,
-                                                        .rd32be = mmgr_rd32be,
-                                                        .rd64be = mmgr_rd64be};
+                                       .wr32le = mmgr_wr32le,
+                                       .wr64le = mmgr_wr64le,
+                                       .rd16le = mmgr_rd16le,
+                                       .rd32le = mmgr_rd32le,
+                                       .rd64le = mmgr_rd64le,
+                                       .wr16be = mmgr_wr16be,
+                                       .wr32be = mmgr_wr32be,
+                                       .wr64be = mmgr_wr64be,
+                                       .rd16be = mmgr_rd16be,
+                                       .rd32be = mmgr_rd32be,
+                                       .rd64be = mmgr_rd64be};
 
 MMGR_END_DECLS
 

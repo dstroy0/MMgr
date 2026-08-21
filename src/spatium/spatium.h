@@ -138,17 +138,17 @@ mmgr_bool mmgr_fspat_ok(mmgr_fspat s);
 
 /** @brief Module namespace. */
 MMGR_NS SpatiumNs spat MMGR_UNUSED = {.from = mmgr_spat_from,
-                                                       .ok = mmgr_spat_ok,
-                                                       .has_storage = mmgr_spat_has_storage,
-                                                       .len = mmgr_spat_len,
-                                                       .room = mmgr_spat_room,
-                                                       .reset = mmgr_spat_reset,
-                                                       .after = mmgr_spat_after,
-                                                       .first = mmgr_spat_first,
-                                                       .produced = mmgr_spat_produced,
-                                                       .read = mmgr_spat_read,
-                                                       .cfrom = mmgr_fspat_from,
-                                                       .cok = mmgr_fspat_ok};
+                                      .ok = mmgr_spat_ok,
+                                      .has_storage = mmgr_spat_has_storage,
+                                      .len = mmgr_spat_len,
+                                      .room = mmgr_spat_room,
+                                      .reset = mmgr_spat_reset,
+                                      .after = mmgr_spat_after,
+                                      .first = mmgr_spat_first,
+                                      .produced = mmgr_spat_produced,
+                                      .read = mmgr_spat_read,
+                                      .cfrom = mmgr_fspat_from,
+                                      .cok = mmgr_fspat_ok};
 
 MMGR_END_DECLS
 

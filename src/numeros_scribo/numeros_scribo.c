@@ -133,3 +133,105 @@ size_t mmgr_numer_append(char *out, size_t cap, const mmgr_field *spec, const mm
     }
     return used + n;
 }
+
+/**
+ * @brief Render one value.
+ * @param b Builder.
+ * @param a Value.
+ * @return MMGR_FALSE if the kind is not one this renders.
+ *
+ * Split out so the spec-driven entry and the spec-free one cannot drift apart.
+ */
+static mmgr_bool emit_one(mmgr_verba *b, const mmgr_fval *a, uint8_t width)
+{
+    switch (a->kind)
+    {
+    case MMGR_FK_STR:
+        verba.put(b, str_or_empty(a->as.s));
+        return MMGR_TRUE;
+    case MMGR_FK_U32:
+        verba.u32(b, a->as.u32);
+        return MMGR_TRUE;
+    case MMGR_FK_U64:
+        verba.u64(b, a->as.u64);
+        return MMGR_TRUE;
+    case MMGR_FK_I64:
+        verba.i64(b, a->as.i64);
+        return MMGR_TRUE;
+    case MMGR_FK_DEC:
+        verba.u32w(b, a->as.u32, width);
+        return MMGR_TRUE;
+    case MMGR_FK_HEX:
+        verba.hex(b, a->as.u64, width ? width : 1u);
+        return MMGR_TRUE;
+    case MMGR_FK_OCT:
+        verba.uint(b, a->as.u64, 8, width ? width : 1u);
+        return MMGR_TRUE;
+    case MMGR_FK_G:
+        verba.g(b, a->as.d, width ? width : 6u);
+        return MMGR_TRUE;
+    case MMGR_FK_FIX:
+        verba.fixed(b, a->as.d, width);
+        return MMGR_TRUE;
+    case MMGR_FK_CH:
+        verba.ch(b, a->as.c);
+        return MMGR_TRUE;
+    case MMGR_FK_JSON:
+        verba.json(b, str_or_empty(a->as.s));
+        return MMGR_TRUE;
+    case MMGR_FK_XML:
+        verba.xml(b, str_or_empty(a->as.s));
+        return MMGR_TRUE;
+    default:
+        return MMGR_FALSE;
+    }
+}
+
+size_t mmgr_numer_emit(char *out, size_t cap, const mmgr_fval *v, size_t nv)
+{
+    if (!out || cap == 0u)
+    {
+        return 0;
+    }
+    if (nv != 0u && !v)
+    {
+        out[0] = '\0';
+        return 0;
+    }
+
+    mmgr_verba b = {out, cap, 0, MMGR_TRUE};
+    for (size_t k = 0; k < nv; k++)
+    {
+        if (!emit_one(&b, &v[k], v[k].width))
+        {
+            out[0] = '\0';
+            return 0;
+        }
+    }
+    size_t n = verba.finish(&b);
+    if (n == 0)
+    {
+        out[0] = '\0';
+    }
+    return n;
+}
+
+size_t mmgr_numer_emit_append(char *out, size_t cap, const mmgr_fval *v, size_t nv)
+{
+    if (!out || cap == 0u)
+    {
+        return 0;
+    }
+    size_t used = cellul.len(out, cap);
+    if (used >= cap)
+    {
+        return 0;
+    }
+    size_t n = mmgr_numer_emit(out + used, cap - used, v, nv);
+    if (n == 0)
+    {
+        out[used] = '\0';
+        return 0;
+    }
+    return used + n;
+}
