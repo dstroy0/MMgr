@@ -119,7 +119,7 @@ jobs:
 
       - name: Upload warning log
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: doxygen-warnings-${{ github.run_id }}
           path: docs/doxygen-warnings.log
