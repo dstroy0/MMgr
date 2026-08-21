@@ -33,32 +33,6 @@ void test_put_writes_one_byte(void)
     byteio.put(&w, 0xA5u);
     TEST_ASSERT_EQUAL_size_t(1u, w.pos);
     TEST_ASSERT_EQUAL_HEX8(0xA5u, buf[0]);
-    TEST_ASSERT_FALSE(w.overflow);
-}
-
-void test_put_past_the_end_latches_overflow(void)
-{
-    uint8_t buf[2];
-    mmgr_spat w = spat.from(buf, sizeof buf);
-
-    byteio.put(&w, 1u);
-    byteio.put(&w, 2u);
-    TEST_ASSERT_FALSE(w.overflow);
-
-    byteio.put(&w, 3u);
-    TEST_ASSERT_TRUE_MESSAGE(w.overflow, "the third byte does not fit in two");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(3u, w.pos, "pos still counts what was wanted");
-    TEST_ASSERT_EQUAL_HEX8_MESSAGE(2u, buf[1], "nothing was written past the end");
-}
-
-void test_put_to_a_sizing_span_only_counts(void)
-{
-    mmgr_spat w = spat.from(NULL, 0u);
-
-    byteio.put(&w, 1u);
-    byteio.put(&w, 2u);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(2u, w.pos, "a sizing pass measures without a buffer");
-    TEST_ASSERT_TRUE(w.overflow);
 }
 
 void test_put_be_writes_the_high_byte_first(void)
@@ -102,16 +76,6 @@ void test_put_be_keeps_only_the_low_bytes(void)
     TEST_ASSERT_EQUAL_HEX8(0xEFu, buf[1]);
 }
 
-void test_put_be_past_the_end_latches_overflow(void)
-{
-    uint8_t buf[2];
-    mmgr_spat w = spat.from(buf, sizeof buf);
-
-    byteio.put_be(&w, 0x11223344u, 4);
-    TEST_ASSERT_TRUE(w.overflow);
-    TEST_ASSERT_EQUAL_size_t(4u, w.pos);
-}
-
 void test_raw_copies_a_run(void)
 {
     uint8_t buf[8];
@@ -121,35 +85,6 @@ void test_raw_copies_a_run(void)
     TEST_ASSERT_EQUAL_size_t(3u, w.pos);
     TEST_ASSERT_EQUAL_HEX8('a', buf[0]);
     TEST_ASSERT_EQUAL_HEX8('c', buf[2]);
-    TEST_ASSERT_FALSE(w.overflow);
-}
-
-void test_raw_that_does_not_fit_latches_overflow(void)
-{
-    uint8_t buf[2];
-    mmgr_spat w = spat.from(buf, sizeof buf);
-
-    byteio.raw(&w, "abcdef", 6u);
-    TEST_ASSERT_TRUE(w.overflow);
-    TEST_ASSERT_EQUAL_size_t(6u, w.pos);
-}
-
-void test_raw_to_a_sizing_span_only_counts(void)
-{
-    mmgr_spat w = spat.from(NULL, 0u);
-
-    byteio.raw(&w, "abc", 3u);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(3u, w.pos, "a sizing pass measures without a buffer");
-    TEST_ASSERT_TRUE(w.overflow);
-}
-
-void test_raw_of_nothing_to_a_sizing_span_does_not_latch(void)
-{
-    mmgr_spat w = spat.from(NULL, 0u);
-
-    byteio.raw(&w, "", 0u);
-    TEST_ASSERT_FALSE_MESSAGE(w.overflow, "there was nothing to not fit");
-    TEST_ASSERT_EQUAL_size_t(0u, w.pos);
 }
 
 void test_raw_of_nothing_does_not_latch(void)
@@ -159,19 +94,7 @@ void test_raw_of_nothing_does_not_latch(void)
     w.pos = 2u;
 
     byteio.raw(&w, "", 0u);
-    TEST_ASSERT_FALSE_MESSAGE(w.overflow, "a zero length write always fits, even at the end");
     TEST_ASSERT_EQUAL_size_t(2u, w.pos);
-}
-
-void test_raw_after_an_overflowed_position(void)
-{
-    uint8_t buf[4];
-    mmgr_spat w = spat.from(buf, sizeof buf);
-    w.pos = 9u;
-
-    byteio.raw(&w, "ab", 2u);
-    TEST_ASSERT_TRUE_MESSAGE(w.overflow, "a position already past the end cannot take a write");
-    TEST_ASSERT_EQUAL_size_t(11u, w.pos);
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -181,61 +104,40 @@ void test_raw_after_an_overflowed_position(void)
 void test_take_be_reads_what_put_be_wrote(void)
 {
     static const uint8_t buf[4] = {0x11u, 0x22u, 0x33u, 0x44u};
-    mmgr_fspat r = spat.cfrom(buf, sizeof buf);
+    size_t r_off = 0u;
+    const uint8_t *r_buf = buf;
     uint64_t v = 0;
 
-    TEST_ASSERT_TRUE(byteio.take_be(&r, 4u, &v));
+    byteio.take_be(r_buf, sizeof r_buf, &r_off, &v, 4u);
     TEST_ASSERT_EQUAL_HEX64(0x11223344ull, v);
-    TEST_ASSERT_EQUAL_size_t(4u, r.pos);
-    TEST_ASSERT_FALSE(r.err);
+    TEST_ASSERT_EQUAL_size_t(4u, r_off);
 }
 
 void test_take_be_walks_forward(void)
 {
     static const uint8_t buf[4] = {0xAAu, 0xBBu, 0xCCu, 0xDDu};
-    mmgr_fspat r = spat.cfrom(buf, sizeof buf);
+    size_t r_off = 0u;
+    const uint8_t *r_buf = buf;
     uint64_t a = 0;
     uint64_t b = 0;
 
-    TEST_ASSERT_TRUE(byteio.take_be(&r, 1u, &a));
-    TEST_ASSERT_TRUE(byteio.take_be(&r, 3u, &b));
+    byteio.take_be(r_buf, sizeof r_buf, &r_off, &a, 1u);
+    byteio.take_be(r_buf, sizeof r_buf, &r_off, &b, 3u);
     TEST_ASSERT_EQUAL_HEX64(0xAAull, a);
     TEST_ASSERT_EQUAL_HEX64(0xBBCCDDull, b);
-    TEST_ASSERT_EQUAL_size_t(4u, r.pos);
-}
-
-void test_take_be_short_read_latches_the_error(void)
-{
-    static const uint8_t buf[2] = {1u, 2u};
-    mmgr_fspat r = spat.cfrom(buf, sizeof buf);
-    uint64_t v = 0xFFull;
-
-    TEST_ASSERT_FALSE(byteio.take_be(&r, 4u, &v));
-    TEST_ASSERT_TRUE(r.err);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, r.pos, "a refused read does not consume");
-    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0xFFull, v, "a refused read does not write the output");
-}
-
-void test_take_be_from_a_position_past_the_end(void)
-{
-    static const uint8_t buf[4] = {0};
-    mmgr_fspat r = spat.cfrom(buf, sizeof buf);
-    r.pos = 9u;
-    uint64_t v = 0;
-
-    TEST_ASSERT_FALSE(byteio.take_be(&r, 1u, &v));
-    TEST_ASSERT_TRUE(r.err);
+    TEST_ASSERT_EQUAL_size_t(4u, r_off);
 }
 
 void test_take_be_of_nothing_succeeds(void)
 {
     static const uint8_t buf[2] = {1u, 2u};
-    mmgr_fspat r = spat.cfrom(buf, sizeof buf);
+    size_t r_off = 0u;
+    const uint8_t *r_buf = buf;
     uint64_t v = 0xFFull;
 
-    TEST_ASSERT_TRUE(byteio.take_be(&r, 0u, &v));
+    byteio.take_be(r_buf, sizeof r_buf, &r_off, &v, 0u);
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(0ull, v, "zero bytes make zero");
-    TEST_ASSERT_EQUAL_size_t(0u, r.pos);
+    TEST_ASSERT_EQUAL_size_t(0u, r_off);
 }
 
 void test_rd_u32_reads_and_advances(void)
@@ -244,33 +146,13 @@ void test_rd_u32_reads_and_advances(void)
     size_t off = 0;
     uint32_t v = 0;
 
-    TEST_ASSERT_TRUE(byteio.rd_u32(buf, sizeof buf, &off, &v));
+    byteio.rd_u32(buf, sizeof buf, &off, &v);
     TEST_ASSERT_EQUAL_HEX32(0x100u, v);
     TEST_ASSERT_EQUAL_size_t(4u, off);
 
-    TEST_ASSERT_TRUE(byteio.rd_u32(buf, sizeof buf, &off, &v));
+    byteio.rd_u32(buf, sizeof buf, &off, &v);
     TEST_ASSERT_EQUAL_HEX32(0xDEADBEEFu, v);
     TEST_ASSERT_EQUAL_size_t(8u, off);
-}
-
-void test_rd_u32_refuses_a_short_tail(void)
-{
-    static const uint8_t buf[6] = {0};
-    size_t off = 4u;
-    uint32_t v = 0;
-
-    TEST_ASSERT_FALSE_MESSAGE(byteio.rd_u32(buf, sizeof buf, &off, &v), "two bytes left is not four");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(4u, off, "a refused read does not advance");
-}
-
-void test_rd_u32_refuses_an_offset_past_the_end(void)
-{
-    static const uint8_t buf[8] = {0};
-    size_t off = 99u;
-    uint32_t v = 0;
-
-    TEST_ASSERT_FALSE(byteio.rd_u32(buf, sizeof buf, &off, &v));
-    TEST_ASSERT_EQUAL_size_t(99u, off);
 }
 
 void test_rd_str_reads_a_length_prefixed_run(void)

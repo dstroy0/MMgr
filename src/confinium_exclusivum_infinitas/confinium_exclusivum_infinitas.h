@@ -284,17 +284,24 @@ static inline mmgr_bool mmgr_slot_take(_Atomic uint32_t *held, size_t idx)
     return (prev & bit) == 0u;
 }
 
+/** @brief A region a slot is holding off. Two values, which is what was ever written or read. */
+typedef struct
+{
+    const uint8_t *buf;
+    size_t len;
+} mmgr_keepout;
+
 /**
- * @brief Claim a slot and bind a read-only span to it.
+ * @brief Claim a slot and bind a region to it.
  * @param held Held bitmap.
- * @param keepout Span per slot.
+ * @param keepout Region per slot.
  * @param idx Slot index.
  * @param ptr Data.
  * @param len Its length.
  * @return MMGR_FALSE if the slot was already held.
  */
-static inline mmgr_bool mmgr_slot_hold(_Atomic uint32_t *held, mmgr_fspat *keepout, size_t idx, const uint8_t *ptr,
-                                       size_t len)
+static inline mmgr_bool mmgr_slot_hold(_Atomic uint32_t *held, mmgr_keepout *keepout, size_t idx,
+                                       const uint8_t *ptr, size_t len)
 {
     if (!mmgr_slot_take(held, idx))
     {
@@ -302,18 +309,16 @@ static inline mmgr_bool mmgr_slot_hold(_Atomic uint32_t *held, mmgr_fspat *keepo
     }
     keepout[idx].buf = ptr;
     keepout[idx].len = len;
-    keepout[idx].pos = 0;
-    keepout[idx].err = MMGR_FALSE;
     return MMGR_TRUE;
 }
 
 /**
  * @brief The span bound to a slot.
- * @param keepout Span per slot.
+ * @param keepout Region per slot.
  * @param idx Slot index.
- * @return The span.
+ * @return The region.
  */
-static inline const mmgr_fspat *mmgr_slot_keepout(const mmgr_fspat *keepout, size_t idx)
+static inline const mmgr_keepout *mmgr_slot_keepout(const mmgr_keepout *keepout, size_t idx)
 {
     return &keepout[idx];
 }

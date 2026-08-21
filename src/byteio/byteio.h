@@ -21,8 +21,8 @@ typedef struct
     void (*put)(mmgr_spat *w, uint8_t b);
     void (*put_be)(mmgr_spat *w, uint64_t val, int32_t nbytes);
     void (*raw)(mmgr_spat *w, const void *src, size_t n);
-    mmgr_bool (*take_be)(mmgr_fspat *r, size_t nbytes, uint64_t *out);
-    mmgr_bool (*rd_u32)(const uint8_t *p, size_t len, size_t *off, uint32_t *out);
+    void (*take_be)(const uint8_t *p, size_t len, size_t *off, uint64_t *out, size_t nbytes);
+    void (*rd_u32)(const uint8_t *p, size_t len, size_t *off, uint32_t *out);
     mmgr_bool (*rd_str)(const uint8_t *p, size_t len, size_t *off, const uint8_t **out, uint32_t *slen);
     mmgr_bool (*mpint_fixed)(const uint8_t *m, uint32_t mlen, uint8_t *out, size_t outlen);
 } ByteioNs;
@@ -50,12 +50,13 @@ void mmgr_byteio_put_be(mmgr_spat *w, uint64_t val, int32_t nbytes);
 void mmgr_byteio_bytes(mmgr_spat *w, const void *src, size_t n);
 /**
  * @brief Read an integer, big endian.
- * @param r Span reader.
- * @param nbytes How many bytes to read.
+ * @param p Buffer.
+ * @param len How far it may read.
+ * @param off In/out. Cursor.
  * @param out Out. The value.
- * @return MMGR_FALSE if the reader is short.
+ * @param nbytes How many bytes to read.
  */
-mmgr_bool mmgr_byteio_take_be(mmgr_fspat *r, size_t nbytes, uint64_t *out);
+void mmgr_byteio_take_be(const uint8_t *p, size_t len, size_t *off, uint64_t *out, size_t nbytes);
 /**
  * @brief Read a big endian uint32 at @p off and advance it.
  * @param p Buffer.
@@ -64,7 +65,7 @@ mmgr_bool mmgr_byteio_take_be(mmgr_fspat *r, size_t nbytes, uint64_t *out);
  * @param out Out. The value.
  * @return MMGR_FALSE if the buffer is short.
  */
-mmgr_bool mmgr_rd_u32(const uint8_t *p, size_t len, size_t *off, uint32_t *out);
+void mmgr_rd_u32(const uint8_t *p, size_t len, size_t *off, uint32_t *out);
 /**
  * @brief Read a length prefixed string at @p off and advance it.
  * @param p Buffer.

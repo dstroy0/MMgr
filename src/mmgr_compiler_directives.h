@@ -213,6 +213,7 @@
  */
 #define MMGR_NS static const
 
+
 /**
  * @brief Pack an enum to its declared width.
  *

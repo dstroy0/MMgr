@@ -7,8 +7,14 @@
 #include <setjmp.h>
 
 static jmp_buf s_trap;
-static volatile int s_trapped;
-static volatile int s_armed;
+/* Written by a fault handler and read by the code that armed it. That is a concurrent access and
+   an atomic is what says so - volatile describes storage that changes underneath you for reasons
+   outside the program, which is not this. */
+static _Atomic int s_trapped;
+static _Atomic int s_armed;
+
+/** @brief Where the probing read goes, so that it is a read. */
+static _Atomic unsigned char s_touched;
 
 #if defined(_WIN32)
 
@@ -133,17 +139,15 @@ unsigned char *mmgr_guard_run(void)
 
 int mmgr_guard_traps_on(const unsigned char *p)
 {
-    volatile unsigned char sink = 0;
-
     ensure();
     s_trapped = 0;
     s_armed = 1;
     if (setjmp(s_trap) == 0)
     {
-        sink = *p;
+        /* The read is the whole point, so it lands somewhere the optimizer cannot discard. */
+        s_touched = *p;
     }
     s_armed = 0;
-    (void)sink;
     return s_trapped;
 }
 

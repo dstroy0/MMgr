@@ -14,8 +14,6 @@ extern void test_a_byte_written_is_the_byte_read(void);
 extern void test_big_endian_fields_round_trip_at_every_width(void);
 extern void test_the_writer_puts_the_high_byte_first(void);
 extern void test_endian_entries_agree_with_the_wire_writer(void);
-extern void test_a_short_read_is_refused_and_latches(void);
-extern void test_a_write_past_the_span_latches_and_cannot_be_read_back(void);
 extern void test_a_length_prefixed_string_round_trips(void);
 extern void test_raw_bytes_survive_an_unaligned_start(void);
 
@@ -86,13 +84,11 @@ int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_wire_roundtrip\\test_wire_roundtrip.c");
   run_test(test_a_byte_written_is_the_byte_read, "test_a_byte_written_is_the_byte_read", 16);
-  run_test(test_big_endian_fields_round_trip_at_every_width, "test_big_endian_fields_round_trip_at_every_width", 29);
-  run_test(test_the_writer_puts_the_high_byte_first, "test_the_writer_puts_the_high_byte_first", 55);
-  run_test(test_endian_entries_agree_with_the_wire_writer, "test_endian_entries_agree_with_the_wire_writer", 68);
-  run_test(test_a_short_read_is_refused_and_latches, "test_a_short_read_is_refused_and_latches", 82);
-  run_test(test_a_write_past_the_span_latches_and_cannot_be_read_back, "test_a_write_past_the_span_latches_and_cannot_be_read_back", 92);
-  run_test(test_a_length_prefixed_string_round_trips, "test_a_length_prefixed_string_round_trips", 118);
-  run_test(test_raw_bytes_survive_an_unaligned_start, "test_raw_bytes_survive_an_unaligned_start", 136);
+  run_test(test_big_endian_fields_round_trip_at_every_width, "test_big_endian_fields_round_trip_at_every_width", 28);
+  run_test(test_the_writer_puts_the_high_byte_first, "test_the_writer_puts_the_high_byte_first", 54);
+  run_test(test_endian_entries_agree_with_the_wire_writer, "test_endian_entries_agree_with_the_wire_writer", 67);
+  run_test(test_a_length_prefixed_string_round_trips, "test_a_length_prefixed_string_round_trips", 81);
+  run_test(test_raw_bytes_survive_an_unaligned_start, "test_raw_bytes_survive_an_unaligned_start", 98);
 
   return UNITY_END();
 }

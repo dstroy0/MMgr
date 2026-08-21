@@ -131,7 +131,7 @@ void *mmgr_clarus_capio(size_t n, size_t align)
 mmgr_spat mmgr_clarus_span(size_t n, size_t align)
 {
 
-    return mmgr_spat_from((uint8_t *)mmgr_clarus_capio(n, align), n);
+    return spat.from((uint8_t *)mmgr_clarus_capio(n, align), n);
 }
 
 mmgr_spat mmgr_clarus_persist_span(size_t n)
@@ -140,7 +140,7 @@ mmgr_spat mmgr_clarus_persist_span(size_t n)
     int w = cur_worker();
     assert_single_owner(ctx, w);
 
-    return mmgr_spat_from((uint8_t *)mmgr_confin_persist_capio(bind(ctx, w), n), n);
+    return spat.from((uint8_t *)mmgr_confin_persist_capio(bind(ctx, w), n), n);
 }
 
 void mmgr_clarus_reset(void)

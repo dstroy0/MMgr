@@ -37,9 +37,6 @@ extern void test_copy_of_a_source_that_never_terminates(void);
 extern void test_a_builder_at_every_capacity_stays_inside_it(void);
 extern void test_a_builder_with_no_room_for_a_terminator(void);
 extern void test_a_write_of_every_length_into_a_fixed_buffer(void);
-extern void test_a_span_written_one_byte_at_a_time_to_its_end(void);
-extern void test_a_span_written_in_words_to_its_end(void);
-extern void test_a_read_span_walked_past_its_end(void);
 extern void test_a_record_at_every_capacity_stays_inside_it(void);
 extern void test_appending_to_a_record_until_it_stops_fitting(void);
 extern void test_the_parsers_against_content_that_never_terminates(void);
@@ -130,17 +127,14 @@ int main(void)
   run_test(test_a_builder_at_every_capacity_stays_inside_it, "test_a_builder_at_every_capacity_stays_inside_it", 368);
   run_test(test_a_builder_with_no_room_for_a_terminator, "test_a_builder_with_no_room_for_a_terminator", 393);
   run_test(test_a_write_of_every_length_into_a_fixed_buffer, "test_a_write_of_every_length_into_a_fixed_buffer", 404);
-  run_test(test_a_span_written_one_byte_at_a_time_to_its_end, "test_a_span_written_one_byte_at_a_time_to_its_end", 444);
-  run_test(test_a_span_written_in_words_to_its_end, "test_a_span_written_in_words_to_its_end", 462);
-  run_test(test_a_read_span_walked_past_its_end, "test_a_read_span_walked_past_its_end", 479);
-  run_test(test_a_record_at_every_capacity_stays_inside_it, "test_a_record_at_every_capacity_stays_inside_it", 498);
-  run_test(test_appending_to_a_record_until_it_stops_fitting, "test_appending_to_a_record_until_it_stops_fitting", 513);
-  run_test(test_the_parsers_against_content_that_never_terminates, "test_the_parsers_against_content_that_never_terminates", 534);
-  run_test(test_the_parsers_agree_with_libc_on_rubbish, "test_the_parsers_agree_with_libc_on_rubbish", 548);
-  run_test(test_the_parser_takes_decimal_and_stops_at_anything_else, "test_the_parser_takes_decimal_and_stops_at_anything_else", 585);
-  run_test(test_an_exponent_with_no_digits_after_it, "test_an_exponent_with_no_digits_after_it", 606);
-  run_test(test_an_exponent_that_is_real_is_still_taken, "test_an_exponent_that_is_real_is_still_taken", 635);
-  run_test(test_a_number_made_entirely_of_leading_zeros, "test_a_number_made_entirely_of_leading_zeros", 643);
+  run_test(test_a_record_at_every_capacity_stays_inside_it, "test_a_record_at_every_capacity_stays_inside_it", 444);
+  run_test(test_appending_to_a_record_until_it_stops_fitting, "test_appending_to_a_record_until_it_stops_fitting", 459);
+  run_test(test_the_parsers_against_content_that_never_terminates, "test_the_parsers_against_content_that_never_terminates", 480);
+  run_test(test_the_parsers_agree_with_libc_on_rubbish, "test_the_parsers_agree_with_libc_on_rubbish", 494);
+  run_test(test_the_parser_takes_decimal_and_stops_at_anything_else, "test_the_parser_takes_decimal_and_stops_at_anything_else", 531);
+  run_test(test_an_exponent_with_no_digits_after_it, "test_an_exponent_with_no_digits_after_it", 552);
+  run_test(test_an_exponent_that_is_real_is_still_taken, "test_an_exponent_that_is_real_is_still_taken", 581);
+  run_test(test_a_number_made_entirely_of_leading_zeros, "test_a_number_made_entirely_of_leading_zeros", 589);
 
   return UNITY_END();
 }

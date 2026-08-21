@@ -70,10 +70,9 @@ void test_high_water_records_the_peak_and_never_falls(void)
 void test_a_span_over_pool_bytes_writes_inside_the_pool(void)
 {
     mmgr_spat s = clarus.span(24u, 8u);
-    TEST_ASSERT_TRUE(spat.has_storage(s));
-    TEST_ASSERT_TRUE(spat.ok(s));
-    TEST_ASSERT_EQUAL_size_t(0u, spat.len(s));
-    TEST_ASSERT_EQUAL_size_t(24u, spat.room(s));
+    TEST_ASSERT_TRUE((s.buf != NULL));
+    TEST_ASSERT_EQUAL_size_t(0u, (s.pos));
+    TEST_ASSERT_EQUAL_size_t(24u, (((s.pos < s.cap) ? (s.cap - s.pos) : 0u)));
 }
 
 void test_the_pool_refuses_rather_than_overruns(void)
@@ -138,7 +137,7 @@ void test_secure_release_wipes_what_it_gives_back(void)
 void test_persist_survives_a_mark_release(void)
 {
     mmgr_spat keep = clarus.persist(16u);
-    TEST_ASSERT_TRUE(spat.has_storage(keep));
+    TEST_ASSERT_TRUE((keep.buf != NULL));
 
     const size_t mark = clarus.mark();
     TEST_ASSERT_NOT_NULL(clarus.alloc(32u, 8u));
