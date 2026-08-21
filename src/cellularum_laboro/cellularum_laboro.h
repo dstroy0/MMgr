@@ -43,8 +43,53 @@ typedef struct
 MMGR_NS_LAYOUT(CellularumLaboroNs, len, diff, eq, starts, find, has, chr, copy, step_word, step_byte, ws, digit,
                to_long, to_ulong, to_double, to_float);
 
-/** @brief Module namespace. */
-extern const CellularumLaboroNs cellul;
+/** @name The entries the table points at.
+ *  @brief Nameable so a static const table can name them, and for no other reason. The table is
+ *         still the whole surface: call through it.
+ *  @{ */
+size_t mmgr_cellul_len(const char *s, size_t nul_cap);
+size_t mmgr_cellul_diff(const char *a, const char *b, size_t read_cap, mmgr_bool ci);
+mmgr_bool mmgr_cellul_eq(const char *a, const char *b, size_t read_cap, mmgr_bool ci);
+mmgr_bool mmgr_cellul_starts(const char *s, const char *pre, size_t read_cap, mmgr_bool ci);
+const char *mmgr_cellul_find(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, mmgr_bool ci);
+mmgr_bool mmgr_cellul_has(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, mmgr_bool ci);
+const char *mmgr_cellul_chr(const char *s, size_t nul_cap, uint8_t c);
+size_t mmgr_cellul_copy(char *dst, const char *src, size_t dst_cap);
+int mmgr_cellul_step_word(mmgr_scrut_word wa, mmgr_scrut_word wb, mmgr_bool ci, int end_wins);
+int mmgr_cellul_step_byte(unsigned char ca, unsigned char cb, mmgr_bool ci, int end_wins);
+mmgr_bool mmgr_cellul_ws(char c);
+mmgr_bool mmgr_cellul_digit(char c);
+long mmgr_cellul_to_long(const char *s, const char **end);
+unsigned long mmgr_cellul_to_ulong(const char *s, const char **end);
+double mmgr_cellul_to_double(const char *s, const char **end);
+float mmgr_cellul_to_float(const char *s, const char **end);
+/** @} */
+
+/**
+ * @brief Module namespace.
+ *
+ * static const, like every other module's. gcc devirtualizes a call through one down to the
+ * inlined body and cannot do that through an extern one, where the table is in another
+ * translation unit and every call is a load and an indirect jump.
+ */
+MMGR_NS CellularumLaboroNs cellul MMGR_UNUSED = {
+    .len = mmgr_cellul_len,
+    .diff = mmgr_cellul_diff,
+    .eq = mmgr_cellul_eq,
+    .starts = mmgr_cellul_starts,
+    .find = mmgr_cellul_find,
+    .has = mmgr_cellul_has,
+    .chr = mmgr_cellul_chr,
+    .copy = mmgr_cellul_copy,
+    .step_word = mmgr_cellul_step_word,
+    .step_byte = mmgr_cellul_step_byte,
+    .ws = mmgr_cellul_ws,
+    .digit = mmgr_cellul_digit,
+    .to_long = mmgr_cellul_to_long,
+    .to_ulong = mmgr_cellul_to_ulong,
+    .to_double = mmgr_cellul_to_double,
+    .to_float = mmgr_cellul_to_float,
+};
 
 MMGR_FINIS_DECLS
 

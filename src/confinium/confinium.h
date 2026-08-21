@@ -57,7 +57,7 @@ typedef struct
  * @param base Buffer.
  * @param size Its size.
  */
-void mmgr_confin_init(mmgr_confin *a, void *base, size_t size);
+void mmgr_confin_init(mmgr_confin *const a, void *base, size_t size);
 
 /**
  * @brief Take @p n bytes that a mark release will not reclaim.
@@ -65,14 +65,14 @@ void mmgr_confin_init(mmgr_confin *a, void *base, size_t size);
  * @param n Byte count.
  * @return The bytes, or NULL if the two ends would meet.
  */
-void *mmgr_confin_persist_capio(mmgr_confin *a, size_t n);
+void *mmgr_confin_persist_capio(mmgr_confin *const a, size_t n);
 
 /**
  * @brief Give back a persist block.
  * @param a Tenant.
  * @param p A pointer from mmgr_confin_persist_capio.
  */
-void mmgr_confin_persist_reddo(mmgr_confin *a, void *p);
+void mmgr_confin_persist_reddo(mmgr_confin *const a, void *p);
 
 /**
  * @brief Take @p n bytes from the interim end, aligned.
@@ -81,7 +81,7 @@ void mmgr_confin_persist_reddo(mmgr_confin *a, void *p);
  * @param align Alignment, clamped into MMGR_CONFIN_ALIGN..MMGR_CONFIN_MAX_ALIGN.
  * @return The bytes, or NULL if the two ends would meet.
  */
-MMGR_INLINE void *mmgr_confin_interim_capio_aligned(mmgr_confin *a, size_t n, size_t align)
+MMGR_INLINE void *mmgr_confin_interim_capio_aligned(mmgr_confin *const a, size_t n, size_t align)
 {
     if (align < MMGR_CONFIN_ALIGN)
     {
@@ -121,14 +121,14 @@ MMGR_INLINE void *mmgr_confin_interim_capio_aligned(mmgr_confin *a, size_t n, si
  * @param n Byte count.
  * @return The bytes, or NULL if the two ends would meet.
  */
-void *mmgr_confin_interim_capio(mmgr_confin *a, size_t n);
+void *mmgr_confin_interim_capio(mmgr_confin *const a, size_t n);
 
 /**
  * @brief Current interim fill point.
  * @param a Tenant.
  * @return The mark.
  */
-MMGR_INLINE size_t mmgr_confin_interim_mark(const mmgr_confin *a)
+MMGR_INLINE size_t mmgr_confin_interim_mark(mmgr_confin *const a)
 {
     return a->scratch_top;
 }
@@ -138,7 +138,7 @@ MMGR_INLINE size_t mmgr_confin_interim_mark(const mmgr_confin *a)
  * @param a Tenant.
  * @param mark A mark from this tenant. A stale or forward mark is ignored.
  */
-MMGR_INLINE void mmgr_confin_interim_reddo(mmgr_confin *a, size_t mark)
+MMGR_INLINE void mmgr_confin_interim_reddo(mmgr_confin *const a, size_t mark)
 {
 
     if (mark >= a->scratch_top && mark <= a->size)
@@ -151,7 +151,7 @@ MMGR_INLINE void mmgr_confin_interim_reddo(mmgr_confin *a, size_t mark)
  * @brief Release all interim.
  * @param a Tenant.
  */
-MMGR_INLINE void mmgr_confin_interim_reset(mmgr_confin *a)
+MMGR_INLINE void mmgr_confin_interim_reset(mmgr_confin *const a)
 {
     a->scratch_top = a->size;
 }
@@ -162,7 +162,7 @@ MMGR_INLINE void mmgr_confin_interim_reset(mmgr_confin *a)
  * @param p Pointer.
  * @return MMGR_TRUE if it is.
  */
-MMGR_INLINE mmgr_bool mmgr_confin_owns(const mmgr_confin *a, const void *p)
+MMGR_INLINE mmgr_bool mmgr_confin_owns(mmgr_confin *const a, const void *p)
 {
     const uint8_t *q = (const uint8_t *)p;
     return a->base != NULL && q >= a->base && q < a->base + a->size;
@@ -173,21 +173,21 @@ MMGR_INLINE mmgr_bool mmgr_confin_owns(const mmgr_confin *a, const void *p)
  * @param a Tenant.
  * @return Byte count.
  */
-size_t mmgr_confin_octas_praesto(const mmgr_confin *a);
+size_t mmgr_confin_octas_praesto(mmgr_confin *const a);
 
 /**
  * @brief How much the persist end holds.
  * @param a Tenant.
  * @return Byte count.
  */
-size_t mmgr_confin_persist_used(const mmgr_confin *a);
+size_t mmgr_confin_persist_used(mmgr_confin *const a);
 
 /**
  * @brief How much the interim end holds.
  * @param a Tenant.
  * @return Byte count.
  */
-MMGR_INLINE size_t mmgr_confin_interim_used(const mmgr_confin *a)
+MMGR_INLINE size_t mmgr_confin_interim_used(mmgr_confin *const a)
 {
     return a->size - a->scratch_top;
 }
@@ -215,7 +215,7 @@ typedef struct
  * @brief Empty a set.
  * @param s Set.
  */
-void mmgr_confin_set_init(mmgr_confin_set *s);
+void mmgr_confin_set_init(mmgr_confin_set *const s);
 
 /**
  * @brief Add a region.
@@ -224,7 +224,7 @@ void mmgr_confin_set_init(mmgr_confin_set *s);
  * @param size Its size.
  * @return MMGR_FALSE if the set is full or the region is too small to hold anything.
  */
-mmgr_bool mmgr_confin_set_add(mmgr_confin_set *s, void *base, size_t size);
+mmgr_bool mmgr_confin_set_add(mmgr_confin_set *const s, void *base, size_t size);
 
 /**
  * @brief Take persist bytes from the first region with room.
@@ -232,14 +232,14 @@ mmgr_bool mmgr_confin_set_add(mmgr_confin_set *s, void *base, size_t size);
  * @param n Byte count.
  * @return The bytes, or NULL if no region has room.
  */
-void *mmgr_confin_set_persist_capio(mmgr_confin_set *s, size_t n);
+void *mmgr_confin_set_persist_capio(mmgr_confin_set *const s, size_t n);
 
 /**
  * @brief Give back a persist block to whichever region owns it.
  * @param s Set.
  * @param p A pointer from mmgr_confin_set_persist_capio.
  */
-void mmgr_confin_set_persist_reddo(mmgr_confin_set *s, void *p);
+void mmgr_confin_set_persist_reddo(mmgr_confin_set *const s, void *p);
 
 /**
  * @brief Take interim bytes from the first region with room, aligned.
@@ -248,7 +248,7 @@ void mmgr_confin_set_persist_reddo(mmgr_confin_set *s, void *p);
  * @param align Alignment.
  * @return The bytes, or NULL if no region has room.
  */
-void *mmgr_confin_set_interim_capio_aligned(mmgr_confin_set *s, size_t n, size_t align);
+void *mmgr_confin_set_interim_capio_aligned(mmgr_confin_set *const s, size_t n, size_t align);
 
 /**
  * @brief Take interim bytes from the first region with room.
@@ -256,48 +256,48 @@ void *mmgr_confin_set_interim_capio_aligned(mmgr_confin_set *s, size_t n, size_t
  * @param n Byte count.
  * @return The bytes, or NULL if no region has room.
  */
-void *mmgr_confin_set_interim_capio(mmgr_confin_set *s, size_t n);
+void *mmgr_confin_set_interim_capio(mmgr_confin_set *const s, size_t n);
 
 /**
  * @brief Every region's interim fill point.
  * @param s Set.
  * @return The mark.
  */
-mmgr_confin_mark mmgr_confin_set_interim_mark(const mmgr_confin_set *s);
+mmgr_confin_mark mmgr_confin_set_interim_mark(mmgr_confin_set *const s);
 
 /**
  * @brief Release every region's interim back to @p m.
  * @param s Set.
  * @param m A mark from this set.
  */
-void mmgr_confin_set_interim_reddo(mmgr_confin_set *s, const mmgr_confin_mark *m);
+void mmgr_confin_set_interim_reddo(mmgr_confin_set *const s, const mmgr_confin_mark *m);
 
 /**
  * @brief Release all interim in every region.
  * @param s Set.
  */
-void mmgr_confin_set_interim_reset(mmgr_confin_set *s);
+void mmgr_confin_set_interim_reset(mmgr_confin_set *const s);
 
 /**
  * @brief How many bytes the set can still hand out.
  * @param s Set.
  * @return Byte count, summed over the regions.
  */
-size_t mmgr_confin_set_octas_praesto(const mmgr_confin_set *s);
+size_t mmgr_confin_set_octas_praesto(mmgr_confin_set *const s);
 
 /**
  * @brief How much persist the set holds.
  * @param s Set.
  * @return Byte count, summed over the regions.
  */
-size_t mmgr_confin_set_persist_used(const mmgr_confin_set *s);
+size_t mmgr_confin_set_persist_used(mmgr_confin_set *const s);
 
 /**
  * @brief How much interim the set holds.
  * @param s Set.
  * @return Byte count, summed over the regions.
  */
-size_t mmgr_confin_set_interim_used(const mmgr_confin_set *s);
+size_t mmgr_confin_set_interim_used(mmgr_confin_set *const s);
 
 MMGR_FINIS_DECLS
 

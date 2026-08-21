@@ -77,24 +77,6 @@ void mmgr_memor_set(void *dst, unsigned char v, size_t n);
  */
 void mmgr_memor_zero(void *dst, size_t n);
 
-#if defined(MMGR_ORACLE_LIBC) && MMGR_ORACLE_LIBC
-#include "config/mmgr_oracle_libc.h"
-
-/**
- * @brief Module namespace, pointed at libc.
- *
- * Test only. Every entry here has a direct libc equivalent, so the whole suite runs against libc
- * unchanged and any disagreement is a finding. See mmgr_oracle_libc.h.
- */
-MMGR_NS MemoriaOperorNs memor MMGR_UNUSED = {
-    .cpy = mmgr_oracle_cpy,
-    .move = mmgr_oracle_move,
-    .cmp = memcmp,
-    .chr = mmgr_oracle_chr,
-    .set = mmgr_oracle_set,
-    .zero = mmgr_oracle_zero,
-};
-#else
 /** @brief Module namespace. const is what lets the compiler devirtualize a call through it. */
 MMGR_NS MemoriaOperorNs memor MMGR_UNUSED = {
     .cpy = mmgr_memor_cpy,
@@ -104,7 +86,6 @@ MMGR_NS MemoriaOperorNs memor MMGR_UNUSED = {
     .set = mmgr_memor_set,
     .zero = mmgr_memor_zero,
 };
-#endif
 
 MMGR_FINIS_DECLS
 

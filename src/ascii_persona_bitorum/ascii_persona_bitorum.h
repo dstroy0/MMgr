@@ -74,37 +74,32 @@ MMGR_STATIC_ASSERT(sizeof(MmgrAsciiMask) == 16u, "an ASCII class mask is exactly
 #define MMGR_ASCII_CTRL_INIT                                            \
     {{0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80}}
 
-/** @brief 0-9 */
-static const MmgrAsciiMask mmgr_ascii_num MMGR_UNUSED = MMGR_ASCII_NUM_INIT;
-/** @brief A-Z a-z */
-static const MmgrAsciiMask mmgr_ascii_alpha MMGR_UNUSED = MMGR_ASCII_ALPHA_INIT;
-/** @brief 0-9 A-Z a-z */
-static const MmgrAsciiMask mmgr_ascii_alnum MMGR_UNUSED = MMGR_ASCII_ALNUM_INIT;
-/** @brief A-Z */
-static const MmgrAsciiMask mmgr_ascii_upper MMGR_UNUSED = MMGR_ASCII_UPPER_INIT;
-/** @brief a-z */
-static const MmgrAsciiMask mmgr_ascii_lower MMGR_UNUSED = MMGR_ASCII_LOWER_INIT;
-/** @brief 0-9 A-F a-f */
-static const MmgrAsciiMask mmgr_ascii_hex MMGR_UNUSED = MMGR_ASCII_HEX_INIT;
-/** @brief printable, not alphanumeric, not space */
-static const MmgrAsciiMask mmgr_ascii_punct MMGR_UNUSED = MMGR_ASCII_PUNCT_INIT;
-/** @brief space tab newline vtab formfeed return */
-static const MmgrAsciiMask mmgr_ascii_space MMGR_UNUSED = MMGR_ASCII_SPACE_INIT;
-/** @brief space through ~ */
-static const MmgrAsciiMask mmgr_ascii_print MMGR_UNUSED = MMGR_ASCII_PRINT_INIT;
-/** @brief below space, and DEL */
-static const MmgrAsciiMask mmgr_ascii_ctrl MMGR_UNUSED = MMGR_ASCII_CTRL_INIT;
+/** @brief Which class is being asked about. */
+typedef enum
+{
+    MMGR_ASCII_NUM = 0,
+    MMGR_ASCII_ALPHA,
+    MMGR_ASCII_ALNUM,
+    MMGR_ASCII_UPPER,
+    MMGR_ASCII_LOWER,
+    MMGR_ASCII_HEX,
+    MMGR_ASCII_PUNCT,
+    MMGR_ASCII_SPACE,
+    MMGR_ASCII_CTRL,
+    MMGR_ASCII_PRINT,
+    MMGR_ASCII_CLASSES
+} MmgrAsciiClass;
 
 /**
- * @brief Is @p c in class @p m.
- * @param m Class mask.
- * @param c Byte to test.
- * @return MMGR_TRUE if it is. Anything at or above 0x80 is never in a class.
+ * @brief Is @p c in class @p k.
+ * @param k The class.
+ * @param c The byte.
+ * @return MMGR_TRUE if it is. Bytes at or above 0x80 are in no class.
+ *
+ * The masks do not cross this header. A class is named by an index and answered by the file that
+ * holds them, so no translation unit that asks the question carries a copy of the answer.
  */
-MMGR_INLINE mmgr_bool mmgr_ascii_in(const MmgrAsciiMask *m, uint8_t c)
-{
-    return (mmgr_bool)((c < 0x80u) && (((m->b[c >> 3] >> (c & 7u)) & 1u) != 0u));
-}
+mmgr_bool mmgr_ascii_in(MmgrAsciiClass k, uint8_t c);
 
 MMGR_FINIS_DECLS
 

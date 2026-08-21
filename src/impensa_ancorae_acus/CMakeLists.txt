@@ -1,9 +1,15 @@
 # memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-# No .c. The module is one const table selected at compile time from a set of profile headers, so
-# there is nothing to compile - but it still needs a target per environment so a consumer picks it
-# up without crossing width settings, and so the profile headers are visible to the include root.
+# One profile, one translation unit. The table is file local to whichever of these is compiled,
+# so the four that are not selected are not in the image and none of the five puts a 256 byte
+# copy of itself into every module that asks what a byte costs.
+if(DEFINED MMGR_ANCORAE_FORMA)
+  string(TOLOWER "${MMGR_ANCORAE_FORMA}" _forma)
+else()
+  set(_forma generic)
+endif()
+
 mmgr_add_module(impensa_ancorae_acus
-  HEADER_ONLY
+  SOURCES impensa_ancorae_acus_${_forma}.c
 )

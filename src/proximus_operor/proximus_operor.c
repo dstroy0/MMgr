@@ -5,55 +5,114 @@
 /**
  * @file proximus_operor.c
  * @brief The one load and store entry that is not inline.
+ *
+ * Every entry below takes one parameter, a pointer to ProximCtx. The read is one job and its
+ * arguments and its cursor are one context.
  */
+
+/** @brief The read, in one place. */
+typedef struct
+{
+    unsigned char *d;       /**< Destination. */
+    const unsigned char *u; /**< Source. */
+    size_t sz;              /**< Byte count. */
+    size_t i;               /**< How far along. */
+} ProximCtx;
+
+/**
+ * @brief Copy single bytes until the destination sits on a word boundary.
+ * @param c In/out. The read.
+ */
+MMGR_INLINE void proxim_head(ProximCtx *c)
+{
+    const uintptr_t mask = (uintptr_t)(MMGR_RAW_WORD - 1u);
+
+    while ((c->i < c->sz) && (((uintptr_t)(c->d + c->i) & mask) != 0u))
+    {
+        c->d[c->i] = c->u[c->i];
+        c->i++;
+    }
+}
+
+/**
+ * @brief Word at a time while the source is on a boundary too.
+ * @param c In/out. The read.
+ */
+MMGR_INLINE void proxim_aligned(ProximCtx *c)
+{
+    while ((c->sz - c->i) >= MMGR_RAW_WORD)
+    {
+        mmgr_migro_put(c->d + c->i, mmgr_migro_load(c->u + c->i));
+        c->i += MMGR_RAW_WORD;
+    }
+}
+
+/**
+ * @brief Word at a time when the source is not, carrying the overlap across two loads.
+ * @param c In/out. The read.
+ *
+ * One load per word either way. The previous word is kept so the two halves either side of the
+ * boundary can be put together with shifts rather than read twice.
+ */
+MMGR_INLINE void proxim_straddled(ProximCtx *c)
+{
+    const uintptr_t mask = (uintptr_t)(MMGR_RAW_WORD - 1u);
+    const size_t off = (size_t)((uintptr_t)(c->u + c->i) & mask);
+    const unsigned char *sa = (c->u + c->i) - off;
+    const unsigned lo = (unsigned)(off * 8u);
+    const unsigned hi = (unsigned)(MMGR_MV_BITS - (off * 8u));
+    mmgr_migro_word prev = mmgr_migro_load(sa);
+
+    while ((c->sz - c->i) >= MMGR_RAW_WORD)
+    {
+        sa += MMGR_RAW_WORD;
+        const mmgr_migro_word cur = mmgr_migro_load(sa);
+#if MMGR_HW_BIG_ENDIAN
+        mmgr_migro_put(c->d + c->i, (mmgr_migro_word)((prev << lo) | (cur >> hi)));
+#else
+        mmgr_migro_put(c->d + c->i, (mmgr_migro_word)((prev >> lo) | (cur << hi)));
+#endif
+        prev = cur;
+        c->i += MMGR_RAW_WORD;
+    }
+}
+
+/**
+ * @brief Whatever is left after the last whole word.
+ * @param c In/out. The read.
+ */
+MMGR_INLINE void proxim_tail(ProximCtx *c)
+{
+    while (c->i < c->sz)
+    {
+        c->d[c->i] = c->u[c->i];
+        c->i++;
+    }
+}
+
+/**
+ * @brief The read.
+ * @param c In/out. The read.
+ */
+MMGR_INLINE void proxim_read(ProximCtx *c)
+{
+    const uintptr_t mask = (uintptr_t)(MMGR_RAW_WORD - 1u);
+
+    proxim_head(c);
+
+    if (((uintptr_t)(c->u + c->i) & mask) == 0u)
+    {
+        proxim_aligned(c);
+    }
+    else if ((c->sz - c->i) >= MMGR_RAW_WORD)
+    {
+        proxim_straddled(c);
+    }
+
+    proxim_tail(c);
+}
 
 void mmgr_proxim_read(void *dst, const void *p, size_t sz)
 {
-    unsigned char *d = (unsigned char *)dst;
-    const unsigned char *u = (const unsigned char *)p;
-    const uintptr_t mask = (uintptr_t)(MMGR_RAW_WORD - 1u);
-    size_t i = 0;
-
-    while (i < sz && ((uintptr_t)(d + i) & mask) != 0u)
-    {
-        d[i] = u[i];
-        i++;
-    }
-
-    const size_t off = (size_t)((uintptr_t)(u + i) & mask);
-    if (off == 0u)
-    {
-
-        while (sz - i >= MMGR_RAW_WORD)
-        {
-            mmgr_migro_put(d + i, mmgr_migro_load(u + i));
-            i += MMGR_RAW_WORD;
-        }
-    }
-    else if (sz - i >= MMGR_RAW_WORD)
-    {
-
-        const unsigned char *sa = (u + i) - off;
-        const unsigned lo = (unsigned)(off * 8u);
-        const unsigned hi = (unsigned)(MMGR_MV_BITS - (off * 8u));
-        mmgr_migro_word prev = mmgr_migro_load(sa);
-        while (sz - i >= MMGR_RAW_WORD)
-        {
-            sa += MMGR_RAW_WORD;
-            mmgr_migro_word cur = mmgr_migro_load(sa);
-#if MMGR_HW_BIG_ENDIAN
-            mmgr_migro_put(d + i, (mmgr_migro_word)((prev << lo) | (cur >> hi)));
-#else
-            mmgr_migro_put(d + i, (mmgr_migro_word)((prev >> lo) | (cur << hi)));
-#endif
-            prev = cur;
-            i += MMGR_RAW_WORD;
-        }
-    }
-
-    while (i < sz)
-    {
-        d[i] = u[i];
-        i++;
-    }
+    MMGR_CALL(proxim_read, ProximCtx, .d = (unsigned char *)dst, .u = (const unsigned char *)p, .sz = sz);
 }

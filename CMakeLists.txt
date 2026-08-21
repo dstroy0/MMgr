@@ -24,7 +24,6 @@ option(MMGR_LTO "Link-time optimization" ON)
 # It is the only thing that makes src/ include a header outside the budget, which is why it is a
 # separate option and never a default - the library exists so a target with no libc still has these
 # entries.
-option(MMGR_ORACLE_LIBC "Run the suite against libc instead of this library" OFF)
 
 # ------------------------------------------------------------------------------------------------
 # Optimization
@@ -52,11 +51,6 @@ foreach(_lang C)
 endforeach()
 
 # One place, so a warning that matters is on for the library, the tests and the benches alike.
-if(MMGR_ORACLE_LIBC)
-  add_compile_definitions(MMGR_ORACLE_LIBC=1)
-  message(STATUS "MMgr: ORACLE build - namespaces point at libc, not at this library")
-endif()
-
 add_library(mmgr_flags INTERFACE)
 target_compile_options(mmgr_flags INTERFACE
   $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wconversion;-Wsign-conversion;-Wcast-align;-Wcast-qual;-Wstrict-prototypes;-Wmissing-prototypes;-Wpointer-arith;-Wvla>

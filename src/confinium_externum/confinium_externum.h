@@ -47,28 +47,28 @@ typedef struct
  * @brief Start with buffer 0 filling.
  * @param pp State.
  */
-void mmgr_pingpong_init(PingPong *pp);
+void mmgr_pingpong_init(PingPong *const pp);
 
 /**
  * @brief Which buffer is filling.
  * @param pp State.
  * @return 0 or 1.
  */
-uint8_t mmgr_pingpong_fill_index(const PingPong *pp);
+uint8_t mmgr_pingpong_fill_index(PingPong *const pp);
 
 /**
  * @brief Which buffer is draining.
  * @param pp State.
  * @return 0 or 1.
  */
-uint8_t mmgr_pingpong_drain_index(const PingPong *pp);
+uint8_t mmgr_pingpong_drain_index(PingPong *const pp);
 
 /**
  * @brief Swap the two.
  * @param pp State.
  * @return The new fill index.
  */
-uint8_t mmgr_pingpong_swap(PingPong *pp);
+uint8_t mmgr_pingpong_swap(PingPong *const pp);
 
 MMGR_FINIS_DECLS
 

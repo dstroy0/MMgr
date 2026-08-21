@@ -1,10 +1,10 @@
 // memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// The parts of the decimal conversion that cannot be reached from outside it.
+// The parts of the engine that cannot be reached from outside it.
 //
-// Most of the module is tested through its namespace, which is the right way round: the entries are
-// the contract and the insides are free to change. Three things in the conversion are not reachable
+// Most of the engine is tested through the two entries it exports, which is the right way round:
+// those are the contract and the insides are free to change. Three things in it are not reachable
 // that way and are worth pinning anyway.
 //
 // A carry out of the middle column of the 128 by 128 multiply happens about once in 2^63 multiplies.
@@ -23,9 +23,7 @@
 // The translation unit is compiled in rather than linked, which is what makes the file-local
 // entries visible. Its namespace is renamed on the way in so it does not collide with the copy in
 // the library this suite also links.
-#define cellul cellul_internals
-#include "cellularum_laboro/cellularum_laboro.c"
-#undef cellul
+#include "transformo/transformo.c"
 
 #include "unity.h"
 
@@ -39,6 +37,14 @@ void tearDown(void)
 {
 }
 
+/* muto_round reads the sign off the context like everything else does. These cases were written
+   when it was a parameter, and what they are pinning is the rounding, not where the sign lives. */
+static double muto_round_probe(MutoCtx *c, mmgr_bool neg)
+{
+    c->neg = neg;
+    return muto_round(c);
+}
+
 /* ---------------------------------------------------------------------------------------------
  * the multiply
  * ------------------------------------------------------------------------------------------- */
@@ -47,26 +53,27 @@ void test_the_middle_column_carries_into_the_top(void)
 {
     // Solved for: the middle column lands two short of wrapping with two waiting below it, so the
     // add of the low carry takes it over and the top word has to take one.
-    mmgr_muto_fix f;
+    MutoCtx f;
     MmgrPow5 g;
 
     f.hi = 0xC000000000000000ULL;
     f.lo = 0xFFFFFFFFFFFFFFFEULL;
-    f.e2 = 0;
+    f.fe2 = 0;
     f.rest = 0;
 
     g.hi = 0x8000000000000001ULL;
     g.lo = 0xFFFFFFFFFFFFFFFFULL;
     g.e2 = 0;
 
-    mmgr_muto_mul_pow5(&f, &g);
+    f.pow = &g;
+    muto_mul_pow5(&f);
 
     // The full 256 bit product of these two is 0x6000000000000002 in its top word and nothing in
     // the one below, which is the carry arriving: without it the top word would read ...0000. The
     // normalise then brings the top bit up, one place, so what comes out is that doubled.
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(0xC000000000000004ULL, f.hi, "the top word did not take the carry");
     TEST_ASSERT_EQUAL_HEX64(0u, f.lo);
-    TEST_ASSERT_EQUAL_INT_MESSAGE(127, f.e2, "the exponent should carry the 128 and the shift back");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(127, f.fe2, "the exponent should carry the 128 and the shift back");
     TEST_ASSERT_TRUE_MESSAGE(f.rest != 0, "the dropped half was not empty and should have been remembered");
 }
 
@@ -76,6 +83,7 @@ void test_the_multiply_agrees_with_halves_done_by_hand(void)
     // test rather than by the same routine under test.
     static const mmgr_u64 vals[] = {0x8000000000000000ULL, 0xFFFFFFFFFFFFFFFFULL, 0x9E3779B97F4A7C15ULL,
                                     0xA000000000000000ULL, 0xCCCCCCCCCCCCCCCDULL};
+    MutoCtx f;
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
@@ -83,7 +91,11 @@ void test_the_multiply_agrees_with_halves_done_by_hand(void)
         {
             mmgr_u64 hi = 0;
             mmgr_u64 lo = 0;
-            mmgr_muto_mul(vals[i], vals[j], &hi, &lo);
+            f.a = vals[i];
+            f.b = vals[j];
+            muto_mul(&f);
+            hi = f.phi;
+            lo = f.plo;
 
             // The same product, one 32 bit column at a time.
             const mmgr_u64 m = 0xFFFFFFFFULL;
@@ -109,34 +121,34 @@ void test_the_multiply_agrees_with_halves_done_by_hand(void)
 
 void test_normalising_a_fraction_whose_high_word_is_empty(void)
 {
-    mmgr_muto_fix f;
+    MutoCtx f;
 
     f.hi = 0u;
     f.lo = 0x0000000000000001ULL;
-    f.e2 = 0;
+    f.fe2 = 0;
     f.rest = 0;
 
-    mmgr_muto_norm(&f);
+    muto_norm(&f);
 
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(0x8000000000000000ULL, f.hi, "the low word should have come up and been shifted");
     TEST_ASSERT_EQUAL_HEX64(0u, f.lo);
-    TEST_ASSERT_EQUAL_INT_MESSAGE(-64 - 63, f.e2, "the exponent should carry both the move and the shift");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(-64 - 63, f.fe2, "the exponent should carry both the move and the shift");
 }
 
 void test_normalising_nothing_leaves_it_alone(void)
 {
-    mmgr_muto_fix f;
+    MutoCtx f;
 
     f.hi = 0u;
     f.lo = 0u;
-    f.e2 = 7;
+    f.fe2 = 7;
     f.rest = 0;
 
-    mmgr_muto_norm(&f);
+    muto_norm(&f);
 
     TEST_ASSERT_EQUAL_HEX64(0u, f.hi);
     TEST_ASSERT_EQUAL_HEX64(0u, f.lo);
-    TEST_ASSERT_EQUAL_INT_MESSAGE(7, f.e2, "there was nothing to shift, so nothing should have moved");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(7, f.fe2, "there was nothing to shift, so nothing should have moved");
 }
 
 void test_the_leading_zero_count_at_every_position(void)
@@ -157,15 +169,15 @@ void test_the_leading_zero_count_at_every_position(void)
 /** @brief A fraction that will round to a mantissa with the given low bit, at a chosen tie. */
 static double round_of(mmgr_u64 mant53, unsigned half, unsigned rest, int e2)
 {
-    mmgr_muto_fix f;
+    MutoCtx f;
 
     // A 128 bit fraction whose high word is mant53 shifted up eleven stands for mant53 times two
     // to the eleven plus sixty four plus e2, so e2 of minus seventy five makes the value mant53.
     f.hi = (mant53 << 11) | ((mmgr_u64)half << 10);
     f.lo = 0u;
-    f.e2 = e2;
+    f.fe2 = e2;
     f.rest = (int)rest;
-    return mmgr_muto_round(&f, MMGR_FALSE);
+    return muto_round_probe(&f, MMGR_FALSE);
 }
 
 void test_an_exact_tie_goes_to_even(void)
@@ -201,13 +213,13 @@ void test_below_the_tie_goes_down(void)
 
 void test_rounding_a_fraction_of_nothing(void)
 {
-    mmgr_muto_fix f;
+    MutoCtx f;
 
     f.hi = 0u;
     f.lo = 0u;
-    f.e2 = 0;
+    f.fe2 = 0;
     f.rest = 0;
 
-    TEST_ASSERT_EQUAL_DOUBLE(0.0, mmgr_muto_round(&f, MMGR_FALSE));
-    TEST_ASSERT_TRUE_MESSAGE(mmgr_fract_sign(mmgr_muto_round(&f, MMGR_TRUE)) != 0u, "and it keeps a sign it was given");
+    TEST_ASSERT_EQUAL_DOUBLE(0.0, muto_round_probe(&f, MMGR_FALSE));
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_fract_sign(muto_round_probe(&f, MMGR_TRUE)) != 0u, "and it keeps a sign it was given");
 }

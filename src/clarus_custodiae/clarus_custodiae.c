@@ -6,6 +6,9 @@
 /**
  * @file clarus_custodiae.c
  * @brief The plaintext guardian. One tenant over a static buffer.
+ *
+ * Every entry below takes one parameter, a pointer to ClarusCtx. A take is a byte count, an
+ * alignment and the pool it comes from, so they are one context.
  */
 
 #define PLAIN_BLOCK_BYTES ((uintptr_t)MMGR_PLAINTEXT_CONFIN_SIZE)
@@ -14,7 +17,6 @@
 
 struct PlainStorage
 {
-
     _Alignas(32) uint8_t mem[MMGR_PLAINTEXT_CONFIN_SIZE];
 };
 
@@ -28,104 +30,198 @@ static struct PlainStorage s_storage;
 
 struct PlainInternal mmgr_clarus_internal;
 
-/**
- * @brief The pool.
- * @return Pointer to it.
- */
-static inline struct PlainInternal *plain_self(void)
+/** @brief One take, return or question of the pool. */
+typedef struct
 {
-    return &mmgr_clarus_internal;
+    struct PlainInternal *pool; /**< The pool. */
+    size_t n;                   /**< Bytes wanted. */
+    size_t align;               /**< Alignment wanted. */
+    size_t mark;                /**< The mark being rewound to. */
+    const void *p;              /**< The pointer being asked about. */
+} ClarusCtx;
+
+/**
+ * @brief Point the context at the pool.
+ * @param c In/out. The take.
+ */
+MMGR_INLINE void clarus_self(ClarusCtx *c)
+{
+    c->pool = &mmgr_clarus_internal;
 }
 
 /**
- * @brief Offset of @p p into the pool's store.
- * @param ctx Pool.
- * @param p Pointer.
- * @return The offset, or PLAIN_NO_OFFSET when the pool has no store.
+ * @brief The tenant, bound to its storage on first use.
+ * @param c In/out. The take.
+ * @return The tenant.
  */
-static inline uintptr_t plain_offset(const struct PlainInternal *ctx, const void *p)
+MMGR_INLINE mmgr_confin *clarus_bind(ClarusCtx *c)
 {
-    if (ctx->store == NULL)
-    {
-        return PLAIN_NO_OFFSET;
-    }
-    return (uintptr_t)p - (uintptr_t)ctx->store->mem;
-}
+    clarus_self(c);
 
-static inline mmgr_confin *bind(struct PlainInternal *ctx)
-{
-    mmgr_confin *a = &ctx->pool;
+    mmgr_confin *a = &c->pool->pool;
     if (a->base == NULL)
     {
-        ctx->store = &s_storage;
-        mmgr_confin_init(a, ctx->store->mem, MMGR_PLAINTEXT_CONFIN_SIZE);
+        c->pool->store = &s_storage;
+        mmgr_confin_init(a, c->pool->store->mem, MMGR_PLAINTEXT_CONFIN_SIZE);
     }
     return a;
 }
+
 /**
  * @brief The tenant, if it has been bound.
- * @param ctx Pool.
+ * @param c In/out. The take.
  * @return The tenant, or NULL.
  */
-static inline mmgr_confin *peek(struct PlainInternal *ctx)
+MMGR_INLINE mmgr_confin *clarus_peek(ClarusCtx *c)
 {
-    mmgr_confin *a = &ctx->pool;
+    clarus_self(c);
+
+    mmgr_confin *a = &c->pool->pool;
     return (a->base != NULL) ? a : NULL;
 }
-void *mmgr_clarus_capio(size_t n, size_t align)
-{
-    struct PlainInternal *ctx = plain_self();
 
-    MMGR_ASSERT((align & (align - 1)) == 0, "plaintext alignment must be a power of two");
-    return mmgr_confin_interim_capio_aligned(bind(ctx), n, align);
+/**
+ * @brief Offset of @c p into the pool's store.
+ * @param c In/out. The take.
+ * @return The offset, or PLAIN_NO_OFFSET when the pool has no store.
+ */
+MMGR_INLINE uintptr_t clarus_offset(ClarusCtx *c)
+{
+    clarus_self(c);
+
+    if (c->pool->store == NULL)
+    {
+        return PLAIN_NO_OFFSET;
+    }
+    return (uintptr_t)c->p - (uintptr_t)c->pool->store->mem;
 }
 
-mmgr_spat mmgr_clarus_span(size_t n, size_t align)
+/**
+ * @brief Take @c n bytes that a mark release will reclaim.
+ * @param c In/out. The take.
+ * @return The bytes, or NULL if the tenant is full.
+ */
+MMGR_INLINE void *clarus_capio(ClarusCtx *c)
 {
-
-    return spat.from((uint8_t *)mmgr_clarus_capio(n, align), n);
+    MMGR_ASSERT((c->align & (c->align - 1)) == 0, "plaintext alignment must be a power of two");
+    return mmgr_confin_interim_capio_aligned(clarus_bind(c), c->n, c->align);
 }
 
-mmgr_spat mmgr_clarus_persist_span(size_t n)
+/**
+ * @brief Take @c n bytes that a mark release will not reclaim.
+ * @param c In/out. The take.
+ * @return The bytes, or NULL if the tenant is full.
+ */
+MMGR_INLINE void *clarus_persist(ClarusCtx *c)
 {
-    struct PlainInternal *ctx = plain_self();
-
-    return spat.from((uint8_t *)mmgr_confin_persist_capio(bind(ctx), n), n);
+    return mmgr_confin_persist_capio(clarus_bind(c), c->n);
 }
 
-void mmgr_clarus_reset(void)
+/**
+ * @brief Release everything the tenant holds.
+ * @param c In/out. The take.
+ */
+MMGR_INLINE void clarus_reset(ClarusCtx *c)
 {
-    struct PlainInternal *ctx = plain_self();
-    mmgr_confin *a = peek(ctx);
+    mmgr_confin *a = clarus_peek(c);
+
     if (a != NULL)
     {
         mmgr_confin_interim_reset(a);
     }
 }
 
+/**
+ * @brief Where the down-growing end is now.
+ * @param c In/out. The take.
+ * @return The mark.
+ */
+MMGR_INLINE size_t clarus_mark(ClarusCtx *c)
+{
+    return mmgr_confin_interim_mark(clarus_bind(c));
+}
+
+/**
+ * @brief Wind back to where the mark was taken.
+ * @param c In/out. The take.
+ */
+MMGR_INLINE void clarus_reddo(ClarusCtx *c)
+{
+    mmgr_confin_interim_reddo(clarus_bind(c), c->mark);
+}
+
+/**
+ * @brief How much the down-growing end holds.
+ * @param c In/out. The take.
+ * @return Byte count.
+ */
+MMGR_INLINE size_t clarus_used(ClarusCtx *c)
+{
+    mmgr_confin *const a = clarus_peek(c);
+
+    return (a != NULL) ? mmgr_confin_interim_used(a) : 0;
+}
+
+/**
+ * @brief The most it ever held.
+ * @param c In/out. The take.
+ * @return Byte count.
+ */
+MMGR_INLINE size_t clarus_high_water(ClarusCtx *c)
+{
+    mmgr_confin *const a = clarus_peek(c);
+
+    return (a != NULL) ? a->scratch_hw : 0;
+}
+
+/**
+ * @brief Is this pointer inside the pool at all.
+ * @param c In/out. The take.
+ * @return MMGR_TRUE if it is.
+ */
+MMGR_INLINE mmgr_bool clarus_owns(ClarusCtx *c)
+{
+    return clarus_offset(c) < PLAIN_BLOCK_BYTES;
+}
+
+void *mmgr_clarus_capio(size_t n, size_t align)
+{
+    return MMGR_CALL(clarus_capio, ClarusCtx, .n = n, .align = align);
+}
+
+mmgr_spat mmgr_clarus_span(size_t n, size_t align)
+{
+    return spat.from((uint8_t *)mmgr_clarus_capio(n, align), n);
+}
+
+mmgr_spat mmgr_clarus_persist_span(size_t n)
+{
+    return spat.from((uint8_t *)MMGR_CALL(clarus_persist, ClarusCtx, .n = n), n);
+}
+
+void mmgr_clarus_reset(void)
+{
+    MMGR_CALL(clarus_reset, ClarusCtx, .n = 0);
+}
+
 size_t mmgr_clarus_mark(void)
 {
-    struct PlainInternal *ctx = plain_self();
-    return mmgr_confin_interim_mark(bind(ctx));
+    return MMGR_CALL(clarus_mark, ClarusCtx, .n = 0);
 }
 
 void mmgr_clarus_reddo(size_t mark)
 {
-    struct PlainInternal *ctx = plain_self();
-    mmgr_confin_interim_reddo(bind(ctx), mark);
+    MMGR_CALL(clarus_reddo, ClarusCtx, .mark = mark);
 }
 
 size_t mmgr_clarus_used(void)
 {
-    struct PlainInternal *ctx = plain_self();
-    const mmgr_confin *a = peek(ctx);
-    return (a != NULL) ? mmgr_confin_interim_used(a) : 0;
+    return MMGR_CALL(clarus_used, ClarusCtx, .n = 0);
 }
 
 size_t mmgr_clarus_high_water(void)
 {
-    const mmgr_confin *a = peek(plain_self());
-    return (a != NULL) ? a->scratch_hw : 0;
+    return MMGR_CALL(clarus_high_water, ClarusCtx, .n = 0);
 }
 
 size_t mmgr_clarus_capacity(void)
@@ -135,6 +231,5 @@ size_t mmgr_clarus_capacity(void)
 
 mmgr_bool mmgr_clarus_owns(const void *p)
 {
-    return plain_offset(plain_self(), p) < PLAIN_BLOCK_BYTES;
+    return MMGR_CALL(clarus_owns, ClarusCtx, .p = p);
 }
-

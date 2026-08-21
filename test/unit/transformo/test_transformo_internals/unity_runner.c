@@ -76,16 +76,16 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/cellularum_laboro/test_cellularum_internals\\test_cellularum_internals.c");
-  run_test(test_the_middle_column_carries_into_the_top, "test_the_middle_column_carries_into_the_top", 46);
-  run_test(test_the_multiply_agrees_with_halves_done_by_hand, "test_the_multiply_agrees_with_halves_done_by_hand", 73);
-  run_test(test_normalising_a_fraction_whose_high_word_is_empty, "test_normalising_a_fraction_whose_high_word_is_empty", 110);
-  run_test(test_normalising_nothing_leaves_it_alone, "test_normalising_nothing_leaves_it_alone", 126);
-  run_test(test_the_leading_zero_count_at_every_position, "test_the_leading_zero_count_at_every_position", 142);
-  run_test(test_an_exact_tie_goes_to_even, "test_an_exact_tie_goes_to_even", 171);
-  run_test(test_a_tie_with_anything_under_it_goes_up, "test_a_tie_with_anything_under_it_goes_up", 186);
-  run_test(test_below_the_tie_goes_down, "test_below_the_tie_goes_down", 194);
-  run_test(test_rounding_a_fraction_of_nothing, "test_rounding_a_fraction_of_nothing", 202);
+  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/transformo/test_transformo_internals\\test_transformo_internals.c");
+  run_test(test_the_middle_column_carries_into_the_top, "test_the_middle_column_carries_into_the_top", 52);
+  run_test(test_the_multiply_agrees_with_halves_done_by_hand, "test_the_multiply_agrees_with_halves_done_by_hand", 80);
+  run_test(test_normalising_a_fraction_whose_high_word_is_empty, "test_normalising_a_fraction_whose_high_word_is_empty", 122);
+  run_test(test_normalising_nothing_leaves_it_alone, "test_normalising_nothing_leaves_it_alone", 138);
+  run_test(test_the_leading_zero_count_at_every_position, "test_the_leading_zero_count_at_every_position", 154);
+  run_test(test_an_exact_tie_goes_to_even, "test_an_exact_tie_goes_to_even", 183);
+  run_test(test_a_tie_with_anything_under_it_goes_up, "test_a_tie_with_anything_under_it_goes_up", 198);
+  run_test(test_below_the_tie_goes_down, "test_below_the_tie_goes_down", 206);
+  run_test(test_rounding_a_fraction_of_nothing, "test_rounding_a_fraction_of_nothing", 214);
 
   return UNITY_END();
 }

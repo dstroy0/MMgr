@@ -7,9 +7,13 @@
  * @file oracle_divergence.h
  * @brief Skip one case on the oracle side of the A/B, and say why on the way out.
  *
- * The suite is run twice: once against this library, and once with MMGR_ORACLE_LIBC on, which
- * points the namespaces at libc. Both runs have to be green, because a red B side stops being a
- * comparison and starts being noise nobody reads.
+ * The suite is run twice: once against this library, and once with MMGR_TEST_ORACLE on, which
+ * pulls in mmgr_oracle_libc.h and points the namespaces at libc for every suite that includes this
+ * header. Both runs have to be green, because a red B side stops being a comparison and starts
+ * being noise nobody reads.
+ *
+ * The switch is test side and so is everything it reaches. Nothing in src knows the oracle exists:
+ * a header that can replace the library with something else has no business shipping with it.
  *
  * Almost every case holds on both sides, which is the whole point of building the oracle. A few do
  * not, and they are the ones pinning somewhere this library deliberately does not agree with libc:
@@ -30,7 +34,9 @@
  * still says out loud how many claims it stood down and which.
  */
 
-#if defined(MMGR_ORACLE_LIBC) && MMGR_ORACLE_LIBC
+#if defined(MMGR_TEST_ORACLE) && MMGR_TEST_ORACLE
+#include "mmgr_oracle_libc.h"
+
 #define MMGR_SKIP_ON_ORACLE(why) TEST_IGNORE_MESSAGE("oracle build: " why)
 #else
 #define MMGR_SKIP_ON_ORACLE(why)                                                                                       \

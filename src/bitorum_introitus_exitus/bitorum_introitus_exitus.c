@@ -3,40 +3,80 @@
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
 
 /**
- * @file bitio.c
+ * @file bitorum_introitus_exitus.c
  * @brief Bit writer. Bits accumulate from the low end and flush a byte at a time.
  *
- * The first bits put land in the low bits of the first output byte: acc |= bits << nbits, and
- * the flush takes acc & 0xFF.
+ * Every entry below takes one parameter, a pointer to BitorCtx. The writer and the bits going into
+ * it are one operation.
+ *
+ * The first bits put land in the low bits of the first output byte: acc |= bits << nbits, and the
+ * flush takes acc & 0xFF.
  */
 
-void mmgr_bitor_put(mmgr_bitor_writer *w, uint32_t bits, int n)
+/** @brief The writer, and what is going into it. */
+typedef struct
 {
+    mmgr_bitor_writer *w; /**< The writer. */
+    uint32_t bits;        /**< The bits to put. */
+    int n;                /**< How many of them. */
+} BitorCtx;
+
+/**
+ * @brief Push one whole byte out of the accumulator.
+ * @param c In/out. The write.
+ * @return MMGR_FALSE when there was no room, which latches.
+ */
+MMGR_INLINE mmgr_bool bitor_flush(BitorCtx *c)
+{
+    mmgr_bitor_writer *w = c->w;
+
+    if (w->cnt >= w->cap)
+    {
+        w->overflow = MMGR_TRUE;
+        return MMGR_FALSE;
+    }
+    w->out[w->cnt] = (uint8_t)(w->acc & 0xFF);
+    w->cnt++;
+    w->acc >>= 8;
+    w->nbits -= 8;
+    return MMGR_TRUE;
+}
+
+/**
+ * @brief Put @c n bits.
+ * @param c In/out. The write.
+ */
+MMGR_INLINE void bitor_put(BitorCtx *c)
+{
+    mmgr_bitor_writer *w = c->w;
+
     if (w->overflow)
     {
         return;
     }
 
-    uint32_t low = (n >= 32) ? bits : (bits & ((1u << n) - 1u));
+    const uint32_t low = (c->n >= 32) ? c->bits : (c->bits & ((1u << c->n) - 1u));
     w->acc |= low << w->nbits;
-    w->nbits += n;
+    w->nbits += c->n;
+
     while (w->nbits >= 8)
     {
-        if (w->cnt >= w->cap)
+        if (!bitor_flush(c))
         {
-            w->overflow = MMGR_TRUE;
             w->nbits = 0;
             w->acc = 0;
             return;
         }
-        w->out[w->cnt] = (uint8_t)(w->acc & 0xFF);
-        w->cnt++;
-        w->acc >>= 8;
-        w->nbits -= 8;
     }
 }
 
-void mmgr_bitor_align(mmgr_bitor_writer *w)
+/**
+ * @brief Pad to the next byte boundary.
+ * @param w In/out. The writer.
+ *
+ * No context. Nothing is going in, so there is no argument list to group.
+ */
+MMGR_INLINE void bitor_align(mmgr_bitor_writer *w)
 {
     if (w->nbits > 0)
     {
@@ -49,4 +89,14 @@ void mmgr_bitor_align(mmgr_bitor_writer *w)
         w->acc = 0;
         w->nbits = 0;
     }
+}
+
+void mmgr_bitor_put(mmgr_bitor_writer *w, uint32_t bits, int n)
+{
+    MMGR_CALL(bitor_put, BitorCtx, .w = w, .bits = bits, .n = n);
+}
+
+void mmgr_bitor_align(mmgr_bitor_writer *w)
+{
+    bitor_align(w);
 }

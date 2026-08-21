@@ -5,13 +5,20 @@
 
 #include "config/mmgr_config.h"
 
+MMGR_INCIPE_DECLS
+
 /**
  * @file impensa_ancorae_acus.h
- * @brief Which byte a search should anchor on, as a cost table.
+ * @brief Which byte a search should anchor on, as a cost.
  *
  * Cost is how common a byte is, so the picker takes the minimum and anchors on the rarest byte the
  * needle has. It is a probability scan. It does not have to be right, only right more often than
  * not.
+ *
+ * The table itself does not cross this header. One profile's .c holds it, file local, and what
+ * comes out is the cost of a byte. A table in a header is a copy of itself in every translation
+ * unit that reads it and a name every one of them has to not collide with; a byte in and a byte
+ * out is neither.
  *
  * The default is generic and assumes nothing beyond "this is byte data and printable ASCII is what
  * strings are made of". A build that knows what it is searching picks a profile and gets a much
@@ -30,31 +37,16 @@
  * row filters on. Every candidate it passes is still verified in full, so a profile that mismatches
  * the data lets more candidates through and the search gets slower. That is the whole penalty.
  *
- * One table is compiled in. Selecting a profile does not carry the others.
+ * One profile is compiled in. Selecting one does not carry the others - the build compiles that
+ * .c and no other, so the four it did not pick are not in the image at all.
  */
-#if defined(MMGR_ANCORAE_FORMA_ENGLISH)
-#include "impensa_ancorae_acus/impensa_ancorae_acus_english.h"
-#define MMGR_IMPENSA_ANCORAE_ACUS_INIT MMGR_IMPENSA_ANCORAE_ACUS_ENGLISH
-#elif defined(MMGR_ANCORAE_FORMA_URI)
-#include "impensa_ancorae_acus/impensa_ancorae_acus_uri.h"
-#define MMGR_IMPENSA_ANCORAE_ACUS_INIT MMGR_IMPENSA_ANCORAE_ACUS_URI
-#elif defined(MMGR_ANCORAE_FORMA_INET)
-#include "impensa_ancorae_acus/impensa_ancorae_acus_inet.h"
-#define MMGR_IMPENSA_ANCORAE_ACUS_INIT MMGR_IMPENSA_ANCORAE_ACUS_INET
-#elif defined(MMGR_ANCORAE_FORMA_ROUTE)
-#include "impensa_ancorae_acus/impensa_ancorae_acus_route.h"
-#define MMGR_IMPENSA_ANCORAE_ACUS_INIT MMGR_IMPENSA_ANCORAE_ACUS_ROUTE
-#else
-#include "impensa_ancorae_acus/impensa_ancorae_acus_generic.h"
-#define MMGR_IMPENSA_ANCORAE_ACUS_INIT MMGR_IMPENSA_ANCORAE_ACUS_GENERIC
-#endif
 
-MMGR_INCIPE_DECLS
-
-/** @brief Cost per byte value. Lower is rarer, so lower is a better anchor. NUL is pinned worst. */
-static const uint8_t mmgr_impensa_ancorae_acus[256] MMGR_UNUSED = {MMGR_IMPENSA_ANCORAE_ACUS_INIT};
-
-MMGR_STATIC_ASSERT(sizeof(mmgr_impensa_ancorae_acus) == 256u, "the anchor cost table must cover every byte");
+/**
+ * @brief What @p b costs as an anchor.
+ * @param b The byte.
+ * @return Its cost. Lower is rarer, so lower is a better anchor. NUL is pinned worst.
+ */
+uint8_t mmgr_ancorae_impensa(uint8_t b);
 
 MMGR_FINIS_DECLS
 

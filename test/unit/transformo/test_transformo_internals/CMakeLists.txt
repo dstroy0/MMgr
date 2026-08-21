@@ -2,4 +2,4 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 # The translation unit is compiled in, not linked, so the file-local entries are reachable.
-mmgr_add_suite(test_cellularum_internals)
+mmgr_add_suite(test_transformo_internals)

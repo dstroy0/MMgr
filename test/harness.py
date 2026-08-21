@@ -16,7 +16,7 @@ There are three build trees and each one is a different question, so each carrie
 here rather than in somebody's shell history:
 
   build         the library, as it ships
-  build-oracle  MMGR_ORACLE_LIBC on, so every entry with a libc equivalent becomes that equivalent
+  build-oracle  MMGR_TEST_ORACLE on, so every suite that includes oracle_divergence.h calls libc
   build-cov     instrumented, always_inline off, link time optimisation off
 
 The last two matter. always_inline is honoured at -O0, so without turning it off every call site of
@@ -272,7 +272,10 @@ TREES = {
     },
     "build-oracle": {
         "what": "every entry with a libc equivalent replaced by that equivalent",
-        "args": ["-DMMGR_ORACLE_LIBC=ON"],
+        # Test side. The library has no oracle in it and no option to turn one on - the define
+        # reaches test/support/oracle_divergence.h, which pulls in the substitution for the suites
+        # that include it. Nothing in src is compiled differently.
+        "args": ["-DCMAKE_C_FLAGS=-DMMGR_TEST_ORACLE=1"],
     },
     "build-cov": {
         "what": "instrumented, with always_inline and link time optimisation off",
