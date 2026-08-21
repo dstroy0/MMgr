@@ -5,6 +5,16 @@
 #   mmgr_add_module(spatium SOURCES spatium.c DEPS)
 #   mmgr_add_module(confinium SOURCES confinium.c DEPS memoria_operor)
 #   mmgr_add_module(confinium_exclusivum_infinitas HEADER_ONLY DEPS proximus_operor spatium)
+#   mmgr_add_module(verba_scribo SOURCES verba_scribo.c DEPS fractio OPTIMIZE -O2)
+#
+# OPTIMIZE overrides the build's level for this module alone. One level for the whole library is a
+# guess that suits some of it: -O3 unrolls and inlines, which is worth paying for where the work is
+# in a loop the compiler can see through, and is dead weight where the code is already the shape it
+# wants to be. tools/dev_env/sizes.py measures the difference per unit and the numbers are in
+# docs/quality/optimisation.md - a module that names a level here should have a reason there.
+#
+# A target's own options come after the build's on the command line, and the last -O wins, so this
+# needs nothing removed to take effect.
 #
 # Every environment in MMGR_ENVIRONMENTS gets its own target, named mmgr_<module>_<env>. That is the
 # whole point of the widths being compile-time knobs: a 16-bit scan lane is exercised on this
@@ -26,7 +36,7 @@ function(mmgr_env_name entry out_name out_defs)
 endfunction()
 
 function(mmgr_add_module name)
-  cmake_parse_arguments(ARG "HEADER_ONLY" "" "SOURCES;DEPS" ${ARGN})
+  cmake_parse_arguments(ARG "HEADER_ONLY" "OPTIMIZE" "SOURCES;DEPS" ${ARGN})
 
   foreach(entry IN LISTS MMGR_ENVIRONMENTS)
     mmgr_env_name("${entry}" env defs)
@@ -45,6 +55,11 @@ function(mmgr_add_module name)
       add_library(${target} STATIC ${_srcs})
       set(scope PUBLIC)
       target_link_libraries(${target} PRIVATE mmgr_flags)
+
+      if(ARG_OPTIMIZE)
+        # After mmgr_flags, so this is the last -O on the line and the one that counts.
+        target_compile_options(${target} PRIVATE ${ARG_OPTIMIZE})
+      endif()
     endif()
 
     # src/ is the include root, so every header is reached as <mmgr/<module>/<module>.h> and

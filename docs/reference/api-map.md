@@ -54,8 +54,9 @@ may-alias. Merging them is a miscompile the compiler cannot report, so the namin
 `worker` is declared by `confinium` but used by the pools, so it names a cross-cutting concept rather
 than a module.
 
-Two modules have no stem at all because they expose only data, not entries: `ascii_mask` (character
-classes as bitmaps) and `anchor_cost` (byte-frequency tables).
+Three modules have no stem at all because they expose only data, not entries: `ascii_mask`
+(character classes as bitmaps), `anchor_cost` (byte-frequency tables) and `pow5` (the powers of five
+a decimal conversion needs). All three are generated - see @ref qa_numeric for what `pow5` is for.
 
 ## Types
 

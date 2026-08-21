@@ -4,16 +4,23 @@ What is next, and what is deliberately not.
 
 ## Next
 
-**Deepen the unit suites.** This is the largest open piece of work in the repository and it is worth
-being blunt about: most unit suites currently assert that the header compiled and that the namespace
-instance is its own type. Those are real properties but shallow ones.
-`test_cellularum_laboro` is the exception and is the shape the rest should take — real inputs, real
-edge cases, the tail of every scan.
+**Make `verba.g` correctly rounded.** The parse side is exact and the render side is not. `verba.g`
+works in a 58 bit word and renormalises on every step, so its output fails to name the value back
+87% of the time even when read by a correct parser — worst 6 ulp. The approach that fixed
+`to_double` fixes this one: carry the exact mantissa the extraction already has, in a fixed width
+intermediate, and decide the rounding from the three bits that always decide it. See @ref
+qa_numeric.
 
-**Integration and interop suites.** `test/integration/` and `test/interop/` are directories with
-READMEs and no suites. Integration is where a confinium, a pool and a ring get exercised together
-rather than one at a time; interop is where the wire formats get checked against another
-implementation rather than against themselves.
+**Interop suites.** `test/interop/` is a directory with a README and no suites, because interop
+means checking the wire formats against another implementation and there is not one yet. The
+integration directory is no longer empty: `test_read_bounds`, `test_hostile_content`,
+`test_scan_reference`, `test_tenant_lifecycle`, `test_text_pipeline` and `test_wire_roundtrip` all
+live there.
+
+**A multi-worker environment.** `MMGR_WORKER_COUNT` is 1 in every configured environment, so
+`mmgr_worker_self()` is a compile-time zero and the ghost-slot paths in both pools are unreachable —
+they carry exclusions saying so. An environment with more than one worker would make them live, and
+would be the only way to test what the pools do when two workers touch them.
 
 **Documented dispatch slots, or a decision not to.** ~180 undocumented symbols are the members of the
 `<Mod>Ns` tables. Either they get documented, or the reference makes it obvious that a slot's prose
@@ -23,6 +30,17 @@ lives on the free function it points at. See @ref qa_docs_coverage.
 the glossary and the symbol index are all derivable from the tree, and are currently maintained by
 hand — which is exactly how "seventeen small modules" survived in a comment until there were
 nineteen.
+
+## Done since this was written
+
+**The unit suites are no longer thin.** 150 targets at 100% of lines, branches and functions, and
+the whole suite runs a second time with `MMGR_ORACLE_LIBC` on so libc answers the same questions.
+What that turned up is in @ref qa_testing and @ref qa_numeric — a parser that was returning the
+right double 16% of the time, a search that read up to seven bytes past its cap, an exponent that
+silently became zero past 1e308.
+
+**Per-unit optimisation levels.** `mmgr_add_module` takes `OPTIMIZE`, and the measurement behind
+each use of it is in @ref qa_optimisation.
 
 ## Later
 

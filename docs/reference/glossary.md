@@ -37,6 +37,7 @@ rename anything again.
 | `endian`                         | `endian` | `Endian`                       | _(English)_ byte order                           |
 | `ascii_mask`                     | —        | —                              | _(English)_ character classes as bitmaps         |
 | `anchor_cost`                    | —        | —                              | _(English)_ byte-frequency table for search      |
+| `pow5`                           | —        | —                              | _(English)_ powers of five for decimal work      |
 | `dma`                            | `dma`    | `Dma`                          | _(English)_ direct memory access                 |
 
 ## Verbs

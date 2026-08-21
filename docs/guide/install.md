@@ -75,7 +75,7 @@ nothing in the link would catch it. `mmgr_types.h` is full of static asserts to 
 class of mistake, and they only fire when the library and its consumer are compiled together.
 
 Shipping a binary would make that mismatch possible while making it invisible. Consuming the source
-makes it impossible. That is the trade, and for a library this size — nineteen small modules, no
+makes it impossible. That is the trade, and for a library this size — twenty small modules, no
 external dependencies — compiling it into your build costs almost nothing.
 
 If you need a prebuilt artifact anyway, build the aggregate you want and vendor it together with the

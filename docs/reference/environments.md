@@ -42,7 +42,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-A clean run is **80 CTest targets**. Test names carry the environment as a suffix, so a failure
+A clean run is **150 CTest targets**. Test names carry the environment as a suffix, so a failure
 names the width it failed at:
 
 ```
