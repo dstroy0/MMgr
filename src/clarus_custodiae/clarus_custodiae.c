@@ -5,27 +5,23 @@
 
 /**
  * @file clarus_custodiae.c
- * @brief The plaintext guardian. One tenant per worker, plus a ghost slot.
+ * @brief The plaintext guardian. One tenant over a static buffer.
  */
 
-#define PLAIN_BLOCK_BYTES ((uintptr_t)MMGR_REG_POOL_SLOTS * (uintptr_t)MMGR_PLAINTEXT_CONFIN_SIZE)
+#define PLAIN_BLOCK_BYTES ((uintptr_t)MMGR_PLAINTEXT_CONFIN_SIZE)
 
 #define PLAIN_NO_OFFSET (~(uintptr_t)0)
 
 struct PlainStorage
 {
 
-    _Alignas(32) uint8_t mem[MMGR_REG_POOL_SLOTS][MMGR_PLAINTEXT_CONFIN_SIZE];
+    _Alignas(32) uint8_t mem[MMGR_PLAINTEXT_CONFIN_SIZE];
 };
 
 struct PlainInternal
 {
     struct PlainStorage *store;
-    mmgr_confin pool[MMGR_REG_POOL_SLOTS];
-#if MMGR_DEBUG_CHECKS
-
-    uintptr_t owner[MMGR_REG_POOL_SLOTS];
-#endif
+    mmgr_confin pool;
 };
 
 static struct PlainStorage s_storage;
@@ -56,76 +52,32 @@ static inline uintptr_t plain_offset(const struct PlainInternal *ctx, const void
     return (uintptr_t)p - (uintptr_t)ctx->store->mem;
 }
 
-/**
- * @brief Which slot the caller gets.
- * @return The worker's slot, or the ghost slot when there is no worker behind the call.
- */
-static inline int cur_worker(void)
+static inline mmgr_confin *bind(struct PlainInternal *ctx)
 {
-    int w = mmgr_worker_self();
-    /* MMGR_WORKER_COUNT is 1, so mmgr_worker_self is a compile time 0 and both halves of the
-       range check are constant. The ghost slot is what a call from outside any worker lands in,
-       and reaching it needs a build with more than one worker. */
-    return (w >= 0 && w < MMGR_REG_POOL_SLOTS) ? w : MMGR_GHOST_WORKER_SLOT; /* GCOVR_EXCL_BR_LINE */
-}
-
-/**
- * @brief Check that one worker is not using another's tenant.
- * @param ctx Pool.
- * @param w Slot.
- *
- * Only compiled when MMGR_DEBUG_CHECKS is on. Records the first context id to touch a slot and
- * complains if a different one turns up.
- */
-static inline void assert_single_owner(struct PlainInternal *ctx, int w)
-{
-#if MMGR_DEBUG_CHECKS
-    const uintptr_t cur = mmgr_platform_context_id();
-    if (ctx->owner[w] == 0)
-    {
-        ctx->owner[w] = cur;
-    }
-    else
-    {
-        MMGR_ASSERT(ctx->owner[w] == cur, "plaintext pool borrowed from a foreign task");
-    }
-#else
-    (void)ctx;
-    (void)w;
-#endif
-}
-
-static inline mmgr_confin *bind(struct PlainInternal *ctx, int w)
-{
-    mmgr_confin *a = &ctx->pool[w];
+    mmgr_confin *a = &ctx->pool;
     if (a->base == NULL)
     {
         ctx->store = &s_storage;
-        mmgr_confin_init(a, ctx->store->mem[w], MMGR_PLAINTEXT_CONFIN_SIZE);
+        mmgr_confin_init(a, ctx->store->mem, MMGR_PLAINTEXT_CONFIN_SIZE);
     }
     return a;
 }
-
 /**
- * @brief The tenant in slot @p w, if it has been bound.
+ * @brief The tenant, if it has been bound.
  * @param ctx Pool.
- * @param w Slot.
  * @return The tenant, or NULL.
  */
-static inline mmgr_confin *peek(struct PlainInternal *ctx, int w)
+static inline mmgr_confin *peek(struct PlainInternal *ctx)
 {
-    mmgr_confin *a = &ctx->pool[w];
+    mmgr_confin *a = &ctx->pool;
     return (a->base != NULL) ? a : NULL;
 }
-
 void *mmgr_clarus_capio(size_t n, size_t align)
 {
     struct PlainInternal *ctx = plain_self();
-    int w = cur_worker();
-    assert_single_owner(ctx, w);
 
     MMGR_ASSERT((align & (align - 1)) == 0, "plaintext alignment must be a power of two");
-    return mmgr_confin_interim_capio_aligned(bind(ctx, w), n, align);
+    return mmgr_confin_interim_capio_aligned(bind(ctx), n, align);
 }
 
 mmgr_spat mmgr_clarus_span(size_t n, size_t align)
@@ -137,18 +89,14 @@ mmgr_spat mmgr_clarus_span(size_t n, size_t align)
 mmgr_spat mmgr_clarus_persist_span(size_t n)
 {
     struct PlainInternal *ctx = plain_self();
-    int w = cur_worker();
-    assert_single_owner(ctx, w);
 
-    return spat.from((uint8_t *)mmgr_confin_persist_capio(bind(ctx, w), n), n);
+    return spat.from((uint8_t *)mmgr_confin_persist_capio(bind(ctx), n), n);
 }
 
 void mmgr_clarus_reset(void)
 {
     struct PlainInternal *ctx = plain_self();
-    int w = cur_worker();
-    assert_single_owner(ctx, w);
-    mmgr_confin *a = peek(ctx, w);
+    mmgr_confin *a = peek(ctx);
     if (a != NULL)
     {
         mmgr_confin_interim_reset(a);
@@ -158,40 +106,26 @@ void mmgr_clarus_reset(void)
 size_t mmgr_clarus_mark(void)
 {
     struct PlainInternal *ctx = plain_self();
-    int w = cur_worker();
-    assert_single_owner(ctx, w);
-    return mmgr_confin_interim_mark(bind(ctx, w));
+    return mmgr_confin_interim_mark(bind(ctx));
 }
 
 void mmgr_clarus_reddo(size_t mark)
 {
     struct PlainInternal *ctx = plain_self();
-    int w = cur_worker();
-    assert_single_owner(ctx, w);
-    mmgr_confin_interim_reddo(bind(ctx, w), mark);
+    mmgr_confin_interim_reddo(bind(ctx), mark);
 }
 
 size_t mmgr_clarus_used(void)
 {
     struct PlainInternal *ctx = plain_self();
-    const mmgr_confin *a = peek(ctx, cur_worker());
+    const mmgr_confin *a = peek(ctx);
     return (a != NULL) ? mmgr_confin_interim_used(a) : 0;
 }
 
 size_t mmgr_clarus_high_water(void)
 {
-
-    struct PlainInternal *ctx = plain_self();
-    size_t peak = 0;
-    for (int w = 0; w < MMGR_REG_POOL_SLOTS; w++)
-    {
-        const mmgr_confin *a = peek(ctx, w);
-        if (a != NULL && a->scratch_hw > peak)
-        {
-            peak = a->scratch_hw;
-        }
-    }
-    return peak;
+    const mmgr_confin *a = peek(plain_self());
+    return (a != NULL) ? a->scratch_hw : 0;
 }
 
 size_t mmgr_clarus_capacity(void)
@@ -204,13 +138,3 @@ mmgr_bool mmgr_clarus_owns(const void *p)
     return plain_offset(plain_self(), p) < PLAIN_BLOCK_BYTES;
 }
 
-int mmgr_clarus_slot_of(const void *p)
-{
-    const uintptr_t off = plain_offset(plain_self(), p);
-    if (off >= PLAIN_BLOCK_BYTES)
-    {
-        return -1;
-    }
-
-    return (int)(off / MMGR_PLAINTEXT_CONFIN_SIZE);
-}

@@ -8,15 +8,13 @@
 
 #include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file occultum_custodiae.h
  * @brief The secure guardian. Same shape as clarus, but released bytes are wiped.
  */
 
-/** @brief Slot count. One per worker, plus the ghost. */
-#define MMGR_SEC_POOL_SLOTS (MMGR_GHOST_WORKER_SLOT + 1)
 
 /** @brief Opaque pool state. */
 struct SecureInternal;
@@ -35,12 +33,11 @@ typedef struct
     size_t (*high_water)(void);
     size_t (*capacity)(void);
     mmgr_bool (*owns)(const void *p);
-    int (*slot_of)(const void *p);
 
     struct SecureInternal *internal;
 } OccultumCustodiaeNs;
 MMGR_NS_LAYOUT_OPEN(OccultumCustodiaeNs, internal, alloc, span, persist_span, reset, mark, release, used, high_water,
-                    capacity, owns, slot_of);
+                    capacity, owns);
 
 /** @brief The pool. */
 extern struct SecureInternal mmgr_occult_state;
@@ -78,7 +75,7 @@ static inline void mmgr_occult_wipe(void *ptr, size_t len)
 }
 
 /**
- * @brief Take @p n bytes from the calling worker's tenant.
+ * @brief Take @p n bytes from the tenant.
  * @param n Byte count.
  * @param align Alignment, a power of two.
  * @return The bytes, or NULL if the tenant is full.
@@ -116,7 +113,7 @@ size_t mmgr_occult_mark(void);
 void mmgr_occult_reddo(size_t mark);
 
 /**
- * @brief Release everything the calling worker holds.
+ * @brief Release everything the tenant holds.
  */
 void mmgr_occult_reset(void);
 
@@ -145,12 +142,6 @@ size_t mmgr_occult_capacity(void);
  */
 mmgr_bool mmgr_occult_owns(const void *p);
 
-/**
- * @brief Which slot holds @p p.
- * @param p Pointer.
- * @return Slot index, or negative if this pool does not own it.
- */
-int mmgr_occult_slot_of(const void *p);
 
 /** @brief Module namespace. */
 MMGR_NS OccultumCustodiaeNs occult MMGR_UNUSED = {.alloc = mmgr_occult_capio,
@@ -163,9 +154,8 @@ MMGR_NS OccultumCustodiaeNs occult MMGR_UNUSED = {.alloc = mmgr_occult_capio,
                                                   .high_water = mmgr_occult_high_water,
                                                   .capacity = mmgr_occult_capacity,
                                                   .owns = mmgr_occult_owns,
-                                                  .slot_of = mmgr_occult_slot_of,
                                                   .internal = &mmgr_occult_state};
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

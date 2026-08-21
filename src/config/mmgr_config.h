@@ -33,9 +33,9 @@
 #endif
 
 /**
- * @brief Slot index width.
+ * @brief Loculus index width.
  *
- * 32 is more slots than any statically sized pool here can hold, so it is the default wherever the
+ * 32 is more loculi than any statically sized pool here can hold, so it is the default wherever the
  * register can carry it. On a 16-bit machine it cannot, and an index wider than the register is
  * spilled arithmetic on every use.
  */
@@ -72,25 +72,6 @@
 #define MMGR_DEBUG_CHECKS 0
 #endif
 
-/** @brief How many workers may hold a tenant at once. */
-#ifndef MMGR_WORKER_COUNT
-#define MMGR_WORKER_COUNT 1
-#endif
-/** @brief Slot used by a borrow with no worker behind it. */
-#ifndef MMGR_GHOST_WORKER_SLOT
-#define MMGR_GHOST_WORKER_SLOT (MMGR_WORKER_COUNT)
-#endif
-
-/** @brief Whether a platform context id is needed at all. */
-#if (MMGR_WORKER_COUNT != 1) || MMGR_DEBUG_CHECKS
-#define MMGR_NEEDS_CONTEXT_ID 1
-#else
-#define MMGR_NEEDS_CONTEXT_ID 0
-#endif
-
-#if MMGR_NEEDS_CONTEXT_ID
-uintptr_t mmgr_platform_context_id(void);
-#endif
 
 /** @brief Size of one plaintext tenant. */
 #ifndef MMGR_PLAINTEXT_CONFIN_SIZE
@@ -104,9 +85,9 @@ uintptr_t mmgr_platform_context_id(void);
 /**
  * @brief The largest single tenant, and so the worst case every bounded scan plans for.
  *
- * One slot, not the whole buffer. A custodia dimensions its store as
- * mem[MMGR_REG_POOL_SLOTS][MMGR_PLAINTEXT_CONFIN_SIZE], and a string lives inside one tenant's
- * confinium. The buffer is that times the slot count and no string ever spans it.
+ * One loculus, not the whole buffer. A custodia dimensions its store as
+ * mem[MMGR_PLAINTEXT_CONFIN_SIZE], and a string lives inside one tenant's
+ * confinium. The buffer is that times the loculus count and no string ever spans it.
  */
 #ifndef MMGR_CONFIN_MAX
 #if MMGR_PLAINTEXT_CONFIN_SIZE >= MMGR_SECURE_CONFIN_SIZE

@@ -27,7 +27,7 @@ function reached two ways. See @ref concept_ns_idiom.
 | stem                          | module                           | what it does                           |
 | ----------------------------- | -------------------------------- | -------------------------------------- |
 | `confin`                      | `confinium`                      | the double-ended region                |
-| `infin`                       | `confinium_exclusivum_infinitas` | SPSC ring, segment queue, slot bitmap  |
+| `infin`                       | `confinium_exclusivum_infinitas` | SPSC ring, segment queue, loculus bitmap  |
 | `exter`                       | `confinium_externum`             | DRAM against PSRAM placement           |
 | `clarus`                      | `clarus_custodiae`               | plaintext pool                         |
 | `occult`                      | `occultum_custodiae`             | secure pool, with a wipe               |
@@ -54,8 +54,8 @@ may-alias. Merging them is a miscompile the compiler cannot report, so the namin
 `worker` is declared by `confinium` but used by the pools, so it names a cross-cutting concept rather
 than a module.
 
-Three modules have no stem at all because they expose only data, not entries: `ascii_mask`
-(character classes as bitmaps), `anchor_cost` (byte-frequency tables) and `pow5` (the powers of five
+Three modules have no stem at all because they expose only data, not entries: `ascii_persona_bitorum`
+(character classes as bitmaps), `impensa_ancorae_acus` (byte-frequency tables) and `pow5` (the powers of five
 a decimal conversion needs). All three are generated - see @ref qa_numeric for what `pow5` is for.
 
 ## Types

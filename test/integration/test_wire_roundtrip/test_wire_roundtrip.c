@@ -8,7 +8,7 @@
 // width and across the alignment the span happens to land on.
 #include "unity.h"
 
-#include "byteio/byteio.h"
+#include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 #include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
 #include "spatium/spatium.h"

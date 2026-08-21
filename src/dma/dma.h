@@ -7,7 +7,7 @@
 
 #if MMGR_ENABLE_DMA
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file dma.h
@@ -93,7 +93,7 @@ void mmgr_dma_close(uint8_t ch);
  */
 void mmgr_dma_poll(void);
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif
 

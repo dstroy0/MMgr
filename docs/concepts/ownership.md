@@ -17,7 +17,7 @@ has the position it was taken from moved back past it".
 | ------------------- | ------------------------------------------ |
 | an interim pointer  | its mark is released, or the region resets |
 | a span over interim | same, and it does not know                 |
-| a tenant pointer    | the pool slot is `reset`                   |
+| a tenant pointer    | the pool loculus is `reset`                   |
 | a persist pointer   | the region does                            |
 | the region          | your buffer does                           |
 | your buffer         | you say so                                 |
@@ -56,40 +56,40 @@ Consequence worth stating: a span is safe to copy by value, safe to pass by valu
 return **only if its target outlives the return**. Returning a span over interim from a function that
 rewinds its own mark is a use-after-free with extra steps.
 
-## Tenants and worker slots
+## Tenants and worker loculi
 
-A pool carves its static storage into one slot per worker plus a ghost slot:
+A pool carves its static storage into one loculus per worker plus a ghost loculus:
 
 ```
 MMGR_WORKER_COUNT = 4
 
-  slot 0   slot 1   slot 2   slot 3   slot 4 (ghost)
+  loculus 0   loculus 1   loculus 2   loculus 3   loculus 4 (ghost)
   worker0  worker1  worker2  worker3  no owner
 ```
 
-`mmgr_worker_self()` decides which slot a call gets. At `MMGR_WORKER_COUNT == 1` it is a compile-time
+`mmgr_worker_self()` decides which loculus a call gets. At `MMGR_WORKER_COUNT == 1` it is a compile-time
 constant `0` and there is no platform hook to supply; above 1 you must provide
 `mmgr_platform_context_id()`.
 
 `MMGR_GHOST_WORKER_SLOT` is where a call with no owning worker lands — an interrupt, or
-initialization before the scheduler exists. It is a real slot with real storage, not an error value.
+initialization before the scheduler exists. It is a real loculus with real storage, not an error value.
 
 Two entries answer ownership questions directly:
 
 ```c
 clarus.owns(p)      /* is this pointer inside this pool at all */
-clarus.slot_of(p)   /* which worker's slot, if so */
+clarus.loculus_of(p)   /* which worker's loculus, if so */
 ```
 
-They exist for asserts and for debugging, not for control flow. Code that has to ask which slot a
-pointer came from usually wants to be passing the slot around instead.
+They exist for asserts and for debugging, not for control flow. Code that has to ask which loculus a
+pointer came from usually wants to be passing the loculus around instead.
 
 ## Concurrency
 
 There isn't any, unless you configured it.
 
 At `MMGR_WORKER_COUNT == 1` there is no synchronization anywhere in the library, because there is
-nothing to synchronize. Above 1, the pools are partitioned by slot — each worker touches its own
+nothing to synchronize. Above 1, the pools are partitioned by loculus — each worker touches its own
 tenant and no locking is needed **as long as a pointer does not cross workers**. Nothing enforces
 that.
 

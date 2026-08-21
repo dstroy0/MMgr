@@ -12,8 +12,6 @@ extern void test_word_width_is_one_of_three(void);
 extern void test_scan_width_is_the_word_width(void);
 extern void test_index_never_exceeds_the_word(void);
 extern void test_tenant_bound_is_a_real_size(void);
-extern void test_ghost_slot_sits_past_the_workers(void);
-extern void test_context_id_is_needed_exactly_when_it_is_used(void);
 
 
 /*=======Mock Management=====*/
@@ -86,8 +84,6 @@ int main(void)
   run_test(test_scan_width_is_the_word_width, "test_scan_width_is_the_word_width", 19);
   run_test(test_index_never_exceeds_the_word, "test_index_never_exceeds_the_word", 25);
   run_test(test_tenant_bound_is_a_real_size, "test_tenant_bound_is_a_real_size", 30);
-  run_test(test_ghost_slot_sits_past_the_workers, "test_ghost_slot_sits_past_the_workers", 38);
-  run_test(test_context_id_is_needed_exactly_when_it_is_used, "test_context_id_is_needed_exactly_when_it_is_used", 43);
 
   return UNITY_END();
 }

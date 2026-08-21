@@ -16,7 +16,7 @@ observation about one run. The long answer, including what it costs you, is @ref
 At `MMGR_WORKER_COUNT == 1`, the question does not arise: there is no shared mutable state and no
 synchronization, because there is nothing to synchronize.
 
-Above 1, the pools are partitioned by worker slot, and that is safe **as long as a pointer does not
+Above 1, the pools are partitioned by worker loculus, and that is safe **as long as a pointer does not
 cross workers**. Nothing enforces it.
 
 The one genuinely concurrent module is `confinium_exclusivum_infinitas`, which is single-producer
@@ -37,7 +37,7 @@ not, it is worth a lot: `mmgr_memor_chr` over 512 bytes measured 610 cycles with
 
 ## Can I use it from C++?
 
-Yes. Headers are wrapped in `MMGR_BEGIN_DECLS` / `MMGR_END_DECLS`, which is `extern "C"` under a C++
+Yes. Headers are wrapped in `MMGR_INCIPE_DECLS` / `MMGR_FINIS_DECLS`, which is `extern "C"` under a C++
 compiler. The dispatch tables are plain structs of function pointers and work unchanged.
 
 ## Why is MinSizeRel not -Os?

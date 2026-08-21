@@ -5,7 +5,7 @@
 
 #include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file confinium.h
@@ -17,29 +17,6 @@ MMGR_BEGIN_DECLS
  * Interim is released by mark, not by pointer. Nothing is reallocated and nothing moves, so a
  * pointer handed out after a mark is dead the moment that mark is released.
  */
-
-/**
- * @brief How many workers this build has.
- * @return Worker count.
- */
-int mmgr_worker_count(void);
-
-/**
- * @brief Which worker is calling.
- * @return Worker id.
- *
- * A single worker build knows the answer at compile time, so it is a constant and there is no
- * platform hook to supply.
- */
-#if MMGR_WORKER_COUNT == 1
-MMGR_INLINE int mmgr_worker_self(void)
-{
-    return 0;
-}
-#else
-int mmgr_worker_self(void);
-void mmgr_worker_set_self(int id);
-#endif
 
 /** @brief Minimum alignment of anything handed out. */
 #define MMGR_CONFIN_ALIGN 8u
@@ -322,6 +299,6 @@ size_t mmgr_confin_set_persist_used(const mmgr_confin_set *s);
  */
 size_t mmgr_confin_set_interim_used(const mmgr_confin_set *s);
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

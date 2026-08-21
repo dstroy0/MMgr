@@ -77,13 +77,13 @@
 
 /** @brief Open and close extern "C". */
 #ifdef __cplusplus
-#define MMGR_BEGIN_DECLS                                                                                               \
+#define MMGR_INCIPE_DECLS                                                                                               \
     extern "C"                                                                                                         \
     {
-#define MMGR_END_DECLS }
+#define MMGR_FINIS_DECLS }
 #else
-#define MMGR_BEGIN_DECLS
-#define MMGR_END_DECLS
+#define MMGR_INCIPE_DECLS
+#define MMGR_FINIS_DECLS
 #endif
 
 /** @brief Paste two tokens after expanding both. */
@@ -124,62 +124,62 @@
  *         pointers differ in width. */
 #define MMGR_FP_SIZE (sizeof(void (*)(void)))
 
-/** @brief Assert one member sits at one dispatch slot. */
-#define MMGR_NS_SLOT(T, member, slot)                                                                                  \
-    MMGR_STATIC_ASSERT(offsetof(T, member) == (size_t)(slot) * MMGR_FP_SIZE,                                           \
-                       #T "." #member " is not at dispatch slot " #slot)
+/** @brief Assert one member sits at one dispatch loculus. */
+#define MMGR_NS_LOCULUS(T, member, loculus)                                                                                  \
+    MMGR_STATIC_ASSERT(offsetof(T, member) == (size_t)(loculus) * MMGR_FP_SIZE,                                           \
+                       #T "." #member " is not at dispatch loculus " #loculus)
 
 /*
- * Unrolled rather than recursive, because a failed assert should name the member and the slot and
+ * Unrolled rather than recursive, because a failed assert should name the member and the loculus and
  * nothing else. One line per arity.
  */
-#define MMGR_NS_L1(T, a) MMGR_NS_SLOT(T, a, 0);
-#define MMGR_NS_L2(T, a, b) MMGR_NS_L1(T, a) MMGR_NS_SLOT(T, b, 1);
-#define MMGR_NS_L3(T, a, b, c) MMGR_NS_L2(T, a, b) MMGR_NS_SLOT(T, c, 2);
-#define MMGR_NS_L4(T, a, b, c, d) MMGR_NS_L3(T, a, b, c) MMGR_NS_SLOT(T, d, 3);
-#define MMGR_NS_L5(T, a, b, c, d, e) MMGR_NS_L4(T, a, b, c, d) MMGR_NS_SLOT(T, e, 4);
-#define MMGR_NS_L6(T, a, b, c, d, e, f) MMGR_NS_L5(T, a, b, c, d, e) MMGR_NS_SLOT(T, f, 5);
-#define MMGR_NS_L7(T, a, b, c, d, e, f, g) MMGR_NS_L6(T, a, b, c, d, e, f) MMGR_NS_SLOT(T, g, 6);
-#define MMGR_NS_L8(T, a, b, c, d, e, f, g, h) MMGR_NS_L7(T, a, b, c, d, e, f, g) MMGR_NS_SLOT(T, h, 7);
-#define MMGR_NS_L9(T, a, b, c, d, e, f, g, h, i) MMGR_NS_L8(T, a, b, c, d, e, f, g, h) MMGR_NS_SLOT(T, i, 8);
-#define MMGR_NS_L10(T, a, b, c, d, e, f, g, h, i, j) MMGR_NS_L9(T, a, b, c, d, e, f, g, h, i) MMGR_NS_SLOT(T, j, 9);
+#define MMGR_NS_L1(T, a) MMGR_NS_LOCULUS(T, a, 0);
+#define MMGR_NS_L2(T, a, b) MMGR_NS_L1(T, a) MMGR_NS_LOCULUS(T, b, 1);
+#define MMGR_NS_L3(T, a, b, c) MMGR_NS_L2(T, a, b) MMGR_NS_LOCULUS(T, c, 2);
+#define MMGR_NS_L4(T, a, b, c, d) MMGR_NS_L3(T, a, b, c) MMGR_NS_LOCULUS(T, d, 3);
+#define MMGR_NS_L5(T, a, b, c, d, e) MMGR_NS_L4(T, a, b, c, d) MMGR_NS_LOCULUS(T, e, 4);
+#define MMGR_NS_L6(T, a, b, c, d, e, f) MMGR_NS_L5(T, a, b, c, d, e) MMGR_NS_LOCULUS(T, f, 5);
+#define MMGR_NS_L7(T, a, b, c, d, e, f, g) MMGR_NS_L6(T, a, b, c, d, e, f) MMGR_NS_LOCULUS(T, g, 6);
+#define MMGR_NS_L8(T, a, b, c, d, e, f, g, h) MMGR_NS_L7(T, a, b, c, d, e, f, g) MMGR_NS_LOCULUS(T, h, 7);
+#define MMGR_NS_L9(T, a, b, c, d, e, f, g, h, i) MMGR_NS_L8(T, a, b, c, d, e, f, g, h) MMGR_NS_LOCULUS(T, i, 8);
+#define MMGR_NS_L10(T, a, b, c, d, e, f, g, h, i, j) MMGR_NS_L9(T, a, b, c, d, e, f, g, h, i) MMGR_NS_LOCULUS(T, j, 9);
 #define MMGR_NS_L11(T, a, b, c, d, e, f, g, h, i, j, k)                                                                \
-    MMGR_NS_L10(T, a, b, c, d, e, f, g, h, i, j) MMGR_NS_SLOT(T, k, 10);
+    MMGR_NS_L10(T, a, b, c, d, e, f, g, h, i, j) MMGR_NS_LOCULUS(T, k, 10);
 #define MMGR_NS_L12(T, a, b, c, d, e, f, g, h, i, j, k, l)                                                             \
-    MMGR_NS_L11(T, a, b, c, d, e, f, g, h, i, j, k) MMGR_NS_SLOT(T, l, 11);
+    MMGR_NS_L11(T, a, b, c, d, e, f, g, h, i, j, k) MMGR_NS_LOCULUS(T, l, 11);
 #define MMGR_NS_L13(T, a, b, c, d, e, f, g, h, i, j, k, l, m)                                                          \
-    MMGR_NS_L12(T, a, b, c, d, e, f, g, h, i, j, k, l) MMGR_NS_SLOT(T, m, 12);
+    MMGR_NS_L12(T, a, b, c, d, e, f, g, h, i, j, k, l) MMGR_NS_LOCULUS(T, m, 12);
 #define MMGR_NS_L14(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n)                                                       \
-    MMGR_NS_L13(T, a, b, c, d, e, f, g, h, i, j, k, l, m) MMGR_NS_SLOT(T, n, 13);
+    MMGR_NS_L13(T, a, b, c, d, e, f, g, h, i, j, k, l, m) MMGR_NS_LOCULUS(T, n, 13);
 #define MMGR_NS_L15(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)                                                    \
-    MMGR_NS_L14(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n) MMGR_NS_SLOT(T, o, 14);
+    MMGR_NS_L14(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n) MMGR_NS_LOCULUS(T, o, 14);
 #define MMGR_NS_L16(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)                                                 \
-    MMGR_NS_L15(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) MMGR_NS_SLOT(T, p, 15);
+    MMGR_NS_L15(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) MMGR_NS_LOCULUS(T, p, 15);
 #define MMGR_NS_L17(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)                                              \
-    MMGR_NS_L16(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) MMGR_NS_SLOT(T, q, 16);
+    MMGR_NS_L16(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) MMGR_NS_LOCULUS(T, q, 16);
 #define MMGR_NS_L18(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)                                           \
-    MMGR_NS_L17(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) MMGR_NS_SLOT(T, r, 17);
+    MMGR_NS_L17(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) MMGR_NS_LOCULUS(T, r, 17);
 #define MMGR_NS_L19(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)                                        \
-    MMGR_NS_L18(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) MMGR_NS_SLOT(T, s, 18);
+    MMGR_NS_L18(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) MMGR_NS_LOCULUS(T, s, 18);
 #define MMGR_NS_L20(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)                                     \
-    MMGR_NS_L19(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) MMGR_NS_SLOT(T, t, 19);
+    MMGR_NS_L19(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) MMGR_NS_LOCULUS(T, t, 19);
 #define MMGR_NS_L21(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)                                  \
-    MMGR_NS_L20(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) MMGR_NS_SLOT(T, u, 20);
+    MMGR_NS_L20(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) MMGR_NS_LOCULUS(T, u, 20);
 #define MMGR_NS_L22(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)                               \
-    MMGR_NS_L21(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) MMGR_NS_SLOT(T, v, 21);
+    MMGR_NS_L21(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) MMGR_NS_LOCULUS(T, v, 21);
 #define MMGR_NS_L23(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w)                            \
-    MMGR_NS_L22(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) MMGR_NS_SLOT(T, w, 22);
+    MMGR_NS_L22(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) MMGR_NS_LOCULUS(T, w, 22);
 #define MMGR_NS_L24(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x)                         \
-    MMGR_NS_L23(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) MMGR_NS_SLOT(T, x, 23);
+    MMGR_NS_L23(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) MMGR_NS_LOCULUS(T, x, 23);
 
 /**
- * @brief Pin every dispatch slot of a table that is nothing but function pointers.
+ * @brief Pin every dispatch loculus of a table that is nothing but function pointers.
  *
  *     MMGR_NS_LAYOUT(VerbumScrutorNs, ge, le, spread, sub7, has_zero, eq, xor_, zero_lane, load);
  *
  * A `<Mod>Ns` is a run of function pointers the library addresses by offset, and a positional
  * initializer mis-wires silently when a member is inserted, removed or moved. This asserts each
- * named member is at its own slot, in the order given, and that sizeof is exactly that many
+ * named member is at its own loculus, in the order given, and that sizeof is exactly that many
  * pointers - so a member added and not listed, a member reordered, or padding appearing between
  * them all fail the build at the declaration rather than at a wrong call.
  *
@@ -191,7 +191,7 @@
                            #T " has a member that is not in its dispatch list, or is padded")
 
 /**
- * @brief Pin the dispatch slots of a table that carries state after its entries.
+ * @brief Pin the dispatch loculi of a table that carries state after its entries.
  *
  * clarus and occultum each keep a pointer to their own internals behind the dispatch run. sizeof
  * cannot pin the count there because the tail is not function pointers, so @p tail names the first

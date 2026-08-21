@@ -52,7 +52,7 @@ Latin names, because they were carved out of a larger tree and the short English
 | [`byteio`](src/byteio) / [`bitio`](src/bitio) / [`endian`](src/endian) | the wire                                                   |
 | [`fractio`](src/fractio)                                               | takes a double apart, without `<math.h>`                   |
 | [`pow5`](src/pow5)                                                     | generated: the powers of five the decimal conversion needs |
-| [`ascii_mask`](src/ascii_mask) / [`anchor_cost`](src/anchor_cost)      | generated: character classes and byte rarity               |
+| [`ascii_persona_bitorum`](src/ascii_persona_bitorum) / [`impensa_ancorae_acus`](src/impensa_ancorae_acus)      | generated: character classes and byte rarity               |
 
 ## Building it
 

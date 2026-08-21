@@ -41,7 +41,7 @@
 
 #include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /* ---------------------------------------------------------------------------------------------
  * memoria_operor
@@ -263,6 +263,6 @@ MMGR_INLINE float mmgr_oracle_to_float(const char *s, const char **end)
     return v;
 }
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

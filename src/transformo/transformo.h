@@ -7,7 +7,7 @@
 #include "config/mmgr_config.h"
 #include "pow5/pow5.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file transformo.h
@@ -468,6 +468,6 @@ MMGR_INLINE mmgr_u64 mmgr_muto_scale_to_u64(mmgr_u64 mant, int e2, int ex, unsig
     return mmgr_muto_to_u64(&f, above);
 }
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

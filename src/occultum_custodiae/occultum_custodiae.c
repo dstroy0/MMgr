@@ -10,16 +10,13 @@
 
 struct SecureStorage
 {
-    _Alignas(32) uint8_t mem[MMGR_SEC_POOL_SLOTS][MMGR_SECURE_CONFIN_SIZE];
+    _Alignas(32) uint8_t mem[MMGR_SECURE_CONFIN_SIZE];
 };
 
 struct SecureInternal
 {
     struct SecureStorage *store;
-    mmgr_confin pool[MMGR_SEC_POOL_SLOTS];
-#if MMGR_DEBUG_CHECKS
-    uintptr_t owner[MMGR_SEC_POOL_SLOTS];
-#endif
+    mmgr_confin pool;
 };
 
 static struct SecureStorage s_store;
@@ -46,68 +43,26 @@ static inline uintptr_t secure_offset(const struct SecureInternal *ctx, const vo
     return (uintptr_t)p - (uintptr_t)ctx->store;
 }
 
-/**
- * @brief Which slot the caller gets.
- * @return The worker's slot, or the ghost slot when there is no worker behind the call.
- */
-static inline int cur_worker(void)
+static inline mmgr_confin *bind(struct SecureInternal *ctx)
 {
-    int w = mmgr_worker_self();
-    /* MMGR_WORKER_COUNT is 1, so mmgr_worker_self is a compile time 0 and both halves of the
-       range check are constant. See clarus_custodiae.c. */
-    return (w >= 0 && w < MMGR_SEC_POOL_SLOTS) ? w : MMGR_GHOST_WORKER_SLOT; /* GCOVR_EXCL_BR_LINE */
-}
-
-/**
- * @brief Check that one worker is not using another's tenant.
- * @param ctx Pool.
- * @param w Slot.
- *
- * Only compiled when MMGR_DEBUG_CHECKS is on. Records the first context id to touch a slot and
- * complains if a different one turns up.
- */
-static inline void assert_single_owner(struct SecureInternal *ctx, int w)
-{
-#if MMGR_DEBUG_CHECKS
-
-    const uintptr_t cur = mmgr_platform_context_id();
-    if (ctx->owner[w] == 0)
-    {
-        ctx->owner[w] = cur;
-    }
-    else
-    {
-        MMGR_ASSERT(ctx->owner[w] == cur, "secure pool borrowed from a foreign task");
-    }
-#else
-    (void)ctx;
-    (void)w;
-#endif
-}
-
-static inline mmgr_confin *bind(struct SecureInternal *ctx, int w)
-{
-    mmgr_confin *a = &ctx->pool[w];
+    mmgr_confin *a = &ctx->pool;
     if (a->base == NULL)
     {
         ctx->store = &s_store;
-        mmgr_confin_init(a, ctx->store->mem[w], MMGR_SECURE_CONFIN_SIZE);
+        mmgr_confin_init(a, ctx->store->mem, MMGR_SECURE_CONFIN_SIZE);
     }
     return a;
 }
-
 /**
- * @brief The tenant in slot @p w, if it has been bound.
+ * @brief The tenant, if it has been bound.
  * @param ctx Pool.
- * @param w Slot.
  * @return The tenant, or NULL.
  */
-static inline mmgr_confin *peek(struct SecureInternal *ctx, int w)
+static inline mmgr_confin *peek(struct SecureInternal *ctx)
 {
-    mmgr_confin *a = &ctx->pool[w];
+    mmgr_confin *a = &ctx->pool;
     return (a->base != NULL) ? a : NULL;
 }
-
 /**
  * @brief Release interim back to @p mark, wiping what is given up.
  * @param a Tenant.
@@ -129,10 +84,8 @@ static inline void wipe_down_to(mmgr_confin *a, size_t mark)
 void *mmgr_occult_capio(size_t n, size_t align)
 {
     struct SecureInternal *ctx = secure_ctx();
-    int w = cur_worker();
-    assert_single_owner(ctx, w);
     MMGR_ASSERT((align & (align - 1)) == 0, "secure alignment must be a power of two");
-    return mmgr_confin_interim_capio_aligned(bind(ctx, w), n, align);
+    return mmgr_confin_interim_capio_aligned(bind(ctx), n, align);
 }
 
 mmgr_spat mmgr_occult_span(size_t n, size_t align)
@@ -143,34 +96,26 @@ mmgr_spat mmgr_occult_span(size_t n, size_t align)
 mmgr_spat mmgr_occult_persist_span(size_t n)
 {
     struct SecureInternal *ctx = secure_ctx();
-    int w = cur_worker();
-    assert_single_owner(ctx, w);
 
-    return spat.from((uint8_t *)mmgr_confin_persist_capio(bind(ctx, w), n), n);
+    return spat.from((uint8_t *)mmgr_confin_persist_capio(bind(ctx), n), n);
 }
 
 size_t mmgr_occult_mark(void)
 {
     struct SecureInternal *ctx = secure_ctx();
-    int w = cur_worker();
-    assert_single_owner(ctx, w);
-    return mmgr_confin_interim_mark(bind(ctx, w));
+    return mmgr_confin_interim_mark(bind(ctx));
 }
 
 void mmgr_occult_reddo(size_t mark)
 {
     struct SecureInternal *ctx = secure_ctx();
-    int w = cur_worker();
-    assert_single_owner(ctx, w);
-    wipe_down_to(bind(ctx, w), mark);
+    wipe_down_to(bind(ctx), mark);
 }
 
 void mmgr_occult_reset(void)
 {
     struct SecureInternal *ctx = secure_ctx();
-    int w = cur_worker();
-    assert_single_owner(ctx, w);
-    mmgr_confin *a = peek(ctx, w);
+    mmgr_confin *a = peek(ctx);
     if (a != NULL)
     {
         wipe_down_to(a, a->size);
@@ -179,23 +124,14 @@ void mmgr_occult_reset(void)
 
 size_t mmgr_occult_used(void)
 {
-    const mmgr_confin *a = peek(secure_ctx(), cur_worker());
+    const mmgr_confin *a = peek(secure_ctx());
     return (a != NULL) ? mmgr_confin_interim_used(a) : 0;
 }
 
 size_t mmgr_occult_high_water(void)
 {
-    struct SecureInternal *ctx = secure_ctx();
-    size_t peak = 0;
-    for (int w = 0; w < MMGR_SEC_POOL_SLOTS; w++)
-    {
-        const mmgr_confin *a = peek(ctx, w);
-        if (a != NULL && a->scratch_hw > peak)
-        {
-            peak = a->scratch_hw;
-        }
-    }
-    return peak;
+    const mmgr_confin *a = peek(secure_ctx());
+    return (a != NULL) ? a->scratch_hw : 0;
 }
 
 size_t mmgr_occult_capacity(void)
@@ -210,18 +146,3 @@ mmgr_bool mmgr_occult_owns(const void *p)
     return ctx->store != NULL && secure_offset(ctx, p) < (uintptr_t)sizeof(ctx->store->mem);
 }
 
-int mmgr_occult_slot_of(const void *p)
-{
-    const struct SecureInternal *ctx = secure_ctx();
-    if (ctx->store == NULL)
-    {
-        return -1;
-    }
-    const uintptr_t off = secure_offset(ctx, p);
-    if (off >= (uintptr_t)sizeof(ctx->store->mem))
-    {
-        return -1;
-    }
-
-    return (int)(off / MMGR_SECURE_CONFIN_SIZE);
-}

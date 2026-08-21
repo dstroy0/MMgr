@@ -50,7 +50,7 @@ typedef mmgr_u16 mmgr_word;
 #error "MMGR_WORD_BITS must be 16, 32 or 64 - see mmgr_config.h"
 #endif
 
-/** @brief A slot index. Never wider than the register that carries it. */
+/** @brief A loculus index. Never wider than the register that carries it. */
 #if MMGR_INDEX_BITS == 32
 typedef mmgr_u32 mmgr_idx;
 #elif MMGR_INDEX_BITS == 16

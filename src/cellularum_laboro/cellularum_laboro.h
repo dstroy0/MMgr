@@ -7,7 +7,7 @@
 
 #include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file cellularum_laboro.h
@@ -46,6 +46,6 @@ MMGR_NS_LAYOUT(CellularumLaboroNs, len, diff, eq, starts, find, has, chr, copy, 
 /** @brief Module namespace. */
 extern const CellularumLaboroNs cellul;
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

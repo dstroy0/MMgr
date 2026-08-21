@@ -35,8 +35,8 @@ rename anything again.
 | `bitio`                          | `bitio`  | `Bitio`                        | _(English)_ bit I/O                              |
 | `byteio`                         | `byteio` | `Byteio`                       | _(English)_ byte I/O                             |
 | `endian`                         | `endian` | `Endian`                       | _(English)_ byte order                           |
-| `ascii_mask`                     | —        | —                              | _(English)_ character classes as bitmaps         |
-| `anchor_cost`                    | —        | —                              | _(English)_ byte-frequency table for search      |
+| `ascii_persona_bitorum`                     | —        | —                              | _(English)_ character classes as bitmaps         |
+| `impensa_ancorae_acus`                    | —        | —                              | _(English)_ byte-frequency table for search      |
 | `pow5`                           | —        | —                              | _(English)_ powers of five for decimal work      |
 | `dma`                            | `dma`    | `Dma`                          | _(English)_ direct memory access                 |
 
@@ -75,7 +75,7 @@ last persistent take_.
 | term            | means                                                                   |
 | --------------- | ----------------------------------------------------------------------- |
 | **borrow**      | storage the library was handed and does not own. Everything is a borrow |
-| **tenant**      | one worker's slot in a pool                                             |
+| **tenant**      | one worker's loculus in a pool                                             |
 | **custodia**    | a guarded pool that hands out tenants — `clarus` or `occult`            |
 | **carrier**     | the integer a SWAR operation runs on. Always the machine word           |
 | **lane**        | one byte inside the carrier                                             |

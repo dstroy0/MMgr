@@ -5,7 +5,7 @@
 
 #include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file endian.h
@@ -127,6 +127,6 @@ MMGR_NS EndianNs endian MMGR_UNUSED = {.wr16le = mmgr_wr16le,
                                        .rd32be = mmgr_rd32be,
                                        .rd64be = mmgr_rd64be};
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

@@ -69,7 +69,7 @@ lines = [
     "",
     '#include "config/mmgr_config.h"',
     "",
-    "MMGR_BEGIN_DECLS",
+    "MMGR_INCIPE_DECLS",
     "",
     "/**",
     " * @file pow5.h",
@@ -112,7 +112,7 @@ lines += [
     "",
     'MMGR_STATIC_ASSERT(MMGR_POW5_MAX >= 511, "the tables do not reach the exponents a double can carry");',
     "",
-    "MMGR_END_DECLS",
+    "MMGR_FINIS_DECLS",
     "",
     "#endif",
 ]

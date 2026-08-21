@@ -7,9 +7,9 @@ set(MMGR_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "include root"
 
 # One directory per module, each declaring only what it is and what it needs.
 # Ordered so a dependency is defined before whatever links it.
-add_subdirectory(anchor_cost)
-add_subdirectory(ascii_mask)
-add_subdirectory(bitio)
+add_subdirectory(impensa_ancorae_acus)
+add_subdirectory(ascii_persona_bitorum)
+add_subdirectory(bitorum_introitus_exitus)
 add_subdirectory(endian)
 add_subdirectory(pow5)
 add_subdirectory(proximus_operor)
@@ -17,7 +17,7 @@ add_subdirectory(verbum_scrutor)
 add_subdirectory(memoria_operor)
 add_subdirectory(cellularum_laboro)
 add_subdirectory(spatium)
-add_subdirectory(byteio)
+add_subdirectory(octetus_introitus_exitus)
 add_subdirectory(confinium)
 add_subdirectory(clarus_custodiae)
 add_subdirectory(confinium_exclusivum_infinitas)

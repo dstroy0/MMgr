@@ -56,7 +56,7 @@ Two things bite in Doxygen comments and both have already happened here:
 The API reference is organized by `docs/groups.dox`, which owns every title, brief and ordering.
 A header **joins** a group; it never declares one. Two lines, added once and never touched again.
 
-Immediately after `MMGR_BEGIN_DECLS`, before the first declaration:
+Immediately after `MMGR_INCIPE_DECLS`, before the first declaration:
 
 ```c
 /**
@@ -65,7 +65,7 @@ Immediately after `MMGR_BEGIN_DECLS`, before the first declaration:
  */
 ```
 
-Immediately before `MMGR_END_DECLS`:
+Immediately before `MMGR_FINIS_DECLS`:
 
 ```c
 /** @} */

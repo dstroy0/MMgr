@@ -78,7 +78,7 @@ void test_a_span_over_pool_bytes_writes_inside_the_pool(void)
 void test_the_pool_refuses_rather_than_overruns(void)
 {
     // one request larger than a whole tenant cannot be satisfied, and must fail rather than
-    // wander into the neighboring slot
+    // wander into the neighboring loculus
     void *p = clarus.alloc(clarus.capacity() + 1u, 8u);
     TEST_ASSERT_NULL_MESSAGE(p, "a request past the tenant must fail, not overrun");
     TEST_ASSERT_EQUAL_size_t(0u, clarus.used());

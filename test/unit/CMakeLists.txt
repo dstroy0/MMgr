@@ -6,10 +6,10 @@
 # translation unit has a suite, so a module that grows a second .c grows a second suite
 # beside it rather than sharing one.
 
-add_subdirectory(anchor_cost)
-add_subdirectory(ascii_mask)
-add_subdirectory(bitio)
-add_subdirectory(byteio)
+add_subdirectory(impensa_ancorae_acus)
+add_subdirectory(ascii_persona_bitorum)
+add_subdirectory(bitorum_introitus_exitus)
+add_subdirectory(octetus_introitus_exitus)
 add_subdirectory(cellularum_laboro)
 add_subdirectory(clarus_custodiae)
 add_subdirectory(config)

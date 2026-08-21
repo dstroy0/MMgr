@@ -46,9 +46,9 @@ size_t cap  = clarus.capacity();
 **One tenant per worker, decided by `mmgr_worker_self()`.** At `MMGR_WORKER_COUNT == 1` that is a
 compile-time constant. Above 1 you must supply `mmgr_platform_context_id()`.
 
-**A pointer must not cross workers.** Nothing enforces it. `clarus.owns(p)` and `clarus.slot_of(p)`
-exist for asserts and debugging — code that needs to ask which slot a pointer came from usually
-wants to pass the slot instead.
+**A pointer must not cross workers.** Nothing enforces it. `clarus.owns(p)` and `clarus.loculus_of(p)`
+exist for asserts and debugging — code that needs to ask which loculus a pointer came from usually
+wants to pass the loculus instead.
 
 **`persist` here is not the confinium's persist.** It is the pool's long-lived half of one tenant.
 
@@ -83,10 +83,10 @@ deleted by the compiler as a dead store — the value is never read again, so th
 observable effect under the abstract machine. `volatile` makes it observable, so it survives.
 
 That is the whole difference. Everything else — `alloc`, `span`, `mark`, `release`, `reset`,
-`used`, `high_water`, `capacity`, `owns`, `slot_of` — matches `clarus` entry for entry, deliberately,
+`used`, `high_water`, `capacity`, `owns`, `loculus_of` — matches `clarus` entry for entry, deliberately,
 so moving a buffer from plaintext to secure storage is a change of namespace and not a rewrite.
 
-Its storage is `MMGR_SECURE_CONFIN_SIZE` per slot.
+Its storage is `MMGR_SECURE_CONFIN_SIZE` per loculus.
 
 ## Gotchas
 

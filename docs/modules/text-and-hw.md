@@ -96,7 +96,7 @@ in one place and read in a thousand, that is the right trade.
 
 **The index in `MMGR_U32(0)` is into the value array**, not a position in the output.
 
-**The union is tagged by the spec, not by itself.** A `MMGR_VG` reading a slot you filled as `.u32`
+**The union is tagged by the spec, not by itself.** A `MMGR_VG` reading a loculus you filled as `.u32`
 is a bug the compiler cannot see.
 
 @ref mod_numer "Generated reference"

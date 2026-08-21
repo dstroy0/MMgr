@@ -1,8 +1,8 @@
 // memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "cellularum_laboro/cellularum_laboro.h"
-#include "anchor_cost/anchor_cost.h"
-#include "ascii_mask/ascii_mask.h"
+#include "impensa_ancorae_acus/impensa_ancorae_acus.h"
+#include "ascii_persona_bitorum/ascii_persona_bitorum.h"
 #include "transformo/transformo.h"
 #include "fractio/fractio.h"
 #include "verbum_scrutor/verbum_scrutor.h"
@@ -401,7 +401,7 @@ static inline mmgr_bool MMGR_UNUSED starts_ci(const char *s, const char *pre, si
  * A folded row matches both cases, so its frequency is the sum of the two. Cost the folded byte,
  * not the one that happens to be written.
  */
-MMGR_INLINE uint8_t anchor_fold(const char *needle, size_t k, mmgr_bool ci)
+MMGR_INLINE uint8_t ancorae_fold(const char *needle, size_t k, mmgr_bool ci)
 {
     uint8_t c = (uint8_t)needle[k];
     if (ci && c >= (uint8_t)'A' && c <= (uint8_t)'Z')
@@ -452,9 +452,9 @@ MMGR_INLINE size_t pick_rows(const char *needle, size_t nlen, mmgr_bool ci, size
                 }
             }
             /* GCOVR_EXCL_STOP */
-            if (!taken && mmgr_anchor_cost[anchor_fold(needle, k, ci)] < best_cost) /* GCOVR_EXCL_BR_LINE */
+            if (!taken && mmgr_impensa_ancorae_acus[ancorae_fold(needle, k, ci)] < best_cost) /* GCOVR_EXCL_BR_LINE */
             {
-                best_cost = mmgr_anchor_cost[anchor_fold(needle, k, ci)];
+                best_cost = mmgr_impensa_ancorae_acus[ancorae_fold(needle, k, ci)];
                 best = k;
             }
         }
@@ -666,8 +666,8 @@ MMGR_INLINE const char *find_core(const char *hay, size_t read_cap, const char *
      * which rounds its own read up to a word. That is the furthest anything in a pass goes. */
     const size_t tail = (nlen > take) ? mmgr_scrut_words(nlen - take) * MMGR_SWAR_BYTES : 0u;
     const size_t verify_reach = (MMGR_SWAR_BYTES - 1u) + take + tail;
-    const size_t anchor_reach = maxrow + MMGR_SWAR_BYTES;
-    const size_t reach = (anchor_reach > verify_reach) ? anchor_reach : verify_reach;
+    const size_t ancorae_reach = maxrow + MMGR_SWAR_BYTES;
+    const size_t reach = (ancorae_reach > verify_reach) ? ancorae_reach : verify_reach;
 
     size_t safe = (read_cap >= reach) ? (read_cap - reach) + 1u : 0u;
     /* GCOVR_EXCL_START - reach is never less than nlen, so safe is never more than starts and the

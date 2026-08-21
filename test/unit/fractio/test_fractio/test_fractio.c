@@ -91,7 +91,7 @@ void test_a_subnormal_keeps_its_mantissa(void)
 
 void test_merge_masks_each_field(void)
 {
-    // a field wider than its slot must not spill into the next
+    // a field wider than its loculus must not spill into the next
     const mmgr_u64 bits = fract.merge(1u, MMGR_DBL_EXP_ALL, MMGR_DBL_MANT_MASK);
     TEST_ASSERT_EQUAL_UINT64(1u, (bits & MMGR_DBL_SIGN_MASK) >> MMGR_DBL_SIGN_SHIFT);
     TEST_ASSERT_EQUAL_UINT64(MMGR_DBL_EXP_ALL, (bits & MMGR_DBL_EXP_MASK) >> MMGR_DBL_MANT_BITS);

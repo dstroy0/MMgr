@@ -551,16 +551,16 @@ def cmd_runners_gen(a):
 # A generated header that someone edited by hand looks fine until the next regeneration throws the
 # edit away. These pair each output with the tool that owns it, so the check is mechanical.
 GENERATED = (
-    ("tools/dev_env/gen_ascii_masks.py", ("src/ascii_mask/ascii_mask.h",)),
+    ("tools/dev_env/gen_ascii_persona_bitorum.py", ("src/ascii_persona_bitorum/ascii_persona_bitorum.h",)),
     ("tools/dev_env/gen_pow5.py", ("src/pow5/pow5.h",)),
     (
-        "tools/dev_env/gen_anchor_profiles.py",
+        "tools/dev_env/gen_ancorae_formae.py",
         (
-            "src/anchor_cost/anchor_cost_generic.h",
-            "src/anchor_cost/anchor_cost_english.h",
-            "src/anchor_cost/anchor_cost_uri.h",
-            "src/anchor_cost/anchor_cost_inet.h",
-            "src/anchor_cost/anchor_cost_route.h",
+            "src/impensa_ancorae_acus/impensa_ancorae_acus_generic.h",
+            "src/impensa_ancorae_acus/impensa_ancorae_acus_english.h",
+            "src/impensa_ancorae_acus/impensa_ancorae_acus_uri.h",
+            "src/impensa_ancorae_acus/impensa_ancorae_acus_inet.h",
+            "src/impensa_ancorae_acus/impensa_ancorae_acus_route.h",
         ),
     ),
 )

@@ -6,6 +6,6 @@ mmgr_add_module(cellularum_laboro
   DEPS
     transformo
     verbum_scrutor
-    anchor_cost
-    ascii_mask
+    impensa_ancorae_acus
+    ascii_persona_bitorum
 )

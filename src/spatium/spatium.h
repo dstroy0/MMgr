@@ -5,7 +5,7 @@
 
 #include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file spatium.h
@@ -68,6 +68,6 @@ MMGR_NS SpatiumNs spat MMGR_UNUSED = {.from_impl = mmgr_spat_from_backend};
  */
 #define from(...) from_impl(&(const mmgr_spat_cfg){__VA_ARGS__})
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

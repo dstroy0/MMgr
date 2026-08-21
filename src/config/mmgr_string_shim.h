@@ -40,7 +40,7 @@
 /**
  * @brief Longest string this build can hold.
  *
- * Not SIZE_MAX and not a guess. A string lives inside one tenant's confinium and the slot sizes are
+ * Not SIZE_MAX and not a guess. A string lives inside one tenant's confinium and the loculus sizes are
  * fixed at compile time, so the read cap is a constant every call site shares.
  *
  * A build that keeps strings somewhere a custodia did not hand out - a caller's own static buffer,
@@ -74,7 +74,7 @@
 #define _INC_STRING 1
 #endif
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /*
  * Every alias goes through the module's dispatch table rather than naming a free function.
@@ -174,6 +174,6 @@ MMGR_INLINE void *mmgr_shim_set(void *dst, int c, size_t n)
  */
 #define strchr(s, c) ((char *)(size_t)cellul.chr((s), MMGR_STR_MAX, (uint8_t)(c)))
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

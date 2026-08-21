@@ -5,7 +5,7 @@
 
 #include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file verba_scribo.h
@@ -327,6 +327,6 @@ MMGR_NS VerbaScriboNs verba MMGR_UNUSED = {.put_n = mmgr_verba_put_n,
                                            .finish = mmgr_verba_finish};
 #endif
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

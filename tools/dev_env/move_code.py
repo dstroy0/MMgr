@@ -115,12 +115,12 @@ def main() -> int:
     if args.append:
         at = len(dst)
     else:
-        pattern = args.anchor_before or args.anchor_after
+        pattern = args.ancorae_before or args.ancorae_after
         hit = next((i for i, ln in enumerate(dst) if re.search(pattern, ln)), None)
         if hit is None:
             raise SystemExit(f"anchor {pattern!r} not found in {args.dst}")
-        at = hit if args.anchor_before else hit + 1
-        if args.anchor_before and args.back_over_comments:
+        at = hit if args.ancorae_before else hit + 1
+        if args.ancorae_before and args.back_over_comments:
             while at > 0 and (dst[at - 1].lstrip().startswith("//") or not dst[at - 1].strip()):
                 at -= 1
 

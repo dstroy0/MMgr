@@ -35,16 +35,3 @@ void test_tenant_bound_is_a_real_size(void)
                              "the bound must cover the largest tenant");
 }
 
-void test_ghost_slot_sits_past_the_workers(void)
-{
-    TEST_ASSERT_EQUAL_INT(MMGR_WORKER_COUNT, MMGR_GHOST_WORKER_SLOT);
-}
-
-void test_context_id_is_needed_exactly_when_it_is_used(void)
-{
-#if (MMGR_WORKER_COUNT != 1) || MMGR_DEBUG_CHECKS
-    TEST_ASSERT_EQUAL_INT(1, MMGR_NEEDS_CONTEXT_ID);
-#else
-    TEST_ASSERT_EQUAL_INT(0, MMGR_NEEDS_CONTEXT_ID);
-#endif
-}

@@ -7,7 +7,7 @@
 
 #include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file memoria_operor.h
@@ -106,6 +106,6 @@ MMGR_NS MemoriaOperorNs memor MMGR_UNUSED = {
 };
 #endif
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif
