@@ -381,6 +381,27 @@ void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig)
     {
         return;
     }
+    /* One look, and the necessary question first: is this a number at all. An exponent field of
+     * all ones is an infinity or a nan and nothing else is either, so a single compare turns both
+     * away before anything else is decided. */
+    mmgr_u64 be = mmgr_fract_exp(v);
+
+    if (be == MMGR_DBL_EXP_ALL)
+    {
+        if (mmgr_fract_mant(v) != 0U)
+        {
+            mmgr_verba_put(b, "nan");
+            return;
+        }
+        if (mmgr_fract_sign(v) != 0U)
+        {
+            mmgr_verba_ch(b, '-');
+        }
+        mmgr_verba_put(b, "inf");
+        return;
+    }
+
+    /* A number from here, so a digit count is worth having an opinion about. */
     if (sig == 0)
     {
         sig = 1;
@@ -389,23 +410,11 @@ void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig)
     {
         sig = MMGR_G_MAX_SIG;
     }
-    if (mmgr_isnan(v))
-    {
-        mmgr_verba_put(b, "nan");
-        return;
-    }
-
-    if (mmgr_signbit(v))
+    if (mmgr_fract_sign(v) != 0U)
     {
         mmgr_verba_ch(b, '-');
         v = -v;
     }
-    if (mmgr_isinf(v))
-    {
-        mmgr_verba_put(b, "inf");
-        return;
-    }
-    mmgr_u64 be = mmgr_fract_exp(v);
     mmgr_u64 n = mmgr_fract_mant(v);
     if (be == 0U && n == 0U)
     {
@@ -515,24 +524,34 @@ void mmgr_verba_fixed(mmgr_verba *b, double v, unsigned decimals)
     {
         return;
     }
-    if (mmgr_isnan(v))
-    {
-        mmgr_verba_put(b, "nan");
-        return;
-    }
+    /* Same order as g: the one look, then the rejection, then the work. Negating the value
+     * afterwards flips the sign bit and leaves the exponent alone, so this reading stays good. */
+    const mmgr_u64 klass = mmgr_fract_exp(v);
 
-    if (mmgr_signbit(v))
+    if (klass == MMGR_DBL_EXP_ALL)
     {
-        mmgr_verba_ch(b, '-');
-        v = -v;
-    }
-    if (mmgr_isinf(v))
-    {
+        if (mmgr_fract_mant(v) != 0U)
+        {
+            mmgr_verba_put(b, "nan");
+            return;
+        }
+        if (mmgr_fract_sign(v) != 0U)
+        {
+            mmgr_verba_ch(b, '-');
+        }
         mmgr_verba_put(b, "inf");
         return;
     }
 
-    if (mmgr_fract_exp(v) >= (MMGR_DBL_BIAS + 64))
+    if (mmgr_fract_sign(v) != 0U)
+    {
+        mmgr_verba_ch(b, '-');
+        v = -v;
+    }
+
+    /* Past what a 64 bit integer part can hold there are no fixed digits to write, so it goes to
+     * the exponent form instead. */
+    if (klass >= (MMGR_DBL_BIAS + 64))
     {
         mmgr_verba_g(b, v, 10);
         return;

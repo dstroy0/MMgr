@@ -103,3 +103,26 @@ void test_namespace_is_wired(void)
     TEST_ASSERT_EQUAL_PTR(mmgr_fract_sign, fract.sign);
     TEST_ASSERT_EQUAL_PTR(mmgr_fract_from_bits, fract.from_bits);
 }
+
+void test_to_bits_is_from_bits_the_other_way(void)
+{
+    // Every class, because the pattern is the point and a nan or a subnormal has one too.
+    const double inf = 1e308 * 10.0;
+    static const double vals[6] = {0.0, -0.0, 1.0, -2.5, 4.9406564584124654e-324, 1.7976931348623157e308};
+
+    for (unsigned i = 0; i < 6u; i++)
+    {
+        const mmgr_u64 bits = fract.to_bits(vals[i]);
+        TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(vals[i], fract.from_bits(bits), "the pattern did not come back as the value");
+        TEST_ASSERT_EQUAL_HEX64_MESSAGE(bits, fract.to_bits(fract.from_bits(bits)), "and back again");
+    }
+
+    // The fields agree with the pattern they were taken from.
+    const mmgr_u64 b = fract.to_bits(-2.5);
+    TEST_ASSERT_EQUAL_HEX64(b, fract.merge(fract.sign(-2.5), fract.exp(-2.5), fract.mant(-2.5)));
+
+    // An infinity and a nan have patterns too, and to_bits does not look at what it is holding.
+    TEST_ASSERT_EQUAL_HEX64(MMGR_DBL_EXP_MASK, fract.to_bits(inf));
+    TEST_ASSERT_TRUE_MESSAGE((fract.to_bits(inf - inf) & MMGR_DBL_EXP_MASK) == MMGR_DBL_EXP_MASK,
+                             "a nan has the all ones exponent like an infinity does");
+}

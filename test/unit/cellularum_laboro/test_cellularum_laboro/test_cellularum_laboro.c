@@ -12,6 +12,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -733,4 +734,228 @@ void test_starts_finds_a_difference_with_no_terminator_in_the_word(void)
 
     TEST_ASSERT_FALSE(cellul.starts(s, pre, sizeof pre, MMGR_FALSE));
     TEST_ASSERT_FALSE(cellul.starts(s, pre, sizeof pre, MMGR_TRUE));
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * the decimal conversion, over the paths the ordinary cases never take
+ *
+ * A value whose mantissa fits in 53 bits and whose power of ten is one of the 23 that are exactly
+ * a double leaves through the fast path, and that is nearly everything anyone writes down. What is
+ * below drives the other one: the 128 bit fraction, the table of fives, the reciprocals, the
+ * subnormals, and the three bits that decide a rounding.
+ * ------------------------------------------------------------------------------------------- */
+
+/** @brief The bit pattern of a double, so a test can say exactly which one it meant. */
+static uint64_t bits_of(double v)
+{
+    uint64_t b = 0;
+    memcpy(&b, &v, sizeof b);
+    return b;
+}
+
+/** @brief Parse and compare against the pattern the platform's own reader produces. */
+static void same_as_strtod(const char *s)
+{
+    const double got = cellul.to_double(s, NULL);
+    const double want = strtod(s, NULL);
+
+    if (bits_of(got) != bits_of(want))
+    {
+        char msg[160];
+        (void)snprintf(msg, sizeof msg, "\"%s\": got %.17g (%016llx), wanted %.17g (%016llx)", s, got,
+                       (unsigned long long)bits_of(got), want, (unsigned long long)bits_of(want));
+        TEST_FAIL_MESSAGE(msg);
+    }
+}
+
+void test_a_power_of_ten_past_what_is_exactly_a_double(void)
+{
+    // Ten to the twenty two is the last exact one, so twenty three is the first that has to go
+    // through the fraction and the table.
+    same_as_strtod("1e22");
+    same_as_strtod("1e23");
+    same_as_strtod("1e24");
+    same_as_strtod("1.7976931348623157e308");
+    same_as_strtod("2.2250738585072014e-308");
+}
+
+void test_the_reciprocal_table_carries_the_negative_exponents(void)
+{
+    same_as_strtod("1e-23");
+    same_as_strtod("1e-50");
+    same_as_strtod("1e-100");
+    same_as_strtod("1e-200");
+    same_as_strtod("1e-300");
+    same_as_strtod("1.2345678901234567e-250");
+}
+
+void test_every_step_of_the_table_gets_used(void)
+{
+    // The exponent picks entries by its set bits, so an exponent with each bit in turn reaches
+    // each entry in turn.
+    static const int steps[] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
+    char s[64];
+
+    for (unsigned i = 0; i < sizeof steps / sizeof steps[0]; i++)
+    {
+        (void)snprintf(s, sizeof s, "1.5e%d", steps[i]);
+        same_as_strtod(s);
+        (void)snprintf(s, sizeof s, "1.5e-%d", steps[i]);
+        same_as_strtod(s);
+    }
+    // And one with several bits set at once, so the multiplies compound.
+    same_as_strtod("9.87654321e287");
+    same_as_strtod("9.87654321e-287");
+}
+
+void test_the_subnormals(void)
+{
+    same_as_strtod("4.9406564584124654e-324"); /* the smallest there is */
+    same_as_strtod("9.8813129168249309e-324");
+    same_as_strtod("1e-320");
+    same_as_strtod("2.4703282292062328e-324"); /* half the smallest: rounds to it or to zero */
+    same_as_strtod("1.5e-323");
+}
+
+void test_underflow_and_overflow(void)
+{
+    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(0.0, cellul.to_double("1e-400", NULL), "past the bottom is zero");
+    TEST_ASSERT_EQUAL_DOUBLE(0.0, cellul.to_double("1e-1000", NULL));
+    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(-0.0, cellul.to_double("-1e-1000", NULL), "and keeps its sign");
+
+    const double up = cellul.to_double("1e400", NULL);
+    TEST_ASSERT_TRUE_MESSAGE(up > 1.0e308, "past the top is an infinity");
+    TEST_ASSERT_TRUE(cellul.to_double("1e1000", NULL) > 1.0e308);
+    TEST_ASSERT_TRUE(cellul.to_double("-1e1000", NULL) < -1.0e308);
+}
+
+void test_more_digits_than_the_mantissa_can_hold(void)
+{
+    // Past nineteen digits the rest cannot be taken, but they are not nothing: whether they were
+    // all zeros is what decides a tie.
+    same_as_strtod("1234567890123456789012345");
+    same_as_strtod("0.12345678901234567890123456789");
+    same_as_strtod("1.0000000000000000000000001");
+    same_as_strtod("1.0000000000000000000000000");
+}
+
+void test_a_rounding_that_carries_out_of_the_mantissa(void)
+{
+    // Rounding up a mantissa of all ones takes it to a power of two and the exponent with it.
+    same_as_strtod("1.9999999999999999");
+    same_as_strtod("9.9999999999999999e22");
+    same_as_strtod("4.4501477170144023e-308"); /* rounds up out of the subnormals */
+}
+
+void test_the_leading_zero_count_at_every_width(void)
+{
+    // The normalise shifts by the leading zero count, and the count is found by halving, so a
+    // mantissa of each length in turn takes a different route through it.
+    char s[64];
+
+    for (unsigned bit = 0; bit < 63u; bit++)
+    {
+        const uint64_t m = (uint64_t)1 << bit;
+        (void)snprintf(s, sizeof s, "%llue30", (unsigned long long)m);
+        same_as_strtod(s);
+    }
+}
+
+void test_the_conversion_over_random_bit_patterns(void)
+{
+    // Values chosen by hand cluster. A bit pattern read as a double reaches the exponents and
+    // mantissas nobody would think to write down, and seventeen digits names exactly one double,
+    // so there is a right answer for every one of them.
+    uint64_t st = 0x9E3779B97F4A7C15ull;
+    char s[64];
+
+    for (unsigned i = 0; i < 20000u; i++)
+    {
+        st ^= st << 13;
+        st ^= st >> 7;
+        st ^= st << 17;
+
+        double v;
+        memcpy(&v, &st, sizeof v);
+        if (v != v || v > 1.7e308 || v < -1.7e308)
+        {
+            continue;
+        }
+        (void)snprintf(s, sizeof s, "%.17g", v);
+
+        const double got = cellul.to_double(s, NULL);
+        if (bits_of(got) != bits_of(v))
+        {
+            char msg[160];
+            (void)snprintf(msg, sizeof msg, "\"%s\" came back %016llx, wanted %016llx", s,
+                           (unsigned long long)bits_of(got), (unsigned long long)bits_of(v));
+            TEST_FAIL_MESSAGE(msg);
+        }
+    }
+}
+
+void test_the_conversion_over_strobed_bits(void)
+{
+    // The other half of the same idea: start from a plain value and flip a few bits, which lands
+    // on the exponents either side of the ordinary range rather than uniformly across it.
+    uint64_t st = 0x243F6A8885A308D3ull;
+    char s[64];
+
+    for (unsigned i = 0; i < 20000u; i++)
+    {
+        double base = 1.0;
+        uint64_t b;
+        memcpy(&b, &base, sizeof b);
+
+        for (unsigned k = 0; k < 1u + (i % 5u); k++)
+        {
+            st ^= st << 13;
+            st ^= st >> 7;
+            st ^= st << 17;
+            b ^= (uint64_t)1 << (st % 64u);
+        }
+
+        double v;
+        memcpy(&v, &b, sizeof v);
+        if (v != v || v > 1.7e308 || v < -1.7e308)
+        {
+            continue;
+        }
+        (void)snprintf(s, sizeof s, "%.17g", v);
+
+        const double got = cellul.to_double(s, NULL);
+        if (bits_of(got) != bits_of(v))
+        {
+            char msg[160];
+            (void)snprintf(msg, sizeof msg, "strobed \"%s\" came back %016llx, wanted %016llx", s,
+                           (unsigned long long)bits_of(got), (unsigned long long)bits_of(v));
+            TEST_FAIL_MESSAGE(msg);
+        }
+    }
+}
+
+void test_the_ends_of_the_range_through_the_table(void)
+{
+    // These do not take the shortcut at the top of the scaling - their exponents are inside what
+    // the tables reach, so they go all the way through the fraction and come out at the edges.
+    const double over = cellul.to_double("1.8e308", NULL);
+    TEST_ASSERT_TRUE_MESSAGE(over > 1.7976931348623157e308, "just past the largest double is an infinity");
+    TEST_ASSERT_TRUE(cellul.to_double("-1.8e308", NULL) < -1.7976931348623157e308);
+
+    // Below the smallest subnormal, but with an exponent the tables still carry, so the mantissa
+    // is shifted down until there is nothing left of it.
+    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(0.0, cellul.to_double("1e-330", NULL), "below the smallest subnormal is zero");
+    TEST_ASSERT_EQUAL_DOUBLE(0.0, cellul.to_double("4.9e-330", NULL));
+    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(-0.0, cellul.to_double("-1e-330", NULL), "and keeps its sign on the way");
+}
+
+void test_a_subnormal_that_rounds_up_into_the_normals(void)
+{
+    // The largest subnormal and the smallest normal are one step apart. A value between them has
+    // to round to one or the other, and rounding up moves the exponent field from zero to one -
+    // which is the only place that transition happens.
+    same_as_strtod("2.2250738585072012e-308");
+    same_as_strtod("2.2250738585072013e-308");
+    same_as_strtod("2.2250738585072011e-308");
+    same_as_strtod("2.2250738585072009e-308");
 }

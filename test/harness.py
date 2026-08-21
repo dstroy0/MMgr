@@ -3,10 +3,29 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """MMgr test harness: suite discovery and Unity runner generation.
 
+  harness.py build [--tree T]                 configure if needed, then build
+  harness.py test [--tree T] [--filter RE]    build, then run the suites
+  harness.py ab                               both sides of the A/B, one after the other
+  harness.py coverage [--worst N]             build, run and report what src/ the suites reached
   harness.py suites                          every suite, its cases, and the capabilities it needs
   harness.py runners gen <dir> --unity <rb>  write <dir>/unity_runner.c
   harness.py cases <dir>                     what Unity will register, and what it will walk past
   harness.py generated                       are the generated headers what their generators emit
+
+There are three build trees and each one is a different question, so each carries its own flags
+here rather than in somebody's shell history:
+
+  build         the library, as it ships
+  build-oracle  MMGR_ORACLE_LIBC on, so every entry with a libc equivalent becomes that equivalent
+  build-cov     instrumented, always_inline off, link time optimisation off
+
+The last two matter. always_inline is honoured at -O0, so without turning it off every call site of
+a header entry gets its own copy of that entry's branch records and the report counts optimiser
+copies instead of source branches. Link time optimisation rewrites the code across translation
+units before the counters are read, which measures something that is not what anyone wrote.
+
+`ab` runs the two sides one after the other, never at once. Two full builds at the same time is
+what makes this machine unusable, and the comparison does not need them concurrent.
 
 The mechanisms here are generic; the names, the paths and the two patterns that key on a per-project
 idiom are this tree's.
@@ -31,6 +50,7 @@ generators emit and says which is which.
 """
 
 import argparse
+import csv
 import os
 import re
 import shutil
@@ -240,6 +260,202 @@ def undriven_deps(path):
     return sorted(out)
 
 
+# ------------------------------------------------------------------------------------------------
+# Build trees
+# ------------------------------------------------------------------------------------------------
+# Each tree is a question, and the flags are the question. Written down here so that running one is
+# a command rather than a remembered incantation.
+TREES = {
+    "build": {
+        "what": "the library as it ships",
+        "args": [],
+    },
+    "build-oracle": {
+        "what": "every entry with a libc equivalent replaced by that equivalent",
+        "args": ["-DMMGR_ORACLE_LIBC=ON"],
+    },
+    "build-cov": {
+        "what": "instrumented, with always_inline and link time optimisation off",
+        "args": [
+            "-DMMGR_LTO=OFF",
+            "-DCMAKE_C_FLAGS=--coverage -O0 -g -include " + os.path.join(ROOT, "test", "support", "coverage_inline.h"),
+            "-DCMAKE_EXE_LINKER_FLAGS=--coverage",
+        ],
+    },
+}
+
+
+def run(cmd, quiet=True):
+    """Run a command from the repository root and hand back its completed process."""
+    if quiet:
+        return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+    return subprocess.run(cmd, cwd=ROOT, text=True)
+
+
+def borrowed_toolchain(skip):
+    """Generator and compiler taken from whichever tree is already configured.
+
+    cmake's default generator is not always the one that works on a given machine, and a tree that
+    already built is proof of one that does. Beats a second place to keep a toolchain path.
+    """
+    keys = {
+        "CMAKE_GENERATOR": "-G",
+        "CMAKE_C_COMPILER": "-DCMAKE_C_COMPILER=",
+        "CMAKE_MAKE_PROGRAM": "-DCMAKE_MAKE_PROGRAM=",
+    }
+    for tree in TREES:
+        if tree == skip:
+            continue
+        cache = os.path.join(ROOT, tree, "CMakeCache.txt")
+        if not os.path.isfile(cache):
+            continue
+        out = []
+        with open(cache, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                name, sep, value = line.partition(":")
+                if not sep or name not in keys:
+                    continue
+                value = value.partition("=")[2].strip()
+                out += [keys[name] + value] if keys[name].endswith("=") else [keys[name], value]
+        if out:
+            return out
+    return []
+
+
+def configure(tree):
+    """Configure @p tree if it is not there yet."""
+    if os.path.isfile(os.path.join(ROOT, tree, "CMakeCache.txt")):
+        return 0
+    cmd = ["cmake", "-S", ".", "-B", tree, "-DCMAKE_BUILD_TYPE=Debug", "-DMMGR_BUILD_TESTS=ON"]
+    cmd += TREES[tree]["args"] + borrowed_toolchain(tree)
+    r = run(cmd)
+    if r.returncode != 0:
+        sys.stderr.write(r.stdout[-3000:] + r.stderr[-3000:])
+        print("configure of %s failed" % tree)
+        return 1
+    print("configured %s - %s" % (tree, TREES[tree]["what"]))
+    return 0
+
+
+def build(tree, jobs):
+    """Build @p tree, reporting only what went wrong."""
+    if configure(tree) != 0:
+        return 1
+    r = run(["cmake", "--build", tree, "-j", str(jobs)])
+    if r.returncode != 0:
+        sys.stdout.write(r.stdout[-4000:])
+        sys.stderr.write(r.stderr[-4000:])
+        print("build of %s failed" % tree)
+        return 1
+    print("%s built" % tree)
+    return 0
+
+
+def ctest(tree, pattern):
+    """Run @p tree's suites, and name the ones that failed."""
+    cmd = ["ctest", "--test-dir", tree, "--output-on-failure"]
+    if pattern:
+        cmd += ["-R", pattern]
+    r = run(cmd)
+
+    for line in r.stdout.splitlines():
+        if "tests passed" in line or "tests failed" in line:
+            print("  %s: %s" % (tree, line.strip()))
+    if r.returncode != 0:
+        for line in r.stdout.splitlines():
+            if "(Failed)" in line or ":FAIL" in line:
+                print("    " + line.strip())
+    return r.returncode
+
+
+def cmd_build(a):
+    return build(a.tree, a.jobs)
+
+
+def cmd_test(a):
+    if build(a.tree, a.jobs) != 0:
+        return 1
+    return 1 if ctest(a.tree, a.filter) != 0 else 0
+
+
+def cmd_ab(a):
+    """Both sides, one after the other.
+
+    Concurrently would halve the wall clock and make the machine unusable while it ran, and the
+    comparison does not need them at the same time.
+    """
+    bad = 0
+    for tree in ("build", "build-oracle"):
+        print("%s - %s" % (tree, TREES[tree]["what"]))
+        if build(tree, a.jobs) != 0:
+            return 1
+        if ctest(tree, a.filter) != 0:
+            bad = 1
+    print("\nthe A/B agrees" if bad == 0 else "\nthe A/B does not agree")
+    return bad
+
+
+def cmd_coverage(a):
+    """Build, run and report what of src/ the suites reached.
+
+    The counters carry a stamp from the .gcno they were built beside, so last run's are cleared
+    after the build and before the run: a report always describes the binaries that produced it.
+    Every environment runs, not just host, because which arm of a width conditional is compiled at
+    all is MMGR_ENVIRONMENTS' business and only the whole set describes the library.
+    """
+    tree = "build-cov"
+    if not a.no_build and build(tree, a.jobs) != 0:
+        return 1
+
+    if not a.no_run:
+        stale = []
+        for base, _dirs, files in os.walk(os.path.join(ROOT, tree)):
+            stale += [os.path.join(base, f) for f in files if f.endswith(".gcda")]
+        for f in stale:
+            os.unlink(f)
+        print("cleared %d counter files" % len(stale))
+        ctest(tree, None)
+
+    out = os.path.join(ROOT, tree, "coverage.csv")
+    r = run(
+        [
+            sys.executable, "-m", "gcovr", "--root", ".", "--filter", "src/",
+            "--exclude-unreachable-branches", "--print-summary", "--txt-metric", "branch",
+            "--csv", "-o", out, tree,
+        ]
+    )
+    if r.returncode != 0:
+        sys.stderr.write(r.stderr[-4000:])
+        print("gcovr failed")
+        return 1
+
+    for line in (r.stdout + r.stderr).splitlines():
+        if line.startswith(("lines:", "functions:", "branches:")):
+            print("  " + line)
+
+    if a.worst:
+        with open(out, encoding="utf-8") as fh:
+            rows = list(csv.DictReader(fh))
+
+        def gap(row):
+            """How many uncovered lines and branches a file still holds."""
+            return (int(row["line_total"]) - int(row["line_covered"])) + (
+                int(row["branch_total"]) - int(row["branch_covered"])
+            )
+
+        print("\n  %-46s %13s %15s" % ("file", "lines", "branches"))
+        for row in sorted(rows, key=gap, reverse=True)[: a.worst]:
+            lt, lc = int(row["line_total"]), int(row["line_covered"])
+            bt, bc = int(row["branch_total"]), int(row["branch_covered"])
+            if lt == lc and bt == bc:
+                continue
+            print(
+                "  %-46s %5d/%-5d%3d%% %5d/%-5d%3d%%"
+                % (row["filename"], lc, lt, 100 * lc // max(lt, 1), bc, bt, 100 * bc // max(bt, 1))
+            )
+    return 0
+
+
 def cmd_deps(a):
     bad = 0
     for d in discover():
@@ -336,6 +552,7 @@ def cmd_runners_gen(a):
 # edit away. These pair each output with the tool that owns it, so the check is mechanical.
 GENERATED = (
     ("tools/dev_env/gen_ascii_masks.py", ("src/ascii_mask/ascii_mask.h",)),
+    ("tools/dev_env/gen_pow5.py", ("src/pow5/pow5.h",)),
     (
         "tools/dev_env/gen_anchor_profiles.py",
         (
@@ -403,6 +620,29 @@ def cmd_generated(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
+
+    p = sub.add_parser("build", help="configure if needed, then build")
+    p.add_argument("--tree", default="build", choices=sorted(TREES), help="which build tree")
+    p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.set_defaults(fn=cmd_build)
+
+    p = sub.add_parser("test", help="build, then run the suites")
+    p.add_argument("--tree", default="build", choices=sorted(TREES), help="which build tree")
+    p.add_argument("--filter", help="only suites matching this regex")
+    p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.set_defaults(fn=cmd_test)
+
+    p = sub.add_parser("ab", help="both sides of the A/B, one after the other")
+    p.add_argument("--filter", help="only suites matching this regex")
+    p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.set_defaults(fn=cmd_ab)
+
+    p = sub.add_parser("coverage", help="what of src/ the suites reached")
+    p.add_argument("--worst", type=int, default=0, help="list the N thinnest files")
+    p.add_argument("--no-build", action="store_true", help="report on what is already built")
+    p.add_argument("--no-run", action="store_true", help="report on the counters already there")
+    p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.set_defaults(fn=cmd_coverage)
 
     p = sub.add_parser("suites", help="every suite, its cases, and the capabilities it needs")
     p.add_argument("--strict", action="store_true", help="exit non-zero on a finding, for a CI gate")

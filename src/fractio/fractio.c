@@ -35,3 +35,11 @@ double mmgr_fract_from_bits(mmgr_u64 bits)
     mmgr_proxim_read(&v, &bits, sizeof(v));
     return v;
 }
+
+mmgr_u64 mmgr_fract_to_bits(double v)
+{
+    mmgr_u64 bits = 0;
+
+    mmgr_proxim_read(&bits, &v, sizeof(bits));
+    return bits;
+}

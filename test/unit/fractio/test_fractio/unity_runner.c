@@ -19,6 +19,7 @@ extern void test_merge_and_from_bits_reverse_the_accessors(void);
 extern void test_a_subnormal_keeps_its_mantissa(void);
 extern void test_merge_masks_each_field(void);
 extern void test_namespace_is_wired(void);
+extern void test_to_bits_is_from_bits_the_other_way(void);
 
 
 /*=======Mock Management=====*/
@@ -98,6 +99,7 @@ int main(void)
   run_test(test_a_subnormal_keeps_its_mantissa, "test_a_subnormal_keeps_its_mantissa", 84);
   run_test(test_merge_masks_each_field, "test_merge_masks_each_field", 92);
   run_test(test_namespace_is_wired, "test_namespace_is_wired", 101);
+  run_test(test_to_bits_is_from_bits_the_other_way, "test_to_bits_is_from_bits_the_other_way", 107);
 
   return UNITY_END();
 }
