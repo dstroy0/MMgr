@@ -632,7 +632,54 @@ MMGR_INLINE const char *find_core(const char *hay, size_t read_cap, const char *
     const mmgr_scrut_word nword = ci ? (mmgr_scrut_word)(mmgr_scrut_fold_lower(nraw) & nmask) : nraw;
 
     const size_t starts = read_cap - nlen + 1u;
-    const size_t nw = mmgr_scrut_words(starts);
+
+    /* Furthest byte, one past, that any load in an iteration at `at` reaches:
+     *
+     *   the terminator load        at + W
+     *   the anchor load            at + row + W        for the highest row
+     *   the verify load            at + (W - 1) + W    a candidate in the last lane
+     *
+     * All three are known here, before a byte is touched, because the rows are picked and the word
+     * is a compile time width. The loop runs while at + reach is inside the cap, so every load it
+     * makes is a load of bytes the caller said were there. */
+    size_t maxrow = rows[0];
+    /* GCOVR_EXCL_START - nrows is 1 while MMGR_SIEVE_ROWS is 1, so row 0 is the whole sieve and
+       there is no second row to be further out than it. */
+    for (size_t r = 1; r < nrows; ++r)
+    {
+        if (rows[r] > maxrow)
+        {
+            maxrow = rows[r];
+        }
+    }
+    /* GCOVR_EXCL_STOP */
+#if MMGR_FAM_MIN_RUN != 0u
+    if (use_fam && fam_off > maxrow)
+    {
+        maxrow = fam_off;
+    }
+#endif
+    /* A candidate in the last lane of the pass sits at at + W - 1. Verifying it reads `take`
+     * bytes as a word and then, when the needle is longer than that, hands the remainder to diff,
+     * which rounds its own read up to a word. That is the furthest anything in a pass goes. */
+    const size_t tail = (nlen > take) ? mmgr_scrut_words(nlen - take) * MMGR_SWAR_BYTES : 0u;
+    const size_t verify_reach = (MMGR_SWAR_BYTES - 1u) + take + tail;
+    const size_t anchor_reach = maxrow + MMGR_SWAR_BYTES;
+    const size_t reach = (anchor_reach > verify_reach) ? anchor_reach : verify_reach;
+
+    size_t safe = (read_cap >= reach) ? (read_cap - reach) + 1u : 0u;
+    /* GCOVR_EXCL_START - reach is never less than nlen, so safe is never more than starts and the
+       clamp has nothing to do. Below a word, reach is at least (W - 1) + nlen; above one it is at
+       least (W - 1) + W + (nlen - W), which is nlen + W - 1. Kept because safe and starts are
+       derived from different quantities and reading the loop should not require proving they
+       cannot cross. */
+    if (safe > starts)
+    {
+        safe = starts;
+    }
+    /* GCOVR_EXCL_STOP */
+    /* Whole words only. What is left over is the epilogue's, so the loop needs no tail mask. */
+    const size_t nw = safe / MMGR_SWAR_BYTES;
 
     for (size_t wi = 0; wi < nw; ++wi)
     {
@@ -673,10 +720,6 @@ MMGR_INLINE const char *find_core(const char *hay, size_t read_cap, const char *
         {
             m &= mmgr_scrut_lanes_before(end);
         }
-        if (wi + 1u == nw)
-        {
-            m &= mmgr_scrut_tail_mask(starts, wi);
-        }
 
         while (m != 0)
         {
@@ -697,6 +740,37 @@ MMGR_INLINE const char *find_core(const char *hay, size_t read_cap, const char *
         if (end != 0)
         {
             return NULL;
+        }
+    }
+
+    /* The candidates the word loop could not reach without loading bytes past the cap. At most
+     * `reach` of them, which is two words and change, so this is a short walk off the end of a
+     * long scan and the whole of a scan too short to have had a word loop at all. Every read here
+     * is a single byte inside the candidate's own window, and a candidate window ends at
+     * read_cap - 1 by the definition of starts, so there is nothing to bound that is not already
+     * bounded. */
+    for (size_t k = nw * MMGR_SWAR_BYTES; k < starts; ++k)
+    {
+        if (hay[k] == '\0')
+        {
+            return NULL;
+        }
+
+        size_t i = 0;
+        while (i < nlen)
+        {
+            const unsigned char h = (unsigned char)hay[k + i];
+            const unsigned char n = (unsigned char)needle[i];
+
+            if (h == 0u || (ci ? step_byte_ci(n, h, 0) : step_byte_cs(n, h, 0)) == MMGR_SWAR_NO)
+            {
+                break;
+            }
+            ++i;
+        }
+        if (i == nlen)
+        {
+            return hay + k;
         }
     }
     return NULL;
