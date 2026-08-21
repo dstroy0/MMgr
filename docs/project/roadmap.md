@@ -18,12 +18,12 @@ integration directory is no longer empty: `test_read_bounds`, `test_hostile_cont
 live there.
 
 **A multi-worker environment.** `MMGR_WORKER_COUNT` is 1 in every configured environment, so
-`mmgr_worker_self()` is a compile-time zero and the ghost-slot paths in both pools are unreachable —
+`mmgr_worker_self()` is a compile-time zero and the ghost-loculus paths in both pools are unreachable —
 they carry exclusions saying so. An environment with more than one worker would make them live, and
 would be the only way to test what the pools do when two workers touch them.
 
-**Documented dispatch slots, or a decision not to.** ~180 undocumented symbols are the members of the
-`<Mod>Ns` tables. Either they get documented, or the reference makes it obvious that a slot's prose
+**Documented dispatch loculi, or a decision not to.** ~180 undocumented symbols are the members of the
+`<Mod>Ns` tables. Either they get documented, or the reference makes it obvious that a loculus's prose
 lives on the free function it points at. See @ref qa_docs_coverage.
 
 **A generator toolchain for the derived documentation.** The module table, the configuration table,
@@ -77,7 +77,7 @@ performance answer, keeping them out is what keeps every compiler conditional in
 means and there is no `-Wconversion` equivalent worth gating on, so keeping it green would buy a
 platform nobody ships this to.
 
-**Thread-safe everything.** Pools are partitioned by worker slot; that is the concurrency model. A
+**Thread-safe everything.** Pools are partitioned by worker loculus; that is the concurrency model. A
 lock inside a bump allocator would be a lock on the hot path of a library whose whole claim is
 bounded, predictable cost.
 

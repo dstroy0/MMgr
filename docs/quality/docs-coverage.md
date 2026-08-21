@@ -26,14 +26,14 @@ remaining gap is two specific classes:
 
 | class                  | roughly | why                                                 |
 | ---------------------- | ------: | --------------------------------------------------- |
-| dispatch-table members |    ~180 | each `(*name)(args)` slot inside a `<Mod>Ns` struct |
+| dispatch-table members |    ~180 | each `(*name)(args)` loculus inside a `<Mod>Ns` struct |
 | macro definitions      |     ~77 | `MMGR_DBL_*`, `MMGR_ANCHOR_*`, the directive macros |
 | typedefs               |     ~11 | mostly internal shapes                              |
 
 The dispatch-table members are the bulk, and they are a genuine question rather than an oversight:
-each slot points at a free function that is already documented, so documenting the slot as well
+each loculus points at a free function that is already documented, so documenting the loculus as well
 duplicates the prose and creates a second copy to keep in step. The alternatives are to document
-each slot, or to accept the gap and let the reader follow the pointer.
+each loculus, or to accept the gap and let the reader follow the pointer.
 
 ## Why the build does not fail on it
 

@@ -42,7 +42,6 @@ void test_a_pool_that_has_not_bound_yet_answers_for_nothing(void)
     uint8_t elsewhere[8];
 
     TEST_ASSERT_FALSE_MESSAGE(occult.owns(elsewhere), "an unbound pool cannot own an address");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(-1, occult.slot_of(elsewhere), "an unbound pool has no slot to name");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, occult.used(), "an unbound pool has nothing in it");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, occult.high_water(), "an unbound pool has never had anything in it");
 }
@@ -281,24 +280,6 @@ void test_owns_tells_the_pool_from_everything_else(void)
     TEST_ASSERT_TRUE(occult.owns(p));
     TEST_ASSERT_FALSE_MESSAGE(occult.owns(elsewhere), "a stack address is not in the pool");
     TEST_ASSERT_FALSE(occult.owns(NULL));
-}
-
-void test_slot_of_names_the_tenant(void)
-{
-    base_mark = occult.mark();
-    const void *p = occult.alloc(8u, 1u);
-    const int slot = occult.slot_of(p);
-
-    TEST_ASSERT_GREATER_OR_EQUAL_INT(0, slot);
-    TEST_ASSERT_LESS_THAN_INT(MMGR_SEC_POOL_SLOTS, slot);
-}
-
-void test_slot_of_something_outside_the_pool_is_minus_one(void)
-{
-    base_mark = occult.mark();
-    uint8_t elsewhere[8];
-    TEST_ASSERT_EQUAL_INT(-1, occult.slot_of(elsewhere));
-    TEST_ASSERT_EQUAL_INT(-1, occult.slot_of(NULL));
 }
 
 void test_reset_gives_the_whole_tenant_back(void)

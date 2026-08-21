@@ -6,9 +6,9 @@
 #ifndef MMGR_POW5_H
 #define MMGR_POW5_H
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file pow5.h
@@ -71,6 +71,6 @@ static const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] = {
 
 MMGR_STATIC_ASSERT(MMGR_POW5_MAX >= 511, "the tables do not reach the exponents a double can carry");
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

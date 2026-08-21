@@ -5,9 +5,9 @@
 
 #include "proximus_operor/proximus_operor.h"
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file verbum_scrutor.h
@@ -578,6 +578,6 @@ MMGR_NS VerbumScrutorNs scrut MMGR_UNUSED = {
     .load_al = mmgr_scrut_load_al,
 };
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

@@ -82,23 +82,23 @@ except ValueError:
 
 # 9. a trailing comment on the PREVIOUS statement is text: the statement start is the call's own
 # line, so the staging does not land above the statement before it
-src4 = "void t(void)\n{\n    fill(1); // the oldest slot\n\n    old_call(a);\n}\n"
+src4 = "void t(void)\n{\n    fill(1); // the oldest loculus\n\n    old_call(a);\n}\n"
 pos4 = src4.index("old_call")
 end4 = N.close_paren(src4, pos4 + len("old_call("))
 eq(
     "trailing comment does not move the statement start",
     N.rewrite(src4, pos4, end4, ["Ns.args.a = a;", "Ns.entry(w);"], "Ns.ok"),
-    "void t(void)\n{\n    fill(1); // the oldest slot\n\n    Ns.args.a = a;\n    Ns.entry(w);\n}\n",
+    "void t(void)\n{\n    fill(1); // the oldest loculus\n\n    Ns.args.a = a;\n    Ns.entry(w);\n}\n",
 )
 
 # 10. and neither does a block comment sitting between the two statements
-src5 = "void t(void)\n{\n    fill(1);\n    /* the oldest slot */\n    old_call(a);\n}\n"
+src5 = "void t(void)\n{\n    fill(1);\n    /* the oldest loculus */\n    old_call(a);\n}\n"
 pos5 = src5.index("old_call")
 end5 = N.close_paren(src5, pos5 + len("old_call("))
 eq(
     "block comment does not move the statement start",
     N.rewrite(src5, pos5, end5, ["Ns.entry(w);"], "Ns.ok"),
-    "void t(void)\n{\n    fill(1);\n    /* the oldest slot */\n    Ns.entry(w);\n}\n",
+    "void t(void)\n{\n    fill(1);\n    /* the oldest loculus */\n    Ns.entry(w);\n}\n",
 )
 
 # 11. a call inside a macro that re-evaluates its argument is refused: hoisting it above DBENCH_OP

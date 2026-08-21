@@ -81,7 +81,7 @@ ctest --test-dir build -R '_checks$' --output-on-failure
 
 ## What is deliberately absent
 
-**No errno, no error enum, no last-error.** A global error slot is not usable from more than one
+**No errno, no error enum, no last-error.** A global error loculus is not usable from more than one
 worker, and threading a status through every entry would double the width of the API to report a
 condition that is either "the region is full" or "you have a bug".
 

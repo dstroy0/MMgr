@@ -22,8 +22,8 @@ exists to reach them.
 
 | knob                         |               default | what it changes                                                 |
 | ---------------------------- | --------------------: | --------------------------------------------------------------- |
-| `MMGR_PLAINTEXT_CONFIN_SIZE` |                `4096` | bytes per worker slot in `clarus_custodiae`                     |
-| `MMGR_SECURE_CONFIN_SIZE`    |                `4096` | bytes per worker slot in `occultum_custodiae`                   |
+| `MMGR_PLAINTEXT_CONFIN_SIZE` |                `4096` | bytes per worker loculus in `clarus_custodiae`                     |
+| `MMGR_SECURE_CONFIN_SIZE`    |                `4096` | bytes per worker loculus in `occultum_custodiae`                   |
 | `MMGR_CONFIN_MAX`            | the larger of the two | **derived.** The largest single region the library will address |
 | `MMGR_CONFIN_ALIGN`          |              platform | default alignment of a take                                     |
 | `MMGR_CONFIN_MAX_ALIGN`      |              platform | the largest alignment a take may ask for                        |
@@ -35,8 +35,8 @@ for reading the high-water marks.
 
 | knob                     |             default | what it changes                                               |
 | ------------------------ | ------------------: | ------------------------------------------------------------- |
-| `MMGR_WORKER_COUNT`      |                 `1` | how many slots each pool carves. One slot per worker          |
-| `MMGR_GHOST_WORKER_SLOT` | `MMGR_WORKER_COUNT` | the slot index used when no worker owns the call              |
+| `MMGR_WORKER_COUNT`      |                 `1` | how many loculi each pool carves. One loculus per worker          |
+| `MMGR_GHOST_WORKER_SLOT` | `MMGR_WORKER_COUNT` | the loculus index used when no worker owns the call              |
 | `MMGR_NEEDS_CONTEXT_ID`  |             derived | **derived.** 1 when `MMGR_WORKER_COUNT != 1` or checks are on |
 
 At the default of 1 there is no synchronization anywhere in the library, because there is nothing to
@@ -73,11 +73,11 @@ CMake status message rather than silently dropped.
 | knob                          |                  default | what it changes                                                    |
 | ----------------------------- | -----------------------: | ------------------------------------------------------------------ |
 | `MMGR_STR_MAX`                | see `mmgr_string_shim.h` | the read cap the shim's `str*` replacements use                    |
-| `MMGR_RING_SLOTS_MAX`         |                     `32` | slots in the ring's bitmap allocator. Fixed by the `uint32_t` mask |
-| `MMGR_ANCHOR_PROFILE_ENGLISH` |                    unset | byte-frequency profile for substring search                        |
-| `MMGR_ANCHOR_PROFILE_URI`     |                    unset | "                                                                  |
-| `MMGR_ANCHOR_PROFILE_INET`    |                    unset | "                                                                  |
-| `MMGR_ANCHOR_PROFILE_ROUTE`   |                    unset | "                                                                  |
+| `MMGR_RING_LOCULI_MAX`         |                     `32` | loculi in the ring's bitmap allocator. Fixed by the `uint32_t` mask |
+| `MMGR_ANCORAE_FORMA_ENGLISH` |                    unset | byte-frequency profile for substring search                        |
+| `MMGR_ANCORAE_FORMA_URI`     |                    unset | "                                                                  |
+| `MMGR_ANCORAE_FORMA_INET`    |                    unset | "                                                                  |
+| `MMGR_ANCORAE_FORMA_ROUTE`   |                    unset | "                                                                  |
 
 The anchor profiles are mutually exclusive and default to a generic table. Picking the wrong one
 costs speed and never correctness — the search still finds what is there. See @ref mod_anchor_guide.

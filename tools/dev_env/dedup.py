@@ -9,7 +9,7 @@
   dedup.py show  <shape-id>   one shape in full, canonical form and every site that has it
 
 A textual diff cannot see this. Two units that both walk a table looking for a match write the same
-five statements with `i`/`n`/`e` in one and `slot`/`count`/`ent` in the other, and a hash of the text
+five statements with `i`/`n`/`e` in one and `loculus`/`count`/`ent` in the other, and a hash of the text
 puts them in different buckets. So the text is not what is hashed. Comments come off first through
 readclean's own pass - the literal-aware one, not a regex - the result is tokenized, and every
 identifier is replaced by the position at which it was first seen. Two blocks that differ only in

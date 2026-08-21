@@ -21,7 +21,7 @@
 #include "oracle_divergence.h"
 #include "unity.h"
 
-#include "byteio/byteio.h"
+#include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "numeros_scribo/numeros_scribo.h"
 #include "spatium/spatium.h"
@@ -435,60 +435,6 @@ void test_a_write_of_every_length_into_a_fixed_buffer(void)
             fences_intact("builder, boundary walk");
         }
     }
-}
-
-/* ---------------------------------------------------------------------------------------------
- * spans, walked to their ends
- * ------------------------------------------------------------------------------------------- */
-
-void test_a_span_written_one_byte_at_a_time_to_its_end(void)
-{
-    for (size_t cap = 1; cap <= 32u; cap++)
-    {
-        unsigned char *p = fresh();
-        mmgr_spat w = spat.from(p, cap);
-
-        for (size_t i = 0; i < cap + 4u; i++)
-        {
-            byteio.put(&w, (uint8_t)i);
-        }
-
-        TEST_ASSERT_TRUE_MESSAGE(w.overflow, "writing past the end did not latch");
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE(POISON, p[cap], "a span wrote at its cap");
-        fences_intact("span, byte at a time");
-    }
-}
-
-void test_a_span_written_in_words_to_its_end(void)
-{
-    for (size_t cap = 1; cap <= 32u; cap++)
-    {
-        unsigned char *p = fresh();
-        mmgr_spat w = spat.from(p, cap);
-
-        for (size_t i = 0; i < 8u; i++)
-        {
-            byteio.put_be(&w, 0x0123456789ABCDEFull, 8);
-        }
-
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE(POISON, p[cap], "a span wrote at its cap");
-        fences_intact("span, word at a time");
-    }
-}
-
-void test_a_read_span_walked_past_its_end(void)
-{
-    unsigned char *p = fresh();
-    memset(p, 0xAAu, 16u);
-    mmgr_fspat r = spat.cfrom(p, 16u);
-
-    uint64_t v = 0;
-    for (unsigned i = 0; i < 4u; i++)
-    {
-        TEST_ASSERT_TRUE(byteio.take_be(&r, 4u, &v));
-    }
-    TEST_ASSERT_FALSE_MESSAGE(byteio.take_be(&r, 1u, &v), "a read past the end succeeded");
-    TEST_ASSERT_TRUE(r.err);
 }
 
 /* ---------------------------------------------------------------------------------------------

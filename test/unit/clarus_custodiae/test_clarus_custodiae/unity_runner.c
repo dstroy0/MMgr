@@ -25,8 +25,6 @@ extern void test_release_of_a_mark_that_is_not_ours_is_ignored(void);
 extern void test_used_grows_with_what_was_taken(void);
 extern void test_high_water_remembers_the_peak(void);
 extern void test_owns_tells_the_pool_from_everything_else(void);
-extern void test_slot_of_names_the_tenant(void);
-extern void test_slot_of_something_outside_the_pool_is_minus_one(void);
 extern void test_reset_gives_the_whole_tenant_back(void);
 
 
@@ -90,25 +88,23 @@ int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/clarus_custodiae/test_clarus_custodiae\\test_clarus_custodiae.c");
   run_test(test_a_pool_that_has_not_bound_yet_answers_for_nothing, "test_a_pool_that_has_not_bound_yet_answers_for_nothing", 40);
-  run_test(test_a_tenant_that_has_only_held_persistent_has_no_peak, "test_a_tenant_that_has_only_held_persistent_has_no_peak", 50);
-  run_test(test_clarus_header_is_self_contained, "test_clarus_header_is_self_contained", 60);
-  run_test(test_clarus_namespace_is_wired, "test_clarus_namespace_is_wired", 65);
-  run_test(test_capacity_is_the_configured_tenant_size, "test_capacity_is_the_configured_tenant_size", 73);
-  run_test(test_alloc_hands_back_usable_memory, "test_alloc_hands_back_usable_memory", 78);
-  run_test(test_alloc_honours_its_alignment, "test_alloc_honours_its_alignment", 90);
-  run_test(test_alloc_of_more_than_the_tenant_holds_is_refused, "test_alloc_of_more_than_the_tenant_holds_is_refused", 105);
-  run_test(test_span_wraps_what_alloc_returns, "test_span_wraps_what_alloc_returns", 110);
-  run_test(test_span_of_a_refused_size_has_no_storage, "test_span_of_a_refused_size_has_no_storage", 121);
-  run_test(test_persist_comes_from_the_other_end, "test_persist_comes_from_the_other_end", 126);
-  run_test(test_mark_and_release_move_the_fill_point, "test_mark_and_release_move_the_fill_point", 136);
-  run_test(test_release_leaves_the_bytes_as_they_were, "test_release_leaves_the_bytes_as_they_were", 148);
-  run_test(test_release_of_a_mark_that_is_not_ours_is_ignored, "test_release_of_a_mark_that_is_not_ours_is_ignored", 165);
-  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 177);
-  run_test(test_high_water_remembers_the_peak, "test_high_water_remembers_the_peak", 186);
-  run_test(test_owns_tells_the_pool_from_everything_else, "test_owns_tells_the_pool_from_everything_else", 197);
-  run_test(test_slot_of_names_the_tenant, "test_slot_of_names_the_tenant", 208);
-  run_test(test_slot_of_something_outside_the_pool_is_minus_one, "test_slot_of_something_outside_the_pool_is_minus_one", 218);
-  run_test(test_reset_gives_the_whole_tenant_back, "test_reset_gives_the_whole_tenant_back", 226);
+  run_test(test_a_tenant_that_has_only_held_persistent_has_no_peak, "test_a_tenant_that_has_only_held_persistent_has_no_peak", 49);
+  run_test(test_clarus_header_is_self_contained, "test_clarus_header_is_self_contained", 59);
+  run_test(test_clarus_namespace_is_wired, "test_clarus_namespace_is_wired", 64);
+  run_test(test_capacity_is_the_configured_tenant_size, "test_capacity_is_the_configured_tenant_size", 72);
+  run_test(test_alloc_hands_back_usable_memory, "test_alloc_hands_back_usable_memory", 77);
+  run_test(test_alloc_honours_its_alignment, "test_alloc_honours_its_alignment", 89);
+  run_test(test_alloc_of_more_than_the_tenant_holds_is_refused, "test_alloc_of_more_than_the_tenant_holds_is_refused", 104);
+  run_test(test_span_wraps_what_alloc_returns, "test_span_wraps_what_alloc_returns", 109);
+  run_test(test_span_of_a_refused_size_has_no_storage, "test_span_of_a_refused_size_has_no_storage", 120);
+  run_test(test_persist_comes_from_the_other_end, "test_persist_comes_from_the_other_end", 125);
+  run_test(test_mark_and_release_move_the_fill_point, "test_mark_and_release_move_the_fill_point", 135);
+  run_test(test_release_leaves_the_bytes_as_they_were, "test_release_leaves_the_bytes_as_they_were", 147);
+  run_test(test_release_of_a_mark_that_is_not_ours_is_ignored, "test_release_of_a_mark_that_is_not_ours_is_ignored", 164);
+  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 176);
+  run_test(test_high_water_remembers_the_peak, "test_high_water_remembers_the_peak", 185);
+  run_test(test_owns_tells_the_pool_from_everything_else, "test_owns_tells_the_pool_from_everything_else", 196);
+  run_test(test_reset_gives_the_whole_tenant_back, "test_reset_gives_the_whole_tenant_back", 207);
 
   return UNITY_END();
 }

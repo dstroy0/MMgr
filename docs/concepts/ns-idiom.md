@@ -58,13 +58,13 @@ The table is addressed **by offset**. A positional initializer mis-wires silentl
 inserted, removed or moved — the code still compiles, and `spat.from` calls something else.
 
 `MMGR_NS_LAYOUT` pins it. It expands to a chain of `_Static_assert`s checking that each named member
-sits at its own slot, in the order given, and that `sizeof` the struct is exactly that many
+sits at its own loculus, in the order given, and that `sizeof` the struct is exactly that many
 pointers. A member added and not listed, a member reordered, or padding appearing between them all
 fail **at the declaration**, at compile time.
 
 That has one consequence for this documentation: **the order of the members is the layout**, so the
 reference must not sort them alphabetically. `SORT_MEMBER_DOCS` is `NO` in `docs/Doxyfile` for that
-reason, and it is not a cosmetic setting — sorting would show slot 0 of `SpatiumNs` as `after` when
+reason, and it is not a cosmetic setting — sorting would show loculus 0 of `SpatiumNs` as `after` when
 it is `from`.
 
 ## What the indirection costs

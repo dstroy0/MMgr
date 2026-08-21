@@ -8,53 +8,6 @@
  * @brief Tenant bookkeeping. Persist grows up, interim grows down, and they meet in the middle.
  */
 
-int mmgr_worker_count(void)
-{
-    return MMGR_WORKER_COUNT;
-}
-
-#if MMGR_WORKER_COUNT != 1
-
-#define MMGR_WORKER_BINDINGS (MMGR_WORKER_COUNT + 1)
-
-static uintptr_t s_ctx[MMGR_WORKER_BINDINGS];
-static int s_ctx_worker[MMGR_WORKER_BINDINGS];
-static int s_bound;
-
-int mmgr_worker_self(void)
-{
-    const uintptr_t me = mmgr_platform_context_id();
-    for (int i = 0; i < s_bound; i++)
-    {
-        if (s_ctx[i] == me)
-        {
-            return s_ctx_worker[i];
-        }
-    }
-    return 0;
-}
-
-void mmgr_worker_set_self(int id)
-{
-    const uintptr_t me = mmgr_platform_context_id();
-    for (int i = 0; i < s_bound; i++)
-    {
-        if (s_ctx[i] == me)
-        {
-            s_ctx_worker[i] = id;
-            return;
-        }
-    }
-    if (s_bound < MMGR_WORKER_BINDINGS)
-    {
-        s_ctx[s_bound] = me;
-        s_ctx_worker[s_bound] = id;
-        s_bound++;
-    }
-}
-
-#endif
-
 typedef struct
 {
     size_t size;

@@ -9,7 +9,7 @@
 
 /**
  * @file confinium_exclusivum_infinitas.h
- * @brief Lock free rings, segment queues and slot bitmaps.
+ * @brief Lock free rings, segment queues and loculus bitmaps.
  *
  * Single producer, single consumer. Capacities are powers of two so a wrap is a mask.
  */
@@ -122,7 +122,7 @@ static inline void mmgr_infin_consume(_Atomic size_t *tail, size_t cap, size_t n
  * @param head Producer cursor.
  * @param tail Consumer cursor.
  * @param cap Ring capacity.
- * @return Byte count. One slot is always held back so full and empty differ.
+ * @return Byte count. One loculus is always held back so full and empty differ.
  */
 static inline size_t mmgr_infin_free(const _Atomic size_t *head, const _Atomic size_t *tail, size_t cap)
 {
@@ -236,17 +236,17 @@ static inline uint8_t *mmgr_seg_at(uint8_t *buf, size_t seg_size, size_t idx)
     return &buf[idx * seg_size];
 }
 
-/** @brief Most slots a bitmap can track. */
-#define MMGR_RING_SLOTS_MAX 32
+/** @brief Most loculi a bitmap can track. */
+#define MMGR_RING_LOCULI_MAX 32
 
 /**
- * @brief Bit for slot @p idx.
- * @param idx Slot index.
+ * @brief Bit for loculus @p idx.
+ * @param idx Loculus index.
  * @return The bit, or 0 if out of range.
  */
-static inline uint32_t mmgr_slot_bit(size_t idx)
+static inline uint32_t mmgr_loculus_bit(size_t idx)
 {
-    if (idx >= MMGR_RING_SLOTS_MAX)
+    if (idx >= MMGR_RING_LOCULI_MAX)
     {
         return 0u;
     }
@@ -254,13 +254,13 @@ static inline uint32_t mmgr_slot_bit(size_t idx)
 }
 
 /**
- * @brief Mask of the low @p count slots.
- * @param count Slot count.
+ * @brief Mask of the low @p count loculi.
+ * @param count Loculus count.
  * @return The mask.
  */
-static inline uint32_t mmgr_slot_all(size_t count)
+static inline uint32_t mmgr_loculus_all(size_t count)
 {
-    if (count >= MMGR_RING_SLOTS_MAX)
+    if (count >= MMGR_RING_LOCULI_MAX)
     {
         return 0xFFFFFFFFu;
     }
@@ -268,14 +268,14 @@ static inline uint32_t mmgr_slot_all(size_t count)
 }
 
 /**
- * @brief Claim a slot.
+ * @brief Claim a loculus.
  * @param held Held bitmap.
- * @param idx Slot index.
+ * @param idx Loculus index.
  * @return MMGR_FALSE if it was already held.
  */
-static inline mmgr_bool mmgr_slot_take(_Atomic uint32_t *held, size_t idx)
+static inline mmgr_bool mmgr_loculus_take(_Atomic uint32_t *held, size_t idx)
 {
-    const uint32_t bit = mmgr_slot_bit(idx);
+    const uint32_t bit = mmgr_loculus_bit(idx);
     if (bit == 0u)
     {
         return MMGR_FALSE;
@@ -284,80 +284,85 @@ static inline mmgr_bool mmgr_slot_take(_Atomic uint32_t *held, size_t idx)
     return (prev & bit) == 0u;
 }
 
+/** @brief A region a loculus is holding off. Two values, which is what was ever written or read. */
+typedef struct
+{
+    const uint8_t *buf;
+    size_t len;
+} mmgr_keepout;
+
 /**
- * @brief Claim a slot and bind a read-only span to it.
+ * @brief Claim a loculus and bind a region to it.
  * @param held Held bitmap.
- * @param keepout Span per slot.
- * @param idx Slot index.
+ * @param keepout Region per loculus.
+ * @param idx Loculus index.
  * @param ptr Data.
  * @param len Its length.
- * @return MMGR_FALSE if the slot was already held.
+ * @return MMGR_FALSE if the loculus was already held.
  */
-static inline mmgr_bool mmgr_slot_hold(_Atomic uint32_t *held, mmgr_fspat *keepout, size_t idx, const uint8_t *ptr,
-                                       size_t len)
+static inline mmgr_bool mmgr_loculus_hold(_Atomic uint32_t *held, mmgr_keepout *keepout, size_t idx,
+                                       const uint8_t *ptr, size_t len)
 {
-    if (!mmgr_slot_take(held, idx))
+    if (!mmgr_loculus_take(held, idx))
     {
         return MMGR_FALSE;
     }
     keepout[idx].buf = ptr;
     keepout[idx].len = len;
-    keepout[idx].pos = 0;
-    keepout[idx].err = MMGR_FALSE;
     return MMGR_TRUE;
 }
 
 /**
- * @brief The span bound to a slot.
- * @param keepout Span per slot.
- * @param idx Slot index.
- * @return The span.
+ * @brief The span bound to a loculus.
+ * @param keepout Region per loculus.
+ * @param idx Loculus index.
+ * @return The region.
  */
-static inline const mmgr_fspat *mmgr_slot_keepout(const mmgr_fspat *keepout, size_t idx)
+static inline const mmgr_keepout *mmgr_loculus_keepout(const mmgr_keepout *keepout, size_t idx)
 {
     return &keepout[idx];
 }
 
 /**
- * @brief Release a slot.
+ * @brief Release a loculus.
  * @param held Held bitmap.
- * @param idx Slot index.
+ * @param idx Loculus index.
  */
-static inline void mmgr_slot_drop(_Atomic uint32_t *held, size_t idx)
+static inline void mmgr_loculus_drop(_Atomic uint32_t *held, size_t idx)
 {
-    atomic_fetch_and_explicit(held, ~mmgr_slot_bit(idx), memory_order_release);
+    atomic_fetch_and_explicit(held, ~mmgr_loculus_bit(idx), memory_order_release);
 }
 
 /**
- * @brief Mark a slot ready.
+ * @brief Mark a loculus ready.
  * @param mask Ready bitmap.
- * @param idx Slot index.
+ * @param idx Loculus index.
  */
-static inline void mmgr_slot_mark(_Atomic uint32_t *mask, size_t idx)
+static inline void mmgr_loculus_mark(_Atomic uint32_t *mask, size_t idx)
 {
-    atomic_fetch_or_explicit(mask, mmgr_slot_bit(idx), memory_order_release);
+    atomic_fetch_or_explicit(mask, mmgr_loculus_bit(idx), memory_order_release);
 }
 
 /**
- * @brief Unmark a slot.
+ * @brief Unmark a loculus.
  * @param mask Ready bitmap.
- * @param idx Slot index.
+ * @param idx Loculus index.
  */
-static inline void mmgr_slot_clear(_Atomic uint32_t *mask, size_t idx)
+static inline void mmgr_loculus_clear(_Atomic uint32_t *mask, size_t idx)
 {
-    atomic_fetch_and_explicit(mask, ~mmgr_slot_bit(idx), memory_order_release);
+    atomic_fetch_and_explicit(mask, ~mmgr_loculus_bit(idx), memory_order_release);
 }
 
 /**
- * @brief Slots that are ready and not held.
+ * @brief Loculi that are ready and not held.
  * @param mask Ready bitmap.
  * @param held Held bitmap.
- * @param count Slot count.
+ * @param count Loculus count.
  * @return The mask.
  */
-static inline uint32_t mmgr_slot_ready(const _Atomic uint32_t *mask, const _Atomic uint32_t *held, size_t count)
+static inline uint32_t mmgr_loculus_ready(const _Atomic uint32_t *mask, const _Atomic uint32_t *held, size_t count)
 {
-    return MMGR_ATOMIC_LOAD(mask) & ~MMGR_ATOMIC_LOAD(held) & mmgr_slot_all(count);
+    return MMGR_ATOMIC_LOAD(mask) & ~MMGR_ATOMIC_LOAD(held) & mmgr_loculus_all(count);
 }
 
 /**
@@ -369,7 +374,7 @@ static inline uint32_t mmgr_slot_ready(const _Atomic uint32_t *mask, const _Atom
  * concession: __builtin_popcount is a call to __popcountdi2 on baseline x86-64, measured at 10.392
  * cycles against 5.731 for this, and it does not link at all on a freestanding target.
  */
-static inline int32_t mmgr_slot_ctz(uint32_t m)
+static inline int32_t mmgr_loculus_ctz(uint32_t m)
 {
     uint32_t v = (m - 1u) & ~m;
     v = v - ((v >> 1) & 0x55555555u);
@@ -379,17 +384,17 @@ static inline int32_t mmgr_slot_ctz(uint32_t m)
 }
 
 /**
- * @brief Lowest set slot.
+ * @brief Lowest set loculus.
  * @param m Bitmap.
- * @return Slot index, or -1 if none.
+ * @return Loculus index, or -1 if none.
  */
-static inline int32_t mmgr_slot_next(uint32_t m)
+static inline int32_t mmgr_loculus_next(uint32_t m)
 {
     if (m == 0u)
     {
         return -1;
     }
-    return mmgr_slot_ctz(m);
+    return mmgr_loculus_ctz(m);
 }
 
 #endif

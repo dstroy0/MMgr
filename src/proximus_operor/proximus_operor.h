@@ -3,9 +3,9 @@
 #ifndef MMGR_PROXIMUS_OPEROR_H
 #define MMGR_PROXIMUS_OPEROR_H
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file proximus_operor.h
@@ -266,6 +266,6 @@ MMGR_NS ProximusOperorNs proxim MMGR_UNUSED = {.u16 = mmgr_proxim_u16,
                                                .mv_put = mmgr_migro_put,
                                                .read = mmgr_proxim_read};
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

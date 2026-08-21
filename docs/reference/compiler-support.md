@@ -5,7 +5,7 @@ read.
 
 ## The policy
 
-`src/mmgr_compiler_directives.h` holds **every** `#if` that asks about a compiler. No other file in
+`src/config/mmgr_compiler_directives.h` holds **every** `#if` that asks about a compiler. No other file in
 the library tests for GNU, Clang, MSVC or a version. That is a rule, not a tendency, and it has two
 consequences worth stating:
 
@@ -32,7 +32,7 @@ policed by a static assert at the point of use rather than trusted.
 | `MMGR_ALIAS`                          | `__attribute__((may_alias))`                          | empty                           |
 | `MMGR_ALIGN(n)`                       | `__attribute__((aligned(n)))`                         | empty                           |
 | `MMGR_ENUM_PACKED`                    | `__attribute__((packed))`                             | empty — **asserted**, see below |
-| `MMGR_BEGIN_DECLS` / `MMGR_END_DECLS` | `extern "C" {` / `}` under C++                        | empty under C                   |
+| `MMGR_INCIPE_DECLS` / `MMGR_FINIS_DECLS` | `extern "C" {` / `}` under C++                        | empty under C                   |
 | `MMGR_STATIC_ASSERT`                  | `_Static_assert`, `static_assert` or a negative array | —                               |
 
 `MMGR_HAS_ATTRIBUTE` is the gate. It uses `__has_attribute` where that exists and falls back to a
@@ -62,7 +62,7 @@ names the cause — instead of producing a binary whose struct offsets are wrong
 
 The dispatch tables are addressed by offset, so a positional initializer mis-wires silently when a
 member moves. `MMGR_NS_LAYOUT(T, ...)` expands to a chain of `_Static_assert`s pinning each named
-member to its own slot, in order, and pinning `sizeof(T)` to exactly that many pointers.
+member to its own loculus, in order, and pinning `sizeof(T)` to exactly that many pointers.
 
 It is variadic up to 24 members via `MMGR_NARG` and `MMGR_NS_L1`…`MMGR_NS_L24`. `MMGR_NS_LAYOUT_OPEN`
 is the variant for a table with trailing state beyond the function pointers —

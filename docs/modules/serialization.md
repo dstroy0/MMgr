@@ -37,7 +37,7 @@ tell the difference.
 Bit-level output for formats that are not byte-aligned.
 
 ```c
-mmgr_bitio_writer w = bitio.from(&s);
+mmgr_bitor_writer w = bitio.from(&s);
 bitio.put(&w, 0b101, 3);       /* three bits  */
 bitio.put(&w, value, 12);      /* twelve bits */
 bitio.align(&w);               /* pad to the next byte boundary */

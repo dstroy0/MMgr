@@ -5,9 +5,9 @@
 
 #include "proximus_operor/proximus_operor.h"
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file memoria_operor.h
@@ -78,7 +78,7 @@ void mmgr_memor_set(void *dst, unsigned char v, size_t n);
 void mmgr_memor_zero(void *dst, size_t n);
 
 #if defined(MMGR_ORACLE_LIBC) && MMGR_ORACLE_LIBC
-#include "mmgr_oracle_libc.h"
+#include "config/mmgr_oracle_libc.h"
 
 /**
  * @brief Module namespace, pointed at libc.
@@ -106,6 +106,6 @@ MMGR_NS MemoriaOperorNs memor MMGR_UNUSED = {
 };
 #endif
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

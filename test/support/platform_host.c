@@ -14,9 +14,4 @@ void mmgr_test_set_context_id(uintptr_t id)
     s_context = id;
 }
 
-uintptr_t mmgr_platform_context_id(void);
 
-uintptr_t mmgr_platform_context_id(void)
-{
-    return s_context;
-}

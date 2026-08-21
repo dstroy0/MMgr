@@ -6,8 +6,8 @@
 # Types (KEYWORD1)
 ##############################
 
-BitioNs	KEYWORD1
-ByteioNs	KEYWORD1
+BitorumIntroitusExitusNs	KEYWORD1
+OctetusIntroitusExitusNs	KEYWORD1
 CellularumLaboroNs	KEYWORD1
 ClarusCustodiaeNs	KEYWORD1
 EndianNs	KEYWORD1
@@ -21,7 +21,7 @@ ProximusOperorNs	KEYWORD1
 SpatiumNs	KEYWORD1
 VerbaScriboNs	KEYWORD1
 VerbumScrutorNs	KEYWORD1
-mmgr_bitio_writer	KEYWORD1
+mmgr_bitor_writer	KEYWORD1
 mmgr_confin	KEYWORD1
 mmgr_confin_mark	KEYWORD1
 mmgr_confin_set	KEYWORD1

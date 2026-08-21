@@ -23,7 +23,7 @@
 // so.
 #include "unity.h"
 
-#include "byteio/byteio.h"
+#include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "spatium/spatium.h"
 #include "verbum_scrutor/verbum_scrutor.h"
@@ -73,56 +73,65 @@ typedef struct
     size_t cap;
 } Ask;
 
+/**
+ * @brief Somewhere for a probe's answer to go.
+ *
+ * A probe throws its result away, and a call whose result is unused is a call the optimizer may
+ * delete - which would leave the guard page untouched and the test passing for the wrong reason.
+ * Handing the value to a sink the compiler cannot see through keeps the call without asking for
+ * volatile semantics, which describe hardware that changes underneath you and not this.
+ */
+static size_t mmgr_probe_sink;
+static void keep(size_t v)
+{
+    mmgr_probe_sink += v;
+}
+
 static void ask_len(void *v)
 {
     const Ask *a = (const Ask *)v;
-    volatile size_t r = cellul.len(a->s, a->cap);
-    (void)r;
+    keep((size_t)(cellul.len(a->s, a->cap)));
 }
 static void ask_chr(void *v)
 {
     const Ask *a = (const Ask *)v;
-    const volatile char *r = cellul.chr(a->s, a->cap, 0x02u);
-    (void)r;
+    keep((size_t)(cellul.chr(a->s, a->cap, 0x02u)));
 }
 static void ask_eq(void *v)
 {
     const Ask *a = (const Ask *)v;
-    volatile mmgr_bool r = cellul.eq(a->s, a->s, a->cap, MMGR_FALSE);
-    (void)r;
+    keep((size_t)(cellul.eq(a->s, a->s, a->cap, MMGR_FALSE)));
 }
 static void ask_eq_ci(void *v)
 {
     const Ask *a = (const Ask *)v;
-    volatile mmgr_bool r = cellul.eq(a->s, a->s, a->cap, MMGR_TRUE);
-    (void)r;
+    keep((size_t)(cellul.eq(a->s, a->s, a->cap, MMGR_TRUE)));
 }
 static void ask_starts(void *v)
 {
     const Ask *a = (const Ask *)v;
-    volatile mmgr_bool r = cellul.starts(a->s, "aaa", a->cap, MMGR_FALSE);
-    (void)r;
+    keep((size_t)(cellul.starts(a->s, "aaa", a->cap, MMGR_FALSE)));
 }
 static void ask_diff(void *v)
 {
     const Ask *a = (const Ask *)v;
-    volatile size_t r = cellul.diff(a->s, a->s, a->cap, MMGR_FALSE);
-    (void)r;
+    keep((size_t)(cellul.diff(a->s, a->s, a->cap, MMGR_FALSE)));
 }
 static void ask_copy(void *v)
 {
     const Ask *a = (const Ask *)v;
     static char dst[CAPS + 8u];
-    volatile size_t r = cellul.copy(dst, a->s, a->cap < sizeof dst ? a->cap : sizeof dst);
-    (void)r;
+    keep((size_t)(cellul.copy(dst, a->s, a->cap < sizeof dst ? a->cap : sizeof dst)));
 }
 static void ask_take_be(void *v)
 {
     const Ask *a = (const Ask *)v;
-    mmgr_fspat rd = spat.cfrom((const uint8_t *)a->s, a->cap);
+    size_t rd_off = 0u;
+    const uint8_t *rd_buf = (const uint8_t *)a->s;
     uint64_t out = 0;
-    volatile mmgr_bool r = byteio.take_be(&rd, a->cap < 8u ? a->cap : 8u, &out);
-    (void)r;
+    /* Right up to the bound and not one byte further - the page after it has no access. */
+    byteio.take_be(rd_buf, a->cap, &rd_off, &out, (a->cap < 8u) ? a->cap : 8u);
+    keep((size_t)out);
 }
 
 typedef struct
@@ -137,14 +146,12 @@ typedef struct
 static void ask_find(void *v)
 {
     const Hunt *h = (const Hunt *)v;
-    const volatile char *r = cellul.find(h->s, h->cap, h->needle, h->nlen, h->ci);
-    (void)r;
+    keep((size_t)(cellul.find(h->s, h->cap, h->needle, h->nlen, h->ci)));
 }
 static void ask_has(void *v)
 {
     const Hunt *h = (const Hunt *)v;
-    volatile mmgr_bool r = cellul.has(h->s, h->cap, h->needle, h->nlen, h->ci);
-    (void)r;
+    keep((size_t)(cellul.has(h->s, h->cap, h->needle, h->nlen, h->ci)));
 }
 
 /** @brief Ask one entry at every cap, and say which cap it went past at. */

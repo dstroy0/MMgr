@@ -79,7 +79,7 @@ int main(void)
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/mmgr/test_mmgr\\test_mmgr.c");
   run_test(test_umbrella_header_is_self_contained, "test_umbrella_header_is_self_contained", 8);
   run_test(test_every_namespace_is_reachable, "test_every_namespace_is_reachable", 13);
-  run_test(test_namespaces_are_their_own_types, "test_namespaces_are_their_own_types", 31);
+  run_test(test_namespaces_are_their_own_types, "test_namespaces_are_their_own_types", 30);
 
   return UNITY_END();
 }

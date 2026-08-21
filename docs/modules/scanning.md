@@ -110,10 +110,10 @@ Mutually exclusive, generic by default:
 | define                        | tuned for             |
 | ----------------------------- | --------------------- |
 | _(none)_                      | generic               |
-| `MMGR_ANCHOR_PROFILE_ENGLISH` | English prose         |
-| `MMGR_ANCHOR_PROFILE_URI`     | URIs and paths        |
-| `MMGR_ANCHOR_PROFILE_INET`    | network protocol text |
-| `MMGR_ANCHOR_PROFILE_ROUTE`   | routing tables        |
+| `MMGR_ANCORAE_FORMA_ENGLISH` | English prose         |
+| `MMGR_ANCORAE_FORMA_URI`     | URIs and paths        |
+| `MMGR_ANCORAE_FORMA_INET`    | network protocol text |
+| `MMGR_ANCORAE_FORMA_ROUTE`   | routing tables        |
 
 **Picking the wrong one costs speed and never correctness.** The search still finds what is there; it
 just tests more candidates on the way. So this is a tuning knob, not a configuration you have to get

@@ -11,10 +11,10 @@
  * say `#include <mmgr.h>` and be done.
  */
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
-#include "bitio/bitio.h"
-#include "byteio/byteio.h"
+#include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
+#include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "clarus_custodiae/clarus_custodiae.h"
 #include "confinium/confinium.h"

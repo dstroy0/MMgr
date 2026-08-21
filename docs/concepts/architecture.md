@@ -58,13 +58,13 @@ it is worth reading twice.
 
 ## 3. Custodiae hand out tenants
 
-A _custodia_ is a pool over static storage, carved into one slot per worker. A _tenant_ is one
-slot's worth. There are two, with deliberately near-identical surfaces:
+A _custodia_ is a pool over static storage, carved into one loculus per worker. A _tenant_ is one
+loculus's worth. There are two, with deliberately near-identical surfaces:
 
 |         | `clarus_custodiae`                    | `occultum_custodiae`                     |
 | ------- | ------------------------------------- | ---------------------------------------- |
 | holds   | plaintext                             | secrets                                  |
-| storage | `MMGR_PLAINTEXT_CONFIN_SIZE` per slot | `MMGR_SECURE_CONFIN_SIZE` per slot       |
+| storage | `MMGR_PLAINTEXT_CONFIN_SIZE` per loculus | `MMGR_SECURE_CONFIN_SIZE` per loculus       |
 | release | `reset`                               | `reset`, and `wipe`                      |
 | wipe    | none                                  | `volatile`, word at a time, not elidable |
 
@@ -101,8 +101,8 @@ if (!b.ok) { /* one check, covering all four */ }
 shape: **single producer, single consumer**. It is header-only and built on `<stdatomic.h>`.
 
 It offers three things: a byte ring, a segment queue for passing whole buffers by index instead of
-copying them, and a 32-slot bitmap allocator. The slot count is 32 because the held mask is a
-`uint32_t`; that is why `MMGR_RING_SLOTS_MAX` is not a knob you can raise by editing one number.
+copying them, and a 32-loculus bitmap allocator. The loculus count is 32 because the held mask is a
+`uint32_t`; that is why `MMGR_RING_LOCULI_MAX` is not a knob you can raise by editing one number.
 
 ## Who owns what
 
@@ -112,9 +112,9 @@ copying them, and a 32-slot bitmap allocator. The slot count is 32 because the h
 | confinium       | nothing         | nothing           | the buffer's               |
 | persist take    | bumps a pointer | only by unwinding | the confinium's            |
 | interim take    | bumps a pointer | by mark           | until its mark is released |
-| tenant          | a pool slot     | `reset`           | until reset                |
+| tenant          | a pool loculus     | `reset`           | until reset                |
 | span            | nothing         | nothing           | its target's               |
-| ring slot       | a bit in a mask | `drop`            | until dropped              |
+| ring loculus       | a bit in a mask | `drop`            | until dropped              |
 
 The column that matters is the third one. Nothing in MMgr frees anything in the sense a heap does;
 every "free" is either unwinding a bump pointer or clearing a bit.

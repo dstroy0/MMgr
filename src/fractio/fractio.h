@@ -3,9 +3,9 @@
 #ifndef MMGR_FRACTIO_H
 #define MMGR_FRACTIO_H
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file fractio.h
@@ -149,6 +149,6 @@ MMGR_NS FractioNs fract MMGR_UNUSED = {
     .to_bits = mmgr_fract_to_bits,
 };
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

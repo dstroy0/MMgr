@@ -1,6 +1,6 @@
 # Confinium exclusivum infinitas — the lock-free edge {#mod_infin_guide}
 
-Single-producer, single-consumer. A byte ring, a segment queue, and a slot bitmap.
+Single-producer, single-consumer. A byte ring, a segment queue, and a loculus bitmap.
 
 ## When to reach for it
 
@@ -22,9 +22,9 @@ must be a power of two — the wrap is a mask, not a modulo.
 The producer fills a segment and publishes its index; the consumer reads that index and releases it
 when done. The bytes never move.
 
-**A slot bitmap.** `slot_take`, `slot_hold`, `slot_drop`, `slot_mark`, `slot_clear`, `slot_ready`,
-`slot_next`. Thirty-two slots, because the held mask is a `uint32_t` — which is why
-`MMGR_RING_SLOTS_MAX` is not a number you can raise by editing it.
+**A loculus bitmap.** `loculus_take`, `loculus_hold`, `loculus_drop`, `loculus_mark`, `loculus_clear`, `loculus_ready`,
+`loculus_next`. Thirty-two loculi, because the held mask is a `uint32_t` — which is why
+`MMGR_RING_LOCULI_MAX` is not a number you can raise by editing it.
 
 ## Worked example
 
@@ -53,7 +53,7 @@ no assert — the data structure simply does not have the ordering to make it sa
 
 **Header-only, `static inline`, `<stdatomic.h>`.** It is the only module that includes it.
 
-**`slot_ctz` is a SWAR popcount fold, not a builtin.** Same reasoning as the rest of the library —
+**`loculus_ctz` is a SWAR popcount fold, not a builtin.** Same reasoning as the rest of the library —
 see @ref concept_swar.
 
 ## Reference

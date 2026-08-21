@@ -87,11 +87,11 @@ int main(void)
   run_test(test_a_mark_release_puts_back_exactly_what_came_after_it, "test_a_mark_release_puts_back_exactly_what_came_after_it", 44);
   run_test(test_high_water_records_the_peak_and_never_falls, "test_high_water_records_the_peak_and_never_falls", 59);
   run_test(test_a_span_over_pool_bytes_writes_inside_the_pool, "test_a_span_over_pool_bytes_writes_inside_the_pool", 70);
-  run_test(test_the_pool_refuses_rather_than_overruns, "test_the_pool_refuses_rather_than_overruns", 79);
-  run_test(test_exhausting_a_tenant_fails_cleanly_and_recovers, "test_exhausting_a_tenant_fails_cleanly_and_recovers", 88);
-  run_test(test_the_two_pools_are_separate_tenants, "test_the_two_pools_are_separate_tenants", 106);
-  run_test(test_secure_release_wipes_what_it_gives_back, "test_secure_release_wipes_what_it_gives_back", 117);
-  run_test(test_persist_survives_a_mark_release, "test_persist_survives_a_mark_release", 138);
+  run_test(test_the_pool_refuses_rather_than_overruns, "test_the_pool_refuses_rather_than_overruns", 78);
+  run_test(test_exhausting_a_tenant_fails_cleanly_and_recovers, "test_exhausting_a_tenant_fails_cleanly_and_recovers", 87);
+  run_test(test_the_two_pools_are_separate_tenants, "test_the_two_pools_are_separate_tenants", 105);
+  run_test(test_secure_release_wipes_what_it_gives_back, "test_secure_release_wipes_what_it_gives_back", 116);
+  run_test(test_persist_survives_a_mark_release, "test_persist_survives_a_mark_release", 137);
 
   return UNITY_END();
 }

@@ -29,14 +29,6 @@ void test_confinium_header_is_self_contained(void)
     TEST_PASS_MESSAGE("confinium.h compiled with no header before it");
 }
 
-void test_worker_identity(void)
-{
-    TEST_ASSERT_GREATER_THAN_INT(0, mmgr_worker_count());
-    const int self = mmgr_worker_self();
-    TEST_ASSERT_GREATER_OR_EQUAL_INT(0, self);
-    TEST_ASSERT_LESS_THAN_INT(mmgr_worker_count() + 1, self);
-}
-
 void test_align_up_rounds_to_the_grain(void)
 {
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_confin_align_up(0u));

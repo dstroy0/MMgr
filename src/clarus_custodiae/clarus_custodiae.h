@@ -5,20 +5,18 @@
 
 #include "spatium/spatium.h"
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file clarus_custodiae.h
  * @brief The plaintext guardian. Hands out tenants and takes them back.
  *
- * One slot per worker plus a ghost slot for a borrow with no worker behind it. Nothing is freed
+ * One tenant over a static buffer. Nothing is freed
  * individually and nothing is ever reallocated: take what you need, release back to a mark.
  */
 
-/** @brief Slot count. One per worker, plus the ghost. */
-#define MMGR_REG_POOL_SLOTS (MMGR_GHOST_WORKER_SLOT + 1)
 
 /** @brief Opaque pool state. */
 struct PlainInternal;
@@ -37,18 +35,16 @@ typedef struct
     size_t (*high_water)(void);
     size_t (*capacity)(void);
     mmgr_bool (*owns)(const void *p);
-    int (*slot_of)(const void *p);
 
     struct PlainInternal *internal;
 } ClarusCustodiaeNs;
-MMGR_NS_LAYOUT_OPEN(ClarusCustodiaeNs, internal, alloc, span, persist, reset, mark, release, used, high_water, capacity,
-                    owns, slot_of);
+MMGR_NS_LAYOUT_OPEN(ClarusCustodiaeNs, internal, alloc, span, persist, reset, mark, release, used, high_water, capacity, owns);
 
 /** @brief The pool. */
 extern struct PlainInternal mmgr_clarus_internal;
 
 /**
- * @brief Take @p n bytes from the calling worker's tenant.
+ * @brief Take @p n bytes from the tenant.
  * @param n Byte count.
  * @param align Alignment, a power of two.
  * @return The bytes, or NULL if the tenant is full.
@@ -71,7 +67,7 @@ mmgr_spat mmgr_clarus_span(size_t n, size_t align);
 mmgr_spat mmgr_clarus_persist_span(size_t n);
 
 /**
- * @brief Release everything the calling worker holds.
+ * @brief Release everything the tenant holds.
  */
 void mmgr_clarus_reset(void);
 
@@ -115,12 +111,6 @@ size_t mmgr_clarus_capacity(void);
  */
 mmgr_bool mmgr_clarus_owns(const void *p);
 
-/**
- * @brief Which slot holds @p p.
- * @param p Pointer.
- * @return Slot index, or negative if this pool does not own it.
- */
-int mmgr_clarus_slot_of(const void *p);
 
 /** @brief Module namespace. */
 MMGR_NS ClarusCustodiaeNs clarus MMGR_UNUSED = {.alloc = mmgr_clarus_capio,
@@ -133,9 +123,8 @@ MMGR_NS ClarusCustodiaeNs clarus MMGR_UNUSED = {.alloc = mmgr_clarus_capio,
                                                 .high_water = mmgr_clarus_high_water,
                                                 .capacity = mmgr_clarus_capacity,
                                                 .owns = mmgr_clarus_owns,
-                                                .slot_of = mmgr_clarus_slot_of,
                                                 .internal = &mmgr_clarus_internal};
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif

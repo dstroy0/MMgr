@@ -3,11 +3,11 @@
 #ifndef MMGR_CONFINIUM_EXTERNUM_H
 #define MMGR_CONFINIUM_EXTERNUM_H
 
-#include "mmgr_config.h"
+#include "config/mmgr_config.h"
 
 #if MMGR_ENABLE_PSRAM_POOL
 
-MMGR_BEGIN_DECLS
+MMGR_INCIPE_DECLS
 
 /**
  * @file confinium_externum.h
@@ -70,7 +70,7 @@ uint8_t mmgr_pingpong_drain_index(const PingPong *pp);
  */
 uint8_t mmgr_pingpong_swap(PingPong *pp);
 
-MMGR_END_DECLS
+MMGR_FINIS_DECLS
 
 #endif
 

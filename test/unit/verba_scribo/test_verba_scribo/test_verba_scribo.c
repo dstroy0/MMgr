@@ -287,43 +287,94 @@ void test_fixed_matches_printf(void)
     }
 }
 
-void test_fixed_truncates_at_an_exact_tie(void)
+void test_fixed_rounds_a_tie_to_even(void)
 {
-    MMGR_SKIP_ON_ORACLE("C leaves the tie to the implementation and the two disagree, which is the point");
-    // FINDING, pinned rather than fixed. printf rounds an exact tie; this truncates toward zero.
-    // Against newlib: 1.5 gives 1 where printf gives 2, 3.5 gives 3 where printf gives 4, and the
-    // negatives match. It agrees only when the truncated value is already even, which is why the
-    // half-to-even cases below look right.
+    // Was a pinned finding: fixed truncated an exact tie toward zero while g rounded it, so one
+    // library rendered one number two ways. Both go through the engine now and both go to even.
     //
-    // verba.g does not share the defect - see test_g_rounds_a_tie.
-    //
-    // C leaves the tie to the implementation for printf, but two renderings of the same number
-    // disagreeing inside one library is a defect regardless.
+    // Even means even in the number that gets written. Ask for no decimals and the digit the tie
+    // carries into is the last digit of the integer part, not of a fraction that is not there -
+    // which is the whole reason mmgr_muto_to_u64 is told the parity of what sits above it.
     fresh(sizeof buf);
     verba.fixed(&b, 1.5, 0u);
     verba.finish(&b);
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("1", buf, "truncates: printf would give 2");
-
-    fresh(sizeof buf);
-    verba.fixed(&b, 3.5, 0u);
-    verba.finish(&b);
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("3", buf, "truncates: printf would give 4");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("2", buf, "1 is odd, so the tie goes up");
 
     fresh(sizeof buf);
     verba.fixed(&b, 2.5, 0u);
     verba.finish(&b);
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("2", buf, "agrees, because truncating 2.5 lands on even anyway");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("2", buf, "2 is even, so the tie stays");
+
+    fresh(sizeof buf);
+    verba.fixed(&b, 3.5, 0u);
+    verba.finish(&b);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("4", buf, "3 is odd, so the tie goes up");
 
     fresh(sizeof buf);
     verba.fixed(&b, 0.5, 0u);
     verba.finish(&b);
-    TEST_ASSERT_EQUAL_STRING("0", buf);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("0", buf, "0 is even, so the tie stays");
+
+    fresh(sizeof buf);
+    verba.fixed(&b, -1.5, 0u);
+    verba.finish(&b);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("-2", buf, "the sign is written first and does not change it");
+
+    // Past the point the parity is the fraction's own last digit, and 0.125 is an exact tie.
+    fresh(sizeof buf);
+    verba.fixed(&b, 0.125, 2u);
+    verba.finish(&b);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("0.12", buf, "2 is even, so the tie stays");
+
+    fresh(sizeof buf);
+    verba.fixed(&b, 0.375, 2u);
+    verba.finish(&b);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("0.38", buf, "7 is odd, so the tie goes up");
+}
+
+void test_fixed_is_exact_below_a_64_bit_shift(void)
+{
+    // FIXED. The digits after the point were built by hand: the scale came off the mantissa only
+    // while the shift was under 64, and the correction that followed shifted a 64 bit word by more
+    // than 64, which C does not define and x86 turns into no shift at all. Together they put the
+    // answer out by 2^128, and about one value in six below that boundary printed garbage.
+    fresh(sizeof buf);
+    verba.fixed(&b, 2.0447843820796629e-41, 9u);
+    verba.finish(&b);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("0.000000000", buf, "was 0.006958041");
+
+    fresh(sizeof buf);
+    verba.fixed(&b, 5e-324, 18u);
+    verba.finish(&b);
+    TEST_ASSERT_EQUAL_STRING("0.000000000000000000", buf);
+
+    // Either side of the boundary the old code tripped on.
+    fresh(sizeof buf);
+    verba.fixed(&b, 0x1p-63, 18u);
+    verba.finish(&b);
+    TEST_ASSERT_EQUAL_STRING("0.000000000000000000", buf);
+
+    fresh(sizeof buf);
+    verba.fixed(&b, 0x1p-64, 18u);
+    verba.finish(&b);
+    TEST_ASSERT_EQUAL_STRING("0.000000000000000000", buf);
+
+    fresh(sizeof buf);
+    verba.fixed(&b, 0x1p-65, 18u);
+    verba.finish(&b);
+    TEST_ASSERT_EQUAL_STRING("0.000000000000000000", buf);
+
+    // A value that does have digits there, so the zeros above are not just everything collapsing.
+    fresh(sizeof buf);
+    verba.fixed(&b, 1.0 / 3.0, 17u);
+    verba.finish(&b);
+    TEST_ASSERT_EQUAL_STRING("0.33333333333333331", buf);
 }
 
 void test_g_rounds_a_tie(void)
 {
     MMGR_SKIP_ON_ORACLE("C leaves the tie to the implementation and the two disagree, which is the point");
-    // g agrees with newlib on every tie tried, which is what makes fixed the odd one out
+    // g and fixed agree on every tie tried, which is the point: one number, one rendering rule
     fresh(sizeof buf);
     verba.g(&b, 1.5, 1u);
     verba.finish(&b);

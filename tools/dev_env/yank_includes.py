@@ -36,8 +36,8 @@ MANIFEST = os.path.join(ROOT, "test", "yanked_includes.json")
 
 # The assembly chain: these exist to be included by everything, so their includes are the point.
 KEEP = {
-    "src/mmgr_config.h",
-    "src/mmgr_types.h",
+    "src/config/mmgr_config.h",
+    "src/config/mmgr_types.h",
 }
 
 # Never yanked, whoever includes it. These carry the vocabulary a header DECLARES in, and a
