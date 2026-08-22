@@ -26,6 +26,7 @@ static uint8_t arrived[CAP];
 static _Atomic mmgr_word held;
 static mmgr_ring ring;
 static const int owner = 0;
+static const SingularitasCfg bytewise = {&owner, 1u};
 
 /**
  * @brief A ring with everything already in it.
@@ -43,7 +44,7 @@ void setUp(void)
     (void)iteratio_infinita.init(&ring, &(RingCfg){buf, CAP, SEGS, &held});
 
     struct MmgrCursor *const cur = iteratio_infinita.open(&(InfinCfg){.r = &ring, .owner = &owner});
-    (void)iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = arrived, .n = CAP - 1u});
+    (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = arrived, .n = CAP - 1u, .sing = &bytewise});
 }
 
 void tearDown(void)

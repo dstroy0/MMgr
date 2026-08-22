@@ -15,8 +15,11 @@ It moves what @ref mod_confin_guide and the pools handed out. The segment queue 
 
 ## Three things in one module
 
-**A byte ring.** `available`, `read_byte`, `read`, `peek`, `consume`, `free`, `write_span`. Capacity
+**A byte ring.** `available`, `read_byte`, `read`, `peek`, `consume`, `free_`, `seek`. Capacity
 must be a power of two — the wrap is a mask, not a modulo.
+
+**One ingestion path.** `singularitas` and `detach`. Everything that enters the ring enters through
+`singularitas`; there is no other way in and no second writer. See below.
 
 **A segment queue.** `seg_next`, `seg_publish`, `seg_front`, `seg_release`, `seg_at`, `seg_inflight`.
 The producer fills a segment and publishes its index; the consumer reads that index and releases it
@@ -44,10 +47,65 @@ if (seg != MMGR_SEG_NONE) {
 }
 ```
 
+## Singularitas — the way in
+
+One path, one cursor, one holder. A writer asks for so many **units** and is handed an address or
+refused; it never says where the address will be. The unit is fixed when the path is opened — a byte
+at a time up to a machine word at a time — and every count on the path is in units, never in bytes.
+
+That is the whole trick behind the zero-copy ingest. Because the head only ever moves by whole units,
+a head that starts aligned stays aligned, and a granted address is one a DMA channel can be handed
+exactly as it stands. Nothing rounds and nothing decays after the first short transfer.
+
+```c
+static const SingularitasCfg mine = {&me, 4u};      /* words */
+size_t tess = 0, got = 0;
+
+/* Ask for a run. Fall back to whatever fits, which is the ask that gets an answer at the wrap. */
+uint8_t *at = iteratio_infinita.singularitas(
+    &(InfinCfg){.r = &ring, .n = 16u, .tessera = &tess, .sing = &mine, .units = &got});
+
+dma.tx_submit(ch, at, (uint16_t)(got * 4u));        /* the channel fills it */
+
+/* From the completion: publish what landed and take the next run in the same call. */
+iteratio_infinita.singularitas(
+    &(InfinCfg){.r = &ring, .off = landed, .tessera = &tess, .sing = &mine, .units = &got});
+```
+
+Pass `.src` instead and it is a synchronous copy — the ring lays the bytes down itself and publishes
+them, which is the whole of a producer that already holds its data.
+
+**A grant is a destination, not a credential.** The address lets you write. Only the tessera lets you
+publish, and the cursor moves by an offset handed back through the ring. A bare pointer entitles
+nobody to anything, which is what makes a late completion from a torn-down channel harmless.
+
+**Switching streams is a signal from the auctor.** `detach` is the only way the path changes hands,
+and only its holder may call it. The ring will not take the path off anyone, and a grant still out
+refuses the detach outright — commit it, or commit nothing, then let go. Afterwards the path reports
+`MMGR_SING_READY` and the next stream may attach.
+
+**Ask for a status on any call.** The address answers *whether*; `MMGR_SING_*` answers *why*, which
+an address cannot. A producer handed NULL has to choose between waiting, asking for less and giving
+up, and `FULL`, `ALIEN`, `STALE` and `GRANTED` are what tell it which. A status is one 16-bit scalar
+on every target — constants in the low octet, the segment index in the high one — so the handling is
+written once and does not change shape with the machine.
+
 ## Gotchas
 
 **SPSC only.** Two producers on one ring is a broken program, not a slow one. There is no check and
 no assert — the data structure simply does not have the ordering to make it safe.
+
+**A grant never wraps.** A channel takes one base and one length, so a claim is clipped at the end of
+the buffer. Asking for an exact count near the end is refused forever; `.n = 0` with `.units` set is
+the ask that gets an answer there, and a producer that only ever asks for a fixed run will stall at
+the wrap.
+
+**The unit ceiling follows the machine.** `MMGR_SING_GRANULE_MAX` is `sizeof(mmgr_word)`, so a
+four-byte unit is legal on a 32-bit target and refused on a 16-bit one. Derive it, do not write a
+number.
+
+**The buffer is aligned before the ring gets it.** The ring does not check and has no way to. A unit
+wider than the buffer's own alignment is the consumer's mistake to not make.
 
 **Capacity must be a power of two.** The index wrap is a mask.
 

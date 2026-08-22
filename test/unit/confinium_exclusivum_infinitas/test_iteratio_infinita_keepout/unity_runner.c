@@ -77,16 +77,16 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/confinium_exclusivum_infinitas/test_iteratio_infinita_keepout\\test_iteratio_infinita_keepout.c");
-  run_test(test_keepout_header_is_self_contained, "test_keepout_header_is_self_contained", 73);
-  run_test(test_a_drain_grants_the_segments_it_claimed, "test_a_drain_grants_the_segments_it_claimed", 78);
-  run_test(test_an_unaligned_range_covers_the_segments_it_touches, "test_an_unaligned_range_covers_the_segments_it_touches", 89);
-  run_test(test_an_overlapping_claim_is_refused_and_leaves_the_holder_alone, "test_an_overlapping_claim_is_refused_and_leaves_the_holder_alone", 98);
-  run_test(test_disjoint_claims_coexist, "test_disjoint_claims_coexist", 112);
-  run_test(test_no_more_drains_than_there_are_records, "test_no_more_drains_than_there_are_records", 129);
-  run_test(test_a_range_the_ring_does_not_hold_is_refused, "test_a_range_the_ring_does_not_hold_is_refused", 144);
-  run_test(test_a_spent_tessera_stops_working, "test_a_spent_tessera_stops_working", 155);
-  run_test(test_a_reused_record_does_not_honour_the_old_tessera, "test_a_reused_record_does_not_honour_the_old_tessera", 169);
-  run_test(test_a_tessera_nobody_issued_is_refused, "test_a_tessera_nobody_issued_is_refused", 187);
+  run_test(test_keepout_header_is_self_contained, "test_keepout_header_is_self_contained", 74);
+  run_test(test_a_drain_grants_the_segments_it_claimed, "test_a_drain_grants_the_segments_it_claimed", 79);
+  run_test(test_an_unaligned_range_covers_the_segments_it_touches, "test_an_unaligned_range_covers_the_segments_it_touches", 90);
+  run_test(test_an_overlapping_claim_is_refused_and_leaves_the_holder_alone, "test_an_overlapping_claim_is_refused_and_leaves_the_holder_alone", 99);
+  run_test(test_disjoint_claims_coexist, "test_disjoint_claims_coexist", 113);
+  run_test(test_no_more_drains_than_there_are_records, "test_no_more_drains_than_there_are_records", 130);
+  run_test(test_a_range_the_ring_does_not_hold_is_refused, "test_a_range_the_ring_does_not_hold_is_refused", 145);
+  run_test(test_a_spent_tessera_stops_working, "test_a_spent_tessera_stops_working", 156);
+  run_test(test_a_reused_record_does_not_honour_the_old_tessera, "test_a_reused_record_does_not_honour_the_old_tessera", 170);
+  run_test(test_a_tessera_nobody_issued_is_refused, "test_a_tessera_nobody_issued_is_refused", 188);
 
   return UNITY_END();
 }

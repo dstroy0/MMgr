@@ -84,14 +84,14 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/confinium_exclusivum_infinitas/test_confinium_exclusivum_infinitas\\test_confinium_exclusivum_infinitas.c");
-  run_test(test_infin_header_is_self_contained, "test_infin_header_is_self_contained", 41);
-  run_test(test_init_takes_a_ring_the_consumer_owns, "test_init_takes_a_ring_the_consumer_owns", 46);
-  run_test(test_init_refuses_a_capacity_that_is_not_a_power_of_two, "test_init_refuses_a_capacity_that_is_not_a_power_of_two", 52);
-  run_test(test_init_refuses_more_segments_than_the_word_has_bits, "test_init_refuses_more_segments_than_the_word_has_bits", 60);
-  run_test(test_init_refuses_more_segments_than_bytes, "test_init_refuses_more_segments_than_bytes", 69);
-  run_test(test_a_fresh_ring_is_empty_and_holds_one_byte_back, "test_a_fresh_ring_is_empty_and_holds_one_byte_back", 75);
-  run_test(test_open_hands_out_one_cursor, "test_open_hands_out_one_cursor", 82);
-  run_test(test_write_moves_what_available_reports, "test_write_moves_what_available_reports", 88);
+  run_test(test_infin_header_is_self_contained, "test_infin_header_is_self_contained", 42);
+  run_test(test_init_takes_a_ring_the_consumer_owns, "test_init_takes_a_ring_the_consumer_owns", 47);
+  run_test(test_init_refuses_a_capacity_that_is_not_a_power_of_two, "test_init_refuses_a_capacity_that_is_not_a_power_of_two", 53);
+  run_test(test_init_refuses_more_segments_than_the_word_has_bits, "test_init_refuses_more_segments_than_the_word_has_bits", 61);
+  run_test(test_init_refuses_more_segments_than_bytes, "test_init_refuses_more_segments_than_bytes", 70);
+  run_test(test_a_fresh_ring_is_empty_and_holds_one_byte_back, "test_a_fresh_ring_is_empty_and_holds_one_byte_back", 76);
+  run_test(test_open_hands_out_one_cursor, "test_open_hands_out_one_cursor", 83);
+  run_test(test_write_moves_what_available_reports, "test_write_moves_what_available_reports", 89);
   run_test(test_a_raw_read_names_the_bytes_and_consumes_nothing, "test_a_raw_read_names_the_bytes_and_consumes_nothing", 99);
   run_test(test_a_raw_read_of_more_than_is_there_is_null, "test_a_raw_read_of_more_than_is_there_is_null", 113);
   run_test(test_a_raw_read_of_an_empty_ring_is_null, "test_a_raw_read_of_an_empty_ring_is_null", 122);
@@ -99,8 +99,8 @@ int main(void)
   run_test(test_read_byte_takes_one_and_refuses_an_empty_ring, "test_read_byte_takes_one_and_refuses_an_empty_ring", 138);
   run_test(test_peek_copies_without_consuming, "test_peek_copies_without_consuming", 154);
   run_test(test_a_write_that_wraps_comes_back_in_order, "test_a_write_that_wraps_comes_back_in_order", 168);
-  run_test(test_seek_moves_a_cursor_inside_its_frame, "test_seek_moves_a_cursor_inside_its_frame", 189);
-  run_test(test_a_drain_is_refused_without_the_capability, "test_a_drain_is_refused_without_the_capability", 200);
+  run_test(test_seek_moves_a_cursor_inside_its_frame, "test_seek_moves_a_cursor_inside_its_frame", 188);
+  run_test(test_a_drain_is_refused_without_the_capability, "test_a_drain_is_refused_without_the_capability", 199);
 
   return UNITY_END();
 }

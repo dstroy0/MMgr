@@ -18,6 +18,7 @@ static uint8_t buf[CAP];
 static _Atomic mmgr_word held;
 static mmgr_ring ring;
 static const int owner = 0;
+static const SingularitasCfg bytewise = {&owner, 1u};
 
 void setUp(void)
 {
@@ -90,8 +91,7 @@ void test_write_moves_what_available_reports(void)
     static const uint8_t src[8] = {1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u};
     struct MmgrCursor *const cur = cursor();
 
-    TEST_ASSERT_EQUAL_size_t(8u, iteratio_infinita.write(
-                                     &(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 8u}));
+    TEST_ASSERT_NOT_NULL(iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 8u, .sing = &bytewise}));
     TEST_ASSERT_EQUAL_size_t(8u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
     TEST_ASSERT_EQUAL_size_t(CAP - 1u - 8u, iteratio_infinita.free_(&(InfinCfg){.r = &ring}));
 }
@@ -101,7 +101,7 @@ void test_a_raw_read_names_the_bytes_and_consumes_nothing(void)
     static const uint8_t src[4] = {0xDEu, 0xADu, 0xBEu, 0xEFu};
     struct MmgrCursor *const cur = cursor();
 
-    iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 4u});
+    iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 4u, .sing = &bytewise});
 
     const uint8_t *const at = iteratio_infinita.read(&(InfinCfg){.r = &ring, .cur = cur, .n = 4u});
     TEST_ASSERT_NOT_NULL(at);
@@ -115,7 +115,7 @@ void test_a_raw_read_of_more_than_is_there_is_null(void)
     static const uint8_t src[4] = {1u, 2u, 3u, 4u};
     struct MmgrCursor *const cur = cursor();
 
-    iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 4u});
+    iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 4u, .sing = &bytewise});
     TEST_ASSERT_NULL(iteratio_infinita.read(&(InfinCfg){.r = &ring, .cur = cur, .n = 5u}));
 }
 
@@ -130,7 +130,7 @@ void test_consume_is_what_moves_the_tail(void)
     static const uint8_t src[8] = {1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u};
     struct MmgrCursor *const cur = cursor();
 
-    iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 8u});
+    iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 8u, .sing = &bytewise});
     iteratio_infinita.consume(&(InfinCfg){.r = &ring, .cur = cur, .n = 3u});
     TEST_ASSERT_EQUAL_size_t(5u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
 }
@@ -145,7 +145,7 @@ void test_read_byte_takes_one_and_refuses_an_empty_ring(void)
         iteratio_infinita.read_byte(&(InfinCfg){.r = &ring, .cur = cur, .dst = &got}),
         "an empty ring has no byte to hand back");
 
-    iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 2u});
+    iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 2u, .sing = &bytewise});
     TEST_ASSERT_TRUE(iteratio_infinita.read_byte(&(InfinCfg){.r = &ring, .cur = cur, .dst = &got}));
     TEST_ASSERT_EQUAL_HEX8(0x5Au, got);
     TEST_ASSERT_EQUAL_size_t(1u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
@@ -157,7 +157,7 @@ void test_peek_copies_without_consuming(void)
     struct MmgrCursor *const cur = cursor();
     uint8_t dst[2] = {0u, 0u};
 
-    iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 4u});
+    iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 4u, .sing = &bytewise});
     iteratio_infinita.peek(&(InfinCfg){.r = &ring, .cur = cur, .dst = dst, .n = 2u, .off = 1u});
 
     TEST_ASSERT_EQUAL_HEX8(0x22u, dst[0]);
@@ -173,12 +173,11 @@ void test_a_write_that_wraps_comes_back_in_order(void)
     /* Push the head most of the way round, then write across the end. */
     for (unsigned i = 0; i < 15u; i++)
     {
-        iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 16u});
+        iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 16u, .sing = &bytewise});
         iteratio_infinita.consume(&(InfinCfg){.r = &ring, .cur = cur, .n = 16u});
     }
     static const uint8_t run[8] = {1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u};
-    TEST_ASSERT_EQUAL_size_t(8u, iteratio_infinita.write(
-                                     &(InfinCfg){.r = &ring, .cur = cur, .src = run, .n = 8u}));
+    TEST_ASSERT_NOT_NULL(iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = run, .n = 8u, .sing = &bytewise}));
     TEST_ASSERT_EQUAL_size_t(8u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
 
     uint8_t got[8] = {0};

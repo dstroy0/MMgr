@@ -3,3 +3,4 @@
 
 add_subdirectory(test_confinium_exclusivum_infinitas)
 add_subdirectory(test_iteratio_infinita_keepout)
+add_subdirectory(test_singularitas_stream)
