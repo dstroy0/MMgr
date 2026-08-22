@@ -124,7 +124,7 @@ see @ref concept_swar.
 
 Decides where a buffer should live when there is more than one kind of memory.
 
-@note Compiled only when `MMGR_ENABLE_PSRAM_POOL` is set. It defaults off, and its test suite is
+@note Compiled only when `MMGR_ENABLE_EXTRAM` is set. It defaults off, and its test suite is
 skipped loudly rather than silently.
 
 ## When to reach for it
@@ -135,7 +135,7 @@ scarce, external is large and slower, and some of it cannot be reached by DMA.
 ## What it does
 
 ```c
-mmgr_place p = mmgr_exter_place(size, threshold, needs_dma);
+mmgr_place p = mmgr_exter_place(size, needs_dma, free_dram, free_psram, threshold, dram_reserve);
 switch (p) {
     case PLACE_DRAM:  /* internal */       break;
     case PLACE_PSRAM: /* external */       break;
@@ -144,10 +144,19 @@ switch (p) {
 ```
 
 It is a **decision**, not an allocator. It answers where a buffer of this size, with this DMA
-requirement, ought to go. Taking the storage is still yours to do.
+requirement, ought to go, given how much of each is left. Taking the storage is still yours to do,
+and so is knowing the two free counts - this module holds no pool and tracks nothing between calls.
 
 `PingPong` double-buffer index helpers ship alongside it, because the workload that needs external
-memory is usually the one streaming through two buffers.
+memory is usually the one streaming through two buffers. The pair is the config:
+
+```c
+PingPong pp;
+mmgr_pingpong_init(pp);
+uint8_t filling  = mmgr_pingpong_fill_index(pp);
+uint8_t draining = mmgr_pingpong_drain_index(pp);   /* always the other one */
+mmgr_pingpong_swap(pp);                             /* change ends */
+```
 
 ## Gotchas
 
