@@ -6,6 +6,11 @@
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "numeros_scribo/numeros_scribo.h"
 
+/* A values array for the renders that take none. The gate on the entry settles the type of every
+   argument where the call is written, so a null pointer is not something a call site can spell any
+   more: a count of zero is how a caller says there are no values. */
+static const mmgr_fval s_none[1] = {MMGR_VU32(0u)};
+
 void test_numer_header_is_self_contained(void)
 {
     TEST_PASS_MESSAGE("numeros_scribo.h compiled with no header before it");
@@ -88,7 +93,7 @@ void test_write_matches_the_namespace_entry(void)
     const mmgr_fval v[] = {MMGR_VSTR("n="), MMGR_VU32(9u)};
 
     mmgr_write(viamacro, sizeof viamacro, MMGR_VSTR("n="), MMGR_VU32(9u));
-    numer.emit(vians, sizeof vians, v, sizeof v / sizeof v[0]);
+    mmgr_numer_emit(vians, sizeof vians, v, sizeof v / sizeof v[0]);
     TEST_ASSERT_EQUAL_STRING_MESSAGE(vians, viamacro, "the macro is the array, spelled shorter");
 }
 
@@ -97,7 +102,7 @@ void test_emit_rejects_an_unknown_kind(void)
     char b[32];
     mmgr_fval bad = MMGR_VU32(1u);
     bad.kind = 200u;
-    TEST_ASSERT_EQUAL_size_t(0u, numer.emit(b, sizeof b, &bad, 1u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_emit(b, sizeof b, &bad, 1u));
     TEST_ASSERT_EQUAL_STRING("", b);
 }
 
@@ -105,7 +110,7 @@ void test_emit_of_nothing_is_empty_not_garbage(void)
 {
     char b[32];
     b[0] = 'x';
-    TEST_ASSERT_EQUAL_size_t(0u, numer.emit(b, sizeof b, NULL, 0u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_emit(b, sizeof b, s_none, 0u));
     TEST_ASSERT_EQUAL_STRING("", b);
 }
 
@@ -119,7 +124,7 @@ void test_build_renders_a_spec(void)
     static const mmgr_field spec[] = {{MMGR_FK_LIT, 0, 3, "id="}, MMGR_U32, MMGR_END};
     const mmgr_fval v[] = {MMGR_VU32(42u)};
 
-    TEST_ASSERT_EQUAL_size_t(5u, numer.build(out, sizeof out, spec, v, 1u));
+    TEST_ASSERT_EQUAL_size_t(5u, mmgr_numer_build(out, sizeof out, spec, v, 1u));
     TEST_ASSERT_EQUAL_STRING("id=42", out);
 }
 
@@ -129,7 +134,7 @@ void test_build_rejects_a_value_of_the_wrong_kind(void)
     static const mmgr_field spec[] = {MMGR_U32, MMGR_END};
     const mmgr_fval v[] = {MMGR_VSTR("not a number")};
 
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, numer.build(out, sizeof out, spec, v, 1u), "kind mismatch is refused");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_numer_build(out, sizeof out, spec, v, 1u), "kind mismatch is refused");
     TEST_ASSERT_EQUAL_STRING("", out);
 }
 
@@ -140,20 +145,23 @@ void test_build_rejects_too_few_and_too_many_values(void)
     const mmgr_fval one[] = {MMGR_VU32(1u)};
     const mmgr_fval three[] = {MMGR_VU32(1u), MMGR_VU32(2u), MMGR_VU32(3u)};
 
-    TEST_ASSERT_EQUAL_size_t(0u, numer.build(out, sizeof out, spec, one, 1u));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, numer.build(out, sizeof out, spec, three, 3u), "a leftover value is refused");
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_build(out, sizeof out, spec, one, 1u));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_numer_build(out, sizeof out, spec, three, 3u),
+                                     "a leftover value is refused");
 }
 
 void test_build_guards_its_arguments(void)
 {
+    // A null destination, a null spec and a null value list are gone from this: the entry takes a
+    // config whose types are settled where the call is written, so none of the three is a call a
+    // caller can spell. What is left is the run time part - no room, and a spec wanting a value
+    // that the count says is not there.
     char out[64];
     static const mmgr_field spec[] = {MMGR_U32, MMGR_END};
     const mmgr_fval v[] = {MMGR_VU32(1u)};
 
-    TEST_ASSERT_EQUAL_size_t(0u, numer.build(NULL, sizeof out, spec, v, 1u));
-    TEST_ASSERT_EQUAL_size_t(0u, numer.build(out, 0u, spec, v, 1u));
-    TEST_ASSERT_EQUAL_size_t(0u, numer.build(out, sizeof out, NULL, v, 1u));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, numer.build(out, sizeof out, spec, NULL, 1u),
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_build(out, (size_t)0, spec, v, 1u));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_numer_build(out, sizeof out, spec, v, 0u),
                                      "a spec wanting a value gets none");
 }
 
@@ -161,7 +169,7 @@ void test_build_of_a_spec_with_only_literals(void)
 {
     char out[64];
     static const mmgr_field spec[] = {{MMGR_FK_LIT, 0, 5, "hello"}, {MMGR_FK_LIT, 0, 1, "!"}, MMGR_END};
-    TEST_ASSERT_EQUAL_size_t(6u, numer.build(out, sizeof out, spec, NULL, 0u));
+    TEST_ASSERT_EQUAL_size_t(6u, mmgr_numer_build(out, sizeof out, spec, s_none, 0u));
     TEST_ASSERT_EQUAL_STRING("hello!", out);
 }
 
@@ -172,7 +180,7 @@ void test_build_covers_every_kind(void)
     const mmgr_fval v[] = {MMGR_VSTR("s"), MMGR_VU32(1u),   MMGR_VU64(2u),   MMGR_VI64(-3),
                            MMGR_VCH('c'),  MMGR_VJSON("j"), MMGR_VXML("<x>")};
 
-    TEST_ASSERT_GREATER_THAN_size_t(0u, numer.build(out, sizeof out, spec, v, 7u));
+    TEST_ASSERT_GREATER_THAN_size_t(0u, mmgr_numer_build(out, sizeof out, spec, v, 7u));
     TEST_ASSERT_TRUE(mmgr_cellul_has(out, sizeof out, "\"j\"", 4u, MMGR_FALSE));
     TEST_ASSERT_TRUE(mmgr_cellul_has(out, sizeof out, "&lt;x&gt;", 10u, MMGR_FALSE));
 }
@@ -184,7 +192,7 @@ void test_build_covers_the_width_bearing_kinds(void)
                                       {MMGR_FK_G, 3, 0, NULL},   {MMGR_FK_FIX, 2, 0, NULL}, MMGR_END};
     const mmgr_fval v[] = {MMGR_VDEC(7u), MMGR_VHEX(0xABu), MMGR_VOCT(8u), MMGR_VG(1.25), MMGR_VFIX(2.5)};
 
-    TEST_ASSERT_GREATER_THAN_size_t(0u, numer.build(out, sizeof out, spec, v, 5u));
+    TEST_ASSERT_GREATER_THAN_size_t(0u, mmgr_numer_build(out, sizeof out, spec, v, 5u));
     TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_has(out, sizeof out, "0007", 5u, MMGR_FALSE), "DEC pads to its width");
     TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_has(out, sizeof out, "00ab", 5u, MMGR_FALSE), "HEX pads to its width");
     TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_has(out, sizeof out, "10", 3u, MMGR_FALSE), "OCT of 8 is 10");
@@ -199,7 +207,7 @@ void test_build_of_a_null_string_value(void)
     v[0].as.s = NULL;
     v[0].width = 0;
 
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, numer.build(out, sizeof out, spec, v, 1u), "a null string renders empty");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_numer_build(out, sizeof out, spec, v, 1u), "a null string renders empty");
     TEST_ASSERT_EQUAL_STRING("", out);
 }
 
@@ -207,7 +215,7 @@ void test_build_overflow_leaves_an_empty_buffer(void)
 {
     char out[4];
     static const mmgr_field spec[] = {{MMGR_FK_LIT, 0, 20, "far too long for four"}, MMGR_END};
-    TEST_ASSERT_EQUAL_size_t(0u, numer.build(out, sizeof out, spec, NULL, 0u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_build(out, sizeof out, spec, s_none, 0u));
     TEST_ASSERT_EQUAL_STRING("", out);
 }
 
@@ -218,7 +226,7 @@ void test_build_rejects_an_unknown_kind(void)
     mmgr_fval v[1];
     v[0].kind = 200u;
     v[0].width = 0;
-    TEST_ASSERT_EQUAL_size_t(0u, numer.build(out, sizeof out, spec, v, 1u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_build(out, sizeof out, spec, v, 1u));
 }
 
 void test_append_builds_on_what_is_there(void)
@@ -227,26 +235,26 @@ void test_append_builds_on_what_is_there(void)
     static const mmgr_field head[] = {{MMGR_FK_LIT, 0, 4, "head"}, MMGR_END};
     static const mmgr_field tail[] = {{MMGR_FK_LIT, 0, 5, ":tail"}, MMGR_END};
 
-    TEST_ASSERT_EQUAL_size_t(4u, numer.build(out, sizeof out, head, NULL, 0u));
-    TEST_ASSERT_EQUAL_size_t(9u, numer.append(out, sizeof out, tail, NULL, 0u));
+    TEST_ASSERT_EQUAL_size_t(4u, mmgr_numer_build(out, sizeof out, head, s_none, 0u));
+    TEST_ASSERT_EQUAL_size_t(9u, mmgr_numer_append(out, sizeof out, tail, s_none, 0u));
     TEST_ASSERT_EQUAL_STRING("head:tail", out);
 }
 
 void test_append_guards_its_arguments(void)
 {
+    // Same as build: the two null arguments this used to pass are compile errors now, and no room
+    // is what is left to check at run time.
     char out[64] = "x";
     static const mmgr_field spec[] = {{MMGR_FK_LIT, 0, 1, "y"}, MMGR_END};
 
-    TEST_ASSERT_EQUAL_size_t(0u, numer.append(NULL, sizeof out, spec, NULL, 0u));
-    TEST_ASSERT_EQUAL_size_t(0u, numer.append(out, 0u, spec, NULL, 0u));
-    TEST_ASSERT_EQUAL_size_t(0u, numer.append(out, sizeof out, NULL, NULL, 0u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_append(out, (size_t)0, spec, s_none, 0u));
 }
 
 void test_append_that_does_not_fit_leaves_the_original(void)
 {
     char out[8] = "abcdefg";
     static const mmgr_field spec[] = {{MMGR_FK_LIT, 0, 10, "way too long"}, MMGR_END};
-    TEST_ASSERT_EQUAL_size_t(0u, numer.append(out, sizeof out, spec, NULL, 0u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_append(out, sizeof out, spec, s_none, 0u));
     TEST_ASSERT_EQUAL_STRING_MESSAGE("abcdefg", out, "a failed append must not damage what was there");
 }
 
@@ -254,25 +262,19 @@ void test_append_to_a_full_buffer(void)
 {
     char out[4] = "abc";
     static const mmgr_field spec[] = {{MMGR_FK_LIT, 0, 1, "d"}, MMGR_END};
-    TEST_ASSERT_EQUAL_size_t(0u, numer.append(out, 3u, spec, NULL, 0u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_append(out, 3u, spec, s_none, 0u));
 }
 
 void test_emit_guards_its_arguments(void)
 {
     char out[32];
-    TEST_ASSERT_EQUAL_size_t(0u, numer.emit(NULL, sizeof out, NULL, 0u));
-    TEST_ASSERT_EQUAL_size_t(0u, numer.emit(out, 0u, NULL, 0u));
-
-    const mmgr_fval v[] = {MMGR_VU32(1u)};
-    (void)v;
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, numer.emit(out, sizeof out, NULL, 1u), "a count with no values is refused");
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_emit(out, (size_t)0, s_none, 0u));
 }
 
 void test_emit_append_guards_its_arguments(void)
 {
     char out[32] = "x";
-    TEST_ASSERT_EQUAL_size_t(0u, numer.emit_append(NULL, sizeof out, NULL, 0u));
-    TEST_ASSERT_EQUAL_size_t(0u, numer.emit_append(out, 0u, NULL, 0u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_emit_append(out, (size_t)0, s_none, 0u));
 }
 
 void test_emit_covers_the_width_bearing_kinds(void)
@@ -295,7 +297,7 @@ void test_a_g_field_with_no_width_gets_six_digits(void)
     static const mmgr_field spec[] = {{MMGR_FK_G, 0, 0, NULL}, MMGR_END};
     const mmgr_fval v[] = {MMGR_VG(1.0 / 3.0)};
 
-    TEST_ASSERT_GREATER_THAN_size_t(0u, numer.build(spec_out, sizeof spec_out, spec, v, 1u));
+    TEST_ASSERT_GREATER_THAN_size_t(0u, mmgr_numer_build(spec_out, sizeof spec_out, spec, v, 1u));
     TEST_ASSERT_GREATER_THAN_size_t(0u, mmgr_write(emit_out, sizeof emit_out, MMGR_VG(1.0 / 3.0)));
 
     TEST_ASSERT_EQUAL_STRING_MESSAGE(spec_out, emit_out, "the spec path and the variadic path disagree on the default");
@@ -309,7 +311,7 @@ void test_a_hex_field_with_no_width_gets_one_digit(void)
     static const mmgr_field spec[] = {{MMGR_FK_HEX, 0, 0, NULL}, MMGR_END};
     const mmgr_fval v[] = {MMGR_VHEX(0u)};
 
-    TEST_ASSERT_EQUAL_size_t(1u, numer.build(out, sizeof out, spec, v, 1u));
+    TEST_ASSERT_EQUAL_size_t(1u, mmgr_numer_build(out, sizeof out, spec, v, 1u));
     TEST_ASSERT_EQUAL_STRING("0", out);
 }
 
@@ -330,7 +332,7 @@ void test_append_to_a_buffer_with_no_terminator_is_refused(void)
         out[i] = 'x';
     }
 
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, numer.emit_append(out, sizeof out, NULL, 0u),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_numer_emit_append(out, sizeof out, s_none, 0u),
                                      "there is no room after a buffer that is already full");
 }
 
@@ -339,7 +341,7 @@ void test_an_append_that_does_not_fit_puts_the_terminator_back(void)
     char out[8] = "abc";
     static const mmgr_field spec[] = {{MMGR_FK_LIT, 0, 12, "far too long"}, MMGR_END};
 
-    TEST_ASSERT_EQUAL_size_t(0u, numer.append(out, sizeof out, spec, NULL, 0u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_append(out, sizeof out, spec, s_none, 0u));
     TEST_ASSERT_EQUAL_STRING_MESSAGE("abc", out, "a failed append left the buffer without its terminator");
 }
 

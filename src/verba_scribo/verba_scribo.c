@@ -4,6 +4,7 @@
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "fractio/fractio.h"
 #include "transformo/transformo.h"
+#include "clz/clz.h"
 #include "proximus_operor/proximus_operor.h"
 
 /**
@@ -493,7 +494,7 @@ MMGR_INLINE void verba_g(VerbaCtx *c)
     /* Where the decimal point wants to be. The value is near two to the bit length less one plus
        the binary exponent, and 78913 over two to the eighteenth is log ten of two, so this lands on
        the right power of ten or one either side of it. The fit below settles which. */
-    int e = (int)(((int64_t)(63 - muto.clz(n) + s) * 78913) >> 18);
+    int e = (int)(((int64_t)(63 - mmgr_clz_lead(n) + s) * 78913) >> 18);
     int p = (int)sig - 1 - e;
 
     /* One call site on purpose. The scale is a call now rather than an inline body, but a second
@@ -504,7 +505,7 @@ MMGR_INLINE void verba_g(VerbaCtx *c)
     mmgr_u64 mant = 0U;
     for (unsigned guard = 0; guard < 4U; guard++) /* GCOVR_EXCL_BR_LINE */
     {
-        mant = muto.scale_to_u64(n, s, p, 0U);
+        mant = mmgr_muto_scale_to_u64(n, s, p, 0U);
         if (mant >= limit)
         {
             e++;
@@ -662,7 +663,8 @@ MMGR_INLINE void verba_fixed(VerbaCtx *c)
      * that is the engine's job rather than something to open code with shifts. It was open coded,
      * and it took the scale off the remainder only when the shift was under 64 and then shifted a
      * word by more than its width, which C does not define. */
-    mmgr_u64 frac = muto.scale_to_u64(rem, exp2, (int)decimals, (decimals == 0U) ? (unsigned)(ip & 1U) : 0U);
+    mmgr_u64 frac =
+        mmgr_muto_scale_to_u64(rem, exp2, (int)decimals, (decimals == 0U) ? (unsigned)(ip & 1U) : 0U);
 
     if (frac >= scale)
     {

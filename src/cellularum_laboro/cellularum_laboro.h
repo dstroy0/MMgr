@@ -106,81 +106,82 @@ mmgr_bool mmgr_cellul_mpint_fixed(const TransfiguroCfg *c);
 #define mmgr_cellul_init(s_, cap_, t_, tcap_, dst_, ci_)                                                               \
     (MMGR_CELLUL_IS_STR(s_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_STR(t_), MMGR_CELLUL_IS_SIZE(tcap_),            \
      MMGR_CELLUL_IS_WSTR(dst_), MMGR_CELLUL_IS_BOOL(ci_),                                                              \
-     mmgr_cellul_init(&(CatenaFinitaCfg){                                                                             \
+     cellul.init(&(CatenaFinitaCfg){                                                                                   \
          .s = (s_), .cap = (cap_), .t = (t_), .t_cap = (tcap_), .dst = (dst_), .ci = (ci_)}))
 
 #define mmgr_cellul_len(s_, cap_)                                                                                      \
     (MMGR_CELLUL_IS_STR(s_), MMGR_CELLUL_IS_SIZE(cap_),                                                                \
-     mmgr_cellul_len(&(CatenaFinitaCfg){.s = (s_), .cap = (cap_)}))
+     cellul.len(&(CatenaFinitaCfg){.s = (s_), .cap = (cap_)}))
 
 #define mmgr_cellul_chr(s_, cap_, byte_)                                                                               \
     (MMGR_CELLUL_IS_STR(s_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_BYTE(byte_),                                    \
-     mmgr_cellul_chr(&(CatenaFinitaCfg){.s = (s_), .cap = (cap_), .byte = (uint8_t)(byte_)}))
+     cellul.chr(&(CatenaFinitaCfg){.s = (s_), .cap = (cap_), .byte = (uint8_t)(byte_)}))
 
 #define mmgr_cellul_diff(a_, b_, cap_, ci_)                                                                            \
     (MMGR_CELLUL_IS_STR(a_), MMGR_CELLUL_IS_STR(b_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_BOOL(ci_),              \
-     mmgr_cellul_diff(&(CatenaFinitaCfg){.s = (a_), .t = (b_), .cap = (cap_), .ci = (ci_)}))
+     cellul.diff(&(CatenaFinitaCfg){.s = (a_), .t = (b_), .cap = (cap_), .ci = (ci_)}))
 
 #define mmgr_cellul_eq(a_, b_, cap_, ci_)                                                                              \
     (MMGR_CELLUL_IS_STR(a_), MMGR_CELLUL_IS_STR(b_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_BOOL(ci_),              \
-     mmgr_cellul_eq(&(CatenaFinitaCfg){.s = (a_), .t = (b_), .cap = (cap_), .ci = (ci_)}))
+     cellul.eq(&(CatenaFinitaCfg){.s = (a_), .t = (b_), .cap = (cap_), .ci = (ci_)}))
 
 #define mmgr_cellul_starts(s_, pre_, cap_, ci_)                                                                        \
     (MMGR_CELLUL_IS_STR(s_), MMGR_CELLUL_IS_STR(pre_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_BOOL(ci_),            \
-     mmgr_cellul_starts(&(CatenaFinitaCfg){.s = (s_), .t = (pre_), .cap = (cap_), .ci = (ci_)}))
+     cellul.starts(&(CatenaFinitaCfg){.s = (s_), .t = (pre_), .cap = (cap_), .ci = (ci_)}))
 
 #define mmgr_cellul_find(hay_, cap_, needle_, ncap_, ci_)                                                              \
     (MMGR_CELLUL_IS_STR(hay_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_STR(needle_), MMGR_CELLUL_IS_SIZE(ncap_),     \
      MMGR_CELLUL_IS_BOOL(ci_),                                                                                         \
-     mmgr_cellul_find(&(CatenaFinitaCfg){                                                                             \
+     cellul.find(&(CatenaFinitaCfg){                                                                                   \
          .s = (hay_), .cap = (cap_), .t = (needle_), .t_cap = (ncap_), .ci = (ci_)}))
 
 #define mmgr_cellul_has(hay_, cap_, needle_, ncap_, ci_)                                                               \
     (MMGR_CELLUL_IS_STR(hay_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_STR(needle_), MMGR_CELLUL_IS_SIZE(ncap_),     \
      MMGR_CELLUL_IS_BOOL(ci_),                                                                                         \
-     mmgr_cellul_has(&(CatenaFinitaCfg){                                                                              \
+     cellul.has(&(CatenaFinitaCfg){                                                                                    \
          .s = (hay_), .cap = (cap_), .t = (needle_), .t_cap = (ncap_), .ci = (ci_)}))
 
 #define mmgr_cellul_copy(dst_, src_, cap_)                                                                             \
     (MMGR_CELLUL_IS_WSTR(dst_), MMGR_CELLUL_IS_STR(src_), MMGR_CELLUL_IS_SIZE(cap_),                                   \
-     mmgr_cellul_copy(&(CatenaFinitaCfg){.dst = (dst_), .s = (src_), .cap = (cap_)}))
+     cellul.copy(&(CatenaFinitaCfg){.dst = (dst_), .s = (src_), .cap = (cap_)}))
 
-#define mmgr_cellul_ws(ch_) (MMGR_CELLUL_IS_CHAR(ch_), mmgr_cellul_ws(&(CatenaFinitaCfg){.s = &(char){(char)(ch_)}, .cap = 1u}))
+#define mmgr_cellul_ws(ch_)                                                                                            \
+    (MMGR_CELLUL_IS_CHAR(ch_), cellul.ws(&(CatenaFinitaCfg){.s = &(char){(char)(ch_)}, .cap = 1u}))
 
 #define mmgr_cellul_digit(ch_)                                                                                         \
-    (MMGR_CELLUL_IS_CHAR(ch_), mmgr_cellul_digit(&(CatenaFinitaCfg){.s = &(char){(char)(ch_)}, .cap = 1u}))
+    (MMGR_CELLUL_IS_CHAR(ch_), cellul.digit(&(CatenaFinitaCfg){.s = &(char){(char)(ch_)}, .cap = 1u}))
 
 #define mmgr_cellul_rd_str(buf_, len_, at_, out_, slen_)                                                               \
     (MMGR_CELLUL_IS_BYTES(buf_), MMGR_CELLUL_IS_SIZE(len_), MMGR_CELLUL_IS_SIZE(at_), MMGR_CELLUL_IS_BYTES(out_),      \
      MMGR_CELLUL_IS_SIZE(slen_),                                                                                       \
-     mmgr_cellul_rd_str(&(CatenaFinitaCfg){                                                                           \
+     cellul.rd_str(&(CatenaFinitaCfg){                                                                                 \
          .s = (const char *)(buf_), .cap = (len_), .at = (at_), .out = &(out_), .slen = &(slen_)}))
 
 #define mmgr_cellul_step_word(wa_, wb_, ci_, endwins_)                                                                 \
     (MMGR_CELLUL_IS_WORD(wa_), MMGR_CELLUL_IS_WORD(wb_), MMGR_CELLUL_IS_BOOL(ci_), MMGR_CELLUL_IS_SIZE(endwins_),      \
-     mmgr_cellul_step_word(&(VerboProgrediorCfg){.wa = (wa_), .wb = (wb_), .ci = (ci_), .end_wins = (endwins_)}))
+     cellul.step_word(&(VerboProgrediorCfg){.wa = (wa_), .wb = (wb_), .ci = (ci_), .end_wins = (endwins_)}))
 
 #define mmgr_cellul_step_byte(ca_, cb_, ci_, endwins_)                                                                 \
     (MMGR_CELLUL_IS_BYTE(ca_), MMGR_CELLUL_IS_BYTE(cb_), MMGR_CELLUL_IS_BOOL(ci_), MMGR_CELLUL_IS_SIZE(endwins_),      \
-     mmgr_cellul_step_byte(&(VerboProgrediorCfg){                                                                      \
+     cellul.step_byte(&(VerboProgrediorCfg){                                                                           \
          .ca = (unsigned char)(ca_), .cb = (unsigned char)(cb_), .ci = (ci_), .end_wins = (endwins_)}))
 
 #define mmgr_cellul_to_long(s_, end_)                                                                                  \
-    (MMGR_CELLUL_IS_STR(s_), mmgr_cellul_to_long(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
+    (MMGR_CELLUL_IS_STR(s_), cellul.to_long(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
 
 #define mmgr_cellul_to_ulong(s_, end_)                                                                                 \
-    (MMGR_CELLUL_IS_STR(s_), mmgr_cellul_to_ulong(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
+    (MMGR_CELLUL_IS_STR(s_), cellul.to_ulong(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
 
 #define mmgr_cellul_to_double(s_, end_)                                                                                \
-    (MMGR_CELLUL_IS_STR(s_), mmgr_cellul_to_double(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
+    (MMGR_CELLUL_IS_STR(s_), cellul.to_double(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
 
 #define mmgr_cellul_to_float(s_, end_)                                                                                 \
-    (MMGR_CELLUL_IS_STR(s_), mmgr_cellul_to_float(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
+    (MMGR_CELLUL_IS_STR(s_), cellul.to_float(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
 
 #define mmgr_cellul_mpint_fixed(m_, mlen_, field_, fieldlen_)                                                          \
     (MMGR_CELLUL_IS_BYTES(m_), MMGR_CELLUL_IS_SIZE(mlen_), MMGR_CELLUL_IS_WBYTES(field_),                              \
      MMGR_CELLUL_IS_SIZE(fieldlen_),                                                                                   \
-     mmgr_cellul_mpint_fixed(&(TransfiguroCfg){                                                                        \
+     cellul.mpint_fixed(&(TransfiguroCfg){                                                                             \
          .m = (m_), .mlen = (uint32_t)(mlen_), .field = (field_), .fieldlen = (fieldlen_)}))
 
 MMGR_NS CellularumLaboroNs cellul MMGR_UNUSED = {

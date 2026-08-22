@@ -8,6 +8,7 @@ mmgr_add_module(verba_scribo
   SOURCES verba_scribo.c
   DEPS
     cellularum_laboro
+    clz
     fractio
     transformo
     proximus_operor

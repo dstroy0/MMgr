@@ -155,10 +155,25 @@ typedef enum
     MMGR_ASCII_CLASSES
 } MmgrAsciiClass;
 
+/**
+ * @brief What a class test is given.
+ *
+ * Public, and in the header, because the caller is what builds it. Both members are const: nothing
+ * writes to a config once the caller has built it, and the compound literal is gone before there is
+ * code that could.
+ *
+ * Not the module's context. AsciiCtx is what the body works with and it is file local in the .c.
+ */
+typedef struct
+{
+    const MmgrAsciiClass k; /**< The class being asked about. */
+    const uint8_t c;        /**< The byte. */
+} AsciiCfg;
+
 /** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
 typedef struct
 {
-    mmgr_bool (*in)(MmgrAsciiClass k, uint8_t c);
+    mmgr_bool (*in)(const AsciiCfg *c);
 } AsciiPersonaBitorumNs;
 MMGR_NS_LAYOUT(AsciiPersonaBitorumNs, in);
 
@@ -170,7 +185,24 @@ MMGR_NS_LAYOUT(AsciiPersonaBitorumNs, in);
  *  index and answered by the file that holds them, so no translation unit that asks the question
  *  carries a copy of the answer, and none of them has ten more names to avoid.
  *  @{ */
-mmgr_bool mmgr_ascii_in(MmgrAsciiClass k, uint8_t c);
+mmgr_bool mmgr_ascii_in(const AsciiCfg *c);
+
+/**
+ * @brief The byte a class test is asked about, and nothing that merely converts to one.
+ *
+ * uint8_t, not char. Whether char is signed is the implementation's to decide, so a byte at or
+ * above 0x80 arrives negative on one target and positive on the next, and a macro that quietly
+ * cast it would make the same source mean two things. The caller says which it meant.
+ */
+#define MMGR_ASCII_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
+
+/**
+ * @brief Is @p c_ in class @p k_.
+ *
+ * Positional in, so the struct and the designators never reach a call site, and the type of every
+ * argument is settled where the call is written.
+ */
+#define mmgr_ascii_in(k_, c_) (MMGR_ASCII_IS_BYTE(c_), ascii.in(&(AsciiCfg){.k = (k_), .c = (c_)}))
 /** @} */
 
 /**
@@ -207,9 +239,6 @@ SRC = (
  * A macro is not storage, so the ten that used to sit in the header cost no bytes. They cost the
  * global preprocessor namespace of every translation unit downstream of the header, which is every
  * consumer of the library, for the benefit of this one file.
- *
- * No context. An index and a byte are already two registers, and a struct to carry them would be a
- * store and a load each to get back what was passed in.
  */
 
 %(masks)s
@@ -220,33 +249,48 @@ static const MmgrAsciiMask s_class[MMGR_ASCII_CLASSES] = {
 };
 
 /**
- * @brief Is @p c in class @p k.
- * @param k The class.
- * @param c The byte.
+ * @brief One class test.
+ *
+ * File local and staying that way. AsciiCfg in the header wears the same two fields and is not
+ * this: that one is what the caller hands over, this one is what the body works with.
+ */
+typedef struct
+{
+    MmgrAsciiClass k; /**< The class being asked about. */
+    uint8_t c;        /**< The byte. */
+} AsciiCtx;
+
+/**
+ * @brief Is the byte in the class.
+ * @param x The test.
  * @return MMGR_TRUE if it is. Bytes at or above 0x80 are in no class.
  *
  * One load, one shift and one and, on every width. An index past the last class is a caller that
  * has not decided what it is asking.
  */
-MMGR_INLINE mmgr_bool ascii_in(MmgrAsciiClass k, uint8_t c)
+MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *x)
 {
-    MMGR_ASSERT(k < MMGR_ASCII_CLASSES, "no such character class");
+    MMGR_ASSERT(x->k < MMGR_ASCII_CLASSES, "no such character class");
 
-    const MmgrAsciiMask *const m = &s_class[k];
-    return (mmgr_bool)((c < 0x80u) && (((m->b[c >> 3] >> (c & 7u)) & 1u) != 0u));
+    const MmgrAsciiMask *const m = &s_class[x->k];
+    return (mmgr_bool)((x->c < 0x80u) && (((m->b[x->c >> 3] >> (x->c & 7u)) & 1u) != 0u));
 }
 
-/* The namespace is a table of function pointers with the caller's argument lists in their types,
-   so this is what it points at. It hands the arguments to the body above.
+/* The namespace is a table of function pointers with the caller's config in their types, so this
+   is what it points at. It builds the context and hands it to the body above.
+
+   Parenthesised because the header defines a macro of this name for the call site, and the
+   identifier here would otherwise sit immediately before a parenthesis and be taken for an
+   invocation of it.
 
    It is nameable rather than file local because a static const table in the header has to be able
    to point at it, and a static const table is what gcc devirtualizes. Through an extern one every
    call from another translation unit is a load of the table, a load of the entry, and an indirect
    call it cannot see through. */
 
-mmgr_bool mmgr_ascii_in(MmgrAsciiClass k, uint8_t c)
+mmgr_bool (mmgr_ascii_in)(const AsciiCfg *c)
 {
-    return ascii_in(k, c);
+    return MMGR_CALL(ascii_in, AsciiCtx, .k = c->k, .c = c->c);
 }
 """
 ) % {"masks": masks, "rows": rows}

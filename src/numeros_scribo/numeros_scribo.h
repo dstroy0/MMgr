@@ -105,27 +105,86 @@ typedef struct mmgr_fval
 #define MMGR_VFIXW(x, w) {MMGR_FK_FIX, {.d = (x)}, (w)}
 
 /**
- * @brief Render values into @p out, replacing what was there.
- * @param out Destination.
- * @param cap Its size including the terminator.
- * @param v Values.
- * @param nv How many.
- * @return Length written, or 0 if it did not fit or a value had no kind.
+ * @brief What a render is given.
  *
- * No spec. Each value already says what it is, so the spec array the older entries take is only
- * telling them something they could have read off the value.
+ * Public, and in the header, because the caller is what builds it. Every member is const: nothing
+ * writes to a config once the caller has built it, and the compound literal is gone before there is
+ * code that could.
+ *
+ * One shape for all four entries. A spec driven render and a spec free one differ by whether spec is
+ * set, not by what they are handed, so they are four entries over one config rather than two shapes.
+ *
+ * Not the module's context. NumerCtx is what the bodies work with - the builder, the cursor, and
+ * which value is next - and it is file local in the .c.
  */
-size_t mmgr_numer_emit(char *out, size_t cap, const mmgr_fval *v, size_t nv);
+typedef struct
+{
+    char *const out;              /**< Destination. For an append, already holding a string. */
+    const size_t cap;             /**< Its size, including the terminator. */
+    const mmgr_field *const spec; /**< Field list, ending in MMGR_END. Read by build and append. */
+    const mmgr_fval *const v;     /**< The values. */
+    const size_t nv;              /**< How many. */
+} NumerosCfg;
+
+/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
+typedef struct
+{
+    size_t (*build)(const NumerosCfg *c);
+    size_t (*append)(const NumerosCfg *c);
+    size_t (*emit)(const NumerosCfg *c);
+    size_t (*emit_append)(const NumerosCfg *c);
+} NumerosScriboNs;
+MMGR_NS_LAYOUT(NumerosScriboNs, build, append, emit, emit_append);
+
+/** @name The entries the table points at.
+ *  @brief Nameable so a static const table can name them, and for no other reason. The table is
+ *         still the whole surface: call through it.
+ *  @{ */
+size_t mmgr_numer_build(const NumerosCfg *c);
+size_t mmgr_numer_append(const NumerosCfg *c);
+size_t mmgr_numer_emit(const NumerosCfg *c);
+size_t mmgr_numer_emit_append(const NumerosCfg *c);
+/** @} */
+
+/** @name The types a render takes, settled where the call is written.
+ *  @{ */
+#define MMGR_NUMER_IS_WSTR(x_) ((void)_Generic((x_), char *: 0))
+#define MMGR_NUMER_IS_SIZE(x_) ((void)_Generic((x_), size_t: 0, int: 0, unsigned: 0, long: 0, unsigned long: 0))
+#define MMGR_NUMER_IS_SPEC(x_) ((void)_Generic((x_), const mmgr_field *: 0, mmgr_field *: 0))
+#define MMGR_NUMER_IS_VALS(x_) ((void)_Generic((x_), const mmgr_fval *: 0, mmgr_fval *: 0))
+/** @} */
 
 /**
- * @brief Render values onto the end of @p out.
- * @param out Destination, already holding a string.
- * @param cap Its size including the terminator.
- * @param v Values.
- * @param nv How many.
- * @return New total length, or 0 if it did not fit.
+ * @brief Render @p v_ against @p spec_ into @p out_, replacing what was there.
+ *
+ * Positional in, so the struct and the designators never reach a call site, and the type of every
+ * argument is settled where the call is written.
  */
-size_t mmgr_numer_emit_append(char *out, size_t cap, const mmgr_fval *v, size_t nv);
+#define mmgr_numer_build(out_, cap_, spec_, v_, nv_)                                                                   \
+    (MMGR_NUMER_IS_WSTR(out_), MMGR_NUMER_IS_SIZE(cap_), MMGR_NUMER_IS_SPEC(spec_), MMGR_NUMER_IS_VALS(v_),            \
+     MMGR_NUMER_IS_SIZE(nv_),                                                                                          \
+     numer.build(&(NumerosCfg){.out = (out_), .cap = (cap_), .spec = (spec_), .v = (v_), .nv = (nv_)}))
+
+/** @brief Render @p v_ against @p spec_ onto the end of @p out_. */
+#define mmgr_numer_append(out_, cap_, spec_, v_, nv_)                                                                  \
+    (MMGR_NUMER_IS_WSTR(out_), MMGR_NUMER_IS_SIZE(cap_), MMGR_NUMER_IS_SPEC(spec_), MMGR_NUMER_IS_VALS(v_),            \
+     MMGR_NUMER_IS_SIZE(nv_),                                                                                          \
+     numer.append(&(NumerosCfg){.out = (out_), .cap = (cap_), .spec = (spec_), .v = (v_), .nv = (nv_)}))
+
+/**
+ * @brief Render @p v_ into @p out_ with no spec, replacing what was there.
+ *
+ * No spec. Each value already says what it is, so the spec array the other two entries take is only
+ * telling them something they could have read off the value.
+ */
+#define mmgr_numer_emit(out_, cap_, v_, nv_)                                                                           \
+    (MMGR_NUMER_IS_WSTR(out_), MMGR_NUMER_IS_SIZE(cap_), MMGR_NUMER_IS_VALS(v_), MMGR_NUMER_IS_SIZE(nv_),              \
+     numer.emit(&(NumerosCfg){.out = (out_), .cap = (cap_), .v = (v_), .nv = (nv_)}))
+
+/** @brief Render @p v_ with no spec onto the end of @p out_. */
+#define mmgr_numer_emit_append(out_, cap_, v_, nv_)                                                                    \
+    (MMGR_NUMER_IS_WSTR(out_), MMGR_NUMER_IS_SIZE(cap_), MMGR_NUMER_IS_VALS(v_), MMGR_NUMER_IS_SIZE(nv_),              \
+     numer.emit_append(&(NumerosCfg){.out = (out_), .cap = (cap_), .v = (v_), .nv = (nv_)}))
 
 /**
  * @brief Write a formatted line. Reads like snprintf, costs nothing like snprintf.
@@ -138,51 +197,23 @@ size_t mmgr_numer_emit_append(char *out, size_t cap, const mmgr_fval *v, size_t 
  * read at the call. The count is sizeof over sizeof, so it is a constant the compiler folds, and
  * the array is a compound literal that lives until the end of the enclosing block.
  *
+ * The array is parenthesised. The value shorthands are braced initializers, and a brace does not
+ * hide a comma from the preprocessor: without the parentheses the entry below would be handed one
+ * argument per value.
+ *
  * The cost is one array of values on the stack. Not a va_list, not a walk over a format string, and
  * nothing variadic in the C sense - the callee takes a pointer and a count like any other function.
  */
-#define mmgr_write(out, cap, ...)                                                                                      \
-    mmgr_numer_emit((out), (cap), (const mmgr_fval[]){__VA_ARGS__},                                                    \
+#define mmgr_write(out_, cap_, ...)                                                                                    \
+    mmgr_numer_emit((out_), (cap_), ((const mmgr_fval[]){__VA_ARGS__}),                                                \
                     sizeof((const mmgr_fval[]){__VA_ARGS__}) / sizeof(mmgr_fval))
 
 /**
  * @brief Append a formatted line. Same shape as mmgr_write.
  */
-#define mmgr_write_append(out, cap, ...)                                                                               \
-    mmgr_numer_emit_append((out), (cap), (const mmgr_fval[]){__VA_ARGS__},                                             \
+#define mmgr_write_append(out_, cap_, ...)                                                                             \
+    mmgr_numer_emit_append((out_), (cap_), ((const mmgr_fval[]){__VA_ARGS__}),                                         \
                            sizeof((const mmgr_fval[]){__VA_ARGS__}) / sizeof(mmgr_fval))
-
-/**
- * @brief Render a spec into @p out, replacing what was there.
- * @param out Destination.
- * @param cap Its size including the terminator.
- * @param spec Field list, ending in MMGR_END.
- * @param v Values.
- * @param nv How many.
- * @return Length written.
- */
-size_t mmgr_numer_build(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv);
-
-/**
- * @brief Render a spec onto the end of @p out.
- * @param out Destination, already holding a string.
- * @param cap Its size including the terminator.
- * @param spec Field list, ending in MMGR_END.
- * @param v Values.
- * @param nv How many.
- * @return New total length.
- */
-size_t mmgr_numer_append(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv);
-
-/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
-typedef struct
-{
-    size_t (*build)(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv);
-    size_t (*append)(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv);
-    size_t (*emit)(char *out, size_t cap, const mmgr_fval *v, size_t nv);
-    size_t (*emit_append)(char *out, size_t cap, const mmgr_fval *v, size_t nv);
-} NumerosScriboNs;
-MMGR_NS_LAYOUT(NumerosScriboNs, build, append, emit, emit_append);
 
 /**
  * @brief Module namespace.

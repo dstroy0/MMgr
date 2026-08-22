@@ -1,6 +1,7 @@
 // memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #include "transformo/transformo.h"
+#include "clz/clz.h"
 
 /**
  * @file transformo.c
@@ -49,7 +50,8 @@ static const double mmgr_muto_ten[MMGR_MUTO_EXACT_POW10 + 1] = {1e0,  1e1,  1e2,
 typedef struct
 {
     /* what was asked for */
-    mmgr_u64 mant;  /**< The digits, as an integer. */
+    mmgr_u64 *mant; /**< The caller's digits, as an integer. A take adds to them in place. */
+    char digit;     /**< The digit being taken. */
     int e2;         /**< Binary exponent that goes with them. */
     int ex;         /**< Decimal exponent to apply. */
     int dropped;    /**< Digits were dropped past what @c mant could hold. */
@@ -70,6 +72,24 @@ typedef struct
 
     const MmgrPow5 *pow; /**< The table entry being applied. */
 } MutoCtx;
+
+/**
+ * @brief Take one more decimal digit, if there is room for it.
+ * @param c In/out. The conversion.
+ * @return MMGR_TRUE when it was taken.
+ *
+ * A digit past what the mantissa can hold is not dropped, it is counted: an integer digit that did
+ * not fit is a factor of ten the exponent has to carry instead.
+ */
+MMGR_INLINE mmgr_bool muto_take(const MutoCtx *c)
+{
+    if (*c->mant > MMGR_MUTO_MANT_MAX)
+    {
+        return MMGR_FALSE;
+    }
+    *c->mant = (*c->mant * 10u) + (mmgr_u64)(c->digit - '0');
+    return MMGR_TRUE;
+}
 
 /**
  * @brief @c a times @c b, into @c phi and @c plo.
@@ -114,7 +134,7 @@ MMGR_INLINE void muto_norm(MutoCtx *c)
         c->fe2 -= 64;
     }
 
-    const int n = mmgr_muto_clz(c->hi);
+    const int n = mmgr_clz_lead(c->hi);
     if (n != 0)
     {
         c->hi = (c->hi << n) | (c->lo >> (64 - n));
@@ -217,7 +237,7 @@ MMGR_INLINE void muto_apply_pow10(MutoCtx *c)
  */
 MMGR_INLINE void muto_seat(MutoCtx *c)
 {
-    c->hi = c->mant;
+    c->hi = *c->mant;
     c->lo = 0u;
     c->fe2 = c->e2 - 64;
     c->rest = c->dropped;
@@ -371,7 +391,7 @@ MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *c)
  */
 MMGR_INLINE double muto_scale(MutoCtx *c)
 {
-    if (c->mant == 0u)
+    if (*c->mant == 0u)
     {
         return c->neg ? -0.0 : 0.0;
     }
@@ -379,10 +399,10 @@ MMGR_INLINE double muto_scale(MutoCtx *c)
     /* Both sides exact means the hardware's rounding is the right rounding, so there is nothing
        here to decide and nothing to carry. Every digit had to fit and the power has to be one of
        the twenty three that are exactly a double; that is most of what gets parsed. */
-    if ((c->dropped == 0) && (c->mant < ((mmgr_u64)1 << 53)) && (c->ex >= -MMGR_MUTO_EXACT_POW10) &&
+    if ((c->dropped == 0) && (*c->mant < ((mmgr_u64)1 << 53)) && (c->ex >= -MMGR_MUTO_EXACT_POW10) &&
         (c->ex <= MMGR_MUTO_EXACT_POW10))
     {
-        double v = (double)c->mant;
+        double v = (double)*c->mant;
 
         if (c->ex > 0)
         {
@@ -416,7 +436,7 @@ MMGR_INLINE double muto_scale(MutoCtx *c)
  */
 MMGR_INLINE mmgr_u64 muto_scale_to_u64(MutoCtx *c)
 {
-    if (c->mant == 0u)
+    if (*c->mant == 0u)
     {
         return 0u;
     }
@@ -434,12 +454,17 @@ MMGR_INLINE mmgr_u64 muto_scale_to_u64(MutoCtx *c)
    every call from another translation unit is a load of the table, a load of the entry, and an
    indirect call it cannot see through. */
 
-double mmgr_muto_scale(mmgr_u64 mant, int ex, int rest, mmgr_bool neg)
+mmgr_bool (mmgr_muto_take)(const TransformoCfg *c)
 {
-    return MMGR_CALL(muto_scale, MutoCtx, .mant = mant, .ex = ex, .dropped = rest, .neg = neg);
+    return MMGR_CALL(muto_take, MutoCtx, .mant = c->mant, .digit = c->digit);
 }
 
-mmgr_u64 mmgr_muto_scale_to_u64(mmgr_u64 mant, int e2, int ex, unsigned above)
+double (mmgr_muto_scale)(const TransformoCfg *c)
 {
-    return MMGR_CALL(muto_scale_to_u64, MutoCtx, .mant = mant, .e2 = e2, .ex = ex, .above = above);
+    return MMGR_CALL(muto_scale, MutoCtx, .mant = c->mant, .ex = c->ex, .dropped = c->rest, .neg = c->neg);
+}
+
+mmgr_u64 (mmgr_muto_scale_to_u64)(const TransformoCfg *c)
+{
+    return MMGR_CALL(muto_scale_to_u64, MutoCtx, .mant = c->mant, .e2 = c->e2, .ex = c->ex, .above = c->above);
 }

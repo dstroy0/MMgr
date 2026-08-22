@@ -11,7 +11,6 @@ extern void test_the_middle_column_carries_into_the_top(void);
 extern void test_the_multiply_agrees_with_halves_done_by_hand(void);
 extern void test_normalising_a_fraction_whose_high_word_is_empty(void);
 extern void test_normalising_nothing_leaves_it_alone(void);
-extern void test_the_leading_zero_count_at_every_position(void);
 extern void test_an_exact_tie_goes_to_even(void);
 extern void test_a_tie_with_anything_under_it_goes_up(void);
 extern void test_below_the_tie_goes_down(void);
@@ -87,7 +86,6 @@ int main(void)
   run_test(test_the_multiply_agrees_with_halves_done_by_hand, "test_the_multiply_agrees_with_halves_done_by_hand", 80);
   run_test(test_normalising_a_fraction_whose_high_word_is_empty, "test_normalising_a_fraction_whose_high_word_is_empty", 122);
   run_test(test_normalising_nothing_leaves_it_alone, "test_normalising_nothing_leaves_it_alone", 138);
-  run_test(test_the_leading_zero_count_at_every_position, "test_the_leading_zero_count_at_every_position", 154);
   run_test(test_an_exact_tie_goes_to_even, "test_an_exact_tie_goes_to_even", 183);
   run_test(test_a_tie_with_anything_under_it_goes_up, "test_a_tie_with_anything_under_it_goes_up", 198);
   run_test(test_below_the_tie_goes_down, "test_below_the_tie_goes_down", 206);

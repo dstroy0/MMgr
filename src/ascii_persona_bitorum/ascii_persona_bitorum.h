@@ -55,7 +55,6 @@ typedef enum
     MMGR_ASCII_CLASSES
 } MmgrAsciiClass;
 
-/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
 /**
  * @brief What a class test is given.
  *
@@ -103,7 +102,7 @@ mmgr_bool mmgr_ascii_in(const AsciiCfg *c);
  * Positional in, so the struct and the designators never reach a call site, and the type of every
  * argument is settled where the call is written.
  */
-#define mmgr_ascii_in(k_, c_) (MMGR_ASCII_IS_BYTE(c_), mmgr_ascii_in(&(AsciiCfg){.k = (k_), .c = (c_)}))
+#define mmgr_ascii_in(k_, c_) (MMGR_ASCII_IS_BYTE(c_), ascii.in(&(AsciiCfg){.k = (k_), .c = (c_)}))
 /** @} */
 
 /**

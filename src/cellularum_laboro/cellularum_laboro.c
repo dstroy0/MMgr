@@ -599,7 +599,7 @@ MMGR_INLINE double cellul_to_double(const CellulCtx *c)
 
     while (cellul_is_digit(*p))
     {
-        if (!muto.take(&mant, *p))
+        if (!mmgr_muto_take(mant, *p))
         {
             ++over;
             lost |= (*p != '0') ? 1 : 0;
@@ -612,7 +612,7 @@ MMGR_INLINE double cellul_to_double(const CellulCtx *c)
         ++p;
         while (cellul_is_digit(*p))
         {
-            if (muto.take(&mant, *p))
+            if (mmgr_muto_take(mant, *p))
             {
                 ++drop;
             }
@@ -631,7 +631,7 @@ MMGR_INLINE double cellul_to_double(const CellulCtx *c)
         cellul_expo(&(CellulCtx){.cur = &p, .exp = &ex});
     }
 
-    const double val = muto.scale(mant, ex + over - drop, lost, neg);
+    const double val = mmgr_muto_scale(mant, ex + over - drop, lost, neg);
 
     if (c->end != NULL)
     {

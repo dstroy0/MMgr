@@ -151,17 +151,6 @@ void test_normalising_nothing_leaves_it_alone(void)
     TEST_ASSERT_EQUAL_INT_MESSAGE(7, f.fe2, "there was nothing to shift, so nothing should have moved");
 }
 
-void test_the_leading_zero_count_at_every_position(void)
-{
-    for (unsigned bit = 0; bit < 64u; bit++)
-    {
-        const mmgr_u64 x = (mmgr_u64)1 << bit;
-        TEST_ASSERT_EQUAL_INT_MESSAGE(63 - (int)bit, mmgr_muto_clz(x), "wrong count for a single set bit");
-        // And with noise below it, which must not change the answer.
-        TEST_ASSERT_EQUAL_INT(63 - (int)bit, mmgr_muto_clz(x | (x - 1u)));
-    }
-}
-
 /* ---------------------------------------------------------------------------------------------
  * the rounding
  * ------------------------------------------------------------------------------------------- */

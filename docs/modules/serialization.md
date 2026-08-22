@@ -40,15 +40,21 @@ made.
 Bit-level output for formats that are not byte-aligned.
 
 ```c
-mmgr_bitor_writer w = bitio.from(&s);
-bitio.put(&w, 0b101, 3);       /* three bits  */
-bitio.put(&w, value, 12);      /* twelve bits */
-bitio.align(&w);               /* pad to the next byte boundary */
+BitorumCfg w = {.out = buf, .cap = sizeof buf};
+mmgr_bitor_put(w, 0b101, 3);   /* three bits  */
+mmgr_bitor_put(w, value, 12);  /* twelve bits */
 ```
 
-**`align` is not optional** if anything else is going to write to the same span afterwards. The
-writer holds a partial byte until it is aligned or the span is finished; a byte-level write in
-between lands in the wrong place.
+The writer is the config. There is nothing to open it with: the caller has the buffer and its size,
+which is everything the first put needs, and it carries the same object from one put to the next.
+
+**The writer holds a partial byte.** `cnt` counts whole bytes; anything left over sits in `acc` and
+is written when a later put completes it. A byte-level write to the same span in between lands in
+the wrong place, and a span finished on a fragment ends `cnt` bytes long with the fragment still in
+hand.
+
+**`overflow` latches.** A put that would run past `cap` writes nothing and sets it, and it is never
+cleared, so one check after a run of puts covers the whole run rather than a test after each.
 
 @ref mod_bitio "Generated reference"
 

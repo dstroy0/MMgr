@@ -84,7 +84,7 @@ uint8_t mmgr_ancorae_impensa(const AncoraeCfg *c);
  *
  * Positional in, so the struct and the designator never reach a call site.
  */
-#define mmgr_ancorae_impensa(b_) (MMGR_ANCORAE_IS_BYTE(b_), mmgr_ancorae_impensa(&(AncoraeCfg){.b = (b_)}))
+#define mmgr_ancorae_impensa(b_) (MMGR_ANCORAE_IS_BYTE(b_), ancorae.impensa(&(AncoraeCfg){.b = (b_)}))
 
 /**
  * @brief Module namespace.

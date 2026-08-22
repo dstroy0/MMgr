@@ -6,19 +6,28 @@
  * @file bitorum_introitus_exitus.c
  * @brief Bit writer. Bits accumulate from the low end and flush a byte at a time.
  *
- * Every entry below takes one parameter, a pointer to BitorCtx. The writer and the bits going into
- * it are one operation.
+ * The entry below takes one parameter, a pointer to the BitorumCfg the caller built and carries from
+ * one put to the next. The writer and the bits going into it are one operation, and BitorCtx is that.
  *
  * The first bits put land in the low bits of the first output byte: acc |= bits << nbits, and the
  * flush takes acc & 0xFF.
  */
 
-/** @brief The writer, and what is going into it. */
+/**
+ * @brief One put, with the writer's state in it rather than behind a pointer.
+ *
+ * File local and staying that way. BitorumCfg in the header is what the caller hands over; this is
+ * what the body works with. The state arrives by value so the arithmetic runs in registers, and
+ * the entry writes back what changed - out and cap are not among them.
+ */
 typedef struct
 {
-    mmgr_bitor_writer *w; /**< The writer. */
-    uint32_t bits;        /**< The bits to put. */
-    int n;                /**< How many of them. */
+    uint8_t *const out; /**< The buffer. */
+    const size_t cap;   /**< Its size. */
+    size_t cnt;         /**< Whole bytes written. */
+    uint32_t acc;       /**< The bits, low end first. */
+    int nbits;          /**< How many of them. */
+    mmgr_bool overflow; /**< The buffer filled. Latches. */
 } BitorCtx;
 
 /**
@@ -35,48 +44,60 @@ typedef struct
  */
 MMGR_INLINE void bitor_put(BitorCtx *c)
 {
-    mmgr_bitor_writer *w = c->w;
-
-    if (w->overflow)
+    if (c->overflow)
     {
         return;
     }
 
-    const uint32_t low = (c->n >= 32) ? c->bits : (c->bits & ((1u << c->n) - 1u));
-    const int total = w->nbits + c->n;
-    const size_t whole = (size_t)total / 8u;
+    const size_t whole = (size_t)c->nbits / 8u;
 
-    if (whole > (w->cap - w->cnt))
+    if (whole > (c->cap - c->cnt))
     {
-        w->overflow = MMGR_TRUE;
-        w->nbits = 0;
-        w->acc = 0;
+        c->overflow = MMGR_TRUE;
+        c->nbits = 0;
+        c->acc = 0;
         return;
     }
 
-    uint32_t acc = w->acc | (low << w->nbits);
+    uint32_t acc = c->acc;
 
     for (size_t i = 0; i < whole; i++)
     {
-        w->out[w->cnt + i] = (uint8_t)(acc & 0xFFu);
+        c->out[c->cnt + i] = (uint8_t)(acc & 0xFFu);
         acc >>= 8;
     }
 
-    w->cnt += whole;
-    w->nbits = total - (int)(whole * 8u);
-    w->acc = acc;
+    c->cnt += whole;
+    c->nbits -= (int)(whole * 8u);
+    c->acc = acc;
 }
 
-/* The namespace is a table of function pointers with the caller's argument lists in their types,
-   so these are what it points at. Each builds the context and hands it to the body above.
+/* The namespace is a table of function pointers with the caller's config in their types, so this is
+   what it points at. It builds the context and hands it to the body above.
 
-   They are nameable rather than file local because a static const table in the header has to be
-   able to point at them, and a static const table is what gcc devirtualizes. Through an extern one
-   every call from another translation unit is a load of the table, a load of the entry, and an
-   indirect call it cannot see through. */
+   Parenthesised because the header defines a macro of this name for the call site, and the
+   identifier here would otherwise sit immediately before a parenthesis and be taken for an
+   invocation of it.
 
-void mmgr_bitor_put(mmgr_bitor_writer *w, uint32_t bits, int n)
+   It is nameable rather than file local because a static const table in the header has to be able
+   to point at it, and a static const table is what gcc devirtualizes. Through an extern one every
+   call from another translation unit is a load of the table, a load of the entry, and an indirect
+   call it cannot see through. */
+
+void (mmgr_bitor_put)(BitorumCfg *c)
 {
-    MMGR_CALL(bitor_put, BitorCtx, .w = w, .bits = bits, .n = n);
+    BitorCtx x = {.out = c->out,
+                  .cap = c->cap,
+                  .cnt = c->cnt,
+                  .acc = c->acc,
+                  .nbits = c->nbits,
+                  .overflow = c->overflow};
+
+    bitor_put(&x);
+
+    c->cnt = x.cnt;
+    c->acc = x.acc;
+    c->nbits = x.nbits;
+    c->overflow = x.overflow;
 }
 

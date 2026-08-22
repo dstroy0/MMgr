@@ -6,6 +6,7 @@
 # translation unit has a suite, so a module that grows a second .c grows a second suite
 # beside it rather than sharing one.
 
+add_subdirectory(clz)
 add_subdirectory(impensa_ancorae_acus)
 add_subdirectory(ascii_persona_bitorum)
 add_subdirectory(bitorum_introitus_exitus)

@@ -7,6 +7,7 @@
 mmgr_add_module(transformo
   SOURCES transformo.c
   DEPS
+    clz
     fractio
     pow5
 )

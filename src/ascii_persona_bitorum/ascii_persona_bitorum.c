@@ -17,9 +17,6 @@
  * A macro is not storage, so the ten that used to sit in the header cost no bytes. They cost the
  * global preprocessor namespace of every translation unit downstream of the header, which is every
  * consumer of the library, for the benefit of this one file.
- *
- * No context. An index and a byte are already two registers, and a struct to carry them would be a
- * store and a load each to get back what was passed in.
  */
 
 /** @brief 0-9 */

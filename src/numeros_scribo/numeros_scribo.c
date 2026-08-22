@@ -7,13 +7,9 @@
  * @file numeros_scribo.c
  * @brief Render a field spec and a value list into text.
  *
- * Every entry below takes one parameter, a pointer to NumerCtx. A buffer, a spec, a value list and
- * the builder writing into it are one render.
+ * Every entry below takes one parameter, a pointer to the NumerosCfg the caller built. A buffer, a
+ * spec, a value list and the builder writing into it are one render, and NumerCtx is that.
  */
-
-#ifndef MMGR_FRAME_SCAN_LITERALS
-#define MMGR_FRAME_SCAN_LITERALS 0
-#endif
 
 MMGR_OPTIMIZE_O2
 
@@ -134,7 +130,7 @@ MMGR_INLINE size_t numer_finish(NumerCtx *c)
  */
 MMGR_INLINE size_t numer_build(NumerCtx *c)
 {
-    if ((c->out == NULL) || (c->cap == 0u) || (c->spec == NULL))
+    if (c->cap == 0u)
     {
         return 0;
     }
@@ -148,15 +144,11 @@ MMGR_INLINE size_t numer_build(NumerCtx *c)
     {
         if (c->cursor->kind == MMGR_FK_LIT)
         {
-#if MMGR_FRAME_SCAN_LITERALS
-            verba.put(&c->b, c->cursor->lit);
-#else
             verba.put_n(&c->b, c->cursor->lit, c->cursor->len);
-#endif
             continue;
         }
 
-        if ((c->k >= c->nv) || (c->v == NULL) || (c->v[c->k].kind != c->cursor->kind))
+        if ((c->k >= c->nv) || (c->v[c->k].kind != c->cursor->kind))
         {
             return numer_abandon(c);
         }
@@ -183,13 +175,9 @@ MMGR_INLINE size_t numer_build(NumerCtx *c)
  */
 MMGR_INLINE size_t numer_emit(NumerCtx *c)
 {
-    if ((c->out == NULL) || (c->cap == 0u))
+    if (c->cap == 0u)
     {
         return 0;
-    }
-    if ((c->nv != 0u) && (c->v == NULL))
-    {
-        return numer_abandon(c);
     }
 
     c->b.p = c->out;
@@ -219,55 +207,67 @@ MMGR_INLINE size_t numer_used(const NumerCtx *c)
     return mmgr_cellul_len(c->out, c->cap);
 }
 
-size_t mmgr_numer_build(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv)
+/* The namespace is a table of function pointers with the caller's config in their types, so these
+   are what it points at. They build the context and hand it to the bodies above.
+
+   Parenthesised because the header defines a macro of each name for the call site, and the
+   identifier here would otherwise sit immediately before a parenthesis and be taken for an
+   invocation of it.
+
+   They are nameable rather than file local because a static const table in the header has to be
+   able to point at them, and a static const table is what gcc devirtualizes. Through an extern one
+   every call from another translation unit is a load of the table, a load of the entry, and an
+   indirect call it cannot see through. */
+
+size_t (mmgr_numer_build)(const NumerosCfg *c)
 {
-    return MMGR_CALL(numer_build, NumerCtx, .out = out, .cap = cap, .spec = spec, .v = v, .nv = nv);
+    return MMGR_CALL(numer_build, NumerCtx, .out = c->out, .cap = c->cap, .spec = c->spec, .v = c->v, .nv = c->nv);
 }
 
-size_t mmgr_numer_emit(char *out, size_t cap, const mmgr_fval *v, size_t nv)
+size_t (mmgr_numer_emit)(const NumerosCfg *c)
 {
-    return MMGR_CALL(numer_emit, NumerCtx, .out = out, .cap = cap, .v = v, .nv = nv);
+    return MMGR_CALL(numer_emit, NumerCtx, .out = c->out, .cap = c->cap, .v = c->v, .nv = c->nv);
 }
 
-size_t mmgr_numer_append(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv)
+size_t (mmgr_numer_append)(const NumerosCfg *c)
 {
-    if ((out == NULL) || (cap == 0u) || (spec == NULL))
+    if (c->cap == 0u)
     {
         return 0;
     }
 
-    const size_t used = MMGR_CALL(numer_used, NumerCtx, .out = out, .cap = cap);
-    if (used >= cap)
+    const size_t used = MMGR_CALL(numer_used, NumerCtx, .out = c->out, .cap = c->cap);
+    if (used >= c->cap)
     {
         return 0;
     }
 
-    const size_t n = mmgr_numer_build(out + used, cap - used, spec, v, nv);
+    const size_t n = mmgr_numer_build(c->out + used, c->cap - used, c->spec, c->v, c->nv);
     if (n == 0)
     {
-        out[used] = '\0';
+        c->out[used] = '\0';
         return 0;
     }
     return used + n;
 }
 
-size_t mmgr_numer_emit_append(char *out, size_t cap, const mmgr_fval *v, size_t nv)
+size_t (mmgr_numer_emit_append)(const NumerosCfg *c)
 {
-    if ((out == NULL) || (cap == 0u))
+    if (c->cap == 0u)
     {
         return 0;
     }
 
-    const size_t used = MMGR_CALL(numer_used, NumerCtx, .out = out, .cap = cap);
-    if (used >= cap)
+    const size_t used = MMGR_CALL(numer_used, NumerCtx, .out = c->out, .cap = c->cap);
+    if (used >= c->cap)
     {
         return 0;
     }
 
-    const size_t n = mmgr_numer_emit(out + used, cap - used, v, nv);
+    const size_t n = mmgr_numer_emit(c->out + used, c->cap - used, c->v, c->nv);
     if (n == 0)
     {
-        out[used] = '\0';
+        c->out[used] = '\0';
         return 0;
     }
     return used + n;

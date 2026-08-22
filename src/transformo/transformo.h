@@ -48,85 +48,74 @@ MMGR_INCIPE_DECLS
 #define MMGR_MUTO_EXP_LIMIT 400
 
 /**
- * @brief Take one more decimal digit, if there is room for it.
- * @param mant In/out. Running mantissa.
- * @param c The digit.
- * @return MMGR_TRUE when it was taken.
+ * @brief What a conversion is given.
  *
- * A digit past what the mantissa can hold is not dropped, it is counted: an integer digit that did
- * not fit is a factor of ten the exponent has to carry instead.
- */
-MMGR_INLINE mmgr_bool mmgr_muto_take(mmgr_u64 *mant, char c)
-{
-    if (*mant > MMGR_MUTO_MANT_MAX)
-    {
-        return MMGR_FALSE;
-    }
-    *mant = (*mant * 10u) + (mmgr_u64)(c - '0');
-    return MMGR_TRUE;
-}
-/**
- * @brief How many leading zero bits @p x has.
- * @param x The value. Must not be zero.
- * @return The count, 0 through 63.
+ * Public, and in the header, because the caller is what builds it. The mantissa is reached through
+ * the whole way down: it is already in the caller's memory and this is its address, so there is
+ * nothing to copy in and nothing to write back.
  *
- * What normalising reads to find out how far the fraction has to come up, and how far the exponent
- * has to move to match.
+ * Not the module's context. MutoCtx is what the bodies work with - it carries the hundred and
+ * twenty eight bit intermediate and the table entry being applied - and it is file local in the .c.
  */
-MMGR_INLINE int mmgr_muto_clz(mmgr_u64 x)
+typedef struct
 {
-    int n = 0;
-
-    /* Halve the unknown each time. Six tests for sixty four bits, and no table and no builtin -
-       __builtin_clzll is a call to libgcc on a baseline target, which is what this avoids. */
-    if ((x >> 32) == 0u)
-    {
-        n += 32;
-        x <<= 32;
-    }
-    if ((x >> 48) == 0u)
-    {
-        n += 16;
-        x <<= 16;
-    }
-    if ((x >> 56) == 0u)
-    {
-        n += 8;
-        x <<= 8;
-    }
-    if ((x >> 60) == 0u)
-    {
-        n += 4;
-        x <<= 4;
-    }
-    if ((x >> 62) == 0u)
-    {
-        n += 2;
-        x <<= 2;
-    }
-    if ((x >> 63) == 0u)
-    {
-        n += 1;
-    }
-    return n;
-}
+    mmgr_u64 *const mant; /**< The digits, as an integer. A take adds to it in place. */
+    const char digit;     /**< The digit being taken. */
+    const int e2;         /**< Binary exponent that goes with the mantissa. */
+    const int ex;         /**< Decimal exponent to apply. */
+    const int rest;       /**< Digits were dropped past what the mantissa could hold. */
+    const unsigned above; /**< Parity of the rest of the number this is a field of. */
+    const mmgr_bool neg;  /**< The value was negative. */
+} TransformoCfg;
 
 /** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
 typedef struct
 {
-    mmgr_bool (*take)(mmgr_u64 *mant, char c);
-    int (*clz)(mmgr_u64 x);
-    double (*scale)(mmgr_u64 mant, int ex, int rest, mmgr_bool neg);
-    mmgr_u64 (*scale_to_u64)(mmgr_u64 mant, int e2, int ex, unsigned above);
+    mmgr_bool (*take)(const TransformoCfg *c);
+    double (*scale)(const TransformoCfg *c);
+    mmgr_u64 (*scale_to_u64)(const TransformoCfg *c);
 } TransformoNs;
-MMGR_NS_LAYOUT(TransformoNs, take, clz, scale, scale_to_u64);
+MMGR_NS_LAYOUT(TransformoNs, take, scale, scale_to_u64);
 
-/** @name The entries the table points at that are not inline above.
+/** @name The entries the table points at.
  *  @brief Nameable so a static const table can name them, and for no other reason. The table is
  *         still the whole surface: call through it.
  *  @{ */
-double mmgr_muto_scale(mmgr_u64 mant, int ex, int rest, mmgr_bool neg);
-mmgr_u64 mmgr_muto_scale_to_u64(mmgr_u64 mant, int e2, int ex, unsigned above);
+mmgr_bool mmgr_muto_take(const TransformoCfg *c);
+double mmgr_muto_scale(const TransformoCfg *c);
+mmgr_u64 mmgr_muto_scale_to_u64(const TransformoCfg *c);
+/** @} */
+
+/** @name The types a conversion takes, settled where the call is written.
+ *  @{ */
+#define MMGR_MUTO_IS_MANT(x_) ((void)_Generic((x_), mmgr_u64: 0))
+#define MMGR_MUTO_IS_DIGIT(x_) ((void)_Generic((x_), char: 0))
+#define MMGR_MUTO_IS_EXP(x_) ((void)_Generic((x_), int: 0))
+#define MMGR_MUTO_IS_ABOVE(x_) ((void)_Generic((x_), unsigned: 0))
+#define MMGR_MUTO_IS_NEG(x_) ((void)_Generic((x_), mmgr_bool: 0, int: 0))
+/** @} */
+
+/**
+ * @name Calling through the table, without the struct at the call site.
+ * @brief Each expands to a call through @c muto, because the table is the whole surface. What the
+ *        macro adds is the config: positional in, types settled where the call is written, and the
+ *        address of the mantissa taken here rather than by the caller.
+ * @{ */
+
+/** @brief Take one more digit into @p mant_, which the take adds to in place. */
+#define mmgr_muto_take(mant_, digit_)                                                                                  \
+    (MMGR_MUTO_IS_MANT(mant_), MMGR_MUTO_IS_DIGIT(digit_),                                                             \
+     muto.take(&(TransformoCfg){.mant = &(mant_), .digit = (digit_)}))
+
+/** @brief The double that @p mant_ times ten to the @p ex_ names. */
+#define mmgr_muto_scale(mant_, ex_, rest_, neg_)                                                                       \
+    (MMGR_MUTO_IS_MANT(mant_), MMGR_MUTO_IS_EXP(ex_), MMGR_MUTO_IS_EXP(rest_), MMGR_MUTO_IS_NEG(neg_),                 \
+     muto.scale(&(TransformoCfg){.mant = &(mant_), .ex = (ex_), .rest = (rest_), .neg = (neg_)}))
+
+/** @brief The same, landing in a u64 field rather than a double. */
+#define mmgr_muto_scale_to_u64(mant_, e2_, ex_, above_)                                                                \
+    (MMGR_MUTO_IS_MANT(mant_), MMGR_MUTO_IS_EXP(e2_), MMGR_MUTO_IS_EXP(ex_), MMGR_MUTO_IS_ABOVE(above_),               \
+     muto.scale_to_u64(&(TransformoCfg){.mant = &(mant_), .e2 = (e2_), .ex = (ex_), .above = (above_)}))
 /** @} */
 
 /**
@@ -138,7 +127,6 @@ mmgr_u64 mmgr_muto_scale_to_u64(mmgr_u64 mant, int e2, int ex, unsigned above);
  */
 MMGR_NS TransformoNs muto MMGR_UNUSED = {
     .take = mmgr_muto_take,
-    .clz = mmgr_muto_clz,
     .scale = mmgr_muto_scale,
     .scale_to_u64 = mmgr_muto_scale_to_u64,
 };
