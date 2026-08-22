@@ -77,31 +77,46 @@ static const MmgrAsciiMask s_class[MMGR_ASCII_CLASSES] = {
 };
 
 /**
- * @brief Is @p c in class @p k.
- * @param k The class.
- * @param c The byte.
+ * @brief One class test.
+ *
+ * File local and staying that way. AsciiCfg in the header wears the same two fields and is not
+ * this: that one is what the caller hands over, this one is what the body works with.
+ */
+typedef struct
+{
+    MmgrAsciiClass k; /**< The class being asked about. */
+    uint8_t c;        /**< The byte. */
+} AsciiCtx;
+
+/**
+ * @brief Is the byte in the class.
+ * @param x The test.
  * @return MMGR_TRUE if it is. Bytes at or above 0x80 are in no class.
  *
  * One load, one shift and one and, on every width. An index past the last class is a caller that
  * has not decided what it is asking.
  */
-MMGR_INLINE mmgr_bool ascii_in(MmgrAsciiClass k, uint8_t c)
+MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *x)
 {
-    MMGR_ASSERT(k < MMGR_ASCII_CLASSES, "no such character class");
+    MMGR_ASSERT(x->k < MMGR_ASCII_CLASSES, "no such character class");
 
-    const MmgrAsciiMask *const m = &s_class[k];
-    return (mmgr_bool)((c < 0x80u) && (((m->b[c >> 3] >> (c & 7u)) & 1u) != 0u));
+    const MmgrAsciiMask *const m = &s_class[x->k];
+    return (mmgr_bool)((x->c < 0x80u) && (((m->b[x->c >> 3] >> (x->c & 7u)) & 1u) != 0u));
 }
 
-/* The namespace is a table of function pointers with the caller's argument lists in their types,
-   so this is what it points at. It hands the arguments to the body above.
+/* The namespace is a table of function pointers with the caller's config in their types, so this
+   is what it points at. It builds the context and hands it to the body above.
+
+   Parenthesised because the header defines a macro of this name for the call site, and the
+   identifier here would otherwise sit immediately before a parenthesis and be taken for an
+   invocation of it.
 
    It is nameable rather than file local because a static const table in the header has to be able
    to point at it, and a static const table is what gcc devirtualizes. Through an extern one every
    call from another translation unit is a load of the table, a load of the entry, and an indirect
    call it cannot see through. */
 
-mmgr_bool mmgr_ascii_in(MmgrAsciiClass k, uint8_t c)
+mmgr_bool (mmgr_ascii_in)(const AsciiCfg *c)
 {
-    return ascii_in(k, c);
+    return MMGR_CALL(ascii_in, AsciiCtx, .k = c->k, .c = c->c);
 }

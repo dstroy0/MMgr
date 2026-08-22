@@ -56,9 +56,25 @@ typedef enum
 } MmgrAsciiClass;
 
 /** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
+/**
+ * @brief What a class test is given.
+ *
+ * Public, and in the header, because the caller is what builds it. Both members are const: nothing
+ * writes to a config once the caller has built it, and the compound literal is gone before there is
+ * code that could.
+ *
+ * Not the module's context. AsciiCtx is what the body works with and it is file local in the .c.
+ */
 typedef struct
 {
-    mmgr_bool (*in)(MmgrAsciiClass k, uint8_t c);
+    const MmgrAsciiClass k; /**< The class being asked about. */
+    const uint8_t c;        /**< The byte. */
+} AsciiCfg;
+
+/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
+typedef struct
+{
+    mmgr_bool (*in)(const AsciiCfg *c);
 } AsciiPersonaBitorumNs;
 MMGR_NS_LAYOUT(AsciiPersonaBitorumNs, in);
 
@@ -70,7 +86,24 @@ MMGR_NS_LAYOUT(AsciiPersonaBitorumNs, in);
  *  index and answered by the file that holds them, so no translation unit that asks the question
  *  carries a copy of the answer, and none of them has ten more names to avoid.
  *  @{ */
-mmgr_bool mmgr_ascii_in(MmgrAsciiClass k, uint8_t c);
+mmgr_bool mmgr_ascii_in(const AsciiCfg *c);
+
+/**
+ * @brief The byte a class test is asked about, and nothing that merely converts to one.
+ *
+ * uint8_t, not char. Whether char is signed is the implementation's to decide, so a byte at or
+ * above 0x80 arrives negative on one target and positive on the next, and a macro that quietly
+ * cast it would make the same source mean two things. The caller says which it meant.
+ */
+#define MMGR_ASCII_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
+
+/**
+ * @brief Is @p c_ in class @p k_.
+ *
+ * Positional in, so the struct and the designators never reach a call site, and the type of every
+ * argument is settled where the call is written.
+ */
+#define mmgr_ascii_in(k_, c_) (MMGR_ASCII_IS_BYTE(c_), mmgr_ascii_in(&(AsciiCfg){.k = (k_), .c = (c_)}))
 /** @} */
 
 /**
