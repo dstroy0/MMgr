@@ -22,29 +22,16 @@ typedef struct
 } BitorCtx;
 
 /**
- * @brief Push one whole byte out of the accumulator.
+ * @brief Put @c n bits, low end first, and write every byte they complete.
  * @param c In/out. The write.
- * @return MMGR_FALSE when there was no room, which latches.
- */
-MMGR_INLINE mmgr_bool bitor_flush(BitorCtx *c)
-{
-    mmgr_bitor_writer *w = c->w;
-
-    if (w->cnt >= w->cap)
-    {
-        w->overflow = MMGR_TRUE;
-        return MMGR_FALSE;
-    }
-    w->out[w->cnt] = (uint8_t)(w->acc & 0xFF);
-    w->cnt++;
-    w->acc >>= 8;
-    w->nbits -= 8;
-    return MMGR_TRUE;
-}
-
-/**
- * @brief Put @c n bits.
- * @param c In/out. The write.
+ *
+ * The count is settled before a byte moves. nbits and n say how many bits there will be, so how
+ * many whole bytes this put produces is (nbits + n) / 8, and whether they fit is one comparison
+ * against what is left of cap. Asking that per byte, which is what a flush helper did, is asking a
+ * question the caller already answered.
+ *
+ * A put that does not fit writes nothing and latches. Writing the bytes that did fit would leave
+ * the caller a buffer whose contents are half of what it asked for and no way to tell which half.
  */
 MMGR_INLINE void bitor_put(BitorCtx *c)
 {
@@ -56,39 +43,28 @@ MMGR_INLINE void bitor_put(BitorCtx *c)
     }
 
     const uint32_t low = (c->n >= 32) ? c->bits : (c->bits & ((1u << c->n) - 1u));
-    w->acc |= low << w->nbits;
-    w->nbits += c->n;
+    const int total = w->nbits + c->n;
+    const size_t whole = (size_t)total / 8u;
 
-    while (w->nbits >= 8)
+    if (whole > (w->cap - w->cnt))
     {
-        if (!bitor_flush(c))
-        {
-            w->nbits = 0;
-            w->acc = 0;
-            return;
-        }
-    }
-}
-
-/**
- * @brief Pad to the next byte boundary.
- * @param w In/out. The writer.
- *
- * No context. Nothing is going in, so there is no argument list to group.
- */
-MMGR_INLINE void bitor_align(mmgr_bitor_writer *w)
-{
-    if (w->nbits > 0)
-    {
-        if (w->cnt >= w->cap)
-        {
-            w->overflow = MMGR_TRUE;
-            return;
-        }
-        w->out[w->cnt++] = (uint8_t)(w->acc & 0xFF);
-        w->acc = 0;
+        w->overflow = MMGR_TRUE;
         w->nbits = 0;
+        w->acc = 0;
+        return;
     }
+
+    uint32_t acc = w->acc | (low << w->nbits);
+
+    for (size_t i = 0; i < whole; i++)
+    {
+        w->out[w->cnt + i] = (uint8_t)(acc & 0xFFu);
+        acc >>= 8;
+    }
+
+    w->cnt += whole;
+    w->nbits = total - (int)(whole * 8u);
+    w->acc = acc;
 }
 
 /* The namespace is a table of function pointers with the caller's argument lists in their types,
@@ -104,7 +80,3 @@ void mmgr_bitor_put(mmgr_bitor_writer *w, uint32_t bits, int n)
     MMGR_CALL(bitor_put, BitorCtx, .w = w, .bits = bits, .n = n);
 }
 
-void mmgr_bitor_align(mmgr_bitor_writer *w)
-{
-    bitor_align(w);
-}

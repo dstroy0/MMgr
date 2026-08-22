@@ -58,26 +58,26 @@ void test_a_partial_write_waits_for_the_byte(void)
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xAAu, out[0], "nothing written yet");
 }
 
-void test_align_flushes_the_partial_byte(void)
+void test_padding_to_the_byte_writes_it(void)
 {
     bitio.put(&w, 0x5u, 3);
-    bitio.align(&w);
+    bitio.put(&w, 0x0u, 5);
     TEST_ASSERT_EQUAL_size_t(1u, w.cnt);
-    TEST_ASSERT_EQUAL_HEX8(0x05u, out[0]);
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x05u, out[0], "the fragment sits in the low bits, zeros above");
     TEST_ASSERT_EQUAL_INT(0, w.nbits);
 }
 
-void test_align_on_a_boundary_writes_nothing(void)
+void test_a_put_of_no_bits_writes_nothing(void)
 {
     bitio.put(&w, 0xFFu, 8);
     const size_t before = w.cnt;
-    bitio.align(&w);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, w.cnt, "already aligned, so there is nothing to flush");
+    bitio.put(&w, 0x0u, 0);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, w.cnt, "no bits complete no byte");
 }
 
-void test_align_on_an_empty_writer_writes_nothing(void)
+void test_a_put_of_no_bits_on_an_empty_writer_writes_nothing(void)
 {
-    bitio.align(&w);
+    bitio.put(&w, 0x0u, 0);
     TEST_ASSERT_EQUAL_size_t(0u, w.cnt);
     TEST_ASSERT_FALSE(w.overflow);
 }
@@ -106,7 +106,7 @@ void test_n_at_or_above_32_takes_the_value_whole(void)
 void test_a_narrow_put_ignores_the_high_bits(void)
 {
     bitio.put(&w, 0xFFu, 4);
-    bitio.align(&w);
+    bitio.put(&w, 0x0u, 4);
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x0Fu, out[0], "only the low n bits of the value are used");
 }
 
@@ -136,18 +136,18 @@ void test_a_put_after_overflow_is_ignored(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(cnt, w.cnt, "overflow latches, so later puts do nothing");
 }
 
-void test_align_overflows_when_there_is_no_room(void)
+void test_a_completed_byte_with_no_room_overflows(void)
 {
     w.cap = 1u;
     bitio.put(&w, 0xFFu, 8);
     TEST_ASSERT_EQUAL_size_t(1u, w.cnt);
     bitio.put(&w, 0x1u, 3);
-    bitio.align(&w);
-    TEST_ASSERT_TRUE_MESSAGE(w.overflow, "the partial byte has nowhere to go");
+    TEST_ASSERT_FALSE_MESSAGE(w.overflow, "three bits complete no byte, so nothing needed room");
+    bitio.put(&w, 0x0u, 5);
+    TEST_ASSERT_TRUE_MESSAGE(w.overflow, "the byte they complete has nowhere to go");
 }
 
 void test_namespace_is_wired(void)
 {
     TEST_ASSERT_EQUAL_PTR(mmgr_bitor_put, bitio.put);
-    TEST_ASSERT_EQUAL_PTR(mmgr_bitor_align, bitio.align);
 }

@@ -25,7 +25,7 @@ typedef struct
 {
     uint8_t *out;        /**< The buffer. */
     size_t cap;          /**< Its size. */
-    size_t cnt;          /**< Bytes written so far. */
+    size_t cnt;          /**< Whole bytes written. A trailing fragment sits at out[cnt]. */
     uint32_t acc;        /**< Bits not yet a whole byte. */
     int nbits;           /**< How many of them. */
     mmgr_bool overflow;  /**< The buffer filled. Latches, and is never cleared. */
@@ -35,16 +35,14 @@ typedef struct
 typedef struct
 {
     void (*put)(mmgr_bitor_writer *w, uint32_t bits, int n);
-    void (*align)(mmgr_bitor_writer *w);
 } BitorumIntroitusExitusNs;
-MMGR_NS_LAYOUT(BitorumIntroitusExitusNs, put, align);
+MMGR_NS_LAYOUT(BitorumIntroitusExitusNs, put);
 
 /** @name The entries the table points at.
  *  @brief Nameable so a static const table can name them, and for no other reason. The table is
  *         still the whole surface: call through it.
  *  @{ */
 void mmgr_bitor_put(mmgr_bitor_writer *w, uint32_t bits, int n);
-void mmgr_bitor_align(mmgr_bitor_writer *w);
 /** @} */
 
 /**
@@ -56,7 +54,6 @@ void mmgr_bitor_align(mmgr_bitor_writer *w);
  */
 MMGR_NS BitorumIntroitusExitusNs bitio MMGR_UNUSED = {
     .put = mmgr_bitor_put,
-    .align = mmgr_bitor_align,
 };
 
 MMGR_FINIS_DECLS
