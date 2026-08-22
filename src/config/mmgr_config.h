@@ -101,9 +101,10 @@
 #ifndef MMGR_ENABLE_DMA
 #define MMGR_ENABLE_DMA 0
 #endif
-/** @brief Build the external pool module. */
-#ifndef MMGR_ENABLE_PSRAM_POOL
-#define MMGR_ENABLE_PSRAM_POOL 0
+/** @brief The part has memory outside the die. Whether that silicon is PSRAM is the board's
+ *         business, not this library's. */
+#ifndef MMGR_ENABLE_EXTRAM
+#define MMGR_ENABLE_EXTRAM 0
 #endif
 /**
  * @brief Build the ring's keepout reservations.

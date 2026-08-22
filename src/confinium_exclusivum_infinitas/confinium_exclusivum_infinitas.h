@@ -19,9 +19,12 @@ MMGR_INCIPE_DECLS
  *
  * Nothing reads or writes the buffer except through the ring. The ring knows where every cursor is
  * and what bounds it, so an overread is not a thing a caller can ask for and be given. A caller
- * holding a cursor may move it - reset it, offset it - and every one of those is a call the ring
- * owns, because a cursor the caller could advance itself is a cursor the ring has stopped knowing
- * about.
+ * holding a cursor may move it, and moving it is a call the ring owns - a cursor the caller could
+ * advance itself is a cursor the ring has stopped knowing about.
+ *
+ * There is one move, seek, and it takes an offset from the frame's start. Returning to the start is
+ * an offset of zero rather than an entry of its own, because a cursor's position is an offset and a
+ * reset is that offset being none.
  *
  * Ordinarily there is one cursor and one accessor. A second exists only while a keepout does: the
  * consumer reports a priority drain from here to here, the ring frames it as a mask overlay, spawns

@@ -11,7 +11,7 @@
  * else, so they take the pair.
  */
 
-#if MMGR_ENABLE_PSRAM_POOL
+#if MMGR_ENABLE_EXTRAM
 
 /** @brief A placement decision. */
 typedef struct

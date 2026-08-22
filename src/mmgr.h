@@ -33,7 +33,7 @@
 #include "dma/dma.h"
 #endif
 
-#if MMGR_ENABLE_PSRAM_POOL
+#if MMGR_ENABLE_EXTRAM
 #include "confinium_externum/confinium_externum.h"
 #endif
 

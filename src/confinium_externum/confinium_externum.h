@@ -5,7 +5,7 @@
 
 #include "config/mmgr_config.h"
 
-#if MMGR_ENABLE_PSRAM_POOL
+#if MMGR_ENABLE_EXTRAM
 
 MMGR_INCIPE_DECLS
 
@@ -13,7 +13,7 @@ MMGR_INCIPE_DECLS
  * @file confinium_externum.h
  * @brief Where a request should be placed when there is more than one kind of memory.
  *
- * Built only when MMGR_ENABLE_PSRAM_POOL is set.
+ * Built only when MMGR_ENABLE_EXTRAM is set.
  *
  * The table is the whole surface. There are no free functions to call.
  *

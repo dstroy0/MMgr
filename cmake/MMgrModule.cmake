@@ -69,8 +69,15 @@ function(mmgr_add_module name)
     # Capabilities ride the module target, not mmgr_flags, because a suite links the module and
     # deliberately does not link mmgr_flags. On mmgr_flags the define would reach src/ and not the
     # cases that exercise it, so a suite could be built believing a feature absent that the library
-    # was compiled with - which is a disagreement that shows up as a test failing for no reason.
-    list(APPEND defs MMGR_ENABLE_KEEPOUT=$<BOOL:${MMGR_ENABLE_KEEPOUT}>)
+    # was compiled with.
+    #
+    # Every capability, not only the new one. Before this they reached mmgr_add_suite and stopped
+    # there, so turning one on built its suite against a module whose body was still compiled out -
+    # the suite passed, and it had tested nothing. A capability has to decide what is compiled, not
+    # only what is run.
+    foreach(cap IN LISTS MMGR_CAPABILITIES)
+      list(APPEND defs MMGR_ENABLE_${cap}=$<BOOL:${MMGR_ENABLE_${cap}}>)
+    endforeach()
 
     if(NOT defs STREQUAL "")
       target_compile_definitions(${target} ${scope} ${defs})

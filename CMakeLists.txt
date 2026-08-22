@@ -17,13 +17,17 @@ option(MMGR_BUILD_BENCH "Build the benchmarks" OFF)
 option(MMGR_WERROR "Treat warnings as errors" OFF)
 option(MMGR_LTO "Link-time optimization" ON)
 
-# A hardware capability, like the DMA engine: a part either has somewhere to defer work to or it
-# does not. Off, the ring carries no reservation code at all - not a branch that is always false.
+# Capabilities. Each one says the part has something - an engine, external memory, somewhere to
+# defer work to - and a build for a part without it must not carry the code that would use it.
 #
-# Unlike MMGR_ENABLE_DMA this reaches the compiler as well as the suite map. A capability that only
-# gates which suites are built decides what is tested and not what is compiled, which is the wrong
-# half: the code under test is the same either way.
-option(MMGR_ENABLE_KEEPOUT "Build the ring's keepout reservations" OFF)
+# Named here in one list because every module target gets every capability as a definition, so the
+# library and the suites that exercise it can never disagree about which are present. Gating only
+# which suites are built decides what is tested and not what is compiled, which is the wrong half.
+set(MMGR_CAPABILITIES DMA EXTRAM KEEPOUT)
+
+option(MMGR_ENABLE_DMA "The part has a DMA engine" OFF)
+option(MMGR_ENABLE_EXTRAM "The part has external RAM" OFF)
+option(MMGR_ENABLE_KEEPOUT "The part has somewhere to defer work to, so the ring may reserve" OFF)
 
 # Test only. Points every namespace entry that has a libc equivalent at libc, so the whole suite
 # runs against libc unchanged and any disagreement is a finding. libc is the oracle: a str or mem
