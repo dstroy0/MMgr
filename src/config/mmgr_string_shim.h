@@ -138,19 +138,19 @@ MMGR_INLINE void *mmgr_shim_set(void *dst, int c, size_t n)
  */
 #define memchr(p, c, n) ((void *)(size_t)memor.chr((p), (n), (uint8_t)(c)))
 
-#define strlen(s) cellul.len((s), MMGR_STR_MAX)
-#define strnlen(s, n) cellul.len((s), (n))
+#define strlen(s) mmgr_cellul_len((s), MMGR_STR_MAX)
+#define strnlen(s, n) mmgr_cellul_len((s), (n))
 
-#define strstr(hay, needle) ((char *)(size_t)cellul.find((hay), MMGR_STR_MAX, (needle), MMGR_STR_MAX, MMGR_FALSE))
-#define strcasestr(hay, needle) ((char *)(size_t)cellul.find((hay), MMGR_STR_MAX, (needle), MMGR_STR_MAX, MMGR_TRUE))
+#define strstr(hay, needle) ((char *)(size_t)mmgr_cellul_find((hay), MMGR_STR_MAX, (needle), MMGR_STR_MAX, MMGR_FALSE))
+#define strcasestr(hay, needle) ((char *)(size_t)mmgr_cellul_find((hay), MMGR_STR_MAX, (needle), MMGR_STR_MAX, MMGR_TRUE))
 
 /*
  * Equality only. The library reports where two strings first differ, not which sorts first, so
  * these give the zero/nonzero half of strcmp's contract and not its sign. A caller ordering strings
  * by the sign of strcmp wants cellul.diff and the bytes at the offset it returns.
  */
-#define strcmp(a, b) (!cellul.eq((a), (b), MMGR_STR_MAX, MMGR_FALSE))
-#define strcasecmp(a, b) (!cellul.eq((a), (b), MMGR_STR_MAX, MMGR_TRUE))
+#define strcmp(a, b) (!mmgr_cellul_eq((a), (b), MMGR_STR_MAX, MMGR_FALSE))
+#define strcasecmp(a, b) (!mmgr_cellul_eq((a), (b), MMGR_STR_MAX, MMGR_TRUE))
 
 /*
  * The n-byte forms are diff, not eq. diff returns where two strings first differ and returns the
@@ -158,21 +158,21 @@ MMGR_INLINE void *mmgr_shim_set(void *dst, int c, size_t n)
  * answers a different question - whether the whole strings match, with the cap only bounding how
  * far it may read - and using it here reported "abcXX" and "abcYY" as different at n = 3.
  */
-#define strncmp(a, b, n) (cellul.diff((a), (b), (n), MMGR_FALSE) < (n))
-#define strncasecmp(a, b, n) (cellul.diff((a), (b), (n), MMGR_TRUE) < (n))
+#define strncmp(a, b, n) (mmgr_cellul_diff((a), (b), (n), MMGR_FALSE) < (n))
+#define strncasecmp(a, b, n) (mmgr_cellul_diff((a), (b), (n), MMGR_TRUE) < (n))
 
 /*
  * strlcpy's contract, not strcpy's: bounded, returning the length written. strcpy and strcat are
  * not defined at all - they cannot be bounded, so there is no honest alias, and leaving them
  * undefined turns a call into a compile error instead of an overflow.
  */
-#define strlcpy(dst, src, cap) cellul.copy((dst), (src), (cap))
+#define strlcpy(dst, src, cap) mmgr_cellul_copy((dst), (src), (cap))
 
 /*
- * One pass. memor.chr over cellul.len(s)+1 walks the string twice to ask two questions about the
+ * One pass. memor.chr over mmgr_cellul_len(s)+1 walks the string twice to ask two questions about the
  * same bytes; cellul.chr asks both from one loaded word.
  */
-#define strchr(s, c) ((char *)(size_t)cellul.chr((s), MMGR_STR_MAX, (uint8_t)(c)))
+#define strchr(s, c) ((char *)(size_t)mmgr_cellul_chr((s), MMGR_STR_MAX, (uint8_t)(c)))
 
 MMGR_FINIS_DECLS
 

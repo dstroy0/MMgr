@@ -18,7 +18,7 @@ void test_built_text_reads_back_at_the_length_it_reported(void)
     const size_t n = mmgr_write(buf, sizeof buf, MMGR_VSTR("id="), MMGR_VU32(4242u), MMGR_VSTR(" ok"));
 
     TEST_ASSERT_GREATER_THAN_size_t(0u, n);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(n, cellul.len(buf, sizeof buf),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(n, mmgr_cellul_len(buf, sizeof buf),
                                      "the builder's length and the scanner's length must agree");
 }
 
@@ -27,9 +27,9 @@ void test_scanner_finds_what_the_builder_wrote(void)
     char buf[128];
     mmgr_write(buf, sizeof buf, MMGR_VSTR("user="), MMGR_VSTR("dstroy0"), MMGR_VSTR(" id="), MMGR_VU32(7u));
 
-    TEST_ASSERT_NOT_NULL(cellul.find(buf, sizeof buf, "dstroy0", 8u, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.has(buf, sizeof buf, "id=7", 5u, MMGR_FALSE));
-    TEST_ASSERT_FALSE(cellul.has(buf, sizeof buf, "id=8", 5u, MMGR_FALSE));
+    TEST_ASSERT_NOT_NULL(mmgr_cellul_find(buf, sizeof buf, "dstroy0", 8u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(buf, sizeof buf, "id=7", 5u, MMGR_FALSE));
+    TEST_ASSERT_FALSE(mmgr_cellul_has(buf, sizeof buf, "id=8", 5u, MMGR_FALSE));
 }
 
 void test_case_folding_agrees_across_builder_and_scanner(void)
@@ -37,9 +37,9 @@ void test_case_folding_agrees_across_builder_and_scanner(void)
     char buf[64];
     mmgr_write(buf, sizeof buf, MMGR_VSTR("Content-Type"));
 
-    TEST_ASSERT_TRUE(cellul.has(buf, sizeof buf, "content-type", 13u, MMGR_TRUE));
-    TEST_ASSERT_FALSE(cellul.has(buf, sizeof buf, "content-type", 13u, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.eq(buf, "CONTENT-TYPE", sizeof buf, MMGR_TRUE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(buf, sizeof buf, "content-type", 13u, MMGR_TRUE));
+    TEST_ASSERT_FALSE(mmgr_cellul_has(buf, sizeof buf, "content-type", 13u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_eq(buf, "CONTENT-TYPE", sizeof buf, MMGR_TRUE));
 }
 
 void test_appending_keeps_every_earlier_field_findable(void)
@@ -50,10 +50,10 @@ void test_appending_keeps_every_earlier_field_findable(void)
     mmgr_write_append(buf, sizeof buf, MMGR_VSTR(";c=3"));
 
     TEST_ASSERT_EQUAL_STRING("a=1;b=2;c=3", buf);
-    TEST_ASSERT_TRUE(cellul.has(buf, sizeof buf, "a=1", 4u, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.has(buf, sizeof buf, "b=2", 4u, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.has(buf, sizeof buf, "c=3", 4u, MMGR_FALSE));
-    TEST_ASSERT_EQUAL_size_t(11u, cellul.len(buf, sizeof buf));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(buf, sizeof buf, "a=1", 4u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(buf, sizeof buf, "b=2", 4u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(buf, sizeof buf, "c=3", 4u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t(11u, mmgr_cellul_len(buf, sizeof buf));
 }
 
 void test_a_builder_overflow_leaves_nothing_for_the_scanner(void)
@@ -61,8 +61,8 @@ void test_a_builder_overflow_leaves_nothing_for_the_scanner(void)
     char buf[8];
     // the builder reports failure and terminates; the scanner must not then find a fragment
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_write(buf, sizeof buf, MMGR_VSTR("far too long to fit")));
-    TEST_ASSERT_EQUAL_size_t(0u, cellul.len(buf, sizeof buf));
-    TEST_ASSERT_FALSE(cellul.has(buf, sizeof buf, "far", 4u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellul_len(buf, sizeof buf));
+    TEST_ASSERT_FALSE(mmgr_cellul_has(buf, sizeof buf, "far", 4u, MMGR_FALSE));
 }
 
 void test_every_rendered_number_is_found_by_the_scanner(void)
@@ -77,7 +77,7 @@ void test_every_rendered_number_is_found_by_the_scanner(void)
         mmgr_write(buf, sizeof buf, MMGR_VSTR("<"), MMGR_VU32(vals[i]), MMGR_VSTR(">"));
         mmgr_write(want, sizeof want, MMGR_VU32(vals[i]));
 
-        TEST_ASSERT_NOT_NULL_MESSAGE(cellul.find(buf, sizeof buf, want, sizeof want, MMGR_FALSE),
+        TEST_ASSERT_NOT_NULL_MESSAGE(mmgr_cellul_find(buf, sizeof buf, want, sizeof want, MMGR_FALSE),
                                      "a number the builder rendered must be findable in its own output");
     }
 }
@@ -89,14 +89,14 @@ void test_escaped_output_is_still_scannable(void)
 
     // the escape is text like any other, and the scanner reads it back as text
     TEST_ASSERT_EQUAL_STRING("\"a\\\"b\"", buf);
-    TEST_ASSERT_EQUAL_size_t(6u, cellul.len(buf, sizeof buf));
-    TEST_ASSERT_TRUE_MESSAGE(cellul.has(buf, sizeof buf, "\\\"", 3u, MMGR_FALSE), "the escape survives into the text");
-    TEST_ASSERT_NOT_NULL(cellul.find(buf, sizeof buf, "a", 2u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t(6u, mmgr_cellul_len(buf, sizeof buf));
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_has(buf, sizeof buf, "\\\"", 3u, MMGR_FALSE), "the escape survives into the text");
+    TEST_ASSERT_NOT_NULL(mmgr_cellul_find(buf, sizeof buf, "a", 2u, MMGR_FALSE));
 
     mmgr_write(buf, sizeof buf, MMGR_VXML("a<b&c"));
     TEST_ASSERT_EQUAL_STRING("a&lt;b&amp;c", buf);
-    TEST_ASSERT_TRUE(cellul.has(buf, sizeof buf, "&lt;", 5u, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.has(buf, sizeof buf, "&amp;", 6u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(buf, sizeof buf, "&lt;", 5u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(buf, sizeof buf, "&amp;", 6u, MMGR_FALSE));
 }
 
 void test_an_empty_render_reports_nothing_written(void)
@@ -107,5 +107,5 @@ void test_an_empty_render_reports_nothing_written(void)
     char buf[32];
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_write(buf, sizeof buf, MMGR_VSTR("")));
     TEST_ASSERT_EQUAL_STRING("", buf);
-    TEST_ASSERT_EQUAL_size_t(0u, cellul.len(buf, sizeof buf));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellul_len(buf, sizeof buf));
 }

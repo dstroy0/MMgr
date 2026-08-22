@@ -88,7 +88,7 @@ int main(void)
   run_test(test_the_writer_puts_the_high_byte_first, "test_the_writer_puts_the_high_byte_first", 54);
   run_test(test_endian_entries_agree_with_the_wire_writer, "test_endian_entries_agree_with_the_wire_writer", 67);
   run_test(test_a_length_prefixed_string_round_trips, "test_a_length_prefixed_string_round_trips", 81);
-  run_test(test_raw_bytes_survive_an_unaligned_start, "test_raw_bytes_survive_an_unaligned_start", 98);
+  run_test(test_raw_bytes_survive_an_unaligned_start, "test_raw_bytes_survive_an_unaligned_start", 99);
 
   return UNITY_END();
 }

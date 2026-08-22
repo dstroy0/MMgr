@@ -89,10 +89,11 @@ void test_a_length_prefixed_string_round_trips(void)
     size_t off = 0;
     const uint8_t *s = NULL;
     uint32_t slen = 0;
-    TEST_ASSERT_TRUE(cellul.rd_str(mem, (w.pos), &off, &s, &slen));
+    TEST_ASSERT_TRUE(mmgr_cellul_rd_str(mem, (w.pos), off, s, slen));
     TEST_ASSERT_EQUAL_UINT32(5u, slen);
     TEST_ASSERT_EQUAL_INT(0, memor.cmp(s, "hello", 5u));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(9u, off, "the cursor must have advanced past prefix and payload");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(9u, (size_t)(s - mem) + slen,
+                                     "the address handed back is the position: base plus offset, plus the run");
 }
 
 void test_raw_bytes_survive_an_unaligned_start(void)

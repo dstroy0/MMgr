@@ -49,6 +49,10 @@
 
 #include "config/mmgr_config.h"
 
+#include "cellularum_laboro/cellularum_laboro.h"
+#include "memoria_operor/memoria_operor.h"
+#include "verba_scribo/verba_scribo.h"
+
 MMGR_INCIPE_DECLS
 
 /* ---------------------------------------------------------------------------------------------
@@ -89,7 +93,7 @@ MMGR_INLINE void mmgr_oracle_zero(void *dst, size_t n)
  * cellularum_laboro
  * ------------------------------------------------------------------------------------------- */
 
-MMGR_INLINE size_t mmgr_oracle_len(const char *s, size_t nul_cap)
+MMGR_INLINE size_t mmgr_oracle_len_raw(const char *s, size_t nul_cap)
 {
     return strnlen(s, nul_cap);
 }
@@ -107,7 +111,7 @@ MMGR_INLINE int mmgr_oracle_fold_eq(unsigned char a, unsigned char b)
  * built out of tolower and memcmp so the oracle stays libc even where the one-call spelling is
  * missing.
  */
-MMGR_INLINE const char *mmgr_oracle_find(const char *hay, size_t read_cap, const char *needle, size_t needle_cap,
+MMGR_INLINE const char *mmgr_oracle_find_raw(const char *hay, size_t read_cap, const char *needle, size_t needle_cap,
                                          mmgr_bool ci)
 {
     const size_t hlen = strnlen(hay, read_cap);
@@ -140,13 +144,13 @@ MMGR_INLINE const char *mmgr_oracle_find(const char *hay, size_t read_cap, const
     return NULL;
 }
 
-MMGR_INLINE mmgr_bool mmgr_oracle_has(const char *hay, size_t read_cap, const char *needle, size_t needle_cap,
+MMGR_INLINE mmgr_bool mmgr_oracle_has_raw(const char *hay, size_t read_cap, const char *needle, size_t needle_cap,
                                       mmgr_bool ci)
 {
-    return (mmgr_bool)(mmgr_oracle_find(hay, read_cap, needle, needle_cap, ci) != NULL);
+    return (mmgr_bool)(mmgr_oracle_find_raw(hay, read_cap, needle, needle_cap, ci) != NULL);
 }
 
-MMGR_INLINE mmgr_bool mmgr_oracle_eq(const char *a, const char *b, size_t read_cap, mmgr_bool ci)
+MMGR_INLINE mmgr_bool mmgr_oracle_eq_raw(const char *a, const char *b, size_t read_cap, mmgr_bool ci)
 {
     const size_t la = strnlen(a, read_cap);
     const size_t lb = strnlen(b, read_cap);
@@ -169,7 +173,7 @@ MMGR_INLINE mmgr_bool mmgr_oracle_eq(const char *a, const char *b, size_t read_c
     return MMGR_TRUE;
 }
 
-MMGR_INLINE mmgr_bool mmgr_oracle_starts(const char *s, const char *pre, size_t read_cap, mmgr_bool ci)
+MMGR_INLINE mmgr_bool mmgr_oracle_starts_raw(const char *s, const char *pre, size_t read_cap, mmgr_bool ci)
 {
     const size_t lp = strnlen(pre, read_cap);
     const size_t ls = strnlen(s, read_cap);
@@ -192,14 +196,14 @@ MMGR_INLINE mmgr_bool mmgr_oracle_starts(const char *s, const char *pre, size_t 
     return MMGR_TRUE;
 }
 
-MMGR_INLINE const char *mmgr_oracle_strchr(const char *s, size_t nul_cap, uint8_t c)
+MMGR_INLINE const char *mmgr_oracle_strchr_raw(const char *s, size_t nul_cap, uint8_t c)
 {
     (void)nul_cap;
     return strchr(s, (int)c);
 }
 
 /** @brief strlcpy's contract out of libc pieces: bounded, terminated, returns what it wrote. */
-MMGR_INLINE size_t mmgr_oracle_copy(char *dst, const char *src, size_t dst_cap)
+MMGR_INLINE size_t mmgr_oracle_copy_raw(char *dst, const char *src, size_t dst_cap)
 {
     if (dst_cap == 0u)
     {
@@ -211,12 +215,12 @@ MMGR_INLINE size_t mmgr_oracle_copy(char *dst, const char *src, size_t dst_cap)
     return n;
 }
 
-MMGR_INLINE mmgr_bool mmgr_oracle_ws(char c)
+MMGR_INLINE mmgr_bool mmgr_oracle_ws_raw(char c)
 {
     return (mmgr_bool)(isspace((unsigned char)c) != 0);
 }
 
-MMGR_INLINE mmgr_bool mmgr_oracle_digit(char c)
+MMGR_INLINE mmgr_bool mmgr_oracle_digit_raw(char c)
 {
     return (mmgr_bool)(isdigit((unsigned char)c) != 0);
 }
@@ -227,7 +231,7 @@ MMGR_INLINE mmgr_bool mmgr_oracle_digit(char c)
  * objects to and it is right to. A local of libc's type takes the write and the const is added on
  * the way out, which is the direction that is always sound.
  */
-MMGR_INLINE long mmgr_oracle_to_long(const char *s, const char **end)
+MMGR_INLINE long mmgr_oracle_to_long_raw(const char *s, const char **end)
 {
     char *e = NULL;
     const long v = strtol(s, &e, 10);
@@ -238,7 +242,7 @@ MMGR_INLINE long mmgr_oracle_to_long(const char *s, const char **end)
     return v;
 }
 
-MMGR_INLINE unsigned long mmgr_oracle_to_ulong(const char *s, const char **end)
+MMGR_INLINE unsigned long mmgr_oracle_to_ulong_raw(const char *s, const char **end)
 {
     char *e = NULL;
     const unsigned long v = strtoul(s, &e, 10);
@@ -249,7 +253,7 @@ MMGR_INLINE unsigned long mmgr_oracle_to_ulong(const char *s, const char **end)
     return v;
 }
 
-MMGR_INLINE double mmgr_oracle_to_double(const char *s, const char **end)
+MMGR_INLINE double mmgr_oracle_to_double_raw(const char *s, const char **end)
 {
     char *e = NULL;
     const double v = strtod(s, &e);
@@ -260,7 +264,7 @@ MMGR_INLINE double mmgr_oracle_to_double(const char *s, const char **end)
     return v;
 }
 
-MMGR_INLINE float mmgr_oracle_to_float(const char *s, const char **end)
+MMGR_INLINE float mmgr_oracle_to_float_raw(const char *s, const char **end)
 {
     char *e = NULL;
     const float v = strtof(s, &e);
@@ -269,6 +273,76 @@ MMGR_INLINE float mmgr_oracle_to_float(const char *s, const char **end)
         *end = e;
     }
     return v;
+}
+
+MMGR_INLINE CatenaFinitaCfg mmgr_oracle_init(const CatenaFinitaCfg *c)
+{
+    return *c;
+}
+
+MMGR_INLINE size_t mmgr_oracle_len(const CatenaFinitaCfg *c)
+{
+    return mmgr_oracle_len_raw(c->s + c->at, c->cap - c->at);
+}
+
+MMGR_INLINE const char *mmgr_oracle_find(const CatenaFinitaCfg *c)
+{
+    return mmgr_oracle_find_raw(c->s, c->cap, c->t, c->t_cap, c->ci);
+}
+
+MMGR_INLINE mmgr_bool mmgr_oracle_has(const CatenaFinitaCfg *c)
+{
+    return mmgr_oracle_has_raw(c->s, c->cap, c->t, c->t_cap, c->ci);
+}
+
+MMGR_INLINE mmgr_bool mmgr_oracle_eq(const CatenaFinitaCfg *c)
+{
+    return mmgr_oracle_eq_raw(c->s, c->t, c->cap, c->ci);
+}
+
+MMGR_INLINE mmgr_bool mmgr_oracle_starts(const CatenaFinitaCfg *c)
+{
+    return mmgr_oracle_starts_raw(c->s, c->t, c->cap, c->ci);
+}
+
+MMGR_INLINE const char *mmgr_oracle_strchr(const CatenaFinitaCfg *c)
+{
+    return mmgr_oracle_strchr_raw(c->s, c->cap, c->byte);
+}
+
+MMGR_INLINE size_t mmgr_oracle_copy(const CatenaFinitaCfg *c)
+{
+    return mmgr_oracle_copy_raw(c->dst, c->s, c->cap);
+}
+
+MMGR_INLINE mmgr_bool mmgr_oracle_ws(const CatenaFinitaCfg *c)
+{
+    return mmgr_oracle_ws_raw(c->s[c->at]);
+}
+
+MMGR_INLINE mmgr_bool mmgr_oracle_digit(const CatenaFinitaCfg *c)
+{
+    return mmgr_oracle_digit_raw(c->s[c->at]);
+}
+
+MMGR_INLINE long mmgr_oracle_to_long(const TransfiguroCfg *c)
+{
+    return mmgr_oracle_to_long_raw(c->s, c->end);
+}
+
+MMGR_INLINE unsigned long mmgr_oracle_to_ulong(const TransfiguroCfg *c)
+{
+    return mmgr_oracle_to_ulong_raw(c->s, c->end);
+}
+
+MMGR_INLINE double mmgr_oracle_to_double(const TransfiguroCfg *c)
+{
+    return mmgr_oracle_to_double_raw(c->s, c->end);
+}
+
+MMGR_INLINE float mmgr_oracle_to_float(const TransfiguroCfg *c)
+{
+    return mmgr_oracle_to_float_raw(c->s, c->end);
 }
 
 MMGR_FINIS_DECLS
@@ -361,6 +435,7 @@ MMGR_DIAG_POP
  * diff, step_word and step_byte keep this library's own implementation because libc has nothing to
  * compare them against. */
 MMGR_NS CellularumLaboroNs cellul_oracle MMGR_UNUSED = {
+    .init = mmgr_oracle_init,
     .len = mmgr_oracle_len,
     .diff = mmgr_cellul_diff,
     .eq = mmgr_oracle_eq,
@@ -377,6 +452,8 @@ MMGR_NS CellularumLaboroNs cellul_oracle MMGR_UNUSED = {
     .to_ulong = mmgr_oracle_to_ulong,
     .to_double = mmgr_oracle_to_double,
     .to_float = mmgr_oracle_to_float,
+    .rd_str = mmgr_cellul_rd_str,
+    .mpint_fixed = mmgr_cellul_mpint_fixed,
 };
 
 /** @brief memoria_operor, pointed at libc. Every entry here has a direct equivalent. */

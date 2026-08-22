@@ -9,74 +9,182 @@
 
 MMGR_INCIPE_DECLS
 
-/**
- * @file cellularum_laboro.h
- * @brief Bounded string work.
- *
- * Every entry takes a read cap saying how far it may read, and none of them scan past it. The cap
- * is not a length - a scan still stops at the terminator - it is a ceiling on a string that has
- * none.
- *
- * The table is the whole surface. There are no free functions to call.
- */
+#ifndef MMGR_SIEVE_ROWS
+#define MMGR_SIEVE_ROWS 1u
+#endif
 
-/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
 typedef struct
 {
-    size_t (*len)(const char *s, size_t nul_cap);
-    size_t (*diff)(const char *a, const char *b, size_t read_cap, mmgr_bool ci);
-    mmgr_bool (*eq)(const char *a, const char *b, size_t read_cap, mmgr_bool ci);
-    mmgr_bool (*starts)(const char *s, const char *pre, size_t read_cap, mmgr_bool ci);
-    const char *(*find)(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, mmgr_bool ci);
-    mmgr_bool (*has)(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, mmgr_bool ci);
-    const char *(*chr)(const char *s, size_t nul_cap, uint8_t c);
-    size_t (*copy)(char *dst, const char *src, size_t dst_cap);
-    int (*step_word)(mmgr_scrut_word wa, mmgr_scrut_word wb, mmgr_bool ci, int end_wins);
-    int (*step_byte)(unsigned char ca, unsigned char cb, mmgr_bool ci, int end_wins);
-    mmgr_bool (*ws)(char c);
-    mmgr_bool (*digit)(char c);
-    long (*to_long)(const char *s, const char **end);
-    unsigned long (*to_ulong)(const char *s, const char **end);
-    double (*to_double)(const char *s, const char **end);
-    float (*to_float)(const char *s, const char **end);
-    mmgr_bool (*rd_str)(const uint8_t *p, size_t len, size_t *off, const uint8_t **out, uint32_t *slen);
-    mmgr_bool (*mpint_fixed)(const uint8_t *m, uint32_t mlen, uint8_t *out, size_t outlen);
+    const char *const s;
+    const size_t cap;
+    const char *const t;
+    const size_t t_cap;
+    char *const dst;
+    const size_t at;
+    const uint8_t byte;
+    const mmgr_bool ci;
+    const uint8_t **const out;
+    uint32_t *const slen;
+} CatenaFinitaCfg;
+
+typedef struct
+{
+    const mmgr_scrut_word wa;
+    const mmgr_scrut_word wb;
+    const unsigned char ca;
+    const unsigned char cb;
+    const mmgr_bool ci;
+    const int end_wins;
+} VerboProgrediorCfg;
+
+typedef struct
+{
+    const char *const s;
+    const char **const end;
+    const uint8_t *const m;
+    const uint32_t mlen;
+    uint8_t *const field;
+    const size_t fieldlen;
+} TransfiguroCfg;
+
+typedef struct
+{
+    CatenaFinitaCfg (*init)(const CatenaFinitaCfg *c);
+    size_t (*len)(const CatenaFinitaCfg *c);
+    size_t (*diff)(const CatenaFinitaCfg *c);
+    mmgr_bool (*eq)(const CatenaFinitaCfg *c);
+    mmgr_bool (*starts)(const CatenaFinitaCfg *c);
+    const char *(*find)(const CatenaFinitaCfg *c);
+    mmgr_bool (*has)(const CatenaFinitaCfg *c);
+    const char *(*chr)(const CatenaFinitaCfg *c);
+    size_t (*copy)(const CatenaFinitaCfg *c);
+    mmgr_bool (*ws)(const CatenaFinitaCfg *c);
+    mmgr_bool (*digit)(const CatenaFinitaCfg *c);
+    mmgr_bool (*rd_str)(const CatenaFinitaCfg *c);
+    int (*step_word)(const VerboProgrediorCfg *c);
+    int (*step_byte)(const VerboProgrediorCfg *c);
+    long (*to_long)(const TransfiguroCfg *c);
+    unsigned long (*to_ulong)(const TransfiguroCfg *c);
+    double (*to_double)(const TransfiguroCfg *c);
+    float (*to_float)(const TransfiguroCfg *c);
+    mmgr_bool (*mpint_fixed)(const TransfiguroCfg *c);
 } CellularumLaboroNs;
-MMGR_NS_LAYOUT(CellularumLaboroNs, len, diff, eq, starts, find, has, chr, copy, step_word, step_byte, ws, digit,
-               to_long, to_ulong, to_double, to_float, rd_str, mpint_fixed);
+MMGR_NS_LAYOUT(CellularumLaboroNs, init, len, diff, eq, starts, find, has, chr, copy, ws, digit, rd_str, step_word,
+               step_byte, to_long, to_ulong, to_double, to_float, mpint_fixed);
 
-/** @name The entries the table points at.
- *  @brief Nameable so a static const table can name them, and for no other reason. The table is
- *         still the whole surface: call through it.
- *  @{ */
-size_t mmgr_cellul_len(const char *s, size_t nul_cap);
-size_t mmgr_cellul_diff(const char *a, const char *b, size_t read_cap, mmgr_bool ci);
-mmgr_bool mmgr_cellul_eq(const char *a, const char *b, size_t read_cap, mmgr_bool ci);
-mmgr_bool mmgr_cellul_starts(const char *s, const char *pre, size_t read_cap, mmgr_bool ci);
-const char *mmgr_cellul_find(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, mmgr_bool ci);
-mmgr_bool mmgr_cellul_has(const char *hay, size_t read_cap, const char *needle, size_t needle_cap, mmgr_bool ci);
-const char *mmgr_cellul_chr(const char *s, size_t nul_cap, uint8_t c);
-size_t mmgr_cellul_copy(char *dst, const char *src, size_t dst_cap);
-int mmgr_cellul_step_word(mmgr_scrut_word wa, mmgr_scrut_word wb, mmgr_bool ci, int end_wins);
-int mmgr_cellul_step_byte(unsigned char ca, unsigned char cb, mmgr_bool ci, int end_wins);
-mmgr_bool mmgr_cellul_ws(char c);
-mmgr_bool mmgr_cellul_digit(char c);
-long mmgr_cellul_to_long(const char *s, const char **end);
-unsigned long mmgr_cellul_to_ulong(const char *s, const char **end);
-double mmgr_cellul_to_double(const char *s, const char **end);
-float mmgr_cellul_to_float(const char *s, const char **end);
-mmgr_bool mmgr_cellul_rd_str(const uint8_t *p, size_t len, size_t *off, const uint8_t **out, uint32_t *slen);
-mmgr_bool mmgr_cellul_mpint_fixed(const uint8_t *m, uint32_t mlen, uint8_t *out, size_t outlen);
-/** @} */
+CatenaFinitaCfg mmgr_cellul_init(const CatenaFinitaCfg *c);
+size_t mmgr_cellul_len(const CatenaFinitaCfg *c);
+size_t mmgr_cellul_diff(const CatenaFinitaCfg *c);
+mmgr_bool mmgr_cellul_eq(const CatenaFinitaCfg *c);
+mmgr_bool mmgr_cellul_starts(const CatenaFinitaCfg *c);
+const char *mmgr_cellul_find(const CatenaFinitaCfg *c);
+mmgr_bool mmgr_cellul_has(const CatenaFinitaCfg *c);
+const char *mmgr_cellul_chr(const CatenaFinitaCfg *c);
+size_t mmgr_cellul_copy(const CatenaFinitaCfg *c);
+mmgr_bool mmgr_cellul_ws(const CatenaFinitaCfg *c);
+mmgr_bool mmgr_cellul_digit(const CatenaFinitaCfg *c);
+mmgr_bool mmgr_cellul_rd_str(const CatenaFinitaCfg *c);
+int mmgr_cellul_step_word(const VerboProgrediorCfg *c);
+int mmgr_cellul_step_byte(const VerboProgrediorCfg *c);
+long mmgr_cellul_to_long(const TransfiguroCfg *c);
+unsigned long mmgr_cellul_to_ulong(const TransfiguroCfg *c);
+double mmgr_cellul_to_double(const TransfiguroCfg *c);
+float mmgr_cellul_to_float(const TransfiguroCfg *c);
+mmgr_bool mmgr_cellul_mpint_fixed(const TransfiguroCfg *c);
 
-/**
- * @brief Module namespace.
- *
- * static const, like every other module's. gcc devirtualizes a call through one down to the
- * inlined body and cannot do that through an extern one, where the table is in another
- * translation unit and every call is a load and an indirect jump.
- */
+#define MMGR_CELLUL_IS_STR(x_) ((void)_Generic((x_), const char *: 0, char *: 0))
+#define MMGR_CELLUL_IS_WSTR(x_) ((void)_Generic((x_), char *: 0))
+#define MMGR_CELLUL_IS_BYTES(x_) ((void)_Generic((x_), const uint8_t *: 0, uint8_t *: 0))
+#define MMGR_CELLUL_IS_WBYTES(x_) ((void)_Generic((x_), uint8_t *: 0))
+#define MMGR_CELLUL_IS_SIZE(x_)                                                                                        \
+    ((void)_Generic((x_), size_t: 0, int: 0, unsigned: 0, long: 0, unsigned long: 0, unsigned char: 0))
+#define MMGR_CELLUL_IS_CHAR(x_) ((void)_Generic((x_), char: 0, int: 0, unsigned char: 0))
+#define MMGR_CELLUL_IS_WORD(x_) ((void)_Generic((x_), mmgr_scrut_word: 0))
+#define MMGR_CELLUL_IS_BYTE(x_) ((void)_Generic((x_), unsigned char: 0, int: 0, unsigned: 0))
+#define MMGR_CELLUL_IS_BOOL(x_) ((void)_Generic((x_), mmgr_bool: 0, int: 0, unsigned: 0))
+
+#define mmgr_cellul_init(s_, cap_, t_, tcap_, dst_, ci_)                                                               \
+    (MMGR_CELLUL_IS_STR(s_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_STR(t_), MMGR_CELLUL_IS_SIZE(tcap_),            \
+     MMGR_CELLUL_IS_WSTR(dst_), MMGR_CELLUL_IS_BOOL(ci_),                                                              \
+     mmgr_cellul_init(&(CatenaFinitaCfg){                                                                             \
+         .s = (s_), .cap = (cap_), .t = (t_), .t_cap = (tcap_), .dst = (dst_), .ci = (ci_)}))
+
+#define mmgr_cellul_len(s_, cap_)                                                                                      \
+    (MMGR_CELLUL_IS_STR(s_), MMGR_CELLUL_IS_SIZE(cap_),                                                                \
+     mmgr_cellul_len(&(CatenaFinitaCfg){.s = (s_), .cap = (cap_)}))
+
+#define mmgr_cellul_chr(s_, cap_, byte_)                                                                               \
+    (MMGR_CELLUL_IS_STR(s_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_BYTE(byte_),                                    \
+     mmgr_cellul_chr(&(CatenaFinitaCfg){.s = (s_), .cap = (cap_), .byte = (uint8_t)(byte_)}))
+
+#define mmgr_cellul_diff(a_, b_, cap_, ci_)                                                                            \
+    (MMGR_CELLUL_IS_STR(a_), MMGR_CELLUL_IS_STR(b_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_BOOL(ci_),              \
+     mmgr_cellul_diff(&(CatenaFinitaCfg){.s = (a_), .t = (b_), .cap = (cap_), .ci = (ci_)}))
+
+#define mmgr_cellul_eq(a_, b_, cap_, ci_)                                                                              \
+    (MMGR_CELLUL_IS_STR(a_), MMGR_CELLUL_IS_STR(b_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_BOOL(ci_),              \
+     mmgr_cellul_eq(&(CatenaFinitaCfg){.s = (a_), .t = (b_), .cap = (cap_), .ci = (ci_)}))
+
+#define mmgr_cellul_starts(s_, pre_, cap_, ci_)                                                                        \
+    (MMGR_CELLUL_IS_STR(s_), MMGR_CELLUL_IS_STR(pre_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_BOOL(ci_),            \
+     mmgr_cellul_starts(&(CatenaFinitaCfg){.s = (s_), .t = (pre_), .cap = (cap_), .ci = (ci_)}))
+
+#define mmgr_cellul_find(hay_, cap_, needle_, ncap_, ci_)                                                              \
+    (MMGR_CELLUL_IS_STR(hay_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_STR(needle_), MMGR_CELLUL_IS_SIZE(ncap_),     \
+     MMGR_CELLUL_IS_BOOL(ci_),                                                                                         \
+     mmgr_cellul_find(&(CatenaFinitaCfg){                                                                             \
+         .s = (hay_), .cap = (cap_), .t = (needle_), .t_cap = (ncap_), .ci = (ci_)}))
+
+#define mmgr_cellul_has(hay_, cap_, needle_, ncap_, ci_)                                                               \
+    (MMGR_CELLUL_IS_STR(hay_), MMGR_CELLUL_IS_SIZE(cap_), MMGR_CELLUL_IS_STR(needle_), MMGR_CELLUL_IS_SIZE(ncap_),     \
+     MMGR_CELLUL_IS_BOOL(ci_),                                                                                         \
+     mmgr_cellul_has(&(CatenaFinitaCfg){                                                                              \
+         .s = (hay_), .cap = (cap_), .t = (needle_), .t_cap = (ncap_), .ci = (ci_)}))
+
+#define mmgr_cellul_copy(dst_, src_, cap_)                                                                             \
+    (MMGR_CELLUL_IS_WSTR(dst_), MMGR_CELLUL_IS_STR(src_), MMGR_CELLUL_IS_SIZE(cap_),                                   \
+     mmgr_cellul_copy(&(CatenaFinitaCfg){.dst = (dst_), .s = (src_), .cap = (cap_)}))
+
+#define mmgr_cellul_ws(ch_) (MMGR_CELLUL_IS_CHAR(ch_), mmgr_cellul_ws(&(CatenaFinitaCfg){.s = &(char){(char)(ch_)}, .cap = 1u}))
+
+#define mmgr_cellul_digit(ch_)                                                                                         \
+    (MMGR_CELLUL_IS_CHAR(ch_), mmgr_cellul_digit(&(CatenaFinitaCfg){.s = &(char){(char)(ch_)}, .cap = 1u}))
+
+#define mmgr_cellul_rd_str(buf_, len_, at_, out_, slen_)                                                               \
+    (MMGR_CELLUL_IS_BYTES(buf_), MMGR_CELLUL_IS_SIZE(len_), MMGR_CELLUL_IS_SIZE(at_), MMGR_CELLUL_IS_BYTES(out_),      \
+     MMGR_CELLUL_IS_SIZE(slen_),                                                                                       \
+     mmgr_cellul_rd_str(&(CatenaFinitaCfg){                                                                           \
+         .s = (const char *)(buf_), .cap = (len_), .at = (at_), .out = &(out_), .slen = &(slen_)}))
+
+#define mmgr_cellul_step_word(wa_, wb_, ci_, endwins_)                                                                 \
+    (MMGR_CELLUL_IS_WORD(wa_), MMGR_CELLUL_IS_WORD(wb_), MMGR_CELLUL_IS_BOOL(ci_), MMGR_CELLUL_IS_SIZE(endwins_),      \
+     mmgr_cellul_step_word(&(VerboProgrediorCfg){.wa = (wa_), .wb = (wb_), .ci = (ci_), .end_wins = (endwins_)}))
+
+#define mmgr_cellul_step_byte(ca_, cb_, ci_, endwins_)                                                                 \
+    (MMGR_CELLUL_IS_BYTE(ca_), MMGR_CELLUL_IS_BYTE(cb_), MMGR_CELLUL_IS_BOOL(ci_), MMGR_CELLUL_IS_SIZE(endwins_),      \
+     mmgr_cellul_step_byte(&(VerboProgrediorCfg){                                                                      \
+         .ca = (unsigned char)(ca_), .cb = (unsigned char)(cb_), .ci = (ci_), .end_wins = (endwins_)}))
+
+#define mmgr_cellul_to_long(s_, end_)                                                                                  \
+    (MMGR_CELLUL_IS_STR(s_), mmgr_cellul_to_long(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
+
+#define mmgr_cellul_to_ulong(s_, end_)                                                                                 \
+    (MMGR_CELLUL_IS_STR(s_), mmgr_cellul_to_ulong(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
+
+#define mmgr_cellul_to_double(s_, end_)                                                                                \
+    (MMGR_CELLUL_IS_STR(s_), mmgr_cellul_to_double(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
+
+#define mmgr_cellul_to_float(s_, end_)                                                                                 \
+    (MMGR_CELLUL_IS_STR(s_), mmgr_cellul_to_float(&(TransfiguroCfg){.s = (s_), .end = &(end_)}))
+
+#define mmgr_cellul_mpint_fixed(m_, mlen_, field_, fieldlen_)                                                          \
+    (MMGR_CELLUL_IS_BYTES(m_), MMGR_CELLUL_IS_SIZE(mlen_), MMGR_CELLUL_IS_WBYTES(field_),                              \
+     MMGR_CELLUL_IS_SIZE(fieldlen_),                                                                                   \
+     mmgr_cellul_mpint_fixed(&(TransfiguroCfg){                                                                        \
+         .m = (m_), .mlen = (uint32_t)(mlen_), .field = (field_), .fieldlen = (fieldlen_)}))
+
 MMGR_NS CellularumLaboroNs cellul MMGR_UNUSED = {
+    .init = mmgr_cellul_init,
     .len = mmgr_cellul_len,
     .diff = mmgr_cellul_diff,
     .eq = mmgr_cellul_eq,
@@ -85,15 +193,15 @@ MMGR_NS CellularumLaboroNs cellul MMGR_UNUSED = {
     .has = mmgr_cellul_has,
     .chr = mmgr_cellul_chr,
     .copy = mmgr_cellul_copy,
-    .step_word = mmgr_cellul_step_word,
-    .step_byte = mmgr_cellul_step_byte,
     .ws = mmgr_cellul_ws,
     .digit = mmgr_cellul_digit,
+    .rd_str = mmgr_cellul_rd_str,
+    .step_word = mmgr_cellul_step_word,
+    .step_byte = mmgr_cellul_step_byte,
     .to_long = mmgr_cellul_to_long,
     .to_ulong = mmgr_cellul_to_ulong,
     .to_double = mmgr_cellul_to_double,
     .to_float = mmgr_cellul_to_float,
-    .rd_str = mmgr_cellul_rd_str,
     .mpint_fixed = mmgr_cellul_mpint_fixed,
 };
 

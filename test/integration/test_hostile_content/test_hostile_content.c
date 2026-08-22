@@ -21,6 +21,8 @@
 #include "oracle_divergence.h"
 #include "unity.h"
 
+static const char *mmgr_cellul_nowhere;
+
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "numeros_scribo/numeros_scribo.h"
@@ -93,7 +95,7 @@ void test_len_of_a_run_that_never_terminates(void)
         unsigned char *p = fresh();
         memset(p, 'a', BODY);
 
-        const size_t got = cellul.len((const char *)p, cap);
+        const size_t got = mmgr_cellul_len((const char *)p, cap);
         TEST_ASSERT_EQUAL_size_t_MESSAGE(cap, got, "an unterminated run must measure exactly its cap");
         fences_intact("len, unterminated");
     }
@@ -107,8 +109,8 @@ void test_len_finds_a_terminator_in_every_lane(void)
         memset(p, 'a', BODY);
         p[at] = 0u;
 
-        TEST_ASSERT_EQUAL_size_t(at, cellul.len((const char *)p, BODY));
-        TEST_ASSERT_EQUAL_size_t_MESSAGE(strlen((const char *)p), cellul.len((const char *)p, BODY),
+        TEST_ASSERT_EQUAL_size_t(at, mmgr_cellul_len((const char *)p, BODY));
+        TEST_ASSERT_EQUAL_size_t_MESSAGE(strlen((const char *)p), mmgr_cellul_len((const char *)p, BODY),
                                          "len disagrees with strlen");
         fences_intact("len, terminator walk");
     }
@@ -123,7 +125,7 @@ void test_len_at_every_start_alignment(void)
         memset(p, 'a', BODY);
         p[off + 20u] = 0u;
 
-        TEST_ASSERT_EQUAL_size_t(20u, cellul.len((const char *)(p + off), BODY - off));
+        TEST_ASSERT_EQUAL_size_t(20u, mmgr_cellul_len((const char *)(p + off), BODY - off));
         fences_intact("len, alignment walk");
     }
 }
@@ -134,7 +136,7 @@ void test_chr_of_a_byte_that_is_not_there_in_an_unterminated_run(void)
     unsigned char *p = fresh();
     memset(p, 0xFFu, BODY);
 
-    TEST_ASSERT_NULL_MESSAGE(cellul.chr((const char *)p, BODY, 0x01u), "found a byte that is not in the run");
+    TEST_ASSERT_NULL_MESSAGE(mmgr_cellul_chr((const char *)p, BODY, 0x01u), "found a byte that is not in the run");
     fences_intact("chr, absent");
 }
 
@@ -149,7 +151,7 @@ void test_chr_finds_a_byte_in_every_lane(void)
         p[BODY - 1u] = 0u;
         p[at] = 'Z';
 
-        const char *got = cellul.chr((const char *)p, BODY, (uint8_t)'Z');
+        const char *got = mmgr_cellul_chr((const char *)p, BODY, (uint8_t)'Z');
         TEST_ASSERT_EQUAL_PTR_MESSAGE((const char *)p + at, got, "the wrong lane came back");
         fences_intact("chr, lane walk");
     }
@@ -162,7 +164,7 @@ void test_chr_of_the_terminator_itself(void)
     p[10] = 0u;
 
     // strchr finds the terminator, and so should this.
-    TEST_ASSERT_EQUAL_PTR(strchr((const char *)p, 0), cellul.chr((const char *)p, BODY, 0u));
+    TEST_ASSERT_EQUAL_PTR(strchr((const char *)p, 0), mmgr_cellul_chr((const char *)p, BODY, 0u));
     fences_intact("chr, terminator");
 }
 
@@ -183,8 +185,8 @@ void test_a_run_of_high_bytes_measures_and_searches_like_libc(void)
     }
     p[BODY - 1u] = 0u;
 
-    TEST_ASSERT_EQUAL_size_t(strlen((const char *)p), cellul.len((const char *)p, BODY));
-    TEST_ASSERT_EQUAL_PTR(strchr((const char *)p, 0xC3), cellul.chr((const char *)p, BODY, 0xC3u));
+    TEST_ASSERT_EQUAL_size_t(strlen((const char *)p), mmgr_cellul_len((const char *)p, BODY));
+    TEST_ASSERT_EQUAL_PTR(strchr((const char *)p, 0xC3), mmgr_cellul_chr((const char *)p, BODY, 0xC3u));
     fences_intact("high bytes");
 }
 
@@ -199,7 +201,7 @@ void test_folding_never_touches_a_byte_outside_the_letters(void)
         const char b2[2] = {(char)(c ^ 0x20u), '\0'};
 
         const int is_letter = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-        const mmgr_bool same = cellul.eq(a, b2, 2u, MMGR_TRUE);
+        const mmgr_bool same = mmgr_cellul_eq(a, b2, 2u, MMGR_TRUE);
 
         if (is_letter)
         {
@@ -219,7 +221,7 @@ void test_a_case_insensitive_search_through_high_bytes(void)
     memcpy(p + 40, "NeEdLe", 6u);
     p[BODY - 1u] = 0u;
 
-    const char *got = cellul.find((const char *)p, BODY - 1u, "needle", 6u, MMGR_TRUE);
+    const char *got = mmgr_cellul_find((const char *)p, BODY - 1u, "needle", 6u, MMGR_TRUE);
     TEST_ASSERT_EQUAL_PTR_MESSAGE((const char *)p + 40, got, "the needle was lost among the high bytes");
     fences_intact("ci search, high bytes");
 }
@@ -239,7 +241,7 @@ void test_find_where_every_lane_is_a_candidate(void)
 
     // "aaaa" against a run of nothing but 'a': every start matches the anchor and every one has to
     // be verified.
-    const char *got = cellul.find((const char *)p, BODY - 1u, "aaaa", 4u, MMGR_FALSE);
+    const char *got = mmgr_cellul_find((const char *)p, BODY - 1u, "aaaa", 4u, MMGR_FALSE);
     TEST_ASSERT_EQUAL_PTR(strstr((const char *)p, "aaaa"), got);
     fences_intact("find, all anchors");
 }
@@ -257,7 +259,7 @@ void test_find_a_needle_that_is_only_the_last_bytes(void)
         memset(needle, 'q', nlen);
         needle[nlen] = '\0';
 
-        const char *got = cellul.find((const char *)p, BODY - 1u, needle, nlen, MMGR_FALSE);
+        const char *got = mmgr_cellul_find((const char *)p, BODY - 1u, needle, nlen, MMGR_FALSE);
         TEST_ASSERT_EQUAL_PTR_MESSAGE(strstr((const char *)p, needle), got, "a needle flush with the end was missed");
         fences_intact("find, flush with the end");
     }
@@ -269,7 +271,7 @@ void test_find_a_needle_one_byte_longer_than_the_hay(void)
     memcpy(p, "abcdefgh", 8u);
     p[8] = 0u;
 
-    TEST_ASSERT_NULL_MESSAGE(cellul.find((const char *)p, 8u, "abcdefghi", 9u, MMGR_FALSE),
+    TEST_ASSERT_NULL_MESSAGE(mmgr_cellul_find((const char *)p, 8u, "abcdefghi", 9u, MMGR_FALSE),
                              "a needle longer than the hay cannot be in it");
     fences_intact("find, needle too long");
 }
@@ -280,7 +282,7 @@ void test_find_the_hay_in_itself(void)
     memcpy(p, "the whole thing", 15u);
     p[15] = 0u;
 
-    TEST_ASSERT_EQUAL_PTR((const char *)p, cellul.find((const char *)p, 15u, "the whole thing", 15u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_PTR((const char *)p, mmgr_cellul_find((const char *)p, 15u, "the whole thing", 15u, MMGR_FALSE));
     fences_intact("find, self");
 }
 
@@ -295,7 +297,7 @@ void test_find_across_every_word_boundary(void)
         memcpy(p + at, "xyzzy", 5u);
         p[BODY - 1u] = 0u;
 
-        const char *got = cellul.find((const char *)p, BODY - 1u, "xyzzy", 5u, MMGR_FALSE);
+        const char *got = mmgr_cellul_find((const char *)p, BODY - 1u, "xyzzy", 5u, MMGR_FALSE);
         TEST_ASSERT_EQUAL_PTR_MESSAGE((const char *)p + at, got, "a match straddling a word boundary was missed");
         fences_intact("find, boundary walk");
     }
@@ -312,7 +314,7 @@ void test_find_with_the_terminator_before_the_match(void)
     // The scan stops at the first terminator, so what is behind it is not there as far as it is
     // concerned. strstr says the same.
     TEST_ASSERT_EQUAL_PTR(strstr((const char *)p, "needle"),
-                          cellul.find((const char *)p, BODY, "needle", 6u, MMGR_FALSE));
+                          mmgr_cellul_find((const char *)p, BODY, "needle", 6u, MMGR_FALSE));
     fences_intact("find, past the terminator");
 }
 
@@ -322,9 +324,9 @@ void test_find_of_an_empty_needle(void)
     memcpy(p, "anything", 8u);
     p[8] = 0u;
 
-    TEST_ASSERT_EQUAL_PTR_MESSAGE((const char *)p, cellul.find((const char *)p, 8u, "", 0u, MMGR_FALSE),
+    TEST_ASSERT_EQUAL_PTR_MESSAGE((const char *)p, mmgr_cellul_find((const char *)p, 8u, "", 0u, MMGR_FALSE),
                                   "an empty needle is at the start, the way strstr has it");
-    TEST_ASSERT_EQUAL_PTR(strstr((const char *)p, ""), cellul.find((const char *)p, 8u, "", 0u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_PTR(strstr((const char *)p, ""), mmgr_cellul_find((const char *)p, 8u, "", 0u, MMGR_FALSE));
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -338,7 +340,7 @@ void test_copy_never_writes_past_its_destination(void)
     for (size_t cap = 1; cap <= 40u; cap++)
     {
         unsigned char *p = fresh();
-        const size_t got = cellul.copy((char *)p, src, cap);
+        const size_t got = mmgr_cellul_copy((char *)p, src, cap);
 
         TEST_ASSERT_TRUE_MESSAGE(got < cap, "copy reported a length that leaves no room for a terminator");
         TEST_ASSERT_EQUAL_CHAR_MESSAGE('\0', (char)p[got], "copy did not terminate what it wrote");
@@ -354,7 +356,7 @@ void test_copy_of_a_source_that_never_terminates(void)
 
     unsigned char out[16];
     memset(out, POISON, sizeof out);
-    const size_t got = cellul.copy((char *)out, (const char *)big, 8u);
+    const size_t got = mmgr_cellul_copy((char *)out, (const char *)big, 8u);
 
     TEST_ASSERT_EQUAL_size_t(7u, got);
     TEST_ASSERT_EQUAL_CHAR('\0', (char)out[7]);
@@ -469,7 +471,7 @@ void test_appending_to_a_record_until_it_stops_fitting(void)
         (void)mmgr_write_append((char *)p, cap, MMGR_VSTR(":more"));
         TEST_ASSERT_EQUAL_HEX8_MESSAGE(POISON, p[cap], "an append wrote at the cap");
     }
-    TEST_ASSERT_TRUE_MESSAGE(cellul.len((const char *)p, cap) < cap, "the record lost its terminator");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_len((const char *)p, cap) < cap, "the record lost its terminator");
     fences_intact("record, append until full");
 }
 
@@ -485,7 +487,7 @@ void test_the_parsers_against_content_that_never_terminates(void)
     memset(p, '9', BODY);
 
     const char *end = NULL;
-    (void)cellul.to_ulong((const char *)p, &end);
+    (void)mmgr_cellul_to_ulong((const char *)p, end);
     TEST_ASSERT_NOT_NULL(end);
     TEST_ASSERT_TRUE_MESSAGE((const unsigned char *)end <= p + BODY, "the parse ran past the buffer");
     fences_intact("to_ulong, all digits");
@@ -513,7 +515,7 @@ void test_the_parsers_agree_with_libc_on_rubbish(void)
         const char *mine_end = NULL;
         char *ref_end = NULL;
 
-        const double mine = cellul.to_double(cases[i], &mine_end);
+        const double mine = mmgr_cellul_to_double(cases[i], mine_end);
         const double ref = strtod(cases[i], &ref_end);
 
         char msg[128];
@@ -540,7 +542,7 @@ void test_the_parser_takes_decimal_and_stops_at_anything_else(void)
     for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++)
     {
         const char *end = NULL;
-        const double v = cellul.to_double(cases[i], &end);
+        const double v = mmgr_cellul_to_double(cases[i], end);
 
         char msg[96];
         (void)snprintf(msg, sizeof msg, "\"%s\" should have stopped after its first digit", cases[i]);
@@ -569,7 +571,7 @@ void test_an_exponent_with_no_digits_after_it(void)
     for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++)
     {
         const char *end = NULL;
-        const double v = cellul.to_double(cases[i].text, &end);
+        const double v = mmgr_cellul_to_double(cases[i].text, end);
 
         char msg[96];
         (void)snprintf(msg, sizeof msg, "\"%s\"", cases[i].text);
@@ -581,9 +583,9 @@ void test_an_exponent_with_no_digits_after_it(void)
 void test_an_exponent_that_is_real_is_still_taken(void)
 {
     // The other half: the early return must not have eaten the ordinary path.
-    TEST_ASSERT_DOUBLE_WITHIN(1e-6, 25000000000.0, cellul.to_double("2.5e10", NULL));
-    TEST_ASSERT_DOUBLE_WITHIN(1e-18, 0.00125, cellul.to_double("1.25e-3", NULL));
-    TEST_ASSERT_DOUBLE_WITHIN(1e-6, 602200.0, cellul.to_double("6.022E5", NULL));
+    TEST_ASSERT_DOUBLE_WITHIN(1e-6, 25000000000.0, mmgr_cellul_to_double("2.5e10", mmgr_cellul_nowhere));
+    TEST_ASSERT_DOUBLE_WITHIN(1e-18, 0.00125, mmgr_cellul_to_double("1.25e-3", mmgr_cellul_nowhere));
+    TEST_ASSERT_DOUBLE_WITHIN(1e-6, 602200.0, mmgr_cellul_to_double("6.022E5", mmgr_cellul_nowhere));
 }
 
 void test_a_number_made_entirely_of_leading_zeros(void)
@@ -593,7 +595,7 @@ void test_a_number_made_entirely_of_leading_zeros(void)
     p[BODY - 1u] = 0u;
 
     const char *end = NULL;
-    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)cellul.to_ulong((const char *)p, &end));
+    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)mmgr_cellul_to_ulong((const char *)p, end));
     TEST_ASSERT_EQUAL_PTR_MESSAGE((const char *)p + BODY - 1u, end, "every zero should have been consumed");
     fences_intact("to_ulong, all zeros");
 }

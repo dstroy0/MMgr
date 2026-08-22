@@ -76,7 +76,7 @@ MMGR_INLINE void verba_put(VerbaCtx *c)
     {
         return;
     }
-    c->sl = cellul.len(c->s, c->b->cap);
+    c->sl = mmgr_cellul_len(c->s, c->b->cap);
     verba_put_n(c);
 }
 
@@ -94,7 +94,7 @@ MMGR_INLINE void verba_put_clip(VerbaCtx *c)
     }
 
     const size_t room = b->cap - b->len - 1u;
-    const size_t sl = cellul.len(c->s, room);
+    const size_t sl = mmgr_cellul_len(c->s, room);
 
     proxim.read(b->p + b->len, c->s, sl);
     b->len += sl;

@@ -173,8 +173,8 @@ void test_build_covers_every_kind(void)
                            MMGR_VCH('c'),  MMGR_VJSON("j"), MMGR_VXML("<x>")};
 
     TEST_ASSERT_GREATER_THAN_size_t(0u, numer.build(out, sizeof out, spec, v, 7u));
-    TEST_ASSERT_TRUE(cellul.has(out, sizeof out, "\"j\"", 4u, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.has(out, sizeof out, "&lt;x&gt;", 10u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(out, sizeof out, "\"j\"", 4u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(out, sizeof out, "&lt;x&gt;", 10u, MMGR_FALSE));
 }
 
 void test_build_covers_the_width_bearing_kinds(void)
@@ -185,9 +185,9 @@ void test_build_covers_the_width_bearing_kinds(void)
     const mmgr_fval v[] = {MMGR_VDEC(7u), MMGR_VHEX(0xABu), MMGR_VOCT(8u), MMGR_VG(1.25), MMGR_VFIX(2.5)};
 
     TEST_ASSERT_GREATER_THAN_size_t(0u, numer.build(out, sizeof out, spec, v, 5u));
-    TEST_ASSERT_TRUE_MESSAGE(cellul.has(out, sizeof out, "0007", 5u, MMGR_FALSE), "DEC pads to its width");
-    TEST_ASSERT_TRUE_MESSAGE(cellul.has(out, sizeof out, "00ab", 5u, MMGR_FALSE), "HEX pads to its width");
-    TEST_ASSERT_TRUE_MESSAGE(cellul.has(out, sizeof out, "10", 3u, MMGR_FALSE), "OCT of 8 is 10");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_has(out, sizeof out, "0007", 5u, MMGR_FALSE), "DEC pads to its width");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_has(out, sizeof out, "00ab", 5u, MMGR_FALSE), "HEX pads to its width");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_has(out, sizeof out, "10", 3u, MMGR_FALSE), "OCT of 8 is 10");
 }
 
 void test_build_of_a_null_string_value(void)
@@ -280,8 +280,8 @@ void test_emit_covers_the_width_bearing_kinds(void)
     char out[128];
     TEST_ASSERT_GREATER_THAN_size_t(
         0u, mmgr_write(out, sizeof out, MMGR_VOCTW(8u, 3), MMGR_VGW(1.25, 3), MMGR_VFIXW(2.5, 2), MMGR_VDECW(7u, 4)));
-    TEST_ASSERT_TRUE(cellul.has(out, sizeof out, "010", 4u, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.has(out, sizeof out, "0007", 5u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(out, sizeof out, "010", 4u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(out, sizeof out, "0007", 5u, MMGR_FALSE));
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -299,7 +299,7 @@ void test_a_g_field_with_no_width_gets_six_digits(void)
     TEST_ASSERT_GREATER_THAN_size_t(0u, mmgr_write(emit_out, sizeof emit_out, MMGR_VG(1.0 / 3.0)));
 
     TEST_ASSERT_EQUAL_STRING_MESSAGE(spec_out, emit_out, "the spec path and the variadic path disagree on the default");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(8u, cellul.len(spec_out, sizeof spec_out),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(8u, mmgr_cellul_len(spec_out, sizeof spec_out),
                                      "no width asked for is six significant digits");
 }
 
@@ -355,10 +355,10 @@ void test_the_variadic_path_carries_every_kind(void)
                                                    MMGR_VI64(-3), MMGR_VCH('c'), MMGR_VJSON("j"), MMGR_VXML("<x>"),
                                                    MMGR_VHEX(0xABu), MMGR_VDEC(7u), MMGR_VG(1.25), MMGR_VFIX(2.5)));
 
-    TEST_ASSERT_TRUE_MESSAGE(cellul.has(out, sizeof out, "2", 2u, MMGR_FALSE), "the 64 bit value is missing");
-    TEST_ASSERT_TRUE(cellul.has(out, sizeof out, "-3", 3u, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.has(out, sizeof out, "\"j\"", 4u, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.has(out, sizeof out, "&lt;x&gt;", 10u, MMGR_FALSE));
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_has(out, sizeof out, "2", 2u, MMGR_FALSE), "the 64 bit value is missing");
+    TEST_ASSERT_TRUE(mmgr_cellul_has(out, sizeof out, "-3", 3u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(out, sizeof out, "\"j\"", 4u, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has(out, sizeof out, "&lt;x&gt;", 10u, MMGR_FALSE));
 }
 
 void test_a_u64_of_its_largest_value(void)

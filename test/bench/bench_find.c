@@ -138,7 +138,7 @@ static void sweep(const char *needle, size_t at)
     const size_t n = HAY_BYTES;
 
     ROW("libc_strstr", strstr(g_hay + o_, g_needle));
-    ROW("cellul_find", cellul.find(g_hay + o_, n - o_, g_needle, g_nlen + 1u, MMGR_FALSE));
+    ROW("cellul_find", mmgr_cellul_find(g_hay + o_, n - o_, g_needle, g_nlen + 1u, MMGR_FALSE));
     ROW("sieve1", find_sieve1(g_hay + o_, n - o_, g_needle, g_nlen));
     ROW("sieve2", find_sieve2(g_hay + o_, n - o_, g_needle, g_nlen));
     ROW("sieve3", find_sieve3(g_hay + o_, n - o_, g_needle, g_nlen));

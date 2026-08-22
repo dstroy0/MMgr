@@ -7,6 +7,8 @@
 #include "oracle_divergence.h"
 #include "unity.h"
 
+static const char *mmgr_cellul_nowhere;
+
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "verbum_scrutor/verbum_scrutor.h"
 
@@ -21,7 +23,7 @@
 
 static const char *find_at(const char *hay, const char *needle, mmgr_bool ci)
 {
-    return cellul.find(hay, CAP, needle, CAP, ci);
+    return mmgr_cellul_find(hay, CAP, needle, CAP, ci);
 }
 
 // Offset of the hit, or -1. Easier to assert on than a pointer.
@@ -33,9 +35,9 @@ static long hit(const char *hay, const char *needle, mmgr_bool ci)
 
 void test_len_stops_at_nul_and_at_cap(void)
 {
-    TEST_ASSERT_EQUAL_size_t(0u, cellul.len("", CAP));
-    TEST_ASSERT_EQUAL_size_t(3u, cellul.len("abc", CAP));
-    TEST_ASSERT_EQUAL_size_t(2u, cellul.len("abc", 2u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellul_len("", CAP));
+    TEST_ASSERT_EQUAL_size_t(3u, mmgr_cellul_len("abc", CAP));
+    TEST_ASSERT_EQUAL_size_t(2u, mmgr_cellul_len("abc", 2u));
 }
 
 void test_find_empty_needle_matches_at_zero(void)
@@ -114,58 +116,58 @@ void test_find_ci_folds_only_letters(void)
 
 void test_has_agrees_with_find(void)
 {
-    TEST_ASSERT_TRUE(cellul.has("hello world", CAP, "world", CAP, MMGR_FALSE));
-    TEST_ASSERT_FALSE(cellul.has("hello world", CAP, "WORLD", CAP, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.has("hello world", CAP, "WORLD", CAP, MMGR_TRUE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has("hello world", CAP, "world", CAP, MMGR_FALSE));
+    TEST_ASSERT_FALSE(mmgr_cellul_has("hello world", CAP, "WORLD", CAP, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_has("hello world", CAP, "WORLD", CAP, MMGR_TRUE));
 }
 
 void test_eq_both_cases(void)
 {
-    TEST_ASSERT_TRUE(cellul.eq("abc", "abc", CAP, MMGR_FALSE));
-    TEST_ASSERT_FALSE(cellul.eq("abc", "ABC", CAP, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.eq("abc", "ABC", CAP, MMGR_TRUE));
-    TEST_ASSERT_FALSE(cellul.eq("abc", "abd", CAP, MMGR_TRUE));
-    TEST_ASSERT_FALSE(cellul.eq("abc", "abcd", CAP, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_eq("abc", "abc", CAP, MMGR_FALSE));
+    TEST_ASSERT_FALSE(mmgr_cellul_eq("abc", "ABC", CAP, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_eq("abc", "ABC", CAP, MMGR_TRUE));
+    TEST_ASSERT_FALSE(mmgr_cellul_eq("abc", "abd", CAP, MMGR_TRUE));
+    TEST_ASSERT_FALSE(mmgr_cellul_eq("abc", "abcd", CAP, MMGR_FALSE));
 }
 
 void test_starts_both_cases(void)
 {
-    TEST_ASSERT_TRUE(cellul.starts("abcdef", "abc", CAP, MMGR_FALSE));
-    TEST_ASSERT_FALSE(cellul.starts("abcdef", "ABC", CAP, MMGR_FALSE));
-    TEST_ASSERT_TRUE(cellul.starts("abcdef", "ABC", CAP, MMGR_TRUE));
-    TEST_ASSERT_FALSE(cellul.starts("ab", "abc", CAP, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_starts("abcdef", "abc", CAP, MMGR_FALSE));
+    TEST_ASSERT_FALSE(mmgr_cellul_starts("abcdef", "ABC", CAP, MMGR_FALSE));
+    TEST_ASSERT_TRUE(mmgr_cellul_starts("abcdef", "ABC", CAP, MMGR_TRUE));
+    TEST_ASSERT_FALSE(mmgr_cellul_starts("ab", "abc", CAP, MMGR_FALSE));
 }
 
 void test_diff_returns_the_first_differing_offset(void)
 {
-    TEST_ASSERT_EQUAL_size_t(3u, cellul.diff("abcd", "abce", 4u, MMGR_FALSE));
-    TEST_ASSERT_EQUAL_size_t(0u, cellul.diff("Abcd", "abcd", 4u, MMGR_FALSE));
-    TEST_ASSERT_EQUAL_size_t(4u, cellul.diff("Abcd", "abcd", 4u, MMGR_TRUE));
+    TEST_ASSERT_EQUAL_size_t(3u, mmgr_cellul_diff("abcd", "abce", 4u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellul_diff("Abcd", "abcd", 4u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t(4u, mmgr_cellul_diff("Abcd", "abcd", 4u, MMGR_TRUE));
 }
 
 void test_diff_crossing_a_word_boundary(void)
 {
     // The difference sits past the first word, so a word-at-a-time compare has to carry.
-    TEST_ASSERT_EQUAL_size_t(9u, cellul.diff("aaaaaaaaab", "aaaaaaaaac", 10u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t(9u, mmgr_cellul_diff("aaaaaaaaab", "aaaaaaaaac", 10u, MMGR_FALSE));
 }
 
 void test_copy_truncates_and_terminates(void)
 {
     char dst[8];
-    TEST_ASSERT_EQUAL_size_t(3u, cellul.copy(dst, "abc", sizeof dst));
+    TEST_ASSERT_EQUAL_size_t(3u, mmgr_cellul_copy(dst, "abc", sizeof dst));
     TEST_ASSERT_EQUAL_STRING("abc", dst);
-    TEST_ASSERT_EQUAL_size_t(7u, cellul.copy(dst, "abcdefghij", sizeof dst));
+    TEST_ASSERT_EQUAL_size_t(7u, mmgr_cellul_copy(dst, "abcdefghij", sizeof dst));
     TEST_ASSERT_EQUAL_STRING("abcdefg", dst);
 }
 
 void test_classifiers(void)
 {
-    TEST_ASSERT_TRUE(cellul.ws(' '));
-    TEST_ASSERT_TRUE(cellul.ws('\t'));
-    TEST_ASSERT_FALSE(cellul.ws('a'));
-    TEST_ASSERT_TRUE(cellul.digit('0'));
-    TEST_ASSERT_TRUE(cellul.digit('9'));
-    TEST_ASSERT_FALSE(cellul.digit('a'));
+    TEST_ASSERT_TRUE(mmgr_cellul_ws(' '));
+    TEST_ASSERT_TRUE(mmgr_cellul_ws('\t'));
+    TEST_ASSERT_FALSE(mmgr_cellul_ws('a'));
+    TEST_ASSERT_TRUE(mmgr_cellul_digit('0'));
+    TEST_ASSERT_TRUE(mmgr_cellul_digit('9'));
+    TEST_ASSERT_FALSE(mmgr_cellul_digit('a'));
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -210,7 +212,7 @@ void test_to_long_matches_strtol(void)
         const char *mend = NULL;
         char *lend = NULL;
 
-        const long got = cellul.to_long(s, &mend);
+        const long got = mmgr_cellul_to_long(s, mend);
         errno = 0;
         const long want = strtol(s, &lend, 10);
 
@@ -232,7 +234,7 @@ void test_to_ulong_matches_strtoul(void)
         const char *mend = NULL;
         char *lend = NULL;
 
-        const unsigned long got = cellul.to_ulong(s, &mend);
+        const unsigned long got = mmgr_cellul_to_ulong(s, mend);
         errno = 0;
         const unsigned long want = strtoul(s, &lend, 10);
 
@@ -248,8 +250,8 @@ void test_to_ulong_matches_strtoul(void)
 
 void test_to_long_without_an_end_pointer(void)
 {
-    TEST_ASSERT_EQUAL_INT64(42, cellul.to_long("42", NULL));
-    TEST_ASSERT_EQUAL_UINT64(42u, cellul.to_ulong("42", NULL));
+    TEST_ASSERT_EQUAL_INT64(42, mmgr_cellul_to_long("42", mmgr_cellul_nowhere));
+    TEST_ASSERT_EQUAL_UINT64(42u, mmgr_cellul_to_ulong("42", mmgr_cellul_nowhere));
 }
 
 void test_to_double_matches_strtod(void)
@@ -263,7 +265,7 @@ void test_to_double_matches_strtod(void)
         const char *mend = NULL;
         char *lend = NULL;
 
-        const double got = cellul.to_double(cases[i], &mend);
+        const double got = mmgr_cellul_to_double(cases[i], mend);
         const double want = strtod(cases[i], &lend);
 
         char msg[128];
@@ -276,11 +278,11 @@ void test_to_double_matches_strtod(void)
 void test_to_double_handles_an_exponent(void)
 {
     const char *end = NULL;
-    TEST_ASSERT_TRUE_MESSAGE(strtod("1e3", NULL) == cellul.to_double("1e3", &end), "to_double(\"1e3\")");
-    TEST_ASSERT_TRUE_MESSAGE(strtod("1E3", NULL) == cellul.to_double("1E3", &end), "to_double(\"1E3\")");
-    TEST_ASSERT_TRUE_MESSAGE(strtod("1e-3", NULL) == cellul.to_double("1e-3", &end), "to_double(\"1e-3\")");
-    TEST_ASSERT_TRUE_MESSAGE(strtod("1e+3", NULL) == cellul.to_double("1e+3", &end), "to_double(\"1e+3\")");
-    TEST_ASSERT_TRUE_MESSAGE(strtod("2.5e2", NULL) == cellul.to_double("2.5e2", &end), "to_double(\"2.5e2\")");
+    TEST_ASSERT_TRUE_MESSAGE(strtod("1e3", NULL) == mmgr_cellul_to_double("1e3", end), "to_double(\"1e3\")");
+    TEST_ASSERT_TRUE_MESSAGE(strtod("1E3", NULL) == mmgr_cellul_to_double("1E3", end), "to_double(\"1E3\")");
+    TEST_ASSERT_TRUE_MESSAGE(strtod("1e-3", NULL) == mmgr_cellul_to_double("1e-3", end), "to_double(\"1e-3\")");
+    TEST_ASSERT_TRUE_MESSAGE(strtod("1e+3", NULL) == mmgr_cellul_to_double("1e+3", end), "to_double(\"1e+3\")");
+    TEST_ASSERT_TRUE_MESSAGE(strtod("2.5e2", NULL) == mmgr_cellul_to_double("2.5e2", end), "to_double(\"2.5e2\")");
 }
 
 void test_to_float_matches_to_double(void)
@@ -289,14 +291,14 @@ void test_to_float_matches_to_double(void)
     for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++)
     {
         const char *end = NULL;
-        TEST_ASSERT_TRUE_MESSAGE((float)strtod(cases[i], NULL) == cellul.to_float(cases[i], &end), cases[i]);
+        TEST_ASSERT_TRUE_MESSAGE((float)strtod(cases[i], NULL) == mmgr_cellul_to_float(cases[i], end), cases[i]);
     }
 }
 
 void test_to_double_without_an_end_pointer(void)
 {
-    TEST_ASSERT_TRUE(2.5 == cellul.to_double("2.5", NULL));
-    TEST_ASSERT_TRUE(2.5f == cellul.to_float("2.5", NULL));
+    TEST_ASSERT_TRUE(2.5 == mmgr_cellul_to_double("2.5", mmgr_cellul_nowhere));
+    TEST_ASSERT_TRUE(2.5f == mmgr_cellul_to_float("2.5", mmgr_cellul_nowhere));
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -311,7 +313,7 @@ static mmgr_scrut_word word_of(const char *s)
 void test_step_word_keeps_going_while_equal(void)
 {
     const char *a = "abcdefghij";
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_GO, cellul.step_word(word_of(a), word_of(a), MMGR_FALSE, 0),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_GO, mmgr_cellul_step_word(word_of(a), word_of(a), MMGR_FALSE, 0),
                                   "identical words with no terminator say keep going");
 }
 
@@ -320,7 +322,7 @@ void test_step_word_stops_on_a_difference(void)
     // the difference sits in lane 0 so it is inside the word at 16, 32 and 64 bits alike
     const char *a = "Xbcdefgh";
     const char *b2 = "abcdefgh";
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_word(word_of(a), word_of(b2), MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of(a), word_of(b2), MMGR_FALSE, 0));
 }
 
 void test_step_word_stops_at_the_terminator(void)
@@ -328,9 +330,9 @@ void test_step_word_stops_at_the_terminator(void)
     // terminator in lane 0, so it is inside the word at every width
     static const char a[16] = {0, "b"[0], "c"[0], "d"[0], "e"[0], "f"[0], "g"[0], "h"[0]};
     const char *b2 = "abcdefgh";
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, cellul.step_word(word_of(a), word_of(b2), MMGR_FALSE, 1),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, mmgr_cellul_step_word(word_of(a), word_of(b2), MMGR_FALSE, 1),
                                   "the pattern ended first and end_wins says that is a match");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, cellul.step_word(word_of(a), word_of(b2), MMGR_FALSE, 0),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of(a), word_of(b2), MMGR_FALSE, 0),
                                   "and without end_wins it is not");
 }
 
@@ -338,24 +340,24 @@ void test_step_word_folds_case(void)
 {
     const char *a = "ABCDEFGH";
     const char *b2 = "abcdefgh";
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_word(word_of(a), word_of(b2), MMGR_FALSE, 0));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, cellul.step_word(word_of(a), word_of(b2), MMGR_TRUE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of(a), word_of(b2), MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, mmgr_cellul_step_word(word_of(a), word_of(b2), MMGR_TRUE, 0));
 }
 
 void test_step_byte_covers_the_same_three_verdicts(void)
 {
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, cellul.step_byte('a', 'a', MMGR_FALSE, 0));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_byte('a', 'b', MMGR_FALSE, 0));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, cellul.step_byte('\0', '\0', MMGR_FALSE, 0));
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, cellul.step_byte('\0', 'x', MMGR_FALSE, 1),
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, mmgr_cellul_step_byte('a', 'a', MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_byte('a', 'b', MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, mmgr_cellul_step_byte('\0', '\0', MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, mmgr_cellul_step_byte('\0', 'x', MMGR_FALSE, 1),
                                   "the pattern ended and end_wins says that is a match");
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_byte('\0', 'x', MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_byte('\0', 'x', MMGR_FALSE, 0));
 
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_byte('A', 'a', MMGR_FALSE, 0));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, cellul.step_byte('A', 'a', MMGR_TRUE, 0));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, cellul.step_byte('\0', '\0', MMGR_TRUE, 0));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, cellul.step_byte('\0', 'x', MMGR_TRUE, 1));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_byte('\0', 'x', MMGR_TRUE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_byte('A', 'a', MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, mmgr_cellul_step_byte('A', 'a', MMGR_TRUE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, mmgr_cellul_step_byte('\0', '\0', MMGR_TRUE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, mmgr_cellul_step_byte('\0', 'x', MMGR_TRUE, 1));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_byte('\0', 'x', MMGR_TRUE, 0));
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -372,7 +374,7 @@ void test_chr_matches_strchr(void)
         const size_t cap = strlen(hays[h]) + 1u;
         for (int c = 0; c < 128; c++)
         {
-            const char *got = cellul.chr(hays[h], cap, (uint8_t)c);
+            const char *got = mmgr_cellul_chr(hays[h], cap, (uint8_t)c);
             const char *want = strchr(hays[h], c);
             char msg[160];
             snprintf(msg, sizeof msg, "chr(\"%s\", '%c')", hays[h], c ? c : '0');
@@ -390,7 +392,7 @@ void test_chr_at_every_alignment(void)
         strcpy(s, "abcdefghijklmno");
         for (int c = 'a'; c <= 'p'; c++)
         {
-            TEST_ASSERT_EQUAL_PTR(strchr(s, c), cellul.chr(s, 16u, (uint8_t)c));
+            TEST_ASSERT_EQUAL_PTR(strchr(s, c), mmgr_cellul_chr(s, 16u, (uint8_t)c));
         }
     }
 }
@@ -399,8 +401,8 @@ void test_chr_respects_the_cap(void)
 {
     MMGR_SKIP_ON_ORACLE("strchr has no cap to respect");
     const char *s = "abcdef";
-    TEST_ASSERT_NULL_MESSAGE(cellul.chr(s, 3u, 'f'), "f is past the cap");
-    TEST_ASSERT_NOT_NULL(cellul.chr(s, 3u, 'b'));
+    TEST_ASSERT_NULL_MESSAGE(mmgr_cellul_chr(s, 3u, 'f'), "f is past the cap");
+    TEST_ASSERT_NOT_NULL(mmgr_cellul_chr(s, 3u, 'b'));
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -426,7 +428,7 @@ void test_find_matches_strstr_over_a_corpus(void)
         for (unsigned n = 0; n < sizeof needles / sizeof needles[0]; n++)
         {
             const size_t ncap = strlen(needles[n]) + 1u;
-            const char *got = cellul.find(hays[h], hcap, needles[n], ncap, MMGR_FALSE);
+            const char *got = mmgr_cellul_find(hays[h], hcap, needles[n], ncap, MMGR_FALSE);
             const char *want = strstr(hays[h], needles[n]);
             char msg[200];
             snprintf(msg, sizeof msg, "find(\"%s\", \"%s\")", hays[h], needles[n]);
@@ -446,7 +448,7 @@ void test_find_ci_matches_a_folded_search(void)
         {
             const size_t hlen = strlen(hays[h]);
             const size_t nlen = strlen(needles[n]);
-            const char *got = cellul.find(hays[h], hlen + 1u, needles[n], nlen + 1u, MMGR_TRUE);
+            const char *got = mmgr_cellul_find(hays[h], hlen + 1u, needles[n], nlen + 1u, MMGR_TRUE);
 
             // the reference: a plain fold and compare, out of libc pieces
             const char *want = NULL;
@@ -474,8 +476,8 @@ void test_find_ci_matches_a_folded_search(void)
 
 void test_find_needle_longer_than_the_haystack(void)
 {
-    TEST_ASSERT_NULL(cellul.find("ab", 3u, "abcdef", 7u, MMGR_FALSE));
-    TEST_ASSERT_NULL(cellul.find("", 1u, "a", 2u, MMGR_FALSE));
+    TEST_ASSERT_NULL(mmgr_cellul_find("ab", 3u, "abcdef", 7u, MMGR_FALSE));
+    TEST_ASSERT_NULL(mmgr_cellul_find("", 1u, "a", 2u, MMGR_FALSE));
 }
 
 void test_diff_matches_a_byte_loop(void)
@@ -499,22 +501,22 @@ void test_diff_matches_a_byte_loop(void)
         {
             want++;
         }
-        TEST_ASSERT_EQUAL_size_t(want, cellul.diff(pairs[i][0], pairs[i][1], cap, MMGR_FALSE));
+        TEST_ASSERT_EQUAL_size_t(want, mmgr_cellul_diff(pairs[i][0], pairs[i][1], cap, MMGR_FALSE));
     }
 }
 
 void test_copy_of_an_empty_destination(void)
 {
     char d[4];
-    TEST_ASSERT_EQUAL_size_t(0u, cellul.copy(d, "abc", 0u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellul_copy(d, "abc", 0u));
 }
 
 void test_ws_and_digit_agree_with_ctype(void)
 {
     for (int c = 0; c < 256; c++)
     {
-        TEST_ASSERT_EQUAL_INT_MESSAGE(isspace(c) != 0, cellul.ws((char)c) != 0, "ws must agree with isspace");
-        TEST_ASSERT_EQUAL_INT_MESSAGE(isdigit(c) != 0, cellul.digit((char)c) != 0, "digit must agree with isdigit");
+        TEST_ASSERT_EQUAL_INT_MESSAGE(isspace(c) != 0, mmgr_cellul_ws((char)c) != 0, "ws must agree with isspace");
+        TEST_ASSERT_EQUAL_INT_MESSAGE(isdigit(c) != 0, mmgr_cellul_digit((char)c) != 0, "digit must agree with isdigit");
     }
 }
 
@@ -529,14 +531,14 @@ void test_ws_and_digit_agree_with_ctype(void)
 void test_step_word_ignoring_case_agrees_on_a_folded_word(void)
 {
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_GO,
-                                  cellul.step_word(word_of("ABCDEFGH"), word_of("abcdefgh"), MMGR_TRUE, 0),
+                                  mmgr_cellul_step_word(word_of("ABCDEFGH"), word_of("abcdefgh"), MMGR_TRUE, 0),
                                   "a whole word of case differences is no difference at all");
 }
 
 void test_step_word_ignoring_case_still_sees_a_real_difference(void)
 {
     // '1' and '2' fold to themselves, so the difference survives the fold.
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_word(word_of("1bcdefgh"), word_of("2bcdefgh"), MMGR_TRUE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of("1bcdefgh"), word_of("2bcdefgh"), MMGR_TRUE, 0));
 }
 
 // A word wide enough for every environment, so a lane index means the same thing at 16, 32 and
@@ -554,63 +556,63 @@ static const char TIED_B[8] = {'a', 0, 0, 0, 0, 0, 0, 0};
 void test_step_word_ignoring_case_ends_before_a_difference(void)
 {
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES,
-                                  cellul.step_word(word_of(ENDS_FIRST_A), word_of(ENDS_FIRST_B), MMGR_TRUE, 0),
+                                  mmgr_cellul_step_word(word_of(ENDS_FIRST_A), word_of(ENDS_FIRST_B), MMGR_TRUE, 0),
                                   "the end came first, so end_wins never had to decide");
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, cellul.step_word(word_of(ENDS_FIRST_A), word_of(ENDS_FIRST_B), MMGR_TRUE, 1));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, mmgr_cellul_step_word(word_of(ENDS_FIRST_A), word_of(ENDS_FIRST_B), MMGR_TRUE, 1));
 }
 
 void test_step_word_ignoring_case_ends_in_the_same_lane_as_a_difference(void)
 {
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, cellul.step_word(word_of(TIED_A), word_of(TIED_B), MMGR_TRUE, 1),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, mmgr_cellul_step_word(word_of(TIED_A), word_of(TIED_B), MMGR_TRUE, 1),
                                   "the end takes the tie");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, cellul.step_word(word_of(TIED_A), word_of(TIED_B), MMGR_TRUE, 0),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of(TIED_A), word_of(TIED_B), MMGR_TRUE, 0),
                                   "the difference takes the tie");
 }
 
 void test_step_word_matching_case_ends_before_a_difference(void)
 {
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, cellul.step_word(word_of(ENDS_FIRST_A), word_of(ENDS_FIRST_B), MMGR_FALSE, 0));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, cellul.step_word(word_of(ENDS_FIRST_A), word_of(ENDS_FIRST_B), MMGR_FALSE, 1));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, mmgr_cellul_step_word(word_of(ENDS_FIRST_A), word_of(ENDS_FIRST_B), MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, mmgr_cellul_step_word(word_of(ENDS_FIRST_A), word_of(ENDS_FIRST_B), MMGR_FALSE, 1));
 }
 
 void test_step_word_matching_case_ends_in_the_same_lane_as_a_difference(void)
 {
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, cellul.step_word(word_of(TIED_A), word_of(TIED_B), MMGR_FALSE, 1));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_word(word_of(TIED_A), word_of(TIED_B), MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, mmgr_cellul_step_word(word_of(TIED_A), word_of(TIED_B), MMGR_FALSE, 1));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of(TIED_A), word_of(TIED_B), MMGR_FALSE, 0));
 }
 
 void test_step_word_of_a_difference_that_beats_the_end(void)
 {
     // No terminator anywhere in the pattern's word, so the difference is unopposed and end_wins
     // has nothing to give the lane to.
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_word(word_of("Xbcdefgh"), word_of("abcdefgh"), MMGR_FALSE, 1));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_word(word_of("1bcdefgh"), word_of("2bcdefgh"), MMGR_TRUE, 1));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of("Xbcdefgh"), word_of("abcdefgh"), MMGR_FALSE, 1));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of("1bcdefgh"), word_of("2bcdefgh"), MMGR_TRUE, 1));
 }
 
 void test_step_word_of_two_words_that_both_run_on(void)
 {
     // No terminator and no difference in either fold, so the compare has to keep going.
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, cellul.step_word(word_of("abcdefgh"), word_of("abcdefgh"), MMGR_FALSE, 0));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, cellul.step_word(word_of("abcdefgh"), word_of("abcdefgh"), MMGR_TRUE, 1));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, mmgr_cellul_step_word(word_of("abcdefgh"), word_of("abcdefgh"), MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, mmgr_cellul_step_word(word_of("abcdefgh"), word_of("abcdefgh"), MMGR_TRUE, 1));
 }
 
 void test_step_byte_over_both_foldings_and_both_endings(void)
 {
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, cellul.step_byte('a', 'a', MMGR_FALSE, 0));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, cellul.step_byte('A', 'a', MMGR_TRUE, 0));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_byte('A', 'a', MMGR_FALSE, 0));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_byte('1', '2', MMGR_TRUE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, mmgr_cellul_step_byte('a', 'a', MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, mmgr_cellul_step_byte('A', 'a', MMGR_TRUE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_byte('A', 'a', MMGR_FALSE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_byte('1', '2', MMGR_TRUE, 0));
 
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, cellul.step_byte('\0', '\0', MMGR_FALSE, 0),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, mmgr_cellul_step_byte('\0', '\0', MMGR_FALSE, 0),
                                   "both ending together is a match either way");
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, cellul.step_byte('\0', '\0', MMGR_TRUE, 1));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, mmgr_cellul_step_byte('\0', '\0', MMGR_TRUE, 1));
 
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, cellul.step_byte('\0', 'a', MMGR_FALSE, 1),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, mmgr_cellul_step_byte('\0', 'a', MMGR_FALSE, 1),
                                   "the pattern ending is a match when the end wins");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, cellul.step_byte('\0', 'a', MMGR_FALSE, 0),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, mmgr_cellul_step_byte('\0', 'a', MMGR_FALSE, 0),
                                   "and is not when it does not");
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, cellul.step_byte('\0', 'a', MMGR_TRUE, 1));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, cellul.step_byte('\0', 'a', MMGR_TRUE, 0));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, mmgr_cellul_step_byte('\0', 'a', MMGR_TRUE, 1));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_byte('\0', 'a', MMGR_TRUE, 0));
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -619,16 +621,16 @@ void test_step_byte_over_both_foldings_and_both_endings(void)
 
 void test_diff_finds_the_first_differing_byte(void)
 {
-    TEST_ASSERT_EQUAL_size_t(0u, cellul.diff("abc", "xbc", 3u, MMGR_FALSE));
-    TEST_ASSERT_EQUAL_size_t(1u, cellul.diff("abc", "axc", 3u, MMGR_FALSE));
-    TEST_ASSERT_EQUAL_size_t(2u, cellul.diff("abc", "abx", 3u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellul_diff("abc", "xbc", 3u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t(1u, mmgr_cellul_diff("abc", "axc", 3u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t(2u, mmgr_cellul_diff("abc", "abx", 3u, MMGR_FALSE));
 }
 
 void test_diff_of_runs_that_agree_is_the_whole_run(void)
 {
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(3u, cellul.diff("abc", "abc", 3u, MMGR_FALSE),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(3u, mmgr_cellul_diff("abc", "abc", 3u, MMGR_FALSE),
                                      "no difference means the read cap, not an index");
-    TEST_ASSERT_EQUAL_size_t(0u, cellul.diff("abc", "abc", 0u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellul_diff("abc", "abc", 0u, MMGR_FALSE));
 }
 
 void test_diff_past_the_first_word(void)
@@ -637,15 +639,15 @@ void test_diff_past_the_first_word(void)
     static const char a[] = "the quick brown fox jumps over the lazy dog";
     static const char b[] = "the quick brown fox jumps over the LAZY dog";
 
-    TEST_ASSERT_EQUAL_size_t(35u, cellul.diff(a, b, sizeof a - 1u, MMGR_FALSE));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof a - 1u, cellul.diff(a, b, sizeof a - 1u, MMGR_TRUE),
+    TEST_ASSERT_EQUAL_size_t(35u, mmgr_cellul_diff(a, b, sizeof a - 1u, MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof a - 1u, mmgr_cellul_diff(a, b, sizeof a - 1u, MMGR_TRUE),
                                      "the same pair agrees once case stops counting");
 }
 
 void test_diff_ignoring_case(void)
 {
-    TEST_ASSERT_EQUAL_size_t(3u, cellul.diff("ABCd", "abcX", 4u, MMGR_TRUE));
-    TEST_ASSERT_EQUAL_size_t(0u, cellul.diff("1", "2", 1u, MMGR_TRUE));
+    TEST_ASSERT_EQUAL_size_t(3u, mmgr_cellul_diff("ABCd", "abcX", 4u, MMGR_TRUE));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellul_diff("1", "2", 1u, MMGR_TRUE));
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -655,15 +657,15 @@ void test_diff_ignoring_case(void)
 void test_to_double_takes_a_leading_plus(void)
 {
     const char *end = NULL;
-    TEST_ASSERT_EQUAL_DOUBLE(2.5, cellul.to_double("+2.5", &end));
+    TEST_ASSERT_EQUAL_DOUBLE(2.5, mmgr_cellul_to_double("+2.5", end));
     TEST_ASSERT_EQUAL_DOUBLE(2.5, strtod("+2.5", NULL));
 }
 
 void test_to_double_takes_a_signed_exponent(void)
 {
-    TEST_ASSERT_EQUAL_DOUBLE(strtod("1e+3", NULL), cellul.to_double("1e+3", NULL));
-    TEST_ASSERT_EQUAL_DOUBLE(strtod("1e-3", NULL), cellul.to_double("1e-3", NULL));
-    TEST_ASSERT_EQUAL_DOUBLE(strtod("1e3", NULL), cellul.to_double("1e3", NULL));
+    TEST_ASSERT_EQUAL_DOUBLE(strtod("1e+3", NULL), mmgr_cellul_to_double("1e+3", mmgr_cellul_nowhere));
+    TEST_ASSERT_EQUAL_DOUBLE(strtod("1e-3", NULL), mmgr_cellul_to_double("1e-3", mmgr_cellul_nowhere));
+    TEST_ASSERT_EQUAL_DOUBLE(strtod("1e3", NULL), mmgr_cellul_to_double("1e3", mmgr_cellul_nowhere));
 }
 
 void test_to_double_clamps_an_absurd_exponent(void)
@@ -671,7 +673,7 @@ void test_to_double_clamps_an_absurd_exponent(void)
     // The exponent accumulator stops climbing long before it could overflow, so a run of digits
     // that no double can hold still terminates and still consumes the whole run.
     const char *end = NULL;
-    const double v = cellul.to_double("1e999999", &end);
+    const double v = mmgr_cellul_to_double("1e999999", end);
 
     TEST_ASSERT_TRUE_MESSAGE(v > 1.0e300 || v != v, "an exponent past the range does not come back small");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(8u, (size_t)(end - (const char *)"1e999999"),
@@ -680,13 +682,13 @@ void test_to_double_clamps_an_absurd_exponent(void)
 
 void test_to_double_of_a_negative_absurd_exponent(void)
 {
-    TEST_ASSERT_EQUAL_DOUBLE(0.0, cellul.to_double("1e-999999", NULL));
+    TEST_ASSERT_EQUAL_DOUBLE(0.0, mmgr_cellul_to_double("1e-999999", mmgr_cellul_nowhere));
 }
 
 void test_to_float_narrows_what_to_double_parses(void)
 {
-    TEST_ASSERT_EQUAL_FLOAT(2.5f, cellul.to_float("2.5", NULL));
-    TEST_ASSERT_EQUAL_FLOAT((float)strtod("-0.125", NULL), cellul.to_float("-0.125", NULL));
+    TEST_ASSERT_EQUAL_FLOAT(2.5f, mmgr_cellul_to_float("2.5", mmgr_cellul_nowhere));
+    TEST_ASSERT_EQUAL_FLOAT((float)strtod("-0.125", NULL), mmgr_cellul_to_float("-0.125", mmgr_cellul_nowhere));
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -705,9 +707,9 @@ void test_starts_when_the_read_cap_ends_first(void)
     static const char pre[16] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
     static const char s[16] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
 
-    TEST_ASSERT_TRUE_MESSAGE(cellul.starts(s, pre, sizeof pre, MMGR_FALSE),
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_starts(s, pre, sizeof pre, MMGR_FALSE),
                              "they agreed for every byte that could be read");
-    TEST_ASSERT_TRUE_MESSAGE(cellul.starts(s, pre, sizeof pre, MMGR_TRUE), "and the same ignoring case");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_starts(s, pre, sizeof pre, MMGR_TRUE), "and the same ignoring case");
 }
 
 void test_eq_when_the_read_cap_ends_first(void)
@@ -720,8 +722,8 @@ void test_eq_when_the_read_cap_ends_first(void)
     // two agree for every byte inside the cap and neither of them ends, so neither has been shown
     // to be a whole string and the answer is no whichever way case is counted. starts asks the
     // weaker question and says yes to the same pair.
-    TEST_ASSERT_FALSE_MESSAGE(cellul.eq(a, b2, sizeof a, MMGR_FALSE), "case counts, and there is no terminator");
-    TEST_ASSERT_FALSE_MESSAGE(cellul.eq(a, b2, sizeof a, MMGR_TRUE),
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_cellul_eq(a, b2, sizeof a, MMGR_FALSE), "case counts, and there is no terminator");
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_cellul_eq(a, b2, sizeof a, MMGR_TRUE),
                               "case does not count, and there is still no terminator");
 }
 
@@ -732,8 +734,8 @@ void test_starts_finds_a_difference_with_no_terminator_in_the_word(void)
     static const char pre[16] = {'a', 'b', 'X', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
     static const char s[16] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
 
-    TEST_ASSERT_FALSE(cellul.starts(s, pre, sizeof pre, MMGR_FALSE));
-    TEST_ASSERT_FALSE(cellul.starts(s, pre, sizeof pre, MMGR_TRUE));
+    TEST_ASSERT_FALSE(mmgr_cellul_starts(s, pre, sizeof pre, MMGR_FALSE));
+    TEST_ASSERT_FALSE(mmgr_cellul_starts(s, pre, sizeof pre, MMGR_TRUE));
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -756,7 +758,7 @@ static uint64_t bits_of(double v)
 /** @brief Parse and compare against the pattern the platform's own reader produces. */
 static void same_as_strtod(const char *s)
 {
-    const double got = cellul.to_double(s, NULL);
+    const double got = mmgr_cellul_to_double(s, mmgr_cellul_nowhere);
     const double want = strtod(s, NULL);
 
     if (bits_of(got) != bits_of(want))
@@ -819,14 +821,14 @@ void test_the_subnormals(void)
 
 void test_underflow_and_overflow(void)
 {
-    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(0.0, cellul.to_double("1e-400", NULL), "past the bottom is zero");
-    TEST_ASSERT_EQUAL_DOUBLE(0.0, cellul.to_double("1e-1000", NULL));
-    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(-0.0, cellul.to_double("-1e-1000", NULL), "and keeps its sign");
+    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(0.0, mmgr_cellul_to_double("1e-400", mmgr_cellul_nowhere), "past the bottom is zero");
+    TEST_ASSERT_EQUAL_DOUBLE(0.0, mmgr_cellul_to_double("1e-1000", mmgr_cellul_nowhere));
+    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(-0.0, mmgr_cellul_to_double("-1e-1000", mmgr_cellul_nowhere), "and keeps its sign");
 
-    const double up = cellul.to_double("1e400", NULL);
+    const double up = mmgr_cellul_to_double("1e400", mmgr_cellul_nowhere);
     TEST_ASSERT_TRUE_MESSAGE(up > 1.0e308, "past the top is an infinity");
-    TEST_ASSERT_TRUE(cellul.to_double("1e1000", NULL) > 1.0e308);
-    TEST_ASSERT_TRUE(cellul.to_double("-1e1000", NULL) < -1.0e308);
+    TEST_ASSERT_TRUE(mmgr_cellul_to_double("1e1000", mmgr_cellul_nowhere) > 1.0e308);
+    TEST_ASSERT_TRUE(mmgr_cellul_to_double("-1e1000", mmgr_cellul_nowhere) < -1.0e308);
 }
 
 void test_more_digits_than_the_mantissa_can_hold(void)
@@ -883,7 +885,7 @@ void test_the_conversion_over_random_bit_patterns(void)
         }
         (void)snprintf(s, sizeof s, "%.17g", v);
 
-        const double got = cellul.to_double(s, NULL);
+        const double got = mmgr_cellul_to_double(s, mmgr_cellul_nowhere);
         if (bits_of(got) != bits_of(v))
         {
             char msg[160];
@@ -923,7 +925,7 @@ void test_the_conversion_over_strobed_bits(void)
         }
         (void)snprintf(s, sizeof s, "%.17g", v);
 
-        const double got = cellul.to_double(s, NULL);
+        const double got = mmgr_cellul_to_double(s, mmgr_cellul_nowhere);
         if (bits_of(got) != bits_of(v))
         {
             char msg[160];
@@ -938,15 +940,15 @@ void test_the_ends_of_the_range_through_the_table(void)
 {
     // These do not take the shortcut at the top of the scaling - their exponents are inside what
     // the tables reach, so they go all the way through the fraction and come out at the edges.
-    const double over = cellul.to_double("1.8e308", NULL);
+    const double over = mmgr_cellul_to_double("1.8e308", mmgr_cellul_nowhere);
     TEST_ASSERT_TRUE_MESSAGE(over > 1.7976931348623157e308, "just past the largest double is an infinity");
-    TEST_ASSERT_TRUE(cellul.to_double("-1.8e308", NULL) < -1.7976931348623157e308);
+    TEST_ASSERT_TRUE(mmgr_cellul_to_double("-1.8e308", mmgr_cellul_nowhere) < -1.7976931348623157e308);
 
     // Below the smallest subnormal, but with an exponent the tables still carry, so the mantissa
     // is shifted down until there is nothing left of it.
-    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(0.0, cellul.to_double("1e-330", NULL), "below the smallest subnormal is zero");
-    TEST_ASSERT_EQUAL_DOUBLE(0.0, cellul.to_double("4.9e-330", NULL));
-    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(-0.0, cellul.to_double("-1e-330", NULL), "and keeps its sign on the way");
+    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(0.0, mmgr_cellul_to_double("1e-330", mmgr_cellul_nowhere), "below the smallest subnormal is zero");
+    TEST_ASSERT_EQUAL_DOUBLE(0.0, mmgr_cellul_to_double("4.9e-330", mmgr_cellul_nowhere));
+    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(-0.0, mmgr_cellul_to_double("-1e-330", mmgr_cellul_nowhere), "and keeps its sign on the way");
 }
 
 void test_a_subnormal_that_rounds_up_into_the_normals(void)
@@ -973,10 +975,11 @@ void test_rd_str_reads_a_length_prefixed_run(void)
     const uint8_t *s = NULL;
     uint32_t slen = 0;
 
-    TEST_ASSERT_TRUE(cellul.rd_str(buf, sizeof buf, &off, &s, &slen));
+    TEST_ASSERT_TRUE(mmgr_cellul_rd_str(buf, sizeof buf, off, s, slen));
     TEST_ASSERT_EQUAL_UINT32(3u, slen);
     TEST_ASSERT_EQUAL_PTR(buf + 4, s);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(7u, off, "the offset lands past the run, ready for the next field");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(7u, (size_t)(s - buf) + slen,
+                                     "the offset lands past the run, ready for the next field");
 }
 
 void test_rd_str_reads_an_empty_run(void)
@@ -986,9 +989,9 @@ void test_rd_str_reads_an_empty_run(void)
     const uint8_t *s = NULL;
     uint32_t slen = 9u;
 
-    TEST_ASSERT_TRUE(cellul.rd_str(buf, sizeof buf, &off, &s, &slen));
+    TEST_ASSERT_TRUE(mmgr_cellul_rd_str(buf, sizeof buf, off, s, slen));
     TEST_ASSERT_EQUAL_UINT32(0u, slen);
-    TEST_ASSERT_EQUAL_size_t(4u, off);
+    TEST_ASSERT_EQUAL_size_t(4u, (size_t)(s - buf) + slen);
 }
 
 void test_rd_str_rewinds_when_the_run_is_cut_short(void)
@@ -998,7 +1001,7 @@ void test_rd_str_rewinds_when_the_run_is_cut_short(void)
     const uint8_t *s = NULL;
     uint32_t slen = 0;
 
-    TEST_ASSERT_FALSE_MESSAGE(cellul.rd_str(buf, sizeof buf, &off, &s, &slen), "the length claims nine, two are there");
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_cellul_rd_str(buf, sizeof buf, off, s, slen), "the length claims nine, two are there");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, off, "the offset is put back where it started, not left mid field");
 }
 
@@ -1009,7 +1012,7 @@ void test_rd_str_refuses_a_missing_length(void)
     const uint8_t *s = NULL;
     uint32_t slen = 0;
 
-    TEST_ASSERT_FALSE(cellul.rd_str(buf, sizeof buf, &off, &s, &slen));
+    TEST_ASSERT_FALSE(mmgr_cellul_rd_str(buf, sizeof buf, off, s, slen));
     TEST_ASSERT_EQUAL_size_t(0u, off);
 }
 
@@ -1024,7 +1027,7 @@ void test_rd_str_refuses_a_cursor_already_past_the_end(void)
     const uint8_t *s = NULL;
     uint32_t slen = 0;
 
-    TEST_ASSERT_FALSE(cellul.rd_str(buf, sizeof buf, &off, &s, &slen));
+    TEST_ASSERT_FALSE(mmgr_cellul_rd_str(buf, sizeof buf, off, s, slen));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof buf + 1u, off, "a refused read leaves the cursor alone");
     TEST_ASSERT_NULL(s);
 }
@@ -1038,7 +1041,7 @@ void test_mpint_fixed_right_aligns_and_pads(void)
     static const uint8_t m[2] = {0x12u, 0x34u};
     uint8_t out[4] = {0xFFu, 0xFFu, 0xFFu, 0xFFu};
 
-    TEST_ASSERT_TRUE(cellul.mpint_fixed(m, sizeof m, out, sizeof out));
+    TEST_ASSERT_TRUE(mmgr_cellul_mpint_fixed(m, sizeof m, out, sizeof out));
     TEST_ASSERT_EQUAL_HEX8(0x00u, out[0]);
     TEST_ASSERT_EQUAL_HEX8(0x00u, out[1]);
     TEST_ASSERT_EQUAL_HEX8(0x12u, out[2]);
@@ -1051,7 +1054,7 @@ void test_mpint_fixed_drops_the_sign_padding(void)
     static const uint8_t m[3] = {0x00u, 0x80u, 0x01u};
     uint8_t out[2] = {0xFFu, 0xFFu};
 
-    TEST_ASSERT_TRUE(cellul.mpint_fixed(m, sizeof m, out, sizeof out));
+    TEST_ASSERT_TRUE(mmgr_cellul_mpint_fixed(m, sizeof m, out, sizeof out));
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x80u, out[0], "the leading zero is not part of the value");
     TEST_ASSERT_EQUAL_HEX8(0x01u, out[1]);
 }
@@ -1061,7 +1064,7 @@ void test_mpint_fixed_of_an_exact_width(void)
     static const uint8_t m[2] = {0xABu, 0xCDu};
     uint8_t out[2] = {0};
 
-    TEST_ASSERT_TRUE(cellul.mpint_fixed(m, sizeof m, out, sizeof out));
+    TEST_ASSERT_TRUE(mmgr_cellul_mpint_fixed(m, sizeof m, out, sizeof out));
     TEST_ASSERT_EQUAL_HEX8(0xABu, out[0]);
     TEST_ASSERT_EQUAL_HEX8(0xCDu, out[1]);
 }
@@ -1071,7 +1074,7 @@ void test_mpint_fixed_of_zero_is_all_zero(void)
     static const uint8_t m[3] = {0u, 0u, 0u};
     uint8_t out[4] = {1u, 2u, 3u, 4u};
 
-    TEST_ASSERT_TRUE(cellul.mpint_fixed(m, sizeof m, out, sizeof out));
+    TEST_ASSERT_TRUE(mmgr_cellul_mpint_fixed(m, sizeof m, out, sizeof out));
     for (unsigned i = 0; i < 4u; i++)
     {
         TEST_ASSERT_EQUAL_HEX8(0u, out[i]);
@@ -1083,7 +1086,7 @@ void test_mpint_fixed_refuses_a_value_too_wide(void)
     static const uint8_t m[4] = {0x11u, 0x22u, 0x33u, 0x44u};
     uint8_t out[2] = {0xFFu, 0xFFu};
 
-    TEST_ASSERT_FALSE_MESSAGE(cellul.mpint_fixed(m, sizeof m, out, sizeof out), "four bytes do not fit in two");
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_cellul_mpint_fixed(m, sizeof m, out, sizeof out), "four bytes do not fit in two");
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xFFu, out[0], "a refused conversion leaves the output alone");
 }
 

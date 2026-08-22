@@ -216,7 +216,7 @@ MMGR_INLINE size_t numer_emit(NumerCtx *c)
  */
 MMGR_INLINE size_t numer_used(const NumerCtx *c)
 {
-    return cellul.len(c->out, c->cap);
+    return mmgr_cellul_len(c->out, c->cap);
 }
 
 size_t mmgr_numer_build(char *out, size_t cap, const mmgr_field *spec, const mmgr_fval *v, size_t nv)
