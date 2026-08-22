@@ -2,3 +2,4 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 add_subdirectory(test_confinium_exclusivum_infinitas)
+add_subdirectory(test_iteratio_infinita_keepout)

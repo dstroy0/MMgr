@@ -66,6 +66,12 @@ function(mmgr_add_module name)
     # mmgr_config.h resolves with the same single -I. A consumer of this library adds one directory.
     target_include_directories(${target} ${scope} "${MMGR_INCLUDE_DIR}")
 
+    # Capabilities ride the module target, not mmgr_flags, because a suite links the module and
+    # deliberately does not link mmgr_flags. On mmgr_flags the define would reach src/ and not the
+    # cases that exercise it, so a suite could be built believing a feature absent that the library
+    # was compiled with - which is a disagreement that shows up as a test failing for no reason.
+    list(APPEND defs MMGR_ENABLE_KEEPOUT=$<BOOL:${MMGR_ENABLE_KEEPOUT}>)
+
     if(NOT defs STREQUAL "")
       target_compile_definitions(${target} ${scope} ${defs})
     endif()

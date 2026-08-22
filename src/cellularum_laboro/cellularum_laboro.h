@@ -39,9 +39,11 @@ typedef struct
     unsigned long (*to_ulong)(const char *s, const char **end);
     double (*to_double)(const char *s, const char **end);
     float (*to_float)(const char *s, const char **end);
+    mmgr_bool (*rd_str)(const uint8_t *p, size_t len, size_t *off, const uint8_t **out, uint32_t *slen);
+    mmgr_bool (*mpint_fixed)(const uint8_t *m, uint32_t mlen, uint8_t *out, size_t outlen);
 } CellularumLaboroNs;
 MMGR_NS_LAYOUT(CellularumLaboroNs, len, diff, eq, starts, find, has, chr, copy, step_word, step_byte, ws, digit,
-               to_long, to_ulong, to_double, to_float);
+               to_long, to_ulong, to_double, to_float, rd_str, mpint_fixed);
 
 /** @name The entries the table points at.
  *  @brief Nameable so a static const table can name them, and for no other reason. The table is
@@ -63,6 +65,8 @@ long mmgr_cellul_to_long(const char *s, const char **end);
 unsigned long mmgr_cellul_to_ulong(const char *s, const char **end);
 double mmgr_cellul_to_double(const char *s, const char **end);
 float mmgr_cellul_to_float(const char *s, const char **end);
+mmgr_bool mmgr_cellul_rd_str(const uint8_t *p, size_t len, size_t *off, const uint8_t **out, uint32_t *slen);
+mmgr_bool mmgr_cellul_mpint_fixed(const uint8_t *m, uint32_t mlen, uint8_t *out, size_t outlen);
 /** @} */
 
 /**
@@ -89,6 +93,8 @@ MMGR_NS CellularumLaboroNs cellul MMGR_UNUSED = {
     .to_ulong = mmgr_cellul_to_ulong,
     .to_double = mmgr_cellul_to_double,
     .to_float = mmgr_cellul_to_float,
+    .rd_str = mmgr_cellul_rd_str,
+    .mpint_fixed = mmgr_cellul_mpint_fixed,
 };
 
 MMGR_FINIS_DECLS

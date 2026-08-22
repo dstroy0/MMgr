@@ -86,6 +86,16 @@ extern void test_the_conversion_over_random_bit_patterns(void);
 extern void test_the_conversion_over_strobed_bits(void);
 extern void test_the_ends_of_the_range_through_the_table(void);
 extern void test_a_subnormal_that_rounds_up_into_the_normals(void);
+extern void test_rd_str_reads_a_length_prefixed_run(void);
+extern void test_rd_str_reads_an_empty_run(void);
+extern void test_rd_str_rewinds_when_the_run_is_cut_short(void);
+extern void test_rd_str_refuses_a_missing_length(void);
+extern void test_rd_str_refuses_a_cursor_already_past_the_end(void);
+extern void test_mpint_fixed_right_aligns_and_pads(void);
+extern void test_mpint_fixed_drops_the_sign_padding(void);
+extern void test_mpint_fixed_of_an_exact_width(void);
+extern void test_mpint_fixed_of_zero_is_all_zero(void);
+extern void test_mpint_fixed_refuses_a_value_too_wide(void);
 
 
 /*=======Mock Management=====*/
@@ -224,6 +234,16 @@ int main(void)
   run_test(test_the_conversion_over_strobed_bits, "test_the_conversion_over_strobed_bits", 897);
   run_test(test_the_ends_of_the_range_through_the_table, "test_the_ends_of_the_range_through_the_table", 937);
   run_test(test_a_subnormal_that_rounds_up_into_the_normals, "test_a_subnormal_that_rounds_up_into_the_normals", 952);
+  run_test(test_rd_str_reads_a_length_prefixed_run, "test_rd_str_reads_a_length_prefixed_run", 969);
+  run_test(test_rd_str_reads_an_empty_run, "test_rd_str_reads_an_empty_run", 982);
+  run_test(test_rd_str_rewinds_when_the_run_is_cut_short, "test_rd_str_rewinds_when_the_run_is_cut_short", 994);
+  run_test(test_rd_str_refuses_a_missing_length, "test_rd_str_refuses_a_missing_length", 1005);
+  run_test(test_rd_str_refuses_a_cursor_already_past_the_end, "test_rd_str_refuses_a_cursor_already_past_the_end", 1016);
+  run_test(test_mpint_fixed_right_aligns_and_pads, "test_mpint_fixed_right_aligns_and_pads", 1036);
+  run_test(test_mpint_fixed_drops_the_sign_padding, "test_mpint_fixed_drops_the_sign_padding", 1048);
+  run_test(test_mpint_fixed_of_an_exact_width, "test_mpint_fixed_of_an_exact_width", 1059);
+  run_test(test_mpint_fixed_of_zero_is_all_zero, "test_mpint_fixed_of_zero_is_all_zero", 1069);
+  run_test(test_mpint_fixed_refuses_a_value_too_wide, "test_mpint_fixed_refuses_a_value_too_wide", 1081);
 
   return UNITY_END();
 }

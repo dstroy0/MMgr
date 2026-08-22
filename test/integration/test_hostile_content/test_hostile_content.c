@@ -4,7 +4,7 @@
 // Adversarial content, inside legitimate bounds.
 //
 // Every size this library takes is the caller's own and is bound at compile time - a tenant is
-// MMGR_CONFIN_SIZE, a scan is MMGR_CONFIN_MAX, and a request that does not fit is a static assert
+// MMGR_CARCER_SIZE, a scan is MMGR_CARCER_MAX, and a request that does not fit is a static assert
 // and not a runtime case. So there is nothing to learn from feeding a nonsense size to an entry
 // that was never going to be handed one. What does arrive from outside is the bytes, and this file
 // is about the bytes.

@@ -17,6 +17,14 @@ option(MMGR_BUILD_BENCH "Build the benchmarks" OFF)
 option(MMGR_WERROR "Treat warnings as errors" OFF)
 option(MMGR_LTO "Link-time optimization" ON)
 
+# A hardware capability, like the DMA engine: a part either has somewhere to defer work to or it
+# does not. Off, the ring carries no reservation code at all - not a branch that is always false.
+#
+# Unlike MMGR_ENABLE_DMA this reaches the compiler as well as the suite map. A capability that only
+# gates which suites are built decides what is tested and not what is compiled, which is the wrong
+# half: the code under test is the same either way.
+option(MMGR_ENABLE_KEEPOUT "Build the ring's keepout reservations" OFF)
+
 # Test only. Points every namespace entry that has a libc equivalent at libc, so the whole suite
 # runs against libc unchanged and any disagreement is a finding. libc is the oracle: a str or mem
 # entry that has shipped for decades has been beaten on harder than anything written here.

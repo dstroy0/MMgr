@@ -2,47 +2,27 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
-#include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_infin_header_is_self_contained(void);
+extern void test_init_takes_a_ring_the_consumer_owns(void);
+extern void test_init_refuses_a_capacity_that_is_not_a_power_of_two(void);
+extern void test_init_refuses_more_segments_than_the_word_has_bits(void);
+extern void test_init_refuses_more_segments_than_bytes(void);
 extern void test_a_fresh_ring_is_empty_and_holds_one_byte_back(void);
-extern void test_available_and_free_move_against_each_other(void);
-extern void test_available_counts_across_a_wrap(void);
-extern void test_read_byte_refuses_an_empty_ring(void);
-extern void test_read_byte_takes_one_and_moves_the_tail(void);
-extern void test_read_byte_wraps_the_tail_at_the_end(void);
-extern void test_read_stops_at_the_head(void);
-extern void test_read_stops_at_maxn(void);
-extern void test_read_of_nothing_takes_nothing(void);
-extern void test_read_wraps_around_the_end(void);
+extern void test_open_hands_out_one_cursor(void);
+extern void test_write_moves_what_available_reports(void);
+extern void test_a_raw_read_names_the_bytes_and_consumes_nothing(void);
+extern void test_a_raw_read_of_more_than_is_there_is_null(void);
+extern void test_a_raw_read_of_an_empty_ring_is_null(void);
+extern void test_consume_is_what_moves_the_tail(void);
+extern void test_read_byte_takes_one_and_refuses_an_empty_ring(void);
 extern void test_peek_copies_without_consuming(void);
-extern void test_peek_of_nothing_writes_nothing(void);
-extern void test_peek_wraps_around_the_end(void);
-extern void test_consume_drops_bytes_and_wraps(void);
-extern void test_write_span_of_nothing_leaves_the_head(void);
-extern void test_write_span_fits_without_wrapping(void);
-extern void test_write_span_splits_at_the_end_and_wraps(void);
-extern void test_a_fresh_queue_has_nothing_in_flight(void);
-extern void test_next_hands_out_a_segment_and_publish_makes_it_visible(void);
-extern void test_next_refuses_when_every_segment_is_in_flight(void);
-extern void test_next_wraps_its_index_at_the_segment_count(void);
-extern void test_front_is_empty_until_a_claim_is_published(void);
-extern void test_release_retires_the_oldest_segment(void);
-extern void test_at_indexes_the_segment_store(void);
-extern void test_bit_is_the_loculus_and_zero_past_the_end(void);
-extern void test_all_masks_the_low_loculi_and_saturates(void);
-extern void test_take_claims_once_and_refuses_a_second_holder(void);
-extern void test_take_refuses_an_index_the_bitmap_cannot_hold(void);
-extern void test_drop_lets_a_loculus_be_taken_again(void);
-extern void test_hold_binds_a_region_to_the_loculus(void);
-extern void test_hold_refuses_a_loculus_already_held(void);
-extern void test_mark_and_clear_move_one_loculus(void);
-extern void test_ready_is_marked_and_not_held_and_in_range(void);
-extern void test_ctz_is_the_index_of_the_lowest_set_bit(void);
-extern void test_next_is_the_lowest_set_loculus_or_none(void);
+extern void test_a_write_that_wraps_comes_back_in_order(void);
+extern void test_seek_moves_a_cursor_inside_its_frame(void);
+extern void test_a_drain_is_refused_without_the_capability(void);
 
 
 /*=======Mock Management=====*/
@@ -104,42 +84,23 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/confinium_exclusivum_infinitas/test_confinium_exclusivum_infinitas\\test_confinium_exclusivum_infinitas.c");
-  run_test(test_infin_header_is_self_contained, "test_infin_header_is_self_contained", 64);
-  run_test(test_a_fresh_ring_is_empty_and_holds_one_byte_back, "test_a_fresh_ring_is_empty_and_holds_one_byte_back", 73);
-  run_test(test_available_and_free_move_against_each_other, "test_available_and_free_move_against_each_other", 80);
-  run_test(test_available_counts_across_a_wrap, "test_available_counts_across_a_wrap", 88);
-  run_test(test_read_byte_refuses_an_empty_ring, "test_read_byte_refuses_an_empty_ring", 97);
-  run_test(test_read_byte_takes_one_and_moves_the_tail, "test_read_byte_takes_one_and_moves_the_tail", 106);
-  run_test(test_read_byte_wraps_the_tail_at_the_end, "test_read_byte_wraps_the_tail_at_the_end", 118);
-  run_test(test_read_stops_at_the_head, "test_read_stops_at_the_head", 131);
-  run_test(test_read_stops_at_maxn, "test_read_stops_at_maxn", 143);
-  run_test(test_read_of_nothing_takes_nothing, "test_read_of_nothing_takes_nothing", 155);
-  run_test(test_read_wraps_around_the_end, "test_read_wraps_around_the_end", 166);
-  run_test(test_peek_copies_without_consuming, "test_peek_copies_without_consuming", 179);
-  run_test(test_peek_of_nothing_writes_nothing, "test_peek_of_nothing_writes_nothing", 192);
-  run_test(test_peek_wraps_around_the_end, "test_peek_wraps_around_the_end", 202);
-  run_test(test_consume_drops_bytes_and_wraps, "test_consume_drops_bytes_and_wraps", 214);
-  run_test(test_write_span_of_nothing_leaves_the_head, "test_write_span_of_nothing_leaves_the_head", 227);
-  run_test(test_write_span_fits_without_wrapping, "test_write_span_fits_without_wrapping", 233);
-  run_test(test_write_span_splits_at_the_end_and_wraps, "test_write_span_splits_at_the_end_and_wraps", 240);
-  run_test(test_a_fresh_queue_has_nothing_in_flight, "test_a_fresh_queue_has_nothing_in_flight", 256);
-  run_test(test_next_hands_out_a_segment_and_publish_makes_it_visible, "test_next_hands_out_a_segment_and_publish_makes_it_visible", 261);
-  run_test(test_next_refuses_when_every_segment_is_in_flight, "test_next_refuses_when_every_segment_is_in_flight", 272);
-  run_test(test_next_wraps_its_index_at_the_segment_count, "test_next_wraps_its_index_at_the_segment_count", 287);
-  run_test(test_front_is_empty_until_a_claim_is_published, "test_front_is_empty_until_a_claim_is_published", 301);
-  run_test(test_release_retires_the_oldest_segment, "test_release_retires_the_oldest_segment", 315);
-  run_test(test_at_indexes_the_segment_store, "test_at_indexes_the_segment_store", 336);
-  run_test(test_bit_is_the_loculus_and_zero_past_the_end, "test_bit_is_the_loculus_and_zero_past_the_end", 346);
-  run_test(test_all_masks_the_low_loculi_and_saturates, "test_all_masks_the_low_loculi_and_saturates", 354);
-  run_test(test_take_claims_once_and_refuses_a_second_holder, "test_take_claims_once_and_refuses_a_second_holder", 362);
-  run_test(test_take_refuses_an_index_the_bitmap_cannot_hold, "test_take_refuses_an_index_the_bitmap_cannot_hold", 369);
-  run_test(test_drop_lets_a_loculus_be_taken_again, "test_drop_lets_a_loculus_be_taken_again", 375);
-  run_test(test_hold_binds_a_region_to_the_loculus, "test_hold_binds_a_region_to_the_loculus", 383);
-  run_test(test_hold_refuses_a_loculus_already_held, "test_hold_refuses_a_loculus_already_held", 393);
-  run_test(test_mark_and_clear_move_one_loculus, "test_mark_and_clear_move_one_loculus", 405);
-  run_test(test_ready_is_marked_and_not_held_and_in_range, "test_ready_is_marked_and_not_held_and_in_range", 416);
-  run_test(test_ctz_is_the_index_of_the_lowest_set_bit, "test_ctz_is_the_index_of_the_lowest_set_bit", 427);
-  run_test(test_next_is_the_lowest_set_loculus_or_none, "test_next_is_the_lowest_set_loculus_or_none", 435);
+  run_test(test_infin_header_is_self_contained, "test_infin_header_is_self_contained", 41);
+  run_test(test_init_takes_a_ring_the_consumer_owns, "test_init_takes_a_ring_the_consumer_owns", 46);
+  run_test(test_init_refuses_a_capacity_that_is_not_a_power_of_two, "test_init_refuses_a_capacity_that_is_not_a_power_of_two", 52);
+  run_test(test_init_refuses_more_segments_than_the_word_has_bits, "test_init_refuses_more_segments_than_the_word_has_bits", 60);
+  run_test(test_init_refuses_more_segments_than_bytes, "test_init_refuses_more_segments_than_bytes", 69);
+  run_test(test_a_fresh_ring_is_empty_and_holds_one_byte_back, "test_a_fresh_ring_is_empty_and_holds_one_byte_back", 75);
+  run_test(test_open_hands_out_one_cursor, "test_open_hands_out_one_cursor", 82);
+  run_test(test_write_moves_what_available_reports, "test_write_moves_what_available_reports", 88);
+  run_test(test_a_raw_read_names_the_bytes_and_consumes_nothing, "test_a_raw_read_names_the_bytes_and_consumes_nothing", 99);
+  run_test(test_a_raw_read_of_more_than_is_there_is_null, "test_a_raw_read_of_more_than_is_there_is_null", 113);
+  run_test(test_a_raw_read_of_an_empty_ring_is_null, "test_a_raw_read_of_an_empty_ring_is_null", 122);
+  run_test(test_consume_is_what_moves_the_tail, "test_consume_is_what_moves_the_tail", 128);
+  run_test(test_read_byte_takes_one_and_refuses_an_empty_ring, "test_read_byte_takes_one_and_refuses_an_empty_ring", 138);
+  run_test(test_peek_copies_without_consuming, "test_peek_copies_without_consuming", 154);
+  run_test(test_a_write_that_wraps_comes_back_in_order, "test_a_write_that_wraps_comes_back_in_order", 168);
+  run_test(test_seek_moves_a_cursor_inside_its_frame, "test_seek_moves_a_cursor_inside_its_frame", 189);
+  run_test(test_a_drain_is_refused_without_the_capability, "test_a_drain_is_refused_without_the_capability", 200);
 
   return UNITY_END();
 }

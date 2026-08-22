@@ -6,6 +6,8 @@
 #include "transformo/transformo.h"
 #include "fractio/fractio.h"
 #include "verbum_scrutor/verbum_scrutor.h"
+#include "endian/endian.h"
+#include "memoria_operor/memoria_operor.h"
 
 /**
  * @file cellularum_laboro.c
@@ -54,6 +56,17 @@ typedef struct
     const char **end; /**< Where parsing stopped. May be NULL. */
     const char **p;   /**< Cursor, for the exponent. */
     int *out;         /**< The exponent, signed. */
+
+    /* the wire readers */
+    const uint8_t *buf;   /**< The buffer being parsed. */
+    size_t len;           /**< How far it may go. */
+    size_t *cursor;       /**< Where parsing has reached. */
+    const uint8_t **str;  /**< Where a borrowed string is handed back. */
+    uint32_t *slen;       /**< And its length. */
+    const uint8_t *m;     /**< The multiprecision integer. */
+    uint32_t mlen;        /**< Its length. */
+    uint8_t *field;       /**< The fixed width field it goes into. */
+    size_t fieldlen;      /**< That field's width. */
 } CellulCtx;
 
 /**
@@ -1133,4 +1146,79 @@ double mmgr_cellul_to_double(const char *s, const char **end)
 float mmgr_cellul_to_float(const char *s, const char **end)
 {
     return MMGR_CALL(cellul_to_float, CellulCtx, .s = s, .end = end);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * The wire readers
+ *
+ * These two came from octetus_introitus_exitus, which moves fixed width scalars in a chosen byte
+ * order and nothing else. They are not that. A length prefixed string takes its length from the
+ * data, which is the one quantity in this library that is not settled where the call is written -
+ * so it is the only entry here that can fail, and the only one carrying a bound it has to check at
+ * run time. An mpint does not move bytes at all, it reinterprets them: strip the leading zero a
+ * signed encoding put there, then right align what is left in a fixed field.
+ *
+ * They sit here because this is where parsing lives, and because their argument shape is already
+ * this module's - a buffer, how far it may be read, and where reading has reached.
+ * ------------------------------------------------------------------------------------------- */
+
+/**
+ * @brief Read a length prefixed string.
+ * @param c In/out. The parse.
+ * @return MMGR_FALSE if the length or the body runs past the end, with the cursor left where it was.
+ */
+MMGR_INLINE mmgr_bool cellul_rd_str(CellulCtx *c)
+{
+    const size_t start = *c->cursor;
+
+    if ((*c->cursor > c->len) || ((c->len - *c->cursor) < 4u))
+    {
+        return MMGR_FALSE;
+    }
+    const uint32_t n = (uint32_t)magna_extremitas.rd(&(EndianCfg){0, c->buf + *c->cursor, 0, MMGR_ENDIAN_32});
+    *c->cursor += 4u;
+
+    if (n > (c->len - *c->cursor))
+    {
+        *c->cursor = start;
+        return MMGR_FALSE;
+    }
+    *c->str = c->buf + *c->cursor;
+    *c->slen = n;
+    *c->cursor += n;
+    return MMGR_TRUE;
+}
+
+/**
+ * @brief Right align a multiprecision integer in a fixed width field.
+ * @param c In/out. The conversion.
+ * @return MMGR_FALSE if the value does not fit the field.
+ */
+MMGR_INLINE mmgr_bool cellul_mpint_fixed(CellulCtx *c)
+{
+    uint32_t off = 0;
+
+    while ((off < c->mlen) && (c->m[off] == 0))
+    {
+        off++;
+    }
+
+    const uint32_t vlen = c->mlen - off;
+    if (vlen > c->fieldlen)
+    {
+        return MMGR_FALSE;
+    }
+    memor.set(c->field, 0, c->fieldlen);
+    memor.cpy(c->field + (c->fieldlen - vlen), c->m + off, vlen);
+    return MMGR_TRUE;
+}
+
+mmgr_bool mmgr_cellul_rd_str(const uint8_t *p, size_t len, size_t *off, const uint8_t **out, uint32_t *slen)
+{
+    return MMGR_CALL(cellul_rd_str, CellulCtx, .buf = p, .len = len, .cursor = off, .str = out, .slen = slen);
+}
+
+mmgr_bool mmgr_cellul_mpint_fixed(const uint8_t *m, uint32_t mlen, uint8_t *out, size_t outlen)
+{
+    return MMGR_CALL(cellul_mpint_fixed, CellulCtx, .m = m, .mlen = mlen, .field = out, .fieldlen = outlen);
 }

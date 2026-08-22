@@ -193,7 +193,7 @@
 /**
  * @brief Pin the dispatch loculi of a table that carries state after its entries.
  *
- * clarus and occultum each keep a pointer to their own internals behind the dispatch run. sizeof
+ * custodia_soluta and custodia_secura each keep a pointer to their own internals behind the dispatch run. sizeof
  * cannot pin the count there because the tail is not function pointers, so @p tail names the first
  * member after the run and its offset does the same job: insert or drop an entry and the tail
  * moves, which fails.

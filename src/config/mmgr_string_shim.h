@@ -47,7 +47,7 @@
  * a memory mapped region - sets this itself.
  */
 #ifndef MMGR_STR_MAX
-#define MMGR_STR_MAX MMGR_CONFIN_MAX
+#define MMGR_STR_MAX MMGR_CARCER_MAX
 #endif
 
 /*

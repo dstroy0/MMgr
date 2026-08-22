@@ -8,4 +8,6 @@ mmgr_add_module(cellularum_laboro
     verbum_scrutor
     impensa_ancorae_acus
     ascii_persona_bitorum
+    endian
+    memoria_operor
 )

@@ -34,18 +34,37 @@ typedef struct
     size_t pos;   /**< How far along it we are. */
 } mmgr_spat;
 
+/**
+ * @brief What a span is made from.
+ *
+ * Public, and in the header, because the caller is what builds it: the values go in declaration
+ * order and the ones left out are zero.
+ *
+ * Neither the span nor the module's context. mmgr_spat is what comes back and SpatCtx is what the
+ * body works with; this is only what goes in. Three types where a flat argument list would have
+ * been one is the price of the entry taking one parameter, and it is paid once, here.
+ *
+ * Both members are const. Nothing writes to a config once the caller has built it, and the
+ * compound literal is gone before there is code to write to it.
+ */
+typedef struct
+{
+    uint8_t *const buf; /**< The memory the span will view. */
+    const size_t cap;   /**< Its size. */
+} SpatCfg;
+
 /** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
 typedef struct
 {
-    mmgr_spat (*from)(uint8_t *buf, size_t cap);
+    mmgr_spat (*init)(const SpatCfg *c);
 } SpatiumNs;
-MMGR_NS_LAYOUT(SpatiumNs, from);
+MMGR_NS_LAYOUT(SpatiumNs, init);
 
 /** @name The entries the table points at.
  *  @brief Nameable so a static const table can name them, and for no other reason. The table is
  *         still the whole surface: call through it.
  *  @{ */
-mmgr_spat mmgr_spat_from(uint8_t *buf, size_t cap);
+mmgr_spat mmgr_spat_init(const SpatCfg *c);
 /** @} */
 
 /**
@@ -56,7 +75,7 @@ mmgr_spat mmgr_spat_from(uint8_t *buf, size_t cap);
  * translation unit and every call is a load and an indirect jump.
  */
 MMGR_NS SpatiumNs spat MMGR_UNUSED = {
-    .from = mmgr_spat_from,
+    .init = mmgr_spat_init,
 };
 
 MMGR_FINIS_DECLS

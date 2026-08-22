@@ -9,9 +9,10 @@
  * Every entry below takes one parameter, a pointer to SpatCtx. Making a span is a buffer and how
  * big it is, so those are one context.
  *
- * The context is file local. What a span is built from is nobody else's type: the header declares
- * the entry with the caller's own argument list, and the aggregate exists only between the entry
- * and the body, where the compound literal in MMGR_CALL folds it away.
+ * The context is file local and stays that way. SpatCfg in the header wears the same two fields and
+ * is not this: that one is what the caller hands over, this one is what the body works with. They
+ * are the same shape today and nothing says they stay that way - which is the point of their being
+ * two types. A header that shows this one has published the module's insides for good.
  */
 
 /** @brief One span being built. */
@@ -59,7 +60,7 @@ MMGR_INLINE mmgr_spat spat_from(const SpatCtx *c)
    every call from another translation unit is a load of the table, a load of the entry, and an
    indirect call it cannot see through. */
 
-mmgr_spat mmgr_spat_from(uint8_t *buf, size_t cap)
+mmgr_spat mmgr_spat_init(const SpatCfg *c)
 {
-    return MMGR_CALL(spat_from, SpatCtx, .buf = buf, .cap = cap);
+    return MMGR_CALL(spat_from, SpatCtx, .buf = c->buf, .cap = c->cap);
 }

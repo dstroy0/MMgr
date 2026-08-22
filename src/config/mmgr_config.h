@@ -89,11 +89,11 @@
  * mem[MMGR_PLAINTEXT_CONFIN_SIZE], and a string lives inside one tenant's
  * confinium. The buffer is that times the loculus count and no string ever spans it.
  */
-#ifndef MMGR_CONFIN_MAX
+#ifndef MMGR_CARCER_MAX
 #if MMGR_PLAINTEXT_CONFIN_SIZE >= MMGR_SECURE_CONFIN_SIZE
-#define MMGR_CONFIN_MAX ((size_t)MMGR_PLAINTEXT_CONFIN_SIZE)
+#define MMGR_CARCER_MAX ((size_t)MMGR_PLAINTEXT_CONFIN_SIZE)
 #else
-#define MMGR_CONFIN_MAX ((size_t)MMGR_SECURE_CONFIN_SIZE)
+#define MMGR_CARCER_MAX ((size_t)MMGR_SECURE_CONFIN_SIZE)
 #endif
 #endif
 
@@ -104,6 +104,48 @@
 /** @brief Build the external pool module. */
 #ifndef MMGR_ENABLE_PSRAM_POOL
 #define MMGR_ENABLE_PSRAM_POOL 0
+#endif
+/**
+ * @brief Build the ring's keepout reservations.
+ *
+ * A keepout is a region the ring pins so a second cursor may read or write it outside the normal
+ * transfer flow, and it drains before the ordinary tail. The interrupt sets the priority, which is
+ * the drain switch; this decides whether the drain has a switch to read at all. Off, the ring never
+ * looks at the bitmap and there is no branch to take, rather than a branch that is always false.
+ */
+#ifndef MMGR_ENABLE_KEEPOUT
+#define MMGR_ENABLE_KEEPOUT 0
+#endif
+/**
+ * @brief How many drains a ring may have running at once.
+ *
+ * Each one is a reservation over a run of segments, independent of the others. The storage for them
+ * is inside the ring handle, so this is what MMGR_RING_WORDS has to be big enough for.
+ */
+#ifndef MMGR_RING_DRAINS
+#define MMGR_RING_DRAINS 4u
+#endif
+
+/**
+ * @brief The part has a clock, and the ring may wait on it.
+ *
+ * Optional, and not what makes a drain correct - a worker learns its frame is finished by being
+ * handed NULL, and nothing has to be timed for that to work. This is for the platform: attaching or
+ * detaching an interrupt takes real time on real silicon, and a window gives it room to do that
+ * before anything asks it to have finished.
+ *
+ * Off, there is no window and no clock is called. Nothing else in this library asks what time it
+ * is; every other bound in it is settled where the call is written.
+ */
+#ifndef MMGR_ENABLE_CLOCK
+#define MMGR_ENABLE_CLOCK 0
+#endif
+
+/** @brief How long the ring gives the platform to attach or detach, in microseconds. */
+#if MMGR_ENABLE_CLOCK
+#ifndef MMGR_RING_ATTACH_US
+#define MMGR_RING_ATTACH_US 100u
+#endif
 #endif
 
 /** @brief DMA channel count and buffer size. */

@@ -265,11 +265,11 @@ MMGR_INLINE size_t mmgr_scrut_words(size_t bytes)
  * two asserts are the derivation: the first says the cover is complete, the second says it is
  * tight. Neither a short scan nor a wasted load gets past them.
  */
-#define MMGR_SCAN_MAX_WORDS ((MMGR_CONFIN_MAX + (MMGR_SWAR_BYTES - 1u)) / MMGR_SWAR_BYTES)
+#define MMGR_SCAN_MAX_WORDS ((MMGR_CARCER_MAX + (MMGR_SWAR_BYTES - 1u)) / MMGR_SWAR_BYTES)
 
-MMGR_STATIC_ASSERT(MMGR_SCAN_MAX_WORDS *MMGR_SWAR_BYTES >= MMGR_CONFIN_MAX,
+MMGR_STATIC_ASSERT(MMGR_SCAN_MAX_WORDS *MMGR_SWAR_BYTES >= MMGR_CARCER_MAX,
                    "the worst-case scan does not cover the largest tenant");
-MMGR_STATIC_ASSERT((MMGR_SCAN_MAX_WORDS - 1u) * MMGR_SWAR_BYTES < MMGR_CONFIN_MAX,
+MMGR_STATIC_ASSERT((MMGR_SCAN_MAX_WORDS - 1u) * MMGR_SWAR_BYTES < MMGR_CARCER_MAX,
                    "the worst-case scan is padded by a whole word - the word count is not tight");
 
 /**

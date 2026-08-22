@@ -20,7 +20,7 @@ void test_spat_header_is_self_contained(void)
 void test_from_takes_a_buffer(void)
 {
     uint8_t buf[8];
-    const mmgr_spat s = spat.from(buf, sizeof buf);
+    const mmgr_spat s = spat.init(&(SpatCfg){buf, sizeof buf});
 
     TEST_ASSERT_EQUAL_PTR(buf, s.buf);
     TEST_ASSERT_EQUAL_size_t(8u, s.cap);

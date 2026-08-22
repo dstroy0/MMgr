@@ -959,3 +959,131 @@ void test_a_subnormal_that_rounds_up_into_the_normals(void)
     same_as_strtod("2.2250738585072011e-308");
     same_as_strtod("2.2250738585072009e-308");
 }
+
+/* ---------------------------------------------------------------------------------------------
+ * The wire readers
+ *
+ * These came with rd_str and mpint_fixed when they moved here from octetus_introitus_exitus.
+ * ------------------------------------------------------------------------------------------- */
+
+void test_rd_str_reads_a_length_prefixed_run(void)
+{
+    static const uint8_t buf[9] = {0x00u, 0x00u, 0x00u, 0x03u, 'a', 'b', 'c', 'x', 'y'};
+    size_t off = 0;
+    const uint8_t *s = NULL;
+    uint32_t slen = 0;
+
+    TEST_ASSERT_TRUE(cellul.rd_str(buf, sizeof buf, &off, &s, &slen));
+    TEST_ASSERT_EQUAL_UINT32(3u, slen);
+    TEST_ASSERT_EQUAL_PTR(buf + 4, s);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(7u, off, "the offset lands past the run, ready for the next field");
+}
+
+void test_rd_str_reads_an_empty_run(void)
+{
+    static const uint8_t buf[4] = {0u, 0u, 0u, 0u};
+    size_t off = 0;
+    const uint8_t *s = NULL;
+    uint32_t slen = 9u;
+
+    TEST_ASSERT_TRUE(cellul.rd_str(buf, sizeof buf, &off, &s, &slen));
+    TEST_ASSERT_EQUAL_UINT32(0u, slen);
+    TEST_ASSERT_EQUAL_size_t(4u, off);
+}
+
+void test_rd_str_rewinds_when_the_run_is_cut_short(void)
+{
+    static const uint8_t buf[6] = {0x00u, 0x00u, 0x00u, 0x09u, 'a', 'b'};
+    size_t off = 0;
+    const uint8_t *s = NULL;
+    uint32_t slen = 0;
+
+    TEST_ASSERT_FALSE_MESSAGE(cellul.rd_str(buf, sizeof buf, &off, &s, &slen), "the length claims nine, two are there");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, off, "the offset is put back where it started, not left mid field");
+}
+
+void test_rd_str_refuses_a_missing_length(void)
+{
+    static const uint8_t buf[2] = {0u, 0u};
+    size_t off = 0;
+    const uint8_t *s = NULL;
+    uint32_t slen = 0;
+
+    TEST_ASSERT_FALSE(cellul.rd_str(buf, sizeof buf, &off, &s, &slen));
+    TEST_ASSERT_EQUAL_size_t(0u, off);
+}
+
+void test_rd_str_refuses_a_cursor_already_past_the_end(void)
+{
+    // The cursor is the caller's, and nothing in the signature stops one arriving beyond the
+    // buffer. The bound is written as two halves for that reason: the subtraction that measures
+    // what is left is only meaningful once the cursor is known to be inside, and past the end it
+    // would wrap to a huge count and read the length prefix out of somebody else's memory.
+    static const uint8_t buf[8] = {0u, 0u, 0u, 1u, 'x', 0u, 0u, 0u};
+    size_t off = sizeof buf + 1u;
+    const uint8_t *s = NULL;
+    uint32_t slen = 0;
+
+    TEST_ASSERT_FALSE(cellul.rd_str(buf, sizeof buf, &off, &s, &slen));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof buf + 1u, off, "a refused read leaves the cursor alone");
+    TEST_ASSERT_NULL(s);
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * mpint
+ * ------------------------------------------------------------------------------------------- */
+
+void test_mpint_fixed_right_aligns_and_pads(void)
+{
+    static const uint8_t m[2] = {0x12u, 0x34u};
+    uint8_t out[4] = {0xFFu, 0xFFu, 0xFFu, 0xFFu};
+
+    TEST_ASSERT_TRUE(cellul.mpint_fixed(m, sizeof m, out, sizeof out));
+    TEST_ASSERT_EQUAL_HEX8(0x00u, out[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x00u, out[1]);
+    TEST_ASSERT_EQUAL_HEX8(0x12u, out[2]);
+    TEST_ASSERT_EQUAL_HEX8(0x34u, out[3]);
+}
+
+void test_mpint_fixed_drops_the_sign_padding(void)
+{
+    // An mpint carries a leading zero when the top bit of the value would read as negative.
+    static const uint8_t m[3] = {0x00u, 0x80u, 0x01u};
+    uint8_t out[2] = {0xFFu, 0xFFu};
+
+    TEST_ASSERT_TRUE(cellul.mpint_fixed(m, sizeof m, out, sizeof out));
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x80u, out[0], "the leading zero is not part of the value");
+    TEST_ASSERT_EQUAL_HEX8(0x01u, out[1]);
+}
+
+void test_mpint_fixed_of_an_exact_width(void)
+{
+    static const uint8_t m[2] = {0xABu, 0xCDu};
+    uint8_t out[2] = {0};
+
+    TEST_ASSERT_TRUE(cellul.mpint_fixed(m, sizeof m, out, sizeof out));
+    TEST_ASSERT_EQUAL_HEX8(0xABu, out[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xCDu, out[1]);
+}
+
+void test_mpint_fixed_of_zero_is_all_zero(void)
+{
+    static const uint8_t m[3] = {0u, 0u, 0u};
+    uint8_t out[4] = {1u, 2u, 3u, 4u};
+
+    TEST_ASSERT_TRUE(cellul.mpint_fixed(m, sizeof m, out, sizeof out));
+    for (unsigned i = 0; i < 4u; i++)
+    {
+        TEST_ASSERT_EQUAL_HEX8(0u, out[i]);
+    }
+}
+
+void test_mpint_fixed_refuses_a_value_too_wide(void)
+{
+    static const uint8_t m[4] = {0x11u, 0x22u, 0x33u, 0x44u};
+    uint8_t out[2] = {0xFFu, 0xFFu};
+
+    TEST_ASSERT_FALSE_MESSAGE(cellul.mpint_fixed(m, sizeof m, out, sizeof out), "four bytes do not fit in two");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xFFu, out[0], "a refused conversion leaves the output alone");
+}
+

@@ -2,10 +2,10 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
-#include "clarus_custodiae/clarus_custodiae.h"
-#include "confinium/confinium.h"
+#include "custodia_soluta/custodia_soluta.h"
+#include "carceribus/carceribus.h"
 #include "memoria_operor/memoria_operor.h"
-#include "occultum_custodiae/occultum_custodiae.h"
+#include "custodia_secura/custodia_secura.h"
 #include "spatium/spatium.h"
 
 /*=======External Functions This Runner Calls=====*/

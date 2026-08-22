@@ -286,7 +286,7 @@ void test_words_is_the_load_count(void)
 
 void test_the_worst_case_word_count_covers_the_largest_tenant(void)
 {
-    TEST_ASSERT_EQUAL_size_t(MMGR_SCAN_MAX_WORDS, mmgr_scrut_words(MMGR_CONFIN_MAX));
+    TEST_ASSERT_EQUAL_size_t(MMGR_SCAN_MAX_WORDS, mmgr_scrut_words(MMGR_CARCER_MAX));
 }
 
 void test_bytes_below_keeps_the_first_n_lanes(void)

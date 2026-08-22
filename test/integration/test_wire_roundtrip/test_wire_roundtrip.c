@@ -16,7 +16,7 @@
 void test_a_byte_written_is_the_byte_read(void)
 {
     uint8_t mem[16];
-    mmgr_spat w = spat.from(mem, sizeof mem);
+    mmgr_spat w = spat.init(&(SpatCfg){mem, sizeof mem});
 
     byteio.put(&w, 0xA5u);
     byteio.put(&w, 0x5Au);
@@ -39,7 +39,7 @@ void test_big_endian_fields_round_trip_at_every_width(void)
     for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++)
     {
         uint8_t mem[16];
-        mmgr_spat w = spat.from(mem, sizeof mem);
+        mmgr_spat w = spat.init(&(SpatCfg){mem, sizeof mem});
         byteio.put_be(&w, cases[i].v, cases[i].n);
         TEST_ASSERT_EQUAL_size_t((size_t)cases[i].n, (w.pos));
 
@@ -54,7 +54,7 @@ void test_big_endian_fields_round_trip_at_every_width(void)
 void test_the_writer_puts_the_high_byte_first(void)
 {
     uint8_t mem[8];
-    mmgr_spat w = spat.from(mem, sizeof mem);
+    mmgr_spat w = spat.init(&(SpatCfg){mem, sizeof mem});
     byteio.put_be(&w, 0x11223344u, 4);
 
     // big endian on the wire, whatever this host does internally
@@ -68,20 +68,20 @@ void test_endian_entries_agree_with_the_wire_writer(void)
 {
     uint8_t viabyteio[8];
     uint8_t viaendian[8];
-    mmgr_spat w = spat.from(viabyteio, sizeof viabyteio);
+    mmgr_spat w = spat.init(&(SpatCfg){viabyteio, sizeof viabyteio});
 
     byteio.put_be(&w, 0xDEADBEEFu, 4);
-    endian.wr32be(viaendian, 0xDEADBEEFu);
+    magna_extremitas.wr(&(EndianCfg){viaendian, 0, 0xDEADBEEFu, MMGR_ENDIAN_32});
     TEST_ASSERT_EQUAL_INT_MESSAGE(0, memor.cmp(viabyteio, viaendian, 4u),
                                   "two ways of writing the same field must produce the same bytes");
 
-    TEST_ASSERT_EQUAL_HEX32(0xDEADBEEFu, endian.rd32be(viabyteio));
+    TEST_ASSERT_EQUAL_HEX32(0xDEADBEEFu, (uint32_t)magna_extremitas.rd(&(EndianCfg){0, viabyteio, 0, MMGR_ENDIAN_32}));
 }
 
 void test_a_length_prefixed_string_round_trips(void)
 {
     uint8_t mem[32];
-    mmgr_spat w = spat.from(mem, sizeof mem);
+    mmgr_spat w = spat.init(&(SpatCfg){mem, sizeof mem});
 
     byteio.put_be(&w, 5u, 4);
     byteio.raw(&w, "hello", 5u);
@@ -89,7 +89,7 @@ void test_a_length_prefixed_string_round_trips(void)
     size_t off = 0;
     const uint8_t *s = NULL;
     uint32_t slen = 0;
-    TEST_ASSERT_TRUE(byteio.rd_str(mem, (w.pos), &off, &s, &slen));
+    TEST_ASSERT_TRUE(cellul.rd_str(mem, (w.pos), &off, &s, &slen));
     TEST_ASSERT_EQUAL_UINT32(5u, slen);
     TEST_ASSERT_EQUAL_INT(0, memor.cmp(s, "hello", 5u));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(9u, off, "the cursor must have advanced past prefix and payload");
@@ -101,7 +101,7 @@ void test_raw_bytes_survive_an_unaligned_start(void)
     for (unsigned skew = 0; skew < 8u; skew++)
     {
         uint8_t mem[64];
-        mmgr_spat w = spat.from(mem, sizeof mem);
+        mmgr_spat w = spat.init(&(SpatCfg){mem, sizeof mem});
         for (unsigned i = 0; i < skew; i++)
         {
             byteio.put(&w, 0u);

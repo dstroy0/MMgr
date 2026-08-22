@@ -1,64 +1,41 @@
 // memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
+// The ring, through the table a consumer uses.
+//
+// The translation unit is compiled in rather than linked, which is what makes the reservation word
+// and the state behind the handle visible to a case. Everything a case drives, it drives through
+// the table - the point of looking inside is to check what the entries did, not to reach past them.
+#include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.c"
+
 #include "unity.h"
 
-#include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
+#define CAP 256u
+#define SEGS 8u
+#define SEGBYTES (CAP / SEGS)
 
-// The three tables are the whole surface, so the cases are grouped the way the header is: the byte
-// ring, the queue of segments over one, and the bitmap of loculi.
-//
-// Capacities are powers of two because a wrap is a mask, and every case here picks a small one: a
-// ring of eight says everything a ring of eight thousand would about a cursor that has to wrap, and
-// says it in a fixture that can be read by eye.
-
-#define RING_CAP 8u
-#define NSEGS 4u
-#define SEG_SIZE 16u
-
-static uint8_t ring[RING_CAP];
-static _Atomic size_t head;
-static _Atomic size_t tail;
-
-static uint8_t segstore[NSEGS * SEG_SIZE];
-static _Atomic size_t claim;
-static _Atomic size_t rel;
-
-static _Atomic uint32_t held;
-static _Atomic uint32_t ready_mask;
-static mmgr_keepout keepout[MMGR_RING_LOCULI_MAX];
+static uint8_t buf[CAP];
+static _Atomic mmgr_word held;
+static mmgr_ring ring;
+static const int owner = 0;
 
 void setUp(void)
 {
-    for (unsigned i = 0; i < RING_CAP; i++)
+    for (unsigned i = 0; i < CAP; i++)
     {
-        ring[i] = 0u;
+        buf[i] = 0u;
     }
-    for (unsigned i = 0; i < sizeof segstore; i++)
-    {
-        segstore[i] = 0u;
-    }
-    for (unsigned i = 0; i < MMGR_RING_LOCULI_MAX; i++)
-    {
-        keepout[i].buf = NULL;
-        keepout[i].len = 0u;
-    }
-    atomic_store(&head, 0u);
-    atomic_store(&tail, 0u);
-    atomic_store(&claim, 0u);
-    atomic_store(&rel, 0u);
-    atomic_store(&held, 0u);
-    atomic_store(&ready_mask, 0u);
+    (void)iteratio_infinita.init(&ring, &(RingCfg){buf, CAP, SEGS, &held});
 }
 
 void tearDown(void)
 {
 }
 
-/** @brief Put @p len bytes into the ring through the entry that is meant to put them there. */
-static void fill(const uint8_t *src, size_t len)
+/** @brief The ordinary cursor, opened the way a consumer opens one. */
+static struct MmgrCursor *cursor(void)
 {
-    atomic_store(&head, infin.write_span(ring, RING_CAP, atomic_load(&head), src, len));
+    return iteratio_infinita.open(&(InfinCfg){.r = &ring, .owner = &owner});
 }
 
 void test_infin_header_is_self_contained(void)
@@ -66,375 +43,169 @@ void test_infin_header_is_self_contained(void)
     TEST_PASS_MESSAGE("confinium_exclusivum_infinitas.h compiled with no header before it");
 }
 
-// ------------------------------------------------------------------------------------------------
-// The byte ring
-// ------------------------------------------------------------------------------------------------
+void test_init_takes_a_ring_the_consumer_owns(void)
+{
+    mmgr_ring r;
+    TEST_ASSERT_TRUE(iteratio_infinita.init(&r, &(RingCfg){buf, CAP, SEGS, &held}));
+}
+
+void test_init_refuses_a_capacity_that_is_not_a_power_of_two(void)
+{
+    mmgr_ring r;
+    TEST_ASSERT_FALSE(iteratio_infinita.init(&r, &(RingCfg){buf, 100u, SEGS, &held}));
+    TEST_ASSERT_FALSE_MESSAGE(iteratio_infinita.init(&r, &(RingCfg){buf, 0u, SEGS, &held}),
+                              "a ring of nothing is not a ring");
+}
+
+void test_init_refuses_more_segments_than_the_word_has_bits(void)
+{
+    mmgr_ring r;
+    const size_t too_many = (size_t)MMGR_RING_LOCULI_MAX * 2u;
+
+    TEST_ASSERT_FALSE_MESSAGE(iteratio_infinita.init(&r, &(RingCfg){buf, CAP, too_many, &held}),
+                              "a segment with no bit cannot be reserved");
+}
+
+void test_init_refuses_more_segments_than_bytes(void)
+{
+    mmgr_ring r;
+    TEST_ASSERT_FALSE(iteratio_infinita.init(&r, &(RingCfg){buf, 4u, 8u, &held}));
+}
 
 void test_a_fresh_ring_is_empty_and_holds_one_byte_back(void)
 {
-    TEST_ASSERT_EQUAL_size_t(0u, infin.available(&head, &tail, RING_CAP));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(RING_CAP - 1u, infin.free_(&head, &tail, RING_CAP),
-                                     "one loculus is held back so full and empty differ");
+    TEST_ASSERT_EQUAL_size_t(0u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(CAP - 1u, iteratio_infinita.free_(&(InfinCfg){.r = &ring}),
+                                     "one byte is held back so full and empty differ");
 }
 
-void test_available_and_free_move_against_each_other(void)
+void test_open_hands_out_one_cursor(void)
 {
-    static const uint8_t src[3] = {1u, 2u, 3u};
-    fill(src, sizeof src);
-    TEST_ASSERT_EQUAL_size_t(3u, infin.available(&head, &tail, RING_CAP));
-    TEST_ASSERT_EQUAL_size_t((RING_CAP - 1u) - 3u, infin.free_(&head, &tail, RING_CAP));
+    TEST_ASSERT_NOT_NULL(cursor());
+    TEST_ASSERT_NULL_MESSAGE(cursor(), "one accessor: a second is refused");
 }
 
-void test_available_counts_across_a_wrap(void)
+void test_write_moves_what_available_reports(void)
 {
-    // Both cursors driven past the end, so head is numerically below tail and the count is only
-    // right if it is taken modulo the capacity.
-    atomic_store(&tail, RING_CAP - 2u);
-    atomic_store(&head, 1u);
-    TEST_ASSERT_EQUAL_size_t(3u, infin.available(&head, &tail, RING_CAP));
+    static const uint8_t src[8] = {1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u};
+    struct MmgrCursor *const cur = cursor();
+
+    TEST_ASSERT_EQUAL_size_t(8u, iteratio_infinita.write(
+                                     &(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 8u}));
+    TEST_ASSERT_EQUAL_size_t(8u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
+    TEST_ASSERT_EQUAL_size_t(CAP - 1u - 8u, iteratio_infinita.free_(&(InfinCfg){.r = &ring}));
 }
 
-void test_read_byte_refuses_an_empty_ring(void)
+void test_a_raw_read_names_the_bytes_and_consumes_nothing(void)
 {
-    uint8_t got = 0xAAu;
-    TEST_ASSERT_FALSE_MESSAGE(infin.read_byte(ring, RING_CAP, &head, &tail, &got),
-                              "an empty ring has no byte to hand back");
-    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xAAu, got, "and it does not write to the out parameter");
-    TEST_ASSERT_EQUAL_size_t(0u, atomic_load(&tail));
+    static const uint8_t src[4] = {0xDEu, 0xADu, 0xBEu, 0xEFu};
+    struct MmgrCursor *const cur = cursor();
+
+    iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 4u});
+
+    const uint8_t *const at = iteratio_infinita.read(&(InfinCfg){.r = &ring, .cur = cur, .n = 4u});
+    TEST_ASSERT_NOT_NULL(at);
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(src, at, 4u);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(4u, iteratio_infinita.available(&(InfinCfg){.r = &ring}),
+                                     "a raw read behaves like the other memory entries");
 }
 
-void test_read_byte_takes_one_and_moves_the_tail(void)
+void test_a_raw_read_of_more_than_is_there_is_null(void)
+{
+    static const uint8_t src[4] = {1u, 2u, 3u, 4u};
+    struct MmgrCursor *const cur = cursor();
+
+    iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 4u});
+    TEST_ASSERT_NULL(iteratio_infinita.read(&(InfinCfg){.r = &ring, .cur = cur, .n = 5u}));
+}
+
+void test_a_raw_read_of_an_empty_ring_is_null(void)
+{
+    struct MmgrCursor *const cur = cursor();
+    TEST_ASSERT_NULL(iteratio_infinita.read(&(InfinCfg){.r = &ring, .cur = cur, .n = 1u}));
+}
+
+void test_consume_is_what_moves_the_tail(void)
+{
+    static const uint8_t src[8] = {1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u};
+    struct MmgrCursor *const cur = cursor();
+
+    iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 8u});
+    iteratio_infinita.consume(&(InfinCfg){.r = &ring, .cur = cur, .n = 3u});
+    TEST_ASSERT_EQUAL_size_t(5u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
+}
+
+void test_read_byte_takes_one_and_refuses_an_empty_ring(void)
 {
     static const uint8_t src[2] = {0x5Au, 0xA5u};
-    fill(src, sizeof src);
-
+    struct MmgrCursor *const cur = cursor();
     uint8_t got = 0u;
-    TEST_ASSERT_TRUE(infin.read_byte(ring, RING_CAP, &head, &tail, &got));
+
+    TEST_ASSERT_FALSE_MESSAGE(
+        iteratio_infinita.read_byte(&(InfinCfg){.r = &ring, .cur = cur, .dst = &got}),
+        "an empty ring has no byte to hand back");
+
+    iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 2u});
+    TEST_ASSERT_TRUE(iteratio_infinita.read_byte(&(InfinCfg){.r = &ring, .cur = cur, .dst = &got}));
     TEST_ASSERT_EQUAL_HEX8(0x5Au, got);
-    TEST_ASSERT_EQUAL_size_t(1u, atomic_load(&tail));
-    TEST_ASSERT_EQUAL_size_t(1u, infin.available(&head, &tail, RING_CAP));
-}
-
-void test_read_byte_wraps_the_tail_at_the_end(void)
-{
-    static const uint8_t one = 0x7Fu;
-    atomic_store(&tail, RING_CAP - 1u);
-    atomic_store(&head, RING_CAP - 1u);
-    fill(&one, 1u);
-
-    uint8_t got = 0u;
-    TEST_ASSERT_TRUE(infin.read_byte(ring, RING_CAP, &head, &tail, &got));
-    TEST_ASSERT_EQUAL_HEX8(0x7Fu, got);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, atomic_load(&tail), "the tail wrapped rather than running off the end");
-}
-
-void test_read_stops_at_the_head(void)
-{
-    static const uint8_t src[3] = {1u, 2u, 3u};
-    uint8_t dst[8] = {0};
-    fill(src, sizeof src);
-
-    // Asks for more than is there: the loop ends because the cursors met, not because it filled.
-    TEST_ASSERT_EQUAL_size_t(3u, infin.read(ring, RING_CAP, &head, &tail, dst, sizeof dst));
-    TEST_ASSERT_EQUAL_HEX8_ARRAY(src, dst, 3u);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, infin.available(&head, &tail, RING_CAP), "the read consumed what it took");
-}
-
-void test_read_stops_at_maxn(void)
-{
-    static const uint8_t src[4] = {9u, 8u, 7u, 6u};
-    uint8_t dst[2] = {0};
-    fill(src, sizeof src);
-
-    // The other way out of the same loop: it filled, and the ring still holds the rest.
-    TEST_ASSERT_EQUAL_size_t(2u, infin.read(ring, RING_CAP, &head, &tail, dst, sizeof dst));
-    TEST_ASSERT_EQUAL_HEX8_ARRAY(src, dst, 2u);
-    TEST_ASSERT_EQUAL_size_t(2u, infin.available(&head, &tail, RING_CAP));
-}
-
-void test_read_of_nothing_takes_nothing(void)
-{
-    static const uint8_t src[2] = {1u, 2u};
-    uint8_t dst[1] = {0xEEu};
-    fill(src, sizeof src);
-
-    TEST_ASSERT_EQUAL_size_t(0u, infin.read(ring, RING_CAP, &head, &tail, dst, 0u));
-    TEST_ASSERT_EQUAL_HEX8(0xEEu, dst[0]);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(2u, infin.available(&head, &tail, RING_CAP), "a read of zero is not a consume");
-}
-
-void test_read_wraps_around_the_end(void)
-{
-    static const uint8_t src[4] = {0x11u, 0x22u, 0x33u, 0x44u};
-    uint8_t dst[4] = {0};
-    atomic_store(&tail, RING_CAP - 2u);
-    atomic_store(&head, RING_CAP - 2u);
-    fill(src, sizeof src);
-
-    TEST_ASSERT_EQUAL_size_t(4u, infin.read(ring, RING_CAP, &head, &tail, dst, sizeof dst));
-    TEST_ASSERT_EQUAL_HEX8_ARRAY(src, dst, 4u);
-    TEST_ASSERT_EQUAL_size_t(2u, atomic_load(&tail));
+    TEST_ASSERT_EQUAL_size_t(1u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
 }
 
 void test_peek_copies_without_consuming(void)
 {
-    static const uint8_t src[4] = {0xDEu, 0xADu, 0xBEu, 0xEFu};
-    uint8_t dst[2] = {0};
-    fill(src, sizeof src);
+    static const uint8_t src[4] = {0x11u, 0x22u, 0x33u, 0x44u};
+    struct MmgrCursor *const cur = cursor();
+    uint8_t dst[2] = {0u, 0u};
 
-    infin.peek(ring, RING_CAP, &tail, 1u, dst, sizeof dst);
-    TEST_ASSERT_EQUAL_HEX8(0xADu, dst[0]);
-    TEST_ASSERT_EQUAL_HEX8(0xBEu, dst[1]);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, atomic_load(&tail), "peek leaves the tail where it was");
-    TEST_ASSERT_EQUAL_size_t(4u, infin.available(&head, &tail, RING_CAP));
+    iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 4u});
+    iteratio_infinita.peek(&(InfinCfg){.r = &ring, .cur = cur, .dst = dst, .n = 2u, .off = 1u});
+
+    TEST_ASSERT_EQUAL_HEX8(0x22u, dst[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x33u, dst[1]);
+    TEST_ASSERT_EQUAL_size_t(4u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
 }
 
-void test_peek_of_nothing_writes_nothing(void)
+void test_a_write_that_wraps_comes_back_in_order(void)
 {
-    static const uint8_t src[2] = {1u, 2u};
-    uint8_t dst[1] = {0xC3u};
-    fill(src, sizeof src);
+    static const uint8_t src[16] = {0};
+    struct MmgrCursor *const cur = cursor();
 
-    infin.peek(ring, RING_CAP, &tail, 0u, dst, 0u);
-    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xC3u, dst[0], "a peek of zero bytes does not touch the destination");
-}
-
-void test_peek_wraps_around_the_end(void)
-{
-    static const uint8_t src[3] = {0x01u, 0x02u, 0x03u};
-    uint8_t dst[3] = {0};
-    atomic_store(&tail, RING_CAP - 1u);
-    atomic_store(&head, RING_CAP - 1u);
-    fill(src, sizeof src);
-
-    infin.peek(ring, RING_CAP, &tail, 0u, dst, sizeof dst);
-    TEST_ASSERT_EQUAL_HEX8_ARRAY(src, dst, 3u);
-}
-
-void test_consume_drops_bytes_and_wraps(void)
-{
-    static const uint8_t src[4] = {1u, 2u, 3u, 4u};
-    fill(src, sizeof src);
-
-    infin.consume(&tail, RING_CAP, 3u);
-    TEST_ASSERT_EQUAL_size_t(3u, atomic_load(&tail));
-    TEST_ASSERT_EQUAL_size_t(1u, infin.available(&head, &tail, RING_CAP));
-
-    infin.consume(&tail, RING_CAP, RING_CAP - 2u);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, atomic_load(&tail), "the cursor is taken modulo the capacity");
-}
-
-void test_write_span_of_nothing_leaves_the_head(void)
-{
-    static const uint8_t src[1] = {0xFFu};
-    TEST_ASSERT_EQUAL_size_t(3u, infin.write_span(ring, RING_CAP, 3u, src, 0u));
-}
-
-void test_write_span_fits_without_wrapping(void)
-{
-    static const uint8_t src[3] = {0xA0u, 0xA1u, 0xA2u};
-    TEST_ASSERT_EQUAL_size_t(3u, infin.write_span(ring, RING_CAP, 0u, src, sizeof src));
-    TEST_ASSERT_EQUAL_HEX8_ARRAY(src, ring, 3u);
-}
-
-void test_write_span_splits_at_the_end_and_wraps(void)
-{
-    // Starts two from the end with four bytes to place: the first chunk is what is left before the
-    // end, the second is the remainder at the front. Both arms of the chunk clamp, in one call.
-    static const uint8_t src[4] = {0xB0u, 0xB1u, 0xB2u, 0xB3u};
-    TEST_ASSERT_EQUAL_size_t(2u, infin.write_span(ring, RING_CAP, RING_CAP - 2u, src, sizeof src));
-    TEST_ASSERT_EQUAL_HEX8(0xB0u, ring[RING_CAP - 2u]);
-    TEST_ASSERT_EQUAL_HEX8(0xB1u, ring[RING_CAP - 1u]);
-    TEST_ASSERT_EQUAL_HEX8(0xB2u, ring[0]);
-    TEST_ASSERT_EQUAL_HEX8(0xB3u, ring[1]);
-}
-
-// ------------------------------------------------------------------------------------------------
-// The segment queue
-// ------------------------------------------------------------------------------------------------
-
-void test_a_fresh_queue_has_nothing_in_flight(void)
-{
-    TEST_ASSERT_EQUAL_size_t(0u, seg.inflight(&claim, &rel));
-}
-
-void test_next_hands_out_a_segment_and_publish_makes_it_visible(void)
-{
-    size_t idx = 0xFFu;
-    TEST_ASSERT_TRUE(seg.next(&claim, &rel, NSEGS, &idx));
-    TEST_ASSERT_EQUAL_size_t(0u, idx);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, seg.inflight(&claim, &rel), "a claim is not in flight until it is published");
-
-    seg.publish(&claim);
-    TEST_ASSERT_EQUAL_size_t(1u, seg.inflight(&claim, &rel));
-}
-
-void test_next_refuses_when_every_segment_is_in_flight(void)
-{
-    size_t idx = 0u;
-    for (unsigned i = 0; i < NSEGS; i++)
+    /* Push the head most of the way round, then write across the end. */
+    for (unsigned i = 0; i < 15u; i++)
     {
-        TEST_ASSERT_TRUE(seg.next(&claim, &rel, NSEGS, &idx));
-        seg.publish(&claim);
+        iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = src, .n = 16u});
+        iteratio_infinita.consume(&(InfinCfg){.r = &ring, .cur = cur, .n = 16u});
     }
-    TEST_ASSERT_EQUAL_size_t(NSEGS, seg.inflight(&claim, &rel));
+    static const uint8_t run[8] = {1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u};
+    TEST_ASSERT_EQUAL_size_t(8u, iteratio_infinita.write(
+                                     &(InfinCfg){.r = &ring, .cur = cur, .src = run, .n = 8u}));
+    TEST_ASSERT_EQUAL_size_t(8u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
 
-    idx = 0xFFu;
-    TEST_ASSERT_FALSE_MESSAGE(seg.next(&claim, &rel, NSEGS, &idx), "the queue is full");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0xFFu, idx, "and it does not write to the out parameter");
+    uint8_t got[8] = {0};
+    iteratio_infinita.peek(&(InfinCfg){.r = &ring, .cur = cur, .dst = got, .n = 8u, .off = 0u});
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(run, got, 8u);
 }
 
-void test_next_wraps_its_index_at_the_segment_count(void)
+void test_seek_moves_a_cursor_inside_its_frame(void)
 {
-    size_t idx = 0u;
-    for (unsigned i = 0; i < NSEGS; i++)
-    {
-        TEST_ASSERT_TRUE(seg.next(&claim, &rel, NSEGS, &idx));
-        TEST_ASSERT_EQUAL_size_t(i, idx);
-        seg.publish(&claim);
-        seg.release(&rel);
-    }
-    TEST_ASSERT_TRUE(seg.next(&claim, &rel, NSEGS, &idx));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, idx, "the index is the cursor masked, so it comes back round");
+    struct MmgrCursor *const cur = cursor();
+
+    iteratio_infinita.seek(&(InfinCfg){.r = &ring, .cur = cur, .off = 32u});
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(32u, cur->off, "the cursor is an offset, not a pointer");
+
+    iteratio_infinita.seek(&(InfinCfg){.r = &ring, .cur = cur, .off = 0u});
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, cur->off, "offset zero is the frame's start");
 }
 
-void test_front_is_empty_until_a_claim_is_published(void)
+void test_a_drain_is_refused_without_the_capability(void)
 {
-    size_t idx = 0xFFu;
-    TEST_ASSERT_FALSE(seg.front(&claim, &rel, NSEGS, &idx));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0xFFu, idx, "nothing to front means nothing written back");
-
-    TEST_ASSERT_TRUE(seg.next(&claim, &rel, NSEGS, &idx));
-    TEST_ASSERT_FALSE_MESSAGE(seg.front(&claim, &rel, NSEGS, &idx), "a claim alone is not visible to the consumer");
-
-    seg.publish(&claim);
-    TEST_ASSERT_TRUE(seg.front(&claim, &rel, NSEGS, &idx));
-    TEST_ASSERT_EQUAL_size_t(0u, idx);
-}
-
-void test_release_retires_the_oldest_segment(void)
-{
-    size_t idx = 0u;
-    for (unsigned i = 0; i < 2u; i++)
-    {
-        TEST_ASSERT_TRUE(seg.next(&claim, &rel, NSEGS, &idx));
-        seg.publish(&claim);
-    }
-
-    TEST_ASSERT_TRUE(seg.front(&claim, &rel, NSEGS, &idx));
-    TEST_ASSERT_EQUAL_size_t(0u, idx);
-    seg.release(&rel);
-
-    TEST_ASSERT_TRUE(seg.front(&claim, &rel, NSEGS, &idx));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, idx, "the next oldest moved up");
-    TEST_ASSERT_EQUAL_size_t(1u, seg.inflight(&claim, &rel));
-
-    seg.release(&rel);
-    TEST_ASSERT_FALSE_MESSAGE(seg.front(&claim, &rel, NSEGS, &idx), "the queue drained");
-}
-
-void test_at_indexes_the_segment_store(void)
-{
-    TEST_ASSERT_EQUAL_PTR(&segstore[0], seg.at(segstore, SEG_SIZE, 0u));
-    TEST_ASSERT_EQUAL_PTR(&segstore[2u * SEG_SIZE], seg.at(segstore, SEG_SIZE, 2u));
-}
-
-// ------------------------------------------------------------------------------------------------
-// The loculus bitmap
-// ------------------------------------------------------------------------------------------------
-
-void test_bit_is_the_loculus_and_zero_past_the_end(void)
-{
-    TEST_ASSERT_EQUAL_HEX32(1u, loculus.bit(0u));
-    TEST_ASSERT_EQUAL_HEX32(0x80000000u, loculus.bit(MMGR_RING_LOCULI_MAX - 1u));
-    TEST_ASSERT_EQUAL_HEX32_MESSAGE(0u, loculus.bit(MMGR_RING_LOCULI_MAX),
-                                    "an index the bitmap cannot hold has no bit");
-}
-
-void test_all_masks_the_low_loculi_and_saturates(void)
-{
-    TEST_ASSERT_EQUAL_HEX32(0u, loculus.all(0u));
-    TEST_ASSERT_EQUAL_HEX32(0x0Fu, loculus.all(4u));
-    TEST_ASSERT_EQUAL_HEX32_MESSAGE(0xFFFFFFFFu, loculus.all(MMGR_RING_LOCULI_MAX),
-                                    "a shift by the full width is what the saturation exists to avoid");
-}
-
-void test_take_claims_once_and_refuses_a_second_holder(void)
-{
-    TEST_ASSERT_TRUE(loculus.take(&held, 2u));
-    TEST_ASSERT_FALSE_MESSAGE(loculus.take(&held, 2u), "it is already held");
-    TEST_ASSERT_TRUE_MESSAGE(loculus.take(&held, 3u), "a different loculus is unaffected");
-}
-
-void test_take_refuses_an_index_the_bitmap_cannot_hold(void)
-{
-    TEST_ASSERT_FALSE(loculus.take(&held, MMGR_RING_LOCULI_MAX));
-    TEST_ASSERT_EQUAL_HEX32_MESSAGE(0u, atomic_load(&held), "and it set no bit doing so");
-}
-
-void test_drop_lets_a_loculus_be_taken_again(void)
-{
-    TEST_ASSERT_TRUE(loculus.take(&held, 5u));
-    loculus.drop(&held, 5u);
-    TEST_ASSERT_EQUAL_HEX32(0u, atomic_load(&held));
-    TEST_ASSERT_TRUE(loculus.take(&held, 5u));
-}
-
-void test_hold_binds_a_region_to_the_loculus(void)
-{
-    static const uint8_t data[4] = {1u, 2u, 3u, 4u};
-    TEST_ASSERT_TRUE(loculus.hold(&held, keepout, 1u, data, sizeof data));
-
-    const mmgr_keepout *k = loculus.keepout(keepout, 1u);
-    TEST_ASSERT_EQUAL_PTR(data, k->buf);
-    TEST_ASSERT_EQUAL_size_t(sizeof data, k->len);
-}
-
-void test_hold_refuses_a_loculus_already_held(void)
-{
-    static const uint8_t first[2] = {0xA1u, 0xA2u};
-    static const uint8_t second[2] = {0xB1u, 0xB2u};
-    TEST_ASSERT_TRUE(loculus.hold(&held, keepout, 1u, first, sizeof first));
-    TEST_ASSERT_FALSE(loculus.hold(&held, keepout, 1u, second, sizeof second));
-
-    const mmgr_keepout *k = loculus.keepout(keepout, 1u);
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(first, k->buf, "the refused hold did not rebind the region");
-    TEST_ASSERT_EQUAL_size_t(sizeof first, k->len);
-}
-
-void test_mark_and_clear_move_one_loculus(void)
-{
-    loculus.mark(&ready_mask, 4u);
-    TEST_ASSERT_EQUAL_HEX32(1u << 4u, atomic_load(&ready_mask));
-    loculus.mark(&ready_mask, 6u);
-    TEST_ASSERT_EQUAL_HEX32((1u << 4u) | (1u << 6u), atomic_load(&ready_mask));
-
-    loculus.clear(&ready_mask, 4u);
-    TEST_ASSERT_EQUAL_HEX32(1u << 6u, atomic_load(&ready_mask));
-}
-
-void test_ready_is_marked_and_not_held_and_in_range(void)
-{
-    loculus.mark(&ready_mask, 0u);
-    loculus.mark(&ready_mask, 1u);
-    loculus.mark(&ready_mask, 5u);
-    TEST_ASSERT_TRUE(loculus.take(&held, 1u));
-
-    // 0 is ready, 1 is ready but held, 5 is ready but outside the count.
-    TEST_ASSERT_EQUAL_HEX32(1u, loculus.ready(&ready_mask, &held, 4u));
-}
-
-void test_ctz_is_the_index_of_the_lowest_set_bit(void)
-{
-    TEST_ASSERT_EQUAL_INT32(0, loculus.ctz(1u));
-    TEST_ASSERT_EQUAL_INT32(1, loculus.ctz(2u));
-    TEST_ASSERT_EQUAL_INT32(3, loculus.ctz(0xF8u));
-    TEST_ASSERT_EQUAL_INT32(31, loculus.ctz(0x80000000u));
-}
-
-void test_next_is_the_lowest_set_loculus_or_none(void)
-{
-    TEST_ASSERT_EQUAL_INT32_MESSAGE(-1, loculus.next(0u), "an empty bitmap has no next");
-    TEST_ASSERT_EQUAL_INT32(0, loculus.next(0xFFFFFFFFu));
-    TEST_ASSERT_EQUAL_INT32(4, loculus.next(1u << 4u));
+#if MMGR_ENABLE_KEEPOUT
+    TEST_IGNORE_MESSAGE("keepouts are built, so the drain suite covers this");
+#else
+    size_t tess = 0u;
+    TEST_ASSERT_NULL_MESSAGE(iteratio_infinita.drain(&(InfinCfg){.r = &ring, .from = 0u,
+                                                                 .to = SEGBYTES, .tessera = &tess}),
+                             "no keepout without the capability, so no second cursor");
+    TEST_ASSERT_EQUAL_size_t(0u, tess);
+#endif
 }

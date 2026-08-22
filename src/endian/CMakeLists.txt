@@ -3,4 +3,6 @@
 
 mmgr_add_module(endian
   SOURCES endian.c
+  DEPS
+    proximus_operor
 )

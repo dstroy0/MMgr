@@ -19,16 +19,6 @@ extern void test_take_be_reads_what_put_be_wrote(void);
 extern void test_take_be_walks_forward(void);
 extern void test_take_be_of_nothing_succeeds(void);
 extern void test_rd_u32_reads_and_advances(void);
-extern void test_rd_str_reads_a_length_prefixed_run(void);
-extern void test_rd_str_reads_an_empty_run(void);
-extern void test_rd_str_rewinds_when_the_run_is_cut_short(void);
-extern void test_rd_str_refuses_a_missing_length(void);
-extern void test_rd_str_refuses_a_cursor_already_past_the_end(void);
-extern void test_mpint_fixed_right_aligns_and_pads(void);
-extern void test_mpint_fixed_drops_the_sign_padding(void);
-extern void test_mpint_fixed_of_an_exact_width(void);
-extern void test_mpint_fixed_of_zero_is_all_zero(void);
-extern void test_mpint_fixed_refuses_a_value_too_wide(void);
 
 
 /*=======Mock Management=====*/
@@ -108,16 +98,6 @@ int main(void)
   run_test(test_take_be_walks_forward, "test_take_be_walks_forward", 116);
   run_test(test_take_be_of_nothing_succeeds, "test_take_be_of_nothing_succeeds", 131);
   run_test(test_rd_u32_reads_and_advances, "test_rd_u32_reads_and_advances", 143);
-  run_test(test_rd_str_reads_a_length_prefixed_run, "test_rd_str_reads_a_length_prefixed_run", 158);
-  run_test(test_rd_str_reads_an_empty_run, "test_rd_str_reads_an_empty_run", 171);
-  run_test(test_rd_str_rewinds_when_the_run_is_cut_short, "test_rd_str_rewinds_when_the_run_is_cut_short", 183);
-  run_test(test_rd_str_refuses_a_missing_length, "test_rd_str_refuses_a_missing_length", 194);
-  run_test(test_rd_str_refuses_a_cursor_already_past_the_end, "test_rd_str_refuses_a_cursor_already_past_the_end", 205);
-  run_test(test_mpint_fixed_right_aligns_and_pads, "test_mpint_fixed_right_aligns_and_pads", 225);
-  run_test(test_mpint_fixed_drops_the_sign_padding, "test_mpint_fixed_drops_the_sign_padding", 237);
-  run_test(test_mpint_fixed_of_an_exact_width, "test_mpint_fixed_of_an_exact_width", 248);
-  run_test(test_mpint_fixed_of_zero_is_all_zero, "test_mpint_fixed_of_zero_is_all_zero", 258);
-  run_test(test_mpint_fixed_refuses_a_value_too_wide, "test_mpint_fixed_refuses_a_value_too_wide", 270);
 
   return UNITY_END();
 }

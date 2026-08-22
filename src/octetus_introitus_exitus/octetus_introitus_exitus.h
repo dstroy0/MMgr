@@ -11,8 +11,11 @@
 MMGR_INCIPE_DECLS
 
 /**
- * @file byteio.h
+ * @file octetus_introitus_exitus.h
  * @brief Read and write byte fields, big endian on the wire.
+ *
+ * One shape: a fixed width scalar, or a run of bytes, moved in a chosen order. Nothing here parses
+ * and nothing here can fail - what did both went to cellularum_laboro.
  *
  * The table is the whole surface. There are no free functions to call.
  */
@@ -25,10 +28,8 @@ typedef struct
     void (*raw)(mmgr_spat *w, const void *src, size_t n);
     void (*take_be)(const uint8_t *p, size_t len, size_t *off, uint64_t *out, size_t nbytes);
     void (*rd_u32)(const uint8_t *p, size_t len, size_t *off, uint32_t *out);
-    mmgr_bool (*rd_str)(const uint8_t *p, size_t len, size_t *off, const uint8_t **out, uint32_t *slen);
-    mmgr_bool (*mpint_fixed)(const uint8_t *m, uint32_t mlen, uint8_t *out, size_t outlen);
 } OctetusIntroitusExitusNs;
-MMGR_NS_LAYOUT(OctetusIntroitusExitusNs, put, put_be, raw, take_be, rd_u32, rd_str, mpint_fixed);
+MMGR_NS_LAYOUT(OctetusIntroitusExitusNs, put, put_be, raw, take_be, rd_u32);
 
 /** @name The entries the table points at.
  *  @brief Nameable so a static const table can name them, and for no other reason. The table is
@@ -39,8 +40,6 @@ void mmgr_octet_put_be(mmgr_spat *w, uint64_t val, int32_t nbytes);
 void mmgr_octet_bytes(mmgr_spat *w, const void *src, size_t n);
 void mmgr_octet_take_be(const uint8_t *p, size_t len, size_t *off, uint64_t *out, size_t nbytes);
 void mmgr_rd_u32(const uint8_t *p, size_t len, size_t *off, uint32_t *out);
-mmgr_bool mmgr_rd_str(const uint8_t *p, size_t len, size_t *off, const uint8_t **out, uint32_t *slen);
-mmgr_bool mmgr_mpint_to_fixed(const uint8_t *m, uint32_t mlen, uint8_t *out, size_t outlen);
 /** @} */
 
 /**
@@ -56,8 +55,6 @@ MMGR_NS OctetusIntroitusExitusNs byteio MMGR_UNUSED = {
     .raw = mmgr_octet_bytes,
     .take_be = mmgr_octet_take_be,
     .rd_u32 = mmgr_rd_u32,
-    .rd_str = mmgr_rd_str,
-    .mpint_fixed = mmgr_mpint_to_fixed,
 };
 
 MMGR_FINIS_DECLS

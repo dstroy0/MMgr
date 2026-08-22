@@ -4,37 +4,45 @@
 #define MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H
 
 #include "proximus_operor/proximus_operor.h"
-#include "spatium/spatium.h"
 
 #include "config/mmgr_config.h"
-
-#include <stdatomic.h>
 
 MMGR_INCIPE_DECLS
 
 /**
  * @file confinium_exclusivum_infinitas.h
- * @brief Lock free rings, segment queues and loculus bitmaps.
+ * @brief A lock free ring, and the cursors it hands out over it.
  *
- * Single producer, single consumer. Capacities are powers of two so a wrap is a mask.
+ * The consumer constructs the ring and owns its storage. It does not own the internals: what is
+ * inside the handle is this module's, and the header does not say. Every entry is a request - the
+ * ring answers it or declines it, and nothing on this surface can compel it.
  *
- * The tables are the whole surface. There are no free functions to call.
+ * Nothing reads or writes the buffer except through the ring. The ring knows where every cursor is
+ * and what bounds it, so an overread is not a thing a caller can ask for and be given. A caller
+ * holding a cursor may move it - reset it, offset it - and every one of those is a call the ring
+ * owns, because a cursor the caller could advance itself is a cursor the ring has stopped knowing
+ * about.
  *
- * Three tables, not one, because this header holds three separate things: a byte ring, a queue of
- * segments over one, and a bitmap of loculi. They share a file because they share the lock free
- * discipline, not because a caller of one is a caller of the others - and the twenty four entries
- * between them are exactly what one MMGR_NS_LAYOUT can hold, which is no margin at all.
+ * Ordinarily there is one cursor and one accessor. A second exists only while a keepout does: the
+ * consumer reports a priority drain from here to here, the ring frames it as a mask overlay, spawns
+ * a cursor bounded by that frame and hands it over, and the caller gives it to whatever drains it.
+ * The mask is set once and stands for the life of the keepout. When that cursor reaches the last
+ * segment the ring pulls it and the keepout together and hands the ordinary cursor back to the
+ * caller it came from, which it knows by the const address it was given.
  *
- * Every entry is defined here rather than in a .c because each is a handful of atomic operations
- * and a call frame costs more than the body. They call each other by name: a table is not formed
- * until below, so a body above it has nothing to dispatch through yet.
+ * Concurrent writes are legal only on disparate segments, which is what the segments are for.
+ *
+ * The bodies are in the .c so that <stdatomic.h> is that file's problem. A read modify write on a
+ * cursor has to be indivisible rather than merely ordered, because deferred work landing between a
+ * load and a store loses whatever that work wrote - one core is enough for that.
+ *
+ * The bitmap is the machine word, so the count of reservations follows the platform: sixteen on a
+ * 16-bit target, sixty four on a 64-bit one. A word wide atomic is lock free on every target by
+ * construction, which matters, because one that falls back to a lock cannot be touched from
+ * deferred work at all.
+ *
+ * The table is the whole surface. There are no free functions to call.
  */
-
-/** @brief Acquire load. */
-#define MMGR_ATOMIC_LOAD(p) atomic_load_explicit((p), memory_order_acquire)
-
-/** @brief Release store. */
-#define MMGR_ATOMIC_STORE(p, v) atomic_store_explicit((p), (v), memory_order_release)
 
 /** @brief Is a capacity a power of two. */
 #define MMGR_RING_POW2(cap) (((cap) & ((cap) - 1)) == 0)
@@ -42,391 +50,106 @@ MMGR_INCIPE_DECLS
 /** @brief Wrap an index. Capacity must be a power of two. */
 #define MMGR_RING_WRAP(i, cap) ((i) & ((cap) - 1))
 
-/**
- * @brief How many bytes are readable.
- * @param head Producer cursor.
- * @param tail Consumer cursor.
- * @param cap Ring capacity.
- * @return Byte count.
- */
-MMGR_INLINE size_t mmgr_infin_available(const _Atomic size_t *head, const _Atomic size_t *tail, size_t cap)
-{
-    return MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(head) - MMGR_ATOMIC_LOAD(tail), cap);
-}
+/** @brief Most reservations a ring can hold at once: one per bit of the machine word. */
+#define MMGR_RING_LOCULI_MAX MMGR_WORD_BITS
 
 /**
- * @brief Take one byte.
- * @param buf Ring.
- * @param cap Its capacity.
- * @param head Producer cursor.
- * @param tail Consumer cursor.
- * @param out Out. The byte.
- * @return MMGR_FALSE if the ring is empty.
+ * @brief How many words of storage a ring handle takes.
+ *
+ * The consumer declares one of these; the .c asserts its own layout fits. A number here rather than
+ * the layout itself is the point - the size is the consumer's business because it has to find room
+ * for it, and the arrangement is not.
  */
-MMGR_INLINE mmgr_bool mmgr_infin_read_byte(const uint8_t *buf, size_t cap, const _Atomic size_t *head,
-                                             _Atomic size_t *tail, uint8_t *out)
-{
-    size_t t = MMGR_ATOMIC_LOAD(tail);
-    if (t == MMGR_ATOMIC_LOAD(head))
-    {
-        return MMGR_FALSE;
-    }
-    *out = buf[t];
-    MMGR_ATOMIC_STORE(tail, MMGR_RING_WRAP(t + 1, cap));
-    return MMGR_TRUE;
-}
+#define MMGR_RING_WORDS 32u
 
 /**
- * @brief Take up to @p maxn bytes.
- * @param buf Ring.
- * @param cap Its capacity.
- * @param head Producer cursor.
- * @param tail Consumer cursor.
- * @param dst Destination.
- * @param maxn Most to take.
- * @return How many were taken.
+ * @brief A ring, as far as anyone outside this module may know it.
+ *
+ * Sized in size_t, not in MMGR_RAW_WORD. What is inside is buffers, counts and cursors, and those
+ * follow the machine the code is built for - a narrow SWAR lane does not make a pointer smaller.
+ * Sizing this by the lane made the storage shrink while the thing it has to hold did not, which the
+ * assert in the .c caught.
  */
-MMGR_INLINE size_t mmgr_infin_read(const uint8_t *buf, size_t cap, const _Atomic size_t *head, _Atomic size_t *tail,
-                                     uint8_t *dst, size_t maxn)
-{
-    size_t h = MMGR_ATOMIC_LOAD(head);
-    size_t t = MMGR_ATOMIC_LOAD(tail);
-    size_t n = 0;
-    while (n < maxn && t != h)
-    {
-        dst[n] = buf[t];
-        n++;
-        t = MMGR_RING_WRAP(t + 1, cap);
-    }
-    MMGR_ATOMIC_STORE(tail, t);
-    return n;
-}
-
-/**
- * @brief Copy bytes without consuming them.
- * @param buf Ring.
- * @param cap Its capacity.
- * @param tail Consumer cursor.
- * @param off Where to start, from the tail.
- * @param dst Destination.
- * @param n Byte count.
- */
-MMGR_INLINE void mmgr_infin_peek(const uint8_t *buf, size_t cap, const _Atomic size_t *tail, size_t off, uint8_t *dst,
-                                   size_t n)
-{
-    size_t idx = MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(tail) + off, cap);
-    for (size_t i = 0; i < n; i++)
-    {
-        dst[i] = buf[idx];
-        idx = MMGR_RING_WRAP(idx + 1, cap);
-    }
-}
-
-/**
- * @brief Drop @p n bytes.
- * @param tail Consumer cursor.
- * @param cap Ring capacity.
- * @param n Byte count.
- */
-MMGR_INLINE void mmgr_infin_consume(_Atomic size_t *tail, size_t cap, size_t n)
-{
-    MMGR_ATOMIC_STORE(tail, MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(tail) + n, cap));
-}
-
-/**
- * @brief How many bytes are writable.
- * @param head Producer cursor.
- * @param tail Consumer cursor.
- * @param cap Ring capacity.
- * @return Byte count. One loculus is always held back so full and empty differ.
- */
-MMGR_INLINE size_t mmgr_infin_free(const _Atomic size_t *head, const _Atomic size_t *tail, size_t cap)
-{
-    size_t used = MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(head) - MMGR_ATOMIC_LOAD(tail), cap);
-    return (cap - 1) - used;
-}
-
-/**
- * @brief Write @p len bytes, wrapping as needed.
- * @param buf Ring.
- * @param cap Its capacity.
- * @param head Producer cursor.
- * @param src Source.
- * @param len Byte count.
- * @return The new head.
- */
-MMGR_INLINE size_t mmgr_infin_write_span(uint8_t *buf, size_t cap, size_t head, const uint8_t *src, size_t len)
-{
-    while (len > 0)
-    {
-        size_t chunk = cap - head;
-        if (chunk > len)
-        {
-            chunk = len;
-        }
-        proxim.read(&buf[head], src, chunk);
-        head = MMGR_RING_WRAP(head + chunk, cap);
-        src += chunk;
-        len -= chunk;
-    }
-    return head;
-}
-
-/**
- * @brief How many segments are claimed and not yet released.
- * @param claim Claim cursor.
- * @param rel Release cursor.
- * @return Segment count.
- */
-MMGR_INLINE size_t mmgr_seg_inflight(const _Atomic size_t *claim, const _Atomic size_t *rel)
-{
-    return MMGR_ATOMIC_LOAD(claim) - MMGR_ATOMIC_LOAD(rel);
-}
-
-/**
- * @brief Claim the next segment.
- * @param claim Claim cursor.
- * @param rel Release cursor.
- * @param nsegs Segment count, a power of two.
- * @param idx Out. Which segment.
- * @return MMGR_FALSE if all segments are in flight.
- */
-MMGR_INLINE mmgr_bool mmgr_seg_next(const _Atomic size_t *claim, const _Atomic size_t *rel, size_t nsegs, size_t *idx)
-{
-    size_t c = MMGR_ATOMIC_LOAD(claim);
-    if ((c - MMGR_ATOMIC_LOAD(rel)) >= nsegs)
-    {
-        return MMGR_FALSE;
-    }
-    *idx = c & (nsegs - 1);
-    return MMGR_TRUE;
-}
-
-/**
- * @brief Make the claimed segment visible to the consumer.
- * @param claim Claim cursor.
- */
-MMGR_INLINE void mmgr_seg_publish(_Atomic size_t *claim)
-{
-    MMGR_ATOMIC_STORE(claim, MMGR_ATOMIC_LOAD(claim) + 1);
-}
-
-/**
- * @brief The oldest unreleased segment.
- * @param claim Claim cursor.
- * @param rel Release cursor.
- * @param nsegs Segment count, a power of two.
- * @param idx Out. Which segment.
- * @return MMGR_FALSE if there is none.
- */
-MMGR_INLINE mmgr_bool mmgr_seg_front(const _Atomic size_t *claim, const _Atomic size_t *rel, size_t nsegs,
-                                       size_t *idx)
-{
-    size_t r = MMGR_ATOMIC_LOAD(rel);
-    if (MMGR_ATOMIC_LOAD(claim) == r)
-    {
-        return MMGR_FALSE;
-    }
-    *idx = r & (nsegs - 1);
-    return MMGR_TRUE;
-}
-
-/**
- * @brief Release the oldest segment.
- * @param rel Release cursor.
- */
-MMGR_INLINE void mmgr_seg_release(_Atomic size_t *rel)
-{
-    MMGR_ATOMIC_STORE(rel, MMGR_ATOMIC_LOAD(rel) + 1);
-}
-
-/**
- * @brief Where segment @p idx starts.
- * @param buf Segment store.
- * @param seg_size Bytes per segment.
- * @param idx Segment index.
- * @return Pointer to it.
- */
-MMGR_INLINE uint8_t *mmgr_seg_at(uint8_t *buf, size_t seg_size, size_t idx)
-{
-    return &buf[idx * seg_size];
-}
-
-/** @brief Most loculi a bitmap can track. */
-#define MMGR_RING_LOCULI_MAX 32
-
-/**
- * @brief Bit for loculus @p idx.
- * @param idx Loculus index.
- * @return The bit, or 0 if out of range.
- */
-MMGR_INLINE uint32_t mmgr_loculus_bit(size_t idx)
-{
-    if (idx >= MMGR_RING_LOCULI_MAX)
-    {
-        return 0u;
-    }
-    return 1u << idx;
-}
-
-/**
- * @brief Mask of the low @p count loculi.
- * @param count Loculus count.
- * @return The mask.
- */
-MMGR_INLINE uint32_t mmgr_loculus_all(size_t count)
-{
-    if (count >= MMGR_RING_LOCULI_MAX)
-    {
-        return 0xFFFFFFFFu;
-    }
-    return (1u << count) - 1u;
-}
-
-/**
- * @brief Claim a loculus.
- * @param held Held bitmap.
- * @param idx Loculus index.
- * @return MMGR_FALSE if it was already held.
- */
-MMGR_INLINE mmgr_bool mmgr_loculus_take(_Atomic uint32_t *held, size_t idx)
-{
-    const uint32_t bit = mmgr_loculus_bit(idx);
-    if (bit == 0u)
-    {
-        return MMGR_FALSE;
-    }
-    uint32_t prev = atomic_fetch_or_explicit(held, bit, memory_order_acquire);
-    return (prev & bit) == 0u;
-}
-
-/** @brief A region a loculus is holding off. Two values, which is what was ever written or read. */
 typedef struct
 {
-    const uint8_t *buf;
-    size_t len;
-} mmgr_keepout;
+    MMGR_ALIGN(sizeof(size_t)) unsigned char opaque[MMGR_RING_WORDS * sizeof(size_t)];
+} mmgr_ring;
 
 /**
- * @brief Claim a loculus and bind a region to it.
- * @param held Held bitmap.
- * @param keepout Region per loculus.
- * @param idx Loculus index.
- * @param ptr Data.
- * @param len Its length.
- * @return MMGR_FALSE if the loculus was already held.
- */
-MMGR_INLINE mmgr_bool mmgr_loculus_hold(_Atomic uint32_t *held, mmgr_keepout *keepout, size_t idx,
-                                       const uint8_t *ptr, size_t len)
-{
-    if (!mmgr_loculus_take(held, idx))
-    {
-        return MMGR_FALSE;
-    }
-    keepout[idx].buf = ptr;
-    keepout[idx].len = len;
-    return MMGR_TRUE;
-}
-
-/**
- * @brief The span bound to a loculus.
- * @param keepout Region per loculus.
- * @param idx Loculus index.
- * @return The region.
- */
-MMGR_INLINE const mmgr_keepout *mmgr_loculus_keepout(const mmgr_keepout *keepout, size_t idx)
-{
-    return &keepout[idx];
-}
-
-/**
- * @brief Release a loculus.
- * @param held Held bitmap.
- * @param idx Loculus index.
- */
-MMGR_INLINE void mmgr_loculus_drop(_Atomic uint32_t *held, size_t idx)
-{
-    atomic_fetch_and_explicit(held, ~mmgr_loculus_bit(idx), memory_order_release);
-}
-
-/**
- * @brief Mark a loculus ready.
- * @param mask Ready bitmap.
- * @param idx Loculus index.
- */
-MMGR_INLINE void mmgr_loculus_mark(_Atomic uint32_t *mask, size_t idx)
-{
-    atomic_fetch_or_explicit(mask, mmgr_loculus_bit(idx), memory_order_release);
-}
-
-/**
- * @brief Unmark a loculus.
- * @param mask Ready bitmap.
- * @param idx Loculus index.
- */
-MMGR_INLINE void mmgr_loculus_clear(_Atomic uint32_t *mask, size_t idx)
-{
-    atomic_fetch_and_explicit(mask, ~mmgr_loculus_bit(idx), memory_order_release);
-}
-
-/**
- * @brief Loculi that are ready and not held.
- * @param mask Ready bitmap.
- * @param held Held bitmap.
- * @param count Loculus count.
- * @return The mask.
- */
-MMGR_INLINE uint32_t mmgr_loculus_ready(const _Atomic uint32_t *mask, const _Atomic uint32_t *held, size_t count)
-{
-    return MMGR_ATOMIC_LOAD(mask) & ~MMGR_ATOMIC_LOAD(held) & mmgr_loculus_all(count);
-}
-
-/**
- * @brief Index of the lowest set bit.
- * @param m Bitmap, non-zero.
- * @return Bit index.
+ * @brief A cursor over a ring.
  *
- * (m - 1) & ~m is the trailing zero run, so its population count is the index. The fold is not a
- * concession: __builtin_popcount is a call to __popcountdi2 on baseline x86-64, measured at 10.392
- * cycles against 5.731 for this, and it does not link at all on a freestanding target.
+ * Incomplete on purpose. The ring spawns these and hands them out; a caller holds one and passes it
+ * to whatever does the work, and can do nothing with it except give it back to the ring.
  */
-MMGR_INLINE int32_t mmgr_loculus_ctz(uint32_t m)
-{
-    uint32_t v = (m - 1u) & ~m;
-    v = v - ((v >> 1) & 0x55555555u);
-    v = (v & 0x33333333u) + ((v >> 2) & 0x33333333u);
-    v = (v + (v >> 4)) & 0x0F0F0F0Fu;
-    return (int32_t)((v * 0x01010101u) >> 24);
-}
+struct MmgrCursor;
 
 /**
- * @brief Lowest set loculus.
- * @param m Bitmap.
- * @return Loculus index, or -1 if none.
+ * @brief What a ring is made from.
+ *
+ * The buffer, how big it is, how it is divided, and the bitmap the reservations are recorded in -
+ * all the consumer's, none of it this module's to allocate.
  */
-MMGR_INLINE int32_t mmgr_loculus_next(uint32_t m)
+typedef struct
 {
-    if (m == 0u)
-    {
-        return -1;
-    }
-    return mmgr_loculus_ctz(m);
-}
+    uint8_t *const buf;        /**< The ring. */
+    const size_t cap;          /**< Its capacity, a power of two. */
+    const size_t nsegs;        /**< Segments it divides into, a power of two. */
+    _Atomic mmgr_word *const held; /**< Where reservations are recorded. */
+} RingCfg;
+
+/**
+ * @brief What a ring operation is given.
+ *
+ * The cursor being asked, and the operation's own arguments. There are no cursors in here that the
+ * caller made; the ring hands every one of them out.
+ */
+typedef struct
+{
+    mmgr_ring *const r;            /**< The ring being asked. */
+    struct MmgrCursor *const cur;  /**< Which cursor, when the entry moves one. */
+    uint8_t *const dst;            /**< Where bytes are taken to. */
+    const uint8_t *const src;      /**< Where bytes are written from. */
+    const size_t n;                /**< A byte count, or a most-to-take. */
+    const size_t off;              /**< An offset, for peek and seek. */
+    const size_t from;             /**< First byte of a drain. */
+    const size_t to;               /**< One past its last. */
+    size_t *const tessera;         /**< In/out. The token the ring issued for this drain. */
+    const void *const owner;       /**< Who the ordinary cursor goes back to. */
+} InfinCfg;
 
 /** @brief Ring dispatch table. Addressed by offset, so the layout is asserted below. */
 typedef struct
 {
-    size_t (*available)(const _Atomic size_t *head, const _Atomic size_t *tail, size_t cap);
-    mmgr_bool (*read_byte)(const uint8_t *buf, size_t cap, const _Atomic size_t *head, _Atomic size_t *tail,
-                           uint8_t *out);
-    size_t (*read)(const uint8_t *buf, size_t cap, const _Atomic size_t *head, _Atomic size_t *tail, uint8_t *dst,
-                   size_t maxn);
-    void (*peek)(const uint8_t *buf, size_t cap, const _Atomic size_t *tail, size_t off, uint8_t *dst, size_t n);
-    void (*consume)(_Atomic size_t *tail, size_t cap, size_t n);
-    size_t (*free_)(const _Atomic size_t *head, const _Atomic size_t *tail, size_t cap);
-    size_t (*write_span)(uint8_t *buf, size_t cap, size_t head, const uint8_t *src, size_t len);
+    mmgr_bool (*init)(mmgr_ring *r, const RingCfg *c);
+    struct MmgrCursor *(*open)(const InfinCfg *c);
+    const uint8_t *(*drain)(const InfinCfg *c);
+    size_t (*available)(const InfinCfg *c);
+    size_t (*free_)(const InfinCfg *c);
+    mmgr_bool (*read_byte)(const InfinCfg *c);
+    const uint8_t *(*read)(const InfinCfg *c);
+    void (*peek)(const InfinCfg *c);
+    void (*consume)(const InfinCfg *c);
+    size_t (*write)(const InfinCfg *c);
+    void (*seek)(const InfinCfg *c);
 } InfinitasNs;
-MMGR_NS_LAYOUT(InfinitasNs, available, read_byte, read, peek, consume, free_, write_span);
+MMGR_NS_LAYOUT(InfinitasNs, init, open, drain, available, free_, read_byte, read, peek, consume, write, seek);
+
+/** @name The entries the table points at.
+ *  @brief Nameable so a static const table can name them, and for no other reason. The table is
+ *         still the whole surface: call through it.
+ *  @{ */
+mmgr_bool mmgr_infin_init(mmgr_ring *r, const RingCfg *c);
+struct MmgrCursor *mmgr_infin_open(const InfinCfg *c);
+const uint8_t *mmgr_infin_drain(const InfinCfg *c);
+size_t mmgr_infin_available(const InfinCfg *c);
+size_t mmgr_infin_free(const InfinCfg *c);
+mmgr_bool mmgr_infin_read_byte(const InfinCfg *c);
+const uint8_t *mmgr_infin_read(const InfinCfg *c);
+void mmgr_infin_peek(const InfinCfg *c);
+void mmgr_infin_consume(const InfinCfg *c);
+size_t mmgr_infin_write(const InfinCfg *c);
+void mmgr_infin_seek(const InfinCfg *c);
+/** @} */
 
 /**
  * @brief Ring namespace.
@@ -436,72 +159,22 @@ MMGR_NS_LAYOUT(InfinitasNs, available, read_byte, read, peek, consume, free_, wr
  * translation unit and every call is a load and an indirect jump.
  *
  * free_ carries the underscore for the reason xor_ does: spelled bare, a member access reading
- * `infin.free(...)` is a call to whatever a freestanding libc defined free as, and a
+ * `iteratio_infinita.free(...)` is a call to whatever a freestanding libc defined free as, and a
  * function-like macro expands wherever its name is followed by an open parenthesis - the member
  * access in front does not stop it.
  */
-MMGR_NS InfinitasNs infin MMGR_UNUSED = {
+MMGR_NS InfinitasNs iteratio_infinita MMGR_UNUSED = {
+    .init = mmgr_infin_init,
+    .open = mmgr_infin_open,
+    .drain = mmgr_infin_drain,
     .available = mmgr_infin_available,
+    .free_ = mmgr_infin_free,
     .read_byte = mmgr_infin_read_byte,
     .read = mmgr_infin_read,
     .peek = mmgr_infin_peek,
     .consume = mmgr_infin_consume,
-    .free_ = mmgr_infin_free,
-    .write_span = mmgr_infin_write_span,
-};
-
-/** @brief Segment dispatch table. Addressed by offset, so the layout is asserted below. */
-typedef struct
-{
-    size_t (*inflight)(const _Atomic size_t *claim, const _Atomic size_t *rel);
-    mmgr_bool (*next)(const _Atomic size_t *claim, const _Atomic size_t *rel, size_t nsegs, size_t *idx);
-    void (*publish)(_Atomic size_t *claim);
-    mmgr_bool (*front)(const _Atomic size_t *claim, const _Atomic size_t *rel, size_t nsegs, size_t *idx);
-    void (*release)(_Atomic size_t *rel);
-    uint8_t *(*at)(uint8_t *buf, size_t seg_size, size_t idx);
-} SegmentumNs;
-MMGR_NS_LAYOUT(SegmentumNs, inflight, next, publish, front, release, at);
-
-/** @brief Segment namespace. static const, for the same reason the ring's is. */
-MMGR_NS SegmentumNs seg MMGR_UNUSED = {
-    .inflight = mmgr_seg_inflight,
-    .next = mmgr_seg_next,
-    .publish = mmgr_seg_publish,
-    .front = mmgr_seg_front,
-    .release = mmgr_seg_release,
-    .at = mmgr_seg_at,
-};
-
-/** @brief Loculus dispatch table. Addressed by offset, so the layout is asserted below. */
-typedef struct
-{
-    uint32_t (*bit)(size_t idx);
-    uint32_t (*all)(size_t count);
-    mmgr_bool (*take)(_Atomic uint32_t *held, size_t idx);
-    mmgr_bool (*hold)(_Atomic uint32_t *held, mmgr_keepout *keepout, size_t idx, const uint8_t *ptr, size_t len);
-    const mmgr_keepout *(*keepout)(const mmgr_keepout *keepout, size_t idx);
-    void (*drop)(_Atomic uint32_t *held, size_t idx);
-    void (*mark)(_Atomic uint32_t *mask, size_t idx);
-    void (*clear)(_Atomic uint32_t *mask, size_t idx);
-    uint32_t (*ready)(const _Atomic uint32_t *mask, const _Atomic uint32_t *held, size_t count);
-    int32_t (*ctz)(uint32_t m);
-    int32_t (*next)(uint32_t m);
-} LoculusNs;
-MMGR_NS_LAYOUT(LoculusNs, bit, all, take, hold, keepout, drop, mark, clear, ready, ctz, next);
-
-/** @brief Loculus namespace. static const, for the same reason the ring's is. */
-MMGR_NS LoculusNs loculus MMGR_UNUSED = {
-    .bit = mmgr_loculus_bit,
-    .all = mmgr_loculus_all,
-    .take = mmgr_loculus_take,
-    .hold = mmgr_loculus_hold,
-    .keepout = mmgr_loculus_keepout,
-    .drop = mmgr_loculus_drop,
-    .mark = mmgr_loculus_mark,
-    .clear = mmgr_loculus_clear,
-    .ready = mmgr_loculus_ready,
-    .ctz = mmgr_loculus_ctz,
-    .next = mmgr_loculus_next,
+    .write = mmgr_infin_write,
+    .seek = mmgr_infin_seek,
 };
 
 MMGR_FINIS_DECLS
