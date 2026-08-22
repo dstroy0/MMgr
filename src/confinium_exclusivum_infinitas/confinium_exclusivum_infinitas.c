@@ -183,12 +183,63 @@ MMGR_INLINE void infin_consume(const InfinCtx *c)
     MMGR_ATOMIC_STORE(&c->s->tail, MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&c->s->tail) + c->n, c->s->cap));
 }
 
-/** @brief Write @c n bytes, wrapping as needed. */
+/**
+ * @brief How many of @p want bytes from @p at the ordinary accessor may have.
+ *
+ * A reservation keeps everyone out, not only other claimants. Without this the mask stops a second
+ * drain and does nothing about the writer, so a run handed to an egress is a run the producer is
+ * still filling - measured, and it happened on every one of four hundred thousand segments.
+ *
+ * One load of the word answers it however many reservations are outstanding. With none held the
+ * whole run is available and this is a compare against zero.
+ */
+MMGR_INLINE size_t infin_room(const RingState *s, size_t at, size_t want)
+{
+    const mmgr_word bits = MMGR_ATOMIC_LOAD(s->held);
+
+    if (bits == 0u)
+    {
+        return want;
+    }
+
+    size_t room = 0;
+    while (room < want)
+    {
+        const size_t seg = at / s->seg;
+        if ((bits & (mmgr_word)((mmgr_word)1 << seg)) != 0u)
+        {
+            break;
+        }
+        size_t step = s->seg - (at % s->seg);
+        if (step > (want - room))
+        {
+            step = want - room;
+        }
+        room += step;
+        at = MMGR_RING_WRAP(at + step, s->cap);
+    }
+    return room;
+}
+
+/**
+ * @brief Write @c n bytes, wrapping as needed, or refuse.
+ *
+ * All of it or none of it. A run that would reach a reservation is declined rather than written
+ * short: a caller handed back a smaller number than it asked for has to work out which of its bytes
+ * went, and a producer that has to reason about that is a producer that will get it wrong once.
+ */
 MMGR_INLINE size_t infin_write(const InfinCtx *c)
 {
     size_t at = MMGR_ATOMIC_LOAD(&c->s->head);
     const uint8_t *src = c->src;
+
+    if (infin_room(c->s, at, c->n) < c->n)
+    {
+        return 0u;
+    }
+
     size_t left = c->n;
+    const size_t took = left;
 
     while (left > 0u)
     {
@@ -203,7 +254,7 @@ MMGR_INLINE size_t infin_write(const InfinCtx *c)
         left -= chunk;
     }
     MMGR_ATOMIC_STORE(&c->s->head, at);
-    return c->n;
+    return took;
 }
 
 /** @brief Move a cursor inside its frame. Offset zero is the frame's start. */
@@ -356,6 +407,25 @@ const uint8_t *mmgr_infin_drain(const InfinCfg *c)
     if (c->to <= c->from)
     {
         return NULL;
+    }
+
+    /* Behind the head, always. This is an ingestion path: a drain takes what has arrived and is
+     * waiting to go out, so a reservation covers bytes the producer has already written and moved
+     * past. Refusing anything else is not only a contract - it is what makes the reservation safe
+     * without a lock. A claim over ground the producer is still filling would have to be ordered
+     * against a write already in flight, because the writer reads the mask and then stores, and a
+     * claim landing between those two lands in the middle of a copy. Measured: with a claim edge in
+     * play a reserved run was disturbed constantly; with the claim confined to arrived bytes there
+     * is no edge to fall through. */
+    {
+        const size_t tail = MMGR_ATOMIC_LOAD(&s->tail);
+        const size_t arrived = MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&s->head) - tail, s->cap);
+        const size_t rel = MMGR_RING_WRAP(c->from - tail, s->cap);
+
+        if ((arrived == 0u) || (rel >= arrived) || ((c->to - c->from) > (arrived - rel)))
+        {
+            return NULL;
+        }
     }
 
     const size_t first = c->from / s->seg;

@@ -22,12 +22,28 @@
 #define SEGBYTES (CAP / SEGS)
 
 static uint8_t buf[CAP];
+static uint8_t arrived[CAP];
 static _Atomic mmgr_word held;
 static mmgr_ring ring;
+static const int owner = 0;
 
+/**
+ * @brief A ring with everything already in it.
+ *
+ * A drain reserves what has arrived, so a case that claims over an empty ring is asking for ground
+ * the producer has not reached and is refused. Filling first is not scaffolding - it is the state
+ * an ingestion path is in when a priority drain is called for.
+ */
 void setUp(void)
 {
+    for (unsigned i = 0; i < CAP; i++)
+    {
+        arrived[i] = (uint8_t)(i + 1u);
+    }
     (void)iteratio_infinita.init(&ring, &(RingCfg){buf, CAP, SEGS, &held});
+
+    struct MmgrCursor *const cur = iteratio_infinita.open(&(InfinCfg){.r = &ring, .owner = &owner});
+    (void)iteratio_infinita.write(&(InfinCfg){.r = &ring, .cur = cur, .src = arrived, .n = CAP - 1u});
 }
 
 void tearDown(void)
@@ -130,6 +146,8 @@ void test_a_range_the_ring_does_not_hold_is_refused(void)
     size_t t = 0u;
 
     TEST_ASSERT_NULL_MESSAGE(ask(0u, CAP + 1u, &t), "a range past the ring is refused");
+    TEST_ASSERT_NULL_MESSAGE(ask(CAP - 1u, CAP, &t),
+                             "a range past what has arrived is refused: a drain takes what is there");
     TEST_ASSERT_NULL_MESSAGE(ask(8u, 8u, &t), "an empty range is refused");
     TEST_ASSERT_EQUAL_MESSAGE(0u, MMGR_ATOMIC_LOAD(&held), "a refused claim reserved nothing");
 }
