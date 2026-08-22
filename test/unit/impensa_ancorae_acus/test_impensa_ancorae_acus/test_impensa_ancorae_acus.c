@@ -17,12 +17,12 @@ void test_anchor_table_covers_every_byte(void)
 {
     // Every one of the 256 values answers, and not all with the same number. A profile that
     // answered a constant would satisfy every other case here and rank nothing.
-    const uint8_t first = ancorae.impensa(0u);
+    const uint8_t first = mmgr_ancorae_impensa((uint8_t)0u);
     int varies = 0;
 
     for (unsigned c = 0; c < 256u; c++)
     {
-        if (ancorae.impensa((uint8_t)c) != first)
+        if (mmgr_ancorae_impensa((uint8_t)c) != first)
         {
             varies = 1;
         }
@@ -32,7 +32,7 @@ void test_anchor_table_covers_every_byte(void)
 
 void test_anchor_never_picks_the_terminator(void)
 {
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(255u, ancorae.impensa(0u),
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(255u, mmgr_ancorae_impensa((uint8_t)0u),
                                     "NUL ends a scan, so it must never be the cheapest anchor");
 }
 
@@ -40,7 +40,7 @@ void test_impensa_ancorae_acus_is_never_zero(void)
 {
     for (unsigned c = 0; c < 256u; c++)
     {
-        TEST_ASSERT_GREATER_THAN_UINT8_MESSAGE(0u, ancorae.impensa((uint8_t)c),
+        TEST_ASSERT_GREATER_THAN_UINT8_MESSAGE(0u, mmgr_ancorae_impensa((uint8_t)c),
                                                "zero would tie with a byte that cannot occur");
     }
 }
@@ -49,8 +49,8 @@ void test_anchor_prefers_rare_bytes_to_common_ones(void)
 {
     // whatever profile is compiled in, a scan anchors on the minimum, so these orderings are what
     // make the first sieve row selective
-    TEST_ASSERT_LESS_THAN_UINT8_MESSAGE(ancorae.impensa((unsigned char)' '), ancorae.impensa((unsigned char)'q'),
+    TEST_ASSERT_LESS_THAN_UINT8_MESSAGE(mmgr_ancorae_impensa((unsigned char)' '), mmgr_ancorae_impensa((unsigned char)'q'),
                                         "space is the most common byte in text and must cost more than q");
-    TEST_ASSERT_LESS_THAN_UINT8_MESSAGE(ancorae.impensa((unsigned char)'e'), ancorae.impensa((unsigned char)'z'),
+    TEST_ASSERT_LESS_THAN_UINT8_MESSAGE(mmgr_ancorae_impensa((unsigned char)'e'), mmgr_ancorae_impensa((unsigned char)'z'),
                                         "z is rarer than e");
 }

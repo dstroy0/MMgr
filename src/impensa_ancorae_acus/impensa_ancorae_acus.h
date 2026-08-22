@@ -44,9 +44,23 @@ MMGR_INCIPE_DECLS
  */
 
 /** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
+/**
+ * @brief What a cost lookup is given.
+ *
+ * Public, and in the header, because the caller is what builds it. The member is const:
+ * nothing writes to a config once the caller has built it.
+ *
+ * Not the module's context. AncoraeCtx is what the body works with and it is file local.
+ */
 typedef struct
 {
-    uint8_t (*impensa)(uint8_t b);
+    const uint8_t b; /**< The byte being costed. */
+} AncoraeCfg;
+
+/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
+typedef struct
+{
+    uint8_t (*impensa)(const AncoraeCfg *c);
 } ImpensaAncoraeAcusNs;
 MMGR_NS_LAYOUT(ImpensaAncoraeAcusNs, impensa);
 
@@ -54,8 +68,23 @@ MMGR_NS_LAYOUT(ImpensaAncoraeAcusNs, impensa);
  *  @brief Nameable so a static const table can name them, and for no other reason. The table is
  *         still the whole surface: call through it.
  *  @{ */
-uint8_t mmgr_ancorae_impensa(uint8_t b);
+uint8_t mmgr_ancorae_impensa(const AncoraeCfg *c);
 /** @} */
+
+/**
+ * @brief The byte a cost is asked for, and nothing that merely converts to one.
+ *
+ * uint8_t, not char. Whether char is signed is the implementation's to decide, so a byte at or
+ * above 0x80 arrives negative on one target and positive on the next.
+ */
+#define MMGR_ANCORAE_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
+
+/**
+ * @brief What @p b_ costs as an anchor.
+ *
+ * Positional in, so the struct and the designator never reach a call site.
+ */
+#define mmgr_ancorae_impensa(b_) (MMGR_ANCORAE_IS_BYTE(b_), mmgr_ancorae_impensa(&(AncoraeCfg){.b = (b_)}))
 
 /**
  * @brief Module namespace.

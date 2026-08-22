@@ -51,9 +51,20 @@ static const uint8_t s_impensa[256] = {
  * reach what was already in a register, and the entry is an array subscript whose argument is the
  * index.
  */
-MMGR_INLINE uint8_t ancorae_impensa(uint8_t b)
+/**
+ * @brief One cost lookup.
+ *
+ * File local and staying that way. AncoraeCfg in the header wears the same field and is not
+ * this: that one is what the caller hands over, this one is what the body works with.
+ */
+typedef struct
 {
-    return s_impensa[b];
+    uint8_t b; /**< The byte being costed. */
+} AncoraeCtx;
+
+MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *x)
+{
+    return s_impensa[x->b];
 }
 
 /* The namespace is a table of function pointers with the caller's argument lists in their types,
@@ -64,7 +75,7 @@ MMGR_INLINE uint8_t ancorae_impensa(uint8_t b)
    call from another translation unit is a load of the table, a load of the entry, and an indirect
    call it cannot see through. */
 
-uint8_t mmgr_ancorae_impensa(uint8_t b)
+uint8_t (mmgr_ancorae_impensa)(const AncoraeCfg *c)
 {
-    return ancorae_impensa(b);
+    return MMGR_CALL(ancorae_impensa, AncoraeCtx, .b = c->b);
 }

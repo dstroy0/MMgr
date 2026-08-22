@@ -310,7 +310,7 @@ MMGR_INLINE size_t cellul_pick_rows(const CellulCtx *c)
             }
 
             const uint8_t cost =
-                ancorae.impensa(cellul_ancorae_fold(&(CellulCtx){.t = c->t, .k = k, .ci = c->ci}));
+                mmgr_ancorae_impensa(cellul_ancorae_fold(&(CellulCtx){.t = c->t, .k = k, .ci = c->ci}));
             if (!taken && (cost < best_cost))
             {
                 best_cost = cost;
