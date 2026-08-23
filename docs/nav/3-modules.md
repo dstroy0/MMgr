@@ -39,4 +39,4 @@ reference.
 
 ## Hardware
 
-- @subpage mod_dma_guide
+- @subpage mod_praet_guide

@@ -32,14 +32,12 @@ when done. The bytes never move.
 ## Worked example
 
 ```c
-/* producer */
 size_t seg = infin_seg_next(&q);
 if (seg != MMGR_SEG_NONE) {
     fill(infin_seg_at(&q, seg));
     infin_seg_publish(&q, seg);
 }
 
-/* consumer */
 size_t seg = infin_seg_front(&q);
 if (seg != MMGR_SEG_NONE) {
     use(infin_seg_at(&q, seg));
@@ -58,16 +56,12 @@ a head that starts aligned stays aligned, and a granted address is one a DMA cha
 exactly as it stands. Nothing rounds and nothing decays after the first short transfer.
 
 ```c
-static const SingularitasCfg mine = {&me, 4u};      /* words */
-size_t tess = 0, got = 0;
+static const SingularitasCfg mine = {&me, 4u};      size_t tess = 0, got = 0;
 
-/* Ask for a run. Fall back to whatever fits, which is the ask that gets an answer at the wrap. */
 uint8_t *at = iteratio_infinita.singularitas(
     &(InfinCfg){.r = &ring, .n = 16u, .tessera = &tess, .sing = &mine, .units = &got});
 
-dma.tx_submit(ch, at, (uint16_t)(got * 4u));        /* the channel fills it */
-
-/* From the completion: publish what landed and take the next run in the same call. */
+praet.tx_submit(ch, at, (uint16_t)(got * 4u));        
 iteratio_infinita.singularitas(
     &(InfinCfg){.r = &ring, .off = landed, .tessera = &tess, .sing = &mine, .units = &got});
 ```
@@ -137,26 +131,7 @@ scarce, external is large and slower, and some of it cannot be reached by DMA.
 ```c
 mmgr_place p = mmgr_exter_place(size, needs_dma, free_dram, free_psram, threshold, dram_reserve);
 switch (p) {
-    case PLACE_DRAM:  /* internal */       break;
-    case PLACE_PSRAM: /* external */       break;
-    case PLACE_FAIL:  /* neither fits */   break;
-}
-```
-
-It is a **decision**, not an allocator. It answers where a buffer of this size, with this DMA
-requirement, ought to go, given how much of each is left. Taking the storage is still yours to do,
-and so is knowing the two free counts - this module holds no pool and tracks nothing between calls.
-
-`PingPong` double-buffer index helpers ship alongside it, because the workload that needs external
-memory is usually the one streaming through two buffers. The pair is the config:
-
-```c
-PingPong pp;
-mmgr_pingpong_init(pp);
-uint8_t filling  = mmgr_pingpong_fill_index(pp);
-uint8_t draining = mmgr_pingpong_drain_index(pp);   /* always the other one */
-mmgr_pingpong_swap(pp);                             /* change ends */
-```
+    case PLACE_DRAM:  mmgr_pingpong_swap(pp);                             ```
 
 ## Gotchas
 
@@ -184,10 +159,7 @@ Three access strategies. Not one thing under three names.
 | `migro`  | may alias | the pointer may alias another live pointer of a different type |
 
 ```c
-uint32_t v = proxim.u32(p);      /* p may be misaligned      */
-uint32_t v = proxim.al_u32(p);   /* p is known aligned       */
-uint32_t v = proxim.mv_load(p);  /* p may alias              */
-```
+uint32_t v = proxim.u32(p);      uint32_t v = proxim.al_u32(p);   uint32_t v = proxim.mv_load(p);  ```
 
 ## Why they are not merged
 

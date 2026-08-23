@@ -8,7 +8,7 @@
 # cases the generator would walk past.
 #
 #   mmgr_add_suite(test_endian)
-#   mmgr_add_suite(test_dma CAPABILITY DMA)
+#   mmgr_add_suite(test_memoriam_praetereo CAPABILITY DMA)
 #   mmgr_add_suite(test_word16 ENVIRONMENT word16)
 #
 # CAPABILITY names a config option the suite cannot be built without. The capability names

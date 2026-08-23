@@ -14,12 +14,10 @@ mmgr_verba b = verba.from(spat.from(buf, sizeof buf));
 verba.put(&b, "id=");
 verba.u32(&b, id);
 verba.put(&b, " rate=");
-verba.fixed(&b, rate, 2);          /* two decimal places */
-verba.ch(&b, '\n');
+verba.fixed(&b, rate, 2);          verba.ch(&b, '\n');
 
 if (!verba.finish(&b)) {
-    /* one check, covering all five appends */
-}
+    }
 ```
 
 There is no format string anywhere. Nothing parses `%d` at runtime, so nothing can disagree with the
@@ -103,7 +101,7 @@ is a bug the compiler cannot see.
 
 ---
 
-# DMA — transfer submission {#mod_dma_guide}
+# Memoriam praetereo — transfer submission {#mod_praet_guide}
 
 @note Compiled only when `MMGR_ENABLE_DMA` is set. It defaults off, and its test suite is skipped
 loudly rather than silently.
@@ -114,16 +112,16 @@ A thin, portable surface over a DMA controller: open a channel, submit a transfe
 callback, close it.
 
 ```c
-mmgr_dma_config cfg = {
-    .periph  = MMGR_DMA_UART,
-    .dir     = MMGR_DMA_TX,
+MemoriamPraetereoCfg cfg = {
+    .periph  = MMGR_PRAET_UART,
+    .dir     = MMGR_PRAET_TX,
     .channel = 0,
 };
 
-mmgr_dma_h h = mmgr_dma_open(&cfg);
-mmgr_dma_tx_submit(h, buf, len);
-mmgr_dma_poll(h);
-mmgr_dma_close(h);
+mmgr_praet_h h = mmgr_praet_open(&cfg);
+mmgr_praet_tx_submit(h, buf, len);
+mmgr_praet_poll(h);
+mmgr_praet_close(h);
 ```
 
 ## The hardware hooks are weak
@@ -132,8 +130,8 @@ The functions that actually touch a controller are `MMGR_WEAK`. A board support 
 by defining a symbol with the same name — no registration, no function pointer table, no init order
 to get right.
 
-Without an override they are present and inert, which is what lets `dma` compile and its tests link
-on a host with no DMA controller at all.
+Without an override they are present and inert, which is what lets `memoriam_praetereo` compile and
+its tests link on a host with no DMA controller at all.
 
 ## Gotchas
 
@@ -144,7 +142,7 @@ in MMgr where a lifetime is decided by hardware rather than by a mark.
 **Cache coherency is not handled here.** On a part with a data cache and a DMA engine that does not
 snoop it, the clean and invalidate are the board file's job.
 
-**`MMGR_DMA_CHANNELS` and `MMGR_DMA_BUF_SIZE` only exist when the gate is on.** See
+**`MMGR_PRAET_CHANNELS` and `MMGR_PRAET_BUF_SIZE` only exist when the gate is on.** See
 @ref ref_configuration.
 
-@ref mod_dma "Generated reference"
+@ref mod_praet "Generated reference"

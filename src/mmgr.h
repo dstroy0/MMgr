@@ -1,15 +1,6 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
 #ifndef MMGR_H
 #define MMGR_H
 
-/**
- * @file mmgr.h
- * @brief Everything, in one include. Also the Arduino compatibility name.
- *
- * A translation unit that wants one module should include that module. This exists so a sketch can
- * say `#include <mmgr.h>` and be done.
- */
 
 #include "config/mmgr_config.h"
 
@@ -30,7 +21,7 @@
 #include "verbum_scrutor/verbum_scrutor.h"
 
 #if MMGR_ENABLE_DMA
-#include "dma/dma.h"
+#include "memoriam_praetereo/memoriam_praetereo.h"
 #endif
 
 #if MMGR_ENABLE_EXTRAM

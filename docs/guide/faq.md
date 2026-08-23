@@ -55,9 +55,9 @@ at a different set of compile-time widths, so a defect that only appears at a 16
 run on your machine instead of waiting for the hardware. One `cmake --build`, one `ctest`. See
 @ref ref_environments.
 
-## A test says `test_dma` was skipped. Is that a problem?
+## A test says `test_memoriam_praetereo` was skipped. Is that a problem?
 
-No. `dma` and `confinium_externum` are behind `MMGR_ENABLE_DMA` and `MMGR_ENABLE_PSRAM_POOL`, both
+No. `memoriam_praetereo` and `confinium_externum` are behind `MMGR_ENABLE_DMA` and `MMGR_ENABLE_PSRAM_POOL`, both
 off by default, so their suites are skipped — loudly, with a CMake status message. Turn the flag on
 if you want them built.
 

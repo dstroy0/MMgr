@@ -12,7 +12,7 @@
 MODULE	confinium	confinium	confin	Confinium
 MODULE	bitio	bitio	bitio	Bitio
 MODULE	bytes	byteio	byteio	Byteio
-MODULE	dma	dma	dma	Dma
+MODULE	dma	memoriam_praetereo	praet	MemoriamPraetereo
 MODULE	endian	endian	endian	Endian
 MODULE	float_bits	fractio	fract	Fractio
 MODULE	membuild	verba_scribo	verba	VerbaScribo
@@ -63,9 +63,9 @@ INFIX	mv	migro
 # The const span. Long form in the declaration, f- for fixus in the symbol.
 INFIX	cspan	fspat
 #
-# Unchanged. dma and mpint and pingpong name concepts, not modules; worker is cross-cutting and is
+# Unchanged. mpint and pingpong name concepts, not modules; worker is cross-cutting and is
 # declared by confinium but used by the pools.
-INFIX	dma	dma
+INFIX	dma	praet
 INFIX	mpint	mpint
 INFIX	pingpong	pingpong
 INFIX	worker	worker

@@ -25,10 +25,10 @@ BitorumCfg	KEYWORD1
 mmgr_confin	KEYWORD1
 mmgr_confin_mark	KEYWORD1
 mmgr_confin_set	KEYWORD1
-mmgr_dma_config	KEYWORD1
-mmgr_dma_dir	KEYWORD1
-mmgr_dma_event	KEYWORD1
-mmgr_dma_periph	KEYWORD1
+MemoriamPraetereoCfg	KEYWORD1
+mmgr_praet_dir	KEYWORD1
+mmgr_praet_event	KEYWORD1
+mmgr_praet_periph	KEYWORD1
 mmgr_field	KEYWORD1
 mmgr_fk	KEYWORD1
 mmgr_fspat	KEYWORD1

@@ -55,10 +55,10 @@ you have the `checks` environment. See @ref ref_error_handling.
 
 | knob                     | default | what it changes                               |
 | ------------------------ | ------: | --------------------------------------------- |
-| `MMGR_ENABLE_DMA`        |     `0` | compiles `dma/` and includes it from `mmgr.h` |
+| `MMGR_ENABLE_DMA`        |     `0` | compiles `memoriam_praetereo/`, included from `mmgr.h` |
 | `MMGR_ENABLE_PSRAM_POOL` |     `0` | compiles `confinium_externum/`                |
-| `MMGR_DMA_CHANNELS`      |     `2` | only when DMA is on                           |
-| `MMGR_DMA_BUF_SIZE`      |   `256` | only when DMA is on                           |
+| `MMGR_PRAET_CHANNELS`    |     `2` | only when DMA is on                           |
+| `MMGR_PRAET_BUF_SIZE`    |   `256` | only when DMA is on                           |
 
 With these off, the modules are absent entirely — not stubbed. Their test suites are skipped with a
 CMake status message rather than silently dropped.

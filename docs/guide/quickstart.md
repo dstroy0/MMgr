@@ -19,7 +19,7 @@ width. See @ref ref_environments.
 Two suites are skipped unless you ask for them, and they say so rather than disappearing quietly:
 
 ```
--- MMgr: skipping test_dma (needs MMGR_ENABLE_DMA)
+-- MMgr: skipping test_memoriam_praetereo (needs MMGR_ENABLE_DMA)
 -- MMgr: skipping test_confinium_externum (needs MMGR_ENABLE_PSRAM_POOL)
 ```
 
@@ -31,7 +31,6 @@ Storage comes from you. This is the whole shape of the library in twenty lines.
 #include "mmgr.h"
 #include <stdio.h>
 
-/* The one buffer. Static, sized at compile time, owned by the caller. */
 static uint8_t region[4096];
 
 int main(void)
@@ -39,23 +38,17 @@ int main(void)
     mmgr_confin c;
     mmgr_confin_init(&c, region, sizeof region);
 
-    /* Take 256 bytes that live as long as the region does, 8-byte aligned. */
-    uint8_t *store = mmgr_confin_persist_capio(&c, 256, 8);
+        uint8_t *store = mmgr_confin_persist_capio(&c, 256, 8);
     if (store == NULL) {
-        return 1;                       /* it did not fit. That is the only failure mode. */
-    }
+        return 1;                           }
 
-    /* A span is a bounded view over storage it does not own. */
-    mmgr_spat s = spat.from(store, 256);
+        mmgr_spat s = spat.from(store, 256);
 
-    /* Build a string without printf and without a heap. */
-    mmgr_verba b = verba.from(s);
+        mmgr_verba b = verba.from(s);
     verba.put(&b, "bytes at hand: ");
     verba.u32(&b, (uint32_t)mmgr_confin_octas_praesto(&c));
 
-    /* One check, at the end. verba latches, because a formatted number is as
-       long as it turns out to be. */
-    if (!verba.finish(&b)) {
+        if (!verba.finish(&b)) {
         return 2;
     }
 
