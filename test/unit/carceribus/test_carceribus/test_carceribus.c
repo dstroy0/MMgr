@@ -1,12 +1,7 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
 #include "unity.h"
 
 #include "carceribus/carceribus.h"
 
-// deliberately over-aligned and oversized: init aligns the base up, so a case that wants an
-// unaligned start offsets into this itself.
 static _Alignas(64) uint8_t store[4096];
 static _Alignas(64) uint8_t store2[1024];
 static mmgr_carcer a;
@@ -109,8 +104,7 @@ void test_a_large_free_block_splits(void)
 
     mmgr_carcer_persist_reddo(&a, big);
 
-    // a small request into a large hole should split it and leave the remainder usable
-    void *small = mmgr_carcer_persist_capio(&a, 16u);
+        void *small = mmgr_carcer_persist_capio(&a, 16u);
     TEST_ASSERT_EQUAL_PTR(big, small);
     void *rest = mmgr_carcer_persist_capio(&a, 16u);
     TEST_ASSERT_NOT_NULL_MESSAGE(rest, "the remainder of the split block is still available");
@@ -156,8 +150,7 @@ void test_adjacent_free_blocks_coalesce(void)
     mmgr_carcer_persist_reddo(&a, q);
     mmgr_carcer_persist_reddo(&a, p);
 
-    // the two holes are adjacent, so one request larger than either must fit
-    void *big = mmgr_carcer_persist_capio(&a, 128u);
+        void *big = mmgr_carcer_persist_capio(&a, 128u);
     TEST_ASSERT_EQUAL_PTR_MESSAGE(p, big, "two adjacent holes become one");
 }
 
@@ -263,9 +256,6 @@ void test_free_space_falls_as_it_is_taken(void)
     TEST_ASSERT_LESS_THAN_size_t(before, mmgr_carcer_octas_praesto(&a));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * a set of regions taken from as one
- * ------------------------------------------------------------------------------------------- */
 
 void test_a_set_starts_empty(void)
 {
@@ -362,13 +352,6 @@ void test_a_set_request_larger_than_any_region_fails(void)
     TEST_ASSERT_NULL(mmgr_carcer_set_interim_capio(&s, sizeof store2 * 4u));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the free list, walked
- *
- * A released persistent block goes back on the list and the next request walks it looking for one
- * that fits. Which arm the walk takes depends on whether the block it lands on is free at all and
- * whether it is big enough, so both have to be arranged rather than hoped for.
- * ------------------------------------------------------------------------------------------- */
 
 void test_a_persist_request_walks_past_a_block_that_is_still_in_use(void)
 {
@@ -379,9 +362,7 @@ void test_a_persist_request_walks_past_a_block_that_is_still_in_use(void)
 
     mmgr_carcer_persist_reddo(&a, drop);
 
-    // The first block on the list is still in use, so the walk has to step over it to reach the
-    // one that was given back.
-    void *again = mmgr_carcer_persist_capio(&a, 64u);
+            void *again = mmgr_carcer_persist_capio(&a, 64u);
     TEST_ASSERT_EQUAL_PTR_MESSAGE(drop, again, "the released block was not reused");
 }
 
@@ -394,13 +375,10 @@ void test_a_persist_request_walks_past_a_free_block_that_is_too_small(void)
     TEST_ASSERT_NOT_NULL(keep);
     TEST_ASSERT_NOT_NULL(big);
 
-    // keep stays in use between the two. Releasing neighbors merges them, so without something
-    // in the way there would be one free block and nothing for the walk to step over.
-    mmgr_carcer_persist_reddo(&a, small);
+            mmgr_carcer_persist_reddo(&a, small);
     mmgr_carcer_persist_reddo(&a, big);
 
-    // The small block comes first and cannot hold the request, so the walk keeps going.
-    void *want = mmgr_carcer_persist_capio(&a, 200u);
+        void *want = mmgr_carcer_persist_capio(&a, 200u);
     TEST_ASSERT_EQUAL_PTR_MESSAGE(big, want, "the walk stopped at a block that was too small");
 }
 
@@ -426,8 +404,7 @@ void test_a_persist_request_larger_than_the_tenant_is_refused(void)
 
 void test_a_persist_request_that_would_meet_the_interim_end_is_refused(void)
 {
-    // Take the interim end down until the two ends have almost no space between them.
-    TEST_ASSERT_NOT_NULL(mmgr_carcer_interim_capio(&a, sizeof store - 128u));
+        TEST_ASSERT_NOT_NULL(mmgr_carcer_interim_capio(&a, sizeof store - 128u));
     TEST_ASSERT_NULL_MESSAGE(mmgr_carcer_persist_capio(&a, 1024u), "the two ends were allowed to cross");
 }
 
@@ -453,17 +430,13 @@ void test_releasing_nothing_is_ignored(void)
     TEST_ASSERT_EQUAL_size_t(used, mmgr_carcer_persist_used(&a));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * what is left in the middle
- * ------------------------------------------------------------------------------------------- */
 
 void test_free_space_is_zero_once_the_two_ends_meet(void)
 {
     TEST_ASSERT_NOT_NULL(mmgr_carcer_interim_capio(&a, sizeof store - 64u));
     while (mmgr_carcer_persist_capio(&a, 8u) != NULL)
     {
-        // Fill the gap from the other end until nothing more fits.
-    }
+            }
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_carcer_octas_praesto(&a),
                                      "a tenant with nothing between its ends still reported room");
@@ -471,23 +444,17 @@ void test_free_space_is_zero_once_the_two_ends_meet(void)
 
 void test_free_space_never_reports_less_than_a_header(void)
 {
-    // Whatever is left has to hold a header before it can hold a byte, so the count is the space
-    // past that and never a number the caller could not actually use.
-    const size_t room = mmgr_carcer_octas_praesto(&a);
+            const size_t room = mmgr_carcer_octas_praesto(&a);
     TEST_ASSERT_NOT_NULL(mmgr_carcer_persist_capio(&a, room));
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_carcer_octas_praesto(&a));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the aligned interim entry
- * ------------------------------------------------------------------------------------------- */
 
 void test_an_aligned_interim_request_that_does_not_fit_is_refused(void)
 {
     TEST_ASSERT_NULL(mmgr_carcer_interim_capio_aligned(&a, sizeof store * 2u, 16u));
 
-    // And one that fits by size but not once the persistent end is where it is.
-    TEST_ASSERT_NOT_NULL(mmgr_carcer_persist_capio(&a, sizeof store - 256u));
+        TEST_ASSERT_NOT_NULL(mmgr_carcer_persist_capio(&a, sizeof store - 256u));
     TEST_ASSERT_NULL_MESSAGE(mmgr_carcer_interim_capio_aligned(&a, 1024u, 16u),
                              "the interim end was allowed to reach past the persistent end");
 }
@@ -505,9 +472,6 @@ void test_owns_says_no_to_addresses_on_either_side(void)
     TEST_ASSERT_TRUE(mmgr_carcer_owns(&a, a.base + a.size - 1u));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the set
- * ------------------------------------------------------------------------------------------- */
 
 void test_a_set_release_finds_the_region_the_pointer_came_from(void)
 {
@@ -516,8 +480,7 @@ void test_a_set_release_finds_the_region_the_pointer_came_from(void)
     TEST_ASSERT_TRUE(mmgr_carcer_set_add(&s, store, sizeof store));
     TEST_ASSERT_TRUE(mmgr_carcer_set_add(&s, store2, sizeof store2));
 
-    // From the second region, so the search has to step past the first to find it.
-    void *p = mmgr_carcer_persist_capio(&s.region[1], 32u);
+        void *p = mmgr_carcer_persist_capio(&s.region[1], 32u);
     TEST_ASSERT_NOT_NULL(p);
     const size_t used = mmgr_carcer_persist_used(&s.region[1]);
 

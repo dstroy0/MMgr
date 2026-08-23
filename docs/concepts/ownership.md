@@ -31,7 +31,6 @@ tenant dies when the tenant is reset even though the span was never told.
 size_t m = mmgr_confin_interim_mark(&c);
 uint8_t *p = mmgr_confin_interim_capio(&c, 256, 8);
 mmgr_confin_interim_reddo(&c, m);
-/* p is dead here. It still points at readable memory. */
 ```
 
 Nothing is reallocated and nothing is scrubbed, so `p` dereferences without faulting and returns

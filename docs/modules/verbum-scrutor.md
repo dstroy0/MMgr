@@ -29,11 +29,9 @@ size_t find_zero(const uint8_t *p, size_t n)
         mmgr_scrut_word w = scrut.load(p + i);
         mmgr_scrut_word m = scrut.has_zero(w);
         if (m) {
-            return i + scrut.lane_first(m);   /* which lane matched */
-        }
+            return i + scrut.lane_first(m);           }
     }
-    for (; i < n; ++i) {                       /* the tail */
-        if (p[i] == 0) return i;
+    for (; i < n; ++i) {                               if (p[i] == 0) return i;
     }
     return n;
 }

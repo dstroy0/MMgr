@@ -82,16 +82,16 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_tenant_lifecycle\\test_tenant_lifecycle.c");
-  run_test(test_a_fresh_tenant_is_empty_and_has_room, "test_a_fresh_tenant_is_empty_and_has_room", 29);
-  run_test(test_bytes_come_back_owned_and_aligned, "test_bytes_come_back_owned_and_aligned", 35);
-  run_test(test_a_mark_release_puts_back_exactly_what_came_after_it, "test_a_mark_release_puts_back_exactly_what_came_after_it", 44);
-  run_test(test_high_water_records_the_peak_and_never_falls, "test_high_water_records_the_peak_and_never_falls", 59);
-  run_test(test_a_span_over_pool_bytes_writes_inside_the_pool, "test_a_span_over_pool_bytes_writes_inside_the_pool", 70);
-  run_test(test_the_pool_refuses_rather_than_overruns, "test_the_pool_refuses_rather_than_overruns", 78);
-  run_test(test_exhausting_a_tenant_fails_cleanly_and_recovers, "test_exhausting_a_tenant_fails_cleanly_and_recovers", 87);
-  run_test(test_the_two_pools_are_separate_tenants, "test_the_two_pools_are_separate_tenants", 105);
-  run_test(test_secure_release_wipes_what_it_gives_back, "test_secure_release_wipes_what_it_gives_back", 116);
-  run_test(test_persist_survives_a_mark_release, "test_persist_survives_a_mark_release", 137);
+  run_test(test_a_fresh_tenant_is_empty_and_has_room, "test_a_fresh_tenant_is_empty_and_has_room", 21);
+  run_test(test_bytes_come_back_owned_and_aligned, "test_bytes_come_back_owned_and_aligned", 27);
+  run_test(test_a_mark_release_puts_back_exactly_what_came_after_it, "test_a_mark_release_puts_back_exactly_what_came_after_it", 36);
+  run_test(test_high_water_records_the_peak_and_never_falls, "test_high_water_records_the_peak_and_never_falls", 51);
+  run_test(test_a_span_over_pool_bytes_writes_inside_the_pool, "test_a_span_over_pool_bytes_writes_inside_the_pool", 62);
+  run_test(test_the_pool_refuses_rather_than_overruns, "test_the_pool_refuses_rather_than_overruns", 70);
+  run_test(test_exhausting_a_tenant_fails_cleanly_and_recovers, "test_exhausting_a_tenant_fails_cleanly_and_recovers", 77);
+  run_test(test_the_two_pools_are_separate_tenants, "test_the_two_pools_are_separate_tenants", 95);
+  run_test(test_secure_release_wipes_what_it_gives_back, "test_secure_release_wipes_what_it_gives_back", 106);
+  run_test(test_persist_survives_a_mark_release, "test_persist_survives_a_mark_release", 126);
 
   return UNITY_END();
 }

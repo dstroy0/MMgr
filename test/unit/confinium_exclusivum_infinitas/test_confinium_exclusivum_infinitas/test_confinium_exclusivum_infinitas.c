@@ -1,11 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// The ring, through the table a consumer uses.
-//
-// The translation unit is compiled in rather than linked, which is what makes the reservation word
-// and the state behind the handle visible to a case. Everything a case drives, it drives through
-// the table - the point of looking inside is to check what the entries did, not to reach past them.
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.c"
 
 #include "unity.h"
@@ -33,7 +25,6 @@ void tearDown(void)
 {
 }
 
-/** @brief The ordinary cursor, opened the way a consumer opens one. */
 static struct MmgrCursor *cursor(void)
 {
     return iteratio_infinita.open(&(InfinCfg){.r = &ring, .owner = &owner});
@@ -170,8 +161,7 @@ void test_a_write_that_wraps_comes_back_in_order(void)
     static const uint8_t src[16] = {0};
     struct MmgrCursor *const cur = cursor();
 
-    /* Push the head most of the way round, then write across the end. */
-    for (unsigned i = 0; i < 15u; i++)
+        for (unsigned i = 0; i < 15u; i++)
     {
         iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 16u, .sing = &bytewise});
         iteratio_infinita.consume(&(InfinCfg){.r = &ring, .cur = cur, .n = 16u});

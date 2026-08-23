@@ -5,7 +5,7 @@
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 #include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
-#include "spatium/spatium.h"
+#include "cellularum_laboro/cellularum_laboro.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
@@ -83,12 +83,12 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_wire_roundtrip\\test_wire_roundtrip.c");
-  run_test(test_a_byte_written_is_the_byte_read, "test_a_byte_written_is_the_byte_read", 16);
-  run_test(test_big_endian_fields_round_trip_at_every_width, "test_big_endian_fields_round_trip_at_every_width", 28);
-  run_test(test_the_writer_puts_the_high_byte_first, "test_the_writer_puts_the_high_byte_first", 54);
-  run_test(test_endian_entries_agree_with_the_wire_writer, "test_endian_entries_agree_with_the_wire_writer", 67);
-  run_test(test_a_length_prefixed_string_round_trips, "test_a_length_prefixed_string_round_trips", 81);
-  run_test(test_raw_bytes_survive_an_unaligned_start, "test_raw_bytes_survive_an_unaligned_start", 99);
+  run_test(test_a_byte_written_is_the_byte_read, "test_a_byte_written_is_the_byte_read", 8);
+  run_test(test_big_endian_fields_round_trip_at_every_width, "test_big_endian_fields_round_trip_at_every_width", 23);
+  run_test(test_the_writer_puts_the_high_byte_first, "test_the_writer_puts_the_high_byte_first", 46);
+  run_test(test_endian_entries_agree_with_the_wire_writer, "test_endian_entries_agree_with_the_wire_writer", 59);
+  run_test(test_a_length_prefixed_string_round_trips, "test_a_length_prefixed_string_round_trips", 73);
+  run_test(test_raw_bytes_survive_an_unaligned_start, "test_raw_bytes_survive_an_unaligned_start", 91);
 
   return UNITY_END();
 }

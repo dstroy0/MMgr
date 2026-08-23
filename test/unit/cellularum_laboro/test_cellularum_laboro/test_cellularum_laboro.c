@@ -1,8 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// Pins what cellularum_laboro DOES, so find/agree/diff can be rewritten as a sieve and the rewrite
-// proved equivalent. Every case runs both case-sensitive and case-insensitive.
 
 #include "oracle_divergence.h"
 #include "unity.h"
@@ -26,7 +21,6 @@ static const char *find_at(const char *hay, const char *needle, mmgr_bool ci)
     return mmgr_cellul_find(hay, CAP, needle, CAP, ci);
 }
 
-// Offset of the hit, or -1. Easier to assert on than a pointer.
 static long hit(const char *hay, const char *needle, mmgr_bool ci)
 {
     const char *p = find_at(hay, needle, ci);
@@ -48,8 +42,7 @@ void test_find_empty_needle_matches_at_zero(void)
 
 void test_find_at_every_offset(void)
 {
-    // One row of the sieve is enough for a single byte; this pins where it lands.
-    const char *h = "0123456789abcdef0123456789abcdef";
+        const char *h = "0123456789abcdef0123456789abcdef";
     for (int i = 0; i < 32; i++)
     {
         char one[2] = {h[i], '\0'};
@@ -59,9 +52,7 @@ void test_find_at_every_offset(void)
 
 void test_find_spans_a_word_boundary(void)
 {
-    // The needle straddles the 8-byte boundary, which is the case a word-at-a-time scan gets wrong
-    // if it only ever compares aligned words.
-    const char *h = "aaaaaaaXYZaaaaaaaa";
+            const char *h = "aaaaaaaXYZaaaaaaaa";
     TEST_ASSERT_EQUAL_INT(7, hit(h, "XYZ", MMGR_FALSE));
     TEST_ASSERT_EQUAL_INT(7, hit(h, "xyz", MMGR_TRUE));
     TEST_ASSERT_EQUAL_INT(-1, hit(h, "xyz", MMGR_FALSE));
@@ -77,8 +68,7 @@ void test_find_needle_longer_than_one_word(void)
 
 void test_find_needle_lengths_one_through_nine(void)
 {
-    // Walks the w = 1/2/4/8 ladder the current implementation selects on.
-    const char *h = "____abcdefghi____";
+        const char *h = "____abcdefghi____";
     const char *n[9] = {"a", "ab", "abc", "abcd", "abcde", "abcdef", "abcdefg", "abcdefgh", "abcdefghi"};
     for (int k = 0; k < 9; k++)
     {
@@ -94,8 +84,7 @@ void test_find_prefers_the_first_of_several_matches(void)
 
 void test_find_near_miss_shares_a_prefix(void)
 {
-    // Every candidate passes the first sieve row and dies on a later one.
-    TEST_ASSERT_EQUAL_INT(13, hit("abXabYabZabW_abc", "abc", MMGR_FALSE));
+        TEST_ASSERT_EQUAL_INT(13, hit("abXabYabZabW_abc", "abc", MMGR_FALSE));
     TEST_ASSERT_EQUAL_INT(-1, hit("abXabYabZabW", "abc", MMGR_FALSE));
 }
 
@@ -107,9 +96,7 @@ void test_find_absent(void)
 
 void test_find_ci_folds_only_letters(void)
 {
-    // 0x20 is the case bit, so a naive fold corrupts the pairs that differ by it and are not
-    // letters at all: '_' (0x5F) vs '?' (0x3F), '@' (0x40) vs '`' (0x60).
-    TEST_ASSERT_EQUAL_INT(-1, hit("a_b", "a?b", MMGR_TRUE));
+            TEST_ASSERT_EQUAL_INT(-1, hit("a_b", "a?b", MMGR_TRUE));
     TEST_ASSERT_EQUAL_INT(-1, hit("a@b", "a`b", MMGR_TRUE));
     TEST_ASSERT_EQUAL_INT(1, hit("_A_", "a", MMGR_TRUE));
 }
@@ -147,8 +134,7 @@ void test_diff_returns_the_first_differing_offset(void)
 
 void test_diff_crossing_a_word_boundary(void)
 {
-    // The difference sits past the first word, so a word-at-a-time compare has to carry.
-    TEST_ASSERT_EQUAL_size_t(9u, mmgr_cellul_diff("aaaaaaaaab", "aaaaaaaaac", 10u, MMGR_FALSE));
+        TEST_ASSERT_EQUAL_size_t(9u, mmgr_cellul_diff("aaaaaaaaab", "aaaaaaaaac", 10u, MMGR_FALSE));
 }
 
 void test_copy_truncates_and_terminates(void)
@@ -170,10 +156,6 @@ void test_classifiers(void)
     TEST_ASSERT_FALSE(mmgr_cellul_digit('a'));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * libc is the oracle for everything below that has one. strtol and strtod have been shipped and
- * beaten on for decades; a number parsed differently from them is a finding here, not there.
- * ------------------------------------------------------------------------------------------- */
 
 static const char *PARSE_CASES[] = {
     "0",
@@ -256,8 +238,7 @@ void test_to_long_without_an_end_pointer(void)
 
 void test_to_double_matches_strtod(void)
 {
-    // exactly representable, so no tie can make the two libcs disagree
-    static const char *cases[] = {"0",   "1",      "-1",      "0.5", "2.25", "-2.5", "100",  "0.125",
+        static const char *cases[] = {"0",   "1",      "-1",      "0.5", "2.25", "-2.5", "100",  "0.125",
                                   "1.5", "  3.25", "12.5abc", "abc", "",     "-0.5", "1024", "0.0625"};
 
     for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++)
@@ -301,9 +282,6 @@ void test_to_double_without_an_end_pointer(void)
     TEST_ASSERT_TRUE(2.5f == mmgr_cellul_to_float("2.5", mmgr_cellul_nowhere));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the resumable compares
- * ------------------------------------------------------------------------------------------- */
 
 static mmgr_scrut_word word_of(const char *s)
 {
@@ -319,16 +297,14 @@ void test_step_word_keeps_going_while_equal(void)
 
 void test_step_word_stops_on_a_difference(void)
 {
-    // the difference sits in lane 0 so it is inside the word at 16, 32 and 64 bits alike
-    const char *a = "Xbcdefgh";
+        const char *a = "Xbcdefgh";
     const char *b2 = "abcdefgh";
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of(a), word_of(b2), MMGR_FALSE, 0));
 }
 
 void test_step_word_stops_at_the_terminator(void)
 {
-    // terminator in lane 0, so it is inside the word at every width
-    static const char a[16] = {0, "b"[0], "c"[0], "d"[0], "e"[0], "f"[0], "g"[0], "h"[0]};
+        static const char a[16] = {0, "b"[0], "c"[0], "d"[0], "e"[0], "f"[0], "g"[0], "h"[0]};
     const char *b2 = "abcdefgh";
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, mmgr_cellul_step_word(word_of(a), word_of(b2), MMGR_FALSE, 1),
                                   "the pattern ended first and end_wins says that is a match");
@@ -360,9 +336,6 @@ void test_step_byte_covers_the_same_three_verdicts(void)
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_byte('\0', 'x', MMGR_TRUE, 0));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * chr, against strchr
- * ------------------------------------------------------------------------------------------- */
 
 void test_chr_matches_strchr(void)
 {
@@ -405,9 +378,6 @@ void test_chr_respects_the_cap(void)
     TEST_ASSERT_NOT_NULL(mmgr_cellul_chr(s, 3u, 'b'));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * more of find, against strstr
- * ------------------------------------------------------------------------------------------- */
 
 void test_find_matches_strstr_over_a_corpus(void)
 {
@@ -450,8 +420,7 @@ void test_find_ci_matches_a_folded_search(void)
             const size_t nlen = strlen(needles[n]);
             const char *got = mmgr_cellul_find(hays[h], hlen + 1u, needles[n], nlen + 1u, MMGR_TRUE);
 
-            // the reference: a plain fold and compare, out of libc pieces
-            const char *want = NULL;
+                        const char *want = NULL;
             if (nlen <= hlen)
             {
                 for (size_t i = 0; i + nlen <= hlen && want == NULL; i++)
@@ -520,13 +489,6 @@ void test_ws_and_digit_agree_with_ctype(void)
     }
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the word stepper, over both foldings and both endings
- *
- * Two events race inside a word: the pattern ends, or the two differ. end_wins says who takes the
- * lane when they land together, and the fold says which bytes count as a difference. That is four
- * combinations, and each has to be driven from lane 0 so it holds at every word width.
- * ------------------------------------------------------------------------------------------- */
 
 void test_step_word_ignoring_case_agrees_on_a_folded_word(void)
 {
@@ -537,19 +499,12 @@ void test_step_word_ignoring_case_agrees_on_a_folded_word(void)
 
 void test_step_word_ignoring_case_still_sees_a_real_difference(void)
 {
-    // '1' and '2' fold to themselves, so the difference survives the fold.
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of("1bcdefgh"), word_of("2bcdefgh"), MMGR_TRUE, 0));
+        TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of("1bcdefgh"), word_of("2bcdefgh"), MMGR_TRUE, 0));
 }
 
-// A word wide enough for every environment, so a lane index means the same thing at 16, 32 and
-// 64 bits. word_of loads a whole word, and a short literal would have it read past the literal.
-//
-// The pattern ends at lane 1 and the two part company at lane 2, so the end comes first outright
-// rather than tying with the difference.
 static const char ENDS_FIRST_A[8] = {'a', 0, 0, 0, 0, 0, 0, 0};
 static const char ENDS_FIRST_B[8] = {'a', 0, 'X', 0, 0, 0, 0, 0};
 
-// Both events land in lane 0, which is the tie end_wins exists to settle.
 static const char TIED_A[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 static const char TIED_B[8] = {'a', 0, 0, 0, 0, 0, 0, 0};
 
@@ -583,16 +538,13 @@ void test_step_word_matching_case_ends_in_the_same_lane_as_a_difference(void)
 
 void test_step_word_of_a_difference_that_beats_the_end(void)
 {
-    // No terminator anywhere in the pattern's word, so the difference is unopposed and end_wins
-    // has nothing to give the lane to.
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of("Xbcdefgh"), word_of("abcdefgh"), MMGR_FALSE, 1));
+            TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of("Xbcdefgh"), word_of("abcdefgh"), MMGR_FALSE, 1));
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_word(word_of("1bcdefgh"), word_of("2bcdefgh"), MMGR_TRUE, 1));
 }
 
 void test_step_word_of_two_words_that_both_run_on(void)
 {
-    // No terminator and no difference in either fold, so the compare has to keep going.
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, mmgr_cellul_step_word(word_of("abcdefgh"), word_of("abcdefgh"), MMGR_FALSE, 0));
+        TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, mmgr_cellul_step_word(word_of("abcdefgh"), word_of("abcdefgh"), MMGR_FALSE, 0));
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, mmgr_cellul_step_word(word_of("abcdefgh"), word_of("abcdefgh"), MMGR_TRUE, 1));
 }
 
@@ -615,9 +567,6 @@ void test_step_byte_over_both_foldings_and_both_endings(void)
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, mmgr_cellul_step_byte('\0', 'a', MMGR_TRUE, 0));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * diff, which reports where two runs part company
- * ------------------------------------------------------------------------------------------- */
 
 void test_diff_finds_the_first_differing_byte(void)
 {
@@ -635,8 +584,7 @@ void test_diff_of_runs_that_agree_is_the_whole_run(void)
 
 void test_diff_past_the_first_word(void)
 {
-    // Far enough in that the scan has to take a second load before it finds anything.
-    static const char a[] = "the quick brown fox jumps over the lazy dog";
+        static const char a[] = "the quick brown fox jumps over the lazy dog";
     static const char b[] = "the quick brown fox jumps over the LAZY dog";
 
     TEST_ASSERT_EQUAL_size_t(35u, mmgr_cellul_diff(a, b, sizeof a - 1u, MMGR_FALSE));
@@ -650,9 +598,6 @@ void test_diff_ignoring_case(void)
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellul_diff("1", "2", 1u, MMGR_TRUE));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the parsers, at their edges
- * ------------------------------------------------------------------------------------------- */
 
 void test_to_double_takes_a_leading_plus(void)
 {
@@ -670,9 +615,7 @@ void test_to_double_takes_a_signed_exponent(void)
 
 void test_to_double_clamps_an_absurd_exponent(void)
 {
-    // The exponent accumulator stops climbing long before it could overflow, so a run of digits
-    // that no double can hold still terminates and still consumes the whole run.
-    const char *end = NULL;
+            const char *end = NULL;
     const double v = mmgr_cellul_to_double("1e999999", end);
 
     TEST_ASSERT_TRUE_MESSAGE(v > 1.0e300 || v != v, "an exponent past the range does not come back small");
@@ -691,20 +634,10 @@ void test_to_float_narrows_what_to_double_parses(void)
     TEST_ASSERT_EQUAL_FLOAT((float)strtod("-0.125", NULL), mmgr_cellul_to_float("-0.125", mmgr_cellul_nowhere));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * a prefix compare that runs out of subject before it runs out of agreement
- *
- * starts() walks whole words looking for whichever comes first, the pattern's terminator or a
- * difference. When the read cap ends before either turns up, the walk falls out of the bottom of
- * the loop and end_wins alone decides. Every other case here ends inside the loop, so this is the
- * only way to reach that.
- * ------------------------------------------------------------------------------------------- */
 
 void test_starts_when_the_read_cap_ends_first(void)
 {
-    // No terminator inside the cap and no difference inside it either: the pattern and the
-    // subject agree for every byte the compare is allowed to look at.
-    static const char pre[16] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
+            static const char pre[16] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
     static const char s[16] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
 
     TEST_ASSERT_TRUE_MESSAGE(mmgr_cellul_starts(s, pre, sizeof pre, MMGR_FALSE),
@@ -718,36 +651,21 @@ void test_eq_when_the_read_cap_ends_first(void)
     static const char a[16] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'};
     static const char b2[16] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
 
-    // eq asks whether two strings are the same string, so it needs a terminator to say yes. These
-    // two agree for every byte inside the cap and neither of them ends, so neither has been shown
-    // to be a whole string and the answer is no whichever way case is counted. starts asks the
-    // weaker question and says yes to the same pair.
-    TEST_ASSERT_FALSE_MESSAGE(mmgr_cellul_eq(a, b2, sizeof a, MMGR_FALSE), "case counts, and there is no terminator");
+                    TEST_ASSERT_FALSE_MESSAGE(mmgr_cellul_eq(a, b2, sizeof a, MMGR_FALSE), "case counts, and there is no terminator");
     TEST_ASSERT_FALSE_MESSAGE(mmgr_cellul_eq(a, b2, sizeof a, MMGR_TRUE),
                               "case does not count, and there is still no terminator");
 }
 
 void test_starts_finds_a_difference_with_no_terminator_in_the_word(void)
 {
-    // The difference is in the first word and the pattern's terminator is not, so the lane race
-    // has only one runner in it.
-    static const char pre[16] = {'a', 'b', 'X', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
+            static const char pre[16] = {'a', 'b', 'X', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
     static const char s[16] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
 
     TEST_ASSERT_FALSE(mmgr_cellul_starts(s, pre, sizeof pre, MMGR_FALSE));
     TEST_ASSERT_FALSE(mmgr_cellul_starts(s, pre, sizeof pre, MMGR_TRUE));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the decimal conversion, over the paths the ordinary cases never take
- *
- * A value whose mantissa fits in 53 bits and whose power of ten is one of the 23 that are exactly
- * a double leaves through the fast path, and that is nearly everything anyone writes down. What is
- * below drives the other one: the 128 bit fraction, the table of fives, the reciprocals, the
- * subnormals, and the three bits that decide a rounding.
- * ------------------------------------------------------------------------------------------- */
 
-/** @brief The bit pattern of a double, so a test can say exactly which one it meant. */
 static uint64_t bits_of(double v)
 {
     uint64_t b = 0;
@@ -755,7 +673,6 @@ static uint64_t bits_of(double v)
     return b;
 }
 
-/** @brief Parse and compare against the pattern the platform's own reader produces. */
 static void same_as_strtod(const char *s)
 {
     const double got = mmgr_cellul_to_double(s, mmgr_cellul_nowhere);
@@ -772,9 +689,7 @@ static void same_as_strtod(const char *s)
 
 void test_a_power_of_ten_past_what_is_exactly_a_double(void)
 {
-    // Ten to the twenty two is the last exact one, so twenty three is the first that has to go
-    // through the fraction and the table.
-    same_as_strtod("1e22");
+            same_as_strtod("1e22");
     same_as_strtod("1e23");
     same_as_strtod("1e24");
     same_as_strtod("1.7976931348623157e308");
@@ -793,9 +708,7 @@ void test_the_reciprocal_table_carries_the_negative_exponents(void)
 
 void test_every_step_of_the_table_gets_used(void)
 {
-    // The exponent picks entries by its set bits, so an exponent with each bit in turn reaches
-    // each entry in turn.
-    static const int steps[] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
+            static const int steps[] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
     char s[64];
 
     for (unsigned i = 0; i < sizeof steps / sizeof steps[0]; i++)
@@ -805,18 +718,15 @@ void test_every_step_of_the_table_gets_used(void)
         (void)snprintf(s, sizeof s, "1.5e-%d", steps[i]);
         same_as_strtod(s);
     }
-    // And one with several bits set at once, so the multiplies compound.
-    same_as_strtod("9.87654321e287");
+        same_as_strtod("9.87654321e287");
     same_as_strtod("9.87654321e-287");
 }
 
 void test_the_subnormals(void)
 {
-    same_as_strtod("4.9406564584124654e-324"); /* the smallest there is */
-    same_as_strtod("9.8813129168249309e-324");
+    same_as_strtod("4.9406564584124654e-324");     same_as_strtod("9.8813129168249309e-324");
     same_as_strtod("1e-320");
-    same_as_strtod("2.4703282292062328e-324"); /* half the smallest: rounds to it or to zero */
-    same_as_strtod("1.5e-323");
+    same_as_strtod("2.4703282292062328e-324");     same_as_strtod("1.5e-323");
 }
 
 void test_underflow_and_overflow(void)
@@ -833,9 +743,7 @@ void test_underflow_and_overflow(void)
 
 void test_more_digits_than_the_mantissa_can_hold(void)
 {
-    // Past nineteen digits the rest cannot be taken, but they are not nothing: whether they were
-    // all zeros is what decides a tie.
-    same_as_strtod("1234567890123456789012345");
+            same_as_strtod("1234567890123456789012345");
     same_as_strtod("0.12345678901234567890123456789");
     same_as_strtod("1.0000000000000000000000001");
     same_as_strtod("1.0000000000000000000000000");
@@ -843,17 +751,13 @@ void test_more_digits_than_the_mantissa_can_hold(void)
 
 void test_a_rounding_that_carries_out_of_the_mantissa(void)
 {
-    // Rounding up a mantissa of all ones takes it to a power of two and the exponent with it.
-    same_as_strtod("1.9999999999999999");
+        same_as_strtod("1.9999999999999999");
     same_as_strtod("9.9999999999999999e22");
-    same_as_strtod("4.4501477170144023e-308"); /* rounds up out of the subnormals */
-}
+    same_as_strtod("4.4501477170144023e-308"); }
 
 void test_the_leading_zero_count_at_every_width(void)
 {
-    // The normalise shifts by the leading zero count, and the count is found by halving, so a
-    // mantissa of each length in turn takes a different route through it.
-    char s[64];
+            char s[64];
 
     for (unsigned bit = 0; bit < 63u; bit++)
     {
@@ -865,10 +769,7 @@ void test_the_leading_zero_count_at_every_width(void)
 
 void test_the_conversion_over_random_bit_patterns(void)
 {
-    // Values chosen by hand cluster. A bit pattern read as a double reaches the exponents and
-    // mantissas nobody would think to write down, and seventeen digits names exactly one double,
-    // so there is a right answer for every one of them.
-    uint64_t st = 0x9E3779B97F4A7C15ull;
+                uint64_t st = 0x9E3779B97F4A7C15ull;
     char s[64];
 
     for (unsigned i = 0; i < 20000u; i++)
@@ -898,9 +799,7 @@ void test_the_conversion_over_random_bit_patterns(void)
 
 void test_the_conversion_over_strobed_bits(void)
 {
-    // The other half of the same idea: start from a plain value and flip a few bits, which lands
-    // on the exponents either side of the ordinary range rather than uniformly across it.
-    uint64_t st = 0x243F6A8885A308D3ull;
+            uint64_t st = 0x243F6A8885A308D3ull;
     char s[64];
 
     for (unsigned i = 0; i < 20000u; i++)
@@ -938,35 +837,23 @@ void test_the_conversion_over_strobed_bits(void)
 
 void test_the_ends_of_the_range_through_the_table(void)
 {
-    // These do not take the shortcut at the top of the scaling - their exponents are inside what
-    // the tables reach, so they go all the way through the fraction and come out at the edges.
-    const double over = mmgr_cellul_to_double("1.8e308", mmgr_cellul_nowhere);
+            const double over = mmgr_cellul_to_double("1.8e308", mmgr_cellul_nowhere);
     TEST_ASSERT_TRUE_MESSAGE(over > 1.7976931348623157e308, "just past the largest double is an infinity");
     TEST_ASSERT_TRUE(mmgr_cellul_to_double("-1.8e308", mmgr_cellul_nowhere) < -1.7976931348623157e308);
 
-    // Below the smallest subnormal, but with an exponent the tables still carry, so the mantissa
-    // is shifted down until there is nothing left of it.
-    TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(0.0, mmgr_cellul_to_double("1e-330", mmgr_cellul_nowhere), "below the smallest subnormal is zero");
+            TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(0.0, mmgr_cellul_to_double("1e-330", mmgr_cellul_nowhere), "below the smallest subnormal is zero");
     TEST_ASSERT_EQUAL_DOUBLE(0.0, mmgr_cellul_to_double("4.9e-330", mmgr_cellul_nowhere));
     TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(-0.0, mmgr_cellul_to_double("-1e-330", mmgr_cellul_nowhere), "and keeps its sign on the way");
 }
 
 void test_a_subnormal_that_rounds_up_into_the_normals(void)
 {
-    // The largest subnormal and the smallest normal are one step apart. A value between them has
-    // to round to one or the other, and rounding up moves the exponent field from zero to one -
-    // which is the only place that transition happens.
-    same_as_strtod("2.2250738585072012e-308");
+                same_as_strtod("2.2250738585072012e-308");
     same_as_strtod("2.2250738585072013e-308");
     same_as_strtod("2.2250738585072011e-308");
     same_as_strtod("2.2250738585072009e-308");
 }
 
-/* ---------------------------------------------------------------------------------------------
- * The wire readers
- *
- * These came with rd_str and mpint_fixed when they moved here from octetus_introitus_exitus.
- * ------------------------------------------------------------------------------------------- */
 
 void test_rd_str_reads_a_length_prefixed_run(void)
 {
@@ -1018,11 +905,7 @@ void test_rd_str_refuses_a_missing_length(void)
 
 void test_rd_str_refuses_a_cursor_already_past_the_end(void)
 {
-    // The cursor is the caller's, and nothing in the signature stops one arriving beyond the
-    // buffer. The bound is written as two halves for that reason: the subtraction that measures
-    // what is left is only meaningful once the cursor is known to be inside, and past the end it
-    // would wrap to a huge count and read the length prefix out of somebody else's memory.
-    static const uint8_t buf[8] = {0u, 0u, 0u, 1u, 'x', 0u, 0u, 0u};
+                    static const uint8_t buf[8] = {0u, 0u, 0u, 1u, 'x', 0u, 0u, 0u};
     size_t off = sizeof buf + 1u;
     const uint8_t *s = NULL;
     uint32_t slen = 0;
@@ -1032,9 +915,6 @@ void test_rd_str_refuses_a_cursor_already_past_the_end(void)
     TEST_ASSERT_NULL(s);
 }
 
-/* ---------------------------------------------------------------------------------------------
- * mpint
- * ------------------------------------------------------------------------------------------- */
 
 void test_mpint_fixed_right_aligns_and_pads(void)
 {
@@ -1050,8 +930,7 @@ void test_mpint_fixed_right_aligns_and_pads(void)
 
 void test_mpint_fixed_drops_the_sign_padding(void)
 {
-    // An mpint carries a leading zero when the top bit of the value would read as negative.
-    static const uint8_t m[3] = {0x00u, 0x80u, 0x01u};
+        static const uint8_t m[3] = {0x00u, 0x80u, 0x01u};
     uint8_t out[2] = {0xFFu, 0xFFu};
 
     TEST_ASSERT_TRUE(mmgr_cellul_mpint_fixed(m, sizeof m, out, sizeof out));

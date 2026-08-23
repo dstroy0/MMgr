@@ -1,23 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// Singularitas: the one ingestion path, and what it is like to run a stream through it while the
-// ring is doing everything else it does.
-//
-// The cases below are in two halves. The first half pins the contract one property at a time -
-// who may hold the path, what a unit means, what a grant is and is not, what a token stops being.
-// The second half is the one that matters: a producer claiming, filling and committing against a
-// consumer taking bytes out and a drain reserving priority slices out of the middle, round after
-// round, checking that every byte that goes in comes out exactly once and in order.
-//
-// That interleave is the case single stepping cannot reach. A grant is ground the ring has promised
-// to someone who has not written it yet, and the failure it exists to stop - a drain being handed a
-// run the producer is still filling - only appears when a claim and a drain are live over the same
-// ring at the same time. It is checked here by the drain reading what it was given and comparing it
-// against the stream: ground that is still being filled does not match, and unmatched is a failure.
-//
-// The translation unit is compiled in rather than linked, so a case can read the reservation word
-// and the path's own record and see what the entries actually did.
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.c"
 
 #include "unity.h"
@@ -26,7 +6,6 @@
 #define SEGS 8u
 #define SEGBYTES (CAP / SEGS)
 
-/** @brief The wide stream's unit: whatever one store is on the machine being modelled. */
 #define WORDBYTES MMGR_SING_GRANULE_MAX
 
 static uint8_t buf[CAP];
@@ -53,19 +32,16 @@ void tearDown(void)
 {
 }
 
-/** @brief What the ring is keeping to itself, for a case that wants to check the entries' work. */
 static RingState *state(void)
 {
     return ring_of(&ring);
 }
 
-/** @brief The byte this stream carries at position @p i. Never zero, so a hole reads as one. */
 static uint8_t seq(size_t i)
 {
     return (uint8_t)((i * 7u) + 1u);
 }
 
-/* ------------------------------------------------------------------ the path is one, and owned */
 
 void test_stream_header_is_self_contained(void)
 {
@@ -122,7 +98,6 @@ void test_a_cfg_and_no_ask_attaches_the_path(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(WORDBYTES, state()->sing.gran, "and the unit came with it");
 }
 
-/* --------------------------------------------------------------------------- units, not bytes */
 
 void test_every_count_on_the_path_is_in_units(void)
 {
@@ -149,9 +124,7 @@ void test_the_head_only_ever_moves_by_whole_units(void)
 {
     size_t t = 0u;
 
-    /* Round after round, whatever is asked and whatever is committed, the head stays on the unit.
-       That is what keeps a granted address one a channel can be handed without a fixup. */
-    for (unsigned round = 0; round < 40u; round++)
+        for (unsigned round = 0; round < 40u; round++)
     {
         size_t got = 0u;
         uint8_t *const at = iteratio_infinita.singularitas(
@@ -163,9 +136,7 @@ void test_the_head_only_ever_moves_by_whole_units(void)
         TEST_ASSERT_EQUAL_PTR_MESSAGE(&buf[MMGR_ATOMIC_LOAD(&state()->head)], at, "a grant starts where the path is");
         TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)(at - buf) % WORDBYTES, "and is aligned to the unit");
 
-        /* Commit fewer units than were granted, which is the short transfer that would otherwise
-           knock every later grant off the unit. */
-        const size_t part = (got > 1u) ? (got - 1u) : got;
+                const size_t part = (got > 1u) ? (got - 1u) : got;
         (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .off = part, .tessera = &t});
         TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, MMGR_ATOMIC_LOAD(&state()->head) % WORDBYTES,
                                          "a short commit leaves the head on the unit");
@@ -173,7 +144,6 @@ void test_the_head_only_ever_moves_by_whole_units(void)
     }
 }
 
-/* ------------------------------------------------------------ a grant is not a publication */
 
 void test_a_grant_publishes_nothing_until_it_is_committed(void)
 {
@@ -202,8 +172,7 @@ void test_a_grant_never_wraps(void)
     size_t t = 0u;
     size_t got = 0u;
 
-    /* Walk the head to eight bytes short of the end. */
-    for (unsigned i = 0; i < 15u; i++)
+        for (unsigned i = 0; i < 15u; i++)
     {
         (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 16u, .sing = &bytewise});
         iteratio_infinita.consume(&(InfinCfg){.r = &ring, .n = 16u});
@@ -247,7 +216,6 @@ void test_one_grant_at_a_time(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, t2, "and no second token was issued");
 }
 
-/* ------------------------------------------------------------------------------- the tesserae */
 
 void test_a_spent_tessera_publishes_nothing(void)
 {
@@ -260,8 +228,7 @@ void test_a_spent_tessera_publishes_nothing(void)
     (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .off = 8u, .tessera = &t});
     TEST_ASSERT_EQUAL_size_t(8u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
 
-    /* The completion that arrives after the channel was torn down. */
-    size_t late = spent;
+        size_t late = spent;
     TEST_ASSERT_NULL(
         iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .off = 8u, .tessera = &late, .status = &st}));
     TEST_ASSERT_TRUE_MESSAGE(MMGR_SING_FLAGS(st) & MMGR_SING_STALE, "the ring knows what it is");
@@ -300,7 +267,6 @@ void test_an_ingest_tessera_will_not_open_a_drain(void)
                              "the ingestion path is not a drain and its token does not name one");
 }
 
-/* ------------------------------------------------------------------- the two halves, together */
 
 void test_a_grant_and_a_drain_are_denied_by_the_same_word(void)
 {
@@ -309,8 +275,7 @@ void test_a_grant_and_a_drain_are_denied_by_the_same_word(void)
     size_t t = 0u;
     mmgr_u16 st = 0u;
 
-    /* Four segments of arrived bytes, and a drain holding the first two of them. */
-    (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 4u * SEGBYTES, .sing = &bytewise});
+        (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 4u * SEGBYTES, .sing = &bytewise});
     iteratio_infinita.consume(&(InfinCfg){.r = &ring, .n = 4u * SEGBYTES});
     (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 4u * SEGBYTES, .sing = &bytewise});
 
@@ -318,9 +283,7 @@ void test_a_grant_and_a_drain_are_denied_by_the_same_word(void)
         iteratio_infinita.drain(&(InfinCfg){.r = &ring, .from = 4u * SEGBYTES, .to = 6u * SEGBYTES, .tessera = &dt}));
     const mmgr_word after_drain = MMGR_ATOMIC_LOAD(&held);
 
-    /* The head is now at segment 0 again, having wrapped. Consume enough that a claim would like to
-       run straight through the ground the drain is holding. */
-    iteratio_infinita.consume(&(InfinCfg){.r = &ring, .n = 4u * SEGBYTES});
+        iteratio_infinita.consume(&(InfinCfg){.r = &ring, .n = 4u * SEGBYTES});
 
     size_t got = 0u;
     uint8_t *const at = iteratio_infinita.singularitas(
@@ -339,24 +302,20 @@ void test_a_drain_cannot_have_ground_a_grant_is_holding(void)
     size_t t = 0u;
     size_t dt = 0u;
 
-    /* Two segments arrived, then a grant over the two in front of them. */
-    (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 2u * SEGBYTES, .sing = &bytewise});
+        (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 2u * SEGBYTES, .sing = &bytewise});
     TEST_ASSERT_NOT_NULL(
         iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .n = 2u * SEGBYTES, .tessera = &t, .sing = &bytewise}));
 
-    /* A drain over the arrived bytes is fine - the grant is not there. */
-    TEST_ASSERT_NOT_NULL_MESSAGE(
+        TEST_ASSERT_NOT_NULL_MESSAGE(
         iteratio_infinita.drain(&(InfinCfg){.r = &ring, .from = 0u, .to = 2u * SEGBYTES, .tessera = &dt}),
         "what has arrived is still drainable while a grant is out in front of it");
 
-    /* One that reaches into the grant is not, and the mask is the whole of the reason. */
-    size_t dt2 = 0u;
+        size_t dt2 = 0u;
     TEST_ASSERT_NULL_MESSAGE(
         iteratio_infinita.drain(&(InfinCfg){.r = &ring, .from = 0u, .to = 3u * SEGBYTES, .tessera = &dt2}),
         "ground the producer has been promised is not ground a drain may be given");
 }
 
-/* ------------------------------------------------------------------------------ switching over */
 
 void test_only_the_auctor_may_detach(void)
 {
@@ -401,8 +360,7 @@ void test_a_new_stream_takes_the_path_and_the_old_tokens_stop(void)
     (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .off = 0u, .tessera = &t});
     TEST_ASSERT_TRUE(iteratio_infinita.detach(&(InfinCfg){.r = &ring, .sing = &bytewise}));
 
-    /* The path is ready, and a different stream in a different unit takes it. */
-    TEST_ASSERT_NOT_NULL(
+        TEST_ASSERT_NOT_NULL(
         iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .n = 2u, .tessera = &t, .sing = &wordwise}));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(2u * WORDBYTES, state()->sing.span, "two units of the new stream, not the old");
 
@@ -414,34 +372,16 @@ void test_a_new_stream_takes_the_path_and_the_old_tokens_stop(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, iteratio_infinita.available(&(InfinCfg){.r = &ring}), "and published nothing");
 }
 
-/* ------------------------------------------------------------------------------- the stream */
 
-/**
- * @brief Run a stream in through the granted path while the ring is drained from both ends.
- *
- * The producer claims, fills and commits; the consumer takes bytes out one at a time and checks
- * each against the stream; a drain reserves a priority slice out of the arrived middle every few
- * rounds and reads it, checking the same thing. Every byte that goes in has to come out exactly
- * once and in order, and nothing a drain is handed may be ground the producer has not finished.
- *
- * @param cfg    The unit to run the stream in.
- * @param total  How many bytes to push through.
- * @param drains Whether to work a keepout drain into the interleave.
- */
 static void stream(const SingularitasCfg *cfg, size_t total, int drains)
 {
     const size_t gran = cfg->gran;
-    size_t made = 0u;  /* bytes committed */
-    size_t taken = 0u; /* bytes read back out */
-    size_t t = 0u;
+    size_t made = 0u;      size_t taken = 0u;     size_t t = 0u;
     size_t round = 0u;
 
     while (taken < total)
     {
-        /* The producer. Ask for a fixed run, and take whatever fits when the end of the buffer is
-           closer than that - which is the ask a driver falls back to and the only one that gets an
-           answer at the wrap. */
-        if (made < total)
+                if (made < total)
         {
             size_t got = 0u;
             uint8_t *at = iteratio_infinita.singularitas(
@@ -470,9 +410,7 @@ static void stream(const SingularitasCfg *cfg, size_t total, int drains)
             }
         }
 
-        /* The drain. A priority slice out of what has arrived and not yet been read out. Whatever it
-           is handed has to be the stream, because the alternative is ground still being filled. */
-        if (drains && ((round % 3u) == 0u))
+                if (drains && ((round % 3u) == 0u))
         {
             const size_t live = iteratio_infinita.available(&(InfinCfg){.r = &ring});
             if (live >= SEGBYTES)
@@ -502,8 +440,7 @@ static void stream(const SingularitasCfg *cfg, size_t total, int drains)
             }
         }
 
-        /* The consumer. */
-        for (size_t k = 0; (k < 11u) && (taken < made); k++)
+                for (size_t k = 0; (k < 11u) && (taken < made); k++)
         {
             uint8_t got = 0u;
             TEST_ASSERT_TRUE_MESSAGE(iteratio_infinita.read_byte(&(InfinCfg){.r = &ring, .dst = &got}),

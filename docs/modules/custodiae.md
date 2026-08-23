@@ -16,26 +16,19 @@ It is one tenant over one static buffer. @ref mod_spat_guide views what it hands
 ## Worked example
 
 ```c
-/* No init, no buffer to supply - the storage is static and already there. */
 uint8_t *p = clarus.alloc(256);
 if (p == NULL) {
-    return -1;                      /* the tenant is full */
-}
+    return -1;                      }
 
-mmgr_spat s = clarus.span(256);     /* the same thing, as a span */
-
+mmgr_spat s = clarus.span(256);     
 const size_t m = clarus.mark();
-/* ... nested work that also allocates ... */
-clarus.release(m);                  /* back to the mark */
-
-clarus.reset();                     /* or: the whole tenant, at once */
-```
+clarus.release(m);                  
+clarus.reset();                     ```
 
 ## Sizing it
 
 ```c
-size_t peak = clarus.high_water();  /* the largest it ever got */
-size_t cap  = clarus.capacity();
+size_t peak = clarus.high_water();  size_t cap  = clarus.capacity();
 ```
 
 `high_water` is the number to size against, and it only means something after a real workload. Set
@@ -73,9 +66,7 @@ plaintext with a short useful life.
 
 ```c
 uint8_t *key = occult.alloc(32);
-/* ... use it ... */
-occult.wipe(key, 32);              /* volatile, word at a time */
-occult.reset();
+occult.wipe(key, 32);              occult.reset();
 ```
 
 `occult.wipe` writes through a `volatile` word pointer. A plain `memset` before a release can be

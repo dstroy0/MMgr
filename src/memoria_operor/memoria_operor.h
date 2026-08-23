@@ -1,61 +1,62 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
 #ifndef MMGR_MEMORIA_OPEROR_H
 #define MMGR_MEMORIA_OPEROR_H
-
-#include "proximus_operor/proximus_operor.h"
 
 #include "config/mmgr_config.h"
 
 MMGR_INCIPE_DECLS
 
-/**
- * @file memoria_operor.h
- * @brief Bulk memory work, a word at a time.
- *
- * Every entry takes an explicit length. Nothing here scans for a terminator.
- *
- * The table is the whole surface. There are no free functions to call.
- */
 
-/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
 typedef struct
 {
-    void (*cpy)(void *dst, const void *src, size_t n);
-    void (*move)(void *dst, const void *src, size_t n);
-    int (*cmp)(const void *a, const void *b, size_t n);
-    const void *(*chr)(const void *p, size_t n, uint8_t c);
-    void (*set)(void *dst, unsigned char v, size_t n);
-    void (*zero)(void *dst, size_t n);
+    void *const dst;            const void *const src;      const void *const other;    const size_t n;             const uint8_t v;          } MemoriaCfg;
+
+typedef struct
+{
+    void (*cpy)(const MemoriaCfg *c);
+    void (*move_down)(const MemoriaCfg *c);
+    void (*move_up)(const MemoriaCfg *c);
+    int (*cmp)(const MemoriaCfg *c);
+    const void *(*chr)(const MemoriaCfg *c);
+    void (*set)(const MemoriaCfg *c);
 } MemoriaOperorNs;
-MMGR_NS_LAYOUT(MemoriaOperorNs, cpy, move, cmp, chr, set, zero);
+MMGR_NS_LAYOUT(MemoriaOperorNs, cpy, move_down, move_up, cmp, chr, set);
 
-/** @name The entries the table points at.
- *  @brief Nameable so a static const table can name them, and for no other reason. The table is
- *         still the whole surface: call through it.
- *  @{ */
-void mmgr_memor_cpy(void *dst, const void *src, size_t n);
-void mmgr_memor_move(void *dst, const void *src, size_t n);
-int mmgr_memor_cmp(const void *a, const void *b, size_t n);
-const void *mmgr_memor_chr(const void *p, size_t n, uint8_t c);
-void mmgr_memor_set(void *dst, unsigned char v, size_t n);
-void mmgr_memor_zero(void *dst, size_t n);
-/** @} */
+void mmgr_memor_cpy(const MemoriaCfg *c);
+void mmgr_memor_move_up(const MemoriaCfg *c);
+int mmgr_memor_cmp(const MemoriaCfg *c);
+const void *mmgr_memor_chr(const MemoriaCfg *c);
+void mmgr_memor_set(const MemoriaCfg *c);
 
-/**
- * @brief Module namespace.
- *
- * static const, like every other module's. gcc devirtualizes a call through one down to the
- * inlined body and cannot do that through an extern one, where the table is in another
- * translation unit and every call is a load and an indirect jump.
- */
+#define MMGR_MEMOR_IS_SIZE(x_) ((void)_Generic((x_), size_t: 0))
+#define MMGR_MEMOR_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
+
+#define mmgr_memor_cpy(dst_, src_, n_)                                                                                 \
+    (MMGR_MEMOR_IS_SIZE(n_), memor.cpy(&(MemoriaCfg){.dst = (dst_), .src = (src_), .n = (n_)}))
+
+#define mmgr_memor_move_down(dst_, src_, n_)                                                                           \
+    (MMGR_MEMOR_IS_SIZE(n_), memor.move_down(&(MemoriaCfg){.dst = (dst_), .src = (src_), .n = (n_)}))
+
+#define mmgr_memor_move_up(dst_, src_, n_)                                                                             \
+    (MMGR_MEMOR_IS_SIZE(n_), memor.move_up(&(MemoriaCfg){.dst = (dst_), .src = (src_), .n = (n_)}))
+
+#define mmgr_memor_cmp(a_, b_, n_)                                                                                     \
+    (MMGR_MEMOR_IS_SIZE(n_), memor.cmp(&(MemoriaCfg){.src = (a_), .other = (b_), .n = (n_)}))
+
+#define mmgr_memor_chr(src_, n_, v_)                                                                                   \
+    (MMGR_MEMOR_IS_SIZE(n_), MMGR_MEMOR_IS_BYTE(v_),                                                                   \
+     memor.chr(&(MemoriaCfg){.src = (src_), .n = (n_), .v = (v_)}))
+
+#define mmgr_memor_set(dst_, v_, n_)                                                                                   \
+    (MMGR_MEMOR_IS_BYTE(v_), MMGR_MEMOR_IS_SIZE(n_),                                                                   \
+     memor.set(&(MemoriaCfg){.dst = (dst_), .v = (v_), .n = (n_)}))
+
 MMGR_NS MemoriaOperorNs memor MMGR_UNUSED = {
     .cpy = mmgr_memor_cpy,
-    .move = mmgr_memor_move,
+    .move_down = mmgr_memor_cpy,
+    .move_up = mmgr_memor_move_up,
     .cmp = mmgr_memor_cmp,
     .chr = mmgr_memor_chr,
     .set = mmgr_memor_set,
-    .zero = mmgr_memor_zero,
 };
 
 MMGR_FINIS_DECLS

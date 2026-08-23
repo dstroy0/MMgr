@@ -91,28 +91,28 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/custodia_secura/test_custodia_secura\\test_custodia_secura.c");
-  run_test(test_a_pool_that_has_not_bound_yet_answers_for_nothing, "test_a_pool_that_has_not_bound_yet_answers_for_nothing", 40);
-  run_test(test_a_tenant_that_has_only_held_persistent_has_no_peak, "test_a_tenant_that_has_only_held_persistent_has_no_peak", 49);
-  run_test(test_occult_header_is_self_contained, "test_occult_header_is_self_contained", 59);
-  run_test(test_secura_namespace_is_wired, "test_secura_namespace_is_wired", 64);
-  run_test(test_wipe_clears_an_aligned_run, "test_wipe_clears_an_aligned_run", 80);
-  run_test(test_wipe_clears_an_unaligned_start_and_a_ragged_tail, "test_wipe_clears_an_unaligned_start_and_a_ragged_tail", 95);
-  run_test(test_wipe_of_a_short_unaligned_run, "test_wipe_of_a_short_unaligned_run", 114);
-  run_test(test_wipe_of_nothing_touches_nothing, "test_wipe_of_nothing_touches_nothing", 130);
-  run_test(test_capacity_is_the_configured_tenant_size, "test_capacity_is_the_configured_tenant_size", 141);
-  run_test(test_alloc_hands_back_usable_memory, "test_alloc_hands_back_usable_memory", 146);
-  run_test(test_alloc_honours_its_alignment, "test_alloc_honours_its_alignment", 158);
-  run_test(test_alloc_of_more_than_the_tenant_holds_is_refused, "test_alloc_of_more_than_the_tenant_holds_is_refused", 177);
-  run_test(test_span_wraps_what_alloc_returns, "test_span_wraps_what_alloc_returns", 182);
-  run_test(test_span_of_a_refused_size_has_no_storage, "test_span_of_a_refused_size_has_no_storage", 193);
-  run_test(test_persist_span_comes_from_the_other_end, "test_persist_span_comes_from_the_other_end", 199);
-  run_test(test_mark_and_release_move_the_fill_point, "test_mark_and_release_move_the_fill_point", 209);
-  run_test(test_release_wipes_what_it_gives_up, "test_release_wipes_what_it_gives_up", 221);
-  run_test(test_release_of_a_mark_that_is_not_ours_is_ignored, "test_release_of_a_mark_that_is_not_ours_is_ignored", 242);
-  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 254);
-  run_test(test_high_water_remembers_the_peak, "test_high_water_remembers_the_peak", 263);
-  run_test(test_owns_tells_the_pool_from_everything_else, "test_owns_tells_the_pool_from_everything_else", 274);
-  run_test(test_reset_gives_the_whole_tenant_back, "test_reset_gives_the_whole_tenant_back", 285);
+  run_test(test_a_pool_that_has_not_bound_yet_answers_for_nothing, "test_a_pool_that_has_not_bound_yet_answers_for_nothing", 24);
+  run_test(test_a_tenant_that_has_only_held_persistent_has_no_peak, "test_a_tenant_that_has_only_held_persistent_has_no_peak", 33);
+  run_test(test_occult_header_is_self_contained, "test_occult_header_is_self_contained", 39);
+  run_test(test_secura_namespace_is_wired, "test_secura_namespace_is_wired", 44);
+  run_test(test_wipe_clears_an_aligned_run, "test_wipe_clears_an_aligned_run", 53);
+  run_test(test_wipe_clears_an_unaligned_start_and_a_ragged_tail, "test_wipe_clears_an_unaligned_start_and_a_ragged_tail", 68);
+  run_test(test_wipe_of_a_short_unaligned_run, "test_wipe_of_a_short_unaligned_run", 86);
+  run_test(test_wipe_of_nothing_touches_nothing, "test_wipe_of_nothing_touches_nothing", 101);
+  run_test(test_capacity_is_the_configured_tenant_size, "test_capacity_is_the_configured_tenant_size", 109);
+  run_test(test_alloc_hands_back_usable_memory, "test_alloc_hands_back_usable_memory", 114);
+  run_test(test_alloc_honours_its_alignment, "test_alloc_honours_its_alignment", 126);
+  run_test(test_alloc_of_more_than_the_tenant_holds_is_refused, "test_alloc_of_more_than_the_tenant_holds_is_refused", 141);
+  run_test(test_span_wraps_what_alloc_returns, "test_span_wraps_what_alloc_returns", 146);
+  run_test(test_span_of_a_refused_size_has_no_storage, "test_span_of_a_refused_size_has_no_storage", 157);
+  run_test(test_persist_span_comes_from_the_other_end, "test_persist_span_comes_from_the_other_end", 163);
+  run_test(test_mark_and_release_move_the_fill_point, "test_mark_and_release_move_the_fill_point", 173);
+  run_test(test_release_wipes_what_it_gives_up, "test_release_wipes_what_it_gives_up", 185);
+  run_test(test_release_of_a_mark_that_is_not_ours_is_ignored, "test_release_of_a_mark_that_is_not_ours_is_ignored", 204);
+  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 216);
+  run_test(test_high_water_remembers_the_peak, "test_high_water_remembers_the_peak", 225);
+  run_test(test_owns_tells_the_pool_from_everything_else, "test_owns_tells_the_pool_from_everything_else", 236);
+  run_test(test_reset_gives_the_whole_tenant_back, "test_reset_gives_the_whole_tenant_back", 247);
 
   return UNITY_END();
 }

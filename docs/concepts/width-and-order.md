@@ -5,9 +5,7 @@ The three machine properties this library refuses to assume.
 ## The two types everything is built on
 
 ```c
-mmgr_word   /* the machine word. The SWAR carrier. 64, 32 or 16 bits */
-mmgr_idx    /* an offset into a region. 32 bits, or narrower on a narrow machine */
-```
+mmgr_word   mmgr_idx    ```
 
 They are separate on purpose. A word is what the scanner loads; an index is what addresses a
 region. On a 64-bit host they are 64 and 32 bits, and code that conflates them works there and
@@ -72,8 +70,7 @@ machine does".
 ## Alignment of a take
 
 ```c
-uint8_t *p = mmgr_confin_persist_capio(&c, 256, 8);   /* 8-byte aligned */
-```
+uint8_t *p = mmgr_confin_persist_capio(&c, 256, 8);   ```
 
 The alignment is explicit at every take. `MMGR_CONFIN_ALIGN` is the default and
 `MMGR_CONFIN_MAX_ALIGN` is the ceiling; asking for more than the ceiling is a contract violation, not

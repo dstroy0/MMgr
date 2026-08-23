@@ -9,8 +9,6 @@ README.
 GNU Affero General Public License, version 3 or later. Every source file carries an SPDX identifier:
 
 ```c
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
 ```
 
 So the license of any file is a machine-readable fact rather than something to infer from a

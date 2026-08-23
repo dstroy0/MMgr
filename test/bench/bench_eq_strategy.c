@@ -1,6 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
 #include <stdio.h>
 #include <string.h>
 
@@ -78,7 +75,7 @@ static size_t find_swar(const uint8_t *p, size_t n, uint8_t c)
                                                                                                                        \
         BENCH_TIME_CYCLES(cm_, ITERS, {                                                                                \
             const size_t r_ = (size_t)(bench_i_ & (SPREAD - 1u));                                                      \
-            const void *q_ = memor.chr(g_buf + r_, (STRIDE) + 8u, TARGET);                                             \
+            const void *q_ = mmgr_memor_chr(g_buf + r_, (size_t)((STRIDE) + 8u), (uint8_t)TARGET);                     \
             BENCH_KEEP(q_);                                                                                            \
         });                                                                                                            \
         printf("eq_strategy,%u,%u,%.1f,%.4f,%.4f,%.4f,%.4f,%s\n", MMGR_SWAR_BITS, (unsigned)(STRIDE), avg_, cb_, cs_,  \

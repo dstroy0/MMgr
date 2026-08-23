@@ -45,7 +45,6 @@ mmgr_spat s = spat.from(buf, sizeof buf);
 byteio.put_be(&s, 0x11223344u, 4);
 byteio.raw(&s, payload, sizeof payload);
 
-/* How much was written, and what is left. Both are fields. */
 const size_t written = s.pos;
 const size_t left    = s.cap - s.pos;
 ```

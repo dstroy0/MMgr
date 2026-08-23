@@ -17,9 +17,7 @@ static uint8_t region[4096];
 mmgr_confin c;
 mmgr_confin_init(&c, region, sizeof region);
 
-uint8_t   *p = mmgr_confin_persist_capio(&c, 256, 8);  /* grows up from the base */
-mmgr_spat  s = spat.from(p, 256);                      /* a view; owns nothing   */
-```
+uint8_t   *p = mmgr_confin_persist_capio(&c, 256, 8);  mmgr_spat  s = spat.from(p, 256);                      ```
 
 ## Where things are
 

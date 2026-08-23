@@ -1,28 +1,23 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// byteio -> spatium -> endian -> proximus_operor
-//
-// Writing a frame and reading it back. Each module has its own unit suite; what this asserts is
-// that the writer's idea of a field and the reader's idea of the same field are one idea, at every
-// width and across the alignment the span happens to land on.
 #include "unity.h"
 
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 #include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
-#include "spatium/spatium.h"
+#include "cellularum_laboro/cellularum_laboro.h"
 
 void test_a_byte_written_is_the_byte_read(void)
 {
-    uint8_t mem[16];
-    mmgr_spat w = spat.init(&(SpatCfg){mem, sizeof mem});
+    uint64_t store[2] = {0, 0};
+    uint8_t *mem = (uint8_t *)store;
+    uint64_t got = 0;
 
-    byteio.put(&w, 0xA5u);
-    byteio.put(&w, 0x5Au);
-    TEST_ASSERT_EQUAL_size_t(2u, (w.pos));
+    mmgr_octet_put(mem, (uint64_t)0xA5u, (size_t)1);
+    mmgr_octet_put(mem + 8, (uint64_t)0x5Au, (size_t)1);
     TEST_ASSERT_EQUAL_UINT8(0xA5u, mem[0]);
-    TEST_ASSERT_EQUAL_UINT8(0x5Au, mem[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x5Au, mem[8]);
+
+    mmgr_octet_take(mem, got, (size_t)1);
+    TEST_ASSERT_EQUAL_HEX64(0xA5ull, got);
 }
 
 void test_big_endian_fields_round_trip_at_every_width(void)
@@ -38,27 +33,24 @@ void test_big_endian_fields_round_trip_at_every_width(void)
 
     for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++)
     {
-        uint8_t mem[16];
-        mmgr_spat w = spat.init(&(SpatCfg){mem, sizeof mem});
-        byteio.put_be(&w, cases[i].v, cases[i].n);
-        TEST_ASSERT_EQUAL_size_t((size_t)cases[i].n, (w.pos));
-
-        size_t r_off = 0u;
-    const uint8_t *r_buf = w.buf;
+        uint64_t store[1] = {0};
+        uint8_t *mem = (uint8_t *)store;
         uint64_t got = 0;
-        byteio.take_be(r_buf, sizeof r_buf, &r_off, &got, (size_t)cases[i].n);
+
+        mmgr_octet_put(mem, cases[i].v, (size_t)cases[i].n);
+        mmgr_octet_take(mem, got, (size_t)cases[i].n);
         TEST_ASSERT_EQUAL_HEX64_MESSAGE(cases[i].v, got, "a field read back must be the field written");
     }
 }
 
 void test_the_writer_puts_the_high_byte_first(void)
 {
-    uint8_t mem[8];
-    mmgr_spat w = spat.init(&(SpatCfg){mem, sizeof mem});
-    byteio.put_be(&w, 0x11223344u, 4);
+    uint64_t store[1] = {0};
+    uint8_t *mem = (uint8_t *)store;
 
-    // big endian on the wire, whatever this host does internally
-    TEST_ASSERT_EQUAL_UINT8(0x11u, mem[0]);
+    mmgr_octet_put(mem, (uint64_t)0x11223344u, (size_t)4);
+
+        TEST_ASSERT_EQUAL_UINT8(0x11u, mem[0]);
     TEST_ASSERT_EQUAL_UINT8(0x22u, mem[1]);
     TEST_ASSERT_EQUAL_UINT8(0x33u, mem[2]);
     TEST_ASSERT_EQUAL_UINT8(0x44u, mem[3]);
@@ -66,13 +58,13 @@ void test_the_writer_puts_the_high_byte_first(void)
 
 void test_endian_entries_agree_with_the_wire_writer(void)
 {
-    uint8_t viabyteio[8];
+    uint64_t store[1] = {0};
+    uint8_t *viabyteio = (uint8_t *)store;
     uint8_t viaendian[8];
-    mmgr_spat w = spat.init(&(SpatCfg){viabyteio, sizeof viabyteio});
 
-    byteio.put_be(&w, 0xDEADBEEFu, 4);
+    mmgr_octet_put(viabyteio, (uint64_t)0xDEADBEEFu, (size_t)4);
     magna_extremitas.wr(&(EndianCfg){viaendian, 0, 0xDEADBEEFu, MMGR_ENDIAN_32});
-    TEST_ASSERT_EQUAL_INT_MESSAGE(0, memor.cmp(viabyteio, viaendian, 4u),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(0, mmgr_memor_cmp(viabyteio, viaendian, (size_t)4),
                                   "two ways of writing the same field must produce the same bytes");
 
     TEST_ASSERT_EQUAL_HEX32(0xDEADBEEFu, (uint32_t)magna_extremitas.rd(&(EndianCfg){0, viabyteio, 0, MMGR_ENDIAN_32}));
@@ -80,35 +72,30 @@ void test_endian_entries_agree_with_the_wire_writer(void)
 
 void test_a_length_prefixed_string_round_trips(void)
 {
-    uint8_t mem[32];
-    mmgr_spat w = spat.init(&(SpatCfg){mem, sizeof mem});
+    uint64_t store[4] = {0, 0, 0, 0};
+    uint8_t *mem = (uint8_t *)store;
 
-    byteio.put_be(&w, 5u, 4);
-    byteio.raw(&w, "hello", 5u);
+    mmgr_octet_put(mem, (uint64_t)5u, (size_t)4);
+    mmgr_memor_cpy(mem + 4, "hello", (size_t)5);
 
     size_t off = 0;
     const uint8_t *s = NULL;
     uint32_t slen = 0;
-    TEST_ASSERT_TRUE(mmgr_cellul_rd_str(mem, (w.pos), off, s, slen));
+    TEST_ASSERT_TRUE(mmgr_cellul_rd_str(mem, (size_t)9, off, s, slen));
     TEST_ASSERT_EQUAL_UINT32(5u, slen);
-    TEST_ASSERT_EQUAL_INT(0, memor.cmp(s, "hello", 5u));
+    TEST_ASSERT_EQUAL_INT(0, mmgr_memor_cmp(s, "hello", (size_t)5));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(9u, (size_t)(s - mem) + slen,
                                      "the address handed back is the position: base plus offset, plus the run");
 }
 
 void test_raw_bytes_survive_an_unaligned_start(void)
 {
-    // the writer lands wherever the previous field left it, so the bulk path has to work unaligned
-    for (unsigned skew = 0; skew < 8u; skew++)
+        for (unsigned skew = 0; skew < 8u; skew++)
     {
         uint8_t mem[64];
-        mmgr_spat w = spat.init(&(SpatCfg){mem, sizeof mem});
-        for (unsigned i = 0; i < skew; i++)
-        {
-            byteio.put(&w, 0u);
-        }
-        byteio.raw(&w, "0123456789abcdef", 16u);
-        TEST_ASSERT_EQUAL_INT_MESSAGE(0, memor.cmp(mem + skew, "0123456789abcdef", 16u),
+
+        mmgr_memor_cpy(mem + skew, "0123456789abcdef", (size_t)16);
+        TEST_ASSERT_EQUAL_INT_MESSAGE(0, mmgr_memor_cmp(mem + skew, "0123456789abcdef", (size_t)16),
                                       "a bulk write must survive whatever alignment it starts at");
     }
 }

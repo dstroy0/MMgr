@@ -82,20 +82,20 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/proximus_operor/test_proximus_operor\\test_proximus_operor.c");
-  run_test(test_proxim_header_is_self_contained, "test_proxim_header_is_self_contained", 23);
-  run_test(test_reads_at_every_alignment, "test_reads_at_every_alignment", 28);
-  run_test(test_load_selects_by_width, "test_load_selects_by_width", 48);
-  run_test(test_load_of_an_unsupported_width_reads_nothing, "test_load_of_an_unsupported_width_reads_nothing", 57);
-  run_test(test_writes_round_trip_at_every_alignment, "test_writes_round_trip_at_every_alignment", 65);
-  run_test(test_a_write_touches_exactly_its_width, "test_a_write_touches_exactly_its_width", 82);
-  run_test(test_aligned_entries_round_trip, "test_aligned_entries_round_trip", 90);
-  run_test(test_aligned_load_of_an_unsupported_width_reads_nothing, "test_aligned_load_of_an_unsupported_width_reads_nothing", 105);
-  run_test(test_the_bulk_move_word_round_trips, "test_the_bulk_move_word_round_trips", 111);
-  run_test(test_the_move_word_is_the_configured_width, "test_the_move_word_is_the_configured_width", 120);
-  run_test(test_read_copies_exactly_the_bytes_asked_for, "test_read_copies_exactly_the_bytes_asked_for", 126);
-  run_test(test_read_of_nothing_writes_nothing, "test_read_of_nothing_writes_nothing", 142);
-  run_test(test_read_at_every_alignment, "test_read_at_every_alignment", 149);
-  run_test(test_namespace_is_wired, "test_namespace_is_wired", 169);
+  run_test(test_proxim_header_is_self_contained, "test_proxim_header_is_self_contained", 19);
+  run_test(test_reads_at_every_alignment, "test_reads_at_every_alignment", 24);
+  run_test(test_load_selects_by_width, "test_load_selects_by_width", 43);
+  run_test(test_load_of_an_unsupported_width_reads_nothing, "test_load_of_an_unsupported_width_reads_nothing", 51);
+  run_test(test_writes_round_trip_at_every_alignment, "test_writes_round_trip_at_every_alignment", 58);
+  run_test(test_a_write_touches_exactly_its_width, "test_a_write_touches_exactly_its_width", 75);
+  run_test(test_aligned_entries_round_trip, "test_aligned_entries_round_trip", 83);
+  run_test(test_aligned_load_of_an_unsupported_width_reads_nothing, "test_aligned_load_of_an_unsupported_width_reads_nothing", 97);
+  run_test(test_the_bulk_move_word_round_trips, "test_the_bulk_move_word_round_trips", 103);
+  run_test(test_the_move_word_is_the_configured_width, "test_the_move_word_is_the_configured_width", 112);
+  run_test(test_read_copies_exactly_the_bytes_asked_for, "test_read_copies_exactly_the_bytes_asked_for", 118);
+  run_test(test_read_of_nothing_writes_nothing, "test_read_of_nothing_writes_nothing", 134);
+  run_test(test_read_at_every_alignment, "test_read_at_every_alignment", 141);
+  run_test(test_namespace_is_wired, "test_namespace_is_wired", 161);
 
   return UNITY_END();
 }

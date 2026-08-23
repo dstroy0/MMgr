@@ -1,88 +1,78 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// What a byte field costs, through the table a caller uses.
-//
-// The widths are what the dispatch has to sort out, so each is timed on its own rather than mixed:
-// a mean over a spread of widths hides which one the entry is actually good at, and the question
-// here is whether telling the entry its width by name costs more or less than telling it in a byte.
 #include <stdio.h>
 
 #include "bench_harness.h"
 
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
+#include "memoria_operor/memoria_operor.h"
 
 #define ITERS 5000000ul
 #define SPREAD 256u
+#define ROOM (SPREAD + 64u)
 
-static uint8_t g_mem[SPREAD + 64u];
-static uint8_t g_src[64];
+static uint64_t g_store[ROOM / 8u];
+static uint64_t g_srcstore[8];
 
-#define SWEEP(LABEL, WIDTH, SETUP, EXPR)                                                                               \
+#define PUT(WIDTH)                                                                                                     \
     do                                                                                                                 \
     {                                                                                                                  \
+        uint8_t *const mem_ = (uint8_t *)g_store;                                                                      \
         double cy_ = 0.0;                                                                                              \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            const size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u));                                                    \
-            SETUP;                                                                                                     \
-            EXPR;                                                                                                      \
-            BENCH_KEEP(w_.pos);                                                                                        \
+            const size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u)) & ~(size_t)7u;                                      \
+            mmgr_octet_put(mem_ + off_, (uint64_t)bench_i_, (size_t)(WIDTH));                                          \
+            BENCH_KEEP(mem_[off_]);                                                                                    \
         });                                                                                                            \
-        printf("octetus,%s,%u,%.4f\n", LABEL, (unsigned)(WIDTH), cy_);                                                  \
+        printf("octetus,put,%u,%.4f\n", (unsigned)(WIDTH), cy_);                                                       \
         fflush(stdout);                                                                                                \
     } while (0)
 
-#define READ(LABEL, WIDTH, EXPR)                                                                                       \
+#define TAKE(WIDTH)                                                                                                    \
     do                                                                                                                 \
     {                                                                                                                  \
+        const uint8_t *const mem_ = (const uint8_t *)g_store;                                                          \
         double cy_ = 0.0;                                                                                              \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u));                                                          \
+            const size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u)) & ~(size_t)7u;                                      \
             uint64_t out_ = 0;                                                                                         \
-            EXPR;                                                                                                      \
+            mmgr_octet_take(mem_ + off_, out_, (size_t)(WIDTH));                                                       \
             BENCH_KEEP(out_);                                                                                          \
         });                                                                                                            \
-        printf("octetus,%s,%u,%.4f\n", LABEL, (unsigned)(WIDTH), cy_);                                                  \
+        printf("octetus,take,%u,%.4f\n", (unsigned)(WIDTH), cy_);                                                      \
         fflush(stdout);                                                                                                \
     } while (0)
 
 int main(void)
 {
-    for (unsigned i = 0; i < sizeof g_mem; i++)
+    uint8_t *const mem = (uint8_t *)g_store;
+    uint8_t *const src = (uint8_t *)g_srcstore;
+
+    for (unsigned i = 0; i < ROOM; i++)
     {
-        g_mem[i] = (uint8_t)(i * 7u + 1u);
+        mem[i] = (uint8_t)(i * 7u + 1u);
     }
-    for (unsigned i = 0; i < sizeof g_src; i++)
+    for (unsigned i = 0; i < sizeof g_srcstore; i++)
     {
-        g_src[i] = (uint8_t)i;
+        src[i] = (uint8_t)i;
     }
 
-    SWEEP("put", 1, mmgr_spat w_ = spat.init(&(SpatCfg){g_mem, sizeof g_mem}),
-          byteio.put(&w_, (uint8_t)bench_i_));
+    PUT(1);
+    PUT(2);
+    PUT(4);
+    PUT(8);
 
-    SWEEP("put_be", 2, mmgr_spat w_ = spat.init(&(SpatCfg){g_mem, sizeof g_mem}),
-          byteio.put_be(&w_, (uint64_t)bench_i_, 2));
-    SWEEP("put_be", 4, mmgr_spat w_ = spat.init(&(SpatCfg){g_mem, sizeof g_mem}),
-          byteio.put_be(&w_, (uint64_t)bench_i_, 4));
-    SWEEP("put_be", 8, mmgr_spat w_ = spat.init(&(SpatCfg){g_mem, sizeof g_mem}),
-          byteio.put_be(&w_, (uint64_t)bench_i_, 8));
-
-    SWEEP("raw", 16, mmgr_spat w_ = spat.init(&(SpatCfg){g_mem, sizeof g_mem}),
-          byteio.raw(&w_, g_src, 16));
-
-    READ("take_be", 2, byteio.take_be(g_mem, sizeof g_mem, &off_, &out_, 2));
-    READ("take_be", 4, byteio.take_be(g_mem, sizeof g_mem, &off_, &out_, 4));
-    READ("take_be", 8, byteio.take_be(g_mem, sizeof g_mem, &off_, &out_, 8));
+    TAKE(1);
+    TAKE(2);
+    TAKE(4);
+    TAKE(8);
 
     {
         double cy_ = 0.0;
         BENCH_TIME_CYCLES(cy_, ITERS, {
-            size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u));
-            uint32_t out_ = 0;
-            byteio.rd_u32(g_mem, sizeof g_mem, &off_, &out_);
-            BENCH_KEEP(out_);
+            const size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u)) & ~(size_t)7u;
+            mmgr_memor_cpy(mem + off_, src, (size_t)16);
+            BENCH_KEEP(mem[off_]);
         });
-        printf("octetus,rd_u32,4,%.4f\n", cy_);
+        printf("octetus,cpy,16,%.4f\n", cy_);
         fflush(stdout);
     }
     return 0;

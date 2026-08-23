@@ -20,9 +20,7 @@ a heap you already have. MMgr does not care where it came from, only that it out
 ## Two ends
 
 ```c
-uint8_t *cfg  = mmgr_confin_persist_capio(&c, 128, 8);   /* grows up from the base   */
-uint8_t *tmp  = mmgr_confin_interim_capio(&c, 512, 8);   /* grows down from the top  */
-```
+uint8_t *cfg  = mmgr_confin_persist_capio(&c, 128, 8);   uint8_t *tmp  = mmgr_confin_interim_capio(&c, 512, 8);   ```
 
 - **persist** is for what lives as long as the region: configuration, tables, buffers you fill once.
 - **interim** is the working space for one operation.
@@ -44,14 +42,11 @@ spoken for by libc; @ref ref_glossary decodes the rest.
 Interim is a stack. You do not free a pointer, you rewind to a mark.
 
 ```c
-size_t m = mmgr_confin_interim_mark(&c);       /* where the top is now */
-
+size_t m = mmgr_confin_interim_mark(&c);       
 uint8_t *a = mmgr_confin_interim_capio(&c, 256, 8);
 uint8_t *b = mmgr_confin_interim_capio(&c, 256, 8);
-/* ... work with a and b ... */
 
-mmgr_confin_interim_reddo(&c, m);              /* both are gone, in one call */
-```
+mmgr_confin_interim_reddo(&c, m);              ```
 
 This is the pattern for any bounded operation: mark on the way in, `reddo` on the way out, and the
 interim cost of the operation is zero afterwards no matter how many takes it made.
@@ -63,8 +58,7 @@ memory to someone else. A pointer that outlives its mark is the sharpest edge in
 ## How much is left
 
 ```c
-size_t left = mmgr_confin_octas_praesto(&c);   /* "bytes at hand" */
-```
+size_t left = mmgr_confin_octas_praesto(&c);   ```
 
 `octas_praesto` is **not** a release. It reports the gap still between the two ends. It is what you
 log when a take returns `NULL` and you want to know by how much you missed.
@@ -102,15 +96,12 @@ static mmgr_bool handle(mmgr_confin *c, const uint8_t *msg, size_t len)
 
     uint8_t *work = mmgr_confin_interim_capio(c, len, 8);
     if (work == NULL) {
-        return MMGR_FALSE;                    /* no cleanup needed: nothing was taken */
-    }
+        return MMGR_FALSE;                        }
 
     memor.cpy(work, msg, len);
     size_t at = 0u;
-    /* ... parse from work, bounded by len, at cursor `at` ... */
-
-    mmgr_confin_interim_reddo(c, m);          /* one line, whatever happened above */
-    return MMGR_TRUE;
+    
+    mmgr_confin_interim_reddo(c, m);              return MMGR_TRUE;
 }
 ```
 

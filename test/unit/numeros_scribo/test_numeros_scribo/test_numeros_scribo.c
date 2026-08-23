@@ -1,14 +1,8 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
 #include "unity.h"
 
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "numeros_scribo/numeros_scribo.h"
 
-/* A values array for the renders that take none. The gate on the entry settles the type of every
-   argument where the call is written, so a null pointer is not something a call site can spell any
-   more: a count of zero is how a caller says there are no values. */
 static const mmgr_fval s_none[1] = {MMGR_VU32(0u)};
 
 void test_numer_header_is_self_contained(void)
@@ -114,9 +108,6 @@ void test_emit_of_nothing_is_empty_not_garbage(void)
     TEST_ASSERT_EQUAL_STRING("", b);
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the spec driven entries, which the variadic macro does not reach
- * ------------------------------------------------------------------------------------------- */
 
 void test_build_renders_a_spec(void)
 {
@@ -152,11 +143,7 @@ void test_build_rejects_too_few_and_too_many_values(void)
 
 void test_build_guards_its_arguments(void)
 {
-    // A null destination, a null spec and a null value list are gone from this: the entry takes a
-    // config whose types are settled where the call is written, so none of the three is a call a
-    // caller can spell. What is left is the run time part - no room, and a spec wanting a value
-    // that the count says is not there.
-    char out[64];
+                    char out[64];
     static const mmgr_field spec[] = {MMGR_U32, MMGR_END};
     const mmgr_fval v[] = {MMGR_VU32(1u)};
 
@@ -242,9 +229,7 @@ void test_append_builds_on_what_is_there(void)
 
 void test_append_guards_its_arguments(void)
 {
-    // Same as build: the two null arguments this used to pass are compile errors now, and no room
-    // is what is left to check at run time.
-    char out[64] = "x";
+            char out[64] = "x";
     static const mmgr_field spec[] = {{MMGR_FK_LIT, 0, 1, "y"}, MMGR_END};
 
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_numer_append(out, (size_t)0, spec, s_none, 0u));
@@ -286,9 +271,6 @@ void test_emit_covers_the_width_bearing_kinds(void)
     TEST_ASSERT_TRUE(mmgr_cellul_has(out, sizeof out, "0007", 5u, MMGR_FALSE));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the width defaults, and what append does when there is no room
- * ------------------------------------------------------------------------------------------- */
 
 void test_a_g_field_with_no_width_gets_six_digits(void)
 {
@@ -324,9 +306,7 @@ void test_an_oct_field_with_no_width_gets_one_digit(void)
 
 void test_append_to_a_buffer_with_no_terminator_is_refused(void)
 {
-    // len() stops at the cap, so a buffer whose bytes run to the end has no room reported and
-    // nothing can be put after it.
-    char out[4];
+            char out[4];
     for (unsigned i = 0; i < sizeof out; i++)
     {
         out[i] = 'x';
@@ -345,9 +325,6 @@ void test_an_append_that_does_not_fit_puts_the_terminator_back(void)
     TEST_ASSERT_EQUAL_STRING_MESSAGE("abc", out, "a failed append left the buffer without its terminator");
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the kinds and the failures the variadic path reaches on its own
- * ------------------------------------------------------------------------------------------- */
 
 void test_the_variadic_path_carries_every_kind(void)
 {

@@ -1,6 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
 #include "unity.h"
 
 #include "config/mmgr_config.h"
@@ -36,9 +33,7 @@ void test_index_fits_the_register_that_carries_it(void)
 
 void test_packed_enum_keeps_its_declared_width(void)
 {
-    // losing this moves every field after an enum in every struct, and borrows are addressed by
-    // offset
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, sizeof(MmgrEnumProbe), "MMGR_ENUM_PACKED was not honored");
+            TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, sizeof(MmgrEnumProbe), "MMGR_ENUM_PACKED was not honored");
 }
 
 void test_bool_constants(void)

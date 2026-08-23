@@ -1,8 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// The translation unit is compiled in rather than linked, which is what makes the file local
-// context and the bodies behind the tables visible to a case.
 #include "endian/endian.c"
 
 #include "unity.h"

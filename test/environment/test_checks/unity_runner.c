@@ -76,8 +76,8 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/environment/test_checks\\test_checks.c");
-  run_test(test_checks_widths_are_what_was_asked_for, "test_checks_widths_are_what_was_asked_for", 8);
-  run_test(test_checks_types_match_the_widths, "test_checks_types_match_the_widths", 20);
+  run_test(test_checks_widths_are_what_was_asked_for, "test_checks_widths_are_what_was_asked_for", 5);
+  run_test(test_checks_types_match_the_widths, "test_checks_types_match_the_widths", 17);
 
   return UNITY_END();
 }

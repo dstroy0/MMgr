@@ -1,15 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// How many sieve rows before verifying, and does it beat libc.
-//
-// One load per step. Row k is eq(w, needle[k]) shifted back by k lanes, so all K rows come out of
-// the same word and stack on top of each other; AND them and the surviving lanes are the candidate
-// offsets. Each row cuts candidates by roughly the byte's frequency, so two rows over text leave
-// almost nothing to verify.
-//
-// Shifting right by k lanes drops the top k lanes' answers, because those candidates need bytes
-// from the next word. The step is WORD - K + 1 rather than WORD, so the next iteration covers them.
 
 #include <stdio.h>
 #include <string.h>
@@ -92,8 +80,6 @@ DEFINE_SIEVE(2)
 DEFINE_SIEVE(3)
 DEFINE_SIEVE(4)
 
-// English-like prose. Real text is what decides how much a second row buys: letter frequencies are
-// what the sieve is sieving, and a haystack of one repeated byte answers a different question.
 static const char *CORPUS = "the quick brown fox jumps over the lazy dog while the rain in spain "
                             "falls mainly on the plain and the cat sat on the mat with a hat that "
                             "was rather flat but the dog did not care for hats at all it seems ";
@@ -107,8 +93,7 @@ static void plant(const char *needle, size_t at)
     }
     g_nlen = strlen(needle);
     memcpy(g_needle, needle, g_nlen + 1u);
-    // Overwrite any natural occurrence before `at` so the match position is the one asked for.
-    for (size_t i = 0; i + g_nlen < at; i++)
+        for (size_t i = 0; i + g_nlen < at; i++)
     {
         if (memcmp(g_hay + i, g_needle, g_nlen) == 0)
         {
@@ -150,9 +135,7 @@ int main(void)
     printf("bench,impl,needle,needle_len,lane_bits,cycles,cycles_per_byte\n");
     fflush(stdout);
 
-    sweep("zqx", 12000u); // first byte is rare: row 0 alone nearly settles it
-    sweep("the", 12000u); // first byte is common: row 0 fires constantly
-    sweep("plain", 12000u);
+    sweep("zqx", 12000u);     sweep("the", 12000u);     sweep("plain", 12000u);
     sweep("mainly on the", 12000u);
 
     return 0;

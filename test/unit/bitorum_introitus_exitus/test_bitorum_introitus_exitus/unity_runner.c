@@ -82,20 +82,20 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/bitorum_introitus_exitus/test_bitorum_introitus_exitus\\test_bitorum_introitus_exitus.c");
-  run_test(test_bitio_header_is_self_contained, "test_bitio_header_is_self_contained", 29);
-  run_test(test_a_whole_byte_lands_as_that_byte, "test_a_whole_byte_lands_as_that_byte", 34);
-  run_test(test_bits_pack_from_the_low_end, "test_bits_pack_from_the_low_end", 42);
-  run_test(test_a_partial_write_waits_for_the_byte, "test_a_partial_write_waits_for_the_byte", 53);
-  run_test(test_padding_to_the_byte_writes_it, "test_padding_to_the_byte_writes_it", 61);
-  run_test(test_a_put_of_no_bits_writes_nothing, "test_a_put_of_no_bits_writes_nothing", 70);
-  run_test(test_a_put_of_no_bits_on_an_empty_writer_writes_nothing, "test_a_put_of_no_bits_on_an_empty_writer_writes_nothing", 78);
-  run_test(test_a_wide_put_spans_bytes, "test_a_wide_put_spans_bytes", 85);
-  run_test(test_n_at_or_above_32_takes_the_value_whole, "test_n_at_or_above_32_takes_the_value_whole", 95);
-  run_test(test_a_narrow_put_ignores_the_high_bits, "test_a_narrow_put_ignores_the_high_bits", 106);
-  run_test(test_overflow_latches_and_stops_writing, "test_overflow_latches_and_stops_writing", 113);
-  run_test(test_a_put_after_overflow_is_ignored, "test_a_put_after_overflow_is_ignored", 127);
-  run_test(test_a_completed_byte_with_no_room_overflows, "test_a_completed_byte_with_no_room_overflows", 139);
-  run_test(test_namespace_is_wired, "test_namespace_is_wired", 150);
+  run_test(test_bitio_header_is_self_contained, "test_bitio_header_is_self_contained", 26);
+  run_test(test_a_whole_byte_lands_as_that_byte, "test_a_whole_byte_lands_as_that_byte", 31);
+  run_test(test_bits_pack_from_the_low_end, "test_bits_pack_from_the_low_end", 39);
+  run_test(test_a_partial_write_waits_for_the_byte, "test_a_partial_write_waits_for_the_byte", 49);
+  run_test(test_padding_to_the_byte_writes_it, "test_padding_to_the_byte_writes_it", 57);
+  run_test(test_a_put_of_no_bits_writes_nothing, "test_a_put_of_no_bits_writes_nothing", 66);
+  run_test(test_a_put_of_no_bits_on_an_empty_writer_writes_nothing, "test_a_put_of_no_bits_on_an_empty_writer_writes_nothing", 74);
+  run_test(test_a_wide_put_spans_bytes, "test_a_wide_put_spans_bytes", 81);
+  run_test(test_n_at_or_above_32_takes_the_value_whole, "test_n_at_or_above_32_takes_the_value_whole", 91);
+  run_test(test_a_narrow_put_ignores_the_high_bits, "test_a_narrow_put_ignores_the_high_bits", 101);
+  run_test(test_overflow_latches_and_stops_writing, "test_overflow_latches_and_stops_writing", 108);
+  run_test(test_a_put_after_overflow_is_ignored, "test_a_put_after_overflow_is_ignored", 122);
+  run_test(test_a_completed_byte_with_no_room_overflows, "test_a_completed_byte_with_no_room_overflows", 134);
+  run_test(test_namespace_is_wired, "test_namespace_is_wired", 145);
 
   return UNITY_END();
 }

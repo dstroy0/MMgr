@@ -1,23 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// Adversarial content, inside legitimate bounds.
-//
-// Every size this library takes is the caller's own and is bound at compile time - a tenant is
-// MMGR_CARCER_SIZE, a scan is MMGR_CARCER_MAX, and a request that does not fit is a static assert
-// and not a runtime case. So there is nothing to learn from feeding a nonsense size to an entry
-// that was never going to be handed one. What does arrive from outside is the bytes, and this file
-// is about the bytes.
-//
-// Two things are asserted after every operation. That the answer is right, checked against libc
-// wherever libc has the same question. And that nothing outside the buffer moved: every buffer here
-// sits in the middle of a larger array with a poison pattern on both sides, and the poison is
-// checked afterwards. A one byte overrun writes into the poison rather than into whatever the
-// linker put next, so it is reported rather than being a crash somewhere else later.
-//
-// The content is chosen to sit on the seams of the word at a time scan: a word with no terminator,
-// a terminator in every lane in turn, bytes with the high bit set going through a compare that is
-// only valid below it, caps a byte either side of a word boundary, and every start alignment.
 #include "oracle_divergence.h"
 #include "unity.h"
 
@@ -34,7 +14,6 @@ static const char *mmgr_cellul_nowhere;
 #include <stdlib.h>
 #include <string.h>
 
-// Wide enough to hold several words at any alignment, with room either side.
 enum
 {
     FENCE = 32,
@@ -45,14 +24,12 @@ enum
 
 static unsigned char arena[ROOM];
 
-/** @brief Put the buffer back, poison and all. */
 static unsigned char *fresh(void)
 {
     memset(arena, POISON, sizeof arena);
     return arena + FENCE;
 }
 
-/** @brief Nothing outside the body moved. */
 static void fences_intact(const char *what)
 {
     for (size_t i = 0; i < ROOM; i++)
@@ -80,13 +57,6 @@ void tearDown(void)
 {
 }
 
-/* ---------------------------------------------------------------------------------------------
- * len and chr, against content that never terminates
- *
- * A bounded scan is allowed to read to its cap and no further. Content with no terminator in it is
- * the only way to make it go the whole distance, and a cap a byte either side of a word boundary
- * is where a word at a time loop gets it wrong.
- * ------------------------------------------------------------------------------------------- */
 
 void test_len_of_a_run_that_never_terminates(void)
 {
@@ -118,8 +88,7 @@ void test_len_finds_a_terminator_in_every_lane(void)
 
 void test_len_at_every_start_alignment(void)
 {
-    // The load is unaligned by design, so every offset into the word has to give the same answer.
-    for (size_t off = 0; off < 16u; off++)
+        for (size_t off = 0; off < 16u; off++)
     {
         unsigned char *p = fresh();
         memset(p, 'a', BODY);
@@ -142,9 +111,7 @@ void test_chr_of_a_byte_that_is_not_there_in_an_unterminated_run(void)
 
 void test_chr_finds_a_byte_in_every_lane(void)
 {
-    // The terminator sits in the last byte, so the marker walks every lane before it. Putting the
-    // marker in that byte too would just be writing it and then writing over it.
-    for (size_t at = 0; at + 1u < BODY; at++)
+            for (size_t at = 0; at + 1u < BODY; at++)
     {
         unsigned char *p = fresh();
         memset(p, 'a', BODY);
@@ -163,18 +130,10 @@ void test_chr_of_the_terminator_itself(void)
     memset(p, 'a', BODY);
     p[10] = 0u;
 
-    // strchr finds the terminator, and so should this.
-    TEST_ASSERT_EQUAL_PTR(strchr((const char *)p, 0), mmgr_cellul_chr((const char *)p, BODY, 0u));
+        TEST_ASSERT_EQUAL_PTR(strchr((const char *)p, 0), mmgr_cellul_chr((const char *)p, BODY, 0u));
     fences_intact("chr, terminator");
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the high half of the byte range
- *
- * The lane compares are borrow tricks and are only exact below 0x80. Nothing in the library feeds
- * them anything else, and this is the case that proves the entries above them do not either: text
- * with the high bit set has to come back the same as it does out of libc.
- * ------------------------------------------------------------------------------------------- */
 
 void test_a_run_of_high_bytes_measures_and_searches_like_libc(void)
 {
@@ -192,10 +151,7 @@ void test_a_run_of_high_bytes_measures_and_searches_like_libc(void)
 
 void test_folding_never_touches_a_byte_outside_the_letters(void)
 {
-    // A case insensitive compare folds both sides. If the fold reached past the letters it would
-    // make two different bytes look alike, so every byte is checked against itself and against the
-    // one it must not be confused with.
-    for (unsigned c = 0; c < 256u; c++)
+                for (unsigned c = 0; c < 256u; c++)
     {
         const char a[2] = {(char)c, '\0'};
         const char b2[2] = {(char)(c ^ 0x20u), '\0'};
@@ -226,12 +182,6 @@ void test_a_case_insensitive_search_through_high_bytes(void)
     fences_intact("ci search, high bytes");
 }
 
-/* ---------------------------------------------------------------------------------------------
- * find, against content built to defeat it
- *
- * The scan picks one rare byte of the needle as its anchor and checks that lane first. Content
- * made entirely of the anchor makes every lane a candidate, which is the worst case it has.
- * ------------------------------------------------------------------------------------------- */
 
 void test_find_where_every_lane_is_a_candidate(void)
 {
@@ -239,9 +189,7 @@ void test_find_where_every_lane_is_a_candidate(void)
     memset(p, 'a', BODY);
     p[BODY - 1u] = 0u;
 
-    // "aaaa" against a run of nothing but 'a': every start matches the anchor and every one has to
-    // be verified.
-    const char *got = mmgr_cellul_find((const char *)p, BODY - 1u, "aaaa", 4u, MMGR_FALSE);
+            const char *got = mmgr_cellul_find((const char *)p, BODY - 1u, "aaaa", 4u, MMGR_FALSE);
     TEST_ASSERT_EQUAL_PTR(strstr((const char *)p, "aaaa"), got);
     fences_intact("find, all anchors");
 }
@@ -288,9 +236,7 @@ void test_find_the_hay_in_itself(void)
 
 void test_find_across_every_word_boundary(void)
 {
-    // The match is walked one byte at a time through the buffer so it straddles every boundary a
-    // word at a time scan has, and lands flush against each one in turn.
-    for (size_t at = 0; at + 5u < BODY - 1u; at++)
+            for (size_t at = 0; at + 5u < BODY - 1u; at++)
     {
         unsigned char *p = fresh();
         memset(p, '.', BODY);
@@ -311,9 +257,7 @@ void test_find_with_the_terminator_before_the_match(void)
     memcpy(p + 4, "needle", 6u);
     p[10] = 0u;
 
-    // The scan stops at the first terminator, so what is behind it is not there as far as it is
-    // concerned. strstr says the same.
-    TEST_ASSERT_EQUAL_PTR(strstr((const char *)p, "needle"),
+            TEST_ASSERT_EQUAL_PTR(strstr((const char *)p, "needle"),
                           mmgr_cellul_find((const char *)p, BODY, "needle", 6u, MMGR_FALSE));
     fences_intact("find, past the terminator");
 }
@@ -329,9 +273,6 @@ void test_find_of_an_empty_needle(void)
     TEST_ASSERT_EQUAL_PTR(strstr((const char *)p, ""), mmgr_cellul_find((const char *)p, 8u, "", 0u, MMGR_FALSE));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * copy, at the seam of its destination
- * ------------------------------------------------------------------------------------------- */
 
 void test_copy_never_writes_past_its_destination(void)
 {
@@ -363,9 +304,6 @@ void test_copy_of_a_source_that_never_terminates(void)
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(POISON, out[8], "copy wrote past the cap it was given");
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the builder, at every capacity
- * ------------------------------------------------------------------------------------------- */
 
 void test_a_builder_at_every_capacity_stays_inside_it(void)
 {
@@ -405,8 +343,7 @@ void test_a_builder_with_no_room_for_a_terminator(void)
 
 void test_a_write_of_every_length_into_a_fixed_buffer(void)
 {
-    // Walks the boundary: one short, exact, one over.
-    for (size_t len = 1; len <= 32u; len++)
+        for (size_t len = 1; len <= 32u; len++)
     {
         char src[40];
         memset(src, 'z', len);
@@ -439,9 +376,6 @@ void test_a_write_of_every_length_into_a_fixed_buffer(void)
     }
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the record builder, at every capacity
- * ------------------------------------------------------------------------------------------- */
 
 void test_a_record_at_every_capacity_stays_inside_it(void)
 {
@@ -475,15 +409,10 @@ void test_appending_to_a_record_until_it_stops_fitting(void)
     fences_intact("record, append until full");
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the parsers, against content that is not a number
- * ------------------------------------------------------------------------------------------- */
 
 void test_the_parsers_against_content_that_never_terminates(void)
 {
-    // No terminator and nothing numeric: the parse has to stop on the first byte it cannot use
-    // rather than reading on.
-    unsigned char *p = fresh();
+            unsigned char *p = fresh();
     memset(p, '9', BODY);
 
     const char *end = NULL;
@@ -533,11 +462,7 @@ void test_the_parsers_agree_with_libc_on_rubbish(void)
 void test_the_parser_takes_decimal_and_stops_at_anything_else(void)
 {
     MMGR_SKIP_ON_ORACLE("C99 gives strtod a hex float form, which this parser deliberately does not take");
-    // C99 gives strtod a hex float form. This one is decimal, so the x ends the number and the
-    // zero before it is the whole of it. Pinned here rather than left to disagree with whichever
-    // library the host ships, because it is this parser's own answer and not a difference of
-    // opinion with somebody else's.
-    static const char *cases[] = {"0x10", "0X1p4", "0b101", "1_000"};
+                    static const char *cases[] = {"0x10", "0X1p4", "0b101", "1_000"};
 
     for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++)
     {
@@ -553,12 +478,7 @@ void test_the_parser_takes_decimal_and_stops_at_anything_else(void)
 
 void test_an_exponent_with_no_digits_after_it(void)
 {
-    // C says the number is the longest leading run that is actually of the expected form, so "1e"
-    // is the number 1 and the e is the byte that ended it. The parser takes the e, and a sign
-    // after it, before it looks for a digit, and puts the cursor back on the e when there is not
-    // one - so a caller reading the cursor to find out whether the whole string was a number is
-    // told no, which it is.
-    static const struct
+                        static const struct
     {
         const char *text;
         double want;
@@ -582,8 +502,7 @@ void test_an_exponent_with_no_digits_after_it(void)
 
 void test_an_exponent_that_is_real_is_still_taken(void)
 {
-    // The other half: the early return must not have eaten the ordinary path.
-    TEST_ASSERT_DOUBLE_WITHIN(1e-6, 25000000000.0, mmgr_cellul_to_double("2.5e10", mmgr_cellul_nowhere));
+        TEST_ASSERT_DOUBLE_WITHIN(1e-6, 25000000000.0, mmgr_cellul_to_double("2.5e10", mmgr_cellul_nowhere));
     TEST_ASSERT_DOUBLE_WITHIN(1e-18, 0.00125, mmgr_cellul_to_double("1.25e-3", mmgr_cellul_nowhere));
     TEST_ASSERT_DOUBLE_WITHIN(1e-6, 602200.0, mmgr_cellul_to_double("6.022E5", mmgr_cellul_nowhere));
 }

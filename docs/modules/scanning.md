@@ -9,8 +9,7 @@ implementation and a bounded contract.
 
 ```c
 memor.cpy(dst, src, n);
-memor.move(dst, src, n);          /* overlapping ranges */
-memor.set(p, 0xFF, n);
+memor.move(dst, src, n);          memor.set(p, 0xFF, n);
 memor.zero(p, n);
 if (memor.cmp(a, b, n) == 0) { }
 uint8_t *hit = memor.chr(p, 'x', n);

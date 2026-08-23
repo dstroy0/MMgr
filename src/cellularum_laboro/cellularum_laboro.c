@@ -1,5 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 #include "ascii_persona_bitorum/ascii_persona_bitorum.h"
@@ -44,7 +42,6 @@ typedef struct
     const size_t fieldlen;
 } CellulCtx;
 
-/* --------------------------------------------------------------- family B: one loaded step */
 
 MMGR_INLINE int cellul_step_word_cs(const CellulCtx *c)
 {
@@ -136,7 +133,6 @@ MMGR_INLINE int cellul_step_byte_ci(const CellulCtx *c)
     return MMGR_SWAR_GO;
 }
 
-/* ------------------------------------------------------------------ family A: bounded reads */
 
 MMGR_INLINE mmgr_bool cellul_is_ws(char ch)
 {
@@ -485,7 +481,6 @@ MMGR_INLINE mmgr_bool cellul_rd_str(const CellulCtx *c)
     return MMGR_TRUE;
 }
 
-/* ---------------------------------------------------------------- family C: one conversion */
 
 MMGR_INLINE long cellul_to_long(const CellulCtx *c)
 {
@@ -659,12 +654,11 @@ MMGR_INLINE mmgr_bool cellul_mpint_fixed(const CellulCtx *c)
     {
         return MMGR_FALSE;
     }
-    memor.set(c->field, 0, c->fieldlen);
-    memor.cpy(c->field + (c->fieldlen - vlen), c->m + off, vlen);
+    mmgr_memor_set(c->field, (uint8_t)0, c->fieldlen);
+    mmgr_memor_cpy(c->field + (c->fieldlen - vlen), c->m + off, (size_t)vlen);
     return MMGR_TRUE;
 }
 
-/* ------------------------------------------------------------------------------- the entries */
 
 CatenaFinitaCfg (mmgr_cellul_init)(const CatenaFinitaCfg *c)
 {

@@ -25,18 +25,13 @@ static uint8_t region[4096];
 mmgr_confin c;
 mmgr_confin_init(&c, region, sizeof region);
 
-/* Lives as long as the region. Grows up from the base. */
 uint8_t *table = mmgr_confin_persist_capio(&c, 512, 8);
 
-/* Interim, for one operation. Grows down from the top. */
 const size_t m = mmgr_confin_interim_mark(&c);
 uint8_t *work  = mmgr_confin_interim_capio(&c, 256, 8);
 if (work == NULL) {
-    return -1;                              /* nothing was taken; nothing to undo */
-}
-/* ... use work ... */
-mmgr_confin_interim_reddo(&c, m);           /* one line, however many takes happened */
-```
+    return -1;                              }
+mmgr_confin_interim_reddo(&c, m);           ```
 
 `capio` is _take_, `reddo` is _give back_. @ref ref_glossary has the rest of the verbs.
 

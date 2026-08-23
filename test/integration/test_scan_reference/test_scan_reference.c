@@ -1,29 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// The scans against a reference that is obviously right, and one case saying alignment is not a
-// variable here.
-//
-// glibc sweeps every start alignment against every length because glibc's string functions peel:
-// they walk single bytes until the pointer reaches a word boundary and then run whole words, so the
-// alignment picks which code runs and the pair of alignment and length is the real input. It also
-// dispatches between processor specific implementations at run time, so which one answered is a
-// third variable.
-//
-// Neither is true here. Every load in these scans is mmgr_proxim_load at whatever address it was
-// handed - there is no peel, no boundary to reach, and grep finds no alignment test anywhere in the
-// scans. There is no run time dispatch either: the namespace is const so the call devirtualises,
-// the case flag is folded to a constant at the two call sites, and the widths are compile time. So
-// sweeping sixteen alignments would run one path sixteen times.
-//
-// The one place this library does peel is the bulk move in memoria_operor, which takes a different
-// branch when the source and destination disagree about the word boundary - and test_memoria_operor
-// sweeps both offsets against every length, which is where that belongs.
-//
-// What is worth taking from glibc's harness is the other half: check the clever implementation
-// against a byte at a time reference written out in the test, over lengths that cross every word
-// boundary. Not libc - the oracle build asks libc separately, and half of these entries take a cap
-// that libc has no equivalent for. A reference that is correct by reading it is the point.
 #include "unity.h"
 
 #include "cellularum_laboro/cellularum_laboro.h"
@@ -49,9 +23,6 @@ void tearDown(void)
 {
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the reference: byte at a time, correct by inspection
- * ------------------------------------------------------------------------------------------- */
 
 static size_t ref_len(const char *s, size_t cap)
 {
@@ -158,7 +129,6 @@ static void fill(char *p, size_t len, unsigned which)
     p[len] = '\0';
 }
 
-/** @brief Every small length, then the three around each word boundary that matters. */
 static size_t nth_len(unsigned i)
 {
     static const size_t big[] = {63, 64, 65, 127, 128, 129, 255, 256, 257, 299};
@@ -166,16 +136,10 @@ static size_t nth_len(unsigned i)
 }
 #define LENS 58u
 
-/* ---------------------------------------------------------------------------------------------
- * the design claim, stated once
- * ------------------------------------------------------------------------------------------- */
 
 void test_the_answer_does_not_depend_on_where_the_buffer_starts(void)
 {
-    // Not a search for an alignment bug - there is no alignment branch in these scans to have one.
-    // This says so out loud: the same bytes at every offset within two words give the same answer,
-    // so a future peel added for speed cannot quietly change what the entries return.
-    static const size_t lens[] = {1, 7, 8, 9, 15, 16, 17, 31, 32, 33, 64, 65};
+                static const size_t lens[] = {1, 7, 8, 9, 15, 16, 17, 31, 32, 33, 64, 65};
 
     for (unsigned li = 0; li < sizeof lens / sizeof lens[0]; li++)
     {
@@ -220,9 +184,6 @@ void test_the_answer_does_not_depend_on_where_the_buffer_starts(void)
     }
 }
 
-/* ---------------------------------------------------------------------------------------------
- * against the reference, across every word boundary
- * ------------------------------------------------------------------------------------------- */
 
 void test_len_matches_the_reference_at_every_length(void)
 {

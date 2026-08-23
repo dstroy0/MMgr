@@ -12,9 +12,7 @@ for the answer you want to fall out of arithmetic that was going to happen anywa
 Two constants set it up, both derived from the carrier width:
 
 ```c
-MMGR_SWAR_ONES    /* 0x0101...01 - a 1 in the low bit of every lane */
-MMGR_SWAR_HIGHS   /* 0x8080...80 - a 1 in the high bit of every lane */
-```
+MMGR_SWAR_ONES    MMGR_SWAR_HIGHS   ```
 
 ## Worked example: is any byte zero
 

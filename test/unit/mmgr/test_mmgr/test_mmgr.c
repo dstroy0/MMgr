@@ -1,6 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
 #include "unity.h"
 
 #include "mmgr.h"
@@ -12,8 +9,7 @@ void test_umbrella_header_is_self_contained(void)
 
 void test_every_namespace_is_reachable(void)
 {
-    // the point of the umbrella is that one include reaches all of them
-    TEST_ASSERT_NOT_NULL(bitio.put);
+        TEST_ASSERT_NOT_NULL(bitio.put);
     TEST_ASSERT_NOT_NULL(byteio.put);
     TEST_ASSERT_NOT_NULL(cellul.len);
     TEST_ASSERT_NOT_NULL(soluta.alloc);

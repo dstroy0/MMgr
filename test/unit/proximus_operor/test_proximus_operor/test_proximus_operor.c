@@ -1,11 +1,7 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
 #include "unity.h"
 
 #include "proximus_operor/proximus_operor.h"
 
-// deliberately oversized and offset, so every case can pick its own alignment
 static _Alignas(16) uint8_t mem[64];
 
 void setUp(void)
@@ -27,8 +23,7 @@ void test_proxim_header_is_self_contained(void)
 
 void test_reads_at_every_alignment(void)
 {
-    // the whole point of the proxim entries: alignment is not a precondition
-    for (unsigned off = 0; off < 8u; off++)
+        for (unsigned off = 0; off < 8u; off++)
     {
         uint8_t *p = mem + off;
         const uint16_t w16 = (uint16_t)((uint16_t)p[0] | ((uint16_t)p[1] << 8));
@@ -47,8 +42,7 @@ void test_reads_at_every_alignment(void)
 
 void test_load_selects_by_width(void)
 {
-    uint8_t *p = mem + 3u; // deliberately unaligned
-    TEST_ASSERT_EQUAL_HEX64((uint64_t)p[0], proxim.load(p, 1u));
+    uint8_t *p = mem + 3u;     TEST_ASSERT_EQUAL_HEX64((uint64_t)p[0], proxim.load(p, 1u));
     TEST_ASSERT_EQUAL_HEX64((uint64_t)proxim.u16(p), proxim.load(p, 2u));
     TEST_ASSERT_EQUAL_HEX64((uint64_t)proxim.u32(p), proxim.load(p, 4u));
     TEST_ASSERT_EQUAL_HEX64(proxim.u64(p), proxim.load(p, 8u));
@@ -56,8 +50,7 @@ void test_load_selects_by_width(void)
 
 void test_load_of_an_unsupported_width_reads_nothing(void)
 {
-    // defensive: the library only ever asks for 1, 2, 4 or 8
-    TEST_ASSERT_EQUAL_HEX64(0u, proxim.load(mem, 3u));
+        TEST_ASSERT_EQUAL_HEX64(0u, proxim.load(mem, 3u));
     TEST_ASSERT_EQUAL_HEX64(0u, proxim.load(mem, 0u));
     TEST_ASSERT_EQUAL_HEX64(0u, proxim.load(mem, 16u));
 }
@@ -89,8 +82,7 @@ void test_a_write_touches_exactly_its_width(void)
 
 void test_aligned_entries_round_trip(void)
 {
-    uint8_t *p = mem; // mem is 16-aligned
-    proxim.al_put_u16(p, 0x1234u);
+    uint8_t *p = mem;     proxim.al_put_u16(p, 0x1234u);
     TEST_ASSERT_EQUAL_HEX64(0x1234u, proxim.al_load(p, 2u));
 
     proxim.al_put_u32(p, 0x12345678u);

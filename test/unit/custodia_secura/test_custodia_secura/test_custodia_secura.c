@@ -1,18 +1,9 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
 #include "unity.h"
 
 #include "custodia_secura/custodia_secura.h"
 
-// The alignment clamp the tenant applies is confinium's, so the bounds it is checked against
-// come from there rather than being written out again here.
 #include "carceribus/carceribus.h"
 
-// The pool binds itself on first use and never unbinds. setUp deliberately does not touch it: a
-// mark taken there would bind it before the first case ran, and the answers it gives while it
-// still has no storage would then be unreachable from anywhere. Cases that allocate take a mark
-// of their own and give it back, so the order they run in does not decide what they see.
 static size_t base_mark;
 
 void setUp(void)
@@ -29,13 +20,6 @@ void tearDown(void)
     }
 }
 
-/* ---------------------------------------------------------------------------------------------
- * before the first allocation
- *
- * This case has to come first in the file. Unity runs them in the order they are written, the
- * pool binds on first use, and nothing unbinds it - so this is the only place the unbound answers
- * can be asked for.
- * ------------------------------------------------------------------------------------------- */
 
 void test_a_pool_that_has_not_bound_yet_answers_for_nothing(void)
 {
@@ -48,11 +32,7 @@ void test_a_pool_that_has_not_bound_yet_answers_for_nothing(void)
 
 void test_a_tenant_that_has_only_held_persistent_has_no_peak(void)
 {
-    // This case has to come second, before anything takes interim. Persistent memory comes off
-    // the other end and is tallied on its own, so the tenant is bound and its interim peak is
-    // still nothing - which is the one way the peak search runs over a real tenant and finds
-    // nothing higher than what it started with.
-    TEST_ASSERT_NOT_NULL(secura.persist_span(16u).buf);
+                    TEST_ASSERT_NOT_NULL(secura.persist_span(16u).buf);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, secura.high_water(), "persistent memory moved the interim peak");
 }
 
@@ -69,13 +49,6 @@ void test_secura_namespace_is_wired(void)
                                      "the namespace instance is not its own type");
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the wipe
- *
- * The one entry that is not about the pool. It is exercised over a buffer of its own so an
- * unaligned start, a whole word run and a ragged tail are all reachable without arranging a
- * tenant to sit at the right offset.
- * ------------------------------------------------------------------------------------------- */
 
 void test_wipe_clears_an_aligned_run(void)
 {
@@ -100,8 +73,7 @@ void test_wipe_clears_an_unaligned_start_and_a_ragged_tail(void)
         buf[i] = 0xA5u;
     }
 
-    // One byte in and three short: the head loop, the word loop and the tail loop all run.
-    mmgr_secura_wipe(buf + 1, sizeof buf - 4u);
+        mmgr_secura_wipe(buf + 1, sizeof buf - 4u);
 
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xA5u, buf[0], "the byte before the run is untouched");
     for (unsigned i = 1; i < sizeof buf - 3u; i++)
@@ -113,8 +85,7 @@ void test_wipe_clears_an_unaligned_start_and_a_ragged_tail(void)
 
 void test_wipe_of_a_short_unaligned_run(void)
 {
-    // Shorter than a word and starting off a boundary, so it never reaches the word loop.
-    _Alignas(sizeof(uintptr_t)) uint8_t buf[16];
+        _Alignas(sizeof(uintptr_t)) uint8_t buf[16];
     for (unsigned i = 0; i < sizeof buf; i++)
     {
         buf[i] = 0xFFu;
@@ -134,9 +105,6 @@ void test_wipe_of_nothing_touches_nothing(void)
     TEST_ASSERT_EQUAL_HEX8(1u, buf[0]);
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the pool
- * ------------------------------------------------------------------------------------------- */
 
 void test_capacity_is_the_configured_tenant_size(void)
 {
@@ -158,11 +126,7 @@ void test_alloc_hands_back_usable_memory(void)
 void test_alloc_honours_its_alignment(void)
 {
     base_mark = secura.mark();
-    // The tenant clamps an ask into MMGR_CARCER_ALIGN..MMGR_CARCER_MAX_ALIGN, so an ask below the
-    // floor still comes back on the floor and an ask above the ceiling comes back on the ceiling.
-    // Both clamps are taken here, with an odd sized allocation between them so the fill point is
-    // not already sitting where the next one wants it.
-    const void *lo = secura.alloc(8u, 1u);
+                    const void *lo = secura.alloc(8u, 1u);
     (void)secura.alloc(3u, 1u);
     const void *hi = secura.alloc(8u, MMGR_CARCER_MAX_ALIGN * 4u);
 
@@ -231,9 +195,7 @@ void test_release_wipes_what_it_gives_up(void)
 
     secura.release(m);
 
-    // The bytes are back in the pool, so reading them is reading our own tenant, not a use after
-    // free. This is the whole point of the secure guardian: the secret does not outlive the mark.
-    for (unsigned i = 0; i < 32u; i++)
+            for (unsigned i = 0; i < 32u; i++)
     {
         TEST_ASSERT_EQUAL_HEX8_MESSAGE(0u, p[i], "a released byte kept its value");
     }
@@ -291,6 +253,5 @@ void test_reset_gives_the_whole_tenant_back(void)
     secura.reset();
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, secura.used(), "reset did not empty the tenant");
 
-    // reset threw this case's mark away with everything else, so there is nothing to give back.
-    base_mark = 0;
+        base_mark = 0;
 }

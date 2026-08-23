@@ -1,6 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
 #include "unity.h"
 
 #include "ascii_persona_bitorum/ascii_persona_bitorum.h"
@@ -46,14 +43,11 @@ static int ref_ctrl(int c)
     return c < 0x20 || c == 0x7F;
 }
 
-// A class is named by an index, not by a mask: the masks are file local to the module's .c, so a
-// suite gets at them the same way anything else does.
 static void all_256(MmgrAsciiClass k, int (*ref)(int), const char *what)
 {
     for (int c = 0; c < 256; c++)
     {
-        // nothing at or above 0x80 belongs to any class
-        const int want = (c < 128) ? ref(c) : 0;
+                const int want = (c < 128) ? ref(c) : 0;
         const int got = mmgr_ascii_in(k, (uint8_t)c);
         if (got != want)
         {
@@ -72,9 +66,6 @@ void test_ascii_persona_bitorum_is_128_bits(void)
     TEST_ASSERT_EQUAL_size_t(16u, sizeof(MmgrAsciiMask));
 }
 
-// The enum values are API: a caller that compiled against them holds the numbers, not the names,
-// and the generator builds both the enum and the mask table from one ordered list. Reordering that
-// list renumbers every class silently, so the numbering is pinned here rather than trusted.
 void test_ascii_class_numbering_is_pinned(void)
 {
     TEST_ASSERT_EQUAL_INT(0, MMGR_ASCII_NUM);
@@ -143,8 +134,7 @@ void test_ascii_high_bytes_are_in_no_class(void)
 
 void test_ascii_classes_partition_the_printables(void)
 {
-    // every printable byte is exactly one of alnum, punct or space
-    for (int c = 0x20; c <= 0x7E; c++)
+        for (int c = 0x20; c <= 0x7E; c++)
     {
         const int n = mmgr_ascii_in(MMGR_ASCII_ALNUM, (uint8_t)c) + mmgr_ascii_in(MMGR_ASCII_PUNCT, (uint8_t)c) +
                       mmgr_ascii_in(MMGR_ASCII_SPACE, (uint8_t)c);

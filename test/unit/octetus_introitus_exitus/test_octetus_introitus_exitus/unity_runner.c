@@ -10,15 +10,13 @@ extern void tearDown(void);
 extern void test_byteio_header_is_self_contained(void);
 extern void test_byteio_namespace_is_wired(void);
 extern void test_put_writes_one_byte(void);
-extern void test_put_be_writes_the_high_byte_first(void);
-extern void test_put_be_at_every_width(void);
-extern void test_put_be_keeps_only_the_low_bytes(void);
-extern void test_raw_copies_a_run(void);
-extern void test_raw_of_nothing_does_not_latch(void);
-extern void test_take_be_reads_what_put_be_wrote(void);
-extern void test_take_be_walks_forward(void);
-extern void test_take_be_of_nothing_succeeds(void);
-extern void test_rd_u32_reads_and_advances(void);
+extern void test_put_writes_the_high_byte_first(void);
+extern void test_put_at_every_width(void);
+extern void test_put_keeps_only_the_low_bytes(void);
+extern void test_take_reads_what_put_wrote(void);
+extern void test_take_reads_back_at_every_width(void);
+extern void test_take_of_fewer_bytes_takes_the_leading_ones(void);
+extern void test_take_reads_a_pattern_it_did_not_write(void);
 
 
 /*=======Mock Management=====*/
@@ -86,18 +84,16 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/octetus_introitus_exitus/test_octetus_introitus_exitus\\test_octetus_introitus_exitus.c");
-  run_test(test_byteio_header_is_self_contained, "test_byteio_header_is_self_contained", 8);
-  run_test(test_byteio_namespace_is_wired, "test_byteio_namespace_is_wired", 13);
-  run_test(test_put_writes_one_byte, "test_put_writes_one_byte", 28);
-  run_test(test_put_be_writes_the_high_byte_first, "test_put_be_writes_the_high_byte_first", 38);
-  run_test(test_put_be_at_every_width, "test_put_be_at_every_width", 51);
-  run_test(test_put_be_keeps_only_the_low_bytes, "test_put_be_keeps_only_the_low_bytes", 68);
-  run_test(test_raw_copies_a_run, "test_raw_copies_a_run", 79);
-  run_test(test_raw_of_nothing_does_not_latch, "test_raw_of_nothing_does_not_latch", 90);
-  run_test(test_take_be_reads_what_put_be_wrote, "test_take_be_reads_what_put_be_wrote", 104);
-  run_test(test_take_be_walks_forward, "test_take_be_walks_forward", 116);
-  run_test(test_take_be_of_nothing_succeeds, "test_take_be_of_nothing_succeeds", 131);
-  run_test(test_rd_u32_reads_and_advances, "test_rd_u32_reads_and_advances", 143);
+  run_test(test_byteio_header_is_self_contained, "test_byteio_header_is_self_contained", 5);
+  run_test(test_byteio_namespace_is_wired, "test_byteio_namespace_is_wired", 10);
+  run_test(test_put_writes_one_byte, "test_put_writes_one_byte", 18);
+  run_test(test_put_writes_the_high_byte_first, "test_put_writes_the_high_byte_first", 28);
+  run_test(test_put_at_every_width, "test_put_at_every_width", 41);
+  run_test(test_put_keeps_only_the_low_bytes, "test_put_keeps_only_the_low_bytes", 57);
+  run_test(test_take_reads_what_put_wrote, "test_take_reads_what_put_wrote", 68);
+  run_test(test_take_reads_back_at_every_width, "test_take_reads_back_at_every_width", 79);
+  run_test(test_take_of_fewer_bytes_takes_the_leading_ones, "test_take_of_fewer_bytes_takes_the_leading_ones", 102);
+  run_test(test_take_reads_a_pattern_it_did_not_write, "test_take_reads_a_pattern_it_did_not_write", 113);
 
   return UNITY_END();
 }

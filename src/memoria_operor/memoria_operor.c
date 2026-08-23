@@ -1,287 +1,155 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
 #include "memoria_operor/memoria_operor.h"
+
+#include "proximus_operor/proximus_operor.h"
 #include "verbum_scrutor/verbum_scrutor.h"
 
-/**
- * @file memoria_operor.c
- * @brief Bulk memory work, a word at a time.
- *
- * Every entry below takes one parameter, a pointer to MemorCtx. Two regions, a count and a cursor
- * are what all six entries work on, so they are one context.
- *
- * cpy, move and set write whole words and mask the tail. cmp and chr count words and mask the last
- * one. Neither shape has an alignment peel or a byte remainder.
- */
 
-#define MMGR_MEM_MASK ((uintptr_t)(MMGR_RAW_WORD - 1u))
-
-/** @brief Two regions, a count, and where the work has reached. */
 typedef struct
 {
-    unsigned char *d;       /**< Destination, when writing. */
-    const unsigned char *s; /**< Source, when reading. */
-    const unsigned char *b; /**< The other source, when comparing two. */
-    size_t n;               /**< Byte count. */
-    size_t i;               /**< How far along. */
-    unsigned char v;        /**< The byte, for set and chr. */
-    mmgr_migro_word word;   /**< The word being put down. */
+    unsigned char *restrict dst;        const unsigned char *restrict src;  size_t n;                       } MemorCpyCtx;
 
-    /* the lane mask being built */
-    size_t from; /**< First lane kept. */
-    size_t to;   /**< One past the last lane kept. */
-} MemorCtx;
-
-/**
- * @brief Byte mask keeping the low @c to lanes.
- * @param c The work. @c to is the lane count; at or above the word size keeps everything.
- * @return Byte mask.
- */
-MMGR_INLINE mmgr_migro_word memor_lo_lanes(const MemorCtx *c)
+typedef struct
 {
-    /* GCOVR_EXCL_START - only memor_span_lanes calls this, and only its big endian arm asks for a
-       whole word: on little endian the count is always the ragged tail, which is one to word size
-       minus one. There is no big endian environment in MMGR_ENVIRONMENTS to run it on. */
-    if (c->to >= MMGR_RAW_WORD)
+    unsigned char *dst;         const unsigned char *src;   size_t n;               } MemorMoveCtx;
+
+typedef struct
+{
+    const unsigned char *src;   const unsigned char *other; size_t n;                   uint8_t v;          } MemorScanCtx;
+
+typedef struct
+{
+    unsigned char *dst;         size_t n;                   uint8_t v;          } MemorSetCtx;
+
+MMGR_INLINE void memor_cpy(MemorCpyCtx *c)
+{
+    size_t t = c->n & (size_t)(MMGR_RAW_WORD - 1u);
+    size_t w = c->n - t;
+
+    if (w != 0u)
     {
-        return (mmgr_migro_word) ~(mmgr_migro_word)0;
+        do
+        {
+            proxim.mv_put(c->dst, proxim.mv_load(c->src));
+            c->dst += MMGR_RAW_WORD;
+            c->src += MMGR_RAW_WORD;
+            w -= MMGR_RAW_WORD;
+        } while (w);
     }
-    /* GCOVR_EXCL_STOP */
-    return (mmgr_migro_word)(((mmgr_migro_word)1 << (c->to * 8u)) - (mmgr_migro_word)1);
-}
-
-/**
- * @brief Byte mask keeping lanes @c from through @c to.
- * @param c In/out. The work.
- * @return Byte mask, in address order on either byte order.
- */
-MMGR_INLINE mmgr_migro_word memor_span_lanes(MemorCtx *c)
-{
-    const size_t from = c->from;
-    const size_t to = c->to;
-
-#if MMGR_HW_BIG_ENDIAN
-    c->to = MMGR_RAW_WORD - to;
-    const mmgr_migro_word hi = memor_lo_lanes(c);
-    c->to = MMGR_RAW_WORD - from;
-    const mmgr_migro_word lo = memor_lo_lanes(c);
-    c->to = to;
-    return (mmgr_migro_word)(~hi & lo);
-#else
-    const mmgr_migro_word hi = memor_lo_lanes(c);
-    c->to = from;
-    const mmgr_migro_word lo = memor_lo_lanes(c);
-    c->to = to;
-    return (mmgr_migro_word)(hi & ~lo);
-#endif
-}
-
-/**
- * @brief The tail mask for what is left after the last whole word.
- * @param c In/out. The work.
- * @return Byte mask.
- */
-MMGR_INLINE mmgr_migro_word memor_tail_keep(MemorCtx *c)
-{
-    c->from = 0u;
-    c->to = c->n - c->i;
-    return memor_span_lanes(c);
-}
-
-/**
- * @brief One word of source at @c i, assembled across an alignment boundary.
- * @param c The work.
- * @return The word.
- *
- * The second load is skipped when what remains cannot reach into it.
- */
-MMGR_INLINE mmgr_migro_word memor_src_word(const MemorCtx *c)
-{
-    const unsigned char *p = c->s + c->i;
-    const size_t avail = c->n - c->i;
-    const size_t off = (size_t)((uintptr_t)p & MMGR_MEM_MASK);
-    const unsigned char *sa = p - off;
-    const mmgr_migro_word w0 = proxim.mv_load(sa);
-
-    if (off == 0u)
+    if (t != 0u)
     {
-        return w0;
-    }
-
-    const unsigned lo = (unsigned)(off * 8u);
-    const unsigned hi = (unsigned)(MMGR_MV_BITS - lo);
-    mmgr_migro_word w1 = 0;
-    if (avail > MMGR_RAW_WORD - off)
-    {
-        w1 = proxim.mv_load(sa + MMGR_RAW_WORD);
-    }
-#if MMGR_HW_BIG_ENDIAN
-    return (mmgr_migro_word)((w0 << lo) | (w1 >> hi));
-#else
-    return (mmgr_migro_word)((w0 >> lo) | (w1 << hi));
-#endif
-}
-
-/**
- * @brief Write one word at @c i, keeping whatever is outside the tail.
- * @param c In/out. The work. @c word is what goes down.
- */
-MMGR_INLINE void memor_put_tail(MemorCtx *c)
-{
-    const mmgr_migro_word keep = memor_tail_keep(c);
-
-    proxim.mv_put(c->d + c->i, (mmgr_migro_word)((c->word & keep) | (proxim.mv_load(c->d + c->i) & ~keep)));
-}
-
-/**
- * @brief Copy, forward. Regions must not overlap.
- * @param c In/out. The work.
- */
-MMGR_INLINE void memor_cpy(MemorCtx *c)
-{
-    while ((c->i + MMGR_RAW_WORD) <= c->n)
-    {
-        proxim.mv_put(c->d + c->i, memor_src_word(c));
-        c->i += MMGR_RAW_WORD;
-    }
-    if (c->i < c->n)
-    {
-        c->word = memor_src_word(c);
-        memor_put_tail(c);
+        do
+        {
+            *c->dst++ = *c->src++;
+        } while (--t);
     }
 }
 
-/**
- * @brief Copy, either direction. Regions may overlap.
- * @param c In/out. The work.
- *
- * Forward when the regions do not overlap or the destination is below the source, backward
- * otherwise.
- */
-MMGR_INLINE void memor_move(MemorCtx *c)
+MMGR_INLINE void memor_move_up(MemorMoveCtx *c)
 {
-    if ((c->d == c->s) || (c->n == 0u))
-    {
-        return;
-    }
-    if ((c->d < c->s) || (c->d >= (c->s + c->n)))
-    {
-        memor_cpy(c);
-        return;
-    }
+    size_t t = c->n & (size_t)(MMGR_RAW_WORD - 1u);
+    size_t w = c->n - t;
 
-    c->i = c->n & ~(size_t)MMGR_MEM_MASK;
-    if (c->i < c->n)
+    c->dst += c->n;
+    c->src += c->n;
+
+    if (t != 0u)
     {
-        c->word = memor_src_word(c);
-        memor_put_tail(c);
+        do
+        {
+            *--c->dst = *--c->src;
+        } while (--t);
     }
-    while (c->i >= MMGR_RAW_WORD)
+    if (w != 0u)
     {
-        c->i -= MMGR_RAW_WORD;
-        proxim.mv_put(c->d + c->i, memor_src_word(c));
+        do
+        {
+            c->dst -= MMGR_RAW_WORD;
+            c->src -= MMGR_RAW_WORD;
+            proxim.mv_put(c->dst, proxim.mv_load(c->src));
+            w -= MMGR_RAW_WORD;
+        } while (w);
     }
 }
 
-/**
- * @brief Compare.
- * @param c In/out. The work.
- * @return Difference of the first bytes that differ, or 0.
- *
- * has_zero of the xor marks the lanes that agree, so its complement over the lane bits is where
- * they differ. The tail mask keeps that to the lanes inside the count.
- */
-MMGR_INLINE int memor_cmp(MemorCtx *c)
+MMGR_INLINE int memor_cmp(MemorScanCtx *c)
 {
-    const char *x = (const char *)c->s;
-    const char *y = (const char *)c->b;
-    const size_t nw = mmgr_scrut_words(c->n);
-
-    for (size_t wi = 0; wi < nw; ++wi)
+    for (size_t at = 0; at < c->n; at += MMGR_SWAR_BYTES)
     {
-        const size_t at = wi * MMGR_SWAR_BYTES;
-        const mmgr_scrut_word d = scrut.load(x + at) ^ scrut.load(y + at);
+        const mmgr_scrut_word d = (mmgr_scrut_word)proxim.load(c->src + at, MMGR_SWAR_BYTES) ^
+                                  (mmgr_scrut_word)proxim.load(c->other + at, MMGR_SWAR_BYTES);
         const mmgr_scrut_word m =
-            (mmgr_scrut_word)((MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(d)) & mmgr_scrut_tail_mask(c->n, wi));
+            (mmgr_scrut_word)((MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(d)) & mmgr_scrut_lanes_below(c->n - at));
         if (m != 0)
         {
             const size_t k = at + scrut.zero_lane(m);
-            return (int)(unsigned char)x[k] - (int)(unsigned char)y[k];
+            return (int)c->src[k] - (int)c->other[k];
         }
     }
     return 0;
 }
 
-/**
- * @brief Find @c v.
- * @param c In/out. The work.
- * @return Pointer to it, or NULL.
- */
-MMGR_INLINE const void *memor_chr(MemorCtx *c)
+MMGR_INLINE const void *memor_chr(MemorScanCtx *c)
 {
-    const char *s = (const char *)c->s;
-    const size_t nw = mmgr_scrut_words(c->n);
-
-    for (size_t wi = 0; wi < nw; ++wi)
+    for (size_t at = 0; at < c->n; at += MMGR_SWAR_BYTES)
     {
-        const size_t at = wi * MMGR_SWAR_BYTES;
         const mmgr_scrut_word m =
-            (mmgr_scrut_word)(scrut.eq(scrut.load(s + at), c->v, MMGR_FALSE) & mmgr_scrut_tail_mask(c->n, wi));
+            (mmgr_scrut_word)(scrut.eq((mmgr_scrut_word)proxim.load(c->src + at, MMGR_SWAR_BYTES), c->v, MMGR_FALSE) &
+                              mmgr_scrut_lanes_below(c->n - at));
         if (m != 0)
         {
-            return s + at + scrut.zero_lane(m);
+            return c->src + at + scrut.zero_lane(m);
         }
     }
     return NULL;
 }
 
-/**
- * @brief Fill with @c v.
- * @param c In/out. The work.
- */
-MMGR_INLINE void memor_set(MemorCtx *c)
+MMGR_INLINE void memor_set(MemorSetCtx *c)
 {
-    const mmgr_migro_word ones = (mmgr_migro_word)((mmgr_migro_word) ~(mmgr_migro_word)0 / 0xFFu);
-    const mmgr_migro_word w = (mmgr_migro_word)(ones * (mmgr_migro_word)c->v);
+    const mmgr_migro_word fill = (mmgr_migro_word)(MMGR_SWAR_ONES * (mmgr_migro_word)c->v);
+    size_t t = c->n & (size_t)(MMGR_RAW_WORD - 1u);
+    size_t w = c->n - t;
 
-    while ((c->i + MMGR_RAW_WORD) <= c->n)
+    if (w != 0u)
     {
-        proxim.mv_put(c->d + c->i, w);
-        c->i += MMGR_RAW_WORD;
+        do
+        {
+            proxim.mv_put(c->dst, fill);
+            c->dst += MMGR_RAW_WORD;
+            w -= MMGR_RAW_WORD;
+        } while (w);
     }
-    if (c->i < c->n)
+    if (t != 0u)
     {
-        c->word = w;
-        memor_put_tail(c);
+        do
+        {
+            *c->dst++ = c->v;
+        } while (--t);
     }
 }
 
-void mmgr_memor_cpy(void *dst, const void *src, size_t n)
+void (mmgr_memor_cpy)(const MemoriaCfg *c)
 {
-    MMGR_CALL(memor_cpy, MemorCtx, .d = (unsigned char *)dst, .s = (const unsigned char *)src, .n = n);
+    MMGR_CALL(memor_cpy, MemorCpyCtx, .dst = (unsigned char *)c->dst, .src = (const unsigned char *)c->src, .n = c->n);
 }
 
-void mmgr_memor_move(void *dst, const void *src, size_t n)
+void (mmgr_memor_move_up)(const MemoriaCfg *c)
 {
-    MMGR_CALL(memor_move, MemorCtx, .d = (unsigned char *)dst, .s = (const unsigned char *)src, .n = n);
+    MMGR_CALL(memor_move_up, MemorMoveCtx, .dst = (unsigned char *)c->dst, .src = (const unsigned char *)c->src,
+              .n = c->n);
 }
 
-int mmgr_memor_cmp(const void *a, const void *b, size_t n)
+int (mmgr_memor_cmp)(const MemoriaCfg *c)
 {
-    return MMGR_CALL(memor_cmp, MemorCtx, .s = (const unsigned char *)a, .b = (const unsigned char *)b, .n = n);
+    return MMGR_CALL(memor_cmp, MemorScanCtx, .src = (const unsigned char *)c->src,
+                     .other = (const unsigned char *)c->other, .n = c->n);
 }
 
-const void *mmgr_memor_chr(const void *p, size_t n, uint8_t c)
+const void *(mmgr_memor_chr)(const MemoriaCfg *c)
 {
-    return MMGR_CALL(memor_chr, MemorCtx, .s = (const unsigned char *)p, .n = n, .v = c);
+    return MMGR_CALL(memor_chr, MemorScanCtx, .src = (const unsigned char *)c->src, .n = c->n, .v = c->v);
 }
 
-void mmgr_memor_set(void *dst, unsigned char v, size_t n)
+void (mmgr_memor_set)(const MemoriaCfg *c)
 {
-    MMGR_CALL(memor_set, MemorCtx, .d = (unsigned char *)dst, .n = n, .v = v);
-}
-
-void mmgr_memor_zero(void *dst, size_t n)
-{
-    MMGR_CALL(memor_set, MemorCtx, .d = (unsigned char *)dst, .n = n, .v = 0u);
+    MMGR_CALL(memor_set, MemorSetCtx, .dst = (unsigned char *)c->dst, .n = c->n, .v = c->v);
 }

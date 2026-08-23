@@ -78,13 +78,13 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_scan_reference\\test_scan_reference.c");
-  run_test(test_the_answer_does_not_depend_on_where_the_buffer_starts, "test_the_answer_does_not_depend_on_where_the_buffer_starts", 173);
-  run_test(test_len_matches_the_reference_at_every_length, "test_len_matches_the_reference_at_every_length", 227);
-  run_test(test_len_stops_at_the_cap_at_every_length, "test_len_stops_at_the_cap_at_every_length", 241);
-  run_test(test_chr_matches_the_reference_at_every_length, "test_chr_matches_the_reference_at_every_length", 254);
-  run_test(test_diff_matches_the_reference_at_every_length, "test_diff_matches_the_reference_at_every_length", 272);
-  run_test(test_find_matches_the_reference_at_every_needle_and_hay_length, "test_find_matches_the_reference_at_every_needle_and_hay_length", 294);
-  run_test(test_find_matches_the_reference_with_the_match_at_every_position, "test_find_matches_the_reference_with_the_match_at_every_position", 325);
+  run_test(test_the_answer_does_not_depend_on_where_the_buffer_starts, "test_the_answer_does_not_depend_on_where_the_buffer_starts", 140);
+  run_test(test_len_matches_the_reference_at_every_length, "test_len_matches_the_reference_at_every_length", 188);
+  run_test(test_len_stops_at_the_cap_at_every_length, "test_len_stops_at_the_cap_at_every_length", 202);
+  run_test(test_chr_matches_the_reference_at_every_length, "test_chr_matches_the_reference_at_every_length", 215);
+  run_test(test_diff_matches_the_reference_at_every_length, "test_diff_matches_the_reference_at_every_length", 233);
+  run_test(test_find_matches_the_reference_at_every_needle_and_hay_length, "test_find_matches_the_reference_at_every_needle_and_hay_length", 255);
+  run_test(test_find_matches_the_reference_with_the_match_at_every_position, "test_find_matches_the_reference_with_the_match_at_every_position", 286);
 
   return UNITY_END();
 }

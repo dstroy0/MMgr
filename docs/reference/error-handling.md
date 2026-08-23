@@ -7,38 +7,7 @@ is decided by what kind of thing failed.
 
 ```c
 uint8_t *p = mmgr_confin_persist_capio(&c, 256, 8);
-if (p == NULL) { /* the region is full */ }
-```
-
-That is the allocator's only failure mode. It is not "out of memory" arriving from elsewhere in the
-program — it is this region, which you sized, being full. `mmgr_confin_octas_praesto` tells you by
-how much you missed.
-
-## 2. mmgr_bool, from a predicate
-
-```c
-if (scrut.has_zero(w)) { }
-if (clarus.owns(p))    { }
-```
-
-`MMGR_TRUE` and `MMGR_FALSE` are `((mmgr_bool)1)` and `((mmgr_bool)0)`. A predicate answers a
-question; it does not report an error.
-
-## 3. A latching flag, for a run of appends
-
-`mmgr_verba` builds a string across many calls, and any one of them can run out of room. It carries
-a flag that latches: once set it stays set, and no later successful append clears it.
-
-```c
-verba.put(&b, "id=");
-verba.u32(&b, id);
-verba.put(&b, " name=");
-verba.put_clip(&b, name, 32);
-verba.ch(&b, '\n');
-
-if (!verba.finish(&b)) {
-    /* one check, covering all five */
-}
+if (p == NULL) { }
 ```
 
 Checking after every call would be five branches that are almost never taken, and the fifth would

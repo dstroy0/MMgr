@@ -1,17 +1,6 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
 #include "carceribus/carceribus.h"
 #include "memoria_operor/memoria_operor.h"
 
-/**
- * @file confinium.c
- * @brief Tenant bookkeeping. Persist grows up, interim grows down, and they meet in the middle.
- *
- * An entry that takes a byte count and an alignment beside its region takes one parameter, a
- * pointer to CarcerCtx. An entry that takes only the region takes the region: there is no
- * argument list to group, and a struct to carry one pointer is a store and a load to reach what
- * was already in a register.
- */
 
 typedef struct
 {
@@ -21,32 +10,15 @@ typedef struct
 
 static const size_t AHDR = (sizeof(ABlk) + (MMGR_CARCER_ALIGN - 1)) & ~(size_t)(MMGR_CARCER_ALIGN - 1);
 
-/** @brief One take, return or question, of a region or a set of them. */
 typedef struct
 {
-    mmgr_carcer *const a;         /**< The region. This address and no other. */
-    mmgr_carcer_set *const s;     /**< The set. This address and no other. */
-    const mmgr_carcer_mark *mark; /**< The mark being rewound to. */
-    void *base;                   /**< The buffer being bound. */
-    void *p;                      /**< The pointer being returned. */
-    size_t n;                     /**< Bytes wanted, or the buffer's size. */
-    size_t align;                 /**< Alignment wanted. */
-} CarcerCtx;
+    mmgr_carcer *const a;             mmgr_carcer_set *const s;         const mmgr_carcer_mark *mark;     void *base;                       void *p;                          size_t n;                         size_t align;                 } CarcerCtx;
 
-/**
- * @brief Round @c n up to MMGR_CARCER_ALIGN.
- * @param c The take.
- * @return Rounded count.
- */
 MMGR_INLINE size_t carcer_align_up(const CarcerCtx *c)
 {
     return (c->n + (MMGR_CARCER_ALIGN - 1)) & ~(size_t)(MMGR_CARCER_ALIGN - 1);
 }
 
-/**
- * @brief Bind a region to its buffer.
- * @param c In/out. The take.
- */
 MMGR_INLINE void carcer_init(CarcerCtx *c)
 {
     const uintptr_t b = (uintptr_t)c->base;
@@ -62,11 +34,6 @@ MMGR_INLINE void carcer_init(CarcerCtx *c)
     c->a->scratch_hw = 0;
 }
 
-/**
- * @brief Take @c n bytes from the up-growing end, reusing a free block if one fits.
- * @param c In/out. The take.
- * @return The bytes, or NULL if the two ends would meet.
- */
 MMGR_INLINE void *carcer_persist_capio(CarcerCtx *c)
 {
     mmgr_carcer *const a = c->a;
@@ -90,18 +57,14 @@ MMGR_INLINE void *carcer_persist_capio(CarcerCtx *c)
             b->used = 1;
             a->persist_used += b->size;
             void *pl = a->base + off + AHDR;
-            memor.set(pl, 0, b->size);
+            mmgr_memor_set(pl, (uint8_t)0, b->size);
             return pl;
         }
         off += AHDR + b->size;
     }
 
     const size_t need = AHDR + n;
-    /* The second half is the wrap check. persist_end and need are both bounded by the region size,
-       so their sum cannot come back below need without a region larger than the address space.
-       Kept because it is what stops a bad size from being read as a small one. */
-    if (((a->persist_end + need) <= a->scratch_top) && ((a->persist_end + need) >= need)) /* GCOVR_EXCL_BR_LINE */
-    {
+        if (((a->persist_end + need) <= a->scratch_top) && ((a->persist_end + need) >= need))     {
         ABlk *b = (ABlk *)(a->base + a->persist_end);
         b->size = n;
         b->used = 1;
@@ -112,16 +75,12 @@ MMGR_INLINE void *carcer_persist_capio(CarcerCtx *c)
             a->persist_hw = a->persist_end;
         }
         a->persist_used += n;
-        memor.set(pl, 0, n);
+        mmgr_memor_set(pl, (uint8_t)0, n);
         return pl;
     }
     return NULL;
 }
 
-/**
- * @brief Merge every run of adjacent free blocks into one.
- * @param c In/out. The take.
- */
 MMGR_INLINE void carcer_coalesce(CarcerCtx *c)
 {
     mmgr_carcer *const a = c->a;
@@ -144,10 +103,6 @@ MMGR_INLINE void carcer_coalesce(CarcerCtx *c)
     }
 }
 
-/**
- * @brief Wind the up-growing end back over a trailing free block.
- * @param c In/out. The take.
- */
 MMGR_INLINE void carcer_trim(CarcerCtx *c)
 {
     mmgr_carcer *const a = c->a;
@@ -166,10 +121,6 @@ MMGR_INLINE void carcer_trim(CarcerCtx *c)
     }
 }
 
-/**
- * @brief Give back a persist take.
- * @param c In/out. The take.
- */
 MMGR_INLINE void carcer_persist_reddo(CarcerCtx *c)
 {
     if (c->p == NULL)
@@ -181,11 +132,7 @@ MMGR_INLINE void carcer_persist_reddo(CarcerCtx *c)
     if (b->used)
     {
         b->used = 0;
-        /* persist_used is the sum of the sizes of the blocks in use and this block is one of them,
-           so it cannot be the smaller of the two. Kept so a corrupted header cannot underflow the
-           tally. */
-        if (c->a->persist_used >= b->size) /* GCOVR_EXCL_BR_LINE */
-        {
+                if (c->a->persist_used >= b->size)         {
             c->a->persist_used -= b->size;
         }
     }
@@ -194,11 +141,6 @@ MMGR_INLINE void carcer_persist_reddo(CarcerCtx *c)
     carcer_trim(c);
 }
 
-/**
- * @brief How much the two ends still have between them.
- * @param a The region.
- * @return Byte count, less what a header would cost.
- */
 MMGR_INLINE size_t carcer_octas_praesto(const CarcerCtx *c)
 {
     mmgr_carcer *const a = c->a;
@@ -207,30 +149,16 @@ MMGR_INLINE size_t carcer_octas_praesto(const CarcerCtx *c)
     return (mid > AHDR) ? (mid - AHDR) : 0;
 }
 
-/**
- * @brief How much the up-growing end holds.
- * @param a The region.
- * @return Byte count.
- */
 MMGR_INLINE size_t carcer_persist_used(const CarcerCtx *c)
 {
     return c->a->persist_used;
 }
 
-/**
- * @brief Start a set with no regions in it.
- * @param s In/out. The set.
- */
 MMGR_INLINE void carcer_set_init(mmgr_carcer_set *const s)
 {
     s->count = 0;
 }
 
-/**
- * @brief Add a region to a set.
- * @param c In/out. The set.
- * @return MMGR_FALSE if the set is full or the buffer is too small to hold anything.
- */
 MMGR_INLINE mmgr_bool carcer_set_add(CarcerCtx *c)
 {
     if (c->s->count >= MMGR_CARCER_MAX_REGIONS)
@@ -248,11 +176,6 @@ MMGR_INLINE mmgr_bool carcer_set_add(CarcerCtx *c)
     return MMGR_TRUE;
 }
 
-/**
- * @brief Take from the first region in the set that can serve it.
- * @param c In/out. The set.
- * @return The bytes, or NULL if none could.
- */
 MMGR_INLINE void *carcer_set_persist_capio(CarcerCtx *c)
 {
     for (size_t i = 0; i < c->s->count; i++)
@@ -266,10 +189,6 @@ MMGR_INLINE void *carcer_set_persist_capio(CarcerCtx *c)
     return NULL;
 }
 
-/**
- * @brief Give back to whichever region the pointer came from.
- * @param c In/out. The set.
- */
 MMGR_INLINE void carcer_set_persist_reddo(CarcerCtx *c)
 {
     if (c->p == NULL)
@@ -289,11 +208,6 @@ MMGR_INLINE void carcer_set_persist_reddo(CarcerCtx *c)
     }
 }
 
-/**
- * @brief Take from the down-growing end of the first region that can serve it.
- * @param c In/out. The set.
- * @return The bytes, or NULL if none could.
- */
 MMGR_INLINE void *carcer_set_interim_capio_aligned(CarcerCtx *c)
 {
     for (size_t i = 0; i < c->s->count; i++)
@@ -307,11 +221,6 @@ MMGR_INLINE void *carcer_set_interim_capio_aligned(CarcerCtx *c)
     return NULL;
 }
 
-/**
- * @brief Where every region's down-growing end is now.
- * @param c The set.
- * @return The mark.
- */
 MMGR_INLINE mmgr_carcer_mark carcer_set_interim_mark(const CarcerCtx *c)
 {
     mmgr_carcer_mark m;
@@ -324,10 +233,6 @@ MMGR_INLINE mmgr_carcer_mark carcer_set_interim_mark(const CarcerCtx *c)
     return m;
 }
 
-/**
- * @brief Wind every region back to where the mark was taken.
- * @param c In/out. The set.
- */
 MMGR_INLINE void carcer_set_interim_reddo(CarcerCtx *c)
 {
     const size_t n = (c->mark->count < c->s->count) ? c->mark->count : c->s->count;
@@ -338,10 +243,6 @@ MMGR_INLINE void carcer_set_interim_reddo(CarcerCtx *c)
     }
 }
 
-/**
- * @brief Empty every region's down-growing end.
- * @param c In/out. The set.
- */
 MMGR_INLINE void carcer_set_interim_reset(mmgr_carcer_set *const s)
 {
     for (size_t i = 0; i < s->count; i++)
@@ -350,11 +251,6 @@ MMGR_INLINE void carcer_set_interim_reset(mmgr_carcer_set *const s)
     }
 }
 
-/**
- * @brief What every region still has between its ends, added up.
- * @param c The set.
- * @return Byte count.
- */
 MMGR_INLINE size_t carcer_set_octas_praesto(const CarcerCtx *c)
 {
     size_t t = 0;
@@ -366,11 +262,6 @@ MMGR_INLINE size_t carcer_set_octas_praesto(const CarcerCtx *c)
     return t;
 }
 
-/**
- * @brief What every region's up-growing end holds, added up.
- * @param c The set.
- * @return Byte count.
- */
 MMGR_INLINE size_t carcer_set_persist_used(const CarcerCtx *c)
 {
     size_t t = 0;
@@ -382,11 +273,6 @@ MMGR_INLINE size_t carcer_set_persist_used(const CarcerCtx *c)
     return t;
 }
 
-/**
- * @brief What every region's down-growing end holds, added up.
- * @param c The set.
- * @return Byte count.
- */
 MMGR_INLINE size_t carcer_set_interim_used(const CarcerCtx *c)
 {
     size_t t = 0;
@@ -398,14 +284,6 @@ MMGR_INLINE size_t carcer_set_interim_used(const CarcerCtx *c)
     return t;
 }
 
-/* The namespaces are tables of function pointers with the caller's argument lists in their types,
-   so these are what they point at. Each builds the context, where there is one, and hands it to
-   the body above.
-
-   They are nameable rather than file local because a static const table in the header has to be
-   able to point at them, and a static const table is what gcc devirtualizes. Through an extern one
-   every call from another translation unit is a load of the table, a load of the entry, and an
-   indirect call it cannot see through. */
 
 void mmgr_carcer_init(mmgr_carcer *const a, void *base, size_t size)
 {

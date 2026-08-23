@@ -39,11 +39,11 @@ typedef void (*mmgr_praet_cb)(const mmgr_praet_event *ev, void *ctx);
 
 typedef struct
 {
-    uint8_t channel;
-    mmgr_praet_periph periph;
-    mmgr_bool loopback;
-    mmgr_praet_cb on_complete;
-    void *ctx;
+    const uint8_t channel;
+    const mmgr_praet_periph periph;
+    const mmgr_bool loopback;
+    const mmgr_praet_cb on_complete;
+    void *const ctx;
 } MemoriamPraetereoCfg;
 
 typedef struct

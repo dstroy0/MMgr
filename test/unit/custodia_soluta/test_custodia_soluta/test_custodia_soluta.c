@@ -1,18 +1,9 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
 #include "unity.h"
 
 #include "custodia_soluta/custodia_soluta.h"
 
-// The alignment clamp the tenant applies is confinium's, so the bounds it is checked against come
-// from there rather than being written out again here.
 #include "carceribus/carceribus.h"
 
-// The pool binds itself on first use and never unbinds. setUp deliberately does not touch it: a
-// mark taken there would bind it before the first case ran, and the answers it gives while it
-// still has no storage would then be unreachable from anywhere. Cases that allocate take a mark
-// of their own and give it back, so the order they run in does not decide what they see.
 static size_t base_mark;
 
 void setUp(void)
@@ -29,13 +20,6 @@ void tearDown(void)
     }
 }
 
-/* ---------------------------------------------------------------------------------------------
- * before the first allocation
- *
- * This case has to come first in the file. Unity runs them in the order they are written, the
- * pool binds on first use, and nothing unbinds it - so this is the only place the unbound answers
- * can be asked for.
- * ------------------------------------------------------------------------------------------- */
 
 void test_a_pool_that_has_not_bound_yet_answers_for_nothing(void)
 {
@@ -48,11 +32,7 @@ void test_a_pool_that_has_not_bound_yet_answers_for_nothing(void)
 
 void test_a_tenant_that_has_only_held_persistent_has_no_peak(void)
 {
-    // This case has to come second, before anything takes interim. Persistent memory comes off
-    // the other end and is tallied on its own, so the tenant is bound and its interim peak is
-    // still nothing - which is the one way the peak search runs over a real tenant and finds
-    // nothing higher than what it started with.
-    TEST_ASSERT_NOT_NULL(soluta.persist(16u).buf);
+                    TEST_ASSERT_NOT_NULL(soluta.persist(16u).buf);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, soluta.high_water(), "persistent memory moved the interim peak");
 }
 
@@ -89,9 +69,7 @@ void test_alloc_hands_back_usable_memory(void)
 void test_alloc_honours_its_alignment(void)
 {
     base_mark = soluta.mark();
-    // The tenant clamps an ask into MMGR_CARCER_ALIGN..MMGR_CARCER_MAX_ALIGN, so an ask below the
-    // floor comes back on the floor and an ask above the ceiling comes back on the ceiling.
-    const void *lo = soluta.alloc(8u, 1u);
+            const void *lo = soluta.alloc(8u, 1u);
     (void)soluta.alloc(3u, 1u);
     const void *hi = soluta.alloc(8u, MMGR_CARCER_MAX_ALIGN * 4u);
 
@@ -146,9 +124,7 @@ void test_mark_and_release_move_the_fill_point(void)
 
 void test_release_leaves_the_bytes_as_they_were(void)
 {
-    // The plain guardian is the one that does not wipe. That is the whole difference between it
-    // and the secure one, so it is worth pinning rather than assuming.
-    const size_t m = soluta.mark();
+            const size_t m = soluta.mark();
 
     uint8_t *p = (uint8_t *)soluta.alloc(32u, 1u);
     TEST_ASSERT_NOT_NULL(p);
@@ -213,6 +189,5 @@ void test_reset_gives_the_whole_tenant_back(void)
     soluta.reset();
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, soluta.used(), "reset did not empty the tenant");
 
-    // reset threw this case's mark away with everything else, so there is nothing to give back.
-    base_mark = 0;
+        base_mark = 0;
 }

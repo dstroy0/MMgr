@@ -1,9 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// libc is the oracle wherever it has one. Every numeric rendering here is checked against snprintf
-// rather than against a string somebody typed out, because printf has been beaten on for decades
-// and a hand written expectation is only as good as the person who wrote it.
 #include "oracle_divergence.h"
 #include "unity.h"
 
@@ -29,9 +23,6 @@ static void fresh(size_t cap)
     b.ok = MMGR_TRUE;
 }
 
-// Built rather than named: <math.h> has INFINITY and NAN, and this module is written to stay clear
-// of it. Overflowing a finite product is the same thing the library's own predicates are tested
-// against above.
 static double an_inf(void)
 {
     return 1e308 * 10.0;
@@ -52,7 +43,6 @@ void tearDown(void)
 {
 }
 
-/** @brief Finish, then compare against what snprintf would have produced. */
 static void want_printf(const char *fmt, ...)
 {
     char ref[256];
@@ -179,9 +169,7 @@ void test_uint_in_every_base(void)
     verba.uint(&b, 255u, 10u, 1u);
     want_printf("%u", 255u);
 
-    // 8, 10 and 16 are the bases this handles. Anything else falls through to the decimal path
-    // rather than being rejected, so base 2 renders as decimal.
-    fresh(sizeof buf);
+            fresh(sizeof buf);
     verba.uint(&b, 5u, 2u, 1u);
     want_printf("%u", 5u);
 }
@@ -194,9 +182,7 @@ void test_u64_clip_pads_to_a_column(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(5u, b.len, "a narrow value is right aligned in the column");
     TEST_ASSERT_EQUAL_STRING("   42", buf);
 
-    // despite the name it pads to a minimum width and never truncates: a value wider than the
-    // column takes the room it needs
-    fresh(sizeof buf);
+            fresh(sizeof buf);
     verba.u64_clip(&b, 1234567890123ull, 4u);
     verba.finish(&b);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(13u, b.len, "a value wider than the column is not cut short");
@@ -273,8 +259,7 @@ void test_float_predicates(void)
 
 void test_fixed_matches_printf(void)
 {
-    // no exact ties here on purpose - see test_a_tie_rounds_to_even
-    static const double vals[] = {0.0, 1.0, -1.0, 0.25, 0.75, 3.14159265358979, -2.4, 123.456, 1000.0};
+        static const double vals[] = {0.0, 1.0, -1.0, 0.25, 0.75, 3.14159265358979, -2.4, 123.456, 1000.0};
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
@@ -289,13 +274,7 @@ void test_fixed_matches_printf(void)
 
 void test_fixed_rounds_a_tie_to_even(void)
 {
-    // Was a pinned finding: fixed truncated an exact tie toward zero while g rounded it, so one
-    // library rendered one number two ways. Both go through the engine now and both go to even.
-    //
-    // Even means even in the number that gets written. Ask for no decimals and the digit the tie
-    // carries into is the last digit of the integer part, not of a fraction that is not there -
-    // which is the whole reason mmgr_muto_to_u64 is told the parity of what sits above it.
-    fresh(sizeof buf);
+                            fresh(sizeof buf);
     verba.fixed(&b, 1.5, 0u);
     verba.finish(&b);
     TEST_ASSERT_EQUAL_STRING_MESSAGE("2", buf, "1 is odd, so the tie goes up");
@@ -320,8 +299,7 @@ void test_fixed_rounds_a_tie_to_even(void)
     verba.finish(&b);
     TEST_ASSERT_EQUAL_STRING_MESSAGE("-2", buf, "the sign is written first and does not change it");
 
-    // Past the point the parity is the fraction's own last digit, and 0.125 is an exact tie.
-    fresh(sizeof buf);
+        fresh(sizeof buf);
     verba.fixed(&b, 0.125, 2u);
     verba.finish(&b);
     TEST_ASSERT_EQUAL_STRING_MESSAGE("0.12", buf, "2 is even, so the tie stays");
@@ -334,11 +312,7 @@ void test_fixed_rounds_a_tie_to_even(void)
 
 void test_fixed_is_exact_below_a_64_bit_shift(void)
 {
-    // FIXED. The digits after the point were built by hand: the scale came off the mantissa only
-    // while the shift was under 64, and the correction that followed shifted a 64 bit word by more
-    // than 64, which C does not define and x86 turns into no shift at all. Together they put the
-    // answer out by 2^128, and about one value in six below that boundary printed garbage.
-    fresh(sizeof buf);
+                    fresh(sizeof buf);
     verba.fixed(&b, 2.0447843820796629e-41, 9u);
     verba.finish(&b);
     TEST_ASSERT_EQUAL_STRING_MESSAGE("0.000000000", buf, "was 0.006958041");
@@ -348,8 +322,7 @@ void test_fixed_is_exact_below_a_64_bit_shift(void)
     verba.finish(&b);
     TEST_ASSERT_EQUAL_STRING("0.000000000000000000", buf);
 
-    // Either side of the boundary the old code tripped on.
-    fresh(sizeof buf);
+        fresh(sizeof buf);
     verba.fixed(&b, 0x1p-63, 18u);
     verba.finish(&b);
     TEST_ASSERT_EQUAL_STRING("0.000000000000000000", buf);
@@ -364,8 +337,7 @@ void test_fixed_is_exact_below_a_64_bit_shift(void)
     verba.finish(&b);
     TEST_ASSERT_EQUAL_STRING("0.000000000000000000", buf);
 
-    // A value that does have digits there, so the zeros above are not just everything collapsing.
-    fresh(sizeof buf);
+        fresh(sizeof buf);
     verba.fixed(&b, 1.0 / 3.0, 17u);
     verba.finish(&b);
     TEST_ASSERT_EQUAL_STRING("0.33333333333333331", buf);
@@ -374,8 +346,7 @@ void test_fixed_is_exact_below_a_64_bit_shift(void)
 void test_g_rounds_a_tie(void)
 {
     MMGR_SKIP_ON_ORACLE("C leaves the tie to the implementation and the two disagree, which is the point");
-    // g and fixed agree on every tie tried, which is the point: one number, one rendering rule
-    fresh(sizeof buf);
+        fresh(sizeof buf);
     verba.g(&b, 1.5, 1u);
     verba.finish(&b);
     TEST_ASSERT_EQUAL_STRING("2", buf);
@@ -393,9 +364,7 @@ void test_g_rounds_a_tie(void)
 
 void test_g_matches_printf(void)
 {
-    // none of these sits on an exact binary tie at the precisions below, because C leaves the tie
-    // to the implementation and the two libcs on this machine disagree - see test_g_rounds_a_tie
-    static const double vals[] = {0.0, 1.0, -1.0, 0.1, 100.0, 0.001, 1e10, 123.456, 2.0};
+            static const double vals[] = {0.0, 1.0, -1.0, 0.1, 100.0, 0.001, 1e10, 123.456, 2.0};
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
@@ -501,13 +470,6 @@ void test_namespace_is_wired(void)
     TEST_ASSERT_NOT_NULL(verba.finish);
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the quiet paths
- *
- * Every entry checks the latch on the way in. test_writes_after_overflow_are_ignored covers the
- * ones the namespace reaches directly; these are the two that only the wide entries call, plus
- * the widths and shapes the ordinary cases never produce.
- * ------------------------------------------------------------------------------------------- */
 
 void test_the_clipping_entries_stay_quiet_after_overflow(void)
 {
@@ -555,19 +517,10 @@ void test_xml_of_null_writes_nothing(void)
     TEST_ASSERT_EQUAL_size_t(0u, verba.finish(&b));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * fixed, over its whole range
- *
- * The value decides which arm runs: a small magnitude scales up, a large one shifts left, one
- * past what 64 bits of integer can hold is handed to g, and a fraction that rounds up to the
- * whole scale has to carry into the integer part.
- * ------------------------------------------------------------------------------------------- */
 
 void test_fixed_of_nan(void)
 {
-    // The spelling is the platform's - this library writes "nan", msvcrt writes "-nan(ind)" - so
-    // the claim is that a nan comes back as a nan and not as a number.
-    verba.fixed(&b, a_nan(), 2u);
+            verba.fixed(&b, a_nan(), 2u);
     verba.finish(&b);
     TEST_ASSERT_NOT_NULL_MESSAGE(strstr(buf, "nan"), "a nan did not render as a nan");
 }
@@ -587,8 +540,7 @@ void test_fixed_of_the_infinities(void)
 void test_fixed_of_a_value_too_large_for_the_integer_path(void)
 {
     MMGR_SKIP_ON_ORACLE("printf writes all thirty one digits rather than handing the value to %g");
-    // Past 2^64 there is no integer part to write, so fixed hands the value to g.
-    verba.fixed(&b, 1.0e30, 2u);
+        verba.fixed(&b, 1.0e30, 2u);
     verba.finish(&b);
 
     TEST_ASSERT_EQUAL_CHAR('1', buf[0]);
@@ -597,15 +549,13 @@ void test_fixed_of_a_value_too_large_for_the_integer_path(void)
 
 void test_fixed_of_a_value_with_no_fraction_left(void)
 {
-    // exp2 >= 0: the mantissa shifts left into the integer and the fraction is exactly zero.
-    verba.fixed(&b, 1.8014398509481984e16, 0u);
+        verba.fixed(&b, 1.8014398509481984e16, 0u);
     want_printf("%.0f", 1.8014398509481984e16);
 }
 
 void test_fixed_clamps_its_decimals(void)
 {
-    // The scale is 10^decimals in 64 bits, so the count is capped where that stops fitting.
-    verba.fixed(&b, 1.5, 25u);
+        verba.fixed(&b, 1.5, 25u);
     const size_t n = verba.finish(&b);
 
     TEST_ASSERT_EQUAL_CHAR('1', buf[0]);
@@ -615,9 +565,7 @@ void test_fixed_clamps_its_decimals(void)
 
 void test_fixed_carries_a_fraction_that_rounds_to_one(void)
 {
-    // 0.999 to two places rounds the fraction up to 100, which is the whole scale, so it has to
-    // become a carry into the integer instead of printing as 0.100.
-    verba.fixed(&b, 0.999, 2u);
+            verba.fixed(&b, 0.999, 2u);
     want_printf("%.2f", 0.999);
 }
 
@@ -628,9 +576,6 @@ void test_fixed_of_negative_zero(void)
     TEST_ASSERT_EQUAL_STRING_MESSAGE("-0.0", buf, "the sign of a negative zero survives");
 }
 
-/* ---------------------------------------------------------------------------------------------
- * g, over its whole range
- * ------------------------------------------------------------------------------------------- */
 
 void test_g_of_nan(void)
 {
@@ -641,34 +586,28 @@ void test_g_of_nan(void)
 
 void test_g_of_zero(void)
 {
-    // A zero mantissa short circuits the renormalize loop, which has nothing to shift.
-    verba.g(&b, 0.0, 3u);
+        verba.g(&b, 0.0, 3u);
     verba.finish(&b);
     TEST_ASSERT_EQUAL_CHAR('0', buf[0]);
 }
 
 void test_g_of_a_very_small_value(void)
 {
-    // A scale far below one drives the multiply by ten arm of the digit fit.
-    verba.g(&b, 1.0e-300, 4u);
+        verba.g(&b, 1.0e-300, 4u);
     verba.finish(&b);
     TEST_ASSERT_NOT_NULL(strstr(buf, "e-"));
 }
 
 void test_g_of_a_very_large_value(void)
 {
-    // And a scale far above one drives the divide by ten arm.
-    verba.g(&b, 1.0e300, 4u);
+        verba.g(&b, 1.0e300, 4u);
     verba.finish(&b);
     TEST_ASSERT_NOT_NULL(strstr(buf, "e+"));
 }
 
 void test_g_of_one_significant_digit(void)
 {
-    // sig == 1 takes the branch the multiply arm is guarded against, so it cannot scale up.
-    // g picks its own between plain and exponent form, so the reading is checked rather than the
-    // spelling: strtod is the oracle, and one significant digit of 9.9e-5 is 1e-4.
-    const double v = 9.9e-5;
+                const double v = 9.9e-5;
     verba.g(&b, v, 1u);
     verba.finish(&b);
     TEST_ASSERT_DOUBLE_WITHIN(1e-20, 1e-4, strtod(buf, NULL));
@@ -687,9 +626,6 @@ void test_g_of_zero_significant_digits_is_one(void)
     TEST_ASSERT_EQUAL_STRING_MESSAGE(one, buf, "asking for no digits is asking for one");
 }
 
-/* ---------------------------------------------------------------------------------------------
- * json escaping
- * ------------------------------------------------------------------------------------------- */
 
 void test_json_escapes_the_two_character_forms(void)
 {
@@ -717,8 +653,7 @@ void test_json_escapes_an_unnamed_control_byte_as_a_code_point(void)
 
 void test_json_overflows_on_each_escape_form(void)
 {
-    // Each form checks the room it needs against a different count, so each has its own way out.
-    fresh(3u);
+        fresh(3u);
     verba.json(&b, "\"");
     TEST_ASSERT_FALSE_MESSAGE(b.ok, "a two character escape did not fit");
 
@@ -737,14 +672,6 @@ void test_finish_of_a_zero_capacity_builder_reports_nothing(void)
     TEST_ASSERT_EQUAL_size_t(0u, verba.finish(&b));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * g across the whole precision range
- *
- * The digit fit walks the mantissa up or down until it lands inside the requested precision, and
- * which way it walks depends on how far the log10 estimate was off. One value at one precision
- * only ever exercises one direction, so the sweep drives every precision the entry accepts across
- * magnitudes on both sides of one.
- * ------------------------------------------------------------------------------------------- */
 
 void test_g_over_every_precision(void)
 {
@@ -759,9 +686,7 @@ void test_g_over_every_precision(void)
             verba.g(&b, vals[i], sig);
             verba.finish(&b);
 
-            // The spelling is g's own, so the reading is what gets checked. One significant digit
-            // of headroom is allowed against strtod, because that is what the precision means.
-            const double back = strtod(buf, NULL);
+                                    const double back = strtod(buf, NULL);
             const double want = vals[i];
             const double tol = (want < 0.0 ? -want : want) * 0.5;
 
@@ -773,9 +698,7 @@ void test_g_over_every_precision(void)
 
 void test_g_of_a_subnormal(void)
 {
-    // A biased exponent of zero with a mantissa that is not: no implicit leading one, so the
-    // renormalize has to climb instead of descend.
-    const double tiny = 4.9406564584124654e-324;
+            const double tiny = 4.9406564584124654e-324;
 
     verba.g(&b, tiny, 3u);
     verba.finish(&b);
@@ -793,21 +716,14 @@ void test_g_of_the_largest_finite_double(void)
 
 void test_is_inf_says_no_to_a_nan(void)
 {
-    // Both have the all ones exponent. Only the mantissa tells them apart.
-    TEST_ASSERT_FALSE_MESSAGE(verba.is_inf(a_nan()), "a nan is not an infinity");
+        TEST_ASSERT_FALSE_MESSAGE(verba.is_inf(a_nan()), "a nan is not an infinity");
     TEST_ASSERT_TRUE(verba.is_inf(an_inf()));
 }
 
-/* ---------------------------------------------------------------------------------------------
- * fixed across the whole decimal range
- * ------------------------------------------------------------------------------------------- */
 
 void test_fixed_over_every_decimal_count(void)
 {
-    // No exact binary ties in here. C leaves the tie to the implementation, this module breaks it
-    // to even and the libc on this machine breaks it away from zero, so a tie would be comparing
-    // two defensible answers - test_fixed_truncates_at_an_exact_tie pins ours on its own.
-    static const double vals[] = {0.0, 1.0, 1234.5678, 0.000123, 99.9999, 1.0 / 3.0, 2.0 / 7.0, 123.456};
+                static const double vals[] = {0.0, 1.0, 1234.5678, 0.000123, 99.9999, 1.0 / 3.0, 2.0 / 7.0, 123.456};
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
@@ -826,9 +742,7 @@ void test_fixed_over_every_decimal_count(void)
 
 void test_fixed_of_a_fraction_that_lands_on_a_tie(void)
 {
-    // A fraction whose remainder is exactly half the divisor, which is the only case the last
-    // rounding step has to break by parity rather than by size.
-    static const double vals[] = {0.5, 1.5, 2.5, 0.25, 0.75, 1.25, 3.375, 0.0625};
+            static const double vals[] = {0.5, 1.5, 2.5, 0.25, 0.75, 1.25, 3.375, 0.0625};
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
@@ -844,11 +758,7 @@ void test_fixed_of_a_fraction_that_lands_on_a_tie(void)
 
 void test_g_where_the_exponent_estimate_overshoots(void)
 {
-    // The digit fit starts from a log10 estimate. Near a power of ten the estimate can land one
-    // too high, and then the mantissa comes out an order of magnitude short of the precision that
-    // was asked for and has to be walked back up. These values sit just under and just over the
-    // powers of ten, which is where that happens.
-    static const double vals[] = {
+                    static const double vals[] = {
         0.9999999999, 9.999999999,  99.99999999,  999.9999999, 9999.999999, 1.000000001,  10.00000001,
         100.0000001,  1000.000001,  10000.00001,  0.09999999,  0.009999999, 0.0009999999, 9.999999e-10,
         9.999999e-20, 1.000001e-10, 1.000001e-20, 9.999999e20, 1.000001e20, 9.999999e100,
@@ -872,22 +782,7 @@ void test_g_where_the_exponent_estimate_overshoots(void)
     }
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the three arms of g's digit fit
- *
- * The fit starts from a log10 estimate, rounds, and then walks the mantissa a decimal place at a
- * time until it sits inside the requested precision. Which way it walks, and how many steps it
- * takes, depends on how far the estimate was off - and the estimate is only wrong at all for a
- * handful of exponents near the bottom of the range. These three values were found by replaying
- * the fit over twenty million value and precision pairs and keeping the ones that took each arm,
- * so they are not guesses and they will not drift into being ordinary if the estimate is retuned.
- * ------------------------------------------------------------------------------------------- */
 
-// Past MMGR_G_MAX_SIG the fixed point working word runs out of digits, and the entry clamps
-// rather than walking a mantissa it cannot represent. These two values were found by replaying the
-// digit fit over 20 million value and precision pairs and keeping the ones that drove it into its
-// scale up arm and out through its guard, which is what an unclamped nineteen used to do to them.
-// Clamped, they are ordinary. That is the claim.
 static unsigned significant_digits(const char *s)
 {
     unsigned n = 0;
@@ -925,8 +820,7 @@ void test_g_clamps_its_digit_count(void)
 
 void test_g_at_its_maximum_still_reads_back(void)
 {
-    // The value that used to come back wrong by three orders of magnitude at nineteen digits.
-    const double v = 1.8447470568367377e-236;
+        const double v = 1.8447470568367377e-236;
 
     verba.g(&b, v, MMGR_G_MAX_SIG);
     verba.finish(&b);
@@ -937,8 +831,7 @@ void test_g_at_its_maximum_still_reads_back(void)
 
 void test_g_at_two_to_the_sixty_four(void)
 {
-    // 2^64 is where the unclamped count was worst, so it is worth naming rather than sweeping past.
-    const double v = 1.8446744073709552e+22;
+        const double v = 1.8446744073709552e+22;
 
     verba.g(&b, v, MMGR_G_MAX_SIG + 1u);
     verba.finish(&b);
@@ -947,11 +840,7 @@ void test_g_at_two_to_the_sixty_four(void)
 
 void test_g_is_exact_at_every_precision_it_can_carry(void)
 {
-    // The other side of the same fact: up to eighteen, g reads back as the value it was given.
-    // Not the largest finite double: rounding it to one or two significant digits gives 2e+308,
-    // which is a correct rendering of a value that is then no longer representable, so reading it
-    // back gives an infinity. printf does the same thing with it. Its own case covers it.
-    static const double vals[] = {1.8464766514526577e-301, 1.8447470568367377e-236, 1.8446744073709552e+22,
+                    static const double vals[] = {1.8464766514526577e-301, 1.8447470568367377e-236, 1.8446744073709552e+22,
                                   2.2250738585072014e-308, 1.2345678901234567e+300};
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
@@ -970,9 +859,7 @@ void test_g_is_exact_at_every_precision_it_can_carry(void)
 
 void test_g_of_the_smallest_normal_double(void)
 {
-    // The one place the fixed point scale comes out non negative, so the collapse to an integer
-    // shifts left rather than right.
-    const double v = 2.2250738585072014e-308;
+            const double v = 2.2250738585072014e-308;
 
     verba.g(&b, v, 18u);
     verba.finish(&b);

@@ -2,6 +2,7 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
+#include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 #include <string.h>
 
 /*=======External Functions This Runner Calls=====*/

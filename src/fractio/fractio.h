@@ -1,5 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
 #ifndef MMGR_FRACTIO_H
 #define MMGR_FRACTIO_H
 
@@ -7,21 +5,7 @@
 
 MMGR_INCIPE_DECLS
 
-/**
- * @file fractio.h
- * @brief Take an IEEE 754 double apart and put it back together, without <math.h>.
- *
- * A double is a sign, an exponent and a mantissa at fixed bit positions. Reading one of the three
- * is a mask and a shift; writing all three back is three masks and two shifts. Nothing here
- * computes, rounds or normalizes - that is transformo's job, and this is what it reads through.
- *
- * The positions are asserted below rather than assumed, because a target whose double is not
- * binary64 would read the wrong bits of a smaller value without complaint.
- *
- * The table is the whole surface. There are no free functions to call.
- */
 
-/** @brief IEEE 754 binary64 field masks, shifts and bias. */
 #define MMGR_DBL_SIGN_MASK 0x8000000000000000ull
 #define MMGR_DBL_EXP_MASK 0x7FF0000000000000ull
 #define MMGR_DBL_MANT_MASK 0x000FFFFFFFFFFFFFull
@@ -32,30 +16,10 @@ MMGR_INCIPE_DECLS
 #define MMGR_DBL_EXP_ALL 0x7FFull
 #define MMGR_DBL_BIAS 1023
 
-/** @brief Bits, bytes and words in a double. A legal one is exactly this and nothing else. */
 #define MMGR_DBL_BITS 64u
 #define MMGR_DBL_BYTES (MMGR_DBL_BITS / 8u)
 #define MMGR_DBL_WORDS ((MMGR_DBL_BITS + (MMGR_WORD_BITS - 1u)) / MMGR_WORD_BITS)
 
-/*
- * The shape of a double, settled here so nothing below has to wonder.
- *
- * Everything in this file reads a double by its bit positions: the exponent is eleven bits at
- * fifty-two, the mantissa is the fifty-two under it, the implicit bit is there exactly when the
- * exponent field is not zero. Those positions are not a convention this library chose, they are
- * binary64, and they are only where this file says they are if the target's double is binary64.
- *
- * Plenty of embedded toolchains ship a double that is not. Where double is the same thing as
- * float, the exponent is eight bits at twenty-three and every mask below reads the wrong bits of
- * a value half the size - and reads them without complaint, because a mask of a smaller type is
- * legal C. The rendering would come back wrong and nothing would say why. So it is settled at
- * compile time, once, and a target that disagrees fails to build rather than shipping.
- *
- * The word count is the same question asked at the granularity this library moves data in: a
- * double is one word at sixty-four bits, two at thirty-two, four at sixteen. Anything arriving
- * from outside that claims to be a double and is not that many words is malformed before a single
- * bit of it is looked at, and this is the constant that says so.
- */
 MMGR_STATIC_ASSERT(sizeof(double) * 8u == MMGR_DBL_BITS,
                    "double is not 64 bits on this target, so every field position in this file is wrong "
                    "- a build where double means float cannot use it");
@@ -63,7 +27,6 @@ MMGR_STATIC_ASSERT(MMGR_DBL_WORDS *MMGR_WORD_BITS == MMGR_DBL_BITS,
                    "a double is not a whole number of words on this target");
 MMGR_STATIC_ASSERT(sizeof(mmgr_u64) == sizeof(double), "the bit pattern of a double does not fit mmgr_u64");
 
-/* The fields tile the word exactly: one sign, eleven exponent, fifty-two mantissa. */
 MMGR_STATIC_ASSERT(1u + MMGR_DBL_EXP_BITS + MMGR_DBL_MANT_BITS == MMGR_DBL_BITS,
                    "the three fields do not add up to the width of the value");
 MMGR_STATIC_ASSERT((MMGR_DBL_SIGN_MASK | MMGR_DBL_EXP_MASK | MMGR_DBL_MANT_MASK) == 0xFFFFFFFFFFFFFFFFull,
@@ -78,52 +41,50 @@ MMGR_STATIC_ASSERT(MMGR_DBL_EXP_MASK == (MMGR_DBL_EXP_ALL << MMGR_DBL_MANT_BITS)
 MMGR_STATIC_ASSERT(MMGR_DBL_EXP_ALL == ((1u << MMGR_DBL_EXP_BITS) - 1u), "the exponent does not fill its field");
 MMGR_STATIC_ASSERT(MMGR_DBL_BIAS == ((1 << (MMGR_DBL_EXP_BITS - 1u)) - 1), "the bias is not the one binary64 uses");
 
-/*
- * And the arithmetic the two conversions rest on, so the bounds are derived here rather than
- * assumed there. The exact value of a finite double is mant * 2^scale, with the mantissa at most
- * fifty-three bits including the implicit one.
- */
 #define MMGR_DBL_SCALE_MAX ((int)(MMGR_DBL_EXP_ALL - 1u) - MMGR_DBL_BIAS - (int)MMGR_DBL_MANT_BITS)
 #define MMGR_DBL_SCALE_MIN (1 - MMGR_DBL_BIAS - (int)MMGR_DBL_MANT_BITS)
 
 MMGR_STATIC_ASSERT(MMGR_DBL_SCALE_MAX == 971, "the largest scale a finite double can carry is not what it was");
 MMGR_STATIC_ASSERT(MMGR_DBL_SCALE_MIN == -1074, "the smallest scale a subnormal can carry is not what it was");
 
-#if defined(__STDC_IEC_559__)
-/* The target says it is IEC 60559, which is the standard's name for what is asserted above. */
-#endif
-
-/** @brief Dispatch table. Addressed by offset, so the layout is asserted below. */
 typedef struct
 {
-    mmgr_u64 (*sign)(double v);
-    mmgr_u64 (*exp)(double v);
-    mmgr_u64 (*mant)(double v);
-    mmgr_u64 (*merge)(mmgr_u64 sign, mmgr_u64 exp, mmgr_u64 mant);
-    double (*from_bits)(mmgr_u64 bits);
-    mmgr_u64 (*to_bits)(double v);
+    union {
+        const double v;         const mmgr_u64 bits;  };
+    const mmgr_u64 sign;    const mmgr_u64 exp;     const mmgr_u64 mant;  } FractioCfg;
+
+typedef struct
+{
+    mmgr_u64 (*sign)(const FractioCfg *c);
+    mmgr_u64 (*exp)(const FractioCfg *c);
+    mmgr_u64 (*mant)(const FractioCfg *c);
+    mmgr_u64 (*merge)(const FractioCfg *c);
+    double (*from_bits)(const FractioCfg *c);
+    mmgr_u64 (*to_bits)(const FractioCfg *c);
 } FractioNs;
 MMGR_NS_LAYOUT(FractioNs, sign, exp, mant, merge, from_bits, to_bits);
 
-/** @name The entries the table points at.
- *  @brief Nameable so a static const table can name them, and for no other reason. The table is
- *         still the whole surface: call through it.
- *  @{ */
-mmgr_u64 mmgr_fract_sign(double v);
-mmgr_u64 mmgr_fract_exp(double v);
-mmgr_u64 mmgr_fract_mant(double v);
-mmgr_u64 mmgr_fract_merge(mmgr_u64 sign, mmgr_u64 exp, mmgr_u64 mant);
-double mmgr_fract_from_bits(mmgr_u64 bits);
-mmgr_u64 mmgr_fract_to_bits(double v);
-/** @} */
+mmgr_u64 mmgr_fract_sign(const FractioCfg *c);
+mmgr_u64 mmgr_fract_exp(const FractioCfg *c);
+mmgr_u64 mmgr_fract_mant(const FractioCfg *c);
+mmgr_u64 mmgr_fract_merge(const FractioCfg *c);
+double mmgr_fract_from_bits(const FractioCfg *c);
+mmgr_u64 mmgr_fract_to_bits(const FractioCfg *c);
 
-/**
- * @brief Module namespace.
- *
- * static const, like every other module's. gcc devirtualizes a call through one down to the
- * inlined body and cannot do that through an extern one, where the table is in another
- * translation unit and every call is a load and an indirect jump.
- */
+#define MMGR_FRACT_IS_DOUBLE(x_) ((void)_Generic((x_), double: 0))
+#define MMGR_FRACT_IS_BITS(x_) ((void)_Generic((x_), mmgr_u64: 0))
+
+#define mmgr_fract_sign(bits_) (MMGR_FRACT_IS_BITS(bits_), fract.sign(&(FractioCfg){.bits = (bits_)}))
+#define mmgr_fract_exp(bits_) (MMGR_FRACT_IS_BITS(bits_), fract.exp(&(FractioCfg){.bits = (bits_)}))
+#define mmgr_fract_mant(bits_) (MMGR_FRACT_IS_BITS(bits_), fract.mant(&(FractioCfg){.bits = (bits_)}))
+
+#define mmgr_fract_merge(sign_, exp_, mant_)                                                                           \
+    (MMGR_FRACT_IS_BITS(sign_), MMGR_FRACT_IS_BITS(exp_), MMGR_FRACT_IS_BITS(mant_),                                   \
+     fract.merge(&(FractioCfg){.sign = (sign_), .exp = (exp_), .mant = (mant_)}))
+
+#define mmgr_fract_from_bits(bits_) (MMGR_FRACT_IS_BITS(bits_), fract.from_bits(&(FractioCfg){.bits = (bits_)}))
+#define mmgr_fract_to_bits(v_) (MMGR_FRACT_IS_DOUBLE(v_), fract.to_bits(&(FractioCfg){.v = (v_)}))
+
 MMGR_NS FractioNs fract MMGR_UNUSED = {
     .sign = mmgr_fract_sign,
     .exp = mmgr_fract_exp,

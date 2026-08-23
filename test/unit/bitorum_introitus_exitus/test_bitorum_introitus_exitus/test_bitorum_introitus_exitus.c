@@ -1,6 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
 #include "unity.h"
 
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
@@ -41,8 +38,7 @@ void test_a_whole_byte_lands_as_that_byte(void)
 
 void test_bits_pack_from_the_low_end(void)
 {
-    // acc |= bits << nbits, and the flush takes acc & 0xFF, so the first put occupies the low bits
-    mmgr_bitor_put(w, 0x1u, 1);
+        mmgr_bitor_put(w, 0x1u, 1);
     mmgr_bitor_put(w, 0x0u, 1);
     mmgr_bitor_put(w, 0x3u, 2);
     mmgr_bitor_put(w, 0x0u, 4);
@@ -94,8 +90,7 @@ void test_a_wide_put_spans_bytes(void)
 
 void test_n_at_or_above_32_takes_the_value_whole(void)
 {
-    // the mask arm would be undefined at n == 32, so the implementation branches around it
-    mmgr_bitor_put(w, 0xFFFFFFFFu, 32);
+        mmgr_bitor_put(w, 0xFFFFFFFFu, 32);
     TEST_ASSERT_EQUAL_size_t(4u, w.cnt);
     for (unsigned i = 0; i < 4u; i++)
     {

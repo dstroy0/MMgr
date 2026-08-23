@@ -3,6 +3,4 @@
 
 mmgr_add_module(fractio
   SOURCES fractio.c
-  DEPS
-    proximus_operor
 )

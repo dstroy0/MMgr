@@ -1,91 +1,18 @@
-/*
- * MMgr - Drafting
- * Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- *
- * The subject is a memory manager whose whole claim is that every number is decided before the
- * program runs. The reader is an engineer checking that claim against a RAM budget. So this reads
- * as a technical drawing rather than as a document: a cool blue-gray ground, blue-black ink, and
- * one warm accent that MEANS something instead of decorating.
- *
- *   accent  interactive. Links, controls, the focused thing. Burnt orange. One job, nothing else.
- *   state   a state, not a mood: ok / pass / holds / documented. Deep teal.
- *   cost    a cost or a caution: budgets, widths, deprecations. Bronze.
- *   error   an error, a removal, a violated contract. Iron oxide.
- *
- * THE GROUND IS A TINT, NOT PAPER, and the accent is WARM ON A COOL GROUND. Both are deliberate.
- * An off-white ground with a blue link and a serif heading is the signature of every reference site
- * on the internet, and this one was exactly that until it got named for what it looked like.
- *
- * Mono is for data - identifiers, flags, sizes, tables - and for page titles, which are set in
- * uppercase mono with tracking. A title in the code face says what kind of document this is before
- * a word of it is read.
- *
- * FOUR RULES, and the file depends on all four.
- *
- *   1. No hex outside the two token blocks. Everything else uses var(--mg-*). One hardcoded #fff in
- *      a table header is a light-mode artifact permanently stuck in dark mode.
- *
- *   2. No !important, ever. Doxygen's own JS writes inline styles on the sidebar splitter and the
- *      search box; !important masks that rather than fixing it. If a rule loses, add a class.
- *
- *   3. Diagrams are inlined SVG, never <img src="...svg">. An img-referenced SVG is a separate
- *      document and cannot see this page's custom properties, so it would need two files and a
- *      light/dark swap. Inlined, drawn with stroke="currentColor", one file is correct in both.
- *
- *   4. color-scheme is doxygen's. It sets it in its own dark block; do not override it. Native
- *      scrollbars and form controls follow it, and the styled ones are mapped below to agree.
- *
- * HOW THE TOGGLE IS SURVIVED. Under HTML_COLORSTYLE = TOGGLE, doxygen emits its own values in two
- * blocks: `html { light }` and `html.dark-mode { dark }`. There is no html.light-mode rule and no
- * prefers-color-scheme query. Our stylesheet loads last, but loading last only wins at EQUAL
- * specificity - so a map written only under `html` (0,0,1) is beaten by doxygen's `html.dark-mode`
- * (0,1,1), and the whole theme reverts to stock the moment the toggle is pressed.
- *
- * The map below is therefore written once against the selector list `html, html.dark-mode`. A plain
- * selector list is matched per-selector with its own specificity, so `html` beats doxygen's light
- * block and `html.dark-mode` beats its dark block, from a single copy of the map. Do not rewrite it
- * as :is(html, html.dark-mode) - that would give both branches (0,1,1) and change the behavior.
- */
 
-/* ================================================================================================
- * 1. Tokens - light
- * ============================================================================================== */
 html {
-    --mg-surface: #edf0f2; /* the ground. A tint, not paper - this is the whole point */
-    --mg-raised: #e1e6ea; /* table headers, chips, the raised plane */
-    --mg-recessed: #e6eaee; /* nav rail, footer */
-    --mg-rule: #d3dae0; /* hairlines */
-    --mg-rule-2: #b9c3cc; /* emphasized hairlines, table dividers */
+    --mg-surface: #edf0f2;     --mg-raised: #e1e6ea;     --mg-recessed: #e6eaee;     --mg-rule: #d3dae0;     --mg-rule-2: #b9c3cc; 
+    --mg-ink: #1f2933;     --mg-bright: #0e161d;     --mg-dim: #5a6875;     --mg-dim-soft: #68757f; 
+    --mg-accent: #b4552d;     --mg-accent-dim: #8f4122;     --mg-accent-bright: #d1774d;     --mg-accent-wash: #dfe6ec; 
+    --mg-state: #3f7a6b;     --mg-state-wash: #e4efec;
 
-    --mg-ink: #1f2933; /* body prose            13.6:1 */
-    --mg-bright: #0e161d; /* headings, emphasis    17.1:1 */
-    --mg-dim: #5a6875; /* captions, metadata     5.4:1 - AA at body size */
-    --mg-dim-soft: #68757f; /* non-text only: hairline-adjacent, icon strokes */
+    --mg-cost: #8a6d2f;     --mg-cost-ink: #6b5423;     --mg-cost-wash: #f1ece0;
 
-    --mg-accent: #b4552d; /* interactive            5.0:1 - warm, on a cool ground */
-    --mg-accent-dim: #8f4122; /* hover, visited         7.2:1 */
-    --mg-accent-bright: #d1774d; /* focus ring, active marker - non-text */
-    --mg-accent-wash: #dfe6ec; /* selected nav row, note background - cool, so the orange stays a text
-                                  and border colour rather than becoming a salmon panel */
-
-    --mg-state: #3f7a6b; /* ok / pass              5.1:1 */
-    --mg-state-wash: #e4efec;
-
-    --mg-cost: #8a6d2f; /* MARKING and text alike 4.9:1 */
-    --mg-cost-ink: #6b5423; /* cost-colored TEXT      7.0:1 */
-    --mg-cost-wash: #f1ece0;
-
-    --mg-error: #9e3b3b; /* error / removed        6.6:1 */
-    --mg-error-wash: #f6e7e7;
+    --mg-error: #9e3b3b;     --mg-error-wash: #f6e7e7;
 
     --mg-code-bg: #e7ecf0;
     --mg-code-fg: #232d36;
 
-    /* Syntax. Desaturated so a listing reads as text with structure, not as a christmas tree.
-       Strings take the state teal, which keeps the accent orange meaning "interactive" and nothing
-       else - a link and a string literal must not be the same color. */
-    --mg-syn-keyword: #7a4a86;
+        --mg-syn-keyword: #7a4a86;
     --mg-syn-flow: #96455f;
     --mg-syn-type: #2f6b78;
     --mg-syn-string: #3f7a6b;
@@ -95,48 +22,28 @@ html {
     --mg-shadow: rgba(31, 41, 51, 0.1);
     --mg-scrollbar: #b9c3cc;
 
-    /* --- type ------------------------------------------------------------------------------
-       IBM Plex, sans and mono, loaded in docs/header.html. One family rather than two faces that
-       happen to agree: the mono is a designed sibling of the sans, so an identifier set inside a
-       sentence sits on the same skeleton as the words around it instead of looking pasted in. The
-       title is set in the mono, uppercase and tracked, which is what makes a page read as a drawing
-       rather than an article. */
-    --mg-sans:
+        --mg-sans:
         "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
         Roboto, "Helvetica Neue", Arial, sans-serif;
     --mg-mono:
         "IBM Plex Mono", ui-monospace, SFMono-Regular, "Cascadia Code",
         Consolas, Menlo, monospace;
 
-    /* The scale. Doxygen's own is nearly flat - h1 through h3 differ by a couple of pixels - which
-       is why a stock page reads as one undifferentiated wall. This one steps hard at the top so a
-       section boundary is visible from across the room, and stays quiet below it. */
-    --mg-t-body: 1rem; /* 16px */
-    --mg-t-small: 0.875rem;
-    --mg-t-micro: 0.75rem; /* eyebrows, labels, colophon */
-    --mg-t-h3: 1.15rem;
+        --mg-t-body: 1rem;     --mg-t-small: 0.875rem;
+    --mg-t-micro: 0.75rem;     --mg-t-h3: 1.15rem;
     --mg-t-h2: 1.55rem;
     --mg-t-h1: 2.25rem;
 
-    /* Spacing rhythm. Vertical space between blocks comes from these, not from ad-hoc margins. */
-    --mg-s1: 0.35rem;
+        --mg-s1: 0.35rem;
     --mg-s2: 0.7rem;
     --mg-s3: 1.15rem;
     --mg-s4: 1.9rem;
     --mg-s5: 3rem;
 
-    /* Prose sits near 72 characters. Data - tables, code, diagrams - is not prose and is allowed
-       the full column, because a wrapped signature is harder to read than a wide one. */
-    --mg-prose: min(72ch, 100%);
+        --mg-prose: min(72ch, 100%);
     --mg-track: 1080px;
-    --mg-radius: 3px; /* a drawing has square corners; 3px is the whole concession */
-}
+    --mg-radius: 3px; }
 
-/* ================================================================================================
- * 2. Tokens - dark
- * ============================================================================================== */
-/* Derived by holding every hue and lifting the signal lightness until it clears 7:1 on the new
-   surface. Nothing is re-hued, so the two modes are recognizably the same document under a lamp. */
 html.dark-mode {
     --mg-surface: #171c22;
     --mg-raised: #1f262e;
@@ -144,26 +51,18 @@ html.dark-mode {
     --mg-rule: #2b333c;
     --mg-rule-2: #3d4750;
 
-    --mg-ink: #c6cdd4; /* never #fff: pure white on near-black glares  12.4:1 */
-    --mg-bright: #e9eef2; /* 15.6:1 */
-    --mg-dim: #8b97a3; /*  5.6:1 */
-    --mg-dim-soft: #75818c;
+    --mg-ink: #c6cdd4;     --mg-bright: #e9eef2;     --mg-dim: #8b97a3;     --mg-dim-soft: #75818c;
 
-    --mg-accent: #e08a5c; /* hue held at 224, L 45% -> 71%   7.2:1 */
-    --mg-accent-dim: #c4744a;
+    --mg-accent: #e08a5c;     --mg-accent-dim: #c4744a;
     --mg-accent-bright: #eeab84;
-    --mg-accent-wash: #1e2833; /* a tinted panel, not a wash */
+    --mg-accent-wash: #1e2833; 
+    --mg-state: #6fb3a2;     --mg-state-wash: #14251f;
 
-    --mg-state: #6fb3a2; /*  7.8:1 */
-    --mg-state-wash: #14251f;
-
-    /* The light-mode marking/text split collapses here: lifted mustard carries text at 8.8:1. */
-    --mg-cost: #cfa863;
+        --mg-cost: #cfa863;
     --mg-cost-ink: #cfa863;
     --mg-cost-wash: #241f13;
 
-    --mg-error: #d97b7b; /*  7.4:1 */
-    --mg-error-wash: #241616;
+    --mg-error: #d97b7b;     --mg-error-wash: #241616;
 
     --mg-code-bg: #1a2027;
     --mg-code-fg: #ced5db;
@@ -179,16 +78,9 @@ html.dark-mode {
     --mg-scrollbar: #3d4750;
 }
 
-/* ================================================================================================
- * 3. Doxygen's own variables, mapped
- * ============================================================================================== */
-/* Written ONCE against both selectors - see the note at the top of this file. Because doxygen 1.17
-   exposes this much of its surface as custom properties, most of this theme IS this map; the rules
-   below it exist only for structure doxygen does not expose. */
 html,
 html.dark-mode {
-    /* Page */
-    --primary-color: var(--mg-accent);
+        --primary-color: var(--mg-accent);
     --primary-dark-color: var(--mg-accent-dim);
     --primary-light-color: var(--mg-accent-bright);
     --primary-lighter-color: var(--mg-accent-wash);
@@ -203,15 +95,13 @@ html.dark-mode {
     --separator-color: var(--mg-rule);
     --border-color: var(--mg-rule);
 
-    /* Masthead */
-    --header-background-color: var(--mg-surface);
+        --header-background-color: var(--mg-surface);
     --header-separator-color: var(--mg-rule-2);
     --title-background-color: var(--mg-surface);
     --title-separator-color: var(--mg-rule-2);
     --footer-foreground-color: var(--mg-dim);
 
-    /* Sidebar and tree */
-    --nav-background-color: var(--mg-recessed);
+        --nav-background-color: var(--mg-recessed);
     --nav-foreground-color: var(--mg-ink);
     --nav-border-color: var(--mg-rule-2);
     --nav-text-normal-color: var(--mg-ink);
@@ -230,8 +120,7 @@ html.dark-mode {
     --nav-breadcrumb-separator-color: var(--mg-rule-2);
     --nav-breadcrumb-active-bg: var(--mg-accent-wash);
 
-    /* Code wells */
-    --fragment-background-color: var(--mg-code-bg);
+        --fragment-background-color: var(--mg-code-bg);
     --fragment-foreground-color: var(--mg-code-fg);
     --fragment-border-color: var(--mg-rule);
     --fragment-copy-ok-color: var(--mg-state);
@@ -244,8 +133,7 @@ html.dark-mode {
     --fragment-lineno-link-hover-bg-color: var(--mg-accent-wash);
     --fold-line-color: var(--mg-rule-2);
 
-    /* Syntax */
-    --code-keyword-color: var(--mg-syn-keyword);
+        --code-keyword-color: var(--mg-syn-keyword);
     --code-flow-keyword-color: var(--mg-syn-flow);
     --code-type-keyword-color: var(--mg-syn-type);
     --code-string-literal-color: var(--mg-syn-string);
@@ -254,8 +142,7 @@ html.dark-mode {
     --code-preprocessor-color: var(--mg-syn-preproc);
     --code-vhdl-keyword-color: var(--mg-syn-keyword);
 
-    /* Member documentation */
-    --memdecl-background-color: var(--mg-surface);
+        --memdecl-background-color: var(--mg-surface);
     --memdecl-foreground-color: var(--mg-dim);
     --memdecl-border-color: var(--mg-rule);
     --memdecl-template-color: var(--mg-dim);
@@ -268,14 +155,12 @@ html.dark-mode {
     --memdef-template-color: var(--mg-dim);
     --memdef-doc-background-color: var(--mg-surface);
 
-    /* Labels: static, inline, gated. Cost-colored marking, so a chip reads as a qualifier. */
-    --label-background-color: var(--mg-cost-wash);
+        --label-background-color: var(--mg-cost-wash);
     --label-foreground-color: var(--mg-cost-ink);
     --label-left-top-border-color: var(--mg-cost);
     --label-right-bottom-border-color: var(--mg-cost);
 
-    /* Tables */
-    --table-header-background-color: var(--mg-raised);
+        --table-header-background-color: var(--mg-raised);
     --table-header-foreground-color: var(--mg-bright);
     --table-cell-border-color: var(--mg-rule);
     --index-header-color: var(--mg-dim);
@@ -283,9 +168,7 @@ html.dark-mode {
     --index-odd-item-bg-color: var(--mg-surface);
     --index-even-item-bg-color: var(--mg-raised);
 
-    /* Admonitions. 1.17 makes these triples, so tint, rule and text move independently - which is
-       what lets a warning look different from a note rather than merely differently worded. */
-    --note-color-bg: var(--mg-accent-wash);
+        --note-color-bg: var(--mg-accent-wash);
     --note-color-hl: var(--mg-accent);
     --note-color-text: var(--mg-ink);
     --warning-color-bg: var(--mg-cost-wash);
@@ -325,8 +208,7 @@ html.dark-mode {
     --post-color-hl: var(--mg-accent);
     --post-color-text: var(--mg-ink);
 
-    /* Search */
-    --search-background-color: var(--mg-surface);
+        --search-background-color: var(--mg-surface);
     --search-foreground-color: var(--mg-ink);
     --search-box-border-color: var(--mg-rule-2);
     --search-active-color: var(--mg-bright);
@@ -340,12 +222,10 @@ html.dark-mode {
     --search-filter-highlight-bg-color: var(--mg-accent-wash);
     --search-close-icon-fg-color: var(--mg-dim);
     --search-close-icon-bg-color: transparent;
-    /* Blur over warm paper reads as a smudge. */
-    --search-results-backdrop-filter: none;
+        --search-results-backdrop-filter: none;
     --search-filter-backdrop-filter: none;
 
-    /* Misc chrome */
-    --blockquote-background-color: var(--mg-raised);
+        --blockquote-background-color: var(--mg-raised);
     --blockquote-border-color: var(--mg-rule-2);
     --group-header-color: var(--mg-dim);
     --group-header-separator-color: var(--mg-rule);
@@ -366,8 +246,7 @@ html.dark-mode {
     --tooltip-shadow: 0 2px 8px var(--mg-shadow);
     --tooltip-backdrop-filter: none;
 
-    /* Type */
-    --font-family-normal: var(--mg-sans);
+        --font-family-normal: var(--mg-sans);
     --font-family-monospace: var(--mg-mono);
     --font-family-title: var(--mg-sans);
     --font-family-nav: var(--mg-sans);
@@ -379,13 +258,6 @@ html.dark-mode {
     --code-font-size: 13.5px;
 }
 
-/* ================================================================================================
- * 4. Reset and type
- * ============================================================================================== */
-/* border-box, but NOT globally. Doxygen sizes #side-nav and the content margin in JS, in pixels,
-   against the content box; a global reset changes what those pixels mean and the sidebar ends up
-   painted on top of the first paragraph. So it is applied only where a box of ours has padding and
-   a width at the same time. */
 #titlearea,
 div.contents,
 .memitem,
@@ -420,9 +292,6 @@ body {
     text-rendering: optimizeLegibility;
 }
 
-/* Digits that sit in a column must line up. The configuration defaults, the bench cycle counts and
-   every size in the reference are read against each other, and proportional figures make that
-   comparison a guess. */
 table,
 .mg-num,
 #projectnumber,
@@ -430,8 +299,6 @@ li.mg-colophon {
     font-variant-numeric: tabular-nums;
 }
 
-/* Mono is kept where mono earns its place: things that are data. Prose was setting ~110 characters
-   per line in a monospace face, which is not a line anyone reads. */
 code,
 kbd,
 samp,
@@ -468,8 +335,6 @@ div.title,
     text-wrap: balance;
 }
 
-/* The page title is set in the code face, uppercase and tracked out - a drawing's title block, not
-   a chapter heading. It is the loudest thing in the design and the only place mono is used large. */
 div.title,
 .headertitle .title {
     font-family: var(--mg-mono);
@@ -498,7 +363,6 @@ h3 {
     margin: var(--mg-s4) 0 var(--mg-s1);
 }
 
-/* Prose rhythm. Doxygen leans on <p> margins, so they are set here once rather than per block. */
 div.contents .textblock > p,
 div.contents .textblock > ul,
 div.contents .textblock > ol {
@@ -525,7 +389,6 @@ a:hover {
     text-underline-offset: 2px;
 }
 
-/* Doxygen ships almost no focus styling. Keyboard users get a visible ring on everything. */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -542,12 +405,6 @@ hr {
     margin: 2em 0;
 }
 
-/* ================================================================================================
- * 5. Shell: masthead, sidebar, content track
- * ============================================================================================== */
-/* FULL_SIDEBAR = YES puts the masthead INSIDE the 300px nav column, not across the top of the page.
-   So everything here is sized to that column: the brief wraps rather than running out under the
-   content, and nothing is allowed to force the column wider. */
 #titlearea {
     background-color: var(--mg-recessed);
     border-bottom: 1px solid var(--mg-rule-2);
@@ -555,9 +412,6 @@ hr {
     width: 100%;
 }
 
-/* The masthead stays doxygen's table. Re-laying it out as a grid changes #titlearea's height, and
-   navtree.js measures that height to size the panels beneath it. Only the logo is touched, and only
-   its intrinsic size. */
 #projectlogo {
     padding-right: 10px;
     vertical-align: top;
@@ -568,7 +422,6 @@ hr {
     height: 30px;
 }
 
-/* The wordmark matches the page titles: mono, uppercase, tracked. */
 #projectname {
     font-family: var(--mg-mono);
     font-size: 1.05rem;
@@ -580,8 +433,6 @@ hr {
     white-space: nowrap;
 }
 
-/* The version is data, so it is mono, and it is set as a chip rather than as trailing text - a
-   version that reads as part of the name makes the name look like it changes every release. */
 #projectnumber {
     display: inline-block;
     margin-left: 0.4rem;
@@ -616,12 +467,7 @@ hr {
     background-color: transparent;
 }
 
-/* No padding, no font-size, no line-height here: the tree's rows are absolutely positioned and
-   navtree.js measures them. Colour only. */
 
-/* Color only. The tree's boxes are doxygen's - the rows are absolutely positioned and the arrows
-   are background images keyed to that geometry, so giving the anchors display:block and padding
-   collapses the rows on top of each other. */
 #nav-tree a {
     color: var(--mg-ink);
 }
@@ -643,35 +489,10 @@ hr {
     font-weight: 600;
 }
 
-/* Doxygen owns the page layout - the sidebar split, the scroll container and the content box are
-   its flexbox, and overriding the content box's width and margins is what put the title and the
-   first paragraph outside the box that was painting them. So this sets the READING MEASURE and the
-   breathing room and nothing else: no max-width on div.contents, no margin auto, no display change
-   on any table.
-
-   The measure is applied to the text elements themselves, so tables, code wells and diagrams are
-   free to be as wide as the content box allows while prose stays at a readable line length. */
-/* LAYOUT IS DOXYGEN'S. This stylesheet sets colour and type and does not size, position or pad the
-   page frame.
- *
- * That is a rule learned the hard way. Doxygen 1.17 lays the page out as a grid - #container holds
- * #side-nav, #doc-content and, on any page with headings, a right-hand #page-nav rail - and
- * navtree.js measures those boxes and writes pixel widths and heights back onto them on load and on
- * every resize. A max-width and a margin on div.contents and div.header, plus a height change on
- * the tab strip, put roughly 700px of empty space above the title on every page that had a
- * #page-nav, and froze the renderer outright on one of them.
- *
- * The theme does not need those overrides. 1.17 exposes its whole palette as custom properties, so
- * the map in section 3 IS the theme; what is left below is type and the small stuff doxygen does
- * not expose. If a future change wants a narrower measure, set it on the text elements, never on
- * the frame - and check a page with a #page-nav before believing it works. */
 div.header {
     background-image: none;
 }
 
-/* Doxygen's tab strip is a gradient-filled bar of bevelled buttons - the single most dated thing on
-   a stock page. Stripped to a quiet row of labels on the page ground, with a rule under the current
-   one and nothing else. */
 #main-nav,
 .tabs,
 .tabs2,
@@ -681,10 +502,6 @@ div.header {
     border-bottom: 1px solid var(--mg-rule);
 }
 
-/* Colour and weight only. Doxygen's navtree.js reads header.offsetHeight in resizeHeight() and
-   sizes #doc-content from it, so anything here that changes the tab strip's HEIGHT feeds back into
-   a layout the script then re-measures. `display: flex` plus `height: auto` on .tablist froze the
-   renderer outright. Do not set display, height, padding or line-height on this element. */
 .tablist li {
     background-image: none;
 }
@@ -702,8 +519,6 @@ div.header {
     text-decoration: none;
 }
 
-/* No border here either: a border adds height, and height is what the resize script re-measures.
-   Weight and colour carry the current tab instead. */
 .tablist li.current a {
     color: var(--mg-bright);
     background-image: none;
@@ -729,9 +544,6 @@ div.header {
     color: var(--mg-accent);
 }
 
-/* ================================================================================================
- * 6. Code wells
- * ============================================================================================== */
 div.fragment,
 pre.fragment {
     background-color: var(--mg-code-bg);
@@ -753,7 +565,6 @@ tt {
     font-size: 0.9em;
 }
 
-/* A code span inside a heading or a link should not carry its own box. */
 h1 code,
 h2 code,
 h3 code,
@@ -764,9 +575,6 @@ a code,
     padding: 0;
 }
 
-/* ================================================================================================
- * 7. Tables
- * ============================================================================================== */
 table.doxtable,
 table.markdownTable,
 table.fieldtable {
@@ -796,9 +604,6 @@ table.fieldtable td {
     padding: 6px 12px;
 }
 
-/* Doxygen emits alignment classes from the markdown table syntax. Honour them: the bench table and
-   the configuration defaults are numeric columns, and a right-aligned tabular figure is the whole
-   reason those tables are readable. */
 .markdownTableBodyRight,
 .markdownTableHeadRight {
     text-align: right;
@@ -810,18 +615,12 @@ table.fieldtable td {
     text-align: center;
 }
 
-/* Wide tables must not push the page sideways. `display: block` would do it, and it also destroys
-   the table's own column sizing - so the scroll goes on the wrapper doxygen already emits, and the
-   table stays a table. */
 div.contents .textblock > table,
 table.markdownTable,
 table.doxtable {
     max-width: 100%;
 }
 
-/* ================================================================================================
- * 8. Admonitions and @par blocks
- * ============================================================================================== */
 dl.note,
 dl.warning,
 dl.attention,
@@ -864,7 +663,6 @@ dl.post dt {
     margin-bottom: 0.2em;
 }
 
-/* @par blocks - which is what the ALIASES in the Doxyfile emit - get a bare eyebrow label. */
 dl.section.user dt,
 dl.par dt {
     font-family: var(--mg-sans);
@@ -875,9 +673,6 @@ dl.par dt {
     color: var(--mg-dim);
 }
 
-/* ================================================================================================
- * 9. Member documentation
- * ============================================================================================== */
 .memitem {
     border: 1px solid var(--mg-rule);
     border-radius: var(--mg-radius);
@@ -925,7 +720,6 @@ dl.par dt {
     color: var(--mg-dim);
 }
 
-/* static / inline / gated qualifiers, as small-caps chips in the cost marking color. */
 span.mlabel {
     background-color: var(--mg-cost-wash);
     color: var(--mg-cost-ink);
@@ -960,9 +754,6 @@ table.memberdecls .heading {
     line-height: 1px;
 }
 
-/* ================================================================================================
- * 10. Table of contents
- * ============================================================================================== */
 div.toc {
     background-color: var(--mg-surface);
     border: 1px solid var(--mg-rule);
@@ -988,9 +779,6 @@ div.toc li {
     background-image: none;
 }
 
-/* ================================================================================================
- * 11. Search
- * ============================================================================================== */
 #MSearchBox {
     background-color: var(--mg-raised);
     border: 1px solid var(--mg-rule-2);
@@ -1011,12 +799,6 @@ div.toc li {
     box-shadow: 0 4px 14px var(--mg-shadow);
 }
 
-/* ================================================================================================
- * 12. Footer
- * ============================================================================================== */
-/* The colophon is an extra <li> inside doxygen's #nav-path, so the breadcrumb and the project line
-   share one bar. Layout of #nav-path itself is doxygen's - it is positioned and margined from
-   navtree.js and must not be given a width or a margin here. */
 li.mg-colophon {
     color: var(--mg-dim);
     font-family: var(--mg-mono);
@@ -1036,11 +818,6 @@ li.mg-colophon .mg-gen {
     color: var(--mg-dim);
 }
 
-/* ================================================================================================
- * 13. Hub pages
- * ============================================================================================== */
-/* The six nav hubs are plain @subpage lists. This is what turns them into the site's front matter
-   rather than six bulleted lists. */
 .contents ul.mg-hub {
     list-style: none;
     padding: 0;
@@ -1068,9 +845,6 @@ li.mg-colophon .mg-gen {
     background-color: var(--mg-accent-wash);
 }
 
-/* ================================================================================================
- * 14. Responsive
- * ============================================================================================== */
 @media (max-width: 767px) {
     body {
         font-size: 15px;
@@ -1086,10 +860,6 @@ li.mg-colophon .mg-gen {
     }
 }
 
-/* ================================================================================================
- * 15. Print
- * ============================================================================================== */
-/* A theme that calls itself a printed spec should print. */
 @media print {
     #side-nav,
     #titlearea,
@@ -1128,17 +898,13 @@ li.mg-colophon .mg-gen {
         page-break-inside: avoid;
     }
 
-    /* The URL a reference link points at, since a printed link is otherwise dead. Not for code. */
-    a[href^="http"]::after {
+        a[href^="http"]::after {
         content: " (" attr(href) ")";
         font-size: 0.8em;
         color: var(--mg-dim);
     }
 }
 
-/* ================================================================================================
- * 16. Reduced motion
- * ============================================================================================== */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

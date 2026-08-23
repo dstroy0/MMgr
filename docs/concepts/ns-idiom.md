@@ -8,9 +8,7 @@ Every module declares plain C functions with a long, prefixed name, and also gat
 `static const` struct of function pointers named for a short Latin stem.
 
 ```c
-mmgr_spat s = mmgr_spat_from(buf, cap);   /* the free function */
-mmgr_spat s = spat.from(buf, cap);        /* the same thing, through the table */
-```
+mmgr_spat s = mmgr_spat_from(buf, cap);   mmgr_spat s = spat.from(buf, cap);        ```
 
 Both are public and both are documented. The table is what call sites use, because at a call site
 the module is context you already have and repeating it is noise:
@@ -42,8 +40,7 @@ typedef struct
 {
     mmgr_spat (*from)(uint8_t *p, size_t cap);
     mmgr_bool (*ok)(mmgr_spat s);
-    /* ... */
-} SpatiumNs;
+    } SpatiumNs;
 MMGR_NS_LAYOUT(SpatiumNs, from, ok, has_storage, len, room, reset, /* ... */);
 
 MMGR_NS SpatiumNs spat MMGR_UNUSED = {.from = mmgr_spat_from, .ok = mmgr_spat_ok, /* ... */};

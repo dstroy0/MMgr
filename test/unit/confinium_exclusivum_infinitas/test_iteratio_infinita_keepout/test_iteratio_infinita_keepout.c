@@ -1,18 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// Keepout reservations: the drains the ring hands out, and the tesserae that say whose they are.
-//
-// A drain is a priority frame over a run of segments. The consumer asks for one, the ring reserves
-// the segments and issues a tessera, and a worker walks the grant a segment at a time until the ring
-// says there is no more - which is also when the reservation is dropped.
-//
-// The cases that matter are the ones single stepping cannot reach by accident: a claim that overlaps
-// a live one must be refused without disturbing the holder, and a tessera from a finished drain must
-// stop working the moment its record is reused. Both were bugs here before they were cases.
-//
-// The translation unit is compiled in rather than linked, so a case can read the reservation word
-// and see what the entries actually did.
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.c"
 
 #include "unity.h"
@@ -28,13 +13,6 @@ static mmgr_ring ring;
 static const int owner = 0;
 static const SingularitasCfg bytewise = {&owner, 1u};
 
-/**
- * @brief A ring with everything already in it.
- *
- * A drain reserves what has arrived, so a case that claims over an empty ring is asking for ground
- * the producer has not reached and is refused. Filling first is not scaffolding - it is the state
- * an ingestion path is in when a priority drain is called for.
- */
 void setUp(void)
 {
     for (unsigned i = 0; i < CAP; i++)
@@ -51,14 +29,12 @@ void tearDown(void)
 {
 }
 
-/** @brief Ask for a drain over [from, to), keeping the tessera it issues. */
 static const uint8_t *ask(size_t from, size_t to, size_t *tess)
 {
     *tess = 0u;
     return iteratio_infinita.drain(&(InfinCfg){.r = &ring, .from = from, .to = to, .tessera = tess});
 }
 
-/** @brief Walk a grant to its end, returning how many segments it handed out. */
 static size_t walk(const uint8_t *at, size_t *tess)
 {
     size_t n = 0;
@@ -174,8 +150,7 @@ void test_a_reused_record_does_not_honour_the_old_tessera(void)
     const size_t spent = t1;
     TEST_ASSERT_EQUAL_size_t(1u, walk(a, &t1));
 
-    /* The record that drain used is free now, so the next claim takes it back. */
-    size_t t2 = 0u;
+        size_t t2 = 0u;
     TEST_ASSERT_NOT_NULL(ask(2u * SEGBYTES, 3u * SEGBYTES, &t2));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(MMGR_TESSERA_IDX(spent), MMGR_TESSERA_IDX(t2),
                                      "the same record was reused, which is the case that matters");

@@ -1,12 +1,7 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
 #include "unity.h"
 
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
-// The cost table is file local to whichever profile .c the build compiled, so a suite asks the
-// entry rather than indexing the array. That is the whole surface: a byte in, its cost out.
 
 void test_anchor_header_is_self_contained(void)
 {
@@ -15,9 +10,7 @@ void test_anchor_header_is_self_contained(void)
 
 void test_anchor_table_covers_every_byte(void)
 {
-    // Every one of the 256 values answers, and not all with the same number. A profile that
-    // answered a constant would satisfy every other case here and rank nothing.
-    const uint8_t first = mmgr_ancorae_impensa((uint8_t)0u);
+            const uint8_t first = mmgr_ancorae_impensa((uint8_t)0u);
     int varies = 0;
 
     for (unsigned c = 0; c < 256u; c++)
@@ -47,9 +40,7 @@ void test_impensa_ancorae_acus_is_never_zero(void)
 
 void test_anchor_prefers_rare_bytes_to_common_ones(void)
 {
-    // whatever profile is compiled in, a scan anchors on the minimum, so these orderings are what
-    // make the first sieve row selective
-    TEST_ASSERT_LESS_THAN_UINT8_MESSAGE(mmgr_ancorae_impensa((unsigned char)' '), mmgr_ancorae_impensa((unsigned char)'q'),
+            TEST_ASSERT_LESS_THAN_UINT8_MESSAGE(mmgr_ancorae_impensa((unsigned char)' '), mmgr_ancorae_impensa((unsigned char)'q'),
                                         "space is the most common byte in text and must cost more than q");
     TEST_ASSERT_LESS_THAN_UINT8_MESSAGE(mmgr_ancorae_impensa((unsigned char)'e'), mmgr_ancorae_impensa((unsigned char)'z'),
                                         "z is rarer than e");

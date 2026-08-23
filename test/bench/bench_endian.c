@@ -1,14 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// What a fixed width read or write costs, in each byte order, at each width.
-//
-// Through the tables a caller uses, not through the bodies: the point is what the shipped call
-// costs once the config literal, the dispatch and the always_inline body have all met, which is a
-// thing only the real path can answer.
-//
-// One order is the host's and the other is not, so the pair of numbers at each width is the price
-// of the byte order itself. Everything else about the two calls is identical.
 #include <stdio.h>
 
 #include "bench_harness.h"

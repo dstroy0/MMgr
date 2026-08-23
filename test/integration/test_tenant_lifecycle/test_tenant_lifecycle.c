@@ -1,11 +1,3 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// custodia_soluta / occultum_custodiae -> confinium -> spatium
-//
-// The allocator stack, exercised as a stack. A guardian hands out a tenant, the tenant hands out
-// bytes from two ends, a span wraps them, and a mark release has to put everything back without
-// disturbing what was taken before the mark.
 #include "unity.h"
 
 #include "custodia_soluta/custodia_soluta.h"
@@ -77,9 +69,7 @@ void test_a_span_over_pool_bytes_writes_inside_the_pool(void)
 
 void test_the_pool_refuses_rather_than_overruns(void)
 {
-    // one request larger than a whole tenant cannot be satisfied, and must fail rather than
-    // wander into the neighboring loculus
-    void *p = soluta.alloc(soluta.capacity() + 1u, 8u);
+            void *p = soluta.alloc(soluta.capacity() + 1u, 8u);
     TEST_ASSERT_NULL_MESSAGE(p, "a request past the tenant must fail, not overrun");
     TEST_ASSERT_EQUAL_size_t(0u, soluta.used());
 }
@@ -119,14 +109,13 @@ void test_secure_release_wipes_what_it_gives_back(void)
     unsigned char *p = (unsigned char *)secura.alloc(32u, 8u);
     TEST_ASSERT_NOT_NULL(p);
 
-    memor.set(p, 0xA5u, 32u);
+    mmgr_memor_set(p, (uint8_t)0xA5u, (size_t)32u);
     TEST_ASSERT_EQUAL_UINT8(0xA5u, p[0]);
     TEST_ASSERT_EQUAL_UINT8(0xA5u, p[31]);
 
     secura.release(mark);
 
-    // the bytes are back in the pool; taking them again must not hand back the old contents
-    unsigned char *again = (unsigned char *)secura.alloc(32u, 8u);
+        unsigned char *again = (unsigned char *)secura.alloc(32u, 8u);
     TEST_ASSERT_EQUAL_PTR_MESSAGE(p, again, "the same bytes should come back");
     for (unsigned i = 0; i < 32u; i++)
     {

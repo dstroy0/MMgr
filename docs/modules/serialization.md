@@ -9,10 +9,7 @@ Building or parsing a binary frame where the layout is fixed and the byte order 
 ```c
 mmgr_spat s = spat.from(buf, sizeof buf);
 
-byteio.put(&s, 0x01);                   /* one byte              */
-byteio.put_be(&s, 0x1234, 2);           /* big-endian, 2 bytes   */
-byteio.raw(&s, payload, payload_len);   /* opaque bytes          */
-
+byteio.put(&s, 0x01);                   byteio.put_be(&s, 0x1234, 2);           byteio.raw(&s, payload, payload_len);   
 size_t at = 0u;
 uint32_t v = 0;
 byteio.rd_u32(frame, frame_len, &at, &v);
@@ -41,9 +38,7 @@ Bit-level output for formats that are not byte-aligned.
 
 ```c
 BitorumCfg w = {.out = buf, .cap = sizeof buf};
-mmgr_bitor_put(w, 0b101, 3);   /* three bits  */
-mmgr_bitor_put(w, value, 12);  /* twelve bits */
-```
+mmgr_bitor_put(w, 0b101, 3);   mmgr_bitor_put(w, value, 12);  ```
 
 The writer is the config. There is nothing to open it with: the caller has the buffer and its size,
 which is everything the first put needs, and it carries the same object from one put to the next.
