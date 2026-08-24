@@ -6,7 +6,6 @@
 
 #include "config/mmgr_compiler_directives.h"
 
-
 typedef uint8_t mmgr_u8;
 typedef uint16_t mmgr_u16;
 typedef uint32_t mmgr_u32;
@@ -30,10 +29,13 @@ typedef _Bool mmgr_bool;
 
 #if MMGR_WORD_BITS == 64
 typedef mmgr_u64 mmgr_word;
+typedef mmgr_i64 mmgr_iword;
 #elif MMGR_WORD_BITS == 32
 typedef mmgr_u32 mmgr_word;
+typedef mmgr_i32 mmgr_iword;
 #elif MMGR_WORD_BITS == 16
 typedef mmgr_u16 mmgr_word;
+typedef mmgr_i16 mmgr_iword;
 #else
 #error "MMGR_WORD_BITS must be 16, 32 or 64 - see mmgr_config.h"
 #endif
@@ -51,6 +53,7 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_u16) * 8u == 16u, "mmgr_u16 must be exactly 16 bi
 MMGR_STATIC_ASSERT(sizeof(mmgr_u32) * 8u == 32u, "mmgr_u32 must be exactly 32 bits");
 MMGR_STATIC_ASSERT(sizeof(mmgr_u64) * 8u == 64u, "mmgr_u64 must be exactly 64 bits");
 MMGR_STATIC_ASSERT(sizeof(mmgr_word) * 8u == MMGR_WORD_BITS, "mmgr_word must be exactly MMGR_WORD_BITS wide");
+MMGR_STATIC_ASSERT(sizeof(mmgr_iword) == sizeof(mmgr_word), "the signed word must be the same register as the word");
 MMGR_STATIC_ASSERT(sizeof(mmgr_idx) * 8u == MMGR_INDEX_BITS, "mmgr_idx must be exactly MMGR_INDEX_BITS wide");
 MMGR_STATIC_ASSERT(sizeof(mmgr_idx) <= sizeof(mmgr_word), "an index must fit the register it is carried in");
 

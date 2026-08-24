@@ -3,22 +3,34 @@
 #include "proximus_operor/proximus_operor.h"
 #include "verbum_scrutor/verbum_scrutor.h"
 
+typedef struct
+{
+    uint8_t *restrict dst;
+    const uint8_t *restrict src;
+    size_t n;
+} MemorCpyCtx;
 
 typedef struct
 {
-    unsigned char *restrict dst;        const unsigned char *restrict src;  size_t n;                       } MemorCpyCtx;
+    uint8_t *dst;
+    const uint8_t *src;
+    size_t n;
+} MemorMoveCtx;
 
 typedef struct
 {
-    unsigned char *dst;         const unsigned char *src;   size_t n;               } MemorMoveCtx;
+    const uint8_t *src;
+    const uint8_t *other;
+    size_t n;
+    uint8_t v;
+} MemorScanCtx;
 
 typedef struct
 {
-    const unsigned char *src;   const unsigned char *other; size_t n;                   uint8_t v;          } MemorScanCtx;
-
-typedef struct
-{
-    unsigned char *dst;         size_t n;                   uint8_t v;          } MemorSetCtx;
+    uint8_t *dst;
+    size_t n;
+    uint8_t v;
+} MemorSetCtx;
 
 MMGR_INLINE void memor_cpy(MemorCpyCtx *c)
 {
@@ -29,7 +41,8 @@ MMGR_INLINE void memor_cpy(MemorCpyCtx *c)
     {
         do
         {
-            proxim.mv_put(c->dst, proxim.mv_load(c->src));
+            MMGR_CALL(proxim.al_put, ProximusCfg, .dst = c->dst,
+                      .val = MMGR_CALL(proxim.al_load, ProximusCfg, .at = c->src));
             c->dst += MMGR_RAW_WORD;
             c->src += MMGR_RAW_WORD;
             w -= MMGR_RAW_WORD;
@@ -65,24 +78,26 @@ MMGR_INLINE void memor_move_up(MemorMoveCtx *c)
         {
             c->dst -= MMGR_RAW_WORD;
             c->src -= MMGR_RAW_WORD;
-            proxim.mv_put(c->dst, proxim.mv_load(c->src));
+            MMGR_CALL(proxim.al_put, ProximusCfg, .dst = c->dst,
+                      .val = MMGR_CALL(proxim.al_load, ProximusCfg, .at = c->src));
             w -= MMGR_RAW_WORD;
         } while (w);
     }
 }
 
-MMGR_INLINE int memor_cmp(MemorScanCtx *c)
+MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *c)
 {
     for (size_t at = 0; at < c->n; at += MMGR_SWAR_BYTES)
     {
-        const mmgr_scrut_word d = (mmgr_scrut_word)proxim.load(c->src + at, MMGR_SWAR_BYTES) ^
-                                  (mmgr_scrut_word)proxim.load(c->other + at, MMGR_SWAR_BYTES);
-        const mmgr_scrut_word m =
-            (mmgr_scrut_word)((MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(d)) & mmgr_scrut_lanes_below(c->n - at));
+        const mmgr_word d = MMGR_CALL(word.load, ScrutWordCfg, .at = c->src + at) ^
+                                  MMGR_CALL(word.load, ScrutWordCfg, .at = c->other + at);
+        const mmgr_word m =
+            (mmgr_word)((MMGR_VERBUM_SCRUTOR_HIGH & ~MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = d)) &
+                              MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .n = c->n - at));
         if (m != 0)
         {
-            const size_t k = at + scrut.zero_lane(m);
-            return (int)c->src[k] - (int)c->other[k];
+            const size_t k = at + MMGR_CALL(lane.first, ScrutLaneCfg, .m = m);
+            return (mmgr_iword)c->src[k] - (mmgr_iword)c->other[k];
         }
     }
     return 0;
@@ -92,12 +107,13 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *c)
 {
     for (size_t at = 0; at < c->n; at += MMGR_SWAR_BYTES)
     {
-        const mmgr_scrut_word m =
-            (mmgr_scrut_word)(scrut.eq((mmgr_scrut_word)proxim.load(c->src + at, MMGR_SWAR_BYTES), c->v, MMGR_FALSE) &
-                              mmgr_scrut_lanes_below(c->n - at));
+        const mmgr_word w = MMGR_CALL(word.load, ScrutWordCfg, .at = c->src + at);
+        const mmgr_word m =
+            (mmgr_word)(MMGR_CALL(lane.eq, ScrutLaneCfg, .w = w, .byte = c->v, .ci = MMGR_FALSE) &
+                              MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .n = c->n - at));
         if (m != 0)
         {
-            return c->src + at + scrut.zero_lane(m);
+            return c->src + at + MMGR_CALL(lane.first, ScrutLaneCfg, .m = m);
         }
     }
     return NULL;
@@ -113,7 +129,7 @@ MMGR_INLINE void memor_set(MemorSetCtx *c)
     {
         do
         {
-            proxim.mv_put(c->dst, fill);
+            MMGR_CALL(proxim.al_put, ProximusCfg, .dst = c->dst, .val = fill);
             c->dst += MMGR_RAW_WORD;
             w -= MMGR_RAW_WORD;
         } while (w);
@@ -127,29 +143,28 @@ MMGR_INLINE void memor_set(MemorSetCtx *c)
     }
 }
 
-void (mmgr_memor_cpy)(const MemoriaCfg *c)
+void mmgr_memor_cpy(const MemoriaCfg *c)
 {
-    MMGR_CALL(memor_cpy, MemorCpyCtx, .dst = (unsigned char *)c->dst, .src = (const unsigned char *)c->src, .n = c->n);
+    MMGR_CALL(memor_cpy, MemorCpyCtx, .dst = (uint8_t *)c->dst, .src = (const uint8_t *)c->src, .n = c->n);
 }
 
-void (mmgr_memor_move_up)(const MemoriaCfg *c)
+void mmgr_memor_move_up(const MemoriaCfg *c)
 {
-    MMGR_CALL(memor_move_up, MemorMoveCtx, .dst = (unsigned char *)c->dst, .src = (const unsigned char *)c->src,
-              .n = c->n);
+    MMGR_CALL(memor_move_up, MemorMoveCtx, .dst = (uint8_t *)c->dst, .src = (const uint8_t *)c->src, .n = c->n);
 }
 
-int (mmgr_memor_cmp)(const MemoriaCfg *c)
+mmgr_iword mmgr_memor_cmp(const MemoriaCfg *c)
 {
-    return MMGR_CALL(memor_cmp, MemorScanCtx, .src = (const unsigned char *)c->src,
-                     .other = (const unsigned char *)c->other, .n = c->n);
+    return MMGR_CALL(memor_cmp, MemorScanCtx, .src = (const uint8_t *)c->src, .other = (const uint8_t *)c->other,
+                     .n = c->n);
 }
 
-const void *(mmgr_memor_chr)(const MemoriaCfg *c)
+const void *mmgr_memor_chr(const MemoriaCfg *c)
 {
-    return MMGR_CALL(memor_chr, MemorScanCtx, .src = (const unsigned char *)c->src, .n = c->n, .v = c->v);
+    return MMGR_CALL(memor_chr, MemorScanCtx, .src = (const uint8_t *)c->src, .n = c->n, .v = c->v);
 }
 
-void (mmgr_memor_set)(const MemoriaCfg *c)
+void mmgr_memor_set(const MemoriaCfg *c)
 {
-    MMGR_CALL(memor_set, MemorSetCtx, .dst = (unsigned char *)c->dst, .n = c->n, .v = c->v);
+    MMGR_CALL(memor_set, MemorSetCtx, .dst = (uint8_t *)c->dst, .n = c->n, .v = c->v);
 }

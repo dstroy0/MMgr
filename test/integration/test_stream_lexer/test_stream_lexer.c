@@ -48,7 +48,7 @@ void setUp(void)
     memset(ring_buf, POISON, sizeof ring_buf);
     memset(out, POISON, sizeof out);
     memset(&held, 0, sizeof held);
-    (void)iteratio_infinita.init(&ring, &(RingCfg){ring_buf, CAP, SEGS, &held});
+    (void)iteratio_infinita.init(&(RingCfg){&ring, ring_buf, CAP, SEGS, &held});
     g_state = 1u;
     g_esc = 0u;
     g_dest = out;

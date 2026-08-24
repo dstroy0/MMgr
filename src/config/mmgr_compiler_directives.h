@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 
-
 #if defined(__clang__)
 #define MMGR_CC_CLANG 1
 #else
@@ -43,7 +42,7 @@
 #endif
 
 #ifdef __cplusplus
-#define MMGR_INCIPE_DECLS                                                                                               \
+#define MMGR_INCIPE_DECLS                                                                                              \
     extern "C"                                                                                                         \
     {
 #define MMGR_FINIS_DECLS }
@@ -66,8 +65,8 @@
 
 #define MMGR_FP_SIZE (sizeof(void (*)(void)))
 
-#define MMGR_NS_LOCULUS(T, member, loculus)                                                                                  \
-    MMGR_STATIC_ASSERT(offsetof(T, member) == (size_t)(loculus) * MMGR_FP_SIZE,                                           \
+#define MMGR_NS_LOCULUS(T, member, loculus)                                                                            \
+    MMGR_STATIC_ASSERT(offsetof(T, member) == (size_t)(loculus) * MMGR_FP_SIZE,                                        \
                        #T "." #member " is not at dispatch loculus " #loculus)
 
 #define MMGR_NS_L1(T, a) MMGR_NS_LOCULUS(T, a, 0);
@@ -120,7 +119,6 @@
                            #T "." #tail " does not begin where the dispatch run ends")
 
 #define MMGR_NS static const
-
 
 #if MMGR_HAS_ATTRIBUTE(packed)
 #define MMGR_ENUM_PACKED __attribute__((packed))

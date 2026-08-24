@@ -1,32 +1,43 @@
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 
+#include "endian/endian.h"
 #include "proximus_operor/proximus_operor.h"
 
-
-MMGR_INLINE uint64_t octet_rev(uint64_t v)
+typedef struct
 {
-    v = ((v & 0x00FF00FF00FF00FFull) << 8) | ((v >> 8) & 0x00FF00FF00FF00FFull);
-    v = ((v & 0x0000FFFF0000FFFFull) << 16) | ((v >> 16) & 0x0000FFFF0000FFFFull);
-    return (v << 32) | (v >> 32);
+    uint8_t *at;
+    uint64_t val;
+    size_t n;
+} OctetPutCtx;
+
+typedef struct
+{
+    const uint8_t *from;
+    uint64_t *out;
+    size_t n;
+} OctetTakeCtx;
+
+MMGR_INLINE void octet_put(const OctetPutCtx *c)
+{
+    const uint64_t v = c->val << (8u * (8u - c->n));
+
+    MMGR_CALL(proxim.al_put64, ProximusCfg, .dst = c->at,
+              .val = MMGR_CALL(magna_extremitas.rev, EndianCfg, .v = v, .n = MMGR_ENDIAN_64));
 }
 
-MMGR_INLINE void octet_put(const OctetusCfg *c)
+MMGR_INLINE void octet_take(const OctetTakeCtx *c)
 {
-    proxim.al_put_u64(c->at, octet_rev(c->val << (8u * (8u - c->n))));
+    const uint64_t v = MMGR_CALL(proxim.al_load64, ProximusCfg, .at = c->from);
+
+    *c->out = MMGR_CALL(magna_extremitas.rev, EndianCfg, .v = v, .n = (mmgr_endian_width)c->n);
 }
 
-MMGR_INLINE void octet_take(const OctetusCfg *c)
+void mmgr_octet_put(const OctetusCfg *c)
 {
-    *c->out = octet_rev(proxim.al_load(c->from, 8u)) >> (8u * (8u - c->n));
+    MMGR_CALL(octet_put, OctetPutCtx, .at = c->at, .val = c->val, .n = c->n);
 }
 
-
-void (mmgr_octet_put)(const OctetusCfg *c)
+void mmgr_octet_take(const OctetusCfg *c)
 {
-    octet_put(c);
-}
-
-void (mmgr_octet_take)(const OctetusCfg *c)
-{
-    octet_take(c);
+    MMGR_CALL(octet_take, OctetTakeCtx, .from = c->from, .out = c->out, .n = c->n);
 }

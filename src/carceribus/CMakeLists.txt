@@ -3,6 +3,4 @@
 
 mmgr_add_module(carceribus
   SOURCES carceribus.c
-  DEPS
-    memoria_operor
 )

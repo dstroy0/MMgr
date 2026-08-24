@@ -19,7 +19,7 @@ void setUp(void)
     {
         arrived[i] = (uint8_t)(i + 1u);
     }
-    (void)iteratio_infinita.init(&ring, &(RingCfg){buf, CAP, SEGS, &held});
+    (void)iteratio_infinita.init(&(RingCfg){&ring, buf, CAP, SEGS, &held});
 
     struct MmgrCursor *const cur = iteratio_infinita.open(&(InfinCfg){.r = &ring, .owner = &owner});
     (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = arrived, .n = CAP - 1u, .sing = &bytewise});

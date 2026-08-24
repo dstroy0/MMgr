@@ -1,9 +1,14 @@
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
 
-
 typedef struct
 {
-    uint8_t *const out;     const size_t cap;       size_t cnt;             uint32_t acc;           int nbits;              mmgr_bool overflow; } BitorCtx;
+    uint8_t *const out;
+    const size_t cap;
+    size_t cnt;
+    uint32_t acc;
+    mmgr_iword nbits;
+    mmgr_bool overflow;
+} BitorCtx;
 
 MMGR_INLINE void bitor_put(BitorCtx *c)
 {
@@ -31,19 +36,14 @@ MMGR_INLINE void bitor_put(BitorCtx *c)
     }
 
     c->cnt += whole;
-    c->nbits -= (int)(whole * 8u);
+    c->nbits -= (mmgr_iword)(whole * 8u);
     c->acc = acc;
 }
 
-
-void (mmgr_bitor_put)(BitorumCfg *c)
+void mmgr_bitor_put(BitorumCfg *c)
 {
-    BitorCtx x = {.out = c->out,
-                  .cap = c->cap,
-                  .cnt = c->cnt,
-                  .acc = c->acc,
-                  .nbits = c->nbits,
-                  .overflow = c->overflow};
+    BitorCtx x = {
+        .out = c->out, .cap = c->cap, .cnt = c->cnt, .acc = c->acc, .nbits = c->nbits, .overflow = c->overflow};
 
     bitor_put(&x);
 
@@ -52,4 +52,3 @@ void (mmgr_bitor_put)(BitorumCfg *c)
     c->nbits = x.nbits;
     c->overflow = x.overflow;
 }
-

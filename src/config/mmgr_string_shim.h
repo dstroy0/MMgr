@@ -2,9 +2,8 @@
 #define MMGR_STRING_SHIM_H
 
 #include "cellularum_laboro/cellularum_laboro.h"
-#include "memoria_operor/memoria_operor.h"
 #include "config/mmgr_config.h"
-
+#include "memoria_operor/memoria_operor.h"
 
 #ifndef MMGR_STR_MAX
 #define MMGR_STR_MAX MMGR_CARCER_MAX
@@ -28,40 +27,39 @@
 
 MMGR_INCIPE_DECLS
 
-
 MMGR_INLINE void *mmgr_shim_cpy(void *dst, const void *src, size_t n)
 {
-    mmgr_memor_cpy(dst, src, n);
+    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = dst, .src = src, .n = n);
     return dst;
 }
 
 MMGR_INLINE void *mmgr_shim_move(void *dst, const void *src, size_t n)
 {
-    if ((const unsigned char *)dst <= (const unsigned char *)src)
+    if ((const uint8_t *)dst <= (const uint8_t *)src)
     {
-        mmgr_memor_move_down(dst, src, n);
+        MMGR_CALL(memor.move_down, MemoriaCfg, .dst = dst, .src = src, .n = n);
     }
     else
     {
-        mmgr_memor_move_up(dst, src, n);
+        MMGR_CALL(memor.move_up, MemoriaCfg, .dst = dst, .src = src, .n = n);
     }
     return dst;
 }
 
-MMGR_INLINE void *mmgr_shim_set(void *dst, int c, size_t n)
+MMGR_INLINE void *mmgr_shim_set(void *dst, mmgr_iword c, size_t n)
 {
-    mmgr_memor_set(dst, (uint8_t)c, n);
+    MMGR_CALL(memor.set, MemoriaCfg, .dst = dst, .v = (uint8_t)c, .n = n);
     return dst;
 }
 
-MMGR_INLINE int mmgr_shim_cmp(const void *a, const void *b, size_t n)
+MMGR_INLINE mmgr_iword mmgr_shim_cmp(const void *a, const void *b, size_t n)
 {
-    return mmgr_memor_cmp(a, b, n);
+    return MMGR_CALL(memor.cmp, MemoriaCfg, .src = a, .other = b, .n = n);
 }
 
-MMGR_INLINE void *mmgr_shim_chr(const void *p, int c, size_t n)
+MMGR_INLINE void *mmgr_shim_chr(const void *p, mmgr_iword c, size_t n)
 {
-    return (void *)(size_t)mmgr_memor_chr(p, n, (uint8_t)c);
+    return (void *)(size_t)MMGR_CALL(memor.chr, MemoriaCfg, .src = p, .n = n, .v = (uint8_t)c);
 }
 
 #define memcpy(dst, src, n) mmgr_shim_cpy((dst), (src), (n))
@@ -75,7 +73,8 @@ MMGR_INLINE void *mmgr_shim_chr(const void *p, int c, size_t n)
 #define strnlen(s, n) mmgr_cellul_len((s), (n))
 
 #define strstr(hay, needle) ((char *)(size_t)mmgr_cellul_find((hay), MMGR_STR_MAX, (needle), MMGR_STR_MAX, MMGR_FALSE))
-#define strcasestr(hay, needle) ((char *)(size_t)mmgr_cellul_find((hay), MMGR_STR_MAX, (needle), MMGR_STR_MAX, MMGR_TRUE))
+#define strcasestr(hay, needle)                                                                                        \
+    ((char *)(size_t)mmgr_cellul_find((hay), MMGR_STR_MAX, (needle), MMGR_STR_MAX, MMGR_TRUE))
 
 #define strcmp(a, b) (!mmgr_cellul_eq((a), (b), MMGR_STR_MAX, MMGR_FALSE))
 #define strcasecmp(a, b) (!mmgr_cellul_eq((a), (b), MMGR_STR_MAX, MMGR_TRUE))

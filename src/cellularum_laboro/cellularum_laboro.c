@@ -17,24 +17,24 @@ typedef struct
     const size_t at;
     const uint8_t byte;
     const mmgr_bool ci;
-    const int end_wins;
+    const mmgr_iword end_wins;
     const uint8_t **const out;
     uint32_t *const slen;
 
-    const mmgr_scrut_word wa;
-    const mmgr_scrut_word wb;
-    const unsigned char ca;
-    const unsigned char cb;
+    const mmgr_word wa;
+    const mmgr_word wb;
+    const uint8_t ca;
+    const uint8_t cb;
 
     const size_t nlen;
     size_t *const rows;
     const size_t k;
-    const unsigned fmask;
+    const mmgr_word fmask;
     size_t *const off;
 
     const char **const end;
     const char **const cur;
-    int *const exp;
+    mmgr_iword *const exp;
 
     const uint8_t *const m;
     const uint32_t mlen;
@@ -43,10 +43,10 @@ typedef struct
 } CellulCtx;
 
 
-MMGR_INLINE int cellul_step_word_cs(const CellulCtx *c)
+MMGR_INLINE mmgr_iword cellul_step_word_cs(const CellulCtx *c)
 {
-    const mmgr_scrut_word x = c->wa ^ c->wb;
-    const mmgr_scrut_word z = scrut.has_zero(c->wa);
+    const mmgr_word x = c->wa ^ c->wb;
+    const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = c->wa);
 
     if ((x | z) == 0)
     {
@@ -56,12 +56,13 @@ MMGR_INLINE int cellul_step_word_cs(const CellulCtx *c)
     size_t dl = MMGR_SWAR_BYTES;
     if (x != 0)
     {
-        dl = scrut.zero_lane(MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(x));
+        dl = MMGR_CALL(lane.first, ScrutLaneCfg,
+                       .m = MMGR_VERBUM_SCRUTOR_HIGH & ~MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = x));
     }
     size_t el = MMGR_SWAR_BYTES;
     if (z != 0)
     {
-        el = scrut.zero_lane(z);
+        el = MMGR_CALL(lane.first, ScrutLaneCfg, .m = z);
     }
     if (c->end_wins)
     {
@@ -70,10 +71,10 @@ MMGR_INLINE int cellul_step_word_cs(const CellulCtx *c)
     return (el < dl) ? MMGR_SWAR_YES : MMGR_SWAR_NO;
 }
 
-MMGR_INLINE int cellul_step_word_ci(const CellulCtx *c)
+MMGR_INLINE mmgr_iword cellul_step_word_ci(const CellulCtx *c)
 {
-    const mmgr_scrut_word x = scrut.xor_(c->wa, c->wb, MMGR_TRUE);
-    const mmgr_scrut_word z = scrut.has_zero(c->wa);
+    const mmgr_word x = MMGR_CALL(lane.xor_, ScrutLaneCfg, .w = c->wa, .v = c->wb, .ci = MMGR_TRUE);
+    const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = c->wa);
 
     if ((x | z) == 0)
     {
@@ -83,12 +84,13 @@ MMGR_INLINE int cellul_step_word_ci(const CellulCtx *c)
     size_t dl = MMGR_SWAR_BYTES;
     if (x != 0)
     {
-        dl = scrut.zero_lane(MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(x));
+        dl = MMGR_CALL(lane.first, ScrutLaneCfg,
+                       .m = MMGR_VERBUM_SCRUTOR_HIGH & ~MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = x));
     }
     size_t el = MMGR_SWAR_BYTES;
     if (z != 0)
     {
-        el = scrut.zero_lane(z);
+        el = MMGR_CALL(lane.first, ScrutLaneCfg, .m = z);
     }
     if (c->end_wins)
     {
@@ -97,7 +99,7 @@ MMGR_INLINE int cellul_step_word_ci(const CellulCtx *c)
     return (el < dl) ? MMGR_SWAR_YES : MMGR_SWAR_NO;
 }
 
-MMGR_INLINE int cellul_step_byte_cs(const CellulCtx *c)
+MMGR_INLINE mmgr_iword cellul_step_byte_cs(const CellulCtx *c)
 {
     if (c->ca == 0)
     {
@@ -114,9 +116,10 @@ MMGR_INLINE int cellul_step_byte_cs(const CellulCtx *c)
     return MMGR_SWAR_GO;
 }
 
-MMGR_INLINE int cellul_step_byte_ci(const CellulCtx *c)
+MMGR_INLINE mmgr_iword cellul_step_byte_ci(const CellulCtx *c)
 {
-    const mmgr_scrut_word d = scrut.xor_((mmgr_scrut_word)c->ca, (mmgr_scrut_word)c->cb, MMGR_TRUE);
+    const mmgr_word d =
+        MMGR_CALL(lane.xor_, ScrutLaneCfg, .w = (mmgr_word)c->ca, .v = (mmgr_word)c->cb, .ci = MMGR_TRUE);
 
     if (c->ca == 0)
     {
@@ -146,15 +149,17 @@ MMGR_INLINE mmgr_bool cellul_is_digit(char ch)
 
 MMGR_INLINE size_t cellul_len(const CellulCtx *c)
 {
-    const size_t nw = mmgr_scrut_words(c->cap);
+    const size_t nw = MMGR_CALL(word.count, ScrutWordCfg, .n = c->cap);
 
     for (size_t wi = 0; wi < nw; ++wi)
     {
         const size_t at = wi * MMGR_SWAR_BYTES;
-        const mmgr_scrut_word m = scrut.has_zero(scrut.load(c->s + at)) & mmgr_scrut_tail_mask(c->cap, wi);
+        const mmgr_word m =
+            MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = MMGR_CALL(word.load, ScrutWordCfg, .at = c->s + at)) &
+            MMGR_CALL(mask.tail, ScrutMaskCfg, .n = c->cap, .wi = wi);
         if (m != 0)
         {
-            return at + scrut.zero_lane(m);
+            return at + MMGR_CALL(lane.first, ScrutLaneCfg, .m = m);
         }
     }
     return c->cap;
@@ -167,19 +172,20 @@ MMGR_INLINE const char *cellul_chr(const CellulCtx *c)
         return c->s + cellul_len(c);
     }
 
-    const size_t nw = mmgr_scrut_words(c->cap);
+    const size_t nw = MMGR_CALL(word.count, ScrutWordCfg, .n = c->cap);
 
     for (size_t wi = 0; wi < nw; ++wi)
     {
         const size_t at = wi * MMGR_SWAR_BYTES;
-        const mmgr_scrut_word w = scrut.load(c->s + at);
-        const mmgr_scrut_word keep = mmgr_scrut_tail_mask(c->cap, wi);
-        const mmgr_scrut_word end = scrut.has_zero(w) & keep;
-        const mmgr_scrut_word hit = scrut.eq(w, c->byte, MMGR_FALSE) & keep & mmgr_scrut_lanes_before(end);
+        const mmgr_word w = MMGR_CALL(word.load, ScrutWordCfg, .at = c->s + at);
+        const mmgr_word keep = MMGR_CALL(mask.tail, ScrutMaskCfg, .n = c->cap, .wi = wi);
+        const mmgr_word end = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = w) & keep;
+        const mmgr_word hit = MMGR_CALL(lane.eq, ScrutLaneCfg, .w = w, .byte = c->byte, .ci = MMGR_FALSE) &
+                                    keep & MMGR_CALL(mask.before, ScrutMaskCfg, .m = end);
 
         if (hit != 0)
         {
-            return c->s + at + scrut.zero_lane(hit);
+            return c->s + at + MMGR_CALL(lane.first, ScrutLaneCfg, .m = hit);
         }
         if (end != 0)
         {
@@ -191,17 +197,18 @@ MMGR_INLINE const char *cellul_chr(const CellulCtx *c)
 
 MMGR_INLINE size_t cellul_diff_cs(const CellulCtx *c)
 {
-    const size_t nw = mmgr_scrut_words(c->cap);
+    const size_t nw = MMGR_CALL(word.count, ScrutWordCfg, .n = c->cap);
 
     for (size_t wi = 0; wi < nw; ++wi)
     {
         const size_t at = wi * MMGR_SWAR_BYTES;
-        const mmgr_scrut_word d = scrut.load(c->s + at) ^ scrut.load(c->t + at);
-        const mmgr_scrut_word m =
-            (MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(d)) & mmgr_scrut_tail_mask(c->cap, wi);
+        const mmgr_word d = MMGR_CALL(word.load, ScrutWordCfg, .at = c->s + at) ^
+                                  MMGR_CALL(word.load, ScrutWordCfg, .at = c->t + at);
+        const mmgr_word m = (MMGR_VERBUM_SCRUTOR_HIGH & ~MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = d)) &
+                                  MMGR_CALL(mask.tail, ScrutMaskCfg, .n = c->cap, .wi = wi);
         if (m != 0)
         {
-            return at + scrut.zero_lane(m);
+            return at + MMGR_CALL(lane.first, ScrutLaneCfg, .m = m);
         }
     }
     return c->cap;
@@ -209,17 +216,19 @@ MMGR_INLINE size_t cellul_diff_cs(const CellulCtx *c)
 
 MMGR_INLINE size_t cellul_diff_ci(const CellulCtx *c)
 {
-    const size_t nw = mmgr_scrut_words(c->cap);
+    const size_t nw = MMGR_CALL(word.count, ScrutWordCfg, .n = c->cap);
 
     for (size_t wi = 0; wi < nw; ++wi)
     {
         const size_t at = wi * MMGR_SWAR_BYTES;
-        const mmgr_scrut_word d = scrut.xor_(scrut.load(c->s + at), scrut.load(c->t + at), MMGR_TRUE);
-        const mmgr_scrut_word m =
-            (MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(d)) & mmgr_scrut_tail_mask(c->cap, wi);
+        const mmgr_word d = MMGR_CALL(lane.xor_, ScrutLaneCfg,
+                                            .w = MMGR_CALL(word.load, ScrutWordCfg, .at = c->s + at),
+                                            .v = MMGR_CALL(word.load, ScrutWordCfg, .at = c->t + at), .ci = MMGR_TRUE);
+        const mmgr_word m = (MMGR_VERBUM_SCRUTOR_HIGH & ~MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = d)) &
+                                  MMGR_CALL(mask.tail, ScrutMaskCfg, .n = c->cap, .wi = wi);
         if (m != 0)
         {
-            return at + scrut.zero_lane(m);
+            return at + MMGR_CALL(lane.first, ScrutLaneCfg, .m = m);
         }
     }
     return c->cap;
@@ -227,21 +236,22 @@ MMGR_INLINE size_t cellul_diff_ci(const CellulCtx *c)
 
 MMGR_INLINE mmgr_bool cellul_agree_cs(const CellulCtx *c)
 {
-    const size_t nw = mmgr_scrut_words(c->cap);
+    const size_t nw = MMGR_CALL(word.count, ScrutWordCfg, .n = c->cap);
 
     for (size_t wi = 0; wi < nw; ++wi)
     {
         const size_t at = wi * MMGR_SWAR_BYTES;
-        const mmgr_scrut_word keep = mmgr_scrut_tail_mask(c->cap, wi);
-        const mmgr_scrut_word wa = scrut.load(c->s + at);
-        const mmgr_scrut_word wb = scrut.load(c->t + at);
-        const mmgr_scrut_word z = scrut.has_zero(wa) & keep;
-        const mmgr_scrut_word x = (MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(wa ^ wb)) & keep;
+        const mmgr_word keep = MMGR_CALL(mask.tail, ScrutMaskCfg, .n = c->cap, .wi = wi);
+        const mmgr_word wa = MMGR_CALL(word.load, ScrutWordCfg, .at = c->s + at);
+        const mmgr_word wb = MMGR_CALL(word.load, ScrutWordCfg, .at = c->t + at);
+        const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = wa) & keep;
+        const mmgr_word x =
+            (MMGR_VERBUM_SCRUTOR_HIGH & ~MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = wa ^ wb)) & keep;
 
         if ((x | z) != 0)
         {
-            const size_t lz = (z != 0) ? scrut.zero_lane(z) : MMGR_SWAR_BYTES;
-            const size_t lx = (x != 0) ? scrut.zero_lane(x) : MMGR_SWAR_BYTES;
+            const size_t lz = (z != 0) ? MMGR_CALL(lane.first, ScrutLaneCfg, .m = z) : MMGR_SWAR_BYTES;
+            const size_t lx = (x != 0) ? MMGR_CALL(lane.first, ScrutLaneCfg, .m = x) : MMGR_SWAR_BYTES;
             return (mmgr_bool)(c->end_wins ? (lz <= lx) : (lz < lx));
         }
     }
@@ -250,22 +260,23 @@ MMGR_INLINE mmgr_bool cellul_agree_cs(const CellulCtx *c)
 
 MMGR_INLINE mmgr_bool cellul_agree_ci(const CellulCtx *c)
 {
-    const size_t nw = mmgr_scrut_words(c->cap);
+    const size_t nw = MMGR_CALL(word.count, ScrutWordCfg, .n = c->cap);
 
     for (size_t wi = 0; wi < nw; ++wi)
     {
         const size_t at = wi * MMGR_SWAR_BYTES;
-        const mmgr_scrut_word keep = mmgr_scrut_tail_mask(c->cap, wi);
-        const mmgr_scrut_word wa = scrut.load(c->s + at);
-        const mmgr_scrut_word wb = scrut.load(c->t + at);
-        const mmgr_scrut_word z = scrut.has_zero(wa) & keep;
-        const mmgr_scrut_word x =
-            (MMGR_VERBUM_SCRUTOR_HIGH & ~scrut.has_zero(scrut.xor_(wa, wb, MMGR_TRUE))) & keep;
+        const mmgr_word keep = MMGR_CALL(mask.tail, ScrutMaskCfg, .n = c->cap, .wi = wi);
+        const mmgr_word wa = MMGR_CALL(word.load, ScrutWordCfg, .at = c->s + at);
+        const mmgr_word wb = MMGR_CALL(word.load, ScrutWordCfg, .at = c->t + at);
+        const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = wa) & keep;
+        const mmgr_word fold = MMGR_CALL(lane.xor_, ScrutLaneCfg, .w = wa, .v = wb, .ci = MMGR_TRUE);
+        const mmgr_word x =
+            (MMGR_VERBUM_SCRUTOR_HIGH & ~MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = fold)) & keep;
 
         if ((x | z) != 0)
         {
-            const size_t lz = (z != 0) ? scrut.zero_lane(z) : MMGR_SWAR_BYTES;
-            const size_t lx = (x != 0) ? scrut.zero_lane(x) : MMGR_SWAR_BYTES;
+            const size_t lz = (z != 0) ? MMGR_CALL(lane.first, ScrutLaneCfg, .m = z) : MMGR_SWAR_BYTES;
+            const size_t lx = (x != 0) ? MMGR_CALL(lane.first, ScrutLaneCfg, .m = x) : MMGR_SWAR_BYTES;
             return (mmgr_bool)(c->end_wins ? (lz <= lx) : (lz < lx));
         }
     }
@@ -305,8 +316,8 @@ MMGR_INLINE size_t cellul_pick_rows(const CellulCtx *c)
                 }
             }
 
-            const uint8_t cost =
-                mmgr_ancorae_impensa(cellul_ancorae_fold(&(CellulCtx){.t = c->t, .k = k, .ci = c->ci}));
+            const uint8_t cost = MMGR_CALL(ancorae.impensa, AncoraeCfg,
+                                           .b = cellul_ancorae_fold(&(CellulCtx){.t = c->t, .k = k, .ci = c->ci}));
             if (!taken && (cost < best_cost))
             {
                 best_cost = cost;
@@ -339,9 +350,10 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *c, mmgr_bool ci)
     const size_t nrows = cellul_pick_rows(&(CellulCtx){.t = needle, .nlen = nlen, .rows = rows, .ci = ci});
 
     const size_t take = (nlen > MMGR_SWAR_BYTES) ? MMGR_SWAR_BYTES : nlen;
-    const mmgr_scrut_word nmask = mmgr_scrut_bytes_below(take);
-    const mmgr_scrut_word nraw = scrut.load(needle) & nmask;
-    const mmgr_scrut_word nword = ci ? (mmgr_scrut_fold_lower(nraw) & nmask) : nraw;
+    const mmgr_word nmask = MMGR_CALL(mask.bytes_below, ScrutMaskCfg, .n = take);
+    const mmgr_word nraw = MMGR_CALL(word.load, ScrutWordCfg, .at = needle) & nmask;
+    const mmgr_word nword =
+        ci ? (MMGR_CALL(word.fold_lower, ScrutWordCfg, .w = nraw) & nmask) : nraw;
 
     const size_t starts = read_cap - nlen + 1u;
 
@@ -355,7 +367,8 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *c, mmgr_bool ci)
         }
     }
 
-    const size_t tail = (nlen > take) ? (mmgr_scrut_words(nlen - take) * MMGR_SWAR_BYTES) : 0u;
+    const size_t tail =
+        (nlen > take) ? (MMGR_CALL(word.count, ScrutWordCfg, .n = nlen - take) * MMGR_SWAR_BYTES) : 0u;
     const size_t verify_reach = (MMGR_SWAR_BYTES - 1u) + take + tail;
     const size_t ancorae_reach = maxrow + MMGR_SWAR_BYTES;
     const size_t reach = (ancorae_reach > verify_reach) ? ancorae_reach : verify_reach;
@@ -372,28 +385,33 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *c, mmgr_bool ci)
     for (size_t wi = 0; wi < nw; ++wi)
     {
         const size_t at = wi * MMGR_SWAR_BYTES;
-        const mmgr_scrut_word end = scrut.has_zero(scrut.load(hay + at));
-        mmgr_scrut_word m;
+        const mmgr_word end =
+            MMGR_CALL(lane.has_zero, ScrutLaneCfg, .w = MMGR_CALL(word.load, ScrutWordCfg, .at = hay + at));
+        mmgr_word m;
 
-        m = scrut.eq(scrut.load(hay + at + rows[0]), (uint8_t)needle[rows[0]], ci);
+        m = MMGR_CALL(lane.eq, ScrutLaneCfg, .w = MMGR_CALL(word.load, ScrutWordCfg, .at = hay + at + rows[0]),
+                      .byte = (uint8_t)needle[rows[0]], .ci = ci);
 
         for (size_t r = 1; r < nrows; ++r)
         {
-            m &= scrut.eq(scrut.load(hay + at + rows[r]), (uint8_t)needle[rows[r]], ci);
+            m &= MMGR_CALL(lane.eq, ScrutLaneCfg, .w = MMGR_CALL(word.load, ScrutWordCfg, .at = hay + at + rows[r]),
+                           .byte = (uint8_t)needle[rows[r]], .ci = ci);
         }
 
         if (end != 0)
         {
-            m &= mmgr_scrut_lanes_before(end);
+            m &= MMGR_CALL(mask.before, ScrutMaskCfg, .m = end);
         }
 
         while (m != 0)
         {
-            const size_t k = at + scrut.zero_lane(m);
-            const mmgr_scrut_word cw = scrut.load(hay + k);
+            const size_t k = at + MMGR_CALL(lane.first, ScrutLaneCfg, .m = m);
+            const mmgr_word cw = MMGR_CALL(word.load, ScrutWordCfg, .at = hay + k);
 
-            const mmgr_scrut_word syn =
-                ((!ci || (mmgr_scrut_any_upper(cw) == 0)) ? (cw ^ nword) : scrut.xor_(cw, nword, MMGR_TRUE)) &
+            const mmgr_word syn =
+                ((!ci || (MMGR_CALL(lane.any_upper, ScrutLaneCfg, .w = cw) == 0))
+                     ? (cw ^ nword)
+                     : MMGR_CALL(lane.xor_, ScrutLaneCfg, .w = cw, .v = nword, .ci = MMGR_TRUE)) &
                 nmask;
 
             if (syn == 0)
@@ -411,7 +429,7 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *c, mmgr_bool ci)
                     return hay + k;
                 }
             }
-            m = mmgr_scrut_drop_first(m);
+            m = MMGR_CALL(mask.drop_first, ScrutMaskCfg, .m = m);
         }
         if (end != 0)
         {
@@ -429,8 +447,8 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *c, mmgr_bool ci)
         size_t i = 0;
         while (i < nlen)
         {
-            const unsigned char h = (unsigned char)hay[k + i];
-            const CellulCtx b = {.ca = (unsigned char)needle[i], .cb = h, .end_wins = 0};
+            const uint8_t h = (uint8_t)hay[k + i];
+            const CellulCtx b = {.ca = (uint8_t)needle[i], .cb = h, .end_wins = 0};
 
             if ((h == 0u) || ((ci ? cellul_step_byte_ci(&b) : cellul_step_byte_cs(&b)) == MMGR_SWAR_NO))
             {
@@ -455,7 +473,7 @@ MMGR_INLINE size_t cellul_copy(const CellulCtx *c)
 
     const size_t n = cellul_len(&(CellulCtx){.s = c->s, .cap = c->cap - 1u});
 
-    proxim.read(c->dst, c->s, n);
+    MMGR_CALL(proxim.read, ProximusCfg, .dst = c->dst, .at = c->s, .size = n);
     c->dst[n] = '\0';
     return n;
 }
@@ -482,7 +500,7 @@ MMGR_INLINE mmgr_bool cellul_rd_str(const CellulCtx *c)
 }
 
 
-MMGR_INLINE long cellul_to_long(const CellulCtx *c)
+MMGR_INLINE mmgr_iword cellul_to_long(const CellulCtx *c)
 {
     const char *p = c->s;
 
@@ -498,10 +516,10 @@ MMGR_INLINE long cellul_to_long(const CellulCtx *c)
     }
 
     const char *const ds = p;
-    unsigned long v = 0;
+    mmgr_word v = 0;
     while (cellul_is_digit(*p))
     {
-        v = (v * 10UL) + (unsigned long)(*p++ - '0');
+        v = (mmgr_word)(v * 10u) + (mmgr_word)(*p++ - '0');
     }
 
     if (c->end != NULL)
@@ -510,12 +528,12 @@ MMGR_INLINE long cellul_to_long(const CellulCtx *c)
     }
     if (neg)
     {
-        return (long)(0UL - v);
+        return (mmgr_iword)(0u - v);
     }
-    return (long)v;
+    return (mmgr_iword)v;
 }
 
-MMGR_INLINE unsigned long cellul_to_ulong(const CellulCtx *c)
+MMGR_INLINE mmgr_word cellul_to_ulong(const CellulCtx *c)
 {
     const char *p = c->s;
 
@@ -529,10 +547,10 @@ MMGR_INLINE unsigned long cellul_to_ulong(const CellulCtx *c)
     }
 
     const char *const ds = p;
-    unsigned long v = 0;
+    mmgr_word v = 0;
     while (cellul_is_digit(*p))
     {
-        v = (v * 10UL) + (unsigned long)(*p++ - '0');
+        v = (mmgr_word)(v * 10u) + (mmgr_word)(*p++ - '0');
     }
 
     if (c->end != NULL)
@@ -559,12 +577,12 @@ MMGR_INLINE void cellul_expo(const CellulCtx *c)
         return;
     }
 
-    int ex = 0;
+    mmgr_iword ex = 0;
     while (cellul_is_digit(**c->cur))
     {
         if (ex < MMGR_MUTO_EXP_LIMIT)
         {
-            ex = (ex * 10) + (**c->cur - '0');
+            ex = (mmgr_iword)((ex * 10) + (**c->cur - '0'));
         }
         (*c->cur)++;
     }
@@ -588,13 +606,13 @@ MMGR_INLINE double cellul_to_double(const CellulCtx *c)
 
     mmgr_bool any = MMGR_FALSE;
     mmgr_u64 mant = 0;
-    int drop = 0;
-    int over = 0;
-    int lost = 0;
+    mmgr_iword drop = 0;
+    mmgr_iword over = 0;
+    mmgr_iword lost = 0;
 
     while (cellul_is_digit(*p))
     {
-        if (!mmgr_muto_take(mant, *p))
+        if (!MMGR_CALL(muto.take, TransformoCfg, .mant = &mant, .digit = *p))
         {
             ++over;
             lost |= (*p != '0') ? 1 : 0;
@@ -607,7 +625,7 @@ MMGR_INLINE double cellul_to_double(const CellulCtx *c)
         ++p;
         while (cellul_is_digit(*p))
         {
-            if (mmgr_muto_take(mant, *p))
+            if (MMGR_CALL(muto.take, TransformoCfg, .mant = &mant, .digit = *p))
             {
                 ++drop;
             }
@@ -620,13 +638,14 @@ MMGR_INLINE double cellul_to_double(const CellulCtx *c)
         }
     }
 
-    int ex = 0;
+    mmgr_iword ex = 0;
     if (any && ((*p == 'e') || (*p == 'E')))
     {
         cellul_expo(&(CellulCtx){.cur = &p, .exp = &ex});
     }
 
-    const double val = mmgr_muto_scale(mant, ex + over - drop, lost, neg);
+    const double val =
+        MMGR_CALL(muto.scale, TransformoCfg, .mant = &mant, .ex = (mmgr_iword)(ex + over - drop), .rest = lost, .neg = neg);
 
     if (c->end != NULL)
     {
@@ -654,8 +673,8 @@ MMGR_INLINE mmgr_bool cellul_mpint_fixed(const CellulCtx *c)
     {
         return MMGR_FALSE;
     }
-    mmgr_memor_set(c->field, (uint8_t)0, c->fieldlen);
-    mmgr_memor_cpy(c->field + (c->fieldlen - vlen), c->m + off, (size_t)vlen);
+    MMGR_CALL(memor.set, MemoriaCfg, .dst = c->field, .v = (uint8_t)0, .n = c->fieldlen);
+    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = c->field + (c->fieldlen - vlen), .src = c->m + off, .n = (size_t)vlen);
     return MMGR_TRUE;
 }
 
@@ -739,7 +758,7 @@ mmgr_bool (mmgr_cellul_rd_str)(const CatenaFinitaCfg *c)
                      .slen = c->slen);
 }
 
-int (mmgr_cellul_step_word)(const VerboProgrediorCfg *c)
+mmgr_iword (mmgr_cellul_step_word)(const VerboProgrediorCfg *c)
 {
     if (c->ci)
     {
@@ -748,7 +767,7 @@ int (mmgr_cellul_step_word)(const VerboProgrediorCfg *c)
     return MMGR_CALL(cellul_step_word_cs, CellulCtx, .wa = c->wa, .wb = c->wb, .end_wins = c->end_wins);
 }
 
-int (mmgr_cellul_step_byte)(const VerboProgrediorCfg *c)
+mmgr_iword (mmgr_cellul_step_byte)(const VerboProgrediorCfg *c)
 {
     if (c->ci)
     {
@@ -757,12 +776,12 @@ int (mmgr_cellul_step_byte)(const VerboProgrediorCfg *c)
     return MMGR_CALL(cellul_step_byte_cs, CellulCtx, .ca = c->ca, .cb = c->cb, .end_wins = c->end_wins);
 }
 
-long (mmgr_cellul_to_long)(const TransfiguroCfg *c)
+mmgr_iword (mmgr_cellul_to_long)(const TransfiguroCfg *c)
 {
     return MMGR_CALL(cellul_to_long, CellulCtx, .s = c->s, .end = c->end);
 }
 
-unsigned long (mmgr_cellul_to_ulong)(const TransfiguroCfg *c)
+mmgr_word (mmgr_cellul_to_ulong)(const TransfiguroCfg *c)
 {
     return MMGR_CALL(cellul_to_ulong, CellulCtx, .s = c->s, .end = c->end);
 }

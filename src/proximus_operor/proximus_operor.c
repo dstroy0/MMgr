@@ -1,82 +1,209 @@
 #include "proximus_operor/proximus_operor.h"
 
+typedef uint16_t mmgr_proxim_u16_t MMGR_RAW;
+typedef uint32_t mmgr_proxim_u32_t MMGR_RAW;
+typedef uint64_t mmgr_proxim_u64_t MMGR_RAW;
+
+typedef uint64_t mmgr_aequus_u64_t MMGR_ALIAS;
+
+typedef mmgr_migro_word mmgr_proxim_word_t MMGR_RAW;
+typedef mmgr_migro_word mmgr_aequus_word_t MMGR_ALIAS;
 
 typedef struct
 {
-    unsigned char *d;           const unsigned char *u;     size_t sz;                  size_t i;               } ProximCtx;
+    const uint8_t *at;
+} ProximLoadCtx;
 
-MMGR_INLINE void proxim_head(ProximCtx *c)
+typedef struct
 {
-    const uintptr_t mask = (uintptr_t)(MMGR_RAW_WORD - 1u);
+    uint8_t *dst;
+    uint64_t val;
+} ProximPutCtx;
 
-    while ((c->i < c->sz) && (((uintptr_t)(c->d + c->i) & mask) != 0u))
-    {
-        c->d[c->i] = c->u[c->i];
-        c->i++;
-    }
+typedef struct
+{
+    uint8_t *dst;
+    const uint8_t *src;
+    size_t n;
+} ProximReadCtx;
+
+MMGR_INLINE uint16_t proxim_load16(const ProximLoadCtx *c)
+{
+    return *(const mmgr_proxim_u16_t *)c->at;
 }
 
-MMGR_INLINE void proxim_aligned(ProximCtx *c)
+MMGR_INLINE uint32_t proxim_load32(const ProximLoadCtx *c)
 {
-    while ((c->sz - c->i) >= MMGR_RAW_WORD)
-    {
-        mmgr_migro_put(c->d + c->i, mmgr_migro_load(c->u + c->i));
-        c->i += MMGR_RAW_WORD;
-    }
+    return *(const mmgr_proxim_u32_t *)c->at;
 }
 
-MMGR_INLINE void proxim_straddled(ProximCtx *c)
+MMGR_INLINE uint64_t proxim_load64(const ProximLoadCtx *c)
 {
-    const uintptr_t mask = (uintptr_t)(MMGR_RAW_WORD - 1u);
-    const size_t off = (size_t)((uintptr_t)(c->u + c->i) & mask);
-    const unsigned char *sa = (c->u + c->i) - off;
-    const unsigned lo = (unsigned)(off * 8u);
-    const unsigned hi = (unsigned)(MMGR_MV_BITS - (off * 8u));
-    mmgr_migro_word prev = mmgr_migro_load(sa);
-
-    while ((c->sz - c->i) >= MMGR_RAW_WORD)
-    {
-        sa += MMGR_RAW_WORD;
-        const mmgr_migro_word cur = mmgr_migro_load(sa);
-#if MMGR_HW_BIG_ENDIAN
-        mmgr_migro_put(c->d + c->i, (mmgr_migro_word)((prev << lo) | (cur >> hi)));
-#else
-        mmgr_migro_put(c->d + c->i, (mmgr_migro_word)((prev >> lo) | (cur << hi)));
-#endif
-        prev = cur;
-        c->i += MMGR_RAW_WORD;
-    }
+    return *(const mmgr_proxim_u64_t *)c->at;
 }
 
-MMGR_INLINE void proxim_tail(ProximCtx *c)
+MMGR_INLINE mmgr_migro_word proxim_load(const ProximLoadCtx *c)
 {
-    while (c->i < c->sz)
-    {
-        c->d[c->i] = c->u[c->i];
-        c->i++;
-    }
+    return *(const mmgr_proxim_word_t *)c->at;
 }
 
-MMGR_INLINE void proxim_read(ProximCtx *c)
+MMGR_INLINE mmgr_migro_word aequus_load(const ProximLoadCtx *c)
 {
-    const uintptr_t mask = (uintptr_t)(MMGR_RAW_WORD - 1u);
+    return *(const mmgr_aequus_word_t *)c->at;
+}
 
+MMGR_INLINE uint64_t aequus_load64(const ProximLoadCtx *c)
+{
+    return *(const mmgr_aequus_u64_t *)c->at;
+}
+
+MMGR_INLINE void proxim_put16(const ProximPutCtx *c)
+{
+    *(mmgr_proxim_u16_t *)c->dst = (uint16_t)c->val;
+}
+
+MMGR_INLINE void proxim_put32(const ProximPutCtx *c)
+{
+    *(mmgr_proxim_u32_t *)c->dst = (uint32_t)c->val;
+}
+
+MMGR_INLINE void proxim_put64(const ProximPutCtx *c)
+{
+    *(mmgr_proxim_u64_t *)c->dst = c->val;
+}
+
+MMGR_INLINE void proxim_put(const ProximPutCtx *c)
+{
+    *(mmgr_proxim_word_t *)c->dst = (mmgr_migro_word)c->val;
+}
+
+MMGR_INLINE void aequus_put(const ProximPutCtx *c)
+{
+    *(mmgr_aequus_word_t *)c->dst = (mmgr_migro_word)c->val;
+}
+
+MMGR_INLINE void aequus_put64(const ProximPutCtx *c)
+{
+    *(mmgr_aequus_u64_t *)c->dst = c->val;
+}
+
+MMGR_INLINE void proxim_head(ProximReadCtx *c)
+{
+    const size_t skew = (size_t)((0u - (uintptr_t)c->dst) & (uintptr_t)(MMGR_RAW_WORD - 1u));
+    size_t t = (skew < c->n) ? skew : c->n;
+
+    if (t == 0u)
+    {
+        return;
+    }
+    c->n -= t;
+
+    do
+    {
+        *c->dst++ = *c->src++;
+    } while (--t);
+}
+
+MMGR_INLINE void proxim_words(ProximReadCtx *c)
+{
+    size_t w = c->n & ~(size_t)(MMGR_RAW_WORD - 1u);
+    if (w == 0u)
+    {
+        return;
+    }
+    c->n -= w;
+    do
+    {
+        *(mmgr_aequus_word_t *)c->dst = *(const mmgr_proxim_word_t *)c->src;
+        c->dst += MMGR_RAW_WORD;
+        c->src += MMGR_RAW_WORD;
+        w -= MMGR_RAW_WORD;
+    } while (w);
+}
+
+MMGR_INLINE void proxim_tail(ProximReadCtx *c)
+{
+    size_t t = c->n;
+
+    if (t == 0u)
+    {
+        return;
+    }
+
+    do
+    {
+        *c->dst++ = *c->src++;
+    } while (--t);
+}
+
+MMGR_INLINE void proxim_read(ProximReadCtx *c)
+{
     proxim_head(c);
-
-    if (((uintptr_t)(c->u + c->i) & mask) == 0u)
-    {
-        proxim_aligned(c);
-    }
-    else if ((c->sz - c->i) >= MMGR_RAW_WORD)
-    {
-        proxim_straddled(c);
-    }
-
+    proxim_words(c);
     proxim_tail(c);
 }
 
-
-void mmgr_proxim_read(void *dst, const void *p, size_t sz)
+uint16_t mmgr_proxim_load16(const ProximusCfg *c)
 {
-    MMGR_CALL(proxim_read, ProximCtx, .d = (unsigned char *)dst, .u = (const unsigned char *)p, .sz = sz);
+    return MMGR_CALL(proxim_load16, ProximLoadCtx, .at = c->at);
+}
+
+uint32_t mmgr_proxim_load32(const ProximusCfg *c)
+{
+    return MMGR_CALL(proxim_load32, ProximLoadCtx, .at = c->at);
+}
+
+uint64_t mmgr_proxim_load64(const ProximusCfg *c)
+{
+    return MMGR_CALL(proxim_load64, ProximLoadCtx, .at = c->at);
+}
+
+void mmgr_proxim_put16(const ProximusCfg *c)
+{
+    MMGR_CALL(proxim_put16, ProximPutCtx, .dst = c->dst, .val = c->val);
+}
+
+void mmgr_proxim_put32(const ProximusCfg *c)
+{
+    MMGR_CALL(proxim_put32, ProximPutCtx, .dst = c->dst, .val = c->val);
+}
+
+void mmgr_proxim_put64(const ProximusCfg *c)
+{
+    MMGR_CALL(proxim_put64, ProximPutCtx, .dst = c->dst, .val = c->val);
+}
+
+mmgr_migro_word mmgr_proxim_load(const ProximusCfg *c)
+{
+    return MMGR_CALL(proxim_load, ProximLoadCtx, .at = c->at);
+}
+
+void mmgr_proxim_put(const ProximusCfg *c)
+{
+    MMGR_CALL(proxim_put, ProximPutCtx, .dst = c->dst, .val = c->val);
+}
+
+mmgr_migro_word mmgr_aequus_load(const ProximusCfg *c)
+{
+    return MMGR_CALL(aequus_load, ProximLoadCtx, .at = c->at);
+}
+
+void mmgr_aequus_put(const ProximusCfg *c)
+{
+    MMGR_CALL(aequus_put, ProximPutCtx, .dst = c->dst, .val = c->val);
+}
+
+uint64_t mmgr_aequus_load64(const ProximusCfg *c)
+{
+    return MMGR_CALL(aequus_load64, ProximLoadCtx, .at = c->at);
+}
+
+void mmgr_aequus_put64(const ProximusCfg *c)
+{
+    MMGR_CALL(aequus_put64, ProximPutCtx, .dst = c->dst, .val = c->val);
+}
+
+void mmgr_proxim_read(const ProximusCfg *c)
+{
+    MMGR_CALL(proxim_read, ProximReadCtx, .dst = (uint8_t *)c->dst, .src = (const uint8_t *)c->at, .n = c->size);
 }

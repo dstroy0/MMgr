@@ -3,33 +3,20 @@
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
 #include "custodia_secura/custodia_secura.h"
-#include "carceribus/carceribus.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_a_pool_that_has_not_bound_yet_answers_for_nothing(void);
-extern void test_a_tenant_that_has_only_held_persistent_has_no_peak(void);
-extern void test_occult_header_is_self_contained(void);
+extern void test_secura_header_is_self_contained(void);
 extern void test_secura_namespace_is_wired(void);
-extern void test_wipe_clears_an_aligned_run(void);
-extern void test_wipe_clears_an_unaligned_start_and_a_ragged_tail(void);
-extern void test_wipe_of_a_short_unaligned_run(void);
-extern void test_wipe_of_nothing_touches_nothing(void);
-extern void test_capacity_is_the_configured_tenant_size(void);
-extern void test_alloc_hands_back_usable_memory(void);
-extern void test_alloc_honours_its_alignment(void);
-extern void test_alloc_of_more_than_the_tenant_holds_is_refused(void);
-extern void test_span_wraps_what_alloc_returns(void);
-extern void test_span_of_a_refused_size_has_no_storage(void);
-extern void test_persist_span_comes_from_the_other_end(void);
-extern void test_mark_and_release_move_the_fill_point(void);
-extern void test_release_wipes_what_it_gives_up(void);
-extern void test_release_of_a_mark_that_is_not_ours_is_ignored(void);
+extern void test_init_hands_back_usable_memory(void);
+extern void test_init_comes_out_of_the_pool_it_was_given(void);
 extern void test_used_grows_with_what_was_taken(void);
-extern void test_high_water_remembers_the_peak(void);
-extern void test_owns_tells_the_pool_from_everything_else(void);
-extern void test_reset_gives_the_whole_tenant_back(void);
+extern void test_wipe_clears_the_region(void);
+extern void test_wipe_stays_inside_what_it_was_asked_for(void);
+extern void test_wipe_of_nothing_touches_nothing(void);
+extern void test_release_wipes_what_it_gives_up(void);
+extern void test_release_gives_the_bytes_back(void);
 
 
 /*=======Mock Management=====*/
@@ -91,28 +78,16 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/custodia_secura/test_custodia_secura\\test_custodia_secura.c");
-  run_test(test_a_pool_that_has_not_bound_yet_answers_for_nothing, "test_a_pool_that_has_not_bound_yet_answers_for_nothing", 24);
-  run_test(test_a_tenant_that_has_only_held_persistent_has_no_peak, "test_a_tenant_that_has_only_held_persistent_has_no_peak", 33);
-  run_test(test_occult_header_is_self_contained, "test_occult_header_is_self_contained", 39);
-  run_test(test_secura_namespace_is_wired, "test_secura_namespace_is_wired", 44);
-  run_test(test_wipe_clears_an_aligned_run, "test_wipe_clears_an_aligned_run", 53);
-  run_test(test_wipe_clears_an_unaligned_start_and_a_ragged_tail, "test_wipe_clears_an_unaligned_start_and_a_ragged_tail", 68);
-  run_test(test_wipe_of_a_short_unaligned_run, "test_wipe_of_a_short_unaligned_run", 86);
-  run_test(test_wipe_of_nothing_touches_nothing, "test_wipe_of_nothing_touches_nothing", 101);
-  run_test(test_capacity_is_the_configured_tenant_size, "test_capacity_is_the_configured_tenant_size", 109);
-  run_test(test_alloc_hands_back_usable_memory, "test_alloc_hands_back_usable_memory", 114);
-  run_test(test_alloc_honours_its_alignment, "test_alloc_honours_its_alignment", 126);
-  run_test(test_alloc_of_more_than_the_tenant_holds_is_refused, "test_alloc_of_more_than_the_tenant_holds_is_refused", 141);
-  run_test(test_span_wraps_what_alloc_returns, "test_span_wraps_what_alloc_returns", 146);
-  run_test(test_span_of_a_refused_size_has_no_storage, "test_span_of_a_refused_size_has_no_storage", 157);
-  run_test(test_persist_span_comes_from_the_other_end, "test_persist_span_comes_from_the_other_end", 163);
-  run_test(test_mark_and_release_move_the_fill_point, "test_mark_and_release_move_the_fill_point", 173);
-  run_test(test_release_wipes_what_it_gives_up, "test_release_wipes_what_it_gives_up", 185);
-  run_test(test_release_of_a_mark_that_is_not_ours_is_ignored, "test_release_of_a_mark_that_is_not_ours_is_ignored", 204);
-  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 216);
-  run_test(test_high_water_remembers_the_peak, "test_high_water_remembers_the_peak", 225);
-  run_test(test_owns_tells_the_pool_from_everything_else, "test_owns_tells_the_pool_from_everything_else", 236);
-  run_test(test_reset_gives_the_whole_tenant_back, "test_reset_gives_the_whole_tenant_back", 247);
+  run_test(test_secura_header_is_self_contained, "test_secura_header_is_self_contained", 20);
+  run_test(test_secura_namespace_is_wired, "test_secura_namespace_is_wired", 25);
+  run_test(test_init_hands_back_usable_memory, "test_init_hands_back_usable_memory", 34);
+  run_test(test_init_comes_out_of_the_pool_it_was_given, "test_init_comes_out_of_the_pool_it_was_given", 45);
+  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 53);
+  run_test(test_wipe_clears_the_region, "test_wipe_clears_the_region", 63);
+  run_test(test_wipe_stays_inside_what_it_was_asked_for, "test_wipe_stays_inside_what_it_was_asked_for", 80);
+  run_test(test_wipe_of_nothing_touches_nothing, "test_wipe_of_nothing_touches_nothing", 99);
+  run_test(test_release_wipes_what_it_gives_up, "test_release_wipes_what_it_gives_up", 110);
+  run_test(test_release_gives_the_bytes_back, "test_release_gives_the_bytes_back", 127);
 
   return UNITY_END();
 }

@@ -6,5 +6,5 @@ test/**/unity_runner.c
 # Generated from the predicates by tools/dev_env/gen_ascii_masks.py and gen_anchor_profiles.py.
 # clang-format and the generators disagree about the tables, and the generator wins - formatting
 # these makes test/harness.py generated report a dirty tree on every run.
-src/ascii_mask/ascii_mask.h
-src/anchor_cost/anchor_cost_*.h
+src/ascii_persona_bitorum/ascii_persona_bitorum.h
+src/impensa_ancorae_acus/impensa_ancorae_acus_*.h

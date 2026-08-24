@@ -40,10 +40,6 @@ MMGR_NS_LAYOUT(AsciiPersonaBitorumNs, in);
 
 mmgr_bool mmgr_ascii_in(const AsciiCfg *c);
 
-#define MMGR_ASCII_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
-
-#define mmgr_ascii_in(k_, c_) (MMGR_ASCII_IS_BYTE(c_), ascii.in(&(AsciiCfg){.k = (k_), .c = (c_)}))
-
 MMGR_NS AsciiPersonaBitorumNs ascii MMGR_UNUSED = {
     .in = mmgr_ascii_in,
 };

@@ -1,11 +1,16 @@
 #include "confinium_externum/confinium_externum.h"
 
-
 #if MMGR_ENABLE_EXTRAM
 
 typedef struct
 {
-    size_t size;                 mmgr_bool dma_required;      size_t free_dram;            size_t free_psram;           size_t psram_threshold;      size_t dram_reserve;     } ExterCtx;
+    size_t size;
+    mmgr_bool dma_required;
+    size_t free_dram;
+    size_t free_psram;
+    size_t psram_threshold;
+    size_t dram_reserve;
+} ExterCtx;
 
 MMGR_INLINE mmgr_bool exter_dram_fits(const ExterCtx *c)
 {
@@ -77,30 +82,29 @@ MMGR_INLINE uint8_t exter_pingpong_swap(PingPong *const pp)
     return pp->fill_idx;
 }
 
-
-mmgr_place (mmgr_exter_place)(const ExternumCfg *c)
+mmgr_place mmgr_exter_place(const ExternumCfg *c)
 {
-    return MMGR_CALL(exter_place, ExterCtx, .size = c->size, .dma_required = c->dma_required,
-                     .free_dram = c->free_dram, .free_psram = c->free_psram, .psram_threshold = c->psram_threshold,
+    return MMGR_CALL(exter_place, ExterCtx, .size = c->size, .dma_required = c->dma_required, .free_dram = c->free_dram,
+                     .free_psram = c->free_psram, .psram_threshold = c->psram_threshold,
                      .dram_reserve = c->dram_reserve);
 }
 
-void (mmgr_pingpong_init)(PingPong *const pp)
+void mmgr_pingpong_init(PingPong *const pp)
 {
     exter_pingpong_init(pp);
 }
 
-uint8_t (mmgr_pingpong_fill_index)(PingPong *const pp)
+uint8_t mmgr_pingpong_fill_index(PingPong *const pp)
 {
     return exter_pingpong_fill(pp);
 }
 
-uint8_t (mmgr_pingpong_drain_index)(PingPong *const pp)
+uint8_t mmgr_pingpong_drain_index(PingPong *const pp)
 {
     return exter_pingpong_drain(pp);
 }
 
-uint8_t (mmgr_pingpong_swap)(PingPong *const pp)
+uint8_t mmgr_pingpong_swap(PingPong *const pp)
 {
     return exter_pingpong_swap(pp);
 }

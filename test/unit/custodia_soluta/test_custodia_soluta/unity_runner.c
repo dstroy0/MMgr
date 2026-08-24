@@ -3,29 +3,17 @@
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
 #include "custodia_soluta/custodia_soluta.h"
-#include "carceribus/carceribus.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_a_pool_that_has_not_bound_yet_answers_for_nothing(void);
-extern void test_a_tenant_that_has_only_held_persistent_has_no_peak(void);
-extern void test_clarus_header_is_self_contained(void);
+extern void test_soluta_header_is_self_contained(void);
 extern void test_soluta_namespace_is_wired(void);
-extern void test_capacity_is_the_configured_tenant_size(void);
-extern void test_alloc_hands_back_usable_memory(void);
-extern void test_alloc_honours_its_alignment(void);
-extern void test_alloc_of_more_than_the_tenant_holds_is_refused(void);
-extern void test_span_wraps_what_alloc_returns(void);
-extern void test_span_of_a_refused_size_has_no_storage(void);
-extern void test_persist_comes_from_the_other_end(void);
-extern void test_mark_and_release_move_the_fill_point(void);
-extern void test_release_leaves_the_bytes_as_they_were(void);
-extern void test_release_of_a_mark_that_is_not_ours_is_ignored(void);
+extern void test_init_hands_back_usable_memory(void);
+extern void test_init_comes_out_of_the_pool_it_was_given(void);
 extern void test_used_grows_with_what_was_taken(void);
-extern void test_high_water_remembers_the_peak(void);
-extern void test_owns_tells_the_pool_from_everything_else(void);
-extern void test_reset_gives_the_whole_tenant_back(void);
+extern void test_release_gives_the_bytes_back(void);
+extern void test_release_does_not_wipe(void);
 
 
 /*=======Mock Management=====*/
@@ -87,24 +75,13 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/custodia_soluta/test_custodia_soluta\\test_custodia_soluta.c");
-  run_test(test_a_pool_that_has_not_bound_yet_answers_for_nothing, "test_a_pool_that_has_not_bound_yet_answers_for_nothing", 24);
-  run_test(test_a_tenant_that_has_only_held_persistent_has_no_peak, "test_a_tenant_that_has_only_held_persistent_has_no_peak", 33);
-  run_test(test_clarus_header_is_self_contained, "test_clarus_header_is_self_contained", 39);
-  run_test(test_soluta_namespace_is_wired, "test_soluta_namespace_is_wired", 44);
-  run_test(test_capacity_is_the_configured_tenant_size, "test_capacity_is_the_configured_tenant_size", 52);
-  run_test(test_alloc_hands_back_usable_memory, "test_alloc_hands_back_usable_memory", 57);
-  run_test(test_alloc_honours_its_alignment, "test_alloc_honours_its_alignment", 69);
-  run_test(test_alloc_of_more_than_the_tenant_holds_is_refused, "test_alloc_of_more_than_the_tenant_holds_is_refused", 82);
-  run_test(test_span_wraps_what_alloc_returns, "test_span_wraps_what_alloc_returns", 87);
-  run_test(test_span_of_a_refused_size_has_no_storage, "test_span_of_a_refused_size_has_no_storage", 98);
-  run_test(test_persist_comes_from_the_other_end, "test_persist_comes_from_the_other_end", 103);
-  run_test(test_mark_and_release_move_the_fill_point, "test_mark_and_release_move_the_fill_point", 113);
-  run_test(test_release_leaves_the_bytes_as_they_were, "test_release_leaves_the_bytes_as_they_were", 125);
-  run_test(test_release_of_a_mark_that_is_not_ours_is_ignored, "test_release_of_a_mark_that_is_not_ours_is_ignored", 140);
-  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 152);
-  run_test(test_high_water_remembers_the_peak, "test_high_water_remembers_the_peak", 161);
-  run_test(test_owns_tells_the_pool_from_everything_else, "test_owns_tells_the_pool_from_everything_else", 172);
-  run_test(test_reset_gives_the_whole_tenant_back, "test_reset_gives_the_whole_tenant_back", 183);
+  run_test(test_soluta_header_is_self_contained, "test_soluta_header_is_self_contained", 25);
+  run_test(test_soluta_namespace_is_wired, "test_soluta_namespace_is_wired", 30);
+  run_test(test_init_hands_back_usable_memory, "test_init_hands_back_usable_memory", 39);
+  run_test(test_init_comes_out_of_the_pool_it_was_given, "test_init_comes_out_of_the_pool_it_was_given", 50);
+  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 58);
+  run_test(test_release_gives_the_bytes_back, "test_release_gives_the_bytes_back", 69);
+  run_test(test_release_does_not_wipe, "test_release_does_not_wipe", 80);
 
   return UNITY_END();
 }

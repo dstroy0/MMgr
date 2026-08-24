@@ -21,22 +21,26 @@ typedef struct
 {
     size_t (*wr)(const EndianCfg *c);
     uint64_t (*rd)(const EndianCfg *c);
+    uint64_t (*rev)(const EndianCfg *c);
 } EndianNs;
-MMGR_NS_LAYOUT(EndianNs, wr, rd);
+MMGR_NS_LAYOUT(EndianNs, wr, rd, rev);
 
 size_t mmgr_wr_le(const EndianCfg *c);
 uint64_t mmgr_rd_le(const EndianCfg *c);
 size_t mmgr_wr_be(const EndianCfg *c);
 uint64_t mmgr_rd_be(const EndianCfg *c);
+uint64_t mmgr_endian_rev(const EndianCfg *c);
 
 MMGR_NS EndianNs parva_extremitas MMGR_UNUSED = {
     .wr = mmgr_wr_le,
     .rd = mmgr_rd_le,
+    .rev = mmgr_endian_rev,
 };
 
 MMGR_NS EndianNs magna_extremitas MMGR_UNUSED = {
     .wr = mmgr_wr_be,
     .rd = mmgr_rd_be,
+    .rev = mmgr_endian_rev,
 };
 
 MMGR_FINIS_DECLS

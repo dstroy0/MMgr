@@ -1,171 +1,103 @@
 #include "custodia_secura/custodia_secura.h"
-#include "carceribus/carceribus.h"
-
-
-#define SEC_BLOCK_BYTES ((uintptr_t)MMGR_SECURE_CONFIN_SIZE)
-
-#define SEC_NO_OFFSET (~(uintptr_t)0)
-
-struct SecureStorage
-{
-    _Alignas(32) uint8_t mem[MMGR_SECURE_CONFIN_SIZE];
-};
-
-struct SecuraInternal
-{
-    struct SecureStorage *store;
-    mmgr_carcer pool;
-};
-
-static struct SecureStorage s_store;
-
-struct SecuraInternal mmgr_secura_state;
 
 typedef struct
 {
-    struct SecuraInternal *pool;     size_t n;                        size_t align;                    size_t mark;                     const void *p;               } SecuraCtx;
+    CarcerCtx *pool;
+    void *at;
+    size_t n;
+} SecuraCtx;
 
-MMGR_INLINE void secura_self(SecuraCtx *c)
+MMGR_INLINE void secura_wipe(SecuraCtx *c)
 {
-    c->pool = &mmgr_secura_state;
-}
+    uintptr_t *w = (uintptr_t *)c->at;
+    size_t words = c->n / sizeof(uintptr_t);
+    const uintptr_t z = 0u;
 
-MMGR_INLINE mmgr_carcer *secura_bind(SecuraCtx *c)
-{
-    secura_self(c);
-
-    mmgr_carcer *a = &c->pool->pool;
-    if (a->base == NULL)
+    while (words >= 16u)
     {
-        c->pool->store = &s_store;
-        mmgr_carcer_init(a, c->pool->store->mem, MMGR_SECURE_CONFIN_SIZE);
+        w[0] = z;
+        w[1] = z;
+        w[2] = z;
+        w[3] = z;
+        w[4] = z;
+        w[5] = z;
+        w[6] = z;
+        w[7] = z;
+        w[8] = z;
+        w[9] = z;
+        w[10] = z;
+        w[11] = z;
+        w[12] = z;
+        w[13] = z;
+        w[14] = z;
+        w[15] = z;
+        w += 16;
+        words -= 16u;
     }
-    return a;
-}
-
-MMGR_INLINE mmgr_carcer *secura_peek(SecuraCtx *c)
-{
-    secura_self(c);
-
-    mmgr_carcer *a = &c->pool->pool;
-    return (a->base != NULL) ? a : NULL;
-}
-
-MMGR_INLINE uintptr_t secura_offset(SecuraCtx *c)
-{
-    secura_self(c);
-
-    if (c->pool->store == NULL)
+    if (words & 8u)
     {
-        return SEC_NO_OFFSET;
+        w[0] = z;
+        w[1] = z;
+        w[2] = z;
+        w[3] = z;
+        w[4] = z;
+        w[5] = z;
+        w[6] = z;
+        w[7] = z;
+        w += 8;
     }
-    return (uintptr_t)c->p - (uintptr_t)c->pool->store->mem;
-}
-
-MMGR_INLINE void secura_wipe_down_to(SecuraCtx *c)
-{
-    mmgr_carcer *a = secura_bind(c);
-    const size_t top = mmgr_carcer_interim_mark(a);
-
-    if ((c->mark > top) && (c->mark <= a->size))
+    if (words & 4u)
     {
-        mmgr_secura_wipe(a->base + top, c->mark - top);
+        w[0] = z;
+        w[1] = z;
+        w[2] = z;
+        w[3] = z;
+        w += 4;
     }
-    mmgr_carcer_interim_reddo(a, c->mark);
-}
-
-MMGR_INLINE void *secura_capio(SecuraCtx *c)
-{
-    MMGR_ASSERT((c->align & (c->align - 1)) == 0, "secure alignment must be a power of two");
-    return mmgr_carcer_interim_capio_aligned(secura_bind(c), c->n, c->align);
-}
-
-MMGR_INLINE void *secura_persist(SecuraCtx *c)
-{
-    return mmgr_carcer_persist_capio(secura_bind(c), c->n);
-}
-
-MMGR_INLINE size_t secura_mark(SecuraCtx *c)
-{
-    return mmgr_carcer_interim_mark(secura_bind(c));
-}
-
-MMGR_INLINE void secura_reset(SecuraCtx *c)
-{
-    mmgr_carcer *a = secura_peek(c);
-
-    if (a != NULL)
+    if (words & 2u)
     {
-        c->mark = a->size;
-        secura_wipe_down_to(c);
+        w[0] = z;
+        w[1] = z;
+        w += 2;
     }
+    if (words & 1u)
+    {
+        w[0] = z;
+    }
+}
+
+MMGR_INLINE void *secura_init(SecuraCtx *c)
+{
+    return MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = c->pool, .size = c->n);
+}
+
+MMGR_INLINE void secura_reddo(SecuraCtx *c)
+{
+    secura_wipe(c);
+    MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = c->pool, .size = c->n);
 }
 
 MMGR_INLINE size_t secura_used(SecuraCtx *c)
 {
-    mmgr_carcer *const a = secura_peek(c);
-
-    return (a != NULL) ? mmgr_carcer_interim_used(a) : 0;
+    return MMGR_CALL(carcer.persist_used, CarcerCfg, .pool = c->pool);
 }
 
-MMGR_INLINE size_t secura_high_water(SecuraCtx *c)
+void *mmgr_secura_init(const SecuraCfg *c)
 {
-    mmgr_carcer *const a = secura_peek(c);
-
-    return (a != NULL) ? a->scratch_hw : 0;
+    return MMGR_CALL(secura_init, SecuraCtx, .pool = c->pool, .n = c->n);
 }
 
-MMGR_INLINE mmgr_bool secura_owns(SecuraCtx *c)
+void mmgr_secura_reddo(const SecuraCfg *c)
 {
-    return secura_offset(c) < SEC_BLOCK_BYTES;
+    MMGR_CALL(secura_reddo, SecuraCtx, .pool = c->pool, .at = c->at, .n = c->n);
 }
 
-void *mmgr_secura_capio(size_t n, size_t align)
+size_t mmgr_secura_used(const SecuraCfg *c)
 {
-    return MMGR_CALL(secura_capio, SecuraCtx, .n = n, .align = align);
+    return MMGR_CALL(secura_used, SecuraCtx, .pool = c->pool);
 }
 
-mmgr_spat mmgr_secura_span(size_t n, size_t align)
+void mmgr_secura_wipe(const SecuraCfg *c)
 {
-    return mmgr_spat_init((uint8_t *)mmgr_secura_capio(n, align), n);
-}
-
-mmgr_spat mmgr_secura_persist_span(size_t n)
-{
-    return mmgr_spat_init((uint8_t *)MMGR_CALL(secura_persist, SecuraCtx, .n = n), n);
-}
-
-size_t mmgr_secura_mark(void)
-{
-    return MMGR_CALL(secura_mark, SecuraCtx, .n = 0);
-}
-
-void mmgr_secura_reddo(size_t mark)
-{
-    MMGR_CALL(secura_wipe_down_to, SecuraCtx, .mark = mark);
-}
-
-void mmgr_secura_reset(void)
-{
-    MMGR_CALL(secura_reset, SecuraCtx, .n = 0);
-}
-
-size_t mmgr_secura_used(void)
-{
-    return MMGR_CALL(secura_used, SecuraCtx, .n = 0);
-}
-
-size_t mmgr_secura_high_water(void)
-{
-    return MMGR_CALL(secura_high_water, SecuraCtx, .n = 0);
-}
-
-size_t mmgr_secura_capacity(void)
-{
-    return MMGR_SECURE_CONFIN_SIZE;
-}
-
-mmgr_bool mmgr_secura_owns(const void *p)
-{
-    return MMGR_CALL(secura_owns, SecuraCtx, .p = p);
+    MMGR_CALL(secura_wipe, SecuraCtx, .pool = c->pool, .at = c->at, .n = c->n);
 }

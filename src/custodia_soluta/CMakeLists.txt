@@ -5,5 +5,4 @@ mmgr_add_module(custodia_soluta
   SOURCES custodia_soluta.c
   DEPS
     carceribus
-    spatium
 )

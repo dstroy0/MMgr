@@ -5,6 +5,4 @@ mmgr_add_module(custodia_secura
   SOURCES custodia_secura.c
   DEPS
     carceribus
-    memoria_operor
-    spatium
 )

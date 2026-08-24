@@ -18,7 +18,7 @@ void setUp(void)
     {
         buf[i] = 0u;
     }
-    (void)iteratio_infinita.init(&ring, &(RingCfg){buf, CAP, SEGS, &held});
+    (void)iteratio_infinita.init(&(RingCfg){&ring, buf, CAP, SEGS, &held});
 }
 
 void tearDown(void)
@@ -38,14 +38,14 @@ void test_infin_header_is_self_contained(void)
 void test_init_takes_a_ring_the_consumer_owns(void)
 {
     mmgr_ring r;
-    TEST_ASSERT_TRUE(iteratio_infinita.init(&r, &(RingCfg){buf, CAP, SEGS, &held}));
+    TEST_ASSERT_TRUE(iteratio_infinita.init(&(RingCfg){&r, buf, CAP, SEGS, &held}));
 }
 
 void test_init_refuses_a_capacity_that_is_not_a_power_of_two(void)
 {
     mmgr_ring r;
-    TEST_ASSERT_FALSE(iteratio_infinita.init(&r, &(RingCfg){buf, 100u, SEGS, &held}));
-    TEST_ASSERT_FALSE_MESSAGE(iteratio_infinita.init(&r, &(RingCfg){buf, 0u, SEGS, &held}),
+    TEST_ASSERT_FALSE(iteratio_infinita.init(&(RingCfg){&r, buf, 100u, SEGS, &held}));
+    TEST_ASSERT_FALSE_MESSAGE(iteratio_infinita.init(&(RingCfg){&r, buf, 0u, SEGS, &held}),
                               "a ring of nothing is not a ring");
 }
 
@@ -54,20 +54,20 @@ void test_init_refuses_more_segments_than_the_word_has_bits(void)
     mmgr_ring r;
     const size_t too_many = (size_t)MMGR_RING_LOCULI_MAX * 2u;
 
-    TEST_ASSERT_FALSE_MESSAGE(iteratio_infinita.init(&r, &(RingCfg){buf, CAP, too_many, &held}),
+    TEST_ASSERT_FALSE_MESSAGE(iteratio_infinita.init(&(RingCfg){&r, buf, CAP, too_many, &held}),
                               "a segment with no bit cannot be reserved");
 }
 
 void test_init_refuses_more_segments_than_bytes(void)
 {
     mmgr_ring r;
-    TEST_ASSERT_FALSE(iteratio_infinita.init(&r, &(RingCfg){buf, 4u, 8u, &held}));
+    TEST_ASSERT_FALSE(iteratio_infinita.init(&(RingCfg){&r, buf, 4u, 8u, &held}));
 }
 
 void test_a_fresh_ring_is_empty_and_holds_one_byte_back(void)
 {
     TEST_ASSERT_EQUAL_size_t(0u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(CAP - 1u, iteratio_infinita.free_(&(InfinCfg){.r = &ring}),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(CAP - 1u, iteratio_infinita.vacant(&(InfinCfg){.r = &ring}),
                                      "one byte is held back so full and empty differ");
 }
 
@@ -84,7 +84,7 @@ void test_write_moves_what_available_reports(void)
 
     TEST_ASSERT_NOT_NULL(iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = src, .n = 8u, .sing = &bytewise}));
     TEST_ASSERT_EQUAL_size_t(8u, iteratio_infinita.available(&(InfinCfg){.r = &ring}));
-    TEST_ASSERT_EQUAL_size_t(CAP - 1u - 8u, iteratio_infinita.free_(&(InfinCfg){.r = &ring}));
+    TEST_ASSERT_EQUAL_size_t(CAP - 1u - 8u, iteratio_infinita.vacant(&(InfinCfg){.r = &ring}));
 }
 
 void test_a_raw_read_names_the_bytes_and_consumes_nothing(void)

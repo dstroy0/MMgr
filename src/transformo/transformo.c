@@ -10,11 +10,11 @@ static const double mmgr_muto_ten[MMGR_MUTO_EXACT_POW10 + 1] = {1e0,  1e1,  1e2,
 
 typedef struct
 {
-        mmgr_u64 *mant;     char digit;         int e2;             int ex;             int dropped;        unsigned above;     mmgr_bool neg;  
+        mmgr_u64 *mant;     char digit;         mmgr_iword e2;      mmgr_iword ex;      mmgr_iword dropped; mmgr_word above;     mmgr_bool neg;
         mmgr_u64 hi;
     mmgr_u64 lo;
-    int fe2;
-    int rest; 
+    mmgr_iword fe2;
+    mmgr_iword rest;
         mmgr_u64 a;
     mmgr_u64 b;
     mmgr_u64 phi;
@@ -63,7 +63,7 @@ MMGR_INLINE void muto_norm(MutoCtx *c)
         c->fe2 -= 64;
     }
 
-    const int n = mmgr_clz_lead(c->hi);
+    const mmgr_iword n = MMGR_CALL(clz.lead, ClzCfg, .x = c->hi);
     if (n != 0)
     {
         c->hi = (c->hi << n) | (c->lo >> (64 - n));
@@ -123,15 +123,15 @@ MMGR_INLINE void muto_mul_pow5(MutoCtx *c)
     }
     c->hi = hh_h + carry2;
     c->lo = col2;
-    c->fe2 += c->pow->e2 + 128;
+    c->fe2 = (mmgr_iword)(c->fe2 + c->pow->e2 + 128);
     muto_norm(c);
 }
 
 MMGR_INLINE void muto_apply_pow10(MutoCtx *c)
 {
-    const int k = (c->ex < 0) ? -c->ex : c->ex;
+    const mmgr_iword k = (c->ex < 0) ? (mmgr_iword)(-c->ex) : c->ex;
 
-    for (int i = 0; i < MMGR_POW5_STEPS; ++i)
+    for (mmgr_iword i = 0; i < MMGR_POW5_STEPS; ++i)
     {
         if (((k >> i) & 1) != 0)
         {
@@ -160,11 +160,11 @@ MMGR_INLINE double muto_round(const MutoCtx *c)
     mmgr_u64 mant = c->hi >> 11;
     mmgr_u64 half = (c->hi >> 10) & 1u;
     mmgr_u64 rest = (mmgr_u64)c->rest | ((c->lo != 0u) ? 1u : 0u) | (((c->hi & 0x3FFu) != 0u) ? 1u : 0u);
-    int be = c->fe2 + 75 + (int)MMGR_DBL_MANT_BITS + MMGR_DBL_BIAS;
+    mmgr_iword be = c->fe2 + 75 + (mmgr_iword)MMGR_DBL_MANT_BITS + MMGR_DBL_BIAS;
 
     if (be <= 0)
     {
-                int shift = 1 - be;
+                mmgr_iword shift = 1 - be;
         if (shift > 60)
         {
             return c->neg ? -0.0 : 0.0;
@@ -191,13 +191,15 @@ MMGR_INLINE double muto_round(const MutoCtx *c)
             be = 1;         }
     }
 
-    if (be >= (int)MMGR_DBL_EXP_ALL)
+    if (be >= (mmgr_iword)MMGR_DBL_EXP_ALL)
     {
         const double big = 1.0e308 * 10.0;
         return c->neg ? -big : big;
     }
-    return mmgr_fract_from_bits(mmgr_fract_merge((mmgr_u64)(c->neg ? MMGR_DBL_SIGN_ONE : 0u), (mmgr_u64)be,
-                                                 mant & MMGR_DBL_MANT_MASK));
+    const mmgr_u64 bits = MMGR_CALL(fract.merge, FractioCfg, .sign = (mmgr_u64)(c->neg ? MMGR_DBL_SIGN_ONE : 0u),
+                                    .exp = (mmgr_u64)be, .mant = mant & MMGR_DBL_MANT_MASK);
+
+    return MMGR_CALL(fract.from_bits, FractioCfg, .bits = bits);
 }
 
 MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *c)
@@ -207,7 +209,7 @@ MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *c)
         return 0u;
     }
 
-    const int k = -(c->fe2);
+    const mmgr_iword k = -(c->fe2);
 
     if (k > 128)
     {
@@ -216,7 +218,7 @@ MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *c)
     {
         return ~(mmgr_u64)0;     }
 
-    const unsigned j = (unsigned)(k - 64);
+    const mmgr_word j = (mmgr_word)(k - 64);
     const mmgr_u64 low_mask = (j == 0u) ? 0u : (((mmgr_u64)1 << (j - 1u)) - 1u);
     mmgr_u64 whole;
     mmgr_u64 half;
@@ -242,7 +244,7 @@ MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *c)
         rest |= (c->lo != 0u) ? 1u : 0u;
     }
 
-        const unsigned odd = ((unsigned)(whole & 1u)) ^ (c->above & 1u);
+        const mmgr_word odd = ((mmgr_word)(whole & 1u)) ^ (c->above & 1u);
 
     if ((half != 0u) && ((rest != 0u) || (odd != 0u)))
     {
@@ -301,17 +303,17 @@ MMGR_INLINE mmgr_u64 muto_scale_to_u64(MutoCtx *c)
 }
 
 
-mmgr_bool (mmgr_muto_take)(const TransformoCfg *c)
+mmgr_bool mmgr_muto_take(const TransformoCfg *c)
 {
     return MMGR_CALL(muto_take, MutoCtx, .mant = c->mant, .digit = c->digit);
 }
 
-double (mmgr_muto_scale)(const TransformoCfg *c)
+double mmgr_muto_scale(const TransformoCfg *c)
 {
     return MMGR_CALL(muto_scale, MutoCtx, .mant = c->mant, .ex = c->ex, .dropped = c->rest, .neg = c->neg);
 }
 
-mmgr_u64 (mmgr_muto_scale_to_u64)(const TransformoCfg *c)
+mmgr_u64 mmgr_muto_scale_to_u64(const TransformoCfg *c)
 {
     return MMGR_CALL(muto_scale_to_u64, MutoCtx, .mant = c->mant, .e2 = c->e2, .ex = c->ex, .above = c->above);
 }

@@ -1,12 +1,17 @@
 #include "numeros_scribo/numeros_scribo.h"
 #include "cellularum_laboro/cellularum_laboro.h"
 
-
-MMGR_OPTIMIZE_O2
-
 typedef struct
 {
-    char *out;                    size_t cap;                   const mmgr_field *spec;       const mmgr_fval *v;           size_t nv;                    size_t k;                     mmgr_verba b;                 const mmgr_fval *one;         uint8_t width;                const mmgr_field *cursor; } NumerCtx;
+    char *out;
+    size_t cap;
+    size_t at;
+    const mmgr_field *spec;
+    const mmgr_fval *v;
+    size_t nv;
+    const mmgr_fval *one;
+    uint8_t width;
+} NumerCtx;
 
 MMGR_INLINE const char *numer_str(const NumerCtx *c)
 {
@@ -17,62 +22,78 @@ MMGR_INLINE const char *numer_str(const NumerCtx *c)
     return c->one->as.s;
 }
 
-MMGR_INLINE mmgr_bool numer_emit_one(NumerCtx *c)
+typedef enum MMGR_ENUM_PACKED
 {
-    const mmgr_fval *a = c->one;
+    NUMER_ARM_NONE = 0,
+    NUMER_ARM_STR,
+    NUMER_ARM_U32,
+    NUMER_ARM_U64,
+    NUMER_ARM_I64,
+    NUMER_ARM_D,
+    NUMER_ARM_CH,
+} NumerArm;
 
-    switch (a->kind)
-    {
-    case MMGR_FK_STR:
-        verba.put(&c->b, numer_str(c));
-        return MMGR_TRUE;
-    case MMGR_FK_U32:
-        verba.u32(&c->b, a->as.u32);
-        return MMGR_TRUE;
-    case MMGR_FK_U64:
-        verba.u64(&c->b, a->as.u64);
-        return MMGR_TRUE;
-    case MMGR_FK_I64:
-        verba.i64(&c->b, a->as.i64);
-        return MMGR_TRUE;
-    case MMGR_FK_DEC:
-        verba.u32w(&c->b, a->as.u32, c->width);
-        return MMGR_TRUE;
-    case MMGR_FK_HEX:
-        verba.hex(&c->b, a->as.u64, c->width ? c->width : 1u);
-        return MMGR_TRUE;
-    case MMGR_FK_OCT:
-        verba.uint(&c->b, a->as.u64, 8, c->width ? c->width : 1u);
-        return MMGR_TRUE;
-    case MMGR_FK_G:
-        verba.g(&c->b, a->as.d, c->width ? c->width : 6u);
-        return MMGR_TRUE;
-    case MMGR_FK_FIX:
-        verba.fixed(&c->b, a->as.d, c->width);
-        return MMGR_TRUE;
-    case MMGR_FK_CH:
-        verba.ch(&c->b, a->as.c);
-        return MMGR_TRUE;
-    case MMGR_FK_JSON:
-        verba.json(&c->b, numer_str(c));
-        return MMGR_TRUE;
-    case MMGR_FK_XML:
-        verba.xml(&c->b, numer_str(c));
-        return MMGR_TRUE;
-    default:
-        return MMGR_FALSE;
-    }
+typedef struct
+{
+    size_t (*fn)(const VerbaCfg *c);
+    NumerArm arm;
+    uint8_t base;
+    uint8_t width;
+} NumerKind;
+
+static size_t numer_refuse(const VerbaCfg *c)
+{
+    return c->cap;
 }
 
-MMGR_INLINE size_t numer_abandon(NumerCtx *c)
+static const NumerKind s_kind[MMGR_FK_XML + 1u] = {
+    [MMGR_FK_END] = {numer_refuse, NUMER_ARM_NONE, 0u, 0u},
+    [MMGR_FK_LIT] = {numer_refuse, NUMER_ARM_NONE, 0u, 0u},
+    [MMGR_FK_STR] = {mmgr_verba_put, NUMER_ARM_STR, 0u, 0u},
+    [MMGR_FK_U32] = {mmgr_verba_u32, NUMER_ARM_U32, 10u, 1u},
+    [MMGR_FK_U64] = {mmgr_verba_u64, NUMER_ARM_U64, 10u, 1u},
+    [MMGR_FK_I64] = {mmgr_verba_i64, NUMER_ARM_I64, 10u, 1u},
+    [MMGR_FK_DEC] = {mmgr_verba_u32w, NUMER_ARM_U32, 10u, 0u},
+    [MMGR_FK_HEX] = {mmgr_verba_hex, NUMER_ARM_U64, 16u, 1u},
+    [MMGR_FK_OCT] = {mmgr_verba_uint, NUMER_ARM_U64, 8u, 1u},
+    [MMGR_FK_G] = {mmgr_verba_g, NUMER_ARM_D, 0u, 6u},
+    [MMGR_FK_FIX] = {mmgr_verba_fixed, NUMER_ARM_D, 0u, 0u},
+    [MMGR_FK_CH] = {mmgr_verba_ch, NUMER_ARM_CH, 0u, 0u},
+    [MMGR_FK_JSON] = {mmgr_verba_json, NUMER_ARM_STR, 0u, 0u},
+    [MMGR_FK_XML] = {mmgr_verba_xml, NUMER_ARM_STR, 0u, 0u},
+};
+
+MMGR_INLINE size_t numer_emit_one(const NumerCtx *c)
+{
+    MMGR_ASSERT(c->one->kind <= MMGR_FK_XML, "no such field kind");
+
+    const NumerKind k = s_kind[c->one->kind];
+    const uint8_t width = (c->width != 0u) ? c->width : k.width;
+    const VerbaCfg cfg = {.p = c->out,
+                          .cap = c->cap,
+                          .at = c->at,
+                          .s = (k.arm == NUMER_ARM_STR) ? numer_str(c) : NULL,
+                          .c = (k.arm == NUMER_ARM_CH) ? c->one->as.c : 0,
+                          .v = (k.arm == NUMER_ARM_U32) ? (uint64_t)c->one->as.u32 : c->one->as.u64,
+                          .sv = c->one->as.i64,
+                          .d = c->one->as.d,
+                          .base = k.base,
+                          .min = width,
+                          .sig = width,
+                          .decimals = width};
+
+    return k.fn(&cfg);
+}
+
+MMGR_INLINE size_t numer_abandon(const NumerCtx *c)
 {
     c->out[0] = '\0';
     return 0;
 }
 
-MMGR_INLINE size_t numer_finish(NumerCtx *c)
+MMGR_INLINE size_t numer_finish(const NumerCtx *c)
 {
-    const size_t n = verba.finish(&c->b);
+    const size_t n = MMGR_CALL(verba.finish, VerbaCfg, .p = c->out, .cap = c->cap, .at = c->at);
 
     if (n == 0)
     {
@@ -81,87 +102,74 @@ MMGR_INLINE size_t numer_finish(NumerCtx *c)
     return n;
 }
 
-MMGR_INLINE size_t numer_build(NumerCtx *c)
+MMGR_INLINE size_t numer_build(const NumerCtx *c)
 {
+    size_t at = 0;
+    size_t k = 0;
+
     if (c->cap == 0u)
     {
         return 0;
     }
 
-    c->b.p = c->out;
-    c->b.cap = c->cap;
-    c->b.len = 0;
-    c->b.ok = MMGR_TRUE;
-
-    for (c->cursor = c->spec; c->cursor->kind != MMGR_FK_END; c->cursor++)
+    for (const mmgr_field *cursor = c->spec; cursor->kind != MMGR_FK_END; cursor++)
     {
-        if (c->cursor->kind == MMGR_FK_LIT)
+        if (cursor->kind == MMGR_FK_LIT)
         {
-            verba.put_n(&c->b, c->cursor->lit, c->cursor->len);
+            at = MMGR_CALL(verba.put_n, VerbaCfg, .p = c->out, .cap = c->cap, .at = at, .s = cursor->lit,
+                           .sl = cursor->len);
             continue;
         }
 
-        if ((c->k >= c->nv) || (c->v[c->k].kind != c->cursor->kind))
+        if ((k >= c->nv) || (c->v[k].kind != cursor->kind))
         {
             return numer_abandon(c);
         }
-        c->one = &c->v[c->k];
-        c->width = c->cursor->width;
-        c->k++;
 
-        if (!numer_emit_one(c))
-        {
-            return numer_abandon(c);
-        }
+        at = MMGR_CALL(numer_emit_one, NumerCtx, .out = c->out, .cap = c->cap, .at = at, .one = &c->v[k],
+                       .width = cursor->width);
+        k++;
     }
-    if (c->k != c->nv)
+    if (k != c->nv)
     {
         return numer_abandon(c);
     }
-    return numer_finish(c);
+    return MMGR_CALL(numer_finish, NumerCtx, .out = c->out, .cap = c->cap, .at = at);
 }
 
-MMGR_INLINE size_t numer_emit(NumerCtx *c)
+MMGR_INLINE size_t numer_emit(const NumerCtx *c)
 {
+    size_t at = 0;
+
     if (c->cap == 0u)
     {
         return 0;
     }
 
-    c->b.p = c->out;
-    c->b.cap = c->cap;
-    c->b.len = 0;
-    c->b.ok = MMGR_TRUE;
-
-    for (c->k = 0; c->k < c->nv; c->k++)
+    for (size_t k = 0; k < c->nv; k++)
     {
-        c->one = &c->v[c->k];
-        c->width = c->v[c->k].width;
-        if (!numer_emit_one(c))
-        {
-            return numer_abandon(c);
-        }
+        at = MMGR_CALL(numer_emit_one, NumerCtx, .out = c->out, .cap = c->cap, .at = at, .one = &c->v[k],
+                       .width = c->v[k].width);
     }
-    return numer_finish(c);
+    return MMGR_CALL(numer_finish, NumerCtx, .out = c->out, .cap = c->cap, .at = at);
 }
 
 MMGR_INLINE size_t numer_used(const NumerCtx *c)
 {
-    return mmgr_cellul_len(c->out, c->cap);
+    return MMGR_CALL(cellul.len, CatenaFinitaCfg, .s = c->out, .cap = c->cap);
 }
 
-
-size_t (mmgr_numer_build)(const NumerosCfg *c)
+size_t mmgr_numer_build(const NumerosCfg *c)
 {
     return MMGR_CALL(numer_build, NumerCtx, .out = c->out, .cap = c->cap, .spec = c->spec, .v = c->v, .nv = c->nv);
 }
 
-size_t (mmgr_numer_emit)(const NumerosCfg *c)
+size_t mmgr_numer_emit(const NumerosCfg *c)
 {
     return MMGR_CALL(numer_emit, NumerCtx, .out = c->out, .cap = c->cap, .v = c->v, .nv = c->nv);
 }
 
-size_t (mmgr_numer_append)(const NumerosCfg *c)
+size_t mmgr_numer_append(const NumerosCfg *c)
 {
     if (c->cap == 0u)
     {
@@ -174,7 +182,8 @@ size_t (mmgr_numer_append)(const NumerosCfg *c)
         return 0;
     }
 
-    const size_t n = mmgr_numer_build(c->out + used, c->cap - used, c->spec, c->v, c->nv);
+    const size_t n = MMGR_CALL(numer.build, NumerosCfg, .out = c->out + used, .cap = c->cap - used, .spec = c->spec,
+                               .v = c->v, .nv = c->nv);
     if (n == 0)
     {
         c->out[used] = '\0';
@@ -183,7 +192,7 @@ size_t (mmgr_numer_append)(const NumerosCfg *c)
     return used + n;
 }
 
-size_t (mmgr_numer_emit_append)(const NumerosCfg *c)
+size_t mmgr_numer_emit_append(const NumerosCfg *c)
 {
     if (c->cap == 0u)
     {
@@ -196,7 +205,8 @@ size_t (mmgr_numer_emit_append)(const NumerosCfg *c)
         return 0;
     }
 
-    const size_t n = mmgr_numer_emit(c->out + used, c->cap - used, c->v, c->nv);
+    const size_t n =
+        MMGR_CALL(numer.emit, NumerosCfg, .out = c->out + used, .cap = c->cap - used, .v = c->v, .nv = c->nv);
     if (n == 0)
     {
         c->out[used] = '\0';

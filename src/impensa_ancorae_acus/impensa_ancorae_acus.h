@@ -5,10 +5,10 @@
 
 MMGR_INCIPE_DECLS
 
-
 typedef struct
 {
-    const uint8_t b; } AncoraeCfg;
+    const uint8_t b;
+} AncoraeCfg;
 
 typedef struct
 {
@@ -17,10 +17,6 @@ typedef struct
 MMGR_NS_LAYOUT(ImpensaAncoraeAcusNs, impensa);
 
 uint8_t mmgr_ancorae_impensa(const AncoraeCfg *c);
-
-#define MMGR_ANCORAE_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
-
-#define mmgr_ancorae_impensa(b_) (MMGR_ANCORAE_IS_BYTE(b_), ancorae.impensa(&(AncoraeCfg){.b = (b_)}))
 
 MMGR_NS ImpensaAncoraeAcusNs ancorae MMGR_UNUSED = {
     .impensa = mmgr_ancorae_impensa,

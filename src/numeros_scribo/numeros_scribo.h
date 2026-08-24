@@ -3,8 +3,9 @@
 
 #include "verba_scribo/verba_scribo.h"
 
+MMGR_INCIPE_DECLS
 
-typedef enum
+typedef enum MMGR_ENUM_PACKED
 {
     MMGR_FK_END = 0,
     MMGR_FK_LIT,
@@ -22,9 +23,9 @@ typedef enum
     MMGR_FK_XML,
 } mmgr_fk;
 
-typedef struct mmgr_field
+typedef struct
 {
-    uint8_t kind;
+    mmgr_fk kind;
     uint8_t width;
     uint16_t len;
     const char *lit;
@@ -39,9 +40,9 @@ typedef struct mmgr_field
 #define MMGR_XML {MMGR_FK_XML, 0, 0, NULL}
 #define MMGR_END {MMGR_FK_END, 0, 0, NULL}
 
-typedef struct mmgr_fval
+typedef struct
 {
-    uint8_t kind;
+    mmgr_fk kind;
     union {
         const char *s;
         uint32_t u32;
@@ -74,7 +75,12 @@ typedef struct mmgr_fval
 
 typedef struct
 {
-    char *const out;                  const size_t cap;                 const mmgr_field *const spec;     const mmgr_fval *const v;         const size_t nv;              } NumerosCfg;
+    char *const out;
+    const size_t cap;
+    const mmgr_field *const spec;
+    const mmgr_fval *const v;
+    const size_t nv;
+} NumerosCfg;
 
 typedef struct
 {
@@ -90,42 +96,13 @@ size_t mmgr_numer_append(const NumerosCfg *c);
 size_t mmgr_numer_emit(const NumerosCfg *c);
 size_t mmgr_numer_emit_append(const NumerosCfg *c);
 
-#define MMGR_NUMER_IS_WSTR(x_) ((void)_Generic((x_), char *: 0))
-#define MMGR_NUMER_IS_SIZE(x_) ((void)_Generic((x_), size_t: 0, int: 0, unsigned: 0, long: 0, unsigned long: 0))
-#define MMGR_NUMER_IS_SPEC(x_) ((void)_Generic((x_), const mmgr_field *: 0, mmgr_field *: 0))
-#define MMGR_NUMER_IS_VALS(x_) ((void)_Generic((x_), const mmgr_fval *: 0, mmgr_fval *: 0))
-
-#define mmgr_numer_build(out_, cap_, spec_, v_, nv_)                                                                   \
-    (MMGR_NUMER_IS_WSTR(out_), MMGR_NUMER_IS_SIZE(cap_), MMGR_NUMER_IS_SPEC(spec_), MMGR_NUMER_IS_VALS(v_),            \
-     MMGR_NUMER_IS_SIZE(nv_),                                                                                          \
-     numer.build(&(NumerosCfg){.out = (out_), .cap = (cap_), .spec = (spec_), .v = (v_), .nv = (nv_)}))
-
-#define mmgr_numer_append(out_, cap_, spec_, v_, nv_)                                                                  \
-    (MMGR_NUMER_IS_WSTR(out_), MMGR_NUMER_IS_SIZE(cap_), MMGR_NUMER_IS_SPEC(spec_), MMGR_NUMER_IS_VALS(v_),            \
-     MMGR_NUMER_IS_SIZE(nv_),                                                                                          \
-     numer.append(&(NumerosCfg){.out = (out_), .cap = (cap_), .spec = (spec_), .v = (v_), .nv = (nv_)}))
-
-#define mmgr_numer_emit(out_, cap_, v_, nv_)                                                                           \
-    (MMGR_NUMER_IS_WSTR(out_), MMGR_NUMER_IS_SIZE(cap_), MMGR_NUMER_IS_VALS(v_), MMGR_NUMER_IS_SIZE(nv_),              \
-     numer.emit(&(NumerosCfg){.out = (out_), .cap = (cap_), .v = (v_), .nv = (nv_)}))
-
-#define mmgr_numer_emit_append(out_, cap_, v_, nv_)                                                                    \
-    (MMGR_NUMER_IS_WSTR(out_), MMGR_NUMER_IS_SIZE(cap_), MMGR_NUMER_IS_VALS(v_), MMGR_NUMER_IS_SIZE(nv_),              \
-     numer.emit_append(&(NumerosCfg){.out = (out_), .cap = (cap_), .v = (v_), .nv = (nv_)}))
-
-#define mmgr_write(out_, cap_, ...)                                                                                    \
-    mmgr_numer_emit((out_), (cap_), ((const mmgr_fval[]){__VA_ARGS__}),                                                \
-                    sizeof((const mmgr_fval[]){__VA_ARGS__}) / sizeof(mmgr_fval))
-
-#define mmgr_write_append(out_, cap_, ...)                                                                             \
-    mmgr_numer_emit_append((out_), (cap_), ((const mmgr_fval[]){__VA_ARGS__}),                                         \
-                           sizeof((const mmgr_fval[]){__VA_ARGS__}) / sizeof(mmgr_fval))
-
 MMGR_NS NumerosScriboNs numer MMGR_UNUSED = {
     .build = mmgr_numer_build,
     .append = mmgr_numer_append,
     .emit = mmgr_numer_emit,
     .emit_append = mmgr_numer_emit_append,
 };
+
+MMGR_FINIS_DECLS
 
 #endif

@@ -1,77 +1,92 @@
 #include "memoriam_praetereo/memoriam_praetereo.h"
 
-
 #if MMGR_ENABLE_DMA
+
+static const PraetInit praet_init = {
+    .channels = MMGR_PRAET_CHANNELS,
+    .buf_size = MMGR_PRAET_BUF_SIZE,
+};
 
 typedef struct
 {
-    uint8_t ch;                     const uint8_t *buf;             uint16_t len;               } MemoriamPraetereoCtx;
+    uint8_t channel;
+    uint8_t periph;
+    mmgr_bool loopback;
+    const PraetCallbackCfg *on_complete;
+} PraetOpenCtx;
 
-MMGR_WEAK mmgr_bool mmgr_praet_hw_open(const MemoriamPraetereoCfg *cfg)
+typedef struct
 {
-    (void)cfg;
+    uint8_t channel;
+    const uint8_t *buf;
+    uint16_t len;
+} PraetTransferCtx;
+
+MMGR_WEAK mmgr_bool mmgr_praet_hw_open(const PraetCfg *c)
+{
+    (void)c;
     return MMGR_FALSE;
 }
-MMGR_WEAK mmgr_bool mmgr_praet_hw_tx_submit(uint8_t ch, const uint8_t *buf, uint16_t len)
+
+MMGR_WEAK mmgr_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *c)
 {
-    (void)ch;
-    (void)buf;
-    (void)len;
+    (void)c;
     return MMGR_FALSE;
 }
-MMGR_WEAK void mmgr_praet_hw_close(uint8_t ch)
+
+MMGR_WEAK void mmgr_praet_hw_close(const PraetTransferCfg *c)
 {
-    (void)ch;
-}
-MMGR_WEAK void mmgr_praet_hw_poll(void)
-{
+    (void)c;
 }
 
-MMGR_INLINE mmgr_bool praet_open(const MemoriamPraetereoCfg *cfg)
+MMGR_WEAK void mmgr_praet_hw_poll(const PraetCfg *c)
 {
-    if ((cfg == NULL) || (cfg->on_complete == NULL) || (cfg->channel >= MMGR_PRAET_CHANNELS))
-    {
-        return MMGR_FALSE;
-    }
-    return mmgr_praet_hw_open(cfg);
+    (void)c;
 }
 
-MMGR_INLINE mmgr_bool praet_tx_submit(const MemoriamPraetereoCtx *c)
+MMGR_INLINE mmgr_bool praet_open(const PraetOpenCtx *c)
 {
-    if ((c->ch >= MMGR_PRAET_CHANNELS) || (c->buf == NULL) || (c->len == 0u) || (c->len > MMGR_PRAET_BUF_SIZE))
-    {
-        return MMGR_FALSE;
-    }
-    return mmgr_praet_hw_tx_submit(c->ch, c->buf, c->len);
+    MMGR_ASSERT(c->channel < praet_init.channels, "no such channel");
+    MMGR_ASSERT(c->on_complete != NULL, "an open channel reports completion");
+
+    return MMGR_CALL(mmgr_praet_hw_open, PraetCfg, .channel = c->channel, .periph = c->periph,
+                     .loopback = c->loopback, .on_complete = c->on_complete);
 }
 
-MMGR_INLINE void praet_close(uint8_t ch)
+MMGR_INLINE mmgr_bool praet_tx_submit(const PraetTransferCtx *c)
 {
-    if (ch < MMGR_PRAET_CHANNELS)
-    {
-        mmgr_praet_hw_close(ch);
-    }
+    MMGR_ASSERT(c->channel < praet_init.channels, "no such channel");
+    MMGR_ASSERT(c->len <= praet_init.buf_size, "a transfer is bounded by the channel buffer");
+
+    return MMGR_CALL(mmgr_praet_hw_tx_submit, PraetTransferCfg, .channel = c->channel, .buf = c->buf, .len = c->len);
 }
 
-
-mmgr_bool mmgr_praet_open(const MemoriamPraetereoCfg *cfg)
+MMGR_INLINE void praet_close(const PraetTransferCtx *c)
 {
-    return praet_open(cfg);
+    MMGR_ASSERT(c->channel < praet_init.channels, "no such channel");
+
+    MMGR_CALL(mmgr_praet_hw_close, PraetTransferCfg, .channel = c->channel);
 }
 
-mmgr_bool mmgr_praet_tx_submit(uint8_t ch, const uint8_t *buf, uint16_t len)
+mmgr_bool mmgr_praet_open(const PraetCfg *c)
 {
-    return MMGR_CALL(praet_tx_submit, MemoriamPraetereoCtx, .ch = ch, .buf = buf, .len = len);
+    return MMGR_CALL(praet_open, PraetOpenCtx, .channel = c->channel, .periph = c->periph, .loopback = c->loopback,
+                     .on_complete = c->on_complete);
 }
 
-void mmgr_praet_close(uint8_t ch)
+mmgr_bool mmgr_praet_tx_submit(const PraetTransferCfg *c)
 {
-    praet_close(ch);
+    return MMGR_CALL(praet_tx_submit, PraetTransferCtx, .channel = c->channel, .buf = c->buf, .len = c->len);
 }
 
-void mmgr_praet_poll(void)
+void mmgr_praet_close(const PraetTransferCfg *c)
 {
-    mmgr_praet_hw_poll();
+    MMGR_CALL(praet_close, PraetTransferCtx, .channel = c->channel);
+}
+
+void mmgr_praet_poll(const PraetCfg *c)
+{
+    mmgr_praet_hw_poll(c);
 }
 
 #endif

@@ -25,7 +25,7 @@ void setUp(void)
     {
         buf[i] = 0u;
     }
-    (void)iteratio_infinita.init(&ring, &(RingCfg){buf, CAP, SEGS, &held});
+    (void)iteratio_infinita.init(&(RingCfg){&ring, buf, CAP, SEGS, &held});
 }
 
 void tearDown(void)

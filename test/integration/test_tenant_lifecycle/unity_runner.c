@@ -2,25 +2,19 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
-#include "custodia_soluta/custodia_soluta.h"
-#include "carceribus/carceribus.h"
-#include "memoria_operor/memoria_operor.h"
 #include "custodia_secura/custodia_secura.h"
-#include "spatium/spatium.h"
+#include "custodia_soluta/custodia_soluta.h"
+#include "memoria_operor/memoria_operor.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_a_fresh_tenant_is_empty_and_has_room(void);
-extern void test_bytes_come_back_owned_and_aligned(void);
-extern void test_a_mark_release_puts_back_exactly_what_came_after_it(void);
-extern void test_high_water_records_the_peak_and_never_falls(void);
-extern void test_a_span_over_pool_bytes_writes_inside_the_pool(void);
-extern void test_the_pool_refuses_rather_than_overruns(void);
-extern void test_exhausting_a_tenant_fails_cleanly_and_recovers(void);
 extern void test_the_two_pools_are_separate_tenants(void);
+extern void test_the_carve_puts_them_back_to_back(void);
 extern void test_secure_release_wipes_what_it_gives_back(void);
-extern void test_persist_survives_a_mark_release(void);
+extern void test_plaintext_release_does_not_wipe(void);
+extern void test_each_tenant_tracks_its_own_fill(void);
+extern void test_release_gives_the_bytes_back_to_the_right_tenant(void);
 
 
 /*=======Mock Management=====*/
@@ -82,16 +76,12 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_tenant_lifecycle\\test_tenant_lifecycle.c");
-  run_test(test_a_fresh_tenant_is_empty_and_has_room, "test_a_fresh_tenant_is_empty_and_has_room", 21);
-  run_test(test_bytes_come_back_owned_and_aligned, "test_bytes_come_back_owned_and_aligned", 27);
-  run_test(test_a_mark_release_puts_back_exactly_what_came_after_it, "test_a_mark_release_puts_back_exactly_what_came_after_it", 36);
-  run_test(test_high_water_records_the_peak_and_never_falls, "test_high_water_records_the_peak_and_never_falls", 51);
-  run_test(test_a_span_over_pool_bytes_writes_inside_the_pool, "test_a_span_over_pool_bytes_writes_inside_the_pool", 62);
-  run_test(test_the_pool_refuses_rather_than_overruns, "test_the_pool_refuses_rather_than_overruns", 70);
-  run_test(test_exhausting_a_tenant_fails_cleanly_and_recovers, "test_exhausting_a_tenant_fails_cleanly_and_recovers", 77);
-  run_test(test_the_two_pools_are_separate_tenants, "test_the_two_pools_are_separate_tenants", 95);
-  run_test(test_secure_release_wipes_what_it_gives_back, "test_secure_release_wipes_what_it_gives_back", 106);
-  run_test(test_persist_survives_a_mark_release, "test_persist_survives_a_mark_release", 126);
+  run_test(test_the_two_pools_are_separate_tenants, "test_the_two_pools_are_separate_tenants", 35);
+  run_test(test_the_carve_puts_them_back_to_back, "test_the_carve_puts_them_back_to_back", 49);
+  run_test(test_secure_release_wipes_what_it_gives_back, "test_secure_release_wipes_what_it_gives_back", 57);
+  run_test(test_plaintext_release_does_not_wipe, "test_plaintext_release_does_not_wipe", 73);
+  run_test(test_each_tenant_tracks_its_own_fill, "test_each_tenant_tracks_its_own_fill", 85);
+  run_test(test_release_gives_the_bytes_back_to_the_right_tenant, "test_release_gives_the_bytes_back_to_the_right_tenant", 99);
 
   return UNITY_END();
 }

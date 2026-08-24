@@ -1,136 +1,113 @@
 #include "unity.h"
 
-#include "custodia_soluta/custodia_soluta.h"
-#include "carceribus/carceribus.h"
-#include "memoria_operor/memoria_operor.h"
 #include "custodia_secura/custodia_secura.h"
-#include "spatium/spatium.h"
+#include "custodia_soluta/custodia_soluta.h"
+#include "memoria_operor/memoria_operor.h"
+
+#define SECRET_BYTES 1024u
+#define PLAIN_BYTES 4096u
+
+mmgr_carcer_init(g_ram, SECRET_BYTES + PLAIN_BYTES, MMGR_POOL(g_secret, SECRET_BYTES),
+                 MMGR_POOL(g_plain, PLAIN_BYTES));
+
+static CarcerCfg *secret(void)
+{
+    return &g_ram.pool[g_secret];
+}
+
+static CarcerCfg *plain(void)
+{
+    return &g_ram.pool[g_plain];
+}
 
 void setUp(void)
 {
-    soluta.reset();
-    secura.reset();
+    secret()->persist_end = 0;
+    secret()->interim_top = secret()->size;
+    plain()->persist_end = 0;
+    plain()->interim_top = plain()->size;
 }
 
 void tearDown(void)
 {
-    soluta.reset();
-    secura.reset();
-}
-
-void test_a_fresh_tenant_is_empty_and_has_room(void)
-{
-    TEST_ASSERT_EQUAL_size_t(0u, soluta.used());
-    TEST_ASSERT_GREATER_THAN_size_t(0u, soluta.capacity());
-}
-
-void test_bytes_come_back_owned_and_aligned(void)
-{
-    void *p = soluta.alloc(32u, 8u);
-    TEST_ASSERT_NOT_NULL(p);
-    TEST_ASSERT_TRUE_MESSAGE(soluta.owns(p), "the pool must recognize what it just handed out");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (uintptr_t)p & 7u, "alignment was requested and must hold");
-    TEST_ASSERT_GREATER_OR_EQUAL_size_t(32u, soluta.used());
-}
-
-void test_a_mark_release_puts_back_exactly_what_came_after_it(void)
-{
-    void *before = soluta.alloc(16u, 8u);
-    TEST_ASSERT_NOT_NULL(before);
-    const size_t used_before = soluta.used();
-
-    const size_t mark = soluta.mark();
-    TEST_ASSERT_NOT_NULL(soluta.alloc(64u, 8u));
-    TEST_ASSERT_GREATER_THAN_size_t(used_before, soluta.used());
-
-    soluta.release(mark);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(used_before, soluta.used(), "release must put back what came after the mark");
-    TEST_ASSERT_TRUE_MESSAGE(soluta.owns(before), "and must not disturb what came before it");
-}
-
-void test_high_water_records_the_peak_and_never_falls(void)
-{
-    const size_t mark = soluta.mark();
-    TEST_ASSERT_NOT_NULL(soluta.alloc(128u, 8u));
-    const size_t peak = soluta.high_water();
-    TEST_ASSERT_GREATER_OR_EQUAL_size_t(128u, peak);
-
-    soluta.release(mark);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(peak, soluta.high_water(), "high water is a peak, not a level");
-}
-
-void test_a_span_over_pool_bytes_writes_inside_the_pool(void)
-{
-    mmgr_spat s = soluta.span(24u, 8u);
-    TEST_ASSERT_TRUE((s.buf != NULL));
-    TEST_ASSERT_EQUAL_size_t(0u, (s.pos));
-    TEST_ASSERT_EQUAL_size_t(24u, (((s.pos < s.cap) ? (s.cap - s.pos) : 0u)));
-}
-
-void test_the_pool_refuses_rather_than_overruns(void)
-{
-            void *p = soluta.alloc(soluta.capacity() + 1u, 8u);
-    TEST_ASSERT_NULL_MESSAGE(p, "a request past the tenant must fail, not overrun");
-    TEST_ASSERT_EQUAL_size_t(0u, soluta.used());
-}
-
-void test_exhausting_a_tenant_fails_cleanly_and_recovers(void)
-{
-    const size_t cap = soluta.capacity();
-    size_t taken = 0;
-    while (soluta.alloc(64u, 8u) != NULL)
-    {
-        taken += 64u;
-        if (taken > cap + 4096u)
-        {
-            TEST_FAIL_MESSAGE("the pool handed out more than its capacity");
-        }
-    }
-    TEST_ASSERT_GREATER_THAN_size_t(0u, taken);
-    soluta.reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, soluta.used(), "reset must recover a tenant that ran out");
-    TEST_ASSERT_NOT_NULL_MESSAGE(soluta.alloc(64u, 8u), "and it must be usable again");
 }
 
 void test_the_two_pools_are_separate_tenants(void)
 {
-    void *plain = soluta.alloc(32u, 8u);
-    void *secure = secura.alloc(32u, 8u);
-    TEST_ASSERT_NOT_NULL(plain);
-    TEST_ASSERT_NOT_NULL(secure);
-    TEST_ASSERT_NOT_EQUAL(plain, secure);
-    TEST_ASSERT_FALSE_MESSAGE(soluta.owns(secure), "the plaintext pool must not claim secure bytes");
-    TEST_ASSERT_FALSE_MESSAGE(secura.owns(plain), "and the secure pool must not claim plaintext bytes");
+    void *s = mmgr_secura_init(secret(), (size_t)32);
+    void *p = mmgr_soluta_init(plain(), (size_t)32);
+
+    TEST_ASSERT_NOT_NULL(s);
+    TEST_ASSERT_NOT_NULL(p);
+    TEST_ASSERT_NOT_EQUAL(s, p);
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_carcer_owns(secret(), s), "the secure pool must claim what it handed out");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_carcer_owns(plain(), p), "the plaintext pool must claim what it handed out");
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_carcer_owns(secret(), p), "the secure pool must not claim plaintext bytes");
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_carcer_owns(plain(), s), "the plaintext pool must not claim secure bytes");
+}
+
+void test_the_carve_puts_them_back_to_back(void)
+{
+    TEST_ASSERT_EQUAL_size_t(SECRET_BYTES, secret()->size);
+    TEST_ASSERT_EQUAL_size_t(PLAIN_BYTES, plain()->size);
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(secret()->base + SECRET_BYTES, plain()->base,
+                                  "the second pool starts where the first ends");
 }
 
 void test_secure_release_wipes_what_it_gives_back(void)
 {
-    const size_t mark = secura.mark();
-    unsigned char *p = (unsigned char *)secura.alloc(32u, 8u);
-    TEST_ASSERT_NOT_NULL(p);
+    unsigned char *p = (unsigned char *)mmgr_secura_init(secret(), (size_t)32);
 
+    TEST_ASSERT_NOT_NULL(p);
     mmgr_memor_set(p, (uint8_t)0xA5u, (size_t)32u);
     TEST_ASSERT_EQUAL_UINT8(0xA5u, p[0]);
     TEST_ASSERT_EQUAL_UINT8(0xA5u, p[31]);
 
-    secura.release(mark);
-
-        unsigned char *again = (unsigned char *)secura.alloc(32u, 8u);
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(p, again, "the same bytes should come back");
+    mmgr_secura_reddo(secret(), p, (size_t)32);
     for (unsigned i = 0; i < 32u; i++)
     {
-        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, again[i], "released secure bytes must be wiped before reuse");
+        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, p[i], "released secure bytes must be wiped");
     }
 }
 
-void test_persist_survives_a_mark_release(void)
+void test_plaintext_release_does_not_wipe(void)
 {
-    mmgr_spat keep = soluta.persist(16u);
-    TEST_ASSERT_TRUE((keep.buf != NULL));
+    unsigned char *p = (unsigned char *)mmgr_soluta_init(plain(), (size_t)32);
 
-    const size_t mark = soluta.mark();
-    TEST_ASSERT_NOT_NULL(soluta.alloc(32u, 8u));
-    soluta.release(mark);
+    TEST_ASSERT_NOT_NULL(p);
+    mmgr_memor_set(p, (uint8_t)0xA5u, (size_t)32u);
 
-    TEST_ASSERT_TRUE_MESSAGE(soluta.owns(keep.buf), "a persist take is not what a mark release reclaims");
+    mmgr_soluta_reddo(plain(), (size_t)32);
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(0xA5u, p[0], "the plaintext custodian does not clear, that is its whole point");
+    TEST_ASSERT_EQUAL_UINT8(0xA5u, p[31]);
+}
+
+void test_each_tenant_tracks_its_own_fill(void)
+{
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_secura_used(secret()));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_soluta_used(plain()));
+
+    (void)mmgr_secura_init(secret(), (size_t)64);
+    TEST_ASSERT_EQUAL_size_t(64u, mmgr_secura_used(secret()));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_soluta_used(plain()), "one tenant filling must not move the other");
+
+    (void)mmgr_soluta_init(plain(), (size_t)128);
+    TEST_ASSERT_EQUAL_size_t(64u, mmgr_secura_used(secret()));
+    TEST_ASSERT_EQUAL_size_t(128u, mmgr_soluta_used(plain()));
+}
+
+void test_release_gives_the_bytes_back_to_the_right_tenant(void)
+{
+    void *s = mmgr_secura_init(secret(), (size_t)64);
+    void *p = mmgr_soluta_init(plain(), (size_t)64);
+
+    TEST_ASSERT_NOT_NULL(s);
+    TEST_ASSERT_NOT_NULL(p);
+
+    mmgr_secura_reddo(secret(), s, (size_t)64);
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_secura_used(secret()));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(64u, mmgr_soluta_used(plain()), "releasing one tenant must not touch the other");
+
+    mmgr_soluta_reddo(plain(), (size_t)64);
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_soluta_used(plain()));
 }

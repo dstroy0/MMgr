@@ -5,69 +5,74 @@
 
 MMGR_INCIPE_DECLS
 
-
-#define mmgr_verba_lit(b, s) mmgr_verba_put_n((b), (s), sizeof(s) - 1)
-
-typedef struct
-{
-    char *p;
-    size_t cap;
-    size_t len;
-    mmgr_bool ok;
-} mmgr_verba;
-
-typedef struct
-{
-    void (*put_n)(mmgr_verba *b, const char *s, size_t sl);
-    void (*put)(mmgr_verba *b, const char *s);
-    void (*put_clip)(mmgr_verba *b, const char *s);
-    void (*u64_clip)(mmgr_verba *b, uint64_t v, uint8_t columns);
-    void (*xml)(mmgr_verba *b, const char *s);
-    void (*ch)(mmgr_verba *b, char c);
-    void (*uint)(mmgr_verba *b, uint64_t v, unsigned base, unsigned min_digits);
-    void (*u32w)(mmgr_verba *b, uint32_t v, unsigned min_digits);
-    void (*hex)(mmgr_verba *b, uint64_t v, unsigned min_digits);
-    void (*u32)(mmgr_verba *b, uint32_t v);
-    void (*u64)(mmgr_verba *b, uint64_t v);
-    void (*i64)(mmgr_verba *b, int64_t v);
-    mmgr_bool (*sign_bit)(double v);
-    mmgr_bool (*is_inf)(double v);
-    mmgr_bool (*is_nan)(double v);
-    void (*g)(mmgr_verba *b, double v, unsigned sig);
-    void (*fixed)(mmgr_verba *b, double v, unsigned decimals);
-    void (*json)(mmgr_verba *b, const char *s);
-    size_t (*finish)(mmgr_verba *b);
-} VerbaScriboNs;
-MMGR_NS_LAYOUT(VerbaScriboNs, put_n, put, put_clip, u64_clip, xml, ch, uint, u32w, hex, u32, u64, i64, sign_bit, is_inf,
-               is_nan, g, fixed, json, finish);
-
-void mmgr_verba_put_n(mmgr_verba *b, const char *s, size_t sl);
-void mmgr_verba_put(mmgr_verba *b, const char *s);
-void mmgr_verba_put_clip(mmgr_verba *b, const char *s);
-void mmgr_verba_u64_clip(mmgr_verba *b, uint64_t v, uint8_t columns);
-void mmgr_verba_xml(mmgr_verba *b, const char *s);
-void mmgr_verba_ch(mmgr_verba *b, char c);
-void mmgr_verba_uint(mmgr_verba *b, uint64_t v, unsigned base, unsigned min_digits);
-void mmgr_verba_u32w(mmgr_verba *b, uint32_t v, unsigned min_digits);
-void mmgr_verba_hex(mmgr_verba *b, uint64_t v, unsigned min_digits);
-void mmgr_verba_u32(mmgr_verba *b, uint32_t v);
-void mmgr_verba_u64(mmgr_verba *b, uint64_t v);
-void mmgr_verba_i64(mmgr_verba *b, int64_t v);
-mmgr_bool mmgr_signbit(double v);
-mmgr_bool mmgr_isinf(double v);
-mmgr_bool mmgr_isnan(double v);
 #define MMGR_G_MAX_SIG 18u
 
 #define MMGR_FIXED_MAX_DECIMALS 18u
 
-void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig);
-#define MMGR_FIXED_MAX_DECIMALS 18u
+typedef struct
+{
+    char *const p;
+    const size_t cap;
+    const size_t at;
+    const char *const s;
+    const size_t sl;
+    const char c;
+    const uint64_t v;
+    const int64_t sv;
+    const double d;
+    const uint8_t base;
+    const uint8_t min;
+    const uint8_t columns;
+    const uint8_t sig;
+    const uint8_t decimals;
+} VerbaCfg;
 
-void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig);
-void mmgr_verba_g(mmgr_verba *b, double v, unsigned sig);
-void mmgr_verba_fixed(mmgr_verba *b, double v, unsigned decimals);
-void mmgr_verba_json(mmgr_verba *b, const char *s);
-size_t mmgr_verba_finish(mmgr_verba *b);
+typedef struct
+{
+    size_t (*put_n)(const VerbaCfg *c);
+    size_t (*put)(const VerbaCfg *c);
+    size_t (*put_clip)(const VerbaCfg *c);
+    size_t (*u64_clip)(const VerbaCfg *c);
+    size_t (*xml)(const VerbaCfg *c);
+    size_t (*ch)(const VerbaCfg *c);
+    size_t (*uint)(const VerbaCfg *c);
+    size_t (*u32w)(const VerbaCfg *c);
+    size_t (*hex)(const VerbaCfg *c);
+    size_t (*u32)(const VerbaCfg *c);
+    size_t (*u64)(const VerbaCfg *c);
+    size_t (*i64)(const VerbaCfg *c);
+    size_t (*g)(const VerbaCfg *c);
+    size_t (*fixed)(const VerbaCfg *c);
+    size_t (*json)(const VerbaCfg *c);
+    size_t (*finish)(const VerbaCfg *c);
+    mmgr_bool (*ok)(const VerbaCfg *c);
+    mmgr_bool (*sign_bit)(const VerbaCfg *c);
+    mmgr_bool (*is_inf)(const VerbaCfg *c);
+    mmgr_bool (*is_nan)(const VerbaCfg *c);
+} VerbaScriboNs;
+MMGR_NS_LAYOUT(VerbaScriboNs, put_n, put, put_clip, u64_clip, xml, ch, uint, u32w, hex, u32, u64, i64, g, fixed, json,
+               finish, ok, sign_bit, is_inf, is_nan);
+
+size_t mmgr_verba_put_n(const VerbaCfg *c);
+size_t mmgr_verba_put(const VerbaCfg *c);
+size_t mmgr_verba_put_clip(const VerbaCfg *c);
+size_t mmgr_verba_u64_clip(const VerbaCfg *c);
+size_t mmgr_verba_xml(const VerbaCfg *c);
+size_t mmgr_verba_ch(const VerbaCfg *c);
+size_t mmgr_verba_uint(const VerbaCfg *c);
+size_t mmgr_verba_u32w(const VerbaCfg *c);
+size_t mmgr_verba_hex(const VerbaCfg *c);
+size_t mmgr_verba_u32(const VerbaCfg *c);
+size_t mmgr_verba_u64(const VerbaCfg *c);
+size_t mmgr_verba_i64(const VerbaCfg *c);
+size_t mmgr_verba_g(const VerbaCfg *c);
+size_t mmgr_verba_fixed(const VerbaCfg *c);
+size_t mmgr_verba_json(const VerbaCfg *c);
+size_t mmgr_verba_finish(const VerbaCfg *c);
+mmgr_bool mmgr_verba_ok(const VerbaCfg *c);
+mmgr_bool mmgr_verba_sign_bit(const VerbaCfg *c);
+mmgr_bool mmgr_verba_is_inf(const VerbaCfg *c);
+mmgr_bool mmgr_verba_is_nan(const VerbaCfg *c);
 
 MMGR_NS VerbaScriboNs verba MMGR_UNUSED = {
     .put_n = mmgr_verba_put_n,
@@ -82,13 +87,14 @@ MMGR_NS VerbaScriboNs verba MMGR_UNUSED = {
     .u32 = mmgr_verba_u32,
     .u64 = mmgr_verba_u64,
     .i64 = mmgr_verba_i64,
-    .sign_bit = mmgr_signbit,
-    .is_inf = mmgr_isinf,
-    .is_nan = mmgr_isnan,
     .g = mmgr_verba_g,
     .fixed = mmgr_verba_fixed,
     .json = mmgr_verba_json,
     .finish = mmgr_verba_finish,
+    .ok = mmgr_verba_ok,
+    .sign_bit = mmgr_verba_sign_bit,
+    .is_inf = mmgr_verba_is_inf,
+    .is_nan = mmgr_verba_is_nan,
 };
 
 MMGR_FINIS_DECLS
