@@ -264,7 +264,7 @@
 /**
  * @brief Expands to static const.
  *
- * @note Used to declare the namespace tables, such as ascii, spat and clz.
+ * @note Used to declare the dispatch tables, such as ascii, spat and clz.
  */
 #define MMGR_NS static const
 

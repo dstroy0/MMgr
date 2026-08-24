@@ -1,7 +1,13 @@
-
-
+/**
+ * @brief ASCII class membership, read from the 128-bit s_class bitmaps.
+ */
 #include "ascii_persona_bitorum/ascii_persona_bitorum.h"
 
+/**
+ * @brief One 128-bit membership bitmap per MmgrAsciiClass value.
+ *
+ * @note Indexed by MmgrAsciiClass; code point n is bit (n & 7) of byte (n >> 3).
+ */
 static const MmgrAsciiMask s_class[MMGR_ASCII_CLASSES] = {
     [MMGR_ASCII_NUM] = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                          0x00}},
@@ -25,21 +31,42 @@ static const MmgrAsciiMask s_class[MMGR_ASCII_CLASSES] = {
                            0x7F}},
 };
 
+/**
+ * @brief Argument type built by MMGR_CALL in mmgr_ascii_in.
+ *
+ * @note Fields match AsciiCfg, without its const qualifiers.
+ */
 typedef struct
 {
-    MmgrAsciiClass k;
-    uint8_t c;
+    MmgrAsciiClass kind;
+    uint8_t byte;
 } AsciiCtx;
 
-MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *x)
+/**
+ * @brief Returns whether c->byte has its bit set in s_class[c->kind].
+ *
+ * @param[in] c Class and byte to test [BORROWS].
+ * @return      MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
+ * @note Bytes 0x80 and above return MMGR_FALSE without reading s_class.
+ * @warning c->kind must be below MMGR_ASCII_CLASSES.
+ */
+MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *c)
 {
-    MMGR_ASSERT(x->k < MMGR_ASCII_CLASSES, "no such character class");
+    MMGR_ASSERT(c->kind < MMGR_ASCII_CLASSES, "no such character class");
 
-    const MmgrAsciiMask *const m = &s_class[x->k];
-    return (mmgr_bool)((x->c < 0x80u) && (((m->b[x->c >> 3] >> (x->c & 7u)) & 1u) != 0u));
+    const MmgrAsciiMask *const entry = &s_class[c->kind];
+
+    // Byte index is the code point shifted right three; bit index is its low three bits
+    // Explicit cast narrows the int result of && to the mmgr_bool container
+    return (mmgr_bool)((c->byte < 0x80u) && (((entry->b[c->byte >> 3] >> (c->byte & 7u)) & 1u) != 0u));
 }
 
+/**
+ * @brief Copies c into an AsciiCtx and returns ascii_in's result.
+ *
+ * @note Documented at the declaration in ascii_persona_bitorum.h.
+ */
 mmgr_bool mmgr_ascii_in(const AsciiCfg *c)
 {
-    return MMGR_CALL(ascii_in, AsciiCtx, .k = c->k, .c = c->c);
+    return MMGR_CALL(ascii_in, AsciiCtx, .kind = c->kind, .byte = c->byte);
 }
