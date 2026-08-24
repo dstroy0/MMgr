@@ -32,7 +32,7 @@ typedef struct
     const uint8_t ca;
     const uint8_t cb;
     const mmgr_bool ci;
-    const mmgr_iword end_wins;
+    const mmgr_bool end_wins;
 } VerboProgrediorCfg;
 
 typedef struct

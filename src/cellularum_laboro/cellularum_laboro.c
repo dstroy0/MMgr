@@ -17,7 +17,7 @@ typedef struct
     const size_t at;
     const uint8_t byte;
     const mmgr_bool ci;
-    const mmgr_iword end_wins;
+    const mmgr_bool end_wins;
     const uint8_t **const out;
     uint32_t *const slen;
 
@@ -107,7 +107,7 @@ MMGR_INLINE mmgr_iword cellul_step_byte_cs(const CellulCtx *c)
         {
             return MMGR_SWAR_YES;
         }
-        return (c->end_wins != 0) ? MMGR_SWAR_YES : MMGR_SWAR_NO;
+        return c->end_wins ? MMGR_SWAR_YES : MMGR_SWAR_NO;
     }
     if (c->ca != c->cb)
     {
@@ -127,7 +127,7 @@ MMGR_INLINE mmgr_iword cellul_step_byte_ci(const CellulCtx *c)
         {
             return MMGR_SWAR_YES;
         }
-        return (c->end_wins != 0) ? MMGR_SWAR_YES : MMGR_SWAR_NO;
+        return c->end_wins ? MMGR_SWAR_YES : MMGR_SWAR_NO;
     }
     if (d != 0)
     {
@@ -255,7 +255,7 @@ MMGR_INLINE mmgr_bool cellul_agree_cs(const CellulCtx *c)
             return (mmgr_bool)(c->end_wins ? (lz <= lx) : (lz < lx));
         }
     }
-    return (mmgr_bool)(c->end_wins != 0);
+    return c->end_wins;
 }
 
 MMGR_INLINE mmgr_bool cellul_agree_ci(const CellulCtx *c)
@@ -280,7 +280,7 @@ MMGR_INLINE mmgr_bool cellul_agree_ci(const CellulCtx *c)
             return (mmgr_bool)(c->end_wins ? (lz <= lx) : (lz < lx));
         }
     }
-    return (mmgr_bool)(c->end_wins != 0);
+    return c->end_wins;
 }
 
 MMGR_INLINE uint8_t cellul_ancorae_fold(const CellulCtx *c)
@@ -448,7 +448,7 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *c, mmgr_bool ci)
         while (i < nlen)
         {
             const uint8_t h = (uint8_t)hay[k + i];
-            const CellulCtx b = {.ca = (uint8_t)needle[i], .cb = h, .end_wins = 0};
+            const CellulCtx b = {.ca = (uint8_t)needle[i], .cb = h, .end_wins = MMGR_FALSE};
 
             if ((h == 0u) || ((ci ? cellul_step_byte_ci(&b) : cellul_step_byte_cs(&b)) == MMGR_SWAR_NO))
             {
@@ -702,18 +702,18 @@ mmgr_bool (mmgr_cellul_eq)(const CatenaFinitaCfg *c)
 {
     if (c->ci)
     {
-        return MMGR_CALL(cellul_agree_ci, CellulCtx, .s = c->s, .t = c->t, .cap = c->cap, .end_wins = 0);
+        return MMGR_CALL(cellul_agree_ci, CellulCtx, .s = c->s, .t = c->t, .cap = c->cap, .end_wins = MMGR_FALSE);
     }
-    return MMGR_CALL(cellul_agree_cs, CellulCtx, .s = c->s, .t = c->t, .cap = c->cap, .end_wins = 0);
+    return MMGR_CALL(cellul_agree_cs, CellulCtx, .s = c->s, .t = c->t, .cap = c->cap, .end_wins = MMGR_FALSE);
 }
 
 mmgr_bool (mmgr_cellul_starts)(const CatenaFinitaCfg *c)
 {
     if (c->ci)
     {
-        return MMGR_CALL(cellul_agree_ci, CellulCtx, .s = c->t, .t = c->s, .cap = c->cap, .end_wins = 1);
+        return MMGR_CALL(cellul_agree_ci, CellulCtx, .s = c->t, .t = c->s, .cap = c->cap, .end_wins = MMGR_TRUE);
     }
-    return MMGR_CALL(cellul_agree_cs, CellulCtx, .s = c->t, .t = c->s, .cap = c->cap, .end_wins = 1);
+    return MMGR_CALL(cellul_agree_cs, CellulCtx, .s = c->t, .t = c->s, .cap = c->cap, .end_wins = MMGR_TRUE);
 }
 
 const char *(mmgr_cellul_find)(const CatenaFinitaCfg *c)

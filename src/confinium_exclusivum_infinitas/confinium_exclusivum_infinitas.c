@@ -40,7 +40,7 @@ typedef struct
     size_t at;
     size_t span;
     size_t gen;
-    mmgr_iword open;
+    mmgr_bool open;
 } Singularitas;
 
 typedef struct
@@ -54,7 +54,7 @@ typedef struct
     _Atomic size_t tail;
     struct MmgrCursor ord;
     const void *owner;
-    mmgr_iword open;
+    mmgr_bool open;
     _Atomic mmgr_word slots;
     Singularitas sing;
     Drain drains[MMGR_RING_DRAINS];
@@ -89,7 +89,7 @@ typedef struct
     const SingularitasCfg *sing;
     mmgr_u16 *status;
     mmgr_u16 why;
-    mmgr_iword rearm;
+    mmgr_bool rearm;
 } InfinCtx;
 
 typedef struct
@@ -370,7 +370,7 @@ MMGR_INLINE uint8_t *sing_body(const InfinCtx *c)
     {
         MMGR_CALL(sing_commit, InfinCtx, .s = s, .n = c->off * s->sing.gran);
         *c->tessera = 0u;
-        if (c->rearm == 0)
+        if (!c->rearm)
         {
             return NULL;
         }
@@ -415,14 +415,14 @@ mmgr_bool mmgr_infin_init(const RingCfg *c)
     s->ord.span = c->cap;
     s->ord.off = 0u;
     s->owner = NULL;
-    s->open = 0;
+    s->open = MMGR_FALSE;
     atomic_init(&s->slots, (mmgr_word)0);
     s->sing.owner = NULL;
     s->sing.gran = 0u;
     s->sing.at = 0u;
     s->sing.span = 0u;
     s->sing.gen = 0u;
-    s->sing.open = 0;
+    s->sing.open = MMGR_FALSE;
     for (size_t i = 0; i < MMGR_RING_DRAINS; i++)
     {
         s->drains[i].first = 0u;
@@ -437,12 +437,12 @@ MMGR_INLINE struct MmgrCursor *infin_open(const InfinCtx *c)
 {
     RingState *const s = c->s;
 
-    if (s->open != 0)
+    if (s->open)
     {
         return NULL;
     }
     s->ord.off = 0u;
-    s->open = 1;
+    s->open = MMGR_TRUE;
     s->owner = c->owner;
     return &s->ord;
 }
@@ -586,7 +586,7 @@ MMGR_INLINE mmgr_bool sing_admit(const InfinCtx *c)
     RingState *const s = c->s;
     const SingularitasCfg *const sing = c->sing;
 
-    if (s->sing.open != 0)
+    if (s->sing.open)
     {
         return (mmgr_bool)(sing->owner == s->sing.owner);
     }
@@ -597,7 +597,7 @@ MMGR_INLINE mmgr_bool sing_admit(const InfinCtx *c)
     }
     s->sing.owner = sing->owner;
     s->sing.gran = sing->gran;
-    s->sing.open = 1;
+    s->sing.open = MMGR_TRUE;
     return MMGR_TRUE;
 }
 
@@ -613,7 +613,7 @@ MMGR_INLINE mmgr_u16 sing_state(const InfinCtx *c)
 {
     RingState *const s = c->s;
     const size_t at = (s->sing.span != 0u) ? s->sing.at : MMGR_ATOMIC_LOAD(&s->head);
-    mmgr_u16 st = c->why | ((s->sing.open != 0) ? MMGR_SING_ATTACHED : MMGR_SING_READY);
+    mmgr_u16 st = c->why | (s->sing.open ? MMGR_SING_ATTACHED : MMGR_SING_READY);
 
     if (s->sing.span != 0u)
     {
@@ -629,8 +629,8 @@ MMGR_INLINE mmgr_u16 sing_state(const InfinCtx *c)
 MMGR_INLINE uint8_t *infin_singularitas(const InfinCtx *c)
 {
     RingState *const s = c->s;
-    const mmgr_iword live = ((c->tessera != NULL) && (*c->tessera != 0u));
-    const mmgr_iword asking = ((c->src != NULL) || (c->tessera != NULL));
+    const mmgr_bool live = ((c->tessera != NULL) && (*c->tessera != 0u));
+    const mmgr_bool asking = ((c->src != NULL) || (c->tessera != NULL));
     mmgr_u16 why = 0u;
     uint8_t *at = NULL;
 
@@ -664,7 +664,7 @@ MMGR_INLINE mmgr_bool infin_detach(const InfinCtx *c)
 {
     RingState *const s = c->s;
 
-    if ((s->sing.open == 0) || (c->sing == NULL) || (c->sing->owner != s->sing.owner))
+    if ((!s->sing.open) || (c->sing == NULL) || (c->sing->owner != s->sing.owner))
     {
         if (c->status != NULL)
         {
@@ -683,7 +683,7 @@ MMGR_INLINE mmgr_bool infin_detach(const InfinCtx *c)
 
     s->sing.owner = NULL;
     s->sing.gran = 0u;
-    s->sing.open = 0;
+    s->sing.open = MMGR_FALSE;
     s->sing.gen++;
 
     if (c->status != NULL)
