@@ -1,5 +1,17 @@
+/**
+ * @brief Byte cost table with no floor at 1; every byte value carries a cost.
+ *
+ * @note One of five files defining mmgr_ancorae_impensa; a build links exactly one of them.
+ */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
+/**
+ * @brief Cost of each byte value, indexed by the byte itself.
+ *
+ * @note Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.
+ * @note 255 marks the NUL and the space, so neither is ever chosen as a sieve offset.
+ * @note Bytes 128 through 255 all carry 107, so no high byte is preferred over another.
+ */
 static const uint8_t s_impensa[256] = {
     255, 136, 136, 136, 136, 136, 136, 136, 136, 163, 199, 136, 136, 136, 136, 136, 136, 136, 136, 136, 136, 136,
     136, 136, 136, 136, 136, 136, 136, 136, 136, 136, 255, 169, 169, 169, 169, 169, 169, 169, 169, 169, 169, 169,
@@ -14,16 +26,33 @@ static const uint8_t s_impensa[256] = {
     107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107,
     107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107};
 
+/**
+ * @brief Argument type built by MMGR_CALL in mmgr_ancorae_impensa.
+ *
+ * @note Mirrors AncoraeCfg without its const qualifier.
+ */
 typedef struct
 {
-    uint8_t byte;
+    uint8_t byte; /**< Byte value to look up. */
 } AncoraeCtx;
 
+/**
+ * @brief Returns the table entry for c->byte.
+ *
+ * @param[in] c Byte to look up [BORROWS].
+ * @return      The cost, 53 through 255 in this table.
+ * @note The table holds 256 entries, so every uint8_t value indexes it in range.
+ */
 MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *c)
 {
     return s_impensa[c->byte];
 }
 
+/**
+ * @brief Copies c->byte into an AncoraeCtx and returns the table entry.
+ *
+ * @note Documented at the declaration in impensa_ancorae_acus.h.
+ */
 uint8_t mmgr_ancorae_impensa(const AncoraeCfg *c)
 {
     return MMGR_CALL(ancorae_impensa, AncoraeCtx, .byte = c->byte);

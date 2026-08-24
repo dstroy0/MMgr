@@ -13,7 +13,7 @@
 #include "memoria_operor/memoria_operor.h"
 
 /**
- * @brief Read bound the unbounded <string.h> names are given, since MMgr never scans without one.
+ * @brief Read bound applied to the <string.h> names that take no length of their own.
  *
  * @note Defaults to MMGR_CARCER_MAX, the largest confinium a string can occupy.
  * @warning strlen, strstr, strcmp and strchr stop at this many bytes even without a terminator.
@@ -130,7 +130,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 /**
  * @brief Replaces memcpy with mmgr_shim_cpy.
  *
- * @note Every argument is parenthesised, so any expression may be passed.
+ * @note Every argument is parenthesized, so any expression may be passed.
  */
 #define memcpy(dest, source, bytes) mmgr_shim_cpy((dest), (source), (bytes))
 
@@ -159,7 +159,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 /**
  * @brief Replaces strlen with a scan bounded at MMGR_STR_MAX.
  *
- * @warning Returns MMGR_STR_MAX for text with no terminator in range, where strlen would read on.
+ * @warning Returns MMGR_STR_MAX when no terminator appears within it, rather than scanning further.
  */
 #define strlen(text) MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = (text), .cap = MMGR_STR_MAX)
 
@@ -193,7 +193,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 /**
  * @brief Replaces strcmp with an equality test bounded at MMGR_STR_MAX.
  *
- * @note Gives 0 when the two agree and 1 when they do not, so == 0 and ! both behave as expected.
+ * @note Gives 0 when the two agree and 1 when they do not, so == 0 and ! both test equality.
  * @warning Never negative and never above 1, so it cannot be used to order strings.
  */
 #define strcmp(left, right)                                                                                            \
@@ -213,7 +213,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  *
  * @note Gives 0 when the two agree through limit and 1 when they differ before it.
  * @warning Never negative and never above 1, so it cannot be used to order strings.
- * @warning Terminators are not treated specially; all limit bytes must be readable in both operands.
+ * @warning A terminator does not end the comparison; all limit bytes must be readable in both operands.
  */
 #define strncmp(left, right, limit)                                                                                    \
     (MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = MMGR_FALSE) < (limit))
@@ -223,7 +223,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  *
  * @note Gives 0 when the two agree through limit and 1 when they differ before it.
  * @warning Never negative and never above 1, so it cannot be used to order strings.
- * @warning Terminators are not treated specially; all limit bytes must be readable in both operands.
+ * @warning A terminator does not end the comparison; all limit bytes must be readable in both operands.
  */
 #define strncasecmp(left, right, limit)                                                                                \
     (MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = MMGR_TRUE) < (limit))
@@ -231,7 +231,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 /**
  * @brief Replaces strlcpy with a bounded copy that always terminates unless limit is 0.
  *
- * @note Returns the bytes copied, not the source length, so it does not report truncation as strlcpy does.
+ * @note Returns the bytes copied, which is the truncated length rather than the source length.
  */
 #define strlcpy(dest, source, limit)                                                                                   \
     MMGR_CALL(cellul.copy, CatenaFinitaCfg, .dst = (dest), .src = (source), .cap = (limit))

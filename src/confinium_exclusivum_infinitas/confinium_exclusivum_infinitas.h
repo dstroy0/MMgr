@@ -40,7 +40,7 @@ MMGR_INCIPE_DECLS
 /**
  * @brief Size of the opaque ring storage, counted in size_t units.
  *
- * @note The implementation asserts its state fits inside this; raise it if that assertion fires.
+ * @note The implementation asserts sizeof(RingState) is no larger than this.
  */
 #define MMGR_RING_WORDS 40u
 
@@ -87,8 +87,8 @@ MMGR_INCIPE_DECLS
 /**
  * @brief Storage a caller declares for one ring, whose contents are private to the implementation.
  *
- * @note Aligned to size_t, which is what the state laid inside it needs.
- * @warning Never read opaque directly; every field is reached through the iteratio_infinita calls.
+ * @note MMGR_ALIGN aligns opaque to size_t.
+ * @warning The bytes have no documented layout; the iteratio_infinita calls are the only accessors.
  */
 typedef struct
 {
@@ -103,14 +103,14 @@ struct MmgrCursor;
 /**
  * @brief Arguments for mmgr_infin_init.
  *
- * @warning Every one of these must outlive the ring, which keeps the buffer and the held word.
+ * @warning The ring keeps buf and held, so both must outlive it [BORROWS].
  */
 typedef struct
 {
-    mmgr_ring *const ring;        /**< Storage to lay the ring into [BORROWS]. */
-    uint8_t *const buf;           /**< Ring bytes [BORROWS]. */
-    const size_t cap;             /**< Bytes in buf; must be a non-zero power of two. */
-    const size_t nsegs;           /**< Segments to divide the ring into; a power of two, at most cap. */
+    mmgr_ring *const ring;         /**< Storage to lay the ring into [BORROWS]. */
+    uint8_t *const buf;            /**< Ring bytes [BORROWS]. */
+    const size_t cap;              /**< Bytes in buf; must be a non-zero power of two. */
+    const size_t nsegs;            /**< Segments to divide the ring into; a power of two, at most cap. */
     _Atomic mmgr_word *const held; /**< One bit per segment, shared with every holder [BORROWS]. */
 } RingCfg;
 
@@ -186,7 +186,7 @@ mmgr_bool mmgr_infin_init(const RingCfg *c);
  *
  * @param[in,out] c Ring and the identity taking the cursor [BORROWS].
  * @return          The cursor, or NULL when it is already out [BORROWS].
- * @warning There is one cursor per ring, and no call gives it back.
+ * @warning One cursor per ring; only mmgr_infin_init makes it available again.
  */
 struct MmgrCursor *mmgr_infin_open(const InfinCfg *c);
 
@@ -196,7 +196,7 @@ struct MmgrCursor *mmgr_infin_open(const InfinCfg *c);
  * @param[in,out] c Ring, the range, and the caller's tessera [BORROWS].
  * @return          Start of the segment handed out, or NULL [BORROWS].
  * @note A zero tessera starts a run; a non-zero one steps it and clears the tessera when it finishes.
- * @note The run holds its segments until it finishes, keeping other writers out of them.
+ * @note The run holds its segments until it finishes.
  * @warning Returns NULL and touches nothing when MMGR_ENABLE_KEEPOUT is 0.
  */
 const uint8_t *mmgr_infin_drain(const InfinCfg *c);
@@ -214,7 +214,7 @@ size_t mmgr_infin_available(const InfinCfg *c);
  * @brief Returns the bytes still free to write.
  *
  * @param[in] c Ring to inspect [BORROWS].
- * @return      Free bytes, less one so the head and tail stay apart, less any outstanding grant.
+ * @return      cap minus one, minus the readable bytes, minus any outstanding grant.
  * @warning Only a snapshot: a concurrent consumer may free more before the caller acts on it.
  */
 size_t mmgr_infin_vacant(const InfinCfg *c);
@@ -234,7 +234,7 @@ mmgr_bool mmgr_infin_read_byte(const InfinCfg *c);
  * @param[in] c Ring and the byte count wanted [BORROWS].
  * @return      Address inside the ring buffer, or NULL [BORROWS].
  * @note Returns NULL when the ring is empty, when fewer bytes are available, or when the run would wrap.
- * @warning The bytes stay valid only until the tail advances; call mmgr_infin_consume when done with them.
+ * @warning The bytes stay valid only until the tail advances.
  */
 const uint8_t *mmgr_infin_read(const InfinCfg *c);
 
@@ -261,7 +261,7 @@ void mmgr_infin_consume(const InfinCfg *c);
  * @param[in,out] c Ring, plus whichever of sing, src, tessera, bytes, off, units and status apply [BORROWS].
  * @return          Start of a granted or written run, or NULL [BORROWS].
  * @note With c->src set, the bytes are copied in and published at once, and nothing is granted.
- * @note With a live c->tessera, c->off granules are committed first; a fresh grant follows only when c->sing is also set.
+ * @note With a live c->tessera, c->off granules are committed first; a fresh grant needs c->sing too.
  * @note A successful grant writes a new tessera through c->tessera and the granule count through c->units.
  * @note With neither src nor tessera, nothing changes and only the status is reported.
  * @warning c->status receives the packed state on every path, including refusals; read it with MMGR_SING_FLAGS.

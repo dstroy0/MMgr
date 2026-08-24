@@ -5,22 +5,22 @@ Borrowing a buffer, taking from both ends of it, and giving the interim back.
 ## Borrowing
 
 ```c
-static uint8_t region[4096];
+mmgr_carcer_init(g_ram, 4096u, MMGR_POOL(g_scratch, 4096u));
 
-mmgr_confin c;
-mmgr_confin_init(&c, region, sizeof region);
+CarcerCtx *const pool = MMGR_CARCER_POOL(g_ram, g_scratch);
 ```
 
-`mmgr_confin_init` takes the base and the length **on trust**. It cannot check them, so this is the
-one line in your program where a mistake is unrecoverable — see @ref proj_security.
+`mmgr_carcer_init` is a declaration, not a call. It emits the storage, one @ref CarcerCtx per pool,
+and static asserts that the region has an address and an extent and that the pools fit inside it.
+Nothing runs at startup, and a region that does not add up fails to compile.
 
-The buffer can be anything you own: a static array, a slice of a linker-placed section, a block from
-a heap you already have. MMgr does not care where it came from, only that it outlives the confinium.
+Each `MMGR_POOL` names a pool and its size. They are laid out back to back from the base of the
+region, so the second starts where the first ends.
 
 ## Two ends
 
 ```c
-uint8_t *cfg  = mmgr_confin_persist_capio(&c, 128, 8);   uint8_t *tmp  = mmgr_confin_interim_capio(&c, 512, 8);   ```
+uint8_t *cfg  = mmgr_carcer_persist_capio(&c, 128, 8);   uint8_t *tmp  = mmgr_carcer_interim_capio(&c, 512, 8);   ```
 
 - **persist** is for what lives as long as the region: configuration, tables, buffers you fill once.
 - **interim** is the working space for one operation.
@@ -42,11 +42,11 @@ spoken for by libc; @ref ref_glossary decodes the rest.
 Interim is a stack. You do not free a pointer, you rewind to a mark.
 
 ```c
-size_t m = mmgr_confin_interim_mark(&c);       
-uint8_t *a = mmgr_confin_interim_capio(&c, 256, 8);
-uint8_t *b = mmgr_confin_interim_capio(&c, 256, 8);
+size_t m = mmgr_carcer_interim_mark(&c);       
+uint8_t *a = mmgr_carcer_interim_capio(&c, 256, 8);
+uint8_t *b = mmgr_carcer_interim_capio(&c, 256, 8);
 
-mmgr_confin_interim_reddo(&c, m);              ```
+mmgr_carcer_interim_reddo(&c, m);              ```
 
 This is the pattern for any bounded operation: mark on the way in, `reddo` on the way out, and the
 interim cost of the operation is zero afterwards no matter how many takes it made.
@@ -58,7 +58,7 @@ memory to someone else. A pointer that outlives its mark is the sharpest edge in
 ## How much is left
 
 ```c
-size_t left = mmgr_confin_octas_praesto(&c);   ```
+size_t left = mmgr_carcer_octas_praesto(&c);   ```
 
 `octas_praesto` is **not** a release. It reports the gap still between the two ends. It is what you
 log when a take returns `NULL` and you want to know by how much you missed.
@@ -68,8 +68,9 @@ log when a take returns `NULL` and you want to know by how much you missed.
 Do not compute the size on paper. Measure it.
 
 ```c
-size_t persist_peak = mmgr_confin_persist_used(&c);
-size_t interim_peak = mmgr_confin_interim_used(&c);
+const size_t persist_now = MMGR_CALL(carcer.persist_used, CarcerCfg, .pool = pool);
+const size_t left       = MMGR_CALL(carcer.octas_praesto, CarcerCfg, .pool = pool);
+const size_t peak       = pool->hw;   /* MMGR_ENABLE_HW_MEM_CAPACITY_CB only */
 ```
 
 Build the `checks` environment, run your real workload, and read those. `checks` compiles in the
@@ -88,20 +89,21 @@ makes the argument for why this is the bill worth paying.
 ## Putting it together
 
 ```c
-static uint8_t region[4096];
-
-static mmgr_bool handle(mmgr_confin *c, const uint8_t *msg, size_t len)
+static mmgr_bool handle(CarcerCtx *pool, const uint8_t *msg, size_t len)
 {
-    const size_t m = mmgr_confin_interim_mark(c);
+    const size_t mark = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = pool);
 
-    uint8_t *work = mmgr_confin_interim_capio(c, len, 8);
+    uint8_t *const work = MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = pool, .size = len);
     if (work == NULL) {
-        return MMGR_FALSE;                        }
+        return MMGR_FALSE;
+    }
 
-    memor.cpy(work, msg, len);
-    size_t at = 0u;
-    
-    mmgr_confin_interim_reddo(c, m);              return MMGR_TRUE;
+    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = work, .src = msg, .bytes = len);
+
+    /* ... use work ... */
+
+    MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = pool, .size = mark);
+    return MMGR_TRUE;
 }
 ```
 

@@ -1,6 +1,6 @@
 # Verbum scrutor — the SWAR scanner {#mod_scrut_guide}
 
-Word-at-a-time lane primitives. Header-only, branch-free, and the performance core of the library.
+Word-at-a-time lane primitives. Branch-free, and the performance core of the library.
 
 ## When to reach for it
 
@@ -26,12 +26,14 @@ size_t find_zero(const uint8_t *p, size_t n)
 {
     size_t i = 0;
     for (; i + MMGR_SWAR_BYTES <= n; i += MMGR_SWAR_BYTES) {
-        mmgr_scrut_word w = scrut.load(p + i);
-        mmgr_scrut_word m = scrut.has_zero(w);
-        if (m) {
-            return i + scrut.lane_first(m);           }
+        const mmgr_word w = MMGR_CALL(word.load, ScrutWordCfg, .at = p + i);
+        const mmgr_word m = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w);
+        if (m != 0u) {
+            return i + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);
+        }
     }
-    for (; i < n; ++i) {                               if (p[i] == 0) return i;
+    for (; i < n; ++i) {
+        if (p[i] == 0) { return i; }
     }
     return n;
 }
@@ -40,17 +42,22 @@ size_t find_zero(const uint8_t *p, size_t n)
 The tail is where off-by-ones live, which is why `word16` exists as an environment — it reaches the
 tail four times sooner than a 64-bit carrier. See @ref ref_environments.
 
-## The entries, by job
+## Three tables
 
-| job             | entries                                                            |
-| --------------- | ------------------------------------------------------------------ |
-| load a word     | `load`, `load_al`                                                  |
-| test all lanes  | `has_zero`, `eq`, `le`, `ge`, `xor_`                               |
-| build a mask    | `spread`, `sub7`, `zero_lane`                                      |
-| find which lane | `lanes`, `lane_lo`, `lane_hi`, `lane_first`, `lane_last`, `drop_*` |
-| bookkeeping     | `words`, `tail_mask`, `lanes_below`, `lanes_before`                |
-| ASCII family    | `any_upper`, `any_digit`, `alpha`, `fold_lower`                    |
-| runs            | `run`, `run_edge`                                                  |
+The entries split by what they operate on, and each has its own config struct.
+
+| table  | operates on            | entries                                                                                |
+| ------ | ---------------------- | -------------------------------------------------------------------------------------- |
+| `word` | a whole word           | `load`, `load_al`, `fold_lower`, `count`                                                 |
+| `lane` | the lanes of a word    | `ge`, `le`, `sub7`, `has_zero`, `eq`, `xor_`, `fam_eq`, `any_upper`, `any_digit`, `alpha`, `count`, `first`, `last` |
+| `mask` | a mask of lanes        | `spread`, `drop_first`, `drop_last`, `bytes_below`, `lanes_below`, `before`, `tail`, `run`, `run_edge` |
+
+`lane.first` and `lane.last` are address order, not bit order. On a big-endian target they are wired
+to the opposite internal entries from a little-endian one, so a caller never has to know which way
+the lanes run. `mask.drop_first` and `mask.drop_last` are wired the same way.
+
+`lane.count` counts set lanes in a mask; `word.count` is unrelated and reports how many words cover
+a byte length.
 
 ## Gotchas
 
@@ -66,8 +73,11 @@ exact answer.
 cycles against 3.680 for `__builtin_ctzll`, and `__builtin_popcountll` is a libgcc call on baseline
 x86-64. See @ref concept_swar.
 
-**It is header-only and `MMGR_INLINE`.** There is no `.c`; the CMake target exists so a consumer can
-link it without crossing environments.
+**The bodies are in a `.c`, and the build has to be optimized for that to be free.** The internals
+are `MMGR_INLINE` within the module, but the entries a caller reaches are ordinary functions in
+another translation unit. At `-O2` with LTO the bench binary contains no call to any of them — they
+inline through the dispatch table and through the archive. Built with no optimization the same calls
+survive, and `lane.has_zero` measures 22 cycles instead of 3. Configure with a `CMAKE_BUILD_TYPE`.
 
 ## Reference
 

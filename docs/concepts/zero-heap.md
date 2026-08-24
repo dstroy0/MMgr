@@ -27,7 +27,7 @@ path that is not an inconvenience, it is a defect.
 Storage is decided at compile time and carved at run time by bumping a pointer.
 
 - The sizes are `MMGR_PLAINTEXT_CONFIN_SIZE`, `MMGR_SECURE_CONFIN_SIZE` and whatever buffer you hand
-  `mmgr_confin_init`. All are known when the binary is linked.
+  `mmgr_carcer_init`. All are known when the binary is linked.
 - A take is a bounds check and an addition. Same cost every time.
 - Failure is `NULL` from a take against a region you sized, not an out-of-memory condition arriving
   from somewhere else in the program.
@@ -54,16 +54,21 @@ cmake --build build
 ./build/test/checks/<your workload>
 ```
 
-`mmgr_clarus_high_water()` and `mmgr_confin_interim_used()` report the largest the thing ever got,
-not the current value. Size the region to the high-water mark plus whatever margin your failure
-policy wants, then set the knob in @ref ref_configuration.
+`mmgr_carcer_persist_used()`, `mmgr_soluta_used()` and `mmgr_secura_used()` report what is
+outstanding at the moment you call them, not the largest it ever got.
+
+For the largest, build with `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Every take then keeps the peak in the
+`hw` field of the pool's @ref CarcerCtx, the hardware heap and stack cap: persist records
+`persist_end`, interim records `size - interim_top`. It is off by default, so a workload run without
+it leaves `hw` at zero. Read the field, add whatever margin your failure policy wants, then set the
+knob in @ref ref_configuration.
 
 **You give up free-anything-anytime.** Persist unwinds; interim releases by mark; a tenant resets as
 a whole. If your data structure genuinely needs arbitrary-order release of arbitrary-size objects
 with a long tail of lifetimes, this library is the wrong shape and no amount of configuration will
 change that.
 
-**A lie about a capacity is unrecoverable.** `mmgr_confin_init` believes the length it is given.
+**A lie about a capacity is unrecoverable.** `mmgr_carcer_init` believes the length it is given.
 Pass it a length longer than the buffer and every bounds check afterwards is computed against a
 number that was never true. See @ref proj_security.
 

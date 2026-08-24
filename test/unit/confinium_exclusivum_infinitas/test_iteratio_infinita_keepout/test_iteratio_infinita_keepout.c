@@ -21,8 +21,8 @@ void setUp(void)
     }
     (void)iteratio_infinita.init(&(RingCfg){&ring, buf, CAP, SEGS, &held});
 
-    struct MmgrCursor *const cur = iteratio_infinita.open(&(InfinCfg){.r = &ring, .owner = &owner});
-    (void)iteratio_infinita.singularitas(&(InfinCfg){.r = &ring, .src = arrived, .n = CAP - 1u, .sing = &bytewise});
+    struct MmgrCursor *const cur = iteratio_infinita.open(&(InfinCfg){.ring = &ring, .owner = &owner});
+    (void)iteratio_infinita.singularitas(&(InfinCfg){.ring = &ring, .src = arrived, .bytes = CAP - 1u, .sing = &bytewise});
 }
 
 void tearDown(void)
@@ -32,7 +32,7 @@ void tearDown(void)
 static const uint8_t *ask(size_t from, size_t to, size_t *tess)
 {
     *tess = 0u;
-    return iteratio_infinita.drain(&(InfinCfg){.r = &ring, .from = from, .to = to, .tessera = tess});
+    return iteratio_infinita.drain(&(InfinCfg){.ring = &ring, .from = from, .to = to, .tessera = tess});
 }
 
 static size_t walk(const uint8_t *at, size_t *tess)
@@ -42,7 +42,7 @@ static size_t walk(const uint8_t *at, size_t *tess)
     while (at != NULL)
     {
         n++;
-        at = iteratio_infinita.drain(&(InfinCfg){.r = &ring, .tessera = tess});
+        at = iteratio_infinita.drain(&(InfinCfg){.ring = &ring, .tessera = tess});
     }
     return n;
 }
@@ -139,7 +139,7 @@ void test_a_spent_tessera_stops_working(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, t, "walking to the end clears the caller's token");
 
     size_t stale = spent;
-    TEST_ASSERT_NULL_MESSAGE(iteratio_infinita.drain(&(InfinCfg){.r = &ring, .tessera = &stale}),
+    TEST_ASSERT_NULL_MESSAGE(iteratio_infinita.drain(&(InfinCfg){.ring = &ring, .tessera = &stale}),
                              "a token from a finished drain entitles the holder to nothing");
 }
 
@@ -156,7 +156,7 @@ void test_a_reused_record_does_not_honour_the_old_tessera(void)
                                      "the same record was reused, which is the case that matters");
 
     size_t stale = spent;
-    TEST_ASSERT_NULL_MESSAGE(iteratio_infinita.drain(&(InfinCfg){.r = &ring, .tessera = &stale}),
+    TEST_ASSERT_NULL_MESSAGE(iteratio_infinita.drain(&(InfinCfg){.ring = &ring, .tessera = &stale}),
                              "the old token names a use of that record that is over");
 }
 
@@ -164,9 +164,9 @@ void test_a_tessera_nobody_issued_is_refused(void)
 {
     size_t made_up = MMGR_TESSERA(0u, 999u);
 
-    TEST_ASSERT_NULL(iteratio_infinita.drain(&(InfinCfg){.r = &ring, .tessera = &made_up}));
+    TEST_ASSERT_NULL(iteratio_infinita.drain(&(InfinCfg){.ring = &ring, .tessera = &made_up}));
 
     size_t zero = 0u;
-    TEST_ASSERT_NULL_MESSAGE(iteratio_infinita.drain(&(InfinCfg){.r = &ring, .tessera = &zero}),
+    TEST_ASSERT_NULL_MESSAGE(iteratio_infinita.drain(&(InfinCfg){.ring = &ring, .tessera = &zero}),
                              "no token and no range is not a request for anything");
 }

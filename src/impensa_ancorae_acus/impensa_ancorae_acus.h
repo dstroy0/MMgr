@@ -1,3 +1,8 @@
+/**
+ * @brief Byte cost lookup: its argument, the call, and the ancorae dispatch table.
+ *
+ * @note Five source files define the call, each with its own table; a build links exactly one.
+ */
 #ifndef MMGR_IMPENSA_ANCORAE_ACUS_H
 #define MMGR_IMPENSA_ANCORAE_ACUS_H
 
@@ -5,19 +10,38 @@
 
 MMGR_INCIPE_DECLS
 
+/**
+ * @brief Argument for the cost lookup.
+ */
 typedef struct
 {
-    const uint8_t byte;
+    const uint8_t byte; /**< Byte value to look up. */
 } AncoraeCfg;
 
+/**
+ * @brief Type of the ancorae dispatch table.
+ *
+ * @note MMGR_NS_LAYOUT asserts the impensa member is at offset 0 and that the struct holds nothing else.
+ */
 typedef struct
 {
-    uint8_t (*impensa)(const AncoraeCfg *c);
+    uint8_t (*impensa)(const AncoraeCfg *c); /**< Cost of one byte value. */
 } ImpensaAncoraeAcusNs;
 MMGR_NS_LAYOUT(ImpensaAncoraeAcusNs, impensa);
 
+/**
+ * @brief Returns the cost of c->byte under the table this build links.
+ *
+ * @param[in] c Byte to look up [BORROWS].
+ * @return      The cost, 1 through 255.
+ * @note Lower means the byte is rarer under the linked table; cellul_pick_rows keeps the lowest it finds.
+ * @warning The value depends on which of the five tables was linked, so it is not portable between builds.
+ */
 uint8_t mmgr_ancorae_impensa(const AncoraeCfg *c);
 
+/**
+ * @brief Dispatch table instance named ancorae; its impensa member calls mmgr_ancorae_impensa.
+ */
 MMGR_NS ImpensaAncoraeAcusNs ancorae MMGR_UNUSED = {
     .impensa = mmgr_ancorae_impensa,
 };

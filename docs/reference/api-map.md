@@ -1,6 +1,6 @@
 # Where a symbol lives {#ref_api_map}
 
-You saw `spat.from` in a diff. This page says which module it came from.
+You saw `spat.init` in a diff. This page says which module it came from.
 
 ## The naming law
 
@@ -12,37 +12,41 @@ mmgr_<infix>_<tail>
 
 `<infix>` is the module's stem. So a symbol tells you its module without a lookup:
 
-| symbol                      | infix    | module               |
-| --------------------------- | -------- | -------------------- |
-| `mmgr_spat_from`            | `spat`   | `spatium`            |
-| `mmgr_confin_persist_capio` | `confin` | `confinium`          |
-| `mmgr_scrut_has_zero`       | `scrut`  | `verbum_scrutor`     |
-| `mmgr_occult_wipe`          | `occult` | `occultum_custodiae` |
+| symbol                      | infix    | module              |
+| --------------------------- | -------- | ------------------- |
+| `mmgr_spat_init`            | `spat`   | `spatium`           |
+| `mmgr_carcer_persist_capio` | `carcer` | `carceribus`        |
+| `mmgr_scrut_has_zero`       | `scrut`  | `verbum_scrutor`    |
+| `mmgr_secura_wipe`          | `secura` | `custodia_secura`   |
 
-And the dispatch table is named for the same stem, so `spat.from` and `mmgr_spat_from` are the same
+And the dispatch table is named for the same stem, so `spat.init` and `mmgr_spat_init` are the same
 function reached two ways. See @ref concept_ns_idiom.
 
 ## Stem to module
 
-| stem                          | module                           | what it does                           |
-| ----------------------------- | -------------------------------- | -------------------------------------- |
-| `confin`                      | `confinium`                      | the double-ended region                |
-| `infin`                       | `confinium_exclusivum_infinitas` | SPSC ring, segment queue, loculus bitmap  |
-| `exter`                       | `confinium_externum`             | DRAM against PSRAM placement           |
-| `clarus`                      | `clarus_custodiae`               | plaintext pool                         |
-| `occult`                      | `occultum_custodiae`             | secure pool, with a wipe               |
-| `spat`                        | `spatium`                        | a bounded view over caller memory      |
-| `proxim` / `aequus` / `migro` | `proximus_operor`                | unaligned / aligned / may-alias access |
-| `scrut`                       | `verbum_scrutor`                 | SWAR lane primitives                   |
-| `memor`                       | `memoria_operor`                 | the `mem*` family                      |
-| `cellul`                      | `cellularum_laboro`              | bounded string operations              |
-| `verba`                       | `verba_scribo`                   | string builder                         |
-| `numer`                       | `numeros_scribo`                 | field-spec formatter                   |
-| `fract`                       | `fractio`                        | IEEE-754 field access                  |
-| `bitio`                       | `bitio`                          | bit writer                             |
-| `byteio`                      | `byteio`                         | byte and wire serialization            |
-| `endian`                      | `endian`                         | explicit byte order                    |
-| `dma`                         | `dma`                            | transfer submission, gated             |
+| stem                                   | module                           | what it does                              |
+| -------------------------------------- | -------------------------------- | ----------------------------------------- |
+| `carcer`                               | `carceribus`                     | the double-ended region and its pools     |
+| `iteratio_infinita`                    | `confinium_exclusivum_infinitas` | SPSC ring, segment queue, loculus bitmap  |
+| `exter`                                | `confinium_externum`             | DRAM against PSRAM placement              |
+| `soluta`                               | `custodia_soluta`                | plaintext pool                            |
+| `secura`                               | `custodia_secura`                | secure pool, clears on release            |
+| `spat`                                 | `spatium`                        | a bounded view over caller memory         |
+| `proxim` / `aequus` / `migro`          | `proximus_operor`                | unaligned / aligned / may-alias access    |
+| `lane` / `mask` / `word`               | `verbum_scrutor`                 | SWAR lane primitives                      |
+| `memor`                                | `memoria_operor`                 | the `mem*` family                         |
+| `cellul`                               | `cellularum_laboro`              | bounded string operations                 |
+| `verba`                                | `verba_scribo`                   | string and number writing                 |
+| `numer`                                | `numeros_scribo`                 | field-spec formatter                      |
+| `muto`                                 | `transformo`                     | decimal to binary scaling                 |
+| `fract`                                | `fractio`                        | IEEE-754 field access                     |
+| `clz`                                  | `clz`                            | leading zero count                        |
+| `bitio`                                | `bitorum_introitus_exitus`       | bit writer                                |
+| `byteio`                               | `octetus_introitus_exitus`       | byte transfers, big end first             |
+| `parva_extremitas` / `magna_extremitas`| `endian`                         | explicit byte order                       |
+| `ascii`                                | `ascii_persona_bitorum`          | character classes as bitmaps              |
+| `ancorae`                              | `impensa_ancorae_acus`           | anchor cost tables for search             |
+| `praet`                                | `memoriam_praetereo`             | transfer submission, gated                |
 
 ## The three exceptions
 
@@ -51,20 +55,25 @@ because they name three **strategies**, not three spellings of one thing: unalig
 may-alias. Merging them is a miscompile the compiler cannot report, so the naming keeps them apart.
 
 
-Three modules have no stem at all because they expose only data, not entries: `ascii_persona_bitorum`
-(character classes as bitmaps), `impensa_ancorae_acus` (byte-frequency tables) and `pow5` (the powers of five
-a decimal conversion needs). All three are generated - see @ref qa_numeric for what `pow5` is for.
+`verbum_scrutor` splits the other way: three tables — `lane`, `mask`, `word` — over one module, named
+for what each operates on, while every function keeps the module's own `scrut` infix.
+
+`pow5` has no stem because it exposes only data: the two tables of powers of five a decimal
+conversion needs. See @ref qa_numeric for what it is for.
 
 ## Types
 
-| prefix        | is                                                     |
-| ------------- | ------------------------------------------------------ |
-| `mmgr_<stem>` | a data type — `mmgr_spat`, `mmgr_confin`, `mmgr_verba` |
-| `<Pascal>Ns`  | a dispatch table type — `SpatiumNs`, `VerbumScrutorNs` |
-| `MMGR_<NAME>` | a macro or a constant                                  |
+| prefix        | is                                                        |
+| ------------- | --------------------------------------------------------- |
+| `mmgr_<stem>` | a data type — `mmgr_spat`, `mmgr_bitor`                   |
+| `<Pascal>Cfg` | the argument struct an entry takes — `SpatCfg`, `MemoriaCfg` |
+| `<Pascal>Ctx` | caller-held state a module operates on — `CarcerCtx`      |
+| `<Pascal>Ns`  | a dispatch table type — `SpatiumNs`, `ScrutLaneNs`        |
+| `MMGR_<NAME>` | a macro or a constant                                     |
 
-A type takes the **stem**, not the long Latin: `mmgr_confin`, not `mmgr_confinium`. A type spelled
-`mmgr_confinium` beside a function spelled `mmgr_confin_set_add` reads as two different modules.
+Every entry takes one `const <Pascal>Cfg *`, built at the call site with @ref MMGR_CALL. A module
+whose state outlives a call names that state `<Pascal>Ctx` and the caller holds it; the cfg carries
+a pointer to it rather than the state itself.
 
 ## Finding it in the reference
 

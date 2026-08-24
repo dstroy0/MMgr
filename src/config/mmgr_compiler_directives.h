@@ -122,7 +122,7 @@
  * @param[in] a Left operand, forwarded to MMGR_CAT_.
  * @param[in] b Right operand, forwarded to MMGR_CAT_.
  * @return      The single token formed by joining a and b.
- * @note Used by MMGR_NS_LAYOUT and MMGR_NS_LAYOUT_OPEN to build a macro name.
+ * @note Builds a macro name from a count, as in MMGR_NS_LAYOUT and mmgr_carcer_init.
  */
 #define MMGR_CAT(a, b) MMGR_CAT_(a, b)
 
@@ -132,7 +132,7 @@
  * @param[in] ... The list to count.
  * @return        The number of arguments, for one to twenty-four arguments.
  * @warning An empty list gives 1.
- * @warning Twenty-five or more arguments give a count that is too low.
+ * @warning Twenty-five or more arguments make MMGR_ARG_N select an argument instead of a constant.
  */
 #define MMGR_NARG(...)                                                                                                 \
     MMGR_NARG_(__VA_ARGS__, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
@@ -162,7 +162,7 @@
  *
  * @param[in] backend  Function called with the address of the literal.
  * @param[in] ArgsType Type of the compound literal.
- * @param[in] ...      Initialisers for the compound literal.
+ * @param[in] ...      Initializers for the compound literal.
  * @return             The value backend returns.
  * @warning backend receives the address of the literal [BORROWS].
  */
@@ -171,7 +171,7 @@
 /**
  * @brief Expands to sizeof(void (*)(void)).
  *
- * @note Multiplied by the loculus index in MMGR_NS_LOCULUS, MMGR_NS_LAYOUT and MMGR_NS_LAYOUT_OPEN.
+ * @note Multiplied by a loculus index in MMGR_NS_LOCULUS, and by the member count in the two layout macros.
  */
 #define MMGR_FP_SIZE (sizeof(void (*)(void)))
 
@@ -181,7 +181,7 @@
  * @param[in] T       Struct type passed to offsetof.
  * @param[in] member  Member name passed to offsetof.
  * @param[in] loculus Index, cast to size_t and multiplied by MMGR_FP_SIZE.
- * @note T, member and loculus are stringised into the assertion message.
+ * @note T, member and loculus are stringized into the assertion message.
  */
 #define MMGR_NS_LOCULUS(T, member, loculus)                                                                            \
     MMGR_STATIC_ASSERT(offsetof(T, member) == (size_t)(loculus) * MMGR_FP_SIZE,                                        \
@@ -193,7 +193,7 @@
  * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
  * @param[in] a Member names in order; a takes index 0, b takes index 1.
  * @note MMGR_NS_L<n> expands MMGR_NS_L<n-1> before its own MMGR_NS_LOCULUS.
- * @warning Selected by MMGR_NS_LAYOUT through MMGR_CAT on the argument count.
+ * @warning Selected by MMGR_NS_LAYOUT and MMGR_NS_LAYOUT_OPEN through MMGR_CAT on the argument count.
  */
 #define MMGR_NS_L1(T, a) MMGR_NS_LOCULUS(T, a, 0);
 #define MMGR_NS_L2(T, a, b) MMGR_NS_L1(T, a) MMGR_NS_LOCULUS(T, b, 1);
@@ -347,7 +347,7 @@
 /**
  * @brief Expands to _Pragma(#directive) where MMGR_CC_GNU is non-zero.
  *
- * @param[in] directive Pragma text, stringised by #.
+ * @param[in] directive Pragma text, stringized by #.
  * @warning Expands to nothing where MMGR_CC_GNU is 0, ignoring directive.
  */
 #if MMGR_CC_GNU
@@ -375,14 +375,14 @@
  * @brief Expands to _Pragma(MMGR_DIAG_STR(clang diagnostic ignored w)) where __clang__ is defined.
  *
  * @param[in] w Warning name as a string literal, such as "-Wpadded".
- * @note MMGR_DIAG_STR stringises the whole pragma text, including w.
+ * @note MMGR_DIAG_STR stringizes the whole pragma text, including w.
  */
 #define MMGR_DIAG_IGNORE(w) _Pragma(MMGR_DIAG_STR(clang diagnostic ignored w))
 
 /**
  * @brief Expands to #x.
  *
- * @param[in] x Token sequence to stringise.
+ * @param[in] x Token sequence to stringize.
  * @return      x as a string literal.
  * @note Called by MMGR_DIAG_IGNORE.
  */
@@ -397,7 +397,7 @@
 /**
  * @brief Expands to #x.
  *
- * @param[in] x Token sequence to stringise.
+ * @param[in] x Token sequence to stringize.
  * @return      x as a string literal.
  * @note Called by MMGR_DIAG_IGNORE.
  */
@@ -408,7 +408,7 @@
  *
  * @param[in] w Warning name as a string literal, such as "-Wpadded".
  * @note Selected where __GNUC__ is defined and __clang__ is not.
- * @note MMGR_DIAG_STR stringises the whole pragma text, including w.
+ * @note MMGR_DIAG_STR stringizes the whole pragma text, including w.
  */
 #define MMGR_DIAG_IGNORE(w) _Pragma(MMGR_DIAG_STR(GCC diagnostic ignored w))
 #else

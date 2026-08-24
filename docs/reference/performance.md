@@ -70,7 +70,7 @@ input changes is almost certainly doing that.
 
 ```c
 BENCH_TIME(has_zero, {
-    mmgr_scrut_word w = words[bench_i_ & MASK];       BENCH_KEEP(scrut.has_zero(w));
+    mmgr_word w = words[bench_i_ & MASK];       BENCH_KEEP(scrut.has_zero(w));
 });
 ```
 

@@ -9,44 +9,69 @@ A `uint64_t` holds eight bytes. An `AND`, an `XOR` or a subtract on that word op
 simultaneously, on any CPU, with no vector unit and no intrinsics. The whole technique is arranging
 for the answer you want to fall out of arithmetic that was going to happen anyway.
 
-Two constants set it up, both derived from the carrier width:
+Three constants set it up, all derived from the carrier width rather than tabulated, so they are
+correct at 16, 32 and 64 bits without a `#if`:
 
 ```c
-MMGR_SWAR_ONES    MMGR_SWAR_HIGHS   ```
+#define MMGR_SWAR_ONES           (((mmgr_word)~(mmgr_word)0) / 0xFFu)  /* 0x0101...01 */
+#define MMGR_VERBUM_SCRUTOR_HIGH (MMGR_SWAR_ONES * 0x80u)              /* 0x8080...80 */
+#define MMGR_SWAR_LOW7           (MMGR_SWAR_ONES * 0x7Fu)              /* 0x7F7F...7F */
+```
+
+`ONES` is the broadcast multiplier — multiply a byte by it and you get that byte in every lane.
+`HIGH` is where an answer lands. `LOW7` is the room a lane has to carry into before it disturbs the
+answer bit.
 
 ## Worked example: is any byte zero
 
-The classic. `scrut.has_zero(w)` answers "does this word contain a zero byte" in three operations.
+`lane.has_zero` answers "does this word contain a zero byte" in five operations, and every predicate
+in the module is built on it.
 
 ```c
-(w - MMGR_SWAR_ONES) & ~w & MMGR_SWAR_HIGHS
+~(((w & MMGR_SWAR_LOW7) + MMGR_SWAR_LOW7) | w) & MMGR_VERBUM_SCRUTOR_HIGH
 ```
 
 Read it a lane at a time:
 
-- `w - ONES` subtracts 1 from every lane at once. A lane holding `0x00` borrows, and the borrow sets
-  that lane's high bit. A lane holding anything from `0x01` upward does not.
-- `& ~w` discards lanes whose high bit was already set in `w` — those would otherwise look like a
-  borrow when they are just a byte ≥ `0x80`.
-- `& HIGHS` keeps only the high bit of each lane, so the result is non-zero exactly when some lane
-  held zero.
+- `w & LOW7` drops the top bit of every lane, so no lane can carry into its neighbour.
+- `+ LOW7` adds `0x7F` to each. A lane whose low seven bits held anything at all carries into bit 7;
+  a lane that held zero in those bits does not.
+- `| w` puts the top bits back, so bit 7 of each lane is now set exactly when the lane was nonzero —
+  either because the add carried, or because the byte was `0x80` or above to begin with.
+- `~` inverts it, and `& HIGH` keeps one bit per lane. What is left is the answer: a set bit for
+  every lane that held zero.
 
 No branch, no loop, eight bytes answered. `strlen` over a long string becomes one of these per word
 plus a tail.
 
-The lane-index helpers on top of it (`lane_lo`, `lane_first`, `drop_*`) turn "some lane matched"
-into "which lane", which is what a `find` needs.
+The `mask` table on top of it turns "some lane matched" into "which lane": `lane.count` says how
+many, `lane.first` and `lane.last` say where, `mask.drop_first` and `mask.drop_last` walk them in
+order, and `mask.tail` trims the last word to the caller's length. That is what a `find` needs.
+
+Called through the table:
+
+```c
+const mmgr_word w = MMGR_CALL(word.load,     ScrutWordCfg, .at = p);
+const mmgr_word m = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w);
+if (m != 0)
+{
+    at += MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);
+}
+```
 
 ## The carrier is the machine word
 
-Not a knob, and this is stated flatly in the header:
+Not a knob. A narrower carrier is never faster: a 16-bit load on a 32-bit machine moves the same
+cache line, occupies the same load port, and then answers for half the lanes.
 
-> The carrier is the machine word. Always, on every target, with no choice about it.
+`mmgr_config.h` `#undef`s `MMGR_SWAR_BITS` and redefines it to `MMGR_WORD_BITS`, unconditionally,
+before anything else can look at it. That is not belt and braces — it is the one place where a
+stale definition from somewhere else could have desynced the scanner from the word, and the
+`#undef` removes the possibility.
 
-A narrower carrier is never faster. A 16-bit load on a 32-bit machine moves the same cache line,
-occupies the same load port, and then answers for a quarter of the lanes. `MMGR_SWAR_BITS` is
-`#undef`ed and redefined to `MMGR_WORD_BITS` in `mmgr_config.h` precisely so nobody can set it to
-something else and quietly make the library slower.
+What *is* a knob is `MMGR_WORD_BITS` itself. Set it and the carrier and the machine word move
+together, which is how the `word32` and `word16` environments run a narrow machine's scan path on a
+64-bit host. See @ref concept_width.
 
 ## No builtins
 

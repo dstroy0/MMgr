@@ -6,7 +6,7 @@ is decided by what kind of thing failed.
 ## 1. NULL, from a take that will not fit
 
 ```c
-uint8_t *p = mmgr_confin_persist_capio(&c, 256, 8);
+uint8_t *p = mmgr_carcer_persist_capio(&c, 256, 8);
 if (p == NULL) { }
 ```
 

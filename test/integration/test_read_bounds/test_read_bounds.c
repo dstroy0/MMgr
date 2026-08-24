@@ -22,7 +22,7 @@ void tearDown(void)
 
 static size_t word_rounded(size_t n)
 {
-    return mmgr_scrut_words(n) * MMGR_SWAR_BYTES;
+    return MMGR_CALL(word.count, ScrutWordCfg, .bytes = n) * MMGR_SWAR_BYTES;
 }
 
 static unsigned char *place(size_t cap, size_t reserved)
@@ -50,38 +50,38 @@ static void keep(size_t v)
 static void ask_len(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(mmgr_cellul_len(a->s, a->cap)));
+    keep((size_t)(MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = a->s, .cap = a->cap)));
 }
 static void ask_chr(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(mmgr_cellul_chr(a->s, a->cap, 0x02u)));
+    keep((size_t)(MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = a->s, .cap = a->cap, .byte = 0x02u)));
 }
 static void ask_eq(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(mmgr_cellul_eq(a->s, a->s, a->cap, MMGR_FALSE)));
+    keep((size_t)(MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap, .ci = MMGR_FALSE)));
 }
 static void ask_eq_ci(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(mmgr_cellul_eq(a->s, a->s, a->cap, MMGR_TRUE)));
+    keep((size_t)(MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap, .ci = MMGR_TRUE)));
 }
 static void ask_starts(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(mmgr_cellul_starts(a->s, "aaa", a->cap, MMGR_FALSE)));
+    keep((size_t)(MMGR_CALL(cellul.starts, CatenaFinitaCfg, .src = a->s, .other = "aaa", .cap = a->cap, .ci = MMGR_FALSE)));
 }
 static void ask_diff(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(mmgr_cellul_diff(a->s, a->s, a->cap, MMGR_FALSE)));
+    keep((size_t)(MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap, .ci = MMGR_FALSE)));
 }
 static void ask_copy(void *v)
 {
     const Ask *a = (const Ask *)v;
     static char dst[CAPS + 8u];
-    keep((size_t)(mmgr_cellul_copy(dst, a->s, a->cap < sizeof dst ? a->cap : sizeof dst)));
+    keep((size_t)(MMGR_CALL(cellul.copy, CatenaFinitaCfg, .dst = dst, .src = a->s, .cap = a->cap < sizeof dst ? a->cap : sizeof dst)));
 }
 typedef struct
 {
@@ -95,12 +95,12 @@ typedef struct
 static void ask_find(void *v)
 {
     const Hunt *h = (const Hunt *)v;
-    keep((size_t)(mmgr_cellul_find(h->s, h->cap, h->needle, h->nlen, h->ci)));
+    keep((size_t)(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = h->s, .cap = h->cap, .other = h->needle, .other_cap = h->nlen, .ci = h->ci)));
 }
 static void ask_has(void *v)
 {
     const Hunt *h = (const Hunt *)v;
-    keep((size_t)(mmgr_cellul_has(h->s, h->cap, h->needle, h->nlen, h->ci)));
+    keep((size_t)(MMGR_CALL(cellul.has, CatenaFinitaCfg, .src = h->s, .cap = h->cap, .other = h->needle, .other_cap = h->nlen, .ci = h->ci)));
 }
 
 static void none_past(const char *what, void (*fn)(void *), int raw_bound)
@@ -248,7 +248,7 @@ void test_find_still_finds_things_with_the_buffer_flush_to_the_guard(void)
         h.ci = MMGR_FALSE;
 
         TEST_ASSERT_FALSE_MESSAGE(mmgr_guard_run_thunk(ask_find, &h), "find read past the cap looking for a match");
-        TEST_ASSERT_EQUAL_PTR_MESSAGE((const char *)p + cap - 3u, mmgr_cellul_find(h.s, cap, "qzj", 3u, MMGR_FALSE),
+        TEST_ASSERT_EQUAL_PTR_MESSAGE((const char *)p + cap - 3u, MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = h.s, .cap = cap, .other = "qzj", .other_cap = 3u, .ci = MMGR_FALSE),
                                       "find missed a match flush with the end of the buffer");
     }
 }

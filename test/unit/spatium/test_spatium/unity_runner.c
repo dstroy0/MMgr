@@ -75,7 +75,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/spatium/test_spatium\\test_spatium.c");
+  UnityBegin("test/unit/spatium/test_spatium/test_spatium.c");
   run_test(test_spat_header_is_self_contained, "test_spat_header_is_self_contained", 5);
   run_test(test_from_takes_a_buffer, "test_from_takes_a_buffer", 11);
 

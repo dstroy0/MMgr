@@ -1,6 +1,11 @@
+/**
+ * @brief Umbrella header: pulls in the module headers a consumer builds against.
+ *
+ * @note mmgr_config.h comes first, since the feature switches below decide what else is included.
+ * @note mmgr_string_shim.h is not among these; including it changes the meaning of the <string.h> names.
+ */
 #ifndef MMGR_H
 #define MMGR_H
-
 
 #include "config/mmgr_config.h"
 
@@ -20,10 +25,20 @@
 #include "verba_scribo/verba_scribo.h"
 #include "verbum_scrutor/verbum_scrutor.h"
 
+/**
+ * @brief The DMA module, reached only when MMGR_ENABLE_DMA is set.
+ *
+ * @note memoriam_praetereo.h guards its own contents on MMGR_ENABLE_DMA as well.
+ */
 #if MMGR_ENABLE_DMA
 #include "memoriam_praetereo/memoriam_praetereo.h"
 #endif
 
+/**
+ * @brief The external memory module, reached only when MMGR_ENABLE_EXTRAM is set.
+ *
+ * @note confinium_externum.h guards its own contents on MMGR_ENABLE_EXTRAM as well.
+ */
 #if MMGR_ENABLE_EXTRAM
 #include "confinium_externum/confinium_externum.h"
 #endif

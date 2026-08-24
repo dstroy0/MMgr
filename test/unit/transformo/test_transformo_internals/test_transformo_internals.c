@@ -160,12 +160,12 @@ void test_rounding_a_fraction_of_nothing(void)
     f.rest = 0;
 
     TEST_ASSERT_EQUAL_DOUBLE(0.0, muto_round_probe(&f, MMGR_FALSE));
-    TEST_ASSERT_TRUE_MESSAGE(mmgr_fract_sign(mmgr_fract_to_bits(muto_round_probe(&f, MMGR_TRUE))) != 0u,
+    TEST_ASSERT_TRUE_MESSAGE(MMGR_CALL(fract.sign, FractioCfg, .bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = muto_round_probe(&f, MMGR_TRUE))) != 0u,
                              "and it keeps a sign it was given");
 }
 
 
-static mmgr_u64 to_u64_of(mmgr_u64 hi, mmgr_u64 lo, int fe2, int rest, unsigned above)
+static mmgr_u64 to_u64_of(mmgr_u64 hi, mmgr_u64 lo, mmgr_iword fe2, mmgr_iword rest, mmgr_word above)
 {
     MutoCtx f;
 

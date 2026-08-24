@@ -77,17 +77,17 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/custodia_secura/test_custodia_secura\\test_custodia_secura.c");
-  run_test(test_secura_header_is_self_contained, "test_secura_header_is_self_contained", 20);
-  run_test(test_secura_namespace_is_wired, "test_secura_namespace_is_wired", 25);
-  run_test(test_init_hands_back_usable_memory, "test_init_hands_back_usable_memory", 34);
-  run_test(test_init_comes_out_of_the_pool_it_was_given, "test_init_comes_out_of_the_pool_it_was_given", 45);
-  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 53);
-  run_test(test_wipe_clears_the_region, "test_wipe_clears_the_region", 63);
-  run_test(test_wipe_stays_inside_what_it_was_asked_for, "test_wipe_stays_inside_what_it_was_asked_for", 80);
-  run_test(test_wipe_of_nothing_touches_nothing, "test_wipe_of_nothing_touches_nothing", 99);
-  run_test(test_release_wipes_what_it_gives_up, "test_release_wipes_what_it_gives_up", 110);
-  run_test(test_release_gives_the_bytes_back, "test_release_gives_the_bytes_back", 127);
+  UnityBegin("test/unit/custodia_secura/test_custodia_secura/test_custodia_secura.c");
+  run_test(test_secura_header_is_self_contained, "test_secura_header_is_self_contained", 21);
+  run_test(test_secura_namespace_is_wired, "test_secura_namespace_is_wired", 26);
+  run_test(test_init_hands_back_usable_memory, "test_init_hands_back_usable_memory", 35);
+  run_test(test_init_comes_out_of_the_pool_it_was_given, "test_init_comes_out_of_the_pool_it_was_given", 46);
+  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 55);
+  run_test(test_wipe_clears_the_region, "test_wipe_clears_the_region", 67);
+  run_test(test_wipe_stays_inside_what_it_was_asked_for, "test_wipe_stays_inside_what_it_was_asked_for", 84);
+  run_test(test_wipe_of_nothing_touches_nothing, "test_wipe_of_nothing_touches_nothing", 103);
+  run_test(test_release_wipes_what_it_gives_up, "test_release_wipes_what_it_gives_up", 114);
+  run_test(test_release_gives_the_bytes_back, "test_release_gives_the_bytes_back", 131);
 
   return UNITY_END();
 }

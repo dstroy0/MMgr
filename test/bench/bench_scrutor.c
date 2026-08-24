@@ -28,7 +28,7 @@ static void bench_nop(void)
         double cy_ = 0.0;                                                                                              \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             const size_t r_ = (size_t)(bench_i_ & (SPREAD - 1u));                                                      \
-            const mmgr_scrut_word w_ = mmgr_scrut_load(g_buf + r_);                                                    \
+            const mmgr_word w_ = MMGR_CALL(word.load, ScrutWordCfg, .at = g_buf + r_);                                                    \
             const uint64_t v_ = (uint64_t)(EXPR);                                                                      \
             BENCH_KEEP(v_);                                                                                            \
         });                                                                                                            \
@@ -46,10 +46,10 @@ int main(void)
 
     bench_nop();
     SWEEP("load", w_);
-    SWEEP("has_zero", mmgr_scrut_has_zero(w_));
-    SWEEP("eq", mmgr_scrut_eq(w_, (mmgr_scrut_word)0x5Au));
-    SWEEP("le", mmgr_scrut_le(w_, (mmgr_scrut_word)0x7Fu));
-    SWEEP("spread", mmgr_scrut_spread(w_));
+    SWEEP("has_zero", MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w_));
+    SWEEP("eq", MMGR_CALL(lane.eq, ScrutLaneCfg, .word = w_, .byte = 0x5Au));
+    SWEEP("le", MMGR_CALL(lane.le, ScrutLaneCfg, .word = w_, .byte = 0x7Fu));
+    SWEEP("spread", MMGR_CALL(mask.spread, ScrutMaskCfg, .mask = w_));
 
     return 0;
 }

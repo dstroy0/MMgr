@@ -75,15 +75,15 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/cellularum_laboro/test_cellularum_laboro_sieve\\test_cellularum_laboro_sieve.c");
-  run_test(test_two_rows_find_a_needle_late_in_a_long_haystack, "test_two_rows_find_a_needle_late_in_a_long_haystack", 22);
-  run_test(test_two_rows_find_a_needle_of_one_repeated_byte, "test_two_rows_find_a_needle_of_one_repeated_byte", 31);
-  run_test(test_two_rows_find_a_needle_whose_ends_repeat, "test_two_rows_find_a_needle_whose_ends_repeat", 40);
-  run_test(test_two_rows_report_a_needle_that_is_not_there, "test_two_rows_report_a_needle_that_is_not_there", 49);
-  run_test(test_two_rows_find_a_needle_ignoring_case, "test_two_rows_find_a_needle_ignoring_case", 57);
-  run_test(test_two_rows_find_a_needle_at_the_very_start, "test_two_rows_find_a_needle_at_the_very_start", 66);
-  run_test(test_two_rows_find_a_needle_of_two_bytes, "test_two_rows_find_a_needle_of_two_bytes", 73);
-  run_test(test_two_rows_find_a_long_needle, "test_two_rows_find_a_long_needle", 82);
+  UnityBegin("test/unit/cellularum_laboro/test_cellularum_laboro_sieve/test_cellularum_laboro_sieve.c");
+  run_test(test_two_rows_find_a_needle_late_in_a_long_haystack, "test_two_rows_find_a_needle_late_in_a_long_haystack", 23);
+  run_test(test_two_rows_find_a_needle_of_one_repeated_byte, "test_two_rows_find_a_needle_of_one_repeated_byte", 32);
+  run_test(test_two_rows_find_a_needle_whose_ends_repeat, "test_two_rows_find_a_needle_whose_ends_repeat", 41);
+  run_test(test_two_rows_report_a_needle_that_is_not_there, "test_two_rows_report_a_needle_that_is_not_there", 50);
+  run_test(test_two_rows_find_a_needle_ignoring_case, "test_two_rows_find_a_needle_ignoring_case", 58);
+  run_test(test_two_rows_find_a_needle_at_the_very_start, "test_two_rows_find_a_needle_at_the_very_start", 67);
+  run_test(test_two_rows_find_a_needle_of_two_bytes, "test_two_rows_find_a_needle_of_two_bytes", 74);
+  run_test(test_two_rows_find_a_long_needle, "test_two_rows_find_a_long_needle", 83);
 
   return UNITY_END();
 }

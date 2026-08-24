@@ -1,7 +1,7 @@
 /**
  * @brief Build-time settings: widths, region sizes, feature switches and the region carving macros.
  *
- * @note Every setting is taken only when the build has not already defined it.
+ * @note The tunables are guarded by #ifndef so a build may set them first; MMGR_SWAR_BITS is the exception.
  */
 #ifndef MMGR_CONFIG_H
 #define MMGR_CONFIG_H
@@ -123,8 +123,7 @@
 /**
  * @brief Members every carved region carries ahead of its bytes.
  *
- * @note init records the whole region; pool holds one CarcerCtx per carved pool.
- * @warning mark is declared but neither written nor read anywhere in the library.
+ * @note init records the whole region; pool and mark are both sized by MMGR_CARCER_MAX_REGIONS.
  */
 #define MMGR_CARCER_MACHINERY                                                                                          \
     const CarcerInit init;                                                                                             \
@@ -136,7 +135,7 @@
  *
  * @param[in] name_ Enumerator name to give the pool.
  * @param[in] n_    Bytes to give the pool.
- * @note Expands to two comma-separated arguments, so each pair counts as two towards MMGR_NARG.
+ * @note Expands to two comma-separated arguments, so each pair counts as two toward MMGR_NARG.
  */
 #define MMGR_POOL(name_, n_) name_, n_
 
@@ -260,7 +259,7 @@
 #define MMGR_ENABLE_KEEPOUT 0
 #endif
 /**
- * @brief Set to 1 to track each pool's peak occupancy in CarcerCtx::hw.
+ * @brief Set to 1 to track each pool's high-water figure in CarcerCtx::hw.
  *
  * @note Adds the hw member to CarcerCtx and the blend that maintains it in both carcer capio calls.
  */
@@ -276,7 +275,7 @@
 #endif
 
 /**
- * @brief Set to 1 to build the time-based ring behaviour.
+ * @brief Set to 1 to build the time-based ring behavior.
  *
  * @note MMGR_RING_ATTACH_US exists only when this is set.
  */
@@ -287,7 +286,7 @@
 /**
  * @brief Microseconds a ring waits before attaching.
  *
- * @warning Defined only when MMGR_ENABLE_CLOCK is set; referencing it otherwise will not compile.
+ * @warning Defined only when MMGR_ENABLE_CLOCK is set.
  */
 #if MMGR_ENABLE_CLOCK
 #ifndef MMGR_RING_ATTACH_US
@@ -298,7 +297,7 @@
 /**
  * @brief DMA channels memoriam_praetereo carries, and the bytes each one buffers.
  *
- * @warning Both are defined only when MMGR_ENABLE_DMA is set; referencing them otherwise will not compile.
+ * @warning Both are defined only when MMGR_ENABLE_DMA is set.
  */
 #if MMGR_ENABLE_DMA
 #ifndef MMGR_PRAET_CHANNELS
@@ -341,9 +340,9 @@
  *
  * @param[in] region_ Region object defined by mmgr_carcer_init.
  * @param[in] pool_   Pool enumerator from that region.
- * @param[in] ...     Further designated initialisers, such as .size or .at.
+ * @param[in] ...     Further designated initializers, such as .size or .at.
  * @return            Address of the compound literal [BORROWS].
- * @warning The literal has automatic storage; the callee must not retain the address.
+ * @warning The callee receives the address of a compound literal [BORROWS].
  */
 #define MMGR_CARCER(region_, pool_, ...) (&(CarcerCfg){.pool = MMGR_CARCER_POOL(region_, pool_), __VA_ARGS__})
 

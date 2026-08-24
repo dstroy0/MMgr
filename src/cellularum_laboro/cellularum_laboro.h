@@ -13,7 +13,7 @@ MMGR_INCIPE_DECLS
 /**
  * @brief Number of needle offsets the search sieve tests per candidate word.
  *
- * @note Also sizes the rows array in cellul_find_core, so it must be at least 1.
+ * @note cellul_find_core declares rows[MMGR_SIEVE_ROWS] and reads rows[0] before any loop.
  * @warning Taken only when MMGR_SIEVE_ROWS is not already defined; a build may supply its own.
  */
 #ifndef MMGR_SIEVE_ROWS
@@ -124,7 +124,7 @@ size_t mmgr_cellul_len(const CatenaFinitaCfg *c);
  *
  * @param[in] c Bytes src and other, the extent cap, and ci [BORROWS].
  * @return      Offset of the first difference, or cap when the two agree throughout.
- * @note Terminators are not treated specially; all cap bytes are compared.
+ * @note A terminator does not end the scan; cap is the only bound.
  * @warning Both src and other must be readable for cap bytes.
  */
 size_t mmgr_cellul_diff(const CatenaFinitaCfg *c);
@@ -192,7 +192,7 @@ size_t mmgr_cellul_copy(const CatenaFinitaCfg *c);
  *
  * @param[in] c Bytes src and the offset at [BORROWS].
  * @return      MMGR_TRUE for space, tab, newline, carriage return, form feed or vertical tab.
- * @warning c->cap is not consulted; src[at] must be readable.
+ * @warning src[at] must be readable; cap does not bound this call.
  */
 mmgr_bool mmgr_cellul_ws(const CatenaFinitaCfg *c);
 
@@ -201,7 +201,7 @@ mmgr_bool mmgr_cellul_ws(const CatenaFinitaCfg *c);
  *
  * @param[in] c Bytes src and the offset at [BORROWS].
  * @return      MMGR_TRUE when the byte lies between '0' and '9'.
- * @warning c->cap is not consulted; src[at] must be readable.
+ * @warning src[at] must be readable; cap does not bound this call.
  */
 mmgr_bool mmgr_cellul_digit(const CatenaFinitaCfg *c);
 
@@ -242,8 +242,8 @@ mmgr_iword mmgr_cellul_step_byte(const VerboProgrediorCfg *c);
  * @return          The value, negated when a minus sign was read.
  * @note Skips leading whitespace, then accepts one optional '+' or '-'.
  * @note When end is not NULL it is set past the last digit, or back to src when none was read.
- * @warning src must be terminated; the read is bounded by content, not by a length.
- * @warning Digits are accumulated without an overflow test.
+ * @warning The read stops at the first byte that is not part of the number; no length bounds it.
+ * @warning The digit accumulator is mmgr_word wide and wraps on a longer run.
  */
 mmgr_iword mmgr_cellul_to_long(const TransfiguroCfg *c);
 
@@ -254,8 +254,8 @@ mmgr_iword mmgr_cellul_to_long(const TransfiguroCfg *c);
  * @return          The accumulated value.
  * @note Skips leading whitespace, then accepts one optional '+'; a '-' stops the read.
  * @note When end is not NULL it is set past the last digit, or back to src when none was read.
- * @warning src must be terminated; the read is bounded by content, not by a length.
- * @warning Digits are accumulated without an overflow test.
+ * @warning The read stops at the first byte that is not part of the number; no length bounds it.
+ * @warning The digit accumulator is mmgr_word wide and wraps on a longer run.
  */
 mmgr_word mmgr_cellul_to_ulong(const TransfiguroCfg *c);
 
@@ -267,7 +267,7 @@ mmgr_word mmgr_cellul_to_ulong(const TransfiguroCfg *c);
  * @note Accepts whitespace, one optional sign, digits, one optional point, then an optional exponent.
  * @note An exponent is read only when at least one digit was seen before it.
  * @note When end is not NULL it is set past the number, or back to src when no digit was read.
- * @warning src must be terminated; the read is bounded by content, not by a length.
+ * @warning The read stops at the first byte that is not part of the number; no length bounds it.
  */
 double mmgr_cellul_to_double(const TransfiguroCfg *c);
 
@@ -277,7 +277,7 @@ double mmgr_cellul_to_double(const TransfiguroCfg *c);
  * @param[in,out] c Text src and the optional end target [BORROWS].
  * @return          The value from mmgr_cellul_to_double, narrowed to float.
  * @note Accepts the same input as mmgr_cellul_to_double; only the result width differs.
- * @warning src must be terminated; the read is bounded by content, not by a length.
+ * @warning The read stops at the first byte that is not part of the number; no length bounds it.
  */
 float mmgr_cellul_to_float(const TransfiguroCfg *c);
 

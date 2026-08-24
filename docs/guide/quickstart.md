@@ -31,38 +31,44 @@ Storage comes from you. This is the whole shape of the library in twenty lines.
 #include "mmgr.h"
 #include <stdio.h>
 
-static uint8_t region[4096];
+/* One region, one pool. Declares the storage and its descriptors, all at compile time. */
+mmgr_carcer_init(g_ram, 4096u, MMGR_POOL(g_scratch, 4096u));
 
 int main(void)
 {
-    mmgr_confin c;
-    mmgr_confin_init(&c, region, sizeof region);
+    CarcerCtx *const pool = MMGR_CARCER_POOL(g_ram, g_scratch);
 
-        uint8_t *store = mmgr_confin_persist_capio(&c, 256, 8);
+    char *const store = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 256u);
     if (store == NULL) {
-        return 1;                           }
+        return 1;
+    }
 
-        mmgr_spat s = spat.from(store, 256);
+    const size_t left = MMGR_CALL(carcer.octas_praesto, CarcerCfg, .pool = pool);
 
-        mmgr_verba b = verba.from(s);
-    verba.put(&b, "bytes at hand: ");
-    verba.u32(&b, (uint32_t)mmgr_confin_octas_praesto(&c));
+    size_t at = 0;
+    at = MMGR_CALL(verba.put, VerbaCfg, .out = store, .cap = 256u, .at = at,
+                   .text = "bytes at hand: ");
+    at = MMGR_CALL(verba.u32, VerbaCfg, .out = store, .cap = 256u, .at = at, .val = (uint32_t)left);
 
-        if (!verba.finish(&b)) {
+    const size_t len = MMGR_CALL(verba.finish, VerbaCfg, .out = store, .cap = 256u, .at = at);
+    if (len == 0u) {
         return 2;
     }
 
-    printf("%.*s\n", (int)b.out.pos, (const char *)store);
+    printf("%.*s\n", (int)len, store);
     return 0;
 }
 ```
 
 Three things in that listing are the library's whole personality:
 
-- **`sizeof region` is the only size decision**, and it is made at compile time.
-- **`spat.from` borrows.** It allocates nothing and dies with `store`.
-- **The error check is at the end**, not after every append, because the flag latches. See
-  @ref ref_error_handling.
+- **The 4096 is the only size decision**, and it is made at compile time. `mmgr_carcer_init` is a
+  declaration, not a call: it emits the storage, the pool descriptors and static asserts that the
+  pools fit the region. Nothing runs at startup.
+- **`persist_capio` borrows.** It allocates nothing — it hands back part of `g_ram` and moves a
+  cursor, and what it returns dies when the pool unwinds.
+- **The error check is at the end**, not after every write, because a writer with no room returns
+  `cap` and every later writer does the same, so `finish` reports it. See @ref ref_error_handling.
 
 ## Linking it
 

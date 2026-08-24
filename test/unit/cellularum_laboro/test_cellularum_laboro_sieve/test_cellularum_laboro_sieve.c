@@ -16,7 +16,8 @@ void tearDown(void)
 
 static const char *find_in(const char *hay, const char *needle, mmgr_bool ci)
 {
-    return mmgr_cellul_find(hay, strlen(hay) + 1u, needle, strlen(needle) + 1u, ci);
+    return MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = hay, .cap = strlen(hay) + 1u, .other = needle,
+                     .other_cap = strlen(needle) + 1u, .ci = ci);
 }
 
 void test_two_rows_find_a_needle_late_in_a_long_haystack(void)

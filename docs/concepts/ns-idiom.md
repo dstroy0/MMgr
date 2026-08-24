@@ -1,35 +1,42 @@
 # The dispatch table idiom {#concept_ns_idiom}
 
-Why a call reads `spat.from(buf, cap)` and what that costs.
+Why a call reads `MMGR_CALL(spat.init, SpatCfg, .buf = p, .cap = n)` and what that costs.
 
 ## Two spellings, one function
 
 Every module declares plain C functions with a long, prefixed name, and also gathers them into a
 `static const` struct of function pointers named for a short Latin stem.
 
-```c
-mmgr_spat s = mmgr_spat_from(buf, cap);   mmgr_spat s = spat.from(buf, cap);        ```
-
-Both are public and both are documented. The table is what call sites use, because at a call site
-the module is context you already have and repeating it is noise:
+Every entry takes exactly one argument: a pointer to that module's config struct. @ref MMGR_CALL
+builds the struct as a compound literal and passes its address, so the members are named at the
+call site and anything left out is zero:
 
 ```c
-if (scrut.has_zero(w) && !cellul.eq(a, b, n, MMGR_FALSE)) {
-    memor.cpy(dst, src, n);
+mmgr_spat s = MMGR_CALL(spat.init, SpatCfg, .buf = p, .cap = n);
+```
+
+which is the same call as
+
+```c
+mmgr_spat s = mmgr_spat_init(&(SpatCfg){.buf = p, .cap = n});
+```
+
+Both spellings are public and both are documented. The table is what call sites use, because at a
+call site the module is context you already have and repeating it is noise:
+
+```c
+if (MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w) &&
+    !MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = a, .other = b, .cap = n, .ci = MMGR_FALSE))
+{
+    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = dst, .src = src, .bytes = n);
 }
 ```
 
-against
+The library keeps the free functions because they are what a debugger, a linker map and a `nm`
+listing show you, and a namespace built out of macros would show nothing.
 
-```c
-if (mmgr_scrut_has_zero(w) && !mmgr_cellul_eq(a, b, n, MMGR_FALSE)) {
-    mmgr_memor_cpy(dst, src, n);
-}
-```
-
-The second is not clearer, it is just longer. The library keeps both because the free function is
-what a debugger, a linker map and a `nm` listing show you, and a namespace built out of macros would
-show nothing.
+Naming the members also means an entry cannot be called with its arguments in the wrong order, and
+an entry that grows a member does not silently change the meaning of existing call sites.
 
 ## How it is declared
 
@@ -38,12 +45,11 @@ Three pieces, in every module header:
 ```c
 typedef struct
 {
-    mmgr_spat (*from)(uint8_t *p, size_t cap);
-    mmgr_bool (*ok)(mmgr_spat s);
-    } SpatiumNs;
-MMGR_NS_LAYOUT(SpatiumNs, from, ok, has_storage, len, room, reset, /* ... */);
+    mmgr_spat (*init)(const SpatCfg *c);
+} SpatiumNs;
+MMGR_NS_LAYOUT(SpatiumNs, init);
 
-MMGR_NS SpatiumNs spat MMGR_UNUSED = {.from = mmgr_spat_from, .ok = mmgr_spat_ok, /* ... */};
+MMGR_NS SpatiumNs spat MMGR_UNUSED = {.init = mmgr_spat_init};
 ```
 
 `MMGR_NS` is `static const`. `MMGR_UNUSED` is what lets an unreferenced table drop out of a
@@ -52,7 +58,7 @@ translation unit that does not use it.
 ## MMGR_NS_LAYOUT is the interesting part
 
 The table is addressed **by offset**. A positional initializer mis-wires silently when a member is
-inserted, removed or moved — the code still compiles, and `spat.from` calls something else.
+inserted, removed or moved — the code still compiles, and `spat.init` calls something else.
 
 `MMGR_NS_LAYOUT` pins it. It expands to a chain of `_Static_assert`s checking that each named member
 sits at its own loculus, in the order given, and that `sizeof` the struct is exactly that many
@@ -61,8 +67,8 @@ fail **at the declaration**, at compile time.
 
 That has one consequence for this documentation: **the order of the members is the layout**, so the
 reference must not sort them alphabetically. `SORT_MEMBER_DOCS` is `NO` in `docs/Doxyfile` for that
-reason, and it is not a cosmetic setting — sorting would show loculus 0 of `SpatiumNs` as `after` when
-it is `from`.
+reason, and it is not a cosmetic setting — sorting `MemoriaOperorNs` would show loculus 0 as `chr`
+when it is `cpy`.
 
 ## What the indirection costs
 
@@ -76,13 +82,13 @@ both. So the `const` in `MMGR_NS` is load-bearing: it is what makes the two comp
 Across module boundaries where the entry is not `MMGR_INLINE`, link-time optimization is what closes
 the gap. See @ref concept_swar for the measurement.
 
-## Modules without a table
+## Modules with more than one table
 
-`confinium` has none, deliberately. Its surface is a set of verbs on an explicit `mmgr_confin *`
-rather than a set of free functions over a global, so a table would add a level of indirection
-without removing a word from the call site.
+`verbum_scrutor` has three: `lane`, `mask` and `word`. The entries were one table until the count
+passed what `MMGR_NS_LAYOUT` accepts, and splitting them by what they operate on — a lane of a word,
+a mask of lanes, a whole word — reads better than one table of everything did.
 
-`cellularum_laboro` is the opposite case: it exposes **only** the table. `cellul` is declared
-`extern const CellularumLaboroNs` and there are no free functions in the header at all.
+`endian` is the other shape: two tables, `parva_extremitas` and `magna_extremitas`, over the same
+`EndianNs` type. The byte order is chosen by which table you call through, not by an argument.
 
-Both are noted in their guides. @ref ref_glossary lists every stem and the module it belongs to.
+@ref ref_glossary lists every stem and the module it belongs to.

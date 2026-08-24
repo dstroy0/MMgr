@@ -17,7 +17,6 @@ extern void test_persist_hands_out_the_bottom_and_walks_up(void);
 extern void test_persist_reddo_winds_the_fill_point_back(void);
 extern void test_interim_hands_out_the_top_and_walks_down(void);
 extern void test_the_two_arms_grow_toward_each_other(void);
-extern void test_a_mark_puts_the_interim_arm_back(void);
 extern void test_reset_puts_the_whole_interim_arm_back(void);
 extern void test_owns_tells_a_pool_from_its_neighbour(void);
 extern void test_owns_refuses_the_edges(void);
@@ -82,22 +81,21 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/carceribus/test_carceribus\\test_carceribus.c");
-  run_test(test_carceribus_header_is_self_contained, "test_carceribus_header_is_self_contained", 33);
-  run_test(test_carcer_namespace_is_wired, "test_carcer_namespace_is_wired", 38);
-  run_test(test_the_machinery_sits_below_the_arena, "test_the_machinery_sits_below_the_arena", 46);
-  run_test(test_init_records_the_region_it_was_given, "test_init_records_the_region_it_was_given", 53);
-  run_test(test_the_carve_lays_the_pools_end_to_end, "test_the_carve_lays_the_pools_end_to_end", 59);
-  run_test(test_a_fresh_pool_is_empty_and_whole, "test_a_fresh_pool_is_empty_and_whole", 67);
-  run_test(test_persist_hands_out_the_bottom_and_walks_up, "test_persist_hands_out_the_bottom_and_walks_up", 75);
-  run_test(test_persist_reddo_winds_the_fill_point_back, "test_persist_reddo_winds_the_fill_point_back", 85);
-  run_test(test_interim_hands_out_the_top_and_walks_down, "test_interim_hands_out_the_top_and_walks_down", 94);
-  run_test(test_the_two_arms_grow_toward_each_other, "test_the_two_arms_grow_toward_each_other", 103);
-  run_test(test_a_mark_puts_the_interim_arm_back, "test_a_mark_puts_the_interim_arm_back", 113);
-  run_test(test_reset_puts_the_whole_interim_arm_back, "test_reset_puts_the_whole_interim_arm_back", 124);
-  run_test(test_owns_tells_a_pool_from_its_neighbour, "test_owns_tells_a_pool_from_its_neighbour", 132);
-  run_test(test_owns_refuses_the_edges, "test_owns_refuses_the_edges", 143);
-  run_test(test_the_pools_do_not_share_a_fill_point, "test_the_pools_do_not_share_a_fill_point", 152);
+  UnityBegin("test/unit/carceribus/test_carceribus/test_carceribus.c");
+  run_test(test_carceribus_header_is_self_contained, "test_carceribus_header_is_self_contained", 25);
+  run_test(test_carcer_namespace_is_wired, "test_carcer_namespace_is_wired", 30);
+  run_test(test_the_machinery_sits_below_the_arena, "test_the_machinery_sits_below_the_arena", 38);
+  run_test(test_init_records_the_region_it_was_given, "test_init_records_the_region_it_was_given", 45);
+  run_test(test_the_carve_lays_the_pools_end_to_end, "test_the_carve_lays_the_pools_end_to_end", 51);
+  run_test(test_a_fresh_pool_is_empty_and_whole, "test_a_fresh_pool_is_empty_and_whole", 60);
+  run_test(test_persist_hands_out_the_bottom_and_walks_up, "test_persist_hands_out_the_bottom_and_walks_up", 68);
+  run_test(test_persist_reddo_winds_the_fill_point_back, "test_persist_reddo_winds_the_fill_point_back", 78);
+  run_test(test_interim_hands_out_the_top_and_walks_down, "test_interim_hands_out_the_top_and_walks_down", 88);
+  run_test(test_the_two_arms_grow_toward_each_other, "test_the_two_arms_grow_toward_each_other", 97);
+  run_test(test_reset_puts_the_whole_interim_arm_back, "test_reset_puts_the_whole_interim_arm_back", 109);
+  run_test(test_owns_tells_a_pool_from_its_neighbour, "test_owns_tells_a_pool_from_its_neighbour", 118);
+  run_test(test_owns_refuses_the_edges, "test_owns_refuses_the_edges", 131);
+  run_test(test_the_pools_do_not_share_a_fill_point, "test_the_pools_do_not_share_a_fill_point", 145);
 
   return UNITY_END();
 }

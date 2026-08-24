@@ -33,7 +33,7 @@ MMGR_NS_LAYOUT(ClzNs, lead);
  * @param[in] c Value to measure [BORROWS].
  * @return      Leading zero count, 0 through 63.
  * @note Runs in a fixed number of steps, none of which branches on the value.
- * @warning A c->val of 0 returns 63, the same answer as a c->val of 1; the caller must rule zero out.
+ * @warning A c->val of 0 returns 63, the same answer as a c->val of 1.
  */
 mmgr_iword mmgr_clz_lead(const ClzCfg *c);
 

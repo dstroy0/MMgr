@@ -9,8 +9,8 @@ A bounded view over memory the span does not own.
 
 ## What it composes with
 
-`spat.from` borrows whatever @ref mod_confin_guide or a pool handed you. @ref mod_verba_guide and
-@ref mod_byteio_guide write **into** spans; @ref mod_cellul_guide reads out of them.
+`spat.init` borrows whatever @ref mod_confin_guide or a pool handed you. @ref mod_verba_guide and
+@ref mod_byteio_guide write into that storage; @ref mod_cellul_guide reads out of it.
 
 ## The type
 
@@ -27,27 +27,29 @@ read by the contract checks and by nothing else.
 
 ## The module
 
-One entry. `spat.from(p, cap)` normalises a buffer into a span.
+One entry. `spat.init` normalises a buffer into a span.
 
-Everything a caller wants to know about a span is a field of it, read where it is wanted.
-@ref mod_byteio_guide, the only module in the library that writes through one, does exactly that -
-it reads `w->pos` and `w->cap` at the point it needs them, because a call to fetch a subtraction the
-compare needs anyway is not worth making. There were once eleven accessors here — `ok`, `len`,
-`room`, `has_storage`, `after`, `first`, `produced`, `read`, `reset`, and a read-only twin type —
-and none of them had a caller inside the library.
+Everything a caller wants to know about a span is a field of it, read where it is wanted. There were
+once eleven accessors here — `ok`, `len`, `room`, `has_storage`, `after`, `first`, `produced`,
+`read`, `reset`, and a read-only twin type — and none of them had a caller inside the library. A
+call to fetch a subtraction the comparison needs anyway is not worth making.
 
 ## Worked example
 
 ```c
 uint8_t buf[64];
-mmgr_spat s = spat.from(buf, sizeof buf);
+mmgr_spat s = MMGR_CALL(spat.init, SpatCfg, .buf = buf, .cap = sizeof buf);
 
-byteio.put_be(&s, 0x11223344u, 4);
-byteio.raw(&s, payload, sizeof payload);
+MMGR_CALL(memor.cpy, MemoriaCfg, .dst = s.buf + s.pos, .src = payload, .bytes = sizeof payload);
+s.pos += sizeof payload;
 
 const size_t written = s.pos;
 const size_t left    = s.cap - s.pos;
 ```
+
+Nothing in the library advances `pos` for you. The span carries the buffer, its size and the cursor
+so the three stay together; moving the cursor is the caller's, because the module that did the
+writing is the one that knows how far it got.
 
 ## Gotchas
 
@@ -61,8 +63,8 @@ you have to measure at run time is a length you already knew. See @ref ref_error
 span over interim storage from a function that rewinds its own mark is a use-after-free, and no
 field in the span can tell you.
 
-**Spans are values.** Copy them, pass them, return them. The entries that write take a pointer,
-because they move `pos`.
+**Spans are values.** Copy them, pass them, return them. Nothing in the library holds a pointer to
+one.
 
 ## Reference
 

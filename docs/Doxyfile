@@ -48,6 +48,20 @@ EXCLUDE_PATTERNS       = */docs/html/* \
                          */node_modules/* \
                          */anchor_cost/anchor_cost_*.h
 
+# The argument-counting and loculus-unrolling steps. Nobody calls these; they are what MMGR_NARG and
+# MMGR_NS_LAYOUT are built out of, and listing twenty-four of them one per arity buries the two
+# macros that matter.
+EXCLUDE_SYMBOLS        = MMGR_NS_L[0-9]* \
+                         MMGR_ARG_N \
+                         MMGR_NARG_ \
+                         MMGR_CAT_ \
+                         MMGR_DIAG_STR \
+                         _STRING_H \
+                         _STRING_H_ \
+                         __STRING_H__ \
+                         _STRING_H_INCLUDED \
+                         _INC_STRING
+
 # -------------------------------------------------------------------------------------------------
 # Extraction
 # -------------------------------------------------------------------------------------------------

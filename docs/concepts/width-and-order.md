@@ -70,7 +70,7 @@ machine does".
 ## Alignment of a take
 
 ```c
-uint8_t *p = mmgr_confin_persist_capio(&c, 256, 8);   ```
+uint8_t *p = mmgr_carcer_persist_capio(&c, 256, 8);   ```
 
 The alignment is explicit at every take. `MMGR_CONFIN_ALIGN` is the default and
 `MMGR_CONFIN_MAX_ALIGN` is the ceiling; asking for more than the ceiling is a contract violation, not

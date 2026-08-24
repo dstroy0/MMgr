@@ -19,13 +19,13 @@ void test_every_namespace_is_reachable(void)
     TEST_ASSERT_NOT_NULL(memor.cpy);
     TEST_ASSERT_NOT_NULL(numer.build);
     TEST_ASSERT_NOT_NULL(secura.init);
-    TEST_ASSERT_NOT_NULL(proxim.u16);
+    TEST_ASSERT_NOT_NULL(proxim.put16);
     TEST_ASSERT_NOT_NULL(verba.put_n);
-    TEST_ASSERT_NOT_NULL(scrut.has_zero);
+    TEST_ASSERT_NOT_NULL(lane.has_zero);
 }
 
 void test_namespaces_are_their_own_types(void)
 {
     TEST_ASSERT_EQUAL_size_t(sizeof(MemoriaOperorNs), sizeof memor);
-    TEST_ASSERT_EQUAL_size_t(sizeof(VerbumScrutorNs), sizeof scrut);
+    TEST_ASSERT_EQUAL_size_t(sizeof(ScrutLaneNs), sizeof lane);
 }

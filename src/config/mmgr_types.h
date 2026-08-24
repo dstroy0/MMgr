@@ -12,7 +12,7 @@
 #include "config/mmgr_compiler_directives.h"
 
 /**
- * @brief Fixed-width integers, renamed so no MMgr header spells a stdint type directly.
+ * @brief Fixed-width integers under MMgr names.
  *
  * @note The assertions further down fail the build if any of them is not the declared width.
  */
@@ -74,7 +74,7 @@ typedef mmgr_i16 mmgr_iword;
 /**
  * @brief The index type, MMGR_INDEX_BITS wide, used for every offset and length.
  *
- * @note Chosen narrower than mmgr_word on wide targets, so index arrays cost less.
+ * @note The assertion below pins mmgr_idx no wider than mmgr_word.
  * @warning A MMGR_INDEX_BITS that is not 16 or 32 raises #error.
  */
 #if MMGR_INDEX_BITS == 32
@@ -89,7 +89,7 @@ typedef mmgr_u16 mmgr_idx;
 /**
  * @brief Pins every type above to its declared width, and mmgr_idx inside mmgr_word.
  *
- * @note These are the only guard against a target whose stdint types are wider than they claim.
+ * @note Each compares a declared width against the type's actual size.
  */
 MMGR_STATIC_ASSERT(sizeof(mmgr_u8) == 1, "mmgr_u8 must be exactly 8 bits: this target has no 8-bit type");
 MMGR_STATIC_ASSERT(sizeof(mmgr_u16) * 8u == 16u, "mmgr_u16 must be exactly 16 bits");
@@ -104,7 +104,7 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_idx) <= sizeof(mmgr_word), "an index must fit the
  * @brief A one-byte enum used only to prove MMGR_ENUM_PACKED reaches the compiler.
  *
  * @note Its range needs a single byte, so the assertion below fails exactly when packing is ignored.
- * @warning If it fires, every struct holding an enum has the wrong member offsets.
+ * @warning A failure means MMGR_ENUM_PACKED expanded to nothing; the assertion message states the consequence.
  */
 typedef enum MMGR_ENUM_PACKED
 {
@@ -112,7 +112,7 @@ typedef enum MMGR_ENUM_PACKED
     MMGR_ENUM_PROBE_MAX = 255, /**< High end, the largest value one byte holds. */
 } MmgrEnumProbe;
 MMGR_STATIC_ASSERT(sizeof(MmgrEnumProbe) == 1,
-                   "MMGR_ENUM_PACKED is not honoured here, so no enum keeps its declared width and every "
+                   "MMGR_ENUM_PACKED is not honored here, so no enum keeps its declared width and every "
                    "borrow offset computed from a struct containing one is wrong (TI: pass --small_enum)");
 
 #endif

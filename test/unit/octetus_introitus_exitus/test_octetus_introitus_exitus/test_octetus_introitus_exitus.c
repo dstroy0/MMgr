@@ -20,7 +20,7 @@ void test_put_writes_one_byte(void)
     uint64_t store[1] = {~(uint64_t)0};
     uint8_t *buf = (uint8_t *)store;
 
-    mmgr_octet_put(buf, (uint64_t)0xA5u, (size_t)1);
+    MMGR_CALL(byteio.put, OctetusCfg, .at = buf, .val = (uint64_t)0xA5u, .bytes = (size_t)1);
     TEST_ASSERT_EQUAL_HEX8(0xA5u, buf[0]);
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0u, buf[1], "a put stores the whole word, so the bytes past n are cleared");
 }
@@ -30,7 +30,7 @@ void test_put_writes_the_high_byte_first(void)
     uint64_t store[1] = {~(uint64_t)0};
     uint8_t *buf = (uint8_t *)store;
 
-    mmgr_octet_put(buf, (uint64_t)0x11223344ull, (size_t)4);
+    MMGR_CALL(byteio.put, OctetusCfg, .at = buf, .val = (uint64_t)0x11223344ull, .bytes = (size_t)4);
     TEST_ASSERT_EQUAL_HEX8(0x11u, buf[0]);
     TEST_ASSERT_EQUAL_HEX8(0x22u, buf[1]);
     TEST_ASSERT_EQUAL_HEX8(0x33u, buf[2]);
@@ -43,9 +43,9 @@ void test_put_at_every_width(void)
     uint64_t store[3] = {~(uint64_t)0, ~(uint64_t)0, ~(uint64_t)0};
     uint8_t *buf = (uint8_t *)store;
 
-    mmgr_octet_put(buf, (uint64_t)0xEEu, (size_t)1);
-    mmgr_octet_put(buf + 8, (uint64_t)0xBEEFu, (size_t)2);
-    mmgr_octet_put(buf + 16, (uint64_t)0x0123456789ABCDEFull, (size_t)8);
+    MMGR_CALL(byteio.put, OctetusCfg, .at = buf, .val = (uint64_t)0xEEu, .bytes = (size_t)1);
+    MMGR_CALL(byteio.put, OctetusCfg, .at = buf + 8, .val = (uint64_t)0xBEEFu, .bytes = (size_t)2);
+    MMGR_CALL(byteio.put, OctetusCfg, .at = buf + 16, .val = (uint64_t)0x0123456789ABCDEFull, .bytes = (size_t)8);
 
     TEST_ASSERT_EQUAL_HEX8(0xEEu, buf[0]);
     TEST_ASSERT_EQUAL_HEX8(0xBEu, buf[8]);
@@ -59,7 +59,7 @@ void test_put_keeps_only_the_low_bytes(void)
     uint64_t store[1] = {~(uint64_t)0};
     uint8_t *buf = (uint8_t *)store;
 
-    mmgr_octet_put(buf, (uint64_t)0xDEADBEEFu, (size_t)2);
+    MMGR_CALL(byteio.put, OctetusCfg, .at = buf, .val = (uint64_t)0xDEADBEEFu, .bytes = (size_t)2);
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xBEu, buf[0], "two bytes of a four byte value is its low half");
     TEST_ASSERT_EQUAL_HEX8(0xEFu, buf[1]);
 }
@@ -71,8 +71,8 @@ void test_take_reads_what_put_wrote(void)
     uint8_t *buf = (uint8_t *)store;
     uint64_t v = 0;
 
-    mmgr_octet_put(buf, (uint64_t)0x11223344ull, (size_t)4);
-    mmgr_octet_take(buf, v, (size_t)4);
+    MMGR_CALL(byteio.put, OctetusCfg, .at = buf, .val = (uint64_t)0x11223344ull, .bytes = (size_t)4);
+    MMGR_CALL(byteio.take, OctetusCfg, .from = buf, .out = &v, .bytes = (size_t)4);
     TEST_ASSERT_EQUAL_HEX64(0x11223344ull, v);
 }
 
@@ -93,8 +93,8 @@ void test_take_reads_back_at_every_width(void)
     {
         uint64_t v = 0;
 
-        mmgr_octet_put(buf, vals[n - 1u], n);
-        mmgr_octet_take(buf, v, n);
+        MMGR_CALL(byteio.put, OctetusCfg, .at = buf, .val = vals[n - 1u], .bytes = n);
+        MMGR_CALL(byteio.take, OctetusCfg, .from = buf, .out = &v, .bytes = n);
         TEST_ASSERT_EQUAL_HEX64_MESSAGE(vals[n - 1u], v, "a take of the width that was put gives the value back");
     }
 }
@@ -105,8 +105,8 @@ void test_take_of_fewer_bytes_takes_the_leading_ones(void)
     uint8_t *buf = (uint8_t *)store;
     uint64_t v = 0;
 
-    mmgr_octet_put(buf, (uint64_t)0x0123456789ABCDEFull, (size_t)8);
-    mmgr_octet_take(buf, v, (size_t)3);
+    MMGR_CALL(byteio.put, OctetusCfg, .at = buf, .val = (uint64_t)0x0123456789ABCDEFull, .bytes = (size_t)8);
+    MMGR_CALL(byteio.take, OctetusCfg, .from = buf, .out = &v, .bytes = (size_t)3);
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(0x012345ull, v, "three bytes of an eight byte value is its leading half");
 }
 
@@ -116,6 +116,6 @@ void test_take_reads_a_pattern_it_did_not_write(void)
     const uint8_t *buf = (const uint8_t *)store;
     uint64_t v = 0xFFull;
 
-    mmgr_octet_take(buf, v, (size_t)8);
+    MMGR_CALL(byteio.take, OctetusCfg, .from = buf, .out = &v, .bytes = (size_t)8);
     TEST_ASSERT_EQUAL_HEX64(0ull, v);
 }

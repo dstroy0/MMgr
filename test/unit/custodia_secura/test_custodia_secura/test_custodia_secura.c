@@ -34,7 +34,7 @@ void test_secura_namespace_is_wired(void)
 
 void test_init_hands_back_usable_memory(void)
 {
-    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .n = 64u);
+    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .bytes = 64u);
 
     TEST_ASSERT_NOT_NULL(p);
     p[0] = 0x11u;
@@ -45,7 +45,7 @@ void test_init_hands_back_usable_memory(void)
 
 void test_init_comes_out_of_the_pool_it_was_given(void)
 {
-    const void *p = MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .n = 64u);
+    const void *p = MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .bytes = 64u);
 
     TEST_ASSERT_NOT_NULL(p);
     TEST_ASSERT_TRUE_MESSAGE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, secret), .at = p),
@@ -56,7 +56,7 @@ void test_used_grows_with_what_was_taken(void)
 {
     const size_t before = MMGR_CALL(secura.used, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret));
 
-    (void)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .n = 64u);
+    (void)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .bytes = 64u);
     TEST_ASSERT_GREATER_OR_EQUAL_size_t_MESSAGE(before + 64u,
                                                 MMGR_CALL(secura.used, SecuraCfg,
                                                           .pool = MMGR_CARCER_POOL(ram, secret)),
@@ -66,7 +66,7 @@ void test_used_grows_with_what_was_taken(void)
 
 void test_wipe_clears_the_region(void)
 {
-    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .n = 64u);
+    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .bytes = 64u);
 
     TEST_ASSERT_NOT_NULL(p);
     for (unsigned i = 0; i < 64u; i++)
@@ -74,7 +74,7 @@ void test_wipe_clears_the_region(void)
         p[i] = 0xA5u;
     }
 
-    MMGR_CALL(secura.wipe, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .at = p, .n = 64u);
+    MMGR_CALL(secura.wipe, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .at = p, .bytes = 64u);
     for (unsigned i = 0; i < 64u; i++)
     {
         TEST_ASSERT_EQUAL_HEX8(0u, p[i]);
@@ -83,7 +83,7 @@ void test_wipe_clears_the_region(void)
 
 void test_wipe_stays_inside_what_it_was_asked_for(void)
 {
-    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .n = 64u);
+    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .bytes = 64u);
 
     TEST_ASSERT_NOT_NULL(p);
     for (unsigned i = 0; i < 64u; i++)
@@ -91,7 +91,7 @@ void test_wipe_stays_inside_what_it_was_asked_for(void)
         p[i] = 0xA5u;
     }
 
-    MMGR_CALL(secura.wipe, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .at = p, .n = 32u);
+    MMGR_CALL(secura.wipe, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .at = p, .bytes = 32u);
     for (unsigned i = 0; i < 32u; i++)
     {
         TEST_ASSERT_EQUAL_HEX8(0u, p[i]);
@@ -102,18 +102,18 @@ void test_wipe_stays_inside_what_it_was_asked_for(void)
 
 void test_wipe_of_nothing_touches_nothing(void)
 {
-    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .n = 64u);
+    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .bytes = 64u);
 
     TEST_ASSERT_NOT_NULL(p);
     p[0] = 0x5Au;
-    MMGR_CALL(secura.wipe, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .at = p, .n = 0u);
+    MMGR_CALL(secura.wipe, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .at = p, .bytes = 0u);
     TEST_ASSERT_EQUAL_HEX8(0x5Au, p[0]);
 }
 
 
 void test_release_wipes_what_it_gives_up(void)
 {
-    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .n = 32u);
+    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .bytes = 32u);
 
     TEST_ASSERT_NOT_NULL(p);
     for (unsigned i = 0; i < 32u; i++)
@@ -121,7 +121,7 @@ void test_release_wipes_what_it_gives_up(void)
         p[i] = 0xC3u;
     }
 
-    MMGR_CALL(secura.release, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .at = p, .n = 32u);
+    MMGR_CALL(secura.release, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .at = p, .bytes = 32u);
     for (unsigned i = 0; i < 32u; i++)
     {
         TEST_ASSERT_EQUAL_HEX8_MESSAGE(0u, p[i], "a released byte kept its value");
@@ -131,12 +131,12 @@ void test_release_wipes_what_it_gives_up(void)
 void test_release_gives_the_bytes_back(void)
 {
     const size_t before = MMGR_CALL(secura.used, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret));
-    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .n = 32u);
+    uint8_t *p = (uint8_t *)MMGR_CALL(secura.init, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .bytes = 32u);
 
     TEST_ASSERT_NOT_NULL(p);
     TEST_ASSERT_GREATER_THAN_size_t(before, MMGR_CALL(secura.used, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret)));
 
-    MMGR_CALL(secura.release, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .at = p, .n = 32u);
+    MMGR_CALL(secura.release, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret), .at = p, .bytes = 32u);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(before, MMGR_CALL(secura.used, SecuraCfg, .pool = MMGR_CARCER_POOL(ram, secret)),
                                      "releasing did not give the bytes back");
 }

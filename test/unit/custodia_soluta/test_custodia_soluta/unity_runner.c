@@ -74,14 +74,14 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/custodia_soluta/test_custodia_soluta\\test_custodia_soluta.c");
-  run_test(test_soluta_header_is_self_contained, "test_soluta_header_is_self_contained", 25);
-  run_test(test_soluta_namespace_is_wired, "test_soluta_namespace_is_wired", 30);
-  run_test(test_init_hands_back_usable_memory, "test_init_hands_back_usable_memory", 39);
-  run_test(test_init_comes_out_of_the_pool_it_was_given, "test_init_comes_out_of_the_pool_it_was_given", 50);
-  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 58);
-  run_test(test_release_gives_the_bytes_back, "test_release_gives_the_bytes_back", 69);
-  run_test(test_release_does_not_wipe, "test_release_does_not_wipe", 80);
+  UnityBegin("test/unit/custodia_soluta/test_custodia_soluta/test_custodia_soluta.c");
+  run_test(test_soluta_header_is_self_contained, "test_soluta_header_is_self_contained", 21);
+  run_test(test_soluta_namespace_is_wired, "test_soluta_namespace_is_wired", 26);
+  run_test(test_init_hands_back_usable_memory, "test_init_hands_back_usable_memory", 35);
+  run_test(test_init_comes_out_of_the_pool_it_was_given, "test_init_comes_out_of_the_pool_it_was_given", 46);
+  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 55);
+  run_test(test_release_gives_the_bytes_back, "test_release_gives_the_bytes_back", 66);
+  run_test(test_release_does_not_wipe, "test_release_does_not_wipe", 78);
 
   return UNITY_END();
 }

@@ -16,10 +16,9 @@ void *mmgr_carcer_persist_capio(const CarcerCfg *c)
 
     w->persist_end = next_persist;
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
-    // Occupancy counts both ends; explicit casts build the mask at size_t width
-    const size_t used = next_persist + (w->size - w->interim_top);
-    const size_t hw_mask = (size_t)0 - (size_t)(used > w->hw);
-    w->hw = (w->hw & ~hw_mask) | (used & hw_mask);
+    // Branchless max: the comparison becomes a mask that selects the larger of the two
+    const size_t hw_mask = 0u - (next_persist > w->hw);
+    w->hw = (w->hw & ~hw_mask) | (next_persist & hw_mask);
 #endif
     return pl;
 }
@@ -46,9 +45,9 @@ void *mmgr_carcer_interim_capio(const CarcerCfg *c)
 
     w->interim_top = next_top;
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
-    // Occupancy counts both ends; explicit casts build the mask at size_t width
-    const size_t used = w->persist_end + (w->size - next_top);
-    const size_t hw_mask = (size_t)0 - (size_t)(used > w->hw);
+    // used is the bytes taken from the top; the mask then selects the larger of the two
+    const size_t used = w->size - next_top;
+    const size_t hw_mask = 0u - (used > w->hw);
     w->hw = (w->hw & ~hw_mask) | (used & hw_mask);
 #endif
     return w->base + next_top;
@@ -65,13 +64,13 @@ size_t mmgr_carcer_interim_mark(const CarcerCfg *c)
 }
 
 /**
- * @brief Sets interim_top to the mark carried in c->size.
+ * @brief Sets interim_top to the value mmgr_carcer_interim_mark reports.
  *
  * @note Documented at the declaration in carceribus.h.
  */
 void mmgr_carcer_interim_reddo(const CarcerCfg *c)
 {
-    c->pool->interim_top = c->size;
+    c->pool->interim_top = mmgr_carcer_interim_mark(c);
 }
 
 /**

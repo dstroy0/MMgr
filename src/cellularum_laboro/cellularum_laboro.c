@@ -3,7 +3,9 @@
  */
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
+#include "ascii_persona_bitorum/ascii_persona_bitorum.h"
 #include "transformo/transformo.h"
+#include "fractio/fractio.h"
 #include "verbum_scrutor/verbum_scrutor.h"
 #include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
@@ -35,6 +37,8 @@ typedef struct
     const size_t nlen;          /**< Needle length for pick_rows. */
     size_t *const rows;         /**< Needle offsets chosen by pick_rows [BORROWS]. */
     const size_t k;             /**< Needle offset read by ancorae_fold. */
+    const mmgr_word fmask;      /**< Mask carried with the search group. */
+    size_t *const off;          /**< Offset target carried with the search group [BORROWS]. */
 
     const char **const end;     /**< Set by the to_ calls past the last byte read [BORROWS]. */
     const char **const cur;     /**< Cursor advanced by expo [BORROWS]. */
@@ -50,8 +54,8 @@ typedef struct
  * @brief Compares one word pair case sensitively and reports whether the walk continues.
  *
  * @param[in] c Words wa and wb, with end_wins [BORROWS].
- * @return      MMGR_SWAR_GO when the words agree and carry no terminator, else YES or NO.
- * @note YES when the terminator lane precedes the first differing lane, or ties it when end_wins.
+ * @return      MMGR_SWAR_GO when the words agree and carry no terminator, MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
+ * @note MMGR_SWAR_YES when the terminator lane precedes the first differing lane, or ties it when end_wins.
  */
 MMGR_INLINE mmgr_iword cellul_step_word_cs(const CellulCtx *c)
 {
@@ -85,7 +89,7 @@ MMGR_INLINE mmgr_iword cellul_step_word_cs(const CellulCtx *c)
  * @brief Compares one word pair with case folded and reports whether the walk continues.
  *
  * @param[in] c Words wa and wb, with end_wins [BORROWS].
- * @return      MMGR_SWAR_GO when the words agree and carry no terminator, else YES or NO.
+ * @return      MMGR_SWAR_GO when the words agree and carry no terminator, MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
  * @note Differs from cellul_step_word_cs only in taking the difference through lane.xor_ with ci set.
  */
 MMGR_INLINE mmgr_iword cellul_step_word_ci(const CellulCtx *c)
@@ -120,8 +124,8 @@ MMGR_INLINE mmgr_iword cellul_step_word_ci(const CellulCtx *c)
  * @brief Compares one byte pair case sensitively and reports whether the walk continues.
  *
  * @param[in] c Bytes ca and cb, with end_wins [BORROWS].
- * @return      MMGR_SWAR_GO when the bytes match and ca is not the terminator, else YES or NO.
- * @note A terminating ca gives YES when cb also terminates, or when end_wins is set.
+ * @return      MMGR_SWAR_GO when the bytes match and ca is not the terminator, MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
+ * @note A terminating ca gives MMGR_SWAR_YES when cb also terminates, or when end_wins is set.
  */
 MMGR_INLINE mmgr_iword cellul_step_byte_cs(const CellulCtx *c)
 {
@@ -144,11 +148,12 @@ MMGR_INLINE mmgr_iword cellul_step_byte_cs(const CellulCtx *c)
  * @brief Compares one byte pair with case folded and reports whether the walk continues.
  *
  * @param[in] c Bytes ca and cb, with end_wins [BORROWS].
- * @return      MMGR_SWAR_GO when the bytes match and ca is not the terminator, else YES or NO.
+ * @return      MMGR_SWAR_GO when the bytes match and ca is not the terminator, MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
  * @note Takes the difference through lane.xor_ with ci set, so only the folded result is tested.
  */
 MMGR_INLINE mmgr_iword cellul_step_byte_ci(const CellulCtx *c)
 {
+    // Explicit casts widen the two bytes to mmgr_word, so the lane compare sees one occupied lane each
     const mmgr_word d =
         MMGR_CALL(lane.xor_, ScrutLaneCfg, .word = (mmgr_word)c->ca, .val = (mmgr_word)c->cb, .ci = MMGR_TRUE);
 
@@ -258,7 +263,7 @@ MMGR_INLINE const char *cellul_chr(const CellulCtx *c)
  * @param[in] c Bytes src and other, with the extent cap [BORROWS].
  * @return      Offset of the first difference, or cap when the two agree throughout.
  * @note Compares whole words; mask.tail keeps lanes past cap out of the result.
- * @warning Does not stop at a terminator; all cap bytes are compared.
+ * @warning A terminator does not end the scan; cap is the only bound.
  */
 MMGR_INLINE size_t cellul_diff_cs(const CellulCtx *c)
 {
@@ -285,7 +290,7 @@ MMGR_INLINE size_t cellul_diff_cs(const CellulCtx *c)
  * @param[in] c Bytes src and other, with the extent cap [BORROWS].
  * @return      Offset of the first difference, or cap when the two agree throughout.
  * @note Differs from cellul_diff_cs only in taking the difference through lane.xor_ with ci set.
- * @warning Does not stop at a terminator; all cap bytes are compared.
+ * @warning A terminator does not end the scan; cap is the only bound.
  */
 MMGR_INLINE size_t cellul_diff_ci(const CellulCtx *c)
 {
@@ -333,6 +338,7 @@ MMGR_INLINE mmgr_bool cellul_agree_cs(const CellulCtx *c)
         {
             const size_t lz = (z != 0) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = z) : MMGR_SWAR_BYTES;
             const size_t lx = (x != 0) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = x) : MMGR_SWAR_BYTES;
+            // Explicit cast narrows the lane comparison into the mmgr_bool container
             return (mmgr_bool)(c->end_wins ? (lz <= lx) : (lz < lx));
         }
     }
@@ -366,6 +372,7 @@ MMGR_INLINE mmgr_bool cellul_agree_ci(const CellulCtx *c)
         {
             const size_t lz = (z != 0) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = z) : MMGR_SWAR_BYTES;
             const size_t lx = (x != 0) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = x) : MMGR_SWAR_BYTES;
+            // Explicit cast narrows the lane comparison into the mmgr_bool container
             return (mmgr_bool)(c->end_wins ? (lz <= lx) : (lz < lx));
         }
     }
@@ -380,6 +387,7 @@ MMGR_INLINE mmgr_bool cellul_agree_ci(const CellulCtx *c)
  */
 MMGR_INLINE uint8_t cellul_ancorae_fold(const CellulCtx *c)
 {
+    // Explicit cast reads the needle byte as unsigned, so the range tests below do not depend on char's signedness
     const uint8_t b = (uint8_t)c->other[c->k];
 
     if (c->ci && (b >= (uint8_t)'A') && (b <= (uint8_t)'Z'))
@@ -420,15 +428,9 @@ MMGR_INLINE size_t cellul_pick_rows(const CellulCtx *c)
                 }
             }
 
-            if (taken)
-            {
-                continue;
-            }
-
-            // Cost is looked up only for offsets still in play
             const uint8_t cost = MMGR_CALL(ancorae.impensa, AncoraeCfg,
                                            .byte = cellul_ancorae_fold(&(CellulCtx){.other = c->other, .k = k, .ci = c->ci}));
-            if (cost < best_cost)
+            if (!taken && (cost < best_cost))
             {
                 best_cost = cost;
                 best = k;
@@ -509,6 +511,7 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *c, mmgr_bool ci)
             MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = MMGR_CALL(word.load, ScrutWordCfg, .at = hay + at));
         mmgr_word m;
 
+        // Explicit casts read the needle bytes as unsigned, matching ScrutLaneCfg::byte
         m = MMGR_CALL(lane.eq, ScrutLaneCfg, .word = MMGR_CALL(word.load, ScrutWordCfg, .at = hay + at + rows[0]),
                       .byte = (uint8_t)needle[rows[0]], .ci = ci);
 
@@ -567,6 +570,7 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *c, mmgr_bool ci)
         size_t i = 0;
         while (i < nlen)
         {
+            // Explicit casts read both bytes as unsigned, matching CellulCtx::ca and ::cb
             const uint8_t h = (uint8_t)hay[k + i];
             const CellulCtx b = {.ca = (uint8_t)needle[i], .cb = h, .end_wins = MMGR_FALSE};
 
@@ -616,6 +620,7 @@ MMGR_INLINE size_t cellul_copy(const CellulCtx *c)
  */
 MMGR_INLINE mmgr_bool cellul_rd_str(const CellulCtx *c)
 {
+    // Explicit cast reads the buffer as bytes; c->src is char, and the length below is taken byte by byte
     const uint8_t *const buf = (const uint8_t *)c->src;
     size_t at = c->at;
     if ((at > c->cap) || ((c->cap - at) < 4u))
@@ -623,6 +628,7 @@ MMGR_INLINE mmgr_bool cellul_rd_str(const CellulCtx *c)
         return MMGR_FALSE;
     }
 
+    // Explicit cast narrows the endian read into the uint32_t length, the width MMGR_ENDIAN_32 requested
     const uint32_t n = (uint32_t)MMGR_CALL(magna_extremitas.rd, EndianCfg, .src = buf + at, .width = MMGR_ENDIAN_32);
     at += 4u;
 
@@ -642,7 +648,7 @@ MMGR_INLINE mmgr_bool cellul_rd_str(const CellulCtx *c)
  * @return          The value, negated when a minus sign was read.
  * @note Leading whitespace is skipped, then one optional '+' or '-'.
  * @note When end is not NULL it is set past the last digit, or back to src when no digit was read.
- * @warning Digits are accumulated without an overflow test; the caller bounds the input length.
+ * @warning The digit accumulator is mmgr_word wide and wraps on a longer run.
  */
 MMGR_INLINE mmgr_iword cellul_to_long(const CellulCtx *c)
 {
@@ -656,19 +662,15 @@ MMGR_INLINE mmgr_iword cellul_to_long(const CellulCtx *c)
     mmgr_bool neg = MMGR_FALSE;
     if ((*p == '+') || (*p == '-'))
     {
-        // Sign is read before the advance, keeping the increment out of the compare
-        neg = (*p == '-');
-        p++;
+        neg = (*p++ == '-');
     }
 
     const char *const ds = p;
     mmgr_word v = 0;
     while (cellul_is_digit(*p))
     {
-        // Digit is taken before the advance, keeping the increment out of the accumulate
-        const mmgr_word d = (mmgr_word)(*p - '0');
-        p++;
-        v = (mmgr_word)(v * 10u) + d;
+        // Explicit casts hold the running value and the digit at mmgr_word width
+        v = (mmgr_word)(v * 10u) + (mmgr_word)(*p++ - '0');
     }
 
     if (c->end != NULL)
@@ -677,6 +679,7 @@ MMGR_INLINE mmgr_iword cellul_to_long(const CellulCtx *c)
     }
     if (neg)
     {
+        // Explicit cast carries the unsigned negation into mmgr_iword; 0u - v wraps at mmgr_word width first
         return (mmgr_iword)(0u - v);
     }
     return (mmgr_iword)v;
@@ -689,7 +692,7 @@ MMGR_INLINE mmgr_iword cellul_to_long(const CellulCtx *c)
  * @return          The accumulated value.
  * @note Leading whitespace is skipped, then one optional '+'; a '-' is not accepted and stops the read.
  * @note When end is not NULL it is set past the last digit, or back to src when no digit was read.
- * @warning Digits are accumulated without an overflow test; the caller bounds the input length.
+ * @warning The digit accumulator is mmgr_word wide and wraps on a longer run.
  */
 MMGR_INLINE mmgr_word cellul_to_ulong(const CellulCtx *c)
 {
@@ -708,10 +711,8 @@ MMGR_INLINE mmgr_word cellul_to_ulong(const CellulCtx *c)
     mmgr_word v = 0;
     while (cellul_is_digit(*p))
     {
-        // Digit is taken before the advance, keeping the increment out of the accumulate
-        const mmgr_word d = (mmgr_word)(*p - '0');
-        p++;
-        v = (mmgr_word)(v * 10u) + d;
+        // Explicit casts hold the running value and the digit at mmgr_word width
+        v = (mmgr_word)(v * 10u) + (mmgr_word)(*p++ - '0');
     }
 
     if (c->end != NULL)
@@ -738,9 +739,7 @@ MMGR_INLINE void cellul_expo(const CellulCtx *c)
     mmgr_bool eneg = MMGR_FALSE;
     if ((**c->cur == '+') || (**c->cur == '-'))
     {
-        // Sign is read before the advance, keeping the increment out of the compare
-        eneg = (**c->cur == '-');
-        (*c->cur)++;
+        eneg = (*(*c->cur)++ == '-');
     }
     if (!cellul_is_digit(**c->cur))
     {
@@ -753,6 +752,7 @@ MMGR_INLINE void cellul_expo(const CellulCtx *c)
     {
         if (ex < MMGR_MUTO_EXP_LIMIT)
         {
+            // Explicit cast holds the accumulate in mmgr_iword; the guard above keeps it below MMGR_MUTO_EXP_LIMIT
             ex = (mmgr_iword)((ex * 10) + (**c->cur - '0'));
         }
         (*c->cur)++;
@@ -782,9 +782,7 @@ MMGR_INLINE double cellul_to_double(const CellulCtx *c)
     mmgr_bool neg = MMGR_FALSE;
     if ((*p == '+') || (*p == '-'))
     {
-        // Sign is read before the advance, keeping the increment out of the compare
-        neg = (*p == '-');
-        p++;
+        neg = (*p++ == '-');
     }
 
     mmgr_bool any = MMGR_FALSE;
@@ -827,6 +825,7 @@ MMGR_INLINE double cellul_to_double(const CellulCtx *c)
         cellul_expo(&(CellulCtx){.cur = &p, .exp = &ex});
     }
 
+    // Explicit cast holds the combined exponent in mmgr_iword: ex from the suffix, over and drop from the mantissa
     const double val =
         MMGR_CALL(muto.scale, TransformoCfg, .mant = &mant, .ex = (mmgr_iword)(ex + over - drop), .rest = lost, .neg = neg);
 
@@ -873,6 +872,7 @@ MMGR_INLINE mmgr_bool cellul_mpint_fixed(const CellulCtx *c)
     {
         return MMGR_FALSE;
     }
+    // Explicit casts match MemoriaCfg: val is a single byte, bytes is a size_t count
     MMGR_CALL(memor.set, MemoriaCfg, .dst = c->field, .val = (uint8_t)0, .bytes = c->fieldlen);
     MMGR_CALL(memor.cpy, MemoriaCfg, .dst = c->field + (c->fieldlen - vlen), .src = c->mpint + off, .bytes = (size_t)vlen);
     return MMGR_TRUE;
@@ -881,7 +881,7 @@ MMGR_INLINE mmgr_bool cellul_mpint_fixed(const CellulCtx *c)
 /**
  * @brief Returns a copy of the argument struct.
  *
- * @note The name is parenthesised so a like-named macro from mmgr_string_shim.h cannot expand here.
+ * @note The name is parenthesized so a like-named macro from mmgr_string_shim.h cannot expand here.
  * @note Documented at the declaration in cellularum_laboro.h.
  */
 CatenaFinitaCfg (mmgr_cellul_init)(const CatenaFinitaCfg *c)
@@ -965,6 +965,7 @@ const char *(mmgr_cellul_find)(const CatenaFinitaCfg *c)
  */
 mmgr_bool (mmgr_cellul_has)(const CatenaFinitaCfg *c)
 {
+    // Explicit cast narrows the pointer test into the mmgr_bool return
     return (mmgr_bool)((mmgr_cellul_find)(c) != NULL);
 }
 

@@ -1,6 +1,7 @@
-# Confinium — the region {#mod_confin_guide}
+# Carceribus — the region {#mod_confin_guide}
 
-One tenant. Two ends, growing toward each other, and nothing in between is ever freed.
+One region, carved from both ends. Persist grows up from the base, interim grows down from the top,
+and nothing in between is ever freed.
 
 ## When to reach for it
 
@@ -10,52 +11,72 @@ One tenant. Two ends, growing toward each other, and nothing in between is ever 
 
 ## What it composes with
 
-Everything sits on top of it. @ref mod_clarus_guide and @ref mod_occult_guide are pools built over
-confinia; @ref mod_spat_guide views what a confinium hands out; @ref mod_infin_guide moves those
-views between a producer and a consumer.
+Everything sits on top of it. @ref mod_clarus_guide and @ref mod_occult_guide are pools over a
+region; @ref mod_spat_guide views what a region hands out; @ref mod_infin_guide moves those views
+between a producer and a consumer.
 
-It is the one module with **no dispatch table**. Its surface is a set of verbs on an explicit
-`mmgr_confin *`, so a table would add indirection without shortening a call site.
+## Declaring one
+
+`mmgr_carcer_init` is a macro, and nothing it does happens at runtime. It emits the storage, the
+layout type, an enumerator per pool and the descriptors, all at file scope, and every size claim in
+it is a static assert:
+
+```c
+mmgr_carcer_init(g_ram, 4096u, MMGR_POOL(g_scratch, 2048u), MMGR_POOL(g_work, 2048u));
+```
+
+A pool that is not a whole number of `MMGR_ALIGN_BYTES`, or one that runs past the end of the
+region, does not build. There is no runtime check because there is nothing left to check.
 
 ## Worked example
 
 ```c
-static uint8_t region[4096];
+CarcerCtx *const pool = MMGR_CARCER_POOL(g_ram, g_scratch);
 
-mmgr_confin c;
-mmgr_confin_init(&c, region, sizeof region);
+char *const table = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 512u);
 
-uint8_t *table = mmgr_confin_persist_capio(&c, 512, 8);
+const size_t mark = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = pool);
+char *const work  = MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = pool, .size = 256u);
 
-const size_t m = mmgr_confin_interim_mark(&c);
-uint8_t *work  = mmgr_confin_interim_capio(&c, 256, 8);
-if (work == NULL) {
-    return -1;                              }
-mmgr_confin_interim_reddo(&c, m);           ```
+/* ... use work ... */
+
+MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = pool, .size = mark);
+```
 
 `capio` is _take_, `reddo` is _give back_. @ref ref_glossary has the rest of the verbs.
 
 ## Gotchas
 
+**Nothing checks a size against the room left.** The two cursors move by whatever you hand them, and
+a take that would cross them crosses them. `octas_praesto` reports what is between them, and asking
+it is the check. This is the same rule the whole library runs on: bounding happens before the call,
+at compile time wherever it can.
+
+**A take never returns NULL.** It returns a pointer either way, so testing the return tells you
+nothing. Compare your size against `octas_praesto` first.
+
 **A pointer that outlives its mark is dead and still readable.** Nothing is scrubbed and nothing
 moves, so it dereferences fine and returns whatever the next take put there. Keep a mark and its
 `reddo` in the same function.
 
-**`octas_praesto` is not a release.** It reports the bytes still between the two ends. It is what you
-log when a take returns `NULL`.
+**`persist_reddo` only unwinds.** It moves the cursor back by the size you give it. It is not a
+general free, there is no free list, and giving back more than is outstanding wraps the cursor.
 
-**`persist_reddo` only unwinds the most recent take.** It is not a general free, and there is no
-general free.
-
-**`mmgr_confin_init` believes the length you give it.** There is no way to check, and a length longer
-than the real buffer makes every subsequent bounds check meaningless. See @ref proj_security.
+**`carcer.owns` is for asserts.** It says a pointer is inside the pool's storage. It does not say
+the pointer is live.
 
 ## Sizing it
 
-Read `mmgr_confin_persist_used` and `mmgr_confin_interim_used` after a real workload under the
-`checks` environment. They are high-water marks, not current values. @ref guide_first_region has the
-procedure.
+```c
+const size_t out  = MMGR_CALL(carcer.persist_used,   CarcerCfg, .pool = pool);
+const size_t left = MMGR_CALL(carcer.octas_praesto,  CarcerCfg, .pool = pool);
+const size_t peak = pool->hw;   /* MMGR_ENABLE_HW_MEM_CAPACITY_CB only */
+```
+
+`persist_used` and `octas_praesto` are current values, not peaks. The peak is `hw`, and it is only
+maintained when `MMGR_ENABLE_HW_MEM_CAPACITY_CB` is on — off by default, so a run without it leaves
+`hw` at zero and a reading from that run means nothing. @ref guide_first_region has the procedure.
 
 ## Reference
 
-@ref mod_confin "Generated reference for confinium"
+@ref mod_confin "Generated reference for carceribus"

@@ -4,12 +4,17 @@ Every module, stem and verb in the library, and what it means in plain English.
 
 ## Why Latin at all
 
-The names are category names, and they were chosen so that nothing in this library can collide with
-libc, with a consumer's own vocabulary, or with the half-dozen other things in an embedded codebase
-already called `buffer`, `pool`, `arena` or `span`.
+libc and `<string.h>` are everywhere, and these are not libc functions. They reach the same
+conclusion for the same input, across every domain — that is all they share. How they reach it is
+entirely different: the backend is machine-width parallel word processing throughout, bitmath is
+extensive, and SIMD within a register is used wherever it applies.
+
+A name that collided with libc's would advertise a drop-in replacement of the implementation as well
+as of the result. The names also keep the library clear of a consumer's own vocabulary and of the
+half-dozen other things in an embedded codebase already called `buffer`, `pool`, `arena` or `span`.
 
 That is the whole reason. It is not decoration, and it is not obscurity for its own sake: a module
-called `spatium` can be grepped for with confidence, and a symbol called `mmgr_spat_from` cannot be
+called `spatium` can be grepped for with confidence, and a symbol called `mmgr_spat_init` cannot be
 confused with anybody else's span. The cost is this page, which is a fair trade for never having to
 rename anything again.
 
@@ -17,28 +22,32 @@ rename anything again.
 
 ## Modules
 
-| Latin                            | stem     | PascalCase                     | in English                                       |
-| -------------------------------- | -------- | ------------------------------ | ------------------------------------------------ |
-| `confinium`                      | `confin` | `Confinium`                    | boundary, enclosure — the double-ended region    |
-| `confinium_exclusivum_infinitas` | `infin`  | `ConfiniumExclusivumInfinitas` | exclusive endless enclosure — the lock-free ring |
-| `confinium_externum`             | `exter`  | `ConfiniumExternum`            | external enclosure — the PSRAM pool              |
-| `clarus_custodiae`               | `clarus` | `ClarusCustodiae`              | clear guardianship — the plaintext pool          |
-| `occultum_custodiae`             | `occult` | `OccultumCustodiae`            | hidden guardianship — the secure pool            |
-| `spatium`                        | `spat`   | `Spatium`                      | space, extent — a span                           |
-| `proximus_operor`                | `proxim` | `ProximusOperor`               | nearest work — raw load and store                |
-| `verbum_scrutor`                 | `scrut`  | `VerbumScrutor`                | word examiner — the SWAR scanner                 |
-| `memoria_operor`                 | `memor`  | `MemoriaOperor`                | memory work — the `mem*` family                  |
-| `cellularum_laboro`              | `cellul` | `CellularumLaboro`             | cell work — bounded string operations            |
-| `verba_scribo`                   | `verba`  | `VerbaScribo`                  | I write words — the string builder               |
-| `numeros_scribo`                 | `numer`  | `NumerosScribo`                | I write numbers — the field formatter            |
-| `fractio`                        | `fract`  | `Fractio`                      | a breaking — IEEE-754 field access               |
-| `bitio`                          | `bitio`  | `Bitio`                        | _(English)_ bit I/O                              |
-| `byteio`                         | `byteio` | `Byteio`                       | _(English)_ byte I/O                             |
-| `endian`                         | `endian` | `Endian`                       | _(English)_ byte order                           |
-| `ascii_persona_bitorum`                     | —        | —                              | _(English)_ character classes as bitmaps         |
-| `impensa_ancorae_acus`                    | —        | —                              | _(English)_ byte-frequency table for search      |
-| `pow5`                           | —        | —                              | _(English)_ powers of five for decimal work      |
-| `dma`                            | `dma`    | `Dma`                          | _(English)_ direct memory access                 |
+The stem is the name of the module's dispatch table, so it is what a call site reads.
+
+| Latin                            | stem                                 | in English                                       |
+| -------------------------------- | ------------------------------------ | ------------------------------------------------ |
+| `carceribus`                     | `carcer`                             | prisons — the region and its pools               |
+| `confinium_exclusivum_infinitas` | `iteratio_infinita`                  | exclusive endless enclosure — the lock-free ring |
+| `confinium_externum`             | `exter`                              | external enclosure — the PSRAM pool              |
+| `custodia_soluta`                | `soluta`                             | unbound guardianship — the plaintext pool        |
+| `custodia_secura`                | `secura`                             | safe guardianship — the secure pool              |
+| `spatium`                        | `spat`                               | space, extent — a span                           |
+| `proximus_operor`                | `proxim`                             | nearest work — raw load and store                |
+| `verbum_scrutor`                 | `lane`, `mask`, `word`               | word examiner — the SWAR scanner                 |
+| `memoria_operor`                 | `memor`                              | memory work — the `mem*` family                  |
+| `cellularum_laboro`              | `cellul`                             | cell work — bounded string operations            |
+| `verba_scribo`                   | `verba`                              | I write words — the string writer                |
+| `numeros_scribo`                 | `numer`                              | I write numbers — the field formatter            |
+| `transformo`                     | `muto`                               | I transform — decimal to binary scaling          |
+| `fractio`                        | `fract`                              | a breaking — IEEE-754 field access               |
+| `bitorum_introitus_exitus`       | `bitio`                              | entry and exit of bits — the bit writer          |
+| `octetus_introitus_exitus`       | `byteio`                             | entry and exit of octets — byte transfers        |
+| `endian`                         | `parva_extremitas`, `magna_extremitas` | _(English)_ byte order. small end, large end   |
+| `ascii_persona_bitorum`          | `ascii`                              | character masks of bits — the class bitmaps      |
+| `impensa_ancorae_acus`           | `ancorae`                            | cost of an anchor point — the frequency tables   |
+| `memoriam_praetereo`             | `praet`                              | I pass memory by — DMA transfer submission       |
+| `clz`                            | `clz`                                | _(English)_ count leading zeros                  |
+| `pow5`                           | —                                    | _(English)_ powers of five for decimal work      |
 
 ## Verbs
 
@@ -55,17 +64,18 @@ likely to mislead.
 | `mark`          | a position to rewind to      | —                                                                                         |
 | `reset`         | return to empty              | —                                                                                         |
 
-So `mmgr_confin_interim_capio` is _take interim_, and `mmgr_confin_persist_reddo` is _give back the
+So `mmgr_carcer_interim_capio` is _take interim_, and `mmgr_carcer_persist_reddo` is _give back the
 last persistent take_.
 
 ## Types
 
 | type          | is                                                                     |
 | ------------- | ---------------------------------------------------------------------- |
-| `mmgr_confin` | a region: base, both ends, and the limits                              |
-| `mmgr_spat`   | a writable span. `pos` is how much was written; `overflow` latches     |
-| `mmgr_verba`  | a string builder over a span                                           |
-| `mmgr_word`   | the machine word — the SWAR carrier                                    |
+| `CarcerCtx`   | a pool: base, size, both ends, and the hardware cap                    |
+| `mmgr_spat`   | a buffer, its capacity and a cursor. `pos` is how much was written     |
+| `mmgr_bitor`  | a bit writer: buffer, capacity, count, residue and overflow            |
+| `mmgr_word`   | the machine word, unsigned — the SWAR carrier                          |
+| `mmgr_iword`  | the machine word, signed. the same register as `mmgr_word`             |
 | `mmgr_idx`    | an index into a region, narrower than a word on some builds            |
 | `mmgr_bool`   | `MMGR_TRUE` or `MMGR_FALSE`                                            |
 
@@ -75,7 +85,7 @@ last persistent take_.
 | --------------- | ----------------------------------------------------------------------- |
 | **borrow**      | storage the library was handed and does not own. Everything is a borrow |
 | **tenant**      | a pool's region over its static buffer                                    |
-| **custodia**    | a guarded pool that hands out tenants — `clarus` or `occult`            |
+| **custodia**    | a guarded pool that hands out tenants — `soluta` or `secura`            |
 | **carrier**     | the integer a SWAR operation runs on. Always the machine word           |
 | **lane**        | one byte inside the carrier                                             |
 | **environment** | one set of compile-time widths. See @ref ref_environments               |
@@ -83,8 +93,12 @@ last persistent take_.
 
 ## The naming law
 
-Every public function is `mmgr_<infix>_<tail>`, where `<infix>` is the module's stem. `spat.from` is
-`mmgr_spat_from`; `scrut.has_zero` is `mmgr_scrut_has_zero`.
+Every public function is `mmgr_<infix>_<tail>`, where `<infix>` is the module's stem. `spat.init` is
+`mmgr_spat_init`, `memor.cpy` is `mmgr_memor_cpy`.
+
+`verbum_scrutor` is the exception: its three tables are named for what they operate on — `lane`,
+`mask`, `word` — while the functions all carry the module's own infix, so `lane.has_zero` is
+`mmgr_scrut_has_zero`.
 
 Three infixes do not name their module, and that is deliberate rather than an oversight — they name
 distinct _concepts_ inside `proximus_operor`, and collapsing them onto one stem would merge things

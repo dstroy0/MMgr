@@ -1,5 +1,17 @@
+/**
+ * @brief Byte cost table scoring letters, digits and path punctuation.
+ *
+ * @note One of five files defining mmgr_ancorae_impensa; a build links exactly one of them.
+ */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
+/**
+ * @brief Cost of each byte value, indexed by the byte itself.
+ *
+ * @note Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.
+ * @note 255 marks the NUL and the slash, so neither is ever chosen as a sieve offset.
+ * @note The braces at 123 and 125 carry a cost, where most punctuation sits at 1.
+ */
 static const uint8_t s_impensa[256] = {
     255, 1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
     1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   118, 118, 146, 1,
@@ -14,16 +26,33 @@ static const uint8_t s_impensa[256] = {
     1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
     1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1};
 
+/**
+ * @brief Argument type built by MMGR_CALL in mmgr_ancorae_impensa.
+ *
+ * @note Mirrors AncoraeCfg without its const qualifier.
+ */
 typedef struct
 {
-    uint8_t byte;
+    uint8_t byte; /**< Byte value to look up. */
 } AncoraeCtx;
 
+/**
+ * @brief Returns the table entry for c->byte.
+ *
+ * @param[in] c Byte to look up [BORROWS].
+ * @return      The cost, 1 through 255.
+ * @note The table holds 256 entries, so every uint8_t value indexes it in range.
+ */
 MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *c)
 {
     return s_impensa[c->byte];
 }
 
+/**
+ * @brief Copies c->byte into an AncoraeCtx and returns the table entry.
+ *
+ * @note Documented at the declaration in impensa_ancorae_acus.h.
+ */
 uint8_t mmgr_ancorae_impensa(const AncoraeCfg *c)
 {
     return MMGR_CALL(ancorae_impensa, AncoraeCtx, .byte = c->byte);

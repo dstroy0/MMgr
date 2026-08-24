@@ -125,16 +125,16 @@ int main(void)
   run_test(test_copy_never_writes_past_its_destination, "test_copy_never_writes_past_its_destination", 277);
   run_test(test_copy_of_a_source_that_never_terminates, "test_copy_of_a_source_that_never_terminates", 293);
   run_test(test_a_builder_at_every_capacity_stays_inside_it, "test_a_builder_at_every_capacity_stays_inside_it", 308);
-  run_test(test_a_builder_with_no_room_for_a_terminator, "test_a_builder_with_no_room_for_a_terminator", 333);
-  run_test(test_a_write_of_every_length_into_a_fixed_buffer, "test_a_write_of_every_length_into_a_fixed_buffer", 344);
-  run_test(test_a_record_at_every_capacity_stays_inside_it, "test_a_record_at_every_capacity_stays_inside_it", 380);
-  run_test(test_appending_to_a_record_until_it_stops_fitting, "test_appending_to_a_record_until_it_stops_fitting", 395);
-  run_test(test_the_parsers_against_content_that_never_terminates, "test_the_parsers_against_content_that_never_terminates", 413);
-  run_test(test_the_parsers_agree_with_libc_on_rubbish, "test_the_parsers_agree_with_libc_on_rubbish", 425);
-  run_test(test_the_parser_takes_decimal_and_stops_at_anything_else, "test_the_parser_takes_decimal_and_stops_at_anything_else", 462);
-  run_test(test_an_exponent_with_no_digits_after_it, "test_an_exponent_with_no_digits_after_it", 479);
-  run_test(test_an_exponent_that_is_real_is_still_taken, "test_an_exponent_that_is_real_is_still_taken", 503);
-  run_test(test_a_number_made_entirely_of_leading_zeros, "test_a_number_made_entirely_of_leading_zeros", 510);
+  run_test(test_a_builder_with_no_room_for_a_terminator, "test_a_builder_with_no_room_for_a_terminator", 336);
+  run_test(test_a_write_of_every_length_into_a_fixed_buffer, "test_a_write_of_every_length_into_a_fixed_buffer", 348);
+  run_test(test_a_record_at_every_capacity_stays_inside_it, "test_a_record_at_every_capacity_stays_inside_it", 383);
+  run_test(test_appending_to_a_record_until_it_stops_fitting, "test_appending_to_a_record_until_it_stops_fitting", 400);
+  run_test(test_the_parsers_against_content_that_never_terminates, "test_the_parsers_against_content_that_never_terminates", 421);
+  run_test(test_the_parsers_agree_with_libc_on_rubbish, "test_the_parsers_agree_with_libc_on_rubbish", 433);
+  run_test(test_the_parser_takes_decimal_and_stops_at_anything_else, "test_the_parser_takes_decimal_and_stops_at_anything_else", 470);
+  run_test(test_an_exponent_with_no_digits_after_it, "test_an_exponent_with_no_digits_after_it", 487);
+  run_test(test_an_exponent_that_is_real_is_still_taken, "test_an_exponent_that_is_real_is_still_taken", 511);
+  run_test(test_a_number_made_entirely_of_leading_zeros, "test_a_number_made_entirely_of_leading_zeros", 518);
 
   return UNITY_END();
 }

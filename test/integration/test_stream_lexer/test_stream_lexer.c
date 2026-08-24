@@ -75,7 +75,7 @@ static size_t ingest(const uint8_t *src, size_t n)
         mmgr_u16 status = 0;
 
         uint8_t *const grant = iteratio_infinita.singularitas(
-            &(InfinCfg){.r = &ring, .tessera = &tessera, .sing = &channel, .units = &units, .status = &status});
+            &(InfinCfg){.ring = &ring, .tessera = &tessera, .sing = &channel, .units = &units, .status = &status});
 
         if ((grant == NULL) || (units == 0u))
         {
@@ -95,7 +95,7 @@ static size_t ingest(const uint8_t *src, size_t n)
         total += bytes;
 
         (void)iteratio_infinita.singularitas(
-            &(InfinCfg){.r = &ring, .off = bytes / GRAN, .tessera = &tessera, .status = &status});
+            &(InfinCfg){.ring = &ring, .off = bytes / GRAN, .tessera = &tessera, .status = &status});
     }
     return total;
 }
@@ -106,19 +106,19 @@ static size_t ingest(const uint8_t *src, size_t n)
 
 static size_t avail(void)
 {
-    return iteratio_infinita.available(&(InfinCfg){.r = &ring});
+    return iteratio_infinita.available(&(InfinCfg){.ring = &ring});
 }
 
 static uint8_t at(size_t off)
 {
     uint8_t b = 0;
-    iteratio_infinita.peek(&(InfinCfg){.r = &ring, .dst = &b, .n = 1u, .off = off});
+    iteratio_infinita.peek(&(InfinCfg){.ring = &ring, .dst = &b, .bytes = 1u, .off = off});
     return b;
 }
 
 static void eat(size_t n)
 {
-    iteratio_infinita.consume(&(InfinCfg){.r = &ring, .n = n});
+    iteratio_infinita.consume(&(InfinCfg){.ring = &ring, .bytes = n});
 }
 
 /** @brief One byte. @return How many bytes it accounted for: two for a token, otherwise one. */

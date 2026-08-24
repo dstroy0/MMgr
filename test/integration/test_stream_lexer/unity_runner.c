@@ -76,7 +76,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_stream_lexer\\test_stream_lexer.c");
+  UnityBegin("test/integration/test_stream_lexer/test_stream_lexer.c");
   run_test(test_plain_code_arrives_unchanged, "test_plain_code_arrives_unchanged", 252);
   run_test(test_comments_are_dropped, "test_comments_are_dropped", 260);
   run_test(test_a_comment_that_never_closes_ends_at_the_terminator, "test_a_comment_that_never_closes_ends_at_the_terminator", 271);

@@ -84,7 +84,7 @@ typedef struct
  *
  * @param[in] t Tessera built by MMGR_TESSERA.
  * @return      The holder index.
- * @warning Undefined for a t of 0, which means no tessera is held.
+ * @warning A t of 0 is not a valid tessera; every caller tests for it before calling this.
  */
 #define MMGR_TESSERA_IDX(t) ((((t) - 1u)) % MMGR_TESSERA_SLOTS)
 
@@ -116,22 +116,22 @@ typedef struct
  * @brief The whole ring, laid into the caller's mmgr_ring storage.
  *
  * @note head, tail, held and slots are atomic; the rest is touched only under those.
- * @warning Reached by casting mmgr_ring::opaque, so the assertion below must keep it fitting.
+ * @warning Reached by casting mmgr_ring::opaque; the assertion below checks RingState fits inside it.
  */
 typedef struct
 {
-    uint8_t *buf;             /**< Ring bytes [BORROWS]. */
-    size_t cap;               /**< Bytes in buf, always a power of two. */
-    size_t nsegs;             /**< Segments the ring is divided into, a power of two. */
-    size_t seg;               /**< Bytes per segment, cap divided by nsegs. */
-    _Atomic mmgr_word *held;  /**< One bit per segment, set while a holder owns it [BORROWS]. */
-    _Atomic size_t head;      /**< Write position, advanced by the producer. */
-    _Atomic size_t tail;      /**< Read position, advanced by the consumer. */
-    struct MmgrCursor ord;    /**< The single cursor handed out by open. */
-    const void *owner;        /**< Identity that opened the cursor [BORROWS]. */
-    mmgr_bool open;           /**< Whether the cursor is currently handed out. */
-    _Atomic mmgr_word slots;  /**< One bit per drains entry, set while that entry is in use. */
-    Singularitas sing;        /**< The exclusive writer attachment and its grant. */
+    uint8_t *buf;                   /**< Ring bytes [BORROWS]. */
+    size_t cap;                     /**< Bytes in buf, always a power of two. */
+    size_t nsegs;                   /**< Segments the ring is divided into, a power of two. */
+    size_t seg;                     /**< Bytes per segment, cap divided by nsegs. */
+    _Atomic mmgr_word *held;        /**< One bit per segment, set while a holder owns it [BORROWS]. */
+    _Atomic size_t head;            /**< Write position, advanced by the producer. */
+    _Atomic size_t tail;            /**< Read position, advanced by the consumer. */
+    struct MmgrCursor ord;          /**< The single cursor handed out by open. */
+    const void *owner;              /**< Identity that opened the cursor [BORROWS]. */
+    mmgr_bool open;                 /**< Whether the cursor is currently handed out. */
+    _Atomic mmgr_word slots;        /**< One bit per drains entry, set while that entry is in use. */
+    Singularitas sing;              /**< The exclusive writer attachment and its grant. */
     Drain drains[MMGR_RING_DRAINS]; /**< In-flight drain runs. */
 } RingState;
 
@@ -154,7 +154,7 @@ MMGR_STATIC_ASSERT(MMGR_SING_REFUSED < ((mmgr_u16)1 << MMGR_SING_FLAG_BITS),
  *
  * @param[in] r Ring storage the caller declared [BORROWS].
  * @return      The state laid into it [BORROWS].
- * @note The cast goes through void * so no alignment warning is raised; the storage is aligned to size_t.
+ * @note The cast goes through void *; mmgr_ring aligns opaque to size_t.
  * @warning The state is only valid after mmgr_infin_init has returned MMGR_TRUE for this ring.
  */
 MMGR_INLINE RingState *ring_of(mmgr_ring *r)
@@ -169,21 +169,21 @@ MMGR_INLINE RingState *ring_of(mmgr_ring *r)
  */
 typedef struct
 {
-    RingState *s;               /**< Ring to act on [BORROWS]. */
-    struct MmgrCursor *cur;     /**< Cursor for seek [BORROWS]. */
-    uint8_t *dst;               /**< Destination for read_byte and peek [BORROWS]. */
-    const uint8_t *src;         /**< Bytes to publish through sing_put [BORROWS]. */
-    size_t bytes;               /**< Byte count, or granule count on the singularitas path. */
-    size_t off;                 /**< Ring offset, or cursor position for seek. */
-    size_t from;                /**< First byte of a drain run. */
-    size_t to;                  /**< One past the last byte of a drain run. */
-    size_t *tessera;            /**< Caller's tessera, read and rewritten in place [BORROWS]. */
-    const void *owner;          /**< Identity opening the cursor [BORROWS]. */
-    size_t *units;              /**< Set to the granules actually granted [BORROWS]. */
+    RingState *s;                /**< Ring to act on [BORROWS]. */
+    struct MmgrCursor *cur;      /**< Cursor for seek [BORROWS]. */
+    uint8_t *dst;                /**< Destination for read_byte and peek [BORROWS]. */
+    const uint8_t *src;          /**< Bytes to publish through sing_put [BORROWS]. */
+    size_t bytes;                /**< Byte count, or granule count on the singularitas path. */
+    size_t off;                  /**< Ring offset, or cursor position for seek. */
+    size_t from;                 /**< First byte of a drain run. */
+    size_t to;                   /**< One past the last byte of a drain run. */
+    size_t *tessera;             /**< Caller's tessera, read and rewritten in place [BORROWS]. */
+    const void *owner;           /**< Identity opening the cursor [BORROWS]. */
+    size_t *units;               /**< Set to the granules actually granted [BORROWS]. */
     const SingularitasCfg *sing; /**< Attachment request [BORROWS]. */
-    mmgr_u16 *status;           /**< Set to the packed status word [BORROWS]. */
-    mmgr_u16 why;               /**< Flags to fold into that status word. */
-    mmgr_bool rearm;            /**< Ask for a fresh grant right after committing one. */
+    mmgr_u16 *status;            /**< Set to the packed status word [BORROWS]. */
+    mmgr_u16 why;                /**< Flags to fold into that status word. */
+    mmgr_bool rearm;             /**< Ask for a fresh grant right after committing one. */
 } InfinCtx;
 
 /**
@@ -211,8 +211,8 @@ MMGR_INLINE size_t infin_available(const InfinCtx *c)
  * @brief Returns the bytes the producer may still write.
  *
  * @param[in] c Ring to inspect [BORROWS].
- * @return      Free bytes, less one so head and tail stay distinguishable, less any live grant.
- * @note Subtracting sing.span keeps an outstanding exclusive grant out of the free count.
+ * @return      cap minus one, minus the readable bytes, minus any outstanding grant.
+ * @note sing.span is non-zero only while a grant is outstanding.
  */
 MMGR_INLINE size_t infin_vacant(const InfinCtx *c)
 {
@@ -267,7 +267,7 @@ MMGR_INLINE const uint8_t *infin_read(const InfinCtx *c)
  *
  * @param[in,out] c Ring, destination, byte count and starting offset [BORROWS].
  * @note Wraps at the end of the buffer, so the copy may be drawn from two runs.
- * @warning Copies c->bytes whether or not that many are available; the caller checks first.
+ * @warning Copies c->bytes whether or not that many are available.
  */
 MMGR_INLINE void infin_peek(const InfinCtx *c)
 {
@@ -284,7 +284,7 @@ MMGR_INLINE void infin_peek(const InfinCtx *c)
  * @brief Advances the tail past c->bytes.
  *
  * @param[in,out] c Ring and the byte count to drop [BORROWS].
- * @warning Advances whether or not that many bytes were available; the caller checks first.
+ * @warning Advances whether or not that many bytes were available.
  */
 MMGR_INLINE void infin_consume(const InfinCtx *c)
 {
@@ -315,6 +315,8 @@ MMGR_INLINE size_t infin_room(const InfinCtx *c)
     while (room < want)
     {
         const size_t seg = at / s->seg;
+
+        // Explicit casts build the segment's bit at mmgr_word width before the test
         if ((bits & (mmgr_word)((mmgr_word)1 << seg)) != 0u)
         {
             break;
@@ -405,6 +407,7 @@ MMGR_INLINE Drain *drain_of(const InfinCtx *c)
 MMGR_INLINE void drain_retire(const DrainCtx *c)
 {
     Drain *const d = c->d;
+    // Explicit cast converts the pointer difference into the size_t entry index
     const size_t slot = (size_t)(d - &c->s->drains[0]);
 
     MMGR_ATOMIC_CLEAR(c->s->held, MMGR_SEG_RUN(d->first, d->last));
@@ -412,6 +415,7 @@ MMGR_INLINE void drain_retire(const DrainCtx *c)
     d->last = 0u;
     d->next = 0u;
     d->gen++;
+    // Explicit casts build the entry's bit at mmgr_word width, matching the atomic it clears
     MMGR_ATOMIC_CLEAR(&c->s->slots, (mmgr_word)((mmgr_word)1 << slot));
 }
 
@@ -421,7 +425,7 @@ MMGR_INLINE void drain_retire(const DrainCtx *c)
  * @param[in,out] c Ring, the starting offset and the byte count [BORROWS].
  * @return          MMGR_TRUE when the whole run was taken, MMGR_FALSE when any part was already held.
  * @note One atomic fetch-or takes the run; on refusal only the bits this call set are given back.
- * @warning A caller that gets MMGR_TRUE must release the run through segs_drop or drain_retire.
+ * @note The run stays held until segs_drop or drain_retire clears those bits.
  */
 MMGR_INLINE mmgr_bool segs_claim(const InfinCtx *c)
 {
@@ -433,6 +437,7 @@ MMGR_INLINE mmgr_bool segs_claim(const InfinCtx *c)
 
     if ((prev & want) != 0)
     {
+        // Explicit cast keeps the complement at mmgr_word width, so only bits this call set are cleared
         MMGR_ATOMIC_CLEAR(s->held, want & (mmgr_word)~prev);
         return MMGR_FALSE;
     }
@@ -443,7 +448,7 @@ MMGR_INLINE mmgr_bool segs_claim(const InfinCtx *c)
  * @brief Releases every segment covering c->off through c->off plus c->bytes.
  *
  * @param[in,out] c Ring, the starting offset and the byte count [BORROWS].
- * @warning Clears the bits whether or not this caller set them, so the run must match a segs_claim.
+ * @warning Clears the bits whether or not this caller set them.
  */
 MMGR_INLINE void segs_drop(const InfinCtx *c)
 {
@@ -460,7 +465,7 @@ MMGR_INLINE void segs_drop(const InfinCtx *c)
  * @note A c->bytes of 0 asks for whatever fits, and requires c->units to receive the answer.
  * @note The run is trimmed to the buffer end, to unheld segments, then down to a whole granule count.
  * @note A fixed request is refused outright unless exactly that many granules survive the trimming.
- * @warning Refuses while a grant is already outstanding, since span is non-zero then.
+ * @warning Refuses while s->sing.span is non-zero, which is what marks an outstanding grant.
  */
 MMGR_INLINE uint8_t *sing_claim(const InfinCtx *c)
 {
@@ -543,7 +548,7 @@ MMGR_INLINE void sing_commit(const InfinCtx *c)
  * @param[in,out] c Ring, the source bytes and the granule count [BORROWS].
  * @return          Start of what was written, or NULL when it would not fit [BORROWS].
  * @note Copies in runs that stop at the buffer end, so a write may wrap.
- * @note Checks unheld room first but takes no hold of its own, since the bytes are published before it returns.
+ * @note Checks unheld room but takes no hold of its own; head advances before it returns.
  * @warning Refuses while a grant is outstanding, and refuses a granule count of 0.
  */
 MMGR_INLINE uint8_t *sing_put(const InfinCtx *c)
@@ -635,6 +640,7 @@ mmgr_bool mmgr_infin_init(const RingCfg *c)
     {
         return MMGR_FALSE;
     }
+    // Explicit cast compares the segment count against the bit-count limit at size_t width
     if (c->nsegs > (size_t)MMGR_RING_LOCULI_MAX)
     {
         return MMGR_FALSE;
@@ -648,6 +654,7 @@ mmgr_bool mmgr_infin_init(const RingCfg *c)
     s->held = c->held;
     atomic_init(&s->head, 0u);
     atomic_init(&s->tail, 0u);
+    // Explicit cast types the zero to mmgr_word, matching the atomic it is stored into
     MMGR_ATOMIC_STORE(s->held, (mmgr_word)0);
     s->ord.base = 0u;
     s->ord.span = c->cap;
@@ -676,8 +683,8 @@ mmgr_bool mmgr_infin_init(const RingCfg *c)
  *
  * @param[in,out] c Ring and the identity taking the cursor [BORROWS].
  * @return          The cursor, or NULL when it is already out [BORROWS].
- * @note Records the owner, so a later caller can tell whose cursor it is.
- * @warning There is one cursor per ring; nothing here ever hands it back.
+ * @note Records c->owner in the ring state.
+ * @warning One cursor per ring; only mmgr_infin_init clears s->open.
  */
 MMGR_INLINE struct MmgrCursor *infin_open(const InfinCtx *c)
 {
@@ -737,6 +744,7 @@ MMGR_INLINE mmgr_bool drain_in_flight(const InfinCtx *c)
     const size_t arrived = MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&s->head) - tail, s->cap);
     const size_t rel = MMGR_RING_WRAP(c->from - tail, s->cap);
 
+    // Explicit cast converts the combined test into the mmgr_bool return
     return (mmgr_bool)((arrived != 0u) && (rel < arrived) && ((c->to - c->from) <= (arrived - rel)));
 }
 
@@ -769,12 +777,14 @@ MMGR_INLINE const uint8_t *drain_claim(const InfinCtx *c)
     const mmgr_word prev = atomic_fetch_or_explicit(s->held, want, memory_order_acquire);
     if ((prev & want) != 0)
     {
+        // Explicit cast keeps the complement at mmgr_word width, so only bits this call set are cleared
         MMGR_ATOMIC_CLEAR(s->held, want & (mmgr_word)~prev);
         return NULL;
     }
 
     for (size_t i = 0; i < MMGR_RING_DRAINS; i++)
     {
+        // Explicit casts build the entry's bit at mmgr_word width, matching the atomic it is fetched into
         const mmgr_word bit = (mmgr_word)((mmgr_word)1 << i);
         const mmgr_word had = atomic_fetch_or_explicit(&s->slots, bit, memory_order_acquire);
         if ((had & bit) != 0)
@@ -914,6 +924,7 @@ MMGR_INLINE mmgr_bool sing_admit(const InfinCtx *c)
 
     if (s->sing.open)
     {
+        // Explicit cast converts the identity comparison into the mmgr_bool return
         return (mmgr_bool)(sing->owner == s->sing.owner);
     }
     if ((sing->gran == 0u) || !MMGR_RING_POW2(sing->gran) || (sing->gran > MMGR_SING_GRANULE_MAX) ||
@@ -938,6 +949,7 @@ MMGR_INLINE mmgr_bool sing_token_live(const InfinCtx *c)
 {
     const size_t tessera = *c->tessera;
 
+    // Explicit cast converts the three-part match into the mmgr_bool return
     return (mmgr_bool)((c->s->sing.span != 0u) && (MMGR_TESSERA_IDX(tessera) == MMGR_TESSERA_SING) &&
                        (MMGR_TESSERA_GEN(tessera) == c->s->sing.gen));
 }
@@ -964,6 +976,7 @@ MMGR_INLINE mmgr_u16 sing_state(const InfinCtx *c)
     {
         st |= MMGR_SING_FULL;
     }
+    // Explicit casts keep the packing in mmgr_u16: the segment index shifts above the flag octet
     return (mmgr_u16)(st | (mmgr_u16)((at / s->seg) << MMGR_SING_FLAG_BITS));
 }
 
@@ -973,7 +986,7 @@ MMGR_INLINE mmgr_u16 sing_state(const InfinCtx *c)
  * @param[in,out] c Ring, plus whichever of sing, src, tessera, bytes, off, units and status apply [BORROWS].
  * @return          Start of a granted or written run, or NULL [BORROWS].
  * @note A tessera that no longer matches is cleared and reported as STALE and REFUSED.
- * @note Without a live tessera, the caller must supply sing; failing that it is reported as ALIEN.
+ * @note Without a live tessera, a NULL c->sing or a refused sing_admit reports ALIEN.
  * @note Work happens only when src or tessera is given; otherwise the call just reports state.
  * @note Writes the packed status through c->status whenever that is not NULL, on every path.
  */
@@ -992,6 +1005,7 @@ MMGR_INLINE uint8_t *infin_singularitas(const InfinCtx *c)
     }
     else if (!live && ((c->sing == NULL) || !MMGR_CALL(sing_admit, InfinCtx, .s = s, .sing = c->sing)))
     {
+        // Explicit cast holds the combined flags in mmgr_u16, the width sing_state folds them into
         why = (mmgr_u16)(MMGR_SING_ALIEN | (asking ? MMGR_SING_REFUSED : 0u));
     }
     else if (asking)
@@ -1017,7 +1031,7 @@ MMGR_INLINE uint8_t *infin_singularitas(const InfinCtx *c)
  * @param[in,out] c Ring, the attachment to release, and where to report state [BORROWS].
  * @return          MMGR_TRUE when the attachment was released.
  * @note Refuses with ALIEN and REFUSED when no writer is attached or the owner does not match.
- * @note Refuses with REFUSED while a grant is still outstanding, so nothing is dropped mid-write.
+ * @note Refuses with REFUSED while s->sing.span is non-zero.
  * @note Bumps the grant generation on success, so any surviving tessera stops resolving.
  */
 MMGR_INLINE mmgr_bool infin_detach(const InfinCtx *c)

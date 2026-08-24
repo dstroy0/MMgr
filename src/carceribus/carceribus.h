@@ -20,7 +20,7 @@ typedef struct
 } CarcerInit;
 
 /**
- * @brief One pool's state: its bytes and the two ends that grow towards each other.
+ * @brief One pool's state: its bytes and the two ends that grow toward each other.
  *
  * @note Set up by the mmgr_carcer_init macro, which starts interim_top at the pool size.
  */
@@ -31,19 +31,19 @@ typedef struct
     size_t persist_end;  /**< Offset just past the persistent bytes, counting up from base. */
     size_t interim_top;  /**< Offset of the lowest interim byte, counting down from size. */
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
-    size_t hw;           /**< Highest total occupancy seen, both ends together. */
+    size_t hw;           /**< Running maximum of persist_end and of the bytes taken from the top. */
 #endif
 } CarcerCtx;
 
 /**
  * @brief Arguments for every carcer call: the pool, a size or mark, and an address.
  *
- * @note Each call reads only what it needs; size is a byte count except in interim_reddo.
+ * @note Each call reads only what it needs.
  */
 typedef struct
 {
     CarcerCtx *const pool; /**< Pool to act on [BORROWS]. */
-    const size_t size;     /**< Byte count, or the restore mark for interim_reddo. */
+    const size_t size;     /**< Byte count for persist_capio, persist_reddo and interim_capio. */
     const void *const at;  /**< Address tested by owns [BORROWS]. */
 } CarcerCfg;
 
@@ -58,11 +58,11 @@ typedef struct
     void (*persist_reddo)(const CarcerCfg *c);   /**< Gives size bytes back to the bottom. */
     void *(*interim_capio)(const CarcerCfg *c);  /**< Takes size bytes from the top. */
     size_t (*interim_mark)(const CarcerCfg *c);  /**< Reads the current top. */
-    void (*interim_reddo)(const CarcerCfg *c);   /**< Restores the top to a mark. */
-    void (*interim_reset)(const CarcerCfg *c);   /**< Releases every interim byte. */
-    mmgr_bool (*owns)(const CarcerCfg *c);       /**< Tests whether at is inside the pool. */
-    size_t (*octas_praesto)(const CarcerCfg *c); /**< Bytes free between the two ends. */
-    size_t (*persist_used)(const CarcerCfg *c);  /**< Bytes taken from the bottom. */
+    void (*interim_reddo)(const CarcerCfg *c);   /**< Sets the top from interim_mark. */
+    void (*interim_reset)(const CarcerCfg *c);   /**< Assigns the top the pool's size. */
+    mmgr_bool (*owns)(const CarcerCfg *c);       /**< Tests whether at lies in the pool's bytes. */
+    size_t (*octas_praesto)(const CarcerCfg *c); /**< Returns interim_top minus persist_end. */
+    size_t (*persist_used)(const CarcerCfg *c);  /**< Returns the pool's persist_end. */
 } CarceribusNs;
 MMGR_NS_LAYOUT(CarceribusNs, persist_capio, persist_reddo, interim_capio, interim_mark, interim_reddo, interim_reset,
                owns, octas_praesto, persist_used);
@@ -78,74 +78,71 @@ MMGR_NS_LAYOUT(CarceribusNs, persist_capio, persist_reddo, interim_capio, interi
 void *mmgr_carcer_persist_capio(const CarcerCfg *c);
 
 /**
- * @brief Gives c->size bytes back to the bottom of the pool.
+ * @brief Moves persist_end back by c->size.
  *
- * @param[in,out] c Pool and byte count [BORROWS].
- * @note Moves persist_end back by c->size.
- * @warning c->size must not exceed the bytes reported by persist_used.
+ * @param[in,out] c Pool and the byte count to give back [BORROWS].
+ * @warning c->size must not exceed the value mmgr_carcer_persist_used reports.
  */
 void mmgr_carcer_persist_reddo(const CarcerCfg *c);
 
 /**
- * @brief Takes c->size bytes from the top of the pool.
+ * @brief Lowers interim_top by c->size and returns base plus the new interim_top.
  *
- * @param[in,out] c Pool and byte count [BORROWS].
- * @return          Start of the taken bytes [BORROWS].
- * @note Lowers interim_top by c->size.
- * @warning c->size must not exceed the bytes reported by octas_praesto.
+ * @param[in,out] c Pool and the byte count wanted [BORROWS].
+ * @return          Start of the lowered region [BORROWS].
+ * @warning c->size must not exceed the value mmgr_carcer_octas_praesto reports.
  */
 void *mmgr_carcer_interim_capio(const CarcerCfg *c);
 
 /**
- * @brief Reads the pool's current interim_top.
+ * @brief Returns the pool's current interim_top.
  *
  * @param[in] c Pool to read [BORROWS].
- * @return      A mark to pass back as c->size in interim_reddo.
- * @note Reads only; the pool is unchanged.
+ * @return      The value of interim_top.
+ * @note Writes nothing.
  */
 size_t mmgr_carcer_interim_mark(const CarcerCfg *c);
 
 /**
- * @brief Restores interim_top to a mark taken by interim_mark.
+ * @brief Assigns interim_top the value mmgr_carcer_interim_mark returns for this pool.
  *
- * @param[in,out] c Pool, with the mark in c->size [BORROWS].
- * @note Releases every interim byte taken since the mark.
- * @warning c->size must be a mark from this pool, not a byte count.
+ * @param[in,out] c Pool to act on [BORROWS].
+ * @note c->size is not read.
  */
 void mmgr_carcer_interim_reddo(const CarcerCfg *c);
 
 /**
- * @brief Sets interim_top back to the pool size.
+ * @brief Assigns interim_top the pool's size.
  *
- * @param[in,out] c Pool to reset [BORROWS].
- * @note Releases every interim byte; persist_end is untouched.
+ * @param[in,out] c Pool to act on [BORROWS].
+ * @note persist_end is not written.
  */
 void mmgr_carcer_interim_reset(const CarcerCfg *c);
 
 /**
- * @brief Returns whether c->at lies within the pool's bytes.
+ * @brief Returns whether c->at lies in the pool's bytes.
  *
  * @param[in] c Pool and the address to test [BORROWS].
  * @return      MMGR_TRUE when c->at is at or after base and before base plus size.
- * @note Reads only; the pool is unchanged.
+ * @note Writes nothing.
  */
 mmgr_bool mmgr_carcer_owns(const CarcerCfg *c);
 
 /**
- * @brief Returns the bytes still free between the two ends.
+ * @brief Returns interim_top minus persist_end.
  *
  * @param[in] c Pool to read [BORROWS].
- * @return      interim_top minus persist_end.
- * @note Reads only; the pool is unchanged.
+ * @return      The bytes between the two ends.
+ * @note Writes nothing.
  */
 size_t mmgr_carcer_octas_praesto(const CarcerCfg *c);
 
 /**
- * @brief Returns the bytes taken from the bottom of the pool.
+ * @brief Returns the pool's persist_end.
  *
  * @param[in] c Pool to read [BORROWS].
- * @return      persist_end, which is also the offset of the next persistent byte.
- * @note Reads only; the pool is unchanged.
+ * @return      The value of persist_end.
+ * @note Writes nothing.
  */
 size_t mmgr_carcer_persist_used(const CarcerCfg *c);
 

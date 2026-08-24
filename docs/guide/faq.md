@@ -13,12 +13,9 @@ observation about one run. The long answer, including what it costs you, is @ref
 
 ## Is it thread-safe?
 
-The question does not arise for the allocator: there is no shared mutable state in it and no
-synchronization, because there is nothing to synchronize.
-
-The allocator synchronizes nothing, because there is nothing to synchronize: a region is a pointer,
-an extent, and two offsets, used by whoever holds it. Two contexts that must not share get two
-regions.
+The region synchronizes nothing, because there is nothing to synchronize: a `CarcerCtx` is a base, an
+extent and two cursors, used by whoever holds it. Two contexts that must not share get two regions,
+and the region never learns there were two.
 
 The one genuinely concurrent module is `confinium_exclusivum_infinitas`, which is single-producer
 single-consumer only. Two producers on one ring is broken, not slow. See @ref concept_ownership.
@@ -57,15 +54,21 @@ run on your machine instead of waiting for the hardware. One `cmake --build`, on
 
 ## A test says `test_memoriam_praetereo` was skipped. Is that a problem?
 
-No. `memoriam_praetereo` and `confinium_externum` are behind `MMGR_ENABLE_DMA` and `MMGR_ENABLE_PSRAM_POOL`, both
-off by default, so their suites are skipped — loudly, with a CMake status message. Turn the flag on
-if you want them built.
+No. `memoriam_praetereo` and `confinium_externum` are behind `MMGR_ENABLE_DMA` and
+`MMGR_ENABLE_EXTRAM`, both off by default, so their suites are skipped — loudly, with a CMake status
+message. Turn the flag on if you want them built. A capability gates the whole suite, never a case
+inside one, because a suite that compiles half its cases away still reports as passing.
 
 ## How do I know how big to make my region?
 
-Measure it. Build the `checks` environment, run your real workload, and read
-`mmgr_confin_persist_used`, `mmgr_confin_interim_used` and `clarus.high_water`. Those report the
-largest it ever got, not the current value. @ref guide_first_region has the procedure.
+Measure it, and turn the peak tracking on first. `carcer.persist_used` and `carcer.octas_praesto`
+report where the cursors are **right now**, not where they have been, so reading them after a
+workload tells you about that instant and nothing else.
+
+The peak is `pool->hw`, and it only exists and is only maintained when
+`MMGR_ENABLE_HW_MEM_CAPACITY_CB` is on. It is off by default, so `hw` stays zero and a reading from
+a default build means nothing. Build the `checks` environment with it on, run your real workload,
+read `hw`, and size to it plus margin. @ref guide_first_region has the procedure.
 
 ## Why does my span still work after I released the mark?
 
@@ -75,8 +78,10 @@ and nothing can detect it for you. @ref concept_ownership.
 
 ## Why is there no `strcpy` in the string shim?
 
-There is no bounded spelling of it — the destination size is not one of its arguments. Leaving it
-undefined turns a silent overflow into a link error naming the file. @ref guide_string_shim.
+There is no bounded spelling of it — the destination size is not one of its arguments, so there is
+nothing for the shim to map it onto. The name is simply not provided, and the shim also defines the
+`<string.h>` include guards so libc's declaration never arrives either. A call to it fails to
+compile instead of overflowing quietly. Use `strlcpy`, which takes the size. @ref guide_string_shim.
 
 ## Why no `__builtin_ctz` or `popcount`?
 

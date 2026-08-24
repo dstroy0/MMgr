@@ -83,7 +83,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/confinium_exclusivum_infinitas/test_confinium_exclusivum_infinitas\\test_confinium_exclusivum_infinitas.c");
+  UnityBegin("test/unit/confinium_exclusivum_infinitas/test_confinium_exclusivum_infinitas/test_confinium_exclusivum_infinitas.c");
   run_test(test_infin_header_is_self_contained, "test_infin_header_is_self_contained", 33);
   run_test(test_init_takes_a_ring_the_consumer_owns, "test_init_takes_a_ring_the_consumer_owns", 38);
   run_test(test_init_refuses_a_capacity_that_is_not_a_power_of_two, "test_init_refuses_a_capacity_that_is_not_a_power_of_two", 44);
