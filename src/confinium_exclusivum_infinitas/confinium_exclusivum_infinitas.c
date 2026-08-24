@@ -79,7 +79,7 @@ typedef struct
     struct MmgrCursor *cur;
     uint8_t *dst;
     const uint8_t *src;
-    size_t n;
+    size_t bytes;
     size_t off;
     size_t from;
     size_t to;
@@ -123,13 +123,13 @@ MMGR_INLINE mmgr_bool infin_read_byte(const InfinCtx *c)
 MMGR_INLINE const uint8_t *infin_read(const InfinCtx *c)
 {
     const size_t have = infin_available(c);
-    if ((have == 0u) || (c->n > have))
+    if ((have == 0u) || (c->bytes > have))
     {
         return NULL;
     }
 
     const size_t t = MMGR_ATOMIC_LOAD(&c->s->tail);
-    if (c->n > (c->s->cap - t))
+    if (c->bytes > (c->s->cap - t))
     {
         return NULL;
     }
@@ -140,7 +140,7 @@ MMGR_INLINE void infin_peek(const InfinCtx *c)
 {
     size_t at = MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&c->s->tail) + c->off, c->s->cap);
 
-    for (size_t i = 0; i < c->n; i++)
+    for (size_t i = 0; i < c->bytes; i++)
     {
         c->dst[i] = c->s->buf[at];
         at = MMGR_RING_WRAP(at + 1u, c->s->cap);
@@ -149,14 +149,14 @@ MMGR_INLINE void infin_peek(const InfinCtx *c)
 
 MMGR_INLINE void infin_consume(const InfinCtx *c)
 {
-    MMGR_ATOMIC_STORE(&c->s->tail, MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&c->s->tail) + c->n, c->s->cap));
+    MMGR_ATOMIC_STORE(&c->s->tail, MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&c->s->tail) + c->bytes, c->s->cap));
 }
 
 MMGR_INLINE size_t infin_room(const InfinCtx *c)
 {
     RingState *const s = c->s;
     const mmgr_word bits = MMGR_ATOMIC_LOAD(s->held);
-    const size_t want = c->n;
+    const size_t want = c->bytes;
     size_t at = c->off;
 
     if (bits == 0u)
@@ -236,7 +236,7 @@ MMGR_INLINE mmgr_bool segs_claim(const InfinCtx *c)
 {
     RingState *const s = c->s;
     const size_t first = c->off / s->seg;
-    const size_t last = (c->off + c->n + s->seg - 1u) / s->seg;
+    const size_t last = (c->off + c->bytes + s->seg - 1u) / s->seg;
     const mmgr_word want = MMGR_SEG_RUN(first, last);
     const mmgr_word prev = atomic_fetch_or_explicit(s->held, want, memory_order_acquire);
 
@@ -252,13 +252,13 @@ MMGR_INLINE void segs_drop(const InfinCtx *c)
 {
     RingState *const s = c->s;
 
-    MMGR_ATOMIC_CLEAR(s->held, MMGR_SEG_RUN(c->off / s->seg, (c->off + c->n + s->seg - 1u) / s->seg));
+    MMGR_ATOMIC_CLEAR(s->held, MMGR_SEG_RUN(c->off / s->seg, (c->off + c->bytes + s->seg - 1u) / s->seg));
 }
 
 MMGR_INLINE uint8_t *sing_claim(const InfinCtx *c)
 {
     RingState *const s = c->s;
-    const size_t units = c->n;
+    const size_t units = c->bytes;
     size_t *const given = c->units;
 
     if (s->sing.span != 0u)
@@ -286,14 +286,14 @@ MMGR_INLINE uint8_t *sing_claim(const InfinCtx *c)
     {
         len = s->cap - head;
     }
-    len = MMGR_CALL(infin_room, InfinCtx, .s = s, .off = head, .n = len);
+    len = MMGR_CALL(infin_room, InfinCtx, .s = s, .off = head, .bytes = len);
     len -= (len % s->sing.gran);
 
     if ((len == 0u) || ((units != 0u) && (len != (units * s->sing.gran))))
     {
         return NULL;
     }
-    if (!MMGR_CALL(segs_claim, InfinCtx, .s = s, .off = head, .n = len))
+    if (!MMGR_CALL(segs_claim, InfinCtx, .s = s, .off = head, .bytes = len))
     {
         return NULL;
     }
@@ -309,14 +309,14 @@ MMGR_INLINE uint8_t *sing_claim(const InfinCtx *c)
 MMGR_INLINE void sing_commit(const InfinCtx *c)
 {
     RingState *const s = c->s;
-    size_t bytes = c->n;
+    size_t bytes = c->bytes;
 
     if (bytes > s->sing.span)
     {
         bytes = s->sing.span;
     }
     MMGR_ATOMIC_STORE(&s->head, MMGR_RING_WRAP(s->sing.at + bytes, s->cap));
-    MMGR_CALL(segs_drop, InfinCtx, .s = s, .off = s->sing.at, .n = s->sing.span);
+    MMGR_CALL(segs_drop, InfinCtx, .s = s, .off = s->sing.at, .bytes = s->sing.span);
     s->sing.at = 0u;
     s->sing.span = 0u;
     s->sing.gen++;
@@ -325,14 +325,14 @@ MMGR_INLINE void sing_commit(const InfinCtx *c)
 MMGR_INLINE uint8_t *sing_put(const InfinCtx *c)
 {
     RingState *const s = c->s;
-    const size_t n = c->n * s->sing.gran;
+    const size_t n = c->bytes * s->sing.gran;
     size_t at = MMGR_ATOMIC_LOAD(&s->head);
 
     if ((n == 0u) || (s->sing.span != 0u) || (n > ((s->cap - 1u) - infin_available(c))))
     {
         return NULL;
     }
-    if (MMGR_CALL(infin_room, InfinCtx, .s = s, .off = at, .n = n) < n)
+    if (MMGR_CALL(infin_room, InfinCtx, .s = s, .off = at, .bytes = n) < n)
     {
         return NULL;
     }
@@ -368,7 +368,7 @@ MMGR_INLINE uint8_t *sing_body(const InfinCtx *c)
 
     if ((c->tessera != NULL) && (*c->tessera != 0u))
     {
-        MMGR_CALL(sing_commit, InfinCtx, .s = s, .n = c->off * s->sing.gran);
+        MMGR_CALL(sing_commit, InfinCtx, .s = s, .bytes = c->off * s->sing.gran);
         *c->tessera = 0u;
         if (!c->rearm)
         {
@@ -376,7 +376,7 @@ MMGR_INLINE uint8_t *sing_body(const InfinCtx *c)
         }
     }
 
-    uint8_t *const at = MMGR_CALL(sing_claim, InfinCtx, .s = s, .n = c->n, .units = c->units);
+    uint8_t *const at = MMGR_CALL(sing_claim, InfinCtx, .s = s, .bytes = c->bytes, .units = c->units);
     if ((at != NULL) && (c->tessera != NULL))
     {
         *c->tessera = MMGR_TESSERA(MMGR_TESSERA_SING, s->sing.gen);
@@ -386,7 +386,7 @@ MMGR_INLINE uint8_t *sing_body(const InfinCtx *c)
 
 mmgr_bool mmgr_infin_init(const RingCfg *c)
 {
-    MMGR_ASSERT(c->r != NULL, "a ring needs storage");
+    MMGR_ASSERT(c->ring != NULL, "a ring needs storage");
     MMGR_ASSERT(c->buf != NULL, "a ring needs a buffer");
 
     if ((c->cap == 0u) || !MMGR_RING_POW2(c->cap))
@@ -402,7 +402,7 @@ mmgr_bool mmgr_infin_init(const RingCfg *c)
         return MMGR_FALSE;
     }
 
-    RingState *const s = ring_of(c->r);
+    RingState *const s = ring_of(c->ring);
     s->buf = c->buf;
     s->cap = c->cap;
     s->nsegs = c->nsegs;
@@ -538,7 +538,7 @@ MMGR_INLINE const uint8_t *infin_drain(const InfinCtx *c)
 
 struct MmgrCursor *mmgr_infin_open(const InfinCfg *c)
 {
-    return MMGR_CALL(infin_open, InfinCtx, .s = ring_of(c->r), .owner = c->owner);
+    return MMGR_CALL(infin_open, InfinCtx, .s = ring_of(c->ring), .owner = c->owner);
 }
 
 const uint8_t *mmgr_infin_drain(const InfinCfg *c)
@@ -547,38 +547,38 @@ const uint8_t *mmgr_infin_drain(const InfinCfg *c)
     (void)c;
     return NULL;
 #else
-    return MMGR_CALL(infin_drain, InfinCtx, .s = ring_of(c->r), .from = c->from, .to = c->to, .tessera = c->tessera);
+    return MMGR_CALL(infin_drain, InfinCtx, .s = ring_of(c->ring), .from = c->from, .to = c->to, .tessera = c->tessera);
 #endif
 }
 
 size_t mmgr_infin_available(const InfinCfg *c)
 {
-    return MMGR_CALL(infin_available, InfinCtx, .s = ring_of(c->r));
+    return MMGR_CALL(infin_available, InfinCtx, .s = ring_of(c->ring));
 }
 
 size_t mmgr_infin_vacant(const InfinCfg *c)
 {
-    return MMGR_CALL(infin_vacant, InfinCtx, .s = ring_of(c->r));
+    return MMGR_CALL(infin_vacant, InfinCtx, .s = ring_of(c->ring));
 }
 
 mmgr_bool mmgr_infin_read_byte(const InfinCfg *c)
 {
-    return MMGR_CALL(infin_read_byte, InfinCtx, .s = ring_of(c->r), .cur = c->cur, .dst = c->dst);
+    return MMGR_CALL(infin_read_byte, InfinCtx, .s = ring_of(c->ring), .cur = c->cur, .dst = c->dst);
 }
 
 const uint8_t *mmgr_infin_read(const InfinCfg *c)
 {
-    return MMGR_CALL(infin_read, InfinCtx, .s = ring_of(c->r), .cur = c->cur, .n = c->n);
+    return MMGR_CALL(infin_read, InfinCtx, .s = ring_of(c->ring), .cur = c->cur, .bytes = c->bytes);
 }
 
 void mmgr_infin_peek(const InfinCfg *c)
 {
-    MMGR_CALL(infin_peek, InfinCtx, .s = ring_of(c->r), .cur = c->cur, .dst = c->dst, .n = c->n, .off = c->off);
+    MMGR_CALL(infin_peek, InfinCtx, .s = ring_of(c->ring), .cur = c->cur, .dst = c->dst, .bytes = c->bytes, .off = c->off);
 }
 
 void mmgr_infin_consume(const InfinCfg *c)
 {
-    MMGR_CALL(infin_consume, InfinCtx, .s = ring_of(c->r), .cur = c->cur, .n = c->n);
+    MMGR_CALL(infin_consume, InfinCtx, .s = ring_of(c->ring), .cur = c->cur, .bytes = c->bytes);
 }
 
 MMGR_INLINE mmgr_bool sing_admit(const InfinCtx *c)
@@ -645,7 +645,7 @@ MMGR_INLINE uint8_t *infin_singularitas(const InfinCtx *c)
     }
     else if (asking)
     {
-        at = MMGR_CALL(sing_body, InfinCtx, .s = s, .src = c->src, .n = c->n, .off = c->off, .tessera = c->tessera,
+        at = MMGR_CALL(sing_body, InfinCtx, .s = s, .src = c->src, .bytes = c->bytes, .off = c->off, .tessera = c->tessera,
                        .units = c->units, .rearm = (c->sing != NULL));
         if ((at == NULL) && !(live && (c->sing == NULL)))
         {
@@ -695,16 +695,16 @@ MMGR_INLINE mmgr_bool infin_detach(const InfinCtx *c)
 
 uint8_t *mmgr_infin_singularitas(const InfinCfg *c)
 {
-    return MMGR_CALL(infin_singularitas, InfinCtx, .s = ring_of(c->r), .src = c->src, .n = c->n, .off = c->off,
+    return MMGR_CALL(infin_singularitas, InfinCtx, .s = ring_of(c->ring), .src = c->src, .bytes = c->bytes, .off = c->off,
                      .tessera = c->tessera, .units = c->units, .sing = c->sing, .status = c->status);
 }
 
 mmgr_bool mmgr_infin_detach(const InfinCfg *c)
 {
-    return MMGR_CALL(infin_detach, InfinCtx, .s = ring_of(c->r), .sing = c->sing, .status = c->status);
+    return MMGR_CALL(infin_detach, InfinCtx, .s = ring_of(c->ring), .sing = c->sing, .status = c->status);
 }
 
 void mmgr_infin_seek(const InfinCfg *c)
 {
-    MMGR_CALL(infin_seek, InfinCtx, .s = ring_of(c->r), .cur = c->cur, .off = c->off);
+    MMGR_CALL(infin_seek, InfinCtx, .s = ring_of(c->ring), .cur = c->cur, .off = c->off);
 }

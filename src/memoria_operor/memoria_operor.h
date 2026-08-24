@@ -10,8 +10,8 @@ typedef struct
     void *const dst;
     const void *const src;
     const void *const other;
-    const size_t n;
-    const uint8_t v;
+    const size_t bytes;
+    const uint8_t val;
 } MemoriaCfg;
 
 typedef struct

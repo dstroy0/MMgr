@@ -23,7 +23,7 @@ mmgr_u64 mmgr_fract_merge(const FractioCfg *c)
 
 double mmgr_fract_from_bits(const FractioCfg *c)
 {
-    return c->v;
+    return c->val;
 }
 
 mmgr_u64 mmgr_fract_to_bits(const FractioCfg *c)

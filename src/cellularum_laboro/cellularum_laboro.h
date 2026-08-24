@@ -13,10 +13,10 @@ MMGR_INCIPE_DECLS
 
 typedef struct
 {
-    const char *const s;
+    const char *const src;
     const size_t cap;
-    const char *const t;
-    const size_t t_cap;
+    const char *const other;
+    const size_t other_cap;
     char *const dst;
     const size_t at;
     const uint8_t byte;
@@ -37,9 +37,9 @@ typedef struct
 
 typedef struct
 {
-    const char *const s;
+    const char *const src;
     const char **const end;
-    const uint8_t *const m;
+    const uint8_t *const mpint;
     const uint32_t mlen;
     uint8_t *const field;
     const size_t fieldlen;

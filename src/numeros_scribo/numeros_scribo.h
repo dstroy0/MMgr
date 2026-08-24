@@ -78,8 +78,8 @@ typedef struct
     char *const out;
     const size_t cap;
     const mmgr_field *const spec;
-    const mmgr_fval *const v;
-    const size_t nv;
+    const mmgr_fval *const vals;
+    const size_t nvals;
 } NumerosCfg;
 
 typedef struct

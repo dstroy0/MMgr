@@ -2,12 +2,12 @@
 
 typedef struct
 {
-    mmgr_u64 x;
+    mmgr_u64 val;
 } ClzCtx;
 
 MMGR_INLINE mmgr_iword clz_lead(const ClzCtx *c)
 {
-    mmgr_u64 x = c->x;
+    mmgr_u64 x = c->val;
     mmgr_u64 shift;
     mmgr_iword n = 0;
 
@@ -32,5 +32,5 @@ MMGR_INLINE mmgr_iword clz_lead(const ClzCtx *c)
 
 mmgr_iword mmgr_clz_lead(const ClzCfg *c)
 {
-    return MMGR_CALL(clz_lead, ClzCtx, .x = c->x);
+    return MMGR_CALL(clz_lead, ClzCtx, .val = c->val);
 }

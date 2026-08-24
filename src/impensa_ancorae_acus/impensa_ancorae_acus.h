@@ -7,7 +7,7 @@ MMGR_INCIPE_DECLS
 
 typedef struct
 {
-    const uint8_t b;
+    const uint8_t byte;
 } AncoraeCfg;
 
 typedef struct

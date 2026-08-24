@@ -24,7 +24,7 @@ typedef struct
 {
     uint8_t *dst;
     const uint8_t *src;
-    size_t n;
+    size_t bytes;
 } ProximReadCtx;
 
 MMGR_INLINE uint16_t proxim_load16(const ProximLoadCtx *c)
@@ -90,13 +90,13 @@ MMGR_INLINE void aequus_put64(const ProximPutCtx *c)
 MMGR_INLINE void proxim_head(ProximReadCtx *c)
 {
     const size_t skew = (size_t)((0u - (uintptr_t)c->dst) & (uintptr_t)(MMGR_RAW_WORD - 1u));
-    size_t t = (skew < c->n) ? skew : c->n;
+    size_t t = (skew < c->bytes) ? skew : c->bytes;
 
     if (t == 0u)
     {
         return;
     }
-    c->n -= t;
+    c->bytes -= t;
 
     do
     {
@@ -106,12 +106,12 @@ MMGR_INLINE void proxim_head(ProximReadCtx *c)
 
 MMGR_INLINE void proxim_words(ProximReadCtx *c)
 {
-    size_t w = c->n & ~(size_t)(MMGR_RAW_WORD - 1u);
+    size_t w = c->bytes & ~(size_t)(MMGR_RAW_WORD - 1u);
     if (w == 0u)
     {
         return;
     }
-    c->n -= w;
+    c->bytes -= w;
     do
     {
         *(mmgr_aequus_word_t *)c->dst = *(const mmgr_proxim_word_t *)c->src;
@@ -123,7 +123,7 @@ MMGR_INLINE void proxim_words(ProximReadCtx *c)
 
 MMGR_INLINE void proxim_tail(ProximReadCtx *c)
 {
-    size_t t = c->n;
+    size_t t = c->bytes;
 
     if (t == 0u)
     {
@@ -205,5 +205,5 @@ void mmgr_aequus_put64(const ProximusCfg *c)
 
 void mmgr_proxim_read(const ProximusCfg *c)
 {
-    MMGR_CALL(proxim_read, ProximReadCtx, .dst = (uint8_t *)c->dst, .src = (const uint8_t *)c->at, .n = c->size);
+    MMGR_CALL(proxim_read, ProximReadCtx, .dst = (uint8_t *)c->dst, .src = (const uint8_t *)c->at, .bytes = c->size);
 }

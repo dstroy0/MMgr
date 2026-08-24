@@ -11,7 +11,7 @@ typedef struct
     const uint8_t *const from;
     uint64_t *const out;
     const uint64_t val;
-    const size_t n;
+    const size_t bytes;
 } OctetusCfg;
 
 typedef struct

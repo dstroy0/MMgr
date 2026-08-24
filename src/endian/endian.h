@@ -15,7 +15,11 @@ typedef enum MMGR_ENUM_PACKED
 
 typedef struct
 {
-    uint8_t *const w;                 const uint8_t *const r;           const uint64_t v;                 const mmgr_endian_width n;    } EndianCfg;
+    uint8_t *const dst;
+    const uint8_t *const src;
+    const uint64_t val;
+    const mmgr_endian_width width;
+} EndianCfg;
 
 typedef struct
 {

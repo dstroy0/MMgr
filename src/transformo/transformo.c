@@ -63,7 +63,7 @@ MMGR_INLINE void muto_norm(MutoCtx *c)
         c->fe2 -= 64;
     }
 
-    const mmgr_iword n = MMGR_CALL(clz.lead, ClzCfg, .x = c->hi);
+    const mmgr_iword n = MMGR_CALL(clz.lead, ClzCfg, .val = c->hi);
     if (n != 0)
     {
         c->hi = (c->hi << n) | (c->lo >> (64 - n));

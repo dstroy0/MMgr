@@ -21,15 +21,15 @@ static const uint64_t mmgr_verba_pow10[MMGR_VERBA_POW10_MAX + 1u] = {
 
 typedef struct
 {
-    char *p;
+    char *out;
     size_t cap;
     size_t at;
-    const char *s;
-    size_t sl;
-    char c;
-    uint64_t v;
-    int64_t sv;
-    double d;
+    const char *text;
+    size_t text_len;
+    char ch;
+    uint64_t val;
+    int64_t sval;
+    double real;
     uint8_t base;
     uint8_t min;
     uint8_t columns;
@@ -48,33 +48,33 @@ MMGR_INLINE mmgr_bool verba_room(const VerbaCtx *c, size_t want)
 
 MMGR_INLINE size_t verba_put_n(const VerbaCtx *c)
 {
-    if (!verba_room(c, c->sl))
+    if (!verba_room(c, c->text_len))
     {
         return c->cap;
     }
 
-    MMGR_CALL(proxim.read, ProximusCfg, .dst = c->p + c->at, .at = c->s, .size = c->sl);
-    return c->at + c->sl;
+    MMGR_CALL(proxim.read, ProximusCfg, .dst = c->out + c->at, .at = c->text, .size = c->text_len);
+    return c->at + c->text_len;
 }
 
 MMGR_INLINE size_t verba_put(const VerbaCtx *c)
 {
-    const size_t sl = MMGR_CALL(cellul.len, CatenaFinitaCfg, .s = c->s, .cap = c->cap);
+    const size_t sl = MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = c->text, .cap = c->cap);
 
-    return MMGR_CALL(verba_put_n, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .s = c->s, .sl = sl);
+    return MMGR_CALL(verba_put_n, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text, .text_len = sl);
 }
 
 MMGR_INLINE size_t verba_put_clip(const VerbaCtx *c)
 {
-    if ((c->s == NULL) || (c->at >= c->cap))
+    if ((c->text == NULL) || (c->at >= c->cap))
     {
         return c->at;
     }
 
     const size_t room = (c->cap - c->at) - 1u;
-    const size_t sl = MMGR_CALL(cellul.len, CatenaFinitaCfg, .s = c->s, .cap = room);
+    const size_t sl = MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = c->text, .cap = room);
 
-    MMGR_CALL(proxim.read, ProximusCfg, .dst = c->p + c->at, .at = c->s, .size = sl);
+    MMGR_CALL(proxim.read, ProximusCfg, .dst = c->out + c->at, .at = c->text, .size = sl);
     return c->at + sl;
 }
 
@@ -85,13 +85,13 @@ MMGR_INLINE size_t verba_ch(const VerbaCtx *c)
         return c->cap;
     }
 
-    c->p[c->at] = c->c;
+    c->out[c->at] = c->ch;
     return c->at + 1u;
 }
 
 MMGR_INLINE size_t verba_u64_clip(const VerbaCtx *c)
 {
-    uint64_t v = c->v;
+    uint64_t v = c->val;
     size_t digits = 1;
 
     while ((digits <= MMGR_VERBA_POW10_MAX) && (v >= mmgr_verba_pow10[digits]))
@@ -108,11 +108,11 @@ MMGR_INLINE size_t verba_u64_clip(const VerbaCtx *c)
 
     for (size_t i = width - digits; i-- > 0;)
     {
-        c->p[c->at + i] = ' ';
+        c->out[c->at + i] = ' ';
     }
     for (size_t i = width; i-- > (width - digits);)
     {
-        c->p[c->at + i] = (char)('0' + (mmgr_word)(v % 10));
+        c->out[c->at + i] = (char)('0' + (mmgr_word)(v % 10));
         v /= 10;
     }
     return c->at + width;
@@ -120,7 +120,7 @@ MMGR_INLINE size_t verba_u64_clip(const VerbaCtx *c)
 
 MMGR_INLINE size_t verba_uint(const VerbaCtx *c)
 {
-    uint64_t v = c->v;
+    uint64_t v = c->val;
     const mmgr_word bits_per_digit = (c->base == 16) ? 4U : ((c->base == 8) ? 3U : 0U);
     const mmgr_bool power_of_two = bits_per_digit != 0;
     const uint64_t digit_mask = power_of_two ? ((1ULL << bits_per_digit) - 1U) : 0U;
@@ -157,7 +157,7 @@ MMGR_INLINE size_t verba_uint(const VerbaCtx *c)
     {
         for (mmgr_word i = digits; i-- > 0;)
         {
-            c->p[c->at + i] = mmgr_hex_lower[v & digit_mask];
+            c->out[c->at + i] = mmgr_hex_lower[v & digit_mask];
             v >>= bits_per_digit;
         }
     }
@@ -167,7 +167,7 @@ MMGR_INLINE size_t verba_uint(const VerbaCtx *c)
 
         for (mmgr_word i = digits; i-- > 0;)
         {
-            c->p[c->at + i] = (char)('0' + (mmgr_word)(v32 % 10U));
+            c->out[c->at + i] = (char)('0' + (mmgr_word)(v32 % 10U));
             v32 /= 10U;
         }
     }
@@ -175,7 +175,7 @@ MMGR_INLINE size_t verba_uint(const VerbaCtx *c)
     {
         for (mmgr_word i = digits; i-- > 0;)
         {
-            c->p[c->at + i] = (char)('0' + (mmgr_word)(v % 10));
+            c->out[c->at + i] = (char)('0' + (mmgr_word)(v % 10));
             v /= 10;
         }
     }
@@ -184,25 +184,25 @@ MMGR_INLINE size_t verba_uint(const VerbaCtx *c)
 
 MMGR_INLINE size_t verba_i64(const VerbaCtx *c)
 {
-    const int64_t sv = c->sv;
+    const int64_t sv = c->sval;
     size_t at = c->at;
 
     if (sv < 0)
     {
-        at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = '-');
+        at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = '-');
     }
-    return MMGR_CALL(verba_uint, VerbaCtx, .p = c->p, .cap = c->cap, .at = at,
-                     .v = (sv < 0) ? ((uint64_t)(-(sv + 1)) + 1U) : (uint64_t)sv, .base = 10u, .min = 1u);
+    return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = at,
+                     .val = (sv < 0) ? ((uint64_t)(-(sv + 1)) + 1U) : (uint64_t)sv, .base = 10u, .min = 1u);
 }
 
 MMGR_INLINE size_t verba_zeros(const VerbaCtx *c)
 {
-    size_t n = c->sl;
+    size_t n = c->text_len;
     size_t at = c->at;
 
     while (n-- != 0u)
     {
-        at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = '0');
+        at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = '0');
     }
     return at;
 }
@@ -211,12 +211,12 @@ MMGR_INLINE size_t verba_xml(const VerbaCtx *c)
 {
     size_t at = c->at;
 
-    if (c->s == NULL)
+    if (c->text == NULL)
     {
         return at;
     }
 
-    for (const char *p = c->s; *p; p++)
+    for (const char *p = c->text; *p; p++)
     {
         const char *rep = NULL;
 
@@ -240,11 +240,11 @@ MMGR_INLINE size_t verba_xml(const VerbaCtx *c)
 
         if (rep != NULL)
         {
-            at = MMGR_CALL(verba_put, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .s = rep);
+            at = MMGR_CALL(verba_put, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .text = rep);
         }
         else
         {
-            at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = *p);
+            at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = *p);
         }
     }
     return at;
@@ -252,8 +252,8 @@ MMGR_INLINE size_t verba_xml(const VerbaCtx *c)
 
 MMGR_INLINE size_t verba_json(const VerbaCtx *c)
 {
-    const char *const src = (c->s != NULL) ? c->s : "";
-    size_t at = MMGR_CALL(verba_put, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .s = "\"");
+    const char *const src = (c->text != NULL) ? c->text : "";
+    size_t at = MMGR_CALL(verba_put, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = "\"");
 
     for (const char *p = src; *p; p++)
     {
@@ -262,22 +262,22 @@ MMGR_INLINE size_t verba_json(const VerbaCtx *c)
 
         if (two != 0)
         {
-            at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = '\\');
-            at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = two);
+            at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = '\\');
+            at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = two);
         }
         else if (ch < 0x20U)
         {
-            at = MMGR_CALL(verba_put, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .s = "\\u00");
-            at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at,
-                           .c = mmgr_hex_lower[(ch >> 4) & 0xFU]);
-            at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = mmgr_hex_lower[ch & 0xFU]);
+            at = MMGR_CALL(verba_put, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .text = "\\u00");
+            at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at,
+                           .ch = mmgr_hex_lower[(ch >> 4) & 0xFU]);
+            at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = mmgr_hex_lower[ch & 0xFU]);
         }
         else
         {
-            at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = (char)ch);
+            at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = (char)ch);
         }
     }
-    return MMGR_CALL(verba_put, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .s = "\"");
+    return MMGR_CALL(verba_put, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .text = "\"");
 }
 
 MMGR_INLINE size_t verba_digits(const VerbaCtx *c)
@@ -290,12 +290,12 @@ MMGR_INLINE size_t verba_digits(const VerbaCtx *c)
     {
         if ((i == c->point_after) && (i != 0))
         {
-            at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = '.');
+            at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = '.');
         }
 
         const uint64_t d = left / div;
 
-        at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = (char)('0' + (mmgr_word)d));
+        at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = (char)('0' + (mmgr_word)d));
         left -= d * div;
         div /= 10u;
     }
@@ -304,7 +304,7 @@ MMGR_INLINE size_t verba_digits(const VerbaCtx *c)
 
 MMGR_INLINE mmgr_u64 verba_bits(const VerbaCtx *c)
 {
-    return MMGR_CALL(fract.to_bits, FractioCfg, .v = c->d);
+    return MMGR_CALL(fract.to_bits, FractioCfg, .val = c->real);
 }
 
 MMGR_INLINE mmgr_u64 verba_exp(const VerbaCtx *c)
@@ -326,16 +326,16 @@ MMGR_INLINE size_t verba_non_finite(const VerbaCtx *c)
 {
     if (MMGR_CALL(verba_mant, VerbaCtx, .bits = c->bits) != 0U)
     {
-        return MMGR_CALL(verba_put, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .s = "nan");
+        return MMGR_CALL(verba_put, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = "nan");
     }
 
     size_t at = c->at;
 
     if (MMGR_CALL(verba_sign, VerbaCtx, .bits = c->bits) != 0U)
     {
-        at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = '-');
+        at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = '-');
     }
-    return MMGR_CALL(verba_put, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .s = "inf");
+    return MMGR_CALL(verba_put, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .text = "inf");
 }
 
 MMGR_INLINE size_t verba_g(const VerbaCtx *c)
@@ -344,7 +344,7 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *c)
 
     if (MMGR_CALL(verba_exp, VerbaCtx, .bits = bits) == MMGR_DBL_EXP_ALL)
     {
-        return MMGR_CALL(verba_non_finite, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .bits = bits);
+        return MMGR_CALL(verba_non_finite, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .bits = bits);
     }
 
     uint8_t sig = (c->sig == 0) ? 1u : c->sig;
@@ -357,7 +357,7 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *c)
 
     if (MMGR_CALL(verba_sign, VerbaCtx, .bits = bits) != 0U)
     {
-        at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = '-');
+        at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = '-');
     }
 
     const mmgr_u64 be = MMGR_CALL(verba_exp, VerbaCtx, .bits = bits);
@@ -365,7 +365,7 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *c)
 
     if ((be == 0U) && (n == 0U))
     {
-        return MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = '0');
+        return MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = '0');
     }
 
     mmgr_iword s = 1 - MMGR_DBL_BIAS - (mmgr_iword)MMGR_DBL_MANT_BITS;
@@ -377,7 +377,7 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *c)
 
     const mmgr_u64 limit = mmgr_verba_pow10[sig];
 
-    mmgr_iword e = (mmgr_iword)(((mmgr_i64)(63 - MMGR_CALL(clz.lead, ClzCfg, .x = n) + s) * 78913) >> 18);
+    mmgr_iword e = (mmgr_iword)(((mmgr_i64)(63 - MMGR_CALL(clz.lead, ClzCfg, .val = n) + s) * 78913) >> 18);
     mmgr_iword p = (mmgr_iword)((mmgr_iword)sig - 1 - e);
     mmgr_u64 mant = 0U;
 
@@ -409,29 +409,29 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *c)
 
     if ((e < -4) || (e >= (mmgr_i32)sig))
     {
-        at = MMGR_CALL(verba_digits, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .mant = mant, .digits = digits,
+        at = MMGR_CALL(verba_digits, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .mant = mant, .digits = digits,
                        .point_after = 1u);
-        at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = 'e');
-        at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = (e < 0) ? '-' : '+');
-        return MMGR_CALL(verba_uint, VerbaCtx, .p = c->p, .cap = c->cap, .at = at,
-                         .v = (uint64_t)((e < 0) ? -e : e), .base = 10u, .min = 2u);
+        at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = 'e');
+        at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = (e < 0) ? '-' : '+');
+        return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = at,
+                         .val = (uint64_t)((e < 0) ? -e : e), .base = 10u, .min = 2u);
     }
     if (e >= ((mmgr_i32)digits - 1))
     {
-        at = MMGR_CALL(verba_digits, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .mant = mant, .digits = digits,
+        at = MMGR_CALL(verba_digits, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .mant = mant, .digits = digits,
                        .point_after = 0u);
-        return MMGR_CALL(verba_zeros, VerbaCtx, .p = c->p, .cap = c->cap, .at = at,
-                         .sl = (size_t)(e - (mmgr_i32)digits + 1));
+        return MMGR_CALL(verba_zeros, VerbaCtx, .out = c->out, .cap = c->cap, .at = at,
+                         .text_len = (size_t)(e - (mmgr_i32)digits + 1));
     }
     if (e >= 0)
     {
-        return MMGR_CALL(verba_digits, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .mant = mant, .digits = digits,
+        return MMGR_CALL(verba_digits, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .mant = mant, .digits = digits,
                          .point_after = (uint8_t)(e + 1));
     }
 
-    at = MMGR_CALL(verba_put, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .s = "0.");
-    at = MMGR_CALL(verba_zeros, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .sl = (size_t)(-e - 1));
-    return MMGR_CALL(verba_digits, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .mant = mant, .digits = digits,
+    at = MMGR_CALL(verba_put, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .text = "0.");
+    at = MMGR_CALL(verba_zeros, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .text_len = (size_t)(-e - 1));
+    return MMGR_CALL(verba_digits, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .mant = mant, .digits = digits,
                      .point_after = 0u);
 }
 
@@ -442,21 +442,21 @@ MMGR_INLINE size_t verba_fixed(const VerbaCtx *c)
 
     if (klass == MMGR_DBL_EXP_ALL)
     {
-        return MMGR_CALL(verba_non_finite, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .bits = bits);
+        return MMGR_CALL(verba_non_finite, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .bits = bits);
     }
 
-    double v = c->d;
+    double v = c->real;
     size_t at = c->at;
 
     if (MMGR_CALL(verba_sign, VerbaCtx, .bits = bits) != 0U)
     {
-        at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = '-');
+        at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = '-');
         v = -v;
     }
 
     if (klass >= (MMGR_DBL_BIAS + 64))
     {
-        return MMGR_CALL(verba_g, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .d = v, .sig = 10u);
+        return MMGR_CALL(verba_g, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .real = v, .sig = 10u);
     }
 
     uint8_t decimals = c->decimals;
@@ -507,12 +507,12 @@ MMGR_INLINE size_t verba_fixed(const VerbaCtx *c)
         frac = 0U;
     }
 
-    at = MMGR_CALL(verba_uint, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .v = ip, .base = 10u, .min = 1u);
+    at = MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .val = ip, .base = 10u, .min = 1u);
 
     if (decimals != 0u)
     {
-        at = MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .c = '.');
-        at = MMGR_CALL(verba_uint, VerbaCtx, .p = c->p, .cap = c->cap, .at = at, .v = frac, .base = 10u,
+        at = MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .ch = '.');
+        at = MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = at, .val = frac, .base = 10u,
                        .min = decimals);
     }
     return at;
@@ -524,7 +524,7 @@ MMGR_INLINE size_t verba_finish(const VerbaCtx *c)
     {
         return 0;
     }
-    c->p[c->at] = '\0';
+    c->out[c->at] = '\0';
     return c->at;
 }
 
@@ -535,86 +535,86 @@ MMGR_INLINE mmgr_bool verba_ok(const VerbaCtx *c)
 
 size_t mmgr_verba_put_n(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_put_n, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .s = c->s, .sl = c->sl);
+    return MMGR_CALL(verba_put_n, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text, .text_len = c->text_len);
 }
 
 size_t mmgr_verba_put(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_put, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .s = c->s);
+    return MMGR_CALL(verba_put, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text);
 }
 
 size_t mmgr_verba_put_clip(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_put_clip, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .s = c->s);
+    return MMGR_CALL(verba_put_clip, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text);
 }
 
 size_t mmgr_verba_u64_clip(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_u64_clip, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .v = c->v,
+    return MMGR_CALL(verba_u64_clip, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val,
                      .columns = c->columns);
 }
 
 size_t mmgr_verba_xml(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_xml, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .s = c->s);
+    return MMGR_CALL(verba_xml, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text);
 }
 
 size_t mmgr_verba_ch(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_ch, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .c = c->c);
+    return MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .ch = c->ch);
 }
 
 size_t mmgr_verba_uint(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_uint, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .v = c->v, .base = c->base,
+    return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = c->base,
                      .min = c->min);
 }
 
 size_t mmgr_verba_u32w(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_uint, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .v = c->v, .base = 10u,
+    return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = 10u,
                      .min = c->min);
 }
 
 size_t mmgr_verba_hex(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_uint, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .v = c->v, .base = 16u,
+    return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = 16u,
                      .min = c->min);
 }
 
 size_t mmgr_verba_u32(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_uint, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .v = c->v, .base = 10u, .min = 1u);
+    return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = 10u, .min = 1u);
 }
 
 size_t mmgr_verba_u64(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_uint, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .v = c->v, .base = 10u, .min = 1u);
+    return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = 10u, .min = 1u);
 }
 
 size_t mmgr_verba_i64(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_i64, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .sv = c->sv);
+    return MMGR_CALL(verba_i64, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .sval = c->sval);
 }
 
 size_t mmgr_verba_g(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_g, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .d = c->d, .sig = c->sig);
+    return MMGR_CALL(verba_g, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .real = c->real, .sig = c->sig);
 }
 
 size_t mmgr_verba_fixed(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_fixed, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .d = c->d, .decimals = c->decimals);
+    return MMGR_CALL(verba_fixed, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .real = c->real, .decimals = c->decimals);
 }
 
 size_t mmgr_verba_json(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_json, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at, .s = c->s);
+    return MMGR_CALL(verba_json, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text);
 }
 
 size_t mmgr_verba_finish(const VerbaCfg *c)
 {
-    return MMGR_CALL(verba_finish, VerbaCtx, .p = c->p, .cap = c->cap, .at = c->at);
+    return MMGR_CALL(verba_finish, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at);
 }
 
 mmgr_bool mmgr_verba_ok(const VerbaCfg *c)
@@ -624,12 +624,12 @@ mmgr_bool mmgr_verba_ok(const VerbaCfg *c)
 
 mmgr_bool mmgr_verba_sign_bit(const VerbaCfg *c)
 {
-    return (mmgr_bool)(MMGR_CALL(verba_sign, VerbaCtx, .bits = MMGR_CALL(fract.to_bits, FractioCfg, .v = c->d)) != 0U);
+    return (mmgr_bool)(MMGR_CALL(verba_sign, VerbaCtx, .bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = c->real)) != 0U);
 }
 
 mmgr_bool mmgr_verba_is_inf(const VerbaCfg *c)
 {
-    const mmgr_u64 bits = MMGR_CALL(fract.to_bits, FractioCfg, .v = c->d);
+    const mmgr_u64 bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = c->real);
 
     return (mmgr_bool)((MMGR_CALL(verba_exp, VerbaCtx, .bits = bits) == MMGR_DBL_EXP_ALL) &&
                        (MMGR_CALL(verba_mant, VerbaCtx, .bits = bits) == 0U));
@@ -637,7 +637,7 @@ mmgr_bool mmgr_verba_is_inf(const VerbaCfg *c)
 
 mmgr_bool mmgr_verba_is_nan(const VerbaCfg *c)
 {
-    const mmgr_u64 bits = MMGR_CALL(fract.to_bits, FractioCfg, .v = c->d);
+    const mmgr_u64 bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = c->real);
 
     return (mmgr_bool)((MMGR_CALL(verba_exp, VerbaCtx, .bits = bits) == MMGR_DBL_EXP_ALL) &&
                        (MMGR_CALL(verba_mant, VerbaCtx, .bits = bits) != 0U));

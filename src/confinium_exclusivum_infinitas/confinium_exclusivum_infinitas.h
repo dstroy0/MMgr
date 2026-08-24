@@ -39,7 +39,7 @@ struct MmgrCursor;
 
 typedef struct
 {
-    mmgr_ring *const r;
+    mmgr_ring *const ring;
     uint8_t *const buf;
     const size_t cap;
     const size_t nsegs;
@@ -54,11 +54,11 @@ typedef struct
 
 typedef struct
 {
-    mmgr_ring *const r;
+    mmgr_ring *const ring;
     struct MmgrCursor *const cur;
     uint8_t *const dst;
     const uint8_t *const src;
-    const size_t n;
+    const size_t bytes;
     const size_t off;
     const size_t from;
     const size_t to;

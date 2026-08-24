@@ -11,7 +11,7 @@ typedef struct
 {
     CarcerCtx *const pool;
     void *const at;
-    const size_t n;
+    const size_t bytes;
 } SolutaCfg;
 
 typedef struct

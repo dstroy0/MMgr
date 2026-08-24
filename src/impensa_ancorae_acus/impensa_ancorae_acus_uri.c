@@ -16,15 +16,15 @@ static const uint8_t s_impensa[256] = {
 
 typedef struct
 {
-    uint8_t b;
+    uint8_t byte;
 } AncoraeCtx;
 
-MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *x)
+MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *c)
 {
-    return s_impensa[x->b];
+    return s_impensa[c->byte];
 }
 
 uint8_t mmgr_ancorae_impensa(const AncoraeCfg *c)
 {
-    return MMGR_CALL(ancorae_impensa, AncoraeCtx, .b = c->b);
+    return MMGR_CALL(ancorae_impensa, AncoraeCtx, .byte = c->byte);
 }

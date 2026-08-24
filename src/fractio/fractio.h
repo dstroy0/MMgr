@@ -49,7 +49,7 @@ MMGR_STATIC_ASSERT(MMGR_DBL_SCALE_MIN == -1074, "the smallest scale a subnormal 
 typedef struct
 {
     union {
-        const double v;
+        const double val;
         const mmgr_u64 bits;
     };
     const mmgr_u64 sign;

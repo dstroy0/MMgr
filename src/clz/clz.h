@@ -7,7 +7,7 @@ MMGR_INCIPE_DECLS
 
 typedef struct
 {
-    const mmgr_u64 x;
+    const mmgr_u64 val;
 } ClzCfg;
 
 typedef struct

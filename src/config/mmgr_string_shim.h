@@ -27,64 +27,73 @@
 
 MMGR_INCIPE_DECLS
 
-MMGR_INLINE void *mmgr_shim_cpy(void *dst, const void *src, size_t n)
+MMGR_INLINE void *mmgr_shim_cpy(void *dest, const void *source, size_t bytes)
 {
-    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = dst, .src = src, .n = n);
-    return dst;
+    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = dest, .src = source, .bytes = bytes);
+    return dest;
 }
 
-MMGR_INLINE void *mmgr_shim_move(void *dst, const void *src, size_t n)
+MMGR_INLINE void *mmgr_shim_move(void *dest, const void *source, size_t bytes)
 {
-    if ((const uint8_t *)dst <= (const uint8_t *)src)
+    if ((const uint8_t *)dest <= (const uint8_t *)source)
     {
-        MMGR_CALL(memor.move_down, MemoriaCfg, .dst = dst, .src = src, .n = n);
+        MMGR_CALL(memor.move_down, MemoriaCfg, .dst = dest, .src = source, .bytes = bytes);
     }
     else
     {
-        MMGR_CALL(memor.move_up, MemoriaCfg, .dst = dst, .src = src, .n = n);
+        MMGR_CALL(memor.move_up, MemoriaCfg, .dst = dest, .src = source, .bytes = bytes);
     }
-    return dst;
+    return dest;
 }
 
-MMGR_INLINE void *mmgr_shim_set(void *dst, mmgr_iword c, size_t n)
+MMGR_INLINE void *mmgr_shim_set(void *dest, mmgr_iword value, size_t bytes)
 {
-    MMGR_CALL(memor.set, MemoriaCfg, .dst = dst, .v = (uint8_t)c, .n = n);
-    return dst;
+    MMGR_CALL(memor.set, MemoriaCfg, .dst = dest, .val = (uint8_t)value, .bytes = bytes);
+    return dest;
 }
 
-MMGR_INLINE mmgr_iword mmgr_shim_cmp(const void *a, const void *b, size_t n)
+MMGR_INLINE mmgr_iword mmgr_shim_cmp(const void *left, const void *right, size_t bytes)
 {
-    return MMGR_CALL(memor.cmp, MemoriaCfg, .src = a, .other = b, .n = n);
+    return MMGR_CALL(memor.cmp, MemoriaCfg, .src = left, .other = right, .bytes = bytes);
 }
 
-MMGR_INLINE void *mmgr_shim_chr(const void *p, mmgr_iword c, size_t n)
+MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t bytes)
 {
-    return (void *)(size_t)MMGR_CALL(memor.chr, MemoriaCfg, .src = p, .n = n, .v = (uint8_t)c);
+    return (void *)(size_t)MMGR_CALL(memor.chr, MemoriaCfg, .src = region, .bytes = bytes, .val = (uint8_t)value);
 }
 
-#define memcpy(dst, src, n) mmgr_shim_cpy((dst), (src), (n))
-#define memmove(dst, src, n) mmgr_shim_move((dst), (src), (n))
-#define memset(dst, c, n) mmgr_shim_set((dst), (c), (n))
-#define memcmp(a, b, n) mmgr_shim_cmp((a), (b), (n))
+#define memcpy(dest, source, bytes) mmgr_shim_cpy((dest), (source), (bytes))
+#define memmove(dest, source, bytes) mmgr_shim_move((dest), (source), (bytes))
+#define memset(dest, value, bytes) mmgr_shim_set((dest), (value), (bytes))
+#define memcmp(left, right, bytes) mmgr_shim_cmp((left), (right), (bytes))
 
-#define memchr(p, c, n) mmgr_shim_chr((p), (c), (n))
+#define memchr(region, value, bytes) mmgr_shim_chr((region), (value), (bytes))
 
-#define strlen(s) mmgr_cellul_len((s), MMGR_STR_MAX)
-#define strnlen(s, n) mmgr_cellul_len((s), (n))
+#define strlen(text) MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = (text), .cap = MMGR_STR_MAX)
+#define strnlen(text, limit) MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = (text), .cap = (limit))
 
-#define strstr(hay, needle) ((char *)(size_t)mmgr_cellul_find((hay), MMGR_STR_MAX, (needle), MMGR_STR_MAX, MMGR_FALSE))
-#define strcasestr(hay, needle)                                                                                        \
-    ((char *)(size_t)mmgr_cellul_find((hay), MMGR_STR_MAX, (needle), MMGR_STR_MAX, MMGR_TRUE))
+#define strstr(haystack, needle)                                                                                       \
+    ((char *)(size_t)MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX, .other = (needle),      \
+                               .other_cap = MMGR_STR_MAX, .ci = MMGR_FALSE))
+#define strcasestr(haystack, needle)                                                                                   \
+    ((char *)(size_t)MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX, .other = (needle),      \
+                               .other_cap = MMGR_STR_MAX, .ci = MMGR_TRUE))
 
-#define strcmp(a, b) (!mmgr_cellul_eq((a), (b), MMGR_STR_MAX, MMGR_FALSE))
-#define strcasecmp(a, b) (!mmgr_cellul_eq((a), (b), MMGR_STR_MAX, MMGR_TRUE))
+#define strcmp(left, right)                                                                                            \
+    (!MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = (left), .other = (right), .cap = MMGR_STR_MAX, .ci = MMGR_FALSE))
+#define strcasecmp(left, right)                                                                                        \
+    (!MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = (left), .other = (right), .cap = MMGR_STR_MAX, .ci = MMGR_TRUE))
 
-#define strncmp(a, b, n) (mmgr_cellul_diff((a), (b), (n), MMGR_FALSE) < (n))
-#define strncasecmp(a, b, n) (mmgr_cellul_diff((a), (b), (n), MMGR_TRUE) < (n))
+#define strncmp(left, right, limit)                                                                                    \
+    (MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = MMGR_FALSE) < (limit))
+#define strncasecmp(left, right, limit)                                                                                \
+    (MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = MMGR_TRUE) < (limit))
 
-#define strlcpy(dst, src, cap) mmgr_cellul_copy((dst), (src), (cap))
+#define strlcpy(dest, source, limit)                                                                                   \
+    MMGR_CALL(cellul.copy, CatenaFinitaCfg, .dst = (dest), .src = (source), .cap = (limit))
 
-#define strchr(s, c) ((char *)(size_t)mmgr_cellul_chr((s), MMGR_STR_MAX, (uint8_t)(c)))
+#define strchr(text, value)                                                                                            \
+    ((char *)(size_t)MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = (text), .cap = MMGR_STR_MAX, .byte = (uint8_t)(value)))
 
 MMGR_FINIS_DECLS
 

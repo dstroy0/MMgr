@@ -33,9 +33,9 @@ MMGR_STATIC_ASSERT((MMGR_SCAN_MAX_WORDS - 1u) * MMGR_SWAR_BYTES < MMGR_CARCER_MA
 
 typedef struct
 {
-    const mmgr_word w;
-    const mmgr_word v;
-    const mmgr_word m;
+    const mmgr_word word;
+    const mmgr_word val;
+    const mmgr_word mask;
     const uint8_t byte;
     const uint8_t fam;
     const mmgr_bool ci;
@@ -43,16 +43,16 @@ typedef struct
 
 typedef struct
 {
-    const mmgr_word m;
-    const size_t n;
+    const mmgr_word mask;
+    const size_t bytes;
     const size_t wi;
 } ScrutMaskCfg;
 
 typedef struct
 {
-    const mmgr_word w;
+    const mmgr_word word;
     const void *const at;
-    const size_t n;
+    const size_t bytes;
 } ScrutWordCfg;
 
 typedef struct

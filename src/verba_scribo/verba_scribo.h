@@ -11,15 +11,15 @@ MMGR_INCIPE_DECLS
 
 typedef struct
 {
-    char *const p;
+    char *const out;
     const size_t cap;
     const size_t at;
-    const char *const s;
-    const size_t sl;
-    const char c;
-    const uint64_t v;
-    const int64_t sv;
-    const double d;
+    const char *const text;
+    const size_t text_len;
+    const char ch;
+    const uint64_t val;
+    const int64_t sval;
+    const double real;
     const uint8_t base;
     const uint8_t min;
     const uint8_t columns;

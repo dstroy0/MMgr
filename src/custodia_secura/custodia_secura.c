@@ -4,13 +4,13 @@ typedef struct
 {
     CarcerCtx *pool;
     void *at;
-    size_t n;
+    size_t bytes;
 } SecuraCtx;
 
 MMGR_INLINE void secura_wipe(SecuraCtx *c)
 {
     uintptr_t *w = (uintptr_t *)c->at;
-    size_t words = c->n / sizeof(uintptr_t);
+    size_t words = c->bytes / sizeof(uintptr_t);
     const uintptr_t z = 0u;
 
     while (words >= 16u)
@@ -68,13 +68,13 @@ MMGR_INLINE void secura_wipe(SecuraCtx *c)
 
 MMGR_INLINE void *secura_init(SecuraCtx *c)
 {
-    return MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = c->pool, .size = c->n);
+    return MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = c->pool, .size = c->bytes);
 }
 
 MMGR_INLINE void secura_reddo(SecuraCtx *c)
 {
     secura_wipe(c);
-    MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = c->pool, .size = c->n);
+    MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = c->pool, .size = c->bytes);
 }
 
 MMGR_INLINE size_t secura_used(SecuraCtx *c)
@@ -84,12 +84,12 @@ MMGR_INLINE size_t secura_used(SecuraCtx *c)
 
 void *mmgr_secura_init(const SecuraCfg *c)
 {
-    return MMGR_CALL(secura_init, SecuraCtx, .pool = c->pool, .n = c->n);
+    return MMGR_CALL(secura_init, SecuraCtx, .pool = c->pool, .bytes = c->bytes);
 }
 
 void mmgr_secura_reddo(const SecuraCfg *c)
 {
-    MMGR_CALL(secura_reddo, SecuraCtx, .pool = c->pool, .at = c->at, .n = c->n);
+    MMGR_CALL(secura_reddo, SecuraCtx, .pool = c->pool, .at = c->at, .bytes = c->bytes);
 }
 
 size_t mmgr_secura_used(const SecuraCfg *c)
@@ -99,5 +99,5 @@ size_t mmgr_secura_used(const SecuraCfg *c)
 
 void mmgr_secura_wipe(const SecuraCfg *c)
 {
-    MMGR_CALL(secura_wipe, SecuraCtx, .pool = c->pool, .at = c->at, .n = c->n);
+    MMGR_CALL(secura_wipe, SecuraCtx, .pool = c->pool, .at = c->at, .bytes = c->bytes);
 }
