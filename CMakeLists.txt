@@ -23,11 +23,10 @@ option(MMGR_LTO "Link-time optimization" ON)
 # Named here in one list because every module target gets every capability as a definition, so the
 # library and the suites that exercise it can never disagree about which are present. Gating only
 # which suites are built decides what is tested and not what is compiled, which is the wrong half.
-set(MMGR_CAPABILITIES DMA EXTRAM KEEPOUT)
+set(MMGR_CAPABILITIES DMA EXTRAM)
 
 option(MMGR_ENABLE_DMA "The part has a DMA engine" OFF)
 option(MMGR_ENABLE_EXTRAM "The part has external RAM" OFF)
-option(MMGR_ENABLE_KEEPOUT "The part has somewhere to defer work to, so the ring may reserve" OFF)
 
 # Test only. Points every namespace entry that has a libc equivalent at libc, so the whole suite
 # runs against libc unchanged and any disagreement is a finding. libc is the oracle: a str or mem

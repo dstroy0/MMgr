@@ -19,13 +19,14 @@ typedef struct
 /**
  * @brief Type of the clz dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the lead member is at offset 0 and that the struct holds nothing else.
+ * @note MMGR_NS_LAYOUT asserts the two members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
  */
 typedef struct
 {
-    mmgr_iword (*lead)(const ClzCfg *c); /**< Leading zero count of val. */
+    mmgr_iword (*lead)(const ClzCfg *c);  /**< Leading zero count of val. */
+    mmgr_iword (*trail)(const ClzCfg *c); /**< Trailing zero count of val. */
 } ClzNs;
-MMGR_NS_LAYOUT(ClzNs, lead);
+MMGR_NS_LAYOUT(ClzNs, lead, trail);
 
 /**
  * @brief Counts the zero bits above the highest set bit of c->val.
@@ -38,10 +39,21 @@ MMGR_NS_LAYOUT(ClzNs, lead);
 mmgr_iword mmgr_clz_lead(const ClzCfg *c);
 
 /**
- * @brief Dispatch table instance named clz; its lead member calls mmgr_clz_lead.
+ * @brief Counts the zero bits below the lowest set bit of c->val.
+ *
+ * @param[in] c Value to measure [BORROWS].
+ * @return      Trailing zero count, 0 through 63.
+ * @note Runs in a fixed number of steps, none of which branches on the value.
+ * @warning A c->val of 0 returns 63, the same answer mmgr_clz_lead reports for 0.
+ */
+mmgr_iword mmgr_clz_trail(const ClzCfg *c);
+
+/**
+ * @brief Dispatch table instance named clz; each member calls the matching mmgr_clz_ function.
  */
 MMGR_NS ClzNs clz MMGR_UNUSED = {
     .lead = mmgr_clz_lead,
+    .trail = mmgr_clz_trail,
 };
 
 MMGR_FINIS_DECLS

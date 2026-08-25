@@ -1,5 +1,5 @@
 /**
- * @brief Branchless count of the leading zero bits in a 64-bit value.
+ * @brief Branchless count of the leading and trailing zero bits in a 64-bit value.
  */
 #include "clz/clz.h"
 
@@ -50,6 +50,26 @@ MMGR_INLINE mmgr_iword clz_lead(const ClzCtx *c)
 }
 
 /**
+ * @brief Counts the zero bits below the lowest set bit of c->val.
+ *
+ * @param[in] c Value to measure [BORROWS].
+ * @return      Trailing zero count, 0 through 63.
+ * @note Isolates the lowest set bit, whose leading zero count is 63 minus its index.
+ * @note Or-ing in the top bit gives a zero value a bit to find, so no step branches on the data.
+ * @warning A c->val of 0 returns 63, the same answer clz_lead reports for 0.
+ */
+MMGR_INLINE mmgr_iword clz_trail(const ClzCtx *c)
+{
+    // Explicit cast builds the top bit at mmgr_u64 width, which stands in for an absent lowest bit
+    const mmgr_u64 x = c->val | ((mmgr_u64)1 << 63);
+    // Explicit cast keeps the two's complement negation at mmgr_u64, isolating the lowest set bit
+    const mmgr_u64 iso = x & (mmgr_u64)(0u - x);
+
+    // Explicit cast keeps the subtraction in mmgr_iword, which is what clz_lead reports in
+    return (mmgr_iword)(63 - MMGR_CALL(clz_lead, ClzCtx, .val = iso));
+}
+
+/**
  * @brief Copies c->val into a ClzCtx and returns clz_lead's result.
  *
  * @note Documented at the declaration in clz.h.
@@ -57,4 +77,14 @@ MMGR_INLINE mmgr_iword clz_lead(const ClzCtx *c)
 mmgr_iword mmgr_clz_lead(const ClzCfg *c)
 {
     return MMGR_CALL(clz_lead, ClzCtx, .val = c->val);
+}
+
+/**
+ * @brief Copies c->val into a ClzCtx and returns clz_trail's result.
+ *
+ * @note Documented at the declaration in clz.h.
+ */
+mmgr_iword mmgr_clz_trail(const ClzCfg *c)
+{
+    return MMGR_CALL(clz_trail, ClzCtx, .val = c->val);
 }

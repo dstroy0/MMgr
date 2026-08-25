@@ -46,8 +46,9 @@ typedef struct
 {
     mmgr_bitor (*init)(const BitorumCfg *c); /**< Set to mmgr_bitor_init. */
     void (*put)(const BitorumCfg *c);        /**< Set to mmgr_bitor_put. */
+    void (*align)(const BitorumCfg *c);      /**< Set to mmgr_bitor_align. */
 } BitorumIntroitusExitusNs;
-MMGR_NS_LAYOUT(BitorumIntroitusExitusNs, init, put);
+MMGR_NS_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
 
 /**
  * @brief Builds a bit writer over c->out with capacity c->cap.
@@ -71,11 +72,27 @@ mmgr_bitor mmgr_bitor_init(const BitorumCfg *c);
 void mmgr_bitor_put(const BitorumCfg *c);
 
 /**
- * @brief Dispatch table instance named bitio; init calls mmgr_bitor_init, put calls mmgr_bitor_put.
+ * @brief Writes the partial byte the writer still holds, padded with zeros above its bits.
+ *
+ * @param[in,out] c Writer to finish [BORROWS].
+ * @note This is how a stream ends. mmgr_bitor_put writes whole bytes only, so bits that do not fill
+ *       one stay in the residue - and without this call they are never written at all. A stream whose
+ *       length is not a whole number of bytes needs this before its buffer is read.
+ * @note Does nothing when the residue is empty, so calling it twice, or on a stream that happened to
+ *       end on a byte, costs nothing and writes nothing.
+ * @note Does nothing when the writer's overflow is already set.
+ * @note c->val and c->nbits are not read.
+ * @warning Sets the writer's overflow when the byte would pass its cap.
+ */
+void mmgr_bitor_align(const BitorumCfg *c);
+
+/**
+ * @brief Dispatch table instance named bitio; each member calls the matching mmgr_bitor_ function.
  */
 MMGR_NS BitorumIntroitusExitusNs bitio MMGR_UNUSED = {
     .init = mmgr_bitor_init,
     .put = mmgr_bitor_put,
+    .align = mmgr_bitor_align,
 };
 
 MMGR_FINIS_DECLS

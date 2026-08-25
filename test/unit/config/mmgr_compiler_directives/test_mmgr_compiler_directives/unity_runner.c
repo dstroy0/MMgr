@@ -81,7 +81,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/config/mmgr_compiler_directives/test_mmgr_compiler_directives/test_mmgr_compiler_directives.c");
+  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/config/mmgr_compiler_directives/test_mmgr_compiler_directives\\test_mmgr_compiler_directives.c");
   run_test(test_directives_header_is_self_contained, "test_directives_header_is_self_contained", 33);
   run_test(test_narg_counts_its_arguments, "test_narg_counts_its_arguments", 38);
   run_test(test_cat_expands_before_it_pastes, "test_cat_expands_before_it_pastes", 46);

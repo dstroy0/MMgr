@@ -92,7 +92,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/memoria_operor/test_memoria_operor/test_memoria_operor.c");
+  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/memoria_operor/test_memoria_operor\\test_memoria_operor.c");
   run_test(test_memor_header_is_self_contained, "test_memor_header_is_self_contained", 49);
   run_test(test_memor_namespace_is_wired, "test_memor_namespace_is_wired", 54);
   run_test(test_cpy_matches_memcpy_at_every_length, "test_cpy_matches_memcpy_at_every_length", 63);

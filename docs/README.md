@@ -2,10 +2,11 @@
 
 Zero-heap memory manager in C11.
 
-You lend it a buffer. A confinium carves that buffer from both ends: persist grows up from the base,
-interim grows down from the top, and a take fails rather than let the two cross. Pools hand out
-tenants cut from it, spans are bounded views over those, and rings move them between a producer and
-a consumer.
+You lend it a buffer. A confinium carves that buffer from both ends: persist grows up from the base
+and interim grows down from the top. Neither take tests the gap between them — the sizes are fixed
+before the program runs, so the fit is settled by then, and a caller working from runtime numbers
+reads `carcer.octas_praesto` first. Pools hand out tenants cut from it, spans are bounded views over
+those, and rings move them between a producer and a consumer.
 
 Nothing calls `malloc`. Every size is fixed before the program runs, so the footprint is a number you
 can check against a budget rather than a thing you find out at runtime.
@@ -31,8 +32,8 @@ const size_t len = MMGR_CALL(verba.finish, VerbaCfg, .out = buf, .cap = 256u, .a
 Each of these is a claim the documentation has to answer for, so each links to the page that does.
 
 - **Nothing allocates.** Storage is borrowed, never owned. @ref concept_zero_heap
-- **One region, carved by asserted offset.** Persist grows up, interim grows down, and a take fails
-  rather than let them cross. @ref concept_architecture
+- **One region, carved by asserted offset.** Persist grows up and interim grows down; what keeps them
+  apart is asserted when the region is defined, not tested on each take. @ref concept_architecture
 - **Scanning is SWAR, and the carrier is the machine word.** Measured, not asserted.
   @ref concept_swar
 - **The width is a compile-time knob, and every width is built.** Five environments, one build.

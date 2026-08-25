@@ -3,6 +3,7 @@
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
+#include "spatium/spatium.h"
 #include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
 #include "cellularum_laboro/cellularum_laboro.h"
@@ -13,8 +14,16 @@ extern void tearDown(void);
 extern void test_a_byte_written_is_the_byte_read(void);
 extern void test_big_endian_fields_round_trip_at_every_width(void);
 extern void test_the_writer_puts_the_high_byte_first(void);
+extern void test_an_odd_width_writes_only_its_own_bytes(void);
 extern void test_endian_entries_agree_with_the_wire_writer(void);
+extern void test_a_field_past_the_end_latches_rather_than_writing(void);
+extern void test_a_field_past_the_end_of_a_read_leaves_the_cursor(void);
+extern void test_a_run_of_bytes_appends_as_it_is(void);
+extern void test_a_single_byte_append_counts_the_cursor(void);
 extern void test_a_length_prefixed_string_round_trips(void);
+extern void test_a_length_prefix_promising_more_than_is_there_is_refused(void);
+extern void test_an_integer_right_aligns_into_a_fixed_field(void);
+extern void test_an_integer_wider_than_its_field_is_refused(void);
 extern void test_raw_bytes_survive_an_unaligned_start(void);
 
 
@@ -28,12 +37,6 @@ static void CMock_Verify(void)
 static void CMock_Destroy(void)
 {
 }
-
-/*=======Setup (stub)=====*/
-void setUp(void) {}
-
-/*=======Teardown (stub)=====*/
-void tearDown(void) {}
 
 /*=======Test Reset Options=====*/
 void resetTest(void);
@@ -83,12 +86,20 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_wire_roundtrip\\test_wire_roundtrip.c");
-  run_test(test_a_byte_written_is_the_byte_read, "test_a_byte_written_is_the_byte_read", 8);
-  run_test(test_big_endian_fields_round_trip_at_every_width, "test_big_endian_fields_round_trip_at_every_width", 23);
-  run_test(test_the_writer_puts_the_high_byte_first, "test_the_writer_puts_the_high_byte_first", 46);
-  run_test(test_endian_entries_agree_with_the_wire_writer, "test_endian_entries_agree_with_the_wire_writer", 59);
-  run_test(test_a_length_prefixed_string_round_trips, "test_a_length_prefixed_string_round_trips", 73);
-  run_test(test_raw_bytes_survive_an_unaligned_start, "test_raw_bytes_survive_an_unaligned_start", 91);
+  run_test(test_a_byte_written_is_the_byte_read, "test_a_byte_written_is_the_byte_read", 25);
+  run_test(test_big_endian_fields_round_trip_at_every_width, "test_big_endian_fields_round_trip_at_every_width", 47);
+  run_test(test_the_writer_puts_the_high_byte_first, "test_the_writer_puts_the_high_byte_first", 76);
+  run_test(test_an_odd_width_writes_only_its_own_bytes, "test_an_odd_width_writes_only_its_own_bytes", 94);
+  run_test(test_endian_entries_agree_with_the_wire_writer, "test_endian_entries_agree_with_the_wire_writer", 107);
+  run_test(test_a_field_past_the_end_latches_rather_than_writing, "test_a_field_past_the_end_latches_rather_than_writing", 124);
+  run_test(test_a_field_past_the_end_of_a_read_leaves_the_cursor, "test_a_field_past_the_end_of_a_read_leaves_the_cursor", 139);
+  run_test(test_a_run_of_bytes_appends_as_it_is, "test_a_run_of_bytes_appends_as_it_is", 151);
+  run_test(test_a_single_byte_append_counts_the_cursor, "test_a_single_byte_append_counts_the_cursor", 163);
+  run_test(test_a_length_prefixed_string_round_trips, "test_a_length_prefixed_string_round_trips", 175);
+  run_test(test_a_length_prefix_promising_more_than_is_there_is_refused, "test_a_length_prefix_promising_more_than_is_there_is_refused", 200);
+  run_test(test_an_integer_right_aligns_into_a_fixed_field, "test_an_integer_right_aligns_into_a_fixed_field", 215);
+  run_test(test_an_integer_wider_than_its_field_is_refused, "test_an_integer_wider_than_its_field_is_refused", 232);
+  run_test(test_raw_bytes_survive_an_unaligned_start, "test_raw_bytes_survive_an_unaligned_start", 243);
 
   return UNITY_END();
 }

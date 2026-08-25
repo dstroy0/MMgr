@@ -79,7 +79,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/config/mmgr_types/test_mmgr_types/test_mmgr_types.c");
+  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/config/mmgr_types/test_mmgr_types\\test_mmgr_types.c");
   run_test(test_types_header_is_self_contained, "test_types_header_is_self_contained", 5);
   run_test(test_fixed_width_types_are_their_widths, "test_fixed_width_types_are_their_widths", 10);
   run_test(test_word_matches_the_configured_width, "test_word_matches_the_configured_width", 22);

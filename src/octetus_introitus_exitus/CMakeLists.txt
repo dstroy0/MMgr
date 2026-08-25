@@ -4,8 +4,8 @@
 mmgr_add_module(octetus_introitus_exitus
   SOURCES octetus_introitus_exitus.c
   DEPS
-    cellularum_laboro
+    spatium
     endian
     memoria_operor
-    spatium
+    proximus_operor
 )

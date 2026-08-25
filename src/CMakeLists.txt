@@ -20,7 +20,6 @@ add_subdirectory(cellularum_laboro)
 add_subdirectory(spatium)
 add_subdirectory(octetus_introitus_exitus)
 add_subdirectory(carceribus)
-add_subdirectory(custodia_soluta)
 add_subdirectory(confinium_exclusivum_infinitas)
 add_subdirectory(confinium_externum)
 add_subdirectory(transformo)
@@ -28,7 +27,6 @@ add_subdirectory(memoriam_praetereo)
 add_subdirectory(fractio)
 add_subdirectory(verba_scribo)
 add_subdirectory(numeros_scribo)
-add_subdirectory(custodia_secura)
 
 # One aggregate per environment, so a test or a consumer links `mmgr_<env>` rather than naming
 # seventeen modules and getting the list wrong.

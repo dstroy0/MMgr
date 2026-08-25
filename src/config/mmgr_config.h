@@ -111,128 +111,6 @@
 #endif
 #endif
 
-/**
- * @brief Largest number of pools one region may be carved into.
- *
- * @note Sizes the pool and mark arrays in MMGR_CARCER_MACHINERY, and bounds the region macros.
- */
-#ifndef MMGR_CARCER_MAX_REGIONS
-#define MMGR_CARCER_MAX_REGIONS 2u
-#endif
-
-/**
- * @brief Members every carved region carries ahead of its bytes.
- *
- * @note init records the whole region; pool and mark are both sized by MMGR_CARCER_MAX_REGIONS.
- */
-#define MMGR_CARCER_MACHINERY                                                                                          \
-    const CarcerInit init;                                                                                             \
-    CarcerCtx pool[MMGR_CARCER_MAX_REGIONS];                                                                           \
-    size_t mark[MMGR_CARCER_MAX_REGIONS]
-
-/**
- * @brief Pairs a pool name with its size for mmgr_carcer_init.
- *
- * @param[in] name_ Enumerator name to give the pool.
- * @param[in] n_    Bytes to give the pool.
- * @note Expands to two comma-separated arguments, so each pair counts as two toward MMGR_NARG.
- */
-#define MMGR_POOL(name_, n_) name_, n_
-
-/**
- * @brief Asserts a region has both an address and an extent.
- *
- * @param[in] region_ Region name, whose layout type is region_##_layout.
- * @param[in] n_      Bytes the region was declared with.
- */
-#define MMGR_CARCER_EXISTS(region_, n_)                                                                                \
-    MMGR_STATIC_ASSERT(sizeof(((region_##_layout *)0)->bytes) != 0u, #region_ " has no address");                      \
-    MMGR_STATIC_ASSERT((n_) != 0u, #region_ " has no extent")
-
-/**
- * @brief Asserts one pool is large enough, aligned, and inside its region.
- *
- * @param[in] region_ Region the pool is carved from.
- * @param[in] name_   Pool name, used in the assertion messages.
- * @param[in] off_    Byte offset of the pool within the region.
- * @param[in] n_      Bytes given to the pool.
- * @note Requires at least two MMGR_ALIGN_BYTES, an exact multiple of MMGR_ALIGN_BYTES, and off_ plus n_ within bounds.
- */
-#define MMGR_CARCER_CHECK(region_, name_, off_, n_)                                                                    \
-    MMGR_STATIC_ASSERT((n_) >= (2u * MMGR_ALIGN_BYTES), #name_ " is too small to hold a block");                       \
-    MMGR_STATIC_ASSERT(((n_) & (MMGR_ALIGN_BYTES - 1u)) == 0u, #name_ " is not a whole number of aligned units");      \
-    MMGR_STATIC_ASSERT(((off_) + (n_)) <= sizeof(((region_##_layout *)0)->bytes),                                      \
-                       #name_ " does not fit inside " #region_)
-
-/**
- * @brief Defines a region carved into two pools, with its layout type, enumerators and storage.
- *
- * @param[in] region_ Name of the region object to define.
- * @param[in] n_      Bytes in the whole region.
- * @param[in] a_      Enumerator name for the first pool.
- * @param[in] an_     Bytes in the first pool.
- * @param[in] b_      Enumerator name for the second pool.
- * @param[in] bn_     Bytes in the second pool.
- * @note Each pool starts with interim_top at its own size, so the interim end begins empty.
- * @note Selected by mmgr_carcer_init when it is given two MMGR_POOL pairs, which is four arguments.
- */
-#define MMGR_CARCER_R4(region_, n_, a_, an_, b_, bn_)                                                                  \
-    typedef struct                                                                                                     \
-    {                                                                                                                  \
-        MMGR_CARCER_MACHINERY;                                                                                         \
-        MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t bytes[(n_)];                                                              \
-    } region_##_layout;                                                                                                \
-    enum                                                                                                               \
-    {                                                                                                                  \
-        a_ = 0,                                                                                                        \
-        b_ = 1,                                                                                                        \
-        region_##_count = 2                                                                                            \
-    };                                                                                                                 \
-    MMGR_STATIC_ASSERT(region_##_count <= MMGR_CARCER_MAX_REGIONS, #region_ " carves past its limit");                 \
-    MMGR_CARCER_EXISTS(region_, n_);                                                                                   \
-    MMGR_CARCER_CHECK(region_, a_, 0, an_);                                                                            \
-    MMGR_CARCER_CHECK(region_, b_, an_, bn_);                                                                          \
-    region_##_layout region_ = {.init = {.at = region_.bytes, .size = (n_)},                                           \
-                                .pool = {{.base = region_.bytes + 0, .size = (an_), .interim_top = (an_)},             \
-                                         {.base = region_.bytes + (an_), .size = (bn_), .interim_top = (bn_)}}}
-
-/**
- * @brief Defines a region carved into one pool, with its layout type, enumerator and storage.
- *
- * @param[in] region_ Name of the region object to define.
- * @param[in] n_      Bytes in the whole region.
- * @param[in] a_      Enumerator name for the pool.
- * @param[in] an_     Bytes in the pool.
- * @note The pool starts with interim_top at its own size, so the interim end begins empty.
- * @note Selected by mmgr_carcer_init when it is given one MMGR_POOL pair, which is two arguments.
- */
-#define MMGR_CARCER_R2(region_, n_, a_, an_)                                                                           \
-    typedef struct                                                                                                     \
-    {                                                                                                                  \
-        MMGR_CARCER_MACHINERY;                                                                                         \
-        MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t bytes[(n_)];                                                              \
-    } region_##_layout;                                                                                                \
-    enum                                                                                                               \
-    {                                                                                                                  \
-        a_ = 0,                                                                                                        \
-        region_##_count = 1                                                                                            \
-    };                                                                                                                 \
-    MMGR_STATIC_ASSERT(region_##_count <= MMGR_CARCER_MAX_REGIONS, #region_ " carves past its limit");                 \
-    MMGR_CARCER_EXISTS(region_, n_);                                                                                   \
-    MMGR_CARCER_CHECK(region_, a_, 0, an_);                                                                            \
-    region_##_layout region_ = {.init = {.at = region_.bytes, .size = (n_)},                                           \
-                                .pool = {{.base = region_.bytes + 0, .size = (an_), .interim_top = (an_)}}}
-
-/**
- * @brief Defines a region and carves it into pools, picking the shape from the argument count.
- *
- * @param[in] region_ Name of the region object to define.
- * @param[in] n_      Bytes in the whole region.
- * @param[in] ...     One or two MMGR_POOL pairs, giving two or four arguments.
- * @note The pair count selects MMGR_CARCER_R2 or MMGR_CARCER_R4 through MMGR_CAT and MMGR_NARG.
- * @warning Defines the region object itself, so it belongs at file scope in exactly one translation unit.
- */
-#define mmgr_carcer_init(region_, n_, ...) MMGR_CAT(MMGR_CARCER_R, MMGR_NARG(__VA_ARGS__))(region_, n_, __VA_ARGS__)
 
 /**
  * @brief Set to 1 to build the memoriam_praetereo DMA path.
@@ -250,28 +128,6 @@
 #ifndef MMGR_ENABLE_EXTRAM
 
 #define MMGR_ENABLE_EXTRAM 0
-#endif
-/**
- * @brief Set to 1 to build the keep-out region support.
- */
-#ifndef MMGR_ENABLE_KEEPOUT
-
-#define MMGR_ENABLE_KEEPOUT 0
-#endif
-/**
- * @brief Set to 1 to track each pool's high-water figure in CarcerCtx::hw.
- *
- * @note Adds the hw member to CarcerCtx and the blend that maintains it in both carcer capio calls.
- */
-#ifndef MMGR_ENABLE_HW_MEM_CAPACITY_CB
-#define MMGR_ENABLE_HW_MEM_CAPACITY_CB 0
-#endif
-
-/**
- * @brief Number of drain passes the ring makes per service call.
- */
-#ifndef MMGR_RING_DRAINS
-#define MMGR_RING_DRAINS 4u
 #endif
 
 /**
@@ -326,24 +182,32 @@
  */
 #define MMGR_MEMOR_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
 
-/**
- * @brief Takes the address of one pool inside a region.
- *
- * @param[in] region_ Region object defined by mmgr_carcer_init.
- * @param[in] pool_   Pool enumerator from that region.
- * @return            Address of the pool's CarcerCtx [BORROWS].
- */
-#define MMGR_CARCER_POOL(region_, pool_) (&(region_).pool[pool_])
 
 /**
- * @brief Builds a CarcerCfg for one pool, ready to pass to a carcer call.
+ * @brief Defines a value-returning entry point that forwards an argument pack.
  *
- * @param[in] region_ Region object defined by mmgr_carcer_init.
- * @param[in] pool_   Pool enumerator from that region.
- * @param[in] ...     Further designated initializers, such as .size or .at.
- * @return            Address of the compound literal [BORROWS].
- * @warning The callee receives the address of a compound literal [BORROWS].
+ * @param PREFIX     The public entry point prefix (e.g., mmgr_infin_)
+ * @param BACKEND    The backend function prefix (e.g., infin_)
+ * @param CTX_TYPE   The context structure type (e.g., InfinCtx)
+ * @param CFG_TYPE   The config structure type (e.g., InfinCfg)
+ * @param RET_TYPE   Return type of the function
+ * @param NAME       The core name of the function
+ * @param ...        The variadic argument pack/fields to forward
  */
-#define MMGR_CARCER(region_, pool_, ...) (&(CarcerCfg){.pool = MMGR_CARCER_POOL(region_, pool_), __VA_ARGS__})
+#define GENERIC_ENTRY(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, RET_TYPE, NAME, ...) \
+    RET_TYPE PREFIX##NAME(const CFG_TYPE *c) \
+    { \
+        return MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__); \
+    }
+
+/**
+ * @brief Defines a void entry point that forwards an argument pack.
+ */
+#define GENERIC_ENTRY_V(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, NAME, ...) \
+    void PREFIX##NAME(const CFG_TYPE *c) \
+    { \
+        MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__); \
+    }
+
 
 #endif

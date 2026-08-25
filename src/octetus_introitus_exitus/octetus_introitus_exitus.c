@@ -1,88 +1,290 @@
 /**
- * @brief Writes and reads one to eight bytes, with the byte order reversed from the target's own.
+ * @brief Byte verbs over a span: the appends, the take, and the room test all four share.
  *
- * @note On a little endian target that puts the most significant byte first; endian_rev reverses either way.
- * @note Both calls move eight bytes at c->at or c->from whatever c->bytes says, and both need that address aligned.
+ * @note Every append asks the same question first - is there room, and is the span still good - so
+ *       that question is one call and each append is what it does after it.
+ * @note A whole value moves a word at a time. endian reverses it once, and the count then selects
+ *       stores or loads of eight, four, two and one byte, so nothing walks a byte at a time except
+ *       the odd byte at the end of an odd count.
  */
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 
 #include "endian/endian.h"
+#include "memoria_operor/memoria_operor.h"
 #include "proximus_operor/proximus_operor.h"
 
 /**
- * @brief Arguments for the byte write.
+ * @brief Arguments for the byteio backends.
  *
- * @note Mirrors the OctetusCfg members put reads, without their const qualifiers.
- * @warning bytes must be 1 through 8; 8u - bytes is unsigned, and a shift count of 64 is undefined.
+ * @note Mirrors OctetusCfg without its const qualifiers.
  */
 typedef struct
 {
-    uint8_t *at;  /**< Destination [BORROWS]. */
-    uint64_t val; /**< Value whose low bytes are written. */
-    size_t bytes; /**< Bytes of val to place, 1 through 8. */
-} OctetPutCtx;
+    mmgr_span *w;       /**< Span an append writes into [BORROWS]. */
+    mmgr_cspan *r;      /**< Span a take reads from [BORROWS]. */
+    const uint8_t *src; /**< Bytes raw appends [BORROWS]. */
+    uint64_t *out;      /**< Where take_be stores the value it read [BORROWS]. */
+    const uint8_t **blob; /**< Where rd_str points at the run it found [BORROWS]. */
+    size_t *blen;       /**< Where rd_str stores that run's length [BORROWS]. */
+    uint64_t val;       /**< Value put_be writes. */
+    size_t bytes;       /**< Bytes the call moves. */
+    uint8_t byte;       /**< The single byte put appends. */
+} ByteioCtx;
 
 /**
- * @brief Arguments for the byte read.
+ * @brief Claims n bytes at the span's cursor, or latches its overflow.
  *
- * @note Mirrors the OctetusCfg members take reads, without their top-level const qualifiers.
+ * @param[in,out] w Span to append into [BORROWS].
+ * @param[in]     n Bytes wanted.
+ * @return          Where to write them, or NULL when they do not fit [BORROWS].
+ * @note pos advances by n whether or not the bytes fit. A caller that filled a span it knew was too
+ *       small can then read pos to learn what it would have needed, which is the only reason to keep
+ *       counting past the end.
+ * @note Every append reaches this, so the room test, the latch and the cursor all live in one place.
  */
-typedef struct
+MMGR_INLINE uint8_t *byteio_claim(mmgr_span *w, size_t n)
 {
-    const uint8_t *from; /**< Source [BORROWS]. */
-    uint64_t *out;       /**< Where the value read is stored [BORROWS]. */
-    size_t bytes;        /**< Bytes to take from from, 1 through 8. */
-} OctetTakeCtx;
+    const size_t at = w->pos;
 
-/**
- * @brief Places the low c->bytes bytes of c->val at c->at, in reversed byte order.
- *
- * @param[in] c Destination, value and count [BORROWS].
- * @note Shifts the wanted bytes to the top of a 64-bit word, reverses all eight, then stores all eight.
- * @note The 8 - c->bytes bytes past the value come out zero, since the shift brought zeros in below it.
- * @warning proxim.al_put64 stores eight bytes, so c->at must be writable for eight and aligned for a uint64_t.
- */
-MMGR_INLINE void octet_put(const OctetPutCtx *c)
-{
-    const uint64_t v = c->val << (8u * (8u - c->bytes));
-
-    MMGR_CALL(proxim.al_put64, ProximusCfg, .dst = c->at,
-              .val = MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = v, .width = MMGR_ENDIAN_64));
+    w->pos += n;
+    if ((w->buf == NULL) || w->overflow || (n > (w->cap - at)) || (at > w->cap))
+    {
+        w->overflow = MMGR_TRUE;
+        return NULL;
+    }
+    return w->buf + at;
 }
 
 /**
- * @brief Reads c->bytes from c->from in reversed byte order and stores the value in *c->out.
+ * @brief Takes n bytes at the read span's cursor and advances past them.
  *
- * @param[in] c Source, destination for the value, and count [BORROWS].
- * @note Loads eight bytes, reverses all eight, then shifts the 8 - c->bytes past the value out of the result.
- * @warning proxim.al_load64 reads eight bytes, so c->from must be readable for eight and aligned for a uint64_t.
- * @warning The bytes past c->bytes take part in the load, though the shift drops them from the result.
+ * @param[in,out] r Span to read from [BORROWS].
+ * @param[in]     n Bytes wanted.
+ * @return          Where they start, or NULL when the span is short [BORROWS].
+ * @note The cursor moves only when the bytes were there. A failed read leaves it where it was, so a
+ *       caller that keeps going still knows where it is.
  */
-MMGR_INLINE void octet_take(const OctetTakeCtx *c)
+MMGR_INLINE const uint8_t *byteio_take(mmgr_cspan *r, size_t n)
 {
-    const uint64_t v = MMGR_CALL(proxim.al_load64, ProximusCfg, .at = c->from);
+    const size_t at = r->pos;
 
-    // Explicit cast narrows the count to the packed mmgr_endian_width EndianCfg::width is declared with,
-    // which admits any count, not only the 2, 4 and 8 the enum names
+    if ((r->buf == NULL) || r->err || (at > r->len) || (n > (r->len - at)))
+    {
+        r->err = MMGR_TRUE;
+        return NULL;
+    }
+    r->pos = at + n;
+    return r->buf + at;
+}
+
+/**
+ * @brief Appends c->byte to the span.
+ *
+ * @param[in,out] c Span and the byte [BORROWS].
+ */
+MMGR_INLINE void byteio_put(const ByteioCtx *c)
+{
+    uint8_t *const at = byteio_claim(c->w, 1u);
+
+    if (at != NULL)
+    {
+        *at = c->byte;
+    }
+}
+
+/**
+ * @brief Appends c->bytes from c->src as they are.
+ *
+ * @param[in,out] c Span, source and count [BORROWS].
+ * @note Reaches memor.cpy rather than walking bytes here, so there is one mover rather than a second.
+ */
+MMGR_INLINE void byteio_raw(const ByteioCtx *c)
+{
+    uint8_t *const at = byteio_claim(c->w, c->bytes);
+
+    if (at != NULL)
+    {
+        MMGR_CALL(memor.cpy, MemoriaCfg, .dst = at, .src = c->src, .bytes = c->bytes);
+    }
+}
+
+/**
+ * @brief Appends the low c->bytes of c->val, most significant byte first.
+ *
+ * @param[in,out] c Span, value and count [BORROWS].
+ * @note magna_extremitas.rev right-aligns the reversed value into its low c->bytes, so storing those
+ *       in the target's own order lays the bytes out most significant first.
+ * @note The count selects the stores: eight is one, seven is three, and only an odd final byte is
+ *       ever written alone.
+ */
+MMGR_INLINE void byteio_put_be(const ByteioCtx *c)
+{
+    uint8_t *at = byteio_claim(c->w, c->bytes);
+
+    if (at == NULL)
+    {
+        return;
+    }
+
+    uint64_t v = MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = c->val, .width = (mmgr_endian_width)c->bytes);
+
+    // A count of eight takes the first branch alone, so the shifts below never reach the full width
+    if ((c->bytes & 8u) != 0u)
+    {
+        MMGR_CALL(proxim.put64, ProximusCfg, .dst = at, .val = v);
+        return;
+    }
+    if ((c->bytes & 4u) != 0u)
+    {
+        MMGR_CALL(proxim.put32, ProximusCfg, .dst = at, .val = v);
+        at += 4;
+        v >>= 32;
+    }
+    if ((c->bytes & 2u) != 0u)
+    {
+        MMGR_CALL(proxim.put16, ProximusCfg, .dst = at, .val = v);
+        at += 2;
+        v >>= 16;
+    }
+    if ((c->bytes & 1u) != 0u)
+    {
+        *at = (uint8_t)v;
+    }
+}
+
+/**
+ * @brief Reads a big endian value of c->bytes at the cursor and advances past it.
+ *
+ * @param[in,out] c Span, count and where to store the value [BORROWS].
+ * @return          MMGR_TRUE when the bytes were there.
+ * @note The mirror of the append: the bytes are gathered in the target's own order at the widest
+ *       step the count allows, and reversed once at the end.
+ */
+MMGR_INLINE mmgr_bool byteio_take_be(const ByteioCtx *c)
+{
+    const uint8_t *at = byteio_take(c->r, c->bytes);
+
+    if (at == NULL)
+    {
+        return MMGR_FALSE;
+    }
+
+    uint64_t v = 0u;
+    size_t sh = 0u;
+
+    if ((c->bytes & 8u) != 0u)
+    {
+        v = MMGR_CALL(proxim.load64, ProximusCfg, .at = at);
+    }
+    if ((c->bytes & 4u) != 0u)
+    {
+        v |= (uint64_t)MMGR_CALL(proxim.load32, ProximusCfg, .at = at) << sh;
+        at += 4;
+        sh += 32u;
+    }
+    if ((c->bytes & 2u) != 0u)
+    {
+        v |= (uint64_t)MMGR_CALL(proxim.load16, ProximusCfg, .at = at) << sh;
+        at += 2;
+        sh += 16u;
+    }
+    if ((c->bytes & 1u) != 0u)
+    {
+        v |= (uint64_t)(*at) << sh;
+    }
+
     *c->out = MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = v, .width = (mmgr_endian_width)c->bytes);
+    return MMGR_TRUE;
 }
 
 /**
- * @brief Places the low c->bytes bytes of c->val at c->at, in reversed byte order.
+ * @brief Reads a length-prefixed run at the cursor and points c->blob at it.
  *
- * @note Documented at the declaration in octetus_introitus_exitus.h.
+ * @param[in,out] c Span, and where to report the run [BORROWS].
+ * @return          MMGR_TRUE when the length and its run both lay within the span.
+ * @note The cursor is put back when the run does not fit. A length read that is then not followed by
+ *       its payload is not a read at all, and leaving the cursor between the two would give a caller
+ *       a position that means nothing.
  */
-void mmgr_octet_put(const OctetusCfg *c)
+MMGR_INLINE mmgr_bool byteio_rd_str(const ByteioCtx *c)
 {
-    MMGR_CALL(octet_put, OctetPutCtx, .at = c->at, .val = c->val, .bytes = c->bytes);
+    const size_t was = c->r->pos;
+    uint64_t n = 0u;
+
+    if (!MMGR_CALL(byteio_take_be, ByteioCtx, .r = c->r, .out = &n, .bytes = 4u))
+    {
+        return MMGR_FALSE;
+    }
+
+    const uint8_t *const at = byteio_take(c->r, (size_t)n);
+
+    if (at == NULL)
+    {
+        c->r->pos = was;
+        return MMGR_FALSE;
+    }
+    *c->blob = at;
+    *c->blen = (size_t)n;
+    return MMGR_TRUE;
 }
 
 /**
- * @brief Reads c->bytes from c->from in reversed byte order and stores the value in *c->out.
+ * @brief Right-aligns the integer at c->src into c->w's whole buffer, zero filling ahead of it.
  *
- * @note Documented at the declaration in octetus_introitus_exitus.h.
+ * @param[in,out] c The integer and its length, and the field [BORROWS].
+ * @return          MMGR_TRUE when the integer fits the field.
+ * @note Leading zero bytes are skipped before the width is tested, so a value carrying a sign byte
+ *       still fits a field of its own size.
  */
-void mmgr_octet_take(const OctetusCfg *c)
+MMGR_INLINE mmgr_bool byteio_mpint_fixed(const ByteioCtx *c)
 {
-    MMGR_CALL(octet_take, OctetTakeCtx, .from = c->from, .out = c->out, .bytes = c->bytes);
+    mmgr_span *const w = c->w;
+    size_t off = 0u;
+
+    while ((off < c->bytes) && (c->src[off] == 0u))
+    {
+        off++;
+    }
+
+    const size_t vlen = c->bytes - off;
+
+    if ((w->buf == NULL) || (vlen > w->cap))
+    {
+        w->overflow = MMGR_TRUE;
+        return MMGR_FALSE;
+    }
+    // Explicit cast matches MemoriaCfg: val is a single byte, bytes is a size_t count
+    MMGR_CALL(memor.set, MemoriaCfg, .dst = w->buf, .val = (uint8_t)0, .bytes = w->cap);
+    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = w->buf + (w->cap - vlen), .src = c->src + off, .bytes = vlen);
+    // The field is written whole rather than appended to, so the cursor ends at its end
+    w->pos = w->cap;
+    return MMGR_TRUE;
 }
+
+/**
+ * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
+ *
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] name Name after the mmgr_byteio_ and byteio_ prefixes, which the two share.
+ */
+#define BYTEIO_ENTRY(ret, name, ...)                                                                  \
+    GENERIC_ENTRY(mmgr_byteio_, byteio_, ByteioCtx, OctetusCfg, ret, name, __VA_ARGS__)
+
+/**
+ * @brief Binds the same four to GENERIC_ENTRY_V, for an entry that returns nothing.
+ *
+ * @param[in] name Name after the mmgr_byteio_ and byteio_ prefixes, which the two share.
+ */
+#define BYTEIO_ENTRY_V(name, ...) GENERIC_ENTRY_V(mmgr_byteio_, byteio_, ByteioCtx, OctetusCfg, name, __VA_ARGS__)
+
+/**
+ * @brief The public surface, one line per entry point.
+ *
+ * @note Each is documented at its declaration in octetus_introitus_exitus.h.
+ */
+BYTEIO_ENTRY_V(put, .w = c->w, .byte = c->byte)
+BYTEIO_ENTRY_V(put_be, .w = c->w, .val = c->val, .bytes = c->bytes)
+BYTEIO_ENTRY_V(raw, .w = c->w, .src = c->src, .bytes = c->bytes)
+BYTEIO_ENTRY(mmgr_bool, take_be, .r = c->r, .bytes = c->bytes, .out = c->out)
+BYTEIO_ENTRY(mmgr_bool, rd_str, .r = c->r, .blob = c->blob, .blen = c->blen)
+BYTEIO_ENTRY(mmgr_bool, mpint_fixed, .w = c->w, .src = c->src, .bytes = c->bytes)

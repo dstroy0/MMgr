@@ -6,6 +6,7 @@
 
 add_subdirectory(test_hostile_content)
 add_subdirectory(test_read_bounds)
+add_subdirectory(test_ring_bounds)
 add_subdirectory(test_scan_reference)
 add_subdirectory(test_stream_lexer)
 add_subdirectory(test_tenant_lifecycle)

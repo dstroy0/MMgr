@@ -3,24 +3,37 @@
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
 #include "carceribus/carceribus.h"
+#include "spatium/spatium.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_carceribus_header_is_self_contained(void);
-extern void test_carcer_namespace_is_wired(void);
+extern void test_the_namespace_is_wired(void);
 extern void test_the_machinery_sits_below_the_arena(void);
 extern void test_init_records_the_region_it_was_given(void);
 extern void test_the_carve_lays_the_pools_end_to_end(void);
 extern void test_a_fresh_pool_is_empty_and_whole(void);
+extern void test_align_up_rounds_to_a_whole_word(void);
+extern void test_both_ends_hand_out_aligned_addresses(void);
 extern void test_persist_hands_out_the_bottom_and_walks_up(void);
-extern void test_persist_reddo_winds_the_fill_point_back(void);
 extern void test_interim_hands_out_the_top_and_walks_down(void);
-extern void test_the_two_arms_grow_toward_each_other(void);
-extern void test_reset_puts_the_whole_interim_arm_back(void);
+extern void test_the_two_ends_take_from_the_same_middle(void);
+extern void test_both_ends_fail_closed(void);
+extern void test_a_released_block_is_reused(void);
+extern void test_persist_releases_out_of_order(void);
+extern void test_adjacent_free_blocks_merge(void);
+extern void test_a_plain_release_leaves_the_bytes_alone(void);
+extern void test_a_secura_release_zeroes_the_bytes_first(void);
+extern void test_a_secura_release_wipes_the_whole_block(void);
+extern void test_the_wipe_clears_exactly_what_it_was_given(void);
+extern void test_a_mark_gives_back_everything_taken_after_it(void);
+extern void test_marks_nest_because_the_caller_holds_them(void);
+extern void test_reset_gives_the_whole_interim_end_back(void);
 extern void test_owns_tells_a_pool_from_its_neighbour(void);
 extern void test_owns_refuses_the_edges(void);
 extern void test_the_pools_do_not_share_a_fill_point(void);
+extern void test_a_span_over_pool_bytes_carries_the_pool_address(void);
 
 
 /*=======Mock Management=====*/
@@ -81,21 +94,33 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/carceribus/test_carceribus/test_carceribus.c");
-  run_test(test_carceribus_header_is_self_contained, "test_carceribus_header_is_self_contained", 25);
-  run_test(test_carcer_namespace_is_wired, "test_carcer_namespace_is_wired", 30);
-  run_test(test_the_machinery_sits_below_the_arena, "test_the_machinery_sits_below_the_arena", 38);
-  run_test(test_init_records_the_region_it_was_given, "test_init_records_the_region_it_was_given", 45);
-  run_test(test_the_carve_lays_the_pools_end_to_end, "test_the_carve_lays_the_pools_end_to_end", 51);
-  run_test(test_a_fresh_pool_is_empty_and_whole, "test_a_fresh_pool_is_empty_and_whole", 60);
-  run_test(test_persist_hands_out_the_bottom_and_walks_up, "test_persist_hands_out_the_bottom_and_walks_up", 68);
-  run_test(test_persist_reddo_winds_the_fill_point_back, "test_persist_reddo_winds_the_fill_point_back", 78);
-  run_test(test_interim_hands_out_the_top_and_walks_down, "test_interim_hands_out_the_top_and_walks_down", 88);
-  run_test(test_the_two_arms_grow_toward_each_other, "test_the_two_arms_grow_toward_each_other", 97);
-  run_test(test_reset_puts_the_whole_interim_arm_back, "test_reset_puts_the_whole_interim_arm_back", 109);
-  run_test(test_owns_tells_a_pool_from_its_neighbour, "test_owns_tells_a_pool_from_its_neighbour", 118);
-  run_test(test_owns_refuses_the_edges, "test_owns_refuses_the_edges", 131);
-  run_test(test_the_pools_do_not_share_a_fill_point, "test_the_pools_do_not_share_a_fill_point", 145);
+  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/carceribus/test_carceribus\\test_carceribus.c");
+  run_test(test_carceribus_header_is_self_contained, "test_carceribus_header_is_self_contained", 30);
+  run_test(test_the_namespace_is_wired, "test_the_namespace_is_wired", 35);
+  run_test(test_the_machinery_sits_below_the_arena, "test_the_machinery_sits_below_the_arena", 40);
+  run_test(test_init_records_the_region_it_was_given, "test_init_records_the_region_it_was_given", 46);
+  run_test(test_the_carve_lays_the_pools_end_to_end, "test_the_carve_lays_the_pools_end_to_end", 52);
+  run_test(test_a_fresh_pool_is_empty_and_whole, "test_a_fresh_pool_is_empty_and_whole", 61);
+  run_test(test_align_up_rounds_to_a_whole_word, "test_align_up_rounds_to_a_whole_word", 68);
+  run_test(test_both_ends_hand_out_aligned_addresses, "test_both_ends_hand_out_aligned_addresses", 81);
+  run_test(test_persist_hands_out_the_bottom_and_walks_up, "test_persist_hands_out_the_bottom_and_walks_up", 99);
+  run_test(test_interim_hands_out_the_top_and_walks_down, "test_interim_hands_out_the_top_and_walks_down", 108);
+  run_test(test_the_two_ends_take_from_the_same_middle, "test_the_two_ends_take_from_the_same_middle", 117);
+  run_test(test_both_ends_fail_closed, "test_both_ends_fail_closed", 131);
+  run_test(test_a_released_block_is_reused, "test_a_released_block_is_reused", 145);
+  run_test(test_persist_releases_out_of_order, "test_persist_releases_out_of_order", 160);
+  run_test(test_adjacent_free_blocks_merge, "test_adjacent_free_blocks_merge", 182);
+  run_test(test_a_plain_release_leaves_the_bytes_alone, "test_a_plain_release_leaves_the_bytes_alone", 198);
+  run_test(test_a_secura_release_zeroes_the_bytes_first, "test_a_secura_release_zeroes_the_bytes_first", 218);
+  run_test(test_a_secura_release_wipes_the_whole_block, "test_a_secura_release_wipes_the_whole_block", 238);
+  run_test(test_the_wipe_clears_exactly_what_it_was_given, "test_the_wipe_clears_exactly_what_it_was_given", 257);
+  run_test(test_a_mark_gives_back_everything_taken_after_it, "test_a_mark_gives_back_everything_taken_after_it", 277);
+  run_test(test_marks_nest_because_the_caller_holds_them, "test_marks_nest_because_the_caller_holds_them", 293);
+  run_test(test_reset_gives_the_whole_interim_end_back, "test_reset_gives_the_whole_interim_end_back", 311);
+  run_test(test_owns_tells_a_pool_from_its_neighbour, "test_owns_tells_a_pool_from_its_neighbour", 319);
+  run_test(test_owns_refuses_the_edges, "test_owns_refuses_the_edges", 332);
+  run_test(test_the_pools_do_not_share_a_fill_point, "test_the_pools_do_not_share_a_fill_point", 346);
+  run_test(test_a_span_over_pool_bytes_carries_the_pool_address, "test_a_span_over_pool_bytes_carries_the_pool_address", 360);
 
   return UNITY_END();
 }

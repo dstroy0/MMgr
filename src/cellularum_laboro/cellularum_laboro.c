@@ -610,36 +610,6 @@ MMGR_INLINE size_t cellul_copy(const CellulCtx *c)
     return n;
 }
 
-/**
- * @brief Reads a big-endian 32-bit length at at, then points out and slen at the payload.
- *
- * @param[in,out] c Buffer src with extent cap, the offset at, and the out and slen targets [BORROWS].
- * @return          MMGR_TRUE when the length and its payload both fit within cap.
- * @note Returns MMGR_FALSE when fewer than four bytes remain, or when the payload would pass cap.
- * @note Writes nothing through out or slen unless it returns MMGR_TRUE.
- */
-MMGR_INLINE mmgr_bool cellul_rd_str(const CellulCtx *c)
-{
-    // Explicit cast reads the buffer as bytes; c->src is char, and the length below is taken byte by byte
-    const uint8_t *const buf = (const uint8_t *)c->src;
-    size_t at = c->at;
-    if ((at > c->cap) || ((c->cap - at) < 4u))
-    {
-        return MMGR_FALSE;
-    }
-
-    // Explicit cast narrows the endian read into the uint32_t length, the width MMGR_ENDIAN_32 requested
-    const uint32_t n = (uint32_t)MMGR_CALL(magna_extremitas.rd, EndianCfg, .src = buf + at, .width = MMGR_ENDIAN_32);
-    at += 4u;
-
-    if (n > (c->cap - at))
-    {
-        return MMGR_FALSE;
-    }
-    *c->out = buf + at;
-    *c->slen = n;
-    return MMGR_TRUE;
-}
 
 /**
  * @brief Reads an optionally signed decimal integer from src.
@@ -849,34 +819,6 @@ MMGR_INLINE float cellul_to_float(const CellulCtx *c)
     return (float)cellul_to_double(c);
 }
 
-/**
- * @brief Right-aligns a big-endian integer into a fixed-width field, zero filling the front.
- *
- * @param[in,out] c Integer mpint with length mlen, and the field with length fieldlen [BORROWS].
- * @return          MMGR_TRUE when the integer fits, MMGR_FALSE when it does not.
- * @note Leading zero bytes of mpint are skipped before the width is checked.
- * @note The field is cleared first, so the bytes ahead of the value are zero.
- * @note Nothing is written to the field when it returns MMGR_FALSE.
- */
-MMGR_INLINE mmgr_bool cellul_mpint_fixed(const CellulCtx *c)
-{
-    uint32_t off = 0;
-
-    while ((off < c->mlen) && (c->mpint[off] == 0))
-    {
-        off++;
-    }
-
-    const uint32_t vlen = c->mlen - off;
-    if (vlen > c->fieldlen)
-    {
-        return MMGR_FALSE;
-    }
-    // Explicit casts match MemoriaCfg: val is a single byte, bytes is a size_t count
-    MMGR_CALL(memor.set, MemoriaCfg, .dst = c->field, .val = (uint8_t)0, .bytes = c->fieldlen);
-    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = c->field + (c->fieldlen - vlen), .src = c->mpint + off, .bytes = (size_t)vlen);
-    return MMGR_TRUE;
-}
 
 /**
  * @brief Returns a copy of the argument struct.
@@ -1009,16 +951,6 @@ mmgr_bool (mmgr_cellul_digit)(const CatenaFinitaCfg *c)
     return cellul_is_digit(c->src[c->at]);
 }
 
-/**
- * @brief Reads a length-prefixed string at src[at] into out and slen.
- *
- * @note Documented at the declaration in cellularum_laboro.h.
- */
-mmgr_bool (mmgr_cellul_rd_str)(const CatenaFinitaCfg *c)
-{
-    return MMGR_CALL(cellul_rd_str, CellulCtx, .src = c->src, .cap = c->cap, .at = c->at, .out = c->out,
-                     .slen = c->slen);
-}
 
 /**
  * @brief Picks the folded or exact word step on c->ci.
@@ -1088,13 +1020,3 @@ float (mmgr_cellul_to_float)(const TransfiguroCfg *c)
     return MMGR_CALL(cellul_to_float, CellulCtx, .src = c->src, .end = c->end);
 }
 
-/**
- * @brief Right-aligns c->mpint into c->field, zero filling the front.
- *
- * @note Documented at the declaration in cellularum_laboro.h.
- */
-mmgr_bool (mmgr_cellul_mpint_fixed)(const TransfiguroCfg *c)
-{
-    return MMGR_CALL(cellul_mpint_fixed, CellulCtx, .mpint = c->mpint, .mlen = c->mlen, .field = c->field,
-                     .fieldlen = c->fieldlen);
-}

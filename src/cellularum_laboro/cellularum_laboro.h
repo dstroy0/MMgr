@@ -33,11 +33,9 @@ typedef struct
     const char *const other;   /**< Second operand for diff, eq, starts and find [BORROWS]. */
     const size_t other_cap;    /**< Bytes readable from other. */
     char *const dst;           /**< Destination for copy [BORROWS]. */
-    const size_t at;           /**< Offset into src for len, ws, digit and rd_str. */
+    const size_t at;           /**< Offset into src for len, ws and digit. */
     const uint8_t byte;        /**< Byte sought by chr. */
     const mmgr_bool ci;        /**< Fold case in diff, eq, starts and find. */
-    const uint8_t **const out; /**< Set by rd_str to the payload start [BORROWS]. */
-    uint32_t *const slen;      /**< Set by rd_str to the payload length [BORROWS]. */
 } CatenaFinitaCfg;
 
 /**
@@ -56,18 +54,14 @@ typedef struct
 } VerboProgrediorCfg;
 
 /**
- * @brief Arguments for the conversions: text to number, and integer to fixed-width field.
+ * @brief Arguments for the conversions from text to number.
  *
- * @note The to_ calls read src and end; mpint_fixed reads mpint, mlen, field and fieldlen.
+ * @note Every one of them reads src, and sets end when it is given.
  */
 typedef struct
 {
     const char *const src;      /**< Text to convert [BORROWS]. */
     const char **const end;     /**< Optional target set past the last byte read [BORROWS]. */
-    const uint8_t *const mpint; /**< Big-endian integer for mpint_fixed [BORROWS]. */
-    const uint32_t mlen;        /**< Bytes in mpint. */
-    uint8_t *const field;       /**< Fixed-width output for mpint_fixed [BORROWS]. */
-    const size_t fieldlen;      /**< Bytes in field. */
 } TransfiguroCfg;
 
 /**
@@ -88,17 +82,15 @@ typedef struct
     size_t (*copy)(const CatenaFinitaCfg *c);             /**< Bounded copy, always terminated. */
     mmgr_bool (*ws)(const CatenaFinitaCfg *c);            /**< Whether src[at] is whitespace. */
     mmgr_bool (*digit)(const CatenaFinitaCfg *c);         /**< Whether src[at] is a decimal digit. */
-    mmgr_bool (*rd_str)(const CatenaFinitaCfg *c);        /**< Reads a length-prefixed string. */
     mmgr_iword (*step_word)(const VerboProgrediorCfg *c); /**< One word compare driving a walk. */
     mmgr_iword (*step_byte)(const VerboProgrediorCfg *c); /**< One byte compare driving a walk. */
     mmgr_iword (*to_long)(const TransfiguroCfg *c);       /**< Text to signed integer. */
     mmgr_word (*to_ulong)(const TransfiguroCfg *c);       /**< Text to unsigned integer. */
     double (*to_double)(const TransfiguroCfg *c);         /**< Text to double. */
     float (*to_float)(const TransfiguroCfg *c);           /**< Text to float. */
-    mmgr_bool (*mpint_fixed)(const TransfiguroCfg *c);    /**< Right-aligns an integer into a field. */
 } CellularumLaboroNs;
-MMGR_NS_LAYOUT(CellularumLaboroNs, init, len, diff, eq, starts, find, has, chr, copy, ws, digit, rd_str, step_word,
-               step_byte, to_long, to_ulong, to_double, to_float, mpint_fixed);
+MMGR_NS_LAYOUT(CellularumLaboroNs, init, len, diff, eq, starts, find, has, chr, copy, ws, digit, step_word,
+               step_byte, to_long, to_ulong, to_double, to_float);
 
 /**
  * @brief Returns a copy of the argument struct.
@@ -205,16 +197,6 @@ mmgr_bool mmgr_cellul_ws(const CatenaFinitaCfg *c);
  */
 mmgr_bool mmgr_cellul_digit(const CatenaFinitaCfg *c);
 
-/**
- * @brief Reads a big-endian 32-bit length at src[at], then points out and slen at the payload.
- *
- * @param[in,out] c Buffer src with cap, the offset at, and the out and slen targets [BORROWS].
- * @return          MMGR_TRUE when the length and its payload both fit within cap.
- * @note Returns MMGR_FALSE when fewer than four bytes remain, or when the payload would pass cap.
- * @note Writes nothing through out or slen unless it returns MMGR_TRUE.
- * @warning out points into src, so it stays valid only while src does [BORROWS].
- */
-mmgr_bool mmgr_cellul_rd_str(const CatenaFinitaCfg *c);
 
 /**
  * @brief Compares one word pair and reports whether a walk should continue.
@@ -281,16 +263,6 @@ double mmgr_cellul_to_double(const TransfiguroCfg *c);
  */
 float mmgr_cellul_to_float(const TransfiguroCfg *c);
 
-/**
- * @brief Right-aligns a big-endian integer into a fixed-width field, zero filling the front.
- *
- * @param[in,out] c Integer mpint with length mlen, and the field with length fieldlen [BORROWS].
- * @return          MMGR_TRUE when the integer fits, MMGR_FALSE when it does not.
- * @note Leading zero bytes of mpint are skipped before the width is checked.
- * @note Nothing is written to the field when it returns MMGR_FALSE.
- * @warning field must be writable for fieldlen bytes and mpint readable for mlen bytes.
- */
-mmgr_bool mmgr_cellul_mpint_fixed(const TransfiguroCfg *c);
 
 /**
  * @brief Dispatch table instance named cellul; each member calls the matching mmgr_cellul_ function.
@@ -307,14 +279,12 @@ MMGR_NS CellularumLaboroNs cellul MMGR_UNUSED = {
     .copy = mmgr_cellul_copy,
     .ws = mmgr_cellul_ws,
     .digit = mmgr_cellul_digit,
-    .rd_str = mmgr_cellul_rd_str,
     .step_word = mmgr_cellul_step_word,
     .step_byte = mmgr_cellul_step_byte,
     .to_long = mmgr_cellul_to_long,
     .to_ulong = mmgr_cellul_to_ulong,
     .to_double = mmgr_cellul_to_double,
     .to_float = mmgr_cellul_to_float,
-    .mpint_fixed = mmgr_cellul_mpint_fixed,
 };
 
 MMGR_FINIS_DECLS

@@ -3,9 +3,8 @@
 //
 // A lexer draining the ring while a channel fills it.
 //
-// This is the shape a DMA driven parser has: singularitas hands out a contiguous, granule
-// quantised grant, the channel fills it, and the next singularitas commits what landed and claims
-// the next one. The consumer reads through peek and consume and never sees the wrap.
+// This is the shape a streaming parser has: the channel puts whatever the ring will take, and the
+// consumer reads through peek and consume and never sees the wrap.
 //
 // Comment stripping is the workload because it needs a one byte lookahead, which is the thing that
 // makes a ring different from a buffer: `next` is routinely in a different word from `curr`, and
@@ -13,10 +12,10 @@
 // stripper written against a flat array grows a boundary bug for every one of them.
 //
 // Two properties of the module are load bearing here and are asserted by the cases below rather
-// than assumed. A commit is in granules, so a producer fills whole granules or it publishes
-// whatever the ring already held in the rest of one - the ring is poisoned in setUp so that would
-// surface as poison in the output. And the lexer holds its last available byte back while the
-// channel is still live, because that byte's lookahead has not landed yet.
+// than assumed. A put publishes exactly the bytes it was given and not one more - the ring is
+// poisoned in setUp, so anything else would surface as poison in the output. And the lexer holds
+// its last available byte back while the channel is still live, because that byte's lookahead has
+// not landed yet.
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 
 #include "unity.h"
@@ -25,15 +24,11 @@
 
 #define CAP 512u
 #define SEGS 2u
-#define GRAN MMGR_SING_GRANULE_MAX
 
 #define POISON 0xCCu
 
-static uint8_t ring_buf[CAP];
+static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t ring_buf[CAP];
 static mmgr_ring ring;
-static _Atomic mmgr_word held;
-static const int auctor = 0;
-static const SingularitasCfg channel = {&auctor, GRAN};
 
 static uint8_t out[4096];
 static uint8_t padded[4096];
@@ -47,8 +42,7 @@ void setUp(void)
 {
     memset(ring_buf, POISON, sizeof ring_buf);
     memset(out, POISON, sizeof out);
-    memset(&held, 0, sizeof held);
-    (void)iteratio_infinita.init(&(RingCfg){&ring, ring_buf, CAP, SEGS, &held});
+    (void)iteratio_infinita.init(&(InfinCfg){.ring = &ring, .buf = ring_buf, .cap = CAP, .nsegs = SEGS});
     g_state = 1u;
     g_esc = 0u;
     g_dest = out;
@@ -63,41 +57,22 @@ void tearDown(void)
  * the channel
  * ------------------------------------------------------------------------------------------- */
 
-/** @brief Fill grants until @p n bytes are in or the ring refuses. @return Bytes ingested. */
+/** @brief Put as much of @p n as the ring will take. @return Bytes ingested. */
 static size_t ingest(const uint8_t *src, size_t n)
 {
-    size_t total = 0;
+    const size_t room = iteratio_infinita.vacant(&(InfinCfg){.ring = &ring});
+    const size_t bytes = (n < room) ? n : room;
 
-    while (total < n)
+    if (bytes == 0u)
     {
-        size_t units = 0;
-        size_t tessera = 0;
-        mmgr_u16 status = 0;
-
-        uint8_t *const grant = iteratio_infinita.singularitas(
-            &(InfinCfg){.ring = &ring, .tessera = &tessera, .sing = &channel, .units = &units, .status = &status});
-
-        if ((grant == NULL) || (units == 0u))
-        {
-            break;
-        }
-
-        size_t bytes = units * GRAN;
-        if (bytes > (n - total))
-        {
-            bytes = (n - total) - ((n - total) % GRAN);
-        }
-        if (bytes == 0u)
-        {
-            break;
-        }
-        memcpy(grant, src + total, bytes);
-        total += bytes;
-
-        (void)iteratio_infinita.singularitas(
-            &(InfinCfg){.ring = &ring, .off = bytes / GRAN, .tessera = &tessera, .status = &status});
+        return 0u;
     }
-    return total;
+    // A put is all or nothing, so the span is trimmed to what vacant reported rather than retried
+    if (!iteratio_infinita.put(&(InfinCfg){.ring = &ring, .src = src, .bytes = bytes}))
+    {
+        return 0u;
+    }
+    return bytes;
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -195,16 +170,10 @@ static void drain(int live)
 
 static void run(const char *src, size_t chunk)
 {
-    const size_t raw = strlen(src) + 1u;
-    const size_t n = raw + ((GRAN - (raw % GRAN)) % GRAN);
+    const size_t n = strlen(src) + 1u;
 
     memset(padded, 0, sizeof padded);
-    memcpy(padded, src, raw);
-
-    if ((chunk % GRAN) != 0u)
-    {
-        chunk += GRAN - (chunk % GRAN);
-    }
+    memcpy(padded, src, n);
 
     size_t sent = 0;
     while ((sent < n) && !g_done)
@@ -235,7 +204,7 @@ static void run(const char *src, size_t chunk)
 /** @brief The same source at five ingest sizes, because the answer must not depend on them. */
 static void expect(const char *src, const char *want)
 {
-    static const size_t chunks[] = {GRAN, GRAN * 2u, 64u, 256u, 4096u};
+    static const size_t chunks[] = {1u, 7u, 64u, 256u, 4096u};
 
     for (size_t i = 0; i < sizeof chunks / sizeof chunks[0]; i++)
     {
@@ -293,8 +262,8 @@ void test_a_token_inside_a_literal_is_not_a_token(void)
 
 void test_a_token_at_every_offset_in_the_word(void)
 {
-    // The lookahead crosses into the next word at one offset in every GRAN, and across the wrap at
-    // one in every CAP. Sixteen offsets covers both at any granule this builds at.
+    // The lookahead crosses into the next word at one offset in every word, and across the wrap at
+    // one in every CAP. Sixteen offsets covers both at any word width this builds at.
     char src[64];
     char want[64];
 
@@ -355,9 +324,9 @@ void test_more_than_the_ring_holds(void)
 
 void test_nothing_the_channel_did_not_send_reaches_the_output(void)
 {
-    // setUp fills the ring with poison. A commit is in granules, so a producer that filled part of
-    // one and committed it whole would publish the rest of that granule - which is poison, and
-    // which a string comparison against a shorter expectation would not catch on its own.
+    // setUp fills the ring with poison. A put that published more than it was given - a mover whose
+    // tail carried a whole word when it was asked for fewer - would publish poison, which a string
+    // comparison against a shorter expectation would not catch on its own.
     expect("ab", "ab");
 
     for (size_t i = 0; i < sizeof out; i++)

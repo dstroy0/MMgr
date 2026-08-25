@@ -2,18 +2,18 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
-#include "custodia_soluta/custodia_soluta.h"
+#include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
+#include "guard_page.h"
+#include <stdio.h>
+#include <string.h>
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_soluta_header_is_self_contained(void);
-extern void test_soluta_namespace_is_wired(void);
-extern void test_init_hands_back_usable_memory(void);
-extern void test_init_comes_out_of_the_pool_it_was_given(void);
-extern void test_used_grows_with_what_was_taken(void);
-extern void test_release_gives_the_bytes_back(void);
-extern void test_release_does_not_wipe(void);
+extern void test_the_guard_is_armed(void);
+extern void test_the_ring_stays_inside_its_buffer_at_every_head(void);
+extern void test_a_drain_stays_inside_the_destination_it_was_given(void);
+extern void test_a_fill_stays_inside_the_source_it_was_given(void);
 
 
 /*=======Mock Management=====*/
@@ -74,14 +74,11 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/custodia_soluta/test_custodia_soluta/test_custodia_soluta.c");
-  run_test(test_soluta_header_is_self_contained, "test_soluta_header_is_self_contained", 21);
-  run_test(test_soluta_namespace_is_wired, "test_soluta_namespace_is_wired", 26);
-  run_test(test_init_hands_back_usable_memory, "test_init_hands_back_usable_memory", 35);
-  run_test(test_init_comes_out_of_the_pool_it_was_given, "test_init_comes_out_of_the_pool_it_was_given", 46);
-  run_test(test_used_grows_with_what_was_taken, "test_used_grows_with_what_was_taken", 55);
-  run_test(test_release_gives_the_bytes_back, "test_release_gives_the_bytes_back", 66);
-  run_test(test_release_does_not_wipe, "test_release_does_not_wipe", 78);
+  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_ring_bounds\\test_ring_bounds.c");
+  run_test(test_the_guard_is_armed, "test_the_guard_is_armed", 130);
+  run_test(test_the_ring_stays_inside_its_buffer_at_every_head, "test_the_ring_stays_inside_its_buffer_at_every_head", 149);
+  run_test(test_a_drain_stays_inside_the_destination_it_was_given, "test_a_drain_stays_inside_the_destination_it_was_given", 177);
+  run_test(test_a_fill_stays_inside_the_source_it_was_given, "test_a_fill_stays_inside_the_source_it_was_given", 206);
 
   return UNITY_END();
 }

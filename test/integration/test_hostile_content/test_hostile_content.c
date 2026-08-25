@@ -6,7 +6,6 @@ static const char *mmgr_cellul_nowhere;
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "numeros_scribo/numeros_scribo.h"
-#include "spatium/spatium.h"
 #include "verba_scribo/verba_scribo.h"
 #include "verbum_scrutor/verbum_scrutor.h"
 

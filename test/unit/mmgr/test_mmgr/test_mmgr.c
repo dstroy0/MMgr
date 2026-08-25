@@ -12,13 +12,14 @@ void test_every_namespace_is_reachable(void)
         TEST_ASSERT_NOT_NULL(bitio.put);
     TEST_ASSERT_NOT_NULL(byteio.put);
     TEST_ASSERT_NOT_NULL(cellul.len);
-    TEST_ASSERT_NOT_NULL(soluta.init);
+    TEST_ASSERT_NOT_NULL(carcer.persist_capio);
     TEST_ASSERT_NOT_NULL(parva_extremitas.wr);
     TEST_ASSERT_NOT_NULL(magna_extremitas.rd);
     TEST_ASSERT_NOT_NULL(fract.sign);
     TEST_ASSERT_NOT_NULL(memor.cpy);
     TEST_ASSERT_NOT_NULL(numer.build);
-    TEST_ASSERT_NOT_NULL(secura.init);
+    TEST_ASSERT_NOT_NULL(carcer.secura_reddo);
+    TEST_ASSERT_NOT_NULL(spat.from);
     TEST_ASSERT_NOT_NULL(proxim.put16);
     TEST_ASSERT_NOT_NULL(verba.put_n);
     TEST_ASSERT_NOT_NULL(lane.has_zero);

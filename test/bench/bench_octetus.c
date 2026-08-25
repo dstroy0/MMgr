@@ -3,6 +3,7 @@
 #include "bench_harness.h"
 
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
+#include "spatium/spatium.h"
 #include "memoria_operor/memoria_operor.h"
 
 #define ITERS 5000000ul
@@ -19,7 +20,8 @@ static uint64_t g_srcstore[8];
         double cy_ = 0.0;                                                                                              \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             const size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u)) & ~(size_t)7u;                                      \
-            MMGR_CALL(byteio.put, OctetusCfg, .at = mem_ + off_, .val = (uint64_t)bench_i_, .bytes = (size_t)(WIDTH));                                          \
+            mmgr_span w_ = spat.from(mem_ + off_, 8u);                                                                 \
+            MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w_, .val = (uint64_t)bench_i_, .bytes = (size_t)(WIDTH));       \
             BENCH_KEEP(mem_[off_]);                                                                                    \
         });                                                                                                            \
         printf("octetus,put,%u,%.4f\n", (unsigned)(WIDTH), cy_);                                                       \
@@ -34,7 +36,8 @@ static uint64_t g_srcstore[8];
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             const size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u)) & ~(size_t)7u;                                      \
             uint64_t out_ = 0;                                                                                         \
-            MMGR_CALL(byteio.take, OctetusCfg, .from = mem_ + off_, .out = &out_, .bytes = (size_t)(WIDTH));                                                       \
+            mmgr_cspan r_ = spat.cfrom(mem_ + off_, 8u);                                                               \
+            BENCH_KEEP(MMGR_CALL(byteio.take_be, OctetusCfg, .r = &r_, .out = &out_, .bytes = (size_t)(WIDTH)));       \
             BENCH_KEEP(out_);                                                                                          \
         });                                                                                                            \
         printf("octetus,take,%u,%.4f\n", (unsigned)(WIDTH), cy_);                                                      \

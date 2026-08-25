@@ -186,3 +186,84 @@ void test_namespace_is_wired(void)
     TEST_ASSERT_EQUAL_PTR(mmgr_bitor_put, bitio.put);
     TEST_ASSERT_EQUAL_PTR(mmgr_bitor_init, bitio.init);
 }
+
+/**
+ * @brief Bits that do not fill a byte reach the buffer, which without align they never did.
+ *
+ * @note put writes whole bytes only, so before there was an align these four bits stayed in the
+ *       residue and no entry could get them out. A stream whose length is not a whole number of
+ *       bytes lost its last partial byte.
+ */
+void test_align_writes_the_partial_byte(void)
+{
+    put_bits(0x5u, 4u);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, w.cnt, "four bits do not fill a byte, so put writes none");
+
+    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
+
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, w.cnt, "align is what writes them");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x05u, out[0], "the bits sit low with zero padding above them");
+    TEST_ASSERT_EQUAL_size_t(0u, w.nbits);
+    TEST_ASSERT_FALSE(w.overflow);
+}
+
+void test_align_on_a_byte_boundary_writes_nothing(void)
+{
+    put_bits(0xA5u, 8u);
+    TEST_ASSERT_EQUAL_size_t(1u, w.cnt);
+
+    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
+
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, w.cnt, "there was no residue, so nothing was written");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xAAu, out[1], "and the byte past the stream was not touched");
+}
+
+void test_align_twice_is_the_same_as_once(void)
+{
+    put_bits(0x3u, 2u);
+    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
+    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
+
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, w.cnt, "the second align had no residue to write");
+    TEST_ASSERT_EQUAL_HEX8(0x03u, out[0]);
+}
+
+/**
+ * @brief A stream that is not a whole number of bytes comes back exactly, which is the point.
+ */
+void test_a_stream_of_odd_length_round_trips(void)
+{
+    // 3 + 5 + 4 = 12 bits: one whole byte and a nibble the residue holds
+    put_bits(0x5u, 3u);
+    put_bits(0x1Au, 5u);
+    put_bits(0x9u, 4u);
+
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, w.cnt, "twelve bits fill one byte and leave four over");
+    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
+    TEST_ASSERT_EQUAL_size_t(2u, w.cnt);
+
+    // LSB first: the 3 bits sit lowest, the 5 above them, then the nibble opens the next byte
+    TEST_ASSERT_EQUAL_HEX8((uint8_t)(0x5u | (0x1Au << 3)), out[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x09u, out[1]);
+}
+
+void test_align_on_a_full_buffer_overflows_rather_than_writing(void)
+{
+    for (size_t i = 0; i < sizeof out; i++)
+    {
+        put_bits(0xFFu, 8u);
+    }
+    TEST_ASSERT_EQUAL_size_t(sizeof out, w.cnt);
+    TEST_ASSERT_FALSE(w.overflow);
+
+    put_bits(0x1u, 1u);
+    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
+
+    TEST_ASSERT_TRUE_MESSAGE(w.overflow, "there was no room for the partial byte");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof out, w.cnt, "and nothing was written past the buffer");
+}
+
+void test_the_align_entry_is_wired(void)
+{
+    TEST_ASSERT_EQUAL_PTR(mmgr_bitor_align, bitio.align);
+}

@@ -22,7 +22,15 @@ for memory and never gives any back, because it was never holding any.
       (a view)     (a view)                  stack, newest first
 ```
 
-Four things, in the order a byte meets them.
+Five things, in the order a byte meets them. The first four are one path:
+
+```
+    carceribus [init] ──► secura / soluta [spatium] ──► operation
+```
+
+A region is carved at compile time; a custodia takes a tenancy out of one of its pools and hands
+back its start; a span bounds that tenancy; and the text, scan and copy calls work against the span.
+Rings are the fifth, and sit alongside that line rather than on it.
 
 ## 1. The region and its pools
 
@@ -33,13 +41,16 @@ two ends of the same buffer:
 - **persist** grows up from the base. It is for things that live as long as the region does.
 - **interim** grows down from the top. It is the working space for one operation.
 
-They grow toward each other. A take that would put them past one another fails and returns `NULL`
-rather than overrunning. `mmgr_carcer_octas_praesto` reports the gap still between them — "bytes at
-hand". It is not a release; it answers _how much is left_.
+They grow toward each other, and neither take looks at the gap. `persist_capio` and `interim_capio`
+move the offset and hand back the address; there is no branch in either one and no value they can
+return that means no. `mmgr_carcer_octas_praesto` reports the gap still between them — "bytes at
+hand" — and reading it before a take is what keeps the two ends apart. It is not a release; it
+answers _how much is left_.
 
-Nothing in a pool is ever individually freed. `persist_reddo` exists and takes a pointer, but
-it only unwinds the most recent take. That is the trade the whole library is built on: giving up
-free-anything-anytime is what makes the footprint decidable.
+Nothing in a pool is ever individually freed. `persist_reddo` exists, but it takes a byte count, not
+a pointer, and subtracts it from `persist_end`. It unwinds the bottom end by however much you name
+and knows nothing about which take those bytes came from. That is the trade the whole library is
+built on: giving up free-anything-anytime is what makes the footprint decidable.
 
 ## 2. Interim is released by mark, not by pointer
 
@@ -49,13 +60,21 @@ Interim is a stack.
 const size_t mark = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = pool);
 uint8_t *work = MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = pool, .size = 512u);
 /* ... use it ... */
-MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = pool, .size = mark);
+MMGR_CALL(carcer.interim_reset, CarcerCfg, .pool = pool);
 ```
 
-Nothing is reallocated and nothing moves, so `work` still points at readable memory after the
-`reddo`. It is dead all the same. A pointer handed out after a mark is invalid the moment that mark
-is released, and the library cannot tell you that you kept it. This is the sharpest edge in MMgr and
-it is worth reading twice.
+`interim_mark` reports the current top. `interim_reset` assigns the top the pool's size, releasing
+every interim take at once.
+
+`interim_reddo` is the entry for winding back to one mark rather than all of them. As the code
+stands it assigns `interim_top` the value `interim_mark` reports for that same pool — the value it
+already holds — and it never reads `c->size`, so handing it a mark changes nothing. Use
+`interim_reset` until that is settled.
+
+Nothing is reallocated and nothing moves, so `work` still points at readable memory after a reset.
+It is dead all the same. A pointer handed out after a mark is invalid the moment that mark is
+released, and the library cannot tell you that you kept it. This is the sharpest edge in MMgr and it
+is worth reading twice.
 
 ## 3. Custodiae hand out tenants
 
@@ -108,13 +127,20 @@ if (MMGR_CALL(verba.finish, VerbaCfg, .out = buf, .cap = n, .at = at) == 0u) { }
 ## 5. Rings move bytes between a producer and a consumer
 
 `confinium_exclusivum_infinitas` is the only part of the library that is concurrent, and only in one
-shape: **single producer, single consumer**. It is built on `<stdatomic.h>`.
+shape: **single producer, single consumer**. Every atomic access goes through the module's own
+`MMGR_ATOMIC_LOAD`, `MMGR_ATOMIC_STORE` and `MMGR_ATOMIC_CLEAR`, which today expand to the
+`_explicit` forms from `<stdatomic.h>`.
 
-It offers three things: a byte ring, a segment queue for passing whole buffers by index instead of
-copying them, and a bitmap allocator. The bitmap holds one bit per loculus in a single
-`_Atomic mmgr_word`, so `MMGR_RING_LOCULI_MAX` is `MMGR_WORD_BITS` — 64 loculi on a 64-bit build, 16
-on a 16-bit one. It is not a knob you can raise by editing a number; it is however wide the target's
-word is, because the whole mask has to be claimed in one atomic operation.
+It offers three things: a byte ring, drain runs that hand out whole segments by index instead of
+copying them, and one exclusive writer grant.
+
+The ring's size is yours to pick. `cap` is the bytes in the buffer you hand `mmgr_infin_init`, and
+any non-zero power of two is accepted — the target's word width has nothing to say about it. What
+the word width bounds is `nsegs`, the number of segments that ring is divided into: a run's holds
+live one bit each in the single `_Atomic mmgr_word` you supply as `held`, so `MMGR_RING_LOCULI_MAX`
+is `MMGR_WORD_BITS` — 64 segments on a 64-bit build, 16 on a 16-bit one. `init` refuses an `nsegs`
+that is above that, above `cap`, or not a power of two. That one bound is not a knob you can raise
+by editing a number, because the whole mask has to be claimed in one atomic operation.
 
 ## Who owns what
 
@@ -123,10 +149,10 @@ word is, because the whole mask has to be claimed in one atomic operation.
 | caller's buffer | the caller      | the caller        | outlives everything below  |
 | pool            | nothing         | nothing           | the region's               |
 | persist take    | bumps a pointer | only by unwinding | the pool's                 |
-| interim take    | bumps a pointer | by mark           | until its mark is released |
-| tenant          | a pool's buffer | `reset`           | until reset                |
+| interim take    | bumps a pointer | `interim_reset`   | until the next reset       |
+| tenant          | a pool's buffer | `release`         | until released             |
 | span            | nothing         | nothing           | its target's               |
-| ring loculus    | a bit in a mask | `drop`            | until dropped              |
+| ring segment    | a bit in a mask | the drain run     | until that run finishes    |
 
 The column that matters is the third one. Nothing in MMgr frees anything in the sense a heap does;
 every "free" is either unwinding a bump pointer or clearing a bit.
@@ -137,9 +163,10 @@ every "free" is either unwinding a bump pointer or clearing a bit.
 general free. There is no allocation failure at an arbitrary point, because every take is against a
 region whose size you chose. Worst-case timing is a pointer bump.
 
-**Costs.** You must size it yourself, up front. Get it wrong and a take returns `NULL` in production
-rather than the allocator quietly finding more. The usage counters exist for exactly this: run the
-real workload under the `checks` environment, read them, then size the region.
+**Costs.** You must size it yourself, up front. Get it wrong and nothing tells you: the take returns
+an address either way, and the two ends walk past each other. No allocator quietly finds more, and
+no return value reports the miss. The usage counters exist for exactly this: run the real workload
+under the `checks` environment, read them, then size the region.
 
 `mmgr_carcer_persist_used`, `mmgr_soluta_used` and `mmgr_secura_used` report what is outstanding
 right now, and `mmgr_carcer_octas_praesto` reports what is left.

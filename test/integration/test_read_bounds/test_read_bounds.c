@@ -1,7 +1,6 @@
 #include "unity.h"
 
 #include "cellularum_laboro/cellularum_laboro.h"
-#include "spatium/spatium.h"
 #include "verbum_scrutor/verbum_scrutor.h"
 
 #include "guard_page.h"

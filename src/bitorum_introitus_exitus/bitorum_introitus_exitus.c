@@ -77,6 +77,34 @@ MMGR_INLINE void bitor_put(const BitorCtx *c)
 }
 
 /**
+ * @brief Writes the partial byte c->writer still holds, padded with zeros above its bits.
+ *
+ * @param[in,out] c Writer to finish [BORROWS].
+ * @note The residue already carries its bits in the low nbits positions with zeros above, so the
+ *       padding is what is there rather than anything this has to add.
+ * @note Does nothing when the residue is empty, which is what makes it safe to end every stream with
+ *       whether or not the last put happened to land on a byte.
+ */
+MMGR_INLINE void bitor_align(const BitorCtx *c)
+{
+    mmgr_bitor *const writer = c->writer;
+
+    if (writer->overflow || (writer->nbits == 0u))
+    {
+        return;
+    }
+    if (writer->cnt >= writer->cap)
+    {
+        writer->overflow = MMGR_TRUE;
+        return;
+    }
+    writer->out[writer->cnt] = writer->residue;
+    writer->cnt++;
+    writer->residue = 0;
+    writer->nbits = 0;
+}
+
+/**
  * @brief Fills an mmgr_bitor from c->out and c->cap, with the counters zeroed.
  *
  * @note Documented at the declaration in bitorum_introitus_exitus.h.
@@ -105,4 +133,15 @@ mmgr_bitor mmgr_bitor_init(const BitorumCfg *c)
 void mmgr_bitor_put(const BitorumCfg *c)
 {
     MMGR_CALL(bitor_put, BitorCtx, .writer = c->writer, .val = c->val, .nbits = c->nbits);
+}
+
+/**
+ * @brief Copies c->writer into a BitorCtx and calls bitor_align.
+ *
+ * @note c->val and c->nbits are not read; a flush has nothing to be given.
+ * @note Documented at the declaration in bitorum_introitus_exitus.h.
+ */
+void mmgr_bitor_align(const BitorumCfg *c)
+{
+    MMGR_CALL(bitor_align, BitorCtx, .writer = c->writer);
 }

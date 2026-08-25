@@ -1,67 +1,137 @@
 /**
- * @brief Fixed-width byte moves: the arguments, the two calls, and the byteio dispatch table.
+ * @brief Byte verbs over a span: append into one being filled, take out of one being read.
  *
- * @note Both calls reverse the byte order from the target's own, which is big endian on a little endian target.
+ * @note These act on a caller's span and hold nothing of their own. The span carries the cursor and
+ *       the sticky flag, so a caller may append a whole message and test once at the end.
+ * @note An append that does not fit stores nothing and latches the span's overflow, but still counts
+ *       the bytes in pos. That is what lets a caller size a buffer by filling a span it knows is too
+ *       small and reading back what pos wanted.
+ * @note A take that reaches past the end sets the read span's err, leaves the cursor and the output
+ *       where they were, and answers MMGR_FALSE. Reads do not advance on failure, because a caller
+ *       that keeps reading after one wants the cursor to still mean something.
+ * @note Whole values move a word at a time: the big endian entries reverse once and then store or
+ *       load at the widest step the count allows, rather than walking bytes.
  */
 #ifndef MMGR_OCTETUS_INTROITUS_EXITUS_H
 #define MMGR_OCTETUS_INTROITUS_EXITUS_H
+
+#include "spatium/spatium.h"
 
 #include "config/mmgr_config.h"
 
 MMGR_INCIPE_DECLS
 
 /**
- * @brief Arguments for the two byteio calls.
+ * @brief Arguments for the byteio calls; each reads only what it needs.
  *
- * @note put reads at, val and bytes; take reads from, out and bytes.
+ * @note put reads w and byte; put_be reads w, val and bytes; raw reads w, src and bytes;
+ *       take_be reads r, bytes and out.
  */
 typedef struct
 {
-    uint8_t *const at;         /**< Destination for put [BORROWS]. */
-    const uint8_t *const from; /**< Source for take [BORROWS]. */
-    uint64_t *const out;       /**< Where take stores the value it read [BORROWS]. */
-    const uint64_t val;        /**< Value put writes, taken from its low bytes. */
-    const size_t bytes;        /**< Bytes the call moves, 1 through 8. */
+    mmgr_span *const w;         /**< Span an append writes into, or the field mpint_fixed fills [BORROWS]. */
+    mmgr_cspan *const r;        /**< Span a take reads from [BORROWS]. */
+    const uint8_t *const src;   /**< Bytes raw appends, or the integer mpint_fixed reads [BORROWS]. */
+    uint64_t *const out;        /**< Where take_be stores the value it read [BORROWS]. */
+    const uint8_t **const blob; /**< Where rd_str points at the payload it found [BORROWS]. */
+    size_t *const blen;         /**< Where rd_str stores that payload's length [BORROWS]. */
+    const uint64_t val;         /**< Value put_be writes, taken from its low bytes. */
+    const size_t bytes;         /**< Bytes the call moves; 1 through 8 for the big endian entries. */
+    const uint8_t byte;         /**< The single byte put appends. */
 } OctetusCfg;
 
 /**
  * @brief Type of the byteio dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the two members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note MMGR_NS_LAYOUT asserts the four members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
  */
 typedef struct
 {
-    void (*put)(const OctetusCfg *c);  /**< Writes bytes of a value to memory. */
-    void (*take)(const OctetusCfg *c); /**< Reads bytes of a value from memory. */
+    void (*put)(const OctetusCfg *c);             /**< Appends one byte. */
+    void (*put_be)(const OctetusCfg *c);          /**< Appends bytes of a value, most significant first. */
+    void (*raw)(const OctetusCfg *c);             /**< Appends a run of bytes as they are. */
+    mmgr_bool (*take_be)(const OctetusCfg *c);    /**< Reads a big endian value and advances past it. */
+    mmgr_bool (*rd_str)(const OctetusCfg *c);     /**< Reads a length-prefixed run and points at it. */
+    mmgr_bool (*mpint_fixed)(const OctetusCfg *c); /**< Right-aligns an integer into a fixed field. */
 } OctetusIntroitusExitusNs;
-MMGR_NS_LAYOUT(OctetusIntroitusExitusNs, put, take);
+MMGR_NS_LAYOUT(OctetusIntroitusExitusNs, put, put_be, raw, take_be, rd_str, mpint_fixed);
 
 /**
- * @brief Places the low c->bytes bytes of c->val at c->at, in reversed byte order.
+ * @brief Appends c->byte to c->w.
  *
- * @param[in] c Destination, value and count [BORROWS].
- * @note The 8 - c->bytes bytes after the value are written as zeros.
- * @warning Stores eight bytes, so c->at must be writable for eight and aligned for a uint64_t.
+ * @param[in,out] c Span and the byte to append [BORROWS].
+ * @note Past the span's cap nothing is stored and its overflow latches; pos counts the byte either way.
+ */
+void mmgr_byteio_put(const OctetusCfg *c);
+
+/**
+ * @brief Appends the low c->bytes of c->val to c->w, most significant byte first.
+ *
+ * @param[in,out] c Span, value and byte count [BORROWS].
+ * @note The value is reversed once and then stored at the widest step the count allows, so a count of
+ *       eight is one store and a count of seven is three.
+ * @note Past the span's cap nothing is stored and its overflow latches; pos advances either way.
  * @warning c->bytes must be 1 through 8.
  */
-void mmgr_octet_put(const OctetusCfg *c);
+void mmgr_byteio_put_be(const OctetusCfg *c);
 
 /**
- * @brief Reads c->bytes from c->from in reversed byte order and stores the value in *c->out.
+ * @brief Appends c->bytes from c->src to c->w as they are.
  *
- * @param[in] c Source, destination for the value, and count [BORROWS].
- * @note The value lands in the low c->bytes of *c->out, with the bytes above it zero.
- * @warning Reads eight bytes, so c->from must be readable for eight and aligned for a uint64_t.
+ * @param[in,out] c Span, source and byte count [BORROWS].
+ * @note Past the span's cap nothing is stored and its overflow latches; pos advances either way.
+ * @warning c->src must be readable for c->bytes, and must not overlap the span's buffer.
+ */
+void mmgr_byteio_raw(const OctetusCfg *c);
+
+/**
+ * @brief Reads a big endian value of c->bytes at c->r's cursor and advances past it.
+ *
+ * @param[in,out] c Span, byte count and where to store the value [BORROWS].
+ * @return          MMGR_TRUE when the bytes were there, MMGR_FALSE when the span was short.
+ * @note Reads at the cursor and nowhere else: a codec that leads with a tag advances past it itself.
+ * @note A read reaching past the end sets the span's err and leaves the cursor and c->out untouched.
  * @warning c->bytes must be 1 through 8.
  */
-void mmgr_octet_take(const OctetusCfg *c);
+mmgr_bool mmgr_byteio_take_be(const OctetusCfg *c);
 
 /**
- * @brief Dispatch table instance named byteio; each member calls the matching mmgr_octet_ function.
+ * @brief Reads a big endian 32-bit length at c->r's cursor, then points c->blob at the run behind it.
+ *
+ * @param[in,out] c Span, and where to report the run and its length [BORROWS].
+ * @return          MMGR_TRUE when the length and its run both lay within the span.
+ * @note Nothing is copied: c->blob points into the span's own bytes, so it lives only as long as they
+ *       do [BORROWS].
+ * @note The cursor advances past the length and the run together, so a caller reading a sequence of
+ *       these needs to track nothing between them.
+ * @note A run reaching past the end leaves the cursor where it started, sets the span's err, and
+ *       writes nothing through c->blob or c->blen. The length alone having been read does not move
+ *       the cursor either: a partial read is not a read.
+ */
+mmgr_bool mmgr_byteio_rd_str(const OctetusCfg *c);
+
+/**
+ * @brief Right-aligns the big endian integer at c->src into c->w's whole buffer, zero filling ahead of it.
+ *
+ * @param[in,out] c The integer with its length in c->src and c->bytes, and the field as c->w [BORROWS].
+ * @return          MMGR_TRUE when the integer fits the field, MMGR_FALSE when it does not.
+ * @note Leading zero bytes of the integer are skipped before the width is tested, so a value carrying
+ *       a sign byte still fits a field of its own size.
+ * @note The field is written whole, not appended to: on success c->w's cursor ends at its cap.
+ * @note Nothing is written to the field when it returns MMGR_FALSE.
+ */
+mmgr_bool mmgr_byteio_mpint_fixed(const OctetusCfg *c);
+
+/**
+ * @brief Dispatch table instance named byteio; each member calls the matching mmgr_byteio_ function.
  */
 MMGR_NS OctetusIntroitusExitusNs byteio MMGR_UNUSED = {
-    .put = mmgr_octet_put,
-    .take = mmgr_octet_take,
+    .put = mmgr_byteio_put,
+    .put_be = mmgr_byteio_put_be,
+    .raw = mmgr_byteio_raw,
+    .take_be = mmgr_byteio_take_be,
+    .rd_str = mmgr_byteio_rd_str,
+    .mpint_fixed = mmgr_byteio_mpint_fixed,
 };
 
 MMGR_FINIS_DECLS
