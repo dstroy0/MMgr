@@ -78,6 +78,14 @@ terminator was found. If you need to know which happened, compare against the ca
 **`find` anchors on the rarest byte of the needle**, using @ref mod_anchor_guide. That is why it is
 fast on real text and why the profile matters.
 
+**Except for a needle of one or two bytes**, which is settled by a mask chain instead: one broadcast
+per needle byte, every start position in a word decided at once, nothing to verify afterwards. There
+is no rare byte to find in two bytes and no rest to prove, so the anchor's cost table would be read
+before a haystack byte is. The chain also costs the same whatever the haystack holds, where an
+anchor costs more when its byte is common — measured against a needle whose first byte turns up every
+fifteen bytes, MMgr does not move and ROM `strstr` loses 10%. Case folding always takes the anchor
+path; the chain compares raw bytes. See `MMGR_FIND_CHAIN_MAX` in @ref ref_configuration.
+
 ## Reference
 
 @ref mod_cellul "Generated reference"

@@ -49,8 +49,10 @@ the stack first:
 42009449: call8 <mmgr_scrut_lane_lo>
 ```
 
-Measured on the S3, `len` at n=2048: **26.6 cycles/byte without LTO, 5.0 with**. The no-LTO figure is
-worse than newlib's byte-at-a-time `strnlen` at 9.0.
+Measured on the S3, `len` at n=2048 when that was taken: **26.6 cycles/byte without LTO, 5.0 with**.
+The no-LTO figure is worse than the byte-at-a-time ROM `strnlen` it is being compared to, at 9.0.
+`len` is 2.547 now, so the gap is wider than that pair records; it is left as taken rather than
+scaled by guesswork.
 
 ## What the walks stopped doing
 
@@ -69,19 +71,29 @@ an out-of-line call in the hot loop. The sieve's bytes are fixed for the walk, s
 once ahead of it and compared inline.
 
 Per 4-byte word, `cmp` went from ~18 instructions to ~6, which is what a word-wise memcmp does.
-Cycles per byte at n=2048 on the S3:
+
+Three more changes followed, each measured on the part:
+
+- **The aligned load.** Every word was read through `word.load`, which goes to a type carrying
+  `MMGR_ALIGN(1)`. Neither shipping part has an unaligned word load, so the compiler assembled one
+  out of four byte loads and six shifts, in the loop. The walks now step to the first word boundary
+  and read the body through `word.load_al`. `len` went 3.788 cycles/byte to 3.055 on that alone.
+- **Two words a pass in `len`.** The load and the `has_zero` reading it are a dependent pair and
+  neither part issues them back to back without stalling. 3.055 to 2.547. Tried on `chr` and
+  `memor.chr` and lost on both - they already carry enough arithmetic to cover the load.
+- **A mask chain for one and two byte needles.** `find` was building the anchor-and-verify sieve for
+  a needle with no rare byte to anchor on. 11.32 cycles/byte to 6.543.
+
+Cycles per byte at n=2048 on the S3, start of the work to now:
 
 | op | before | after | libc ROM |
 |------|--------|-------|----------|
-| len  | 8.04 | **5.04** | 9.03 |
-| chr  | 15.30 | **4.03** | 7.02 |
-| cmp  | 5.77 | **2.02** | 2.77 |
-| find | 11.32 | **7.57** | 9.02 |
+| len  | 8.04 | **2.547** | 9.024 |
+| chr  | 15.30 | **4.274** | 7.021 |
+| cmp  | 5.77 | **2.020** | 2.773 |
+| find | 11.32 | **6.543** | 9.021 |
 
-The module's .text grew 236 bytes for all of it, 6506 to 6742 at -O2 on Xtensa. The byte walk was
-the one change that paid twice: writing its case-sensitive step as the byte compare it amounts to,
-rather than reaching cellul_step_byte through a CellulCtx, took 28 bytes back out and took `find`
-from 206 cycles to 187 at n=8.
+The module's .text grew from 6506 to 8550 at -O2 on Xtensa for all of it.
 
 ## Every timed result must be kept
 
@@ -95,27 +107,36 @@ Raw captures are in `results/`. Ratios are mmgr/libc, so below 1.00 is a win.
 
 | op | S3 n=8 | S3 n=2048 | C6 n=8 | C6 n=2048 |
 |------|--------|-----------|--------|-----------|
-| len  | 1.04 | **0.56** | 1.20 | **0.53** |
-| chr  | 1.06 | **0.57** | 1.01 | **0.42** |
-| cmp  | **0.83** | **0.73** | 1.09 | **0.83** |
-| find | 1.76 | **0.84** | 1.96 | **0.79** |
+| len  | **0.99** | **0.28** | 1.11 | **0.25** |
+| chr  | **0.86** | **0.61** | **0.81** | **0.42** |
+| cmp  | **0.83** | **0.73** | 1.07 | **0.83** |
+| find | 1.26 | **0.73** | 1.45 | **0.90** |
+| find_hot | 1.11 | **0.66** | 1.29 | **0.81** |
 
-Every entry beats libc once the buffer is a few words long. `len`, `chr` and `cmp` cross over at
-n=16; `find` at n=128 on the S3 and n=64 on the C6.
+Every entry beats libc once the buffer is a few words long. `find` crosses over at n=32 on the S3
+with the easy needle and n=16 with the hostile one.
 
-What remains above 1.00 is at n=8, and it is fixed cost rather than per-byte work: one entry call
-that is not inlined into the caller, plus, for `find`, building the sieve. `find` runs
-cellul_pick_rows over the needle against the cost table before a haystack byte is read, and over one
-word that is most of the measurement.
+`find_hot` searches for a needle whose first byte turns up every fifteen bytes and whose pair never
+occurs; `find` searches for one whose first byte is not in the haystack's alphabet at all. MMgr
+costs the same either way - 13400.7 cycles at n=2048 against 13400.8 - because the chain settles
+every start position in a word arithmetically. ROM `strstr` does not: 18474 against 20394. That is
+why the chain keeps its third `has_zero` rather than anchoring on one byte and verifying the other,
+which would be about 20% cheaper and would buy it by becoming data dependent exactly where libc
+already is.
 
-Routing short haystacks past the sieve to the byte walk was tried twice and lost twice, for two
-different reasons, and both are recorded here so it is not tried a third time. The first attempt
-went through cellul_step_byte per byte, which cost more than the single sieved word it replaced:
-n=8 went 207 to 260. The walk's case-sensitive arm is a plain byte compare now, so the second
-attempt should have been cheaper - but factoring the walk into a function both arms could call made
-it a real call on the hot path too, and n=8 went 187 to 308 while n=2048 regressed 10%. Forcing it
-inline instead puts the whole walk in the entry twice. What is left is the shape here: no bypass,
-one copy of the walk, inline.
+What remains above 1.00 is at n=8, and it is fixed cost rather than per-byte work. Subtract the
+floor first: `floor_call` is 41 cycles on the S3 and 28 on the C6, and both arms pay it. For `find`
+the rest is prologue - two broadcasts, a span, a reach and a word count settled before the first byte
+is read.
+
+Routing short haystacks past the word machinery to the byte walk was tried twice and lost twice, for
+two different reasons, and both are recorded here so it is not tried a third time. The first attempt
+went through cellul_step_byte per byte, which cost more than the single sieved word it replaced: n=8
+went 207 to 260. The walk's case-sensitive arm is a plain byte compare now, so the second attempt
+should have been cheaper - but factoring the walk into a function both arms could call made it a real
+call on the hot path too, and n=8 went 187 to 308 while n=2048 regressed 10%. Forcing it inline
+instead puts the whole walk in the entry twice. What is left is the shape here: no bypass, one copy
+of the walk, inline.
 
 The libc side is ESP-ROM code (`strnlen` at `0x400013f8`, `memcmp` at `0x4000120c`), hand-written
 assembly executing from ROM. The library executes from flash through the instruction cache. The

@@ -65,9 +65,10 @@ LTO is load-bearing, and it is worth being blunt about how much. The SWAR primit
 in `verbum_scrutor.c` by `GENERIC_ENTRY` and called by name from every other module, so no
 translation unit can inline them on its own; the build sets `CMAKE_INTERPROCEDURAL_OPTIMIZATION` for
 exactly that reason. Built without it, one machine-word step becomes three to five out-of-line calls,
-each with its argument struct spilled to the stack first, and `cellul.len` measures **26.6
+each with its argument struct spilled to the stack first, and `cellul.len` measured **26.6
 cycles/byte on an ESP32-S3 against 5.0 with it** - worse than the byte-at-a-time ROM `strnlen` it is
-being compared to.
+being compared to. The walks have since been reworked and `len` is at 2.547, so the gap without LTO
+is wider now than that measurement records; it is left as taken rather than scaled by guesswork.
 
 @warning A toolchain that cannot do link-time optimization does not give a slower build of the same
 library; it gives a different one. ESP-IDF appends `-fno-lto` to every link unconditionally, so an
@@ -84,25 +85,47 @@ part's cycle counter. That libc is ESP-ROM - `strnlen`, `strchr`, `memcmp`, `mem
 `memset` and `strstr` are hand-written assembly in the mask ROM, executing without flash-cache
 pressure, while the library executes from flash through the instruction cache.
 
-Cycles per byte at n=2048, ESP32-S3 at 240 MHz, ratios mmgr/libc so below 1.00 is a win:
+Cycles per byte at n=2048, ratios mmgr/libc so below 1.00 is a win:
 
-| module       | op   |  mmgr | libc ROM | ratio |
-| ------------ | ---- | ----: | -------: | ----: |
-| `cellul`     | len  |  5.04 |     9.03 | **0.56** |
-| `cellul`     | chr  |  4.03 |     7.02 | **0.57** |
-| `cellul`     | cmp  |  2.02 |     2.77 | **0.73** |
-| `cellul`     | find |  7.57 |     9.02 | **0.84** |
-| `memor`      | cmp  |  2.02 |     2.77 | **0.73** |
-| `memor`      | chr  |  3.27 |     7.02 | **0.47** |
-| `memor`      | cpy  | 0.646 |    0.646 | 1.00 |
-| `memor`      | set  | 0.333 |    0.336 | **0.99** |
+| module   | op   | S3 mmgr | S3 libc | S3 ratio | C6 mmgr | C6 libc | C6 ratio |
+| -------- | ---- | ------: | ------: | -------: | ------: | ------: | -------: |
+| `cellul` | len  |   2.547 |   9.024 | **0.28** |   2.292 |   9.016 | **0.25** |
+| `cellul` | chr  |   4.274 |   7.021 | **0.61** |   3.775 |   9.018 | **0.42** |
+| `cellul` | cmp  |   2.020 |   2.773 | **0.73** |   1.765 |   2.137 | **0.83** |
+| `cellul` | find |   6.543 |   9.021 | **0.73** |   6.290 |   7.019 | **0.90** |
+| `memor`  | cmp  |   2.019 |   2.774 | **0.73** |   1.763 |   2.137 | **0.82** |
+| `memor`  | chr  |   3.270 |   7.020 | **0.47** |   2.765 |  12.017 | **0.23** |
+| `memor`  | cpy  |   0.646 |   0.646 |     1.00 |   0.705 |   0.701 |     1.01 |
+| `memor`  | set  |   0.333 |   0.336 | **0.99** |   0.391 |   0.394 | **0.99** |
 
-`memor.cpy` is parity, not a win: ROM `memcpy` is hand-written assembly, and matching it with
-portable C word moves is the ceiling short of writing assembly. The ESP32-C6 agrees throughout.
+`memor.cpy` is parity, not a win. ROM `memcpy` is hand-written assembly, and matching it with
+portable C word moves is the ceiling short of writing assembly or handing the move to DMA.
 
-What is still above 1.00 is at short lengths, and it is fixed cost rather than per-byte work: an
-entry call that does not inline into the caller, and for `find` the sieve setup, which runs the
-needle against the cost table before a haystack byte is read.
+## Reading the short lengths
+
+Every row above is at 2048 bytes, where the per-byte work dominates. At eight it does not, and the
+number that matters there is the harness floor - the loop, the counter and the volatile store, plus
+one call the optimiser is not allowed to remove:
+
+| part | loop alone | plus one call |
+| ---- | ---------: | ------------: |
+| ESP32-S3 | 6.0 | 41.0 |
+| ESP32-C6 | 3.0 | 28.0 |
+
+Both arms pay it. `cellul.len` over eight bytes costs 112 cycles on the S3 against ROM `strnlen`'s
+113, and 41 of each is the call. A ratio at n=8 is mostly two call floors and should be read as
+such; subtract before drawing a conclusion.
+
+`MMGR_CALL` itself is free. Dispatching through the namespace table and calling the entry directly
+cost the same to the last two decimals - 112.02 against 112.02 on the S3, 102.06 against 102.06 on
+the C6 - so the compound literal folds into registers and no argument struct is built. That is worth
+stating because it does not hold everywhere: on Cortex-M4 `MMGR_CALL` emitted a `memset` of the
+whole argument type per call.
+
+What remains above 1.00 at eight bytes is `find`, at 134 cycles against 106. That is prologue - two
+broadcasts, a span, a reach and a word count settled before the first byte is read - and routing
+short haystacks past it has been tried twice and lost twice. Both attempts are written up in
+`test/performance_benching/cellularum/README.md` so a third is not started from scratch.
 
 ## Writing a bench
 

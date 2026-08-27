@@ -37,10 +37,10 @@ Xtensa (esp32s3, gcc 14.2):
 | translation unit                 |    -O0 |   -O1 |      -Os |   -O2 |   -O3 |
 | -------------------------------- | -----: | ----: | -------: | ----: | ----: |
 | `verba_scribo`                   |  35026 | 10438 | **6359** |  9078 | 12966 |
-| `cellularum_laboro`              |  15998 |  7805 | **5960** |  6742 |  6974 |
+| `cellularum_laboro`              |  18786 |  9633 | **7228** |  8550 |  9330 |
 | `transformo`                     |  17473 |  3594 | **2898** |  3794 |  5936 |
 | `confinium_exclusivum_infinitas` |  10404 |  3411 | **3279** |  3391 |  3439 |
-| `memoria_operor`                 |   2591 |  1318 | **1142** |  1246 |  1286 |
+| `memoria_operor`                 |   2707 |  1394 | **1182** |  1294 |  1350 |
 | `verbum_scrutor`                 |   3856 |  1144 | **1144** |  1152 |  1152 |
 | `numeros_scribo`                 |   2265 |  1000 |  **892** |   935 |   935 |
 | `octetus_introitus_exitus`       |   3102 |   851 |  **749** |   854 |   858 |
@@ -53,25 +53,25 @@ Xtensa (esp32s3, gcc 14.2):
 | `impensa_ancorae_acus_*`         |    302 |   276 |      276 |   276 |   276 |
 | `ascii_persona_bitorum`          |    276 |   212 |      212 |   212 |   212 |
 | `fractio`                        |    522 |   101 |      101 |   101 |   101 |
-| **total**                        | 103340 | 33385 |**25496** | 30912 | 37428 |
+| **total**                        | 106244 | 35289 |**26804** | 32768 | 39848 |
 
 The other two, totals only - the shape is the same on all three:
 
 | target                       |    -O0 |   -O1 |       -Os |   -O2 |   -O3 |
 | ---------------------------- | -----: | ----: | --------: | ----: | ----: |
-| Xtensa (esp32s3)             | 103340 | 33385 | **25496** | 30912 | 37428 |
-| RISC-V (esp32c6)             | 112812 | 36330 | **28902** | 33992 | 40332 |
-| ARM (cortex-m4, thumb)       |  96718 | 28378 | **24252** | 26638 | 32642 |
+| Xtensa (esp32s3)             | 106244 | 35289 | **26804** | 32768 | 39848 |
+| RISC-V (esp32c6)             | 116040 | 38904 | **30144** | 35970 | 42572 |
+| ARM (cortex-m4, thumb)       | 100138 | 30014 | **25534** | 28418 | 34690 |
 | _host (x86-64), for contrast_| 108592 | 37696 |     30768 | 38992 | 44320 |
 
 `confinium_externum` and `memoriam_praetereo` compile to nothing and are left out. The five
 `impensa_ancorae_acus_*` units are one row because they are alternatives, not additions — a build
 links exactly one cost table and they all define the same symbol. The total counts one.
 
-**-Os is the smallest, and -O1 is not second.** On all three targets -O1 lands *above* -O2 — by 2473
-bytes on Xtensa, 2338 on RISC-V and 1740 on ARM — so the order is -Os, -O2, -O1, -O3. A build that
+**-Os is the smallest, and -O1 is not second.** On all three targets -O1 lands *above* -O2 — by 2521
+bytes on Xtensa, 2934 on RISC-V and 1596 on ARM — so the order is -Os, -O2, -O1, -O3. A build that
 wants small and does not want to think about it should ask for -Os and stop there; there is no reason
-to reach for -O1. -O3 costs 6516 bytes over -O2 on Xtensa, and @ref ref_performance is where to look
+to reach for -O1. -O3 costs 7080 bytes over -O2 on Xtensa, and @ref ref_performance is where to look
 before paying it.
 
 @note That ordering is the reason this page is measured on the targets. The host row is in the table
@@ -88,10 +88,15 @@ own value back 87.07% of the time. Both are 0.0000% now. See @ref qa_numeric.
 `transformo` has the widest spread that matters, 2898 at -Os against 5936 at -O3 on Xtensa. It is the
 unit to look at first if a target is tight and -O3 is on.
 
-`cellularum_laboro` and `memoria_operor` are the two units the on-device work changed. Both are
-*smaller* at -O2 than the host table suggested and carry the reworked walks: the scans stopped
-rebuilding an extent mask and a lane index on every word, and the region moves were unrolled to four
-words. @ref ref_performance carries what that bought, measured on the same parts.
+`cellularum_laboro` and `memoria_operor` are the two units the on-device work changed, and both grew
+for it: 6742 to 8550 on Xtensa and 1246 to 1294. The scans stopped rebuilding an extent mask and a
+lane index on every word, they read through the aligned load rather than one assembled from byte
+loads, `len` takes two words a pass, a one or two byte needle is settled by a mask chain instead of a
+sieve, and the region moves were unrolled to four words. @ref ref_performance carries what each of
+those bought, measured on the parts themselves - `len` went 5.040 cycles per byte to 2.547.
+
+Whether that trade is right is a judgement about the target rather than a fact. The section below on
+newlib is where it shows up as flash.
 
 @note These are a fresh measurement of the tree as it stands. The per-module deltas that used to be
 here compared against a table taken before the module split, and its build settings are not recorded
@@ -128,8 +133,8 @@ Costs below are Xtensa, with ARM in parentheses where the two disagree enough to
 | `transformo`      | -O2   | -O3 costs 2142 bytes, 56% more than the module. On ARM it costs nothing at all, which is the clearest case on this page for deciding per target.           |
 | `proximus_operor` | -O2   | -O3 adds 122 bytes to 492 for entries that are single loads and stores, already one instruction each. Proportionally worse on ARM, 188 to 308.             |
 
-`cellularum_laboro` is left at the build's level: -O3 costs it 232 bytes on Xtensa and 104 on ARM,
-which is small enough not to argue about either way.
+`cellularum_laboro` is left at the build's level: -O3 costs it 780 bytes on Xtensa and 356 on ARM,
+against a module of 8550 and 7760, which is not enough either way to override the build.
 
 @note These are size arguments, and only size arguments. The speed half of each of these rows used to
 cite the host bench, and one of them credited `cellularum_laboro` with 14% on `to_double`, which is
@@ -149,20 +154,21 @@ cortex-m4, -Os, newlib from armv7e-m:
 
 | family                     |      MMgr |    newlib |           |
 | -------------------------- | --------: | --------: | --------: |
-| moving and comparing bytes |      1314 |       924 | **0.70x** |
-| searching and parsing text |      6506 |     15816 |     2.43x |
+| moving and comparing bytes |      1368 |       924 | **0.68x** |
+| searching and parsing text |      7734 |     15816 |     2.04x |
 | rendering numbers and text |      7326 |     21364 |     2.92x |
-| **total**                  | **15146** | **38104** | **2.52x** |
+| **total**                  | **16428** | **38104** | **2.32x** |
 
-**22,958 bytes of flash**, for the same set of jobs.
+**21,676 bytes of flash**, for the same set of jobs.
 
-@warning Moving and comparing bytes is now *larger* than newlib's, 1314 against 924, where it used
-to be 736 and smaller. That is the on-device work, and it was a deliberate trade rather than a
-regression: `memor.cpy` and `memor.set` moved one word an iteration and lost to ROM `memcpy` by half
-again, so both were unrolled to four words and now hold its rate exactly. The scans in the same
-family were reworked at the same time and beat ROM `memcmp` and `memchr`. @ref ref_performance has
-the counts. Whether 390 bytes is the right price for that is a judgement about the target, not a
-fact, and it is the one number on this page most worth arguing with.
+@warning Moving and comparing bytes is *larger* than newlib's, 1368 against 924, where before the
+on-device work it was 736 and smaller. Searching and parsing text has come down from 3.11x to 2.04x
+over the same stretch. Both are the same trade: `memor.cpy` and `memor.set` moved one word an
+iteration and lost to ROM `memcpy` by half again, so both were unrolled; the scans stopped rebuilding
+masks per word, took the aligned load, and gained a mask chain for short needles. What it bought is
+in @ref ref_performance - `cellul.len` at 0.28 against ROM `strnlen`, `memor.chr` at 0.47, `cpy` and
+`set` level with ROM assembly. Whether roughly 3,350 bytes is the right price is a judgement about
+the target, not a fact, and it is the number on this page most worth arguing with.
 
 Every entry on both sides is bounded, which is why the libc column names `strnlen` and `strncmp`
 rather than their unbounded twins, and `snprintf` and `vsnprintf` rather than `printf`. A bounded
@@ -177,7 +183,7 @@ and counting them twice would flatter this library by six kilobytes.
 
 Where the gap comes from is worth being precise about.
 
-Parsing is 2.43x because newlib spends 10,272 bytes on `strtod` + `dtoa` + `mprec`, and `mprec` is
+Parsing is 2.04x because newlib spends 10,272 bytes on `strtod` + `dtoa` + `mprec`, and `mprec` is
 an arbitrary-precision bignum. It is exact for every input by carrying however many limbs the input
 needs. This library is exact for every input by carrying 128 bits and never growing, because 128
 bits is enough to decide a rounding and the rest of the expansion is never looked at. That is a

@@ -59,6 +59,14 @@ if (m != 0)
 }
 ```
 
+**Use `word.load_al` in a walk, not `word.load`.** `load` takes any address, which it pays for:
+`mmgr_proxim_word_t` carries `MMGR_ALIGN(1)`, and on a target with no unaligned word load the
+compiler assembles each one out of byte loads and shifts — twelve instructions on Xtensa, eleven on
+RISC-V, one on ARMv7-M. A walk steps to the first word boundary once and reads the body through
+`load_al`, which is a single instruction everywhere. That change alone took `cellul.len` from 3.788
+cycles per byte to 3.055. `load` is for the address that genuinely is arbitrary — verifying a
+candidate mid-haystack, say.
+
 ## The carrier is the machine word
 
 Not a knob. A narrower carrier is never faster: a 16-bit load on a 32-bit machine moves the same
@@ -110,7 +118,13 @@ machine. @ref ref_performance explains how to run them and how to tell a result 
 
 ## Where LTO comes in
 
-The hot entries are `MMGR_INLINE` in their headers, so the compiler can inline them without help.
-For the cross-module calls that are not, link-time optimization is still load-bearing: `mmgr_memor_chr`
-over 512 bytes measured **610 cycles** with the SWAR entries as out-of-line calls and **187** when
-the linker was allowed to inline them. `MMGR_LTO` defaults to `ON` for that reason.
+Link-time optimization is load-bearing, and it is worth being blunt about how much. These entries are
+generated in `verbum_scrutor.c` by `GENERIC_ENTRY` and called by name from every other module, so no
+translation unit can inline them on its own. `mmgr_memor_chr` over 512 bytes measured **610 cycles**
+with them as out-of-line calls and **187** when the linker was allowed to inline them. On an
+ESP32-S3, `cellul.len` measured **26.6 cycles/byte without LTO against 5.0 with it** — worse than the
+byte-at-a-time ROM `strnlen` it is compared to. `MMGR_LTO` defaults to `ON` for that reason.
+
+@warning A toolchain that cannot do link-time optimization does not give a slower build of the same
+library; it gives a different one. ESP-IDF appends `-fno-lto` to every link unconditionally, so an
+IDF project has to take that flag back out — see `test/performance_benching` for how.

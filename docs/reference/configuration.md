@@ -84,16 +84,48 @@ CMake status message rather than silently dropped.
 | `MMGR_ANCORAE_FORMA_URI`     |                    unset | "                                                                  |
 | `MMGR_ANCORAE_FORMA_INET`    |                    unset | "                                                                  |
 | `MMGR_ANCORAE_FORMA_ROUTE`   |                    unset | "                                                                  |
+| `MMGR_SIEVE_ROWS`            |                     `1` | needle offsets the search sieve tests per candidate word            |
+| `MMGR_FIND_CHAIN_MAX`        |              `SIZE_MAX` | longest haystack a one or two byte needle is settled by mask chain  |
 
 The anchor profiles are mutually exclusive and default to a generic table. Picking the wrong one
 costs speed and never correctness — the search still finds what is there. See @ref mod_anchor_guide.
 
+`MMGR_FIND_CHAIN_MAX` defaults to no limit, which folds its test away: `read_cap <= SIZE_MAX` holds
+for every `size_t`, so a default build emits no comparison. A one or two byte needle is settled by a
+mask chain — one broadcast per needle byte, every start position in the word decided at once, nothing
+to verify — rather than by building the sieve, which exists to find a rare byte in a long needle and
+prove the rest once. Measured with a two byte needle, cycles for the whole call:
+
+| n              |   8 |  64 |  2048 |
+| -------------- | --: | --: | ----: |
+| Xtensa chain   | 124 | 489 | 13391 |
+| Xtensa sieve   | 187 | 607 | 15494 |
+| RISC-V chain   | 124 | 488 | 13393 |
+| RISC-V sieve   | 219 | 680 | 17059 |
+
+The chain wins at every length on both parts, so nothing needs setting. The knob is kept because
+that is a measurement rather than a proof; zero sends every needle through the sieve.
+
+Case folding always goes through the sieve — the chain compares raw bytes.
+
 ## Platform
 
-| knob                 |                                               default | what it changes             |
-| -------------------- | ----------------------------------------------------: | --------------------------- |
-| `MMGR_HW_BIG_ENDIAN` |                         derived from `__BYTE_ORDER__` | the host's byte order       |
-| `MMGR_INLINE`        | `static inline`, plus `always_inline` where available | how hot entries are inlined |
+| knob                      |                                                  default | what it changes                        |
+| ------------------------- | -------------------------------------------------------: | -------------------------------------- |
+| `MMGR_HW_BIG_ENDIAN`      |                            derived from `__BYTE_ORDER__` | the host's byte order                  |
+| `MMGR_HW_FAST_UNALIGNED`  |               derived from `__ARM_FEATURE_UNALIGNED` etc | whether a word load takes any address  |
+| `MMGR_INLINE`             |     `static inline`, plus `always_inline` where available | how hot entries are inlined            |
+
+`MMGR_HW_FAST_UNALIGNED` is not whether an unaligned load *compiles* — every target accepts one
+through `mmgr_proxim_word_t`, which carries `MMGR_ALIGN(1)`. It is whether the hardware does it in
+one instruction, or the compiler assembles the word out of byte loads and shifts. Measured on a
+single such load: ARMv7-M emits one `ldr`, Xtensa twelve instructions, RISC-V eleven. A walk that
+needs the word at an offset of one takes the load where it is one instruction and derives it from
+the word already in hand where it is a dozen.
+
+It is not a statement about the family either. Cortex-M0 is ARMv6-M, has no unaligned access, and
+the macro reports it slow — the compiler answers through `__ARM_FEATURE_UNALIGNED`, which
+`-mno-unaligned-access` also turns off on a part that has it.
 
 Every compiler conditional in the library lives in `mmgr_compiler_directives.h` by policy, so
 supporting a new toolchain is one file to read. See @ref ref_compiler_support.
