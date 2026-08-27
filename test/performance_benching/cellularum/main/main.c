@@ -1,13 +1,18 @@
 /**
- * @brief The string entries against the target's own libc, across input lengths, on silicon.
+ * @file main.c
+ * @brief The cellularum string entries against the target's own libc, across input lengths.
  *
- * @note Run on the part rather than on a host. A desktop libc answers these with SSE or AVX, which
- *       reads 16 to 48 bytes per instruction, and neither of these parts has anything of the kind.
- *       Comparing a machine-word SWAR against a vector unit measures the vector unit.
- * @note Lengths run from 8 bytes up, because a fixed prologue cannot show at 16 KB and this library
- *       is built for short buffers whose extents are settled before the build.
- * @note The needle length is passed rather than measured, so find is timed doing the work it was
- *       asked for instead of re-deriving what the caller already knew.
+ * Run on the part rather than on a host. A desktop libc answers these with SSE or AVX, which reads
+ * 16 to 48 bytes per instruction, and neither of these parts has anything of the kind; comparing a
+ * machine-word SWAR against a vector unit measures the vector unit. The libc reached here is
+ * ESP-ROM: strnlen, strchr, memcmp and strstr resolve to hand-written assembly in the part's mask
+ * ROM, running without flash-cache pressure, while the library runs from flash through the icache.
+ *
+ * Lengths run from 8 bytes up, because a fixed prologue cannot show at one size alone and the
+ * crossover against libc is the reading. Both arms see the same aligned buffer at the same address.
+ *
+ * The needle length is passed rather than measured, so find is timed doing the work it was asked
+ * for instead of re-deriving what the caller already knew.
  */
 #include <string.h>
 
@@ -17,6 +22,12 @@
 
 #define CAP 4096u
 
+/**
+ * @brief Haystack and comparison buffers, aligned and fixed for the whole run.
+ *
+ * @note The library is built for memory that arrives aligned, so an unaligned fixture would time a
+ *       head walk it never performs in a real build.
+ */
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) char g_a[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) char g_b[CAP];
 
@@ -24,18 +35,11 @@ static const char *const g_needle = "qx";
 #define NLEN 2u
 
 /**
- * @brief Where every timed result lands, so no call can be deleted for having no effect.
- *
- * @note Declared in device_bench.h and defined here, one per bench image.
- */
-volatile uintptr_t g_dbench_sink;
-
-/**
- * @brief Fills both buffers with n bytes that never contain the needle or the sought byte.
+ * @brief Fills both buffers with n bytes that contain neither the needle nor the sought byte.
  *
  * @param[in] n Bytes to fill, leaving room for the terminator.
- * @note The alphabet stops short of 'q' followed by 'x' and never reaches 'z', so every scan runs the
- *       whole length rather than stopping early on a hit.
+ * @note The alphabet stops short of 'q' followed by 'x' and never reaches 'z', so every scan runs
+ *       the whole length rather than stopping early on a hit.
  */
 static void fill(size_t n)
 {
@@ -55,56 +59,46 @@ void dbench_run(void)
 {
     static const size_t lens[] = {8u, 16u, 32u, 64u, 128u, 512u, 2048u};
 
-    DBENCH_BANNER("cellularum vs libc");
-
-    for (unsigned li = 0; li < (sizeof lens / sizeof lens[0]); li++)
-    {
-        const size_t n = lens[li];
-        const uint32_t iters = (n <= 64u) ? 20000u : ((n <= 512u) ? 4000u : 1000u);
-
-        fill(n);
-
-        DBENCH_AB("len", iters, n, DBENCH_KEEP(MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = n + 1u)),
-                  DBENCH_KEEP(strnlen(g_a, n + 1u)));
-
-        DBENCH_AB("chr", iters, n,
-                  DBENCH_KEEP(MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .byte = (uint8_t)'z')),
-                  DBENCH_KEEP(strchr(g_a, 'z')));
-
-        DBENCH_AB("cmp", iters, n,
-                  DBENCH_KEEP(MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n)),
-                  DBENCH_KEEP(memcmp(g_a, g_b, n)));
-
-        DBENCH_AB("find", iters, n,
-                  DBENCH_KEEP(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_needle,
-                                        .other_cap = NLEN + 1u, .other_len = NLEN)),
-                  DBENCH_KEEP(strstr(g_a, g_needle)));
-    }
-
-    // What MMGR_CALL costs before any work happens. On Cortex-M4 the compound literal became a
-    // memset of the whole argument type per call rather than folding into registers; whether these
-    // parts do the same is the question, and it lands on every entry in the library if they do.
-    fill(8u);
-    DBENCH_OP("dispatch_len8", 20000u, DBENCH_KEEP(MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = 9u)));
-    DBENCH_OP("direct_len8", 20000u, DBENCH_KEEP(mmgr_cellul_len(&(CatenaFinitaCfg){.src = g_a, .cap = 9u})));
-
-    printf("DB ==== end ====\n");
-}
-
-/**
- * @brief Runs the pass on its own task, repeating, so a capture opened at any time catches a cycle.
- *
- * @note Repeats rather than running once at boot. A single pass finishes before a serial capture
- *       opened after flashing can attach, and the run would be missed.
- * @note The first pass is delayed so the counts are not taken against app startup.
- */
-void app_main(void)
-{
-    vTaskDelay(pdMS_TO_TICKS(500));
-
     for (;;)
     {
-        dbench_run();
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        DBENCH_BANNER("cellularum vs libc");
+
+        for (unsigned li = 0; li < (sizeof lens / sizeof lens[0]); li++)
+        {
+            const size_t n = lens[li];
+            const uint32_t iters = (n <= 64u) ? 20000u : ((n <= 512u) ? 4000u : 1000u);
+
+            fill(n);
+
+            DBENCH_AB("len", iters, n, DBENCH_KEEP(MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = n + 1u)),
+                      DBENCH_KEEP(strnlen(g_a, n + 1u)));
+
+            DBENCH_AB("chr", iters, n,
+                      DBENCH_KEEP(
+                          MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .byte = (uint8_t)'z')),
+                      DBENCH_KEEP(strchr(g_a, 'z')));
+
+            DBENCH_AB("cmp", iters, n,
+                      DBENCH_KEEP(MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n)),
+                      DBENCH_KEEP(memcmp(g_a, g_b, n)));
+
+            DBENCH_AB("find", iters, n,
+                      DBENCH_KEEP(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u,
+                                            .other = g_needle, .other_cap = NLEN + 1u, .other_len = NLEN)),
+                      DBENCH_KEEP(strstr(g_a, g_needle)));
+        }
+
+        // What MMGR_CALL costs before any work happens. On Cortex-M4 the compound literal became a
+        // memset of the whole argument type per call rather than folding into registers; on both
+        // parts here the two rows come out identical, so it folds and costs nothing.
+        fill(8u);
+        DBENCH_OP("dispatch_len8", 20000u,
+                  DBENCH_KEEP(MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = 9u)));
+        DBENCH_OP("direct_len8", 20000u,
+                  DBENCH_KEEP(mmgr_cellul_len(&(CatenaFinitaCfg){.src = g_a, .cap = 9u})));
+
+        DBENCH_DONE();
     }
 }
+
+DBENCH_MAIN("cellularum")

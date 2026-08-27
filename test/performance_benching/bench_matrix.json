@@ -1,0 +1,28 @@
+{
+  "_note": "Single source of truth for the on-device / host microbenchmarks under test/performance_benching. Never hand-edited: use test/performance_benching/bench.py (bench add / bench update), then bench gen to rewrite each project's platformio.ini.",
+  "envs": {
+    "cellularum": {
+      "desc": "On-device cycle-counter A/B for the bounded-run string entries (cellularum_laboro) against the target's own libc, across input lengths 8 to 2048: cellul.len vs strnlen, cellul.chr vs strchr, cellul.diff vs memcmp, and cellul.find vs strstr, plus dispatch_len8 against direct_len8 to price MMGR_CALL itself.\nThe libc side is ESP-ROM - strnlen, strchr, memcmp and strstr all resolve into the part's mask ROM as hand-written assembly, running without flash-cache pressure, while the library runs from flash through the icache. The comparison is against that, not against a portable C libc, and not against a desktop one: a desktop libc answers these with SSE or AVX and neither part has anything of the kind.\nLengths start at 8 because a fixed prologue cannot show at one size alone and the crossover is the reading. The buffer is aligned and fixed, since the library is built for memory that arrives aligned and an unaligned fixture would time a head walk it never performs.\nBuild and flash (both parts carry USB-Serial/JTAG):\nidf.py -C test/performance_benching/cellularum -B build_esp32s3 -D SDKCONFIG=sdkconfig.esp32s3 set-target esp32s3\nninja -C test/performance_benching/cellularum/build_esp32s3 -j 2\nidf.py -C test/performance_benching/cellularum -B build_esp32s3 -p COM4 flash\nthen open the port to capture the repeating \"DB ...\" lines (each run repeats every ~5 s, so a capture opened at any time still catches a full cycle). Substitute esp32c6 and its port for the RISC-V part.\nCap the job count: ninja defaults to cores + 2, and a full IDF tree at that width took the build machine down.",
+      "path": "cellularum",
+      "flags": [],
+      "src": [
+        "src/cellularum_laboro/cellularum_laboro.c",
+        "src/verbum_scrutor/verbum_scrutor.c",
+        "src/impensa_ancorae_acus/impensa_ancorae_acus_generic.c",
+        "src/clz/clz.c"
+      ]
+    },
+    
+    "memoria": {
+      "desc": "On-device cycle-counter A/B for the region entries (memoria_operor) against the target's own libc, across input lengths 8 to 2048: memor.cmp vs memcmp, memor.chr vs memchr, memor.cpy vs memcpy, and memor.set vs memset.\nThe libc side is ESP-ROM hand-written assembly running without flash-cache pressure, while the library runs from flash through the icache. The comparison is against that, not against a portable C libc.\ncmp and chr walk a word at a time; cpy and set move four words an iteration, which is what it takes to hold ROM memcpy's rate rather than spend as much on the loop as on the move.\nBuild and flash (both parts carry USB-Serial/JTAG):\nidf.py -C test/performance_benching/memoria -B build_esp32s3 -D SDKCONFIG=sdkconfig.esp32s3 set-target esp32s3\nninja -C test/performance_benching/memoria/build_esp32s3 -j 2\nidf.py -C test/performance_benching/memoria -B build_esp32s3 -p COM4 flash\nthen open the port to capture the repeating \"DB ...\" lines. Substitute esp32c6 and its port for the RISC-V part. Cap the job count: ninja defaults to cores + 2, and a full IDF tree at that width took the build machine down.",
+      "path": "memoria",
+      "flags": [],
+      "src": [
+        "src/memoria_operor/memoria_operor.c",
+        "src/verbum_scrutor/verbum_scrutor.c",
+        "src/proximus_operor/proximus_operor.c",
+        "src/clz/clz.c"
+      ]
+    }
+  }
+}
