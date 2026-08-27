@@ -361,8 +361,6 @@ MMGR_NS CellularumLaboroNs cellul_oracle MMGR_UNUSED = {
     .to_ulong = mmgr_oracle_to_ulong,
     .to_double = mmgr_oracle_to_double,
     .to_float = mmgr_oracle_to_float,
-    .rd_str = mmgr_cellul_rd_str,
-    .mpint_fixed = mmgr_cellul_mpint_fixed,
 };
 
 MMGR_NS MemoriaOperorNs memor_oracle MMGR_UNUSED = {

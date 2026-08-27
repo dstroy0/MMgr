@@ -14,7 +14,7 @@ as of the result. The names also keep the library clear of a consumer's own voca
 half-dozen other things in an embedded codebase already called `buffer`, `pool`, `arena` or `span`.
 
 That is the whole reason. It is not decoration, and it is not obscurity for its own sake: a module
-called `spatium` can be grepped for with confidence, and a symbol called `mmgr_spat_init` cannot be
+called `spatium` can be grepped for with confidence, and a symbol called `mmgr_spat_from` cannot be
 confused with anybody else's span. The cost is this page, which is a fair trade for never having to
 rename anything again.
 
@@ -29,8 +29,7 @@ The stem is the name of the module's dispatch table, so it is what a call site r
 | `carceribus`                     | `carcer`                             | prisons — the region and its pools               |
 | `confinium_exclusivum_infinitas` | `iteratio_infinita`                  | exclusive endless enclosure — the lock-free ring |
 | `confinium_externum`             | `exter`                              | external enclosure — the PSRAM pool              |
-| `custodia_soluta`                | `soluta`                             | unbound guardianship — the plaintext pool        |
-| `custodia_secura`                | `secura`                             | safe guardianship — the secure pool              |
+| `carceribus`                     | `carcer`                             | cells, confinement — the region and both its ends |
 | `spatium`                        | `spat`                               | space, extent — a span                           |
 | `proximus_operor`                | `proxim`                             | nearest work — raw load and store                |
 | `verbum_scrutor`                 | `lane`, `mask`, `word`               | word examiner — the SWAR scanner                 |
@@ -72,7 +71,7 @@ last persistent take_.
 | type          | is                                                                     |
 | ------------- | ---------------------------------------------------------------------- |
 | `CarcerCtx`   | a pool: base, size, both ends, and the hardware cap                    |
-| `mmgr_spat`   | a buffer, its capacity and a cursor. `pos` is how much was written     |
+| `mmgr_span`   | a buffer, its capacity and a cursor. `pos` is how much was written     |
 | `mmgr_bitor`  | a bit writer: buffer, capacity, count, residue and overflow            |
 | `mmgr_word`   | the machine word, unsigned — the SWAR carrier                          |
 | `mmgr_iword`  | the machine word, signed. the same register as `mmgr_word`             |
@@ -93,8 +92,8 @@ last persistent take_.
 
 ## The naming law
 
-Every public function is `mmgr_<infix>_<tail>`, where `<infix>` is the module's stem. `spat.init` is
-`mmgr_spat_init`, `memor.cpy` is `mmgr_memor_cpy`.
+Every public function is `mmgr_<infix>_<tail>`, where `<infix>` is the module's stem. `spat.from` is
+`mmgr_spat_from`, `memor.cpy` is `mmgr_memor_cpy`.
 
 `verbum_scrutor` is the exception: its three tables are named for what they operate on — `lane`,
 `mask`, `word` — while the functions all carry the module's own infix, so `lane.has_zero` is

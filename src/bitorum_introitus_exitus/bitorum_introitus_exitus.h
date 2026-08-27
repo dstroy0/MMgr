@@ -34,13 +34,13 @@ typedef struct
     uint8_t *const out;       /**< Buffer for mmgr_bitor_init [BORROWS]. */
     const size_t cap;         /**< Bytes available in out. */
     const uint64_t val;       /**< Bits for mmgr_bitor_put, taken from the low end. */
-    const mmgr_word nbits;    /**< Number of bits of val to write, at most 64. */
+    const mmgr_word nbits;    /**< Bits of val to write; must not exceed 64. */
 } BitorumCfg;
 
 /**
  * @brief Type of the bitio dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts init is at offset 0 and put at MMGR_FP_SIZE, with nothing else present.
+ * @note MMGR_NS_LAYOUT asserts the three members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
  */
 typedef struct
 {
@@ -75,11 +75,8 @@ void mmgr_bitor_put(const BitorumCfg *c);
  * @brief Writes the partial byte the writer still holds, padded with zeros above its bits.
  *
  * @param[in,out] c Writer to finish [BORROWS].
- * @note This is how a stream ends. mmgr_bitor_put writes whole bytes only, so bits that do not fill
- *       one stay in the residue - and without this call they are never written at all. A stream whose
- *       length is not a whole number of bytes needs this before its buffer is read.
- * @note Does nothing when the residue is empty, so calling it twice, or on a stream that happened to
- *       end on a byte, costs nothing and writes nothing.
+ * @note mmgr_bitor_put writes whole bytes only; without this call the residue is never written.
+ * @note Does nothing when the residue is empty, so a second call writes nothing.
  * @note Does nothing when the writer's overflow is already set.
  * @note c->val and c->nbits are not read.
  * @warning Sets the writer's overflow when the byte would pass its cap.

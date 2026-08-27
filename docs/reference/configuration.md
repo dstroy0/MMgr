@@ -20,13 +20,19 @@ exists to reach them.
 
 ## Region sizes
 
-| knob                         |               default | what it changes                                                 |
-| ---------------------------- | --------------------: | --------------------------------------------------------------- |
-| `MMGR_PLAINTEXT_CONFIN_SIZE` |                `4096` | bytes in `clarus_custodiae`'s tenant                               |
-| `MMGR_SECURE_CONFIN_SIZE`    |                `4096` | bytes in `occultum_custodiae`'s tenant                             |
-| `MMGR_CONFIN_MAX`            | the larger of the two | **derived.** The largest single region the library will address |
-| `MMGR_CONFIN_ALIGN`          |              platform | default alignment of a take                                     |
-| `MMGR_CONFIN_MAX_ALIGN`      |              platform | the largest alignment a take may ask for                        |
+| knob                         |               default | what it changes                                                    |
+| ---------------------------- | --------------------: | ------------------------------------------------------------------ |
+| `MMGR_PLAINTEXT_CONFIN_SIZE` |                `4096` | the largest plaintext confinium this build will declare              |
+| `MMGR_SECURE_CONFIN_SIZE`    |                `4096` | the largest secure confinium this build will declare                 |
+| `MMGR_CARCER_MAX`            | the larger of the two | **derived.** Bounds a scan's word count and `MMGR_STR_MAX`           |
+| `MMGR_CARCER_MAX_REGIONS`    |                   `8` | the most pools one region may be carved into                         |
+| `MMGR_CARCER_ALIGN`          |    `sizeof(mmgr_word)` | **derived.** The alignment every tenancy is handed out at            |
+
+**The two size knobs allocate nothing and size no pool.** A pool's extent is an argument to
+`mmgr_carcer_init`, and nothing in carceribus reads either knob. What they do is feed
+`MMGR_CARCER_MAX`, which `verbum_scrutor` sizes its worst-case word count against and
+`mmgr_string_shim.h` uses as `MMGR_STR_MAX`. They are a statement of intent about the regions you
+are going to declare, so declare a larger one and they want raising.
 
 These are the numbers you change after measuring. Do not guess them — see @ref guide_first_region
 for reading the high-water marks.
@@ -42,14 +48,19 @@ not share get two regions.
 
 ## Debug
 
-| knob                     |              default | what it changes                  |
-| ------------------------ | -------------------: | -------------------------------- |
-| `MMGR_DEBUG_CHECKS`      |                  `0` | compiles in the contract asserts |
-| `MMGR_ASSERT(cond, msg)` | a type-checked no-op | what a violated contract does    |
+| knob                     |              default | what it changes                                        |
+| ------------------------ | -------------------: | ------------------------------------------------------ |
+| `MMGR_DEBUG_CHECKS`      |                  `0` | compiles in the checks, and selects the trapping assert |
+| `MMGR_ASSERT(cond, msg)` | a type-checked no-op | what a broken precondition does                        |
 
-The default `MMGR_ASSERT` keeps its expression type-checked with `sizeof` and then discards it, so
-it cannot rot and costs nothing. Point it at something that aborts and set `MMGR_DEBUG_CHECKS=1`, and
-you have the `checks` environment. See @ref ref_error_handling.
+The default `MMGR_ASSERT` keeps its expression type-checked with `sizeof` and then discards it, so it
+cannot rot and costs nothing.
+
+`MMGR_DEBUG_CHECKS=1` is all it takes to trap: `mmgr_config.h` then defines `MMGR_ASSERT` itself, as
+a report to `stderr` naming the expectation, the file and the line, followed by `abort()`. That is
+the whole of the `checks` environment. Define `MMGR_ASSERT` yourself before including the header and
+neither form is used, which is what a target with no `stderr` and no `abort()` wants.
+See @ref ref_error_handling.
 
 ## Optional modules
 

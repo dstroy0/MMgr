@@ -306,134 +306,64 @@ MMGR_INLINE void proxim_read(ProximReadCtx *c)
     proxim_tail(c);
 }
 
-/**
- * @brief Reads two bytes from c->at, at any alignment.
- *
- * @note Documented at the declaration in proximus_operor.h.
- */
-uint16_t mmgr_proxim_load16(const ProximusCfg *c)
-{
-    return MMGR_CALL(proxim_load16, ProximLoadCtx, .at = c->at);
-}
 
 /**
- * @brief Reads four bytes from c->at, at any alignment.
+ * @brief Binds the unaligned entries to GENERIC_ENTRY, with the context type per entry.
  *
- * @note Documented at the declaration in proximus_operor.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] ctx  Context type this entry's backend takes.
+ * @param[in] name Name after the mmgr_proxim_ and proxim_ prefixes, which the two share.
+ * @note ctx is a parameter because a load carries an address, a put carries an address and a value,
+ *       and a read carries two addresses and a count.
  */
-uint32_t mmgr_proxim_load32(const ProximusCfg *c)
-{
-    return MMGR_CALL(proxim_load32, ProximLoadCtx, .at = c->at);
-}
+#define PROXIM_ENTRY(ret, ctx, name, ...)                                                                              \
+    GENERIC_ENTRY(mmgr_proxim_, proxim_, ctx, ProximusCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Reads eight bytes from c->at, at any alignment.
+ * @brief Binds the same to GENERIC_ENTRY_V, for an unaligned entry that returns nothing.
  *
- * @note Documented at the declaration in proximus_operor.h.
+ * @param[in] ctx  Context type this entry's backend takes.
+ * @param[in] name Name after the mmgr_proxim_ and proxim_ prefixes.
  */
-uint64_t mmgr_proxim_load64(const ProximusCfg *c)
-{
-    return MMGR_CALL(proxim_load64, ProximLoadCtx, .at = c->at);
-}
+#define PROXIM_ENTRY_V(ctx, name, ...) GENERIC_ENTRY_V(mmgr_proxim_, proxim_, ctx, ProximusCfg, name, __VA_ARGS__)
 
 /**
- * @brief Writes the low two bytes of c->val to c->dst, at any alignment.
+ * @brief Binds the aligned entries, which carry their own pair of prefixes.
  *
- * @note Documented at the declaration in proximus_operor.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] ctx  Context type this entry's backend takes.
+ * @param[in] name Name after the mmgr_aequus_ and aequus_ prefixes.
+ * @note A separate pair because the aligned strategy is a separate name, not a flag. Merging the two
+ *       would emit an aligned access for an address that may not be aligned, which faults on some
+ *       machines and silently reads wrong on others.
  */
-void mmgr_proxim_put16(const ProximusCfg *c)
-{
-    MMGR_CALL(proxim_put16, ProximPutCtx, .dst = c->dst, .val = c->val);
-}
+#define AEQUUS_ENTRY(ret, ctx, name, ...)                                                                              \
+    GENERIC_ENTRY(mmgr_aequus_, aequus_, ctx, ProximusCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Writes the low four bytes of c->val to c->dst, at any alignment.
+ * @brief Binds the same to GENERIC_ENTRY_V, for an aligned entry that returns nothing.
  *
- * @note Documented at the declaration in proximus_operor.h.
+ * @param[in] ctx  Context type this entry's backend takes.
+ * @param[in] name Name after the mmgr_aequus_ and aequus_ prefixes.
  */
-void mmgr_proxim_put32(const ProximusCfg *c)
-{
-    MMGR_CALL(proxim_put32, ProximPutCtx, .dst = c->dst, .val = c->val);
-}
+#define AEQUUS_ENTRY_V(ctx, name, ...) GENERIC_ENTRY_V(mmgr_aequus_, aequus_, ctx, ProximusCfg, name, __VA_ARGS__)
 
 /**
- * @brief Writes all eight bytes of c->val to c->dst, at any alignment.
+ * @brief The public surface, one line per entry point.
  *
- * @note Documented at the declaration in proximus_operor.h.
+ * @note Each is documented at its declaration in proximus_operor.h.
+ * @note read is the only entry that reads c->size; every other one leaves that member alone.
  */
-void mmgr_proxim_put64(const ProximusCfg *c)
-{
-    MMGR_CALL(proxim_put64, ProximPutCtx, .dst = c->dst, .val = c->val);
-}
-
-/**
- * @brief Reads MMGR_RAW_WORD bytes from c->at, at any alignment.
- *
- * @note Documented at the declaration in proximus_operor.h.
- */
-mmgr_migro_word mmgr_proxim_load(const ProximusCfg *c)
-{
-    return MMGR_CALL(proxim_load, ProximLoadCtx, .at = c->at);
-}
-
-/**
- * @brief Writes the low MMGR_RAW_WORD bytes of c->val to c->dst, at any alignment.
- *
- * @note Documented at the declaration in proximus_operor.h.
- */
-void mmgr_proxim_put(const ProximusCfg *c)
-{
-    MMGR_CALL(proxim_put, ProximPutCtx, .dst = c->dst, .val = c->val);
-}
-
-/**
- * @brief Reads MMGR_RAW_WORD bytes from an aligned c->at.
- *
- * @note Documented at the declaration in proximus_operor.h.
- */
-mmgr_migro_word mmgr_aequus_load(const ProximusCfg *c)
-{
-    return MMGR_CALL(aequus_load, ProximLoadCtx, .at = c->at);
-}
-
-/**
- * @brief Writes the low MMGR_RAW_WORD bytes of c->val to an aligned c->dst.
- *
- * @note Documented at the declaration in proximus_operor.h.
- */
-void mmgr_aequus_put(const ProximusCfg *c)
-{
-    MMGR_CALL(aequus_put, ProximPutCtx, .dst = c->dst, .val = c->val);
-}
-
-/**
- * @brief Reads eight bytes from an aligned c->at.
- *
- * @note Documented at the declaration in proximus_operor.h.
- */
-uint64_t mmgr_aequus_load64(const ProximusCfg *c)
-{
-    return MMGR_CALL(aequus_load64, ProximLoadCtx, .at = c->at);
-}
-
-/**
- * @brief Writes all eight bytes of c->val to an aligned c->dst.
- *
- * @note Documented at the declaration in proximus_operor.h.
- */
-void mmgr_aequus_put64(const ProximusCfg *c)
-{
-    MMGR_CALL(aequus_put64, ProximPutCtx, .dst = c->dst, .val = c->val);
-}
-
-/**
- * @brief Copies c->size bytes from c->at to c->dst.
- *
- * @note The count comes from c->size here, where every other entry leaves that member alone.
- * @note Documented at the declaration in proximus_operor.h.
- */
-void mmgr_proxim_read(const ProximusCfg *c)
-{
-    // Explicit casts convert the void pointers to the uint8_t pointers ProximReadCtx declares
-    MMGR_CALL(proxim_read, ProximReadCtx, .dst = (uint8_t *)c->dst, .src = (const uint8_t *)c->at, .bytes = c->size);
-}
+PROXIM_ENTRY(uint16_t, ProximLoadCtx, load16, .at = c->at)
+PROXIM_ENTRY(uint32_t, ProximLoadCtx, load32, .at = c->at)
+PROXIM_ENTRY(uint64_t, ProximLoadCtx, load64, .at = c->at)
+PROXIM_ENTRY_V(ProximPutCtx, put16, .dst = c->dst, .val = c->val)
+PROXIM_ENTRY_V(ProximPutCtx, put32, .dst = c->dst, .val = c->val)
+PROXIM_ENTRY_V(ProximPutCtx, put64, .dst = c->dst, .val = c->val)
+PROXIM_ENTRY(mmgr_migro_word, ProximLoadCtx, load, .at = c->at)
+PROXIM_ENTRY_V(ProximPutCtx, put, .dst = c->dst, .val = c->val)
+AEQUUS_ENTRY(mmgr_migro_word, ProximLoadCtx, load, .at = c->at)
+AEQUUS_ENTRY_V(ProximPutCtx, put, .dst = c->dst, .val = c->val)
+AEQUUS_ENTRY(uint64_t, ProximLoadCtx, load64, .at = c->at)
+AEQUUS_ENTRY_V(ProximPutCtx, put64, .dst = c->dst, .val = c->val)
+PROXIM_ENTRY_V(ProximReadCtx, read, .dst = (uint8_t *)c->dst, .src = (const uint8_t *)c->at, .bytes = c->size)

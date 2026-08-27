@@ -12,14 +12,6 @@ MMGR_NS_LAYOUT(ProbeNs, a, b, c);
 
 typedef struct
 {
-    void (*a)(void);
-    void (*b)(void);
-    int *tail;
-} ProbeOpenNs;
-MMGR_NS_LAYOUT_OPEN(ProbeOpenNs, tail, a, b);
-
-typedef struct
-{
     int x;
     int y;
     int z;
@@ -54,10 +46,9 @@ void test_cat_expands_before_it_pastes(void)
 
 void test_dispatch_layout_holds(void)
 {
-            TEST_ASSERT_EQUAL_size_t(3u * MMGR_FP_SIZE, sizeof(ProbeNs));
+    TEST_ASSERT_EQUAL_size_t(3u * MMGR_FP_SIZE, sizeof(ProbeNs));
     TEST_ASSERT_EQUAL_size_t(0u, offsetof(ProbeNs, a));
     TEST_ASSERT_EQUAL_size_t(2u * MMGR_FP_SIZE, offsetof(ProbeNs, c));
-    TEST_ASSERT_EQUAL_size_t(2u * MMGR_FP_SIZE, offsetof(ProbeOpenNs, tail));
 }
 
 void test_call_macro_passes_the_aggregate(void)

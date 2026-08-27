@@ -231,12 +231,16 @@ typedef struct
 /**
  * @brief Arguments for the four numer calls.
  *
- * @note build and append read all five members; emit and emit_append leave spec alone.
+ * @note build and append read all six members; emit and emit_append leave spec alone.
+ * @note at is the cursor, as in verba: build and emit begin there and return where they finished, so
+ *       a run of writes threads the cursor rather than measuring the text again between each. Leave
+ *       it unset and a call starts at the first byte, which is what a single write wants.
  */
 typedef struct
 {
     char *const out;              /**< Destination buffer [BORROWS]. */
     const size_t cap;             /**< Bytes available in out. */
+    const size_t at;              /**< Offset to begin writing at; 0 for the first write. */
     const mmgr_field *const spec; /**< Field list, ending at MMGR_FK_END [BORROWS]. */
     const mmgr_fval *const vals;  /**< Values to place into the fields [BORROWS]. */
     const size_t nvals;           /**< Values in vals. */

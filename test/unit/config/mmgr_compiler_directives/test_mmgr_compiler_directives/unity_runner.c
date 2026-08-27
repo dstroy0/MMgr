@@ -82,14 +82,14 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/config/mmgr_compiler_directives/test_mmgr_compiler_directives\\test_mmgr_compiler_directives.c");
-  run_test(test_directives_header_is_self_contained, "test_directives_header_is_self_contained", 33);
-  run_test(test_narg_counts_its_arguments, "test_narg_counts_its_arguments", 38);
-  run_test(test_cat_expands_before_it_pastes, "test_cat_expands_before_it_pastes", 46);
-  run_test(test_dispatch_layout_holds, "test_dispatch_layout_holds", 55);
-  run_test(test_call_macro_passes_the_aggregate, "test_call_macro_passes_the_aggregate", 63);
-  run_test(test_call_macro_zeroes_what_is_not_named, "test_call_macro_zeroes_what_is_not_named", 68);
-  run_test(test_inline_and_unused_are_defined, "test_inline_and_unused_are_defined", 74);
-  run_test(test_byte_order_is_one_of_two, "test_byte_order_is_one_of_two", 79);
+  run_test(test_directives_header_is_self_contained, "test_directives_header_is_self_contained", 25);
+  run_test(test_narg_counts_its_arguments, "test_narg_counts_its_arguments", 30);
+  run_test(test_cat_expands_before_it_pastes, "test_cat_expands_before_it_pastes", 38);
+  run_test(test_dispatch_layout_holds, "test_dispatch_layout_holds", 47);
+  run_test(test_call_macro_passes_the_aggregate, "test_call_macro_passes_the_aggregate", 54);
+  run_test(test_call_macro_zeroes_what_is_not_named, "test_call_macro_zeroes_what_is_not_named", 59);
+  run_test(test_inline_and_unused_are_defined, "test_inline_and_unused_are_defined", 65);
+  run_test(test_byte_order_is_one_of_two, "test_byte_order_is_one_of_two", 70);
 
   return UNITY_END();
 }

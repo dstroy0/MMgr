@@ -65,43 +65,75 @@
 #define MMGR_SWAR_BITS MMGR_WORD_BITS
 
 /**
- * @brief Runtime assertion hook, left inert unless the build supplies one.
- *
- * @param[in] cond Condition the caller expects to hold.
- * @param[in] msg  String literal describing the expectation.
- * @note The default expands to a sizeof, so cond is type checked but never evaluated.
- * @warning With the default, a failed expectation produces no diagnostic and no trap.
- */
-#ifndef MMGR_ASSERT
-#define MMGR_ASSERT(cond, msg) ((void)sizeof((cond) ? 1 : 0), (void)0)
-#endif
-
-/**
  * @brief Set to 1 to enable the library's debug-only checks.
+ *
+ * @note Declared ahead of MMGR_ASSERT because it selects which of the two the assert becomes.
  */
 #ifndef MMGR_DEBUG_CHECKS
-
 #define MMGR_DEBUG_CHECKS 0
 #endif
 
 /**
- * @brief Bytes in the plaintext confinium.
+ * @brief Runtime assertion hook: a trap under MMGR_DEBUG_CHECKS, inert otherwise.
+ *
+ * @param[in] cond Condition the caller expects to hold.
+ * @param[in] msg  String literal describing the expectation.
+ * @note An expectation the library asserts is one a correct caller cannot break, so the shipping
+ *       form pays nothing for it: it expands to a sizeof, which type checks cond and never evaluates
+ *       it. The checks build evaluates it instead and stops on the spot, so a caller that broke one
+ *       fails a test rather than carrying on with the damage done.
+ * @note A build may define its own before including this header, and neither form below is then used.
+ *       A target with no stderr and no abort wants that.
+ * @warning With MMGR_DEBUG_CHECKS at 0, a failed expectation produces no diagnostic and no trap. It
+ *          is not a runtime check and cannot be read as one.
+ */
+#ifndef MMGR_ASSERT
+#if MMGR_DEBUG_CHECKS
+#include <stdio.h>
+#include <stdlib.h>
+// fflush(NULL) before the trap, or a harness that buffers its progress on stdout loses every line of
+// it to the abort and reports the failure with nothing naming which case reached it
+#define MMGR_ASSERT(cond, msg)                                                                                         \
+    ((cond) ? (void)0                                                                                                  \
+            : (void)(fprintf(stderr, "MMGR_ASSERT failed: %s\n  %s:%d\n", (msg), __FILE__, __LINE__), fflush(NULL),     \
+                     abort()))
+#else
+#define MMGR_ASSERT(cond, msg) ((void)sizeof((cond) ? 1 : 0), (void)0)
+#endif
+#endif
+
+/**
+ * @brief Bytes in the largest plaintext confinium this build will declare.
+ *
+ * @note Allocates nothing and sizes no pool. A pool's extent is an argument to mmgr_carcer_init, and
+ *       nothing in carceribus reads this. What it does is feed MMGR_CARCER_MAX below, which is a
+ *       bound other modules size their worst case against - so it is a statement of intent about the
+ *       regions you are going to declare, and it wants raising if you declare a bigger one.
  */
 #ifndef MMGR_PLAINTEXT_CONFIN_SIZE
 #define MMGR_PLAINTEXT_CONFIN_SIZE 4096u
 #endif
 
 /**
- * @brief Bytes in the secure confinium.
+ * @brief Bytes in the largest secure confinium this build will declare.
+ *
+ * @note The same kind of number as MMGR_PLAINTEXT_CONFIN_SIZE, and it sizes no pool either.
  */
 #ifndef MMGR_SECURE_CONFIN_SIZE
 #define MMGR_SECURE_CONFIN_SIZE 4096u
 #endif
 
 /**
- * @brief Bytes in the larger of the two confinia, sizing the worst case a scan must cover.
+ * @brief Bytes in the larger of the two confinia, bounding the worst case a scan or a read must cover.
  *
  * @note verbum_scrutor.h derives MMGR_SCAN_MAX_WORDS from this, and mmgr_string_shim.h uses it as MMGR_STR_MAX.
+ * @note The reason the bound exists is that these modules size a worst case at compile time rather
+ *       than testing a length at run time. A string cannot be longer than the confinium holding it,
+ *       so the confinium is the cap, and the scanner can be told how many words that is before it
+ *       ever runs.
+ * @warning Declare a region larger than both knobs and this bound is under-stated. The static asserts
+ *          in verbum_scrutor.h check that the word count covers this value, not that this value
+ *          covers your regions, which nothing here can see.
  */
 #ifndef MMGR_CARCER_MAX
 #if MMGR_PLAINTEXT_CONFIN_SIZE >= MMGR_SECURE_CONFIN_SIZE
@@ -110,7 +142,6 @@
 #define MMGR_CARCER_MAX ((size_t)MMGR_SECURE_CONFIN_SIZE)
 #endif
 #endif
-
 
 /**
  * @brief Set to 1 to build the memoriam_praetereo DMA path.

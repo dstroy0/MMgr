@@ -47,7 +47,7 @@ to survive, copy it into persist or into a caller-supplied span before rewinding
 ## Spans borrow and do not know
 
 ```c
-mmgr_spat s = MMGR_CALL(spat.init, SpatCfg, .buf = p, .cap = 256u);
+mmgr_span s = MMGR_CALL(spat.from, SpatiumCfg, .buf = p, .cap = 256u);
 ```
 
 `s` holds `p`. It does not own it, cannot extend it, and will not notice when it dies.
@@ -93,7 +93,7 @@ it is a broken one. See @ref mod_infin_guide.
 
 ## What a check would catch, and what none of them do
 
-The contract asserts that exist are in `spatium`, `bitorum_introitus_exitus`,
+The preconditions that are asserted at all are in `spatium`, `bitorum_introitus_exitus`,
 `confinium_exclusivum_infinitas`, `memoriam_praetereo` and `ascii_persona_bitorum` — a span with no
 buffer, a bit writer with no capacity, a ring with no storage, a channel that does not exist, a
 character class out of range.

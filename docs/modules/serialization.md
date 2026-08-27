@@ -6,31 +6,51 @@ Byte and wire serialization over spans.
 
 Building or parsing a binary frame where the layout is fixed and the byte order is part of the spec.
 
-Two entries. Both move a value big end first, and both work in eight-byte slots.
+Six entries over @ref mod_spat_guide's two span types. Three append into a span being filled — `put`
+for one byte, `put_be` for a value big end first, `raw` for a run as it stands. Three read out of one
+— `take_be` for a value, `rd_str` for a length-prefixed run, `mpint_fixed` for an integer
+right-aligned into a fixed field.
 
 ```c
-MMGR_CALL(byteio.put, OctetusCfg, .at = frame,      .val = 0x01u,   .bytes = 1u);
-MMGR_CALL(byteio.put, OctetusCfg, .at = frame + 8,  .val = 0x1234u, .bytes = 2u);
+mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = frame, .cap = sizeof frame);
 
+MMGR_CALL(byteio.put, OctetusCfg, .w = &w, .byte = 0x01u);
+MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = 0x1234u, .bytes = 2u);
+MMGR_CALL(byteio.raw, OctetusCfg, .w = &w, .src = payload, .bytes = n);
+
+mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = frame, .cap = got);
 uint64_t v = 0;
-MMGR_CALL(byteio.take, OctetusCfg, .from = frame, .out = &v, .bytes = 1u);
+
+if (!MMGR_CALL(byteio.take_be, OctetusCfg, .r = &r, .out = &v, .bytes = 2u)) {
+    /* the frame was short */
+}
 ```
+
+Fields sit `bytes` apart, and the span carries the cursor, so nothing here needs an offset passed in.
 
 ## Gotchas
 
-**A slot is always eight bytes, whatever `bytes` says.** `put` stores a whole 64-bit word and clears
-the trailing bytes; `take` loads a whole one. So the destination needs eight bytes available even
-for a one-byte field, and consecutive fields sit eight bytes apart, not `bytes` apart.
+**The appends answer nothing and the takes all answer.** That is the whole failure model. An append
+that does not fit is a build failure — what a writer emits and how big its buffer is are both fixed
+before the build — so it asserts, stores nothing, and latches the span's `overflow` to keep a wrong
+program off the end. A short read is a runtime fact about whatever sent the bytes, so it sets `err`,
+leaves the cursor alone and returns `MMGR_FALSE` for a caller to act on. See @ref ref_error_handling.
 
-**Both accesses are aligned.** `at` and `from` must be 64-bit aligned. That, and the single store,
-are why the cost does not vary with the field width — measured at about 5 cycles for every size.
+**A value moves a word at a time, not a byte at a time.** `put_be` reverses once through
+@ref mod_endian_guide and then stores at the widest step the count allows: eight bytes is one store,
+seven is three, and only an odd final byte is ever written alone. `take_be` is the mirror.
 
-**Nothing here checks whether the bytes fit.** The caller has the buffer and the field width in
-front of it, so a field that runs past the end is a contract violation - nothing in a shipping
-build, an abort in `checks`. See @ref ref_error_handling.
+**Neither access needs to be aligned.** They reach @ref mod_proxim_guide's unaligned entries, so a
+field may start anywhere in the span. The cost does vary with the field width, because the number of
+stores does.
 
-**Strings and multi-precision integers are not here.** `rd_str` and `mpint_fixed` belong to
-@ref mod_cellul_guide, because their lengths arrive off the wire and have to be checked.
+**`rd_str` copies nothing.** It points `blob` into the span's own bytes, so what it hands back lives
+exactly as long as the buffer does. A length that is read but not followed by its payload puts the
+cursor back where it started — a partial read is not a read.
+
+**`mpint_fixed` writes the field whole rather than appending to it.** It zero-fills ahead of the
+value and leaves the cursor at `cap`. Leading zero bytes of the integer are skipped before the width
+is tested, so a value carrying a sign byte still fits a field of its own size.
 
 @ref mod_byteio "Generated reference"
 
@@ -45,22 +65,33 @@ mmgr_bitor w = MMGR_CALL(bitio.init, BitorumCfg, .out = buf, .cap = sizeof buf);
 
 MMGR_CALL(bitio.put, BitorumCfg, .writer = &w, .val = 0x5u,  .nbits = 3u);
 MMGR_CALL(bitio.put, BitorumCfg, .writer = &w, .val = value, .nbits = 12u);
+
+MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);   /* 15 bits written; without this, 8 */
 ```
 
 The writer is yours to hold and the cfg points at it. `init` fills it in; every `put` reads and
 updates it through `writer`.
+
+**`align` is how a stream ends, and leaving it out loses the tail.** `put` writes whole bytes only,
+so bits that do not fill one stay in `residue` and are never stored on their own. Any stream whose
+length is not a multiple of eight needs `align` before its buffer is read. It pads with zeros above
+the bits it holds, and does nothing when the residue is empty — so calling it on a stream that
+happened to end on a byte, or calling it twice, costs nothing.
 
 **Bits pack from the low end.** A 3-bit put of `0b101` then a 5-bit put of zero produces `0x05`, not
 `0xA0`.
 
 **The writer holds a partial byte.** `cnt` counts whole bytes written; anything short of a byte sits
 in `residue` and goes out when a later put completes it. A byte-level write to the same buffer in
-between lands in the wrong place, and a writer left on a fragment has `nbits` bits still in hand
-that were never stored.
+between lands in the wrong place.
 
 **`overflow` latches.** A put whose completed bytes would run past `cap` writes nothing, sets the
 flag and clears the residue, and nothing clears it again — so one check after a run of puts covers
-the whole run.
+the whole run. As with a span, reaching it means the buffer was sized wrong for a stream whose
+length was known before the build.
+
+**This is a writer only.** There is no bit reader; a format that needs one reads bytes through
+@ref mod_byteio_guide and shifts them itself.
 
 @ref mod_bitio "Generated reference"
 

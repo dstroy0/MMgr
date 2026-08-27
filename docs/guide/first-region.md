@@ -74,8 +74,8 @@ const size_t peak       = pool->hw;   /* MMGR_ENABLE_HW_MEM_CAPACITY_CB only */
 ```
 
 Build the `checks` environment, run your real workload, and read those. `checks` compiles in the
-contract asserts and points `MMGR_ASSERT` at something that aborts, so a precondition you violated
-fails loudly instead of being a no-op:
+library's checks and selects the trapping `MMGR_ASSERT`, so a precondition you broke fails loudly
+instead of being a no-op:
 
 ```sh
 cmake -S . -B build -DMMGR_BUILD_TESTS=ON

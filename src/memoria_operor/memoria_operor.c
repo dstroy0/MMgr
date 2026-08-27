@@ -214,58 +214,39 @@ MMGR_INLINE void memor_set(MemorSetCtx *c)
     }
 }
 
-/**
- * @brief Copies c->bytes from c->src to c->dst, walking upward.
- *
- * @note Documented at the declaration in memoria_operor.h.
- */
-void mmgr_memor_cpy(const MemoriaCfg *c)
-{
-    // Explicit casts convert the void pointers to the uint8_t pointers MemorCpyCtx declares
-    MMGR_CALL(memor_cpy, MemorCpyCtx, .dst = (uint8_t *)c->dst, .src = (const uint8_t *)c->src, .bytes = c->bytes);
-}
 
 /**
- * @brief Copies c->bytes from c->src to c->dst, walking downward from the far end.
+ * @brief Binds this module's fixed arguments to GENERIC_ENTRY, with the context type per entry.
  *
- * @note Documented at the declaration in memoria_operor.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] ctx  Context type this entry's backend takes.
+ * @param[in] name Name after the mmgr_memor_ and memor_ prefixes, which the two share.
+ * @note ctx is a parameter here, unlike carceribus and infinitas which each have one. The backends
+ *       split by what they touch: a copy takes two pointers, a scan takes two and a value, a fill
+ *       takes one and a value, so each has its own argument type.
  */
-void mmgr_memor_move_up(const MemoriaCfg *c)
-{
-    // Explicit casts convert the void pointers to the uint8_t pointers MemorMoveCtx declares
-    MMGR_CALL(memor_move_up, MemorMoveCtx, .dst = (uint8_t *)c->dst, .src = (const uint8_t *)c->src, .bytes = c->bytes);
-}
+#define MEMOR_ENTRY(ret, ctx, name, ...)                                                                               \
+    GENERIC_ENTRY(mmgr_memor_, memor_, ctx, MemoriaCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Compares c->bytes of c->src against c->other.
+ * @brief Binds the same to GENERIC_ENTRY_V, for an entry that returns nothing.
  *
- * @note Documented at the declaration in memoria_operor.h.
+ * @param[in] ctx  Context type this entry's backend takes.
+ * @param[in] name Name after the mmgr_memor_ and memor_ prefixes.
  */
-mmgr_iword mmgr_memor_cmp(const MemoriaCfg *c)
-{
-    // Explicit casts convert the void pointers to the const uint8_t pointers MemorScanCtx declares
-    return MMGR_CALL(memor_cmp, MemorScanCtx, .src = (const uint8_t *)c->src, .other = (const uint8_t *)c->other,
-                     .bytes = c->bytes);
-}
+#define MEMOR_ENTRY_V(ctx, name, ...) GENERIC_ENTRY_V(mmgr_memor_, memor_, ctx, MemoriaCfg, name, __VA_ARGS__)
 
 /**
- * @brief Finds the first byte in c->src equal to c->val, within c->bytes.
+ * @brief The public surface, one line per entry point.
  *
- * @note Documented at the declaration in memoria_operor.h.
+ * @note Each is documented at its declaration in memoria_operor.h.
+ * @note Every line casts the caller's void pointers to the uint8_t pointers the context declares.
+ * @note There is no move_down function. The dispatch table points that member at mmgr_memor_cpy,
+ *       because a destination below the source is what the upward copy already handles.
  */
-const void *mmgr_memor_chr(const MemoriaCfg *c)
-{
-    // Explicit cast converts the void pointer to the const uint8_t pointer MemorScanCtx declares
-    return MMGR_CALL(memor_chr, MemorScanCtx, .src = (const uint8_t *)c->src, .bytes = c->bytes, .val = c->val);
-}
-
-/**
- * @brief Writes c->val into c->bytes of c->dst.
- *
- * @note Documented at the declaration in memoria_operor.h.
- */
-void mmgr_memor_set(const MemoriaCfg *c)
-{
-    // Explicit cast converts the void pointer to the uint8_t pointer MemorSetCtx declares
-    MMGR_CALL(memor_set, MemorSetCtx, .dst = (uint8_t *)c->dst, .bytes = c->bytes, .val = c->val);
-}
+MEMOR_ENTRY_V(MemorCpyCtx, cpy, .dst = (uint8_t *)c->dst, .src = (const uint8_t *)c->src, .bytes = c->bytes)
+MEMOR_ENTRY_V(MemorMoveCtx, move_up, .dst = (uint8_t *)c->dst, .src = (const uint8_t *)c->src, .bytes = c->bytes)
+MEMOR_ENTRY(mmgr_iword, MemorScanCtx, cmp, .src = (const uint8_t *)c->src, .other = (const uint8_t *)c->other,
+            .bytes = c->bytes)
+MEMOR_ENTRY(const void *, MemorScanCtx, chr, .src = (const uint8_t *)c->src, .bytes = c->bytes, .val = c->val)
+MEMOR_ENTRY_V(MemorSetCtx, set, .dst = (uint8_t *)c->dst, .bytes = c->bytes, .val = c->val)

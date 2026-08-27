@@ -44,7 +44,7 @@ mmgr_iword mmgr_clz_lead(const ClzCfg *c);
  * @param[in] c Value to measure [BORROWS].
  * @return      Trailing zero count, 0 through 63.
  * @note Runs in a fixed number of steps, none of which branches on the value.
- * @warning A c->val of 0 returns 63, the same answer mmgr_clz_lead reports for 0.
+ * @warning A c->val of 0 returns 63, the same answer mmgr_clz_trail reports for a c->val of 2^63.
  */
 mmgr_iword mmgr_clz_trail(const ClzCfg *c);
 

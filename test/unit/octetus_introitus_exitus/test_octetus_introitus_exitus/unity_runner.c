@@ -103,20 +103,20 @@ int main(void)
   run_test(test_take_be_reads_what_put_be_wrote_at_every_width, "test_take_be_reads_what_put_be_wrote_at_every_width", 110);
   run_test(test_takes_follow_one_another, "test_takes_follow_one_another", 135);
   run_test(test_take_be_of_fewer_bytes_takes_the_leading_ones, "test_take_be_of_fewer_bytes_takes_the_leading_ones", 153);
-  run_test(test_an_append_past_the_end_latches_and_writes_nothing, "test_an_append_past_the_end_latches_and_writes_nothing", 164);
-  run_test(test_a_latched_span_refuses_what_follows, "test_a_latched_span_refuses_what_follows", 179);
-  run_test(test_a_take_past_the_end_fails_and_holds_the_cursor, "test_a_take_past_the_end_fails_and_holds_the_cursor", 190);
-  run_test(test_a_raw_run_appends_as_it_is, "test_a_raw_run_appends_as_it_is", 202);
-  run_test(test_rd_str_reads_a_length_prefixed_run, "test_rd_str_reads_a_length_prefixed_run", 222);
-  run_test(test_rd_str_reads_an_empty_run, "test_rd_str_reads_an_empty_run", 235);
-  run_test(test_rd_str_rewinds_when_the_run_is_cut_short, "test_rd_str_rewinds_when_the_run_is_cut_short", 247);
-  run_test(test_rd_str_refuses_a_missing_length, "test_rd_str_refuses_a_missing_length", 259);
-  run_test(test_rd_str_refuses_a_cursor_already_past_the_end, "test_rd_str_refuses_a_cursor_already_past_the_end", 270);
-  run_test(test_mpint_fixed_right_aligns_and_pads, "test_mpint_fixed_right_aligns_and_pads", 282);
-  run_test(test_mpint_fixed_drops_the_sign_padding, "test_mpint_fixed_drops_the_sign_padding", 296);
-  run_test(test_mpint_fixed_of_an_exact_width, "test_mpint_fixed_of_an_exact_width", 307);
-  run_test(test_mpint_fixed_of_zero_is_all_zero, "test_mpint_fixed_of_zero_is_all_zero", 318);
-  run_test(test_mpint_fixed_refuses_a_value_too_wide, "test_mpint_fixed_refuses_a_value_too_wide", 331);
+  run_test(test_an_append_past_the_end_latches_and_writes_nothing, "test_an_append_past_the_end_latches_and_writes_nothing", 171);
+  run_test(test_a_latched_span_refuses_what_follows, "test_a_latched_span_refuses_what_follows", 195);
+  run_test(test_a_take_past_the_end_fails_and_holds_the_cursor, "test_a_take_past_the_end_fails_and_holds_the_cursor", 210);
+  run_test(test_a_raw_run_appends_as_it_is, "test_a_raw_run_appends_as_it_is", 222);
+  run_test(test_rd_str_reads_a_length_prefixed_run, "test_rd_str_reads_a_length_prefixed_run", 242);
+  run_test(test_rd_str_reads_an_empty_run, "test_rd_str_reads_an_empty_run", 255);
+  run_test(test_rd_str_rewinds_when_the_run_is_cut_short, "test_rd_str_rewinds_when_the_run_is_cut_short", 267);
+  run_test(test_rd_str_refuses_a_missing_length, "test_rd_str_refuses_a_missing_length", 279);
+  run_test(test_rd_str_refuses_a_cursor_already_past_the_end, "test_rd_str_refuses_a_cursor_already_past_the_end", 290);
+  run_test(test_mpint_fixed_right_aligns_and_pads, "test_mpint_fixed_right_aligns_and_pads", 302);
+  run_test(test_mpint_fixed_drops_the_sign_padding, "test_mpint_fixed_drops_the_sign_padding", 316);
+  run_test(test_mpint_fixed_of_an_exact_width, "test_mpint_fixed_of_an_exact_width", 327);
+  run_test(test_mpint_fixed_of_zero_is_all_zero, "test_mpint_fixed_of_zero_is_all_zero", 338);
+  run_test(test_mpint_fixed_refuses_a_value_too_wide, "test_mpint_fixed_refuses_a_value_too_wide", 351);
 
   return UNITY_END();
 }

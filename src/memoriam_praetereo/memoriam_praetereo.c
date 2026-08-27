@@ -138,41 +138,44 @@ MMGR_INLINE void praet_close(const PraetTransferCtx *c)
 }
 
 /**
- * @brief Opens a channel through the port layer.
+ * @brief Binds this module's fixed arguments to GENERIC_ENTRY, with the two types per entry.
  *
- * @note Documented at the declaration in memoriam_praetereo.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] ctx  Context type this entry's backend takes.
+ * @param[in] cfg  Argument type the caller passes.
+ * @param[in] name Name after the mmgr_praet_ and praet_ prefixes, which the two share.
+ * @note Both types are parameters here. Opening a channel and moving bytes on one take different
+ *       arguments, so the module carries two of each rather than one.
  */
-mmgr_bool mmgr_praet_open(const PraetCfg *c)
-{
-    return MMGR_CALL(praet_open, PraetOpenCtx, .channel = c->channel, .periph = c->periph, .loopback = c->loopback,
-                     .on_complete = c->on_complete);
-}
+#define PRAET_ENTRY(ret, ctx, cfg, name, ...) GENERIC_ENTRY(mmgr_praet_, praet_, ctx, cfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Submits a transfer through the port layer.
+ * @brief Binds the same to GENERIC_ENTRY_V, for an entry that returns nothing.
  *
- * @note Documented at the declaration in memoriam_praetereo.h.
+ * @param[in] ctx  Context type this entry's backend takes.
+ * @param[in] cfg  Argument type the caller passes.
+ * @param[in] name Name after the mmgr_praet_ and praet_ prefixes.
  */
-mmgr_bool mmgr_praet_tx_submit(const PraetTransferCfg *c)
-{
-    return MMGR_CALL(praet_tx_submit, PraetTransferCtx, .channel = c->channel, .buf = c->buf, .len = c->len);
-}
+#define PRAET_ENTRY_V(ctx, cfg, name, ...) GENERIC_ENTRY_V(mmgr_praet_, praet_, ctx, cfg, name, __VA_ARGS__)
 
 /**
- * @brief Closes a channel through the port layer.
+ * @brief The public surface, one line per entry point.
  *
- * @note Only c->channel is forwarded.
- * @note Documented at the declaration in memoriam_praetereo.h.
+ * @note Each is documented at its declaration in memoriam_praetereo.h.
+ * @note close forwards c->channel alone; the rest of its argument type is not read.
  */
-void mmgr_praet_close(const PraetTransferCfg *c)
-{
-    MMGR_CALL(praet_close, PraetTransferCtx, .channel = c->channel);
-}
+PRAET_ENTRY(mmgr_bool, PraetOpenCtx, PraetCfg, open, .channel = c->channel, .periph = c->periph,
+            .loopback = c->loopback, .on_complete = c->on_complete)
+PRAET_ENTRY(mmgr_bool, PraetTransferCtx, PraetTransferCfg, tx_submit, .channel = c->channel, .buf = c->buf,
+            .len = c->len)
+PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = c->channel)
 
 /**
  * @brief Calls the port layer's poll hook.
  *
- * @note Passes c straight through, with no checking call in between, unlike the other three entries.
+ * @note Hand-rolled rather than an entry line, as mmgr_infin_init is. It hands c to the weak hook
+ *       unchanged, with no checking call in between, so there is no argument pack to build and no
+ *       praet_ backend for GENERIC_ENTRY to name.
  * @note Documented at the declaration in memoriam_praetereo.h.
  */
 void mmgr_praet_poll(const PraetCfg *c)

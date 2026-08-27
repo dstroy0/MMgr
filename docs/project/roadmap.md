@@ -27,8 +27,8 @@ What that turned up is in @ref qa_testing and @ref qa_numeric — a parser that 
 right double 16% of the time, a search that read up to seven bytes past its cap, an exponent that
 silently became zero past 1e308.
 
-**Per-unit optimisation levels.** `mmgr_add_module` takes `OPTIMIZE`, and the measurement behind
-each use of it is in @ref qa_optimisation.
+**Per-unit optimization levels.** `mmgr_add_module` takes `OPTIMIZE`, and the measurement behind
+each use of it is in @ref qa_optimization.
 
 ## Later
 

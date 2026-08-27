@@ -80,7 +80,7 @@ subnormal needs 5^1074, which is a 2,494 bit integer, 39 words at 64 bits. But n
 expansion. What is needed is enough bits to decide the rounding, and that is 53 for the mantissa,
 one below it, and one bit saying whether anything at all is set under that.
 
-128 bits carries all three with 74 to spare, and it never grows, because normalising after each
+128 bits carries all three with 74 to spare, and it never grows, because normalizing after each
 step keeps the fraction in place and pushes the growth into an `int` exponent.
 
 ## What is in the module
@@ -146,7 +146,7 @@ live there:
   works.
 - An exact tie handed to the rounding directly, rather than hunting for a decimal that lands
   exactly halfway between two doubles.
-- The normalise path for a fraction with an empty high word, which the conversion never produces
+- The normalize path for a fraction with an empty high word, which the conversion never produces
   because it guards the mantissa first.
 
 ## What the render side got from it
@@ -162,12 +162,12 @@ It goes through the engine now. Measured against a correctly rounding reference 
 `g` rounded it, so one library rendered one number two ways. That was pinned as a finding and is now
 the rule the test asserts.
 
-The 1264 bytes `verba_scribo` grew at -O2 are the engine being inlined. See @ref qa_optimisation.
+The 1264 bytes `verba_scribo` grew at -O2 are the engine being inlined. See @ref qa_optimization.
 
 ## And the same for verba.g
 
 `verba.g` was the last one. It ran its conversion in a 58 bit working word - a little over seventeen
-decimal digits - and `g_mul10` and `g_div10` renormalised on every step, which shifts bits off the
+decimal digits - and `g_mul10` and `g_div10` renormalized on every step, which shifts bits off the
 bottom. The digits it was trying to produce are made of exactly those bits, so a seventeen digit
 render failed to name its own value back **87.1%** of the time even when parsed by a correctly
 rounded reader, worst 6 ulp.

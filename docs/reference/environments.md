@@ -17,7 +17,7 @@ that a wide host can exercise a narrow machine's code paths without owning the n
 | `word32` | `MMGR_WORD_BITS=32`   | a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.                                             |
 | `word16` | `MMGR_WORD_BITS=16`   | the narrowest carrier. Most likely to expose an off-by-one in a scan tail.                                                        |
 | `idx16`  | `MMGR_INDEX_BITS=16`  | a 16-bit index against a 64-bit word, which is the pairing the static asserts in `mmgr_types.h` exist to police.                  |
-| `checks` | `MMGR_DEBUG_CHECKS=1` | contract asserts compiled in, with `MMGR_ASSERT` wired to abort so a violated precondition fails a test instead of being a no-op. |
+| `checks` | `MMGR_DEBUG_CHECKS=1` | the checks compiled in, and the trapping `MMGR_ASSERT` selected, so a broken precondition fails a test instead of being a no-op. |
 
 ## One build, not five
 
@@ -64,8 +64,10 @@ off-by-one hides, and a 16-bit carrier reaches that tail four times sooner than 
 `idx16` exists because a narrow index against a wide word is the combination nothing else covers,
 and it is what the static asserts in `mmgr_types.h` are there to catch.
 
-`checks` is not a width at all. It compiles in the contract asserts and points `MMGR_ASSERT` at
-something that aborts, which turns a violated precondition from a silent no-op into a failed test.
+`checks` is not a width at all. It compiles in the library's checks and selects the trapping
+`MMGR_ASSERT`, which turns a broken precondition from a silent no-op into a failed test. It is the
+only environment where an assert is evaluated at all, so an expectation that is never exercised there
+is one nothing has ever tested.
 
 ## A note about earlier names
 

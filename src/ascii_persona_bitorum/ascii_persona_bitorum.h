@@ -23,7 +23,7 @@ MMGR_STATIC_ASSERT(sizeof(MmgrAsciiMask) == 16u, "an ASCII class mask is exactly
 /**
  * @brief Character class selector, numbered from 0.
  *
- * @note MMGR_ASCII_CLASSES is the enumerator count, not a class; it sizes s_class.
+ * @note MMGR_ASCII_CLASSES is the enumerator count, not a class. Passing it is out of range.
  */
 typedef enum
 {
@@ -42,13 +42,11 @@ typedef enum
 
 /**
  * @brief Arguments to mmgr_ascii_in: the class and the byte to test.
- *
- * @note Both members are const; mmgr_ascii_in copies them into an AsciiCtx.
  */
 typedef struct
 {
-    const MmgrAsciiClass kind;
-    const uint8_t byte;
+    const MmgrAsciiClass kind; /**< Class to test against, below MMGR_ASCII_CLASSES. */
+    const uint8_t byte;        /**< Code point to look up; 0x80 and above are in no class. */
 } AsciiCfg;
 
 /**
@@ -58,7 +56,7 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_bool (*in)(const AsciiCfg *c); /**< Set to mmgr_ascii_in. */
+    mmgr_bool (*in)(const AsciiCfg *c); /**< Whether a byte belongs to a class. */
 } AsciiPersonaBitorumNs;
 MMGR_NS_LAYOUT(AsciiPersonaBitorumNs, in);
 

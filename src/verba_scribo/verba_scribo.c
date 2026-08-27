@@ -116,13 +116,16 @@ MMGR_INLINE size_t verba_put_n(const VerbaCtx *c)
  *
  * @param[in] c Buffer, capacity, offset and the text [BORROWS].
  * @return      The offset past the text, or c->cap when it does not fit.
- * @note cellul.len measures c->text bounded by c->cap, then verba_put_n does the writing.
+ * @note c->text_len when the caller knows it, and only otherwise a measure. A length settled before
+ *       the build is one this has no reason to derive again, and most text handed here is a literal.
+ * @note A text_len of 0 measures, which is the same answer an empty string gives either way.
  * @note Writes nothing when the text does not fit, since verba_put_n is all or nothing.
  * @warning c->text must not be NULL here, unlike in verba_put_clip, verba_xml and verba_json.
  */
 MMGR_INLINE size_t verba_put(const VerbaCtx *c)
 {
-    const size_t sl = MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = c->text, .cap = c->cap);
+    const size_t sl =
+        (c->text_len != 0u) ? c->text_len : MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = c->text, .cap = c->cap);
 
     return MMGR_CALL(verba_put_n, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text, .text_len = sl);
 }
@@ -752,88 +755,15 @@ MMGR_INLINE mmgr_bool verba_ok(const VerbaCtx *c)
     return (mmgr_bool)(c->at < c->cap);
 }
 
-/**
- * @brief Writes c->text_len bytes of c->text at c->at.
- *
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_put_n(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_put_n, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text, .text_len = c->text_len);
-}
-
-/**
- * @brief Writes the whole of c->text at c->at.
- *
- * @note Does not forward c->text_len, since verba_put measures the text itself.
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_put(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_put, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text);
-}
-
-/**
- * @brief Writes as much of c->text as fits at c->at.
- *
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_put_clip(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_put_clip, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text);
-}
-
-/**
- * @brief Writes c->val in base ten, right aligned in at least c->columns columns.
- *
- * @note The only entry that forwards c->columns.
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_u64_clip(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_u64_clip, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val,
-                     .columns = c->columns);
-}
-
-/**
- * @brief Writes c->text at c->at with the four XML entities substituted.
- *
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_xml(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_xml, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text);
-}
-
-/**
- * @brief Writes c->ch at c->at.
- *
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_ch(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_ch, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .ch = c->ch);
-}
-
-/**
- * @brief Writes c->val in base c->base, in at least c->min digits.
- *
- * @note The only entry that forwards c->base; the other four fix a base of their own.
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_uint(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = c->base,
-                     .min = c->min);
-}
 
 /**
  * @brief Writes c->val in base ten, in at least c->min digits.
  *
- * @note Fixes the base at ten and forwards c->min, which is what separates it from mmgr_verba_u32.
- * @note Documented at the declaration in verba_scribo.h.
+ * @param[in,out] c Buffer, cursor, value and least digit count [BORROWS].
+ * @return          The cursor past what was written.
+ * @note Fixes the base at ten and forwards c->min, which is what separates it from verba_u32.
  */
-size_t mmgr_verba_u32w(const VerbaCfg *c)
+MMGR_INLINE size_t verba_u32w(const VerbaCtx *c)
 {
     return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = 10u,
                      .min = c->min);
@@ -842,10 +772,11 @@ size_t mmgr_verba_u32w(const VerbaCfg *c)
 /**
  * @brief Writes c->val in base sixteen, in at least c->min digits.
  *
- * @note Fixes the base at sixteen and forwards c->min, so the digits come out lower case.
- * @note Documented at the declaration in verba_scribo.h.
+ * @param[in,out] c Buffer, cursor, value and least digit count [BORROWS].
+ * @return          The cursor past what was written.
+ * @note Fixes the base at sixteen, so the digits come out lower case.
  */
-size_t mmgr_verba_hex(const VerbaCfg *c)
+MMGR_INLINE size_t verba_hex(const VerbaCtx *c)
 {
     return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = 16u,
                      .min = c->min);
@@ -854,113 +785,57 @@ size_t mmgr_verba_hex(const VerbaCfg *c)
 /**
  * @brief Writes c->val in base ten, with no padding.
  *
+ * @param[in,out] c Buffer, cursor and value [BORROWS].
+ * @return          The cursor past what was written.
  * @note Fixes both the base at ten and the least digit count at one, so c->min and c->base take no part.
- * @note Forwards exactly what mmgr_verba_u64 forwards, since c->val is 64 bits either way.
- * @note Documented at the declaration in verba_scribo.h.
  */
-size_t mmgr_verba_u32(const VerbaCfg *c)
+MMGR_INLINE size_t verba_u32(const VerbaCtx *c)
 {
-    return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = 10u, .min = 1u);
+    return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = 10u,
+                     .min = 1u);
 }
 
 /**
  * @brief Writes c->val in base ten, with no padding.
  *
- * @note Fixes both the base at ten and the least digit count at one, so c->min and c->base take no part.
- * @note Forwards exactly what mmgr_verba_u32 forwards; the two differ only in the name a caller reaches for.
- * @note Documented at the declaration in verba_scribo.h.
+ * @param[in,out] c Buffer, cursor and value [BORROWS].
+ * @return          The cursor past what was written.
+ * @note The same walk as verba_u32, since c->val is 64 bits either way. Both names exist so a caller
+ *       reads the width it means at the call.
  */
-size_t mmgr_verba_u64(const VerbaCfg *c)
+MMGR_INLINE size_t verba_u64(const VerbaCtx *c)
 {
-    return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = 10u, .min = 1u);
-}
-
-/**
- * @brief Writes c->sval in base ten, with a leading minus when it is negative.
- *
- * @note The only entry that forwards c->sval.
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_i64(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_i64, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .sval = c->sval);
-}
-
-/**
- * @brief Writes c->real to c->sig significant digits, in whichever form is shorter.
- *
- * @note Forwards c->sig and leaves c->decimals alone, where mmgr_verba_fixed does the reverse.
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_g(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_g, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .real = c->real, .sig = c->sig);
-}
-
-/**
- * @brief Writes c->real with exactly c->decimals digits after the point.
- *
- * @note Forwards c->decimals and leaves c->sig alone, where mmgr_verba_g does the reverse.
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_fixed(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_fixed, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .real = c->real, .decimals = c->decimals);
-}
-
-/**
- * @brief Writes c->text at c->at as a quoted JSON string.
- *
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_json(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_json, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text);
-}
-
-/**
- * @brief Stores the terminator at c->at and reports the length.
- *
- * @note Documented at the declaration in verba_scribo.h.
- */
-size_t mmgr_verba_finish(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_finish, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at);
-}
-
-/**
- * @brief Returns whether c->at is still below c->cap.
- *
- * @note Forwards cap and at alone, so c->out is not read.
- * @note Documented at the declaration in verba_scribo.h.
- */
-mmgr_bool mmgr_verba_ok(const VerbaCfg *c)
-{
-    return MMGR_CALL(verba_ok, VerbaCtx, .cap = c->cap, .at = c->at);
+    return MMGR_CALL(verba_uint, VerbaCtx, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = 10u,
+                     .min = 1u);
 }
 
 /**
  * @brief Returns whether c->real has its sign bit set.
  *
+ * @param[in] c The value to test, as c->real [BORROWS].
+ * @return      MMGR_TRUE when the sign bit is set.
  * @note Reads the bit rather than comparing against zero, so a negative zero returns MMGR_TRUE.
- * @note Documented at the declaration in verba_scribo.h.
  */
-mmgr_bool mmgr_verba_sign_bit(const VerbaCfg *c)
+MMGR_INLINE mmgr_bool verba_sign_bit(const VerbaCtx *c)
 {
-    return (mmgr_bool)(MMGR_CALL(verba_sign, VerbaCtx, .bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = c->real)) != 0U);
+    // Explicit cast narrows the bit test into the mmgr_bool container
+    return (mmgr_bool)(MMGR_CALL(verba_sign, VerbaCtx, .bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = c->real)) !=
+                       0U);
 }
 
 /**
  * @brief Returns whether c->real is an infinity.
  *
- * @note Wants the exponent field all ones and the mantissa zero, where mmgr_verba_is_nan wants it non-zero.
+ * @param[in] c The value to test, as c->real [BORROWS].
+ * @return      MMGR_TRUE for either infinity.
+ * @note Wants the exponent field all ones and the mantissa zero, where verba_is_nan wants it non-zero.
  * @note Says nothing about the sign, so a negative infinity returns MMGR_TRUE too.
- * @note Documented at the declaration in verba_scribo.h.
  */
-mmgr_bool mmgr_verba_is_inf(const VerbaCfg *c)
+MMGR_INLINE mmgr_bool verba_is_inf(const VerbaCtx *c)
 {
     const mmgr_u64 bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = c->real);
 
+    // Explicit cast narrows the combined test into the mmgr_bool container
     return (mmgr_bool)((MMGR_CALL(verba_exp, VerbaCtx, .bits = bits) == MMGR_DBL_EXP_ALL) &&
                        (MMGR_CALL(verba_mant, VerbaCtx, .bits = bits) == 0U));
 }
@@ -968,13 +843,53 @@ mmgr_bool mmgr_verba_is_inf(const VerbaCfg *c)
 /**
  * @brief Returns whether c->real is a NaN.
  *
- * @note Wants the exponent field all ones and the mantissa non-zero, where mmgr_verba_is_inf wants it zero.
- * @note Documented at the declaration in verba_scribo.h.
+ * @param[in] c The value to test, as c->real [BORROWS].
+ * @return      MMGR_TRUE for any NaN.
+ * @note Wants the exponent field all ones and the mantissa non-zero, where verba_is_inf wants it zero.
  */
-mmgr_bool mmgr_verba_is_nan(const VerbaCfg *c)
+MMGR_INLINE mmgr_bool verba_is_nan(const VerbaCtx *c)
 {
     const mmgr_u64 bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = c->real);
 
+    // Explicit cast narrows the combined test into the mmgr_bool container
     return (mmgr_bool)((MMGR_CALL(verba_exp, VerbaCtx, .bits = bits) == MMGR_DBL_EXP_ALL) &&
                        (MMGR_CALL(verba_mant, VerbaCtx, .bits = bits) != 0U));
 }
+
+/**
+ * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
+ *
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] name Name after the mmgr_verba_ and verba_ prefixes, which the two share.
+ */
+#define VERBA_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_verba_, verba_, VerbaCtx, VerbaCfg, ret, name, __VA_ARGS__)
+
+/**
+ * @brief The public surface, one line per entry point.
+ *
+ * @note Each is documented at its declaration in verba_scribo.h.
+ * @note The fields each line forwards are the ones that entry reads; MMGR_CALL zeroes the rest. ok
+ *       forwards cap and at alone, so it touches no memory, and the three classifiers forward real.
+ * @note uint is the only entry that forwards c->base. u32w, hex, u32 and u64 each fix a base of their
+ *       own in the backend above rather than at the call.
+ */
+VERBA_ENTRY(size_t, put_n, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text, .text_len = c->text_len)
+VERBA_ENTRY(size_t, put, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text, .text_len = c->text_len)
+VERBA_ENTRY(size_t, put_clip, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text)
+VERBA_ENTRY(size_t, u64_clip, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .columns = c->columns)
+VERBA_ENTRY(size_t, xml, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text)
+VERBA_ENTRY(size_t, ch, .out = c->out, .cap = c->cap, .at = c->at, .ch = c->ch)
+VERBA_ENTRY(size_t, uint, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .base = c->base, .min = c->min)
+VERBA_ENTRY(size_t, u32w, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .min = c->min)
+VERBA_ENTRY(size_t, hex, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val, .min = c->min)
+VERBA_ENTRY(size_t, u32, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val)
+VERBA_ENTRY(size_t, u64, .out = c->out, .cap = c->cap, .at = c->at, .val = c->val)
+VERBA_ENTRY(size_t, i64, .out = c->out, .cap = c->cap, .at = c->at, .sval = c->sval)
+VERBA_ENTRY(size_t, g, .out = c->out, .cap = c->cap, .at = c->at, .real = c->real, .sig = c->sig)
+VERBA_ENTRY(size_t, fixed, .out = c->out, .cap = c->cap, .at = c->at, .real = c->real, .decimals = c->decimals)
+VERBA_ENTRY(size_t, json, .out = c->out, .cap = c->cap, .at = c->at, .text = c->text)
+VERBA_ENTRY(size_t, finish, .out = c->out, .cap = c->cap, .at = c->at)
+VERBA_ENTRY(mmgr_bool, ok, .cap = c->cap, .at = c->at)
+VERBA_ENTRY(mmgr_bool, sign_bit, .real = c->real)
+VERBA_ENTRY(mmgr_bool, is_inf, .real = c->real)
+VERBA_ENTRY(mmgr_bool, is_nan, .real = c->real)

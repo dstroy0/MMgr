@@ -16,44 +16,52 @@ the only mistake available — which is a mistake a reviewer can actually see.
 
 This applies to `verba` because what it is appending is not a length the caller had. A formatted
 number is as long as it turns out to be. Where the length **is** known at the call — a four byte
-field, a run of `n` bytes — the check is a contract instead, and mechanism 4 covers it.
+field, a run of `n` bytes — the answer was settled before the build, and mechanism 4 covers it.
 
-## 4. MMGR_ASSERT, for a violated contract
+## 4. MMGR_ASSERT, for a broken precondition
 
-A contract violation is not a runtime error, it is a bug. Passing a null where one is not allowed, a
+A broken precondition is not a runtime error, it is a bug. Passing a null where one is not allowed, a
 length that cannot be right, or a write that does not fit a buffer whose size you have in front of
 you. Those are policed by `MMGR_ASSERT`, which **compiles to nothing by default**:
 
 ```c
-#ifndef MMGR_ASSERT
 #define MMGR_ASSERT(cond, msg) ((void)sizeof((cond) ? 1 : 0), (void)0)
-#endif
 ```
 
 The `sizeof` keeps the expression type-checked so it cannot rot, and then discards it. A shipping
 build pays nothing.
 
-This is why a span has no `overflow` field and a reader has no `err`. `mem` is `uint8_t[8]` and the
-field is four bytes, both at the point the call is written — so a write that does not fit is a
-program that should not have been built, and there is no runtime state to carry the answer:
-
-```c
-MMGR_ASSERT(w->pos < w->cap, "byte written past the span");
-w->buf[w->pos] = b;
-```
-
-To make the asserts real, define `MMGR_ASSERT` to something that aborts and set
-`MMGR_DEBUG_CHECKS=1`. That combination is the `checks` environment, and it is a genuine gate in CI
-rather than a developer convenience — a violated precondition fails a test instead of being a no-op
-nobody notices.
+Set `MMGR_DEBUG_CHECKS=1` and `mmgr_config.h` defines the other form instead: a report to `stderr`
+naming the expectation, the file and the line, then `abort()`. Nothing else is needed to arm them.
+That is the `checks` environment, and it is a genuine gate in CI rather than a developer convenience
+— a broken precondition fails a test instead of being a no-op nobody notices.
 
 ```sh
 ctest --test-dir build -R '_checks$' --output-on-failure
 ```
 
-Two bounds stay runtime checks rather than contracts, because their input is wire data and not a
-promise the caller made: `byteio.rd_str`'s length prefix, and `byteio.mpint_fixed`'s `mlen`. Both come
-off the wire, so whether they fit is a fact about what arrived.
+Define `MMGR_ASSERT` yourself before including the header and neither form is used, which is what a
+target with no `stderr` and no `abort()` wants.
+
+### Where a span's flags fit
+
+A span does carry an `overflow` and a read span an `err`, and the two do not mean the same kind of
+thing.
+
+`overflow` is mechanism 4, not mechanism 3. What a writer emits and how big its buffer is are both
+settled before the build, so a correct writer cannot overrun a correctly sized span — the append
+asserts. What the flag adds is what a **shipping** build does with a wrong program: the first bad
+append stores nothing, latches, and every append after it is a no-op, so a writer that was built
+wrong is kept off the end of the buffer rather than walking down it. Read it to find out something is
+broken, not to decide what to do next.
+
+`err` is a genuine runtime answer. A read span runs out because whatever sent the bytes sent fewer,
+and nothing was built wrong. That is the whole reason every take returns `mmgr_bool` and no append
+returns anything: a short read is a case to handle, an overrun append is a bug to fix.
+
+The same line divides two bounds inside `byteio` that stay runtime checks: `rd_str`'s length prefix
+and `mpint_fixed`'s value length. Both come off the wire, so whether they fit is a fact about what
+arrived rather than a promise the caller made.
 
 ## What is deliberately absent
 

@@ -7,8 +7,6 @@ reference.
 ## Region
 
 - @subpage mod_confin_guide
-- @subpage mod_clarus_guide
-- @subpage mod_occult_guide
 - @subpage mod_exter_guide
 - @subpage mod_infin_guide
 

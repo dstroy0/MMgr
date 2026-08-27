@@ -1,5 +1,10 @@
 /**
  * @brief Bit writer packing least significant bits first into a caller-supplied buffer.
+ *
+ * @note Two entries do the work and they are not interchangeable. bitor_put writes whole bytes and
+ *       nothing else, so bits that do not fill one stay in the residue; bitor_align is what puts that
+ *       last partial byte out. A stream whose length is not a multiple of eight and that never calls
+ *       align ends one byte short, with no flag raised and nothing to notice at the call.
  */
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
 
@@ -11,6 +16,8 @@
 typedef struct
 {
     mmgr_bitor *writer; /**< Writer to append to [BORROWS]. */
+    uint8_t *out;       /**< Buffer bitor_init builds a writer over [BORROWS]. */
+    size_t cap;         /**< Bytes available in out. */
     uint64_t val;       /**< Bits to write, taken from the low end. */
     mmgr_word nbits;    /**< Number of bits of val to write. */
 } BitorCtx;
@@ -35,8 +42,9 @@ MMGR_INLINE void bitor_put(const BitorCtx *c)
 
     MMGR_ASSERT(writer->cnt <= writer->cap, "the count of written bytes has passed the capacity");
     MMGR_ASSERT(writer->nbits < 8u, "a whole byte was left in the residue instead of being written");
+    MMGR_ASSERT(c->nbits <= 64u, "a put of more bits than a uint64_t holds");
 
-    // A request of 64 bits or more takes the all-ones mask, avoiding a shift by the full width
+    // A request of exactly 64 takes the all-ones mask, since a shift by the full width is undefined
     const uint64_t mask = (c->nbits >= 64u) ? ~(uint64_t)0 : ((UINT64_C(1) << c->nbits) - 1u);
     // Explicit cast narrows the combined residue and request bits, in whole bytes, to size_t
     const size_t whole = (size_t)((writer->nbits + c->nbits) / 8u);
@@ -53,11 +61,10 @@ MMGR_INLINE void bitor_put(const BitorCtx *c)
 
     for (size_t i = 0; i < whole; i++)
     {
-        // take is 8 on every pass after the first, since the residue is cleared each time
         const mmgr_word take = 8u - writer->nbits;
         const uint8_t chunk = (uint8_t)(work & 0xFFu);
 
-        // Explicit casts hold the byte assembly in uint8_t, discarding the int promotion from <<
+        // Explicit casts hold each step at uint8_t; the shift and the or promote away from it
         writer->out[writer->cnt + i] = (uint8_t)(writer->residue | (uint8_t)(chunk << writer->nbits));
         work >>= take;
         left -= take;
@@ -80,10 +87,8 @@ MMGR_INLINE void bitor_put(const BitorCtx *c)
  * @brief Writes the partial byte c->writer still holds, padded with zeros above its bits.
  *
  * @param[in,out] c Writer to finish [BORROWS].
- * @note The residue already carries its bits in the low nbits positions with zeros above, so the
- *       padding is what is there rather than anything this has to add.
- * @note Does nothing when the residue is empty, which is what makes it safe to end every stream with
- *       whether or not the last put happened to land on a byte.
+ * @note The residue holds its bits in the low nbits positions with zeros above, so no padding is added.
+ * @note Does nothing when the residue is empty, so it is safe to call at the end of any stream.
  */
 MMGR_INLINE void bitor_align(const BitorCtx *c)
 {
@@ -107,9 +112,12 @@ MMGR_INLINE void bitor_align(const BitorCtx *c)
 /**
  * @brief Fills an mmgr_bitor from c->out and c->cap, with the counters zeroed.
  *
- * @note Documented at the declaration in bitorum_introitus_exitus.h.
+ * @param[in] c Buffer out and its extent cap [BORROWS].
+ * @return      A writer with no bytes written and no residue.
+ * @note The returned writer keeps c->out, which must outlive it [BORROWS].
+ * @warning c->out must not be null and c->cap must not be zero.
  */
-mmgr_bitor mmgr_bitor_init(const BitorumCfg *c)
+MMGR_INLINE mmgr_bitor bitor_init(const BitorCtx *c)
 {
     MMGR_ASSERT(c->out != NULL, "a bit writer needs a buffer");
     MMGR_ASSERT(c->cap != 0, "a bit writer needs a capacity");
@@ -125,23 +133,26 @@ mmgr_bitor mmgr_bitor_init(const BitorumCfg *c)
 }
 
 /**
- * @brief Copies c->writer, c->val and c->nbits into a BitorCtx and calls bitor_put.
+ * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
  *
- * @note c->out and c->cap are not read; they belong to mmgr_bitor_init.
- * @note Documented at the declaration in bitorum_introitus_exitus.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] name Name after the mmgr_bitor_ and bitor_ prefixes, which the two share.
  */
-void mmgr_bitor_put(const BitorumCfg *c)
-{
-    MMGR_CALL(bitor_put, BitorCtx, .writer = c->writer, .val = c->val, .nbits = c->nbits);
-}
+#define BITOR_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_bitor_, bitor_, BitorCtx, BitorumCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Copies c->writer into a BitorCtx and calls bitor_align.
+ * @brief Binds the same four to GENERIC_ENTRY_V, for an entry that returns nothing.
  *
- * @note c->val and c->nbits are not read; a flush has nothing to be given.
- * @note Documented at the declaration in bitorum_introitus_exitus.h.
+ * @param[in] name Name after the mmgr_bitor_ and bitor_ prefixes, which the two share.
  */
-void mmgr_bitor_align(const BitorumCfg *c)
-{
-    MMGR_CALL(bitor_align, BitorCtx, .writer = c->writer);
-}
+#define BITOR_ENTRY_V(name, ...) GENERIC_ENTRY_V(mmgr_bitor_, bitor_, BitorCtx, BitorumCfg, name, __VA_ARGS__)
+
+/**
+ * @brief The public surface, one line per entry point.
+ *
+ * @note Each is documented at its declaration in bitorum_introitus_exitus.h.
+ * @note The fields each line forwards are the ones that entry reads; MMGR_CALL zeroes the rest.
+ */
+BITOR_ENTRY(mmgr_bitor, init, .out = c->out, .cap = c->cap)
+BITOR_ENTRY_V(put, .writer = c->writer, .val = c->val, .nbits = c->nbits)
+BITOR_ENTRY_V(align, .writer = c->writer)

@@ -30,7 +30,7 @@ add_subdirectory(third_party/MMgr)
 #include "spatium/spatium.h"         /* just spans */
 ```
 
-The path is part of the contract — the generated reference prints the include line for every entity
+The path is part of the interface — the generated reference prints the include line for every entity
 for that reason.
 
 ## PlatformIO

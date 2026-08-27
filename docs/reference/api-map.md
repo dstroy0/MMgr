@@ -1,6 +1,6 @@
 # Where a symbol lives {#ref_api_map}
 
-You saw `spat.init` in a diff. This page says which module it came from.
+You saw `spat.from` in a diff. This page says which module it came from.
 
 ## The naming law
 
@@ -14,12 +14,12 @@ mmgr_<infix>_<tail>
 
 | symbol                      | infix    | module              |
 | --------------------------- | -------- | ------------------- |
-| `mmgr_spat_init`            | `spat`   | `spatium`           |
+| `mmgr_spat_from`            | `spat`   | `spatium`           |
 | `mmgr_carcer_persist_capio` | `carcer` | `carceribus`        |
 | `mmgr_scrut_has_zero`       | `scrut`  | `verbum_scrutor`    |
-| `mmgr_secura_wipe`          | `secura` | `custodia_secura`   |
+| `mmgr_carcer_secura_reddo`  | `carcer` | `carceribus`        |
 
-And the dispatch table is named for the same stem, so `spat.init` and `mmgr_spat_init` are the same
+And the dispatch table is named for the same stem, so `spat.from` and `mmgr_spat_from` are the same
 function reached two ways. See @ref concept_ns_idiom.
 
 ## Stem to module
@@ -29,8 +29,7 @@ function reached two ways. See @ref concept_ns_idiom.
 | `carcer`                               | `carceribus`                     | the double-ended region and its pools     |
 | `iteratio_infinita`                    | `confinium_exclusivum_infinitas` | SPSC ring, segment queue, loculus bitmap  |
 | `exter`                                | `confinium_externum`             | DRAM against PSRAM placement              |
-| `soluta`                               | `custodia_soluta`                | plaintext pool                            |
-| `secura`                               | `custodia_secura`                | secure pool, clears on release            |
+| `carcer`                               | `carceribus`                     | the region and both its ends              |
 | `spat`                                 | `spatium`                        | a bounded view over caller memory         |
 | `proxim` / `aequus` / `migro`          | `proximus_operor`                | unaligned / aligned / may-alias access    |
 | `lane` / `mask` / `word`               | `verbum_scrutor`                 | SWAR lane primitives                      |
@@ -65,8 +64,8 @@ conversion needs. See @ref qa_numeric for what it is for.
 
 | prefix        | is                                                        |
 | ------------- | --------------------------------------------------------- |
-| `mmgr_<stem>` | a data type — `mmgr_spat`, `mmgr_bitor`                   |
-| `<Pascal>Cfg` | the argument struct an entry takes — `SpatCfg`, `MemoriaCfg` |
+| `mmgr_<stem>` | a data type — `mmgr_span`, `mmgr_bitor`                   |
+| `<Pascal>Cfg` | the argument struct an entry takes — `SpatiumCfg`, `MemoriaCfg` |
 | `<Pascal>Ctx` | caller-held state a module operates on — `CarcerCtx`      |
 | `<Pascal>Ns`  | a dispatch table type — `SpatiumNs`, `ScrutLaneNs`        |
 | `MMGR_<NAME>` | a macro or a constant                                     |

@@ -24,7 +24,7 @@ void tearDown(void)
 
 void test_a_byte_written_is_the_byte_read(void)
 {
-    mmgr_span w = spat.from(mem, sizeof store);
+    mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem, .cap = sizeof store);
     uint64_t got = 0;
 
     MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = (uint64_t)0xA5u, .bytes = (size_t)1);
@@ -34,9 +34,9 @@ void test_a_byte_written_is_the_byte_read(void)
     TEST_ASSERT_EQUAL_UINT8(0xA5u, mem[0]);
     TEST_ASSERT_EQUAL_UINT8(0x5Au, mem[1]);
     TEST_ASSERT_EQUAL_size_t(2u, w.pos);
-    TEST_ASSERT_TRUE(spat.ok(w));
+    TEST_ASSERT_TRUE(MMGR_CALL(spat.ok, SpatiumCfg, .s = w));
 
-    mmgr_cspan r = spat.cfrom(mem, sizeof store);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = mem, .cap = sizeof store);
 
     TEST_ASSERT_TRUE(MMGR_CALL(byteio.take_be, OctetusCfg, .r = &r, .out = &got, .bytes = (size_t)1));
     TEST_ASSERT_EQUAL_HEX64(0xA5ull, got);
@@ -60,8 +60,8 @@ void test_big_endian_fields_round_trip_at_every_width(void)
     {
         setUp();
 
-        mmgr_span w = spat.from(mem, sizeof store);
-        mmgr_cspan r = spat.cfrom(mem, sizeof store);
+        mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem, .cap = sizeof store);
+        mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = mem, .cap = sizeof store);
         uint64_t got = 0;
 
         MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = cases[i].v, .bytes = cases[i].n);
@@ -75,7 +75,7 @@ void test_big_endian_fields_round_trip_at_every_width(void)
 
 void test_the_writer_puts_the_high_byte_first(void)
 {
-    mmgr_span w = spat.from(mem, sizeof store);
+    mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem, .cap = sizeof store);
 
     MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = (uint64_t)0x11223344u, .bytes = (size_t)4);
 
@@ -93,7 +93,7 @@ void test_the_writer_puts_the_high_byte_first(void)
  */
 void test_an_odd_width_writes_only_its_own_bytes(void)
 {
-    mmgr_span w = spat.from(mem, sizeof store);
+    mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem, .cap = sizeof store);
 
     mem[3] = 0xEEu;
     MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = (uint64_t)0x112233u, .bytes = (size_t)3);
@@ -106,7 +106,7 @@ void test_an_odd_width_writes_only_its_own_bytes(void)
 
 void test_endian_entries_agree_with_the_wire_writer(void)
 {
-    mmgr_span w = spat.from(mem, sizeof store);
+    mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem, .cap = sizeof store);
     uint8_t viaendian[8];
 
     MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = (uint64_t)0xDEADBEEFu, .bytes = (size_t)4);
@@ -120,17 +120,26 @@ void test_endian_entries_agree_with_the_wire_writer(void)
 
 /**
  * @brief An append that does not fit latches the span rather than writing past it.
+ *
+ * @note Shipping builds only. Writing eight bytes into four is a wrong program, and under
+ *       MMGR_DEBUG_CHECKS byteio_claim traps on it, which is what that build is for. What is left to
+ *       test is the other build's behavior: a wrong program that is not stopped must still be
+ *       contained, so the append stores nothing rather than running off the end.
  */
 void test_a_field_past_the_end_latches_rather_than_writing(void)
 {
+#if MMGR_DEBUG_CHECKS
+    TEST_IGNORE_MESSAGE("an append past the end traps under checks; the latch is the shipping path");
+#else
     uint8_t small[4] = {0u, 0u, 0u, 0u};
-    mmgr_span w = spat.from(small, sizeof small);
+    mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = small, .cap = sizeof small);
 
     MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = (uint64_t)0x1122334455667788ull, .bytes = (size_t)8);
 
     TEST_ASSERT_TRUE_MESSAGE(w.overflow, "eight bytes into four must latch");
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, small[0], "and must not have written anything");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(8u, w.pos, "while still counting what it would have needed");
+#endif
 }
 
 /**
@@ -139,7 +148,7 @@ void test_a_field_past_the_end_latches_rather_than_writing(void)
 void test_a_field_past_the_end_of_a_read_leaves_the_cursor(void)
 {
     uint8_t small[4] = {1u, 2u, 3u, 4u};
-    mmgr_cspan r = spat.cfrom(small, sizeof small);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = small, .cap = sizeof small);
     uint64_t got = 0xFFu;
 
     TEST_ASSERT_FALSE(MMGR_CALL(byteio.take_be, OctetusCfg, .r = &r, .out = &got, .bytes = (size_t)8));
@@ -150,19 +159,19 @@ void test_a_field_past_the_end_of_a_read_leaves_the_cursor(void)
 
 void test_a_run_of_bytes_appends_as_it_is(void)
 {
-    mmgr_span w = spat.from(mem, sizeof store);
+    mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem, .cap = sizeof store);
 
     MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = (uint64_t)5u, .bytes = (size_t)4);
     MMGR_CALL(byteio.raw, OctetusCfg, .w = &w, .src = (const uint8_t *)"hello", .bytes = (size_t)5);
 
     TEST_ASSERT_EQUAL_size_t(9u, w.pos);
-    TEST_ASSERT_TRUE(spat.ok(w));
+    TEST_ASSERT_TRUE(MMGR_CALL(spat.ok, SpatiumCfg, .s = w));
     TEST_ASSERT_EQUAL_INT(0, MMGR_CALL(memor.cmp, MemoriaCfg, .src = mem + 4, .other = "hello", .bytes = (size_t)5));
 }
 
 void test_a_single_byte_append_counts_the_cursor(void)
 {
-    mmgr_span w = spat.from(mem, sizeof store);
+    mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem, .cap = sizeof store);
 
     MMGR_CALL(byteio.put, OctetusCfg, .w = &w, .byte = 0x7Fu);
     MMGR_CALL(byteio.put, OctetusCfg, .w = &w, .byte = 0x80u);
@@ -174,12 +183,12 @@ void test_a_single_byte_append_counts_the_cursor(void)
 
 void test_a_length_prefixed_string_round_trips(void)
 {
-    mmgr_span w = spat.from(mem, sizeof store);
+    mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem, .cap = sizeof store);
 
     MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = (uint64_t)5u, .bytes = (size_t)4);
     MMGR_CALL(byteio.raw, OctetusCfg, .w = &w, .src = (const uint8_t *)"hello", .bytes = (size_t)5);
 
-    mmgr_cspan r = spat.cfrom(mem, 9u);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = mem, .cap = 9u);
     const uint8_t *s = NULL;
     size_t slen = 0;
 
@@ -199,11 +208,11 @@ void test_a_length_prefixed_string_round_trips(void)
  */
 void test_a_length_prefix_promising_more_than_is_there_is_refused(void)
 {
-    mmgr_span w = spat.from(mem, sizeof store);
+    mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem, .cap = sizeof store);
 
     MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = (uint64_t)99u, .bytes = (size_t)4);
 
-    mmgr_cspan r = spat.cfrom(mem, 8u);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = mem, .cap = 8u);
     const uint8_t *s = (const uint8_t *)"untouched";
     size_t slen = 123u;
 
@@ -216,7 +225,7 @@ void test_an_integer_right_aligns_into_a_fixed_field(void)
 {
     static const uint8_t narrow[3] = {0x00u, 0x12u, 0x34u};
     uint8_t field[8];
-    mmgr_span f = spat.from(field, sizeof field);
+    mmgr_span f = MMGR_CALL(spat.from, SpatiumCfg, .buf = field, .cap = sizeof field);
 
     TEST_ASSERT_TRUE(MMGR_CALL(byteio.mpint_fixed, OctetusCfg, .w = &f, .src = narrow, .bytes = (size_t)3));
 
@@ -233,7 +242,7 @@ void test_an_integer_wider_than_its_field_is_refused(void)
 {
     static const uint8_t wide[4] = {0x11u, 0x22u, 0x33u, 0x44u};
     uint8_t field[2] = {0xAAu, 0xBBu};
-    mmgr_span f = spat.from(field, sizeof field);
+    mmgr_span f = MMGR_CALL(spat.from, SpatiumCfg, .buf = field, .cap = sizeof field);
 
     TEST_ASSERT_FALSE(MMGR_CALL(byteio.mpint_fixed, OctetusCfg, .w = &f, .src = wide, .bytes = (size_t)4));
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(0xAAu, field[0], "a refused integer writes nothing");
@@ -245,7 +254,7 @@ void test_raw_bytes_survive_an_unaligned_start(void)
     for (unsigned skew = 0; skew < 8u; skew++)
     {
         uint8_t buf[64];
-        mmgr_span w = spat.from(buf + skew, 16u);
+        mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = buf + skew, .cap = 16u);
 
         MMGR_CALL(byteio.raw, OctetusCfg, .w = &w, .src = (const uint8_t *)"0123456789abcdef", .bytes = (size_t)16);
 

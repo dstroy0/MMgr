@@ -78,7 +78,7 @@ void test_the_multiply_agrees_with_halves_done_by_hand(void)
 }
 
 
-void test_normalising_a_fraction_whose_high_word_is_empty(void)
+void test_normalizing_a_fraction_whose_high_word_is_empty(void)
 {
     MutoCtx f;
 
@@ -94,7 +94,7 @@ void test_normalising_a_fraction_whose_high_word_is_empty(void)
     TEST_ASSERT_EQUAL_INT_MESSAGE(-64 - 63, f.fe2, "the exponent should carry both the move and the shift");
 }
 
-void test_normalising_nothing_leaves_it_alone(void)
+void test_normalizing_nothing_leaves_it_alone(void)
 {
     MutoCtx f;
 

@@ -87,8 +87,9 @@ target_compile_options(mmgr_flags INTERFACE
 #   word32    a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.
 #   idx16     a 16-bit index against a 64-bit word, which is the pairing the static_assert in
 #             mmgr_types.h exists to police.
-#   checks    debug checks compiled in, with MMGR_ASSERT wired to abort so a violated contract
-#             fails a test rather than being a no-op nobody notices.
+#   checks    debug checks compiled in. MMGR_DEBUG_CHECKS also selects the trapping MMGR_ASSERT in
+#             mmgr_config.h, so an expectation a caller broke fails a test here rather than being a
+#             no-op nobody notices. It is the only environment where an assert is evaluated at all.
 set(MMGR_ENVIRONMENTS
   "host|"
   "word32|MMGR_WORD_BITS=32"

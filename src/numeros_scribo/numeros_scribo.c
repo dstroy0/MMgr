@@ -141,36 +141,34 @@ MMGR_INLINE size_t numer_emit_one(const NumerCtx *c)
 }
 
 /**
- * @brief Terminates c->out at its first byte and reports nothing written.
+ * @brief Terminates c->out where this write began and reports nothing written.
  *
- * @param[in] c Destination buffer [BORROWS].
+ * @param[in] c Destination buffer and the starting cursor [BORROWS].
  * @return      0 always.
- * @note Reads c->out alone; cap, at and the value members take no part.
- * @warning c->out must be writable for at least one byte.
+ * @note Terminates at c->at, which is where this write began, so text already in the buffer survives
+ *       an abandoned append. c->at is the starting cursor here, not the offset the walk reached.
+ * @note Reads c->out and c->at; cap and the value members take no part.
+ * @warning c->out must be writable at c->at.
  */
 MMGR_INLINE size_t numer_abandon(const NumerCtx *c)
 {
-    c->out[0] = '\0';
+    c->out[c->at] = '\0';
     return 0;
 }
 
 /**
- * @brief Closes the output through verba.finish, terminating c->out when it reports 0.
+ * @brief Closes the output through verba.finish.
  *
  * @param[in] c Buffer, capacity and the offset reached [BORROWS].
  * @return      The length verba.finish reported, which is c->at, or 0 when c->at reached c->cap.
- * @note Stores the terminator at c->out[0] only on a 0 return, leaving the buffer empty.
- * @warning c->out must be writable for at least one byte.
+ * @note Writes no terminator of its own. A 0 return is the caller's to act on, and the caller is the
+ *       one that knows where the write began.
  */
 MMGR_INLINE size_t numer_finish(const NumerCtx *c)
 {
-    const size_t n = MMGR_CALL(verba.finish, VerbaCfg, .out = c->out, .cap = c->cap, .at = c->at);
-
-    if (n == 0)
-    {
-        c->out[0] = '\0';
-    }
-    return n;
+    // Reports and terminates nothing on failure. c->at here is the offset the walk reached, not where
+    // it began, so this cannot restore the buffer; the caller holds the starting cursor and abandons.
+    return MMGR_CALL(verba.finish, VerbaCfg, .out = c->out, .cap = c->cap, .at = c->at);
 }
 
 /**
@@ -184,7 +182,9 @@ MMGR_INLINE size_t numer_finish(const NumerCtx *c)
  */
 MMGR_INLINE size_t numer_build(const NumerCtx *c)
 {
-    size_t at = 0;
+    // Begins at the caller's cursor rather than the first byte, so a run of writes never re-measures
+    // what the last one left. An unset at is 0, which is where a single write starts anyway.
+    size_t at = c->at;
     size_t k = 0;
 
     if (c->cap == 0u)
@@ -214,7 +214,11 @@ MMGR_INLINE size_t numer_build(const NumerCtx *c)
     {
         return numer_abandon(c);
     }
-    return MMGR_CALL(numer_finish, NumerCtx, .out = c->out, .cap = c->cap, .at = at);
+    const size_t done = MMGR_CALL(numer_finish, NumerCtx, .out = c->out, .cap = c->cap, .at = at);
+
+    // The finish reports 0 when it ran out of room. c->at is where this write began, so abandoning
+    // here puts the terminator back there and leaves earlier text whole.
+    return (done == 0u) ? numer_abandon(c) : done;
 }
 
 /**
@@ -228,7 +232,8 @@ MMGR_INLINE size_t numer_build(const NumerCtx *c)
  */
 MMGR_INLINE size_t numer_emit(const NumerCtx *c)
 {
-    size_t at = 0;
+    // Begins at the caller's cursor, as numer_build does
+    size_t at = c->at;
 
     if (c->cap == 0u)
     {
@@ -240,7 +245,11 @@ MMGR_INLINE size_t numer_emit(const NumerCtx *c)
         at = MMGR_CALL(numer_emit_one, NumerCtx, .out = c->out, .cap = c->cap, .at = at, .one = &c->vals[k],
                        .width = c->vals[k].width);
     }
-    return MMGR_CALL(numer_finish, NumerCtx, .out = c->out, .cap = c->cap, .at = at);
+    const size_t done = MMGR_CALL(numer_finish, NumerCtx, .out = c->out, .cap = c->cap, .at = at);
+
+    // The finish reports 0 when it ran out of room. c->at is where this write began, so abandoning
+    // here puts the terminator back there and leaves earlier text whole.
+    return (done == 0u) ? numer_abandon(c) : done;
 }
 
 /**
@@ -256,24 +265,23 @@ MMGR_INLINE size_t numer_used(const NumerCtx *c)
 }
 
 /**
- * @brief Writes c->spec and c->vals into c->out, starting at its first byte.
+ * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
  *
- * @note Documented at the declaration in numeros_scribo.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] name Name after the mmgr_numer_ and numer_ prefixes, which the two share.
  */
-size_t mmgr_numer_build(const NumerosCfg *c)
-{
-    return MMGR_CALL(numer_build, NumerCtx, .out = c->out, .cap = c->cap, .spec = c->spec, .vals = c->vals, .nvals = c->nvals);
-}
+#define NUMER_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_numer_, numer_, NumerCtx, NumerosCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Writes c->vals into c->out, starting at its first byte and reading no field list.
+ * @brief The two entries that forward and nothing else.
  *
- * @note Documented at the declaration in numeros_scribo.h.
+ * @note Each is documented at its declaration in numeros_scribo.h.
+ * @note The two append entries below are not here. They read the text already in c->out and re-enter
+ *       through the numer table, so they carry logic rather than an argument pack alone.
  */
-size_t mmgr_numer_emit(const NumerosCfg *c)
-{
-    return MMGR_CALL(numer_emit, NumerCtx, .out = c->out, .cap = c->cap, .vals = c->vals, .nvals = c->nvals);
-}
+NUMER_ENTRY(size_t, build, .out = c->out, .cap = c->cap, .at = c->at, .spec = c->spec, .vals = c->vals,
+            .nvals = c->nvals)
+NUMER_ENTRY(size_t, emit, .out = c->out, .cap = c->cap, .at = c->at, .vals = c->vals, .nvals = c->nvals)
 
 /**
  * @brief Writes c->spec and c->vals into c->out after the string already there.
@@ -289,20 +297,24 @@ size_t mmgr_numer_append(const NumerosCfg *c)
         return 0;
     }
 
-    const size_t used = MMGR_CALL(numer_used, NumerCtx, .out = c->out, .cap = c->cap);
+    // c->at when the caller threaded it, and only otherwise a scan. A caller that keeps the cursor
+    // pays nothing here; one that does not is measured once per call, which is what made a run of
+    // appends cost more the longer the text got.
+    const size_t used = (c->at != 0u) ? c->at : MMGR_CALL(numer_used, NumerCtx, .out = c->out, .cap = c->cap);
+
     if (used >= c->cap)
     {
         return 0;
     }
 
-    const size_t n = MMGR_CALL(numer.build, NumerosCfg, .out = c->out + used, .cap = c->cap - used, .spec = c->spec,
+    const size_t n = MMGR_CALL(numer.build, NumerosCfg, .out = c->out, .cap = c->cap, .at = used, .spec = c->spec,
                                .vals = c->vals, .nvals = c->nvals);
     if (n == 0)
     {
         c->out[used] = '\0';
         return 0;
     }
-    return used + n;
+    return n;
 }
 
 /**
@@ -319,18 +331,20 @@ size_t mmgr_numer_emit_append(const NumerosCfg *c)
         return 0;
     }
 
-    const size_t used = MMGR_CALL(numer_used, NumerCtx, .out = c->out, .cap = c->cap);
+    // c->at when the caller threaded it, and only otherwise a scan, as in mmgr_numer_append
+    const size_t used = (c->at != 0u) ? c->at : MMGR_CALL(numer_used, NumerCtx, .out = c->out, .cap = c->cap);
+
     if (used >= c->cap)
     {
         return 0;
     }
 
-    const size_t n =
-        MMGR_CALL(numer.emit, NumerosCfg, .out = c->out + used, .cap = c->cap - used, .vals = c->vals, .nvals = c->nvals);
+    const size_t n = MMGR_CALL(numer.emit, NumerosCfg, .out = c->out, .cap = c->cap, .at = used, .vals = c->vals,
+                               .nvals = c->nvals);
     if (n == 0)
     {
         c->out[used] = '\0';
         return 0;
     }
-    return used + n;
+    return n;
 }

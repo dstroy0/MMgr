@@ -132,56 +132,33 @@ MMGR_INLINE uint64_t endian_rd_be(const EndianCtx *c)
 }
 
 /**
- * @brief Writes c->val to c->dst without reversing it.
+ * @brief Binds the four order entries to GENERIC_ENTRY.
  *
- * @note Documented at the declaration in endian.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] name Name after the mmgr_ and endian_ prefixes, which the two share.
  */
-size_t mmgr_wr_le(const EndianCfg *c)
-{
-    // Explicit cast widens the packed enum to size_t, which the mmgr_endian_width member then narrows back
-    return MMGR_CALL(endian_wr_le, EndianCtx, .dst = c->dst, .val = c->val, .width = (size_t)c->width);
-}
+#define ENDIAN_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_, endian_, EndianCtx, EndianCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Reads c->width bytes from c->src without reversing them.
+ * @brief Binds the reversal entry, which carries the longer public prefix.
  *
- * @note Documented at the declaration in endian.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] name Name after the mmgr_endian_ and endian_ prefixes.
+ * @note A second macro because this entry is named mmgr_endian_rev while the four above are named
+ *       mmgr_wr_le and its kin. GENERIC_ENTRY pastes one prefix onto one name, so only the pair differs.
  */
-uint64_t mmgr_rd_le(const EndianCfg *c)
-{
-    // Explicit cast widens the packed enum to size_t, which the mmgr_endian_width member then narrows back
-    return MMGR_CALL(endian_rd_le, EndianCtx, .src = c->src, .width = (size_t)c->width);
-}
+#define ENDIAN_REV_ENTRY(ret, name, ...)                                                                               \
+    GENERIC_ENTRY(mmgr_endian_, endian_, EndianCtx, EndianCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Reverses c->val, then writes it to c->dst.
+ * @brief The public surface, one line per entry point.
  *
- * @note Documented at the declaration in endian.h.
+ * @note Each is documented at its declaration in endian.h.
+ * @note c->width is forwarded as it stands. EndianCfg and EndianCtx both declare it mmgr_endian_width,
+ *       so there is no conversion to make.
  */
-size_t mmgr_wr_be(const EndianCfg *c)
-{
-    // Explicit cast widens the packed enum to size_t, which the mmgr_endian_width member then narrows back
-    return MMGR_CALL(endian_wr_be, EndianCtx, .dst = c->dst, .val = c->val, .width = (size_t)c->width);
-}
-
-/**
- * @brief Reads c->width bytes from c->src, then reverses them.
- *
- * @note Documented at the declaration in endian.h.
- */
-uint64_t mmgr_rd_be(const EndianCfg *c)
-{
-    // Explicit cast widens the packed enum to size_t, which the mmgr_endian_width member then narrows back
-    return MMGR_CALL(endian_rd_be, EndianCtx, .src = c->src, .width = (size_t)c->width);
-}
-
-/**
- * @brief Reverses the byte order of c->val at c->width bytes.
- *
- * @note Documented at the declaration in endian.h.
- */
-uint64_t mmgr_endian_rev(const EndianCfg *c)
-{
-    // Explicit cast widens the packed enum to size_t, which the mmgr_endian_width member then narrows back
-    return MMGR_CALL(endian_rev, EndianCtx, .val = c->val, .width = (size_t)c->width);
-}
+ENDIAN_ENTRY(size_t, wr_le, .dst = c->dst, .val = c->val, .width = c->width)
+ENDIAN_ENTRY(uint64_t, rd_le, .src = c->src, .width = c->width)
+ENDIAN_ENTRY(size_t, wr_be, .dst = c->dst, .val = c->val, .width = c->width)
+ENDIAN_ENTRY(uint64_t, rd_be, .src = c->src, .width = c->width)
+ENDIAN_REV_ENTRY(uint64_t, rev, .val = c->val, .width = c->width)

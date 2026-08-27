@@ -64,9 +64,12 @@ The dispatch tables are addressed by offset, so a positional initializer mis-wir
 member moves. `MMGR_NS_LAYOUT(T, ...)` expands to a chain of `_Static_assert`s pinning each named
 member to its own loculus, in order, and pinning `sizeof(T)` to exactly that many pointers.
 
-It is variadic up to 24 members via `MMGR_NARG` and `MMGR_NS_L1`…`MMGR_NS_L24`. `MMGR_NS_LAYOUT_OPEN`
-is the variant for a table with trailing state beyond the function pointers —
-`clarus_custodiae` uses it for its `internal` pointer.
+It is variadic up to 24 members via `MMGR_NARG` and `MMGR_NS_L1`…`MMGR_NS_L24`. That 24 is also the
+ceiling on a dispatch table: `verbum_scrutor` splits into three tables partly because of it.
+
+Every table is pure function pointers, so `sizeof(T)` is the whole assertion. A table carrying
+trailing state would need its own variant testing `offsetof` instead; there was one, and it went when
+the pool module that used it folded into `carceribus`.
 
 This is why `SORT_MEMBER_DOCS` is `NO` in `docs/Doxyfile`: the documented order is the asserted
 order. See @ref concept_ns_idiom.

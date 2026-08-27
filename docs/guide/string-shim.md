@@ -15,7 +15,7 @@ would rather not link libc's string functions at all.
 #include "some_existing_code.h"
 ```
 
-## Include order is the whole contract
+## Include order is the whole of it
 
 The shim works by claiming libc's include guards. It defines `_STRING_H`, `_STRING_H_`,
 `__STRING_H__`, `_STRING_H_INCLUDED` and `_INC_STRING` itself, so a later `#include <string.h>`
@@ -44,7 +44,7 @@ them and does nothing. Put the include first and keep it first.
 Every `str*` one takes a read cap, explicitly or through `MMGR_STR_MAX`. That is the difference from
 libc: there is no entry here that will run forward until it happens to find a zero.
 
-## Three places the behaviour differs
+## Three places the behavior differs
 
 These are not bugs and they are not going to change. Read them before you assume a drop-in is
 actually a drop-in.
@@ -62,7 +62,7 @@ libc's does. It is the string compares that lose the sign, not the memory ones.
 
 ## Why strcpy and strcat are missing
 
-There is no bounded spelling of `strcpy`. Its contract is "copy until the source ends", and the
+There is no bounded spelling of `strcpy`. What it promises is "copy until the source ends", and the
 destination's size is not one of its arguments — so there is nothing to check against and no cap to
 pass. The same is true of `strcat`.
 

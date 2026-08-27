@@ -88,12 +88,12 @@ than in somebody's shell history:
 | -------------- | ----------------------------------------------------------------- |
 | `build`        | the library as it ships                                           |
 | `build-oracle` | every entry with a libc equivalent replaced by that equivalent    |
-| `build-cov`    | instrumented, with `always_inline` and link time optimisation off |
+| `build-cov`    | instrumented, with `always_inline` and link time optimization off |
 
 The last two matter. `always_inline` is honoured at `-O0`, so without turning it off every call site
-of a header entry gets its own copy of that entry's branch records and the report counts optimiser
+of a header entry gets its own copy of that entry's branch records and the report counts optimizer
 copies instead of source branches - `mmgr_ascii_in` is one condition on one line and came back
-holding 28 branches. Link time optimisation rewrites the code across translation units before the
+holding 28 branches. Link time optimization rewrites the code across translation units before the
 counters are read, which measures something nobody wrote.
 
 `ab` runs the two sides one after the other, never at once: two full builds at the same time makes

@@ -70,16 +70,23 @@ machine does".
 ## Alignment of a take
 
 ```c
-uint8_t *p = mmgr_carcer_persist_capio(&c, 256, 8);   ```
+uint8_t *p = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 256u);
+```
 
-The alignment is explicit at every take. `MMGR_CONFIN_ALIGN` is the default and
-`MMGR_CONFIN_MAX_ALIGN` is the ceiling; asking for more than the ceiling is a contract violation, not
-a runtime error, so it is caught by `MMGR_ASSERT` under the `checks` environment and is a no-op
-otherwise.
+A take does not name an alignment, because there is only one. Every tenancy comes back aligned to
+`MMGR_CARCER_ALIGN`, which is `sizeof(mmgr_word)` — derived from the width rather than written as a
+number, so a build at another width gets the alignment that width needs.
 
-Alignment costs bytes. A take rounds the bump pointer up before carving, and those padding bytes are
-gone — they are not reclaimed by a later smaller take. Over-aligning everything to 16 for safety
-is a real cost in a 4 KB region.
+Three static asserts in `carceribus.h` hold it together: `MMGR_CARCER_ALIGN` is a power of two, so an
+offset rounds by masking; `MMGR_ALIGN_BYTES` is one too; and `MMGR_ALIGN_BYTES >= MMGR_CARCER_ALIGN`,
+so a region cannot be aligned less than the tenancies it hands out. All three fail the build, not a
+test run.
+
+The width costs bytes twice over. A request rounds up to a whole word before it is carved, and every
+block carries a header of two `size_t` ahead of its payload, itself rounded to the same alignment. On
+a 64-bit build that is 16 bytes of header per tenancy; on a 16-bit build it is 4. A region full of
+small takes pays that overhead per take, which is what makes the width worth thinking about in a 4 KB
+region.
 
 ## What to do with all this
 

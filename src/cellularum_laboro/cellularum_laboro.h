@@ -15,6 +15,8 @@ MMGR_INCIPE_DECLS
  *
  * @note cellul_find_core declares rows[MMGR_SIEVE_ROWS] and reads rows[0] before any loop.
  * @warning Taken only when MMGR_SIEVE_ROWS is not already defined; a build may supply its own.
+ * @warning A build's own value must be at least 1. At 0 the search declares a zero length array and
+ *          still reads rows[0], and nothing here asserts against it.
  */
 #ifndef MMGR_SIEVE_ROWS
 
@@ -32,6 +34,7 @@ typedef struct
     const size_t cap;          /**< Bytes readable from src. */
     const char *const other;   /**< Second operand for diff, eq, starts and find [BORROWS]. */
     const size_t other_cap;    /**< Bytes readable from other. */
+    const size_t other_len;    /**< Needle length find and has take when non-zero, rather than measuring. */
     char *const dst;           /**< Destination for copy [BORROWS]. */
     const size_t at;           /**< Offset into src for len, ws and digit. */
     const uint8_t byte;        /**< Byte sought by chr. */
@@ -67,7 +70,9 @@ typedef struct
 /**
  * @brief Type of the cellul dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the nineteen members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note MMGR_NS_LAYOUT asserts the seventeen members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note Byte and wire verbs are not here. rd_str and mpint_fixed read a length off the wire rather
+ *       than out of a string, so they belong to the byteio module and act on its spans.
  */
 typedef struct
 {

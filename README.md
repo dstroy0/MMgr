@@ -12,12 +12,16 @@ them between a producer and a consumer.
 ```c
 #include "mmgr.h"
 
-static uint8_t region[4096];
+/* The region and its pools are carved at compile time; this emits the storage. */
+mmgr_carcer_init(g_ram, 4096u, MMGR_POOL(g_pool, 4096u));
 
-mmgr_confin c;
-mmgr_confin_init(&c, region, sizeof region);
+CarcerCtx *const pool = MMGR_CARCER_POOL(g_ram, g_pool);
 
-uint8_t   *p = mmgr_confin_persist_capio(&c, 256, 8);  mmgr_spat  s = spat.from(p, 256);                      ```
+uint8_t *const p = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 256u);
+mmgr_span s = MMGR_CALL(spat.from, SpatiumCfg, .buf = p, .cap = 256u);
+
+MMGR_CALL(byteio.put_be, OctetusCfg, .w = &s, .val = 0xDEADBEEFu, .bytes = 4u);
+```
 
 ## Where things are
 
@@ -37,9 +41,8 @@ Latin names, because they were carved out of a larger tree and the short English
 
 | module                                                                 | what it is                                                 |
 | ---------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [`confinium`](src/confinium)                                           | the two-ended allocator that everything else sits on       |
-| [`clarus_custodiae`](src/clarus_custodiae)                             | the plain pool: hands out tenants, does not wipe           |
-| [`occultum_custodiae`](src/occultum_custodiae)                         | the secure pool: same shape, wipes what it reclaims        |
+| [`carceribus`](src/carceribus)                                         | the two-ended allocator that everything else sits on       |
+| [`confinium_exclusivum_infinitas`](src/confinium_exclusivum_infinitas) | the lock-free ring between a producer and a consumer       |
 | [`spatium`](src/spatium)                                               | bounded views over caller memory; owns nothing             |
 | [`cellularum_laboro`](src/cellularum_laboro)                           | bounded string work: search, compare, parse                |
 | [`verbum_scrutor`](src/verbum_scrutor)                                 | the SWAR core the scans are built from                     |
@@ -75,7 +78,7 @@ python test/harness.py coverage    # what of src/ the suites reached
 - **The namespace idiom devirtualises.** [The ns idiom](docs/concepts/ns-idiom.md)
 - **`to_double` is correctly rounded; `verba.g` is not.** [Numbers, and how far they can be trusted](docs/quality/numeric-accuracy.md)
 - **150 targets, 100% of lines and branches, green against libc as well.** [The test suite](docs/quality/testing.md)
-- **What each optimisation level costs.** [Optimisation](docs/quality/optimisation.md)
+- **What each optimization level costs.** [Optimization](docs/quality/optimization.md)
 
 ## Status
 

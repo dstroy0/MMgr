@@ -510,281 +510,65 @@ MMGR_INLINE size_t scrut_words(const ScrutWordCtx *c)
     return (c->bytes / MMGR_SWAR_BYTES) + (((c->bytes & (MMGR_SWAR_BYTES - 1u)) != 0u) ? 1u : 0u);
 }
 
-/**
- * @brief Marks the lanes of c->word that are at or above c->byte.
- *
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_ge(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_ge, ScrutLaneCtx, .word = c->word, .byte = c->byte);
-}
 
 /**
- * @brief Marks the lanes of c->word that are at or below c->byte.
+ * @brief Binds this module's fixed arguments to GENERIC_ENTRY, with the two types per entry.
  *
- * @note Documented at the declaration in verbum_scrutor.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] ctx  Context type this entry's backend takes.
+ * @param[in] cfg  Argument type the caller passes.
+ * @param[in] name Name after the mmgr_scrut_ and scrut_ prefixes, which the two share.
+ * @note Both types are parameters. The module carries three of each, one per view: a lane view over
+ *       the bytes of a word, a mask view over the bits a lane test produced, and a word view over the
+ *       memory a scan walks. The three dispatch tables in verbum_scrutor.h divide the same way.
  */
-mmgr_word mmgr_scrut_le(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_le, ScrutLaneCtx, .word = c->word, .byte = c->byte);
-}
+#define SCRUT_ENTRY(ret, ctx, cfg, name, ...) GENERIC_ENTRY(mmgr_scrut_, scrut_, ctx, cfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Subtracts c->byte from every lane of c->word, keeping seven bits of each result.
+ * @brief The lane view, one line per entry point.
  *
- * @note Documented at the declaration in verbum_scrutor.h.
+ * @note Each is documented at its declaration in verbum_scrutor.h.
+ * @note The fields each line forwards are the ones that entry reads; MMGR_CALL zeroes the rest. Only
+ *       eq and xor forward ci, and only fam_eq forwards fam.
  */
-mmgr_word mmgr_scrut_sub7(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_sub7, ScrutLaneCtx, .word = c->word, .byte = c->byte);
-}
+SCRUT_ENTRY(mmgr_word, ScrutLaneCtx, ScrutLaneCfg, ge, .word = c->word, .byte = c->byte)
+SCRUT_ENTRY(mmgr_word, ScrutLaneCtx, ScrutLaneCfg, le, .word = c->word, .byte = c->byte)
+SCRUT_ENTRY(mmgr_word, ScrutLaneCtx, ScrutLaneCfg, sub7, .word = c->word, .byte = c->byte)
+SCRUT_ENTRY(mmgr_word, ScrutLaneCtx, ScrutLaneCfg, has_zero, .word = c->word)
+SCRUT_ENTRY(mmgr_word, ScrutLaneCtx, ScrutLaneCfg, eq, .word = c->word, .byte = c->byte, .ci = c->ci)
+SCRUT_ENTRY(mmgr_word, ScrutLaneCtx, ScrutLaneCfg, xor, .word = c->word, .val = c->val, .ci = c->ci)
+SCRUT_ENTRY(mmgr_word, ScrutLaneCtx, ScrutLaneCfg, fam_eq, .word = c->word, .fam = c->fam, .byte = c->byte)
+SCRUT_ENTRY(mmgr_word, ScrutLaneCtx, ScrutLaneCfg, any_upper, .word = c->word)
+SCRUT_ENTRY(mmgr_word, ScrutLaneCtx, ScrutLaneCfg, any_digit, .word = c->word)
+SCRUT_ENTRY(mmgr_word, ScrutLaneCtx, ScrutLaneCfg, alpha, .word = c->word)
+SCRUT_ENTRY(size_t, ScrutLaneCtx, ScrutLaneCfg, lane_count, .mask = c->mask)
+SCRUT_ENTRY(size_t, ScrutLaneCtx, ScrutLaneCfg, lane_lo, .mask = c->mask)
+SCRUT_ENTRY(size_t, ScrutLaneCtx, ScrutLaneCfg, lane_hi, .mask = c->mask)
 
 /**
- * @brief Marks the lanes of c->word that hold zero.
+ * @brief The mask view, one line per entry point.
  *
- * @note Forwards word alone, so byte, fam and ci take no part.
- * @note Documented at the declaration in verbum_scrutor.h.
+ * @note Each is documented at its declaration in verbum_scrutor.h.
+ * @note tail_mask is the only entry that forwards wi, and run the only one that forwards both a mask
+ *       and a byte count.
  */
-mmgr_word mmgr_scrut_has_zero(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_has_zero, ScrutLaneCtx, .word = c->word);
-}
+SCRUT_ENTRY(mmgr_word, ScrutMaskCtx, ScrutMaskCfg, spread, .mask = c->mask)
+SCRUT_ENTRY(mmgr_word, ScrutMaskCtx, ScrutMaskCfg, drop_lo, .mask = c->mask)
+SCRUT_ENTRY(mmgr_word, ScrutMaskCtx, ScrutMaskCfg, drop_hi, .mask = c->mask)
+SCRUT_ENTRY(mmgr_word, ScrutMaskCtx, ScrutMaskCfg, bytes_below, .bytes = c->bytes)
+SCRUT_ENTRY(mmgr_word, ScrutMaskCtx, ScrutMaskCfg, lanes_below, .bytes = c->bytes)
+SCRUT_ENTRY(mmgr_word, ScrutMaskCtx, ScrutMaskCfg, lanes_before, .mask = c->mask)
+SCRUT_ENTRY(mmgr_word, ScrutMaskCtx, ScrutMaskCfg, tail_mask, .bytes = c->bytes, .wi = c->wi)
+SCRUT_ENTRY(mmgr_word, ScrutMaskCtx, ScrutMaskCfg, run, .mask = c->mask, .bytes = c->bytes)
+SCRUT_ENTRY(mmgr_word, ScrutMaskCtx, ScrutMaskCfg, run_edge, .bytes = c->bytes)
 
 /**
- * @brief Marks the lanes of c->word that equal c->byte.
+ * @brief The word view, one line per entry point.
  *
- * @note Documented at the declaration in verbum_scrutor.h.
+ * @note Each is documented at its declaration in verbum_scrutor.h.
+ * @note load and load_al differ in the alignment each promises, not in what they forward.
  */
-mmgr_word mmgr_scrut_eq(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_eq, ScrutLaneCtx, .word = c->word, .byte = c->byte, .ci = c->ci);
-}
-
-/**
- * @brief Returns the lane by lane difference of c->word and c->val.
- *
- * @note Forwards c->val rather than c->byte, so the caller broadcasts the comparand itself.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_xor(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_xor, ScrutLaneCtx, .word = c->word, .val = c->val, .ci = c->ci);
-}
-
-/**
- * @brief Marks the lanes of c->word that match c->byte within the c->fam bits.
- *
- * @note The only entry that forwards c->fam.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_fam_eq(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_fam_eq, ScrutLaneCtx, .word = c->word, .fam = c->fam, .byte = c->byte);
-}
-
-/**
- * @brief Marks the lanes of c->word in the 0x40 to 0x5F block.
- *
- * @note Fixes the family at MMGR_FAM_CS and the byte at MMGR_FAM_CI, so c->fam and c->byte take no part.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_any_upper(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_any_upper, ScrutLaneCtx, .word = c->word);
-}
-
-/**
- * @brief Marks the lanes of c->word in the 0x30 to 0x3F block.
- *
- * @note Fixes the family at 0xF0 and the byte at 0x30, so c->fam and c->byte take no part.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_any_digit(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_any_digit, ScrutLaneCtx, .word = c->word);
-}
-
-/**
- * @brief Marks the lanes of c->word holding an ASCII letter, of either case.
- *
- * @note Forwards word alone, so byte, fam and ci take no part.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_alpha(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_alpha, ScrutLaneCtx, .word = c->word);
-}
-
-/**
- * @brief Counts the set lanes of c->mask.
- *
- * @note Forwards mask alone, so word, byte, fam and ci take no part.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-size_t mmgr_scrut_lane_count(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_lane_count, ScrutLaneCtx, .mask = c->mask);
-}
-
-/**
- * @brief Returns the index of the lowest set lane of c->mask.
- *
- * @note The lane table binds this to first on a little endian target and to last on a big endian one.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-size_t mmgr_scrut_lane_lo(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_lane_lo, ScrutLaneCtx, .mask = c->mask);
-}
-
-/**
- * @brief Returns the index of the highest set lane of c->mask.
- *
- * @note The lane table binds this to last on a little endian target and to first on a big endian one.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-size_t mmgr_scrut_lane_hi(const ScrutLaneCfg *c)
-{
-    return MMGR_CALL(scrut_lane_hi, ScrutLaneCtx, .mask = c->mask);
-}
-
-/**
- * @brief Widens every set lane of c->mask to a full byte of ones.
- *
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_spread(const ScrutMaskCfg *c)
-{
-    return MMGR_CALL(scrut_spread, ScrutMaskCtx, .mask = c->mask);
-}
-
-/**
- * @brief Clears the lowest set lane of c->mask.
- *
- * @note The mask table binds this to drop_first on a little endian target and to drop_last on a big endian one.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_drop_lo(const ScrutMaskCfg *c)
-{
-    return MMGR_CALL(scrut_drop_lo, ScrutMaskCtx, .mask = c->mask);
-}
-
-/**
- * @brief Clears the highest set lane of c->mask.
- *
- * @note The mask table binds this to drop_last on a little endian target and to drop_first on a big endian one.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_drop_hi(const ScrutMaskCfg *c)
-{
-    return MMGR_CALL(scrut_drop_hi, ScrutMaskCtx, .mask = c->mask);
-}
-
-/**
- * @brief Builds a mask over the first c->bytes bytes of a word, in memory order.
- *
- * @note Forwards bytes alone, so mask and wi take no part.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_bytes_below(const ScrutMaskCfg *c)
-{
-    return MMGR_CALL(scrut_bytes_below, ScrutMaskCtx, .bytes = c->bytes);
-}
-
-/**
- * @brief Builds a lane mask over the first c->bytes lanes of a word, in memory order.
- *
- * @note Forwards bytes alone, so mask and wi take no part.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_lanes_below(const ScrutMaskCfg *c)
-{
-    return MMGR_CALL(scrut_lanes_below, ScrutMaskCtx, .bytes = c->bytes);
-}
-
-/**
- * @brief Returns the lanes that come before the first set lane of c->mask, in memory order.
- *
- * @note Forwards mask alone, so bytes and wi take no part.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_lanes_before(const ScrutMaskCfg *c)
-{
-    return MMGR_CALL(scrut_lanes_before, ScrutMaskCtx, .mask = c->mask);
-}
-
-/**
- * @brief Builds the lane mask for the last partial word of a scan of c->bytes bytes.
- *
- * @note The only entry that forwards c->wi.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_tail_mask(const ScrutMaskCfg *c)
-{
-    return MMGR_CALL(scrut_tail_mask, ScrutMaskCtx, .bytes = c->bytes, .wi = c->wi);
-}
-
-/**
- * @brief Marks the lanes of c->mask that begin a run of c->bytes set lanes.
- *
- * @note The only mask entry that forwards both mask and bytes.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_run(const ScrutMaskCfg *c)
-{
-    return MMGR_CALL(scrut_run, ScrutMaskCtx, .mask = c->mask, .bytes = c->bytes);
-}
-
-/**
- * @brief Marks the lanes too near the end of a word for a run of c->bytes to fit.
- *
- * @note Forwards bytes alone, so c->mask takes no part.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_run_edge(const ScrutMaskCfg *c)
-{
-    return MMGR_CALL(scrut_run_edge, ScrutMaskCtx, .bytes = c->bytes);
-}
-
-/**
- * @brief Loads one mmgr_word from c->at, at any alignment.
- *
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_load(const ScrutWordCfg *c)
-{
-    return MMGR_CALL(scrut_load, ScrutWordCtx, .at = c->at);
-}
-
-/**
- * @brief Loads one mmgr_word from an aligned c->at.
- *
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_load_al(const ScrutWordCfg *c)
-{
-    return MMGR_CALL(scrut_load_al, ScrutWordCtx, .at = c->at);
-}
-
-/**
- * @brief Returns c->word with every letter lane turned to lower case.
- *
- * @note Forwards word alone, so at and bytes take no part.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-mmgr_word mmgr_scrut_fold_lower(const ScrutWordCfg *c)
-{
-    return MMGR_CALL(scrut_fold_lower, ScrutWordCtx, .word = c->word);
-}
-
-/**
- * @brief Returns how many whole words a scan of c->bytes bytes must read.
- *
- * @note Forwards bytes alone, so word and at take no part.
- * @note Documented at the declaration in verbum_scrutor.h.
- */
-size_t mmgr_scrut_words(const ScrutWordCfg *c)
-{
-    return MMGR_CALL(scrut_words, ScrutWordCtx, .bytes = c->bytes);
-}
+SCRUT_ENTRY(mmgr_word, ScrutWordCtx, ScrutWordCfg, load, .at = c->at)
+SCRUT_ENTRY(mmgr_word, ScrutWordCtx, ScrutWordCfg, load_al, .at = c->at)
+SCRUT_ENTRY(mmgr_word, ScrutWordCtx, ScrutWordCfg, fold_lower, .word = c->word)
+SCRUT_ENTRY(size_t, ScrutWordCtx, ScrutWordCfg, words, .bytes = c->bytes)

@@ -1,14 +1,11 @@
 /**
  * @brief Double-ended pool: its region machinery, its state, its arguments, and the carcer table.
  *
- * @note One roof: the region machinery that carves the pools, the two ends that hand bytes out, and
- *       the accessors that report on them are all here. Spans over those bytes are spatium's.
- * @note A tenancy is taken with persist_capio and given back with one of two calls. They differ in
- *       exactly one thing: secura_reddo zeroes the bytes first and persist_reddo does not. The
- *       guarantee is in the name rather than a flag, so a caller cannot ask for a wipe and not get
- *       one.
- * @note The pool's own address is the identity of whoever holds it, so a tenancy needs nothing
- *       carried beside it to say whose it is.
+ * @note Holds the region machinery, the two ends, and the accessors. Spans over those bytes are
+ *       spatium's.
+ * @note Two calls give a tenancy back and differ in one thing: secura_reddo zeroes the bytes first,
+ *       persist_reddo does not. The guarantee is in the name, not a flag.
+ * @note The pool's address identifies whoever holds it, so a tenancy carries nothing beside it.
  */
 #ifndef MMGR_CARCERIBUS_H
 #define MMGR_CARCERIBUS_H
@@ -18,9 +15,10 @@
 MMGR_INCIPE_DECLS
 
 /**
- * @brief Set to 1 to track each pool's high-water figure in CarcerCtx::hw.
+ * @brief Set to 1 to track each end's high-water figure.
  *
- * @note Adds the hw member to CarcerCtx and the blend that maintains it in both carcer capio calls.
+ * @note Adds CarcerCtx::persist_hw and CarcerCtx::interim_hw, and the blend that raises them in
+ *       carcer_grow, which both takes reach. One figure per end, so neither is a maximum over the other.
  * @note A build sets this before including this header, the way it sets any other knob here.
  */
 #ifndef MMGR_ENABLE_HW_MEM_CAPACITY_CB
@@ -30,10 +28,13 @@ MMGR_INCIPE_DECLS
 /**
  * @brief Largest number of pools one region may be carved into.
  *
- * @note Sizes the pool array in MMGR_CARCER_MACHINERY, and bounds the region macros.
+ * @note A ceiling only. Each region sizes its pool array from its own count, so raising this costs a
+ *       region that does not use it nothing.
+ * @note Eight is where MMGR_NARG runs out: each MMGR_POOL pair is two arguments, the table reaches
+ *       24, and eight is the largest power of two under that.
  */
 #ifndef MMGR_CARCER_MAX_REGIONS
-#define MMGR_CARCER_MAX_REGIONS 2u
+#define MMGR_CARCER_MAX_REGIONS 8u
 #endif
 
 /**
@@ -90,13 +91,15 @@ typedef struct
 /**
  * @brief Members every carved region carries ahead of its bytes.
  *
- * @note init records the whole region; pool is sized by MMGR_CARCER_MAX_REGIONS.
- * @note No mark array: an interim mark is a value the caller holds and hands back, so savepoints
- *       nest and the region carries no storage for them.
+ * @param[in] count_ Pools this region carves, which is what sizes its pool array.
+ * @note init records the whole region. The array is sized by count_, not by MMGR_CARCER_MAX_REGIONS,
+ *       so a one pool region carries one CarcerCtx.
+ * @note No mark array: an interim mark is a value the caller holds, so savepoints nest and the region
+ *       stores nothing for them.
  */
-#define MMGR_CARCER_MACHINERY                                                                                          \
+#define MMGR_CARCER_MACHINERY(count_)                                                                                  \
     const CarcerInit init;                                                                                             \
-    CarcerCtx pool[MMGR_CARCER_MAX_REGIONS]
+    CarcerCtx pool[count_]
 
 /**
  * @brief Pairs a pool name with its size for mmgr_carcer_init.
@@ -124,13 +127,55 @@ typedef struct
  * @param[in] name_   Pool name, used in the assertion messages.
  * @param[in] off_    Byte offset of the pool within the region.
  * @param[in] n_      Bytes given to the pool.
- * @note Requires at least two MMGR_ALIGN_BYTES, an exact multiple of MMGR_ALIGN_BYTES, and off_ plus n_ within bounds.
+ * @note Requires a power of two size of at least two MMGR_ALIGN_BYTES, and off_ plus n_ within bounds.
+ * @note The power of two lets an offset inside a pool be masked rather than divided, and puts each
+ *       pool's base on its own size, so the next pool's offset needs no rounding.
  */
 #define MMGR_CARCER_CHECK(region_, name_, off_, n_)                                                                    \
     MMGR_STATIC_ASSERT((n_) >= (2u * MMGR_ALIGN_BYTES), #name_ " is too small to hold a block");                       \
+    MMGR_STATIC_ASSERT(((n_) & ((n_) - 1u)) == 0u, #name_ " is not a power of two");                                   \
     MMGR_STATIC_ASSERT(((n_) & (MMGR_ALIGN_BYTES - 1u)) == 0u, #name_ " is not a whole number of aligned units");      \
     MMGR_STATIC_ASSERT(((off_) + (n_)) <= sizeof(((region_##_layout *)0)->bytes),                                      \
                        #name_ " does not fit inside " #region_)
+
+/**
+ * @brief One pool's entry in a region's pool array.
+ *
+ * @param[in] region_ Region the pool is carved from.
+ * @param[in] off_    Byte offset of the pool within the region.
+ * @param[in] n_      Bytes given to the pool.
+ * @note interim_top starts at the pool's own size, so the interim end begins empty.
+ */
+#define MMGR_CARCER_SEAT(region_, off_, n_)                                                                            \
+    {                                                                                                                  \
+        .base = region_.bytes + (off_), .size = (n_), .interim_top = (n_)                                              \
+    }
+
+/**
+ * @brief The layout type, the storage assertions and the pool count assertion every region shares.
+ *
+ * @param[in] region_ Name of the region object being defined.
+ * @param[in] n_      Bytes in the whole region.
+ * @param[in] count_  Pools it carves.
+ */
+#define MMGR_CARCER_HEAD(region_, n_, count_)                                                                          \
+    typedef struct                                                                                                     \
+    {                                                                                                                  \
+        MMGR_CARCER_MACHINERY(count_);                                                                                 \
+        MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t bytes[(n_)];                                                              \
+    } region_##_layout;                                                                                                \
+    MMGR_STATIC_ASSERT((count_) <= MMGR_CARCER_MAX_REGIONS, #region_ " carves past MMGR_CARCER_MAX_REGIONS");          \
+    MMGR_CARCER_EXISTS(region_, n_)
+
+/**
+ * @brief Refuses a pool count that is not a power of two, by name.
+ *
+ * @param[in] count_ The count that was asked for.
+ * @note The counts between the powers of two are defined to land here, so the build reports the real
+ *       problem instead of an undeclared MMGR_CARCER_Rn.
+ */
+#define MMGR_CARCER_POOLS_NOT_P2(count_)                                                                               \
+    MMGR_STATIC_ASSERT(0, "a region carves a power of two number of pools, and " #count_ " is not one")
 
 /**
  * @brief Defines a region carved into two pools, with its layout type, enumerators and storage.
@@ -145,24 +190,125 @@ typedef struct
  * @note Selected by mmgr_carcer_init when it is given two MMGR_POOL pairs, which is four arguments.
  */
 #define MMGR_CARCER_R4(region_, n_, a_, an_, b_, bn_)                                                                  \
-    typedef struct                                                                                                     \
-    {                                                                                                                  \
-        MMGR_CARCER_MACHINERY;                                                                                         \
-        MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t bytes[(n_)];                                                              \
-    } region_##_layout;                                                                                                \
+    MMGR_CARCER_HEAD(region_, n_, 2);                                                                                  \
     enum                                                                                                               \
     {                                                                                                                  \
         a_ = 0,                                                                                                        \
         b_ = 1,                                                                                                        \
         region_##_count = 2                                                                                            \
     };                                                                                                                 \
-    MMGR_STATIC_ASSERT(region_##_count <= MMGR_CARCER_MAX_REGIONS, #region_ " carves past its limit");                 \
-    MMGR_CARCER_EXISTS(region_, n_);                                                                                   \
     MMGR_CARCER_CHECK(region_, a_, 0, an_);                                                                            \
     MMGR_CARCER_CHECK(region_, b_, an_, bn_);                                                                          \
     region_##_layout region_ = {.init = {.at = region_.bytes, .size = (n_)},                                           \
-                                .pool = {{.base = region_.bytes + 0, .size = (an_), .interim_top = (an_)},             \
-                                         {.base = region_.bytes + (an_), .size = (bn_), .interim_top = (bn_)}}}
+                                .pool = {MMGR_CARCER_SEAT(region_, 0, an_),                                            \
+                                         MMGR_CARCER_SEAT(region_, (an_), bn_)}}
+
+/**
+ * @brief Defines a region carved into four pools, with its layout type, enumerators and storage.
+ *
+ * @param[in] region_ Name of the region object to define.
+ * @param[in] n_      Bytes in the whole region.
+ * @param[in] a_      Enumerator name for the first pool.
+ * @param[in] an_     Bytes in the first pool.
+ * @param[in] b_      Enumerator name for the second pool.
+ * @param[in] bn_     Bytes in the second pool.
+ * @param[in] c_      Enumerator name for the third pool.
+ * @param[in] cn_     Bytes in the third pool.
+ * @param[in] d_      Enumerator name for the fourth pool.
+ * @param[in] dn_     Bytes in the fourth pool.
+ * @note Each pool starts at the sum of the sizes ahead of it, and every size is a power of two, so
+ *       no offset here needs rounding.
+ * @note Selected by mmgr_carcer_init when it is given four MMGR_POOL pairs, which is eight arguments.
+ */
+#define MMGR_CARCER_R8(region_, n_, a_, an_, b_, bn_, c_, cn_, d_, dn_)                                                \
+    MMGR_CARCER_HEAD(region_, n_, 4);                                                                                  \
+    enum                                                                                                               \
+    {                                                                                                                  \
+        a_ = 0,                                                                                                        \
+        b_ = 1,                                                                                                        \
+        c_ = 2,                                                                                                        \
+        d_ = 3,                                                                                                        \
+        region_##_count = 4                                                                                            \
+    };                                                                                                                 \
+    MMGR_CARCER_CHECK(region_, a_, 0, an_);                                                                            \
+    MMGR_CARCER_CHECK(region_, b_, an_, bn_);                                                                          \
+    MMGR_CARCER_CHECK(region_, c_, (an_) + (bn_), cn_);                                                                \
+    MMGR_CARCER_CHECK(region_, d_, (an_) + (bn_) + (cn_), dn_);                                                        \
+    region_##_layout region_ = {.init = {.at = region_.bytes, .size = (n_)},                                           \
+                                .pool = {MMGR_CARCER_SEAT(region_, 0, an_),                                            \
+                                         MMGR_CARCER_SEAT(region_, (an_), bn_),                                        \
+                                         MMGR_CARCER_SEAT(region_, (an_) + (bn_), cn_),                                \
+                                         MMGR_CARCER_SEAT(region_, (an_) + (bn_) + (cn_), dn_)}}
+
+/**
+ * @brief Defines a region carved into eight pools, with its layout type, enumerators and storage.
+ *
+ * @param[in] region_ Name of the region object to define.
+ * @param[in] n_      Bytes in the whole region.
+ * @param[in] a_      Enumerator name for the first pool.
+ * @param[in] an_     Bytes in the first pool.
+ * @param[in] b_      Enumerator name for the second pool.
+ * @param[in] bn_     Bytes in the second pool.
+ * @param[in] c_      Enumerator name for the third pool.
+ * @param[in] cn_     Bytes in the third pool.
+ * @param[in] d_      Enumerator name for the fourth pool.
+ * @param[in] dn_     Bytes in the fourth pool.
+ * @param[in] e_      Enumerator name for the fifth pool.
+ * @param[in] en_     Bytes in the fifth pool.
+ * @param[in] f_      Enumerator name for the sixth pool.
+ * @param[in] fn_     Bytes in the sixth pool.
+ * @param[in] g_      Enumerator name for the seventh pool.
+ * @param[in] gn_     Bytes in the seventh pool.
+ * @param[in] h_      Enumerator name for the eighth pool.
+ * @param[in] hn_     Bytes in the eighth pool.
+ * @note Each pool starts at the sum of the sizes ahead of it, and every size is a power of two, so
+ *       no offset here needs rounding.
+ * @note The largest carve: MMGR_NARG's table reaches 24, and sixteen arguments is the largest power
+ *       of two count under it.
+ * @note Selected by mmgr_carcer_init when it is given eight MMGR_POOL pairs, which is sixteen arguments.
+ */
+#define MMGR_CARCER_R16(region_, n_, a_, an_, b_, bn_, c_, cn_, d_, dn_, e_, en_, f_, fn_, g_, gn_, h_, hn_)           \
+    MMGR_CARCER_HEAD(region_, n_, 8);                                                                                  \
+    enum                                                                                                               \
+    {                                                                                                                  \
+        a_ = 0,                                                                                                        \
+        b_ = 1,                                                                                                        \
+        c_ = 2,                                                                                                        \
+        d_ = 3,                                                                                                        \
+        e_ = 4,                                                                                                        \
+        f_ = 5,                                                                                                        \
+        g_ = 6,                                                                                                        \
+        h_ = 7,                                                                                                        \
+        region_##_count = 8                                                                                            \
+    };                                                                                                                 \
+    MMGR_CARCER_CHECK(region_, a_, 0, an_);                                                                            \
+    MMGR_CARCER_CHECK(region_, b_, an_, bn_);                                                                          \
+    MMGR_CARCER_CHECK(region_, c_, (an_) + (bn_), cn_);                                                                \
+    MMGR_CARCER_CHECK(region_, d_, (an_) + (bn_) + (cn_), dn_);                                                        \
+    MMGR_CARCER_CHECK(region_, e_, (an_) + (bn_) + (cn_) + (dn_), en_);                                                \
+    MMGR_CARCER_CHECK(region_, f_, (an_) + (bn_) + (cn_) + (dn_) + (en_), fn_);                                        \
+    MMGR_CARCER_CHECK(region_, g_, (an_) + (bn_) + (cn_) + (dn_) + (en_) + (fn_), gn_);                                \
+    MMGR_CARCER_CHECK(region_, h_, (an_) + (bn_) + (cn_) + (dn_) + (en_) + (fn_) + (gn_), hn_);                        \
+    region_##_layout region_ = {                                                                                       \
+        .init = {.at = region_.bytes, .size = (n_)},                                                                   \
+        .pool = {MMGR_CARCER_SEAT(region_, 0, an_),                                                                    \
+                 MMGR_CARCER_SEAT(region_, (an_), bn_),                                                                \
+                 MMGR_CARCER_SEAT(region_, (an_) + (bn_), cn_),                                                        \
+                 MMGR_CARCER_SEAT(region_, (an_) + (bn_) + (cn_), dn_),                                                \
+                 MMGR_CARCER_SEAT(region_, (an_) + (bn_) + (cn_) + (dn_), en_),                                        \
+                 MMGR_CARCER_SEAT(region_, (an_) + (bn_) + (cn_) + (dn_) + (en_), fn_),                                \
+                 MMGR_CARCER_SEAT(region_, (an_) + (bn_) + (cn_) + (dn_) + (en_) + (fn_), gn_),                        \
+                 MMGR_CARCER_SEAT(region_, (an_) + (bn_) + (cn_) + (dn_) + (en_) + (fn_) + (gn_), hn_)}}
+
+/**
+ * @brief The pool counts between the powers of two, each refusing itself with a message.
+ *
+ * @note Three, five, six and seven pools.
+ */
+#define MMGR_CARCER_R6(...) MMGR_CARCER_POOLS_NOT_P2(3)
+#define MMGR_CARCER_R10(...) MMGR_CARCER_POOLS_NOT_P2(5)
+#define MMGR_CARCER_R12(...) MMGR_CARCER_POOLS_NOT_P2(6)
+#define MMGR_CARCER_R14(...) MMGR_CARCER_POOLS_NOT_P2(7)
 
 /**
  * @brief Defines a region carved into one pool, with its layout type, enumerator and storage.
@@ -175,29 +321,26 @@ typedef struct
  * @note Selected by mmgr_carcer_init when it is given one MMGR_POOL pair, which is two arguments.
  */
 #define MMGR_CARCER_R2(region_, n_, a_, an_)                                                                           \
-    typedef struct                                                                                                     \
-    {                                                                                                                  \
-        MMGR_CARCER_MACHINERY;                                                                                         \
-        MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t bytes[(n_)];                                                              \
-    } region_##_layout;                                                                                                \
+    MMGR_CARCER_HEAD(region_, n_, 1);                                                                                  \
     enum                                                                                                               \
     {                                                                                                                  \
         a_ = 0,                                                                                                        \
         region_##_count = 1                                                                                            \
     };                                                                                                                 \
-    MMGR_STATIC_ASSERT(region_##_count <= MMGR_CARCER_MAX_REGIONS, #region_ " carves past its limit");                 \
-    MMGR_CARCER_EXISTS(region_, n_);                                                                                   \
     MMGR_CARCER_CHECK(region_, a_, 0, an_);                                                                            \
     region_##_layout region_ = {.init = {.at = region_.bytes, .size = (n_)},                                           \
-                                .pool = {{.base = region_.bytes + 0, .size = (an_), .interim_top = (an_)}}}
+                                .pool = {MMGR_CARCER_SEAT(region_, 0, an_)}}
 
 /**
  * @brief Defines a region and carves it into pools, picking the shape from the argument count.
  *
  * @param[in] region_ Name of the region object to define.
  * @param[in] n_      Bytes in the whole region.
- * @param[in] ...     One or two MMGR_POOL pairs, giving two or four arguments.
- * @note The pair count selects MMGR_CARCER_R2 or MMGR_CARCER_R4 through MMGR_CAT and MMGR_NARG.
+ * @param[in] ...     One, two, four or eight MMGR_POOL pairs, giving two, four, eight or sixteen arguments.
+ * @note The pair count selects MMGR_CARCER_R2, R4, R8 or R16 through MMGR_CAT and MMGR_NARG.
+ * @note The pool count must be a power of two, and so must every pool size. See MMGR_CARCER_CHECK.
+ * @note A count between the powers of two lands on a refusing macro that names it. Above eight there
+ *       is no macro, which is where MMGR_NARG's table runs out.
  * @warning Defines the region object itself, so it belongs at file scope in exactly one translation unit.
  */
 #define mmgr_carcer_init(region_, n_, ...) MMGR_CAT(MMGR_CARCER_R, MMGR_NARG(__VA_ARGS__))(region_, n_, __VA_ARGS__)
@@ -211,8 +354,8 @@ typedef struct
 {
     CarcerCtx *const pool;  /**< Pool to act on [BORROWS]. */
     const size_t size;      /**< Byte count for the capio, reddo and wipe calls. */
-    const void *const at;   /**< Address owns tests, which it reads the value of alone [BORROWS]. */
-    void *const tenancy;    /**< Bytes a wipe clears, which it writes through [BORROWS]. */
+    const void *const at;   /**< Address owns tests; only its value is read, never its target [BORROWS]. */
+    void *const tenancy;    /**< Tenancy a wipe clears [BORROWS], or a reddo reclaims [TAKES OWNERSHIP]. */
     const size_t mark;      /**< Interim top interim_reddo restores, as interim_mark returned it. */
 } CarcerCfg;
 
@@ -246,7 +389,7 @@ typedef struct
  */
 typedef struct
 {
-    void *(*persist_capio)(const CarcerCfg *c);  /**< Takes size bytes from the bottom, zeroed. */
+    void *(*persist_capio)(const CarcerCfg *c);  /**< Takes size bytes from the bottom, not zeroed. */
     void (*persist_reddo)(const CarcerCfg *c);   /**< Gives a tenancy back, unwiped. */
     void (*secura_reddo)(const CarcerCfg *c);    /**< Zeroes a tenancy, then gives it back. */
     void *(*interim_capio)(const CarcerCfg *c);  /**< Takes size bytes from the top. */
@@ -263,28 +406,29 @@ MMGR_NS_LAYOUT(CarceribusNs, persist_capio, persist_reddo, secura_reddo, interim
 
 
 /**
- * @brief Takes c->size bytes from the persistent end and hands them back zeroed.
+ * @brief Takes c->size bytes from the persistent end.
  *
  * @param[in,out] c Pool and byte count [BORROWS].
  * @return          Start of the tenancy, or NULL when the pool cannot meet it [BORROWS].
  * @note First fit over the blocks already in the chain, splitting one large enough to leave another
  *       header and a payload behind; otherwise a fresh block is carved from the free middle.
- * @note The bytes come back zeroed, so a persistent tenant never reads what the last one left. The
- *       interim end does not do this, which is one of the two things that separate the ends.
  * @note A c->size of 0 is taken as one machine word, so every tenancy has an address of its own.
  * @note Fails closed: a request that would cross the interim end returns NULL rather than trespassing.
+ * @warning The bytes are not zeroed. A reused block still holds what the last tenant left, so release
+ *          anything sensitive with mmgr_carcer_secura_reddo.
  */
 void *mmgr_carcer_persist_capio(const CarcerCfg *c);
 
 /**
  * @brief Gives the tenancy at c->tenancy back, leaving its bytes as they are.
  *
- * @param[in,out] c Pool and the tenancy to release [BORROWS].
- * @note Frees by address rather than by count: the block's own header carries its size, so releases
- *       need not unwind in any particular order. That is the long life the persistent end is for.
- * @note Adjacent free blocks are merged, and a free block at the end of the chain is handed back to
- *       the free middle, so the two ends recover the space between them.
+ * @param[in,out] c Pool and the tenancy to release [BORROWS]; c->tenancy [TAKES OWNERSHIP].
+ * @note Frees by address, not by count: the block's header carries its size, so releases need not
+ *       unwind in order.
+ * @note Adjacent free blocks are merged, and a free block at the end of the chain returns to the free
+ *       middle, so the two ends recover the space between them.
  * @note A NULL c->tenancy does nothing.
+ * @warning c->tenancy is dead once this returns; the pool may hand those bytes out again.
  * @warning Leaves the bytes untouched; mmgr_carcer_secura_reddo is the call that guarantees a wipe.
  */
 void mmgr_carcer_persist_reddo(const CarcerCfg *c);
@@ -292,12 +436,13 @@ void mmgr_carcer_persist_reddo(const CarcerCfg *c);
 /**
  * @brief Zeroes the tenancy at c->tenancy, then gives it back.
  *
- * @param[in,out] c Pool and the tenancy to release [BORROWS].
- * @note The only difference from mmgr_carcer_persist_reddo is the wipe, and the guarantee is in the
- *       name rather than a flag, so a caller cannot ask for a wipe and not get one.
+ * @param[in,out] c Pool and the tenancy to release [BORROWS]; c->tenancy [TAKES OWNERSHIP].
+ * @note The only difference from mmgr_carcer_persist_reddo is the wipe. The guarantee is in the name,
+ *       not a flag, so a caller cannot ask for a wipe and not get one.
  * @note The extent wiped is the block's own, read from its header, so a caller cannot under-wipe a
  *       tenancy by naming fewer bytes than it holds.
  * @note A NULL c->tenancy does nothing.
+ * @warning c->tenancy is dead once this returns; the pool may hand those bytes out again.
  */
 void mmgr_carcer_secura_reddo(const CarcerCfg *c);
 
@@ -306,10 +451,11 @@ void mmgr_carcer_secura_reddo(const CarcerCfg *c);
  *
  * @param[in,out] c Pool and the byte count wanted [BORROWS].
  * @return          Start of the lowered region, or NULL when it would cross the persistent end [BORROWS].
- * @note A bump, with no header and no per-tenancy release: the whole run comes back at once through
- *       a mark or a reset. That is the function-length life the interim end is for.
- * @warning The bytes are not zeroed. A tenant that must not read what the last one left belongs at
- *          the persistent end, or must clear them itself.
+ * @note Each block carries a header, as at the persistent end, but nothing here is released one at a
+ *       time: the whole run comes back through a mark or a reset.
+ * @note No fit walk, so a take is O(1). Nothing is reused because nothing is released singly.
+ * @warning The bytes are not zeroed. Neither end zeroes on hand-out, so a tenant that must not read
+ *          what the last one left clears them itself.
  */
 void *mmgr_carcer_interim_capio(const CarcerCfg *c);
 
@@ -328,6 +474,9 @@ size_t mmgr_carcer_interim_mark(const CarcerCfg *c);
  *
  * @param[in,out] c Pool and the mark to restore [BORROWS].
  * @note Gives back everything taken from the top since that mark, in one step.
+ * @warning Every interim tenancy taken since c->mark is dead once this returns. Nothing is scrubbed,
+ *          so such a pointer still dereferences and returns whatever the next take put there. Keep a
+ *          mark and its reddo in the same function.
  */
 void mmgr_carcer_interim_reddo(const CarcerCfg *c);
 
@@ -335,9 +484,10 @@ void mmgr_carcer_interim_reddo(const CarcerCfg *c);
  * @brief Gives the whole interim end back at once.
  *
  * @param[in,out] c Pool to act on [BORROWS].
- * @note The same step as mmgr_carcer_interim_reddo against the pool's own size, named because it is
- *       what the end of a dispatch does and it should not have to reach into the pool to say so.
+ * @note mmgr_carcer_interim_reddo against the pool's own size. Named separately so the end of a
+ *       dispatch need not reach into the pool to say it.
  * @note The persistent end is not written.
+ * @warning Every interim tenancy the pool has handed out is dead once this returns.
  */
 void mmgr_carcer_interim_reset(const CarcerCfg *c);
 
@@ -347,6 +497,9 @@ void mmgr_carcer_interim_reset(const CarcerCfg *c);
  * @param[in] c Pool and the address to test [BORROWS].
  * @return      MMGR_TRUE when c->at is at or after base and before base plus size.
  * @note Writes nothing.
+ * @warning A range test, not a liveness test. It answers the same for a released tenancy, for an
+ *          address inside one, and for a header, so it belongs in an assert rather than in a check
+ *          that a pointer is still good.
  */
 mmgr_bool mmgr_carcer_owns(const CarcerCfg *c);
 
@@ -368,7 +521,9 @@ size_t mmgr_carcer_octas_praesto(const CarcerCfg *c);
  * @param[in,out] c Address and extent to clear [BORROWS].
  * @note Reached on its own for a caller that wants bytes cleared without giving them back.
  * @note The stores are volatile, so the clearing survives however dead the bytes look afterwards.
- * @warning c->tenancy must carry the alignment every address this module hands out already has.
+ * @note Any alignment is accepted. Byte edges cover an address or a length that is not a whole word,
+ *       and the middle goes a word at a time.
+ * @warning c->tenancy must be writable for c->size bytes.
  */
 void mmgr_carcer_wipe(const CarcerCfg *c);
 

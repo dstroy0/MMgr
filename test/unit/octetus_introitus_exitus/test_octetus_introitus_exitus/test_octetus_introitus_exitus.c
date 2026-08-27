@@ -19,7 +19,7 @@ void tearDown(void)
 
 static mmgr_span fill(void)
 {
-    return spat.from(buf, sizeof buf);
+    return MMGR_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = sizeof buf);
 }
 
 void test_byteio_header_is_self_contained(void)
@@ -104,7 +104,7 @@ void test_appends_follow_one_another(void)
     TEST_ASSERT_EQUAL_HEX8('x', buf[3]);
     TEST_ASSERT_EQUAL_HEX8('y', buf[4]);
     TEST_ASSERT_EQUAL_size_t(5u, w.pos);
-    TEST_ASSERT_TRUE(spat.ok(w));
+    TEST_ASSERT_TRUE(MMGR_CALL(spat.ok, SpatiumCfg, .s = w));
 }
 
 void test_take_be_reads_what_put_be_wrote_at_every_width(void)
@@ -123,7 +123,7 @@ void test_take_be_reads_what_put_be_wrote_at_every_width(void)
         setUp();
 
         mmgr_span w = fill();
-        mmgr_cspan r = spat.cfrom(buf, sizeof buf);
+        mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = buf, .cap = sizeof buf);
         uint64_t v = 0;
 
         MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = vals[n - 1u], .bytes = n);
@@ -135,7 +135,7 @@ void test_take_be_reads_what_put_be_wrote_at_every_width(void)
 void test_takes_follow_one_another(void)
 {
     mmgr_span w = fill();
-    mmgr_cspan r = spat.cfrom(buf, sizeof buf);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = buf, .cap = sizeof buf);
     uint64_t a = 0;
     uint64_t b = 0;
 
@@ -153,7 +153,7 @@ void test_takes_follow_one_another(void)
 void test_take_be_of_fewer_bytes_takes_the_leading_ones(void)
 {
     mmgr_span w = fill();
-    mmgr_cspan r = spat.cfrom(buf, sizeof buf);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = buf, .cap = sizeof buf);
     uint64_t v = 0;
 
     MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = (uint64_t)0x0123456789ABCDEFull, .bytes = (size_t)8);
@@ -161,36 +161,56 @@ void test_take_be_of_fewer_bytes_takes_the_leading_ones(void)
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(0x012345ull, v, "three bytes of an eight byte value is its leading half");
 }
 
+/**
+ * @brief The latch contains an append that does not fit, in the build that does not trap on one.
+ *
+ * @note Shipping builds only. An append past the end is a build failure, and MMGR_DEBUG_CHECKS traps
+ *       on it. What this covers is the other build: a wrong program that is not stopped must still
+ *       be kept off the end of the buffer.
+ */
 void test_an_append_past_the_end_latches_and_writes_nothing(void)
 {
+#if MMGR_DEBUG_CHECKS
+    TEST_IGNORE_MESSAGE("an append past the end traps under checks; the latch is the shipping path");
+#else
     uint8_t small[4] = {0u, 0u, 0u, 0u};
-    mmgr_span w = spat.from(small, sizeof small);
+    mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = small, .cap = sizeof small);
 
     MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = (uint64_t)0x1122334455667788ull, .bytes = (size_t)8);
 
     TEST_ASSERT_TRUE(w.overflow);
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0u, small[0], "nothing was stored");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(8u, w.pos, "but the cursor counted what was wanted");
+#endif
 }
 
 /**
  * @brief Once a span has latched, every later append is refused too.
+ *
+ * @note Shipping builds only, for the same reason as the test above: reaching the latch at all takes
+ *       an append that traps under MMGR_DEBUG_CHECKS. The behavior worth pinning here is that the
+ *       latch does not un-stick - a later append that would have fit is still refused, so a wrong
+ *       program cannot resume writing into a buffer it has already overrun.
  */
 void test_a_latched_span_refuses_what_follows(void)
 {
+#if MMGR_DEBUG_CHECKS
+    TEST_IGNORE_MESSAGE("reaching the latch traps under checks; the refusal is the shipping path");
+#else
     uint8_t small[4] = {0u, 0u, 0u, 0u};
-    mmgr_span w = spat.from(small, sizeof small);
+    mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = small, .cap = sizeof small);
 
     MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = (uint64_t)0xFFFFFFFFFFFFFFFFull, .bytes = (size_t)8);
     MMGR_CALL(byteio.put, OctetusCfg, .w = &w, .byte = 0xAAu);
 
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0u, small[0], "a byte that would have fit is still refused");
+#endif
 }
 
 void test_a_take_past_the_end_fails_and_holds_the_cursor(void)
 {
     uint8_t small[4] = {1u, 2u, 3u, 4u};
-    mmgr_cspan r = spat.cfrom(small, sizeof small);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = small, .cap = sizeof small);
     uint64_t v = 0xFFull;
 
     TEST_ASSERT_FALSE(MMGR_CALL(byteio.take_be, OctetusCfg, .r = &r, .out = &v, .bytes = (size_t)8));
@@ -222,7 +242,7 @@ void test_a_raw_run_appends_as_it_is(void)
 void test_rd_str_reads_a_length_prefixed_run(void)
 {
     static const uint8_t src[9] = {0x00u, 0x00u, 0x00u, 0x03u, 'a', 'b', 'c', 'x', 'y'};
-    mmgr_cspan r = spat.cfrom(src, sizeof src);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = src, .cap = sizeof src);
     const uint8_t *s = NULL;
     size_t slen = 0;
 
@@ -235,7 +255,7 @@ void test_rd_str_reads_a_length_prefixed_run(void)
 void test_rd_str_reads_an_empty_run(void)
 {
     static const uint8_t src[4] = {0u, 0u, 0u, 0u};
-    mmgr_cspan r = spat.cfrom(src, sizeof src);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = src, .cap = sizeof src);
     const uint8_t *s = NULL;
     size_t slen = 9u;
 
@@ -247,7 +267,7 @@ void test_rd_str_reads_an_empty_run(void)
 void test_rd_str_rewinds_when_the_run_is_cut_short(void)
 {
     static const uint8_t src[6] = {0x00u, 0x00u, 0x00u, 0x09u, 'a', 'b'};
-    mmgr_cspan r = spat.cfrom(src, sizeof src);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = src, .cap = sizeof src);
     const uint8_t *s = NULL;
     size_t slen = 0;
 
@@ -259,7 +279,7 @@ void test_rd_str_rewinds_when_the_run_is_cut_short(void)
 void test_rd_str_refuses_a_missing_length(void)
 {
     static const uint8_t src[2] = {0u, 0u};
-    mmgr_cspan r = spat.cfrom(src, sizeof src);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = src, .cap = sizeof src);
     const uint8_t *s = NULL;
     size_t slen = 0;
 
@@ -270,7 +290,7 @@ void test_rd_str_refuses_a_missing_length(void)
 void test_rd_str_refuses_a_cursor_already_past_the_end(void)
 {
     static const uint8_t src[8] = {0u, 0u, 0u, 1u, 'x', 0u, 0u, 0u};
-    mmgr_cspan r = spat.cfrom(src, sizeof src);
+    mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = src, .cap = sizeof src);
     const uint8_t *s = NULL;
     size_t slen = 0;
 
@@ -283,7 +303,7 @@ void test_mpint_fixed_right_aligns_and_pads(void)
 {
     static const uint8_t m[2] = {0x12u, 0x34u};
     uint8_t out[4] = {0xFFu, 0xFFu, 0xFFu, 0xFFu};
-    mmgr_span f = spat.from(out, sizeof out);
+    mmgr_span f = MMGR_CALL(spat.from, SpatiumCfg, .buf = out, .cap = sizeof out);
 
     TEST_ASSERT_TRUE(MMGR_CALL(byteio.mpint_fixed, OctetusCfg, .w = &f, .src = m, .bytes = sizeof m));
     TEST_ASSERT_EQUAL_HEX8(0x00u, out[0]);
@@ -297,7 +317,7 @@ void test_mpint_fixed_drops_the_sign_padding(void)
 {
     static const uint8_t m[3] = {0x00u, 0x80u, 0x01u};
     uint8_t out[2] = {0xFFu, 0xFFu};
-    mmgr_span f = spat.from(out, sizeof out);
+    mmgr_span f = MMGR_CALL(spat.from, SpatiumCfg, .buf = out, .cap = sizeof out);
 
     TEST_ASSERT_TRUE(MMGR_CALL(byteio.mpint_fixed, OctetusCfg, .w = &f, .src = m, .bytes = sizeof m));
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x80u, out[0], "the leading zero is not part of the value");
@@ -308,7 +328,7 @@ void test_mpint_fixed_of_an_exact_width(void)
 {
     static const uint8_t m[2] = {0xABu, 0xCDu};
     uint8_t out[2] = {0};
-    mmgr_span f = spat.from(out, sizeof out);
+    mmgr_span f = MMGR_CALL(spat.from, SpatiumCfg, .buf = out, .cap = sizeof out);
 
     TEST_ASSERT_TRUE(MMGR_CALL(byteio.mpint_fixed, OctetusCfg, .w = &f, .src = m, .bytes = sizeof m));
     TEST_ASSERT_EQUAL_HEX8(0xABu, out[0]);
@@ -319,7 +339,7 @@ void test_mpint_fixed_of_zero_is_all_zero(void)
 {
     static const uint8_t m[3] = {0u, 0u, 0u};
     uint8_t out[4] = {1u, 2u, 3u, 4u};
-    mmgr_span f = spat.from(out, sizeof out);
+    mmgr_span f = MMGR_CALL(spat.from, SpatiumCfg, .buf = out, .cap = sizeof out);
 
     TEST_ASSERT_TRUE(MMGR_CALL(byteio.mpint_fixed, OctetusCfg, .w = &f, .src = m, .bytes = sizeof m));
     for (unsigned i = 0; i < 4u; i++)
@@ -332,7 +352,7 @@ void test_mpint_fixed_refuses_a_value_too_wide(void)
 {
     static const uint8_t m[4] = {0x11u, 0x22u, 0x33u, 0x44u};
     uint8_t out[2] = {0xFFu, 0xFFu};
-    mmgr_span f = spat.from(out, sizeof out);
+    mmgr_span f = MMGR_CALL(spat.from, SpatiumCfg, .buf = out, .cap = sizeof out);
 
     TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(byteio.mpint_fixed, OctetusCfg, .w = &f, .src = m, .bytes = sizeof m),
                               "four bytes do not fit in two");

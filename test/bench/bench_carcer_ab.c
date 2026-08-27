@@ -12,7 +12,7 @@
  *  - ProtoCore's scratch end is a pure bump with no header. carceribus's interim end is the same
  *    block allocator as its persistent end, so it carries a header and looks for a fit first. The
  *    interim rows are what that unification costs.
- *  - ProtoCore's secure and plaintext pools resolve the calling worker's slot themselves and take no
+ *  - ProtoCore's secure and plaintext pools resolve the calling worker's seat themselves and take no
  *    pool; carceribus is handed the pool, because the pool address is the identity. The call shapes
  *    differ by one argument and a lookup.
  */
@@ -228,10 +228,10 @@ int main(void)
         report("protocore", "span walk", 0u, cy);
 
         BENCH_TIME_CYCLES(cy, ITERS, {
-            mmgr_span s_ = spat.from(g_buf, sizeof g_buf);
+            mmgr_span s_ = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_buf, .cap = sizeof g_buf);
             s_.pos = 128u;
-            BENCH_KEEP(spat.ok(spat.first(spat.after(s_, 8u), 64u)));
-            BENCH_KEEP(spat.cok(spat.produced(s_)));
+            BENCH_KEEP(MMGR_CALL(spat.ok, SpatiumCfg, .s = MMGR_CALL(spat.first, SpatiumCfg, .s = MMGR_CALL(spat.after, SpatiumCfg, .s = s_, .n = 8u), .n = 64u)));
+            BENCH_KEEP(MMGR_CALL(spat.cok, SpatiumCfg, .cs = MMGR_CALL(spat.produced, SpatiumCfg, .s = s_)));
         });
         report("carceribus", "span walk", 0u, cy);
     }

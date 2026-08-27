@@ -1,6 +1,6 @@
-# What each optimisation level costs {#qa_optimisation}
+# What each optimization level costs {#qa_optimization}
 
-One optimisation level for a whole library is a guess that suits some of it. This page is the
+One optimization level for a whole library is a guess that suits some of it. This page is the
 measurement, so a module that names its own level has a reason on record rather than a preference.
 
 Reproduce it with:
@@ -11,48 +11,63 @@ python tools/dev_env/sizes.py -O0 -O1 -Os -O2 -O3
 
 The tool reads its compiler options out of `build/compile_commands.json` rather than keeping a copy,
 so it cannot drift from `CMakeLists.txt`. It takes out the level, because that is what varies, and
-link time optimisation, because an LTO object holds intermediate form rather than instructions and
+link time optimization, because an LTO object holds intermediate form rather than instructions and
 its size says nothing about what would reach a target. Sections are read rather than file lengths -
 an object also carries relocations, symbol tables and debug records that never get flashed.
 
 ## Size
 
-`.text`, in bytes, per translation unit.
+`.text`, in bytes, per translation unit. Each unit compiled on its own, no LTO and no link, so a row
+is that unit alone:
 
-| translation unit           |   -O0 |   -O1 |       -Os |   -O2 |   -O3 |
-| -------------------------- | ----: | ----: | --------: | ----: | ----: |
-| `cellularum_laboro`        | 17536 |  8704 |  **5936** |  8736 | 11472 |
-| `verba_scribo`             | 14784 |  6240 |  **5280** |  7712 | 12144 |
-| `memoria_operor`           |  3968 |  1040 |   **912** |  1424 |  1728 |
-| `confinium`                |  3856 |  1392 |  **1120** |  1536 |  2048 |
-| `numeros_scribo`           |  3488 |  1536 |      1536 |  1536 |  1536 |
-| `octetus_introitus_exitus` |  3296 |   448 |   **400** |   560 |   560 |
-| `occultum_custodiae`       |  1984 |   944 |   **608** |  1088 |  1408 |
-| `proximus_operor`          |  1584 |   320 |   **224** |   336 |   816 |
-| `clarus_custodiae`         |  1104 |   640 |   **480** |   768 |   960 |
-| `fractio`                  |   960 |   192 |       192 |   240 |   240 |
-| `endian`                   |   848 |   336 |   **192** |   320 |   352 |
-| `bitorum_introitus_exitus` |   416 |   176 |   **160** |   208 |   208 |
-| `spatium`                  |    96 |    32 |    **32** |    32 |    32 |
-| **total**                  | 53920 | 22000 | **17072** | 24496 | 33504 |
+```
+gcc -std=c11 -I src -O<level> -c <unit>.c -o <unit>.o && size <unit>.o
+```
 
-Four of those moved for reasons that are not the optimiser.
+| translation unit                 |    -O0 |   -O1 |       -Os |   -O2 |   -O3 |
+| -------------------------------- | -----: | ----: | --------: | ----: | ----: |
+| `verba_scribo`                   |  43144 | 11044 |  **8000** | 10812 | 13084 |
+| `cellularum_laboro`              |  23888 | 11624 |  **9852** | 12880 | 12928 |
+| `transformo`                     |   9780 |  3640 |  **3080** |  3416 |  4712 |
+| `confinium_exclusivum_infinitas` |   8000 |  2572 |  **2392** |  2696 |  3164 |
+| `carceribus`                     |   6600 |  1496 |  **1324** |  1724 |  1836 |
+| `verbum_scrutor`                 |   6336 |  1928 |  **1896** |  2136 |  2136 |
+| `numeros_scribo`                 |   4260 |  1864 |  **1592** |  1984 |  1984 |
+| `octetus_introitus_exitus`       |   4088 |  1552 |  **1424** |  1700 |  1732 |
+| `memoria_operor`                 |   2600 |  1400 |  **1316** |  1516 |  1756 |
+| `endian`                         |   2136 |  1056 |   **764** |   880 |   880 |
+| `proximus_operor`                |   1640 |   544 |   **528** |   640 |  1332 |
+| `spatium`                        |   1452 |   660 |   **596** |   704 |   704 |
+| `bitorum_introitus_exitus`       |   1048 |   488 |   **456** |   532 |   548 |
+| `clz`                            |    848 |   400 |       400 |   400 |   400 |
+| `fractio`                        |    472 |   272 |       272 |   320 |   320 |
+| `ascii_persona_bitorum`          |    456 |   320 |       320 |   320 |   320 |
+| `impensa_ancorae_acus_*`         |    456 |   368 |       368 |   368 |   368 |
+| `memoriam_praetereo`             |     80 |    80 |        80 |    80 |    80 |
+| `confinium_externum`             |     80 |    80 |        80 |    80 |    80 |
+| **total**                        | 117364 | 41388 | **34740** | 43188 | 48364 |
 
-`spatium` was 464 bytes at -O2 and is 32. Eleven of its twelve entries had no caller anywhere in the
-library — they were names on field reads, and the one module that writes through a span reads the
-fields directly. What is left is `from`.
+The five `impensa_ancorae_acus_*` units are one row because they are alternatives, not additions — a
+build links exactly one cost table and they all define the same symbol. The total counts one.
 
-`octetus_introitus_exitus` was 720 and is 560, because a write that does not fit is a contract now
-rather than a branch: the caller has the buffer and the field width in front of it, so `MMGR_ASSERT`
-says it for nothing in a shipping build and an abort in `checks`. `clarus_custodiae` and
-`occultum_custodiae` shed the per-worker indexing.
+**-Os is the smallest and -O2 is not the middle.** -O1 comes in under -O2 by 1804 bytes, so a build
+that wants small and does not want to think about it should ask for -Os and stop there. -O3 costs
+5176 bytes over -O2 across the library, and @ref qa_bench is where to look before paying it.
 
-`verba_scribo` went the other way, 5360 to 7712. That is the decimal engine it now inlines, and both
-of its render entries were wrong without it. `verba.fixed` was 15.87% wrong below about 1e-41 and
-`verba.g` failed to name its own value back 87.07% of the time; both are 0.0000% now. 1264 bytes for
-the first and 1088 for the second is what that costs. See @ref qa_numeric.
+Three units carry most of it. `verba_scribo` and `cellularum_laboro` are half the total at every
+level, which is what a decimal engine and a string module cost. `verba_scribo` is also the one unit
+where the size is buying correctness rather than speed: both of its render entries were wrong before
+it inlined that engine — `verba.fixed` by 15.87% below about 1e-41, and `verba.g` failing to name its
+own value back 87.07% of the time. Both are 0.0000% now. See @ref qa_numeric.
 
-Constants barely move: 2576 bytes at -O2 against 2608 at -O3. All of the growth is instructions.
+`proximus_operor` quadruples from -Os to -O3, 528 to 1332, which is the widest spread in the table.
+It is small enough that this does not matter to the total, but it is the unit to look at first if a
+target is tight and -O3 is on.
+
+@note These are a fresh measurement of the tree as it stands. The per-module deltas that used to be
+here compared against a table taken before the module split, and its build settings are not recorded
+anywhere, so those comparisons were dropped rather than carried forward against numbers that cannot
+be reproduced.
 
 ## Speed
 
@@ -119,7 +134,7 @@ cortex-m4, -Os, newlib from armv7e-m:
 Every entry on both sides is bounded, which is why the libc column names `strnlen` and `strncmp`
 rather than their unbounded twins, and `snprintf` and `vsnprintf` rather than `printf`. A bounded
 string constructor is what `verba` is; comparing it against something that writes until it is
-finished would be comparing two different contracts.
+finished would be comparing two different jobs.
 
 The families are drawn where the code actually is rather than where the header names suggest.
 `cellularum_laboro` holds the bounded scans and the decimal parser in one translation unit, which on

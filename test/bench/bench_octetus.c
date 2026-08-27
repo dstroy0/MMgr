@@ -20,7 +20,7 @@ static uint64_t g_srcstore[8];
         double cy_ = 0.0;                                                                                              \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             const size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u)) & ~(size_t)7u;                                      \
-            mmgr_span w_ = spat.from(mem_ + off_, 8u);                                                                 \
+            mmgr_span w_ = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem_ + off_, .cap = 8u);                                                                 \
             MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w_, .val = (uint64_t)bench_i_, .bytes = (size_t)(WIDTH));       \
             BENCH_KEEP(mem_[off_]);                                                                                    \
         });                                                                                                            \
@@ -36,7 +36,7 @@ static uint64_t g_srcstore[8];
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             const size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u)) & ~(size_t)7u;                                      \
             uint64_t out_ = 0;                                                                                         \
-            mmgr_cspan r_ = spat.cfrom(mem_ + off_, 8u);                                                               \
+            mmgr_cspan r_ = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = mem_ + off_, .cap = 8u);                                                               \
             BENCH_KEEP(MMGR_CALL(byteio.take_be, OctetusCfg, .r = &r_, .out = &out_, .bytes = (size_t)(WIDTH)));       \
             BENCH_KEEP(out_);                                                                                          \
         });                                                                                                            \

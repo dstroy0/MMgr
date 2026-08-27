@@ -3,12 +3,14 @@
  *
  * @note These act on a caller's span and hold nothing of their own. The span carries the cursor and
  *       the sticky flag, so a caller may append a whole message and test once at the end.
- * @note An append that does not fit stores nothing and latches the span's overflow, but still counts
- *       the bytes in pos. That is what lets a caller size a buffer by filling a span it knows is too
- *       small and reading back what pos wanted.
+ * @note The appends and the takes fail differently on purpose. An append that does not fit is a build
+ *       failure - what a writer emits and how big its buffer is are both fixed before the build - so
+ *       it asserts, stores nothing, and latches overflow to keep a wrong program off the end. That is
+ *       why no append returns anything: there is no answer for a caller to act on.
  * @note A take that reaches past the end sets the read span's err, leaves the cursor and the output
- *       where they were, and answers MMGR_FALSE. Reads do not advance on failure, because a caller
- *       that keeps reading after one wants the cursor to still mean something.
+ *       where they were, and answers MMGR_FALSE. That is a runtime fact, not a build failure, because
+ *       how much a reader is handed is settled by whatever sent it. Reads do not advance on failure,
+ *       because a caller that keeps reading after one wants the cursor to still mean something.
  * @note Whole values move a word at a time: the big endian entries reverse once and then store or
  *       load at the widest step the count allows, rather than walking bytes.
  */
@@ -43,7 +45,10 @@ typedef struct
 /**
  * @brief Type of the byteio dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the four members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note MMGR_NS_LAYOUT asserts the six members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note The first three append and answer nothing, because a span latches its own failure. The last
+ *       three answer, because a read that did not happen has to be distinguishable from one that read
+ *       a zero.
  */
 typedef struct
 {
@@ -60,7 +65,8 @@ MMGR_NS_LAYOUT(OctetusIntroitusExitusNs, put, put_be, raw, take_be, rd_str, mpin
  * @brief Appends c->byte to c->w.
  *
  * @param[in,out] c Span and the byte to append [BORROWS].
- * @note Past the span's cap nothing is stored and its overflow latches; pos counts the byte either way.
+ * @warning Appending past the span's cap is a build failure. It asserts, stores nothing and latches
+ *          overflow; pos counts the byte either way.
  */
 void mmgr_byteio_put(const OctetusCfg *c);
 
@@ -70,7 +76,8 @@ void mmgr_byteio_put(const OctetusCfg *c);
  * @param[in,out] c Span, value and byte count [BORROWS].
  * @note The value is reversed once and then stored at the widest step the count allows, so a count of
  *       eight is one store and a count of seven is three.
- * @note Past the span's cap nothing is stored and its overflow latches; pos advances either way.
+ * @warning Appending past the span's cap is a build failure. It asserts, stores nothing and latches
+ *          overflow; pos advances either way.
  * @warning c->bytes must be 1 through 8.
  */
 void mmgr_byteio_put_be(const OctetusCfg *c);
@@ -79,7 +86,8 @@ void mmgr_byteio_put_be(const OctetusCfg *c);
  * @brief Appends c->bytes from c->src to c->w as they are.
  *
  * @param[in,out] c Span, source and byte count [BORROWS].
- * @note Past the span's cap nothing is stored and its overflow latches; pos advances either way.
+ * @warning Appending past the span's cap is a build failure. It asserts, stores nothing and latches
+ *          overflow; pos advances either way.
  * @warning c->src must be readable for c->bytes, and must not overlap the span's buffer.
  */
 void mmgr_byteio_raw(const OctetusCfg *c);

@@ -7,6 +7,12 @@
  * @brief One 128-bit membership bitmap per MmgrAsciiClass value.
  *
  * @note Indexed by MmgrAsciiClass; code point n is bit (n & 7) of byte (n >> 3).
+ * @note Worked through, MMGR_ASCII_NUM holds 0xFF at byte 6 and 0x03 at byte 7. Byte 6 carries code
+ *       points 48 through 55, which is '0' to '7', and the low two bits of byte 7 carry 56 and 57,
+ *       which is '8' and '9'. Every row below reads the same way, so none of them has to be taken
+ *       on trust.
+ * @note Sixteen bytes reach code point 127 and no further, which is what leaves a byte at 0x80 or
+ *       above with no row it could be found in.
  */
 static const MmgrAsciiMask s_class[MMGR_ASCII_CLASSES] = {
     [MMGR_ASCII_NUM] = {{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -56,17 +62,21 @@ MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *c)
 
     const MmgrAsciiMask *const entry = &s_class[c->kind];
 
-    // Byte index is the code point shifted right three; bit index is its low three bits
     // Explicit cast narrows the int result of && to the mmgr_bool container
     return (mmgr_bool)((c->byte < 0x80u) && (((entry->b[c->byte >> 3] >> (c->byte & 7u)) & 1u) != 0u));
 }
 
 /**
- * @brief Copies c into an AsciiCtx and returns ascii_in's result.
+ * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
  *
- * @note Documented at the declaration in ascii_persona_bitorum.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] name Name after the mmgr_ascii_ and ascii_ prefixes, which the two share.
  */
-mmgr_bool mmgr_ascii_in(const AsciiCfg *c)
-{
-    return MMGR_CALL(ascii_in, AsciiCtx, .kind = c->kind, .byte = c->byte);
-}
+#define ASCII_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_ascii_, ascii_, AsciiCtx, AsciiCfg, ret, name, __VA_ARGS__)
+
+/**
+ * @brief The public surface, one line per entry point.
+ *
+ * @note Each is documented at its declaration in ascii_persona_bitorum.h.
+ */
+ASCII_ENTRY(mmgr_bool, in, .kind = c->kind, .byte = c->byte)

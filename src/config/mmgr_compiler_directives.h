@@ -193,7 +193,7 @@
  * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
  * @param[in] a Member names in order; a takes index 0, b takes index 1.
  * @note MMGR_NS_L<n> expands MMGR_NS_L<n-1> before its own MMGR_NS_LOCULUS.
- * @warning Selected by MMGR_NS_LAYOUT and MMGR_NS_LAYOUT_OPEN through MMGR_CAT on the argument count.
+ * @warning Selected by MMGR_NS_LAYOUT through MMGR_CAT on the argument count.
  */
 #define MMGR_NS_L1(T, a) MMGR_NS_LOCULUS(T, a, 0);
 #define MMGR_NS_L2(T, a, b) MMGR_NS_L1(T, a) MMGR_NS_LOCULUS(T, b, 1);
@@ -246,20 +246,6 @@
     MMGR_CAT(MMGR_NS_L, MMGR_NARG(__VA_ARGS__))(T, __VA_ARGS__)                                                        \
         MMGR_STATIC_ASSERT(sizeof(T) == (size_t)MMGR_NARG(__VA_ARGS__) * MMGR_FP_SIZE,                                 \
                            #T " has a member that is not in its dispatch list, or is padded")
-
-/**
- * @brief Expands the matching MMGR_NS_L, then asserts offsetof(T, tail) equals the count times MMGR_FP_SIZE.
- *
- * @param[in] T    Struct type forwarded to MMGR_NS_L and to offsetof.
- * @param[in] tail Member name passed to offsetof.
- * @param[in] ...  Member names in loculus order, one to twenty-four.
- * @note MMGR_NARG(__VA_ARGS__) is cast to size_t before the multiply.
- * @note Tests tail's offset, where MMGR_NS_LAYOUT tests sizeof(T).
- */
-#define MMGR_NS_LAYOUT_OPEN(T, tail, ...)                                                                              \
-    MMGR_CAT(MMGR_NS_L, MMGR_NARG(__VA_ARGS__))(T, __VA_ARGS__)                                                        \
-        MMGR_STATIC_ASSERT(offsetof(T, tail) == (size_t)MMGR_NARG(__VA_ARGS__) * MMGR_FP_SIZE,                         \
-                           #T "." #tail " does not begin where the dispatch run ends")
 
 /**
  * @brief Expands to static const.

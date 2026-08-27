@@ -8,15 +8,31 @@
 
 mmgr_carcer_init(ram, A_BYTES + B_BYTES, MMGR_POOL(a, A_BYTES), MMGR_POOL(b, B_BYTES));
 
+#define QUAD_BYTES 256u
+
+mmgr_carcer_init(quad, 4u * QUAD_BYTES, MMGR_POOL(q0, QUAD_BYTES), MMGR_POOL(q1, QUAD_BYTES),
+                 MMGR_POOL(q2, QUAD_BYTES), MMGR_POOL(q3, QUAD_BYTES));
+
+#define OCTO_BYTES 128u
+
+/**
+ * @brief The largest carve there is, which is where MMGR_NARG's argument table runs out.
+ */
+mmgr_carcer_init(octo, 8u * OCTO_BYTES, MMGR_POOL(o0, OCTO_BYTES), MMGR_POOL(o1, OCTO_BYTES),
+                 MMGR_POOL(o2, OCTO_BYTES), MMGR_POOL(o3, OCTO_BYTES), MMGR_POOL(o4, OCTO_BYTES),
+                 MMGR_POOL(o5, OCTO_BYTES), MMGR_POOL(o6, OCTO_BYTES), MMGR_POOL(o7, OCTO_BYTES));
+
 /**
  * @brief Puts both pools back to empty at both ends.
  *
  * @note Reaches the members rather than a call: the pool is the caller's own type, so a reset that
  *       walked the chains to prove they were empty would be testing the thing under test.
+ * @note Bounded by the region's own count, not by MMGR_CARCER_MAX_REGIONS. The array is sized per
+ *       region now, so the ceiling is not a bound on any particular one.
  */
 void setUp(void)
 {
-    for (size_t i = 0; i < MMGR_CARCER_MAX_REGIONS; i++)
+    for (size_t i = 0; i < (size_t)ram_count; i++)
     {
         ram.pool[i].persist_end = 0u;
         ram.pool[i].interim_top = ram.pool[i].size;
@@ -40,7 +56,89 @@ void test_the_namespace_is_wired(void)
 void test_the_machinery_sits_below_the_arena(void)
 {
     TEST_ASSERT_TRUE_MESSAGE((uintptr_t)ram.bytes > (uintptr_t)&ram, "the arena must start above the machinery");
-    TEST_ASSERT_EQUAL_size_t(sizeof(CarcerCtx) * MMGR_CARCER_MAX_REGIONS, sizeof ram.pool);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof(CarcerCtx) * ram_count, sizeof ram.pool,
+                                     "a region sizes its pool array from its own count");
+}
+
+/**
+ * @brief A region carrying fewer pools than the build allows does not pay for the ceiling.
+ *
+ * @note This is the whole reason the pool array is sized per region. ram carves two, so raising
+ *       MMGR_CARCER_MAX_REGIONS to admit an eight pool region elsewhere must cost ram nothing.
+ */
+void test_a_region_does_not_pay_for_the_ceiling(void)
+{
+    TEST_ASSERT_TRUE_MESSAGE(ram_count < MMGR_CARCER_MAX_REGIONS, "ram carves fewer pools than the ceiling allows");
+    TEST_ASSERT_TRUE_MESSAGE(sizeof ram.pool < (sizeof(CarcerCtx) * MMGR_CARCER_MAX_REGIONS),
+                             "so its pool array must be smaller than the ceiling would give");
+}
+
+/**
+ * @brief A region may carve more than two pools, and four is one of the counts it may carve.
+ */
+void test_a_four_pool_region_carves_all_four(void)
+{
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(4u, (size_t)quad_count, "the carve is not capped at two");
+    TEST_ASSERT_EQUAL_size_t(sizeof(CarcerCtx) * 4u, sizeof quad.pool);
+}
+
+/**
+ * @brief The four pools lie end to end, each at the sum of the sizes ahead of it.
+ */
+void test_a_four_pool_region_lays_them_end_to_end(void)
+{
+    TEST_ASSERT_EQUAL_PTR(quad.bytes, MMGR_CARCER_POOL(quad, q0)->base);
+    TEST_ASSERT_EQUAL_PTR(quad.bytes + QUAD_BYTES, MMGR_CARCER_POOL(quad, q1)->base);
+    TEST_ASSERT_EQUAL_PTR(quad.bytes + (2u * QUAD_BYTES), MMGR_CARCER_POOL(quad, q2)->base);
+    TEST_ASSERT_EQUAL_PTR(quad.bytes + (3u * QUAD_BYTES), MMGR_CARCER_POOL(quad, q3)->base);
+}
+
+/**
+ * @brief Every pool of a four pool region hands out storage inside its own bytes.
+ *
+ * @note The carve being right on paper is not the same as each pool taking from where it was told to,
+ *       so this takes from all four and asks the pool itself whether the address is its own.
+ */
+void test_every_pool_of_a_four_pool_region_takes_from_its_own_bytes(void)
+{
+    const size_t names[4] = {q0, q1, q2, q3};
+
+    for (size_t i = 0; i < 4u; i++)
+    {
+        CarcerCtx *const pool = &quad.pool[names[i]];
+        void *const got = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 32u);
+
+        TEST_ASSERT_NOT_NULL_MESSAGE(got, "a take from a carved pool must succeed");
+        TEST_ASSERT_TRUE_MESSAGE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = pool, .at = got),
+                                 "and must land inside that pool rather than a neighbour");
+    }
+}
+
+/**
+ * @brief The eight pool carve lays every pool where it was told to and each takes from its own bytes.
+ *
+ * @note Eight is the ceiling, so this is the case that would break first if MMGR_NARG's table or the
+ *       cumulative offsets in MMGR_CARCER_R16 were off by one.
+ */
+void test_an_eight_pool_region_carves_and_takes(void)
+{
+    const size_t names[8] = {o0, o1, o2, o3, o4, o5, o6, o7};
+
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(8u, (size_t)octo_count, "eight pools is a legal carve");
+    TEST_ASSERT_EQUAL_size_t(sizeof(CarcerCtx) * 8u, sizeof octo.pool);
+
+    for (size_t i = 0; i < 8u; i++)
+    {
+        CarcerCtx *const pool = &octo.pool[names[i]];
+
+        TEST_ASSERT_EQUAL_PTR_MESSAGE(octo.bytes + (i * OCTO_BYTES), pool->base, "pool i starts after the i ahead of it");
+
+        void *const got = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 16u);
+
+        TEST_ASSERT_NOT_NULL(got);
+        TEST_ASSERT_TRUE_MESSAGE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = pool, .at = got),
+                                 "and hands out storage inside itself");
+    }
 }
 
 void test_init_records_the_region_it_was_given(void)
@@ -361,7 +459,7 @@ void test_a_span_over_pool_bytes_carries_the_pool_address(void)
 {
     uint8_t *const p = (uint8_t *)MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a),
                                             .size = 64u);
-    const mmgr_span s = spat.from(p, 64u);
+    const mmgr_span s = MMGR_CALL(spat.from, SpatiumCfg, .buf = p, .cap = 64u);
 
     TEST_ASSERT_TRUE_MESSAGE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .at = s.buf),
                              "the pool the span was carved from still owns its bytes");

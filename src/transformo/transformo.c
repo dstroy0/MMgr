@@ -413,36 +413,21 @@ MMGR_INLINE mmgr_u64 muto_scale_to_u64(MutoCtx *c)
 }
 
 /**
- * @brief Appends c->digit to *c->mant as one more decimal digit.
+ * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
  *
- * @note Forwards mant and digit; every other MutoCtx member stays zero in the compound literal.
- * @note Documented at the declaration in transformo.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] name Name after the mmgr_muto_ and muto_ prefixes, which the two share.
  */
-mmgr_bool mmgr_muto_take(const TransformoCfg *c)
-{
-    return MMGR_CALL(muto_take, MutoCtx, .mant = c->mant, .digit = c->digit);
-}
+#define MUTO_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_muto_, muto_, MutoCtx, TransformoCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Turns *c->mant times ten raised to c->ex into a double.
+ * @brief The public surface, one line per entry point.
  *
- * @note Forwards c->rest as MutoCtx::dropped, since the two structs give that member different names.
- * @note Leaves e2 out, so the compound literal holds zero there and the mantissa carries no binary exponent.
- * @note Documented at the declaration in transformo.h.
+ * @note Each is documented at its declaration in transformo.h.
+ * @note scale forwards c->rest as MutoCtx::dropped; the two structs give that member different names.
+ * @note The members each line leaves out stay zero in the compound literal. scale omits e2, so its
+ *       mantissa carries no binary exponent, and scale_to_u64 omits rest and neg.
  */
-double mmgr_muto_scale(const TransformoCfg *c)
-{
-    return MMGR_CALL(muto_scale, MutoCtx, .mant = c->mant, .ex = c->ex, .dropped = c->rest, .neg = c->neg);
-}
-
-/**
- * @brief Turns *c->mant times ten raised to c->ex into a rounded 64-bit integer.
- *
- * @note Forwards e2, which mmgr_muto_scale leaves out, and takes the tie bias from c->above.
- * @note Leaves rest and neg out, so the compound literal holds zero in both.
- * @note Documented at the declaration in transformo.h.
- */
-mmgr_u64 mmgr_muto_scale_to_u64(const TransformoCfg *c)
-{
-    return MMGR_CALL(muto_scale_to_u64, MutoCtx, .mant = c->mant, .e2 = c->e2, .ex = c->ex, .above = c->above);
-}
+MUTO_ENTRY(mmgr_bool, take, .mant = c->mant, .digit = c->digit)
+MUTO_ENTRY(double, scale, .mant = c->mant, .ex = c->ex, .dropped = c->rest, .neg = c->neg)
+MUTO_ENTRY(mmgr_u64, scale_to_u64, .mant = c->mant, .e2 = c->e2, .ex = c->ex, .above = c->above)

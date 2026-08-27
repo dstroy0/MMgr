@@ -30,7 +30,7 @@ MMGR_INCIPE_DECLS
  * @brief Arguments for the verba calls; each entry reads only the members it needs.
  *
  * @note Every writing entry reads out, cap and at; ok reads cap and at alone.
- * @note text is read by put_n, put, put_clip, xml and json; text_len by put_n alone.
+ * @note text is read by put_n, put, put_clip, xml and json; text_len by put_n and put.
  * @note val by u64_clip, uint, u32w, hex, u32 and u64; sval by i64; real by g, fixed and the three predicates.
  * @note base by uint alone; min by uint, u32w and hex; columns by u64_clip; sig by g; decimals by fixed.
  */
@@ -40,7 +40,7 @@ typedef struct
     const size_t cap;       /**< Bytes available in out. */
     const size_t at;        /**< Offset to write at. */
     const char *const text; /**< Text to write [BORROWS]. */
-    const size_t text_len;  /**< Bytes of text put_n writes. */
+    const size_t text_len;  /**< Bytes of text put_n writes, and the length put takes when non-zero. */
     const char ch;          /**< Character ch writes. */
     const uint64_t val;     /**< Unsigned value the integer entries write. */
     const int64_t sval;     /**< Signed value i64 writes. */
@@ -96,13 +96,15 @@ MMGR_NS_LAYOUT(VerbaScriboNs, put_n, put, put_clip, u64_clip, xml, ch, uint, u32
 size_t mmgr_verba_put_n(const VerbaCfg *c);
 
 /**
- * @brief Writes the whole of c->text at c->at, measuring it first.
+ * @brief Writes the whole of c->text at c->at.
  *
- * @param[in] c Buffer, capacity, offset and the text [BORROWS].
+ * @param[in] c Buffer, capacity, offset, the text and optionally its length [BORROWS].
  * @return      The offset past the text, or c->cap when it does not fit.
  * @note Writes nothing at all when it does not fit, where mmgr_verba_put_clip writes what it can.
- * @note Does not read c->text_len, since the length is measured from the terminator.
- * @warning c->text must not be NULL, and must be terminated within c->cap bytes.
+ * @note Takes c->text_len when it is non-zero and measures from the terminator only when it is not.
+ *       Pass the length wherever it is known, which for a literal it always is.
+ * @warning c->text must not be NULL. It must be terminated within c->cap bytes when c->text_len is 0,
+ *          and readable for c->text_len bytes when it is not.
  */
 size_t mmgr_verba_put(const VerbaCfg *c);
 

@@ -20,6 +20,7 @@ typedef struct
     size_t free_psram;        /**< Bytes still free in external memory. */
     size_t psram_threshold;   /**< Size at or above which external memory is tried first. */
     size_t dram_reserve;      /**< Internal bytes that must remain free after the placement. */
+    PingPong *pp;             /**< Pair the pingpong backends act on [BORROWS]. */
 } ExterCtx;
 
 /**
@@ -97,98 +98,86 @@ MMGR_INLINE mmgr_place exter_place(const ExterCtx *c)
 /**
  * @brief Points the pair at buffer 0.
  *
- * @param[out] pp Pair to reset [BORROWS].
+ * @param[in,out] c Pair to reset, as c->pp [BORROWS].
  */
-MMGR_INLINE void exter_pingpong_init(PingPong *const pp)
+MMGR_INLINE void exter_pingpong_init(const ExterCtx *c)
 {
-    pp->fill_idx = 0;
+    c->pp->fill_idx = 0;
 }
 
 /**
  * @brief Returns the index of the buffer currently being filled.
  *
- * @param[in] pp Pair to read [BORROWS].
- * @return       0 or 1.
+ * @param[in] c Pair to read, as c->pp [BORROWS].
+ * @return      0 or 1.
  */
-MMGR_INLINE uint8_t exter_pingpong_fill(PingPong *const pp)
+MMGR_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *c)
 {
-    return pp->fill_idx;
+    return c->pp->fill_idx;
 }
 
 /**
  * @brief Returns the index of the buffer currently being drained.
  *
- * @param[in] pp Pair to read [BORROWS].
- * @return       The other index, 0 or 1.
+ * @param[in] c Pair to read, as c->pp [BORROWS].
+ * @return      The other index, 0 or 1.
  */
-MMGR_INLINE uint8_t exter_pingpong_drain(PingPong *const pp)
+MMGR_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *c)
 {
     // Explicit cast keeps the result in uint8_t after the exclusive or promotes to int
-    return (uint8_t)(pp->fill_idx ^ 1u);
+    return (uint8_t)(c->pp->fill_idx ^ 1u);
 }
 
 /**
  * @brief Swaps the two roles and returns the new fill index.
  *
- * @param[in,out] pp Pair to flip [BORROWS].
- * @return           The index now being filled, 0 or 1.
+ * @param[in,out] c Pair to flip, as c->pp [BORROWS].
+ * @return          The index now being filled, 0 or 1.
  */
-MMGR_INLINE uint8_t exter_pingpong_swap(PingPong *const pp)
+MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *c)
 {
-    pp->fill_idx ^= 1u;
-    return pp->fill_idx;
+    c->pp->fill_idx ^= 1u;
+    return c->pp->fill_idx;
 }
 
 /**
- * @brief Copies c into an ExterCtx and returns exter_place's decision.
+ * @brief Binds the placement decision's four fixed arguments to GENERIC_ENTRY.
  *
- * @note Documented at the declaration in confinium_externum.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] name Name after the mmgr_exter_ and exter_ prefixes, which the two share.
  */
-mmgr_place mmgr_exter_place(const ExternumCfg *c)
-{
-    return MMGR_CALL(exter_place, ExterCtx, .size = c->size, .dma_required = c->dma_required, .free_dram = c->free_dram,
-                     .free_psram = c->free_psram, .psram_threshold = c->psram_threshold,
-                     .dram_reserve = c->dram_reserve);
-}
+#define EXTER_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_exter_, exter_, ExterCtx, ExternumCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Points the pair at buffer 0.
+ * @brief Binds the pingpong entries, which carry their own pair of prefixes.
  *
- * @note Documented at the declaration in confinium_externum.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] name Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
+ * @note A second macro rather than one, because these entries are named mmgr_pingpong_ rather than
+ *       mmgr_exter_. GENERIC_ENTRY pastes one prefix onto one name, so the pair differs, not the form.
  */
-void mmgr_pingpong_init(PingPong *const pp)
-{
-    exter_pingpong_init(pp);
-}
+#define PINGPONG_ENTRY(ret, name, ...)                                                                                 \
+    GENERIC_ENTRY(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternumCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Returns the index being filled.
+ * @brief Binds the same pair to GENERIC_ENTRY_V, for the entry that returns nothing.
  *
- * @note Documented at the declaration in confinium_externum.h.
+ * @param[in] name Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
  */
-uint8_t mmgr_pingpong_fill_index(PingPong *const pp)
-{
-    return exter_pingpong_fill(pp);
-}
+#define PINGPONG_ENTRY_V(name, ...)                                                                                    \
+    GENERIC_ENTRY_V(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternumCfg, name, __VA_ARGS__)
 
 /**
- * @brief Returns the index being drained.
+ * @brief The public surface, one line per entry point.
  *
- * @note Documented at the declaration in confinium_externum.h.
+ * @note Each is documented at its declaration in confinium_externum.h.
+ * @note The fields each line forwards are the ones that entry reads; MMGR_CALL zeroes the rest.
  */
-uint8_t mmgr_pingpong_drain_index(PingPong *const pp)
-{
-    return exter_pingpong_drain(pp);
-}
-
-/**
- * @brief Swaps the two roles and returns the new fill index.
- *
- * @note Documented at the declaration in confinium_externum.h.
- */
-uint8_t mmgr_pingpong_swap(PingPong *const pp)
-{
-    return exter_pingpong_swap(pp);
-}
+EXTER_ENTRY(mmgr_place, place, .size = c->size, .dma_required = c->dma_required, .free_dram = c->free_dram,
+            .free_psram = c->free_psram, .psram_threshold = c->psram_threshold, .dram_reserve = c->dram_reserve)
+PINGPONG_ENTRY_V(init, .pp = c->pp)
+PINGPONG_ENTRY(uint8_t, fill_index, .pp = c->pp)
+PINGPONG_ENTRY(uint8_t, drain_index, .pp = c->pp)
+PINGPONG_ENTRY(uint8_t, swap, .pp = c->pp)
 
 #endif

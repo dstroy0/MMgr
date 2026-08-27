@@ -37,14 +37,21 @@ typedef struct
  * @param[in,out] w Span to append into [BORROWS].
  * @param[in]     n Bytes wanted.
  * @return          Where to write them, or NULL when they do not fit [BORROWS].
- * @note pos advances by n whether or not the bytes fit. A caller that filled a span it knew was too
- *       small can then read pos to learn what it would have needed, which is the only reason to keep
- *       counting past the end.
  * @note Every append reaches this, so the room test, the latch and the cursor all live in one place.
+ * @note pos advances by n whether or not the bytes fit, so a span that overran reports how far past
+ *       the end the run went rather than stopping at cap. That is a number for reading in a
+ *       post-mortem, not a sizing pass to build on - see the warning.
+ * @warning An append that does not fit is a build failure. What a writer emits and how big its buffer
+ *          is are both fixed before the build, so the two are either compatible or the program is
+ *          wrong. The assert says so in the checks build; in a shipping build the latch is damage
+ *          control, keeping a wrong program from writing past the end, and not a path to design for.
  */
 MMGR_INLINE uint8_t *byteio_claim(mmgr_span *w, size_t n)
 {
     const size_t at = w->pos;
+
+    MMGR_ASSERT((w->buf != NULL) && !w->overflow && (at <= w->cap) && (n <= (w->cap - at)),
+                "append runs past the end of the span");
 
     w->pos += n;
     if ((w->buf == NULL) || w->overflow || (n > (w->cap - at)) || (at > w->cap))
@@ -63,6 +70,10 @@ MMGR_INLINE uint8_t *byteio_claim(mmgr_span *w, size_t n)
  * @return          Where they start, or NULL when the span is short [BORROWS].
  * @note The cursor moves only when the bytes were there. A failed read leaves it where it was, so a
  *       caller that keeps going still knows where it is.
+ * @note No assert here, unlike byteio_claim, and the difference is not an oversight. How much a
+ *       writer emits is settled before the build, so an append that does not fit is a wrong program.
+ *       How much a reader is handed is settled by whatever sent it, so a short read is a fact about
+ *       the input and nothing was built wrong. That is why every take answers and no append does.
  */
 MMGR_INLINE const uint8_t *byteio_take(mmgr_cspan *r, size_t n)
 {

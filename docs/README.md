@@ -74,6 +74,6 @@ resource allocation lifetime cycles.
 The call-site idiom follows from that. Each module exposes a dispatch table named for a short stem,
 and every entry takes one argument: a pointer to that module's config struct. @ref MMGR_CALL builds
 it as a compound literal, so a call reads
-`MMGR_CALL(spat.init, SpatCfg, .buf = buf, .cap = n)` and the arguments are named rather than
+`MMGR_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = n)` and the arguments are named rather than
 ordered. Both spellings exist and both are documented; the free function is what the table points
 at. @ref concept_ns_idiom

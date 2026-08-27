@@ -1,6 +1,6 @@
 # The dispatch table idiom {#concept_ns_idiom}
 
-Why a call reads `MMGR_CALL(spat.init, SpatCfg, .buf = p, .cap = n)` and what that costs.
+Why a call reads `MMGR_CALL(spat.from, SpatiumCfg, .buf = p, .cap = n)` and what that costs.
 
 ## Two spellings, one function
 
@@ -12,13 +12,13 @@ builds the struct as a compound literal and passes its address, so the members a
 call site and anything left out is zero:
 
 ```c
-mmgr_spat s = MMGR_CALL(spat.init, SpatCfg, .buf = p, .cap = n);
+mmgr_span s = MMGR_CALL(spat.from, SpatiumCfg, .buf = p, .cap = n);
 ```
 
 which is the same call as
 
 ```c
-mmgr_spat s = mmgr_spat_init(&(SpatCfg){.buf = p, .cap = n});
+mmgr_span s = mmgr_spat_from(&(SpatiumCfg){.buf = p, .cap = n});
 ```
 
 Both spellings are public and both are documented. The table is what call sites use, because at a
@@ -45,11 +45,12 @@ Three pieces, in every module header:
 ```c
 typedef struct
 {
-    mmgr_spat (*init)(const SpatCfg *c);
+    mmgr_span (*from)(const SpatiumCfg *c);
+    mmgr_cspan (*cfrom)(const SpatiumCfg *c);
 } SpatiumNs;
-MMGR_NS_LAYOUT(SpatiumNs, init);
+MMGR_NS_LAYOUT(SpatiumNs, from, cfrom);
 
-MMGR_NS SpatiumNs spat MMGR_UNUSED = {.init = mmgr_spat_init};
+MMGR_NS SpatiumNs spat MMGR_UNUSED = {.from = mmgr_spat_from, .cfrom = mmgr_spat_cfrom};
 ```
 
 `MMGR_NS` is `static const`. `MMGR_UNUSED` is what lets an unreferenced table drop out of a
@@ -58,7 +59,7 @@ translation unit that does not use it.
 ## MMGR_NS_LAYOUT is the interesting part
 
 The table is addressed **by offset**. A positional initializer mis-wires silently when a member is
-inserted, removed or moved — the code still compiles, and `spat.init` calls something else.
+inserted, removed or moved — the code still compiles, and `spat.from` calls something else.
 
 `MMGR_NS_LAYOUT` pins it. It expands to a chain of `_Static_assert`s checking that each named member
 sits at its own loculus, in the order given, and that `sizeof` the struct is exactly that many

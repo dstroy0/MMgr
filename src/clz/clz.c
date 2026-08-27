@@ -70,21 +70,17 @@ MMGR_INLINE mmgr_iword clz_trail(const ClzCtx *c)
 }
 
 /**
- * @brief Copies c->val into a ClzCtx and returns clz_lead's result.
+ * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
  *
- * @note Documented at the declaration in clz.h.
+ * @param[in] ret  Return type of the entry point.
+ * @param[in] name Name after the mmgr_clz_ and clz_ prefixes, which the two share.
  */
-mmgr_iword mmgr_clz_lead(const ClzCfg *c)
-{
-    return MMGR_CALL(clz_lead, ClzCtx, .val = c->val);
-}
+#define CLZ_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_clz_, clz_, ClzCtx, ClzCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Copies c->val into a ClzCtx and returns clz_trail's result.
+ * @brief The public surface, one line per entry point.
  *
- * @note Documented at the declaration in clz.h.
+ * @note Each is documented at its declaration in clz.h.
  */
-mmgr_iword mmgr_clz_trail(const ClzCfg *c)
-{
-    return MMGR_CALL(clz_trail, ClzCtx, .val = c->val);
-}
+CLZ_ENTRY(mmgr_iword, lead, .val = c->val)
+CLZ_ENTRY(mmgr_iword, trail, .val = c->val)

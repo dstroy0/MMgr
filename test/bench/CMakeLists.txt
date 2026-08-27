@@ -16,7 +16,7 @@
 # not a number anyone wants, and the library's own inline entries do not inline at -O0 - so a Debug
 # reading would be timing function calls the shipped build does not make.
 #
-# IPO is off here, and that is what makes the line above true. LTO re-optimises from IR at link
+# IPO is off here, and that is what makes the line above true. LTO re-optimizes from IR at link
 # time using the LINK line's flags, so with it on the -O2 below never reached the generated code:
 # the link line carried the build type's -O3 and that is what the bench was measuring. The give
 # away was the size - .text came out at the -O3 figure rather than the -O2 one - and -O3 measured

@@ -5,7 +5,7 @@ Bulk memory work, a word at a time.
 ## When to reach for it
 
 Anywhere you would call `memcpy`, `memmove`, `memcmp`, `memchr` or `memset` and want the SWAR
-implementation and a bounded contract.
+implementation and a bound you state at the call.
 
 ```c
 MMGR_CALL(memor.cpy, MemoriaCfg, .dst = dst, .src = src, .bytes = n);
