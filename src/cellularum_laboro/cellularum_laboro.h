@@ -29,20 +29,19 @@ MMGR_INCIPE_DECLS
  *
  * @note Defaults to no limit, which folds the test away: `read_cap <= SIZE_MAX` is true for every
  *       size_t, so a default build emits no comparison and no second path is chosen at run time.
- * @note The two walks do not trade the same way on both parts, which is why this is a knob rather
- *       than a constant. The chain reads one word and one byte a step and settles every start at
- *       once; the sieve reads one word, and pays a prologue picking an anchor out of the cost table
+ * @note The chain reads one word and one byte a step and settles every start position in it at
+ *       once; the sieve reads one word and pays a prologue picking an anchor out of the cost table
  *       before a haystack byte is read. Measured with a two byte needle, cycles for the whole call:
  *
- *           n        8      64    2048
- *           Xtensa chain  124     489   13391
- *           Xtensa sieve  187     607   15494
- *           RISC-V chain  123     473   12882
- *           RISC-V sieve  167       -   11391
+ *           n              8      64    2048
+ *           Xtensa chain 124     489   13391
+ *           Xtensa sieve 187     607   15494
+ *           RISC-V chain 124     488   13393
+ *           RISC-V sieve 219     680   17059
  *
- *       On Xtensa the chain wins at every length. On RISC-V it wins short and loses long, by 13% at
- *       2048, because that part's sieve is much the stronger of the two - 5.56 cycles/byte against
- *       Xtensa's 7.57. A RISC-V build that scans long runs for short needles wants this set to 64.
+ *       The chain wins at every length on both parts, which is why the default is no limit. The knob
+ *       is kept because that is a measurement rather than a proof, and a part or a workload that
+ *       disagrees should be able to say so without editing the walk.
  * @warning Taken only when MMGR_FIND_CHAIN_MAX is not already defined; a build may supply its own.
  *          Zero sends every needle through the sieve.
  */
