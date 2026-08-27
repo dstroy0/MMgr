@@ -3,6 +3,7 @@
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
 #include "cellularum_laboro/cellularum_laboro.h"
+#include "memoria_operor/memoria_operor.h"
 #include "verbum_scrutor/verbum_scrutor.h"
 #include "guard_page.h"
 #include "oracle_divergence.h"
@@ -19,6 +20,8 @@ extern void test_eq_stays_inside_the_reserved_extent(void);
 extern void test_starts_stays_inside_the_reserved_extent(void);
 extern void test_diff_stays_inside_the_reserved_extent(void);
 extern void test_copy_stays_inside_the_reserved_extent(void);
+extern void test_memor_cmp_stays_inside_the_reserved_extent(void);
+extern void test_memor_chr_stays_inside_the_reserved_extent(void);
 extern void test_find_stays_inside_the_raw_cap(void);
 extern void test_has_stays_inside_the_raw_cap(void);
 extern void test_find_still_finds_things_with_the_buffer_flush_to_the_guard(void);
@@ -83,16 +86,18 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_read_bounds\\test_read_bounds.c");
-  run_test(test_the_guard_is_armed, "test_the_guard_is_armed", 133);
-  run_test(test_len_stays_inside_the_reserved_extent, "test_len_stays_inside_the_reserved_extent", 147);
-  run_test(test_chr_stays_inside_the_reserved_extent, "test_chr_stays_inside_the_reserved_extent", 153);
-  run_test(test_eq_stays_inside_the_reserved_extent, "test_eq_stays_inside_the_reserved_extent", 159);
-  run_test(test_starts_stays_inside_the_reserved_extent, "test_starts_stays_inside_the_reserved_extent", 166);
-  run_test(test_diff_stays_inside_the_reserved_extent, "test_diff_stays_inside_the_reserved_extent", 172);
-  run_test(test_copy_stays_inside_the_reserved_extent, "test_copy_stays_inside_the_reserved_extent", 178);
-  run_test(test_find_stays_inside_the_raw_cap, "test_find_stays_inside_the_raw_cap", 220);
-  run_test(test_has_stays_inside_the_raw_cap, "test_has_stays_inside_the_raw_cap", 226);
-  run_test(test_find_still_finds_things_with_the_buffer_flush_to_the_guard, "test_find_still_finds_things_with_the_buffer_flush_to_the_guard", 232);
+  run_test(test_the_guard_is_armed, "test_the_guard_is_armed", 146);
+  run_test(test_len_stays_inside_the_reserved_extent, "test_len_stays_inside_the_reserved_extent", 160);
+  run_test(test_chr_stays_inside_the_reserved_extent, "test_chr_stays_inside_the_reserved_extent", 166);
+  run_test(test_eq_stays_inside_the_reserved_extent, "test_eq_stays_inside_the_reserved_extent", 172);
+  run_test(test_starts_stays_inside_the_reserved_extent, "test_starts_stays_inside_the_reserved_extent", 179);
+  run_test(test_diff_stays_inside_the_reserved_extent, "test_diff_stays_inside_the_reserved_extent", 185);
+  run_test(test_copy_stays_inside_the_reserved_extent, "test_copy_stays_inside_the_reserved_extent", 191);
+  run_test(test_memor_cmp_stays_inside_the_reserved_extent, "test_memor_cmp_stays_inside_the_reserved_extent", 203);
+  run_test(test_memor_chr_stays_inside_the_reserved_extent, "test_memor_chr_stays_inside_the_reserved_extent", 209);
+  run_test(test_find_stays_inside_the_raw_cap, "test_find_stays_inside_the_raw_cap", 251);
+  run_test(test_has_stays_inside_the_raw_cap, "test_has_stays_inside_the_raw_cap", 257);
+  run_test(test_find_still_finds_things_with_the_buffer_flush_to_the_guard, "test_find_still_finds_things_with_the_buffer_flush_to_the_guard", 263);
 
   return UNITY_END();
 }

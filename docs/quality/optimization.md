@@ -26,43 +26,46 @@ gcc -std=c11 -I src -O<level> -c <unit>.c -o <unit>.o && size <unit>.o
 
 | translation unit                 |    -O0 |   -O1 |       -Os |   -O2 |   -O3 |
 | -------------------------------- | -----: | ----: | --------: | ----: | ----: |
-| `verba_scribo`                   |  43144 | 11044 |  **8000** | 10812 | 13084 |
-| `cellularum_laboro`              |  23888 | 11624 |  **9852** | 12880 | 12928 |
-| `transformo`                     |   9780 |  3640 |  **3080** |  3416 |  4712 |
-| `confinium_exclusivum_infinitas` |   8000 |  2572 |  **2392** |  2696 |  3164 |
-| `carceribus`                     |   6600 |  1496 |  **1324** |  1724 |  1836 |
-| `verbum_scrutor`                 |   6336 |  1928 |  **1896** |  2136 |  2136 |
-| `numeros_scribo`                 |   4260 |  1864 |  **1592** |  1984 |  1984 |
-| `octetus_introitus_exitus`       |   4088 |  1552 |  **1424** |  1700 |  1732 |
-| `memoria_operor`                 |   2600 |  1400 |  **1316** |  1516 |  1756 |
-| `endian`                         |   2136 |  1056 |   **764** |   880 |   880 |
-| `proximus_operor`                |   1640 |   544 |   **528** |   640 |  1332 |
-| `spatium`                        |   1452 |   660 |   **596** |   704 |   704 |
-| `bitorum_introitus_exitus`       |   1048 |   488 |   **456** |   532 |   548 |
-| `clz`                            |    848 |   400 |       400 |   400 |   400 |
-| `fractio`                        |    472 |   272 |       272 |   320 |   320 |
-| `ascii_persona_bitorum`          |    456 |   320 |       320 |   320 |   320 |
-| `impensa_ancorae_acus_*`         |    456 |   368 |       368 |   368 |   368 |
-| `memoriam_praetereo`             |     80 |    80 |        80 |    80 |    80 |
-| `confinium_externum`             |     80 |    80 |        80 |    80 |    80 |
-| **total**                        | 117364 | 41388 | **34740** | 43188 | 48364 |
+| `verba_scribo`                   |  42464 | 10080 |  **7104** |  9920 | 12192 |
+| `cellularum_laboro`              |  21328 | 12576 | **10560** | 13168 | 13360 |
+| `transformo`                     |   8736 |  2800 |  **2240** |  2576 |  3872 |
+| `confinium_exclusivum_infinitas` |   7280 |  2128 |  **1952** |  2256 |  2720 |
+| `carceribus`                     |   6160 |  1232 |  **1056** |  1456 |  1568 |
+| `verbum_scrutor`                 |   5216 |  1424 |  **1392** |  1632 |  1632 |
+| `memoria_operor`                 |   3328 |  2272 |  **2080** |  2464 |  2720 |
+| `octetus_introitus_exitus`       |   3296 |  1312 |  **1184** |  1456 |  1488 |
+| `numeros_scribo`                 |   3200 |  1424 |  **1152** |  1536 |  1536 |
+| `spatium`                        |   2224 |   432 |   **384** |   496 |   496 |
+| `endian`                         |   1648 |   880 |   **576** |   704 |   704 |
+| `proximus_operor`                |   1120 |   256 |   **240** |   352 |  1040 |
+| `bitorum_introitus_exitus`       |    944 |   352 |   **320** |   400 |   416 |
+| `clz`                            |    704 |   288 |       288 |   288 |   288 |
+| `fractio`                        |    464 |    96 |        96 |   144 |   144 |
+| `ascii_persona_bitorum`          |    160 |    64 |        64 |    64 |    64 |
+| `impensa_ancorae_acus_*`         |     64 |    16 |        16 |    16 |    16 |
+| **total**                        | 108592 | 37696 | **30768** | 38992 | 44320 |
 
 The five `impensa_ancorae_acus_*` units are one row because they are alternatives, not additions — a
 build links exactly one cost table and they all define the same symbol. The total counts one.
 
-**-Os is the smallest and -O2 is not the middle.** -O1 comes in under -O2 by 1804 bytes, so a build
+**-Os is the smallest and -O2 is not the middle.** -O1 comes in under -O2 by 1296 bytes, so a build
 that wants small and does not want to think about it should ask for -Os and stop there. -O3 costs
-5176 bytes over -O2 across the library, and @ref qa_bench is where to look before paying it.
+5328 bytes over -O2 across the library, and @ref ref_performance is where to look before paying it.
 
-Three units carry most of it. `verba_scribo` and `cellularum_laboro` are half the total at every
-level, which is what a decimal engine and a string module cost. `verba_scribo` is also the one unit
-where the size is buying correctness rather than speed: both of its render entries were wrong before
-it inlined that engine — `verba.fixed` by 15.87% below about 1e-41, and `verba.g` failing to name its
-own value back 87.07% of the time. Both are 0.0000% now. See @ref qa_numeric.
+Two units carry most of it. `verba_scribo` and `cellularum_laboro` are three fifths of the total at
+every level, which is what a decimal engine and a string module cost. `verba_scribo` is also the one
+unit where the size is buying correctness rather than speed: both of its render entries were wrong
+before it inlined that engine — `verba.fixed` by 15.87% below about 1e-41, and `verba.g` failing to
+name its own value back 87.07% of the time. Both are 0.0000% now. See @ref qa_numeric.
 
-`proximus_operor` quadruples from -Os to -O3, 528 to 1332, which is the widest spread in the table.
-It is small enough that this does not matter to the total, but it is the unit to look at first if a
-target is tight and -O3 is on.
+`proximus_operor` more than quadruples from -Os to -O3, 240 to 1040, which is the widest spread in
+the table. It is small enough that this does not matter to the total, but it is the unit to look at
+first if a target is tight and -O3 is on.
+
+`cellularum_laboro` and `memoria_operor` are the two units the on-device work changed, and both grew
+at -O2: the walks stopped rebuilding an extent mask and a lane index on every word, and the region
+moves were unrolled to four words. That is size spent to hold libc's rate on the parts the library
+actually ships to, and @ref ref_performance carries what it bought.
 
 @note These are a fresh measurement of the tree as it stands. The per-module deltas that used to be
 here compared against a table taken before the module split, and its build settings are not recorded
@@ -73,6 +76,20 @@ be reproduced.
 
 Cycles. `find`, `len` and `copy` are per byte; `parse` and `render` are per call. The measuring
 harness is always built at -O2 so only the library moves between rows.
+
+@warning This table is a host measurement, on x86-64, and it answers one question only: which
+optimization level to hand a module. It is not a figure for how fast the library is. A desktop libc
+answers the same calls with SSE or AVX, reading 16 to 48 bytes per instruction, and no target in the
+list has anything of the kind - a comparison drawn here measures the vector unit. @ref ref_performance
+carries the on-device counts, taken on the parts the library ships to, and those are the ones that
+decide anything.
+
+@warning The `find`, `len` and `memor.cpy` rows predate the walk rework and understate all three.
+Those walks stopped rebuilding an extent mask and a lane index on every word, and the region moves
+were unrolled, after this table was taken. They are left as they stand rather than guessed at: the
+sweep across five levels was an ad-hoc run with no tool behind it, so there is nothing to reproduce
+it with, and a number typed in by hand here would be worth less than a stale one that says where it
+came from.
 
 | level |    `find` |     `len` | `to_double` | `verba.g` | `memor.cpy` |
 | ----- | --------: | --------: | ----------: | --------: | ----------: |

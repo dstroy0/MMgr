@@ -2,6 +2,12 @@
 
 Measured, not asserted. This page is how to run the benchmarks and how to tell a result from noise.
 
+There are two sets, and they answer different questions. The host benches under `test/bench` compare
+the library against itself - carrier widths, optimization levels, what LTO is worth. The on-device
+benches under `test/performance_benching` compare it against the target's own libc on silicon, and
+those are the numbers that decide whether an entry is fast. A host figure cannot settle that: a
+desktop libc reaches for SSE or AVX and no target in the list has anything of the kind.
+
 ## Running them
 
 ```sh
@@ -55,8 +61,48 @@ It halves, roughly, per doubling. `eq` sits about 11% above `has_zero`, which is
 | SWAR entries as out-of-line calls |    610 |
 | linker permitted to inline them   |    187 |
 
-The hot entries are `MMGR_INLINE` in their headers now, so LTO is no longer load-bearing for those.
-It still is for every cross-module call that is not.
+LTO is load-bearing, and it is worth being blunt about how much. The SWAR primitives are generated
+in `verbum_scrutor.c` by `GENERIC_ENTRY` and called by name from every other module, so no
+translation unit can inline them on its own; the build sets `CMAKE_INTERPROCEDURAL_OPTIMIZATION` for
+exactly that reason. Built without it, one machine-word step becomes three to five out-of-line calls,
+each with its argument struct spilled to the stack first, and `cellul.len` measures **26.6
+cycles/byte on an ESP32-S3 against 5.0 with it** - worse than the byte-at-a-time ROM `strnlen` it is
+being compared to.
+
+@warning A toolchain that cannot do link-time optimization does not give a slower build of the same
+library; it gives a different one. ESP-IDF appends `-fno-lto` to every link unconditionally, so an
+IDF project has to take that flag back out - see `test/performance_benching` for how.
+
+## On the parts it ships to
+
+The tables above are x86-64. They say which optimization level to hand a module and how the lane
+width scales; they are not a figure for how fast the library is, because a desktop libc answers the
+same calls with SSE or AVX and no target in the list has anything of the kind.
+
+`test/performance_benching` runs the entries against the target's own libc on silicon, reading the
+part's cycle counter. That libc is ESP-ROM - `strnlen`, `strchr`, `memcmp`, `memchr`, `memcpy`,
+`memset` and `strstr` are hand-written assembly in the mask ROM, executing without flash-cache
+pressure, while the library executes from flash through the instruction cache.
+
+Cycles per byte at n=2048, ESP32-S3 at 240 MHz, ratios mmgr/libc so below 1.00 is a win:
+
+| module       | op   |  mmgr | libc ROM | ratio |
+| ------------ | ---- | ----: | -------: | ----: |
+| `cellul`     | len  |  5.04 |     9.03 | **0.56** |
+| `cellul`     | chr  |  4.03 |     7.02 | **0.57** |
+| `cellul`     | cmp  |  2.02 |     2.77 | **0.73** |
+| `cellul`     | find |  7.58 |     9.02 | **0.84** |
+| `memor`      | cmp  |  2.02 |     2.77 | **0.73** |
+| `memor`      | chr  |  3.27 |     7.02 | **0.47** |
+| `memor`      | cpy  | 0.646 |    0.646 | 1.00 |
+| `memor`      | set  | 0.333 |    0.336 | **0.99** |
+
+`memor.cpy` is parity, not a win: ROM `memcpy` is hand-written assembly, and matching it with
+portable C word moves is the ceiling short of writing assembly. The ESP32-C6 agrees throughout.
+
+What is still above 1.00 is at short lengths, and it is fixed cost rather than per-byte work: an
+entry call that does not inline into the caller, and for `find` the sieve setup, which runs the
+needle against the cost table before a haystack byte is read.
 
 ## Writing a bench
 
