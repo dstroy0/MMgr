@@ -91,7 +91,7 @@ Cycles per byte at n=2048, ESP32-S3 at 240 MHz, ratios mmgr/libc so below 1.00 i
 | `cellul`     | len  |  5.04 |     9.03 | **0.56** |
 | `cellul`     | chr  |  4.03 |     7.02 | **0.57** |
 | `cellul`     | cmp  |  2.02 |     2.77 | **0.73** |
-| `cellul`     | find |  7.58 |     9.02 | **0.84** |
+| `cellul`     | find |  7.57 |     9.02 | **0.84** |
 | `memor`      | cmp  |  2.02 |     2.77 | **0.73** |
 | `memor`      | chr  |  3.27 |     7.02 | **0.47** |
 | `memor`      | cpy  | 0.646 |    0.646 | 1.00 |

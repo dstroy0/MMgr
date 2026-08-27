@@ -76,9 +76,12 @@ Cycles per byte at n=2048 on the S3:
 | len  | 8.04 | **5.04** | 9.03 |
 | chr  | 15.30 | **4.03** | 7.02 |
 | cmp  | 5.77 | **2.02** | 2.77 |
-| find | 11.32 | **7.58** | 9.02 |
+| find | 11.32 | **7.57** | 9.02 |
 
-The module's .text grew 264 bytes for it, 6506 to 6770 at -O2 on Xtensa.
+The module's .text grew 236 bytes for all of it, 6506 to 6742 at -O2 on Xtensa. The byte walk was
+the one change that paid twice: writing its case-sensitive step as the byte compare it amounts to,
+rather than reaching cellul_step_byte through a CellulCtx, took 28 bytes back out and took `find`
+from 206 cycles to 187 at n=8.
 
 ## Every timed result must be kept
 
@@ -95,7 +98,7 @@ Raw captures are in `results/`. Ratios are mmgr/libc, so below 1.00 is a win.
 | len  | 1.04 | **0.56** | 1.20 | **0.53** |
 | chr  | 1.06 | **0.57** | 1.01 | **0.42** |
 | cmp  | **0.83** | **0.73** | 1.09 | **0.83** |
-| find | 1.92 | **0.84** | 1.95 | **0.79** |
+| find | 1.76 | **0.84** | 1.96 | **0.79** |
 
 Every entry beats libc once the buffer is a few words long. `len`, `chr` and `cmp` cross over at
 n=16; `find` at n=128 on the S3 and n=64 on the C6.
@@ -103,9 +106,16 @@ n=16; `find` at n=128 on the S3 and n=64 on the C6.
 What remains above 1.00 is at n=8, and it is fixed cost rather than per-byte work: one entry call
 that is not inlined into the caller, plus, for `find`, building the sieve. `find` runs
 cellul_pick_rows over the needle against the cost table before a haystack byte is read, and over one
-word that is most of the measurement. Routing short haystacks to the byte walk instead was tried and
-is worse - the byte walk goes through cellul_step_byte per byte and costs more than the single
-sieved word it replaces.
+word that is most of the measurement.
+
+Routing short haystacks past the sieve to the byte walk was tried twice and lost twice, for two
+different reasons, and both are recorded here so it is not tried a third time. The first attempt
+went through cellul_step_byte per byte, which cost more than the single sieved word it replaced:
+n=8 went 207 to 260. The walk's case-sensitive arm is a plain byte compare now, so the second
+attempt should have been cheaper - but factoring the walk into a function both arms could call made
+it a real call on the hot path too, and n=8 went 187 to 308 while n=2048 regressed 10%. Forcing it
+inline instead puts the whole walk in the entry twice. What is left is the shape here: no bypass,
+one copy of the walk, inline.
 
 The libc side is ESP-ROM code (`strnlen` at `0x400013f8`, `memcmp` at `0x4000120c`), hand-written
 assembly executing from ROM. The library executes from flash through the instruction cache. The
@@ -117,8 +127,8 @@ comparison is against that, not against a portable C libc.
 
 | target | dispatch_len8 | direct_len8 |
 |--------|---------------|-------------|
-| ESP32-S3 (Xtensa) | 140.09 | 140.08 |
-| ESP32-C6 (RISC-V) | 147.06 | 147.06 |
+| ESP32-S3 (Xtensa) | 116.02 | 116.01 |
+| ESP32-C6 (RISC-V) | 111.06 | 111.06 |
 
 Identical on both. The compound literal folds into registers and no argument struct is materialized.
 This is worth stating because it does not hold everywhere: on Cortex-M4, `MMGR_CALL` emitted a

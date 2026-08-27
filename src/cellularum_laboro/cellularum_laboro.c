@@ -706,12 +706,30 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *c, mmgr_bool ci)
         {
             // Explicit casts read both bytes as unsigned, matching CellulCtx::ca and ::cb
             const uint8_t h = (uint8_t)hay[k + i];
-            const CellulCtx b = {.ca = (uint8_t)needle[i], .cb = h, .end_wins = MMGR_FALSE};
+            const uint8_t nb = (uint8_t)needle[i];
 
-            if ((h == 0u) || ((ci ? cellul_step_byte_ci(&b) : cellul_step_byte_cs(&b)) == MMGR_SWAR_NO))
+            if (h == 0u)
             {
                 break;
             }
+            // The case-sensitive step is a byte compare once the terminator is out of the way, so it
+            // is written as one. This walk covers the starts the word loop could not reach, which on
+            // a short haystack is most of them, and reaching cellul_step_byte_cs through a CellulCtx
+            // for every byte of every start is what made find cost twice libc at eight bytes.
+            if (ci)
+            {
+                const CellulCtx b = {.ca = nb, .cb = h, .end_wins = MMGR_FALSE};
+
+                if (cellul_step_byte_ci(&b) == MMGR_SWAR_NO)
+                {
+                    break;
+                }
+            }
+            else if (h != nb)
+            {
+                break;
+            }
+            // Advance separated from the tests above so the loop body carries no side effect
             ++i;
         }
         if (i == nlen)
