@@ -62,6 +62,22 @@ static void fill(size_t n)
 }
 
 /**
+ * @brief cellul.len with the entry pulled into the caller, to price the call the entries carry.
+ *
+ * @param[in] s   Bytes to measure [BORROWS].
+ * @param[in] cap Readable extent.
+ * @return        What cellul.len returns, from the same code.
+ * @note MMGR_FLATTEN asks the compiler to inline everything this calls, which under link-time
+ *       optimization reaches the entry body. Nothing in the library changes: this is the lever a
+ *       caller has, exercised here so the price of the call is on record rather than assumed.
+ * @note Measured against dispatch_len8 and direct_len8, which call the same entry the ordinary way.
+ */
+MMGR_FLATTEN static size_t len_flat(const char *s, size_t cap)
+{
+    return MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = s, .cap = cap);
+}
+
+/**
  * @brief One pass: every case at every length, then the dispatch cost on its own.
  */
 void dbench_run(void)
@@ -125,6 +141,12 @@ void dbench_run(void)
                   DBENCH_KEEP(MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = 9u)));
         DBENCH_OP("direct_len8", 20000u,
                   DBENCH_KEEP(mmgr_cellul_len(&(CatenaFinitaCfg){.src = g_a, .cap = 9u})));
+
+        // The same work with the entry pulled into the caller. The gap against the two rows above is
+        // what the entry call costs, and every short-length row carries it.
+        DBENCH_OP("flat_len8", 20000u, DBENCH_KEEP(len_flat(g_a, 9u)));
+        fill(64u);
+        DBENCH_OP("flat_len64", 20000u, DBENCH_KEEP(len_flat(g_a, 65u)));
 
         DBENCH_DONE();
     }

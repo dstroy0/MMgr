@@ -255,6 +255,31 @@
 #define MMGR_NS static const
 
 /**
+ * @brief Expands to __attribute__((flatten)) where MMGR_HAS_ATTRIBUTE(flatten) is non-zero.
+ *
+ * @note For a caller, not for the library. It asks the compiler to inline everything the function it
+ *       marks calls, which reaches an entry body that the inliner would otherwise leave out of line
+ *       on size. The entries are large enough that it does leave them: measured on an ESP32-S3, a
+ *       cellul.len over eight bytes costs 112 cycles called and 80 inlined, so the call is 32 of
+ *       them - a third of the work at that length, and it is paid on every entry.
+ * @note Worth it where an extent is short and settled before the build, which is what this library
+ *       is for. A long scan amortises the call and will not notice: the same measurement at 64 bytes
+ *       is 253 against 240.
+ * @note Costs the walk's code at every site that takes it, so it belongs on the one hot function a
+ *       caller cares about rather than on a translation unit.
+ * @warning Needs the entry body visible, so a build without link-time optimization gets nothing from
+ *          it. See MMGR_LTO.
+ * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(flatten) is 0, which costs speed and never
+ *          correctness.
+ */
+#if MMGR_HAS_ATTRIBUTE(flatten)
+#define MMGR_FLATTEN __attribute__((flatten))
+#else
+
+#define MMGR_FLATTEN
+#endif
+
+/**
  * @brief Expands to __attribute__((packed)) where MMGR_HAS_ATTRIBUTE(packed) is non-zero.
  *
  * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(packed) is 0.

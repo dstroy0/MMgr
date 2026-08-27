@@ -115,6 +115,14 @@ Case folding always goes through the sieve — the chain compares raw bytes.
 | `MMGR_HW_BIG_ENDIAN`      |                            derived from `__BYTE_ORDER__` | the host's byte order                  |
 | `MMGR_HW_FAST_UNALIGNED`  |               derived from `__ARM_FEATURE_UNALIGNED` etc | whether a word load takes any address  |
 | `MMGR_INLINE`             |     `static inline`, plus `always_inline` where available | how hot entries are inlined            |
+| `MMGR_FLATTEN`            |          `__attribute__((flatten))` where available, else nothing | a caller's lever to inline an entry |
+
+`MMGR_FLATTEN` is for a caller, not for the library. Put it on the one hot function that reaches an
+entry and the compiler inlines the entry into it, which the inliner otherwise declines to do on size
+even under link-time optimization. Measured on an ESP32-S3, `cellul.len` over eight bytes is 112
+cycles called and 80 inlined — a third of the work at that length. @ref ref_performance has the table
+and the caveats: it needs LTO, it costs the walk's code at every site that takes it, and a long scan
+amortises the call and will not notice.
 
 `MMGR_HW_FAST_UNALIGNED` is not whether an unaligned load *compiles* — every target accepts one
 through `mmgr_proxim_word_t`, which carries `MMGR_ALIGN(1)`. It is whether the hardware does it in

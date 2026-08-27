@@ -122,6 +122,40 @@ the C6 - so the compound literal folds into registers and no argument struct is 
 stating because it does not hold everywhere: on Cortex-M4 `MMGR_CALL` emitted a `memset` of the
 whole argument type per call.
 
+## Taking the call out
+
+The call is not fixed, though. The entries are large enough that the inliner leaves them out of
+line on size even with link-time optimization on, and a caller can overrule that with
+`MMGR_FLATTEN` on the one function it cares about:
+
+```c
+MMGR_FLATTEN static size_t field_len(const char *s)
+{
+    return MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = s, .cap = FIELD_MAX);
+}
+```
+
+ESP32-S3, `cellul.len` over the same eight bytes:
+
+| shape                        | cycles |
+| ---------------------------- | -----: |
+| through the namespace table  | 112.01 |
+| calling the entry by name    | 112.01 |
+| `MMGR_FLATTEN` on the caller |  **80.02** |
+
+**32 cycles, a third of the work at that length.** Against ROM `strnlen`'s 113 that is 0.99 called
+and 0.71 inlined. libc cannot answer it - its routine is in mask ROM and is reached by a call no
+matter what the caller does.
+
+It is worth it where an extent is short and settled before the build, which is what this library is
+for. A long scan amortises the call and will not notice: the same measurement at 64 bytes is 253
+against 240. And it costs the walk's code at every site that takes it, so it belongs on the one hot
+function rather than on a translation unit.
+
+`MMGR_FLATTEN` needs the entry body visible, so a build without link-time optimization gets nothing
+from it. It resolves to the attribute on every toolchain in the target list - Xtensa, RISC-V, and ARM
+from Cortex-M3 up - and expands to nothing anywhere else, which costs speed and never correctness.
+
 What remains above 1.00 at eight bytes is `find`, at 134 cycles against 106. That is prologue - two
 broadcasts, a span, a reach and a word count settled before the first byte is read - and routing
 short haystacks past it has been tried twice and lost twice. Both attempts are written up in
