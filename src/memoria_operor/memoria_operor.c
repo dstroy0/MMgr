@@ -263,6 +263,10 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *c)
         at += 1u;
     }
 
+    // One word a pass, deliberately. Unrolling this the way cellul_len is unrolled was measured and
+    // lost: 6696 cycles to 6959 at 2048 bytes, and 64 to 72 at eight. This walk was already the
+    // faster of the two before either was touched, so there was no stall left for a second word to
+    // cover, and the extra prologue is all it added.
     while (at != full)
     {
         const mmgr_word m = MMGR_CALL(lane.has_zero, ScrutLaneCfg,

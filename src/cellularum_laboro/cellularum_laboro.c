@@ -241,6 +241,29 @@ MMGR_INLINE size_t cellul_len(const CellulCtx *c)
         at += 1u;
     }
 
+    // Two words a pass while two remain. The load and the arithmetic that reads it are a dependent
+    // pair, and neither part issues them back to back without stalling; taking two lets the second
+    // load be in flight while the first word is examined. The single-word loop below finishes the
+    // odd word.
+    while ((full - at) >= (2u * MMGR_SWAR_BYTES))
+    {
+        const mmgr_word w0 = MMGR_CALL(word.load_al, ScrutWordCfg, .at = c->src + at);
+        const mmgr_word w1 = MMGR_CALL(word.load_al, ScrutWordCfg, .at = c->src + at + MMGR_SWAR_BYTES);
+        const mmgr_word m0 = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w0);
+        const mmgr_word m1 = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w1);
+
+        if (m0 != 0u)
+        {
+            return at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m0);
+        }
+        if (m1 != 0u)
+        {
+            return at + MMGR_SWAR_BYTES + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m1);
+        }
+        // Advance separated from the tests above so the loop body carries no side effect
+        at += 2u * MMGR_SWAR_BYTES;
+    }
+
     while (at != full)
     {
         const mmgr_word m =
@@ -264,6 +287,28 @@ MMGR_INLINE size_t cellul_len(const CellulCtx *c)
         }
     }
     return c->cap;
+}
+
+/**
+ * @brief Settles one word that carried a match, a terminator, or both.
+ *
+ * @param[in] p   Address the word was read from [BORROWS].
+ * @param[in] end Lanes holding a terminator.
+ * @param[in] hit Lanes holding the sought byte.
+ * @return        Address of the match, or NULL when the terminator came first [BORROWS].
+ * @note mask.before drops lanes at or past the terminator, so a match beginning after the run ends
+ *       is not reported. Of an empty terminator mask it keeps every lane.
+ * @note Takes the address rather than a CellulCtx: two places in the walk reach it, and the point of
+ *       it is that neither carries this arithmetic in the loop.
+ * @note Plain static, not MMGR_INLINE. It runs once per call - the walk reaches it on the word that
+ *       ended the scan and not before - so a call costs nothing measurable, while forcing it inline
+ *       puts mask.before and lane.first in the loop body and cost 6% at 2048 bytes.
+ */
+static const char *cellul_chr_settle(const char *p, mmgr_word end, mmgr_word hit)
+{
+    const mmgr_word live = hit & MMGR_CALL(mask.before, ScrutMaskCfg, .mask = end);
+
+    return (live != 0u) ? (p + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = live)) : NULL;
 }
 
 /**
@@ -313,6 +358,10 @@ MMGR_INLINE const char *cellul_chr(const CellulCtx *c)
         at += 1u;
     }
 
+    // One word a pass, deliberately. Unrolling this the way cellul_len is unrolled was measured and
+    // lost: 8261 cycles to 8277 at 2048 bytes, and 98 to 114 at eight. len has one has_zero in its
+    // body and stalls waiting for the load; this has two, which is already enough work to cover the
+    // load, so a second word buys nothing and the extra prologue costs.
     while (at != full)
     {
         const mmgr_word w = MMGR_CALL(word.load_al, ScrutWordCfg, .at = c->src + at);
@@ -321,8 +370,7 @@ MMGR_INLINE const char *cellul_chr(const CellulCtx *c)
 
         if ((end | hit) != 0u)
         {
-            const mmgr_word live = hit & MMGR_CALL(mask.before, ScrutMaskCfg, .mask = end);
-            return (live != 0u) ? (c->src + at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = live)) : NULL;
+            return cellul_chr_settle(c->src + at, end, hit);
         }
         // Advance separated from the test above so the loop body carries no side effect
         at += MMGR_SWAR_BYTES;
