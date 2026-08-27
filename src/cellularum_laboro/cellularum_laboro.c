@@ -682,12 +682,32 @@ MMGR_INLINE const char *cellul_find_short(const char *hay, const char *needle, s
     // MMGR_SWAR_BYTES + nlen - 1 bytes in hand.
     const size_t span = MMGR_SWAR_BYTES + (nlen - 1u);
     const size_t safe = (read_cap >= span) ? ((read_cap - span) + 1u) : 0u;
-    const size_t nw = ((safe > starts) ? starts : safe) / MMGR_SWAR_BYTES;
+    const size_t reach = (safe > starts) ? starts : safe;
+
+    // Bytes to the first word boundary, so the walk below reads through the aligned load. See
+    // cellul_head_bytes. Normally none, and the starts it covers are taken one at a time first.
+    const size_t lead = cellul_head_bytes(hay, reach);
+    const size_t nw = (reach - lead) / MMGR_SWAR_BYTES;
+
+    for (size_t k = 0; k < lead; ++k)
+    {
+        // Explicit casts read both bytes as unsigned, so neither test depends on char's signedness
+        const uint8_t h = (uint8_t)hay[k];
+
+        if (h == 0u)
+        {
+            return NULL;
+        }
+        if ((h == (uint8_t)needle[0]) && ((nlen == 1u) || ((uint8_t)hay[k + 1u] == (uint8_t)needle[1])))
+        {
+            return hay + k;
+        }
+    }
 
     for (size_t wi = 0; wi < nw; ++wi)
     {
-        const size_t at = wi * MMGR_SWAR_BYTES;
-        const mmgr_word w0 = MMGR_CALL(word.load, ScrutWordCfg, .at = hay + at);
+        const size_t at = lead + (wi * MMGR_SWAR_BYTES);
+        const mmgr_word w0 = MMGR_CALL(word.load_al, ScrutWordCfg, .at = hay + at);
         const mmgr_word end = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w0);
         mmgr_word m = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w0 ^ b0);
 
@@ -718,7 +738,7 @@ MMGR_INLINE const char *cellul_find_short(const char *hay, const char *needle, s
         }
     }
 
-    for (size_t k = nw * MMGR_SWAR_BYTES; k < starts; ++k)
+    for (size_t k = lead + (nw * MMGR_SWAR_BYTES); k < starts; ++k)
     {
         // Explicit casts read both bytes as unsigned, so neither test depends on char's signedness
         const uint8_t h = (uint8_t)hay[k];

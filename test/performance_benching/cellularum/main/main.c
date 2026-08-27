@@ -32,6 +32,15 @@ static MMGR_ALIGN(MMGR_ALIGN_BYTES) char g_a[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) char g_b[CAP];
 
 static const char *const g_needle = "qx";
+
+/**
+ * @brief A needle whose first byte is common in the fill and whose pair never occurs.
+ *
+ * @note 'a' lands every fifteen bytes and is always followed by 'b', so an anchor on the first byte
+ *       fires constantly and the verify always fails. g_needle is the opposite: 'q' is not in the
+ *       alphabet at all, so an anchor never fires. The two bracket what a search can be asked to do.
+ */
+static const char *const g_hot = "ao";
 #define NLEN 2u
 
 /**
@@ -86,6 +95,16 @@ void dbench_run(void)
                       DBENCH_KEEP(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u,
                                             .other = g_needle, .other_cap = NLEN + 1u, .other_len = NLEN)),
                       DBENCH_KEEP(strstr(g_a, g_needle)));
+
+            // The same search with a needle whose first byte is common. The fill cycles 'a' to 'o',
+            // so 'a' turns up every fifteen bytes and 'o' never follows it - a walk that anchors on
+            // one byte and verifies the other is asked to verify constantly and still never matches.
+            // "qx" above is the opposite case, since 'q' does not occur at all. A walk is only
+            // honestly measured against both.
+            DBENCH_AB("find_hot", iters, n,
+                      DBENCH_KEEP(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u,
+                                            .other = g_hot, .other_cap = NLEN + 1u, .other_len = NLEN)),
+                      DBENCH_KEEP(strstr(g_a, g_hot)));
         }
 
         // What the harness costs with no work in it: the loop, the counter and the volatile store,
