@@ -1,0 +1,37 @@
+/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+/**
+ * @file groups.dox
+ * @brief Reference groups, one per module.
+ *
+ * Each guide in docs/modules ends with a link to the generated reference for the module it covers.
+ * These are those targets. A module header joins one with `@ingroup`, and its entries are then
+ * collected under it.
+ *
+ * A group is named `mod_` plus the module's stem. The guide page for the same module is anchored
+ * with that name plus `_guide` in its own markdown, so the two link to each other.
+ */
+
+/** @defgroup mod_config  config — widths, types, attributes and the call idiom */
+/** @defgroup mod_carcer  carceribus — the region and its pools */
+/** @defgroup mod_confin  carceribus - the region (referenced as mod_confin by the guides) */
+/** @defgroup mod_infin   confinium_exclusivum_infinitas — the ring */
+/** @defgroup mod_exter   confinium_externum — external memory */
+/** @defgroup mod_proxim  proximus_operor — unaligned loads and stores */
+/** @defgroup mod_anchor  impensa_ancorae_acus — anchor cost tables */
+/** @defgroup mod_memor   memoria_operor — block copy, move, compare, scan, fill */
+/** @defgroup mod_cellul  cellularum_laboro — bounded string work */
+/** @defgroup mod_ascii   ascii_persona_bitorum — character classes */
+/** @defgroup mod_fract   fractio — binary64 fields */
+/** @defgroup mod_byteio  octetus_introitus_exitus - byte verbs over a span */
+/** @defgroup mod_bitio   bitorum_introitus_exitus — bit writer */
+/** @defgroup mod_endian  endian — byte order */
+/** @defgroup mod_spat    spatium - the fill span and the read span */
+/** @defgroup mod_numer   numeros_scribo — record building */
+/** @defgroup mod_praet   memoriam_praetereo — DMA transfers */
+/** @defgroup mod_verba   verba_scribo — text and number writing */
+/** @defgroup mod_scrut   verbum_scrutor — the SWAR scanner */
+/** @defgroup mod_clz     clz — leading zero count */
+/** @defgroup mod_muto    transformo — decimal to binary scaling */
+/** @defgroup mod_pow5    pow5 — powers of five */

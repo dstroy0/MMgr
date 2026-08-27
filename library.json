@@ -1,0 +1,57 @@
+{
+  "name": "MMgr",
+  "version": "0.1.0",
+  "description": "Zero-heap memory manager in C11. Confinia, pools, spans and rings carved out of a single borrowed region by asserted offset, with SWAR-accelerated scanning. Every translation unit is host-buildable and host-testable; the only headers it reaches for are stddef, stdint and stdatomic.",
+  "keywords": [
+    "memory",
+    "allocator",
+    "confinium",
+    "pool",
+    "ring-buffer",
+    "span",
+    "swar",
+    "zero-heap",
+    "deterministic",
+    "embedded",
+    "c11",
+    "no-malloc"
+  ],
+  "homepage": "https://github.com/dstroy0/MMgr",
+  "authors": [
+    {
+      "name": "Douglas Quigg",
+      "email": "dquigg123@gmail.com",
+      "url": "https://github.com/dstroy0",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dstroy0/MMgr.git"
+  },
+  "license": "AGPL-3.0-or-later",
+  "frameworks": "*",
+  "platforms": "*",
+  "headers": ["mmgr.h"],
+  "export": {
+    "exclude": [
+      ".github",
+      ".gitignore",
+      ".gitattributes",
+      ".editorconfig",
+      ".clang-format",
+      ".prettierignore",
+      "test",
+      "tools",
+      "package.json",
+      "package-lock.json",
+      "pyproject.toml",
+      "sonar-project.properties"
+    ]
+  },
+  "build": {
+    "srcDir": "src",
+    "unflags": ["-std=gnu99"],
+    "flags": ["-std=gnu11"]
+  }
+}

@@ -1,0 +1,159 @@
+name: Docs
+
+# Doxygen to GitHub Pages, through the official Pages actions. No gh-pages branch and no third-party
+# deploy action: the artifact goes straight from the build job to the Pages service over OIDC, so
+# nothing needs a long-lived token and the site's history is not a second copy of this repo.
+#
+# TWO JOBS ON PURPOSE. `build` runs the doc toolchain and holds contents:read and nothing else.
+# `deploy` holds pages:write and id-token:write and runs none of our code - it consumes an artifact.
+# One job holding all three scopes would mean every apt install and every doxygen run in this file
+# executes with a token that can publish. A pull request therefore gets the full build, so a broken
+# Doxyfile fails BEFORE it reaches main, and no deployment.
+#
+# DOXYGEN IS PINNED, not whatever the runner ships. Same reason clang-format is pinned in
+# format-code.yml: docs/mmgr.css keys on doxygen's generated class names and custom properties, and
+# those move between releases - 1.17 renamed a third of the variables the theme maps. An unpinned
+# doxygen means the site silently restyles itself on a runner image bump. apt ships a version that
+# lags by a year or more and does not know this markup at all.
+#
+# WARNINGS ARE A PRODUCT OF THIS JOB, not a side effect. src/ carries real Doxygen comments now, so
+# WARN_IF_UNDOCUMENTED has something to say. The log is captured, counted, and summarized into the
+# job summary. It does not fail the build yet: the remaining warnings are dispatch-table members and
+# macro definitions, and failing on them today would block every deploy for a backlog rather than
+# for a regression. Flip WARN_AS_ERROR in docs/Doxyfile from NO to FAIL_ON_WARNINGS_PRINT when that
+# count reaches zero, and this job becomes the gate with no change to this file.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Bump this and the local install together, so what a maintainer previews is what gets published.
+  DOXYGEN_VERSION: "1.18.0"
+
+jobs:
+  build:
+    name: Doxygen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # The static Linux binary from the release, not apt. The tag form is Release_1_18_0 and the
+      # asset is doxygen-1.18.0.linux.bin.tar.gz, both derived from DOXYGEN_VERSION so there is one
+      # place to edit.
+      - name: Install Doxygen ${{ env.DOXYGEN_VERSION }}
+        run: |
+          curl -fsSL -o /tmp/doxygen.tar.gz \
+            "https://github.com/doxygen/doxygen/releases/download/Release_${DOXYGEN_VERSION//./_}/doxygen-${DOXYGEN_VERSION}.linux.bin.tar.gz"
+          tar -C /tmp -xzf /tmp/doxygen.tar.gz
+          sudo install "/tmp/doxygen-${DOXYGEN_VERSION}/bin/doxygen" /usr/local/bin/doxygen
+          doxygen --version
+
+      # Graphviz is not used by doxygen here - HAVE_DOT is NO, because a call graph of
+      # mmgr_scrut_has_zero is not information. It renders the one graph that is: which module
+      # depends on which, from the DEPS lists in each src/*/CMakeLists.txt.
+      - name: Install graphviz
+        run: sudo apt-get update -qq && sudo apt-get install -y graphviz
+
+      - name: Render diagrams
+        run: |
+          shopt -s nullglob
+          for f in docs/diagrams/*.dot; do
+            dot -Tsvg "$f" -o "${f%.dot}.svg"
+          done
+
+      - name: Generate
+        run: |
+          doxygen docs/Doxyfile
+          # docs/*.md embed docs/assets and docs/diagrams with relative paths, so those directories
+          # have to sit beside the generated HTML. They cannot go in HTML_EXTRA_FILES: doxygen
+          # rejects a directory there, and listing each file would need a Doxyfile edit every time a
+          # diagram is added.
+          cp -r docs/assets docs/html/assets
+          if [ -d docs/diagrams ]; then cp -r docs/diagrams docs/html/diagrams; fi
+          # Without this, Pages runs the output through Jekyll, which drops every file and directory
+          # whose name begins with an underscore. Doxygen's search index is one of them.
+          touch docs/html/.nojekyll
+
+      - name: Warnings
+        if: always()
+        run: |
+          log=docs/doxygen-warnings.log
+          [ -f "$log" ] || { echo "no warning log - doxygen did not run"; exit 1; }
+          total=$(wc -l < "$log")
+          undoc=$(grep -c 'is not documented' "$log" || true)
+          other=$(grep -vcE 'is not documented|is missing' "$log" || true)
+          {
+            echo "### Doxygen"
+            echo ""
+            echo "| class | count |"
+            echo "| --- | ---: |"
+            echo "| undocumented entity | $undoc |"
+            echo "| structural / rendering | $other |"
+            echo "| **total** | **$total** |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          # A structural warning is an unterminated code span, a bad @ref, or an angle bracket read
+          # as an HTML tag. Those corrupt the rendered page from that point on, so unlike an
+          # undocumented member they are worth naming individually.
+          if [ "$other" -gt 0 ]; then
+            {
+              echo "Structural warnings corrupt the rendered page and should be fixed:"
+              echo ""
+              echo '```'
+              grep -vE 'is not documented|is missing' "$log" | head -40
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "doxygen: $total warnings ($undoc undocumented, $other structural)"
+
+      - name: Upload warning log
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: doxygen-warnings-${{ github.run_id }}
+          path: docs/doxygen-warnings.log
+          if-no-files-found: ignore
+
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs/html/
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    # Deliberately NOT cancel-in-progress, and deliberately a different group from the build above.
+    # Cancelling a half-finished deployment leaves the Pages service holding a partial site; the
+    # build is the thing worth canceling, and it has its own group.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      # Reads the Pages configuration and fails with a message that names the setting when the Pages
+      # source is still "Deploy from a branch". Without it, deploy-pages fails further down with an
+      # opaque 404 that says nothing about the repository setting that caused it.
+      - uses: actions/configure-pages@v6
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

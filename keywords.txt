@@ -1,0 +1,56 @@
+# MMgr Library Keywords
+# Loaded by the Arduino IDE for syntax highlighting.
+# Generated from src/ - regenerate after any public rename.
+
+##############################
+# Types (KEYWORD1)
+##############################
+
+BitorumIntroitusExitusNs	KEYWORD1
+OctetusIntroitusExitusNs	KEYWORD1
+CellularumLaboroNs	KEYWORD1
+ClarusCustodiaeNs	KEYWORD1
+EndianNs	KEYWORD1
+FractioNs	KEYWORD1
+MemoriaOperorNs	KEYWORD1
+MmgrEnumProbe	KEYWORD1
+NumerosScriboNs	KEYWORD1
+OccultumCustodiaeNs	KEYWORD1
+PingPong	KEYWORD1
+ProximusOperorNs	KEYWORD1
+SpatiumNs	KEYWORD1
+VerbaScriboNs	KEYWORD1
+VerbumScrutorNs	KEYWORD1
+BitorumCfg	KEYWORD1
+mmgr_confin	KEYWORD1
+mmgr_confin_mark	KEYWORD1
+mmgr_confin_set	KEYWORD1
+MemoriamPraetereoCfg	KEYWORD1
+mmgr_praet_dir	KEYWORD1
+mmgr_praet_event	KEYWORD1
+mmgr_praet_periph	KEYWORD1
+mmgr_field	KEYWORD1
+mmgr_fk	KEYWORD1
+mmgr_fspat	KEYWORD1
+mmgr_fval	KEYWORD1
+mmgr_place	KEYWORD1
+mmgr_spat	KEYWORD1
+mmgr_verba	KEYWORD1
+
+##############################
+# Namespace instances (KEYWORD2)
+##############################
+
+bitio	KEYWORD2
+byteio	KEYWORD2
+cellul	KEYWORD2
+clarus	KEYWORD2
+endian	KEYWORD2
+fract	KEYWORD2
+memor	KEYWORD2
+numer	KEYWORD2
+occult	KEYWORD2
+proxim	KEYWORD2
+scrut	KEYWORD2
+spat	KEYWORD2
+verba	KEYWORD2

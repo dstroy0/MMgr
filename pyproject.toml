@@ -1,0 +1,8 @@
+# Black is the Python formatter for this repo. It formats tools/dev_env only - the library itself is
+# C, and nothing under src/ or test/ is Python.
+#
+# line-length matches ColumnLimit in .clang-format and max_line_length in .editorconfig, so C and
+# Python wrap at the same width and a side-by-side diff of a tool and the code it rewrites lines up.
+[tool.black]
+line-length = 120
+target-version = ["py38"]

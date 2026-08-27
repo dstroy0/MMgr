@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # The workflows pin actions by tag; without this they silently rot and a pinned SHA never moves.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+
+  # Node-based dev/CI tooling declared in package.json (prettier). The library itself has no runtime
+  # npm dependencies - this exists so the formatter used by CI is a tracked, bumpable version rather
+  # than whatever the runner happened to have.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore"
+
+  # Python tooling (black) used by format-code and by tools/dev_env.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore"

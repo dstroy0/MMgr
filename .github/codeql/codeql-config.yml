@@ -1,0 +1,15 @@
+name: "MMgr CodeQL config"
+
+# Analyze only this library's own source.
+#
+# Unity is vendored under test/vendor and is not our code; its findings are noise that recurs on
+# every run and buries the ones that are ours. The build tree is machine output.
+#
+# Anchored two ways on purpose: a leading "**/" matches path segments BEFORE the directory, of which
+# a repo-root directory has none, so the bare pattern is the one that actually catches it.
+paths-ignore:
+  - "test/vendor/**"
+  - "**/test/vendor/**"
+  - "build/**"
+  - "**/build/**"
+  - "build-*/**"

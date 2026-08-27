@@ -1,0 +1,79 @@
+# MMgr {#mainpage}
+
+Zero-heap memory manager in C11.
+
+You lend it a buffer. A confinium carves that buffer from both ends: persist grows up from the base
+and interim grows down from the top. Neither take tests the gap between them — the sizes are fixed
+before the program runs, so the fit is settled by then, and a caller working from runtime numbers
+reads `carcer.octas_praesto` first. Pools hand out tenants cut from it, spans are bounded views over
+those, and rings move them between a producer and a consumer.
+
+Nothing calls `malloc`. Every size is fixed before the program runs, so the footprint is a number you
+can check against a budget rather than a thing you find out at runtime.
+
+```c
+#include "mmgr.h"
+
+/* Storage, pool descriptors and the asserts that they fit, all emitted at compile time. */
+mmgr_carcer_init(g_ram, 4096u, MMGR_POOL(g_scratch, 4096u));
+
+CarcerCtx *const pool = MMGR_CARCER_POOL(g_ram, g_scratch);
+char *const buf = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 256u);
+
+size_t at = 0;
+at = MMGR_CALL(verba.put, VerbaCfg, .out = buf, .cap = 256u, .at = at, .text = "id=");
+at = MMGR_CALL(verba.u32, VerbaCfg, .out = buf, .cap = 256u, .at = at, .val = 4211u);
+
+const size_t len = MMGR_CALL(verba.finish, VerbaCfg, .out = buf, .cap = 256u, .at = at);
+```
+
+## What it claims
+
+Each of these is a claim the documentation has to answer for, so each links to the page that does.
+
+- **Nothing allocates.** Storage is borrowed, never owned. @ref concept_zero_heap
+- **One region, carved by asserted offset.** Persist grows up and interim grows down; what keeps them
+  apart is asserted when the region is defined, not tested on each take. @ref concept_architecture
+- **Scanning is SWAR, and the carrier is the machine word.** Measured, not asserted.
+  @ref concept_swar
+- **The width is a compile-time knob, and every width is built.** Five environments, one build.
+  @ref ref_environments
+- **Host-buildable and host-testable.** The only headers it reaches for are `stddef`, `stdint` and
+  `stdatomic`. @ref qa_testing
+
+## Where to go next
+
+| If you want to                     | Read               |
+| ---------------------------------- | ------------------ |
+| Build it and run something         | @ref nav_start     |
+| Understand how the pieces fit      | @ref nav_concepts  |
+| Find the module you need           | @ref nav_modules   |
+| Look up a knob, a name or a number | @ref nav_reference |
+| Know what is tested and analyzed   | @ref nav_quality   |
+| Contribute, or read the license    | @ref nav_project   |
+
+## A note on the names
+
+The modules carry Latin category names: `carceribus` is the region and its pools, `spatium` is a
+span, `verbum_scrutor` is the SWAR scanner. Every one of them is decoded in @ref ref_glossary.
+
+The reason is that libc and `<string.h>` are everywhere, and these are not libc functions. They
+reach the same conclusion for the same input, across every domain — that is the whole of what they
+share. How they reach it is entirely different.
+
+The backend is machine-width parallel word processing throughout. Bitmath is extensive and SIMD
+within a register is used wherever it applies, which is what buys speed far above the traditional
+embedded string and memory routines in far less space. A name that collided with libc's would
+suggest a drop-in replacement of the implementation as well as the result, and it is not one.
+
+That difference is also why the testing is what it is. Every translation unit is fuzzed with bit
+strobing, bit waves, clock stretching and other abuse the internals will never meet in service. On
+top of that: interoperability against libc, newlib, MSVC and GNU; correctness; binary size; and
+resource allocation lifetime cycles.
+
+The call-site idiom follows from that. Each module exposes a dispatch table named for a short stem,
+and every entry takes one argument: a pointer to that module's config struct. @ref MMGR_CALL builds
+it as a compound literal, so a call reads
+`MMGR_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = n)` and the arguments are named rather than
+ordered. Both spellings exist and both are documented; the free function is what the table points
+at. @ref concept_ns_idiom

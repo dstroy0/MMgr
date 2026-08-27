@@ -1,0 +1,2 @@
+
+mmgr_add_suite(test_transformo_internals)
