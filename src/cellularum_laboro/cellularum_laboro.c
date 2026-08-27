@@ -189,6 +189,29 @@ MMGR_INLINE mmgr_bool cellul_is_digit(char ch)
 }
 
 /**
+ * @brief Bytes between p and the first word boundary at or after it, capped at cap.
+ *
+ * @param[in] p   Address a walk is about to start from [BORROWS].
+ * @param[in] cap Bytes readable at p, which the answer never exceeds.
+ * @return        Bytes to step one at a time before whole aligned words can be read.
+ * @note Normally zero. This library is built for memory that arrives aligned, and an aligned address
+ *       is already on a boundary. It is computed rather than assumed because the entries are also
+ *       reached on interior pointers - find verifies a candidate at hay + k, which is any address.
+ * @note The aligned load is one instruction on every target. The unaligned one is ten on Xtensa and
+ *       eleven on RISC-V, because neither has the instruction and the compiler assembles the word
+ *       out of byte loads and shifts, in the middle of the walk.
+ */
+MMGR_INLINE size_t cellul_head_bytes(const char *p, size_t cap)
+{
+    // Explicit cast reads the address as an integer so its low bits can be tested; the value is
+    // never dereferenced through it and never converted back
+    const size_t off = (size_t)((uintptr_t)p & (uintptr_t)(MMGR_SWAR_BYTES - 1u));
+    const size_t need = (off == 0u) ? 0u : (MMGR_SWAR_BYTES - off);
+
+    return (need > cap) ? cap : need;
+}
+
+/**
  * @brief Returns the offset of the first zero byte in src, or cap when there is none.
  *
  * @param[in] c Bytes src and the readable extent cap [BORROWS].
@@ -199,14 +222,29 @@ MMGR_INLINE mmgr_bool cellul_is_digit(char ch)
  */
 MMGR_INLINE size_t cellul_len(const CellulCtx *c)
 {
-    const size_t full = (c->cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    // Bytes between src and the first word boundary at or after it. Normally none: this library is
+    // built for memory that arrives aligned. It is walked rather than assumed because an entry is
+    // also reached on an interior pointer - find verifies a candidate at hay + k - and the body
+    // below reads through the aligned load, which is one instruction where the unaligned one is ten.
+    const size_t lead = cellul_head_bytes(c->src, c->cap);
+    const size_t full = lead + (((c->cap - lead) / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES);
     const size_t rest = c->cap - full;
     size_t at = 0u;
+
+    while (at != lead)
+    {
+        if (c->src[at] == '\0')
+        {
+            return at;
+        }
+        // Advance separated from the test above so the loop body carries no side effect
+        at += 1u;
+    }
 
     while (at != full)
     {
         const mmgr_word m =
-            MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = MMGR_CALL(word.load, ScrutWordCfg, .at = c->src + at));
+            MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = MMGR_CALL(word.load_al, ScrutWordCfg, .at = c->src + at));
         if (m != 0u)
         {
             return at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);
@@ -247,15 +285,39 @@ MMGR_INLINE const char *cellul_chr(const CellulCtx *c)
         return c->src + cellul_len(c);
     }
 
-    const size_t full = (c->cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    // Bytes to the first word boundary, so the walk below reads through the aligned load. See
+    // cellul_head_bytes: normally none, and never more than a word.
+    const size_t lead = cellul_head_bytes(c->src, c->cap);
+    const size_t full = lead + (((c->cap - lead) / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES);
     const size_t rest = c->cap - full;
+    // The sought byte repeated into every lane, once, ahead of the walk. lane.eq answers the same
+    // question but rebuilds the broadcast from a byte on every call, and it is large enough that the
+    // inliner drops it back out of line as this function grows - which cost 2.5x when it happened.
+    const mmgr_word bcast = MMGR_SWAR_ONES * (mmgr_word)c->byte;
     size_t at = 0u;
+
+    while (at != lead)
+    {
+        // Explicit cast reads the byte as unsigned, matching CellulCtx::byte
+        const uint8_t h = (uint8_t)c->src[at];
+
+        if (h == 0u)
+        {
+            return NULL;
+        }
+        if (h == c->byte)
+        {
+            return c->src + at;
+        }
+        // Advance separated from the tests above so the loop body carries no side effect
+        at += 1u;
+    }
 
     while (at != full)
     {
-        const mmgr_word w = MMGR_CALL(word.load, ScrutWordCfg, .at = c->src + at);
+        const mmgr_word w = MMGR_CALL(word.load_al, ScrutWordCfg, .at = c->src + at);
         const mmgr_word end = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w);
-        const mmgr_word hit = MMGR_CALL(lane.eq, ScrutLaneCfg, .word = w, .byte = c->byte, .ci = MMGR_FALSE);
+        const mmgr_word hit = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w ^ bcast);
 
         if ((end | hit) != 0u)
         {
@@ -272,7 +334,7 @@ MMGR_INLINE const char *cellul_chr(const CellulCtx *c)
         const mmgr_word w = MMGR_CALL(word.load, ScrutWordCfg, .at = c->src + at);
         const mmgr_word end = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w) & keep;
         const mmgr_word hit =
-            MMGR_CALL(lane.eq, ScrutLaneCfg, .word = w, .byte = c->byte, .ci = MMGR_FALSE) & keep &
+            MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w ^ bcast) & keep &
             MMGR_CALL(mask.before, ScrutMaskCfg, .mask = end);
 
         if (hit != 0u)

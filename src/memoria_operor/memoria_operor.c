@@ -144,6 +144,26 @@ MMGR_INLINE void memor_move_up(MemorMoveCtx *c)
 }
 
 /**
+ * @brief Bytes between p and the first word boundary at or after it, capped at bytes.
+ *
+ * @param[in] p     Address a walk is about to start from [BORROWS].
+ * @param[in] bytes Bytes readable at p, which the answer never exceeds.
+ * @return          Bytes to step one at a time before whole aligned words can be read.
+ * @note Normally zero. This library is built for memory that arrives aligned, and an aligned address
+ *       is already on a boundary. It is computed rather than assumed because a region entry takes
+ *       whatever address a caller hands it.
+ */
+MMGR_INLINE size_t memor_head_bytes(const uint8_t *p, size_t bytes)
+{
+    // Explicit cast reads the address as an integer so its low bits can be tested; the value is
+    // never dereferenced through it and never converted back
+    const size_t off = (size_t)((uintptr_t)p & (uintptr_t)(MMGR_SWAR_BYTES - 1u));
+    const size_t need = (off == 0u) ? 0u : (MMGR_SWAR_BYTES - off);
+
+    return (need > bytes) ? bytes : need;
+}
+
+/**
  * @brief Turns a lane-wise difference word into the mask of lanes that differ.
  *
  * @param[in] d Difference word, zero in every lane where the two sides agreed.
@@ -222,16 +242,31 @@ MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *c)
  */
 MMGR_INLINE const void *memor_chr(MemorScanCtx *c)
 {
-    const size_t full = (c->bytes / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    // Bytes to the first word boundary, so the walk below reads through the aligned load. Normally
+    // none: this library is built for memory that arrives aligned. The unaligned load is not one
+    // instruction on either shipping part - eleven on RISC-V, twelve on Xtensa, because neither has
+    // it and the compiler assembles the word out of byte loads and shifts inside the walk.
+    const size_t lead = memor_head_bytes(c->src, c->bytes);
+    const size_t full = lead + (((c->bytes - lead) / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES);
     const size_t rest = c->bytes - full;
     // Explicit cast widens the sought byte into the lane it fills before it is repeated
     const mmgr_word bcast = MMGR_SWAR_ONES * (mmgr_word)c->val;
     size_t at = 0u;
 
+    while (at != lead)
+    {
+        if (c->src[at] == c->val)
+        {
+            return c->src + at;
+        }
+        // Advance separated from the test above so the loop body carries no side effect
+        at += 1u;
+    }
+
     while (at != full)
     {
         const mmgr_word m = MMGR_CALL(lane.has_zero, ScrutLaneCfg,
-                                      .word = MMGR_CALL(word.load, ScrutWordCfg, .at = c->src + at) ^ bcast);
+                                      .word = MMGR_CALL(word.load_al, ScrutWordCfg, .at = c->src + at) ^ bcast);
         if (m != 0)
         {
             return c->src + at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);

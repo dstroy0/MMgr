@@ -88,10 +88,20 @@ void dbench_run(void)
                       DBENCH_KEEP(strstr(g_a, g_needle)));
         }
 
+        // What the harness costs with no work in it: the loop, the counter and the volatile store,
+        // and nothing else. Every row above carries this, so a ratio at a small n is mostly this
+        // number on both sides and says less about the two functions than it appears to. Subtract it
+        // before reading anything at n=8.
+        fill(8u);
+        DBENCH_OP("floor_loop", 20000u, DBENCH_KEEP(g_a));
+
+        // The same, plus one call the optimiser is not allowed to remove or inline away, which is
+        // the floor any entry answers to.
+        DBENCH_OP("floor_call", 20000u, DBENCH_KEEP(strnlen(g_a, 1u)));
+
         // What MMGR_CALL costs before any work happens. On Cortex-M4 the compound literal became a
         // memset of the whole argument type per call rather than folding into registers; on both
         // parts here the two rows come out identical, so it folds and costs nothing.
-        fill(8u);
         DBENCH_OP("dispatch_len8", 20000u,
                   DBENCH_KEEP(MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = 9u)));
         DBENCH_OP("direct_len8", 20000u,
