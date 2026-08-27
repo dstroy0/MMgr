@@ -568,6 +568,112 @@ MMGR_INLINE size_t cellul_pick_rows(const CellulCtx *c)
 }
 
 /**
+ * @brief The word one byte along from w, taken from w and the byte past it rather than reloaded.
+ *
+ * @param[in] w    The word at some offset.
+ * @param[in] next The byte at that offset plus MMGR_SWAR_BYTES.
+ * @return         The word the load at that offset plus one would have returned.
+ * @note A word load at an odd address goes through mmgr_proxim_word_t, which carries MMGR_ALIGN(1),
+ *       and neither Xtensa nor RISC-V has an unaligned word load - the compiler assembles one out of
+ *       MMGR_SWAR_BYTES byte loads and shifts. Deriving it costs one byte load, one shift and an or.
+ * @note Branches on MMGR_HW_BIG_ENDIAN because this is lane order, not wire order: which end of the
+ *       word byte zero sits at. verbum_scrutor decides the same question the same way. The endian
+ *       module answers a different one - what order a value is written in - and does not apply.
+ */
+#if !MMGR_HW_FAST_UNALIGNED
+MMGR_INLINE mmgr_word cellul_word_next(mmgr_word w, uint8_t next)
+{
+#if MMGR_HW_BIG_ENDIAN
+    return (mmgr_word)((w << 8u) | (mmgr_word)next);
+#else
+    return (mmgr_word)((w >> 8u) | ((mmgr_word)next << (MMGR_SWAR_BITS - 8u)));
+#endif
+}
+#endif
+
+/**
+ * @brief Finds a needle of one or two bytes, case sensitively.
+ *
+ * @param[in] hay      Haystack [BORROWS].
+ * @param[in] needle   Needle, of length nlen [BORROWS].
+ * @param[in] nlen     Needle length, 1 or 2.
+ * @param[in] read_cap Bytes readable at hay.
+ * @param[in] starts   Start positions to consider, one past the last.
+ * @return             Address of the match, or NULL when none precedes the terminator [BORROWS].
+ * @note One broadcast per needle byte settles every start in a word at once: a lane matches when its
+ *       byte equals the first and the byte after it equals the second. There is no anchor to choose
+ *       and nothing to verify afterwards, which is the whole of what the sieve does.
+ * @note Self-contained rather than folded into the sieve walk, tail and all. The two walks answer to
+ *       different bounds - this one reads nlen - 1 bytes past its word, the sieve reads a whole
+ *       verify span - and every previous attempt to share their structure cost more than it saved.
+ * @warning Lanes at or past the terminator are dropped through mask.before, so a match that begins
+ *          after the run ends is not reported.
+ */
+MMGR_INLINE const char *cellul_find_short(const char *hay, const char *needle, size_t nlen, size_t read_cap,
+                                          size_t starts)
+{
+    // Explicit casts read the needle bytes as unsigned before they are repeated into every lane
+    const mmgr_word b0 = MMGR_SWAR_ONES * (mmgr_word)(uint8_t)needle[0];
+    const mmgr_word b1 = (nlen == 2u) ? (MMGR_SWAR_ONES * (mmgr_word)(uint8_t)needle[1]) : 0u;
+
+    // A word step reads the word at `at` and, for a two-byte needle, the one at `at + 1`, so it needs
+    // MMGR_SWAR_BYTES + nlen - 1 bytes in hand.
+    const size_t span = MMGR_SWAR_BYTES + (nlen - 1u);
+    const size_t safe = (read_cap >= span) ? ((read_cap - span) + 1u) : 0u;
+    const size_t nw = ((safe > starts) ? starts : safe) / MMGR_SWAR_BYTES;
+
+    for (size_t wi = 0; wi < nw; ++wi)
+    {
+        const size_t at = wi * MMGR_SWAR_BYTES;
+        const mmgr_word w0 = MMGR_CALL(word.load, ScrutWordCfg, .at = hay + at);
+        const mmgr_word end = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w0);
+        mmgr_word m = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w0 ^ b0);
+
+        if (nlen == 2u)
+        {
+            // Where the hardware loads a word from any address in one instruction, that is cheaper
+            // than deriving it; where it does not, the load is a dozen instructions and deriving it
+            // from the word already in hand costs three.
+#if MMGR_HW_FAST_UNALIGNED
+            const mmgr_word w1 = MMGR_CALL(word.load, ScrutWordCfg, .at = hay + at + 1u);
+#else
+            // Explicit cast reads the byte past this word as unsigned, matching the lane it fills
+            const mmgr_word w1 = cellul_word_next(w0, (uint8_t)hay[at + MMGR_SWAR_BYTES]);
+#endif
+            m &= MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w1 ^ b1);
+        }
+        if (end != 0u)
+        {
+            m &= MMGR_CALL(mask.before, ScrutMaskCfg, .mask = end);
+        }
+        if (m != 0u)
+        {
+            return hay + at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);
+        }
+        if (end != 0u)
+        {
+            return NULL;
+        }
+    }
+
+    for (size_t k = nw * MMGR_SWAR_BYTES; k < starts; ++k)
+    {
+        // Explicit casts read both bytes as unsigned, so neither test depends on char's signedness
+        const uint8_t h = (uint8_t)hay[k];
+
+        if (h == 0u)
+        {
+            return NULL;
+        }
+        if ((h == (uint8_t)needle[0]) && ((nlen == 1u) || ((uint8_t)hay[k + 1u] == (uint8_t)needle[1])))
+        {
+            return hay + k;
+        }
+    }
+    return NULL;
+}
+
+/**
  * @brief Finds the first occurrence of the needle inside the haystack.
  *
  * @param[in] c  Haystack src with cap, and needle other with other_cap [BORROWS].
@@ -599,6 +705,16 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *c, mmgr_bool ci)
 
     const size_t take = (nlen > MMGR_SWAR_BYTES) ? MMGR_SWAR_BYTES : nlen;
     const size_t starts = read_cap - nlen + 1u;
+
+    // A needle this short is settled by a mask chain, with no anchor to choose and nothing to verify.
+    // The sieve below earns its prologue by finding a rare byte in a long needle and proving the rest
+    // once; over one or two bytes there is no rare byte to find and no rest to prove, and the
+    // prologue is most of the call.
+    if ((nlen <= 2u) && !ci && (read_cap <= MMGR_FIND_CHAIN_MAX))
+    {
+        return cellul_find_short(hay, needle, nlen, read_cap, starts);
+    }
+
     const size_t tail =
         (nlen > take) ? (MMGR_CALL(word.count, ScrutWordCfg, .bytes = nlen - take) * MMGR_SWAR_BYTES) : 0u;
     const size_t verify_reach = (MMGR_SWAR_BYTES - 1u) + take + tail;

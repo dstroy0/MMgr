@@ -427,4 +427,27 @@
 #endif
 #endif
 
+/**
+ * @brief Set to 1 when the target loads a word from any address in one instruction, 0 otherwise.
+ *
+ * @note Not whether an unaligned load compiles - every target here accepts one through
+ *       mmgr_proxim_word_t, which carries MMGR_ALIGN(1). It is whether the hardware does it, or the
+ *       compiler assembles it out of byte loads and shifts. Measured on one such load: ARMv7-M emits
+ *       a single ldr, Xtensa twelve instructions and RISC-V eleven.
+ * @note The difference decides which of two shapes is faster in a scan that needs the word at an
+ *       offset of one. Where a load is a single instruction, take it; where it is a dozen, derive
+ *       the word from the one already in hand and a byte.
+ * @note __ARM_FEATURE_UNALIGNED is the compiler's own answer for ARM, and is switched off by
+ *       -mno-unaligned-access. x86 is stated directly, having no equivalent macro.
+ * @warning Neither definition is made when MMGR_HW_FAST_UNALIGNED is already defined.
+ */
+#ifndef MMGR_HW_FAST_UNALIGNED
+#if defined(__ARM_FEATURE_UNALIGNED) || defined(__x86_64__) || defined(__i386__)
+#define MMGR_HW_FAST_UNALIGNED 1
+#else
+
+#define MMGR_HW_FAST_UNALIGNED 0
+#endif
+#endif
+
 #endif

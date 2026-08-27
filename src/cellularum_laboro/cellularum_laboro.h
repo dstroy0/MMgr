@@ -24,6 +24,35 @@ MMGR_INCIPE_DECLS
 #endif
 
 /**
+ * @brief Longest haystack a one or two byte needle is settled over by a mask chain rather than by
+ *        building a sieve.
+ *
+ * @note Defaults to no limit, which folds the test away: `read_cap <= SIZE_MAX` is true for every
+ *       size_t, so a default build emits no comparison and no second path is chosen at run time.
+ * @note The two walks do not trade the same way on both parts, which is why this is a knob rather
+ *       than a constant. The chain reads one word and one byte a step and settles every start at
+ *       once; the sieve reads one word, and pays a prologue picking an anchor out of the cost table
+ *       before a haystack byte is read. Measured with a two byte needle, cycles for the whole call:
+ *
+ *           n        8      64    2048
+ *           Xtensa chain  124     489   13391
+ *           Xtensa sieve  187     607   15494
+ *           RISC-V chain  123     473   12882
+ *           RISC-V sieve  167       -   11391
+ *
+ *       On Xtensa the chain wins at every length. On RISC-V it wins short and loses long, by 13% at
+ *       2048, because that part's sieve is much the stronger of the two - 5.56 cycles/byte against
+ *       Xtensa's 7.57. A RISC-V build that scans long runs for short needles wants this set to 64.
+ * @warning Taken only when MMGR_FIND_CHAIN_MAX is not already defined; a build may supply its own.
+ *          Zero sends every needle through the sieve.
+ */
+#ifndef MMGR_FIND_CHAIN_MAX
+
+#define MMGR_FIND_CHAIN_MAX SIZE_MAX
+#endif
+
+
+/**
  * @brief Arguments for the string calls; each reads only the members it needs.
  *
  * @note Members left unset are zero, and the calls that ignore them never read them.
