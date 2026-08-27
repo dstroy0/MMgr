@@ -6,14 +6,19 @@ measurement, so a module that names its own level has a reason on record rather 
 Reproduce it with:
 
 ```
-python tools/dev_env/sizes.py -O0 -O1 -Os -O2 -O3
+python tools/dev_env/target_sizes.py
 ```
 
-The tool reads its compiler options out of `build/compile_commands.json` rather than keeping a copy,
-so it cannot drift from `CMakeLists.txt`. It takes out the level, because that is what varies, and
-link time optimization, because an LTO object holds intermediate form rather than instructions and
-its size says nothing about what would reach a target. Sections are read rather than file lengths -
-an object also carries relocations, symbol tables and debug records that never get flashed.
+That compiles each unit with the toolchains the library ships to - 32-bit Xtensa, RISC-V and ARM - at
+each level, on its own, no LTO and no link. Sections are read rather than file lengths, because an
+object also carries relocations, symbol tables and debug records that never get flashed.
+
+@warning `tools/dev_env/sizes.py` measures the same thing on the host. It reads its options out of
+`build/compile_commands.json`, so its figures are x86-64 code size, and this page used to be written
+from them. They do not merely differ from the target by a constant: on the host `-O1` comes in under
+`-O2`, and on **all three** targets it comes in over. A level picked off the host table is picked off
+the wrong machine. Keep sizes.py for what it is good for - checking a change did not blow a unit up
+while you are working on the desktop - and decide with the table below.
 
 ## Size
 
@@ -21,51 +26,72 @@ an object also carries relocations, symbol tables and debug records that never g
 is that unit alone:
 
 ```
-gcc -std=c11 -I src -O<level> -c <unit>.c -o <unit>.o && size <unit>.o
+<target>-gcc -std=c11 -I src -O<level> -c <unit>.c -o <unit>.o && <target>-size <unit>.o
 ```
 
-| translation unit                 |    -O0 |   -O1 |       -Os |   -O2 |   -O3 |
-| -------------------------------- | -----: | ----: | --------: | ----: | ----: |
-| `verba_scribo`                   |  42464 | 10080 |  **7104** |  9920 | 12192 |
-| `cellularum_laboro`              |  21328 | 12576 | **10560** | 13168 | 13360 |
-| `transformo`                     |   8736 |  2800 |  **2240** |  2576 |  3872 |
-| `confinium_exclusivum_infinitas` |   7280 |  2128 |  **1952** |  2256 |  2720 |
-| `carceribus`                     |   6160 |  1232 |  **1056** |  1456 |  1568 |
-| `verbum_scrutor`                 |   5216 |  1424 |  **1392** |  1632 |  1632 |
-| `memoria_operor`                 |   3328 |  2272 |  **2080** |  2464 |  2720 |
-| `octetus_introitus_exitus`       |   3296 |  1312 |  **1184** |  1456 |  1488 |
-| `numeros_scribo`                 |   3200 |  1424 |  **1152** |  1536 |  1536 |
-| `spatium`                        |   2224 |   432 |   **384** |   496 |   496 |
-| `endian`                         |   1648 |   880 |   **576** |   704 |   704 |
-| `proximus_operor`                |   1120 |   256 |   **240** |   352 |  1040 |
-| `bitorum_introitus_exitus`       |    944 |   352 |   **320** |   400 |   416 |
-| `clz`                            |    704 |   288 |       288 |   288 |   288 |
-| `fractio`                        |    464 |    96 |        96 |   144 |   144 |
-| `ascii_persona_bitorum`          |    160 |    64 |        64 |    64 |    64 |
-| `impensa_ancorae_acus_*`         |     64 |    16 |        16 |    16 |    16 |
-| **total**                        | 108592 | 37696 | **30768** | 38992 | 44320 |
+ARM is measured `-mcpu=cortex-m4 -mthumb`, because `arm-none-eabi-gcc` otherwise defaults to a core
+nothing in the target list is, and the wide ARM encoding reports a code size no target flashes.
 
-The five `impensa_ancorae_acus_*` units are one row because they are alternatives, not additions — a
-build links exactly one cost table and they all define the same symbol. The total counts one.
+Xtensa (esp32s3, gcc 14.2):
 
-**-Os is the smallest and -O2 is not the middle.** -O1 comes in under -O2 by 1296 bytes, so a build
-that wants small and does not want to think about it should ask for -Os and stop there. -O3 costs
-5328 bytes over -O2 across the library, and @ref ref_performance is where to look before paying it.
+| translation unit                 |    -O0 |   -O1 |      -Os |   -O2 |   -O3 |
+| -------------------------------- | -----: | ----: | -------: | ----: | ----: |
+| `verba_scribo`                   |  35026 | 10438 | **6359** |  9078 | 12966 |
+| `cellularum_laboro`              |  15998 |  7805 | **5960** |  6742 |  6974 |
+| `transformo`                     |  17473 |  3594 | **2898** |  3794 |  5936 |
+| `confinium_exclusivum_infinitas` |  10404 |  3411 | **3279** |  3391 |  3439 |
+| `memoria_operor`                 |   2591 |  1318 | **1142** |  1246 |  1286 |
+| `verbum_scrutor`                 |   3856 |  1144 | **1144** |  1152 |  1152 |
+| `numeros_scribo`                 |   2265 |  1000 |  **892** |   935 |   935 |
+| `octetus_introitus_exitus`       |   3102 |   851 |  **749** |   854 |   858 |
+| `carceribus`                     |   3703 |   870 |  **778** |   834 |   878 |
+| `endian`                         |   2341 |   729 |  **413** |   657 |   657 |
+| `clz`                            |   1740 |   502 |  **244** |   502 |   502 |
+| `proximus_operor`                |   1332 |   492 |  **475** |   492 |   614 |
+| `bitorum_introitus_exitus`       |    798 |   344 |  **268** |   344 |   340 |
+| `spatium`                        |   1611 |   298 |      306 |   302 |   302 |
+| `impensa_ancorae_acus_*`         |    302 |   276 |      276 |   276 |   276 |
+| `ascii_persona_bitorum`          |    276 |   212 |      212 |   212 |   212 |
+| `fractio`                        |    522 |   101 |      101 |   101 |   101 |
+| **total**                        | 103340 | 33385 |**25496** | 30912 | 37428 |
 
-Two units carry most of it. `verba_scribo` and `cellularum_laboro` are three fifths of the total at
-every level, which is what a decimal engine and a string module cost. `verba_scribo` is also the one
-unit where the size is buying correctness rather than speed: both of its render entries were wrong
-before it inlined that engine — `verba.fixed` by 15.87% below about 1e-41, and `verba.g` failing to
-name its own value back 87.07% of the time. Both are 0.0000% now. See @ref qa_numeric.
+The other two, totals only - the shape is the same on all three:
 
-`proximus_operor` more than quadruples from -Os to -O3, 240 to 1040, which is the widest spread in
-the table. It is small enough that this does not matter to the total, but it is the unit to look at
-first if a target is tight and -O3 is on.
+| target                       |    -O0 |   -O1 |       -Os |   -O2 |   -O3 |
+| ---------------------------- | -----: | ----: | --------: | ----: | ----: |
+| Xtensa (esp32s3)             | 103340 | 33385 | **25496** | 30912 | 37428 |
+| RISC-V (esp32c6)             | 112812 | 36330 | **28902** | 33992 | 40332 |
+| ARM (cortex-m4, thumb)       |  96718 | 28378 | **24252** | 26638 | 32642 |
+| _host (x86-64), for contrast_| 108592 | 37696 |     30768 | 38992 | 44320 |
 
-`cellularum_laboro` and `memoria_operor` are the two units the on-device work changed, and both grew
-at -O2: the walks stopped rebuilding an extent mask and a lane index on every word, and the region
-moves were unrolled to four words. That is size spent to hold libc's rate on the parts the library
-actually ships to, and @ref ref_performance carries what it bought.
+`confinium_externum` and `memoriam_praetereo` compile to nothing and are left out. The five
+`impensa_ancorae_acus_*` units are one row because they are alternatives, not additions — a build
+links exactly one cost table and they all define the same symbol. The total counts one.
+
+**-Os is the smallest, and -O1 is not second.** On all three targets -O1 lands *above* -O2 — by 2473
+bytes on Xtensa, 2338 on RISC-V and 1740 on ARM — so the order is -Os, -O2, -O1, -O3. A build that
+wants small and does not want to think about it should ask for -Os and stop there; there is no reason
+to reach for -O1. -O3 costs 6516 bytes over -O2 on Xtensa, and @ref ref_performance is where to look
+before paying it.
+
+@note That ordering is the reason this page is measured on the targets. The host row is in the table
+only to show the disagreement: it puts -O1 under -O2, which reads as a sensible ladder and is not the
+one any shipping target walks. Three instruction sets agree with each other and none of them agrees
+with the desktop.
+
+Two units carry most of it. `verba_scribo` and `cellularum_laboro` are half the total at every level,
+which is what a decimal engine and a string module cost. `verba_scribo` is also the one unit where
+the size is buying correctness rather than speed: both of its render entries were wrong before it
+inlined that engine — `verba.fixed` by 15.87% below about 1e-41, and `verba.g` failing to name its
+own value back 87.07% of the time. Both are 0.0000% now. See @ref qa_numeric.
+
+`transformo` has the widest spread that matters, 2898 at -Os against 5936 at -O3 on Xtensa. It is the
+unit to look at first if a target is tight and -O3 is on.
+
+`cellularum_laboro` and `memoria_operor` are the two units the on-device work changed. Both are
+*smaller* at -O2 than the host table suggested and carry the reworked walks: the scans stopped
+rebuilding an extent mask and a lane index on every word, and the region moves were unrolled to four
+words. @ref ref_performance carries what that bought, measured on the same parts.
 
 @note These are a fresh measurement of the tree as it stands. The per-module deltas that used to be
 here compared against a table taken before the module split, and its build settings are not recorded
@@ -74,59 +100,41 @@ be reproduced.
 
 ## Speed
 
-Cycles. `find`, `len` and `copy` are per byte; `parse` and `render` are per call. The measuring
-harness is always built at -O2 so only the library moves between rows.
+There is no speed table on this page any more, and that is deliberate.
 
-@warning This table is a host measurement, on x86-64, and it answers one question only: which
-optimization level to hand a module. It is not a figure for how fast the library is. A desktop libc
-answers the same calls with SSE or AVX, reading 16 to 48 bytes per instruction, and no target in the
-list has anything of the kind - a comparison drawn here measures the vector unit. @ref ref_performance
-carries the on-device counts, taken on the parts the library ships to, and those are the ones that
-decide anything.
+The one that used to be here was a host measurement, taken on x86-64, and it is what sent an entire
+round of optimization work down the wrong road: it made the scans look within a few percent of libc,
+so nobody looked, while on the parts this library ships to they were three to sixteen times off. A
+desktop libc answers `strlen`, `memcmp` and `memchr` with SSE or AVX, reading 16 to 48 bytes per
+instruction. No target in the list has anything of the kind. A comparison drawn on the host measures
+the vector unit and reports it as a fact about this library.
 
-@warning The `find`, `len` and `memor.cpy` rows predate the walk rework and understate all three.
-Those walks stopped rebuilding an extent mask and a lane index on every word, and the region moves
-were unrolled, after this table was taken. They are left as they stand rather than guessed at: the
-sweep across five levels was an ad-hoc run with no tool behind it, so there is nothing to reproduce
-it with, and a number typed in by hand here would be worth less than a stale one that says where it
-came from.
+Speed lives in @ref ref_performance, measured on silicon against the target's own libc, and nowhere
+else. If a number here would have changed a decision, it belongs there instead.
 
-| level |    `find` |     `len` | `to_double` | `verba.g` | `memor.cpy` |
-| ----- | --------: | --------: | ----------: | --------: | ----------: |
-| -O0   |     7.457 |     3.179 |       251.7 |    1051.2 |       3.410 |
-| -O1   |     1.128 |     0.559 |        70.9 |     704.1 |       0.703 |
-| -Os   |     1.136 | **0.405** |        71.1 |    1073.7 |       0.699 |
-| -O2   |     0.985 |     0.559 |        62.8 |     453.1 |   **0.258** |
-| -O3   | **0.974** |     0.555 |    **53.9** | **441.3** |   **0.258** |
-
-## What the numbers say
-
-**-O1 to -O2 is where the speed is.** `memor.cpy` goes 0.703 to 0.258, a 2.7 times step, for 2,432
-bytes across the library. That is the one jump that clearly pays.
-
-**-O2 to -O3 buys about 2% on the scans for 8,256 bytes.** `find` moves 0.985 to 0.974. `len` and
-`copy` do not move at all. The scanning entries are already the shape they want to be: there is no
-loop left for -O3 to unroll into something better, so it inlines and unrolls anyway and the code
-gets bigger for nothing.
-
-The exception is `to_double` at -14%, which is real - it has an actual loop over the table.
-
-**-Os is not uniformly slow.** It is the smallest by a distance, 31% under -O2, and `len` is the
-fastest of any level there while `copy` is within 1% of -O2. What falls off a cliff is `verba.g`,
-at 1073 against 453 - worse than -O1.
+Size is still measured here because size is a property of the emitted code and can be read straight
+off an object file for each target - which is what the table above does.
 
 ## Where a module names its own level
 
 `mmgr_add_module` takes `OPTIMIZE`, which appends after the build's own flags. The last `-O` on the
 command line is the one that counts, so nothing has to be removed for it to take effect.
 
-| module            | level | why                                                                                                                                                      |
-| ----------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `verba_scribo`    | -O2   | -O3 costs 4432 bytes, 57% more than the whole module at -O2, for 1.5% on a render. The digit loops are short and already shaped.                        |
-| `proximus_operor` | -O2   | -O3 more than doubles it, 336 bytes to 816, and moves nothing measurable. The entries are single loads and stores that are already one instruction each. |
+Costs below are Xtensa, with ARM in parentheses where the two disagree enough to matter.
 
-`cellularum_laboro` is left at the build's level: -O3 costs it 2,736 bytes and returns 14% on
-`to_double`, which is a real workload rather than a microbenchmark artefact.
+| module            | level | why                                                                                                                                                        |
+| ----------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verba_scribo`    | -O2   | -O3 costs 3888 bytes, 43% more than the whole module at -O2, and 5700 on ARM, which is 75%. The digit loops are short and already shaped.                  |
+| `transformo`      | -O2   | -O3 costs 2142 bytes, 56% more than the module. On ARM it costs nothing at all, which is the clearest case on this page for deciding per target.           |
+| `proximus_operor` | -O2   | -O3 adds 122 bytes to 492 for entries that are single loads and stores, already one instruction each. Proportionally worse on ARM, 188 to 308.             |
+
+`cellularum_laboro` is left at the build's level: -O3 costs it 232 bytes on Xtensa and 104 on ARM,
+which is small enough not to argue about either way.
+
+@note These are size arguments, and only size arguments. The speed half of each of these rows used to
+cite the host bench, and one of them credited `cellularum_laboro` with 14% on `to_double`, which is
+not even its entry. Whether a level is worth it for speed is a question for @ref ref_performance, on
+the part in question - there is no per-level sweep on silicon yet, so no such claim is made here.
 
 ## Against the libc it would replace
 
@@ -139,14 +147,22 @@ entry in it is called.
 
 cortex-m4, -Os, newlib from armv7e-m:
 
-| family                     | MMgr |    newlib |       |
-| -------------------------- | ---: | --------: | ----: |
-| moving and comparing bytes |  736 |       924 | 1.26x |
-| searching and parsing text | 5084 |     15816 | 3.11x |
-| rendering numbers and text | 7256 |     21364 | 2.94x |
-| **total**                  | **13076** | **38104** | **2.91x** |
+| family                     |      MMgr |    newlib |           |
+| -------------------------- | --------: | --------: | --------: |
+| moving and comparing bytes |      1314 |       924 | **0.70x** |
+| searching and parsing text |      6506 |     15816 |     2.43x |
+| rendering numbers and text |      7326 |     21364 |     2.92x |
+| **total**                  | **15146** | **38104** | **2.52x** |
 
-**25,028 bytes of flash**, for the same set of jobs.
+**22,958 bytes of flash**, for the same set of jobs.
+
+@warning Moving and comparing bytes is now *larger* than newlib's, 1314 against 924, where it used
+to be 736 and smaller. That is the on-device work, and it was a deliberate trade rather than a
+regression: `memor.cpy` and `memor.set` moved one word an iteration and lost to ROM `memcpy` by half
+again, so both were unrolled to four words and now hold its rate exactly. The scans in the same
+family were reworked at the same time and beat ROM `memcmp` and `memchr`. @ref ref_performance has
+the counts. Whether 390 bytes is the right price for that is a judgement about the target, not a
+fact, and it is the one number on this page most worth arguing with.
 
 Every entry on both sides is bounded, which is why the libc column names `strnlen` and `strncmp`
 rather than their unbounded twins, and `snprintf` and `vsnprintf` rather than `printf`. A bounded
@@ -161,7 +177,7 @@ and counting them twice would flatter this library by six kilobytes.
 
 Where the gap comes from is worth being precise about.
 
-Parsing is 3.11x because newlib spends 10,272 bytes on `strtod` + `dtoa` + `mprec`, and `mprec` is
+Parsing is 2.43x because newlib spends 10,272 bytes on `strtod` + `dtoa` + `mprec`, and `mprec` is
 an arbitrary-precision bignum. It is exact for every input by carrying however many limbs the input
 needs. This library is exact for every input by carrying 128 bits and never growing, because 128
 bits is enough to decide a rounding and the rest of the expansion is never looked at. That is a
@@ -185,7 +201,7 @@ one it is not a trade at all — the entry does not link. So the table is not a 
 what libc does. It is the only way available to a library that must not allocate, and it happens to
 also be smaller. See @ref qa_numeric.
 
-Rendering is 2.94x and the `FILE` members are counted, which needs saying plainly: newlib's
+Rendering is 2.92x and the `FILE` members are counted, which needs saying plainly: newlib's
 `snprintf` is built on its `FILE` machinery. It constructs a fake stream over the caller's buffer
 and goes through `vfprintf`, so linking `snprintf` links `fvwrite`, `findfp`, `fflush`, `makebuf`
 and `wsetup` whether or not a stream is ever opened. That is what a caller pays for the entry they
