@@ -34,6 +34,11 @@ static volatile uint64_t g_bits = 0x0000123456789000ull;
 static volatile mmgr_word g_mask = (mmgr_word)0x8080008000800080ull;
 static volatile mmgr_word g_word = (mmgr_word)0x6162630061626300ull;
 
+/**
+ * @brief Which lane or mask entry the span below is timing, hidden so the switch is not folded away.
+ */
+static volatile unsigned g_scrut_pick = 0u;
+
 #define CAP 4096u
 
 /**
@@ -905,6 +910,71 @@ static mmgr_bool arm_slow_out(const char *a, const char *b, size_t cap)
 }
 
 /**
+ * @brief The lane and mask entries, each run over the whole word range once.
+ *
+ * @param[in] pick Which entry to time, 0 through 12.
+ * @return         What the entry answered, so the run is not discarded.
+ * @note These have no counterpart to be measured against - there is no libc call that reports which
+ *       lanes of a word hold a digit. What a row can say is what each costs against the operations
+ *       it performs, and which of them cost more than their arithmetic accounts for. Every string
+ *       walk in the library is built out of these, so one that is out of line is out of line
+ *       everywhere at once, which is what clz turned out to be.
+ */
+static mmgr_word scrut_span(unsigned pick)
+{
+    mmgr_word seen = 0u;
+
+    for (unsigned step = 0; step < 64u; step++)
+    {
+        const mmgr_word w = g_word ^ (mmgr_word)step;
+
+        switch (pick)
+        {
+            case 0u:
+                seen ^= MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w);
+                break;
+            case 1u:
+                seen ^= MMGR_CALL(lane.eq, ScrutLaneCfg, .word = w, .byte = (uint8_t)'a');
+                break;
+            case 2u:
+                seen ^= MMGR_CALL(lane.ge, ScrutLaneCfg, .word = w, .byte = (uint8_t)'a');
+                break;
+            case 3u:
+                seen ^= MMGR_CALL(lane.le, ScrutLaneCfg, .word = w, .byte = (uint8_t)'z');
+                break;
+            case 4u:
+                seen ^= MMGR_CALL(lane.alpha, ScrutLaneCfg, .word = w);
+                break;
+            case 5u:
+                seen ^= MMGR_CALL(lane.any_digit, ScrutLaneCfg, .word = w);
+                break;
+            case 6u:
+                seen ^= MMGR_CALL(lane.any_upper, ScrutLaneCfg, .word = w);
+                break;
+            case 7u:
+                seen ^= (mmgr_word)MMGR_CALL(lane.count, ScrutLaneCfg, .mask = w & g_mask);
+                break;
+            case 8u:
+                seen ^= (mmgr_word)MMGR_CALL(lane.first, ScrutLaneCfg, .mask = w & g_mask);
+                break;
+            case 9u:
+                seen ^= (mmgr_word)MMGR_CALL(lane.last, ScrutLaneCfg, .mask = w & g_mask);
+                break;
+            case 10u:
+                seen ^= MMGR_CALL(mask.spread, ScrutMaskCfg, .mask = w & g_mask);
+                break;
+            case 11u:
+                seen ^= MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = (size_t)(step & 7u));
+                break;
+            default:
+                seen ^= MMGR_CALL(word.fold_lower, ScrutWordCfg, .word = w);
+                break;
+        }
+    }
+    return seen;
+}
+
+/**
  * @brief The word type the single pass copy stores through, aligned and allowed to alias bytes.
  */
 typedef mmgr_word bench_word_t MMGR_ALIAS;
@@ -1462,6 +1532,21 @@ void dbench_run(void)
         // instruction, since neither carries a count leading zeros or a population count.
         {
             const uint32_t iters = 20000u;
+
+            // The lane and mask entries, sixty four words each, as absolute cost. Nothing to compare
+            // them against, so the reading is which of them costs more than its arithmetic accounts
+            // for - every string walk here is built out of these.
+            {
+                static const char *const named[] = {"has_zero", "eq",    "ge",     "le",   "alpha",
+                                                    "digit",    "upper", "count",  "first", "last",
+                                                    "spread",   "below", "fold"};
+
+                for (unsigned pick = 0; pick < 13u; pick++)
+                {
+                    g_scrut_pick = pick;
+                    DBENCH_OP(named[pick], 2000u, DBENCH_KEEP(scrut_span(g_scrut_pick)));
+                }
+            }
 
             DBENCH_AB("clz_lead", iters, 8u,
                       DBENCH_KEEP(MMGR_CALL(clz.lead, ClzCfg, .val = (mmgr_u64)g_bits)),
