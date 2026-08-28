@@ -1164,6 +1164,270 @@ static size_t zeros_hybrid(char *out, size_t cap, size_t at, size_t n)
 }
 
 /**
+ * @brief The room tested once, a short run laid down straight, a long one left to the fill.
+ *
+ * @param[out] out Destination [BORROWS].
+ * @param[in]  cap Bytes available.
+ * @param[in]  at  Offset to write at.
+ * @param[in]  n   Zeros to write.
+ * @return         The offset past them, or cap when the run does not fit.
+ * @note The candidate, written the way the library would carry it. A run of eight or fewer is a
+ *       dispatch into straight line stores, which gives the compiler nothing to turn into a memset;
+ *       the earlier arms had to store through a volatile to keep it from doing so, and that is not
+ *       something the library would carry. Anything longer goes to memor.set, whose call is worth
+ *       paying once the bytes outnumber it.
+ * @warning The switch falls through on purpose, each case laying one byte and dropping to the next.
+ */
+static size_t zeros_built(char *out, size_t cap, size_t at, size_t n)
+{
+    if ((at >= cap) || (n > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+
+    char *const to = out + at;
+
+    switch (n)
+    {
+        default:
+            MMGR_CALL(memor.set, MemoriaCfg, .dst = to, .bytes = n, .val = (uint8_t)'0');
+            break;
+        case 8u:
+            to[7] = '0';
+            // fall through
+        case 7u:
+            to[6] = '0';
+            // fall through
+        case 6u:
+            to[5] = '0';
+            // fall through
+        case 5u:
+            to[4] = '0';
+            // fall through
+        case 4u:
+            to[3] = '0';
+            // fall through
+        case 3u:
+            to[2] = '0';
+            // fall through
+        case 2u:
+            to[1] = '0';
+            // fall through
+        case 1u:
+            to[0] = '0';
+            // fall through
+        case 0u:
+            break;
+    }
+    return at + n;
+}
+
+/**
+ * @brief The candidate with the long run written a word at a time through proxim.
+ *
+ * @param[out] out Destination [BORROWS].
+ * @param[in]  cap Bytes available.
+ * @param[in]  at  Offset to write at.
+ * @param[in]  n   Zeros to write.
+ * @return         The offset past them, or cap when the run does not fit.
+ * @note The version before this reached for memor.set, which verba_scribo does not depend on and
+ *       would have had to be given a dependency for. proximus_operor is already one of its
+ *       dependencies and already carries a store: proxim.put writes a word at any address, so a run
+ *       needs no head walk to reach a boundary and no module has to be added to write one.
+ * @warning The switch falls through on purpose, each case laying one byte and dropping to the next.
+ */
+static size_t zeros_proxim(char *out, size_t cap, size_t at, size_t n)
+{
+    if ((at >= cap) || (n > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+
+    char *const to = out + at;
+
+    switch (n)
+    {
+        default:
+        {
+            // Every lane of a word holding the digit, so the run below is one store a word
+            const uint64_t lanes = ((~(uint64_t)0) / 0xFFu) * (uint64_t)'0';
+            size_t k = 0u;
+
+            while ((n - k) >= MMGR_RAW_WORD)
+            {
+                MMGR_CALL(proxim.put, ProximusCfg, .dst = (uint8_t *)to + k, .val = lanes);
+                k += MMGR_RAW_WORD;
+            }
+            while (k != n)
+            {
+                to[k] = '0';
+                k += 1u;
+            }
+            break;
+        }
+        case 8u:
+            to[7] = '0';
+            // fall through
+        case 7u:
+            to[6] = '0';
+            // fall through
+        case 6u:
+            to[5] = '0';
+            // fall through
+        case 5u:
+            to[4] = '0';
+            // fall through
+        case 4u:
+            to[3] = '0';
+            // fall through
+        case 3u:
+            to[2] = '0';
+            // fall through
+        case 2u:
+            to[1] = '0';
+            // fall through
+        case 1u:
+            to[0] = '0';
+            // fall through
+        case 0u:
+            break;
+    }
+    return at + n;
+}
+
+/**
+ * @brief The same shape with the long run written the way a fill is actually written.
+ *
+ * @param[out] out Destination [BORROWS].
+ * @param[in]  cap Bytes available.
+ * @param[in]  at  Offset to write at.
+ * @param[in]  n   Zeros to write.
+ * @return         The offset past them, or cap when the run does not fit.
+ * @note The arm before this stored every word through proxim.put, which takes any address and so
+ *       compiles to a byte sequence on a part with no unaligned store - which is why it came out
+ *       level with the byte loop it was meant to replace. A fill walks the bytes up to a boundary
+ *       first and then stores whole words through the aligned put, which is one instruction. Same
+ *       three stages memor_set has, written here out of the store verba_scribo already depends on.
+ * @warning The switch falls through on purpose, each case laying one byte and dropping to the next.
+ */
+static size_t zeros_aligned_fill(char *out, size_t cap, size_t at, size_t n)
+{
+    if ((at >= cap) || (n > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+
+    char *const to = out + at;
+
+    switch (n)
+    {
+        default:
+        {
+            // Every lane of a word holding the digit
+            const uint64_t lanes = ((~(uint64_t)0) / 0xFFu) * (uint64_t)'0';
+            // Explicit casts hold the negation and the mask at uintptr_t, then bring the count back
+            const size_t skew = (size_t)((0u - (uintptr_t)to) & (uintptr_t)(MMGR_RAW_WORD - 1u));
+            const size_t head = (skew < n) ? skew : n;
+            uint8_t *put = (uint8_t *)to;
+            size_t left = n;
+
+            // The head memor_set does not have: it stores through the aligned put with no walk to a
+            // boundary first, so it needs a destination that already sits on one. This one writes
+            // wherever the digits ended
+            for (size_t k = 0; k < head; k++)
+            {
+                *put++ = (uint8_t)'0';
+            }
+            left -= head;
+
+            size_t words = left - (left & (MMGR_RAW_WORD - 1u));
+
+            // Four words an iteration, advancing the pointer rather than indexing off a base: at one
+            // word a pass the bump, the counter and the branch cost as much as the store
+            while (words >= (4u * MMGR_RAW_WORD))
+            {
+                MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put, .val = lanes);
+                MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put + MMGR_RAW_WORD, .val = lanes);
+                MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put + (2u * MMGR_RAW_WORD), .val = lanes);
+                MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put + (3u * MMGR_RAW_WORD), .val = lanes);
+                put += 4u * MMGR_RAW_WORD;
+                words -= 4u * MMGR_RAW_WORD;
+                left -= 4u * MMGR_RAW_WORD;
+            }
+            while (words != 0u)
+            {
+                MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put, .val = lanes);
+                put += MMGR_RAW_WORD;
+                words -= MMGR_RAW_WORD;
+                left -= MMGR_RAW_WORD;
+            }
+            while (left != 0u)
+            {
+                *put++ = (uint8_t)'0';
+                left -= 1u;
+            }
+            break;
+        }
+        case 8u:
+            to[7] = '0';
+            // fall through
+        case 7u:
+            to[6] = '0';
+            // fall through
+        case 6u:
+            to[5] = '0';
+            // fall through
+        case 5u:
+            to[4] = '0';
+            // fall through
+        case 4u:
+            to[3] = '0';
+            // fall through
+        case 3u:
+            to[2] = '0';
+            // fall through
+        case 2u:
+            to[1] = '0';
+            // fall through
+        case 1u:
+            to[0] = '0';
+            // fall through
+        case 0u:
+            break;
+    }
+    return at + n;
+}
+
+/**
+ * @brief One room test, then the zeros stored where the pattern pass cannot reach them.
+ *
+ * @param[out] out Destination [BORROWS].
+ * @param[in]  cap Bytes available.
+ * @param[in]  at  Offset to write at.
+ * @param[in]  n   Zeros to write.
+ * @return         The offset past them, or cap when the run does not fit.
+ * @note No switch and no fill: at every length verba_g asks for, storing the bytes beats both. A
+ *       memset costs about sixty cycles before it writes anything, and the runs here are three at
+ *       the leading end and about seventeen at the trailing one, so none of them reach the length
+ *       that would pay for the call.
+ * @note The pass that would replace this loop with that call is -ftree-loop-distribute-patterns,
+ *       which is on at -O2. This function is compiled with it off, so the loop stays a loop and the
+ *       stores need no volatile to survive.
+ */
+static size_t zeros_plain(char *out, size_t cap, size_t at, size_t n)
+{
+    if ((at >= cap) || (n > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+    for (size_t k = 0; k < n; k++)
+    {
+        out[at + k] = '0';
+    }
+    return at + n;
+}
+
+/**
  * @brief The biased exponent field, reached the way libc offers it.
  *
  * @param[in] value Value to take apart.
@@ -1520,6 +1784,30 @@ void dbench_run(void)
                 DBENCH_AB("s:z_hybrid", iters, (unsigned)runs[which],
                           DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
                           DBENCH_KEEP(zeros_hybrid(g_wide, sizeof g_wide, 0u, g_zero_n)));
+
+                // The candidate as the library would carry it: no volatile, a dispatch into
+                // straight line stores under the crossover and memor.set over it.
+                DBENCH_AB("s:z_built", iters, (unsigned)runs[which],
+                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_KEEP(zeros_built(g_wide, sizeof g_wide, 0u, g_zero_n)));
+
+                // The same shape with the long run written through proxim, which verba_scribo
+                // already depends on, rather than memor.set, which it does not.
+                DBENCH_AB("s:z_proxim", iters, (unsigned)runs[which],
+                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_KEEP(zeros_proxim(g_wide, sizeof g_wide, 0u, g_zero_n)));
+
+                // The long run walked to a boundary and then stored a word at a time through the
+                // aligned put, which is what a fill does and what the row above left out.
+                DBENCH_AB("s:z_align", iters, (unsigned)runs[which],
+                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_KEEP(zeros_aligned_fill(g_wide, sizeof g_wide, 0u, g_zero_n)));
+
+                // One room test and a plain loop, with the pattern pass turned off for this file so
+                // the loop is not replaced by a call that costs sixty cycles before it writes.
+                DBENCH_AB("s:z_plain", iters, (unsigned)runs[which],
+                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_KEEP(zeros_plain(g_wide, sizeof g_wide, 0u, g_zero_n)));
             }
 
             DBENCH_AB("s:sign", iters, 8u,
