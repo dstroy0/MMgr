@@ -619,18 +619,31 @@ MMGR_INLINE size_t verba_json(const VerbaCtx *args)
 MMGR_INLINE size_t verba_digits(const VerbaCtx *args)
 {
     char scratch[MMGR_VERBA_POW10_MAX + 1u];
-    size_t at = args->at;
+
+    // A point is written only at a non-zero index inside the run, so whether there is one and how
+    // wide the whole thing is are both settled before a byte moves, and one test covers all of it
+    const size_t width =
+        (size_t)args->digits + (((args->point_after != 0u) && (args->point_after < args->digits)) ? 1u : 0u);
+
+    if (!verba_room(args, width))
+    {
+        return args->cap;
+    }
 
     verba_emit20(scratch, args->mant, args->digits);
+
+    size_t at = args->at;
 
     for (uint8_t index = 0; index < args->digits; index++)
     {
         if ((index == args->point_after) && (index != 0))
         {
-            at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '.');
+            args->out[at] = '.';
+            at += 1u;
         }
 
-        at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = scratch[index]);
+        args->out[at] = scratch[index];
+        at += 1u;
     }
     return at;
 }
