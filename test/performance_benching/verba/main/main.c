@@ -81,9 +81,9 @@ static unsigned dc_scan(uint32_t v)
  *
  * @param[in] v Value to measure.
  * @return      How many decimal digits it needs.
- * @note clz.lead counts a 64-bit value whatever the machine word is - ClzCtx::val is mmgr_u64 - so
- *       the bit index comes off 64, not off MMGR_WORD_BITS. Taking it off the word gives 32 - 61 on
- *       a 32-bit target, which underflows and indexes POW10 outside mapped flash.
+ * @note The width is a fixed 64 rather than MMGR_WORD_BITS because clz.lead counts an mmgr_u64
+ *       whatever the machine word is. Taking it off a 32-bit word underflows, and the estimate then
+ *       indexes POW10 outside mapped flash, which faults on the part and cannot fault on a host.
  * @note log10 is approximated from log2 by multiplying by 1233 and shifting by twelve, which is
  *       1233/4096 against log10(2) = 0.30103; the estimate is exact or one low, and the single
  *       table compare corrects it. Branchless apart from that compare, and no loop.
@@ -95,7 +95,7 @@ static unsigned dc_clz(uint32_t v)
 {
     // Explicit cast narrows the iword the clz entry returns to the unsigned the shift wants; v is
     // forced non-zero so the count is defined for every input
-    const unsigned lead = (unsigned)MMGR_CALL(clz.lead, ClzCfg, .val = (mmgr_word)(v | 1u));
+    const unsigned lead = (unsigned)MMGR_CALL(clz.lead, ClzCfg, .val = (mmgr_u64)(v | 1u));
     const unsigned bits = 64u - lead;
     const unsigned est = ((bits * 1233u) >> 12u);
 
@@ -303,7 +303,92 @@ static size_t was(char *out, uint32_t v)
  */
 MMGR_FLATTEN static size_t verba_uint_flat(char *out, uint32_t v)
 {
-    return MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = out, .cap = 16u, .at = 0u, .val = v, .base = 10u, .min = 1u);
+    return MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = out, .cap = 16u, .at = 0u, .val = v,
+                     .base = 10u, .min = 1u);
+}
+
+/**
+ * @brief Powers of ten the mantissa is measured and cut against, as verba_scribo holds them.
+ *
+ * @note Stands in for mmgr_verba_pow10, which is static to verba_scribo.c and so out of reach here.
+ */
+static const uint64_t POW10_64[20] = {
+    1ull,                 10ull,                 100ull,                 1000ull,
+    10000ull,             100000ull,             1000000ull,             10000000ull,
+    100000000ull,         1000000000ull,         10000000000ull,         100000000000ull,
+    1000000000000ull,     10000000000000ull,     100000000000000ull,     1000000000000000ull,
+    10000000000000000ull, 100000000000000000ull, 1000000000000000000ull, 10000000000000000000ull};
+
+/**
+ * @brief Index into POW10_64 of the power of ten the mantissa is cut at.
+ *
+ * @note Eight, so each piece is at most nine digits, which is the widest that fits a uint32_t.
+ */
+#define CUT 8u
+
+/**
+ * @brief What verba_digits does today: a descending divisor, most significant digit first.
+ *
+ * @param[out] out    Where the digits go [BORROWS].
+ * @param[in]  mant   The digits, as one integer.
+ * @param[in]  digits How many of them to write.
+ * @note Two 64-bit divisions per digit - the quotient and the divisor step - and neither part has a
+ *       64-bit divider, so both are libgcc calls.
+ */
+static void digits_descending(char *out, uint64_t mant, unsigned digits)
+{
+    uint64_t left = mant;
+    uint64_t divisor = POW10_64[digits - 1u];
+
+    for (unsigned index = 0; index < digits; index++)
+    {
+        const uint64_t digit = left / divisor;
+
+        out[index] = (char)('0' + (uint32_t)digit);
+        left -= digit * divisor;
+        divisor /= 10u;
+    }
+}
+
+/**
+ * @brief The same digits, cut into 32-bit pieces and emitted with the pair walk already in verba.
+ *
+ * @param[out] out    Where the digits go [BORROWS].
+ * @param[in]  mant   The digits, as one integer.
+ * @param[in]  digits How many of them to write, one through twenty.
+ * @note Nothing here is new machinery: the cut is one division against a power of ten verba already
+ *       holds, and each piece goes through emit_recip, which is verba_emit10 under another name.
+ * @note Nine digits or fewer take no 64-bit division at all, ten through eighteen take one, and only
+ *       nineteen and twenty take two. verba_g caps at MMGR_G_MAX_SIG, which is eighteen, so the
+ *       second cut is reachable from verba_fixed alone.
+ */
+static void digits_split(char *out, uint64_t mant, unsigned digits)
+{
+    if (digits <= 9u)
+    {
+        emit_recip(out, (uint32_t)mant, digits);
+        return;
+    }
+
+    const uint64_t rest = mant / POW10_64[CUT];
+    // The remainder is taken off the quotient rather than asked for separately, so the compiler has
+    // one division to answer here rather than a division and a modulo
+    const uint32_t low = (uint32_t)(mant - (rest * POW10_64[CUT]));
+
+    if (digits <= 17u)
+    {
+        emit_recip(out, (uint32_t)rest, digits - CUT);
+    }
+    else
+    {
+        // Past seventeen digits the piece above the cut no longer fits a uint32_t, so it is cut again
+        const uint64_t top = rest / POW10_64[CUT];
+        const uint32_t mid = (uint32_t)(rest - (top * POW10_64[CUT]));
+
+        emit_recip(out, (uint32_t)top, digits - (2u * CUT));
+        emit_recip(out + (digits - (2u * CUT)), mid, CUT);
+    }
+    emit_recip(out + (digits - CUT), low, CUT);
 }
 
 /**
@@ -354,6 +439,21 @@ void dbench_run(void)
         }
 
         // What the harness costs with no work in it. Every row above carries this.
+
+        // The float path's digit writer, which is where the 64-bit software division lives.
+        {
+            static const uint64_t mantissas[] = {123456ull, 1234567890ull, 12345678901234567ull,
+                                                 123456789012345678ull};
+            static const unsigned widths[] = {6u, 10u, 17u, 18u};
+
+            for (unsigned which = 0; which < 4u; which++)
+            {
+                DBENCH_AB("digits", 20000u, widths[which],
+                          (digits_descending(g_out, mantissas[which], widths[which]), DBENCH_KEEP(g_out)),
+                          (digits_split(g_out, mantissas[which], widths[which]), DBENCH_KEEP(g_out)));
+            }
+        }
+
         DBENCH_OP("floor_loop", 20000u, DBENCH_KEEP(g_out));
 
         DBENCH_DONE();
