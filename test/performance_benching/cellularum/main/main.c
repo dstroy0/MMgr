@@ -17,6 +17,7 @@
  * The needle length is passed rather than measured, so find is timed doing the work it was asked
  * for instead of re-deriving what the caller already knew.
  */
+#include <stdlib.h>
 #include <string.h>
 
 #include "device_bench.h"
@@ -45,6 +46,19 @@ static const char *const g_needle = "qx";
  */
 static const char *const g_hot = "ao";
 #define NLEN 2u
+
+/**
+ * @brief Text for the four converters, reached through a volatile so neither arm is folded away.
+ *
+ * @note Handed a literal, GCC evaluates strtol and strtod at compile time and the libc arm measures
+ *       an empty loop. Read through these, both sides do the conversion they were asked for.
+ * @note One value per shape the converters are asked for: a plain integer, one that fills the width,
+ *       a decimal fraction, and one carrying an exponent, which is the path that reaches transformo.
+ */
+static const char *volatile g_int = "1234567";
+static const char *volatile g_int_wide = "9223372036854775807";
+static const char *volatile g_real = "3.14159265358979";
+static const char *volatile g_real_exp = "1.7976931348623157e+308";
 
 /**
  * @brief Fills both buffers with n bytes that contain neither the needle nor the sought byte.
@@ -124,6 +138,35 @@ void dbench_run(void)
                       DBENCH_KEEP(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u,
                                             .other = g_hot, .other_cap = NLEN + 1u, .other_len = NLEN)),
                       DBENCH_KEEP(strstr(g_a, g_hot)));
+        }
+
+        // The four converters, which had no row at all. These are the read side of what verba does
+        // on the write side, and the libc they are against is not the ROM's assembly but newlib's
+        // own strtol and strtod - and strtod carries a soft float multiply chain on both parts.
+        // Length is not swept here: a converter's work is set by the digits in the text it is given,
+        // so each row names its own input rather than taking one off the haystack.
+        {
+            const uint32_t iters = 5000u;
+
+            DBENCH_AB("to_long", iters, 7u,
+                      DBENCH_KEEP(MMGR_CALL(cellul.to_long, TransfiguroCfg, .src = g_int)),
+                      DBENCH_KEEP(strtol(g_int, NULL, 10)));
+
+            DBENCH_AB("to_ulong", iters, 19u,
+                      DBENCH_KEEP(MMGR_CALL(cellul.to_ulong, TransfiguroCfg, .src = g_int_wide)),
+                      DBENCH_KEEP(strtoul(g_int_wide, NULL, 10)));
+
+            DBENCH_AB("to_double", iters, 16u,
+                      DBENCH_KEEP(MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = g_real)),
+                      DBENCH_KEEP(strtod(g_real, NULL)));
+
+            DBENCH_AB("to_double_exp", iters, 23u,
+                      DBENCH_KEEP(MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = g_real_exp)),
+                      DBENCH_KEEP(strtod(g_real_exp, NULL)));
+
+            DBENCH_AB("to_float", iters, 16u,
+                      DBENCH_KEEP(MMGR_CALL(cellul.to_float, TransfiguroCfg, .src = g_real)),
+                      DBENCH_KEEP(strtof(g_real, NULL)));
         }
 
         // What the harness costs with no work in it: the loop, the counter and the volatile store,
