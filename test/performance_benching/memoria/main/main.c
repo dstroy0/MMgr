@@ -13,12 +13,33 @@
  * cmp and chr are the two that walk; cpy and set are moves, and are here because the same libc
  * routines are what a caller would otherwise reach for.
  */
+#include <stdlib.h>
 #include <string.h>
 
 #include "device_bench.h"
 
+#include "carceribus/carceribus.h"
 #include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
+
+/**
+ * @brief Bytes the pool the allocator rows take from holds.
+ */
+#define ARENA_BYTES 4096u
+
+/**
+ * @brief A region with one unwatched pool, which is what the allocator rows take from.
+ *
+ * @note Declared, not initialised at run time: the storage, its alignment and the pool's state are
+ *       all emitted as data, so nothing here runs before main and the first byte is an address the
+ *       linker resolved. That is the half malloc cannot answer for at any speed.
+ */
+Carceribus(ram, MMGR_SOLUTA(pool, ARENA_BYTES));
+
+/**
+ * @brief The take size, hidden so neither allocator sees a constant.
+ */
+static volatile size_t g_take = 64u;
 
 /**
  * @brief Values and a scratch word for the byte order rows, hidden from the compiler.
@@ -40,6 +61,75 @@ static volatile unsigned g_swap_off = 0u;
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_a[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_b[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_d[CAP];
+
+/**
+ * @brief One tenancy taken from the persist end and given straight back.
+ *
+ * @return The address it was handed, so the take is not discarded.
+ */
+static uintptr_t pool_take_give(void)
+{
+    void *const held = ram.pool.persist_capio(g_take);
+
+    ram.pool.persist_reddo(held);
+    return (uintptr_t)held;
+}
+
+/**
+ * @brief One allocation taken from the heap and given straight back.
+ *
+ * @return The address it was handed, so the take is not discarded.
+ */
+static uintptr_t heap_take_give(void)
+{
+    void *const held = malloc(g_take);
+
+    free(held);
+    return (uintptr_t)held;
+}
+
+/**
+ * @brief Takes eight tenancies from the interim end and gives them all back with one mark.
+ *
+ * @return A value the harness keeps, so the run is not discarded.
+ * @note What a mark is for: the top is noted once, eight takes move it up, and restoring the mark
+ *       releases all eight in a single store.
+ */
+static uintptr_t pool_run_mark(void)
+{
+    const size_t mark = ram.pool.interim_mark();
+    uintptr_t seen = 0u;
+
+    for (unsigned index = 0; index < 8u; index++)
+    {
+        seen |= (uintptr_t)ram.pool.interim_capio(g_take);
+    }
+    ram.pool.interim_reddo(mark);
+    return seen;
+}
+
+/**
+ * @brief The same eight tenancies from the heap, which has to be told about each one twice.
+ *
+ * @return A value the harness keeps, so the run is not discarded.
+ * @note A heap has no mark, so the eight frees are the only way to give the run back.
+ */
+static uintptr_t heap_run_free(void)
+{
+    void *held[8];
+    uintptr_t seen = 0u;
+
+    for (unsigned index = 0; index < 8u; index++)
+    {
+        held[index] = malloc(g_take);
+        seen |= (uintptr_t)held[index];
+    }
+    for (unsigned index = 0; index < 8u; index++)
+    {
+        free(held[index]);
+    }
+    return seen;
+}
 
 /**
  * @brief Fills the two read buffers with n identical bytes, none of them the byte chr seeks.
@@ -141,6 +231,18 @@ void dbench_run(void)
                       DBENCH_KEEP(MMGR_CALL(magna_extremitas.rd, EndianCfg, .src = g_d + g_swap_off,
                                             .width = MMGR_ENDIAN_32)),
                       DBENCH_KEEP(__builtin_bswap32(*(const uint32_t *)(g_d + g_swap_off))));
+        }
+
+        // The pool against the heap, which had no row against libc anywhere - the bench that exists
+        // compares carceribus with ProtoCore, not with malloc. One take and one give back at each
+        // end, and then a run of eight taken and released in one move, which is what a mark is for
+        // and what a heap has no equivalent of: the eight frees are the only way to answer it.
+        {
+            const uint32_t iters = 5000u;
+
+            DBENCH_AB("pool_persist", iters, 64u, DBENCH_KEEP(pool_take_give()), DBENCH_KEEP(heap_take_give()));
+
+            DBENCH_AB("pool_interim", iters, 64u, DBENCH_KEEP(pool_run_mark()), DBENCH_KEEP(heap_run_free()));
         }
 
         DBENCH_DONE();
