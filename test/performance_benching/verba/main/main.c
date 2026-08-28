@@ -548,6 +548,11 @@ static size_t uint_test_outside(char *out, uint64_t val)
 typedef mmgr_migro_word bench_aequus_word_t MMGR_ALIAS;
 
 /**
+ * @brief The unaligned word type, for a source that did not come to rest on a boundary.
+ */
+typedef mmgr_migro_word bench_proxim_word_t MMGR_RAW;
+
+/**
  * @brief What proxim_read carries between its three stages.
  */
 typedef struct
@@ -647,6 +652,95 @@ static void copy_words_two(BenchCopyCtx *args)
         *(bench_aequus_word_t *)args->dst = *(const bench_aequus_word_t *)args->src;
         args->dst += MMGR_RAW_WORD;
         args->src += MMGR_RAW_WORD;
+    }
+}
+
+/**
+ * @brief The same run written as a counted loop over a word index.
+ *
+ * @param[in,out] args Destination, source and the count still to copy [BORROWS].
+ * @note The trip count is worked out before the loop starts and the body indexes off it, which is
+ *       the shape a compiler can turn into a hardware loop. The pointer walking do-while it is
+ *       measured against carries a decrement and a branch per word that it cannot: the count comes
+ *       down inside the body, so the loop is not countable at entry and no zero overhead loop is
+ *       available to it.
+ */
+static void copy_words_counted(BenchCopyCtx *args)
+{
+    const size_t words = args->bytes / MMGR_RAW_WORD;
+
+    if (words == 0u)
+    {
+        return;
+    }
+    args->bytes -= words * MMGR_RAW_WORD;
+
+    bench_aequus_word_t *const to = (bench_aequus_word_t *)args->dst;
+    const bench_aequus_word_t *const from = (const bench_aequus_word_t *)args->src;
+
+    for (size_t index = 0; index < words; index++)
+    {
+        to[index] = from[index];
+    }
+
+    args->dst += words * MMGR_RAW_WORD;
+    args->src += words * MMGR_RAW_WORD;
+}
+
+/**
+ * @brief The whole copy in one function, with the three counts worked out before anything moves.
+ *
+ * @param[out] dst   Destination [BORROWS].
+ * @param[in]  src   Source [BORROWS].
+ * @param[in]  bytes Bytes to copy.
+ * @note proxim_read runs three stages, each taking the context by pointer and each drawing its share
+ *       off args->bytes as it goes. The word run on its own already matches memcpy; the distance is
+ *       the bookkeeping carried between the stages. This settles the head, word and tail counts once
+ *       and walks each of them in a counted loop over locals.
+ * @warning Copies forward, so a dst above src within one region would read bytes it has written.
+ */
+static void copy_read_flat(uint8_t *dst, const uint8_t *src, size_t bytes)
+{
+    // Explicit casts hold the negation and the mask at uintptr_t, then bring the count back to size_t
+    const size_t skew = (size_t)((0u - (uintptr_t)dst) & (uintptr_t)(MMGR_RAW_WORD - 1u));
+    const size_t head = (skew < bytes) ? skew : bytes;
+    const size_t left = bytes - head;
+    const size_t words = left / MMGR_RAW_WORD;
+    const size_t tail = left - (words * MMGR_RAW_WORD);
+
+    for (size_t index = 0; index < head; index++)
+    {
+        dst[index] = src[index];
+    }
+    dst += head;
+    src += head;
+
+    if ((((uintptr_t)src) & (uintptr_t)(MMGR_RAW_WORD - 1u)) == 0u)
+    {
+        bench_aequus_word_t *const to = (bench_aequus_word_t *)dst;
+        const bench_aequus_word_t *const from = (const bench_aequus_word_t *)src;
+
+        for (size_t index = 0; index < words; index++)
+        {
+            to[index] = from[index];
+        }
+    }
+    else
+    {
+        bench_aequus_word_t *const to = (bench_aequus_word_t *)dst;
+        const bench_proxim_word_t *const from = (const bench_proxim_word_t *)src;
+
+        for (size_t index = 0; index < words; index++)
+        {
+            to[index] = from[index];
+        }
+    }
+    dst += words * MMGR_RAW_WORD;
+    src += words * MMGR_RAW_WORD;
+
+    for (size_t index = 0; index < tail; index++)
+    {
+        dst[index] = src[index];
     }
 }
 
@@ -843,6 +937,14 @@ void dbench_run(void)
                           (two.dst = (uint8_t *)g_wide, two.src = (const uint8_t *)text, two.bytes = g_len,
                            copy_words_locals(&two), DBENCH_KEEP(g_wide)));
 
+                // The pointer walking loop against the counted one. A countable loop is what lets the
+                // compiler reach for a hardware loop and drop the per word branch.
+                DBENCH_AB("s:counted", iters, sizeof text - 1u,
+                          (one.dst = (uint8_t *)g_wide, one.src = (const uint8_t *)text, one.bytes = g_len,
+                           copy_words_args(&one), DBENCH_KEEP(g_wide)),
+                          (two.dst = (uint8_t *)g_wide, two.src = (const uint8_t *)text, two.bytes = g_len,
+                           copy_words_counted(&two), DBENCH_KEEP(g_wide)));
+
                 // One word an iteration against two. The loop's own arithmetic is the whole gap to a
                 // hand written memcpy: it moves a word in about three cycles and this moves one in
                 // about seven, and the difference is the decrement and the branch, not the move.
@@ -852,6 +954,13 @@ void dbench_run(void)
                           (two.dst = (uint8_t *)g_wide, two.src = (const uint8_t *)text, two.bytes = g_len,
                            copy_words_two(&two), DBENCH_KEEP(g_wide)));
             }
+
+            // The library's three stage copy against the same work in one function, both against
+            // memcpy. The word run alone already matches memcpy, so what this asks is whether the
+            // distance is the bookkeeping the three stages carry between them.
+            DBENCH_AB("s:flat", iters, sizeof text - 1u,
+                      (copy_read_flat((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_KEEP(g_wide)),
+                      (memcpy(g_wide, text, g_len), DBENCH_KEEP(g_wide)));
 
             // The same copy at a length that divides into whole words. Against the thirty byte row,
             // the difference is proxim_tail walking two bytes one at a time.
