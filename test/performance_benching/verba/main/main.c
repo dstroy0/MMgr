@@ -37,6 +37,7 @@
 #include "memoria_operor/memoria_operor.h"
 #include "numeros_scribo/numeros_scribo.h"
 #include "proximus_operor/proximus_operor.h"
+#include "transformo/transformo.h"
 #include "verba_scribo/verba_scribo.h"
 
 /**
@@ -99,6 +100,28 @@ static volatile uint64_t g_rec_bits = 0xC004000000000000ull;
  * @brief The zero count, hidden so neither arm is unrolled against it.
  */
 static volatile size_t g_zero_n = 6u;
+
+/**
+ * @brief The value the float profile rows place, and the two halves it resolves to.
+ *
+ * @note Hidden from the compiler for the reason every other value here is: handed the literal, GCC
+ *       takes the double apart at build time and the front half of the entry disappears, which is
+ *       precisely the part these rows exist to price.
+ * @note 3.14159265358979 at six decimals is an integer part of 3 and a fraction of 141593. The two
+ *       digit rows are given those directly, so they write the same digits the entry writes.
+ */
+static volatile double g_rec_real2 = 3.14159265358979;
+static volatile uint64_t g_fix_ip = 3u;
+static volatile uint64_t g_fix_frac = 141593u;
+
+/**
+ * @brief The fraction bits verba_fixed hands the scaling pass for that value.
+ *
+ * @note Not volatile, because the entry takes its address and reads through the pointer: the
+ *       compiler cannot see the value at build time either way, and a volatile here would price a
+ *       reload the entry does not perform.
+ */
+static uint64_t g_fix_rem = 0x121FB54442D18ull;
 
 /**
  * @brief Powers of ten the scan counter compares against, as verba_scribo carries them.
@@ -467,6 +490,22 @@ MMGR_FLATTEN static size_t verba_put_n_flat(char *out, const char *text, size_t 
 {
     return MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = out, .cap = 64u, .at = 0u, .text = text,
                      .text_len = len);
+}
+
+/**
+ * @brief The copy entry pulled into the caller, so the entry boundary can be priced on its own.
+ *
+ * @param[out] dst   Destination [BORROWS].
+ * @param[in]  src   Source [BORROWS].
+ * @param[in]  bytes Bytes to copy.
+ * @note At a length that divides into whole words the copy has no head and no tail, and it is still
+ *       twenty cycles behind memcpy. That distance was asserted to be the argument pack and the
+ *       three stages reading their context, on no row at all. This is the row: the same entry, the
+ *       same bytes, called the ordinary way against the same thing inlined into the caller.
+ */
+MMGR_FLATTEN static void proxim_read_flat(uint8_t *dst, const uint8_t *src, size_t bytes)
+{
+    MMGR_CALL(proxim.read, ProximusCfg, .dst = dst, .at = src, .size = bytes);
 }
 
 /**
@@ -955,6 +994,84 @@ static void copy_read_dispatch(uint8_t *dst, const uint8_t *src, size_t bytes)
         dst[at] = src[at];
     }
 }
+
+/**
+ * @brief The 128-bit product of two 64-bit values, as muto_mul leaves it.
+ */
+typedef struct
+{
+    uint64_t hi; /**< Top 64 bits. */
+    uint64_t lo; /**< Bottom 64 bits. */
+} BenchProduct;
+
+/**
+ * @brief The multiply as transformo writes it, with both halves held at 64 bits.
+ *
+ * @param[in]  a   First operand.
+ * @param[in]  b   Second operand.
+ * @param[out] out Where the product goes [BORROWS].
+ * @note The A arm. Each operand is split at 32 bits, but the halves keep the 64-bit type they were
+ *       masked out of, so every one of the four partial products is written as a 64 by 64 multiply.
+ *       Whether that costs anything depends on whether the compiler narrows them itself from the
+ *       mask, which is the question the row asks rather than assumes.
+ */
+static void bench_mul_wide(uint64_t a, uint64_t b, BenchProduct *out)
+{
+    const uint64_t half = (uint64_t)0xFFFFFFFFu;
+    const uint64_t a0 = a & half;
+    const uint64_t a1 = a >> 32;
+    const uint64_t b0 = b & half;
+    const uint64_t b1 = b >> 32;
+
+    const uint64_t p00 = a0 * b0;
+    const uint64_t p01 = a0 * b1;
+    const uint64_t p10 = a1 * b0;
+    const uint64_t p11 = a1 * b1;
+    const uint64_t mid = (p00 >> 32) + (p01 & half) + (p10 & half);
+
+    out->lo = (p00 & half) | (mid << 32);
+    out->hi = p11 + (p01 >> 32) + (p10 >> 32) + (mid >> 32);
+}
+
+/**
+ * @brief The same product with each half narrowed to 32 bits before it is multiplied.
+ *
+ * @param[in]  a   First operand.
+ * @param[in]  b   Second operand.
+ * @param[out] out Where the product goes [BORROWS].
+ * @note The B arm. Identical arithmetic and identical result; the only difference is that each
+ *       partial product is a 32 by 32 multiply widening to 64, which both these parts carry as a
+ *       pair of instructions, rather than a 64 by 64 one.
+ */
+static void bench_mul_narrow(uint64_t a, uint64_t b, BenchProduct *out)
+{
+    // Explicit casts narrow each half to the width it actually holds, so the products below are
+    // 32 by 32 widening multiplies rather than full 64-bit ones
+    const uint32_t a0 = (uint32_t)a;
+    const uint32_t a1 = (uint32_t)(a >> 32);
+    const uint32_t b0 = (uint32_t)b;
+    const uint32_t b1 = (uint32_t)(b >> 32);
+
+    const uint64_t p00 = (uint64_t)a0 * b0;
+    const uint64_t p01 = (uint64_t)a0 * b1;
+    const uint64_t p10 = (uint64_t)a1 * b0;
+    const uint64_t p11 = (uint64_t)a1 * b1;
+    const uint64_t mid = (p00 >> 32) + (uint32_t)p01 + (uint32_t)p10;
+
+    out->lo = ((uint64_t)(uint32_t)p00) | (mid << 32);
+    out->hi = p11 + (p01 >> 32) + (p10 >> 32) + (mid >> 32);
+}
+
+/**
+ * @brief The two operands the multiply rows use, hidden so neither arm folds.
+ */
+static volatile uint64_t g_mul_a = 0x123456789ABCDEFull;
+static volatile uint64_t g_mul_b = 0xFEDCBA987654321ull;
+
+/**
+ * @brief Where the multiply rows leave their products.
+ */
+static BenchProduct g_mul_out;
 
 /**
  * @brief Source and destination for the copy check, with slack for every offset it walks.
@@ -1715,6 +1832,15 @@ void dbench_run(void)
                        DBENCH_KEEP(g_wide)),
                       (memcpy(g_wide, text, g_len_whole), DBENCH_KEEP(g_wide)));
 
+            // The entry boundary on the copy, at the length where the head and the tail both do
+            // nothing. Whatever separates these two arms is what MMGR_CALL and the argument pack
+            // cost; whatever is left between the faster of them and memcpy is the copy itself.
+            DBENCH_AB("s:copy_call", iters, 32u,
+                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len_whole),
+                       DBENCH_KEEP(g_wide)),
+                      (proxim_read_flat((uint8_t *)g_wide, (const uint8_t *)text, g_len_whole),
+                       DBENCH_KEEP(g_wide)));
+
             // The copy on its own, with no room test and no entry above it, so the row above can be
             // read: whatever this one does not account for is what verba_put_n adds on top.
             DBENCH_AB("s:copy", iters, sizeof text - 1u,
@@ -1818,6 +1944,52 @@ void dbench_run(void)
                                             .cap = sizeof g_wide, .at = 0u, .real = 3.14159265358979,
                                             .decimals = 6u)),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%.*f", 6, 3.14159265358979)));
+
+            // Where the float path's cycles actually sit. fixed is the most expensive entry in the
+            // module by an order of magnitude and no row has ever said which part of it costs, so
+            // these price the pieces it is built from against the whole. What the two digit writers
+            // and the character do not account for is the front half: taking the double apart and
+            // the scaling pass that rounds the fraction.
+            //
+            // 3.14159265358979 at six decimals is an integer part of 3 and a fraction of 141593,
+            // which are the values the entry itself reaches with, so the parts below do the same
+            // work on the same numbers rather than standing in for it.
+            DBENCH_OP("f:whole", iters,
+                      DBENCH_KEEP(MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .real = g_rec_real2,
+                                            .decimals = 6u)));
+
+            DBENCH_OP("f:ip", iters,
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .val = g_fix_ip,
+                                            .base = 10u, .min = 1u)));
+
+            DBENCH_OP("f:frac", iters,
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .val = g_fix_frac,
+                                            .base = 10u, .min = 6u)));
+
+            DBENCH_OP("f:point", iters,
+                      DBENCH_KEEP(MMGR_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .ch = '.')));
+
+            // The scaling pass on its own, given exactly what verba_fixed hands it for this value.
+            // 3.14159265358979 has a stored exponent of 1024 and a mantissa of 0x1921FB54442D18
+            // with its implicit bit, so the binary exponent is -51, the integer part shifts out as
+            // 3, and 0x121FB54442D18 is the remainder left for the fraction. Six decimals means
+            // apply_pow10 walks the two set bits of six and runs muto_mul_pow5 twice.
+            DBENCH_OP("f:scale", iters,
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
+                                            .e2 = -51, .ex = 6, .above = 0u)));
+
+            // The multiply that pass is built out of. Two applications of a power of five run it
+            // four times each, so eight of these are what the row above mostly is. The halves are
+            // masked out of a 64-bit value and kept there, so each partial product is written as a
+            // 64 by 64 multiply; this asks whether narrowing them to the 32 bits they actually hold
+            // buys anything, or whether the compiler had already worked that out from the mask.
+            DBENCH_AB("f:mul", iters, 8u,
+                      (bench_mul_wide(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)),
+                      (bench_mul_narrow(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)));
         }
 
         // A whole record against the one snprintf call a caller writes instead. This is where the
