@@ -1894,6 +1894,53 @@ static size_t digits_one_test(char *out, size_t cap, size_t at, const char *src,
 }
 
 /**
+ * @brief The same digits placed as two straight runs with the point between them.
+ *
+ * @param[out] out    Destination [BORROWS].
+ * @param[in]  cap    Bytes available.
+ * @param[in]  at     Offset to write at.
+ * @param[in]  src    The digits, already laid down [BORROWS].
+ * @param[in]  n      How many.
+ * @param[in]  point  Digits before the point; 0 writes no point.
+ * @return            The offset past what was written, or cap when the run does not fit.
+ * @note Where the point falls is settled before anything is written, so asking once per character
+ *       whether this is the character the point precedes is a test repeated n times for an answer
+ *       that changes once. This writes the digits up to it, then the point, then the rest.
+ */
+static size_t digits_two_runs(char *out, size_t cap, size_t at, const char *src, size_t n, size_t point)
+{
+    const mmgr_bool has_point = (mmgr_bool)((point != 0u) && (point < n));
+    const size_t width = n + (has_point ? 1u : 0u);
+
+    if ((at >= cap) || (width > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+
+    const size_t lead = has_point ? point : n;
+    size_t put = at;
+
+    for (size_t index = 0; index < lead; index++)
+    {
+        out[put + index] = src[index];
+    }
+    put += lead;
+
+    if (has_point)
+    {
+        out[put] = '.';
+        put += 1u;
+
+        for (size_t index = lead; index < n; index++)
+        {
+            out[put + (index - lead)] = src[index];
+        }
+        put += n - lead;
+    }
+    return put;
+}
+
+/**
  * @brief The biased exponent field, reached the way libc offers it.
  *
  * @param[in] value Value to take apart.
@@ -2440,6 +2487,16 @@ void dbench_run(void)
                 DBENCH_AB("s:d_plain", iters, 6u,
                           DBENCH_KEEP(digits_per_char(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)),
                           DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)));
+
+                // The shape now in the library against the same run split at the point, so the
+                // question of where the point goes is asked once rather than once a character.
+                DBENCH_AB("s:d_runs", iters, 17u,
+                          DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)),
+                          DBENCH_KEEP(digits_two_runs(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)));
+
+                DBENCH_AB("s:d_runs6", iters, 6u,
+                          DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)),
+                          DBENCH_KEEP(digits_two_runs(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)));
             }
 
             DBENCH_AB("s:sign", iters, 8u,

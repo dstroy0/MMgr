@@ -622,8 +622,8 @@ MMGR_INLINE size_t verba_digits(const VerbaCtx *args)
 
     // A point is written only at a non-zero index inside the run, so whether there is one and how
     // wide the whole thing is are both settled before a byte moves, and one test covers all of it
-    const size_t width =
-        (size_t)args->digits + (((args->point_after != 0u) && (args->point_after < args->digits)) ? 1u : 0u);
+    const mmgr_bool has_point = (mmgr_bool)((args->point_after != 0u) && (args->point_after < args->digits));
+    const size_t width = (size_t)args->digits + (has_point ? 1u : 0u);
 
     if (!verba_room(args, width))
     {
@@ -632,18 +632,27 @@ MMGR_INLINE size_t verba_digits(const VerbaCtx *args)
 
     verba_emit20(scratch, args->mant, args->digits);
 
+    // Where the point falls is settled here as well, so the digits go down as two straight runs
+    // rather than one run asking at every character whether this is the one the point precedes
+    const size_t lead = has_point ? (size_t)args->point_after : (size_t)args->digits;
     size_t at = args->at;
 
-    for (uint8_t index = 0; index < args->digits; index++)
+    for (size_t index = 0; index < lead; index++)
     {
-        if ((index == args->point_after) && (index != 0))
-        {
-            args->out[at] = '.';
-            at += 1u;
-        }
+        args->out[at + index] = scratch[index];
+    }
+    at += lead;
 
-        args->out[at] = scratch[index];
+    if (has_point)
+    {
+        args->out[at] = '.';
         at += 1u;
+
+        for (size_t index = lead; index < args->digits; index++)
+        {
+            args->out[at + (index - lead)] = scratch[index];
+        }
+        at += (size_t)args->digits - lead;
     }
     return at;
 }
