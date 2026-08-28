@@ -910,6 +910,52 @@ static mmgr_bool arm_slow_out(const char *a, const char *b, size_t cap)
 }
 
 /**
+ * @brief The lowest set lane's index, taken from the trailing zero count instead of by counting.
+ *
+ * @param[in] m Lane mask, each set lane flagged in its high bit.
+ * @return      The index, or MMGR_SWAR_BYTES when no lane is set.
+ * @note scrut_lane_lo counts the lanes below the lowest set one, which is that lane's index: a
+ *       below_lo and then the multiply and shift that count is. A lane's flag sits in its high bit,
+ *       so the trailing zero count of the mask is eight times the index plus seven, and the index is
+ *       that shifted down three. clz.trail reaches the builtin now, which it did not this morning.
+ * @note The empty mask has to be answered for either way; ctz leaves it undefined and the contract
+ *       reports MMGR_SWAR_BYTES, so the test stays.
+ */
+static size_t lane_first_trail(mmgr_word m)
+{
+    if (m == 0u)
+    {
+        return MMGR_SWAR_BYTES;
+    }
+    // Explicit cast narrows the iword the clz entry returns before the shift takes it to a lane
+    return (size_t)((mmgr_word)MMGR_CALL(clz.trail, ClzCfg, .val = (mmgr_u64)m) >> 3u);
+}
+
+/**
+ * @brief The same index taken straight off the builtin, with no module to reach for.
+ *
+ * @param[in] m Lane mask, each set lane flagged in its high bit.
+ * @return      The index, or MMGR_SWAR_BYTES when no lane is set.
+ * @note The arm above reaches clz.trail, which verbum_scrutor does not depend on and would have to
+ *       be given a dependency for. clz.trail is itself __builtin_ctzll now, and MMGR_HAS_BUILTIN is
+ *       in the config header every module already carries, so the same answer is available without
+ *       adding anything to the module graph - and without the entry the arm above pays for.
+ */
+static size_t lane_first_builtin(mmgr_word m)
+{
+    if (m == 0u)
+    {
+        return MMGR_SWAR_BYTES;
+    }
+#if MMGR_HAS_BUILTIN(__builtin_ctzll)
+    // Explicit cast narrows the builtin's int before the shift takes a bit index to a lane index
+    return (size_t)((unsigned)__builtin_ctzll((unsigned long long)m) >> 3u);
+#else
+    return MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);
+#endif
+}
+
+/**
  * @brief The lane and mask entries, each run over the whole word range once.
  *
  * @param[in] pick Which entry to time, 0 through 12.
@@ -1584,6 +1630,53 @@ void dbench_run(void)
                     g_scrut_pick = pick;
                     DBENCH_OP(named[pick], 2000u, DBENCH_KEEP(scrut_span(g_scrut_pick)));
                 }
+            }
+
+            // first is the top of that table and it is called on every match a string walk finds.
+            // The entry counts the lanes below the lowest set one; this takes the index off the
+            // trailing zero count instead, which reaches a builtin now.
+            {
+                mmgr_word acc = 0u;
+
+                DBENCH_AB("lane_first2", 2000u, 64u,
+                          ({
+                              acc = 0u;
+                              for (unsigned s = 0; s < 64u; s++)
+                              {
+                                  acc ^= (mmgr_word)MMGR_CALL(lane.first, ScrutLaneCfg,
+                                                              .mask = (g_word ^ (mmgr_word)s) & g_mask);
+                              }
+                              DBENCH_KEEP(acc);
+                          }),
+                          ({
+                              acc = 0u;
+                              for (unsigned s = 0; s < 64u; s++)
+                              {
+                                  acc ^= (mmgr_word)lane_first_trail((g_word ^ (mmgr_word)s) & g_mask);
+                              }
+                              DBENCH_KEEP(acc);
+                          }));
+
+                // The same again with the builtin taken directly, which needs no dependency added
+                // to verbum_scrutor and pays no entry on the way.
+                DBENCH_AB("lane_first3", 2000u, 64u,
+                          ({
+                              acc = 0u;
+                              for (unsigned s = 0; s < 64u; s++)
+                              {
+                                  acc ^= (mmgr_word)MMGR_CALL(lane.first, ScrutLaneCfg,
+                                                              .mask = (g_word ^ (mmgr_word)s) & g_mask);
+                              }
+                              DBENCH_KEEP(acc);
+                          }),
+                          ({
+                              acc = 0u;
+                              for (unsigned s = 0; s < 64u; s++)
+                              {
+                                  acc ^= (mmgr_word)lane_first_builtin((g_word ^ (mmgr_word)s) & g_mask);
+                              }
+                              DBENCH_KEEP(acc);
+                          }));
             }
 
             DBENCH_AB("clz_lead", iters, 8u,
