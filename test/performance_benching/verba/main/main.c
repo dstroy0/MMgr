@@ -1941,6 +1941,97 @@ static size_t digits_two_runs(char *out, size_t cap, size_t at, const char *src,
 }
 
 /**
+ * @brief The whole placement as the library now performs it: emit into scratch, then copy it out.
+ *
+ * @param[out] out    Destination [BORROWS].
+ * @param[in]  cap    Bytes available.
+ * @param[in]  at     Offset to write at.
+ * @param[in]  mant   The digits as one integer.
+ * @param[in]  digits How many.
+ * @param[in]  point  Digits before the point; 0 writes no point.
+ * @return            The offset past what was written, or cap when the run does not fit.
+ * @note The A arm, and unlike the rows above it this one includes the emit, so the two arms differ
+ *       only in where the digits are laid down and what has to move afterwards.
+ */
+static size_t digits_scratch(char *out, size_t cap, size_t at, uint64_t mant, unsigned digits, size_t point)
+{
+    char scratch[24];
+    const mmgr_bool has_point = (mmgr_bool)((point != 0u) && (point < digits));
+    const size_t width = digits + (has_point ? 1u : 0u);
+
+    if ((at >= cap) || (width > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+
+    emit20(scratch, mant, digits);
+
+    const size_t lead = has_point ? point : digits;
+    size_t put = at;
+
+    for (size_t index = 0; index < lead; index++)
+    {
+        out[put + index] = scratch[index];
+    }
+    put += lead;
+
+    if (has_point)
+    {
+        out[put] = '.';
+        put += 1u;
+
+        for (size_t index = lead; index < digits; index++)
+        {
+            out[put + (index - lead)] = scratch[index];
+        }
+        put += digits - lead;
+    }
+    return put;
+}
+
+/**
+ * @brief The same placement with the digits emitted where they are going.
+ *
+ * @param[out] out    Destination [BORROWS].
+ * @param[in]  cap    Bytes available.
+ * @param[in]  at     Offset to write at.
+ * @param[in]  mant   The digits as one integer.
+ * @param[in]  digits How many.
+ * @param[in]  point  Digits before the point; 0 writes no point.
+ * @return            The offset past what was written, or cap when the run does not fit.
+ * @note The B arm. With no point the digits go straight to their place and nothing is copied at all.
+ *       With one, they are emitted a byte along and only the digits ahead of the point slide back,
+ *       which for the exponential form verba_g writes is a single byte rather than the whole run.
+ * @warning The slide runs upward through overlapping bytes on purpose: each byte is read before the
+ *          one below it is written, so the source of every step is still untouched.
+ */
+static size_t digits_inplace(char *out, size_t cap, size_t at, uint64_t mant, unsigned digits, size_t point)
+{
+    const mmgr_bool has_point = (mmgr_bool)((point != 0u) && (point < digits));
+    const size_t width = digits + (has_point ? 1u : 0u);
+
+    if ((at >= cap) || (width > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+
+    if (!has_point)
+    {
+        emit20(out + at, mant, digits);
+        return at + digits;
+    }
+
+    emit20(out + at + 1u, mant, digits);
+
+    for (size_t index = 0; index < point; index++)
+    {
+        out[at + index] = out[at + index + 1u];
+    }
+    out[at + point] = '.';
+    return at + width;
+}
+
+/**
  * @brief The biased exponent field, reached the way libc offers it.
  *
  * @param[in] value Value to take apart.
@@ -2497,6 +2588,21 @@ void dbench_run(void)
                 DBENCH_AB("s:d_runs6", iters, 6u,
                           DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)),
                           DBENCH_KEEP(digits_two_runs(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)));
+
+                // The whole placement including the emit, scratch buffer against writing the digits
+                // where they are going. Three shapes verba_g actually asks for: a point after one
+                // digit, which is the exponential form; a point in the middle; and none at all.
+                DBENCH_AB("s:d_ip_exp", iters, 17u,
+                          DBENCH_KEEP(digits_scratch(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 1u)),
+                          DBENCH_KEEP(digits_inplace(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 1u)));
+
+                DBENCH_AB("s:d_ip_mid", iters, 17u,
+                          DBENCH_KEEP(digits_scratch(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 9u)),
+                          DBENCH_KEEP(digits_inplace(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 9u)));
+
+                DBENCH_AB("s:d_ip_none", iters, 17u,
+                          DBENCH_KEEP(digits_scratch(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 0u)),
+                          DBENCH_KEEP(digits_inplace(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 0u)));
             }
 
             DBENCH_AB("s:sign", iters, 8u,

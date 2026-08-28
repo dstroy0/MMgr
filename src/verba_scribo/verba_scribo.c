@@ -610,16 +610,18 @@ MMGR_INLINE size_t verba_json(const VerbaCtx *args)
  * @brief Writes args->mant as args->digits characters, with a point after args->point_after of them.
  *
  * @param[in] args Buffer, capacity, offset, the digits and where the point goes [BORROWS].
- * @return      The offset past the last digit, or args->cap once one of them did not fit.
- * @note The digits are laid down first by verba_emit20 and then placed one at a time, so the point
- *       goes in at the same index it always did and a destination too small still fills what it can.
+ * @return      The offset past the last digit, or args->cap when the run does not fit.
+ * @note The width is known before anything is written - the digit count is given and the point is
+ *       one more byte at a given index - so the room is tested once for the whole run rather than
+ *       once a character, and a run that does not fit writes nothing at all.
+ * @note verba_emit20 writes into the destination itself rather than into a scratch buffer that is
+ *       then copied out. With no point it writes where the digits belong; with one it writes a byte
+ *       along and only the digits ahead of the point move back over it.
  * @note A args->point_after of 0 writes no point, since the point is only inserted at a non-zero index.
- * @warning args->digits must be 1 through 20, which is what the scratch buffer holds.
+ * @warning args->digits must be 1 through 20.
  */
 MMGR_INLINE size_t verba_digits(const VerbaCtx *args)
 {
-    char scratch[MMGR_VERBA_POW10_MAX + 1u];
-
     // A point is written only at a non-zero index inside the run, so whether there is one and how
     // wide the whole thing is are both settled before a byte moves, and one test covers all of it
     const mmgr_bool has_point = (mmgr_bool)((args->point_after != 0u) && (args->point_after < args->digits));
@@ -630,31 +632,27 @@ MMGR_INLINE size_t verba_digits(const VerbaCtx *args)
         return args->cap;
     }
 
-    verba_emit20(scratch, args->mant, args->digits);
+    if (!has_point)
+    {
+        verba_emit20(args->out + args->at, args->mant, args->digits);
+        return args->at + (size_t)args->digits;
+    }
 
-    // Where the point falls is settled here as well, so the digits go down as two straight runs
-    // rather than one run asking at every character whether this is the one the point precedes
-    const size_t lead = has_point ? (size_t)args->point_after : (size_t)args->digits;
-    size_t at = args->at;
+    // The digits are laid one byte along so the point has somewhere to go, and only those ahead of
+    // it move back over it. For the exponential form that is one byte rather than the whole run.
+    verba_emit20(args->out + args->at + 1u, args->mant, args->digits);
 
+    const size_t lead = (size_t)args->point_after;
+
+    // Ascending on purpose: each byte is read before the one below it is written, so every step
+    // still finds the digit that was emitted there
     for (size_t index = 0; index < lead; index++)
     {
-        args->out[at + index] = scratch[index];
+        args->out[args->at + index] = args->out[args->at + index + 1u];
     }
-    at += lead;
 
-    if (has_point)
-    {
-        args->out[at] = '.';
-        at += 1u;
-
-        for (size_t index = lead; index < args->digits; index++)
-        {
-            args->out[at + (index - lead)] = scratch[index];
-        }
-        at += (size_t)args->digits - lead;
-    }
-    return at;
+    args->out[args->at + lead] = '.';
+    return args->at + width;
 }
 
 /**
