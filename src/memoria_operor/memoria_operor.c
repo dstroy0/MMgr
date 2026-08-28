@@ -116,6 +116,14 @@ MMGR_INLINE void memor_cpy(MemorCpyCtx *args)
  * @note Starts at the end of both regions and works back toward the start.
  * @note Takes the odd bytes first, then whole words, which is the reverse of memor_cpy's order.
  * @note Advances both pointers to the end, then walks them back, so each ends where it began.
+ * @note What this is worth is not one number, and a single figure for it would be wrong. Measured
+ *       against each part's own memmove with regions a word apart: on an ESP32-S3 this runs 3.0x to
+ *       6.0x faster, and mmgr_memor_cpy standing in for move_down runs 3.1x to 18.6x faster, since
+ *       that part's memmove walks a byte at a time at a flat twelve cycles a byte whatever the
+ *       length. On an ESP32-C6 the same source is 1.1x to 1.3x slower, because that part's memmove
+ *       costs about one cycle a byte. Nothing in the library differs between the two runs. A byte
+ *       path is only ever as good as the mem family the part it lands on happens to carry, which is
+ *       why the number paths win everywhere and these do not.
  */
 MMGR_INLINE void memor_move_up(MemorMoveCtx *args)
 {

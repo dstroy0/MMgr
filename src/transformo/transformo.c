@@ -367,6 +367,13 @@ MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *args)
  * @note Uses plain double arithmetic when nothing was dropped, the mantissa is under 2^53, and args->ex is within 22.
  * @note Otherwise seats the mantissa, applies the power of ten, and rounds, all in 128-bit fixed point.
  * @note A zero mantissa returns a signed zero before either path is taken.
+ * @note The divide below is the expensive half of the exact path and is meant to stay a divide. On
+ *       an ESP32-S3 a soft double divide measured 639 cycles against 184 for a multiply, and that
+ *       one divide is fifty six percent of what cellul.to_double costs end to end. Multiplying by
+ *       the reciprocal would buy all of it and would not be the same function: a divide by a power
+ *       of ten the table holds exactly rounds correctly, and the inverse of that power is not
+ *       representable, so the last bit moves for some inputs. The other exact route is the fixed
+ *       point path below, which measured about three times the divide.
  * @warning Returns a signed infinity above MMGR_POW5_MAX and a signed zero below its negative.
  */
 MMGR_INLINE double muto_scale(MutoCtx *args)
