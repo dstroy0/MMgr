@@ -401,6 +401,285 @@ static mmgr_bool agree_filter_zero(const char *a, const char *b, size_t cap)
 }
 
 /**
+ * @brief The walk with nothing in it but the two loads and the step.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        The words read, so the loads are not discarded.
+ * @note The floor for the agree walk: whatever this costs a word, no version of the walk costs less.
+ */
+static mmgr_word part_loads(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    mmgr_word seen = 0u;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        seen |= MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        seen |= MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+        at += MMGR_SWAR_BYTES;
+    }
+    return seen;
+}
+
+/**
+ * @brief The same two loads with the difference test and its branch, and nothing else.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether the two agreed over every whole word.
+ * @note Against part_loads this is what the compare and the branch cost a word.
+ */
+static mmgr_bool part_compare(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+
+        if (wa != wb)
+        {
+            return MMGR_FALSE;
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return MMGR_TRUE;
+}
+
+/**
+ * @brief The compare walk with the terminator test added, which is the whole hot loop.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether both end together with no difference before it.
+ * @note Against part_compare this is what lane.has_zero and its branch cost a word.
+ */
+static mmgr_bool part_zero(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+
+        if (wa != wb)
+        {
+            return MMGR_FALSE;
+        }
+        if (MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) != 0u)
+        {
+            return MMGR_TRUE;
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return MMGR_TRUE;
+}
+
+/**
+ * @brief cellul_diff_lanes, copied from the library rather than restated.
+ *
+ * @param[in] d Exclusive or of the two words.
+ * @return      The lanes that differ, flagged in their high bit.
+ */
+static mmgr_word arm_diff_lanes(mmgr_word d)
+{
+    return MMGR_VERBUM_SCRUTOR_HIGH & ~MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = d);
+}
+
+/**
+ * @brief cellul_agree_at, copied from the library rather than restated.
+ *
+ * @param[in] wa       First word.
+ * @param[in] wb       Second word, which differs from wa.
+ * @param[in] end_wins Whether a terminator in the same lane as the difference counts as a match.
+ * @return             Whether the two agree up to and including where they end.
+ * @note The version this replaced was written from memory and was wrong twice over: it took the
+ *       differing lanes as (wa ^ wb) & high, which misses a difference in any bit but the top one of
+ *       a byte, and then compared the two masks against each other rather than the lane indices
+ *       lane.first reports. It never ran on the fixture, so the answers were right and the row was
+ *       still worthless - a cold block of the wrong size measures the wrong cold block.
+ */
+static mmgr_bool arm_at(mmgr_word wa, mmgr_word wb, mmgr_bool end_wins)
+{
+    const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa);
+    const mmgr_word x = arm_diff_lanes(wa ^ wb);
+    const size_t lz = (z != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = z) : MMGR_SWAR_BYTES;
+    const size_t lx = (x != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = x) : MMGR_SWAR_BYTES;
+
+    // Explicit cast narrows the lane comparison into the mmgr_bool container
+    return (mmgr_bool)(end_wins ? (lz <= lx) : (lz < lx));
+}
+
+/**
+ * @brief The whole agree walk as the library carries it: aligned run, fallback run and tail.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether both end together with no difference before it.
+ * @note The A arm, and the shape cellul_agree_cs has now: the run that executes and two blocks that
+ *       do not, all in one function. The bare walk measured 2.52 cycles a byte and the library 3.56,
+ *       and this is the structural difference between them.
+ */
+static mmgr_bool arm_all_inline(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    const size_t rest = cap - full;
+    size_t at = 0u;
+
+    // Explicit casts read both addresses as integers so one mask answers for both
+    const mmgr_bool level = (mmgr_bool)(((((uintptr_t)a) | ((uintptr_t)b)) &
+                                         (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
+
+    while (level && (at != full))
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+
+        if (wa != wb)
+        {
+            return arm_at(wa, wb, MMGR_FALSE);
+        }
+        if (MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) != 0u)
+        {
+            return MMGR_TRUE;
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load, ScrutWordCfg, .at = b + at);
+        const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa);
+
+        if ((z != 0u) || (wa != wb))
+        {
+            const mmgr_word x = arm_diff_lanes(wa ^ wb);
+            const size_t lz = (z != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = z) : MMGR_SWAR_BYTES;
+            const size_t lx = (x != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = x) : MMGR_SWAR_BYTES;
+            // Explicit cast narrows the lane comparison into the mmgr_bool container
+            return (mmgr_bool)(lz < lx);
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+
+    if (rest != 0u)
+    {
+        const mmgr_word keep = MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest);
+        const mmgr_word wa = MMGR_CALL(word.load, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load, ScrutWordCfg, .at = b + at);
+        const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) & keep;
+        const mmgr_word x = arm_diff_lanes(wa ^ wb) & keep;
+
+        if ((x | z) != 0u)
+        {
+            const size_t lz = (z != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = z) : MMGR_SWAR_BYTES;
+            const size_t lx = (x != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = x) : MMGR_SWAR_BYTES;
+            // Explicit cast narrows the lane comparison into the mmgr_bool container
+            return (mmgr_bool)(lz < lx);
+        }
+    }
+    return MMGR_FALSE;
+}
+
+/**
+ * @brief Everything that is not the aligned run, moved out of the walk's own function.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @param[in] at   Offset the aligned run stopped at.
+ * @param[in] full Offset the whole words end at.
+ * @param[in] rest Bytes after them, fewer than one word.
+ * @return         Whether the two agree.
+ */
+static mmgr_bool arm_slow(const char *a, const char *b, size_t at, size_t full, size_t rest)
+{
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load, ScrutWordCfg, .at = b + at);
+        const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa);
+
+        if ((z != 0u) || (wa != wb))
+        {
+            const mmgr_word x = arm_diff_lanes(wa ^ wb);
+            const size_t lz = (z != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = z) : MMGR_SWAR_BYTES;
+            const size_t lx = (x != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = x) : MMGR_SWAR_BYTES;
+            // Explicit cast narrows the lane comparison into the mmgr_bool container
+            return (mmgr_bool)(lz < lx);
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+
+    if (rest != 0u)
+    {
+        const mmgr_word keep = MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest);
+        const mmgr_word wa = MMGR_CALL(word.load, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load, ScrutWordCfg, .at = b + at);
+        const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) & keep;
+        const mmgr_word x = arm_diff_lanes(wa ^ wb) & keep;
+
+        if ((x | z) != 0u)
+        {
+            const size_t lz = (z != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = z) : MMGR_SWAR_BYTES;
+            const size_t lx = (x != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = x) : MMGR_SWAR_BYTES;
+            // Explicit cast narrows the lane comparison into the mmgr_bool container
+            return (mmgr_bool)(lz < lx);
+        }
+    }
+    return MMGR_FALSE;
+}
+
+/**
+ * @brief The same walk with only the aligned run left in the function.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether both end together with no difference before it.
+ * @note The B arm. Identical work for identical input; the fallback run and the tail are reached
+ *       through a call instead of sitting beside the loop that does run.
+ */
+static mmgr_bool arm_slow_out(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    const size_t rest = cap - full;
+    size_t at = 0u;
+
+    // Explicit casts read both addresses as integers so one mask answers for both
+    const mmgr_bool level = (mmgr_bool)(((((uintptr_t)a) | ((uintptr_t)b)) &
+                                         (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
+
+    while (level && (at != full))
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+
+        if (wa != wb)
+        {
+            return arm_at(wa, wb, MMGR_FALSE);
+        }
+        if (MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) != 0u)
+        {
+            return MMGR_TRUE;
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return arm_slow(a, b, at, full, rest);
+}
+
+/**
  * @brief The word type the single pass copy stores through, aligned and allowed to alias bytes.
  */
 typedef mmgr_word bench_word_t MMGR_ALIAS;
@@ -831,6 +1110,23 @@ void dbench_run(void)
             DBENCH_AB("eq_filter", iters, n,
                       DBENCH_KEEP(agree_reordered(g_cp_src, g_cp_dst, n + 1u)),
                       DBENCH_KEEP(agree_filter_zero(g_cp_src, g_cp_dst, n + 1u)));
+
+            // The whole walk as the library carries it against the same walk with the fallback run
+            // and the tail moved out of its function. Neither block executes on this input; the
+            // question is what they cost by being there. Both arms take their regions through
+            // pointers the compiler cannot trace back to an object.
+            DBENCH_AB("eq_cold", iters, n,
+                      DBENCH_KEEP(arm_all_inline(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_KEEP(arm_slow_out(g_cp_src, g_cp_dst, n + 1u)));
+
+            // The walk built up a piece at a time, so the deltas say which piece owns the cycles
+            // rather than another guess at the shape. Loads alone, then the compare and its branch,
+            // then the terminator test and its branch, which together are the whole hot loop.
+            DBENCH_AB("part_cmp", iters, n, DBENCH_KEEP(part_loads(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_KEEP(part_compare(g_cp_src, g_cp_dst, n + 1u)));
+
+            DBENCH_AB("part_zero", iters, n, DBENCH_KEEP(part_compare(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)));
 
             // The entry against the same loop written out here. Both walk two words a step with the
             // same test, so a difference that grows with the length is not the call overhead and
