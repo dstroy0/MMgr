@@ -25,6 +25,14 @@
 
 #include "ascii_persona_bitorum/ascii_persona_bitorum.h"
 #include "cellularum_laboro/cellularum_laboro.h"
+#include "clz/clz.h"
+
+/**
+ * @brief Inputs for the bit and lane rows, hidden so neither arm folds.
+ */
+static volatile uint64_t g_bits = 0x0000123456789000ull;
+static volatile mmgr_word g_mask = (mmgr_word)0x8080008000800080ull;
+static volatile mmgr_word g_word = (mmgr_word)0x6162630061626300ull;
 
 #define CAP 4096u
 
@@ -679,6 +687,41 @@ void dbench_run(void)
             g_class = (int)MMGR_ASCII_PRINT;
             DBENCH_AB("ascii_print", iters, 256u, DBENCH_KEEP(ascii_span_mmgr((MmgrAsciiClass)g_class)),
                       DBENCH_KEEP(ascii_span_libc_print()));
+        }
+
+        // The primitives every string row above is built out of, against the compiler builtin that
+        // answers the same question. These are not library calls in libc; they are what GCC emits
+        // for __builtin_clzll and its family, which on these parts is a sequence rather than an
+        // instruction, since neither carries a count leading zeros or a population count.
+        {
+            const uint32_t iters = 20000u;
+
+            DBENCH_AB("clz_lead", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(clz.lead, ClzCfg, .val = (mmgr_u64)g_bits)),
+                      DBENCH_KEEP(__builtin_clzll(g_bits)));
+
+            DBENCH_AB("clz_trail", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(clz.trail, ClzCfg, .val = (mmgr_u64)g_bits)),
+                      DBENCH_KEEP(__builtin_ctzll(g_bits)));
+
+            DBENCH_AB("lane_count", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(lane.count, ScrutLaneCfg, .mask = g_mask)),
+                      DBENCH_KEEP(__builtin_popcountll((unsigned long long)g_mask)));
+
+            DBENCH_AB("lane_first", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(lane.first, ScrutLaneCfg, .mask = g_mask)),
+                      DBENCH_KEEP(__builtin_ctzll((unsigned long long)g_mask) / 8u));
+
+            // The two loads, which is the question that decided proxim_words and was worth nothing
+            // in cellul_agree_cs. Here it is priced on its own rather than inside a walk.
+            DBENCH_AB("word_load", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(word.load, ScrutWordCfg, .at = g_a + 1)),
+                      DBENCH_KEEP(MMGR_CALL(word.load_al, ScrutWordCfg, .at = g_a)));
+
+            DBENCH_AB("lane_zero", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = g_word)),
+                      DBENCH_KEEP((g_word - (mmgr_word)0x0101010101010101ull) & ~g_word &
+                                  (mmgr_word)0x8080808080808080ull));
         }
 
         // Where to_double's time goes. to_ulong puts digit accumulation at about thirteen cycles a

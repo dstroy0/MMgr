@@ -26,6 +26,13 @@ typedef struct
  */
 MMGR_INLINE mmgr_iword clz_lead(const ClzCtx *args)
 {
+#if MMGR_HAS_BUILTIN(__builtin_clzll)
+    // Setting the low bit cannot move the highest set one, and it turns the zero the builtin leaves
+    // undefined into a one, whose count is the 63 the fold below answers with. So this is the same
+    // function for every input, including that one, and it carries no branch to say so.
+    // Explicit cast takes the builtin's int into the mmgr_iword the entry returns
+    return (mmgr_iword)__builtin_clzll((unsigned long long)(args->val | 1u));
+#else
     mmgr_u64 x = args->val;
     mmgr_u64 shift;
     mmgr_iword n = 0;
@@ -50,6 +57,7 @@ MMGR_INLINE mmgr_iword clz_lead(const ClzCtx *args)
     // Explicit cast keeps the last add in mmgr_iword after the comparison promotes to int
     n = (mmgr_iword)(n + ((x >> 63) == 0u));
     return n;
+#endif
 }
 
 /**
