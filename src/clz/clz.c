@@ -73,11 +73,19 @@ MMGR_INLINE mmgr_iword clz_trail(const ClzCtx *args)
 {
     // Explicit cast builds the top bit at mmgr_u64 width, which stands in for an absent lowest bit
     const mmgr_u64 x = args->val | ((mmgr_u64)1 << 63);
+
+#if MMGR_HAS_BUILTIN(__builtin_ctzll)
+    // The top bit set above is what makes this defined for a value of zero, and 63 is the answer the
+    // isolate and count below reaches for that input, so the two agree on every input
+    // Explicit cast takes the builtin's int into the mmgr_iword the entry returns
+    return (mmgr_iword)__builtin_ctzll((unsigned long long)x);
+#else
     // Explicit cast keeps the two's complement negation at mmgr_u64, isolating the lowest set bit
     const mmgr_u64 iso = x & (mmgr_u64)(0u - x);
 
     // Explicit cast keeps the subtraction in mmgr_iword, which is what clz_lead reports in
     return (mmgr_iword)(63 - MMGR_CALL(clz_lead, ClzCtx, .val = iso));
+#endif
 }
 
 /**
