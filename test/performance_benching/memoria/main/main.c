@@ -20,6 +20,7 @@
 #include "device_bench.h"
 
 #include "carceribus/carceribus.h"
+#include "spatium/spatium.h"
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 #include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
@@ -708,6 +709,32 @@ void dbench_run(void)
                             .cap = RING_CAP, .nsegs = RING_SEGS);
             DBENCH_OP("ring_segment", iters, DBENCH_KEEP(ring_segment_cycle()));
             DBENCH_OP("ring_loculus", iters, DBENCH_KEEP(ring_loculus_cycle()));
+        }
+
+        // spatium and the two carceribus entries that report rather than hand out memory. None of
+        // these has a counterpart and none of them loops: a span is four fields and the questions
+        // asked of it are field arithmetic. What a row can say is whether that is what they cost, or
+        // whether one of them is doing something the shape does not suggest.
+        {
+            const uint32_t iters = 20000u;
+
+            DBENCH_OP("span_from", iters,
+                      DBENCH_KEEP(MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = g_take).cap));
+
+            DBENCH_OP("span_after", iters,
+                      DBENCH_KEEP(MMGR_CALL(spat.after, SpatiumCfg,
+                                            .s = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP),
+                                            .n = g_take)
+                                      .cap));
+
+            DBENCH_OP("span_ok", iters,
+                      DBENCH_KEEP(MMGR_CALL(spat.ok, SpatiumCfg,
+                                            .s = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP))));
+
+            DBENCH_OP("pool_owns", iters,
+                      DBENCH_KEEP(ram.pool.owns((const void *)(g_d + g_swap_off))));
+
+            DBENCH_OP("pool_praesto", iters, DBENCH_KEEP(ram.pool.octas_praesto()));
         }
 
         DBENCH_DONE();
