@@ -924,52 +924,90 @@ static mmgr_word scrut_span(unsigned pick)
 {
     mmgr_word seen = 0u;
 
-    for (unsigned step = 0; step < 64u; step++)
+    // The choice is made once and each arm carries its own walk. Written the other way round, with
+    // the switch inside the loop, every word paid a dispatch and the dispatch was most of what the
+    // row measured - the first version of this table read about thirty cycles a word for entries
+    // that are four operations, and the absolutes it produced were worthless.
+    switch (pick)
     {
-        const mmgr_word w = g_word ^ (mmgr_word)step;
-
-        switch (pick)
-        {
-            case 0u:
-                seen ^= MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w);
-                break;
-            case 1u:
-                seen ^= MMGR_CALL(lane.eq, ScrutLaneCfg, .word = w, .byte = (uint8_t)'a');
-                break;
-            case 2u:
-                seen ^= MMGR_CALL(lane.ge, ScrutLaneCfg, .word = w, .byte = (uint8_t)'a');
-                break;
-            case 3u:
-                seen ^= MMGR_CALL(lane.le, ScrutLaneCfg, .word = w, .byte = (uint8_t)'z');
-                break;
-            case 4u:
-                seen ^= MMGR_CALL(lane.alpha, ScrutLaneCfg, .word = w);
-                break;
-            case 5u:
-                seen ^= MMGR_CALL(lane.any_digit, ScrutLaneCfg, .word = w);
-                break;
-            case 6u:
-                seen ^= MMGR_CALL(lane.any_upper, ScrutLaneCfg, .word = w);
-                break;
-            case 7u:
-                seen ^= (mmgr_word)MMGR_CALL(lane.count, ScrutLaneCfg, .mask = w & g_mask);
-                break;
-            case 8u:
-                seen ^= (mmgr_word)MMGR_CALL(lane.first, ScrutLaneCfg, .mask = w & g_mask);
-                break;
-            case 9u:
-                seen ^= (mmgr_word)MMGR_CALL(lane.last, ScrutLaneCfg, .mask = w & g_mask);
-                break;
-            case 10u:
-                seen ^= MMGR_CALL(mask.spread, ScrutMaskCfg, .mask = w & g_mask);
-                break;
-            case 11u:
-                seen ^= MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = (size_t)(step & 7u));
-                break;
-            default:
-                seen ^= MMGR_CALL(word.fold_lower, ScrutWordCfg, .word = w);
-                break;
-        }
+        case 0u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
+            }
+            break;
+        case 1u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= MMGR_CALL(lane.eq, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s, .byte = (uint8_t)'a');
+            }
+            break;
+        case 2u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= MMGR_CALL(lane.ge, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s, .byte = (uint8_t)'a');
+            }
+            break;
+        case 3u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= MMGR_CALL(lane.le, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s, .byte = (uint8_t)'z');
+            }
+            break;
+        case 4u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= MMGR_CALL(lane.alpha, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
+            }
+            break;
+        case 5u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= MMGR_CALL(lane.any_digit, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
+            }
+            break;
+        case 6u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= MMGR_CALL(lane.any_upper, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
+            }
+            break;
+        case 7u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= (mmgr_word)MMGR_CALL(lane.count, ScrutLaneCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
+            }
+            break;
+        case 8u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= (mmgr_word)MMGR_CALL(lane.first, ScrutLaneCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
+            }
+            break;
+        case 9u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= (mmgr_word)MMGR_CALL(lane.last, ScrutLaneCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
+            }
+            break;
+        case 10u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= MMGR_CALL(mask.spread, ScrutMaskCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
+            }
+            break;
+        case 11u:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = (size_t)(s & 7u));
+            }
+            break;
+        default:
+            for (unsigned s = 0; s < 64u; s++)
+            {
+                seen ^= MMGR_CALL(word.fold_lower, ScrutWordCfg, .word = g_word ^ (mmgr_word)s);
+            }
+            break;
     }
     return seen;
 }
