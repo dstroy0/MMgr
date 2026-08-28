@@ -34,6 +34,7 @@
 
 #include "clz/clz.h"
 #include "fractio/fractio.h"
+#include "memoria_operor/memoria_operor.h"
 #include "numeros_scribo/numeros_scribo.h"
 #include "proximus_operor/proximus_operor.h"
 #include "verba_scribo/verba_scribo.h"
@@ -93,6 +94,11 @@ static volatile double g_rec_real = -2.5;
  * @brief The same value as a bit pattern, for the rows that take a double apart.
  */
 static volatile uint64_t g_rec_bits = 0xC004000000000000ull;
+
+/**
+ * @brief The zero count, hidden so neither arm is unrolled against it.
+ */
+static volatile size_t g_zero_n = 6u;
 
 /**
  * @brief Powers of ten the scan counter compares against, as verba_scribo carries them.
@@ -1030,6 +1036,134 @@ static size_t libc_put_n(char *out, size_t cap, size_t at, const char *src, size
 }
 
 /**
+ * @brief A run of zeros written a byte at a time, each byte testing for room of its own.
+ *
+ * @param[out] out Destination [BORROWS].
+ * @param[in]  cap Bytes available.
+ * @param[in]  at  Offset to write at.
+ * @param[in]  n   Zeros to write.
+ * @return         The offset past them, or cap once one did not fit.
+ * @note The shape verba_zeros has: one verba_ch a zero, and verba_ch tests the room it needs before
+ *       each store. The count is known before the first one.
+ */
+static size_t zeros_per_byte(char *out, size_t cap, size_t at, size_t n)
+{
+    while (n-- != 0u)
+    {
+        if ((at >= cap) || (1u > ((cap - at) - 1u)))
+        {
+            return cap;
+        }
+        out[at] = '0';
+        at += 1u;
+    }
+    return at;
+}
+
+/**
+ * @brief The same run with the room tested once for all of it.
+ *
+ * @param[out] out Destination [BORROWS].
+ * @param[in]  cap Bytes available.
+ * @param[in]  at  Offset to write at.
+ * @param[in]  n   Zeros to write.
+ * @return         The offset past them, or cap when the run does not fit.
+ * @note Same bytes, same refusal: a run that does not fit writes nothing and reports cap, which is
+ *       what the per byte form reaches by failing on the first zero that does not fit.
+ */
+static size_t zeros_one_test(char *out, size_t cap, size_t at, size_t n)
+{
+    if ((at >= cap) || (n > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+    for (size_t k = 0; k < n; k++)
+    {
+        out[at + k] = '0';
+    }
+    return at + n;
+}
+
+/**
+ * @brief One room test, then a byte loop the compiler is not allowed to turn into a fill.
+ *
+ * @param[out] out Destination [BORROWS].
+ * @param[in]  cap Bytes available.
+ * @param[in]  at  Offset to write at.
+ * @param[in]  n   Zeros to write.
+ * @return         The offset past them, or cap when the run does not fit.
+ * @note The arm that separates the two changes. Testing the room once and filling with a plain loop
+ *       lets the compiler call memset, which is a fixed cost that wins on a long run and loses on a
+ *       short one; this keeps the single room test and denies it the call, so what it measures is
+ *       the room test alone.
+ */
+static size_t zeros_one_test_noopt(char *out, size_t cap, size_t at, size_t n)
+{
+    if ((at >= cap) || (n > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+    for (size_t k = 0; k < n; k++)
+    {
+        // Volatile denies the compiler the memset it would otherwise emit for a constant fill
+        *(volatile char *)(out + at + k) = '0';
+    }
+    return at + n;
+}
+
+/**
+ * @brief One room test, then the library's own fill.
+ *
+ * @param[out] out Destination [BORROWS].
+ * @param[in]  cap Bytes available.
+ * @param[in]  at  Offset to write at.
+ * @param[in]  n   Zeros to write.
+ * @return         The offset past them, or cap when the run does not fit.
+ * @note memor.set rather than a loop the compiler may or may not turn into one, which is the form
+ *       the library would actually carry.
+ */
+static size_t zeros_memor_set(char *out, size_t cap, size_t at, size_t n)
+{
+    if ((at >= cap) || (n > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+    MMGR_CALL(memor.set, MemoriaCfg, .dst = out + at, .bytes = n, .val = (uint8_t)'0');
+    return at + n;
+}
+
+/**
+ * @brief The room tested once, with a short run taken by hand and a long one by the fill.
+ *
+ * @param[out] out Destination [BORROWS].
+ * @param[in]  cap Bytes available.
+ * @param[in]  at  Offset to write at.
+ * @param[in]  n   Zeros to write.
+ * @return         The offset past them, or cap when the run does not fit.
+ * @note Both call sites are in verba_g and they sit on opposite sides of the crossover: the leading
+ *       run is bounded at three by the exponent test that selects the form, and the trailing run
+ *       reaches about seventeen. A threshold covers both.
+ */
+static size_t zeros_hybrid(char *out, size_t cap, size_t at, size_t n)
+{
+    if ((at >= cap) || (n > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+    if (n <= 8u)
+    {
+        for (size_t k = 0; k < n; k++)
+        {
+            // Volatile denies the compiler the call this branch exists to avoid
+            *(volatile char *)(out + at + k) = '0';
+        }
+        return at + n;
+    }
+    MMGR_CALL(memor.set, MemoriaCfg, .dst = out + at, .bytes = n, .val = (uint8_t)'0');
+    return at + n;
+}
+
+/**
  * @brief The biased exponent field, reached the way libc offers it.
  *
  * @param[in] value Value to take apart.
@@ -1358,6 +1492,35 @@ void dbench_run(void)
         // like, since signbit is the one of the three that is only a bit test either way.
         {
             const uint32_t iters = 5000u;
+
+            // The zero run, tested once against tested once a byte. verba_zeros walks verba_ch per
+            // zero and verba_ch tests the room it needs before every store, though the count is
+            // settled before the first. Three widths, since a g with a small exponent writes one or
+            // two and a fixed with a large one writes a dozen.
+            for (unsigned which = 0; which < 3u; which++)
+            {
+                static const size_t runs[] = {2u, 6u, 18u};
+
+                g_zero_n = runs[which];
+
+                DBENCH_AB("s:z_fill", iters, (unsigned)runs[which],
+                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_KEEP(zeros_one_test(g_wide, sizeof g_wide, 0u, g_zero_n)));
+
+                // The room test on its own, with the compiler denied the memset that made the row
+                // above measure the fill rather than the test.
+                DBENCH_AB("s:z_test", iters, (unsigned)runs[which],
+                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_KEEP(zeros_one_test_noopt(g_wide, sizeof g_wide, 0u, g_zero_n)));
+
+                DBENCH_AB("s:z_memor", iters, (unsigned)runs[which],
+                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_KEEP(zeros_memor_set(g_wide, sizeof g_wide, 0u, g_zero_n)));
+
+                DBENCH_AB("s:z_hybrid", iters, (unsigned)runs[which],
+                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_KEEP(zeros_hybrid(g_wide, sizeof g_wide, 0u, g_zero_n)));
+            }
 
             DBENCH_AB("s:sign", iters, 8u,
                       DBENCH_KEEP(MMGR_CALL(fract.sign, FractioCfg, .bits = (mmgr_u64)g_rec_bits)),
