@@ -315,16 +315,16 @@ void test_a_builder_at_every_capacity_stays_inside_it(void)
         char *const out = (char *)p;
         size_t at = 0;
 
-        at = MMGR_CALL(verba.put, VerbaCfg, .out = out, .cap = cap, .at = at, .text = "the quick brown fox");
-        at = MMGR_CALL(verba.u64, VerbaCfg, .out = out, .cap = cap, .at = at, .val = 18446744073709551615ull);
-        at = MMGR_CALL(verba.hex, VerbaCfg, .out = out, .cap = cap, .at = at, .val = 0xDEADBEEFCAFEBABEull,
+        at = MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = out, .cap = cap, .at = at, .text = "the quick brown fox");
+        at = MMGR_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = out, .cap = cap, .at = at, .val = 18446744073709551615ull);
+        at = MMGR_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = out, .cap = cap, .at = at, .val = 0xDEADBEEFCAFEBABEull,
                        .min = 16u);
-        at = MMGR_CALL(verba.g, VerbaCfg, .out = out, .cap = cap, .at = at, .real = 1.0 / 3.0, .sig = MMGR_G_MAX_SIG);
-        at = MMGR_CALL(verba.fixed, VerbaCfg, .out = out, .cap = cap, .at = at, .real = 2.5,
+        at = MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = out, .cap = cap, .at = at, .real = 1.0 / 3.0, .sig = MMGR_G_MAX_SIG);
+        at = MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = out, .cap = cap, .at = at, .real = 2.5,
                        .decimals = MMGR_FIXED_MAX_DECIMALS);
-        at = MMGR_CALL(verba.json, VerbaCfg, .out = out, .cap = cap, .at = at, .text = "\"\\\n\x01");
-        at = MMGR_CALL(verba.xml, VerbaCfg, .out = out, .cap = cap, .at = at, .text = "<&>\"'");
-        const size_t n = MMGR_CALL(verba.finish, VerbaCfg, .out = out, .cap = cap, .at = at);
+        at = MMGR_CALL(verba_textus.json, VerbaTextusCfg, .out = out, .cap = cap, .at = at, .text = "\"\\\n\x01");
+        at = MMGR_CALL(verba_textus.xml, VerbaTextusCfg, .out = out, .cap = cap, .at = at, .text = "<&>\"'");
+        const size_t n = MMGR_CALL(verba_finis.finish, VerbaFinisCfg, .out = out, .cap = cap, .at = at);
 
         TEST_ASSERT_TRUE_MESSAGE(n < cap || n == 0u, "finish reported a length outside the buffer");
         if (cap != 0u)
@@ -339,9 +339,9 @@ void test_a_builder_with_no_room_for_a_terminator(void)
 {
     unsigned char *p = fresh();
     char *const out = (char *)p;
-    const size_t at = MMGR_CALL(verba.put, VerbaCfg, .out = out, .cap = 1u, .at = 0, .text = "x");
+    const size_t at = MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = out, .cap = 1u, .at = 0, .text = "x");
 
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(verba.ok, VerbaCfg, .cap = 1u, .at = at),
+    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(verba_finis.ok, VerbaFinisCfg, .cap = 1u, .at = at),
                               "one byte holds a terminator and nothing else");
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(POISON, p[1], "the builder wrote at its cap");
     fences_intact("builder, cap one");
@@ -364,8 +364,8 @@ void test_a_write_of_every_length_into_a_fixed_buffer(void)
             }
             unsigned char *p = fresh();
             char *const out = (char *)p;
-            const size_t at = MMGR_CALL(verba.put, VerbaCfg, .out = out, .cap = cap, .at = 0, .text = src);
-            const size_t n = MMGR_CALL(verba.finish, VerbaCfg, .out = out, .cap = cap, .at = at);
+            const size_t at = MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = out, .cap = cap, .at = 0, .text = src);
+            const size_t n = MMGR_CALL(verba_finis.finish, VerbaFinisCfg, .out = out, .cap = cap, .at = at);
 
             if (delta >= 0)
             {

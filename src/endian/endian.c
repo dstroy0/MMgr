@@ -21,117 +21,117 @@ typedef struct
 } EndianCtx;
 
 /**
- * @brief Writes c->width bytes of c->val to c->dst in the target's own order.
+ * @brief Writes args->width bytes of args->val to args->dst in the target's own order.
  *
- * @param[in,out] c Destination, value and width [BORROWS].
+ * @param[in,out] args Destination, value and width [BORROWS].
  * @note Dispatches to proxim.put16, put32 or put64 on the width.
  * @warning Any width other than 2 or 4 takes the default branch and writes eight bytes.
  */
-MMGR_INLINE void endian_put(const EndianCtx *c)
+MMGR_INLINE void endian_put(const EndianCtx *args)
 {
-    switch (c->width)
+    switch (args->width)
     {
     case 2:
-        MMGR_CALL(proxim.put16, ProximusCfg, .dst = c->dst, .val = c->val);
+        MMGR_CALL(proxim.put16, ProximusCfg, .dst = args->dst, .val = args->val);
         break;
     case 4:
-        MMGR_CALL(proxim.put32, ProximusCfg, .dst = c->dst, .val = c->val);
+        MMGR_CALL(proxim.put32, ProximusCfg, .dst = args->dst, .val = args->val);
         break;
     default:
-        MMGR_CALL(proxim.put64, ProximusCfg, .dst = c->dst, .val = c->val);
+        MMGR_CALL(proxim.put64, ProximusCfg, .dst = args->dst, .val = args->val);
         break;
     }
 }
 
 /**
- * @brief Reads c->width bytes from c->src in the target's own order.
+ * @brief Reads args->width bytes from args->src in the target's own order.
  *
- * @param[in] c Source and width [BORROWS].
+ * @param[in] args Source and width [BORROWS].
  * @return      The value read, in the low bytes of the result.
  * @note Dispatches to proxim.load16, load32 or load64 on the width.
  * @warning Any width other than 2 or 4 takes the default branch and reads eight bytes.
  */
-MMGR_INLINE uint64_t endian_get(const EndianCtx *c)
+MMGR_INLINE uint64_t endian_get(const EndianCtx *args)
 {
-    switch (c->width)
+    switch (args->width)
     {
     case 2:
-        return MMGR_CALL(proxim.load16, ProximusCfg, .at = c->src);
+        return MMGR_CALL(proxim.load16, ProximusCfg, .at = args->src);
     case 4:
-        return MMGR_CALL(proxim.load32, ProximusCfg, .at = c->src);
+        return MMGR_CALL(proxim.load32, ProximusCfg, .at = args->src);
     default:
-        return MMGR_CALL(proxim.load64, ProximusCfg, .at = c->src);
+        return MMGR_CALL(proxim.load64, ProximusCfg, .at = args->src);
     }
 }
 
 /**
- * @brief Reverses the byte order of c->val and returns the low c->width bytes.
+ * @brief Reverses the byte order of args->val and returns the low args->width bytes.
  *
- * @param[in] c Value and width [BORROWS].
- * @return      The reversed value, right-aligned into the low c->width bytes.
+ * @param[in] args Value and width [BORROWS].
+ * @return      The reversed value, right-aligned into the low args->width bytes.
  * @note Swaps at eight, then sixteen, then thirty-two bits, so the whole 64-bit value is reversed first.
  * @note The final shift drops the 8 * (8 - width) bytes the reversal moved above the result.
- * @warning 8u - c->width is unsigned, so a c->width above 8 wraps into a very large shift count.
+ * @warning 8u - args->width is unsigned, so an args->width above 8 wraps into a very large shift count.
  */
-MMGR_INLINE uint64_t endian_rev(const EndianCtx *c)
+MMGR_INLINE uint64_t endian_rev(const EndianCtx *args)
 {
-    uint64_t v = c->val;
+    uint64_t v = args->val;
 
     // Suffixed constants keep each mask at uint64_t, matching the value being swapped
     v = ((v & 0x00FF00FF00FF00FFull) << 8) | ((v >> 8) & 0x00FF00FF00FF00FFull);
     v = ((v & 0x0000FFFF0000FFFFull) << 16) | ((v >> 16) & 0x0000FFFF0000FFFFull);
     v = (v << 32) | (v >> 32);
-    return v >> (8u * (8u - c->width));
+    return v >> (8u * (8u - args->width));
 }
 
 /**
- * @brief Writes c->val to c->dst without reversing it.
+ * @brief Writes args->val to args->dst without reversing it.
  *
- * @param[in,out] c Destination, value and width [BORROWS].
- * @return          c->width.
+ * @param[in,out] args Destination, value and width [BORROWS].
+ * @return          args->width.
  * @note Calls endian_put directly, where endian_wr_be reverses first.
  */
-MMGR_INLINE size_t endian_wr_le(const EndianCtx *c)
+MMGR_INLINE size_t endian_wr_le(const EndianCtx *args)
 {
-    endian_put(c);
-    return c->width;
+    endian_put(args);
+    return args->width;
 }
 
 /**
- * @brief Reverses c->val, then writes it to c->dst.
+ * @brief Reverses args->val, then writes it to args->dst.
  *
- * @param[in,out] c Destination, value and width [BORROWS].
- * @return          c->width.
+ * @param[in,out] args Destination, value and width [BORROWS].
+ * @return          args->width.
  * @note Builds a fresh EndianCtx holding the reversed value, leaving c untouched.
  */
-MMGR_INLINE size_t endian_wr_be(const EndianCtx *c)
+MMGR_INLINE size_t endian_wr_be(const EndianCtx *args)
 {
-    MMGR_CALL(endian_put, EndianCtx, .dst = c->dst, .val = endian_rev(c), .width = c->width);
-    return c->width;
+    MMGR_CALL(endian_put, EndianCtx, .dst = args->dst, .val = endian_rev(args), .width = args->width);
+    return args->width;
 }
 
 /**
- * @brief Reads c->width bytes from c->src without reversing them.
+ * @brief Reads args->width bytes from args->src without reversing them.
  *
- * @param[in] c Source and width [BORROWS].
+ * @param[in] args Source and width [BORROWS].
  * @return      The value read.
  * @note Calls endian_get directly, where endian_rd_be reverses the result.
  */
-MMGR_INLINE uint64_t endian_rd_le(const EndianCtx *c)
+MMGR_INLINE uint64_t endian_rd_le(const EndianCtx *args)
 {
-    return endian_get(c);
+    return endian_get(args);
 }
 
 /**
- * @brief Reads c->width bytes from c->src, then reverses them.
+ * @brief Reads args->width bytes from args->src, then reverses them.
  *
- * @param[in] c Source and width [BORROWS].
- * @return      The reversed value, right-aligned into the low c->width bytes.
+ * @param[in] args Source and width [BORROWS].
+ * @return      The reversed value, right-aligned into the low args->width bytes.
  * @note Feeds endian_get's result into endian_rev through a fresh EndianCtx.
  */
-MMGR_INLINE uint64_t endian_rd_be(const EndianCtx *c)
+MMGR_INLINE uint64_t endian_rd_be(const EndianCtx *args)
 {
-    return MMGR_CALL(endian_rev, EndianCtx, .val = endian_get(c), .width = c->width);
+    return MMGR_CALL(endian_rev, EndianCtx, .val = endian_get(args), .width = args->width);
 }
 
 /**
@@ -157,11 +157,11 @@ MMGR_INLINE uint64_t endian_rd_be(const EndianCtx *c)
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in endian.h.
- * @note c->width is forwarded as it stands. EndianCfg and EndianCtx both declare it mmgr_endian_width,
+ * @note args->width is forwarded as it stands. EndianCfg and EndianCtx both declare it mmgr_endian_width,
  *       so there is no conversion to make.
  */
-ENDIAN_ENTRY(size_t, wr_le, .dst = c->dst, .val = c->val, .width = c->width)
-ENDIAN_ENTRY(uint64_t, rd_le, .src = c->src, .width = c->width)
-ENDIAN_ENTRY(size_t, wr_be, .dst = c->dst, .val = c->val, .width = c->width)
-ENDIAN_ENTRY(uint64_t, rd_be, .src = c->src, .width = c->width)
-ENDIAN_REV_ENTRY(uint64_t, rev, .val = c->val, .width = c->width)
+ENDIAN_ENTRY(size_t, wr_le, .dst = args->dst, .val = args->val, .width = args->width)
+ENDIAN_ENTRY(uint64_t, rd_le, .src = args->src, .width = args->width)
+ENDIAN_ENTRY(size_t, wr_be, .dst = args->dst, .val = args->val, .width = args->width)
+ENDIAN_ENTRY(uint64_t, rd_be, .src = args->src, .width = args->width)
+ENDIAN_REV_ENTRY(uint64_t, rev, .val = args->val, .width = args->width)

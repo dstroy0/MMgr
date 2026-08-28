@@ -40,23 +40,23 @@ typedef struct
 } AncoraeCtx;
 
 /**
- * @brief Returns the table entry for c->byte.
+ * @brief Returns the table entry for args->byte.
  *
- * @param[in] c Byte to look up [BORROWS].
+ * @param[in] args Byte to look up [BORROWS].
  * @return      The cost, 1 through 255.
  * @note The table holds 256 entries, so every uint8_t value indexes it in range.
  */
-MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *c)
+MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
 {
-    return s_impensa[c->byte];
+    return s_impensa[args->byte];
 }
 
 /**
- * @brief Copies c->byte into an AncoraeCtx and returns the table entry.
+ * @brief Copies args->byte into an AncoraeCtx and returns the table entry.
  *
  * @note Documented at the declaration in impensa_ancorae_acus.h.
  */
-uint8_t mmgr_ancorae_impensa(const AncoraeCfg *c)
+uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args)
 {
-    return MMGR_CALL(ancorae_impensa, AncoraeCtx, .byte = c->byte);
+    return MMGR_CALL(ancorae_impensa, AncoraeCtx, .byte = args->byte);
 }

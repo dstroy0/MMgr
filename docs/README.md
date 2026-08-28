@@ -5,7 +5,7 @@ Zero-heap memory manager in C11.
 You lend it a buffer. A confinium carves that buffer from both ends: persist grows up from the base
 and interim grows down from the top. Neither take tests the gap between them — the sizes are fixed
 before the program runs, so the fit is settled by then, and a caller working from runtime numbers
-reads `carcer.octas_praesto` first. Pools hand out tenants cut from it, spans are bounded views over
+reads `octas_praesto` on the pool first. Pools hand out tenants cut from it, spans are bounded views over
 those, and rings move them between a producer and a consumer.
 
 Nothing calls `malloc`. Every size is fixed before the program runs, so the footprint is a number you
@@ -14,15 +14,14 @@ can check against a budget rather than a thing you find out at runtime.
 ```c
 #include "mmgr.h"
 
-/* Storage, pool descriptors and the asserts that they fit, all emitted at compile time. */
-mmgr_carcer_init(g_ram, 4096u, MMGR_POOL(g_scratch, 4096u));
+/* One region, one pool. The declaration is the whole setup. */
+Carceribus(prison, MMGR_SOLUTA(work, 4096));
 
-CarcerCtx *const pool = MMGR_CARCER_POOL(g_ram, g_scratch);
-char *const buf = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 256u);
+char *const buf = prison.work.persist_capio(256);
 
 size_t at = 0;
 at = MMGR_CALL(verba.put, VerbaCfg, .out = buf, .cap = 256u, .at = at, .text = "id=");
-at = MMGR_CALL(verba.u32, VerbaCfg, .out = buf, .cap = 256u, .at = at, .val = 4211u);
+at = MMGR_CALL(verba.uint, VerbaCfg, .out = buf, .cap = 256u, .at = at, .val = 4211u);
 
 const size_t len = MMGR_CALL(verba.finish, VerbaCfg, .out = buf, .cap = 256u, .at = at);
 ```

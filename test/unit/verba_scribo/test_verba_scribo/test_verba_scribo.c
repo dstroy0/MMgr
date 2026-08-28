@@ -29,87 +29,87 @@ static void fresh(size_t room)
    These carry the cursor so the assertions below can stay as they were. */
 static void put(const char *text)
 {
-    at = MMGR_CALL(verba.put, VerbaCfg, .out = buf, .cap = cap, .at = at, .text = text);
+    at = MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
 }
 
 static void put_n(const char *text, size_t len)
 {
-    at = MMGR_CALL(verba.put_n, VerbaCfg, .out = buf, .cap = cap, .at = at, .text = text, .text_len = len);
+    at = MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text, .text_len = len);
 }
 
 static void put_clip(const char *text)
 {
-    at = MMGR_CALL(verba.put_clip, VerbaCfg, .out = buf, .cap = cap, .at = at, .text = text);
+    at = MMGR_CALL(verba_textus.put_clip, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
 }
 
 static void ch(char value)
 {
-    at = MMGR_CALL(verba.ch, VerbaCfg, .out = buf, .cap = cap, .at = at, .ch = value);
+    at = MMGR_CALL(verba_littera.ch, VerbaLitteraCfg, .out = buf, .cap = cap, .at = at, .ch = value);
 }
 
 static void u32(uint32_t value)
 {
-    at = MMGR_CALL(verba.u32, VerbaCfg, .out = buf, .cap = cap, .at = at, .val = value);
+    at = MMGR_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value);
 }
 
 static void u32w(uint32_t value, uint8_t width)
 {
-    at = MMGR_CALL(verba.u32w, VerbaCfg, .out = buf, .cap = cap, .at = at, .val = value, .min = width);
+    at = MMGR_CALL(verba_numerus.u32w, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .min = width);
 }
 
 static void u64(uint64_t value)
 {
-    at = MMGR_CALL(verba.u64, VerbaCfg, .out = buf, .cap = cap, .at = at, .val = value);
+    at = MMGR_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value);
 }
 
 static void u64_clip(uint64_t value, uint8_t columns)
 {
-    at = MMGR_CALL(verba.u64_clip, VerbaCfg, .out = buf, .cap = cap, .at = at, .val = value, .columns = columns);
+    at = MMGR_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .columns = columns);
 }
 
 static void i64(int64_t value)
 {
-    at = MMGR_CALL(verba.i64, VerbaCfg, .out = buf, .cap = cap, .at = at, .sval = value);
+    at = MMGR_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .sval = value);
 }
 
 static void uint_of(uint64_t value, uint8_t base, uint8_t min)
 {
-    at = MMGR_CALL(verba.uint, VerbaCfg, .out = buf, .cap = cap, .at = at, .val = value, .base = base, .min = min);
+    at = MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .base = base, .min = min);
 }
 
 static void hex(uint64_t value, uint8_t min)
 {
-    at = MMGR_CALL(verba.hex, VerbaCfg, .out = buf, .cap = cap, .at = at, .val = value, .min = min);
+    at = MMGR_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .min = min);
 }
 
 static void g(double value, uint8_t sig)
 {
-    at = MMGR_CALL(verba.g, VerbaCfg, .out = buf, .cap = cap, .at = at, .real = value, .sig = sig);
+    at = MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = buf, .cap = cap, .at = at, .real = value, .sig = sig);
 }
 
 static void fixed(double value, uint8_t decimals)
 {
-    at = MMGR_CALL(verba.fixed, VerbaCfg, .out = buf, .cap = cap, .at = at, .real = value, .decimals = decimals);
+    at = MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = buf, .cap = cap, .at = at, .real = value, .decimals = decimals);
 }
 
 static void json(const char *text)
 {
-    at = MMGR_CALL(verba.json, VerbaCfg, .out = buf, .cap = cap, .at = at, .text = text);
+    at = MMGR_CALL(verba_textus.json, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
 }
 
 static void xml(const char *text)
 {
-    at = MMGR_CALL(verba.xml, VerbaCfg, .out = buf, .cap = cap, .at = at, .text = text);
+    at = MMGR_CALL(verba_textus.xml, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
 }
 
 static size_t finish(void)
 {
-    return MMGR_CALL(verba.finish, VerbaCfg, .out = buf, .cap = cap, .at = at);
+    return MMGR_CALL(verba_finis.finish, VerbaFinisCfg, .out = buf, .cap = cap, .at = at);
 }
 
 static mmgr_bool ok(void)
 {
-    return MMGR_CALL(verba.ok, VerbaCfg, .cap = cap, .at = at);
+    return MMGR_CALL(verba_finis.ok, VerbaFinisCfg, .cap = cap, .at = at);
 }
 
 static double an_inf(void)
@@ -332,18 +332,18 @@ void test_float_predicates(void)
     const double inf = 1e308 * 10.0;
     const double nan = inf - inf;
 
-    TEST_ASSERT_TRUE(MMGR_CALL(verba.is_inf, VerbaCfg, .real = inf));
-    TEST_ASSERT_TRUE(MMGR_CALL(verba.is_inf, VerbaCfg, .real = -inf));
-    TEST_ASSERT_FALSE(MMGR_CALL(verba.is_inf, VerbaCfg, .real = 1.0));
+    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = inf));
+    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = -inf));
+    TEST_ASSERT_FALSE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = 1.0));
 
-    TEST_ASSERT_TRUE(MMGR_CALL(verba.is_nan, VerbaCfg, .real = nan));
-    TEST_ASSERT_FALSE(MMGR_CALL(verba.is_nan, VerbaCfg, .real = 1.0));
-    TEST_ASSERT_FALSE(MMGR_CALL(verba.is_nan, VerbaCfg, .real = inf));
+    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = nan));
+    TEST_ASSERT_FALSE(MMGR_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = 1.0));
+    TEST_ASSERT_FALSE(MMGR_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = inf));
 
-    TEST_ASSERT_TRUE(MMGR_CALL(verba.sign_bit, VerbaCfg, .real = -1.0));
-    TEST_ASSERT_TRUE(MMGR_CALL(verba.sign_bit, VerbaCfg, .real = -0.0));
-    TEST_ASSERT_FALSE(MMGR_CALL(verba.sign_bit, VerbaCfg, .real = 1.0));
-    TEST_ASSERT_FALSE(MMGR_CALL(verba.sign_bit, VerbaCfg, .real = 0.0));
+    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = -1.0));
+    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = -0.0));
+    TEST_ASSERT_FALSE(MMGR_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = 1.0));
+    TEST_ASSERT_FALSE(MMGR_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = 0.0));
 }
 
 void test_fixed_matches_printf(void)
@@ -555,8 +555,11 @@ void test_the_literal_helper(void)
 
 void test_namespace_is_wired(void)
 {
-    TEST_ASSERT_NOT_NULL(verba.put_n);
-    TEST_ASSERT_NOT_NULL(verba.finish);
+    TEST_ASSERT_NOT_NULL(verba_textus.put_n);
+    TEST_ASSERT_NOT_NULL(verba_littera.ch);
+    TEST_ASSERT_NOT_NULL(verba_numerus.uint);
+    TEST_ASSERT_NOT_NULL(verba_fractio.g);
+    TEST_ASSERT_NOT_NULL(verba_finis.finish);
 }
 
 
@@ -805,8 +808,8 @@ void test_g_of_the_largest_finite_double(void)
 
 void test_is_inf_says_no_to_a_nan(void)
 {
-        TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(verba.is_inf, VerbaCfg, .real = a_nan()), "a nan is not an infinity");
-    TEST_ASSERT_TRUE(MMGR_CALL(verba.is_inf, VerbaCfg, .real = an_inf()));
+        TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = a_nan()), "a nan is not an infinity");
+    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = an_inf()));
 }
 
 

@@ -13,7 +13,7 @@ observation about one run. The long answer, including what it costs you, is @ref
 
 ## Is it thread-safe?
 
-The region synchronizes nothing, because there is nothing to synchronize: a `CarcerCtx` is a base, an
+The region synchronizes nothing, because there is nothing to synchronize: a pool is a base, an
 extent and two cursors, used by whoever holds it. Two contexts that must not share get two regions,
 and the region never learns there were two.
 
@@ -61,7 +61,7 @@ inside one, because a suite that compiles half its cases away still reports as p
 
 ## How do I know how big to make my region?
 
-Measure it, and turn the peak tracking on first. `carcer.persist_used` and `carcer.octas_praesto`
+Measure it, and turn the peak tracking on first. the pool's own counters and `octas_praesto`
 report where the cursors are **right now**, not where they have been, so reading them after a
 workload tells you about that instant and nothing else.
 

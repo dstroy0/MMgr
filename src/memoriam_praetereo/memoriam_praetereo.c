@@ -49,95 +49,96 @@ typedef struct
 /**
  * @brief Weak default for opening a channel, which refuses every request.
  *
- * @param[in] c Channel, peripheral and completion callback [BORROWS].
+ * @param[in] args Channel, peripheral and completion callback [BORROWS].
  * @return      MMGR_FALSE always.
  * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero; an application definition replaces it.
  * @note The (void)c discards the argument, since this body reads nothing.
  */
-MMGR_WEAK mmgr_bool mmgr_praet_hw_open(const PraetCfg *c)
+MMGR_WEAK mmgr_bool mmgr_praet_hw_open(const PraetCfg *args)
 {
-    (void)c;
+    (void)args;
     return MMGR_FALSE;
 }
 
 /**
  * @brief Weak default for submitting a transfer, which refuses every request.
  *
- * @param[in] c Channel, buffer and length [BORROWS].
+ * @param[in] args Channel, buffer and length [BORROWS].
  * @return      MMGR_FALSE always.
  * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero; an application definition replaces it.
  */
-MMGR_WEAK mmgr_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *c)
+MMGR_WEAK mmgr_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args)
 {
-    (void)c;
+    (void)args;
     return MMGR_FALSE;
 }
 
 /**
  * @brief Weak default for closing a channel, which does nothing.
  *
- * @param[in] c Channel to close [BORROWS].
+ * @param[in] args Channel to close [BORROWS].
  * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero; an application definition replaces it.
  */
-MMGR_WEAK void mmgr_praet_hw_close(const PraetTransferCfg *c)
+MMGR_WEAK void mmgr_praet_hw_close(const PraetTransferCfg *args)
 {
-    (void)c;
+    (void)args;
 }
 
 /**
  * @brief Weak default for the poll hook, which does nothing.
  *
- * @param[in] c Channel to poll [BORROWS].
+ * @param[in] args Channel to poll [BORROWS].
  * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero; an application definition replaces it.
  */
-MMGR_WEAK void mmgr_praet_hw_poll(const PraetCfg *c)
+MMGR_WEAK void mmgr_praet_hw_poll(const PraetCfg *args)
 {
-    (void)c;
+    (void)args;
 }
 
 /**
  * @brief Checks the channel and the callback, then hands the request to the port layer.
  *
- * @param[in] c Channel, peripheral, loopback flag and completion callback [BORROWS].
+ * @param[in] args Channel, peripheral, loopback flag and completion callback [BORROWS].
  * @return      Whatever mmgr_praet_hw_open returns.
- * @warning c->channel must be below praet_init.channels, and c->on_complete must not be NULL.
+ * @warning args->channel must be below praet_init.channels, and args->on_complete must not be NULL.
  */
-MMGR_INLINE mmgr_bool praet_open(const PraetOpenCtx *c)
+MMGR_INLINE mmgr_bool praet_open(const PraetOpenCtx *args)
 {
-    MMGR_ASSERT(c->channel < praet_init.channels, "no such channel");
-    MMGR_ASSERT(c->on_complete != NULL, "an open channel reports completion");
+    MMGR_ASSERT(args->channel < praet_init.channels, "no such channel");
+    MMGR_ASSERT(args->on_complete != NULL, "an open channel reports completion");
 
-    return MMGR_CALL(mmgr_praet_hw_open, PraetCfg, .channel = c->channel, .periph = c->periph,
-                     .loopback = c->loopback, .on_complete = c->on_complete);
+    return MMGR_CALL(mmgr_praet_hw_open, PraetCfg, .channel = args->channel, .periph = args->periph,
+                     .loopback = args->loopback, .on_complete = args->on_complete);
 }
 
 /**
  * @brief Checks the channel and the length, then hands the transfer to the port layer.
  *
- * @param[in] c Channel, buffer and length [BORROWS].
+ * @param[in] args Channel, buffer and length [BORROWS].
  * @return      Whatever mmgr_praet_hw_tx_submit returns.
- * @warning c->channel must be below praet_init.channels, and c->len must not exceed praet_init.buf_size.
+ * @warning args->channel must be below praet_init.channels, and args->len must not exceed praet_init.buf_size.
  */
-MMGR_INLINE mmgr_bool praet_tx_submit(const PraetTransferCtx *c)
+MMGR_INLINE mmgr_bool praet_tx_submit(const PraetTransferCtx *args)
 {
-    MMGR_ASSERT(c->channel < praet_init.channels, "no such channel");
-    MMGR_ASSERT(c->len <= praet_init.buf_size, "a transfer is bounded by the channel buffer");
+    MMGR_ASSERT(args->channel < praet_init.channels, "no such channel");
+    MMGR_ASSERT(args->len <= praet_init.buf_size, "a transfer is bounded by the channel buffer");
 
-    return MMGR_CALL(mmgr_praet_hw_tx_submit, PraetTransferCfg, .channel = c->channel, .buf = c->buf, .len = c->len);
+    return MMGR_CALL(mmgr_praet_hw_tx_submit, PraetTransferCfg, .channel = args->channel, .buf = args->buf,
+                     .len = args->len);
 }
 
 /**
  * @brief Checks the channel, then hands the close to the port layer.
  *
- * @param[in] c Channel to close [BORROWS].
+ * @param[in] args Channel to close [BORROWS].
  * @note Passes only the channel on; buf and len take no part.
- * @warning c->channel must be below praet_init.channels.
+ * @warning args->channel must be below praet_init.channels.
  */
-MMGR_INLINE void praet_close(const PraetTransferCtx *c)
+MMGR_INLINE void praet_close(const PraetTransferCtx *args)
 {
-    MMGR_ASSERT(c->channel < praet_init.channels, "no such channel");
+    MMGR_ASSERT(args->channel < praet_init.channels, "no such channel");
 
-    MMGR_CALL(mmgr_praet_hw_close, PraetTransferCfg, .channel = c->channel);
+    MMGR_CALL(mmgr_praet_hw_close, PraetTransferCfg, .channel = args->channel);
 }
 
 /**
@@ -165,13 +166,13 @@ MMGR_INLINE void praet_close(const PraetTransferCtx *c)
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in memoriam_praetereo.h.
- * @note close forwards c->channel alone; the rest of its argument type is not read.
+ * @note close forwards args->channel alone; the rest of its argument type is not read.
  */
-PRAET_ENTRY(mmgr_bool, PraetOpenCtx, PraetCfg, open, .channel = c->channel, .periph = c->periph,
-            .loopback = c->loopback, .on_complete = c->on_complete)
-PRAET_ENTRY(mmgr_bool, PraetTransferCtx, PraetTransferCfg, tx_submit, .channel = c->channel, .buf = c->buf,
-            .len = c->len)
-PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = c->channel)
+PRAET_ENTRY(mmgr_bool, PraetOpenCtx, PraetCfg, open, .channel = args->channel, .periph = args->periph,
+            .loopback = args->loopback, .on_complete = args->on_complete)
+PRAET_ENTRY(mmgr_bool, PraetTransferCtx, PraetTransferCfg, tx_submit, .channel = args->channel, .buf = args->buf,
+            .len = args->len)
+PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = args->channel)
 
 /**
  * @brief Calls the port layer's poll hook.
@@ -181,9 +182,9 @@ PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = c->channel)
  *       praet_ backend for GENERIC_ENTRY to name.
  * @note Documented at the declaration in memoriam_praetereo.h.
  */
-void mmgr_praet_poll(const PraetCfg *c)
+void mmgr_praet_poll(const PraetCfg *args)
 {
-    mmgr_praet_hw_poll(c);
+    mmgr_praet_hw_poll(args);
 }
 
 #endif

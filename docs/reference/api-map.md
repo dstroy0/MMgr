@@ -66,7 +66,7 @@ conversion needs. See @ref qa_numeric for what it is for.
 | ------------- | --------------------------------------------------------- |
 | `mmgr_<stem>` | a data type — `mmgr_span`, `mmgr_bitor`                   |
 | `<Pascal>Cfg` | the argument struct an entry takes — `SpatiumCfg`, `MemoriaCfg` |
-| `<Pascal>Ctx` | caller-held state a module operates on — `CarcerCtx`      |
+| `<Pascal>Ctx` | the state a module operates on — `CarcerCtx`             |
 | `<Pascal>Ns`  | a dispatch table type — `SpatiumNs`, `ScrutLaneNs`        |
 | `MMGR_<NAME>` | a macro or a constant                                     |
 

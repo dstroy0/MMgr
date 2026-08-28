@@ -52,21 +52,21 @@ typedef struct
 } AsciiCtx;
 
 /**
- * @brief Returns whether c->byte has its bit set in s_class[c->kind].
+ * @brief Returns whether args->byte has its bit set in s_class[args->kind].
  *
- * @param[in] c Class and byte to test [BORROWS].
+ * @param[in] args Class and byte to test [BORROWS].
  * @return      MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
  * @note Bytes 0x80 and above return MMGR_FALSE without reading s_class.
- * @warning c->kind must be below MMGR_ASCII_CLASSES.
+ * @warning args->kind must be below MMGR_ASCII_CLASSES.
  */
-MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *c)
+MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *args)
 {
-    MMGR_ASSERT(c->kind < MMGR_ASCII_CLASSES, "no such character class");
+    MMGR_ASSERT(args->kind < MMGR_ASCII_CLASSES, "no such character class");
 
-    const MmgrAsciiMask *const entry = &s_class[c->kind];
+    const MmgrAsciiMask *const entry = &s_class[args->kind];
 
     // Explicit cast narrows the int result of && to the mmgr_bool container
-    return (mmgr_bool)((c->byte < 0x80u) && (((entry->b[c->byte >> 3] >> (c->byte & 7u)) & 1u) != 0u));
+    return (mmgr_bool)((args->byte < 0x80u) && (((entry->b[args->byte >> 3] >> (args->byte & 7u)) & 1u) != 0u));
 }
 
 /**
@@ -82,4 +82,4 @@ MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *c)
  *
  * @note Each is documented at its declaration in ascii_persona_bitorum.h.
  */
-ASCII_ENTRY(mmgr_bool, in, .kind = c->kind, .byte = c->byte)
+ASCII_ENTRY(mmgr_bool, in, .kind = args->kind, .byte = args->byte)

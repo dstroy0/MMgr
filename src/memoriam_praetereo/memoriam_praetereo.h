@@ -92,65 +92,66 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_bool (*open)(const PraetCfg *c);              /**< Opens a channel. */
-    mmgr_bool (*tx_submit)(const PraetTransferCfg *c); /**< Submits a transfer. */
-    void (*close)(const PraetTransferCfg *c);          /**< Closes a channel. */
-    void (*poll)(const PraetCfg *c);                   /**< Drives the port layer's poll hook. */
+    mmgr_bool (*open)(const PraetCfg *args);              /**< Opens a channel. */
+    mmgr_bool (*tx_submit)(const PraetTransferCfg *args); /**< Submits a transfer. */
+    void (*close)(const PraetTransferCfg *args);          /**< Closes a channel. */
+    void (*poll)(const PraetCfg *args);                   /**< Drives the port layer's poll hook. */
 } MemoriamPraetereoNs;
 MMGR_NS_LAYOUT(MemoriamPraetereoNs, open, tx_submit, close, poll);
 
 /**
- * @brief Opens c->channel and registers c->on_complete against it.
+ * @brief Opens args->channel and registers args->on_complete against it.
  *
- * @param[in] c Channel, peripheral, loopback flag and completion callback [BORROWS].
+ * @param[in] args Channel, peripheral, loopback flag and completion callback [BORROWS].
  * @return      MMGR_TRUE when the port layer accepted the request.
  * @note The default mmgr_praet_hw_open refuses, so this returns MMGR_FALSE until a port replaces it.
- * @warning c->channel must be below the configured channel count, and c->on_complete must not be NULL.
+ * @warning args->channel must be below the configured channel count, and args->on_complete must not be NULL.
  */
-mmgr_bool mmgr_praet_open(const PraetCfg *c);
+mmgr_bool mmgr_praet_open(const PraetCfg *args);
 
 /**
- * @brief Submits c->len bytes of c->buf on c->channel.
+ * @brief Submits args->len bytes of args->buf on args->channel.
  *
- * @param[in] c Channel, buffer and length [BORROWS].
+ * @param[in] args Channel, buffer and length [BORROWS].
  * @return      MMGR_TRUE when the port layer accepted the transfer.
  * @note The default mmgr_praet_hw_tx_submit refuses, so this returns MMGR_FALSE until a port replaces it.
- * @warning c->buf must stay valid until the completion callback runs [BORROWS].
- * @warning c->channel must be below the configured channel count, and c->len must not exceed the buffer size.
+ * @warning args->buf must stay valid until the completion callback runs [BORROWS].
+ * @warning args->channel must be below the configured channel count, and args->len must not exceed the buffer size.
  */
-mmgr_bool mmgr_praet_tx_submit(const PraetTransferCfg *c);
+mmgr_bool mmgr_praet_tx_submit(const PraetTransferCfg *args);
 
 /**
- * @brief Closes c->channel.
+ * @brief Closes args->channel.
  *
- * @param[in] c Channel to close [BORROWS].
- * @note Only c->channel is read; buf and len take no part.
- * @warning c->channel must be below the configured channel count.
+ * @param[in] args Channel to close [BORROWS].
+ * @note Only args->channel is read; buf and len take no part.
+ * @warning args->channel must be below the configured channel count.
  */
-void mmgr_praet_close(const PraetTransferCfg *c);
+void mmgr_praet_close(const PraetTransferCfg *args);
 
 /**
  * @brief Drives the port layer's poll hook.
  *
- * @param[in] c Channel to poll [BORROWS].
+ * @param[in] args Channel to poll [BORROWS].
  * @note Passes c straight through without checking it, unlike the other three entries.
  */
-void mmgr_praet_poll(const PraetCfg *c);
+void mmgr_praet_poll(const PraetCfg *args);
 
 /**
  * @brief The four port hooks an application defines to drive real hardware.
  *
  * @note Each has a default in memoriam_praetereo.c that refuses or does nothing, so a build links without a port.
- * @note An application definition of any of these names replaces the default where MMGR_HAS_ATTRIBUTE(weak) is non-zero.
+ * @note An application definition of any of these names replaces the default where MMGR_HAS_ATTRIBUTE(weak) is
+ * non-zero.
  * @warning mmgr_praet_poll calls mmgr_praet_hw_poll directly; the other three pass through a call that asserts first.
  */
-mmgr_bool mmgr_praet_hw_open(const PraetCfg *c);
+mmgr_bool mmgr_praet_hw_open(const PraetCfg *args);
 
-mmgr_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *c);
+mmgr_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args);
 
-void mmgr_praet_hw_close(const PraetTransferCfg *c);
+void mmgr_praet_hw_close(const PraetTransferCfg *args);
 
-void mmgr_praet_hw_poll(const PraetCfg *c);
+void mmgr_praet_hw_poll(const PraetCfg *args);
 
 /**
  * @brief Dispatch table instance named praet; each member calls the matching mmgr_praet_ function.

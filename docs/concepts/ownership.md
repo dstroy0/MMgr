@@ -28,12 +28,12 @@ tenant dies when the tenant is reset even though the span was never told.
 ## Interim is a stack, and a mark is the only handle
 
 ```c
-const size_t mark = MMGR_CALL(carcer.interim_mark,  CarcerCfg, .pool = pool);
-char *const  p    = MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = pool, .size = 256u);
+const size_t mark = prison.work.interim_mark();
+char *const  p    = prison.work.interim_capio(256);
 
 /* ... use p ... */
 
-MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = pool, .size = mark);
+prison.work.interim_reddo(mark);
 ```
 
 Nothing is reallocated and nothing is scrubbed, so `p` dereferences without faulting and returns
@@ -69,7 +69,7 @@ One entry answers an ownership question directly:
 
 ```c
 /* is this pointer inside this pool at all */
-MMGR_CALL(carcer.owns, CarcerCfg, .pool = pool, .at = p);
+prison.work.owns(p);
 ```
 
 One unsigned subtract and one compare. It exists for asserts and for debugging, not for control
@@ -84,7 +84,7 @@ check. See @ref mod_confin_guide.
 There isn't any, unless you configured it.
 
 There is no synchronization anywhere in the region, because there is nothing to synchronize. A
-`CarcerCtx` is a base, an extent and two cursors, and it is used by whoever holds it. Two contexts
+A pool is a base, an extent and two cursors, reached only through its own accessor. Two pools
 that must not share get two regions.
 
 The one genuinely concurrent module is `confinium_exclusivum_infinitas`, and it is
@@ -104,7 +104,7 @@ the `checks` environment produces the same object code as `host`. Define `MMGR_A
 something that aborts, if you want those checks to be checks.
 
 `carceribus` has no asserts at all, and that is the design rather than an omission: every size in a
-region is fixed by `mmgr_carcer_init` at compile time, and the static asserts there have already
+region is fixed by its declaration at compile time, and what that declaration emits has already
 run before a single instruction executes.
 
 What no check catches, in any configuration, is a **stale interim pointer**. Nothing can — the

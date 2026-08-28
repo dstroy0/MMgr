@@ -28,19 +28,19 @@ typedef struct
  */
 typedef struct
 {
-    uint8_t (*impensa)(const AncoraeCfg *c); /**< Cost of one byte value. */
+    uint8_t (*impensa)(const AncoraeCfg *args); /**< Cost of one byte value. */
 } ImpensaAncoraeAcusNs;
 MMGR_NS_LAYOUT(ImpensaAncoraeAcusNs, impensa);
 
 /**
- * @brief Returns the cost of c->byte under the table this build links.
+ * @brief Returns the cost of args->byte under the table this build links.
  *
- * @param[in] c Byte to look up [BORROWS].
+ * @param[in] args Byte to look up [BORROWS].
  * @return      The cost, 1 through 255.
  * @note Lower means the byte is rarer under the linked table; cellul_pick_rows keeps the lowest it finds.
  * @warning The value depends on which of the five tables was linked, so it is not portable between builds.
  */
-uint8_t mmgr_ancorae_impensa(const AncoraeCfg *c);
+uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args);
 
 /**
  * @brief Dispatch table instance named ancorae; its impensa member calls mmgr_ancorae_impensa.

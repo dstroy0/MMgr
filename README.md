@@ -12,15 +12,17 @@ them between a producer and a consumer.
 ```c
 #include "mmgr.h"
 
-/* The region and its pools are carved at compile time; this emits the storage. */
-mmgr_carcer_init(g_ram, 4096u, MMGR_POOL(g_pool, 4096u));
+/* One region, two pools. Storage, alignment and watches are all in the declaration, and
+   every byte of it is initialized data - nothing runs before main. */
+Carceribus(prison, MMGR_SOLUTA(work, 2048), MMGR_SECURA(keys, 2048));
 
-CarcerCtx *const pool = MMGR_CARCER_POOL(g_ram, g_pool);
+void frame(void)
+{
+    uint8_t *const p = prison.work.persist_capio(256);
+    mmgr_span s = MMGR_CALL(spat.from, SpatiumCfg, .buf = p, .cap = 256u);
 
-uint8_t *const p = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 256u);
-mmgr_span s = MMGR_CALL(spat.from, SpatiumCfg, .buf = p, .cap = 256u);
-
-MMGR_CALL(byteio.put_be, OctetusCfg, .w = &s, .val = 0xDEADBEEFu, .bytes = 4u);
+    MMGR_CALL(byteio.put_be, OctetusCfg, .w = &s, .val = 0xDEADBEEFu, .bytes = 4u);
+}
 ```
 
 ## Where things are

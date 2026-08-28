@@ -25,7 +25,7 @@ for memory and never gives any back, because it was never holding any.
 Five things, in the order a byte meets them. The first four are one path:
 
 ```
-    carceribus [init] ──► carcer.persist_capio ──► spatium ──► operation
+    Carceribus [declaration] ──► prison.pool.persist_capio ──► spatium ──► operation
 ```
 
 A region is carved at compile time; a pool takes a tenancy out of it and hands back its start; a
@@ -34,9 +34,9 @@ fifth, and sit alongside that line rather than on it.
 
 ## 1. The region and its pools
 
-`mmgr_carcer_init` is a declaration. It emits the storage, a @ref CarcerCtx per pool, and static
-asserts that the region has an address and an extent. From then on a pool hands out storage from
-two ends of the same buffer:
+`Carceribus` is a declaration, not a call. It emits each pool's storage, its alignment, its state
+and the entries bound to it, and nothing runs at startup. From then on a pool hands out storage
+from two ends of its own bytes:
 
 - **persist** grows up from the base. It is for things that live as long as the region does.
 - **interim** grows down from the top. It is the working space for one operation.
@@ -57,10 +57,10 @@ built on: giving up free-anything-anytime is what makes the footprint decidable.
 Interim is a stack.
 
 ```c
-const size_t mark = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = pool);
-uint8_t *work = MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = pool, .size = 512u);
+const size_t mark = prison.work.interim_mark();
+uint8_t *buf = prison.work.interim_capio(512);
 /* ... use it ... */
-MMGR_CALL(carcer.interim_reset, CarcerCfg, .pool = pool);
+prison.work.interim_reset();
 ```
 
 `interim_mark` reports the current top. `interim_reset` assigns the top the pool's size, releasing
@@ -77,7 +77,7 @@ is worth reading twice.
 
 ## 3. A tenancy is given back by one of two names
 
-A _tenancy_ is what a pool hands out. Every one is taken the same way, with `carcer.persist_capio`.
+A _tenancy_ is what a pool hands out. Every one is taken the same way, with the pool's own `persist_capio`.
 Two calls give one back, and they differ in exactly one thing:
 
 |                      | `persist_reddo`                | `secura_reddo`                     |
@@ -93,7 +93,7 @@ by naming fewer bytes than it holds.
 Both exist rather than one that always clears because the clear costs a pass over the bytes, and most
 tenancies do not hold anything worth paying it for. Which storage is which is a matter of declaring
 two pools and handing secrets to the one you always release with `secura_reddo`. Their sizes are
-arguments to `mmgr_carcer_init`; `MMGR_PLAINTEXT_CONFIN_SIZE` and `MMGR_SECURE_CONFIN_SIZE` do not
+the extent of a row you declared; `MMGR_PLAINTEXT_CONFIN_SIZE` and `MMGR_SECURE_CONFIN_SIZE` do not
 size them and nothing in carceribus reads those two. They state the largest confinium the build
 intends to declare, which is what `MMGR_CARCER_MAX` bounds the scanner and the string shim against.
 
@@ -101,7 +101,7 @@ Bytes are cleared on release, not on hand-out. A take does **not** return zeroed
 released with the plain `reddo` and handed out again carries what the last tenant left. That is the
 whole reason `secura_reddo` matters, and it is why anything sensitive must be released with it.
 
-`carcer.wipe` clears an address and a count in place without giving anything back. Its stores are
+`mmgr_carcer_wipe` clears an address and a count in place without giving anything back. Its stores are
 `volatile` machine-width stores: a plain store there is a dead store the optimizer is entitled to
 drop, and a byte loop would pay eight times the stores for the same guarantee. Byte edges cover a
 length or an address that is not a whole number of words.
@@ -145,9 +145,9 @@ spelling and no information.
 ```c
 size_t at = 0;
 at = MMGR_CALL(verba.put, VerbaCfg, .out = buf, .cap = n, .at = at, .text = "id=");
-at = MMGR_CALL(verba.u32, VerbaCfg, .out = buf, .cap = n, .at = at, .val = id);
+at = MMGR_CALL(verba.uint, VerbaCfg, .out = buf, .cap = n, .at = at, .val = id);
 at = MMGR_CALL(verba.put, VerbaCfg, .out = buf, .cap = n, .at = at, .text = " len=");
-at = MMGR_CALL(verba.u32, VerbaCfg, .out = buf, .cap = n, .at = at, .val = len);
+at = MMGR_CALL(verba.uint, VerbaCfg, .out = buf, .cap = n, .at = at, .val = len);
 
 /* One check, covering all four: a writer with no room returns cap, and so does every writer
    after it, so finish reports zero. */
@@ -212,7 +212,7 @@ more. The counters exist for exactly this: run the real workload under the `chec
 read them, then size the region.
 
 `pool->persist_end` is how far the bottom has reached and `pool->interim_top` how far the top has,
-both read straight off the @ref CarcerCtx you declared. `mmgr_carcer_octas_praesto` reports the gap
+both read straight off the pool's own state. `octas_praesto` reports the gap
 between them.
 
 For the peak rather than the current value, turn on `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Each end then

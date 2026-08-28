@@ -98,7 +98,7 @@
 // it to the abort and reports the failure with nothing naming which case reached it
 #define MMGR_ASSERT(cond, msg)                                                                                         \
     ((cond) ? (void)0                                                                                                  \
-            : (void)(fprintf(stderr, "MMGR_ASSERT failed: %s\n  %s:%d\n", (msg), __FILE__, __LINE__), fflush(NULL),     \
+            : (void)(fprintf(stderr, "MMGR_ASSERT failed: %s\n  %s:%d\n", (msg), __FILE__, __LINE__), fflush(NULL),    \
                      abort()))
 #else
 #define MMGR_ASSERT(cond, msg) ((void)sizeof((cond) ? 1 : 0), (void)0)
@@ -216,7 +216,6 @@
  */
 #define MMGR_MEMOR_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
 
-
 /**
  * @brief Defines a value-returning entry point that forwards an argument pack.
  *
@@ -228,20 +227,19 @@
  * @param NAME       The core name of the function
  * @param ...        The variadic argument pack/fields to forward
  */
-#define GENERIC_ENTRY(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, RET_TYPE, NAME, ...) \
-    RET_TYPE PREFIX##NAME(const CFG_TYPE *c) \
-    { \
-        return MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__); \
+#define GENERIC_ENTRY(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, RET_TYPE, NAME, ...)                                        \
+    RET_TYPE PREFIX##NAME(const CFG_TYPE *args)                                                                        \
+    {                                                                                                                  \
+        return MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__);                                                        \
     }
 
 /**
  * @brief Defines a void entry point that forwards an argument pack.
  */
-#define GENERIC_ENTRY_V(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, NAME, ...) \
-    void PREFIX##NAME(const CFG_TYPE *c) \
-    { \
-        MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__); \
+#define GENERIC_ENTRY_V(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, NAME, ...)                                                \
+    void PREFIX##NAME(const CFG_TYPE *args)                                                                            \
+    {                                                                                                                  \
+        MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__);                                                               \
     }
-
 
 #endif

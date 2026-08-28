@@ -87,19 +87,19 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/fractio/test_fractio\\test_fractio.c");
-  run_test(test_fractio_header_is_self_contained, "test_fractio_header_is_self_contained", 35);
-  run_test(test_sign_of_positive_and_negative, "test_sign_of_positive_and_negative", 40);
-  run_test(test_negative_zero_keeps_its_sign, "test_negative_zero_keeps_its_sign", 47);
-  run_test(test_exponent_of_one_is_the_bias, "test_exponent_of_one_is_the_bias", 53);
-  run_test(test_zero_has_no_exponent_and_no_mantissa, "test_zero_has_no_exponent_and_no_mantissa", 60);
-  run_test(test_mantissa_drops_the_implicit_bit, "test_mantissa_drops_the_implicit_bit", 66);
-  run_test(test_infinities, "test_infinities", 74);
-  run_test(test_a_nan_has_a_full_exponent_and_a_mantissa, "test_a_nan_has_a_full_exponent_and_a_mantissa", 87);
-  run_test(test_merge_and_from_bits_reverse_the_accessors, "test_merge_and_from_bits_reverse_the_accessors", 95);
-  run_test(test_a_subnormal_keeps_its_mantissa, "test_a_subnormal_keeps_its_mantissa", 111);
-  run_test(test_merge_masks_each_field, "test_merge_masks_each_field", 119);
-  run_test(test_namespace_is_wired, "test_namespace_is_wired", 127);
-  run_test(test_to_bits_is_from_bits_the_other_way, "test_to_bits_is_from_bits_the_other_way", 133);
+  run_test(test_fractio_header_is_self_contained, "test_fractio_header_is_self_contained", 38);
+  run_test(test_sign_of_positive_and_negative, "test_sign_of_positive_and_negative", 43);
+  run_test(test_negative_zero_keeps_its_sign, "test_negative_zero_keeps_its_sign", 50);
+  run_test(test_exponent_of_one_is_the_bias, "test_exponent_of_one_is_the_bias", 56);
+  run_test(test_zero_has_no_exponent_and_no_mantissa, "test_zero_has_no_exponent_and_no_mantissa", 63);
+  run_test(test_mantissa_drops_the_implicit_bit, "test_mantissa_drops_the_implicit_bit", 69);
+  run_test(test_infinities, "test_infinities", 77);
+  run_test(test_a_nan_has_a_full_exponent_and_a_mantissa, "test_a_nan_has_a_full_exponent_and_a_mantissa", 90);
+  run_test(test_merge_and_from_bits_reverse_the_accessors, "test_merge_and_from_bits_reverse_the_accessors", 98);
+  run_test(test_a_subnormal_keeps_its_mantissa, "test_a_subnormal_keeps_its_mantissa", 114);
+  run_test(test_merge_masks_each_field, "test_merge_masks_each_field", 122);
+  run_test(test_namespace_is_wired, "test_namespace_is_wired", 130);
+  run_test(test_to_bits_is_from_bits_the_other_way, "test_to_bits_is_from_bits_the_other_way", 136);
 
   return UNITY_END();
 }

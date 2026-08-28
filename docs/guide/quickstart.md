@@ -32,23 +32,22 @@ Storage comes from you. This is the whole shape of the library in twenty lines.
 #include <stdio.h>
 
 /* One region, one pool. Declares the storage and its descriptors, all at compile time. */
-mmgr_carcer_init(g_ram, 4096u, MMGR_POOL(g_scratch, 4096u));
+Carceribus(prison, MMGR_SOLUTA(work, 4096));
 
 int main(void)
 {
-    CarcerCtx *const pool = MMGR_CARCER_POOL(g_ram, g_scratch);
 
-    char *const store = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 256u);
+    char *const store = prison.work.persist_capio(256);
     if (store == NULL) {
         return 1;
     }
 
-    const size_t left = MMGR_CALL(carcer.octas_praesto, CarcerCfg, .pool = pool);
+    const size_t left = prison.work.octas_praesto();
 
     size_t at = 0;
     at = MMGR_CALL(verba.put, VerbaCfg, .out = store, .cap = 256u, .at = at,
                    .text = "bytes at hand: ");
-    at = MMGR_CALL(verba.u32, VerbaCfg, .out = store, .cap = 256u, .at = at, .val = (uint32_t)left);
+    at = MMGR_CALL(verba.uint, VerbaCfg, .out = store, .cap = 256u, .at = at, .val = (uint32_t)left);
 
     const size_t len = MMGR_CALL(verba.finish, VerbaCfg, .out = store, .cap = 256u, .at = at);
     if (len == 0u) {
@@ -62,10 +61,10 @@ int main(void)
 
 Three things in that listing are the library's whole personality:
 
-- **The 4096 is the only size decision**, and it is made at compile time. `mmgr_carcer_init` is a
+- **The 4096 is the only size decision**, and it is made at compile time. `Carceribus` is a
   declaration, not a call: it emits the storage, the pool descriptors and static asserts that the
   pools fit the region. Nothing runs at startup.
-- **`persist_capio` borrows.** It allocates nothing — it hands back part of `g_ram` and moves a
+- **`persist_capio` borrows.** It allocates nothing — it hands back part of the pool's storage and moves a
   cursor, and what it returns dies when the pool unwinds.
 - **The error check is at the end**, not after every write, because a writer with no room returns
   `cap` and every later writer does the same, so `finish` reports it. See @ref ref_error_handling.

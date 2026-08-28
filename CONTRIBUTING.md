@@ -71,9 +71,9 @@ listing them as parameters of a one-argument function reads as a lie:
  */
 typedef struct
 {
-    void *const buf;
+    uint8_t *const buf;
     const size_t cap;
-} SpatCfg;
+} SpatiumCfg;
 
 /**
  * @brief Builds a span over `buf`.
@@ -84,7 +84,7 @@ typedef struct
  * @slot{0}
  * @warning Does not check that `buf` is non-NULL.
  */
-mmgr_spat mmgr_spat_init(const SpatCfg *c);
+mmgr_span mmgr_spat_from(const SpatiumCfg *c);
 ```
 
 `@slot{n}` is the entry's position in the dispatch table, `@ns{name}` names the table, and

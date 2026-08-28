@@ -24,71 +24,71 @@ typedef struct
 } FractioCtx;
 
 /**
- * @brief Returns the sign bit of c->bits, as 0 or 1.
+ * @brief Returns the sign bit of args->bits, as 0 or 1.
  *
- * @param[in] c Bit pattern to read [BORROWS].
+ * @param[in] args Bit pattern to read [BORROWS].
  * @return      0 for a positive value, 1 for a negative one.
  */
-MMGR_INLINE mmgr_u64 fract_sign(const FractioCtx *c)
+MMGR_INLINE mmgr_u64 fract_sign(const FractioCtx *args)
 {
-    return (c->bits & MMGR_DBL_SIGN_MASK) >> MMGR_DBL_SIGN_SHIFT;
+    return (args->bits & MMGR_DBL_SIGN_MASK) >> MMGR_DBL_SIGN_SHIFT;
 }
 
 /**
- * @brief Returns the raw exponent field of c->bits, still biased.
+ * @brief Returns the raw exponent field of args->bits, still biased.
  *
- * @param[in] c Bit pattern to read [BORROWS].
+ * @param[in] args Bit pattern to read [BORROWS].
  * @return      The stored exponent, with MMGR_DBL_EXP_BIAS not yet removed.
  */
-MMGR_INLINE mmgr_u64 fract_exp(const FractioCtx *c)
+MMGR_INLINE mmgr_u64 fract_exp(const FractioCtx *args)
 {
-    return (c->bits & MMGR_DBL_EXP_MASK) >> MMGR_DBL_MANT_BITS;
+    return (args->bits & MMGR_DBL_EXP_MASK) >> MMGR_DBL_MANT_BITS;
 }
 
 /**
- * @brief Returns the stored mantissa field of c->bits, without the implicit leading bit.
+ * @brief Returns the stored mantissa field of args->bits, without the implicit leading bit.
  *
- * @param[in] c Bit pattern to read [BORROWS].
+ * @param[in] args Bit pattern to read [BORROWS].
  * @return      The stored mantissa alone.
  */
-MMGR_INLINE mmgr_u64 fract_mant(const FractioCtx *c)
+MMGR_INLINE mmgr_u64 fract_mant(const FractioCtx *args)
 {
-    return c->bits & MMGR_DBL_MANT_MASK;
+    return args->bits & MMGR_DBL_MANT_MASK;
 }
 
 /**
- * @brief Packs c->sign, c->exp and c->mant back into one bit pattern.
+ * @brief Packs args->sign, args->exp and args->mant back into one bit pattern.
  *
- * @param[in] c The three fields to pack [BORROWS].
+ * @param[in] args The three fields to pack [BORROWS].
  * @return      The assembled bit pattern.
  * @note Each field is masked to its own width first, so a wide input cannot reach a neighbor.
  */
-MMGR_INLINE mmgr_u64 fract_merge(const FractioCtx *c)
+MMGR_INLINE mmgr_u64 fract_merge(const FractioCtx *args)
 {
-    return ((c->sign & MMGR_DBL_SIGN_ONE) << MMGR_DBL_SIGN_SHIFT) |
-           ((c->exp & MMGR_DBL_EXP_ALL) << MMGR_DBL_MANT_BITS) | (c->mant & MMGR_DBL_MANT_MASK);
+    return ((args->sign & MMGR_DBL_SIGN_ONE) << MMGR_DBL_SIGN_SHIFT) |
+           ((args->exp & MMGR_DBL_EXP_ALL) << MMGR_DBL_MANT_BITS) | (args->mant & MMGR_DBL_MANT_MASK);
 }
 
 /**
  * @brief Reads the union as a double after the caller filled its bits member.
  *
- * @param[in] c Union holding the pattern [BORROWS].
+ * @param[in] args Union holding the pattern [BORROWS].
  * @return      The same storage read as a double.
  */
-MMGR_INLINE double fract_from_bits(const FractioCtx *c)
+MMGR_INLINE double fract_from_bits(const FractioCtx *args)
 {
-    return c->val;
+    return args->val;
 }
 
 /**
  * @brief Reads the union as a bit pattern after the caller filled its val member.
  *
- * @param[in] c Union holding the value [BORROWS].
+ * @param[in] args Union holding the value [BORROWS].
  * @return      The same storage read as a bit pattern.
  */
-MMGR_INLINE mmgr_u64 fract_to_bits(const FractioCtx *c)
+MMGR_INLINE mmgr_u64 fract_to_bits(const FractioCtx *args)
 {
-    return c->bits;
+    return args->bits;
 }
 
 /**
@@ -106,9 +106,9 @@ MMGR_INLINE mmgr_u64 fract_to_bits(const FractioCtx *c)
  * @note The union member each line forwards is the one the caller filled: from_bits is given bits and
  *       reads val, to_bits is given val and reads bits. That reinterpretation is the point of both.
  */
-FRACT_ENTRY(mmgr_u64, sign, .bits = c->bits)
-FRACT_ENTRY(mmgr_u64, exp, .bits = c->bits)
-FRACT_ENTRY(mmgr_u64, mant, .bits = c->bits)
-FRACT_ENTRY(mmgr_u64, merge, .sign = c->sign, .exp = c->exp, .mant = c->mant)
-FRACT_ENTRY(double, from_bits, .bits = c->bits)
-FRACT_ENTRY(mmgr_u64, to_bits, .val = c->val)
+FRACT_ENTRY(mmgr_u64, sign, .bits = args->bits)
+FRACT_ENTRY(mmgr_u64, exp, .bits = args->bits)
+FRACT_ENTRY(mmgr_u64, mant, .bits = args->bits)
+FRACT_ENTRY(mmgr_u64, merge, .sign = args->sign, .exp = args->exp, .mant = args->mant)
+FRACT_ENTRY(double, from_bits, .bits = args->bits)
+FRACT_ENTRY(mmgr_u64, to_bits, .val = args->val)

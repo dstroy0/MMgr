@@ -7,39 +7,37 @@
 #include "spatium/spatium.h"
 
 #define A_BYTES 1024u
-#define B_BYTES 2048u
+#define B_BYTES 1024u
 
-mmgr_carcer_init(ram, A_BYTES + B_BYTES, MMGR_POOL(a, A_BYTES), MMGR_POOL(b, B_BYTES));
+Carceribus(ram, MMGR_SOLUTA(a, A_BYTES), MMGR_SECURA(b, B_BYTES));
 
 #define QUAD_BYTES 256u
 
-mmgr_carcer_init(quad, 4u * QUAD_BYTES, MMGR_POOL(q0, QUAD_BYTES), MMGR_POOL(q1, QUAD_BYTES),
-                 MMGR_POOL(q2, QUAD_BYTES), MMGR_POOL(q3, QUAD_BYTES));
+Carceribus(quad, MMGR_SOLUTA(q0, QUAD_BYTES), MMGR_SOLUTA(q1, QUAD_BYTES), MMGR_SOLUTA(q2, QUAD_BYTES),
+           MMGR_SOLUTA(q3, QUAD_BYTES));
 
 #define OCTO_BYTES 128u
 
 /**
- * @brief The largest carve there is, which is where MMGR_NARG's argument table runs out.
+ * @brief Eight rows, to show nothing caps the count.
  */
-mmgr_carcer_init(octo, 8u * OCTO_BYTES, MMGR_POOL(o0, OCTO_BYTES), MMGR_POOL(o1, OCTO_BYTES),
-                 MMGR_POOL(o2, OCTO_BYTES), MMGR_POOL(o3, OCTO_BYTES), MMGR_POOL(o4, OCTO_BYTES),
-                 MMGR_POOL(o5, OCTO_BYTES), MMGR_POOL(o6, OCTO_BYTES), MMGR_POOL(o7, OCTO_BYTES));
+Carceribus(octo, MMGR_SOLUTA(o0, OCTO_BYTES), MMGR_SOLUTA(o1, OCTO_BYTES), MMGR_SOLUTA(o2, OCTO_BYTES),
+           MMGR_SOLUTA(o3, OCTO_BYTES), MMGR_SOLUTA(o4, OCTO_BYTES), MMGR_SOLUTA(o5, OCTO_BYTES),
+           MMGR_SOLUTA(o6, OCTO_BYTES), MMGR_SOLUTA(o7, OCTO_BYTES));
 
 /**
  * @brief Puts both pools back to empty at both ends.
  *
- * @note Reaches the members rather than a call: the pool is the caller's own type, so a reset that
- *       walked the chains to prove they were empty would be testing the thing under test.
- * @note Bounded by the region's own count, not by MMGR_CARCER_MAX_REGIONS. The array is sized per
- *       region now, so the ceiling is not a bound on any particular one.
+ * @note The persistent end is put back by hand rather than by a call: a reset that walked the chain
+ *       to prove it was empty would be testing the thing under test. The declaration is in this
+ *       file, so each pool's own context is in scope.
  */
 void setUp(void)
 {
-    for (size_t i = 0; i < (size_t)ram_count; i++)
-    {
-        ram.pool[i].persist_end = 0u;
-        ram.pool[i].interim_top = ram.pool[i].size;
-    }
+    ram_a_ctx.persist_end = 0u;
+    ram_b_ctx.persist_end = 0u;
+    ram.a.interim_reset();
+    ram.b.interim_reset();
 }
 
 void tearDown(void)
@@ -53,27 +51,26 @@ void test_carceribus_header_is_self_contained(void)
 
 void test_the_namespace_is_wired(void)
 {
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof(CarceribusNs), sizeof carcer, "the pool table is not its own type");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof(SolutaCustodiae), sizeof ram.a, "a loose pool is not its own type");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof(SecuraCustodiae), sizeof ram.b, "a close pool is not its own type");
 }
 
 void test_the_machinery_sits_below_the_arena(void)
 {
-    TEST_ASSERT_TRUE_MESSAGE((uintptr_t)ram.bytes > (uintptr_t)&ram, "the arena must start above the machinery");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof(CarcerCtx) * ram_count, sizeof ram.pool,
-                                     "a region sizes its pool array from its own count");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(ram_a_bytes, ram_a_ctx.base, "a pool starts at its own storage");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(ram_b_bytes, ram_b_ctx.base, "and so does its neighbour");
 }
 
 /**
- * @brief A region carrying fewer pools than the build allows does not pay for the ceiling.
+ * @brief A region carrying fewer pools than another does not pay for the difference.
  *
- * @note This is the whole reason the pool array is sized per region. ram carves two, so raising
- *       MMGR_CARCER_MAX_REGIONS to admit an eight pool region elsewhere must cost ram nothing.
+ * @note There is no ceiling to pay for. Each region's pool array is sized by the kinds its own
+ *       declaration listed, so an eight row region elsewhere costs a two row one nothing.
  */
 void test_a_region_does_not_pay_for_the_ceiling(void)
 {
-    TEST_ASSERT_TRUE_MESSAGE(ram_count < MMGR_CARCER_MAX_REGIONS, "ram carves fewer pools than the ceiling allows");
-    TEST_ASSERT_TRUE_MESSAGE(sizeof ram.pool < (sizeof(CarcerCtx) * MMGR_CARCER_MAX_REGIONS),
-                             "so its pool array must be smaller than the ceiling would give");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram_a_ctx.size, "a pool is the size its declaration gave it");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(OCTO_BYTES, octo_o0_ctx.size, "and another region's pools cost this one nothing");
 }
 
 /**
@@ -81,99 +78,101 @@ void test_a_region_does_not_pay_for_the_ceiling(void)
  */
 void test_a_four_pool_region_carves_all_four(void)
 {
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(4u, (size_t)quad_count, "the carve is not capped at two");
-    TEST_ASSERT_EQUAL_size_t(sizeof(CarcerCtx) * 4u, sizeof quad.pool);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(QUAD_BYTES, quad_q0_ctx.size, "the count is not capped at two");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(QUAD_BYTES, quad_q3_ctx.size, "and the fourth is a whole pool");
 }
 
 /**
- * @brief The four pools lie end to end, each at the sum of the sizes ahead of it.
+ * @brief Each of the four sits on its own storage.
  */
 void test_a_four_pool_region_lays_them_end_to_end(void)
 {
-    TEST_ASSERT_EQUAL_PTR(quad.bytes, MMGR_CARCER_POOL(quad, q0)->base);
-    TEST_ASSERT_EQUAL_PTR(quad.bytes + QUAD_BYTES, MMGR_CARCER_POOL(quad, q1)->base);
-    TEST_ASSERT_EQUAL_PTR(quad.bytes + (2u * QUAD_BYTES), MMGR_CARCER_POOL(quad, q2)->base);
-    TEST_ASSERT_EQUAL_PTR(quad.bytes + (3u * QUAD_BYTES), MMGR_CARCER_POOL(quad, q3)->base);
+    TEST_ASSERT_EQUAL_PTR(quad_q0_bytes, quad_q0_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(quad_q1_bytes, quad_q1_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(quad_q2_bytes, quad_q2_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(quad_q3_bytes, quad_q3_ctx.base);
 }
 
 /**
  * @brief Every pool of a four pool region hands out storage inside its own bytes.
  *
- * @note The carve being right on paper is not the same as each pool taking from where it was told to,
- *       so this takes from all four and asks the pool itself whether the address is its own.
+ * @note A declaration being right on paper is not the same as each pool taking from its own bytes,
+ *       so this takes from all four and asks each pool whether the address is its own.
  */
 void test_every_pool_of_a_four_pool_region_takes_from_its_own_bytes(void)
 {
-    const size_t names[4] = {q0, q1, q2, q3};
+    void *const g0 = quad.q0.persist_capio(32u);
+    void *const g1 = quad.q1.persist_capio(32u);
+    void *const g2 = quad.q2.persist_capio(32u);
+    void *const g3 = quad.q3.persist_capio(32u);
 
-    for (size_t i = 0; i < 4u; i++)
-    {
-        CarcerCtx *const pool = &quad.pool[names[i]];
-        void *const got = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 32u);
-
-        TEST_ASSERT_NOT_NULL_MESSAGE(got, "a take from a carved pool must succeed");
-        TEST_ASSERT_TRUE_MESSAGE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = pool, .at = got),
-                                 "and must land inside that pool rather than a neighbour");
-    }
+    TEST_ASSERT_NOT_NULL_MESSAGE(g0, "a take from a declared pool must succeed");
+    TEST_ASSERT_TRUE_MESSAGE(quad.q0.owns(g0), "and must land inside that pool");
+    TEST_ASSERT_TRUE_MESSAGE(quad.q1.owns(g1), "and must land inside that pool");
+    TEST_ASSERT_TRUE_MESSAGE(quad.q2.owns(g2), "and must land inside that pool");
+    TEST_ASSERT_TRUE_MESSAGE(quad.q3.owns(g3), "and must land inside that pool");
+    TEST_ASSERT_FALSE_MESSAGE(quad.q0.owns(g3), "a neighbour's bytes are not ours");
 }
 
 /**
- * @brief The eight pool carve lays every pool where it was told to and each takes from its own bytes.
+ * @brief Eight pools, each on its own storage, each taking from its own bytes.
  *
- * @note Eight is the ceiling, so this is the case that would break first if MMGR_NARG's table or the
- *       cumulative offsets in MMGR_CARCER_R16 were off by one.
+ * @note Nothing caps the count. Eight is where the walk in carceribus.h currently stops, and it is
+ *       the case that would break first if the pool count were miscounted.
  */
 void test_an_eight_pool_region_carves_and_takes(void)
 {
-    const size_t names[8] = {o0, o1, o2, o3, o4, o5, o6, o7};
+    TEST_ASSERT_EQUAL_PTR(octo_o0_bytes, octo_o0_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(octo_o7_bytes, octo_o7_ctx.base);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(OCTO_BYTES, octo_o7_ctx.size, "eight pools is a legal count");
 
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(8u, (size_t)octo_count, "eight pools is a legal carve");
-    TEST_ASSERT_EQUAL_size_t(sizeof(CarcerCtx) * 8u, sizeof octo.pool);
+    void *const first = octo.o0.persist_capio(16u);
+    void *const last = octo.o7.persist_capio(16u);
 
-    for (size_t i = 0; i < 8u; i++)
-    {
-        CarcerCtx *const pool = &octo.pool[names[i]];
+    TEST_ASSERT_NOT_NULL(first);
+    TEST_ASSERT_NOT_NULL(last);
+    TEST_ASSERT_TRUE_MESSAGE(octo.o0.owns(first), "the first pool hands out storage inside itself");
+    TEST_ASSERT_TRUE_MESSAGE(octo.o7.owns(last), "and so does the eighth");
+    TEST_ASSERT_FALSE_MESSAGE(octo.o0.owns(last), "which is not the first pool's");
+}
 
-        TEST_ASSERT_EQUAL_PTR_MESSAGE(octo.bytes + (i * OCTO_BYTES), pool->base, "pool i starts after the i ahead of it");
-
-        void *const got = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 16u);
-
-        TEST_ASSERT_NOT_NULL(got);
-        TEST_ASSERT_TRUE_MESSAGE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = pool, .at = got),
-                                 "and hands out storage inside itself");
-    }
+/**
+ * @brief Two regions may each hold a pool of the same name, under different watches.
+ */
+void test_two_regions_may_share_pool_names(void)
+{
+    TEST_ASSERT_TRUE_MESSAGE((uintptr_t)ram_a_bytes != (uintptr_t)quad_q0_bytes,
+                             "two regions' pools are separate objects");
 }
 
 void test_init_records_the_region_it_was_given(void)
 {
-    TEST_ASSERT_EQUAL_PTR(ram.bytes, ram.init.at);
-    TEST_ASSERT_EQUAL_size_t(A_BYTES + B_BYTES, ram.init.size);
+    TEST_ASSERT_EQUAL_PTR(ram_a_bytes, ram_a_ctx.base);
+    TEST_ASSERT_EQUAL_size_t(A_BYTES, ram_a_ctx.size);
+    TEST_ASSERT_EQUAL_size_t(B_BYTES, ram_b_ctx.size);
 }
 
 void test_the_carve_lays_the_pools_end_to_end(void)
 {
-    TEST_ASSERT_EQUAL_PTR(ram.bytes, MMGR_CARCER_POOL(ram, a)->base);
-    TEST_ASSERT_EQUAL_size_t(A_BYTES, MMGR_CARCER_POOL(ram, a)->size);
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(ram.bytes + A_BYTES, MMGR_CARCER_POOL(ram, b)->base,
-                                  "the second pool starts where the first ends");
-    TEST_ASSERT_EQUAL_size_t(B_BYTES, MMGR_CARCER_POOL(ram, b)->size);
+    TEST_ASSERT_EQUAL_PTR(ram_a_bytes, ram_a_ctx.base);
+    TEST_ASSERT_EQUAL_size_t(A_BYTES, ram_a_ctx.size);
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(ram_b_bytes, ram_b_ctx.base, "and the second on its own");
+    TEST_ASSERT_EQUAL_size_t(B_BYTES, ram_b_ctx.size);
 }
 
 void test_a_fresh_pool_is_empty_and_whole(void)
 {
-    TEST_ASSERT_EQUAL_size_t(0u, MMGR_CARCER_POOL(ram, a)->persist_end);
-    TEST_ASSERT_EQUAL_size_t(A_BYTES, MMGR_CALL(carcer.octas_praesto, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a)));
-    TEST_ASSERT_EQUAL_size_t(A_BYTES, MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a)));
+    TEST_ASSERT_EQUAL_size_t(0u, ram_a_ctx.persist_end);
+    TEST_ASSERT_EQUAL_size_t(A_BYTES, ram.a.octas_praesto());
+    TEST_ASSERT_EQUAL_size_t(A_BYTES, ram.a.interim_mark());
 }
 
 void test_align_up_rounds_to_a_whole_word(void)
 {
-    TEST_ASSERT_EQUAL_size_t(0u, MMGR_CALL(carcer.align_up, CarcerCfg, .size = 0u));
-    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_ALIGN, MMGR_CALL(carcer.align_up, CarcerCfg, .size = 1u));
-    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_ALIGN,
-                             MMGR_CALL(carcer.align_up, CarcerCfg, .size = MMGR_CARCER_ALIGN));
-    TEST_ASSERT_EQUAL_size_t(2u * MMGR_CARCER_ALIGN,
-                             MMGR_CALL(carcer.align_up, CarcerCfg, .size = MMGR_CARCER_ALIGN + 1u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_carcer_align_up(0u));
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_ALIGN, mmgr_carcer_align_up(1u));
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_ALIGN, mmgr_carcer_align_up(MMGR_CARCER_ALIGN));
+    TEST_ASSERT_EQUAL_size_t(2u * MMGR_CARCER_ALIGN, mmgr_carcer_align_up(MMGR_CARCER_ALIGN + 1u));
 }
 
 /**
@@ -187,8 +186,8 @@ void test_both_ends_hand_out_aligned_addresses(void)
         // would run a kilobyte pool out and the NULL would be the pool behaving, not a finding
         setUp();
 
-        void *const p = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = n);
-        void *const q = MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = n);
+        void *const p = ram.a.persist_capio(n);
+        void *const q = ram.a.interim_capio(n);
 
         TEST_ASSERT_NOT_NULL(p);
         TEST_ASSERT_NOT_NULL(q);
@@ -199,31 +198,30 @@ void test_both_ends_hand_out_aligned_addresses(void)
 
 void test_persist_hands_out_the_bottom_and_walks_up(void)
 {
-    uint8_t *p = (uint8_t *)MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
-    uint8_t *q = (uint8_t *)MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
+    uint8_t *p = (uint8_t *)ram.a.persist_capio(64u);
+    uint8_t *q = (uint8_t *)ram.a.persist_capio(64u);
 
     TEST_ASSERT_TRUE_MESSAGE(p < q, "the next tenancy sits above the first");
-    TEST_ASSERT_TRUE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .at = p));
+    TEST_ASSERT_TRUE(ram.a.owns(p));
 }
 
 void test_interim_hands_out_the_top_and_walks_down(void)
 {
-    uint8_t *p = (uint8_t *)MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
-    uint8_t *q = (uint8_t *)MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
+    uint8_t *p = (uint8_t *)ram.a.interim_capio(64u);
+    uint8_t *q = (uint8_t *)ram.a.interim_capio(64u);
 
     TEST_ASSERT_TRUE_MESSAGE(q < p, "the next tenancy sits below the first");
-    TEST_ASSERT_TRUE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .at = p));
+    TEST_ASSERT_TRUE(ram.a.owns(p));
 }
 
 void test_the_two_ends_take_from_the_same_middle(void)
 {
-    const size_t room = MMGR_CALL(carcer.octas_praesto, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a));
+    const size_t room = ram.a.octas_praesto();
 
-    (void)MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
-    (void)MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
+    (void)ram.a.persist_capio(64u);
+    (void)ram.a.interim_capio(64u);
 
-    TEST_ASSERT_TRUE_MESSAGE(MMGR_CALL(carcer.octas_praesto, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a)) < room,
-                             "both ends take from the same gap");
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.octas_praesto() < room, "both ends take from the same gap");
 }
 
 /**
@@ -231,12 +229,9 @@ void test_the_two_ends_take_from_the_same_middle(void)
  */
 void test_both_ends_fail_closed(void)
 {
-    TEST_ASSERT_NULL(MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a),
-                               .size = A_BYTES * 4u));
-    TEST_ASSERT_NULL(MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a),
-                               .size = A_BYTES * 4u));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES,
-                                     MMGR_CALL(carcer.octas_praesto, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a)),
+    TEST_ASSERT_NULL(ram.a.persist_capio(A_BYTES * 4u));
+    TEST_ASSERT_NULL(ram.a.interim_capio(A_BYTES * 4u));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram.a.octas_praesto(),
                                      "a refused request must not have moved a boundary");
 }
 
@@ -245,12 +240,12 @@ void test_both_ends_fail_closed(void)
  */
 void test_a_released_block_is_reused(void)
 {
-    void *const p = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
+    void *const p = ram.a.persist_capio(64u);
 
-    (void)MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
-    MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .tenancy = p);
+    (void)ram.a.persist_capio(64u);
+    ram.a.persist_reddo(p);
 
-    void *const q = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
+    void *const q = ram.a.persist_capio(64u);
 
     TEST_ASSERT_EQUAL_PTR_MESSAGE(p, q, "the freed block is the one that fits");
 }
@@ -260,20 +255,20 @@ void test_a_released_block_is_reused(void)
  */
 void test_persist_releases_out_of_order(void)
 {
-    void *const p = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 32u);
-    void *const q = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 32u);
-    void *const r = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 32u);
+    void *const p = ram.a.persist_capio(32u);
+    void *const q = ram.a.persist_capio(32u);
+    void *const r = ram.a.persist_capio(32u);
 
     TEST_ASSERT_NOT_NULL(p);
     TEST_ASSERT_NOT_NULL(q);
     TEST_ASSERT_NOT_NULL(r);
 
     // The middle one first, which a stack could not do
-    MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .tenancy = q);
-    MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .tenancy = p);
-    MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .tenancy = r);
+    ram.a.persist_reddo(q);
+    ram.a.persist_reddo(p);
+    ram.a.persist_reddo(r);
 
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, MMGR_CARCER_POOL(ram, a)->persist_end,
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, ram_a_ctx.persist_end,
                                      "every block released, so the end must have wound back to base");
 }
 
@@ -282,30 +277,29 @@ void test_persist_releases_out_of_order(void)
  */
 void test_adjacent_free_blocks_merge(void)
 {
-    void *const p = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 32u);
-    void *const q = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 32u);
-    void *const keep = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 32u);
+    void *const p = ram.a.persist_capio(32u);
+    void *const q = ram.a.persist_capio(32u);
+    void *const keep = ram.a.persist_capio(32u);
 
     TEST_ASSERT_NOT_NULL(keep);
-    MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .tenancy = p);
-    MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .tenancy = q);
+    ram.a.persist_reddo(p);
+    ram.a.persist_reddo(q);
 
     // Larger than either freed block, so it only fits if the two became one
-    void *const big = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 72u);
+    void *const big = ram.a.persist_capio(72u);
 
     TEST_ASSERT_EQUAL_PTR_MESSAGE(p, big, "the two freed blocks must have merged into one");
 }
 
 void test_a_plain_release_leaves_the_bytes_alone(void)
 {
-    uint8_t *const p = (uint8_t *)MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a),
-                                            .size = 64u);
+    uint8_t *const p = (uint8_t *)ram.a.persist_capio(64u);
 
     for (size_t i = 0; i < 64u; i++)
     {
         p[i] = 0xA5u;
     }
-    MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .tenancy = p);
+    ram.a.persist_reddo(p);
 
     for (size_t i = 0; i < 64u; i++)
     {
@@ -318,14 +312,13 @@ void test_a_plain_release_leaves_the_bytes_alone(void)
  */
 void test_a_secura_release_zeroes_the_bytes_first(void)
 {
-    uint8_t *const p = (uint8_t *)MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a),
-                                            .size = 64u);
+    uint8_t *const p = (uint8_t *)ram.b.persist_capio(64u);
 
     for (size_t i = 0; i < 64u; i++)
     {
         p[i] = 0xA5u;
     }
-    MMGR_CALL(carcer.secura_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .tenancy = p);
+    ram.b.persist_reddo(p);
 
     for (size_t i = 0; i < 64u; i++)
     {
@@ -339,15 +332,14 @@ void test_a_secura_release_zeroes_the_bytes_first(void)
 void test_a_secura_release_wipes_the_whole_block(void)
 {
     // Asks for 33 bytes, which the pool rounds up; the slack must be cleared too
-    uint8_t *const p = (uint8_t *)MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a),
-                                            .size = 33u);
-    const size_t held = MMGR_CALL(carcer.align_up, CarcerCfg, .size = 33u);
+    uint8_t *const p = (uint8_t *)ram.b.persist_capio(33u);
+    const size_t held = mmgr_carcer_align_up(33u);
 
     for (size_t i = 0; i < held; i++)
     {
         p[i] = 0xA5u;
     }
-    MMGR_CALL(carcer.secura_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .tenancy = p);
+    ram.b.persist_reddo(p);
 
     for (size_t i = 0; i < held; i++)
     {
@@ -365,7 +357,7 @@ void test_the_wipe_clears_exactly_what_it_was_given(void)
         {
             scratch[i] = 0xA5u;
         }
-        MMGR_CALL(carcer.wipe, CarcerCfg, .tenancy = scratch, .size = n);
+        mmgr_carcer_wipe(scratch, n);
 
         for (size_t i = 0; i < n; i++)
         {
@@ -377,15 +369,14 @@ void test_the_wipe_clears_exactly_what_it_was_given(void)
 
 void test_a_mark_gives_back_everything_taken_after_it(void)
 {
-    const size_t before = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a));
+    const size_t before = ram.a.interim_mark();
 
-    (void)MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
-    (void)MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 128u);
-    TEST_ASSERT_TRUE(MMGR_CARCER_POOL(ram, a)->interim_top < before);
+    (void)ram.a.interim_capio(64u);
+    (void)ram.a.interim_capio(128u);
+    TEST_ASSERT_TRUE(ram_a_ctx.interim_top < before);
 
-    MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .mark = before);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, MMGR_CARCER_POOL(ram, a)->interim_top,
-                                     "the top must come back to where it was marked");
+    ram.a.interim_reddo(before);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, ram_a_ctx.interim_top, "the top must come back to where it was marked");
 }
 
 /**
@@ -393,77 +384,64 @@ void test_a_mark_gives_back_everything_taken_after_it(void)
  */
 void test_marks_nest_because_the_caller_holds_them(void)
 {
-    const size_t outer = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a));
+    const size_t outer = ram.a.interim_mark();
 
-    (void)MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
+    (void)ram.a.interim_capio(64u);
 
-    const size_t inner = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a));
+    const size_t inner = ram.a.interim_mark();
 
-    (void)MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 32u);
+    (void)ram.a.interim_capio(32u);
 
-    MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .mark = inner);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(inner, MMGR_CARCER_POOL(ram, a)->interim_top, "the inner savepoint comes back");
+    ram.a.interim_reddo(inner);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(inner, ram_a_ctx.interim_top, "the inner savepoint comes back");
 
-    MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .mark = outer);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(outer, MMGR_CARCER_POOL(ram, a)->interim_top,
-                                     "and the outer one still stands behind it");
+    ram.a.interim_reddo(outer);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(outer, ram_a_ctx.interim_top, "and the outer one still stands behind it");
 }
 
 void test_reset_gives_the_whole_interim_end_back(void)
 {
-    (void)MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 128u);
-    MMGR_CALL(carcer.interim_reset, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a));
+    (void)ram.a.interim_capio(128u);
+    ram.a.interim_reset();
 
-    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_POOL(ram, a)->size, MMGR_CARCER_POOL(ram, a)->interim_top);
+    TEST_ASSERT_EQUAL_size_t(ram_a_ctx.size, ram_a_ctx.interim_top);
 }
 
 void test_owns_tells_a_pool_from_its_neighbour(void)
 {
-    void *p = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 32u);
-    void *q = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, b), .size = 32u);
+    void *p = ram.a.persist_capio(32u);
+    void *q = ram.b.persist_capio(32u);
 
-    TEST_ASSERT_TRUE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .at = p));
-    TEST_ASSERT_TRUE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, b), .at = q));
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .at = q),
-                              "a neighbour's bytes are not ours");
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, b), .at = p),
-                              "and ours are not the neighbour's");
+    TEST_ASSERT_TRUE(ram.a.owns(p));
+    TEST_ASSERT_TRUE(ram.b.owns(q));
+    TEST_ASSERT_FALSE_MESSAGE(ram.a.owns(q), "a neighbour's bytes are not ours");
+    TEST_ASSERT_FALSE_MESSAGE(ram.b.owns(p), "and ours are not the neighbour's");
 }
 
 void test_owns_refuses_the_edges(void)
 {
-    const uint8_t *const base = MMGR_CARCER_POOL(ram, a)->base;
-    const size_t size = MMGR_CARCER_POOL(ram, a)->size;
+    const uint8_t *const base = ram_a_ctx.base;
+    const size_t size = ram_a_ctx.size;
 
-    TEST_ASSERT_TRUE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .at = base));
-    TEST_ASSERT_TRUE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .at = base + size - 1u));
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .at = base + size),
-                              "one past the end is outside");
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .at = base - 1),
-                              "one below the base is outside");
-    TEST_ASSERT_FALSE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .at = NULL));
+    TEST_ASSERT_TRUE(ram.a.owns(base));
+    TEST_ASSERT_TRUE(ram.a.owns(base + size - 1u));
+    TEST_ASSERT_FALSE_MESSAGE(ram.a.owns(base + size), "one past the end is outside");
+    TEST_ASSERT_FALSE_MESSAGE(ram.a.owns(base - 1), "one below the base is outside");
+    TEST_ASSERT_FALSE(ram.a.owns(NULL));
 }
 
 void test_the_pools_do_not_share_a_fill_point(void)
 {
-    (void)MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .size = 64u);
+    (void)ram.a.persist_capio(64u);
 
-    TEST_ASSERT_TRUE(MMGR_CARCER_POOL(ram, a)->persist_end > 0u);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, MMGR_CARCER_POOL(ram, b)->persist_end,
-                                     "one pool filling must not move the other");
+    TEST_ASSERT_TRUE(ram_a_ctx.persist_end > 0u);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, ram_b_ctx.persist_end, "one pool filling must not move the other");
 }
-
-
-
-
-
 
 void test_a_span_over_pool_bytes_carries_the_pool_address(void)
 {
-    uint8_t *const p = (uint8_t *)MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a),
-                                            .size = 64u);
+    uint8_t *const p = (uint8_t *)ram.a.persist_capio(64u);
     const mmgr_span s = MMGR_CALL(spat.from, SpatiumCfg, .buf = p, .cap = 64u);
 
-    TEST_ASSERT_TRUE_MESSAGE(MMGR_CALL(carcer.owns, CarcerCfg, .pool = MMGR_CARCER_POOL(ram, a), .at = s.buf),
-                             "the pool the span was carved from still owns its bytes");
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.owns(s.buf), "the pool the span was carved from still owns its bytes");
 }

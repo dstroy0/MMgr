@@ -26,17 +26,17 @@ typedef struct
 } BitorCtx;
 
 /**
- * @brief Appends the low c->nbits bits of c->val to c->writer.
+ * @brief Appends the low args->nbits bits of args->val to args->writer.
  *
- * @param[in,out] c Writer, value and bit count [BORROWS].
+ * @param[in,out] args Writer, value and bit count [BORROWS].
  * @note Writes whole bytes only; leftover bits stay in writer->residue.
  * @note Does nothing when writer->overflow is already set.
  * @note Sets writer->overflow and clears the residue when the bytes would pass writer->cap.
- * @warning c->nbits must not exceed 64.
+ * @warning args->nbits must not exceed 64.
  */
-MMGR_INLINE void bitor_put(const BitorCtx *c)
+MMGR_INLINE void bitor_put(const BitorCtx *args)
 {
-    mmgr_bitor *const writer = c->writer;
+    mmgr_bitor *const writer = args->writer;
 
     if (writer->overflow)
     {
@@ -45,14 +45,14 @@ MMGR_INLINE void bitor_put(const BitorCtx *c)
 
     MMGR_ASSERT(writer->cnt <= writer->cap, "the count of written bytes has passed the capacity");
     MMGR_ASSERT(writer->nbits < 8u, "a whole byte was left in the residue instead of being written");
-    MMGR_ASSERT(c->nbits <= 64u, "a put of more bits than a uint64_t holds");
+    MMGR_ASSERT(args->nbits <= 64u, "a put of more bits than a uint64_t holds");
 
     // A request of exactly 64 takes the all-ones mask, since a shift by the full width is undefined
-    const uint64_t mask = (c->nbits >= 64u) ? ~(uint64_t)0 : ((UINT64_C(1) << c->nbits) - 1u);
+    const uint64_t mask = (args->nbits >= 64u) ? ~(uint64_t)0 : ((UINT64_C(1) << args->nbits) - 1u);
     // Explicit cast narrows the combined residue and request bits, in whole bytes, to size_t
-    const size_t whole = (size_t)((writer->nbits + c->nbits) / 8u);
-    uint64_t work = c->val & mask;
-    mmgr_word left = c->nbits;
+    const size_t whole = (size_t)((writer->nbits + args->nbits) / 8u);
+    uint64_t work = args->val & mask;
+    mmgr_word left = args->nbits;
 
     if (whole > (writer->cap - writer->cnt))
     {
@@ -87,15 +87,15 @@ MMGR_INLINE void bitor_put(const BitorCtx *c)
 }
 
 /**
- * @brief Writes the partial byte c->writer still holds, padded with zeros above its bits.
+ * @brief Writes the partial byte args->writer still holds, padded with zeros above its bits.
  *
- * @param[in,out] c Writer to finish [BORROWS].
+ * @param[in,out] args Writer to finish [BORROWS].
  * @note The residue holds its bits in the low nbits positions with zeros above, so no padding is added.
  * @note Does nothing when the residue is empty, so it is safe to call at the end of any stream.
  */
-MMGR_INLINE void bitor_align(const BitorCtx *c)
+MMGR_INLINE void bitor_align(const BitorCtx *args)
 {
-    mmgr_bitor *const writer = c->writer;
+    mmgr_bitor *const writer = args->writer;
 
     if (writer->overflow || (writer->nbits == 0u))
     {
@@ -113,21 +113,21 @@ MMGR_INLINE void bitor_align(const BitorCtx *c)
 }
 
 /**
- * @brief Fills an mmgr_bitor from c->out and c->cap, with the counters zeroed.
+ * @brief Fills an mmgr_bitor from args->out and args->cap, with the counters zeroed.
  *
- * @param[in] c Buffer out and its extent cap [BORROWS].
+ * @param[in] args Buffer out and its extent cap [BORROWS].
  * @return      A writer with no bytes written and no residue.
- * @note The returned writer keeps c->out, which must outlive it [BORROWS].
- * @warning c->out must not be null and c->cap must not be zero.
+ * @note The returned writer keeps args->out, which must outlive it [BORROWS].
+ * @warning args->out must not be null and args->cap must not be zero.
  */
-MMGR_INLINE mmgr_bitor bitor_init(const BitorCtx *c)
+MMGR_INLINE mmgr_bitor bitor_init(const BitorCtx *args)
 {
-    MMGR_ASSERT(c->out != NULL, "a bit writer needs a buffer");
-    MMGR_ASSERT(c->cap != 0, "a bit writer needs a capacity");
+    MMGR_ASSERT(args->out != NULL, "a bit writer needs a buffer");
+    MMGR_ASSERT(args->cap != 0, "a bit writer needs a capacity");
 
     mmgr_bitor writer;
-    writer.out = c->out;
-    writer.cap = c->cap;
+    writer.out = args->out;
+    writer.cap = args->cap;
     writer.cnt = 0;
     writer.residue = 0;
     writer.nbits = 0;
@@ -156,6 +156,6 @@ MMGR_INLINE mmgr_bitor bitor_init(const BitorCtx *c)
  * @note Each is documented at its declaration in bitorum_introitus_exitus.h.
  * @note The fields each line forwards are the ones that entry reads; MMGR_CALL zeroes the rest.
  */
-BITOR_ENTRY(mmgr_bitor, init, .out = c->out, .cap = c->cap)
-BITOR_ENTRY_V(put, .writer = c->writer, .val = c->val, .nbits = c->nbits)
-BITOR_ENTRY_V(align, .writer = c->writer)
+BITOR_ENTRY(mmgr_bitor, init, .out = args->out, .cap = args->cap)
+BITOR_ENTRY_V(put, .writer = args->writer, .val = args->val, .nbits = args->nbits)
+BITOR_ENTRY_V(align, .writer = args->writer)
