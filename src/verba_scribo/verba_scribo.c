@@ -112,6 +112,22 @@ MMGR_STATIC_ASSERT(((64u * 1233u) >> 12u) <= MMGR_VERBA_POW10_MAX,
                    "verba_digits10 indexes mmgr_verba_pow10 with its estimate, which must stay inside it");
 
 /**
+ * @brief Expands to the multiplicative inverse of five in 64 bits, so five times this is one.
+ *
+ * @note Divides a value already known to be a multiple of five, exactly and with no division: the
+ *       product is the quotient outright.
+ */
+#define MMGR_VERBA_INV5 0xCCCCCCCCCCCCCCCDull
+
+/**
+ * @brief Expands to the largest 64-bit value divisible by five, over five.
+ *
+ * @note A value times MMGR_VERBA_INV5 lands at or below this exactly when five divides it, which is
+ *       what makes the one product a divisibility test as well as a divider.
+ */
+#define MMGR_VERBA_FIFTH_MAX 0x3333333333333333ull
+
+/**
  * @brief Divides value by a hundred without a divide instruction.
  *
  * @param[in] value Value to divide.
@@ -769,9 +785,24 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *args)
     }
 
     uint8_t digits = sig;
-    while ((digits > 1u) && ((mant % 10u) == 0u))
+
+    while (digits > 1u)
     {
-        mant /= 10u;
+        // Ten is two times five, and the low bit answers the two before anything is multiplied
+        if ((mant & 1u) != 0u)
+        {
+            break;
+        }
+
+        const mmgr_u64 fifth = (mant >> 1) * MMGR_VERBA_INV5;
+
+        // The product is the divisibility test and the quotient at once: at or below the bound five
+        // divided the value, and the product is what dividing by ten would have given
+        if (fifth > MMGR_VERBA_FIFTH_MAX)
+        {
+            break;
+        }
+        mant = fifth;
         digits--;
     }
 

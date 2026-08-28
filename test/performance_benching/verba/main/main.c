@@ -129,6 +129,14 @@ static uint64_t g_fix_rem = 0x121FB54442D18ull;
 static volatile uint64_t g_g_mant = 31415926535897932ull;
 
 /**
+ * @brief The same width of mantissa for a round value, which is the strip's other end.
+ *
+ * @note Two at seventeen significant digits. Sixteen trailing zeros, so the loop that drops them
+ *       runs sixteen times where pi's runs once, and round numbers are not the rare input.
+ */
+static volatile uint64_t g_g_round = 20000000000000000ull;
+
+/**
  * @brief Powers of ten the scan counter compares against, as verba_scribo carries them.
  */
 static const uint32_t POW10[10] = {1u,       10u,       100u,       1000u,       10000u,
@@ -415,6 +423,134 @@ static const uint64_t POW10_64[20] = {
  * @note Eight, so each piece is at most nine digits, which is the widest that fits a uint32_t.
  */
 #define CUT 8u
+
+/**
+ * @brief Drops trailing zeros a digit at a time, as verba_g does.
+ *
+ * @param[in]  mant   The digits as one integer.
+ * @param[in]  digits How many there are.
+ * @return            How many are left once the zeros are gone.
+ * @note The A arm. One modulo to test and one division to drop, per zero.
+ */
+static unsigned strip_loop(uint64_t mant, unsigned digits)
+{
+    while ((digits > 1u) && ((mant % 10u) == 0u))
+    {
+        mant /= 10u;
+        digits--;
+    }
+    return digits;
+}
+
+/**
+ * @brief The same walk with one division a zero rather than a modulo and a division.
+ *
+ * @param[in]  mant   The digits as one integer.
+ * @param[in]  digits How many there are.
+ * @return            How many are left once the zeros are gone.
+ * @note The quotient is taken first and the remainder derived from it, so each step is one division
+ *       by a constant rather than a modulo and a division by the same constant. Both compile to a
+ *       reciprocal multiply, so this asks whether the compiler was already sharing one between them.
+ */
+static unsigned strip_once(uint64_t mant, unsigned digits)
+{
+    while (digits > 1u)
+    {
+        const uint64_t q = mant / 10u;
+
+        if ((mant - (q * 10u)) != 0u)
+        {
+            break;
+        }
+        mant = q;
+        digits--;
+    }
+    return digits;
+}
+
+/**
+ * @brief The multiplicative inverse of five in 64 bits, so five times this is one.
+ *
+ * @note Divides a value already known to be a multiple of five, exactly and with no division: the
+ *       product is the quotient outright.
+ */
+#define INV5 0xCCCCCCCCCCCCCCCDull
+
+/**
+ * @brief The largest 64-bit value divisible by five, over five.
+ *
+ * @note A value times INV5 lands at or below this exactly when five divides it, which is what turns
+ *       the inverse into a divisibility test as well as a divider.
+ */
+#define FIFTH_MAX 0x3333333333333333ull
+
+/**
+ * @brief The same walk with the divide written as a reciprocal multiply.
+ *
+ * @param[in]  mant   The digits as one integer.
+ * @param[in]  digits How many there are.
+ * @return            How many are left once the zeros are gone.
+ * @note Ten is two times five. The low bit answers the two, and multiplying the halved value by the
+ *       inverse of five answers the five and produces the quotient in the same operation: a product
+ *       at or below FIFTH_MAX means five divided it, and that product is the result.
+ * @note No division of any width. div100 above is written for the same reason - the compiler reaches
+ *       for the part's divider, and on these parts the divider is the slower of the two, or absent.
+ */
+static unsigned strip_recip(uint64_t mant, unsigned digits)
+{
+    while (digits > 1u)
+    {
+        // The low bit is the divisibility by two, and the product below is both the test for five
+        // and the quotient it would produce
+        if ((mant & 1u) != 0u)
+        {
+            break;
+        }
+
+        const uint64_t fifth = (mant >> 1) * INV5;
+
+        if (fifth > FIFTH_MAX)
+        {
+            break;
+        }
+        mant = fifth;
+        digits--;
+    }
+    return digits;
+}
+
+/**
+ * @brief Finds the same count against the powers of ten already held.
+ *
+ * @param[in]  mant   The digits as one integer.
+ * @param[in]  digits How many there are.
+ * @return            How many are left once the zeros are gone.
+ * @note The B arm. The count of trailing zeros is the largest k whose power of ten divides the
+ *       mantissa, and the table that holds those powers is already here. Halving the range answers
+ *       it in five tests for every width a caller can ask for, where the walk takes one per zero.
+ */
+static unsigned strip_pow(uint64_t mant, unsigned digits)
+{
+    unsigned low = 0u;
+    unsigned high = digits - 1u;
+
+    while (low < high)
+    {
+        // The midpoint is taken high so the range always shrinks: a low of k and a high of k+1
+        // would otherwise settle on k and test it forever
+        const unsigned mid = low + ((high - low + 1u) / 2u);
+
+        if ((mant % POW10_64[mid]) == 0u)
+        {
+            low = mid;
+        }
+        else
+        {
+            high = mid - 1u;
+        }
+    }
+    return digits - low;
+}
 
 /**
  * @brief What verba_digits does today: a descending divisor, most significant digit first.
@@ -2135,6 +2271,32 @@ void dbench_run(void)
             // seventeen digit mantissa here ends in a two, so the loop tests once and drops nothing:
             // this is the cheapest that strip ever is.
             DBENCH_OP("g:strip", iters, DBENCH_KEEP((g_g_mant % 10u) == 0u));
+
+            // The walk against the table check, at both ends of the input. Pi ends in a two, so the
+            // walk stops immediately and this is the case where it is cheapest; two at seventeen
+            // significant digits carries sixteen trailing zeros, so the walk runs sixteen times,
+            // and round numbers are not a rare input.
+            DBENCH_AB("g:strip_pi", iters, 17u, DBENCH_KEEP(strip_loop(g_g_mant, 17u)),
+                      DBENCH_KEEP(strip_pow(g_g_mant, 17u)));
+
+            DBENCH_AB("g:strip_rnd", iters, 17u, DBENCH_KEEP(strip_loop(g_g_round, 17u)),
+                      DBENCH_KEEP(strip_pow(g_g_round, 17u)));
+
+            // The walk against itself with the remainder taken off the quotient, so each step is
+            // one division by ten rather than a modulo and a division by ten. Both ends again,
+            // since a shape that helps the sixteen zero case must not cost the common one.
+            DBENCH_AB("g:strip_one_pi", iters, 17u, DBENCH_KEEP(strip_loop(g_g_mant, 17u)),
+                      DBENCH_KEEP(strip_once(g_g_mant, 17u)));
+
+            DBENCH_AB("g:strip_one_rnd", iters, 17u, DBENCH_KEEP(strip_loop(g_g_round, 17u)),
+                      DBENCH_KEEP(strip_once(g_g_round, 17u)));
+
+            // And the same walk with no division in it at all, against the one the library carries.
+            DBENCH_AB("g:strip_rec_pi", iters, 17u, DBENCH_KEEP(strip_loop(g_g_mant, 17u)),
+                      DBENCH_KEEP(strip_recip(g_g_mant, 17u)));
+
+            DBENCH_AB("g:strip_rec_rnd", iters, 17u, DBENCH_KEEP(strip_loop(g_g_round, 17u)),
+                      DBENCH_KEEP(strip_recip(g_g_round, 17u)));
 
             DBENCH_OP("g:digits", iters,
                       DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide,
