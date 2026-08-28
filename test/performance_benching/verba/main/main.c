@@ -60,6 +60,15 @@ static MMGR_ALIGN(MMGR_ALIGN_BYTES) char g_wide[64];
 static volatile size_t g_len = 30u;
 
 /**
+ * @brief A whole number of words, so the copy has no tail bytes to finish with.
+ *
+ * @note Thirty bytes leaves two for proxim_tail, which walks them one at a time. Thirty two leaves
+ *       none, so the pair of rows says whether the distance to memcpy is in the word run or in the
+ *       stages either side of it.
+ */
+static volatile size_t g_len_whole = 32u;
+
+/**
  * @brief The same text reached through a pointer the compiler cannot follow.
  *
  * @note Handed a literal, GCC knows its length and never emits a measure on the libc side at all.
@@ -607,6 +616,41 @@ static void copy_words_locals(BenchCopyCtx *args)
 }
 
 /**
+ * @brief The same run taking two words an iteration, with a single word finishing an odd count.
+ *
+ * @param[in,out] args Destination, source and the count still to copy [BORROWS].
+ * @note Four words an iteration was measured and lost: at thirty bytes it runs once and leaves three
+ *       words to a second loop, so the wider test costs more than the iterations it saves. Two is
+ *       the smallest step that halves the loop arithmetic without leaving that much behind.
+ */
+static void copy_words_two(BenchCopyCtx *args)
+{
+    size_t w = args->bytes & ~(size_t)(MMGR_RAW_WORD - 1u);
+
+    if (w == 0u)
+    {
+        return;
+    }
+    args->bytes -= w;
+
+    while (w >= (2u * MMGR_RAW_WORD))
+    {
+        *(bench_aequus_word_t *)args->dst = *(const bench_aequus_word_t *)args->src;
+        *(bench_aequus_word_t *)(args->dst + MMGR_RAW_WORD) =
+            *(const bench_aequus_word_t *)(args->src + MMGR_RAW_WORD);
+        args->dst += 2u * MMGR_RAW_WORD;
+        args->src += 2u * MMGR_RAW_WORD;
+        w -= 2u * MMGR_RAW_WORD;
+    }
+    if (w != 0u)
+    {
+        *(bench_aequus_word_t *)args->dst = *(const bench_aequus_word_t *)args->src;
+        args->dst += MMGR_RAW_WORD;
+        args->src += MMGR_RAW_WORD;
+    }
+}
+
+/**
  * @brief Source and destination for the copy check, with slack for every offset it walks.
  */
 static uint8_t g_check_src[192];
@@ -798,7 +842,23 @@ void dbench_run(void)
                            copy_words_args(&one), DBENCH_KEEP(g_wide)),
                           (two.dst = (uint8_t *)g_wide, two.src = (const uint8_t *)text, two.bytes = g_len,
                            copy_words_locals(&two), DBENCH_KEEP(g_wide)));
+
+                // One word an iteration against two. The loop's own arithmetic is the whole gap to a
+                // hand written memcpy: it moves a word in about three cycles and this moves one in
+                // about seven, and the difference is the decrement and the branch, not the move.
+                DBENCH_AB("s:words2", iters, sizeof text - 1u,
+                          (one.dst = (uint8_t *)g_wide, one.src = (const uint8_t *)text, one.bytes = g_len,
+                           copy_words_args(&one), DBENCH_KEEP(g_wide)),
+                          (two.dst = (uint8_t *)g_wide, two.src = (const uint8_t *)text, two.bytes = g_len,
+                           copy_words_two(&two), DBENCH_KEEP(g_wide)));
             }
+
+            // The same copy at a length that divides into whole words. Against the thirty byte row,
+            // the difference is proxim_tail walking two bytes one at a time.
+            DBENCH_AB("s:copy32", iters, 32u,
+                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len_whole),
+                       DBENCH_KEEP(g_wide)),
+                      (memcpy(g_wide, text, g_len_whole), DBENCH_KEEP(g_wide)));
 
             // The copy on its own, with no room test and no entry above it, so the row above can be
             // read: whatever this one does not account for is what verba_put_n adds on top.
