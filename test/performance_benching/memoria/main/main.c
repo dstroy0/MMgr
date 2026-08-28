@@ -50,6 +50,16 @@ static volatile size_t g_take = 64u;
 static volatile size_t g_cmp_len = 8u;
 
 /**
+ * @brief The two regions, reached so the compiler cannot see which objects they are.
+ *
+ * @note Handed g_a and g_b directly, a walk taking plain pointers is told they are aligned globals
+ *       that cannot alias, and it is optimised on that. A backend inside the library is told none of
+ *       that, so a row comparing the two is not comparing the same situation.
+ */
+static const uint8_t *volatile g_cmp_a;
+static const uint8_t *volatile g_cmp_b;
+
+/**
  * @brief Values and a scratch word for the byte order rows, hidden from the compiler.
  *
  * @note A constant folds a byte reversal away entirely: the compiler reverses it at build time and
@@ -124,6 +134,32 @@ static mmgr_iword cmp_via_ctx(const BenchCmpCtx *args)
     {
         if (MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at) !=
             MMGR_CALL(word.load, ScrutWordCfg, .at = args->other + at))
+        {
+            return 1;
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return 0;
+}
+
+/**
+ * @brief The context walk with both addresses read once before the loop rather than once a word.
+ *
+ * @param[in] args The two regions and the count [BORROWS].
+ * @return         Zero when they agree over the whole run.
+ * @note Tested on cellul.eq, where it was worth two thousandths of a cycle a byte, and then assumed
+ *       to be worth nothing here without being run. It is run here.
+ */
+static mmgr_iword cmp_ctx_hoisted(const BenchCmpCtx *args)
+{
+    const uint8_t *const a = args->src;
+    const uint8_t *const b = args->other;
+    const size_t full = (args->bytes / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        if (MMGR_CALL(word.load, ScrutWordCfg, .at = a + at) != MMGR_CALL(word.load, ScrutWordCfg, .at = b + at))
         {
             return 1;
         }
@@ -527,6 +563,18 @@ void dbench_run(void)
 
                 DBENCH_AB("cmp_ctx", iters, n, DBENCH_KEEP(cmp_via_ctx(&ctx)),
                           DBENCH_KEEP(cmp_unaligned(g_a, g_b, g_cmp_len)));
+
+                DBENCH_AB("cmp_hoist", iters, n, DBENCH_KEEP(cmp_via_ctx(&ctx)),
+                          DBENCH_KEEP(cmp_ctx_hoisted(&ctx)));
+
+                // The plain pointer walk again, this time handed its two regions through pointers
+                // the compiler cannot trace to an object. If it stays fast the shape is worth
+                // taking into the backend; if it slows to the context walk, the fast arm was only
+                // ever fast because it could see g_a and g_b.
+                g_cmp_a = g_a;
+                g_cmp_b = g_b;
+                DBENCH_AB("cmp_opaque", iters, n, DBENCH_KEEP(cmp_via_ctx(&ctx)),
+                          DBENCH_KEEP(cmp_unaligned(g_cmp_a, g_cmp_b, g_cmp_len)));
             }
 
             DBENCH_AB("chr", iters, n,
