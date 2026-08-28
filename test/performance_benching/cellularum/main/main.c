@@ -328,6 +328,79 @@ static mmgr_bool agree_inline_zero(const char *a, const char *b, size_t cap)
 }
 
 /**
+ * @brief Mycroft's four operations, with the difference test moved ahead of them.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether both end together with no difference before it.
+ * @note The control for the filter arm below, which changed the ordering as well as the test and so
+ *       could not say which of the two it was measuring. This changes only the ordering.
+ */
+static mmgr_bool agree_reordered(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+
+        if (wa != wb)
+        {
+            return MMGR_FALSE;
+        }
+        if (((wa - MMGR_SWAR_ONES) & ~wa & MMGR_VERBUM_SCRUTOR_HIGH) != 0u)
+        {
+            return MMGR_TRUE;
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return MMGR_TRUE;
+}
+
+/**
+ * @brief The same walk with the terminator test split into a cheap filter and a rare exact one.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether both end together with no difference before it.
+ * @note Mycroft's test is a subtract, a complement and two ands. The subtract and one and on their
+ *       own - (w - ones) & high - never miss a zero: a zero lane borrows and its high bit is set
+ *       whatever the lanes below it did. It over-reports, on a byte of 0x80 or above and on a borrow
+ *       running into a lane, so a word it fires on still needs the exact test. A word it does not
+ *       fire on is settled in two operations rather than four, and in text below 0x80 it never
+ *       fires at all.
+ */
+static mmgr_bool agree_filter_zero(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+
+        if (wa != wb)
+        {
+            return MMGR_FALSE;
+        }
+        if (((wa - MMGR_SWAR_ONES) & MMGR_VERBUM_SCRUTOR_HIGH) != 0u)
+        {
+            if (((wa - MMGR_SWAR_ONES) & ~wa & MMGR_VERBUM_SCRUTOR_HIGH) != 0u)
+            {
+                return MMGR_TRUE;
+            }
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return MMGR_TRUE;
+}
+
+/**
  * @brief The word type the single pass copy stores through, aligned and allowed to alias bytes.
  */
 typedef mmgr_word bench_word_t MMGR_ALIAS;
@@ -743,6 +816,21 @@ void dbench_run(void)
             DBENCH_AB("eq_zero", iters, n,
                       DBENCH_KEEP(agree_entry_zero(g_cp_src, g_cp_dst, n + 1u)),
                       DBENCH_KEEP(agree_inline_zero(g_cp_src, g_cp_dst, n + 1u)));
+
+            // Mycroft's four operations against a two operation filter that never misses a zero,
+            // with the exact test kept for the words it fires on. The fill is letters below 0x80,
+            // so it fires on none of them, which is the case this is for.
+            // Two changes, measured apart. The ordering alone first: Mycroft either side, with the
+            // difference test moved ahead of it.
+            DBENCH_AB("eq_order", iters, n,
+                      DBENCH_KEEP(agree_inline_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_KEEP(agree_reordered(g_cp_src, g_cp_dst, n + 1u)));
+
+            // Then the filter alone, against that same reordering, so the only thing between these
+            // two arms is four operations against two.
+            DBENCH_AB("eq_filter", iters, n,
+                      DBENCH_KEEP(agree_reordered(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_KEEP(agree_filter_zero(g_cp_src, g_cp_dst, n + 1u)));
 
             // The entry against the same loop written out here. Both walk two words a step with the
             // same test, so a difference that grows with the length is not the call overhead and
