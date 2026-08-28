@@ -272,6 +272,62 @@ static uint32_t ascii_span_libc_print(void)
 }
 
 /**
+ * @brief The agree walk with the terminator test reached through the lane entry, as it is written.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether both end together with no difference before it.
+ */
+static mmgr_bool agree_entry_zero(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+
+        if ((MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) != 0u) || (wa != wb))
+        {
+            return (mmgr_bool)(wa == wb);
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return MMGR_TRUE;
+}
+
+/**
+ * @brief The same walk with Mycroft's test written where it is used.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether both end together with no difference before it.
+ * @note Four operations either way. The question is whether reaching them through the lane entry
+ *       costs anything a word, which is what clz turned out to be doing.
+ */
+static mmgr_bool agree_inline_zero(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+
+        if ((((wa - MMGR_SWAR_ONES) & ~wa & MMGR_VERBUM_SCRUTOR_HIGH) != 0u) || (wa != wb))
+        {
+            return (mmgr_bool)(wa == wb);
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return MMGR_TRUE;
+}
+
+/**
  * @brief The word type the single pass copy stores through, aligned and allowed to alias bytes.
  */
 typedef mmgr_word bench_word_t MMGR_ALIAS;
@@ -677,6 +733,16 @@ void dbench_run(void)
             // step, where cellul_len walks a head first and reads through the aligned one.
             DBENCH_AB("eq_align", iters, n, DBENCH_KEEP(eq_unaligned(g_a, g_b, n + 1u)),
                       DBENCH_KEEP(eq_aligned(g_a, g_b, n + 1u)));
+
+            // eq costs 4.57 cycles a byte where diff, the same walk without the terminator test,
+            // costs 2.02. Four operations should not be worth ten cycles a word, so this asks
+            // whether reaching them through the lane entry is what they actually cost - which is
+            // what clz turned out to be doing. Both regions arrive through untraceable pointers.
+            g_cp_src = g_a;
+            g_cp_dst = (char *)g_b;
+            DBENCH_AB("eq_zero", iters, n,
+                      DBENCH_KEEP(agree_entry_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_KEEP(agree_inline_zero(g_cp_src, g_cp_dst, n + 1u)));
 
             // The entry against the same loop written out here. Both walk two words a step with the
             // same test, so a difference that grows with the length is not the call overhead and
