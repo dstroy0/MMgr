@@ -13,12 +13,14 @@
  * cmp and chr are the two that walk; cpy and set are moves, and are here because the same libc
  * routines are what a caller would otherwise reach for.
  */
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "device_bench.h"
 
 #include "carceribus/carceribus.h"
+#include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 #include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
 
@@ -61,6 +63,238 @@ static volatile unsigned g_swap_off = 0u;
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_a[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_b[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_d[CAP];
+
+/**
+ * @brief Bytes the ring rows work in, a power of two as init requires.
+ */
+#define RING_CAP 1024u
+
+/**
+ * @brief Segments the ring is divided into for the segment layer rows.
+ */
+#define RING_SEGS 4u
+
+/**
+ * @brief The span each ring row moves.
+ */
+#define RING_SPAN 64u
+
+static mmgr_ring g_ring;
+static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_ring_buf[RING_CAP];
+static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_ring_out[RING_CAP];
+
+/**
+ * @brief Head and tail for the ring a caller writes instead, to compare the mmgr one against.
+ *
+ * @note Plain indices into a power of two buffer with memcpy doing the moving, split in two when a
+ *       span crosses the end. That is the whole of what a hand rolled ring is, and it is the honest
+ *       counterpart: there is no libc ring to measure against.
+ */
+static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_hand_buf[RING_CAP];
+static size_t g_hand_head;
+static size_t g_hand_tail;
+
+/**
+ * @brief The same two indices, ordered the way the ring orders its own.
+ *
+ * @note infin_available reads head and tail with acquire loads, because the ring is safe for a
+ *       producer and a consumer in separate contexts. The plain indices above are not, so a row
+ *       against them is not measuring the same job. These are, and the pair of rows separates what
+ *       the ordering costs from what the entry costs.
+ */
+static _Atomic size_t g_ord_head;
+static _Atomic size_t g_ord_tail;
+
+/**
+ * @brief Writes a span into the hand rolled ring, splitting it at the end when it crosses.
+ *
+ * @param[in] src   Bytes to write [BORROWS].
+ * @param[in] bytes How many.
+ * @return          Whether it fitted.
+ */
+static mmgr_bool hand_put(const uint8_t *src, size_t bytes)
+{
+    if ((RING_CAP - (g_hand_head - g_hand_tail)) < bytes)
+    {
+        return MMGR_FALSE;
+    }
+
+    const size_t at = g_hand_head & (RING_CAP - 1u);
+    const size_t first = ((at + bytes) > RING_CAP) ? (RING_CAP - at) : bytes;
+
+    memcpy(g_hand_buf + at, src, first);
+    if (first != bytes)
+    {
+        memcpy(g_hand_buf, src + first, bytes - first);
+    }
+    g_hand_head += bytes;
+    return MMGR_TRUE;
+}
+
+/**
+ * @brief Reads a span out of the hand rolled ring, splitting it at the end when it crosses.
+ *
+ * @param[out] dst   Where the bytes go [BORROWS].
+ * @param[in]  bytes How many to take.
+ * @return           How many were taken.
+ */
+static size_t hand_read(uint8_t *dst, size_t bytes)
+{
+    const size_t held = g_hand_head - g_hand_tail;
+    const size_t take = (held < bytes) ? held : bytes;
+    const size_t at = g_hand_tail & (RING_CAP - 1u);
+    const size_t first = ((at + take) > RING_CAP) ? (RING_CAP - at) : take;
+
+    memcpy(dst, g_hand_buf + at, first);
+    if (first != take)
+    {
+        memcpy(dst + first, g_hand_buf, take - first);
+    }
+    g_hand_tail += take;
+    return take;
+}
+
+/**
+ * @brief One segment claimed, published, taken and released.
+ *
+ * @return A value the harness keeps, so the cycle is not discarded.
+ * @note The segment layer has no hand rolled counterpart worth writing: it is the ring's own
+ *       producer and consumer handshake, not a copy, so the row is what it costs rather than a
+ *       comparison against anything.
+ */
+static uintptr_t ring_segment_cycle(void)
+{
+    size_t idx = 0u;
+    uintptr_t seen = 0u;
+
+    if (MMGR_CALL(iteratio_infinita.seg_next, InfinCfg, .ring = &g_ring, .out = &idx))
+    {
+        seen |= (uintptr_t)MMGR_CALL(iteratio_infinita.seg_at, InfinCfg, .ring = &g_ring, .idx = idx);
+        MMGR_CALL(iteratio_infinita.seg_publish, InfinCfg, .ring = &g_ring);
+    }
+    if (MMGR_CALL(iteratio_infinita.seg_front, InfinCfg, .ring = &g_ring, .out = &idx))
+    {
+        seen |= idx + 1u;
+        MMGR_CALL(iteratio_infinita.seg_release, InfinCfg, .ring = &g_ring);
+    }
+    return seen;
+}
+
+/**
+ * @brief One loculus found, held, read back and given up again.
+ *
+ * @return A value the harness keeps, so the cycle is not discarded.
+ * @note Also no counterpart: a keepout is a region the ring promises not to touch, which a plain
+ *       ring has no notion of at all.
+ */
+static uintptr_t ring_loculus_cycle(void)
+{
+    const mmgr_word ready = MMGR_CALL(iteratio_infinita.loculus_ready, InfinCfg, .ring = &g_ring);
+    const mmgr_iword slot = MMGR_CALL(iteratio_infinita.loculus_next, InfinCfg, .ring = &g_ring, .mask = ready);
+    uintptr_t seen = (uintptr_t)ready;
+
+    if (slot >= 0)
+    {
+        // Explicit cast takes the reported index into the size_t the calls below name it with
+        const size_t idx = (size_t)slot;
+
+        if (MMGR_CALL(iteratio_infinita.loculus_hold, InfinCfg, .ring = &g_ring, .idx = idx, .src = g_a,
+                      .bytes = RING_SPAN))
+        {
+            seen |= (uintptr_t)MMGR_CALL(iteratio_infinita.loculus_keepout, InfinCfg, .ring = &g_ring,
+                                         .idx = idx);
+            MMGR_CALL(iteratio_infinita.loculus_drop, InfinCfg, .ring = &g_ring, .idx = idx);
+            MMGR_CALL(iteratio_infinita.loculus_mark, InfinCfg, .ring = &g_ring, .idx = idx);
+        }
+    }
+    return seen;
+}
+
+/**
+ * @brief One byte taken through read_byte, against the same byte taken by hand.
+ *
+ * @return The byte, so the take is not discarded.
+ */
+static uintptr_t ring_byte_mmgr(void)
+{
+    uint8_t held = 0u;
+
+    (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_a, .bytes = 1u);
+    (void)MMGR_CALL(iteratio_infinita.read_byte, InfinCfg, .ring = &g_ring, .dst = &held);
+    return (uintptr_t)held;
+}
+
+/**
+ * @brief The same one byte through the hand rolled ring.
+ *
+ * @return The byte, so the take is not discarded.
+ */
+static uintptr_t ring_byte_hand(void)
+{
+    uint8_t held = 0u;
+
+    (void)hand_put(g_a, 1u);
+    (void)hand_read(&held, 1u);
+    return (uintptr_t)held;
+}
+
+/**
+ * @brief A span looked at without taking it, then the tail moved past it.
+ *
+ * @return A value the harness keeps.
+ */
+static uintptr_t ring_peek_mmgr(void)
+{
+    (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_a, .bytes = RING_SPAN);
+    MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = g_ring_out, .bytes = RING_SPAN,
+              .off = 0u);
+    MMGR_CALL(iteratio_infinita.consume, InfinCfg, .ring = &g_ring, .bytes = RING_SPAN);
+    return (uintptr_t)g_ring_out[0];
+}
+
+/**
+ * @brief The same, by hand: a copy that does not advance, then the tail moved past it.
+ *
+ * @return A value the harness keeps.
+ */
+static uintptr_t ring_peek_hand(void)
+{
+    (void)hand_put(g_a, RING_SPAN);
+
+    const size_t at = g_hand_tail & (RING_CAP - 1u);
+    const size_t first = ((at + RING_SPAN) > RING_CAP) ? (RING_CAP - at) : RING_SPAN;
+
+    memcpy(g_ring_out, g_hand_buf + at, first);
+    if (first != RING_SPAN)
+    {
+        memcpy(g_ring_out + first, g_hand_buf, RING_SPAN - first);
+    }
+    g_hand_tail += RING_SPAN;
+    return (uintptr_t)g_ring_out[0];
+}
+
+/**
+ * @brief One span in and the same span out of the mmgr ring.
+ *
+ * @return A value the harness keeps, so the pass is not discarded.
+ */
+static uintptr_t ring_round_mmgr(void)
+{
+    (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_a, .bytes = RING_SPAN);
+    return (uintptr_t)MMGR_CALL(iteratio_infinita.read, InfinCfg, .ring = &g_ring, .dst = g_ring_out,
+                                .bytes = RING_SPAN);
+}
+
+/**
+ * @brief The same span in and out of the hand rolled ring.
+ *
+ * @return A value the harness keeps, so the pass is not discarded.
+ */
+static uintptr_t ring_round_hand(void)
+{
+    (void)hand_put(g_a, RING_SPAN);
+    return (uintptr_t)hand_read(g_ring_out, RING_SPAN);
+}
 
 /**
  * @brief One tenancy taken from the persist end and given straight back.
@@ -243,6 +477,56 @@ void dbench_run(void)
             DBENCH_AB("pool_persist", iters, 64u, DBENCH_KEEP(pool_take_give()), DBENCH_KEEP(heap_take_give()));
 
             DBENCH_AB("pool_interim", iters, 64u, DBENCH_KEEP(pool_run_mark()), DBENCH_KEEP(heap_run_free()));
+        }
+
+        // The ring. There is no libc ring, so the counterpart is the one a caller writes instead:
+        // two indices into a power of two buffer with memcpy moving the bytes and a split when a
+        // span crosses the end. The first two rows are the index arithmetic on its own, which is
+        // where the ring's own logic lives and where no bytes move at all; the third is a span in
+        // and the same span out, which is copy bound and inherits whatever proxim.read costs.
+        {
+            const uint32_t iters = 5000u;
+
+            (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_ring_buf,
+                            .cap = RING_CAP, .nsegs = RING_SEGS);
+            g_hand_head = 0u;
+            g_hand_tail = 0u;
+
+            DBENCH_AB("ring_avail", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(iteratio_infinita.available, InfinCfg, .ring = &g_ring)),
+                      DBENCH_KEEP(g_hand_head - g_hand_tail));
+
+            // The same question against two indices read the way the ring reads its own. The row
+            // above is against a plain subtraction, which is not safe across two contexts and so is
+            // not the same job; this one is, and the gap between the two rows is the ordering.
+            DBENCH_AB("ring_avail_ord", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(iteratio_infinita.available, InfinCfg, .ring = &g_ring)),
+                      DBENCH_KEEP(atomic_load_explicit(&g_ord_head, memory_order_acquire) -
+                                  atomic_load_explicit(&g_ord_tail, memory_order_acquire)));
+
+            DBENCH_AB("ring_vacant", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(iteratio_infinita.vacant, InfinCfg, .ring = &g_ring)),
+                      DBENCH_KEEP(RING_CAP - (g_hand_head - g_hand_tail)));
+
+            DBENCH_AB("ring_round", iters, RING_SPAN, DBENCH_KEEP(ring_round_mmgr()),
+                      DBENCH_KEEP(ring_round_hand()));
+
+            DBENCH_AB("ring_byte", iters, 1u, DBENCH_KEEP(ring_byte_mmgr()), DBENCH_KEEP(ring_byte_hand()));
+
+            DBENCH_AB("ring_peek", iters, RING_SPAN, DBENCH_KEEP(ring_peek_mmgr()),
+                      DBENCH_KEEP(ring_peek_hand()));
+
+            DBENCH_AB("ring_init", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring,
+                                            .buf = g_ring_buf, .cap = RING_CAP, .nsegs = RING_SEGS)),
+                      DBENCH_KEEP((g_hand_head = 0u, g_hand_tail = 0u, (uintptr_t)1)));
+
+            // The two layers a plain ring has no answer for at all, so these are absolute costs
+            // rather than comparisons: a segment handshake, and a loculus taken and given back.
+            (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_ring_buf,
+                            .cap = RING_CAP, .nsegs = RING_SEGS);
+            DBENCH_OP("ring_segment", iters, DBENCH_KEEP(ring_segment_cycle()));
+            DBENCH_OP("ring_loculus", iters, DBENCH_KEEP(ring_loculus_cycle()));
         }
 
         DBENCH_DONE();
