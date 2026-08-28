@@ -32,6 +32,7 @@
 #include "device_bench.h"
 
 #include "clz/clz.h"
+#include "numeros_scribo/numeros_scribo.h"
 #include "proximus_operor/proximus_operor.h"
 #include "verba_scribo/verba_scribo.h"
 
@@ -75,6 +76,16 @@ static volatile size_t g_len_whole = 32u;
  *       Read through this, both sides have to walk the string before they can copy it.
  */
 static const char *volatile g_text = "the quick brown fox jumps over";
+
+/**
+ * @brief The three values the record row places, where the compiler cannot see them.
+ *
+ * @note Given literals, GCC evaluates the whole snprintf at build time and the libc arm measures an
+ *       empty loop; the mmgr arm folds too, since every field is then a constant.
+ */
+static volatile uint64_t g_rec_u64 = 18446744073709551615ull;
+static volatile uint32_t g_rec_hex = 0xDEADBEEFu;
+static volatile double g_rec_real = -2.5;
 
 /**
  * @brief Powers of ten the scan counter compares against, as verba_scribo carries them.
@@ -1284,6 +1295,21 @@ void dbench_run(void)
                                             .cap = sizeof g_wide, .at = 0u, .real = 3.14159265358979,
                                             .decimals = 6u)),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%.*f", 6, 3.14159265358979)));
+        }
+
+        // A whole record against the one snprintf call a caller writes instead. This is where the
+        // per entry wins are supposed to compound: six fields, three of them values, and the libc
+        // side pays one format parse for the lot while the mmgr side pays none at all.
+        {
+            const mmgr_fval fields[] = {MMGR_VSTR("id="),  MMGR_VU64(g_rec_u64), MMGR_VSTR(" x="),
+                                        MMGR_VHEXW(g_rec_hex, 8), MMGR_VSTR(" f="), MMGR_VFIXW(g_rec_real, 4)};
+
+            DBENCH_AB("s:record", 2000u, 34u,
+                      DBENCH_KEEP(MMGR_CALL(numer.emit, NumerosCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .vals = fields, .nvals = sizeof fields / sizeof fields[0])),
+                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "id=%llu x=%08lx f=%.4f",
+                                           (unsigned long long)g_rec_u64, (unsigned long)g_rec_hex,
+                                           g_rec_real)));
         }
 
         DBENCH_OP("floor_loop", 20000u, DBENCH_KEEP(g_out));
