@@ -547,6 +547,103 @@ static mmgr_bool part_marked(const char *a, const char *b, size_t cap)
 }
 
 /**
+ * @brief The agree walk leaving on one combined test, with the exact one only where it leaves.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether both end together with no difference before it.
+ * @note The hot path carries a difference and a two operation terminator filter folded into a single
+ *       test: an exclusive or for the difference, and (w - ones) & high for the terminator, which
+ *       never misses a zero but fires on a byte of 0x80 or above. Four operations and one branch
+ *       where the exact test alone is four and two.
+ * @note A word the test fires on is resolved once, outside the walk's arithmetic: a real difference
+ *       returns, a real terminator returns, and a byte that only looked like one resumes the walk.
+ *       The earlier attempt at this nested the tests three deep on the hot path and lost.
+ */
+static mmgr_bool part_onetest(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+
+        // One test for both questions: the words differ, or a lane may hold the terminator
+        if (((wa ^ wb) | ((wa - MMGR_SWAR_ONES) & MMGR_VERBUM_SCRUTOR_HIGH)) != 0u)
+        {
+            if (wa != wb)
+            {
+                return MMGR_FALSE;
+            }
+            if (((wa - MMGR_SWAR_ONES) & ~wa & MMGR_VERBUM_SCRUTOR_HIGH) != 0u)
+            {
+                return MMGR_TRUE;
+            }
+            // A byte of 0x80 or above fired the filter without being a terminator; the words agree
+            // and the walk carries on from the next one
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return MMGR_TRUE;
+}
+
+/**
+ * @brief The agree walk with each word's loads issued while the word before it is being tested.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether both end together with no difference before it.
+ * @note The compiler will not do this itself. Both tests can leave the loop, so it cannot lift the
+ *       next pair of loads above them - past an exit the load might not be one the walk is allowed
+ *       to perform. The walk knows something the compiler does not: every word below full is
+ *       readable whatever the tests say, so the next pair can issue before the current pair is
+ *       examined and the load latency runs underneath the terminator arithmetic instead of after it.
+ * @note The last word is left to the tail below, since there is no next one to read for it.
+ */
+static mmgr_bool part_pipelined(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    if (full == 0u)
+    {
+        return MMGR_TRUE;
+    }
+
+    mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a);
+    mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b);
+
+    // Stops one word short: the body reads the word after the one it tests
+    while (at + MMGR_SWAR_BYTES != full)
+    {
+        const mmgr_word na = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at + MMGR_SWAR_BYTES);
+        const mmgr_word nb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at + MMGR_SWAR_BYTES);
+
+        if (wa != wb)
+        {
+            return MMGR_FALSE;
+        }
+        if (MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) != 0u)
+        {
+            return MMGR_TRUE;
+        }
+        wa = na;
+        wb = nb;
+        at += MMGR_SWAR_BYTES;
+    }
+
+    if (wa != wb)
+    {
+        return MMGR_FALSE;
+    }
+    return MMGR_TRUE;
+}
+
+/**
  * @brief cellul_diff_lanes, copied from the library rather than restated.
  *
  * @param[in] d Exclusive or of the two words.
@@ -1195,6 +1292,16 @@ void dbench_run(void)
             // word, and a second walk over the block that fires only when something was found.
             DBENCH_AB("part_mark", iters, n, DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)),
                       DBENCH_KEEP(part_marked(g_cp_src, g_cp_dst, n + 1u)));
+
+            // Both tests folded into one, with the two operation filter standing in for the exact
+            // terminator test and the exact one run only where the fold fires.
+            DBENCH_AB("part_one", iters, n, DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_KEEP(part_onetest(g_cp_src, g_cp_dst, n + 1u)));
+
+            // The next word's loads issued before the current word is tested, which the compiler
+            // cannot do for itself because either test can leave the loop.
+            DBENCH_AB("part_pipe", iters, n, DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_KEEP(part_pipelined(g_cp_src, g_cp_dst, n + 1u)));
 
             // The entry against the same loop written out here. Both walk two words a step with the
             // same test, so a difference that grows with the length is not the call overhead and
