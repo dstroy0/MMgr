@@ -575,6 +575,14 @@ void dbench_run(void)
                 g_cmp_b = g_b;
                 DBENCH_AB("cmp_opaque", iters, n, DBENCH_KEEP(cmp_via_ctx(&ctx)),
                           DBENCH_KEEP(cmp_unaligned(g_cmp_a, g_cmp_b, g_cmp_len)));
+
+                // The aligned load, asked again where it can mean something. The earlier row put it
+                // at 1.00, but both arms there were handed g_a and g_b, so the compiler already knew
+                // the addresses were on a boundary and emitted the same instruction either way. With
+                // pointers it cannot trace, the unaligned load has to actually be unaligned.
+                DBENCH_AB("cmp_al_opaque", iters, n,
+                          DBENCH_KEEP(cmp_unaligned(g_cmp_a, g_cmp_b, g_cmp_len)),
+                          DBENCH_KEEP(cmp_aligned(g_cmp_a, g_cmp_b, g_cmp_len)));
             }
 
             DBENCH_AB("chr", iters, n,
