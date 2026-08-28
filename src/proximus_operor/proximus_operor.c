@@ -251,7 +251,12 @@ MMGR_INLINE void proxim_head(ProximReadCtx *args)
  * @brief Copies whole MMGR_RAW_WORD words, leaving fewer than one word for proxim_tail.
  *
  * @param[in,out] args Destination, source and the count still to copy [BORROWS].
- * @note Stores through mmgr_aequus_word_t but loads through mmgr_proxim_word_t, since only args->dst was aligned.
+ * @note Stores through mmgr_aequus_word_t always, since proxim_head is what put args->dst on a boundary.
+ * @note Loads through mmgr_aequus_word_t as well when args->src came to rest on a boundary too, and
+ *       through mmgr_proxim_word_t when it did not. Two addresses that started the copy at the same
+ *       offset within a word reach the aligned run, which is one load an instruction rather than the
+ *       byte sequence the unaligned type compiles to on a target with no unaligned load.
+ * @note The test is one mask and one compare for the whole run, not one per word.
  * @note Advances both pointers and draws the whole words off args->bytes.
  * @warning Depends on proxim_head having run, which is what puts args->dst on a boundary.
  */
@@ -264,6 +269,20 @@ MMGR_INLINE void proxim_words(ProximReadCtx *args)
         return;
     }
     args->bytes -= w;
+
+    // Explicit cast holds the address at uintptr_t for the mask that asks whether it is on a boundary
+    if ((((uintptr_t)args->src) & (uintptr_t)(MMGR_RAW_WORD - 1u)) == 0u)
+    {
+        do
+        {
+            *(mmgr_aequus_word_t *)args->dst = *(const mmgr_aequus_word_t *)args->src;
+            args->dst += MMGR_RAW_WORD;
+            args->src += MMGR_RAW_WORD;
+            w -= MMGR_RAW_WORD;
+        } while (w);
+        return;
+    }
+
     do
     {
         *(mmgr_aequus_word_t *)args->dst = *(const mmgr_proxim_word_t *)args->src;

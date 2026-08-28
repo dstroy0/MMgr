@@ -26,17 +26,46 @@
  * emitter that wins at ten digits can lose at one, and the crossover is the reading.
  */
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "device_bench.h"
 
 #include "clz/clz.h"
+#include "proximus_operor/proximus_operor.h"
 #include "verba_scribo/verba_scribo.h"
 
 /**
  * @brief Where every emitter writes, big enough for the widest 32-bit value and a terminator.
  */
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) char g_out[16];
+
+/**
+ * @brief Where the rows that measure against libc write, wide enough for anything either side emits.
+ *
+ * @note Separate from g_out, which the emitter rows size against a 32-bit value. A full 64-bit
+ *       value is twenty digits and a %g at eighteen significant digits is longer still, so sharing
+ *       one buffer would have snprintf truncating on rows where the library entry does not.
+ */
+static MMGR_ALIGN(MMGR_ALIGN_BYTES) char g_wide[64];
+
+/**
+ * @brief A byte count the compiler cannot see the value of.
+ *
+ * @note Volatile on purpose. Handed a length it knows at compile time, GCC does not call memcpy at
+ *       all: it lays the copy down as straight line moves, which measured under half a cycle a byte
+ *       on the C6 and is not a library call being compared against a library call. A length read
+ *       through this reaches memcpy the way a caller with a runtime length does.
+ */
+static volatile size_t g_len = 30u;
+
+/**
+ * @brief The same text reached through a pointer the compiler cannot follow.
+ *
+ * @note Handed a literal, GCC knows its length and never emits a measure on the libc side at all.
+ *       Read through this, both sides have to walk the string before they can copy it.
+ */
+static const char *volatile g_text = "the quick brown fox jumps over";
 
 /**
  * @brief Powers of ten the scan counter compares against, as verba_scribo carries them.
@@ -392,6 +421,271 @@ static void digits_split(char *out, uint64_t mant, unsigned digits)
 }
 
 /**
+ * @brief put_n pulled into the caller, which is how a caller reaches it in a build with LTO on.
+ *
+ * @param[out] out  Where the text goes [BORROWS].
+ * @param[in]  text Text to write [BORROWS].
+ * @param[in]  len  Bytes of it.
+ * @return          The offset past what was written.
+ * @note The same entry and the same bounds test as the row above, with the call boundary removed.
+ *       The gap between the two is what the entry layer costs and nothing else.
+ */
+MMGR_FLATTEN static size_t verba_put_n_flat(char *out, const char *text, size_t len)
+{
+    return MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = out, .cap = 64u, .at = 0u, .text = text,
+                     .text_len = len);
+}
+
+/**
+ * @brief Digits in a 64-bit value, from its leading zero count, as verba_digits10 counts them.
+ *
+ * @param[in] v Value to measure.
+ * @return      How many decimal digits it needs.
+ */
+static unsigned dc_clz64(uint64_t v)
+{
+    // Explicit cast narrows the iword the clz entry returns; the value is forced non-zero so the
+    // count is defined for every input, and the width is a fixed 64 because clz.lead counts an
+    // mmgr_u64 whatever the machine word is
+    const unsigned lead = (unsigned)MMGR_CALL(clz.lead, ClzCfg, .val = (mmgr_u64)(v | 1u));
+    const unsigned bits = 64u - lead;
+    const unsigned est = (bits * 1233u) >> 12u;
+
+    return est + (((v | 1u) >= POW10_64[est]) ? 1u : 0u);
+}
+
+/**
+ * @brief The cut as verba_emit20 performs it, with the width test inside.
+ *
+ * @param[out] out    Where the digits go [BORROWS].
+ * @param[in]  value  Value to write.
+ * @param[in]  digits How many to write.
+ */
+static void emit20(char *out, uint64_t value, unsigned digits)
+{
+    if (value <= 0xFFFFFFFFU)
+    {
+        // Explicit cast narrows to the width emit_recip takes; the test above established it fits
+        emit_recip(out, (uint32_t)value, digits);
+        return;
+    }
+
+    const uint64_t rest = value / POW10_64[8];
+    const uint32_t low = (uint32_t)(value - (rest * POW10_64[8]));
+
+    if (rest <= 0xFFFFFFFFU)
+    {
+        emit_recip(out, (uint32_t)rest, digits - 8u);
+    }
+    else
+    {
+        const uint64_t top = rest / POW10_64[8];
+        const uint32_t mid = (uint32_t)(rest - (top * POW10_64[8]));
+
+        emit_recip(out, (uint32_t)top, digits - 16u);
+        emit_recip(out + (digits - 16u), mid, 8u);
+    }
+    emit_recip(out + (digits - 8u), low, 8u);
+}
+
+/**
+ * @brief verba_uint's base ten path as it stands: count, then hand everything to the cut.
+ *
+ * @param[out] out Where the digits go [BORROWS].
+ * @param[in]  val Value to write.
+ * @return         Digits written.
+ * @note The A arm. The width test that keeps a 32-bit value off the cut lives inside emit20.
+ */
+static size_t uint_test_inside(char *out, uint64_t val)
+{
+    const unsigned digits = dc_clz64(val);
+
+    emit20(out, val, digits);
+    return digits;
+}
+
+/**
+ * @brief The same, with the width test hoisted into the caller as verba_uint used to carry it.
+ *
+ * @param[out] out Where the digits go [BORROWS].
+ * @param[in]  val Value to write.
+ * @return         Digits written.
+ * @note The B arm. This is the narrow path that was deleted from verba_uint without a row of its
+ *       own, on the reasoning that both tests fold to the same code. That is what this measures.
+ */
+static size_t uint_test_outside(char *out, uint64_t val)
+{
+    const unsigned digits = dc_clz64(val);
+
+    if (val <= 0xFFFFFFFFU)
+    {
+        // Explicit cast narrows to the width emit_recip takes; the test above established it fits
+        emit_recip(out, (uint32_t)val, digits);
+    }
+    else
+    {
+        emit20(out, val, digits);
+    }
+    return digits;
+}
+
+/**
+ * @brief The word types proxim_words copies through, mirrored here so both arms below are honest.
+ *
+ * @note MMGR_ALIAS is what makes the question worth asking: a store through a type carrying it may
+ *       alias anything the compiler knows of, so the A arm's loop cannot keep its own pointers in
+ *       registers across the store.
+ */
+typedef mmgr_migro_word bench_aequus_word_t MMGR_ALIAS;
+
+/**
+ * @brief What proxim_read carries between its three stages.
+ */
+typedef struct
+{
+    uint8_t *dst;       /**< Destination [BORROWS]. */
+    const uint8_t *src; /**< Source [BORROWS]. */
+    size_t bytes;       /**< Bytes still to copy. */
+} BenchCopyCtx;
+
+/**
+ * @brief The word run as proximus_operor writes it: both addresses advanced through the context.
+ *
+ * @param[in,out] args Destination, source and the count still to copy [BORROWS].
+ * @note The A arm. Every store goes through a type that may alias the context holding the pointers,
+ *       so the addresses are reloaded after each one.
+ */
+static void copy_words_args(BenchCopyCtx *args)
+{
+    size_t w = args->bytes & ~(size_t)(MMGR_RAW_WORD - 1u);
+
+    if (w == 0u)
+    {
+        return;
+    }
+    args->bytes -= w;
+
+    do
+    {
+        *(bench_aequus_word_t *)args->dst = *(const bench_aequus_word_t *)args->src;
+        args->dst += MMGR_RAW_WORD;
+        args->src += MMGR_RAW_WORD;
+        w -= MMGR_RAW_WORD;
+    } while (w);
+}
+
+/**
+ * @brief The same run with both addresses walked in locals and written back once at the end.
+ *
+ * @param[in,out] args Destination, source and the count still to copy [BORROWS].
+ * @note The B arm. Identical bytes moved and identical loads and stores; the only difference is
+ *       where the two addresses live while the loop runs.
+ */
+static void copy_words_locals(BenchCopyCtx *args)
+{
+    size_t w = args->bytes & ~(size_t)(MMGR_RAW_WORD - 1u);
+
+    if (w == 0u)
+    {
+        return;
+    }
+    args->bytes -= w;
+
+    uint8_t *to = args->dst;
+    const uint8_t *from = args->src;
+
+    do
+    {
+        *(bench_aequus_word_t *)to = *(const bench_aequus_word_t *)from;
+        to += MMGR_RAW_WORD;
+        from += MMGR_RAW_WORD;
+        w -= MMGR_RAW_WORD;
+    } while (w);
+
+    args->dst = to;
+    args->src = from;
+}
+
+/**
+ * @brief Source and destination for the copy check, with slack for every offset it walks.
+ */
+static uint8_t g_check_src[192];
+static uint8_t g_check_dst[192];
+
+/**
+ * @brief Checks proxim.read against a plain byte copy at every offset pair and length.
+ *
+ * @return The number of disagreements, which must be zero.
+ * @note The host suite cannot reach a target's assembly, so the copy is checked on the part itself
+ *       before any number taken from it means anything. Walks both alignments through a whole word
+ *       and every length up to sixty-four, which covers the head, the word run and the tail in every
+ *       combination, and checks the bytes on both sides of the run for a write that went too far.
+ */
+static uint32_t copy_is_correct(void)
+{
+    uint32_t bad = 0u;
+
+    for (uint32_t index = 0; index < sizeof g_check_src; index++)
+    {
+        // Explicit cast narrows the counter into the byte the pattern stores
+        g_check_src[index] = (uint8_t)(index + 1u);
+    }
+
+    for (uint32_t soff = 0; soff < 8u; soff++)
+    {
+        for (uint32_t doff = 0; doff < 8u; doff++)
+        {
+            for (uint32_t len = 0; len <= 64u; len++)
+            {
+                memset(g_check_dst, 0xA5, sizeof g_check_dst);
+
+                MMGR_CALL(proxim.read, ProximusCfg, .dst = g_check_dst + doff, .at = g_check_src + soff,
+                          .size = len);
+
+                if (doff != 0u)
+                {
+                    bad += (g_check_dst[doff - 1u] != 0xA5u) ? 1u : 0u;
+                }
+                bad += (g_check_dst[doff + len] != 0xA5u) ? 1u : 0u;
+
+                for (uint32_t index = 0; index < len; index++)
+                {
+                    if (g_check_dst[doff + index] != g_check_src[soff + index])
+                    {
+                        bad++;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return bad;
+}
+
+/**
+ * @brief What a caller writes with libc to get what one verba_put_n call gives them.
+ *
+ * @param[out] out Destination buffer [BORROWS].
+ * @param[in]  cap Bytes available in out.
+ * @param[in]  at  Offset to write at.
+ * @param[in]  src Text to write [BORROWS].
+ * @param[in]  len Bytes of it.
+ * @return         The offset past the text, or cap when it does not fit.
+ * @note The same refusal verba_room performs, then the copy. Written out here because memcpy on its
+ *       own answers a different question: it cannot decline, and it does not say where the next
+ *       write goes, so a caller holding a bounded buffer writes both halves either way.
+ */
+static size_t libc_put_n(char *out, size_t cap, size_t at, const char *src, size_t len)
+{
+    if ((at >= cap) || (len > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+    memcpy(out + at, src, len);
+    return at + len;
+}
+
+/**
  * @brief One pass: every emitter and both counters, at four digit widths.
  */
 void dbench_run(void)
@@ -402,6 +696,10 @@ void dbench_run(void)
     for (;;)
     {
         DBENCH_BANNER("verba itoa emitters and digit counters");
+
+        // Correctness before any timing. A copy that is wrong is not fast, it is broken, and the
+        // host suite cannot see a path the target assembler selected.
+        printf("DB copy_check      disagreements=%u\n", (unsigned)copy_is_correct());
 
         for (unsigned vi = 0; vi < (sizeof vals / sizeof vals[0]); vi++)
         {
@@ -452,6 +750,149 @@ void dbench_run(void)
                           (digits_descending(g_out, mantissas[which], widths[which]), DBENCH_KEEP(g_out)),
                           (digits_split(g_out, mantissas[which], widths[which]), DBENCH_KEEP(g_out)));
             }
+        }
+
+        // Every entry against the libc call a caller reaches for instead. snprintf is what newlib
+        // gives an embedded target, and the whole of it counts: parse the format, walk the varargs,
+        // convert, write. The A arm is the library, the B arm is libc.
+        {
+            static const char text[] = "the quick brown fox jumps over";
+            const uint32_t iters = 5000u;
+
+            // Two rows, because the two sides are not doing the same work unless they are told the
+            // same things. GCC knows the length of a literal, so it folds the snprintf arm into a
+            // memcpy; put is only handed the pointer, so it measures the string before copying it.
+            // The first row is put measuring, against snprintf; the second hands put the length it
+            // already has and compares against the copy libc actually performs.
+            DBENCH_AB("s:put", iters, sizeof text - 1u,
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .text = text)),
+                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%s", text)));
+
+            DBENCH_AB("s:put_n", iters, sizeof text - 1u,
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .text = text,
+                                            .text_len = sizeof text - 1u)),
+                      (memcpy(g_wide, text, sizeof text - 1u), DBENCH_KEEP(g_wide)));
+
+            // The width test inside the cut against the width test hoisted into the caller. This is
+            // the row that should have been run before verba_uint's narrow path was deleted: the
+            // widest value that still fits 32 bits is the case that regressed, and the 64-bit value
+            // is here to show the wide path was not paid for by the narrow one.
+            DBENCH_AB("s:uint32", iters, 10u, DBENCH_KEEP(uint_test_inside(g_wide, 4294967295ull)),
+                      DBENCH_KEEP(uint_test_outside(g_wide, 4294967295ull)));
+
+            DBENCH_AB("s:uint64", iters, 20u,
+                      DBENCH_KEEP(uint_test_inside(g_wide, 18446744073709551615ull)),
+                      DBENCH_KEEP(uint_test_outside(g_wide, 18446744073709551615ull)));
+
+            // The word run, addresses through the context against addresses in locals. Same loads,
+            // same stores, same bytes; the only difference is where the two addresses sit while the
+            // loop runs, and whether the may_alias store forces them back out to memory each time.
+            {
+                BenchCopyCtx one = {.dst = (uint8_t *)g_wide, .src = (const uint8_t *)text, .bytes = g_len};
+                BenchCopyCtx two = {.dst = (uint8_t *)g_wide, .src = (const uint8_t *)text, .bytes = g_len};
+
+                DBENCH_AB("s:words", iters, sizeof text - 1u,
+                          (one.dst = (uint8_t *)g_wide, one.src = (const uint8_t *)text, one.bytes = g_len,
+                           copy_words_args(&one), DBENCH_KEEP(g_wide)),
+                          (two.dst = (uint8_t *)g_wide, two.src = (const uint8_t *)text, two.bytes = g_len,
+                           copy_words_locals(&two), DBENCH_KEEP(g_wide)));
+            }
+
+            // The copy on its own, with no room test and no entry above it, so the row above can be
+            // read: whatever this one does not account for is what verba_put_n adds on top.
+            DBENCH_AB("s:copy", iters, sizeof text - 1u,
+                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text,
+                                 .size = sizeof text - 1u),
+                       DBENCH_KEEP(g_wide)),
+                      (memcpy(g_wide, text, sizeof text - 1u), DBENCH_KEEP(g_wide)));
+
+            // And the same entry with the call boundary gone, which is what a caller compiled with
+            // link time optimization actually gets, against the memcpy libc actually performs.
+            DBENCH_AB("s:put_flat", iters, sizeof text - 1u,
+                      DBENCH_KEEP(verba_put_n_flat(g_wide, text, sizeof text - 1u)),
+                      (memcpy(g_wide, text, sizeof text - 1u), DBENCH_KEEP(g_wide)));
+
+            // The same two at a single byte. What put_n costs over the copy at one byte is fixed
+            // overhead; what it costs over the copy at thirty is that same overhead plus whatever
+            // scales, and the two rows together say which of the two it is.
+            DBENCH_AB("s:copy1", iters, 1u,
+                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = 1u),
+                       DBENCH_KEEP(g_wide)),
+                      (memcpy(g_wide, text, 1u), DBENCH_KEEP(g_wide)));
+
+            DBENCH_AB("s:put_n1", iters, 1u,
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .text = text,
+                                            .text_len = 1u)),
+                      (memcpy(g_wide, text, 1u), DBENCH_KEEP(g_wide)));
+
+            // put_n against what a caller actually writes to get what put_n gives them. The memcpy
+            // rows above compare against a copy that cannot refuse: no capacity, no offset, no
+            // answer for where the next write goes. A caller filling a bounded buffer writes the
+            // test as well, and that test is part of the cost on both sides or on neither.
+            DBENCH_AB("s:put_safe", iters, sizeof text - 1u,
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .text = text,
+                                            .text_len = g_len)),
+                      DBENCH_KEEP(libc_put_n(g_wide, sizeof g_wide, 0u, text, g_len)));
+
+            // put against what libc costs a caller who also has to measure. The row above hands the
+            // snprintf arm a literal whose length GCC knows, so that arm never measures anything;
+            // this one hides the pointer, so both sides walk the string before copying it.
+            DBENCH_AB("s:put_meas", iters, sizeof text - 1u,
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .text = g_text)),
+                      (memcpy(g_wide, g_text, strlen(g_text)), DBENCH_KEEP(g_wide)));
+
+            // The same thirty bytes with the length hidden from the compiler on both arms, so this
+            // is verba's copy against the memcpy libc actually links, not against inlined moves.
+            DBENCH_AB("s:put_run", iters, sizeof text - 1u,
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .text = text,
+                                            .text_len = g_len)),
+                      (memcpy(g_wide, text, g_len), DBENCH_KEEP(g_wide)));
+
+            DBENCH_AB("s:ch", iters, 1u,
+                      DBENCH_KEEP(MMGR_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .ch = 'x')),
+                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%c", 'x')));
+
+            DBENCH_AB("s:u32", iters, 10u,
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .val = 4294967295u)),
+                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%u", 4294967295u)));
+
+            DBENCH_AB("s:u64", iters, 20u,
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u,
+                                            .val = 18446744073709551615ull)),
+                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%llu", 18446744073709551615ull)));
+
+            DBENCH_AB("s:i64", iters, 19u,
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u,
+                                            .sval = -9223372036854775807ll)),
+                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%lld", -9223372036854775807ll)));
+
+            DBENCH_AB("s:hex", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .val = 0xDEADBEEFu)),
+                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%x", 0xDEADBEEFu)));
+
+            // The two float forms, which is where the digit writer measured above actually lives
+            DBENCH_AB("s:g", iters, 17u,
+                      DBENCH_KEEP(MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .real = 3.14159265358979,
+                                            .sig = 17u)),
+                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%.*g", 17, 3.14159265358979)));
+
+            DBENCH_AB("s:fixed", iters, 6u,
+                      DBENCH_KEEP(MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .real = 3.14159265358979,
+                                            .decimals = 6u)),
+                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%.*f", 6, 3.14159265358979)));
         }
 
         DBENCH_OP("floor_loop", 20000u, DBENCH_KEEP(g_out));

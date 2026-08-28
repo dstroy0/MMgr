@@ -162,6 +162,59 @@ MMGR_INLINE void verba_emit10(char *out, uint32_t value, size_t digits)
 }
 
 /**
+ * @brief Expands to 8u, the power of ten a 64-bit value is cut at to reach verba_emit10.
+ *
+ * @note Eight rather than nine, so that a value of MMGR_G_MAX_SIG digits still leaves at most nine
+ *       above the cut, which is the widest that fits the uint32_t verba_emit10 takes.
+ */
+#define MMGR_VERBA_CUT 8u
+
+/**
+ * @brief Writes digits characters of a 64-bit value at out, most significant first.
+ *
+ * @param[out] out    Where the digits go [BORROWS].
+ * @param[in]  value  Value to write, which must need no more than digits characters.
+ * @param[in]  digits How many to write, 1 through 20; a shorter value is padded with leading zeros.
+ * @note Cuts the value into pieces that each fit a uint32_t and hands every piece to verba_emit10,
+ *       rather than walking a descending 64-bit divisor. Neither target has a 64-bit divider, so a
+ *       divisor walk is two libgcc calls for every digit written; this is one for the whole run, or
+ *       two past eighteen digits, and none at all for a value that already fits 32 bits.
+ * @note Both tests are on what the value holds, not on how many digits were asked for. A value of
+ *       ten digits still inside 32 bits takes no cut at all, and a digit count raised by args->min
+ *       only pads: verba_emit10 writes leading zeros once its value reaches zero.
+ * @warning out must be writable for digits bytes, and digits must be enough to hold value.
+ */
+MMGR_INLINE void verba_emit20(char *out, uint64_t value, size_t digits)
+{
+    if (value <= 0xFFFFFFFFU)
+    {
+        // Explicit cast narrows to the width verba_emit10 takes; the test above established it fits
+        verba_emit10(out, (uint32_t)value, digits);
+        return;
+    }
+
+    const uint64_t rest = value / mmgr_verba_pow10[MMGR_VERBA_CUT];
+    // The remainder is taken from the quotient rather than asked for separately, so the compiler
+    // answers one division here rather than a division and a modulo
+    const uint32_t low = (uint32_t)(value - (rest * mmgr_verba_pow10[MMGR_VERBA_CUT]));
+
+    if (rest <= 0xFFFFFFFFU)
+    {
+        verba_emit10(out, (uint32_t)rest, digits - MMGR_VERBA_CUT);
+    }
+    else
+    {
+        // A value this large leaves more than 32 bits above the cut, so it is cut a second time
+        const uint64_t top = rest / mmgr_verba_pow10[MMGR_VERBA_CUT];
+        const uint32_t mid = (uint32_t)(rest - (top * mmgr_verba_pow10[MMGR_VERBA_CUT]));
+
+        verba_emit10(out, (uint32_t)top, digits - (2u * MMGR_VERBA_CUT));
+        verba_emit10(out + (digits - (2u * MMGR_VERBA_CUT)), mid, MMGR_VERBA_CUT);
+    }
+    verba_emit10(out + (digits - MMGR_VERBA_CUT), low, MMGR_VERBA_CUT);
+}
+
+/**
  * @brief Arguments for the verba backends.
  *
  * @note Mirrors VerbaCfg without its const qualifiers, then adds four members the float path passes between calls.
@@ -325,9 +378,9 @@ MMGR_INLINE size_t verba_u64_clip(const VerbaCtx *args)
  * @param[in] args Buffer, capacity, offset, the value, the base and the least digit count [BORROWS].
  * @return      The offset past the digits, or args->cap when they do not fit.
  * @note Base 16 and base 8 count by shifting; every other base counts off its leading zeros.
- * @note A value inside 32 bits goes to verba_emit10, which writes two digits an iteration. Above 32
- *       bits the walk is still one digit at a time: the pair table was measured on 32-bit values and
- *       a 64-bit divide is a libgcc call on both targets, so that path is left as it stands.
+ * @note Every base ten value goes to verba_emit20, whatever its width: it cuts the value into pieces
+ *       that fit a uint32_t and writes each two digits an iteration. A value inside 32 bits reaches
+ *       the same pair walk it always did, without a width test here to send it there.
  * @note Raising the count to args->min before the room test is what pads the result with leading zeros.
  * @warning Any args->base other than 8 or 16 is written in base ten, whatever value it holds.
  */
@@ -337,7 +390,6 @@ MMGR_INLINE size_t verba_uint(const VerbaCtx *args)
     const mmgr_word bits_per_digit = (args->base == 16) ? 4U : ((args->base == 8) ? 3U : 0U);
     const mmgr_bool power_of_two = bits_per_digit != 0;
     const uint64_t digit_mask = power_of_two ? ((1ULL << bits_per_digit) - 1U) : 0U;
-    const mmgr_bool narrow = !power_of_two && (value <= 0xFFFFFFFFU);
 
     mmgr_word digits = 1;
     if (power_of_two)
@@ -372,18 +424,9 @@ MMGR_INLINE size_t verba_uint(const VerbaCtx *args)
             value >>= bits_per_digit;
         }
     }
-    else if (narrow)
-    {
-        // Explicit cast narrows the value the 32-bit walk takes; narrow is what established it fits
-        verba_emit10(args->out + args->at, (uint32_t)value, digits);
-    }
     else
     {
-        for (mmgr_word index = digits; index-- > 0;)
-        {
-            args->out[args->at + index] = (char)('0' + (mmgr_word)(value % 10));
-            value /= 10;
-        }
+        verba_emit20(args->out + args->at, value, digits);
     }
     return args->at + digits;
 }
@@ -528,15 +571,17 @@ MMGR_INLINE size_t verba_json(const VerbaCtx *args)
  *
  * @param[in] args Buffer, capacity, offset, the digits and where the point goes [BORROWS].
  * @return      The offset past the last digit, or args->cap once one of them did not fit.
- * @note Starts the divisor at ten raised to args->digits minus one, so digits come out most significant first.
+ * @note The digits are laid down first by verba_emit20 and then placed one at a time, so the point
+ *       goes in at the same index it always did and a destination too small still fills what it can.
  * @note A args->point_after of 0 writes no point, since the point is only inserted at a non-zero index.
- * @warning args->digits must be 1 through 20, since the divisor is taken from mmgr_verba_pow10.
+ * @warning args->digits must be 1 through 20, which is what the scratch buffer holds.
  */
 MMGR_INLINE size_t verba_digits(const VerbaCtx *args)
 {
-    uint64_t left = args->mant;
-    uint64_t div = mmgr_verba_pow10[args->digits - 1u];
+    char scratch[MMGR_VERBA_POW10_MAX + 1u];
     size_t at = args->at;
+
+    verba_emit20(scratch, args->mant, args->digits);
 
     for (uint8_t index = 0; index < args->digits; index++)
     {
@@ -545,12 +590,7 @@ MMGR_INLINE size_t verba_digits(const VerbaCtx *args)
             at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '.');
         }
 
-        const uint64_t digit = left / div;
-
-        at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
-                       .ch = (char)('0' + (mmgr_word)digit));
-        left -= digit * div;
-        div /= 10u;
+        at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = scratch[index]);
     }
     return at;
 }
