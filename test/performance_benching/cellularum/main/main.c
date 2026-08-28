@@ -17,11 +17,13 @@
  * The needle length is passed rather than measured, so find is timed doing the work it was asked
  * for instead of re-deriving what the caller already knew.
  */
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "device_bench.h"
 
+#include "ascii_persona_bitorum/ascii_persona_bitorum.h"
 #include "cellularum_laboro/cellularum_laboro.h"
 
 #define CAP 4096u
@@ -175,6 +177,110 @@ static mmgr_bool eq_aligned(const char *a, const char *b, size_t cap)
         at += MMGR_SWAR_BYTES;
     }
     return MMGR_TRUE;
+}
+
+/**
+ * @brief Zero, where the compiler cannot see that it is zero.
+ *
+ * @note Every code point in these loops is exclusive-ored with this. Without it the byte is a loop
+ *       counter the compiler can enumerate, the class test folds for all 256 values, and both arms
+ *       report the harness floor - which is exactly what the first version of these rows did.
+ */
+static volatile unsigned g_byte_bias = 0u;
+
+/**
+ * @brief The class to test, where the compiler cannot see which one it is.
+ */
+static volatile int g_class = 0;
+
+/**
+ * @brief Counts the code points isdigit accepts, over the whole byte range.
+ *
+ * @return How many of the 256 code points it accepts.
+ * @note One function per class rather than one taking a function pointer, so the libc arm is a
+ *       direct call the way a caller writes it and not an indirect one the mmgr arm does not pay.
+ */
+static uint32_t ascii_span_libc_digit(void)
+{
+    uint32_t found = 0u;
+
+    for (unsigned byte = 0; byte < 256u; byte++)
+    {
+        // Explicit cast takes the counter to the int ctype is defined over
+        found += isdigit((int)(byte ^ g_byte_bias)) ? 1u : 0u;
+    }
+    return found;
+}
+
+/**
+ * @brief Counts the code points isalpha accepts, over the whole byte range.
+ *
+ * @return How many of the 256 code points it accepts.
+ */
+static uint32_t ascii_span_libc_alpha(void)
+{
+    uint32_t found = 0u;
+
+    for (unsigned byte = 0; byte < 256u; byte++)
+    {
+        // Explicit cast takes the counter to the int ctype is defined over
+        found += isalpha((int)(byte ^ g_byte_bias)) ? 1u : 0u;
+    }
+    return found;
+}
+
+/**
+ * @brief Counts the code points isspace accepts, over the whole byte range.
+ *
+ * @return How many of the 256 code points it accepts.
+ */
+static uint32_t ascii_span_libc_space(void)
+{
+    uint32_t found = 0u;
+
+    for (unsigned byte = 0; byte < 256u; byte++)
+    {
+        // Explicit cast takes the counter to the int ctype is defined over
+        found += isspace((int)(byte ^ g_byte_bias)) ? 1u : 0u;
+    }
+    return found;
+}
+
+/**
+ * @brief Counts the code points isprint accepts, over the whole byte range.
+ *
+ * @return How many of the 256 code points it accepts.
+ */
+static uint32_t ascii_span_libc_print(void)
+{
+    uint32_t found = 0u;
+
+    for (unsigned byte = 0; byte < 256u; byte++)
+    {
+        // Explicit cast takes the counter to the int ctype is defined over
+        found += isprint((int)(byte ^ g_byte_bias)) ? 1u : 0u;
+    }
+    return found;
+}
+
+/**
+ * @brief Counts the code points ascii.in puts in a class, over the whole byte range.
+ *
+ * @param[in] kind Class to test against.
+ * @return         How many of the 256 code points are in it.
+ * @note A single class test is a few cycles and would sit under the harness floor, so a row walks
+ *       the whole range and the count is what keeps the work from being discarded.
+ */
+static uint32_t ascii_span_mmgr(MmgrAsciiClass kind)
+{
+    uint32_t found = 0u;
+
+    for (unsigned byte = 0; byte < 256u; byte++)
+    {
+        // Explicit cast narrows the counter into the code point the entry takes
+        found += MMGR_CALL(ascii.in, AsciiCfg, .kind = kind, .byte = (uint8_t)(byte ^ g_byte_bias)) ? 1u : 0u;
+    }
+    return found;
 }
 
 /**
@@ -409,6 +515,33 @@ void dbench_run(void)
             DBENCH_AB("to_float", iters, 16u,
                       DBENCH_KEEP(MMGR_CALL(cellul.to_float, TransfiguroCfg, .src = g_real)),
                       DBENCH_KEEP(strtof(g_real, NULL)));
+        }
+
+        // The class test against the target's ctype, which had no bench of its own anywhere. Each
+        // row walks the whole 256 code points, since one test is a few cycles and would sit under
+        // the harness floor. ascii.in reads one bit out of a sixteen byte mask picked by the class;
+        // newlib's ctype reads a byte out of a 257 entry table and masks it, so the two are the same
+        // shape and the row is a fair one.
+        {
+            const uint32_t iters = 2000u;
+
+            // The class is read through a volatile too. Passed as an enumerator it is a constant the
+            // entry folds against, and the mmgr arm reports the floor whatever the bytes do.
+            g_class = (int)MMGR_ASCII_NUM;
+            DBENCH_AB("ascii_num", iters, 256u, DBENCH_KEEP(ascii_span_mmgr((MmgrAsciiClass)g_class)),
+                      DBENCH_KEEP(ascii_span_libc_digit()));
+
+            g_class = (int)MMGR_ASCII_ALPHA;
+            DBENCH_AB("ascii_alpha", iters, 256u, DBENCH_KEEP(ascii_span_mmgr((MmgrAsciiClass)g_class)),
+                      DBENCH_KEEP(ascii_span_libc_alpha()));
+
+            g_class = (int)MMGR_ASCII_SPACE;
+            DBENCH_AB("ascii_space", iters, 256u, DBENCH_KEEP(ascii_span_mmgr((MmgrAsciiClass)g_class)),
+                      DBENCH_KEEP(ascii_span_libc_space()));
+
+            g_class = (int)MMGR_ASCII_PRINT;
+            DBENCH_AB("ascii_print", iters, 256u, DBENCH_KEEP(ascii_span_mmgr((MmgrAsciiClass)g_class)),
+                      DBENCH_KEEP(ascii_span_libc_print()));
         }
 
         // Where to_double's time goes. to_ulong puts digit accumulation at about thirteen cycles a
