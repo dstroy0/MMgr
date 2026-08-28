@@ -23,6 +23,7 @@
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 #include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
+#include "verbum_scrutor/verbum_scrutor.h"
 
 /**
  * @brief Bytes the pool the allocator rows take from holds.
@@ -44,6 +45,11 @@ Carceribus(ram, MMGR_SOLUTA(pool, ARENA_BYTES));
 static volatile size_t g_take = 64u;
 
 /**
+ * @brief The compare length, hidden so neither arm can be specialised against it.
+ */
+static volatile size_t g_cmp_len = 8u;
+
+/**
  * @brief Values and a scratch word for the byte order rows, hidden from the compiler.
  *
  * @note A constant folds a byte reversal away entirely: the compiler reverses it at build time and
@@ -63,6 +69,102 @@ static volatile unsigned g_swap_off = 0u;
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_a[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_b[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_d[CAP];
+
+/**
+ * @brief The compare walk as memor_cmp carries it, reading both sides through the unaligned word.
+ *
+ * @param[in] a     First region [BORROWS].
+ * @param[in] b     Second region [BORROWS].
+ * @param[in] bytes Bytes to compare.
+ * @return          Zero when they agree over the whole run.
+ * @note The A arm. It must reproduce the entry's cost or the row beside it means nothing, which is
+ *       the check an earlier arm in this work skipped and had to be retracted for.
+ */
+static mmgr_iword cmp_unaligned(const uint8_t *a, const uint8_t *b, size_t bytes)
+{
+    const size_t full = (bytes / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        if (MMGR_CALL(word.load, ScrutWordCfg, .at = a + at) != MMGR_CALL(word.load, ScrutWordCfg, .at = b + at))
+        {
+            return 1;
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return 0;
+}
+
+/**
+ * @brief What memor_cmp walks with, so the arm below reaches its addresses the same way.
+ */
+typedef struct
+{
+    const uint8_t *src;   /**< First region [BORROWS]. */
+    const uint8_t *other; /**< Second region [BORROWS]. */
+    size_t bytes;         /**< Bytes to compare. */
+} BenchCmpCtx;
+
+/**
+ * @brief The identical walk, reaching both addresses through a context on every step.
+ *
+ * @param[in] args The two regions and the count [BORROWS].
+ * @return         Zero when they agree over the whole run.
+ * @note The discriminator. The loop, the loads and the test are the same as cmp_unaligned; the only
+ *       difference is where the two addresses live while it runs. If this costs what the entry costs
+ *       then the entry's walk is not doing anything extra and the shape is the whole of it.
+ */
+static mmgr_iword cmp_via_ctx(const BenchCmpCtx *args)
+{
+    const size_t full = (args->bytes / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        if (MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at) !=
+            MMGR_CALL(word.load, ScrutWordCfg, .at = args->other + at))
+        {
+            return 1;
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return 0;
+}
+
+/**
+ * @brief The same walk, reading through the aligned word once both sides sit on a boundary.
+ *
+ * @param[in] a     First region [BORROWS].
+ * @param[in] b     Second region [BORROWS].
+ * @param[in] bytes Bytes to compare.
+ * @return          Zero when they agree over the whole run.
+ * @note The B arm. This is the third time the aligned load has been asked about: it took thirty
+ *       bytes from 143 to 91 in proxim_words and was worth exactly 1.00 in cellul_agree_cs, so it
+ *       is not a technique to assume either way.
+ */
+static mmgr_iword cmp_aligned(const uint8_t *a, const uint8_t *b, size_t bytes)
+{
+    // Explicit casts read both addresses as integers so their low bits can be compared
+    if (((((uintptr_t)a) | ((uintptr_t)b)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) != 0u)
+    {
+        return cmp_unaligned(a, b, bytes);
+    }
+
+    const size_t full = (bytes / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        if (MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at) !=
+            MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at))
+        {
+            return 1;
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return 0;
+}
 
 /**
  * @brief Bytes the ring rows work in, a power of two as init requires.
@@ -403,6 +505,29 @@ void dbench_run(void)
             DBENCH_AB("cmp", iters, n,
                       DBENCH_KEEP(MMGR_CALL(memor.cmp, MemoriaCfg, .src = g_a, .other = g_b, .bytes = n)),
                       DBENCH_KEEP(memcmp(g_a, g_b, n)));
+
+            // cmp is 2.9x behind memcmp on the C6 and the gap grows with the length, so it is per
+            // byte rather than a fixed cost. The entry against the same walk written out here, and
+            // then that walk against the aligned load, which is the only difference between them.
+            // The length reaches both arms through a volatile. Taken from the lens table directly it
+            // is a constant the compiler can specialise the local walk against and cannot specialise
+            // the entry against, and the row then reports that difference as if it were the entry's
+            // fault. That mistake has already been made once in this work and retracted.
+            g_cmp_len = n;
+
+            DBENCH_AB("cmp_entry", iters, n,
+                      DBENCH_KEEP(MMGR_CALL(memor.cmp, MemoriaCfg, .src = g_a, .other = g_b, .bytes = g_cmp_len)),
+                      DBENCH_KEEP(cmp_unaligned(g_a, g_b, g_cmp_len)));
+
+            DBENCH_AB("cmp_align", iters, n, DBENCH_KEEP(cmp_unaligned(g_a, g_b, g_cmp_len)),
+                      DBENCH_KEEP(cmp_aligned(g_a, g_b, g_cmp_len)));
+
+            {
+                const BenchCmpCtx ctx = {.src = g_a, .other = g_b, .bytes = g_cmp_len};
+
+                DBENCH_AB("cmp_ctx", iters, n, DBENCH_KEEP(cmp_via_ctx(&ctx)),
+                          DBENCH_KEEP(cmp_unaligned(g_a, g_b, g_cmp_len)));
+            }
 
             DBENCH_AB("chr", iters, n,
                       DBENCH_KEEP(MMGR_CALL(memor.chr, MemoriaCfg, .src = g_a, .bytes = n, .val = 0xFFu)),
