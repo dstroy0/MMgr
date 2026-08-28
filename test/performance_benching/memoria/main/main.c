@@ -17,7 +17,17 @@
 
 #include "device_bench.h"
 
+#include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
+
+/**
+ * @brief Values and a scratch word for the byte order rows, hidden from the compiler.
+ *
+ * @note A constant folds a byte reversal away entirely: the compiler reverses it at build time and
+ *       both arms report the harness floor.
+ */
+static volatile uint64_t g_swap_val = 0x0123456789ABCDEFull;
+static volatile unsigned g_swap_off = 0u;
 
 #define CAP 4096u
 
@@ -100,6 +110,37 @@ void dbench_run(void)
                                              .bytes = n),
                                    (uintptr_t)g_d)),
                       DBENCH_KEEP(memmove(g_d, g_d + MMGR_ALIGN_BYTES, n)));
+        }
+
+        // Byte order, which had no bench anywhere. The counterpart is not a libc call: a caller
+        // reaching for this writes __builtin_bswap and a store, and on both these parts that builtin
+        // is a sequence rather than an instruction, since neither carries a byte reversal in its
+        // base ISA. wr and rd are measured against the builtin plus the memory access they perform,
+        // so both sides move the same bytes.
+        {
+            const uint32_t iters = 20000u;
+
+            DBENCH_AB("rev32", iters, 4u,
+                      DBENCH_KEEP(MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = g_swap_val,
+                                            .width = MMGR_ENDIAN_32)),
+                      DBENCH_KEEP(__builtin_bswap32((uint32_t)g_swap_val)));
+
+            DBENCH_AB("rev64", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = g_swap_val,
+                                            .width = MMGR_ENDIAN_64)),
+                      DBENCH_KEEP(__builtin_bswap64(g_swap_val)));
+
+            DBENCH_AB("wr32", iters, 4u,
+                      DBENCH_KEEP(MMGR_CALL(magna_extremitas.wr, EndianCfg, .dst = g_d + g_swap_off,
+                                            .val = g_swap_val, .width = MMGR_ENDIAN_32)),
+                      DBENCH_KEEP((memcpy(g_d + g_swap_off, &(uint32_t){__builtin_bswap32((uint32_t)g_swap_val)},
+                                          4u),
+                                   (uintptr_t)g_d)));
+
+            DBENCH_AB("rd32", iters, 4u,
+                      DBENCH_KEEP(MMGR_CALL(magna_extremitas.rd, EndianCfg, .src = g_d + g_swap_off,
+                                            .width = MMGR_ENDIAN_32)),
+                      DBENCH_KEEP(__builtin_bswap32(*(const uint32_t *)(g_d + g_swap_off))));
         }
 
         DBENCH_DONE();
