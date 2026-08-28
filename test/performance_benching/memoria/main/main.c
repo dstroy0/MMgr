@@ -83,6 +83,23 @@ void dbench_run(void)
                       DBENCH_KEEP(
                           (MMGR_CALL(memor.set, MemoriaCfg, .dst = g_d, .bytes = n, .val = 0x5Au), (uintptr_t)g_d)),
                       DBENCH_KEEP(memset(g_d, 0x5A, n)));
+
+            // The two moves, which had no row. Both are given regions that genuinely overlap, since
+            // a move handed regions that do not is only a copy and would measure cpy again. The
+            // destination sits one word inside the source for the upward case and one word outside
+            // it for the downward one, which is the direction each is named for and the case where
+            // choosing the wrong one corrupts the result rather than merely being slow.
+            DBENCH_AB("move_up", iters, n,
+                      DBENCH_KEEP((MMGR_CALL(memor.move_up, MemoriaCfg, .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d,
+                                             .bytes = n),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP(memmove(g_d + MMGR_ALIGN_BYTES, g_d, n)));
+
+            DBENCH_AB("move_down", iters, n,
+                      DBENCH_KEEP((MMGR_CALL(memor.move_down, MemoriaCfg, .dst = g_d, .src = g_d + MMGR_ALIGN_BYTES,
+                                             .bytes = n),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP(memmove(g_d, g_d + MMGR_ALIGN_BYTES, n)));
         }
 
         DBENCH_DONE();
