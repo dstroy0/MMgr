@@ -845,6 +845,94 @@ static void copy_read_fastpath(uint8_t *dst, const uint8_t *src, size_t bytes)
 }
 
 /**
+ * @brief The word run as one dispatch into straight line moves, for a run that is short.
+ *
+ * @param[out] dst   Destination [BORROWS].
+ * @param[in]  src   Source [BORROWS].
+ * @param[in]  bytes Bytes to copy.
+ * @note Eight words or fewer is one jump and then unconditional moves: no test and no branch per
+ *       word. A thirty byte copy is seven words and two odd bytes, so the loop it replaces spends
+ *       seven compares and seven branches that this spends once. Anything longer keeps the loop,
+ *       where the dispatch would buy nothing.
+ * @warning Copies forward, so a dst above src within one region would read bytes it has written.
+ */
+static void copy_read_dispatch(uint8_t *dst, const uint8_t *src, size_t bytes)
+{
+    // Explicit casts hold the negation and the mask at uintptr_t, then bring the count back to size_t
+    const size_t skew = (size_t)((0u - (uintptr_t)dst) & (uintptr_t)(MMGR_RAW_WORD - 1u));
+    const size_t head = (skew < bytes) ? skew : bytes;
+    size_t index = 0;
+
+    while (index != head)
+    {
+        dst[index] = src[index];
+        index++;
+    }
+    dst += head;
+    src += head;
+
+    const size_t left = bytes - head;
+    const size_t words = left / MMGR_RAW_WORD;
+    bench_aequus_word_t *const to = (bench_aequus_word_t *)dst;
+
+    if ((((uintptr_t)src) & (uintptr_t)(MMGR_RAW_WORD - 1u)) != 0u)
+    {
+        copy_read_flat(dst, src, left);
+        return;
+    }
+
+    const bench_aequus_word_t *const from = (const bench_aequus_word_t *)src;
+
+    switch (words)
+    {
+        default:
+        {
+            size_t at = 0;
+
+            while (at != words)
+            {
+                to[at] = from[at];
+                at++;
+            }
+            break;
+        }
+        case 8u:
+            to[7] = from[7];
+            // fall through
+        case 7u:
+            to[6] = from[6];
+            // fall through
+        case 6u:
+            to[5] = from[5];
+            // fall through
+        case 5u:
+            to[4] = from[4];
+            // fall through
+        case 4u:
+            to[3] = from[3];
+            // fall through
+        case 3u:
+            to[2] = from[2];
+            // fall through
+        case 2u:
+            to[1] = from[1];
+            // fall through
+        case 1u:
+            to[0] = from[0];
+            // fall through
+        case 0u:
+            break;
+    }
+
+    const size_t done = words * MMGR_RAW_WORD;
+
+    for (size_t at = done; at != left; at++)
+    {
+        dst[at] = src[at];
+    }
+}
+
+/**
  * @brief Source and destination for the copy check, with slack for every offset it walks.
  */
 static uint8_t g_check_src[192];
@@ -1031,11 +1119,14 @@ void dbench_run(void)
                 BenchCopyCtx one = {.dst = (uint8_t *)g_wide, .src = (const uint8_t *)text, .bytes = g_len};
                 BenchCopyCtx two = {.dst = (uint8_t *)g_wide, .src = (const uint8_t *)text, .bytes = g_len};
 
+                // The two arms write to different halves of the check buffer on purpose. Pointed at
+                // the same destination they copy identical bytes from an identical source, and the
+                // compiler is free to keep one and drop the other, which reads as both being fast.
                 DBENCH_AB("s:words", iters, sizeof text - 1u,
-                          (one.dst = (uint8_t *)g_wide, one.src = (const uint8_t *)text, one.bytes = g_len,
-                           copy_words_args(&one), DBENCH_KEEP(g_wide)),
-                          (two.dst = (uint8_t *)g_wide, two.src = (const uint8_t *)text, two.bytes = g_len,
-                           copy_words_locals(&two), DBENCH_KEEP(g_wide)));
+                          (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len,
+                           copy_words_args(&one), DBENCH_KEEP(g_check_dst)),
+                          (two.dst = g_check_dst + 64u, two.src = g_check_src + 64u, two.bytes = g_len,
+                           copy_words_locals(&two), DBENCH_KEEP(g_check_dst)));
 
                 // The pointer walking loop against the counted one. A countable loop is what lets the
                 // compiler reach for a hardware loop and drop the per word branch.
@@ -1048,12 +1139,32 @@ void dbench_run(void)
                 // One word an iteration against two. The loop's own arithmetic is the whole gap to a
                 // hand written memcpy: it moves a word in about three cycles and this moves one in
                 // about seven, and the difference is the decrement and the branch, not the move.
+                // The bare word run against memcpy, which is what says whether the loop itself is
+                // the distance or whether the stages around it are.
+                DBENCH_AB("s:wordsvlibc", iters, sizeof text - 1u,
+                          (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len,
+                           copy_words_args(&one), DBENCH_KEEP(g_check_dst)),
+                          (memcpy(g_check_dst + 64u, g_check_src + 64u, g_len), DBENCH_KEEP(g_check_dst)));
+
                 DBENCH_AB("s:words2", iters, sizeof text - 1u,
-                          (one.dst = (uint8_t *)g_wide, one.src = (const uint8_t *)text, one.bytes = g_len,
-                           copy_words_args(&one), DBENCH_KEEP(g_wide)),
-                          (two.dst = (uint8_t *)g_wide, two.src = (const uint8_t *)text, two.bytes = g_len,
-                           copy_words_two(&two), DBENCH_KEEP(g_wide)));
+                          (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len,
+                           copy_words_args(&one), DBENCH_KEEP(g_check_dst)),
+                          (two.dst = g_check_dst + 64u, two.src = g_check_src + 64u, two.bytes = g_len,
+                           copy_words_two(&two), DBENCH_KEEP(g_check_dst)));
             }
+
+            // One dispatch into straight line moves against the loop. This is the row that asks
+            // whether the per word branch is what the copy is actually paying for.
+            //
+            // The source is the large check buffer rather than the literal every other row uses.
+            // The dispatch cannot be shown to leave the literal alone: the head is only zero because
+            // the destination happens to be aligned, and the compiler will not assume that, so it
+            // reads the run as reaching a word past a thirty one byte array and refuses to build.
+            DBENCH_AB("s:dispatch", iters, sizeof text - 1u,
+                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = (const char *)g_check_src,
+                                 .size = g_len),
+                       DBENCH_KEEP(g_wide)),
+                      (copy_read_dispatch((uint8_t *)g_wide, g_check_src, g_len), DBENCH_KEEP(g_wide)));
 
             // Two more shapes for the stages around the word run, each against the copy as it is.
             DBENCH_AB("s:overlap", iters, sizeof text - 1u,
