@@ -272,6 +272,68 @@ static uint32_t ascii_span_libc_print(void)
 }
 
 /**
+ * @brief The word type the single pass copy stores through, aligned and allowed to alias bytes.
+ */
+typedef mmgr_word bench_word_t MMGR_ALIAS;
+
+/**
+ * @brief The two regions for the copy rows, reached so the compiler cannot see which objects.
+ */
+static char *volatile g_cp_dst;
+static const char *volatile g_cp_src;
+
+/**
+ * @brief A bounded copy that finds the terminator and writes the bytes in the same walk.
+ *
+ * @param[out] dst Destination [BORROWS].
+ * @param[in]  src Source [BORROWS].
+ * @param[in]  cap Bytes available in dst, terminator included.
+ * @return         Bytes copied, not counting the terminator.
+ * @note cellul_copy measures with cellul_len and then copies with proxim.read, which is two walks
+ *       over the same bytes. This is one: a word is read, tested for a terminator, and stored when
+ *       it holds none. Same contract - always terminated, reports what it wrote.
+ * @note The word run needs both sides on a boundary, since the store is as wide as the load. Where
+ *       they are not co-aligned it falls back to a byte walk, which is still one pass.
+ */
+static size_t copy_single(char *dst, const char *src, size_t cap)
+{
+    if (cap == 0u)
+    {
+        return 0u;
+    }
+
+    const size_t limit = cap - 1u;
+    size_t at = 0u;
+
+    // Explicit casts read both addresses as integers so one mask answers for both
+    if (((((uintptr_t)dst) | ((uintptr_t)src)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u)
+    {
+        const size_t full = (limit / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+
+        while (at != full)
+        {
+            const mmgr_word w = MMGR_CALL(word.load_al, ScrutWordCfg, .at = src + at);
+
+            if (MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w) != 0u)
+            {
+                break;
+            }
+            // Explicit cast stores a whole word at an address the test above put on a boundary
+            *(bench_word_t *)(dst + at) = w;
+            at += MMGR_SWAR_BYTES;
+        }
+    }
+
+    while ((at != limit) && (src[at] != '\0'))
+    {
+        dst[at] = src[at];
+        at += 1u;
+    }
+    dst[at] = '\0';
+    return at;
+}
+
+/**
  * @brief Counts whitespace bytes with the six comparison chain cellul_is_ws carries.
  *
  * @param[in] n Bytes to walk.
@@ -582,6 +644,15 @@ void dbench_run(void)
             DBENCH_AB("copy", iters, n,
                       DBENCH_KEEP(MMGR_CALL(cellul.copy, CatenaFinitaCfg, .dst = g_c, .src = g_a, .cap = n + 1u)),
                       DBENCH_KEEP((strncpy(g_c, g_a, n), g_c[n] = '\0', (uintptr_t)g_c)));
+
+            // The entry against the same job done in one walk instead of two. Both regions reach the
+            // arm through pointers the compiler cannot trace, so it is not handed alignment or
+            // identity the entry does not get - the mistake that hid the aligned load three times.
+            g_cp_dst = g_c;
+            g_cp_src = g_a;
+            DBENCH_AB("copy_one", iters, n,
+                      DBENCH_KEEP(MMGR_CALL(cellul.copy, CatenaFinitaCfg, .dst = g_c, .src = g_a, .cap = n + 1u)),
+                      DBENCH_KEEP(copy_single(g_cp_dst, g_cp_src, n + 1u)));
 
             // has is find reduced to a yes or no, so its counterpart is the same strstr with its
             // result thrown away. ws and digit test one byte at a position, so a row walks the whole
