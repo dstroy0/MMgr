@@ -433,6 +433,29 @@ MMGR_INLINE size_t cellul_diff_cs(const CellulCtx *args)
     const size_t rest = args->cap - full;
     size_t at = 0u;
 
+    // Explicit casts read both addresses as integers so one mask answers for both. When the two
+    // arrived on a boundary the run goes through the aligned load, which is one instruction where
+    // the unaligned one is a sequence. The test is lifted out rather than carried in the body: as a
+    // choice inside the loop the compiler keeps the branch per word and the run costs what the
+    // unaligned one costs. memor_cmp took 6.27 cycles a byte to 2.02 on an ESP32-C6 this way
+    const mmgr_bool level = (mmgr_bool)(((((uintptr_t)args->src) | ((uintptr_t)args->other)) &
+                                         (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
+
+    if (level)
+    {
+        while (at != full)
+        {
+            const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = args->src + at);
+            const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = args->other + at);
+            if (wa != wb)
+            {
+                return at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = cellul_diff_lanes(wa ^ wb));
+            }
+            // Advance separated from the test above so the loop body carries no side effect
+            at += MMGR_SWAR_BYTES;
+        }
+    }
+
     while (at != full)
     {
         const mmgr_word wa = MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at);
@@ -514,6 +537,31 @@ MMGR_INLINE mmgr_bool cellul_agree_cs(const CellulCtx *args)
     const size_t full = (args->cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
     const size_t rest = args->cap - full;
     size_t at = 0u;
+
+    // Explicit casts read both addresses as integers so one mask answers for both, and the aligned
+    // run is lifted into its own loop rather than chosen inside the body - as a choice per word the
+    // compiler keeps the branch and the run costs what the unaligned one costs. The same shape took
+    // memor_cmp from 6.27 cycles a byte to 2.02 on an ESP32-C6
+    const mmgr_bool level = (mmgr_bool)(((((uintptr_t)args->src) | ((uintptr_t)args->other)) &
+                                         (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
+
+    while (level && (at != full))
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = args->src + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = args->other + at);
+        const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa);
+
+        if ((z != 0u) || (wa != wb))
+        {
+            const mmgr_word x = cellul_diff_lanes(wa ^ wb);
+            const size_t lz = (z != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = z) : MMGR_SWAR_BYTES;
+            const size_t lx = (x != 0u) ? MMGR_CALL(lane.first, ScrutLaneCfg, .mask = x) : MMGR_SWAR_BYTES;
+            // Explicit cast narrows the lane comparison into the mmgr_bool container
+            return (mmgr_bool)(args->end_wins ? (lz <= lx) : (lz < lx));
+        }
+        // Advance separated from the tests above so the loop body carries no side effect
+        at += MMGR_SWAR_BYTES;
+    }
 
     while (at != full)
     {
