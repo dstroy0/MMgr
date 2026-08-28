@@ -264,6 +264,125 @@ static uint32_t ascii_span_libc_print(void)
 }
 
 /**
+ * @brief Counts whitespace bytes with the six comparison chain cellul_is_ws carries.
+ *
+ * @param[in] n Bytes to walk.
+ * @return      How many of them are whitespace.
+ * @note The A arm. Six tests joined by short circuits, so a byte that is not whitespace - which is
+ *       every byte in this fixture - runs all six and fails all six.
+ */
+static uint32_t ws_span_chain(size_t n)
+{
+    uint32_t found = 0u;
+
+    for (size_t at = 0; at < n; at++)
+    {
+        const char ch = g_a[at];
+
+        found += ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r') || (ch == '\f') || (ch == '\v'))
+                     ? 1u
+                     : 0u;
+    }
+    return found;
+}
+
+/**
+ * @brief Counts whitespace bytes with a range test and one comparison.
+ *
+ * @param[in] n Bytes to walk.
+ * @return      How many of them are whitespace.
+ * @note The B arm, and the same set: tab, newline, vertical tab, form feed and carriage return are
+ *       9 through 13 with nothing else between them, and space is the only other one. Subtracting 9
+ *       and comparing unsigned takes all five in one test, so the whole predicate is two.
+ */
+static uint32_t ws_span_range(size_t n)
+{
+    uint32_t found = 0u;
+
+    for (size_t at = 0; at < n; at++)
+    {
+        // Explicit cast makes the subtraction unsigned, so a byte below 9 wraps high and fails the
+        // range rather than passing it as a negative
+        const unsigned ch = (unsigned)(unsigned char)g_a[at];
+
+        found += (((ch - 9u) <= 4u) || (ch == 32u)) ? 1u : 0u;
+    }
+    return found;
+}
+
+/**
+ * @brief Counts whitespace bytes in the haystack through cellul.ws.
+ *
+ * @param[in] n Bytes to walk.
+ * @return      How many of them the entry calls whitespace.
+ */
+static uint32_t ws_span_mmgr(size_t n)
+{
+    uint32_t found = 0u;
+
+    for (size_t at = 0; at < n; at++)
+    {
+        found += MMGR_CALL(cellul.ws, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .at = at) ? 1u : 0u;
+    }
+    return found;
+}
+
+/**
+ * @brief Counts whitespace bytes in the haystack through isspace.
+ *
+ * @param[in] n Bytes to walk.
+ * @return      How many of them ctype calls whitespace.
+ */
+static uint32_t ws_span_libc(size_t n)
+{
+    uint32_t found = 0u;
+
+    for (size_t at = 0; at < n; at++)
+    {
+        // Explicit cast takes the byte to the int ctype is defined over, unsigned so a high byte
+        // does not arrive negative
+        found += isspace((int)(unsigned char)g_a[at]) ? 1u : 0u;
+    }
+    return found;
+}
+
+/**
+ * @brief Counts decimal digits in the haystack through cellul.digit.
+ *
+ * @param[in] n Bytes to walk.
+ * @return      How many of them the entry calls a digit.
+ */
+static uint32_t digit_span_mmgr(size_t n)
+{
+    uint32_t found = 0u;
+
+    for (size_t at = 0; at < n; at++)
+    {
+        found += MMGR_CALL(cellul.digit, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .at = at) ? 1u : 0u;
+    }
+    return found;
+}
+
+/**
+ * @brief Counts decimal digits in the haystack through isdigit.
+ *
+ * @param[in] n Bytes to walk.
+ * @return      How many of them ctype calls a digit.
+ */
+static uint32_t digit_span_libc(size_t n)
+{
+    uint32_t found = 0u;
+
+    for (size_t at = 0; at < n; at++)
+    {
+        // Explicit cast takes the byte to the int ctype is defined over, unsigned so a high byte
+        // does not arrive negative
+        found += isdigit((int)(unsigned char)g_a[at]) ? 1u : 0u;
+    }
+    return found;
+}
+
+/**
  * @brief Counts the code points ascii.in puts in a class, over the whole byte range.
  *
  * @param[in] kind Class to test against.
@@ -455,6 +574,24 @@ void dbench_run(void)
             DBENCH_AB("copy", iters, n,
                       DBENCH_KEEP(MMGR_CALL(cellul.copy, CatenaFinitaCfg, .dst = g_c, .src = g_a, .cap = n + 1u)),
                       DBENCH_KEEP((strncpy(g_c, g_a, n), g_c[n] = '\0', (uintptr_t)g_c)));
+
+            // has is find reduced to a yes or no, so its counterpart is the same strstr with its
+            // result thrown away. ws and digit test one byte at a position, so a row walks the whole
+            // buffer counting hits; a single test would sit under the harness floor. Neither buffer
+            // is a constant here - fill writes them at run time - so nothing folds.
+            DBENCH_AB("has", iters, n,
+                      DBENCH_KEEP(MMGR_CALL(cellul.has, CatenaFinitaCfg, .src = g_a, .cap = n + 1u,
+                                            .other = g_needle, .other_cap = NLEN + 1u, .other_len = NLEN)),
+                      DBENCH_KEEP(strstr(g_a, g_needle) != NULL));
+
+            DBENCH_AB("ws_scan", iters, n, DBENCH_KEEP(ws_span_mmgr(n)), DBENCH_KEEP(ws_span_libc(n)));
+
+            // ws costs three times what its sibling digit does, on the same buffer through the same
+            // call, and the only difference between them is that digit is a range test and ws is a
+            // chain of six. This is that chain against the same set written as a range.
+            DBENCH_AB("ws_range", iters, n, DBENCH_KEEP(ws_span_chain(n)), DBENCH_KEEP(ws_span_range(n)));
+
+            DBENCH_AB("digit_scan", iters, n, DBENCH_KEEP(digit_span_mmgr(n)), DBENCH_KEEP(digit_span_libc(n)));
 
             // eq loses to the ROM's strcmp and the gap widens with length, which points at the load
             // rather than at the walk: cellul_agree_cs reads through the unaligned word twice a
