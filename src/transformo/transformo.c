@@ -200,6 +200,71 @@ MMGR_INLINE void muto_mul_pow5(MutoCtx *args)
 }
 
 /**
+ * @brief Expands to 18, the largest power of ten held exactly in a 64-bit integer here.
+ *
+ * @note Ten to the eighteenth is under two to the sixtieth, so every entry of mmgr_muto_pow10 below
+ *       is exact. MMGR_FIXED_MAX_DECIMALS is eighteen as well, so verba_fixed never asks for more.
+ */
+#define MMGR_MUTO_EXACT_U64_POW10 18
+
+/**
+ * @brief Ten raised to 0 through 18, as exact 64-bit integers.
+ *
+ * @note muto_apply_pow10 multiplies by one of these in a single pass when the decimal exponent is
+ *       small and positive, rather than walking the pow5 tables a set bit at a time.
+ */
+static const mmgr_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {
+    1ull,                  10ull,                 100ull,                1000ull,
+    10000ull,              100000ull,             1000000ull,            10000000ull,
+    100000000ull,          1000000000ull,         10000000000ull,        100000000000ull,
+    1000000000000ull,      10000000000000ull,     100000000000000ull,    1000000000000000ull,
+    10000000000000000ull,  100000000000000000ull, 1000000000000000000ull};
+
+/**
+ * @brief Multiplies the 128-bit significand by one exact 64-bit power of ten, then renormalizes.
+ *
+ * @param[in,out] args The significand, its exponent, and the power to apply [BORROWS].
+ * @note A 128 by 64 product is two multiplies where a 128 by 128 one is four, and its top 128 bits
+ *       are one column sum where the wider product needs three. One of these covers the whole
+ *       decimal exponent, where muto_mul_pow5 covers one set bit of it.
+ * @note args->b carries the power. Ten raised to the exponent is applied whole, both its five and
+ *       its two, so nothing is added to args->fe2 for the power afterwards.
+ * @note Sets args->rest when the discarded low 64 bits held anything, which is the same rounding
+ *       information muto_mul_pow5 keeps from its discarded columns.
+ * @note Adds 64 to args->fe2, standing for the bits the 192-bit product was taken down by.
+ */
+MMGR_INLINE void muto_mul_pow10(MutoCtx *args)
+{
+    const mmgr_u64 fhi = args->hi;
+    const mmgr_u64 flo = args->lo;
+    const mmgr_u64 g = args->b;
+
+    args->a = fhi;
+    args->b = g;
+    muto_mul(args);
+    const mmgr_u64 hh_h = args->phi;
+    const mmgr_u64 hh_l = args->plo;
+
+    args->a = flo;
+    args->b = g;
+    muto_mul(args);
+    const mmgr_u64 lh_h = args->phi;
+    const mmgr_u64 lh_l = args->plo;
+
+    const mmgr_u64 col = hh_l + lh_h;
+    const mmgr_u64 carry = (col < hh_l) ? 1u : 0u;
+
+    if (lh_l != 0u)
+    {
+        args->rest = 1;
+    }
+    args->hi = hh_h + carry;
+    args->lo = col;
+    args->fe2 = (mmgr_iword)(args->fe2 + 64);
+    muto_norm(args);
+}
+
+/**
  * @brief Multiplies the significand by ten raised to args->ex.
  *
  * @param[in,out] args The significand, its exponent, and the decimal exponent to apply [BORROWS].
@@ -210,6 +275,15 @@ MMGR_INLINE void muto_mul_pow5(MutoCtx *args)
  */
 MMGR_INLINE void muto_apply_pow10(MutoCtx *args)
 {
+    // A small positive exponent has its power of ten exactly in 64 bits, so one narrower multiply
+    // covers the whole of it rather than one wider multiply per set bit
+    if ((args->ex > 0) && (args->ex <= MMGR_MUTO_EXACT_U64_POW10))
+    {
+        args->b = mmgr_muto_pow10[args->ex];
+        muto_mul_pow10(args);
+        return;
+    }
+
     const mmgr_iword k = (args->ex < 0) ? (mmgr_iword)(-args->ex) : args->ex;
 
     for (mmgr_iword i = 0; i < MMGR_POW5_STEPS; ++i)

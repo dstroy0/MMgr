@@ -1063,10 +1063,143 @@ static void bench_mul_narrow(uint64_t a, uint64_t b, BenchProduct *out)
 }
 
 /**
+ * @brief A 128-bit significand and the binary exponent that goes with it.
+ */
+typedef struct
+{
+    uint64_t hi;  /**< Top 64 bits. */
+    uint64_t lo;  /**< Bottom 64 bits. */
+    int32_t fe2;  /**< Binary exponent. */
+    uint32_t rest; /**< Set once bits have been discarded below the kept 128. */
+} BenchWide;
+
+/**
+ * @brief Shifts a significand up until its top bit is set, as muto_norm does.
+ *
+ * @param[in,out] w The significand and its exponent [BORROWS].
+ * @note Both arms below end with this, so it is not what separates them.
+ */
+static void bench_norm(BenchWide *w)
+{
+    if (w->hi == 0u)
+    {
+        if (w->lo == 0u)
+        {
+            return;
+        }
+        w->hi = w->lo;
+        w->lo = 0u;
+        w->fe2 -= 64;
+    }
+
+    // Explicit cast narrows the iword the clz entry returns to the shift count
+    const int32_t n = (int32_t)MMGR_CALL(clz.lead, ClzCfg, .val = (mmgr_u64)w->hi);
+    if (n != 0)
+    {
+        w->hi = (w->hi << n) | (w->lo >> (64 - n));
+        w->lo <<= n;
+        w->fe2 -= n;
+    }
+}
+
+/**
+ * @brief One application of a power of five, as muto_mul_pow5 performs it.
+ *
+ * @param[in,out] w   The significand and its exponent [BORROWS].
+ * @param[in]     ghi Top half of the 128-bit power [BORROWS].
+ * @param[in]     glo Bottom half of it.
+ * @param[in]     ge2 The power's own binary exponent.
+ * @note The A arm. A 128 by 128 product needs four multiplies and the columns summed with their
+ *       carries, and apply_pow10 runs one of these per set bit of the decimal exponent.
+ */
+static void bench_pow_128(BenchWide *w, uint64_t ghi, uint64_t glo, int32_t ge2)
+{
+    BenchProduct hh;
+    BenchProduct hl;
+    BenchProduct lh;
+    BenchProduct ll;
+
+    bench_mul_narrow(w->hi, ghi, &hh);
+    bench_mul_narrow(w->hi, glo, &hl);
+    bench_mul_narrow(w->lo, ghi, &lh);
+    bench_mul_narrow(w->lo, glo, &ll);
+
+    uint64_t carry = 0u;
+    uint64_t col1 = ll.hi + hl.lo;
+    carry += (col1 < ll.hi) ? 1u : 0u;
+    const uint64_t col1b = col1 + lh.lo;
+    carry += (col1b < col1) ? 1u : 0u;
+    col1 = col1b;
+
+    uint64_t col2 = hh.lo + hl.hi;
+    uint64_t carry2 = (col2 < hh.lo) ? 1u : 0u;
+    const uint64_t col2b = col2 + lh.hi;
+    carry2 += (col2b < col2) ? 1u : 0u;
+    col2 = col2b + carry;
+    carry2 += (col2 < col2b) ? 1u : 0u;
+
+    if ((ll.lo != 0u) || (col1 != 0u))
+    {
+        w->rest = 1u;
+    }
+    w->hi = hh.hi + carry2;
+    w->lo = col2;
+    w->fe2 = w->fe2 + ge2 + 128;
+    bench_norm(w);
+}
+
+/**
+ * @brief The same significand multiplied by one exact 64-bit power of ten.
+ *
+ * @param[in,out] w The significand and its exponent [BORROWS].
+ * @param[in]     g The power of ten, exact in 64 bits.
+ * @note The B arm. A 128 by 64 product is two multiplies rather than four, its top 128 bits are one
+ *       column sum rather than three, and one of these covers the whole decimal exponent rather than
+ *       one per set bit of it.
+ * @note No exponent is added for the power itself: g carries the whole of ten raised to the
+ *       exponent, both its five and its two, where the pow5 tables hold only the five and
+ *       apply_pow10 adds the two afterwards.
+ */
+static void bench_pow_64(BenchWide *w, uint64_t g)
+{
+    BenchProduct hh;
+    BenchProduct lh;
+
+    bench_mul_narrow(w->hi, g, &hh);
+    bench_mul_narrow(w->lo, g, &lh);
+
+    const uint64_t col = hh.lo + lh.hi;
+    const uint64_t carry = (col < hh.lo) ? 1u : 0u;
+
+    if (lh.lo != 0u)
+    {
+        w->rest = 1u;
+    }
+    w->hi = hh.hi + carry;
+    w->lo = col;
+    w->fe2 = w->fe2 + 64;
+    bench_norm(w);
+}
+
+/**
  * @brief The two operands the multiply rows use, hidden so neither arm folds.
  */
 static volatile uint64_t g_mul_a = 0x123456789ABCDEFull;
 static volatile uint64_t g_mul_b = 0xFEDCBA987654321ull;
+
+/**
+ * @brief Ten to the sixth, which is what six decimals asks the scaling pass for.
+ *
+ * @note Exact in 64 bits, as every power of ten up to the eighteenth is, and eighteen is where
+ *       MMGR_FIXED_MAX_DECIMALS holds the fixed path.
+ */
+static volatile uint64_t g_pow_ten = 1000000ull;
+
+/**
+ * @brief The significand the two shapes are applied to, and where each leaves its result.
+ */
+static BenchWide g_wide_a;
+static BenchWide g_wide_b;
 
 /**
  * @brief Where the multiply rows leave their products.
@@ -1982,6 +2115,27 @@ void dbench_run(void)
                       DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
                                             .e2 = -51, .ex = 6, .above = 0u)));
 
+            // The same call at four decimal exponents, which is what separates the pass's fixed
+            // cost from what each power of five costs. apply_pow10 runs muto_mul_pow5 once per set
+            // bit of the exponent, so 0, 1, 3 and 7 ask for none, one, two and three of them. The
+            // slope across the four is one application; what is left at zero is seating the
+            // mantissa, rounding it down to an integer, and the entry.
+            DBENCH_OP("f:pow0", iters,
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
+                                            .e2 = -51, .ex = 0, .above = 0u)));
+
+            DBENCH_OP("f:pow1", iters,
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
+                                            .e2 = -51, .ex = 1, .above = 0u)));
+
+            DBENCH_OP("f:pow3", iters,
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
+                                            .e2 = -51, .ex = 3, .above = 0u)));
+
+            DBENCH_OP("f:pow7", iters,
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
+                                            .e2 = -51, .ex = 7, .above = 0u)));
+
             // The multiply that pass is built out of. Two applications of a power of five run it
             // four times each, so eight of these are what the row above mostly is. The halves are
             // masked out of a 64-bit value and kept there, so each partial product is written as a
@@ -1990,6 +2144,24 @@ void dbench_run(void)
             DBENCH_AB("f:mul", iters, 8u,
                       (bench_mul_wide(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)),
                       (bench_mul_narrow(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)));
+
+            // Six decimals against the two shapes that can deliver it. The A arm is what the pass
+            // does now: six is two set bits, so two applications of a 128 by 128 power of five. The
+            // B arm is one application of ten to the sixth held exactly in 64 bits, which is what
+            // the fixed path can always use, since MMGR_FIXED_MAX_DECIMALS is eighteen and ten to
+            // the eighteenth is still under a 64-bit value.
+            //
+            // Both arms start from the same significand each pass, so neither is handed a value the
+            // other has already normalized.
+            DBENCH_AB("f:pow_shape", iters, 8u,
+                      (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
+                       bench_pow_128(&g_wide_a, mmgr_pow5_up[1].hi, mmgr_pow5_up[1].lo,
+                                     (int32_t)mmgr_pow5_up[1].e2),
+                       bench_pow_128(&g_wide_a, mmgr_pow5_up[2].hi, mmgr_pow5_up[2].lo,
+                                     (int32_t)mmgr_pow5_up[2].e2),
+                       DBENCH_KEEP(g_wide_a.hi)),
+                      (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
+                       bench_pow_64(&g_wide_b, g_pow_ten), DBENCH_KEEP(g_wide_b.hi)));
         }
 
         // A whole record against the one snprintf call a caller writes instead. This is where the
