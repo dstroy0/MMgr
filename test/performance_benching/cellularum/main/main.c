@@ -644,6 +644,72 @@ static mmgr_bool part_pipelined(const char *a, const char *b, size_t cap)
 }
 
 /**
+ * @brief The agree walk taking two words a pass, as cellul_len already takes two.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether both end together with no difference before it.
+ * @note cellul_len says why in its own comment: the load and the arithmetic that reads it are a
+ *       dependent pair, and taking two lets the second load be in flight while the first word is
+ *       examined. This walk reads two strings rather than one and never got the same treatment, so
+ *       all four loads issue before any of the four tests that consume them.
+ * @note The single word loop below finishes an odd word and the tail.
+ */
+static mmgr_bool part_two_pass(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    const size_t pair = 2u * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    // Stops where fewer than two whole words are left; the walk below takes what remains
+    while ((full - at) >= pair)
+    {
+        const mmgr_word a0 = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word b0 = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+        const mmgr_word a1 = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at + MMGR_SWAR_BYTES);
+        const mmgr_word b1 = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at + MMGR_SWAR_BYTES);
+        const mmgr_word z0 = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = a0);
+        const mmgr_word z1 = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = a1);
+
+        if (a0 != b0)
+        {
+            return MMGR_FALSE;
+        }
+        if (z0 != 0u)
+        {
+            return MMGR_TRUE;
+        }
+        if (a1 != b1)
+        {
+            return MMGR_FALSE;
+        }
+        if (z1 != 0u)
+        {
+            return MMGR_TRUE;
+        }
+        at += pair;
+    }
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+
+        if (wa != wb)
+        {
+            return MMGR_FALSE;
+        }
+        if (MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) != 0u)
+        {
+            return MMGR_TRUE;
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return MMGR_TRUE;
+}
+
+/**
  * @brief cellul_diff_lanes, copied from the library rather than restated.
  *
  * @param[in] d Exclusive or of the two words.
@@ -1302,6 +1368,11 @@ void dbench_run(void)
             // cannot do for itself because either test can leave the loop.
             DBENCH_AB("part_pipe", iters, n, DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)),
                       DBENCH_KEEP(part_pipelined(g_cp_src, g_cp_dst, n + 1u)));
+
+            // Two words a pass, which is what cellul_len does and this walk never did: four loads
+            // issued before any of the tests that consume them.
+            DBENCH_AB("part_two", iters, n, DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_KEEP(part_two_pass(g_cp_src, g_cp_dst, n + 1u)));
 
             // The entry against the same loop written out here. Both walk two words a step with the
             // same test, so a difference that grows with the length is not the call overhead and
