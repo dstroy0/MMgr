@@ -485,6 +485,68 @@ static mmgr_bool part_zero(const char *a, const char *b, size_t cap)
 }
 
 /**
+ * @brief The agree walk that marks a terminator rather than stopping at one.
+ *
+ * @param[in] a   First string [BORROWS].
+ * @param[in] b   Second string [BORROWS].
+ * @param[in] cap Bytes either may occupy.
+ * @return        Whether both end together with no difference before it.
+ * @note The terminator has to be found once, not tested for once a word. Four words are read and
+ *       their terminator flags and their differences are collected into two accumulators with no
+ *       branch between them; one test then covers the block. A block that holds neither is settled
+ *       in one branch instead of eight, and a block that holds either is walked again a word at a
+ *       time to find which came first, which happens at most once in a call.
+ * @note The rescan reads the same four words a second time. That is affordable because it runs once
+ *       where the loop it replaces ran on every word.
+ */
+static mmgr_bool part_marked(const char *a, const char *b, size_t cap)
+{
+    const size_t full = (cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    const size_t block = 4u * MMGR_SWAR_BYTES;
+    // Whole blocks only; whatever is left over is finished by the word walk below
+    const size_t blocks = (full / block) * block;
+    size_t at = 0u;
+
+    while (at != blocks)
+    {
+        mmgr_word ends = 0u;
+        mmgr_word diff = 0u;
+
+        for (size_t k = 0; k < block; k += MMGR_SWAR_BYTES)
+        {
+            const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at + k);
+            const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at + k);
+
+            ends |= MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa);
+            diff |= wa ^ wb;
+        }
+
+        if ((ends | diff) != 0u)
+        {
+            break;
+        }
+        at += block;
+    }
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at);
+
+        if (wa != wb)
+        {
+            return MMGR_FALSE;
+        }
+        if (MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) != 0u)
+        {
+            return MMGR_TRUE;
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return MMGR_TRUE;
+}
+
+/**
  * @brief cellul_diff_lanes, copied from the library rather than restated.
  *
  * @param[in] d Exclusive or of the two words.
@@ -1127,6 +1189,12 @@ void dbench_run(void)
 
             DBENCH_AB("part_zero", iters, n, DBENCH_KEEP(part_compare(g_cp_src, g_cp_dst, n + 1u)),
                       DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)));
+
+            // The whole hot loop against one that marks the terminator rather than stopping at it:
+            // four words collected into two accumulators, one branch for the block instead of two a
+            // word, and a second walk over the block that fires only when something was found.
+            DBENCH_AB("part_mark", iters, n, DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_KEEP(part_marked(g_cp_src, g_cp_dst, n + 1u)));
 
             // The entry against the same loop written out here. Both walk two words a step with the
             // same test, so a difference that grows with the length is not the call overhead and
