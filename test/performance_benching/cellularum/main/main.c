@@ -61,6 +61,11 @@ static const char *volatile g_real = "3.14159265358979";
 static const char *volatile g_real_exp = "1.7976931348623157e+308";
 
 /**
+ * @brief The mantissa g_real parses to, held where the compiler cannot fold the arithmetic on it.
+ */
+static volatile uint64_t g_scale_mant = 314159265358979ull;
+
+/**
  * @brief Fills both buffers with n bytes that contain neither the needle nor the sought byte.
  *
  * @param[in] n Bytes to fill, leaving room for the terminator.
@@ -167,6 +172,25 @@ void dbench_run(void)
             DBENCH_AB("to_float", iters, 16u,
                       DBENCH_KEEP(MMGR_CALL(cellul.to_float, TransfiguroCfg, .src = g_real)),
                       DBENCH_KEEP(strtof(g_real, NULL)));
+        }
+
+        // Where to_double's time goes. to_ulong puts digit accumulation at about thirteen cycles a
+        // digit, so a fifteen digit parse is roughly two hundred of to_double's eleven hundred and
+        // the rest is muto_scale. For this input muto_scale takes its exact path: the mantissa is
+        // under 2^53 and the exponent is inside twenty two, so the answer is one soft double divide
+        // by a power of ten held exactly. These two rows price that divide against the multiply by
+        // its reciprocal, which is the obvious alternative and is not the same function - a divide
+        // by an exact power of ten rounds correctly, and a multiply by its inverse does not, since
+        // the inverse is not representable. The row says what that correctness is costing, nothing
+        // more; it is not a proposal.
+        {
+            const uint32_t iters = 5000u;
+
+            // The volatile is read inside each arm, not hoisted into a local first. Read once ahead
+            // of the loop the whole expression is loop invariant and the compiler lifts it out, and
+            // both arms then measure the empty harness.
+            DBENCH_AB("soft_divmul", iters, 8u, DBENCH_KEEP((double)g_scale_mant / 1e14),
+                      DBENCH_KEEP((double)g_scale_mant * 1e-14));
         }
 
         // What the harness costs with no work in it: the loop, the counter and the volatile store,
