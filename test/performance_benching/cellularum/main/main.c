@@ -708,9 +708,14 @@ void dbench_run(void)
                       DBENCH_KEEP(MMGR_CALL(lane.count, ScrutLaneCfg, .mask = g_mask)),
                       DBENCH_KEEP(__builtin_popcountll((unsigned long long)g_mask)));
 
+            // The bench arm above divides ctz by eight and ignores the empty mask, which the entry
+            // has to answer for: its contract reports MMGR_SWAR_BYTES when no lane is set, and ctz
+            // of zero is undefined. This arm carries that guard, so it is the same function and the
+            // row says what a substitution would actually be worth.
             DBENCH_AB("lane_first", iters, 8u,
                       DBENCH_KEEP(MMGR_CALL(lane.first, ScrutLaneCfg, .mask = g_mask)),
-                      DBENCH_KEEP(__builtin_ctzll((unsigned long long)g_mask) / 8u));
+                      DBENCH_KEEP((g_mask == 0u) ? MMGR_SWAR_BYTES
+                                                 : (__builtin_ctzll((unsigned long long)g_mask) / 8u)));
 
             // The two loads, which is the question that decided proxim_words and was worth nothing
             // in cellul_agree_cs. Here it is priced on its own rather than inside a walk.
