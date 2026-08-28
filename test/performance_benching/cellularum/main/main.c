@@ -178,6 +178,82 @@ static mmgr_bool eq_aligned(const char *a, const char *b, size_t cap)
 }
 
 /**
+ * @brief What cellul_agree_cs walks with, so the arm below reads its addresses the same way.
+ */
+typedef struct
+{
+    const char *src;   /**< First string [BORROWS]. */
+    const char *other; /**< Second string [BORROWS]. */
+    size_t cap;        /**< Bytes either may occupy. */
+} BenchEqCtx;
+
+/**
+ * @brief The same equality walk, reaching both addresses through a context on every step.
+ *
+ * @param[in] args The two strings and the extent [BORROWS].
+ * @return         Whether both end together with no difference before it.
+ * @note The A arm against eq_unaligned, which holds the two addresses as parameters instead. The
+ *       loop, the loads and the test are identical; the only difference is where the addresses live
+ *       while it runs. cellul_agree_cs is written the first way and measures about 2.4 times what
+ *       the second does per byte, so this asks whether that is the reason.
+ */
+static mmgr_bool eq_via_ctx(const BenchEqCtx *args)
+{
+    const size_t full = (args->cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at);
+        const mmgr_word wb = MMGR_CALL(word.load, ScrutWordCfg, .at = args->other + at);
+        const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa);
+
+        if ((z != 0u) || (wa != wb))
+        {
+            // Explicit cast narrows the two tests into the mmgr_bool container
+            return (mmgr_bool)((z != 0u) && (wa == wb));
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return MMGR_TRUE;
+}
+
+/**
+ * @brief The context walk with both addresses and the extent read once before the loop starts.
+ *
+ * @param[in] args The two strings and the extent [BORROWS].
+ * @return         Whether both end together with no difference before it.
+ * @note The B arm against the entry itself. The pack still arrives as one pointer, which is what the
+ *       api asks for; what changes is that its members are read once here rather than once a word.
+ *       The loads inside the body take the address of a compound literal, so the compiler cannot
+ *       show the context is unchanged across them and reloads both addresses every step.
+ * @note This is the same hoist that measured 1.00 in proxim_words, where the pointers are advanced
+ *       each iteration and so are already live. Here they are only read, and it is worth 2.18x.
+ */
+static mmgr_bool eq_via_ctx_hoisted(const BenchEqCtx *args)
+{
+    const char *const a = args->src;
+    const char *const b = args->other;
+    const size_t full = (args->cap / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
+    size_t at = 0u;
+
+    while (at != full)
+    {
+        const mmgr_word wa = MMGR_CALL(word.load, ScrutWordCfg, .at = a + at);
+        const mmgr_word wb = MMGR_CALL(word.load, ScrutWordCfg, .at = b + at);
+        const mmgr_word z = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = wa);
+
+        if ((z != 0u) || (wa != wb))
+        {
+            // Explicit cast narrows the two tests into the mmgr_bool container
+            return (mmgr_bool)((z != 0u) && (wa == wb));
+        }
+        at += MMGR_SWAR_BYTES;
+    }
+    return MMGR_TRUE;
+}
+
+/**
  * @brief Fills both buffers with n bytes that contain neither the needle nor the sought byte.
  *
  * @param[in] n Bytes to fill, leaving room for the terminator.
@@ -286,6 +362,24 @@ void dbench_run(void)
             DBENCH_AB("eq_entry", iters, n,
                       DBENCH_KEEP(MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
                       DBENCH_KEEP(eq_unaligned(g_a, g_b, n + 1u)));
+
+            // The same loop reaching its two addresses through a context against holding them as
+            // parameters. Everything else about the two is identical, so this is the whole of what
+            // separates the entry's walk from the one written out here, if anything does.
+            {
+                const BenchEqCtx ctx = {.src = g_a, .other = g_b, .cap = n + 1u};
+
+                DBENCH_AB("eq_ctx", iters, n, DBENCH_KEEP(eq_via_ctx(&ctx)),
+                          DBENCH_KEEP(eq_unaligned(g_a, g_b, n + 1u)));
+
+                // The entry as it stands against the same walk with the context read once up front.
+                // This is the row that decides whether the hoist belongs in cellul_agree_cs, so the
+                // A arm is the real entry and not a copy of it.
+                DBENCH_AB("eq_hoist", iters, n,
+                          DBENCH_KEEP(
+                              MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
+                          DBENCH_KEEP(eq_via_ctx_hoisted(&ctx)));
+            }
         }
 
         // The four converters, which had no row at all. These are the read side of what verba does
