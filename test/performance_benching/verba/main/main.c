@@ -1428,6 +1428,81 @@ static size_t zeros_plain(char *out, size_t cap, size_t at, size_t n)
 }
 
 /**
+ * @brief Digits placed one at a time, each testing for room of its own, with a point among them.
+ *
+ * @param[out] out    Destination [BORROWS].
+ * @param[in]  cap    Bytes available.
+ * @param[in]  at     Offset to write at.
+ * @param[in]  src    The digits, already laid down [BORROWS].
+ * @param[in]  n      How many.
+ * @param[in]  point  Digits before the point; 0 writes no point.
+ * @return            The offset past what was written, or cap once something did not fit.
+ * @note The shape verba_digits has: verba_emit20 lays the digits into a scratch buffer and then a
+ *       loop places them one at a time, each through verba_ch, which tests before every store. The
+ *       count is settled before the first one.
+ */
+static size_t digits_per_char(char *out, size_t cap, size_t at, const char *src, size_t n, size_t point)
+{
+    for (size_t index = 0; index < n; index++)
+    {
+        if ((index == point) && (index != 0u))
+        {
+            if ((at >= cap) || (1u > ((cap - at) - 1u)))
+            {
+                return cap;
+            }
+            out[at] = '.';
+            at += 1u;
+        }
+        if ((at >= cap) || (1u > ((cap - at) - 1u)))
+        {
+            return cap;
+        }
+        out[at] = src[index];
+        at += 1u;
+    }
+    return at;
+}
+
+/**
+ * @brief The same digits with the room tested once for the whole run, point included.
+ *
+ * @param[out] out    Destination [BORROWS].
+ * @param[in]  cap    Bytes available.
+ * @param[in]  at     Offset to write at.
+ * @param[in]  src    The digits, already laid down [BORROWS].
+ * @param[in]  n      How many.
+ * @param[in]  point  Digits before the point; 0 writes no point.
+ * @return            The offset past what was written, or cap when the run does not fit.
+ * @note The point is one more byte and its position is known, so the whole width is known before
+ *       anything is written and one test covers it. A run that does not fit writes nothing, where
+ *       the per character form writes what fitted and then reports cap.
+ */
+static size_t digits_one_test(char *out, size_t cap, size_t at, const char *src, size_t n, size_t point)
+{
+    const size_t width = n + (((point != 0u) && (point < n)) ? 1u : 0u);
+
+    if ((at >= cap) || (width > ((cap - at) - 1u)))
+    {
+        return cap;
+    }
+
+    size_t put = at;
+
+    for (size_t index = 0; index < n; index++)
+    {
+        if ((index == point) && (index != 0u))
+        {
+            out[put] = '.';
+            put += 1u;
+        }
+        out[put] = src[index];
+        put += 1u;
+    }
+    return put;
+}
+
+/**
  * @brief The biased exponent field, reached the way libc offers it.
  *
  * @param[in] value Value to take apart.
@@ -1818,6 +1893,21 @@ void dbench_run(void)
                 DBENCH_AB("s:z_plain", iters, (unsigned)runs[which],
                           DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
                           DBENCH_KEEP(zeros_plain(g_wide, sizeof g_wide, 0u, g_zero_n)));
+            }
+
+            // The digit placement, tested once against tested once a character. Seventeen digits
+            // with a point after one is what verba_g renders in exponential form, and six with no
+            // point is the shorter case.
+            {
+                static const char laid[24] = "31415926535897932384";
+
+                DBENCH_AB("s:d_point", iters, 17u,
+                          DBENCH_KEEP(digits_per_char(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)),
+                          DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)));
+
+                DBENCH_AB("s:d_plain", iters, 6u,
+                          DBENCH_KEEP(digits_per_char(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)),
+                          DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)));
             }
 
             DBENCH_AB("s:sign", iters, 8u,
