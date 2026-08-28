@@ -124,6 +124,11 @@ static volatile uint64_t g_fix_frac = 141593u;
 static uint64_t g_fix_rem = 0x121FB54442D18ull;
 
 /**
+ * @brief The seventeen significant digits verba_g writes for that value, as one integer.
+ */
+static volatile uint64_t g_g_mant = 31415926535897932ull;
+
+/**
  * @brief Powers of ten the scan counter compares against, as verba_scribo carries them.
  */
 static const uint32_t POW10[10] = {1u,       10u,       100u,       1000u,       10000u,
@@ -2114,6 +2119,27 @@ void dbench_run(void)
             DBENCH_OP("f:scale", iters,
                       DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
                                             .e2 = -51, .ex = 6, .above = 0u)));
+
+            // What verba_g spends outside the scaling pass. It writes seventeen digits with a point
+            // among them, and it runs the pass once per correction of its exponent estimate, up to
+            // four times. The pass is priced above, so what these two do not account for is how
+            // many times it ran.
+            DBENCH_OP("g:whole", iters,
+                      DBENCH_KEEP(MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .real = g_rec_real2,
+                                            .sig = 17u)));
+
+            // The trailing zero strip verba_g runs before it picks a form. It tests one 64-bit
+            // modulo per digit it considers dropping and performs a 64-bit division for each one it
+            // drops, and neither part carries a 64-bit divider, so both are libgcc calls. The
+            // seventeen digit mantissa here ends in a two, so the loop tests once and drops nothing:
+            // this is the cheapest that strip ever is.
+            DBENCH_OP("g:strip", iters, DBENCH_KEEP((g_g_mant % 10u) == 0u));
+
+            DBENCH_OP("g:digits", iters,
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .val = g_g_mant,
+                                            .base = 10u, .min = 17u)));
 
             // The same call at four decimal exponents, which is what separates the pass's fixed
             // cost from what each power of five costs. apply_pow10 runs muto_mul_pow5 once per set
