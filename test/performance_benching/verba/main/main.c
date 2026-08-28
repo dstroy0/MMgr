@@ -1704,6 +1704,16 @@ void dbench_run(void)
                                             .cap = sizeof g_wide, .at = 0u, .val = 4294967295u)),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%u", 4294967295u)));
 
+            // u64_clip had no row. It writes the same digits u64 does, right aligned in a column,
+            // and it is the one entry in the module still walking a 64-bit divide and modulo per
+            // digit - the thing verba_emit20 replaced everywhere else. Against the same snprintf
+            // asked for the same column.
+            DBENCH_AB("s:u64clip", iters, 20u,
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u,
+                                            .val = 18446744073709551615ull, .columns = 24u)),
+                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%24llu", 18446744073709551615ull)));
+
             DBENCH_AB("s:u64", iters, 20u,
                       DBENCH_KEEP(MMGR_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = g_wide,
                                             .cap = sizeof g_wide, .at = 0u,
