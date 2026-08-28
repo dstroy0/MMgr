@@ -70,7 +70,7 @@ last persistent take_.
 
 | type          | is                                                                     |
 | ------------- | ---------------------------------------------------------------------- |
-| `CarcerCtx`   | a pool: base, size, both ends, and the hardware cap                    |
+| `CarcerCtx`   | a pool's state: base, size, both ends, and the hardware cap            |
 | `mmgr_span`   | a buffer, its capacity and a cursor. `pos` is how much was written     |
 | `mmgr_bitor`  | a bit writer: buffer, capacity, count, residue and overflow            |
 | `mmgr_word`   | the machine word, unsigned — the SWAR carrier                          |

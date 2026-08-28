@@ -77,9 +77,9 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/mmgr/test_mmgr\\test_mmgr.c");
-  run_test(test_umbrella_header_is_self_contained, "test_umbrella_header_is_self_contained", 5);
-  run_test(test_every_namespace_is_reachable, "test_every_namespace_is_reachable", 10);
-  run_test(test_namespaces_are_their_own_types, "test_namespaces_are_their_own_types", 28);
+  run_test(test_umbrella_header_is_self_contained, "test_umbrella_header_is_self_contained", 12);
+  run_test(test_every_namespace_is_reachable, "test_every_namespace_is_reachable", 17);
+  run_test(test_namespaces_are_their_own_types, "test_namespaces_are_their_own_types", 39);
 
   return UNITY_END();
 }

@@ -16,32 +16,25 @@ moves those views between a producer and a consumer.
 
 ## Declaring one
 
-`mmgr_carcer_init` is a macro, and nothing it does happens at runtime. It emits the storage, the
-layout type, an enumerator per pool and the descriptors, all at file scope, and every size claim in
-it is a static assert:
+One declaration per region. It emits each pool's storage, its alignment, its state and the entries
+bound to it, all as initialized data - nothing it does happens at run time:
 
 ```c
-mmgr_carcer_init(g_ram, 4096u, MMGR_POOL(g_scratch, 2048u), MMGR_POOL(g_work, 2048u));
+Carceribus(prison, MMGR_SOLUTA(work, 2048), MMGR_SECURA(keys, 2048));
 ```
 
-A pool whose size is not a power of two, or one that runs past the end of the region, does not
-build. There is no runtime check because there is nothing left to check.
-
-**The pool count is not capped at two, but it must be a power of two.** One, two, four or eight:
+**Nothing caps the count.** As many pools as you declare:
 
 ```c
-mmgr_carcer_init(g_ram, 1024u, MMGR_POOL(a, 256u), MMGR_POOL(b, 256u),
-                 MMGR_POOL(c, 256u), MMGR_POOL(d, 256u));
+Carceribus(four, MMGR_SOLUTA(a, 256), MMGR_SOLUTA(b, 256), MMGR_SOLUTA(c, 256), MMGR_SECURA(d, 256));
 ```
 
-A count between the powers of two is refused by name — three pools says so in as many words rather
-than failing on a macro you never wrote. Eight is the ceiling, and it is where `MMGR_NARG`'s argument
-table runs out rather than a judgement about how many pools are useful: each `MMGR_POOL` pair is two
-arguments and the table reaches 24.
+Three pools is as legal as four, and the sizes need not relate to each other: each pool declares its
+own storage, so nothing divides and nothing is rounded. The pool count is bounded only by how many
+`MMGR_CARCER_W` lines the header carries; another count is another line.
 
-Each region sizes its own pool array from the count it was declared with, so
-`MMGR_CARCER_MAX_REGIONS` is a ceiling and nothing more. Raising it to admit an eight-pool region
-somewhere costs a one-pool region nothing.
+Every symbol a declaration emits carries the region's name, so a program may declare as many regions
+as it likes and two of them may each hold a pool called the same thing under different watches.
 
 Requiring a power of two twice over is what keeps the arithmetic free: an offset inside a pool is
 masked rather than divided, and because every pool's size is a power of two its base lands aligned to
@@ -68,20 +61,18 @@ released one at a time and the walk would be pure cost.
 ## Worked example
 
 ```c
-CarcerCtx *const pool = MMGR_CARCER_POOL(g_ram, g_scratch);
-
-char *const table = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 512u);
+char *const table = prison.work.persist_capio(512);
 if (table == NULL) {
     return -1;                       /* the region is full; nothing moved */
 }
 
-const size_t mark = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = pool);
-char *const work  = MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = pool, .size = 256u);
+const size_t mark = prison.work.interim_mark();
+char *const  buf  = prison.work.interim_capio(256);
 
-/* ... use work ... */
+/* ... use buf ... */
 
-MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = pool, .mark = mark);
-MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = pool, .tenancy = table);
+prison.work.interim_reddo(mark);
+prison.work.persist_reddo(table);
 ```
 
 `capio` is _take_, `reddo` is _give back_. @ref ref_glossary has the rest of the verbs.
@@ -92,18 +83,19 @@ the block's own header carries its size.
 
 ## Giving back a secret
 
-Two calls give a persistent tenancy back, and they differ in exactly one thing:
+One call gives a persistent tenancy back, and what it does depends on which pool it is:
 
 ```c
-MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = pool, .tenancy = p);  /* leaves the bytes */
-MMGR_CALL(carcer.secura_reddo,  CarcerCfg, .pool = pool, .tenancy = p);  /* clears them first */
+prison.work.persist_reddo(table);   /* work is soluta, so the bytes are left as they are */
+prison.keys.persist_reddo(secret);  /* keys is secura, so they are cleared first */
 ```
 
-The guarantee is in the name rather than a flag, so a caller cannot ask for a wipe and not get one.
+The guarantee is in the declaration rather than in a flag or a second call, so a caller cannot ask
+for a wipe and not get one, and cannot forget to. `prison.keys` has no unwiped release to reach for.
 The extent cleared is the block's own, read from its header, so a caller cannot under-wipe a tenancy
 by naming fewer bytes than it holds.
 
-`carcer.wipe` clears an address and a count in place without giving anything back, for when a secret
+`mmgr_carcer_wipe` clears an address and a count in place without giving anything back, for when a secret
 is finished with but the storage is not.
 
 Bytes are cleared on release rather than on hand-out. That means `persist_capio` does **not** return
@@ -120,15 +112,15 @@ through byte edges.
 `interim_mark` returns a value and stores nothing, so a caller may hold two at once:
 
 ```c
-const size_t outer = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = pool);
+const size_t outer = prison.work.interim_mark();
 /* ... */
-const size_t inner = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = pool);
+const size_t inner = prison.work.interim_mark();
 /* ... */
-MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = pool, .mark = inner);  /* inner run back */
-MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = pool, .mark = outer);  /* and the rest */
+prison.work.interim_reddo(inner);  /* inner run back */
+prison.work.interim_reddo(outer);  /* and the rest */
 ```
 
-`carcer.interim_reset` is the same step against the pool's own size, named because it is what the end
+`interim_reset` is the same step against the pool's own size, named because it is what the end
 of a dispatch does.
 
 ## Gotchas
@@ -144,18 +136,18 @@ answer rather than predicting it from this.
 scrubbed by an interim rollback, so it dereferences fine and returns whatever the next take put
 there. Keep a mark and its `reddo` in the same function.
 
-**`carcer.owns` is for asserts.** It says a pointer is inside the pool's storage. It does not say
+**`owns` is for asserts.** It says a pointer is inside the pool's storage. It does not say
 the pointer is live.
 
 ## Sizing it
 
 ```c
-const size_t left  = MMGR_CALL(carcer.octas_praesto, CarcerCfg, .pool = pool);
+const size_t left  = prison.work.octas_praesto();
 const size_t grown = pool->persist_end;                 /* how far the bottom has reached */
 const size_t peak  = pool->persist_hw;                  /* MMGR_ENABLE_HW_MEM_CAPACITY_CB only */
 ```
 
-`CarcerCtx` is a type you declare, so the counters are read rather than asked for — there is no
+A pool's counters are its own state, read rather than asked for — there is no
 accessor that would be a second way to spell a member read.
 
 `persist_end` bounds the block chain rather than counting what is held: a freed block inside the

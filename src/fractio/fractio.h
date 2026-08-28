@@ -17,23 +17,23 @@ MMGR_INCIPE_DECLS
  * @note The assertions below check the masks tile the word without gap or overlap.
  * @note Every constant carries a ull suffix, matching the mmgr_u64 the fields are read from.
  */
-#define MMGR_DBL_SIGN_MASK 0x8000000000000000ull  /**< The sign bit. */
-#define MMGR_DBL_EXP_MASK 0x7FF0000000000000ull   /**< The eleven exponent bits. */
-#define MMGR_DBL_MANT_MASK 0x000FFFFFFFFFFFFFull  /**< The fifty-two stored mantissa bits. */
-#define MMGR_DBL_SIGN_SHIFT 63u                   /**< Bit position of the sign. */
-#define MMGR_DBL_MANT_BITS 52u                    /**< Stored mantissa width, and the exponent's shift. */
-#define MMGR_DBL_EXP_BITS 11u                     /**< Exponent width. */
-#define MMGR_DBL_SIGN_ONE 0x1ull                  /**< A sign of one, before shifting. */
-#define MMGR_DBL_EXP_ALL 0x7FFull                 /**< An exponent field of all ones. */
-#define MMGR_DBL_BIAS 1023                        /**< Amount added to the true exponent when stored. */
+#define MMGR_DBL_SIGN_MASK 0x8000000000000000ull /**< The sign bit. */
+#define MMGR_DBL_EXP_MASK 0x7FF0000000000000ull  /**< The eleven exponent bits. */
+#define MMGR_DBL_MANT_MASK 0x000FFFFFFFFFFFFFull /**< The fifty-two stored mantissa bits. */
+#define MMGR_DBL_SIGN_SHIFT 63u                  /**< Bit position of the sign. */
+#define MMGR_DBL_MANT_BITS 52u                   /**< Stored mantissa width, and the exponent's shift. */
+#define MMGR_DBL_EXP_BITS 11u                    /**< Exponent width. */
+#define MMGR_DBL_SIGN_ONE 0x1ull                 /**< A sign of one, before shifting. */
+#define MMGR_DBL_EXP_ALL 0x7FFull                /**< An exponent field of all ones. */
+#define MMGR_DBL_BIAS 1023                       /**< Amount added to the true exponent when stored. */
 
 /**
  * @brief The width of a double in bits, bytes and mmgr_word units.
  *
  * @note MMGR_DBL_WORDS rounds up, and the assertion below requires it to come out exact.
  */
-#define MMGR_DBL_BITS 64u                                                /**< Bits in a double. */
-#define MMGR_DBL_BYTES (MMGR_DBL_BITS / 8u)                              /**< Bytes in a double. */
+#define MMGR_DBL_BITS 64u                                                         /**< Bits in a double. */
+#define MMGR_DBL_BYTES (MMGR_DBL_BITS / 8u)                                       /**< Bytes in a double. */
 #define MMGR_DBL_WORDS ((MMGR_DBL_BITS + (MMGR_WORD_BITS - 1u)) / MMGR_WORD_BITS) /**< mmgr_word units per double. */
 
 /**
@@ -108,64 +108,64 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_u64 (*sign)(const FractioCfg *c);    /**< Sign bit of bits, as 0 or 1. */
-    mmgr_u64 (*exp)(const FractioCfg *c);     /**< Biased exponent field of bits. */
-    mmgr_u64 (*mant)(const FractioCfg *c);    /**< Stored mantissa field of bits. */
-    mmgr_u64 (*merge)(const FractioCfg *c);   /**< Packs sign, exp and mant into one pattern. */
-    double (*from_bits)(const FractioCfg *c); /**< Reads the union as a double. */
-    mmgr_u64 (*to_bits)(const FractioCfg *c); /**< Reads the union as a bit pattern. */
+    mmgr_u64 (*sign)(const FractioCfg *args);    /**< Sign bit of bits, as 0 or 1. */
+    mmgr_u64 (*exp)(const FractioCfg *args);     /**< Biased exponent field of bits. */
+    mmgr_u64 (*mant)(const FractioCfg *args);    /**< Stored mantissa field of bits. */
+    mmgr_u64 (*merge)(const FractioCfg *args);   /**< Packs sign, exp and mant into one pattern. */
+    double (*from_bits)(const FractioCfg *args); /**< Reads the union as a double. */
+    mmgr_u64 (*to_bits)(const FractioCfg *args); /**< Reads the union as a bit pattern. */
 } FractioNs;
 MMGR_NS_LAYOUT(FractioNs, sign, exp, mant, merge, from_bits, to_bits);
 
 /**
- * @brief Returns the sign bit of c->bits.
+ * @brief Returns the sign bit of args->bits.
  *
- * @param[in] c Bit pattern in the union [BORROWS].
+ * @param[in] args Bit pattern in the union [BORROWS].
  * @return      0 for a positive sign, 1 for a negative one.
  */
-mmgr_u64 mmgr_fract_sign(const FractioCfg *c);
+mmgr_u64 mmgr_fract_sign(const FractioCfg *args);
 
 /**
- * @brief Returns the exponent field of c->bits.
+ * @brief Returns the exponent field of args->bits.
  *
- * @param[in] c Bit pattern in the union [BORROWS].
+ * @param[in] args Bit pattern in the union [BORROWS].
  * @return      The stored exponent, still carrying MMGR_DBL_BIAS.
  * @note 0 marks a zero or subnormal; MMGR_DBL_EXP_ALL marks an infinity or NaN.
  */
-mmgr_u64 mmgr_fract_exp(const FractioCfg *c);
+mmgr_u64 mmgr_fract_exp(const FractioCfg *args);
 
 /**
- * @brief Returns the mantissa field of c->bits.
+ * @brief Returns the mantissa field of args->bits.
  *
- * @param[in] c Bit pattern in the union [BORROWS].
+ * @param[in] args Bit pattern in the union [BORROWS].
  * @return      The fifty-two stored bits, without the implicit leading one.
  */
-mmgr_u64 mmgr_fract_mant(const FractioCfg *c);
+mmgr_u64 mmgr_fract_mant(const FractioCfg *args);
 
 /**
- * @brief Packs c->sign, c->exp and c->mant into one bit pattern.
+ * @brief Packs args->sign, args->exp and args->mant into one bit pattern.
  *
- * @param[in] c The three fields [BORROWS].
+ * @param[in] args The three fields [BORROWS].
  * @return      The assembled pattern.
  * @note Each field is masked to its own width, so a wide input cannot reach a neighboring field.
  */
-mmgr_u64 mmgr_fract_merge(const FractioCfg *c);
+mmgr_u64 mmgr_fract_merge(const FractioCfg *args);
 
 /**
  * @brief Reads the union as a double.
  *
- * @param[in] c Union with its bits member filled [BORROWS].
+ * @param[in] args Union with its bits member filled [BORROWS].
  * @return      The same storage interpreted as a double.
  */
-double mmgr_fract_from_bits(const FractioCfg *c);
+double mmgr_fract_from_bits(const FractioCfg *args);
 
 /**
  * @brief Reads the union as a bit pattern.
  *
- * @param[in] c Union with its val member filled [BORROWS].
+ * @param[in] args Union with its val member filled [BORROWS].
  * @return      The same storage interpreted as mmgr_u64.
  */
-mmgr_u64 mmgr_fract_to_bits(const FractioCfg *c);
+mmgr_u64 mmgr_fract_to_bits(const FractioCfg *args);
 
 /**
  * @brief Dispatch table instance named fract; each member calls the matching mmgr_fract_ function.

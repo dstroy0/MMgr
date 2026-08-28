@@ -68,8 +68,7 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @note An n at the full width is the case a shift cannot express, so it is answered by complement
  *       instead. An n of 0 falls out of the shift, so neither end needs a test of its own.
  */
-#define RING_LOW_MASK(T, n, bits)                                                                     \
-    (((n) >= (bits)) ? (T) ~(T)0 : (T)(((T)(((T)1) << (n))) - (T)1))
+#define RING_LOW_MASK(T, n, bits) (((n) >= (bits)) ? (T) ~(T)0 : (T)(((T)(((T)1) << (n))) - (T)1))
 
 /**
  * @brief Copies two words at offset i of the mover's walking pointers.
@@ -77,8 +76,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @param[in] i First of the two word offsets.
  * @note Named d and s from the enclosing scope, so the cascade below reads as widths alone.
  */
-#define RING_COPY_2(i)                                                                                \
-    d[(i)] = s[(i)];                                                                                  \
+#define RING_COPY_2(i)                                                                                                 \
+    d[(i)] = s[(i)];                                                                                                   \
     d[(i) + 1] = s[(i) + 1]
 
 /**
@@ -86,8 +85,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  *
  * @param[in] i First of the four word offsets.
  */
-#define RING_COPY_4(i)                                                                                \
-    RING_COPY_2(i);                                                                                   \
+#define RING_COPY_4(i)                                                                                                 \
+    RING_COPY_2(i);                                                                                                    \
     RING_COPY_2((i) + 2)
 
 /**
@@ -95,8 +94,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  *
  * @param[in] i First of the eight word offsets.
  */
-#define RING_COPY_8(i)                                                                                \
-    RING_COPY_4(i);                                                                                   \
+#define RING_COPY_8(i)                                                                                                 \
+    RING_COPY_4(i);                                                                                                    \
     RING_COPY_4((i) + 4)
 
 /**
@@ -108,12 +107,12 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @note One rung per bit of rem, so each runs at most once and together they carry every tail
  *       exactly, without an access reaching past the bytes the caller gave.
  */
-#define RING_TAIL(T, n)                                                                               \
-    if ((rem & (n)) != 0u)                                                                            \
-    {                                                                                                 \
-        *(T *)db = *(const T *)sb;                                                                    \
-        db += (n);                                                                                    \
-        sb += (n);                                                                                    \
+#define RING_TAIL(T, n)                                                                                                \
+    if ((rem & (n)) != 0u)                                                                                             \
+    {                                                                                                                  \
+        *(T *)db = *(const T *)sb;                                                                                     \
+        db += (n);                                                                                                     \
+        sb += (n);                                                                                                     \
     }
 
 /**
@@ -458,145 +457,145 @@ MMGR_INLINE size_t ring_free(size_t h, size_t t, size_t cap)
 /**
  * @brief Returns the bytes the consumer may still read.
  *
- * @param[in] c Ring to inspect [BORROWS].
+ * @param[in] args Ring to inspect [BORROWS].
  * @return      Distance from tail to head, wrapped into the ring.
  */
-MMGR_INLINE size_t infin_available(const InfinCtx *c)
+MMGR_INLINE size_t infin_available(const InfinCtx *args)
 {
-    return ring_used(MMGR_ATOMIC_LOAD(&c->s->head), MMGR_ATOMIC_LOAD(&c->s->tail), c->s->cap);
+    return ring_used(MMGR_ATOMIC_LOAD(&args->s->head), MMGR_ATOMIC_LOAD(&args->s->tail), args->s->cap);
 }
 
 /**
  * @brief Returns the bytes the producer may still write.
  *
- * @param[in] c Ring to inspect [BORROWS].
+ * @param[in] args Ring to inspect [BORROWS].
  * @return      cap minus one, minus the readable bytes.
  */
-MMGR_INLINE size_t infin_vacant(const InfinCtx *c)
+MMGR_INLINE size_t infin_vacant(const InfinCtx *args)
 {
-    return ring_free(MMGR_ATOMIC_LOAD(&c->s->head), MMGR_ATOMIC_LOAD(&c->s->tail), c->s->cap);
+    return ring_free(MMGR_ATOMIC_LOAD(&args->s->head), MMGR_ATOMIC_LOAD(&args->s->tail), args->s->cap);
 }
 
 /**
  * @brief Takes one byte from the tail and advances past it.
  *
- * @param[in,out] c Ring and the destination byte [BORROWS].
+ * @param[in,out] args Ring and the destination byte [BORROWS].
  * @return          MMGR_TRUE when a byte was taken, MMGR_FALSE when the ring was empty.
  */
-MMGR_INLINE mmgr_bool infin_read_byte(const InfinCtx *c)
+MMGR_INLINE mmgr_bool infin_read_byte(const InfinCtx *args)
 {
-    const size_t t = MMGR_ATOMIC_LOAD(&c->s->tail);
+    const size_t t = MMGR_ATOMIC_LOAD(&args->s->tail);
 
-    if (t == MMGR_ATOMIC_LOAD(&c->s->head))
+    if (t == MMGR_ATOMIC_LOAD(&args->s->head))
     {
         return MMGR_FALSE;
     }
-    *c->dst = c->s->buf[t];
-    MMGR_ATOMIC_STORE(&c->s->tail, MMGR_RING_WRAP(t + 1u, c->s->cap));
+    *args->dst = args->s->buf[t];
+    MMGR_ATOMIC_STORE(&args->s->tail, MMGR_RING_WRAP(t + 1u, args->s->cap));
     return MMGR_TRUE;
 }
 
 /**
- * @brief Takes up to c->bytes into c->dst and advances the tail once at the end.
+ * @brief Takes up to args->bytes into args->dst and advances the tail once at the end.
  *
- * @param[in,out] c Ring, destination and the most to take [BORROWS].
+ * @param[in,out] args Ring, destination and the most to take [BORROWS].
  * @return          Bytes actually taken.
  * @note Publishes the tail once, after the move, rather than per byte.
  */
-MMGR_INLINE size_t infin_read(const InfinCtx *c)
+MMGR_INLINE size_t infin_read(const InfinCtx *args)
 {
-    const size_t t = MMGR_ATOMIC_LOAD(&c->s->tail);
-    const size_t have = ring_used(MMGR_ATOMIC_LOAD(&c->s->head), t, c->s->cap);
-    const size_t n = (have < c->bytes) ? have : c->bytes;
+    const size_t t = MMGR_ATOMIC_LOAD(&args->s->tail);
+    const size_t have = ring_used(MMGR_ATOMIC_LOAD(&args->s->head), t, args->s->cap);
+    const size_t n = (have < args->bytes) ? have : args->bytes;
 
-    MMGR_ATOMIC_STORE(&c->s->tail, ring_move_out(c->s, t, c->dst, n));
+    MMGR_ATOMIC_STORE(&args->s->tail, ring_move_out(args->s, t, args->dst, n));
     return n;
 }
 
 /**
- * @brief Copies c->bytes out of the ring starting c->off past the tail, leaving the tail alone.
+ * @brief Copies args->bytes out of the ring starting args->off past the tail, leaving the tail alone.
  *
- * @param[in,out] c Ring, destination, byte count and starting offset [BORROWS].
- * @warning Copies c->bytes whether or not that many are available.
+ * @param[in,out] args Ring, destination, byte count and starting offset [BORROWS].
+ * @warning Copies args->bytes whether or not that many are available.
  */
-MMGR_INLINE void infin_peek(const InfinCtx *c)
+MMGR_INLINE void infin_peek(const InfinCtx *args)
 {
-    const size_t at = MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&c->s->tail) + c->off, c->s->cap);
+    const size_t at = MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&args->s->tail) + args->off, args->s->cap);
 
-    (void)ring_move_out(c->s, at, c->dst, c->bytes);
+    (void)ring_move_out(args->s, at, args->dst, args->bytes);
 }
 
 /**
- * @brief Advances the tail past c->bytes.
+ * @brief Advances the tail past args->bytes.
  *
- * @param[in,out] c Ring and the byte count to drop [BORROWS].
+ * @param[in,out] args Ring and the byte count to drop [BORROWS].
  */
-MMGR_INLINE void infin_consume(const InfinCtx *c)
+MMGR_INLINE void infin_consume(const InfinCtx *args)
 {
-    MMGR_ATOMIC_STORE(&c->s->tail, MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&c->s->tail) + c->bytes, c->s->cap));
+    MMGR_ATOMIC_STORE(&args->s->tail, MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&args->s->tail) + args->bytes, args->s->cap));
 }
 
 /**
- * @brief Writes c->bytes of c->src into the ring, or refuses the whole span.
+ * @brief Writes args->bytes of args->src into the ring, or refuses the whole span.
  *
- * @param[in,out] c Ring, the bytes to write and their count [BORROWS].
+ * @param[in,out] args Ring, the bytes to write and their count [BORROWS].
  * @return          MMGR_TRUE when the span was written, MMGR_FALSE when it would not fit.
  * @note The head stays local across the move and is published once, so no half span is visible.
  */
-MMGR_INLINE mmgr_bool infin_put(const InfinCtx *c)
+MMGR_INLINE mmgr_bool infin_put(const InfinCtx *args)
 {
-    const size_t h = MMGR_ATOMIC_LOAD(&c->s->head);
+    const size_t h = MMGR_ATOMIC_LOAD(&args->s->head);
 
-    if (c->bytes > ring_free(h, MMGR_ATOMIC_LOAD(&c->s->tail), c->s->cap))
+    if (args->bytes > ring_free(h, MMGR_ATOMIC_LOAD(&args->s->tail), args->s->cap))
     {
         return MMGR_FALSE;
     }
-    MMGR_ATOMIC_STORE(&c->s->head, ring_move_in(c->s, h, c->src, c->bytes));
+    MMGR_ATOMIC_STORE(&args->s->head, ring_move_in(args->s, h, args->src, args->bytes));
     return MMGR_TRUE;
 }
 
 /**
  * @brief Returns the segments filled and not yet released.
  *
- * @param[in] c Ring to inspect [BORROWS].
+ * @param[in] args Ring to inspect [BORROWS].
  * @return      The distance between the two counters.
  */
-MMGR_INLINE size_t infin_seg_inflight(const InfinCtx *c)
+MMGR_INLINE size_t infin_seg_inflight(const InfinCtx *args)
 {
-    return MMGR_ATOMIC_LOAD(&c->s->claim) - MMGR_ATOMIC_LOAD(&c->s->rel);
+    return MMGR_ATOMIC_LOAD(&args->s->claim) - MMGR_ATOMIC_LOAD(&args->s->rel);
 }
 
 /**
  * @brief Hands back the segment a counter names, when its side says one is there.
  *
- * @param[in,out] c      Ring, and where to write the index [BORROWS].
+ * @param[in,out] args      Ring, and where to write the index [BORROWS].
  * @param[in]     cursor Counter naming the segment.
  * @param[in]     ok     Whether the caller's side has a segment to give.
- * @return               ok, and c->out is only written when it holds.
+ * @return               ok, and args->out is only written when it holds.
  * @note Both ends reduce to this: the counter is wrapped into range and reported. Only the test for
  *       whether a segment exists differs, so each end keeps its own and passes the answer down.
  */
-MMGR_INLINE mmgr_bool ring_seg_pick(const InfinCtx *c, size_t cursor, mmgr_bool ok)
+MMGR_INLINE mmgr_bool ring_seg_pick(const InfinCtx *args, size_t cursor, mmgr_bool ok)
 {
     if (!ok)
     {
         return MMGR_FALSE;
     }
-    *c->out = cursor & (c->s->nsegs - 1u);
+    *args->out = cursor & (args->s->nsegs - 1u);
     return MMGR_TRUE;
 }
 
 /**
  * @brief Reports the index of the segment the producer fills next.
  *
- * @param[in,out] c Ring, and where to write the index [BORROWS].
+ * @param[in,out] args Ring, and where to write the index [BORROWS].
  * @return          MMGR_FALSE when every segment is in flight.
  */
-MMGR_INLINE mmgr_bool infin_seg_next(const InfinCtx *c)
+MMGR_INLINE mmgr_bool infin_seg_next(const InfinCtx *args)
 {
-    const size_t claim = MMGR_ATOMIC_LOAD(&c->s->claim);
+    const size_t claim = MMGR_ATOMIC_LOAD(&args->s->claim);
 
-    return ring_seg_pick(c, claim, (claim - MMGR_ATOMIC_LOAD(&c->s->rel)) < c->s->nsegs);
+    return ring_seg_pick(args, claim, (claim - MMGR_ATOMIC_LOAD(&args->s->rel)) < args->s->nsegs);
 }
 
 /**
@@ -614,169 +613,169 @@ MMGR_INLINE void ring_bump(_Atomic size_t *p)
 /**
  * @brief Makes the filled segment visible to the consumer.
  *
- * @param[in,out] c Ring to advance [BORROWS].
+ * @param[in,out] args Ring to advance [BORROWS].
  */
-MMGR_INLINE void infin_seg_publish(const InfinCtx *c)
+MMGR_INLINE void infin_seg_publish(const InfinCtx *args)
 {
-    ring_bump(&c->s->claim);
+    ring_bump(&args->s->claim);
 }
 
 /**
  * @brief Reports the index of the segment the consumer takes next.
  *
- * @param[in,out] c Ring, and where to write the index [BORROWS].
+ * @param[in,out] args Ring, and where to write the index [BORROWS].
  * @return          MMGR_FALSE when none is in flight.
  */
-MMGR_INLINE mmgr_bool infin_seg_front(const InfinCtx *c)
+MMGR_INLINE mmgr_bool infin_seg_front(const InfinCtx *args)
 {
-    const size_t rel = MMGR_ATOMIC_LOAD(&c->s->rel);
+    const size_t rel = MMGR_ATOMIC_LOAD(&args->s->rel);
 
-    return ring_seg_pick(c, rel, MMGR_ATOMIC_LOAD(&c->s->claim) != rel);
+    return ring_seg_pick(args, rel, MMGR_ATOMIC_LOAD(&args->s->claim) != rel);
 }
 
 /**
  * @brief Frees the front segment.
  *
- * @param[in,out] c Ring to advance [BORROWS].
+ * @param[in,out] args Ring to advance [BORROWS].
  */
-MMGR_INLINE void infin_seg_release(const InfinCtx *c)
+MMGR_INLINE void infin_seg_release(const InfinCtx *args)
 {
-    ring_bump(&c->s->rel);
+    ring_bump(&args->s->rel);
 }
 
 /**
- * @brief Returns the contiguous span of segment c->idx.
+ * @brief Returns the contiguous span of segment args->idx.
  *
- * @param[in] c Ring and the segment index [BORROWS].
+ * @param[in] args Ring and the segment index [BORROWS].
  * @return      Its first byte inside the ring buffer [BORROWS].
  */
-MMGR_INLINE uint8_t *infin_seg_at(const InfinCtx *c)
+MMGR_INLINE uint8_t *infin_seg_at(const InfinCtx *args)
 {
-    return &c->s->buf[c->idx * c->s->seg];
+    return &args->s->buf[args->idx * args->s->seg];
 }
 
 /**
  * @brief Returns the loculi that are free and not held.
  *
- * @param[in] c Ring to inspect [BORROWS].
+ * @param[in] args Ring to inspect [BORROWS].
  * @return      The free mask with the held ones cleared, bounded to the loculi this build has.
  */
-MMGR_INLINE mmgr_word infin_loculus_ready(const InfinCtx *c)
+MMGR_INLINE mmgr_word infin_loculus_ready(const InfinCtx *args)
 {
-    return MMGR_ATOMIC_LOAD(&c->s->gratis) & ~MMGR_ATOMIC_LOAD(&c->s->held) & ring_loculus_all();
+    return MMGR_ATOMIC_LOAD(&args->s->gratis) & ~MMGR_ATOMIC_LOAD(&args->s->held) & ring_loculus_all();
 }
 
 /**
- * @brief Returns the index of the lowest set bit of c->mask.
+ * @brief Returns the index of the lowest set bit of args->mask.
  *
- * @param[in] c The mask to pick from [BORROWS].
- * @return      The index, or -1 when c->mask is empty.
+ * @param[in] args The mask to pick from [BORROWS].
+ * @return      The index, or -1 when args->mask is empty.
  */
-MMGR_INLINE mmgr_iword infin_loculus_next(const InfinCtx *c)
+MMGR_INLINE mmgr_iword infin_loculus_next(const InfinCtx *args)
 {
-    if (c->mask == (mmgr_word)0)
+    if (args->mask == (mmgr_word)0)
     {
         return (mmgr_iword)-1;
     }
-    return ring_trail(c->mask);
+    return ring_trail(args->mask);
 }
 
 /**
- * @brief Takes loculus c->idx and records the region it keeps out.
+ * @brief Takes loculus args->idx and records the region it keeps out.
  *
- * @param[in,out] c Ring, the loculus, and the region to record [BORROWS].
+ * @param[in,out] args Ring, the loculus, and the region to record [BORROWS].
  * @return          MMGR_TRUE when this caller took the loculus.
  */
-MMGR_INLINE mmgr_bool infin_loculus_hold(const InfinCtx *c)
+MMGR_INLINE mmgr_bool infin_loculus_hold(const InfinCtx *args)
 {
-    const mmgr_word bit = ring_loculus_bit(c->idx);
+    const mmgr_word bit = ring_loculus_bit(args->idx);
 
     if (bit == (mmgr_word)0)
     {
         return MMGR_FALSE;
     }
 
-    const mmgr_word prev = atomic_fetch_or_explicit(&c->s->held, bit, memory_order_acquire);
+    const mmgr_word prev = atomic_fetch_or_explicit(&args->s->held, bit, memory_order_acquire);
 
     if ((prev & bit) != 0u)
     {
         return MMGR_FALSE;
     }
     // Explicit cast drops the source qualifier: the span records a region it never writes through
-    c->s->keep[c->idx].buf = (uint8_t *)(uintptr_t)c->src;
-    c->s->keep[c->idx].cap = c->bytes;
-    c->s->keep[c->idx].pos = 0u;
+    args->s->keep[args->idx].buf = (uint8_t *)(uintptr_t)args->src;
+    args->s->keep[args->idx].cap = args->bytes;
+    args->s->keep[args->idx].pos = 0u;
     return MMGR_TRUE;
 }
 
 /**
- * @brief Returns the region loculus c->idx is keeping out.
+ * @brief Returns the region loculus args->idx is keeping out.
  *
- * @param[in] c Ring and the loculus [BORROWS].
- * @return      The recorded span, or NULL when c->idx names none [BORROWS].
+ * @param[in] args Ring and the loculus [BORROWS].
+ * @return      The recorded span, or NULL when args->idx names none [BORROWS].
  */
-MMGR_INLINE const mmgr_ring_span *infin_loculus_keepout(const InfinCtx *c)
+MMGR_INLINE const mmgr_ring_span *infin_loculus_keepout(const InfinCtx *args)
 {
 #if MMGR_RING_LOCULI == 0u
     // A build with no loculi keeps nothing out, so there is no span to hand back
-    (void)c;
+    (void)args;
     return NULL;
 #else
-    if (c->idx >= (size_t)MMGR_RING_LOCULI)
+    if (args->idx >= (size_t)MMGR_RING_LOCULI)
     {
         return NULL;
     }
-    return &c->s->keep[c->idx];
+    return &args->s->keep[args->idx];
 #endif
 }
 
 /**
- * @brief Gives loculus c->idx back.
+ * @brief Gives loculus args->idx back.
  *
- * @param[in,out] c Ring and the loculus [BORROWS].
+ * @param[in,out] args Ring and the loculus [BORROWS].
  * @note Leaves the recorded span and the bytes alone, so a restream can run again.
  */
-MMGR_INLINE void infin_loculus_drop(const InfinCtx *c)
+MMGR_INLINE void infin_loculus_drop(const InfinCtx *args)
 {
     // Explicit cast keeps the complement at mmgr_word width, matching the atomic it clears
-    (void)atomic_fetch_and_explicit(&c->s->held, (mmgr_word)~ring_loculus_bit(c->idx), memory_order_release);
+    (void)atomic_fetch_and_explicit(&args->s->held, (mmgr_word)~ring_loculus_bit(args->idx), memory_order_release);
 }
 
 /**
- * @brief Marks loculus c->idx free.
+ * @brief Marks loculus args->idx free.
  *
- * @param[in,out] c Ring and the loculus [BORROWS].
+ * @param[in,out] args Ring and the loculus [BORROWS].
  */
-MMGR_INLINE void infin_loculus_mark(const InfinCtx *c)
+MMGR_INLINE void infin_loculus_mark(const InfinCtx *args)
 {
-    (void)atomic_fetch_or_explicit(&c->s->gratis, ring_loculus_bit(c->idx), memory_order_release);
+    (void)atomic_fetch_or_explicit(&args->s->gratis, ring_loculus_bit(args->idx), memory_order_release);
 }
 
 /**
- * @brief Lays a fresh ring into c->ring, over the bytes at c->buf.
+ * @brief Lays a fresh ring into args->ring, over the bytes at args->buf.
  *
  * @note Documented at the declaration in confinium_exclusivum_infinitas.h.
  */
-mmgr_bool mmgr_infin_init(const InfinCfg *c)
+mmgr_bool mmgr_infin_init(const InfinCfg *args)
 {
-    MMGR_ASSERT(c->ring != NULL, "a ring needs storage");
-    MMGR_ASSERT(c->buf != NULL, "a ring needs a buffer");
+    MMGR_ASSERT(args->ring != NULL, "a ring needs storage");
+    MMGR_ASSERT(args->buf != NULL, "a ring needs a buffer");
 
-    if ((c->cap == 0u) || !MMGR_RING_POW2(c->cap))
+    if ((args->cap == 0u) || !MMGR_RING_POW2(args->cap))
     {
         return MMGR_FALSE;
     }
-    if ((c->nsegs == 0u) || !MMGR_RING_POW2(c->nsegs) || (c->nsegs > c->cap))
+    if ((args->nsegs == 0u) || !MMGR_RING_POW2(args->nsegs) || (args->nsegs > args->cap))
     {
         return MMGR_FALSE;
     }
 
-    RingState *const s = ring_of(c->ring);
+    RingState *const s = ring_of(args->ring);
 
-    s->buf = c->buf;
-    s->cap = c->cap;
-    s->nsegs = c->nsegs;
-    s->seg = c->cap / c->nsegs;
+    s->buf = args->buf;
+    s->cap = args->cap;
+    s->nsegs = args->nsegs;
+    s->seg = args->cap / args->nsegs;
     atomic_init(&s->head, 0u);
     atomic_init(&s->tail, 0u);
     atomic_init(&s->claim, 0u);
@@ -799,7 +798,7 @@ mmgr_bool mmgr_infin_init(const InfinCfg *c)
  *
  * @note Names c from the entry point's own parameter, so the table below carries fields alone.
  */
-#define RING_S .s = ring_of(c->ring)
+#define RING_S .s = ring_of(args->ring)
 
 /**
  * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
@@ -828,20 +827,20 @@ mmgr_bool mmgr_infin_init(const InfinCfg *c)
  */
 RING_ENTRY(size_t, available, RING_S)
 RING_ENTRY(size_t, vacant, RING_S)
-RING_ENTRY(mmgr_bool, read_byte, RING_S, .dst = c->dst)
-RING_ENTRY(size_t, read, RING_S, .dst = c->dst, .bytes = c->bytes)
-RING_ENTRY_V(peek, RING_S, .dst = c->dst, .bytes = c->bytes, .off = c->off)
-RING_ENTRY_V(consume, RING_S, .bytes = c->bytes)
-RING_ENTRY(mmgr_bool, put, RING_S, .src = c->src, .bytes = c->bytes)
+RING_ENTRY(mmgr_bool, read_byte, RING_S, .dst = args->dst)
+RING_ENTRY(size_t, read, RING_S, .dst = args->dst, .bytes = args->bytes)
+RING_ENTRY_V(peek, RING_S, .dst = args->dst, .bytes = args->bytes, .off = args->off)
+RING_ENTRY_V(consume, RING_S, .bytes = args->bytes)
+RING_ENTRY(mmgr_bool, put, RING_S, .src = args->src, .bytes = args->bytes)
 RING_ENTRY(size_t, seg_inflight, RING_S)
-RING_ENTRY(mmgr_bool, seg_next, RING_S, .out = c->out)
+RING_ENTRY(mmgr_bool, seg_next, RING_S, .out = args->out)
 RING_ENTRY_V(seg_publish, RING_S)
-RING_ENTRY(mmgr_bool, seg_front, RING_S, .out = c->out)
+RING_ENTRY(mmgr_bool, seg_front, RING_S, .out = args->out)
 RING_ENTRY_V(seg_release, RING_S)
-RING_ENTRY(uint8_t *, seg_at, RING_S, .idx = c->idx)
+RING_ENTRY(uint8_t *, seg_at, RING_S, .idx = args->idx)
 RING_ENTRY(mmgr_word, loculus_ready, RING_S)
-RING_ENTRY(mmgr_iword, loculus_next, .mask = c->mask)
-RING_ENTRY(mmgr_bool, loculus_hold, RING_S, .idx = c->idx, .src = c->src, .bytes = c->bytes)
-RING_ENTRY(const mmgr_ring_span *, loculus_keepout, RING_S, .idx = c->idx)
-RING_ENTRY_V(loculus_drop, RING_S, .idx = c->idx)
-RING_ENTRY_V(loculus_mark, RING_S, .idx = c->idx)
+RING_ENTRY(mmgr_iword, loculus_next, .mask = args->mask)
+RING_ENTRY(mmgr_bool, loculus_hold, RING_S, .idx = args->idx, .src = args->src, .bytes = args->bytes)
+RING_ENTRY(const mmgr_ring_span *, loculus_keepout, RING_S, .idx = args->idx)
+RING_ENTRY_V(loculus_drop, RING_S, .idx = args->idx)
+RING_ENTRY_V(loculus_mark, RING_S, .idx = args->idx)

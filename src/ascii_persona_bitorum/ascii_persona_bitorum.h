@@ -59,19 +59,19 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_bool (*in)(const AsciiCfg *c); /**< Whether a byte belongs to a class. */
+    mmgr_bool (*in)(const AsciiCfg *args); /**< Whether a byte belongs to a class. */
 } AsciiPersonaBitorumNs;
 MMGR_NS_LAYOUT(AsciiPersonaBitorumNs, in);
 
 /**
- * @brief Returns whether c->byte has its bit set in the c->kind bitmap.
+ * @brief Returns whether args->byte has its bit set in the kind bitmap.
  *
- * @param[in] c Class and byte to test [BORROWS].
+ * @param[in] args Class and byte to test [BORROWS].
  * @return      MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
  * @note Bytes 0x80 and above return MMGR_FALSE.
- * @warning c->kind must be below MMGR_ASCII_CLASSES.
+ * @warning args->kind must be below MMGR_ASCII_CLASSES.
  */
-mmgr_bool mmgr_ascii_in(const AsciiCfg *c);
+mmgr_bool mmgr_ascii_in(const AsciiCfg *args);
 
 /**
  * @brief Dispatch table instance named ascii; its in member calls mmgr_ascii_in.

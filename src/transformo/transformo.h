@@ -26,7 +26,7 @@ MMGR_INCIPE_DECLS
 /**
  * @brief Expands to 400.
  *
- * @note transformo.c reads neither this nor any bound derived from it; muto_scale bounds c->ex against
+ * @note transformo.c reads neither this nor any bound derived from it; muto_scale bounds args->ex against
  *       MMGR_POW5_MAX instead.
  */
 #define MMGR_MUTO_EXP_LIMIT 400
@@ -55,46 +55,46 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_bool (*take)(const TransformoCfg *c);        /**< Appends one decimal digit to a mantissa. */
-    double (*scale)(const TransformoCfg *c);          /**< Turns a mantissa and decimal exponent into a double. */
-    mmgr_u64 (*scale_to_u64)(const TransformoCfg *c); /**< Turns the same into a rounded 64-bit integer. */
+    mmgr_bool (*take)(const TransformoCfg *args);        /**< Appends one decimal digit to a mantissa. */
+    double (*scale)(const TransformoCfg *args);          /**< Turns a mantissa and decimal exponent into a double. */
+    mmgr_u64 (*scale_to_u64)(const TransformoCfg *args); /**< Turns the same into a rounded 64-bit integer. */
 } TransformoNs;
 MMGR_NS_LAYOUT(TransformoNs, take, scale, scale_to_u64);
 
 /**
- * @brief Appends c->digit to *c->mant as one more decimal digit.
+ * @brief Appends args->digit to *args->mant as one more decimal digit.
  *
- * @param[in] c The mantissa to extend and the digit to append [BORROWS].
- * @return      MMGR_TRUE when the digit was appended, MMGR_FALSE when *c->mant already passed MMGR_MUTO_MANT_MAX.
+ * @param[in] args The mantissa to extend and the digit to append [BORROWS].
+ * @return      MMGR_TRUE when the digit was appended, MMGR_FALSE when *args->mant already passed MMGR_MUTO_MANT_MAX.
  * @note On MMGR_FALSE the mantissa is left as it was, so a caller can count the digits it had to drop.
- * @warning c->digit must be an ASCII decimal digit, since the value added is c->digit minus '0'.
- * @warning Writes through c->mant [BORROWS].
+ * @warning args->digit must be an ASCII decimal digit, since the value added is args->digit minus '0'.
+ * @warning Writes through args->mant [BORROWS].
  */
-mmgr_bool mmgr_muto_take(const TransformoCfg *c);
+mmgr_bool mmgr_muto_take(const TransformoCfg *args);
 
 /**
- * @brief Turns *c->mant times ten raised to c->ex into a double, signed by c->neg.
+ * @brief Turns *args->mant times ten raised to args->ex into a double, signed by args->neg.
  *
- * @param[in] c The mantissa, the decimal exponent, the dropped bits and the sign [BORROWS].
+ * @param[in] args The mantissa, the decimal exponent, the dropped bits and the sign [BORROWS].
  * @return      The nearest double, with ties going to even.
- * @note Set c->rest when digits were dropped from the mantissa, so the rounding still accounts for them.
- * @note Takes a plain double path when nothing was dropped, the mantissa is under 2^53 and c->ex is within 22.
- * @note Does not read c->e2, so the mantissa is taken as a plain integer.
- * @warning Returns a signed infinity for a c->ex above MMGR_POW5_MAX and a signed zero below its negative.
+ * @note Set args->rest when digits were dropped from the mantissa, so the rounding still accounts for them.
+ * @note Takes a plain double path when nothing was dropped, the mantissa is under 2^53 and args->ex is within 22.
+ * @note Does not read args->e2, so the mantissa is taken as a plain integer.
+ * @warning Returns a signed infinity for an args->ex above MMGR_POW5_MAX and a signed zero below its negative.
  */
-double mmgr_muto_scale(const TransformoCfg *c);
+double mmgr_muto_scale(const TransformoCfg *args);
 
 /**
- * @brief Turns *c->mant times two raised to c->e2 times ten raised to c->ex into a rounded 64-bit integer.
+ * @brief Turns *args->mant times two raised to args->e2 times ten raised to args->ex into a rounded 64-bit integer.
  *
- * @param[in] c The mantissa, its binary exponent, the decimal exponent and the tie bias [BORROWS].
+ * @param[in] args The mantissa, its binary exponent, the decimal exponent and the tie bias [BORROWS].
  * @return      The nearest integer with ties to even, 0 when the value rounds below one, or all ones when too large.
- * @note Reads c->e2, which mmgr_muto_scale leaves alone, so the mantissa may carry a binary exponent here.
- * @note The low bit of c->above is exclusive-ored into the tie test, so a caller can steer a halfway case.
- * @note Does not read c->neg, so the result is always unsigned.
- * @warning Does not bound c->ex against MMGR_POW5_MAX the way mmgr_muto_scale does.
+ * @note Reads args->e2, which mmgr_muto_scale leaves alone, so the mantissa may carry a binary exponent here.
+ * @note The low bit of args->above is exclusive-ored into the tie test, so a caller can steer a halfway case.
+ * @note Does not read args->neg, so the result is always unsigned.
+ * @warning Does not bound args->ex against MMGR_POW5_MAX the way mmgr_muto_scale does.
  */
-mmgr_u64 mmgr_muto_scale_to_u64(const TransformoCfg *c);
+mmgr_u64 mmgr_muto_scale_to_u64(const TransformoCfg *args);
 
 /**
  * @brief Dispatch table instance named muto; each member calls the matching mmgr_muto_ function.

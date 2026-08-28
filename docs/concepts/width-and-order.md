@@ -70,7 +70,7 @@ machine does".
 ## Alignment of a take
 
 ```c
-uint8_t *p = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool, .size = 256u);
+uint8_t *p = prison.work.persist_capio(256);
 ```
 
 A take does not name an alignment, because there is only one. Every tenancy comes back aligned to

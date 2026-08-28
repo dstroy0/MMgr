@@ -93,29 +93,29 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/memoria_operor/test_memoria_operor\\test_memoria_operor.c");
-  run_test(test_memor_header_is_self_contained, "test_memor_header_is_self_contained", 49);
-  run_test(test_memor_namespace_is_wired, "test_memor_namespace_is_wired", 54);
-  run_test(test_cpy_matches_memcpy_at_every_length, "test_cpy_matches_memcpy_at_every_length", 63);
-  run_test(test_cpy_matches_memcpy_at_every_offset, "test_cpy_matches_memcpy_at_every_offset", 77);
-  run_test(test_cpy_of_nothing_touches_nothing, "test_cpy_of_nothing_touches_nothing", 94);
-  run_test(test_move_matches_memmove_when_the_regions_do_not_touch, "test_move_matches_memmove_when_the_regions_do_not_touch", 101);
-  run_test(test_move_matches_memmove_overlapping_forwards, "test_move_matches_memmove_overlapping_forwards", 108);
-  run_test(test_move_matches_memmove_overlapping_backwards, "test_move_matches_memmove_overlapping_backwards", 122);
-  run_test(test_move_onto_itself_changes_nothing, "test_move_onto_itself_changes_nothing", 136);
-  run_test(test_move_of_nothing_touches_nothing, "test_move_of_nothing_touches_nothing", 142);
-  run_test(test_move_of_regions_that_end_exactly_where_the_other_starts, "test_move_of_regions_that_end_exactly_where_the_other_starts", 148);
-  run_test(test_cmp_agrees_with_memcmp_on_the_sign, "test_cmp_agrees_with_memcmp_on_the_sign", 156);
-  run_test(test_cmp_finds_a_difference_at_every_position, "test_cmp_finds_a_difference_at_every_position", 170);
-  run_test(test_cmp_of_nothing_is_equal, "test_cmp_of_nothing_is_equal", 187);
-  run_test(test_cmp_reads_no_further_than_it_was_told, "test_cmp_reads_no_further_than_it_was_told", 192);
-  run_test(test_chr_matches_memchr_at_every_position, "test_chr_matches_memchr_at_every_position", 201);
-  run_test(test_chr_of_a_byte_that_is_not_there, "test_chr_of_a_byte_that_is_not_there", 221);
-  run_test(test_chr_of_nothing_finds_nothing, "test_chr_of_nothing_finds_nothing", 237);
-  run_test(test_chr_finds_a_zero_byte, "test_chr_finds_a_zero_byte", 242);
-  run_test(test_set_matches_memset_at_every_length, "test_set_matches_memset_at_every_length", 249);
-  run_test(test_set_matches_memset_at_every_offset, "test_set_matches_memset_at_every_offset", 260);
-  run_test(test_set_keeps_only_the_low_byte_of_its_value, "test_set_keeps_only_the_low_byte_of_its_value", 271);
-  run_test(test_zero_is_set_of_zero, "test_zero_is_set_of_zero", 278);
+  run_test(test_memor_header_is_self_contained, "test_memor_header_is_self_contained", 52);
+  run_test(test_memor_namespace_is_wired, "test_memor_namespace_is_wired", 57);
+  run_test(test_cpy_matches_memcpy_at_every_length, "test_cpy_matches_memcpy_at_every_length", 66);
+  run_test(test_cpy_matches_memcpy_at_every_offset, "test_cpy_matches_memcpy_at_every_offset", 80);
+  run_test(test_cpy_of_nothing_touches_nothing, "test_cpy_of_nothing_touches_nothing", 97);
+  run_test(test_move_matches_memmove_when_the_regions_do_not_touch, "test_move_matches_memmove_when_the_regions_do_not_touch", 104);
+  run_test(test_move_matches_memmove_overlapping_forwards, "test_move_matches_memmove_overlapping_forwards", 111);
+  run_test(test_move_matches_memmove_overlapping_backwards, "test_move_matches_memmove_overlapping_backwards", 125);
+  run_test(test_move_onto_itself_changes_nothing, "test_move_onto_itself_changes_nothing", 139);
+  run_test(test_move_of_nothing_touches_nothing, "test_move_of_nothing_touches_nothing", 145);
+  run_test(test_move_of_regions_that_end_exactly_where_the_other_starts, "test_move_of_regions_that_end_exactly_where_the_other_starts", 151);
+  run_test(test_cmp_agrees_with_memcmp_on_the_sign, "test_cmp_agrees_with_memcmp_on_the_sign", 159);
+  run_test(test_cmp_finds_a_difference_at_every_position, "test_cmp_finds_a_difference_at_every_position", 173);
+  run_test(test_cmp_of_nothing_is_equal, "test_cmp_of_nothing_is_equal", 190);
+  run_test(test_cmp_reads_no_further_than_it_was_told, "test_cmp_reads_no_further_than_it_was_told", 195);
+  run_test(test_chr_matches_memchr_at_every_position, "test_chr_matches_memchr_at_every_position", 204);
+  run_test(test_chr_of_a_byte_that_is_not_there, "test_chr_of_a_byte_that_is_not_there", 224);
+  run_test(test_chr_of_nothing_finds_nothing, "test_chr_of_nothing_finds_nothing", 240);
+  run_test(test_chr_finds_a_zero_byte, "test_chr_finds_a_zero_byte", 245);
+  run_test(test_set_matches_memset_at_every_length, "test_set_matches_memset_at_every_length", 252);
+  run_test(test_set_matches_memset_at_every_offset, "test_set_matches_memset_at_every_offset", 263);
+  run_test(test_set_keeps_only_the_low_byte_of_its_value, "test_set_keeps_only_the_low_byte_of_its_value", 274);
+  run_test(test_zero_is_set_of_zero, "test_zero_is_set_of_zero", 281);
 
   return UNITY_END();
 }

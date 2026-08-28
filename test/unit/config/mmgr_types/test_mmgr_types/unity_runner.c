@@ -80,12 +80,12 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/config/mmgr_types/test_mmgr_types\\test_mmgr_types.c");
-  run_test(test_types_header_is_self_contained, "test_types_header_is_self_contained", 5);
-  run_test(test_fixed_width_types_are_their_widths, "test_fixed_width_types_are_their_widths", 10);
-  run_test(test_word_matches_the_configured_width, "test_word_matches_the_configured_width", 22);
-  run_test(test_index_fits_the_register_that_carries_it, "test_index_fits_the_register_that_carries_it", 27);
-  run_test(test_packed_enum_keeps_its_declared_width, "test_packed_enum_keeps_its_declared_width", 34);
-  run_test(test_bool_constants, "test_bool_constants", 39);
+  run_test(test_types_header_is_self_contained, "test_types_header_is_self_contained", 8);
+  run_test(test_fixed_width_types_are_their_widths, "test_fixed_width_types_are_their_widths", 13);
+  run_test(test_word_matches_the_configured_width, "test_word_matches_the_configured_width", 25);
+  run_test(test_index_fits_the_register_that_carries_it, "test_index_fits_the_register_that_carries_it", 30);
+  run_test(test_packed_enum_keeps_its_declared_width, "test_packed_enum_keeps_its_declared_width", 37);
+  run_test(test_bool_constants, "test_bool_constants", 42);
 
   return UNITY_END();
 }

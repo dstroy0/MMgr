@@ -79,17 +79,17 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/spatium/test_spatium\\test_spatium.c");
-  run_test(test_spatium_header_is_self_contained, "test_spatium_header_is_self_contained", 19);
-  run_test(test_the_namespace_is_wired, "test_the_namespace_is_wired", 24);
-  run_test(test_a_span_covers_the_buffer_it_was_given, "test_a_span_covers_the_buffer_it_was_given", 31);
-  run_test(test_a_read_span_covers_the_buffer_it_was_given, "test_a_read_span_covers_the_buffer_it_was_given", 43);
-  run_test(test_a_span_with_no_storage_is_not_ok, "test_a_span_with_no_storage_is_not_ok", 53);
-  run_test(test_a_narrowing_past_the_end_fails_rather_than_shortening, "test_a_narrowing_past_the_end_fails_rather_than_shortening", 72);
-  run_test(test_a_narrowing_keeps_the_bytes_it_names, "test_a_narrowing_keeps_the_bytes_it_names", 86);
-  run_test(test_a_narrowing_carries_the_cursor, "test_a_narrowing_carries_the_cursor", 100);
-  run_test(test_reset_clears_the_sticky_overflow, "test_reset_clears_the_sticky_overflow", 111);
-  run_test(test_a_read_span_reports_what_was_written, "test_a_read_span_reports_what_was_written", 125);
-  run_test(test_a_read_span_carries_the_fill_spans_failure, "test_a_read_span_carries_the_fill_spans_failure", 143);
+  run_test(test_spatium_header_is_self_contained, "test_spatium_header_is_self_contained", 22);
+  run_test(test_the_namespace_is_wired, "test_the_namespace_is_wired", 27);
+  run_test(test_a_span_covers_the_buffer_it_was_given, "test_a_span_covers_the_buffer_it_was_given", 34);
+  run_test(test_a_read_span_covers_the_buffer_it_was_given, "test_a_read_span_covers_the_buffer_it_was_given", 46);
+  run_test(test_a_span_with_no_storage_is_not_ok, "test_a_span_with_no_storage_is_not_ok", 56);
+  run_test(test_a_narrowing_past_the_end_fails_rather_than_shortening, "test_a_narrowing_past_the_end_fails_rather_than_shortening", 75);
+  run_test(test_a_narrowing_keeps_the_bytes_it_names, "test_a_narrowing_keeps_the_bytes_it_names", 89);
+  run_test(test_a_narrowing_carries_the_cursor, "test_a_narrowing_carries_the_cursor", 103);
+  run_test(test_reset_clears_the_sticky_overflow, "test_reset_clears_the_sticky_overflow", 114);
+  run_test(test_a_read_span_reports_what_was_written, "test_a_read_span_reports_what_was_written", 128);
+  run_test(test_a_read_span_carries_the_fill_spans_failure, "test_a_read_span_carries_the_fill_spans_failure", 146);
 
   return UNITY_END();
 }

@@ -62,62 +62,62 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_place (*place)(const ExternumCfg *c);     /**< Decides where a request goes. */
-    void (*pingpong_init)(const ExternumCfg *c);   /**< Points the pair at buffer 0. */
-    uint8_t (*pingpong_fill)(const ExternumCfg *c);  /**< Index being filled. */
-    uint8_t (*pingpong_drain)(const ExternumCfg *c); /**< Index being drained. */
-    uint8_t (*pingpong_swap)(const ExternumCfg *c);  /**< Swaps the two roles. */
+    mmgr_place (*place)(const ExternumCfg *args);       /**< Decides where a request goes. */
+    void (*pingpong_init)(const ExternumCfg *args);     /**< Points the pair at buffer 0. */
+    uint8_t (*pingpong_fill)(const ExternumCfg *args);  /**< Index being filled. */
+    uint8_t (*pingpong_drain)(const ExternumCfg *args); /**< Index being drained. */
+    uint8_t (*pingpong_swap)(const ExternumCfg *args);  /**< Swaps the two roles. */
 } ConfiniumExternumNs;
 MMGR_NS_LAYOUT(ConfiniumExternumNs, place, pingpong_init, pingpong_fill, pingpong_drain, pingpong_swap);
 
 /**
  * @brief Decides whether a request belongs in internal or external memory.
  *
- * @param[in] c Request size, the DMA requirement and both memory figures [BORROWS].
+ * @param[in] args Request size, the DMA requirement and both memory figures [BORROWS].
  * @return      PLACE_DRAM, PLACE_PSRAM, or PLACE_FAIL when neither will take it.
  * @note A size of 0 gives PLACE_FAIL.
  * @note A DMA request only ever gives PLACE_DRAM or PLACE_FAIL, never external memory.
  * @note At or above psram_threshold external memory is preferred, below it internal is.
  * @warning Internal placement must also leave dram_reserve free; the external test is a size comparison alone.
  */
-mmgr_place mmgr_exter_place(const ExternumCfg *c);
+mmgr_place mmgr_exter_place(const ExternumCfg *args);
 
 /**
  * @brief Points the pair at buffer 0.
  *
- * @param[in,out] c Pair to reset, as c->pp [BORROWS].
- * @warning c->pp must not be null.
+ * @param[in,out] args Pair to reset, as args->pp [BORROWS].
+ * @warning args->pp must not be null.
  */
-void mmgr_pingpong_init(const ExternumCfg *c);
+void mmgr_pingpong_init(const ExternumCfg *args);
 
 /**
  * @brief Returns the index of the buffer being filled.
  *
- * @param[in] c Pair to read, as c->pp [BORROWS].
+ * @param[in] args Pair to read, as args->pp [BORROWS].
  * @return      0 or 1.
- * @note Does not modify c->pp.
- * @warning c->pp must not be null.
+ * @note Does not modify args->pp.
+ * @warning args->pp must not be null.
  */
-uint8_t mmgr_pingpong_fill_index(const ExternumCfg *c);
+uint8_t mmgr_pingpong_fill_index(const ExternumCfg *args);
 
 /**
  * @brief Returns the index of the buffer being drained.
  *
- * @param[in] c Pair to read, as c->pp [BORROWS].
+ * @param[in] args Pair to read, as args->pp [BORROWS].
  * @return      The other index, 0 or 1.
- * @note Does not modify c->pp.
- * @warning c->pp must not be null.
+ * @note Does not modify args->pp.
+ * @warning args->pp must not be null.
  */
-uint8_t mmgr_pingpong_drain_index(const ExternumCfg *c);
+uint8_t mmgr_pingpong_drain_index(const ExternumCfg *args);
 
 /**
  * @brief Swaps which buffer is filled and which is drained.
  *
- * @param[in,out] c Pair to flip, as c->pp [BORROWS].
+ * @param[in,out] args Pair to flip, as args->pp [BORROWS].
  * @return          The index now being filled, 0 or 1.
- * @warning c->pp must not be null.
+ * @warning args->pp must not be null.
  */
-uint8_t mmgr_pingpong_swap(const ExternumCfg *c);
+uint8_t mmgr_pingpong_swap(const ExternumCfg *args);
 
 /**
  * @brief Dispatch table instance named exter.

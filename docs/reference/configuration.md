@@ -25,11 +25,10 @@ exists to reach them.
 | `MMGR_PLAINTEXT_CONFIN_SIZE` |                `4096` | the largest plaintext confinium this build will declare              |
 | `MMGR_SECURE_CONFIN_SIZE`    |                `4096` | the largest secure confinium this build will declare                 |
 | `MMGR_CARCER_MAX`            | the larger of the two | **derived.** Bounds a scan's word count and `MMGR_STR_MAX`           |
-| `MMGR_CARCER_MAX_REGIONS`    |                   `8` | the most pools one region may be carved into                         |
 | `MMGR_CARCER_ALIGN`          |    `sizeof(mmgr_word)` | **derived.** The alignment every tenancy is handed out at            |
 
-**The two size knobs allocate nothing and size no pool.** A pool's extent is an argument to
-`mmgr_carcer_init`, and nothing in carceribus reads either knob. What they do is feed
+**The two size knobs allocate nothing and size no pool.** A pool's extent is one row of the storage
+you declared, and nothing in carceribus reads either knob. What they do is feed
 `MMGR_CARCER_MAX`, which `verbum_scrutor` sizes its worst-case word count against and
 `mmgr_string_shim.h` uses as `MMGR_STR_MAX`. They are a statement of intent about the regions you
 are going to declare, so declare a larger one and they want raising.

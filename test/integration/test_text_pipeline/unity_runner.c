@@ -84,14 +84,14 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_text_pipeline\\test_text_pipeline.c");
-  run_test(test_built_text_reads_back_at_the_length_it_reported, "test_built_text_reads_back_at_the_length_it_reported", 7);
-  run_test(test_scanner_finds_what_the_builder_wrote, "test_scanner_finds_what_the_builder_wrote", 19);
-  run_test(test_case_folding_agrees_across_builder_and_scanner, "test_case_folding_agrees_across_builder_and_scanner", 34);
-  run_test(test_appending_keeps_every_earlier_field_findable, "test_appending_keeps_every_earlier_field_findable", 49);
-  run_test(test_a_builder_overflow_leaves_nothing_for_the_scanner, "test_a_builder_overflow_leaves_nothing_for_the_scanner", 70);
-  run_test(test_every_rendered_number_is_found_by_the_scanner, "test_every_rendered_number_is_found_by_the_scanner", 82);
-  run_test(test_escaped_output_is_still_scannable, "test_escaped_output_is_still_scannable", 102);
-  run_test(test_an_empty_render_reports_nothing_written, "test_an_empty_render_reports_nothing_written", 126);
+  run_test(test_built_text_reads_back_at_the_length_it_reported, "test_built_text_reads_back_at_the_length_it_reported", 10);
+  run_test(test_scanner_finds_what_the_builder_wrote, "test_scanner_finds_what_the_builder_wrote", 22);
+  run_test(test_case_folding_agrees_across_builder_and_scanner, "test_case_folding_agrees_across_builder_and_scanner", 37);
+  run_test(test_appending_keeps_every_earlier_field_findable, "test_appending_keeps_every_earlier_field_findable", 52);
+  run_test(test_a_builder_overflow_leaves_nothing_for_the_scanner, "test_a_builder_overflow_leaves_nothing_for_the_scanner", 73);
+  run_test(test_every_rendered_number_is_found_by_the_scanner, "test_every_rendered_number_is_found_by_the_scanner", 85);
+  run_test(test_escaped_output_is_still_scannable, "test_escaped_output_is_still_scannable", 105);
+  run_test(test_an_empty_render_reports_nothing_written, "test_an_empty_render_reports_nothing_written", 129);
 
   return UNITY_END();
 }

@@ -23,15 +23,15 @@
  */
 typedef struct
 {
-    mmgr_span *w;       /**< Span an append writes into [BORROWS]. */
-    mmgr_cspan *r;      /**< Span a take reads from [BORROWS]. */
-    const uint8_t *src; /**< Bytes raw appends [BORROWS]. */
-    uint64_t *out;      /**< Where take_be stores the value it read [BORROWS]. */
+    mmgr_span *w;         /**< Span an append writes into [BORROWS]. */
+    mmgr_cspan *r;        /**< Span a take reads from [BORROWS]. */
+    const uint8_t *src;   /**< Bytes raw appends [BORROWS]. */
+    uint64_t *out;        /**< Where take_be stores the value it read [BORROWS]. */
     const uint8_t **blob; /**< Where rd_str points at the run it found [BORROWS]. */
-    size_t *blen;       /**< Where rd_str stores that run's length [BORROWS]. */
-    uint64_t val;       /**< Value put_be writes. */
-    size_t bytes;       /**< Bytes the call moves. */
-    uint8_t byte;       /**< The single byte put appends. */
+    size_t *blen;         /**< Where rd_str stores that run's length [BORROWS]. */
+    uint64_t val;         /**< Value put_be writes. */
+    size_t bytes;         /**< Bytes the call moves. */
+    uint8_t byte;         /**< The single byte put appends. */
 } ByteioCtx;
 
 /**
@@ -92,91 +92,91 @@ MMGR_INLINE const uint8_t *byteio_take(mmgr_cspan *r, size_t n)
 }
 
 /**
- * @brief Appends c->byte to the span.
+ * @brief Appends args->byte to the span.
  *
- * @param[in,out] c Span and the byte [BORROWS].
+ * @param[in,out] args Span and the byte [BORROWS].
  */
-MMGR_INLINE void byteio_put(const ByteioCtx *c)
+MMGR_INLINE void byteio_put(const ByteioCtx *args)
 {
-    uint8_t *const at = byteio_claim(c->w, 1u);
+    uint8_t *const at = byteio_claim(args->w, 1u);
 
     if (at != NULL)
     {
-        *at = c->byte;
+        *at = args->byte;
     }
 }
 
 /**
- * @brief Appends c->bytes from c->src as they are.
+ * @brief Appends args->bytes from args->src as they are.
  *
- * @param[in,out] c Span, source and count [BORROWS].
+ * @param[in,out] args Span, source and count [BORROWS].
  * @note Reaches memor.cpy rather than walking bytes here, so there is one mover rather than a second.
  */
-MMGR_INLINE void byteio_raw(const ByteioCtx *c)
+MMGR_INLINE void byteio_raw(const ByteioCtx *args)
 {
-    uint8_t *const at = byteio_claim(c->w, c->bytes);
+    uint8_t *const at = byteio_claim(args->w, args->bytes);
 
     if (at != NULL)
     {
-        MMGR_CALL(memor.cpy, MemoriaCfg, .dst = at, .src = c->src, .bytes = c->bytes);
+        MMGR_CALL(memor.cpy, MemoriaCfg, .dst = at, .src = args->src, .bytes = args->bytes);
     }
 }
 
 /**
- * @brief Appends the low c->bytes of c->val, most significant byte first.
+ * @brief Appends the low args->bytes of args->val, most significant byte first.
  *
- * @param[in,out] c Span, value and count [BORROWS].
- * @note magna_extremitas.rev right-aligns the reversed value into its low c->bytes, so storing those
+ * @param[in,out] args Span, value and count [BORROWS].
+ * @note magna_extremitas.rev right-aligns the reversed value into its low args->bytes, so storing those
  *       in the target's own order lays the bytes out most significant first.
  * @note The count selects the stores: eight is one, seven is three, and only an odd final byte is
  *       ever written alone.
  */
-MMGR_INLINE void byteio_put_be(const ByteioCtx *c)
+MMGR_INLINE void byteio_put_be(const ByteioCtx *args)
 {
-    uint8_t *at = byteio_claim(c->w, c->bytes);
+    uint8_t *at = byteio_claim(args->w, args->bytes);
 
     if (at == NULL)
     {
         return;
     }
 
-    uint64_t v = MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = c->val, .width = (mmgr_endian_width)c->bytes);
+    uint64_t v = MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = args->val, .width = (mmgr_endian_width)args->bytes);
 
     // A count of eight takes the first branch alone, so the shifts below never reach the full width
-    if ((c->bytes & 8u) != 0u)
+    if ((args->bytes & 8u) != 0u)
     {
         MMGR_CALL(proxim.put64, ProximusCfg, .dst = at, .val = v);
         return;
     }
-    if ((c->bytes & 4u) != 0u)
+    if ((args->bytes & 4u) != 0u)
     {
         MMGR_CALL(proxim.put32, ProximusCfg, .dst = at, .val = v);
         at += 4;
         v >>= 32;
     }
-    if ((c->bytes & 2u) != 0u)
+    if ((args->bytes & 2u) != 0u)
     {
         MMGR_CALL(proxim.put16, ProximusCfg, .dst = at, .val = v);
         at += 2;
         v >>= 16;
     }
-    if ((c->bytes & 1u) != 0u)
+    if ((args->bytes & 1u) != 0u)
     {
         *at = (uint8_t)v;
     }
 }
 
 /**
- * @brief Reads a big endian value of c->bytes at the cursor and advances past it.
+ * @brief Reads a big endian value of args->bytes at the cursor and advances past it.
  *
- * @param[in,out] c Span, count and where to store the value [BORROWS].
+ * @param[in,out] args Span, count and where to store the value [BORROWS].
  * @return          MMGR_TRUE when the bytes were there.
  * @note The mirror of the append: the bytes are gathered in the target's own order at the widest
  *       step the count allows, and reversed once at the end.
  */
-MMGR_INLINE mmgr_bool byteio_take_be(const ByteioCtx *c)
+MMGR_INLINE mmgr_bool byteio_take_be(const ByteioCtx *args)
 {
-    const uint8_t *at = byteio_take(c->r, c->bytes);
+    const uint8_t *at = byteio_take(args->r, args->bytes);
 
     if (at == NULL)
     {
@@ -186,81 +186,81 @@ MMGR_INLINE mmgr_bool byteio_take_be(const ByteioCtx *c)
     uint64_t v = 0u;
     size_t sh = 0u;
 
-    if ((c->bytes & 8u) != 0u)
+    if ((args->bytes & 8u) != 0u)
     {
         v = MMGR_CALL(proxim.load64, ProximusCfg, .at = at);
     }
-    if ((c->bytes & 4u) != 0u)
+    if ((args->bytes & 4u) != 0u)
     {
         v |= (uint64_t)MMGR_CALL(proxim.load32, ProximusCfg, .at = at) << sh;
         at += 4;
         sh += 32u;
     }
-    if ((c->bytes & 2u) != 0u)
+    if ((args->bytes & 2u) != 0u)
     {
         v |= (uint64_t)MMGR_CALL(proxim.load16, ProximusCfg, .at = at) << sh;
         at += 2;
         sh += 16u;
     }
-    if ((c->bytes & 1u) != 0u)
+    if ((args->bytes & 1u) != 0u)
     {
         v |= (uint64_t)(*at) << sh;
     }
 
-    *c->out = MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = v, .width = (mmgr_endian_width)c->bytes);
+    *args->out = MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = v, .width = (mmgr_endian_width)args->bytes);
     return MMGR_TRUE;
 }
 
 /**
- * @brief Reads a length-prefixed run at the cursor and points c->blob at it.
+ * @brief Reads a length-prefixed run at the cursor and points args->blob at it.
  *
- * @param[in,out] c Span, and where to report the run [BORROWS].
+ * @param[in,out] args Span, and where to report the run [BORROWS].
  * @return          MMGR_TRUE when the length and its run both lay within the span.
  * @note The cursor is put back when the run does not fit. A length read that is then not followed by
  *       its payload is not a read at all, and leaving the cursor between the two would give a caller
  *       a position that means nothing.
  */
-MMGR_INLINE mmgr_bool byteio_rd_str(const ByteioCtx *c)
+MMGR_INLINE mmgr_bool byteio_rd_str(const ByteioCtx *args)
 {
-    const size_t was = c->r->pos;
+    const size_t was = args->r->pos;
     uint64_t n = 0u;
 
-    if (!MMGR_CALL(byteio_take_be, ByteioCtx, .r = c->r, .out = &n, .bytes = 4u))
+    if (!MMGR_CALL(byteio_take_be, ByteioCtx, .r = args->r, .out = &n, .bytes = 4u))
     {
         return MMGR_FALSE;
     }
 
-    const uint8_t *const at = byteio_take(c->r, (size_t)n);
+    const uint8_t *const at = byteio_take(args->r, (size_t)n);
 
     if (at == NULL)
     {
-        c->r->pos = was;
+        args->r->pos = was;
         return MMGR_FALSE;
     }
-    *c->blob = at;
-    *c->blen = (size_t)n;
+    *args->blob = at;
+    *args->blen = (size_t)n;
     return MMGR_TRUE;
 }
 
 /**
- * @brief Right-aligns the integer at c->src into c->w's whole buffer, zero filling ahead of it.
+ * @brief Right-aligns the integer at args->src into args->w's whole buffer, zero filling ahead of it.
  *
- * @param[in,out] c The integer and its length, and the field [BORROWS].
+ * @param[in,out] args The integer and its length, and the field [BORROWS].
  * @return          MMGR_TRUE when the integer fits the field.
  * @note Leading zero bytes are skipped before the width is tested, so a value carrying a sign byte
  *       still fits a field of its own size.
  */
-MMGR_INLINE mmgr_bool byteio_mpint_fixed(const ByteioCtx *c)
+MMGR_INLINE mmgr_bool byteio_mpint_fixed(const ByteioCtx *args)
 {
-    mmgr_span *const w = c->w;
+    mmgr_span *const w = args->w;
     size_t off = 0u;
 
-    while ((off < c->bytes) && (c->src[off] == 0u))
+    while ((off < args->bytes) && (args->src[off] == 0u))
     {
         off++;
     }
 
-    const size_t vlen = c->bytes - off;
+    const size_t vlen = args->bytes - off;
 
     if ((w->buf == NULL) || (vlen > w->cap))
     {
@@ -269,7 +269,7 @@ MMGR_INLINE mmgr_bool byteio_mpint_fixed(const ByteioCtx *c)
     }
     // Explicit cast matches MemoriaCfg: val is a single byte, bytes is a size_t count
     MMGR_CALL(memor.set, MemoriaCfg, .dst = w->buf, .val = (uint8_t)0, .bytes = w->cap);
-    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = w->buf + (w->cap - vlen), .src = c->src + off, .bytes = vlen);
+    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = w->buf + (w->cap - vlen), .src = args->src + off, .bytes = vlen);
     // The field is written whole rather than appended to, so the cursor ends at its end
     w->pos = w->cap;
     return MMGR_TRUE;
@@ -281,8 +281,7 @@ MMGR_INLINE mmgr_bool byteio_mpint_fixed(const ByteioCtx *c)
  * @param[in] ret  Return type of the entry point.
  * @param[in] name Name after the mmgr_byteio_ and byteio_ prefixes, which the two share.
  */
-#define BYTEIO_ENTRY(ret, name, ...)                                                                  \
-    GENERIC_ENTRY(mmgr_byteio_, byteio_, ByteioCtx, OctetusCfg, ret, name, __VA_ARGS__)
+#define BYTEIO_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_byteio_, byteio_, ByteioCtx, OctetusCfg, ret, name, __VA_ARGS__)
 
 /**
  * @brief Binds the same four to GENERIC_ENTRY_V, for an entry that returns nothing.
@@ -296,9 +295,9 @@ MMGR_INLINE mmgr_bool byteio_mpint_fixed(const ByteioCtx *c)
  *
  * @note Each is documented at its declaration in octetus_introitus_exitus.h.
  */
-BYTEIO_ENTRY_V(put, .w = c->w, .byte = c->byte)
-BYTEIO_ENTRY_V(put_be, .w = c->w, .val = c->val, .bytes = c->bytes)
-BYTEIO_ENTRY_V(raw, .w = c->w, .src = c->src, .bytes = c->bytes)
-BYTEIO_ENTRY(mmgr_bool, take_be, .r = c->r, .bytes = c->bytes, .out = c->out)
-BYTEIO_ENTRY(mmgr_bool, rd_str, .r = c->r, .blob = c->blob, .blen = c->blen)
-BYTEIO_ENTRY(mmgr_bool, mpint_fixed, .w = c->w, .src = c->src, .bytes = c->bytes)
+BYTEIO_ENTRY_V(put, .w = args->w, .byte = args->byte)
+BYTEIO_ENTRY_V(put_be, .w = args->w, .val = args->val, .bytes = args->bytes)
+BYTEIO_ENTRY_V(raw, .w = args->w, .src = args->src, .bytes = args->bytes)
+BYTEIO_ENTRY(mmgr_bool, take_be, .r = args->r, .bytes = args->bytes, .out = args->out)
+BYTEIO_ENTRY(mmgr_bool, rd_str, .r = args->r, .blob = args->blob, .blen = args->blen)
+BYTEIO_ENTRY(mmgr_bool, mpint_fixed, .w = args->w, .src = args->src, .bytes = args->bytes)

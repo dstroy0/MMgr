@@ -37,7 +37,7 @@
 #define ARENA_BYTES 65536u
 #define CHAIN 16u
 
-mmgr_carcer_init(ram, ARENA_BYTES, MMGR_POOL(pool, ARENA_BYTES));
+Carceribus(ram, MMGR_SOLUTA(pool, ARENA_BYTES));
 
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_proto_bytes[ARENA_BYTES];
 static protocore_arena g_arena;
@@ -65,15 +65,10 @@ static void report(const char *impl, const char *name, size_t bytes, double cycl
     fflush(stdout);
 }
 
-static CarcerCtx *pool_of(void)
-{
-    return MMGR_CARCER_POOL(ram, pool);
-}
-
 static void carcer_fresh(void)
 {
-    pool_of()->persist_end = 0u;
-    pool_of()->interim_top = pool_of()->size;
+    ram_pool_ctx.persist_end = 0u;
+    ram.pool.interim_reset();
 }
 
 static void proto_fresh(void)
@@ -90,17 +85,17 @@ static void proto_fresh(void)
         double cy_ = 0.0;                                                                                              \
         proto_fresh();                                                                                                 \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            void *p_ = protocore_arena_persist_alloc(&g_arena, (N));                                                    \
+            void *p_ = protocore_arena_persist_alloc(&g_arena, (N));                                                   \
             BENCH_KEEP(p_ != NULL);                                                                                    \
-            protocore_arena_persist_free(&g_arena, p_);                                                                 \
+            protocore_arena_persist_free(&g_arena, p_);                                                                \
         });                                                                                                            \
         report("protocore", "persist alloc+free", (N), cy_);                                                           \
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            void *p_ = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool_of(), .size = (N));                     \
+            void *p_ = ram.pool.persist_capio((N));                                                                    \
             BENCH_KEEP(p_ != NULL);                                                                                    \
-            MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = pool_of(), .tenancy = p_);                              \
+            ram.pool.persist_reddo(p_);                                                                                \
         });                                                                                                            \
         report("carceribus", "persist alloc+free", (N), cy_);                                                          \
     } while (0)
@@ -114,25 +109,25 @@ static void proto_fresh(void)
         double cy_ = 0.0;                                                                                              \
         proto_fresh();                                                                                                 \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            const size_t m_ = protocore_arena_scratch_mark(&g_arena);                                                   \
+            const size_t m_ = protocore_arena_scratch_mark(&g_arena);                                                  \
             for (unsigned k_ = 0; k_ < CHAIN; k_++)                                                                    \
             {                                                                                                          \
-                BENCH_KEEP(protocore_arena_scratch_alloc(&g_arena, (N)) != NULL);                                       \
+                BENCH_KEEP(protocore_arena_scratch_alloc(&g_arena, (N)) != NULL);                                      \
             }                                                                                                          \
-            protocore_arena_scratch_release(&g_arena, m_);                                                              \
+            protocore_arena_scratch_release(&g_arena, m_);                                                             \
         });                                                                                                            \
-        report("protocore", "transient run+release", (N) * CHAIN, cy_);                                                  \
+        report("protocore", "transient run+release", (N) * CHAIN, cy_);                                                \
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            const size_t m_ = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = pool_of());                            \
+            const size_t m_ = ram.pool.interim_mark();                                                                 \
             for (unsigned k_ = 0; k_ < CHAIN; k_++)                                                                    \
             {                                                                                                          \
-                BENCH_KEEP(MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = pool_of(), .size = (N)) != NULL);        \
+                BENCH_KEEP(ram.pool.interim_capio((N)) != NULL);                                                       \
             }                                                                                                          \
-            MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = pool_of(), .mark = m_);                                 \
+            ram.pool.interim_reddo(m_);                                                                                \
         });                                                                                                            \
-        report("carceribus", "transient run+release", (N) * CHAIN, cy_);                                                 \
+        report("carceribus", "transient run+release", (N) * CHAIN, cy_);                                               \
     } while (0)
 
 /**
@@ -143,13 +138,13 @@ static void proto_fresh(void)
     {                                                                                                                  \
         double cy_ = 0.0;                                                                                              \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            protocore_secure_wipe(g_buf, (N));                                                                          \
+            protocore_secure_wipe(g_buf, (N));                                                                         \
             BENCH_KEEP(g_buf[0]);                                                                                      \
         });                                                                                                            \
         report("protocore", "wipe", (N), cy_);                                                                         \
                                                                                                                        \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            MMGR_CALL(carcer.wipe, CarcerCfg, .tenancy = g_buf, .size = (N));                                          \
+            mmgr_carcer_wipe(g_buf, (N));                                                                              \
             BENCH_KEEP(g_buf[0]);                                                                                      \
         });                                                                                                            \
         report("carceribus", "wipe", (N), cy_);                                                                        \
@@ -163,32 +158,32 @@ static void proto_fresh(void)
     {                                                                                                                  \
         double cy_ = 0.0;                                                                                              \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            const size_t m_ = protocore_secure_mark();                                                                  \
-            BENCH_KEEP(protocore_secure_alloc((N), sizeof(void *)) != NULL);                                            \
-            protocore_secure_release(m_);                                                                               \
+            const size_t m_ = protocore_secure_mark();                                                                 \
+            BENCH_KEEP(protocore_secure_alloc((N), sizeof(void *)) != NULL);                                           \
+            protocore_secure_release(m_);                                                                              \
         });                                                                                                            \
         report("protocore", "secure take+wiped release", (N), cy_);                                                    \
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            void *p_ = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool_of(), .size = (N));                     \
+            void *p_ = ram.pool.persist_capio((N));                                                                    \
             BENCH_KEEP(p_ != NULL);                                                                                    \
-            MMGR_CALL(carcer.secura_reddo, CarcerCfg, .pool = pool_of(), .tenancy = p_);                               \
+            ram.pool.persist_reddo(p_);                                                                                \
         });                                                                                                            \
         report("carceribus", "secure take+wiped release", (N), cy_);                                                   \
                                                                                                                        \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            const size_t m_ = protocore_plaintext_mark();                                                               \
-            BENCH_KEEP(protocore_plaintext_alloc((N), sizeof(void *)) != NULL);                                         \
-            protocore_plaintext_release(m_);                                                                            \
+            const size_t m_ = protocore_plaintext_mark();                                                              \
+            BENCH_KEEP(protocore_plaintext_alloc((N), sizeof(void *)) != NULL);                                        \
+            protocore_plaintext_release(m_);                                                                           \
         });                                                                                                            \
         report("protocore", "plain take+release", (N), cy_);                                                           \
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            void *p_ = MMGR_CALL(carcer.persist_capio, CarcerCfg, .pool = pool_of(), .size = (N));                     \
+            void *p_ = ram.pool.persist_capio((N));                                                                    \
             BENCH_KEEP(p_ != NULL);                                                                                    \
-            MMGR_CALL(carcer.persist_reddo, CarcerCfg, .pool = pool_of(), .tenancy = p_);                              \
+            ram.pool.persist_reddo(p_);                                                                                \
         });                                                                                                            \
         report("carceribus", "plain take+release", (N), cy_);                                                          \
     } while (0)
@@ -233,7 +228,9 @@ int main(void)
         BENCH_TIME_CYCLES(cy, ITERS, {
             mmgr_span s_ = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_buf, .cap = sizeof g_buf);
             s_.pos = 128u;
-            BENCH_KEEP(MMGR_CALL(spat.ok, SpatiumCfg, .s = MMGR_CALL(spat.first, SpatiumCfg, .s = MMGR_CALL(spat.after, SpatiumCfg, .s = s_, .n = 8u), .n = 64u)));
+            BENCH_KEEP(MMGR_CALL(spat.ok, SpatiumCfg,
+                                 .s = MMGR_CALL(spat.first, SpatiumCfg,
+                                                .s = MMGR_CALL(spat.after, SpatiumCfg, .s = s_, .n = 8u), .n = 64u)));
             BENCH_KEEP(MMGR_CALL(spat.cok, SpatiumCfg, .cs = MMGR_CALL(spat.produced, SpatiumCfg, .s = s_)));
         });
         report("carceribus", "span walk", 0u, cy);

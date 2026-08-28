@@ -12,7 +12,7 @@ Any time you would reach for `snprintf` and would rather not link a formatter, o
 size_t at = 0;
 
 at = MMGR_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = "id=");
-at = MMGR_CALL(verba.u32,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .val = id);
+at = MMGR_CALL(verba.uint,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .val = id);
 at = MMGR_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = " rate=");
 at = MMGR_CALL(verba.fixed, VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .real = rate,
                .decimals = 2);

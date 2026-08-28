@@ -46,56 +46,56 @@ typedef struct
  */
 typedef struct
 {
-    size_t (*wr)(const EndianCfg *c);    /**< Writes val to dst and returns width. */
-    uint64_t (*rd)(const EndianCfg *c);  /**< Reads width bytes from src. */
-    uint64_t (*rev)(const EndianCfg *c); /**< Reverses val at width bytes. */
+    size_t (*wr)(const EndianCfg *args);    /**< Writes val to dst and returns width. */
+    uint64_t (*rd)(const EndianCfg *args);  /**< Reads width bytes from src. */
+    uint64_t (*rev)(const EndianCfg *args); /**< Reverses val at width bytes. */
 } EndianNs;
 MMGR_NS_LAYOUT(EndianNs, wr, rd, rev);
 
 /**
- * @brief Writes c->width bytes of c->val to c->dst without reversing them.
+ * @brief Writes args->width bytes of args->val to args->dst without reversing them.
  *
- * @param[in,out] c Destination, value and width [BORROWS].
- * @return          c->width.
- * @warning c->dst must be writable for c->width bytes.
+ * @param[in,out] args Destination, value and width [BORROWS].
+ * @return          args->width.
+ * @warning args->dst must be writable for args->width bytes.
  */
-size_t mmgr_wr_le(const EndianCfg *c);
+size_t mmgr_wr_le(const EndianCfg *args);
 
 /**
- * @brief Reads c->width bytes from c->src without reversing them.
+ * @brief Reads args->width bytes from args->src without reversing them.
  *
- * @param[in] c Source and width [BORROWS].
- * @return      The value read, in the low c->width bytes.
- * @warning c->src must be readable for c->width bytes.
+ * @param[in] args Source and width [BORROWS].
+ * @return      The value read, in the low args->width bytes.
+ * @warning args->src must be readable for args->width bytes.
  */
-uint64_t mmgr_rd_le(const EndianCfg *c);
+uint64_t mmgr_rd_le(const EndianCfg *args);
 
 /**
- * @brief Reverses c->val, then writes c->width bytes of it to c->dst.
+ * @brief Reverses args->val, then writes args->width bytes of it to args->dst.
  *
- * @param[in,out] c Destination, value and width [BORROWS].
- * @return          c->width.
- * @warning c->dst must be writable for c->width bytes.
+ * @param[in,out] args Destination, value and width [BORROWS].
+ * @return          args->width.
+ * @warning args->dst must be writable for args->width bytes.
  */
-size_t mmgr_wr_be(const EndianCfg *c);
+size_t mmgr_wr_be(const EndianCfg *args);
 
 /**
- * @brief Reads c->width bytes from c->src, then reverses them.
+ * @brief Reads args->width bytes from args->src, then reverses them.
  *
- * @param[in] c Source and width [BORROWS].
- * @return      The reversed value, in the low c->width bytes.
- * @warning c->src must be readable for c->width bytes.
+ * @param[in] args Source and width [BORROWS].
+ * @return      The reversed value, in the low args->width bytes.
+ * @warning args->src must be readable for args->width bytes.
  */
-uint64_t mmgr_rd_be(const EndianCfg *c);
+uint64_t mmgr_rd_be(const EndianCfg *args);
 
 /**
- * @brief Reverses the byte order of c->val at c->width bytes.
+ * @brief Reverses the byte order of args->val at args->width bytes.
  *
- * @param[in] c Value and width [BORROWS].
- * @return      The reversed value, right-aligned into the low c->width bytes.
+ * @param[in] args Value and width [BORROWS].
+ * @return      The reversed value, right-aligned into the low args->width bytes.
  * @note Touches no memory; both tables point rev at this one function.
  */
-uint64_t mmgr_endian_rev(const EndianCfg *c);
+uint64_t mmgr_endian_rev(const EndianCfg *args);
 
 /**
  * @brief Dispatch table instance named parva_extremitas, the little endian order.

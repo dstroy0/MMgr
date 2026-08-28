@@ -47,44 +47,44 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_bitor (*init)(const BitorumCfg *c); /**< Set to mmgr_bitor_init. */
-    void (*put)(const BitorumCfg *c);        /**< Set to mmgr_bitor_put. */
-    void (*align)(const BitorumCfg *c);      /**< Set to mmgr_bitor_align. */
+    mmgr_bitor (*init)(const BitorumCfg *args); /**< Set to mmgr_bitor_init. */
+    void (*put)(const BitorumCfg *args);        /**< Set to mmgr_bitor_put. */
+    void (*align)(const BitorumCfg *args);      /**< Set to mmgr_bitor_align. */
 } BitorumIntroitusExitusNs;
 MMGR_NS_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
 
 /**
- * @brief Builds a bit writer over c->out with capacity c->cap.
+ * @brief Builds a bit writer over args->out with capacity args->cap.
  *
- * @param[in] c Buffer and capacity [BORROWS].
+ * @param[in] args Buffer and capacity [BORROWS].
  * @return      A writer with no bytes written and no residue.
- * @note The returned writer keeps c->out, which must outlive it [BORROWS].
- * @warning c->out must not be null and c->cap must not be zero.
+ * @note The returned writer keeps args->out, which must outlive it [BORROWS].
+ * @warning args->out must not be null and args->cap must not be zero.
  */
-mmgr_bitor mmgr_bitor_init(const BitorumCfg *c);
+mmgr_bitor mmgr_bitor_init(const BitorumCfg *args);
 
 /**
- * @brief Appends the low c->nbits bits of c->val to c->writer.
+ * @brief Appends the low args->nbits bits of args->val to args->writer.
  *
- * @param[in,out] c Writer, value and bit count [BORROWS].
+ * @param[in,out] args Writer, value and bit count [BORROWS].
  * @note Writes whole bytes only; leftover bits stay in the writer's residue.
  * @note Does nothing when the writer's overflow is already set.
  * @note Sets the writer's overflow and clears its residue when the bytes would pass its cap.
- * @warning c->nbits must not exceed 64.
+ * @warning args->nbits must not exceed 64.
  */
-void mmgr_bitor_put(const BitorumCfg *c);
+void mmgr_bitor_put(const BitorumCfg *args);
 
 /**
  * @brief Writes the partial byte the writer still holds, padded with zeros above its bits.
  *
- * @param[in,out] c Writer to finish [BORROWS].
+ * @param[in,out] args Writer to finish [BORROWS].
  * @note mmgr_bitor_put writes whole bytes only; without this call the residue is never written.
  * @note Does nothing when the residue is empty, so a second call writes nothing.
  * @note Does nothing when the writer's overflow is already set.
- * @note c->val and c->nbits are not read.
+ * @note args->val and args->nbits are not read.
  * @warning Sets the writer's overflow when the byte would pass its cap.
  */
-void mmgr_bitor_align(const BitorumCfg *c);
+void mmgr_bitor_align(const BitorumCfg *args);
 
 /**
  * @brief Dispatch table instance named bitio; each member calls the matching mmgr_bitor_ function.
