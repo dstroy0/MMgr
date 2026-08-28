@@ -745,6 +745,106 @@ static void copy_read_flat(uint8_t *dst, const uint8_t *src, size_t bytes)
 }
 
 /**
+ * @brief The copy with the odd bytes taken by one overlapping word rather than a byte loop.
+ *
+ * @param[out] dst   Destination [BORROWS].
+ * @param[in]  src   Source [BORROWS].
+ * @param[in]  bytes Bytes to copy.
+ * @note The standard shape a hand written memcpy uses: once at least one word is being moved, the
+ *       last word of the copy can be written as a whole word ending on the final byte, overlapping
+ *       bytes the word run already placed. It costs one unaligned store and removes the tail loop
+ *       entirely. Whether that trades well depends on what an unaligned store costs on the part,
+ *       which is the question this row asks.
+ * @warning Copies forward, so a dst above src within one region would read bytes it has written.
+ */
+static void copy_read_overlap(uint8_t *dst, const uint8_t *src, size_t bytes)
+{
+    if (bytes < MMGR_RAW_WORD)
+    {
+        for (size_t index = 0; index < bytes; index++)
+        {
+            dst[index] = src[index];
+        }
+        return;
+    }
+
+    // Explicit casts hold the negation and the mask at uintptr_t, then bring the count back to size_t
+    const size_t skew = (size_t)((0u - (uintptr_t)dst) & (uintptr_t)(MMGR_RAW_WORD - 1u));
+    uint8_t *const base = dst;
+    const uint8_t *const from_base = src;
+    const size_t total = bytes;
+
+    for (size_t index = 0; index < skew; index++)
+    {
+        dst[index] = src[index];
+    }
+    dst += skew;
+    src += skew;
+
+    const size_t words = (total - skew) / MMGR_RAW_WORD;
+    bench_aequus_word_t *const to = (bench_aequus_word_t *)dst;
+
+    if ((((uintptr_t)src) & (uintptr_t)(MMGR_RAW_WORD - 1u)) == 0u)
+    {
+        const bench_aequus_word_t *const wfrom = (const bench_aequus_word_t *)src;
+
+        for (size_t index = 0; index < words; index++)
+        {
+            to[index] = wfrom[index];
+        }
+    }
+    else
+    {
+        const bench_proxim_word_t *const wfrom = (const bench_proxim_word_t *)src;
+
+        for (size_t index = 0; index < words; index++)
+        {
+            to[index] = wfrom[index];
+        }
+    }
+
+    // One word ending on the last byte, which rewrites bytes the run above already placed. Reaching
+    // back a whole word is why the short case above is handled separately
+    *(bench_proxim_word_t *)(base + total - MMGR_RAW_WORD) =
+        *(const bench_proxim_word_t *)(from_base + total - MMGR_RAW_WORD);
+}
+
+/**
+ * @brief The copy with one test at the top for the case both addresses are already on a boundary.
+ *
+ * @param[out] dst   Destination [BORROWS].
+ * @param[in]  src   Source [BORROWS].
+ * @param[in]  bytes Bytes to copy.
+ * @note The head stage exists for a destination that arrives off a boundary, which in this library
+ *       is the exception rather than the rule: memory here arrives aligned. This asks what the
+ *       common case costs when it is not made to walk the machinery that serves the exception.
+ * @warning Copies forward, so a dst above src within one region would read bytes it has written.
+ */
+static void copy_read_fastpath(uint8_t *dst, const uint8_t *src, size_t bytes)
+{
+    // Explicit cast holds both addresses at uintptr_t for the one mask that answers for both
+    if (((((uintptr_t)dst) | ((uintptr_t)src)) & (uintptr_t)(MMGR_RAW_WORD - 1u)) == 0u)
+    {
+        const size_t words = bytes / MMGR_RAW_WORD;
+        bench_aequus_word_t *const to = (bench_aequus_word_t *)dst;
+        const bench_aequus_word_t *const wfrom = (const bench_aequus_word_t *)src;
+
+        for (size_t index = 0; index < words; index++)
+        {
+            to[index] = wfrom[index];
+        }
+
+        for (size_t index = words * MMGR_RAW_WORD; index < bytes; index++)
+        {
+            dst[index] = src[index];
+        }
+        return;
+    }
+
+    copy_read_flat(dst, src, bytes);
+}
+
+/**
  * @brief Source and destination for the copy check, with slack for every offset it walks.
  */
 static uint8_t g_check_src[192];
@@ -954,6 +1054,17 @@ void dbench_run(void)
                           (two.dst = (uint8_t *)g_wide, two.src = (const uint8_t *)text, two.bytes = g_len,
                            copy_words_two(&two), DBENCH_KEEP(g_wide)));
             }
+
+            // Two more shapes for the stages around the word run, each against the copy as it is.
+            DBENCH_AB("s:overlap", iters, sizeof text - 1u,
+                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len),
+                       DBENCH_KEEP(g_wide)),
+                      (copy_read_overlap((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_KEEP(g_wide)));
+
+            DBENCH_AB("s:fastpath", iters, sizeof text - 1u,
+                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len),
+                       DBENCH_KEEP(g_wide)),
+                      (copy_read_fastpath((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_KEEP(g_wide)));
 
             // The library's three stage copy against the same work in one function, both against
             // memcpy. The word run alone already matches memcpy, so what this asks is whether the
