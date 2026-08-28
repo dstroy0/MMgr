@@ -25,6 +25,7 @@
  * Values are benched at 1, 3, 5 and 10 digits. A digit count decides the loop trip count, so an
  * emitter that wins at ten digits can lose at one, and the crossover is the reading.
  */
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -32,6 +33,7 @@
 #include "device_bench.h"
 
 #include "clz/clz.h"
+#include "fractio/fractio.h"
 #include "numeros_scribo/numeros_scribo.h"
 #include "proximus_operor/proximus_operor.h"
 #include "verba_scribo/verba_scribo.h"
@@ -86,6 +88,11 @@ static const char *volatile g_text = "the quick brown fox jumps over";
 static volatile uint64_t g_rec_u64 = 18446744073709551615ull;
 static volatile uint32_t g_rec_hex = 0xDEADBEEFu;
 static volatile double g_rec_real = -2.5;
+
+/**
+ * @brief The same value as a bit pattern, for the rows that take a double apart.
+ */
+static volatile uint64_t g_rec_bits = 0xC004000000000000ull;
 
 /**
  * @brief Powers of ten the scan counter compares against, as verba_scribo carries them.
@@ -1023,6 +1030,39 @@ static size_t libc_put_n(char *out, size_t cap, size_t at, const char *src, size
 }
 
 /**
+ * @brief The biased exponent field, reached the way libc offers it.
+ *
+ * @param[in] value Value to take apart.
+ * @return          What frexp reports as the exponent.
+ * @note Not the same number fract.exp returns - frexp gives the exponent of a mantissa in [0.5, 1)
+ *       and fract.exp gives the stored field - but it is the call a caller makes to ask the
+ *       question, and it is the cost of asking it.
+ */
+static int frexp_exponent(double value)
+{
+    int found = 0;
+
+    (void)frexp(value, &found);
+    return found;
+}
+
+/**
+ * @brief The bit pattern of a double, reached without a union.
+ *
+ * @param[in] value Value to read.
+ * @return          Its storage as a 64-bit pattern.
+ * @note The portable spelling a caller writes when it has no union to hand: copy the storage into an
+ *       integer of the same width. fract.to_bits reads the union member instead.
+ */
+static uint64_t bits_via_memcpy(double value)
+{
+    uint64_t held = 0u;
+
+    memcpy(&held, &value, sizeof held);
+    return held;
+}
+
+/**
  * @brief One pass: every emitter and both counters, at four digit widths.
  */
 void dbench_run(void)
@@ -1310,6 +1350,26 @@ void dbench_run(void)
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "id=%llu x=%08lx f=%.4f",
                                            (unsigned long long)g_rec_u64, (unsigned long)g_rec_hex,
                                            g_rec_real)));
+        }
+
+        // Taking a double apart, against the libc that answers the same questions. fractio reads the
+        // storage as a bit pattern through a union and masks; newlib reaches signbit and frexp,
+        // which on these parts are calls into soft float. The sign row is the closest to like for
+        // like, since signbit is the one of the three that is only a bit test either way.
+        {
+            const uint32_t iters = 5000u;
+
+            DBENCH_AB("s:sign", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(fract.sign, FractioCfg, .bits = (mmgr_u64)g_rec_bits)),
+                      DBENCH_KEEP(signbit(g_rec_real) ? 1 : 0));
+
+            DBENCH_AB("s:exp", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(fract.exp, FractioCfg, .bits = (mmgr_u64)g_rec_bits)),
+                      DBENCH_KEEP(frexp_exponent(g_rec_real)));
+
+            DBENCH_AB("s:to_bits", iters, 8u,
+                      DBENCH_KEEP(MMGR_CALL(fract.to_bits, FractioCfg, .val = g_rec_real)),
+                      DBENCH_KEEP(bits_via_memcpy(g_rec_real)));
         }
 
         DBENCH_OP("floor_loop", 20000u, DBENCH_KEEP(g_out));
