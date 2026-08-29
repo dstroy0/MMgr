@@ -1419,6 +1419,14 @@ void dbench_run(void)
             // reporting what it wrote - and its libc side is spelled out rather than called, since
             // newlib has no strlcpy and strncpy answers a different question: it pads the whole
             // destination and leaves it unterminated when the source fills it.
+            //
+            // A correction that belongs beside this row rather than only in history. Commit 6a23dfb
+            // recorded eq at 2.53x against strcmp and called that "the byte path ceiling, the same
+            // one put_n sits under, rather than anything left to fix". It was not a ceiling: the
+            // very next commit took the same row to 2.00x by testing the difference before the
+            // terminator and moving the mismatch out of the walk. Nothing measured it as a ceiling -
+            // it was a conclusion written into a commit beside numbers that did not support it, and
+            // it stood while the thing it declared finished was still moving.
             DBENCH_AB("eq", iters, n,
                       DBENCH_KEEP(MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
                       DBENCH_KEEP(strcmp(g_a, g_b) == 0));
