@@ -52,7 +52,7 @@
  *
  * @note Nothing under src reads it. The tests, the benches and the region-edges example are what
  *       write MMGR_ALIGN(MMGR_ALIGN_BYTES) on their arrays; the default is 16.
- * @warning Not the alignment a carceribus tenancy comes back at. That is MMGR_CARCER_ALIGN, which is
+ * @warning Not the alignment a locus_carcerum cell comes back at. That is MMGR_CARCER_ALIGN, which is
  *          sizeof(mmgr_word), and nothing asserts the two agree.
  */
 #ifndef MMGR_ALIGN_BYTES
@@ -113,11 +113,11 @@
 /**
  * @brief Bytes in the largest plaintext confinium this build will declare.
  *
- * @note Allocates nothing and sizes no pool. A pool's extent is the size in its MMGR_SOLUTA or
- *       MMGR_SECURA declaration, and nothing in carceribus reads this. What it does is feed
- *       MMGR_CARCER_MAX below, which is a bound other modules size their worst case against - so it
- *       is a statement of intent about the regions you are going to declare, and it needs raising if
- *       you declare a bigger one.
+ * @note Allocates nothing and sizes no cellblock. A cellblock's extent is the size in its
+ *       MMGR_MINIMUM_SECURITY or MMGR_MAXIMUM_SECURITY declaration, and nothing in locus_carcerum reads
+ *       this. What it does is feed MMGR_CARCER_MAX below, which is a bound other modules size their
+ *       worst case against - so it is a statement of intent about the prison sites you are going to
+ *       declare, and it needs raising if you declare a bigger one.
  */
 #ifndef MMGR_PLAINTEXT_CONFIN_SIZE
 #define MMGR_PLAINTEXT_CONFIN_SIZE 4096u

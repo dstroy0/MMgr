@@ -64,7 +64,7 @@ typedef struct
  * @brief Type of the exter dispatch table.
  *
  * @note MMGR_NS_LAYOUT asserts the five members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
- * @note Every entry takes the same argument pack, as in carceribus and infinitas.
+ * @note Every entry takes the same argument pack, as in locus_carcerum and infinitas.
  */
 typedef struct
 {

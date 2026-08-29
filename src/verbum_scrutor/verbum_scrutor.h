@@ -111,7 +111,7 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_word) == sizeof(mmgr_migro_word),
  * @note The lower bound; the assertion below supplies the upper one.
  */
 MMGR_STATIC_ASSERT(MMGR_SCAN_MAX_WORDS *MMGR_SWAR_BYTES >= MMGR_CARCER_MAX,
-                   "the worst-case scan does not cover the largest tenant");
+                   "the worst-case scan does not cover the largest buffer");
 /**
  * @brief Asserts one word fewer would fall short of MMGR_CARCER_MAX bytes.
  *

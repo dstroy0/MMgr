@@ -400,7 +400,7 @@ MMGR_INLINE void memor_set(MemorSetCtx *args)
  * @param[in] ctx  Context type this entry's backend takes.
  * @param[in] name Name after the mmgr_memor_ and memor_ prefixes, which the two share.
  * @param[in] ...  Initializers for the ctx literal, written in terms of args.
- * @note ctx is a parameter here, unlike carceribus and infinitas which each have one. The backends
+ * @note ctx is a parameter here, unlike locus_carcerum and infinitas which each have one. The backends
  *       split by what they touch: a copy takes two pointers, a scan takes two and a value, a fill
  *       takes one and a value, so each has its own argument type.
  */

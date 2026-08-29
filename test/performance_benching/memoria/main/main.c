@@ -20,7 +20,7 @@
 #include "device_bench.h"
 
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
-#include "carceribus/carceribus.h"
+#include "locus_carcerum/locus_carcerum.h"
 #include "confinium_externum/confinium_externum.h"
 #include "spatium/spatium.h"
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
@@ -31,18 +31,18 @@
 #include "verbum_scrutor/verbum_scrutor.h"
 
 /**
- * @brief Bytes the pool the allocator rows take from holds.
+ * @brief Bytes the cellblock the allocator rows take from holds.
  */
 #define ARENA_BYTES 4096u
 
 /**
- * @brief A region with one unwatched pool, which is what the allocator rows take from.
+ * @brief A prison site with one minimum security cellblock, which the allocator rows take from.
  *
- * @note Declared, not initialised at run time: the storage, its alignment and the pool's state are
- *       all emitted as data, so nothing here runs before main and the first byte is an address the
- *       linker resolved. That is the half malloc cannot answer for at any speed.
+ * @note Declared, not initialized at run time. The storage, its alignment and the cellblock's state
+ *       are all emitted as data, so nothing here runs before main and the first byte is an address
+ *       the linker resolved. That is the half malloc cannot answer for at any speed.
  */
-Carceribus(ram, MMGR_SOLUTA(pool, ARENA_BYTES));
+LocusCarcerum(ram, MMGR_MINIMUM_SECURITY(general, ARENA_BYTES));
 
 /**
  * @brief The take size, hidden so neither allocator sees a constant.
@@ -681,15 +681,15 @@ static uintptr_t ring_round_hand(void)
 }
 
 /**
- * @brief One tenancy taken from the persist end and given straight back.
+ * @brief One cell allocated on the persistent tier and released straight back.
  *
- * @return The address it was handed, so the take is not discarded.
+ * @return The address it was handed, so the allocation is not discarded.
  */
-static uintptr_t pool_take_give(void)
+static uintptr_t cellblock_persistent_alloc_release(void)
 {
-    void *const held = ram.pool.persist_capio(g_take);
+    void *const held = ram.general.persistent_buf_alloc(g_take);
 
-    ram.pool.persist_reddo(held);
+    ram.general.persistent_buf_release(held);
     return (uintptr_t)held;
 }
 
@@ -710,19 +710,19 @@ static uintptr_t heap_take_give(void)
  * @brief Takes eight tenancies from the interim end and gives them all back with one mark.
  *
  * @return A value the harness keeps, so the run is not discarded.
- * @note What a mark is for: the top is noted once, eight takes move it up, and restoring the mark
- *       releases all eight in a single store.
+ * @note What a mark is for. The top is noted once, eight allocations move it down, and restoring the
+ *       mark releases all eight in a single store.
  */
-static uintptr_t pool_run_mark(void)
+static uintptr_t cellblock_temporary_mark_run(void)
 {
-    const size_t mark = ram.pool.interim_mark();
+    const size_t mark = ram.general.temporary_buf_mark();
     uintptr_t seen = 0u;
 
     for (unsigned index = 0; index < 8u; index++)
     {
-        seen |= (uintptr_t)ram.pool.interim_capio(g_take);
+        seen |= (uintptr_t)ram.general.temporary_buf_alloc(g_take);
     }
-    ram.pool.interim_reddo(mark);
+    ram.general.temporary_buf_release(mark);
     return seen;
 }
 
@@ -897,15 +897,17 @@ void dbench_run(void)
         }
 
         // The pool against the heap, which had no row against libc anywhere - the bench that exists
-        // compares carceribus with ProtoCore, not with malloc. One take and one give back at each
+        // compares locus_carcerum with ProtoCore, not with malloc. One allocate and one release at each
         // end, and then a run of eight taken and released in one move, which is what a mark is for
         // and what a heap has no equivalent of: the eight frees are the only way to answer it.
         {
             const uint32_t iters = 5000u;
 
-            DBENCH_AB("pool_persist", iters, 64u, DBENCH_KEEP(pool_take_give()), DBENCH_KEEP(heap_take_give()));
+            DBENCH_AB("cellblock_persistent", iters, 64u, DBENCH_KEEP(cellblock_persistent_alloc_release()),
+                      DBENCH_KEEP(heap_take_give()));
 
-            DBENCH_AB("pool_interim", iters, 64u, DBENCH_KEEP(pool_run_mark()), DBENCH_KEEP(heap_run_free()));
+            DBENCH_AB("cellblock_temporary", iters, 64u, DBENCH_KEEP(cellblock_temporary_mark_run()),
+                      DBENCH_KEEP(heap_run_free()));
         }
 
         // The ring. There is no libc ring, so the counterpart is the one a caller writes instead:
@@ -958,7 +960,7 @@ void dbench_run(void)
             DBENCH_OP("ring_loculus", iters, DBENCH_KEEP(ring_loculus_cycle()));
         }
 
-        // spatium and the two carceribus entries that report rather than hand out memory. None of
+        // spatium and the two locus_carcerum entries that report rather than hand out memory. None of
         // these has a counterpart and none of them loops: a span is four fields and the questions
         // asked of it are field arithmetic. What a row can say is whether that is what they cost, or
         // whether one of them is doing something the shape does not suggest.
@@ -978,10 +980,10 @@ void dbench_run(void)
                       DBENCH_KEEP(MMGR_CALL(spat.ok, SpatiumCfg,
                                             .s = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP))));
 
-            DBENCH_OP("pool_owns", iters,
-                      DBENCH_KEEP(ram.pool.owns((const void *)(g_d + g_swap_off))));
+            DBENCH_OP("cellblock_who_owns_buf", iters,
+                      DBENCH_KEEP(ram.general.who_owns_buf((const void *)(g_d + g_swap_off))));
 
-            DBENCH_OP("pool_praesto", iters, DBENCH_KEEP(ram.pool.octas_praesto()));
+            DBENCH_OP("cellblock_buf_available", iters, DBENCH_KEEP(ram.general.buf_available()));
         }
 
         // The byte cost table, the last entry in the library with no row. It is one indexed load

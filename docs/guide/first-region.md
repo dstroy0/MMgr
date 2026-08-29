@@ -1,42 +1,56 @@
-# Your first region {#guide_first_region}
+# Your first prison site {#guide_first_region}
 
-Borrowing a buffer, taking from both ends of it, and giving the interim back.
+**Purpose:** Declare a prison site, allocate from both tiers of one of its cellblocks, and release
+the temporary tier by mark.
+**Scope:** `src/carceribus/carceribus.h`, `src/carceribus/carceribus.c`
+**Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+**Date:** 2026-08-29
 
 ## Borrowing
 
 ```c
-Carceribus(prison, MMGR_SOLUTA(work, 2048), MMGR_SECURA(keys, 2048));
+Carceribus(prison, MMGR_MINIMUM_SECURITY(work, 2048), MMGR_MAXIMUM_SECURITY(keys, 2048));
 ```
 
-One line declares the region, its pools, their storage and their alignment. It is a declaration,
-not a call: everything it emits is initialized data, so nothing runs at startup and a pool's
-first byte is an address the linker resolved.
+One line declares the prison site, its cellblocks, their storage and their alignment. It is a
+declaration, not a call: "Everything it emits is initialized data. Nothing runs at startup, and a
+cellblock's first byte is the address of its own storage, which the linker resolves"
+(`src/carceribus/carceribus.h:438-439`).
 
-`MMGR_SOLUTA` is the loose watch and `MMGR_SECURA` the close one. The watch is fixed here and
-cannot be changed later: `prison.keys` has no unwiped release to reach for, and `prison.work` has
-no wiping one.
+`MMGR_MINIMUM_SECURITY` and `MMGR_MAXIMUM_SECURITY` pick which guards hold a cellblock, and the
+choice is settled at the declaration: "The warden is const, so nothing after the declaration can
+change the level a cellblock runs at" (`src/carceribus/carceribus.h:19-20`). The two guard types
+declare the same eight entries under different behavior, so `prison.keys` has no unzeroed release to
+reach for and `prison.work` has no zeroing one
+(`src/carceribus/carceribus.h:93-105`, `src/carceribus/carceribus.h:116-128`).
 
-## Two ends
+## Two tiers
 
 ```c
-uint8_t *cfg = prison.work.persist_capio(128);
-uint8_t *tmp = prison.work.interim_capio(512);
+uint8_t *config = prison.work.persistent_buf_alloc(128);
+uint8_t *working = prison.work.temporary_buf_alloc(512);
 ```
 
-- **persist** is for what lives as long as the region: configuration, tables, buffers you fill once.
-- **interim** is the working space for one operation.
+Both return the first byte of a cell `[RETURNS OWNERSHIP]`. The persistent tier takes it back through
+`prison.work.persistent_buf_release`; the temporary tier takes a whole run back through
+`prison.work.temporary_buf_release` or `prison.work.temporary_buf_reset`.
 
-They grow toward each other and a take that would cross fails, returning `NULL`. Check it — that is
-the only failure mode the allocator has.
+- **persistent** is for what lives as long as the cellblock: configuration, tables, buffers you fill
+  once.
+- **temporary** is the working space for one operation.
+
+The two tiers grow toward each other out of the same gap, and a request the gap cannot meet returns
+`NULL`: "Fails closed. A request the gap cannot meet moves no boundary at all"
+(`src/carceribus/carceribus.c:380`).
 
 ```c
-if (cfg == NULL || tmp == NULL) {
+if (config == NULL || working == NULL) {
     return -1;
 }
 ```
 
-`capio` is _take_. `reddo` is _give back_. The verbs are Latin because the English ones are already
-spoken for by libc; @ref ref_glossary decodes the rest.
+"The public entries are English and the internals are Latin, this filename included"
+(`src/carceribus/carceribus.h:21`). @ref ref_glossary decodes the Latin you will meet inside.
 
 ## Releasing interim, by mark
 

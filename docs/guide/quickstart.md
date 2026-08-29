@@ -31,18 +31,18 @@ Storage comes from you. This is the whole shape of the library in twenty lines.
 #include "mmgr.h"
 #include <stdio.h>
 
-/* One region, one pool. Declares the storage and its descriptors, all at compile time. */
-Carceribus(prison, MMGR_SOLUTA(work, 4096));
+/* One prison site, one cellblock. Declares the storage and its state, all at compile time. */
+Carceribus(prison, MMGR_MINIMUM_SECURITY(work, 4096));
 
 int main(void)
 {
 
-    char *const store = prison.work.persist_capio(256);
+    char *const store = prison.work.persistent_buf_alloc(256);
     if (store == NULL) {
         return 1;
     }
 
-    const size_t left = prison.work.octas_praesto();
+    const size_t left = prison.work.buf_available();
 
     size_t at = 0;
     at = MMGR_CALL(verba.put, VerbaCfg, .out = store, .cap = 256u, .at = at,
@@ -62,10 +62,10 @@ int main(void)
 Three things in that listing are the library's whole personality:
 
 - **The 4096 is the only size decision**, and it is made at compile time. `Carceribus` is a
-  declaration, not a call: it emits the storage, the pool descriptors and static asserts that the
-  pools fit the region. Nothing runs at startup.
-- **`persist_capio` borrows.** It allocates nothing — it hands back part of the pool's storage and moves a
-  cursor, and what it returns dies when the pool unwinds.
+  declaration, not a call: it emits the storage, each cellblock's state and static asserts that the
+  cellblocks fit the site. Nothing runs at startup.
+- **`persistent_buf_alloc` borrows.** It allocates nothing from the heap — it hands back part of the
+  cellblock's own storage and moves a boundary, and what it returns dies when that tier unwinds.
 - **The error check is at the end**, not after every write, because a writer with no room returns
   `cap` and every later writer does the same, so `finish` reports it. See @ref ref_error_handling.
 

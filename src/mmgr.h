@@ -14,7 +14,7 @@
 #include "config/mmgr_config.h"
 
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
-#include "carceribus/carceribus.h"
+#include "locus_carcerum/locus_carcerum.h"
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 #include "endian/endian.h"

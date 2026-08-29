@@ -4,6 +4,8 @@
 /**
  * @file mmgr_compiler_directives.h
  * @brief Preprocessor definitions; declares no type and defines no function.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  */
 #ifndef MMGR_COMPILER_DIRECTIVES_H
 #define MMGR_COMPILER_DIRECTIVES_H
@@ -107,6 +109,7 @@
 #define MMGR_FINIS_DECLS }
 #else
 
+/** @brief Expands to nothing where __cplusplus is undefined, so no brace is opened and none is owed. */
 #define MMGR_INCIPE_DECLS
 
 /** @brief Expands to nothing where __cplusplus is undefined. */
@@ -196,49 +199,513 @@
                        #T "." #member " is not at dispatch loculus " #loculus)
 
 /**
- * @brief MMGR_NS_L1 to MMGR_NS_L24 expand to one MMGR_NS_LOCULUS per member, at indices 0 upward.
+ * @brief Asserts one member sits at dispatch loculus 0.
  *
  * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
- * @param[in] a Member names in order; a takes index 0, b takes index 1.
- * @note MMGR_NS_L<n> expands MMGR_NS_L<n-1> before its own MMGR_NS_LOCULUS.
- * @note Selected by MMGR_NS_LAYOUT through MMGR_CAT on the argument count.
+ * @param[in] a The single member's name.
+ * @note The base of the family. Every longer line ends in this one, so it is the only line here that
+ *       names no other.
  */
 #define MMGR_NS_L1(T, a) MMGR_NS_LOCULUS(T, a, 0);
+
+/**
+ * @brief Asserts two members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0, which MMGR_NS_L1 asserts.
+ * @param[in] b Member at loculus 1, asserted after it.
+ * @note The step every longer line repeats: expand the line one shorter, then assert the next index.
+ *       The preprocessor cannot walk a list, so each member count needs a line of its own.
+ */
 #define MMGR_NS_L2(T, a, b) MMGR_NS_L1(T, a) MMGR_NS_LOCULUS(T, b, 1);
+
+/**
+ * @brief Asserts three members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2, asserted after MMGR_NS_L2 covers the first two.
+ * @note MMGR_NS_LAYOUT selects this line for a type with three members.
+ */
 #define MMGR_NS_L3(T, a, b, c) MMGR_NS_L2(T, a, b) MMGR_NS_LOCULUS(T, c, 2);
+
+/**
+ * @brief Asserts four members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3, asserted after MMGR_NS_L3 covers the first three.
+ * @note MMGR_NS_LAYOUT selects this line for a type with four members.
+ */
 #define MMGR_NS_L4(T, a, b, c, d) MMGR_NS_L3(T, a, b, c) MMGR_NS_LOCULUS(T, d, 3);
+
+/**
+ * @brief Asserts five members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4, asserted after MMGR_NS_L4 covers the first four.
+ * @note MMGR_NS_LAYOUT selects this line for a type with five members.
+ */
 #define MMGR_NS_L5(T, a, b, c, d, e) MMGR_NS_L4(T, a, b, c, d) MMGR_NS_LOCULUS(T, e, 4);
+
+/**
+ * @brief Asserts six members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5, asserted after MMGR_NS_L5 covers the first five.
+ * @note MMGR_NS_LAYOUT selects this line for a type with six members.
+ */
 #define MMGR_NS_L6(T, a, b, c, d, e, f) MMGR_NS_L5(T, a, b, c, d, e) MMGR_NS_LOCULUS(T, f, 5);
+
+/**
+ * @brief Asserts seven members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6, asserted after MMGR_NS_L6 covers the first six.
+ * @note MMGR_NS_LAYOUT selects this line for a type with seven members.
+ */
 #define MMGR_NS_L7(T, a, b, c, d, e, f, g) MMGR_NS_L6(T, a, b, c, d, e, f) MMGR_NS_LOCULUS(T, g, 6);
+
+/**
+ * @brief Asserts eight members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7, asserted after MMGR_NS_L7 covers the first seven.
+ * @note MMGR_NS_LAYOUT selects this line for a type with eight members.
+ */
 #define MMGR_NS_L8(T, a, b, c, d, e, f, g, h) MMGR_NS_L7(T, a, b, c, d, e, f, g) MMGR_NS_LOCULUS(T, h, 7);
+
+/**
+ * @brief Asserts nine members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8, asserted after MMGR_NS_L8 covers the first eight.
+ * @note MMGR_NS_LAYOUT selects this line for a type with nine members.
+ */
 #define MMGR_NS_L9(T, a, b, c, d, e, f, g, h, i) MMGR_NS_L8(T, a, b, c, d, e, f, g, h) MMGR_NS_LOCULUS(T, i, 8);
+
+/**
+ * @brief Asserts ten members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9, asserted after MMGR_NS_L9 covers the first nine.
+ * @note MMGR_NS_LAYOUT selects this line for a type with ten members.
+ */
 #define MMGR_NS_L10(T, a, b, c, d, e, f, g, h, i, j) MMGR_NS_L9(T, a, b, c, d, e, f, g, h, i) MMGR_NS_LOCULUS(T, j, 9);
+
+/**
+ * @brief Asserts eleven members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10, asserted after MMGR_NS_L10 covers the first ten.
+ * @note MMGR_NS_LAYOUT selects this line for a type with eleven members.
+ */
 #define MMGR_NS_L11(T, a, b, c, d, e, f, g, h, i, j, k)                                                                \
     MMGR_NS_L10(T, a, b, c, d, e, f, g, h, i, j) MMGR_NS_LOCULUS(T, k, 10);
+
+/**
+ * @brief Asserts twelve members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11, asserted after MMGR_NS_L11 covers the first eleven.
+ * @note MMGR_NS_LAYOUT selects this line for a type with twelve members.
+ */
 #define MMGR_NS_L12(T, a, b, c, d, e, f, g, h, i, j, k, l)                                                             \
     MMGR_NS_L11(T, a, b, c, d, e, f, g, h, i, j, k) MMGR_NS_LOCULUS(T, l, 11);
+
+/**
+ * @brief Asserts thirteen members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12, asserted after MMGR_NS_L12 covers the first twelve.
+ * @note MMGR_NS_LAYOUT selects this line for a type with thirteen members.
+ */
 #define MMGR_NS_L13(T, a, b, c, d, e, f, g, h, i, j, k, l, m)                                                          \
     MMGR_NS_L12(T, a, b, c, d, e, f, g, h, i, j, k, l) MMGR_NS_LOCULUS(T, m, 12);
+
+/**
+ * @brief Asserts fourteen members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12.
+ * @param[in] n Member at loculus 13, asserted after MMGR_NS_L13 covers the first thirteen.
+ * @note MMGR_NS_LAYOUT selects this line for a type with fourteen members.
+ */
 #define MMGR_NS_L14(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n)                                                       \
     MMGR_NS_L13(T, a, b, c, d, e, f, g, h, i, j, k, l, m) MMGR_NS_LOCULUS(T, n, 13);
+
+/**
+ * @brief Asserts fifteen members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12.
+ * @param[in] n Member at loculus 13.
+ * @param[in] o Member at loculus 14, asserted after MMGR_NS_L14 covers the first fourteen.
+ * @note MMGR_NS_LAYOUT selects this line for a type with fifteen members.
+ */
 #define MMGR_NS_L15(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)                                                    \
     MMGR_NS_L14(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n) MMGR_NS_LOCULUS(T, o, 14);
+
+/**
+ * @brief Asserts sixteen members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12.
+ * @param[in] n Member at loculus 13.
+ * @param[in] o Member at loculus 14.
+ * @param[in] p Member at loculus 15, asserted after MMGR_NS_L15 covers the first fifteen.
+ * @note MMGR_NS_LAYOUT selects this line for a type with sixteen members.
+ */
 #define MMGR_NS_L16(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)                                                 \
     MMGR_NS_L15(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o) MMGR_NS_LOCULUS(T, p, 15);
+
+/**
+ * @brief Asserts seventeen members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12.
+ * @param[in] n Member at loculus 13.
+ * @param[in] o Member at loculus 14.
+ * @param[in] p Member at loculus 15.
+ * @param[in] q Member at loculus 16, asserted after MMGR_NS_L16 covers the first sixteen.
+ * @note MMGR_NS_LAYOUT selects this line for a type with seventeen members.
+ */
 #define MMGR_NS_L17(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)                                              \
     MMGR_NS_L16(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) MMGR_NS_LOCULUS(T, q, 16);
+
+/**
+ * @brief Asserts eighteen members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12.
+ * @param[in] n Member at loculus 13.
+ * @param[in] o Member at loculus 14.
+ * @param[in] p Member at loculus 15.
+ * @param[in] q Member at loculus 16.
+ * @param[in] r Member at loculus 17, asserted after MMGR_NS_L17 covers the first seventeen.
+ * @note MMGR_NS_LAYOUT selects this line for a type with eighteen members.
+ */
 #define MMGR_NS_L18(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)                                           \
     MMGR_NS_L17(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) MMGR_NS_LOCULUS(T, r, 17);
+
+/**
+ * @brief Asserts nineteen members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12.
+ * @param[in] n Member at loculus 13.
+ * @param[in] o Member at loculus 14.
+ * @param[in] p Member at loculus 15.
+ * @param[in] q Member at loculus 16.
+ * @param[in] r Member at loculus 17.
+ * @param[in] s Member at loculus 18, asserted after MMGR_NS_L18 covers the first eighteen.
+ * @note MMGR_NS_LAYOUT selects this line for a type with nineteen members.
+ */
 #define MMGR_NS_L19(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)                                        \
     MMGR_NS_L18(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) MMGR_NS_LOCULUS(T, s, 18);
+
+/**
+ * @brief Asserts twenty members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12.
+ * @param[in] n Member at loculus 13.
+ * @param[in] o Member at loculus 14.
+ * @param[in] p Member at loculus 15.
+ * @param[in] q Member at loculus 16.
+ * @param[in] r Member at loculus 17.
+ * @param[in] s Member at loculus 18.
+ * @param[in] t Member at loculus 19, asserted after MMGR_NS_L19 covers the first nineteen.
+ * @note MMGR_NS_LAYOUT selects this line for a type with twenty members.
+ */
 #define MMGR_NS_L20(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)                                     \
     MMGR_NS_L19(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) MMGR_NS_LOCULUS(T, t, 19);
+
+/**
+ * @brief Asserts twenty-one members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12.
+ * @param[in] n Member at loculus 13.
+ * @param[in] o Member at loculus 14.
+ * @param[in] p Member at loculus 15.
+ * @param[in] q Member at loculus 16.
+ * @param[in] r Member at loculus 17.
+ * @param[in] s Member at loculus 18.
+ * @param[in] t Member at loculus 19.
+ * @param[in] u Member at loculus 20, asserted after MMGR_NS_L20 covers the first twenty.
+ * @note MMGR_NS_LAYOUT selects this line for a type with twenty-one members.
+ */
 #define MMGR_NS_L21(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u)                                  \
     MMGR_NS_L20(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) MMGR_NS_LOCULUS(T, u, 20);
+
+/**
+ * @brief Asserts twenty-two members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12.
+ * @param[in] n Member at loculus 13.
+ * @param[in] o Member at loculus 14.
+ * @param[in] p Member at loculus 15.
+ * @param[in] q Member at loculus 16.
+ * @param[in] r Member at loculus 17.
+ * @param[in] s Member at loculus 18.
+ * @param[in] t Member at loculus 19.
+ * @param[in] u Member at loculus 20.
+ * @param[in] v Member at loculus 21, asserted after MMGR_NS_L21 covers the first twenty-one.
+ * @note MMGR_NS_LAYOUT selects this line for a type with twenty-two members.
+ */
 #define MMGR_NS_L22(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v)                               \
     MMGR_NS_L21(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) MMGR_NS_LOCULUS(T, v, 21);
+
+/**
+ * @brief Asserts twenty-three members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12.
+ * @param[in] n Member at loculus 13.
+ * @param[in] o Member at loculus 14.
+ * @param[in] p Member at loculus 15.
+ * @param[in] q Member at loculus 16.
+ * @param[in] r Member at loculus 17.
+ * @param[in] s Member at loculus 18.
+ * @param[in] t Member at loculus 19.
+ * @param[in] u Member at loculus 20.
+ * @param[in] v Member at loculus 21.
+ * @param[in] w Member at loculus 22, asserted after MMGR_NS_L22 covers the first twenty-two.
+ * @note MMGR_NS_LAYOUT selects this line for a type with twenty-three members.
+ */
 #define MMGR_NS_L23(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w)                            \
     MMGR_NS_L22(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) MMGR_NS_LOCULUS(T, w, 22);
+
+/**
+ * @brief Asserts twenty-four members sit at consecutive loculi from 0.
+ *
+ * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
+ * @param[in] a Member at loculus 0.
+ * @param[in] b Member at loculus 1.
+ * @param[in] c Member at loculus 2.
+ * @param[in] d Member at loculus 3.
+ * @param[in] e Member at loculus 4.
+ * @param[in] f Member at loculus 5.
+ * @param[in] g Member at loculus 6.
+ * @param[in] h Member at loculus 7.
+ * @param[in] i Member at loculus 8.
+ * @param[in] j Member at loculus 9.
+ * @param[in] k Member at loculus 10.
+ * @param[in] l Member at loculus 11.
+ * @param[in] m Member at loculus 12.
+ * @param[in] n Member at loculus 13.
+ * @param[in] o Member at loculus 14.
+ * @param[in] p Member at loculus 15.
+ * @param[in] q Member at loculus 16.
+ * @param[in] r Member at loculus 17.
+ * @param[in] s Member at loculus 18.
+ * @param[in] t Member at loculus 19.
+ * @param[in] u Member at loculus 20.
+ * @param[in] v Member at loculus 21.
+ * @param[in] w Member at loculus 22.
+ * @param[in] x Member at loculus 23, asserted after MMGR_NS_L23 covers the first twenty-three.
+ * @note MMGR_NS_LAYOUT selects this line for a type with twenty-four members.
+ * @warning The ceiling of the family. A twenty-fifth member has no MMGR_NS_L25 to reach, and
+ *          MMGR_NARG cannot count that far either, so raising the ceiling means adding a line here
+ *          and a constant to both MMGR_NARG and MMGR_ARG_N.
+ */
 #define MMGR_NS_L24(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x)                         \
     MMGR_NS_L23(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) MMGR_NS_LOCULUS(T, x, 23);
 
@@ -247,6 +714,11 @@
  *
  * @param[in] T   Struct type forwarded to MMGR_NS_L and to sizeof.
  * @param[in] ... Member names in loculus order, one to twenty-four.
+ * @note Two mistakes are what this is for, and neither is visible at a use site. A member added to
+ *       the struct but left out of the list moves every entry below it to a loculus that is no
+ *       longer its own, and padding between members does the same without anyone editing the list
+ *       at all. The per-member assertions catch the first; the size assertion catches the second,
+ *       since a padded struct is larger than the count times MMGR_FP_SIZE.
  * @note MMGR_NARG(__VA_ARGS__) is cast to size_t before the multiply.
  * @warning Any size other than the member count times MMGR_FP_SIZE fails the assertion.
  */
@@ -258,7 +730,14 @@
 /**
  * @brief Expands to static const.
  *
- * @note Used to declare the dispatch tables, such as ascii, spat and clz.
+ * @note Declares the dispatch tables, such as ascii, spat and clz. They stand in for a namespace,
+ *       which C does not have.
+ * @note Internal linkage is what makes a table definable in a header at all: each translation unit
+ *       that includes it gets its own, rather than every one of them defining the same symbol. const
+ *       is what pays for the indirection, since a table no other translation unit can reach and no
+ *       code assigns to leaves the compiler free to resolve an entry call to the backend directly.
+ * @note Each table carries MMGR_UNUSED as well, for the translation unit that includes the header
+ *       and calls nothing through it.
  */
 #define MMGR_NS static const
 
@@ -276,7 +755,7 @@
  * @note Costs the walk's code at every site that takes it, so it belongs on the one hot function a
  *       caller cares about rather than on a translation unit.
  * @warning Needs the entry body visible, so a build without link-time optimization gets nothing from
- *          it. See MMGR_LTO.
+ *          it. That is the MMGR_LTO build option, which defaults to ON.
  * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(flatten) is 0, which costs speed and never
  *          correctness.
  */
@@ -290,8 +769,13 @@
 /**
  * @brief Expands to __attribute__((packed)) where MMGR_HAS_ATTRIBUTE(packed) is non-zero.
  *
- * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(packed) is 0.
- * @note mmgr_types.h asserts sizeof(MmgrEnumProbe) == 1 to catch that case.
+ * @note An enum carrying this is declared at the width its range needs rather than at int width. A
+ *       struct with such a member takes its offsets from that width, so the attribute belongs to the
+ *       layout and is not a size optimization.
+ * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(packed) is 0, and a compiler may also accept
+ *          the attribute and then ignore it. Neither case is visible from here, which is why
+ *          mmgr_types.h declares MmgrEnumProbe and asserts sizeof(MmgrEnumProbe) == 1 rather than
+ *          trusting this #if.
  */
 #if MMGR_HAS_ATTRIBUTE(packed)
 #define MMGR_ENUM_PACKED __attribute__((packed))
@@ -304,7 +788,13 @@
  * @brief Expands to __attribute__((aligned(n))) where MMGR_HAS_ATTRIBUTE(aligned) is non-zero.
  *
  * @param[in] n Alignment operand passed to the attribute.
- * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(aligned) is 0, ignoring n.
+ * @note Used in both directions. It raises alignment on storage, as locus_carcerum.h does on a
+ *       cellblock's bytes and confinium_exclusivum_infinitas.h does on its ring state. It also
+ *       lowers alignment to 1, which is one half of MMGR_RAW in proximus_operor.h and lets a word
+ *       type be read from any address.
+ * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(aligned) is 0, ignoring n. A raise that
+ *          vanishes leaves an object less aligned than its use expects. A lower to 1 that vanishes
+ *          leaves the type at its natural alignment while the code still reads it from any address.
  */
 #if MMGR_HAS_ATTRIBUTE(aligned)
 #define MMGR_ALIGN(n) __attribute__((aligned(n)))
@@ -316,7 +806,12 @@
 /**
  * @brief Expands to __attribute__((may_alias)) where MMGR_HAS_ATTRIBUTE(may_alias) is non-zero.
  *
- * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(may_alias) is 0.
+ * @note The library reads a byte array through a word type. A character type may alias any object.
+ *       A word lvalue reading the bytes of a uint8_t array is the direction the aliasing rules
+ *       forbid, and this attribute is what permits it. MMGR_RAW in proximus_operor.h carries it, and
+ *       proximus_operor.c also uses it on its own for a type that keeps uint64_t's alignment.
+ * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(may_alias) is 0. Nothing diagnoses that. The
+ *          code still compiles and the compiler is free to assume the two accesses never meet.
  */
 #if MMGR_HAS_ATTRIBUTE(may_alias)
 #define MMGR_ALIAS __attribute__((may_alias))
@@ -328,7 +823,12 @@
 /**
  * @brief Expands to __attribute__((unused)) where MMGR_HAS_ATTRIBUTE(unused) is non-zero.
  *
- * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(unused) is 0.
+ * @note Suppresses the unused-variable diagnostic on a definition that is deliberately left
+ *       unreferenced. A dispatch table is defined in a header with internal linkage, so every
+ *       translation unit including that header gets a copy of it. One that calls nothing through
+ *       its copy would warn about a definition it never asked for.
+ * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(unused) is 0. That costs a diagnostic and
+ *          never correctness.
  */
 #if MMGR_HAS_ATTRIBUTE(unused)
 #define MMGR_UNUSED __attribute__((unused))
