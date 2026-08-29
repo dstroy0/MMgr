@@ -24,6 +24,7 @@
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 #include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
+#include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 #include "verbum_scrutor/verbum_scrutor.h"
 
 /**
@@ -735,6 +736,99 @@ void dbench_run(void)
                       DBENCH_KEEP(ram.pool.owns((const void *)(g_d + g_swap_off))));
 
             DBENCH_OP("pool_praesto", iters, DBENCH_KEEP(ram.pool.octas_praesto()));
+        }
+
+        // What mpint_fixed writes twice. It zeroes the whole field and then lays the value into the
+        // end of it, so every byte of the value is stored as a zero and then stored again. Only the
+        // run ahead of the value has to be cleared, and how wide that is is known before either
+        // store: it is the field less the value.
+        {
+            const uint32_t iters = 20000u;
+            const size_t field = 32u;
+            const size_t vlen = 20u;
+
+            DBENCH_AB("wire_mpint_fill", iters, (unsigned)field,
+                      (MMGR_CALL(memor.set, MemoriaCfg, .dst = g_b, .val = (uint8_t)0, .bytes = field),
+                       MMGR_CALL(memor.cpy, MemoriaCfg, .dst = g_b + (field - vlen), .src = g_a,
+                                 .bytes = vlen),
+                       DBENCH_KEEP(g_b)),
+                      (MMGR_CALL(memor.set, MemoriaCfg, .dst = g_b, .val = (uint8_t)0,
+                                 .bytes = field - vlen),
+                       MMGR_CALL(memor.cpy, MemoriaCfg, .dst = g_b + (field - vlen), .src = g_a,
+                                 .bytes = vlen),
+                       DBENCH_KEEP(g_b)));
+        }
+
+        // The wire verbs, which had no row anywhere. There is no libc counterpart to any of them,
+        // so these are absolute costs against the harness floor. What a row can say is which of the
+        // six carries work and which is a store with a bounds test in front of it.
+        //
+        // Every append is given a span reset first, so none of them measures a span that has
+        // already overflowed and is refusing on the latch rather than doing the work.
+        {
+            const uint32_t iters = 20000u;
+            mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP);
+            mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = g_a, .cap = CAP);
+            uint64_t got = 0u;
+            const uint8_t *blob = NULL;
+            size_t blen = 0u;
+
+            DBENCH_OP("wire_put", iters,
+                      (MMGR_CALL(spat.reset, SpatiumCfg, .at = &w),
+                       MMGR_CALL(byteio.put, OctetusCfg, .w = &w, .byte = 0x5Au), DBENCH_KEEP(w.pos)));
+
+            DBENCH_OP("wire_put_be4", iters,
+                      (MMGR_CALL(spat.reset, SpatiumCfg, .at = &w),
+                       MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = g_swap_val, .bytes = 4u),
+                       DBENCH_KEEP(w.pos)));
+
+            DBENCH_OP("wire_put_be8", iters,
+                      (MMGR_CALL(spat.reset, SpatiumCfg, .at = &w),
+                       MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = g_swap_val, .bytes = 8u),
+                       DBENCH_KEEP(w.pos)));
+
+            // Seven bytes takes three stores where eight takes one, which is the shape the entry is
+            // written for and the case a count that is not a power of two lands on.
+            DBENCH_OP("wire_put_be7", iters,
+                      (MMGR_CALL(spat.reset, SpatiumCfg, .at = &w),
+                       MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = g_swap_val, .bytes = 7u),
+                       DBENCH_KEEP(w.pos)));
+
+            DBENCH_OP("wire_raw", iters,
+                      (MMGR_CALL(spat.reset, SpatiumCfg, .at = &w),
+                       MMGR_CALL(byteio.raw, OctetusCfg, .w = &w, .src = g_a, .bytes = g_take),
+                       DBENCH_KEEP(w.pos)));
+
+            DBENCH_OP("wire_take_be4", iters,
+                      (r.pos = 0u, r.err = MMGR_FALSE,
+                       DBENCH_KEEP(MMGR_CALL(byteio.take_be, OctetusCfg, .r = &r, .out = &got, .bytes = 4u))));
+
+            DBENCH_OP("wire_take_be8", iters,
+                      (r.pos = 0u, r.err = MMGR_FALSE,
+                       DBENCH_KEEP(MMGR_CALL(byteio.take_be, OctetusCfg, .r = &r, .out = &got, .bytes = 8u))));
+
+            // rd_str reads a four byte length and then points at the run behind it, so the span it
+            // reads from is built with a length that fits inside the buffer rather than whatever
+            // g_a happens to hold.
+            MMGR_CALL(spat.reset, SpatiumCfg, .at = &w);
+            MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = 64u, .bytes = 4u);
+            MMGR_CALL(byteio.raw, OctetusCfg, .w = &w, .src = g_a, .bytes = 64u);
+
+            mmgr_cspan rs = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = g_d, .cap = CAP);
+
+            DBENCH_OP("wire_rd_str", iters,
+                      (rs.pos = 0u, rs.err = MMGR_FALSE,
+                       DBENCH_KEEP(MMGR_CALL(byteio.rd_str, OctetusCfg, .r = &rs, .blob = &blob,
+                                             .blen = &blen))));
+
+            // mpint_fixed right aligns an integer into a whole field, so it fills the field every
+            // call: a zero run ahead of the value and then the value itself. The field is small
+            // here because that is what a fixed width integer field is.
+            mmgr_span field = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_b, .cap = 32u);
+
+            DBENCH_OP("wire_mpint", iters,
+                      DBENCH_KEEP(MMGR_CALL(byteio.mpint_fixed, OctetusCfg, .w = &field, .src = g_a,
+                                            .bytes = 20u)));
         }
 
         DBENCH_DONE();
