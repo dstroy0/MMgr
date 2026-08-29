@@ -47,6 +47,11 @@ Carceribus(ram, MMGR_SOLUTA(pool, ARENA_BYTES));
 static volatile size_t g_take = 64u;
 
 /**
+ * @brief The byte count the wire shape rows use, hidden so neither arm folds its branches away.
+ */
+static volatile size_t g_wire_n = 8u;
+
+/**
  * @brief The compare length, hidden so neither arm can be specialised against it.
  */
 static volatile size_t g_cmp_len = 8u;
@@ -81,6 +86,84 @@ static volatile unsigned g_swap_off = 0u;
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_a[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_b[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_d[CAP];
+
+/**
+ * @brief The gather byteio_take_be performs: every width tested, whatever the count.
+ *
+ * @param[in] at    Bytes to read [BORROWS].
+ * @param[in] bytes How many, 1 through 8.
+ * @return          The value, in the target's own order after one reversal.
+ * @note The A arm, and the entry's shape as written. A count of eight loads the whole value in the
+ *       first branch and then tests four, two and one on the way out, none of which can be true.
+ */
+static uint64_t take_shape_all(const uint8_t *at, size_t bytes)
+{
+    uint64_t v = 0u;
+    size_t sh = 0u;
+
+    if ((bytes & 8u) != 0u)
+    {
+        v = MMGR_CALL(proxim.load64, ProximusCfg, .at = at);
+    }
+    if ((bytes & 4u) != 0u)
+    {
+        v |= (uint64_t)MMGR_CALL(proxim.load32, ProximusCfg, .at = at) << sh;
+        at += 4;
+        sh += 32u;
+    }
+    if ((bytes & 2u) != 0u)
+    {
+        v |= (uint64_t)MMGR_CALL(proxim.load16, ProximusCfg, .at = at) << sh;
+        at += 2;
+        sh += 16u;
+    }
+    if ((bytes & 1u) != 0u)
+    {
+        v |= (uint64_t)(*at) << sh;
+    }
+    return MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = v, .width = (mmgr_endian_width)bytes);
+}
+
+/**
+ * @brief The same gather with the whole-width case taken on its own, as put_be already does.
+ *
+ * @param[in] at    Bytes to read [BORROWS].
+ * @param[in] bytes How many, 1 through 8.
+ * @return          The value, in the target's own order after one reversal.
+ * @note The B arm. Identical loads and one reversal either way; a count of eight simply stops
+ *       asking about the widths it has already covered.
+ */
+static uint64_t take_shape_exit(const uint8_t *at, size_t bytes)
+{
+    uint64_t v = 0u;
+
+    if ((bytes & 8u) != 0u)
+    {
+        v = MMGR_CALL(proxim.load64, ProximusCfg, .at = at);
+    }
+    else
+    {
+        size_t sh = 0u;
+
+        if ((bytes & 4u) != 0u)
+        {
+            v |= (uint64_t)MMGR_CALL(proxim.load32, ProximusCfg, .at = at) << sh;
+            at += 4;
+            sh += 32u;
+        }
+        if ((bytes & 2u) != 0u)
+        {
+            v |= (uint64_t)MMGR_CALL(proxim.load16, ProximusCfg, .at = at) << sh;
+            at += 2;
+            sh += 16u;
+        }
+        if ((bytes & 1u) != 0u)
+        {
+            v |= (uint64_t)(*at) << sh;
+        }
+    }
+    return MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = v, .width = (mmgr_endian_width)bytes);
+}
 
 /**
  * @brief The compare walk as memor_cmp carries it, reading both sides through the unaligned word.
@@ -736,6 +819,31 @@ void dbench_run(void)
                       DBENCH_KEEP(ram.pool.owns((const void *)(g_d + g_swap_off))));
 
             DBENCH_OP("pool_praesto", iters, DBENCH_KEEP(ram.pool.octas_praesto()));
+        }
+
+        // take_be's shape against the one its mirror already has. put_be takes the eight byte case
+        // in one branch and returns; take_be gathers the eight bytes and then still tests four, two
+        // and one on the way out, which is three tests that cannot be true. Both arms reverse once
+        // at the end, as the entry does, so what separates them is the tests alone.
+        {
+            const uint32_t iters = 20000u;
+
+            // The count comes through a volatile on both arms. Handed the literal, GCC folds the
+            // whole branch structure and both arms report the harness floor, which is what the
+            // first run of these rows did: 5.0 against 5.0 at eight bytes and at four.
+            g_wire_n = 8u;
+            DBENCH_AB("wire_take8_shape", iters, 8u, DBENCH_KEEP(take_shape_all(g_a, g_wire_n)),
+                      DBENCH_KEEP(take_shape_exit(g_a, g_wire_n)));
+
+            // The four byte case as well, since an exit added for eight must not cost the counts
+            // that never reached it.
+            g_wire_n = 4u;
+            DBENCH_AB("wire_take4_shape", iters, 4u, DBENCH_KEEP(take_shape_all(g_a, g_wire_n)),
+                      DBENCH_KEEP(take_shape_exit(g_a, g_wire_n)));
+
+            g_wire_n = 7u;
+            DBENCH_AB("wire_take7_shape", iters, 7u, DBENCH_KEEP(take_shape_all(g_a, g_wire_n)),
+                      DBENCH_KEEP(take_shape_exit(g_a, g_wire_n)));
         }
 
         // What mpint_fixed writes twice. It zeroes the whole field and then lays the value into the
