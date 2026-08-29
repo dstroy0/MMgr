@@ -37,6 +37,8 @@ typedef struct
  *
  * @param[in] ev   The completion event [BORROWS].
  * @param[in] user The pointer registered alongside this callback [BORROWS].
+ * @note Runs in whatever context the port layer finishes a transfer in; no mmgr_praet_ entry point calls it.
+ * @warning ev and ev->data are the port layer's and last only until this returns; copy anything kept [BORROWS].
  */
 typedef void (*mmgr_praet_cb)(const mmgr_praet_event *ev, void *user);
 
@@ -53,6 +55,9 @@ typedef struct
 
 /**
  * @brief A completion callback and the pointer handed back to it.
+ *
+ * @warning open forwards the pointer to this struct unchanged, rather than copying it, so it must stay valid for
+ * as long as the channel is open [BORROWS].
  */
 typedef struct
 {
@@ -133,13 +138,18 @@ void mmgr_praet_close(const PraetTransferCfg *args);
  * @brief Drives the port layer's poll hook.
  *
  * @param[in] args Channel to poll [BORROWS].
- * @note Passes c straight through without checking it, unlike the other three entries.
+ * @note Passes args straight to mmgr_praet_hw_poll, unlike the other three entries, which assert first.
+ * @warning No assertion runs here, so args and args->channel reach the port layer exactly as the caller gave them.
  */
 void mmgr_praet_poll(const PraetCfg *args);
 
 /**
- * @brief The four port hooks an application defines to drive real hardware.
+ * @brief The four port hooks an application defines to drive real hardware, declared below in the order
+ * mmgr_praet_hw_open, mmgr_praet_hw_tx_submit, mmgr_praet_hw_close, mmgr_praet_hw_poll.
  *
+ * @param[in] args The arguments the matching entry point forwards: a PraetCfg for open and poll, a
+ * PraetTransferCfg for tx_submit and close [BORROWS].
+ * @return    open and tx_submit report whether the hardware accepted the request; close and poll return nothing.
  * @note Each has a default in memoriam_praetereo.c that refuses or does nothing, so a build links without a port.
  * @note An application definition of any of these names replaces the default where MMGR_HAS_ATTRIBUTE(weak) is
  * non-zero.

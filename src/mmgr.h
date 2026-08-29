@@ -2,10 +2,11 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file mmgr.h
  * @brief Umbrella header: pulls in the module headers a consumer builds against.
  *
  * @note mmgr_config.h comes first, since the feature switches below decide what else is included.
- * @note mmgr_string_shim.h is not among these; including it changes the meaning of the <string.h> names.
+ * @warning mmgr_string_shim.h is not among these; including it changes the meaning of the <string.h> names.
  */
 #ifndef MMGR_H
 #define MMGR_H

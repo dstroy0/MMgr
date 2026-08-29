@@ -3,7 +3,8 @@
  */
 /**
  * @file fractio.c
- * @brief Field access on the bit pattern of a binary64 double.
+ * @brief Field access on the bit pattern of a binary64 double: the three field reads, the merge back,
+ *        and the two reinterpretations of the same storage.
  */
 #include "fractio/fractio.h"
 
@@ -40,6 +41,7 @@ MMGR_INLINE mmgr_u64 fract_sign(const FractioCtx *args)
  *
  * @param[in] args Bit pattern to read [BORROWS].
  * @return      The stored exponent, with MMGR_DBL_BIAS not yet removed.
+ * @note 0 marks a zero or subnormal; MMGR_DBL_EXP_ALL marks an infinity or NaN.
  */
 MMGR_INLINE mmgr_u64 fract_exp(const FractioCtx *args)
 {
@@ -97,6 +99,7 @@ MMGR_INLINE mmgr_u64 fract_to_bits(const FractioCtx *args)
  *
  * @param[in] ret  Return type of the entry point.
  * @param[in] name Name after the mmgr_fract_ and fract_ prefixes, which the two share.
+ * @param[in] ...  Initializers for the FractioCtx literal, written in terms of args.
  */
 #define FRACT_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_fract_, fract_, FractioCtx, FractioCfg, ret, name, __VA_ARGS__)
 

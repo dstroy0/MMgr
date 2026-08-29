@@ -78,6 +78,9 @@ MMGR_INLINE mmgr_word scrut_smear(const ScrutMaskCtx *args)
 {
     mmgr_word m = args->mask;
 
+    // k doubles from 8 rather than counting up, and the walk ends when it reaches MMGR_SWAR_LANE_BITS:
+    // three passes on a 64 bit word, two on a 32 bit one. The step stays in the header, so the body
+    // does one or and changes nothing else.
     for (uint32_t k = 8u; k < MMGR_SWAR_LANE_BITS; k <<= 1)
     {
         m |= (m >> k);
@@ -244,6 +247,8 @@ MMGR_INLINE mmgr_word scrut_any_digit(const ScrutLaneCtx *args)
  * @return      How many lanes are set, 0 through MMGR_SWAR_BYTES.
  * @note Shifting down seven puts each lane's bit at its own low position, and multiplying by MMGR_SWAR_ONES
  *       sums every one of them into the top lane, which the final shift then reads out.
+ * @note The explicit mmgr_word cast holds the product at the word width, so the last shift reads the top lane
+ *       out of a known size. The count is at most MMGR_SWAR_BYTES, so the size_t return loses nothing.
  * @note Reads args->mask alone, so the word and byte members take no part.
  */
 MMGR_INLINE size_t scrut_lane_count(const ScrutLaneCtx *args)
@@ -257,8 +262,10 @@ MMGR_INLINE size_t scrut_lane_count(const ScrutLaneCtx *args)
  *
  * @param[in] args The lane mask to examine [BORROWS].
  * @return      The index, or MMGR_SWAR_BYTES when no lane is set.
- * @note Counts the lanes below the lowest set one, which is that lane's index.
- * @note An empty mask needs no guard here, since scrut_below_lo then reports every lane.
+ * @note Built two ways. Where __builtin_ctzll is available the trailing zero count gives the index; where it
+ *       is not, the lanes below the lowest set one are counted, and that count is the index.
+ * @note The builtin build tests the empty mask before calling, since the builtin leaves a zero argument
+ *       undefined. The counting build needs no test, since scrut_below_lo reports every lane for it.
  * @note The lane table binds this to first on a little endian target and to last on a big endian one.
  */
 MMGR_INLINE size_t scrut_lane_lo(const ScrutLaneCtx *args)
@@ -272,7 +279,9 @@ MMGR_INLINE size_t scrut_lane_lo(const ScrutLaneCtx *args)
     {
         return MMGR_SWAR_BYTES;
     }
-    // Explicit cast narrows the builtin's int before the shift takes a bit index to a lane index
+    // Three explicit casts on the one line: the mask widens to unsigned long long to match the builtin's
+    // parameter, the builtin's int result becomes unsigned so the shift is an unsigned one, and the lane
+    // index widens to the size_t return. Shifting down three divides the bit index by the bits in a lane.
     return (size_t)((unsigned)__builtin_ctzll((unsigned long long)args->mask) >> 3u);
 #else
     return MMGR_CALL(scrut_lane_count, ScrutLaneCtx,
@@ -305,6 +314,8 @@ MMGR_INLINE size_t scrut_lane_hi(const ScrutLaneCtx *args)
  * @param[in] args The lane mask to widen [BORROWS].
  * @return      A word holding 0xFF in each set lane and 0x00 in the rest.
  * @note A set lane holds 0x80, and adding 0x7F to it fills the lane; a clear lane contributes nothing.
+ * @note The explicit mmgr_word cast pins the sum back to the word width, so neither addition can leave a
+ *       promoted wider type behind on a target whose int is wider than mmgr_word.
  * @note Use this when whole bytes are wanted, such as for selecting between two words lane by lane.
  */
 MMGR_INLINE mmgr_word scrut_spread(const ScrutMaskCtx *args)
@@ -318,6 +329,8 @@ MMGR_INLINE mmgr_word scrut_spread(const ScrutMaskCtx *args)
  * @param[in] args The lane mask to reduce [BORROWS].
  * @return      The mask with that lane cleared, or 0 when it held only one.
  * @note Subtracting one turns the lowest set bit into zeros below it, so the and clears exactly that bit.
+ * @note The explicit mmgr_word cast pins the result to the word width, since the subtraction against 1u can
+ *       promote on a target whose int is wider than mmgr_word.
  * @note An empty mask stays empty, so stepping a mask down repeatedly ends rather than wrapping.
  * @note The mask table binds this to drop_first on a little endian target and to drop_last on a big endian one.
  */
@@ -349,6 +362,8 @@ MMGR_INLINE mmgr_word scrut_drop_hi(const ScrutMaskCtx *args)
  * @return      A word of ones over those bytes and zeros over the rest.
  * @note Shifts one way on a little endian target and the other on a big endian one, so the bytes covered are
  *       always the ones that come first in memory.
+ * @note The inner cast types the zero as an mmgr_word before the complement, and the outer one pins the
+ *       complement back to the word width, so all holds set bits over exactly one word and none above it.
  * @note A count of 0 gives an empty mask and a count of MMGR_SWAR_BYTES or more gives a full one, which is
  *       also what keeps the shift count below the word width.
  */
@@ -444,6 +459,9 @@ MMGR_INLINE mmgr_word scrut_run(const ScrutMaskCtx *args)
     }
     while (have < args->bytes)
     {
+        // step is the smaller of the run length already covered and the length still wanted, so the last
+        // pass lands exactly on args->bytes instead of overshooting it. have advances on its own line
+        // below, so nothing in the test changes it.
         const size_t step = (have < args->bytes - have) ? have : args->bytes - have;
 #if MMGR_HW_BIG_ENDIAN
         m &= (m << (step * 8u));
@@ -467,6 +485,8 @@ MMGR_INLINE mmgr_word scrut_run(const ScrutMaskCtx *args)
  */
 MMGR_INLINE mmgr_word scrut_run_edge(const ScrutMaskCtx *args)
 {
+    // Two cases hold no lane: a run of 0 or 1 starts at any lane, and a run past one word starts at none.
+    // The second half is also what keeps MMGR_SWAR_BYTES - args->bytes below from wrapping on a size_t.
     if ((args->bytes <= 1u) || (args->bytes > MMGR_SWAR_BYTES))
     {
         return 0;
@@ -522,6 +542,8 @@ MMGR_INLINE mmgr_word scrut_fold_lower(const ScrutWordCtx *args)
  * @return      The count rounded up, so a partial last word still counts as one.
  * @note Written as a divide plus a test of the low bits rather than adding before dividing, so a very large
  *       byte count cannot wrap on the way in.
+ * @note The and against MMGR_SWAR_BYTES - 1u stands in for the remainder of that divide, which holds only
+ *       because a word is a power of two bytes wide. Its arms are typed 1u and 0u to match what they add to.
  * @note A args->bytes of 0 gives 0, so a caller loops no times rather than reading one word.
  */
 MMGR_INLINE size_t scrut_words(const ScrutWordCtx *args)
@@ -536,6 +558,9 @@ MMGR_INLINE size_t scrut_words(const ScrutWordCtx *args)
  * @param[in] ctx  Context type this entry's backend takes.
  * @param[in] cfg  Argument type the caller passes.
  * @param[in] name Name after the mmgr_scrut_ and scrut_ prefixes, which the two share.
+ * @param[in] ...  Initializers for the ctx literal, forwarded from the entry's cfg as args.
+ * @warning The arguments are pasted into the expansion rather than evaluated as call arguments, so none of
+ *          them may carry a side effect.
  * @note Both types are parameters. The module carries three of each, one per view: a lane view over
  *       the bytes of a word, a mask view over the bits a lane test produced, and a word view over the
  *       memory a scan walks. The three dispatch tables in verbum_scrutor.h divide the same way.

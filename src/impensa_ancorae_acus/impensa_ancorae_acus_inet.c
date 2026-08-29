@@ -13,7 +13,7 @@
  *
  * @note Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.
  * @note 255 marks the NUL and the colon, so neither is ever chosen as a sieve offset.
- * @note Above 1: the digits, 'a' to 'f', 'A' to 'F', and the bytes 37, 46, 47, 58, 91 and 93.
+ * @note Also above 1: the digits, 'a' to 'f', 'A' to 'F', and 37 '%', 46 '.', 47 '/', 91 '[', 93 ']'.
  */
 static const uint8_t s_impensa[256] = {
     255, 1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1, 1, 1,   1, 1, 1, 1,   1,   1,   1,   1,   1,   1,

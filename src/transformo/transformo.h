@@ -21,14 +21,20 @@ MMGR_INCIPE_DECLS
  *
  * @note Chosen so multiplying by ten and adding a digit of nine both stay inside an mmgr_u64.
  * @note mmgr_muto_take returns MMGR_FALSE rather than appending once the mantissa passes this.
+ * @note Explicit casts hold both the complement and the result at mmgr_u64, and the 9u and 10u are
+ *       suffixed to match, so the subtraction and the divide are done at the mantissa's own width
+ *       rather than at int's.
  */
 #define MMGR_MUTO_MANT_MAX ((mmgr_u64)((~(mmgr_u64)0 - 9u) / 10u))
 
 /**
- * @brief Expands to 400.
+ * @brief Expands to 400, the count at which a parsed decimal exponent stops accumulating.
  *
- * @note transformo.c reads neither this nor any bound derived from it; muto_scale bounds args->ex against
- *       MMGR_POW5_MAX instead.
+ * @note cellul_expo tests its running exponent against this before each multiply and add, so a long run
+ *       of digits cannot run the count away with the mmgr_iword it is kept in.
+ * @note 400 is past the 308 a double reaches, so anything the clamp holds back has already gone to a
+ *       signed infinity or a signed zero, and stopping the count early cannot change the result.
+ * @note The literal is untyped, matching the mmgr_iword exponent it is compared against.
  */
 #define MMGR_MUTO_EXP_LIMIT 400
 
@@ -58,7 +64,7 @@ typedef struct
 {
     mmgr_bool (*take)(const TransformoCfg *args);        /**< Appends one decimal digit to a mantissa. */
     double (*scale)(const TransformoCfg *args);          /**< Turns a mantissa and decimal exponent into a double. */
-    mmgr_u64 (*scale_to_u64)(const TransformoCfg *args); /**< Turns the same into a rounded 64-bit integer. */
+    mmgr_u64 (*scale_to_u64)(const TransformoCfg *args); /**< Turns the same plus e2 into a rounded 64-bit integer. */
 } TransformoNs;
 MMGR_NS_LAYOUT(TransformoNs, take, scale, scale_to_u64);
 
@@ -93,7 +99,9 @@ double mmgr_muto_scale(const TransformoCfg *args);
  * @note Reads args->e2, which mmgr_muto_scale leaves alone, so the mantissa may carry a binary exponent here.
  * @note The low bit of args->above is exclusive-ored into the tie test, so a caller can steer a halfway case.
  * @note Does not read args->neg, so the result is always unsigned.
- * @warning Does not bound args->ex against MMGR_POW5_MAX the way mmgr_muto_scale does.
+ * @warning Does not bound args->ex against MMGR_POW5_MAX the way mmgr_muto_scale does. Only
+ *          MMGR_POW5_STEPS bits of the magnitude are walked, so a larger exponent loses its high
+ *          bits and the value scaled is not the one asked for.
  */
 mmgr_u64 mmgr_muto_scale_to_u64(const TransformoCfg *args);
 

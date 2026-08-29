@@ -4,6 +4,8 @@
 /**
  * @file carceribus.h
  * @brief The prison: a caller's storage divided into pools, and the table that works them.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
  * @note One declaration does everything. Carceribus() emits the bytes, their alignment, what each
  *       pool is, and the region record, all as initialized data - nothing runs at startup and a
@@ -26,7 +28,9 @@ MMGR_INCIPE_DECLS
 /**
  * @brief Set to 1 to track each end's high-water figure.
  *
- * @note Adds CarcerCtx::persist_hw and CarcerCtx::interim_hw, and the blend that raises them in
+ * @note Off by default because the two figures cost a size_t each in every CarcerCtx, and a build that
+ *       never reads them should not carry them.
+ * @note Adds CarcerCtx::persist_hw and CarcerCtx::interim_hw, and the update that raises them in
  *       carcer_grow, which both takes reach. One figure per end, so neither is a maximum over the other.
  * @note The #ifndef leaves a build's own definition standing, whether it arrives on the command line
  *       or from a header included ahead of this one.
@@ -84,13 +88,13 @@ typedef struct
  */
 typedef struct
 {
-    void *(*persist_capio)(size_t size);  /**< Takes size bytes from the bottom, not zeroed. */
-    void (*persist_reddo)(void *tenancy); /**< Gives a tenancy back, unwiped. */
-    void *(*interim_capio)(size_t size);  /**< Takes size bytes from the top, not zeroed. */
+    void *(*persist_capio)(size_t size);  /**< Takes size bytes from the bottom, not zeroed [RETURNS OWNERSHIP]. */
+    void (*persist_reddo)(void *tenancy); /**< Gives a tenancy back, unwiped [TAKES OWNERSHIP]. */
+    void *(*interim_capio)(size_t size);  /**< Takes size bytes from the top, not zeroed [RETURNS OWNERSHIP]. */
     size_t (*interim_mark)(void);         /**< The current top, for interim_reddo. */
     void (*interim_reddo)(size_t mark);   /**< Restores the top a mark reported, scrubbing nothing. */
     void (*interim_reset)(void);          /**< Gives the whole interim end back at once. */
-    mmgr_bool (*owns)(const void *at);    /**< Whether at lies in this pool's bytes. */
+    mmgr_bool (*owns)(const void *at);    /**< Whether at lies in this pool's bytes [BORROWS]. */
     size_t (*octas_praesto)(void);        /**< Bytes between the two ends. */
 } SolutaCustodiae;
 MMGR_NS_LAYOUT(SolutaCustodiae, persist_capio, persist_reddo, interim_capio, interim_mark, interim_reddo, interim_reset,
@@ -100,19 +104,19 @@ MMGR_NS_LAYOUT(SolutaCustodiae, persist_capio, persist_reddo, interim_capio, int
  * @brief The close watch over one pool: every release zeroes the bytes before giving them back.
  *
  * @note MMGR_NS_LAYOUT asserts the eight members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
- * @note The same eight entries, and no unwiped release among them. The wipe happens before the top
- *       moves, so the bytes are already zero at the instant they become available and neither a
- *       preempting handler nor the next take can see what the last tenant left.
+ * @note The same eight entries, and no unwiped release among them. Each wipe runs before the boundary
+ *       moves, so the bytes are zero at the instant they become available. Where the wipe is skipped
+ *       and the boundary still moves, mmgr_carcer_interim_secura_reddo carries it in its warnings.
  */
 typedef struct
 {
-    void *(*persist_capio)(size_t size);  /**< Takes size bytes from the bottom. */
-    void (*persist_reddo)(void *tenancy); /**< Zeroes a tenancy, then gives it back. */
-    void *(*interim_capio)(size_t size);  /**< Takes size bytes from the top. */
+    void *(*persist_capio)(size_t size);  /**< Takes size bytes from the bottom [RETURNS OWNERSHIP]. */
+    void (*persist_reddo)(void *tenancy); /**< Zeroes a tenancy, then gives it back [TAKES OWNERSHIP]. */
+    void *(*interim_capio)(size_t size);  /**< Takes size bytes from the top [RETURNS OWNERSHIP]. */
     size_t (*interim_mark)(void);         /**< The current top, for interim_reddo. */
     void (*interim_reddo)(size_t mark);   /**< Zeroes back to the mark, then restores the top. */
     void (*interim_reset)(void);          /**< Zeroes the whole interim end, then gives it back. */
-    mmgr_bool (*owns)(const void *at);    /**< Whether at lies in this pool's bytes. */
+    mmgr_bool (*owns)(const void *at);    /**< Whether at lies in this pool's bytes [BORROWS]. */
     size_t (*octas_praesto)(void);        /**< Bytes between the two ends. */
 } SecuraCustodiae;
 MMGR_NS_LAYOUT(SecuraCustodiae, persist_capio, persist_reddo, interim_capio, interim_mark, interim_reddo, interim_reset,
@@ -121,98 +125,99 @@ MMGR_NS_LAYOUT(SecuraCustodiae, persist_capio, persist_reddo, interim_capio, int
 /**
  * @brief Everything one pool is: its bytes, its state, and the entries bound to it.
  *
- * @param[in] r_     Region the pool belongs to, which every emitted symbol carries.
- * @param[in] type_  SolutaCustodiae or SecuraCustodiae, read by MMGR_CARCER_MEM and unused here.
- * @param[in] name_  Name the pool is reached by, as a member of its region.
- * @param[in] row_   Bytes in the pool.
- * @param[in] wipe_  1 where a release zeroes first, 0 where it does not.
+ * @param[in] region_ Region the pool belongs to, which every emitted symbol carries.
+ * @param[in] type_   SolutaCustodiae or SecuraCustodiae, read by MMGR_CARCER_MEM and unused here.
+ * @param[in] name_   Name the pool is reached by, as a member of its region.
+ * @param[in] row_    Bytes in the pool.
+ * @param[in] wipe_   1 where a release zeroes first, 0 where it does not.
  * @note The region name is part of every symbol, so two regions may each hold a pool of the same
  *       name, under different watches, without colliding.
  * @note wipe_ is a literal, so the branch it guards folds away and the watch costs nothing to read.
  * @warning A pool whose size is not a power of two, or is too small to hold one block, fails the
- *          build. The asserts sit here because this is the one place a size is stated, and the size
- *          is the only thing a declaration can get wrong: two pools are separate objects, so they
- *          cannot share an address and there is no overlap to check.
+ *          build. The asserts sit here because this is the one place a size is stated, and a bad
+ *          size is the one mistake the language would otherwise accept: a wrong name or watch type
+ *          fails on its own, and two pools are separate objects, so they cannot share an address
+ *          and there is no overlap to check.
  */
-#define MMGR_CARCER_BODY(r_, type_, name_, row_, wipe_)                                                                \
-    MMGR_STATIC_ASSERT(((row_) & ((row_) - 1u)) == 0u, #r_ "." #name_ " is not a power of two");                       \
-    MMGR_STATIC_ASSERT((row_) >= (2u * MMGR_CARCER_ALIGN), #r_ "." #name_ " is too small to hold one block");          \
-    MMGR_ALIGN(MMGR_CARCER_ALIGN) static uint8_t r_##_##name_##_bytes[row_];                                           \
-    static CarcerCtx r_##_##name_##_ctx = {r_##_##name_##_bytes, (row_), 0u, (row_)};                                  \
-    static void *r_##_##name_##_persist_capio(size_t size)                                                             \
+#define MMGR_CARCER_BODY(region_, type_, name_, row_, wipe_)                                                           \
+    MMGR_STATIC_ASSERT(((row_) & ((row_) - 1u)) == 0u, #region_ "." #name_ " is not a power of two");                   \
+    MMGR_STATIC_ASSERT((row_) >= (2u * MMGR_CARCER_ALIGN), #region_ "." #name_ " is too small to hold one block");      \
+    MMGR_ALIGN(MMGR_CARCER_ALIGN) static uint8_t region_##_##name_##_bytes[row_];                                       \
+    static CarcerCtx region_##_##name_##_ctx = {region_##_##name_##_bytes, (row_), 0u, (row_)};                         \
+    static void *region_##_##name_##_persist_capio(size_t size)                                                         \
     {                                                                                                                  \
-        return mmgr_carcer_persist_capio(&r_##_##name_##_ctx, size);                                                   \
+        return mmgr_carcer_persist_capio(&region_##_##name_##_ctx, size);                                              \
     }                                                                                                                  \
-    static void r_##_##name_##_persist_reddo(void *tenancy)                                                            \
+    static void region_##_##name_##_persist_reddo(void *tenancy)                                                        \
     {                                                                                                                  \
         if (wipe_)                                                                                                     \
         {                                                                                                              \
-            mmgr_carcer_secura_reddo(&r_##_##name_##_ctx, tenancy);                                                    \
+            mmgr_carcer_secura_reddo(&region_##_##name_##_ctx, tenancy);                                               \
         }                                                                                                              \
         else                                                                                                           \
         {                                                                                                              \
-            mmgr_carcer_persist_reddo(&r_##_##name_##_ctx, tenancy);                                                   \
+            mmgr_carcer_persist_reddo(&region_##_##name_##_ctx, tenancy);                                              \
         }                                                                                                              \
     }                                                                                                                  \
-    static void *r_##_##name_##_interim_capio(size_t size)                                                             \
+    static void *region_##_##name_##_interim_capio(size_t size)                                                         \
     {                                                                                                                  \
-        return mmgr_carcer_interim_capio(&r_##_##name_##_ctx, size);                                                   \
+        return mmgr_carcer_interim_capio(&region_##_##name_##_ctx, size);                                              \
     }                                                                                                                  \
-    static size_t r_##_##name_##_interim_mark(void)                                                                    \
+    static size_t region_##_##name_##_interim_mark(void)                                                                \
     {                                                                                                                  \
-        return mmgr_carcer_interim_mark(&r_##_##name_##_ctx);                                                          \
+        return mmgr_carcer_interim_mark(&region_##_##name_##_ctx);                                                     \
     }                                                                                                                  \
-    static void r_##_##name_##_interim_reddo(size_t mark)                                                              \
+    static void region_##_##name_##_interim_reddo(size_t mark)                                                          \
     {                                                                                                                  \
         if (wipe_)                                                                                                     \
         {                                                                                                              \
-            mmgr_carcer_interim_secura_reddo(&r_##_##name_##_ctx, mark);                                               \
+            mmgr_carcer_interim_secura_reddo(&region_##_##name_##_ctx, mark);                                          \
         }                                                                                                              \
         else                                                                                                           \
         {                                                                                                              \
-            mmgr_carcer_interim_reddo(&r_##_##name_##_ctx, mark);                                                      \
+            mmgr_carcer_interim_reddo(&region_##_##name_##_ctx, mark);                                                 \
         }                                                                                                              \
     }                                                                                                                  \
-    static void r_##_##name_##_interim_reset(void)                                                                     \
+    static void region_##_##name_##_interim_reset(void)                                                                 \
     {                                                                                                                  \
-        r_##_##name_##_interim_reddo(r_##_##name_##_ctx.size);                                                         \
+        region_##_##name_##_interim_reddo(region_##_##name_##_ctx.size);                                                \
     }                                                                                                                  \
-    static mmgr_bool r_##_##name_##_owns(const void *at)                                                               \
+    static mmgr_bool region_##_##name_##_owns(const void *at)                                                           \
     {                                                                                                                  \
-        return mmgr_carcer_owns(&r_##_##name_##_ctx, at);                                                              \
+        return mmgr_carcer_owns(&region_##_##name_##_ctx, at);                                                         \
     }                                                                                                                  \
-    static size_t r_##_##name_##_octas_praesto(void)                                                                   \
+    static size_t region_##_##name_##_octas_praesto(void)                                                               \
     {                                                                                                                  \
-        return mmgr_carcer_octas_praesto(&r_##_##name_##_ctx);                                                         \
+        return mmgr_carcer_octas_praesto(&region_##_##name_##_ctx);                                                     \
     }
 
 /**
  * @brief One pool as a member of its region's type.
  *
- * @param[in] r_     Region the pool belongs to, unused here.
- * @param[in] type_  SolutaCustodiae or SecuraCustodiae, which the member takes as its type.
- * @param[in] name_  Name the member is given.
- * @param[in] row_   Bytes in the pool, unused here.
- * @param[in] wipe_  Watch flag, unused here.
+ * @param[in] region_ Region the pool belongs to, unused here.
+ * @param[in] type_   SolutaCustodiae or SecuraCustodiae, which the member takes as its type.
+ * @param[in] name_   Name the member is given.
+ * @param[in] row_    Bytes in the pool, unused here.
+ * @param[in] wipe_   Watch flag, unused here.
  * @note Takes all five because the three readers share one tuple shape, as MMGR_SOLUTA describes.
  */
-#define MMGR_CARCER_MEM(r_, type_, name_, row_, wipe_) type_ name_;
+#define MMGR_CARCER_MEM(region_, type_, name_, row_, wipe_) type_ name_;
 
 /**
  * @brief One pool's entries, in the order its accessor declares them.
  *
- * @param[in] r_     Region whose name every entry symbol carries.
- * @param[in] type_  Watch type, unused here.
- * @param[in] name_  Pool whose name the symbols carry alongside the region's.
- * @param[in] row_   Bytes in the pool, unused here.
- * @param[in] wipe_  Watch flag, unused here.
+ * @param[in] region_ Region whose name every entry symbol carries.
+ * @param[in] type_   Watch type, unused here.
+ * @param[in] name_   Pool whose name the symbols carry alongside the region's.
+ * @param[in] row_    Bytes in the pool, unused here.
+ * @param[in] wipe_   Watch flag, unused here.
  * @note SolutaCustodiae and SecuraCustodiae declare the same eight members in the same order, so one
  *       initializer serves either watch.
  */
-#define MMGR_CARCER_SEAT(r_, type_, name_, row_, wipe_)                                                                \
-    {r_##_##name_##_persist_capio, r_##_##name_##_persist_reddo, r_##_##name_##_interim_capio,                         \
-     r_##_##name_##_interim_mark,  r_##_##name_##_interim_reddo, r_##_##name_##_interim_reset,                         \
-     r_##_##name_##_owns,          r_##_##name_##_octas_praesto},
+#define MMGR_CARCER_SEAT(region_, type_, name_, row_, wipe_)                                                           \
+    {region_##_##name_##_persist_capio, region_##_##name_##_persist_reddo, region_##_##name_##_interim_capio,           \
+     region_##_##name_##_interim_mark,  region_##_##name_##_interim_reddo, region_##_##name_##_interim_reset,           \
+     region_##_##name_##_owns,          region_##_##name_##_octas_praesto},
 
 /**
  * @brief Declares a pool under the loose watch, by name and size.
@@ -230,6 +235,9 @@ MMGR_NS_LAYOUT(SecuraCustodiae, persist_capio, persist_reddo, interim_capio, int
  *
  * @param[in] name_ Name the pool is reached by, as a member of its region.
  * @param[in] row_  Bytes in it.
+ * @note The trailing 1 is the wipe flag MMGR_CARCER_BODY reads to pick the wiping release at both
+ *       ends. Choosing this over MMGR_SOLUTA is where a pool's watch is settled, and nothing after
+ *       the declaration can change it.
  */
 #define MMGR_SECURA(name_, row_) (SecuraCustodiae, name_, row_, 1)
 
@@ -245,59 +253,166 @@ MMGR_NS_LAYOUT(SecuraCustodiae, persist_capio, persist_reddo, interim_capio, int
 /**
  * @brief Applies one reader to one pool tuple, with the region spliced in ahead of it.
  *
- * @param[in] what_  Reader to apply: MMGR_CARCER_BODY, MMGR_CARCER_MEM or MMGR_CARCER_SEAT.
- * @param[in] r_     Region, which reaches the reader ahead of the tuple's own elements.
- * @param[in] tuple_ One MMGR_SOLUTA or MMGR_SECURA tuple.
- * @return           What the reader expands to.
+ * @param[in] what_   Reader to apply: MMGR_CARCER_BODY, MMGR_CARCER_MEM or MMGR_CARCER_SEAT.
+ * @param[in] region_ Region, which reaches the reader ahead of the tuple's own elements.
+ * @param[in] tuple_  One MMGR_SOLUTA or MMGR_SECURA tuple.
+ * @return            What the reader expands to.
  * @note Two steps, because a macro's arguments are counted before they are expanded: the inner call
  *       is what lets the flattened tuple reach the reader as separate arguments.
  */
-#define MMGR_CARCER_APPLY(what_, r_, tuple_) MMGR_CARCER_APPLY_(what_, r_, MMGR_UNTUPLE tuple_)
+#define MMGR_CARCER_APPLY(what_, region_, tuple_) MMGR_CARCER_APPLY_(what_, region_, MMGR_UNTUPLE tuple_)
 
 /**
- * @brief Expands to what_(r_, __VA_ARGS__).
+ * @brief Expands to what_(region_, __VA_ARGS__).
  *
- * @param[in] what_ Reader to apply.
- * @param[in] r_    Region, which reaches the reader ahead of the elements.
- * @param[in] ...   The tuple's elements, already flattened by MMGR_UNTUPLE.
- * @return          What the reader expands to.
- * @note Called by MMGR_CARCER_APPLY.
+ * @param[in] what_   Reader to apply.
+ * @param[in] region_ Region, which reaches the reader ahead of the elements.
+ * @param[in] ...     The tuple's elements, already flattened by MMGR_UNTUPLE.
+ * @return            What the reader expands to.
+ * @note The inner half of MMGR_CARCER_APPLY's two steps. Its arguments are expanded before they are
+ *       substituted, so MMGR_UNTUPLE runs here and the tuple's elements reach the reader as
+ *       separate arguments rather than as one.
  */
-#define MMGR_CARCER_APPLY_(what_, r_, ...) what_(r_, __VA_ARGS__)
+#define MMGR_CARCER_APPLY_(what_, region_, ...) what_(region_, __VA_ARGS__)
 
 /**
- * @brief Reads a pool list with one reader, one line per pool count.
+ * @brief Applies the reader to a region's one pool tuple.
  *
- * @param[in] w_ Reader to apply: MMGR_CARCER_BODY, MMGR_CARCER_MEM or MMGR_CARCER_SEAT.
- * @param[in] r_ Region, which reaches the reader with every tuple.
- * @param[in] a  Pool tuples in order; MMGR_CARCER_W1 takes one, MMGR_CARCER_W8 takes eight.
- * @note The preprocessor cannot walk a list, so the walk is written out. These lines stop at eight
- *       pools, and a region declaring nine pastes a MMGR_CARCER_W9 that does not exist. Writing that
- *       line is the whole fix; nothing else changes and no configured ceiling is involved.
+ * @param[in] what_   Reader to apply: MMGR_CARCER_BODY, MMGR_CARCER_MEM or MMGR_CARCER_SEAT.
+ * @param[in] region_ Region, which reaches the reader ahead of the tuple's own elements.
+ * @param[in] pool1_  The pool's tuple.
+ * @note The base of the walk. Every longer line ends in this one, so it is the only line here that
+ *       names no other.
  */
-#define MMGR_CARCER_W1(w_, r_, a) MMGR_CARCER_APPLY(w_, r_, a)
-#define MMGR_CARCER_W2(w_, r_, a, b) MMGR_CARCER_W1(w_, r_, a) MMGR_CARCER_APPLY(w_, r_, b)
-#define MMGR_CARCER_W3(w_, r_, a, b, args) MMGR_CARCER_W2(w_, r_, a, b) MMGR_CARCER_APPLY(w_, r_, args)
-#define MMGR_CARCER_W4(w_, r_, a, b, args, d) MMGR_CARCER_W3(w_, r_, a, b, args) MMGR_CARCER_APPLY(w_, r_, d)
-#define MMGR_CARCER_W5(w_, r_, a, b, args, d, e) MMGR_CARCER_W4(w_, r_, a, b, args, d) MMGR_CARCER_APPLY(w_, r_, e)
-#define MMGR_CARCER_W6(w_, r_, a, b, args, d, e, f)                                                                    \
-    MMGR_CARCER_W5(w_, r_, a, b, args, d, e) MMGR_CARCER_APPLY(w_, r_, f)
-#define MMGR_CARCER_W7(w_, r_, a, b, args, d, e, f, g)                                                                 \
-    MMGR_CARCER_W6(w_, r_, a, b, args, d, e, f) MMGR_CARCER_APPLY(w_, r_, g)
-#define MMGR_CARCER_W8(w_, r_, a, b, args, d, e, f, g, h)                                                              \
-    MMGR_CARCER_W7(w_, r_, a, b, args, d, e, f, g) MMGR_CARCER_APPLY(w_, r_, h)
+#define MMGR_CARCER_W1(what_, region_, pool1_) MMGR_CARCER_APPLY(what_, region_, pool1_)
+
+/**
+ * @brief Applies the reader to a region's two pool tuples.
+ *
+ * @param[in] what_   Reader to apply.
+ * @param[in] region_ Region, which reaches the reader with every tuple.
+ * @param[in] pool1_  First pool's tuple, which MMGR_CARCER_W1 takes.
+ * @param[in] pool2_  Second pool's tuple, applied after it.
+ * @note The step every longer line repeats: expand the line one shorter, then apply the reader once
+ *       more. The preprocessor cannot walk a list, so each pool count needs a line of its own.
+ */
+#define MMGR_CARCER_W2(what_, region_, pool1_, pool2_)                                                                 \
+    MMGR_CARCER_W1(what_, region_, pool1_)                                                                             \
+    MMGR_CARCER_APPLY(what_, region_, pool2_)
+
+/**
+ * @brief Applies the reader to a region's three pool tuples.
+ *
+ * @param[in] what_   Reader to apply.
+ * @param[in] region_ Region, which reaches the reader with every tuple.
+ * @param[in] pool1_  First pool's tuple.
+ * @param[in] pool2_  Second pool's tuple.
+ * @param[in] pool3_  Third pool's tuple, applied after MMGR_CARCER_W2 expands the first two.
+ * @note MMGR_CARCER_WALK selects this line for a region declaring three pools.
+ */
+#define MMGR_CARCER_W3(what_, region_, pool1_, pool2_, pool3_)                                                         \
+    MMGR_CARCER_W2(what_, region_, pool1_, pool2_)                                                                     \
+    MMGR_CARCER_APPLY(what_, region_, pool3_)
+
+/**
+ * @brief Applies the reader to a region's four pool tuples.
+ *
+ * @param[in] what_   Reader to apply.
+ * @param[in] region_ Region, which reaches the reader with every tuple.
+ * @param[in] pool1_  First pool's tuple.
+ * @param[in] pool2_  Second pool's tuple.
+ * @param[in] pool3_  Third pool's tuple.
+ * @param[in] pool4_  Fourth pool's tuple, applied after MMGR_CARCER_W3 expands the first three.
+ * @note MMGR_CARCER_WALK selects this line for a region declaring four pools.
+ */
+#define MMGR_CARCER_W4(what_, region_, pool1_, pool2_, pool3_, pool4_)                                                 \
+    MMGR_CARCER_W3(what_, region_, pool1_, pool2_, pool3_)                                                             \
+    MMGR_CARCER_APPLY(what_, region_, pool4_)
+
+/**
+ * @brief Applies the reader to a region's five pool tuples.
+ *
+ * @param[in] what_   Reader to apply.
+ * @param[in] region_ Region, which reaches the reader with every tuple.
+ * @param[in] pool1_  First pool's tuple.
+ * @param[in] pool2_  Second pool's tuple.
+ * @param[in] pool3_  Third pool's tuple.
+ * @param[in] pool4_  Fourth pool's tuple.
+ * @param[in] pool5_  Fifth pool's tuple, applied after MMGR_CARCER_W4 expands the first four.
+ * @note MMGR_CARCER_WALK selects this line for a region declaring five pools.
+ */
+#define MMGR_CARCER_W5(what_, region_, pool1_, pool2_, pool3_, pool4_, pool5_)                                         \
+    MMGR_CARCER_W4(what_, region_, pool1_, pool2_, pool3_, pool4_)                                                     \
+    MMGR_CARCER_APPLY(what_, region_, pool5_)
+/**
+ * @brief Applies the reader to a region's six pool tuples.
+ *
+ * @param[in] what_   Reader to apply.
+ * @param[in] region_ Region, which reaches the reader with every tuple.
+ * @param[in] pool1_  First pool's tuple.
+ * @param[in] pool2_  Second pool's tuple.
+ * @param[in] pool3_  Third pool's tuple.
+ * @param[in] pool4_  Fourth pool's tuple.
+ * @param[in] pool5_  Fifth pool's tuple.
+ * @param[in] pool6_  Sixth pool's tuple, applied after MMGR_CARCER_W5 expands the first five.
+ * @note MMGR_CARCER_WALK selects this line for a region declaring six pools.
+ */
+#define MMGR_CARCER_W6(what_, region_, pool1_, pool2_, pool3_, pool4_, pool5_, pool6_)                                 \
+    MMGR_CARCER_W5(what_, region_, pool1_, pool2_, pool3_, pool4_, pool5_)                                             \
+    MMGR_CARCER_APPLY(what_, region_, pool6_)
+
+/**
+ * @brief Applies the reader to a region's seven pool tuples.
+ *
+ * @param[in] what_   Reader to apply.
+ * @param[in] region_ Region, which reaches the reader with every tuple.
+ * @param[in] pool1_  First pool's tuple.
+ * @param[in] pool2_  Second pool's tuple.
+ * @param[in] pool3_  Third pool's tuple.
+ * @param[in] pool4_  Fourth pool's tuple.
+ * @param[in] pool5_  Fifth pool's tuple.
+ * @param[in] pool6_  Sixth pool's tuple.
+ * @param[in] pool7_  Seventh pool's tuple, applied after MMGR_CARCER_W6 expands the first six.
+ * @note MMGR_CARCER_WALK selects this line for a region declaring seven pools.
+ */
+#define MMGR_CARCER_W7(what_, region_, pool1_, pool2_, pool3_, pool4_, pool5_, pool6_, pool7_)                         \
+    MMGR_CARCER_W6(what_, region_, pool1_, pool2_, pool3_, pool4_, pool5_, pool6_)                                     \
+    MMGR_CARCER_APPLY(what_, region_, pool7_)
+
+/**
+ * @brief Applies the reader to a region's eight pool tuples.
+ *
+ * @param[in] what_   Reader to apply.
+ * @param[in] region_ Region, which reaches the reader with every tuple.
+ * @param[in] pool1_  First pool's tuple.
+ * @param[in] pool2_  Second pool's tuple.
+ * @param[in] pool3_  Third pool's tuple.
+ * @param[in] pool4_  Fourth pool's tuple.
+ * @param[in] pool5_  Fifth pool's tuple.
+ * @param[in] pool6_  Sixth pool's tuple.
+ * @param[in] pool7_  Seventh pool's tuple.
+ * @param[in] pool8_  Eighth pool's tuple, applied after MMGR_CARCER_W7 expands the first seven.
+ * @note MMGR_CARCER_WALK selects this line for a region declaring eight pools.
+ * @warning The last line written. A region declaring nine pools pastes MMGR_CARCER_W9, which does
+ *          not exist. Writing that line is the whole fix; nothing else changes and no configured
+ *          ceiling is involved.
+ */
+#define MMGR_CARCER_W8(what_, region_, pool1_, pool2_, pool3_, pool4_, pool5_, pool6_, pool7_, pool8_)                 \
+    MMGR_CARCER_W7(what_, region_, pool1_, pool2_, pool3_, pool4_, pool5_, pool6_, pool7_)                             \
+    MMGR_CARCER_APPLY(what_, region_, pool8_)
 
 /**
  * @brief Expands the walk matching the pool count.
  *
- * @param[in] what_ Reader to apply: MMGR_CARCER_BODY, MMGR_CARCER_MEM or MMGR_CARCER_SEAT.
- * @param[in] r_    Region, forwarded to the walk ahead of the tuples.
- * @param[in] ...   MMGR_SOLUTA and MMGR_SECURA tuples, one per pool.
+ * @param[in] what_   Reader to apply: MMGR_CARCER_BODY, MMGR_CARCER_MEM or MMGR_CARCER_SEAT.
+ * @param[in] region_ Region, forwarded to the walk ahead of the tuples.
+ * @param[in] ...     MMGR_SOLUTA and MMGR_SECURA tuples, one per pool.
  * @note MMGR_CAT builds the line's name from MMGR_NARG's count of the tuples.
  * @warning MMGR_NARG gives 1 for an empty list, so a region declaring no pools reaches
  *          MMGR_CARCER_W1 and fails there with too few arguments for the reader.
  */
-#define MMGR_CARCER_WALK(what_, r_, ...) MMGR_CAT(MMGR_CARCER_W, MMGR_NARG(__VA_ARGS__))(what_, r_, __VA_ARGS__)
+#define MMGR_CARCER_WALK(what_, region_, ...)                                                                          \
+    MMGR_CAT(MMGR_CARCER_W, MMGR_NARG(__VA_ARGS__))(what_, region_, __VA_ARGS__)
 
 /**
  * @brief Declares a region and the pools it holds.
@@ -323,7 +438,7 @@ MMGR_NS_LAYOUT(SecuraCustodiae, persist_capio, persist_reddo, interim_capio, int
 /**
  * @brief Takes size bytes from a pool's persistent end.
  *
- * @param[in,out] w    Pool to take from [BORROWS].
+ * @param[in,out] pool Pool to take from [BORROWS].
  * @param[in]     size Bytes wanted.
  * @return             Start of the tenancy, or NULL when the pool cannot meet it [RETURNS OWNERSHIP].
  * @note Reached through the pool's own accessor rather than called by name.
@@ -331,12 +446,12 @@ MMGR_NS_LAYOUT(SecuraCustodiae, persist_capio, persist_reddo, interim_capio, int
  * @warning The bytes are not zeroed, and a reused block still holds what the last tenant left. A
  *          pool declared MMGR_SECURA is the one that scrubs, and it scrubs on release.
  */
-void *mmgr_carcer_persist_capio(CarcerCtx *w, size_t size);
+void *mmgr_carcer_persist_capio(CarcerCtx *pool, size_t size);
 
 /**
  * @brief Gives a tenancy back, leaving its bytes as they are.
  *
- * @param[in,out] w       Pool the tenancy came from [BORROWS].
+ * @param[in,out] pool    Pool the tenancy came from [BORROWS].
  * @param[in]     tenancy First byte of the tenancy [TAKES OWNERSHIP].
  * @note Which end the tenancy came from is read from its address, so a release cannot be given to the
  *       wrong end. A NULL tenancy returns without touching the pool.
@@ -345,12 +460,12 @@ void *mmgr_carcer_persist_capio(CarcerCtx *w, size_t size);
  * @warning Nothing tests that tenancy came from this pool. An address from elsewhere is read as a
  *          header and freed into a chain it never belonged to.
  */
-void mmgr_carcer_persist_reddo(CarcerCtx *w, void *tenancy);
+void mmgr_carcer_persist_reddo(CarcerCtx *pool, void *tenancy);
 
 /**
  * @brief Zeroes a tenancy, then gives it back.
  *
- * @param[in,out] w       Pool the tenancy came from [BORROWS].
+ * @param[in,out] pool    Pool the tenancy came from [BORROWS].
  * @param[in,out] tenancy First byte of the tenancy, zeroed before it is released [TAKES OWNERSHIP].
  * @note The extent comes from the block's own header, so a caller cannot under-wipe a tenancy by
  *       naming fewer bytes than it holds. A NULL tenancy returns without touching the pool.
@@ -361,12 +476,12 @@ void mmgr_carcer_persist_reddo(CarcerCtx *w, void *tenancy);
  *          lying ahead of it. An address from elsewhere is wiped for whatever length those bytes
  *          happen to hold.
  */
-void mmgr_carcer_secura_reddo(CarcerCtx *w, void *tenancy);
+void mmgr_carcer_secura_reddo(CarcerCtx *pool, void *tenancy);
 
 /**
  * @brief Takes size bytes from a pool's interim end.
  *
- * @param[in,out] w    Pool to take from [BORROWS].
+ * @param[in,out] pool Pool to take from [BORROWS].
  * @param[in]     size Bytes wanted.
  * @return             Start of the tenancy, or NULL when the pool cannot meet it [RETURNS OWNERSHIP].
  * @note The bytes normally go back by mark, through mmgr_carcer_interim_reddo or
@@ -377,38 +492,39 @@ void mmgr_carcer_secura_reddo(CarcerCtx *w, void *tenancy);
  * @warning The bytes are not zeroed, and a take returns whatever the last tenant left. A pool
  *          declared MMGR_SECURA is the one that scrubs, and it scrubs on release.
  */
-void *mmgr_carcer_interim_capio(CarcerCtx *w, size_t size);
+void *mmgr_carcer_interim_capio(CarcerCtx *pool, size_t size);
 
 /**
  * @brief The interim end's current top, to hand back to mmgr_carcer_interim_reddo.
  *
- * @param[in] w Pool to read [BORROWS].
- * @return      The value of interim_top.
+ * @param[in] pool Pool to read [BORROWS].
+ * @return         The value of interim_top.
  * @note Good against this pool alone, and only until a restore to an older mark. The restore assigns
  *       the value it is handed without testing it.
  * @warning The figure is a snapshot. A take from a preempting handler lowers the top after this has
  *          read it, and restoring the mark then gives that take's bytes back as well.
  */
-size_t mmgr_carcer_interim_mark(const CarcerCtx *w);
+size_t mmgr_carcer_interim_mark(const CarcerCtx *pool);
 
 /**
  * @brief Restores the interim top a mark reported, scrubbing nothing.
  *
- * @param[in,out] w    Pool to rewind [BORROWS].
+ * @param[in,out] pool Pool to rewind [BORROWS].
  * @param[in]     mark Top to restore, as mmgr_carcer_interim_mark reported it.
- * @note The top is assigned, not tested, so the mark must be one this pool reported and must not be
- *       older than a restore already made.
+ * @note The top is assigned, not tested, so the mark must be one this pool reported, and it must
+ *       not lie below the current top. A mark below it lowers the end onto bytes an earlier
+ *       restore already gave back.
  * @warning A mark this pool never reported, or one past its size, is taken as given and moves the
  *          end there.
  * @warning Every interim tenancy taken since mark is dead once this returns. Nothing is scrubbed, so
  *          such a pointer still dereferences and reads whatever the next take puts there.
  */
-void mmgr_carcer_interim_reddo(CarcerCtx *w, size_t mark);
+void mmgr_carcer_interim_reddo(CarcerCtx *pool, size_t mark);
 
 /**
  * @brief Zeroes every interim byte taken since mark, then restores the top.
  *
- * @param[in,out] w    Pool to rewind [BORROWS].
+ * @param[in,out] pool Pool to rewind [BORROWS].
  * @param[in]     mark Top to restore, as mmgr_carcer_interim_mark reported it.
  * @note The order is the point. The interim end grows down, so the live bytes are [top, mark) and
  *       reclaiming means raising the top. Wiping first means they are already zero at the instant
@@ -422,46 +538,46 @@ void mmgr_carcer_interim_reddo(CarcerCtx *w, size_t mark);
  *          that read and the restore is dropped unscrubbed, since the extent was settled from the
  *          older top.
  */
-void mmgr_carcer_interim_secura_reddo(CarcerCtx *w, size_t mark);
+void mmgr_carcer_interim_secura_reddo(CarcerCtx *pool, size_t mark);
 
 /**
  * @brief Gives the whole interim end back at once, scrubbing nothing.
  *
- * @param[in,out] w Pool to reset [BORROWS].
+ * @param[in,out] pool Pool to reset [BORROWS].
  * @note Restores the top to the pool's own size, which is where the end starts.
  * @note No pool entry reaches this one. A region's reset is its own generated wrapper, and that goes
  *       to the wiping rewind wherever the pool was declared MMGR_SECURA.
  * @warning Every interim tenancy the pool has handed out is dead once this returns, and none of
  *          those bytes are scrubbed.
  */
-void mmgr_carcer_interim_reset(CarcerCtx *w);
+void mmgr_carcer_interim_reset(CarcerCtx *pool);
 
 /**
  * @brief Whether at lies inside the pool's bytes.
  *
- * @param[in] w  Pool to test against [BORROWS].
- * @param[in] at Address to test [BORROWS].
- * @return       MMGR_TRUE when at lies in the pool's storage, which is [base, base + size).
+ * @param[in] pool Pool to test against [BORROWS].
+ * @param[in] at   Address to test [BORROWS].
+ * @return         MMGR_TRUE when at lies in the pool's storage, which is [base, base + size).
  * @note One unsigned compare covers both ends, since an address below base wraps to a difference
  *       larger than any size.
  * @warning Any address in the pool answers true, not only the first byte of a tenancy. This says
  *          where an address is, not what is there, so a true answer is not a warrant that at may be
  *          released: the releases read a header from whatever address they are handed.
  */
-mmgr_bool mmgr_carcer_owns(const CarcerCtx *w, const void *at);
+mmgr_bool mmgr_carcer_owns(const CarcerCtx *pool, const void *at);
 
 /**
  * @brief The bytes lying between the two ends.
  *
- * @param[in] w Pool to read [BORROWS].
- * @return      interim_top minus persist_end, or 0 once the two ends have met.
+ * @param[in] pool Pool to read [BORROWS].
+ * @return         interim_top minus persist_end, or 0 once the two ends have met.
  * @note A take carved from the middle needs a block header out of the same bytes, and the request is
  *       rounded up to a whole word first, so a take of exactly this many bytes cannot be met.
  * @warning The two ends are read one after the other and the answer is a snapshot. A take from a
  *          preempting handler landing between the reads gives a figure matching neither state, and
  *          any take at all leaves it stale before the caller can act on it.
  */
-size_t mmgr_carcer_octas_praesto(const CarcerCtx *w);
+size_t mmgr_carcer_octas_praesto(const CarcerCtx *pool);
 
 /**
  * @brief Zeroes size bytes at tenancy, without giving anything back.

@@ -36,8 +36,9 @@ MMGR_NS_LAYOUT(ImpensaAncoraeAcusNs, impensa);
  * @brief Returns the cost of args->byte under the table this build links.
  *
  * @param[in] args Byte to look up [BORROWS].
- * @return      The cost, 1 through 255.
+ * @return         The cost, 1 through 255.
  * @note Lower means the byte is rarer under the linked table; cellul_pick_rows keeps the lowest it finds.
+ * @warning args is dereferenced without a null check, so it must point to a readable AncoraeCfg.
  * @warning The value depends on which of the five tables was linked, so it is not portable between builds.
  */
 uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args);

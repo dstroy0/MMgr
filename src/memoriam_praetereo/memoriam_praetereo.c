@@ -52,7 +52,7 @@ typedef struct
  * @param[in] args Channel, peripheral and completion callback [BORROWS].
  * @return      MMGR_FALSE always.
  * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero; an application definition replaces it.
- * @note The (void)c discards the argument, since this body reads nothing.
+ * @note The (void)args discards the argument, since this body reads nothing.
  */
 MMGR_WEAK mmgr_bool mmgr_praet_hw_open(const PraetCfg *args)
 {
@@ -66,6 +66,7 @@ MMGR_WEAK mmgr_bool mmgr_praet_hw_open(const PraetCfg *args)
  * @param[in] args Channel, buffer and length [BORROWS].
  * @return      MMGR_FALSE always.
  * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero; an application definition replaces it.
+ * @note The (void)args discards the argument, since this body reads nothing.
  */
 MMGR_WEAK mmgr_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args)
 {
@@ -78,6 +79,7 @@ MMGR_WEAK mmgr_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args)
  *
  * @param[in] args Channel to close [BORROWS].
  * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero; an application definition replaces it.
+ * @note The (void)args discards the argument, since this body reads nothing.
  */
 MMGR_WEAK void mmgr_praet_hw_close(const PraetTransferCfg *args)
 {
@@ -89,6 +91,7 @@ MMGR_WEAK void mmgr_praet_hw_close(const PraetTransferCfg *args)
  *
  * @param[in] args Channel to poll [BORROWS].
  * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero; an application definition replaces it.
+ * @note The (void)args discards the argument, since this body reads nothing.
  */
 MMGR_WEAK void mmgr_praet_hw_poll(const PraetCfg *args)
 {
@@ -148,6 +151,7 @@ MMGR_INLINE void praet_close(const PraetTransferCtx *args)
  * @param[in] ctx  Context type this entry's backend takes.
  * @param[in] cfg  Argument type the caller passes.
  * @param[in] name Name after the mmgr_praet_ and praet_ prefixes, which the two share.
+ * @param[in] ...  Initializers for the ctx literal, written in terms of the cfg the entry was handed.
  * @note Both types are parameters here. Opening a channel and moving bytes on one take different
  *       arguments, so the module carries two of each rather than one.
  */
@@ -159,6 +163,7 @@ MMGR_INLINE void praet_close(const PraetTransferCtx *args)
  * @param[in] ctx  Context type this entry's backend takes.
  * @param[in] cfg  Argument type the caller passes.
  * @param[in] name Name after the mmgr_praet_ and praet_ prefixes.
+ * @param[in] ...  Initializers for the ctx literal, written in terms of the cfg the entry was handed.
  */
 #define PRAET_ENTRY_V(ctx, cfg, name, ...) GENERIC_ENTRY_V(mmgr_praet_, praet_, ctx, cfg, name, __VA_ARGS__)
 
@@ -177,7 +182,8 @@ PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = args->channe
 /**
  * @brief Calls the port layer's poll hook.
  *
- * @note Hand-rolled rather than an entry line, as mmgr_infin_init is. It hands c to the weak hook
+ * @param[in] args Channel to poll [BORROWS].
+ * @note Hand-rolled rather than an entry line, as mmgr_infin_init is. It hands args to the weak hook
  *       unchanged, with no checking call in between, so there is no argument pack to build and no
  *       praet_ backend for GENERIC_ENTRY to name.
  * @note Documented at the declaration in memoriam_praetereo.h.

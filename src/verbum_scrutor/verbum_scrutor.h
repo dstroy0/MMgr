@@ -71,6 +71,8 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_word) == sizeof(mmgr_migro_word),
  * @brief Expands to 0, the first of three verdicts a scan step can report.
  *
  * @note MMGR_SWAR_GO, MMGR_SWAR_YES and MMGR_SWAR_NO are 0, 1 and 2, so the three fit in one byte.
+ * @note The three carry no sizing suffix, so each takes int in an expression; a scanner keeping a verdict
+ *       in a uint8_t converts it on the way in.
  * @note verbum_scrutor.c reads none of the three; they are declared here for the scanners that include it.
  */
 #define MMGR_SWAR_GO 0
@@ -91,7 +93,7 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_word) == sizeof(mmgr_migro_word),
 /**
  * @brief Expands to 0x40u, the value the MMGR_FAM_CS bits take across the 0x40 to 0x5F block.
  *
- * @note That block holds A through Z along with the at sign and six other symbols.
+ * @note That block holds A through Z along with six other bytes: the at sign, and the five that follow Z.
  */
 #define MMGR_FAM_CI 0x40u
 
@@ -138,7 +140,7 @@ typedef struct
  * @brief Arguments for the mask calls.
  *
  * @note spread, drop_first, drop_last and before read mask; bytes_below, lanes_below and run_edge read bytes.
- * @note run reads both mask and bytes; tail is the only call that reads wi.
+ * @note run reads both mask and bytes; tail reads bytes and wi, and is the only call that reads wi.
  */
 typedef struct
 {
@@ -163,7 +165,8 @@ typedef struct
  * @brief Type of the lane dispatch table.
  *
  * @note MMGR_NS_LAYOUT asserts the thirteen members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
- * @note The first ten return lane masks; count, first and last return positions instead.
+ * @note Eight of the first ten return lane masks; sub7 returns seven bit values and xor_ a whole word.
+ * @note count, first and last return positions instead of words.
  * @note first and last mean first and last in memory order, which is what the endian binding below delivers.
  * @note xor_ carries a trailing underscore because xor is an alternative spelling of an operator in C++.
  */
@@ -176,7 +179,7 @@ typedef struct
     mmgr_word (*eq)(const ScrutLaneCfg *args);        /**< Lanes equal to a byte. */
     mmgr_word (*xor_)(const ScrutLaneCfg *args);      /**< Lane by lane difference of two words. */
     mmgr_word (*fam_eq)(const ScrutLaneCfg *args);    /**< Lanes matching a byte within a set of bits. */
-    mmgr_word (*any_upper)(const ScrutLaneCfg *args); /**< Lanes in the 0x40 to 0x5F block. */
+    mmgr_word (*any_upper)(const ScrutLaneCfg *args); /**< Lanes whose MMGR_FAM_CS bits equal MMGR_FAM_CI. */
     mmgr_word (*any_digit)(const ScrutLaneCfg *args); /**< Lanes in the 0x30 to 0x3F block. */
     mmgr_word (*alpha)(const ScrutLaneCfg *args);     /**< Lanes holding an ASCII letter. */
     size_t (*count)(const ScrutLaneCfg *args);        /**< How many lanes a mask has set. */
@@ -291,13 +294,13 @@ mmgr_word mmgr_scrut_xor(const ScrutLaneCfg *args);
 mmgr_word mmgr_scrut_fam_eq(const ScrutLaneCfg *args);
 
 /**
- * @brief Marks the lanes of args->word that fall in the 0x40 to 0x5F block.
+ * @brief Marks the lanes of args->word whose MMGR_FAM_CS bits equal MMGR_FAM_CI, which is the 0x40 to 0x5F block.
  *
  * @param[in] args The word to test [BORROWS].
  * @return      A lane mask holding those lanes.
  * @note Reads args->word alone, since the family and the byte are both fixed.
- * @warning That block holds the at sign and six other symbols alongside A through Z, so this marks more
- *          than the capital letters; and it with mmgr_scrut_alpha when only letters should count.
+ * @warning That block holds six bytes that are not capitals, the at sign and the five after Z, and bit seven
+ *          takes no part, so 0xC0 to 0xDF is marked as well; and it with mmgr_scrut_alpha for letters alone.
  */
 mmgr_word mmgr_scrut_any_upper(const ScrutLaneCfg *args);
 
@@ -307,7 +310,7 @@ mmgr_word mmgr_scrut_any_upper(const ScrutLaneCfg *args);
  * @param[in] args The word to test [BORROWS].
  * @return      A lane mask holding those lanes.
  * @note Reads args->word alone, since the family and the byte are both fixed.
- * @warning That block holds seven symbols after the nine, so this marks more than 0 through 9; and it with
+ * @warning That block holds six symbols after the nine, so this marks more than 0 through 9; and it with
  *          mmgr_scrut_le at the character nine when only the ten digits should count.
  */
 mmgr_word mmgr_scrut_any_digit(const ScrutLaneCfg *args);
@@ -318,7 +321,8 @@ mmgr_word mmgr_scrut_any_digit(const ScrutLaneCfg *args);
  * @param[in] args The word to test [BORROWS].
  * @return      A lane mask holding the letter lanes.
  * @note Reads args->word alone, so byte, val, fam and ci take no part.
- * @note A byte at 0x80 or above is never marked, so this is exact where any_upper and any_digit are not.
+ * @note A byte at 0x80 or above is never marked, so this is exact where mmgr_scrut_any_upper is not; what
+ *       mmgr_scrut_any_digit marks beyond the ten digits is the six symbols after the nine, not a high byte.
  */
 mmgr_word mmgr_scrut_alpha(const ScrutLaneCfg *args);
 
@@ -442,7 +446,8 @@ mmgr_word mmgr_scrut_run(const ScrutMaskCfg *args);
  * @return      A lane mask holding those lanes, or 0 when no lane is too near.
  * @note A run of args->bytes can begin at any of the first MMGR_SWAR_BYTES minus args->bytes plus one lanes.
  * @note A caller matching across a word boundary uses this to tell which starts must be tried again.
- * @note Returns 0 for an args->bytes of 0 or 1, and for one past MMGR_SWAR_BYTES.
+ * @note Returns 0 for an args->bytes of 0 or 1, since any lane can start such a run, and for any length
+ *       above MMGR_SWAR_BYTES, since no lane can.
  */
 mmgr_word mmgr_scrut_run_edge(const ScrutMaskCfg *args);
 

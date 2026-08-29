@@ -3,7 +3,16 @@
  */
 /**
  * @file fractio.h
- * @brief The binary64 field layout, the assertions that pin it, and the fract table.
+ * @brief The binary64 field layout and scale bounds, the assertions that pin them, the six entry points
+ *        and the fract table.
+ *
+ * @note Everything here is written for binary64. The assertions below are what hold the target to it,
+ *       and they are MMGR_STATIC_ASSERT, so a target whose double is another shape fails the build
+ *       rather than reading the wrong bits.
+ * @note FractioCfg carries no pointer, so no call here follows one into a caller's buffer. The whole
+ *       module is field arithmetic on the one value it is handed.
+ * @warning args is the one pointer the six entry points take, and none of them tests it. The bodies
+ *          GENERIC_ENTRY writes read its members straight through, so a null args is dereferenced.
  */
 #ifndef MMGR_FRACTIO_H
 #define MMGR_FRACTIO_H
@@ -13,8 +22,11 @@
 MMGR_INCIPE_DECLS
 
 /**
- * @brief The three field positions of a binary64 double, as masks, shifts and widths.
+ * @brief The binary64 field layout: three masks, the sign shift, the two field widths, the two whole
+ *        field values and the exponent bias.
  *
+ * @note The masks, the shift and the widths say where each field sits. MMGR_DBL_SIGN_ONE and
+ *       MMGR_DBL_EXP_ALL are values a field can hold, not positions, and MMGR_DBL_BIAS is an amount.
  * @note The assertions below check the masks tile the word without gap or overlap.
  * @note The masks, MMGR_DBL_SIGN_ONE and MMGR_DBL_EXP_ALL carry a ull suffix, matching the mmgr_u64 the
  *       fields are read from. The shifts and widths carry u. MMGR_DBL_BIAS carries neither, since it is
@@ -26,13 +38,17 @@ MMGR_INCIPE_DECLS
 #define MMGR_DBL_SIGN_SHIFT 63u                  /**< Bit position of the sign. */
 #define MMGR_DBL_MANT_BITS 52u                   /**< Stored mantissa width, and the exponent's shift. */
 #define MMGR_DBL_EXP_BITS 11u                    /**< Exponent width. */
-#define MMGR_DBL_SIGN_ONE 0x1ull                 /**< A sign of one, before shifting. */
-#define MMGR_DBL_EXP_ALL 0x7FFull                /**< An exponent field of all ones. */
+#define MMGR_DBL_SIGN_ONE 0x1ull                 /**< A sign of one, and merge's mask for args->sign. */
+#define MMGR_DBL_EXP_ALL 0x7FFull                /**< All ones in the exponent, and merge's mask for args->exp. */
 #define MMGR_DBL_BIAS 1023                       /**< Amount added to the true exponent when stored. */
 
 /**
  * @brief The width of a double in bits, bytes and mmgr_word units.
  *
+ * @note MMGR_DBL_BITS is declared, not measured. The assertion below compares it against sizeof(double)
+ *       and fails the build when the target disagrees.
+ * @note The 8u in MMGR_DBL_BYTES is bits per byte. That same assertion holds a target to it, since a
+ *       byte of another width would leave sizeof(double) * 8u short of MMGR_DBL_BITS.
  * @note MMGR_DBL_WORDS rounds up, and the assertion below requires it to come out exact.
  */
 #define MMGR_DBL_BITS 64u                                                         /**< Bits in a double. */
@@ -127,6 +143,8 @@ MMGR_NS_LAYOUT(FractioNs, sign, exp, mant, merge, from_bits, to_bits);
  *
  * @param[in] args Bit pattern in the union [BORROWS].
  * @return      0 for a positive sign, 1 for a negative one.
+ * @note The bit is read as stored and nothing else is examined, so a negative zero answers 1, and so
+ *       does a NaN carrying the sign.
  */
 mmgr_u64 mmgr_fract_sign(const FractioCfg *args);
 
@@ -144,6 +162,8 @@ mmgr_u64 mmgr_fract_exp(const FractioCfg *args);
  *
  * @param[in] args Bit pattern in the union [BORROWS].
  * @return      The fifty-two stored bits, without the implicit leading one.
+ * @note The leading one is implicit only where the exponent field is nonzero. A zero or a subnormal
+ *       has none, and there these fifty-two bits are the whole mantissa.
  */
 mmgr_u64 mmgr_fract_mant(const FractioCfg *args);
 
@@ -153,6 +173,9 @@ mmgr_u64 mmgr_fract_mant(const FractioCfg *args);
  * @param[in] args The three fields [BORROWS].
  * @return      The assembled pattern.
  * @note Each field is masked to its own width, so a wide input cannot reach a neighboring field.
+ * @warning What the mask drops is gone and nothing reports it. A sign above MMGR_DBL_SIGN_ONE, an
+ *          exponent above MMGR_DBL_EXP_ALL or a mantissa above MMGR_DBL_MANT_MASK keeps only its low
+ *          bits.
  */
 mmgr_u64 mmgr_fract_merge(const FractioCfg *args);
 
@@ -174,6 +197,12 @@ mmgr_u64 mmgr_fract_to_bits(const FractioCfg *args);
 
 /**
  * @brief Dispatch table instance named fract; each member calls the matching mmgr_fract_ function.
+ *
+ * @note MMGR_NS is static const, so every translation unit including this header holds a copy of its
+ *       own and the addresses differ between them. The six functions it points at are the one shared
+ *       definition.
+ * @note MMGR_UNUSED keeps a translation unit that includes the header without calling through the
+ *       table from warning about it. It expands to nothing where the unused attribute is unavailable.
  */
 MMGR_NS FractioNs fract MMGR_UNUSED = {
     .sign = mmgr_fract_sign,

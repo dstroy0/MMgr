@@ -214,6 +214,7 @@ MMGR_INLINE void aequus_put(const ProximPutCtx *args)
  *
  * @param[in] args Destination and value [BORROWS].
  * @note Writes through mmgr_aequus_u64_t, which keeps uint64_t's alignment, unlike proxim_put64.
+ * @note No cast is needed here, since args->val is already a uint64_t.
  * @warning args->dst must be writable for eight bytes and aligned for a uint64_t.
  */
 MMGR_INLINE void aequus_put64(const ProximPutCtx *args)
@@ -228,6 +229,7 @@ MMGR_INLINE void aequus_put64(const ProximPutCtx *args)
  * @note skew is the distance from args->dst up to the next boundary; it copies that many, or args->bytes if fewer.
  * @note Returns at once when args->dst already sits on a boundary, or when args->bytes is 0.
  * @note Advances args->dst and args->src past what it copied and draws that count off args->bytes.
+ * @note Both pointers step in the copy statement itself, and t counts down in the while test.
  */
 MMGR_INLINE void proxim_head(ProximReadCtx *args)
 {
@@ -308,6 +310,7 @@ MMGR_INLINE void proxim_words(ProximReadCtx *args)
  * @param[in,out] args Destination, source and the count still to copy [BORROWS].
  * @note Returns at once when nothing is left.
  * @note Advances args->dst and args->src, but leaves args->bytes as it found it, unlike the two stages before it.
+ * @note Both pointers step in the copy statement itself, and the local t counts down in the while test.
  */
 MMGR_INLINE void proxim_tail(ProximReadCtx *args)
 {
@@ -344,6 +347,7 @@ MMGR_INLINE void proxim_read(ProximReadCtx *args)
  * @param[in] ret  Return type of the entry point.
  * @param[in] ctx  Context type this entry's backend takes.
  * @param[in] name Name after the mmgr_proxim_ and proxim_ prefixes, which the two share.
+ * @param[in] ...  Initializers for the ctx literal, written in terms of args.
  * @note ctx is a parameter because a load carries an address, a put carries an address and a value,
  *       and a read carries two addresses and a count.
  */
@@ -354,6 +358,7 @@ MMGR_INLINE void proxim_read(ProximReadCtx *args)
  *
  * @param[in] ctx  Context type this entry's backend takes.
  * @param[in] name Name after the mmgr_proxim_ and proxim_ prefixes.
+ * @param[in] ...  Initializers for the ctx literal, written in terms of args.
  */
 #define PROXIM_ENTRY_V(ctx, name, ...) GENERIC_ENTRY_V(mmgr_proxim_, proxim_, ctx, ProximusCfg, name, __VA_ARGS__)
 
@@ -363,6 +368,7 @@ MMGR_INLINE void proxim_read(ProximReadCtx *args)
  * @param[in] ret  Return type of the entry point.
  * @param[in] ctx  Context type this entry's backend takes.
  * @param[in] name Name after the mmgr_aequus_ and aequus_ prefixes.
+ * @param[in] ...  Initializers for the ctx literal, written in terms of args.
  * @note A separate pair because the aligned strategy is a separate name, not a flag. Merging the two
  *       would emit an aligned access for an address that may not be aligned, which faults on some
  *       machines and silently reads wrong on others.
@@ -374,6 +380,7 @@ MMGR_INLINE void proxim_read(ProximReadCtx *args)
  *
  * @param[in] ctx  Context type this entry's backend takes.
  * @param[in] name Name after the mmgr_aequus_ and aequus_ prefixes.
+ * @param[in] ...  Initializers for the ctx literal, written in terms of args.
  */
 #define AEQUUS_ENTRY_V(ctx, name, ...) GENERIC_ENTRY_V(mmgr_aequus_, aequus_, ctx, ProximusCfg, name, __VA_ARGS__)
 

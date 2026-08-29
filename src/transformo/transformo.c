@@ -29,7 +29,8 @@ static const double mmgr_muto_ten[MMGR_MUTO_EXACT_POW10 + 1] = {1e0,  1e1,  1e2,
                                                                 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22};
 
 /**
- * @brief Working state for the two scaling paths: the inputs, the 128-bit accumulator, and multiply scratch.
+ * @brief Working state for the two scaling paths: the inputs, the 128-bit accumulator, and the
+ *        multiply's own members.
  *
  * @note mant, digit, e2, ex, dropped, above and neg are the inputs; dropped is TransformoCfg::rest under a new name.
  * @note hi, lo and fe2 carry the 128-bit significand and its binary exponent; rest records bits shifted away.
@@ -62,8 +63,8 @@ typedef struct
 /**
  * @brief Appends args->digit to *args->mant as one more decimal digit.
  *
- * @param[in] args The mantissa to extend and the digit to append [BORROWS].
- * @return      MMGR_TRUE when the digit was appended, MMGR_FALSE when *args->mant was already too large.
+ * @param[in,out] args The mantissa to extend and the digit to append [BORROWS].
+ * @return          MMGR_TRUE when the digit was appended, MMGR_FALSE when *args->mant was already too large.
  * @note Multiplies by ten and adds args->digit minus '0', so args->digit must be an ASCII decimal digit.
  * @note MMGR_MUTO_MANT_MAX is (~0 - 9) / 10, so the multiply and the add both stay inside a 64-bit value.
  * @warning Writes through args->mant, so the caller's mantissa changes [BORROWS].
@@ -84,7 +85,8 @@ MMGR_INLINE mmgr_bool muto_take(const MutoCtx *args)
  *
  * @param[in,out] args The two operands, and where the product is left [BORROWS].
  * @note Splits both operands at 32 bits and sums the four partial products, so no 128-bit type is needed.
- * @note mid holds the two middle partial products plus the carry out of the low one.
+ * @note mid holds the low half of each middle partial product plus the carry out of the low one; the
+ *       two high halves and the carry out of mid go into args->phi.
  * @note The halves are held at 32 bits, so each partial product is a 32 by 32 widening multiply the
  *       target carries in hardware rather than one a compiler must narrow for itself.
  */
@@ -101,8 +103,9 @@ MMGR_INLINE void muto_mul(MutoCtx *args)
     const mmgr_u64 p01 = (mmgr_u64)a0 * b1;
     const mmgr_u64 p10 = (mmgr_u64)a1 * b0;
     const mmgr_u64 p11 = (mmgr_u64)a1 * b1;
-    // Explicit casts take the low half of each partial product, which is the column that belongs in
-    // mid; the widening back to mmgr_u64 keeps the result clear of the shift below it
+    // Explicit casts take the low half of the two middle partial products, the part this column
+    // holds; their high halves go into phi below. The leading mmgr_u64 term carries the sum at 64
+    // bits, so mid keeps its own carry rather than dropping it
     const mmgr_u64 mid = (p00 >> 32) + (uint32_t)p01 + (uint32_t)p10;
 
     args->plo = (mmgr_u64)(uint32_t)p00 | (mid << 32);
@@ -420,7 +423,8 @@ MMGR_INLINE double muto_round(const MutoCtx *args)
  * @param[in] args The significand, its exponent, the bits already dropped and the tie bias [BORROWS].
  * @return      The rounded integer, 0 when the value rounds below one, or all ones when it needs more than 64 bits.
  * @note k is the negated exponent, so it says how far right the significand must move to become an integer.
- * @note The three branches cover a shift of exactly 64, one under 64, and one of 64 or more, in that order.
+ * @note The three branches split on j, the part of the shift past 64: none of it, under 64 more, and
+ *       64 or more, in that order.
  * @note args->above is exclusive-ored into the low bit before the tie test, so a caller can steer which way a tie goes.
  */
 MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *args)
@@ -445,7 +449,9 @@ MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *args)
     // Explicit cast holds the shift width at the mmgr_word the shifts below take; the tests above
     // established k is between 64 and 128, so the subtraction cannot wrap
     const mmgr_word j = (mmgr_word)(k - 64);
-    // Explicit cast widens the one to the mmgr_u64 the mask covers, so the shift has room
+    // The j == 0u arm stands in for the empty mask: j - 1u would wrap to the largest mmgr_word there,
+    // and a shift by that is undefined. Explicit cast widens the one to the mmgr_u64 the mask covers,
+    // so the shift has room
     const mmgr_u64 low_mask = (j == 0u) ? 0u : (((mmgr_u64)1 << (j - 1u)) - 1u);
     mmgr_u64 whole;
     mmgr_u64 half;
@@ -508,7 +514,9 @@ MMGR_INLINE double muto_scale(MutoCtx *args)
         return args->neg ? -0.0 : 0.0;
     }
 
-    // Explicit cast widens the one to the mmgr_u64 the mantissa is compared in, so the shift has room
+    // The gate for the exact path: nothing dropped, a mantissa a double holds outright, and an
+    // exponent mmgr_muto_ten covers. Explicit cast widens the one to the mmgr_u64 the mantissa is
+    // compared in, so the shift has room
     if ((args->dropped == 0) && (*args->mant < ((mmgr_u64)1 << 53)) && (args->ex >= -MMGR_MUTO_EXACT_POW10) &&
         (args->ex <= MMGR_MUTO_EXACT_POW10))
     {
@@ -566,6 +574,7 @@ MMGR_INLINE mmgr_u64 muto_scale_to_u64(MutoCtx *args)
  *
  * @param[in] ret  Return type of the entry point.
  * @param[in] name Name after the mmgr_muto_ and muto_ prefixes, which the two share.
+ * @param[in] ...  The MutoCtx member initializers this entry point fills from its TransformoCfg.
  */
 #define MUTO_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_muto_, muto_, MutoCtx, TransformoCfg, ret, name, __VA_ARGS__)
 
@@ -575,7 +584,7 @@ MMGR_INLINE mmgr_u64 muto_scale_to_u64(MutoCtx *args)
  * @note Each is documented at its declaration in transformo.h.
  * @note scale forwards args->rest as MutoCtx::dropped; the two structs give that member different names.
  * @note The members each line leaves out stay zero in the compound literal. scale omits e2, so its
- *       mantissa carries no binary exponent, and scale_to_u64 omits rest and neg.
+ *       mantissa carries no binary exponent, and scale_to_u64 omits dropped and neg.
  */
 MUTO_ENTRY(mmgr_bool, take, .mant = args->mant, .digit = args->digit)
 MUTO_ENTRY(double, scale, .mant = args->mant, .ex = args->ex, .dropped = args->rest, .neg = args->neg)

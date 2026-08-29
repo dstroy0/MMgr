@@ -31,7 +31,8 @@ MMGR_INCIPE_DECLS
  * @brief Arguments for the byteio calls; each reads only what it needs.
  *
  * @note put reads w and byte; put_be reads w, val and bytes; raw reads w, src and bytes;
- *       take_be reads r, bytes and out.
+ *       take_be reads r, bytes and out; rd_str reads r, blob and blen; and mpint_fixed reads w, src
+ *       and bytes, where bytes is the integer's length rather than a big endian width.
  */
 typedef struct
 {
@@ -130,7 +131,9 @@ mmgr_bool mmgr_byteio_rd_str(const OctetusCfg *args);
  * @note Leading zero bytes of the integer are skipped before the width is tested, so a value carrying
  *       a sign byte still fits a field of its own size.
  * @note The field is written whole, not appended to: on success args->w's cursor ends at its cap.
- * @note Nothing is written to the field when it returns MMGR_FALSE.
+ * @note Nothing is written to the field when it returns MMGR_FALSE, but args->w's overflow is
+ *       latched, so a span tested later reports the failure too.
+ * @warning args->src must be readable for args->bytes, and must not overlap args->w's buffer.
  */
 mmgr_bool mmgr_byteio_mpint_fixed(const OctetusCfg *args);
 

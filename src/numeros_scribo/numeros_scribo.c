@@ -24,7 +24,7 @@ typedef struct
     const mmgr_fval *vals;  /**< Values to place into the fields [BORROWS]. */
     size_t nvals;           /**< Values in vals. */
     const mmgr_fval *one;   /**< The single value emit_one formats [BORROWS]. */
-    uint8_t width;          /**< Width override for that value, or 0 to take the kind'text default. */
+    uint8_t width;          /**< Width override for that value, or 0 to take the kind's default. */
 } NumerCtx;
 
 /**
@@ -60,7 +60,7 @@ typedef enum MMGR_ENUM_PACKED
 } NumerArm;
 
 /**
- * @brief One field kind'text formatting function, union arm, numeric base and default width.
+ * @brief One field kind's formatting function, union arm, numeric base and default width.
  *
  * @note The verba entries are split by what they write, so they no longer share an argument pack
  *       and cannot sit in one function pointer table directly. Each kind gets a small function of
@@ -115,12 +115,12 @@ static const NumerKind s_kind[MMGR_FK_XML + 1u] = {
 };
 
 /**
- * @brief Formats the single value in args->one at args->at, through that kind'text verba call.
+ * @brief Formats the single value in args->one at args->at, through that kind's verba call.
  *
  * @param[in] args Buffer, offset, the value and a width override [BORROWS].
  * @return      The offset past what was written, or args->cap when the kind is out of range.
- * @note The width override wins when non-zero; otherwise the kind'text own default applies.
- * @note One indirect call through the kind'text own function, which passes that entry only what it reads.
+ * @note The width override wins when non-zero; otherwise the kind's own default applies.
+ * @note One indirect call through the kind's own function, which passes that entry only what it reads.
  * @warning args->one->kind above MMGR_FK_XML returns args->cap without a lookup, since s_kind ends at MMGR_FK_XML.
  */
 MMGR_INLINE size_t numer_emit_one(const NumerCtx *args)
@@ -153,7 +153,7 @@ MMGR_INLINE size_t numer_abandon(const NumerCtx *args)
  *
  * @param[in] args Buffer, capacity and the offset reached [BORROWS].
  * @return      The length verba.finish reported, which is args->at, or 0 when args->at reached args->cap.
- * @note Writes no terminator of its own. A 0 return is the caller'text to act on, and the caller is the
+ * @note Writes no terminator of its own. A 0 return is the caller's to act on, and the caller is the
  *       one that knows where the write began.
  */
 MMGR_INLINE size_t numer_finish(const NumerCtx *args)
@@ -174,7 +174,7 @@ MMGR_INLINE size_t numer_finish(const NumerCtx *args)
  */
 MMGR_INLINE size_t numer_build(const NumerCtx *args)
 {
-    // Begins at the caller'text cursor rather than the first byte, so a run of writes never re-measures
+    // Begins at the caller's cursor rather than the first byte, so a run of writes never re-measures
     // what the last one left. An unset at is 0, which is where a single write starts anyway.
     size_t at = args->at;
     size_t kind = 0;
@@ -224,7 +224,7 @@ MMGR_INLINE size_t numer_build(const NumerCtx *args)
  */
 MMGR_INLINE size_t numer_emit(const NumerCtx *args)
 {
-    // Begins at the caller'text cursor, as numer_build does
+    // Begins at the caller's cursor, as numer_build does
     size_t at = args->at;
 
     if (args->cap == 0u)
@@ -257,10 +257,11 @@ MMGR_INLINE size_t numer_used(const NumerCtx *args)
 }
 
 /**
- * @brief Binds this module'text four fixed arguments to GENERIC_ENTRY.
+ * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
  *
  * @param[in] ret  Return type of the entry point.
  * @param[in] name Name after the mmgr_numer_ and numer_ prefixes, which the two share.
+ * @param[in] ...  Designated initializers for the NumerCtx the entry hands to the inline call.
  */
 #define NUMER_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_numer_, numer_, NumerCtx, NumerosCfg, ret, name, __VA_ARGS__)
 
@@ -278,9 +279,12 @@ NUMER_ENTRY(size_t, emit, .out = args->out, .cap = args->cap, .at = args->at, .v
 /**
  * @brief Writes args->spec and args->vals into args->out after the string already there.
  *
+ * @param[in] args Buffer, capacity, the field list and the values [BORROWS].
+ * @return      Length of the whole string in args->out, or 0 when nothing was added.
  * @note Calls through the numer table, where mmgr_numer_build reaches numer_build directly.
  * @note Puts the terminator back at args->out[used] when the build reports 0, leaving the earlier text in place.
  * @note Documented at the declaration in numeros_scribo.h.
+ * @warning args->out must already hold a terminated string, and args->spec must reach an MMGR_FK_END field.
  */
 size_t mmgr_numer_append(const NumerosCfg *args)
 {
@@ -313,9 +317,12 @@ size_t mmgr_numer_append(const NumerosCfg *args)
 /**
  * @brief Writes args->vals into args->out after the string already there, reading no field list.
  *
+ * @param[in] args Buffer, capacity and the values [BORROWS].
+ * @return      Length of the whole string in args->out, or 0 when nothing was added.
  * @note Calls through the numer table, where mmgr_numer_emit reaches numer_emit directly.
  * @note Puts the terminator back at args->out[used] when the emit reports 0, leaving the earlier text in place.
  * @note Documented at the declaration in numeros_scribo.h.
+ * @warning args->out must already hold a terminated string, and args->vals must hold args->nvals values.
  */
 size_t mmgr_numer_emit_append(const NumerosCfg *args)
 {
@@ -356,7 +363,7 @@ static size_t numer_refuse(const NumerCtx *args)
 }
 
 /**
- * @brief The width this value is formatted at: the field'text override, or the kind'text default.
+ * @brief The width this value is formatted at: the field's override, or the kind's default.
  *
  * @param[in] args The value and its override [BORROWS].
  * @return      The width every formatting function below passes on.
@@ -380,84 +387,144 @@ MMGR_INLINE uint64_t numer_numerus(const NumerCtx *args)
     return (s_kind[args->one->kind].arm == NUMER_ARM_U32) ? (uint64_t)args->one->as.u32 : args->one->as.u64;
 }
 
-/** @brief Formats this kind through verba_textus.put. */
+/**
+ * @brief Formats this kind through verba_textus.put.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_put(const NumerCtx *args)
 {
     return MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                      .text = numer_str(args));
 }
 
-/** @brief Formats this kind through verba_textus.json. */
+/**
+ * @brief Formats this kind through verba_textus.json.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_json(const NumerCtx *args)
 {
     return MMGR_CALL(verba_textus.json, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                      .text = numer_str(args));
 }
 
-/** @brief Formats this kind through verba_textus.xml. */
+/**
+ * @brief Formats this kind through verba_textus.xml.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_xml(const NumerCtx *args)
 {
     return MMGR_CALL(verba_textus.xml, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                      .text = numer_str(args));
 }
 
-/** @brief Formats this kind through verba_littera.ch. */
+/**
+ * @brief Formats this kind through verba_littera.ch.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_ch(const NumerCtx *args)
 {
     return MMGR_CALL(verba_littera.ch, VerbaLitteraCfg, .out = args->out, .cap = args->cap, .at = args->at,
                      .ch = args->one->as.c);
 }
 
-/** @brief Formats this kind through verba_numerus.u32. */
+/**
+ * @brief Formats this kind through verba_numerus.u32.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_u32(const NumerCtx *args)
 {
     return MMGR_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                      .val = numer_numerus(args));
 }
 
-/** @brief Formats this kind through verba_numerus.u64. */
+/**
+ * @brief Formats this kind through verba_numerus.u64.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_u64(const NumerCtx *args)
 {
     return MMGR_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                      .val = numer_numerus(args));
 }
 
-/** @brief Formats this kind through verba_numerus.i64. */
+/**
+ * @brief Formats this kind through verba_numerus.i64.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_i64(const NumerCtx *args)
 {
     return MMGR_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                      .sval = args->one->as.i64);
 }
 
-/** @brief Formats this kind through verba_numerus.u32w. */
+/**
+ * @brief Formats this kind through verba_numerus.u32w.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_u32w(const NumerCtx *args)
 {
     return MMGR_CALL(verba_numerus.u32w, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                      .val = numer_numerus(args), .min = numer_latitudo(args));
 }
 
-/** @brief Formats this kind through verba_numerus.hex. */
+/**
+ * @brief Formats this kind through verba_numerus.hex.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_hex(const NumerCtx *args)
 {
     return MMGR_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                      .val = numer_numerus(args), .min = numer_latitudo(args));
 }
 
-/** @brief Formats this kind through verba_numerus.uint. */
+/**
+ * @brief Formats this kind through verba_numerus.uint.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_uint(const NumerCtx *args)
 {
     return MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                      .val = numer_numerus(args), .base = s_kind[args->one->kind].base, .min = numer_latitudo(args));
 }
 
-/** @brief Formats this kind through verba_fractio.g. */
+/**
+ * @brief Formats this kind through verba_fractio.g.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_g(const NumerCtx *args)
 {
     return MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = args->out, .cap = args->cap, .at = args->at,
                      .real = args->one->as.d, .sig = numer_latitudo(args));
 }
 
-/** @brief Formats this kind through verba_fractio.fixed. */
+/**
+ * @brief Formats this kind through verba_fractio.fixed.
+ *
+ * @param[in] args The arguments this entry reads [BORROWS].
+ * @return      The offset past what was written, or args->cap when it did not fit.
+ */
 static size_t numer_verba_fixed(const NumerCtx *args)
 {
     return MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = args->out, .cap = args->cap, .at = args->at,

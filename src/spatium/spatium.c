@@ -5,6 +5,9 @@
  * @brief Spans over a caller's buffer: the two constructors and the walks over them.
  *
  * @note Holds no storage of its own, and every entry returns by value rather than through a pointer.
+ * @note A span only points at the caller's bytes [BORROWS]. Every span cut from a buffer, and every
+ *       span cut from that one, is good for exactly as long as the buffer is, and none of them frees
+ *       it.
  * @note A span travels inside the argument pack rather than being pointed at, so a walk reads the
  *       caller's span and cannot change it. reset is the exception and takes args->at.
  * @note Reaches nothing outside config.
@@ -31,7 +34,10 @@ typedef struct
  * @brief Builds a fill span over args->buf, with pos at 0 and overflow clear.
  *
  * @param[in] args Buffer buf and its extent cap [BORROWS].
- * @return      The span, by value.
+ * @return      The span, by value, still aimed at args->buf [BORROWS].
+ * @warning cap is taken as given: the caller promises cap writable bytes at buf, and the two asserts
+ *          only catch a null buffer and an empty one. A cap larger than the buffer is not caught here
+ *          and the walks will hand out spans past its end.
  */
 MMGR_INLINE mmgr_span spat_from(const SpatiumCtx *args)
 {
@@ -51,7 +57,10 @@ MMGR_INLINE mmgr_span spat_from(const SpatiumCtx *args)
  * @brief Builds a read span over args->cbuf, with pos at 0 and err clear.
  *
  * @param[in] args Buffer cbuf and its extent cap [BORROWS].
- * @return      The span, by value.
+ * @return      The span, by value, still aimed at args->cbuf [BORROWS].
+ * @warning Takes cbuf and cap exactly as handed over, with none of the asserts spat_from makes. A
+ *          null cbuf or a zero cap still builds, and it is cok that later reports it unusable. A cap
+ *          reaching past the end of the buffer is the one cok cannot see, and it reads as usable.
  */
 MMGR_INLINE mmgr_cspan spat_cfrom(const SpatiumCtx *args)
 {
@@ -106,6 +115,10 @@ MMGR_INLINE mmgr_bool spat_cok(const SpatiumCtx *args)
  * @brief Returns the span at args->at to its start and clears its overflow.
  *
  * @param[in,out] args Span to rewind, as args->at [BORROWS].
+ * @warning at is written through with no check of its own, so it has to point at a live span. The
+ *          const on the pack covers the pack, not the span at the far end of at.
+ * @note Rewinds the span only. The bytes it covers are left exactly as they were, so a reset span
+ *       hands out storage that still holds whatever the last fill wrote.
  */
 MMGR_INLINE void spat_reset(const SpatiumCtx *args)
 {
@@ -137,6 +150,10 @@ MMGR_INLINE mmgr_span spat_failed(void)
  *
  * @param[in] args Span to walk, as args->s, and the bytes to skip as args->n [BORROWS].
  * @return      A span over what is left, or a failed span when args->n is past cap.
+ * @note The span that comes back starts inside the same buffer args->s covers [BORROWS]. It is a
+ *       second view of those bytes, not a copy of them, and writes through either one are seen by
+ *       both. pos comes forward with it, rebased to the new start and resting at 0 once the skip
+ *       has passed it.
  */
 MMGR_INLINE mmgr_span spat_after(const SpatiumCtx *args)
 {
@@ -158,6 +175,9 @@ MMGR_INLINE mmgr_span spat_after(const SpatiumCtx *args)
  *
  * @param[in] args Span to narrow, as args->s, and the bytes to keep as args->n [BORROWS].
  * @return      A span over those bytes, or a failed span when args->n is past cap.
+ * @note The span that comes back starts on the same byte args->s starts on [BORROWS], holding a
+ *       shorter cap over the same storage. Both cover the opening bytes, so a fill through one is
+ *       read by the other. pos comes forward, held down to the shorter cap when it sat past it.
  */
 MMGR_INLINE mmgr_span spat_first(const SpatiumCtx *args)
 {
@@ -179,6 +199,9 @@ MMGR_INLINE mmgr_span spat_first(const SpatiumCtx *args)
  *
  * @param[in] args Span to read back, as args->s, and the bytes to cover as args->n [BORROWS].
  * @return      A read span over them, marked err when args->n is past what was written.
+ * @warning The read span points at the fill span's own bytes [BORROWS], and the const on it binds
+ *          this view, not the storage. Filling args->s again moves what the reader sees, so read it
+ *          back before the next fill or copy the bytes out.
  */
 MMGR_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
 {
@@ -199,6 +222,8 @@ MMGR_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
  *
  * @param[in] args Span to read back, as args->s [BORROWS].
  * @return      A read span over its first pos bytes, carrying s's overflow as its err.
+ * @warning Hands back spat_read's span, so it points at args->s's own bytes [BORROWS] and the same
+ *          caution holds: what it covers is whatever the next fill leaves there.
  */
 MMGR_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
 {
@@ -210,6 +235,8 @@ MMGR_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
  *
  * @param[in] ret  Return type of the entry point.
  * @param[in] name Name after the mmgr_spat_ and spat_ prefixes, which the two share.
+ * @param[in] ...  Initializers for the SpatiumCtx literal, written in terms of args. MMGR_CALL zeroes
+ *                 every field left out.
  */
 #define SPAT_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_spat_, spat_, SpatiumCtx, SpatiumCfg, ret, name, __VA_ARGS__)
 
@@ -217,6 +244,8 @@ MMGR_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
  * @brief Binds the same four to GENERIC_ENTRY_V, for the entry that returns nothing.
  *
  * @param[in] name Name after the mmgr_spat_ and spat_ prefixes.
+ * @param[in] ...  The same initializers SPAT_ENTRY takes. No ret here, since the entry this builds
+ *                 returns nothing.
  */
 #define SPAT_ENTRY_V(name, ...) GENERIC_ENTRY_V(mmgr_spat_, spat_, SpatiumCtx, SpatiumCfg, name, __VA_ARGS__)
 

@@ -24,14 +24,14 @@
  */
 typedef struct
 {
-    mmgr_span *w;         /**< Span an append writes into [BORROWS]. */
+    mmgr_span *w;         /**< Span the writing calls target [BORROWS]. */
     mmgr_cspan *r;        /**< Span a take reads from [BORROWS]. */
-    const uint8_t *src;   /**< Bytes raw appends [BORROWS]. */
+    const uint8_t *src;   /**< Bytes raw and mpint_fixed read [BORROWS]. */
     uint64_t *out;        /**< Where take_be stores the value it read [BORROWS]. */
     const uint8_t **blob; /**< Where rd_str points at the run it found [BORROWS]. */
     size_t *blen;         /**< Where rd_str stores that run's length [BORROWS]. */
     uint64_t val;         /**< Value put_be writes. */
-    size_t bytes;         /**< Bytes the call moves. */
+    size_t bytes;         /**< Bytes the call moves, or mpint_fixed's source length. */
     uint8_t byte;         /**< The single byte put appends. */
 } ByteioCtx;
 
@@ -96,6 +96,8 @@ MMGR_INLINE const uint8_t *byteio_take(mmgr_cspan *r, size_t n)
  * @brief Appends args->byte to the span.
  *
  * @param[in,out] args Span and the byte [BORROWS].
+ * @note byteio_claim asks whether the byte fits. It does not on a span with no room, and then the
+ *       byte is dropped and the span's overflow is latched - see the warning there.
  */
 MMGR_INLINE void byteio_put(const ByteioCtx *args)
 {
@@ -112,6 +114,9 @@ MMGR_INLINE void byteio_put(const ByteioCtx *args)
  *
  * @param[in,out] args Span, source and count [BORROWS].
  * @note Reaches memor.cpy rather than walking bytes here, so there is one mover rather than a second.
+ * @note args->src must hold args->bytes readable bytes, and byteio_claim asks whether the span has
+ *       room for them. It does not on a full span, and then nothing is copied and the span's
+ *       overflow is latched - see the warning there.
  */
 MMGR_INLINE void byteio_raw(const ByteioCtx *args)
 {
@@ -131,6 +136,9 @@ MMGR_INLINE void byteio_raw(const ByteioCtx *args)
  *       in the target's own order lays the bytes out most significant first.
  * @note The count selects the stores: eight is one, seven is three, and only an odd final byte is
  *       ever written alone.
+ * @note args->bytes must be 1 to 8, which is what the cast to mmgr_endian_width below rests on.
+ *       byteio_claim asks whether that many fit, and on a span with no room nothing is stored and
+ *       the span's overflow is latched - see the warning there.
  */
 MMGR_INLINE void byteio_put_be(const ByteioCtx *args)
 {
@@ -177,9 +185,12 @@ MMGR_INLINE void byteio_put_be(const ByteioCtx *args)
  * @brief Reads a big endian value of args->bytes at the cursor and advances past it.
  *
  * @param[in,out] args Span, count and where to store the value [BORROWS].
- * @return          MMGR_TRUE when the bytes were there.
+ * @return             MMGR_TRUE when the bytes were there.
  * @note The mirror of the append: the bytes are gathered in the target's own order at the widest
  *       step the count allows, and reversed once at the end.
+ * @note args->bytes must be 1 to 8, which is what the cast to mmgr_endian_width below rests on.
+ *       args->out is written only on MMGR_TRUE, and a span too short to answer is a fact about the
+ *       input rather than a wrong program - see byteio_take.
  */
 MMGR_INLINE mmgr_bool byteio_take_be(const ByteioCtx *args)
 {
@@ -232,10 +243,14 @@ MMGR_INLINE mmgr_bool byteio_take_be(const ByteioCtx *args)
  * @brief Reads a length-prefixed run at the cursor and points args->blob at it.
  *
  * @param[in,out] args Span, and where to report the run [BORROWS].
- * @return          MMGR_TRUE when the length and its run both lay within the span.
+ * @return             MMGR_TRUE when the length and its run both lay within the span.
+ * @note The length ahead of the run is four bytes, big endian, which is what fixes the format.
  * @note The cursor is put back when the run does not fit. A length read that is then not followed by
  *       its payload is not a read at all, and leaving the cursor between the two would give a caller
  *       a position that means nothing.
+ * @warning args->blob is left pointing into the read span itself, not at a copy, so the run is good
+ *          only as long as that buffer is [BORROWS]. Nothing here allocates and nothing frees, and
+ *          args->blob and args->blen are written only on MMGR_TRUE.
  */
 MMGR_INLINE mmgr_bool byteio_rd_str(const ByteioCtx *args)
 {
@@ -247,6 +262,8 @@ MMGR_INLINE mmgr_bool byteio_rd_str(const ByteioCtx *args)
         return MMGR_FALSE;
     }
 
+    // Explicit casts narrow the length to the size_t the span is measured in and args->blen holds. It
+    // was read as four bytes, so it cannot exceed what a 32-bit size_t carries
     const uint8_t *const at = byteio_take(args->r, (size_t)n);
 
     if (at == NULL)
@@ -263,7 +280,9 @@ MMGR_INLINE mmgr_bool byteio_rd_str(const ByteioCtx *args)
  * @brief Right-aligns the integer at args->src into args->w's whole buffer, zero filling ahead of it.
  *
  * @param[in,out] args The integer and its length, and the field [BORROWS].
- * @return          MMGR_TRUE when the integer fits the field.
+ * @return             MMGR_TRUE when the integer fits the field.
+ * @note args->src must hold args->bytes readable bytes. The field is w->cap wide, not args->bytes,
+ *       and a value too wide for it latches the span's overflow and stores nothing.
  * @note Leading zero bytes are skipped before the width is tested, so a value carrying a sign byte
  *       still fits a field of its own size.
  * @note The zero fill covers only what lies ahead of the value, since the copy lands on the rest of
@@ -303,6 +322,9 @@ MMGR_INLINE mmgr_bool byteio_mpint_fixed(const ByteioCtx *args)
  *
  * @param[in] ret  Return type of the entry point.
  * @param[in] name Name after the mmgr_byteio_ and byteio_ prefixes, which the two share.
+ * @param[in] ...  Initializers for the ByteioCtx literal, written in terms of args.
+ * @warning The emitted entry takes a const OctetusCfg * named args and the initializers dereference
+ *          it, so it must not be NULL [BORROWS].
  */
 #define BYTEIO_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_byteio_, byteio_, ByteioCtx, OctetusCfg, ret, name, __VA_ARGS__)
 
@@ -310,6 +332,9 @@ MMGR_INLINE mmgr_bool byteio_mpint_fixed(const ByteioCtx *args)
  * @brief Binds the same four to GENERIC_ENTRY_V, for an entry that returns nothing.
  *
  * @param[in] name Name after the mmgr_byteio_ and byteio_ prefixes, which the two share.
+ * @param[in] ...  Initializers for the ByteioCtx literal, written in terms of args.
+ * @warning The emitted entry takes a const OctetusCfg * named args and the initializers dereference
+ *          it, so it must not be NULL [BORROWS].
  */
 #define BYTEIO_ENTRY_V(name, ...) GENERIC_ENTRY_V(mmgr_byteio_, byteio_, ByteioCtx, OctetusCfg, name, __VA_ARGS__)
 

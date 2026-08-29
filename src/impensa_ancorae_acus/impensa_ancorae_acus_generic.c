@@ -14,6 +14,7 @@
  * @note Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.
  * @note 255 marks the NUL and the space, so neither is ever chosen as a sieve offset.
  * @note Bytes 128 through 255 all carry 107, so no high byte is preferred over another.
+ * @note The entries carry no U suffix; each is within 0 to 255, so the initializer stores it as uint8_t unchanged.
  */
 static const uint8_t s_impensa[256] = {
     255, 136, 136, 136, 136, 136, 136, 136, 136, 163, 199, 136, 136, 136, 136, 136, 136, 136, 136, 136, 136, 136,
