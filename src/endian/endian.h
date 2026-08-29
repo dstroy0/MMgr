@@ -70,7 +70,8 @@ MMGR_NS_LAYOUT(EndianNs, wr, rd, rev);
  *
  * @param[in,out] args Destination, value and width [BORROWS].
  * @return          args->width.
- * @warning args->dst must be writable for args->width bytes.
+ * @warning args->dst must be writable for args->width bytes. Nothing checks it: endian.c hands it to
+ *          proxim.put16, put32 or put64, each of which stores through it with no test.
  * @warning args->width must be one of the mmgr_endian_width enumerators; any other value writes eight bytes.
  */
 size_t mmgr_wr_le(const EndianCfg *args);
