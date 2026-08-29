@@ -25,6 +25,7 @@
 #include "spatium/spatium.h"
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 #include "endian/endian.h"
+#include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 #include "memoria_operor/memoria_operor.h"
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
 #include "verbum_scrutor/verbum_scrutor.h"
@@ -981,6 +982,17 @@ void dbench_run(void)
                       DBENCH_KEEP(ram.pool.owns((const void *)(g_d + g_swap_off))));
 
             DBENCH_OP("pool_praesto", iters, DBENCH_KEEP(ram.pool.octas_praesto()));
+        }
+
+        // The byte cost table, the last entry in the library with no row. It is one indexed load
+        // from 256 bytes of static data, and the five files in that module differ only in what the
+        // data says, so there is nothing in it to be slow. The row exists to say that rather than
+        // to leave it assumed.
+        {
+            const uint32_t iters = 20000u;
+
+            DBENCH_OP("ancorae_cost", iters,
+                      DBENCH_KEEP(MMGR_CALL(ancorae.impensa, AncoraeCfg, .byte = (uint8_t)g_swap_off)));
         }
 
         // The placement decision and the buffer pair, which had no rows because the module they are
