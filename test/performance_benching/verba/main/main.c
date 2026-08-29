@@ -1388,6 +1388,79 @@ static void bench_walk_early(BenchWide *w, int32_t ex)
 }
 
 /**
+ * @brief Powers of ten held exactly in 64 bits, for the walk that applies them a chunk at a time.
+ */
+static const uint64_t BENCH_POW10_U64[19] = {
+    1ull,                  10ull,                 100ull,                1000ull,
+    10000ull,              100000ull,             1000000ull,            10000000ull,
+    100000000ull,          1000000000ull,         10000000000ull,        100000000000ull,
+    1000000000000ull,      10000000000000ull,     100000000000000ull,    1000000000000000ull,
+    10000000000000000ull,  100000000000000000ull, 1000000000000000000ull};
+
+/**
+ * @brief A positive exponent applied as exact powers of ten, as many as it takes.
+ *
+ * @param[in,out] w  The significand and its exponent [BORROWS].
+ * @param[in]     ex The decimal exponent to apply, positive.
+ * @note Ten to the eighteenth is the largest that fits 64 bits, so an exponent above it is applied
+ *       in chunks of eighteen rather than by walking the bits of the wide tables. Each chunk is a
+ *       128 by 64 multiply, which is two of the narrow multiplies; each bit of the walk it replaces
+ *       is a 128 by 128 one, which is four, and there are as many of those as the exponent has bits
+ *       set.
+ */
+static void bench_walk_exact(BenchWide *w, int32_t ex)
+{
+    int32_t left = ex;
+
+    while (left > 0)
+    {
+        const int32_t take = (left > 18) ? 18 : left;
+
+        bench_pow_64(w, BENCH_POW10_U64[take]);
+        left -= take;
+    }
+    w->fe2 += 0;
+}
+
+/**
+ * @brief Checks the chunked powers against the bit walk they would replace.
+ *
+ * @return The number of exponents where the two disagree.
+ * @note Speed is not the only question here. Each application keeps the top 128 bits and records
+ *       the rest as a sticky bit, so chaining more of them accumulates more truncation, and the
+ *       chunked form chains ceil(ex/18) where the walk chains one per set bit. At an exponent of
+ *       forty that is three against two. Whether that changes the significand is not something to
+ *       reason about - it is something to compare, over every exponent either form would be given
+ *       and over several starting significands.
+ */
+static uint32_t pow_is_correct(void)
+{
+    static const uint64_t seeds[5] = {0x8000000000000000ull, 0xFFFFFFFFFFFFFFFFull, 0x9E3779B97F4A7C15ull,
+                                      0x0123456789ABCDEFull, 0xC000000000000000ull};
+    uint32_t bad = 0u;
+
+    for (unsigned which = 0; which < 5u; which++)
+    {
+        for (int32_t ex = 1; ex <= 60; ex++)
+        {
+            BenchWide walked = {seeds[which], 0u, -51, 0u};
+            BenchWide chunked = {seeds[which], 0u, -51, 0u};
+
+            bench_walk_fixed(&walked, ex);
+            bench_walk_exact(&chunked, ex);
+
+            // fe2 is compared as well as the significand: a form that lands the same bits at a
+            // different exponent is not the same number
+            if ((walked.hi != chunked.hi) || (walked.lo != chunked.lo) || (walked.fe2 != chunked.fe2))
+            {
+                bad++;
+            }
+        }
+    }
+    return bad;
+}
+
+/**
  * @brief The two operands the multiply rows use, hidden so neither arm folds.
  */
 static volatile uint64_t g_mul_a = 0x123456789ABCDEFull;
@@ -2218,6 +2291,7 @@ void dbench_run(void)
         // host suite cannot see a path the target assembler selected.
         printf("DB copy_check      disagreements=%u\n", (unsigned)copy_is_correct());
         printf("DB cut_check       disagreements=%u\n", (unsigned)cut_is_correct());
+        printf("DB pow_check       disagreements=%u\n", (unsigned)pow_is_correct());
 
         for (unsigned vi = 0; vi < (sizeof vals / sizeof vals[0]); vi++)
         {
@@ -2632,6 +2706,17 @@ void dbench_run(void)
                       DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
                                             .e2 = -51, .ex = 7, .above = 0u)));
 
+            // One pass on the negative side, which is the path a value below one takes. Against
+            // f:scale, which is the same call at a small positive exponent and so goes through one
+            // exact power of ten, this is the same work through the pow5 tables.
+            DBENCH_OP("f:scale_neg", iters,
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
+                                            .e2 = -51, .ex = -4, .above = 0u)));
+
+            DBENCH_OP("f:scale_neg13", iters,
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
+                                            .e2 = -51, .ex = -13, .above = 0u)));
+
             // The multiply that pass is built out of. Two applications of a power of five run it
             // four times each, so eight of these are what the row above mostly is. The halves are
             // masked out of a 64-bit value and kept there, so each partial product is written as a
@@ -2640,6 +2725,21 @@ void dbench_run(void)
             DBENCH_AB("f:mul", iters, 8u,
                       (bench_mul_wide(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)),
                       (bench_mul_narrow(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)));
+
+            // A positive exponent past what one exact power covers. Twenty is what verba_g asks for
+            // on a value of about a ten thousandth, and it has two bits set, so the walk applies two
+            // wide powers where two narrow ones would do.
+            DBENCH_AB("f:walk20", iters, 8u,
+                      (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
+                       bench_walk_fixed(&g_wide_a, 20), DBENCH_KEEP(g_wide_a.hi)),
+                      (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
+                       bench_walk_exact(&g_wide_b, 20), DBENCH_KEEP(g_wide_b.hi)));
+
+            DBENCH_AB("f:walk40", iters, 8u,
+                      (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
+                       bench_walk_fixed(&g_wide_a, 40), DBENCH_KEEP(g_wide_a.hi)),
+                      (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
+                       bench_walk_exact(&g_wide_b, 40), DBENCH_KEEP(g_wide_b.hi)));
 
             // The power walk at three exponents, testing every step against stopping when the bits
             // run out. A negative exponent is the case that still walks: the exact power of ten
