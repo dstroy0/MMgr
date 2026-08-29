@@ -1348,6 +1348,79 @@ static BenchWide g_wide_b;
 static BenchProduct g_mul_out;
 
 /**
+ * @brief Expands to the constant that replaces the division by ten to the eighth.
+ *
+ * @note The ceiling of two to the ninetieth over ten to the eighth. The approximation only ever
+ *       rounds up, so the quotient is exact while the error accumulated over the input stays under
+ *       one unit, and that holds to ten to the twentieth - past what a uint64_t can hold, so it is
+ *       exact for every value one can be given.
+ */
+#define CUT_MAGIC 0xABCC77118461CEFDull
+
+/**
+ * @brief Expands to what comes off the high word to finish the shift by ninety.
+ */
+#define CUT_SHIFT 26u
+
+/**
+ * @brief Divides by ten to the eighth with a multiply rather than a division.
+ *
+ * @param[in] value Value to cut, up to twenty digits.
+ * @return          value / 100000000.
+ * @note The whole 128-bit product is formed and the quotient taken out of its high word, which is
+ *       the only way to reach a reciprocal this wide without a 128-bit type.
+ */
+static uint64_t cut_magic(uint64_t value)
+{
+    BenchProduct p;
+
+    bench_mul_narrow(value, CUT_MAGIC, &p);
+    return p.hi >> CUT_SHIFT;
+}
+
+/**
+ * @brief Checks the multiply against the division it replaces, on the part itself.
+ *
+ * @return The number of disagreements, which must be zero.
+ * @note A constant derived on a host and then trusted is how a wrong answer gets shipped quietly.
+ *       This walks every power of ten and its neighbours, both sides of the 32-bit boundary, and a
+ *       spread of values between, and compares against the division the target itself performs.
+ */
+static uint32_t cut_is_correct(void)
+{
+    uint32_t bad = 0u;
+    uint64_t probe = 1u;
+
+    for (unsigned k = 0; k < 20u; k++)
+    {
+        const uint64_t around[3] = {probe - 1u, probe, probe + 1u};
+
+        for (unsigned which = 0; which < 3u; which++)
+        {
+            if (cut_magic(around[which]) != (around[which] / POW10_64[8]))
+            {
+                bad++;
+            }
+        }
+        probe *= 10u;
+    }
+
+    uint64_t walk = 7u;
+
+    for (unsigned step = 0; step < 4000u; step++)
+    {
+        if (cut_magic(walk) != (walk / POW10_64[8]))
+        {
+            bad++;
+        }
+        // Wraps on purpose, which spreads the probe across the whole width instead of leaving it in
+        // one decade
+        walk = (walk * 6364136223846793005ull) + 1442695040888963407ull;
+    }
+    return bad;
+}
+
+/**
  * @brief Source and destination for the copy check, with slack for every offset it walks.
  */
 static uint8_t g_check_src[192];
@@ -2079,6 +2152,7 @@ void dbench_run(void)
         // Correctness before any timing. A copy that is wrong is not fast, it is broken, and the
         // host suite cannot see a path the target assembler selected.
         printf("DB copy_check      disagreements=%u\n", (unsigned)copy_is_correct());
+        printf("DB cut_check       disagreements=%u\n", (unsigned)cut_is_correct());
 
         for (unsigned vi = 0; vi < (sizeof vals / sizeof vals[0]); vi++)
         {
@@ -2440,6 +2514,21 @@ void dbench_run(void)
                       DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide,
                                             .cap = sizeof g_wide, .at = 0u, .val = g_g_mant,
                                             .base = 10u, .min = 17u)));
+
+            // What the digit emit costs at the width verba_g asks for, and the cut inside it. The
+            // value is seventeen digits, so it does not fit a uint32_t and emit20 divides it by ten
+            // to the eighth to split it. That divisor is a constant, but a 64-bit division by a
+            // constant is not always a multiply on a 32-bit part, and if it is a libgcc call it is
+            // most of what the emit costs.
+            DBENCH_OP("g:emit", iters, (emit20(g_wide, g_g_mant, 17u), DBENCH_KEEP(g_wide)));
+
+            DBENCH_OP("g:cut", iters, DBENCH_KEEP(g_g_mant / POW10_64[8]));
+
+            // The cut as a division against the cut as a multiply. The whole 128-bit product costs
+            // four multiplies and the division it replaces is one call, so this is not obviously a
+            // win by counting: it is a win or it is not, and the row says which.
+            DBENCH_AB("g:cut_magic", iters, 8u, DBENCH_KEEP(g_g_mant / POW10_64[8]),
+                      DBENCH_KEEP(cut_magic(g_g_mant)));
 
             // The same call at four decimal exponents, which is what separates the pass's fixed
             // cost from what each power of five costs. apply_pow10 runs muto_mul_pow5 once per set
