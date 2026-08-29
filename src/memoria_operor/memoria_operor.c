@@ -358,9 +358,9 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
  *
  * @param[in,out] args Destination, count and the byte to write [BORROWS].
  * @note Builds a word with args->val in every lane, stores whole words, then finishes byte by byte.
- * @note Advances args->dst as it goes, so it points past the fill when it returns.
- * @warning args->dst must be writable for args->bytes. Nothing past the count is written; the word
- *          stores cover a whole number of words and the byte loop finishes what they leave.
+ * @note Advances args->dst as it goes, so it points past the bytes it wrote when it returns.
+ * @warning args->dst must be writable for args->bytes. Nothing past the count is written. The word
+ *          stores cover a whole number of words, and the byte loop finishes what they leave.
  */
 MMGR_INLINE void memor_set(MemorSetCtx *args)
 {
