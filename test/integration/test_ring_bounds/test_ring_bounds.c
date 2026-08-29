@@ -84,7 +84,8 @@ static void do_prime(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = m->buf, .cap = m->cap, .nsegs = NSEGS);
+    (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = m->buf, .capacity = m->cap,
+                    .segment_count = NSEGS);
     if (m->start != 0u)
     {
         (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_side, .bytes = m->start);
@@ -103,7 +104,7 @@ static void do_peek(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes, .off = 0u);
+    MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes, .offset = 0u);
 }
 
 static void do_read(void *v)
@@ -178,7 +179,8 @@ void test_a_drain_stays_inside_the_destination_it_was_given(void)
 {
     needs_the_guard();
 
-    (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_big, .cap = BIG_CAP, .nsegs = NSEGS);
+    (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
+                    .segment_count = NSEGS);
     (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_side, .bytes = BIG_CAP / 2u);
 
     for (size_t n = 1u; n <= SPANS; n++)
@@ -192,8 +194,8 @@ void test_a_drain_stays_inside_the_destination_it_was_given(void)
         none_past("peek", do_peek, &m, n);
 
         // read advances the tail, so the ring is refilled rather than drained across the sweep
-        (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_big, .cap = BIG_CAP,
-                        .nsegs = NSEGS);
+        (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
+                        .segment_count = NSEGS);
         (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_side, .bytes = BIG_CAP / 2u);
 
         none_past("read", do_read, &m, n);
@@ -215,8 +217,8 @@ void test_a_fill_stays_inside_the_source_it_was_given(void)
         m.src = place(n);
         m.bytes = n;
 
-        (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_big, .cap = BIG_CAP,
-                        .nsegs = NSEGS);
+        (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
+                        .segment_count = NSEGS);
 
         none_past("put", do_put, &m, n);
     }

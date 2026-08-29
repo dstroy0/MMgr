@@ -299,24 +299,24 @@ static mmgr_word word_of(const char *s)
 void test_step_word_keeps_going_while_equal(void)
 {
     const char *a = "abcdefghij";
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_GO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(a), .wb = word_of(a), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_GO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a), .word_right = word_of(a), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
                                   "identical words with no terminator say keep going");
 }
 
 void test_step_word_stops_on_a_difference(void)
 {
-        const char *a = "Xbcdefgh";
+    const char *a = "Xbcdefgh";
     const char *b2 = "abcdefgh";
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(a), .wb = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a), .word_right = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
 }
 
 void test_step_word_stops_at_the_terminator(void)
 {
-        static const char a[16] = {0, "b"[0], "c"[0], "d"[0], "e"[0], "f"[0], "g"[0], "h"[0]};
+    static const char a[16] = {0, "b"[0], "c"[0], "d"[0], "e"[0], "f"[0], "g"[0], "h"[0]};
     const char *b2 = "abcdefgh";
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(a), .wb = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a), .word_right = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE),
                                   "the pattern ended first and end_wins says that is a match");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(a), .wb = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a), .word_right = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
                                   "and without end_wins it is not");
 }
 
@@ -324,24 +324,24 @@ void test_step_word_folds_case(void)
 {
     const char *a = "ABCDEFGH";
     const char *b2 = "abcdefgh";
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(a), .wb = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(a), .wb = word_of(b2), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a), .word_right = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a), .word_right = word_of(b2), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
 }
 
 void test_step_byte_covers_the_same_three_verdicts(void)
 {
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = 'a', .cb = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = 'a', .cb = 'b', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = '\0', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = 'x', .ci = MMGR_FALSE, .end_wins = MMGR_TRUE),
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'a', .byte_right = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'a', .byte_right = 'b', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = '\0', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'x', .ci = MMGR_FALSE, .end_wins = MMGR_TRUE),
                                   "the pattern ended and end_wins says that is a match");
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = 'x', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'x', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
 
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = 'A', .cb = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = 'A', .cb = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = '\0', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = 'x', .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = 'x', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A', .byte_right = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A', .byte_right = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = '\0', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'x', .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'x', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
 }
 
 
@@ -507,13 +507,13 @@ void test_ws_and_digit_agree_with_ctype(void)
 void test_step_word_ignoring_case_agrees_on_a_folded_word(void)
 {
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_GO,
-                                  MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of("ABCDEFGH"), .wb = word_of("abcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE),
+                                  MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("ABCDEFGH"), .word_right = word_of("abcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE),
                                   "a whole word of case differences is no difference at all");
 }
 
 void test_step_word_ignoring_case_still_sees_a_real_difference(void)
 {
-        TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of("1bcdefgh"), .wb = word_of("2bcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("1bcdefgh"), .word_right = word_of("2bcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
 }
 
 static const char ENDS_FIRST_A[8] = {'a', 0, 0, 0, 0, 0, 0, 0};
@@ -525,60 +525,60 @@ static const char TIED_B[8] = {'a', 0, 0, 0, 0, 0, 0, 0};
 void test_step_word_ignoring_case_ends_before_a_difference(void)
 {
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES,
-                                  MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(ENDS_FIRST_A), .wb = word_of(ENDS_FIRST_B), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE),
+                                  MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A), .word_right = word_of(ENDS_FIRST_B), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE),
                                   "the end came first, so end_wins never had to decide");
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(ENDS_FIRST_A), .wb = word_of(ENDS_FIRST_B), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A), .word_right = word_of(ENDS_FIRST_B), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
 }
 
 void test_step_word_ignoring_case_ends_in_the_same_lane_as_a_difference(void)
 {
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(TIED_A), .wb = word_of(TIED_B), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A), .word_right = word_of(TIED_B), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE),
                                   "the end takes the tie");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(TIED_A), .wb = word_of(TIED_B), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A), .word_right = word_of(TIED_B), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE),
                                   "the difference takes the tie");
 }
 
 void test_step_word_matching_case_ends_before_a_difference(void)
 {
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(ENDS_FIRST_A), .wb = word_of(ENDS_FIRST_B), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(ENDS_FIRST_A), .wb = word_of(ENDS_FIRST_B), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A), .word_right = word_of(ENDS_FIRST_B), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A), .word_right = word_of(ENDS_FIRST_B), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE));
 }
 
 void test_step_word_matching_case_ends_in_the_same_lane_as_a_difference(void)
 {
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(TIED_A), .wb = word_of(TIED_B), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of(TIED_A), .wb = word_of(TIED_B), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A), .word_right = word_of(TIED_B), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A), .word_right = word_of(TIED_B), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
 }
 
 void test_step_word_of_a_difference_that_beats_the_end(void)
 {
-            TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of("Xbcdefgh"), .wb = word_of("abcdefgh"), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of("1bcdefgh"), .wb = word_of("2bcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("Xbcdefgh"), .word_right = word_of("abcdefgh"), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("1bcdefgh"), .word_right = word_of("2bcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
 }
 
 void test_step_word_of_two_words_that_both_run_on(void)
 {
-        TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of("abcdefgh"), .wb = word_of("abcdefgh"), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .wa = word_of("abcdefgh"), .wb = word_of("abcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("abcdefgh"), .word_right = word_of("abcdefgh"), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("abcdefgh"), .word_right = word_of("abcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
 }
 
 void test_step_byte_over_both_foldings_and_both_endings(void)
 {
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = 'a', .cb = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = 'A', .cb = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = 'A', .cb = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '1', .cb = '2', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'a', .byte_right = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A', .byte_right = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A', .byte_right = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '1', .byte_right = '2', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
 
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = '\0', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = '\0', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
                                   "both ending together is a match either way");
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = '\0', .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = '\0', .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
 
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_TRUE),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_TRUE),
                                   "the pattern ending is a match when the end wins");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
                                   "and is not when it does not");
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .ca = '\0', .cb = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
 }
 
 

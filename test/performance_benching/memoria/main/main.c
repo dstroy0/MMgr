@@ -102,90 +102,91 @@ static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_d[CAP];
 /**
  * @brief The bit writer's byte loop as bitor_put carries it.
  *
- * @param[in,out] w     Writer to append to [BORROWS].
- * @param[in]     val   Bits to write, from the low end.
- * @param[in]     nbits How many.
+ * @param[in,out] writer    Writer to append to [BORROWS].
+ * @param[in]     val       Bits to write, from the low end.
+ * @param[in]     bit_count How many.
  * @note The A arm. Every pass computes how much room the residue leaves, merges it, and then clears
  *       it - but it is cleared at the end of the first pass and never refilled inside the loop, so
  *       from the second byte on the room is always eight and the merge is always with zero.
  */
-static void bitor_put_ref(mmgr_bitor *w, uint64_t val, mmgr_word nbits)
+static void bitor_put_ref(mmgr_bitor *writer, uint64_t val, mmgr_word bit_count)
 {
-    const uint64_t mask = (nbits >= 64u) ? ~(uint64_t)0 : ((UINT64_C(1) << nbits) - 1u);
-    const size_t whole = (size_t)((w->nbits + nbits) / 8u);
+    const uint64_t mask = (bit_count >= 64u) ? ~(uint64_t)0 : ((UINT64_C(1) << bit_count) - 1u);
+    const size_t whole = (size_t)((writer->bit_count + bit_count) / 8u);
     uint64_t work = val & mask;
-    mmgr_word left = nbits;
+    mmgr_word left = bit_count;
 
-    if (whole > (w->cap - w->cnt))
+    if (whole > (writer->cap - writer->bytes_written))
     {
-        w->overflow = MMGR_TRUE;
-        w->nbits = 0;
-        w->residue = 0;
+        writer->overflow = MMGR_TRUE;
+        writer->bit_count = 0;
+        writer->residue = 0;
         return;
     }
 
     for (size_t i = 0; i < whole; i++)
     {
-        const mmgr_word take = 8u - w->nbits;
+        const mmgr_word take = 8u - writer->bit_count;
         const uint8_t chunk = (uint8_t)(work & 0xFFu);
 
         // Explicit casts hold each step at uint8_t; the shift and the or promote away from it
-        w->out[w->cnt + i] = (uint8_t)(w->residue | (uint8_t)(chunk << w->nbits));
+        writer->out[writer->bytes_written + i] = (uint8_t)(writer->residue | (uint8_t)(chunk << writer->bit_count));
         work >>= take;
         left -= take;
-        w->residue = 0;
-        w->nbits = 0;
+        writer->residue = 0;
+        writer->bit_count = 0;
     }
 
     if (left != 0u)
     {
-        // Explicit casts narrow the leftover into the uint8_t residue; left plus w->nbits is under 8
+        // Explicit casts narrow the leftover into the uint8_t residue. left plus writer->bit_count
+        // is under 8
         const uint8_t tail = (uint8_t)(work & ((1u << left) - 1u));
 
-        w->residue = (uint8_t)(w->residue | (uint8_t)(tail << w->nbits));
-        w->nbits += left;
+        writer->residue = (uint8_t)(writer->residue | (uint8_t)(tail << writer->bit_count));
+        writer->bit_count += left;
     }
-    w->cnt += whole;
+    writer->bytes_written += whole;
 }
 
 /**
  * @brief The same bytes with the residue merged once and the rest written straight.
  *
- * @param[in,out] w     Writer to append to [BORROWS].
- * @param[in]     val   Bits to write, from the low end.
- * @param[in]     nbits How many.
+ * @param[in,out] writer    Writer to append to [BORROWS].
+ * @param[in]     val       Bits to write, from the low end.
+ * @param[in]     bit_count How many.
  * @note The B arm. The first byte is the only one the residue reaches, so it is taken on its own
  *       and every byte after it is a mask and a store. The cursor and the value are walked in
  *       locals and written back once, rather than reached through the writer on every pass.
  */
-static void bitor_put_split(mmgr_bitor *w, uint64_t val, mmgr_word nbits)
+static void bitor_put_split(mmgr_bitor *writer, uint64_t val, mmgr_word bit_count)
 {
-    const uint64_t mask = (nbits >= 64u) ? ~(uint64_t)0 : ((UINT64_C(1) << nbits) - 1u);
-    const size_t whole = (size_t)((w->nbits + nbits) / 8u);
+    const uint64_t mask = (bit_count >= 64u) ? ~(uint64_t)0 : ((UINT64_C(1) << bit_count) - 1u);
+    const size_t whole = (size_t)((writer->bit_count + bit_count) / 8u);
     uint64_t work = val & mask;
-    mmgr_word left = nbits;
+    mmgr_word left = bit_count;
 
-    if (whole > (w->cap - w->cnt))
+    if (whole > (writer->cap - writer->bytes_written))
     {
-        w->overflow = MMGR_TRUE;
-        w->nbits = 0;
-        w->residue = 0;
+        writer->overflow = MMGR_TRUE;
+        writer->bit_count = 0;
+        writer->residue = 0;
         return;
     }
 
-    uint8_t *const to = w->out + w->cnt;
+    uint8_t *const to = writer->out + writer->bytes_written;
     size_t index = 0u;
 
     if (whole != 0u)
     {
-        const mmgr_word take = 8u - w->nbits;
+        const mmgr_word take = 8u - writer->bit_count;
 
         // Explicit casts hold each step at uint8_t; the shift and the or promote away from it
-        to[0] = (uint8_t)(w->residue | (uint8_t)((uint8_t)(work & 0xFFu) << w->nbits));
+        to[0] = (uint8_t)(writer->residue | (uint8_t)((uint8_t)(work & 0xFFu) << writer->bit_count));
         work >>= take;
         left -= take;
-        w->residue = 0;
-        w->nbits = 0;
+        writer->residue = 0;
+        writer->bit_count = 0;
         index = 1u;
 
         // Past the first byte the residue is empty and the room is a whole byte, so nothing here
@@ -202,10 +203,10 @@ static void bitor_put_split(mmgr_bitor *w, uint64_t val, mmgr_word nbits)
     {
         const uint8_t tail = (uint8_t)(work & ((1u << left) - 1u));
 
-        w->residue = (uint8_t)(w->residue | (uint8_t)(tail << w->nbits));
-        w->nbits += left;
+        writer->residue = (uint8_t)(writer->residue | (uint8_t)(tail << writer->bit_count));
+        writer->bit_count += left;
     }
-    w->cnt += whole;
+    writer->bytes_written += whole;
 }
 
 /**
@@ -233,12 +234,12 @@ static uint32_t bitor_is_correct(void)
         seed = (seed * 6364136223846793005ull) + 1442695040888963407ull;
     }
 
-    if ((a.cnt != b.cnt) || (a.nbits != b.nbits) || (a.residue != b.residue))
+    if ((a.bytes_written != b.bytes_written) || (a.bit_count != b.bit_count) || (a.residue != b.residue))
     {
         bad++;
     }
 
-    for (size_t index = 0; index < a.cnt; index++)
+    for (size_t index = 0; index < a.bytes_written; index++)
     {
         if (one[index] != two[index])
         {
@@ -551,12 +552,12 @@ static uintptr_t ring_segment_cycle(void)
     size_t idx = 0u;
     uintptr_t seen = 0u;
 
-    if (MMGR_CALL(iteratio_infinita.seg_next, InfinCfg, .ring = &g_ring, .out = &idx))
+    if (MMGR_CALL(iteratio_infinita.seg_next, InfinCfg, .ring = &g_ring, .out_index = &idx))
     {
-        seen |= (uintptr_t)MMGR_CALL(iteratio_infinita.seg_at, InfinCfg, .ring = &g_ring, .idx = idx);
+        seen |= (uintptr_t)MMGR_CALL(iteratio_infinita.seg_at, InfinCfg, .ring = &g_ring, .index = idx);
         MMGR_CALL(iteratio_infinita.seg_publish, InfinCfg, .ring = &g_ring);
     }
-    if (MMGR_CALL(iteratio_infinita.seg_front, InfinCfg, .ring = &g_ring, .out = &idx))
+    if (MMGR_CALL(iteratio_infinita.seg_front, InfinCfg, .ring = &g_ring, .out_index = &idx))
     {
         seen |= idx + 1u;
         MMGR_CALL(iteratio_infinita.seg_release, InfinCfg, .ring = &g_ring);
@@ -582,13 +583,13 @@ static uintptr_t ring_loculus_cycle(void)
         // Explicit cast takes the reported index into the size_t the calls below name it with
         const size_t idx = (size_t)slot;
 
-        if (MMGR_CALL(iteratio_infinita.loculus_hold, InfinCfg, .ring = &g_ring, .idx = idx, .src = g_a,
+        if (MMGR_CALL(iteratio_infinita.loculus_hold, InfinCfg, .ring = &g_ring, .index = idx, .src = g_a,
                       .bytes = RING_SPAN))
         {
             seen |= (uintptr_t)MMGR_CALL(iteratio_infinita.loculus_keepout, InfinCfg, .ring = &g_ring,
-                                         .idx = idx);
-            MMGR_CALL(iteratio_infinita.loculus_drop, InfinCfg, .ring = &g_ring, .idx = idx);
-            MMGR_CALL(iteratio_infinita.loculus_mark, InfinCfg, .ring = &g_ring, .idx = idx);
+                                         .index = idx);
+            MMGR_CALL(iteratio_infinita.loculus_drop, InfinCfg, .ring = &g_ring, .index = idx);
+            MMGR_CALL(iteratio_infinita.loculus_mark, InfinCfg, .ring = &g_ring, .index = idx);
         }
     }
     return seen;
@@ -631,7 +632,7 @@ static uintptr_t ring_peek_mmgr(void)
 {
     (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_a, .bytes = RING_SPAN);
     MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = g_ring_out, .bytes = RING_SPAN,
-              .off = 0u);
+              .offset = 0u);
     MMGR_CALL(iteratio_infinita.consume, InfinCfg, .ring = &g_ring, .bytes = RING_SPAN);
     return (uintptr_t)g_ring_out[0];
 }
@@ -919,7 +920,7 @@ void dbench_run(void)
             const uint32_t iters = 5000u;
 
             (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_ring_buf,
-                            .cap = RING_CAP, .nsegs = RING_SEGS);
+                            .capacity = RING_CAP, .segment_count = RING_SEGS);
             g_hand_head = 0u;
             g_hand_tail = 0u;
 
@@ -949,13 +950,14 @@ void dbench_run(void)
 
             DBENCH_AB("ring_init", iters, 8u,
                       DBENCH_KEEP(MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring,
-                                            .buf = g_ring_buf, .cap = RING_CAP, .nsegs = RING_SEGS)),
+                                            .buf = g_ring_buf, .capacity = RING_CAP,
+                                            .segment_count = RING_SEGS)),
                       DBENCH_KEEP((g_hand_head = 0u, g_hand_tail = 0u, (uintptr_t)1)));
 
             // The two layers a plain ring has no answer for at all, so these are absolute costs
             // rather than comparisons: a segment handshake, and a loculus taken and given back.
             (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_ring_buf,
-                            .cap = RING_CAP, .nsegs = RING_SEGS);
+                            .capacity = RING_CAP, .segment_count = RING_SEGS);
             DBENCH_OP("ring_segment", iters, DBENCH_KEEP(ring_segment_cycle()));
             DBENCH_OP("ring_loculus", iters, DBENCH_KEEP(ring_loculus_cycle()));
         }
@@ -1003,9 +1005,9 @@ void dbench_run(void)
         // each. What a row can say is whether that is what they cost.
         {
             const uint32_t iters = 20000u;
-            PingPong pp;
+            PingPong pingpong;
 
-            MMGR_CALL(exter.pingpong_init, ExternumCfg, .pp = &pp);
+            MMGR_CALL(exter.pingpong_init, ExternumCfg, .pingpong = &pingpong);
 
             // Below the threshold with room in both, which takes internal memory on the first test.
             DBENCH_OP("ext_place_dram", iters,
@@ -1030,13 +1032,13 @@ void dbench_run(void)
                                             .dram_reserve = 8192u)));
 
             DBENCH_OP("ext_pp_fill", iters,
-                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_fill, ExternumCfg, .pp = &pp)));
+                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_fill, ExternumCfg, .pingpong = &pingpong)));
 
             DBENCH_OP("ext_pp_drain", iters,
-                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_drain, ExternumCfg, .pp = &pp)));
+                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_drain, ExternumCfg, .pingpong = &pingpong)));
 
             DBENCH_OP("ext_pp_swap", iters,
-                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_swap, ExternumCfg, .pp = &pp)));
+                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_swap, ExternumCfg, .pingpong = &pingpong)));
         }
 
         // The bit writer, which had no rows anywhere. init and align are a handful of field stores;
@@ -1052,24 +1054,24 @@ void dbench_run(void)
             // is refusing on the overflow latch rather than writing.
             DBENCH_OP("bit_put8", iters,
                       (bw = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
-                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .nbits = 8u),
-                       DBENCH_KEEP(bw.cnt)));
+                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .bit_count = 8u),
+                       DBENCH_KEEP(bw.bytes_written)));
 
             DBENCH_OP("bit_put64", iters,
                       (bw = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
-                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .nbits = 64u),
-                       DBENCH_KEEP(bw.cnt)));
+                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .bit_count = 64u),
+                       DBENCH_KEEP(bw.bytes_written)));
 
             // A width that does not divide into bytes, which is the case the residue exists for.
             DBENCH_OP("bit_put13", iters,
                       (bw = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
-                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .nbits = 13u),
-                       DBENCH_KEEP(bw.cnt)));
+                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .bit_count = 13u),
+                       DBENCH_KEEP(bw.bytes_written)));
 
             DBENCH_OP("bit_align", iters,
                       (bw = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
-                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .nbits = 13u),
-                       MMGR_CALL(bitio.align, BitorumCfg, .writer = &bw), DBENCH_KEEP(bw.cnt)));
+                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .bit_count = 13u),
+                       MMGR_CALL(bitio.align, BitorumCfg, .writer = &bw), DBENCH_KEEP(bw.bytes_written)));
 
             // The loop as written against the residue merged once. Sixty four bits is eight bytes,
             // so seven of the eight passes in the A arm recompute a room of eight and merge with a
@@ -1079,17 +1081,17 @@ void dbench_run(void)
 
             DBENCH_AB("bit_shape64", iters, 8u,
                       (one = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
-                       bitor_put_ref(&one, g_swap_val, 64u), DBENCH_KEEP(one.cnt)),
+                       bitor_put_ref(&one, g_swap_val, 64u), DBENCH_KEEP(one.bytes_written)),
                       (two = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
-                       bitor_put_split(&two, g_swap_val, 64u), DBENCH_KEEP(two.cnt)));
+                       bitor_put_split(&two, g_swap_val, 64u), DBENCH_KEEP(two.bytes_written)));
 
             // And at a width of one byte, where there is no second pass for the split to help and
             // the question is whether taking the first byte on its own costs anything.
             DBENCH_AB("bit_shape8", iters, 1u,
                       (one = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
-                       bitor_put_ref(&one, g_swap_val, 8u), DBENCH_KEEP(one.cnt)),
+                       bitor_put_ref(&one, g_swap_val, 8u), DBENCH_KEEP(one.bytes_written)),
                       (two = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
-                       bitor_put_split(&two, g_swap_val, 8u), DBENCH_KEEP(two.cnt)));
+                       bitor_put_split(&two, g_swap_val, 8u), DBENCH_KEEP(two.bytes_written)));
         }
 
         // take_be's shape against the one its mirror already has. put_be takes the eight byte case

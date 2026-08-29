@@ -145,10 +145,11 @@ MMGR_INLINE size_t carcer_next(const CarcerCellBlock *cellblock, size_t off)
  * @param[in] cellblock Cellblock the cell came from [BORROWS].
  * @param[in] at        First byte of the cell [BORROWS].
  * @return              Offset of its header in the cellblock.
- * @warning at is taken to be a cell of this cellblock and nothing tests that it is. The releases
- *          hand on whatever they were given, so an address from elsewhere yields an offset that
- *          reads bytes which are not a header. mmgr_who_owns_buf bounds an address to the cellblock
- *          but does not say a cell begins there, so it narrows this and does not close it.
+ * @warning at is taken to be a cell of this cellblock and nothing here tests that it is. Both
+ *          releases bound their address with mmgr_who_owns_buf before reaching this, so what arrives
+ *          lies inside the cellblock. That bound does not say a cell begins there, so an address
+ *          inside these bytes but off a cell boundary still yields an offset reading bytes which are
+ *          not a header.
  */
 MMGR_INLINE size_t carcer_off_of(const CarcerCellBlock *cellblock, const void *at)
 {
@@ -509,14 +510,24 @@ void mmgr_zero_buf(void *prisoner, size_t size)
  *       temporary one.
  * @note A NULL prisoner returns without touching the cellblock.
  * @warning prisoner is dead once this returns. The cellblock may hand those bytes out again.
- * @warning Nothing tests that prisoner came from this cellblock. An address from elsewhere is read
- *          as a header and released into a tier it never belonged to.
+ * @warning A prisoner from another cellblock stops the program through MMGR_FATAL. Releasing it here
+ *          would move this cellblock's boundaries using a header read out of another's bytes, and a
+ *          caller that reached this has shown it does not know which cellblock owns that memory.
+ * @warning The bound is the cellblock's storage, not a cell boundary. An address inside these bytes
+ *          that is not the first byte of a cell passes the test and is still read as a header, so
+ *          mmgr_who_owns_buf narrows this and does not close it.
  */
 void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner)
 {
     if (prisoner == NULL)
     {
         return;
+    }
+    // One unsigned compare catches a prisoner from another cellblock. Releasing it is illegal rather
+    // than merely unlucky, so this stops instead of returning: there is no state to carry on from
+    if (!mmgr_who_owns_buf(cellblock, prisoner))
+    {
+        MMGR_FATAL("a prisoner was released to a cellblock that does not hold it");
     }
 
     const size_t off = carcer_off_of(cellblock, prisoner);
@@ -560,15 +571,24 @@ void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner)
  * @note The extent comes from the cell's own header, so a caller cannot under-zero a cell.
  * @note A NULL prisoner returns without touching the cellblock.
  * @warning prisoner is dead once this returns. The cellblock may hand those bytes out again.
- * @warning Nothing tests that prisoner came from this cellblock, and the extent is read from the
- *          bytes lying ahead of it. An address from elsewhere is zeroed for whatever length those
- *          bytes happen to hold.
+ * @warning A prisoner from another cellblock stops the program through MMGR_FATAL, ahead of the
+ *          zeroing. Returning quietly instead would leave the caller believing bytes were wiped that
+ *          were not, which is the failure this security level exists to prevent.
+ * @warning The bound is the cellblock's storage, not a cell boundary. An address inside these bytes
+ *          that is not the first byte of a cell passes the test, has its extent read from the bytes
+ *          lying ahead of it, and is zeroed for whatever length those hold.
  */
 void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *prisoner)
 {
     if (prisoner == NULL)
     {
         return;
+    }
+    // The same test as the plain release, taken ahead of the header read below. A quiet return here
+    // would report a wipe that never happened, so this stops instead
+    if (!mmgr_who_owns_buf(cellblock, prisoner))
+    {
+        MMGR_FATAL("a prisoner was released to a maximum security cellblock that does not hold it");
     }
 
     const CarcerCell *const walk = carcer_blk(cellblock, carcer_off_of(cellblock, prisoner));
@@ -598,13 +618,21 @@ size_t mmgr_temporary_buf_mark(const CarcerCellBlock *cellblock)
  * @param[in,out] cellblock Cellblock to rewind [BORROWS].
  * @param[in]     mark      Top to restore, as mmgr_temporary_buf_mark reported it.
  * @note Drops every cell the tier allocated since that mark in one step, without walking them.
- * @warning The top is assigned, not tested. A mark this cellblock never reported, or one past its
- *          size, is taken as given and moves the tier there.
+ * @note A mark past the cellblock's size, or below the current top, is one this cellblock never
+ *       reported, and either returns without moving the tier.
+ * @warning The two tests bound the mark to the cellblock. They do not tell one of its own marks from
+ *          another, so an older mark still releases every cell taken since it.
  * @warning Every temporary cell taken since mark is dead once this returns. Nothing is zeroed, so
  *          such a pointer still dereferences and reads whatever the next allocation puts there.
  */
 void mmgr_temporary_buf_release(CarcerCellBlock *cellblock, size_t mark)
 {
+    // Two compares: a mark past the cellblock's own bytes, and one below the current top, are both
+    // marks this cellblock never handed out. Either would put the tier where it does not reach
+    if ((mark > cellblock->size) || (mark < cellblock->temporary_top))
+    {
+        return;
+    }
     cellblock->temporary_top = mark;
 }
 
@@ -618,8 +646,9 @@ void mmgr_temporary_buf_release(CarcerCellBlock *cellblock, size_t mark)
  *       them.
  * @note The extent comes from the two tops rather than a cell header, so a run of allocations is
  *       cleared in one pass and a caller cannot under-zero by naming fewer bytes than it holds.
- * @warning The zeroing is guarded and the restore is not. A mark that is not above the current top,
- *          or that lies past the cellblock's size, rewinds the tier with nothing zeroed.
+ * @note The zeroing and the restore now agree on which marks they accept. A mark past the
+ *       cellblock's size zeroes nothing and moves nothing, since mmgr_temporary_buf_release turns it
+ *       away too. A mark equal to the current top zeroes nothing and restores the top to itself.
  * @warning The top is read once, ahead of the zeroing. An allocation from a preempting handler
  *          landing between that read and the restore is dropped unzeroed, since the extent was
  *          settled from the older top.

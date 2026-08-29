@@ -223,12 +223,25 @@ MMGR_INLINE void muto_mul_pow5(MutoCtx *args)
  *       exponent is within the table and otherwise in chunks of the largest, rather than walking
  *       the pow5 tables a set bit at a time.
  */
-static const mmgr_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {
-    1ull,                  10ull,                 100ull,                1000ull,
-    10000ull,              100000ull,             1000000ull,            10000000ull,
-    100000000ull,          1000000000ull,         10000000000ull,        100000000000ull,
-    1000000000000ull,      10000000000000ull,     100000000000000ull,    1000000000000000ull,
-    10000000000000000ull,  100000000000000000ull, 1000000000000000000ull};
+static const mmgr_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {1ull,
+                                                                        10ull,
+                                                                        100ull,
+                                                                        1000ull,
+                                                                        10000ull,
+                                                                        100000ull,
+                                                                        1000000ull,
+                                                                        10000000ull,
+                                                                        100000000ull,
+                                                                        1000000000ull,
+                                                                        10000000000ull,
+                                                                        100000000000ull,
+                                                                        1000000000000ull,
+                                                                        10000000000000ull,
+                                                                        100000000000000ull,
+                                                                        1000000000000000ull,
+                                                                        10000000000000000ull,
+                                                                        100000000000000000ull,
+                                                                        1000000000000000000ull};
 
 /**
  * @brief Multiplies the 128-bit significand by one exact 64-bit power of ten, then renormalizes.

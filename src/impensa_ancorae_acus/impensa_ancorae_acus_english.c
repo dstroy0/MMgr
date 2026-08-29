@@ -2,9 +2,12 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file impensa_ancorae_acus_english.c
  * @brief Byte cost table weighted for English text.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
- * @note One of five files defining mmgr_ancorae_impensa; a build links exactly one of them.
+ * @note One of five files defining mmgr_ancorae_impensa. A build links exactly one of them.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
@@ -12,7 +15,8 @@
  * @brief Cost of each byte value, indexed by the byte itself.
  *
  * @note Lower means rarer in this corpus, and cellul_pick_rows keeps the lowest cost it finds.
- * @note The floor is 1; the ceiling 255 sits on the NUL and the space, so neither is ever chosen as a sieve offset.
+ * @note The floor is 1. The ceiling 255 sits on the NUL and the space, so neither is ever chosen as a
+ *       sieve offset.
  */
 static const uint8_t s_impensa[256] = {
     255, 1,   1,   1,   1,   1,   1,   1,   1,   134, 191, 1,   1,   145, 1,   1,   1,   1,   1,   1,   1,   1,
@@ -42,7 +46,7 @@ typedef struct
  * @brief Returns the table entry for args->byte.
  *
  * @param[in] args Byte to look up [BORROWS].
- * @return      The cost, 1 through 255.
+ * @return         The cost, 1 through 255.
  * @note The table holds 256 entries, so every uint8_t value indexes it in range.
  */
 MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)

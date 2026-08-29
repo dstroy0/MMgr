@@ -4,6 +4,13 @@
 /**
  * @file ascii_persona_bitorum.c
  * @brief ASCII class membership, read from the 128-bit s_class bitmaps.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
+ *
+ * @note The whole module is one table lookup. The bitmaps are emitted as initialized data, so
+ *       nothing runs before main and a membership test costs a shift, a mask and a compare whatever
+ *       the class covers.
+ * @note Reaches nothing outside config.
  */
 #include "ascii_persona_bitorum/ascii_persona_bitorum.h"
 
@@ -67,20 +74,23 @@ MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *args)
 
     const MmgrAsciiMask *const entry = &s_class[args->kind];
 
-    // The byte test comes first and && stops there: a byte of 0x80 or above would index b[16] or
+    // The byte test comes first and && stops there. A byte of 0x80 or above would index bits[16] or
     // past it, outside the sixteen the mask holds. Explicit cast narrows the int result of && to
     // the mmgr_bool container
-    return (mmgr_bool)((args->byte < 0x80u) && (((entry->b[args->byte >> 3] >> (args->byte & 7u)) & 1u) != 0u));
+    return (mmgr_bool)((args->byte < 0x80u) && (((entry->bits[args->byte >> 3] >> (args->byte & 7u)) & 1u) != 0u));
 }
 
 /**
  * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
  *
- * @param[in] ret  Return type of the entry point.
- * @param[in] name Name after the mmgr_ascii_ and ascii_ prefixes, which the two share.
- * @param[in] ...  Initializers for the AsciiCtx literal, written in terms of args.
+ * @param[in] ReturnType_ Return type of the entry point.
+ * @param[in] name_       Name after the mmgr_ascii_ and ascii_ prefixes, which the two share.
+ * @param[in] ...         Initializers for the AsciiCtx literal, written in terms of args.
+ * @note Four of GENERIC_ENTRY's six arguments are the same at every entry in this module, so they
+ *       are bound once here and each entry below states only what differs.
  */
-#define ASCII_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_ascii_, ascii_, AsciiCtx, AsciiCfg, ret, name, __VA_ARGS__)
+#define ASCII_ENTRY(ReturnType_, name_, ...)                                                                           \
+    GENERIC_ENTRY(mmgr_ascii_, ascii_, AsciiCtx, AsciiCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.

@@ -23,24 +23,24 @@ static void fresh(void)
     {
         g_buf[i] = 0u;
     }
-    TEST_ASSERT_TRUE(MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .cap = CAP,
-                               .nsegs = NSEGS));
+    TEST_ASSERT_TRUE(MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .capacity = CAP,
+                               .segment_count = NSEGS));
 }
 
 void test_init_refuses_bad_sizes(void)
 {
-    TEST_ASSERT_FALSE(
-        MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .cap = 0u, .nsegs = NSEGS));
-    TEST_ASSERT_FALSE(
-        MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .cap = 48u, .nsegs = NSEGS));
-    TEST_ASSERT_FALSE(
-        MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .cap = CAP, .nsegs = 0u));
-    TEST_ASSERT_FALSE(
-        MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .cap = CAP, .nsegs = 3u));
-    TEST_ASSERT_FALSE(
-        MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .cap = CAP, .nsegs = CAP * 2u));
-    TEST_ASSERT_TRUE(
-        MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .cap = CAP, .nsegs = NSEGS));
+    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .capacity = 0u,
+                                .segment_count = NSEGS));
+    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .capacity = 48u,
+                                .segment_count = NSEGS));
+    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .capacity = CAP,
+                                .segment_count = 0u));
+    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .capacity = CAP,
+                                .segment_count = 3u));
+    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .capacity = CAP,
+                                .segment_count = CAP * 2u));
+    TEST_ASSERT_TRUE(MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_buf, .capacity = CAP,
+                               .segment_count = NSEGS));
 }
 
 void test_init_starts_empty_with_every_loculus_free(void)
@@ -151,14 +151,14 @@ void test_peek_leaves_the_tail_and_consume_moves_it(void)
 
     TEST_ASSERT_TRUE(MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_src, .bytes = 16u));
 
-    MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = g_dst, .bytes = 8u, .off = 0u);
+    MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = g_dst, .bytes = 8u, .offset = 0u);
     TEST_ASSERT_EQUAL_HEX8_ARRAY(g_src, g_dst, 8u);
     TEST_ASSERT_EQUAL_size_t(16u, MMGR_CALL(iteratio_infinita.available, InfinCfg, .ring = &g_ring));
 
     MMGR_CALL(iteratio_infinita.consume, InfinCfg, .ring = &g_ring, .bytes = 8u);
     TEST_ASSERT_EQUAL_size_t(8u, MMGR_CALL(iteratio_infinita.available, InfinCfg, .ring = &g_ring));
 
-    MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = g_dst, .bytes = 8u, .off = 0u);
+    MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = g_dst, .bytes = 8u, .offset = 0u);
     TEST_ASSERT_EQUAL_HEX8_ARRAY(&g_src[8], g_dst, 8u);
 }
 
@@ -173,7 +173,7 @@ void test_peek_holds_a_request_above_capacity(void)
         g_dst[i] = 0xA5u;
     }
 
-    MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = g_dst, .bytes = CAP * 3u, .off = 0u);
+    MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = g_dst, .bytes = CAP * 3u, .offset = 0u);
 
     for (size_t i = CAP; i < sizeof g_dst; i++)
     {
@@ -218,24 +218,24 @@ void test_hold_takes_a_loculus_and_drop_returns_it(void)
 
     TEST_ASSERT_EQUAL_INT(0, (int)pick);
 
-    TEST_ASSERT_TRUE(MMGR_CALL(iteratio_infinita.loculus_hold, InfinCfg, .ring = &g_ring, .idx = 0u, .src = g_src,
-                               .bytes = 12u));
-    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.loculus_hold, InfinCfg, .ring = &g_ring, .idx = 0u, .src = g_src,
-                                .bytes = 12u));
+    TEST_ASSERT_TRUE(MMGR_CALL(iteratio_infinita.loculus_hold, InfinCfg, .ring = &g_ring, .index = 0u,
+                               .src = g_src, .bytes = 12u));
+    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.loculus_hold, InfinCfg, .ring = &g_ring, .index = 0u,
+                                .src = g_src, .bytes = 12u));
 
     const mmgr_word held = MMGR_CALL(iteratio_infinita.loculus_ready, InfinCfg, .ring = &g_ring);
 
     TEST_ASSERT_EQUAL_UINT(0u, (unsigned)(held & (mmgr_word)1));
 
     const mmgr_ring_span *const k =
-        MMGR_CALL(iteratio_infinita.loculus_keepout, InfinCfg, .ring = &g_ring, .idx = 0u);
+        MMGR_CALL(iteratio_infinita.loculus_keepout, InfinCfg, .ring = &g_ring, .index = 0u);
 
     TEST_ASSERT_NOT_NULL(k);
     TEST_ASSERT_EQUAL_PTR(g_src, k->buf);
-    TEST_ASSERT_EQUAL_size_t(12u, k->cap);
-    TEST_ASSERT_EQUAL_size_t(0u, k->pos);
+    TEST_ASSERT_EQUAL_size_t(12u, k->bytes);
+    TEST_ASSERT_EQUAL_size_t(0u, k->read_offset);
 
-    MMGR_CALL(iteratio_infinita.loculus_drop, InfinCfg, .ring = &g_ring, .idx = 0u);
+    MMGR_CALL(iteratio_infinita.loculus_drop, InfinCfg, .ring = &g_ring, .index = 0u);
     TEST_ASSERT_EQUAL_UINT((unsigned)before,
                            (unsigned)MMGR_CALL(iteratio_infinita.loculus_ready, InfinCfg, .ring = &g_ring));
 }
@@ -244,10 +244,10 @@ void test_hold_refuses_a_loculus_that_does_not_exist(void)
 {
     fresh();
 
-    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.loculus_hold, InfinCfg, .ring = &g_ring, .idx = MMGR_RING_LOCULI,
-                                .src = g_src, .bytes = 4u));
+    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.loculus_hold, InfinCfg, .ring = &g_ring,
+                                .index = MMGR_RING_LOCULI, .src = g_src, .bytes = 4u));
     TEST_ASSERT_NULL(
-        MMGR_CALL(iteratio_infinita.loculus_keepout, InfinCfg, .ring = &g_ring, .idx = MMGR_RING_LOCULI));
+        MMGR_CALL(iteratio_infinita.loculus_keepout, InfinCfg, .ring = &g_ring, .index = MMGR_RING_LOCULI));
 }
 
 void test_segments_publish_and_release_in_order(void)
@@ -256,21 +256,21 @@ void test_segments_publish_and_release_in_order(void)
 
     size_t idx = 99u;
 
-    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.seg_front, InfinCfg, .ring = &g_ring, .out = &idx));
+    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.seg_front, InfinCfg, .ring = &g_ring, .out_index = &idx));
 
     for (size_t i = 0; i < NSEGS; i++)
     {
-        TEST_ASSERT_TRUE(MMGR_CALL(iteratio_infinita.seg_next, InfinCfg, .ring = &g_ring, .out = &idx));
+        TEST_ASSERT_TRUE(MMGR_CALL(iteratio_infinita.seg_next, InfinCfg, .ring = &g_ring, .out_index = &idx));
         TEST_ASSERT_EQUAL_size_t(i, idx);
         MMGR_CALL(iteratio_infinita.seg_publish, InfinCfg, .ring = &g_ring);
     }
 
-    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.seg_next, InfinCfg, .ring = &g_ring, .out = &idx));
+    TEST_ASSERT_FALSE(MMGR_CALL(iteratio_infinita.seg_next, InfinCfg, .ring = &g_ring, .out_index = &idx));
     TEST_ASSERT_EQUAL_size_t(NSEGS, MMGR_CALL(iteratio_infinita.seg_inflight, InfinCfg, .ring = &g_ring));
 
     for (size_t i = 0; i < NSEGS; i++)
     {
-        TEST_ASSERT_TRUE(MMGR_CALL(iteratio_infinita.seg_front, InfinCfg, .ring = &g_ring, .out = &idx));
+        TEST_ASSERT_TRUE(MMGR_CALL(iteratio_infinita.seg_front, InfinCfg, .ring = &g_ring, .out_index = &idx));
         TEST_ASSERT_EQUAL_size_t(i, idx);
         MMGR_CALL(iteratio_infinita.seg_release, InfinCfg, .ring = &g_ring);
     }
@@ -283,7 +283,7 @@ void test_seg_at_walks_the_buffer(void)
 
     for (size_t i = 0; i < NSEGS; i++)
     {
-        const uint8_t *const at = MMGR_CALL(iteratio_infinita.seg_at, InfinCfg, .ring = &g_ring, .idx = i);
+        const uint8_t *const at = MMGR_CALL(iteratio_infinita.seg_at, InfinCfg, .ring = &g_ring, .index = i);
 
         TEST_ASSERT_EQUAL_PTR(&g_buf[i * (CAP / NSEGS)], at);
     }

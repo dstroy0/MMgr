@@ -42,7 +42,7 @@ void setUp(void)
 {
     memset(ring_buf, POISON, sizeof ring_buf);
     memset(out, POISON, sizeof out);
-    (void)iteratio_infinita.init(&(InfinCfg){.ring = &ring, .buf = ring_buf, .cap = CAP, .nsegs = SEGS});
+    (void)iteratio_infinita.init(&(InfinCfg){.ring = &ring, .buf = ring_buf, .capacity = CAP, .segment_count = SEGS});
     g_state = 1u;
     g_esc = 0u;
     g_dest = out;
@@ -87,7 +87,7 @@ static size_t avail(void)
 static uint8_t at(size_t off)
 {
     uint8_t b = 0;
-    iteratio_infinita.peek(&(InfinCfg){.ring = &ring, .dst = &b, .bytes = 1u, .off = off});
+    iteratio_infinita.peek(&(InfinCfg){.ring = &ring, .dst = &b, .bytes = 1u, .offset = off});
     return b;
 }
 

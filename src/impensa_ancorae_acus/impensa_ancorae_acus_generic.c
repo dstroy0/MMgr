@@ -2,9 +2,12 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
- * @brief Byte cost table with no floor at 1; every byte value carries a cost.
+ * @file impensa_ancorae_acus_generic.c
+ * @brief Byte cost table with no floor at 1, where every byte value carries a cost.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
- * @note One of five files defining mmgr_ancorae_impensa; a build links exactly one of them.
+ * @note One of five files defining mmgr_ancorae_impensa. A build links exactly one of them.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
@@ -44,7 +47,7 @@ typedef struct
  * @brief Returns the table entry for args->byte.
  *
  * @param[in] args Byte to look up [BORROWS].
- * @return      The cost, 53 through 255 in this table.
+ * @return         The cost, 53 through 255 in this table.
  * @note The table holds 256 entries, so every uint8_t value indexes it in range.
  */
 MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)

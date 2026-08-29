@@ -4,10 +4,15 @@
 /**
  * @file cellularum_laboro.h
  * @brief Bounded string work: the three argument types, the calls, and the cellul dispatch table.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
- * @note The calls taking CatenaFinitaCfg are bounded by a cap the caller states, so no walk runs past
- *       it even where the bytes carry no terminator. ws and digit are the exception: they read src at
- *       at and never consult cap.
+ * @note The calls taking CatenaFinitaCfg are bounded by a cap the caller states, so no walk runs
+ *       past it even where the bytes carry no terminator. That bound is what makes these usable
+ *       where a libc string call is not, since a missing terminator stops a walk rather than
+ *       running it off the end.
+ * @note ws and digit are the exception. Each reads the single byte at args->at and never consults
+ *       cap, because a one byte test has nothing to run past.
  * @note The TransfiguroCfg conversions carry no bound at all. Each reads until the first byte that is
  *       not part of the number, so the caller owes them such a byte inside readable storage; a
  *       terminator is the usual one.
@@ -93,16 +98,17 @@ typedef struct
 /**
  * @brief Arguments for the single-step compares used to drive a walk.
  *
- * @note step_word reads wa and wb; step_byte reads ca and cb.
+ * @note step_word reads word_left and word_right. step_byte reads byte_left and byte_right.
+ * @note Both operands come by value, so neither call reads memory and neither needs a bound.
  */
 typedef struct
 {
-    const mmgr_word wa;       /**< First word for step_word. */
-    const mmgr_word wb;       /**< Second word for step_word. */
-    const uint8_t ca;         /**< First byte for step_byte. */
-    const uint8_t cb;         /**< Second byte for step_byte. */
-    const mmgr_bool ci;       /**< Fold case before comparing. */
-    const mmgr_bool end_wins; /**< A terminator in the same lane counts as a match. */
+    const mmgr_word word_left;  /**< First word for step_word. */
+    const mmgr_word word_right; /**< Second word for step_word. */
+    const uint8_t byte_left;    /**< First byte for step_byte. */
+    const uint8_t byte_right;   /**< Second byte for step_byte. */
+    const mmgr_bool ci;         /**< Fold case before comparing. */
+    const mmgr_bool end_wins;   /**< A terminator in the same lane counts as a match. */
 } VerboProgrediorCfg;
 
 /**

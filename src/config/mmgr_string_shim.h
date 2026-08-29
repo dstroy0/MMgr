@@ -4,10 +4,18 @@
 /**
  * @file mmgr_string_shim.h
  * @brief Redirects the <string.h> names onto MMgr's bounded implementations.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
- * @note Defines the usual <string.h> include guards, so a later #include <string.h> contributes nothing.
- * @warning strcmp, strcasecmp, strncmp and strncasecmp report equality only and never order.
- * @warning Including this header changes the meaning of those names for the whole translation unit.
+ * @note For code already written against <string.h> that has to run where there is no libc, or
+ *       where an unbounded read is not acceptable. The call sites do not change; what the names
+ *       mean does.
+ * @note Defines the usual <string.h> include guards, so a later #include <string.h> contributes
+ *       nothing and the real declarations never arrive to conflict with these.
+ * @warning strcmp, strcasecmp, strncmp and strncasecmp report equality only and never order. Code
+ *          that sorts with them is wrong here and compiles anyway.
+ * @warning Including this header changes the meaning of those names for the whole translation unit,
+ *          including in headers it includes afterwards.
  */
 #ifndef MMGR_STRING_SHIM_H
 #define MMGR_STRING_SHIM_H
@@ -20,12 +28,23 @@
  * @brief Read bound applied to the <string.h> names that take no length of their own.
  *
  * @note Defaults to MMGR_CARCER_MAX, the largest confinium a string can occupy.
+ * @note A build that sets its own is checked below. Setting it above both confinium sizes would let
+ *       the six unbounded shims read past the largest confinium the build declares, so that fails
+ *       here rather than at the first call site.
  * @warning The six shims below that take no limit of their own - strlen, strstr, strcasestr, strcmp,
  *          strcasecmp and strchr - stop at this many bytes even without a terminator.
+ * @warning An override has to be an expression the preprocessor can evaluate, so no cast and no
+ *          sizeof. The check below is a #if, which cannot expand either.
  */
 #ifndef MMGR_STR_MAX
 
 #define MMGR_STR_MAX MMGR_CARCER_MAX
+#else
+// Tested against the two sizes rather than MMGR_CARCER_MAX, whose size_t cast a #if cannot evaluate.
+// Above both of them is above their larger, which is what MMGR_CARCER_MAX is
+#if (MMGR_STR_MAX > MMGR_PLAINTEXT_CONFIN_SIZE) && (MMGR_STR_MAX > MMGR_SECURE_CONFIN_SIZE)
+#error "MMGR_STR_MAX exceeds both confinium sizes - lower it, or raise the one that bounds your strings"
+#endif
 #endif
 
 /**
@@ -81,8 +100,8 @@ MMGR_INLINE void *mmgr_shim_cpy(void *dest, const void *source, size_t bytes)
  */
 MMGR_INLINE void *mmgr_shim_move(void *dest, const void *source, size_t bytes)
 {
-    // a relational test wants both sides to point at a complete object type, and void is not one, so
-    // both are cast to a byte address to pick the direction the copy walks
+    // Explicit casts to a byte address, because a relational test wants both sides pointing at a
+    // complete object type and void is not one. The comparison picks which way the copy walks
     if ((const uint8_t *)dest <= (const uint8_t *)source)
     {
         MMGR_CALL(memor.move_down, MemoriaCfg, .dst = dest, .src = source, .bytes = bytes);
@@ -149,11 +168,16 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 
 /**
  * @brief Replaces memmove with mmgr_shim_move.
+ *
+ * @note Every argument is parenthesized, as in the memcpy shim.
  */
 #define memmove(dest, source, bytes) mmgr_shim_move((dest), (source), (bytes))
 
 /**
  * @brief Replaces memset with mmgr_shim_set.
+ *
+ * @note value reaches mmgr_shim_set as mmgr_iword and is narrowed there, which is the signature the
+ *       real memset has and the reason the shim takes a word rather than a byte.
  */
 #define memset(dest, value, bytes) mmgr_shim_set((dest), (value), (bytes))
 
@@ -166,6 +190,9 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 
 /**
  * @brief Replaces memchr with mmgr_shim_chr.
+ *
+ * @note The only one of the five mem shims that is bounded by its own argument rather than by a
+ *       terminator, so it needs no MMGR_STR_MAX and cannot stop short of what it was asked for.
  */
 #define memchr(region, value, bytes) mmgr_shim_chr((region), (value), (bytes))
 

@@ -50,8 +50,8 @@ static void report(const char *impl, const char *name, size_t bytes, double cycl
 
 static void mmgr_reset(void)
 {
-    (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_mmgr_ring, .buf = g_mmgr_buf, .cap = CAP,
-                    .nsegs = NSEGS);
+    (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_mmgr_ring, .buf = g_mmgr_buf, .capacity = CAP,
+                    .segment_count = NSEGS);
 }
 
 static void proto_reset(void)
@@ -117,7 +117,7 @@ static void mmgr_fill(void)
                                                                                                                        \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_mmgr_ring, .dst = g_dst, .bytes = (N),              \
-                      .off = (size_t)(bench_i_ & 63u));                                                                \
+                      .offset = (size_t)(bench_i_ & 63u));                                                             \
             BENCH_KEEP(g_dst[0]);                                                                                      \
         });                                                                                                            \
         report("mmgr", "peek", (N), cy_);                                                                              \
