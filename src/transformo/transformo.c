@@ -284,15 +284,19 @@ MMGR_INLINE void muto_apply_pow10(MutoCtx *args)
         return;
     }
 
-    const mmgr_iword k = (args->ex < 0) ? (mmgr_iword)(-args->ex) : args->ex;
+    mmgr_iword k = (args->ex < 0) ? (mmgr_iword)(-args->ex) : args->ex;
 
-    for (mmgr_iword i = 0; i < MMGR_POW5_STEPS; ++i)
+    // Still bounded by the step count, so an exponent past the tables loses its high bits exactly as
+    // it did rather than reading off the end, and now also stopped once nothing is left in k, which
+    // for a small exponent is most of the nine steps and for a zero one is all of them
+    for (mmgr_iword i = 0; (i < MMGR_POW5_STEPS) && (k != 0); ++i)
     {
-        if (((k >> i) & 1) != 0)
+        if ((k & 1) != 0)
         {
             args->pow = (args->ex < 0) ? &mmgr_pow5_down[i] : &mmgr_pow5_up[i];
             muto_mul_pow5(args);
         }
+        k >>= 1;
     }
     args->fe2 += args->ex;
 }

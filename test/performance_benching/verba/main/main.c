@@ -111,6 +111,14 @@ static volatile size_t g_zero_n = 6u;
  *       digit rows are given those directly, so they write the same digits the entry writes.
  */
 static volatile double g_rec_real2 = 3.14159265358979;
+
+/**
+ * @brief A value below one, whose decimal exponent is negative.
+ *
+ * @note The exact power of ten path covers small positive exponents only, so this one reaches the
+ *       pow5 walk instead, which is the half of the pass the pi rows never touch.
+ */
+static volatile double g_rec_small = 0.000123456789012345;
 static volatile uint64_t g_fix_ip = 3u;
 static volatile uint64_t g_fix_frac = 141593u;
 
@@ -122,6 +130,11 @@ static volatile uint64_t g_fix_frac = 141593u;
  *       reload the entry does not perform.
  */
 static uint64_t g_fix_rem = 0x121FB54442D18ull;
+
+/**
+ * @brief A zero mantissa, which the scaling pass answers before it does any work.
+ */
+static uint64_t g_fix_zero = 0u;
 
 /**
  * @brief The seventeen significant digits verba_g writes for that value, as one integer.
@@ -1323,6 +1336,58 @@ static void bench_pow_64(BenchWide *w, uint64_t g)
 }
 
 /**
+ * @brief The power walk as apply_pow10 performs it: every step tested, always.
+ *
+ * @param[in,out] w  The significand and its exponent [BORROWS].
+ * @param[in]     ex The decimal exponent to apply.
+ * @note The A arm. The loop runs MMGR_POW5_STEPS times whatever the exponent is, so an exponent of
+ *       zero still walks nine iterations testing bits that are not there.
+ */
+static void bench_walk_fixed(BenchWide *w, int32_t ex)
+{
+    const int32_t k = (ex < 0) ? -ex : ex;
+
+    for (int32_t i = 0; i < MMGR_POW5_STEPS; ++i)
+    {
+        if (((k >> i) & 1) != 0)
+        {
+            const MmgrPow5 *const p = (ex < 0) ? &mmgr_pow5_down[i] : &mmgr_pow5_up[i];
+
+            bench_pow_128(w, p->hi, p->lo, (int32_t)p->e2);
+        }
+    }
+    w->fe2 += ex;
+}
+
+/**
+ * @brief The same walk, stopping once no bits are left rather than at a fixed count.
+ *
+ * @param[in,out] w  The significand and its exponent [BORROWS].
+ * @param[in]     ex The decimal exponent to apply.
+ * @note The B arm. Identical powers applied in the identical order; the exponent is shifted down as
+ *       it goes so the loop ends when there is nothing left in it, which for a small exponent is
+ *       most of the iterations and for a zero one is all of them.
+ */
+static void bench_walk_early(BenchWide *w, int32_t ex)
+{
+    int32_t k = (ex < 0) ? -ex : ex;
+
+    // Bounded by the step count as well, so an exponent past the tables loses its high bits exactly
+    // as it did before rather than reading off the end
+    for (int32_t i = 0; (i < MMGR_POW5_STEPS) && (k != 0); ++i)
+    {
+        if ((k & 1) != 0)
+        {
+            const MmgrPow5 *const p = (ex < 0) ? &mmgr_pow5_down[i] : &mmgr_pow5_up[i];
+
+            bench_pow_128(w, p->hi, p->lo, (int32_t)p->e2);
+        }
+        k >>= 1;
+    }
+    w->fe2 += ex;
+}
+
+/**
  * @brief The two operands the multiply rows use, hidden so neither arm folds.
  */
 static volatile uint64_t g_mul_a = 0x123456789ABCDEFull;
@@ -2510,6 +2575,14 @@ void dbench_run(void)
             DBENCH_AB("g:strip_rec_rnd", iters, 17u, DBENCH_KEEP(strip_loop(g_g_round, 17u)),
                       DBENCH_KEEP(strip_recip(g_g_round, 17u)));
 
+            // The same entry on a value below one. Its decimal exponent is negative, so the cursor
+            // runs past what an exact power of ten covers and the pass walks the pow5 tables - the
+            // path the row above never takes and the one most values under one land on.
+            DBENCH_OP("g:small", iters,
+                      DBENCH_KEEP(MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide,
+                                            .cap = sizeof g_wide, .at = 0u, .real = g_rec_small,
+                                            .sig = 17u)));
+
             DBENCH_OP("g:digits", iters,
                       DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide,
                                             .cap = sizeof g_wide, .at = 0u, .val = g_g_mant,
@@ -2535,6 +2608,14 @@ void dbench_run(void)
             // bit of the exponent, so 0, 1, 3 and 7 ask for none, one, two and three of them. The
             // slope across the four is one application; what is left at zero is seating the
             // mantissa, rounding it down to an integer, and the entry.
+            // A zero mantissa answers at the top of the call, before it seats anything or rounds
+            // anything, so this is the entry and nothing else. Against f:pow0, which does the same
+            // entry and then seats and rounds without applying any power, the difference is what
+            // seating and rounding cost.
+            DBENCH_OP("f:pow_zero", iters,
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_zero,
+                                            .e2 = -51, .ex = 6, .above = 0u)));
+
             DBENCH_OP("f:pow0", iters,
                       DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
                                             .e2 = -51, .ex = 0, .above = 0u)));
@@ -2559,6 +2640,28 @@ void dbench_run(void)
             DBENCH_AB("f:mul", iters, 8u,
                       (bench_mul_wide(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)),
                       (bench_mul_narrow(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)));
+
+            // The power walk at three exponents, testing every step against stopping when the bits
+            // run out. A negative exponent is the case that still walks: the exact power of ten
+            // path only covers small positive ones, so verba_g's values below one come through
+            // here. Zero is the case where every iteration is dead.
+            DBENCH_AB("f:walk0", iters, 8u,
+                      (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
+                       bench_walk_fixed(&g_wide_a, 0), DBENCH_KEEP(g_wide_a.hi)),
+                      (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
+                       bench_walk_early(&g_wide_b, 0), DBENCH_KEEP(g_wide_b.hi)));
+
+            DBENCH_AB("f:walkneg1", iters, 8u,
+                      (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
+                       bench_walk_fixed(&g_wide_a, -1), DBENCH_KEEP(g_wide_a.hi)),
+                      (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
+                       bench_walk_early(&g_wide_b, -1), DBENCH_KEEP(g_wide_b.hi)));
+
+            DBENCH_AB("f:walkneg7", iters, 8u,
+                      (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
+                       bench_walk_fixed(&g_wide_a, -7), DBENCH_KEEP(g_wide_a.hi)),
+                      (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
+                       bench_walk_early(&g_wide_b, -7), DBENCH_KEEP(g_wide_b.hi)));
 
             // Six decimals against the two shapes that can deliver it. The A arm is what the pass
             // does now: six is two set bits, so two applications of a 128 by 128 power of five. The
