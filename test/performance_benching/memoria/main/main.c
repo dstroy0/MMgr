@@ -19,6 +19,7 @@
 
 #include "device_bench.h"
 
+#include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
 #include "carceribus/carceribus.h"
 #include "spatium/spatium.h"
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
@@ -86,6 +87,155 @@ static volatile unsigned g_swap_off = 0u;
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_a[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_b[CAP];
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_d[CAP];
+
+/**
+ * @brief The bit writer's byte loop as bitor_put carries it.
+ *
+ * @param[in,out] w     Writer to append to [BORROWS].
+ * @param[in]     val   Bits to write, from the low end.
+ * @param[in]     nbits How many.
+ * @note The A arm. Every pass computes how much room the residue leaves, merges it, and then clears
+ *       it - but it is cleared at the end of the first pass and never refilled inside the loop, so
+ *       from the second byte on the room is always eight and the merge is always with zero.
+ */
+static void bitor_put_ref(mmgr_bitor *w, uint64_t val, mmgr_word nbits)
+{
+    const uint64_t mask = (nbits >= 64u) ? ~(uint64_t)0 : ((UINT64_C(1) << nbits) - 1u);
+    const size_t whole = (size_t)((w->nbits + nbits) / 8u);
+    uint64_t work = val & mask;
+    mmgr_word left = nbits;
+
+    if (whole > (w->cap - w->cnt))
+    {
+        w->overflow = MMGR_TRUE;
+        w->nbits = 0;
+        w->residue = 0;
+        return;
+    }
+
+    for (size_t i = 0; i < whole; i++)
+    {
+        const mmgr_word take = 8u - w->nbits;
+        const uint8_t chunk = (uint8_t)(work & 0xFFu);
+
+        // Explicit casts hold each step at uint8_t; the shift and the or promote away from it
+        w->out[w->cnt + i] = (uint8_t)(w->residue | (uint8_t)(chunk << w->nbits));
+        work >>= take;
+        left -= take;
+        w->residue = 0;
+        w->nbits = 0;
+    }
+
+    if (left != 0u)
+    {
+        // Explicit casts narrow the leftover into the uint8_t residue; left plus w->nbits is under 8
+        const uint8_t tail = (uint8_t)(work & ((1u << left) - 1u));
+
+        w->residue = (uint8_t)(w->residue | (uint8_t)(tail << w->nbits));
+        w->nbits += left;
+    }
+    w->cnt += whole;
+}
+
+/**
+ * @brief The same bytes with the residue merged once and the rest written straight.
+ *
+ * @param[in,out] w     Writer to append to [BORROWS].
+ * @param[in]     val   Bits to write, from the low end.
+ * @param[in]     nbits How many.
+ * @note The B arm. The first byte is the only one the residue reaches, so it is taken on its own
+ *       and every byte after it is a mask and a store. The cursor and the value are walked in
+ *       locals and written back once, rather than reached through the writer on every pass.
+ */
+static void bitor_put_split(mmgr_bitor *w, uint64_t val, mmgr_word nbits)
+{
+    const uint64_t mask = (nbits >= 64u) ? ~(uint64_t)0 : ((UINT64_C(1) << nbits) - 1u);
+    const size_t whole = (size_t)((w->nbits + nbits) / 8u);
+    uint64_t work = val & mask;
+    mmgr_word left = nbits;
+
+    if (whole > (w->cap - w->cnt))
+    {
+        w->overflow = MMGR_TRUE;
+        w->nbits = 0;
+        w->residue = 0;
+        return;
+    }
+
+    uint8_t *const to = w->out + w->cnt;
+    size_t index = 0u;
+
+    if (whole != 0u)
+    {
+        const mmgr_word take = 8u - w->nbits;
+
+        // Explicit casts hold each step at uint8_t; the shift and the or promote away from it
+        to[0] = (uint8_t)(w->residue | (uint8_t)((uint8_t)(work & 0xFFu) << w->nbits));
+        work >>= take;
+        left -= take;
+        w->residue = 0;
+        w->nbits = 0;
+        index = 1u;
+
+        // Past the first byte the residue is empty and the room is a whole byte, so nothing here
+        // merges or shifts by a residue width that is known to be zero
+        for (; index < whole; index++)
+        {
+            to[index] = (uint8_t)(work & 0xFFu);
+            work >>= 8u;
+            left -= 8u;
+        }
+    }
+
+    if (left != 0u)
+    {
+        const uint8_t tail = (uint8_t)(work & ((1u << left) - 1u));
+
+        w->residue = (uint8_t)(w->residue | (uint8_t)(tail << w->nbits));
+        w->nbits += left;
+    }
+    w->cnt += whole;
+}
+
+/**
+ * @brief Checks the two bit writer shapes against each other over a stream of mixed widths.
+ *
+ * @return The number of bytes or counters where they disagree.
+ * @note A bit writer that is fast and lays the bits down differently is not the same writer, and
+ *       the widths that matter are the ones that straddle a byte, so this walks every width from
+ *       one to sixty four in sequence rather than one width at a time.
+ */
+static uint32_t bitor_is_correct(void)
+{
+    static uint8_t one[512];
+    static uint8_t two[512];
+    uint32_t bad = 0u;
+
+    mmgr_bitor a = MMGR_CALL(bitio.init, BitorumCfg, .out = one, .cap = sizeof one);
+    mmgr_bitor b = MMGR_CALL(bitio.init, BitorumCfg, .out = two, .cap = sizeof two);
+    uint64_t seed = 0x9E3779B97F4A7C15ull;
+
+    for (mmgr_word width = 1u; width <= 64u; width++)
+    {
+        bitor_put_ref(&a, seed, width);
+        bitor_put_split(&b, seed, width);
+        seed = (seed * 6364136223846793005ull) + 1442695040888963407ull;
+    }
+
+    if ((a.cnt != b.cnt) || (a.nbits != b.nbits) || (a.residue != b.residue))
+    {
+        bad++;
+    }
+
+    for (size_t index = 0; index < a.cnt; index++)
+    {
+        if (one[index] != two[index])
+        {
+            bad++;
+        }
+    }
+    return bad;
+}
 
 /**
  * @brief The gather byteio_take_be performs: every width tested, whatever the count.
@@ -616,6 +766,8 @@ void dbench_run(void)
     {
         DBENCH_BANNER("memoria vs libc");
 
+        printf("DB bitor_check     disagreements=%u\n", (unsigned)bitor_is_correct());
+
         for (unsigned li = 0; li < (sizeof lens / sizeof lens[0]); li++)
         {
             const size_t n = lens[li];
@@ -819,6 +971,59 @@ void dbench_run(void)
                       DBENCH_KEEP(ram.pool.owns((const void *)(g_d + g_swap_off))));
 
             DBENCH_OP("pool_praesto", iters, DBENCH_KEEP(ram.pool.octas_praesto()));
+        }
+
+        // The bit writer, which had no rows anywhere. init and align are a handful of field stores;
+        // put is the one that loops, and what it loops over is bytes.
+        {
+            const uint32_t iters = 20000u;
+            mmgr_bitor bw = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP);
+
+            DBENCH_OP("bit_init", iters,
+                      DBENCH_KEEP(MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP).cap));
+
+            // Reset each pass, so no row measures a writer that has already filled its buffer and
+            // is refusing on the overflow latch rather than writing.
+            DBENCH_OP("bit_put8", iters,
+                      (bw = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
+                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .nbits = 8u),
+                       DBENCH_KEEP(bw.cnt)));
+
+            DBENCH_OP("bit_put64", iters,
+                      (bw = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
+                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .nbits = 64u),
+                       DBENCH_KEEP(bw.cnt)));
+
+            // A width that does not divide into bytes, which is the case the residue exists for.
+            DBENCH_OP("bit_put13", iters,
+                      (bw = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
+                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .nbits = 13u),
+                       DBENCH_KEEP(bw.cnt)));
+
+            DBENCH_OP("bit_align", iters,
+                      (bw = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
+                       MMGR_CALL(bitio.put, BitorumCfg, .writer = &bw, .val = g_swap_val, .nbits = 13u),
+                       MMGR_CALL(bitio.align, BitorumCfg, .writer = &bw), DBENCH_KEEP(bw.cnt)));
+
+            // The loop as written against the residue merged once. Sixty four bits is eight bytes,
+            // so seven of the eight passes in the A arm recompute a room of eight and merge with a
+            // residue of zero.
+            mmgr_bitor one;
+            mmgr_bitor two;
+
+            DBENCH_AB("bit_shape64", iters, 8u,
+                      (one = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
+                       bitor_put_ref(&one, g_swap_val, 64u), DBENCH_KEEP(one.cnt)),
+                      (two = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
+                       bitor_put_split(&two, g_swap_val, 64u), DBENCH_KEEP(two.cnt)));
+
+            // And at a width of one byte, where there is no second pass for the split to help and
+            // the question is whether taking the first byte on its own costs anything.
+            DBENCH_AB("bit_shape8", iters, 1u,
+                      (one = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
+                       bitor_put_ref(&one, g_swap_val, 8u), DBENCH_KEEP(one.cnt)),
+                      (two = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP),
+                       bitor_put_split(&two, g_swap_val, 8u), DBENCH_KEEP(two.cnt)));
         }
 
         // take_be's shape against the one its mirror already has. put_be takes the eight byte case
