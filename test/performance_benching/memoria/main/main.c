@@ -21,6 +21,7 @@
 
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
 #include "carceribus/carceribus.h"
+#include "confinium_externum/confinium_externum.h"
 #include "spatium/spatium.h"
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 #include "endian/endian.h"
@@ -51,6 +52,15 @@ static volatile size_t g_take = 64u;
  * @brief The byte count the wire shape rows use, hidden so neither arm folds its branches away.
  */
 static volatile size_t g_wire_n = 8u;
+
+/**
+ * @brief The two request sizes the placement rows use, hidden so the decision is not folded.
+ *
+ * @note One below the threshold and one above it, which are the two orders the entry tries the two
+ *       memories in.
+ */
+static volatile size_t g_ext_small = 256u;
+static volatile size_t g_ext_large = 65536u;
 
 /**
  * @brief The compare length, hidden so neither arm can be specialised against it.
@@ -971,6 +981,48 @@ void dbench_run(void)
                       DBENCH_KEEP(ram.pool.owns((const void *)(g_d + g_swap_off))));
 
             DBENCH_OP("pool_praesto", iters, DBENCH_KEEP(ram.pool.octas_praesto()));
+        }
+
+        // The placement decision and the buffer pair, which had no rows because the module they are
+        // in compiles to nothing unless MMGR_ENABLE_EXTRAM is set. This image sets it. None of the
+        // five loops: place is comparisons and branches, and the pingpong entries are one field
+        // each. What a row can say is whether that is what they cost.
+        {
+            const uint32_t iters = 20000u;
+            PingPong pp;
+
+            MMGR_CALL(exter.pingpong_init, ExternumCfg, .pp = &pp);
+
+            // Below the threshold with room in both, which takes internal memory on the first test.
+            DBENCH_OP("ext_place_dram", iters,
+                      DBENCH_KEEP(MMGR_CALL(exter.place, ExternumCfg, .size = g_ext_small,
+                                            .dma_required = MMGR_FALSE, .free_dram = 65536u,
+                                            .free_psram = 1048576u, .psram_threshold = 4096u,
+                                            .dram_reserve = 8192u)));
+
+            // At or above it, which tries external memory first.
+            DBENCH_OP("ext_place_psram", iters,
+                      DBENCH_KEEP(MMGR_CALL(exter.place, ExternumCfg, .size = g_ext_large,
+                                            .dma_required = MMGR_FALSE, .free_dram = 65536u,
+                                            .free_psram = 1048576u, .psram_threshold = 4096u,
+                                            .dram_reserve = 8192u)));
+
+            // A DMA request, which only internal memory can answer. Both fits are worked out before
+            // the branches, so this path pays for an external test whose answer it cannot use.
+            DBENCH_OP("ext_place_dma", iters,
+                      DBENCH_KEEP(MMGR_CALL(exter.place, ExternumCfg, .size = g_ext_small,
+                                            .dma_required = MMGR_TRUE, .free_dram = 65536u,
+                                            .free_psram = 1048576u, .psram_threshold = 4096u,
+                                            .dram_reserve = 8192u)));
+
+            DBENCH_OP("ext_pp_fill", iters,
+                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_fill, ExternumCfg, .pp = &pp)));
+
+            DBENCH_OP("ext_pp_drain", iters,
+                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_drain, ExternumCfg, .pp = &pp)));
+
+            DBENCH_OP("ext_pp_swap", iters,
+                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_swap, ExternumCfg, .pp = &pp)));
         }
 
         // The bit writer, which had no rows anywhere. init and align are a handful of field stores;

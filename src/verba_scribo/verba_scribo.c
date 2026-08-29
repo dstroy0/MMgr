@@ -790,8 +790,11 @@ MMGR_INLINE size_t verba_non_finite(const VerbaCtx *args)
 MMGR_INLINE size_t verba_g(const VerbaCtx *args)
 {
     const mmgr_u64 bits = verba_bits(args);
+    // Read once and used twice: the class test here and the scale below ask the same question of
+    // the same bits, and the answer cannot change between them
+    const mmgr_u64 be = MMGR_CALL(verba_exp, VerbaCtx, .bits = bits);
 
-    if (MMGR_CALL(verba_exp, VerbaCtx, .bits = bits) == MMGR_DBL_EXP_ALL)
+    if (be == MMGR_DBL_EXP_ALL)
     {
         return MMGR_CALL(verba_non_finite, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .bits = bits);
     }
@@ -809,7 +812,6 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *args)
         at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '-');
     }
 
-    const mmgr_u64 be = MMGR_CALL(verba_exp, VerbaCtx, .bits = bits);
     mmgr_u64 mantissa = MMGR_CALL(verba_mant, VerbaCtx, .bits = bits);
 
     if ((be == 0U) && (mantissa == 0U))
