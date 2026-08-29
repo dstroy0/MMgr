@@ -2,7 +2,9 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
- * @brief Leading zero count: its argument type, the call, and the clz dispatch table.
+ * @file clz.h
+ * @brief Leading and trailing zero counts: the argument type, the two calls, and the clz dispatch
+ *        table.
  */
 #ifndef MMGR_CLZ_H
 #define MMGR_CLZ_H
@@ -12,11 +14,11 @@
 MMGR_INCIPE_DECLS
 
 /**
- * @brief Argument for the leading zero count.
+ * @brief Argument for both clz calls: the value to count zeros in.
  */
 typedef struct
 {
-    const mmgr_u64 val; /**< Value whose leading zeros are counted. */
+    const mmgr_u64 val; /**< Value whose leading or trailing zeros are counted. */
 } ClzCfg;
 
 /**
@@ -37,7 +39,7 @@ MMGR_NS_LAYOUT(ClzNs, lead, trail);
  * @param[in] args Value to measure [BORROWS].
  * @return      Leading zero count, 0 through 63.
  * @note Runs in a fixed number of steps, none of which branches on the value.
- * @warning A args->val of 0 returns 63, the same answer as an args->val of 1.
+ * @warning An args->val of 0 returns 63, the same answer as an args->val of 1.
  */
 mmgr_iword mmgr_clz_lead(const ClzCfg *args);
 
@@ -47,7 +49,7 @@ mmgr_iword mmgr_clz_lead(const ClzCfg *args);
  * @param[in] args Value to measure [BORROWS].
  * @return      Trailing zero count, 0 through 63.
  * @note Runs in a fixed number of steps, none of which branches on the value.
- * @warning A args->val of 0 returns 63, the same answer mmgr_clz_trail reports for an args->val of 2^63.
+ * @warning An args->val of 0 returns 63, the same answer as an args->val of 2^63.
  */
 mmgr_iword mmgr_clz_trail(const ClzCfg *args);
 

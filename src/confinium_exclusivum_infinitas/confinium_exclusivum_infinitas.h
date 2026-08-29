@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file confinium_exclusivum_infinitas.h
  * @brief Single-producer, single-consumer byte ring, a segment view over it, and loculus keepouts.
  *
  * @note Nothing of the implementation is spelled here: mmgr_ring is a run of opaque bytes, and the
@@ -9,7 +10,8 @@
  * @note The caller declares the ring and supplies the bytes; every index, mask and span is the ring's.
  * @note Exactly one producer advances head and exactly one consumer advances tail, so ordering is
  *       all that is needed and no entry takes a lock or a read-modify-write on those two.
- * @note Nothing is ever zeroed: a loculus keeps its bytes after a drop so a restream can run again.
+ * @note No byte of the ring is ever scrubbed, and a drop leaves the loculus record alone, so a
+ *       restream can run again. Only mmgr_infin_init clears those records.
  */
 #ifndef MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H
 #define MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H
@@ -54,15 +56,23 @@ typedef struct
 /**
  * @brief Loculi this build reserves, which a build may set before including this header.
  *
- * @note The keepout spans are most of the ring's storage, so a build with no use for the loculus
- *       view sets this to 0 and gets that space back. Every loculus entry then reports empty or
- *       refuses.
+ * @note The keepout spans are most of the ring's state, so a build with no use for the loculus view
+ *       sets this to 0 and can then lower MMGR_RING_WORDS; on its own this setting shrinks the state
+ *       and not the storage a caller declares. Every entry that reads the loculi then reports empty
+ *       or refuses, and mmgr_infin_loculus_drop and mmgr_infin_loculus_mark do nothing.
  */
 #ifndef MMGR_RING_LOCULI
 
 #define MMGR_RING_LOCULI 8u
 #endif
 
+/**
+ * @brief Asserts the loculi a build declares fit in one machine word.
+ *
+ * @note The free and held masks are each one mmgr_word, one bit per loculus, so a count past
+ *       MMGR_RING_LOCULI_MAX has no bit to sit in. ring_loculus_bit in confinium_exclusivum_infinitas.c
+ *       builds that bit by shifting, and this bound is what keeps the shift inside the word.
+ */
 MMGR_STATIC_ASSERT(
     MMGR_RING_LOCULI <= MMGR_RING_LOCULI_MAX,
     "the loculus masks are one machine word; widen them or fall back to a scan past MMGR_RING_LOCULI_MAX");
@@ -73,6 +83,7 @@ MMGR_STATIC_ASSERT(
  * @param[in] cap Value to test.
  * @return        Non-zero when cap has at most one bit set.
  * @warning Also reports true for 0; mmgr_infin_init rejects 0 separately.
+ * @warning cap appears twice in the expansion, so an argument with a side effect is evaluated twice.
  */
 #define MMGR_RING_POW2(cap) (((cap) & ((cap) - 1u)) == 0u)
 
@@ -90,6 +101,8 @@ MMGR_STATIC_ASSERT(
  * @brief Storage a caller declares for one ring, whose contents belong to the implementation.
  *
  * @note MMGR_ALIGN aligns opaque to size_t.
+ * @note From mmgr_infin_init onward these bytes hold the buffer that call was given, which must
+ *       outlive the ring [BORROWS].
  * @warning The bytes carry no documented layout; the infin calls are the only accessors.
  */
 typedef struct
@@ -100,7 +113,7 @@ typedef struct
 /**
  * @brief Arguments for every infin call; each reads only what it needs.
  *
- * @note Every call reads ring; init adds buf, cap and nsegs.
+ * @note Every call but mmgr_infin_loculus_next reads ring; init adds buf, cap and nsegs.
  * @note Members left unset are zero, and the calls that ignore them never read them.
  */
 typedef struct
@@ -122,7 +135,8 @@ typedef struct
  * @brief Type of the iteratio_infinita dispatch table.
  *
  * @note MMGR_NS_LAYOUT asserts the twenty members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
- * @note The first eight are the byte ring, the next six the segment view, the last six the loculi.
+ * @note init lays all three down; the seven after it are the byte ring, then six for the segment view
+ *       and six for the loculi.
  */
 typedef struct
 {
@@ -154,11 +168,14 @@ MMGR_NS_LAYOUT(InfinitasNs, init, available, vacant, read_byte, read, peek, cons
 /**
  * @brief Lays a fresh ring into args->ring, over the bytes at args->buf.
  *
- * @param[in] args Storage, bytes, capacity and segment count [BORROWS].
- * @return      MMGR_TRUE when the ring is ready, MMGR_FALSE when a size was rejected.
+ * @param[in,out] args Storage, bytes, capacity and segment count [BORROWS].
+ * @return          MMGR_TRUE when the ring is ready, MMGR_FALSE when a size was rejected.
  * @note Refuses a cap or nsegs that is 0 or not a power of two, and an nsegs above cap.
- * @note Marks every loculus free and none held.
+ * @note Marks every loculus free and none held, and clears the recorded keepouts.
  * @warning args->ring and args->buf are both the caller's, and args->buf is kept by the ring [BORROWS].
+ * @warning Neither may be null, and nothing holds them there outside a MMGR_DEBUG_CHECKS build. A null
+ *          ring is written through as soon as the sizes pass, and a null buf is taken and not noticed
+ *          until the first move.
  * @warning args->buf must carry the alignment the caller's own accesses need; this call does not align it.
  */
 mmgr_bool mmgr_infin_init(const InfinCfg *args);
@@ -185,19 +202,20 @@ size_t mmgr_infin_vacant(const InfinCfg *args);
 /**
  * @brief Takes one byte into args->dst and advances the tail past it.
  *
- * @param[in] args Ring and the destination byte [BORROWS].
- * @return      MMGR_TRUE when a byte was taken, MMGR_FALSE when the ring was empty.
+ * @param[in,out] args Ring and the destination byte [BORROWS].
+ * @return          MMGR_TRUE when a byte was taken, MMGR_FALSE when the ring was empty.
  * @note Writes through args->dst only when it returns MMGR_TRUE.
  * @note One byte per call, so what this costs is the call rather than the move; a caller drawing a
  *       run of bytes wants mmgr_infin_read, which moves them a word at a time under one tail store.
+ * @warning args->dst must be writable for one byte.
  */
 mmgr_bool mmgr_infin_read_byte(const InfinCfg *args);
 
 /**
  * @brief Takes up to args->bytes into args->dst and advances the tail once at the end.
  *
- * @param[in] args Ring, destination and the most to take [BORROWS].
- * @return      Bytes actually taken, which is 0 when the ring was empty.
+ * @param[in,out] args Ring, destination and the most to take [BORROWS].
+ * @return          Bytes actually taken, which is 0 when the ring was empty.
  * @note Moves the bytes in at most two runs, so the wrap costs one extra move rather than one per byte.
  * @note Reads the tail once and publishes it once, not per byte.
  * @warning args->dst must be writable for args->bytes.
@@ -207,17 +225,18 @@ size_t mmgr_infin_read(const InfinCfg *args);
 /**
  * @brief Copies args->bytes starting args->off ahead of the tail into args->dst, leaving the tail alone.
  *
- * @param[in] args Ring, destination, byte count and starting offset [BORROWS].
+ * @param[in,out] args Ring, destination, byte count and starting offset [BORROWS].
  * @note Moves the bytes in at most two runs, the same way mmgr_infin_read does.
  * @warning Copies args->bytes whether or not that many have arrived; read mmgr_infin_available first.
- * @warning A args->bytes above the ring's capacity is held there, since one lap is all two runs express.
+ * @warning An args->bytes above the ring's capacity is held there, since one lap is all two runs express.
+ * @warning args->dst must be writable for args->bytes.
  */
 void mmgr_infin_peek(const InfinCfg *args);
 
 /**
  * @brief Advances the tail past args->bytes.
  *
- * @param[in] args Ring and the byte count to drop [BORROWS].
+ * @param[in,out] args Ring and the byte count to drop [BORROWS].
  * @warning Advances whether or not that many have arrived; read mmgr_infin_available first.
  */
 void mmgr_infin_consume(const InfinCfg *args);
@@ -225,8 +244,8 @@ void mmgr_infin_consume(const InfinCfg *args);
 /**
  * @brief Writes args->bytes of args->src into the ring, or refuses the whole span.
  *
- * @param[in] args Ring, the bytes to write and their count [BORROWS].
- * @return      MMGR_TRUE when the span was written, MMGR_FALSE when it would not fit.
+ * @param[in,out] args Ring, the bytes to write and their count [BORROWS].
+ * @return          MMGR_TRUE when the span was written, MMGR_FALSE when it would not fit.
  * @note Checks the whole span against mmgr_infin_vacant first, so a partial write never happens.
  * @note Advances a local head across the wrap and publishes it once, so no half span is ever visible.
  * @warning args->src must be readable for args->bytes.
@@ -238,38 +257,58 @@ mmgr_bool mmgr_infin_put(const InfinCfg *args);
  *
  * @param[in] args Ring to inspect [BORROWS].
  * @return      The distance between the claim and release counters.
+ * @warning The two counters are read one after the other, so the answer is only a snapshot: a publish
+ *          or a release may land between the reads, or after both.
  */
 size_t mmgr_infin_seg_inflight(const InfinCfg *args);
 
 /**
  * @brief Reports the index of the segment the producer fills next.
  *
- * @param[in] args Ring, and where to write the index [BORROWS].
- * @return      MMGR_FALSE when every segment is in flight.
+ * @param[in,out] args Ring, and where to write the index [BORROWS].
+ * @return          MMGR_TRUE with the index in args->out, MMGR_FALSE when every segment is in flight.
+ * @note Writes through args->out only when it returns MMGR_TRUE.
  * @note Publishing is separate, so a half-filled segment is never visible to the consumer.
+ * @note A MMGR_FALSE can go stale the moment the consumer releases a segment; a MMGR_TRUE cannot,
+ *       since releases only make room.
+ * @warning args->out must be writable.
  */
 mmgr_bool mmgr_infin_seg_next(const InfinCfg *args);
 
 /**
  * @brief Makes the filled segment visible to the consumer.
  *
- * @param[in] args Ring to advance [BORROWS].
+ * @param[in,out] args Ring to advance [BORROWS].
+ * @note Only the producer calls this; the counter is read and written as two steps, which needs no
+ *       atomicity between them only because one side owns it.
+ * @warning Advances whether or not a segment was filled, so a publish with no matching
+ *          mmgr_infin_seg_next puts more in flight than the ring holds, and that call then refuses
+ *          until releases catch up.
  */
 void mmgr_infin_seg_publish(const InfinCfg *args);
 
 /**
  * @brief Reports the index of the segment the consumer takes next.
  *
- * @param[in] args Ring, and where to write the index [BORROWS].
- * @return      MMGR_FALSE when none is in flight.
+ * @param[in,out] args Ring, and where to write the index [BORROWS].
+ * @return          MMGR_TRUE with the index in args->out, MMGR_FALSE when none is in flight.
+ * @note Writes through args->out only when it returns MMGR_TRUE.
+ * @note A MMGR_FALSE can go stale the moment the producer publishes a segment; a MMGR_TRUE cannot,
+ *       since publishes only add.
+ * @warning args->out must be writable.
  */
 mmgr_bool mmgr_infin_seg_front(const InfinCfg *args);
 
 /**
  * @brief Frees the front segment.
  *
- * @param[in] args Ring to advance [BORROWS].
+ * @param[in,out] args Ring to advance [BORROWS].
  * @note Segments release in the order they were claimed.
+ * @note Only the consumer calls this; the counter is read and written as two steps, which needs no
+ *       atomicity between them only because one side owns it.
+ * @warning Advances whether or not a segment was in flight. A release past what has been published
+ *          wraps the in-flight count and leaves mmgr_infin_seg_front handing out a segment that was
+ *          never filled.
  */
 void mmgr_infin_seg_release(const InfinCfg *args);
 
@@ -278,6 +317,9 @@ void mmgr_infin_seg_release(const InfinCfg *args);
  *
  * @param[in] args Ring and the segment index [BORROWS].
  * @return      Its first byte inside the ring buffer [BORROWS].
+ * @note The span runs for the cap divided by the nsegs that mmgr_infin_init was given.
+ * @warning args->idx is not checked against the segment count, and no assertion covers it. An index
+ *          at or past that count returns a pointer outside the ring's bytes.
  */
 uint8_t *mmgr_infin_seg_at(const InfinCfg *args);
 
@@ -287,6 +329,9 @@ uint8_t *mmgr_infin_seg_at(const InfinCfg *args);
  * @param[in] args Ring to inspect [BORROWS].
  * @return      The free mask with the held ones cleared, bounded to MMGR_RING_LOCULI.
  * @note A loculus is takeable only when both hold, which is what makes reuse safe.
+ * @warning Only a snapshot: the two masks are read one after the other, and a hold or a drop may land
+ *          before the caller acts on it. mmgr_infin_loculus_hold settles that race, refusing a
+ *          loculus another caller took first.
  */
 mmgr_word mmgr_infin_loculus_ready(const InfinCfg *args);
 
@@ -296,16 +341,19 @@ mmgr_word mmgr_infin_loculus_ready(const InfinCfg *args);
  * @param[in] args The mask to pick from [BORROWS].
  * @return      The index, or -1 when args->mask is empty.
  * @note Counts rather than scans, and branches on nothing but the empty mask.
+ * @note Only args->mask is read; this is the one entry that never reaches the ring.
  */
 mmgr_iword mmgr_infin_loculus_next(const InfinCfg *args);
 
 /**
  * @brief Takes loculus args->idx and records the args->bytes at args->src that it keeps out.
  *
- * @param[in] args Ring, the loculus, and the region to record [BORROWS].
- * @return      MMGR_TRUE when this caller took it, MMGR_FALSE when it was already held.
+ * @param[in,out] args Ring, the loculus, and the region to record [BORROWS].
+ * @return          MMGR_TRUE when this caller took it, MMGR_FALSE when it was already held.
  * @note The recorded region stays valid until mmgr_infin_loculus_drop, so a reader walks it in place.
  * @warning An out-of-range args->idx names nothing, so it reads as held and is never handed out.
+ * @warning args->src is kept by the ring and handed back by mmgr_infin_loculus_keepout, so it must
+ *          outlive the hold [BORROWS].
  */
 mmgr_bool mmgr_infin_loculus_hold(const InfinCfg *args);
 
@@ -315,24 +363,39 @@ mmgr_bool mmgr_infin_loculus_hold(const InfinCfg *args);
  * @param[in] args Ring and the loculus [BORROWS].
  * @return      The recorded span, or NULL when args->idx is out of range [BORROWS].
  * @note Handed back const, so a reader walks it without moving the ring's own record.
+ * @warning The const covers the span, not the bytes it names: buf is reachable as a writable pointer,
+ *          though the region reached mmgr_infin_loculus_hold as const.
+ * @warning The record comes back for any loculus in range, held or not. A drop leaves it standing, so
+ *          afterwards it still names the last region that loculus recorded [BORROWS].
  */
 const mmgr_ring_span *mmgr_infin_loculus_keepout(const InfinCfg *args);
 
 /**
  * @brief Gives loculus args->idx back.
  *
- * @param[in] args Ring and the loculus [BORROWS].
+ * @param[in,out] args Ring and the loculus [BORROWS].
  * @note Leaves the recorded span and the bytes alone, so a restream can run again.
+ * @note An out-of-range args->idx names no bit and clears nothing, and dropping a loculus that is
+ *       not held does nothing.
  */
 void mmgr_infin_loculus_drop(const InfinCfg *args);
 
 /**
  * @brief Marks loculus args->idx free.
  *
- * @param[in] args Ring and the loculus [BORROWS].
+ * @param[in,out] args Ring and the loculus [BORROWS].
+ * @note Sets the free bit. The held one is mmgr_infin_loculus_drop's to clear, and a loculus is
+ *       takeable only when both agree.
+ * @note mmgr_infin_init sets the free bit for every loculus and no entry clears it, so on a ring that
+ *       call has laid down this changes nothing.
+ * @note An out-of-range args->idx names no bit and sets nothing.
  */
 void mmgr_infin_loculus_mark(const InfinCfg *args);
 
+/**
+ * @brief Dispatch table instance named iteratio_infinita; each member calls the matching
+ *        mmgr_infin_ function.
+ */
 MMGR_NS InfinitasNs iteratio_infinita MMGR_UNUSED = {
     .init = mmgr_infin_init,
     .available = mmgr_infin_available,

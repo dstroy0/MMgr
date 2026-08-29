@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file octetus_introitus_exitus.h
  * @brief Byte verbs over a span: append into one being filled, take out of one being read.
  *
  * @note These act on a caller's span and hold nothing of their own. The span carries the cursor and

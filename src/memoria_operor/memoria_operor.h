@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file memoria_operor.h
  * @brief Byte-level memory work: its arguments, the calls, and the memor dispatch table.
  */
 #ifndef MMGR_MEMORIA_OPEROR_H
@@ -49,6 +50,7 @@ MMGR_NS_LAYOUT(MemoriaOperorNs, cpy, move_down, move_up, cmp, chr, set);
  * @param[in] args Destination, source and count [BORROWS].
  * @note Moves whole words first, then the remaining bytes one at a time.
  * @warning The backend's argument type qualifies both pointers restrict, so the regions must not overlap.
+ * @warning args->dst must be writable and args->src readable for args->bytes.
  */
 void mmgr_memor_cpy(const MemoriaCfg *args);
 
@@ -57,6 +59,7 @@ void mmgr_memor_cpy(const MemoriaCfg *args);
  *
  * @param[in] args Destination, source and count [BORROWS].
  * @note Works back from the end, so an args->dst above args->src is safe even when the regions overlap.
+ * @warning args->dst must be writable and args->src readable for args->bytes.
  */
 void mmgr_memor_move_up(const MemoriaCfg *args);
 
@@ -66,7 +69,8 @@ void mmgr_memor_move_up(const MemoriaCfg *args);
  * @param[in] args The two regions and the count [BORROWS].
  * @return      The difference of the first unequal byte pair, or 0 when every byte matches.
  * @note The sign follows the differing bytes, so the result orders the two regions.
- * @warning Both regions must be readable for args->bytes.
+ * @warning Both regions must be readable for args->bytes rounded up to a whole word, since a count that
+ *          does not fill the last one is still read a whole word at a time.
  */
 mmgr_iword mmgr_memor_cmp(const MemoriaCfg *args);
 
@@ -76,7 +80,8 @@ mmgr_iword mmgr_memor_cmp(const MemoriaCfg *args);
  * @param[in] args Region, count and the byte sought [BORROWS].
  * @return      Address of the match, or NULL when the byte does not occur [BORROWS].
  * @note A terminator is not special; all args->bytes are searched.
- * @warning args->src must be readable for args->bytes.
+ * @warning args->src must be readable for args->bytes rounded up to a whole word, since a count that
+ *          does not fill the last one is still read a whole word at a time.
  */
 const void *mmgr_memor_chr(const MemoriaCfg *args);
 

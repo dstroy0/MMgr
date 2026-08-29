@@ -2,9 +2,11 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file memoria_operor.c
  * @brief Byte-level copy, move, compare, search and fill.
  *
- * @note cpy, move_up and set move whole words then odd bytes; cmp and chr mask the tail lanes instead.
+ * @note cpy and set move whole words then odd bytes, move_up takes the odd bytes first, and cmp and
+ *       chr mask the tail lanes instead.
  */
 #include "memoria_operor/memoria_operor.h"
 
@@ -65,6 +67,7 @@ typedef struct
  * @note Moves whole words first, then the remaining bytes one at a time.
  * @note Advances args->dst and args->src as it goes, so both point past the copy when it returns.
  * @warning The regions must not overlap; MemorCpyCtx declares both pointers restrict.
+ * @warning args->dst must be writable and args->src readable for args->bytes.
  */
 MMGR_INLINE void memor_cpy(MemorCpyCtx *args)
 {
@@ -124,6 +127,7 @@ MMGR_INLINE void memor_cpy(MemorCpyCtx *args)
  *       costs about one cycle a byte. Nothing in the library differs between the two runs. A byte
  *       path is only ever as good as the mem family the part it lands on happens to carry, which is
  *       why the number paths win everywhere and these do not.
+ * @warning args->dst must be writable and args->src readable for args->bytes.
  */
 MMGR_INLINE void memor_move_up(MemorMoveCtx *args)
 {
@@ -163,6 +167,9 @@ MMGR_INLINE void memor_move_up(MemorMoveCtx *args)
  * @note Normally zero. This library is built for memory that arrives aligned, and an aligned address
  *       is already on a boundary. It is computed rather than assumed because a region entry takes
  *       whatever address a caller hands it.
+ * @warning p is examined as an address and never read, so a bytes larger than the region at p is not
+ *          caught here. The answer is capped at bytes, so it is a safe number of steps only when
+ *          bytes is.
  */
 MMGR_INLINE size_t memor_head_bytes(const uint8_t *p, size_t bytes)
 {
@@ -198,6 +205,8 @@ MMGR_INLINE mmgr_word memor_diff_lanes(mmgr_word d)
  * @note The count is settled before the loop, so lanes past it can only fall in the last word.
  *       mask.lanes_below is applied to that word alone rather than rebuilt on every iteration.
  * @note The sign follows the differing bytes, so the result orders the two regions.
+ * @warning Both args->src and args->other must be readable for args->bytes rounded up to a whole word.
+ *          The tail goes through word.load, which takes MMGR_SWAR_BYTES whatever the count leaves.
  */
 MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *args)
 {
@@ -281,6 +290,8 @@ MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *args)
  * @note The sought byte is broadcast once, ahead of the walk. lane.eq answers the same question but
  *       rebuilds the broadcast from a byte on every call, which is a multiply per word.
  * @note A terminator is not special here; all args->bytes are searched.
+ * @warning args->src must be readable for args->bytes rounded up to a whole word. The tail goes
+ *          through word.load, which takes MMGR_SWAR_BYTES whatever the count leaves.
  */
 MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
 {
@@ -342,6 +353,8 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
  * @param[in,out] args Destination, count and the byte to write [BORROWS].
  * @note Builds a word with args->val in every lane, stores whole words, then finishes byte by byte.
  * @note Advances args->dst as it goes, so it points past the fill when it returns.
+ * @warning args->dst must be writable for args->bytes. Nothing past the count is written; the word
+ *          stores cover a whole number of words and the byte loop finishes what they leave.
  */
 MMGR_INLINE void memor_set(MemorSetCtx *args)
 {
@@ -386,6 +399,7 @@ MMGR_INLINE void memor_set(MemorSetCtx *args)
  * @param[in] ret  Return type of the entry point.
  * @param[in] ctx  Context type this entry's backend takes.
  * @param[in] name Name after the mmgr_memor_ and memor_ prefixes, which the two share.
+ * @param[in] ...  Initializers for the ctx literal, written in terms of args.
  * @note ctx is a parameter here, unlike carceribus and infinitas which each have one. The backends
  *       split by what they touch: a copy takes two pointers, a scan takes two and a value, a fill
  *       takes one and a value, so each has its own argument type.
@@ -397,6 +411,7 @@ MMGR_INLINE void memor_set(MemorSetCtx *args)
  *
  * @param[in] ctx  Context type this entry's backend takes.
  * @param[in] name Name after the mmgr_memor_ and memor_ prefixes.
+ * @param[in] ...  Initializers for the ctx literal, written in terms of args.
  */
 #define MEMOR_ENTRY_V(ctx, name, ...) GENERIC_ENTRY_V(mmgr_memor_, memor_, ctx, MemoriaCfg, name, __VA_ARGS__)
 

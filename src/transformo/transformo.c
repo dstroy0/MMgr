@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file transformo.c
  * @brief Turns a decimal mantissa and exponent into a double, or into a rounded 64-bit integer.
  *
  * @note Small exact cases go through plain double arithmetic; everything else goes through 128-bit fixed point.
@@ -33,6 +34,8 @@ static const double mmgr_muto_ten[MMGR_MUTO_EXACT_POW10 + 1] = {1e0,  1e1,  1e2,
  * @note mant, digit, e2, ex, dropped, above and neg are the inputs; dropped is TransformoCfg::rest under a new name.
  * @note hi, lo and fe2 carry the 128-bit significand and its binary exponent; rest records bits shifted away.
  * @note a, b, phi and plo are muto_mul's two operands and its product; pow points at the pow5 entry being applied.
+ * @note pow addresses an entry of mmgr_pow5_up or mmgr_pow5_down, which are static const tables that
+ *       outlive every call, so it is only ever read through [BORROWS].
  * @warning mant is written through, so muto_take changes the caller's mantissa [BORROWS].
  */
 typedef struct
@@ -71,6 +74,7 @@ MMGR_INLINE mmgr_bool muto_take(const MutoCtx *args)
     {
         return MMGR_FALSE;
     }
+    // Explicit cast widens the digit's value to the mmgr_u64 the mantissa accumulates in
     *args->mant = (*args->mant * 10u) + (mmgr_u64)(args->digit - '0');
     return MMGR_TRUE;
 }
@@ -81,11 +85,8 @@ MMGR_INLINE mmgr_bool muto_take(const MutoCtx *args)
  * @param[in,out] args The two operands, and where the product is left [BORROWS].
  * @note Splits both operands at 32 bits and sums the four partial products, so no 128-bit type is needed.
  * @note mid holds the two middle partial products plus the carry out of the low one.
- * @note The halves are held at 32 bits rather than masked out of a 64-bit value and left there, so
- *       each partial product is a 32 by 32 widening multiply the target carries in hardware. Written
- *       the other way it is four 64 by 64 multiplies that a compiler has to narrow for itself by
- *       proving the range of the mask, which GCC does here - measured 57 cycles either way on an
- *       ESP32-S3 - and which nothing in the language requires it to do.
+ * @note The halves are held at 32 bits, so each partial product is a 32 by 32 widening multiply the
+ *       target carries in hardware rather than one a compiler must narrow for itself.
  */
 MMGR_INLINE void muto_mul(MutoCtx *args)
 {
@@ -100,6 +101,8 @@ MMGR_INLINE void muto_mul(MutoCtx *args)
     const mmgr_u64 p01 = (mmgr_u64)a0 * b1;
     const mmgr_u64 p10 = (mmgr_u64)a1 * b0;
     const mmgr_u64 p11 = (mmgr_u64)a1 * b1;
+    // Explicit casts take the low half of each partial product, which is the column that belongs in
+    // mid; the widening back to mmgr_u64 keeps the result clear of the shift below it
     const mmgr_u64 mid = (p00 >> 32) + (uint32_t)p01 + (uint32_t)p10;
 
     args->plo = (mmgr_u64)(uint32_t)p00 | (mid << 32);
@@ -113,6 +116,8 @@ MMGR_INLINE void muto_mul(MutoCtx *args)
  * @note Moves args->lo up into args->hi first when args->hi is zero, taking 64 off args->fe2.
  * @note Returns with the value untouched when both halves are zero, since there is no top bit to find.
  * @note clz.lead gives the remaining shift, and args->fe2 falls by exactly what the significand rises.
+ * @note A count of zero is tested for rather than shifted by, since the complementary shift would
+ *       then be by the full width, which is undefined.
  */
 MMGR_INLINE void muto_norm(MutoCtx *args)
 {
@@ -195,6 +200,7 @@ MMGR_INLINE void muto_mul_pow5(MutoCtx *args)
     }
     args->hi = hh_h + carry2;
     args->lo = col2;
+    // Explicit cast holds the summed exponent at the mmgr_iword fe2 carries
     args->fe2 = (mmgr_iword)(args->fe2 + args->pow->e2 + 128);
     muto_norm(args);
 }
@@ -210,8 +216,9 @@ MMGR_INLINE void muto_mul_pow5(MutoCtx *args)
 /**
  * @brief Ten raised to 0 through 18, as exact 64-bit integers.
  *
- * @note muto_apply_pow10 multiplies by one of these in a single pass when the decimal exponent is
- *       small and positive, rather than walking the pow5 tables a set bit at a time.
+ * @note muto_apply_pow10 applies these for a positive decimal exponent, one outright when the
+ *       exponent is within the table and otherwise in chunks of the largest, rather than walking
+ *       the pow5 tables a set bit at a time.
  */
 static const mmgr_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {
     1ull,                  10ull,                 100ull,                1000ull,
@@ -223,15 +230,11 @@ static const mmgr_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {
 /**
  * @brief Multiplies the 128-bit significand by one exact 64-bit power of ten, then renormalizes.
  *
- * @param[in,out] args The significand, its exponent, and the power to apply [BORROWS].
- * @note A 128 by 64 product is two multiplies where a 128 by 128 one is four, and its top 128 bits
- *       are one column sum where the wider product needs three. One of these covers the whole
- *       decimal exponent, where muto_mul_pow5 covers one set bit of it.
- * @note args->b carries the power. Ten raised to the exponent is applied whole, both its five and
- *       its two, so nothing is added to args->fe2 for the power afterwards.
- * @note Sets args->rest when the discarded low 64 bits held anything, which is the same rounding
- *       information muto_mul_pow5 keeps from its discarded columns.
- * @note Adds 64 to args->fe2, standing for the bits the 192-bit product was taken down by.
+ * @param[in,out] args The significand, its exponent, and the power to apply as args->b [BORROWS].
+ * @note Two multiplies where muto_mul_pow5 takes four, and one column sum where it takes three.
+ * @note The power is applied whole, both its five and its two, so nothing is added to args->fe2 for it.
+ * @note Sets args->rest from the discarded low 64 bits, as muto_mul_pow5 does from its columns.
+ * @note Adds 64 to args->fe2, for the bits the 192-bit product was taken down by.
  */
 MMGR_INLINE void muto_mul_pow10(MutoCtx *args)
 {
@@ -260,6 +263,7 @@ MMGR_INLINE void muto_mul_pow10(MutoCtx *args)
     }
     args->hi = hh_h + carry;
     args->lo = col;
+    // Explicit cast holds the summed exponent at the mmgr_iword fe2 carries
     args->fe2 = (mmgr_iword)(args->fe2 + 64);
     muto_norm(args);
 }
@@ -268,10 +272,16 @@ MMGR_INLINE void muto_mul_pow10(MutoCtx *args)
  * @brief Multiplies the significand by ten raised to args->ex.
  *
  * @param[in,out] args The significand, its exponent, and the decimal exponent to apply [BORROWS].
- * @note Walks the bits of the magnitude of args->ex and applies one pow5 entry for each bit that is set.
- * @note Takes entries from mmgr_pow5_down when args->ex is negative and from mmgr_pow5_up when it is not.
- * @note Adding args->ex to args->fe2 at the end supplies the two raised to args->ex half of ten raised to args->ex.
- * @warning Only MMGR_POW5_STEPS bits are walked, so any magnitude above MMGR_POW5_MAX loses its higher bits.
+ * @note A positive exponent takes exact powers of ten, one outright within the table's reach and
+ *       otherwise in chunks of the largest, and returns without touching the pow5 tables.
+ * @note Everything else walks the bits of the magnitude of args->ex and applies one pow5 entry for
+ *       each bit that is set, from mmgr_pow5_down when args->ex is negative and mmgr_pow5_up when it
+ *       is not.
+ * @note Adding args->ex to args->fe2 at the end of that walk supplies the two raised to args->ex half
+ *       of ten raised to args->ex; the exact power path needs no such addition, since it applies the
+ *       whole power.
+ * @warning Only MMGR_POW5_STEPS bits are walked, so a magnitude above MMGR_POW5_MAX that reaches the
+ *          walk loses its higher bits.
  */
 MMGR_INLINE void muto_apply_pow10(MutoCtx *args)
 {
@@ -281,9 +291,7 @@ MMGR_INLINE void muto_apply_pow10(MutoCtx *args)
     // 128 by 128 one, and the walk needs one per bit rather than one per eighteen.
     if (args->ex > 0)
     {
-        // One power covers it outright below the table's reach, and taking that case on its own
-        // rather than as a loop that runs once is worth about sixty five cycles: written as the
-        // loop alone, the exponent six case went from 262 to 327 on an ESP32-S3
+        // Below the table's reach one power covers the whole exponent, so it needs no loop
         if (args->ex <= MMGR_MUTO_EXACT_U64_POW10)
         {
             args->b = mmgr_muto_pow10[args->ex];
@@ -304,11 +312,11 @@ MMGR_INLINE void muto_apply_pow10(MutoCtx *args)
         return;
     }
 
+    // Explicit cast holds the negated exponent at the mmgr_iword the walk counts down in
     mmgr_iword k = (args->ex < 0) ? (mmgr_iword)(-args->ex) : args->ex;
 
-    // Still bounded by the step count, so an exponent past the tables loses its high bits exactly as
-    // it did rather than reading off the end, and now also stopped once nothing is left in k, which
-    // for a small exponent is most of the nine steps and for a zero one is all of them
+    // Two bounds: the step count keeps an exponent past the tables from reading off the end, and the
+    // emptied magnitude ends the walk once no bits are left to apply
     for (mmgr_iword i = 0; (i < MMGR_POW5_STEPS) && (k != 0); ++i)
     {
         if ((k & 1) != 0)
@@ -356,7 +364,9 @@ MMGR_INLINE double muto_round(const MutoCtx *args)
 
     mmgr_u64 mant = args->hi >> 11;
     mmgr_u64 half = (args->hi >> 10) & 1u;
+    // Explicit cast widens the dropped-bits flag to the mmgr_u64 the sticky bits are gathered in
     mmgr_u64 rest = (mmgr_u64)args->rest | ((args->lo != 0u) ? 1u : 0u) | (((args->hi & 0x3FFu) != 0u) ? 1u : 0u);
+    // Explicit cast holds the mantissa width at the mmgr_iword the biased exponent is summed in
     mmgr_iword be = args->fe2 + 75 + (mmgr_iword)MMGR_DBL_MANT_BITS + MMGR_DBL_BIAS;
 
     if (be <= 0)
@@ -389,11 +399,15 @@ MMGR_INLINE double muto_round(const MutoCtx *args)
         }
     }
 
+    // Explicit cast holds the all-ones exponent at the mmgr_iword be is compared in
     if (be >= (mmgr_iword)MMGR_DBL_EXP_ALL)
     {
         const double big = 1.0e308 * 10.0;
         return args->neg ? -big : big;
     }
+
+    // Explicit casts widen the sign selection and the biased exponent to the mmgr_u64 fields
+    // FractioCfg carries; be is non-negative here, since the branches above pinned it
     const mmgr_u64 bits = MMGR_CALL(fract.merge, FractioCfg, .sign = (mmgr_u64)(args->neg ? MMGR_DBL_SIGN_ONE : 0u),
                                     .exp = (mmgr_u64)be, .mant = mant & MMGR_DBL_MANT_MASK);
 
@@ -424,10 +438,14 @@ MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *args)
     }
     if (k < 64)
     {
+        // Explicit cast pins the all-ones saturation value at the mmgr_u64 this returns
         return ~(mmgr_u64)0;
     }
 
+    // Explicit cast holds the shift width at the mmgr_word the shifts below take; the tests above
+    // established k is between 64 and 128, so the subtraction cannot wrap
     const mmgr_word j = (mmgr_word)(k - 64);
+    // Explicit cast widens the one to the mmgr_u64 the mask covers, so the shift has room
     const mmgr_u64 low_mask = (j == 0u) ? 0u : (((mmgr_u64)1 << (j - 1u)) - 1u);
     mmgr_u64 whole;
     mmgr_u64 half;
@@ -437,6 +455,7 @@ MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *args)
     {
         whole = args->hi;
         half = (args->lo >> 63) & 1u;
+        // Explicit cast widens the one to the mmgr_u64 the low word is masked in
         rest |= ((args->lo & (((mmgr_u64)1 << 63) - 1u)) != 0u) ? 1u : 0u;
     }
     else if (j < 64u)
@@ -450,10 +469,12 @@ MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *args)
     {
         whole = 0u;
         half = args->hi >> 63;
+        // Explicit cast widens the one to the mmgr_u64 the high word is masked in
         rest |= ((args->hi & (((mmgr_u64)1 << 63) - 1u)) != 0u) ? 1u : 0u;
         rest |= (args->lo != 0u) ? 1u : 0u;
     }
 
+    // Explicit cast narrows the low bit to the mmgr_word above is carried in, so the two meet at one width
     const mmgr_word odd = ((mmgr_word)(whole & 1u)) ^ (args->above & 1u);
 
     if ((half != 0u) && ((rest != 0u) || (odd != 0u)))
@@ -487,9 +508,11 @@ MMGR_INLINE double muto_scale(MutoCtx *args)
         return args->neg ? -0.0 : 0.0;
     }
 
+    // Explicit cast widens the one to the mmgr_u64 the mantissa is compared in, so the shift has room
     if ((args->dropped == 0) && (*args->mant < ((mmgr_u64)1 << 53)) && (args->ex >= -MMGR_MUTO_EXACT_POW10) &&
         (args->ex <= MMGR_MUTO_EXACT_POW10))
     {
+        // Explicit cast converts the mantissa to the double this path scales it in, exact below 2^53
         double v = (double)*args->mant;
 
         if (args->ex > 0)

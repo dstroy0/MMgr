@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file mmgr_types.h
  * @brief The MMgr scalar types, and the assertions that pin their widths.
  *
  * @warning Not standalone: mmgr_config.h must set MMGR_WORD_BITS and MMGR_INDEX_BITS first.
@@ -17,7 +18,8 @@
 /**
  * @brief Fixed-width integers under MMgr names.
  *
- * @note The assertions further down fail the build if any of them is not the declared width.
+ * @note The assertions further down pin mmgr_u8 through mmgr_u64. The signed four carry none of
+ *       their own.
  */
 typedef uint8_t mmgr_u8;
 typedef uint16_t mmgr_u16;
@@ -90,9 +92,10 @@ typedef mmgr_u16 mmgr_idx;
 #endif
 
 /**
- * @brief Pins every type above to its declared width, and mmgr_idx inside mmgr_word.
+ * @brief Pins the four unsigned widths, both word types and mmgr_idx.
  *
- * @note Each compares a declared width against the type's actual size.
+ * @note Six compare a type's size against a declared width. The other two compare two types, holding
+ *       mmgr_iword to the same register as mmgr_word and mmgr_idx no wider than it.
  */
 MMGR_STATIC_ASSERT(sizeof(mmgr_u8) == 1, "mmgr_u8 must be exactly 8 bits: this target has no 8-bit type");
 MMGR_STATIC_ASSERT(sizeof(mmgr_u16) * 8u == 16u, "mmgr_u16 must be exactly 16 bits");

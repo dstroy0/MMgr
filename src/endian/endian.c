@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file endian.c
  * @brief Little and big endian reads and writes at two, four or eight bytes.
  */
 #include "endian/endian.h"
@@ -102,7 +103,7 @@ MMGR_INLINE size_t endian_wr_le(const EndianCtx *args)
  *
  * @param[in,out] args Destination, value and width [BORROWS].
  * @return          args->width.
- * @note Builds a fresh EndianCtx holding the reversed value, leaving c untouched.
+ * @note Builds a fresh EndianCtx holding the reversed value, leaving args untouched.
  */
 MMGR_INLINE size_t endian_wr_be(const EndianCtx *args)
 {

@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file mmgr_compiler_directives.h
  * @brief Preprocessor definitions; declares no type and defines no function.
  */
 #ifndef MMGR_COMPILER_DIRECTIVES_H
@@ -23,6 +24,8 @@
 
 /**
  * @brief Set to 1 when __GNUC__ is defined and __clang__ is not, 0 otherwise.
+ *
+ * @note Defined on both branches, so #ifdef MMGR_CC_GNU is always true.
  */
 #if defined(__GNUC__) && !defined(__clang__)
 #define MMGR_CC_GNU 1
@@ -34,6 +37,7 @@
 /**
  * @brief Set to 1 when __GNUC__ or __clang__ is defined, 0 otherwise.
  *
+ * @note Defined on both branches, so #ifdef MMGR_CC_GNU_ATTRS is always true.
  * @note Used as the fallback value of MMGR_HAS_ATTRIBUTE.
  */
 #if defined(__GNUC__) || defined(__clang__)
@@ -125,7 +129,7 @@
  * @param[in] a Left operand, forwarded to MMGR_CAT_.
  * @param[in] b Right operand, forwarded to MMGR_CAT_.
  * @return      The single token formed by joining a and b.
- * @note Builds a macro name from a count, as in MMGR_NS_LAYOUT and mmgr_carcer_init.
+ * @note Builds a macro name from a count, as in MMGR_NS_LAYOUT and MMGR_CARCER_WALK.
  */
 #define MMGR_CAT(a, b) MMGR_CAT_(a, b)
 
@@ -139,6 +143,7 @@
  */
 #define MMGR_NARG(...)                                                                                                 \
     MMGR_NARG_(__VA_ARGS__, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+
 /**
  * @brief Expands to MMGR_ARG_N(__VA_ARGS__).
  *
@@ -196,7 +201,7 @@
  * @param[in] T Struct type forwarded to MMGR_NS_LOCULUS.
  * @param[in] a Member names in order; a takes index 0, b takes index 1.
  * @note MMGR_NS_L<n> expands MMGR_NS_L<n-1> before its own MMGR_NS_LOCULUS.
- * @warning Selected by MMGR_NS_LAYOUT through MMGR_CAT on the argument count.
+ * @note Selected by MMGR_NS_LAYOUT through MMGR_CAT on the argument count.
  */
 #define MMGR_NS_L1(T, a) MMGR_NS_LOCULUS(T, a, 0);
 #define MMGR_NS_L2(T, a, b) MMGR_NS_L1(T, a) MMGR_NS_LOCULUS(T, b, 1);
@@ -266,7 +271,7 @@
  *       cellul.len over eight bytes costs 112 cycles called and 80 inlined, so the call is 32 of
  *       them - a third of the work at that length, and it is paid on every entry.
  * @note Worth it where an extent is short and settled before the build, which is what this library
- *       is for. A long scan amortises the call and will not notice: the same measurement at 64 bytes
+ *       is for. A long scan amortizes the call and will not notice: the same measurement at 64 bytes
  *       is 253 against 240.
  * @note Costs the walk's code at every site that takes it, so it belongs on the one hot function a
  *       caller cares about rather than on a translation unit.
@@ -399,6 +404,8 @@
  * @param[in] x Token sequence to stringize.
  * @return      x as a string literal.
  * @note Called by MMGR_DIAG_IGNORE.
+ * @warning Not defined where neither __clang__ nor __GNUC__ is. Nothing needs it there, since
+ *          MMGR_DIAG_IGNORE expands to nothing on that arm.
  */
 #define MMGR_DIAG_STR(x) #x
 #elif defined(__GNUC__)
@@ -414,6 +421,8 @@
  * @param[in] x Token sequence to stringize.
  * @return      x as a string literal.
  * @note Called by MMGR_DIAG_IGNORE.
+ * @warning Not defined where neither __clang__ nor __GNUC__ is. Nothing needs it there, since
+ *          MMGR_DIAG_IGNORE expands to nothing on that arm.
  */
 #define MMGR_DIAG_STR(x) #x
 

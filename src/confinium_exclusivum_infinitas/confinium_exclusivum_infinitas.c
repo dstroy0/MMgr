@@ -2,13 +2,15 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file confinium_exclusivum_infinitas.c
  * @brief Power-of-two byte ring, a segment view over the same bytes, and loculus keepouts.
  *
- * @note Every type the header only declared is defined here, so the public surface carries no layout.
+ * @note The state laid into mmgr_ring is defined here and nowhere else, so the public surface carries
+ *       no layout.
  * @note head, tail, claim, rel, gratis and held are atomic; the spans and the sizes are plain.
  * @note A move across the wrap is two runs through ring_move, never a walk over single bytes.
- * @note Self-contained: the span mover, the bit index and the span type are all defined here, so the
- *       module reaches nothing outside config.
+ * @note Self-contained: the span mover and the bit index are defined here and the span type in the
+ *       header, so the module reaches nothing outside config.
  */
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 
@@ -18,7 +20,8 @@
  * @brief The attributes that make an access at an arbitrary address legal.
  *
  * @note MMGR_ALIGN(1) states the address carries no alignment; MMGR_ALIAS states the type may alias.
- * @warning Either half expands to nothing where its attribute is unavailable.
+ * @warning Either half expands to nothing where its attribute is unavailable. ring_move's accesses
+ *          are ordinary ones then, which a target that traps unaligned loads will fault on.
  */
 #define RING_RAW MMGR_ALIGN(1) MMGR_ALIAS
 
@@ -45,7 +48,10 @@ typedef mmgr_u16 ring_step_word;
 #endif
 
 /**
- * @brief The unaligned view of one step, for a source that may sit anywhere.
+ * @brief The unaligned view of one step, which both of ring_move's walking pointers go through.
+ *
+ * @note A ring offset is any byte, so neither side can be taken as aligned. The alias half of
+ *       RING_RAW is what lets the uint8_t pointers ring_move is given be walked at this width.
  */
 typedef ring_step_word ring_raw_word RING_RAW;
 
@@ -54,6 +60,9 @@ typedef ring_step_word ring_raw_word RING_RAW;
  *
  * @note A tail is shorter than one step, so it is carried by these rather than by a step that would
  *       reach past what the caller gave.
+ * @note Which of the two a build reaches follows RING_STEP: the u32 rung only at a step of 8, the
+ *       u16 rung at 4 or more. The byte rung below them needs no view of its own, since a byte
+ *       carries no alignment to relax and already aliases anything.
  */
 typedef mmgr_u32 ring_raw_u32 RING_RAW;
 typedef mmgr_u16 ring_raw_u16 RING_RAW;
@@ -67,6 +76,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @return         A T with its low n bits set.
  * @note An n at the full width is the case a shift cannot express, so it is answered by complement
  *       instead. An n of 0 falls out of the shift, so neither end needs a test of its own.
+ * @warning n appears twice in the expansion, so an argument with a side effect is evaluated twice
+ *          whenever the mask is built by the shift.
  */
 #define RING_LOW_MASK(T, n, bits) (((n) >= (bits)) ? (T) ~(T)0 : (T)(((T)(((T)1) << (n))) - (T)1))
 
@@ -75,6 +86,11 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  *
  * @param[in] i First of the two word offsets.
  * @note Named d and s from the enclosing scope, so the cascade below reads as widths alone.
+ * @warning i appears four times in the expansion, so an argument with a side effect is evaluated
+ *          four times.
+ * @warning Both offsets must lie inside the words d and s walk over, and nothing here bounds them.
+ *          ring_move is what holds them there, by taking a rung only when the remaining word count
+ *          has that bit set.
  */
 #define RING_COPY_2(i)                                                                                                 \
     d[(i)] = s[(i)];                                                                                                   \
@@ -84,6 +100,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @brief Copies four words at offset i, as two runs of two.
  *
  * @param[in] i First of the four word offsets.
+ * @note Carries both of RING_COPY_2's warnings: i reaches the expansion eight times through the two
+ *       runs, and the four offsets are bounded by ring_move rather than here.
  */
 #define RING_COPY_4(i)                                                                                                 \
     RING_COPY_2(i);                                                                                                    \
@@ -93,6 +111,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @brief Copies eight words at offset i, as two runs of four.
  *
  * @param[in] i First of the eight word offsets.
+ * @note Carries the same two warnings down the cascade: i reaches the expansion sixteen times, and
+ *       the eight offsets are bounded by ring_move rather than here.
  */
 #define RING_COPY_8(i)                                                                                                 \
     RING_COPY_4(i);                                                                                                    \
@@ -101,11 +121,13 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
 /**
  * @brief Carries n bytes of the tail through type T when the tail still holds that many.
  *
- * @param[in] T Unaligned view n bytes wide.
- * @param[in] n Bytes this rung carries.
+ * @param[in] T Type n bytes wide the copy goes through, an unaligned view above one byte.
+ * @param[in] n Bytes this rung carries, always a single bit.
  * @note Named db, sb and rem from the enclosing scope, so the cascade reads as widths alone.
  * @note One rung per bit of rem, so each runs at most once and together they carry every tail
  *       exactly, without an access reaching past the bytes the caller gave.
+ * @warning n appears three times in the expansion, so an argument with a side effect is evaluated
+ *          three times.
  */
 #define RING_TAIL(T, n)                                                                                                \
     if ((rem & (n)) != 0u)                                                                                             \
@@ -131,11 +153,17 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  */
 MMGR_INLINE void ring_move(uint8_t *dst, const uint8_t *src, size_t sz)
 {
+    // Explicit casts put the step at size_t, holding the divide and the multiply in the type sz
+    // arrives in rather than the int RING_STEP expands to
     size_t words = sz / (size_t)RING_STEP;
     const size_t rem = sz - (words * (size_t)RING_STEP);
+    // Explicit casts take the byte pointers to the unaligned word view the loop below steps through,
+    // which is what makes a step at an address of any alignment legal
     ring_raw_word *d = (ring_raw_word *)dst;
     const ring_raw_word *s = (const ring_raw_word *)src;
 
+    // Here and in the three rungs below, the two pointers and the remaining word count step on lines
+    // of their own after the copy, so none of them is a side effect inside the macro that copied
     while (words >= 8u)
     {
         RING_COPY_8(0);
@@ -212,13 +240,17 @@ MMGR_INLINE void ring_move(uint8_t *dst, const uint8_t *src, size_t sz)
  */
 MMGR_INLINE mmgr_iword ring_trail(mmgr_word x)
 {
-    // Explicit cast keeps the two's complement negation at mmgr_word, isolating the lowest set bit
+    // Explicit casts hold the two's complement negation, the one taken off and the subtraction all at
+    // mmgr_word: the first isolates the lowest set bit, and taking one off it leaves the trailing
+    // zeros standing as set bits
     mmgr_word v = (mmgr_word)((x & (mmgr_word)(0u - x)) - (mmgr_word)1);
 
     // Explicit casts hold each fold at mmgr_word: pairs, then quads, then whole octets
     v = (mmgr_word)(v - ((v >> 1) & RING_PAIRS));
     v = (mmgr_word)((v & RING_QUADS) + ((v >> 2) & RING_QUADS));
     v = (mmgr_word)((v + (v >> 4)) & RING_OCTETS);
+    // Explicit casts hold the summing multiply at mmgr_word, then take the top octet it lands the
+    // whole count in into the mmgr_iword this returns
     return (mmgr_iword)((mmgr_word)(v * RING_ONES) >> (MMGR_WORD_BITS - 8u));
 }
 
@@ -234,8 +266,8 @@ MMGR_INLINE mmgr_iword ring_trail(mmgr_word x)
 /**
  * @brief Release store to an atomic member.
  *
- * @param[in] p Address of the atomic to write [BORROWS].
- * @param[in] v Value to store.
+ * @param[in,out] p Address of the atomic to write [BORROWS].
+ * @param[in]     v Value to store.
  * @note Release ordering, so buffer writes made before it are visible to an acquiring reader.
  */
 #define MMGR_ATOMIC_STORE(p, v) atomic_store_explicit((p), (v), memory_order_release)
@@ -261,7 +293,10 @@ typedef struct
      * @brief Region each held loculus keeps out, recorded at the hold.
      *
      * @note Sized to one entry when MMGR_RING_LOCULI is 0, since C has no zero-length array. That
-     *       entry is unreachable: loculus_bit and infin_loculus_keepout both refuse every index then.
+     *       entry is unreachable: ring_loculus_bit and infin_loculus_keepout both refuse every index
+     *       then.
+     * @note The buf an entry records points at the caller's region. The ring neither writes through
+     *       it nor frees it, and it must outlive the hold [BORROWS].
      */
     mmgr_ring_span keep[(MMGR_RING_LOCULI > 0u) ? MMGR_RING_LOCULI : 1u];
 } RingState;
@@ -273,6 +308,9 @@ MMGR_STATIC_ASSERT(sizeof(RingState) <= sizeof(mmgr_ring),
  * @brief Arguments for every backend in this file, grouped by the calls that read them.
  *
  * @note Each backend reads one group; MMGR_CALL zeroes the members it is not given.
+ * @note Not a mirror of InfinCfg: RING_S turns that type's ring into the state pointer here, and its
+ *       buf, cap and nsegs have no counterpart, since mmgr_infin_init is written by hand and reads
+ *       InfinCfg without building one of these.
  */
 typedef struct
 {
@@ -293,6 +331,9 @@ typedef struct
  * @return      The state laid into it [BORROWS].
  * @note The cast goes through void *; mmgr_ring aligns opaque to size_t.
  * @warning The state is only valid after mmgr_infin_init has returned MMGR_TRUE for this ring.
+ * @warning That alignment is size_t and no more, so the cast holds only while no member of RingState
+ *          needs a stricter one. The assertion below the type checks its size, and nothing checks
+ *          this.
  */
 MMGR_INLINE RingState *ring_of(mmgr_ring *r)
 {
@@ -331,6 +372,8 @@ MMGR_INLINE mmgr_word ring_loculus_bit(size_t idx)
  */
 MMGR_INLINE mmgr_word ring_loculus_all(void)
 {
+    // Explicit casts put the declared count and the ceiling at size_t, the one type RING_LOW_MASK
+    // compares them in
     return RING_LOW_MASK(mmgr_word, (size_t)MMGR_RING_LOCULI, (size_t)MMGR_RING_LOCULI_MAX);
 }
 
@@ -353,6 +396,9 @@ typedef struct
  * @note Both directions divide the same way, so the arithmetic lives here once.
  * @warning want is held at cap: two runs cannot express more than one lap, so a larger count would
  *          take the second run past the end of the buffer.
+ * @warning at is not held to anything. The room ahead of it is cap minus at, so an offset at or past
+ *          cap wraps that subtraction and the first run then reaches past the buffer. What holds it
+ *          instead is that every cursor reaching here is one the ring keeps wrapped.
  */
 MMGR_INLINE RingRun ring_run(const RingState *s, size_t at, size_t want)
 {
@@ -378,6 +424,8 @@ MMGR_INLINE RingRun ring_run(const RingState *s, size_t at, size_t want)
  * @note A loop rather than a pass and a guarded second one, so the mover is emitted once instead of
  *       twice. Two copies of it made this entry too large to inline well, which cost far more than
  *       the loop does.
+ * @warning dst must hold want bytes, or cap of them when want is larger, and must not lie inside the
+ *          ring's own bytes, which is the non-overlap ring_move requires. Neither is checked.
  */
 MMGR_INLINE size_t ring_move_out(RingState *s, size_t at, uint8_t *dst, size_t want)
 {
@@ -406,6 +454,8 @@ MMGR_INLINE size_t ring_move_out(RingState *s, size_t at, uint8_t *dst, size_t w
  * @param[in]     want Bytes to move.
  * @return             The offset one past what was moved, wrapped.
  * @note The mirror of ring_move_out, and the reason a fill and a drain cost the same per byte.
+ * @warning src must hold want bytes, or cap of them when want is larger, and must not lie inside the
+ *          ring's own bytes, which is the non-overlap ring_move requires. Neither is checked.
  */
 MMGR_INLINE size_t ring_move_in(RingState *s, size_t at, const uint8_t *src, size_t want)
 {
@@ -459,6 +509,8 @@ MMGR_INLINE size_t ring_free(size_t h, size_t t, size_t cap)
  *
  * @param[in] args Ring to inspect [BORROWS].
  * @return      Distance from tail to head, wrapped into the ring.
+ * @warning The head and the tail are read one after the other, so this is only a snapshot: a
+ *          producer may add more between the two loads, or after both.
  */
 MMGR_INLINE size_t infin_available(const InfinCtx *args)
 {
@@ -470,6 +522,8 @@ MMGR_INLINE size_t infin_available(const InfinCtx *args)
  *
  * @param[in] args Ring to inspect [BORROWS].
  * @return      cap minus one, minus the readable bytes.
+ * @warning The head and the tail are read one after the other, so this is only a snapshot: a
+ *          consumer may free more between the two loads, or after both.
  */
 MMGR_INLINE size_t infin_vacant(const InfinCtx *args)
 {
@@ -481,6 +535,8 @@ MMGR_INLINE size_t infin_vacant(const InfinCtx *args)
  *
  * @param[in,out] args Ring and the destination byte [BORROWS].
  * @return          MMGR_TRUE when a byte was taken, MMGR_FALSE when the ring was empty.
+ * @note Writes through args->dst only on the MMGR_TRUE path; an empty ring leaves it untouched.
+ * @warning args->dst must be writable for one byte, and nothing here checks it.
  */
 MMGR_INLINE mmgr_bool infin_read_byte(const InfinCtx *args)
 {
@@ -501,6 +557,8 @@ MMGR_INLINE mmgr_bool infin_read_byte(const InfinCtx *args)
  * @param[in,out] args Ring, destination and the most to take [BORROWS].
  * @return          Bytes actually taken.
  * @note Publishes the tail once, after the move, rather than per byte.
+ * @warning args->dst must be writable for as many bytes as this takes, which is at most
+ *          args->bytes, and nothing here checks it.
  */
 MMGR_INLINE size_t infin_read(const InfinCtx *args)
 {
@@ -517,6 +575,9 @@ MMGR_INLINE size_t infin_read(const InfinCtx *args)
  *
  * @param[in,out] args Ring, destination, byte count and starting offset [BORROWS].
  * @warning Copies args->bytes whether or not that many are available.
+ * @warning ring_run holds the count at cap, so a request above the ring's capacity copies cap bytes
+ *          and no more.
+ * @warning args->dst must be writable for the bytes copied, and nothing here checks it.
  */
 MMGR_INLINE void infin_peek(const InfinCtx *args)
 {
@@ -529,6 +590,9 @@ MMGR_INLINE void infin_peek(const InfinCtx *args)
  * @brief Advances the tail past args->bytes.
  *
  * @param[in,out] args Ring and the byte count to drop [BORROWS].
+ * @warning Advances whether or not that many have arrived. A count past the readable bytes puts the
+ *          tail beyond the head, and infin_available then reports cap less the overshoot rather
+ *          than nothing.
  */
 MMGR_INLINE void infin_consume(const InfinCtx *args)
 {
@@ -541,6 +605,7 @@ MMGR_INLINE void infin_consume(const InfinCtx *args)
  * @param[in,out] args Ring, the bytes to write and their count [BORROWS].
  * @return          MMGR_TRUE when the span was written, MMGR_FALSE when it would not fit.
  * @note The head stays local across the move and is published once, so no half span is visible.
+ * @warning args->src must be readable for args->bytes, and nothing here checks it.
  */
 MMGR_INLINE mmgr_bool infin_put(const InfinCtx *args)
 {
@@ -559,6 +624,8 @@ MMGR_INLINE mmgr_bool infin_put(const InfinCtx *args)
  *
  * @param[in] args Ring to inspect [BORROWS].
  * @return      The distance between the two counters.
+ * @warning The two counters are read one after the other, so the answer is only a snapshot: a
+ *          publish or a release may land between the reads, or after both.
  */
 MMGR_INLINE size_t infin_seg_inflight(const InfinCtx *args)
 {
@@ -568,12 +635,13 @@ MMGR_INLINE size_t infin_seg_inflight(const InfinCtx *args)
 /**
  * @brief Hands back the segment a counter names, when its side says one is there.
  *
- * @param[in,out] args      Ring, and where to write the index [BORROWS].
+ * @param[in,out] args   Ring, and where to write the index [BORROWS].
  * @param[in]     cursor Counter naming the segment.
  * @param[in]     ok     Whether the caller's side has a segment to give.
  * @return               ok, and args->out is only written when it holds.
  * @note Both ends reduce to this: the counter is wrapped into range and reported. Only the test for
  *       whether a segment exists differs, so each end keeps its own and passes the answer down.
+ * @warning args->out must be writable whenever ok holds, and nothing here checks it.
  */
 MMGR_INLINE mmgr_bool ring_seg_pick(const InfinCtx *args, size_t cursor, mmgr_bool ok)
 {
@@ -589,7 +657,10 @@ MMGR_INLINE mmgr_bool ring_seg_pick(const InfinCtx *args, size_t cursor, mmgr_bo
  * @brief Reports the index of the segment the producer fills next.
  *
  * @param[in,out] args Ring, and where to write the index [BORROWS].
- * @return          MMGR_FALSE when every segment is in flight.
+ * @return          MMGR_TRUE with the index in args->out, MMGR_FALSE when every segment is in flight.
+ * @note Writes through args->out only when it returns MMGR_TRUE.
+ * @note A MMGR_FALSE can go stale the moment the consumer releases a segment; a MMGR_TRUE cannot,
+ *       since releases only make room.
  */
 MMGR_INLINE mmgr_bool infin_seg_next(const InfinCtx *args)
 {
@@ -614,6 +685,10 @@ MMGR_INLINE void ring_bump(_Atomic size_t *p)
  * @brief Makes the filled segment visible to the consumer.
  *
  * @param[in,out] args Ring to advance [BORROWS].
+ * @note Only the producer calls this, which is what lets ring_bump read and write claim as two steps.
+ * @warning Advances whether or not a segment was filled, so a publish with no matching
+ *          infin_seg_next puts more in flight than the ring holds, and that call then refuses until
+ *          releases catch up.
  */
 MMGR_INLINE void infin_seg_publish(const InfinCtx *args)
 {
@@ -624,7 +699,10 @@ MMGR_INLINE void infin_seg_publish(const InfinCtx *args)
  * @brief Reports the index of the segment the consumer takes next.
  *
  * @param[in,out] args Ring, and where to write the index [BORROWS].
- * @return          MMGR_FALSE when none is in flight.
+ * @return          MMGR_TRUE with the index in args->out, MMGR_FALSE when none is in flight.
+ * @note Writes through args->out only when it returns MMGR_TRUE.
+ * @note A MMGR_FALSE can go stale the moment the producer publishes a segment; a MMGR_TRUE cannot,
+ *       since publishes only add.
  */
 MMGR_INLINE mmgr_bool infin_seg_front(const InfinCtx *args)
 {
@@ -637,6 +715,10 @@ MMGR_INLINE mmgr_bool infin_seg_front(const InfinCtx *args)
  * @brief Frees the front segment.
  *
  * @param[in,out] args Ring to advance [BORROWS].
+ * @note Only the consumer calls this, which is what lets ring_bump read and write rel as two steps.
+ * @warning Advances whether or not a segment was in flight, so a release with no matching
+ *          infin_seg_front wraps the subtraction in infin_seg_inflight and leaves infin_seg_front
+ *          handing out a segment that was never filled.
  */
 MMGR_INLINE void infin_seg_release(const InfinCtx *args)
 {
@@ -648,6 +730,10 @@ MMGR_INLINE void infin_seg_release(const InfinCtx *args)
  *
  * @param[in] args Ring and the segment index [BORROWS].
  * @return      Its first byte inside the ring buffer [BORROWS].
+ * @note The span runs for s->seg bytes, which mmgr_infin_init set to the cap divided by the nsegs it
+ *       was given.
+ * @warning args->idx is not checked against s->nsegs here or anywhere below. An index at or past that
+ *          count multiplies past the buffer and the pointer returned lies outside the ring's bytes.
  */
 MMGR_INLINE uint8_t *infin_seg_at(const InfinCtx *args)
 {
@@ -659,6 +745,10 @@ MMGR_INLINE uint8_t *infin_seg_at(const InfinCtx *args)
  *
  * @param[in] args Ring to inspect [BORROWS].
  * @return      The free mask with the held ones cleared, bounded to the loculi this build has.
+ * @note A loculus is takeable only when it is free and not held, which is what makes reuse safe.
+ * @warning The two masks are read one after the other, so this is only a snapshot: a hold or a drop
+ *          may land between the loads, or after both. infin_loculus_hold settles that race, refusing
+ *          a loculus another caller took first.
  */
 MMGR_INLINE mmgr_word infin_loculus_ready(const InfinCtx *args)
 {
@@ -670,11 +760,20 @@ MMGR_INLINE mmgr_word infin_loculus_ready(const InfinCtx *args)
  *
  * @param[in] args The mask to pick from [BORROWS].
  * @return      The index, or -1 when args->mask is empty.
+ * @note Counts rather than scans, and branches on nothing but the empty mask.
+ * @note Only args->mask is read; this is the one backend here that never reaches the ring state.
+ * @note The test below is the one ring_trail asks of its callers, since an empty mask reaches it as a
+ *       count of MMGR_WORD_BITS rather than as no bit at all.
+ * @warning The mask is taken as given, so a bit above the loculi this build has comes back as its
+ *          index. That index names no loculus, and infin_loculus_hold refuses it.
  */
 MMGR_INLINE mmgr_iword infin_loculus_next(const InfinCtx *args)
 {
+    // Explicit cast puts the empty test at mmgr_word, the width the mask is carried in
     if (args->mask == (mmgr_word)0)
     {
+        // Explicit cast builds the miss at the signed mmgr_iword this returns, the one type that
+        // holds both an index and a -1
         return (mmgr_iword)-1;
     }
     return ring_trail(args->mask);
@@ -684,12 +783,20 @@ MMGR_INLINE mmgr_iword infin_loculus_next(const InfinCtx *args)
  * @brief Takes loculus args->idx and records the region it keeps out.
  *
  * @param[in,out] args Ring, the loculus, and the region to record [BORROWS].
- * @return          MMGR_TRUE when this caller took the loculus.
+ * @return          MMGR_TRUE when this caller took the loculus, MMGR_FALSE when args->idx names none
+ *                  or another caller already holds it.
+ * @note The fetch_or is what settles a race between two callers: whichever finds the bit clear takes
+ *       the loculus, and the other sees it already set and is refused.
+ * @note Records the region only on the MMGR_TRUE path, so a refused caller leaves the span alone.
+ * @warning An out-of-range args->idx names no bit, so it reads as held and is never handed out.
+ * @warning args->src is kept by the ring and handed back by infin_loculus_keepout, so it must outlive
+ *          the hold [BORROWS].
  */
 MMGR_INLINE mmgr_bool infin_loculus_hold(const InfinCtx *args)
 {
     const mmgr_word bit = ring_loculus_bit(args->idx);
 
+    // Explicit cast puts the no-bit test at mmgr_word, the width ring_loculus_bit answers in
     if (bit == (mmgr_word)0)
     {
         return MMGR_FALSE;
@@ -701,7 +808,9 @@ MMGR_INLINE mmgr_bool infin_loculus_hold(const InfinCtx *args)
     {
         return MMGR_FALSE;
     }
-    // Explicit cast drops the source qualifier: the span records a region it never writes through
+    // Explicit casts round the const source through uintptr_t and back to the writable uint8_t * the
+    // span holds, so the qualifier goes at the integer rather than at a pointer cast, which is what
+    // -Wcast-qual is there to catch. The ring only records the region and never writes through it.
     args->s->keep[args->idx].buf = (uint8_t *)(uintptr_t)args->src;
     args->s->keep[args->idx].cap = args->bytes;
     args->s->keep[args->idx].pos = 0u;
@@ -713,11 +822,17 @@ MMGR_INLINE mmgr_bool infin_loculus_hold(const InfinCtx *args)
  *
  * @param[in] args Ring and the loculus [BORROWS].
  * @return      The recorded span, or NULL when args->idx names none [BORROWS].
+ * @note Handed back const, so a reader walks it without moving the ring's own record.
+ * @note A loculus that was never held reads back as the span mmgr_infin_init cleared, a NULL buf and
+ *       a cap of zero.
+ * @warning The const covers the span, not the bytes it names: buf comes back as a writable pointer,
+ *          though the region reached infin_loculus_hold as const.
  */
 MMGR_INLINE const mmgr_ring_span *infin_loculus_keepout(const InfinCtx *args)
 {
 #if MMGR_RING_LOCULI == 0u
-    // A build with no loculi keeps nothing out, so there is no span to hand back
+    // A build with no loculi keeps nothing out, so there is no span to hand back and args goes
+    // unread. Explicit cast to void is what states that, since an unused parameter is a diagnostic here
     (void)args;
     return NULL;
 #else
@@ -734,10 +849,15 @@ MMGR_INLINE const mmgr_ring_span *infin_loculus_keepout(const InfinCtx *args)
  *
  * @param[in,out] args Ring and the loculus [BORROWS].
  * @note Leaves the recorded span and the bytes alone, so a restream can run again.
+ * @note Releases what the acquire in infin_loculus_hold took, so the writes a holder made before the
+ *       drop are visible to whoever takes the loculus next.
+ * @note An out-of-range args->idx names no bit and clears nothing, and dropping a loculus that is not
+ *       held does nothing.
  */
 MMGR_INLINE void infin_loculus_drop(const InfinCtx *args)
 {
-    // Explicit cast keeps the complement at mmgr_word width, matching the atomic it clears
+    // Explicit cast keeps the complement at mmgr_word width, matching the atomic it clears, and the
+    // cast to void drops the mask the fetch returns, which this call has no use for
     (void)atomic_fetch_and_explicit(&args->s->held, (mmgr_word)~ring_loculus_bit(args->idx), memory_order_release);
 }
 
@@ -745,9 +865,15 @@ MMGR_INLINE void infin_loculus_drop(const InfinCtx *args)
  * @brief Marks loculus args->idx free.
  *
  * @param[in,out] args Ring and the loculus [BORROWS].
+ * @note Sets the free bit. The held one is infin_loculus_drop's to clear, and a loculus is takeable
+ *       only when both agree.
+ * @note mmgr_infin_init sets the free bit for every loculus and nothing in this file clears it, so on
+ *       a ring that call has laid down this changes nothing.
+ * @note An out-of-range args->idx names no bit and sets nothing.
  */
 MMGR_INLINE void infin_loculus_mark(const InfinCtx *args)
 {
+    // Explicit cast to void drops the mask the fetch returns, which this call has no use for
     (void)atomic_fetch_or_explicit(&args->s->gratis, ring_loculus_bit(args->idx), memory_order_release);
 }
 
@@ -761,10 +887,14 @@ mmgr_bool mmgr_infin_init(const InfinCfg *args)
     MMGR_ASSERT(args->ring != NULL, "a ring needs storage");
     MMGR_ASSERT(args->buf != NULL, "a ring needs a buffer");
 
+    // Two tests because MMGR_RING_POW2 reports true for a cap of 0 as well, so the empty buffer is
+    // refused on its own. The power of two is what lets every wrap here be a mask rather than a divide
     if ((args->cap == 0u) || !MMGR_RING_POW2(args->cap))
     {
         return MMGR_FALSE;
     }
+    // The same two tests on the segment count, so ring_seg_pick can wrap a counter by mask, plus one
+    // that keeps a segment at a byte or more: a count above cap would divide to a segment of zero
     if ((args->nsegs == 0u) || !MMGR_RING_POW2(args->nsegs) || (args->nsegs > args->cap))
     {
         return MMGR_FALSE;
@@ -783,6 +913,9 @@ mmgr_bool mmgr_infin_init(const InfinCfg *args)
     atomic_init(&s->gratis, ring_loculus_all());
     atomic_init(&s->held, (mmgr_word)0);
 #if MMGR_RING_LOCULI > 0u
+    // A build with no loculi has one keep entry that nothing reaches, so this loop is compiled out
+    // rather than run over it
+    // Explicit cast puts the declared count at size_t, the type the index below is walked in
     for (size_t i = 0; i < (size_t)MMGR_RING_LOCULI; i++)
     {
         s->keep[i].buf = NULL;
@@ -796,7 +929,9 @@ mmgr_bool mmgr_infin_init(const InfinCfg *args)
 /**
  * @brief The state argument every entry point but one forwards.
  *
- * @note Names c from the entry point's own parameter, so the table below carries fields alone.
+ * @note Reads args, the entry point's own parameter, so the table below carries fields alone.
+ * @note Valid only inside a GENERIC_ENTRY body, which is where that parameter is in scope.
+ * @note loculus_next is the entry that leaves it out, since it reads a mask and never the ring.
  */
 #define RING_S .s = ring_of(args->ring)
 
@@ -805,6 +940,7 @@ mmgr_bool mmgr_infin_init(const InfinCfg *args)
  *
  * @param[in] ret  Return type of the entry point.
  * @param[in] name Name after the mmgr_infin_ and infin_ prefixes, which the two share.
+ * @param[in] ...  Initializers for the InfinCtx literal, written in terms of args.
  * @note The prefixes and the two structure types are the same for every entry, so they are named
  *       once here and the table below states only what each entry differs in.
  * @note The variadic part is the argument pack, never empty, so no comma needs eliding.
@@ -815,6 +951,7 @@ mmgr_bool mmgr_infin_init(const InfinCfg *args)
  * @brief Binds the same four to GENERIC_ENTRY_V, for an entry that returns nothing.
  *
  * @param[in] name Name after the mmgr_infin_ and infin_ prefixes, which the two share.
+ * @param[in] ...  Initializers for the InfinCtx literal, written in terms of args.
  * @note Separate from RING_ENTRY because a return with an expression is not allowed in a void
  *       function, so the two cannot share one body.
  */
@@ -824,6 +961,9 @@ mmgr_bool mmgr_infin_init(const InfinCfg *args)
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in confinium_exclusivum_infinitas.h.
+ * @note The fields each line forwards are the ones that entry reads; MMGR_CALL zeroes the rest.
+ * @note mmgr_infin_init is not among them: it checks the sizes and lays the state down, which no
+ *       argument pack expresses, so it is written by hand above.
  */
 RING_ENTRY(size_t, available, RING_S)
 RING_ENTRY(size_t, vacant, RING_S)

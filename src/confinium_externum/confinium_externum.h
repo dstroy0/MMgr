@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file confinium_externum.h
  * @brief Placement between internal and external memory, and a two-buffer index.
  *
  * @warning Everything below is declared only when MMGR_ENABLE_EXTRAM is set.
@@ -31,6 +32,11 @@ typedef enum MMGR_ENUM_PACKED
  * @brief A pair of buffers, one being filled while the other is drained.
  *
  * @note fill_idx is the only member; the buffers it indexes are held elsewhere.
+ * @note The two roles are one bit: the drain index is this one's complement, so a swap is a flip and
+ *       there is no second member to keep in step.
+ * @warning What holds fill_idx to 0 or 1 is mmgr_pingpong_init setting it and mmgr_pingpong_swap
+ *          flipping it. A pair that has not been through init carries whatever its storage held, and
+ *          no call here tests the value.
  */
 typedef struct
 {
@@ -86,7 +92,9 @@ mmgr_place mmgr_exter_place(const ExternumCfg *args);
  * @brief Points the pair at buffer 0.
  *
  * @param[in,out] args Pair to reset, as args->pp [BORROWS].
- * @warning args->pp must not be null.
+ * @note The other three pingpong entries read a pair this call has set.
+ * @warning args->pp must not be null. Nothing checks it and no assertion covers it, and this call
+ *          writes through it at once.
  */
 void mmgr_pingpong_init(const ExternumCfg *args);
 
@@ -96,7 +104,9 @@ void mmgr_pingpong_init(const ExternumCfg *args);
  * @param[in] args Pair to read, as args->pp [BORROWS].
  * @return      0 or 1.
  * @note Does not modify args->pp.
- * @warning args->pp must not be null.
+ * @warning args->pp must not be null. Nothing checks it and no assertion covers it.
+ * @warning Reports fill_idx as it stands. On a pair that has not been through mmgr_pingpong_init that
+ *          is whatever its storage held, and this call does not bound it to 0 or 1.
  */
 uint8_t mmgr_pingpong_fill_index(const ExternumCfg *args);
 
@@ -105,8 +115,11 @@ uint8_t mmgr_pingpong_fill_index(const ExternumCfg *args);
  *
  * @param[in] args Pair to read, as args->pp [BORROWS].
  * @return      The other index, 0 or 1.
+ * @note The answer is fill_idx with its low bit flipped, so the two indexes always disagree.
  * @note Does not modify args->pp.
- * @warning args->pp must not be null.
+ * @warning args->pp must not be null. Nothing checks it and no assertion covers it.
+ * @warning The answer is an index only while fill_idx is 0 or 1. On a pair that has not been through
+ *          mmgr_pingpong_init it is the flip of whatever its storage held.
  */
 uint8_t mmgr_pingpong_drain_index(const ExternumCfg *args);
 
@@ -115,7 +128,11 @@ uint8_t mmgr_pingpong_drain_index(const ExternumCfg *args);
  *
  * @param[in,out] args Pair to flip, as args->pp [BORROWS].
  * @return          The index now being filled, 0 or 1.
- * @warning args->pp must not be null.
+ * @note Flips the low bit, so a swap of a swap is where it started.
+ * @warning args->pp must not be null. Nothing checks it and no assertion covers it.
+ * @warning One caller at a time: the flip and the read that follows it are two steps on a plain byte,
+ *          with no atomic and no lock, so two callers swapping the same pair can come away holding
+ *          the same index.
  */
 uint8_t mmgr_pingpong_swap(const ExternumCfg *args);
 

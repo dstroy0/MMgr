@@ -2,7 +2,19 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file cellularum_laboro.h
  * @brief Bounded string work: the three argument types, the calls, and the cellul dispatch table.
+ *
+ * @note The calls taking CatenaFinitaCfg are bounded by a cap the caller states, so no walk runs past
+ *       it even where the bytes carry no terminator. ws and digit are the exception: they read src at
+ *       at and never consult cap.
+ * @note The TransfiguroCfg conversions carry no bound at all. Each reads until the first byte that is
+ *       not part of the number, so the caller owes them such a byte inside readable storage; a
+ *       terminator is the usual one.
+ * @note The VerboProgrediorCfg pair take their operands by value and read no memory, which is why
+ *       neither carries a bound.
+ * @warning Nothing here allocates or hands back ownership. Every pointer in and out is the caller's,
+ *          and the addresses find and chr return point into the src they were given.
  */
 #ifndef MMGR_CELLULARUM_LABORO_H
 #define MMGR_CELLULARUM_LABORO_H
@@ -14,12 +26,15 @@
 MMGR_INCIPE_DECLS
 
 /**
- * @brief Number of needle offsets the search sieve tests per candidate word.
+ * @brief Most needle offsets the search sieve tests per candidate word.
  *
- * @note cellul_find_core declares rows[MMGR_SIEVE_ROWS] and reads rows[0] before any loop.
+ * @note A ceiling rather than a count. cellul_pick_rows takes the smallest of this, the needle length
+ *       and MMGR_SWAR_BYTES, so a short needle is sieved on fewer offsets than this allows.
+ * @note cellul_find_core sizes two arrays by it, the chosen offsets and their broadcasts, and reads
+ *       element 0 of each outside the loop that walks the rest.
  * @warning Taken only when MMGR_SIEVE_ROWS is not already defined; a build may supply its own.
- * @warning A build's own value must be at least 1. At 0 the search declares a zero length array and
- *          still reads rows[0], and nothing here asserts against it.
+ * @warning A build's own value must be at least 1. At 0 both arrays are declared zero length and the
+ *          search still reads element 0 of each, and nothing here asserts against it.
  */
 #ifndef MMGR_SIEVE_ROWS
 
@@ -30,11 +45,15 @@ MMGR_INCIPE_DECLS
  * @brief Longest haystack a one or two byte needle is settled over by a mask chain rather than by
  *        building a sieve.
  *
+ * @note Case sensitive searches only. The chain compares its broadcasts without folding them, so a
+ *       folded search takes the sieve at every length, whatever this is set to.
  * @note Defaults to no limit, which folds the test away: `read_cap <= SIZE_MAX` is true for every
  *       size_t, so a default build emits no comparison and no second path is chosen at run time.
- * @note The chain reads one word and one byte a step and settles every start position in it at
- *       once; the sieve reads one word and pays a prologue picking an anchor out of the cost table
- *       before a haystack byte is read. Measured with a two byte needle, cycles for the whole call:
+ * @note The chain settles every start position in a word at once, with no anchor to choose and
+ *       nothing to verify afterwards; a two byte needle costs it a second read a step and a one byte
+ *       needle none. The sieve picks its offsets out of the cost table before a haystack byte is
+ *       read, reads a word per offset on top of the one it tests for the terminator, and proves
+ *       every surviving lane in full. Measured with a two byte needle, cycles for the whole call:
  *
  *           n              8      64    2048
  *           Xtensa chain 124     489   13391
@@ -61,14 +80,14 @@ MMGR_INCIPE_DECLS
 typedef struct
 {
     const char *const src;   /**< Bytes to read [BORROWS]. */
-    const size_t cap;        /**< Bytes readable from src. */
-    const char *const other; /**< Second operand for diff, eq, starts and find [BORROWS]. */
+    const size_t cap;        /**< Bytes readable from src, and for copy the bytes writable at dst. */
+    const char *const other; /**< Second operand for diff, eq, starts, find and has [BORROWS]. */
     const size_t other_cap;  /**< Bytes readable from other. */
     const size_t other_len;  /**< Needle length find and has take when non-zero, rather than measuring. */
     char *const dst;         /**< Destination for copy [BORROWS]. */
     const size_t at;         /**< Offset into src for len, ws and digit. */
     const uint8_t byte;      /**< Byte sought by chr. */
-    const mmgr_bool ci;      /**< Fold case in diff, eq, starts and find. */
+    const mmgr_bool ci;      /**< Fold case in diff, eq, starts, find and has. */
 } CatenaFinitaCfg;
 
 /**
@@ -94,7 +113,7 @@ typedef struct
 typedef struct
 {
     const char *const src;  /**< Text to convert [BORROWS]. */
-    const char **const end; /**< Optional target set past the last byte read [BORROWS]. */
+    const char **const end; /**< Optional target set past the number, or back to src when none was read [BORROWS]. */
 } TransfiguroCfg;
 
 /**
@@ -114,7 +133,7 @@ typedef struct
     const char *(*find)(const CatenaFinitaCfg *args);        /**< First occurrence of other in src. */
     mmgr_bool (*has)(const CatenaFinitaCfg *args);           /**< Whether find would report a match. */
     const char *(*chr)(const CatenaFinitaCfg *args);         /**< First occurrence of byte in src. */
-    size_t (*copy)(const CatenaFinitaCfg *args);             /**< Bounded copy, always terminated. */
+    size_t (*copy)(const CatenaFinitaCfg *args);             /**< Bounded copy, terminated unless cap is 0. */
     mmgr_bool (*ws)(const CatenaFinitaCfg *args);            /**< Whether src[at] is whitespace. */
     mmgr_bool (*digit)(const CatenaFinitaCfg *args);         /**< Whether src[at] is a decimal digit. */
     mmgr_iword (*step_word)(const VerboProgrediorCfg *args); /**< One word compare driving a walk. */
@@ -131,7 +150,7 @@ MMGR_NS_LAYOUT(CellularumLaboroNs, init, len, diff, eq, starts, find, has, chr, 
  * @brief Returns a copy of the argument struct.
  *
  * @param[in] args Struct to copy [BORROWS].
- * @return      A copy of *c.
+ * @return      A copy of *args.
  * @note Copies the members only; nothing they point at is read.
  */
 CatenaFinitaCfg mmgr_cellul_init(const CatenaFinitaCfg *args);
@@ -142,7 +161,8 @@ CatenaFinitaCfg mmgr_cellul_init(const CatenaFinitaCfg *args);
  * @param[in] args Bytes src, the extent cap, and the start offset at [BORROWS].
  * @return      Bytes before the terminator, at most cap minus at.
  * @note Returns cap minus at when no terminator is found in range.
- * @warning args->at must not exceed args->cap, and src must be readable to args->cap.
+ * @warning args->at must not exceed args->cap, and src must be readable to args->cap. The last partial
+ *          word is loaded whole and masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read.
  */
 size_t mmgr_cellul_len(const CatenaFinitaCfg *args);
 
@@ -152,7 +172,8 @@ size_t mmgr_cellul_len(const CatenaFinitaCfg *args);
  * @param[in] args Bytes src and other, the extent cap, and ci [BORROWS].
  * @return      Offset of the first difference, or cap when the two agree throughout.
  * @note A terminator does not end the scan; cap is the only bound.
- * @warning Both src and other must be readable for cap bytes.
+ * @warning Both src and other must be readable for cap bytes. The last partial word is loaded whole and
+ *          masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
 size_t mmgr_cellul_diff(const CatenaFinitaCfg *args);
 
@@ -161,7 +182,8 @@ size_t mmgr_cellul_diff(const CatenaFinitaCfg *args);
  *
  * @param[in] args Bytes src and other, the extent cap, and ci [BORROWS].
  * @return      MMGR_TRUE when both reach a terminator with no difference before it.
- * @warning Both src and other must be readable for cap bytes.
+ * @warning Both src and other must be readable for cap bytes. The last partial word is loaded whole and
+ *          masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
 mmgr_bool mmgr_cellul_eq(const CatenaFinitaCfg *args);
 
@@ -171,7 +193,8 @@ mmgr_bool mmgr_cellul_eq(const CatenaFinitaCfg *args);
  * @param[in] args Bytes src and other, the extent cap, and ci [BORROWS].
  * @return      MMGR_TRUE when other reaches its terminator with no difference before it.
  * @note An empty other matches any src.
- * @warning Both src and other must be readable for cap bytes.
+ * @warning Both src and other must be readable for cap bytes. The last partial word is loaded whole and
+ *          masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
 mmgr_bool mmgr_cellul_starts(const CatenaFinitaCfg *args);
 
@@ -181,7 +204,9 @@ mmgr_bool mmgr_cellul_starts(const CatenaFinitaCfg *args);
  * @param[in] args Haystack src with cap, needle other with other_cap, and ci [BORROWS].
  * @return      Address inside src, or NULL when there is no match [BORROWS].
  * @note An empty needle returns src; a needle longer than cap returns NULL.
- * @warning src must be readable for cap bytes and other for other_cap bytes.
+ * @warning src must be readable for cap bytes and other for other_cap bytes. The needle is loaded a
+ *          whole word at a time and masked after, so up to MMGR_SWAR_BYTES - 1 bytes past other_cap
+ *          are read. The haystack walk holds itself inside cap.
  */
 const char *mmgr_cellul_find(const CatenaFinitaCfg *args);
 
@@ -190,7 +215,8 @@ const char *mmgr_cellul_find(const CatenaFinitaCfg *args);
  *
  * @param[in] args Haystack src with cap, needle other with other_cap, and ci [BORROWS].
  * @return      MMGR_TRUE when mmgr_cellul_find reports a match.
- * @warning src must be readable for cap bytes and other for other_cap bytes.
+ * @warning src must be readable for cap bytes and other for other_cap bytes, with the needle read past
+ *          other_cap exactly as mmgr_cellul_find describes.
  */
 mmgr_bool mmgr_cellul_has(const CatenaFinitaCfg *args);
 
@@ -199,8 +225,9 @@ mmgr_bool mmgr_cellul_has(const CatenaFinitaCfg *args);
  *
  * @param[in] args Bytes src, the extent cap, and the byte sought [BORROWS].
  * @return      Address inside src, or NULL when the byte does not occur [BORROWS].
- * @note A byte of 0 returns the address of the terminator itself.
- * @warning src must be readable for cap bytes.
+ * @note A byte of 0 returns the terminator's own address, or src plus cap when no terminator is in range.
+ * @warning src must be readable for cap bytes. The last partial word is loaded whole and masked after,
+ *          so up to MMGR_SWAR_BYTES - 1 bytes past cap are read.
  */
 const char *mmgr_cellul_chr(const CatenaFinitaCfg *args);
 
@@ -227,7 +254,7 @@ mmgr_bool mmgr_cellul_ws(const CatenaFinitaCfg *args);
  * @brief Tests src[at] for a decimal digit.
  *
  * @param[in] args Bytes src and the offset at [BORROWS].
- * @return      MMGR_TRUE when the byte lies between '0' and '9'.
+ * @return      MMGR_TRUE for the ten decimal digits, '0' through '9'.
  * @warning src[at] must be readable; cap does not bound this call.
  */
 mmgr_bool mmgr_cellul_digit(const CatenaFinitaCfg *args);

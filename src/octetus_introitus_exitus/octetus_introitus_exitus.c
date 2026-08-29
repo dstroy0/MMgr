@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file octetus_introitus_exitus.c
  * @brief Byte verbs over a span: the appends, the take, and the room test all four share.
  *
  * @note Every append asks the same question first - is there room, and is the span still good - so
@@ -140,6 +141,8 @@ MMGR_INLINE void byteio_put_be(const ByteioCtx *args)
         return;
     }
 
+    // Explicit cast narrows the count to the mmgr_endian_width the reversal takes; the 1 to 8 bound
+    // on args->bytes is what keeps it inside that type
     uint64_t v = MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = args->val, .width = (mmgr_endian_width)args->bytes);
 
     // A count of eight takes the first branch alone, so the shifts below never reach the full width
@@ -148,6 +151,9 @@ MMGR_INLINE void byteio_put_be(const ByteioCtx *args)
         MMGR_CALL(proxim.put64, ProximusCfg, .dst = at, .val = v);
         return;
     }
+
+    // The cursor and the value advance on lines of their own after each store, so neither is a side
+    // effect of the store that read them
     if ((args->bytes & 4u) != 0u)
     {
         MMGR_CALL(proxim.put32, ProximusCfg, .dst = at, .val = v);
@@ -162,6 +168,7 @@ MMGR_INLINE void byteio_put_be(const ByteioCtx *args)
     }
     if ((args->bytes & 1u) != 0u)
     {
+        // Explicit cast narrows what is left of the value to the single byte this store writes
         *at = (uint8_t)v;
     }
 }
@@ -185,15 +192,16 @@ MMGR_INLINE mmgr_bool byteio_take_be(const ByteioCtx *args)
 
     uint64_t v = 0u;
 
-    // A count of eight is the whole width, so the narrower tests cannot be true and are not asked.
-    // put_be takes the same count in one branch and returns; this read them anyway and cost eleven
-    // cycles for it on an ESP32-S3, 66 against 55.
+    // A count of eight is the whole width, so the narrower tests below cannot be true
     if ((args->bytes & 8u) != 0u)
     {
         v = MMGR_CALL(proxim.load64, ProximusCfg, .at = at);
     }
     else
     {
+        // Explicit casts widen each load to the uint64_t v gathers into, before the shift promotes
+        // it; the cursor and the shift then advance on lines of their own, so neither is a side
+        // effect of the or that reads them
         size_t sh = 0u;
 
         if ((args->bytes & 4u) != 0u)
@@ -214,6 +222,8 @@ MMGR_INLINE mmgr_bool byteio_take_be(const ByteioCtx *args)
         }
     }
 
+    // Explicit cast narrows the count to the mmgr_endian_width the reversal takes; the 1 to 8 bound
+    // on args->bytes is what keeps it inside that type
     *args->out = MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = v, .width = (mmgr_endian_width)args->bytes);
     return MMGR_TRUE;
 }
@@ -257,15 +267,15 @@ MMGR_INLINE mmgr_bool byteio_rd_str(const ByteioCtx *args)
  * @note Leading zero bytes are skipped before the width is tested, so a value carrying a sign byte
  *       still fits a field of its own size.
  * @note The zero fill covers only what lies ahead of the value, since the copy lands on the rest of
- *       the field exactly. Clearing the whole field first measured 104 cycles against 94 for a
- *       twenty byte value in a thirty two byte field on an ESP32-S3, and the gap widens as the
- *       value takes up more of the field.
+ *       the field exactly.
  */
 MMGR_INLINE mmgr_bool byteio_mpint_fixed(const ByteioCtx *args)
 {
     mmgr_span *const w = args->w;
     size_t off = 0u;
 
+    // The step is kept out of the condition, so the bound and the byte test read off without
+    // advancing it
     while ((off < args->bytes) && (args->src[off] == 0u))
     {
         off++;

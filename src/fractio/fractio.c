@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file fractio.c
  * @brief Field access on the bit pattern of a binary64 double.
  */
 #include "fractio/fractio.h"
@@ -38,7 +39,7 @@ MMGR_INLINE mmgr_u64 fract_sign(const FractioCtx *args)
  * @brief Returns the raw exponent field of args->bits, still biased.
  *
  * @param[in] args Bit pattern to read [BORROWS].
- * @return      The stored exponent, with MMGR_DBL_EXP_BIAS not yet removed.
+ * @return      The stored exponent, with MMGR_DBL_BIAS not yet removed.
  */
 MMGR_INLINE mmgr_u64 fract_exp(const FractioCtx *args)
 {
@@ -103,8 +104,9 @@ MMGR_INLINE mmgr_u64 fract_to_bits(const FractioCtx *args)
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in fractio.h.
- * @note The union member each line forwards is the one the caller filled: from_bits is given bits and
- *       reads val, to_bits is given val and reads bits. That reinterpretation is the point of both.
+ * @note The five union lines forward the member the caller filled; merge forwards its three fields
+ *       instead. from_bits is given bits and reads val, to_bits is given val and reads bits, which is
+ *       the reinterpretation both exist for.
  */
 FRACT_ENTRY(mmgr_u64, sign, .bits = args->bits)
 FRACT_ENTRY(mmgr_u64, exp, .bits = args->bits)

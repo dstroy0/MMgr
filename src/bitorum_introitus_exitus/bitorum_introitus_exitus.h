@@ -2,7 +2,13 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file bitorum_introitus_exitus.h
  * @brief Bit writer state, its arguments, and the bitio dispatch table.
+ *
+ * @warning put writes whole bytes only, so bits that do not fill one stay in the writer's residue
+ *          and align is what puts that last partial byte out. A stream whose length is not a
+ *          multiple of eight and that never calls align ends one byte short, with no flag raised
+ *          and nothing to notice at the call.
  */
 #ifndef MMGR_BITORUM_INTROITUS_EXITUS_H
 #define MMGR_BITORUM_INTROITUS_EXITUS_H
@@ -14,7 +20,7 @@ MMGR_INCIPE_DECLS
 /**
  * @brief Bit writer state: the buffer, how much is written, and the partial byte.
  *
- * @note Built by mmgr_bitor_init and advanced by mmgr_bitor_put.
+ * @note Built by mmgr_bitor_init, advanced by mmgr_bitor_put, and finished by mmgr_bitor_align.
  */
 typedef struct
 {
@@ -27,13 +33,14 @@ typedef struct
 } mmgr_bitor;
 
 /**
- * @brief Arguments for mmgr_bitor_init and mmgr_bitor_put; each reads only what it needs.
+ * @brief Arguments for the bitor calls; each reads only what it needs.
  *
- * @note mmgr_bitor_init reads out and cap; mmgr_bitor_put reads writer, val and nbits.
+ * @note mmgr_bitor_init reads out and cap; mmgr_bitor_put reads writer, val and nbits; and
+ *       mmgr_bitor_align reads writer alone.
  */
 typedef struct
 {
-    mmgr_bitor *const writer; /**< Writer for mmgr_bitor_put [BORROWS]. */
+    mmgr_bitor *const writer; /**< Writer for mmgr_bitor_put and mmgr_bitor_align [BORROWS]. */
     uint8_t *const out;       /**< Buffer for mmgr_bitor_init [BORROWS]. */
     const size_t cap;         /**< Bytes available in out. */
     const uint64_t val;       /**< Bits for mmgr_bitor_put, taken from the low end. */
@@ -47,9 +54,9 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_bitor (*init)(const BitorumCfg *args); /**< Set to mmgr_bitor_init. */
-    void (*put)(const BitorumCfg *args);        /**< Set to mmgr_bitor_put. */
-    void (*align)(const BitorumCfg *args);      /**< Set to mmgr_bitor_align. */
+    mmgr_bitor (*init)(const BitorumCfg *args); /**< Builds a writer over a buffer. */
+    void (*put)(const BitorumCfg *args);        /**< Appends bits, writing whole bytes only. */
+    void (*align)(const BitorumCfg *args);      /**< Writes the partial byte still held. */
 } BitorumIntroitusExitusNs;
 MMGR_NS_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
 
@@ -59,7 +66,9 @@ MMGR_NS_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
  * @param[in] args Buffer and capacity [BORROWS].
  * @return      A writer with no bytes written and no residue.
  * @note The returned writer keeps args->out, which must outlive it [BORROWS].
- * @warning args->out must not be null and args->cap must not be zero.
+ * @warning args->out must not be null and args->cap must not be zero. Neither is held to outside a
+ *          MMGR_DEBUG_CHECKS build, and a null out is not noticed here: mmgr_bitor_put writes
+ *          through it on the first whole byte.
  */
 mmgr_bitor mmgr_bitor_init(const BitorumCfg *args);
 
@@ -70,7 +79,9 @@ mmgr_bitor mmgr_bitor_init(const BitorumCfg *args);
  * @note Writes whole bytes only; leftover bits stay in the writer's residue.
  * @note Does nothing when the writer's overflow is already set.
  * @note Sets the writer's overflow and clears its residue when the bytes would pass its cap.
- * @warning args->nbits must not exceed 64.
+ * @warning args->nbits must not exceed 64, and nothing holds it there outside a MMGR_DEBUG_CHECKS
+ *          build. A larger count writes zeros past the sixty-fourth bit and advances the writer as
+ *          though they were data.
  */
 void mmgr_bitor_put(const BitorumCfg *args);
 
@@ -81,7 +92,7 @@ void mmgr_bitor_put(const BitorumCfg *args);
  * @note mmgr_bitor_put writes whole bytes only; without this call the residue is never written.
  * @note Does nothing when the residue is empty, so a second call writes nothing.
  * @note Does nothing when the writer's overflow is already set.
- * @note args->val and args->nbits are not read.
+ * @note Only args->writer is read.
  * @warning Sets the writer's overflow when the byte would pass its cap.
  */
 void mmgr_bitor_align(const BitorumCfg *args);

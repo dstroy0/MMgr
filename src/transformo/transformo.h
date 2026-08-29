@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file transformo.h
  * @brief Decimal to binary conversion: the limits, the arguments, and the muto dispatch table.
  *
  * @note take builds a mantissa one digit at a time; scale and scale_to_u64 turn one into a double or an integer.

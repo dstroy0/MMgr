@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file fractio.h
  * @brief The binary64 field layout, the assertions that pin it, and the fract table.
  */
 #ifndef MMGR_FRACTIO_H
@@ -15,7 +16,9 @@ MMGR_INCIPE_DECLS
  * @brief The three field positions of a binary64 double, as masks, shifts and widths.
  *
  * @note The assertions below check the masks tile the word without gap or overlap.
- * @note Every constant carries a ull suffix, matching the mmgr_u64 the fields are read from.
+ * @note The masks, MMGR_DBL_SIGN_ONE and MMGR_DBL_EXP_ALL carry a ull suffix, matching the mmgr_u64 the
+ *       fields are read from. The shifts and widths carry u. MMGR_DBL_BIAS carries neither, since it is
+ *       subtracted in the signed scale arithmetic below.
  */
 #define MMGR_DBL_SIGN_MASK 0x8000000000000000ull /**< The sign bit. */
 #define MMGR_DBL_EXP_MASK 0x7FF0000000000000ull  /**< The eleven exponent bits. */
@@ -52,7 +55,8 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_u64) == sizeof(double), "the bit pattern of a dou
  * @brief Pins the field constants above against each other.
  *
  * @note Checks the widths sum to 64, the masks tile the word, and no two masks overlap.
- * @note Also checks each mask agrees with the shift and width that describe the same field.
+ * @note Also checks each mask against the shift or width for the same field, that MMGR_DBL_EXP_ALL fills
+ *       MMGR_DBL_EXP_BITS, and that MMGR_DBL_BIAS is half the exponent range less one.
  */
 MMGR_STATIC_ASSERT(1u + MMGR_DBL_EXP_BITS + MMGR_DBL_MANT_BITS == MMGR_DBL_BITS,
                    "the three fields do not add up to the width of the value");
@@ -73,7 +77,8 @@ MMGR_STATIC_ASSERT(MMGR_DBL_BIAS == ((1 << (MMGR_DBL_EXP_BITS - 1u)) - 1), "the 
  *
  * @note MMGR_DBL_SCALE_MAX takes the largest finite exponent, removes the bias, and drops the mantissa width.
  * @note MMGR_DBL_SCALE_MIN starts from an exponent field of 1, which is the smallest normal.
- * @note Explicit casts hold both expressions in mmgr_iword, since each result is negative or near zero.
+ * @note Explicit casts hold both expressions in mmgr_iword, since MMGR_DBL_EXP_ALL and MMGR_DBL_MANT_BITS
+ *       are unsigned. MMGR_DBL_SCALE_MIN is negative, and without its cast the subtraction would wrap.
  */
 #define MMGR_DBL_SCALE_MAX ((mmgr_iword)(MMGR_DBL_EXP_ALL - 1u) - MMGR_DBL_BIAS - (mmgr_iword)MMGR_DBL_MANT_BITS)
 #define MMGR_DBL_SCALE_MIN (1 - MMGR_DBL_BIAS - (mmgr_iword)MMGR_DBL_MANT_BITS)

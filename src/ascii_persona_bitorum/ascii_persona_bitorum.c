@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file ascii_persona_bitorum.c
  * @brief ASCII class membership, read from the 128-bit s_class bitmaps.
  */
 #include "ascii_persona_bitorum/ascii_persona_bitorum.h"
@@ -47,8 +48,8 @@ static const MmgrAsciiMask s_class[MMGR_ASCII_CLASSES] = {
  */
 typedef struct
 {
-    MmgrAsciiClass kind;
-    uint8_t byte;
+    MmgrAsciiClass kind; /**< Class whose bitmap is read. */
+    uint8_t byte;        /**< Code point to look up. */
 } AsciiCtx;
 
 /**
@@ -57,7 +58,8 @@ typedef struct
  * @param[in] args Class and byte to test [BORROWS].
  * @return      MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
  * @note Bytes 0x80 and above return MMGR_FALSE without reading s_class.
- * @warning args->kind must be below MMGR_ASCII_CLASSES.
+ * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
+ *          MMGR_DEBUG_CHECKS build: a byte under 0x80 then reads past s_class.
  */
 MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *args)
 {
@@ -65,7 +67,9 @@ MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *args)
 
     const MmgrAsciiMask *const entry = &s_class[args->kind];
 
-    // Explicit cast narrows the int result of && to the mmgr_bool container
+    // The byte test comes first and && stops there: a byte of 0x80 or above would index b[16] or
+    // past it, outside the sixteen the mask holds. Explicit cast narrows the int result of && to
+    // the mmgr_bool container
     return (mmgr_bool)((args->byte < 0x80u) && (((entry->b[args->byte >> 3] >> (args->byte & 7u)) & 1u) != 0u));
 }
 
@@ -74,6 +78,7 @@ MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *args)
  *
  * @param[in] ret  Return type of the entry point.
  * @param[in] name Name after the mmgr_ascii_ and ascii_ prefixes, which the two share.
+ * @param[in] ...  Initializers for the AsciiCtx literal, written in terms of args.
  */
 #define ASCII_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_ascii_, ascii_, AsciiCtx, AsciiCfg, ret, name, __VA_ARGS__)
 

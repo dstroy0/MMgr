@@ -2,7 +2,9 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
- * @brief Build-time settings: widths, region sizes, feature switches and the region carving macros.
+ * @file mmgr_config.h
+ * @brief Build-time settings: widths, region sizes, feature switches, the assert hook and the entry
+ *        point macros.
  *
  * @note The tunables are guarded by #ifndef so a build may set them first; MMGR_SWAR_BITS is the exception.
  */
@@ -46,9 +48,12 @@
 #endif
 
 /**
- * @brief Alignment applied to every carved region, and the granularity each pool must be a multiple of.
+ * @brief Alignment a caller declares its own storage at before handing those bytes to a module.
  *
- * @note MMGR_CARCER_CHECK asserts each pool is a whole number of these and at least two of them.
+ * @note Nothing under src reads it. The tests, the benches and the region-edges example are what
+ *       write MMGR_ALIGN(MMGR_ALIGN_BYTES) on their arrays; the default is 16.
+ * @warning Not the alignment a carceribus tenancy comes back at. That is MMGR_CARCER_ALIGN, which is
+ *          sizeof(mmgr_word), and nothing asserts the two agree.
  */
 #ifndef MMGR_ALIGN_BYTES
 
@@ -108,10 +113,11 @@
 /**
  * @brief Bytes in the largest plaintext confinium this build will declare.
  *
- * @note Allocates nothing and sizes no pool. A pool's extent is an argument to mmgr_carcer_init, and
- *       nothing in carceribus reads this. What it does is feed MMGR_CARCER_MAX below, which is a
- *       bound other modules size their worst case against - so it is a statement of intent about the
- *       regions you are going to declare, and it wants raising if you declare a bigger one.
+ * @note Allocates nothing and sizes no pool. A pool's extent is the size in its MMGR_SOLUTA or
+ *       MMGR_SECURA declaration, and nothing in carceribus reads this. What it does is feed
+ *       MMGR_CARCER_MAX below, which is a bound other modules size their worst case against - so it
+ *       is a statement of intent about the regions you are going to declare, and it needs raising if
+ *       you declare a bigger one.
  */
 #ifndef MMGR_PLAINTEXT_CONFIN_SIZE
 #define MMGR_PLAINTEXT_CONFIN_SIZE 4096u
@@ -154,6 +160,7 @@
 #ifndef MMGR_ENABLE_DMA
 #define MMGR_ENABLE_DMA 0
 #endif
+
 /**
  * @brief Set to 1 to build the confinium_externum external memory path.
  *
@@ -174,7 +181,7 @@
 #endif
 
 /**
- * @brief Microseconds a ring waits before attaching.
+ * @brief Microseconds a ring waits before attaching, so the platform can attach or detach DMA first.
  *
  * @warning Defined only when MMGR_ENABLE_CLOCK is set.
  */
@@ -219,13 +226,15 @@
 /**
  * @brief Defines a value-returning entry point that forwards an argument pack.
  *
- * @param PREFIX     The public entry point prefix (e.g., mmgr_infin_)
- * @param BACKEND    The backend function prefix (e.g., infin_)
- * @param CTX_TYPE   The context structure type (e.g., InfinCtx)
- * @param CFG_TYPE   The config structure type (e.g., InfinCfg)
- * @param RET_TYPE   Return type of the function
- * @param NAME       The core name of the function
- * @param ...        The variadic argument pack/fields to forward
+ * @param[in] PREFIX   Public entry point prefix, such as mmgr_infin_.
+ * @param[in] BACKEND  Backend function prefix, such as infin_.
+ * @param[in] CTX_TYPE Type of the compound literal the backend receives, such as InfinCtx.
+ * @param[in] CFG_TYPE Type the emitted entry takes a pointer to, such as InfinCfg.
+ * @param[in] RET_TYPE Return type of the emitted function.
+ * @param[in] NAME     Core name, pasted onto both prefixes.
+ * @param[in] ...      Initializers for the CTX_TYPE literal, written in terms of args.
+ * @return             What the backend returns.
+ * @warning The initializers dereference args, so it must not be NULL [BORROWS].
  */
 #define GENERIC_ENTRY(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, RET_TYPE, NAME, ...)                                        \
     RET_TYPE PREFIX##NAME(const CFG_TYPE *args)                                                                        \
@@ -235,6 +244,15 @@
 
 /**
  * @brief Defines a void entry point that forwards an argument pack.
+ *
+ * @param[in] PREFIX   Public entry point prefix, such as mmgr_infin_.
+ * @param[in] BACKEND  Backend function prefix, such as infin_.
+ * @param[in] CTX_TYPE Type of the compound literal the backend receives, such as InfinCtx.
+ * @param[in] CFG_TYPE Type the emitted entry takes a pointer to, such as InfinCfg.
+ * @param[in] NAME     Core name, pasted onto both prefixes.
+ * @param[in] ...      Initializers for the CTX_TYPE literal, written in terms of args.
+ * @note The same body as GENERIC_ENTRY, without the return.
+ * @warning The initializers dereference args, so it must not be NULL [BORROWS].
  */
 #define GENERIC_ENTRY_V(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, NAME, ...)                                                \
     void PREFIX##NAME(const CFG_TYPE *args)                                                                            \

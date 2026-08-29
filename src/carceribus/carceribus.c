@@ -2,13 +2,17 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file carceribus.c
  * @brief Double-ended pool: one block allocator, run from both ends of the same free middle.
  *
- * @note Both ends share the fit, the split and the merge. Only the boundary direction differs: the
- *       persistent end grows up from base, the interim end grows down from size.
- * @note Persistent tenancies are released one at a time, in any order. Interim tenancies are released
- *       together by mark.
- * @note Bytes are cleared on release, not on hand-out. A take returns whatever the last tenant left.
+ * @note Both ends carve through the same grow and merge through the same coalesce. Only the boundary
+ *       direction differs: the persistent end grows up from base, the interim end grows down from
+ *       size. The fit walk and the split are the persistent end's alone; the interim take carves and
+ *       nothing more.
+ * @note A tenancy from either end can be released one at a time, since the release reads which end it
+ *       came from off its address. The interim end can also be given back by mark, or all at once.
+ * @note Nothing is cleared on hand-out, so a take returns whatever the last tenant left. Of the five
+ *       releases here two clear first; a pool's declaration decides which of a pair its entries reach.
  * @note Reaches nothing outside config.
  */
 #include "carceribus/carceribus.h"
@@ -16,8 +20,10 @@
 /**
  * @brief What a block carries ahead of its payload.
  *
- * @note used is a size_t rather than a flag so the header stays a whole number of words and the
- *       payload behind it needs no padding.
+ * @note size counts the payload alone. Every walk here adds CARCER_HDR itself to step to the next
+ *       block, and every fit test compares against the payload.
+ * @note The header lies immediately ahead of the bytes handed out, so a tenancy's header is reached
+ *       by subtracting CARCER_HDR from its address and no chain is walked to find it.
  */
 typedef struct
 {
@@ -27,14 +33,22 @@ typedef struct
 
 /**
  * @brief Bytes a block header occupies, rounded up so the payload behind it stays aligned.
+ *
+ * @note The rounding is a mask, and a mask rounds only because MMGR_CARCER_ALIGN is a power of two,
+ *       which carceribus.h asserts.
+ * @note Charged on top of the payload every time a block is carved, so a take of size bytes costs
+ *       the middle this much more than size.
  */
 #define CARCER_HDR ((sizeof(CarcerBlk) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
 
 /**
- * @brief The half-open offset range one end'seat chain occupies.
+ * @brief The half-open offset range one end's chain occupies.
  *
- * @note Both ends walk from lo upward, so the walk, the fit and the merge take a chain and no
- *       direction argument.
+ * @note lo and hi are offsets from the pool's base, not addresses; carcer_blk is what turns one into
+ *       a header pointer.
+ * @note Both chains are walked from lo upward, so the fit and the merge take a chain and no
+ *       direction argument. Only the merge is handed both of them; the fit belongs to the persistent
+ *       end.
  */
 typedef struct
 {
@@ -46,7 +60,12 @@ typedef struct
  * @brief Rounds want up to a whole machine word.
  *
  * @param[in] want Count to round.
- * @return      want raised to the next multiple of MMGR_CARCER_ALIGN.
+ * @return         want rounded up to a multiple of MMGR_CARCER_ALIGN, and want itself when it
+ *                 already is one.
+ * @note The mask is what rounds, which holds only because MMGR_CARCER_ALIGN is a power of two.
+ * @warning MMGR_CARCER_ALIGN - 1 is added before the mask, so a want within a word of SIZE_MAX wraps
+ *          to 0. Every take rounds its request through here, and a request that wraps is met with a
+ *          small block rather than refused.
  */
 MMGR_INLINE size_t carcer_round(size_t want)
 {
@@ -56,11 +75,16 @@ MMGR_INLINE size_t carcer_round(size_t want)
 /**
  * @brief Zeroes want bytes at *walk, advancing the pointer and taking them off *left.
  *
- * @param[in,out] walk    Walking pointer [BORROWS].
- * @param[in,out] left Bytes still to clear [BORROWS].
- * @param[in]     want    Bytes to clear now.
- * @note Used for both edges of the wipe. The stores are volatile so the optimizer cannot drop them,
- *       which the word-wide middle relies on too.
+ * @param[in,out] walk Walking pointer, left one past the last byte cleared [BORROWS].
+ * @param[in,out] left Bytes still to clear, reduced by want [BORROWS].
+ * @param[in]     want Bytes to clear now.
+ * @note Used for the two edges of the wipe. The word-wide middle between them does its own stores,
+ *       through its own volatile pointer, and does not come through here.
+ * @note The stores are volatile, so clearing bytes nothing reads afterwards is not dropped as dead
+ *       work.
+ * @warning want comes off *left with no test, so a want above *left wraps it. Both call sites hold
+ *          want at or below what is left.
+ * @warning *walk must be writable for want bytes.
  */
 MMGR_INLINE void carcer_zero_bytes(volatile uint8_t **walk, size_t *left, size_t want)
 {
@@ -85,6 +109,11 @@ MMGR_INLINE void carcer_zero_bytes(volatile uint8_t **walk, size_t *left, size_t
  * @return         The header [BORROWS].
  * @note The cast goes through void *. base is aligned by the region macro and every offset a chain
  *       walks is a whole number of words, so the header is always correctly aligned.
+ * @warning The pool is const here and the header is not. The fit, the split and the merge all hold a
+ *          const pool and write through what this hands back.
+ * @warning off is added to base with nothing holding it against the pool's size. Every caller here
+ *          walks a chain whose bounds came from the pool, except the two releases, which pass an
+ *          offset taken from the address the caller handed them.
  */
 MMGR_INLINE CarcerBlk *carcer_blk(const CarcerCtx *pool, size_t off)
 {
@@ -94,10 +123,13 @@ MMGR_INLINE CarcerBlk *carcer_blk(const CarcerCtx *pool, size_t off)
 /**
  * @brief Steps past the block at off to the next one in its chain.
  *
- * @param[in] pool   Pool the chain runs in [BORROWS].
- * @param[in] off Offset of the block to step past.
- * @return        Offset of the block after it.
+ * @param[in] pool Pool the chain runs in [BORROWS].
+ * @param[in] off  Offset of the block to step past.
+ * @return         Offset of the block after it.
  * @note A block is its header plus its payload; every walk here steps by that.
+ * @warning The step is the block's own recorded size, and the result is not held against the pool.
+ *          It reaches or passes the chain's hi at the end of a walk, which is what each loop test is
+ *          there for.
  */
 MMGR_INLINE size_t carcer_next(const CarcerCtx *pool, size_t off)
 {
@@ -105,16 +137,21 @@ MMGR_INLINE size_t carcer_next(const CarcerCtx *pool, size_t off)
 }
 
 /**
- * @brief Returns the offset of a tenancy'seat own header.
+ * @brief Returns the offset of a tenancy's own header.
  *
  * @param[in] pool Pool the tenancy came from [BORROWS].
  * @param[in] at   First byte of the tenancy [BORROWS].
  * @return         Offset of its header in the pool.
+ * @warning at is taken to be a tenancy of this pool and nothing tests that it is. The releases hand
+ *          on whatever they were given, so an address from elsewhere yields an offset that reads
+ *          bytes which are not a header. mmgr_carcer_owns bounds an address to the pool but does not
+ *          say a tenancy begins there, so it narrows this and does not close it.
  */
 MMGR_INLINE size_t carcer_off_of(const CarcerCtx *pool, const void *at)
 {
-    // Explicit casts take at to a byte pointer so the difference is in bytes, then that ptrdiff_t
-    // to the size_t the offset is carried in; at is inside pool, so the difference is never negative
+    // Explicit casts take at to a byte pointer so the difference is in bytes, then that ptrdiff_t to
+    // the size_t the offset is carried in. An at below base makes the difference negative and the
+    // cast wraps it high, which is the unchecked case the warning above describes
     return (size_t)((const uint8_t *)at - pool->base) - CARCER_HDR;
 }
 
@@ -122,7 +159,9 @@ MMGR_INLINE size_t carcer_off_of(const CarcerCtx *pool, const void *at)
  * @brief Returns the chain the persistent end keeps.
  *
  * @param[in] pool Pool to read [BORROWS].
- * @return      Offsets 0 through persist_end.
+ * @return         lo of 0, hi of persist_end.
+ * @note A copy of the bounds as they stand at the call, not a view of them. A release that trims
+ *       persist_end leaves a chain taken before it naming a hi the end no longer reaches.
  */
 MMGR_INLINE CarcerChain carcer_up(const CarcerCtx *pool)
 {
@@ -137,7 +176,9 @@ MMGR_INLINE CarcerChain carcer_up(const CarcerCtx *pool)
  * @brief Returns the chain the interim end keeps.
  *
  * @param[in] pool Pool to read [BORROWS].
- * @return      Offsets interim_top through size.
+ * @return         lo of interim_top, hi of the pool's size.
+ * @note A copy of the bounds as they stand at the call, not a view of them. Here it is lo that moves,
+ *       since every take at this end lowers the top; the persistent end's lo is always 0.
  */
 MMGR_INLINE CarcerChain carcer_down(const CarcerCtx *pool)
 {
@@ -151,15 +192,20 @@ MMGR_INLINE CarcerChain carcer_down(const CarcerCtx *pool)
 /**
  * @brief Splits block walk when what is left would hold another block.
  *
- * @param[in,out] pool   Pool the block sits in [BORROWS].
- * @param[in,out] walk   Block to split [BORROWS].
- * @param[in]     off Offset of walk in the pool.
- * @param[in]     want   Payload the first half keeps.
+ * @param[in]     pool Pool the block sits in [BORROWS].
+ * @param[in,out] walk Block to split, left carrying want [BORROWS].
+ * @param[in]     off  Offset of walk in the pool.
+ * @param[in]     want Payload the first half keeps.
  * @note Only splits when the remainder can carry a header and a payload of its own; otherwise the
  *       tenant keeps the whole block and its slack.
+ * @note The remainder is left free where it lies. Nothing links it to its neighbors and nothing
+ *       merges it here; a later walk steps onto it and the merge finds it then.
+ * @warning off must be walk's own offset. The two are not checked against each other, and a
+ *          mismatched pair writes the second header where no block begins.
  */
 MMGR_INLINE void carcer_split(const CarcerCtx *pool, CarcerBlk *walk, size_t off, size_t want)
 {
+    // Split only when the tail left over can carry its own header and a whole word behind it
     if (walk->size >= (want + CARCER_HDR + MMGR_CARCER_ALIGN))
     {
         CarcerBlk *const nb = carcer_blk(pool, off + CARCER_HDR + want);
@@ -173,12 +219,16 @@ MMGR_INLINE void carcer_split(const CarcerCtx *pool, CarcerBlk *walk, size_t off
 /**
  * @brief Finds a free block in ch large enough for want and takes it.
  *
- * @param[in,out] pool  Pool to search [BORROWS].
- * @param[in]     ch Chain to walk.
- * @param[in]     want  Payload wanted, already rounded.
- * @return           The tenancy, or NULL when no block in the chain fits [BORROWS].
+ * @param[in] pool Pool to search [BORROWS].
+ * @param[in] ch   Chain to walk.
+ * @param[in] want Payload wanted, already rounded.
+ * @return         The tenancy, or NULL when no block in the chain fits [RETURNS OWNERSHIP].
  * @note First fit, not best fit. A best fit would walk the whole chain to save slack the split
  *       already recovers.
+ * @note The block is marked used inside the walk, so a chain that yields a tenancy has already
+ *       given it away; there is no found-but-not-taken result.
+ * @warning The whole chain is walked in the failing case, so a take at an end holding many blocks
+ *          costs their number.
  */
 MMGR_INLINE void *carcer_fit(const CarcerCtx *pool, CarcerChain ch, size_t want)
 {
@@ -188,6 +238,7 @@ MMGR_INLINE void *carcer_fit(const CarcerCtx *pool, CarcerChain ch, size_t want)
     {
         CarcerBlk *const walk = carcer_blk(pool, off);
 
+        // A block fits only on both counts: free, and holding at least the payload asked for
         if ((walk->used == 0u) && (walk->size >= want))
         {
             carcer_split(pool, walk, off, want);
@@ -202,10 +253,14 @@ MMGR_INLINE void *carcer_fit(const CarcerCtx *pool, CarcerChain ch, size_t want)
 /**
  * @brief Lays a fresh block of want payload bytes at offset off.
  *
- * @param[in,out] pool   Pool to carve in [BORROWS].
- * @param[in]     off Offset the header goes at.
- * @param[in]     want   Payload the block carries.
- * @return            The tenancy [BORROWS].
+ * @param[in] pool Pool to carve in [BORROWS].
+ * @param[in] off  Offset the header goes at.
+ * @param[in] want Payload the block carries.
+ * @return         The tenancy [RETURNS OWNERSHIP].
+ * @note Only the header is written. The payload behind it is left holding whatever the last tenant
+ *       of those bytes put there.
+ * @warning off must have CARCER_HDR + want bytes behind it, and nothing here tests that it does.
+ *          carcer_grow measures the middle first and is the only caller.
  */
 MMGR_INLINE void *carcer_carve(const CarcerCtx *pool, size_t off, size_t want)
 {
@@ -220,7 +275,12 @@ MMGR_INLINE void *carcer_carve(const CarcerCtx *pool, size_t off, size_t want)
  * @brief Returns the bytes lying between the two ends.
  *
  * @param[in] pool Pool to read [BORROWS].
- * @return      interim_top minus persist_end, or 0 when they have met.
+ * @return         interim_top minus persist_end, or 0 once the ends have met.
+ * @note Both offsets are unsigned, so the test is what stops a crossing from reading as a middle
+ *       larger than the pool. carcer_grow's size test is what keeps them from crossing at all.
+ * @warning The two ends are read one after the other, so the answer is a snapshot. carcer_grow tests
+ *          a request against it and then moves a boundary, and a take from a preempting handler
+ *          landing between the two carves from the same figure this one did.
  */
 MMGR_INLINE size_t carcer_middle(const CarcerCtx *pool)
 {
@@ -228,13 +288,14 @@ MMGR_INLINE size_t carcer_middle(const CarcerCtx *pool)
 }
 
 /**
- * @brief Merges every run of adjacent free blocks in ch, and reports the last block'seat offset.
+ * @brief Merges every run of adjacent free blocks in ch, and reports the last block's offset.
  *
- * @param[in,out] pool  Pool whose chain to walk [BORROWS].
- * @param[in]     ch Chain to merge.
- * @return           Offset of the last block, or ch.lo when the chain is empty.
+ * @param[in] pool Pool whose chain to walk [BORROWS].
+ * @param[in] ch   Chain to merge.
+ * @return         Offset of the last block, or ch.lo when the chain is empty.
  * @note A merged block is revisited rather than stepped past, so a run of three or more collapses in
- *       one pass.
+ *       one pass. The walk still ends: the revisited block is larger by what it swallowed, so the
+ *       step recomputed from it reaches further than the one before.
  * @note The last offset is returned from this walk so trimming needs no second one.
  */
 MMGR_INLINE size_t carcer_coalesce(const CarcerCtx *pool, CarcerChain ch)
@@ -247,6 +308,7 @@ MMGR_INLINE size_t carcer_coalesce(const CarcerCtx *pool, CarcerChain ch)
         CarcerBlk *const cur = carcer_blk(pool, off);
         const size_t next_off = carcer_next(pool, off);
 
+        // A merge needs both: this block free, and a next block still inside the chain to merge in
         if ((cur->used == 0u) && (next_off < ch.hi))
         {
             CarcerBlk *const nxt = carcer_blk(pool, next_off);
@@ -269,6 +331,8 @@ MMGR_INLINE size_t carcer_coalesce(const CarcerCtx *pool, CarcerChain ch)
  * @param[in,out] hw   Figure to raise [BORROWS].
  * @param[in]     used Bytes in use by the end that moved.
  * @note Branchless: the comparison becomes a mask that selects the larger of the two.
+ * @warning The figure is read and then written, as two steps. A take from a preempting handler
+ *          landing between them leaves that take's reach unrecorded.
  */
 MMGR_INLINE void carcer_hw(size_t *hw, size_t used)
 {
@@ -280,13 +344,15 @@ MMGR_INLINE void carcer_hw(size_t *hw, size_t used)
 }
 
 /**
- * @brief Raises one end'seat high-water figure, or expands to nothing where the build tracks none.
+ * @brief Raises one end's high-water figure, or expands to nothing where the build tracks none.
  *
  * @param[in] pool_   Pool to record against.
  * @param[in] member_ Figure to raise, which only exists when the build tracks one.
  * @param[in] used_   Bytes in use by the end that moved.
  * @note A macro, not a call: the member does not exist when the build tracks none, and an argument
  *       cannot name a member that is not declared.
+ * @warning The two arms do not evaluate the same things. Where the build tracks none, not one of the
+ *          three arguments is evaluated, so nothing passed here may carry a side effect.
  */
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
 #define CARCER_HW(pool_, member_, used_) carcer_hw(&(pool_)->member_, (used_))
@@ -297,11 +363,13 @@ MMGR_INLINE void carcer_hw(size_t *hw, size_t used)
 /**
  * @brief Carves a fresh block for want bytes out of the free middle, at whichever end asked.
  *
- * @param[in,out] pool    Pool to carve in [BORROWS].
- * @param[in]     want    Payload wanted, already rounded.
+ * @param[in,out] pool Pool to carve in [BORROWS].
+ * @param[in]     want Payload wanted, already rounded.
  * @param[in]     down MMGR_TRUE for the end that grows down.
- * @return             The tenancy, or NULL when the middle cannot meet it [BORROWS].
+ * @return             The tenancy, or NULL when the middle cannot meet it [RETURNS OWNERSHIP].
  * @note Both ends reach this, so the size test, the carve and the high-water are written once.
+ * @note The test is the header plus the payload against the middle, so a want the size of the whole
+ *       middle is refused.
  * @note Fails closed: a request the middle cannot meet moves no boundary at all.
  */
 MMGR_INLINE void *carcer_grow(CarcerCtx *pool, size_t want, mmgr_bool down)
@@ -330,8 +398,11 @@ MMGR_INLINE void *carcer_grow(CarcerCtx *pool, size_t want, mmgr_bool down)
  * @brief Rounds a request up to a whole word.
  *
  * @param[in] want Bytes the caller asked for.
- * @return         The payload a block will carry; a want of 0 returns MMGR_CARCER_ALIGN.
+ * @return         The least payload a block may carry for this request, since a reused block keeps
+ *                 its slack; a want of 0 returns MMGR_CARCER_ALIGN.
  * @note Both ends round the same way, so it is done in one place.
+ * @warning A want within a word of SIZE_MAX wraps in the rounding and comes back small, so the block
+ *          carries far less than was asked for. Neither take tests the request before this.
  */
 MMGR_INLINE size_t carcer_want(size_t want)
 {
@@ -339,13 +410,15 @@ MMGR_INLINE size_t carcer_want(size_t want)
 }
 
 /**
- * @brief Takes args->size bytes from the persistent end.
+ * @brief Takes size bytes from the persistent end.
  *
- * @param[in,out] args Pool and byte count [BORROWS].
- * @return          Start of the tenancy, or NULL when the pool cannot meet it [BORROWS].
+ * @param[in,out] pool Pool to take from [BORROWS].
+ * @param[in]     size Bytes wanted.
+ * @return             Start of the tenancy, or NULL when the pool cannot meet it [RETURNS OWNERSHIP].
  * @note Reuses a freed block before growing the boundary, which is what makes this end a free list
  *       rather than a cursor.
- * @note The walk is affordable here because releases are interleaved with takes.
+ * @note The reuse walk runs first and costs the chain its full length whenever nothing in it fits;
+ *       only then does the boundary move.
  */
 void *mmgr_carcer_persist_capio(CarcerCtx *pool, size_t size)
 {
@@ -356,14 +429,18 @@ void *mmgr_carcer_persist_capio(CarcerCtx *pool, size_t size)
 }
 
 /**
- * @brief Takes args->size bytes from the interim end.
+ * @brief Takes size bytes from the interim end.
  *
- * @param[in,out] args Pool and byte count [BORROWS].
- * @return          Start of the tenancy, or NULL when the pool cannot meet it [BORROWS].
+ * @param[in,out] pool Pool to take from [BORROWS].
+ * @param[in]     size Bytes wanted.
+ * @return             Start of the tenancy, or NULL when the pool cannot meet it [RETURNS OWNERSHIP].
  * @note Carves like the persistent take but moves the boundary down, and does no fit walk.
- * @note The walk is omitted deliberately, not missing. Nothing here is released one at a time, so
- *       there is nothing to reuse, and a first fit would make a run of takes quadratic. A take stays
- *       O(1), which is what this end buys over the persistent one.
+ * @note The walk is omitted deliberately, not missing. A first fit would make a run of takes
+ *       quadratic, and this end is meant to be given back wholesale rather than picked over. A take
+ *       stays O(1), which is what this end buys over the persistent one.
+ * @note A single release at this end trims only when the freed block sits at the top. Anything freed
+ *       below it merges with its free neighbors and stays in the chain, and since no take here walks
+ *       that chain, nothing reuses it before the next rewind.
  */
 void *mmgr_carcer_interim_capio(CarcerCtx *pool, size_t size)
 {
@@ -371,12 +448,14 @@ void *mmgr_carcer_interim_capio(CarcerCtx *pool, size_t size)
 }
 
 /**
- * @brief Writes zeros over args->size bytes at args->tenancy.
+ * @brief Writes zeros over size bytes at tenancy.
  *
- * @param[in,out] args Address and extent to clear [BORROWS].
- * @note Stores are volatile so the optimizer cannot drop them as dead, and machine-width except at
- *       the edges. volatile is per access, so a word store is as un-elidable as a byte store.
- * @warning args->tenancy must be writable for args->size bytes.
+ * @param[in,out] tenancy First byte to clear [BORROWS].
+ * @param[in]     size    Bytes to clear.
+ * @note The stores are volatile, so clearing bytes nothing reads afterwards is not dropped as dead
+ *       work. Whole words go down between the two edges, and volatile counts per access, so a word
+ *       store is kept for the same reason a byte store is.
+ * @warning tenancy must be writable for size bytes.
  */
 void mmgr_carcer_wipe(void *tenancy, size_t size)
 {
@@ -392,8 +471,9 @@ void mmgr_carcer_wipe(void *tenancy, size_t size)
     edge = (edge < left) ? edge : left;
     carcer_zero_bytes(&walk, &left, edge);
 
-    // Explicit casts go through volatile void * to reach the word scope the middle stores in; walk is
-    // word aligned by the head above, so the word pointer is valid
+    // Explicit casts go through volatile void * to reach the word scope the middle stores in. The
+    // head above leaves walk on a word boundary whenever it had the bytes to reach one; where it ran
+    // out first, left is 0 and neither the loop nor the tail reads through this pointer
     volatile mmgr_word *pool = (volatile mmgr_word *)(volatile void *)walk;
 
     while (left >= MMGR_CARCER_ALIGN)
@@ -411,15 +491,19 @@ void mmgr_carcer_wipe(void *tenancy, size_t size)
 }
 
 /**
- * @brief Gives the tenancy at args->tenancy back, leaving its bytes as they are.
+ * @brief Gives a tenancy back, leaving its bytes as they are.
  *
- * @param[in,out] args Pool and the tenancy to release [BORROWS]; args->tenancy [TAKES OWNERSHIP].
+ * @param[in,out] pool    Pool the tenancy came from [BORROWS].
+ * @param[in]     tenancy First byte of the tenancy [TAKES OWNERSHIP].
  * @note Which end the tenancy came from is read from its address rather than named by the caller,
  *       so a release cannot be given to the wrong end.
- * @note After coalescing, a free block at the chain'seat own boundary is returned to the middle, so the
+ * @note After coalescing, a free block at the chain's own boundary is returned to the middle, so the
  *       ends recover. That boundary is the last block at the persistent end and the first at the
  *       interim end.
- * @warning args->tenancy is dead once this returns; the pool may hand those bytes out again.
+ * @note A NULL tenancy returns without touching the pool.
+ * @warning tenancy is dead once this returns; the pool may hand those bytes out again.
+ * @warning Nothing tests that tenancy came from this pool. An address from elsewhere is read as a
+ *          header and freed into a chain it never belonged to.
  */
 void mmgr_carcer_persist_reddo(CarcerCtx *pool, void *tenancy)
 {
@@ -437,6 +521,7 @@ void mmgr_carcer_persist_reddo(CarcerCtx *pool, void *tenancy)
         const CarcerChain ch = carcer_up(pool);
         const size_t last = carcer_coalesce(pool, ch);
 
+        // Give bytes back to the middle only when the end holds blocks and its last one is free
         if ((pool->persist_end > 0u) && (carcer_blk(pool, last)->used == 0u))
         {
             pool->persist_end = last;
@@ -450,6 +535,7 @@ void mmgr_carcer_persist_reddo(CarcerCtx *pool, void *tenancy)
 
         CarcerBlk *const first = carcer_blk(pool, pool->interim_top);
 
+        // Same trim at the other end: the end must hold blocks, and the one at the top must be free
         if ((pool->interim_top < pool->size) && (first->used == 0u))
         {
             pool->interim_top += CARCER_HDR + first->size;
@@ -458,12 +544,17 @@ void mmgr_carcer_persist_reddo(CarcerCtx *pool, void *tenancy)
 }
 
 /**
- * @brief Zeroes the tenancy at args->tenancy, then gives it back.
+ * @brief Zeroes a tenancy, then gives it back.
  *
- * @param[in,out] args Pool and the tenancy to release [BORROWS]; args->tenancy [TAKES OWNERSHIP].
+ * @param[in,out] pool    Pool the tenancy came from [BORROWS].
+ * @param[in,out] tenancy First byte of the tenancy, zeroed before it is released [TAKES OWNERSHIP].
  * @note The one step that separates a wiped release from a plain one; the give-back is shared.
- * @note The extent comes from the block'seat own header, so a caller cannot under-wipe a tenancy.
- * @warning args->tenancy is dead once this returns; the pool may hand those bytes out again.
+ * @note The extent comes from the block's own header, so a caller cannot under-wipe a tenancy.
+ * @note A NULL tenancy returns without touching the pool.
+ * @warning tenancy is dead once this returns; the pool may hand those bytes out again.
+ * @warning Nothing tests that tenancy came from this pool, and the extent is read from the bytes
+ *          lying ahead of it. An address from elsewhere is wiped for whatever length those bytes
+ *          happen to hold.
  */
 void mmgr_carcer_secura_reddo(CarcerCtx *pool, void *tenancy)
 {
@@ -479,10 +570,14 @@ void mmgr_carcer_secura_reddo(CarcerCtx *pool, void *tenancy)
 }
 
 /**
- * @brief Returns the pool'seat current interim top.
+ * @brief Returns the pool's current interim top.
  *
- * @param[in] args Pool to read [BORROWS].
- * @return      The value of interim_top.
+ * @param[in] pool Pool to read [BORROWS].
+ * @return         The value of interim_top.
+ * @note Good against this pool alone, and only until a restore to an older mark. The restore assigns
+ *       the value it is handed without testing it.
+ * @warning The figure is a snapshot. A take from a preempting handler lowers the top after this has
+ *          read it, and restoring the mark then gives that take's bytes back as well.
  */
 size_t mmgr_carcer_interim_mark(const CarcerCtx *pool)
 {
@@ -490,12 +585,15 @@ size_t mmgr_carcer_interim_mark(const CarcerCtx *pool)
 }
 
 /**
- * @brief Assigns the interim top the value args->mark carries.
+ * @brief Assigns the interim top the value mark carries.
  *
- * @param[in,out] args Pool and the mark to restore [BORROWS].
+ * @param[in,out] pool Pool to rewind [BORROWS].
+ * @param[in]     mark Top to restore, as mmgr_carcer_interim_mark reported it.
  * @note Drops every block the end carved since that mark in one step, without walking them.
- * @warning Every interim tenancy taken since args->mark is dead once this returns. Nothing is scrubbed,
- *          so such a pointer still dereferences and returns whatever the next take put there.
+ * @warning The top is assigned, not tested. A mark this pool never reported, or one past its size,
+ *          is taken as given and moves the end there.
+ * @warning Every interim tenancy taken since mark is dead once this returns. Nothing is scrubbed, so
+ *          such a pointer still dereferences and reads whatever the next take puts there.
  */
 void mmgr_carcer_interim_reddo(CarcerCtx *pool, size_t mark)
 {
@@ -505,17 +603,23 @@ void mmgr_carcer_interim_reddo(CarcerCtx *pool, size_t mark)
 /**
  * @brief Zeroes every interim byte taken since mark, then restores the top.
  *
- * @param[in,out] pool    Pool to rewind [BORROWS].
+ * @param[in,out] pool Pool to rewind [BORROWS].
  * @param[in]     mark Top to restore.
  * @note Wipes before the top moves, so the bytes are already zero at the instant they become
  *       available. Reclaiming first would leave a window in which the very next take sees them.
  * @note The extent comes from the two tops rather than a block header, so a run of takes is cleared
  *       in one pass and a caller cannot under-wipe by naming fewer bytes than it holds.
+ * @warning The wipe is guarded and the restore is not. A mark that is not above the current top, or
+ *          that lies past the pool's size, rewinds the end with nothing scrubbed.
+ * @warning The top is read once, ahead of the wipe. A take from a preempting handler landing between
+ *          that read and the restore is dropped unscrubbed, since the extent was settled from the
+ *          older top.
  */
 void mmgr_carcer_interim_secura_reddo(CarcerCtx *pool, size_t mark)
 {
     const size_t top = pool->interim_top;
 
+    // Wipe only for a mark above the top and inside the pool; [top, mark) is what is live to clear
     if ((mark > top) && (mark <= pool->size))
     {
         mmgr_carcer_wipe(pool->base + top, mark - top);
@@ -524,11 +628,14 @@ void mmgr_carcer_interim_secura_reddo(CarcerCtx *pool, size_t mark)
 }
 
 /**
- * @brief Gives the whole interim end back at once.
+ * @brief Gives the whole interim end back at once, scrubbing nothing.
  *
- * @param[in,out] args Pool to act on [BORROWS].
- * @note carcer_interim_reddo against the pool'seat own size, which is where the end starts.
- * @warning Every interim tenancy the pool has handed out is dead once this returns.
+ * @param[in,out] pool Pool to act on [BORROWS].
+ * @note mmgr_carcer_interim_reddo against the pool's own size, which is where the end starts.
+ * @note No pool entry reaches this one. A region's reset is its own generated wrapper, and that goes
+ *       to the wiping rewind wherever the pool was declared MMGR_SECURA.
+ * @warning Every interim tenancy the pool has handed out is dead once this returns, and none of
+ *          those bytes are scrubbed.
  */
 void mmgr_carcer_interim_reset(CarcerCtx *pool)
 {
@@ -536,12 +643,13 @@ void mmgr_carcer_interim_reset(CarcerCtx *pool)
 }
 
 /**
- * @brief Returns whether at lies inside the pool'seat bytes.
+ * @brief Returns whether at lies inside the pool's bytes.
  *
- * @param[in] region    Region the pool belongs to [BORROWS].
- * @param[in] pool Which pool of it.
+ * @param[in] pool Pool to test against [BORROWS].
  * @param[in] at   Address to test [BORROWS].
- * @return         MMGR_TRUE when at is at or after the pool'seat first byte and before its last.
+ * @return         MMGR_TRUE when at lies in [base, base + size), the pool's last byte included.
+ * @note Any address in the pool answers true, not only the first byte of a tenancy. This tells a
+ *       caller where an address is, not what is there.
  */
 mmgr_bool mmgr_carcer_owns(const CarcerCtx *pool, const void *at)
 {
@@ -554,8 +662,12 @@ mmgr_bool mmgr_carcer_owns(const CarcerCtx *pool, const void *at)
 /**
  * @brief Returns the bytes lying between the two ends.
  *
- * @param[in] args Pool to read [BORROWS].
- * @return      The free middle.
+ * @param[in] pool Pool to read [BORROWS].
+ * @return         The free middle, as carcer_middle reports it.
+ * @note A take carved from the middle needs a block header out of the same bytes, so a take of
+ *       exactly this many cannot be met.
+ * @warning The two ends are read one after the other, so the answer is a snapshot; carcer_middle
+ *          carries what that costs a caller.
  */
 size_t mmgr_carcer_octas_praesto(const CarcerCtx *pool)
 {
@@ -563,10 +675,13 @@ size_t mmgr_carcer_octas_praesto(const CarcerCtx *pool)
 }
 
 /**
- * @brief Rounds args->size up to a whole machine word.
+ * @brief Rounds size up to a whole machine word.
  *
- * @param[in] args The count to round [BORROWS].
- * @return      The rounded count.
+ * @param[in] size Count to round.
+ * @return         The rounded count.
+ * @note A size of 0 rounds to 0. The takes carry a request of 0 up to one word before rounding it.
+ * @warning MMGR_CARCER_ALIGN - 1 is added before the mask, so a size within a word of SIZE_MAX wraps
+ *          to 0.
  */
 size_t mmgr_carcer_align_up(size_t size)
 {

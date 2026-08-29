@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file ascii_persona_bitorum.h
  * @brief ASCII class membership: mask type, class list, and the ascii dispatch table.
  */
 #ifndef MMGR_ASCII_PERSONA_BITORUM_H
@@ -18,9 +19,16 @@ MMGR_INCIPE_DECLS
  */
 typedef struct
 {
-    uint8_t b[16];
+    uint8_t b[16]; /**< The bitmap, with code point 0 at the low bit of b[0]. */
 } MmgrAsciiMask;
 
+/**
+ * @brief Asserts an MmgrAsciiMask is exactly sixteen bytes.
+ *
+ * @note mmgr_ascii_in reads b[byte >> 3] for every byte below 0x80, so all sixteen have to be there.
+ * @note Sixteen reach code point 127 and no further, which is what leaves a byte of 0x80 or above in
+ *       no class at all.
+ */
 MMGR_STATIC_ASSERT(sizeof(MmgrAsciiMask) == 16u, "an ASCII class mask is exactly 128 bits");
 
 /**
@@ -69,7 +77,9 @@ MMGR_NS_LAYOUT(AsciiPersonaBitorumNs, in);
  * @param[in] args Class and byte to test [BORROWS].
  * @return      MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
  * @note Bytes 0x80 and above return MMGR_FALSE.
- * @warning args->kind must be below MMGR_ASCII_CLASSES.
+ * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
+ *          MMGR_DEBUG_CHECKS build: the bitmap is indexed by it, so a byte under 0x80 then reads
+ *          past the table.
  */
 mmgr_bool mmgr_ascii_in(const AsciiCfg *args);
 
