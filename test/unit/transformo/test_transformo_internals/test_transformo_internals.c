@@ -57,8 +57,8 @@ void test_the_multiply_agrees_with_halves_done_by_hand(void)
         {
             mmgr_u64 hi = 0;
             mmgr_u64 lo = 0;
-            f.a = vals[i];
-            f.b = vals[j];
+            f.left = vals[i];
+            f.right = vals[j];
             muto_mul(&f);
             hi = f.phi;
             lo = f.plo;

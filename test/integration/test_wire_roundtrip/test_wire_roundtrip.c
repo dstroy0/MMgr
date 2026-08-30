@@ -37,7 +37,7 @@ void test_a_byte_written_is_the_byte_read(void)
     TEST_ASSERT_EQUAL_UINT8(0xA5u, mem[0]);
     TEST_ASSERT_EQUAL_UINT8(0x5Au, mem[1]);
     TEST_ASSERT_EQUAL_size_t(2u, w.pos);
-    TEST_ASSERT_TRUE(MMGR_CALL(spat.ok, SpatiumCfg, .s = w));
+    TEST_ASSERT_TRUE(MMGR_CALL(spat.ok, SpatiumCfg, .span = w));
 
     mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = mem, .cap = sizeof store);
 
@@ -169,7 +169,7 @@ void test_a_run_of_bytes_appends_as_it_is(void)
     MMGR_CALL(byteio.raw, OctetusCfg, .write_span = &w, .src = (const uint8_t *)"hello", .bytes = (size_t)5);
 
     TEST_ASSERT_EQUAL_size_t(9u, w.pos);
-    TEST_ASSERT_TRUE(MMGR_CALL(spat.ok, SpatiumCfg, .s = w));
+    TEST_ASSERT_TRUE(MMGR_CALL(spat.ok, SpatiumCfg, .span = w));
     TEST_ASSERT_EQUAL_INT(0, MMGR_CALL(memor.cmp, MemoriaCfg, .src = mem + 4, .other = "hello", .bytes = (size_t)5));
 }
 

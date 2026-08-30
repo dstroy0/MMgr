@@ -4,6 +4,8 @@
 /**
  * @file pow5.h
  * @brief Powers of five as 128-bit significands, for scaling a decimal mantissa into a binary one.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
  * @note transformo walks the bits of the decimal exponent and multiplies in one entry per set bit, so nine
  *       entries reach 511.

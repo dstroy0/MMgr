@@ -974,13 +974,13 @@ void dbench_run(void)
 
             DBENCH_OP("span_after", iters,
                       DBENCH_KEEP(MMGR_CALL(spat.after, SpatiumCfg,
-                                            .s = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP),
-                                            .n = g_take)
+                                            .span = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP),
+                                            .count = g_take)
                                       .cap));
 
             DBENCH_OP("span_ok", iters,
                       DBENCH_KEEP(MMGR_CALL(spat.ok, SpatiumCfg,
-                                            .s = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP))));
+                                            .span = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP))));
 
             DBENCH_OP("cellblock_who_owns_buf", iters,
                       DBENCH_KEEP(ram.general.who_owns_buf((const void *)(g_d + g_swap_off))));

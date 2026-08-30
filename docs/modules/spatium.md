@@ -71,7 +71,7 @@ MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = id, .bytes = 4u);
 MMGR_CALL(byteio.raw, OctetusCfg, .w = &w, .src = body, .bytes = n);
 
 /* One test, covering all three */
-MMGR_ASSERT(MMGR_CALL(spat.ok, SpatiumCfg, .s = w), "frame does not fit buf");
+MMGR_ASSERT(MMGR_CALL(spat.ok, SpatiumCfg, .span = w), "frame does not fit buf");
 ```
 
 A take that reaches past the end leaves the cursor where it was, so a caller that keeps reading after

@@ -98,10 +98,10 @@ MMGR_INLINE void bitor_put(const BitorCtx *args)
         // refills it before the loop ends, so every byte after it is a mask and a store, with no
         // merge and no shift to work out. The value and remaining count step on lines of their own
         // after the store, so neither is a side effect inside it.
-        for (size_t i = 1u; i < whole; i++)
+        for (size_t index = 1u; index < whole; index++)
         {
             // Explicit cast narrows the masked byte to the uint8_t the buffer holds
-            to[i] = (uint8_t)(work & 0xFFu);
+            to[index] = (uint8_t)(work & 0xFFu);
             work >>= 8u;
             left -= 8u;
         }

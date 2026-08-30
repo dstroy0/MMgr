@@ -79,16 +79,16 @@ MMGR_INLINE mmgr_word scrut_below_lo(const ScrutMaskCtx *args)
  */
 MMGR_INLINE mmgr_word scrut_smear(const ScrutMaskCtx *args)
 {
-    mmgr_word m = args->mask;
+    mmgr_word smeared = args->mask;
 
-    // k doubles from 8 rather than counting up, and the walk ends when it reaches MMGR_SWAR_LANE_BITS:
-    // three passes on a 64 bit word, two on a 32 bit one. The step stays in the header, so the body
-    // does one or and changes nothing else.
-    for (uint32_t k = 8u; k < MMGR_SWAR_LANE_BITS; k <<= 1)
+    // shift doubles from 8 rather than counting up, and the walk ends when it reaches
+    // MMGR_SWAR_LANE_BITS: three passes on a 64 bit word, two on a 32 bit one. The step stays in the
+    // header, so the body does one or and changes nothing else.
+    for (uint32_t shift = 8u; shift < MMGR_SWAR_LANE_BITS; shift <<= 1)
     {
-        m |= (m >> k);
+        smeared |= (smeared >> shift);
     }
-    return m;
+    return smeared;
 }
 
 /**
@@ -175,13 +175,13 @@ MMGR_INLINE mmgr_word scrut_alpha(const ScrutLaneCtx *args)
  */
 MMGR_INLINE mmgr_word scrut_xor(const ScrutLaneCtx *args)
 {
-    const mmgr_word x = args->word ^ args->val;
+    const mmgr_word diff = args->word ^ args->val;
 
     if (!args->ci)
     {
-        return x;
+        return diff;
     }
-    return x & ~(MMGR_CALL(scrut_alpha, ScrutLaneCtx, .word = args->word) >> 2);
+    return diff & ~(MMGR_CALL(scrut_alpha, ScrutLaneCtx, .word = args->word) >> 2);
 }
 
 /**
@@ -195,9 +195,9 @@ MMGR_INLINE mmgr_word scrut_xor(const ScrutLaneCtx *args)
 MMGR_INLINE mmgr_word scrut_eq(const ScrutLaneCtx *args)
 {
     const mmgr_word broadcast = MMGR_SWAR_ONES * args->byte;
-    const mmgr_word x = MMGR_CALL(scrut_xor, ScrutLaneCtx, .word = args->word, .val = broadcast, .ci = args->ci);
+    const mmgr_word diff = MMGR_CALL(scrut_xor, ScrutLaneCtx, .word = args->word, .val = broadcast, .ci = args->ci);
 
-    return MMGR_CALL(scrut_has_zero, ScrutLaneCtx, .word = x);
+    return MMGR_CALL(scrut_has_zero, ScrutLaneCtx, .word = diff);
 }
 
 /**
@@ -353,9 +353,9 @@ MMGR_INLINE mmgr_word scrut_drop_lo(const ScrutMaskCtx *args)
  */
 MMGR_INLINE mmgr_word scrut_drop_hi(const ScrutMaskCtx *args)
 {
-    const mmgr_word s = MMGR_CALL(scrut_smear, ScrutMaskCtx, .mask = args->mask);
+    const mmgr_word smeared = MMGR_CALL(scrut_smear, ScrutMaskCtx, .mask = args->mask);
 
-    return args->mask & ~(s ^ (s >> 8));
+    return args->mask & ~(smeared ^ (smeared >> 8));
 }
 
 /**
@@ -454,7 +454,7 @@ MMGR_INLINE mmgr_word scrut_lanes_before(const ScrutMaskCtx *args)
  */
 MMGR_INLINE mmgr_word scrut_run(const ScrutMaskCtx *args)
 {
-    mmgr_word m = args->mask;
+    mmgr_word starts = args->mask;
     size_t have = 1u;
 
     if (args->bytes > MMGR_SWAR_BYTES)
@@ -468,13 +468,13 @@ MMGR_INLINE mmgr_word scrut_run(const ScrutMaskCtx *args)
         // below, so nothing in the test changes it.
         const size_t step = (have < args->bytes - have) ? have : args->bytes - have;
 #if MMGR_HW_BIG_ENDIAN
-        m &= (m << (step * 8u));
+        starts &= (starts << (step * 8u));
 #else
-        m &= (m >> (step * 8u));
+        starts &= (starts >> (step * 8u));
 #endif
         have += step;
     }
-    return m;
+    return starts;
 }
 
 /**

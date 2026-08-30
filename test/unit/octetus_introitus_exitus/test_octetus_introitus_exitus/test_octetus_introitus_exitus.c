@@ -107,7 +107,7 @@ void test_appends_follow_one_another(void)
     TEST_ASSERT_EQUAL_HEX8('x', buf[3]);
     TEST_ASSERT_EQUAL_HEX8('y', buf[4]);
     TEST_ASSERT_EQUAL_size_t(5u, w.pos);
-    TEST_ASSERT_TRUE(MMGR_CALL(spat.ok, SpatiumCfg, .s = w));
+    TEST_ASSERT_TRUE(MMGR_CALL(spat.ok, SpatiumCfg, .span = w));
 }
 
 void test_take_be_reads_what_put_be_wrote_at_every_width(void)

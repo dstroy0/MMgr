@@ -182,15 +182,15 @@ MMGR_INLINE uint32_t verba_div100(uint32_t value)
 MMGR_INLINE uint64_t verba_cut8(uint64_t value)
 {
     // Explicit casts hold each half at the 32 bits it carries, so the products are widening
-    const uint32_t a0 = (uint32_t)value;
-    const uint32_t a1 = (uint32_t)(value >> 32);
-    const uint32_t b0 = (uint32_t)MMGR_VERBA_CUT_MAGIC;
-    const uint32_t b1 = (uint32_t)(MMGR_VERBA_CUT_MAGIC >> 32);
+    const uint32_t value_lo = (uint32_t)value;
+    const uint32_t value_hi = (uint32_t)(value >> 32);
+    const uint32_t magic_lo = (uint32_t)MMGR_VERBA_CUT_MAGIC;
+    const uint32_t magic_hi = (uint32_t)(MMGR_VERBA_CUT_MAGIC >> 32);
 
-    const uint64_t p00 = (uint64_t)a0 * b0;
-    const uint64_t p01 = (uint64_t)a0 * b1;
-    const uint64_t p10 = (uint64_t)a1 * b0;
-    const uint64_t p11 = (uint64_t)a1 * b1;
+    const uint64_t p00 = (uint64_t)value_lo * magic_lo;
+    const uint64_t p01 = (uint64_t)value_lo * magic_hi;
+    const uint64_t p10 = (uint64_t)value_hi * magic_lo;
+    const uint64_t p11 = (uint64_t)value_hi * magic_hi;
     const uint64_t mid = (p00 >> 32) + (uint32_t)p01 + (uint32_t)p10;
     const uint64_t high = p11 + (p01 >> 32) + (p10 >> 32) + (mid >> 32);
 
@@ -212,15 +212,15 @@ MMGR_INLINE void verba_emit10(char *out, uint32_t value, size_t digits)
 
     while (index >= 2u)
     {
-        const uint32_t q = verba_div100(value);
+        const uint32_t quotient = verba_div100(value);
         // The remainder is taken from the quotient rather than asked for separately, so the compiler
         // answers one division here rather than two
-        const uint32_t r = value - (q * 100u);
+        const uint32_t remainder = value - (quotient * 100u);
 
         index -= 2u;
-        out[index] = mmgr_verba_pairs[r * 2u];
-        out[index + 1u] = mmgr_verba_pairs[(r * 2u) + 1u];
-        value = q;
+        out[index] = mmgr_verba_pairs[remainder * 2u];
+        out[index + 1u] = mmgr_verba_pairs[(remainder * 2u) + 1u];
+        value = quotient;
     }
     if (index != 0u)
     {
@@ -364,12 +364,12 @@ MMGR_INLINE size_t verba_put_n(const VerbaCtx *args)
  */
 MMGR_INLINE size_t verba_put(const VerbaCtx *args)
 {
-    const size_t sl = (args->text_len != 0u)
-                          ? args->text_len
-                          : MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = args->text, .cap = args->cap);
+    const size_t len = (args->text_len != 0u)
+                           ? args->text_len
+                           : MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = args->text, .cap = args->cap);
 
     return MMGR_CALL(verba_put_n, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .text = args->text,
-                     .text_len = sl);
+                     .text_len = len);
 }
 
 /**
@@ -389,10 +389,10 @@ MMGR_INLINE size_t verba_put_clip(const VerbaCtx *args)
     }
 
     const size_t room = (args->cap - args->at) - 1u;
-    const size_t sl = MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = args->text, .cap = room);
+    const size_t len = MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = args->text, .cap = room);
 
-    MMGR_CALL(proxim.read, ProximusCfg, .dst = args->out + args->at, .at = args->text, .size = sl);
-    return args->at + sl;
+    MMGR_CALL(proxim.read, ProximusCfg, .dst = args->out + args->at, .at = args->text, .size = len);
+    return args->at + len;
 }
 
 /**
@@ -514,19 +514,19 @@ MMGR_INLINE size_t verba_uint(const VerbaCtx *args)
  * @param[in] args Buffer, capacity, offset and the signed value [BORROWS].
  * @return         The offset past the digits, or args->cap when they do not fit.
  * @note Writes the sign through verba_ch, then hands the magnitude to verba_uint at base ten.
- * @note The magnitude is taken as -(sv + 1) plus one, which stays in range for the most negative value.
+ * @note The magnitude is taken as -(value + 1) plus one, which stays in range for the most negative value.
  */
 MMGR_INLINE size_t verba_i64(const VerbaCtx *args)
 {
-    const int64_t sv = args->sval;
+    const int64_t value = args->sval;
     size_t at = args->at;
 
-    if (sv < 0)
+    if (value < 0)
     {
         at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '-');
     }
     return MMGR_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
-                     .val = (sv < 0) ? ((uint64_t)(-(sv + 1)) + 1U) : (uint64_t)sv, .base = 10u, .min = 1u);
+                     .val = (value < 0) ? ((uint64_t)(-(value + 1)) + 1U) : (uint64_t)value, .base = 10u, .min = 1u);
 }
 
 /**
@@ -558,9 +558,9 @@ MMGR_INLINE size_t verba_zeros(const VerbaCtx *args)
     // compiler still merges and unrolls the stores, which is why this beats laying the bytes down by
     // hand as well. Measured on an ESP32-S3 against the per zero walk: 32 cycles to 26 at two zeros,
     // 60 to 34 at six, and 144 to 58 at eighteen
-    for (size_t k = 0; k < want; k++)
+    for (size_t index = 0; index < want; index++)
     {
-        to[k] = '0';
+        to[index] = '0';
     }
     return args->at + want;
 }
@@ -800,9 +800,9 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *args)
     const mmgr_u64 bits = verba_bits(args);
     // Read once and used twice: the class test here and the scale below ask the same question of
     // the same bits, and the answer cannot change between them
-    const mmgr_u64 be = MMGR_CALL(verba_exp, VerbaCtx, .bits = bits);
+    const mmgr_u64 biased_exp = MMGR_CALL(verba_exp, VerbaCtx, .bits = bits);
 
-    if (be == MMGR_DBL_EXP_ALL)
+    if (biased_exp == MMGR_DBL_EXP_ALL)
     {
         return MMGR_CALL(verba_non_finite, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .bits = bits);
     }
@@ -822,16 +822,16 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *args)
 
     mmgr_u64 mantissa = MMGR_CALL(verba_mant, VerbaCtx, .bits = bits);
 
-    if ((be == 0U) && (mantissa == 0U))
+    if ((biased_exp == 0U) && (mantissa == 0U))
     {
         return MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '0');
     }
 
     mmgr_iword scale = 1 - MMGR_DBL_BIAS - (mmgr_iword)MMGR_DBL_MANT_BITS;
-    if (be != 0U)
+    if (biased_exp != 0U)
     {
         mantissa |= 1ULL << MMGR_DBL_MANT_BITS;
-        scale = (mmgr_iword)(be - MMGR_DBL_BIAS - MMGR_DBL_MANT_BITS);
+        scale = (mmgr_iword)(biased_exp - MMGR_DBL_BIAS - MMGR_DBL_MANT_BITS);
     }
 
     const mmgr_u64 limit = mmgr_verba_pow10[sig];
@@ -927,9 +927,9 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *args)
 MMGR_INLINE size_t verba_fixed(const VerbaCtx *args)
 {
     const mmgr_u64 bits = verba_bits(args);
-    const mmgr_u64 klass = MMGR_CALL(verba_exp, VerbaCtx, .bits = bits);
+    const mmgr_u64 biased_exp = MMGR_CALL(verba_exp, VerbaCtx, .bits = bits);
 
-    if (klass == MMGR_DBL_EXP_ALL)
+    if (biased_exp == MMGR_DBL_EXP_ALL)
     {
         return MMGR_CALL(verba_non_finite, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .bits = bits);
     }
@@ -943,7 +943,7 @@ MMGR_INLINE size_t verba_fixed(const VerbaCtx *args)
         value = -value;
     }
 
-    if (klass >= (MMGR_DBL_BIAS + 64))
+    if (biased_exp >= (MMGR_DBL_BIAS + 64))
     {
         return MMGR_CALL(verba_g, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .real = value, .sig = 10u);
     }
@@ -959,18 +959,18 @@ MMGR_INLINE size_t verba_fixed(const VerbaCtx *args)
     mmgr_u64 mant = MMGR_CALL(verba_mant, VerbaCtx, .bits = bits);
     mmgr_iword exp2 = 1 - MMGR_DBL_BIAS - (mmgr_iword)MMGR_DBL_MANT_BITS;
 
-    if (klass != 0U)
+    if (biased_exp != 0U)
     {
         mant |= 1ULL << MMGR_DBL_MANT_BITS;
-        exp2 = (mmgr_iword)(klass - MMGR_DBL_BIAS - MMGR_DBL_MANT_BITS);
+        exp2 = (mmgr_iword)(biased_exp - MMGR_DBL_BIAS - MMGR_DBL_MANT_BITS);
     }
 
-    mmgr_u64 ip = 0U;
+    mmgr_u64 int_part = 0U;
     mmgr_u64 rem = 0U;
 
     if (exp2 >= 0)
     {
-        ip = mant << (mmgr_word)exp2;
+        int_part = mant << (mmgr_word)exp2;
     }
     else
     {
@@ -978,8 +978,8 @@ MMGR_INLINE size_t verba_fixed(const VerbaCtx *args)
 
         if (shift < 64U)
         {
-            ip = mant >> shift;
-            rem = mant - (ip << shift);
+            int_part = mant >> shift;
+            rem = mant - (int_part << shift);
         }
         else
         {
@@ -988,15 +988,15 @@ MMGR_INLINE size_t verba_fixed(const VerbaCtx *args)
     }
 
     mmgr_u64 frac = MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &rem, .e2 = exp2, .ex = (mmgr_iword)decimals,
-                              .above = (decimals == 0U) ? (mmgr_word)(ip & 1U) : 0U);
+                              .above = (decimals == 0U) ? (mmgr_word)(int_part & 1U) : 0U);
 
     if (frac >= scale)
     {
-        ip++;
+        int_part++;
         frac = 0U;
     }
 
-    at = MMGR_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .val = ip, .base = 10u,
+    at = MMGR_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .val = int_part, .base = 10u,
                    .min = 1u);
 
     if (decimals != 0u)

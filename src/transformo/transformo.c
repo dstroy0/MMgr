@@ -39,7 +39,7 @@ static const double mmgr_muto_ten[MMGR_MUTO_EXACT_POW10 + 1] = {1e0,  1e1,  1e2,
  *       under a new name.
  * @note hi, lo and fe2 carry the 128-bit significand and its binary exponent. rest records bits
  *       shifted away.
- * @note a and b are muto_mul's two operands, and phi and plo are where it leaves the product.
+ * @note left and right are muto_mul's two operands, and phi and plo are where it leaves the product.
  * @note pow points at the pow5 entry being applied.
  * @note pow addresses an entry of mmgr_pow5_up or mmgr_pow5_down, which are static const tables that
  *       outlive every call, so it is only ever read through [BORROWS].
@@ -58,8 +58,8 @@ typedef struct
     mmgr_u64 lo;
     mmgr_iword fe2;
     mmgr_iword rest;
-    mmgr_u64 a;
-    mmgr_u64 b;
+    mmgr_u64 left;
+    mmgr_u64 right;
     mmgr_u64 phi;
     mmgr_u64 plo;
 
@@ -88,7 +88,7 @@ MMGR_INLINE mmgr_bool muto_take(const MutoCtx *args)
 }
 
 /**
- * @brief Multiplies args->a by args->b and leaves the 128-bit product in args->phi and args->plo.
+ * @brief Multiplies args->left by args->right and leaves the 128-bit product in args->phi and args->plo.
  *
  * @param[in,out] args The two operands, and where the product is left [BORROWS].
  * @note Splits both operands at 32 bits and sums the four partial products, so no 128-bit type is needed.
@@ -101,15 +101,15 @@ MMGR_INLINE void muto_mul(MutoCtx *args)
 {
     // Explicit casts hold each half at the 32 bits it actually carries, so the products below are
     // widening multiplies rather than full 64-bit ones
-    const uint32_t a0 = (uint32_t)args->a;
-    const uint32_t a1 = (uint32_t)(args->a >> 32);
-    const uint32_t b0 = (uint32_t)args->b;
-    const uint32_t b1 = (uint32_t)(args->b >> 32);
+    const uint32_t left_lo = (uint32_t)args->left;
+    const uint32_t left_hi = (uint32_t)(args->left >> 32);
+    const uint32_t right_lo = (uint32_t)args->right;
+    const uint32_t right_hi = (uint32_t)(args->right >> 32);
 
-    const mmgr_u64 p00 = (mmgr_u64)a0 * b0;
-    const mmgr_u64 p01 = (mmgr_u64)a0 * b1;
-    const mmgr_u64 p10 = (mmgr_u64)a1 * b0;
-    const mmgr_u64 p11 = (mmgr_u64)a1 * b1;
+    const mmgr_u64 p00 = (mmgr_u64)left_lo * right_lo;
+    const mmgr_u64 p01 = (mmgr_u64)left_lo * right_hi;
+    const mmgr_u64 p10 = (mmgr_u64)left_hi * right_lo;
+    const mmgr_u64 p11 = (mmgr_u64)left_hi * right_hi;
     // Explicit casts take the low half of the two middle partial products, the part this column
     // holds. Their high halves go into phi below. The leading mmgr_u64 term carries the sum at 64
     // bits, so mid keeps its own carry rather than dropping it
@@ -142,12 +142,12 @@ MMGR_INLINE void muto_norm(MutoCtx *args)
         args->fe2 -= 64;
     }
 
-    const mmgr_iword n = MMGR_CALL(clz.lead, ClzCfg, .val = args->hi);
-    if (n != 0)
+    const mmgr_iword shift = MMGR_CALL(clz.lead, ClzCfg, .val = args->hi);
+    if (shift != 0)
     {
-        args->hi = (args->hi << n) | (args->lo >> (64 - n));
-        args->lo <<= n;
-        args->fe2 -= n;
+        args->hi = (args->hi << shift) | (args->lo >> (64 - shift));
+        args->lo <<= shift;
+        args->fe2 -= shift;
     }
 }
 
@@ -166,26 +166,26 @@ MMGR_INLINE void muto_mul_pow5(MutoCtx *args)
     const mmgr_u64 ghi = args->pow->hi;
     const mmgr_u64 glo = args->pow->lo;
 
-    args->a = fhi;
-    args->b = ghi;
+    args->left = fhi;
+    args->right = ghi;
     muto_mul(args);
     const mmgr_u64 hh_h = args->phi;
     const mmgr_u64 hh_l = args->plo;
 
-    args->a = fhi;
-    args->b = glo;
+    args->left = fhi;
+    args->right = glo;
     muto_mul(args);
     const mmgr_u64 hl_h = args->phi;
     const mmgr_u64 hl_l = args->plo;
 
-    args->a = flo;
-    args->b = ghi;
+    args->left = flo;
+    args->right = ghi;
     muto_mul(args);
     const mmgr_u64 lh_h = args->phi;
     const mmgr_u64 lh_l = args->plo;
 
-    args->a = flo;
-    args->b = glo;
+    args->left = flo;
+    args->right = glo;
     muto_mul(args);
     const mmgr_u64 ll_h = args->phi;
     const mmgr_u64 ll_l = args->plo;
@@ -253,7 +253,7 @@ static const mmgr_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {1ull,
 /**
  * @brief Multiplies the 128-bit significand by one exact 64-bit power of ten, then renormalizes.
  *
- * @param[in,out] args The significand, its exponent, and the power to apply as args->b [BORROWS].
+ * @param[in,out] args The significand, its exponent, and the power to apply as args->right [BORROWS].
  * @note Two multiplies where muto_mul_pow5 takes four, and one column sum where it takes three.
  * @note The power is applied whole, both its five and its two, so nothing is added to args->fe2 for it.
  * @note Sets args->rest from the discarded low 64 bits, as muto_mul_pow5 does from its columns.
@@ -263,16 +263,16 @@ MMGR_INLINE void muto_mul_pow10(MutoCtx *args)
 {
     const mmgr_u64 fhi = args->hi;
     const mmgr_u64 flo = args->lo;
-    const mmgr_u64 g = args->b;
+    const mmgr_u64 power = args->right;
 
-    args->a = fhi;
-    args->b = g;
+    args->left = fhi;
+    args->right = power;
     muto_mul(args);
     const mmgr_u64 hh_h = args->phi;
     const mmgr_u64 hh_l = args->plo;
 
-    args->a = flo;
-    args->b = g;
+    args->left = flo;
+    args->right = power;
     muto_mul(args);
     const mmgr_u64 lh_h = args->phi;
     const mmgr_u64 lh_l = args->plo;
@@ -317,7 +317,7 @@ MMGR_INLINE void muto_apply_pow10(MutoCtx *args)
         // Below the table's reach one power covers the whole exponent, so it needs no loop
         if (args->ex <= MMGR_MUTO_EXACT_U64_POW10)
         {
-            args->b = mmgr_muto_pow10[args->ex];
+            args->right = mmgr_muto_pow10[args->ex];
             muto_mul_pow10(args);
             return;
         }
@@ -328,7 +328,7 @@ MMGR_INLINE void muto_apply_pow10(MutoCtx *args)
         {
             const mmgr_iword take = (left > MMGR_MUTO_EXACT_U64_POW10) ? MMGR_MUTO_EXACT_U64_POW10 : left;
 
-            args->b = mmgr_muto_pow10[take];
+            args->right = mmgr_muto_pow10[take];
             muto_mul_pow10(args);
             left -= take;
         }
@@ -336,18 +336,18 @@ MMGR_INLINE void muto_apply_pow10(MutoCtx *args)
     }
 
     // Explicit cast holds the negated exponent at the mmgr_iword the walk counts down in
-    mmgr_iword k = (args->ex < 0) ? (mmgr_iword)(-args->ex) : args->ex;
+    mmgr_iword magnitude = (args->ex < 0) ? (mmgr_iword)(-args->ex) : args->ex;
 
     // Two bounds: the step count keeps an exponent past the tables from reading off the end, and the
     // emptied magnitude ends the walk once no bits are left to apply
-    for (mmgr_iword i = 0; (i < MMGR_POW5_STEPS) && (k != 0); ++i)
+    for (mmgr_iword step = 0; (step < MMGR_POW5_STEPS) && (magnitude != 0); ++step)
     {
-        if ((k & 1) != 0)
+        if ((magnitude & 1) != 0)
         {
-            args->pow = (args->ex < 0) ? &mmgr_pow5_down[i] : &mmgr_pow5_up[i];
+            args->pow = (args->ex < 0) ? &mmgr_pow5_down[step] : &mmgr_pow5_up[step];
             muto_mul_pow5(args);
         }
-        k >>= 1;
+        magnitude >>= 1;
     }
     args->fe2 += args->ex;
 }
@@ -444,7 +444,7 @@ MMGR_INLINE double muto_round(const MutoCtx *args)
  * @return         The rounded integer, 0 when the value rounds below one, or all ones when it needs
  *                 more than 64 bits.
  * @note k is the negated exponent, so it says how far right the significand must move to become an integer.
- * @note The three branches split on j, the part of the shift past 64: none of it, under 64 more, and
+ * @note The three branches split on word_shift, the part past 64: none of it, under 64 more, and
  *       64 or more, in that order.
  * @note args->above is exclusive-ored into the low bit before the tie test, so a caller can steer which way a tie goes.
  */
@@ -455,40 +455,40 @@ MMGR_INLINE mmgr_u64 muto_to_u64(const MutoCtx *args)
         return 0u;
     }
 
-    const mmgr_iword k = -(args->fe2);
+    const mmgr_iword total_shift = -(args->fe2);
 
-    if (k > 128)
+    if (total_shift > 128)
     {
         return 0u;
     }
-    if (k < 64)
+    if (total_shift < 64)
     {
         // Explicit cast pins the all-ones saturation value at the mmgr_u64 this returns
         return ~(mmgr_u64)0;
     }
 
     // Explicit cast holds the shift width at the mmgr_word the shifts below take. The tests above
-    // established k is between 64 and 128, so the subtraction cannot wrap
-    const mmgr_word j = (mmgr_word)(k - 64);
-    // The j == 0u arm stands in for the empty mask, since j - 1u would wrap to the largest mmgr_word
-    // there and a shift by that is undefined. Explicit cast widens the one to the mmgr_u64 the mask
-    // covers, so the shift has room
-    const mmgr_u64 low_mask = (j == 0u) ? 0u : (((mmgr_u64)1 << (j - 1u)) - 1u);
+    // established total_shift is between 64 and 128, so the subtraction cannot wrap
+    const mmgr_word word_shift = (mmgr_word)(total_shift - 64);
+    // The word_shift == 0u arm stands in for the empty mask, since word_shift - 1u would wrap to the
+    // largest mmgr_word there and a shift by that is undefined. Explicit cast widens the one to the
+    // mmgr_u64 the mask covers, so the shift has room
+    const mmgr_u64 low_mask = (word_shift == 0u) ? 0u : (((mmgr_u64)1 << (word_shift - 1u)) - 1u);
     mmgr_u64 whole;
     mmgr_u64 half;
     mmgr_u64 rest = (args->rest != 0) ? 1u : 0u;
 
-    if (j == 0u)
+    if (word_shift == 0u)
     {
         whole = args->hi;
         half = (args->lo >> 63) & 1u;
         // Explicit cast widens the one to the mmgr_u64 the low word is masked in
         rest |= ((args->lo & (((mmgr_u64)1 << 63) - 1u)) != 0u) ? 1u : 0u;
     }
-    else if (j < 64u)
+    else if (word_shift < 64u)
     {
-        whole = args->hi >> j;
-        half = (args->hi >> (j - 1u)) & 1u;
+        whole = args->hi >> word_shift;
+        half = (args->hi >> (word_shift - 1u)) & 1u;
         rest |= ((args->hi & low_mask) != 0u) ? 1u : 0u;
         rest |= (args->lo != 0u) ? 1u : 0u;
     }
@@ -542,17 +542,17 @@ MMGR_INLINE double muto_scale(MutoCtx *args)
         (args->ex <= MMGR_MUTO_EXACT_POW10))
     {
         // Explicit cast converts the mantissa to the double this path scales it in, exact below 2^53
-        double v = (double)*args->mant;
+        double scaled = (double)*args->mant;
 
         if (args->ex > 0)
         {
-            v *= mmgr_muto_ten[args->ex];
+            scaled *= mmgr_muto_ten[args->ex];
         }
         else if (args->ex < 0)
         {
-            v /= mmgr_muto_ten[-args->ex];
+            scaled /= mmgr_muto_ten[-args->ex];
         }
-        return args->neg ? -v : v;
+        return args->neg ? -scaled : scaled;
     }
     if (args->ex > MMGR_POW5_MAX)
     {

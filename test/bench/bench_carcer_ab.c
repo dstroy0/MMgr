@@ -230,9 +230,11 @@ int main(void)
             mmgr_span s_ = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_buf, .cap = sizeof g_buf);
             s_.pos = 128u;
             BENCH_KEEP(MMGR_CALL(spat.ok, SpatiumCfg,
-                                 .s = MMGR_CALL(spat.first, SpatiumCfg,
-                                                .s = MMGR_CALL(spat.after, SpatiumCfg, .s = s_, .n = 8u), .n = 64u)));
-            BENCH_KEEP(MMGR_CALL(spat.cok, SpatiumCfg, .cs = MMGR_CALL(spat.produced, SpatiumCfg, .s = s_)));
+                                 .span = MMGR_CALL(spat.first, SpatiumCfg,
+                                                   .span = MMGR_CALL(spat.after, SpatiumCfg, .span = s_,
+                                                                     .count = 8u),
+                                                   .count = 64u)));
+            BENCH_KEEP(MMGR_CALL(spat.cok, SpatiumCfg, .cspan = MMGR_CALL(spat.produced, SpatiumCfg, .span = s_)));
         });
         report("locus_carcerum", "span walk", 0u, cy);
     }

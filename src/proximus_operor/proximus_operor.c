@@ -241,24 +241,24 @@ MMGR_INLINE void aequus_put64(const ProximPutCtx *args)
  * @note skew is the distance from args->dst up to the next boundary. It copies that many, or args->bytes if fewer.
  * @note Returns at once when args->dst already sits on a boundary, or when args->bytes is 0.
  * @note Advances args->dst and args->src past what it copied and draws that count off args->bytes.
- * @note Both pointers step in the copy statement itself, and t counts down in the while test.
+ * @note Both pointers step in the copy statement itself, and remaining counts down in the while test.
  */
 MMGR_INLINE void proxim_head(ProximReadCtx *args)
 {
     // Explicit casts hold the negation and the mask at uintptr_t, then bring the byte count back to size_t
     const size_t skew = (size_t)((0u - (uintptr_t)args->dst) & (uintptr_t)(MMGR_RAW_WORD - 1u));
-    size_t t = (skew < args->bytes) ? skew : args->bytes;
+    size_t remaining = (skew < args->bytes) ? skew : args->bytes;
 
-    if (t == 0u)
+    if (remaining == 0u)
     {
         return;
     }
-    args->bytes -= t;
+    args->bytes -= remaining;
 
     do
     {
         *args->dst++ = *args->src++;
-    } while (--t);
+    } while (--remaining);
 }
 
 /**
@@ -287,12 +287,12 @@ MMGR_INLINE void proxim_head(ProximReadCtx *args)
 MMGR_INLINE void proxim_words(ProximReadCtx *args)
 {
     // Explicit cast holds the mask at size_t, matching the byte count whose low bits it clears
-    size_t w = args->bytes & ~(size_t)(MMGR_RAW_WORD - 1u);
-    if (w == 0u)
+    size_t word_bytes = args->bytes & ~(size_t)(MMGR_RAW_WORD - 1u);
+    if (word_bytes == 0u)
     {
         return;
     }
-    args->bytes -= w;
+    args->bytes -= word_bytes;
 
     // Explicit cast holds the address at uintptr_t for the mask that asks whether it is on a boundary
     if ((((uintptr_t)args->src) & (uintptr_t)(MMGR_RAW_WORD - 1u)) == 0u)
@@ -302,8 +302,8 @@ MMGR_INLINE void proxim_words(ProximReadCtx *args)
             *(mmgr_aequus_word_t *)args->dst = *(const mmgr_aequus_word_t *)args->src;
             args->dst += MMGR_RAW_WORD;
             args->src += MMGR_RAW_WORD;
-            w -= MMGR_RAW_WORD;
-        } while (w);
+            word_bytes -= MMGR_RAW_WORD;
+        } while (word_bytes);
         return;
     }
 
@@ -312,8 +312,8 @@ MMGR_INLINE void proxim_words(ProximReadCtx *args)
         *(mmgr_aequus_word_t *)args->dst = *(const mmgr_proxim_word_t *)args->src;
         args->dst += MMGR_RAW_WORD;
         args->src += MMGR_RAW_WORD;
-        w -= MMGR_RAW_WORD;
-    } while (w);
+        word_bytes -= MMGR_RAW_WORD;
+    } while (word_bytes);
 }
 
 /**
@@ -322,13 +322,13 @@ MMGR_INLINE void proxim_words(ProximReadCtx *args)
  * @param[in,out] args Destination, source and the count still to copy [BORROWS].
  * @note Returns at once when nothing is left.
  * @note Advances args->dst and args->src, but leaves args->bytes as it found it, unlike the two stages before it.
- * @note Both pointers step in the copy statement itself, and the local t counts down in the while test.
+ * @note Both pointers step in the copy statement itself, and the local remaining counts down in the while test.
  */
 MMGR_INLINE void proxim_tail(ProximReadCtx *args)
 {
-    size_t t = args->bytes;
+    size_t remaining = args->bytes;
 
-    if (t == 0u)
+    if (remaining == 0u)
     {
         return;
     }
@@ -336,7 +336,7 @@ MMGR_INLINE void proxim_tail(ProximReadCtx *args)
     do
     {
         *args->dst++ = *args->src++;
-    } while (--t);
+    } while (--remaining);
 }
 
 /**
