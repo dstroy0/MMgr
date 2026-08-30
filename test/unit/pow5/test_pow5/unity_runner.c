@@ -7,14 +7,12 @@
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_both_tables_hold_one_entry_per_exponent_bit(void);
 extern void test_every_significand_is_normalized(void);
-extern void test_the_exact_powers_reconstruct_to_five_raised_to_two_to_the_step(void);
 extern void test_the_wide_powers_carry_a_low_half(void);
 extern void test_the_negative_powers_truncate_toward_zero(void);
 extern void test_the_binary_exponents_run_monotonically_in_both_tables(void);
 extern void test_the_widest_exponent_fits_the_narrowest_word(void);
-extern void test_the_nine_steps_cover_every_exponent_a_double_carries(void);
+extern void test_the_table_walk_reaches_the_exponent_range_a_double_needs(void);
 
 
 /*=======Mock Management=====*/
@@ -76,14 +74,12 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/pow5/test_pow5\\test_pow5.c");
-  run_test(test_both_tables_hold_one_entry_per_exponent_bit, "test_both_tables_hold_one_entry_per_exponent_bit", 52);
-  run_test(test_every_significand_is_normalized, "test_every_significand_is_normalized", 70);
-  run_test(test_the_exact_powers_reconstruct_to_five_raised_to_two_to_the_step, "test_the_exact_powers_reconstruct_to_five_raised_to_two_to_the_step", 92);
-  run_test(test_the_wide_powers_carry_a_low_half, "test_the_wide_powers_carry_a_low_half", 120);
-  run_test(test_the_negative_powers_truncate_toward_zero, "test_the_negative_powers_truncate_toward_zero", 137);
-  run_test(test_the_binary_exponents_run_monotonically_in_both_tables, "test_the_binary_exponents_run_monotonically_in_both_tables", 158);
-  run_test(test_the_widest_exponent_fits_the_narrowest_word, "test_the_widest_exponent_fits_the_narrowest_word", 182);
-  run_test(test_the_nine_steps_cover_every_exponent_a_double_carries, "test_the_nine_steps_cover_every_exponent_a_double_carries", 204);
+  run_test(test_every_significand_is_normalized, "test_every_significand_is_normalized", 104);
+  run_test(test_the_wide_powers_carry_a_low_half, "test_the_wide_powers_carry_a_low_half", 127);
+  run_test(test_the_negative_powers_truncate_toward_zero, "test_the_negative_powers_truncate_toward_zero", 144);
+  run_test(test_the_binary_exponents_run_monotonically_in_both_tables, "test_the_binary_exponents_run_monotonically_in_both_tables", 165);
+  run_test(test_the_widest_exponent_fits_the_narrowest_word, "test_the_widest_exponent_fits_the_narrowest_word", 189);
+  run_test(test_the_table_walk_reaches_the_exponent_range_a_double_needs, "test_the_table_walk_reaches_the_exponent_range_a_double_needs", 212);
 
   return UNITY_END();
 }

@@ -12,8 +12,13 @@
  * @note Nothing here reads a table value to build an expectation. Every power of five is computed
  *       from 1 by repeated multiplication in a 1024-bit integer, so a defect in an entry cannot be
  *       masked by the same defect in what it is compared against.
+ * @note Every integer type below comes from stdint.h rather than from the library's width aliases.
+ *       A wrong alias would resize the limbs this suite computes in, and each comparison against a
+ *       table entry would then run at a width defined by the code being checked.
  * @note The structural checks on entry count, normalization and exponent ordering live in test_pow5.
  */
+#include <stdint.h>
+
 #include "pow5/pow5.h"
 
 #include "unity.h"
@@ -28,8 +33,8 @@
 /**
  * @brief Expands to 32, the width in bits of one BigNumber limb.
  *
- * @note Matches the mmgr_u32 the limb array holds. big_multiply_small accumulates a 32-by-32 product
- *       and its carry into an mmgr_u64, whose worst case is 2^64 minus 2^32.
+ * @note Matches the uint32_t the limb array holds. big_multiply_small accumulates a 32-by-32 product
+ *       and its carry into a uint64_t, whose worst case is 2^64 minus 2^32.
  */
 #define MMGR_ACCURACY_LIMB_BITS 32
 /**
@@ -51,6 +56,44 @@
 #define MMGR_ACCURACY_EXACT_STEPS 6
 
 /**
+ * @brief Expands to the number of entries mmgr_pow5_up actually holds.
+ *
+ * @note Sized from the array rather than from MMGR_POW5_STEPS, so a table that gained or lost an
+ *       entry is walked in full without an edit here. Taking the count from the library would let
+ *       the library decide how much of itself this suite checks.
+ * @note The cast takes the sizeof quotient from size_t into the int a loop counter carries. The
+ *       assertion below holds the count at 9, which is positive and far inside int.
+ */
+#define MMGR_ACCURACY_UP_ENTRIES ((int)(sizeof mmgr_pow5_up / sizeof mmgr_pow5_up[0]))
+
+/**
+ * @brief Expands to the number of entries mmgr_pow5_down actually holds.
+ *
+ * @note Sized from its own array rather than shared with MMGR_ACCURACY_UP_ENTRIES, so a change to
+ *       one table cannot silently set the bound for walks over the other.
+ */
+#define MMGR_ACCURACY_DOWN_ENTRIES ((int)(sizeof mmgr_pow5_down / sizeof mmgr_pow5_down[0]))
+
+/**
+ * @brief Asserts mmgr_pow5_up still holds the nine entries this suite can represent.
+ *
+ * @note Entry 9 would be 5^512 at 1189 bits, and the reciprocal cases shift a further 127 above
+ *       that. Both run past MMGR_ACCURACY_TOTAL_BITS, where big_multiply_small drops the carry off
+ *       the top limb and every comparison against the table becomes meaningless.
+ */
+MMGR_STATIC_ASSERT(MMGR_ACCURACY_UP_ENTRIES == 9,
+                   "mmgr_pow5_up changed length; a tenth power needs more bits than a BigNumber holds");
+
+/**
+ * @brief Asserts mmgr_pow5_down still holds nine entries, matching mmgr_pow5_up.
+ *
+ * @note The reciprocal of each up entry is what this table carries, so a length disagreeing with
+ *       the up table would leave powers with no reciprocal or reciprocals with no power.
+ */
+MMGR_STATIC_ASSERT(MMGR_ACCURACY_DOWN_ENTRIES == MMGR_ACCURACY_UP_ENTRIES,
+                   "mmgr_pow5_down does not hold one reciprocal per mmgr_pow5_up entry");
+
+/**
  * @brief A 1024-bit unsigned integer, held as MMGR_ACCURACY_LIMBS limbs of MMGR_ACCURACY_LIMB_BITS
  *        bits each.
  *
@@ -59,7 +102,7 @@
  */
 typedef struct
 {
-    mmgr_u32 limb[MMGR_ACCURACY_LIMBS]; /**< Limbs in little-endian order, limb[0] least significant. */
+    uint32_t limb[MMGR_ACCURACY_LIMBS]; /**< Limbs in little-endian order, limb[0] least significant. */
 } BigNumber;
 
 /**
@@ -70,13 +113,38 @@ typedef struct
  * @note A BigNumber with automatic storage holds indeterminate limbs until this runs, so every value
  *       this suite builds starts here.
  */
-static void big_set_small(BigNumber *number, mmgr_u32 value)
+static void big_set_small(BigNumber *number, uint32_t value)
 {
     for (int index = 0; index < MMGR_ACCURACY_LIMBS; index++)
     {
         number->limb[index] = 0u;
     }
     number->limb[0] = value;
+}
+
+/**
+ * @brief Loads a 128-bit significand into a BigNumber from its two 64-bit halves.
+ *
+ * @param[out] number Destination, zeroed across every limb before the halves land [BORROWS].
+ * @param[in]  high   Bits 64 through 127 of the significand.
+ * @param[in]  low    Bits 0 through 63 of the significand.
+ * @note Exists so a table entry can be multiplied back out against the scale it divides. Every other
+ *       value this suite handles is built here from 1, and an mmgr_pow5_down significand is the one
+ *       input that arrives already assembled.
+ * @warning Writes limb[0] through limb[3] by name, so it places 128 bits only while
+ *          MMGR_ACCURACY_LIMB_BITS is 32. A narrower limb would leave the top of the significand in
+ *          limbs this never touches, and the value loaded would be too small with no diagnostic.
+ */
+static void big_set_128(BigNumber *number, uint64_t high, uint64_t low)
+{
+    big_set_small(number, 0u);
+
+    // Explicit casts narrow each half to the limb that holds it. The shift takes the upper 32 bits
+    // before the cast discards them, so the two limbs together keep every bit of the half
+    number->limb[0] = (uint32_t)low;
+    number->limb[1] = (uint32_t)(low >> MMGR_ACCURACY_LIMB_BITS);
+    number->limb[2] = (uint32_t)high;
+    number->limb[3] = (uint32_t)(high >> MMGR_ACCURACY_LIMB_BITS);
 }
 
 /**
@@ -87,19 +155,19 @@ static void big_set_small(BigNumber *number, mmgr_u32 value)
  * @note A carry out of the top limb is dropped. The widest value this suite builds reaches bit 722,
  *       so that carry is zero every time this runs.
  */
-static void big_multiply_small(BigNumber *number, mmgr_u32 multiplier)
+static void big_multiply_small(BigNumber *number, uint32_t multiplier)
 {
-    mmgr_u64 carry = 0u;
+    uint64_t carry = 0u;
 
     for (int index = 0; index < MMGR_ACCURACY_LIMBS; index++)
     {
-        // Explicit casts widen both factors to mmgr_u64 before multiplying. Two mmgr_u32 operands
+        // Explicit casts widen both factors to uint64_t before multiplying. Two uint32_t operands
         // would multiply in 32 bits and drop the high half, which is the carry this loop needs
-        const mmgr_u64 product = ((mmgr_u64)number->limb[index] * (mmgr_u64)multiplier) + carry;
+        const uint64_t product = ((uint64_t)number->limb[index] * (uint64_t)multiplier) + carry;
 
         // Explicit cast narrows to the low limb deliberately. The bits it drops are the ones the
         // next line keeps as the carry, so nothing is lost between the two statements
-        number->limb[index] = (mmgr_u32)product;
+        number->limb[index] = (uint32_t)product;
         carry = product >> 32;
     }
 }
@@ -114,7 +182,7 @@ static void big_multiply_small(BigNumber *number, mmgr_u32 multiplier)
  *       length, which runs below bit 0 for anything narrower than 128 bits, and the zeros read there
  *       are what left-align the significand.
  */
-static mmgr_u32 big_get_bit(const BigNumber *number, int position)
+static uint32_t big_get_bit(const BigNumber *number, int position)
 {
     // The two halves are combined because a position is readable only when both hold, and neither
     // half carries a side effect. Dropping either one would let the line below index past an end
@@ -125,44 +193,84 @@ static mmgr_u32 big_get_bit(const BigNumber *number, int position)
     return (number->limb[position / MMGR_ACCURACY_LIMB_BITS] >> (position % MMGR_ACCURACY_LIMB_BITS)) & 1u;
 }
 
+/**
+ * @brief Sets one bit of a BigNumber, leaving every other bit as it was.
+ *
+ * @param[in,out] number   Value to modify [BORROWS].
+ * @param[in]     position Bit index, 0 being the least significant bit of limb[0].
+ * @warning Takes no range check, where big_get_bit does. A position at or above
+ *          MMGR_ACCURACY_TOTAL_BITS writes past the limb array. Every caller here stays inside it:
+ *          big_divide passes 0 through 1023, and the reciprocal cases pass length + 127, which
+ *          reaches 722 for 5^256.
+ */
 static void big_set_bit(BigNumber *number, int position)
 {
+    // Explicit cast pins the shifted literal to uint32_t so the mask is the width of the limb it is
+    // applied to, whatever width unsigned int happens to be on the target
     number->limb[position / MMGR_ACCURACY_LIMB_BITS] |= (uint32_t)1u << (position % MMGR_ACCURACY_LIMB_BITS);
 }
 
+/**
+ * @brief Counts the bits a BigNumber needs, from its highest set bit down to bit 0.
+ *
+ * @param[in] number Value to measure [BORROWS].
+ * @return           Number of significant bits, 1 for a value of one and 0 for a value of zero.
+ * @note The count is a width rather than an index. big_top_128 subtracts 1 from it to reach the
+ *       highest set bit, and the reciprocal cases add 127 to it to place a numerator.
+ */
 static int big_bit_length(const BigNumber *number)
 {
     for (int index = MMGR_ACCURACY_LIMBS - 1; index >= 0; index--)
     {
         if (number->limb[index] != 0u)
         {
-            uint32_t word = number->limb[index];
-            int bits = 0;
+            uint32_t highest_limb = number->limb[index];
+            int bit_count = 0;
 
-            while (word != 0u)
+            while (highest_limb != 0u)
             {
-                bits++;
-                word >>= 1;
+                bit_count++;
+                highest_limb >>= 1;
             }
-            return (index * MMGR_ACCURACY_LIMB_BITS) + bits;
+            return (index * MMGR_ACCURACY_LIMB_BITS) + bit_count;
         }
     }
     return 0;
 }
 
+/**
+ * @brief Shifts a BigNumber left by one bit, carrying between limbs.
+ *
+ * @param[in,out] number Value to shift, overwritten with the result [BORROWS].
+ * @note The top-bit shift is derived from MMGR_ACCURACY_LIMB_BITS rather than written as 31, so a
+ *       change to the limb width cannot leave this reading the wrong bit.
+ * @warning A carry out of the top limb is dropped. big_divide is the only caller and it shifts a
+ *          remainder held below its denominator, so the widest value reaching here is 5^256 at 595
+ *          bits and the shift never reaches the top limb.
+ */
 static void big_shift_left_one(BigNumber *number)
 {
     uint32_t carry = 0u;
 
     for (int index = 0; index < MMGR_ACCURACY_LIMBS; index++)
     {
-        const uint32_t carry_out = number->limb[index] >> 31;
+        const uint32_t carry_out = number->limb[index] >> (MMGR_ACCURACY_LIMB_BITS - 1);
 
         number->limb[index] = (number->limb[index] << 1) | carry;
         carry = carry_out;
     }
 }
 
+/**
+ * @brief Orders two BigNumber values.
+ *
+ * @param[in] left  Left operand [BORROWS].
+ * @param[in] right Right operand [BORROWS].
+ * @return          1 where left is greater, -1 where right is greater, 0 where the two are equal.
+ * @note Walks from the top limb down and stops at the first pair that differ.
+ * @note big_divide calls this once per bit position to decide whether the remainder has reached the
+ *       denominator, which is what makes the quotient truncate rather than round.
+ */
 static int big_compare(const BigNumber *left, const BigNumber *right)
 {
     for (int index = MMGR_ACCURACY_LIMBS - 1; index >= 0; index--)
@@ -175,16 +283,30 @@ static int big_compare(const BigNumber *left, const BigNumber *right)
     return 0;
 }
 
+/**
+ * @brief Subtracts one BigNumber from another in place.
+ *
+ * @param[in,out] left  Minuend, overwritten with the difference [BORROWS].
+ * @param[in]     right Subtrahend [BORROWS].
+ * @note big_divide is the only caller, and it subtracts only after big_compare reports the minuend
+ *       has reached the subtrahend, so the difference is never negative.
+ * @warning A borrow out of the top limb is dropped. A caller passing the smaller value as the
+ *          minuend would get the difference modulo 2^1024 with no diagnostic.
+ */
 static void big_subtract(BigNumber *left, const BigNumber *right)
 {
     uint64_t borrow = 0u;
 
     for (int index = 0; index < MMGR_ACCURACY_LIMBS; index++)
     {
-        // A wrapped difference is the borrow: the true value lives in -2^32 through 2^32, so a
-        // negative one lands above 2^63 and nothing else does.
+        // Explicit casts widen both limbs to uint64_t before subtracting. The true difference lies
+        // in -2^32 through 2^32 - 1, so a negative one wraps above 2^63 and a non-negative one
+        // cannot reach it, which is what makes bit 63 the borrow
         const uint64_t difference = (uint64_t)left->limb[index] - (uint64_t)right->limb[index] - borrow;
 
+        // Explicit cast narrows to the low limb deliberately. It drops bits 32 through 63, which are
+        // all set on a negative difference and all clear otherwise, so the single bit the next line
+        // reads out of position 63 carries everything the cast discarded
         left->limb[index] = (uint32_t)difference;
         borrow = (difference >> 63) & 1u;
     }
@@ -275,7 +397,7 @@ void test_every_positive_power_of_five_is_the_top_128_bits_of_the_exact_value(vo
 {
     BigNumber value;
 
-    for (int step = 0; step < MMGR_POW5_STEPS; step++)
+    for (int step = 0; step < MMGR_ACCURACY_UP_ENTRIES; step++)
     {
         uint64_t high = 0u;
         uint64_t low = 0u;
@@ -309,7 +431,7 @@ void test_the_last_three_positive_powers_drop_bits_and_drop_them_downward(void)
 {
     BigNumber value;
 
-    for (int step = MMGR_ACCURACY_EXACT_STEPS; step < MMGR_POW5_STEPS; step++)
+    for (int step = MMGR_ACCURACY_EXACT_STEPS; step < MMGR_ACCURACY_UP_ENTRIES; step++)
     {
         big_power_of_five(&value, 1 << step);
 
@@ -327,7 +449,7 @@ void test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_
     BigNumber numerator;
     BigNumber quotient;
 
-    for (int step = 0; step < MMGR_POW5_STEPS; step++)
+    for (int step = 0; step < MMGR_ACCURACY_DOWN_ENTRIES; step++)
     {
         uint64_t high = 0u;
         uint64_t low = 0u;
@@ -354,14 +476,23 @@ void test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_
     }
 }
 
+/**
+ * @brief Multiplies each mmgr_pow5_down significand back by its power of five and checks the product
+ *        never rises above the scale that produced it.
+ *
+ * @note Reads the stored significand rather than the quotient computed here, so an entry one unit
+ *       too large fails this case even where big_divide is correct.
+ * @note Bounds the product from above only. A significand that is too small passes here, and
+ *       test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_zero pins the
+ *       exact value from the other side.
+ */
 void test_no_reciprocal_was_rounded_up(void)
 {
     BigNumber value;
     BigNumber numerator;
-    BigNumber quotient;
     BigNumber product;
 
-    for (int step = 0; step < MMGR_POW5_STEPS; step++)
+    for (int step = 0; step < MMGR_ACCURACY_DOWN_ENTRIES; step++)
     {
         big_power_of_five(&value, 1 << step);
 
@@ -369,11 +500,11 @@ void test_no_reciprocal_was_rounded_up(void)
 
         big_set_small(&numerator, 0u);
         big_set_bit(&numerator, length + 127);
-        big_divide(&numerator, &value, &quotient);
 
-        // The table entry times its power of five must stay at or below the scale it divides, since
-        // rounding up is the one direction a truncated reciprocal must never go.
-        product = quotient;
+        // The stored significand times its power of five must land at or below the scale it divides.
+        // A truncated reciprocal is the floor of that division, so a product above the scale is an
+        // entry that was rounded up
+        big_set_128(&product, mmgr_pow5_down[step].hi, mmgr_pow5_down[step].lo);
         for (int applied = 0; applied < (1 << step); applied++)
         {
             big_multiply_small(&product, 5u);

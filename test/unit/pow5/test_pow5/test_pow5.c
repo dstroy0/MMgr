@@ -24,6 +24,58 @@
 #define MMGR_POW5_SINGLE_HALF_STEPS 5
 
 /**
+ * @brief Expands to the number of entries mmgr_pow5_up actually holds.
+ *
+ * @note Sized from the array rather than from MMGR_POW5_STEPS, so a table that gained or lost an
+ *       entry is walked in full without an edit here. Taking the count from the library would let
+ *       the library decide how much of itself this suite reads.
+ * @note The cast takes the sizeof quotient from size_t into the int a loop counter carries. The
+ *       assertion below holds the count at 9, which is positive and far inside int.
+ */
+#define MMGR_POW5_UP_ENTRIES ((int)(sizeof mmgr_pow5_up / sizeof mmgr_pow5_up[0]))
+
+/**
+ * @brief Expands to the number of entries mmgr_pow5_down actually holds.
+ *
+ * @note Sized from its own array rather than shared with MMGR_POW5_UP_ENTRIES, so a change to one
+ *       table cannot silently set the bound for walks over the other.
+ */
+#define MMGR_POW5_DOWN_ENTRIES ((int)(sizeof mmgr_pow5_down / sizeof mmgr_pow5_down[0]))
+
+/**
+ * @brief Asserts mmgr_pow5_up holds one entry per bit of the exponent magnitude.
+ *
+ * @note MMGR_POW5_STEPS bounds the walk that multiplies in one entry per set bit. A table shorter
+ *       than the constant lets that walk read past its end.
+ */
+MMGR_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == MMGR_POW5_STEPS, "mmgr_pow5_up is not MMGR_POW5_STEPS entries long");
+
+/**
+ * @brief Asserts mmgr_pow5_down holds one reciprocal per mmgr_pow5_up entry.
+ *
+ * @note The walk picks one table or the other by the sign of the exponent and indexes both the same
+ *       way, so a length that differs between them reads past the end of the shorter one.
+ */
+MMGR_STATIC_ASSERT(MMGR_POW5_DOWN_ENTRIES == MMGR_POW5_UP_ENTRIES,
+                   "mmgr_pow5_down does not hold one reciprocal per mmgr_pow5_up entry");
+
+/**
+ * @brief Asserts the tables still hold the nine entries this suite was written against.
+ *
+ * @note Nine is checked against a literal rather than against MMGR_POW5_STEPS, which would compare
+ *       the constant with itself. The counts above are what tie the arrays to the constant.
+ */
+MMGR_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == 9, "the pow5 tables changed length; this suite expects nine entries");
+
+/**
+ * @brief Asserts MMGR_POW5_MAX expands to 511.
+ *
+ * @note pow5.h asserts the same constant is at least 511. This pins the exact value, so a change to
+ *       the expansion that still cleared that floor is caught here.
+ */
+MMGR_STATIC_ASSERT(MMGR_POW5_MAX == 511, "MMGR_POW5_MAX no longer expands to 511");
+
+/**
  * @brief Prepares the fixture Unity runs before each case in this suite.
  *
  * @note Empty because pow5.h declares no function and every case reads the two static const tables,
@@ -44,24 +96,6 @@ void tearDown(void)
 }
 
 /**
- * @brief Checks that both tables hold one entry per bit of the exponent magnitude.
- *
- * @note MMGR_POW5_STEPS sizes both tables and bounds the walk that multiplies in one entry per set
- *       bit. A length disagreeing with the constant would read past a table's end.
- */
-void test_both_tables_hold_one_entry_per_exponent_bit(void)
-{
-    TEST_ASSERT_EQUAL_INT(9, MMGR_POW5_STEPS);
-    TEST_ASSERT_EQUAL_INT(511, MMGR_POW5_MAX);
-    // Explicit cast takes MMGR_POW5_STEPS from the plain int it expands to into the size_t a sizeof
-    // quotient has, and 9 is positive so the conversion to unsigned keeps its value
-    TEST_ASSERT_EQUAL_size_t((size_t)MMGR_POW5_STEPS, sizeof mmgr_pow5_up / sizeof mmgr_pow5_up[0]);
-    // Explicit cast takes MMGR_POW5_STEPS from the plain int it expands to into the size_t a sizeof
-    // quotient has, and 9 is positive so the conversion to unsigned keeps its value
-    TEST_ASSERT_EQUAL_size_t((size_t)MMGR_POW5_STEPS, sizeof mmgr_pow5_down / sizeof mmgr_pow5_down[0]);
-}
-
-/**
  * @brief Checks that the top bit of hi is set in every entry of both tables.
  *
  * @note pow5.h documents hi as always carrying its top bit set. A denormalized entry would still
@@ -69,7 +103,7 @@ void test_both_tables_hold_one_entry_per_exponent_bit(void)
  */
 void test_every_significand_is_normalized(void)
 {
-    for (int step = 0; step < MMGR_POW5_STEPS; step++)
+    for (int step = 0; step < MMGR_POW5_UP_ENTRIES; step++)
     {
         // Explicit cast widens the literal to mmgr_u64 before the shift. Shifting a plain int by 63
         // is undefined where int is 32 bits, so the cast is what makes the mask well defined
@@ -83,33 +117,6 @@ void test_every_significand_is_normalized(void)
 }
 
 /**
- * @brief Checks that each single-half entry reconstructs to five raised to two to its index.
- *
- * @note Squaring the running value each step gives 5, 25, 625, 390625 and 152587890625, the five
- *       powers whose significand fits mmgr_u64. The shift is derived from e2, so a wrong e2 fails
- *       this comparison even where hi holds the right digits.
- */
-void test_the_exact_powers_reconstruct_to_five_raised_to_two_to_the_step(void)
-{
-    mmgr_u64 exact_value = 5u;
-
-    for (int step = 0; step < MMGR_POW5_SINGLE_HALF_STEPS; step++)
-    {
-        // Explicit cast takes e2 from mmgr_iword into int for the negation and the addition. pow5.h
-        // bounds e2 at -722, which fits int on every environment this suite builds for
-        const int shift = -(64 + (int)mmgr_pow5_up[step].e2);
-
-        // The two halves are combined because a shift is usable only when both hold, and neither
-        // half carries a side effect. A shift outside this range would be undefined at the line below
-        TEST_ASSERT_TRUE_MESSAGE(shift >= 0 && shift < 64, "the exact entries scale by a shift inside a word");
-        TEST_ASSERT_EQUAL_HEX64_MESSAGE(exact_value << shift, mmgr_pow5_up[step].hi,
-                                        "the significand is not five raised to two to the step");
-        TEST_ASSERT_EQUAL_HEX64_MESSAGE(0u, mmgr_pow5_up[step].lo, "an exact power of five needs no low half");
-        exact_value = exact_value * exact_value;
-    }
-}
-
-/**
  * @brief Checks that every entry at or past MMGR_POW5_SINGLE_HALF_STEPS carries a nonzero low half.
  *
  * @note 5^32 at index 5 needs 75 bits, and the three entries above it need more than 128. All four
@@ -119,7 +126,7 @@ void test_the_exact_powers_reconstruct_to_five_raised_to_two_to_the_step(void)
  */
 void test_the_wide_powers_carry_a_low_half(void)
 {
-    for (int step = MMGR_POW5_SINGLE_HALF_STEPS; step < MMGR_POW5_STEPS; step++)
+    for (int step = MMGR_POW5_SINGLE_HALF_STEPS; step < MMGR_POW5_UP_ENTRIES; step++)
     {
         TEST_ASSERT_NOT_EQUAL_HEX64_MESSAGE(0ULL, mmgr_pow5_up[step].lo,
                                             "a power of five wider than 64 bits carries digits in its low half");
@@ -141,7 +148,7 @@ void test_the_negative_powers_truncate_toward_zero(void)
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(0xCCCCCCCCCCCCCCCCULL, mmgr_pow5_down[0].lo,
                                     "a low half ending in D would mean the table rounded to nearest");
 
-    for (int step = 0; step < MMGR_POW5_STEPS; step++)
+    for (int step = 0; step < MMGR_POW5_DOWN_ENTRIES; step++)
     {
         TEST_ASSERT_NOT_EQUAL_HEX64_MESSAGE(0ULL, mmgr_pow5_down[step].lo,
                                             "no negative power of five terminates in binary, so no low half is zero");
@@ -157,7 +164,7 @@ void test_the_negative_powers_truncate_toward_zero(void)
  */
 void test_the_binary_exponents_run_monotonically_in_both_tables(void)
 {
-    for (int step = 1; step < MMGR_POW5_STEPS; step++)
+    for (int step = 1; step < MMGR_POW5_UP_ENTRIES; step++)
     {
         // Explicit casts take both exponents from mmgr_iword into the int Unity's integer comparison
         // works in. pow5.h bounds e2 between -722 and 467, which fits int on every environment this
@@ -181,7 +188,7 @@ void test_the_binary_exponents_run_monotonically_in_both_tables(void)
  */
 void test_the_widest_exponent_fits_the_narrowest_word(void)
 {
-    const mmgr_iword widest_exponent = mmgr_pow5_down[MMGR_POW5_STEPS - 1].e2;
+    const mmgr_iword widest_exponent = mmgr_pow5_down[MMGR_POW5_DOWN_ENTRIES - 1].e2;
 
     // Explicit cast takes the exponent from mmgr_iword into the int Unity's integer assertion
     // compares in. -722 fits mmgr_i16, the narrowest mmgr_iword, so it fits int everywhere
@@ -194,21 +201,22 @@ void test_the_widest_exponent_fits_the_narrowest_word(void)
 }
 
 /**
- * @brief Checks that walking one bit per step reaches the documented maximum exponent.
+ * @brief Checks that walking one entry per set bit reaches a decimal exponent of 511.
  *
- * @note MMGR_POW5_STEPS bits set from index 0 gives 511, which is MMGR_POW5_MAX. A tenth entry or a
- *       short walk would move that total and leave part of the exponent range unreachable.
- * @note pow5.h states that a double's decimal exponent stays well inside 511, so nine steps cover
- *       every value one can hold.
+ * @note 511 is written as a literal rather than as MMGR_POW5_MAX. That constant expands to
+ *       ((1 << MMGR_POW5_STEPS) - 1), which is what this loop computes, so comparing the two would
+ *       assert a value against itself and hold for any entry count.
+ * @note pow5.h states that a double's decimal exponent stays well inside 511, so a walk reaching it
+ *       covers every value one can hold.
  */
-void test_the_nine_steps_cover_every_exponent_a_double_carries(void)
+void test_the_table_walk_reaches_the_exponent_range_a_double_needs(void)
 {
     int largest_reachable_exponent = 0;
 
-    for (int step = 0; step < MMGR_POW5_STEPS; step++)
+    for (int step = 0; step < MMGR_POW5_UP_ENTRIES; step++)
     {
         largest_reachable_exponent |= 1 << step;
     }
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_POW5_MAX, largest_reachable_exponent,
-                                  "walking every bit of the exponent must reach the documented maximum");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(511, largest_reachable_exponent,
+                                  "one entry per set bit must reach a decimal exponent of 511");
 }

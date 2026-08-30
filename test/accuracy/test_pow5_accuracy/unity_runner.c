@@ -3,6 +3,7 @@
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
 #include "pow5/pow5.h"
+#include <stdint.h>
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
@@ -75,13 +76,13 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_pow5_accuracy\\test_pow5_accuracy.c");
-  run_test(test_the_exact_arithmetic_this_suite_relies_on_is_itself_right, "test_the_exact_arithmetic_this_suite_relies_on_is_itself_right", 235);
-  run_test(test_every_positive_power_of_five_is_the_top_128_bits_of_the_exact_value, "test_every_positive_power_of_five_is_the_top_128_bits_of_the_exact_value", 262);
-  run_test(test_the_first_six_positive_powers_lose_no_bits_at_all, "test_the_first_six_positive_powers_lose_no_bits_at_all", 284);
-  run_test(test_the_last_three_positive_powers_drop_bits_and_drop_them_downward, "test_the_last_three_positive_powers_drop_bits_and_drop_them_downward", 296);
-  run_test(test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_zero, "test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_zero", 312);
-  run_test(test_no_reciprocal_was_rounded_up, "test_no_reciprocal_was_rounded_up", 345);
-  run_test(test_the_reciprocal_of_five_repeats_rather_than_rounding, "test_the_reciprocal_of_five_repeats_rather_than_rounding", 374);
+  run_test(test_the_exact_arithmetic_this_suite_relies_on_is_itself_right, "test_the_exact_arithmetic_this_suite_relies_on_is_itself_right", 369);
+  run_test(test_every_positive_power_of_five_is_the_top_128_bits_of_the_exact_value, "test_every_positive_power_of_five_is_the_top_128_bits_of_the_exact_value", 396);
+  run_test(test_the_first_six_positive_powers_lose_no_bits_at_all, "test_the_first_six_positive_powers_lose_no_bits_at_all", 418);
+  run_test(test_the_last_three_positive_powers_drop_bits_and_drop_them_downward, "test_the_last_three_positive_powers_drop_bits_and_drop_them_downward", 430);
+  run_test(test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_zero, "test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_zero", 446);
+  run_test(test_no_reciprocal_was_rounded_up, "test_no_reciprocal_was_rounded_up", 489);
+  run_test(test_the_reciprocal_of_five_repeats_rather_than_rounding, "test_the_reciprocal_of_five_repeats_rather_than_rounding", 517);
 
   return UNITY_END();
 }
