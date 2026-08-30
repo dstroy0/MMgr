@@ -27,35 +27,35 @@ void frame(void)
 
 ## Where things are
 
-|                                          |                                                                         |
-| ---------------------------------------- | ----------------------------------------------------------------------- |
-| [`src/`](src)                            | the library, one directory per module                                   |
-| [`src/mmgr.h`](src/mmgr.h)               | the single header a consumer includes                                   |
+|                                                        |                                                                         |
+| ------------------------------------------------------ | ----------------------------------------------------------------------- |
+| [`src/`](src)                                          | the library, one directory per module                                   |
+| [`src/mmgr.h`](src/mmgr.h)                             | the single header a consumer includes                                   |
 | [`src/config/mmgr_config.h`](src/config/mmgr_config.h) | every size and width, all compile-time                                  |
-| [`test/`](test)                          | `test/unit` mirrors `src/`, `test/integration` is the cross-module work |
-| [`test/harness.py`](test/harness.py)     | build, run, the A/B, coverage, suite discovery                          |
-| [`tools/dev_env/`](tools/dev_env)        | generators for the tables in `src/`, and the size sweep                 |
-| [`docs/`](docs)                          | the prose; the same content Doxygen renders                             |
+| [`test/`](test)                                        | `test/unit` mirrors `src/`, `test/integration` is the cross-module work |
+| [`test/harness.py`](test/harness.py)                   | build, run, the A/B, coverage, suite discovery                          |
+| [`tools/dev_env/`](tools/dev_env)                      | generators for the tables in `src/`, and the size sweep                 |
+| [`docs/`](docs)                                        | the prose; the same content Doxygen renders                             |
 
 ### The modules
 
 Latin names, because they were carved out of a larger tree and the short English words were taken.
 
-| module                                                                 | what it is                                                 |
-| ---------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [`carceribus`](src/carceribus)                                         | the two-ended allocator that everything else sits on       |
-| [`confinium_exclusivum_infinitas`](src/confinium_exclusivum_infinitas) | the lock-free ring between a producer and a consumer       |
-| [`spatium`](src/spatium)                                               | bounded views over caller memory; owns nothing             |
-| [`cellularum_laboro`](src/cellularum_laboro)                           | bounded string work: search, compare, parse                |
-| [`verbum_scrutor`](src/verbum_scrutor)                                 | the SWAR core the scans are built from                     |
-| [`memoria_operor`](src/memoria_operor)                                 | copy, move, compare, set, find                             |
-| [`proximus_operor`](src/proximus_operor)                               | word-width loads and stores at any alignment               |
-| [`verba_scribo`](src/verba_scribo)                                     | text out: integers, hex, floats, JSON, XML                 |
-| [`numeros_scribo`](src/numeros_scribo)                                 | records built from a field spec                            |
+| module                                                                                                      | what it is                                                 |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [`carceribus`](src/carceribus)                                                                              | the two-ended allocator that everything else sits on       |
+| [`confinium_exclusivum_infinitas`](src/confinium_exclusivum_infinitas)                                      | the lock-free ring between a producer and a consumer       |
+| [`spatium`](src/spatium)                                                                                    | bounded views over caller memory; owns nothing             |
+| [`cellularum_laboro`](src/cellularum_laboro)                                                                | bounded string work: search, compare, parse                |
+| [`verbum_scrutor`](src/verbum_scrutor)                                                                      | the SWAR core the scans are built from                     |
+| [`memoria_operor`](src/memoria_operor)                                                                      | copy, move, compare, set, find                             |
+| [`proximus_operor`](src/proximus_operor)                                                                    | word-width loads and stores at any alignment               |
+| [`verba_scribo`](src/verba_scribo)                                                                          | text out: integers, hex, floats, JSON, XML                 |
+| [`numeros_scribo`](src/numeros_scribo)                                                                      | records built from a field spec                            |
 | [`byteio`](src/octetus_introitus_exitus) / [`bitio`](src/bitorum_introitus_exitus) / [`endian`](src/endian) | the wire                                                   |
-| [`fractio`](src/fractio)                                               | takes a double apart, without `<math.h>`                   |
-| [`pow5`](src/pow5)                                                     | generated: the powers of five the decimal conversion needs |
-| [`ascii_persona_bitorum`](src/ascii_persona_bitorum) / [`impensa_ancorae_acus`](src/impensa_ancorae_acus)      | generated: character classes and byte rarity               |
+| [`fractio`](src/fractio)                                                                                    | takes a double apart, without `<math.h>`                   |
+| [`pow5`](src/pow5)                                                                                          | generated: the powers of five the decimal conversion needs |
+| [`ascii_persona_bitorum`](src/ascii_persona_bitorum) / [`impensa_ancorae_acus`](src/impensa_ancorae_acus)   | generated: character classes and byte rarity               |
 
 ## Building it
 
@@ -87,4 +87,16 @@ python test/harness.py coverage    # what of src/ the suites reached
 0.1.0, pre-1.0, so the API may change. What is measured is measured — the numbers in
 [`docs/quality/`](docs/quality) come out of tools in this repository and can be rerun.
 
-Licensed AGPL-3.0-or-later. See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+## Licensing - This library is dual licensed.
+
+Licensed AGPL-3.0-or-later. // various commercial contracts available
+It will always be free to use under the AGPL.
+Educators: If you would like an exception to use this in your classrooms or research projects,
+please feel free to email dstroy0 (Douglas Quigg) <dquigg123@gmail.com> from your _.edu or _.org
+faculty email address, I would be happy to grant you an exception on a case-by-case basis. Your exception
+governs your use, specifically the accreditation requirement of underlying systems in any research/presentation materials.
+Academic exemptions can lead to viable market products, in which case this license shifts to a royalty ladder,
+based arbitrarily off of the amount of goodwill you've shown and how well you've adhered to crediting students and
+other faculty involved in the project, a portion of the royalties go directly to your institution at a minimum and
+straight to your department if their rules allow for it.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).

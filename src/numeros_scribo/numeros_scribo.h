@@ -2,9 +2,13 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file numeros_scribo.h
  * @brief Formatted output: the field kinds, the value union, the macros that build both, and the numer table.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
- * @note A spec is an mmgr_field array ending at MMGR_FK_END; every field but MMGR_FK_LIT takes one mmgr_fval.
+ * @note A spec is an mmgr_field array ending at MMGR_FK_END. Every field but MMGR_FK_LIT takes one
+ *       mmgr_fval.
  * @note Includes verba_scribo.h, which is where mmgr_config.h and the verba table come from.
  */
 #ifndef MMGR_NUMEROS_SCRIBO_H
@@ -18,11 +22,12 @@ MMGR_INCIPE_DECLS
  * @brief What one field formats, and which mmgr_fval arm it reads.
  *
  * @note numeros_scribo.c indexes s_kind by this value, so MMGR_FK_XML is the largest one it accepts.
- * @note MMGR_ENUM_PACKED asks for the narrowest representation; mmgr_types.h asserts that it took effect.
+ * @note MMGR_ENUM_PACKED asks for the narrowest representation. mmgr_types.h asserts that it took
+ *       effect.
  */
 typedef enum MMGR_ENUM_PACKED
 {
-    MMGR_FK_END = 0, /**< Ends a spec; numer_build stops at this field. */
+    MMGR_FK_END = 0, /**< Ends a spec. numer_build stops at this field. */
     MMGR_FK_LIT,     /**< Literal text, taken from mmgr_field::lit and mmgr_field::len. */
     MMGR_FK_STR,     /**< String from as.s, through mmgr_verba_put. */
     MMGR_FK_U32,     /**< Unsigned 32-bit from as.u32, base 10, through mmgr_verba_u32. */
@@ -41,55 +46,57 @@ typedef enum MMGR_ENUM_PACKED
 /**
  * @brief One field of a spec.
  *
- * @note numer_build reads lit and len only for MMGR_FK_LIT, and width only for the other kinds.
+ * @note numer_build reads literal and bytes only for MMGR_FK_LIT, and width only for the other kinds.
  */
 typedef struct
 {
-    mmgr_fk kind;    /**< What this field formats. */
-    uint8_t width;   /**< Width to give the value, or 0 to take the kind's default from s_kind. */
-    uint16_t len;    /**< Bytes of lit to write, for MMGR_FK_LIT. */
-    const char *lit; /**< Literal text, for MMGR_FK_LIT [BORROWS]. */
+    mmgr_fk kind;        /**< What this field formats. */
+    uint8_t width;       /**< Width to give the value, or 0 to take the kind's default from s_kind. */
+    uint16_t bytes;      /**< Bytes of literal to write, for MMGR_FK_LIT. */
+    const char *literal; /**< Literal text, for MMGR_FK_LIT [BORROWS]. */
 } mmgr_field;
 
-/** @brief Expands to an mmgr_field of kind MMGR_FK_STR, with width 0, len 0 and lit NULL. */
-#define MMGR_STR {MMGR_FK_STR, 0, 0, NULL}
+/** @brief Expands to an mmgr_field of kind MMGR_FK_STR, with width 0, bytes 0 and literal NULL. */
+#define MMGR_STR {MMGR_FK_STR, 0u, 0u, NULL}
 
-/** @brief Expands to an mmgr_field of kind MMGR_FK_U32, with width 0, len 0 and lit NULL. */
-#define MMGR_U32 {MMGR_FK_U32, 0, 0, NULL}
+/** @brief Expands to an mmgr_field of kind MMGR_FK_U32, with width 0, bytes 0 and literal NULL. */
+#define MMGR_U32 {MMGR_FK_U32, 0u, 0u, NULL}
 
-/** @brief Expands to an mmgr_field of kind MMGR_FK_U64, with width 0, len 0 and lit NULL. */
-#define MMGR_U64 {MMGR_FK_U64, 0, 0, NULL}
+/** @brief Expands to an mmgr_field of kind MMGR_FK_U64, with width 0, bytes 0 and literal NULL. */
+#define MMGR_U64 {MMGR_FK_U64, 0u, 0u, NULL}
 
-/** @brief Expands to an mmgr_field of kind MMGR_FK_I64, with width 0, len 0 and lit NULL. */
-#define MMGR_I64 {MMGR_FK_I64, 0, 0, NULL}
+/** @brief Expands to an mmgr_field of kind MMGR_FK_I64, with width 0, bytes 0 and literal NULL. */
+#define MMGR_I64 {MMGR_FK_I64, 0u, 0u, NULL}
 
-/** @brief Expands to an mmgr_field of kind MMGR_FK_CH, with width 0, len 0 and lit NULL. */
-#define MMGR_CH {MMGR_FK_CH, 0, 0, NULL}
+/** @brief Expands to an mmgr_field of kind MMGR_FK_CH, with width 0, bytes 0 and literal NULL. */
+#define MMGR_CH {MMGR_FK_CH, 0u, 0u, NULL}
 
-/** @brief Expands to an mmgr_field of kind MMGR_FK_JSON, with width 0, len 0 and lit NULL. */
-#define MMGR_JSON {MMGR_FK_JSON, 0, 0, NULL}
+/** @brief Expands to an mmgr_field of kind MMGR_FK_JSON, with width 0, bytes 0 and literal NULL. */
+#define MMGR_JSON {MMGR_FK_JSON, 0u, 0u, NULL}
 
-/** @brief Expands to an mmgr_field of kind MMGR_FK_XML, with width 0, len 0 and lit NULL. */
-#define MMGR_XML {MMGR_FK_XML, 0, 0, NULL}
+/** @brief Expands to an mmgr_field of kind MMGR_FK_XML, with width 0, bytes 0 and literal NULL. */
+#define MMGR_XML {MMGR_FK_XML, 0u, 0u, NULL}
 
 /**
- * @brief Expands to an mmgr_field of kind MMGR_FK_END, with width 0, len 0 and lit NULL.
+ * @brief Expands to an mmgr_field of kind MMGR_FK_END, with width 0, bytes 0 and literal NULL.
  *
  * @note numer_build stops at this field, so every spec array needs one as its last entry.
  */
-#define MMGR_END {MMGR_FK_END, 0, 0, NULL}
+#define MMGR_END {MMGR_FK_END, 0u, 0u, NULL}
 
 /**
- * @brief One value, tagged with the kind that says which arm of as holds it.
+ * @brief One value, tagged with the kind that selects which arm of as holds it.
  *
  * @note numer_build requires kind to equal the field's kind, and abandons the whole write when it does not.
  * @note numer_emit takes width from here, where numer_build takes it from the field.
- * @warning numer_emit_one reads as.i64 and as.d for every kind, not only for the kinds that name them.
+ * @warning numer_emit_one reads the arm that kind names and no other, so a value whose kind and
+ *          filled arm disagree formats what that arm was left holding.
  */
 typedef struct
 {
     mmgr_fk kind; /**< Which arm of as holds the value. */
     union {
+<<<<<<< HEAD
         const char *s; /**< Read for MMGR_FK_STR, MMGR_FK_JSON and MMGR_FK_XML [BORROWS]. */
         uint32_t u32;  /**< Read for MMGR_FK_U32 and MMGR_FK_DEC. */
         uint64_t u64;  /**< Read for MMGR_FK_U64, MMGR_FK_HEX and MMGR_FK_OCT. */
@@ -98,144 +105,156 @@ typedef struct
         char c;        /**< Read for MMGR_FK_CH. */
     } as;              /**< The value, under the arm kind names. */
     uint8_t width;     /**< Width numer_emit gives this value, or 0 to take the kind's default from s_kind. */
+=======
+        const char *text; /**< Read for MMGR_FK_STR, MMGR_FK_JSON and MMGR_FK_XML [BORROWS]. */
+        uint32_t u32;     /**< Read for MMGR_FK_U32 and MMGR_FK_DEC. */
+        uint64_t u64;     /**< Read for MMGR_FK_U64, MMGR_FK_HEX and MMGR_FK_OCT. */
+        int64_t i64;      /**< Read for MMGR_FK_I64. */
+        double real;      /**< Read for MMGR_FK_G and MMGR_FK_FIX. */
+        char character;   /**< Read for MMGR_FK_CH. */
+    } as;                 /**< The value, under the arm that kind names. */
+    uint8_t width;        /**< Width numer_emit gives this value, or 0 to take the kind's default from s_kind. */
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 } mmgr_fval;
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_STR, with x in as.s and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_STR, with text_ in as.text and width 0.
  *
- * @param[in] x String placed in as.s [BORROWS].
+ * @param[in] text_ String placed in as.text [BORROWS].
  */
-#define MMGR_VSTR(x) {MMGR_FK_STR, {.s = (x)}, 0}
+#define MMGR_VSTR(text_) {MMGR_FK_STR, {.text = (text_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_U32, with x in as.u32 and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_U32, with value_ in as.u32 and width 0.
  *
- * @param[in] x Value placed in as.u32.
+ * @param[in] value_ Value placed in as.u32.
  */
-#define MMGR_VU32(x) {MMGR_FK_U32, {.u32 = (x)}, 0}
+#define MMGR_VU32(value_) {MMGR_FK_U32, {.u32 = (value_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_U64, with x in as.u64 and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_U64, with value_ in as.u64 and width 0.
  *
- * @param[in] x Value placed in as.u64.
+ * @param[in] value_ Value placed in as.u64.
  */
-#define MMGR_VU64(x) {MMGR_FK_U64, {.u64 = (x)}, 0}
+#define MMGR_VU64(value_) {MMGR_FK_U64, {.u64 = (value_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_I64, with x in as.i64 and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_I64, with value_ in as.i64 and width 0.
  *
- * @param[in] x Value placed in as.i64.
+ * @param[in] value_ Value placed in as.i64.
  */
-#define MMGR_VI64(x) {MMGR_FK_I64, {.i64 = (x)}, 0}
+#define MMGR_VI64(value_) {MMGR_FK_I64, {.i64 = (value_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_DEC, with x in as.u32 and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_DEC, with value_ in as.u32 and width 0.
  *
- * @param[in] x Value placed in as.u32.
+ * @param[in] value_ Value placed in as.u32.
  */
-#define MMGR_VDEC(x) {MMGR_FK_DEC, {.u32 = (x)}, 0}
+#define MMGR_VDEC(value_) {MMGR_FK_DEC, {.u32 = (value_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_HEX, with x in as.u64 and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_HEX, with value_ in as.u64 and width 0.
  *
- * @param[in] x Value placed in as.u64.
+ * @param[in] value_ Value placed in as.u64.
  */
-#define MMGR_VHEX(x) {MMGR_FK_HEX, {.u64 = (x)}, 0}
+#define MMGR_VHEX(value_) {MMGR_FK_HEX, {.u64 = (value_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_OCT, with x in as.u64 and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_OCT, with value_ in as.u64 and width 0.
  *
- * @param[in] x Value placed in as.u64.
+ * @param[in] value_ Value placed in as.u64.
  */
-#define MMGR_VOCT(x) {MMGR_FK_OCT, {.u64 = (x)}, 0}
+#define MMGR_VOCT(value_) {MMGR_FK_OCT, {.u64 = (value_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_G, with x in as.d and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_G, with value_ in as.real and width 0.
  *
- * @param[in] x Value placed in as.d.
+ * @param[in] value_ Value placed in as.real.
  */
-#define MMGR_VG(x) {MMGR_FK_G, {.d = (x)}, 0}
+#define MMGR_VG(value_) {MMGR_FK_G, {.real = (value_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_FIX, with x in as.d and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_FIX, with value_ in as.real and width 0.
  *
- * @param[in] x Value placed in as.d.
+ * @param[in] value_ Value placed in as.real.
  */
-#define MMGR_VFIX(x) {MMGR_FK_FIX, {.d = (x)}, 0}
+#define MMGR_VFIX(value_) {MMGR_FK_FIX, {.real = (value_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_CH, with x in as.c and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_CH, with character_ in as.character and width 0.
  *
- * @param[in] x Character placed in as.c.
+ * @param[in] character_ Character placed in as.character.
  */
-#define MMGR_VCH(x) {MMGR_FK_CH, {.c = (x)}, 0}
+#define MMGR_VCH(character_) {MMGR_FK_CH, {.character = (character_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_JSON, with x in as.s and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_JSON, with text_ in as.text and width 0.
  *
- * @param[in] x String placed in as.s [BORROWS].
+ * @param[in] text_ String placed in as.text [BORROWS].
  */
-#define MMGR_VJSON(x) {MMGR_FK_JSON, {.s = (x)}, 0}
+#define MMGR_VJSON(text_) {MMGR_FK_JSON, {.text = (text_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_XML, with x in as.s and width 0.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_XML, with text_ in as.text and width 0.
  *
- * @param[in] x String placed in as.s [BORROWS].
+ * @param[in] text_ String placed in as.text [BORROWS].
  */
-#define MMGR_VXML(x) {MMGR_FK_XML, {.s = (x)}, 0}
+#define MMGR_VXML(text_) {MMGR_FK_XML, {.text = (text_)}, 0u}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_DEC, with x in as.u32 and w in width.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_DEC, with value_ in as.u32 and width_ in width.
  *
- * @param[in] x Value placed in as.u32.
- * @param[in] w Width placed in the width member.
- * @note numer_emit uses that width; numer_build takes the width from the field instead.
+ * @param[in] value_ Value placed in as.u32.
+ * @param[in] width_ Width placed in the width member.
+ * @note numer_emit uses that width. numer_build takes the width from the field instead.
  */
-#define MMGR_VDECW(x, w) {MMGR_FK_DEC, {.u32 = (x)}, (w)}
+#define MMGR_VDECW(value_, width_) {MMGR_FK_DEC, {.u32 = (value_)}, (width_)}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_HEX, with x in as.u64 and w in width.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_HEX, with value_ in as.u64 and width_ in width.
  *
- * @param[in] x Value placed in as.u64.
- * @param[in] w Width placed in the width member.
- * @note numer_emit uses that width; numer_build takes the width from the field instead.
+ * @param[in] value_ Value placed in as.u64.
+ * @param[in] width_ Width placed in the width member.
+ * @note numer_emit uses that width. numer_build takes the width from the field instead.
  */
-#define MMGR_VHEXW(x, w) {MMGR_FK_HEX, {.u64 = (x)}, (w)}
+#define MMGR_VHEXW(value_, width_) {MMGR_FK_HEX, {.u64 = (value_)}, (width_)}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_OCT, with x in as.u64 and w in width.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_OCT, with value_ in as.u64 and width_ in width.
  *
- * @param[in] x Value placed in as.u64.
- * @param[in] w Width placed in the width member.
- * @note numer_emit uses that width; numer_build takes the width from the field instead.
+ * @param[in] value_ Value placed in as.u64.
+ * @param[in] width_ Width placed in the width member.
+ * @note numer_emit uses that width. numer_build takes the width from the field instead.
  */
-#define MMGR_VOCTW(x, w) {MMGR_FK_OCT, {.u64 = (x)}, (w)}
+#define MMGR_VOCTW(value_, width_) {MMGR_FK_OCT, {.u64 = (value_)}, (width_)}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_G, with x in as.d and w in width.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_G, with value_ in as.real and width_ in width.
  *
- * @param[in] x Value placed in as.d.
- * @param[in] w Width placed in the width member.
- * @note numer_emit_one puts that width into VerbaCfg::min, VerbaCfg::sig and VerbaCfg::decimals together.
- * @note numer_emit uses it; numer_build takes the width from the field instead.
+ * @param[in] value_ Value placed in as.real.
+ * @param[in] width_ Width placed in the width member.
+ * @note numer_emit_one hands that width to mmgr_verba_g as VerbaFractioCfg::sig, the significant
+ *       digits it keeps.
+ * @note numer_emit uses it. numer_build takes the width from the field instead.
  */
-#define MMGR_VGW(x, w) {MMGR_FK_G, {.d = (x)}, (w)}
+#define MMGR_VGW(value_, width_) {MMGR_FK_G, {.real = (value_)}, (width_)}
 
 /**
- * @brief Expands to an mmgr_fval of kind MMGR_FK_FIX, with x in as.d and w in width.
+ * @brief Expands to an mmgr_fval of kind MMGR_FK_FIX, with value_ in as.real and width_ in width.
  *
- * @param[in] x Value placed in as.d.
- * @param[in] w Width placed in the width member.
- * @note numer_emit_one puts that width into VerbaCfg::min, VerbaCfg::sig and VerbaCfg::decimals together.
- * @note numer_emit uses it; numer_build takes the width from the field instead.
+ * @param[in] value_ Value placed in as.real.
+ * @param[in] width_ Width placed in the width member.
+ * @note numer_emit_one hands that width to mmgr_verba_fixed as VerbaFractioCfg::decimals, the digits
+ *       it writes after the point.
+ * @note numer_emit uses it. numer_build takes the width from the field instead.
  */
-#define MMGR_VFIXW(x, w) {MMGR_FK_FIX, {.d = (x)}, (w)}
+#define MMGR_VFIXW(value_, width_) {MMGR_FK_FIX, {.real = (value_)}, (width_)}
 
 /**
  * @brief Arguments for the four numer calls.
  *
- * @note build and append read all six members; emit and emit_append leave spec alone.
- * @note at is the cursor, as in verba: build and emit begin there and return where they finished, so
+ * @note build and append read all six members. emit and emit_append leave spec alone.
+ * @note at is the cursor, as in verba. build and emit begin there and return where they finished, so
  *       a run of writes threads the cursor rather than measuring the text again between each. Leave
  *       it unset and a call starts at the first byte, which is what a single write wants.
  */
@@ -253,7 +272,8 @@ typedef struct
  * @brief Type of the numer dispatch table.
  *
  * @note MMGR_NS_LAYOUT asserts the four members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
- * @note build and emit start at out's first byte; the two append members start past the text already there.
+ * @note build and emit begin at NumerosCfg::at, which is out's first byte while the caller leaves it
+ *       unset. The two append members begin past the text already there.
  */
 typedef struct
 {
@@ -265,12 +285,24 @@ typedef struct
 MMGR_NS_LAYOUT(NumerosScriboNs, build, append, emit, emit_append);
 
 /**
+<<<<<<< HEAD
  * @brief Writes args->spec and args->vals into args->out, starting at its first byte.
  *
  * @param[in] args Buffer, capacity, the field list and the values [BORROWS].
  * @return      Length of the string written, not counting its terminator, or 0 when nothing was written.
  * @note An MMGR_FK_LIT field writes its own text; every other field consumes the next value in args->vals.
  * @note Returns 0 and empties args->out when a value is missing, when a kind differs, or when values are left over.
+=======
+ * @brief Writes args->spec and args->vals into args->out, starting at args->at.
+ *
+ * @param[in] args Buffer, capacity, the field list and the values [BORROWS].
+ * @return         Length of the whole string in args->out, not counting its terminator, or 0 when
+ *                 nothing was written.
+ * @note An MMGR_FK_LIT field writes its own text. Every other field consumes the next value in
+ *       args->vals.
+ * @note Returns 0 and puts the terminator back at args->at when a value is missing, when a kind differs,
+ *       or when values are left over, which leaves the text written before this call whole.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @warning args->spec must reach an MMGR_FK_END field, and args->vals must hold args->nvals values.
  */
 size_t mmgr_numer_build(const NumerosCfg *args);
@@ -279,20 +311,41 @@ size_t mmgr_numer_build(const NumerosCfg *args);
  * @brief Writes args->spec and args->vals into args->out after the string already there.
  *
  * @param[in] args Buffer, capacity, the field list and the values [BORROWS].
+<<<<<<< HEAD
  * @return      Length of the whole string in args->out, or 0 when nothing was added.
  * @note Measures the existing string with cellul.len, then builds from there with the capacity that is left.
  * @note Puts the terminator back at the existing length and returns 0 when the build writes nothing.
  * @warning args->out must already hold a terminated string, and args->spec must reach an MMGR_FK_END field.
+=======
+ * @return         Length of the whole string in args->out, or 0 when nothing was added.
+ * @note Carries on at args->at when the caller threaded one, and measures the existing string with
+ *       cellul.len only when args->at is 0. Either way the build gets the whole of args->cap and
+ *       that offset.
+ * @note Puts the terminator back at the offset it began from and returns 0 when the build writes nothing.
+ * @warning args->spec must reach an MMGR_FK_END field, and args->out must hold a terminated string when
+ *          args->at is 0, since that is the only time the length is measured.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 size_t mmgr_numer_append(const NumerosCfg *args);
 
 /**
+<<<<<<< HEAD
  * @brief Writes args->vals into args->out, starting at its first byte and reading no field list.
  *
  * @param[in] args Buffer, capacity and the values [BORROWS].
  * @return      Length of the string written, not counting its terminator, or 0 when nothing was written.
  * @note Each value carries its own width, and no kind is matched, since there are no fields to match against.
  * @warning args->vals must hold args->nvals values.
+=======
+ * @brief Writes args->vals into args->out, starting at args->at and reading no field list.
+ *
+ * @param[in] args Buffer, capacity and the values [BORROWS].
+ * @return         Length of the whole string in args->out, not counting its terminator, or 0 when
+ *                 nothing was written.
+ * @note Each value carries its own width, and no kind is matched, since there are no fields to match against.
+ * @warning args->vals must hold args->nvals values.
+ * @warning A value of kind MMGR_FK_END or MMGR_FK_LIT formats nothing, which abandons the write and returns 0.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 size_t mmgr_numer_emit(const NumerosCfg *args);
 
@@ -300,16 +353,27 @@ size_t mmgr_numer_emit(const NumerosCfg *args);
  * @brief Writes args->vals into args->out after the string already there, reading no field list.
  *
  * @param[in] args Buffer, capacity and the values [BORROWS].
+<<<<<<< HEAD
  * @return      Length of the whole string in args->out, or 0 when nothing was added.
  * @note Measures the existing string with cellul.len, then emits from there with the capacity that is left.
  * @note Puts the terminator back at the existing length and returns 0 when the emit writes nothing.
  * @warning args->out must already hold a terminated string, and args->vals must hold args->nvals values.
+=======
+ * @return         Length of the whole string in args->out, or 0 when nothing was added.
+ * @note Carries on at args->at when the caller threaded one, and measures the existing string with
+ *       cellul.len only when args->at is 0. Either way the emit gets the whole of args->cap and
+ *       that offset.
+ * @note Puts the terminator back at the offset it began from and returns 0 when the emit writes nothing.
+ * @warning args->vals must hold args->nvals values, and args->out must hold a terminated string when
+ *          args->at is 0, since that is the only time the length is measured.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 size_t mmgr_numer_emit_append(const NumerosCfg *args);
 
 /**
- * @brief Dispatch table instance named numer; each member calls the matching mmgr_numer_ function.
+ * @brief Dispatch table instance named numer.
  *
+ * @note Each member calls the matching mmgr_numer_ function, one to one.
  * @note mmgr_numer_append reaches build through this table, and mmgr_numer_emit_append reaches emit.
  */
 MMGR_NS NumerosScriboNs numer MMGR_UNUSED = {

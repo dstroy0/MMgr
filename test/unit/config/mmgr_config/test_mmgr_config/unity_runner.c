@@ -11,7 +11,7 @@ extern void test_config_header_is_self_contained(void);
 extern void test_word_width_is_one_of_three(void);
 extern void test_scan_width_is_the_word_width(void);
 extern void test_index_never_exceeds_the_word(void);
-extern void test_tenant_bound_is_a_real_size(void);
+extern void test_buffer_bound_is_a_real_size(void);
 
 
 /*=======Mock Management=====*/
@@ -83,7 +83,11 @@ int main(void)
   run_test(test_word_width_is_one_of_three, "test_word_width_is_one_of_three", 13);
   run_test(test_scan_width_is_the_word_width, "test_scan_width_is_the_word_width", 19);
   run_test(test_index_never_exceeds_the_word, "test_index_never_exceeds_the_word", 25);
+<<<<<<< HEAD
   run_test(test_tenant_bound_is_a_real_size, "test_tenant_bound_is_a_real_size", 30);
+=======
+  run_test(test_buffer_bound_is_a_real_size, "test_buffer_bound_is_a_real_size", 30);
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
   return UNITY_END();
 }

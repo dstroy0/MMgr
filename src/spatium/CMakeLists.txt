@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 # A span is a value type with pure walks over it and no storage of its own, so this reaches nothing
-# but config. It sits below carceribus, byteio and anything else that hands a region to a caller.
+# but config. It sits below locus_carcerum, byteio and anything else that hands a buffer to a caller.
 mmgr_add_module(spatium
   SOURCES spatium.c
   DEPS

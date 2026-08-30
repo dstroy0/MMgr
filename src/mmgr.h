@@ -2,10 +2,19 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file mmgr.h
  * @brief Umbrella header: pulls in the module headers a consumer builds against.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
+ * @note One include for a consumer, so a program reaches the library without knowing which module
+ *       holds what. A module still includes only what it needs. This file is for the caller.
  * @note mmgr_config.h comes first, since the feature switches below decide what else is included.
- * @note mmgr_string_shim.h is not among these; including it changes the meaning of the <string.h> names.
+ * @note Every module here is unconditional. The two below are not, because a part without the
+ *       hardware must not carry the code that drives it.
+ * @warning mmgr_string_shim.h is deliberately not among these. Including it changes the meaning of
+ *          the <string.h> names for the whole translation unit, which is a decision a consumer
+ *          makes rather than one an umbrella header makes for it.
  */
 #ifndef MMGR_H
 #define MMGR_H
@@ -13,11 +22,15 @@
 #include "config/mmgr_config.h"
 
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
+<<<<<<< HEAD
 #include "carceribus/carceribus.h"
+=======
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 #include "endian/endian.h"
 #include "fractio/fractio.h"
+#include "locus_carcerum/locus_carcerum.h"
 #include "memoria_operor/memoria_operor.h"
 #include "numeros_scribo/numeros_scribo.h"
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"

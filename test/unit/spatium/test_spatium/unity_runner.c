@@ -85,11 +85,19 @@ int main(void)
   run_test(test_a_read_span_covers_the_buffer_it_was_given, "test_a_read_span_covers_the_buffer_it_was_given", 46);
   run_test(test_a_span_with_no_storage_is_not_ok, "test_a_span_with_no_storage_is_not_ok", 56);
   run_test(test_a_narrowing_past_the_end_fails_rather_than_shortening, "test_a_narrowing_past_the_end_fails_rather_than_shortening", 75);
+<<<<<<< HEAD
   run_test(test_a_narrowing_keeps_the_bytes_it_names, "test_a_narrowing_keeps_the_bytes_it_names", 89);
   run_test(test_a_narrowing_carries_the_cursor, "test_a_narrowing_carries_the_cursor", 103);
   run_test(test_reset_clears_the_sticky_overflow, "test_reset_clears_the_sticky_overflow", 114);
   run_test(test_a_read_span_reports_what_was_written, "test_a_read_span_reports_what_was_written", 128);
   run_test(test_a_read_span_carries_the_fill_spans_failure, "test_a_read_span_carries_the_fill_spans_failure", 146);
+=======
+  run_test(test_a_narrowing_keeps_the_bytes_it_names, "test_a_narrowing_keeps_the_bytes_it_names", 93);
+  run_test(test_a_narrowing_carries_the_cursor, "test_a_narrowing_carries_the_cursor", 107);
+  run_test(test_reset_clears_the_sticky_overflow, "test_reset_clears_the_sticky_overflow", 121);
+  run_test(test_a_read_span_reports_what_was_written, "test_a_read_span_reports_what_was_written", 136);
+  run_test(test_a_read_span_carries_the_fill_spans_failure, "test_a_read_span_carries_the_fill_spans_failure", 157);
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
   return UNITY_END();
 }

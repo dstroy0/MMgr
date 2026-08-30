@@ -2,7 +2,19 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
- * @brief Leading zero count: its argument type, the call, and the clz dispatch table.
+ * @file clz.h
+ * @brief Leading and trailing zero counts: the argument type, the two calls, and the clz dispatch
+ *        table.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
+ *
+ * @note A zero count is how a scan turns a lane mask into a lane index, so these sit under the SWAR
+ *       walks rather than being a general utility.
+ * @note Both run branchless and in a fixed number of steps, so a caller pays the same whatever the
+ *       value is. That is the reason they are written out rather than reached through a builtin,
+ *       which is absent on some targets and a call on others.
+ * @warning Neither distinguishes a value of 0 from a value with one bit set at the end it counts
+ *          from. A caller that can be handed 0 tests for it first.
  */
 #ifndef MMGR_CLZ_H
 #define MMGR_CLZ_H
@@ -12,11 +24,11 @@
 MMGR_INCIPE_DECLS
 
 /**
- * @brief Argument for the leading zero count.
+ * @brief Argument for both clz calls: the value to count zeros in.
  */
 typedef struct
 {
-    const mmgr_u64 val; /**< Value whose leading zeros are counted. */
+    const mmgr_u64 val; /**< Value whose leading or trailing zeros are counted. */
 } ClzCfg;
 
 /**
@@ -35,9 +47,15 @@ MMGR_NS_LAYOUT(ClzNs, lead, trail);
  * @brief Counts the zero bits above the highest set bit of args->val.
  *
  * @param[in] args Value to measure [BORROWS].
+<<<<<<< HEAD
  * @return      Leading zero count, 0 through 63.
  * @note Runs in a fixed number of steps, none of which branches on the value.
  * @warning A args->val of 0 returns 63, the same answer as an args->val of 1.
+=======
+ * @return         Leading zero count, 0 through 63.
+ * @note Runs in a fixed number of steps, none of which branches on the value.
+ * @warning An args->val of 0 returns 63, the same answer as an args->val of 1.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_iword mmgr_clz_lead(const ClzCfg *args);
 
@@ -45,14 +63,20 @@ mmgr_iword mmgr_clz_lead(const ClzCfg *args);
  * @brief Counts the zero bits below the lowest set bit of args->val.
  *
  * @param[in] args Value to measure [BORROWS].
+<<<<<<< HEAD
  * @return      Trailing zero count, 0 through 63.
  * @note Runs in a fixed number of steps, none of which branches on the value.
  * @warning A args->val of 0 returns 63, the same answer mmgr_clz_trail reports for an args->val of 2^63.
+=======
+ * @return         Trailing zero count, 0 through 63.
+ * @note Runs in a fixed number of steps, none of which branches on the value.
+ * @warning An args->val of 0 returns 63, the same answer as an args->val of 2^63.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_iword mmgr_clz_trail(const ClzCfg *args);
 
 /**
- * @brief Dispatch table instance named clz; each member calls the matching mmgr_clz_ function.
+ * @brief Dispatch table instance named clz, with each member set to its mmgr_clz_ function.
  */
 MMGR_NS ClzNs clz MMGR_UNUSED = {
     .lead = mmgr_clz_lead,

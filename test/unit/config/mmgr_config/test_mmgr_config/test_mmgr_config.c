@@ -27,11 +27,11 @@ void test_index_never_exceeds_the_word(void)
     TEST_ASSERT_LESS_OR_EQUAL_INT(MMGR_WORD_BITS, MMGR_INDEX_BITS);
 }
 
-void test_tenant_bound_is_a_real_size(void)
+void test_buffer_bound_is_a_real_size(void)
 {
     TEST_ASSERT_GREATER_THAN_size_t(0u, MMGR_CARCER_MAX);
     TEST_ASSERT_TRUE_MESSAGE(MMGR_CARCER_MAX >= MMGR_PLAINTEXT_CONFIN_SIZE ||
                                  MMGR_CARCER_MAX >= MMGR_SECURE_CONFIN_SIZE,
-                             "the bound must cover the largest tenant");
+                             "the bound must cover the largest buffer");
 }
 

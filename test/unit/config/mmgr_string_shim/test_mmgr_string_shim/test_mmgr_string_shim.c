@@ -12,7 +12,7 @@ void test_shim_header_is_self_contained(void)
 
 void test_shim_bound_is_a_compile_time_constant(void)
 {
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(MMGR_CARCER_MAX, MMGR_STR_MAX, "the read cap is the tenant bound, not SIZE_MAX");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(MMGR_CARCER_MAX, MMGR_STR_MAX, "the read cap is the buffer bound, not SIZE_MAX");
 }
 
 void test_shim_strlen(void)

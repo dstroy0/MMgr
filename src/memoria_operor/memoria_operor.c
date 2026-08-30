@@ -2,9 +2,13 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file memoria_operor.c
  * @brief Byte-level copy, move, compare, search and fill.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
- * @note cpy, move_up and set move whole words then odd bytes; cmp and chr mask the tail lanes instead.
+ * @note cpy and set move whole words then odd bytes, move_up takes the odd bytes first, and cmp and
+ *       chr mask the tail lanes instead.
  */
 #include "memoria_operor/memoria_operor.h"
 
@@ -38,7 +42,7 @@ typedef struct
 /**
  * @brief Arguments for the compare and the byte search.
  *
- * @note cmp reads src, other and bytes; chr reads src, bytes and val.
+ * @note cmp reads src, other and bytes. chr reads src, bytes and val.
  */
 typedef struct
 {
@@ -64,19 +68,29 @@ typedef struct
  * @param[in,out] args Destination, source and count [BORROWS].
  * @note Moves whole words first, then the remaining bytes one at a time.
  * @note Advances args->dst and args->src as it goes, so both point past the copy when it returns.
+<<<<<<< HEAD
  * @warning The regions must not overlap; MemorCpyCtx declares both pointers restrict.
+=======
+ * @warning The regions must not overlap. MemorCpyCtx declares both pointers restrict.
+ * @warning args->dst must be writable and args->src readable for args->bytes.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE void memor_cpy(MemorCpyCtx *args)
 {
     // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
+<<<<<<< HEAD
     size_t t = args->bytes & (size_t)(MMGR_RAW_WORD - 1u);
     size_t w = args->bytes - t;
+=======
+    size_t tail_bytes = args->bytes & (size_t)(MMGR_RAW_WORD - 1u);
+    size_t word_bytes = args->bytes - tail_bytes;
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
     // Four words an iteration while there are four to take. At one word the two pointer bumps, the
-    // counter and the branch cost as much as the move itself; at four, the same bookkeeping covers
+    // counter and the branch cost as much as the move itself. At four, the same bookkeeping covers
     // four times the bytes. ROM memcpy is unrolled for the same reason, and a one-word loop here
     // measured 1.02 cycles/byte against its 0.65 on the S3.
-    while (w >= (4u * MMGR_RAW_WORD))
+    while (word_bytes >= (4u * MMGR_RAW_WORD))
     {
         MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
                   .val = MMGR_CALL(proxim.al_load, ProximusCfg, .at = args->src));
@@ -90,22 +104,34 @@ MMGR_INLINE void memor_cpy(MemorCpyCtx *args)
         // Advances separated from the moves above so the loop body carries no side effect
         args->dst += 4u * MMGR_RAW_WORD;
         args->src += 4u * MMGR_RAW_WORD;
+<<<<<<< HEAD
         w -= 4u * MMGR_RAW_WORD;
+=======
+        word_bytes -= 4u * MMGR_RAW_WORD;
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     }
-    while (w != 0u)
+    while (word_bytes != 0u)
     {
         MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
                   .val = MMGR_CALL(proxim.al_load, ProximusCfg, .at = args->src));
         args->dst += MMGR_RAW_WORD;
         args->src += MMGR_RAW_WORD;
+<<<<<<< HEAD
         w -= MMGR_RAW_WORD;
+=======
+        word_bytes -= MMGR_RAW_WORD;
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     }
-    if (t != 0u)
+    if (tail_bytes != 0u)
     {
         do
         {
             *args->dst++ = *args->src++;
+<<<<<<< HEAD
         } while (--t);
+=======
+        } while (--tail_bytes);
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     }
 }
 
@@ -116,24 +142,42 @@ MMGR_INLINE void memor_cpy(MemorCpyCtx *args)
  * @note Starts at the end of both regions and works back toward the start.
  * @note Takes the odd bytes first, then whole words, which is the reverse of memor_cpy's order.
  * @note Advances both pointers to the end, then walks them back, so each ends where it began.
+ * @note What this is worth is not one number, and a single figure for it would be wrong. Measured
+ *       against each part's own memmove with regions a word apart: on an ESP32-S3 this runs 3.0x to
+ *       6.0x faster, and mmgr_memor_cpy standing in for move_down runs 3.1x to 18.6x faster, since
+ *       that part's memmove walks a byte at a time at a flat twelve cycles a byte whatever the
+ *       length. On an ESP32-C6 the same source is 1.1x to 1.3x slower, because that part's memmove
+ *       costs about one cycle a byte. Nothing in the library differs between the two runs. A byte
+ *       path is only ever as good as the mem family the part it lands on happens to carry, which is
+ *       why the number paths win everywhere and these do not.
+ * @warning args->dst must be writable and args->src readable for args->bytes.
  */
 MMGR_INLINE void memor_move_up(MemorMoveCtx *args)
 {
     // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
+<<<<<<< HEAD
     size_t t = args->bytes & (size_t)(MMGR_RAW_WORD - 1u);
     size_t w = args->bytes - t;
+=======
+    size_t tail_bytes = args->bytes & (size_t)(MMGR_RAW_WORD - 1u);
+    size_t word_bytes = args->bytes - tail_bytes;
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
     args->dst += args->bytes;
     args->src += args->bytes;
 
-    if (t != 0u)
+    if (tail_bytes != 0u)
     {
         do
         {
             *--args->dst = *--args->src;
+<<<<<<< HEAD
         } while (--t);
+=======
+        } while (--tail_bytes);
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     }
-    if (w != 0u)
+    if (word_bytes != 0u)
     {
         do
         {
@@ -141,55 +185,69 @@ MMGR_INLINE void memor_move_up(MemorMoveCtx *args)
             args->src -= MMGR_RAW_WORD;
             MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
                       .val = MMGR_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+<<<<<<< HEAD
             w -= MMGR_RAW_WORD;
         } while (w);
+=======
+            word_bytes -= MMGR_RAW_WORD;
+        } while (word_bytes);
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     }
 }
 
 /**
  * @brief Bytes between p and the first word boundary at or after it, capped at bytes.
  *
- * @param[in] p     Address a walk is about to start from [BORROWS].
- * @param[in] bytes Bytes readable at p, which the answer never exceeds.
+ * @param[in] at    Address a walk is about to start from [BORROWS].
+ * @param[in] bytes Bytes readable at that address, which the answer never exceeds.
  * @return          Bytes to step one at a time before whole aligned words can be read.
  * @note Normally zero. This library is built for memory that arrives aligned, and an aligned address
  *       is already on a boundary. It is computed rather than assumed because a region entry takes
  *       whatever address a caller hands it.
+ * @warning at is examined as an address and never read, so a bytes larger than the region there is
+ *          not caught here. The answer is capped at bytes, so it is a safe number of steps only when
+ *          bytes is.
  */
-MMGR_INLINE size_t memor_head_bytes(const uint8_t *p, size_t bytes)
+MMGR_INLINE size_t memor_head_bytes(const uint8_t *at, size_t bytes)
 {
-    // Explicit cast reads the address as an integer so its low bits can be tested; the value is
+    // Explicit cast reads the address as an integer so its low bits can be tested. The value is
     // never dereferenced through it and never converted back
-    const size_t off = (size_t)((uintptr_t)p & (uintptr_t)(MMGR_SWAR_BYTES - 1u));
-    const size_t need = (off == 0u) ? 0u : (MMGR_SWAR_BYTES - off);
+    const size_t past_boundary = (size_t)((uintptr_t)at & (uintptr_t)(MMGR_SWAR_BYTES - 1u));
+    const size_t to_boundary = (past_boundary == 0u) ? 0u : (MMGR_SWAR_BYTES - past_boundary);
 
-    return (need > bytes) ? bytes : need;
+    return (to_boundary > bytes) ? bytes : to_boundary;
 }
 
 /**
  * @brief Turns a lane-wise difference word into the mask of lanes that differ.
  *
- * @param[in] d Difference word, zero in every lane where the two sides agreed.
- * @return      One high bit per differing lane.
- * @note Takes the word rather than a Ctx. It is an expression the compare walk shares between its
- *       whole-word body and its tail, not an entry anything dispatches to.
+ * @param[in] difference Zero in every lane where the two sides agreed, non-zero where they did not.
+ * @return               One high bit per differing lane.
+ * @note Takes a word rather than a context type. memor_cmp shares it between the loop that reads
+ *       whole words and the tail that reads the last one. Nothing dispatches to it.
  */
-MMGR_INLINE mmgr_word memor_diff_lanes(mmgr_word d)
+MMGR_INLINE mmgr_word memor_diff_lanes(mmgr_word difference)
 {
-    return MMGR_VERBUM_SCRUTOR_HIGH & ~MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = d);
+    return MMGR_VERBUM_SCRUTOR_HIGH & ~MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = difference);
 }
 
 /**
  * @brief Compares args->bytes of args->src against args->other.
  *
  * @param[in] args The two regions and the count [BORROWS].
+<<<<<<< HEAD
  * @return      The difference of the first unequal byte pair, or 0 when every byte matches.
+=======
+ * @return         The difference of the first unequal byte pair, or 0 when every byte matches.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Compares whole words with nothing but an inequality test, and resolves which lane differs
  *       once, after the loop has found the word that does. Which lane it is cannot matter until a
  *       word differs, and no word differs on all but one iteration of a scan.
  * @note The count is settled before the loop, so lanes past it can only fall in the last word.
  *       mask.lanes_below is applied to that word alone rather than rebuilt on every iteration.
  * @note The sign follows the differing bytes, so the result orders the two regions.
+ * @warning Both args->src and args->other must be readable for args->bytes rounded up to a whole word.
+ *          The tail goes through word.load, which takes MMGR_SWAR_BYTES whatever the count leaves.
  */
 MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *args)
 {
@@ -197,35 +255,93 @@ MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *args)
     const size_t rest = args->bytes - full;
     size_t at = 0u;
 
-    while (at != full)
+    // Explicit casts read both addresses as integers so one mask answers for both. Two aligned
+    // addresses select the loop that uses the aligned load, which is one instruction where the
+    // unaligned one is a sequence on a part that has no unaligned access. Alignment is tested once
+    // here rather than once a word. Measured 3.55x on an ESP32-C6 over two thousand bytes, which
+    // took the comparison from 6.27 cycles a byte to 1.76 and past memcmp's 2.14
+    const mmgr_bool level =
+        (mmgr_bool)(((((uintptr_t)args->src) | ((uintptr_t)args->other)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
+
+    // Two loops rather than one carrying the test. With the choice written inside the body, the
+    // compiler keeps a branch per word and the loop costs what the unaligned one costs. Lifted
+    // out, each loop holds one kind of load, and the aligned one is a single instruction a word
+    if (level)
     {
+<<<<<<< HEAD
         const mmgr_word wa = MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at);
         const mmgr_word wb = MMGR_CALL(word.load, ScrutWordCfg, .at = args->other + at);
 
         if (wa != wb)
+=======
+        while (at != full)
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
         {
-            const size_t k = at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = memor_diff_lanes(wa ^ wb));
+            const mmgr_word src_word = MMGR_CALL(word.load_al, ScrutWordCfg, .at = args->src + at);
+            const mmgr_word other_word = MMGR_CALL(word.load_al, ScrutWordCfg, .at = args->other + at);
 
+<<<<<<< HEAD
             // Explicit casts widen both bytes to mmgr_iword so the difference keeps its sign
             return (mmgr_iword)args->src[k] - (mmgr_iword)args->other[k];
+=======
+            if (src_word != other_word)
+            {
+                const size_t first_diff =
+                    at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = memor_diff_lanes(src_word ^ other_word));
+
+                // Explicit casts widen both bytes to mmgr_iword so the difference keeps its sign
+                return (mmgr_iword)args->src[first_diff] - (mmgr_iword)args->other[first_diff];
+            }
+            // Advance separated from the test above so the loop body carries no side effect
+            at += MMGR_SWAR_BYTES;
         }
-        // Advance separated from the test above so the loop body carries no side effect
-        at += MMGR_SWAR_BYTES;
+    }
+    else
+    {
+        while (at != full)
+        {
+            const mmgr_word src_word = MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at);
+            const mmgr_word other_word = MMGR_CALL(word.load, ScrutWordCfg, .at = args->other + at);
+
+            if (src_word != other_word)
+            {
+                const size_t first_diff =
+                    at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = memor_diff_lanes(src_word ^ other_word));
+
+                // Explicit casts widen both bytes to mmgr_iword so the difference keeps its sign
+                return (mmgr_iword)args->src[first_diff] - (mmgr_iword)args->other[first_diff];
+            }
+            // Advance separated from the test above so the loop body carries no side effect
+            at += MMGR_SWAR_BYTES;
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
+        }
     }
 
     if (rest != 0u)
     {
+<<<<<<< HEAD
         const mmgr_word d = MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at) ^
                             MMGR_CALL(word.load, ScrutWordCfg, .at = args->other + at);
         // Explicit cast holds the differing-lane mask at mmgr_word width, bounded to the bytes in range
         const mmgr_word m = (mmgr_word)(memor_diff_lanes(d) & MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest));
+=======
+        const mmgr_word difference = MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at) ^
+                                     MMGR_CALL(word.load, ScrutWordCfg, .at = args->other + at);
+        // Explicit cast holds the differing-lane mask at mmgr_word width, bounded to the bytes in range
+        const mmgr_word differing_lanes =
+            (mmgr_word)(memor_diff_lanes(difference) & MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest));
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
-        if (m != 0)
+        if (differing_lanes != 0u)
         {
-            const size_t k = at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);
+            const size_t first_diff = at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = differing_lanes);
 
             // Explicit casts widen both bytes to mmgr_iword so the difference keeps its sign
+<<<<<<< HEAD
             return (mmgr_iword)args->src[k] - (mmgr_iword)args->other[k];
+=======
+            return (mmgr_iword)args->src[first_diff] - (mmgr_iword)args->other[first_diff];
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
         }
     }
     return 0;
@@ -235,24 +351,44 @@ MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *args)
  * @brief Finds the first byte in args->src equal to args->val, within args->bytes.
  *
  * @param[in] args Region, count and the byte sought [BORROWS].
+<<<<<<< HEAD
  * @return      Address of the match, or NULL when the byte does not occur [BORROWS].
+=======
+ * @return         Address of the match, or NULL when the byte does not occur [BORROWS].
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Scans whole words with no mask at all, then masks the one short word at the end. The count
  *       is settled before the loop, so lanes past it can only fall in that last word.
  * @note The sought byte is broadcast once, ahead of the walk. lane.eq answers the same question but
  *       rebuilds the broadcast from a byte on every call, which is a multiply per word.
+<<<<<<< HEAD
  * @note A terminator is not special here; all args->bytes are searched.
+=======
+ * @note A terminator is not special here. All args->bytes are searched.
+ * @warning args->src must be readable for args->bytes rounded up to a whole word. The tail goes
+ *          through word.load, which takes MMGR_SWAR_BYTES whatever the count leaves.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
 {
     // Bytes to the first word boundary, so the walk below reads through the aligned load. Normally
+<<<<<<< HEAD
     // none: this library is built for memory that arrives aligned. The unaligned load is not one
     // instruction on either shipping part - eleven on RISC-V, twelve on Xtensa, because neither has
     // it and the compiler assembles the word out of byte loads and shifts inside the walk.
+=======
+    // none, since this library is built for memory that arrives aligned. The unaligned load is not
+    // one instruction on either shipping part - eleven on RISC-V, twelve on Xtensa, because neither
+    // has it and the compiler assembles the word out of byte loads and shifts inside the walk.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     const size_t lead = memor_head_bytes(args->src, args->bytes);
     const size_t full = lead + (((args->bytes - lead) / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES);
     const size_t rest = args->bytes - full;
     // Explicit cast widens the sought byte into the lane it fills before it is repeated
+<<<<<<< HEAD
     const mmgr_word bcast = MMGR_SWAR_ONES * (mmgr_word)args->val;
+=======
+    const mmgr_word broadcast = MMGR_SWAR_ONES * (mmgr_word)args->val;
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     size_t at = 0u;
 
     while (at != lead)
@@ -271,11 +407,20 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
     // cover, and the extra prologue is all it added.
     while (at != full)
     {
+<<<<<<< HEAD
         const mmgr_word m = MMGR_CALL(lane.has_zero, ScrutLaneCfg,
                                       .word = MMGR_CALL(word.load_al, ScrutWordCfg, .at = args->src + at) ^ bcast);
         if (m != 0)
         {
             return args->src + at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);
+=======
+        const mmgr_word matching_lanes =
+            MMGR_CALL(lane.has_zero, ScrutLaneCfg,
+                      .word = MMGR_CALL(word.load_al, ScrutWordCfg, .at = args->src + at) ^ broadcast);
+        if (matching_lanes != 0u)
+        {
+            return args->src + at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = matching_lanes);
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
         }
         // Advance separated from the test above so the loop body carries no side effect
         at += MMGR_SWAR_BYTES;
@@ -284,13 +429,21 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
     if (rest != 0u)
     {
         // Explicit cast holds the match mask at mmgr_word width, bounded to the bytes in range
-        const mmgr_word m =
+        const mmgr_word matching_lanes =
             (mmgr_word)(MMGR_CALL(lane.has_zero, ScrutLaneCfg,
+<<<<<<< HEAD
                                   .word = MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at) ^ bcast) &
+=======
+                                  .word = MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at) ^ broadcast) &
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
                         MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest));
-        if (m != 0)
+        if (matching_lanes != 0u)
         {
+<<<<<<< HEAD
             return args->src + at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);
+=======
+            return args->src + at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = matching_lanes);
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
         }
     }
     return NULL;
@@ -301,6 +454,7 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
  *
  * @param[in,out] args Destination, count and the byte to write [BORROWS].
  * @note Builds a word with args->val in every lane, stores whole words, then finishes byte by byte.
+<<<<<<< HEAD
  * @note Advances args->dst as it goes, so it points past the fill when it returns.
  */
 MMGR_INLINE void memor_set(MemorSetCtx *args)
@@ -311,10 +465,24 @@ MMGR_INLINE void memor_set(MemorSetCtx *args)
     // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
     size_t t = args->bytes & (size_t)(MMGR_RAW_WORD - 1u);
     size_t w = args->bytes - t;
+=======
+ * @note Advances args->dst as it goes, so it points past the bytes it wrote when it returns.
+ * @warning args->dst must be writable for args->bytes. Nothing past the count is written. The word
+ *          stores cover a whole number of words, and the byte loop finishes what they leave.
+ */
+MMGR_INLINE void memor_set(MemorSetCtx *args)
+{
+    // Explicit casts broadcast the byte into every lane. MMGR_SWAR_ONES has a 1 in each lane's low bit
+    const mmgr_migro_word fill = (mmgr_migro_word)(MMGR_SWAR_ONES * (mmgr_migro_word)args->val);
+
+    // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
+    size_t tail_bytes = args->bytes & (size_t)(MMGR_RAW_WORD - 1u);
+    size_t word_bytes = args->bytes - tail_bytes;
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
     // Four words an iteration while there are four to take, for the reason memor_cpy gives: the
     // pointer bump, the counter and the branch cost as much as the store at one word a pass.
-    while (w >= (4u * MMGR_RAW_WORD))
+    while (word_bytes >= (4u * MMGR_RAW_WORD))
     {
         MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = fill);
         MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + MMGR_RAW_WORD, .val = fill);
@@ -323,42 +491,62 @@ MMGR_INLINE void memor_set(MemorSetCtx *args)
 
         // Advances separated from the stores above so the loop body carries no side effect
         args->dst += 4u * MMGR_RAW_WORD;
+<<<<<<< HEAD
         w -= 4u * MMGR_RAW_WORD;
+=======
+        word_bytes -= 4u * MMGR_RAW_WORD;
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     }
-    while (w != 0u)
+    while (word_bytes != 0u)
     {
         MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = fill);
         args->dst += MMGR_RAW_WORD;
+<<<<<<< HEAD
         w -= MMGR_RAW_WORD;
+=======
+        word_bytes -= MMGR_RAW_WORD;
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     }
-    if (t != 0u)
+    if (tail_bytes != 0u)
     {
         do
         {
             *args->dst++ = args->val;
+<<<<<<< HEAD
         } while (--t);
+=======
+        } while (--tail_bytes);
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     }
 }
 
 /**
  * @brief Binds this module's fixed arguments to GENERIC_ENTRY, with the context type per entry.
  *
- * @param[in] ret  Return type of the entry point.
- * @param[in] ctx  Context type this entry's backend takes.
- * @param[in] name Name after the mmgr_memor_ and memor_ prefixes, which the two share.
- * @note ctx is a parameter here, unlike carceribus and infinitas which each have one. The backends
- *       split by what they touch: a copy takes two pointers, a scan takes two and a value, a fill
- *       takes one and a value, so each has its own argument type.
+ * @param[in] ReturnType_ Return type of the entry point.
+ * @param[in] CtxType_    Context type this entry's backend takes.
+ * @param[in] name_       Name after the mmgr_memor_ and memor_ prefixes, which the two share.
+ * @param[in] ...         Initializers for the CtxType_ literal, written in terms of args.
+ * @note CtxType_ is a parameter here, unlike locus_carcerum and confinium_exclusivum_infinitas, which
+ *       each have one. The backends split by what they touch: a copy takes two pointers, a scan takes
+ *       two and a value, a fill takes one and a value, so each has its own argument type.
  */
+<<<<<<< HEAD
 #define MEMOR_ENTRY(ret, ctx, name, ...) GENERIC_ENTRY(mmgr_memor_, memor_, ctx, MemoriaCfg, ret, name, __VA_ARGS__)
+=======
+#define MEMOR_ENTRY(ReturnType_, CtxType_, name_, ...)                                                                 \
+    GENERIC_ENTRY(mmgr_memor_, memor_, CtxType_, MemoriaCfg, ReturnType_, name_, __VA_ARGS__)
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
 /**
  * @brief Binds the same to GENERIC_ENTRY_V, for an entry that returns nothing.
  *
- * @param[in] ctx  Context type this entry's backend takes.
- * @param[in] name Name after the mmgr_memor_ and memor_ prefixes.
+ * @param[in] CtxType_ Context type this entry's backend takes.
+ * @param[in] name_    Name after the mmgr_memor_ and memor_ prefixes.
+ * @param[in] ...      Initializers for the CtxType_ literal, written in terms of args.
  */
-#define MEMOR_ENTRY_V(ctx, name, ...) GENERIC_ENTRY_V(mmgr_memor_, memor_, ctx, MemoriaCfg, name, __VA_ARGS__)
+#define MEMOR_ENTRY_V(CtxType_, name_, ...)                                                                            \
+    GENERIC_ENTRY_V(mmgr_memor_, memor_, CtxType_, MemoriaCfg, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.

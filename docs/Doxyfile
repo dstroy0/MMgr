@@ -143,7 +143,6 @@ PREDEFINED             = DOXYGEN \
                          MMGR_RAW= \
                          MMGR_ENUM_PACKED= \
                          MMGR_ALIGN(x)= \
-                         MMGR_OPTIMIZE_O2= \
                          MMGR_CALL(x)= \
                          MMGR_STATIC_ASSERT(c,m)= \
                          MMGR_NS_LAYOUT(...)= \

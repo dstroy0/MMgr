@@ -207,7 +207,7 @@ void test_build_of_a_null_string_value(void)
     static const mmgr_field spec[] = {MMGR_STR, MMGR_END};
     mmgr_fval v[1];
     v[0].kind = MMGR_FK_STR;
-    v[0].as.s = NULL;
+    v[0].as.text = NULL;
     v[0].width = 0;
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, MMGR_CALL(numer.build, NumerosCfg, .out = out, .cap = sizeof out, .spec = spec, .vals = v, .nvals = 1u), "a null string renders empty");

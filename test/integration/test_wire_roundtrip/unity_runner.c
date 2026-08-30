@@ -92,6 +92,7 @@ int main(void)
   run_test(test_an_odd_width_writes_only_its_own_bytes, "test_an_odd_width_writes_only_its_own_bytes", 97);
   run_test(test_endian_entries_agree_with_the_wire_writer, "test_endian_entries_agree_with_the_wire_writer", 110);
   run_test(test_a_field_past_the_end_latches_rather_than_writing, "test_a_field_past_the_end_latches_rather_than_writing", 132);
+<<<<<<< HEAD
   run_test(test_a_field_past_the_end_of_a_read_leaves_the_cursor, "test_a_field_past_the_end_of_a_read_leaves_the_cursor", 151);
   run_test(test_a_run_of_bytes_appends_as_it_is, "test_a_run_of_bytes_appends_as_it_is", 163);
   run_test(test_a_single_byte_append_counts_the_cursor, "test_a_single_byte_append_counts_the_cursor", 175);
@@ -100,6 +101,16 @@ int main(void)
   run_test(test_an_integer_right_aligns_into_a_fixed_field, "test_an_integer_right_aligns_into_a_fixed_field", 227);
   run_test(test_an_integer_wider_than_its_field_is_refused, "test_an_integer_wider_than_its_field_is_refused", 244);
   run_test(test_raw_bytes_survive_an_unaligned_start, "test_raw_bytes_survive_an_unaligned_start", 255);
+=======
+  run_test(test_a_field_past_the_end_of_a_read_leaves_the_cursor, "test_a_field_past_the_end_of_a_read_leaves_the_cursor", 152);
+  run_test(test_a_run_of_bytes_appends_as_it_is, "test_a_run_of_bytes_appends_as_it_is", 164);
+  run_test(test_a_single_byte_append_counts_the_cursor, "test_a_single_byte_append_counts_the_cursor", 176);
+  run_test(test_a_length_prefixed_string_round_trips, "test_a_length_prefixed_string_round_trips", 188);
+  run_test(test_a_length_prefix_promising_more_than_is_there_is_refused, "test_a_length_prefix_promising_more_than_is_there_is_refused", 213);
+  run_test(test_an_integer_right_aligns_into_a_fixed_field, "test_an_integer_right_aligns_into_a_fixed_field", 228);
+  run_test(test_an_integer_wider_than_its_field_is_refused, "test_an_integer_wider_than_its_field_is_refused", 245);
+  run_test(test_raw_bytes_survive_an_unaligned_start, "test_raw_bytes_survive_an_unaligned_start", 256);
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
   return UNITY_END();
 }

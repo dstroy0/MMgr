@@ -26,7 +26,7 @@ extern void test_drop_lo_and_drop_hi_clear_one_lane_each(void);
 extern void test_drop_first_and_last_follow_address_order(void);
 extern void test_walking_a_mask_visits_every_lane_once(void);
 extern void test_words_is_the_load_count(void);
-extern void test_the_worst_case_word_count_covers_the_largest_tenant(void);
+extern void test_the_worst_case_word_count_covers_the_largest_buffer(void);
 extern void test_bytes_below_keeps_the_first_n_lanes(void);
 extern void test_bytes_below_nothing_is_an_empty_mask(void);
 extern void test_lanes_below_is_the_high_bit_of_bytes_below(void);
@@ -126,7 +126,11 @@ int main(void)
   run_test(test_drop_first_and_last_follow_address_order, "test_drop_first_and_last_follow_address_order", 255);
   run_test(test_walking_a_mask_visits_every_lane_once, "test_walking_a_mask_visits_every_lane_once", 267);
   run_test(test_words_is_the_load_count, "test_words_is_the_load_count", 282);
+<<<<<<< HEAD
   run_test(test_the_worst_case_word_count_covers_the_largest_tenant, "test_the_worst_case_word_count_covers_the_largest_tenant", 292);
+=======
+  run_test(test_the_worst_case_word_count_covers_the_largest_buffer, "test_the_worst_case_word_count_covers_the_largest_buffer", 292);
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
   run_test(test_bytes_below_keeps_the_first_n_lanes, "test_bytes_below_keeps_the_first_n_lanes", 297);
   run_test(test_bytes_below_nothing_is_an_empty_mask, "test_bytes_below_nothing_is_an_empty_mask", 310);
   run_test(test_lanes_below_is_the_high_bit_of_bytes_below, "test_lanes_below_is_the_high_bit_of_bytes_below", 316);

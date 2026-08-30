@@ -2,7 +2,19 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
- * @brief The binary64 field layout, the assertions that pin it, and the fract table.
+ * @file fractio.h
+ * @brief The binary64 field layout and scale bounds, the assertions that pin them, the six entry points
+ *        and the fract table.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
+ *
+ * @note Everything here is written for binary64. The assertions below are what hold the target to it,
+ *       and they are MMGR_STATIC_ASSERT, so a target whose double is another shape fails the build
+ *       rather than reading the wrong bits.
+ * @note FractioCfg carries no pointer, so no call here follows one into a caller's buffer. The whole
+ *       module is field arithmetic on the one value it is handed.
+ * @warning args is the one pointer the six entry points take, and none of them tests it. The bodies
+ *          GENERIC_ENTRY writes read its members straight through, so a null args is dereferenced.
  */
 #ifndef MMGR_FRACTIO_H
 #define MMGR_FRACTIO_H
@@ -12,10 +24,16 @@
 MMGR_INCIPE_DECLS
 
 /**
- * @brief The three field positions of a binary64 double, as masks, shifts and widths.
+ * @brief The binary64 field layout: three masks, the sign shift, the two field widths, the two whole
+ *        field values and the exponent bias.
  *
+ * @note The masks, the shift and the widths give each field's position and extent. MMGR_DBL_SIGN_ONE
+ *       and MMGR_DBL_EXP_ALL are values a field can hold rather than positions, and MMGR_DBL_BIAS is
+ *       an amount.
  * @note The assertions below check the masks tile the word without gap or overlap.
- * @note Every constant carries a ull suffix, matching the mmgr_u64 the fields are read from.
+ * @note The masks, MMGR_DBL_SIGN_ONE and MMGR_DBL_EXP_ALL carry a ull suffix, matching the mmgr_u64 the
+ *       fields are read from. The shifts and widths carry u. MMGR_DBL_BIAS carries neither, since it is
+ *       subtracted in the signed scale arithmetic below.
  */
 #define MMGR_DBL_SIGN_MASK 0x8000000000000000ull /**< The sign bit. */
 #define MMGR_DBL_EXP_MASK 0x7FF0000000000000ull  /**< The eleven exponent bits. */
@@ -23,13 +41,22 @@ MMGR_INCIPE_DECLS
 #define MMGR_DBL_SIGN_SHIFT 63u                  /**< Bit position of the sign. */
 #define MMGR_DBL_MANT_BITS 52u                   /**< Stored mantissa width, and the exponent's shift. */
 #define MMGR_DBL_EXP_BITS 11u                    /**< Exponent width. */
+<<<<<<< HEAD
 #define MMGR_DBL_SIGN_ONE 0x1ull                 /**< A sign of one, before shifting. */
 #define MMGR_DBL_EXP_ALL 0x7FFull                /**< An exponent field of all ones. */
+=======
+#define MMGR_DBL_SIGN_ONE 0x1ull                 /**< A sign of one, and merge's mask for args->sign. */
+#define MMGR_DBL_EXP_ALL 0x7FFull                /**< All ones in the exponent, and merge's mask for args->exp. */
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 #define MMGR_DBL_BIAS 1023                       /**< Amount added to the true exponent when stored. */
 
 /**
  * @brief The width of a double in bits, bytes and mmgr_word units.
  *
+ * @note MMGR_DBL_BITS is declared, not measured. The assertion below compares it against sizeof(double)
+ *       and fails the build when the target disagrees.
+ * @note The 8u in MMGR_DBL_BYTES is bits per byte. That same assertion holds a target to it, since a
+ *       byte of another width would leave sizeof(double) * 8u short of MMGR_DBL_BITS.
  * @note MMGR_DBL_WORDS rounds up, and the assertion below requires it to come out exact.
  */
 #define MMGR_DBL_BITS 64u                                                         /**< Bits in a double. */
@@ -52,7 +79,8 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_u64) == sizeof(double), "the bit pattern of a dou
  * @brief Pins the field constants above against each other.
  *
  * @note Checks the widths sum to 64, the masks tile the word, and no two masks overlap.
- * @note Also checks each mask agrees with the shift and width that describe the same field.
+ * @note Also checks each mask against the shift or width for the same field, that MMGR_DBL_EXP_ALL fills
+ *       MMGR_DBL_EXP_BITS, and that MMGR_DBL_BIAS is half the exponent range less one.
  */
 MMGR_STATIC_ASSERT(1u + MMGR_DBL_EXP_BITS + MMGR_DBL_MANT_BITS == MMGR_DBL_BITS,
                    "the three fields do not add up to the width of the value");
@@ -73,7 +101,8 @@ MMGR_STATIC_ASSERT(MMGR_DBL_BIAS == ((1 << (MMGR_DBL_EXP_BITS - 1u)) - 1), "the 
  *
  * @note MMGR_DBL_SCALE_MAX takes the largest finite exponent, removes the bias, and drops the mantissa width.
  * @note MMGR_DBL_SCALE_MIN starts from an exponent field of 1, which is the smallest normal.
- * @note Explicit casts hold both expressions in mmgr_iword, since each result is negative or near zero.
+ * @note Explicit casts hold both expressions in mmgr_iword, since MMGR_DBL_EXP_ALL and MMGR_DBL_MANT_BITS
+ *       are unsigned. MMGR_DBL_SCALE_MIN is negative, and without its cast the subtraction would wrap.
  */
 #define MMGR_DBL_SCALE_MAX ((mmgr_iword)(MMGR_DBL_EXP_ALL - 1u) - MMGR_DBL_BIAS - (mmgr_iword)MMGR_DBL_MANT_BITS)
 #define MMGR_DBL_SCALE_MIN (1 - MMGR_DBL_BIAS - (mmgr_iword)MMGR_DBL_MANT_BITS)
@@ -85,10 +114,10 @@ MMGR_STATIC_ASSERT(MMGR_DBL_SCALE_MAX == 971, "the largest scale a finite double
 MMGR_STATIC_ASSERT(MMGR_DBL_SCALE_MIN == -1074, "the smallest scale a subnormal can carry is not what it was");
 
 /**
- * @brief Arguments for the fract calls; each reads only what it needs.
+ * @brief Arguments for the fract calls, where each call reads only the members it needs.
  *
  * @note val and bits share storage, so writing one and reading the other reinterprets the same bytes.
- * @note sign, exp and mant are read by merge alone; the other five calls read the union.
+ * @note sign, exp and mant are read by merge alone. The other five calls read the union.
  */
 typedef struct
 {
@@ -121,7 +150,13 @@ MMGR_NS_LAYOUT(FractioNs, sign, exp, mant, merge, from_bits, to_bits);
  * @brief Returns the sign bit of args->bits.
  *
  * @param[in] args Bit pattern in the union [BORROWS].
+<<<<<<< HEAD
  * @return      0 for a positive sign, 1 for a negative one.
+=======
+ * @return         0 for a positive sign, 1 for a negative one.
+ * @note The bit is read as stored and nothing else is examined, so a negative zero answers 1, and so
+ *       does a NaN carrying the sign.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_u64 mmgr_fract_sign(const FractioCfg *args);
 
@@ -129,8 +164,13 @@ mmgr_u64 mmgr_fract_sign(const FractioCfg *args);
  * @brief Returns the exponent field of args->bits.
  *
  * @param[in] args Bit pattern in the union [BORROWS].
+<<<<<<< HEAD
  * @return      The stored exponent, still carrying MMGR_DBL_BIAS.
  * @note 0 marks a zero or subnormal; MMGR_DBL_EXP_ALL marks an infinity or NaN.
+=======
+ * @return         The stored exponent, still carrying MMGR_DBL_BIAS.
+ * @note 0 marks a zero or subnormal. MMGR_DBL_EXP_ALL marks an infinity or NaN.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_u64 mmgr_fract_exp(const FractioCfg *args);
 
@@ -138,7 +178,13 @@ mmgr_u64 mmgr_fract_exp(const FractioCfg *args);
  * @brief Returns the mantissa field of args->bits.
  *
  * @param[in] args Bit pattern in the union [BORROWS].
+<<<<<<< HEAD
  * @return      The fifty-two stored bits, without the implicit leading one.
+=======
+ * @return         The fifty-two stored bits, without the implicit leading one.
+ * @note The leading one is implicit only where the exponent field is nonzero. A zero or a subnormal
+ *       has none, and there these fifty-two bits are the whole mantissa.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_u64 mmgr_fract_mant(const FractioCfg *args);
 
@@ -146,8 +192,15 @@ mmgr_u64 mmgr_fract_mant(const FractioCfg *args);
  * @brief Packs args->sign, args->exp and args->mant into one bit pattern.
  *
  * @param[in] args The three fields [BORROWS].
+<<<<<<< HEAD
  * @return      The assembled pattern.
+=======
+ * @return         The assembled pattern.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Each field is masked to its own width, so a wide input cannot reach a neighboring field.
+ * @warning What the mask drops is gone and nothing reports it. A sign above MMGR_DBL_SIGN_ONE, an
+ *          exponent above MMGR_DBL_EXP_ALL or a mantissa above MMGR_DBL_MANT_MASK keeps only its low
+ *          bits.
  */
 mmgr_u64 mmgr_fract_merge(const FractioCfg *args);
 
@@ -155,7 +208,11 @@ mmgr_u64 mmgr_fract_merge(const FractioCfg *args);
  * @brief Reads the union as a double.
  *
  * @param[in] args Union with its bits member filled [BORROWS].
+<<<<<<< HEAD
  * @return      The same storage interpreted as a double.
+=======
+ * @return         The same storage interpreted as a double.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 double mmgr_fract_from_bits(const FractioCfg *args);
 
@@ -163,12 +220,22 @@ double mmgr_fract_from_bits(const FractioCfg *args);
  * @brief Reads the union as a bit pattern.
  *
  * @param[in] args Union with its val member filled [BORROWS].
+<<<<<<< HEAD
  * @return      The same storage interpreted as mmgr_u64.
+=======
+ * @return         The same storage interpreted as mmgr_u64.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_u64 mmgr_fract_to_bits(const FractioCfg *args);
 
 /**
- * @brief Dispatch table instance named fract; each member calls the matching mmgr_fract_ function.
+ * @brief Dispatch table instance named fract, whose members are the mmgr_fract_ entries.
+ *
+ * @note MMGR_NS is static const, so every translation unit including this header holds a copy of its
+ *       own and the addresses differ between them. The six functions it points at are the one shared
+ *       definition.
+ * @note MMGR_UNUSED keeps a translation unit that includes the header without calling through the
+ *       table from warning about it. It expands to nothing where the unused attribute is unavailable.
  */
 MMGR_NS FractioNs fract MMGR_UNUSED = {
     .sign = mmgr_fract_sign,

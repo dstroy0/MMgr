@@ -2,7 +2,16 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file ascii_persona_bitorum.h
  * @brief ASCII class membership: mask type, class list, and the ascii dispatch table.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
+ *
+ * @note Class membership as a bitmap lookup rather than a chain of range compares. One shift, one
+ *       mask and one test answer any class, and the cost does not grow with how many ranges the
+ *       class covers.
+ * @note Covers code points 0 to 127 only. A byte of 0x80 or above is in no class here, which is
+ *       what keeps the table sixteen bytes rather than thirty-two.
  */
 #ifndef MMGR_ASCII_PERSONA_BITORUM_H
 #define MMGR_ASCII_PERSONA_BITORUM_H
@@ -14,13 +23,22 @@ MMGR_INCIPE_DECLS
 /**
  * @brief Sixteen bytes holding one bit for each of the code points 0 to 127.
  *
- * @note Code point n is bit (n & 7) of b[n >> 3].
+ * @note A code point is located by shift and mask rather than by search. Code point n is bit
+ *       (n & 7) of bits[n >> 3], so any class answers in the same three operations.
  */
 typedef struct
 {
-    uint8_t b[16];
+    uint8_t bits[16]; /**< The bitmap, with code point 0 at the low bit of bits[0]. */
 } MmgrAsciiMask;
 
+/**
+ * @brief Asserts an MmgrAsciiMask is exactly sixteen bytes.
+ *
+ * @note mmgr_ascii_in reads bits[byte >> 3] for every byte below 0x80, so all sixteen have to be
+ *       there.
+ * @note Sixteen reach code point 127 and no further, which is what leaves a byte of 0x80 or above in
+ *       no class at all.
+ */
 MMGR_STATIC_ASSERT(sizeof(MmgrAsciiMask) == 16u, "an ASCII class mask is exactly 128 bits");
 
 /**
@@ -67,14 +85,22 @@ MMGR_NS_LAYOUT(AsciiPersonaBitorumNs, in);
  * @brief Returns whether args->byte has its bit set in the kind bitmap.
  *
  * @param[in] args Class and byte to test [BORROWS].
+<<<<<<< HEAD
  * @return      MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
  * @note Bytes 0x80 and above return MMGR_FALSE.
  * @warning args->kind must be below MMGR_ASCII_CLASSES.
+=======
+ * @return         MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
+ * @note Bytes 0x80 and above return MMGR_FALSE.
+ * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
+ *          MMGR_DEBUG_CHECKS build: the bitmap is indexed by it, so a byte under 0x80 then reads
+ *          past the table.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_bool mmgr_ascii_in(const AsciiCfg *args);
 
 /**
- * @brief Dispatch table instance named ascii; its in member calls mmgr_ascii_in.
+ * @brief Dispatch table instance named ascii, whose in member is set to mmgr_ascii_in.
  */
 MMGR_NS AsciiPersonaBitorumNs ascii MMGR_UNUSED = {
     .in = mmgr_ascii_in,

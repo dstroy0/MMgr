@@ -2,9 +2,12 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file impensa_ancorae_acus_inet.c
  * @brief Byte cost table scoring only the characters an address is built from.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
- * @note One of five files defining mmgr_ancorae_impensa; a build links exactly one of them.
+ * @note One of five files defining mmgr_ancorae_impensa. A build links exactly one of them.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
@@ -13,7 +16,7 @@
  *
  * @note Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.
  * @note 255 marks the NUL and the colon, so neither is ever chosen as a sieve offset.
- * @note Above 1: the digits, 'a' to 'f', 'A' to 'F', and the bytes 37, 46, 47, 58, 91 and 93.
+ * @note Also above 1: the digits, 'a' to 'f', 'A' to 'F', and 37 '%', 46 '.', 47 '/', 91 '[', 93 ']'.
  */
 static const uint8_t s_impensa[256] = {
     255, 1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1, 1, 1,   1, 1, 1, 1,   1,   1,   1,   1,   1,   1,
@@ -42,7 +45,11 @@ typedef struct
  * @brief Returns the table entry for args->byte.
  *
  * @param[in] args Byte to look up [BORROWS].
+<<<<<<< HEAD
  * @return      The cost, 1 through 255.
+=======
+ * @return         The cost, 1 through 255.
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note The table holds 256 entries, so every uint8_t value indexes it in range.
  */
 MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)

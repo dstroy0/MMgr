@@ -24,7 +24,8 @@ static uint64_t g_srcstore[8];
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             const size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u)) & ~(size_t)7u;                                      \
             mmgr_span w_ = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem_ + off_, .cap = 8u);                                                                 \
-            MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w_, .val = (uint64_t)bench_i_, .bytes = (size_t)(WIDTH));       \
+            MMGR_CALL(byteio.put_be, OctetusCfg, .write_span = &w_, .value = (uint64_t)bench_i_,                       \
+                      .bytes = (size_t)(WIDTH));                                                                       \
             BENCH_KEEP(mem_[off_]);                                                                                    \
         });                                                                                                            \
         printf("octetus,put,%u,%.4f\n", (unsigned)(WIDTH), cy_);                                                       \
@@ -40,7 +41,8 @@ static uint64_t g_srcstore[8];
             const size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u)) & ~(size_t)7u;                                      \
             uint64_t out_ = 0;                                                                                         \
             mmgr_cspan r_ = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = mem_ + off_, .cap = 8u);                                                               \
-            BENCH_KEEP(MMGR_CALL(byteio.take_be, OctetusCfg, .r = &r_, .out = &out_, .bytes = (size_t)(WIDTH)));       \
+            BENCH_KEEP(MMGR_CALL(byteio.take_be, OctetusCfg, .read_span = &r_, .out = &out_,                           \
+                                 .bytes = (size_t)(WIDTH)));                                                           \
             BENCH_KEEP(out_);                                                                                          \
         });                                                                                                            \
         printf("octetus,take,%u,%.4f\n", (unsigned)(WIDTH), cy_);                                                      \

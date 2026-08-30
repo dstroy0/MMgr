@@ -22,7 +22,7 @@ suffixes and the fixed vocabulary survive and only the IDENTITY moves:
 
     ConfiniumNs ConfiniumVars ConfiniumV ConfiniumCtx  ->  X1Ns X1Vars X1V X1Ctx
     MMGR_CONFIN_BORROW CONFIN_OFF_W                    ->  MMGR_X1_BORROW X1_OFF_A
-    mmgr_confin_persist_capio                          ->  mmgr_fn3
+    mmgr_persistent_buf_alloc                          ->  mmgr_fn3
     mmgr_word, uint8_t, size_t, static_assert, atomic_load  ->  unchanged
 
 What is left reads as "an entry, taking the borrow, casting a region at an asserted offset" with no

@@ -289,7 +289,7 @@ void test_words_is_the_load_count(void)
     TEST_ASSERT_EQUAL_size_t(2u, MMGR_CALL(word.count, ScrutWordCfg, .bytes = MMGR_SWAR_BYTES * 2u));
 }
 
-void test_the_worst_case_word_count_covers_the_largest_tenant(void)
+void test_the_worst_case_word_count_covers_the_largest_buffer(void)
 {
     TEST_ASSERT_EQUAL_size_t(MMGR_SCAN_MAX_WORDS, MMGR_CALL(word.count, ScrutWordCfg, .bytes = MMGR_CARCER_MAX));
 }

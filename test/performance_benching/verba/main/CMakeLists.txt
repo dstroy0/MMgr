@@ -37,6 +37,14 @@ idf_component_register(
 # after it is not enough, so the flag is taken back out and replaced. Only this component's objects
 # carry LTO IR, so the plugin has nothing to reorder in any IDF component.
 target_compile_options(${COMPONENT_LIB} PRIVATE -flto=auto -ffat-lto-objects)
+<<<<<<< HEAD
+=======
+
+# The pass that rewrites a byte fill loop as a memset call, off for the zero run arms. That call is
+# about sixty cycles before it writes anything, and every run verba_g asks for is short enough that
+# it never earns them back, so the row has to be able to measure the loop rather than the call.
+target_compile_options(${COMPONENT_LIB} PRIVATE -fno-tree-loop-distribute-patterns)
+>>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 idf_build_get_property(_link_opts LINK_OPTIONS)
 list(REMOVE_ITEM _link_opts "-fno-lto")
 list(APPEND _link_opts "-flto=auto")
