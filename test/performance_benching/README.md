@@ -71,16 +71,16 @@ same calls with SSE or AVX that neither part has.
 
 Ratios are mmgr/libc, so below 1.00 is a win. Cycles per byte at n=2048:
 
-| module     | op   | S3 mmgr | S3 libc | S3 | C6 mmgr | C6 libc | C6 |
-|------------|------|--------:|--------:|---:|--------:|--------:|---:|
-| cellularum | len  | 2.547 | 9.024 | **0.28** | 2.292 | 9.016 | **0.25** |
-| cellularum | chr  | 4.274 | 7.021 | **0.61** | 3.775 | 9.018 | **0.42** |
-| cellularum | cmp  | 2.020 | 2.773 | **0.73** | 1.765 | 2.137 | **0.83** |
-| cellularum | find | 6.543 | 9.021 | **0.73** | 6.290 | 7.019 | **0.90** |
-| memoria    | cmp  | 2.019 | 2.774 | **0.73** | 1.763 | 2.137 | **0.82** |
-| memoria    | chr  | 3.270 | 7.020 | **0.47** | 2.765 | 12.017 | **0.23** |
-| memoria    | cpy  | 0.646 | 0.646 | 1.00 | 0.705 | 0.701 | 1.01 |
-| memoria    | set  | 0.333 | 0.336 | **0.99** | 0.391 | 0.394 | **0.99** |
+| module     | op   | S3 mmgr | S3 libc |       S3 | C6 mmgr | C6 libc |       C6 |
+| ---------- | ---- | ------: | ------: | -------: | ------: | ------: | -------: |
+| cellularum | len  |   2.547 |   9.024 | **0.28** |   2.292 |   9.016 | **0.25** |
+| cellularum | chr  |   4.274 |   7.021 | **0.61** |   3.775 |   9.018 | **0.42** |
+| cellularum | cmp  |   2.020 |   2.773 | **0.73** |   1.765 |   2.137 | **0.83** |
+| cellularum | find |   6.543 |   9.021 | **0.73** |   6.290 |   7.019 | **0.90** |
+| memoria    | cmp  |   2.019 |   2.774 | **0.73** |   1.763 |   2.137 | **0.82** |
+| memoria    | chr  |   3.270 |   7.020 | **0.47** |   2.765 |  12.017 | **0.23** |
+| memoria    | cpy  |   0.646 |   0.646 |     1.00 |   0.705 |   0.701 |     1.01 |
+| memoria    | set  |   0.333 |   0.336 | **0.99** |   0.391 |   0.394 | **0.99** |
 
 `cpy` is level with ROM `memcpy`, which is where a word-at-a-time move lands against hand-written
 assembly once the loop stops costing as much as the move. Everything else is ahead of the part's own
@@ -91,10 +91,10 @@ libc at length.
 Both benches report `floor_loop` and `floor_call`: the loop, counter and volatile store with nothing
 in them, and the same plus one call the optimiser may not remove.
 
-| part | loop alone | plus one call |
-|------|-----------:|--------------:|
-| ESP32-S3 | 6.0 | 41.0 |
-| ESP32-C6 | 3.0 | 28.0 |
+| part     | loop alone | plus one call |
+| -------- | ---------: | ------------: |
+| ESP32-S3 |        6.0 |          41.0 |
+| ESP32-C6 |        3.0 |          28.0 |
 
 Both arms pay it. `len` over eight bytes is 112 cycles on the S3 against ROM `strnlen`'s 113, and 41
 of each is the call. A ratio at n=8 is mostly two call floors.

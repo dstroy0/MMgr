@@ -2,7 +2,7 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
-#include "confinium_externum/confinium_externum.h"
+#include "memoria_externa/memoria_externa.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
@@ -74,7 +74,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/confinium_externum/test_confinium_externum/test_confinium_externum.c");
+  UnityBegin("test/unit/memoria_externa/test_memoria_externa/test_memoria_externa.c");
   run_test(test_exter_header_is_self_contained, "test_exter_header_is_self_contained", 5);
 
   return UNITY_END();

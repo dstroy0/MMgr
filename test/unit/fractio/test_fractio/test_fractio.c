@@ -68,8 +68,7 @@ void test_zero_has_no_exponent_and_no_mantissa(void)
 
 void test_mantissa_drops_the_implicit_bit(void)
 {
-    TEST_ASSERT_EQUAL_UINT64_MESSAGE(0u, mant_of(bits_of(1.0)),
-                                     "1.0 is 1.000... so the stored mantissa is zero");
+    TEST_ASSERT_EQUAL_UINT64_MESSAGE(0u, mant_of(bits_of(1.0)), "1.0 is 1.000... so the stored mantissa is zero");
     TEST_ASSERT_EQUAL_UINT64_MESSAGE(0u, mant_of(bits_of(2.0)), "so is 2.0");
     TEST_ASSERT_EQUAL_UINT64(1ull << (MMGR_DBL_MANT_BITS - 1u), mant_of(bits_of(1.5)));
 }

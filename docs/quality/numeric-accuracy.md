@@ -111,7 +111,7 @@ was.
 
 `mmgr_muto_scale_to_u64` is the same rounding stopping at an integer instead of going on to assemble a
 double, which is the end a digit string needs. It is told the parity of whatever sits above it,
-because ties go to even and even means even *in the number that gets written*: past the point that
+because ties go to even and even means even _in the number that gets written_: past the point that
 is the last digit of the fraction, but ask for no decimals and the tie is decided by the integer
 part instead.
 

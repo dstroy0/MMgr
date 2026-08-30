@@ -85,17 +85,11 @@ MMGR_NS_LAYOUT(AsciiPersonaBitorumNs, in);
  * @brief Returns whether args->byte has its bit set in the kind bitmap.
  *
  * @param[in] args Class and byte to test [BORROWS].
-<<<<<<< HEAD
- * @return      MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
- * @note Bytes 0x80 and above return MMGR_FALSE.
- * @warning args->kind must be below MMGR_ASCII_CLASSES.
-=======
  * @return         MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
  * @note Bytes 0x80 and above return MMGR_FALSE.
  * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
  *          MMGR_DEBUG_CHECKS build: the bitmap is indexed by it, so a byte under 0x80 then reads
  *          past the table.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_bool mmgr_ascii_in(const AsciiCfg *args);
 

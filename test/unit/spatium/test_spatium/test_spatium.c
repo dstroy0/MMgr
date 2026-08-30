@@ -84,10 +84,10 @@ void test_a_narrowing_past_the_end_fails_rather_than_shortening(void)
                               "but there is nothing left to write into");
     TEST_ASSERT_TRUE_MESSAGE(past_end.overflow, "past the end is a failed span");
     TEST_ASSERT_FALSE(MMGR_CALL(spat.ok, SpatiumCfg, .span = past_end));
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(spat.ok, SpatiumCfg,
-                                        .span = MMGR_CALL(spat.first, SpatiumCfg, .span = span,
-                                                          .count = sizeof buf + 1u)),
-                              "past the end is a failed span");
+    TEST_ASSERT_FALSE_MESSAGE(
+        MMGR_CALL(spat.ok, SpatiumCfg,
+                  .span = MMGR_CALL(spat.first, SpatiumCfg, .span = span, .count = sizeof buf + 1u)),
+        "past the end is a failed span");
 }
 
 void test_a_narrowing_keeps_the_bytes_it_names(void)
@@ -146,9 +146,9 @@ void test_a_read_span_reports_what_was_written(void)
     TEST_ASSERT_TRUE(MMGR_CALL(spat.cok, SpatiumCfg, .cspan = done));
 
     // Asking for more than was written is an error, not a shorter span that looks whole
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(spat.cok, SpatiumCfg,
-                                        .cspan = MMGR_CALL(spat.read, SpatiumCfg, .span = span, .count = 11u)),
-                              "a read past what was written must be marked");
+    TEST_ASSERT_FALSE_MESSAGE(
+        MMGR_CALL(spat.cok, SpatiumCfg, .cspan = MMGR_CALL(spat.read, SpatiumCfg, .span = span, .count = 11u)),
+        "a read past what was written must be marked");
     TEST_ASSERT_TRUE(
         MMGR_CALL(spat.cok, SpatiumCfg, .cspan = MMGR_CALL(spat.read, SpatiumCfg, .span = span, .count = 4u)));
     TEST_ASSERT_EQUAL_size_t(4u, MMGR_CALL(spat.read, SpatiumCfg, .span = span, .count = 4u).len);
@@ -160,7 +160,7 @@ void test_a_read_span_carries_the_fill_spans_failure(void)
 
     span.pos = 8u;
     span.overflow = MMGR_TRUE;
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(spat.cok, SpatiumCfg,
-                                        .cspan = MMGR_CALL(spat.produced, SpatiumCfg, .span = span)),
-                              "a span that overflowed produced less than was asked of it");
+    TEST_ASSERT_FALSE_MESSAGE(
+        MMGR_CALL(spat.cok, SpatiumCfg, .cspan = MMGR_CALL(spat.produced, SpatiumCfg, .span = span)),
+        "a span that overflowed produced less than was asked of it");
 }

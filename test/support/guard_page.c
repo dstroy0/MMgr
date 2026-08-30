@@ -154,7 +154,7 @@ int mmgr_guard_traps_on(const unsigned char *p)
     s_armed = 1;
     if (MMGR_GUARD_SETJMP(s_trap) == 0)
     {
-                s_touched = *p;
+        s_touched = *p;
     }
     s_armed = 0;
     return s_trapped;

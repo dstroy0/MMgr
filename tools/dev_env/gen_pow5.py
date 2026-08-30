@@ -32,6 +32,7 @@ def norm(num, den):
 
     def at(shift):
         return (num << shift) // den if shift >= 0 else num // (den << -shift)
+
     while at(s) < (1 << (BITS - 1)):
         s += 1
     while at(s) >= (1 << BITS):

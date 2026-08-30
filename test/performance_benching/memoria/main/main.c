@@ -20,14 +20,14 @@
 #include "device_bench.h"
 
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
-#include "locus_carcerum/locus_carcerum.h"
-#include "confinium_externum/confinium_externum.h"
-#include "spatium/spatium.h"
-#include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 #include "endian/endian.h"
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
+#include "locus_carcerum/locus_carcerum.h"
+#include "memoria_anularis/memoria_anularis.h"
+#include "memoria_externa/memoria_externa.h"
 #include "memoria_operor/memoria_operor.h"
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
+#include "spatium/spatium.h"
 #include "verbum_scrutor/verbum_scrutor.h"
 
 /**
@@ -439,8 +439,7 @@ static mmgr_iword cmp_aligned(const uint8_t *a, const uint8_t *b, size_t bytes)
 
     while (at != full)
     {
-        if (MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at) !=
-            MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at))
+        if (MMGR_CALL(word.load_al, ScrutWordCfg, .at = a + at) != MMGR_CALL(word.load_al, ScrutWordCfg, .at = b + at))
         {
             return 1;
         }
@@ -552,15 +551,15 @@ static uintptr_t ring_segment_cycle(void)
     size_t idx = 0u;
     uintptr_t seen = 0u;
 
-    if (MMGR_CALL(iteratio_infinita.seg_next, InfinCfg, .ring = &g_ring, .out_index = &idx))
+    if (MMGR_CALL(anularis.seg_next, AnularisCfg, .ring = &g_ring, .out_index = &idx))
     {
-        seen |= (uintptr_t)MMGR_CALL(iteratio_infinita.seg_at, InfinCfg, .ring = &g_ring, .index = idx);
-        MMGR_CALL(iteratio_infinita.seg_publish, InfinCfg, .ring = &g_ring);
+        seen |= (uintptr_t)MMGR_CALL(anularis.seg_at, AnularisCfg, .ring = &g_ring, .index = idx);
+        MMGR_CALL(anularis.seg_publish, AnularisCfg, .ring = &g_ring);
     }
-    if (MMGR_CALL(iteratio_infinita.seg_front, InfinCfg, .ring = &g_ring, .out_index = &idx))
+    if (MMGR_CALL(anularis.seg_front, AnularisCfg, .ring = &g_ring, .out_index = &idx))
     {
         seen |= idx + 1u;
-        MMGR_CALL(iteratio_infinita.seg_release, InfinCfg, .ring = &g_ring);
+        MMGR_CALL(anularis.seg_release, AnularisCfg, .ring = &g_ring);
     }
     return seen;
 }
@@ -574,8 +573,8 @@ static uintptr_t ring_segment_cycle(void)
  */
 static uintptr_t ring_loculus_cycle(void)
 {
-    const mmgr_word ready = MMGR_CALL(iteratio_infinita.loculus_ready, InfinCfg, .ring = &g_ring);
-    const mmgr_iword slot = MMGR_CALL(iteratio_infinita.loculus_next, InfinCfg, .ring = &g_ring, .mask = ready);
+    const mmgr_word ready = MMGR_CALL(anularis.loculus_ready, AnularisCfg, .ring = &g_ring);
+    const mmgr_iword slot = MMGR_CALL(anularis.loculus_next, AnularisCfg, .ring = &g_ring, .mask = ready);
     uintptr_t seen = (uintptr_t)ready;
 
     if (slot >= 0)
@@ -583,13 +582,12 @@ static uintptr_t ring_loculus_cycle(void)
         // Explicit cast takes the reported index into the size_t the calls below name it with
         const size_t idx = (size_t)slot;
 
-        if (MMGR_CALL(iteratio_infinita.loculus_hold, InfinCfg, .ring = &g_ring, .index = idx, .src = g_a,
+        if (MMGR_CALL(anularis.loculus_hold, AnularisCfg, .ring = &g_ring, .index = idx, .src = g_a,
                       .bytes = RING_SPAN))
         {
-            seen |= (uintptr_t)MMGR_CALL(iteratio_infinita.loculus_keepout, InfinCfg, .ring = &g_ring,
-                                         .index = idx);
-            MMGR_CALL(iteratio_infinita.loculus_drop, InfinCfg, .ring = &g_ring, .index = idx);
-            MMGR_CALL(iteratio_infinita.loculus_mark, InfinCfg, .ring = &g_ring, .index = idx);
+            seen |= (uintptr_t)MMGR_CALL(anularis.loculus_keepout, AnularisCfg, .ring = &g_ring, .index = idx);
+            MMGR_CALL(anularis.loculus_drop, AnularisCfg, .ring = &g_ring, .index = idx);
+            MMGR_CALL(anularis.loculus_mark, AnularisCfg, .ring = &g_ring, .index = idx);
         }
     }
     return seen;
@@ -604,8 +602,8 @@ static uintptr_t ring_byte_mmgr(void)
 {
     uint8_t held = 0u;
 
-    (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_a, .bytes = 1u);
-    (void)MMGR_CALL(iteratio_infinita.read_byte, InfinCfg, .ring = &g_ring, .dst = &held);
+    (void)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_a, .bytes = 1u);
+    (void)MMGR_CALL(anularis.read_byte, AnularisCfg, .ring = &g_ring, .dst = &held);
     return (uintptr_t)held;
 }
 
@@ -630,10 +628,9 @@ static uintptr_t ring_byte_hand(void)
  */
 static uintptr_t ring_peek_mmgr(void)
 {
-    (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_a, .bytes = RING_SPAN);
-    MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = g_ring_out, .bytes = RING_SPAN,
-              .offset = 0u);
-    MMGR_CALL(iteratio_infinita.consume, InfinCfg, .ring = &g_ring, .bytes = RING_SPAN);
+    (void)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_a, .bytes = RING_SPAN);
+    MMGR_CALL(anularis.peek, AnularisCfg, .ring = &g_ring, .dst = g_ring_out, .bytes = RING_SPAN, .offset = 0u);
+    MMGR_CALL(anularis.consume, AnularisCfg, .ring = &g_ring, .bytes = RING_SPAN);
     return (uintptr_t)g_ring_out[0];
 }
 
@@ -665,9 +662,8 @@ static uintptr_t ring_peek_hand(void)
  */
 static uintptr_t ring_round_mmgr(void)
 {
-    (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_a, .bytes = RING_SPAN);
-    return (uintptr_t)MMGR_CALL(iteratio_infinita.read, InfinCfg, .ring = &g_ring, .dst = g_ring_out,
-                                .bytes = RING_SPAN);
+    (void)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_a, .bytes = RING_SPAN);
+    return (uintptr_t)MMGR_CALL(anularis.read, AnularisCfg, .ring = &g_ring, .dst = g_ring_out, .bytes = RING_SPAN);
 }
 
 /**
@@ -813,8 +809,7 @@ void dbench_run(void)
                 DBENCH_AB("cmp_ctx", iters, n, DBENCH_KEEP(cmp_via_ctx(&ctx)),
                           DBENCH_KEEP(cmp_unaligned(g_a, g_b, g_cmp_len)));
 
-                DBENCH_AB("cmp_hoist", iters, n, DBENCH_KEEP(cmp_via_ctx(&ctx)),
-                          DBENCH_KEEP(cmp_ctx_hoisted(&ctx)));
+                DBENCH_AB("cmp_hoist", iters, n, DBENCH_KEEP(cmp_via_ctx(&ctx)), DBENCH_KEEP(cmp_ctx_hoisted(&ctx)));
 
                 // The plain pointer walk again, this time handed its two regions through pointers
                 // the compiler cannot trace to an object. If it stays fast the shape is worth
@@ -829,8 +824,7 @@ void dbench_run(void)
                 // at 1.00, but both arms there were handed g_a and g_b, so the compiler already knew
                 // the addresses were on a boundary and emitted the same instruction either way. With
                 // pointers it cannot trace, the unaligned load has to actually be unaligned.
-                DBENCH_AB("cmp_al_opaque", iters, n,
-                          DBENCH_KEEP(cmp_unaligned(g_cmp_a, g_cmp_b, g_cmp_len)),
+                DBENCH_AB("cmp_al_opaque", iters, n, DBENCH_KEEP(cmp_unaligned(g_cmp_a, g_cmp_b, g_cmp_len)),
                           DBENCH_KEEP(cmp_aligned(g_cmp_a, g_cmp_b, g_cmp_len)));
             }
 
@@ -838,15 +832,15 @@ void dbench_run(void)
                       DBENCH_KEEP(MMGR_CALL(memor.chr, MemoriaCfg, .src = g_a, .bytes = n, .val = 0xFFu)),
                       DBENCH_KEEP(memchr(g_a, 0xFF, n)));
 
-            DBENCH_AB("cpy", iters, n,
-                      DBENCH_KEEP(
-                          (MMGR_CALL(memor.cpy, MemoriaCfg, .dst = g_d, .src = g_a, .bytes = n), (uintptr_t)g_d)),
-                      DBENCH_KEEP(memcpy(g_d, g_a, n)));
+            DBENCH_AB(
+                "cpy", iters, n,
+                DBENCH_KEEP((MMGR_CALL(memor.cpy, MemoriaCfg, .dst = g_d, .src = g_a, .bytes = n), (uintptr_t)g_d)),
+                DBENCH_KEEP(memcpy(g_d, g_a, n)));
 
-            DBENCH_AB("set", iters, n,
-                      DBENCH_KEEP(
-                          (MMGR_CALL(memor.set, MemoriaCfg, .dst = g_d, .bytes = n, .val = 0x5Au), (uintptr_t)g_d)),
-                      DBENCH_KEEP(memset(g_d, 0x5A, n)));
+            DBENCH_AB(
+                "set", iters, n,
+                DBENCH_KEEP((MMGR_CALL(memor.set, MemoriaCfg, .dst = g_d, .bytes = n, .val = 0x5Au), (uintptr_t)g_d)),
+                DBENCH_KEEP(memset(g_d, 0x5A, n)));
 
             // The two moves, which had no row. Both are given regions that genuinely overlap, since
             // a move handed regions that do not is only a copy and would measure cpy again. The
@@ -854,15 +848,15 @@ void dbench_run(void)
             // it for the downward one, which is the direction each is named for and the case where
             // choosing the wrong one corrupts the result rather than merely being slow.
             DBENCH_AB("move_up", iters, n,
-                      DBENCH_KEEP((MMGR_CALL(memor.move_up, MemoriaCfg, .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d,
-                                             .bytes = n),
-                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP(
+                          (MMGR_CALL(memor.move_up, MemoriaCfg, .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n),
+                           (uintptr_t)g_d)),
                       DBENCH_KEEP(memmove(g_d + MMGR_ALIGN_BYTES, g_d, n)));
 
             DBENCH_AB("move_down", iters, n,
-                      DBENCH_KEEP((MMGR_CALL(memor.move_down, MemoriaCfg, .dst = g_d, .src = g_d + MMGR_ALIGN_BYTES,
-                                             .bytes = n),
-                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((
+                          MMGR_CALL(memor.move_down, MemoriaCfg, .dst = g_d, .src = g_d + MMGR_ALIGN_BYTES, .bytes = n),
+                          (uintptr_t)g_d)),
                       DBENCH_KEEP(memmove(g_d, g_d + MMGR_ALIGN_BYTES, n)));
         }
 
@@ -874,26 +868,25 @@ void dbench_run(void)
         {
             const uint32_t iters = 20000u;
 
-            DBENCH_AB("rev32", iters, 4u,
-                      DBENCH_KEEP(MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = g_swap_val,
-                                            .width = MMGR_ENDIAN_32)),
-                      DBENCH_KEEP(__builtin_bswap32((uint32_t)g_swap_val)));
+            DBENCH_AB(
+                "rev32", iters, 4u,
+                DBENCH_KEEP(MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = g_swap_val, .width = MMGR_ENDIAN_32)),
+                DBENCH_KEEP(__builtin_bswap32((uint32_t)g_swap_val)));
 
-            DBENCH_AB("rev64", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = g_swap_val,
-                                            .width = MMGR_ENDIAN_64)),
-                      DBENCH_KEEP(__builtin_bswap64(g_swap_val)));
+            DBENCH_AB(
+                "rev64", iters, 8u,
+                DBENCH_KEEP(MMGR_CALL(magna_extremitas.rev, EndianCfg, .val = g_swap_val, .width = MMGR_ENDIAN_64)),
+                DBENCH_KEEP(__builtin_bswap64(g_swap_val)));
 
             DBENCH_AB("wr32", iters, 4u,
-                      DBENCH_KEEP(MMGR_CALL(magna_extremitas.wr, EndianCfg, .dst = g_d + g_swap_off,
-                                            .val = g_swap_val, .width = MMGR_ENDIAN_32)),
-                      DBENCH_KEEP((memcpy(g_d + g_swap_off, &(uint32_t){__builtin_bswap32((uint32_t)g_swap_val)},
-                                          4u),
+                      DBENCH_KEEP(MMGR_CALL(magna_extremitas.wr, EndianCfg, .dst = g_d + g_swap_off, .val = g_swap_val,
+                                            .width = MMGR_ENDIAN_32)),
+                      DBENCH_KEEP((memcpy(g_d + g_swap_off, &(uint32_t){__builtin_bswap32((uint32_t)g_swap_val)}, 4u),
                                    (uintptr_t)g_d)));
 
             DBENCH_AB("rd32", iters, 4u,
-                      DBENCH_KEEP(MMGR_CALL(magna_extremitas.rd, EndianCfg, .src = g_d + g_swap_off,
-                                            .width = MMGR_ENDIAN_32)),
+                      DBENCH_KEEP(
+                          MMGR_CALL(magna_extremitas.rd, EndianCfg, .src = g_d + g_swap_off, .width = MMGR_ENDIAN_32)),
                       DBENCH_KEEP(__builtin_bswap32(*(const uint32_t *)(g_d + g_swap_off))));
         }
 
@@ -919,45 +912,40 @@ void dbench_run(void)
         {
             const uint32_t iters = 5000u;
 
-            (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_ring_buf,
-                            .capacity = RING_CAP, .segment_count = RING_SEGS);
+            (void)MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_ring_buf, .capacity = RING_CAP,
+                            .segment_count = RING_SEGS);
             g_hand_head = 0u;
             g_hand_tail = 0u;
 
-            DBENCH_AB("ring_avail", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(iteratio_infinita.available, InfinCfg, .ring = &g_ring)),
+            DBENCH_AB("ring_avail", iters, 8u, DBENCH_KEEP(MMGR_CALL(anularis.available, AnularisCfg, .ring = &g_ring)),
                       DBENCH_KEEP(g_hand_head - g_hand_tail));
 
             // The same question against two indices read the way the ring reads its own. The row
             // above is against a plain subtraction, which is not safe across two contexts and so is
             // not the same job; this one is, and the gap between the two rows is the ordering.
             DBENCH_AB("ring_avail_ord", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(iteratio_infinita.available, InfinCfg, .ring = &g_ring)),
+                      DBENCH_KEEP(MMGR_CALL(anularis.available, AnularisCfg, .ring = &g_ring)),
                       DBENCH_KEEP(atomic_load_explicit(&g_ord_head, memory_order_acquire) -
                                   atomic_load_explicit(&g_ord_tail, memory_order_acquire)));
 
-            DBENCH_AB("ring_vacant", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(iteratio_infinita.vacant, InfinCfg, .ring = &g_ring)),
+            DBENCH_AB("ring_vacant", iters, 8u, DBENCH_KEEP(MMGR_CALL(anularis.vacant, AnularisCfg, .ring = &g_ring)),
                       DBENCH_KEEP(RING_CAP - (g_hand_head - g_hand_tail)));
 
-            DBENCH_AB("ring_round", iters, RING_SPAN, DBENCH_KEEP(ring_round_mmgr()),
-                      DBENCH_KEEP(ring_round_hand()));
+            DBENCH_AB("ring_round", iters, RING_SPAN, DBENCH_KEEP(ring_round_mmgr()), DBENCH_KEEP(ring_round_hand()));
 
             DBENCH_AB("ring_byte", iters, 1u, DBENCH_KEEP(ring_byte_mmgr()), DBENCH_KEEP(ring_byte_hand()));
 
-            DBENCH_AB("ring_peek", iters, RING_SPAN, DBENCH_KEEP(ring_peek_mmgr()),
-                      DBENCH_KEEP(ring_peek_hand()));
+            DBENCH_AB("ring_peek", iters, RING_SPAN, DBENCH_KEEP(ring_peek_mmgr()), DBENCH_KEEP(ring_peek_hand()));
 
             DBENCH_AB("ring_init", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring,
-                                            .buf = g_ring_buf, .capacity = RING_CAP,
-                                            .segment_count = RING_SEGS)),
+                      DBENCH_KEEP(MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_ring_buf,
+                                            .capacity = RING_CAP, .segment_count = RING_SEGS)),
                       DBENCH_KEEP((g_hand_head = 0u, g_hand_tail = 0u, (uintptr_t)1)));
 
             // The two layers a plain ring has no answer for at all, so these are absolute costs
             // rather than comparisons: a segment handshake, and a loculus taken and given back.
-            (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_ring_buf,
-                            .capacity = RING_CAP, .segment_count = RING_SEGS);
+            (void)MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_ring_buf, .capacity = RING_CAP,
+                            .segment_count = RING_SEGS);
             DBENCH_OP("ring_segment", iters, DBENCH_KEEP(ring_segment_cycle()));
             DBENCH_OP("ring_loculus", iters, DBENCH_KEEP(ring_loculus_cycle()));
         }
@@ -969,14 +957,13 @@ void dbench_run(void)
         {
             const uint32_t iters = 20000u;
 
-            DBENCH_OP("span_from", iters,
-                      DBENCH_KEEP(MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = g_take).cap));
+            DBENCH_OP("span_from", iters, DBENCH_KEEP(MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = g_take).cap));
 
-            DBENCH_OP("span_after", iters,
-                      DBENCH_KEEP(MMGR_CALL(spat.after, SpatiumCfg,
-                                            .span = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP),
-                                            .count = g_take)
-                                      .cap));
+            DBENCH_OP(
+                "span_after", iters,
+                DBENCH_KEEP(MMGR_CALL(spat.after, SpatiumCfg,
+                                      .span = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP), .count = g_take)
+                                .cap));
 
             DBENCH_OP("span_ok", iters,
                       DBENCH_KEEP(MMGR_CALL(spat.ok, SpatiumCfg,
@@ -1007,38 +994,35 @@ void dbench_run(void)
             const uint32_t iters = 20000u;
             PingPong pingpong;
 
-            MMGR_CALL(exter.pingpong_init, ExternumCfg, .pingpong = &pingpong);
+            MMGR_CALL(exter.pingpong_init, ExternaCfg, .pingpong = &pingpong);
 
             // Below the threshold with room in both, which takes internal memory on the first test.
             DBENCH_OP("ext_place_dram", iters,
-                      DBENCH_KEEP(MMGR_CALL(exter.place, ExternumCfg, .size = g_ext_small,
-                                            .dma_required = MMGR_FALSE, .free_dram = 65536u,
-                                            .free_psram = 1048576u, .psram_threshold = 4096u,
+                      DBENCH_KEEP(MMGR_CALL(exter.place, ExternaCfg, .size = g_ext_small, .dma_required = MMGR_FALSE,
+                                            .free_dram = 65536u, .free_psram = 1048576u, .psram_threshold = 4096u,
                                             .dram_reserve = 8192u)));
 
             // At or above it, which tries external memory first.
             DBENCH_OP("ext_place_psram", iters,
-                      DBENCH_KEEP(MMGR_CALL(exter.place, ExternumCfg, .size = g_ext_large,
-                                            .dma_required = MMGR_FALSE, .free_dram = 65536u,
-                                            .free_psram = 1048576u, .psram_threshold = 4096u,
+                      DBENCH_KEEP(MMGR_CALL(exter.place, ExternaCfg, .size = g_ext_large, .dma_required = MMGR_FALSE,
+                                            .free_dram = 65536u, .free_psram = 1048576u, .psram_threshold = 4096u,
                                             .dram_reserve = 8192u)));
 
             // A DMA request, which only internal memory can answer. Both fits are worked out before
             // the branches, so this path pays for an external test whose answer it cannot use.
             DBENCH_OP("ext_place_dma", iters,
-                      DBENCH_KEEP(MMGR_CALL(exter.place, ExternumCfg, .size = g_ext_small,
-                                            .dma_required = MMGR_TRUE, .free_dram = 65536u,
-                                            .free_psram = 1048576u, .psram_threshold = 4096u,
+                      DBENCH_KEEP(MMGR_CALL(exter.place, ExternaCfg, .size = g_ext_small, .dma_required = MMGR_TRUE,
+                                            .free_dram = 65536u, .free_psram = 1048576u, .psram_threshold = 4096u,
                                             .dram_reserve = 8192u)));
 
             DBENCH_OP("ext_pp_fill", iters,
-                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_fill, ExternumCfg, .pingpong = &pingpong)));
+                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_fill, ExternaCfg, .pingpong = &pingpong)));
 
             DBENCH_OP("ext_pp_drain", iters,
-                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_drain, ExternumCfg, .pingpong = &pingpong)));
+                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_drain, ExternaCfg, .pingpong = &pingpong)));
 
             DBENCH_OP("ext_pp_swap", iters,
-                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_swap, ExternumCfg, .pingpong = &pingpong)));
+                      DBENCH_KEEP(MMGR_CALL(exter.pingpong_swap, ExternaCfg, .pingpong = &pingpong)));
         }
 
         // The bit writer, which had no rows anywhere. init and align are a handful of field stores;
@@ -1047,8 +1031,7 @@ void dbench_run(void)
             const uint32_t iters = 20000u;
             mmgr_bitor bw = MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP);
 
-            DBENCH_OP("bit_init", iters,
-                      DBENCH_KEEP(MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP).cap));
+            DBENCH_OP("bit_init", iters, DBENCH_KEEP(MMGR_CALL(bitio.init, BitorumCfg, .out = g_d, .cap = CAP).cap));
 
             // Reset each pass, so no row measures a writer that has already filled its buffer and
             // is refusing on the overflow latch rather than writing.
@@ -1130,13 +1113,10 @@ void dbench_run(void)
 
             DBENCH_AB("wire_mpint_fill", iters, (unsigned)field,
                       (MMGR_CALL(memor.set, MemoriaCfg, .dst = g_b, .val = (uint8_t)0, .bytes = field),
-                       MMGR_CALL(memor.cpy, MemoriaCfg, .dst = g_b + (field - vlen), .src = g_a,
-                                 .bytes = vlen),
+                       MMGR_CALL(memor.cpy, MemoriaCfg, .dst = g_b + (field - vlen), .src = g_a, .bytes = vlen),
                        DBENCH_KEEP(g_b)),
-                      (MMGR_CALL(memor.set, MemoriaCfg, .dst = g_b, .val = (uint8_t)0,
-                                 .bytes = field - vlen),
-                       MMGR_CALL(memor.cpy, MemoriaCfg, .dst = g_b + (field - vlen), .src = g_a,
-                                 .bytes = vlen),
+                      (MMGR_CALL(memor.set, MemoriaCfg, .dst = g_b, .val = (uint8_t)0, .bytes = field - vlen),
+                       MMGR_CALL(memor.cpy, MemoriaCfg, .dst = g_b + (field - vlen), .src = g_a, .bytes = vlen),
                        DBENCH_KEEP(g_b)));
         }
 
@@ -1182,13 +1162,11 @@ void dbench_run(void)
 
             DBENCH_OP("wire_take_be4", iters,
                       (r.pos = 0u, r.err = MMGR_FALSE,
-                       DBENCH_KEEP(MMGR_CALL(byteio.take_be, OctetusCfg, .read_span = &r, .out = &got,
-                                             .bytes = 4u))));
+                       DBENCH_KEEP(MMGR_CALL(byteio.take_be, OctetusCfg, .read_span = &r, .out = &got, .bytes = 4u))));
 
             DBENCH_OP("wire_take_be8", iters,
                       (r.pos = 0u, r.err = MMGR_FALSE,
-                       DBENCH_KEEP(MMGR_CALL(byteio.take_be, OctetusCfg, .read_span = &r, .out = &got,
-                                             .bytes = 8u))));
+                       DBENCH_KEEP(MMGR_CALL(byteio.take_be, OctetusCfg, .read_span = &r, .out = &got, .bytes = 8u))));
 
             // rd_str reads a four byte length and then points at the run behind it, so the span it
             // reads from is built with a length that fits inside the buffer rather than whatever
@@ -1209,9 +1187,9 @@ void dbench_run(void)
             // here because that is what a fixed width integer field is.
             mmgr_span field = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_b, .cap = 32u);
 
-            DBENCH_OP("wire_mpint", iters,
-                      DBENCH_KEEP(MMGR_CALL(byteio.mpint_fixed, OctetusCfg, .write_span = &field, .src = g_a,
-                                            .bytes = 20u)));
+            DBENCH_OP(
+                "wire_mpint", iters,
+                DBENCH_KEEP(MMGR_CALL(byteio.mpint_fixed, OctetusCfg, .write_span = &field, .src = g_a, .bytes = 20u)));
         }
 
         DBENCH_DONE();

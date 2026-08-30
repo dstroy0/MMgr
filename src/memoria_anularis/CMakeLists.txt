@@ -6,7 +6,7 @@
 # what folds a call back into its caller across that boundary, so the separation costs nothing at
 # link time. No DEPS: the span mover, the bit index and the span type are all defined in the .c,
 # so the module reaches nothing outside config.
-mmgr_add_module(confinium_exclusivum_infinitas
-  SOURCES confinium_exclusivum_infinitas.c
+mmgr_add_module(memoria_anularis
+  SOURCES memoria_anularis.c
   DEPS
 )

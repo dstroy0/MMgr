@@ -44,7 +44,7 @@ Latin names, because they were carved out of a larger tree and the short English
 | module                                                                                                      | what it is                                                 |
 | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | [`carceribus`](src/carceribus)                                                                              | the two-ended allocator that everything else sits on       |
-| [`confinium_exclusivum_infinitas`](src/confinium_exclusivum_infinitas)                                      | the lock-free ring between a producer and a consumer       |
+| [`memoria_anularis`](src/memoria_anularis)                                                                  | the lock-free ring between a producer and a consumer       |
 | [`spatium`](src/spatium)                                                                                    | bounded views over caller memory; owns nothing             |
 | [`cellularum_laboro`](src/cellularum_laboro)                                                                | bounded string work: search, compare, parse                |
 | [`verbum_scrutor`](src/verbum_scrutor)                                                                      | the SWAR core the scans are built from                     |

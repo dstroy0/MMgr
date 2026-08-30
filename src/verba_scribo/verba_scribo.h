@@ -2,16 +2,6 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
-<<<<<<< HEAD
- * @brief Text and number formatting: the limits, and one table per kind of thing written.
- *
- * @note Five tables rather than one, each with the arguments its own entries read. A call carries the
- *       destination and the value it is placing, and nothing else: writing a character does not pass
- *       a double, a base and a column count it will never look at.
- * @note Every writing entry takes the offset to write at and returns the offset past what it wrote, so calls chain.
- * @note An entry that will not fit returns args->cap, which every later entry then reads as no room left.
- * @note finish stores the terminator and reports the length; nothing before it terminates the buffer.
-=======
  * @file verba_scribo.h
  * @brief Text and number formatting, the limits, and one table per kind of thing written.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
@@ -23,7 +13,6 @@
  * @note Every writing entry takes the offset to write at and returns the offset past what it wrote, so calls chain.
  * @note An entry that will not fit returns args->cap, which every later entry then reads as no room left.
  * @note finish stores the terminator and reports the length. Nothing before it terminates the buffer.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 #ifndef MMGR_VERBA_SCRIBO_H
 #define MMGR_VERBA_SCRIBO_H
@@ -35,42 +24,24 @@ MMGR_INCIPE_DECLS
 /**
  * @brief Expands to 18u, the most significant digits mmgr_verba_g will keep.
  *
-<<<<<<< HEAD
- * @note A larger args->sig is held here; an args->sig of 0 is taken as 1.
-=======
  * @note A larger args->sig is held here. An args->sig of 0 is taken as 1.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 #define MMGR_G_MAX_SIG 18u
 
 /**
  * @brief Expands to 18u, the most digits after the point mmgr_verba_fixed will write.
  *
-<<<<<<< HEAD
- * @note A larger args->decimals is held here; an args->decimals of 0 writes no point at all.
-=======
  * @note A larger args->decimals is held here. An args->decimals of 0 writes no point at all.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 #define MMGR_FIXED_MAX_DECIMALS 18u
 
 /**
-<<<<<<< HEAD
- * @brief Arguments for the entries that write text written into a buffer.
- *
- * @param out      Destination buffer [BORROWS].
- * @param cap      Bytes available in out.
- * @param at       Offset to write at.
- * @param text     Text to write [BORROWS].
- * @param text_len Bytes of text put_n writes, and the length put takes when non-zero.
-=======
  * @brief Arguments for the entries that write text into a buffer.
  *
  * @note put_n writes text_len bytes. put measures the text when text_len is 0 and takes it as given
  *       otherwise. put_clip, xml and json read text and leave text_len alone.
  * @warning out must be writable for cap bytes. A byte is always held back for the terminator finish
  *          stores.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 typedef struct
 {
@@ -84,11 +55,7 @@ typedef struct
 /**
  * @brief Type of the verba_textus dispatch table.
  *
-<<<<<<< HEAD
- * @note MMGR_NS_LAYOUT asserts the five members sit at consecutive MMGR_FP_SIZE offsets.
-=======
  * @note MMGR_NS_LAYOUT asserts the five members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 typedef struct
 {
@@ -103,284 +70,6 @@ MMGR_NS_LAYOUT(VerbaScriboTextusNs, put_n, put, put_clip, xml, json);
 /**
  * @brief Arguments for the entries that write one character.
  *
-<<<<<<< HEAD
- * @param out      Destination buffer [BORROWS].
- * @param cap      Bytes available in out.
- * @param at       Offset to write at.
- * @param ch       Character to write.
- */
-typedef struct
-{
-    char *const out;  /**< Destination buffer [BORROWS]. */
-    const size_t cap; /**< Bytes available in out. */
-    const size_t at;  /**< Offset to write at. */
-    const char ch;    /**< Character to write. */
-} VerbaLitteraCfg;
-
-/**
- * @brief Type of the verba_littera dispatch table.
- *
- * @note MMGR_NS_LAYOUT asserts the one members sit at consecutive MMGR_FP_SIZE offsets.
- */
-typedef struct
-{
-    size_t (*ch)(const VerbaLitteraCfg *args); /**< Writes one character. */
-} VerbaScriboLitteraNs;
-MMGR_NS_LAYOUT(VerbaScriboLitteraNs, ch);
-
-/**
- * @brief Arguments for the entries that write an integer.
- *
- * @param out      Destination buffer [BORROWS].
- * @param cap      Bytes available in out.
- * @param at       Offset to write at.
- * @param val      Unsigned value the unsigned entries write.
- * @param sval     Signed value i64 writes.
- * @param base     Numeric base uint writes in: 8, 16, or anything else for ten.
- * @param min      Fewest digits to write, padded on the left with zeros.
- * @param columns  Fewest columns u64_clip fills, padded on the left with spaces.
- */
-typedef struct
-{
-    char *const out;       /**< Destination buffer [BORROWS]. */
-    const size_t cap;      /**< Bytes available in out. */
-    const size_t at;       /**< Offset to write at. */
-    const uint64_t val;    /**< Unsigned value the unsigned entries write. */
-    const int64_t sval;    /**< Signed value i64 writes. */
-    const uint8_t base;    /**< Numeric base uint writes in: 8, 16, or anything else for ten. */
-    const uint8_t min;     /**< Fewest digits to write, padded on the left with zeros. */
-    const uint8_t columns; /**< Fewest columns u64_clip fills, padded on the left with spaces. */
-} VerbaNumerusCfg;
-
-/**
- * @brief Type of the verba_numerus dispatch table.
- *
- * @note MMGR_NS_LAYOUT asserts the seven members sit at consecutive MMGR_FP_SIZE offsets.
- */
-typedef struct
-{
-    size_t (*u64_clip)(const VerbaNumerusCfg *args); /**< Writes a value right aligned, padded with spaces. */
-    size_t (*uint)(const VerbaNumerusCfg *args);     /**< Writes a value in the base the caller gives. */
-    size_t (*u32w)(const VerbaNumerusCfg *args);     /**< Writes a value in base ten, padded to min digits. */
-    size_t (*hex)(const VerbaNumerusCfg *args);      /**< Writes a value in lower case base sixteen. */
-    size_t (*u32)(const VerbaNumerusCfg *args);      /**< Writes a value in base ten, unpadded. */
-    size_t (*u64)(const VerbaNumerusCfg *args);      /**< Writes a value in base ten, unpadded. */
-    size_t (*i64)(const VerbaNumerusCfg *args);      /**< Writes a signed value in base ten. */
-} VerbaScriboNumerusNs;
-MMGR_NS_LAYOUT(VerbaScriboNumerusNs, u64_clip, uint, u32w, hex, u32, u64, i64);
-
-/**
- * @brief Arguments for the entries that write a double.
- *
- * @param out      Destination buffer [BORROWS]. The three predicates leave it unset.
- * @param cap      Bytes available in out.
- * @param at       Offset to write at.
- * @param real     The value to write or classify.
- * @param sig      Significant digits g keeps, held at MMGR_G_MAX_SIG.
- * @param decimals Digits after the point fixed writes, held at MMGR_FIXED_MAX_DECIMALS.
- */
-typedef struct
-{
-    char *const out;        /**< Destination buffer [BORROWS]. The three predicates leave it unset. */
-    const size_t cap;       /**< Bytes available in out. */
-    const size_t at;        /**< Offset to write at. */
-    const double real;      /**< The value to write or classify. */
-    const uint8_t sig;      /**< Significant digits g keeps, held at MMGR_G_MAX_SIG. */
-    const uint8_t decimals; /**< Digits after the point fixed writes, held at MMGR_FIXED_MAX_DECIMALS. */
-} VerbaFractioCfg;
-
-/**
- * @brief Type of the verba_fractio dispatch table.
- *
- * @note MMGR_NS_LAYOUT asserts the five members sit at consecutive MMGR_FP_SIZE offsets.
- */
-typedef struct
-{
-    size_t (*g)(const VerbaFractioCfg *args);           /**< Writes a double to a significant digit count. */
-    size_t (*fixed)(const VerbaFractioCfg *args);       /**< Writes a double to a decimal count. */
-    mmgr_bool (*sign_bit)(const VerbaFractioCfg *args); /**< Reports a double's sign bit. */
-    mmgr_bool (*is_inf)(const VerbaFractioCfg *args);   /**< Reports whether a double is an infinity. */
-    mmgr_bool (*is_nan)(const VerbaFractioCfg *args);   /**< Reports whether a double is a NaN. */
-} VerbaScriboFractioNs;
-MMGR_NS_LAYOUT(VerbaScriboFractioNs, g, fixed, sign_bit, is_inf, is_nan);
-
-/**
- * @brief Arguments for the entries that write the buffer itself, with no value to place in it.
- *
- * @param out      Destination buffer [BORROWS]. ok leaves it unset.
- * @param cap      Bytes available in out.
- * @param at       Offset reached.
- */
-typedef struct
-{
-    char *const out;  /**< Destination buffer [BORROWS]. ok leaves it unset. */
-    const size_t cap; /**< Bytes available in out. */
-    const size_t at;  /**< Offset reached. */
-} VerbaFinisCfg;
-
-/**
- * @brief Type of the verba_finis dispatch table.
- *
- * @note MMGR_NS_LAYOUT asserts the two members sit at consecutive MMGR_FP_SIZE offsets.
- */
-typedef struct
-{
-    size_t (*finish)(const VerbaFinisCfg *args); /**< Stores the terminator and reports the length. */
-    mmgr_bool (*ok)(const VerbaFinisCfg *args);  /**< Reports whether there is still room. */
-} VerbaScriboFinisNs;
-MMGR_NS_LAYOUT(VerbaScriboFinisNs, finish, ok);
-
-/**
- * @brief Writes a counted run of text.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_put_n(const VerbaTextusCfg *args);
-
-/**
- * @brief Writes a terminated string, measuring it first.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_put(const VerbaTextusCfg *args);
-
-/**
- * @brief Writes as much of a string as fits.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_put_clip(const VerbaTextusCfg *args);
-
-/**
- * @brief Writes text with the four XML entities substituted.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_xml(const VerbaTextusCfg *args);
-
-/**
- * @brief Writes text as a quoted JSON string.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_json(const VerbaTextusCfg *args);
-
-/**
- * @brief Writes one character.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_ch(const VerbaLitteraCfg *args);
-
-/**
- * @brief Writes a value right aligned, padded with spaces.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_u64_clip(const VerbaNumerusCfg *args);
-
-/**
- * @brief Writes a value in the base the caller gives.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_uint(const VerbaNumerusCfg *args);
-
-/**
- * @brief Writes a value in base ten, padded to min digits.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_u32w(const VerbaNumerusCfg *args);
-
-/**
- * @brief Writes a value in lower case base sixteen.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_hex(const VerbaNumerusCfg *args);
-
-/**
- * @brief Writes a value in base ten, unpadded.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_u32(const VerbaNumerusCfg *args);
-
-/**
- * @brief Writes a value in base ten, unpadded.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_u64(const VerbaNumerusCfg *args);
-
-/**
- * @brief Writes a signed value in base ten.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_i64(const VerbaNumerusCfg *args);
-
-/**
- * @brief Writes a double to a significant digit count.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_g(const VerbaFractioCfg *args);
-
-/**
- * @brief Writes a double to a decimal count.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-size_t mmgr_verba_fixed(const VerbaFractioCfg *args);
-
-/**
- * @brief Reports a double's sign bit.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The answer; nothing is written.
- */
-mmgr_bool mmgr_verba_sign_bit(const VerbaFractioCfg *args);
-
-/**
- * @brief Reports whether a double is an infinity.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The answer; nothing is written.
- */
-mmgr_bool mmgr_verba_is_inf(const VerbaFractioCfg *args);
-
-/**
- * @brief Reports whether a double is a NaN.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The answer; nothing is written.
- */
-mmgr_bool mmgr_verba_is_nan(const VerbaFractioCfg *args);
-
-/**
- * @brief Stores the terminator and reports the length.
- *
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The offset past what was written, or args->cap when it did not fit.
- */
-=======
  * @note Only mmgr_verba_ch reads these, and it writes one byte at the offset in at.
  * @warning out must be writable for cap bytes. A byte is always held back for the terminator finish
  *          stores.
@@ -700,29 +389,19 @@ mmgr_bool mmgr_verba_is_nan(const VerbaFractioCfg *args);
  * @note A return of 0 covers both an empty result and one that ran out of room. ok tells them apart.
  * @warning The only entry that writes a terminator, so a buffer is not a string until this has run.
  */
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 size_t mmgr_verba_finish(const VerbaFinisCfg *args);
 
 /**
  * @brief Reports whether there is still room.
  *
-<<<<<<< HEAD
- * @param[in] args The arguments this entry reads [BORROWS].
- * @return      The answer; nothing is written.
-=======
  * @param[in] args Capacity and the offset reached [BORROWS].
  * @return         MMGR_TRUE while there is still room, MMGR_FALSE once an entry returned args->cap.
  * @note Reads neither args->out nor any value member, so it touches no memory and args->out may be NULL.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_bool mmgr_verba_ok(const VerbaFinisCfg *args);
 
 /**
-<<<<<<< HEAD
- * @brief Dispatch table instance named verba_textus.
-=======
  * @brief Dispatch table instance named verba_textus, with each member set to its mmgr_verba_ function.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_NS VerbaScriboTextusNs verba_textus MMGR_UNUSED = {
     .put_n = mmgr_verba_put_n,
@@ -733,22 +412,14 @@ MMGR_NS VerbaScriboTextusNs verba_textus MMGR_UNUSED = {
 };
 
 /**
-<<<<<<< HEAD
- * @brief Dispatch table instance named verba_littera.
-=======
  * @brief Dispatch table instance named verba_littera, whose one member is set to mmgr_verba_ch.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_NS VerbaScriboLitteraNs verba_littera MMGR_UNUSED = {
     .ch = mmgr_verba_ch,
 };
 
 /**
-<<<<<<< HEAD
- * @brief Dispatch table instance named verba_numerus.
-=======
  * @brief Dispatch table instance named verba_numerus, with each member set to its mmgr_verba_ function.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_NS VerbaScriboNumerusNs verba_numerus MMGR_UNUSED = {
     .u64_clip = mmgr_verba_u64_clip,
@@ -761,11 +432,7 @@ MMGR_NS VerbaScriboNumerusNs verba_numerus MMGR_UNUSED = {
 };
 
 /**
-<<<<<<< HEAD
- * @brief Dispatch table instance named verba_fractio.
-=======
  * @brief Dispatch table instance named verba_fractio, with each member set to its mmgr_verba_ function.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_NS VerbaScriboFractioNs verba_fractio MMGR_UNUSED = {
     .g = mmgr_verba_g,
@@ -776,11 +443,7 @@ MMGR_NS VerbaScriboFractioNs verba_fractio MMGR_UNUSED = {
 };
 
 /**
-<<<<<<< HEAD
- * @brief Dispatch table instance named verba_finis.
-=======
  * @brief Dispatch table instance named verba_finis, with each member set to its mmgr_verba_ function.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_NS VerbaScriboFinisNs verba_finis MMGR_UNUSED = {
     .finish = mmgr_verba_finish,

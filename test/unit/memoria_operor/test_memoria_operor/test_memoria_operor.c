@@ -62,7 +62,6 @@ void test_memor_namespace_is_wired(void)
                                      "the namespace instance is not its own type");
 }
 
-
 void test_cpy_matches_memcpy_at_every_length(void)
 {
     static unsigned char src[BODY];
@@ -82,7 +81,7 @@ void test_cpy_matches_memcpy_at_every_offset(void)
     static unsigned char src[BODY];
     pattern(src, sizeof src, 5u);
 
-            for (size_t off = 0; off < 9u; off++)
+    for (size_t off = 0; off < 9u; off++)
     {
         for (size_t soff = 0; soff < 9u; soff++)
         {
@@ -99,7 +98,6 @@ void test_cpy_of_nothing_touches_nothing(void)
     MMGR_CALL(memor.cpy, MemoriaCfg, .dst = got + PAD, .src = "abc", .bytes = (size_t)0);
     same("cpy of zero");
 }
-
 
 void test_move_matches_memmove_when_the_regions_do_not_touch(void)
 {
@@ -150,11 +148,10 @@ void test_move_of_nothing_touches_nothing(void)
 
 void test_move_of_regions_that_end_exactly_where_the_other_starts(void)
 {
-        MMGR_CALL(memor.move_down, MemoriaCfg, .dst = got + PAD, .src = got + PAD + 16u, .bytes = (size_t)16);
+    MMGR_CALL(memor.move_down, MemoriaCfg, .dst = got + PAD, .src = got + PAD + 16u, .bytes = (size_t)16);
     memmove(want + PAD, want + PAD + 16u, 16u);
     same("move, adjacent");
 }
-
 
 void test_cmp_agrees_with_memcmp_on_the_sign(void)
 {
@@ -166,8 +163,10 @@ void test_cmp_agrees_with_memcmp_on_the_sign(void)
     TEST_ASSERT_GREATER_THAN_INT(0, MMGR_CALL(memor.cmp, MemoriaCfg, .src = a, .other = lo, .bytes = sizeof a));
     TEST_ASSERT_LESS_THAN_INT(0, MMGR_CALL(memor.cmp, MemoriaCfg, .src = a, .other = hi, .bytes = sizeof a));
 
-    TEST_ASSERT_EQUAL_INT(memcmp(a, lo, sizeof a) > 0, MMGR_CALL(memor.cmp, MemoriaCfg, .src = a, .other = lo, .bytes = sizeof a) > 0);
-    TEST_ASSERT_EQUAL_INT(memcmp(a, hi, sizeof a) < 0, MMGR_CALL(memor.cmp, MemoriaCfg, .src = a, .other = hi, .bytes = sizeof a) < 0);
+    TEST_ASSERT_EQUAL_INT(memcmp(a, lo, sizeof a) > 0,
+                          MMGR_CALL(memor.cmp, MemoriaCfg, .src = a, .other = lo, .bytes = sizeof a) > 0);
+    TEST_ASSERT_EQUAL_INT(memcmp(a, hi, sizeof a) < 0,
+                          MMGR_CALL(memor.cmp, MemoriaCfg, .src = a, .other = hi, .bytes = sizeof a) < 0);
 }
 
 void test_cmp_finds_a_difference_at_every_position(void)
@@ -197,9 +196,9 @@ void test_cmp_reads_no_further_than_it_was_told(void)
     static const unsigned char a[8] = {1u, 1u, 1u, 1u, 9u, 9u, 9u, 9u};
     static const unsigned char b[8] = {1u, 1u, 1u, 1u, 0u, 0u, 0u, 0u};
 
-    TEST_ASSERT_EQUAL_INT_MESSAGE(0, MMGR_CALL(memor.cmp, MemoriaCfg, .src = a, .other = b, .bytes = (size_t)4), "the difference is past the count");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(0, MMGR_CALL(memor.cmp, MemoriaCfg, .src = a, .other = b, .bytes = (size_t)4),
+                                  "the difference is past the count");
 }
-
 
 void test_chr_matches_memchr_at_every_position(void)
 {
@@ -209,7 +208,7 @@ void test_chr_matches_memchr_at_every_position(void)
     {
         pattern(hay, sizeof hay, 2u);
         hay[at] = 0xC7u;
-                for (size_t i = 0; i < at; i++)
+        for (size_t i = 0; i < at; i++)
         {
             if (hay[i] == 0xC7u)
             {
@@ -217,7 +216,8 @@ void test_chr_matches_memchr_at_every_position(void)
             }
         }
 
-        TEST_ASSERT_EQUAL_PTR(memchr(hay, 0xC7, sizeof hay), MMGR_CALL(memor.chr, MemoriaCfg, .src = hay, .bytes = sizeof hay, .val = (uint8_t)0xC7));
+        TEST_ASSERT_EQUAL_PTR(memchr(hay, 0xC7, sizeof hay),
+                              MMGR_CALL(memor.chr, MemoriaCfg, .src = hay, .bytes = sizeof hay, .val = (uint8_t)0xC7));
     }
 }
 
@@ -234,7 +234,8 @@ void test_chr_of_a_byte_that_is_not_there(void)
     }
 
     TEST_ASSERT_NULL(MMGR_CALL(memor.chr, MemoriaCfg, .src = hay, .bytes = sizeof hay, .val = (uint8_t)0xFE));
-    TEST_ASSERT_EQUAL_PTR(memchr(hay, 0xFE, sizeof hay), MMGR_CALL(memor.chr, MemoriaCfg, .src = hay, .bytes = sizeof hay, .val = (uint8_t)0xFE));
+    TEST_ASSERT_EQUAL_PTR(memchr(hay, 0xFE, sizeof hay),
+                          MMGR_CALL(memor.chr, MemoriaCfg, .src = hay, .bytes = sizeof hay, .val = (uint8_t)0xFE));
 }
 
 void test_chr_of_nothing_finds_nothing(void)
@@ -245,9 +246,9 @@ void test_chr_of_nothing_finds_nothing(void)
 void test_chr_finds_a_zero_byte(void)
 {
     static const unsigned char hay[4] = {1u, 2u, 0u, 3u};
-    TEST_ASSERT_EQUAL_PTR(hay + 2, MMGR_CALL(memor.chr, MemoriaCfg, .src = hay, .bytes = sizeof hay, .val = (uint8_t)0));
+    TEST_ASSERT_EQUAL_PTR(hay + 2,
+                          MMGR_CALL(memor.chr, MemoriaCfg, .src = hay, .bytes = sizeof hay, .val = (uint8_t)0));
 }
-
 
 void test_set_matches_memset_at_every_length(void)
 {

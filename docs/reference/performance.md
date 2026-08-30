@@ -107,10 +107,10 @@ Every row above is at 2048 bytes, where the per-byte work dominates. At eight it
 number that matters there is the harness floor - the loop, the counter and the volatile store, plus
 one call the optimiser is not allowed to remove:
 
-| part | loop alone | plus one call |
-| ---- | ---------: | ------------: |
-| ESP32-S3 | 6.0 | 41.0 |
-| ESP32-C6 | 3.0 | 28.0 |
+| part     | loop alone | plus one call |
+| -------- | ---------: | ------------: |
+| ESP32-S3 |        6.0 |          41.0 |
+| ESP32-C6 |        3.0 |          28.0 |
 
 Both arms pay it. `cellul.len` over eight bytes costs 112 cycles on the S3 against ROM `strnlen`'s
 113, and 41 of each is the call. A ratio at n=8 is mostly two call floors and should be read as
@@ -137,11 +137,11 @@ MMGR_FLATTEN static size_t field_len(const char *s)
 
 ESP32-S3, `cellul.len` over the same eight bytes:
 
-| shape                        | cycles |
-| ---------------------------- | -----: |
-| through the namespace table  | 112.01 |
-| calling the entry by name    | 112.01 |
-| `MMGR_FLATTEN` on the caller |  **80.02** |
+| shape                        |    cycles |
+| ---------------------------- | --------: |
+| through the namespace table  |    112.01 |
+| calling the entry by name    |    112.01 |
+| `MMGR_FLATTEN` on the caller | **80.02** |
 
 **32 cycles, a third of the work at that length.** Against ROM `strnlen`'s 113 that is 0.99 called
 and 0.71 inlined. libc cannot answer it - its routine is in mask ROM and is reached by a call no

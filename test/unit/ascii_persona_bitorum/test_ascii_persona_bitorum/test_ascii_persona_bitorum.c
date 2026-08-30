@@ -50,7 +50,7 @@ static void all_256(MmgrAsciiClass k, int (*ref)(int), const char *what)
 {
     for (int c = 0; c < 256; c++)
     {
-                const int want = (c < 128) ? ref(c) : 0;
+        const int want = (c < 128) ? ref(c) : 0;
         const int got = MMGR_CALL(ascii.in, AsciiCfg, .kind = k, .byte = (uint8_t)c);
         if (got != want)
         {
@@ -137,9 +137,10 @@ void test_ascii_high_bytes_are_in_no_class(void)
 
 void test_ascii_classes_partition_the_printables(void)
 {
-        for (int c = 0x20; c <= 0x7E; c++)
+    for (int c = 0x20; c <= 0x7E; c++)
     {
-        const int n = MMGR_CALL(ascii.in, AsciiCfg, .kind = MMGR_ASCII_ALNUM, .byte = (uint8_t)c) + MMGR_CALL(ascii.in, AsciiCfg, .kind = MMGR_ASCII_PUNCT, .byte = (uint8_t)c) +
+        const int n = MMGR_CALL(ascii.in, AsciiCfg, .kind = MMGR_ASCII_ALNUM, .byte = (uint8_t)c) +
+                      MMGR_CALL(ascii.in, AsciiCfg, .kind = MMGR_ASCII_PUNCT, .byte = (uint8_t)c) +
                       MMGR_CALL(ascii.in, AsciiCfg, .kind = MMGR_ASCII_SPACE, .byte = (uint8_t)c);
         TEST_ASSERT_EQUAL_INT_MESSAGE(1, n, "a printable byte belongs to exactly one of alnum, punct, space");
     }

@@ -25,7 +25,7 @@ is dead the moment that mark is released - and it still points at readable memor
 
 **It is not concurrent unless you configured it to be.** With `MMGR_WORKER_COUNT` at 1 there is no
 synchronization anywhere, because there is nothing to synchronize. The lock-free ring in
-`confinium_exclusivum_infinitas` is single-producer single-consumer and is not safe for more.
+`memoria_anularis` is single-producer single-consumer and is not safe for more.
 
 ## Hardening the build
 

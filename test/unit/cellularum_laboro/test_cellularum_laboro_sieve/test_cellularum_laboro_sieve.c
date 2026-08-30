@@ -25,7 +25,7 @@ static const char *find_in(const char *hay, const char *needle, mmgr_bool ci)
 
 void test_two_rows_find_a_needle_late_in_a_long_haystack(void)
 {
-            static const char hay[] = "the quick brown fox jumps over the lazy dog and keeps on going past the end";
+    static const char hay[] = "the quick brown fox jumps over the lazy dog and keeps on going past the end";
     const char *at = find_in(hay, "lazy", MMGR_FALSE);
 
     TEST_ASSERT_NOT_NULL(at);
@@ -34,7 +34,7 @@ void test_two_rows_find_a_needle_late_in_a_long_haystack(void)
 
 void test_two_rows_find_a_needle_of_one_repeated_byte(void)
 {
-            static const char hay[] = "................................aaaa............................";
+    static const char hay[] = "................................aaaa............................";
     const char *at = find_in(hay, "aaaa", MMGR_FALSE);
 
     TEST_ASSERT_NOT_NULL(at);
@@ -76,7 +76,7 @@ void test_two_rows_find_a_needle_at_the_very_start(void)
 
 void test_two_rows_find_a_needle_of_two_bytes(void)
 {
-            static const char hay[] = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxqzxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+    static const char hay[] = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxqzxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
     const char *at = find_in(hay, "qz", MMGR_FALSE);
 
     TEST_ASSERT_NOT_NULL(at);
@@ -85,7 +85,7 @@ void test_two_rows_find_a_needle_of_two_bytes(void)
 
 void test_two_rows_find_a_long_needle(void)
 {
-            static const char hay[] = "prefix bytes here and then AAAABBBBCCCCDDDD and some trailing bytes after it";
+    static const char hay[] = "prefix bytes here and then AAAABBBBCCCCDDDD and some trailing bytes after it";
     const char *at = find_in(hay, "AAAABBBBCCCCDDDD", MMGR_FALSE);
 
     TEST_ASSERT_NOT_NULL(at);

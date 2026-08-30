@@ -31,15 +31,15 @@ them and does nothing. Put the include first and keep it first.
 
 ## What is mapped
 
-| you write                                         | you get                                                    |
-| ------------------------------------------------- | ---------------------------------------------------------- |
-| `memcpy`, `memmove`, `memcmp`, `memchr`, `memset` | `memor.*` — SWAR, a word at a time                         |
-| `strlen`, `strnlen`                               | `cellul.len` — bounded by `MMGR_STR_MAX`                   |
-| `strcmp`, `strcasecmp`                            | `cellul.eq`                                                |
-| `strncmp`, `strncasecmp`                          | `cellul.diff`                                              |
-| `strstr`, `strcasestr`                            | `cellul.find` — sieved on the rarest byte of the needle    |
-| `strchr`                                          | `cellul.chr`                                               |
-| `strlcpy`                                         | `cellul.copy` — always terminates                          |
+| you write                                         | you get                                                 |
+| ------------------------------------------------- | ------------------------------------------------------- |
+| `memcpy`, `memmove`, `memcmp`, `memchr`, `memset` | `memor.*` — SWAR, a word at a time                      |
+| `strlen`, `strnlen`                               | `cellul.len` — bounded by `MMGR_STR_MAX`                |
+| `strcmp`, `strcasecmp`                            | `cellul.eq`                                             |
+| `strncmp`, `strncasecmp`                          | `cellul.diff`                                           |
+| `strstr`, `strcasestr`                            | `cellul.find` — sieved on the rarest byte of the needle |
+| `strchr`                                          | `cellul.chr`                                            |
+| `strlcpy`                                         | `cellul.copy` — always terminates                       |
 
 Every `str*` one takes a read cap, explicitly or through `MMGR_STR_MAX`. That is the difference from
 libc: there is no entry here that will run forward until it happens to find a zero.

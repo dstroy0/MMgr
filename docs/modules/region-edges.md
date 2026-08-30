@@ -116,7 +116,7 @@ scarce, external is large and slower, and some of it cannot be reached by DMA.
 
 ## What it does
 
-```c
+````c
 mmgr_place p = mmgr_exter_place(size, needs_dma, free_dram, free_psram, threshold, dram_reserve);
 switch (p) {
     case PLACE_DRAM:  mmgr_pingpong_swap(pp);                             ```
@@ -171,3 +171,4 @@ on parts where it is not.
 ## Reference
 
 @ref mod_proxim "Generated reference" · @ref concept_width
+````

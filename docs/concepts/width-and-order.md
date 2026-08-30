@@ -4,7 +4,7 @@ The three machine properties this library refuses to assume.
 
 ## The two types everything is built on
 
-```c
+````c
 mmgr_word   mmgr_idx    ```
 
 They are separate on purpose. A word is what the scanner loads; an index is what addresses a
@@ -28,7 +28,7 @@ That is not detectable at the use site, so it is asserted at the source:
 ```c
 MMGR_STATIC_ASSERT(sizeof(MmgrEnumProbe) == 1,
     "MMGR_ENUM_PACKED is not honored here, so no enum keeps its declared width ...");
-```
+````
 
 `MMGR_ENUM_PACKED` is `__attribute__((packed))` where the attribute exists and empty where it does
 not — and the probe is what turns "the fallback was taken" from a silent behavior change into a

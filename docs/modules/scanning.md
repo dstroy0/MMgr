@@ -130,9 +130,9 @@ The table says how common each byte is, so the search can pick.
 
 Mutually exclusive, generic by default:
 
-| define                        | tuned for             |
-| ----------------------------- | --------------------- |
-| _(none)_                      | generic               |
+| define                       | tuned for             |
+| ---------------------------- | --------------------- |
+| _(none)_                     | generic               |
 | `MMGR_ANCORAE_FORMA_ENGLISH` | English prose         |
 | `MMGR_ANCORAE_FORMA_URI`     | URIs and paths        |
 | `MMGR_ANCORAE_FORMA_INET`    | network protocol text |

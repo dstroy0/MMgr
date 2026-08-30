@@ -85,13 +85,13 @@ int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_text_pipeline\\test_text_pipeline.c");
   run_test(test_built_text_reads_back_at_the_length_it_reported, "test_built_text_reads_back_at_the_length_it_reported", 10);
-  run_test(test_scanner_finds_what_the_builder_wrote, "test_scanner_finds_what_the_builder_wrote", 22);
-  run_test(test_case_folding_agrees_across_builder_and_scanner, "test_case_folding_agrees_across_builder_and_scanner", 37);
-  run_test(test_appending_keeps_every_earlier_field_findable, "test_appending_keeps_every_earlier_field_findable", 52);
-  run_test(test_a_builder_overflow_leaves_nothing_for_the_scanner, "test_a_builder_overflow_leaves_nothing_for_the_scanner", 73);
-  run_test(test_every_rendered_number_is_found_by_the_scanner, "test_every_rendered_number_is_found_by_the_scanner", 85);
-  run_test(test_escaped_output_is_still_scannable, "test_escaped_output_is_still_scannable", 105);
-  run_test(test_an_empty_render_reports_nothing_written, "test_an_empty_render_reports_nothing_written", 129);
+  run_test(test_scanner_finds_what_the_builder_wrote, "test_scanner_finds_what_the_builder_wrote", 21);
+  run_test(test_case_folding_agrees_across_builder_and_scanner, "test_case_folding_agrees_across_builder_and_scanner", 36);
+  run_test(test_appending_keeps_every_earlier_field_findable, "test_appending_keeps_every_earlier_field_findable", 51);
+  run_test(test_a_builder_overflow_leaves_nothing_for_the_scanner, "test_a_builder_overflow_leaves_nothing_for_the_scanner", 72);
+  run_test(test_every_rendered_number_is_found_by_the_scanner, "test_every_rendered_number_is_found_by_the_scanner", 84);
+  run_test(test_escaped_output_is_still_scannable, "test_escaped_output_is_still_scannable", 104);
+  run_test(test_an_empty_render_reports_nothing_written, "test_an_empty_render_reports_nothing_written", 128);
 
   return UNITY_END();
 }

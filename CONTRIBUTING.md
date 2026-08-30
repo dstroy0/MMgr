@@ -12,7 +12,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-A clean run is 165 CTest targets. `test_memoriam_praetereo` and `test_confinium_externum` are not
+A clean run is 160 CTest targets. `test_memoriam_praetereo` and `test_memoria_externa` are not
 among them unless `MMGR_ENABLE_DMA` or `MMGR_ENABLE_EXTRAM` is on. They are skipped loudly, through
 `MMGR_SUITES_SKIPPED` and a CMake status message, because a silently dropped suite leaves a passing
 run that tested less than it looks like.

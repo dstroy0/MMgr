@@ -20,12 +20,12 @@ exists to reach them.
 
 ## Region sizes
 
-| knob                         |               default | what it changes                                                    |
-| ---------------------------- | --------------------: | ------------------------------------------------------------------ |
-| `MMGR_PLAINTEXT_CONFIN_SIZE` |                `4096` | the largest plaintext confinium this build will declare              |
-| `MMGR_SECURE_CONFIN_SIZE`    |                `4096` | the largest secure confinium this build will declare                 |
-| `MMGR_CARCER_MAX`            | the larger of the two | **derived.** Bounds a scan's word count and `MMGR_STR_MAX`           |
-| `MMGR_CARCER_ALIGN`          |    `sizeof(mmgr_word)` | **derived.** The alignment every tenancy is handed out at            |
+| knob                         |               default | what it changes                                            |
+| ---------------------------- | --------------------: | ---------------------------------------------------------- |
+| `MMGR_PLAINTEXT_CONFIN_SIZE` |                `4096` | the largest plaintext confinium this build will declare    |
+| `MMGR_SECURE_CONFIN_SIZE`    |                `4096` | the largest secure confinium this build will declare       |
+| `MMGR_CARCER_MAX`            | the larger of the two | **derived.** Bounds a scan's word count and `MMGR_STR_MAX` |
+| `MMGR_CARCER_ALIGN`          |   `sizeof(mmgr_word)` | **derived.** The alignment every tenancy is handed out at  |
 
 **The two size knobs allocate nothing and size no pool.** A pool's extent is one row of the storage
 you declared, and nothing in carceribus reads either knob. What they do is feed
@@ -38,8 +38,8 @@ for reading the high-water marks.
 
 ## Workers
 
-| knob                     |             default | what it changes                                               |
-| ------------------------ | ------------------: | ------------------------------------------------------------- |
+| knob | default | what it changes |
+| ---- | ------: | --------------- |
 
 There is no synchronization anywhere in the allocator, because there is nothing to synchronize. A
 region is a pointer, an extent, and two offsets, used by whoever holds it. Two contexts that must
@@ -47,10 +47,10 @@ not share get two regions.
 
 ## Debug
 
-| knob                     |              default | what it changes                                        |
-| ------------------------ | -------------------: | ------------------------------------------------------ |
+| knob                     |              default | what it changes                                         |
+| ------------------------ | -------------------: | ------------------------------------------------------- |
 | `MMGR_DEBUG_CHECKS`      |                  `0` | compiles in the checks, and selects the trapping assert |
-| `MMGR_ASSERT(cond, msg)` | a type-checked no-op | what a broken precondition does                        |
+| `MMGR_ASSERT(cond, msg)` | a type-checked no-op | what a broken precondition does                         |
 
 The default `MMGR_ASSERT` keeps its expression type-checked with `sizeof` and then discards it, so it
 cannot rot and costs nothing.
@@ -63,28 +63,28 @@ See @ref ref_error_handling.
 
 ## Optional modules
 
-| knob                     | default | what it changes                               |
-| ------------------------ | ------: | --------------------------------------------- |
+| knob                     | default | what it changes                                        |
+| ------------------------ | ------: | ------------------------------------------------------ |
 | `MMGR_ENABLE_DMA`        |     `0` | compiles `memoriam_praetereo/`, included from `mmgr.h` |
-| `MMGR_ENABLE_PSRAM_POOL` |     `0` | compiles `confinium_externum/`                |
-| `MMGR_PRAET_CHANNELS`    |     `2` | only when DMA is on                           |
-| `MMGR_PRAET_BUF_SIZE`    |   `256` | only when DMA is on                           |
+| `MMGR_ENABLE_PSRAM_POOL` |     `0` | compiles `confinium_externum/`                         |
+| `MMGR_PRAET_CHANNELS`    |     `2` | only when DMA is on                                    |
+| `MMGR_PRAET_BUF_SIZE`    |   `256` | only when DMA is on                                    |
 
 With these off, the modules are absent entirely — not stubbed. Their test suites are skipped with a
 CMake status message rather than silently dropped.
 
 ## Scanning and text
 
-| knob                          |                  default | what it changes                                                    |
-| ----------------------------- | -----------------------: | ------------------------------------------------------------------ |
-| `MMGR_STR_MAX`                | see `mmgr_string_shim.h` | the read cap the shim's `str*` replacements use                    |
-| `MMGR_RING_LOCULI_MAX`         |                     `32` | loculi in the ring's bitmap allocator. Fixed by the `uint32_t` mask |
-| `MMGR_ANCORAE_FORMA_ENGLISH` |                    unset | byte-frequency profile for substring search                        |
-| `MMGR_ANCORAE_FORMA_URI`     |                    unset | "                                                                  |
-| `MMGR_ANCORAE_FORMA_INET`    |                    unset | "                                                                  |
-| `MMGR_ANCORAE_FORMA_ROUTE`   |                    unset | "                                                                  |
-| `MMGR_SIEVE_ROWS`            |                     `1` | needle offsets the search sieve tests per candidate word            |
-| `MMGR_FIND_CHAIN_MAX`        |              `SIZE_MAX` | longest haystack a one or two byte needle is settled by mask chain  |
+| knob                         |                  default | what it changes                                                     |
+| ---------------------------- | -----------------------: | ------------------------------------------------------------------- |
+| `MMGR_STR_MAX`               | see `mmgr_string_shim.h` | the read cap the shim's `str*` replacements use                     |
+| `MMGR_RING_LOCULI_MAX`       |                     `32` | loculi in the ring's bitmap allocator. Fixed by the `uint32_t` mask |
+| `MMGR_ANCORAE_FORMA_ENGLISH` |                    unset | byte-frequency profile for substring search                         |
+| `MMGR_ANCORAE_FORMA_URI`     |                    unset | "                                                                   |
+| `MMGR_ANCORAE_FORMA_INET`    |                    unset | "                                                                   |
+| `MMGR_ANCORAE_FORMA_ROUTE`   |                    unset | "                                                                   |
+| `MMGR_SIEVE_ROWS`            |                      `1` | needle offsets the search sieve tests per candidate word            |
+| `MMGR_FIND_CHAIN_MAX`        |               `SIZE_MAX` | longest haystack a one or two byte needle is settled by mask chain  |
 
 The anchor profiles are mutually exclusive and default to a generic table. Picking the wrong one
 costs speed and never correctness — the search still finds what is there. See @ref mod_anchor_guide.
@@ -95,12 +95,12 @@ mask chain — one broadcast per needle byte, every start position in the word d
 to verify — rather than by building the sieve, which exists to find a rare byte in a long needle and
 prove the rest once. Measured with a two byte needle, cycles for the whole call:
 
-| n              |   8 |  64 |  2048 |
-| -------------- | --: | --: | ----: |
-| Xtensa chain   | 124 | 489 | 13391 |
-| Xtensa sieve   | 187 | 607 | 15494 |
-| RISC-V chain   | 124 | 488 | 13393 |
-| RISC-V sieve   | 219 | 680 | 17059 |
+| n            |   8 |  64 |  2048 |
+| ------------ | --: | --: | ----: |
+| Xtensa chain | 124 | 489 | 13391 |
+| Xtensa sieve | 187 | 607 | 15494 |
+| RISC-V chain | 124 | 488 | 13393 |
+| RISC-V sieve | 219 | 680 | 17059 |
 
 The chain wins at every length on both parts, so nothing needs setting. The knob is kept because
 that is a measurement rather than a proof; zero sends every needle through the sieve.
@@ -109,12 +109,12 @@ Case folding always goes through the sieve — the chain compares raw bytes.
 
 ## Platform
 
-| knob                      |                                                  default | what it changes                        |
-| ------------------------- | -------------------------------------------------------: | -------------------------------------- |
-| `MMGR_HW_BIG_ENDIAN`      |                            derived from `__BYTE_ORDER__` | the host's byte order                  |
-| `MMGR_HW_FAST_UNALIGNED`  |               derived from `__ARM_FEATURE_UNALIGNED` etc | whether a word load takes any address  |
-| `MMGR_INLINE`             |     `static inline`, plus `always_inline` where available | how hot entries are inlined            |
-| `MMGR_FLATTEN`            |          `__attribute__((flatten))` where available, else nothing | a caller's lever to inline an entry |
+| knob                     |                                                  default | what it changes                       |
+| ------------------------ | -------------------------------------------------------: | ------------------------------------- |
+| `MMGR_HW_BIG_ENDIAN`     |                            derived from `__BYTE_ORDER__` | the host's byte order                 |
+| `MMGR_HW_FAST_UNALIGNED` |               derived from `__ARM_FEATURE_UNALIGNED` etc | whether a word load takes any address |
+| `MMGR_INLINE`            |    `static inline`, plus `always_inline` where available | how hot entries are inlined           |
+| `MMGR_FLATTEN`           | `__attribute__((flatten))` where available, else nothing | a caller's lever to inline an entry   |
 
 `MMGR_FLATTEN` is for a caller, not for the library. Put it on the one hot function that reaches an
 entry and the compiler inlines the entry into it, which the inliner otherwise declines to do on size
@@ -123,7 +123,7 @@ cycles called and 80 inlined — a third of the work at that length. @ref ref_pe
 and the caveats: it needs LTO, it costs the walk's code at every site that takes it, and a long scan
 amortises the call and will not notice.
 
-`MMGR_HW_FAST_UNALIGNED` is not whether an unaligned load *compiles* — every target accepts one
+`MMGR_HW_FAST_UNALIGNED` is not whether an unaligned load _compiles_ — every target accepts one
 through `mmgr_proxim_word_t`, which carries `MMGR_ALIGN(1)`. It is whether the hardware does it in
 one instruction, or the compiler assembles the word out of byte loads and shifts. Measured on a
 single such load: ARMv7-M emits one `ldr`, Xtensa twelve instructions, RISC-V eleven. A walk that

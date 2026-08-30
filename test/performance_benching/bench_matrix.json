@@ -12,7 +12,7 @@
         "src/clz/clz.c"
       ]
     },
-    
+
     "memoria": {
       "desc": "On-device cycle-counter A/B for the region entries (memoria_operor) against the target's own libc, across input lengths 8 to 2048: memor.cmp vs memcmp, memor.chr vs memchr, memor.cpy vs memcpy, and memor.set vs memset.\nThe libc side is ESP-ROM hand-written assembly running without flash-cache pressure, while the library runs from flash through the icache. The comparison is against that, not against a portable C libc.\ncmp and chr walk a word at a time; cpy and set move four words an iteration, which is what it takes to hold ROM memcpy's rate rather than spend as much on the loop as on the move.\nBuild and flash (both parts carry USB-Serial/JTAG):\nidf.py -C test/performance_benching/memoria -B build_esp32s3 -D SDKCONFIG=sdkconfig.esp32s3 set-target esp32s3\nninja -C test/performance_benching/memoria/build_esp32s3 -j 2\nidf.py -C test/performance_benching/memoria -B build_esp32s3 -p COM4 flash\nthen open the port to capture the repeating \"DB ...\" lines. Substitute esp32c6 and its port for the RISC-V part. Cap the job count: ninja defaults to cores + 2, and a full IDF tree at that width took the build machine down.",
       "path": "memoria",

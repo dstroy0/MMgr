@@ -15,7 +15,7 @@
 // guard, and it is exactly the size the header asks a caller for - no slack.
 #include "unity.h"
 
-#include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
+#include "memoria_anularis/memoria_anularis.h"
 
 #include "guard_page.h"
 
@@ -66,12 +66,12 @@ static void keep(size_t v)
 
 typedef struct
 {
-    uint8_t *buf;      /**< Ring bytes for a case that re-inits [BORROWS]. */
-    size_t cap;        /**< Ring size for that init. */
-    size_t start;      /**< Head offset to bring the ring to first. */
-    uint8_t *dst;      /**< Destination a drain writes [BORROWS]. */
-    const uint8_t *src;/**< Source a fill reads [BORROWS]. */
-    size_t bytes;      /**< Byte count the call moves. */
+    uint8_t *buf;       /**< Ring bytes for a case that re-inits [BORROWS]. */
+    size_t cap;         /**< Ring size for that init. */
+    size_t start;       /**< Head offset to bring the ring to first. */
+    uint8_t *dst;       /**< Destination a drain writes [BORROWS]. */
+    const uint8_t *src; /**< Source a fill reads [BORROWS]. */
+    size_t bytes;       /**< Byte count the call moves. */
 } Move;
 
 /**
@@ -84,12 +84,12 @@ static void do_prime(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = m->buf, .capacity = m->cap,
+    (void)MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = m->buf, .capacity = m->cap,
                     .segment_count = NSEGS);
     if (m->start != 0u)
     {
-        (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_side, .bytes = m->start);
-        MMGR_CALL(iteratio_infinita.consume, InfinCfg, .ring = &g_ring, .bytes = m->start);
+        (void)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_side, .bytes = m->start);
+        MMGR_CALL(anularis.consume, AnularisCfg, .ring = &g_ring, .bytes = m->start);
     }
 }
 
@@ -97,21 +97,21 @@ static void do_put(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    keep((size_t)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = m->src, .bytes = m->bytes));
+    keep((size_t)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = m->src, .bytes = m->bytes));
 }
 
 static void do_peek(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    MMGR_CALL(iteratio_infinita.peek, InfinCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes, .offset = 0u);
+    MMGR_CALL(anularis.peek, AnularisCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes, .offset = 0u);
 }
 
 static void do_read(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    keep(MMGR_CALL(iteratio_infinita.read, InfinCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes));
+    keep(MMGR_CALL(anularis.read, AnularisCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes));
 }
 
 static void none_past(const char *what, void (*fn)(void *), const Move *m, size_t at)
@@ -164,7 +164,7 @@ void test_the_ring_stays_inside_its_buffer_at_every_head(void)
 
         none_past("priming the head", do_prime, &m, start);
 
-        m.bytes = MMGR_CALL(iteratio_infinita.vacant, InfinCfg, .ring = &g_ring);
+        m.bytes = MMGR_CALL(anularis.vacant, AnularisCfg, .ring = &g_ring);
 
         none_past("put", do_put, &m, start);
         none_past("peek", do_peek, &m, start);
@@ -179,9 +179,9 @@ void test_a_drain_stays_inside_the_destination_it_was_given(void)
 {
     needs_the_guard();
 
-    (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
+    (void)MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
                     .segment_count = NSEGS);
-    (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_side, .bytes = BIG_CAP / 2u);
+    (void)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_side, .bytes = BIG_CAP / 2u);
 
     for (size_t n = 1u; n <= SPANS; n++)
     {
@@ -194,9 +194,9 @@ void test_a_drain_stays_inside_the_destination_it_was_given(void)
         none_past("peek", do_peek, &m, n);
 
         // read advances the tail, so the ring is refilled rather than drained across the sweep
-        (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
+        (void)MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
                         .segment_count = NSEGS);
-        (void)MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &g_ring, .src = g_side, .bytes = BIG_CAP / 2u);
+        (void)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_side, .bytes = BIG_CAP / 2u);
 
         none_past("read", do_read, &m, n);
     }
@@ -217,7 +217,7 @@ void test_a_fill_stays_inside_the_source_it_was_given(void)
         m.src = place(n);
         m.bytes = n;
 
-        (void)MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
+        (void)MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
                         .segment_count = NSEGS);
 
         none_past("put", do_put, &m, n);

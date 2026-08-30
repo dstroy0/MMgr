@@ -4,7 +4,6 @@
 #ifndef MMGR_ORACLE_LIBC_H
 #define MMGR_ORACLE_LIBC_H
 
-
 #if !defined(MMGR_TEST_ORACLE) || !MMGR_TEST_ORACLE
 #error "mmgr_oracle_libc.h is only for a build that set MMGR_TEST_ORACLE"
 #endif
@@ -21,7 +20,6 @@
 
 MMGR_INCIPE_DECLS
 
-
 MMGR_INLINE void mmgr_oracle_cpy(void *dst, const void *src, size_t n)
 {
     memcpy(dst, src, n);
@@ -31,7 +29,6 @@ MMGR_INLINE void mmgr_oracle_move(void *dst, const void *src, size_t n)
 {
     memmove(dst, src, n);
 }
-
 
 MMGR_INLINE const void *mmgr_oracle_chr(const void *p, size_t n, uint8_t c)
 {
@@ -48,7 +45,6 @@ MMGR_INLINE void mmgr_oracle_zero(void *dst, size_t n)
     memset(dst, 0, n);
 }
 
-
 MMGR_INLINE size_t mmgr_oracle_len_raw(const char *s, size_t nul_cap)
 {
     return strnlen(s, nul_cap);
@@ -60,7 +56,7 @@ MMGR_INLINE int mmgr_oracle_fold_eq(unsigned char a, unsigned char b)
 }
 
 MMGR_INLINE const char *mmgr_oracle_find_raw(const char *hay, size_t read_cap, const char *needle, size_t needle_cap,
-                                         mmgr_bool ci)
+                                             mmgr_bool ci)
 {
     const size_t hlen = strnlen(hay, read_cap);
     const size_t nlen = strnlen(needle, needle_cap);
@@ -93,7 +89,7 @@ MMGR_INLINE const char *mmgr_oracle_find_raw(const char *hay, size_t read_cap, c
 }
 
 MMGR_INLINE mmgr_bool mmgr_oracle_has_raw(const char *hay, size_t read_cap, const char *needle, size_t needle_cap,
-                                      mmgr_bool ci)
+                                          mmgr_bool ci)
 {
     return (mmgr_bool)(mmgr_oracle_find_raw(hay, read_cap, needle, needle_cap, ci) != NULL);
 }
@@ -288,16 +284,13 @@ MMGR_INLINE float mmgr_oracle_to_float(const TransfiguroCfg *c)
 
 MMGR_FINIS_DECLS
 
-
-
 #include <math.h>
 #include <stdio.h>
-
 
 MMGR_INLINE void mmgr_oracle_verba_g(mmgr_verba *b, double v, unsigned sig)
 {
     char tmp[64];
-        if (sig == 0u)
+    if (sig == 0u)
     {
         sig = 1u;
     }
@@ -315,7 +308,7 @@ MMGR_INLINE void mmgr_oracle_verba_g(mmgr_verba *b, double v, unsigned sig)
 MMGR_INLINE void mmgr_oracle_verba_fixed(mmgr_verba *b, double v, unsigned decimals)
 {
     char tmp[64];
-        if (decimals > MMGR_FIXED_MAX_DECIMALS)
+    if (decimals > MMGR_FIXED_MAX_DECIMALS)
     {
         decimals = MMGR_FIXED_MAX_DECIMALS;
     }
@@ -344,7 +337,6 @@ MMGR_INLINE mmgr_bool mmgr_oracle_isnan(double v)
 }
 
 MMGR_DIAG_POP
-
 
 MMGR_NS CellularumLaboroNs cellul_oracle MMGR_UNUSED = {
     .init = mmgr_oracle_init,

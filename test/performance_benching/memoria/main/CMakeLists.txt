@@ -45,7 +45,7 @@ idf_build_set_property(LINK_OPTIONS "${_link_opts}")
 # The banner's clock, taken from the configuration the image is built with rather than named here.
 # sdkconfig decides the CPU frequency, and a figure typed in by hand goes stale the moment that
 # changes, which reports cycle counts against a rate the part is not running at.
-# confinium_externum guards its whole contents on this, so without it the module compiles to nothing
+# memoria_externa guards its whole contents on this, so without it the module compiles to nothing
 # and cannot be measured at all. Nothing else in the tree reads the switch - the only other mentions
 # are the option() that declares it and the default in mmgr_config.h - so turning it on here adds
 # that module and changes no other row in this image.

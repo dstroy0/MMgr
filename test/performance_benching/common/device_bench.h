@@ -172,8 +172,7 @@ extern volatile uintptr_t g_dbench_sink;
         DBENCH_CYCLES(N, mmgr_expr, _m);                                                                               \
         DBENCH_CYCLES(N, libc_expr, _l);                                                                               \
         printf("DB %-16s n=%-6u mmgr=%-10.1f libc=%-10.1f ratio=%.2f  mmgr_c/B=%.3f libc_c/B=%.3f\n", label,           \
-               (unsigned)(bytes), _m, _l, (_l > 0.0) ? (_m / _l) : 0.0, _m / (double)(bytes),                          \
-               _l / (double)(bytes));                                                                                  \
+               (unsigned)(bytes), _m, _l, (_l > 0.0) ? (_m / _l) : 0.0, _m / (double)(bytes), _l / (double)(bytes));   \
         DBENCH_SETTLE();                                                                                               \
     } while (0)
 

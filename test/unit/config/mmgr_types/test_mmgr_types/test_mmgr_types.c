@@ -36,7 +36,7 @@ void test_index_fits_the_register_that_carries_it(void)
 
 void test_packed_enum_keeps_its_declared_width(void)
 {
-            TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, sizeof(MmgrEnumProbe), "MMGR_ENUM_PACKED was not honored");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, sizeof(MmgrEnumProbe), "MMGR_ENUM_PACKED was not honored");
 }
 
 void test_bool_constants(void)

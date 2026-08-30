@@ -120,7 +120,7 @@ GROUP_NESTED_COMPOUNDS = NO
 # MMGR_NS_LAYOUT is a 24-way recursive macro expanding to a chain of _Static_assert. Left expanding
 # it produces pages of noise per module.
 #
-# The two ENABLE flags default to 0, which would document dma.h and confinium_externum.h as empty
+# The two ENABLE flags default to 0, which would document dma.h and memoria_externa.h as empty
 # files - their entire contents sit behind the gate. Set to 1 here so the gated API is documented;
 # the module guides say plainly that the gate is off by default.
 #
@@ -244,7 +244,7 @@ HTML_COPY_CLIPBOARD    = YES
 HTML_CODE_FOLDING      = YES
 HTML_INDEX_NUM_ENTRIES = 100
 
-# 300 rather than doxygen's 260: confinium_exclusivum_infinitas is thirty characters and ellipsises.
+# 300 rather than doxygen's 260, so a long module name is not ellipsised in the tree view.
 GENERATE_TREEVIEW      = YES
 FULL_SIDEBAR           = YES
 TREEVIEW_WIDTH         = 300

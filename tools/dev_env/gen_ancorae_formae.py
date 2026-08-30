@@ -304,8 +304,7 @@ uint8_t mmgr_ancorae_impensa(uint8_t b)
 for name, macro, fn, doc in PROFILES:
     cost = scale(fn())
     rows = "\n".join(
-        "    " + ", ".join(f"{c:3d}" for c in cost[i : i + 16]) + ("," if i < 240 else "")
-        for i in range(0, 256, 16)
+        "    " + ", ".join(f"{c:3d}" for c in cost[i : i + 16]) + ("," if i < 240 else "") for i in range(0, 256, 16)
     )
     p = OUT / f"impensa_ancorae_acus_{name}.c"
     p.write_text(SRC.format(name=name, doc=doc, rows=rows), encoding="utf-8")

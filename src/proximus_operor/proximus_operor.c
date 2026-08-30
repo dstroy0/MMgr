@@ -82,11 +82,7 @@ typedef struct
  * @brief Reads two bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The two bytes as a uint16_t.
-=======
  * @return         The two bytes as a uint16_t.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Reads through mmgr_proxim_u16_t, so args->at needs no particular alignment.
  * @warning args->at must be readable for two bytes.
  */
@@ -99,11 +95,7 @@ MMGR_INLINE uint16_t proxim_load16(const ProximLoadCtx *args)
  * @brief Reads four bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The four bytes as a uint32_t.
-=======
  * @return         The four bytes as a uint32_t.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Reads through mmgr_proxim_u32_t, so args->at needs no particular alignment.
  * @warning args->at must be readable for four bytes.
  */
@@ -116,11 +108,7 @@ MMGR_INLINE uint32_t proxim_load32(const ProximLoadCtx *args)
  * @brief Reads eight bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The eight bytes as a uint64_t.
-=======
  * @return         The eight bytes as a uint64_t.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Reads through mmgr_proxim_u64_t, so args->at needs no particular alignment.
  * @warning args->at must be readable for eight bytes.
  */
@@ -133,11 +121,7 @@ MMGR_INLINE uint64_t proxim_load64(const ProximLoadCtx *args)
  * @brief Reads MMGR_RAW_WORD bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The bytes as an mmgr_migro_word.
-=======
  * @return         The bytes as an mmgr_migro_word.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Reads through mmgr_proxim_word_t, so args->at needs no particular alignment.
  * @warning args->at must be readable for MMGR_RAW_WORD bytes.
  */
@@ -150,11 +134,7 @@ MMGR_INLINE mmgr_migro_word proxim_load(const ProximLoadCtx *args)
  * @brief Reads MMGR_RAW_WORD bytes from an aligned args->at, in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The bytes as an mmgr_migro_word.
-=======
  * @return         The bytes as an mmgr_migro_word.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Reads through mmgr_aequus_word_t, which keeps mmgr_migro_word's alignment, unlike proxim_load.
  * @warning args->at must be readable for MMGR_RAW_WORD bytes and aligned for an mmgr_migro_word.
  */
@@ -167,11 +147,7 @@ MMGR_INLINE mmgr_migro_word aequus_load(const ProximLoadCtx *args)
  * @brief Reads eight bytes from an aligned args->at, in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The eight bytes as a uint64_t.
-=======
  * @return         The eight bytes as a uint64_t.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Reads through mmgr_aequus_u64_t, which keeps uint64_t's alignment, unlike proxim_load64.
  * @warning args->at must be readable for eight bytes and aligned for a uint64_t.
  */
@@ -250,10 +226,7 @@ MMGR_INLINE void aequus_put(const ProximPutCtx *args)
  *
  * @param[in] args Destination and value [BORROWS].
  * @note Writes through mmgr_aequus_u64_t, which keeps uint64_t's alignment, unlike proxim_put64.
-<<<<<<< HEAD
-=======
  * @note No cast is needed here, since args->val is already a uint64_t.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @warning args->dst must be writable for eight bytes and aligned for a uint64_t.
  */
 MMGR_INLINE void aequus_put64(const ProximPutCtx *args)
@@ -265,55 +238,33 @@ MMGR_INLINE void aequus_put64(const ProximPutCtx *args)
  * @brief Copies the bytes that bring args->dst up to an MMGR_RAW_WORD boundary.
  *
  * @param[in,out] args Destination, source and the count still to copy [BORROWS].
-<<<<<<< HEAD
- * @note skew is the distance from args->dst up to the next boundary; it copies that many, or args->bytes if fewer.
- * @note Returns at once when args->dst already sits on a boundary, or when args->bytes is 0.
- * @note Advances args->dst and args->src past what it copied and draws that count off args->bytes.
-=======
  * @note skew is the distance from args->dst up to the next boundary. It copies that many, or args->bytes if fewer.
  * @note Returns at once when args->dst already sits on a boundary, or when args->bytes is 0.
  * @note Advances args->dst and args->src past what it copied and draws that count off args->bytes.
  * @note Both pointers step in the copy statement itself, and remaining counts down in the while test.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE void proxim_head(ProximReadCtx *args)
 {
     // Explicit casts hold the negation and the mask at uintptr_t, then bring the byte count back to size_t
     const size_t skew = (size_t)((0u - (uintptr_t)args->dst) & (uintptr_t)(MMGR_RAW_WORD - 1u));
-<<<<<<< HEAD
-    size_t t = (skew < args->bytes) ? skew : args->bytes;
-=======
     size_t remaining = (skew < args->bytes) ? skew : args->bytes;
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
     if (remaining == 0u)
     {
         return;
     }
-<<<<<<< HEAD
-    args->bytes -= t;
-=======
     args->bytes -= remaining;
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
     do
     {
         *args->dst++ = *args->src++;
-<<<<<<< HEAD
-    } while (--t);
-=======
     } while (--remaining);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 }
 
 /**
  * @brief Copies whole MMGR_RAW_WORD words, leaving fewer than one word for proxim_tail.
  *
  * @param[in,out] args Destination, source and the count still to copy [BORROWS].
-<<<<<<< HEAD
- * @note Stores through mmgr_aequus_word_t but loads through mmgr_proxim_word_t, since only args->dst was aligned.
- * @note Advances both pointers and draws the whole words off args->bytes.
-=======
  * @note Stores through mmgr_aequus_word_t always, since proxim_head is what put args->dst on a boundary.
  * @note Loads through mmgr_aequus_word_t as well when args->src came to rest on a boundary too, and
  *       through mmgr_proxim_word_t when it did not. Two addresses that started the copy at the same
@@ -331,20 +282,11 @@ MMGR_INLINE void proxim_head(ProximReadCtx *args)
  *       measured against copies the whole thirty in 73. The twenty five cycles proxim_read carries
  *       over it are the entry, the head test and the tail. Removing every per word branch, which the
  *       dispatch row did, moved nothing.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @warning Depends on proxim_head having run, which is what puts args->dst on a boundary.
  */
 MMGR_INLINE void proxim_words(ProximReadCtx *args)
 {
     // Explicit cast holds the mask at size_t, matching the byte count whose low bits it clears
-<<<<<<< HEAD
-    size_t w = args->bytes & ~(size_t)(MMGR_RAW_WORD - 1u);
-    if (w == 0u)
-    {
-        return;
-    }
-    args->bytes -= w;
-=======
     size_t word_bytes = args->bytes & ~(size_t)(MMGR_RAW_WORD - 1u);
     if (word_bytes == 0u)
     {
@@ -365,19 +307,13 @@ MMGR_INLINE void proxim_words(ProximReadCtx *args)
         return;
     }
 
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     do
     {
         *(mmgr_aequus_word_t *)args->dst = *(const mmgr_proxim_word_t *)args->src;
         args->dst += MMGR_RAW_WORD;
         args->src += MMGR_RAW_WORD;
-<<<<<<< HEAD
-        w -= MMGR_RAW_WORD;
-    } while (w);
-=======
         word_bytes -= MMGR_RAW_WORD;
     } while (word_bytes);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 }
 
 /**
@@ -386,18 +322,11 @@ MMGR_INLINE void proxim_words(ProximReadCtx *args)
  * @param[in,out] args Destination, source and the count still to copy [BORROWS].
  * @note Returns at once when nothing is left.
  * @note Advances args->dst and args->src, but leaves args->bytes as it found it, unlike the two stages before it.
-<<<<<<< HEAD
- */
-MMGR_INLINE void proxim_tail(ProximReadCtx *args)
-{
-    size_t t = args->bytes;
-=======
  * @note Both pointers step in the copy statement itself, and the local remaining counts down in the while test.
  */
 MMGR_INLINE void proxim_tail(ProximReadCtx *args)
 {
     size_t remaining = args->bytes;
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
     if (remaining == 0u)
     {
@@ -407,11 +336,7 @@ MMGR_INLINE void proxim_tail(ProximReadCtx *args)
     do
     {
         *args->dst++ = *args->src++;
-<<<<<<< HEAD
-    } while (--t);
-=======
     } while (--remaining);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 }
 
 /**
@@ -438,12 +363,8 @@ MMGR_INLINE void proxim_read(ProximReadCtx *args)
  * @note CtxType_ is a parameter because a load carries an address, a put carries an address and a
  *       value, and a read carries two addresses and a count.
  */
-<<<<<<< HEAD
-#define PROXIM_ENTRY(ret, ctx, name, ...) GENERIC_ENTRY(mmgr_proxim_, proxim_, ctx, ProximusCfg, ret, name, __VA_ARGS__)
-=======
 #define PROXIM_ENTRY(ReturnType_, CtxType_, name_, ...)                                                                \
     GENERIC_ENTRY(mmgr_proxim_, proxim_, CtxType_, ProximusCfg, ReturnType_, name_, __VA_ARGS__)
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
 /**
  * @brief Binds the same to GENERIC_ENTRY_V, for an unaligned entry that returns nothing.
@@ -466,12 +387,8 @@ MMGR_INLINE void proxim_read(ProximReadCtx *args)
  *       would emit an aligned access for an address that may not be aligned, which faults on some
  *       machines and silently reads wrong on others.
  */
-<<<<<<< HEAD
-#define AEQUUS_ENTRY(ret, ctx, name, ...) GENERIC_ENTRY(mmgr_aequus_, aequus_, ctx, ProximusCfg, ret, name, __VA_ARGS__)
-=======
 #define AEQUUS_ENTRY(ReturnType_, CtxType_, name_, ...)                                                                \
     GENERIC_ENTRY(mmgr_aequus_, aequus_, CtxType_, ProximusCfg, ReturnType_, name_, __VA_ARGS__)
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
 /**
  * @brief Binds the same to GENERIC_ENTRY_V, for an aligned entry that returns nothing.
@@ -487,11 +404,7 @@ MMGR_INLINE void proxim_read(ProximReadCtx *args)
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in proximus_operor.h.
-<<<<<<< HEAD
- * @note read is the only entry that reads args->size; every other one leaves that member alone.
-=======
  * @note read is the only entry that reads args->size. Every other one leaves that member alone.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 PROXIM_ENTRY(uint16_t, ProximLoadCtx, load16, .at = args->at)
 PROXIM_ENTRY(uint32_t, ProximLoadCtx, load32, .at = args->at)

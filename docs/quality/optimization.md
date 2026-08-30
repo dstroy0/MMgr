@@ -34,41 +34,41 @@ nothing in the target list is, and the wide ARM encoding reports a code size no 
 
 Xtensa (esp32s3, gcc 14.2):
 
-| translation unit                 |    -O0 |   -O1 |      -Os |   -O2 |   -O3 |
-| -------------------------------- | -----: | ----: | -------: | ----: | ----: |
-| `verba_scribo`                   |  35026 | 10438 | **6359** |  9078 | 12966 |
-| `cellularum_laboro`              |  18786 |  9633 | **7228** |  8550 |  9330 |
-| `transformo`                     |  17473 |  3594 | **2898** |  3794 |  5936 |
-| `confinium_exclusivum_infinitas` |  10404 |  3411 | **3279** |  3391 |  3439 |
-| `memoria_operor`                 |   2707 |  1394 | **1182** |  1294 |  1350 |
-| `verbum_scrutor`                 |   3856 |  1144 | **1144** |  1152 |  1152 |
-| `numeros_scribo`                 |   2265 |  1000 |  **892** |   935 |   935 |
-| `octetus_introitus_exitus`       |   3102 |   851 |  **749** |   854 |   858 |
-| `carceribus`                     |   3703 |   870 |  **778** |   834 |   878 |
-| `endian`                         |   2341 |   729 |  **413** |   657 |   657 |
-| `clz`                            |   1740 |   502 |  **244** |   502 |   502 |
-| `proximus_operor`                |   1332 |   492 |  **475** |   492 |   614 |
-| `bitorum_introitus_exitus`       |    798 |   344 |  **268** |   344 |   340 |
-| `spatium`                        |   1611 |   298 |      306 |   302 |   302 |
-| `impensa_ancorae_acus_*`         |    302 |   276 |      276 |   276 |   276 |
-| `ascii_persona_bitorum`          |    276 |   212 |      212 |   212 |   212 |
-| `fractio`                        |    522 |   101 |      101 |   101 |   101 |
-| **total**                        | 106244 | 35289 |**26804** | 32768 | 39848 |
+| translation unit                 |    -O0 |   -O1 |       -Os |   -O2 |   -O3 |
+| -------------------------------- | -----: | ----: | --------: | ----: | ----: |
+| `verba_scribo`                   |  35026 | 10438 |  **6359** |  9078 | 12966 |
+| `cellularum_laboro`              |  18786 |  9633 |  **7228** |  8550 |  9330 |
+| `transformo`                     |  17473 |  3594 |  **2898** |  3794 |  5936 |
+| `confinium_exclusivum_infinitas` |  10404 |  3411 |  **3279** |  3391 |  3439 |
+| `memoria_operor`                 |   2707 |  1394 |  **1182** |  1294 |  1350 |
+| `verbum_scrutor`                 |   3856 |  1144 |  **1144** |  1152 |  1152 |
+| `numeros_scribo`                 |   2265 |  1000 |   **892** |   935 |   935 |
+| `octetus_introitus_exitus`       |   3102 |   851 |   **749** |   854 |   858 |
+| `carceribus`                     |   3703 |   870 |   **778** |   834 |   878 |
+| `endian`                         |   2341 |   729 |   **413** |   657 |   657 |
+| `clz`                            |   1740 |   502 |   **244** |   502 |   502 |
+| `proximus_operor`                |   1332 |   492 |   **475** |   492 |   614 |
+| `bitorum_introitus_exitus`       |    798 |   344 |   **268** |   344 |   340 |
+| `spatium`                        |   1611 |   298 |       306 |   302 |   302 |
+| `impensa_ancorae_acus_*`         |    302 |   276 |       276 |   276 |   276 |
+| `ascii_persona_bitorum`          |    276 |   212 |       212 |   212 |   212 |
+| `fractio`                        |    522 |   101 |       101 |   101 |   101 |
+| **total**                        | 106244 | 35289 | **26804** | 32768 | 39848 |
 
 The other two, totals only - the shape is the same on all three:
 
-| target                       |    -O0 |   -O1 |       -Os |   -O2 |   -O3 |
-| ---------------------------- | -----: | ----: | --------: | ----: | ----: |
-| Xtensa (esp32s3)             | 106244 | 35289 | **26804** | 32768 | 39848 |
-| RISC-V (esp32c6)             | 116040 | 38904 | **30144** | 35970 | 42572 |
-| ARM (cortex-m4, thumb)       | 100138 | 30014 | **25534** | 28418 | 34690 |
-| _host (x86-64), for contrast_| 108592 | 37696 |     30768 | 38992 | 44320 |
+| target                        |    -O0 |   -O1 |       -Os |   -O2 |   -O3 |
+| ----------------------------- | -----: | ----: | --------: | ----: | ----: |
+| Xtensa (esp32s3)              | 106244 | 35289 | **26804** | 32768 | 39848 |
+| RISC-V (esp32c6)              | 116040 | 38904 | **30144** | 35970 | 42572 |
+| ARM (cortex-m4, thumb)        | 100138 | 30014 | **25534** | 28418 | 34690 |
+| _host (x86-64), for contrast_ | 108592 | 37696 |     30768 | 38992 | 44320 |
 
 `confinium_externum` and `memoriam_praetereo` compile to nothing and are left out. The five
 `impensa_ancorae_acus_*` units are one row because they are alternatives, not additions — a build
 links exactly one cost table and they all define the same symbol. The total counts one.
 
-**-Os is the smallest, and -O1 is not second.** On all three targets -O1 lands *above* -O2 — by 2521
+**-Os is the smallest, and -O1 is not second.** On all three targets -O1 lands _above_ -O2 — by 2521
 bytes on Xtensa, 2934 on RISC-V and 1596 on ARM — so the order is -Os, -O2, -O1, -O3. A build that
 wants small and does not want to think about it should ask for -Os and stop there; there is no reason
 to reach for -O1. -O3 costs 7080 bytes over -O2 on Xtensa, and @ref ref_performance is where to look
@@ -127,11 +127,11 @@ command line is the one that counts, so nothing has to be removed for it to take
 
 Costs below are Xtensa, with ARM in parentheses where the two disagree enough to matter.
 
-| module            | level | why                                                                                                                                                        |
-| ----------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `verba_scribo`    | -O2   | -O3 costs 3888 bytes, 43% more than the whole module at -O2, and 5700 on ARM, which is 75%. The digit loops are short and already shaped.                  |
-| `transformo`      | -O2   | -O3 costs 2142 bytes, 56% more than the module. On ARM it costs nothing at all, which is the clearest case on this page for deciding per target.           |
-| `proximus_operor` | -O2   | -O3 adds 122 bytes to 492 for entries that are single loads and stores, already one instruction each. Proportionally worse on ARM, 188 to 308.             |
+| module            | level | why                                                                                                                                              |
+| ----------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `verba_scribo`    | -O2   | -O3 costs 3888 bytes, 43% more than the whole module at -O2, and 5700 on ARM, which is 75%. The digit loops are short and already shaped.        |
+| `transformo`      | -O2   | -O3 costs 2142 bytes, 56% more than the module. On ARM it costs nothing at all, which is the clearest case on this page for deciding per target. |
+| `proximus_operor` | -O2   | -O3 adds 122 bytes to 492 for entries that are single loads and stores, already one instruction each. Proportionally worse on ARM, 188 to 308.   |
 
 `cellularum_laboro` is left at the build's level: -O3 costs it 780 bytes on Xtensa and 356 on ARM,
 against a module of 8550 and 7760, which is not enough either way to override the build.
@@ -161,7 +161,7 @@ cortex-m4, -Os, newlib from armv7e-m:
 
 **21,676 bytes of flash**, for the same set of jobs.
 
-@warning Moving and comparing bytes is *larger* than newlib's, 1368 against 924, where before the
+@warning Moving and comparing bytes is _larger_ than newlib's, 1368 against 924, where before the
 on-device work it was 736 and smaller. Searching and parsing text has come down from 3.11x to 2.04x
 over the same stretch. Both are the same trade: `memor.cpy` and `memor.set` moved one word an
 iteration and lost to ROM `memcpy` by half again, so both were unrolled; the scans stopped rebuilding
@@ -229,9 +229,9 @@ things and neither transfers to the other.
 
 gcc 13.3, glibc 2.39, x86-64. Same corpus, same order, best of fifteen:
 
-| entry              |     MMgr | glibc              |           |
-| ------------------ | -------: | ------------------ | --------: |
-| `cellul.to_double` | 179.2 ns | `strtod` 292.1 ns  | **1.63x** |
+| entry              |     MMgr | glibc               |           |
+| ------------------ | -------: | ------------------- | --------: |
+| `cellul.to_double` | 179.2 ns | `strtod` 292.1 ns   | **1.63x** |
 | `verba.g`          | 397.5 ns | `snprintf` 954.2 ns | **2.40x** |
 
 Correctness on the same run, because a speed number for a wrong answer is not a number: `to_double`

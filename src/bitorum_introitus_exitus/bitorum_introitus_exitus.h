@@ -63,15 +63,9 @@ typedef struct
  */
 typedef struct
 {
-<<<<<<< HEAD
-    mmgr_bitor (*init)(const BitorumCfg *args); /**< Set to mmgr_bitor_init. */
-    void (*put)(const BitorumCfg *args);        /**< Set to mmgr_bitor_put. */
-    void (*align)(const BitorumCfg *args);      /**< Set to mmgr_bitor_align. */
-=======
     mmgr_bitor (*init)(const BitorumCfg *args); /**< Builds a writer over a buffer. */
     void (*put)(const BitorumCfg *args);        /**< Appends bits, writing whole bytes only. */
     void (*align)(const BitorumCfg *args);      /**< Writes the partial byte still held. */
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 } BitorumIntroitusExitusNs;
 MMGR_NS_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
 
@@ -79,30 +73,15 @@ MMGR_NS_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
  * @brief Builds a bit writer over args->out with capacity args->cap.
  *
  * @param[in] args Buffer and capacity [BORROWS].
-<<<<<<< HEAD
- * @return      A writer with no bytes written and no residue.
- * @note The returned writer keeps args->out, which must outlive it [BORROWS].
- * @warning args->out must not be null and args->cap must not be zero.
-=======
  * @return         A writer with no bytes written and no residue.
  * @note The returned writer keeps args->out, which must outlive it [BORROWS].
  * @warning args->out must not be null and args->cap must not be zero. Neither is held to outside a
  *          MMGR_DEBUG_CHECKS build, and a null out is not noticed here: mmgr_bitor_put writes
  *          through it on the first whole byte.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_bitor mmgr_bitor_init(const BitorumCfg *args);
 
 /**
-<<<<<<< HEAD
- * @brief Appends the low args->nbits bits of args->val to args->writer.
- *
- * @param[in,out] args Writer, value and bit count [BORROWS].
- * @note Writes whole bytes only; leftover bits stay in the writer's residue.
- * @note Does nothing when the writer's overflow is already set.
- * @note Sets the writer's overflow and clears its residue when the bytes would pass its cap.
- * @warning args->nbits must not exceed 64.
-=======
  * @brief Appends the low args->bit_count bits of args->val to args->writer.
  *
  * @param[in,out] args Writer, value and bit count [BORROWS].
@@ -113,7 +92,6 @@ mmgr_bitor mmgr_bitor_init(const BitorumCfg *args);
  * @warning args->bit_count must not exceed 64, and nothing holds it there outside a
  *          MMGR_DEBUG_CHECKS build. A larger count writes zeros past the sixty-fourth bit and
  *          advances the writer as though they were data.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 void mmgr_bitor_put(const BitorumCfg *args);
 
@@ -121,17 +99,10 @@ void mmgr_bitor_put(const BitorumCfg *args);
  * @brief Writes the partial byte the writer still holds, padded with zeros above its bits.
  *
  * @param[in,out] args Writer to finish [BORROWS].
-<<<<<<< HEAD
- * @note mmgr_bitor_put writes whole bytes only; without this call the residue is never written.
- * @note Does nothing when the residue is empty, so a second call writes nothing.
- * @note Does nothing when the writer's overflow is already set.
- * @note args->val and args->nbits are not read.
-=======
  * @note mmgr_bitor_put writes whole bytes only. Without this call the residue is never written.
  * @note Does nothing when the residue is empty, so a second call writes nothing.
  * @note Does nothing when the writer's overflow is already set.
  * @note Only args->writer is read.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @warning Sets the writer's overflow when the byte would pass its cap.
  */
 void mmgr_bitor_align(const BitorumCfg *args);

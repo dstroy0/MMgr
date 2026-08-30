@@ -16,7 +16,7 @@
 // poisoned in setUp, so anything else would surface as poison in the output. And the lexer holds
 // its last available byte back while the channel is still live, because that byte's lookahead has
 // not landed yet.
-#include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
+#include "memoria_anularis/memoria_anularis.h"
 
 #include "unity.h"
 
@@ -42,7 +42,7 @@ void setUp(void)
 {
     memset(ring_buf, POISON, sizeof ring_buf);
     memset(out, POISON, sizeof out);
-    (void)iteratio_infinita.init(&(InfinCfg){.ring = &ring, .buf = ring_buf, .capacity = CAP, .segment_count = SEGS});
+    (void)anularis.init(&(AnularisCfg){.ring = &ring, .buf = ring_buf, .capacity = CAP, .segment_count = SEGS});
     g_state = 1u;
     g_esc = 0u;
     g_dest = out;
@@ -60,7 +60,7 @@ void tearDown(void)
 /** @brief Put as much of @p n as the ring will take. @return Bytes ingested. */
 static size_t ingest(const uint8_t *src, size_t n)
 {
-    const size_t room = iteratio_infinita.vacant(&(InfinCfg){.ring = &ring});
+    const size_t room = anularis.vacant(&(AnularisCfg){.ring = &ring});
     const size_t bytes = (n < room) ? n : room;
 
     if (bytes == 0u)
@@ -68,7 +68,7 @@ static size_t ingest(const uint8_t *src, size_t n)
         return 0u;
     }
     // A put is all or nothing, so the span is trimmed to what vacant reported rather than retried
-    if (!iteratio_infinita.put(&(InfinCfg){.ring = &ring, .src = src, .bytes = bytes}))
+    if (!anularis.put(&(AnularisCfg){.ring = &ring, .src = src, .bytes = bytes}))
     {
         return 0u;
     }
@@ -81,19 +81,19 @@ static size_t ingest(const uint8_t *src, size_t n)
 
 static size_t avail(void)
 {
-    return iteratio_infinita.available(&(InfinCfg){.ring = &ring});
+    return anularis.available(&(AnularisCfg){.ring = &ring});
 }
 
 static uint8_t at(size_t off)
 {
     uint8_t b = 0;
-    iteratio_infinita.peek(&(InfinCfg){.ring = &ring, .dst = &b, .bytes = 1u, .offset = off});
+    anularis.peek(&(AnularisCfg){.ring = &ring, .dst = &b, .bytes = 1u, .offset = off});
     return b;
 }
 
 static void eat(size_t n)
 {
-    iteratio_infinita.consume(&(InfinCfg){.ring = &ring, .bytes = n});
+    anularis.consume(&(AnularisCfg){.ring = &ring, .bytes = n});
 }
 
 /** @brief One byte. @return How many bytes it accounted for: two for a token, otherwise one. */
@@ -124,10 +124,10 @@ static size_t lex(uint8_t curr, uint8_t next)
 
     const uint32_t write = (n_mode | s_mode | c_mode | ex_l) & (!to_b & !to_l & !ex_b);
 
-    const uint32_t clear = ~((to_b | to_l | to_s | to_c)
-                                 ? s
-                                 : (ex_b ? (1u << 4)
-                                         : (ex_l ? (1u << 3) : (ex_s ? (1u << 1) : (ex_c ? (1u << 2) : 0u)))));
+    const uint32_t clear =
+        ~((to_b | to_l | to_s | to_c)
+              ? s
+              : (ex_b ? (1u << 4) : (ex_l ? (1u << 3) : (ex_s ? (1u << 1) : (ex_c ? (1u << 2) : 0u)))));
 
     const uint32_t set = (to_b << 4) | (to_l << 3) | (to_s << 1) | (to_c << 2) | ((ex_b | ex_l | ex_s | ex_c) << 0);
 

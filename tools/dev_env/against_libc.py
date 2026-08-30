@@ -15,6 +15,7 @@ in it is called.
     python tools/dev_env/against_libc.py
     python tools/dev_env/against_libc.py --cpu cortex-m0 --level -Os
 """
+
 import argparse
 import pathlib
 import re
@@ -45,21 +46,63 @@ FAMILIES = (
         "searching and parsing text",
         ["cellularum_laboro", "verbum_scrutor"],
         [
-            "strlen", "strnlen", "strstr", "strchr", "strrchr", "strcmp", "strncmp", "strcpy",
-            "strncpy", "strcasecmp", "strncasecmp", "strcat", "strncat", "strspn", "strcspn",
-            "strpbrk", "strtok", "strdup",
-            "strtod", "strtof", "strtol", "strtoul", "strtoll", "strtoull", "atoi", "atol", "atof",
-            "dtoa", "mprec", "gdtoa",
+            "strlen",
+            "strnlen",
+            "strstr",
+            "strchr",
+            "strrchr",
+            "strcmp",
+            "strncmp",
+            "strcpy",
+            "strncpy",
+            "strcasecmp",
+            "strncasecmp",
+            "strcat",
+            "strncat",
+            "strspn",
+            "strcspn",
+            "strpbrk",
+            "strtok",
+            "strdup",
+            "strtod",
+            "strtof",
+            "strtol",
+            "strtoul",
+            "strtoll",
+            "strtoull",
+            "atoi",
+            "atol",
+            "atof",
+            "dtoa",
+            "mprec",
+            "gdtoa",
         ],
     ),
     (
         "rendering numbers and text",
         ["verba_scribo", "numeros_scribo", "fractio"],
         [
-            "vfprintf", "vfiprintf", "sprintf", "siprintf", "snprintf", "sniprintf",
-            "vsprintf", "vsiprintf", "vsnprintf", "vsniprintf", "sccl",
-            "fvwrite", "wsetup", "wbuf", "makebuf", "findfp", "fflush", "fwalk", "stdio",
-            "ldtoa", "locale",
+            "vfprintf",
+            "vfiprintf",
+            "sprintf",
+            "siprintf",
+            "snprintf",
+            "sniprintf",
+            "vsprintf",
+            "vsiprintf",
+            "vsnprintf",
+            "vsniprintf",
+            "sccl",
+            "fvwrite",
+            "wsetup",
+            "wbuf",
+            "makebuf",
+            "findfp",
+            "fflush",
+            "fwalk",
+            "stdio",
+            "ldtoa",
+            "locale",
         ],
     ),
 )
@@ -95,7 +138,7 @@ def archive_text(lib, wanted, ar, objdump, tmp):
     for m in run([ar, "t", str(lib)]).stdout.split():
         stem = pathlib.Path(m).stem
         if stem.startswith("lib_a-"):
-            stem = stem[len("lib_a-"):]
+            stem = stem[len("lib_a-") :]
         by_stem.setdefault(stem, m)
 
     got = {}
@@ -127,8 +170,14 @@ def section_text(obj, objdump):
 def build_mmgr(modules, cc, objdump, cpu, level, tmp):
     """.text of this library's modules, built for the same core."""
     flags = [
-        level, "-std=c11", "-DNDEBUG", "-I" + str(SRC),
-        "-mcpu=" + cpu, "-mthumb", "-ffunction-sections", "-fdata-sections",
+        level,
+        "-std=c11",
+        "-DNDEBUG",
+        "-I" + str(SRC),
+        "-mcpu=" + cpu,
+        "-mthumb",
+        "-ffunction-sections",
+        "-fdata-sections",
     ]
     got = {}
     for mod in modules:
@@ -179,8 +228,10 @@ def main():
         for k in sorted(theirs, key=lambda x: -theirs[x])[:10]:
             print("      newlib  %-22s %7d" % (k, theirs[k]))
         if len(theirs) > 10:
-            print("      newlib  %-22s %7d" % ("... %d more" % (len(theirs) - 10),
-                                               sum(sorted(theirs.values(), reverse=True)[10:])))
+            print(
+                "      newlib  %-22s %7d"
+                % ("... %d more" % (len(theirs) - 10), sum(sorted(theirs.values(), reverse=True)[10:]))
+            )
         if missing:
             print("      (this newlib has no %s)" % ", ".join(missing))
         if m and n:
@@ -189,8 +240,10 @@ def main():
             print("      -> mmgr %d, newlib %d\n" % (m, n))
 
     if grand_m:
-        print("  total    mmgr %d, newlib %d - %.2fx smaller, %d bytes of flash" %
-              (grand_m, grand_n, grand_n / grand_m, grand_n - grand_m))
+        print(
+            "  total    mmgr %d, newlib %d - %.2fx smaller, %d bytes of flash"
+            % (grand_m, grand_n, grand_n / grand_m, grand_n - grand_m)
+        )
     return 0
 
 

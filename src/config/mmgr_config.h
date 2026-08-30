@@ -133,17 +133,10 @@
 #include <stdlib.h>
 // fflush(NULL) before the trap, or a harness that buffers its progress on stdout loses every line of
 // it to the abort and reports the failure with nothing naming which case reached it
-<<<<<<< HEAD
-#define MMGR_ASSERT(cond, msg)                                                                                         \
-    ((cond) ? (void)0                                                                                                  \
-            : (void)(fprintf(stderr, "MMGR_ASSERT failed: %s\n  %s:%d\n", (msg), __FILE__, __LINE__), fflush(NULL),    \
-                     abort()))
-=======
 #define MMGR_ASSERT(cond_, msg_)                                                                                       \
     ((cond_) ? (void)0                                                                                                 \
              : (void)(fprintf(stderr, "MMGR_ASSERT failed: %s\n  %s:%d\n", (msg_), __FILE__, __LINE__), fflush(NULL),  \
                       abort()))
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 #else
 #define MMGR_ASSERT(cond_, msg_) ((void)sizeof((cond_) ? 1 : 0), (void)0)
 #endif
@@ -257,9 +250,9 @@
 #endif
 
 /**
- * @brief Set to 1 to build the confinium_externum external memory path.
+ * @brief Set to 1 to build the memoria_externa external memory path.
  *
- * @note mmgr.h includes confinium_externum.h only when this is set.
+ * @note mmgr.h includes memoria_externa.h only when this is set.
  * @note Takes 0 or 1, checked below for the reason MMGR_DEBUG_CHECKS is.
  */
 #ifndef MMGR_ENABLE_EXTRAM
@@ -346,31 +339,12 @@
 #endif
 
 /**
-<<<<<<< HEAD
- * @brief Fails the build unless x_ has type size_t.
- *
- * @param[in] x_ Expression whose type is checked.
- * @note Evaluates to void; the _Generic association list admits size_t only.
- */
-#define MMGR_MEMOR_IS_SIZE(x_) ((void)_Generic((x_), size_t: 0))
-
-/**
- * @brief Fails the build unless x_ has type uint8_t.
- *
- * @param[in] x_ Expression whose type is checked.
- * @note Evaluates to void; the _Generic association list admits uint8_t only.
- */
-#define MMGR_MEMOR_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
-
-/**
-=======
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @brief Defines a value-returning entry point that forwards an argument pack.
  *
- * @param[in] entry_prefix_   Public entry point prefix, such as mmgr_infin_.
+ * @param[in] entry_prefix_   Public entry point prefix, such as mmgr_anular_.
  * @param[in] backend_prefix_ Backend function prefix, such as infin_.
- * @param[in] CtxType_        Type of the compound literal the backend receives, such as InfinCtx.
- * @param[in] CfgType_        Type the emitted entry takes a pointer to, such as InfinCfg.
+ * @param[in] CtxType_        Type of the compound literal the backend receives, such as AnularisCtx.
+ * @param[in] CfgType_        Type the emitted entry takes a pointer to, such as AnularisCfg.
  * @param[in] ReturnType_     Return type of the emitted function.
  * @param[in] name_           Core name, pasted onto both prefixes.
  * @param[in] ...             Initializers for the CtxType_ literal, written in terms of args.
@@ -380,26 +354,19 @@
  *       names.
  * @warning The initializers dereference args, so it must not be NULL [BORROWS].
  */
-<<<<<<< HEAD
-#define GENERIC_ENTRY(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, RET_TYPE, NAME, ...)                                        \
-    RET_TYPE PREFIX##NAME(const CFG_TYPE *args)                                                                        \
-    {                                                                                                                  \
-        return MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__);                                                        \
-=======
 #define GENERIC_ENTRY(entry_prefix_, backend_prefix_, CtxType_, CfgType_, ReturnType_, name_, ...)                     \
     ReturnType_ entry_prefix_##name_(const CfgType_ *args)                                                             \
     {                                                                                                                  \
         return MMGR_CALL(backend_prefix_##name_, CtxType_, __VA_ARGS__);                                               \
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     }
 
 /**
  * @brief Defines a void entry point that forwards an argument pack.
  *
- * @param[in] entry_prefix_   Public entry point prefix, such as mmgr_infin_.
+ * @param[in] entry_prefix_   Public entry point prefix, such as mmgr_anular_.
  * @param[in] backend_prefix_ Backend function prefix, such as infin_.
- * @param[in] CtxType_        Type of the compound literal the backend receives, such as InfinCtx.
- * @param[in] CfgType_        Type the emitted entry takes a pointer to, such as InfinCfg.
+ * @param[in] CtxType_        Type of the compound literal the backend receives, such as AnularisCtx.
+ * @param[in] CfgType_        Type the emitted entry takes a pointer to, such as AnularisCfg.
  * @param[in] name_           Core name, pasted onto both prefixes.
  * @param[in] ...             Initializers for the CtxType_ literal, written in terms of args.
  * @note The same body as GENERIC_ENTRY, without the return. Two macros rather than one because the
@@ -407,17 +374,10 @@
  *       would still emit `return backend(...)` on a void call.
  * @warning The initializers dereference args, so it must not be NULL [BORROWS].
  */
-<<<<<<< HEAD
-#define GENERIC_ENTRY_V(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, NAME, ...)                                                \
-    void PREFIX##NAME(const CFG_TYPE *args)                                                                            \
-    {                                                                                                                  \
-        MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__);                                                               \
-=======
 #define GENERIC_ENTRY_V(entry_prefix_, backend_prefix_, CtxType_, CfgType_, name_, ...)                                \
     void entry_prefix_##name_(const CfgType_ *args)                                                                    \
     {                                                                                                                  \
         MMGR_CALL(backend_prefix_##name_, CtxType_, __VA_ARGS__);                                                      \
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     }
 
 #endif

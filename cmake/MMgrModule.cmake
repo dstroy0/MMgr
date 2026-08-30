@@ -4,7 +4,7 @@
 #
 #   mmgr_add_module(spatium SOURCES spatium.c DEPS)
 #   mmgr_add_module(confinium SOURCES confinium.c DEPS memoria_operor)
-#   mmgr_add_module(confinium_exclusivum_infinitas HEADER_ONLY DEPS proximus_operor spatium)
+#   mmgr_add_module(memoria_anularis HEADER_ONLY DEPS proximus_operor spatium)
 #   mmgr_add_module(verba_scribo SOURCES verba_scribo.c DEPS fractio OPTIMIZE -O2)
 #
 # OPTIMIZE overrides the build's level for this module alone. One level for the whole library is a

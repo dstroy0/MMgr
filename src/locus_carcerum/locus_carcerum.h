@@ -171,8 +171,8 @@ MMGR_NS_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_releas
     MMGR_STATIC_ASSERT((row_) >= (2u * MMGR_CARCER_ALIGN), #prisonsite_ "." #name_ " is too small for one cell");      \
     MMGR_STATIC_ASSERT((row_) <= MMGR_CARCER_MAX,                                                                      \
                        #prisonsite_ "." #name_ " is larger than MMGR_CARCER_MAX, which sizes "                         \
-                       "verbum_scrutor's worst-case scan and MMGR_STR_MAX - raise "                                    \
-                       "MMGR_PLAINTEXT_CONFIN_SIZE or MMGR_SECURE_CONFIN_SIZE to cover it");                           \
+                                    "verbum_scrutor's worst-case scan and MMGR_STR_MAX - raise "                       \
+                                    "MMGR_PLAINTEXT_CONFIN_SIZE or MMGR_SECURE_CONFIN_SIZE to cover it");              \
     MMGR_ALIGN(MMGR_CARCER_ALIGN) static uint8_t prisonsite_##_##name_##_bytes[row_];                                  \
     static CarcerCellBlock prisonsite_##_##name_##_ctx = {prisonsite_##_##name_##_bytes, (row_), 0u, (row_)};          \
     static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size)                                             \

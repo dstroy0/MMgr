@@ -46,12 +46,12 @@ Both ends are the same block allocator. Each keeps a chain of blocks, each block
 header, and each carves from the free middle. All that differs is which way the boundary moves —
 and what that buys you:
 
-|                  | persist                                   | interim                          |
-| ---------------- | ----------------------------------------- | -------------------------------- |
-| grows            | up, from the base                          | down, from the top               |
-| lifetime         | as long as it likes                        | one call                         |
-| given back       | one tenancy at a time, in any order        | the whole run at once, by mark   |
-| a take costs     | a walk of the chain, then a carve          | a carve                          |
+|              | persist                             | interim                        |
+| ------------ | ----------------------------------- | ------------------------------ |
+| grows        | up, from the base                   | down, from the top             |
+| lifetime     | as long as it likes                 | one call                       |
+| given back   | one tenancy at a time, in any order | the whole run at once, by mark |
+| a take costs | a walk of the chain, then a carve   | a carve                        |
 
 The persistent end holds what outlives a call: key material, a runtime seed, a constant a run works
 out once. The interim end holds what a call needs while it runs. A take at the persistent end looks

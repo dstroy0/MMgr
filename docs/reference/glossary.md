@@ -24,29 +24,29 @@ rename anything again.
 
 The stem is the name of the module's dispatch table, so it is what a call site reads.
 
-| Latin                            | stem                                 | in English                                       |
-| -------------------------------- | ------------------------------------ | ------------------------------------------------ |
-| `carceribus`                     | `carcer`                             | prisons — the region and its pools               |
-| `confinium_exclusivum_infinitas` | `iteratio_infinita`                  | exclusive endless enclosure — the lock-free ring |
-| `confinium_externum`             | `exter`                              | external enclosure — the PSRAM pool              |
-| `carceribus`                     | `carcer`                             | cells, confinement — the region and both its ends |
-| `spatium`                        | `spat`                               | space, extent — a span                           |
-| `proximus_operor`                | `proxim`                             | nearest work — raw load and store                |
-| `verbum_scrutor`                 | `lane`, `mask`, `word`               | word examiner — the SWAR scanner                 |
-| `memoria_operor`                 | `memor`                              | memory work — the `mem*` family                  |
-| `cellularum_laboro`              | `cellul`                             | cell work — bounded string operations            |
-| `verba_scribo`                   | `verba`                              | I write words — the string writer                |
-| `numeros_scribo`                 | `numer`                              | I write numbers — the field formatter            |
-| `transformo`                     | `muto`                               | I transform — decimal to binary scaling          |
-| `fractio`                        | `fract`                              | a breaking — IEEE-754 field access               |
-| `bitorum_introitus_exitus`       | `bitio`                              | entry and exit of bits — the bit writer          |
-| `octetus_introitus_exitus`       | `byteio`                             | entry and exit of octets — byte transfers        |
-| `endian`                         | `parva_extremitas`, `magna_extremitas` | _(English)_ byte order. small end, large end   |
-| `ascii_persona_bitorum`          | `ascii`                              | character masks of bits — the class bitmaps      |
-| `impensa_ancorae_acus`           | `ancorae`                            | cost of an anchor point — the frequency tables   |
-| `memoriam_praetereo`             | `praet`                              | I pass memory by — DMA transfer submission       |
-| `clz`                            | `clz`                                | _(English)_ count leading zeros                  |
-| `pow5`                           | —                                    | _(English)_ powers of five for decimal work      |
+| Latin                            | stem                                   | in English                                        |
+| -------------------------------- | -------------------------------------- | ------------------------------------------------- |
+| `carceribus`                     | `carcer`                               | prisons — the region and its pools                |
+| `confinium_exclusivum_infinitas` | `iteratio_infinita`                    | exclusive endless enclosure — the lock-free ring  |
+| `confinium_externum`             | `exter`                                | external enclosure — the PSRAM pool               |
+| `carceribus`                     | `carcer`                               | cells, confinement — the region and both its ends |
+| `spatium`                        | `spat`                                 | space, extent — a span                            |
+| `proximus_operor`                | `proxim`                               | nearest work — raw load and store                 |
+| `verbum_scrutor`                 | `lane`, `mask`, `word`                 | word examiner — the SWAR scanner                  |
+| `memoria_operor`                 | `memor`                                | memory work — the `mem*` family                   |
+| `cellularum_laboro`              | `cellul`                               | cell work — bounded string operations             |
+| `verba_scribo`                   | `verba`                                | I write words — the string writer                 |
+| `numeros_scribo`                 | `numer`                                | I write numbers — the field formatter             |
+| `transformo`                     | `muto`                                 | I transform — decimal to binary scaling           |
+| `fractio`                        | `fract`                                | a breaking — IEEE-754 field access                |
+| `bitorum_introitus_exitus`       | `bitio`                                | entry and exit of bits — the bit writer           |
+| `octetus_introitus_exitus`       | `byteio`                               | entry and exit of octets — byte transfers         |
+| `endian`                         | `parva_extremitas`, `magna_extremitas` | _(English)_ byte order. small end, large end      |
+| `ascii_persona_bitorum`          | `ascii`                                | character masks of bits — the class bitmaps       |
+| `impensa_ancorae_acus`           | `ancorae`                              | cost of an anchor point — the frequency tables    |
+| `memoriam_praetereo`             | `praet`                                | I pass memory by — DMA transfer submission        |
+| `clz`                            | `clz`                                  | _(English)_ count leading zeros                   |
+| `pow5`                           | —                                      | _(English)_ powers of five for decimal work       |
 
 ## Verbs
 
@@ -68,22 +68,22 @@ last persistent take_.
 
 ## Types
 
-| type          | is                                                                     |
-| ------------- | ---------------------------------------------------------------------- |
-| `CarcerCtx`   | a pool's state: base, size, both ends, and the hardware cap            |
-| `mmgr_span`   | a buffer, its capacity and a cursor. `pos` is how much was written     |
-| `mmgr_bitor`  | a bit writer: buffer, capacity, count, residue and overflow            |
-| `mmgr_word`   | the machine word, unsigned — the SWAR carrier                          |
-| `mmgr_iword`  | the machine word, signed. the same register as `mmgr_word`             |
-| `mmgr_idx`    | an index into a region, narrower than a word on some builds            |
-| `mmgr_bool`   | `MMGR_TRUE` or `MMGR_FALSE`                                            |
+| type         | is                                                                 |
+| ------------ | ------------------------------------------------------------------ |
+| `CarcerCtx`  | a pool's state: base, size, both ends, and the hardware cap        |
+| `mmgr_span`  | a buffer, its capacity and a cursor. `pos` is how much was written |
+| `mmgr_bitor` | a bit writer: buffer, capacity, count, residue and overflow        |
+| `mmgr_word`  | the machine word, unsigned — the SWAR carrier                      |
+| `mmgr_iword` | the machine word, signed. the same register as `mmgr_word`         |
+| `mmgr_idx`   | an index into a region, narrower than a word on some builds        |
+| `mmgr_bool`  | `MMGR_TRUE` or `MMGR_FALSE`                                        |
 
 ## Other terms this documentation uses
 
 | term            | means                                                                   |
 | --------------- | ----------------------------------------------------------------------- |
 | **borrow**      | storage the library was handed and does not own. Everything is a borrow |
-| **tenant**      | a pool's region over its static buffer                                    |
+| **tenant**      | a pool's region over its static buffer                                  |
 | **custodia**    | a guarded pool that hands out tenants — `soluta` or `secura`            |
 | **carrier**     | the integer a SWAR operation runs on. Always the machine word           |
 | **lane**        | one byte inside the carrier                                             |

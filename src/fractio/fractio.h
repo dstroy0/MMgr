@@ -41,13 +41,8 @@ MMGR_INCIPE_DECLS
 #define MMGR_DBL_SIGN_SHIFT 63u                  /**< Bit position of the sign. */
 #define MMGR_DBL_MANT_BITS 52u                   /**< Stored mantissa width, and the exponent's shift. */
 #define MMGR_DBL_EXP_BITS 11u                    /**< Exponent width. */
-<<<<<<< HEAD
-#define MMGR_DBL_SIGN_ONE 0x1ull                 /**< A sign of one, before shifting. */
-#define MMGR_DBL_EXP_ALL 0x7FFull                /**< An exponent field of all ones. */
-=======
 #define MMGR_DBL_SIGN_ONE 0x1ull                 /**< A sign of one, and merge's mask for args->sign. */
 #define MMGR_DBL_EXP_ALL 0x7FFull                /**< All ones in the exponent, and merge's mask for args->exp. */
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 #define MMGR_DBL_BIAS 1023                       /**< Amount added to the true exponent when stored. */
 
 /**
@@ -150,13 +145,9 @@ MMGR_NS_LAYOUT(FractioNs, sign, exp, mant, merge, from_bits, to_bits);
  * @brief Returns the sign bit of args->bits.
  *
  * @param[in] args Bit pattern in the union [BORROWS].
-<<<<<<< HEAD
- * @return      0 for a positive sign, 1 for a negative one.
-=======
  * @return         0 for a positive sign, 1 for a negative one.
  * @note The bit is read as stored and nothing else is examined, so a negative zero answers 1, and so
  *       does a NaN carrying the sign.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_u64 mmgr_fract_sign(const FractioCfg *args);
 
@@ -164,13 +155,8 @@ mmgr_u64 mmgr_fract_sign(const FractioCfg *args);
  * @brief Returns the exponent field of args->bits.
  *
  * @param[in] args Bit pattern in the union [BORROWS].
-<<<<<<< HEAD
- * @return      The stored exponent, still carrying MMGR_DBL_BIAS.
- * @note 0 marks a zero or subnormal; MMGR_DBL_EXP_ALL marks an infinity or NaN.
-=======
  * @return         The stored exponent, still carrying MMGR_DBL_BIAS.
  * @note 0 marks a zero or subnormal. MMGR_DBL_EXP_ALL marks an infinity or NaN.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_u64 mmgr_fract_exp(const FractioCfg *args);
 
@@ -178,13 +164,9 @@ mmgr_u64 mmgr_fract_exp(const FractioCfg *args);
  * @brief Returns the mantissa field of args->bits.
  *
  * @param[in] args Bit pattern in the union [BORROWS].
-<<<<<<< HEAD
- * @return      The fifty-two stored bits, without the implicit leading one.
-=======
  * @return         The fifty-two stored bits, without the implicit leading one.
  * @note The leading one is implicit only where the exponent field is nonzero. A zero or a subnormal
  *       has none, and there these fifty-two bits are the whole mantissa.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_u64 mmgr_fract_mant(const FractioCfg *args);
 
@@ -192,11 +174,7 @@ mmgr_u64 mmgr_fract_mant(const FractioCfg *args);
  * @brief Packs args->sign, args->exp and args->mant into one bit pattern.
  *
  * @param[in] args The three fields [BORROWS].
-<<<<<<< HEAD
- * @return      The assembled pattern.
-=======
  * @return         The assembled pattern.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Each field is masked to its own width, so a wide input cannot reach a neighboring field.
  * @warning What the mask drops is gone and nothing reports it. A sign above MMGR_DBL_SIGN_ONE, an
  *          exponent above MMGR_DBL_EXP_ALL or a mantissa above MMGR_DBL_MANT_MASK keeps only its low
@@ -208,11 +186,7 @@ mmgr_u64 mmgr_fract_merge(const FractioCfg *args);
  * @brief Reads the union as a double.
  *
  * @param[in] args Union with its bits member filled [BORROWS].
-<<<<<<< HEAD
- * @return      The same storage interpreted as a double.
-=======
  * @return         The same storage interpreted as a double.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 double mmgr_fract_from_bits(const FractioCfg *args);
 
@@ -220,11 +194,7 @@ double mmgr_fract_from_bits(const FractioCfg *args);
  * @brief Reads the union as a bit pattern.
  *
  * @param[in] args Union with its val member filled [BORROWS].
-<<<<<<< HEAD
- * @return      The same storage interpreted as mmgr_u64.
-=======
  * @return         The same storage interpreted as mmgr_u64.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_u64 mmgr_fract_to_bits(const FractioCfg *args);
 

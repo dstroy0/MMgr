@@ -4,7 +4,6 @@
 #ifndef MMGR_TEST_ORACLE_DIVERGENCE_H
 #define MMGR_TEST_ORACLE_DIVERGENCE_H
 
-
 #if defined(MMGR_TEST_ORACLE) && MMGR_TEST_ORACLE
 #include "mmgr_oracle_libc.h"
 

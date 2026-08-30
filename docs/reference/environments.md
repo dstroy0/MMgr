@@ -11,12 +11,12 @@ that a wide host can exercise a narrow machine's code paths without owning the n
 
 `CMakeLists.txt` declares them as a flat list:
 
-| name     | definitions           | what it is for                                                                                                                    |
-| -------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `host`   | _(none)_              | whatever this machine is. `MMGR_WORD_BITS` derives from `UINTPTR_MAX`. The default build.                                         |
-| `word32` | `MMGR_WORD_BITS=32`   | a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.                                             |
-| `word16` | `MMGR_WORD_BITS=16`   | the narrowest carrier. Most likely to expose an off-by-one in a scan tail.                                                        |
-| `idx16`  | `MMGR_INDEX_BITS=16`  | a 16-bit index against a 64-bit word, which is the pairing the static asserts in `mmgr_types.h` exist to police.                  |
+| name     | definitions           | what it is for                                                                                                                   |
+| -------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `host`   | _(none)_              | whatever this machine is. `MMGR_WORD_BITS` derives from `UINTPTR_MAX`. The default build.                                        |
+| `word32` | `MMGR_WORD_BITS=32`   | a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.                                            |
+| `word16` | `MMGR_WORD_BITS=16`   | the narrowest carrier. Most likely to expose an off-by-one in a scan tail.                                                       |
+| `idx16`  | `MMGR_INDEX_BITS=16`  | a 16-bit index against a 64-bit word, which is the pairing the static asserts in `mmgr_types.h` exist to police.                 |
 | `checks` | `MMGR_DEBUG_CHECKS=1` | the checks compiled in, and the trapping `MMGR_ASSERT` selected, so a broken precondition fails a test instead of being a no-op. |
 
 ## One build, not five

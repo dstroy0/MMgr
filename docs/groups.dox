@@ -16,8 +16,8 @@
 /** @defgroup mod_config  config — widths, types, attributes and the call idiom */
 /** @defgroup mod_carcer  carceribus — the region and its pools */
 /** @defgroup mod_confin  carceribus - the region (referenced as mod_confin by the guides) */
-/** @defgroup mod_infin   confinium_exclusivum_infinitas — the ring */
-/** @defgroup mod_exter   confinium_externum — external memory */
+/** @defgroup mod_anular  memoria_anularis — the ring */
+/** @defgroup mod_exter   memoria_externa — external memory */
 /** @defgroup mod_proxim  proximus_operor — unaligned loads and stores */
 /** @defgroup mod_anchor  impensa_ancorae_acus — anchor cost tables */
 /** @defgroup mod_memor   memoria_operor — block copy, move, compare, scan, fill */

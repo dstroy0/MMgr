@@ -3,11 +3,11 @@
  */
 #include "unity.h"
 
-#include "octetus_introitus_exitus/octetus_introitus_exitus.h"
-#include "spatium/spatium.h"
+#include "cellularum_laboro/cellularum_laboro.h"
 #include "endian/endian.h"
 #include "memoria_operor/memoria_operor.h"
-#include "cellularum_laboro/cellularum_laboro.h"
+#include "octetus_introitus_exitus/octetus_introitus_exitus.h"
+#include "spatium/spatium.h"
 
 static uint64_t store[4];
 static uint8_t *mem;
@@ -54,9 +54,17 @@ void test_big_endian_fields_round_trip_at_every_width(void)
         uint64_t v;
         size_t n;
     } cases[] = {
-        {0x00u, 1u},           {0xFFu, 1u},             {0x1234u, 2u},          {0xFFFFu, 2u},
-        {0x123456u, 3u},       {0x12345678u, 4u},       {0xFFFFFFFFu, 4u},      {0x123456789Au, 5u},
-        {0x123456789ABCu, 6u}, {0x123456789ABCDEu, 7u}, {0x123456789ABCDEF0ull, 8u},
+        {0x00u, 1u},
+        {0xFFu, 1u},
+        {0x1234u, 2u},
+        {0xFFFFu, 2u},
+        {0x123456u, 3u},
+        {0x12345678u, 4u},
+        {0xFFFFFFFFu, 4u},
+        {0x123456789Au, 5u},
+        {0x123456789ABCu, 6u},
+        {0x123456789ABCDEu, 7u},
+        {0x123456789ABCDEF0ull, 8u},
     };
 
     for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++)

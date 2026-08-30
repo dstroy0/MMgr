@@ -76,10 +76,10 @@ honest answer is `NULL`.
 
 ## Summary
 
-| you are asking                     | it answers with                          |
-| ---------------------------------- | ---------------------------------------- |
-| can I have some storage            | a pointer, or `NULL`                     |
-| is this true                       | `mmgr_bool`                              |
-| did any of that formatting fail    | a latched flag, checked once at the end  |
-| did what arrived off the wire fit  | `mmgr_bool`, at the call                 |
-| did I violate a precondition       | nothing, unless you built with checks on |
+| you are asking                    | it answers with                          |
+| --------------------------------- | ---------------------------------------- |
+| can I have some storage           | a pointer, or `NULL`                     |
+| is this true                      | `mmgr_bool`                              |
+| did any of that formatting fail   | a latched flag, checked once at the end  |
+| did what arrived off the wire fit | `mmgr_bool`, at the call                 |
+| did I violate a precondition      | nothing, unless you built with checks on |

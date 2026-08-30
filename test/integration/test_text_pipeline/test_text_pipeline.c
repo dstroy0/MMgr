@@ -11,8 +11,7 @@ void test_built_text_reads_back_at_the_length_it_reported(void)
 {
     char buf[128];
     const mmgr_fval fields[] = {MMGR_VSTR("id="), MMGR_VU32(4242u), MMGR_VSTR(" ok")};
-    const size_t n =
-        MMGR_CALL(numer.emit, NumerosCfg, .out = buf, .cap = sizeof buf, .vals = fields, .nvals = 3u);
+    const size_t n = MMGR_CALL(numer.emit, NumerosCfg, .out = buf, .cap = sizeof buf, .vals = fields, .nvals = 3u);
 
     TEST_ASSERT_GREATER_THAN_size_t(0u, n);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(n, MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = buf, .cap = sizeof buf),
@@ -45,8 +44,8 @@ void test_case_folding_agrees_across_builder_and_scanner(void)
                                .other_cap = 13u, .ci = MMGR_TRUE));
     TEST_ASSERT_FALSE(MMGR_CALL(cellul.has, CatenaFinitaCfg, .src = buf, .cap = sizeof buf, .other = "content-type",
                                 .other_cap = 13u, .ci = MMGR_FALSE));
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = buf, .other = "CONTENT-TYPE", .cap = sizeof buf,
-                               .ci = MMGR_TRUE));
+    TEST_ASSERT_TRUE(
+        MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = buf, .other = "CONTENT-TYPE", .cap = sizeof buf, .ci = MMGR_TRUE));
 }
 
 void test_appending_keeps_every_earlier_field_findable(void)

@@ -47,15 +47,9 @@ MMGR_NS_LAYOUT(ClzNs, lead, trail);
  * @brief Counts the zero bits above the highest set bit of args->val.
  *
  * @param[in] args Value to measure [BORROWS].
-<<<<<<< HEAD
- * @return      Leading zero count, 0 through 63.
- * @note Runs in a fixed number of steps, none of which branches on the value.
- * @warning A args->val of 0 returns 63, the same answer as an args->val of 1.
-=======
  * @return         Leading zero count, 0 through 63.
  * @note Runs in a fixed number of steps, none of which branches on the value.
  * @warning An args->val of 0 returns 63, the same answer as an args->val of 1.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_iword mmgr_clz_lead(const ClzCfg *args);
 
@@ -63,15 +57,9 @@ mmgr_iword mmgr_clz_lead(const ClzCfg *args);
  * @brief Counts the zero bits below the lowest set bit of args->val.
  *
  * @param[in] args Value to measure [BORROWS].
-<<<<<<< HEAD
- * @return      Trailing zero count, 0 through 63.
- * @note Runs in a fixed number of steps, none of which branches on the value.
- * @warning A args->val of 0 returns 63, the same answer mmgr_clz_trail reports for an args->val of 2^63.
-=======
  * @return         Trailing zero count, 0 through 63.
  * @note Runs in a fixed number of steps, none of which branches on the value.
  * @warning An args->val of 0 returns 63, the same answer as an args->val of 2^63.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_iword mmgr_clz_trail(const ClzCfg *args);
 

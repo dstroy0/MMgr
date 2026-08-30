@@ -21,10 +21,9 @@ static double muto_round_probe(MutoCtx *c, mmgr_bool neg)
     return muto_round(c);
 }
 
-
 void test_the_middle_column_carries_into_the_top(void)
 {
-            MutoCtx f;
+    MutoCtx f;
     MmgrPow5 g;
 
     f.hi = 0xC000000000000000ULL;
@@ -39,7 +38,7 @@ void test_the_middle_column_carries_into_the_top(void)
     f.pow = &g;
     muto_mul_pow5(&f);
 
-                TEST_ASSERT_EQUAL_HEX64_MESSAGE(0xC000000000000004ULL, f.hi, "the top word did not take the carry");
+    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0xC000000000000004ULL, f.hi, "the top word did not take the carry");
     TEST_ASSERT_EQUAL_HEX64(0u, f.lo);
     TEST_ASSERT_EQUAL_INT_MESSAGE(127, f.fe2, "the exponent should carry the 128 and the shift back");
     TEST_ASSERT_TRUE_MESSAGE(f.rest != 0, "the dropped half was not empty and should have been remembered");
@@ -47,7 +46,7 @@ void test_the_middle_column_carries_into_the_top(void)
 
 void test_the_multiply_agrees_with_halves_done_by_hand(void)
 {
-            static const mmgr_u64 vals[] = {0x8000000000000000ULL, 0xFFFFFFFFFFFFFFFFULL, 0x9E3779B97F4A7C15ULL,
+    static const mmgr_u64 vals[] = {0x8000000000000000ULL, 0xFFFFFFFFFFFFFFFFULL, 0x9E3779B97F4A7C15ULL,
                                     0xA000000000000000ULL, 0xCCCCCCCCCCCCCCCDULL};
     MutoCtx f;
 
@@ -63,7 +62,7 @@ void test_the_multiply_agrees_with_halves_done_by_hand(void)
             hi = f.phi;
             lo = f.plo;
 
-                        const mmgr_u64 m = 0xFFFFFFFFULL;
+            const mmgr_u64 m = 0xFFFFFFFFULL;
             const mmgr_u64 a0 = vals[i] & m;
             const mmgr_u64 a1 = vals[i] >> 32;
             const mmgr_u64 b0 = vals[j] & m;
@@ -79,7 +78,6 @@ void test_the_multiply_agrees_with_halves_done_by_hand(void)
         }
     }
 }
-
 
 void test_normalizing_a_fraction_whose_high_word_is_empty(void)
 {
@@ -113,12 +111,11 @@ void test_normalizing_nothing_leaves_it_alone(void)
     TEST_ASSERT_EQUAL_INT_MESSAGE(7, f.fe2, "there was nothing to shift, so nothing should have moved");
 }
 
-
 static double round_of(mmgr_u64 mant53, unsigned half, unsigned rest, int e2)
 {
     MutoCtx f;
 
-            f.hi = (mant53 << 11) | ((mmgr_u64)half << 10);
+    f.hi = (mant53 << 11) | ((mmgr_u64)half << 10);
     f.lo = 0u;
     f.fe2 = e2;
     f.rest = (int)rest;
@@ -127,7 +124,7 @@ static double round_of(mmgr_u64 mant53, unsigned half, unsigned rest, int e2)
 
 void test_an_exact_tie_goes_to_even(void)
 {
-                const mmgr_u64 even = ((mmgr_u64)1 << 52) | 0u;
+    const mmgr_u64 even = ((mmgr_u64)1 << 52) | 0u;
     const mmgr_u64 odd = ((mmgr_u64)1 << 52) | 1u;
 
     const double stays = round_of(even, 1u, 0u, -75);
@@ -163,10 +160,11 @@ void test_rounding_a_fraction_of_nothing(void)
     f.rest = 0;
 
     TEST_ASSERT_EQUAL_DOUBLE(0.0, muto_round_probe(&f, MMGR_FALSE));
-    TEST_ASSERT_TRUE_MESSAGE(MMGR_CALL(fract.sign, FractioCfg, .bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = muto_round_probe(&f, MMGR_TRUE))) != 0u,
-                             "and it keeps a sign it was given");
+    TEST_ASSERT_TRUE_MESSAGE(
+        MMGR_CALL(fract.sign, FractioCfg,
+                  .bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = muto_round_probe(&f, MMGR_TRUE))) != 0u,
+        "and it keeps a sign it was given");
 }
-
 
 static mmgr_u64 to_u64_of(mmgr_u64 hi, mmgr_u64 lo, mmgr_iword fe2, mmgr_iword rest, mmgr_word above)
 {
@@ -183,31 +181,31 @@ static mmgr_u64 to_u64_of(mmgr_u64 hi, mmgr_u64 lo, mmgr_iword fe2, mmgr_iword r
 
 void test_to_u64_of_an_empty_fraction_is_zero(void)
 {
-            TEST_ASSERT_EQUAL_UINT64(0u, to_u64_of(0u, 0u, -100, 0, 0u));
+    TEST_ASSERT_EQUAL_UINT64(0u, to_u64_of(0u, 0u, -100, 0, 0u));
 }
 
 void test_to_u64_of_a_number_wider_than_the_word_saturates(void)
 {
-            TEST_ASSERT_EQUAL_UINT64(~(mmgr_u64)0, to_u64_of(1u, 0u, -32, 0, 0u));
+    TEST_ASSERT_EQUAL_UINT64(~(mmgr_u64)0, to_u64_of(1u, 0u, -32, 0, 0u));
 }
 
 void test_to_u64_with_the_point_on_the_word_boundary(void)
 {
-            TEST_ASSERT_EQUAL_UINT64(7u, to_u64_of(7u, 0u, -64, 0, 0u));
+    TEST_ASSERT_EQUAL_UINT64(7u, to_u64_of(7u, 0u, -64, 0, 0u));
 }
 
 void test_to_u64_on_the_boundary_rounds_a_tie_to_even(void)
 {
-            TEST_ASSERT_EQUAL_UINT64_MESSAGE(4u, to_u64_of(4u, (mmgr_u64)1 << 63, 0 - 64, 0, 0u), "even stays");
+    TEST_ASSERT_EQUAL_UINT64_MESSAGE(4u, to_u64_of(4u, (mmgr_u64)1 << 63, 0 - 64, 0, 0u), "even stays");
     TEST_ASSERT_EQUAL_UINT64_MESSAGE(6u, to_u64_of(5u, (mmgr_u64)1 << 63, 0 - 64, 0, 0u), "odd goes up");
 }
 
 void test_to_u64_on_the_boundary_sees_what_is_under_the_round_bit(void)
 {
-        TEST_ASSERT_EQUAL_UINT64(5u, to_u64_of(4u, ((mmgr_u64)1 << 63) | ((mmgr_u64)1 << 62), -64, 0, 0u));
+    TEST_ASSERT_EQUAL_UINT64(5u, to_u64_of(4u, ((mmgr_u64)1 << 63) | ((mmgr_u64)1 << 62), -64, 0, 0u));
 }
 
 void test_to_u64_on_the_boundary_takes_the_parity_of_the_whole_number(void)
 {
-            TEST_ASSERT_EQUAL_UINT64(5u, to_u64_of(4u, (mmgr_u64)1 << 63, -64, 0, 1u));
+    TEST_ASSERT_EQUAL_UINT64(5u, to_u64_of(4u, (mmgr_u64)1 << 63, -64, 0, 1u));
 }

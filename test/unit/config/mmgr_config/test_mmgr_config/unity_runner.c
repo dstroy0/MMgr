@@ -83,11 +83,7 @@ int main(void)
   run_test(test_word_width_is_one_of_three, "test_word_width_is_one_of_three", 13);
   run_test(test_scan_width_is_the_word_width, "test_scan_width_is_the_word_width", 19);
   run_test(test_index_never_exceeds_the_word, "test_index_never_exceeds_the_word", 25);
-<<<<<<< HEAD
-  run_test(test_tenant_bound_is_a_real_size, "test_tenant_bound_is_a_real_size", 30);
-=======
   run_test(test_buffer_bound_is_a_real_size, "test_buffer_bound_is_a_real_size", 30);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
   return UNITY_END();
 }

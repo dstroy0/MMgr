@@ -380,8 +380,7 @@ void test_a_mark_releases_everything_taken_after_it(void)
     TEST_ASSERT_TRUE(ram_a_ctx.temporary_top < before);
 
     ram.a.temporary_buf_release(before);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, ram_a_ctx.temporary_top,
-                                     "the top must come back to where it was marked");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, ram_a_ctx.temporary_top, "the top must come back to where it was marked");
 }
 
 /**

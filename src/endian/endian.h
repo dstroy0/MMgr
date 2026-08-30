@@ -63,13 +63,8 @@ typedef struct
  */
 typedef struct
 {
-<<<<<<< HEAD
-    size_t (*wr)(const EndianCfg *args);    /**< Writes val to dst and returns width. */
-    uint64_t (*rd)(const EndianCfg *args);  /**< Reads width bytes from src. */
-=======
     size_t (*wr)(const EndianCfg *args);    /**< Writes width bytes of val to dst in the table's order. */
     uint64_t (*rd)(const EndianCfg *args);  /**< Reads width bytes from src in the table's order. */
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     uint64_t (*rev)(const EndianCfg *args); /**< Reverses val at width bytes. */
 } EndianNs;
 MMGR_NS_LAYOUT(EndianNs, wr, rd, rev);
@@ -78,16 +73,11 @@ MMGR_NS_LAYOUT(EndianNs, wr, rd, rev);
  * @brief Writes args->width bytes of args->val to args->dst without reversing them.
  *
  * @param[in,out] args Destination, value and width [BORROWS].
-<<<<<<< HEAD
- * @return          args->width.
- * @warning args->dst must be writable for args->width bytes.
-=======
  * @return             args->width.
  * @warning args->dst must be writable for args->width bytes. Nothing checks it. endian.c hands it to
  *          proxim.put16, put32 or put64, each of which stores through it with no test.
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value writes eight
  *          bytes.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 size_t mmgr_wr_le(const EndianCfg *args);
 
@@ -95,16 +85,11 @@ size_t mmgr_wr_le(const EndianCfg *args);
  * @brief Reads args->width bytes from args->src without reversing them.
  *
  * @param[in] args Source and width [BORROWS].
-<<<<<<< HEAD
- * @return      The value read, in the low args->width bytes.
- * @warning args->src must be readable for args->width bytes.
-=======
  * @return         The value read, in the low args->width bytes.
  * @warning args->src must be readable for args->width bytes. Nothing checks it. endian.c hands it to
  *          proxim.load16, load32 or load64, each of which reads through it with no test.
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value reads eight
  *          bytes.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 uint64_t mmgr_rd_le(const EndianCfg *args);
 
@@ -112,17 +97,12 @@ uint64_t mmgr_rd_le(const EndianCfg *args);
  * @brief Reverses args->val, then writes args->width bytes of it to args->dst.
  *
  * @param[in,out] args Destination, value and width [BORROWS].
-<<<<<<< HEAD
- * @return          args->width.
- * @warning args->dst must be writable for args->width bytes.
-=======
  * @return             args->width.
  * @warning args->dst must be writable for args->width bytes. Nothing checks it. endian.c hands it to
  *          proxim.put16, put32 or put64, each of which stores through it with no test.
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value writes eight
  *          bytes. One above eight wraps the reversal's shift count, and a width of 0 shifts by 64,
  *          which is undefined.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 size_t mmgr_wr_be(const EndianCfg *args);
 
@@ -130,17 +110,12 @@ size_t mmgr_wr_be(const EndianCfg *args);
  * @brief Reads args->width bytes from args->src, then reverses them.
  *
  * @param[in] args Source and width [BORROWS].
-<<<<<<< HEAD
- * @return      The reversed value, in the low args->width bytes.
- * @warning args->src must be readable for args->width bytes.
-=======
  * @return         The reversed value, in the low args->width bytes.
  * @warning args->src must be readable for args->width bytes. Nothing checks it. endian.c hands it to
  *          proxim.load16, load32 or load64, each of which reads through it with no test.
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value reads eight
  *          bytes. One above eight wraps the reversal's shift count, and a width of 0 shifts by 64,
  *          which is undefined.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 uint64_t mmgr_rd_be(const EndianCfg *args);
 
@@ -148,10 +123,6 @@ uint64_t mmgr_rd_be(const EndianCfg *args);
  * @brief Reverses the byte order of args->val at args->width bytes.
  *
  * @param[in] args Value and width [BORROWS].
-<<<<<<< HEAD
- * @return      The reversed value, right-aligned into the low args->width bytes.
- * @note Touches no memory; both tables point rev at this one function.
-=======
  * @return         The reversed value, right-aligned into the low args->width bytes.
  * @note Reads args->val and args->width and nothing else, so it touches no buffer and dst and src take
  *       no part.
@@ -160,7 +131,6 @@ uint64_t mmgr_rd_be(const EndianCfg *args);
  * @warning args->width must be one of the mmgr_endian_width enumerators. 8 minus it is unsigned, so a
  *          width above eight wraps into a very large shift count, and a width of 0 shifts a 64-bit
  *          value by 64, which is undefined.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 uint64_t mmgr_endian_rev(const EndianCfg *args);
 

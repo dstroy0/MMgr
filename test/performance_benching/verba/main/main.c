@@ -25,26 +25,19 @@
  * Values are benched at 1, 3, 5 and 10 digits. A digit count decides the loop trip count, so an
  * emitter that wins at ten digits can lose at one, and the crossover is the reading.
  */
-<<<<<<< HEAD
-#include <stdint.h>
-=======
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 #include <string.h>
 
 #include "device_bench.h"
 
 #include "clz/clz.h"
-<<<<<<< HEAD
-=======
 #include "fractio/fractio.h"
 #include "memoria_operor/memoria_operor.h"
 #include "numeros_scribo/numeros_scribo.h"
 #include "proximus_operor/proximus_operor.h"
 #include "transformo/transformo.h"
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 #include "verba_scribo/verba_scribo.h"
 
 /**
@@ -53,8 +46,6 @@
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) char g_out[16];
 
 /**
-<<<<<<< HEAD
-=======
  * @brief Where the rows that measure against libc write, wide enough for anything either side emits.
  *
  * @note Separate from g_out, which the emitter rows size against a 32-bit value. A full 64-bit
@@ -167,11 +158,9 @@ static volatile uint64_t g_g_mant = 31415926535897932ull;
 static volatile uint64_t g_g_round = 20000000000000000ull;
 
 /**
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @brief Powers of ten the scan counter compares against, as verba_scribo carries them.
  */
-static const uint32_t POW10[10] = {1u,       10u,       100u,       1000u,       10000u,
-                                   100000u,  1000000u,  10000000u,  100000000u,  1000000000u};
+static const uint32_t POW10[10] = {1u, 10u, 100u, 1000u, 10000u, 100000u, 1000000u, 10000000u, 100000000u, 1000000000u};
 
 /**
  * @brief Every two digit combination, so a pair is one load rather than two divides.
@@ -210,15 +199,9 @@ static unsigned dc_scan(uint32_t v)
  *
  * @param[in] v Value to measure.
  * @return      How many decimal digits it needs.
-<<<<<<< HEAD
- * @note clz.lead counts a 64-bit value whatever the machine word is - ClzCtx::val is mmgr_u64 - so
- *       the bit index comes off 64, not off MMGR_WORD_BITS. Taking it off the word gives 32 - 61 on
- *       a 32-bit target, which underflows and indexes POW10 outside mapped flash.
-=======
  * @note The width is a fixed 64 rather than MMGR_WORD_BITS because clz.lead counts an mmgr_u64
  *       whatever the machine word is. Taking it off a 32-bit word underflows, and the estimate then
  *       indexes POW10 outside mapped flash, which faults on the part and cannot fault on a host.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note log10 is approximated from log2 by multiplying by 1233 and shifting by twelve, which is
  *       1233/4096 against log10(2) = 0.30103; the estimate is exact or one low, and the single
  *       table compare corrects it. Branchless apart from that compare, and no loop.
@@ -230,11 +213,7 @@ static unsigned dc_clz(uint32_t v)
 {
     // Explicit cast narrows the iword the clz entry returns to the unsigned the shift wants; v is
     // forced non-zero so the count is defined for every input
-<<<<<<< HEAD
-    const unsigned lead = (unsigned)MMGR_CALL(clz.lead, ClzCfg, .val = (mmgr_word)(v | 1u));
-=======
     const unsigned lead = (unsigned)MMGR_CALL(clz.lead, ClzCfg, .val = (mmgr_u64)(v | 1u));
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     const unsigned bits = 64u - lead;
     const unsigned est = ((bits * 1233u) >> 12u);
 
@@ -344,7 +323,7 @@ static void emit_recip(char *out, uint32_t v, unsigned digits)
         const uint32_t d_ = (uint32_t)((n_) >> 32u);                                                                   \
         (out_)[0] = PAIRS[d_ * 2u];                                                                                    \
         (out_)[1] = PAIRS[(d_ * 2u) + 1u];                                                                             \
-        (n_) = ((n_)&0xFFFFFFFFULL) * 100ULL;                                                                          \
+        (n_) = ((n_) & 0xFFFFFFFFULL) * 100ULL;                                                                        \
     } while (0)
 
 /**
@@ -442,11 +421,8 @@ static size_t was(char *out, uint32_t v)
  */
 MMGR_FLATTEN static size_t verba_uint_flat(char *out, uint32_t v)
 {
-<<<<<<< HEAD
-    return MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = out, .cap = 16u, .at = 0u, .val = v, .base = 10u, .min = 1u);
-=======
-    return MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = out, .cap = 16u, .at = 0u, .val = v,
-                     .base = 10u, .min = 1u);
+    return MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = out, .cap = 16u, .at = 0u, .val = v, .base = 10u,
+                     .min = 1u);
 }
 
 /**
@@ -454,12 +430,26 @@ MMGR_FLATTEN static size_t verba_uint_flat(char *out, uint32_t v)
  *
  * @note Stands in for mmgr_verba_pow10, which is static to verba_scribo.c and so out of reach here.
  */
-static const uint64_t POW10_64[20] = {
-    1ull,                 10ull,                 100ull,                 1000ull,
-    10000ull,             100000ull,             1000000ull,             10000000ull,
-    100000000ull,         1000000000ull,         10000000000ull,         100000000000ull,
-    1000000000000ull,     10000000000000ull,     100000000000000ull,     1000000000000000ull,
-    10000000000000000ull, 100000000000000000ull, 1000000000000000000ull, 10000000000000000000ull};
+static const uint64_t POW10_64[20] = {1ull,
+                                      10ull,
+                                      100ull,
+                                      1000ull,
+                                      10000ull,
+                                      100000ull,
+                                      1000000ull,
+                                      10000000ull,
+                                      100000000ull,
+                                      1000000000ull,
+                                      10000000000ull,
+                                      100000000000ull,
+                                      1000000000000ull,
+                                      10000000000000ull,
+                                      100000000000000ull,
+                                      1000000000000000ull,
+                                      10000000000000000ull,
+                                      100000000000000000ull,
+                                      1000000000000000000ull,
+                                      10000000000000000000ull};
 
 /**
  * @brief Index into POW10_64 of the power of ten the mantissa is cut at.
@@ -889,8 +879,7 @@ static void copy_words_two(BenchCopyCtx *args)
     while (w >= (2u * MMGR_RAW_WORD))
     {
         *(bench_aequus_word_t *)args->dst = *(const bench_aequus_word_t *)args->src;
-        *(bench_aequus_word_t *)(args->dst + MMGR_RAW_WORD) =
-            *(const bench_aequus_word_t *)(args->src + MMGR_RAW_WORD);
+        *(bench_aequus_word_t *)(args->dst + MMGR_RAW_WORD) = *(const bench_aequus_word_t *)(args->src + MMGR_RAW_WORD);
         args->dst += 2u * MMGR_RAW_WORD;
         args->src += 2u * MMGR_RAW_WORD;
         w -= 2u * MMGR_RAW_WORD;
@@ -1133,43 +1122,42 @@ static void copy_read_dispatch(uint8_t *dst, const uint8_t *src, size_t bytes)
 
     switch (words)
     {
-        default:
-        {
-            size_t at = 0;
+    default: {
+        size_t at = 0;
 
-            while (at != words)
-            {
-                to[at] = from[at];
-                at++;
-            }
-            break;
+        while (at != words)
+        {
+            to[at] = from[at];
+            at++;
         }
-        case 8u:
-            to[7] = from[7];
-            // fall through
-        case 7u:
-            to[6] = from[6];
-            // fall through
-        case 6u:
-            to[5] = from[5];
-            // fall through
-        case 5u:
-            to[4] = from[4];
-            // fall through
-        case 4u:
-            to[3] = from[3];
-            // fall through
-        case 3u:
-            to[2] = from[2];
-            // fall through
-        case 2u:
-            to[1] = from[1];
-            // fall through
-        case 1u:
-            to[0] = from[0];
-            // fall through
-        case 0u:
-            break;
+        break;
+    }
+    case 8u:
+        to[7] = from[7];
+        // fall through
+    case 7u:
+        to[6] = from[6];
+        // fall through
+    case 6u:
+        to[5] = from[5];
+        // fall through
+    case 5u:
+        to[4] = from[4];
+        // fall through
+    case 4u:
+        to[3] = from[3];
+        // fall through
+    case 3u:
+        to[2] = from[2];
+        // fall through
+    case 2u:
+        to[1] = from[1];
+        // fall through
+    case 1u:
+        to[0] = from[0];
+        // fall through
+    case 0u:
+        break;
     }
 
     const size_t done = words * MMGR_RAW_WORD;
@@ -1252,9 +1240,9 @@ static void bench_mul_narrow(uint64_t a, uint64_t b, BenchProduct *out)
  */
 typedef struct
 {
-    uint64_t hi;  /**< Top 64 bits. */
-    uint64_t lo;  /**< Bottom 64 bits. */
-    int32_t fe2;  /**< Binary exponent. */
+    uint64_t hi;   /**< Top 64 bits. */
+    uint64_t lo;   /**< Bottom 64 bits. */
+    int32_t fe2;   /**< Binary exponent. */
     uint32_t rest; /**< Set once bits have been discarded below the kept 128. */
 } BenchWide;
 
@@ -1421,12 +1409,25 @@ static void bench_walk_early(BenchWide *w, int32_t ex)
 /**
  * @brief Powers of ten held exactly in 64 bits, for the walk that applies them a chunk at a time.
  */
-static const uint64_t BENCH_POW10_U64[19] = {
-    1ull,                  10ull,                 100ull,                1000ull,
-    10000ull,              100000ull,             1000000ull,            10000000ull,
-    100000000ull,          1000000000ull,         10000000000ull,        100000000000ull,
-    1000000000000ull,      10000000000000ull,     100000000000000ull,    1000000000000000ull,
-    10000000000000000ull,  100000000000000000ull, 1000000000000000000ull};
+static const uint64_t BENCH_POW10_U64[19] = {1ull,
+                                             10ull,
+                                             100ull,
+                                             1000ull,
+                                             10000ull,
+                                             100000ull,
+                                             1000000ull,
+                                             10000000ull,
+                                             100000000ull,
+                                             1000000000ull,
+                                             10000000000ull,
+                                             100000000000ull,
+                                             1000000000000ull,
+                                             10000000000000ull,
+                                             100000000000000ull,
+                                             1000000000000000ull,
+                                             10000000000000000ull,
+                                             100000000000000000ull,
+                                             1000000000000000000ull};
 
 /**
  * @brief A positive exponent applied as exact powers of ten, as many as it takes.
@@ -1627,8 +1628,7 @@ static uint32_t copy_is_correct(void)
             {
                 memset(g_check_dst, 0xA5, sizeof g_check_dst);
 
-                MMGR_CALL(proxim.read, ProximusCfg, .dst = g_check_dst + doff, .at = g_check_src + soff,
-                          .size = len);
+                MMGR_CALL(proxim.read, ProximusCfg, .dst = g_check_dst + doff, .at = g_check_src + soff, .size = len);
 
                 if (doff != 0u)
                 {
@@ -1827,35 +1827,35 @@ static size_t zeros_built(char *out, size_t cap, size_t at, size_t n)
 
     switch (n)
     {
-        default:
-            MMGR_CALL(memor.set, MemoriaCfg, .dst = to, .bytes = n, .val = (uint8_t)'0');
-            break;
-        case 8u:
-            to[7] = '0';
-            // fall through
-        case 7u:
-            to[6] = '0';
-            // fall through
-        case 6u:
-            to[5] = '0';
-            // fall through
-        case 5u:
-            to[4] = '0';
-            // fall through
-        case 4u:
-            to[3] = '0';
-            // fall through
-        case 3u:
-            to[2] = '0';
-            // fall through
-        case 2u:
-            to[1] = '0';
-            // fall through
-        case 1u:
-            to[0] = '0';
-            // fall through
-        case 0u:
-            break;
+    default:
+        MMGR_CALL(memor.set, MemoriaCfg, .dst = to, .bytes = n, .val = (uint8_t)'0');
+        break;
+    case 8u:
+        to[7] = '0';
+        // fall through
+    case 7u:
+        to[6] = '0';
+        // fall through
+    case 6u:
+        to[5] = '0';
+        // fall through
+    case 5u:
+        to[4] = '0';
+        // fall through
+    case 4u:
+        to[3] = '0';
+        // fall through
+    case 3u:
+        to[2] = '0';
+        // fall through
+    case 2u:
+        to[1] = '0';
+        // fall through
+    case 1u:
+        to[0] = '0';
+        // fall through
+    case 0u:
+        break;
     }
     return at + n;
 }
@@ -1885,50 +1885,49 @@ static size_t zeros_proxim(char *out, size_t cap, size_t at, size_t n)
 
     switch (n)
     {
-        default:
-        {
-            // Every lane of a word holding the digit, so the run below is one store a word
-            const uint64_t lanes = ((~(uint64_t)0) / 0xFFu) * (uint64_t)'0';
-            size_t k = 0u;
+    default: {
+        // Every lane of a word holding the digit, so the run below is one store a word
+        const uint64_t lanes = ((~(uint64_t)0) / 0xFFu) * (uint64_t)'0';
+        size_t k = 0u;
 
-            while ((n - k) >= MMGR_RAW_WORD)
-            {
-                MMGR_CALL(proxim.put, ProximusCfg, .dst = (uint8_t *)to + k, .val = lanes);
-                k += MMGR_RAW_WORD;
-            }
-            while (k != n)
-            {
-                to[k] = '0';
-                k += 1u;
-            }
-            break;
+        while ((n - k) >= MMGR_RAW_WORD)
+        {
+            MMGR_CALL(proxim.put, ProximusCfg, .dst = (uint8_t *)to + k, .val = lanes);
+            k += MMGR_RAW_WORD;
         }
-        case 8u:
-            to[7] = '0';
-            // fall through
-        case 7u:
-            to[6] = '0';
-            // fall through
-        case 6u:
-            to[5] = '0';
-            // fall through
-        case 5u:
-            to[4] = '0';
-            // fall through
-        case 4u:
-            to[3] = '0';
-            // fall through
-        case 3u:
-            to[2] = '0';
-            // fall through
-        case 2u:
-            to[1] = '0';
-            // fall through
-        case 1u:
-            to[0] = '0';
-            // fall through
-        case 0u:
-            break;
+        while (k != n)
+        {
+            to[k] = '0';
+            k += 1u;
+        }
+        break;
+    }
+    case 8u:
+        to[7] = '0';
+        // fall through
+    case 7u:
+        to[6] = '0';
+        // fall through
+    case 6u:
+        to[5] = '0';
+        // fall through
+    case 5u:
+        to[4] = '0';
+        // fall through
+    case 4u:
+        to[3] = '0';
+        // fall through
+    case 3u:
+        to[2] = '0';
+        // fall through
+    case 2u:
+        to[1] = '0';
+        // fall through
+    case 1u:
+        to[0] = '0';
+        // fall through
+    case 0u:
+        break;
     }
     return at + n;
 }
@@ -1959,79 +1958,78 @@ static size_t zeros_aligned_fill(char *out, size_t cap, size_t at, size_t n)
 
     switch (n)
     {
-        default:
+    default: {
+        // Every lane of a word holding the digit
+        const uint64_t lanes = ((~(uint64_t)0) / 0xFFu) * (uint64_t)'0';
+        // Explicit casts hold the negation and the mask at uintptr_t, then bring the count back
+        const size_t skew = (size_t)((0u - (uintptr_t)to) & (uintptr_t)(MMGR_RAW_WORD - 1u));
+        const size_t head = (skew < n) ? skew : n;
+        uint8_t *put = (uint8_t *)to;
+        size_t left = n;
+
+        // The head memor_set does not have: it stores through the aligned put with no walk to a
+        // boundary first, so it needs a destination that already sits on one. This one writes
+        // wherever the digits ended
+        for (size_t k = 0; k < head; k++)
         {
-            // Every lane of a word holding the digit
-            const uint64_t lanes = ((~(uint64_t)0) / 0xFFu) * (uint64_t)'0';
-            // Explicit casts hold the negation and the mask at uintptr_t, then bring the count back
-            const size_t skew = (size_t)((0u - (uintptr_t)to) & (uintptr_t)(MMGR_RAW_WORD - 1u));
-            const size_t head = (skew < n) ? skew : n;
-            uint8_t *put = (uint8_t *)to;
-            size_t left = n;
-
-            // The head memor_set does not have: it stores through the aligned put with no walk to a
-            // boundary first, so it needs a destination that already sits on one. This one writes
-            // wherever the digits ended
-            for (size_t k = 0; k < head; k++)
-            {
-                *put++ = (uint8_t)'0';
-            }
-            left -= head;
-
-            size_t words = left - (left & (MMGR_RAW_WORD - 1u));
-
-            // Four words an iteration, advancing the pointer rather than indexing off a base: at one
-            // word a pass the bump, the counter and the branch cost as much as the store
-            while (words >= (4u * MMGR_RAW_WORD))
-            {
-                MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put, .val = lanes);
-                MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put + MMGR_RAW_WORD, .val = lanes);
-                MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put + (2u * MMGR_RAW_WORD), .val = lanes);
-                MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put + (3u * MMGR_RAW_WORD), .val = lanes);
-                put += 4u * MMGR_RAW_WORD;
-                words -= 4u * MMGR_RAW_WORD;
-                left -= 4u * MMGR_RAW_WORD;
-            }
-            while (words != 0u)
-            {
-                MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put, .val = lanes);
-                put += MMGR_RAW_WORD;
-                words -= MMGR_RAW_WORD;
-                left -= MMGR_RAW_WORD;
-            }
-            while (left != 0u)
-            {
-                *put++ = (uint8_t)'0';
-                left -= 1u;
-            }
-            break;
+            *put++ = (uint8_t)'0';
         }
-        case 8u:
-            to[7] = '0';
-            // fall through
-        case 7u:
-            to[6] = '0';
-            // fall through
-        case 6u:
-            to[5] = '0';
-            // fall through
-        case 5u:
-            to[4] = '0';
-            // fall through
-        case 4u:
-            to[3] = '0';
-            // fall through
-        case 3u:
-            to[2] = '0';
-            // fall through
-        case 2u:
-            to[1] = '0';
-            // fall through
-        case 1u:
-            to[0] = '0';
-            // fall through
-        case 0u:
-            break;
+        left -= head;
+
+        size_t words = left - (left & (MMGR_RAW_WORD - 1u));
+
+        // Four words an iteration, advancing the pointer rather than indexing off a base: at one
+        // word a pass the bump, the counter and the branch cost as much as the store
+        while (words >= (4u * MMGR_RAW_WORD))
+        {
+            MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put, .val = lanes);
+            MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put + MMGR_RAW_WORD, .val = lanes);
+            MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put + (2u * MMGR_RAW_WORD), .val = lanes);
+            MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put + (3u * MMGR_RAW_WORD), .val = lanes);
+            put += 4u * MMGR_RAW_WORD;
+            words -= 4u * MMGR_RAW_WORD;
+            left -= 4u * MMGR_RAW_WORD;
+        }
+        while (words != 0u)
+        {
+            MMGR_CALL(proxim.al_put, ProximusCfg, .dst = put, .val = lanes);
+            put += MMGR_RAW_WORD;
+            words -= MMGR_RAW_WORD;
+            left -= MMGR_RAW_WORD;
+        }
+        while (left != 0u)
+        {
+            *put++ = (uint8_t)'0';
+            left -= 1u;
+        }
+        break;
+    }
+    case 8u:
+        to[7] = '0';
+        // fall through
+    case 7u:
+        to[6] = '0';
+        // fall through
+    case 6u:
+        to[5] = '0';
+        // fall through
+    case 5u:
+        to[4] = '0';
+        // fall through
+    case 4u:
+        to[3] = '0';
+        // fall through
+    case 3u:
+        to[2] = '0';
+        // fall through
+    case 2u:
+        to[1] = '0';
+        // fall through
+    case 1u:
+        to[0] = '0';
+        // fall through
+    case 0u:
+        break;
     }
     return at + n;
 }
@@ -2309,7 +2307,6 @@ static uint64_t bits_via_memcpy(double value)
 
     memcpy(&held, &value, sizeof held);
     return held;
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 }
 
 /**
@@ -2324,17 +2321,13 @@ void dbench_run(void)
     {
         DBENCH_BANNER("verba itoa emitters and digit counters");
 
-<<<<<<< HEAD
-=======
         // Correctness before any timing. A copy that is wrong is not fast, it is broken, and the
         // host suite cannot see a path the target assembler selected.
         printf("DB copy_check      disagreements=%u\n", (unsigned)copy_is_correct());
         printf("DB cut_check       disagreements=%u\n", (unsigned)cut_is_correct());
         g_pow_lo_only = 0u;
-        printf("DB pow_check       hi_or_exp=%u lo_only=%u\n", (unsigned)pow_is_correct(),
-               (unsigned)g_pow_lo_only);
+        printf("DB pow_check       hi_or_exp=%u lo_only=%u\n", (unsigned)pow_is_correct(), (unsigned)g_pow_lo_only);
 
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
         for (unsigned vi = 0; vi < (sizeof vals / sizeof vals[0]); vi++)
         {
             const uint32_t v = vals[vi];
@@ -2362,8 +2355,8 @@ void dbench_run(void)
             // the ordinary way on one arm and pulled into the caller on the other. The gap is what
             // MMGR_CALL and the argument pack cost, and nothing else.
             DBENCH_AB("call", iters, d,
-                      DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_out, .cap = sizeof g_out, .at = 0u,
-                                            .val = v, .base = 10u, .min = 1u)),
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_out, .cap = sizeof g_out,
+                                            .at = 0u, .val = v, .base = 10u, .min = 1u)),
                       DBENCH_KEEP(verba_uint_flat(g_out, v)));
 
             // And the arithmetic on its own, both arms inlined.
@@ -2371,13 +2364,10 @@ void dbench_run(void)
         }
 
         // What the harness costs with no work in it. Every row above carries this.
-<<<<<<< HEAD
-=======
 
         // The float path's digit writer, which is where the 64-bit software division lives.
         {
-            static const uint64_t mantissas[] = {123456ull, 1234567890ull, 12345678901234567ull,
-                                                 123456789012345678ull};
+            static const uint64_t mantissas[] = {123456ull, 1234567890ull, 12345678901234567ull, 123456789012345678ull};
             static const unsigned widths[] = {6u, 10u, 17u, 18u};
 
             for (unsigned which = 0; which < 4u; which++)
@@ -2401,14 +2391,13 @@ void dbench_run(void)
             // The first row is put measuring, against snprintf; the second hands put the length it
             // already has and compares against the copy libc actually performs.
             DBENCH_AB("s:put", iters, sizeof text - 1u,
-                      DBENCH_KEEP(MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .text = text)),
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .text = text)),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%s", text)));
 
             DBENCH_AB("s:put_n", iters, sizeof text - 1u,
-                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .text = text,
-                                            .text_len = sizeof text - 1u)),
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .text = text, .text_len = sizeof text - 1u)),
                       (memcpy(g_wide, text, sizeof text - 1u), DBENCH_KEEP(g_wide)));
 
             // The width test inside the cut against the width test hoisted into the caller. This is
@@ -2418,8 +2407,7 @@ void dbench_run(void)
             DBENCH_AB("s:uint32", iters, 10u, DBENCH_KEEP(uint_test_inside(g_wide, 4294967295ull)),
                       DBENCH_KEEP(uint_test_outside(g_wide, 4294967295ull)));
 
-            DBENCH_AB("s:uint64", iters, 20u,
-                      DBENCH_KEEP(uint_test_inside(g_wide, 18446744073709551615ull)),
+            DBENCH_AB("s:uint64", iters, 20u, DBENCH_KEEP(uint_test_inside(g_wide, 18446744073709551615ull)),
                       DBENCH_KEEP(uint_test_outside(g_wide, 18446744073709551615ull)));
 
             // The word run, addresses through the context against addresses in locals. Same loads,
@@ -2433,8 +2421,8 @@ void dbench_run(void)
                 // the same destination they copy identical bytes from an identical source, and the
                 // compiler is free to keep one and drop the other, which reads as both being fast.
                 DBENCH_AB("s:words", iters, sizeof text - 1u,
-                          (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len,
-                           copy_words_args(&one), DBENCH_KEEP(g_check_dst)),
+                          (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len, copy_words_args(&one),
+                           DBENCH_KEEP(g_check_dst)),
                           (two.dst = g_check_dst + 64u, two.src = g_check_src + 64u, two.bytes = g_len,
                            copy_words_locals(&two), DBENCH_KEEP(g_check_dst)));
 
@@ -2452,13 +2440,13 @@ void dbench_run(void)
                 // The bare word run against memcpy, which is what says whether the loop itself is
                 // the distance or whether the stages around it are.
                 DBENCH_AB("s:wordsvlibc", iters, sizeof text - 1u,
-                          (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len,
-                           copy_words_args(&one), DBENCH_KEEP(g_check_dst)),
+                          (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len, copy_words_args(&one),
+                           DBENCH_KEEP(g_check_dst)),
                           (memcpy(g_check_dst + 64u, g_check_src + 64u, g_len), DBENCH_KEEP(g_check_dst)));
 
                 DBENCH_AB("s:words2", iters, sizeof text - 1u,
-                          (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len,
-                           copy_words_args(&one), DBENCH_KEEP(g_check_dst)),
+                          (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len, copy_words_args(&one),
+                           DBENCH_KEEP(g_check_dst)),
                           (two.dst = g_check_dst + 64u, two.src = g_check_src + 64u, two.bytes = g_len,
                            copy_words_two(&two), DBENCH_KEEP(g_check_dst)));
             }
@@ -2470,22 +2458,22 @@ void dbench_run(void)
             // The dispatch cannot be shown to leave the literal alone: the head is only zero because
             // the destination happens to be aligned, and the compiler will not assume that, so it
             // reads the run as reaching a word past a thirty one byte array and refuses to build.
-            DBENCH_AB("s:dispatch", iters, sizeof text - 1u,
-                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = (const char *)g_check_src,
-                                 .size = g_len),
-                       DBENCH_KEEP(g_wide)),
-                      (copy_read_dispatch((uint8_t *)g_wide, g_check_src, g_len), DBENCH_KEEP(g_wide)));
+            DBENCH_AB(
+                "s:dispatch", iters, sizeof text - 1u,
+                (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = (const char *)g_check_src, .size = g_len),
+                 DBENCH_KEEP(g_wide)),
+                (copy_read_dispatch((uint8_t *)g_wide, g_check_src, g_len), DBENCH_KEEP(g_wide)));
 
             // Two more shapes for the stages around the word run, each against the copy as it is.
-            DBENCH_AB("s:overlap", iters, sizeof text - 1u,
-                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len),
-                       DBENCH_KEEP(g_wide)),
-                      (copy_read_overlap((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_KEEP(g_wide)));
+            DBENCH_AB(
+                "s:overlap", iters, sizeof text - 1u,
+                (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len), DBENCH_KEEP(g_wide)),
+                (copy_read_overlap((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_KEEP(g_wide)));
 
-            DBENCH_AB("s:fastpath", iters, sizeof text - 1u,
-                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len),
-                       DBENCH_KEEP(g_wide)),
-                      (copy_read_fastpath((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_KEEP(g_wide)));
+            DBENCH_AB(
+                "s:fastpath", iters, sizeof text - 1u,
+                (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len), DBENCH_KEEP(g_wide)),
+                (copy_read_fastpath((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_KEEP(g_wide)));
 
             // The library's three stage copy against the same work in one function, both against
             // memcpy. The word run alone already matches memcpy, so what this asks is whether the
@@ -2507,14 +2495,12 @@ void dbench_run(void)
             DBENCH_AB("s:copy_call", iters, 32u,
                       (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len_whole),
                        DBENCH_KEEP(g_wide)),
-                      (proxim_read_flat((uint8_t *)g_wide, (const uint8_t *)text, g_len_whole),
-                       DBENCH_KEEP(g_wide)));
+                      (proxim_read_flat((uint8_t *)g_wide, (const uint8_t *)text, g_len_whole), DBENCH_KEEP(g_wide)));
 
             // The copy on its own, with no room test and no entry above it, so the row above can be
             // read: whatever this one does not account for is what verba_put_n adds on top.
             DBENCH_AB("s:copy", iters, sizeof text - 1u,
-                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text,
-                                 .size = sizeof text - 1u),
+                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = sizeof text - 1u),
                        DBENCH_KEEP(g_wide)),
                       (memcpy(g_wide, text, sizeof text - 1u), DBENCH_KEEP(g_wide)));
 
@@ -2528,14 +2514,12 @@ void dbench_run(void)
             // overhead; what it costs over the copy at thirty is that same overhead plus whatever
             // scales, and the two rows together say which of the two it is.
             DBENCH_AB("s:copy1", iters, 1u,
-                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = 1u),
-                       DBENCH_KEEP(g_wide)),
+                      (MMGR_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = 1u), DBENCH_KEEP(g_wide)),
                       (memcpy(g_wide, text, 1u), DBENCH_KEEP(g_wide)));
 
             DBENCH_AB("s:put_n1", iters, 1u,
-                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .text = text,
-                                            .text_len = 1u)),
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .text = text, .text_len = 1u)),
                       (memcpy(g_wide, text, 1u), DBENCH_KEEP(g_wide)));
 
             // put_n against what a caller actually writes to get what put_n gives them. The memcpy
@@ -2543,75 +2527,69 @@ void dbench_run(void)
             // answer for where the next write goes. A caller filling a bounded buffer writes the
             // test as well, and that test is part of the cost on both sides or on neither.
             DBENCH_AB("s:put_safe", iters, sizeof text - 1u,
-                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .text = text,
-                                            .text_len = g_len)),
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .text = text, .text_len = g_len)),
                       DBENCH_KEEP(libc_put_n(g_wide, sizeof g_wide, 0u, text, g_len)));
 
             // put against what libc costs a caller who also has to measure. The row above hands the
             // snprintf arm a literal whose length GCC knows, so that arm never measures anything;
             // this one hides the pointer, so both sides walk the string before copying it.
             DBENCH_AB("s:put_meas", iters, sizeof text - 1u,
-                      DBENCH_KEEP(MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .text = g_text)),
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .text = g_text)),
                       (memcpy(g_wide, g_text, strlen(g_text)), DBENCH_KEEP(g_wide)));
 
             // The same thirty bytes with the length hidden from the compiler on both arms, so this
             // is verba's copy against the memcpy libc actually links, not against inlined moves.
             DBENCH_AB("s:put_run", iters, sizeof text - 1u,
-                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .text = text,
-                                            .text_len = g_len)),
+                      DBENCH_KEEP(MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .text = text, .text_len = g_len)),
                       (memcpy(g_wide, text, g_len), DBENCH_KEEP(g_wide)));
 
             DBENCH_AB("s:ch", iters, 1u,
-                      DBENCH_KEEP(MMGR_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .ch = 'x')),
+                      DBENCH_KEEP(MMGR_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .ch = 'x')),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%c", 'x')));
 
             DBENCH_AB("s:u32", iters, 10u,
-                      DBENCH_KEEP(MMGR_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .val = 4294967295u)),
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .val = 4294967295u)),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%u", 4294967295u)));
 
             // u64_clip had no row. It writes the same digits u64 does, right aligned in a column,
             // and it is the one entry in the module still walking a 64-bit divide and modulo per
             // digit - the thing verba_emit20 replaced everywhere else. Against the same snprintf
             // asked for the same column.
-            DBENCH_AB("s:u64clip", iters, 20u,
-                      DBENCH_KEEP(MMGR_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u,
-                                            .val = 18446744073709551615ull, .columns = 24u)),
-                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%24llu", 18446744073709551615ull)));
+            DBENCH_AB(
+                "s:u64clip", iters, 20u,
+                DBENCH_KEEP(MMGR_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                      .at = 0u, .val = 18446744073709551615ull, .columns = 24u)),
+                DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%24llu", 18446744073709551615ull)));
 
             DBENCH_AB("s:u64", iters, 20u,
-                      DBENCH_KEEP(MMGR_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u,
-                                            .val = 18446744073709551615ull)),
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .val = 18446744073709551615ull)),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%llu", 18446744073709551615ull)));
 
             DBENCH_AB("s:i64", iters, 19u,
-                      DBENCH_KEEP(MMGR_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u,
-                                            .sval = -9223372036854775807ll)),
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .sval = -9223372036854775807ll)),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%lld", -9223372036854775807ll)));
 
             DBENCH_AB("s:hex", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .val = 0xDEADBEEFu)),
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .val = 0xDEADBEEFu)),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%x", 0xDEADBEEFu)));
 
             // The two float forms, which is where the digit writer measured above actually lives
             DBENCH_AB("s:g", iters, 17u,
-                      DBENCH_KEEP(MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .real = 3.14159265358979,
-                                            .sig = 17u)),
+                      DBENCH_KEEP(MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .real = 3.14159265358979, .sig = 17u)),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%.*g", 17, 3.14159265358979)));
 
             DBENCH_AB("s:fixed", iters, 6u,
-                      DBENCH_KEEP(MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .real = 3.14159265358979,
-                                            .decimals = 6u)),
+                      DBENCH_KEEP(MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .real = 3.14159265358979, .decimals = 6u)),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%.*f", 6, 3.14159265358979)));
 
             // Where the float path's cycles actually sit. fixed is the most expensive entry in the
@@ -2624,23 +2602,20 @@ void dbench_run(void)
             // which are the values the entry itself reaches with, so the parts below do the same
             // work on the same numbers rather than standing in for it.
             DBENCH_OP("f:whole", iters,
-                      DBENCH_KEEP(MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .real = g_rec_real2,
-                                            .decimals = 6u)));
+                      DBENCH_KEEP(MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .real = g_rec_real2, .decimals = 6u)));
 
             DBENCH_OP("f:ip", iters,
-                      DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .val = g_fix_ip,
-                                            .base = 10u, .min = 1u)));
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .val = g_fix_ip, .base = 10u, .min = 1u)));
 
             DBENCH_OP("f:frac", iters,
-                      DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .val = g_fix_frac,
-                                            .base = 10u, .min = 6u)));
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .val = g_fix_frac, .base = 10u, .min = 6u)));
 
             DBENCH_OP("f:point", iters,
-                      DBENCH_KEEP(MMGR_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .ch = '.')));
+                      DBENCH_KEEP(MMGR_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .ch = '.')));
 
             // The scaling pass on its own, given exactly what verba_fixed hands it for this value.
             // 3.14159265358979 has a stored exponent of 1024 and a mantissa of 0x1921FB54442D18
@@ -2648,17 +2623,16 @@ void dbench_run(void)
             // 3, and 0x121FB54442D18 is the remainder left for the fraction. Six decimals means
             // apply_pow10 walks the two set bits of six and runs muto_mul_pow5 twice.
             DBENCH_OP("f:scale", iters,
-                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
-                                            .e2 = -51, .ex = 6, .above = 0u)));
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 6,
+                                            .above = 0u)));
 
             // What verba_g spends outside the scaling pass. It writes seventeen digits with a point
             // among them, and it runs the pass once per correction of its exponent estimate, up to
             // four times. The pass is priced above, so what these two do not account for is how
             // many times it ran.
             DBENCH_OP("g:whole", iters,
-                      DBENCH_KEEP(MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .real = g_rec_real2,
-                                            .sig = 17u)));
+                      DBENCH_KEEP(MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .real = g_rec_real2, .sig = 17u)));
 
             // The trailing zero strip verba_g runs before it picks a form. It tests one 64-bit
             // modulo per digit it considers dropping and performs a 64-bit division for each one it
@@ -2697,14 +2671,12 @@ void dbench_run(void)
             // runs past what an exact power of ten covers and the pass walks the pow5 tables - the
             // path the row above never takes and the one most values under one land on.
             DBENCH_OP("g:small", iters,
-                      DBENCH_KEEP(MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .real = g_rec_small,
-                                            .sig = 17u)));
+                      DBENCH_KEEP(MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .real = g_rec_small, .sig = 17u)));
 
             DBENCH_OP("g:digits", iters,
-                      DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide,
-                                            .cap = sizeof g_wide, .at = 0u, .val = g_g_mant,
-                                            .base = 10u, .min = 17u)));
+                      DBENCH_KEEP(MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                                            .at = 0u, .val = g_g_mant, .base = 10u, .min = 17u)));
 
             // What the digit emit costs at the width verba_g asks for, and the cut inside it. The
             // value is seventeen digits, so it does not fit a uint32_t and emit20 divides it by ten
@@ -2718,8 +2690,7 @@ void dbench_run(void)
             // The cut as a division against the cut as a multiply. The whole 128-bit product costs
             // four multiplies and the division it replaces is one call, so this is not obviously a
             // win by counting: it is a win or it is not, and the row says which.
-            DBENCH_AB("g:cut_magic", iters, 8u, DBENCH_KEEP(g_g_mant / POW10_64[8]),
-                      DBENCH_KEEP(cut_magic(g_g_mant)));
+            DBENCH_AB("g:cut_magic", iters, 8u, DBENCH_KEEP(g_g_mant / POW10_64[8]), DBENCH_KEEP(cut_magic(g_g_mant)));
 
             // The same call at four decimal exponents, which is what separates the pass's fixed
             // cost from what each power of five costs. apply_pow10 runs muto_mul_pow5 once per set
@@ -2731,50 +2702,49 @@ void dbench_run(void)
             // entry and then seats and rounds without applying any power, the difference is what
             // seating and rounding cost.
             DBENCH_OP("f:pow_zero", iters,
-                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_zero,
-                                            .e2 = -51, .ex = 6, .above = 0u)));
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_zero, .e2 = -51, .ex = 6,
+                                            .above = 0u)));
 
             DBENCH_OP("f:pow0", iters,
-                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
-                                            .e2 = -51, .ex = 0, .above = 0u)));
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 0,
+                                            .above = 0u)));
 
             DBENCH_OP("f:pow1", iters,
-                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
-                                            .e2 = -51, .ex = 1, .above = 0u)));
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 1,
+                                            .above = 0u)));
 
             DBENCH_OP("f:pow3", iters,
-                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
-                                            .e2 = -51, .ex = 3, .above = 0u)));
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 3,
+                                            .above = 0u)));
 
             DBENCH_OP("f:pow7", iters,
-                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
-                                            .e2 = -51, .ex = 7, .above = 0u)));
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 7,
+                                            .above = 0u)));
 
             // One pass on the negative side, which is the path a value below one takes. Against
             // f:scale, which is the same call at a small positive exponent and so goes through one
             // exact power of ten, this is the same work through the pow5 tables.
             DBENCH_OP("f:scale_neg", iters,
-                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
-                                            .e2 = -51, .ex = -4, .above = 0u)));
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = -4,
+                                            .above = 0u)));
 
             // One pass at the exponent verba_g actually asks for on a value of about a ten
             // thousandth. Against g:small, which is the whole entry on that value, this says
             // whether the cost is the pass or the number of passes the correction loop runs.
             DBENCH_OP("f:scale20", iters,
-                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
-                                            .e2 = -51, .ex = 20, .above = 0u)));
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 20,
+                                            .above = 0u)));
 
             DBENCH_OP("f:scale_neg13", iters,
-                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem,
-                                            .e2 = -51, .ex = -13, .above = 0u)));
+                      DBENCH_KEEP(MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = -13,
+                                            .above = 0u)));
 
             // The multiply that pass is built out of. Two applications of a power of five run it
             // four times each, so eight of these are what the row above mostly is. The halves are
             // masked out of a 64-bit value and kept there, so each partial product is written as a
             // 64 by 64 multiply; this asks whether narrowing them to the 32 bits they actually hold
             // buys anything, or whether the compiler had already worked that out from the mask.
-            DBENCH_AB("f:mul", iters, 8u,
-                      (bench_mul_wide(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)),
+            DBENCH_AB("f:mul", iters, 8u, (bench_mul_wide(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)),
                       (bench_mul_narrow(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)));
 
             // A positive exponent past what one exact power covers. Twenty is what verba_g asks for
@@ -2824,10 +2794,8 @@ void dbench_run(void)
             // other has already normalized.
             DBENCH_AB("f:pow_shape", iters, 8u,
                       (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
-                       bench_pow_128(&g_wide_a, mmgr_pow5_up[1].hi, mmgr_pow5_up[1].lo,
-                                     (int32_t)mmgr_pow5_up[1].e2),
-                       bench_pow_128(&g_wide_a, mmgr_pow5_up[2].hi, mmgr_pow5_up[2].lo,
-                                     (int32_t)mmgr_pow5_up[2].e2),
+                       bench_pow_128(&g_wide_a, mmgr_pow5_up[1].hi, mmgr_pow5_up[1].lo, (int32_t)mmgr_pow5_up[1].e2),
+                       bench_pow_128(&g_wide_a, mmgr_pow5_up[2].hi, mmgr_pow5_up[2].lo, (int32_t)mmgr_pow5_up[2].e2),
                        DBENCH_KEEP(g_wide_a.hi)),
                       (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
                        bench_pow_64(&g_wide_b, g_pow_ten), DBENCH_KEEP(g_wide_b.hi)));
@@ -2837,15 +2805,14 @@ void dbench_run(void)
         // per entry wins are supposed to compound: six fields, three of them values, and the libc
         // side pays one format parse for the lot while the mmgr side pays none at all.
         {
-            const mmgr_fval fields[] = {MMGR_VSTR("id="),  MMGR_VU64(g_rec_u64), MMGR_VSTR(" x="),
-                                        MMGR_VHEXW(g_rec_hex, 8), MMGR_VSTR(" f="), MMGR_VFIXW(g_rec_real, 4)};
+            const mmgr_fval fields[] = {MMGR_VSTR("id="),         MMGR_VU64(g_rec_u64), MMGR_VSTR(" x="),
+                                        MMGR_VHEXW(g_rec_hex, 8), MMGR_VSTR(" f="),     MMGR_VFIXW(g_rec_real, 4)};
 
             DBENCH_AB("s:record", 2000u, 34u,
-                      DBENCH_KEEP(MMGR_CALL(numer.emit, NumerosCfg, .out = g_wide, .cap = sizeof g_wide,
-                                            .vals = fields, .nvals = sizeof fields / sizeof fields[0])),
+                      DBENCH_KEEP(MMGR_CALL(numer.emit, NumerosCfg, .out = g_wide, .cap = sizeof g_wide, .vals = fields,
+                                            .nvals = sizeof fields / sizeof fields[0])),
                       DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "id=%llu x=%08lx f=%.4f",
-                                           (unsigned long long)g_rec_u64, (unsigned long)g_rec_hex,
-                                           g_rec_real)));
+                                           (unsigned long long)g_rec_u64, (unsigned long)g_rec_hex, g_rec_real)));
         }
 
         // Taking a double apart, against the libc that answers the same questions. fractio reads the
@@ -2918,8 +2885,7 @@ void dbench_run(void)
                           DBENCH_KEEP(digits_per_char(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)),
                           DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)));
 
-                DBENCH_AB("s:d_plain", iters, 6u,
-                          DBENCH_KEEP(digits_per_char(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)),
+                DBENCH_AB("s:d_plain", iters, 6u, DBENCH_KEEP(digits_per_char(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)),
                           DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)));
 
                 // The shape now in the library against the same run split at the point, so the
@@ -2928,8 +2894,7 @@ void dbench_run(void)
                           DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)),
                           DBENCH_KEEP(digits_two_runs(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)));
 
-                DBENCH_AB("s:d_runs6", iters, 6u,
-                          DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)),
+                DBENCH_AB("s:d_runs6", iters, 6u, DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)),
                           DBENCH_KEEP(digits_two_runs(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)));
 
                 // The whole placement including the emit, scratch buffer against writing the digits
@@ -2948,20 +2913,16 @@ void dbench_run(void)
                           DBENCH_KEEP(digits_inplace(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 0u)));
             }
 
-            DBENCH_AB("s:sign", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(fract.sign, FractioCfg, .bits = (mmgr_u64)g_rec_bits)),
+            DBENCH_AB("s:sign", iters, 8u, DBENCH_KEEP(MMGR_CALL(fract.sign, FractioCfg, .bits = (mmgr_u64)g_rec_bits)),
                       DBENCH_KEEP(signbit(g_rec_real) ? 1 : 0));
 
-            DBENCH_AB("s:exp", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(fract.exp, FractioCfg, .bits = (mmgr_u64)g_rec_bits)),
+            DBENCH_AB("s:exp", iters, 8u, DBENCH_KEEP(MMGR_CALL(fract.exp, FractioCfg, .bits = (mmgr_u64)g_rec_bits)),
                       DBENCH_KEEP(frexp_exponent(g_rec_real)));
 
-            DBENCH_AB("s:to_bits", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(fract.to_bits, FractioCfg, .val = g_rec_real)),
+            DBENCH_AB("s:to_bits", iters, 8u, DBENCH_KEEP(MMGR_CALL(fract.to_bits, FractioCfg, .val = g_rec_real)),
                       DBENCH_KEEP(bits_via_memcpy(g_rec_real)));
         }
 
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
         DBENCH_OP("floor_loop", 20000u, DBENCH_KEEP(g_out));
 
         DBENCH_DONE();

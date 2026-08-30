@@ -63,11 +63,7 @@ MMGR_INLINE void endian_put(const EndianCtx *args)
  * @brief Reads args->width bytes from args->src in the target's own order.
  *
  * @param[in] args Source and width [BORROWS].
-<<<<<<< HEAD
- * @return      The value read, in the low bytes of the result.
-=======
  * @return         The value read, in the low bytes of the result.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Dispatches to proxim.load16, load32 or load64 on the width.
  * @note The labels are the byte counts themselves, which is what the mmgr_endian_width enumerators are.
  * @warning Any width other than 2 or 4 takes the default branch and reads eight bytes.
@@ -91,29 +87,6 @@ MMGR_INLINE uint64_t endian_get(const EndianCtx *args)
  * @brief Reverses the byte order of args->val and returns the low args->width bytes.
  *
  * @param[in] args Value and width [BORROWS].
-<<<<<<< HEAD
- * @return      The reversed value, right-aligned into the low args->width bytes.
- * @note Swaps at eight, then sixteen, then thirty-two bits, so the whole 64-bit value is reversed first.
- * @note The final shift drops the 8 * (8 - width) bytes the reversal moved above the result.
- * @warning 8u - args->width is unsigned, so an args->width above 8 wraps into a very large shift count.
- */
-MMGR_INLINE uint64_t endian_rev(const EndianCtx *args)
-{
-    uint64_t v = args->val;
-
-    // Suffixed constants keep each mask at uint64_t, matching the value being swapped
-    v = ((v & 0x00FF00FF00FF00FFull) << 8) | ((v >> 8) & 0x00FF00FF00FF00FFull);
-    v = ((v & 0x0000FFFF0000FFFFull) << 16) | ((v >> 16) & 0x0000FFFF0000FFFFull);
-    v = (v << 32) | (v >> 32);
-    return v >> (8u * (8u - args->width));
-}
-
-/**
- * @brief Writes args->val to args->dst without reversing it.
- *
- * @param[in,out] args Destination, value and width [BORROWS].
- * @return          args->width.
-=======
  * @return         The reversed value, right-aligned into the low args->width bytes.
  * @note Swaps at eight, then sixteen, then thirty-two bits, so the whole 64-bit value is reversed first.
  * @note The final shift drops the 8 - width bytes the reversal moved above the result, which is a shift
@@ -137,7 +110,6 @@ MMGR_INLINE uint64_t endian_rev(const EndianCtx *args)
  *
  * @param[in,out] args Destination, value and width [BORROWS].
  * @return             args->width.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Calls endian_put directly, where endian_wr_be reverses first.
  * @note Hands back args->width as it was given, which is not what endian_put wrote when the width is
  *       outside the enumerators.
@@ -149,13 +121,6 @@ MMGR_INLINE size_t endian_wr_le(const EndianCtx *args)
 }
 
 /**
-<<<<<<< HEAD
- * @brief Reverses args->val, then writes it to args->dst.
- *
- * @param[in,out] args Destination, value and width [BORROWS].
- * @return          args->width.
- * @note Builds a fresh EndianCtx holding the reversed value, leaving c untouched.
-=======
  * @brief Reverses args->val, then writes args->width bytes of it to args->dst.
  *
  * @param[in,out] args Destination, value and width [BORROWS].
@@ -166,7 +131,6 @@ MMGR_INLINE size_t endian_wr_le(const EndianCtx *args)
  *       outside the enumerators.
  * @warning The width reaches endian_rev unchanged, so one above 8 wraps its shift count and one of 0
  *          shifts by 64, which is undefined.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE size_t endian_wr_be(const EndianCtx *args)
 {
@@ -178,11 +142,7 @@ MMGR_INLINE size_t endian_wr_be(const EndianCtx *args)
  * @brief Reads args->width bytes from args->src without reversing them.
  *
  * @param[in] args Source and width [BORROWS].
-<<<<<<< HEAD
- * @return      The value read.
-=======
  * @return         The value read, in the low args->width bytes.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Calls endian_get directly, where endian_rd_be reverses the result.
  * @note The upper bytes are zero, since the narrow loads widen into the uint64_t rather than filling it.
  */
@@ -195,16 +155,11 @@ MMGR_INLINE uint64_t endian_rd_le(const EndianCtx *args)
  * @brief Reads args->width bytes from args->src, then reverses them.
  *
  * @param[in] args Source and width [BORROWS].
-<<<<<<< HEAD
- * @return      The reversed value, right-aligned into the low args->width bytes.
- * @note Feeds endian_get's result into endian_rev through a fresh EndianCtx.
-=======
  * @return         The reversed value, right-aligned into the low args->width bytes.
  * @note Feeds endian_get's result into endian_rev through a fresh EndianCtx. MMGR_CALL names the
  *       initializers once, so endian_get runs once.
  * @warning The width reaches endian_rev unchanged, so one above 8 wraps its shift count and one of 0
  *          shifts by 64, which is undefined.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE uint64_t endian_rd_be(const EndianCtx *args)
 {

@@ -22,15 +22,11 @@
 #include "config/mmgr_config.h"
 
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
-<<<<<<< HEAD
-#include "carceribus/carceribus.h"
-=======
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 #include "cellularum_laboro/cellularum_laboro.h"
-#include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 #include "endian/endian.h"
 #include "fractio/fractio.h"
 #include "locus_carcerum/locus_carcerum.h"
+#include "memoria_anularis/memoria_anularis.h"
 #include "memoria_operor/memoria_operor.h"
 #include "numeros_scribo/numeros_scribo.h"
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
@@ -51,10 +47,10 @@
 /**
  * @brief The external memory module, reached only when MMGR_ENABLE_EXTRAM is set.
  *
- * @note confinium_externum.h guards its own contents on MMGR_ENABLE_EXTRAM as well.
+ * @note memoria_externa.h guards its own contents on MMGR_ENABLE_EXTRAM as well.
  */
 #if MMGR_ENABLE_EXTRAM
-#include "confinium_externum/confinium_externum.h"
+#include "memoria_externa/memoria_externa.h"
 #endif
 
 #endif

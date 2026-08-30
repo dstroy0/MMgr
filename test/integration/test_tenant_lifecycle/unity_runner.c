@@ -75,21 +75,12 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_tenant_lifecycle\\test_tenant_lifecycle.c");
-<<<<<<< HEAD
-  run_test(test_the_two_pools_are_separate_tenants, "test_the_two_pools_are_separate_tenants", 25);
-  run_test(test_the_carve_puts_them_back_to_back, "test_the_carve_puts_them_back_to_back", 39);
-  run_test(test_secure_release_wipes_what_it_gives_back, "test_secure_release_wipes_what_it_gives_back", 50);
-  run_test(test_plaintext_release_does_not_wipe, "test_plaintext_release_does_not_wipe", 66);
-  run_test(test_each_tenant_tracks_its_own_fill, "test_each_tenant_tracks_its_own_fill", 78);
-  run_test(test_release_gives_the_bytes_back_to_the_right_tenant, "test_release_gives_the_bytes_back_to_the_right_tenant", 97);
-=======
   run_test(test_the_two_cellblocks_are_separate, "test_the_two_cellblocks_are_separate", 25);
   run_test(test_the_allocation_puts_them_back_to_back, "test_the_allocation_puts_them_back_to_back", 39);
   run_test(test_maximum_security_release_zeroes_the_cell, "test_maximum_security_release_zeroes_the_cell", 51);
   run_test(test_minimum_security_release_does_not_zero, "test_minimum_security_release_does_not_zero", 67);
-  run_test(test_each_cellblock_tracks_its_own_fill, "test_each_cellblock_tracks_its_own_fill", 80);
-  run_test(test_release_gives_the_bytes_back_to_the_right_cellblock, "test_release_gives_the_bytes_back_to_the_right_cellblock", 100);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
+  run_test(test_each_cellblock_tracks_its_own_fill, "test_each_cellblock_tracks_its_own_fill", 79);
+  run_test(test_release_gives_the_bytes_back_to_the_right_cellblock, "test_release_gives_the_bytes_back_to_the_right_cellblock", 98);
 
   return UNITY_END();
 }

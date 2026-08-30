@@ -5,15 +5,9 @@
 
 #include "mmgr.h"
 
-<<<<<<< HEAD
-/* carceribus has no table of its own: a pool carries its entries, so reaching them means declaring
-   one. Two watches, so both accessor types are exercised. */
-Carceribus(umbrella, MMGR_SOLUTA(loose, 64), MMGR_SECURA(close, 64));
-=======
 /* locus_carcerum has no table of its own. A cellblock carries its entries, so reaching them means
    declaring a site. Two security levels, so both guard types are exercised. */
 LocusCarcerum(umbrella, MMGR_MINIMUM_SECURITY(minimum, 64), MMGR_MAXIMUM_SECURITY(maximum, 64));
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
 void test_umbrella_header_is_self_contained(void)
 {
@@ -25,21 +19,13 @@ void test_every_namespace_is_reachable(void)
     TEST_ASSERT_NOT_NULL(bitio.put);
     TEST_ASSERT_NOT_NULL(byteio.put);
     TEST_ASSERT_NOT_NULL(cellul.len);
-<<<<<<< HEAD
-    TEST_ASSERT_NOT_NULL(umbrella.loose.persist_capio);
-=======
     TEST_ASSERT_NOT_NULL(umbrella.minimum.persistent_buf_alloc);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     TEST_ASSERT_NOT_NULL(parva_extremitas.wr);
     TEST_ASSERT_NOT_NULL(magna_extremitas.rd);
     TEST_ASSERT_NOT_NULL(fract.sign);
     TEST_ASSERT_NOT_NULL(memor.cpy);
     TEST_ASSERT_NOT_NULL(numer.build);
-<<<<<<< HEAD
-    TEST_ASSERT_NOT_NULL(umbrella.close.persist_reddo);
-=======
     TEST_ASSERT_NOT_NULL(umbrella.maximum.persistent_buf_release);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     TEST_ASSERT_NOT_NULL(spat.from);
     TEST_ASSERT_NOT_NULL(proxim.put16);
     TEST_ASSERT_NOT_NULL(verba_textus.put_n);
@@ -54,11 +40,6 @@ void test_namespaces_are_their_own_types(void)
 {
     TEST_ASSERT_EQUAL_size_t(sizeof(MemoriaOperorNs), sizeof memor);
     TEST_ASSERT_EQUAL_size_t(sizeof(ScrutLaneNs), sizeof lane);
-<<<<<<< HEAD
-    TEST_ASSERT_EQUAL_size_t(sizeof(SolutaCustodiae), sizeof umbrella.loose);
-    TEST_ASSERT_EQUAL_size_t(sizeof(SecuraCustodiae), sizeof umbrella.close);
-=======
     TEST_ASSERT_EQUAL_size_t(sizeof(MinimumSecurityGuard), sizeof umbrella.minimum);
     TEST_ASSERT_EQUAL_size_t(sizeof(MaximumSecurityGuard), sizeof umbrella.maximum);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 }

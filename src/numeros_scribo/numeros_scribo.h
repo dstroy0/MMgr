@@ -96,16 +96,6 @@ typedef struct
 {
     mmgr_fk kind; /**< Which arm of as holds the value. */
     union {
-<<<<<<< HEAD
-        const char *s; /**< Read for MMGR_FK_STR, MMGR_FK_JSON and MMGR_FK_XML [BORROWS]. */
-        uint32_t u32;  /**< Read for MMGR_FK_U32 and MMGR_FK_DEC. */
-        uint64_t u64;  /**< Read for MMGR_FK_U64, MMGR_FK_HEX and MMGR_FK_OCT. */
-        int64_t i64;   /**< Read for MMGR_FK_I64. */
-        double d;      /**< Read for MMGR_FK_G and MMGR_FK_FIX. */
-        char c;        /**< Read for MMGR_FK_CH. */
-    } as;              /**< The value, under the arm kind names. */
-    uint8_t width;     /**< Width numer_emit gives this value, or 0 to take the kind's default from s_kind. */
-=======
         const char *text; /**< Read for MMGR_FK_STR, MMGR_FK_JSON and MMGR_FK_XML [BORROWS]. */
         uint32_t u32;     /**< Read for MMGR_FK_U32 and MMGR_FK_DEC. */
         uint64_t u64;     /**< Read for MMGR_FK_U64, MMGR_FK_HEX and MMGR_FK_OCT. */
@@ -114,7 +104,6 @@ typedef struct
         char character;   /**< Read for MMGR_FK_CH. */
     } as;                 /**< The value, under the arm that kind names. */
     uint8_t width;        /**< Width numer_emit gives this value, or 0 to take the kind's default from s_kind. */
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 } mmgr_fval;
 
 /**
@@ -285,14 +274,6 @@ typedef struct
 MMGR_NS_LAYOUT(NumerosScriboNs, build, append, emit, emit_append);
 
 /**
-<<<<<<< HEAD
- * @brief Writes args->spec and args->vals into args->out, starting at its first byte.
- *
- * @param[in] args Buffer, capacity, the field list and the values [BORROWS].
- * @return      Length of the string written, not counting its terminator, or 0 when nothing was written.
- * @note An MMGR_FK_LIT field writes its own text; every other field consumes the next value in args->vals.
- * @note Returns 0 and empties args->out when a value is missing, when a kind differs, or when values are left over.
-=======
  * @brief Writes args->spec and args->vals into args->out, starting at args->at.
  *
  * @param[in] args Buffer, capacity, the field list and the values [BORROWS].
@@ -302,7 +283,6 @@ MMGR_NS_LAYOUT(NumerosScriboNs, build, append, emit, emit_append);
  *       args->vals.
  * @note Returns 0 and puts the terminator back at args->at when a value is missing, when a kind differs,
  *       or when values are left over, which leaves the text written before this call whole.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @warning args->spec must reach an MMGR_FK_END field, and args->vals must hold args->nvals values.
  */
 size_t mmgr_numer_build(const NumerosCfg *args);
@@ -311,12 +291,6 @@ size_t mmgr_numer_build(const NumerosCfg *args);
  * @brief Writes args->spec and args->vals into args->out after the string already there.
  *
  * @param[in] args Buffer, capacity, the field list and the values [BORROWS].
-<<<<<<< HEAD
- * @return      Length of the whole string in args->out, or 0 when nothing was added.
- * @note Measures the existing string with cellul.len, then builds from there with the capacity that is left.
- * @note Puts the terminator back at the existing length and returns 0 when the build writes nothing.
- * @warning args->out must already hold a terminated string, and args->spec must reach an MMGR_FK_END field.
-=======
  * @return         Length of the whole string in args->out, or 0 when nothing was added.
  * @note Carries on at args->at when the caller threaded one, and measures the existing string with
  *       cellul.len only when args->at is 0. Either way the build gets the whole of args->cap and
@@ -324,19 +298,10 @@ size_t mmgr_numer_build(const NumerosCfg *args);
  * @note Puts the terminator back at the offset it began from and returns 0 when the build writes nothing.
  * @warning args->spec must reach an MMGR_FK_END field, and args->out must hold a terminated string when
  *          args->at is 0, since that is the only time the length is measured.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 size_t mmgr_numer_append(const NumerosCfg *args);
 
 /**
-<<<<<<< HEAD
- * @brief Writes args->vals into args->out, starting at its first byte and reading no field list.
- *
- * @param[in] args Buffer, capacity and the values [BORROWS].
- * @return      Length of the string written, not counting its terminator, or 0 when nothing was written.
- * @note Each value carries its own width, and no kind is matched, since there are no fields to match against.
- * @warning args->vals must hold args->nvals values.
-=======
  * @brief Writes args->vals into args->out, starting at args->at and reading no field list.
  *
  * @param[in] args Buffer, capacity and the values [BORROWS].
@@ -345,7 +310,6 @@ size_t mmgr_numer_append(const NumerosCfg *args);
  * @note Each value carries its own width, and no kind is matched, since there are no fields to match against.
  * @warning args->vals must hold args->nvals values.
  * @warning A value of kind MMGR_FK_END or MMGR_FK_LIT formats nothing, which abandons the write and returns 0.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 size_t mmgr_numer_emit(const NumerosCfg *args);
 
@@ -353,12 +317,6 @@ size_t mmgr_numer_emit(const NumerosCfg *args);
  * @brief Writes args->vals into args->out after the string already there, reading no field list.
  *
  * @param[in] args Buffer, capacity and the values [BORROWS].
-<<<<<<< HEAD
- * @return      Length of the whole string in args->out, or 0 when nothing was added.
- * @note Measures the existing string with cellul.len, then emits from there with the capacity that is left.
- * @note Puts the terminator back at the existing length and returns 0 when the emit writes nothing.
- * @warning args->out must already hold a terminated string, and args->vals must hold args->nvals values.
-=======
  * @return         Length of the whole string in args->out, or 0 when nothing was added.
  * @note Carries on at args->at when the caller threaded one, and measures the existing string with
  *       cellul.len only when args->at is 0. Either way the emit gets the whole of args->cap and
@@ -366,7 +324,6 @@ size_t mmgr_numer_emit(const NumerosCfg *args);
  * @note Puts the terminator back at the offset it began from and returns 0 when the emit writes nothing.
  * @warning args->vals must hold args->nvals values, and args->out must hold a terminated string when
  *          args->at is 0, since that is the only time the length is measured.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 size_t mmgr_numer_emit_append(const NumerosCfg *args);
 

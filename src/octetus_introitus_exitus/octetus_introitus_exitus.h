@@ -42,15 +42,15 @@ MMGR_INCIPE_DECLS
  */
 typedef struct
 {
-    mmgr_span *const write_span;      /**< Span put, put_be and raw append into, or mpint_fixed fills [BORROWS]. */
-    mmgr_cspan *const read_span;      /**< Span take_be and rd_str read from [BORROWS]. */
-    const uint8_t *const src;         /**< Bytes raw appends, or the integer mpint_fixed reads [BORROWS]. */
-    uint64_t *const out;              /**< Where take_be stores the value it read [BORROWS]. */
-    const uint8_t **const blob;       /**< Where rd_str points at the payload it found [BORROWS]. */
-    size_t *const blob_bytes;         /**< Where rd_str stores that payload's length [BORROWS]. */
-    const uint64_t value;             /**< Value put_be writes, taken from its low bytes. */
-    const size_t bytes;               /**< Bytes the call moves, 1 through 8 for the big endian entries. */
-    const uint8_t byte;               /**< The single byte put appends. */
+    mmgr_span *const write_span; /**< Span put, put_be and raw append into, or mpint_fixed fills [BORROWS]. */
+    mmgr_cspan *const read_span; /**< Span take_be and rd_str read from [BORROWS]. */
+    const uint8_t *const src;    /**< Bytes raw appends, or the integer mpint_fixed reads [BORROWS]. */
+    uint64_t *const out;         /**< Where take_be stores the value it read [BORROWS]. */
+    const uint8_t **const blob;  /**< Where rd_str points at the payload it found [BORROWS]. */
+    size_t *const blob_bytes;    /**< Where rd_str stores that payload's length [BORROWS]. */
+    const uint64_t value;        /**< Value put_be writes, taken from its low bytes. */
+    const size_t bytes;          /**< Bytes the call moves, 1 through 8 for the big endian entries. */
+    const uint8_t byte;          /**< The single byte put appends. */
 } OctetusCfg;
 
 /**
@@ -74,11 +74,7 @@ typedef struct
 MMGR_NS_LAYOUT(OctetusIntroitusExitusNs, put, put_be, raw, take_be, rd_str, mpint_fixed);
 
 /**
-<<<<<<< HEAD
- * @brief Appends args->byte to args->w.
-=======
  * @brief Appends args->byte to args->write_span.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  *
  * @param[in,out] args Span and the byte to append [BORROWS].
  * @warning Appending past the span's cap is a build failure. It asserts, stores nothing and latches
@@ -87,76 +83,39 @@ MMGR_NS_LAYOUT(OctetusIntroitusExitusNs, put, put_be, raw, take_be, rd_str, mpin
 void mmgr_byteio_put(const OctetusCfg *args);
 
 /**
-<<<<<<< HEAD
- * @brief Appends the low args->bytes of args->val to args->w, most significant byte first.
-=======
  * @brief Appends the low args->bytes of args->value to args->write_span, most significant byte first.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  *
  * @param[in,out] args Span, value and byte count [BORROWS].
  * @note The value is reversed once and then stored at the widest step the count allows, so a count of
  *       eight is one store and a count of seven is three.
  * @warning Appending past the span's cap is a build failure. It asserts, stores nothing and latches
-<<<<<<< HEAD
- *          overflow; pos advances either way.
-=======
  *          overflow. pos advances either way.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @warning args->bytes must be 1 through 8.
  */
 void mmgr_byteio_put_be(const OctetusCfg *args);
 
 /**
-<<<<<<< HEAD
- * @brief Appends args->bytes from args->src to args->w as they are.
- *
- * @param[in,out] args Span, source and byte count [BORROWS].
- * @warning Appending past the span's cap is a build failure. It asserts, stores nothing and latches
- *          overflow; pos advances either way.
-=======
  * @brief Appends args->bytes from args->src to args->write_span as they are.
  *
  * @param[in,out] args Span, source and byte count [BORROWS].
  * @warning Appending past the span's cap is a build failure. It asserts, stores nothing and latches
  *          overflow. pos advances either way.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @warning args->src must be readable for args->bytes, and must not overlap the span's buffer.
  */
 void mmgr_byteio_raw(const OctetusCfg *args);
 
 /**
-<<<<<<< HEAD
- * @brief Reads a big endian value of args->bytes at args->r's cursor and advances past it.
- *
- * @param[in,out] args Span, byte count and where to store the value [BORROWS].
- * @return          MMGR_TRUE when the bytes were there, MMGR_FALSE when the span was short.
- * @note Reads at the cursor and nowhere else: a codec that leads with a tag advances past it itself.
-=======
  * @brief Reads a big endian value of args->bytes at args->read_span's cursor and advances past it.
  *
  * @param[in,out] args Span, byte count and where to store the value [BORROWS].
  * @return             MMGR_TRUE when the bytes were there, MMGR_FALSE when the span was short.
  * @note Reads at the cursor and nowhere else. A codec that leads with a tag advances past it itself.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note A read reaching past the end sets the span's err and leaves the cursor and args->out untouched.
  * @warning args->bytes must be 1 through 8.
  */
 mmgr_bool mmgr_byteio_take_be(const OctetusCfg *args);
 
 /**
-<<<<<<< HEAD
- * @brief Reads a big endian 32-bit length at args->r's cursor, then points args->blob at the run behind it.
- *
- * @param[in,out] args Span, and where to report the run and its length [BORROWS].
- * @return          MMGR_TRUE when the length and its run both lay within the span.
- * @note Nothing is copied: args->blob points into the span's own bytes, so it lives only as long as they
- *       do [BORROWS].
- * @note The cursor advances past the length and the run together, so a caller reading a sequence of
- *       these needs to track nothing between them.
- * @note A run reaching past the end leaves the cursor where it started, sets the span's err, and
- *       writes nothing through args->blob or args->blen. The length alone having been read does not move
- *       the cursor either: a partial read is not a read.
-=======
  * @brief Reads a big endian 32-bit length at args->read_span's cursor, then points args->blob at the
  *        run behind it.
  *
@@ -169,21 +128,10 @@ mmgr_bool mmgr_byteio_take_be(const OctetusCfg *args);
  * @note A run reaching past the end leaves the cursor where it started, sets the span's err, and
  *       writes nothing through args->blob or args->blob_bytes. The length alone having been read does
  *       not move the cursor either, since a partial read is not a read.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_bool mmgr_byteio_rd_str(const OctetusCfg *args);
 
 /**
-<<<<<<< HEAD
- * @brief Right-aligns the big endian integer at args->src into args->w's whole buffer, zero filling ahead of it.
- *
- * @param[in,out] args The integer with its length in args->src and args->bytes, and the field as args->w [BORROWS].
- * @return          MMGR_TRUE when the integer fits the field, MMGR_FALSE when it does not.
- * @note Leading zero bytes of the integer are skipped before the width is tested, so a value carrying
- *       a sign byte still fits a field of its own size.
- * @note The field is written whole, not appended to: on success args->w's cursor ends at its cap.
- * @note Nothing is written to the field when it returns MMGR_FALSE.
-=======
  * @brief Right-aligns the big endian integer at args->src into args->write_span's whole buffer, zero
  *        filling ahead of it.
  *
@@ -197,7 +145,6 @@ mmgr_bool mmgr_byteio_rd_str(const OctetusCfg *args);
  * @note Nothing is written to the field when it returns MMGR_FALSE, but args->write_span's overflow
  *       is latched, so a span tested later reports the failure too.
  * @warning args->src must be readable for args->bytes, and must not overlap args->write_span's buffer.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_bool mmgr_byteio_mpint_fixed(const OctetusCfg *args);
 

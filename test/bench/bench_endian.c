@@ -21,7 +21,7 @@ static uint8_t g_buf[SPREAD + 64u];
             const uint64_t r_ = (uint64_t)(EXPR);                                                                      \
             BENCH_KEEP(r_);                                                                                            \
         });                                                                                                            \
-        printf("endian,%s,%u,%u,%.4f\n", LABEL, (unsigned)(WIDTH), MMGR_WORD_BITS, cy_);                                \
+        printf("endian,%s,%u,%u,%.4f\n", LABEL, (unsigned)(WIDTH), MMGR_WORD_BITS, cy_);                               \
         fflush(stdout);                                                                                                \
     } while (0)
 

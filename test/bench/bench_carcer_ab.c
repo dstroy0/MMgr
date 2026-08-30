@@ -38,11 +38,7 @@
 #define ARENA_BYTES 65536u
 #define CHAIN 16u
 
-<<<<<<< HEAD
-Carceribus(ram, MMGR_SOLUTA(pool, ARENA_BYTES));
-=======
 LocusCarcerum(ram, MMGR_MINIMUM_SECURITY(general, ARENA_BYTES));
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_proto_bytes[ARENA_BYTES];
 static protocore_arena g_arena;
@@ -72,13 +68,8 @@ static void report(const char *impl, const char *name, size_t bytes, double cycl
 
 static void carcer_fresh(void)
 {
-<<<<<<< HEAD
-    ram_pool_ctx.persist_end = 0u;
-    ram.pool.interim_reset();
-=======
     ram_general_ctx.persistent_end = 0u;
     ram.general.temporary_buf_reset();
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 }
 
 static void proto_fresh(void)
@@ -103,15 +94,9 @@ static void proto_fresh(void)
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-<<<<<<< HEAD
-            void *p_ = ram.pool.persist_capio((N));                                                                    \
-            BENCH_KEEP(p_ != NULL);                                                                                    \
-            ram.pool.persist_reddo(p_);                                                                                \
-=======
             void *p_ = ram.general.persistent_buf_alloc((N));                                                          \
             BENCH_KEEP(p_ != NULL);                                                                                    \
             ram.general.persistent_buf_release(p_);                                                                    \
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
         });                                                                                                            \
         report("locus_carcerum", "persist alloc+free", (N), cy_);                                                      \
     } while (0)
@@ -136,16 +121,6 @@ static void proto_fresh(void)
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-<<<<<<< HEAD
-            const size_t m_ = ram.pool.interim_mark();                                                                 \
-            for (unsigned k_ = 0; k_ < CHAIN; k_++)                                                                    \
-            {                                                                                                          \
-                BENCH_KEEP(ram.pool.interim_capio((N)) != NULL);                                                       \
-            }                                                                                                          \
-            ram.pool.interim_reddo(m_);                                                                                \
-        });                                                                                                            \
-        report("carceribus", "transient run+release", (N) * CHAIN, cy_);                                               \
-=======
             const size_t m_ = ram.general.temporary_buf_mark();                                                        \
             for (unsigned k_ = 0; k_ < CHAIN; k_++)                                                                    \
             {                                                                                                          \
@@ -154,7 +129,6 @@ static void proto_fresh(void)
             ram.general.temporary_buf_release(m_);                                                                     \
         });                                                                                                            \
         report("locus_carcerum", "transient run+release", (N) * CHAIN, cy_);                                           \
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     } while (0)
 
 /**
@@ -171,11 +145,7 @@ static void proto_fresh(void)
         report("protocore", "wipe", (N), cy_);                                                                         \
                                                                                                                        \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-<<<<<<< HEAD
-            mmgr_carcer_wipe(g_buf, (N));                                                                              \
-=======
             mmgr_zero_buf(g_buf, (N));                                                                                 \
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
             BENCH_KEEP(g_buf[0]);                                                                                      \
         });                                                                                                            \
         report("locus_carcerum", "zero", (N), cy_);                                                                    \
@@ -197,15 +167,9 @@ static void proto_fresh(void)
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-<<<<<<< HEAD
-            void *p_ = ram.pool.persist_capio((N));                                                                    \
-            BENCH_KEEP(p_ != NULL);                                                                                    \
-            ram.pool.persist_reddo(p_);                                                                                \
-=======
             void *p_ = ram.general.persistent_buf_alloc((N));                                                          \
             BENCH_KEEP(p_ != NULL);                                                                                    \
             ram.general.persistent_buf_release(p_);                                                                    \
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
         });                                                                                                            \
         report("locus_carcerum", "max security alloc+zeroing release", (N), cy_);                                      \
                                                                                                                        \
@@ -218,15 +182,9 @@ static void proto_fresh(void)
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-<<<<<<< HEAD
-            void *p_ = ram.pool.persist_capio((N));                                                                    \
-            BENCH_KEEP(p_ != NULL);                                                                                    \
-            ram.pool.persist_reddo(p_);                                                                                \
-=======
             void *p_ = ram.general.persistent_buf_alloc((N));                                                          \
             BENCH_KEEP(p_ != NULL);                                                                                    \
             ram.general.persistent_buf_release(p_);                                                                    \
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
         });                                                                                                            \
         report("locus_carcerum", "min security alloc+release", (N), cy_);                                              \
     } while (0)
@@ -272,17 +230,10 @@ int main(void)
             mmgr_span s_ = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_buf, .cap = sizeof g_buf);
             s_.pos = 128u;
             BENCH_KEEP(MMGR_CALL(spat.ok, SpatiumCfg,
-<<<<<<< HEAD
-                                 .s = MMGR_CALL(spat.first, SpatiumCfg,
-                                                .s = MMGR_CALL(spat.after, SpatiumCfg, .s = s_, .n = 8u), .n = 64u)));
-            BENCH_KEEP(MMGR_CALL(spat.cok, SpatiumCfg, .cs = MMGR_CALL(spat.produced, SpatiumCfg, .s = s_)));
-=======
                                  .span = MMGR_CALL(spat.first, SpatiumCfg,
-                                                   .span = MMGR_CALL(spat.after, SpatiumCfg, .span = s_,
-                                                                     .count = 8u),
+                                                   .span = MMGR_CALL(spat.after, SpatiumCfg, .span = s_, .count = 8u),
                                                    .count = 64u)));
             BENCH_KEEP(MMGR_CALL(spat.cok, SpatiumCfg, .cspan = MMGR_CALL(spat.produced, SpatiumCfg, .span = s_)));
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
         });
         report("locus_carcerum", "span walk", 0u, cy);
     }

@@ -80,11 +80,11 @@ is worth reading twice.
 A _tenancy_ is what a pool hands out. Every one is taken the same way, with the pool's own `persist_capio`.
 Two calls give one back, and they differ in exactly one thing:
 
-|                      | `persist_reddo`                | `secura_reddo`                     |
-| -------------------- | ------------------------------ | ---------------------------------- |
-| gives the bytes back | yes                            | yes                                |
-| clears them first    | no                             | yes                                |
-| costs                | a chain walk                   | a chain walk and a pass over the bytes |
+|                      | `persist_reddo` | `secura_reddo`                         |
+| -------------------- | --------------- | -------------------------------------- |
+| gives the bytes back | yes             | yes                                    |
+| clears them first    | no              | yes                                    |
+| costs                | a chain walk    | a chain walk and a pass over the bytes |
 
 The guarantee is in the name rather than a flag, so a caller cannot ask for a wipe and not get one.
 The extent cleared is the block's own, read from its header, so a caller cannot under-wipe a tenancy
@@ -113,12 +113,12 @@ allocate, and the span dies with the buffer it was given.
 
 There are two, and they are different types on purpose:
 
-|          | `mmgr_span`        | `mmgr_cspan`       |
-| -------- | ------------------ | ------------------ |
-| for      | filling            | reading            |
-| `buf`    | writable           | `const`            |
-| extent   | `cap`              | `len`              |
-| the flag | `overflow`         | `err`              |
+|          | `mmgr_span` | `mmgr_cspan` |
+| -------- | ----------- | ------------ |
+| for      | filling     | reading      |
+| `buf`    | writable    | `const`      |
+| extent   | `cap`       | `len`        |
+| the flag | `overflow`  | `err`        |
 
 Naming the extent differently in each is what stops one being handed where the other belongs without
 the compiler saying so.
@@ -182,15 +182,15 @@ declared nowhere a consumer can reach.
 
 ## Who owns what
 
-| Thing           | Allocates          | Frees                        | Lifetime                  |
-| --------------- | ------------------ | ---------------------------- | ------------------------- |
-| caller's buffer | the caller         | the caller                   | outlives everything below |
-| pool            | nothing            | nothing                      | the region's              |
-| persist take    | a block from the middle | `persist_reddo` by address | as long as it likes     |
-| interim take    | a block from the middle | a mark, or `interim_reset` | until that mark      |
-| span            | nothing            | nothing                      | its target's              |
-| ring segment    | a counter step     | `seg_release`                | until released            |
-| loculus         | a bit in a mask    | `loculus_drop`               | until dropped             |
+| Thing           | Allocates               | Frees                      | Lifetime                  |
+| --------------- | ----------------------- | -------------------------- | ------------------------- |
+| caller's buffer | the caller              | the caller                 | outlives everything below |
+| pool            | nothing                 | nothing                    | the region's              |
+| persist take    | a block from the middle | `persist_reddo` by address | as long as it likes       |
+| interim take    | a block from the middle | a mark, or `interim_reset` | until that mark           |
+| span            | nothing                 | nothing                    | its target's              |
+| ring segment    | a counter step          | `seg_release`              | until released            |
+| loculus         | a bit in a mask         | `loculus_drop`             | until dropped             |
 
 The column that matters is the third one. Nothing in MMgr reaches an allocator: every take comes out
 of a region the caller declared, and every free either returns a block to that region's own chain,

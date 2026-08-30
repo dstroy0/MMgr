@@ -112,14 +112,8 @@ void test_appends_follow_one_another(void)
 
 void test_take_be_reads_what_put_be_wrote_at_every_width(void)
 {
-    static const uint64_t vals[8] = {0xEEull,
-                                     0xBEEFull,
-                                     0x123456ull,
-                                     0x89ABCDEFull,
-                                     0x0102030405ull,
-                                     0x010203040506ull,
-                                     0x01020304050607ull,
-                                     0x0123456789ABCDEFull};
+    static const uint64_t vals[8] = {0xEEull,         0xBEEFull,         0x123456ull,         0x89ABCDEFull,
+                                     0x0102030405ull, 0x010203040506ull, 0x01020304050607ull, 0x0123456789ABCDEFull};
 
     for (size_t n = 1u; n <= 8u; n++)
     {

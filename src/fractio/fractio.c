@@ -31,11 +31,7 @@ typedef struct
  * @brief Returns the sign bit of args->bits, as 0 or 1.
  *
  * @param[in] args Bit pattern to read [BORROWS].
-<<<<<<< HEAD
- * @return      0 for a positive value, 1 for a negative one.
-=======
  * @return         0 for a positive value, 1 for a negative one.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE mmgr_u64 fract_sign(const FractioCtx *args)
 {
@@ -46,12 +42,8 @@ MMGR_INLINE mmgr_u64 fract_sign(const FractioCtx *args)
  * @brief Returns the raw exponent field of args->bits, still biased.
  *
  * @param[in] args Bit pattern to read [BORROWS].
-<<<<<<< HEAD
- * @return      The stored exponent, with MMGR_DBL_EXP_BIAS not yet removed.
-=======
  * @return         The stored exponent, with MMGR_DBL_BIAS not yet removed.
  * @note 0 marks a zero or subnormal. MMGR_DBL_EXP_ALL marks an infinity or NaN.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE mmgr_u64 fract_exp(const FractioCtx *args)
 {
@@ -62,11 +54,7 @@ MMGR_INLINE mmgr_u64 fract_exp(const FractioCtx *args)
  * @brief Returns the stored mantissa field of args->bits, without the implicit leading bit.
  *
  * @param[in] args Bit pattern to read [BORROWS].
-<<<<<<< HEAD
- * @return      The stored mantissa alone.
-=======
  * @return         The stored mantissa alone.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE mmgr_u64 fract_mant(const FractioCtx *args)
 {
@@ -77,11 +65,7 @@ MMGR_INLINE mmgr_u64 fract_mant(const FractioCtx *args)
  * @brief Packs args->sign, args->exp and args->mant back into one bit pattern.
  *
  * @param[in] args The three fields to pack [BORROWS].
-<<<<<<< HEAD
- * @return      The assembled bit pattern.
-=======
  * @return         The assembled bit pattern.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Each field is masked to its own width first, so a wide input cannot reach a neighbor.
  */
 MMGR_INLINE mmgr_u64 fract_merge(const FractioCtx *args)
@@ -94,11 +78,7 @@ MMGR_INLINE mmgr_u64 fract_merge(const FractioCtx *args)
  * @brief Reads the union as a double after the caller filled its bits member.
  *
  * @param[in] args Union holding the pattern [BORROWS].
-<<<<<<< HEAD
- * @return      The same storage read as a double.
-=======
  * @return         The same storage read as a double.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE double fract_from_bits(const FractioCtx *args)
 {
@@ -109,11 +89,7 @@ MMGR_INLINE double fract_from_bits(const FractioCtx *args)
  * @brief Reads the union as a bit pattern after the caller filled its val member.
  *
  * @param[in] args Union holding the value [BORROWS].
-<<<<<<< HEAD
- * @return      The same storage read as a bit pattern.
-=======
  * @return         The same storage read as a bit pattern.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE mmgr_u64 fract_to_bits(const FractioCtx *args)
 {

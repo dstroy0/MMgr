@@ -64,7 +64,8 @@ static void u64(uint64_t value)
 
 static void u64_clip(uint64_t value, uint8_t columns)
 {
-    at = MMGR_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .columns = columns);
+    at = MMGR_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value,
+                   .columns = columns);
 }
 
 static void i64(int64_t value)
@@ -74,7 +75,8 @@ static void i64(int64_t value)
 
 static void uint_of(uint64_t value, uint8_t base, uint8_t min)
 {
-    at = MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .base = base, .min = min);
+    at = MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .base = base,
+                   .min = min);
 }
 
 static void hex(uint64_t value, uint8_t min)
@@ -89,7 +91,8 @@ static void g(double value, uint8_t sig)
 
 static void fixed(double value, uint8_t decimals)
 {
-    at = MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = buf, .cap = cap, .at = at, .real = value, .decimals = decimals);
+    at = MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = buf, .cap = cap, .at = at, .real = value,
+                   .decimals = decimals);
 }
 
 static void json(const char *text)
@@ -258,7 +261,7 @@ void test_uint_in_every_base(void)
     uint_of(255u, 10u, 1u);
     want_printf("%u", 255u);
 
-            fresh(sizeof buf);
+    fresh(sizeof buf);
     uint_of(5u, 2u, 1u);
     want_printf("%u", 5u);
 }
@@ -271,7 +274,7 @@ void test_u64_clip_pads_to_a_column(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(5u, at, "a narrow value is right aligned in the column");
     TEST_ASSERT_EQUAL_STRING("   42", buf);
 
-            fresh(sizeof buf);
+    fresh(sizeof buf);
     u64_clip(1234567890123ull, 4u);
     finish();
     TEST_ASSERT_EQUAL_size_t_MESSAGE(13u, at, "a value wider than the column is not cut short");
@@ -348,7 +351,7 @@ void test_float_predicates(void)
 
 void test_fixed_matches_printf(void)
 {
-        static const double vals[] = {0.0, 1.0, -1.0, 0.25, 0.75, 3.14159265358979, -2.4, 123.456, 1000.0};
+    static const double vals[] = {0.0, 1.0, -1.0, 0.25, 0.75, 3.14159265358979, -2.4, 123.456, 1000.0};
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
@@ -363,7 +366,7 @@ void test_fixed_matches_printf(void)
 
 void test_fixed_rounds_a_tie_to_even(void)
 {
-                            fresh(sizeof buf);
+    fresh(sizeof buf);
     fixed(1.5, 0u);
     finish();
     TEST_ASSERT_EQUAL_STRING_MESSAGE("2", buf, "1 is odd, so the tie goes up");
@@ -388,7 +391,7 @@ void test_fixed_rounds_a_tie_to_even(void)
     finish();
     TEST_ASSERT_EQUAL_STRING_MESSAGE("-2", buf, "the sign is written first and does not change it");
 
-        fresh(sizeof buf);
+    fresh(sizeof buf);
     fixed(0.125, 2u);
     finish();
     TEST_ASSERT_EQUAL_STRING_MESSAGE("0.12", buf, "2 is even, so the tie stays");
@@ -401,7 +404,7 @@ void test_fixed_rounds_a_tie_to_even(void)
 
 void test_fixed_is_exact_below_a_64_bit_shift(void)
 {
-                    fresh(sizeof buf);
+    fresh(sizeof buf);
     fixed(2.0447843820796629e-41, 9u);
     finish();
     TEST_ASSERT_EQUAL_STRING_MESSAGE("0.000000000", buf, "was 0.006958041");
@@ -411,7 +414,7 @@ void test_fixed_is_exact_below_a_64_bit_shift(void)
     finish();
     TEST_ASSERT_EQUAL_STRING("0.000000000000000000", buf);
 
-        fresh(sizeof buf);
+    fresh(sizeof buf);
     fixed(0x1p-63, 18u);
     finish();
     TEST_ASSERT_EQUAL_STRING("0.000000000000000000", buf);
@@ -426,7 +429,7 @@ void test_fixed_is_exact_below_a_64_bit_shift(void)
     finish();
     TEST_ASSERT_EQUAL_STRING("0.000000000000000000", buf);
 
-        fresh(sizeof buf);
+    fresh(sizeof buf);
     fixed(1.0 / 3.0, 17u);
     finish();
     TEST_ASSERT_EQUAL_STRING("0.33333333333333331", buf);
@@ -435,7 +438,7 @@ void test_fixed_is_exact_below_a_64_bit_shift(void)
 void test_g_rounds_a_tie(void)
 {
     MMGR_SKIP_ON_ORACLE("C leaves the tie to the implementation and the two disagree, which is the point");
-        fresh(sizeof buf);
+    fresh(sizeof buf);
     g(1.5, 1u);
     finish();
     TEST_ASSERT_EQUAL_STRING("2", buf);
@@ -453,7 +456,7 @@ void test_g_rounds_a_tie(void)
 
 void test_g_matches_printf(void)
 {
-            static const double vals[] = {0.0, 1.0, -1.0, 0.1, 100.0, 0.001, 1e10, 123.456, 2.0};
+    static const double vals[] = {0.0, 1.0, -1.0, 0.1, 100.0, 0.001, 1e10, 123.456, 2.0};
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
@@ -562,7 +565,6 @@ void test_namespace_is_wired(void)
     TEST_ASSERT_NOT_NULL(verba_finis.finish);
 }
 
-
 void test_the_clipping_entries_stay_quiet_after_overflow(void)
 {
     fresh(4u);
@@ -609,10 +611,9 @@ void test_xml_of_null_writes_nothing(void)
     TEST_ASSERT_EQUAL_size_t(0u, finish());
 }
 
-
 void test_fixed_of_nan(void)
 {
-            fixed(a_nan(), 2u);
+    fixed(a_nan(), 2u);
     finish();
     TEST_ASSERT_NOT_NULL_MESSAGE(strstr(buf, "nan"), "a nan did not render as a nan");
 }
@@ -632,7 +633,7 @@ void test_fixed_of_the_infinities(void)
 void test_fixed_of_a_value_too_large_for_the_integer_path(void)
 {
     MMGR_SKIP_ON_ORACLE("printf writes all thirty one digits rather than handing the value to %g");
-        fixed(1.0e30, 2u);
+    fixed(1.0e30, 2u);
     finish();
 
     TEST_ASSERT_EQUAL_CHAR('1', buf[0]);
@@ -641,13 +642,13 @@ void test_fixed_of_a_value_too_large_for_the_integer_path(void)
 
 void test_fixed_of_a_value_with_no_fraction_left(void)
 {
-        fixed(1.8014398509481984e16, 0u);
+    fixed(1.8014398509481984e16, 0u);
     want_printf("%.0f", 1.8014398509481984e16);
 }
 
 void test_fixed_clamps_its_decimals(void)
 {
-        fixed(1.5, 25u);
+    fixed(1.5, 25u);
     const size_t n = finish();
 
     TEST_ASSERT_EQUAL_CHAR('1', buf[0]);
@@ -657,7 +658,7 @@ void test_fixed_clamps_its_decimals(void)
 
 void test_fixed_carries_a_fraction_that_rounds_to_one(void)
 {
-            fixed(0.999, 2u);
+    fixed(0.999, 2u);
     want_printf("%.2f", 0.999);
 }
 
@@ -668,7 +669,6 @@ void test_fixed_of_negative_zero(void)
     TEST_ASSERT_EQUAL_STRING_MESSAGE("-0.0", buf, "the sign of a negative zero survives");
 }
 
-
 void test_g_of_nan(void)
 {
     g(a_nan(), 3u);
@@ -678,28 +678,28 @@ void test_g_of_nan(void)
 
 void test_g_of_zero(void)
 {
-        g(0.0, 3u);
+    g(0.0, 3u);
     finish();
     TEST_ASSERT_EQUAL_CHAR('0', buf[0]);
 }
 
 void test_g_of_a_very_small_value(void)
 {
-        g(1.0e-300, 4u);
+    g(1.0e-300, 4u);
     finish();
     TEST_ASSERT_NOT_NULL(strstr(buf, "e-"));
 }
 
 void test_g_of_a_very_large_value(void)
 {
-        g(1.0e300, 4u);
+    g(1.0e300, 4u);
     finish();
     TEST_ASSERT_NOT_NULL(strstr(buf, "e+"));
 }
 
 void test_g_of_one_significant_digit(void)
 {
-                const double v = 9.9e-5;
+    const double v = 9.9e-5;
     g(v, 1u);
     finish();
     TEST_ASSERT_DOUBLE_WITHIN(1e-20, 1e-4, strtod(buf, NULL));
@@ -717,7 +717,6 @@ void test_g_of_zero_significant_digits_is_one(void)
     finish();
     TEST_ASSERT_EQUAL_STRING_MESSAGE(one, buf, "asking for no digits is asking for one");
 }
-
 
 void test_json_escapes_the_two_character_forms(void)
 {
@@ -745,7 +744,7 @@ void test_json_escapes_an_unnamed_control_byte_as_a_code_point(void)
 
 void test_json_overflows_on_each_escape_form(void)
 {
-        fresh(3u);
+    fresh(3u);
     json("\"");
     TEST_ASSERT_FALSE_MESSAGE(ok(), "a two character escape did not fit");
 
@@ -764,7 +763,6 @@ void test_finish_of_a_zero_capacity_builder_reports_nothing(void)
     TEST_ASSERT_EQUAL_size_t(0u, finish());
 }
 
-
 void test_g_over_every_precision(void)
 {
     static const double vals[] = {1.0,    3.0,    7.0,        1.0 / 3.0, 2.0 / 7.0, 1234.5678,
@@ -778,7 +776,7 @@ void test_g_over_every_precision(void)
             g(vals[i], sig);
             finish();
 
-                                    const double back = strtod(buf, NULL);
+            const double back = strtod(buf, NULL);
             const double want = vals[i];
             const double tol = (want < 0.0 ? -want : want) * 0.5;
 
@@ -790,7 +788,7 @@ void test_g_over_every_precision(void)
 
 void test_g_of_a_subnormal(void)
 {
-            const double tiny = 4.9406564584124654e-324;
+    const double tiny = 4.9406564584124654e-324;
 
     g(tiny, 3u);
     finish();
@@ -808,14 +806,14 @@ void test_g_of_the_largest_finite_double(void)
 
 void test_is_inf_says_no_to_a_nan(void)
 {
-        TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = a_nan()), "a nan is not an infinity");
+    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = a_nan()),
+                              "a nan is not an infinity");
     TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = an_inf()));
 }
 
-
 void test_fixed_over_every_decimal_count(void)
 {
-                static const double vals[] = {0.0, 1.0, 1234.5678, 0.000123, 99.9999, 1.0 / 3.0, 2.0 / 7.0, 123.456};
+    static const double vals[] = {0.0, 1.0, 1234.5678, 0.000123, 99.9999, 1.0 / 3.0, 2.0 / 7.0, 123.456};
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
@@ -834,7 +832,7 @@ void test_fixed_over_every_decimal_count(void)
 
 void test_fixed_of_a_fraction_that_lands_on_a_tie(void)
 {
-            static const double vals[] = {0.5, 1.5, 2.5, 0.25, 0.75, 1.25, 3.375, 0.0625};
+    static const double vals[] = {0.5, 1.5, 2.5, 0.25, 0.75, 1.25, 3.375, 0.0625};
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
@@ -850,7 +848,7 @@ void test_fixed_of_a_fraction_that_lands_on_a_tie(void)
 
 void test_g_where_the_exponent_estimate_overshoots(void)
 {
-                    static const double vals[] = {
+    static const double vals[] = {
         0.9999999999, 9.999999999,  99.99999999,  999.9999999, 9999.999999, 1.000000001,  10.00000001,
         100.0000001,  1000.000001,  10000.00001,  0.09999999,  0.009999999, 0.0009999999, 9.999999e-10,
         9.999999e-20, 1.000001e-10, 1.000001e-20, 9.999999e20, 1.000001e20, 9.999999e100,
@@ -873,7 +871,6 @@ void test_g_where_the_exponent_estimate_overshoots(void)
         }
     }
 }
-
 
 static unsigned significant_digits(const char *s)
 {
@@ -912,7 +909,7 @@ void test_g_clamps_its_digit_count(void)
 
 void test_g_at_its_maximum_still_reads_back(void)
 {
-        const double v = 1.8447470568367377e-236;
+    const double v = 1.8447470568367377e-236;
 
     g(v, MMGR_G_MAX_SIG);
     finish();
@@ -923,7 +920,7 @@ void test_g_at_its_maximum_still_reads_back(void)
 
 void test_g_at_two_to_the_sixty_four(void)
 {
-        const double v = 1.8446744073709552e+22;
+    const double v = 1.8446744073709552e+22;
 
     g(v, MMGR_G_MAX_SIG + 1u);
     finish();
@@ -932,7 +929,7 @@ void test_g_at_two_to_the_sixty_four(void)
 
 void test_g_is_exact_at_every_precision_it_can_carry(void)
 {
-                    static const double vals[] = {1.8464766514526577e-301, 1.8447470568367377e-236, 1.8446744073709552e+22,
+    static const double vals[] = {1.8464766514526577e-301, 1.8447470568367377e-236, 1.8446744073709552e+22,
                                   2.2250738585072014e-308, 1.2345678901234567e+300};
 
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
@@ -951,7 +948,7 @@ void test_g_is_exact_at_every_precision_it_can_carry(void)
 
 void test_g_of_the_smallest_normal_double(void)
 {
-            const double v = 2.2250738585072014e-308;
+    const double v = 2.2250738585072014e-308;
 
     g(v, 18u);
     finish();

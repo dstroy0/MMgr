@@ -31,7 +31,7 @@ static void bench_nop(void)
         double cy_ = 0.0;                                                                                              \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             const size_t r_ = (size_t)(bench_i_ & (SPREAD - 1u));                                                      \
-            const mmgr_word w_ = MMGR_CALL(word.load, ScrutWordCfg, .at = g_buf + r_);                                                    \
+            const mmgr_word w_ = MMGR_CALL(word.load, ScrutWordCfg, .at = g_buf + r_);                                 \
             const uint64_t v_ = (uint64_t)(EXPR);                                                                      \
             BENCH_KEEP(v_);                                                                                            \
         });                                                                                                            \

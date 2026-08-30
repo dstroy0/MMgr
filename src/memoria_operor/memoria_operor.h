@@ -37,11 +37,7 @@ typedef struct
  */
 typedef struct
 {
-<<<<<<< HEAD
-    void (*cpy)(const MemoriaCfg *args);        /**< Copies upward; the regions must not overlap. */
-=======
     void (*cpy)(const MemoriaCfg *args);        /**< Copies upward, for regions that do not overlap. */
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     void (*move_down)(const MemoriaCfg *args);  /**< Copies upward, for a destination below the source. */
     void (*move_up)(const MemoriaCfg *args);    /**< Copies downward, for a destination above the source. */
     mmgr_iword (*cmp)(const MemoriaCfg *args);  /**< Orders two regions by their first difference. */
@@ -65,10 +61,7 @@ void mmgr_memor_cpy(const MemoriaCfg *args);
  *
  * @param[in] args Destination, source and count [BORROWS].
  * @note Works back from the end, so an args->dst above args->src is safe even when the regions overlap.
-<<<<<<< HEAD
-=======
  * @warning args->dst must be writable and args->src readable for args->bytes.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 void mmgr_memor_move_up(const MemoriaCfg *args);
 
@@ -76,16 +69,10 @@ void mmgr_memor_move_up(const MemoriaCfg *args);
  * @brief Compares args->bytes of args->src against args->other.
  *
  * @param[in] args The two regions and the count [BORROWS].
-<<<<<<< HEAD
- * @return      The difference of the first unequal byte pair, or 0 when every byte matches.
- * @note The sign follows the differing bytes, so the result orders the two regions.
- * @warning Both regions must be readable for args->bytes.
-=======
  * @return         The difference of the first unequal byte pair, or 0 when every byte matches.
  * @note The sign follows the differing bytes, so the result orders the two regions.
  * @warning Both regions must be readable for args->bytes rounded up to a whole word, since a count that
  *          does not fill the last one is still read a whole word at a time.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_iword mmgr_memor_cmp(const MemoriaCfg *args);
 
@@ -93,16 +80,10 @@ mmgr_iword mmgr_memor_cmp(const MemoriaCfg *args);
  * @brief Finds the first byte in args->src equal to args->val, within args->bytes.
  *
  * @param[in] args Region, count and the byte sought [BORROWS].
-<<<<<<< HEAD
- * @return      Address of the match, or NULL when the byte does not occur [BORROWS].
- * @note A terminator is not special; all args->bytes are searched.
- * @warning args->src must be readable for args->bytes.
-=======
  * @return         Address of the match, or NULL when the byte does not occur [BORROWS].
  * @note A terminator is not special. All args->bytes are searched.
  * @warning args->src must be readable for args->bytes rounded up to a whole word, since a count that
  *          does not fill the last one is still read a whole word at a time.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 const void *mmgr_memor_chr(const MemoriaCfg *args);
 

@@ -23,17 +23,17 @@ policed by a static assert at the point of use rather than trusted.
 
 ## What is in it
 
-| macro                                 | with the attribute                                    | without                         |
-| ------------------------------------- | ----------------------------------------------------- | ------------------------------- |
-| `MMGR_INLINE`                         | `static inline __attribute__((always_inline))`        | `static inline`                 |
-| `MMGR_NS`                             | `static const`                                        | —                               |
-| `MMGR_UNUSED`                         | `__attribute__((unused))`                             | empty                           |
-| `MMGR_WEAK`                           | `__attribute__((weak))`                               | empty                           |
-| `MMGR_ALIAS`                          | `__attribute__((may_alias))`                          | empty                           |
-| `MMGR_ALIGN(n)`                       | `__attribute__((aligned(n)))`                         | empty                           |
-| `MMGR_ENUM_PACKED`                    | `__attribute__((packed))`                             | empty — **asserted**, see below |
+| macro                                    | with the attribute                                    | without                         |
+| ---------------------------------------- | ----------------------------------------------------- | ------------------------------- |
+| `MMGR_INLINE`                            | `static inline __attribute__((always_inline))`        | `static inline`                 |
+| `MMGR_NS`                                | `static const`                                        | —                               |
+| `MMGR_UNUSED`                            | `__attribute__((unused))`                             | empty                           |
+| `MMGR_WEAK`                              | `__attribute__((weak))`                               | empty                           |
+| `MMGR_ALIAS`                             | `__attribute__((may_alias))`                          | empty                           |
+| `MMGR_ALIGN(n)`                          | `__attribute__((aligned(n)))`                         | empty                           |
+| `MMGR_ENUM_PACKED`                       | `__attribute__((packed))`                             | empty — **asserted**, see below |
 | `MMGR_INCIPE_DECLS` / `MMGR_FINIS_DECLS` | `extern "C" {` / `}` under C++                        | empty under C                   |
-| `MMGR_STATIC_ASSERT`                  | `_Static_assert`, `static_assert` or a negative array | —                               |
+| `MMGR_STATIC_ASSERT`                     | `_Static_assert`, `static_assert` or a negative array | —                               |
 
 `MMGR_HAS_ATTRIBUTE` is the gate. It uses `__has_attribute` where that exists and falls back to a
 compiler-and-version test where it does not.

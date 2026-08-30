@@ -65,7 +65,6 @@ void test_the_word_constants_agree_with_each_other(void)
                             (uint64_t)(mmgr_word)(MMGR_VERBUM_SCRUTOR_HIGH | MMGR_SWAR_LOW7));
 }
 
-
 void test_ge_and_le_against_a_scalar_loop(void)
 {
     for (uint32_t t = 0; t < 0x80u; t += 7u)
@@ -103,8 +102,7 @@ void test_sub7_is_a_per_lane_difference(void)
     {
         for (uint32_t lo = 0; lo < 256u; lo += 17u)
         {
-            const mmgr_word got =
-                MMGR_CALL(lane.sub7, ScrutLaneCfg, .word = all((uint8_t)v), .byte = (uint8_t)lo);
+            const mmgr_word got = MMGR_CALL(lane.sub7, ScrutLaneCfg, .word = all((uint8_t)v), .byte = (uint8_t)lo);
             const uint32_t want = (v - lo) & 0x7Fu;
             TEST_ASSERT_EQUAL_HEX8_MESSAGE((uint8_t)want, (uint8_t)(got & 0xFFu), "sub7 disagrees with a scalar -");
         }
@@ -119,12 +117,10 @@ void test_spread_fills_a_lane_from_its_high_bit(void)
 
     const mmgr_word one = MMGR_CALL(mask.spread, ScrutMaskCfg, .mask = lane_bit(0u));
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(
-        0xFFu,
-        (uint8_t)(MMGR_CALL(word.load, ScrutWordCfg, .at = "\0\0\0\0\0\0\0\0") | (one & 0xFFu)),
+        0xFFu, (uint8_t)(MMGR_CALL(word.load, ScrutWordCfg, .at = "\0\0\0\0\0\0\0\0") | (one & 0xFFu)),
         "the set lane did not fill");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, lanes(one & MMGR_VERBUM_SCRUTOR_HIGH), "spread lit a lane that was not set");
 }
-
 
 void test_has_zero_finds_a_zero_lane_and_only_a_zero_lane(void)
 {
@@ -167,37 +163,32 @@ void test_eq_ignoring_case_matches_either_case(void)
     const mmgr_word lower = all((uint8_t)'a');
 
     TEST_ASSERT_EQUAL_size_t(
-        MMGR_SWAR_BYTES,
-        lanes(MMGR_CALL(lane.eq, ScrutLaneCfg, .word = upper, .byte = (uint8_t)'a', .ci = MMGR_TRUE)));
+        MMGR_SWAR_BYTES, lanes(MMGR_CALL(lane.eq, ScrutLaneCfg, .word = upper, .byte = (uint8_t)'a', .ci = MMGR_TRUE)));
     TEST_ASSERT_EQUAL_size_t(
-        MMGR_SWAR_BYTES,
-        lanes(MMGR_CALL(lane.eq, ScrutLaneCfg, .word = lower, .byte = (uint8_t)'A', .ci = MMGR_TRUE)));
+        MMGR_SWAR_BYTES, lanes(MMGR_CALL(lane.eq, ScrutLaneCfg, .word = lower, .byte = (uint8_t)'A', .ci = MMGR_TRUE)));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(
         0u, lanes(MMGR_CALL(lane.eq, ScrutLaneCfg, .word = upper, .byte = (uint8_t)'a', .ci = MMGR_FALSE)),
         "matching case must not fold");
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(
-        0u,
-        lanes(MMGR_CALL(lane.eq, ScrutLaneCfg, .word = all((uint8_t)'{'), .byte = (uint8_t)'[', .ci = MMGR_TRUE)),
+        0u, lanes(MMGR_CALL(lane.eq, ScrutLaneCfg, .word = all((uint8_t)'{'), .byte = (uint8_t)'[', .ci = MMGR_TRUE)),
         "the fold leaked past the letters");
 }
 
 void test_xor_reports_the_lanes_that_differ(void)
 {
     TEST_ASSERT_EQUAL_HEX64(
-        0u,
-        (uint64_t)MMGR_CALL(lane.xor_, ScrutLaneCfg, .word = all(0x41u), .val = all(0x41u), .ci = MMGR_FALSE));
+        0u, (uint64_t)MMGR_CALL(lane.xor_, ScrutLaneCfg, .word = all(0x41u), .val = all(0x41u), .ci = MMGR_FALSE));
     TEST_ASSERT_TRUE(MMGR_CALL(lane.xor_, ScrutLaneCfg, .word = all(0x41u), .val = all(0x42u), .ci = MMGR_FALSE) != 0u);
 
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(
         0u, (uint64_t)MMGR_CALL(lane.xor_, ScrutLaneCfg, .word = all(0x41u), .val = all(0x61u), .ci = MMGR_TRUE),
         "a case difference is no difference once case stops counting");
     TEST_ASSERT_TRUE(MMGR_CALL(lane.xor_, ScrutLaneCfg, .word = all(0x41u), .val = all(0x61u), .ci = MMGR_FALSE) != 0u);
-    TEST_ASSERT_TRUE_MESSAGE(MMGR_CALL(lane.xor_, ScrutLaneCfg, .word = all((uint8_t)'1'), .val = all((uint8_t)'2'),
-                                       .ci = MMGR_TRUE) != 0u,
-                             "digits do not fold into each other");
+    TEST_ASSERT_TRUE_MESSAGE(
+        MMGR_CALL(lane.xor_, ScrutLaneCfg, .word = all((uint8_t)'1'), .val = all((uint8_t)'2'), .ci = MMGR_TRUE) != 0u,
+        "digits do not fold into each other");
 }
-
 
 void test_lanes_counts_set_lanes(void)
 {
@@ -271,13 +262,13 @@ void test_walking_a_mask_visits_every_lane_once(void)
 
     while (m != 0u)
     {
-        TEST_ASSERT_EQUAL_size_t_MESSAGE(seen, MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m), "the walk skipped a lane");
+        TEST_ASSERT_EQUAL_size_t_MESSAGE(seen, MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m),
+                                         "the walk skipped a lane");
         m = MMGR_CALL(mask.drop_first, ScrutMaskCfg, .mask = m);
         seen++;
     }
     TEST_ASSERT_EQUAL_size_t(MMGR_SWAR_BYTES, seen);
 }
-
 
 void test_words_is_the_load_count(void)
 {
@@ -352,17 +343,16 @@ void test_lanes_before_drops_everything_from_the_first_hit_on(void)
     }
 }
 
-
 void test_fam_eq_selects_a_block(void)
 {
     TEST_ASSERT_EQUAL_size_t(MMGR_SWAR_BYTES, lanes(MMGR_CALL(lane.fam_eq, ScrutLaneCfg, .word = all((uint8_t)'A'),
                                                               .fam = MMGR_FAM_CS, .byte = 0x40u)));
-    TEST_ASSERT_EQUAL_size_t(0u, lanes(MMGR_CALL(lane.fam_eq, ScrutLaneCfg, .word = all((uint8_t)'a'),
-                                                 .fam = MMGR_FAM_CS, .byte = 0x40u)));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(MMGR_SWAR_BYTES,
-                                     lanes(MMGR_CALL(lane.fam_eq, ScrutLaneCfg, .word = all((uint8_t)'a'),
-                                                     .fam = MMGR_FAM_CI, .byte = 0x40u)),
-                                     "the case insensitive mask ignores the bit that tells the two blocks apart");
+    TEST_ASSERT_EQUAL_size_t(
+        0u, lanes(MMGR_CALL(lane.fam_eq, ScrutLaneCfg, .word = all((uint8_t)'a'), .fam = MMGR_FAM_CS, .byte = 0x40u)));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        MMGR_SWAR_BYTES,
+        lanes(MMGR_CALL(lane.fam_eq, ScrutLaneCfg, .word = all((uint8_t)'a'), .fam = MMGR_FAM_CI, .byte = 0x40u)),
+        "the case insensitive mask ignores the bit that tells the two blocks apart");
 }
 
 void test_any_upper_is_a_gate_and_not_a_test(void)
@@ -409,12 +399,10 @@ void test_fold_lower_touches_letters_and_nothing_else(void)
     }
 }
 
-
 void test_run_of_one_is_the_mask_itself(void)
 {
-    TEST_ASSERT_EQUAL_HEX64(
-        (uint64_t)MMGR_VERBUM_SCRUTOR_HIGH,
-        (uint64_t)MMGR_CALL(mask.run, ScrutMaskCfg, .mask = MMGR_VERBUM_SCRUTOR_HIGH, .bytes = 1u));
+    TEST_ASSERT_EQUAL_HEX64((uint64_t)MMGR_VERBUM_SCRUTOR_HIGH,
+                            (uint64_t)MMGR_CALL(mask.run, ScrutMaskCfg, .mask = MMGR_VERBUM_SCRUTOR_HIGH, .bytes = 1u));
 }
 
 void test_run_keeps_only_the_lanes_a_run_starts_at(void)
@@ -440,8 +428,7 @@ void test_run_of_a_broken_mask(void)
 void test_run_wider_than_the_word_is_refused(void)
 {
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(
-        0u,
-        (uint64_t)MMGR_CALL(mask.run, ScrutMaskCfg, .mask = ~(mmgr_word)0, .bytes = MMGR_SWAR_BYTES + 1u),
+        0u, (uint64_t)MMGR_CALL(mask.run, ScrutMaskCfg, .mask = ~(mmgr_word)0, .bytes = MMGR_SWAR_BYTES + 1u),
         "a run that can't fit in one word has nowhere to start");
 }
 
@@ -460,7 +447,6 @@ void test_run_edge_names_the_lanes_a_run_cannot_be_tested_at(void)
                                          "the wrong number of lanes are too near the end");
     }
 }
-
 
 void test_load_reads_a_word_at_any_alignment(void)
 {

@@ -853,7 +853,7 @@
  *
  * @param[in] bytes_ Alignment operand passed to the attribute.
  * @note Used in both directions. It raises alignment on storage, as locus_carcerum.h does on a
- *       cellblock's bytes and confinium_exclusivum_infinitas.h does on its ring state. It also
+ *       cellblock's bytes and memoria_anularis.h does on its ring state. It also
  *       lowers alignment to 1, which is one half of MMGR_RAW in proximus_operor.h and lets a word
  *       type be read from any address.
  * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(aligned) is 0, ignoring bytes_. A raise that

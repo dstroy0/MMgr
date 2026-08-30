@@ -63,16 +63,10 @@ typedef struct
  * @brief Returns whether args->byte has its bit set in s_class[args->kind].
  *
  * @param[in] args Class and byte to test [BORROWS].
-<<<<<<< HEAD
- * @return      MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
- * @note Bytes 0x80 and above return MMGR_FALSE without reading s_class.
- * @warning args->kind must be below MMGR_ASCII_CLASSES.
-=======
  * @return         MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
  * @note Bytes 0x80 and above return MMGR_FALSE without reading s_class.
  * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
  *          MMGR_DEBUG_CHECKS build: a byte under 0x80 then reads past s_class.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *args)
 {
@@ -80,15 +74,10 @@ MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *args)
 
     const MmgrAsciiMask *const entry = &s_class[args->kind];
 
-<<<<<<< HEAD
-    // Explicit cast narrows the int result of && to the mmgr_bool container
-    return (mmgr_bool)((args->byte < 0x80u) && (((entry->b[args->byte >> 3] >> (args->byte & 7u)) & 1u) != 0u));
-=======
     // The byte test comes first and && stops there. A byte of 0x80 or above would index bits[16] or
     // past it, outside the sixteen the mask holds. Explicit cast narrows the int result of && to
     // the mmgr_bool container
     return (mmgr_bool)((args->byte < 0x80u) && (((entry->bits[args->byte >> 3] >> (args->byte & 7u)) & 1u) != 0u));
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 }
 
 /**

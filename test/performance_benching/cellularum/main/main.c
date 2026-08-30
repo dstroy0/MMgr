@@ -767,8 +767,7 @@ static mmgr_bool arm_all_inline(const char *a, const char *b, size_t cap)
     size_t at = 0u;
 
     // Explicit casts read both addresses as integers so one mask answers for both
-    const mmgr_bool level = (mmgr_bool)(((((uintptr_t)a) | ((uintptr_t)b)) &
-                                         (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
+    const mmgr_bool level = (mmgr_bool)(((((uintptr_t)a) | ((uintptr_t)b)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
 
     while (level && (at != full))
     {
@@ -888,8 +887,7 @@ static mmgr_bool arm_slow_out(const char *a, const char *b, size_t cap)
     size_t at = 0u;
 
     // Explicit casts read both addresses as integers so one mask answers for both
-    const mmgr_bool level = (mmgr_bool)(((((uintptr_t)a) | ((uintptr_t)b)) &
-                                         (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
+    const mmgr_bool level = (mmgr_bool)(((((uintptr_t)a) | ((uintptr_t)b)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
 
     while (level && (at != full))
     {
@@ -976,84 +974,84 @@ static mmgr_word scrut_span(unsigned pick)
     // that are four operations, and the absolutes it produced were worthless.
     switch (pick)
     {
-        case 0u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
-            }
-            break;
-        case 1u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= MMGR_CALL(lane.eq, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s, .byte = (uint8_t)'a');
-            }
-            break;
-        case 2u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= MMGR_CALL(lane.ge, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s, .byte = (uint8_t)'a');
-            }
-            break;
-        case 3u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= MMGR_CALL(lane.le, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s, .byte = (uint8_t)'z');
-            }
-            break;
-        case 4u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= MMGR_CALL(lane.alpha, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
-            }
-            break;
-        case 5u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= MMGR_CALL(lane.any_digit, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
-            }
-            break;
-        case 6u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= MMGR_CALL(lane.any_upper, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
-            }
-            break;
-        case 7u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= (mmgr_word)MMGR_CALL(lane.count, ScrutLaneCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
-            }
-            break;
-        case 8u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= (mmgr_word)MMGR_CALL(lane.first, ScrutLaneCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
-            }
-            break;
-        case 9u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= (mmgr_word)MMGR_CALL(lane.last, ScrutLaneCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
-            }
-            break;
-        case 10u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= MMGR_CALL(mask.spread, ScrutMaskCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
-            }
-            break;
-        case 11u:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = (size_t)(s & 7u));
-            }
-            break;
-        default:
-            for (unsigned s = 0; s < 64u; s++)
-            {
-                seen ^= MMGR_CALL(word.fold_lower, ScrutWordCfg, .word = g_word ^ (mmgr_word)s);
-            }
-            break;
+    case 0u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
+        }
+        break;
+    case 1u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= MMGR_CALL(lane.eq, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s, .byte = (uint8_t)'a');
+        }
+        break;
+    case 2u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= MMGR_CALL(lane.ge, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s, .byte = (uint8_t)'a');
+        }
+        break;
+    case 3u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= MMGR_CALL(lane.le, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s, .byte = (uint8_t)'z');
+        }
+        break;
+    case 4u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= MMGR_CALL(lane.alpha, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
+        }
+        break;
+    case 5u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= MMGR_CALL(lane.any_digit, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
+        }
+        break;
+    case 6u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= MMGR_CALL(lane.any_upper, ScrutLaneCfg, .word = g_word ^ (mmgr_word)s);
+        }
+        break;
+    case 7u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= (mmgr_word)MMGR_CALL(lane.count, ScrutLaneCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
+        }
+        break;
+    case 8u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= (mmgr_word)MMGR_CALL(lane.first, ScrutLaneCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
+        }
+        break;
+    case 9u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= (mmgr_word)MMGR_CALL(lane.last, ScrutLaneCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
+        }
+        break;
+    case 10u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= MMGR_CALL(mask.spread, ScrutMaskCfg, .mask = (g_word ^ (mmgr_word)s) & g_mask);
+        }
+        break;
+    case 11u:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = (size_t)(s & 7u));
+        }
+        break;
+    default:
+        for (unsigned s = 0; s < 64u; s++)
+        {
+            seen ^= MMGR_CALL(word.fold_lower, ScrutWordCfg, .word = g_word ^ (mmgr_word)s);
+        }
+        break;
     }
     return seen;
 }
@@ -1136,9 +1134,8 @@ static uint32_t ws_span_chain(size_t n)
     {
         const char ch = g_a[at];
 
-        found += ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r') || (ch == '\f') || (ch == '\v'))
-                     ? 1u
-                     : 0u;
+        found +=
+            ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r') || (ch == '\f') || (ch == '\v')) ? 1u : 0u;
     }
     return found;
 }
@@ -1390,18 +1387,18 @@ void dbench_run(void)
             DBENCH_AB("len", iters, n, DBENCH_KEEP(MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = n + 1u)),
                       DBENCH_KEEP(strnlen(g_a, n + 1u)));
 
-            DBENCH_AB("chr", iters, n,
-                      DBENCH_KEEP(
-                          MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .byte = (uint8_t)'z')),
-                      DBENCH_KEEP(strchr(g_a, 'z')));
+            DBENCH_AB(
+                "chr", iters, n,
+                DBENCH_KEEP(MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .byte = (uint8_t)'z')),
+                DBENCH_KEEP(strchr(g_a, 'z')));
 
             DBENCH_AB("cmp", iters, n,
                       DBENCH_KEEP(MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n)),
                       DBENCH_KEEP(memcmp(g_a, g_b, n)));
 
             DBENCH_AB("find", iters, n,
-                      DBENCH_KEEP(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u,
-                                            .other = g_needle, .other_cap = NLEN + 1u, .other_len = NLEN)),
+                      DBENCH_KEEP(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_needle,
+                                            .other_cap = NLEN + 1u, .other_len = NLEN)),
                       DBENCH_KEEP(strstr(g_a, g_needle)));
 
             // The same search with a needle whose first byte is common. The fill cycles 'a' to 'o',
@@ -1410,8 +1407,8 @@ void dbench_run(void)
             // "qx" above is the opposite case, since 'q' does not occur at all. A walk is only
             // honestly measured against both.
             DBENCH_AB("find_hot", iters, n,
-                      DBENCH_KEEP(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u,
-                                            .other = g_hot, .other_cap = NLEN + 1u, .other_len = NLEN)),
+                      DBENCH_KEEP(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_hot,
+                                            .other_cap = NLEN + 1u, .other_len = NLEN)),
                       DBENCH_KEEP(strstr(g_a, g_hot)));
 
             // The two predicates and the bounded copy, which had no rows either. eq and starts are
@@ -1454,8 +1451,8 @@ void dbench_run(void)
             // buffer counting hits; a single test would sit under the harness floor. Neither buffer
             // is a constant here - fill writes them at run time - so nothing folds.
             DBENCH_AB("has", iters, n,
-                      DBENCH_KEEP(MMGR_CALL(cellul.has, CatenaFinitaCfg, .src = g_a, .cap = n + 1u,
-                                            .other = g_needle, .other_cap = NLEN + 1u, .other_len = NLEN)),
+                      DBENCH_KEEP(MMGR_CALL(cellul.has, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_needle,
+                                            .other_cap = NLEN + 1u, .other_len = NLEN)),
                       DBENCH_KEEP(strstr(g_a, g_needle) != NULL));
 
             DBENCH_AB("ws_scan", iters, n, DBENCH_KEEP(ws_span_mmgr(n)), DBENCH_KEEP(ws_span_libc(n)));
@@ -1479,8 +1476,7 @@ void dbench_run(void)
             // what clz turned out to be doing. Both regions arrive through untraceable pointers.
             g_cp_src = g_a;
             g_cp_dst = (char *)g_b;
-            DBENCH_AB("eq_zero", iters, n,
-                      DBENCH_KEEP(agree_entry_zero(g_cp_src, g_cp_dst, n + 1u)),
+            DBENCH_AB("eq_zero", iters, n, DBENCH_KEEP(agree_entry_zero(g_cp_src, g_cp_dst, n + 1u)),
                       DBENCH_KEEP(agree_inline_zero(g_cp_src, g_cp_dst, n + 1u)));
 
             // Mycroft's four operations against a two operation filter that never misses a zero,
@@ -1488,22 +1484,19 @@ void dbench_run(void)
             // so it fires on none of them, which is the case this is for.
             // Two changes, measured apart. The ordering alone first: Mycroft either side, with the
             // difference test moved ahead of it.
-            DBENCH_AB("eq_order", iters, n,
-                      DBENCH_KEEP(agree_inline_zero(g_cp_src, g_cp_dst, n + 1u)),
+            DBENCH_AB("eq_order", iters, n, DBENCH_KEEP(agree_inline_zero(g_cp_src, g_cp_dst, n + 1u)),
                       DBENCH_KEEP(agree_reordered(g_cp_src, g_cp_dst, n + 1u)));
 
             // Then the filter alone, against that same reordering, so the only thing between these
             // two arms is four operations against two.
-            DBENCH_AB("eq_filter", iters, n,
-                      DBENCH_KEEP(agree_reordered(g_cp_src, g_cp_dst, n + 1u)),
+            DBENCH_AB("eq_filter", iters, n, DBENCH_KEEP(agree_reordered(g_cp_src, g_cp_dst, n + 1u)),
                       DBENCH_KEEP(agree_filter_zero(g_cp_src, g_cp_dst, n + 1u)));
 
             // The whole walk as the library carries it against the same walk with the fallback run
             // and the tail moved out of its function. Neither block executes on this input; the
             // question is what they cost by being there. Both arms take their regions through
             // pointers the compiler cannot trace back to an object.
-            DBENCH_AB("eq_cold", iters, n,
-                      DBENCH_KEEP(arm_all_inline(g_cp_src, g_cp_dst, n + 1u)),
+            DBENCH_AB("eq_cold", iters, n, DBENCH_KEEP(arm_all_inline(g_cp_src, g_cp_dst, n + 1u)),
                       DBENCH_KEEP(arm_slow_out(g_cp_src, g_cp_dst, n + 1u)));
 
             // The walk built up a piece at a time, so the deltas say which piece owns the cycles
@@ -1556,8 +1549,7 @@ void dbench_run(void)
                 // This is the row that decides whether the hoist belongs in cellul_agree_cs, so the
                 // A arm is the real entry and not a copy of it.
                 DBENCH_AB("eq_hoist", iters, n,
-                          DBENCH_KEEP(
-                              MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
+                          DBENCH_KEEP(MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
                           DBENCH_KEEP(eq_via_ctx_hoisted(&ctx)));
             }
         }
@@ -1570,24 +1562,21 @@ void dbench_run(void)
         {
             const uint32_t iters = 5000u;
 
-            DBENCH_AB("to_long", iters, 7u,
-                      DBENCH_KEEP(MMGR_CALL(cellul.to_long, TransfiguroCfg, .src = g_int)),
+            DBENCH_AB("to_long", iters, 7u, DBENCH_KEEP(MMGR_CALL(cellul.to_long, TransfiguroCfg, .src = g_int)),
                       DBENCH_KEEP(strtol(g_int, NULL, 10)));
 
             DBENCH_AB("to_ulong", iters, 19u,
                       DBENCH_KEEP(MMGR_CALL(cellul.to_ulong, TransfiguroCfg, .src = g_int_wide)),
                       DBENCH_KEEP(strtoul(g_int_wide, NULL, 10)));
 
-            DBENCH_AB("to_double", iters, 16u,
-                      DBENCH_KEEP(MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = g_real)),
+            DBENCH_AB("to_double", iters, 16u, DBENCH_KEEP(MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = g_real)),
                       DBENCH_KEEP(strtod(g_real, NULL)));
 
             DBENCH_AB("to_double_exp", iters, 23u,
                       DBENCH_KEEP(MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = g_real_exp)),
                       DBENCH_KEEP(strtod(g_real_exp, NULL)));
 
-            DBENCH_AB("to_float", iters, 16u,
-                      DBENCH_KEEP(MMGR_CALL(cellul.to_float, TransfiguroCfg, .src = g_real)),
+            DBENCH_AB("to_float", iters, 16u, DBENCH_KEEP(MMGR_CALL(cellul.to_float, TransfiguroCfg, .src = g_real)),
                       DBENCH_KEEP(strtof(g_real, NULL)));
         }
 
@@ -1629,9 +1618,8 @@ void dbench_run(void)
             // them against, so the reading is which of them costs more than its arithmetic accounts
             // for - every string walk here is built out of these.
             {
-                static const char *const named[] = {"has_zero", "eq",    "ge",     "le",   "alpha",
-                                                    "digit",    "upper", "count",  "first", "last",
-                                                    "spread",   "below", "fold"};
+                static const char *const named[] = {"has_zero", "eq",    "ge",   "le",     "alpha", "digit", "upper",
+                                                    "count",    "first", "last", "spread", "below", "fold"};
 
                 for (unsigned pick = 0; pick < 13u; pick++)
                 {
@@ -1646,8 +1634,7 @@ void dbench_run(void)
             {
                 mmgr_word acc = 0u;
 
-                DBENCH_AB("lane_first2", 2000u, 64u,
-                          ({
+                DBENCH_AB("lane_first2", 2000u, 64u, ({
                               acc = 0u;
                               for (unsigned s = 0; s < 64u; s++)
                               {
@@ -1667,8 +1654,7 @@ void dbench_run(void)
 
                 // The same again with the builtin taken directly, which needs no dependency added
                 // to verbum_scrutor and pays no entry on the way.
-                DBENCH_AB("lane_first3", 2000u, 64u,
-                          ({
+                DBENCH_AB("lane_first3", 2000u, 64u, ({
                               acc = 0u;
                               for (unsigned s = 0; s < 64u; s++)
                               {
@@ -1687,37 +1673,31 @@ void dbench_run(void)
                           }));
             }
 
-            DBENCH_AB("clz_lead", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(clz.lead, ClzCfg, .val = (mmgr_u64)g_bits)),
+            DBENCH_AB("clz_lead", iters, 8u, DBENCH_KEEP(MMGR_CALL(clz.lead, ClzCfg, .val = (mmgr_u64)g_bits)),
                       DBENCH_KEEP(__builtin_clzll(g_bits)));
 
-            DBENCH_AB("clz_trail", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(clz.trail, ClzCfg, .val = (mmgr_u64)g_bits)),
+            DBENCH_AB("clz_trail", iters, 8u, DBENCH_KEEP(MMGR_CALL(clz.trail, ClzCfg, .val = (mmgr_u64)g_bits)),
                       DBENCH_KEEP(__builtin_ctzll(g_bits)));
 
-            DBENCH_AB("lane_count", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(lane.count, ScrutLaneCfg, .mask = g_mask)),
+            DBENCH_AB("lane_count", iters, 8u, DBENCH_KEEP(MMGR_CALL(lane.count, ScrutLaneCfg, .mask = g_mask)),
                       DBENCH_KEEP(__builtin_popcountll((unsigned long long)g_mask)));
 
             // The bench arm above divides ctz by eight and ignores the empty mask, which the entry
             // has to answer for: its contract reports MMGR_SWAR_BYTES when no lane is set, and ctz
             // of zero is undefined. This arm carries that guard, so it is the same function and the
             // row says what a substitution would actually be worth.
-            DBENCH_AB("lane_first", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(lane.first, ScrutLaneCfg, .mask = g_mask)),
-                      DBENCH_KEEP((g_mask == 0u) ? MMGR_SWAR_BYTES
-                                                 : (__builtin_ctzll((unsigned long long)g_mask) / 8u)));
+            DBENCH_AB(
+                "lane_first", iters, 8u, DBENCH_KEEP(MMGR_CALL(lane.first, ScrutLaneCfg, .mask = g_mask)),
+                DBENCH_KEEP((g_mask == 0u) ? MMGR_SWAR_BYTES : (__builtin_ctzll((unsigned long long)g_mask) / 8u)));
 
             // The two loads, which is the question that decided proxim_words and was worth nothing
             // in cellul_agree_cs. Here it is priced on its own rather than inside a walk.
-            DBENCH_AB("word_load", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(word.load, ScrutWordCfg, .at = g_a + 1)),
+            DBENCH_AB("word_load", iters, 8u, DBENCH_KEEP(MMGR_CALL(word.load, ScrutWordCfg, .at = g_a + 1)),
                       DBENCH_KEEP(MMGR_CALL(word.load_al, ScrutWordCfg, .at = g_a)));
 
-            DBENCH_AB("lane_zero", iters, 8u,
-                      DBENCH_KEEP(MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = g_word)),
-                      DBENCH_KEEP((g_word - (mmgr_word)0x0101010101010101ull) & ~g_word &
-                                  (mmgr_word)0x8080808080808080ull));
+            DBENCH_AB(
+                "lane_zero", iters, 8u, DBENCH_KEEP(MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = g_word)),
+                DBENCH_KEEP((g_word - (mmgr_word)0x0101010101010101ull) & ~g_word & (mmgr_word)0x8080808080808080ull));
         }
 
         // Where to_double's time goes. to_ulong puts digit accumulation at about thirteen cycles a
@@ -1753,10 +1733,8 @@ void dbench_run(void)
         // What MMGR_CALL costs before any work happens. On Cortex-M4 the compound literal became a
         // memset of the whole argument type per call rather than folding into registers; on both
         // parts here the two rows come out identical, so it folds and costs nothing.
-        DBENCH_OP("dispatch_len8", 20000u,
-                  DBENCH_KEEP(MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = 9u)));
-        DBENCH_OP("direct_len8", 20000u,
-                  DBENCH_KEEP(mmgr_cellul_len(&(CatenaFinitaCfg){.src = g_a, .cap = 9u})));
+        DBENCH_OP("dispatch_len8", 20000u, DBENCH_KEEP(MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = 9u)));
+        DBENCH_OP("direct_len8", 20000u, DBENCH_KEEP(mmgr_cellul_len(&(CatenaFinitaCfg){.src = g_a, .cap = 9u})));
 
         // The same work with the entry pulled into the caller. The gap against the two rows above is
         // what the entry call costs, and every short-length row carries it.

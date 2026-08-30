@@ -2,21 +2,21 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
- * @file confinium_externum.c
+ * @file memoria_externa.c
  * @brief Chooses between internal and external memory, and flips a two-buffer index.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
  * @warning The whole file is compiled only when MMGR_ENABLE_EXTRAM is set.
  */
-#include "confinium_externum/confinium_externum.h"
+#include "memoria_externa/memoria_externa.h"
 
 #if MMGR_ENABLE_EXTRAM
 
 /**
  * @brief Argument type built by MMGR_CALL in the five entry points.
  *
- * @note Fields match ExternumCfg, without the const on its six figures and the one on its pingpong
+ * @note Fields match ExternaCfg, without the const on its six figures and the one on its pingpong
  *       pointer.
  * @note exter_place reads the six figures. The four pingpong backends read pingpong alone, and
  *       MMGR_CALL zeroes the members an entry is not given.
@@ -29,33 +29,22 @@ typedef struct
     size_t free_psram;      /**< Bytes still free in external memory. */
     size_t psram_threshold; /**< Size at or above which external memory is tried first. */
     size_t dram_reserve;    /**< Internal bytes that must remain free after the placement. */
-<<<<<<< HEAD
-    PingPong *pp;           /**< Pair the pingpong backends act on [BORROWS]. */
-=======
     PingPong *pingpong;     /**< Pair the pingpong backends act on [BORROWS]. */
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 } ExterCtx;
 
 /**
  * @brief Reports whether the request fits internal memory and still leaves the reserve.
  *
  * @param[in] args Request size and the internal memory figures [BORROWS].
-<<<<<<< HEAD
- * @return      MMGR_TRUE when the bytes fit and dram_reserve would still be free afterwards.
-=======
  * @return         MMGR_TRUE when the bytes fit and dram_reserve would still be free afterwards.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Tests the size first, so the subtraction that follows cannot wrap.
  * @note dram_reserve is taken as given. A reserve above free_dram refuses every request, size 0
  *       included. A reserve equal to it admits only a size of 0.
  */
 MMGR_INLINE mmgr_bool exter_dram_fits(const ExterCtx *args)
 {
-<<<<<<< HEAD
-=======
     // Two tests in order: the first is what makes the subtraction in the second safe, since && stops
     // at the first that fails and a size past free_dram would otherwise wrap it
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
     return (args->size <= args->free_dram) && ((args->free_dram - args->size) >= args->dram_reserve);
 }
 
@@ -63,11 +52,7 @@ MMGR_INLINE mmgr_bool exter_dram_fits(const ExterCtx *args)
  * @brief Reports whether the request fits external memory.
  *
  * @param[in] args Request size and the external memory figure [BORROWS].
-<<<<<<< HEAD
- * @return      MMGR_TRUE when the bytes fit.
-=======
  * @return         MMGR_TRUE when the bytes fit.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note A single comparison, where exter_dram_fits also checks dram_reserve.
  */
 MMGR_INLINE mmgr_bool exter_psram_fits(const ExterCtx *args)
@@ -79,11 +64,7 @@ MMGR_INLINE mmgr_bool exter_psram_fits(const ExterCtx *args)
  * @brief Decides where a request should be placed.
  *
  * @param[in] args Request size, the DMA requirement and both memory figures [BORROWS].
-<<<<<<< HEAD
- * @return      PLACE_DRAM, PLACE_PSRAM, or PLACE_FAIL when neither will take it.
-=======
  * @return         PLACE_DRAM, PLACE_PSRAM, or PLACE_FAIL when neither will take it.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note A size of 0 is refused outright.
  * @note A DMA request only ever goes to internal memory, and fails rather than falling back.
  * @note At or above psram_threshold external memory is tried first, below it internal is. On both
@@ -100,13 +81,8 @@ MMGR_INLINE mmgr_place exter_place(const ExterCtx *args)
         return PLACE_FAIL;
     }
 
-<<<<<<< HEAD
-    const mmgr_bool d_fits = exter_dram_fits(args);
-    const mmgr_bool p_fits = exter_psram_fits(args);
-=======
     const mmgr_bool dram_fits = exter_dram_fits(args);
     const mmgr_bool psram_fits = exter_psram_fits(args);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
     if (args->dma_required)
     {
@@ -140,13 +116,6 @@ MMGR_INLINE mmgr_place exter_place(const ExterCtx *args)
 /**
  * @brief Points the pair at buffer 0.
  *
-<<<<<<< HEAD
- * @param[in,out] args Pair to reset, as args->pp [BORROWS].
- */
-MMGR_INLINE void exter_pingpong_init(const ExterCtx *args)
-{
-    args->pp->fill_idx = 0;
-=======
  * @param[in,out] args Pair to reset, as args->pingpong [BORROWS].
  * @note The store below is what puts fill_index in range. The other three backends read it as it
  *       stands.
@@ -156,20 +125,11 @@ MMGR_INLINE void exter_pingpong_init(const ExterCtx *args)
 MMGR_INLINE void exter_pingpong_init(const ExterCtx *args)
 {
     args->pingpong->fill_index = 0;
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 }
 
 /**
  * @brief Returns the index of the buffer currently being filled.
  *
-<<<<<<< HEAD
- * @param[in] args Pair to read, as args->pp [BORROWS].
- * @return      0 or 1.
- */
-MMGR_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
-{
-    return args->pp->fill_idx;
-=======
  * @param[in] args Pair to read, as args->pingpong [BORROWS].
  * @return         0 or 1.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
@@ -179,16 +139,11 @@ MMGR_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
 MMGR_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
 {
     return args->pingpong->fill_index;
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 }
 
 /**
  * @brief Returns the index of the buffer currently being drained.
  *
-<<<<<<< HEAD
- * @param[in] args Pair to read, as args->pp [BORROWS].
- * @return      The other index, 0 or 1.
-=======
  * @param[in] args Pair to read, as args->pingpong [BORROWS].
  * @return         The other index, 0 or 1.
  * @note Flips the low bit of fill_index rather than keeping a second member, so the two indexes
@@ -196,30 +151,16 @@ MMGR_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning The answer is an index only while fill_index is 0 or 1. On a pair exter_pingpong_init has
  *          not set it is the flip of whatever the storage held.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
 {
     // Explicit cast keeps the result in uint8_t after the exclusive or promotes to int
-<<<<<<< HEAD
-    return (uint8_t)(args->pp->fill_idx ^ 1u);
-=======
     return (uint8_t)(args->pingpong->fill_index ^ 1u);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 }
 
 /**
  * @brief Swaps the two roles and returns the new fill index.
  *
-<<<<<<< HEAD
- * @param[in,out] args Pair to flip, as args->pp [BORROWS].
- * @return          The index now being filled, 0 or 1.
- */
-MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
-{
-    args->pp->fill_idx ^= 1u;
-    return args->pp->fill_idx;
-=======
  * @param[in,out] args Pair to flip, as args->pingpong [BORROWS].
  * @return             The index now being filled, 0 or 1.
  * @note Flips the low bit, so a swap of a swap is where it started.
@@ -235,19 +176,18 @@ MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
     // would show up
     args->pingpong->fill_index ^= 1u;
     return args->pingpong->fill_index;
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 }
 
 /**
  * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
  *
  * @param[in] ReturnType_ Return type of the entry point.
- * @param[in] name_       Name after the mmgr_exter_ and exter_ prefixes, which the two share.
+ * @param[in] name_       Name after the mmgr_extern_ and exter_ prefixes.
  * @param[in] ...         Initializers for the ExterCtx literal, written in terms of args.
  * @note place is the only entry under these prefixes. The other four carry the pingpong pair below.
  */
 #define EXTER_ENTRY(ReturnType_, name_, ...)                                                                           \
-    GENERIC_ENTRY(mmgr_exter_, exter_, ExterCtx, ExternumCfg, ReturnType_, name_, __VA_ARGS__)
+    GENERIC_ENTRY(mmgr_extern_, exter_, ExterCtx, ExternaCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief Binds the pingpong entries, which carry their own pair of prefixes.
@@ -256,10 +196,10 @@ MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  * @param[in] name_       Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
  * @param[in] ...         Initializers for the ExterCtx literal, written in terms of args.
  * @note A second macro rather than one, because these entries are named mmgr_pingpong_ rather than
- *       mmgr_exter_. GENERIC_ENTRY pastes one prefix onto one name, so the pair differs, not the form.
+ *       mmgr_extern_. GENERIC_ENTRY pastes one prefix onto one name, so the pair differs, not the form.
  */
 #define PINGPONG_ENTRY(ReturnType_, name_, ...)                                                                        \
-    GENERIC_ENTRY(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternumCfg, ReturnType_, name_, __VA_ARGS__)
+    GENERIC_ENTRY(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternaCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief Binds the same pair to GENERIC_ENTRY_V, for the entry that returns nothing.
@@ -271,12 +211,12 @@ MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  * @note init is the only entry that reaches it. The other three pingpong entries hand back an index.
  */
 #define PINGPONG_ENTRY_V(name_, ...)                                                                                   \
-    GENERIC_ENTRY_V(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternumCfg, name_, __VA_ARGS__)
+    GENERIC_ENTRY_V(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternaCfg, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
  *
- * @note Each is documented at its declaration in confinium_externum.h.
+ * @note Each is documented at its declaration in memoria_externa.h.
  * @note The fields each line forwards are the ones that entry reads, and MMGR_CALL zeroes the rest.
  * @note The four pingpong lines pass args->pingpong through as it stands [BORROWS]. MMGR_CALL builds
  *       its literal inside the emitted function, so the literal lives for that call alone and the
@@ -287,16 +227,9 @@ MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
 EXTER_ENTRY(mmgr_place, place, .size = args->size, .dma_required = args->dma_required, .free_dram = args->free_dram,
             .free_psram = args->free_psram, .psram_threshold = args->psram_threshold,
             .dram_reserve = args->dram_reserve)
-<<<<<<< HEAD
-PINGPONG_ENTRY_V(init, .pp = args->pp)
-PINGPONG_ENTRY(uint8_t, fill_index, .pp = args->pp)
-PINGPONG_ENTRY(uint8_t, drain_index, .pp = args->pp)
-PINGPONG_ENTRY(uint8_t, swap, .pp = args->pp)
-=======
 PINGPONG_ENTRY_V(init, .pingpong = args->pingpong)
 PINGPONG_ENTRY(uint8_t, fill_index, .pingpong = args->pingpong)
 PINGPONG_ENTRY(uint8_t, drain_index, .pingpong = args->pingpong)
 PINGPONG_ENTRY(uint8_t, swap, .pingpong = args->pingpong)
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
 #endif

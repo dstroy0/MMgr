@@ -3,9 +3,9 @@
  */
 #include "unity.h"
 
-#include "confinium_externum/confinium_externum.h"
+#include "memoria_externa/memoria_externa.h"
 
 void test_exter_header_is_self_contained(void)
 {
-    TEST_PASS_MESSAGE("confinium_externum.h compiled with no header before it");
+    TEST_PASS_MESSAGE("memoria_externa.h compiled with no header before it");
 }

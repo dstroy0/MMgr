@@ -13,14 +13,14 @@ has the position it was taken from moved back past it".
 
 ## Lifetimes, shortest first
 
-| what you hold       | dies when                                             |
-| ------------------- | ----------------------------------------------------- |
-| an interim pointer  | its mark is rewound, or the interim end is reset      |
-| a span over interim | same, and it does not know                            |
-| a tenant pointer    | the pool releases it                                  |
-| a persist pointer   | `persist_reddo` unwinds past it, or the region dies   |
-| the region          | its declaration goes out of scope, which is never     |
-| your buffer         | you say so                                            |
+| what you hold       | dies when                                           |
+| ------------------- | --------------------------------------------------- |
+| an interim pointer  | its mark is rewound, or the interim end is reset    |
+| a span over interim | same, and it does not know                          |
+| a tenant pointer    | the pool releases it                                |
+| a persist pointer   | `persist_reddo` unwinds past it, or the region dies |
+| the region          | its declaration goes out of scope, which is never   |
+| your buffer         | you say so                                          |
 
 Read that table downward: everything above a row is invalidated by the row below it. A span over a
 tenant dies when the tenant is reset even though the span was never told.

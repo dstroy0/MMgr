@@ -46,11 +46,11 @@ tail four times sooner than a 64-bit carrier. See @ref ref_environments.
 
 The entries split by what they operate on, and each has its own config struct.
 
-| table  | operates on            | entries                                                                                |
-| ------ | ---------------------- | -------------------------------------------------------------------------------------- |
-| `word` | a whole word           | `load`, `load_al`, `fold_lower`, `count`                                                 |
-| `lane` | the lanes of a word    | `ge`, `le`, `sub7`, `has_zero`, `eq`, `xor_`, `fam_eq`, `any_upper`, `any_digit`, `alpha`, `count`, `first`, `last` |
-| `mask` | a mask of lanes        | `spread`, `drop_first`, `drop_last`, `bytes_below`, `lanes_below`, `before`, `tail`, `run`, `run_edge` |
+| table  | operates on         | entries                                                                                                             |
+| ------ | ------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `word` | a whole word        | `load`, `load_al`, `fold_lower`, `count`                                                                            |
+| `lane` | the lanes of a word | `ge`, `le`, `sub7`, `has_zero`, `eq`, `xor_`, `fam_eq`, `any_upper`, `any_digit`, `alpha`, `count`, `first`, `last` |
+| `mask` | a mask of lanes     | `spread`, `drop_first`, `drop_last`, `bytes_below`, `lanes_below`, `before`, `tail`, `run`, `run_edge`              |
 
 `lane.first` and `lane.last` are address order, not bit order. On a big-endian target they are wired
 to the opposite internal entries from a little-endian one, so a caller never has to know which way

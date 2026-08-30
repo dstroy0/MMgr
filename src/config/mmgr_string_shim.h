@@ -94,14 +94,9 @@ MMGR_INLINE void *mmgr_shim_cpy(void *dest, const void *source, size_t bytes)
  * @param[in]  source Bytes to read [BORROWS].
  * @param[in]  bytes  Number of bytes to copy.
  * @return            dest [BORROWS].
-<<<<<<< HEAD
- * @note Compares the two addresses and walks upwards or downwards so overlapping bytes are read before they are
- * written.
-=======
  * @note Compares the two addresses and walks upwards or downwards so overlapping bytes are read
  *       before they are written.
  * @warning dest must be writable for bytes and source readable for the same.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 MMGR_INLINE void *mmgr_shim_move(void *dest, const void *source, size_t bytes)
 {

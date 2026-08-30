@@ -114,26 +114,13 @@ MMGR_NS_LAYOUT(MemoriamPraetereoNs, open, tx_submit, close, poll);
  * @brief Opens args->channel and registers args->on_complete against it.
  *
  * @param[in] args Channel, peripheral, loopback flag and completion callback [BORROWS].
-<<<<<<< HEAD
- * @return      MMGR_TRUE when the port layer accepted the request.
-=======
  * @return         MMGR_TRUE when the port layer accepted the request.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note The default mmgr_praet_hw_open refuses, so this returns MMGR_FALSE until a port replaces it.
  * @warning args->channel must be below the configured channel count, and args->on_complete must not be NULL.
  */
 mmgr_bool mmgr_praet_open(const PraetCfg *args);
 
 /**
-<<<<<<< HEAD
- * @brief Submits args->len bytes of args->buf on args->channel.
- *
- * @param[in] args Channel, buffer and length [BORROWS].
- * @return      MMGR_TRUE when the port layer accepted the transfer.
- * @note The default mmgr_praet_hw_tx_submit refuses, so this returns MMGR_FALSE until a port replaces it.
- * @warning args->buf must stay valid until the completion callback runs [BORROWS].
- * @warning args->channel must be below the configured channel count, and args->len must not exceed the buffer size.
-=======
  * @brief Submits args->bytes of args->buf on args->channel.
  *
  * @param[in] args Channel, buffer and byte count [BORROWS].
@@ -142,7 +129,6 @@ mmgr_bool mmgr_praet_open(const PraetCfg *args);
  * @warning args->buf must stay valid until the completion callback runs [BORROWS].
  * @warning args->channel must be below the configured channel count, and args->bytes must not exceed
  *          the buffer size.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_bool mmgr_praet_tx_submit(const PraetTransferCfg *args);
 
@@ -150,11 +136,7 @@ mmgr_bool mmgr_praet_tx_submit(const PraetTransferCfg *args);
  * @brief Closes args->channel.
  *
  * @param[in] args Channel to close [BORROWS].
-<<<<<<< HEAD
- * @note Only args->channel is read; buf and len take no part.
-=======
  * @note Only args->channel is read. buf and bytes take no part.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @warning args->channel must be below the configured channel count.
  */
 void mmgr_praet_close(const PraetTransferCfg *args);
@@ -163,32 +145,14 @@ void mmgr_praet_close(const PraetTransferCfg *args);
  * @brief Drives the port layer's poll hook.
  *
  * @param[in] args Channel to poll [BORROWS].
-<<<<<<< HEAD
- * @note Passes c straight through without checking it, unlike the other three entries.
-=======
  * @note Passes args straight to mmgr_praet_hw_poll, unlike the other three entries, which assert first.
  * @warning No assertion runs here, so args and args->channel reach the port layer exactly as the caller gave them.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 void mmgr_praet_poll(const PraetCfg *args);
 
 /**
  * @brief Opens a DMA channel on real hardware.
  *
-<<<<<<< HEAD
- * @note Each has a default in memoriam_praetereo.c that refuses or does nothing, so a build links without a port.
- * @note An application definition of any of these names replaces the default where MMGR_HAS_ATTRIBUTE(weak) is
- * non-zero.
- * @warning mmgr_praet_poll calls mmgr_praet_hw_poll directly; the other three pass through a call that asserts first.
- */
-mmgr_bool mmgr_praet_hw_open(const PraetCfg *args);
-
-mmgr_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args);
-
-void mmgr_praet_hw_close(const PraetTransferCfg *args);
-
-void mmgr_praet_hw_poll(const PraetCfg *args);
-=======
  * @param[in] args Channel, peripheral, loopback flag and completion callback, as mmgr_praet_open
  *                 forwards them [BORROWS].
  * @return         MMGR_TRUE when the hardware accepted the request.
@@ -198,7 +162,6 @@ void mmgr_praet_hw_poll(const PraetCfg *args);
  * @warning Reached through mmgr_praet_open, which asserts the channel and the callback first.
  */
 mmgr_bool mmgr_praet_hw_open(const PraetCfg *args);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
 /**
  * @brief Submits a transfer on real hardware.

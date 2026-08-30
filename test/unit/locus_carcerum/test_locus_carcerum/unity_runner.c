@@ -127,12 +127,12 @@ int main(void)
   run_test(test_a_maximum_security_release_zeroes_the_whole_cell, "test_a_maximum_security_release_zeroes_the_whole_cell", 336);
   run_test(test_the_zeroing_clears_exactly_what_it_was_given, "test_the_zeroing_clears_exactly_what_it_was_given", 354);
   run_test(test_a_mark_releases_everything_taken_after_it, "test_a_mark_releases_everything_taken_after_it", 374);
-  run_test(test_marks_nest_because_the_caller_holds_them, "test_marks_nest_because_the_caller_holds_them", 390);
-  run_test(test_reset_releases_the_whole_temporary_tier, "test_reset_releases_the_whole_temporary_tier", 407);
-  run_test(test_who_owns_buf_tells_a_cellblock_from_its_neighbor, "test_who_owns_buf_tells_a_cellblock_from_its_neighbor", 415);
-  run_test(test_who_owns_buf_refuses_the_edges, "test_who_owns_buf_refuses_the_edges", 426);
-  run_test(test_the_cellblocks_do_not_share_a_fill_point, "test_the_cellblocks_do_not_share_a_fill_point", 438);
-  run_test(test_a_span_over_cellblock_bytes_carries_the_cellblock_address, "test_a_span_over_cellblock_bytes_carries_the_cellblock_address", 446);
+  run_test(test_marks_nest_because_the_caller_holds_them, "test_marks_nest_because_the_caller_holds_them", 389);
+  run_test(test_reset_releases_the_whole_temporary_tier, "test_reset_releases_the_whole_temporary_tier", 406);
+  run_test(test_who_owns_buf_tells_a_cellblock_from_its_neighbor, "test_who_owns_buf_tells_a_cellblock_from_its_neighbor", 414);
+  run_test(test_who_owns_buf_refuses_the_edges, "test_who_owns_buf_refuses_the_edges", 425);
+  run_test(test_the_cellblocks_do_not_share_a_fill_point, "test_the_cellblocks_do_not_share_a_fill_point", 437);
+  run_test(test_a_span_over_cellblock_bytes_carries_the_cellblock_address, "test_a_span_over_cellblock_bytes_carries_the_cellblock_address", 445);
 
   return UNITY_END();
 }

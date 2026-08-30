@@ -77,7 +77,7 @@ before anything else can look at it. That is not belt and braces — it is the o
 stale definition from somewhere else could have desynced the scanner from the word, and the
 `#undef` removes the possibility.
 
-What *is* a knob is `MMGR_WORD_BITS` itself. Set it and the carrier and the machine word move
+What _is_ a knob is `MMGR_WORD_BITS` itself. Set it and the carrier and the machine word move
 together, which is how the `word32` and `word16` environments run a narrow machine's scan path on a
 64-bit host. See @ref concept_width.
 

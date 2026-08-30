@@ -48,11 +48,7 @@ typedef struct
  * @brief Returns the table entry for args->byte.
  *
  * @param[in] args Byte to look up [BORROWS].
-<<<<<<< HEAD
- * @return      The cost, 53 through 255 in this table.
-=======
  * @return         The cost, 53 through 255 in this table.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note The table holds 256 entries, so every uint8_t value indexes it in range.
  */
 MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)

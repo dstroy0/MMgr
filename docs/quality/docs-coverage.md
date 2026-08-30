@@ -24,11 +24,11 @@ summary.
 Every module has a `@file` block and every free function has `@brief`, `@param` and `@return`. The
 remaining gap is two specific classes:
 
-| class                  | roughly | why                                                 |
-| ---------------------- | ------: | --------------------------------------------------- |
+| class                  | roughly | why                                                    |
+| ---------------------- | ------: | ------------------------------------------------------ |
 | dispatch-table members |    ~180 | each `(*name)(args)` loculus inside a `<Mod>Ns` struct |
-| macro definitions      |     ~77 | `MMGR_DBL_*`, `MMGR_ANCHOR_*`, the directive macros |
-| typedefs               |     ~11 | mostly internal shapes                              |
+| macro definitions      |     ~77 | `MMGR_DBL_*`, `MMGR_ANCHOR_*`, the directive macros    |
+| typedefs               |     ~11 | mostly internal shapes                                 |
 
 The dispatch-table members are the bulk, and they are a genuine question rather than an oversight:
 each loculus points at a free function that is already documented, so documenting the loculus as well

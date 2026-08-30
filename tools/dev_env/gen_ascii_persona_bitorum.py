@@ -103,15 +103,11 @@ masks = "\n\n".join(
 )
 
 # The first is pinned to 0 so the numbering is written down rather than implied.
-enum = "\n".join(
-    "    MMGR_ASCII_%s%s," % (n, " = 0" if i == 0 else "") for i, (n, _, _) in enumerate(CLASSES)
-)
+enum = "\n".join("    MMGR_ASCII_%s%s," % (n, " = 0" if i == 0 else "") for i, (n, _, _) in enumerate(CLASSES))
 
 rows = "\n".join("    [MMGR_ASCII_%s] = MMGR_ASCII_%s_INIT," % (n, n) for n, _, _ in CLASSES)
 
-HDR = (
-    BANNER
-    + """
+HDR = (BANNER + """
 #ifndef MMGR_ASCII_PERSONA_BITORUM_H
 #define MMGR_ASCII_PERSONA_BITORUM_H
 
@@ -219,12 +215,9 @@ MMGR_NS AsciiPersonaBitorumNs ascii MMGR_UNUSED = {
 MMGR_FINIS_DECLS
 
 #endif
-"""
-) % {"enum": enum}
+""") % {"enum": enum}
 
-SRC = (
-    BANNER
-    + """
+SRC = (BANNER + """
 #include "ascii_persona_bitorum/ascii_persona_bitorum.h"
 
 /**
@@ -292,8 +285,7 @@ mmgr_bool (mmgr_ascii_in)(const AsciiCfg *c)
 {
     return MMGR_CALL(ascii_in, AsciiCtx, .k = c->k, .c = c->c);
 }
-"""
-) % {"masks": masks, "rows": rows}
+""") % {"masks": masks, "rows": rows}
 
 CMAKE = """# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later

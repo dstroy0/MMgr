@@ -67,7 +67,7 @@ void test_call_macro_zeroes_what_is_not_named(void)
 
 void test_inline_and_unused_are_defined(void)
 {
-        TEST_ASSERT_TRUE(MMGR_FP_SIZE > 0u);
+    TEST_ASSERT_TRUE(MMGR_FP_SIZE > 0u);
 }
 
 void test_byte_order_is_one_of_two(void)

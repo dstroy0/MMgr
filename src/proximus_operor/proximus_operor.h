@@ -95,13 +95,8 @@ MMGR_NS_LAYOUT(ProximusOperorNs, load16, load32, load64, put16, put32, put64, lo
  * @brief Reads two bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The two bytes as a uint16_t.
- * @warning args->at must be readable for two bytes; any alignment will do.
-=======
  * @return         The two bytes as a uint16_t.
  * @warning args->at must be readable for two bytes, at any alignment.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 uint16_t mmgr_proxim_load16(const ProximusCfg *args);
 
@@ -109,13 +104,8 @@ uint16_t mmgr_proxim_load16(const ProximusCfg *args);
  * @brief Reads four bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The four bytes as a uint32_t.
- * @warning args->at must be readable for four bytes; any alignment will do.
-=======
  * @return         The four bytes as a uint32_t.
  * @warning args->at must be readable for four bytes, at any alignment.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 uint32_t mmgr_proxim_load32(const ProximusCfg *args);
 
@@ -123,13 +113,8 @@ uint32_t mmgr_proxim_load32(const ProximusCfg *args);
  * @brief Reads eight bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The eight bytes as a uint64_t.
- * @warning args->at must be readable for eight bytes; any alignment will do.
-=======
  * @return         The eight bytes as a uint64_t.
  * @warning args->at must be readable for eight bytes, at any alignment.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 uint64_t mmgr_proxim_load64(const ProximusCfg *args);
 
@@ -138,11 +123,7 @@ uint64_t mmgr_proxim_load64(const ProximusCfg *args);
  *
  * @param[in] args Destination and value [BORROWS].
  * @note The upper six bytes of args->val take no part.
-<<<<<<< HEAD
- * @warning args->dst must be writable for two bytes; any alignment will do.
-=======
  * @warning args->dst must be writable for two bytes, at any alignment.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 void mmgr_proxim_put16(const ProximusCfg *args);
 
@@ -151,11 +132,7 @@ void mmgr_proxim_put16(const ProximusCfg *args);
  *
  * @param[in] args Destination and value [BORROWS].
  * @note The upper four bytes of args->val take no part.
-<<<<<<< HEAD
- * @warning args->dst must be writable for four bytes; any alignment will do.
-=======
  * @warning args->dst must be writable for four bytes, at any alignment.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 void mmgr_proxim_put32(const ProximusCfg *args);
 
@@ -163,11 +140,7 @@ void mmgr_proxim_put32(const ProximusCfg *args);
  * @brief Writes all eight bytes of args->val to args->dst in the target's own order.
  *
  * @param[in] args Destination and value [BORROWS].
-<<<<<<< HEAD
- * @warning args->dst must be writable for eight bytes; any alignment will do.
-=======
  * @warning args->dst must be writable for eight bytes, at any alignment.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 void mmgr_proxim_put64(const ProximusCfg *args);
 
@@ -175,13 +148,8 @@ void mmgr_proxim_put64(const ProximusCfg *args);
  * @brief Reads MMGR_RAW_WORD bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The bytes as an mmgr_migro_word.
- * @warning args->at must be readable for MMGR_RAW_WORD bytes; any alignment will do.
-=======
  * @return         The bytes as an mmgr_migro_word.
  * @warning args->at must be readable for MMGR_RAW_WORD bytes, at any alignment.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 mmgr_migro_word mmgr_proxim_load(const ProximusCfg *args);
 
@@ -189,11 +157,7 @@ mmgr_migro_word mmgr_proxim_load(const ProximusCfg *args);
  * @brief Writes the low MMGR_RAW_WORD bytes of args->val to args->dst in the target's own order.
  *
  * @param[in] args Destination and value [BORROWS].
-<<<<<<< HEAD
- * @warning args->dst must be writable for MMGR_RAW_WORD bytes; any alignment will do.
-=======
  * @warning args->dst must be writable for MMGR_RAW_WORD bytes, at any alignment.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  */
 void mmgr_proxim_put(const ProximusCfg *args);
 
@@ -201,11 +165,7 @@ void mmgr_proxim_put(const ProximusCfg *args);
  * @brief Reads MMGR_RAW_WORD bytes from an aligned args->at, in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The bytes as an mmgr_migro_word.
-=======
  * @return         The bytes as an mmgr_migro_word.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Reaches the same bytes as mmgr_proxim_load, through a type that keeps mmgr_migro_word's alignment.
  * @warning args->at must be readable for MMGR_RAW_WORD bytes and aligned for an mmgr_migro_word.
  */
@@ -224,11 +184,7 @@ void mmgr_aequus_put(const ProximusCfg *args);
  * @brief Reads eight bytes from an aligned args->at, in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
-<<<<<<< HEAD
- * @return      The eight bytes as a uint64_t.
-=======
  * @return         The eight bytes as a uint64_t.
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
  * @note Reaches the same bytes as mmgr_proxim_load64, through a type that keeps uint64_t's alignment.
  * @warning args->at must be readable for eight bytes and aligned for a uint64_t.
  */

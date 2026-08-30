@@ -9,18 +9,6 @@ the temporary tier by mark.
 ## Borrowing
 
 ```c
-<<<<<<< HEAD
-Carceribus(prison, MMGR_SOLUTA(work, 2048), MMGR_SECURA(keys, 2048));
-```
-
-One line declares the region, its pools, their storage and their alignment. It is a declaration,
-not a call: everything it emits is initialized data, so nothing runs at startup and a pool's
-first byte is an address the linker resolved.
-
-`MMGR_SOLUTA` is the loose watch and `MMGR_SECURA` the close one. The watch is fixed here and
-cannot be changed later: `prison.keys` has no unwiped release to reach for, and `prison.work` has
-no wiping one.
-=======
 Carceribus(prison, MMGR_MINIMUM_SECURITY(work, 2048), MMGR_MAXIMUM_SECURITY(keys, 2048));
 ```
 
@@ -35,18 +23,12 @@ change the level a cellblock runs at" (`src/carceribus/carceribus.h:19-20`). The
 declare the same eight entries under different behavior, so `prison.keys` has no unzeroed release to
 reach for and `prison.work` has no zeroing one
 (`src/carceribus/carceribus.h:93-105`, `src/carceribus/carceribus.h:116-128`).
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 
 ## Two tiers
 
 ```c
-<<<<<<< HEAD
-uint8_t *cfg = prison.work.persist_capio(128);
-uint8_t *tmp = prison.work.interim_capio(512);
-=======
 uint8_t *config = prison.work.persistent_buf_alloc(128);
 uint8_t *working = prison.work.temporary_buf_alloc(512);
->>>>>>> ff25dbb79dd5d22658a3389362925178e2b55a9b
 ```
 
 Both return the first byte of a cell `[RETURNS OWNERSHIP]`. The persistent tier takes it back through
