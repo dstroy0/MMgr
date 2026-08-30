@@ -364,16 +364,16 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
  */
 MMGR_INLINE void memor_set(MemorSetCtx *args)
 {
-    // Explicit casts broadcast the byte into every lane: MMGR_SWAR_ONES has a 1 in each lane's low bit
+    // Explicit casts broadcast the byte into every lane. MMGR_SWAR_ONES has a 1 in each lane's low bit
     const mmgr_migro_word fill = (mmgr_migro_word)(MMGR_SWAR_ONES * (mmgr_migro_word)args->val);
 
     // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
-    size_t t = args->bytes & (size_t)(MMGR_RAW_WORD - 1u);
-    size_t w = args->bytes - t;
+    size_t tail_bytes = args->bytes & (size_t)(MMGR_RAW_WORD - 1u);
+    size_t word_bytes = args->bytes - tail_bytes;
 
     // Four words an iteration while there are four to take, for the reason memor_cpy gives: the
     // pointer bump, the counter and the branch cost as much as the store at one word a pass.
-    while (w >= (4u * MMGR_RAW_WORD))
+    while (word_bytes >= (4u * MMGR_RAW_WORD))
     {
         MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = fill);
         MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + MMGR_RAW_WORD, .val = fill);
@@ -382,44 +382,46 @@ MMGR_INLINE void memor_set(MemorSetCtx *args)
 
         // Advances separated from the stores above so the loop body carries no side effect
         args->dst += 4u * MMGR_RAW_WORD;
-        w -= 4u * MMGR_RAW_WORD;
+        word_bytes -= 4u * MMGR_RAW_WORD;
     }
-    while (w != 0u)
+    while (word_bytes != 0u)
     {
         MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = fill);
         args->dst += MMGR_RAW_WORD;
-        w -= MMGR_RAW_WORD;
+        word_bytes -= MMGR_RAW_WORD;
     }
-    if (t != 0u)
+    if (tail_bytes != 0u)
     {
         do
         {
             *args->dst++ = args->val;
-        } while (--t);
+        } while (--tail_bytes);
     }
 }
 
 /**
  * @brief Binds this module's fixed arguments to GENERIC_ENTRY, with the context type per entry.
  *
- * @param[in] ret  Return type of the entry point.
- * @param[in] ctx  Context type this entry's backend takes.
- * @param[in] name Name after the mmgr_memor_ and memor_ prefixes, which the two share.
- * @param[in] ...  Initializers for the ctx literal, written in terms of args.
- * @note ctx is a parameter here, unlike locus_carcerum and infinitas which each have one. The backends
- *       split by what they touch: a copy takes two pointers, a scan takes two and a value, a fill
- *       takes one and a value, so each has its own argument type.
+ * @param[in] ReturnType_ Return type of the entry point.
+ * @param[in] CtxType_    Context type this entry's backend takes.
+ * @param[in] name_       Name after the mmgr_memor_ and memor_ prefixes, which the two share.
+ * @param[in] ...         Initializers for the CtxType_ literal, written in terms of args.
+ * @note CtxType_ is a parameter here, unlike locus_carcerum and confinium_exclusivum_infinitas, which
+ *       each have one. The backends split by what they touch: a copy takes two pointers, a scan takes
+ *       two and a value, a fill takes one and a value, so each has its own argument type.
  */
-#define MEMOR_ENTRY(ret, ctx, name, ...) GENERIC_ENTRY(mmgr_memor_, memor_, ctx, MemoriaCfg, ret, name, __VA_ARGS__)
+#define MEMOR_ENTRY(ReturnType_, CtxType_, name_, ...)                                                                 \
+    GENERIC_ENTRY(mmgr_memor_, memor_, CtxType_, MemoriaCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief Binds the same to GENERIC_ENTRY_V, for an entry that returns nothing.
  *
- * @param[in] ctx  Context type this entry's backend takes.
- * @param[in] name Name after the mmgr_memor_ and memor_ prefixes.
- * @param[in] ...  Initializers for the ctx literal, written in terms of args.
+ * @param[in] CtxType_ Context type this entry's backend takes.
+ * @param[in] name_    Name after the mmgr_memor_ and memor_ prefixes.
+ * @param[in] ...      Initializers for the CtxType_ literal, written in terms of args.
  */
-#define MEMOR_ENTRY_V(ctx, name, ...) GENERIC_ENTRY_V(mmgr_memor_, memor_, ctx, MemoriaCfg, name, __VA_ARGS__)
+#define MEMOR_ENTRY_V(CtxType_, name_, ...)                                                                            \
+    GENERIC_ENTRY_V(mmgr_memor_, memor_, CtxType_, MemoriaCfg, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.

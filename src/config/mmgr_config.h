@@ -277,8 +277,19 @@
 #endif
 
 /**
- * @brief Microseconds a ring waits before attaching, so the platform can attach or detach DMA first.
+ * @brief Microseconds to allow the platform to settle around an attach or a detach.
  *
+ * @note The wait is for register propagation. Attaching or detaching DMA against a region writes the
+ *       platform's setup registers, and those do not take effect the moment they are written, so
+ *       work started immediately would run against a half-configured path.
+ * @note Non-blocking. It is a deadline to check against, not a spin, so work that is not ready yet
+ *       is deferred rather than waited on.
+ * @note A port layer reads this and holds the timer itself. Nothing under src spends it, which is
+ *       what makes it a figure the integration is given rather than a wait this library performs.
+ * @note What has to settle belongs to the part rather than to this library, so a build sets the
+ *       value its part needs.
+ * @warning The default of 100 is a placeholder. Microseconds is the expected order, and neither the
+ *          unit nor the figure has been measured on hardware. Do not read it as a tested value.
  * @warning Defined only when MMGR_ENABLE_CLOCK is set.
  */
 #if MMGR_ENABLE_CLOCK
@@ -314,7 +325,7 @@
  * @note Multiplied by MMGR_PRAET_CHANNELS to size the storage the module emits, so raising either
  *       one raises the static footprint of the DMA path.
  * @note Accepts 1 through 65535, and the build stops outside that. The ceiling is what a transfer
- *       length can hold, len being a uint16_t in PraetTransferCfg and mmgr_praet_event, so a size
+ *       length can hold, bytes being a uint16_t in PraetTransferCfg and mmgr_praet_event, so a size
  *       above it describes room no caller can ask for.
  * @warning Defined only when MMGR_ENABLE_DMA is set.
  */

@@ -81,7 +81,7 @@ mmgr_iword mmgr_memor_cmp(const MemoriaCfg *args);
  *
  * @param[in] args Region, count and the byte sought [BORROWS].
  * @return         Address of the match, or NULL when the byte does not occur [BORROWS].
- * @note A terminator is not special; all args->bytes are searched.
+ * @note A terminator is not special. All args->bytes are searched.
  * @warning args->src must be readable for args->bytes rounded up to a whole word, since a count that
  *          does not fill the last one is still read a whole word at a time.
  */
