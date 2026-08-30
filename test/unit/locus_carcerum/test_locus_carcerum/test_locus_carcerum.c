@@ -1,6 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
 #include "unity.h"
 
 #include "locus_carcerum/locus_carcerum.h"
@@ -18,21 +15,11 @@ LocusCarcerum(quad, MMGR_MINIMUM_SECURITY(q0, QUAD_BYTES), MMGR_MINIMUM_SECURITY
 
 #define OCTO_BYTES 128u
 
-/**
- * @brief Eight cellblocks, to show nothing caps the count.
- */
 LocusCarcerum(octo, MMGR_MINIMUM_SECURITY(o0, OCTO_BYTES), MMGR_MINIMUM_SECURITY(o1, OCTO_BYTES),
               MMGR_MINIMUM_SECURITY(o2, OCTO_BYTES), MMGR_MINIMUM_SECURITY(o3, OCTO_BYTES),
               MMGR_MINIMUM_SECURITY(o4, OCTO_BYTES), MMGR_MINIMUM_SECURITY(o5, OCTO_BYTES),
               MMGR_MINIMUM_SECURITY(o6, OCTO_BYTES), MMGR_MINIMUM_SECURITY(o7, OCTO_BYTES));
 
-/**
- * @brief Puts both cellblocks back to empty on both tiers.
- *
- * @note The persistent tier is put back by hand rather than by a call. A reset that walked the tier
- *       to prove it was empty would be testing the thing under test. The declaration is in this
- *       file, so each cellblock's own state is in scope.
- */
 void setUp(void)
 {
     ram_a_ctx.persistent_end = 0u;
@@ -64,12 +51,6 @@ void test_the_machinery_sits_below_the_arena(void)
     TEST_ASSERT_EQUAL_PTR_MESSAGE(ram_b_bytes, ram_b_ctx.base, "and so does its neighbor");
 }
 
-/**
- * @brief A site carrying fewer cellblocks than another does not pay for the difference.
- *
- * @note There is no ceiling to pay for. Each site's cellblock list is sized by what its own
- *       declaration listed, so an eight cellblock site elsewhere costs a two cellblock one nothing.
- */
 void test_a_site_does_not_pay_for_the_ceiling(void)
 {
     TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram_a_ctx.size, "a cellblock is the size its declaration gave it");
@@ -77,18 +58,12 @@ void test_a_site_does_not_pay_for_the_ceiling(void)
                                      "and another site's cellblocks cost this one nothing");
 }
 
-/**
- * @brief A site may build more than two cellblocks, and four is one of the counts it may build.
- */
 void test_a_four_cellblock_site_builds_all_four(void)
 {
     TEST_ASSERT_EQUAL_size_t_MESSAGE(QUAD_BYTES, quad_q0_ctx.size, "the count is not capped at two");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(QUAD_BYTES, quad_q3_ctx.size, "and the fourth is a whole cellblock");
 }
 
-/**
- * @brief Each of the four sits on its own storage.
- */
 void test_a_four_cellblock_site_lays_them_end_to_end(void)
 {
     TEST_ASSERT_EQUAL_PTR(quad_q0_bytes, quad_q0_ctx.base);
@@ -97,12 +72,6 @@ void test_a_four_cellblock_site_lays_them_end_to_end(void)
     TEST_ASSERT_EQUAL_PTR(quad_q3_bytes, quad_q3_ctx.base);
 }
 
-/**
- * @brief Every cellblock of a four cellblock site hands out storage inside its own bytes.
- *
- * @note A declaration being right on paper is not the same as each cellblock allocating from its own
- *       bytes, so this allocates from all four and asks each whether the address is its own.
- */
 void test_every_cellblock_of_a_four_cellblock_site_allocates_from_its_own_bytes(void)
 {
     void *const g0 = quad.q0.persistent_buf_alloc(32u);
@@ -118,12 +87,6 @@ void test_every_cellblock_of_a_four_cellblock_site_allocates_from_its_own_bytes(
     TEST_ASSERT_FALSE_MESSAGE(quad.q0.who_owns_buf(g3), "a neighbor's bytes are not ours");
 }
 
-/**
- * @brief Eight cellblocks, each on its own storage, each allocating from its own bytes.
- *
- * @note Nothing caps the count. Eight is where the walk in locus_carcerum.h currently stops, and it is
- *       the case that would break first if the cellblock count were miscounted.
- */
 void test_an_eight_cellblock_site_builds_and_allocates(void)
 {
     TEST_ASSERT_EQUAL_PTR(octo_o0_bytes, octo_o0_ctx.base);
@@ -140,9 +103,6 @@ void test_an_eight_cellblock_site_builds_and_allocates(void)
     TEST_ASSERT_FALSE_MESSAGE(octo.o0.who_owns_buf(last), "which is not the first cellblock's");
 }
 
-/**
- * @brief Two sites may each hold a cellblock of the same name, at different security levels.
- */
 void test_two_sites_may_share_cellblock_names(void)
 {
     TEST_ASSERT_TRUE_MESSAGE((uintptr_t)ram_a_bytes != (uintptr_t)quad_q0_bytes,
@@ -179,15 +139,11 @@ void test_align_up_rounds_to_a_whole_word(void)
     TEST_ASSERT_EQUAL_size_t(2u * MMGR_CARCER_ALIGN, mmgr_align_up_buf(MMGR_CARCER_ALIGN + 1u));
 }
 
-/**
- * @brief Every address either tier hands out carries the alignment the module promises.
- */
 void test_both_tiers_hand_out_aligned_addresses(void)
 {
     for (size_t n = 1u; n <= 40u; n++)
     {
-        // A fresh cellblock each time. Every cell costs a header too, so forty of them on both tiers
-        // would run a kilobyte cellblock out, and the NULL would be it behaving, not a finding
+
         setUp();
 
         void *const p = ram.a.persistent_buf_alloc(n);
@@ -228,9 +184,6 @@ void test_the_two_tiers_allocate_from_the_same_gap(void)
     TEST_ASSERT_TRUE_MESSAGE(ram.a.buf_available() < room, "both tiers allocate from the same gap");
 }
 
-/**
- * @brief A request larger than the cellblock is refused rather than trespassing.
- */
 void test_both_tiers_fail_closed(void)
 {
     TEST_ASSERT_NULL(ram.a.persistent_buf_alloc(A_BYTES * 4u));
@@ -239,9 +192,6 @@ void test_both_tiers_fail_closed(void)
                                      "a refused request must not have moved a boundary");
 }
 
-/**
- * @brief A released cell is handed out again, which is what the free list exists for.
- */
 void test_a_released_cell_is_reused(void)
 {
     void *const p = ram.a.persistent_buf_alloc(64u);
@@ -254,9 +204,6 @@ void test_a_released_cell_is_reused(void)
     TEST_ASSERT_EQUAL_PTR_MESSAGE(p, q, "the released cell is the one that fits");
 }
 
-/**
- * @brief Releases in any order, which is what the persistent tier's long life needs.
- */
 void test_the_persistent_tier_releases_out_of_order(void)
 {
     void *const p = ram.a.persistent_buf_alloc(32u);
@@ -267,7 +214,6 @@ void test_the_persistent_tier_releases_out_of_order(void)
     TEST_ASSERT_NOT_NULL(q);
     TEST_ASSERT_NOT_NULL(r);
 
-    // The middle one first, which a stack could not do
     ram.a.persistent_buf_release(q);
     ram.a.persistent_buf_release(p);
     ram.a.persistent_buf_release(r);
@@ -276,9 +222,6 @@ void test_the_persistent_tier_releases_out_of_order(void)
                                      "every cell released, so the tier must have wound back to base");
 }
 
-/**
- * @brief Adjacent empty cells merge, so a later request larger than any one of them still fits.
- */
 void test_adjacent_empty_cells_merge(void)
 {
     void *const p = ram.a.persistent_buf_alloc(32u);
@@ -289,7 +232,6 @@ void test_adjacent_empty_cells_merge(void)
     ram.a.persistent_buf_release(p);
     ram.a.persistent_buf_release(q);
 
-    // Larger than either released cell, so it only fits if the two became one
     void *const big = ram.a.persistent_buf_alloc(72u);
 
     TEST_ASSERT_EQUAL_PTR_MESSAGE(p, big, "the two released cells must have merged into one");
@@ -311,9 +253,6 @@ void test_a_minimum_security_release_leaves_the_bytes_alone(void)
     }
 }
 
-/**
- * @brief The one thing that separates a maximum security release from a minimum security one.
- */
 void test_a_maximum_security_release_zeroes_the_bytes_first(void)
 {
     uint8_t *const p = (uint8_t *)ram.b.persistent_buf_alloc(64u);
@@ -330,12 +269,9 @@ void test_a_maximum_security_release_zeroes_the_bytes_first(void)
     }
 }
 
-/**
- * @brief The zeroing covers the cell, not what the caller happens to remember about it.
- */
 void test_a_maximum_security_release_zeroes_the_whole_cell(void)
 {
-    // Asks for 33 bytes, which the cellblock rounds up. The slack must be cleared too
+
     uint8_t *const p = (uint8_t *)ram.b.persistent_buf_alloc(33u);
     const size_t held = mmgr_align_up_buf(33u);
 
@@ -383,9 +319,6 @@ void test_a_mark_releases_everything_taken_after_it(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(before, ram_a_ctx.temporary_top, "the top must come back to where it was marked");
 }
 
-/**
- * @brief Two savepoints live at once, which is what holding the mark in the caller buys.
- */
 void test_marks_nest_because_the_caller_holds_them(void)
 {
     const size_t outer = ram.a.temporary_buf_mark();

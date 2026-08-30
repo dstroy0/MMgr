@@ -1,15 +1,15 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
  * @file locus_carcerum.h
- * @brief A prison site: a caller's storage divided into cellblocks, with a warden over them.
+ * @brief A prison site: a caller's storage divided into cellblocks, with the warden that holds them.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note LocusCarcerum() emits the storage, its alignment, each cellblock's state, and the warden over
- *       them, all as initialized data. Nothing runs at startup. A configuration that does not add up
- *       fails the build.
+ * @note LocusCarcerum() emits the storage, its alignment, each cellblock's state, and the warden that
+ *       holds them and that every call goes through, all as initialized data. Nothing runs at startup.
+ *       A configuration the asserts reject fails the build.
  * @note Each cellblock gets its own aligned array, named after the prison site and the cellblock,
  *       and its CarcerCellBlock record holds that array's address. The linker resolves it, so no
  *       call computes a cellblock's address from a site and an index.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """MMgr test harness: suite discovery and Unity runner generation.
 
@@ -91,15 +91,22 @@ def tree_path(tree):
     """Absolute path of build tree @p tree."""
     return os.path.join(BUILD_ROOT, tree)
 
-# A four-way split. A suite is a directory holding exactly one .c
+# A five-way split. A suite is a directory holding exactly one .c
 # with cases, and its generated runner sits beside it.
 #
 #   unit/<module>/test_<name>/     one per translation unit, mirroring src/<module>/
+#   accuracy/test_<name>/          the value a conversion produces, against a reference that is
+#                                  right by construction rather than by agreement with this library
 #   environment/test_<env>/        one per entry in MMGR_ENVIRONMENTS, asserting that the widths
 #                                  the build claims are the widths the code actually got
 #   integration/test_<name>/       more than one module together
 #   interop/test_<name>/           this library's output against another implementation's
+#
+# accuracy is separate from unit on purpose. A unit suite asks whether an entry keeps the contract
+# its header states, which a table-driven module can satisfy with a table that is internally
+# consistent and numerically wrong. An accuracy suite asks what the number actually is.
 UNIT = os.path.join(ROOT, "test", "unit")
+ACCURACY = os.path.join(ROOT, "test", "accuracy")
 ENVIRONMENT = os.path.join(ROOT, "test", "environment")
 INTEGRATION = os.path.join(ROOT, "test", "integration")
 INTEROP = os.path.join(ROOT, "test", "interop")
@@ -182,7 +189,7 @@ def suite_source(suite_dir):
 def discover():
     """Every suite directory, which is any dir holding a .c with a collectable case."""
     out = []
-    for base in (UNIT, ENVIRONMENT, INTEGRATION, INTEROP):
+    for base in (UNIT, ACCURACY, ENVIRONMENT, INTEGRATION, INTEROP):
         if not os.path.isdir(base):
             continue
         for dirpath, _dirnames, filenames in os.walk(base):

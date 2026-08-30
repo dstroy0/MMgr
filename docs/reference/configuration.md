@@ -1,7 +1,14 @@
 # Every compile-time knob {#ref_configuration}
 
+**Purpose:** Set the library's widths, sizes and optional modules for your target, and know which of
+them are derived rather than yours to set.
+**Scope:** `src/config/mmgr_config.h`, `src/config/mmgr_compiler_directives.h`, `CMakeLists.txt`
+**Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+**Date:** 2026-08-30
+
 Nothing here is set at runtime. Every value below is a preprocessor define with a default, so you
-set only what you are changing.
+set only what you are changing. The last section is the exception: those are CMake options rather
+than defines.
 
 ## Widths
 
@@ -28,7 +35,7 @@ exists to reach them.
 | `MMGR_CARCER_ALIGN`          |   `sizeof(mmgr_word)` | **derived.** The alignment every tenancy is handed out at  |
 
 **The two size knobs allocate nothing and size no pool.** A pool's extent is one row of the storage
-you declared, and nothing in carceribus reads either knob. What they do is feed
+you declared, and nothing in locus_carcerum reads either knob. What they do is feed
 `MMGR_CARCER_MAX`, which `verbum_scrutor` sizes its worst-case word count against and
 `mmgr_string_shim.h` uses as `MMGR_STR_MAX`. They are a statement of intent about the regions you
 are going to declare, so declare a larger one and they want raising.
@@ -38,8 +45,7 @@ for reading the high-water marks.
 
 ## Workers
 
-| knob | default | what it changes |
-| ---- | ------: | --------------- |
+There is no knob here, which is the point rather than an omission.
 
 There is no synchronization anywhere in the allocator, because there is nothing to synchronize. A
 region is a pointer, an extent, and two offsets, used by whoever holds it. Two contexts that must
@@ -63,31 +69,39 @@ See @ref ref_error_handling.
 
 ## Optional modules
 
-| knob                     | default | what it changes                                        |
-| ------------------------ | ------: | ------------------------------------------------------ |
-| `MMGR_ENABLE_DMA`        |     `0` | compiles `memoriam_praetereo/`, included from `mmgr.h` |
-| `MMGR_ENABLE_PSRAM_POOL` |     `0` | compiles `confinium_externum/`                         |
-| `MMGR_PRAET_CHANNELS`    |     `2` | only when DMA is on                                    |
-| `MMGR_PRAET_BUF_SIZE`    |   `256` | only when DMA is on                                    |
+| knob                  | default | what it changes                                        |
+| --------------------- | ------: | ------------------------------------------------------ |
+| `MMGR_ENABLE_DMA`     |     `0` | compiles `memoriam_praetereo/`, included from `mmgr.h` |
+| `MMGR_ENABLE_EXTRAM`  |     `0` | compiles `memoria_externa/`, included from `mmgr.h`    |
+| `MMGR_PRAET_CHANNELS` |     `2` | only when DMA is on                                    |
+| `MMGR_PRAET_BUF_SIZE` |   `256` | only when DMA is on                                    |
 
 With these off, the modules are absent entirely — not stubbed. Their test suites are skipped with a
 CMake status message rather than silently dropped.
 
 ## Scanning and text
 
-| knob                         |                  default | what it changes                                                     |
-| ---------------------------- | -----------------------: | ------------------------------------------------------------------- |
-| `MMGR_STR_MAX`               | see `mmgr_string_shim.h` | the read cap the shim's `str*` replacements use                     |
-| `MMGR_RING_LOCULI_MAX`       |                     `32` | loculi in the ring's bitmap allocator. Fixed by the `uint32_t` mask |
-| `MMGR_ANCORAE_FORMA_ENGLISH` |                    unset | byte-frequency profile for substring search                         |
-| `MMGR_ANCORAE_FORMA_URI`     |                    unset | "                                                                   |
-| `MMGR_ANCORAE_FORMA_INET`    |                    unset | "                                                                   |
-| `MMGR_ANCORAE_FORMA_ROUTE`   |                    unset | "                                                                   |
-| `MMGR_SIEVE_ROWS`            |                      `1` | needle offsets the search sieve tests per candidate word            |
-| `MMGR_FIND_CHAIN_MAX`        |               `SIZE_MAX` | longest haystack a one or two byte needle is settled by mask chain  |
+| knob                   |                  default | what it changes                                                    |
+| ---------------------- | -----------------------: | ------------------------------------------------------------------ |
+| `MMGR_STR_MAX`         | see `mmgr_string_shim.h` | the read cap the shim's `str*` replacements use                    |
+| `MMGR_RING_LOCULI`     |                      `8` | loculi this build reserves                                         |
+| `MMGR_RING_LOCULI_MAX` |         `MMGR_WORD_BITS` | loculi a mask can address, one bit per loculus in a machine word   |
+| `MMGR_RING_WORDS`      |                     `40` | size of the ring storage a caller declares, in `size_t` units      |
+| `MMGR_SIEVE_ROWS`      |                      `1` | needle offsets the search sieve tests per candidate word           |
+| `MMGR_FIND_CHAIN_MAX`  |               `SIZE_MAX` | longest haystack a one or two byte needle is settled by mask chain |
 
-The anchor profiles are mutually exclusive and default to a generic table. Picking the wrong one
-costs speed and never correctness — the search still finds what is there. See @ref mod_anchor_guide.
+`MMGR_RING_LOCULI_MAX` is derived, not a knob, and it is `MMGR_WORD_BITS` rather than a fixed 32:
+the free and held masks are one `mmgr_word` each, one bit per loculus
+(`src/memoria_anularis/memoria_anularis.c:308-309`), so the ceiling moves with the word width. A
+build declaring more loculi than that fails the static assert in
+`src/memoria_anularis/memoria_anularis.h:84`.
+
+The byte-frequency profile is a CMake option taking a value, not a set of defines:
+`-DMMGR_ANCORAE_FORMA=english`, and likewise `uri`, `inet`, `route` or `generic`. One profile is one
+translation unit — `src/impensa_ancorae_acus/CMakeLists.txt:7-15` selects the single source that
+carries the table, so the four not chosen are not in the image at all. It defaults to `generic`, and
+picking the wrong one costs speed and never correctness: the search still finds what is there. See
+@ref mod_anchor_guide.
 
 `MMGR_FIND_CHAIN_MAX` defaults to no limit, which folds its test away: `read_cap <= SIZE_MAX` holds
 for every `size_t`, so a default build emits no comparison. A one or two byte needle is settled by a

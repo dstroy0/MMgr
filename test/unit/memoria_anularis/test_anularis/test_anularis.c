@@ -1,6 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
 #include "unity.h"
 
 #include "memoria_anularis/memoria_anularis.h"
@@ -109,11 +106,6 @@ void test_move_wraps_in_order(void)
     TEST_ASSERT_EQUAL_HEX8_ARRAY(g_src, g_dst, 32u);
 }
 
-/**
- * @brief Every start offset and every odd length, so the wrap and the narrowing tail both run.
- *
- * @note A guard byte past the request catches a tail that carries more than it was given.
- */
 void test_move_carries_every_length_at_every_offset(void)
 {
     for (size_t start = 0u; start < CAP; start++)

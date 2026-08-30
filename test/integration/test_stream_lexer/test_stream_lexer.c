@@ -1,21 +1,6 @@
-// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+// MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// A lexer draining the ring while a channel fills it.
-//
-// This is the shape a streaming parser has: the channel puts whatever the ring will take, and the
-// consumer reads through peek and consume and never sees the wrap.
-//
-// Comment stripping is the workload because it needs a one byte lookahead, which is the thing that
-// makes a ring different from a buffer: `next` is routinely in a different word from `curr`, and
-// across the wrap it is at a lower address. peek is what makes that not a special case, and a
-// stripper written against a flat array grows a boundary bug for every one of them.
-//
-// Two properties of the module are load bearing here and are asserted by the cases below rather
-// than assumed. A put publishes exactly the bytes it was given and not one more - the ring is
-// poisoned in setUp, so anything else would surface as poison in the output. And the lexer holds
-// its last available byte back while the channel is still live, because that byte's lookahead has
-// not landed yet.
 #include "memoria_anularis/memoria_anularis.h"
 
 #include "unity.h"
@@ -53,11 +38,6 @@ void tearDown(void)
 {
 }
 
-/* ---------------------------------------------------------------------------------------------
- * the channel
- * ------------------------------------------------------------------------------------------- */
-
-/** @brief Put as much of @p n as the ring will take. @return Bytes ingested. */
 static size_t ingest(const uint8_t *src, size_t n)
 {
     const size_t room = anularis.vacant(&(AnularisCfg){.ring = &ring});
@@ -67,17 +47,13 @@ static size_t ingest(const uint8_t *src, size_t n)
     {
         return 0u;
     }
-    // A put is all or nothing, so the span is trimmed to what vacant reported rather than retried
+
     if (!anularis.put(&(AnularisCfg){.ring = &ring, .src = src, .bytes = bytes}))
     {
         return 0u;
     }
     return bytes;
 }
-
-/* ---------------------------------------------------------------------------------------------
- * the lexer
- * ------------------------------------------------------------------------------------------- */
 
 static size_t avail(void)
 {
@@ -96,7 +72,6 @@ static void eat(size_t n)
     anularis.consume(&(AnularisCfg){.ring = &ring, .bytes = n});
 }
 
-/** @brief One byte. @return How many bytes it accounted for: two for a token, otherwise one. */
 static size_t lex(uint8_t curr, uint8_t next)
 {
     const uint32_t s = g_state;
@@ -140,7 +115,6 @@ static size_t lex(uint8_t curr, uint8_t next)
     return 1u + (to_b | to_l | ex_b);
 }
 
-/** @brief Drain what has landed. @param live The channel has more to send, so hold the last byte. */
 static void drain(int live)
 {
     while (!g_done)
@@ -163,10 +137,6 @@ static void drain(int live)
         eat(lex(curr, (have >= 2u) ? at(1) : 0u));
     }
 }
-
-/* ---------------------------------------------------------------------------------------------
- * driving the two against each other
- * ------------------------------------------------------------------------------------------- */
 
 static void run(const char *src, size_t chunk)
 {
@@ -201,7 +171,6 @@ static void run(const char *src, size_t chunk)
     drain(0);
 }
 
-/** @brief The same source at five ingest sizes, because the answer must not depend on them. */
 static void expect(const char *src, const char *want)
 {
     static const size_t chunks[] = {1u, 7u, 64u, 256u, 4096u};
@@ -213,10 +182,6 @@ static void expect(const char *src, const char *want)
         TEST_ASSERT_EQUAL_STRING_MESSAGE(want, (const char *)out, src);
     }
 }
-
-/* ---------------------------------------------------------------------------------------------
- * the cases
- * ------------------------------------------------------------------------------------------- */
 
 void test_plain_code_arrives_unchanged(void)
 {
@@ -262,8 +227,7 @@ void test_a_token_inside_a_literal_is_not_a_token(void)
 
 void test_a_token_at_every_offset_in_the_word(void)
 {
-    // The lookahead crosses into the next word at one offset in every word, and across the wrap at
-    // one in every CAP. Sixteen offsets covers both at any word width this builds at.
+
     char src[64];
     char want[64];
 
@@ -296,8 +260,7 @@ void test_a_token_at_every_offset_in_the_word(void)
 
 void test_more_than_the_ring_holds(void)
 {
-    // Three times the capacity, so the head laps the tail repeatedly and every grant after the
-    // first is bounded by what the lexer has consumed rather than by the buffer's end.
+
     static char src[4000];
     static char want[4000];
     unsigned k = 0;
@@ -324,9 +287,7 @@ void test_more_than_the_ring_holds(void)
 
 void test_nothing_the_channel_did_not_send_reaches_the_output(void)
 {
-    // setUp fills the ring with poison. A put that published more than it was given - a mover whose
-    // tail carried a whole word when it was asked for fewer - would publish poison, which a string
-    // comparison against a shorter expectation would not catch on its own.
+
     expect("ab", "ab");
 
     for (size_t i = 0; i < sizeof out; i++)

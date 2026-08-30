@@ -1,6 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
 #include "unity.h"
 
 #include "spatium/spatium.h"
@@ -66,12 +63,6 @@ void test_a_span_with_no_storage_is_not_ok(void)
     TEST_ASSERT_FALSE(MMGR_CALL(spat.has_storage, SpatiumCfg, .span = span));
 }
 
-/**
- * @brief Reaching the end is an empty span; going past it is a failed one.
- *
- * @note The overflow flag is what tells the two apart. A narrowing past the end that came back as a
- *       shorter span would look whole, and the caller's bug would go unreported.
- */
 void test_a_narrowing_past_the_end_fails_rather_than_shortening(void)
 {
     const mmgr_span span = MMGR_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = sizeof buf);
@@ -101,9 +92,6 @@ void test_a_narrowing_keeps_the_bytes_it_names(void)
     TEST_ASSERT_EQUAL_size_t(sizeof buf - 16u, MMGR_CALL(spat.after, SpatiumCfg, .span = span, .count = 16u).cap);
 }
 
-/**
- * @brief A narrowing carries the cursor with it, so what was written stays accounted for.
- */
 void test_a_narrowing_carries_the_cursor(void)
 {
     mmgr_span span = MMGR_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = sizeof buf);
@@ -145,7 +133,6 @@ void test_a_read_span_reports_what_was_written(void)
     TEST_ASSERT_EQUAL_PTR(buf, done.buf);
     TEST_ASSERT_TRUE(MMGR_CALL(spat.cok, SpatiumCfg, .cspan = done));
 
-    // Asking for more than was written is an error, not a shorter span that looks whole
     TEST_ASSERT_FALSE_MESSAGE(
         MMGR_CALL(spat.cok, SpatiumCfg, .cspan = MMGR_CALL(spat.read, SpatiumCfg, .span = span, .count = 11u)),
         "a read past what was written must be marked");

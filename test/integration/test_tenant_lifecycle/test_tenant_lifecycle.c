@@ -1,6 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
 #include "unity.h"
 
 #include "locus_carcerum/locus_carcerum.h"
@@ -41,8 +38,6 @@ void test_the_allocation_puts_them_back_to_back(void)
     TEST_ASSERT_EQUAL_size_t(CELLBLOCK_BYTES, ram_secret_ctx.size);
     TEST_ASSERT_EQUAL_size_t(CELLBLOCK_BYTES, ram_plain_ctx.size);
 
-    // Two cellblocks are two objects, so they do not share an address and there is no adjacency to
-    // rely on. What matters is that neither one's bytes fall inside the other.
     TEST_ASSERT_FALSE_MESSAGE(ram.secret.who_owns_buf(ram_plain_ctx.base),
                               "a cellblock must not hold its neighbor's bytes");
     TEST_ASSERT_FALSE_MESSAGE(ram.plain.who_owns_buf(ram_secret_ctx.base), "in either direction");
@@ -78,9 +73,7 @@ void test_minimum_security_release_does_not_zero(void)
 
 void test_each_cellblock_tracks_its_own_fill(void)
 {
-    // persistent_end is the cellblock's own member. The cellblock is a type the caller declares, so
-    // how far a tier has grown is read rather than asked for. The value includes each cell's header,
-    // so what is asserted is that it moved, not what it moved to.
+
     TEST_ASSERT_EQUAL_size_t(0u, ram_secret_ctx.persistent_end);
     TEST_ASSERT_EQUAL_size_t(0u, ram_plain_ctx.persistent_end);
 

@@ -77,14 +77,14 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_stream_lexer\\test_stream_lexer.c");
-  run_test(test_plain_code_arrives_unchanged, "test_plain_code_arrives_unchanged", 221);
-  run_test(test_comments_are_dropped, "test_comments_are_dropped", 229);
-  run_test(test_a_comment_that_never_closes_ends_at_the_terminator, "test_a_comment_that_never_closes_ends_at_the_terminator", 240);
-  run_test(test_literals_survive_intact, "test_literals_survive_intact", 246);
-  run_test(test_a_token_inside_a_literal_is_not_a_token, "test_a_token_inside_a_literal_is_not_a_token", 255);
-  run_test(test_a_token_at_every_offset_in_the_word, "test_a_token_at_every_offset_in_the_word", 263);
-  run_test(test_more_than_the_ring_holds, "test_more_than_the_ring_holds", 297);
-  run_test(test_nothing_the_channel_did_not_send_reaches_the_output, "test_nothing_the_channel_did_not_send_reaches_the_output", 325);
+  run_test(test_plain_code_arrives_unchanged, "test_plain_code_arrives_unchanged", 186);
+  run_test(test_comments_are_dropped, "test_comments_are_dropped", 194);
+  run_test(test_a_comment_that_never_closes_ends_at_the_terminator, "test_a_comment_that_never_closes_ends_at_the_terminator", 205);
+  run_test(test_literals_survive_intact, "test_literals_survive_intact", 211);
+  run_test(test_a_token_inside_a_literal_is_not_a_token, "test_a_token_inside_a_literal_is_not_a_token", 220);
+  run_test(test_a_token_at_every_offset_in_the_word, "test_a_token_at_every_offset_in_the_word", 228);
+  run_test(test_more_than_the_ring_holds, "test_more_than_the_ring_holds", 261);
+  run_test(test_nothing_the_channel_did_not_send_reaches_the_output, "test_nothing_the_channel_did_not_send_reaches_the_output", 288);
 
   return UNITY_END();
 }

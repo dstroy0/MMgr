@@ -5,8 +5,8 @@ Zero-heap memory manager in C11.
 You lend it a buffer. A confinium carves that buffer from both ends: persist grows up from the base
 and interim grows down from the top. Neither take tests the gap between them — the sizes are fixed
 before the program runs, so the fit is settled by then, and a caller working from runtime numbers
-reads `octas_praesto` on the pool first. Pools hand out tenants cut from it, spans are bounded views over
-those, and rings move them between a producer and a consumer.
+reads `buf_available` on the pool first. Pools hand out cells cut from it, spans are bounded views
+over those, and rings move them between a producer and a consumer.
 
 Nothing calls `malloc`. Every size is fixed before the program runs, so the footprint is a number you
 can check against a budget rather than a thing you find out at runtime.
@@ -15,15 +15,15 @@ can check against a budget rather than a thing you find out at runtime.
 #include "mmgr.h"
 
 /* One region, one pool. The declaration is the whole setup. */
-Carceribus(prison, MMGR_SOLUTA(work, 4096));
+LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work, 4096));
 
-char *const buf = prison.work.persist_capio(256);
+char *const buf = prison.work.persistent_buf_alloc(256u);
 
 size_t at = 0;
-at = MMGR_CALL(verba.put, VerbaCfg, .out = buf, .cap = 256u, .at = at, .text = "id=");
-at = MMGR_CALL(verba.uint, VerbaCfg, .out = buf, .cap = 256u, .at = at, .val = 4211u);
+at = MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = 256u, .at = at, .text = "id=");
+at = MMGR_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = buf, .cap = 256u, .at = at, .val = 4211u);
 
-const size_t len = MMGR_CALL(verba.finish, VerbaCfg, .out = buf, .cap = 256u, .at = at);
+const size_t len = MMGR_CALL(verba_finis.finish, VerbaFinisCfg, .out = buf, .cap = 256u, .at = at);
 ```
 
 ## What it claims
@@ -53,7 +53,7 @@ Each of these is a claim the documentation has to answer for, so each links to t
 
 ## A note on the names
 
-The modules carry Latin category names: `carceribus` is the region and its pools, `spatium` is a
+The modules carry Latin category names: `locus_carcerum` is the region and its pools, `spatium` is a
 span, `verbum_scrutor` is the SWAR scanner. Every one of them is decoded in @ref ref_glossary.
 
 The reason is that libc and `<string.h>` are everywhere, and these are not libc functions. They

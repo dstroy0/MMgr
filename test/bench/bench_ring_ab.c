@@ -1,6 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
 #include <stdio.h>
 
 #include "bench_harness.h"
@@ -25,12 +22,6 @@ static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_dst[512];
 
 static unsigned long g_refused;
 
-/**
- * @brief Prints one row, turning cycles per call into throughput.
- *
- * @note A case that moves no bytes reports rate alone, since there is no byte count to divide by.
- * @note refused is carried through so a run whose calls were turned away cannot read as throughput.
- */
 static void report(const char *impl, const char *name, size_t bytes, double cycles)
 {
     const double ops = bench_cycles_per_s() / cycles;
@@ -60,9 +51,6 @@ static void proto_reset(void)
     PROTO_ATOMIC_STORE(&g_proto_tail, (size_t)0);
 }
 
-/**
- * @brief Fills the ring to just short of full, so a drain case measures draining alone.
- */
 static void mmgr_fill(void)
 {
     while (MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_mmgr_ring, .src = g_src, .bytes = 512u))

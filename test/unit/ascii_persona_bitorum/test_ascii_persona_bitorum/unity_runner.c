@@ -89,21 +89,21 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/ascii_persona_bitorum/test_ascii_persona_bitorum\\test_ascii_persona_bitorum.c");
-  run_test(test_ascii_header_is_self_contained, "test_ascii_header_is_self_contained", 62);
-  run_test(test_ascii_persona_bitorum_is_128_bits, "test_ascii_persona_bitorum_is_128_bits", 67);
-  run_test(test_ascii_class_numbering_is_pinned, "test_ascii_class_numbering_is_pinned", 72);
-  run_test(test_ascii_num, "test_ascii_num", 87);
-  run_test(test_ascii_alpha, "test_ascii_alpha", 91);
-  run_test(test_ascii_alnum, "test_ascii_alnum", 95);
-  run_test(test_ascii_upper, "test_ascii_upper", 99);
-  run_test(test_ascii_lower, "test_ascii_lower", 103);
-  run_test(test_ascii_hex, "test_ascii_hex", 107);
-  run_test(test_ascii_punct, "test_ascii_punct", 111);
-  run_test(test_ascii_space, "test_ascii_space", 115);
-  run_test(test_ascii_print, "test_ascii_print", 119);
-  run_test(test_ascii_ctrl, "test_ascii_ctrl", 123);
-  run_test(test_ascii_high_bytes_are_in_no_class, "test_ascii_high_bytes_are_in_no_class", 128);
-  run_test(test_ascii_classes_partition_the_printables, "test_ascii_classes_partition_the_printables", 138);
+  run_test(test_ascii_header_is_self_contained, "test_ascii_header_is_self_contained", 59);
+  run_test(test_ascii_persona_bitorum_is_128_bits, "test_ascii_persona_bitorum_is_128_bits", 64);
+  run_test(test_ascii_class_numbering_is_pinned, "test_ascii_class_numbering_is_pinned", 69);
+  run_test(test_ascii_num, "test_ascii_num", 84);
+  run_test(test_ascii_alpha, "test_ascii_alpha", 88);
+  run_test(test_ascii_alnum, "test_ascii_alnum", 92);
+  run_test(test_ascii_upper, "test_ascii_upper", 96);
+  run_test(test_ascii_lower, "test_ascii_lower", 100);
+  run_test(test_ascii_hex, "test_ascii_hex", 104);
+  run_test(test_ascii_punct, "test_ascii_punct", 108);
+  run_test(test_ascii_space, "test_ascii_space", 112);
+  run_test(test_ascii_print, "test_ascii_print", 116);
+  run_test(test_ascii_ctrl, "test_ascii_ctrl", 120);
+  run_test(test_ascii_high_bytes_are_in_no_class, "test_ascii_high_bytes_are_in_no_class", 125);
+  run_test(test_ascii_classes_partition_the_printables, "test_ascii_classes_partition_the_printables", 135);
 
   return UNITY_END();
 }

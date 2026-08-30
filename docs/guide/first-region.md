@@ -9,7 +9,7 @@ the temporary tier by mark.
 ## Borrowing
 
 ```c
-Carceribus(prison, MMGR_MINIMUM_SECURITY(work, 2048), MMGR_MAXIMUM_SECURITY(keys, 2048));
+LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work, 2048), MMGR_MAXIMUM_SECURITY(keys, 2048));
 ```
 
 One line declares the prison site, its cellblocks, their storage and their alignment. It is a
@@ -57,27 +57,27 @@ if (config == NULL || working == NULL) {
 Interim is a stack. You do not free a pointer, you rewind to a mark.
 
 ```c
-size_t m = prison.work.interim_mark();
-uint8_t *a = prison.work.interim_capio(256);
-uint8_t *b = prison.work.interim_capio(256);
+size_t m = prison.work.temporary_buf_mark();
+uint8_t *a = prison.work.temporary_buf_alloc(256);
+uint8_t *b = prison.work.temporary_buf_alloc(256);
 
-prison.work.interim_reddo(m);
+prison.work.temporary_buf_release(m);
 ```
 
 This is the pattern for any bounded operation: mark on the way in, `reddo` on the way out, and the
 interim cost of the operation is zero afterwards no matter how many takes it made.
 
 @warning Nothing is reallocated and nothing moves, so `a` and `b` still point at readable memory
-after the `reddo`. They are dead all the same, and the next `interim_capio` will hand that same
+after the `reddo`. They are dead all the same, and the next `temporary_buf_alloc` will hand that same
 memory to someone else. A pointer that outlives its mark is the sharpest edge in this library.
 
 ## How much is left
 
 ```c
-size_t left = prison.work.octas_praesto();
+size_t left = prison.work.buf_available();
 ```
 
-`octas_praesto` is **not** a release. It reports the gap still between the two ends. It is what you
+`buf_available` is **not** a release. It reports the gap still between the two ends. It is what you
 log when a take returns `NULL` and you want to know by how much you missed.
 
 ## Sizing it honestly
@@ -85,7 +85,7 @@ log when a take returns `NULL` and you want to know by how much you missed.
 Do not compute the size on paper. Measure it.
 
 ```c
-const size_t left = prison.work.octas_praesto();
+const size_t left = prison.work.buf_available();
 ```
 
 Build the `checks` environment, run your real workload, and read those. `checks` compiles in the
@@ -106,9 +106,9 @@ makes the argument for why this is the bill worth paying.
 ```c
 static mmgr_bool handle(const uint8_t *msg, size_t len)
 {
-    const size_t mark = prison.work.interim_mark();
+    const size_t mark = prison.work.temporary_buf_mark();
 
-    uint8_t *const buf = prison.work.interim_capio(len);
+    uint8_t *const buf = prison.work.temporary_buf_alloc(len);
     if (buf == NULL) {
         return MMGR_FALSE;
     }
@@ -117,7 +117,7 @@ static mmgr_bool handle(const uint8_t *msg, size_t len)
 
     /* ... use buf ... */
 
-    prison.work.interim_reddo(mark);
+    prison.work.temporary_buf_release(mark);
     return MMGR_TRUE;
 }
 ```

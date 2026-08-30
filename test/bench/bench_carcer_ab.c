@@ -1,25 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
-/**
- * @brief locus_carcerum against ProtoCore's arena, span, secure and plaintext, each through its own
- *        API.
- *
- * @note Built against ProtoCore's real sources rather than a copy, so what is measured is its code
- *       and not a transcription of it.
- *
- * Three of these rows are not like for like, and the report says so rather than pretending:
- *
- *  - ProtoCore's persist_alloc zeroes the payload it hands back; locus_carcerum does not, because it
- *    clears on release instead. The alloc rows therefore price different work, and the release rows
- *    are where locus_carcerum pays what ProtoCore already paid.
- *  - ProtoCore's scratch end is a pure bump with no header. The temporary tier in locus_carcerum is
- *    the same cell allocator as its persistent tier, so it carries a header and looks for a fit
- *    first. The temporary rows are what that unification costs.
- *  - ProtoCore's secure and plaintext arenas resolve the calling worker's seat themselves and take
- *    no arena argument. locus_carcerum is handed the cellblock, because the cellblock address is the
- *    identity. The call shapes differ by one argument and a lookup.
- */
 #include <stdio.h>
 
 #include "bench_harness.h"
@@ -27,9 +5,6 @@
 #include "locus_carcerum/locus_carcerum.h"
 #include "spatium/spatium.h"
 
-// span.h is reached through these rather than named here. A quoted include searches the including
-// file's own directory first, and test/bench carries a span shim for the ring A/B, so naming it
-// here would pull the shim in beside ProtoCore's own and declare protocore_cspan twice.
 #include "mmgr/arena/arena.h"
 #include "mmgr/plaintext/plaintext.h"
 #include "mmgr/secure/secure.h"
@@ -45,12 +20,6 @@ static protocore_arena g_arena;
 
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_buf[1024];
 
-/**
- * @brief Prints one row, turning cycles per call into a rate.
- *
- * @note bytes is the payload a case moved, where it moved one; a case that only walks pointers
- *       reports its rate alone.
- */
 static void report(const char *impl, const char *name, size_t bytes, double cycles)
 {
     const double ops = bench_cycles_per_s() / cycles;
@@ -77,9 +46,6 @@ static void proto_fresh(void)
     protocore_arena_init(&g_arena, g_proto_bytes, sizeof g_proto_bytes);
 }
 
-/**
- * @brief One take and one give back at each end, which is the shape a dispatch has.
- */
 #define AB_PERSIST(N)                                                                                                  \
     do                                                                                                                 \
     {                                                                                                                  \
@@ -101,9 +67,6 @@ static void proto_fresh(void)
         report("locus_carcerum", "persist alloc+free", (N), cy_);                                                      \
     } while (0)
 
-/**
- * @brief A run of takes, then the whole run given back at once, which is what a mark is for.
- */
 #define AB_SCRATCH(N)                                                                                                  \
     do                                                                                                                 \
     {                                                                                                                  \
@@ -131,9 +94,6 @@ static void proto_fresh(void)
         report("locus_carcerum", "transient run+release", (N) * CHAIN, cy_);                                           \
     } while (0)
 
-/**
- * @brief The wipe both call a guarantee, at the same extent.
- */
 #define AB_WIPE(N)                                                                                                     \
     do                                                                                                                 \
     {                                                                                                                  \
@@ -151,9 +111,6 @@ static void proto_fresh(void)
         report("locus_carcerum", "zero", (N), cy_);                                                                    \
     } while (0)
 
-/**
- * @brief A take and a wiped give back, which is the whole point of the secure end.
- */
 #define AB_SECURE(N)                                                                                                   \
     do                                                                                                                 \
     {                                                                                                                  \
@@ -214,7 +171,6 @@ int main(void)
 
     AB_SECURE(64u);
 
-    /* The span walk: build one, narrow it twice, and read back what it holds. */
     {
         double cy = 0.0;
 

@@ -1,4 +1,4 @@
-# Confinium exclusivum infinitas — the lock-free edge {#mod_infin_guide}
+# Memoria anularis — the lock-free edge {#mod_anular_guide}
 
 Single-producer, single-consumer. A byte ring, a segment view over the same bytes, and loculus
 keepouts.
@@ -37,17 +37,17 @@ The caller declares the ring and supplies the bytes. Nothing of the state is rea
 static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t bytes[4096];
 static mmgr_ring ring;
 
-MMGR_CALL(iteratio_infinita.init, InfinCfg, .ring = &ring, .buf = bytes, .cap = 4096u, .nsegs = 8u);
+MMGR_CALL(anularis.init, AnularisCfg, .ring = &ring, .buf = bytes, .capacity = 4096u, .segment_count = 8u);
 ```
 
 Filling and draining:
 
 ```c
-if (!MMGR_CALL(iteratio_infinita.put, InfinCfg, .ring = &ring, .src = msg, .bytes = n)) {
+if (!MMGR_CALL(anularis.put, AnularisCfg, .ring = &ring, .src = msg, .bytes = n)) {
     /* the whole span did not fit; nothing was written */
 }
 
-const size_t got = MMGR_CALL(iteratio_infinita.read, InfinCfg, .ring = &ring, .dst = out, .bytes = n);
+const size_t got = MMGR_CALL(anularis.read, AnularisCfg, .ring = &ring, .dst = out, .bytes = n);
 ```
 
 Passing whole segments by index instead, so nothing is copied across the boundary:
@@ -55,19 +55,19 @@ Passing whole segments by index instead, so nothing is copied across the boundar
 ```c
 size_t seg = 0;
 
-if (MMGR_CALL(iteratio_infinita.seg_next, InfinCfg, .ring = &ring, .out = &seg)) {
-    fill(MMGR_CALL(iteratio_infinita.seg_at, InfinCfg, .ring = &ring, .idx = seg));
-    MMGR_CALL(iteratio_infinita.seg_publish, InfinCfg, .ring = &ring);
+if (MMGR_CALL(anularis.seg_next, AnularisCfg, .ring = &ring, .out_index = &seg)) {
+    fill(MMGR_CALL(anularis.seg_at, AnularisCfg, .ring = &ring, .index = seg));
+    MMGR_CALL(anularis.seg_publish, AnularisCfg, .ring = &ring);
 }
 
-if (MMGR_CALL(iteratio_infinita.seg_front, InfinCfg, .ring = &ring, .out = &seg)) {
-    use(MMGR_CALL(iteratio_infinita.seg_at, InfinCfg, .ring = &ring, .idx = seg));
-    MMGR_CALL(iteratio_infinita.seg_release, InfinCfg, .ring = &ring);
+if (MMGR_CALL(anularis.seg_front, AnularisCfg, .ring = &ring, .out_index = &seg)) {
+    use(MMGR_CALL(anularis.seg_at, AnularisCfg, .ring = &ring, .index = seg));
+    MMGR_CALL(anularis.seg_release, AnularisCfg, .ring = &ring);
 }
 ```
 
-`seg_next` and `seg_front` answer whether there is one and write the index through `.out`, so a
-caller never needs a sentinel index to mean "none".
+`seg_next` and `seg_front` answer whether there is one and write the index through `.out_index`, so
+a caller never needs a sentinel index to mean "none".
 
 ## Gotchas
 
@@ -98,11 +98,11 @@ type it records are all defined in its own `.c`, which is also where `<stdatomic
 
 ## Reference
 
-@ref mod_infin "Generated reference" · @ref concept_ownership for what a pointer's lifetime is
+@ref mod_anular "Generated reference" · @ref concept_ownership for what a pointer's lifetime is
 
 ---
 
-# Confinium externum — DRAM or PSRAM {#mod_exter_guide}
+# Memoria externa — DRAM or PSRAM {#mod_exter_guide}
 
 Decides where a buffer should live when there is more than one kind of memory.
 
@@ -116,10 +116,29 @@ scarce, external is large and slower, and some of it cannot be reached by DMA.
 
 ## What it does
 
-````c
-mmgr_place p = mmgr_exter_place(size, needs_dma, free_dram, free_psram, threshold, dram_reserve);
-switch (p) {
-    case PLACE_DRAM:  mmgr_pingpong_swap(pp);                             ```
+Every entry takes one argument pack, as the rest of the library does, so the six figures are named
+rather than positional:
+
+```c
+const mmgr_place where = MMGR_CALL(exter.place, ExternaCfg, .size = want, .dma_required = needs_dma,
+                                   .free_dram = dram_left, .free_psram = psram_left,
+                                   .psram_threshold = threshold, .dram_reserve = reserve);
+
+switch (where) {
+    case PLACE_DRAM:  /* internal */ break;
+    case PLACE_PSRAM: /* external */ break;
+    case PLACE_FAIL:  /* neither will take it */ break;
+}
+```
+
+The two-buffer index is separate, and acts on a `PingPong` the caller owns:
+
+```c
+MMGR_CALL(exter.pingpong_init, ExternaCfg, .pingpong = &pair);
+const uint8_t filling = MMGR_CALL(exter.pingpong_fill, ExternaCfg, .pingpong = &pair);
+const uint8_t draining = MMGR_CALL(exter.pingpong_drain, ExternaCfg, .pingpong = &pair);
+const uint8_t now = MMGR_CALL(exter.pingpong_swap, ExternaCfg, .pingpong = &pair);
+```
 
 ## Gotchas
 
@@ -140,14 +159,21 @@ Three access strategies. Not one thing under three names.
 
 ## The three
 
-| infix    | strategy  | use when                                                       |
-| -------- | --------- | -------------------------------------------------------------- |
-| `proxim` | unaligned | the address may be anything                                    |
-| `aequus` | aligned   | you know the alignment holds                                   |
-| `migro`  | may alias | the pointer may alias another live pointer of a different type |
+One dispatch table, `proxim` (`src/proximus_operor/proximus_operor.h:218`). The strategy is in the
+entry name rather than in a table of its own, and the may-alias part is in the type every entry
+moves rather than in a third entry to pick.
+
+| entry               | strategy  | use when                                                                               |
+| ------------------- | --------- | -------------------------------------------------------------------------------------- |
+| `load`, `put`       | unaligned | the address may be anything                                                            |
+| `al_load`, `al_put` | aligned   | you know the alignment holds                                                           |
+| `mmgr_migro_word`   | may alias | the type the above move, so a load cannot be reordered against a store of another type |
 
 ```c
-uint32_t v = proxim.u32(p);      uint32_t v = proxim.al_u32(p);   uint32_t v = proxim.mv_load(p);  ```
+const mmgr_migro_word any = MMGR_CALL(proxim.load, ProximusCfg, .at = p);
+const mmgr_migro_word ali = MMGR_CALL(proxim.al_load, ProximusCfg, .at = p);
+const uint32_t narrow = MMGR_CALL(proxim.load32, ProximusCfg, .at = p);
+```
 
 ## Why they are not merged
 
@@ -171,4 +197,3 @@ on parts where it is not.
 ## Reference
 
 @ref mod_proxim "Generated reference" · @ref concept_width
-````

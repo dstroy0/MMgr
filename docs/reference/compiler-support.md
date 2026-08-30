@@ -69,7 +69,7 @@ ceiling on a dispatch table: `verbum_scrutor` splits into three tables partly be
 
 Every table is pure function pointers, so `sizeof(T)` is the whole assertion. A table carrying
 trailing state would need its own variant testing `offsetof` instead; there was one, and it went when
-the pool module that used it folded into `carceribus`.
+the pool module that used it folded into `locus_carcerum`.
 
 This is why `SORT_MEMBER_DOCS` is `NO` in `docs/Doxyfile`: the documented order is the asserted
 order. See @ref concept_ns_idiom.

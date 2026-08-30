@@ -1,6 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
 #include "unity.h"
 
 #include "cellularum_laboro/cellularum_laboro.h"
@@ -92,13 +89,13 @@ static void ask_copy(void *v)
 static void ask_memor_cmp(void *v)
 {
     const Ask *a = (const Ask *)v;
-    // Explicit cast reads the run as bytes, which is what the region entries take
+
     keep((size_t)(MMGR_CALL(memor.cmp, MemoriaCfg, .src = a->s, .other = a->s, .bytes = a->cap)));
 }
 static void ask_memor_chr(void *v)
 {
     const Ask *a = (const Ask *)v;
-    // 0x02 does not occur in the run, so the walk goes the whole way rather than stopping early
+
     keep((size_t)(MMGR_CALL(memor.chr, MemoriaCfg, .src = a->s, .bytes = a->cap, .val = 0x02u)));
 }
 typedef struct
@@ -201,12 +198,6 @@ void test_copy_stays_inside_the_reserved_extent(void)
     none_past("copy", ask_copy, 0);
 }
 
-/**
- * The region walks answer to the same reserved extent the string walks do: they read whole words and
- * mask the last one, so a scan may reach the word-rounded bound and no further. Covered here because
- * they walk the same way and were not: cellul.diff and memor.cmp are the same loop over different
- * argument types, and only one of them was ever held against a guard.
- */
 void test_memor_cmp_stays_inside_the_reserved_extent(void)
 {
     needs_our_bounds();

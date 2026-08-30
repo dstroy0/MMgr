@@ -104,11 +104,15 @@ is for.
 
 ## Capability gating
 
-`test_memoriam_praetereo` needs `MMGR_ENABLE_DMA`; `test_confinium_externum` needs `MMGR_ENABLE_PSRAM_POOL`. Both
-default off, so both are skipped — **loudly**, with a CMake status message:
+`test_memoriam_praetereo` needs `MMGR_ENABLE_DMA` and `test_memoria_externa` needs
+`MMGR_ENABLE_EXTRAM`. Both default off (`CMakeLists.txt:28-29`), so both are skipped — **loudly**,
+with a CMake status message naming the capability that turned them off
+(`cmake/MMgrSuite.cmake:36-39`):
 
 ```
--- MMgr: skipping test_memoriam_praetereo (needs MMGR_ENABLE_DMA)
+-- MMgr: 2 suites NOT built, their capability is off:
+-- MMgr:   test_memoriam_praetereo (MMGR_ENABLE_DMA=OFF)
+-- MMgr:   test_memoria_externa (MMGR_ENABLE_EXTRAM=OFF)
 ```
 
 Silently dropping them would leave a passing run that tested less than it looks like, which is worse

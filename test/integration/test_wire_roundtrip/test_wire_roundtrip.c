@@ -1,6 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
 #include "unity.h"
 
 #include "cellularum_laboro/cellularum_laboro.h"
@@ -33,7 +30,6 @@ void test_a_byte_written_is_the_byte_read(void)
     MMGR_CALL(byteio.put_be, OctetusCfg, .write_span = &w, .value = (uint64_t)0xA5u, .bytes = (size_t)1);
     MMGR_CALL(byteio.put_be, OctetusCfg, .write_span = &w, .value = (uint64_t)0x5Au, .bytes = (size_t)1);
 
-    // The span carried the cursor, so the second byte landed after the first without being told where
     TEST_ASSERT_EQUAL_UINT8(0xA5u, mem[0]);
     TEST_ASSERT_EQUAL_UINT8(0x5Au, mem[1]);
     TEST_ASSERT_EQUAL_size_t(2u, w.pos);
@@ -96,12 +92,6 @@ void test_the_writer_puts_the_high_byte_first(void)
     TEST_ASSERT_EQUAL_UINT8(0x44u, mem[3]);
 }
 
-/**
- * @brief An odd width writes exactly its own bytes and no more, which the old writer did not.
- *
- * @note The entry this replaced always stored eight bytes and zero filled above the value. Over a
- *       span that would trample whatever followed, so it writes the count it was given.
- */
 void test_an_odd_width_writes_only_its_own_bytes(void)
 {
     mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem, .cap = sizeof store);
@@ -129,14 +119,6 @@ void test_endian_entries_agree_with_the_wire_writer(void)
     TEST_ASSERT_EQUAL_HEX32(0xDEADBEEFu, (uint32_t)magna_extremitas.rd(&(EndianCfg){0, mem, 0, MMGR_ENDIAN_32}));
 }
 
-/**
- * @brief An append that does not fit latches the span rather than writing past it.
- *
- * @note Shipping builds only. Writing eight bytes into four is a wrong program, and under
- *       MMGR_DEBUG_CHECKS byteio_claim traps on it, which is what that build is for. What is left to
- *       test is the other build's behavior: a wrong program that is not stopped must still be
- *       contained, so the append stores nothing rather than running off the end.
- */
 void test_a_field_past_the_end_latches_rather_than_writing(void)
 {
 #if MMGR_DEBUG_CHECKS
@@ -154,9 +136,6 @@ void test_a_field_past_the_end_latches_rather_than_writing(void)
 #endif
 }
 
-/**
- * @brief A read that runs out says so and leaves the cursor where it was.
- */
 void test_a_field_past_the_end_of_a_read_leaves_the_cursor(void)
 {
     uint8_t small[4] = {1u, 2u, 3u, 4u};
@@ -212,12 +191,6 @@ void test_a_length_prefixed_string_round_trips(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(9u, r.pos, "the cursor moved past the length and its run together");
 }
 
-/**
- * @brief A run whose length reaches past the end leaves the cursor where it started.
- *
- * @note The length alone having been read does not count: a partial read is not a read, and a cursor
- *       left between the length and a run that is not there means nothing to whoever reads next.
- */
 void test_a_length_prefix_promising_more_than_is_there_is_refused(void)
 {
     mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = mem, .cap = sizeof store);
@@ -241,7 +214,6 @@ void test_an_integer_right_aligns_into_a_fixed_field(void)
 
     TEST_ASSERT_TRUE(MMGR_CALL(byteio.mpint_fixed, OctetusCfg, .write_span = &f, .src = narrow, .bytes = (size_t)3));
 
-    // The leading zero is skipped, so the two bytes that carry the value land at the field's end
     for (unsigned i = 0; i < 6u; i++)
     {
         TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, field[i], "the front of the field is zero filled");

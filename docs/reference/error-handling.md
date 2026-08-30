@@ -6,8 +6,8 @@ is decided by what kind of thing failed.
 ## 1. NULL, from a take that will not fit
 
 ```c
-uint8_t *p = mmgr_carcer_persist_capio(&c, 256, 8);
-if (p == NULL) { }
+void *const cell = prison.work.persistent_buf_alloc(256u);
+if (cell == NULL) { }
 ```
 
 Checking after every call would be five branches that are almost never taken, and the fifth would

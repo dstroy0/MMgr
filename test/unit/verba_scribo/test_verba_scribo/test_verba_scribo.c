@@ -1,6 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
 #include "oracle_divergence.h"
 #include "unity.h"
 
@@ -25,8 +22,6 @@ static void fresh(size_t room)
     at = 0;
 }
 
-/* The writers are stateless: each takes the position and hands back the new one.
-   These carry the cursor so the assertions below can stay as they were. */
 static void put(const char *text)
 {
     at = MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);

@@ -12,15 +12,17 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-A clean run is 80 tests and takes a couple of seconds. That is 16 suites across five compile-time
-environments plus the five environment suites themselves — one `cmake` invocation builds every
-width. See @ref ref_environments.
+A clean run is 160 tests and takes a couple of seconds. Every suite is built once per compile-time
+environment, and there are five of them, so one `cmake` invocation builds every width. See
+@ref ref_environments.
 
-Two suites are skipped unless you ask for them, and they say so rather than disappearing quietly:
+Two suites are skipped unless you ask for them, and they say so rather than disappearing quietly
+(`cmake/MMgrSuite.cmake:36-39`, `test/CMakeLists.txt:52-58`):
 
 ```
--- MMgr: skipping test_memoriam_praetereo (needs MMGR_ENABLE_DMA)
--- MMgr: skipping test_confinium_externum (needs MMGR_ENABLE_PSRAM_POOL)
+-- MMgr: 2 suites NOT built, their capability is off:
+-- MMgr:   test_memoriam_praetereo (MMGR_ENABLE_DMA=OFF)
+-- MMgr:   test_memoria_externa (MMGR_ENABLE_EXTRAM=OFF)
 ```
 
 ## The smallest useful program
@@ -32,7 +34,7 @@ Storage comes from you. This is the whole shape of the library in twenty lines.
 #include <stdio.h>
 
 /* One prison site, one cellblock. Declares the storage and its state, all at compile time. */
-Carceribus(prison, MMGR_MINIMUM_SECURITY(work, 4096));
+LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work, 4096));
 
 int main(void)
 {
@@ -61,7 +63,7 @@ int main(void)
 
 Three things in that listing are the library's whole personality:
 
-- **The 4096 is the only size decision**, and it is made at compile time. `Carceribus` is a
+- **The 4096 is the only size decision**, and it is made at compile time. `LocusCarcerum` is a
   declaration, not a call: it emits the storage, each cellblock's state and static asserts that the
   cellblocks fit the site. Nothing runs at startup.
 - **`persistent_buf_alloc` borrows.** It allocates nothing from the heap — it hands back part of the

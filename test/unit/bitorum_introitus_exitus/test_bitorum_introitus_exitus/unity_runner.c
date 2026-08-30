@@ -91,29 +91,29 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/bitorum_introitus_exitus/test_bitorum_introitus_exitus\\test_bitorum_introitus_exitus.c");
-  run_test(test_bitio_header_is_self_contained, "test_bitio_header_is_self_contained", 29);
-  run_test(test_init_hands_back_an_empty_writer, "test_init_hands_back_an_empty_writer", 34);
-  run_test(test_a_whole_byte_lands_as_that_byte, "test_a_whole_byte_lands_as_that_byte", 43);
-  run_test(test_bits_pack_from_the_low_end, "test_bits_pack_from_the_low_end", 51);
-  run_test(test_a_partial_write_waits_for_the_byte, "test_a_partial_write_waits_for_the_byte", 61);
-  run_test(test_padding_to_the_byte_writes_it, "test_padding_to_the_byte_writes_it", 69);
-  run_test(test_a_put_of_no_bits_writes_nothing, "test_a_put_of_no_bits_writes_nothing", 78);
-  run_test(test_a_put_of_no_bits_on_an_empty_writer_writes_nothing, "test_a_put_of_no_bits_on_an_empty_writer_writes_nothing", 86);
-  run_test(test_a_wide_put_spans_bytes, "test_a_wide_put_spans_bytes", 93);
-  run_test(test_a_wide_put_onto_a_fragment_keeps_every_bit, "test_a_wide_put_onto_a_fragment_keeps_every_bit", 103);
-  run_test(test_n_at_or_above_32_takes_the_value_whole, "test_n_at_or_above_32_takes_the_value_whole", 116);
-  run_test(test_a_narrow_put_ignores_the_high_bits, "test_a_narrow_put_ignores_the_high_bits", 126);
-  run_test(test_overflow_latches_and_stops_writing, "test_overflow_latches_and_stops_writing", 133);
-  run_test(test_a_put_after_overflow_is_ignored, "test_a_put_after_overflow_is_ignored", 148);
-  run_test(test_a_completed_byte_with_no_room_overflows, "test_a_completed_byte_with_no_room_overflows", 161);
-  run_test(test_two_writers_do_not_share_state, "test_two_writers_do_not_share_state", 173);
-  run_test(test_namespace_is_wired, "test_namespace_is_wired", 187);
-  run_test(test_align_writes_the_partial_byte, "test_align_writes_the_partial_byte", 200);
-  run_test(test_align_on_a_byte_boundary_writes_nothing, "test_align_on_a_byte_boundary_writes_nothing", 213);
-  run_test(test_align_twice_is_the_same_as_once, "test_align_twice_is_the_same_as_once", 224);
-  run_test(test_a_stream_of_odd_length_round_trips, "test_a_stream_of_odd_length_round_trips", 237);
-  run_test(test_align_on_a_full_buffer_overflows_rather_than_writing, "test_align_on_a_full_buffer_overflows_rather_than_writing", 253);
-  run_test(test_the_align_entry_is_wired, "test_the_align_entry_is_wired", 269);
+  run_test(test_bitio_header_is_self_contained, "test_bitio_header_is_self_contained", 26);
+  run_test(test_init_hands_back_an_empty_writer, "test_init_hands_back_an_empty_writer", 31);
+  run_test(test_a_whole_byte_lands_as_that_byte, "test_a_whole_byte_lands_as_that_byte", 40);
+  run_test(test_bits_pack_from_the_low_end, "test_bits_pack_from_the_low_end", 48);
+  run_test(test_a_partial_write_waits_for_the_byte, "test_a_partial_write_waits_for_the_byte", 58);
+  run_test(test_padding_to_the_byte_writes_it, "test_padding_to_the_byte_writes_it", 66);
+  run_test(test_a_put_of_no_bits_writes_nothing, "test_a_put_of_no_bits_writes_nothing", 75);
+  run_test(test_a_put_of_no_bits_on_an_empty_writer_writes_nothing, "test_a_put_of_no_bits_on_an_empty_writer_writes_nothing", 83);
+  run_test(test_a_wide_put_spans_bytes, "test_a_wide_put_spans_bytes", 90);
+  run_test(test_a_wide_put_onto_a_fragment_keeps_every_bit, "test_a_wide_put_onto_a_fragment_keeps_every_bit", 100);
+  run_test(test_n_at_or_above_32_takes_the_value_whole, "test_n_at_or_above_32_takes_the_value_whole", 113);
+  run_test(test_a_narrow_put_ignores_the_high_bits, "test_a_narrow_put_ignores_the_high_bits", 123);
+  run_test(test_overflow_latches_and_stops_writing, "test_overflow_latches_and_stops_writing", 130);
+  run_test(test_a_put_after_overflow_is_ignored, "test_a_put_after_overflow_is_ignored", 145);
+  run_test(test_a_completed_byte_with_no_room_overflows, "test_a_completed_byte_with_no_room_overflows", 158);
+  run_test(test_two_writers_do_not_share_state, "test_two_writers_do_not_share_state", 170);
+  run_test(test_namespace_is_wired, "test_namespace_is_wired", 184);
+  run_test(test_align_writes_the_partial_byte, "test_align_writes_the_partial_byte", 190);
+  run_test(test_align_on_a_byte_boundary_writes_nothing, "test_align_on_a_byte_boundary_writes_nothing", 203);
+  run_test(test_align_twice_is_the_same_as_once, "test_align_twice_is_the_same_as_once", 214);
+  run_test(test_a_stream_of_odd_length_round_trips, "test_a_stream_of_odd_length_round_trips", 224);
+  run_test(test_align_on_a_full_buffer_overflows_rather_than_writing, "test_align_on_a_full_buffer_overflows_rather_than_writing", 239);
+  run_test(test_the_align_entry_is_wired, "test_the_align_entry_is_wired", 255);
 
   return UNITY_END();
 }

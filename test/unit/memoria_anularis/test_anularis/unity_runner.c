@@ -89,21 +89,21 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/memoria_anularis/test_anularis\\test_anularis.c");
-  run_test(test_init_refuses_bad_sizes, "test_init_refuses_bad_sizes", 30);
-  run_test(test_init_starts_empty_with_every_loculus_free, "test_init_starts_empty_with_every_loculus_free", 46);
-  run_test(test_put_then_read_round_trips, "test_put_then_read_round_trips", 62);
-  run_test(test_put_refuses_more_than_vacant, "test_put_refuses_more_than_vacant", 76);
-  run_test(test_read_takes_only_what_arrived, "test_read_takes_only_what_arrived", 85);
-  run_test(test_move_wraps_in_order, "test_move_wraps_in_order", 96);
-  run_test(test_move_carries_every_length_at_every_offset, "test_move_carries_every_length_at_every_offset", 117);
-  run_test(test_peek_leaves_the_tail_and_consume_moves_it, "test_peek_leaves_the_tail_and_consume_moves_it", 146);
-  run_test(test_peek_holds_a_request_above_capacity, "test_peek_holds_a_request_above_capacity", 163);
-  run_test(test_read_byte_empties_the_ring, "test_read_byte_empties_the_ring", 182);
-  run_test(test_loculus_next_picks_the_lowest_and_reports_empty, "test_loculus_next_picks_the_lowest_and_reports_empty", 198);
-  run_test(test_hold_takes_a_loculus_and_drop_returns_it, "test_hold_takes_a_loculus_and_drop_returns_it", 209);
-  run_test(test_hold_refuses_a_loculus_that_does_not_exist, "test_hold_refuses_a_loculus_that_does_not_exist", 238);
-  run_test(test_segments_publish_and_release_in_order, "test_segments_publish_and_release_in_order", 247);
-  run_test(test_seg_at_walks_the_buffer, "test_seg_at_walks_the_buffer", 274);
+  run_test(test_init_refuses_bad_sizes, "test_init_refuses_bad_sizes", 27);
+  run_test(test_init_starts_empty_with_every_loculus_free, "test_init_starts_empty_with_every_loculus_free", 43);
+  run_test(test_put_then_read_round_trips, "test_put_then_read_round_trips", 59);
+  run_test(test_put_refuses_more_than_vacant, "test_put_refuses_more_than_vacant", 73);
+  run_test(test_read_takes_only_what_arrived, "test_read_takes_only_what_arrived", 82);
+  run_test(test_move_wraps_in_order, "test_move_wraps_in_order", 93);
+  run_test(test_move_carries_every_length_at_every_offset, "test_move_carries_every_length_at_every_offset", 109);
+  run_test(test_peek_leaves_the_tail_and_consume_moves_it, "test_peek_leaves_the_tail_and_consume_moves_it", 138);
+  run_test(test_peek_holds_a_request_above_capacity, "test_peek_holds_a_request_above_capacity", 155);
+  run_test(test_read_byte_empties_the_ring, "test_read_byte_empties_the_ring", 174);
+  run_test(test_loculus_next_picks_the_lowest_and_reports_empty, "test_loculus_next_picks_the_lowest_and_reports_empty", 190);
+  run_test(test_hold_takes_a_loculus_and_drop_returns_it, "test_hold_takes_a_loculus_and_drop_returns_it", 201);
+  run_test(test_hold_refuses_a_loculus_that_does_not_exist, "test_hold_refuses_a_loculus_that_does_not_exist", 230);
+  run_test(test_segments_publish_and_release_in_order, "test_segments_publish_and_release_in_order", 239);
+  run_test(test_seg_at_walks_the_buffer, "test_seg_at_walks_the_buffer", 266);
 
   return UNITY_END();
 }

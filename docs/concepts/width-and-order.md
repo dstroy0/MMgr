@@ -70,14 +70,14 @@ machine does".
 ## Alignment of a take
 
 ```c
-uint8_t *p = prison.work.persist_capio(256);
+uint8_t *p = prison.work.persistent_buf_alloc(256);
 ```
 
 A take does not name an alignment, because there is only one. Every tenancy comes back aligned to
 `MMGR_CARCER_ALIGN`, which is `sizeof(mmgr_word)` — derived from the width rather than written as a
 number, so a build at another width gets the alignment that width needs.
 
-Three static asserts in `carceribus.h` hold it together: `MMGR_CARCER_ALIGN` is a power of two, so an
+Three static asserts in `locus_carcerum.h` hold it together: `MMGR_CARCER_ALIGN` is a power of two, so an
 offset rounds by masking; `MMGR_ALIGN_BYTES` is one too; and `MMGR_ALIGN_BYTES >= MMGR_CARCER_ALIGN`,
 so a region cannot be aligned less than the tenancies it hands out. All three fail the build, not a
 test run.

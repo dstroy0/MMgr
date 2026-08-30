@@ -93,30 +93,30 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/octetus_introitus_exitus/test_octetus_introitus_exitus\\test_octetus_introitus_exitus.c");
-  run_test(test_byteio_header_is_self_contained, "test_byteio_header_is_self_contained", 28);
-  run_test(test_byteio_namespace_is_wired, "test_byteio_namespace_is_wired", 33);
-  run_test(test_put_appends_one_byte_and_moves_the_cursor, "test_put_appends_one_byte_and_moves_the_cursor", 41);
-  run_test(test_put_be_writes_the_high_byte_first, "test_put_be_writes_the_high_byte_first", 52);
-  run_test(test_put_be_writes_only_the_bytes_it_was_given, "test_put_be_writes_only_the_bytes_it_was_given", 71);
-  run_test(test_put_be_keeps_only_the_low_bytes, "test_put_be_keeps_only_the_low_bytes", 86);
-  run_test(test_appends_follow_one_another, "test_appends_follow_one_another", 96);
-  run_test(test_take_be_reads_what_put_be_wrote_at_every_width, "test_take_be_reads_what_put_be_wrote_at_every_width", 113);
-  run_test(test_takes_follow_one_another, "test_takes_follow_one_another", 132);
-  run_test(test_take_be_of_fewer_bytes_takes_the_leading_ones, "test_take_be_of_fewer_bytes_takes_the_leading_ones", 150);
-  run_test(test_an_append_past_the_end_latches_and_writes_nothing, "test_an_append_past_the_end_latches_and_writes_nothing", 169);
-  run_test(test_a_latched_span_refuses_what_follows, "test_a_latched_span_refuses_what_follows", 194);
-  run_test(test_a_take_past_the_end_fails_and_holds_the_cursor, "test_a_take_past_the_end_fails_and_holds_the_cursor", 210);
-  run_test(test_a_raw_run_appends_as_it_is, "test_a_raw_run_appends_as_it_is", 222);
-  run_test(test_rd_str_reads_a_length_prefixed_run, "test_rd_str_reads_a_length_prefixed_run", 242);
-  run_test(test_rd_str_reads_an_empty_run, "test_rd_str_reads_an_empty_run", 255);
-  run_test(test_rd_str_rewinds_when_the_run_is_cut_short, "test_rd_str_rewinds_when_the_run_is_cut_short", 267);
-  run_test(test_rd_str_refuses_a_missing_length, "test_rd_str_refuses_a_missing_length", 279);
-  run_test(test_rd_str_refuses_a_cursor_already_past_the_end, "test_rd_str_refuses_a_cursor_already_past_the_end", 290);
-  run_test(test_mpint_fixed_right_aligns_and_pads, "test_mpint_fixed_right_aligns_and_pads", 302);
-  run_test(test_mpint_fixed_drops_the_sign_padding, "test_mpint_fixed_drops_the_sign_padding", 316);
-  run_test(test_mpint_fixed_of_an_exact_width, "test_mpint_fixed_of_an_exact_width", 327);
-  run_test(test_mpint_fixed_of_zero_is_all_zero, "test_mpint_fixed_of_zero_is_all_zero", 338);
-  run_test(test_mpint_fixed_refuses_a_value_too_wide, "test_mpint_fixed_refuses_a_value_too_wide", 351);
+  run_test(test_byteio_header_is_self_contained, "test_byteio_header_is_self_contained", 25);
+  run_test(test_byteio_namespace_is_wired, "test_byteio_namespace_is_wired", 30);
+  run_test(test_put_appends_one_byte_and_moves_the_cursor, "test_put_appends_one_byte_and_moves_the_cursor", 38);
+  run_test(test_put_be_writes_the_high_byte_first, "test_put_be_writes_the_high_byte_first", 49);
+  run_test(test_put_be_writes_only_the_bytes_it_was_given, "test_put_be_writes_only_the_bytes_it_was_given", 61);
+  run_test(test_put_be_keeps_only_the_low_bytes, "test_put_be_keeps_only_the_low_bytes", 76);
+  run_test(test_appends_follow_one_another, "test_appends_follow_one_another", 86);
+  run_test(test_take_be_reads_what_put_be_wrote_at_every_width, "test_take_be_reads_what_put_be_wrote_at_every_width", 103);
+  run_test(test_takes_follow_one_another, "test_takes_follow_one_another", 122);
+  run_test(test_take_be_of_fewer_bytes_takes_the_leading_ones, "test_take_be_of_fewer_bytes_takes_the_leading_ones", 140);
+  run_test(test_an_append_past_the_end_latches_and_writes_nothing, "test_an_append_past_the_end_latches_and_writes_nothing", 152);
+  run_test(test_a_latched_span_refuses_what_follows, "test_a_latched_span_refuses_what_follows", 169);
+  run_test(test_a_take_past_the_end_fails_and_holds_the_cursor, "test_a_take_past_the_end_fails_and_holds_the_cursor", 185);
+  run_test(test_a_raw_run_appends_as_it_is, "test_a_raw_run_appends_as_it_is", 197);
+  run_test(test_rd_str_reads_a_length_prefixed_run, "test_rd_str_reads_a_length_prefixed_run", 211);
+  run_test(test_rd_str_reads_an_empty_run, "test_rd_str_reads_an_empty_run", 224);
+  run_test(test_rd_str_rewinds_when_the_run_is_cut_short, "test_rd_str_rewinds_when_the_run_is_cut_short", 236);
+  run_test(test_rd_str_refuses_a_missing_length, "test_rd_str_refuses_a_missing_length", 248);
+  run_test(test_rd_str_refuses_a_cursor_already_past_the_end, "test_rd_str_refuses_a_cursor_already_past_the_end", 259);
+  run_test(test_mpint_fixed_right_aligns_and_pads, "test_mpint_fixed_right_aligns_and_pads", 271);
+  run_test(test_mpint_fixed_drops_the_sign_padding, "test_mpint_fixed_drops_the_sign_padding", 285);
+  run_test(test_mpint_fixed_of_an_exact_width, "test_mpint_fixed_of_an_exact_width", 296);
+  run_test(test_mpint_fixed_of_zero_is_all_zero, "test_mpint_fixed_of_zero_is_all_zero", 307);
+  run_test(test_mpint_fixed_refuses_a_value_too_wide, "test_mpint_fixed_refuses_a_value_too_wide", 320);
 
   return UNITY_END();
 }

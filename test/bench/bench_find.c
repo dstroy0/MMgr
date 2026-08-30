@@ -1,7 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
-
 #include <stdio.h>
 #include <string.h>
 
@@ -38,7 +34,7 @@ static int full_match(const char *p, const char *needle, size_t nlen)
         }                                                                                                              \
         const size_t rows = (nlen < (ROWS)) ? nlen : (size_t)(ROWS);                                                   \
         const size_t step = MMGR_SWAR_BYTES - rows + 1u;                                                               \
-        /* The broadcast is loop-invariant: one imul per row, here, not per row per word. */                           \
+                                   \
         mmgr_word bc[(ROWS)];                                                                                          \
         for (size_t k = 0; k < rows; k++)                                                                              \
         {                                                                                                              \

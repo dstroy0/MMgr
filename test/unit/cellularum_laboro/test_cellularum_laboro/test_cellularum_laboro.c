@@ -1,7 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
-
 #include "oracle_divergence.h"
 #include "unity.h"
 
@@ -19,8 +15,6 @@ static const char *mmgr_cellul_nowhere;
 
 #define CAP 256u
 
-/* to_long and to_ulong parse to the target's own word. A value needing more bits than the
-   target has is not a case the host's 64 bit strtol can be an oracle for. */
 static const long WORD_LONG_MAX = (long)((mmgr_word) ~(mmgr_word)0 >> 1);
 static const unsigned long WORD_ULONG_MAX = (unsigned long)(mmgr_word) ~(mmgr_word)0;
 

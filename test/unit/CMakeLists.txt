@@ -1,4 +1,4 @@
-# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # A mirror of src: one directory per module, and config beside them for the headers every
@@ -22,6 +22,7 @@ add_subdirectory(memoria_operor)
 add_subdirectory(memoriam_praetereo)
 add_subdirectory(mmgr)
 add_subdirectory(numeros_scribo)
+add_subdirectory(pow5)
 add_subdirectory(proximus_operor)
 add_subdirectory(spatium)
 add_subdirectory(transformo)

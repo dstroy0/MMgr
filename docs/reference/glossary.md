@@ -24,29 +24,28 @@ rename anything again.
 
 The stem is the name of the module's dispatch table, so it is what a call site reads.
 
-| Latin                            | stem                                   | in English                                        |
-| -------------------------------- | -------------------------------------- | ------------------------------------------------- |
-| `carceribus`                     | `carcer`                               | prisons — the region and its pools                |
-| `confinium_exclusivum_infinitas` | `iteratio_infinita`                    | exclusive endless enclosure — the lock-free ring  |
-| `confinium_externum`             | `exter`                                | external enclosure — the PSRAM pool               |
-| `carceribus`                     | `carcer`                               | cells, confinement — the region and both its ends |
-| `spatium`                        | `spat`                                 | space, extent — a span                            |
-| `proximus_operor`                | `proxim`                               | nearest work — raw load and store                 |
-| `verbum_scrutor`                 | `lane`, `mask`, `word`                 | word examiner — the SWAR scanner                  |
-| `memoria_operor`                 | `memor`                                | memory work — the `mem*` family                   |
-| `cellularum_laboro`              | `cellul`                               | cell work — bounded string operations             |
-| `verba_scribo`                   | `verba`                                | I write words — the string writer                 |
-| `numeros_scribo`                 | `numer`                                | I write numbers — the field formatter             |
-| `transformo`                     | `muto`                                 | I transform — decimal to binary scaling           |
-| `fractio`                        | `fract`                                | a breaking — IEEE-754 field access                |
-| `bitorum_introitus_exitus`       | `bitio`                                | entry and exit of bits — the bit writer           |
-| `octetus_introitus_exitus`       | `byteio`                               | entry and exit of octets — byte transfers         |
-| `endian`                         | `parva_extremitas`, `magna_extremitas` | _(English)_ byte order. small end, large end      |
-| `ascii_persona_bitorum`          | `ascii`                                | character masks of bits — the class bitmaps       |
-| `impensa_ancorae_acus`           | `ancorae`                              | cost of an anchor point — the frequency tables    |
-| `memoriam_praetereo`             | `praet`                                | I pass memory by — DMA transfer submission        |
-| `clz`                            | `clz`                                  | _(English)_ count leading zeros                   |
-| `pow5`                           | —                                      | _(English)_ powers of five for decimal work       |
+| Latin                      | stem                                   | in English                                        |
+| -------------------------- | -------------------------------------- | ------------------------------------------------- |
+| `memoria_anularis`         | `anularis`                             | ring memory — the lock-free SPSC ring             |
+| `memoria_externa`          | `exter`                                | external memory — the PSRAM pool                  |
+| `locus_carcerum`           | —                                      | place of prisons — the region and both its ends   |
+| `spatium`                  | `spat`                                 | space, extent — a span                            |
+| `proximus_operor`          | `proxim`                               | nearest work — raw load and store                 |
+| `verbum_scrutor`           | `lane`, `mask`, `word`                 | word examiner — the SWAR scanner                  |
+| `memoria_operor`           | `memor`                                | memory work — the `mem*` family                   |
+| `cellularum_laboro`        | `cellul`                               | cell work — bounded string operations             |
+| `verba_scribo`             | `verba`                                | I write words — the string writer                 |
+| `numeros_scribo`           | `numer`                                | I write numbers — the field formatter             |
+| `transformo`               | `muto`                                 | I transform — decimal to binary scaling           |
+| `fractio`                  | `fract`                                | a breaking — IEEE-754 field access                |
+| `bitorum_introitus_exitus` | `bitio`                                | entry and exit of bits — the bit writer           |
+| `octetus_introitus_exitus` | `byteio`                               | entry and exit of octets — byte transfers         |
+| `endian`                   | `parva_extremitas`, `magna_extremitas` | _(English)_ byte order. small end, large end      |
+| `ascii_persona_bitorum`    | `ascii`                                | character masks of bits — the class bitmaps       |
+| `impensa_ancorae_acus`     | `ancorae`                              | cost of an anchor point — the frequency tables    |
+| `memoriam_praetereo`       | `praet`                                | I pass memory by — DMA transfer submission        |
+| `clz`                      | `clz`                                  | _(English)_ count leading zeros                   |
+| `pow5`                     | —                                      | _(English)_ powers of five for decimal work       |
 
 ## Verbs
 
@@ -59,12 +58,12 @@ likely to mislead.
 | `reddo`         | give back                    | `free` implies the memory returns to a pool for arbitrary reuse; it does not — it unwinds |
 | `interim`       | the working half of a region | `scratch` was the pre-rename word and is gone. `interim` pairs with `persist`             |
 | `persist`       | lives as long as the region  | —                                                                                         |
-| `octas_praesto` | bytes at hand                | `free_bytes` reads as a verb — as though it frees something. It reports a count           |
+| `buf_available` | bytes at hand                | `free_bytes` reads as a verb — as though it frees something. It reports a count           |
 | `mark`          | a position to rewind to      | —                                                                                         |
 | `reset`         | return to empty              | —                                                                                         |
 
-So `mmgr_carcer_interim_capio` is _take interim_, and `mmgr_carcer_persist_reddo` is _give back the
-last persistent take_.
+So `temporary_buf_alloc` is _take from the temporary tier_, and `persistent_buf_release` is _give
+back the last persistent take_.
 
 ## Types
 

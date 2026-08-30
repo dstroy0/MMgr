@@ -1,4 +1,4 @@
-# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 # -O3 adds 2272 bytes here, 21% on top of the 10812 this module takes at -O2, and buys

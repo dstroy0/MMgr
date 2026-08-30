@@ -8,6 +8,13 @@
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_the_leading_zero_count_at_every_position(void);
+extern void test_the_trailing_zero_count_at_every_position(void);
+extern void test_the_leading_count_reads_the_highest_set_bit_alone(void);
+extern void test_the_trailing_count_reads_the_lowest_set_bit_alone(void);
+extern void test_the_two_counts_bracket_a_single_set_bit(void);
+extern void test_a_full_word_counts_no_zeros_at_either_end(void);
+extern void test_zero_is_not_told_apart_from_the_single_bit_at_the_end_each_counts_from(void);
+extern void test_both_counts_stay_inside_the_documented_range(void);
 
 
 /*=======Mock Management=====*/
@@ -69,7 +76,14 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/clz/test_clz\\test_clz.c");
-  run_test(test_the_leading_zero_count_at_every_position, "test_the_leading_zero_count_at_every_position", 16);
+  run_test(test_the_leading_zero_count_at_every_position, "test_the_leading_zero_count_at_every_position", 41);
+  run_test(test_the_trailing_zero_count_at_every_position, "test_the_trailing_zero_count_at_every_position", 66);
+  run_test(test_the_leading_count_reads_the_highest_set_bit_alone, "test_the_leading_count_reads_the_highest_set_bit_alone", 92);
+  run_test(test_the_trailing_count_reads_the_lowest_set_bit_alone, "test_the_trailing_count_reads_the_lowest_set_bit_alone", 111);
+  run_test(test_the_two_counts_bracket_a_single_set_bit, "test_the_two_counts_bracket_a_single_set_bit", 131);
+  run_test(test_a_full_word_counts_no_zeros_at_either_end, "test_a_full_word_counts_no_zeros_at_either_end", 153);
+  run_test(test_zero_is_not_told_apart_from_the_single_bit_at_the_end_each_counts_from, "test_zero_is_not_told_apart_from_the_single_bit_at_the_end_each_counts_from", 168);
+  run_test(test_both_counts_stay_inside_the_documented_range, "test_both_counts_stay_inside_the_documented_range", 189);
 
   return UNITY_END();
 }

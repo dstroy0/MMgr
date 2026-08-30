@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Three reading passes over a memmanager module. Writes nothing.
+"""Three reading passes over a MMgr module. Writes nothing.
 
   code <module.h> ...     comments stripped: the structure, with nothing to take on trust
   blind <module.h> ...    comments stripped AND every name this project chose replaced, so the code

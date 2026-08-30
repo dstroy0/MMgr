@@ -1,12 +1,7 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
 #include "unity.h"
 
 #include "mmgr.h"
 
-/* locus_carcerum has no table of its own. A cellblock carries its entries, so reaching them means
-   declaring a site. Two security levels, so both guard types are exercised. */
 LocusCarcerum(umbrella, MMGR_MINIMUM_SECURITY(minimum, 64), MMGR_MAXIMUM_SECURITY(maximum, 64));
 
 void test_umbrella_header_is_self_contained(void)

@@ -34,26 +34,26 @@ nothing in the target list is, and the wide ARM encoding reports a code size no 
 
 Xtensa (esp32s3, gcc 14.2):
 
-| translation unit                 |    -O0 |   -O1 |       -Os |   -O2 |   -O3 |
-| -------------------------------- | -----: | ----: | --------: | ----: | ----: |
-| `verba_scribo`                   |  35026 | 10438 |  **6359** |  9078 | 12966 |
-| `cellularum_laboro`              |  18786 |  9633 |  **7228** |  8550 |  9330 |
-| `transformo`                     |  17473 |  3594 |  **2898** |  3794 |  5936 |
-| `confinium_exclusivum_infinitas` |  10404 |  3411 |  **3279** |  3391 |  3439 |
-| `memoria_operor`                 |   2707 |  1394 |  **1182** |  1294 |  1350 |
-| `verbum_scrutor`                 |   3856 |  1144 |  **1144** |  1152 |  1152 |
-| `numeros_scribo`                 |   2265 |  1000 |   **892** |   935 |   935 |
-| `octetus_introitus_exitus`       |   3102 |   851 |   **749** |   854 |   858 |
-| `carceribus`                     |   3703 |   870 |   **778** |   834 |   878 |
-| `endian`                         |   2341 |   729 |   **413** |   657 |   657 |
-| `clz`                            |   1740 |   502 |   **244** |   502 |   502 |
-| `proximus_operor`                |   1332 |   492 |   **475** |   492 |   614 |
-| `bitorum_introitus_exitus`       |    798 |   344 |   **268** |   344 |   340 |
-| `spatium`                        |   1611 |   298 |       306 |   302 |   302 |
-| `impensa_ancorae_acus_*`         |    302 |   276 |       276 |   276 |   276 |
-| `ascii_persona_bitorum`          |    276 |   212 |       212 |   212 |   212 |
-| `fractio`                        |    522 |   101 |       101 |   101 |   101 |
-| **total**                        | 106244 | 35289 | **26804** | 32768 | 39848 |
+| translation unit           |    -O0 |   -O1 |       -Os |   -O2 |   -O3 |
+| -------------------------- | -----: | ----: | --------: | ----: | ----: |
+| `verba_scribo`             |  35026 | 10438 |  **6359** |  9078 | 12966 |
+| `cellularum_laboro`        |  18786 |  9633 |  **7228** |  8550 |  9330 |
+| `transformo`               |  17473 |  3594 |  **2898** |  3794 |  5936 |
+| `memoria_anularis`         |  10404 |  3411 |  **3279** |  3391 |  3439 |
+| `memoria_operor`           |   2707 |  1394 |  **1182** |  1294 |  1350 |
+| `verbum_scrutor`           |   3856 |  1144 |  **1144** |  1152 |  1152 |
+| `numeros_scribo`           |   2265 |  1000 |   **892** |   935 |   935 |
+| `octetus_introitus_exitus` |   3102 |   851 |   **749** |   854 |   858 |
+| `locus_carcerum`           |   3703 |   870 |   **778** |   834 |   878 |
+| `endian`                   |   2341 |   729 |   **413** |   657 |   657 |
+| `clz`                      |   1740 |   502 |   **244** |   502 |   502 |
+| `proximus_operor`          |   1332 |   492 |   **475** |   492 |   614 |
+| `bitorum_introitus_exitus` |    798 |   344 |   **268** |   344 |   340 |
+| `spatium`                  |   1611 |   298 |       306 |   302 |   302 |
+| `impensa_ancorae_acus_*`   |    302 |   276 |       276 |   276 |   276 |
+| `ascii_persona_bitorum`    |    276 |   212 |       212 |   212 |   212 |
+| `fractio`                  |    522 |   101 |       101 |   101 |   101 |
+| **total**                  | 106244 | 35289 | **26804** | 32768 | 39848 |
 
 The other two, totals only - the shape is the same on all three:
 
@@ -64,7 +64,7 @@ The other two, totals only - the shape is the same on all three:
 | ARM (cortex-m4, thumb)        | 100138 | 30014 | **25534** | 28418 | 34690 |
 | _host (x86-64), for contrast_ | 108592 | 37696 |     30768 | 38992 | 44320 |
 
-`confinium_externum` and `memoriam_praetereo` compile to nothing and are left out. The five
+`memoria_externa` and `memoriam_praetereo` compile to nothing and are left out. The five
 `impensa_ancorae_acus_*` units are one row because they are alternatives, not additions — a build
 links exactly one cost table and they all define the same symbol. The total counts one.
 

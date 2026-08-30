@@ -27,7 +27,7 @@ remaining gap is two specific classes:
 | class                  | roughly | why                                                    |
 | ---------------------- | ------: | ------------------------------------------------------ |
 | dispatch-table members |    ~180 | each `(*name)(args)` loculus inside a `<Mod>Ns` struct |
-| macro definitions      |     ~77 | `MMGR_DBL_*`, `MMGR_ANCHOR_*`, the directive macros    |
+| macro definitions      |     ~77 | `MMGR_DBL_*`, `MMGR_RING_*`, the directive macros      |
 | typedefs               |     ~11 | mostly internal shapes                                 |
 
 The dispatch-table members are the bulk, and they are a genuine question rather than an oversight:
@@ -73,7 +73,7 @@ Both are in the comment rules in `CONTRIBUTING.md`.
 
 `cspell` runs over `README.md` and `docs/**`, not over `src/`. This library's vocabulary is nineteen
 Latin module names and a wall of SWAR terminology; a spellchecker pointed at the C comments would
-spend its life being told that `confinium_exclusivum_infinitas` is a word.
+spend its life being told that `memoria_anularis` is a word.
 
 The project dictionary is a flat `words` list in `cspell.json` rather than a separate dictionary
 file, so there is one place to look and a diff shows exactly which term a change introduced.

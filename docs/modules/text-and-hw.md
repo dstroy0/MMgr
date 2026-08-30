@@ -81,7 +81,7 @@ static const mmgr_field row[] = {
     {MMGR_FK_LIT, 0, 3, "id="},
     MMGR_U32,
     {MMGR_FK_LIT, 0, 5, " hex="},
-    MMGR_HEX,
+    {MMGR_FK_HEX, 0u, 0u, NULL},
     MMGR_END
 };
 
@@ -92,7 +92,10 @@ MMGR_CALL(numer.build, NumerosCfg, .out = buf, .cap = sizeof buf,
 ```
 
 A literal is a `MMGR_FK_LIT` field carrying its own text and length, so it costs no scan. Every
-other spec entry is a bare kind — `MMGR_U32`, `MMGR_HEX`, `MMGR_END` and the rest take no argument.
+other spec entry is a bare kind taking no argument. There is a one-word macro for some of them —
+`MMGR_STR`, `MMGR_U32`, `MMGR_U64`, `MMGR_I64`, `MMGR_CH`, `MMGR_JSON`, `MMGR_XML`, `MMGR_END`
+(`src/numeros_scribo/numeros_scribo.h:60-85`) — and the rest are written as the brace form above.
+`MMGR_FK_HEX`, `MMGR_FK_DEC`, `MMGR_FK_OCT`, `MMGR_FK_G` and `MMGR_FK_FIX` have no such macro.
 
 Four entries: `build` writes a record from a spec, `emit` writes values with no spec at all,
 and `append` and `emit_append` add to a record already in the buffer.
@@ -128,12 +131,14 @@ A thin, portable surface over a DMA controller: open a channel, submit a transfe
 callback, close it.
 
 ```c
+/* peripheral is a plain uint8_t the port assigns a meaning to; the library carries no
+   enum of peripherals, because which ones exist is the part's business and not its own. */
 const PraetCfg ch = {
     .channel = 0,
-    .periph  = MMGR_PRAET_UART,
+    .peripheral = PORT_UART0,
 };
 
-if (MMGR_CALL(praet.open, PraetCfg, .channel = ch.channel, .periph = ch.periph))
+if (MMGR_CALL(praet.open, PraetCfg, .channel = ch.channel, .peripheral = ch.peripheral))
 {
     MMGR_CALL(praet.tx_submit, PraetTransferCfg, .channel = 0, .buf = buf, .len = len);
     MMGR_CALL(praet.poll, PraetCfg, .channel = 0);

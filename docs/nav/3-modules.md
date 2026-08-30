@@ -8,7 +8,7 @@ reference.
 
 - @subpage mod_confin_guide
 - @subpage mod_exter_guide
-- @subpage mod_infin_guide
+- @subpage mod_anular_guide
 
 ## Views
 

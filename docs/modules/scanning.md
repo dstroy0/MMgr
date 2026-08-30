@@ -128,15 +128,17 @@ The table says how common each byte is, so the search can pick.
 
 ## Profiles
 
-Mutually exclusive, generic by default:
+One CMake option taking a value, not a set of defines — `-DMMGR_ANCORAE_FORMA=english`. It selects
+the single translation unit that carries the table
+(`src/impensa_ancorae_acus/CMakeLists.txt:7-15`), so the four not chosen are not in the image:
 
-| define                       | tuned for             |
-| ---------------------------- | --------------------- |
-| _(none)_                     | generic               |
-| `MMGR_ANCORAE_FORMA_ENGLISH` | English prose         |
-| `MMGR_ANCORAE_FORMA_URI`     | URIs and paths        |
-| `MMGR_ANCORAE_FORMA_INET`    | network protocol text |
-| `MMGR_ANCORAE_FORMA_ROUTE`   | routing tables        |
+| value     | tuned for             |
+| --------- | --------------------- |
+| `generic` | generic, the default  |
+| `english` | English prose         |
+| `uri`     | URIs and paths        |
+| `inet`    | network protocol text |
+| `route`   | routing tables        |
 
 **Picking the wrong one costs speed and never correctness.** The search still finds what is there; it
 just tests more candidates on the way. So this is a tuning knob, not a configuration you have to get

@@ -1,4 +1,4 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
@@ -14,8 +14,8 @@
  */
 
 /** @defgroup mod_config  config — widths, types, attributes and the call idiom */
-/** @defgroup mod_carcer  carceribus — the region and its pools */
-/** @defgroup mod_confin  carceribus - the region (referenced as mod_confin by the guides) */
+/** @defgroup mod_carcer  locus_carcerum — the region and its pools */
+/** @defgroup mod_confin  locus_carcerum - the region (referenced as mod_confin by the guides) */
 /** @defgroup mod_anular  memoria_anularis — the ring */
 /** @defgroup mod_exter   memoria_externa — external memory */
 /** @defgroup mod_proxim  proximus_operor — unaligned loads and stores */

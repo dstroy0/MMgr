@@ -1,6 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
 #include "unity.h"
 
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
@@ -190,13 +187,6 @@ void test_namespace_is_wired(void)
     TEST_ASSERT_EQUAL_PTR(mmgr_bitor_init, bitio.init);
 }
 
-/**
- * @brief Bits that do not fill a byte reach the buffer, which without align they never did.
- *
- * @note put writes whole bytes only, so before there was an align these four bits stayed in the
- *       residue and no entry could get them out. A stream whose length is not a whole number of
- *       bytes lost its last partial byte.
- */
 void test_align_writes_the_partial_byte(void)
 {
     put_bits(0x5u, 4u);
@@ -231,12 +221,9 @@ void test_align_twice_is_the_same_as_once(void)
     TEST_ASSERT_EQUAL_HEX8(0x03u, out[0]);
 }
 
-/**
- * @brief A stream that is not a whole number of bytes comes back exactly, which is the point.
- */
 void test_a_stream_of_odd_length_round_trips(void)
 {
-    // 3 + 5 + 4 = 12 bits: one whole byte and a nibble the residue holds
+
     put_bits(0x5u, 3u);
     put_bits(0x1Au, 5u);
     put_bits(0x9u, 4u);
@@ -245,7 +232,6 @@ void test_a_stream_of_odd_length_round_trips(void)
     MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
     TEST_ASSERT_EQUAL_size_t(2u, w.bytes_written);
 
-    // LSB first: the 3 bits sit lowest, the 5 above them, then the nibble opens the next byte
     TEST_ASSERT_EQUAL_HEX8((uint8_t)(0x5u | (0x1Au << 3)), out[0]);
     TEST_ASSERT_EQUAL_HEX8(0x09u, out[1]);
 }

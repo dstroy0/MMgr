@@ -1,6 +1,3 @@
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
- */
 #include "unity.h"
 
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
@@ -61,13 +58,6 @@ void test_put_be_writes_the_high_byte_first(void)
     TEST_ASSERT_EQUAL_HEX8(0x44u, buf[3]);
 }
 
-/**
- * @brief A field writes its own bytes and nothing beyond them, at every width.
- *
- * @note The entry this replaced always stored a whole word and zero filled above the value, so the
- *       bytes after a short field were cleared. Appending into a span cannot do that: what follows
- *       belongs to whatever is appended next.
- */
 void test_put_be_writes_only_the_bytes_it_was_given(void)
 {
     for (size_t n = 1u; n <= 8u; n++)
@@ -159,13 +149,6 @@ void test_take_be_of_fewer_bytes_takes_the_leading_ones(void)
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(0x012345ull, v, "three bytes of an eight byte value is its leading half");
 }
 
-/**
- * @brief The latch contains an append that does not fit, in the build that does not trap on one.
- *
- * @note Shipping builds only. An append past the end is a build failure, and MMGR_DEBUG_CHECKS traps
- *       on it. What this covers is the other build: a wrong program that is not stopped must still
- *       be kept off the end of the buffer.
- */
 void test_an_append_past_the_end_latches_and_writes_nothing(void)
 {
 #if MMGR_DEBUG_CHECKS
@@ -183,14 +166,6 @@ void test_an_append_past_the_end_latches_and_writes_nothing(void)
 #endif
 }
 
-/**
- * @brief Once a span has latched, every later append is refused too.
- *
- * @note Shipping builds only, for the same reason as the test above: reaching the latch at all takes
- *       an append that traps under MMGR_DEBUG_CHECKS. The behavior worth pinning here is that the
- *       latch does not un-stick - a later append that would have fit is still refused, so a wrong
- *       program cannot resume writing into a buffer it has already overrun.
- */
 void test_a_latched_span_refuses_what_follows(void)
 {
 #if MMGR_DEBUG_CHECKS
@@ -232,12 +207,6 @@ void test_a_raw_run_appends_as_it_is(void)
     }
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xFFu, buf[10], "and nothing past the run");
 }
-
-/* ---------------------------------------------------------------------------------------------
- * The length-prefixed run and the fixed-width integer, moved here from the string module. They
- * only ever needed an endian read and a pair of memory moves, so a string suite was never where
- * they belonged.
- * ------------------------------------------------------------------------------------------- */
 
 void test_rd_str_reads_a_length_prefixed_run(void)
 {
