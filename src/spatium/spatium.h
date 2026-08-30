@@ -2,18 +2,21 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
- * @brief Spans over a caller's buffer: the two span types, and the spat dispatch table.
+ * @file spatium.h
+ * @brief Spans over a caller's buffer, the two span types, and the spat dispatch table.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
  * @note A span is a region and a cursor into it, with a sticky flag that latches once a walk has run
  *       past the end. It carries no storage of its own.
  * @note The entries take an argument pack, as every other module's do. A span still travels by value
- *       inside that pack: SpatiumCfg holds one rather than pointing at one, so a walk cannot change
+ *       inside that pack. SpatiumCfg holds one rather than pointing at one, so a walk cannot change
  *       the span it was given.
- * @note Two types, not one: a fill span is written through and latches overflow, a read span is not
- *       and latches err. Their extents are named cap and len, so one cannot be handed where the
- *       other belongs without the compiler saying so.
- * @note The flag is what makes a span worth passing: a caller may walk one through several steps and
- *       test once at the end, rather than after each.
+ * @note There are two span types rather than one. mmgr_span is written through and latches overflow.
+ *       mmgr_cspan is read from and latches err. Their extents are named cap and len, so handing one
+ *       where the other belongs is a compile error.
+ * @note The sticky flag is what makes a span worth passing. A caller may walk one through several
+ *       steps and test once at the end rather than after each.
  * @note overflow and err do not mean the same kind of thing. A fill span overruns only when what a
  *       writer emits was sized wrong against its buffer, and both of those are settled before the
  *       build, so overflow marks a wrong program. A read span runs out because whatever sent the
@@ -29,8 +32,8 @@ MMGR_INCIPE_DECLS
 /**
  * @brief A buffer being filled: its bytes, how far the writer has gone, and whether it ran out.
  *
- * @note Returned by value; this module keeps none of its own.
- * @note overflow is sticky: once a write has run past cap it stays set, and only mmgr_spat_reset
+ * @note Returned by value. This module keeps no span of its own.
+ * @note overflow is sticky. Once a write has run past cap it stays set, and only mmgr_spat_reset
  *       clears it.
  * @note Reaching it at all is a build failure, so it is read to find out that something is wrong
  *       rather than to decide what to do next. It latches so that a wrong program stops writing
@@ -62,7 +65,7 @@ typedef struct
 } mmgr_cspan;
 
 /**
- * @brief Arguments for every spat call; each reads only what it needs.
+ * @brief Arguments for every spat call, where each call reads only the members it needs.
  *
  * @note Members left unset are zero, and the calls that ignore them never read them.
  * @note s and cs hold a span rather than pointing at one, so a walk reads the caller's span and
@@ -86,8 +89,8 @@ typedef struct
  *
  * @note MMGR_NS_LAYOUT asserts the ten members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
  * @note There is no len or room entry. mmgr_span is the caller's own value, so s.pos and
- *       s.cap - s.pos are already in hand and a call to fetch them would be a second way to spell
- *       what a member read already says.
+ *       s.cap - s.pos are already in hand, and a call to fetch them would duplicate what reading
+ *       the member already gives.
  */
 typedef struct
 {
@@ -108,8 +111,9 @@ MMGR_NS_LAYOUT(SpatiumNs, from, cfrom, ok, cok, has_storage, reset, after, first
  * @brief Builds a fill span over args->buf, with pos at 0 and overflow clear.
  *
  * @param[in] args Buffer buf and its extent cap [BORROWS].
- * @return      The span, by value.
- * @note Asserts args->buf is not NULL and args->cap is not 0; the default MMGR_ASSERT leaves both unevaluated.
+ * @return         The span, by value.
+ * @note Asserts args->buf is not NULL and args->cap is not 0. The default MMGR_ASSERT leaves both
+ *       unevaluated.
  * @warning The span carries args->buf away, so that buffer must outlive every use of the span [BORROWS].
  */
 mmgr_span mmgr_spat_from(const SpatiumCfg *args);
@@ -118,9 +122,9 @@ mmgr_span mmgr_spat_from(const SpatiumCfg *args);
  * @brief Builds a read span over args->cbuf, with pos at 0 and err clear.
  *
  * @param[in] args Buffer cbuf and its extent cap [BORROWS].
- * @return      The span, by value.
+ * @return         The span, by value.
  * @note cbuf rather than buf, so a buffer that may not be written cannot reach the fill constructor.
- * @note Takes cbuf and cap as handed over, with none of the asserts mmgr_spat_from makes: a null cbuf
+ * @note Takes cbuf and cap as handed over, with none of the asserts mmgr_spat_from makes. A null cbuf
  *       or a zero cap still builds, and mmgr_spat_cok is what reports the span unusable.
  * @warning The span carries args->cbuf away, so that buffer must outlive every use of the span [BORROWS].
  */
@@ -130,7 +134,7 @@ mmgr_cspan mmgr_spat_cfrom(const SpatiumCfg *args);
  * @brief Returns whether args->s has storage and has not overflowed.
  *
  * @param[in] args Span to test, as args->s [BORROWS].
- * @return      MMGR_TRUE when the span is still usable.
+ * @return         MMGR_TRUE when the span is still usable.
  */
 mmgr_bool mmgr_spat_ok(const SpatiumCfg *args);
 
@@ -138,7 +142,7 @@ mmgr_bool mmgr_spat_ok(const SpatiumCfg *args);
  * @brief Returns whether args->cs has storage and has recorded no error.
  *
  * @param[in] args Read span to test, as args->cs [BORROWS].
- * @return      MMGR_TRUE when the span is still usable.
+ * @return         MMGR_TRUE when the span is still usable.
  */
 mmgr_bool mmgr_spat_cok(const SpatiumCfg *args);
 
@@ -146,7 +150,7 @@ mmgr_bool mmgr_spat_cok(const SpatiumCfg *args);
  * @brief Returns whether args->s covers any bytes at all.
  *
  * @param[in] args Span to test, as args->s [BORROWS].
- * @return      MMGR_TRUE when buf is not NULL and cap is not 0.
+ * @return         MMGR_TRUE when buf is not NULL and cap is not 0.
  */
 mmgr_bool mmgr_spat_has_storage(const SpatiumCfg *args);
 
@@ -165,7 +169,7 @@ void mmgr_spat_reset(const SpatiumCfg *args);
  * @brief Returns the span beginning args->n bytes into args->s.
  *
  * @param[in] args Span to walk, as args->s, and the bytes to skip as args->n [BORROWS].
- * @return      A span over what is left, or a failed span when args->n is past cap.
+ * @return         A span over what is left, or a failed span when args->n is past cap.
  * @note The span that comes back covers the same buffer args->s does [BORROWS]: a second view of those
  *       bytes rather than a copy, so a write through either is seen by both.
  * @note An args->n of exactly cap gives an empty span that has not failed: nothing is left, but nothing
@@ -177,7 +181,7 @@ mmgr_span mmgr_spat_after(const SpatiumCfg *args);
  * @brief Returns the span covering only the first args->n bytes of args->s.
  *
  * @param[in] args Span to narrow, as args->s, and the bytes to keep as args->n [BORROWS].
- * @return      A span over those bytes, or a failed span when args->n is past cap.
+ * @return         A span over those bytes, or a failed span when args->n is past cap.
  * @note The span that comes back starts on the same byte args->s starts on [BORROWS], holding a shorter
  *       cap over the same storage, so a fill through one is read by the other.
  */
@@ -187,7 +191,7 @@ mmgr_span mmgr_spat_first(const SpatiumCfg *args);
  * @brief Returns a read span over everything written into args->s.
  *
  * @param[in] args Span to read back, as args->s [BORROWS].
- * @return      A read span over its first pos bytes, carrying s's overflow as its err.
+ * @return         A read span over its first pos bytes, carrying s's overflow as its err.
  * @note The same step as mmgr_spat_read against s's own pos, which is the case that cannot ask for
  *       more than was written and so cannot fail on its own account.
  */
@@ -197,7 +201,7 @@ mmgr_cspan mmgr_spat_produced(const SpatiumCfg *args);
  * @brief Returns a read span over the first args->n bytes written into args->s.
  *
  * @param[in] args Span to read back, as args->s, and the bytes to cover as args->n [BORROWS].
- * @return      A read span over them, marked err when args->n is past what was written.
+ * @return         A read span over them, marked err when args->n is past what was written.
  * @warning The read span points at the fill span's own bytes [BORROWS], and the const on it binds this
  *          view, not the storage. Filling args->s again moves what the reader sees, so read it back
  *          before the next fill or copy the bytes out.
@@ -205,7 +209,7 @@ mmgr_cspan mmgr_spat_produced(const SpatiumCfg *args);
 mmgr_cspan mmgr_spat_read(const SpatiumCfg *args);
 
 /**
- * @brief Dispatch table instance named spat; each member calls the matching mmgr_spat_ function.
+ * @brief Dispatch table instance named spat, with each member set to its mmgr_spat_ function.
  */
 MMGR_NS SpatiumNs spat MMGR_UNUSED = {
     .from = mmgr_spat_from,

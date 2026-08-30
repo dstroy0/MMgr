@@ -33,7 +33,7 @@
 MMGR_INCIPE_DECLS
 
 /**
- * @brief Arguments for the byteio calls. Each reads only what it needs.
+ * @brief Arguments for the byteio calls, where each call reads only the members it needs.
  *
  * @note put reads write_span and byte. put_be reads write_span, value and bytes. raw reads
  *       write_span, src and bytes. take_be reads read_span, bytes and out. rd_str reads read_span,
@@ -42,8 +42,8 @@ MMGR_INCIPE_DECLS
  */
 typedef struct
 {
-    mmgr_span *const write_span;      /**< Span an append writes into, or the field mpint_fixed fills [BORROWS]. */
-    mmgr_cspan *const read_span;      /**< Span a take reads from [BORROWS]. */
+    mmgr_span *const write_span;      /**< Span put, put_be and raw append into, or mpint_fixed fills [BORROWS]. */
+    mmgr_cspan *const read_span;      /**< Span take_be and rd_str read from [BORROWS]. */
     const uint8_t *const src;         /**< Bytes raw appends, or the integer mpint_fixed reads [BORROWS]. */
     uint64_t *const out;              /**< Where take_be stores the value it read [BORROWS]. */
     const uint8_t **const blob;       /**< Where rd_str points at the payload it found [BORROWS]. */
@@ -57,9 +57,10 @@ typedef struct
  * @brief Type of the byteio dispatch table.
  *
  * @note MMGR_NS_LAYOUT asserts the six members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
- * @note The first three append and answer nothing, because a span latches its own failure. The last
- *       three answer, because a read that did not happen has to be distinguishable from one that read
- *       a zero.
+ * @note put, put_be and raw answer nothing, because a span latches its own failure and leaves a
+ *       caller nothing to act on.
+ * @note take_be and rd_str answer, because a read that did not happen has to be distinguishable
+ *       from one that read a zero. mpint_fixed answers whether the integer fit the field.
  */
 typedef struct
 {
@@ -148,7 +149,7 @@ mmgr_bool mmgr_byteio_rd_str(const OctetusCfg *args);
 mmgr_bool mmgr_byteio_mpint_fixed(const OctetusCfg *args);
 
 /**
- * @brief Dispatch table instance named byteio; each member calls the matching mmgr_byteio_ function.
+ * @brief Dispatch table instance named byteio, with each member set to its mmgr_byteio_ function.
  */
 MMGR_NS OctetusIntroitusExitusNs byteio MMGR_UNUSED = {
     .put = mmgr_byteio_put,

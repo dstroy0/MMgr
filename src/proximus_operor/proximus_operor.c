@@ -2,7 +2,10 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
+ * @file proximus_operor.c
  * @brief Loads and stores through typed pointers, in an unaligned family and an aligned one.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
  * @note The proxim_ types carry MMGR_RAW, so their loads and stores accept any address.
  * @note The aequus_ types carry MMGR_ALIAS alone, so their loads and stores need a naturally aligned address.
@@ -10,13 +13,18 @@
 #include "proximus_operor/proximus_operor.h"
 
 /**
- * @brief The unaligned access types, one per width.
- *
- * @note MMGR_RAW is MMGR_ALIGN(1) MMGR_ALIAS, so an access through these needs no particular address.
- * @warning Both halves of MMGR_RAW expand to nothing where their attributes are unavailable.
+ * @brief The sixteen-bit access type, carrying MMGR_RAW so a read or write takes any address.
  */
 typedef uint16_t mmgr_proxim_u16_t MMGR_RAW;
+
+/**
+ * @brief The thirty-two-bit access type, carrying MMGR_RAW so a read or write takes any address.
+ */
 typedef uint32_t mmgr_proxim_u32_t MMGR_RAW;
+
+/**
+ * @brief The sixty-four-bit access type, carrying MMGR_RAW so a read or write takes any address.
+ */
 typedef uint64_t mmgr_proxim_u64_t MMGR_RAW;
 
 /**
@@ -28,11 +36,15 @@ typedef uint64_t mmgr_proxim_u64_t MMGR_RAW;
 typedef uint64_t mmgr_aequus_u64_t MMGR_ALIAS;
 
 /**
- * @brief The two word-width access types, sized by MMGR_RAW_WORD.
- *
- * @note mmgr_proxim_word_t takes any address; mmgr_aequus_word_t needs one aligned for mmgr_migro_word.
+ * @brief The word-width access type, carrying MMGR_RAW so a read or write takes any address.
  */
 typedef mmgr_migro_word mmgr_proxim_word_t MMGR_RAW;
+
+/**
+ * @brief The word-width access type that keeps mmgr_migro_word's own alignment.
+ *
+ * @warning A read or write through this needs an address aligned for an mmgr_migro_word.
+ */
 typedef mmgr_migro_word mmgr_aequus_word_t MMGR_ALIAS;
 
 /**
@@ -226,7 +238,7 @@ MMGR_INLINE void aequus_put64(const ProximPutCtx *args)
  * @brief Copies the bytes that bring args->dst up to an MMGR_RAW_WORD boundary.
  *
  * @param[in,out] args Destination, source and the count still to copy [BORROWS].
- * @note skew is the distance from args->dst up to the next boundary; it copies that many, or args->bytes if fewer.
+ * @note skew is the distance from args->dst up to the next boundary. It copies that many, or args->bytes if fewer.
  * @note Returns at once when args->dst already sits on a boundary, or when args->bytes is 0.
  * @note Advances args->dst and args->src past what it copied and draws that count off args->bytes.
  * @note Both pointers step in the copy statement itself, and t counts down in the while test.
@@ -267,7 +279,7 @@ MMGR_INLINE void proxim_head(ProximReadCtx *args)
  *       function with the head, word and tail counts settled up front 126, and eight words taken as
  *       a single dispatch into straight line moves 97 against 96.
  * @note The loop is not what costs. This run copies thirty bytes in 68 cycles and the memcpy it is
- *       measured against copies the whole thirty in 73; the twenty five cycles proxim_read carries
+ *       measured against copies the whole thirty in 73. The twenty five cycles proxim_read carries
  *       over it are the entry, the head test and the tail. Removing every per word branch, which the
  *       dispatch row did, moved nothing.
  * @warning Depends on proxim_head having run, which is what puts args->dst on a boundary.
@@ -344,51 +356,55 @@ MMGR_INLINE void proxim_read(ProximReadCtx *args)
 /**
  * @brief Binds the unaligned entries to GENERIC_ENTRY, with the context type per entry.
  *
- * @param[in] ret  Return type of the entry point.
- * @param[in] ctx  Context type this entry's backend takes.
- * @param[in] name Name after the mmgr_proxim_ and proxim_ prefixes, which the two share.
- * @param[in] ...  Initializers for the ctx literal, written in terms of args.
- * @note ctx is a parameter because a load carries an address, a put carries an address and a value,
- *       and a read carries two addresses and a count.
+ * @param[in] ReturnType_ Return type of the entry point.
+ * @param[in] CtxType_    Context type this entry's backend takes.
+ * @param[in] name_       Name after the mmgr_proxim_ and proxim_ prefixes, which the two share.
+ * @param[in] ...         Initializers for the CtxType_ literal, written in terms of args.
+ * @note CtxType_ is a parameter because a load carries an address, a put carries an address and a
+ *       value, and a read carries two addresses and a count.
  */
-#define PROXIM_ENTRY(ret, ctx, name, ...) GENERIC_ENTRY(mmgr_proxim_, proxim_, ctx, ProximusCfg, ret, name, __VA_ARGS__)
+#define PROXIM_ENTRY(ReturnType_, CtxType_, name_, ...)                                                                \
+    GENERIC_ENTRY(mmgr_proxim_, proxim_, CtxType_, ProximusCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief Binds the same to GENERIC_ENTRY_V, for an unaligned entry that returns nothing.
  *
- * @param[in] ctx  Context type this entry's backend takes.
- * @param[in] name Name after the mmgr_proxim_ and proxim_ prefixes.
- * @param[in] ...  Initializers for the ctx literal, written in terms of args.
+ * @param[in] CtxType_ Context type this entry's backend takes.
+ * @param[in] name_    Name after the mmgr_proxim_ and proxim_ prefixes.
+ * @param[in] ...      Initializers for the CtxType_ literal, written in terms of args.
  */
-#define PROXIM_ENTRY_V(ctx, name, ...) GENERIC_ENTRY_V(mmgr_proxim_, proxim_, ctx, ProximusCfg, name, __VA_ARGS__)
+#define PROXIM_ENTRY_V(CtxType_, name_, ...)                                                                           \
+    GENERIC_ENTRY_V(mmgr_proxim_, proxim_, CtxType_, ProximusCfg, name_, __VA_ARGS__)
 
 /**
  * @brief Binds the aligned entries, which carry their own pair of prefixes.
  *
- * @param[in] ret  Return type of the entry point.
- * @param[in] ctx  Context type this entry's backend takes.
- * @param[in] name Name after the mmgr_aequus_ and aequus_ prefixes.
- * @param[in] ...  Initializers for the ctx literal, written in terms of args.
+ * @param[in] ReturnType_ Return type of the entry point.
+ * @param[in] CtxType_    Context type this entry's backend takes.
+ * @param[in] name_       Name after the mmgr_aequus_ and aequus_ prefixes.
+ * @param[in] ...         Initializers for the CtxType_ literal, written in terms of args.
  * @note A separate pair because the aligned strategy is a separate name, not a flag. Merging the two
  *       would emit an aligned access for an address that may not be aligned, which faults on some
  *       machines and silently reads wrong on others.
  */
-#define AEQUUS_ENTRY(ret, ctx, name, ...) GENERIC_ENTRY(mmgr_aequus_, aequus_, ctx, ProximusCfg, ret, name, __VA_ARGS__)
+#define AEQUUS_ENTRY(ReturnType_, CtxType_, name_, ...)                                                                \
+    GENERIC_ENTRY(mmgr_aequus_, aequus_, CtxType_, ProximusCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief Binds the same to GENERIC_ENTRY_V, for an aligned entry that returns nothing.
  *
- * @param[in] ctx  Context type this entry's backend takes.
- * @param[in] name Name after the mmgr_aequus_ and aequus_ prefixes.
- * @param[in] ...  Initializers for the ctx literal, written in terms of args.
+ * @param[in] CtxType_ Context type this entry's backend takes.
+ * @param[in] name_    Name after the mmgr_aequus_ and aequus_ prefixes.
+ * @param[in] ...      Initializers for the CtxType_ literal, written in terms of args.
  */
-#define AEQUUS_ENTRY_V(ctx, name, ...) GENERIC_ENTRY_V(mmgr_aequus_, aequus_, ctx, ProximusCfg, name, __VA_ARGS__)
+#define AEQUUS_ENTRY_V(CtxType_, name_, ...)                                                                           \
+    GENERIC_ENTRY_V(mmgr_aequus_, aequus_, CtxType_, ProximusCfg, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in proximus_operor.h.
- * @note read is the only entry that reads args->size; every other one leaves that member alone.
+ * @note read is the only entry that reads args->size. Every other one leaves that member alone.
  */
 PROXIM_ENTRY(uint16_t, ProximLoadCtx, load16, .at = args->at)
 PROXIM_ENTRY(uint32_t, ProximLoadCtx, load32, .at = args->at)

@@ -2,7 +2,10 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 /**
- * @brief Spans over a caller's buffer: the two constructors and the walks over them.
+ * @file spatium.c
+ * @brief Spans over a caller's buffer, the two constructors and the walks over them.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
  * @note Holds no storage of its own, and every entry returns by value rather than through a pointer.
  * @note A span only points at the caller's bytes [BORROWS]. Every span cut from a buffer, and every
@@ -34,7 +37,7 @@ typedef struct
  * @brief Builds a fill span over args->buf, with pos at 0 and overflow clear.
  *
  * @param[in] args Buffer buf and its extent cap [BORROWS].
- * @return      The span, by value, still aimed at args->buf [BORROWS].
+ * @return         The span, by value, still aimed at args->buf [BORROWS].
  * @warning cap is taken as given: the caller promises cap writable bytes at buf, and the two asserts
  *          only catch a null buffer and an empty one. A cap larger than the buffer is not caught here
  *          and the walks will hand out spans past its end.
@@ -57,7 +60,7 @@ MMGR_INLINE mmgr_span spat_from(const SpatiumCtx *args)
  * @brief Builds a read span over args->cbuf, with pos at 0 and err clear.
  *
  * @param[in] args Buffer cbuf and its extent cap [BORROWS].
- * @return      The span, by value, still aimed at args->cbuf [BORROWS].
+ * @return         The span, by value, still aimed at args->cbuf [BORROWS].
  * @warning Takes cbuf and cap exactly as handed over, with none of the asserts spat_from makes. A
  *          null cbuf or a zero cap still builds, and it is cok that later reports it unusable. A cap
  *          reaching past the end of the buffer is the one cok cannot see, and it reads as usable.
@@ -77,7 +80,7 @@ MMGR_INLINE mmgr_cspan spat_cfrom(const SpatiumCtx *args)
  * @brief Returns whether args->s covers any bytes at all.
  *
  * @param[in] args Span to test, as args->s [BORROWS].
- * @return      MMGR_TRUE when buf is not NULL and cap is not 0.
+ * @return         MMGR_TRUE when buf is not NULL and cap is not 0.
  */
 MMGR_INLINE mmgr_bool spat_has_storage(const SpatiumCtx *args)
 {
@@ -89,7 +92,7 @@ MMGR_INLINE mmgr_bool spat_has_storage(const SpatiumCtx *args)
  * @brief Returns whether args->s is still usable.
  *
  * @param[in] args Span to test, as args->s [BORROWS].
- * @return      MMGR_TRUE when the span has storage and has not overflowed.
+ * @return         MMGR_TRUE when the span has storage and has not overflowed.
  */
 MMGR_INLINE mmgr_bool spat_ok(const SpatiumCtx *args)
 {
@@ -101,9 +104,9 @@ MMGR_INLINE mmgr_bool spat_ok(const SpatiumCtx *args)
  * @brief Returns whether args->cs is still usable.
  *
  * @param[in] args Read span to test, as args->cs [BORROWS].
- * @return      MMGR_TRUE when the span has storage and has recorded no error.
- * @note The read side of spat_ok. The two cannot share a body: a read span names its extent len and a
- *       fill span names it cap, which is what keeps the two from being mixed up.
+ * @return         MMGR_TRUE when the span has storage and has recorded no error.
+ * @note The read side of spat_ok. The two cannot share a body, because a read span names its extent
+ *       len and a fill span names it cap, which is what keeps the two from being mixed up.
  */
 MMGR_INLINE mmgr_bool spat_cok(const SpatiumCtx *args)
 {
@@ -149,7 +152,7 @@ MMGR_INLINE mmgr_span spat_failed(void)
  * @brief Returns the span beginning args->n bytes into args->s.
  *
  * @param[in] args Span to walk, as args->s, and the bytes to skip as args->n [BORROWS].
- * @return      A span over what is left, or a failed span when args->n is past cap.
+ * @return         A span over what is left, or a failed span when args->n is past cap.
  * @note The span that comes back starts inside the same buffer args->s covers [BORROWS]. It is a
  *       second view of those bytes, not a copy of them, and writes through either one are seen by
  *       both. pos comes forward with it, rebased to the new start and resting at 0 once the skip
@@ -174,7 +177,7 @@ MMGR_INLINE mmgr_span spat_after(const SpatiumCtx *args)
  * @brief Returns the span covering only the first args->n bytes of args->s.
  *
  * @param[in] args Span to narrow, as args->s, and the bytes to keep as args->n [BORROWS].
- * @return      A span over those bytes, or a failed span when args->n is past cap.
+ * @return         A span over those bytes, or a failed span when args->n is past cap.
  * @note The span that comes back starts on the same byte args->s starts on [BORROWS], holding a
  *       shorter cap over the same storage. Both cover the opening bytes, so a fill through one is
  *       read by the other. pos comes forward, held down to the shorter cap when it sat past it.
@@ -198,7 +201,7 @@ MMGR_INLINE mmgr_span spat_first(const SpatiumCtx *args)
  * @brief Returns a read span over the first args->n bytes written into args->s.
  *
  * @param[in] args Span to read back, as args->s, and the bytes to cover as args->n [BORROWS].
- * @return      A read span over them, marked err when args->n is past what was written.
+ * @return         A read span over them, marked err when args->n is past what was written.
  * @warning The read span points at the fill span's own bytes [BORROWS], and the const on it binds
  *          this view, not the storage. Filling args->s again moves what the reader sees, so read it
  *          back before the next fill or copy the bytes out.
@@ -221,9 +224,9 @@ MMGR_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
  * @brief Returns a read span over everything written into args->s.
  *
  * @param[in] args Span to read back, as args->s [BORROWS].
- * @return      A read span over its first pos bytes, carrying s's overflow as its err.
+ * @return         A read span over its first pos bytes, carrying s's overflow as its err.
  * @warning Hands back spat_read's span, so it points at args->s's own bytes [BORROWS] and the same
- *          caution holds: what it covers is whatever the next fill leaves there.
+ *          caution holds. What it covers is whatever the next fill leaves there.
  */
 MMGR_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
 {
@@ -233,21 +236,23 @@ MMGR_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
 /**
  * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
  *
- * @param[in] ret  Return type of the entry point.
- * @param[in] name Name after the mmgr_spat_ and spat_ prefixes, which the two share.
- * @param[in] ...  Initializers for the SpatiumCtx literal, written in terms of args. MMGR_CALL zeroes
- *                 every field left out.
+ * @param[in] ReturnType_ Return type of the entry point.
+ * @param[in] name_       Name after the mmgr_spat_ and spat_ prefixes, which the two share.
+ * @param[in] ...         Initializers for the SpatiumCtx literal, written in terms of args.
+ *                        MMGR_CALL zeroes every field left out.
  */
-#define SPAT_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_spat_, spat_, SpatiumCtx, SpatiumCfg, ret, name, __VA_ARGS__)
+#define SPAT_ENTRY(ReturnType_, name_, ...)                                                                            \
+    GENERIC_ENTRY(mmgr_spat_, spat_, SpatiumCtx, SpatiumCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
- * @brief Binds the same four to GENERIC_ENTRY_V, for the entry that returns nothing.
+ * @brief Binds this module's four fixed arguments to GENERIC_ENTRY_V, for an entry returning nothing.
  *
- * @param[in] name Name after the mmgr_spat_ and spat_ prefixes.
- * @param[in] ...  The same initializers SPAT_ENTRY takes. No ret here, since the entry this builds
- *                 returns nothing.
+ * @param[in] name_ Name after the mmgr_spat_ and spat_ prefixes.
+ * @param[in] ...   The same initializers SPAT_ENTRY takes, with no return type, since the entry this
+ *                  builds returns nothing.
  */
-#define SPAT_ENTRY_V(name, ...) GENERIC_ENTRY_V(mmgr_spat_, spat_, SpatiumCtx, SpatiumCfg, name, __VA_ARGS__)
+#define SPAT_ENTRY_V(name_, ...)                                                                                       \
+    GENERIC_ENTRY_V(mmgr_spat_, spat_, SpatiumCtx, SpatiumCfg, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
