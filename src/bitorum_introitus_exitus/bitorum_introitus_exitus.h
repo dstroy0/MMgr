@@ -40,7 +40,7 @@ typedef struct
 } mmgr_bitor;
 
 /**
- * @brief Arguments for the bitor calls; each reads only what it needs.
+ * @brief Arguments for the bitor calls, where each call reads only the members it needs.
  *
  * @note mmgr_bitor_init reads out and cap. mmgr_bitor_put reads writer, val and bit_count.
  *       mmgr_bitor_align reads writer alone.
@@ -73,7 +73,7 @@ MMGR_NS_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
  * @brief Builds a bit writer over args->out with capacity args->cap.
  *
  * @param[in] args Buffer and capacity [BORROWS].
- * @return      A writer with no bytes written and no residue.
+ * @return         A writer with no bytes written and no residue.
  * @note The returned writer keeps args->out, which must outlive it [BORROWS].
  * @warning args->out must not be null and args->cap must not be zero. Neither is held to outside a
  *          MMGR_DEBUG_CHECKS build, and a null out is not noticed here: mmgr_bitor_put writes
@@ -99,7 +99,7 @@ void mmgr_bitor_put(const BitorumCfg *args);
  * @brief Writes the partial byte the writer still holds, padded with zeros above its bits.
  *
  * @param[in,out] args Writer to finish [BORROWS].
- * @note mmgr_bitor_put writes whole bytes only; without this call the residue is never written.
+ * @note mmgr_bitor_put writes whole bytes only. Without this call the residue is never written.
  * @note Does nothing when the residue is empty, so a second call writes nothing.
  * @note Does nothing when the writer's overflow is already set.
  * @note Only args->writer is read.
@@ -108,7 +108,7 @@ void mmgr_bitor_put(const BitorumCfg *args);
 void mmgr_bitor_align(const BitorumCfg *args);
 
 /**
- * @brief Dispatch table instance named bitio; each member calls the matching mmgr_bitor_ function.
+ * @brief Dispatch table instance named bitio, with each member set to its mmgr_bitor_ function.
  */
 MMGR_NS BitorumIntroitusExitusNs bitio MMGR_UNUSED = {
     .init = mmgr_bitor_init,

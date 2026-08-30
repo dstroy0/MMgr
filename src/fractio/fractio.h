@@ -109,7 +109,7 @@ MMGR_STATIC_ASSERT(MMGR_DBL_SCALE_MAX == 971, "the largest scale a finite double
 MMGR_STATIC_ASSERT(MMGR_DBL_SCALE_MIN == -1074, "the smallest scale a subnormal can carry is not what it was");
 
 /**
- * @brief Arguments for the fract calls; each reads only what it needs.
+ * @brief Arguments for the fract calls, where each call reads only the members it needs.
  *
  * @note val and bits share storage, so writing one and reading the other reinterprets the same bytes.
  * @note sign, exp and mant are read by merge alone. The other five calls read the union.

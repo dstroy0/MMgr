@@ -8,7 +8,7 @@
  * @date 2026-08-29
  *
  * @note One include for a consumer, so a program reaches the library without knowing which module
- *       holds what. A module still includes only what it needs; this file is for the caller.
+ *       holds what. A module still includes only what it needs. This file is for the caller.
  * @note mmgr_config.h comes first, since the feature switches below decide what else is included.
  * @note Every module here is unconditional. The two below are not, because a part without the
  *       hardware must not carry the code that drives it.

@@ -22,7 +22,7 @@
  * @brief Argument type built by MMGR_CALL in the three entry points.
  *
  * @note Fields match BitorumCfg, without its const qualifiers. The const on the public type is what
- *       stops an entry writing through its own arguments; the backend needs no such promise.
+ *       stops an entry writing through its own arguments. The backend needs no such promise.
  * @note bitor_init reads out and cap. bitor_put reads writer, val and bit_count. bitor_align reads
  *       writer alone.
  */
@@ -153,7 +153,7 @@ MMGR_INLINE void bitor_align(const BitorCtx *args)
  * @brief Fills an mmgr_bitor from args->out and args->cap, with the counters zeroed.
  *
  * @param[in] args Buffer out and its extent cap [BORROWS].
- * @return      A writer with no bytes written and no residue.
+ * @return         A writer with no bytes written and no residue.
  * @note The returned writer keeps args->out, which must outlive it [BORROWS].
  * @warning args->out must not be null and args->cap must not be zero. Neither is held to outside a
  *          MMGR_DEBUG_CHECKS build, and a null out is not noticed here: bitor_put writes through it

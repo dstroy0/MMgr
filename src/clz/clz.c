@@ -29,7 +29,7 @@ typedef struct
  * @brief Counts the zero bits above the highest set bit of args->val.
  *
  * @param[in] args Value to measure [BORROWS].
- * @return      Leading zero count, 0 through 63.
+ * @return         Leading zero count, 0 through 63.
  * @note Runs in a fixed number of steps, none of which branches on the value. The arm without the
  *       builtin halves the search five times, then tests the top bit.
  * @warning An args->val of 0 returns 63, the same answer as an args->val of 1.
@@ -77,7 +77,7 @@ MMGR_INLINE mmgr_iword clz_lead(const ClzCtx *args)
  * @brief Counts the zero bits below the lowest set bit of args->val.
  *
  * @param[in] args Value to measure [BORROWS].
- * @return      Trailing zero count, 0 through 63.
+ * @return         Trailing zero count, 0 through 63.
  * @note The arm without the builtin isolates the lowest set bit, whose leading zero count is 63 minus
  *       its index.
  * @note Or-ing in the top bit gives a zero value a bit to find, so no step branches on the data.

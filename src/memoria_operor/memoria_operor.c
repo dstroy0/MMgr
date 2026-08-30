@@ -78,7 +78,7 @@ MMGR_INLINE void memor_cpy(MemorCpyCtx *args)
     size_t word_bytes = args->bytes - tail_bytes;
 
     // Four words an iteration while there are four to take. At one word the two pointer bumps, the
-    // counter and the branch cost as much as the move itself; at four, the same bookkeeping covers
+    // counter and the branch cost as much as the move itself. At four, the same bookkeeping covers
     // four times the bytes. ROM memcpy is unrolled for the same reason, and a one-word loop here
     // measured 1.02 cycles/byte against its 0.65 on the S3.
     while (word_bytes >= (4u * MMGR_RAW_WORD))

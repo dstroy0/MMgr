@@ -3,13 +3,15 @@
  */
 /**
  * @file cellularum_laboro.c
- * @brief Bounded string work over SWAR words: length, compare, search, copy and numeric conversion.
+ * @brief Bounded string work over SWAR words, covering length, compare, search, copy and conversion.
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
  *
  * @note Strings only. Lengths that arrive off a wire belong to byteio, which is where rd_str and
  *       mpint_fixed live.
  * @note The CatenaFinitaCfg calls are bounded by a cap the caller states, so no walk runs past it even
  *       when the bytes carry no terminator. Several settle the last partial word by loading it whole
- *       and masking after, which touches bytes past cap; cellularum_laboro.h gives the extent for each.
+ *       and masking after, which touches bytes past cap. cellularum_laboro.h gives the extent for each.
  * @note ws and digit read src at at without consulting cap, and the conversions carry no bound at all.
  */
 #include "cellularum_laboro/cellularum_laboro.h"
@@ -20,7 +22,7 @@
 /**
  * @brief Arguments for every cellul backend, grouped by the calls that read them.
  *
- * @note Each backend reads one group; MMGR_CALL zeroes the members it is not given.
+ * @note Each backend reads one group, and MMGR_CALL zeroes the members it is not given.
  */
 typedef struct
 {
@@ -51,8 +53,9 @@ typedef struct
 /**
  * @brief Compares one word pair case sensitively and reports whether the walk continues.
  *
- * @param[in] args Words wa and wb, with end_wins [BORROWS].
- * @return      MMGR_SWAR_GO when the words agree and carry no terminator, MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
+ * @param[in] args Words word_left and word_right, with end_wins [BORROWS].
+ * @return         MMGR_SWAR_GO when the words agree and carry no terminator, MMGR_SWAR_YES or
+ *                 MMGR_SWAR_NO otherwise.
  * @note MMGR_SWAR_YES when the terminator lane precedes the first differing lane, or ties it when end_wins.
  */
 MMGR_INLINE mmgr_iword cellul_step_word_cs(const CellulCtx *args)
@@ -86,8 +89,9 @@ MMGR_INLINE mmgr_iword cellul_step_word_cs(const CellulCtx *args)
 /**
  * @brief Compares one word pair with case folded and reports whether the walk continues.
  *
- * @param[in] args Words wa and wb, with end_wins [BORROWS].
- * @return      MMGR_SWAR_GO when the words agree and carry no terminator, MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
+ * @param[in] args Words word_left and word_right, with end_wins [BORROWS].
+ * @return         MMGR_SWAR_GO when the words agree and carry no terminator, MMGR_SWAR_YES or
+ *                 MMGR_SWAR_NO otherwise.
  * @note Differs from cellul_step_word_cs only in taking the difference through lane.xor_ with ci set.
  */
 MMGR_INLINE mmgr_iword cellul_step_word_ci(const CellulCtx *args)
@@ -122,9 +126,11 @@ MMGR_INLINE mmgr_iword cellul_step_word_ci(const CellulCtx *args)
 /**
  * @brief Compares one byte pair case sensitively and reports whether the walk continues.
  *
- * @param[in] args Bytes ca and cb, with end_wins [BORROWS].
- * @return      MMGR_SWAR_GO when the bytes match and ca is not the terminator, MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
- * @note A terminating ca gives MMGR_SWAR_YES when cb also terminates, or when end_wins is set.
+ * @param[in] args Bytes byte_left and byte_right, with end_wins [BORROWS].
+ * @return         MMGR_SWAR_GO when the bytes match and byte_left is not the terminator,
+ *                 MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
+ * @note A terminating byte_left gives MMGR_SWAR_YES when byte_right also terminates, or when
+ *       end_wins is set.
  */
 MMGR_INLINE mmgr_iword cellul_step_byte_cs(const CellulCtx *args)
 {
@@ -146,8 +152,9 @@ MMGR_INLINE mmgr_iword cellul_step_byte_cs(const CellulCtx *args)
 /**
  * @brief Compares one byte pair with case folded and reports whether the walk continues.
  *
- * @param[in] args Bytes ca and cb, with end_wins [BORROWS].
- * @return      MMGR_SWAR_GO when the bytes match and ca is not the terminator, MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
+ * @param[in] args Bytes byte_left and byte_right, with end_wins [BORROWS].
+ * @return         MMGR_SWAR_GO when the bytes match and byte_left is not the terminator,
+ *                 MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
  * @note Takes the difference through lane.xor_ with ci set, so only the folded result is tested.
  */
 MMGR_INLINE mmgr_iword cellul_step_byte_ci(const CellulCtx *args)
@@ -231,7 +238,7 @@ MMGR_INLINE size_t cellul_head_bytes(const char *p, size_t cap)
  * @brief Returns the offset of the first zero byte in src, or cap when there is none.
  *
  * @param[in] args Bytes src and the readable extent cap [BORROWS].
- * @return      Bytes before the terminator, at most cap.
+ * @return         Bytes before the terminator, at most cap.
  * @note Scans whole words with no mask at all, then masks the one short word at the end. The bound
  *       is known before the loop, so the lanes past cap can only ever fall in that last word, and
  *       building mask.tail per word costs six instructions an iteration to change nothing.
@@ -260,7 +267,7 @@ MMGR_INLINE size_t cellul_len(const CellulCtx *args)
     }
 
     // Two words a pass while two remain. The load and the arithmetic that reads it are a dependent
-    // pair, and neither part issues them back to back without stalling; taking two lets the second
+    // pair, and neither part issues them back to back without stalling. Taking two lets the second
     // load be in flight while the first word is examined. The single-word loop below finishes the
     // odd word.
     while ((full - at) >= (2u * MMGR_SWAR_BYTES))
@@ -333,7 +340,7 @@ static const char *cellul_chr_settle(const char *p, mmgr_word end, mmgr_word hit
  * @brief Finds the first occurrence of byte in src, stopping at the terminator.
  *
  * @param[in] args Bytes src, the extent cap and the byte sought [BORROWS].
- * @return      Address of the match, or NULL when none precedes the terminator [BORROWS].
+ * @return         Address of the match, or NULL when none precedes the terminator [BORROWS].
  * @note A byte of 0 returns src plus cellul_len: the terminator's own address, or src plus cap when
  *       no terminator is in range.
  * @note mask.before drops lanes at or past the terminator, so a later match is not reported. It is
@@ -382,7 +389,7 @@ MMGR_INLINE const char *cellul_chr(const CellulCtx *args)
 
     // One word a pass, deliberately. Unrolling this the way cellul_len is unrolled was measured and
     // lost: 8261 cycles to 8277 at 2048 bytes, and 98 to 114 at eight. len has one has_zero in its
-    // body and stalls waiting for the load; this has two, which is already enough work to cover the
+    // body and stalls waiting for the load. This has two, which is already enough work to cover the
     // load, so a second word buys nothing and the extra prologue costs.
     while (at != full)
     {
@@ -431,11 +438,11 @@ MMGR_INLINE mmgr_word cellul_diff_lanes(mmgr_word d)
  * @brief Returns the offset of the first byte where src and other differ, case sensitively.
  *
  * @param[in] args Bytes src and other, with the extent cap [BORROWS].
- * @return      Offset of the first difference, or cap when the two agree throughout.
+ * @return         Offset of the first difference, or cap when the two agree throughout.
  * @note Compares whole words with nothing but an inequality test, and resolves which lane differs
  *       once, after the loop has found the word that does. Which lane it is cannot matter until a
  *       word differs, and no word differs on all but one iteration of a scan.
- * @warning A terminator does not end the scan; cap is the only bound. Both src and other must be
+ * @warning A terminator does not end the scan. cap is the only bound. Both src and other must be
  *          readable for cap bytes, and the last short word is loaded whole and masked after, so up
  *          to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
@@ -498,13 +505,13 @@ MMGR_INLINE size_t cellul_diff_cs(const CellulCtx *args)
  * @brief Returns the offset of the first byte where src and other differ, with case folded.
  *
  * @param[in] args Bytes src and other, with the extent cap [BORROWS].
- * @return      Offset of the first difference, or cap when the two agree throughout.
+ * @return         Offset of the first difference, or cap when the two agree throughout.
  * @note Takes the difference through lane.xor_ with ci set. The fold has to happen before the test,
  *       so the walk tests the folded word against zero rather than the two words against each other,
  *       and resolves the lane once on the way out.
  * @note Carries no aligned run: where cellul_diff_cs lifts a boundary test out and walks matched
  *       addresses through the aligned load, every word here goes through the unaligned one.
- * @warning A terminator does not end the scan; cap is the only bound. Both src and other must be
+ * @warning A terminator does not end the scan. cap is the only bound. Both src and other must be
  *          readable for cap bytes, and the last short word is loaded whole and masked after, so up
  *          to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
@@ -567,7 +574,7 @@ static mmgr_bool cellul_agree_at(mmgr_word wa, mmgr_word wb, mmgr_bool end_wins)
  * @brief Reports whether src reaches its terminator without differing from other, case sensitively.
  *
  * @param[in] args Bytes src and other, the extent cap, and end_wins [BORROWS].
- * @return      MMGR_TRUE when src's terminator precedes the first differing byte.
+ * @return         MMGR_TRUE when src's terminator precedes the first differing byte.
  * @note end_wins makes a terminator in the same lane as the difference count as agreement.
  * @note Reaching cap with neither a terminator nor a difference returns end_wins.
  * @warning Both src and other must be readable for cap bytes. The last short word is loaded whole
@@ -654,7 +661,7 @@ MMGR_INLINE mmgr_bool cellul_agree_cs(const CellulCtx *args)
  * @brief Reports whether src reaches its terminator without differing from other, case folded.
  *
  * @param[in] args Bytes src and other, the extent cap, and end_wins [BORROWS].
- * @return      MMGR_TRUE when src's terminator precedes the first differing byte.
+ * @return         MMGR_TRUE when src's terminator precedes the first differing byte.
  * @note Folds the two words through lane.xor_ with ci set and tests the folded result, so a
  *       terminator and a difference are settled together on the word that carried either.
  * @note Carries no aligned run: where cellul_agree_cs lifts a boundary test out and walks matched
@@ -713,8 +720,8 @@ MMGR_INLINE mmgr_bool cellul_agree_ci(const CellulCtx *args)
  * @brief Reads other[k] and folds it to lower case when ci is set.
  *
  * @param[in] args Needle bytes other, the offset k, and ci [BORROWS].
- * @return      The byte, with 'A' to 'Z' mapped to 'a' to 'z' when ci is set.
- * @warning other must be readable at k. Nothing here bounds the index; the caller states it.
+ * @return         The byte, with 'A' to 'Z' mapped to 'a' to 'z' when ci is set.
+ * @warning other must be readable at k. Nothing here bounds the index, so the caller states it.
  */
 MMGR_INLINE uint8_t cellul_ancorae_fold(const CellulCtx *args)
 {
@@ -723,7 +730,7 @@ MMGR_INLINE uint8_t cellul_ancorae_fold(const CellulCtx *args)
 
     if (args->ci && (b >= (uint8_t)'A') && (b <= (uint8_t)'Z'))
     {
-        // Explicit cast keeps the result in uint8_t; bit 5 is what separates the two cases
+        // Explicit cast keeps the result in uint8_t. Bit 5 is what separates the two cases
         return (uint8_t)(b | 0x20u);
     }
     return b;
@@ -738,7 +745,7 @@ MMGR_INLINE uint8_t cellul_ancorae_fold(const CellulCtx *args)
  * @return       One high bit per lane that matched.
  * @note Takes its arguments directly rather than a CellulCtx. lane.eq answers the same question,
  *       but it rebuilds the broadcast from a byte on every call, and the sieve's byte is fixed for
- *       the whole walk; passing the broadcast in is what lets it be built once.
+ *       the whole walk, and passing the broadcast in is what lets it be built once.
  * @warning p must be readable for MMGR_SWAR_BYTES bytes. The load takes a whole word however few
  *          are wanted, so the caller places p where that many remain.
  */
@@ -754,7 +761,7 @@ MMGR_INLINE mmgr_word cellul_sieve_hit(const char *p, mmgr_word b, mmgr_bool ci)
  * @brief Chooses the needle offsets whose bytes cost least, for the search sieve.
  *
  * @param[in,out] args Needle other, its needle_len, ci, and the rows array to fill [BORROWS].
- * @return          Number of offsets written to args->rows, at most MMGR_SIEVE_ROWS.
+ * @return             Number of offsets written to args->rows, at most MMGR_SIEVE_ROWS.
  * @note Only the first MMGR_SWAR_BYTES of the needle are candidates, since one word is tested at a time.
  * @note Cost comes from ancorae.impensa, so rarer bytes are preferred.
  * @warning other must be readable for needle_len bytes, of which at most MMGR_SWAR_BYTES are read, and
@@ -889,7 +896,7 @@ MMGR_INLINE const char *cellul_find_short(const char *hay, const char *needle, s
         if (nlen == 2u)
         {
             // Where the hardware loads a word from any address in one instruction, that is cheaper
-            // than deriving it; where it does not, the load is a dozen instructions and deriving it
+            // than deriving it. Where it does not, the load is a dozen instructions and deriving it
             // from the word already in hand costs three.
 #if MMGR_HW_FAST_UNALIGNED
             const mmgr_word w1 = MMGR_CALL(word.load, ScrutWordCfg, .at = hay + at + 1u);
@@ -938,15 +945,16 @@ MMGR_INLINE const char *cellul_find_short(const char *hay, const char *needle, s
  * @param[in] args Haystack src with cap, and needle other with other_cap [BORROWS].
  * @param[in] ci   Fold case while matching.
  * @return         Address of the match, or NULL when there is none [BORROWS].
- * @note An empty needle returns the haystack start; a needle longer than cap returns NULL.
+ * @note An empty needle returns the haystack start. A needle longer than cap returns NULL.
  * @note Candidate words are sieved on the cheapest needle offsets, then verified in full.
- * @note Word scanning covers only the starts that stay in bounds; the rest are walked one byte at a time.
+ * @note Word scanning covers only the starts that stay in bounds. The rest are walked one byte at a
+ *       time.
  * @note args->needle_len when the caller knows the needle's length, and only otherwise a measure of it. A
  *       needle is nearly always a literal, so its length is settled before the build and measuring it
  *       on every call is work the caller already did.
  * @warning src must be readable for cap bytes and other for other_cap bytes. The needle is loaded a
  *          whole word at a time and masked after, so up to MMGR_SWAR_BYTES - 1 bytes past other_cap
- *          are read; the haystack walk holds itself inside cap.
+ *          are read. The haystack walk holds itself inside cap.
  */
 MMGR_INLINE const char *cellul_find_core(const CellulCtx *args, mmgr_bool ci)
 {
@@ -971,7 +979,7 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *args, mmgr_bool ci)
 
     // A needle this short is settled by a mask chain, with no anchor to choose and nothing to verify.
     // The sieve below earns its prologue by finding a rare byte in a long needle and proving the rest
-    // once; over one or two bytes there is no rare byte to find and no rest to prove, and the
+    // once. Over one or two bytes there is no rare byte to find and no rest to prove, and the
     // prologue is most of the call.
     if ((nlen <= 2u) && !ci && (read_cap <= MMGR_FIND_CHAIN_MAX))
     {
@@ -1126,7 +1134,7 @@ MMGR_INLINE const char *cellul_find_core(const CellulCtx *args, mmgr_bool ci)
  * @brief Copies src into dst and terminates it, writing at most cap bytes in total.
  *
  * @param[in,out] args Source src, destination dst, and the destination extent cap [BORROWS].
- * @return          Bytes copied, not counting the terminator.
+ * @return             Bytes copied, not counting the terminator.
  * @note A cap of 0 copies nothing and writes no terminator.
  * @note The source is measured against cap minus one, leaving room for the terminator.
  * @warning dst must be writable for cap bytes, and src readable until its terminator or cap minus
@@ -1143,7 +1151,7 @@ MMGR_INLINE size_t cellul_copy(const CellulCtx *args)
     size_t at = 0u;
 
     // One walk rather than two. Measuring with cellul_len and then copying with proxim.read reads
-    // every byte twice; a word that holds no terminator is one this can store as it goes. Measured
+    // every byte twice. A word that holds no terminator is one this can store as it goes. Measured
     // 1.46x to 1.66x on an ESP32-S3, which also takes it past the strncpy it is compared with.
     // Explicit casts read both addresses as integers so one mask answers for both: the store is as
     // wide as the load, so the word run needs the two on a boundary together
@@ -1182,12 +1190,12 @@ MMGR_INLINE size_t cellul_copy(const CellulCtx *args)
  * @brief Reads an optionally signed decimal integer from src.
  *
  * @param[in,out] args Text src, and the optional end target [BORROWS].
- * @return          The value, negated when a minus sign was read.
+ * @return             The value, negated when a minus sign was read.
  * @note Leading whitespace is skipped, then one optional '+' or '-'.
  * @note When end is not NULL it is set past the last digit, or back to src when no digit was read.
  * @warning The digit accumulator is mmgr_word wide and wraps on a longer run.
  * @warning src carries no bound. The read runs until the first byte that is not part of the number,
- *          so the caller owes one inside readable storage; a terminator is the usual one.
+ *          so the caller owes one inside readable storage. A terminator is the usual one.
  */
 MMGR_INLINE mmgr_iword cellul_to_long(const CellulCtx *args)
 {
@@ -1231,12 +1239,12 @@ MMGR_INLINE mmgr_iword cellul_to_long(const CellulCtx *args)
  * @brief Reads an unsigned decimal integer from src.
  *
  * @param[in,out] args Text src, and the optional end target [BORROWS].
- * @return          The accumulated value.
- * @note Leading whitespace is skipped, then one optional '+'; a '-' is not accepted and stops the read.
+ * @return             The accumulated value.
+ * @note Leading whitespace is skipped, then one optional '+'. A '-' is not accepted and stops the read.
  * @note When end is not NULL it is set past the last digit, or back to src when no digit was read.
  * @warning The digit accumulator is mmgr_word wide and wraps on a longer run.
  * @warning src carries no bound. The read runs until the first byte that is not part of the number,
- *          so the caller owes one inside readable storage; a terminator is the usual one.
+ *          so the caller owes one inside readable storage. A terminator is the usual one.
  */
 MMGR_INLINE mmgr_word cellul_to_ulong(const CellulCtx *args)
 {
@@ -1303,7 +1311,7 @@ MMGR_INLINE void cellul_expo(const CellulCtx *args)
     {
         if (ex < MMGR_MUTO_EXP_LIMIT)
         {
-            // Explicit cast holds the accumulate in mmgr_iword; the guard above keeps it below MMGR_MUTO_EXP_LIMIT
+            // Explicit cast holds the accumulate in mmgr_iword. The guard above keeps it below the limit
             ex = (mmgr_iword)((ex * 10) + (**args->cur - '0'));
         }
         (*args->cur)++;
@@ -1315,13 +1323,13 @@ MMGR_INLINE void cellul_expo(const CellulCtx *args)
  * @brief Reads a decimal floating point number from src.
  *
  * @param[in,out] args Text src, and the optional end target [BORROWS].
- * @return          The value assembled by muto.scale from the mantissa and exponent.
+ * @return             The value assembled by muto.scale from the mantissa and exponent.
  * @note Accepts leading whitespace, one optional sign, digits, one optional point, then an optional exponent.
  * @note Digits that no longer fit the mantissa advance the exponent instead, and a non-zero one sets the sticky rest.
  * @note An exponent is read only when at least one digit was seen before it.
  * @note When end is not NULL it is set past the number, or back to src when no digit was read.
  * @warning src carries no bound. The read runs until the first byte that is not part of the number,
- *          so the caller owes one inside readable storage; a terminator is the usual one.
+ *          so the caller owes one inside readable storage. A terminator is the usual one.
  */
 MMGR_INLINE double cellul_to_double(const CellulCtx *args)
 {
@@ -1395,8 +1403,8 @@ MMGR_INLINE double cellul_to_double(const CellulCtx *args)
  * @brief Reads a decimal floating point number from src and narrows it to float.
  *
  * @param[in,out] args Text src, and the optional end target [BORROWS].
- * @return          The value from cellul_to_double, narrowed to float.
- * @note Rounding happens once, on the narrowing; the parse itself is done at double width.
+ * @return             The value from cellul_to_double, narrowed to float.
+ * @note Rounding happens once, on the narrowing. The parse itself is done at double width.
  * @warning src carries no bound, exactly as cellul_to_double describes.
  */
 MMGR_INLINE float cellul_to_float(const CellulCtx *args)
@@ -1409,7 +1417,7 @@ MMGR_INLINE float cellul_to_float(const CellulCtx *args)
  * @brief Picks the folded or exact difference walk on args->ci.
  *
  * @param[in] args Bytes src and other, the extent cap, and ci [BORROWS].
- * @return      Offset of the first difference, or cap when the two agree.
+ * @return         Offset of the first difference, or cap when the two agree.
  * @warning Both src and other must be readable for cap bytes. The last short word is loaded whole
  *          and masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
@@ -1422,8 +1430,8 @@ MMGR_INLINE size_t cellul_diff(const CellulCtx *args)
  * @brief Picks the folded or exact agreement walk on args->ci.
  *
  * @param[in] args Bytes src and other, the extent cap, ci and end_wins [BORROWS].
- * @return      MMGR_TRUE when src's terminator precedes the first difference.
- * @note The caller sets end_wins: clear for eq, so both must end together, set for starts.
+ * @return         MMGR_TRUE when src's terminator precedes the first difference.
+ * @note The caller sets end_wins. It is clear for eq, so both must end together, and set for starts.
  * @warning Both src and other must be readable for cap bytes. The last short word is loaded whole
  *          and masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
@@ -1436,7 +1444,7 @@ MMGR_INLINE mmgr_bool cellul_eq(const CellulCtx *args)
  * @brief The same walk as cellul_eq, reached under the name the starts entry pastes.
  *
  * @param[in] args Bytes src and other, the extent cap, ci and end_wins [BORROWS].
- * @return      MMGR_TRUE when src's terminator precedes the first difference.
+ * @return         MMGR_TRUE when src's terminator precedes the first difference.
  * @note starts swaps the operands and sets end_wins in its entry line, so the walk is the same one.
  * @warning Both src and other must be readable for cap bytes. The last short word is loaded whole
  *          and masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
@@ -1450,7 +1458,7 @@ MMGR_INLINE mmgr_bool cellul_starts(const CellulCtx *args)
  * @brief Searches src for other, folding case on args->ci.
  *
  * @param[in] args Haystack src with cap, needle other with other_cap, and ci [BORROWS].
- * @return      Address of the match, or NULL when there is none [BORROWS].
+ * @return         Address of the match, or NULL when there is none [BORROWS].
  * @note Plain static, not MMGR_INLINE, and it is the only backend here that is. MMGR_INLINE carries
  *       always_inline, and cellul_has calls this one, so forcing it would emit the whole sieve search
  *       a second time inside has. Measured at 2880 bytes duplicated at -O2.
@@ -1466,7 +1474,7 @@ static const char *cellul_find(const CellulCtx *args)
  * @brief Reports whether cellul_find returns a match.
  *
  * @param[in] args Haystack src with cap, needle other with other_cap, and ci [BORROWS].
- * @return      MMGR_TRUE when the needle is present.
+ * @return         MMGR_TRUE when the needle is present.
  * @warning src and other carry the same bounds cellul_find describes, needle over-read included.
  */
 MMGR_INLINE mmgr_bool cellul_has(const CellulCtx *args)
@@ -1479,7 +1487,7 @@ MMGR_INLINE mmgr_bool cellul_has(const CellulCtx *args)
  * @brief Tests the byte at src[at] for whitespace.
  *
  * @param[in] args Bytes src and the offset at [BORROWS].
- * @return      MMGR_TRUE for one of the six whitespace characters.
+ * @return         MMGR_TRUE for one of the six whitespace characters.
  * @warning src must be readable at at. cap is not consulted here.
  */
 MMGR_INLINE mmgr_bool cellul_ws(const CellulCtx *args)
@@ -1491,7 +1499,7 @@ MMGR_INLINE mmgr_bool cellul_ws(const CellulCtx *args)
  * @brief Tests the byte at src[at] for a decimal digit.
  *
  * @param[in] args Bytes src and the offset at [BORROWS].
- * @return      MMGR_TRUE for '0' through '9'.
+ * @return         MMGR_TRUE for '0' through '9'.
  * @warning src must be readable at at. cap is not consulted here.
  */
 MMGR_INLINE mmgr_bool cellul_digit(const CellulCtx *args)
@@ -1502,8 +1510,8 @@ MMGR_INLINE mmgr_bool cellul_digit(const CellulCtx *args)
 /**
  * @brief Picks the folded or exact word step on args->ci.
  *
- * @param[in] args Words wa and wb, with ci and end_wins [BORROWS].
- * @return      MMGR_SWAR_GO, MMGR_SWAR_YES or MMGR_SWAR_NO.
+ * @param[in] args Words word_left and word_right, with ci and end_wins [BORROWS].
+ * @return         MMGR_SWAR_GO, MMGR_SWAR_YES or MMGR_SWAR_NO.
  */
 MMGR_INLINE mmgr_iword cellul_step_word(const CellulCtx *args)
 {
@@ -1513,8 +1521,8 @@ MMGR_INLINE mmgr_iword cellul_step_word(const CellulCtx *args)
 /**
  * @brief Picks the folded or exact byte step on args->ci.
  *
- * @param[in] args Bytes ca and cb, with ci and end_wins [BORROWS].
- * @return      MMGR_SWAR_GO, MMGR_SWAR_YES or MMGR_SWAR_NO.
+ * @param[in] args Bytes byte_left and byte_right, with ci and end_wins [BORROWS].
+ * @return         MMGR_SWAR_GO, MMGR_SWAR_YES or MMGR_SWAR_NO.
  */
 MMGR_INLINE mmgr_iword cellul_step_byte(const CellulCtx *args)
 {
@@ -1537,44 +1545,44 @@ CatenaFinitaCfg(mmgr_cellul_init)(const CatenaFinitaCfg *args)
 /**
  * @brief Binds the string calls to the entry shape, keeping the parenthesized name.
  *
- * @param[in] ret  Return type of the entry point.
- * @param[in] name Name after the mmgr_cellul_ and cellul_ prefixes, which the two share.
- * @param[in] ...  Initializers for the CellulCtx literal, written in terms of args.
+ * @param[in] ReturnType_ Return type of the entry point.
+ * @param[in] name_       Name after the mmgr_cellul_ and cellul_ prefixes, which the two share.
+ * @param[in] ...         Initializers for the CellulCtx literal, written in terms of args.
  * @note Written out rather than reached for as GENERIC_ENTRY, and this is the only module that does
  *       so. GENERIC_ENTRY pastes the entry name bare, and these names must stay parenthesized so a
  *       like-named macro from mmgr_string_shim.h cannot expand over them. The body is otherwise the
  *       one GENERIC_ENTRY builds, which infinitas reaches through RING_ENTRY.
  */
-#define CELLUL_ENTRY(ret, name, ...)                                                                                   \
-    ret(mmgr_cellul_##name)(const CatenaFinitaCfg *args)                                                               \
+#define CELLUL_ENTRY(ReturnType_, name_, ...)                                                                          \
+    ReturnType_(mmgr_cellul_##name_)(const CatenaFinitaCfg *args)                                                      \
     {                                                                                                                  \
-        return MMGR_CALL(cellul_##name, CellulCtx, __VA_ARGS__);                                                       \
+        return MMGR_CALL(cellul_##name_, CellulCtx, __VA_ARGS__);                                                      \
     }
 
 /**
  * @brief The same shape for the single-step compares, which take their own argument type.
  *
- * @param[in] ret  Return type of the entry point.
- * @param[in] name Name after the mmgr_cellul_ and cellul_ prefixes.
- * @param[in] ...  Initializers for the CellulCtx literal, written in terms of args.
+ * @param[in] ReturnType_ Return type of the entry point.
+ * @param[in] name_       Name after the mmgr_cellul_ and cellul_ prefixes.
+ * @param[in] ...         Initializers for the CellulCtx literal, written in terms of args.
  */
-#define CELLUL_STEP_ENTRY(ret, name, ...)                                                                              \
-    ret(mmgr_cellul_##name)(const VerboProgrediorCfg *args)                                                            \
+#define CELLUL_STEP_ENTRY(ReturnType_, name_, ...)                                                                     \
+    ReturnType_(mmgr_cellul_##name_)(const VerboProgrediorCfg *args)                                                   \
     {                                                                                                                  \
-        return MMGR_CALL(cellul_##name, CellulCtx, __VA_ARGS__);                                                       \
+        return MMGR_CALL(cellul_##name_, CellulCtx, __VA_ARGS__);                                                      \
     }
 
 /**
  * @brief The same shape for the conversions, which take their own argument type.
  *
- * @param[in] ret  Return type of the entry point.
- * @param[in] name Name after the mmgr_cellul_ and cellul_ prefixes.
- * @param[in] ...  Initializers for the CellulCtx literal, written in terms of args.
+ * @param[in] ReturnType_ Return type of the entry point.
+ * @param[in] name_       Name after the mmgr_cellul_ and cellul_ prefixes.
+ * @param[in] ...         Initializers for the CellulCtx literal, written in terms of args.
  */
-#define CELLUL_CONV_ENTRY(ret, name, ...)                                                                              \
-    ret(mmgr_cellul_##name)(const TransfiguroCfg *args)                                                                \
+#define CELLUL_CONV_ENTRY(ReturnType_, name_, ...)                                                                     \
+    ReturnType_(mmgr_cellul_##name_)(const TransfiguroCfg *args)                                                       \
     {                                                                                                                  \
-        return MMGR_CALL(cellul_##name, CellulCtx, __VA_ARGS__);                                                       \
+        return MMGR_CALL(cellul_##name_, CellulCtx, __VA_ARGS__);                                                      \
     }
 
 /**

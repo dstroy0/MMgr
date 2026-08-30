@@ -112,7 +112,7 @@ MMGR_INLINE mmgr_u64 fract_to_bits(const FractioCtx *args)
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in fractio.h.
- * @note The five union lines forward the member the caller filled; merge forwards its three fields
+ * @note The five union lines forward the member the caller filled. merge forwards its three fields
  *       instead. from_bits is given bits and reads val, to_bits is given val and reads bits, which is
  *       the reinterpretation both exist for.
  */

@@ -82,7 +82,7 @@ typedef struct
  * @brief Reads two bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
- * @return      The two bytes as a uint16_t.
+ * @return         The two bytes as a uint16_t.
  * @note Reads through mmgr_proxim_u16_t, so args->at needs no particular alignment.
  * @warning args->at must be readable for two bytes.
  */
@@ -95,7 +95,7 @@ MMGR_INLINE uint16_t proxim_load16(const ProximLoadCtx *args)
  * @brief Reads four bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
- * @return      The four bytes as a uint32_t.
+ * @return         The four bytes as a uint32_t.
  * @note Reads through mmgr_proxim_u32_t, so args->at needs no particular alignment.
  * @warning args->at must be readable for four bytes.
  */
@@ -108,7 +108,7 @@ MMGR_INLINE uint32_t proxim_load32(const ProximLoadCtx *args)
  * @brief Reads eight bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
- * @return      The eight bytes as a uint64_t.
+ * @return         The eight bytes as a uint64_t.
  * @note Reads through mmgr_proxim_u64_t, so args->at needs no particular alignment.
  * @warning args->at must be readable for eight bytes.
  */
@@ -121,7 +121,7 @@ MMGR_INLINE uint64_t proxim_load64(const ProximLoadCtx *args)
  * @brief Reads MMGR_RAW_WORD bytes from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
- * @return      The bytes as an mmgr_migro_word.
+ * @return         The bytes as an mmgr_migro_word.
  * @note Reads through mmgr_proxim_word_t, so args->at needs no particular alignment.
  * @warning args->at must be readable for MMGR_RAW_WORD bytes.
  */
@@ -134,7 +134,7 @@ MMGR_INLINE mmgr_migro_word proxim_load(const ProximLoadCtx *args)
  * @brief Reads MMGR_RAW_WORD bytes from an aligned args->at, in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
- * @return      The bytes as an mmgr_migro_word.
+ * @return         The bytes as an mmgr_migro_word.
  * @note Reads through mmgr_aequus_word_t, which keeps mmgr_migro_word's alignment, unlike proxim_load.
  * @warning args->at must be readable for MMGR_RAW_WORD bytes and aligned for an mmgr_migro_word.
  */
@@ -147,7 +147,7 @@ MMGR_INLINE mmgr_migro_word aequus_load(const ProximLoadCtx *args)
  * @brief Reads eight bytes from an aligned args->at, in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
- * @return      The eight bytes as a uint64_t.
+ * @return         The eight bytes as a uint64_t.
  * @note Reads through mmgr_aequus_u64_t, which keeps uint64_t's alignment, unlike proxim_load64.
  * @warning args->at must be readable for eight bytes and aligned for a uint64_t.
  */

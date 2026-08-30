@@ -7,7 +7,7 @@
  *
  * @note transformo walks the bits of the decimal exponent and multiplies in one entry per set bit, so nine
  *       entries reach 511.
- * @note Declares no function; both tables are static const data that outlive every call, so a pointer into
+ * @note Declares no function. Both tables are static const data that outlive every call, so a pointer into
  *       one stays good for the whole program [BORROWS].
  */
 #ifndef MMGR_POW5_H
@@ -57,7 +57,7 @@ typedef struct
  *       takes this table over mmgr_pow5_down whenever the decimal exponent is not negative.
  * @note Index 0 through 5 are exact. 5^64 and up need more than 128 bits, so the last three entries are
  *       truncated toward zero and read a little low.
- * @note Every significand literal carries ULL to match the mmgr_u64 it is stored in; each e2 is a bare int
+ * @note Every significand literal carries ULL to match the mmgr_u64 it is stored in. Each e2 is a bare int
  *       that converts to mmgr_iword.
  * @note static const at header scope, so each translation unit gets its own copy, MMGR_UNUSED keeps a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
@@ -80,7 +80,7 @@ static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] MMGR_UNUSED = {
  * @note No negative power of five ends in binary, so all nine are the exact value truncated toward zero.
  *       Every entry reads a little low and none of them round up: 5^-1 is the repeating 0xCCCC..., not the
  *       0xCCCD... that rounding to nearest would give.
- * @note Every significand literal carries ULL to match the mmgr_u64 it is stored in; each e2 is a bare int
+ * @note Every significand literal carries ULL to match the mmgr_u64 it is stored in. Each e2 is a bare int
  *       that converts to mmgr_iword.
  * @note static const at header scope, so each translation unit gets its own copy, MMGR_UNUSED keeps a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].

@@ -17,7 +17,7 @@
 /**
  * @brief One 128-bit membership bitmap per MmgrAsciiClass value.
  *
- * @note Indexed by MmgrAsciiClass; code point n is bit (n & 7) of byte (n >> 3).
+ * @note Indexed by MmgrAsciiClass. Code point n is bit (n & 7) of byte (n >> 3).
  * @note Worked through, MMGR_ASCII_NUM holds 0xFF at byte 6 and 0x03 at byte 7. Byte 6 carries code
  *       points 48 through 55, which is '0' to '7', and the low two bits of byte 7 carry 56 and 57,
  *       which is '8' and '9'. Every row below reads the same way, so none of them has to be taken
@@ -63,7 +63,7 @@ typedef struct
  * @brief Returns whether args->byte has its bit set in s_class[args->kind].
  *
  * @param[in] args Class and byte to test [BORROWS].
- * @return      MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
+ * @return         MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
  * @note Bytes 0x80 and above return MMGR_FALSE without reading s_class.
  * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
  *          MMGR_DEBUG_CHECKS build: a byte under 0x80 then reads past s_class.

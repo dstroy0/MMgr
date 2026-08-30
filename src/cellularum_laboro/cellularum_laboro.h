@@ -14,7 +14,7 @@
  * @note ws and digit are the exception. Each reads the single byte at args->at and never consults
  *       cap, because a one byte test has nothing to run past.
  * @note The TransfiguroCfg conversions carry no bound at all. Each reads until the first byte that is
- *       not part of the number, so the caller owes them such a byte inside readable storage; a
+ *       not part of the number, so the caller owes them such a byte inside readable storage. A
  *       terminator is the usual one.
  * @note The VerboProgrediorCfg pair take their operands by value and read no memory, which is why
  *       neither carries a bound.
@@ -37,7 +37,7 @@ MMGR_INCIPE_DECLS
  *       and MMGR_SWAR_BYTES, so a short needle is sieved on fewer offsets than this allows.
  * @note cellul_find_core sizes two arrays by it, the chosen offsets and their broadcasts, and reads
  *       element 0 of each outside the loop that walks the rest.
- * @warning Taken only when MMGR_SIEVE_ROWS is not already defined; a build may supply its own.
+ * @warning Taken only when MMGR_SIEVE_ROWS is not already defined. A build may supply its own.
  * @warning A build's own value must be at least 1. At 0 both arrays are declared zero length and the
  *          search still reads element 0 of each, and nothing here asserts against it.
  */
@@ -55,7 +55,7 @@ MMGR_INCIPE_DECLS
  * @note Defaults to no limit, which folds the test away: `read_cap <= SIZE_MAX` is true for every
  *       size_t, so a default build emits no comparison and no second path is chosen at run time.
  * @note The chain settles every start position in a word at once, with no anchor to choose and
- *       nothing to verify afterwards; a two byte needle costs it a second read a step and a one byte
+ *       nothing to verify afterwards. A two byte needle costs it a second read a step and a one byte
  *       needle none. The sieve picks its offsets out of the cost table before a haystack byte is
  *       read, reads a word per offset on top of the one it tests for the terminator, and proves
  *       every surviving lane in full. Measured with a two byte needle, cycles for the whole call:
@@ -69,7 +69,7 @@ MMGR_INCIPE_DECLS
  *       The chain wins at every length on both parts, which is why the default is no limit. The knob
  *       is kept because that is a measurement rather than a proof, and a part or a workload that
  *       disagrees should be able to say so without editing the walk.
- * @warning Taken only when MMGR_FIND_CHAIN_MAX is not already defined; a build may supply its own.
+ * @warning Taken only when MMGR_FIND_CHAIN_MAX is not already defined. A build may supply its own.
  *          Zero sends every needle through the sieve.
  */
 #ifndef MMGR_FIND_CHAIN_MAX
@@ -78,7 +78,7 @@ MMGR_INCIPE_DECLS
 #endif
 
 /**
- * @brief Arguments for the string calls; each reads only the members it needs.
+ * @brief Arguments for the string calls, where each call reads only the members it needs.
  *
  * @note Members left unset are zero, and the calls that ignore them never read them.
  */
@@ -156,8 +156,8 @@ MMGR_NS_LAYOUT(CellularumLaboroNs, init, len, diff, eq, starts, find, has, chr, 
  * @brief Returns a copy of the argument struct.
  *
  * @param[in] args Struct to copy [BORROWS].
- * @return      A copy of *args.
- * @note Copies the members only; nothing they point at is read.
+ * @return         A copy of *args.
+ * @note Copies the members only. Nothing they point at is read.
  */
 CatenaFinitaCfg mmgr_cellul_init(const CatenaFinitaCfg *args);
 
@@ -165,7 +165,7 @@ CatenaFinitaCfg mmgr_cellul_init(const CatenaFinitaCfg *args);
  * @brief Returns the bytes in src before its terminator, starting at args->at.
  *
  * @param[in] args Bytes src, the extent cap, and the start offset at [BORROWS].
- * @return      Bytes before the terminator, at most cap minus at.
+ * @return         Bytes before the terminator, at most cap minus at.
  * @note Returns cap minus at when no terminator is found in range.
  * @warning args->at must not exceed args->cap, and src must be readable to args->cap. The last partial
  *          word is loaded whole and masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read.
@@ -176,8 +176,8 @@ size_t mmgr_cellul_len(const CatenaFinitaCfg *args);
  * @brief Returns the offset of the first byte where src and other differ.
  *
  * @param[in] args Bytes src and other, the extent cap, and ci [BORROWS].
- * @return      Offset of the first difference, or cap when the two agree throughout.
- * @note A terminator does not end the scan; cap is the only bound.
+ * @return         Offset of the first difference, or cap when the two agree throughout.
+ * @note A terminator does not end the scan. cap is the only bound.
  * @warning Both src and other must be readable for cap bytes. The last partial word is loaded whole and
  *          masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
@@ -187,7 +187,7 @@ size_t mmgr_cellul_diff(const CatenaFinitaCfg *args);
  * @brief Reports whether src and other hold the same terminated string.
  *
  * @param[in] args Bytes src and other, the extent cap, and ci [BORROWS].
- * @return      MMGR_TRUE when both reach a terminator with no difference before it.
+ * @return         MMGR_TRUE when both reach a terminator with no difference before it.
  * @warning Both src and other must be readable for cap bytes. The last partial word is loaded whole and
  *          masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
@@ -197,7 +197,7 @@ mmgr_bool mmgr_cellul_eq(const CatenaFinitaCfg *args);
  * @brief Reports whether src begins with other.
  *
  * @param[in] args Bytes src and other, the extent cap, and ci [BORROWS].
- * @return      MMGR_TRUE when other reaches its terminator with no difference before it.
+ * @return         MMGR_TRUE when other reaches its terminator with no difference before it.
  * @note An empty other matches any src.
  * @warning Both src and other must be readable for cap bytes. The last partial word is loaded whole and
  *          masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
@@ -208,8 +208,8 @@ mmgr_bool mmgr_cellul_starts(const CatenaFinitaCfg *args);
  * @brief Finds the first occurrence of other within src.
  *
  * @param[in] args Haystack src with cap, needle other with other_cap, and ci [BORROWS].
- * @return      Address inside src, or NULL when there is no match [BORROWS].
- * @note An empty needle returns src; a needle longer than cap returns NULL.
+ * @return         Address inside src, or NULL when there is no match [BORROWS].
+ * @note An empty needle returns src. A needle longer than cap returns NULL.
  * @warning src must be readable for cap bytes and other for other_cap bytes. The needle is loaded a
  *          whole word at a time and masked after, so up to MMGR_SWAR_BYTES - 1 bytes past other_cap
  *          are read. The haystack walk holds itself inside cap.
@@ -220,7 +220,7 @@ const char *mmgr_cellul_find(const CatenaFinitaCfg *args);
  * @brief Reports whether other occurs within src.
  *
  * @param[in] args Haystack src with cap, needle other with other_cap, and ci [BORROWS].
- * @return      MMGR_TRUE when mmgr_cellul_find reports a match.
+ * @return         MMGR_TRUE when mmgr_cellul_find reports a match.
  * @warning src must be readable for cap bytes and other for other_cap bytes, with the needle read past
  *          other_cap exactly as mmgr_cellul_find describes.
  */
@@ -230,7 +230,7 @@ mmgr_bool mmgr_cellul_has(const CatenaFinitaCfg *args);
  * @brief Finds the first occurrence of args->byte in src, before the terminator.
  *
  * @param[in] args Bytes src, the extent cap, and the byte sought [BORROWS].
- * @return      Address inside src, or NULL when the byte does not occur [BORROWS].
+ * @return         Address inside src, or NULL when the byte does not occur [BORROWS].
  * @note A byte of 0 returns the terminator's own address, or src plus cap when no terminator is in range.
  * @warning src must be readable for cap bytes. The last partial word is loaded whole and masked after,
  *          so up to MMGR_SWAR_BYTES - 1 bytes past cap are read.
@@ -241,7 +241,7 @@ const char *mmgr_cellul_chr(const CatenaFinitaCfg *args);
  * @brief Copies src into dst, writing at most cap bytes including the terminator.
  *
  * @param[in,out] args Source src, destination dst, and the destination extent cap [BORROWS].
- * @return          Bytes copied, not counting the terminator.
+ * @return             Bytes copied, not counting the terminator.
  * @note A cap of 0 writes nothing at all, not even a terminator.
  * @warning dst must be writable for cap bytes and src readable for cap minus one.
  */
@@ -251,8 +251,8 @@ size_t mmgr_cellul_copy(const CatenaFinitaCfg *args);
  * @brief Tests src[at] for whitespace.
  *
  * @param[in] args Bytes src and the offset at [BORROWS].
- * @return      MMGR_TRUE for space, tab, newline, carriage return, form feed or vertical tab.
- * @warning src[at] must be readable; cap does not bound this call.
+ * @return         MMGR_TRUE for space, tab, newline, carriage return, form feed or vertical tab.
+ * @warning src[at] must be readable. cap does not bound this call.
  */
 mmgr_bool mmgr_cellul_ws(const CatenaFinitaCfg *args);
 
@@ -260,17 +260,17 @@ mmgr_bool mmgr_cellul_ws(const CatenaFinitaCfg *args);
  * @brief Tests src[at] for a decimal digit.
  *
  * @param[in] args Bytes src and the offset at [BORROWS].
- * @return      MMGR_TRUE for the ten decimal digits, '0' through '9'.
- * @warning src[at] must be readable; cap does not bound this call.
+ * @return         MMGR_TRUE for the ten decimal digits, '0' through '9'.
+ * @warning src[at] must be readable. cap does not bound this call.
  */
 mmgr_bool mmgr_cellul_digit(const CatenaFinitaCfg *args);
 
 /**
  * @brief Compares one word pair and reports whether a walk should continue.
  *
- * @param[in] args Words wa and wb, with ci and end_wins [BORROWS].
- * @return      MMGR_SWAR_GO to continue, MMGR_SWAR_YES on agreement, MMGR_SWAR_NO on difference.
- * @note MMGR_SWAR_YES means wa's terminator arrived before the first difference.
+ * @param[in] args Words word_left and word_right, with ci and end_wins [BORROWS].
+ * @return         MMGR_SWAR_GO to continue, MMGR_SWAR_YES on agreement, MMGR_SWAR_NO on difference.
+ * @note MMGR_SWAR_YES means word_left's terminator arrived before the first difference.
  * @note end_wins makes a terminator in the same lane as the difference count as agreement.
  */
 mmgr_iword mmgr_cellul_step_word(const VerboProgrediorCfg *args);
@@ -278,9 +278,10 @@ mmgr_iword mmgr_cellul_step_word(const VerboProgrediorCfg *args);
 /**
  * @brief Compares one byte pair and reports whether a walk should continue.
  *
- * @param[in] args Bytes ca and cb, with ci and end_wins [BORROWS].
- * @return      MMGR_SWAR_GO to continue, MMGR_SWAR_YES on agreement, MMGR_SWAR_NO on difference.
- * @note A terminating ca gives MMGR_SWAR_YES when cb also terminates, or when end_wins is set.
+ * @param[in] args Bytes byte_left and byte_right, with ci and end_wins [BORROWS].
+ * @return         MMGR_SWAR_GO to continue, MMGR_SWAR_YES on agreement, MMGR_SWAR_NO on difference.
+ * @note A terminating byte_left gives MMGR_SWAR_YES when byte_right also terminates, or when
+ *       end_wins is set.
  */
 mmgr_iword mmgr_cellul_step_byte(const VerboProgrediorCfg *args);
 
@@ -288,10 +289,10 @@ mmgr_iword mmgr_cellul_step_byte(const VerboProgrediorCfg *args);
  * @brief Reads a signed decimal integer from args->src.
  *
  * @param[in,out] args Text src and the optional end target [BORROWS].
- * @return          The value, negated when a minus sign was read.
+ * @return             The value, negated when a minus sign was read.
  * @note Skips leading whitespace, then accepts one optional '+' or '-'.
  * @note When end is not NULL it is set past the last digit, or back to src when none was read.
- * @warning The read stops at the first byte that is not part of the number; no length bounds it.
+ * @warning The read stops at the first byte that is not part of the number. No length bounds it.
  * @warning The digit accumulator is mmgr_word wide and wraps on a longer run.
  */
 mmgr_iword mmgr_cellul_to_long(const TransfiguroCfg *args);
@@ -300,10 +301,10 @@ mmgr_iword mmgr_cellul_to_long(const TransfiguroCfg *args);
  * @brief Reads an unsigned decimal integer from args->src.
  *
  * @param[in,out] args Text src and the optional end target [BORROWS].
- * @return          The accumulated value.
- * @note Skips leading whitespace, then accepts one optional '+'; a '-' stops the read.
+ * @return             The accumulated value.
+ * @note Skips leading whitespace, then accepts one optional '+'. A '-' stops the read.
  * @note When end is not NULL it is set past the last digit, or back to src when none was read.
- * @warning The read stops at the first byte that is not part of the number; no length bounds it.
+ * @warning The read stops at the first byte that is not part of the number. No length bounds it.
  * @warning The digit accumulator is mmgr_word wide and wraps on a longer run.
  */
 mmgr_word mmgr_cellul_to_ulong(const TransfiguroCfg *args);
@@ -312,11 +313,11 @@ mmgr_word mmgr_cellul_to_ulong(const TransfiguroCfg *args);
  * @brief Reads a decimal floating point number from args->src.
  *
  * @param[in,out] args Text src and the optional end target [BORROWS].
- * @return          The assembled value.
+ * @return             The assembled value.
  * @note Accepts whitespace, one optional sign, digits, one optional point, then an optional exponent.
  * @note An exponent is read only when at least one digit was seen before it.
  * @note When end is not NULL it is set past the number, or back to src when no digit was read.
- * @warning The read stops at the first byte that is not part of the number; no length bounds it.
+ * @warning The read stops at the first byte that is not part of the number. No length bounds it.
  */
 double mmgr_cellul_to_double(const TransfiguroCfg *args);
 
@@ -324,14 +325,14 @@ double mmgr_cellul_to_double(const TransfiguroCfg *args);
  * @brief Reads a decimal floating point number from args->src and narrows it to float.
  *
  * @param[in,out] args Text src and the optional end target [BORROWS].
- * @return          The value from mmgr_cellul_to_double, narrowed to float.
- * @note Accepts the same input as mmgr_cellul_to_double; only the result width differs.
- * @warning The read stops at the first byte that is not part of the number; no length bounds it.
+ * @return             The value from mmgr_cellul_to_double, narrowed to float.
+ * @note Accepts the same input as mmgr_cellul_to_double, with only the result width differing.
+ * @warning The read stops at the first byte that is not part of the number. No length bounds it.
  */
 float mmgr_cellul_to_float(const TransfiguroCfg *args);
 
 /**
- * @brief Dispatch table instance named cellul; each member calls the matching mmgr_cellul_ function.
+ * @brief Dispatch table instance named cellul, with each member set to its mmgr_cellul_ function.
  */
 MMGR_NS CellularumLaboroNs cellul MMGR_UNUSED = {
     .init = mmgr_cellul_init,

@@ -95,7 +95,7 @@ MMGR_INLINE void carcer_zero_bytes(volatile uint8_t **walk, size_t *left, size_t
 
     while (index < want)
     {
-        // Store, pointer advance and count advance are separate statements; folding them into
+        // Store, pointer advance and count advance are separate statements. Folding them into
         // *(*walk)++ = 0u would put an increment inside the volatile store
         **walk = 0u;
         (*walk)++;
@@ -480,7 +480,7 @@ void mmgr_zero_buf(void *prisoner, size_t size)
     carcer_zero_bytes(&walk, &left, edge);
 
     // Explicit casts go through volatile void * to reach the word scope the run stores in. The head
-    // above leaves walk on a word boundary whenever it had the bytes to reach one; where it ran out
+    // above leaves walk on a word boundary whenever it had the bytes to reach one. Where it ran out
     // first, left is 0 and neither the loop nor the tail reads through this pointer
     volatile mmgr_word *word_walk = (volatile mmgr_word *)(volatile void *)walk;
 

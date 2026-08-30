@@ -37,7 +37,7 @@ typedef enum MMGR_ENUM_PACKED
 } mmgr_endian_width;
 
 /**
- * @brief Arguments for the endian calls; each reads only what it needs.
+ * @brief Arguments for the endian calls, where each call reads only the members it needs.
  *
  * @note wr reads dst, val and width. rd reads src and width. rev reads val and width.
  * @note width is what bounds both pointers. wr and rd touch that many bytes of the one they use, or
@@ -59,7 +59,7 @@ typedef struct
  * @note MMGR_NS_LAYOUT asserts the three members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
  * @note Two instances share this type, one per byte order. Which one a call goes through is what sets
  *       the order, and no member takes it as an argument.
- * @note wr hands back args->width as it was given; the other two return the value they produced.
+ * @note wr hands back args->width as it was given. The other two return the value they produced.
  */
 typedef struct
 {

@@ -65,7 +65,7 @@
  * @brief Alignment a caller declares its own storage at before handing those bytes to a module.
  *
  * @note Nothing under src reads it. The tests, the benches and the region-edges example are what
- *       write MMGR_ALIGN(MMGR_ALIGN_BYTES) on their arrays; the default is 16.
+ *       write MMGR_ALIGN(MMGR_ALIGN_BYTES) on their arrays. The default is 16.
  * @note Has to be a power of two, which the build checks below. It reaches an alignment specifier,
  *       and one given anything else is ill-formed, so the check is here to name the knob rather than
  *       leave the diagnostic pointing at whichever array was declared with it.
@@ -350,7 +350,7 @@
  * @param[in] ...             Initializers for the CtxType_ literal, written in terms of args.
  * @return                    What the backend returns.
  * @note One shape for every entry in the library, so a caller meets the same call at each module.
- *       The entry tests nothing; whatever checking an operation needs belongs in the backend it
+ *       The entry tests nothing. Whatever checking an operation needs belongs in the backend it
  *       names.
  * @warning The initializers dereference args, so it must not be NULL [BORROWS].
  */
@@ -370,7 +370,7 @@
  * @param[in] name_           Core name, pasted onto both prefixes.
  * @param[in] ...             Initializers for the CtxType_ literal, written in terms of args.
  * @note The same body as GENERIC_ENTRY, without the return. Two macros rather than one because the
- *       return type is not a parameter that can be void here; writing `void` where ReturnType_ goes
+ *       return type is not a parameter that can be void here. Writing `void` where ReturnType_ goes
  *       would still emit `return backend(...)` on a void call.
  * @warning The initializers dereference args, so it must not be NULL [BORROWS].
  */

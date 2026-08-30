@@ -46,7 +46,7 @@ typedef struct
 } PingPong;
 
 /**
- * @brief Arguments for every exter call; each reads only what it needs.
+ * @brief Arguments for every exter call, where each call reads only the members it needs.
  *
  * @note free_dram and free_psram are supplied by the caller and used as given.
  * @note place reads the six figures. The pingpong entries read pingpong alone.

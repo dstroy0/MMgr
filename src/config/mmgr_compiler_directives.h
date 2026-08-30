@@ -3,7 +3,7 @@
  */
 /**
  * @file mmgr_compiler_directives.h
- * @brief Preprocessor definitions; declares no type and defines no function.
+ * @brief Preprocessor definitions, declaring no type and defining no function.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  */
@@ -779,7 +779,7 @@
  * @note Two mistakes are what this is for, and neither is visible at a use site. A member added to
  *       the struct but left out of the list moves every entry below it to a loculus that is no
  *       longer its own, and padding between members does the same without anyone editing the list
- *       at all. The per-member assertions catch the first; the size assertion catches the second,
+ *       at all. The per-member assertions catch the first. The size assertion catches the second,
  *       since a padded struct is larger than the count times MMGR_FP_SIZE.
  * @note MMGR_CAT builds the MMGR_NS_L line's name from MMGR_NARG's count of the member list, so the
  *       caller states the members once and the arity follows from them.
@@ -1047,7 +1047,7 @@
  *       compiler assembles it out of byte loads and shifts. Measured on one such load: ARMv7-M emits
  *       a single ldr, Xtensa twelve instructions and RISC-V eleven.
  * @note The difference decides which of two shapes is faster in a scan that needs the word at an
- *       offset of one. Where a load is a single instruction, take it; where it is a dozen, derive
+ *       offset of one. Where a load is a single instruction, take it. Where it is a dozen, derive
  *       the word from the one already in hand and a byte.
  * @note __ARM_FEATURE_UNALIGNED is the compiler's own answer for ARM, and is switched off by
  *       -mno-unaligned-access. x86 is stated directly, having no equivalent macro.

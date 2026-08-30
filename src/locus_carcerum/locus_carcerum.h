@@ -430,7 +430,7 @@ MMGR_NS_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_releas
  * @param[in] CellBlock8_ Eighth cellblock's tuple, applied after MMGR_CARCER_W7 expands the first seven.
  * @note MMGR_CARCER_WALK selects this line for a site declaring eight cellblocks.
  * @warning The last line written. A site declaring nine cellblocks pastes MMGR_CARCER_W9, which does
- *          not exist. Writing that line is the whole fix; nothing else changes and no configured
+ *          not exist. Writing that line is the whole fix. Nothing else changes and no configured
  *          ceiling is involved.
  */
 #define MMGR_CARCER_W8(what_, prisonsite_, CellBlock1_, CellBlock2_, CellBlock3_, CellBlock4_, CellBlock5_,            \
