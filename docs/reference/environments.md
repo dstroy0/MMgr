@@ -13,10 +13,10 @@ that a wide host can exercise a narrow machine's code paths without owning the n
 
 | name     | definitions           | what it is for                                                                                                                   |
 | -------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `host`   | _(none)_              | whatever this machine is. `MMGR_WORD_BITS` derives from `UINTPTR_MAX`. The default build.                                        |
-| `word32` | `MMGR_WORD_BITS=32`   | a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.                                            |
-| `word16` | `MMGR_WORD_BITS=16`   | the narrowest carrier. Most likely to expose an off-by-one in a scan tail.                                                       |
-| `idx16`  | `MMGR_INDEX_BITS=16`  | a 16-bit index against a 64-bit word, which is the pairing the static asserts in `mmgr_types.h` exist to police.                 |
+| `host`   | _(none)_              | whatever this machine is. `EMBED_WORD_BITS` derives from `UINTPTR_MAX`. The default build.                                        |
+| `word32` | `EMBED_WORD_BITS=32`   | a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.                                            |
+| `word16` | `EMBED_WORD_BITS=16`   | the narrowest carrier. Most likely to expose an off-by-one in a scan tail.                                                       |
+| `idx16`  | `EMBED_INDEX_BITS=16`  | a 16-bit index against a 64-bit word, which is the pairing the static asserts in `embed_types.h` exist to police.                 |
 | `checks` | `MMGR_DEBUG_CHECKS=1` | the checks compiled in, and the trapping `MMGR_ASSERT` selected, so a broken precondition fails a test instead of being a no-op. |
 
 ## One build, not five
@@ -42,12 +42,12 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-A clean run is **150 CTest targets**. Test names carry the environment as a suffix, so a failure
+A clean run is **240 CTest targets**. Test names carry the environment as a suffix, so a failure
 names the width it failed at:
 
 ```
 test_verbum_scrutor_word16 ....... Passed
-test_confinium_idx16 ............. Passed
+test_locus_carcerum_idx16 ........ Passed
 ```
 
 To run one environment on its own, filter on the suffix:
@@ -62,7 +62,7 @@ ctest --test-dir build -R '_word16$' --output-on-failure
 runs at whatever the carrier is; the tail — the bytes after the last whole word — is where an
 off-by-one hides, and a 16-bit carrier reaches that tail four times sooner than a 64-bit one.
 `idx16` exists because a narrow index against a wide word is the combination nothing else covers,
-and it is what the static asserts in `mmgr_types.h` are there to catch.
+and it is what the static asserts in `embed_types.h` are there to catch.
 
 `checks` is not a width at all. It compiles in the library's checks and selects the trapping
 `MMGR_ASSERT`, which turns a broken precondition from a silent no-op into a failed test. It is the
@@ -83,11 +83,11 @@ One line in `CMakeLists.txt`:
 ```cmake
 set(MMGR_ENVIRONMENTS
   "host|"
-  "word32|MMGR_WORD_BITS=32"
-  "word16|MMGR_WORD_BITS=16"
-  "idx16|MMGR_INDEX_BITS=16"
+  "word32|EMBED_WORD_BITS=32"
+  "word16|EMBED_WORD_BITS=16"
+  "idx16|EMBED_INDEX_BITS=16"
   "checks|MMGR_DEBUG_CHECKS=1"
-  "yours|MMGR_SOMETHING=1"      # <- here
+  "yours|YOUR_KNOB=1"           # <- here
 )
 ```
 
@@ -95,5 +95,5 @@ Every module target, every aggregate and every test registration follows from it
 lists the modules, so nothing central has to be kept in step.
 
 @note The generated API reference on this site is produced at one configuration — 64-bit word,
-32-bit index — because Doxygen must resolve `mmgr_word` to a single concrete type. The other four
+32-bit index — because Doxygen must resolve `embed_word` to a single concrete type. The other four
 environments differ only in those typedefs. See `PREDEFINED` in `docs/Doxyfile`.

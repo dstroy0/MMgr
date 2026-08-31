@@ -29,7 +29,11 @@ CREATE_SUBDIRS         = NO
 #
 # The root README.md is also absent on purpose. It is the GitHub front door; docs/README.md is the
 # site front door. Both in INPUT gives two pages called "README" competing for the main page.
-INPUT                  = src docs CONTRIBUTING.md SECURITY.md CHANGELOG.md
+#
+# include/ carries mmgr.h, which is the header a consumer includes and where the pool declarations,
+# the three name guards and the attribute wrappers are declared. Left out, none of them reach the
+# reference at all.
+INPUT                  = include src docs CONTRIBUTING.md SECURITY.md CHANGELOG.md
 FILE_PATTERNS          = *.h *.md *.dox
 RECURSIVE              = YES
 USE_MDFILE_AS_MAINPAGE = docs/README.md
@@ -48,14 +52,15 @@ EXCLUDE_PATTERNS       = */docs/html/* \
                          */node_modules/* \
                          */anchor_cost/anchor_cost_*.h
 
-# The argument-counting and loculus-unrolling steps. Nobody calls these; they are what MMGR_NARG and
-# MMGR_NS_LAYOUT are built out of, and listing twenty-four of them one per arity buries the two
+# The argument-counting and slot-unrolling steps. Nobody calls these; they are what EMBED_NARG and
+# EMBED_TABLE_LAYOUT are built out of, and listing twenty-four of them one per arity buries the two
 # macros that matter.
-EXCLUDE_SYMBOLS        = MMGR_NS_L[0-9]* \
-                         MMGR_ARG_N \
-                         MMGR_NARG_ \
-                         MMGR_CAT_ \
-                         MMGR_DIAG_STR \
+EXCLUDE_SYMBOLS        = EMBED_TABLE_SLOTS_[0-9]* \
+                         EMBED_TABLE_SLOT \
+                         EMBED_ARG_N \
+                         EMBED_NARG_ \
+                         EMBED_CAT_ \
+                         EMBED_DIAGNOSTIC_STRING \
                          _STRING_H \
                          _STRING_H_ \
                          __STRING_H__ \
@@ -72,9 +77,9 @@ EXCLUDE_SYMBOLS        = MMGR_NS_L[0-9]* \
 # documented one.
 EXTRACT_ALL            = NO
 
-# Not optional for this library. MMGR_NS is `static const`, so the dispatch tables - spat, memor,
-# scrut and the rest, which ARE the call-site API - are file-scope statics. With NO they do not
-# appear anywhere in the reference.
+# Not optional for this library. EMBED_TABLE_STORAGE is `static const`, so the dispatch tables -
+# spat, memor, lane and the rest, which ARE the call-site API - are file-scope statics. With NO they
+# do not appear anywhere in the reference.
 EXTRACT_STATIC         = YES
 
 EXTRACT_PRIVATE        = NO
@@ -97,9 +102,9 @@ SHOW_INCLUDE_FILES     = YES
 # -------------------------------------------------------------------------------------------------
 # Ordering
 # -------------------------------------------------------------------------------------------------
-# Load-bearing, not cosmetic. MMGR_NS_LAYOUT static-asserts the byte offset of every dispatch slot,
-# so the declaration order of an Ns struct IS the table's layout. Sorting members alphabetically
-# would document slot 0 of SpatiumNs as `after` when it is `from`.
+# Not cosmetic. EMBED_TABLE_LAYOUT asserts the byte offset of every dispatch slot, so the declaration
+# order of an Ns struct is the table's layout. Sorting members alphabetically would document slot 0
+# of SpatiumNs as `after` when it is `from`.
 SORT_MEMBER_DOCS       = NO
 SORT_BRIEF_DOCS        = NO
 SORT_MEMBERS_CTORS_1ST = NO
@@ -113,18 +118,21 @@ GROUP_NESTED_COMPOUNDS = NO
 # -------------------------------------------------------------------------------------------------
 # Preprocessing
 # -------------------------------------------------------------------------------------------------
-# The highest-risk block in this file. Without the blanks below, `MMGR_INLINE mmgr_word f(void)`
-# parses as a function whose return type is MMGR_INLINE, and every inline entry in verbum_scrutor.h
+# The highest-risk block in this file. Without the blanks below, `EMBED_INLINE embed_word f(void)`
+# parses as a function whose return type is EMBED_INLINE, and every inline entry in verbum_scrutor.h
 # and proximus_operor.h reports undocumented no matter what comment sits above it.
 #
-# MMGR_NS_LAYOUT is a 24-way recursive macro expanding to a chain of _Static_assert. Left expanding
-# it produces pages of noise per module.
+# EMBED_TABLE_LAYOUT is a 24-way recursive macro expanding to a chain of static assertions. Left
+# expanding it produces pages of noise per module.
 #
-# The two ENABLE flags default to 0, which would document dma.h and memoria_externa.h as empty
-# files - their entire contents sit behind the gate. Set to 1 here so the gated API is documented;
-# the module guides say plainly that the gate is off by default.
+# EMBED_CALL takes an entry, a config type and the initializers, so its blank has to be variadic. An
+# arity that does not match leaves the macro unexpanded and every call site in the prose renders raw.
 #
-# The width macros pin one branch of the ladders in mmgr_config.h so mmgr_word resolves to a single
+# The two ENABLE flags default to 0, which would document memoriam_praetereo.h and memoria_externa.h
+# as empty files - their entire contents sit behind the gate. Set to 1 here so the gated API is
+# documented; the module guides say plainly that the gate is off by default.
+#
+# The width macros pin one branch of the ladders in embed_types.h so embed_word resolves to a single
 # concrete type in the output. reference/environments.md carries the note that the reference is
 # generated at the 64-bit configuration and the other four environments differ only in these
 # typedefs.
@@ -133,25 +141,26 @@ MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
 SKIP_FUNCTION_MACROS   = YES
 PREDEFINED             = DOXYGEN \
-                         MMGR_BEGIN_DECLS= \
-                         MMGR_END_DECLS= \
-                         MMGR_INLINE="static inline" \
-                         MMGR_NS="static const" \
-                         MMGR_UNUSED= \
-                         MMGR_WEAK= \
-                         MMGR_ALIAS= \
-                         MMGR_RAW= \
-                         MMGR_ENUM_PACKED= \
-                         MMGR_ALIGN(x)= \
-                         MMGR_CALL(x)= \
-                         MMGR_STATIC_ASSERT(c,m)= \
-                         MMGR_NS_LAYOUT(...)= \
-                         MMGR_NS_LAYOUT_OPEN(...)= \
+                         EMBED_BEGIN_DECLS= \
+                         EMBED_END_DECLS= \
+                         EMBED_INLINE="static inline" \
+                         EMBED_TABLE_STORAGE="static const" \
+                         EMBED_UNUSED= \
+                         EMBED_WEAK= \
+                         EMBED_ALIAS= \
+                         EMBED_RAW= \
+                         EMBED_ENUM_PACKED= \
+                         EMBED_ALIGN(x)= \
+                         EMBED_CALL(...)= \
+                         EMBED_STATIC_ASSERT(c,m)= \
+                         EMBED_TABLE_LAYOUT(...)= \
+                         MMGR_ERROR_ATTR(m)= \
+                         MMGR_ALLOC_SIZE(a)= \
+                         MMGR_EXTRAM_ATTR= \
                          MMGR_ENABLE_DMA=1 \
-                         MMGR_ENABLE_PSRAM_POOL=1 \
-                         MMGR_WORD_BITS=64 \
-                         MMGR_INDEX_BITS=32 \
-                         MMGR_WORKER_COUNT=1
+                         MMGR_ENABLE_EXTRAM=1 \
+                         EMBED_WORD_BITS=64 \
+                         EMBED_INDEX_BITS=32
 
 # The Ns table initializers are seventeen blocks of `.member = mmgr_x_y,` about fifteen lines each,
 # and the ASCII and anchor-cost tables are 256-entry arrays. The struct is the contract; the
@@ -173,7 +182,7 @@ ALIASES                = "ns{1}=@par Namespace^^`\1`" \
                          "slot{1}=@par Dispatch slot^^\1" \
                          "borrows=@par Borrows^^Does not allocate. Writes only into storage the caller supplied." \
                          "bounded{1}=@par Bounded^^Reads at most \1 bytes and stops." \
-                         "widthdep=@par Width^^Behavior follows MMGR_WORD_BITS. See @ref ref_environments."
+                         "widthdep=@par Width^^Behavior follows EMBED_WORD_BITS. See @ref ref_environments."
 
 # -------------------------------------------------------------------------------------------------
 # Source browser

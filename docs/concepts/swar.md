@@ -13,7 +13,7 @@ Three constants set it up, all derived from the carrier width rather than tabula
 correct at 16, 32 and 64 bits without a `#if`:
 
 ```c
-#define MMGR_SWAR_ONES           (((mmgr_word)~(mmgr_word)0) / 0xFFu)  /* 0x0101...01 */
+#define MMGR_SWAR_ONES           (((embed_word)~(embed_word)0) / 0xFFu)  /* 0x0101...01 */
 #define MMGR_VERBUM_SCRUTOR_HIGH (MMGR_SWAR_ONES * 0x80u)              /* 0x8080...80 */
 #define MMGR_SWAR_LOW7           (MMGR_SWAR_ONES * 0x7Fu)              /* 0x7F7F...7F */
 ```
@@ -51,16 +51,16 @@ order, and `mask.tail` trims the last word to the caller's length. That is what 
 Called through the table:
 
 ```c
-const mmgr_word w = MMGR_CALL(word.load,     ScrutWordCfg, .at = p);
-const mmgr_word m = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w);
+const embed_word w = EMBED_CALL(word.load,     ScrutWordCfg, .at = p);
+const embed_word m = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = w);
 if (m != 0)
 {
-    at += MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);
+    at += EMBED_CALL(lane.first, ScrutLaneCfg, .mask = m);
 }
 ```
 
-**Use `word.load_al` in a walk, not `word.load`.** `load` takes any address, which it pays for:
-`mmgr_proxim_word_t` carries `MMGR_ALIGN(1)`, and on a target with no unaligned word load the
+**Use `word.load_al` in a walk, not `word.load`.** `load` takes any address, which it pays for: the
+type it moves carries `EMBED_RAW`, which is `EMBED_ALIGN(1)` and `EMBED_ALIAS`, and on a target with no unaligned word load the
 compiler assembles each one out of byte loads and shifts — twelve instructions on Xtensa, eleven on
 RISC-V, one on ARMv7-M. A walk steps to the first word boundary once and reads the body through
 `load_al`, which is a single instruction everywhere. That change alone took `cellul.len` from 3.788
@@ -72,12 +72,10 @@ candidate mid-haystack, say.
 Not a knob. A narrower carrier is never faster: a 16-bit load on a 32-bit machine moves the same
 cache line, occupies the same load port, and then answers for half the lanes.
 
-`mmgr_config.h` `#undef`s `MMGR_SWAR_BITS` and redefines it to `MMGR_WORD_BITS`, unconditionally,
-before anything else can look at it. That is not belt and braces — it is the one place where a
-stale definition from somewhere else could have desynced the scanner from the word, and the
-`#undef` removes the possibility.
+There is no separate lane width to set. The scanner reads `EMBED_WORD_BITS` directly, so nothing can
+desync the carrier from the word — there is no second number to disagree with the first.
 
-What _is_ a knob is `MMGR_WORD_BITS` itself. Set it and the carrier and the machine word move
+What _is_ a knob is `EMBED_WORD_BITS` itself. Set it and the carrier and the machine word move
 together, which is how the `word32` and `word16` environments run a narrow machine's scan path on a
 64-bit host. See @ref concept_width.
 
@@ -93,8 +91,8 @@ measured decision, not an aesthetic one:
   the fold it replaced.
 
 Avoiding them also means there is no `#ifdef` ladder per compiler in the scan path, which is the
-second reason: every compiler conditional in the library lives in one file
-(`mmgr_compiler_directives.h`), and the scanner is not allowed to add to it.
+second reason: every compiler conditional lives in one file (`embed_compiler_directives.h`), and the
+scanner is not allowed to add to it.
 
 ## What it is worth
 

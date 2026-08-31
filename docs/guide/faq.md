@@ -13,9 +13,9 @@ observation about one run. The long answer, including what it costs you, is @ref
 
 ## Is it thread-safe?
 
-The region synchronizes nothing, because there is nothing to synchronize: a pool is a base, an
-extent and two cursors, used by whoever holds it. Two contexts that must not share get two regions,
-and the region never learns there were two.
+A cellblock synchronizes nothing, because there is nothing to synchronize: it is a pool, an extent
+and two tier boundaries, used by whoever holds it. Two contexts that must not share get two pools,
+and neither cellblock learns there were two.
 
 The one genuinely concurrent module is `memoria_anularis`, which is single-producer
 single-consumer only. Two producers on one ring is broken, not slow. See @ref concept_ownership.
@@ -25,18 +25,18 @@ single-consumer only. Two producers on one ring is broken, not slow. See @ref co
 Nothing, given `const`. gcc devirtualizes a call through a `static const <Mod>Ns` to the inlined
 body — identical instructions to calling the entry directly — and does not devirtualize through a
 non-const one, which becomes a real call with an 88-byte frame. clang devirtualizes both. That is
-why `MMGR_NS` includes `const`. See @ref concept_ns_idiom.
+why `EMBED_TABLE_STORAGE` includes `const`. See @ref concept_ns_idiom.
 
 ## Do I need LTO?
 
-Not for the hot entries — they are `MMGR_INLINE` in their headers. For cross-module calls that are
+Not for the hot entries — they are `EMBED_INLINE` in their headers. For cross-module calls that are
 not, it is worth a lot: `mmgr_memor_chr` over 512 bytes measured 610 cycles without and 187 with.
 `MMGR_LTO` defaults to `ON`.
 
 ## Can I use it from C++?
 
-Yes. Headers are wrapped in `MMGR_INCIPE_DECLS` / `MMGR_FINIS_DECLS`, which is `extern "C"` under a C++
-compiler. The dispatch tables are plain structs of function pointers and work unchanged.
+Yes. Headers are wrapped in `EMBED_BEGIN_DECLS` / `EMBED_END_DECLS`, which is `extern "C"` under a
+C++ compiler. The dispatch tables are plain structs of function pointers and work unchanged.
 
 ## Why is MinSizeRel not -Os?
 
@@ -59,10 +59,10 @@ No. `memoriam_praetereo` and `memoria_externa` are behind `MMGR_ENABLE_DMA` and
 message. Turn the flag on if you want them built. A capability gates the whole suite, never a case
 inside one, because a suite that compiles half its cases away still reports as passing.
 
-## How do I know how big to make my region?
+## How do I know how big to make my pool?
 
-Measure it, and turn the peak tracking on first. the pool's own counters and `buf_available`
-report where the cursors are **right now**, not where they have been, so reading them after a
+Measure it, and turn the peak tracking on first. A cellblock's own counters and `buf_available`
+report where the tier boundaries are **right now**, not where they have been, so reading them after a
 workload tells you about that instant and nothing else.
 
 The peaks are `persistent_hw` and `temporary_hw`, one per tier, and they only exist and are only maintained when

@@ -5,7 +5,10 @@
 
 #define CELLBLOCK_BYTES 2048u
 
-LocusCarcerum(ram, MMGR_MAXIMUM_SECURITY(secret, CELLBLOCK_BYTES), MMGR_MINIMUM_SECURITY(plain, CELLBLOCK_BYTES));
+ParsMemoriaeInternae(secret, CELLBLOCK_BYTES);
+ParsMemoriaeInternae(plain, CELLBLOCK_BYTES);
+
+LocusCarcerum(ram, MMGR_MAXIMUM_SECURITY(secret), MMGR_MINIMUM_SECURITY(plain));
 
 void setUp(void)
 {

@@ -169,7 +169,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) >= (2u * MMGR_CARCER_ALIGN),                                 \
                         #prisonsite_ "." #name_ " is too small for one cell");                                         \
     static CarcerCellBlock prisonsite_##_##name_##_ctx = {mmgr_pars_storage_##name_, name_##_bytes, 0u, name_##_bytes}; \
-    static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size)                                             \
+    MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size)                          \
     {                                                                                                                  \
         return mmgr_persistent_buf_alloc(&prisonsite_##_##name_##_ctx, size);                                          \
     }                                                                                                                  \
@@ -184,7 +184,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
             mmgr_persistent_buf_release(&prisonsite_##_##name_##_ctx, prisoner);                                       \
         }                                                                                                              \
     }                                                                                                                  \
-    static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size)                                              \
+    MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size)                           \
     {                                                                                                                  \
         return mmgr_temporary_buf_alloc(&prisonsite_##_##name_##_ctx, size);                                           \
     }                                                                                                                  \
@@ -483,7 +483,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @warning The bytes are not zeroed, and a reused cell still holds what the last prisoner left. A
  *          cellblock declared MMGR_MAXIMUM_SECURITY is the one that zeroes, and it zeroes on release.
  */
-void *mmgr_persistent_buf_alloc(CarcerCellBlock *cellblock, size_t size);
+MMGR_ALLOC_SIZE(2) void *mmgr_persistent_buf_alloc(CarcerCellBlock *cellblock, size_t size);
 
 /**
  * @brief Releases a prisoner, leaving the cell's bytes as they are.
@@ -533,7 +533,7 @@ void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *
  * @warning The bytes are not zeroed, and an allocation returns whatever the last prisoner left. A
  *          cellblock declared MMGR_MAXIMUM_SECURITY is the one that zeroes, and it zeroes on release.
  */
-void *mmgr_temporary_buf_alloc(CarcerCellBlock *cellblock, size_t size);
+MMGR_ALLOC_SIZE(2) void *mmgr_temporary_buf_alloc(CarcerCellBlock *cellblock, size_t size);
 
 /**
  * @brief The temporary tier's current top, to hand back to mmgr_temporary_buf_release.

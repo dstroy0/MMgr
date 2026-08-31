@@ -124,6 +124,27 @@ typedef struct
 } mmgr_ring;
 
 /**
+ * @brief Declares a ring's storage and claims the pool it is laid over.
+ *
+ * @param[in] name_ Name the ring is reached by.
+ * @param[in] pool_ Pool the ring covers, as ParsMemoriaeInternae or ParsMemoriaeExternum declared it
+ *                  [BORROWS].
+ * @note The claim is what keeps one pool from being dressed twice. A pool already holding a cellblock
+ *       and then laid out as a ring carries two sets of records over the same bytes, each written
+ *       without regard to the other, and nothing at run time reports it.
+ * @note A declaration, because MMGR_PARS_CLAIMED_ONCE emits an enumerator and an enumerator inside a
+ *       function body is block scoped. Put at the mmgr_anular_init call it would shadow the
+ *       cellblock's and never collide.
+ * @note Emits the storage and nothing in it. mmgr_anular_init lays the state into those bytes and
+ *       still has to run, since the sizes it is handed can be refused.
+ * @warning The pool is named here and named again at mmgr_anular_init. Nothing holds those two to the
+ *          same pool. A ring declared over one pool and initialized over another compiles.
+ */
+#define MemoriaAnularis(name_, pool_)                                                                                  \
+    MMGR_PARS_CLAIMED_ONCE(pool_);                                                                                     \
+    static mmgr_ring name_
+
+/**
  * @brief Arguments for every mmgr_anular_ entry, each reading only the members it needs.
  *
  * @note Every entry but mmgr_anular_loculus_next reads ring. mmgr_anular_init reads buf, capacity and

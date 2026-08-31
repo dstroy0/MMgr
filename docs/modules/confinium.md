@@ -16,30 +16,40 @@ moves those views between a producer and a consumer.
 
 ## Declaring one
 
-One declaration per region. It emits each pool's storage, its alignment, its state and the entries
-bound to it, all as initialized data - nothing it does happens at run time:
+Declare the pools, then dress them. A pool declaration emits the storage and its alignment;
+`LocusCarcerum` emits each cellblock's state and the entries bound to it. All of it is initialized
+data, and nothing either one does happens at run time:
 
 ```c
-LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work, 2048), MMGR_MAXIMUM_SECURITY(keys, 2048));
+ParsMemoriaeInternae(work, 2048);
+ParsMemoriaeInternae(keys, 2048);
+
+LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work), MMGR_MAXIMUM_SECURITY(keys));
 ```
 
-**Nothing caps the count.** As many pools as you declare:
+**Nothing caps the count.** As many cellblocks as you declare pools for:
 
 ```c
-LocusCarcerum(four, MMGR_MINIMUM_SECURITY(alpha, 256), MMGR_MINIMUM_SECURITY(beta, 256),
-              MMGR_MINIMUM_SECURITY(gamma, 256), MMGR_MAXIMUM_SECURITY(delta, 256));
+ParsMemoriaeInternae(alpha, 256);
+ParsMemoriaeInternae(beta, 256);
+ParsMemoriaeInternae(gamma, 256);
+ParsMemoriaeInternae(delta, 256);
+
+LocusCarcerum(four, MMGR_MINIMUM_SECURITY(alpha), MMGR_MINIMUM_SECURITY(beta),
+              MMGR_MINIMUM_SECURITY(gamma), MMGR_MAXIMUM_SECURITY(delta));
 ```
 
-Three pools is as legal as four, and the sizes need not relate to each other: each pool declares its
-own storage, so nothing divides and nothing is rounded. The pool count is bounded only by how many
+Three cellblocks is as legal as four, and the sizes need not relate to each other: each is declared
+over its own pool, so nothing divides and nothing is rounded. The count is bounded only by how many
 `MMGR_CARCER_W` lines the header carries; another count is another line.
 
-Every symbol a declaration emits carries the region's name, so a program may declare as many regions
-as it likes and two of them may each hold a pool called the same thing under different guards.
+A cellblock is reached by the name of its pool, and a pool name stands for one region. Declaring one
+name twice fails the build, so two sites cannot hold cellblocks of the same name and a program never
+has two meanings for one symbol.
 
-Requiring a power of two twice over is what keeps the arithmetic free: an offset inside a pool is
-masked rather than divided, and because every pool's size is a power of two its base lands aligned to
-that size, so the pool after it starts at a sum that needs no rounding.
+Requiring a power of two is what keeps the arithmetic free: an offset inside a cellblock is masked
+instead of divided, which holds only for a power of two. `MMGR_CARCER_BODY` asserts it at the
+declaration, against the pool's own `sizeof` and not against the count it was handed.
 
 ## The two ends
 

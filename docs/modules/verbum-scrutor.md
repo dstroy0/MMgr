@@ -26,10 +26,10 @@ size_t find_zero(const uint8_t *p, size_t n)
 {
     size_t i = 0;
     for (; i + MMGR_SWAR_BYTES <= n; i += MMGR_SWAR_BYTES) {
-        const mmgr_word w = MMGR_CALL(word.load, ScrutWordCfg, .at = p + i);
-        const mmgr_word m = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w);
+        const embed_word w = EMBED_CALL(word.load, ScrutWordCfg, .at = p + i);
+        const embed_word m = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = w);
         if (m != 0u) {
-            return i + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);
+            return i + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = m);
         }
     }
     for (; i < n; ++i) {
@@ -61,9 +61,9 @@ a byte length.
 
 ## Gotchas
 
-**The carrier is the machine word, always.** `MMGR_SWAR_BITS` is derived from `MMGR_WORD_BITS` and
-`#undef`ed first so it cannot be set independently. A narrower carrier is never faster — it moves the
-same cache line and answers for fewer lanes.
+**The carrier is the machine word, always.** There is no separate lane width to set: the scanner
+reads `EMBED_WORD_BITS` directly, so there is no second number to disagree with the first. A narrower
+carrier is never faster — it moves the same cache line and answers for fewer lanes.
 
 **A gate may be a superset.** Some entries answer "possibly" rather than "definitely" because a false
 yes only costs a re-check while a false no is a bug. Read the brief on each entry before assuming an
@@ -74,7 +74,7 @@ cycles against 3.680 for `__builtin_ctzll`, and `__builtin_popcountll` is a libg
 x86-64. See @ref concept_swar.
 
 **The bodies are in a `.c`, and the build has to be optimized for that to be free.** The internals
-are `MMGR_INLINE` within the module, but the entries a caller reaches are ordinary functions in
+are `EMBED_INLINE` within the module, but the entries a caller reaches are ordinary functions in
 another translation unit. At `-O2` with LTO the bench binary contains no call to any of them — they
 inline through the dispatch table and through the archive. Built with no optimization the same calls
 survive, and `lane.has_zero` measures 22 cycles instead of 3. Configure with a `CMAKE_BUILD_TYPE`.

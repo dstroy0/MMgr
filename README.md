@@ -1,10 +1,18 @@
 # MMgr
 
-Zero-heap memory manager in C11. `LocusCarcerum` declares a prison site. Each cellblock gets its own
-storage and its state, the warden is the const struct emitted under the site's name that holds those
-cellblocks as its members and that every call goes through, all of it is initialized data, and
-nothing runs at startup (`src/locus_carcerum/locus_carcerum.h:458-463`). The footprint is a number
-you can check against a budget.
+Zero-heap memory manager in C11. A pool is a block of bytes you declare — `ParsMemoriaeInternae`, or
+`ParsMemoriaeExternum` where the part has external RAM and `MMGR_ENABLE_EXTRAM` is set. Which memory
+a pool sits in is settled where it is declared, and nothing afterwards inspects an address to find
+out.
+
+`LocusCarcerum` dresses pools as a prison site. Each cellblock is bound to the pool it was declared
+over, the warden is the const struct emitted under the site's name that holds those cellblocks as its
+members and that every call goes through, all of it is initialized data, and nothing runs at startup.
+The footprint is a number you can check against a budget.
+
+A pool name stands for one region. Declaring it twice in a translation unit fails to compile, in two
+units fails to link, and dressing one pool twice fails to compile — each with a diagnostic naming
+what went wrong.
 
 A cellblock hands out from both ends. The persistent tier runs up from base. The temporary tier runs
 down from size (`src/locus_carcerum/locus_carcerum.h:16-17`). The gap between them is what either
@@ -17,16 +25,21 @@ can still take. A cell from the persistent tier is the caller's
 ```c
 #include "mmgr.h"
 
-/* Two cellblocks, one per security level. Releasing a cell in work leaves its bytes as they
-   are. Releasing one in keys zeroes them. Nothing after this declaration can change either. */
-LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work, 2048), MMGR_MAXIMUM_SECURITY(keys, 2048));
+/* Two pools. Each is a block of bytes and nothing more until something dresses it. */
+ParsMemoriaeInternae(work, 2048);
+ParsMemoriaeInternae(keys, 2048);
+
+/* Dressing them is the claim, and it happens here rather than at run time. Releasing a cell in work
+   leaves its bytes as they are. Releasing one in keys zeroes them. Nothing after this line can
+   change either, and a cellblock is reached by the name of the pool it was built over. */
+LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work), MMGR_MAXIMUM_SECURITY(keys));
 
 void frame(void)
 {
     void *const cell = prison.work.persistent_buf_alloc(256u);
-    mmgr_span span = MMGR_CALL(spat.from, SpatiumCfg, .buf = cell, .cap = 256u);
+    mmgr_span span = EMBED_CALL(spat.from, SpatiumCfg, .buf = cell, .cap = 256u);
 
-    MMGR_CALL(byteio.put_be, OctetusCfg, .write_span = &span, .value = 0xDEADBEEFu, .bytes = 4u);
+    EMBED_CALL(byteio.put_be, OctetusCfg, .write_span = &span, .value = 0xDEADBEEFu, .bytes = 4u);
 }
 ```
 
@@ -34,9 +47,9 @@ void frame(void)
 
 |                                                        |                                                                                                  |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| [`src/`](src)                                          | the library, one directory per module, plus `config`                                             |
-| [`src/mmgr.h`](src/mmgr.h)                             | the single header a consumer includes                                                            |
-| [`src/config/mmgr_config.h`](src/config/mmgr_config.h) | widths, cellblock size bounds, feature switches, the assert hook, the entry macros               |
+| [`src/`](src)                                          | the library, one directory per module                                                            |
+| [`include/mmgr.h`](include/mmgr.h)                     | the header a consumer includes: pool declarations, the name guards, the assert hook              |
+| [`deps/embedded_types/`](deps/embedded_types)          | the widths, the word, the attribute wrappers and the dispatch macros every module builds on      |
 | [`test/`](test)                                        | `unit` per translation unit, `integration` and `interop` across modules, `environment` per width |
 | [`test/harness.py`](test/harness.py)                   | build, run, the A/B, coverage, and the suite and generator checks                                |
 | [`tools/dev_env/`](tools/dev_env)                      | the generators for `src/`'s tables, the size sweep, the source rewriters                         |
@@ -94,7 +107,7 @@ characters down cannot build in place (`test/harness.py:27-34`).
 - **The scans are SWAR, in plain C, with no intrinsics.** [SWAR](docs/concepts/swar.md)
 - **The namespace idiom devirtualizes.** [The ns idiom](docs/concepts/ns-idiom.md)
 - **`to_double`, `verba.g` and `verba.fixed` are exact. `to_float` rounds twice and can land on the wrong neighbor.** [Numbers, and how far they can be trusted](docs/quality/numeric-accuracy.md)
-- **160 targets, 100% of `src/` lines and branches, green against libc as well.** [The test suite](docs/quality/testing.md)
+- **240 targets, 100% of `src/` lines and branches, green against libc as well.** [The test suite](docs/quality/testing.md)
 - **What each optimization level costs.** [Optimization](docs/quality/optimization.md)
 
 ## Status

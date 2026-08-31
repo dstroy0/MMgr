@@ -13,7 +13,9 @@
 #define ARENA_BYTES 65536u
 #define CHAIN 16u
 
-LocusCarcerum(ram, MMGR_MINIMUM_SECURITY(general, ARENA_BYTES));
+ParsMemoriaeInternae(general, ARENA_BYTES);
+
+LocusCarcerum(ram, MMGR_MINIMUM_SECURITY(general));
 
 static EMBED_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_proto_bytes[ARENA_BYTES];
 static protocore_arena g_arena;

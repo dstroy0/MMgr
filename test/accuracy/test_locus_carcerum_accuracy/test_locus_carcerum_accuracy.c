@@ -54,23 +54,29 @@
  *
  * @note Declared at file scope because LocusCarcerum emits static storage, and a declaration inside a
  *       case would give that case a site of its own.
- * @note plain is minimum security, so its releases leave the bytes as they are. secure is maximum
- *       security, so its releases zero the cell first. Both are needed, since a cellblock has one
- *       release and not both.
+ * @note plain_cells is minimum security, so its releases leave the bytes as they are. secure_cells is
+ *       maximum security, so its releases zero the cell first. Both are needed, since a cellblock has
+ *       one release and not both.
+ * @note Each cellblock is declared over its own pool, and a cellblock is reached by that pool's name.
+ *       Pool names are unique, so no two sites in this file can name a cellblock the same thing.
  */
-LocusCarcerum(accuracy_site, MMGR_MINIMUM_SECURITY(plain, MMGR_ACCURACY_CARCER_ROW),
-              MMGR_MAXIMUM_SECURITY(secure, MMGR_ACCURACY_CARCER_ROW));
+ParsMemoriaeInternae(plain_cells, MMGR_ACCURACY_CARCER_ROW);
+ParsMemoriaeInternae(secure_cells, MMGR_ACCURACY_CARCER_ROW);
+
+LocusCarcerum(accuracy_site, MMGR_MINIMUM_SECURITY(plain_cells), MMGR_MAXIMUM_SECURITY(secure_cells));
 
 /**
  * @brief A second prison site, declared to prove two sites hold no byte in common.
  *
- * @note Carries a cellblock named plain, the same name accuracy_site uses. Every emitted symbol
- *       carries its own site's name, so the two do not collide, and a case can hold one of each.
- * @note A cellblock is identified by the address of its own storage, which the linker resolved and
- *       which nothing after the declaration can change. Two sites are two arrays, so no address in
- *       one lies in the other.
+ * @note Carries its own pool, since a pool name stands for one region and cannot be reused. That is
+ *       what makes the two sites' cellblocks separate objects rather than a convention about names.
+ * @note A cellblock is identified by the address of the pool it was declared over, which the linker
+ *       resolved and which nothing after the declaration can change. Two pools are two arrays, so no
+ *       address in one lies in the other.
  */
-LocusCarcerum(accuracy_other_site, MMGR_MINIMUM_SECURITY(plain, MMGR_ACCURACY_CARCER_ROW));
+ParsMemoriaeInternae(other_cells, MMGR_ACCURACY_CARCER_ROW);
+
+LocusCarcerum(accuracy_other_site, MMGR_MINIMUM_SECURITY(other_cells));
 
 /**
  * @brief A third prison site, used only by the case that drives the two tiers into each other.
@@ -81,7 +87,9 @@ LocusCarcerum(accuracy_other_site, MMGR_MINIMUM_SECURITY(plain, MMGR_ACCURACY_CA
  * @note A failing assertion leaves a Unity case immediately. A case that fills a shared cellblock
  *       cannot be relied on to release what it took.
  */
-LocusCarcerum(accuracy_meeting_site, MMGR_MINIMUM_SECURITY(plain, MMGR_ACCURACY_CARCER_ROW));
+ParsMemoriaeInternae(meeting_cells, MMGR_ACCURACY_CARCER_ROW);
+
+LocusCarcerum(accuracy_meeting_site, MMGR_MINIMUM_SECURITY(meeting_cells));
 
 /**
  * @brief One live cell, as this file recorded it when the allocation returned.
@@ -251,7 +259,7 @@ void test_persistent_cells_never_share_a_byte(void)
     for (unsigned index = 0u; index < MMGR_ACCURACY_CARCER_CELLS; index++)
     {
         const size_t size = (size_t)((index % 7u) + 1u) * 5u;
-        uint8_t *const at = (uint8_t *)accuracy_site.plain.persistent_buf_alloc(size);
+        uint8_t *const at = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(size);
         char label[96];
 
         if (at == NULL)
@@ -260,7 +268,7 @@ void test_persistent_cells_never_share_a_byte(void)
         }
 
         (void)snprintf(label, sizeof label, "after allocating cell %u of %u bytes", index, (unsigned)size);
-        TEST_ASSERT_TRUE_MESSAGE(accuracy_site.plain.who_owns_buf(at), "a cell was handed out from outside the block");
+        TEST_ASSERT_TRUE_MESSAGE(accuracy_site.plain_cells.who_owns_buf(at), "a cell was handed out from outside the block");
         TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, ((uintptr_t)at) % MMGR_CARCER_ALIGN, "a cell was not word aligned");
 
         // Explicit cast narrows the loop counter to the byte the pattern is tagged with. The table
@@ -278,7 +286,7 @@ void test_persistent_cells_never_share_a_byte(void)
 
     for (unsigned index = 0u; index < count; index++)
     {
-        accuracy_site.plain.persistent_buf_release(live[index].at);
+        accuracy_site.plain_cells.persistent_buf_release(live[index].at);
     }
 }
 
@@ -299,7 +307,7 @@ void test_a_reused_cell_does_not_disturb_its_neighbors(void)
 
     for (unsigned index = 0u; index < 16u; index++)
     {
-        uint8_t *const at = (uint8_t *)accuracy_site.plain.persistent_buf_alloc(24u);
+        uint8_t *const at = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(24u);
 
         TEST_ASSERT_NOT_NULL_MESSAGE(at, "the cellblock could not meet sixteen small requests");
         live[count].at = at;
@@ -314,14 +322,14 @@ void test_a_reused_cell_does_not_disturb_its_neighbors(void)
     // Release the middle four, leaving live cells above and below the run they leave behind
     for (unsigned index = 6u; index < 10u; index++)
     {
-        accuracy_site.plain.persistent_buf_release(live[index].at);
+        accuracy_site.plain_cells.persistent_buf_release(live[index].at);
         live[index].size = 0u;
     }
     accuracy_expect_all_intact(live, count, "after releasing the middle four");
 
     for (unsigned round = 0u; round < 4u; round++)
     {
-        uint8_t *const at = (uint8_t *)accuracy_site.plain.persistent_buf_alloc(24u);
+        uint8_t *const at = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(24u);
         char label[96];
 
         TEST_ASSERT_NOT_NULL_MESSAGE(at, "the released cells were not handed out again");
@@ -339,7 +347,7 @@ void test_a_reused_cell_does_not_disturb_its_neighbors(void)
 
     for (unsigned index = 0u; index < count; index++)
     {
-        accuracy_site.plain.persistent_buf_release(live[index].at);
+        accuracy_site.plain_cells.persistent_buf_release(live[index].at);
     }
 }
 
@@ -364,8 +372,8 @@ void test_the_two_tiers_never_hand_out_the_same_byte(void)
 
     while (count < (MMGR_ACCURACY_CARCER_CELLS - 1u))
     {
-        uint8_t *const from_bottom = (uint8_t *)accuracy_meeting_site.plain.persistent_buf_alloc(96u);
-        uint8_t *const from_top = (uint8_t *)accuracy_meeting_site.plain.temporary_buf_alloc(96u);
+        uint8_t *const from_bottom = (uint8_t *)accuracy_meeting_site.meeting_cells.persistent_buf_alloc(96u);
+        uint8_t *const from_top = (uint8_t *)accuracy_meeting_site.meeting_cells.temporary_buf_alloc(96u);
         char label[96];
 
         if ((from_bottom == NULL) && (from_top == NULL))
@@ -398,7 +406,7 @@ void test_the_two_tiers_never_hand_out_the_same_byte(void)
     }
 
     TEST_ASSERT_TRUE_MESSAGE(both_refused, "the tiers never met, so nothing about the gap closing was tested");
-    TEST_ASSERT_TRUE_MESSAGE(accuracy_meeting_site.plain.buf_available() < 96u,
+    TEST_ASSERT_TRUE_MESSAGE(accuracy_meeting_site.meeting_cells.buf_available() < 96u,
                              "both tiers refused while the gap still held a cell");
 }
 
@@ -416,7 +424,7 @@ void test_the_two_tiers_never_hand_out_the_same_byte(void)
 void test_a_maximum_security_release_leaves_zeros(void)
 {
     const size_t size = 48u;
-    AccuracyLiveCell cell = {(uint8_t *)accuracy_site.secure.persistent_buf_alloc(size), size, 9u};
+    AccuracyLiveCell cell = {(uint8_t *)accuracy_site.secure_cells.persistent_buf_alloc(size), size, 9u};
 
     TEST_ASSERT_NOT_NULL_MESSAGE(cell.at, "the secure cellblock refused a small request");
     accuracy_fill_cell(&cell);
@@ -424,9 +432,9 @@ void test_a_maximum_security_release_leaves_zeros(void)
 
     uint8_t *const was_at = cell.at;
 
-    accuracy_site.secure.persistent_buf_release(cell.at);
+    accuracy_site.secure_cells.persistent_buf_release(cell.at);
 
-    uint8_t *const again = (uint8_t *)accuracy_site.secure.persistent_buf_alloc(size);
+    uint8_t *const again = (uint8_t *)accuracy_site.secure_cells.persistent_buf_alloc(size);
 
     TEST_ASSERT_EQUAL_PTR_MESSAGE(was_at, again, "the released cell was not the one handed out again");
     for (size_t offset = 0u; offset < size; offset++)
@@ -436,7 +444,7 @@ void test_a_maximum_security_release_leaves_zeros(void)
         (void)snprintf(message, sizeof message, "byte %u survived a maximum security release", (unsigned)offset);
         TEST_ASSERT_EQUAL_HEX8_MESSAGE(0u, again[offset], message);
     }
-    accuracy_site.secure.persistent_buf_release(again);
+    accuracy_site.secure_cells.persistent_buf_release(again);
 }
 
 /**
@@ -451,12 +459,12 @@ void test_a_maximum_security_release_leaves_zeros(void)
 void test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark(void)
 {
     const size_t size = 32u;
-    const size_t mark = accuracy_site.secure.temporary_buf_mark();
+    const size_t mark = accuracy_site.secure_cells.temporary_buf_mark();
     AccuracyLiveCell live[3];
 
     for (unsigned index = 0u; index < 3u; index++)
     {
-        live[index].at = (uint8_t *)accuracy_site.secure.temporary_buf_alloc(size);
+        live[index].at = (uint8_t *)accuracy_site.secure_cells.temporary_buf_alloc(size);
         live[index].size = size;
         // Explicit cast narrows the loop counter to the byte the pattern is tagged with
         live[index].tag = (uint8_t)(index + 20u);
@@ -467,8 +475,8 @@ void test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark(void)
 
     uint8_t *const lowest = live[2].at;
 
-    accuracy_site.secure.temporary_buf_release(mark);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(mark, accuracy_site.secure.temporary_buf_mark(),
+    accuracy_site.secure_cells.temporary_buf_release(mark);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(mark, accuracy_site.secure_cells.temporary_buf_mark(),
                                      "the rewind did not restore the mark it was given");
 
     for (unsigned index = 0u; index < 3u; index++)
@@ -482,7 +490,7 @@ void test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark(void)
             TEST_ASSERT_EQUAL_HEX8_MESSAGE(0u, live[index].at[offset], message);
         }
     }
-    TEST_ASSERT_TRUE_MESSAGE(accuracy_site.secure.who_owns_buf(lowest),
+    TEST_ASSERT_TRUE_MESSAGE(accuracy_site.secure_cells.who_owns_buf(lowest),
                              "the lowest temporary cell was not in the cellblock");
 }
 
@@ -498,18 +506,18 @@ void test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark(void)
  */
 void test_a_rewind_to_a_mark_gives_back_every_byte_taken_since_it(void)
 {
-    const size_t before = accuracy_site.plain.buf_available();
-    const size_t mark = accuracy_site.plain.temporary_buf_mark();
+    const size_t before = accuracy_site.plain_cells.buf_available();
+    const size_t mark = accuracy_site.plain_cells.temporary_buf_mark();
 
     for (unsigned index = 0u; index < 8u; index++)
     {
-        TEST_ASSERT_NOT_NULL_MESSAGE(accuracy_site.plain.temporary_buf_alloc(24u),
+        TEST_ASSERT_NOT_NULL_MESSAGE(accuracy_site.plain_cells.temporary_buf_alloc(24u),
                                      "the cellblock refused a temporary request");
     }
-    TEST_ASSERT_TRUE_MESSAGE(accuracy_site.plain.buf_available() < before, "eight allocations took no bytes");
+    TEST_ASSERT_TRUE_MESSAGE(accuracy_site.plain_cells.buf_available() < before, "eight allocations took no bytes");
 
-    accuracy_site.plain.temporary_buf_release(mark);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, accuracy_site.plain.buf_available(),
+    accuracy_site.plain_cells.temporary_buf_release(mark);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, accuracy_site.plain_cells.buf_available(),
                                      "the rewind did not give back every byte taken since the mark");
 }
 
@@ -524,8 +532,8 @@ void test_a_rewind_to_a_mark_gives_back_every_byte_taken_since_it(void)
  *       cells as soon as the two arrays landed near each other.
  * @note Both sites are filled with patterns and read back together. A site that reached into the
  *       other's bytes is caught the same way a cell handed out twice is.
- * @note The two cellblocks are both named plain. Each site's symbols carry its own name, and a case
- *       holding one of each is what shows the names do not collide.
+ * @note Each site holds its own pool. Two pools are two arrays the linker placed separately, and no
+ *       address in one lies in the other.
  */
 void test_two_prison_sites_hold_no_byte_in_common(void)
 {
@@ -534,20 +542,20 @@ void test_two_prison_sites_hold_no_byte_in_common(void)
 
     for (unsigned index = 0u; index < 12u; index++)
     {
-        uint8_t *const from_first = (uint8_t *)accuracy_site.plain.persistent_buf_alloc(32u);
-        uint8_t *const from_second = (uint8_t *)accuracy_other_site.plain.persistent_buf_alloc(32u);
+        uint8_t *const from_first = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(32u);
+        uint8_t *const from_second = (uint8_t *)accuracy_other_site.other_cells.persistent_buf_alloc(32u);
         char label[96];
 
         TEST_ASSERT_NOT_NULL_MESSAGE(from_first, "the first site refused a small request");
         TEST_ASSERT_NOT_NULL_MESSAGE(from_second, "the second site refused a small request");
 
-        TEST_ASSERT_TRUE_MESSAGE(accuracy_site.plain.who_owns_buf(from_first),
+        TEST_ASSERT_TRUE_MESSAGE(accuracy_site.plain_cells.who_owns_buf(from_first),
                                  "the first site did not claim its own cell");
-        TEST_ASSERT_FALSE_MESSAGE(accuracy_other_site.plain.who_owns_buf(from_first),
+        TEST_ASSERT_FALSE_MESSAGE(accuracy_other_site.other_cells.who_owns_buf(from_first),
                                   "the second site claimed a cell belonging to the first");
-        TEST_ASSERT_TRUE_MESSAGE(accuracy_other_site.plain.who_owns_buf(from_second),
+        TEST_ASSERT_TRUE_MESSAGE(accuracy_other_site.other_cells.who_owns_buf(from_second),
                                  "the second site did not claim its own cell");
-        TEST_ASSERT_FALSE_MESSAGE(accuracy_site.plain.who_owns_buf(from_second),
+        TEST_ASSERT_FALSE_MESSAGE(accuracy_site.plain_cells.who_owns_buf(from_second),
                                   "the first site claimed a cell belonging to the second");
 
         live[count].at = from_first;
@@ -570,8 +578,8 @@ void test_two_prison_sites_hold_no_byte_in_common(void)
 
     for (unsigned index = 0u; index < count; index += 2u)
     {
-        accuracy_site.plain.persistent_buf_release(live[index].at);
-        accuracy_other_site.plain.persistent_buf_release(live[index + 1u].at);
+        accuracy_site.plain_cells.persistent_buf_release(live[index].at);
+        accuracy_other_site.other_cells.persistent_buf_release(live[index + 1u].at);
     }
 }
 

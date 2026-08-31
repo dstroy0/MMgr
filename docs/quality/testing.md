@@ -1,6 +1,6 @@
 # The test suite {#qa_testing}
 
-150 CTest targets covering every compile-time width, at 100% of lines, branches and functions,
+240 CTest targets covering every compile-time width, at 100% of lines, branches and functions,
 green against this library and against libc.
 
 ## Running it
@@ -104,15 +104,16 @@ is for.
 
 ## Capability gating
 
-`test_memoriam_praetereo` needs `MMGR_ENABLE_DMA` and `test_memoria_externa` needs
-`MMGR_ENABLE_EXTRAM`. Both default off (`CMakeLists.txt:28-29`), so both are skipped — **loudly**,
-with a CMake status message naming the capability that turned them off
-(`cmake/MMgrSuite.cmake:36-39`):
+`test_memoriam_praetereo` needs `MMGR_ENABLE_DMA`. `test_memoria_externa` and
+`test_memoria_externa_accuracy` need `MMGR_ENABLE_EXTRAM`. Both knobs default off
+(`CMakeLists.txt:28-29`), so all three are skipped **loudly**, with a CMake status message naming the
+capability that turned each one off:
 
 ```
--- MMgr: 2 suites NOT built, their capability is off:
--- MMgr:   test_memoriam_praetereo (MMGR_ENABLE_DMA=OFF)
+-- MMgr: 3 suites NOT built, their capability is off:
 -- MMgr:   test_memoria_externa (MMGR_ENABLE_EXTRAM=OFF)
+-- MMgr:   test_memoriam_praetereo (MMGR_ENABLE_DMA=OFF)
+-- MMgr:   test_memoria_externa_accuracy (MMGR_ENABLE_EXTRAM=OFF)
 ```
 
 Silently dropping them would leave a passing run that tested less than it looks like, which is worse
@@ -134,8 +135,8 @@ the call. Six cases do that today.
 **Nothing reads past its bound.** A poison pattern cannot catch a read, because a read leaves
 nothing behind. `test_read_bounds` puts the buffer flush against a page marked no-access and catches
 the trap, so a load one byte too far is reported rather than being someone else's crash later. It
-holds `len`, `chr`, `eq`, `starts`, `diff`, `copy` and `take_be` to the word-rounded cap that
-`MMGR_SCAN_MAX_WORDS` reserves, and `find` and `has` to the raw cap with nothing rounded.
+holds `len`, `chr`, `eq`, `starts`, `diff`, `copy` and `take_be` to the word-rounded cap, and `find`
+and `has` to the raw cap with nothing rounded.
 
 **Hostile content, inside legitimate bounds.** Sizes here are the caller's own and bound at compile
 time, so a nonsense size is not an input this library accepts. What arrives from outside is the

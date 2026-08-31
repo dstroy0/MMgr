@@ -64,8 +64,7 @@ Two real examples, both already fixed, both invisible until the site was built:
 - A literal backtick inside an ASCII bit-layout table in `verbum_scrutor.h` opened a code span that
   never closed and swallowed the rest of the file. Bit layouts and ASCII tables belong inside
   `@verbatim` / `@endverbatim`.
-- `<Mod>Ns` in `mmgr_compiler_directives.h` was parsed as an HTML tag. Angle-bracket placeholders
-  need backticks.
+- `<Mod>Ns` in a comment was parsed as an HTML tag. Angle-bracket placeholders need backticks.
 
 Both are in the comment rules in `CONTRIBUTING.md`.
 

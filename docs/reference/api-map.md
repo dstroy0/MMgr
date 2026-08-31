@@ -71,11 +71,12 @@ conversion needs. See @ref qa_numeric for what it is for.
 | ------------- | --------------------------------------------------------------- |
 | `mmgr_<stem>` | a data type — `mmgr_span`, `mmgr_bitor`                         |
 | `<Pascal>Cfg` | the argument struct an entry takes — `SpatiumCfg`, `MemoriaCfg` |
-| `<Pascal>Ctx` | the state a module operates on — `CarcerCtx`                    |
+| `<Pascal>Ctx` | the state a module operates on — `CarcerCellBlock`               |
 | `<Pascal>Ns`  | a dispatch table type — `SpatiumNs`, `ScrutLaneNs`              |
-| `MMGR_<NAME>` | a macro or a constant                                           |
+| `MMGR_<NAME>` | a macro or a constant this library owns                         |
+| `EMBED_<NAME>` | a macro or a constant from `embedded_types`                    |
 
-Every entry takes one `const <Pascal>Cfg *`, built at the call site with @ref MMGR_CALL. A module
+Every entry takes one `const <Pascal>Cfg *`, built at the call site with `EMBED_CALL`. A module
 whose state outlives a call names that state `<Pascal>Ctx` and the caller holds it; the cfg carries
 a pointer to it rather than the state itself.
 

@@ -26,7 +26,7 @@ when done. The bytes never move.
 **Loculi.** `loculus_ready`, `loculus_next`, `loculus_hold`, `loculus_keepout`, `loculus_drop`,
 `loculus_mark`. A numbered hold that records a region to keep out of, for a reader walking bytes in
 place. Their free and held masks are one machine word each, so `MMGR_RING_LOCULI_MAX` is
-`MMGR_WORD_BITS`. `MMGR_RING_LOCULI` is the build knob under that ceiling, and a static assert names
+`EMBED_WORD_BITS`. `MMGR_RING_LOCULI` is the build knob under that ceiling, and a static assert names
 it if it is set higher; a build with no use for them sets it to `0` and gets the keepout storage back.
 
 ## Worked example
@@ -34,20 +34,25 @@ it if it is set higher; a build with no use for them sets it to `0` and gets the
 The caller declares the ring and supplies the bytes. Nothing of the state is reachable from outside:
 
 ```c
-static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t bytes[4096];
-static mmgr_ring ring;
+ParsMemoriaeInternae(ring_bytes, 4096);
+MemoriaAnularis(ring, ring_bytes);
 
-MMGR_CALL(anularis.init, AnularisCfg, .ring = &ring, .buf = bytes, .capacity = 4096u, .segment_count = 8u);
+EMBED_CALL(anularis.init, AnularisCfg, .ring = &ring, .buf = mmgr_pars_storage_ring_bytes,
+           .capacity = ring_bytes_bytes, .segment_count = 8u);
 ```
+
+`MemoriaAnularis` declares the ring's storage and claims the pool. The claim is what stops those same
+bytes being dressed a second time — as a cellblock, or as another ring — which would put two sets of
+records over one region with nothing at run time to report it.
 
 Filling and draining:
 
 ```c
-if (!MMGR_CALL(anularis.put, AnularisCfg, .ring = &ring, .src = msg, .bytes = n)) {
+if (!EMBED_CALL(anularis.put, AnularisCfg, .ring = &ring, .src = msg, .bytes = n)) {
     /* the whole span did not fit; nothing was written */
 }
 
-const size_t got = MMGR_CALL(anularis.read, AnularisCfg, .ring = &ring, .dst = out, .bytes = n);
+const size_t got = EMBED_CALL(anularis.read, AnularisCfg, .ring = &ring, .dst = out, .bytes = n);
 ```
 
 Passing whole segments by index instead, so nothing is copied across the boundary:
@@ -55,14 +60,14 @@ Passing whole segments by index instead, so nothing is copied across the boundar
 ```c
 size_t seg = 0;
 
-if (MMGR_CALL(anularis.seg_next, AnularisCfg, .ring = &ring, .out_index = &seg)) {
-    fill(MMGR_CALL(anularis.seg_at, AnularisCfg, .ring = &ring, .index = seg));
-    MMGR_CALL(anularis.seg_publish, AnularisCfg, .ring = &ring);
+if (EMBED_CALL(anularis.seg_next, AnularisCfg, .ring = &ring, .out_index = &seg)) {
+    fill(EMBED_CALL(anularis.seg_at, AnularisCfg, .ring = &ring, .index = seg));
+    EMBED_CALL(anularis.seg_publish, AnularisCfg, .ring = &ring);
 }
 
-if (MMGR_CALL(anularis.seg_front, AnularisCfg, .ring = &ring, .out_index = &seg)) {
-    use(MMGR_CALL(anularis.seg_at, AnularisCfg, .ring = &ring, .index = seg));
-    MMGR_CALL(anularis.seg_release, AnularisCfg, .ring = &ring);
+if (EMBED_CALL(anularis.seg_front, AnularisCfg, .ring = &ring, .out_index = &seg)) {
+    use(EMBED_CALL(anularis.seg_at, AnularisCfg, .ring = &ring, .index = seg));
+    EMBED_CALL(anularis.seg_release, AnularisCfg, .ring = &ring);
 }
 ```
 
@@ -77,7 +82,7 @@ is the whole reason acquire and release ordering is enough and no entry on those
 read-modify-write.
 
 **`put` is all or nothing.** It checks the whole span against `vacant` first, so a partial write
-never happens and a half span is never visible. It answers `MMGR_FALSE` rather than writing what
+never happens and a half span is never visible. It answers `EMBED_FALSE` instead of writing what
 fits.
 
 **`peek` copies what you ask for whether or not it arrived.** Read `available` first. A count above
@@ -120,7 +125,7 @@ Every entry takes one argument pack, as the rest of the library does, so the six
 rather than positional:
 
 ```c
-const mmgr_place where = MMGR_CALL(exter.place, ExternaCfg, .size = want, .dma_required = needs_dma,
+const mmgr_place where = EMBED_CALL(exter.place, ExternaCfg, .size = want, .dma_required = needs_dma,
                                    .free_dram = dram_left, .free_psram = psram_left,
                                    .psram_threshold = threshold, .dram_reserve = reserve);
 
@@ -134,16 +139,16 @@ switch (where) {
 The two-buffer index is separate, and acts on a `PingPong` the caller owns:
 
 ```c
-MMGR_CALL(exter.pingpong_init, ExternaCfg, .pingpong = &pair);
-const uint8_t filling = MMGR_CALL(exter.pingpong_fill, ExternaCfg, .pingpong = &pair);
-const uint8_t draining = MMGR_CALL(exter.pingpong_drain, ExternaCfg, .pingpong = &pair);
-const uint8_t now = MMGR_CALL(exter.pingpong_swap, ExternaCfg, .pingpong = &pair);
+EMBED_CALL(exter.pingpong_init, ExternaCfg, .pingpong = &pair);
+const uint8_t filling = EMBED_CALL(exter.pingpong_fill, ExternaCfg, .pingpong = &pair);
+const uint8_t draining = EMBED_CALL(exter.pingpong_drain, ExternaCfg, .pingpong = &pair);
+const uint8_t now = EMBED_CALL(exter.pingpong_swap, ExternaCfg, .pingpong = &pair);
 ```
 
 ## Gotchas
 
-**`needs_dma` is not advisory.** On parts where the DMA engine cannot address external memory,
-passing `MMGR_TRUE` is what stops the answer being `PLACE_PSRAM`.
+**`dma_required` is not advisory.** On parts where the DMA engine cannot address external memory,
+passing `EMBED_TRUE` is what stops the answer being `PLACE_PSRAM`.
 
 **`PLACE_FAIL` is a real answer**, not an error code. Handle it.
 
@@ -170,9 +175,9 @@ moves rather than in a third entry to pick.
 | `mmgr_migro_word`   | may alias | the type the above move, so a load cannot be reordered against a store of another type |
 
 ```c
-const mmgr_migro_word any = MMGR_CALL(proxim.load, ProximusCfg, .at = p);
-const mmgr_migro_word ali = MMGR_CALL(proxim.al_load, ProximusCfg, .at = p);
-const uint32_t narrow = MMGR_CALL(proxim.load32, ProximusCfg, .at = p);
+const mmgr_migro_word any = EMBED_CALL(proxim.load, ProximusCfg, .at = p);
+const mmgr_migro_word ali = EMBED_CALL(proxim.al_load, ProximusCfg, .at = p);
+const uint32_t narrow = EMBED_CALL(proxim.load32, ProximusCfg, .at = p);
 ```
 
 ## Why they are not merged

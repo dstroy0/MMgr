@@ -21,7 +21,7 @@ nineteen.
 
 ## Done since this was written
 
-**The unit suites are no longer thin.** 150 targets at 100% of lines, branches and functions, and
+**The unit suites are no longer thin.** 240 targets at 100% of lines, branches and functions, and
 the whole suite runs a second time with `MMGR_ORACLE_LIBC` on so libc answers the same questions.
 What that turned up is in @ref qa_testing and @ref qa_numeric — a parser that was returning the
 right double 16% of the time, a search that read up to seven bytes past its cap, an exponent that
@@ -31,10 +31,6 @@ silently became zero past 1e308.
 each use of it is in @ref qa_optimization.
 
 ## Later
-
-**`MMGR_CALL`.** The designated-initializer call convention is defined and documented in
-`mmgr_compiler_directives.h`, with measured instruction counts, and is used by nothing. It reads as
-an intended future API shape rather than dead code, but it is unproven until a module adopts it.
 
 **A second concurrency shape.** The ring is single-producer single-consumer. Multi-producer is a
 different data structure, not a flag on this one, and it should stay out until something needs it.
@@ -55,16 +51,15 @@ away the property the whole library exists for — a footprint decided before th
 allocation failure from configure time back to run time, which is the thing being avoided.
 
 **`install()` rules and a binary artifact.** The ABI is a function of the compile-time widths, so a
-prebuilt archive can silently disagree with its consumer about the size of `mmgr_word`. Consuming
+prebuilt archive can silently disagree with its consumer about the size of `embed_word`. Consuming
 the source makes that impossible. See @ref guide_install.
 
 **Compiler intrinsics in the scan path.** Measured and rejected — see @ref concept_swar. Beyond the
 performance answer, keeping them out is what keeps every compiler conditional in one file.
 
-**Thread-safe everything.** A region is handed to whoever holds it, and two contexts that must not
-share get two regions; that is the concurrency model. A
-lock inside a bump allocator would be a lock on the hot path of a library whose whole claim is
-bounded, predictable cost.
+**Thread-safe everything.** A cellblock is handed to whoever holds it, and two contexts that must not
+share get two pools; that is the concurrency model. A lock inside a bump allocator would be a lock on
+the hot path of a library whose whole claim is bounded, predictable cost.
 
 ## Versioning
 

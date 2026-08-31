@@ -2,7 +2,7 @@
 
 **Purpose:** Set the library's widths, sizes and optional modules for your target, and know which of
 them are derived rather than yours to set.
-**Scope:** `src/config/mmgr_config.h`, `src/config/mmgr_compiler_directives.h`, `CMakeLists.txt`
+**Scope:** `include/mmgr.h`, `deps/embedded_types/include/`, `CMakeLists.txt`
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
 **Date:** 2026-08-30
 
@@ -12,33 +12,35 @@ than defines.
 
 ## Widths
 
-| knob              |                             default | what it changes                                                                     |
-| ----------------- | ----------------------------------: | ----------------------------------------------------------------------------------- |
-| `MMGR_WORD_BITS`  |          derived from `UINTPTR_MAX` | the SWAR carrier and `mmgr_word`. 64, 32 or 16                                      |
-| `MMGR_INDEX_BITS` | 32, or `MMGR_WORD_BITS` if narrower | `mmgr_idx`, the type of an offset into a region                                     |
-| `MMGR_SWAR_BITS`  |                    `MMGR_WORD_BITS` | **derived, not a knob.** `#undef`ed and redefined so it cannot be set independently |
+These come from `embedded_types`, not from MMgr, and carry its prefix.
 
-Setting `MMGR_WORD_BITS` narrower than the machine does not make anything faster — it makes the
+| knob               |                              default | what it changes                                   |
+| ------------------ | -----------------------------------: | ------------------------------------------------- |
+| `EMBED_WORD_BITS`  |           derived from `UINTPTR_MAX` | the SWAR carrier and `embed_word`. 64, 32 or 16   |
+| `EMBED_INDEX_BITS` | 32, or `EMBED_WORD_BITS` if narrower | the type of an offset into a region               |
+
+Setting `EMBED_WORD_BITS` narrower than the machine does not make anything faster — it makes the
 scanner answer for fewer bytes per load. It exists so a wide host can exercise a narrow machine's
 code paths. See @ref concept_swar.
 
-`mmgr_types.h` carries static asserts that police the combination; `idx16` is the environment that
+`embed_types.h` carries static asserts that police the combination; `idx16` is the environment that
 exists to reach them.
 
-## Region sizes
+## Pools and cellblocks
 
-| knob                         |               default | what it changes                                            |
-| ---------------------------- | --------------------: | ---------------------------------------------------------- |
-| `MMGR_PLAINTEXT_CONFIN_SIZE` |                `4096` | the largest plaintext confinium this build will declare    |
-| `MMGR_SECURE_CONFIN_SIZE`    |                `4096` | the largest secure confinium this build will declare       |
-| `MMGR_CARCER_MAX`            | the larger of the two | **derived.** Bounds a scan's word count and `MMGR_STR_MAX` |
-| `MMGR_CARCER_ALIGN`          |   `sizeof(mmgr_word)` | **derived.** The alignment every tenancy is handed out at  |
+There is no knob that sets a size here. **The size is in the declaration**, which is the whole point:
+`ParsMemoriaeInternae(work, 4096)` states the extent at the one place the storage exists, and
+`sizeof` is asserted against the count it was handed so the two cannot disagree.
 
-**The two size knobs allocate nothing and size no pool.** A pool's extent is one row of the storage
-you declared, and nothing in locus_carcerum reads either knob. What they do is feed
-`MMGR_CARCER_MAX`, which `verbum_scrutor` sizes its worst-case word count against and
-`mmgr_string_shim.h` uses as `MMGR_STR_MAX`. They are a statement of intent about the regions you
-are going to declare, so declare a larger one and they want raising.
+| knob                |             default | what it changes                                                     |
+| ------------------- | ------------------: | ------------------------------------------------------------------- |
+| `MMGR_ALIGN_BYTES`  |              `16`   | alignment every pool declaration puts on its storage                |
+| `MMGR_CARCER_ALIGN` | `sizeof(embed_word)` | **derived.** The alignment every cell is handed out at              |
+| `MMGR_EXTRAM_ATTR`  |               empty | placement an external pool carries. The port supplies it            |
+
+`MMGR_EXTRAM_ATTR` is named here and filled by the port, because which section a part puts external
+memory in is the part's business. A build that enables external memory and leaves this empty gets
+pools placed wherever the linker puts an ordinary one, and nothing diagnoses that.
 
 These are the numbers you change after measuring. Do not guess them — see @ref guide_first_region
 for reading the high-water marks.
@@ -61,7 +63,7 @@ not share get two regions.
 The default `MMGR_ASSERT` keeps its expression type-checked with `sizeof` and then discards it, so it
 cannot rot and costs nothing.
 
-`MMGR_DEBUG_CHECKS=1` is all it takes to trap: `mmgr_config.h` then defines `MMGR_ASSERT` itself, as
+`MMGR_DEBUG_CHECKS=1` is all it takes to trap: `test/support/mmgr_host_traps.h` then supplies `MMGR_ASSERT`, as
 a report to `stderr` naming the expectation, the file and the line, followed by `abort()`. That is
 the whole of the `checks` environment. Define `MMGR_ASSERT` yourself before including the header and
 neither form is used, which is what a target with no `stderr` and no `abort()` wants.
@@ -85,13 +87,13 @@ CMake status message rather than silently dropped.
 | ---------------------- | -----------------------: | ------------------------------------------------------------------ |
 | `MMGR_STR_MAX`         | see `mmgr_string_shim.h` | the read cap the shim's `str*` replacements use                    |
 | `MMGR_RING_LOCULI`     |                      `8` | loculi this build reserves                                         |
-| `MMGR_RING_LOCULI_MAX` |         `MMGR_WORD_BITS` | loculi a mask can address, one bit per loculus in a machine word   |
+| `MMGR_RING_LOCULI_MAX` |        `EMBED_WORD_BITS` | loculi a mask can address, one bit per loculus in a machine word   |
 | `MMGR_RING_WORDS`      |                     `40` | size of the ring storage a caller declares, in `size_t` units      |
 | `MMGR_SIEVE_ROWS`      |                      `1` | needle offsets the search sieve tests per candidate word           |
 | `MMGR_FIND_CHAIN_MAX`  |               `SIZE_MAX` | longest haystack a one or two byte needle is settled by mask chain |
 
-`MMGR_RING_LOCULI_MAX` is derived, not a knob, and it is `MMGR_WORD_BITS` rather than a fixed 32:
-the free and held masks are one `mmgr_word` each, one bit per loculus
+`MMGR_RING_LOCULI_MAX` is derived, not a knob, and it is `EMBED_WORD_BITS` instead of a fixed 32:
+the free and held masks are one `embed_word` each, one bit per loculus
 (`src/memoria_anularis/memoria_anularis.c:308-309`), so the ceiling moves with the word width. A
 build declaring more loculi than that fails the static assert in
 `src/memoria_anularis/memoria_anularis.h:84`.
@@ -123,22 +125,24 @@ Case folding always goes through the sieve — the chain compares raw bytes.
 
 ## Platform
 
-| knob                     |                                                  default | what it changes                       |
-| ------------------------ | -------------------------------------------------------: | ------------------------------------- |
-| `MMGR_HW_BIG_ENDIAN`     |                            derived from `__BYTE_ORDER__` | the host's byte order                 |
-| `MMGR_HW_FAST_UNALIGNED` |               derived from `__ARM_FEATURE_UNALIGNED` etc | whether a word load takes any address |
-| `MMGR_INLINE`            |    `static inline`, plus `always_inline` where available | how hot entries are inlined           |
-| `MMGR_FLATTEN`           | `__attribute__((flatten))` where available, else nothing | a caller's lever to inline an entry   |
+These come from `embedded_types` as well.
 
-`MMGR_FLATTEN` is for a caller, not for the library. Put it on the one hot function that reaches an
+| knob                        |                                                  default | what it changes                       |
+| --------------------------- | -------------------------------------------------------: | ------------------------------------- |
+| `EMBED_BIG_ENDIAN`          |                            derived from `__BYTE_ORDER__` | the host's byte order                 |
+| `EMBED_FAST_UNALIGNED_LOAD` |               derived from `__ARM_FEATURE_UNALIGNED` etc | whether a word load takes any address |
+| `EMBED_INLINE`              |    `static inline`, plus `always_inline` where available | how hot entries are inlined           |
+| `EMBED_FLATTEN`             | `__attribute__((flatten))` where available, else nothing | a caller's lever to inline an entry   |
+
+`EMBED_FLATTEN` is for a caller, not for the library. Put it on the one hot function that reaches an
 entry and the compiler inlines the entry into it, which the inliner otherwise declines to do on size
 even under link-time optimization. Measured on an ESP32-S3, `cellul.len` over eight bytes is 112
 cycles called and 80 inlined — a third of the work at that length. @ref ref_performance has the table
 and the caveats: it needs LTO, it costs the walk's code at every site that takes it, and a long scan
 amortises the call and will not notice.
 
-`MMGR_HW_FAST_UNALIGNED` is not whether an unaligned load _compiles_ — every target accepts one
-through `mmgr_proxim_word_t`, which carries `MMGR_ALIGN(1)`. It is whether the hardware does it in
+`EMBED_FAST_UNALIGNED_LOAD` is not whether an unaligned load _compiles_ — every target accepts one
+through a type carrying `EMBED_RAW`, which is `EMBED_ALIGN(1)` and `EMBED_ALIAS`. It is whether the hardware does it in
 one instruction, or the compiler assembles the word out of byte loads and shifts. Measured on a
 single such load: ARMv7-M emits one `ldr`, Xtensa twelve instructions, RISC-V eleven. A walk that
 needs the word at an offset of one takes the load where it is one instruction and derives it from
@@ -148,8 +152,8 @@ It is not a statement about the family either. Cortex-M0 is ARMv6-M, has no unal
 the macro reports it slow — the compiler answers through `__ARM_FEATURE_UNALIGNED`, which
 `-mno-unaligned-access` also turns off on a part that has it.
 
-Every compiler conditional in the library lives in `mmgr_compiler_directives.h` by policy, so
-supporting a new toolchain is one file to read. See @ref ref_compiler_support.
+Every compiler conditional lives in `embed_compiler_directives.h` by policy, so supporting a new
+toolchain is one file to read. See @ref ref_compiler_support.
 
 ## CMake options
 

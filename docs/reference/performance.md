@@ -116,22 +116,22 @@ Both arms pay it. `cellul.len` over eight bytes costs 112 cycles on the S3 again
 113, and 41 of each is the call. A ratio at n=8 is mostly two call floors and should be read as
 such; subtract before drawing a conclusion.
 
-`MMGR_CALL` itself is free. Dispatching through the namespace table and calling the entry directly
+`EMBED_CALL` itself is free. Dispatching through the namespace table and calling the entry directly
 cost the same to the last two decimals - 112.02 against 112.02 on the S3, 102.06 against 102.06 on
 the C6 - so the compound literal folds into registers and no argument struct is built. That is worth
-stating because it does not hold everywhere: on Cortex-M4 `MMGR_CALL` emitted a `memset` of the
+stating because it does not hold everywhere: on Cortex-M4 `EMBED_CALL` emitted a `memset` of the
 whole argument type per call.
 
 ## Taking the call out
 
 The call is not fixed, though. The entries are large enough that the inliner leaves them out of
 line on size even with link-time optimization on, and a caller can overrule that with
-`MMGR_FLATTEN` on the one function it cares about:
+`EMBED_FLATTEN` on the one function it cares about:
 
 ```c
-MMGR_FLATTEN static size_t field_len(const char *s)
+EMBED_FLATTEN static size_t field_len(const char *s)
 {
-    return MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = s, .cap = FIELD_MAX);
+    return EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = s, .cap = FIELD_MAX);
 }
 ```
 
@@ -141,7 +141,7 @@ ESP32-S3, `cellul.len` over the same eight bytes:
 | ---------------------------- | --------: |
 | through the namespace table  |    112.01 |
 | calling the entry by name    |    112.01 |
-| `MMGR_FLATTEN` on the caller | **80.02** |
+| `EMBED_FLATTEN` on the caller | **80.02** |
 
 **32 cycles, a third of the work at that length.** Against ROM `strnlen`'s 113 that is 0.99 called
 and 0.71 inlined. libc cannot answer it - its routine is in mask ROM and is reached by a call no
@@ -152,7 +152,7 @@ for. A long scan amortises the call and will not notice: the same measurement at
 against 240. And it costs the walk's code at every site that takes it, so it belongs on the one hot
 function rather than on a translation unit.
 
-`MMGR_FLATTEN` needs the entry body visible, so a build without link-time optimization gets nothing
+`EMBED_FLATTEN` needs the entry body visible, so a build without link-time optimization gets nothing
 from it. It resolves to the attribute on every toolchain in the target list - Xtensa, RISC-V, and ARM
 from Cortex-M3 up - and expands to nothing anywhere else, which costs speed and never correctness.
 
@@ -173,7 +173,7 @@ input changes is almost certainly doing that.
 
 ```c
 BENCH_TIME(has_zero, {
-    mmgr_word w = words[bench_i_ & MASK];       BENCH_KEEP(scrut.has_zero(w));
+    embed_word w = words[bench_i_ & MASK];       BENCH_KEEP(scrut.has_zero(w));
 });
 ```
 

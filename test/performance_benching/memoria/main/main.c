@@ -17,7 +17,9 @@
 
 #define ARENA_BYTES 4096u
 
-LocusCarcerum(ram, MMGR_MINIMUM_SECURITY(general, ARENA_BYTES));
+ParsMemoriaeInternae(general, ARENA_BYTES);
+
+LocusCarcerum(ram, MMGR_MINIMUM_SECURITY(general));
 
 static volatile size_t g_take = 64u;
 

@@ -2,11 +2,11 @@
 
 Zero-heap memory manager in C11.
 
-You lend it a buffer. A confinium carves that buffer from both ends: persist grows up from the base
-and interim grows down from the top. Neither take tests the gap between them — the sizes are fixed
-before the program runs, so the fit is settled by then, and a caller working from runtime numbers
-reads `buf_available` on the pool first. Pools hand out cells cut from it, spans are bounded views
-over those, and rings move them between a producer and a consumer.
+You declare a pool: a block of bytes, whose placement is settled by which declaration you write.
+`LocusCarcerum` dresses a pool as a cellblock, and a cellblock hands out cells from both ends. The
+persistent tier grows up from base, the temporary tier grows down from size, and the gap between them
+is what either can still take. An allocation the gap cannot meet returns NULL and moves no boundary.
+Spans are bounded views over cells, and rings move bytes between one producer and one consumer.
 
 Nothing calls `malloc`. Every size is fixed before the program runs, so the footprint is a number you
 can check against a budget rather than a thing you find out at runtime.
@@ -14,16 +14,17 @@ can check against a budget rather than a thing you find out at runtime.
 ```c
 #include "mmgr.h"
 
-/* One region, one pool. The declaration is the whole setup. */
-LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work, 4096));
+/* A pool of bytes, and the line that dresses it. Together they are the whole setup. */
+ParsMemoriaeInternae(work, 4096);
+LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work));
 
 char *const buf = prison.work.persistent_buf_alloc(256u);
 
 size_t at = 0;
-at = MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = 256u, .at = at, .text = "id=");
-at = MMGR_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = buf, .cap = 256u, .at = at, .val = 4211u);
+at = EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = 256u, .at = at, .text = "id=");
+at = EMBED_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = buf, .cap = 256u, .at = at, .val = 4211u);
 
-const size_t len = MMGR_CALL(verba_finis.finish, VerbaFinisCfg, .out = buf, .cap = 256u, .at = at);
+const size_t len = EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = buf, .cap = 256u, .at = at);
 ```
 
 ## What it claims
@@ -71,8 +72,8 @@ top of that: interoperability against libc, newlib and GNU; correctness; binary 
 resource allocation lifetime cycles.
 
 The call-site idiom follows from that. Each module exposes a dispatch table named for a short stem,
-and every entry takes one argument: a pointer to that module's config struct. @ref MMGR_CALL builds
-it as a compound literal, so a call reads
-`MMGR_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = n)` and the arguments are named rather than
-ordered. Both spellings exist and both are documented; the free function is what the table points
-at. @ref concept_ns_idiom
+and every entry takes one argument: a pointer to that module's config struct. `EMBED_CALL` builds it
+as a compound literal, so a call reads
+`EMBED_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = n)` with the arguments named instead of
+ordered. Both forms exist and both are documented; the free function is what the table points at.
+@ref concept_ns_idiom

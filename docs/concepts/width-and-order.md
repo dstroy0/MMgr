@@ -4,15 +4,16 @@ The three machine properties this library refuses to assume.
 
 ## The two types everything is built on
 
-````c
-mmgr_word   mmgr_idx    ```
+```c
+embed_word   embed_iword
+```
 
 They are separate on purpose. A word is what the scanner loads; an index is what addresses a
 region. On a 64-bit host they are 64 and 32 bits, and code that conflates them works there and
 breaks on the first machine where they differ. `idx16` is the environment that exists to reach that
 case.
 
-`mmgr_types.h` carries static asserts policing the combination — that an index can address the
+`embed_types.h` carries static asserts policing the combination — that an index can address the
 largest region the configuration allows, that the word is at least as wide as the index, that the
 fixed-width types are the widths they claim. They fire at compile time, in the build that got it
 wrong, naming the pairing.
@@ -26,11 +27,11 @@ wrong.
 That is not detectable at the use site, so it is asserted at the source:
 
 ```c
-MMGR_STATIC_ASSERT(sizeof(MmgrEnumProbe) == 1,
-    "MMGR_ENUM_PACKED is not honored here, so no enum keeps its declared width ...");
-````
+EMBED_STATIC_ASSERT(sizeof(EmbedEnumProbe) == 1,
+    "EMBED_ENUM_PACKED is not honored here, so no enum keeps its declared width ...");
+```
 
-`MMGR_ENUM_PACKED` is `__attribute__((packed))` where the attribute exists and empty where it does
+`EMBED_ENUM_PACKED` is `__attribute__((packed))` where the attribute exists and empty where it does
 not — and the probe is what turns "the fallback was taken" from a silent behavior change into a
 build failure. On TI toolchains, pass `--small_enum`.
 
@@ -63,30 +64,30 @@ There is no `endian.wr32host()`. A wire format has a byte order; the host's orde
 implementation detail of the host, and code that writes "native" order to a wire has a bug that only
 appears when the other end is different.
 
-`MMGR_HW_BIG_ENDIAN` derives from `__BYTE_ORDER__` and exists so the library can pick the cheap path
+`EMBED_BIG_ENDIAN` derives from `__BYTE_ORDER__` and exists so the library can pick the cheap path
 when the requested order happens to match the host — not so callers can ask for "whatever this
 machine does".
 
-## Alignment of a take
+## Alignment of an allocation
 
 ```c
 uint8_t *p = prison.work.persistent_buf_alloc(256);
 ```
 
-A take does not name an alignment, because there is only one. Every tenancy comes back aligned to
-`MMGR_CARCER_ALIGN`, which is `sizeof(mmgr_word)` — derived from the width rather than written as a
+An allocation does not name an alignment, because there is only one. Every cell comes back aligned to
+`MMGR_CARCER_ALIGN`, which is `sizeof(embed_word)` — derived from the width instead of written as a
 number, so a build at another width gets the alignment that width needs.
 
-Three static asserts in `locus_carcerum.h` hold it together: `MMGR_CARCER_ALIGN` is a power of two, so an
-offset rounds by masking; `MMGR_ALIGN_BYTES` is one too; and `MMGR_ALIGN_BYTES >= MMGR_CARCER_ALIGN`,
-so a region cannot be aligned less than the tenancies it hands out. All three fail the build, not a
-test run.
+`locus_carcerum.h` asserts that `MMGR_CARCER_ALIGN` is a power of two, since an offset rounds by
+masking and masking lands on a multiple only for a power of two. `mmgr.h` asserts the same of
+`MMGR_ALIGN_BYTES`, which is the alignment a pool declaration puts on its storage. Both fail the
+build, not a test run.
 
 The width costs bytes twice over. A request rounds up to a whole word before it is carved, and every
-block carries a header of two `size_t` ahead of its payload, itself rounded to the same alignment. On
-a 64-bit build that is 16 bytes of header per tenancy; on a 16-bit build it is 4. A region full of
-small takes pays that overhead per take, which is what makes the width worth thinking about in a 4 KB
-region.
+cell carries a header of two `size_t` ahead of its payload, itself rounded to the same alignment. On
+a 64-bit build that is 16 bytes of header per cell; on a 16-bit build it is 4. A cellblock full of
+small cells pays that overhead per cell, which is what makes the width worth thinking about in a 4 KB
+pool.
 
 ## What to do with all this
 
@@ -100,5 +101,5 @@ cmake -S . -B build -DMMGR_BUILD_TESTS=ON && cmake --build build && ctest --test
 Between them they cover the two mistakes this page is about. See @ref ref_environments.
 
 @note The generated reference on this site is produced at one configuration — 64-bit word, 32-bit
-index — because Doxygen has to resolve `mmgr_word` to a single concrete type. The other environments
+index — because Doxygen has to resolve `embed_word` to a single concrete type. The other environments
 differ only in these typedefs.

@@ -25,27 +25,31 @@ for memory and never gives any back, because it was never holding any.
 Five things, in the order a byte meets them. The first four are one path:
 
 ```
-    LocusCarcerum [declaration] ──► prison.pool.persistent_buf_alloc ──► spatium ──► operation
+    ParsMemoriae* [declaration] ──► LocusCarcerum [declaration]
+                                          │
+                                          ▼
+                        prison.work.persistent_buf_alloc ──► spatium ──► operation
 ```
 
-A region is carved at compile time; a pool takes a tenancy out of it and hands back its start; a
-span bounds that tenancy; and the text, scan and copy calls work against the span. Rings are the
-fifth, and sit alongside that line rather than on it.
+A pool is declared at compile time; a cellblock is dressed over it; the cellblock hands out a cell
+and returns its first byte; a span bounds that cell; and the text, scan and copy calls work against
+the span. Rings are the fifth, and sit alongside that line instead of on it.
 
-## 1. The region and its pools
+## 1. The pools and the cellblocks over them
 
-`LocusCarcerum` is a declaration, not a call. It emits each pool's storage, its alignment, its state
-and the entries bound to it, and nothing runs at startup. From then on a pool hands out storage
-from two ends of its own bytes:
+`ParsMemoriaeInternae` and `ParsMemoriaeExternum` declare the storage and its alignment.
+`LocusCarcerum` is a declaration too, not a call: it emits each cellblock's state and the entries
+bound to it, and nothing runs at startup. From then on a cellblock hands out storage from two ends of
+its pool's bytes:
 
 - **persist** grows up from the base. It is for things that live as long as the region does.
 - **interim** grows down from the top. It is the working space for one operation.
 
-They grow toward each other, and neither take looks at the gap. `persistent_buf_alloc` and `temporary_buf_alloc`
-move the offset and hand back the address; there is no branch in either one and no value they can
-return that means no. `buf_available` reports the gap still between them — "bytes at
-hand" — and reading it before a take is what keeps the two ends apart. It is not a release; it
-answers _how much is left_.
+They grow toward each other out of one gap, and both allocations test it. `carcer_grow` compares the
+header plus the payload against the gap and returns `NULL` without moving a boundary when it will not
+fit (`src/locus_carcerum/locus_carcerum.c:386-406`), so both `persistent_buf_alloc` and
+`temporary_buf_alloc` can answer no and every call site has to test the return. `buf_available`
+reports the gap still between them. It is not a release; it answers _how much is left_.
 
 `persistent_buf_release` takes the cell itself — `void (*persistent_buf_release)(void *prisoner)`
 (`src/locus_carcerum/locus_carcerum.h:117`) — because the block's own header carries its size, so
@@ -93,16 +97,14 @@ ask for a wipe and not get one, and cannot reach for an unwiped release on a poo
 The extent cleared is the block's own, read from its header, so a caller cannot under-wipe a cell by
 naming fewer bytes than it holds.
 
-Two guards exist rather than one that always clears because the clear costs a pass over the bytes,
-and most cells hold nothing worth paying it for. Which storage is which is a matter of declaring two
-pools and handing secrets to the maximum-security one. Their sizes are the extent of a row you
-declared; `MMGR_PLAINTEXT_CONFIN_SIZE` and `MMGR_SECURE_CONFIN_SIZE` do not size them and nothing in
-`locus_carcerum` reads those two. They state the largest region the build intends to declare, which
-is what `MMGR_CARCER_MAX` bounds the scanner and the string shim against.
+Two guards exist instead of one that always clears, because the clear costs a pass over the bytes and
+most cells hold nothing worth paying it for. Which storage is which is settled by declaring two pools
+and handing secrets to the maximum-security cellblock. Each one's extent is the count in its own pool
+declaration, and no build knob sizes it.
 
-Bytes are cleared on release, not on hand-out. A take does **not** return zeroed storage: a block
-released from a minimum-security pool and handed out again carries what the last occupant left. That
-is what declaring the sensitive pool under `MMGR_MAXIMUM_SECURITY` buys.
+Bytes are cleared on release, not on hand-out. An allocation does **not** return zeroed storage: a
+cell released from a minimum-security cellblock and handed out again carries what the last prisoner
+left. That is what declaring the sensitive pool under `MMGR_MAXIMUM_SECURITY` buys.
 
 `mmgr_zero_buf` clears an address and a count in place without giving anything back. Its stores are
 `volatile` machine-width stores: a plain store there is a dead store the optimizer is entitled to
@@ -147,14 +149,14 @@ spelling and no information.
 
 ```c
 size_t at = 0;
-at = MMGR_CALL(verba.put, VerbaCfg, .out = buf, .cap = n, .at = at, .text = "id=");
-at = MMGR_CALL(verba.uint, VerbaCfg, .out = buf, .cap = n, .at = at, .val = id);
-at = MMGR_CALL(verba.put, VerbaCfg, .out = buf, .cap = n, .at = at, .text = " len=");
-at = MMGR_CALL(verba.uint, VerbaCfg, .out = buf, .cap = n, .at = at, .val = len);
+at = EMBED_CALL(verba.put, VerbaCfg, .out = buf, .cap = n, .at = at, .text = "id=");
+at = EMBED_CALL(verba.uint, VerbaCfg, .out = buf, .cap = n, .at = at, .val = id);
+at = EMBED_CALL(verba.put, VerbaCfg, .out = buf, .cap = n, .at = at, .text = " len=");
+at = EMBED_CALL(verba.uint, VerbaCfg, .out = buf, .cap = n, .at = at, .val = len);
 
 /* One check, covering all four: a writer with no room returns cap, and so does every writer
    after it, so finish reports zero. */
-if (MMGR_CALL(verba.finish, VerbaCfg, .out = buf, .cap = n, .at = at) == 0u) { }
+if (EMBED_CALL(verba.finish, VerbaCfg, .out = buf, .cap = n, .at = at) == 0u) { }
 ```
 
 ## 5. Rings move bytes between a producer and a consumer
@@ -174,7 +176,7 @@ any non-zero power of two is accepted, because the ring wraps by masking. `nsegs
 at most `cap`.
 
 What the word width bounds is the loculi, not the segments: their free and held masks are one
-machine word each, so `MMGR_RING_LOCULI_MAX` is `MMGR_WORD_BITS` — 64 on a 64-bit build, 16 on a
+machine word each, so `MMGR_RING_LOCULI_MAX` is `EMBED_WORD_BITS` — 64 on a 64-bit build, 16 on a
 16-bit one. `MMGR_RING_LOCULI` is a build knob under that ceiling, and a static assert names it if
 it is set higher. A build with no use for the loculus view sets it to `0` and gets the keepout
 storage back.

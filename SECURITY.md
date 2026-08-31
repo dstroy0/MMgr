@@ -15,11 +15,17 @@ rather than after every one.
 the store cannot be optimized away the way a plain `memset` before a free can be. That is the only
 thing in the library that promises a value is actually gone from memory.
 
-**It does not validate the extents it was declared with.** A region is declared rather than
-initialized: `LocusCarcerum(name, ...)` emits the storage, its alignment and its state as data, so
-there is no call that inspects a base and a length at run time and could reject one. The sizes are
-taken as written. A declaration that names a larger pool than the storage behind it carves past the
-end, and nothing in the library can detect that.
+**It checks its extents at the declaration, not at run time.** A cellblock is declared, never
+initialized: the pool macro emits the storage and its alignment, `LocusCarcerum(name, ...)` emits the
+state as data, and no call inspects a base and a length while the program runs.
+
+A cellblock can no longer disagree with the storage behind it, because both come from the same
+declaration. The pool asserts its own `sizeof` against the byte count it was handed, and
+`MMGR_CARCER_BODY` asserts the same `sizeof` is a power of two and holds at least one cell. A
+mismatch fails the build.
+
+What is still taken as written is everything reached through a pointer the library did not hand out.
+An address the caller supplies is used as given.
 
 **It does not protect against a caller holding a stale pointer.** Interim storage is released by
 mark, not by pointer. Nothing is reallocated and nothing moves, so a pointer handed out after a mark

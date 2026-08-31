@@ -15,7 +15,7 @@ the library, the tests and the benches are all held to the same standard:
 
 `-Wconversion` and `-Wsign-conversion` are the two that earn their place in a library where a width
 is a compile-time knob: they catch the implicit narrowing that only becomes wrong at
-`MMGR_WORD_BITS=16`.
+`EMBED_WORD_BITS=16`.
 
 `MMGR_WERROR` turns them into errors. It is off by default, because a working tree mid-edit should
 not be blocked by a warning you are about to fix, and on in CI, which is the wall.

@@ -31,8 +31,9 @@ you. Those are policed by `MMGR_ASSERT`, which **compiles to nothing by default*
 The `sizeof` keeps the expression type-checked so it cannot rot, and then discards it. A shipping
 build pays nothing.
 
-Set `MMGR_DEBUG_CHECKS=1` and `mmgr_config.h` defines the other form instead: a report to `stderr`
-naming the expectation, the file and the line, then `abort()`. Nothing else is needed to arm them.
+Set `MMGR_DEBUG_CHECKS=1` and `test/support/mmgr_host_traps.h` supplies the other form instead: a
+report to `stderr` naming the expectation, the file and the line, then `abort()`. Nothing else is
+needed to arm them.
 That is the `checks` environment, and it is a genuine gate in CI rather than a developer convenience
 — a broken precondition fails a test instead of being a no-op nobody notices.
 
@@ -56,7 +57,7 @@ wrong is kept off the end of the buffer rather than walking down it. Read it to 
 broken, not to decide what to do next.
 
 `err` is a genuine runtime answer. A read span runs out because whatever sent the bytes sent fewer,
-and nothing was built wrong. That is the whole reason every take returns `mmgr_bool` and no append
+and nothing was built wrong. That is the whole reason every take returns `embed_bool` and no append
 returns anything: a short read is a case to handle, an overrun append is a bug to fix.
 
 The same line divides two bounds inside `byteio` that stay runtime checks: `rd_str`'s length prefix
@@ -79,7 +80,7 @@ honest answer is `NULL`.
 | you are asking                    | it answers with                          |
 | --------------------------------- | ---------------------------------------- |
 | can I have some storage           | a pointer, or `NULL`                     |
-| is this true                      | `mmgr_bool`                              |
+| is this true                      | `embed_bool`                              |
 | did any of that formatting fail   | a latched flag, checked once at the end  |
-| did what arrived off the wire fit | `mmgr_bool`, at the call                 |
+| did what arrived off the wire fit | `embed_bool`, at the call                 |
 | did I violate a precondition      | nothing, unless you built with checks on |

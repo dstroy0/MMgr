@@ -6,19 +6,35 @@
 #define A_BYTES 1024u
 #define B_BYTES 1024u
 
-LocusCarcerum(ram, MMGR_MINIMUM_SECURITY(a, A_BYTES), MMGR_MAXIMUM_SECURITY(b, B_BYTES));
+ParsMemoriaeInternae(a, A_BYTES);
+ParsMemoriaeInternae(b, B_BYTES);
+
+LocusCarcerum(ram, MMGR_MINIMUM_SECURITY(a), MMGR_MAXIMUM_SECURITY(b));
 
 #define QUAD_BYTES 256u
 
-LocusCarcerum(quad, MMGR_MINIMUM_SECURITY(q0, QUAD_BYTES), MMGR_MINIMUM_SECURITY(q1, QUAD_BYTES),
-              MMGR_MINIMUM_SECURITY(q2, QUAD_BYTES), MMGR_MINIMUM_SECURITY(q3, QUAD_BYTES));
+ParsMemoriaeInternae(q0, QUAD_BYTES);
+ParsMemoriaeInternae(q1, QUAD_BYTES);
+ParsMemoriaeInternae(q2, QUAD_BYTES);
+ParsMemoriaeInternae(q3, QUAD_BYTES);
+
+LocusCarcerum(quad, MMGR_MINIMUM_SECURITY(q0), MMGR_MINIMUM_SECURITY(q1), MMGR_MINIMUM_SECURITY(q2),
+              MMGR_MINIMUM_SECURITY(q3));
 
 #define OCTO_BYTES 128u
 
-LocusCarcerum(octo, MMGR_MINIMUM_SECURITY(o0, OCTO_BYTES), MMGR_MINIMUM_SECURITY(o1, OCTO_BYTES),
-              MMGR_MINIMUM_SECURITY(o2, OCTO_BYTES), MMGR_MINIMUM_SECURITY(o3, OCTO_BYTES),
-              MMGR_MINIMUM_SECURITY(o4, OCTO_BYTES), MMGR_MINIMUM_SECURITY(o5, OCTO_BYTES),
-              MMGR_MINIMUM_SECURITY(o6, OCTO_BYTES), MMGR_MINIMUM_SECURITY(o7, OCTO_BYTES));
+ParsMemoriaeInternae(o0, OCTO_BYTES);
+ParsMemoriaeInternae(o1, OCTO_BYTES);
+ParsMemoriaeInternae(o2, OCTO_BYTES);
+ParsMemoriaeInternae(o3, OCTO_BYTES);
+ParsMemoriaeInternae(o4, OCTO_BYTES);
+ParsMemoriaeInternae(o5, OCTO_BYTES);
+ParsMemoriaeInternae(o6, OCTO_BYTES);
+ParsMemoriaeInternae(o7, OCTO_BYTES);
+
+LocusCarcerum(octo, MMGR_MINIMUM_SECURITY(o0), MMGR_MINIMUM_SECURITY(o1), MMGR_MINIMUM_SECURITY(o2),
+              MMGR_MINIMUM_SECURITY(o3), MMGR_MINIMUM_SECURITY(o4), MMGR_MINIMUM_SECURITY(o5),
+              MMGR_MINIMUM_SECURITY(o6), MMGR_MINIMUM_SECURITY(o7));
 
 void setUp(void)
 {
@@ -47,8 +63,8 @@ void test_the_namespace_is_wired(void)
 
 void test_the_machinery_sits_below_the_arena(void)
 {
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(ram_a_bytes, ram_a_ctx.base, "a cellblock starts at its own storage");
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(ram_b_bytes, ram_b_ctx.base, "and so does its neighbor");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(mmgr_pars_storage_a, ram_a_ctx.base, "a cellblock starts at the pool it was given");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(mmgr_pars_storage_b, ram_b_ctx.base, "and so does its neighbor");
 }
 
 void test_a_site_does_not_pay_for_the_ceiling(void)
@@ -66,10 +82,10 @@ void test_a_four_cellblock_site_builds_all_four(void)
 
 void test_a_four_cellblock_site_lays_them_end_to_end(void)
 {
-    TEST_ASSERT_EQUAL_PTR(quad_q0_bytes, quad_q0_ctx.base);
-    TEST_ASSERT_EQUAL_PTR(quad_q1_bytes, quad_q1_ctx.base);
-    TEST_ASSERT_EQUAL_PTR(quad_q2_bytes, quad_q2_ctx.base);
-    TEST_ASSERT_EQUAL_PTR(quad_q3_bytes, quad_q3_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_q0, quad_q0_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_q1, quad_q1_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_q2, quad_q2_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_q3, quad_q3_ctx.base);
 }
 
 void test_every_cellblock_of_a_four_cellblock_site_allocates_from_its_own_bytes(void)
@@ -89,8 +105,8 @@ void test_every_cellblock_of_a_four_cellblock_site_allocates_from_its_own_bytes(
 
 void test_an_eight_cellblock_site_builds_and_allocates(void)
 {
-    TEST_ASSERT_EQUAL_PTR(octo_o0_bytes, octo_o0_ctx.base);
-    TEST_ASSERT_EQUAL_PTR(octo_o7_bytes, octo_o7_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_o0, octo_o0_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_o7, octo_o7_ctx.base);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(OCTO_BYTES, octo_o7_ctx.size, "eight cellblocks is a legal count");
 
     void *const first = octo.o0.persistent_buf_alloc(16u);
@@ -103,24 +119,24 @@ void test_an_eight_cellblock_site_builds_and_allocates(void)
     TEST_ASSERT_FALSE_MESSAGE(octo.o0.who_owns_buf(last), "which is not the first cellblock's");
 }
 
-void test_two_sites_may_share_cellblock_names(void)
+void test_two_sites_hold_separate_pools(void)
 {
-    TEST_ASSERT_TRUE_MESSAGE((uintptr_t)ram_a_bytes != (uintptr_t)quad_q0_bytes,
-                             "two sites' cellblocks are separate objects");
+    TEST_ASSERT_TRUE_MESSAGE((uintptr_t)mmgr_pars_storage_a != (uintptr_t)mmgr_pars_storage_q0,
+                             "two sites' pools are separate objects");
 }
 
 void test_init_records_the_site_it_was_given(void)
 {
-    TEST_ASSERT_EQUAL_PTR(ram_a_bytes, ram_a_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_a, ram_a_ctx.base);
     TEST_ASSERT_EQUAL_size_t(A_BYTES, ram_a_ctx.size);
     TEST_ASSERT_EQUAL_size_t(B_BYTES, ram_b_ctx.size);
 }
 
 void test_the_build_lays_the_cellblocks_end_to_end(void)
 {
-    TEST_ASSERT_EQUAL_PTR(ram_a_bytes, ram_a_ctx.base);
+    TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_a, ram_a_ctx.base);
     TEST_ASSERT_EQUAL_size_t(A_BYTES, ram_a_ctx.size);
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(ram_b_bytes, ram_b_ctx.base, "and the second on its own");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(mmgr_pars_storage_b, ram_b_ctx.base, "and the second on its own");
     TEST_ASSERT_EQUAL_size_t(B_BYTES, ram_b_ctx.size);
 }
 

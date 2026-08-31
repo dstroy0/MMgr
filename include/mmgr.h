@@ -95,6 +95,27 @@
 #endif
 
 /**
+ * @brief States which argument of an allocation entry gives the extent of what it returns.
+ *
+ * @param[in] arg_ One-based position of the byte count in the entry's parameter list.
+ * @note Feeds the compiler's object-size analysis, which is what lets a write past the cell a caller
+ *       was given be reported at the line that wrote it. Without it the returned pointer carries the
+ *       extent of the pool it came out of, and a cell overrun reads as a legal access.
+ * @note Costs nothing. Measured byte-identical with and without, both for a direct call and for one
+ *       through a dispatch table.
+ * @warning The bound survives only where the call is not folded away. An entry reached through its
+ *          dispatch table keeps it; the same entry inlined at a direct call collapses to an offset
+ *          into the pool and the cell-level extent is gone.
+ * @warning Expands to nothing where EMBED_HAS_ATTRIBUTE(alloc_size) is 0, ignoring arg_. The
+ *          diagnostics it would have raised are not raised, and nothing reports that.
+ */
+#if EMBED_HAS_ATTRIBUTE(alloc_size)
+#define MMGR_ALLOC_SIZE(arg_) __attribute__((alloc_size(arg_)))
+#else
+#define MMGR_ALLOC_SIZE(arg_)
+#endif
+
+/**
  * @brief Fails the link when a pool name is declared in a second translation unit.
  *
  * @param[in] name_ Pool being declared.

@@ -2,27 +2,34 @@
 
 **Purpose:** Declare a prison site, allocate from both tiers of one of its cellblocks, and release
 the temporary tier by mark.
-**Scope:** `src/carceribus/carceribus.h`, `src/carceribus/carceribus.c`
+**Scope:** `include/mmgr.h`, `src/locus_carcerum/locus_carcerum.h`, `src/locus_carcerum/locus_carcerum.c`
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
 **Date:** 2026-08-29
 
 ## Borrowing
 
 ```c
-LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work, 2048), MMGR_MAXIMUM_SECURITY(keys, 2048));
+ParsMemoriaeInternae(work, 2048);
+ParsMemoriaeInternae(keys, 2048);
+
+LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work), MMGR_MAXIMUM_SECURITY(keys));
 ```
 
-One line declares the prison site, its cellblocks, their storage and their alignment. It is a
-declaration, not a call: "Everything it emits is initialized data. Nothing runs at startup, and a
-cellblock's first byte is the address of its own storage, which the linker resolves"
-(`src/carceribus/carceribus.h:438-439`).
+The first two lines declare the storage and its alignment. The third dresses each pool as a
+cellblock and emits the site. All three are declarations, not calls: everything they emit is
+initialized data, nothing runs at startup, and a cellblock's first byte is the address of the pool
+it was declared over, which the linker resolves.
+
+A cellblock is reached by the name of its pool, so `prison.work` is the cellblock over `work`. Pool
+names stand for one region each, which is why no two cellblocks anywhere in a translation unit can
+share a name.
 
 `MMGR_MINIMUM_SECURITY` and `MMGR_MAXIMUM_SECURITY` pick which guards hold a cellblock, and the
 choice is settled at the declaration: "The warden is const, so nothing after the declaration can
-change the level a cellblock runs at" (`src/carceribus/carceribus.h:19-20`). The two guard types
+change the level a cellblock runs at" (`src/locus_carcerum/locus_carcerum.h:24`). The two guard types
 declare the same eight entries under different behavior, so `prison.keys` has no unzeroed release to
 reach for and `prison.work` has no zeroing one
-(`src/carceribus/carceribus.h:93-105`, `src/carceribus/carceribus.h:116-128`).
+(`src/locus_carcerum/locus_carcerum.h:115`, `src/locus_carcerum/locus_carcerum.h:139`).
 
 ## Two tiers
 
@@ -41,7 +48,7 @@ Both return the first byte of a cell `[RETURNS OWNERSHIP]`. The persistent tier 
 
 The two tiers grow toward each other out of the same gap, and a request the gap cannot meet returns
 `NULL`: "Fails closed. A request the gap cannot meet moves no boundary at all"
-(`src/carceribus/carceribus.c:380`).
+(`src/locus_carcerum/locus_carcerum.c:384`).
 
 ```c
 if (config == NULL || working == NULL) {
@@ -50,7 +57,7 @@ if (config == NULL || working == NULL) {
 ```
 
 "The public entries are English and the internals are Latin, this filename included"
-(`src/carceribus/carceribus.h:21`). @ref ref_glossary decodes the Latin you will meet inside.
+(`src/locus_carcerum/locus_carcerum.h:25`). @ref ref_glossary decodes the Latin you will meet inside.
 
 ## Releasing interim, by mark
 
@@ -104,21 +111,21 @@ makes the argument for why this is the bill worth paying.
 ## Putting it together
 
 ```c
-static mmgr_bool handle(const uint8_t *msg, size_t len)
+static embed_bool handle(const uint8_t *msg, size_t len)
 {
     const size_t mark = prison.work.temporary_buf_mark();
 
     uint8_t *const buf = prison.work.temporary_buf_alloc(len);
     if (buf == NULL) {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
 
-    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = buf, .src = msg, .bytes = len);
+    EMBED_CALL(memor.cpy, MemoriaCfg, .dst = buf, .src = msg, .bytes = len);
 
     /* ... use buf ... */
 
     prison.work.temporary_buf_release(mark);
-    return MMGR_TRUE;
+    return EMBED_TRUE;
 }
 ```
 

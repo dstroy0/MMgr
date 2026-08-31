@@ -11,14 +11,14 @@ Any time you would reach for `snprintf` and would rather not link a formatter, o
 ```c
 size_t at = 0;
 
-at = MMGR_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = "id=");
-at = MMGR_CALL(verba.uint,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .val = id);
-at = MMGR_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = " rate=");
-at = MMGR_CALL(verba.fixed, VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .real = rate,
+at = EMBED_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = "id=");
+at = EMBED_CALL(verba.uint,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .val = id);
+at = EMBED_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = " rate=");
+at = EMBED_CALL(verba.fixed, VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .real = rate,
                .decimals = 2);
-at = MMGR_CALL(verba.ch,    VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .ch = '\n');
+at = EMBED_CALL(verba.ch,    VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .ch = '\n');
 
-const size_t len = MMGR_CALL(verba.finish, VerbaCfg, .out = buf, .cap = sizeof buf, .at = at);
+const size_t len = EMBED_CALL(verba.finish, VerbaCfg, .out = buf, .cap = sizeof buf, .at = at);
 if (len == 0u) {
     }
 ```
@@ -87,7 +87,7 @@ static const mmgr_field row[] = {
 
 const mmgr_fval vals[] = { MMGR_VU32(id), MMGR_VHEX(flags) };
 
-MMGR_CALL(numer.build, NumerosCfg, .out = buf, .cap = sizeof buf,
+EMBED_CALL(numer.build, NumerosCfg, .out = buf, .cap = sizeof buf,
           .spec = row, .vals = vals, .nvals = 2u);
 ```
 
@@ -138,11 +138,11 @@ const PraetCfg ch = {
     .peripheral = PORT_UART0,
 };
 
-if (MMGR_CALL(praet.open, PraetCfg, .channel = ch.channel, .peripheral = ch.peripheral))
+if (EMBED_CALL(praet.open, PraetCfg, .channel = ch.channel, .peripheral = ch.peripheral))
 {
-    MMGR_CALL(praet.tx_submit, PraetTransferCfg, .channel = 0, .buf = buf, .len = len);
-    MMGR_CALL(praet.poll, PraetCfg, .channel = 0);
-    MMGR_CALL(praet.close, PraetTransferCfg, .channel = 0);
+    EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 0, .buf = buf, .len = len);
+    EMBED_CALL(praet.poll, PraetCfg, .channel = 0);
+    EMBED_CALL(praet.close, PraetTransferCfg, .channel = 0);
 }
 ```
 
@@ -154,12 +154,12 @@ is called with a @ref mmgr_praet_event describing what finished.
 
 ## The hardware hooks are weak
 
-The functions that actually touch a controller are `MMGR_WEAK`. A board support file overrides one
+The functions that actually touch a controller are `EMBED_WEAK`. A board support file overrides one
 by defining a symbol with the same name — no registration, no function pointer table, no init order
 to get right.
 
-Without an override they are present and inert, which is what lets `memoriam_praetereo` compile and
-its tests link on a host with no DMA controller at all.
+Without an override they are present and refuse every request, which is what lets
+`memoriam_praetereo` compile and its tests link on a host with no DMA controller at all.
 
 ## Gotchas
 
