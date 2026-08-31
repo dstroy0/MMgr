@@ -1,5 +1,5 @@
 // MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 //
 /**
  * @file test_clz.c
@@ -42,18 +42,18 @@ void test_the_leading_zero_count_at_every_position(void)
 {
     for (unsigned bit = 0; bit < 64u; bit++)
     {
-        const mmgr_u64 single = (mmgr_u64)1 << bit;
+        const embed_u64 single = (embed_u64)1 << bit;
 
         // Explicit cast takes the unsigned loop counter into the int the subtraction and Unity's
         // integer assertion both work in, and bit is bounded to 63 so the value survives it
-        TEST_ASSERT_EQUAL_INT_MESSAGE(63 - (int)bit, MMGR_CALL(clz.lead, ClzCfg, .val = single),
+        TEST_ASSERT_EQUAL_INT_MESSAGE(63 - (int)bit, EMBED_CALL(clz.lead, ClzCfg, .val = single),
                                       "wrong count for a single set bit");
 
-        const mmgr_u64 noisy = single | (single - 1u);
+        const embed_u64 noisy = single | (single - 1u);
 
         // Explicit cast takes the unsigned loop counter into the int the subtraction and Unity's
         // integer assertion both work in, and bit is bounded to 63 so the value survives it
-        TEST_ASSERT_EQUAL_INT(63 - (int)bit, MMGR_CALL(clz.lead, ClzCfg, .val = noisy));
+        TEST_ASSERT_EQUAL_INT(63 - (int)bit, EMBED_CALL(clz.lead, ClzCfg, .val = noisy));
     }
 }
 
@@ -67,18 +67,18 @@ void test_the_trailing_zero_count_at_every_position(void)
 {
     for (unsigned bit = 0; bit < 64u; bit++)
     {
-        const mmgr_u64 single = (mmgr_u64)1 << bit;
+        const embed_u64 single = (embed_u64)1 << bit;
 
         // Explicit cast takes the unsigned loop counter into the int Unity's integer assertion
         // compares in, and bit is bounded to 63 so the value survives it
-        TEST_ASSERT_EQUAL_INT_MESSAGE((int)bit, MMGR_CALL(clz.trail, ClzCfg, .val = single),
+        TEST_ASSERT_EQUAL_INT_MESSAGE((int)bit, EMBED_CALL(clz.trail, ClzCfg, .val = single),
                                       "wrong count for a single set bit");
 
-        const mmgr_u64 noisy = ~(mmgr_u64)0 << bit;
+        const embed_u64 noisy = ~(embed_u64)0 << bit;
 
         // Explicit cast takes the unsigned loop counter into the int Unity's integer assertion
         // compares in, and bit is bounded to 63 so the value survives it
-        TEST_ASSERT_EQUAL_INT_MESSAGE((int)bit, MMGR_CALL(clz.trail, ClzCfg, .val = noisy),
+        TEST_ASSERT_EQUAL_INT_MESSAGE((int)bit, EMBED_CALL(clz.trail, ClzCfg, .val = noisy),
                                       "only the lowest set bit decides a trailing count");
     }
 }
@@ -93,11 +93,11 @@ void test_the_leading_count_reads_the_highest_set_bit_alone(void)
 {
     for (unsigned bit = 1; bit < 64u; bit++)
     {
-        const mmgr_u64 highest = (mmgr_u64)1 << bit;
+        const embed_u64 highest = (embed_u64)1 << bit;
 
         // Explicit cast takes the unsigned loop counter into the int the subtraction and Unity's
         // integer assertion both work in, and bit is bounded to 63 so the value survives it
-        TEST_ASSERT_EQUAL_INT_MESSAGE(63 - (int)bit, MMGR_CALL(clz.lead, ClzCfg, .val = highest | 1u),
+        TEST_ASSERT_EQUAL_INT_MESSAGE(63 - (int)bit, EMBED_CALL(clz.lead, ClzCfg, .val = highest | 1u),
                                       "a bit set at the bottom must not move the leading count");
     }
 }
@@ -112,12 +112,12 @@ void test_the_trailing_count_reads_the_lowest_set_bit_alone(void)
 {
     for (unsigned bit = 0; bit < 63u; bit++)
     {
-        const mmgr_u64 lowest = (mmgr_u64)1 << bit;
-        const mmgr_u64 top = (mmgr_u64)1 << 63;
+        const embed_u64 lowest = (embed_u64)1 << bit;
+        const embed_u64 top = (embed_u64)1 << 63;
 
         // Explicit cast takes the unsigned loop counter into the int Unity's integer assertion
         // compares in, and bit is bounded to 62 here so the value survives it
-        TEST_ASSERT_EQUAL_INT_MESSAGE((int)bit, MMGR_CALL(clz.trail, ClzCfg, .val = lowest | top),
+        TEST_ASSERT_EQUAL_INT_MESSAGE((int)bit, EMBED_CALL(clz.trail, ClzCfg, .val = lowest | top),
                                       "a bit set at the top must not move the trailing count");
     }
 }
@@ -132,11 +132,11 @@ void test_the_two_counts_bracket_a_single_set_bit(void)
 {
     for (unsigned bit = 0; bit < 64u; bit++)
     {
-        const mmgr_u64 single = (mmgr_u64)1 << bit;
-        const mmgr_iword lead = MMGR_CALL(clz.lead, ClzCfg, .val = single);
-        const mmgr_iword trail = MMGR_CALL(clz.trail, ClzCfg, .val = single);
+        const embed_u64 single = (embed_u64)1 << bit;
+        const embed_iword lead = EMBED_CALL(clz.lead, ClzCfg, .val = single);
+        const embed_iword trail = EMBED_CALL(clz.trail, ClzCfg, .val = single);
 
-        // Explicit casts take both counts from mmgr_iword into the int Unity's integer assertion
+        // Explicit casts take both counts from embed_iword into the int Unity's integer assertion
         // compares in. clz.h documents each count as 0 through 63, so the sum stays at 63 and fits
         // whichever of the two types is narrower
         TEST_ASSERT_EQUAL_INT_MESSAGE(63, (int)lead + (int)trail,
@@ -152,9 +152,9 @@ void test_the_two_counts_bracket_a_single_set_bit(void)
  */
 void test_a_full_word_counts_no_zeros_at_either_end(void)
 {
-    TEST_ASSERT_EQUAL_INT_MESSAGE(0, MMGR_CALL(clz.lead, ClzCfg, .val = ~(mmgr_u64)0),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(0, EMBED_CALL(clz.lead, ClzCfg, .val = ~(embed_u64)0),
                                   "a word with every bit set has no leading zeros");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(0, MMGR_CALL(clz.trail, ClzCfg, .val = ~(mmgr_u64)0),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(0, EMBED_CALL(clz.trail, ClzCfg, .val = ~(embed_u64)0),
                                   "a word with every bit set has no trailing zeros");
 }
 
@@ -167,15 +167,15 @@ void test_a_full_word_counts_no_zeros_at_either_end(void)
  */
 void test_zero_is_not_told_apart_from_the_single_bit_at_the_end_each_counts_from(void)
 {
-    TEST_ASSERT_EQUAL_INT_MESSAGE(63, MMGR_CALL(clz.lead, ClzCfg, .val = 0u),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(63, EMBED_CALL(clz.lead, ClzCfg, .val = 0u),
                                   "the header warns that zero and one give the same leading count");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_CALL(clz.lead, ClzCfg, .val = 1u), MMGR_CALL(clz.lead, ClzCfg, .val = 0u),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EMBED_CALL(clz.lead, ClzCfg, .val = 1u), EMBED_CALL(clz.lead, ClzCfg, .val = 0u),
                                   "a caller that can be handed zero has to test for it first");
 
-    TEST_ASSERT_EQUAL_INT_MESSAGE(63, MMGR_CALL(clz.trail, ClzCfg, .val = 0u),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(63, EMBED_CALL(clz.trail, ClzCfg, .val = 0u),
                                   "the header warns that zero and the top bit give the same trailing count");
-    TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_CALL(clz.trail, ClzCfg, .val = (mmgr_u64)1 << 63),
-                                  MMGR_CALL(clz.trail, ClzCfg, .val = 0u),
+    TEST_ASSERT_EQUAL_INT_MESSAGE(EMBED_CALL(clz.trail, ClzCfg, .val = (embed_u64)1 << 63),
+                                  EMBED_CALL(clz.trail, ClzCfg, .val = 0u),
                                   "a caller that can be handed zero has to test for it first");
 }
 
@@ -188,18 +188,18 @@ void test_zero_is_not_told_apart_from_the_single_bit_at_the_end_each_counts_from
  */
 void test_both_counts_stay_inside_the_documented_range(void)
 {
-    mmgr_u64 walk = 1u;
+    embed_u64 walk = 1u;
 
     for (int step = 0; step < 64; step++)
     {
-        const mmgr_iword lead = MMGR_CALL(clz.lead, ClzCfg, .val = walk);
-        const mmgr_iword trail = MMGR_CALL(clz.trail, ClzCfg, .val = walk);
+        const embed_iword lead = EMBED_CALL(clz.lead, ClzCfg, .val = walk);
+        const embed_iword trail = EMBED_CALL(clz.trail, ClzCfg, .val = walk);
 
-        // Explicit casts take the count from mmgr_iword into int so both halves of the range test
+        // Explicit casts take the count from embed_iword into int so both halves of the range test
         // compare in one type. The two halves are combined because a count is in range only when
         // both hold, and neither half carries a side effect
         TEST_ASSERT_TRUE_MESSAGE((int)lead >= 0 && (int)lead <= 63, "a leading count outside 0 through 63");
-        // Explicit casts take the count from mmgr_iword into int so both halves of the range test
+        // Explicit casts take the count from embed_iword into int so both halves of the range test
         // compare in one type. The two halves are combined because a count is in range only when
         // both hold, and neither half carries a side effect
         TEST_ASSERT_TRUE_MESSAGE((int)trail >= 0 && (int)trail <= 63, "a trailing count outside 0 through 63");

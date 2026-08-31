@@ -22,7 +22,8 @@ endforeach()
 
 idf_component_register(
     SRCS "main.c" ${MMGR_SRCS}
-    INCLUDE_DIRS "." "${MMGR_ROOT}/src" "${CMAKE_CURRENT_LIST_DIR}/../../common"
+    INCLUDE_DIRS "." "${MMGR_ROOT}/src" "${MMGR_ROOT}/include" "${MMGR_ROOT}/deps/embedded_types/include"
+                 "${CMAKE_CURRENT_LIST_DIR}/../../common"
 )
 
 # Link-time optimization, because without it this bench measures the wrong thing. The SWAR
@@ -46,9 +47,9 @@ idf_build_set_property(LINK_OPTIONS "${_link_opts}")
 # sdkconfig decides the CPU frequency, and a figure typed in by hand goes stale the moment that
 # changes, which reports cycle counts against a rate the part is not running at.
 # memoria_externa guards its whole contents on this, so without it the module compiles to nothing
-# and cannot be measured at all. Nothing else in the tree reads the switch - the only other mentions
-# are the option() that declares it and the default in mmgr_config.h - so turning it on here adds
-# that module and changes no other row in this image.
+# and cannot be measured at all. The only other mentions are the option() that declares it and the
+# per-target definition MMgrModule.cmake emits from it, so turning it on here adds that module and
+# changes no other row in this image.
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DBENCH_CPU_MHZ=${CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ}u
     MMGR_ENABLE_EXTRAM=1

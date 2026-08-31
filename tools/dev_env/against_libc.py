@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """How much of a target this library costs against the libc it would replace.
 
 newlib is the comparison because it is the libc an embedded target actually ships, it is a static

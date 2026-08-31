@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file bitorum_introitus_exitus.h
@@ -20,9 +23,9 @@
 #ifndef MMGR_BITORUM_INTROITUS_EXITUS_H
 #define MMGR_BITORUM_INTROITUS_EXITUS_H
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief Bit writer state: the buffer, how much is written, and the partial byte.
@@ -35,8 +38,8 @@ typedef struct
     size_t cap;           /**< Bytes available in out. */
     size_t bytes_written; /**< Whole bytes written so far. */
     uint8_t residue;      /**< Bits not yet written, in the low bit_count positions. */
-    mmgr_word bit_count;  /**< Bits held in residue, always under 8. */
-    mmgr_bool overflow;   /**< Set once a request would pass cap, which blocks later writes. */
+    embed_word bit_count; /**< Bits held in residue, always under 8. */
+    embed_bool overflow;  /**< Set once a request would pass cap, which blocks later writes. */
 } mmgr_bitor;
 
 /**
@@ -49,17 +52,18 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_bitor *const writer;  /**< Writer for mmgr_bitor_put and mmgr_bitor_align [BORROWS]. */
-    uint8_t *const out;        /**< Buffer for mmgr_bitor_init [BORROWS]. */
-    const size_t cap;          /**< Bytes available in out. */
-    const uint64_t val;        /**< Bits for mmgr_bitor_put, taken from the low end. */
-    const mmgr_word bit_count; /**< Bits of val to write, which must not exceed 64. */
+    mmgr_bitor *const writer;   /**< Writer for mmgr_bitor_put and mmgr_bitor_align [BORROWS]. */
+    uint8_t *const out;         /**< Buffer for mmgr_bitor_init [BORROWS]. */
+    const size_t cap;           /**< Bytes available in out. */
+    const uint64_t val;         /**< Bits for mmgr_bitor_put, taken from the low end. */
+    const embed_word bit_count; /**< Bits of val to write, which must not exceed 64. */
 } BitorumCfg;
 
 /**
  * @brief Type of the bitio dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the three members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the three members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  */
 typedef struct
 {
@@ -67,7 +71,7 @@ typedef struct
     void (*put)(const BitorumCfg *args);        /**< Appends bits, writing whole bytes only. */
     void (*align)(const BitorumCfg *args);      /**< Writes the partial byte still held. */
 } BitorumIntroitusExitusNs;
-MMGR_NS_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
+EMBED_TABLE_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
 
 /**
  * @brief Builds a bit writer over args->out with capacity args->cap.
@@ -110,12 +114,12 @@ void mmgr_bitor_align(const BitorumCfg *args);
 /**
  * @brief Dispatch table instance named bitio, with each member set to its mmgr_bitor_ function.
  */
-MMGR_NS BitorumIntroitusExitusNs bitio MMGR_UNUSED = {
+EMBED_TABLE_STORAGE BitorumIntroitusExitusNs bitio EMBED_UNUSED = {
     .init = mmgr_bitor_init,
     .put = mmgr_bitor_put,
     .align = mmgr_bitor_align,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

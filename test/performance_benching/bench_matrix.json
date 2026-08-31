@@ -6,10 +6,14 @@
       "path": "cellularum",
       "flags": [],
       "src": [
+        "src/ascii_persona_bitorum/ascii_persona_bitorum.c",
         "src/cellularum_laboro/cellularum_laboro.c",
-        "src/verbum_scrutor/verbum_scrutor.c",
-        "src/impensa_ancorae_acus/impensa_ancorae_acus_generic.c",
-        "src/clz/clz.c"
+        "src/clz/clz.c",
+        "src/fractio/fractio.c",
+        "src/impensa_ancorae_acus/impensa_ancorae_acus_english.c",
+        "src/proximus_operor/proximus_operor.c",
+        "src/transformo/transformo.c",
+        "src/verbum_scrutor/verbum_scrutor.c"
       ]
     },
 
@@ -22,6 +26,24 @@
         "src/verbum_scrutor/verbum_scrutor.c",
         "src/proximus_operor/proximus_operor.c",
         "src/clz/clz.c"
+      ]
+    },
+    
+    "verba": {
+      "desc": "Host and on-device A/B for the text and number writers (verba_scribo), and the rounding arms scale_to_u64 is given for a fixed-point tie.",
+      "path": "verba",
+      "flags": [],
+      "src": [
+        "src/cellularum_laboro/cellularum_laboro.c",
+        "src/clz/clz.c",
+        "src/fractio/fractio.c",
+        "src/impensa_ancorae_acus/impensa_ancorae_acus_english.c",
+        "src/memoria_operor/memoria_operor.c",
+        "src/numeros_scribo/numeros_scribo.c",
+        "src/proximus_operor/proximus_operor.c",
+        "src/transformo/transformo.c",
+        "src/verba_scribo/verba_scribo.c",
+        "src/verbum_scrutor/verbum_scrutor.c"
       ]
     }
   }

@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file locus_carcerum.c
@@ -70,7 +73,7 @@ typedef struct
  *          to 0. Every allocation rounds its request through here, and a request that wraps is met
  *          with a small cell rather than refused.
  */
-MMGR_INLINE size_t carcer_round(size_t want)
+EMBED_INLINE size_t carcer_round(size_t want)
 {
     return (want + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u);
 }
@@ -89,7 +92,7 @@ MMGR_INLINE size_t carcer_round(size_t want)
  *          want at or below what is left.
  * @warning *walk must be writable for want bytes.
  */
-MMGR_INLINE void carcer_zero_bytes(volatile uint8_t **walk, size_t *left, size_t want)
+EMBED_INLINE void carcer_zero_bytes(volatile uint8_t **walk, size_t *left, size_t want)
 {
     size_t index = 0u;
 
@@ -118,7 +121,7 @@ MMGR_INLINE void carcer_zero_bytes(volatile uint8_t **walk, size_t *left, size_t
  *          here walks a tier whose bounds came from the cellblock, except the two releases, which
  *          pass an offset taken from the address the caller handed them.
  */
-MMGR_INLINE CarcerCell *carcer_blk(const CarcerCellBlock *cellblock, size_t off)
+EMBED_INLINE CarcerCell *carcer_blk(const CarcerCellBlock *cellblock, size_t off)
 {
     return (CarcerCell *)(void *)(cellblock->base + off);
 }
@@ -134,7 +137,7 @@ MMGR_INLINE CarcerCell *carcer_blk(const CarcerCellBlock *cellblock, size_t off)
  *          cellblock. It reaches or passes the tier's hi at the end of a walk, which is what each
  *          loop test is there for.
  */
-MMGR_INLINE size_t carcer_next(const CarcerCellBlock *cellblock, size_t off)
+EMBED_INLINE size_t carcer_next(const CarcerCellBlock *cellblock, size_t off)
 {
     return off + CARCER_HDR + carcer_blk(cellblock, off)->size;
 }
@@ -151,7 +154,7 @@ MMGR_INLINE size_t carcer_next(const CarcerCellBlock *cellblock, size_t off)
  *          inside these bytes but off a cell boundary still yields an offset reading bytes which are
  *          not a header.
  */
-MMGR_INLINE size_t carcer_off_of(const CarcerCellBlock *cellblock, const void *at)
+EMBED_INLINE size_t carcer_off_of(const CarcerCellBlock *cellblock, const void *at)
 {
     // Explicit casts take at to a byte pointer so the difference is in bytes, then that ptrdiff_t to
     // the size_t the offset is carried in. An at below base makes the difference negative and the
@@ -167,7 +170,7 @@ MMGR_INLINE size_t carcer_off_of(const CarcerCellBlock *cellblock, const void *a
  * @note A copy of the bounds as they stand at the call, not a view of them. A release that trims
  *       persistent_end leaves a tier taken before it naming a hi the tier no longer reaches.
  */
-MMGR_INLINE CarcerTier carcer_up(const CarcerCellBlock *cellblock)
+EMBED_INLINE CarcerTier carcer_up(const CarcerCellBlock *cellblock)
 {
     CarcerTier tier;
 
@@ -185,7 +188,7 @@ MMGR_INLINE CarcerTier carcer_up(const CarcerCellBlock *cellblock)
  *       moves, since every allocation on this tier lowers the top. The persistent tier's lo is
  *       always 0.
  */
-MMGR_INLINE CarcerTier carcer_down(const CarcerCellBlock *cellblock)
+EMBED_INLINE CarcerTier carcer_down(const CarcerCellBlock *cellblock)
 {
     CarcerTier tier;
 
@@ -208,7 +211,7 @@ MMGR_INLINE CarcerTier carcer_down(const CarcerCellBlock *cellblock)
  * @warning off must be walk's own offset. The two are not checked against each other, and a
  *          mismatched pair writes the second header where no cell begins.
  */
-MMGR_INLINE void carcer_split(const CarcerCellBlock *cellblock, CarcerCell *walk, size_t off, size_t want)
+EMBED_INLINE void carcer_split(const CarcerCellBlock *cellblock, CarcerCell *walk, size_t off, size_t want)
 {
     // Split only when the tail left over can carry its own header and a whole word behind it
     if (walk->size >= (want + CARCER_HDR + MMGR_CARCER_ALIGN))
@@ -235,7 +238,7 @@ MMGR_INLINE void carcer_split(const CarcerCellBlock *cellblock, CarcerCell *walk
  * @warning The whole tier is walked in the failing case, so an allocation on a tier holding many
  *          cells costs their number.
  */
-MMGR_INLINE void *carcer_fit(const CarcerCellBlock *cellblock, CarcerTier tier, size_t want)
+EMBED_INLINE void *carcer_fit(const CarcerCellBlock *cellblock, CarcerTier tier, size_t want)
 {
     size_t off = tier.lo;
 
@@ -267,7 +270,7 @@ MMGR_INLINE void *carcer_fit(const CarcerCellBlock *cellblock, CarcerTier tier, 
  * @warning off must have CARCER_HDR + want bytes behind it, and nothing here tests that it does.
  *          carcer_grow measures the gap first and is the only caller.
  */
-MMGR_INLINE void *carcer_alloc(const CarcerCellBlock *cellblock, size_t off, size_t want)
+EMBED_INLINE void *carcer_alloc(const CarcerCellBlock *cellblock, size_t off, size_t want)
 {
     CarcerCell *const walk = carcer_blk(cellblock, off);
 
@@ -287,7 +290,7 @@ MMGR_INLINE void *carcer_alloc(const CarcerCellBlock *cellblock, size_t off, siz
  *          tests a request against it and then moves a boundary, and an allocation from a preempting
  *          handler landing between the two allocates from the same value this one did.
  */
-MMGR_INLINE size_t carcer_middle(const CarcerCellBlock *cellblock)
+EMBED_INLINE size_t carcer_middle(const CarcerCellBlock *cellblock)
 {
     return (cellblock->temporary_top > cellblock->persistent_end)
                ? (cellblock->temporary_top - cellblock->persistent_end)
@@ -305,7 +308,7 @@ MMGR_INLINE size_t carcer_middle(const CarcerCellBlock *cellblock)
  *       the step recomputed from it reaches further than the one before.
  * @note The last offset is returned from this walk so trimming needs no second one.
  */
-MMGR_INLINE size_t carcer_coalesce(const CarcerCellBlock *cellblock, CarcerTier tier)
+EMBED_INLINE size_t carcer_coalesce(const CarcerCellBlock *cellblock, CarcerTier tier)
 {
     size_t off = tier.lo;
     size_t last = tier.lo;
@@ -341,7 +344,7 @@ MMGR_INLINE size_t carcer_coalesce(const CarcerCellBlock *cellblock, CarcerTier 
  * @warning The mark is read and then written, as two steps. An allocation from a preempting handler
  *          landing between them leaves that allocation's reach unrecorded.
  */
-MMGR_INLINE void carcer_hw(size_t *hw, size_t used)
+EMBED_INLINE void carcer_hw(size_t *hw, size_t used)
 {
     // Explicit cast widens the int result of > to size_t, so the negation builds a mask the full
     // width of the members it selects between
@@ -372,7 +375,7 @@ MMGR_INLINE void carcer_hw(size_t *hw, size_t used)
  *
  * @param[in,out] cellblock Cellblock to allocate in [BORROWS].
  * @param[in]     want      Payload wanted, already rounded.
- * @param[in]     down      MMGR_TRUE for the tier that grows down.
+ * @param[in]     down      EMBED_TRUE for the tier that grows down.
  * @return                  The cell, or NULL when the gap cannot meet it [RETURNS OWNERSHIP].
  * @note Both tiers reach this, so the size test, the allocation and the high-water mark are written
  *       once.
@@ -380,7 +383,7 @@ MMGR_INLINE void carcer_hw(size_t *hw, size_t used)
  *       is refused.
  * @note Fails closed. A request the gap cannot meet moves no boundary at all.
  */
-MMGR_INLINE void *carcer_grow(CarcerCellBlock *cellblock, size_t want, mmgr_bool down)
+EMBED_INLINE void *carcer_grow(CarcerCellBlock *cellblock, size_t want, embed_bool down)
 {
     const size_t need = CARCER_HDR + want;
 
@@ -412,7 +415,7 @@ MMGR_INLINE void *carcer_grow(CarcerCellBlock *cellblock, size_t want, mmgr_bool
  * @warning A want within a word of SIZE_MAX wraps in the rounding and comes back small, so the cell
  *          carries far less than was asked for. Neither allocator tests the request before this.
  */
-MMGR_INLINE size_t carcer_want(size_t want)
+EMBED_INLINE size_t carcer_want(size_t want)
 {
     return carcer_round((want != 0u) ? want : MMGR_CARCER_ALIGN);
 }
@@ -433,7 +436,7 @@ void *mmgr_persistent_buf_alloc(CarcerCellBlock *cellblock, size_t size)
     const size_t want = carcer_want(size);
     void *const reused = carcer_fit(cellblock, carcer_up(cellblock), want);
 
-    return (reused != NULL) ? reused : carcer_grow(cellblock, want, MMGR_FALSE);
+    return (reused != NULL) ? reused : carcer_grow(cellblock, want, EMBED_FALSE);
 }
 
 /**
@@ -452,7 +455,7 @@ void *mmgr_persistent_buf_alloc(CarcerCellBlock *cellblock, size_t size)
  */
 void *mmgr_temporary_buf_alloc(CarcerCellBlock *cellblock, size_t size)
 {
-    return carcer_grow(cellblock, carcer_want(size), MMGR_TRUE);
+    return carcer_grow(cellblock, carcer_want(size), EMBED_TRUE);
 }
 
 /**
@@ -482,13 +485,13 @@ void mmgr_zero_buf(void *prisoner, size_t size)
     // Explicit casts go through volatile void * to reach the word scope the run stores in. The head
     // above leaves walk on a word boundary whenever it had the bytes to reach one. Where it ran out
     // first, left is 0 and neither the loop nor the tail reads through this pointer
-    volatile mmgr_word *word_walk = (volatile mmgr_word *)(volatile void *)walk;
+    volatile embed_word *word_walk = (volatile embed_word *)(volatile void *)walk;
 
     while (left >= MMGR_CARCER_ALIGN)
     {
         // Store, pointer advance and count advance are separate statements; *word_walk++ = 0 would
         // put an increment inside the volatile store. Explicit cast gives the zero the word scope
-        *word_walk = (mmgr_word)0;
+        *word_walk = (embed_word)0;
         word_walk++;
         left -= MMGR_CARCER_ALIGN;
     }
@@ -685,16 +688,16 @@ void mmgr_temporary_buf_reset(CarcerCellBlock *cellblock)
  *
  * @param[in] cellblock Cellblock to test against [BORROWS].
  * @param[in] at        Address to test [BORROWS].
- * @return              MMGR_TRUE when at lies in [base, base + size), the last byte included.
+ * @return              EMBED_TRUE when at lies in [base, base + size), the last byte included.
  * @note Any address in the cellblock answers true, not only the first byte of a cell. This tells a
  *       caller where an address is, not what is there.
  */
-mmgr_bool mmgr_who_owns_buf(const CarcerCellBlock *cellblock, const void *at)
+embed_bool mmgr_who_owns_buf(const CarcerCellBlock *cellblock, const void *at)
 {
 
     // Explicit casts to uintptr_t let one unsigned compare cover both ends: below base wraps high
-    // Explicit cast narrows the int result of < to the mmgr_bool container
-    return (mmgr_bool)(((uintptr_t)at - (uintptr_t)cellblock->base) < cellblock->size);
+    // Explicit cast narrows the int result of < to the embed_bool container
+    return (embed_bool)(((uintptr_t)at - (uintptr_t)cellblock->base) < cellblock->size);
 }
 
 /**

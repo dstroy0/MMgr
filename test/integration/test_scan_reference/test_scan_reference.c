@@ -157,10 +157,10 @@ void test_the_answer_does_not_depend_on_where_the_buffer_starts(void)
                 memcpy(p + len - 3u, "xyz", 3u);
             }
 
-            const size_t l = MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = p, .cap = len + 1u);
-            const char *c = MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = p, .cap = len + 1u, .byte = (uint8_t)'z');
-            const char *f = MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = p, .cap = len, .other = "xyz",
-                                      .other_cap = 3u, .ci = MMGR_FALSE);
+            const size_t l = EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = p, .cap = len + 1u);
+            const char *c = EMBED_CALL(cellul.chr, CatenaFinitaCfg, .src = p, .cap = len + 1u, .byte = (uint8_t)'z');
+            const char *f = EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = p, .cap = len, .other = "xyz",
+                                       .other_cap = 3u, .ci = EMBED_FALSE);
 
             const ptrdiff_t co = c ? c - p : -1;
             const ptrdiff_t fo = f ? f - p : -1;
@@ -194,7 +194,7 @@ void test_len_matches_the_reference_at_every_length(void)
         char msg[80];
         (void)snprintf(msg, sizeof msg, "len at length %zu", len);
         TEST_ASSERT_EQUAL_size_t_MESSAGE(ref_len(pool_a, cap),
-                                         MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = pool_a, .cap = cap), msg);
+                                         EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = pool_a, .cap = cap), msg);
     }
 }
 
@@ -207,7 +207,7 @@ void test_len_stops_at_the_cap_at_every_length(void)
     {
         char msg[80];
         (void)snprintf(msg, sizeof msg, "len with cap %zu", cap);
-        TEST_ASSERT_EQUAL_size_t_MESSAGE(cap, MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = pool_a, .cap = cap), msg);
+        TEST_ASSERT_EQUAL_size_t_MESSAGE(cap, EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = pool_a, .cap = cap), msg);
     }
 }
 
@@ -226,7 +226,7 @@ void test_chr_matches_the_reference_at_every_length(void)
             (void)snprintf(msg, sizeof msg, "chr 0x%02x at length %zu", wanted[w], len);
             TEST_ASSERT_EQUAL_PTR_MESSAGE(
                 ref_chr(pool_a, cap, wanted[w]),
-                MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = pool_a, .cap = cap, .byte = wanted[w]), msg);
+                EMBED_CALL(cellul.chr, CatenaFinitaCfg, .src = pool_a, .cap = cap, .byte = wanted[w]), msg);
         }
     }
 }
@@ -248,8 +248,8 @@ void test_diff_matches_the_reference_at_every_length(void)
             char msg[96];
             (void)snprintf(msg, sizeof msg, "diff at length %zu ci %d", len, ci);
             TEST_ASSERT_EQUAL_size_t_MESSAGE(ref_diff(pool_a, pool_b, len, ci),
-                                             MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = pool_a, .other = pool_b,
-                                                       .cap = len, .ci = ci ? MMGR_TRUE : MMGR_FALSE),
+                                             EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = pool_a, .other = pool_b,
+                                                        .cap = len, .ci = ci ? EMBED_TRUE : EMBED_FALSE),
                                              msg);
         }
     }
@@ -276,12 +276,12 @@ void test_find_matches_the_reference_at_every_needle_and_hay_length(void)
 
             for (int ci = 0; ci <= 1; ci++)
             {
-                const mmgr_bool f = ci ? MMGR_TRUE : MMGR_FALSE;
+                const embed_bool f = ci ? EMBED_TRUE : EMBED_FALSE;
                 char msg[112];
                 (void)snprintf(msg, sizeof msg, "find hay %zu needle %zu ci %d", hlen, nlen, ci);
                 TEST_ASSERT_EQUAL_PTR_MESSAGE(ref_find(pool_a, hlen, pool_b, nlen, ci),
-                                              MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = pool_a, .cap = hlen,
-                                                        .other = pool_b, .other_cap = nlen, .ci = f),
+                                              EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = pool_a, .cap = hlen,
+                                                         .other = pool_b, .other_cap = nlen, .ci = f),
                                               msg);
             }
         }
@@ -303,8 +303,8 @@ void test_find_matches_the_reference_with_the_match_at_every_position(void)
         char msg[80];
         (void)snprintf(msg, sizeof msg, "find with the match at %zu", at);
         TEST_ASSERT_EQUAL_PTR_MESSAGE(ref_find(pool_a, hlen, pool_b, nlen, 0),
-                                      MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = pool_a, .cap = hlen,
-                                                .other = pool_b, .other_cap = nlen, .ci = MMGR_FALSE),
+                                      EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = pool_a, .cap = hlen,
+                                                 .other = pool_b, .other_cap = nlen, .ci = EMBED_FALSE),
                                       msg);
     }
 }

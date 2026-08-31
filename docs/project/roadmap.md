@@ -61,10 +61,6 @@ the source makes that impossible. See @ref guide_install.
 **Compiler intrinsics in the scan path.** Measured and rejected — see @ref concept_swar. Beyond the
 performance answer, keeping them out is what keeps every compiler conditional in one file.
 
-**MSVC support.** The target is embedded C11 toolchains. `/W4` does not mean what `-Wall -Wextra`
-means and there is no `-Wconversion` equivalent worth gating on, so keeping it green would buy a
-platform nobody ships this to.
-
 **Thread-safe everything.** A region is handed to whoever holds it, and two contexts that must not
 share get two regions; that is the concurrency model. A
 lock inside a bump allocator would be a lock on the hot path of a library whose whole claim is

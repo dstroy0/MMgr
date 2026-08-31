@@ -1,5 +1,5 @@
 // MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 //
 /**
  * @file test_memoriam_praetereo.c
@@ -8,9 +8,9 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-30
  */
-#include "unity.h"
-
 #include "memoriam_praetereo/memoriam_praetereo.h"
+
+#include "unity.h"
 
 /**
  * @brief Channel every case acts on, chosen below any configured channel count.
@@ -99,8 +99,7 @@ void test_every_praet_entry_is_reachable(void)
 void test_no_two_praet_entries_share_a_function(void)
 {
     TEST_ASSERT_TRUE_MESSAGE(praet.open == mmgr_praet_open, "open is not wired to mmgr_praet_open");
-    TEST_ASSERT_TRUE_MESSAGE(praet.tx_submit == mmgr_praet_tx_submit,
-                             "tx_submit is not wired to mmgr_praet_tx_submit");
+    TEST_ASSERT_TRUE_MESSAGE(praet.tx_submit == mmgr_praet_tx_submit, "tx_submit is not wired to mmgr_praet_tx_submit");
     TEST_ASSERT_TRUE_MESSAGE(praet.close == mmgr_praet_close, "close is not wired to mmgr_praet_close");
     TEST_ASSERT_TRUE_MESSAGE(praet.poll == mmgr_praet_poll, "poll is not wired to mmgr_praet_poll");
 }
@@ -113,8 +112,8 @@ void test_no_two_praet_entries_share_a_function(void)
  */
 void test_an_unported_build_refuses_to_open_a_channel(void)
 {
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(praet.open, PraetCfg, .channel = PRAET_TEST_CHANNEL, .peripheral = 0u,
-                                        .loopback = MMGR_FALSE, .on_complete = &s_completion_binding),
+    TEST_ASSERT_FALSE_MESSAGE(EMBED_CALL(praet.open, PraetCfg, .channel = PRAET_TEST_CHANNEL, .peripheral = 0u,
+                                         .loopback = EMBED_FALSE, .on_complete = &s_completion_binding),
                               "the default hardware hook refuses, so no channel opens without a port");
 }
 
@@ -128,8 +127,8 @@ void test_an_unported_build_refuses_a_transfer(void)
 {
     static const uint8_t payload[4] = {1u, 2u, 3u, 4u};
 
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(praet.tx_submit, PraetTransferCfg, .channel = PRAET_TEST_CHANNEL,
-                                        .buf = payload, .bytes = (uint16_t)sizeof payload),
+    TEST_ASSERT_FALSE_MESSAGE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = PRAET_TEST_CHANNEL,
+                                         .buf = payload, .bytes = (uint16_t)sizeof payload),
                               "the default hardware hook refuses, so no transfer is accepted without a port");
 }
 
@@ -141,9 +140,9 @@ void test_an_unported_build_refuses_a_transfer(void)
  */
 void test_an_empty_transfer_is_refused_as_well(void)
 {
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(praet.tx_submit, PraetTransferCfg, .channel = PRAET_TEST_CHANNEL,
-                                        .buf = NULL, .bytes = 0u),
-                              "an unported build refuses every transfer, including one of no bytes");
+    TEST_ASSERT_FALSE_MESSAGE(
+        EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = PRAET_TEST_CHANNEL, .buf = NULL, .bytes = 0u),
+        "an unported build refuses every transfer, including one of no bytes");
 }
 
 /**
@@ -154,7 +153,7 @@ void test_an_empty_transfer_is_refused_as_well(void)
  */
 void test_closing_a_channel_that_never_opened_returns(void)
 {
-    MMGR_CALL(praet.close, PraetTransferCfg, .channel = PRAET_TEST_CHANNEL);
+    EMBED_CALL(praet.close, PraetTransferCfg, .channel = PRAET_TEST_CHANNEL);
     TEST_PASS_MESSAGE("close returned on a channel the port layer never accepted");
 }
 
@@ -166,7 +165,7 @@ void test_closing_a_channel_that_never_opened_returns(void)
  */
 void test_polling_an_unported_build_returns(void)
 {
-    MMGR_CALL(praet.poll, PraetCfg, .channel = PRAET_TEST_CHANNEL, .on_complete = &s_completion_binding);
+    EMBED_CALL(praet.poll, PraetCfg, .channel = PRAET_TEST_CHANNEL, .on_complete = &s_completion_binding);
     TEST_PASS_MESSAGE("poll returned against the port layer's do-nothing default");
 }
 
@@ -178,12 +177,11 @@ void test_polling_an_unported_build_returns(void)
  */
 void test_an_unported_build_reports_no_completion(void)
 {
-    (void)MMGR_CALL(praet.open, PraetCfg, .channel = PRAET_TEST_CHANNEL, .on_complete = &s_completion_binding);
-    (void)MMGR_CALL(praet.tx_submit, PraetTransferCfg, .channel = PRAET_TEST_CHANNEL, .buf = NULL, .bytes = 0u);
-    MMGR_CALL(praet.poll, PraetCfg, .channel = PRAET_TEST_CHANNEL, .on_complete = &s_completion_binding);
+    (void)EMBED_CALL(praet.open, PraetCfg, .channel = PRAET_TEST_CHANNEL, .on_complete = &s_completion_binding);
+    (void)EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = PRAET_TEST_CHANNEL, .buf = NULL, .bytes = 0u);
+    EMBED_CALL(praet.poll, PraetCfg, .channel = PRAET_TEST_CHANNEL, .on_complete = &s_completion_binding);
 
-    TEST_ASSERT_EQUAL_INT_MESSAGE(0, s_completion_count,
-                                  "a refused transfer must not reach the completion callback");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(0, s_completion_count, "a refused transfer must not reach the completion callback");
 }
 
 /**

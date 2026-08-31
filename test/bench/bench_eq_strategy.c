@@ -32,11 +32,11 @@ static size_t find_swar(const uint8_t *p, size_t n, uint8_t c)
     size_t i = 0;
     while (i + step <= n)
     {
-        const mmgr_word w = MMGR_CALL(word.load, ScrutWordCfg, .at = p + i);
-        const mmgr_word m = MMGR_CALL(lane.eq, ScrutLaneCfg, .word = w, .byte = c, .ci = MMGR_FALSE);
+        const embed_word w = EMBED_CALL(word.load, ScrutWordCfg, .at = p + i);
+        const embed_word m = EMBED_CALL(lane.eq, ScrutLaneCfg, .word = w, .byte = c, .ci = EMBED_FALSE);
         if (m)
         {
-            return i + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);
+            return i + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = m);
         }
         i += step;
     }
@@ -75,8 +75,8 @@ static size_t find_swar(const uint8_t *p, size_t n, uint8_t c)
                                                                                                                        \
         BENCH_TIME_CYCLES(cm_, ITERS, {                                                                                \
             const size_t r_ = (size_t)(bench_i_ & (SPREAD - 1u));                                                      \
-            const void *q_ = MMGR_CALL(memor.chr, MemoriaCfg, .src = g_buf + r_, .bytes = (size_t)((STRIDE) + 8u),     \
-                                       .val = (uint8_t)TARGET);                                                        \
+            const void *q_ = EMBED_CALL(memor.chr, MemoriaCfg, .src = g_buf + r_, .bytes = (size_t)((STRIDE) + 8u),    \
+                                        .val = (uint8_t)TARGET);                                                       \
             BENCH_KEEP(q_);                                                                                            \
         });                                                                                                            \
         printf("eq_strategy,%u,%u,%.1f,%.4f,%.4f,%.4f,%.4f,%s\n", MMGR_SWAR_BITS, (unsigned)(STRIDE), avg_, cb_, cs_,  \

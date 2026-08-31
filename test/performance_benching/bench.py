@@ -238,13 +238,17 @@ HOST_ARMS = []
 
 
 def host_flags(entry):
-    # src/ is the whole include root: MMgr ships its headers beside their sources, so there is no
-    # separate include/ tree. test/support carries the libc oracle a host bench compares against.
+    # Three include roots. src/ holds every module header beside its own source, include/ holds the
+    # one public header each of those includes, and deps/embedded_types/include holds the widths and
+    # entry macros that header is built on. test/support carries the libc oracle a host bench
+    # compares against.
     # Nothing is defined here - every MMgr knob has an #ifndef default, and a bench that wants one
     # states it in its own matrix entry.
     incs = [
         "-Itest/support",
         "-Isrc",
+        "-Iinclude",
+        "-Ideps/embedded_types/include",
         "-I.",
         "-I" + os.path.relpath(COMMON, ROOT).replace("\\", "/"),
     ]
@@ -255,7 +259,7 @@ def host_flags(entry):
 
 # The umbrella header. It names every module in the library, so what it reaches says nothing about
 # what a bench measures.
-UMBRELLA = "src/mmgr.h"
+UMBRELLA = "include/mmgr.h"
 
 
 def _mm_headers(cc, entry, main_c):

@@ -1,5 +1,5 @@
 // MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 //
 /**
  * @file test_pow5_accuracy.c
@@ -10,9 +10,9 @@
  * @date 2026-08-30
  *
  * @note Nothing here reads a table value to build an expectation. Every power of five is computed
- *       from 1 by repeated multiplication in a 1024-bit integer, so a defect in an entry cannot be
+ *       from 1 by repeated multiplication in a 1024-bit integer. A defect in an entry cannot be
  *       masked by the same defect in what it is compared against.
- * @note Every integer type below comes from stdint.h rather than from the library's width aliases.
+ * @note Every integer type below comes from stdint.h and not from the library's width aliases.
  *       A wrong alias would resize the limbs this suite computes in, and each comparison against a
  *       table entry would then run at a width defined by the code being checked.
  * @note The structural checks on entry count, normalization and exponent ordering live in test_pow5.
@@ -40,9 +40,9 @@
 /**
  * @brief Expands to 1024, the total width of a BigNumber in bits.
  *
- * @note big_get_bit returns 0 for a position at or above this rather than reading past the array.
- * @note big_divide walks from the top bit of this width rather than from the length of the numerator,
- *       so the bits it visits do not vary with the value it is handed.
+ * @note big_get_bit returns 0 for a position at or above this. It never reads past the array.
+ * @note big_divide walks from the top bit of this width and not from the length of the numerator.
+ *       The bits it visits do not vary with the value it is handed.
  */
 #define MMGR_ACCURACY_TOTAL_BITS (MMGR_ACCURACY_LIMBS * MMGR_ACCURACY_LIMB_BITS)
 /**
@@ -58,7 +58,7 @@
 /**
  * @brief Expands to the number of entries mmgr_pow5_up actually holds.
  *
- * @note Sized from the array rather than from MMGR_POW5_STEPS, so a table that gained or lost an
+ * @note Sized from the array itself and not from MMGR_POW5_STEPS. A table that gained or lost an
  *       entry is walked in full without an edit here. Taking the count from the library would let
  *       the library decide how much of itself this suite checks.
  * @note The cast takes the sizeof quotient from size_t into the int a loop counter carries. The
@@ -69,8 +69,8 @@
 /**
  * @brief Expands to the number of entries mmgr_pow5_down actually holds.
  *
- * @note Sized from its own array rather than shared with MMGR_ACCURACY_UP_ENTRIES, so a change to
- *       one table cannot silently set the bound for walks over the other.
+ * @note Sized from its own array and not shared with MMGR_ACCURACY_UP_ENTRIES. A change to one
+ *       table cannot then set the bound for walks over the other.
  */
 #define MMGR_ACCURACY_DOWN_ENTRIES ((int)(sizeof mmgr_pow5_down / sizeof mmgr_pow5_down[0]))
 
@@ -81,17 +81,17 @@
  *       that. Both run past MMGR_ACCURACY_TOTAL_BITS, where big_multiply_small drops the carry off
  *       the top limb and every comparison against the table becomes meaningless.
  */
-MMGR_STATIC_ASSERT(MMGR_ACCURACY_UP_ENTRIES == 9,
-                   "mmgr_pow5_up changed length; a tenth power needs more bits than a BigNumber holds");
+EMBED_STATIC_ASSERT(MMGR_ACCURACY_UP_ENTRIES == 9,
+                    "mmgr_pow5_up changed length; a tenth power needs more bits than a BigNumber holds");
 
 /**
  * @brief Asserts mmgr_pow5_down still holds nine entries, matching mmgr_pow5_up.
  *
- * @note The reciprocal of each up entry is what this table carries, so a length disagreeing with
- *       the up table would leave powers with no reciprocal or reciprocals with no power.
+ * @note The reciprocal of each up entry is what this table carries. A length disagreeing with the
+ *       up table would leave powers with no reciprocal or reciprocals with no power.
  */
-MMGR_STATIC_ASSERT(MMGR_ACCURACY_DOWN_ENTRIES == MMGR_ACCURACY_UP_ENTRIES,
-                   "mmgr_pow5_down does not hold one reciprocal per mmgr_pow5_up entry");
+EMBED_STATIC_ASSERT(MMGR_ACCURACY_DOWN_ENTRIES == MMGR_ACCURACY_UP_ENTRIES,
+                    "mmgr_pow5_down does not hold one reciprocal per mmgr_pow5_up entry");
 
 /**
  * @brief A 1024-bit unsigned integer, held as MMGR_ACCURACY_LIMBS limbs of MMGR_ACCURACY_LIMB_BITS
@@ -128,7 +128,7 @@ static void big_set_small(BigNumber *number, uint32_t value)
  * @param[out] number Destination, zeroed across every limb before the halves land [BORROWS].
  * @param[in]  high   Bits 64 through 127 of the significand.
  * @param[in]  low    Bits 0 through 63 of the significand.
- * @note Exists so a table entry can be multiplied back out against the scale it divides. Every other
+ * @note Exists to multiply a table entry back out against the scale it divides. Every other
  *       value this suite handles is built here from 1, and an mmgr_pow5_down significand is the one
  *       input that arrives already assembled.
  * @warning Writes limb[0] through limb[3] by name, so it places 128 bits only while
@@ -215,7 +215,7 @@ static void big_set_bit(BigNumber *number, int position)
  *
  * @param[in] number Value to measure [BORROWS].
  * @return           Number of significant bits, 1 for a value of one and 0 for a value of zero.
- * @note The count is a width rather than an index. big_top_128 subtracts 1 from it to reach the
+ * @note The count is a width and not an index. big_top_128 subtracts 1 from it to reach the
  *       highest set bit, and the reciprocal cases add 127 to it to place a numerator.
  */
 static int big_bit_length(const BigNumber *number)
@@ -242,8 +242,8 @@ static int big_bit_length(const BigNumber *number)
  * @brief Shifts a BigNumber left by one bit, carrying between limbs.
  *
  * @param[in,out] number Value to shift, overwritten with the result [BORROWS].
- * @note The top-bit shift is derived from MMGR_ACCURACY_LIMB_BITS rather than written as 31, so a
- *       change to the limb width cannot leave this reading the wrong bit.
+ * @note The top-bit shift is derived from MMGR_ACCURACY_LIMB_BITS and not written as 31. A change
+ *       to the limb width cannot then leave this reading the wrong bit.
  * @warning A carry out of the top limb is dropped. big_divide is the only caller and it shifts a
  *          remainder held below its denominator, so the widest value reaching here is 5^256 at 595
  *          bits and the shift never reaches the top limb.
@@ -269,7 +269,7 @@ static void big_shift_left_one(BigNumber *number)
  * @return          1 where left is greater, -1 where right is greater, 0 where the two are equal.
  * @note Walks from the top limb down and stops at the first pair that differ.
  * @note big_divide calls this once per bit position to decide whether the remainder has reached the
- *       denominator, which is what makes the quotient truncate rather than round.
+ *       denominator, which is what makes the quotient truncate instead of rounding.
  */
 static int big_compare(const BigNumber *left, const BigNumber *right)
 {
@@ -300,8 +300,8 @@ static void big_subtract(BigNumber *left, const BigNumber *right)
     for (int index = 0; index < MMGR_ACCURACY_LIMBS; index++)
     {
         // Explicit casts widen both limbs to uint64_t before subtracting. The true difference lies
-        // in -2^32 through 2^32 - 1, so a negative one wraps above 2^63 and a non-negative one
-        // cannot reach it, which is what makes bit 63 the borrow
+        // in -2^32 through 2^32 - 1. A negative one wraps above 2^63 and a non-negative one cannot
+        // reach it, which is what makes bit 63 the borrow
         const uint64_t difference = (uint64_t)left->limb[index] - (uint64_t)right->limb[index] - borrow;
 
         // Explicit cast narrows to the low limb deliberately. It drops bits 32 through 63, which are
@@ -312,6 +312,20 @@ static void big_subtract(BigNumber *left, const BigNumber *right)
     }
 }
 
+/**
+ * @brief Divides one BigNumber by another, keeping the quotient and discarding the remainder.
+ *
+ * @param[in]  numerator   Value to divide [BORROWS].
+ * @param[in]  denominator Value to divide by [BORROWS].
+ * @param[out] quotient    Destination, zeroed before the walk begins [BORROWS].
+ * @note Restoring binary long division, taking one bit of the numerator per position.
+ * @note The quotient is the floor of the division. The reciprocal cases rest on that, because
+ *       mmgr_pow5_down holds truncated reciprocals and a rounded quotient would not match one.
+ * @warning Zeroes quotient before reading numerator, so passing one BigNumber as both would leave
+ *          the walk reading limbs this already cleared. Both call sites pass separate objects.
+ * @warning A denominator of zero sets every quotient bit and does not fail. Both call sites divide
+ *          by a big_power_of_five result, which starts at 1 and is never zero.
+ */
 static void big_divide(const BigNumber *numerator, const BigNumber *denominator, BigNumber *quotient)
 {
     BigNumber remainder;
@@ -332,6 +346,16 @@ static void big_divide(const BigNumber *numerator, const BigNumber *denominator,
     }
 }
 
+/**
+ * @brief Reads the 128 bits sitting below a given length out of a BigNumber into two 64-bit halves.
+ *
+ * @param[in]  number Value to read [BORROWS].
+ * @param[in]  length Bit count the read starts under, as big_bit_length returns it.
+ * @param[out] high   Receives bits length-1 down to length-64 [BORROWS].
+ * @param[out] low    Receives bits length-65 down to length-128 [BORROWS].
+ * @note Handing this big_bit_length of the value puts the highest set bit at the top of high, which
+ *       is the normalized form both pow5 tables store their significands in.
+ */
 static void big_top_128(const BigNumber *number, int length, uint64_t *high, uint64_t *low)
 {
     uint64_t high_part = 0u;
@@ -339,16 +363,28 @@ static void big_top_128(const BigNumber *number, int length, uint64_t *high, uin
 
     for (int offset = 0; offset < 64; offset++)
     {
+        // Explicit cast widens the 0 or 1 big_get_bit returns to the width of the accumulator it is
+        // combined with, so the line carries no unstated conversion
         high_part = (high_part << 1) | (uint64_t)big_get_bit(number, length - 1 - offset);
     }
     for (int offset = 64; offset < 128; offset++)
     {
+        // Explicit cast widens the 0 or 1 big_get_bit returns to the width of the accumulator it is
+        // combined with, so the line carries no unstated conversion
         low_part = (low_part << 1) | (uint64_t)big_get_bit(number, length - 1 - offset);
     }
     *high = high_part;
     *low = low_part;
 }
 
+/**
+ * @brief Raises five to a given power.
+ *
+ * @param[out] number   Destination, set to 1 before the multiplications begin [BORROWS].
+ * @param[in]  exponent Power to raise five to. Zero leaves the value at 1.
+ * @warning big_multiply_small drops a carry off the top limb, so an exponent large enough to need
+ *          more than MMGR_ACCURACY_TOTAL_BITS loses its top silently. No caller passes above 256.
+ */
 static void big_power_of_five(BigNumber *number, int exponent)
 {
     big_set_small(number, 1u);
@@ -358,14 +394,37 @@ static void big_power_of_five(BigNumber *number, int exponent)
     }
 }
 
+/**
+ * @brief Runs before each Unity test case.
+ *
+ * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Every value this suite uses has automatic storage inside the case that builds it, so there
+ *       is no shared state to prepare here.
+ */
 void setUp(void)
 {
 }
 
+/**
+ * @brief Runs after each Unity test case.
+ *
+ * @note Required alongside setUp, since the generated runner calls both around every case.
+ * @note Nothing in this suite allocates. Every BigNumber has automatic storage and ends its lifetime
+ *       when the case that declared it returns, so there is nothing to release.
+ */
 void tearDown(void)
 {
 }
 
+/**
+ * @brief Checks the exact arithmetic every other case rests on against values worked out by hand.
+ *
+ * @note Exists to catch a defect in the helpers as itself. Without this case a broken
+ *       big_multiply_small or big_divide would surface as a table mismatch, and the table would be
+ *       blamed for it.
+ * @note Every expectation here is a literal. 5^16 is 152587890625, which needs 38 bits and shifts up
+ *       to 0x8E1BC9BF04000000 once left-aligned, and 2^10 divided by 5 is 204.
+ */
 void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
 {
     BigNumber value;
@@ -393,6 +452,14 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(204u, quotient.limb[0], "1024 divided by 5 is 204 remainder 4");
 }
 
+/**
+ * @brief Checks every mmgr_pow5_up entry against the top 128 bits of the power of five computed here.
+ *
+ * @note Covers all three members. A significand that matches while its exponent does not still names
+ *       the wrong value, and e2 is checked against length - 128 instead of being left implied.
+ * @note Holds whether or not the entry dropped bits, because the stored significand is the top 128
+ *       bits either way. How many entries are exact is what the two cases below separate.
+ */
 void test_every_positive_power_of_five_is_the_top_128_bits_of_the_exact_value(void)
 {
     BigNumber value;
@@ -410,11 +477,20 @@ void test_every_positive_power_of_five_is_the_top_128_bits_of_the_exact_value(vo
 
         TEST_ASSERT_EQUAL_HEX64_MESSAGE(high, mmgr_pow5_up[step].hi, "high half is not the exact power of five");
         TEST_ASSERT_EQUAL_HEX64_MESSAGE(low, mmgr_pow5_up[step].lo, "low half is not the exact power of five");
+        // Explicit cast narrows embed_iword to the int the assertion takes. Every e2 in both tables
+        // lies between -722 and 467, which fits an int of any conforming width
         TEST_ASSERT_EQUAL_INT_MESSAGE(length - 128, (int)mmgr_pow5_up[step].e2,
                                       "the binary exponent does not place the significand at the exact value");
     }
 }
 
+/**
+ * @brief Checks that the six entries documented as exact fit 128 bits with nothing dropped.
+ *
+ * @note No static assertion covers this. pow5.h asserts only that MMGR_POW5_MAX reaches 511, which
+ *       leaves a table edit pushing a truncated value into the exact range passing the build, and this
+ *       case is what catches it.
+ */
 void test_the_first_six_positive_powers_lose_no_bits_at_all(void)
 {
     BigNumber value;
@@ -427,6 +503,14 @@ void test_the_first_six_positive_powers_lose_no_bits_at_all(void)
     }
 }
 
+/**
+ * @brief Checks that the last three entries need more than 128 bits and that what they drop is not
+ *        zero.
+ *
+ * @note A power of five is odd, so bit 0 is set in every one. Once the value passes 128 bits, bit 0
+ *       falls among the dropped ones, which makes the discarded remainder nonzero and the stored
+ *       significand strictly below the exact value.
+ */
 void test_the_last_three_positive_powers_drop_bits_and_drop_them_downward(void)
 {
     BigNumber value;
@@ -443,6 +527,16 @@ void test_the_last_three_positive_powers_drop_bits_and_drop_them_downward(void)
     }
 }
 
+/**
+ * @brief Checks every mmgr_pow5_down entry against the exact reciprocal, divided out here and
+ *        truncated toward zero.
+ *
+ * @note Divides 2^(length + 127) by the power of five and inverts nothing. What the entry is
+ *       compared against is an exact integer quotient.
+ * @note The quotient is always 128 bits. 5^n sits at or above 2^(length-1) and below 2^length, so
+ *       the ratio lands above 2^127 and at or below 2^128, and the assertion on quotient_length
+ *       pins that before either half is read out.
+ */
 void test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_zero(void)
 {
     BigNumber value;
@@ -471,6 +565,8 @@ void test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_
         TEST_ASSERT_EQUAL_HEX64_MESSAGE(high, mmgr_pow5_down[step].hi,
                                         "high half is not the truncated exact reciprocal");
         TEST_ASSERT_EQUAL_HEX64_MESSAGE(low, mmgr_pow5_down[step].lo, "low half is not the truncated exact reciprocal");
+        // Explicit cast narrows embed_iword to the int the assertion takes. Every e2 in both tables
+        // lies between -722 and 467, which fits an int of any conforming width
         TEST_ASSERT_EQUAL_INT_MESSAGE(-(length + 127), (int)mmgr_pow5_down[step].e2,
                                       "the binary exponent does not place the reciprocal at the exact value");
     }
@@ -480,8 +576,8 @@ void test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_
  * @brief Multiplies each mmgr_pow5_down significand back by its power of five and checks the product
  *        never rises above the scale that produced it.
  *
- * @note Reads the stored significand rather than the quotient computed here, so an entry one unit
- *       too large fails this case even where big_divide is correct.
+ * @note Reads the stored significand and not the quotient computed here. An entry one unit too
+ *       large fails this case even where big_divide is correct.
  * @note Bounds the product from above only. A significand that is too small passes here, and
  *       test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_zero pins the
  *       exact value from the other side.
@@ -502,7 +598,7 @@ void test_no_reciprocal_was_rounded_up(void)
         big_set_bit(&numerator, length + 127);
 
         // The stored significand times its power of five must land at or below the scale it divides.
-        // A truncated reciprocal is the floor of that division, so a product above the scale is an
+        // A truncated reciprocal is the floor of that division. A product above the scale is an
         // entry that was rounded up
         big_set_128(&product, mmgr_pow5_down[step].hi, mmgr_pow5_down[step].lo);
         for (int applied = 0; applied < (1 << step); applied++)
@@ -514,7 +610,17 @@ void test_no_reciprocal_was_rounded_up(void)
     }
 }
 
-void test_the_reciprocal_of_five_repeats_rather_than_rounding(void)
+/**
+ * @brief Checks the one reciprocal whose value can be read by eye, five to the minus one.
+ *
+ * @note 1/5 is 0.8, so the normalized significand is 0.8 * 2^128, which is 0xCCCC... across both
+ *       halves. The remainder left over is four fifths of a unit, so rounding to nearest would carry
+ *       the low half to 0xCCCC...CCCD instead.
+ * @note Overlaps test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_zero on
+ *       this entry. A literal checkable by hand does not rest on the arithmetic above, so it still
+ *       holds where that arithmetic is broken.
+ */
+void test_the_reciprocal_of_five_repeats_instead_of_rounding(void)
 {
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(0xCCCCCCCCCCCCCCCCULL, mmgr_pow5_down[0].hi,
                                     "five to the minus one truncates to a repeating C");

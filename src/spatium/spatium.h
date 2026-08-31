@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file spatium.h
@@ -25,9 +28,9 @@
 #ifndef MMGR_SPATIUM_H
 #define MMGR_SPATIUM_H
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief A buffer being filled: its bytes, how far the writer has gone, and whether it ran out.
@@ -42,10 +45,10 @@ MMGR_INCIPE_DECLS
  */
 typedef struct
 {
-    uint8_t *buf;       /**< The buffer the span covers [BORROWS]. */
-    size_t cap;         /**< Bytes in buf. */
-    size_t pos;         /**< Bytes written so far, which mmgr_spat_from sets to 0. */
-    mmgr_bool overflow; /**< Set once a write has run past cap, and cleared only by mmgr_spat_reset. */
+    uint8_t *buf;        /**< The buffer the span covers [BORROWS]. */
+    size_t cap;          /**< Bytes in buf. */
+    size_t pos;          /**< Bytes written so far, which mmgr_spat_from sets to 0. */
+    embed_bool overflow; /**< Set once a write has run past cap, and cleared only by mmgr_spat_reset. */
 } mmgr_span;
 
 /**
@@ -61,7 +64,7 @@ typedef struct
     const uint8_t *buf; /**< First byte, or NULL when there is nothing to read [BORROWS]. */
     size_t len;         /**< Readable bytes at buf. */
     size_t pos;         /**< Bytes read so far. */
-    mmgr_bool err;      /**< Set once a read has run past len, and never cleared after. */
+    embed_bool err;     /**< Set once a read has run past len, and never cleared after. */
 } mmgr_cspan;
 
 /**
@@ -87,25 +90,26 @@ typedef struct
 /**
  * @brief Type of the spat dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the ten members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the ten members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note There is no len or room entry. mmgr_span is the caller's own value, so span.pos and
  *       span.cap - span.pos are already in hand, and a call to fetch them would duplicate what
  *       reading the member already gives.
  */
 typedef struct
 {
-    mmgr_span (*from)(const SpatiumCfg *args);        /**< Builds a fill span over a buffer. */
-    mmgr_cspan (*cfrom)(const SpatiumCfg *args);      /**< Builds a read span over a buffer. */
-    mmgr_bool (*ok)(const SpatiumCfg *args);          /**< Whether a fill span is still usable. */
-    mmgr_bool (*cok)(const SpatiumCfg *args);         /**< Whether a read span is still usable. */
-    mmgr_bool (*has_storage)(const SpatiumCfg *args); /**< Whether the span covers any bytes at all. */
-    void (*reset)(const SpatiumCfg *args);            /**< Returns pos to 0 and clears overflow. */
-    mmgr_span (*after)(const SpatiumCfg *args);       /**< The span beginning count bytes in. */
-    mmgr_span (*first)(const SpatiumCfg *args);       /**< The span covering only the first count bytes. */
-    mmgr_cspan (*produced)(const SpatiumCfg *args);   /**< A read span over everything written. */
-    mmgr_cspan (*read)(const SpatiumCfg *args);       /**< A read span over the first count written. */
+    mmgr_span (*from)(const SpatiumCfg *args);         /**< Builds a fill span over a buffer. */
+    mmgr_cspan (*cfrom)(const SpatiumCfg *args);       /**< Builds a read span over a buffer. */
+    embed_bool (*ok)(const SpatiumCfg *args);          /**< Whether a fill span is still usable. */
+    embed_bool (*cok)(const SpatiumCfg *args);         /**< Whether a read span is still usable. */
+    embed_bool (*has_storage)(const SpatiumCfg *args); /**< Whether the span covers any bytes at all. */
+    void (*reset)(const SpatiumCfg *args);             /**< Returns pos to 0 and clears overflow. */
+    mmgr_span (*after)(const SpatiumCfg *args);        /**< The span beginning count bytes in. */
+    mmgr_span (*first)(const SpatiumCfg *args);        /**< The span covering only the first count bytes. */
+    mmgr_cspan (*produced)(const SpatiumCfg *args);    /**< A read span over everything written. */
+    mmgr_cspan (*read)(const SpatiumCfg *args);        /**< A read span over the first count written. */
 } SpatiumNs;
-MMGR_NS_LAYOUT(SpatiumNs, from, cfrom, ok, cok, has_storage, reset, after, first, produced, read);
+EMBED_TABLE_LAYOUT(SpatiumNs, from, cfrom, ok, cok, has_storage, reset, after, first, produced, read);
 
 /**
  * @brief Builds a fill span over args->buf, with pos at 0 and overflow clear.
@@ -134,25 +138,25 @@ mmgr_cspan mmgr_spat_cfrom(const SpatiumCfg *args);
  * @brief Returns whether args->span has storage and has not overflowed.
  *
  * @param[in] args Span to test, as args->span [BORROWS].
- * @return         MMGR_TRUE when the span is still usable.
+ * @return         EMBED_TRUE when the span is still usable.
  */
-mmgr_bool mmgr_spat_ok(const SpatiumCfg *args);
+embed_bool mmgr_spat_ok(const SpatiumCfg *args);
 
 /**
  * @brief Returns whether args->cspan has storage and has recorded no error.
  *
  * @param[in] args Read span to test, as args->cspan [BORROWS].
- * @return         MMGR_TRUE when the span is still usable.
+ * @return         EMBED_TRUE when the span is still usable.
  */
-mmgr_bool mmgr_spat_cok(const SpatiumCfg *args);
+embed_bool mmgr_spat_cok(const SpatiumCfg *args);
 
 /**
  * @brief Returns whether args->span covers any bytes at all.
  *
  * @param[in] args Span to test, as args->span [BORROWS].
- * @return         MMGR_TRUE when buf is not NULL and cap is not 0.
+ * @return         EMBED_TRUE when buf is not NULL and cap is not 0.
  */
-mmgr_bool mmgr_spat_has_storage(const SpatiumCfg *args);
+embed_bool mmgr_spat_has_storage(const SpatiumCfg *args);
 
 /**
  * @brief Returns the span at args->at to its start and clears its overflow.
@@ -211,7 +215,7 @@ mmgr_cspan mmgr_spat_read(const SpatiumCfg *args);
 /**
  * @brief Dispatch table instance named spat, with each member set to its mmgr_spat_ function.
  */
-MMGR_NS SpatiumNs spat MMGR_UNUSED = {
+EMBED_TABLE_STORAGE SpatiumNs spat EMBED_UNUSED = {
     .from = mmgr_spat_from,
     .cfrom = mmgr_spat_cfrom,
     .ok = mmgr_spat_ok,
@@ -224,6 +228,6 @@ MMGR_NS SpatiumNs spat MMGR_UNUSED = {
     .read = mmgr_spat_read,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

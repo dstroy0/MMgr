@@ -1,6 +1,6 @@
-#include "unity.h"
-
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
+
+#include "unity.h"
 
 static uint8_t out[16];
 static mmgr_bitor w;
@@ -11,16 +11,16 @@ void setUp(void)
     {
         out[i] = 0xAAu;
     }
-    w = MMGR_CALL(bitio.init, BitorumCfg, .out = out, .cap = sizeof out);
+    w = EMBED_CALL(bitio.init, BitorumCfg, .out = out, .cap = sizeof out);
 }
 
 void tearDown(void)
 {
 }
 
-static void put_bits(uint64_t val, mmgr_word bit_count)
+static void put_bits(uint64_t val, embed_word bit_count)
 {
-    MMGR_CALL(bitio.put, BitorumCfg, .writer = &w, .val = val, .bit_count = bit_count);
+    EMBED_CALL(bitio.put, BitorumCfg, .writer = &w, .val = val, .bit_count = bit_count);
 }
 
 void test_bitio_header_is_self_contained(void)
@@ -129,7 +129,7 @@ void test_a_narrow_put_ignores_the_high_bits(void)
 
 void test_overflow_latches_and_stops_writing(void)
 {
-    w = MMGR_CALL(bitio.init, BitorumCfg, .out = out, .cap = 2u);
+    w = EMBED_CALL(bitio.init, BitorumCfg, .out = out, .cap = 2u);
 
     put_bits(0x11u, 8);
     put_bits(0x22u, 8);
@@ -144,7 +144,7 @@ void test_overflow_latches_and_stops_writing(void)
 
 void test_a_put_after_overflow_is_ignored(void)
 {
-    w = MMGR_CALL(bitio.init, BitorumCfg, .out = out, .cap = 1u);
+    w = EMBED_CALL(bitio.init, BitorumCfg, .out = out, .cap = 1u);
 
     put_bits(0x11u, 8);
     put_bits(0x22u, 8);
@@ -157,7 +157,7 @@ void test_a_put_after_overflow_is_ignored(void)
 
 void test_a_completed_byte_with_no_room_overflows(void)
 {
-    w = MMGR_CALL(bitio.init, BitorumCfg, .out = out, .cap = 1u);
+    w = EMBED_CALL(bitio.init, BitorumCfg, .out = out, .cap = 1u);
 
     put_bits(0xFFu, 8);
     TEST_ASSERT_EQUAL_size_t(1u, w.bytes_written);
@@ -170,10 +170,10 @@ void test_a_completed_byte_with_no_room_overflows(void)
 void test_two_writers_do_not_share_state(void)
 {
     static uint8_t other[4];
-    mmgr_bitor second = MMGR_CALL(bitio.init, BitorumCfg, .out = other, .cap = sizeof other);
+    mmgr_bitor second = EMBED_CALL(bitio.init, BitorumCfg, .out = other, .cap = sizeof other);
 
     put_bits(0xC3u, 8);
-    MMGR_CALL(bitio.put, BitorumCfg, .writer = &second, .val = 0x5Au, .bit_count = 8);
+    EMBED_CALL(bitio.put, BitorumCfg, .writer = &second, .val = 0x5Au, .bit_count = 8);
 
     TEST_ASSERT_EQUAL_HEX8(0xC3u, out[0]);
     TEST_ASSERT_EQUAL_HEX8(0x5Au, other[0]);
@@ -192,7 +192,7 @@ void test_align_writes_the_partial_byte(void)
     put_bits(0x5u, 4u);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, w.bytes_written, "four bits do not fill a byte, so put writes none");
 
-    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
+    EMBED_CALL(bitio.align, BitorumCfg, .writer = &w);
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, w.bytes_written, "align is what writes them");
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x05u, out[0], "the bits sit low with zero padding above them");
@@ -205,7 +205,7 @@ void test_align_on_a_byte_boundary_writes_nothing(void)
     put_bits(0xA5u, 8u);
     TEST_ASSERT_EQUAL_size_t(1u, w.bytes_written);
 
-    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
+    EMBED_CALL(bitio.align, BitorumCfg, .writer = &w);
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, w.bytes_written, "there was no residue, so nothing was written");
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xAAu, out[1], "and the byte past the stream was not touched");
@@ -214,8 +214,8 @@ void test_align_on_a_byte_boundary_writes_nothing(void)
 void test_align_twice_is_the_same_as_once(void)
 {
     put_bits(0x3u, 2u);
-    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
-    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
+    EMBED_CALL(bitio.align, BitorumCfg, .writer = &w);
+    EMBED_CALL(bitio.align, BitorumCfg, .writer = &w);
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, w.bytes_written, "the second align had no residue to write");
     TEST_ASSERT_EQUAL_HEX8(0x03u, out[0]);
@@ -229,7 +229,7 @@ void test_a_stream_of_odd_length_round_trips(void)
     put_bits(0x9u, 4u);
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, w.bytes_written, "twelve bits fill one byte and leave four over");
-    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
+    EMBED_CALL(bitio.align, BitorumCfg, .writer = &w);
     TEST_ASSERT_EQUAL_size_t(2u, w.bytes_written);
 
     TEST_ASSERT_EQUAL_HEX8((uint8_t)(0x5u | (0x1Au << 3)), out[0]);
@@ -246,7 +246,7 @@ void test_align_on_a_full_buffer_overflows_rather_than_writing(void)
     TEST_ASSERT_FALSE(w.overflow);
 
     put_bits(0x1u, 1u);
-    MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);
+    EMBED_CALL(bitio.align, BitorumCfg, .writer = &w);
 
     TEST_ASSERT_TRUE_MESSAGE(w.overflow, "there was no room for the partial byte");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof out, w.bytes_written, "and nothing was written past the buffer");

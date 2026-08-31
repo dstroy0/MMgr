@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file verbum_scrutor.h
@@ -8,7 +11,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note One mmgr_word is treated as MMGR_SWAR_BYTES independent lanes, so a whole word is tested at once.
+ * @note One embed_word is treated as MMGR_SWAR_BYTES independent lanes, so a whole word is tested at once.
  * @note A lane mask carries one set bit per matching lane, in that lane's high bit. mask.spread widens it.
  * @note The entries whose meaning depends on byte order are bound through MMGR_HW_BIG_ENDIAN in the tables below.
  */
@@ -17,35 +20,26 @@
 
 #include "proximus_operor/proximus_operor.h"
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
- * @brief Expands to sizeof(mmgr_word), which is how many lanes one word carries.
+ * @brief Expands to sizeof(embed_word), which is how many lanes one word carries.
  *
- * @note Eight at MMGR_WORD_BITS 64, four at 32 and two at 16.
+ * @note Eight at EMBED_WORD_BITS 64, four at 32 and two at 16.
  * @note Also the value both lane index calls report when the mask they are given is empty.
  */
-#define MMGR_SWAR_BYTES (sizeof(mmgr_word))
+#define MMGR_SWAR_BYTES (sizeof(embed_word))
 
 /**
- * @brief Expands to MMGR_WORD_BITS, the width of a whole word in bits.
+ * @brief Expands to EMBED_WORD_BITS, the width of a whole word in bits.
  *
  * @note This is the word's width rather than one lane's, despite the name. A lane is eight bits.
  * @note Bounds the shift doubling in scrut_smear and supplies the final shift in scrut_lane_count, both of
  *       which want the whole width.
  */
-#define MMGR_SWAR_LANE_BITS (MMGR_WORD_BITS)
-
-/**
- * @brief Asserts mmgr_word and mmgr_migro_word are the same width.
- *
- * @note scrut_load and scrut_load_al return what proxim hands back with no conversion, which needs this to hold.
- * @note The two are derived separately, mmgr_word from MMGR_WORD_BITS and mmgr_migro_word from MMGR_RAW_WORD.
- */
-MMGR_STATIC_ASSERT(sizeof(mmgr_word) == sizeof(mmgr_migro_word),
-                   "the lane carrier and the word proximus moves are the same width, so a load needs no conversion");
+#define MMGR_SWAR_LANE_BITS (EMBED_WORD_BITS)
 
 /**
  * @brief Expands to a word holding 1 in every lane, which is 0x0101...01.
@@ -53,7 +47,7 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_word) == sizeof(mmgr_migro_word),
  * @note Multiplying it by a byte broadcasts that byte into every lane, which is how the comparisons start.
  * @note Multiplying a lane mask by it sums the lanes, which is how scrut_lane_count counts them.
  */
-#define MMGR_SWAR_ONES (((mmgr_word) ~(mmgr_word)0) / 0xFFu)
+#define MMGR_SWAR_ONES (((embed_word) ~(embed_word)0) / 0xFFu)
 
 /**
  * @brief Expands to a word holding 0x80 in every lane, which is 0x8080...80.
@@ -103,29 +97,6 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_word) == sizeof(mmgr_migro_word),
 #define MMGR_FAM_CI 0x40u
 
 /**
- * @brief Expands to the words needed to cover MMGR_CARCER_MAX bytes, rounded up.
- *
- * @note MMGR_CARCER_MAX is the larger of the two confinia, so this is the worst case any scan faces.
- * @note The two assertions below pin it from both sides, so it is neither short nor a whole word too many.
- */
-#define MMGR_SCAN_MAX_WORDS ((MMGR_CARCER_MAX + (MMGR_SWAR_BYTES - 1u)) / MMGR_SWAR_BYTES)
-
-/**
- * @brief Asserts MMGR_SCAN_MAX_WORDS words reach at least MMGR_CARCER_MAX bytes.
- *
- * @note The lower bound. The assertion below supplies the upper one.
- */
-MMGR_STATIC_ASSERT(MMGR_SCAN_MAX_WORDS *MMGR_SWAR_BYTES >= MMGR_CARCER_MAX,
-                   "the worst-case scan does not cover the largest buffer");
-/**
- * @brief Asserts one word fewer would fall short of MMGR_CARCER_MAX bytes.
- *
- * @note The upper bound, so together with the assertion above the word count is exactly the ceiling.
- */
-MMGR_STATIC_ASSERT((MMGR_SCAN_MAX_WORDS - 1u) * MMGR_SWAR_BYTES < MMGR_CARCER_MAX,
-                   "the worst-case scan is padded by a whole word - the word count is not tight");
-
-/**
  * @brief Arguments for the lane calls.
  *
  * @note ge, le and sub7 read word and byte. eq adds ci. xor_ reads word, val and ci. fam_eq adds fam.
@@ -134,12 +105,12 @@ MMGR_STATIC_ASSERT((MMGR_SCAN_MAX_WORDS - 1u) * MMGR_SWAR_BYTES < MMGR_CARCER_MA
  */
 typedef struct
 {
-    const mmgr_word word; /**< The MMGR_SWAR_BYTES bytes under test, one per lane. */
-    const mmgr_word val;  /**< Whole word xor_ compares against, which the caller broadcasts itself. */
-    const mmgr_word mask; /**< Lane mask the three index calls read. */
-    const uint8_t byte;   /**< Byte the call broadcasts into every lane before comparing. */
-    const uint8_t fam;    /**< Bits fam_eq keeps on both sides before comparing. */
-    const mmgr_bool ci;   /**< Non-zero to let a letter match either case. */
+    const embed_word word; /**< The MMGR_SWAR_BYTES bytes under test, one per lane. */
+    const embed_word val;  /**< Whole word xor_ compares against, which the caller broadcasts itself. */
+    const embed_word mask; /**< Lane mask the three index calls read. */
+    const uint8_t byte;    /**< Byte the call broadcasts into every lane before comparing. */
+    const uint8_t fam;     /**< Bits fam_eq keeps on both sides before comparing. */
+    const embed_bool ci;   /**< Non-zero to let a letter match either case. */
 } ScrutLaneCfg;
 
 /**
@@ -151,9 +122,9 @@ typedef struct
  */
 typedef struct
 {
-    const mmgr_word mask; /**< Lane mask to reshape or examine. */
-    const size_t bytes;   /**< Byte count the mask is built over, or the run length wanted. */
-    const size_t wi;      /**< Whole words a scan has already covered. */
+    const embed_word mask; /**< Lane mask to reshape or examine. */
+    const size_t bytes;    /**< Byte count the mask is built over, or the run length wanted. */
+    const size_t wi;       /**< Whole words a scan has already covered. */
 } ScrutMaskCfg;
 
 /**
@@ -163,15 +134,16 @@ typedef struct
  */
 typedef struct
 {
-    const mmgr_word word; /**< Word fold_lower folds. */
-    const void *const at; /**< Address the two loads read a word from [BORROWS]. */
-    const size_t bytes;   /**< Byte count count converts into a word count. */
+    const embed_word word; /**< Word fold_lower folds. */
+    const void *const at;  /**< Address the two loads read a word from [BORROWS]. */
+    const size_t bytes;    /**< Byte count count converts into a word count. */
 } ScrutWordCfg;
 
 /**
  * @brief Type of the lane dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the thirteen members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the thirteen members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note Eight of the first ten return lane masks. sub7 returns seven bit values and xor_ a whole word.
  * @note count, first and last return positions instead of words.
  * @note first and last mean first and last in memory order, which is what the endian binding below delivers.
@@ -179,56 +151,59 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_word (*ge)(const ScrutLaneCfg *args);        /**< Lanes at or above a byte. */
-    mmgr_word (*le)(const ScrutLaneCfg *args);        /**< Lanes at or below a byte. */
-    mmgr_word (*sub7)(const ScrutLaneCfg *args);      /**< Seven low bits of each lane's difference from a byte. */
-    mmgr_word (*has_zero)(const ScrutLaneCfg *args);  /**< Lanes holding zero. */
-    mmgr_word (*eq)(const ScrutLaneCfg *args);        /**< Lanes equal to a byte. */
-    mmgr_word (*xor_)(const ScrutLaneCfg *args);      /**< Lane by lane difference of two words. */
-    mmgr_word (*fam_eq)(const ScrutLaneCfg *args);    /**< Lanes matching a byte within a set of bits. */
-    mmgr_word (*any_upper)(const ScrutLaneCfg *args); /**< Lanes whose MMGR_FAM_CS bits equal MMGR_FAM_CI. */
-    mmgr_word (*any_digit)(const ScrutLaneCfg *args); /**< Lanes in the 0x30 to 0x3F block. */
-    mmgr_word (*alpha)(const ScrutLaneCfg *args);     /**< Lanes holding an ASCII letter. */
-    size_t (*count)(const ScrutLaneCfg *args);        /**< How many lanes a mask has set. */
-    size_t (*first)(const ScrutLaneCfg *args);        /**< Index of the first set lane in memory order. */
-    size_t (*last)(const ScrutLaneCfg *args);         /**< Index of the last set lane in memory order. */
+    embed_word (*ge)(const ScrutLaneCfg *args);        /**< Lanes at or above a byte. */
+    embed_word (*le)(const ScrutLaneCfg *args);        /**< Lanes at or below a byte. */
+    embed_word (*sub7)(const ScrutLaneCfg *args);      /**< Seven low bits of each lane's difference from a byte. */
+    embed_word (*has_zero)(const ScrutLaneCfg *args);  /**< Lanes holding zero. */
+    embed_word (*eq)(const ScrutLaneCfg *args);        /**< Lanes equal to a byte. */
+    embed_word (*xor_)(const ScrutLaneCfg *args);      /**< Lane by lane difference of two words. */
+    embed_word (*fam_eq)(const ScrutLaneCfg *args);    /**< Lanes matching a byte within a set of bits. */
+    embed_word (*any_upper)(const ScrutLaneCfg *args); /**< Lanes whose MMGR_FAM_CS bits equal MMGR_FAM_CI. */
+    embed_word (*any_digit)(const ScrutLaneCfg *args); /**< Lanes in the 0x30 to 0x3F block. */
+    embed_word (*alpha)(const ScrutLaneCfg *args);     /**< Lanes holding an ASCII letter. */
+    size_t (*count)(const ScrutLaneCfg *args);         /**< How many lanes a mask has set. */
+    size_t (*first)(const ScrutLaneCfg *args);         /**< Index of the first set lane in memory order. */
+    size_t (*last)(const ScrutLaneCfg *args);          /**< Index of the last set lane in memory order. */
 } ScrutLaneNs;
-MMGR_NS_LAYOUT(ScrutLaneNs, ge, le, sub7, has_zero, eq, xor_, fam_eq, any_upper, any_digit, alpha, count, first, last);
+EMBED_TABLE_LAYOUT(ScrutLaneNs, ge, le, sub7, has_zero, eq, xor_, fam_eq, any_upper, any_digit, alpha, count, first,
+                   last);
 
 /**
  * @brief Type of the mask dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the nine members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the nine members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note drop_first, drop_last and before all mean memory order, which the endian binding below delivers.
  */
 typedef struct
 {
-    mmgr_word (*spread)(const ScrutMaskCfg *args);      /**< Widens each set lane to a full byte of ones. */
-    mmgr_word (*drop_first)(const ScrutMaskCfg *args);  /**< Clears the first set lane in memory order. */
-    mmgr_word (*drop_last)(const ScrutMaskCfg *args);   /**< Clears the last set lane in memory order. */
-    mmgr_word (*bytes_below)(const ScrutMaskCfg *args); /**< Full byte mask over the first bytes of a word. */
-    mmgr_word (*lanes_below)(const ScrutMaskCfg *args); /**< Lane mask over the first lanes of a word. */
-    mmgr_word (*before)(const ScrutMaskCfg *args);      /**< Lanes ahead of the first set one in memory order. */
-    mmgr_word (*tail)(const ScrutMaskCfg *args);        /**< Lane mask for a scan's last partial word. */
-    mmgr_word (*run)(const ScrutMaskCfg *args);         /**< Lanes that begin a run of set lanes. */
-    mmgr_word (*run_edge)(const ScrutMaskCfg *args);    /**< Lanes too near the end for a run to fit. */
+    embed_word (*spread)(const ScrutMaskCfg *args);      /**< Widens each set lane to a full byte of ones. */
+    embed_word (*drop_first)(const ScrutMaskCfg *args);  /**< Clears the first set lane in memory order. */
+    embed_word (*drop_last)(const ScrutMaskCfg *args);   /**< Clears the last set lane in memory order. */
+    embed_word (*bytes_below)(const ScrutMaskCfg *args); /**< Full byte mask over the first bytes of a word. */
+    embed_word (*lanes_below)(const ScrutMaskCfg *args); /**< Lane mask over the first lanes of a word. */
+    embed_word (*before)(const ScrutMaskCfg *args);      /**< Lanes ahead of the first set one in memory order. */
+    embed_word (*tail)(const ScrutMaskCfg *args);        /**< Lane mask for a scan's last partial word. */
+    embed_word (*run)(const ScrutMaskCfg *args);         /**< Lanes that begin a run of set lanes. */
+    embed_word (*run_edge)(const ScrutMaskCfg *args);    /**< Lanes too near the end for a run to fit. */
 } ScrutMaskNs;
-MMGR_NS_LAYOUT(ScrutMaskNs, spread, drop_first, drop_last, bytes_below, lanes_below, before, tail, run, run_edge);
+EMBED_TABLE_LAYOUT(ScrutMaskNs, spread, drop_first, drop_last, bytes_below, lanes_below, before, tail, run, run_edge);
 
 /**
  * @brief Type of the word dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the four members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the four members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note Its count member converts a byte count into a word count, where the lane table's count counts lanes.
  */
 typedef struct
 {
-    mmgr_word (*load)(const ScrutWordCfg *args);       /**< Reads a word from any address. */
-    mmgr_word (*load_al)(const ScrutWordCfg *args);    /**< Reads a word from an aligned address. */
-    mmgr_word (*fold_lower)(const ScrutWordCfg *args); /**< Turns every letter lane to lower case. */
-    size_t (*count)(const ScrutWordCfg *args);         /**< Words a scan of a byte count must read. */
+    embed_word (*load)(const ScrutWordCfg *args);       /**< Reads a word from any address. */
+    embed_word (*load_al)(const ScrutWordCfg *args);    /**< Reads a word from an aligned address. */
+    embed_word (*fold_lower)(const ScrutWordCfg *args); /**< Turns every letter lane to lower case. */
+    size_t (*count)(const ScrutWordCfg *args);          /**< Words a scan of a byte count must read. */
 } ScrutWordNs;
-MMGR_NS_LAYOUT(ScrutWordNs, load, load_al, fold_lower, count);
+EMBED_TABLE_LAYOUT(ScrutWordNs, load, load_al, fold_lower, count);
 
 /**
  * @brief Marks the lanes of args->word that are at or above args->byte.
@@ -237,7 +212,7 @@ MMGR_NS_LAYOUT(ScrutWordNs, load, load_al, fold_lower, count);
  * @return         A lane mask holding those lanes.
  * @note Compares bytes as unsigned, so 0x80 and above are the largest values.
  */
-mmgr_word mmgr_scrut_ge(const ScrutLaneCfg *args);
+embed_word mmgr_scrut_ge(const ScrutLaneCfg *args);
 
 /**
  * @brief Marks the lanes of args->word that are at or below args->byte.
@@ -247,7 +222,7 @@ mmgr_word mmgr_scrut_ge(const ScrutLaneCfg *args);
  * @note Compares bytes as unsigned, so 0x80 and above are the largest values.
  * @note And this with mmgr_scrut_ge to get a range test, as mmgr_scrut_alpha does.
  */
-mmgr_word mmgr_scrut_le(const ScrutLaneCfg *args);
+embed_word mmgr_scrut_le(const ScrutLaneCfg *args);
 
 /**
  * @brief Subtracts args->byte from every lane of args->word and keeps the low seven bits of each result.
@@ -257,7 +232,7 @@ mmgr_word mmgr_scrut_le(const ScrutLaneCfg *args);
  * @note Yields values rather than a lane mask, unlike every other lane entry but count, first and last.
  * @warning A lane below args->byte wraps, so its seven bits are the difference taken modulo 128.
  */
-mmgr_word mmgr_scrut_sub7(const ScrutLaneCfg *args);
+embed_word mmgr_scrut_sub7(const ScrutLaneCfg *args);
 
 /**
  * @brief Marks the lanes of args->word that hold zero.
@@ -267,7 +242,7 @@ mmgr_word mmgr_scrut_sub7(const ScrutLaneCfg *args);
  * @note Reads args->word alone, so byte, val, fam and ci take no part.
  * @note Apply this to the result of mmgr_scrut_xor to find where two words agreed.
  */
-mmgr_word mmgr_scrut_has_zero(const ScrutLaneCfg *args);
+embed_word mmgr_scrut_has_zero(const ScrutLaneCfg *args);
 
 /**
  * @brief Marks the lanes of args->word that equal args->byte.
@@ -277,7 +252,7 @@ mmgr_word mmgr_scrut_has_zero(const ScrutLaneCfg *args);
  * @note Broadcasts args->byte itself, so the caller passes a single byte rather than a whole word.
  * @note With args->ci set, a letter matches either case. Every other byte still compares exactly.
  */
-mmgr_word mmgr_scrut_eq(const ScrutLaneCfg *args);
+embed_word mmgr_scrut_eq(const ScrutLaneCfg *args);
 
 /**
  * @brief Returns the lane by lane difference of args->word and args->val.
@@ -288,7 +263,7 @@ mmgr_word mmgr_scrut_eq(const ScrutLaneCfg *args);
  * @note With args->ci set, the case bit is cleared on letter lanes, so the two cases of a letter agree.
  * @note Pass the result to mmgr_scrut_has_zero to turn it into a lane mask.
  */
-mmgr_word mmgr_scrut_xor(const ScrutLaneCfg *args);
+embed_word mmgr_scrut_xor(const ScrutLaneCfg *args);
 
 /**
  * @brief Marks the lanes of args->word that match args->byte once both are reduced to the args->fam bits.
@@ -298,7 +273,7 @@ mmgr_word mmgr_scrut_xor(const ScrutLaneCfg *args);
  * @note args->byte is reduced by args->fam first, so bits outside the family take no part on either side.
  * @note A args->fam of 0xFF makes this an exact match, and an args->fam of 0 marks every lane.
  */
-mmgr_word mmgr_scrut_fam_eq(const ScrutLaneCfg *args);
+embed_word mmgr_scrut_fam_eq(const ScrutLaneCfg *args);
 
 /**
  * @brief Marks the lanes of args->word whose MMGR_FAM_CS bits equal MMGR_FAM_CI, which is the 0x40 to 0x5F block.
@@ -310,7 +285,7 @@ mmgr_word mmgr_scrut_fam_eq(const ScrutLaneCfg *args);
  *          bit seven takes no part, so 0xC0 to 0xDF is marked as well. And it with mmgr_scrut_alpha
  *          for letters alone.
  */
-mmgr_word mmgr_scrut_any_upper(const ScrutLaneCfg *args);
+embed_word mmgr_scrut_any_upper(const ScrutLaneCfg *args);
 
 /**
  * @brief Marks the lanes of args->word that fall in the 0x30 to 0x3F block.
@@ -321,7 +296,7 @@ mmgr_word mmgr_scrut_any_upper(const ScrutLaneCfg *args);
  * @warning That block holds six symbols after the nine, so this marks more than 0 through 9. And it
  *          with mmgr_scrut_le at the character nine when only the ten digits should count.
  */
-mmgr_word mmgr_scrut_any_digit(const ScrutLaneCfg *args);
+embed_word mmgr_scrut_any_digit(const ScrutLaneCfg *args);
 
 /**
  * @brief Marks the lanes of args->word holding an ASCII letter, of either case.
@@ -333,7 +308,7 @@ mmgr_word mmgr_scrut_any_digit(const ScrutLaneCfg *args);
  *       What mmgr_scrut_any_digit marks beyond the ten digits is the six symbols after the nine,
  *       not a high byte.
  */
-mmgr_word mmgr_scrut_alpha(const ScrutLaneCfg *args);
+embed_word mmgr_scrut_alpha(const ScrutLaneCfg *args);
 
 /**
  * @brief Counts the set lanes of args->mask.
@@ -375,7 +350,7 @@ size_t mmgr_scrut_lane_hi(const ScrutLaneCfg *args);
  * @note Use the result to select between two words lane by lane, which a lane mask alone cannot do.
  * @warning The result is no longer a lane mask, so do not hand it to the counting or index entries.
  */
-mmgr_word mmgr_scrut_spread(const ScrutMaskCfg *args);
+embed_word mmgr_scrut_spread(const ScrutMaskCfg *args);
 
 /**
  * @brief Clears the lowest set lane of args->mask.
@@ -385,7 +360,7 @@ mmgr_word mmgr_scrut_spread(const ScrutMaskCfg *args);
  * @note An empty mask stays empty, so stepping a mask down repeatedly ends rather than wrapping.
  * @note The mask table reaches this as drop_first on a little endian target and drop_last on a big endian one.
  */
-mmgr_word mmgr_scrut_drop_lo(const ScrutMaskCfg *args);
+embed_word mmgr_scrut_drop_lo(const ScrutMaskCfg *args);
 
 /**
  * @brief Clears the highest set lane of args->mask.
@@ -395,7 +370,7 @@ mmgr_word mmgr_scrut_drop_lo(const ScrutMaskCfg *args);
  * @note An empty mask stays empty, so stepping a mask down repeatedly ends rather than wrapping.
  * @note The mask table reaches this as drop_last on a little endian target and drop_first on a big endian one.
  */
-mmgr_word mmgr_scrut_drop_hi(const ScrutMaskCfg *args);
+embed_word mmgr_scrut_drop_hi(const ScrutMaskCfg *args);
 
 /**
  * @brief Builds a mask covering the first args->bytes bytes of a word, in memory order.
@@ -405,7 +380,7 @@ mmgr_word mmgr_scrut_drop_hi(const ScrutMaskCfg *args);
  * @note Covers the bytes that come first in memory on either byte order.
  * @note A count of 0 gives an empty mask and a count of MMGR_SWAR_BYTES or more gives a full one.
  */
-mmgr_word mmgr_scrut_bytes_below(const ScrutMaskCfg *args);
+embed_word mmgr_scrut_bytes_below(const ScrutMaskCfg *args);
 
 /**
  * @brief Builds a lane mask covering the first args->bytes lanes of a word, in memory order.
@@ -415,7 +390,7 @@ mmgr_word mmgr_scrut_bytes_below(const ScrutMaskCfg *args);
  * @note mmgr_scrut_bytes_below reduced to lane bits, so this ands cleanly against another lane mask.
  * @note And a match mask with this to keep a scan from acting on bytes past its count.
  */
-mmgr_word mmgr_scrut_lanes_below(const ScrutMaskCfg *args);
+embed_word mmgr_scrut_lanes_below(const ScrutMaskCfg *args);
 
 /**
  * @brief Returns the lanes that come before the first set lane of args->mask, in memory order.
@@ -425,7 +400,7 @@ mmgr_word mmgr_scrut_lanes_below(const ScrutMaskCfg *args);
  * @note An empty args->mask reports every lane, since nothing comes first.
  * @note Count the result to get the same index mmgr_scrut_lane_lo reports on a little endian target.
  */
-mmgr_word mmgr_scrut_lanes_before(const ScrutMaskCfg *args);
+embed_word mmgr_scrut_lanes_before(const ScrutMaskCfg *args);
 
 /**
  * @brief Builds the lane mask for the last partial word of a scan of args->bytes bytes.
@@ -435,7 +410,7 @@ mmgr_word mmgr_scrut_lanes_before(const ScrutMaskCfg *args);
  * @note A word wanted in full gets a full mask, so this can be applied on every pass of a scan loop.
  * @note The only mask entry that reads args->wi.
  */
-mmgr_word mmgr_scrut_tail_mask(const ScrutMaskCfg *args);
+embed_word mmgr_scrut_tail_mask(const ScrutMaskCfg *args);
 
 /**
  * @brief Marks the lanes of args->mask that begin a run of args->bytes set lanes.
@@ -446,7 +421,7 @@ mmgr_word mmgr_scrut_tail_mask(const ScrutMaskCfg *args);
  * @note A args->bytes of 0 or 1 returns args->mask as it stands, since every set lane starts such a run.
  * @warning Returns 0 for an args->bytes above MMGR_SWAR_BYTES, since no run that long fits in one word.
  */
-mmgr_word mmgr_scrut_run(const ScrutMaskCfg *args);
+embed_word mmgr_scrut_run(const ScrutMaskCfg *args);
 
 /**
  * @brief Marks the lanes too near the end of a word for a run of args->bytes to fit inside it.
@@ -458,27 +433,27 @@ mmgr_word mmgr_scrut_run(const ScrutMaskCfg *args);
  * @note Returns 0 for an args->bytes of 0 or 1, since any lane can start such a run, and for any length
  *       above MMGR_SWAR_BYTES, since no lane can.
  */
-mmgr_word mmgr_scrut_run_edge(const ScrutMaskCfg *args);
+embed_word mmgr_scrut_run_edge(const ScrutMaskCfg *args);
 
 /**
- * @brief Loads one mmgr_word from args->at.
+ * @brief Loads one embed_word from args->at.
  *
  * @param[in] args Address to load from [BORROWS].
  * @return         The bytes at args->at, one per lane, in the target's own order.
  * @warning Reads MMGR_SWAR_BYTES bytes even when fewer are wanted, so args->at must be readable for all of them.
  * @note Any alignment will do. Use mmgr_scrut_load_al when the address is known to be aligned.
  */
-mmgr_word mmgr_scrut_load(const ScrutWordCfg *args);
+embed_word mmgr_scrut_load(const ScrutWordCfg *args);
 
 /**
- * @brief Loads one mmgr_word from an aligned args->at.
+ * @brief Loads one embed_word from an aligned args->at.
  *
  * @param[in] args Address to load from [BORROWS].
  * @return         The bytes at args->at, one per lane, in the target's own order.
  * @warning Reads MMGR_SWAR_BYTES bytes even when fewer are wanted, and args->at must be aligned for a word.
  * @note Use mmgr_scrut_load when the address may sit anywhere.
  */
-mmgr_word mmgr_scrut_load_al(const ScrutWordCfg *args);
+embed_word mmgr_scrut_load_al(const ScrutWordCfg *args);
 
 /**
  * @brief Returns args->word with every letter lane turned to lower case.
@@ -488,7 +463,7 @@ mmgr_word mmgr_scrut_load_al(const ScrutWordCfg *args);
  * @note Only letter lanes are changed, so a digit or a symbol keeps bit five exactly as it was.
  * @note Fold two words and compare them for a case insensitive test over whole words at once.
  */
-mmgr_word mmgr_scrut_fold_lower(const ScrutWordCfg *args);
+embed_word mmgr_scrut_fold_lower(const ScrutWordCfg *args);
 
 /**
  * @brief Returns how many whole words a scan of args->bytes bytes must read.
@@ -507,7 +482,7 @@ size_t mmgr_scrut_words(const ScrutWordCfg *args);
  * @note first and last are bound to lane_lo and lane_hi one way round on a little endian target and the
  *       other way on a big endian one, so both always mean memory order.
  */
-MMGR_NS ScrutLaneNs lane MMGR_UNUSED = {
+EMBED_TABLE_STORAGE ScrutLaneNs lane EMBED_UNUSED = {
     .ge = mmgr_scrut_ge,
     .le = mmgr_scrut_le,
     .sub7 = mmgr_scrut_sub7,
@@ -535,7 +510,7 @@ MMGR_NS ScrutLaneNs lane MMGR_UNUSED = {
  *       and the other way on a big endian one, so both always mean memory order.
  * @note before reaches mmgr_scrut_lanes_before, which carries the same swap inside itself.
  */
-MMGR_NS ScrutMaskNs mask MMGR_UNUSED = {
+EMBED_TABLE_STORAGE ScrutMaskNs mask EMBED_UNUSED = {
     .spread = mmgr_scrut_spread,
 #if MMGR_HW_BIG_ENDIAN
     .drop_first = mmgr_scrut_drop_hi,
@@ -557,13 +532,13 @@ MMGR_NS ScrutMaskNs mask MMGR_UNUSED = {
  *
  * @note No member depends on byte order, unlike the lane and mask tables above.
  */
-MMGR_NS ScrutWordNs word MMGR_UNUSED = {
+EMBED_TABLE_STORAGE ScrutWordNs word EMBED_UNUSED = {
     .load = mmgr_scrut_load,
     .load_al = mmgr_scrut_load_al,
     .fold_lower = mmgr_scrut_fold_lower,
     .count = mmgr_scrut_words,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

@@ -1,5 +1,5 @@
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 #
 # One bench binary per environment, for the same reason the suites are built per environment: the
 # point of the SWAR bench is the comparison BETWEEN lane widths, and that comparison does not exist
@@ -73,8 +73,7 @@ foreach(bench_src ${MMGR_BENCH_SOURCES})
         target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
         target_link_libraries(${target} PRIVATE mmgr_${env})
         target_compile_options(${target} PRIVATE
-            $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-O2>
-            $<$<C_COMPILER_ID:MSVC>:/O2>)
+            $<$<C_COMPILER_ID:GNU,Clang>:-O2>)
         set_target_properties(${target} PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bench/${env}"
             INTERPROCEDURAL_OPTIMIZATION FALSE)

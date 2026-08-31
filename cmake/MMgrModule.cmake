@@ -62,9 +62,15 @@ function(mmgr_add_module name)
       endif()
     endif()
 
-    # src/ is the include root, so every header is reached as <mmgr/<module>/<module>.h> and
-    # mmgr_config.h resolves with the same single -I. A consumer of this library adds one directory.
-    target_include_directories(${target} ${scope} "${MMGR_INCLUDE_DIR}")
+    # src/ is the include root, so every module header is reached as <module>/<module>.h. include/
+    # carries mmgr.h, which every module header includes for the embed macros and the widths.
+    target_include_directories(${target} ${scope} "${MMGR_INCLUDE_DIR}" "${CMAKE_SOURCE_DIR}/include")
+
+    # embedded_types rides the module target at the module's own scope, for the same reason the
+    # capabilities below do: a suite links the module and deliberately does not link mmgr_flags.
+    # include/mmgr.h includes the three embed headers and every module header includes it, so every
+    # translation unit reaching any MMgr header needs this include directory, cases included.
+    target_link_libraries(${target} ${scope} embedded_types::embedded_types)
 
     # Capabilities ride the module target, not mmgr_flags, because a suite links the module and
     # deliberately does not link mmgr_flags. On mmgr_flags the define would reach src/ and not the
@@ -81,6 +87,19 @@ function(mmgr_add_module name)
 
     if(NOT defs STREQUAL "")
       target_compile_definitions(${target} ${scope} ${defs})
+    endif()
+
+    # checks is a test environment, and what it wants is a failed expectation that reports and stops.
+    # That needs stdio and stdlib, which cannot sit in src/ - a library for a part with no libc does
+    # not reach for fprintf and abort because a test flag was set. The reporting forms live in
+    # test/support/mmgr_host_traps.h and are forced in ahead of every other header, so they are the
+    # definitions src/ meets on this environment.
+    #
+    # On the module target rather than only the suite, because the asserts being armed are the ones
+    # compiled into src/. Carried at ${scope}, so a suite linking this module inherits it.
+    if(env STREQUAL "checks")
+      target_compile_options(${target} ${scope}
+                             "-include" "${CMAKE_SOURCE_DIR}/test/support/mmgr_host_traps.h")
     endif()
 
     foreach(dep IN LISTS ARG_DEPS)

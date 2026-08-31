@@ -1,7 +1,7 @@
+#include "verba_scribo/verba_scribo.h"
+
 #include "oracle_divergence.h"
 #include "unity.h"
-
-#include "verba_scribo/verba_scribo.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -24,90 +24,91 @@ static void fresh(size_t room)
 
 static void put(const char *text)
 {
-    at = MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
+    at = EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
 }
 
 static void put_n(const char *text, size_t len)
 {
-    at = MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text, .text_len = len);
+    at =
+        EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text, .text_len = len);
 }
 
 static void put_clip(const char *text)
 {
-    at = MMGR_CALL(verba_textus.put_clip, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
+    at = EMBED_CALL(verba_textus.put_clip, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
 }
 
 static void ch(char value)
 {
-    at = MMGR_CALL(verba_littera.ch, VerbaLitteraCfg, .out = buf, .cap = cap, .at = at, .ch = value);
+    at = EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = buf, .cap = cap, .at = at, .ch = value);
 }
 
 static void u32(uint32_t value)
 {
-    at = MMGR_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value);
+    at = EMBED_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value);
 }
 
 static void u32w(uint32_t value, uint8_t width)
 {
-    at = MMGR_CALL(verba_numerus.u32w, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .min = width);
+    at = EMBED_CALL(verba_numerus.u32w, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .min = width);
 }
 
 static void u64(uint64_t value)
 {
-    at = MMGR_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value);
+    at = EMBED_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value);
 }
 
 static void u64_clip(uint64_t value, uint8_t columns)
 {
-    at = MMGR_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value,
-                   .columns = columns);
+    at = EMBED_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value,
+                    .columns = columns);
 }
 
 static void i64(int64_t value)
 {
-    at = MMGR_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .sval = value);
+    at = EMBED_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .sval = value);
 }
 
 static void uint_of(uint64_t value, uint8_t base, uint8_t min)
 {
-    at = MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .base = base,
-                   .min = min);
+    at = EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .base = base,
+                    .min = min);
 }
 
 static void hex(uint64_t value, uint8_t min)
 {
-    at = MMGR_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .min = min);
+    at = EMBED_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = buf, .cap = cap, .at = at, .val = value, .min = min);
 }
 
 static void g(double value, uint8_t sig)
 {
-    at = MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = buf, .cap = cap, .at = at, .real = value, .sig = sig);
+    at = EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = buf, .cap = cap, .at = at, .real = value, .sig = sig);
 }
 
 static void fixed(double value, uint8_t decimals)
 {
-    at = MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = buf, .cap = cap, .at = at, .real = value,
-                   .decimals = decimals);
+    at = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = buf, .cap = cap, .at = at, .real = value,
+                    .decimals = decimals);
 }
 
 static void json(const char *text)
 {
-    at = MMGR_CALL(verba_textus.json, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
+    at = EMBED_CALL(verba_textus.json, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
 }
 
 static void xml(const char *text)
 {
-    at = MMGR_CALL(verba_textus.xml, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
+    at = EMBED_CALL(verba_textus.xml, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
 }
 
 static size_t finish(void)
 {
-    return MMGR_CALL(verba_finis.finish, VerbaFinisCfg, .out = buf, .cap = cap, .at = at);
+    return EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = buf, .cap = cap, .at = at);
 }
 
-static mmgr_bool ok(void)
+static embed_bool ok(void)
 {
-    return MMGR_CALL(verba_finis.ok, VerbaFinisCfg, .cap = cap, .at = at);
+    return EMBED_CALL(verba_finis.ok, VerbaFinisCfg, .cap = cap, .at = at);
 }
 
 static double an_inf(void)
@@ -330,18 +331,18 @@ void test_float_predicates(void)
     const double inf = 1e308 * 10.0;
     const double nan = inf - inf;
 
-    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = inf));
-    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = -inf));
-    TEST_ASSERT_FALSE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = 1.0));
+    TEST_ASSERT_TRUE(EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = inf));
+    TEST_ASSERT_TRUE(EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = -inf));
+    TEST_ASSERT_FALSE(EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = 1.0));
 
-    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = nan));
-    TEST_ASSERT_FALSE(MMGR_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = 1.0));
-    TEST_ASSERT_FALSE(MMGR_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = inf));
+    TEST_ASSERT_TRUE(EMBED_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = nan));
+    TEST_ASSERT_FALSE(EMBED_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = 1.0));
+    TEST_ASSERT_FALSE(EMBED_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = inf));
 
-    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = -1.0));
-    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = -0.0));
-    TEST_ASSERT_FALSE(MMGR_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = 1.0));
-    TEST_ASSERT_FALSE(MMGR_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = 0.0));
+    TEST_ASSERT_TRUE(EMBED_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = -1.0));
+    TEST_ASSERT_TRUE(EMBED_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = -0.0));
+    TEST_ASSERT_FALSE(EMBED_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = 1.0));
+    TEST_ASSERT_FALSE(EMBED_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = 0.0));
 }
 
 void test_fixed_matches_printf(void)
@@ -359,42 +360,47 @@ void test_fixed_matches_printf(void)
     }
 }
 
-void test_fixed_rounds_a_tie_to_even(void)
+void test_fixed_rounds_a_tie_up(void)
 {
     fresh(sizeof buf);
     fixed(1.5, 0u);
     finish();
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("2", buf, "1 is odd, so the tie goes up");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("2", buf, "a half goes up");
 
     fresh(sizeof buf);
     fixed(2.5, 0u);
     finish();
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("2", buf, "2 is even, so the tie stays");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("3", buf, "an even neighbor does not hold it down");
 
     fresh(sizeof buf);
     fixed(3.5, 0u);
     finish();
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("4", buf, "3 is odd, so the tie goes up");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("4", buf, "a half goes up");
 
     fresh(sizeof buf);
     fixed(0.5, 0u);
     finish();
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("0", buf, "0 is even, so the tie stays");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("1", buf, "a half below one still goes up");
 
     fresh(sizeof buf);
     fixed(-1.5, 0u);
     finish();
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("-2", buf, "the sign is written first and does not change it");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("-2", buf, "the magnitude is what rounds, so this goes away from zero");
+
+    fresh(sizeof buf);
+    fixed(-2.5, 0u);
+    finish();
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("-3", buf, "away from zero, where to even would have held it at -2");
 
     fresh(sizeof buf);
     fixed(0.125, 2u);
     finish();
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("0.12", buf, "2 is even, so the tie stays");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("0.13", buf, "a half at the third decimal goes up");
 
     fresh(sizeof buf);
     fixed(0.375, 2u);
     finish();
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("0.38", buf, "7 is odd, so the tie goes up");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("0.38", buf, "a half at the third decimal goes up");
 }
 
 void test_fixed_is_exact_below_a_64_bit_shift(void)
@@ -441,12 +447,12 @@ void test_g_rounds_a_tie(void)
     fresh(sizeof buf);
     g(2.5, 1u);
     finish();
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("2", buf, "half to even, like the IEEE default");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("3", buf, "a half goes up, which is not the IEEE default");
 
     fresh(sizeof buf);
     g(0.25, 1u);
     finish();
-    TEST_ASSERT_EQUAL_STRING("0.2", buf);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("0.3", buf, "g shares the rounder with fixed, so its halves go up too");
 }
 
 void test_g_matches_printf(void)
@@ -801,9 +807,9 @@ void test_g_of_the_largest_finite_double(void)
 
 void test_is_inf_says_no_to_a_nan(void)
 {
-    TEST_ASSERT_FALSE_MESSAGE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = a_nan()),
+    TEST_ASSERT_FALSE_MESSAGE(EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = a_nan()),
                               "a nan is not an infinity");
-    TEST_ASSERT_TRUE(MMGR_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = an_inf()));
+    TEST_ASSERT_TRUE(EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = an_inf()));
 }
 
 void test_fixed_over_every_decimal_count(void)

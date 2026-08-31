@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Self-test for readclean.py: what the blind pass removes, and what it must NOT remove.
 
 Both halves are load-bearing. A pass that removes too little leaves the names it was meant to take

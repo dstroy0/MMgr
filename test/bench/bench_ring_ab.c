@@ -10,15 +10,15 @@
 #define CAP 65536u
 #define NSEGS 8u
 
-static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_proto_buf[CAP];
+static EMBED_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_proto_buf[CAP];
 static _Atomic size_t g_proto_head;
 static _Atomic size_t g_proto_tail;
 
-static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_mmgr_buf[CAP];
+static EMBED_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_mmgr_buf[CAP];
 static mmgr_ring g_mmgr_ring;
 
-static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_src[512];
-static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_dst[512];
+static EMBED_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_src[512];
+static EMBED_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_dst[512];
 
 static unsigned long g_refused;
 
@@ -41,8 +41,8 @@ static void report(const char *impl, const char *name, size_t bytes, double cycl
 
 static void mmgr_reset(void)
 {
-    (void)MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_mmgr_ring, .buf = g_mmgr_buf, .capacity = CAP,
-                    .segment_count = NSEGS);
+    (void)EMBED_CALL(anularis.init, AnularisCfg, .ring = &g_mmgr_ring, .buf = g_mmgr_buf, .capacity = CAP,
+                     .segment_count = NSEGS);
 }
 
 static void proto_reset(void)
@@ -53,7 +53,7 @@ static void proto_reset(void)
 
 static void mmgr_fill(void)
 {
-    while (MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_mmgr_ring, .src = g_src, .bytes = 512u))
+    while (EMBED_CALL(anularis.put, AnularisCfg, .ring = &g_mmgr_ring, .src = g_src, .bytes = 512u))
     {
     }
 }
@@ -83,11 +83,11 @@ static void mmgr_fill(void)
         mmgr_reset();                                                                                                  \
         g_refused = 0ul;                                                                                               \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            if (!MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_mmgr_ring, .src = g_src, .bytes = (N)))               \
+            if (!EMBED_CALL(anularis.put, AnularisCfg, .ring = &g_mmgr_ring, .src = g_src, .bytes = (N)))              \
             {                                                                                                          \
                 g_refused++;                                                                                           \
             }                                                                                                          \
-            MMGR_CALL(anularis.consume, AnularisCfg, .ring = &g_mmgr_ring, .bytes = (N));                              \
+            EMBED_CALL(anularis.consume, AnularisCfg, .ring = &g_mmgr_ring, .bytes = (N));                             \
             BENCH_KEEP(g_mmgr_buf[bench_i_ & (CAP - 1u)]);                                                             \
         });                                                                                                            \
         report("mmgr", "put", (N), cy_);                                                                               \
@@ -104,8 +104,8 @@ static void mmgr_fill(void)
         report("protocore", "peek", (N), cy_);                                                                         \
                                                                                                                        \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            MMGR_CALL(anularis.peek, AnularisCfg, .ring = &g_mmgr_ring, .dst = g_dst, .bytes = (N),                    \
-                      .offset = (size_t)(bench_i_ & 63u));                                                             \
+            EMBED_CALL(anularis.peek, AnularisCfg, .ring = &g_mmgr_ring, .dst = g_dst, .bytes = (N),                   \
+                       .offset = (size_t)(bench_i_ & 63u));                                                            \
             BENCH_KEEP(g_dst[0]);                                                                                      \
         });                                                                                                            \
         report("mmgr", "peek", (N), cy_);                                                                              \
@@ -125,7 +125,7 @@ static void mmgr_fill(void)
         mmgr_reset();                                                                                                  \
         mmgr_fill();                                                                                                   \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            if (MMGR_CALL(anularis.read, AnularisCfg, .ring = &g_mmgr_ring, .dst = g_dst, .bytes = (N)) == 0u)         \
+            if (EMBED_CALL(anularis.read, AnularisCfg, .ring = &g_mmgr_ring, .dst = g_dst, .bytes = (N)) == 0u)        \
             {                                                                                                          \
                 mmgr_reset();                                                                                          \
                 mmgr_fill();                                                                                           \
@@ -160,7 +160,8 @@ int main(void)
         BENCH_TIME_CYCLES(cy, ITERS, { BENCH_KEEP(protocore_ring_available(&g_proto_head, &g_proto_tail, CAP)); });
         report("protocore", "available", 0u, cy);
 
-        BENCH_TIME_CYCLES(cy, ITERS, { BENCH_KEEP(MMGR_CALL(anularis.available, AnularisCfg, .ring = &g_mmgr_ring)); });
+        BENCH_TIME_CYCLES(cy, ITERS,
+                          { BENCH_KEEP(EMBED_CALL(anularis.available, AnularisCfg, .ring = &g_mmgr_ring)); });
         report("mmgr", "available", 0u, cy);
     }
 
@@ -187,12 +188,12 @@ int main(void)
         report("protocore", "read_byte", 1u, cy);
 
         mmgr_reset();
-        (void)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_mmgr_ring, .src = g_src, .bytes = 512u);
+        (void)EMBED_CALL(anularis.put, AnularisCfg, .ring = &g_mmgr_ring, .src = g_src, .bytes = 512u);
         BENCH_TIME_CYCLES(cy, ITERS, {
-            if (!MMGR_CALL(anularis.read_byte, AnularisCfg, .ring = &g_mmgr_ring, .dst = &b))
+            if (!EMBED_CALL(anularis.read_byte, AnularisCfg, .ring = &g_mmgr_ring, .dst = &b))
             {
                 mmgr_reset();
-                (void)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_mmgr_ring, .src = g_src, .bytes = 512u);
+                (void)EMBED_CALL(anularis.put, AnularisCfg, .ring = &g_mmgr_ring, .src = g_src, .bytes = 512u);
             }
             BENCH_KEEP(b);
         });

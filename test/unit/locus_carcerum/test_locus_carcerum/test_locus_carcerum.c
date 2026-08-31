@@ -1,7 +1,7 @@
-#include "unity.h"
-
 #include "locus_carcerum/locus_carcerum.h"
 #include "spatium/spatium.h"
+
+#include "unity.h"
 
 #define A_BYTES 1024u
 #define B_BYTES 1024u
@@ -378,7 +378,7 @@ void test_the_cellblocks_do_not_share_a_fill_point(void)
 void test_a_span_over_cellblock_bytes_carries_the_cellblock_address(void)
 {
     uint8_t *const p = (uint8_t *)ram.a.persistent_buf_alloc(64u);
-    const mmgr_span s = MMGR_CALL(spat.from, SpatiumCfg, .buf = p, .cap = 64u);
+    const mmgr_span s = EMBED_CALL(spat.from, SpatiumCfg, .buf = p, .cap = 64u);
 
     TEST_ASSERT_TRUE_MESSAGE(ram.a.who_owns_buf(s.buf),
                              "the cellblock the span was allocated from still owns its bytes");

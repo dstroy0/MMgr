@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Move the modules from the names they arrived under onto this library's Latin category names.
 
 Driven entirely by tools/dev_env/names.tsv. Nothing about the naming lives in this file, so a change

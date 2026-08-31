@@ -100,10 +100,10 @@ int main(void)
   run_test(test_peek_holds_a_request_above_capacity, "test_peek_holds_a_request_above_capacity", 155);
   run_test(test_read_byte_empties_the_ring, "test_read_byte_empties_the_ring", 174);
   run_test(test_loculus_next_picks_the_lowest_and_reports_empty, "test_loculus_next_picks_the_lowest_and_reports_empty", 190);
-  run_test(test_hold_takes_a_loculus_and_drop_returns_it, "test_hold_takes_a_loculus_and_drop_returns_it", 201);
-  run_test(test_hold_refuses_a_loculus_that_does_not_exist, "test_hold_refuses_a_loculus_that_does_not_exist", 230);
-  run_test(test_segments_publish_and_release_in_order, "test_segments_publish_and_release_in_order", 239);
-  run_test(test_seg_at_walks_the_buffer, "test_seg_at_walks_the_buffer", 266);
+  run_test(test_hold_takes_a_loculus_and_drop_returns_it, "test_hold_takes_a_loculus_and_drop_returns_it", 202);
+  run_test(test_hold_refuses_a_loculus_that_does_not_exist, "test_hold_refuses_a_loculus_that_does_not_exist", 232);
+  run_test(test_segments_publish_and_release_in_order, "test_segments_publish_and_release_in_order", 241);
+  run_test(test_seg_at_walks_the_buffer, "test_seg_at_walks_the_buffer", 268);
 
   return UNITY_END();
 }

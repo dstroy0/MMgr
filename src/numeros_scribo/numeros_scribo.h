@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file numeros_scribo.h
@@ -16,16 +19,16 @@
 
 #include "verba_scribo/verba_scribo.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief What one field formats, and which mmgr_fval arm it reads.
  *
  * @note numeros_scribo.c indexes s_kind by this value, so MMGR_FK_XML is the largest one it accepts.
- * @note MMGR_ENUM_PACKED asks for the narrowest representation. mmgr_types.h asserts that it took
+ * @note EMBED_ENUM_PACKED asks for the narrowest representation. mmgr_types.h asserts that it took
  *       effect.
  */
-typedef enum MMGR_ENUM_PACKED
+typedef enum EMBED_ENUM_PACKED
 {
     MMGR_FK_END = 0, /**< Ends a spec. numer_build stops at this field. */
     MMGR_FK_LIT,     /**< Literal text, taken from mmgr_field::lit and mmgr_field::len. */
@@ -260,7 +263,8 @@ typedef struct
 /**
  * @brief Type of the numer dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the four members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the four members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note build and emit begin at NumerosCfg::at, which is out's first byte while the caller leaves it
  *       unset. The two append members begin past the text already there.
  */
@@ -271,7 +275,7 @@ typedef struct
     size_t (*emit)(const NumerosCfg *args);        /**< Writes values, with no field list. */
     size_t (*emit_append)(const NumerosCfg *args); /**< Writes values after the text in out, with no field list. */
 } NumerosScriboNs;
-MMGR_NS_LAYOUT(NumerosScriboNs, build, append, emit, emit_append);
+EMBED_TABLE_LAYOUT(NumerosScriboNs, build, append, emit, emit_append);
 
 /**
  * @brief Writes args->spec and args->vals into args->out, starting at args->at.
@@ -333,13 +337,13 @@ size_t mmgr_numer_emit_append(const NumerosCfg *args);
  * @note Each member calls the matching mmgr_numer_ function, one to one.
  * @note mmgr_numer_append reaches build through this table, and mmgr_numer_emit_append reaches emit.
  */
-MMGR_NS NumerosScriboNs numer MMGR_UNUSED = {
+EMBED_TABLE_STORAGE NumerosScriboNs numer EMBED_UNUSED = {
     .build = mmgr_numer_build,
     .append = mmgr_numer_append,
     .emit = mmgr_numer_emit,
     .emit_append = mmgr_numer_emit_append,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

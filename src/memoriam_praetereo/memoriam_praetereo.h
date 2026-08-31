@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file memoriam_praetereo.h
@@ -12,11 +15,11 @@
 #ifndef MMGR_MEMORIAM_PRAETEREO_H
 #define MMGR_MEMORIAM_PRAETEREO_H
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
 #if MMGR_ENABLE_DMA
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief What the port layer reports when a transfer finishes.
@@ -80,7 +83,7 @@ typedef struct
 {
     const uint8_t channel;                     /**< Channel to act on. */
     const uint8_t peripheral;                  /**< Peripheral the channel is wired to. */
-    const mmgr_bool loopback;                  /**< Open the channel looped back on itself. */
+    const embed_bool loopback;                 /**< Open the channel looped back on itself. */
     const PraetCallbackCfg *const on_complete; /**< Called when a transfer finishes [BORROWS]. */
 } PraetCfg;
 
@@ -99,38 +102,39 @@ typedef struct
 /**
  * @brief Type of the praet dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the four members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the four members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  */
 typedef struct
 {
-    mmgr_bool (*open)(const PraetCfg *args);              /**< Opens a channel. */
-    mmgr_bool (*tx_submit)(const PraetTransferCfg *args); /**< Submits a transfer. */
-    void (*close)(const PraetTransferCfg *args);          /**< Closes a channel. */
-    void (*poll)(const PraetCfg *args);                   /**< Drives the port layer's poll hook. */
+    embed_bool (*open)(const PraetCfg *args);              /**< Opens a channel. */
+    embed_bool (*tx_submit)(const PraetTransferCfg *args); /**< Submits a transfer. */
+    void (*close)(const PraetTransferCfg *args);           /**< Closes a channel. */
+    void (*poll)(const PraetCfg *args);                    /**< Drives the port layer's poll hook. */
 } MemoriamPraetereoNs;
-MMGR_NS_LAYOUT(MemoriamPraetereoNs, open, tx_submit, close, poll);
+EMBED_TABLE_LAYOUT(MemoriamPraetereoNs, open, tx_submit, close, poll);
 
 /**
  * @brief Opens args->channel and registers args->on_complete against it.
  *
  * @param[in] args Channel, peripheral, loopback flag and completion callback [BORROWS].
- * @return         MMGR_TRUE when the port layer accepted the request.
- * @note The default mmgr_praet_hw_open refuses, so this returns MMGR_FALSE until a port replaces it.
+ * @return         EMBED_TRUE when the port layer accepted the request.
+ * @note The default mmgr_praet_hw_open refuses, so this returns EMBED_FALSE until a port replaces it.
  * @warning args->channel must be below the configured channel count, and args->on_complete must not be NULL.
  */
-mmgr_bool mmgr_praet_open(const PraetCfg *args);
+embed_bool mmgr_praet_open(const PraetCfg *args);
 
 /**
  * @brief Submits args->bytes of args->buf on args->channel.
  *
  * @param[in] args Channel, buffer and byte count [BORROWS].
- * @return         MMGR_TRUE when the port layer accepted the transfer.
- * @note The default mmgr_praet_hw_tx_submit refuses, so this returns MMGR_FALSE until a port replaces it.
+ * @return         EMBED_TRUE when the port layer accepted the transfer.
+ * @note The default mmgr_praet_hw_tx_submit refuses, so this returns EMBED_FALSE until a port replaces it.
  * @warning args->buf must stay valid until the completion callback runs [BORROWS].
  * @warning args->channel must be below the configured channel count, and args->bytes must not exceed
  *          the buffer size.
  */
-mmgr_bool mmgr_praet_tx_submit(const PraetTransferCfg *args);
+embed_bool mmgr_praet_tx_submit(const PraetTransferCfg *args);
 
 /**
  * @brief Closes args->channel.
@@ -155,33 +159,33 @@ void mmgr_praet_poll(const PraetCfg *args);
  *
  * @param[in] args Channel, peripheral, loopback flag and completion callback, as mmgr_praet_open
  *                 forwards them [BORROWS].
- * @return         MMGR_TRUE when the hardware accepted the request.
+ * @return         EMBED_TRUE when the hardware accepted the request.
  * @note The default in memoriam_praetereo.c refuses every request, so a build links without a port.
- * @note An application definition of this name replaces that default where MMGR_HAS_ATTRIBUTE(weak)
+ * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
  * @warning Reached through mmgr_praet_open, which asserts the channel and the callback first.
  */
-mmgr_bool mmgr_praet_hw_open(const PraetCfg *args);
+embed_bool mmgr_praet_hw_open(const PraetCfg *args);
 
 /**
  * @brief Submits a transfer on real hardware.
  *
  * @param[in] args Channel, buffer and byte count, as mmgr_praet_tx_submit forwards them [BORROWS].
- * @return         MMGR_TRUE when the hardware accepted the transfer.
+ * @return         EMBED_TRUE when the hardware accepted the transfer.
  * @note The default in memoriam_praetereo.c refuses every transfer, so a build links without a port.
- * @note An application definition of this name replaces that default where MMGR_HAS_ATTRIBUTE(weak)
+ * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
  * @warning Reached through mmgr_praet_tx_submit, which asserts the channel and the byte count first.
  * @warning args->buf must stay valid until this reports completion through the registered callback [BORROWS].
  */
-mmgr_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args);
+embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args);
 
 /**
  * @brief Closes a DMA channel on real hardware.
  *
  * @param[in] args Channel to close, as mmgr_praet_close forwards it [BORROWS].
  * @note The default in memoriam_praetereo.c does nothing, so a build links without a port.
- * @note An application definition of this name replaces that default where MMGR_HAS_ATTRIBUTE(weak)
+ * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
  * @note Only args->channel is forwarded. buf and bytes take no part.
  * @warning Reached through mmgr_praet_close, which asserts the channel first.
@@ -193,7 +197,7 @@ void mmgr_praet_hw_close(const PraetTransferCfg *args);
  *
  * @param[in] args Channel to poll, exactly as the caller gave it [BORROWS].
  * @note The default in memoriam_praetereo.c does nothing, so a build links without a port.
- * @note An application definition of this name replaces that default where MMGR_HAS_ATTRIBUTE(weak)
+ * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
  * @warning mmgr_praet_poll calls this directly, with no checking call in between. args and
  *          args->channel arrive exactly as the caller wrote them, unasserted.
@@ -206,14 +210,14 @@ void mmgr_praet_hw_poll(const PraetCfg *args);
  * @note Each member calls the matching mmgr_praet_ function, one to one. No member is pointed at
  *       another's function, which is where this differs from the memor table.
  */
-MMGR_NS MemoriamPraetereoNs praet MMGR_UNUSED = {
+EMBED_TABLE_STORAGE MemoriamPraetereoNs praet EMBED_UNUSED = {
     .open = mmgr_praet_open,
     .tx_submit = mmgr_praet_tx_submit,
     .close = mmgr_praet_close,
     .poll = mmgr_praet_poll,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif
 

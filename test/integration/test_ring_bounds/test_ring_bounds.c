@@ -1,5 +1,5 @@
 // MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 //
 #include "unity.h"
 
@@ -17,8 +17,8 @@
 
 static mmgr_ring g_ring;
 
-static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_side[BIG_CAP * 2u];
-static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_big[BIG_CAP];
+static EMBED_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_side[BIG_CAP * 2u];
+static EMBED_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_big[BIG_CAP];
 
 void setUp(void)
 {
@@ -62,12 +62,12 @@ static void do_prime(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    (void)MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = m->buf, .capacity = m->cap,
-                    .segment_count = NSEGS);
+    (void)EMBED_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = m->buf, .capacity = m->cap,
+                     .segment_count = NSEGS);
     if (m->start != 0u)
     {
-        (void)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_side, .bytes = m->start);
-        MMGR_CALL(anularis.consume, AnularisCfg, .ring = &g_ring, .bytes = m->start);
+        (void)EMBED_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_side, .bytes = m->start);
+        EMBED_CALL(anularis.consume, AnularisCfg, .ring = &g_ring, .bytes = m->start);
     }
 }
 
@@ -75,21 +75,21 @@ static void do_put(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    keep((size_t)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = m->src, .bytes = m->bytes));
+    keep((size_t)EMBED_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = m->src, .bytes = m->bytes));
 }
 
 static void do_peek(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    MMGR_CALL(anularis.peek, AnularisCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes, .offset = 0u);
+    EMBED_CALL(anularis.peek, AnularisCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes, .offset = 0u);
 }
 
 static void do_read(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    keep(MMGR_CALL(anularis.read, AnularisCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes));
+    keep(EMBED_CALL(anularis.read, AnularisCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes));
 }
 
 static void none_past(const char *what, void (*fn)(void *), const Move *m, size_t at)
@@ -133,7 +133,7 @@ void test_the_ring_stays_inside_its_buffer_at_every_head(void)
 
         none_past("priming the head", do_prime, &m, start);
 
-        m.bytes = MMGR_CALL(anularis.vacant, AnularisCfg, .ring = &g_ring);
+        m.bytes = EMBED_CALL(anularis.vacant, AnularisCfg, .ring = &g_ring);
 
         none_past("put", do_put, &m, start);
         none_past("peek", do_peek, &m, start);
@@ -145,9 +145,9 @@ void test_a_drain_stays_inside_the_destination_it_was_given(void)
 {
     needs_the_guard();
 
-    (void)MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
-                    .segment_count = NSEGS);
-    (void)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_side, .bytes = BIG_CAP / 2u);
+    (void)EMBED_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
+                     .segment_count = NSEGS);
+    (void)EMBED_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_side, .bytes = BIG_CAP / 2u);
 
     for (size_t n = 1u; n <= SPANS; n++)
     {
@@ -159,9 +159,9 @@ void test_a_drain_stays_inside_the_destination_it_was_given(void)
 
         none_past("peek", do_peek, &m, n);
 
-        (void)MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
-                        .segment_count = NSEGS);
-        (void)MMGR_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_side, .bytes = BIG_CAP / 2u);
+        (void)EMBED_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
+                         .segment_count = NSEGS);
+        (void)EMBED_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = g_side, .bytes = BIG_CAP / 2u);
 
         none_past("read", do_read, &m, n);
     }
@@ -179,8 +179,8 @@ void test_a_fill_stays_inside_the_source_it_was_given(void)
         m.src = place(n);
         m.bytes = n;
 
-        (void)MMGR_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
-                        .segment_count = NSEGS);
+        (void)EMBED_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_big, .capacity = BIG_CAP,
+                         .segment_count = NSEGS);
 
         none_past("put", do_put, &m, n);
     }

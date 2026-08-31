@@ -48,7 +48,7 @@ void test_maximum_security_release_zeroes_the_cell(void)
     unsigned char *p = (unsigned char *)ram.secret.persistent_buf_alloc((size_t)32);
 
     TEST_ASSERT_NOT_NULL(p);
-    MMGR_CALL(memor.set, MemoriaCfg, .dst = p, .val = (uint8_t)0xA5u, .bytes = (size_t)32u);
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = p, .val = (uint8_t)0xA5u, .bytes = (size_t)32u);
     TEST_ASSERT_EQUAL_UINT8(0xA5u, p[0]);
     TEST_ASSERT_EQUAL_UINT8(0xA5u, p[31]);
 
@@ -64,7 +64,7 @@ void test_minimum_security_release_does_not_zero(void)
     unsigned char *p = (unsigned char *)ram.plain.persistent_buf_alloc((size_t)32);
 
     TEST_ASSERT_NOT_NULL(p);
-    MMGR_CALL(memor.set, MemoriaCfg, .dst = p, .val = (uint8_t)0xA5u, .bytes = (size_t)32u);
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = p, .val = (uint8_t)0xA5u, .bytes = (size_t)32u);
 
     ram.plain.persistent_buf_release(p);
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(0xA5u, p[0], "the minimum security guard does not clear, that is its whole point");

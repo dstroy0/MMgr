@@ -1,5 +1,5 @@
 // MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 //
 #include "memoria_anularis/memoria_anularis.h"
 
@@ -12,7 +12,7 @@
 
 #define POISON 0xCCu
 
-static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t ring_buf[CAP];
+static EMBED_ALIGN(MMGR_ALIGN_BYTES) uint8_t ring_buf[CAP];
 static mmgr_ring ring;
 
 static uint8_t out[4096];

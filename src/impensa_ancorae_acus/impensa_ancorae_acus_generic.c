@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file impensa_ancorae_acus_generic.c
@@ -35,7 +38,7 @@ static const uint8_t s_impensa[256] = {
     107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107, 107};
 
 /**
- * @brief Argument type built by MMGR_CALL in mmgr_ancorae_impensa.
+ * @brief Argument type built by EMBED_CALL in mmgr_ancorae_impensa.
  *
  * @note Mirrors AncoraeCfg without its const qualifier.
  */
@@ -51,7 +54,7 @@ typedef struct
  * @return         The cost, 53 through 255 in this table.
  * @note The table holds 256 entries, so every uint8_t value indexes it in range.
  */
-MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
+EMBED_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
 {
     return s_impensa[args->byte];
 }
@@ -63,5 +66,5 @@ MMGR_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
  */
 uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args)
 {
-    return MMGR_CALL(ancorae_impensa, AncoraeCtx, .byte = args->byte);
+    return EMBED_CALL(ancorae_impensa, AncoraeCtx, .byte = args->byte);
 }

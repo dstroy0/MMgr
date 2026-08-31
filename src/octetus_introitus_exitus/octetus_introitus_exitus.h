@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file octetus_introitus_exitus.h
@@ -13,7 +16,7 @@
  *       and how big its buffer is are both fixed before the build, so writing past the end means the
  *       program is wrong. Those three assert, store nothing, and latch overflow to keep a wrong
  *       program off the end, and none of that leaves a caller anything to act on.
- * @note mmgr_byteio_take_be and mmgr_byteio_rd_str answer MMGR_FALSE when the bytes are not there,
+ * @note mmgr_byteio_take_be and mmgr_byteio_rd_str answer EMBED_FALSE when the bytes are not there,
  *       set the read span's err, and leave the cursor and the output where they were. A reader is
  *       handed whatever was sent to it, so a short read is a runtime fact rather than a build
  *       failure. The cursor does not advance on failure, because a caller that keeps reading still
@@ -28,9 +31,9 @@
 
 #include "spatium/spatium.h"
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief Arguments for the byteio calls, where each call reads only the members it needs.
@@ -56,7 +59,8 @@ typedef struct
 /**
  * @brief Type of the byteio dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the six members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the six members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note put, put_be and raw answer nothing, because a span latches its own failure and leaves a
  *       caller nothing to act on.
  * @note take_be and rd_str answer, because a read that did not happen has to be distinguishable
@@ -64,14 +68,14 @@ typedef struct
  */
 typedef struct
 {
-    void (*put)(const OctetusCfg *args);              /**< Appends one byte. */
-    void (*put_be)(const OctetusCfg *args);           /**< Appends bytes of a value, most significant first. */
-    void (*raw)(const OctetusCfg *args);              /**< Appends a run of bytes as they are. */
-    mmgr_bool (*take_be)(const OctetusCfg *args);     /**< Reads a big endian value and advances past it. */
-    mmgr_bool (*rd_str)(const OctetusCfg *args);      /**< Reads a length-prefixed run and points at it. */
-    mmgr_bool (*mpint_fixed)(const OctetusCfg *args); /**< Right-aligns an integer into a fixed field. */
+    void (*put)(const OctetusCfg *args);               /**< Appends one byte. */
+    void (*put_be)(const OctetusCfg *args);            /**< Appends bytes of a value, most significant first. */
+    void (*raw)(const OctetusCfg *args);               /**< Appends a run of bytes as they are. */
+    embed_bool (*take_be)(const OctetusCfg *args);     /**< Reads a big endian value and advances past it. */
+    embed_bool (*rd_str)(const OctetusCfg *args);      /**< Reads a length-prefixed run and points at it. */
+    embed_bool (*mpint_fixed)(const OctetusCfg *args); /**< Right-aligns an integer into a fixed field. */
 } OctetusIntroitusExitusNs;
-MMGR_NS_LAYOUT(OctetusIntroitusExitusNs, put, put_be, raw, take_be, rd_str, mpint_fixed);
+EMBED_TABLE_LAYOUT(OctetusIntroitusExitusNs, put, put_be, raw, take_be, rd_str, mpint_fixed);
 
 /**
  * @brief Appends args->byte to args->write_span.
@@ -108,19 +112,19 @@ void mmgr_byteio_raw(const OctetusCfg *args);
  * @brief Reads a big endian value of args->bytes at args->read_span's cursor and advances past it.
  *
  * @param[in,out] args Span, byte count and where to store the value [BORROWS].
- * @return             MMGR_TRUE when the bytes were there, MMGR_FALSE when the span was short.
+ * @return             EMBED_TRUE when the bytes were there, EMBED_FALSE when the span was short.
  * @note Reads at the cursor and nowhere else. A codec that leads with a tag advances past it itself.
  * @note A read reaching past the end sets the span's err and leaves the cursor and args->out untouched.
  * @warning args->bytes must be 1 through 8.
  */
-mmgr_bool mmgr_byteio_take_be(const OctetusCfg *args);
+embed_bool mmgr_byteio_take_be(const OctetusCfg *args);
 
 /**
  * @brief Reads a big endian 32-bit length at args->read_span's cursor, then points args->blob at the
  *        run behind it.
  *
  * @param[in,out] args Span, and where to report the run and its length [BORROWS].
- * @return             MMGR_TRUE when the length and its run both lay within the span.
+ * @return             EMBED_TRUE when the length and its run both lay within the span.
  * @note Nothing is copied. args->blob points into the span's own bytes, so it lives only as long as
  *       they do [BORROWS].
  * @note The cursor advances past the length and the run together, so a caller reading a sequence of
@@ -129,7 +133,7 @@ mmgr_bool mmgr_byteio_take_be(const OctetusCfg *args);
  *       writes nothing through args->blob or args->blob_bytes. The length alone having been read does
  *       not move the cursor either, since a partial read is not a read.
  */
-mmgr_bool mmgr_byteio_rd_str(const OctetusCfg *args);
+embed_bool mmgr_byteio_rd_str(const OctetusCfg *args);
 
 /**
  * @brief Right-aligns the big endian integer at args->src into args->write_span's whole buffer, zero
@@ -137,21 +141,21 @@ mmgr_bool mmgr_byteio_rd_str(const OctetusCfg *args);
  *
  * @param[in,out] args The integer with its length in args->src and args->bytes, and the field as
  *                     args->write_span [BORROWS].
- * @return             MMGR_TRUE when the integer fits the field, MMGR_FALSE when it does not.
+ * @return             EMBED_TRUE when the integer fits the field, EMBED_FALSE when it does not.
  * @note Leading zero bytes of the integer are skipped before the width is tested, so a value carrying
  *       a sign byte still fits a field of its own size.
  * @note The field is written whole rather than appended to. On success args->write_span's cursor ends
  *       at its cap.
- * @note Nothing is written to the field when it returns MMGR_FALSE, but args->write_span's overflow
+ * @note Nothing is written to the field when it returns EMBED_FALSE, but args->write_span's overflow
  *       is latched, so a span tested later reports the failure too.
  * @warning args->src must be readable for args->bytes, and must not overlap args->write_span's buffer.
  */
-mmgr_bool mmgr_byteio_mpint_fixed(const OctetusCfg *args);
+embed_bool mmgr_byteio_mpint_fixed(const OctetusCfg *args);
 
 /**
  * @brief Dispatch table instance named byteio, with each member set to its mmgr_byteio_ function.
  */
-MMGR_NS OctetusIntroitusExitusNs byteio MMGR_UNUSED = {
+EMBED_TABLE_STORAGE OctetusIntroitusExitusNs byteio EMBED_UNUSED = {
     .put = mmgr_byteio_put,
     .put_be = mmgr_byteio_put_be,
     .raw = mmgr_byteio_raw,
@@ -160,6 +164,6 @@ MMGR_NS OctetusIntroitusExitusNs byteio MMGR_UNUSED = {
     .mpint_fixed = mmgr_byteio_mpint_fixed,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Write src/pow5/pow5.h: the powers of five a decimal conversion needs, and nothing else.
 
 A decimal value is mant * 10^ex, and ten to the ex is five to the ex times two to the ex. The twos

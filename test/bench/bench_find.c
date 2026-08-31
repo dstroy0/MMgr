@@ -34,24 +34,24 @@ static int full_match(const char *p, const char *needle, size_t nlen)
         }                                                                                                              \
         const size_t rows = (nlen < (ROWS)) ? nlen : (size_t)(ROWS);                                                   \
         const size_t step = MMGR_SWAR_BYTES - rows + 1u;                                                               \
-                                   \
-        mmgr_word bc[(ROWS)];                                                                                          \
+                                                                                                                       \
+        embed_word bc[(ROWS)];                                                                                         \
         for (size_t k = 0; k < rows; k++)                                                                              \
         {                                                                                                              \
-            bc[k] = (mmgr_word)(MMGR_SWAR_ONES * (mmgr_word)(uint8_t)needle[k]);                                       \
+            bc[k] = (embed_word)(MMGR_SWAR_ONES * (embed_word)(uint8_t)needle[k]);                                     \
         }                                                                                                              \
         size_t i = 0;                                                                                                  \
         while (i + MMGR_SWAR_BYTES <= n)                                                                               \
         {                                                                                                              \
-            const mmgr_word w = MMGR_CALL(word.load, ScrutWordCfg, .at = hay + i);                                     \
-            mmgr_word m = MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w ^ bc[0]);                                   \
+            const embed_word w = EMBED_CALL(word.load, ScrutWordCfg, .at = hay + i);                                   \
+            embed_word m = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = w ^ bc[0]);                                 \
             for (size_t k = 1; k < rows; k++)                                                                          \
             {                                                                                                          \
-                m &= (mmgr_word)(MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = w ^ bc[k]) >> (k * 8u));               \
+                m &= (embed_word)(EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = w ^ bc[k]) >> (k * 8u));             \
             }                                                                                                          \
             while (m != 0u)                                                                                            \
             {                                                                                                          \
-                const size_t at_lane = MMGR_CALL(lane.first, ScrutLaneCfg, .mask = m);                                 \
+                const size_t at_lane = EMBED_CALL(lane.first, ScrutLaneCfg, .mask = m);                                \
                 if (at_lane >= step)                                                                                   \
                 {                                                                                                      \
                     break;                                                                                             \
@@ -60,7 +60,7 @@ static int full_match(const char *p, const char *needle, size_t nlen)
                 {                                                                                                      \
                     return hay + i + at_lane;                                                                          \
                 }                                                                                                      \
-                m &= (mmgr_word)(m - 1u);                                                                              \
+                m &= (embed_word)(m - 1u);                                                                             \
             }                                                                                                          \
             i += step;                                                                                                 \
         }                                                                                                              \
@@ -122,8 +122,8 @@ static void sweep(const char *needle, size_t at)
     const size_t n = HAY_BYTES;
 
     ROW("libc_strstr", strstr(g_hay + o_, g_needle));
-    ROW("cellul_find", MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = g_hay + o_, .cap = n - o_, .other = g_needle,
-                                 .other_cap = g_nlen + 1u, .ci = MMGR_FALSE));
+    ROW("cellul_find", EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = g_hay + o_, .cap = n - o_, .other = g_needle,
+                                  .other_cap = g_nlen + 1u, .ci = EMBED_FALSE));
     ROW("sieve1", find_sieve1(g_hay + o_, n - o_, g_needle, g_nlen));
     ROW("sieve2", find_sieve2(g_hay + o_, n - o_, g_needle, g_nlen));
     ROW("sieve3", find_sieve3(g_hay + o_, n - o_, g_needle, g_nlen));

@@ -1,8 +1,11 @@
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+#
+# Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+# negotiated commercial licensing contract or an educator's license issued to you personally.
 
-# src/ is the include root: a module header is reached as <module>/<module>.h and mmgr_config.h
-# resolves with the same single -I, so a consumer adds one directory.
+# src/ is the include root: a module header is reached as <module>/<module>.h. include/ is the other
+# one a consumer adds, and it carries mmgr.h, which every module header includes.
 set(MMGR_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "include root")
 
 # One directory per module, each declaring only what it is and what it needs.

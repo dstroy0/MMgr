@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file spatium.c
@@ -42,7 +45,7 @@ typedef struct
  *          only catch a null buffer and an empty one. A cap larger than the buffer is not caught here
  *          and the walks will hand out spans past its end.
  */
-MMGR_INLINE mmgr_span spat_from(const SpatiumCtx *args)
+EMBED_INLINE mmgr_span spat_from(const SpatiumCtx *args)
 {
     MMGR_ASSERT(args->buf != NULL, "a span needs a buffer");
     MMGR_ASSERT(args->cap != 0u, "a span needs a capacity");
@@ -52,7 +55,7 @@ MMGR_INLINE mmgr_span spat_from(const SpatiumCtx *args)
     span.buf = args->buf;
     span.cap = args->cap;
     span.pos = 0u;
-    span.overflow = MMGR_FALSE;
+    span.overflow = EMBED_FALSE;
     return span;
 }
 
@@ -65,14 +68,14 @@ MMGR_INLINE mmgr_span spat_from(const SpatiumCtx *args)
  *          null cbuf or a zero cap still builds, and it is cok that later reports it unusable. A cap
  *          reaching past the end of the buffer is the one cok cannot see, and it reads as usable.
  */
-MMGR_INLINE mmgr_cspan spat_cfrom(const SpatiumCtx *args)
+EMBED_INLINE mmgr_cspan spat_cfrom(const SpatiumCtx *args)
 {
     mmgr_cspan span;
 
     span.buf = args->cbuf;
     span.len = args->cap;
     span.pos = 0u;
-    span.err = MMGR_FALSE;
+    span.err = EMBED_FALSE;
     return span;
 }
 
@@ -80,38 +83,38 @@ MMGR_INLINE mmgr_cspan spat_cfrom(const SpatiumCtx *args)
  * @brief Returns whether args->span covers any bytes at all.
  *
  * @param[in] args Span to test, as args->span [BORROWS].
- * @return         MMGR_TRUE when buf is not NULL and cap is not 0.
+ * @return         EMBED_TRUE when buf is not NULL and cap is not 0.
  */
-MMGR_INLINE mmgr_bool spat_has_storage(const SpatiumCtx *args)
+EMBED_INLINE embed_bool spat_has_storage(const SpatiumCtx *args)
 {
-    // Explicit cast narrows the combined test into the mmgr_bool container
-    return (mmgr_bool)((args->span.buf != NULL) && (args->span.cap != 0u));
+    // Explicit cast narrows the combined test into the embed_bool container
+    return (embed_bool)((args->span.buf != NULL) && (args->span.cap != 0u));
 }
 
 /**
  * @brief Returns whether args->span is still usable.
  *
  * @param[in] args Span to test, as args->span [BORROWS].
- * @return         MMGR_TRUE when the span has storage and has not overflowed.
+ * @return         EMBED_TRUE when the span has storage and has not overflowed.
  */
-MMGR_INLINE mmgr_bool spat_ok(const SpatiumCtx *args)
+EMBED_INLINE embed_bool spat_ok(const SpatiumCtx *args)
 {
-    // Explicit cast narrows the combined test into the mmgr_bool container
-    return (mmgr_bool)(spat_has_storage(args) && !args->span.overflow);
+    // Explicit cast narrows the combined test into the embed_bool container
+    return (embed_bool)(spat_has_storage(args) && !args->span.overflow);
 }
 
 /**
  * @brief Returns whether args->cspan is still usable.
  *
  * @param[in] args Read span to test, as args->cspan [BORROWS].
- * @return         MMGR_TRUE when the span has storage and has recorded no error.
+ * @return         EMBED_TRUE when the span has storage and has recorded no error.
  * @note The read side of spat_ok. The two cannot share a body, because a read span names its extent
  *       len and a fill span names it cap, which is what keeps the two from being mixed up.
  */
-MMGR_INLINE mmgr_bool spat_cok(const SpatiumCtx *args)
+EMBED_INLINE embed_bool spat_cok(const SpatiumCtx *args)
 {
-    // Explicit cast narrows the combined test into the mmgr_bool container
-    return (mmgr_bool)((args->cspan.buf != NULL) && (args->cspan.len != 0u) && !args->cspan.err);
+    // Explicit cast narrows the combined test into the embed_bool container
+    return (embed_bool)((args->cspan.buf != NULL) && (args->cspan.len != 0u) && !args->cspan.err);
 }
 
 /**
@@ -123,10 +126,10 @@ MMGR_INLINE mmgr_bool spat_cok(const SpatiumCtx *args)
  * @note Rewinds the span only. The bytes it covers are left exactly as they were, so a reset span
  *       hands out storage that still holds whatever the last fill wrote.
  */
-MMGR_INLINE void spat_reset(const SpatiumCtx *args)
+EMBED_INLINE void spat_reset(const SpatiumCtx *args)
 {
     args->at->pos = 0u;
-    args->at->overflow = MMGR_FALSE;
+    args->at->overflow = EMBED_FALSE;
 }
 
 /**
@@ -137,14 +140,14 @@ MMGR_INLINE void spat_reset(const SpatiumCtx *args)
  *       caller that asked for bytes that are not there has a bug, and a span that looked whole
  *       would hide it.
  */
-MMGR_INLINE mmgr_span spat_failed(void)
+EMBED_INLINE mmgr_span spat_failed(void)
 {
     mmgr_span failed;
 
     failed.buf = NULL;
     failed.cap = 0u;
     failed.pos = 0u;
-    failed.overflow = MMGR_TRUE;
+    failed.overflow = EMBED_TRUE;
     return failed;
 }
 
@@ -158,7 +161,7 @@ MMGR_INLINE mmgr_span spat_failed(void)
  *       both. pos comes forward with it, rebased to the new start and resting at 0 once the skip
  *       has passed it.
  */
-MMGR_INLINE mmgr_span spat_after(const SpatiumCtx *args)
+EMBED_INLINE mmgr_span spat_after(const SpatiumCtx *args)
 {
     mmgr_span rest;
 
@@ -182,7 +185,7 @@ MMGR_INLINE mmgr_span spat_after(const SpatiumCtx *args)
  *       shorter cap over the same storage. Both cover the opening bytes, so a fill through one is
  *       read by the other. pos comes forward, held down to the shorter cap when it sat past it.
  */
-MMGR_INLINE mmgr_span spat_first(const SpatiumCtx *args)
+EMBED_INLINE mmgr_span spat_first(const SpatiumCtx *args)
 {
     mmgr_span head;
 
@@ -206,7 +209,7 @@ MMGR_INLINE mmgr_span spat_first(const SpatiumCtx *args)
  *          this view, not the storage. Filling args->span again moves what the reader sees, so read
  *          it back before the next fill or copy the bytes out.
  */
-MMGR_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
+EMBED_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
 {
     mmgr_cspan view;
 
@@ -215,8 +218,8 @@ MMGR_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
     view.pos = 0u;
     // A span that overflowed produced fewer bytes than were asked of it, and the read side is told
     // so rather than being handed a shorter span that looks whole
-    // Explicit cast narrows the combined test into the mmgr_bool container
-    view.err = (mmgr_bool)(args->span.overflow || (args->count > args->span.pos));
+    // Explicit cast narrows the combined test into the embed_bool container
+    view.err = (embed_bool)(args->span.overflow || (args->count > args->span.pos));
     return view;
 }
 
@@ -228,44 +231,44 @@ MMGR_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
  * @warning Hands back spat_read's span, so it points at args->span's own bytes [BORROWS] and the
  *          same caution holds. What it covers is whatever the next fill leaves there.
  */
-MMGR_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
+EMBED_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
 {
-    return MMGR_CALL(spat_read, SpatiumCtx, .span = args->span, .count = args->span.pos);
+    return EMBED_CALL(spat_read, SpatiumCtx, .span = args->span, .count = args->span.pos);
 }
 
 /**
- * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
+ * @brief Binds this module's four fixed arguments to EMBED_ENTRY.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_spat_ and spat_ prefixes, which the two share.
  * @param[in] ...         Initializers for the SpatiumCtx literal, written in terms of args.
- *                        MMGR_CALL zeroes every field left out.
+ *                        EMBED_CALL zeroes every field left out.
  */
 #define SPAT_ENTRY(ReturnType_, name_, ...)                                                                            \
-    GENERIC_ENTRY(mmgr_spat_, spat_, SpatiumCtx, SpatiumCfg, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_spat_, spat_, SpatiumCtx, SpatiumCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
- * @brief Binds this module's four fixed arguments to GENERIC_ENTRY_V, for an entry returning nothing.
+ * @brief Binds this module's four fixed arguments to EMBED_ENTRY_V, for an entry returning nothing.
  *
  * @param[in] name_ Name after the mmgr_spat_ and spat_ prefixes.
  * @param[in] ...   The same initializers SPAT_ENTRY takes, with no return type, since the entry this
  *                  builds returns nothing.
  */
-#define SPAT_ENTRY_V(name_, ...) GENERIC_ENTRY_V(mmgr_spat_, spat_, SpatiumCtx, SpatiumCfg, name_, __VA_ARGS__)
+#define SPAT_ENTRY_V(name_, ...) EMBED_ENTRY_V(mmgr_spat_, spat_, SpatiumCtx, SpatiumCfg, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in spatium.h.
- * @note The fields each line forwards are the ones that entry reads; MMGR_CALL zeroes the rest.
+ * @note The fields each line forwards are the ones that entry reads; EMBED_CALL zeroes the rest.
  * @note from forwards buf and cfrom forwards cbuf, so a buffer that may not be written cannot reach
  *       the fill constructor. Both take their extent from cap.
  */
 SPAT_ENTRY(mmgr_span, from, .buf = args->buf, .cap = args->cap)
 SPAT_ENTRY(mmgr_cspan, cfrom, .cbuf = args->cbuf, .cap = args->cap)
-SPAT_ENTRY(mmgr_bool, ok, .span = args->span)
-SPAT_ENTRY(mmgr_bool, cok, .cspan = args->cspan)
-SPAT_ENTRY(mmgr_bool, has_storage, .span = args->span)
+SPAT_ENTRY(embed_bool, ok, .span = args->span)
+SPAT_ENTRY(embed_bool, cok, .cspan = args->cspan)
+SPAT_ENTRY(embed_bool, has_storage, .span = args->span)
 SPAT_ENTRY_V(reset, .at = args->at)
 SPAT_ENTRY(mmgr_span, after, .span = args->span, .count = args->count)
 SPAT_ENTRY(mmgr_span, first, .span = args->span, .count = args->count)

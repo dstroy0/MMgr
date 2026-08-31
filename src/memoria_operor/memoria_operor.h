@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file memoria_operor.h
@@ -10,9 +13,9 @@
 #ifndef MMGR_MEMORIA_OPEROR_H
 #define MMGR_MEMORIA_OPEROR_H
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief Arguments for the memor calls.
@@ -32,7 +35,8 @@ typedef struct
 /**
  * @brief Type of the memor dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the six members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the six members sit at consecutive EMBED_FUNCTION_POINTER_BYTES
+ *       offsets, with nothing else.
  * @note cpy, move_down and move_up all copy, and differ in the overlap each one allows.
  */
 typedef struct
@@ -40,11 +44,11 @@ typedef struct
     void (*cpy)(const MemoriaCfg *args);        /**< Copies upward, for regions that do not overlap. */
     void (*move_down)(const MemoriaCfg *args);  /**< Copies upward, for a destination below the source. */
     void (*move_up)(const MemoriaCfg *args);    /**< Copies downward, for a destination above the source. */
-    mmgr_iword (*cmp)(const MemoriaCfg *args);  /**< Orders two regions by their first difference. */
+    embed_iword (*cmp)(const MemoriaCfg *args); /**< Orders two regions by their first difference. */
     const void *(*chr)(const MemoriaCfg *args); /**< Finds the first byte equal to val. */
     void (*set)(const MemoriaCfg *args);        /**< Fills a region with val. */
 } MemoriaOperorNs;
-MMGR_NS_LAYOUT(MemoriaOperorNs, cpy, move_down, move_up, cmp, chr, set);
+EMBED_TABLE_LAYOUT(MemoriaOperorNs, cpy, move_down, move_up, cmp, chr, set);
 
 /**
  * @brief Copies args->bytes from args->src to args->dst, walking upward.
@@ -74,7 +78,7 @@ void mmgr_memor_move_up(const MemoriaCfg *args);
  * @warning Both regions must be readable for args->bytes rounded up to a whole word, since a count that
  *          does not fill the last one is still read a whole word at a time.
  */
-mmgr_iword mmgr_memor_cmp(const MemoriaCfg *args);
+embed_iword mmgr_memor_cmp(const MemoriaCfg *args);
 
 /**
  * @brief Finds the first byte in args->src equal to args->val, within args->bytes.
@@ -103,7 +107,7 @@ void mmgr_memor_set(const MemoriaCfg *args);
  * @note mmgr_memor_move_down is not declared. A destination below the source is what the upward walk
  *       already handles, so the table names that walk twice rather than carrying a second copy of it.
  */
-MMGR_NS MemoriaOperorNs memor MMGR_UNUSED = {
+EMBED_TABLE_STORAGE MemoriaOperorNs memor EMBED_UNUSED = {
     .cpy = mmgr_memor_cpy,
     .move_down = mmgr_memor_cpy,
     .move_up = mmgr_memor_move_up,
@@ -112,6 +116,6 @@ MMGR_NS MemoriaOperorNs memor MMGR_UNUSED = {
     .set = mmgr_memor_set,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

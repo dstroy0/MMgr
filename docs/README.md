@@ -67,7 +67,7 @@ suggest a drop-in replacement of the implementation as well as the result, and i
 
 That difference is also why the testing is what it is. Every translation unit is fuzzed with bit
 strobing, bit waves, clock stretching and other abuse the internals will never meet in service. On
-top of that: interoperability against libc, newlib, MSVC and GNU; correctness; binary size; and
+top of that: interoperability against libc, newlib and GNU; correctness; binary size; and
 resource allocation lifetime cycles.
 
 The call-site idiom follows from that. Each module exposes a dispatch table named for a short stem,

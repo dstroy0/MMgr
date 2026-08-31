@@ -15,15 +15,16 @@ static const char *mmgr_cellul_nowhere;
 
 #define CAP 256u
 
-static const long WORD_LONG_MAX = (long)((mmgr_word) ~(mmgr_word)0 >> 1);
-static const unsigned long WORD_ULONG_MAX = (unsigned long)(mmgr_word) ~(mmgr_word)0;
+static const long WORD_LONG_MAX = (long)((embed_word) ~(embed_word)0 >> 1);
+static const unsigned long WORD_ULONG_MAX = (unsigned long)(embed_word) ~(embed_word)0;
 
-static const char *find_at(const char *hay, const char *needle, mmgr_bool ci)
+static const char *find_at(const char *hay, const char *needle, embed_bool ci)
 {
-    return MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = hay, .cap = CAP, .other = needle, .other_cap = CAP, .ci = ci);
+    return EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = hay, .cap = CAP, .other = needle, .other_cap = CAP,
+                      .ci = ci);
 }
 
-static long hit(const char *hay, const char *needle, mmgr_bool ci)
+static long hit(const char *hay, const char *needle, embed_bool ci)
 {
     const char *p = find_at(hay, needle, ci);
     return (p == NULL) ? -1L : (long)(p - hay);
@@ -31,15 +32,15 @@ static long hit(const char *hay, const char *needle, mmgr_bool ci)
 
 void test_len_stops_at_nul_and_at_cap(void)
 {
-    TEST_ASSERT_EQUAL_size_t(0u, MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = "", .cap = CAP));
-    TEST_ASSERT_EQUAL_size_t(3u, MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = "abc", .cap = CAP));
-    TEST_ASSERT_EQUAL_size_t(2u, MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = "abc", .cap = 2u));
+    TEST_ASSERT_EQUAL_size_t(0u, EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = "", .cap = CAP));
+    TEST_ASSERT_EQUAL_size_t(3u, EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = "abc", .cap = CAP));
+    TEST_ASSERT_EQUAL_size_t(2u, EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = "abc", .cap = 2u));
 }
 
 void test_find_empty_needle_matches_at_zero(void)
 {
-    TEST_ASSERT_EQUAL_INT(0, hit("abc", "", MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(0, hit("abc", "", MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(0, hit("abc", "", EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(0, hit("abc", "", EMBED_TRUE));
 }
 
 void test_find_at_every_offset(void)
@@ -48,24 +49,24 @@ void test_find_at_every_offset(void)
     for (int i = 0; i < 32; i++)
     {
         char one[2] = {h[i], '\0'};
-        TEST_ASSERT_EQUAL_INT((long)(strchr(h, one[0]) - h), hit(h, one, MMGR_FALSE));
+        TEST_ASSERT_EQUAL_INT((long)(strchr(h, one[0]) - h), hit(h, one, EMBED_FALSE));
     }
 }
 
 void test_find_spans_a_word_boundary(void)
 {
     const char *h = "aaaaaaaXYZaaaaaaaa";
-    TEST_ASSERT_EQUAL_INT(7, hit(h, "XYZ", MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(7, hit(h, "xyz", MMGR_TRUE));
-    TEST_ASSERT_EQUAL_INT(-1, hit(h, "xyz", MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(7, hit(h, "XYZ", EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(7, hit(h, "xyz", EMBED_TRUE));
+    TEST_ASSERT_EQUAL_INT(-1, hit(h, "xyz", EMBED_FALSE));
 }
 
 void test_find_needle_longer_than_one_word(void)
 {
     const char *h = "prefix_ABCDEFGHIJKLMNOP_suffix";
-    TEST_ASSERT_EQUAL_INT(7, hit(h, "ABCDEFGHIJKLMNOP", MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(7, hit(h, "abcdefghijklmnop", MMGR_TRUE));
-    TEST_ASSERT_EQUAL_INT(-1, hit(h, "ABCDEFGHIJKLMNOQ", MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(7, hit(h, "ABCDEFGHIJKLMNOP", EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(7, hit(h, "abcdefghijklmnop", EMBED_TRUE));
+    TEST_ASSERT_EQUAL_INT(-1, hit(h, "ABCDEFGHIJKLMNOQ", EMBED_FALSE));
 }
 
 void test_find_needle_lengths_one_through_nine(void)
@@ -74,102 +75,105 @@ void test_find_needle_lengths_one_through_nine(void)
     const char *n[9] = {"a", "ab", "abc", "abcd", "abcde", "abcdef", "abcdefg", "abcdefgh", "abcdefghi"};
     for (int k = 0; k < 9; k++)
     {
-        TEST_ASSERT_EQUAL_INT(4, hit(h, n[k], MMGR_FALSE));
-        TEST_ASSERT_EQUAL_INT(4, hit(h, n[k], MMGR_TRUE));
+        TEST_ASSERT_EQUAL_INT(4, hit(h, n[k], EMBED_FALSE));
+        TEST_ASSERT_EQUAL_INT(4, hit(h, n[k], EMBED_TRUE));
     }
 }
 
 void test_find_prefers_the_first_of_several_matches(void)
 {
-    TEST_ASSERT_EQUAL_INT(2, hit("__ab__ab__ab", "ab", MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(2, hit("__ab__ab__ab", "ab", EMBED_FALSE));
 }
 
 void test_find_near_miss_shares_a_prefix(void)
 {
-    TEST_ASSERT_EQUAL_INT(13, hit("abXabYabZabW_abc", "abc", MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(-1, hit("abXabYabZabW", "abc", MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(13, hit("abXabYabZabW_abc", "abc", EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(-1, hit("abXabYabZabW", "abc", EMBED_FALSE));
 }
 
 void test_find_absent(void)
 {
-    TEST_ASSERT_EQUAL_INT(-1, hit("the quick brown fox", "zzz", MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(-1, hit("", "a", MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(-1, hit("the quick brown fox", "zzz", EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(-1, hit("", "a", EMBED_FALSE));
 }
 
 void test_find_ci_folds_only_letters(void)
 {
-    TEST_ASSERT_EQUAL_INT(-1, hit("a_b", "a?b", MMGR_TRUE));
-    TEST_ASSERT_EQUAL_INT(-1, hit("a@b", "a`b", MMGR_TRUE));
-    TEST_ASSERT_EQUAL_INT(1, hit("_A_", "a", MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(-1, hit("a_b", "a?b", EMBED_TRUE));
+    TEST_ASSERT_EQUAL_INT(-1, hit("a@b", "a`b", EMBED_TRUE));
+    TEST_ASSERT_EQUAL_INT(1, hit("_A_", "a", EMBED_TRUE));
 }
 
 void test_has_agrees_with_find(void)
 {
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.has, CatenaFinitaCfg, .src = "hello world", .cap = CAP, .other = "world",
-                               .other_cap = CAP, .ci = MMGR_FALSE));
-    TEST_ASSERT_FALSE(MMGR_CALL(cellul.has, CatenaFinitaCfg, .src = "hello world", .cap = CAP, .other = "WORLD",
-                                .other_cap = CAP, .ci = MMGR_FALSE));
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.has, CatenaFinitaCfg, .src = "hello world", .cap = CAP, .other = "WORLD",
-                               .other_cap = CAP, .ci = MMGR_TRUE));
+    TEST_ASSERT_TRUE(EMBED_CALL(cellul.has, CatenaFinitaCfg, .src = "hello world", .cap = CAP, .other = "world",
+                                .other_cap = CAP, .ci = EMBED_FALSE));
+    TEST_ASSERT_FALSE(EMBED_CALL(cellul.has, CatenaFinitaCfg, .src = "hello world", .cap = CAP, .other = "WORLD",
+                                 .other_cap = CAP, .ci = EMBED_FALSE));
+    TEST_ASSERT_TRUE(EMBED_CALL(cellul.has, CatenaFinitaCfg, .src = "hello world", .cap = CAP, .other = "WORLD",
+                                .other_cap = CAP, .ci = EMBED_TRUE));
 }
 
 void test_eq_both_cases(void)
 {
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = "abc", .other = "abc", .cap = CAP, .ci = MMGR_FALSE));
+    TEST_ASSERT_TRUE(
+        EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = "abc", .other = "abc", .cap = CAP, .ci = EMBED_FALSE));
     TEST_ASSERT_FALSE(
-        MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = "abc", .other = "ABC", .cap = CAP, .ci = MMGR_FALSE));
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = "abc", .other = "ABC", .cap = CAP, .ci = MMGR_TRUE));
-    TEST_ASSERT_FALSE(MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = "abc", .other = "abd", .cap = CAP, .ci = MMGR_TRUE));
+        EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = "abc", .other = "ABC", .cap = CAP, .ci = EMBED_FALSE));
+    TEST_ASSERT_TRUE(
+        EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = "abc", .other = "ABC", .cap = CAP, .ci = EMBED_TRUE));
     TEST_ASSERT_FALSE(
-        MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = "abc", .other = "abcd", .cap = CAP, .ci = MMGR_FALSE));
+        EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = "abc", .other = "abd", .cap = CAP, .ci = EMBED_TRUE));
+    TEST_ASSERT_FALSE(
+        EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = "abc", .other = "abcd", .cap = CAP, .ci = EMBED_FALSE));
 }
 
 void test_starts_both_cases(void)
 {
     TEST_ASSERT_TRUE(
-        MMGR_CALL(cellul.starts, CatenaFinitaCfg, .src = "abcdef", .other = "abc", .cap = CAP, .ci = MMGR_FALSE));
+        EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = "abcdef", .other = "abc", .cap = CAP, .ci = EMBED_FALSE));
     TEST_ASSERT_FALSE(
-        MMGR_CALL(cellul.starts, CatenaFinitaCfg, .src = "abcdef", .other = "ABC", .cap = CAP, .ci = MMGR_FALSE));
+        EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = "abcdef", .other = "ABC", .cap = CAP, .ci = EMBED_FALSE));
     TEST_ASSERT_TRUE(
-        MMGR_CALL(cellul.starts, CatenaFinitaCfg, .src = "abcdef", .other = "ABC", .cap = CAP, .ci = MMGR_TRUE));
+        EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = "abcdef", .other = "ABC", .cap = CAP, .ci = EMBED_TRUE));
     TEST_ASSERT_FALSE(
-        MMGR_CALL(cellul.starts, CatenaFinitaCfg, .src = "ab", .other = "abc", .cap = CAP, .ci = MMGR_FALSE));
+        EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = "ab", .other = "abc", .cap = CAP, .ci = EMBED_FALSE));
 }
 
 void test_diff_returns_the_first_differing_offset(void)
 {
     TEST_ASSERT_EQUAL_size_t(
-        3u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = "abcd", .other = "abce", .cap = 4u, .ci = MMGR_FALSE));
+        3u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = "abcd", .other = "abce", .cap = 4u, .ci = EMBED_FALSE));
     TEST_ASSERT_EQUAL_size_t(
-        0u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = "Abcd", .other = "abcd", .cap = 4u, .ci = MMGR_FALSE));
+        0u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = "Abcd", .other = "abcd", .cap = 4u, .ci = EMBED_FALSE));
     TEST_ASSERT_EQUAL_size_t(
-        4u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = "Abcd", .other = "abcd", .cap = 4u, .ci = MMGR_TRUE));
+        4u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = "Abcd", .other = "abcd", .cap = 4u, .ci = EMBED_TRUE));
 }
 
 void test_diff_crossing_a_word_boundary(void)
 {
-    TEST_ASSERT_EQUAL_size_t(9u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = "aaaaaaaaab", .other = "aaaaaaaaac",
-                                           .cap = 10u, .ci = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_size_t(9u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = "aaaaaaaaab", .other = "aaaaaaaaac",
+                                            .cap = 10u, .ci = EMBED_FALSE));
 }
 
 void test_copy_truncates_and_terminates(void)
 {
     char dst[8];
-    TEST_ASSERT_EQUAL_size_t(3u, MMGR_CALL(cellul.copy, CatenaFinitaCfg, .dst = dst, .src = "abc", .cap = sizeof dst));
+    TEST_ASSERT_EQUAL_size_t(3u, EMBED_CALL(cellul.copy, CatenaFinitaCfg, .dst = dst, .src = "abc", .cap = sizeof dst));
     TEST_ASSERT_EQUAL_STRING("abc", dst);
     TEST_ASSERT_EQUAL_size_t(
-        7u, MMGR_CALL(cellul.copy, CatenaFinitaCfg, .dst = dst, .src = "abcdefghij", .cap = sizeof dst));
+        7u, EMBED_CALL(cellul.copy, CatenaFinitaCfg, .dst = dst, .src = "abcdefghij", .cap = sizeof dst));
     TEST_ASSERT_EQUAL_STRING("abcdefg", dst);
 }
 
 void test_classifiers(void)
 {
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.ws, CatenaFinitaCfg, .src = (const char[]){' ', 0}, .at = 0));
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.ws, CatenaFinitaCfg, .src = (const char[]){'\t', 0}, .at = 0));
-    TEST_ASSERT_FALSE(MMGR_CALL(cellul.ws, CatenaFinitaCfg, .src = (const char[]){'a', 0}, .at = 0));
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.digit, CatenaFinitaCfg, .src = (const char[]){'0', 0}, .at = 0));
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.digit, CatenaFinitaCfg, .src = (const char[]){'9', 0}, .at = 0));
-    TEST_ASSERT_FALSE(MMGR_CALL(cellul.digit, CatenaFinitaCfg, .src = (const char[]){'a', 0}, .at = 0));
+    TEST_ASSERT_TRUE(EMBED_CALL(cellul.ws, CatenaFinitaCfg, .src = (const char[]){' ', 0}, .at = 0));
+    TEST_ASSERT_TRUE(EMBED_CALL(cellul.ws, CatenaFinitaCfg, .src = (const char[]){'\t', 0}, .at = 0));
+    TEST_ASSERT_FALSE(EMBED_CALL(cellul.ws, CatenaFinitaCfg, .src = (const char[]){'a', 0}, .at = 0));
+    TEST_ASSERT_TRUE(EMBED_CALL(cellul.digit, CatenaFinitaCfg, .src = (const char[]){'0', 0}, .at = 0));
+    TEST_ASSERT_TRUE(EMBED_CALL(cellul.digit, CatenaFinitaCfg, .src = (const char[]){'9', 0}, .at = 0));
+    TEST_ASSERT_FALSE(EMBED_CALL(cellul.digit, CatenaFinitaCfg, .src = (const char[]){'a', 0}, .at = 0));
 }
 
 static const char *PARSE_CASES[] = {
@@ -209,7 +213,7 @@ void test_to_long_matches_strtol(void)
         const char *mend = NULL;
         char *lend = NULL;
 
-        const mmgr_iword got = MMGR_CALL(cellul.to_long, TransfiguroCfg, .src = s, .end = &mend);
+        const embed_iword got = EMBED_CALL(cellul.to_long, TransfiguroCfg, .src = s, .end = &mend);
         errno = 0;
         const long want = strtol(s, &lend, 10);
 
@@ -231,7 +235,7 @@ void test_to_ulong_matches_strtoul(void)
         const char *mend = NULL;
         char *lend = NULL;
 
-        const mmgr_word got = MMGR_CALL(cellul.to_ulong, TransfiguroCfg, .src = s, .end = &mend);
+        const embed_word got = EMBED_CALL(cellul.to_ulong, TransfiguroCfg, .src = s, .end = &mend);
         errno = 0;
         const unsigned long want = strtoul(s, &lend, 10);
 
@@ -247,8 +251,9 @@ void test_to_ulong_matches_strtoul(void)
 
 void test_to_long_without_an_end_pointer(void)
 {
-    TEST_ASSERT_EQUAL_INT64(42, MMGR_CALL(cellul.to_long, TransfiguroCfg, .src = "42", .end = &mmgr_cellul_nowhere));
-    TEST_ASSERT_EQUAL_UINT64(42u, MMGR_CALL(cellul.to_ulong, TransfiguroCfg, .src = "42", .end = &mmgr_cellul_nowhere));
+    TEST_ASSERT_EQUAL_INT64(42, EMBED_CALL(cellul.to_long, TransfiguroCfg, .src = "42", .end = &mmgr_cellul_nowhere));
+    TEST_ASSERT_EQUAL_UINT64(42u,
+                             EMBED_CALL(cellul.to_ulong, TransfiguroCfg, .src = "42", .end = &mmgr_cellul_nowhere));
 }
 
 void test_to_double_matches_strtod(void)
@@ -261,7 +266,7 @@ void test_to_double_matches_strtod(void)
         const char *mend = NULL;
         char *lend = NULL;
 
-        const double got = MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = cases[i], .end = &mend);
+        const double got = EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = cases[i], .end = &mend);
         const double want = strtod(cases[i], &lend);
 
         char msg[128];
@@ -275,19 +280,19 @@ void test_to_double_handles_an_exponent(void)
 {
     const char *end = NULL;
     TEST_ASSERT_TRUE_MESSAGE(strtod("1e3", NULL) ==
-                                 MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e3", .end = &end),
+                                 EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e3", .end = &end),
                              "to_double(\"1e3\")");
     TEST_ASSERT_TRUE_MESSAGE(strtod("1E3", NULL) ==
-                                 MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1E3", .end = &end),
+                                 EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1E3", .end = &end),
                              "to_double(\"1E3\")");
     TEST_ASSERT_TRUE_MESSAGE(strtod("1e-3", NULL) ==
-                                 MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-3", .end = &end),
+                                 EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-3", .end = &end),
                              "to_double(\"1e-3\")");
     TEST_ASSERT_TRUE_MESSAGE(strtod("1e+3", NULL) ==
-                                 MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e+3", .end = &end),
+                                 EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e+3", .end = &end),
                              "to_double(\"1e+3\")");
     TEST_ASSERT_TRUE_MESSAGE(strtod("2.5e2", NULL) ==
-                                 MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "2.5e2", .end = &end),
+                                 EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "2.5e2", .end = &end),
                              "to_double(\"2.5e2\")");
 }
 
@@ -298,28 +303,28 @@ void test_to_float_matches_to_double(void)
     {
         const char *end = NULL;
         TEST_ASSERT_TRUE_MESSAGE((float)strtod(cases[i], NULL) ==
-                                     MMGR_CALL(cellul.to_float, TransfiguroCfg, .src = cases[i], .end = &end),
+                                     EMBED_CALL(cellul.to_float, TransfiguroCfg, .src = cases[i], .end = &end),
                                  cases[i]);
     }
 }
 
 void test_to_double_without_an_end_pointer(void)
 {
-    TEST_ASSERT_TRUE(2.5 == MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "2.5", .end = &mmgr_cellul_nowhere));
-    TEST_ASSERT_TRUE(2.5f == MMGR_CALL(cellul.to_float, TransfiguroCfg, .src = "2.5", .end = &mmgr_cellul_nowhere));
+    TEST_ASSERT_TRUE(2.5 == EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "2.5", .end = &mmgr_cellul_nowhere));
+    TEST_ASSERT_TRUE(2.5f == EMBED_CALL(cellul.to_float, TransfiguroCfg, .src = "2.5", .end = &mmgr_cellul_nowhere));
 }
 
-static mmgr_word word_of(const char *s)
+static embed_word word_of(const char *s)
 {
-    return MMGR_CALL(word.load, ScrutWordCfg, .at = s);
+    return EMBED_CALL(word.load, ScrutWordCfg, .at = s);
 }
 
 void test_step_word_keeps_going_while_equal(void)
 {
     const char *a = "abcdefghij";
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_GO,
-                                  MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
-                                            .word_right = word_of(a), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
+                                  EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
+                                             .word_right = word_of(a), .ci = EMBED_FALSE, .end_wins = EMBED_FALSE),
                                   "identical words with no terminator say keep going");
 }
 
@@ -327,8 +332,9 @@ void test_step_word_stops_on_a_difference(void)
 {
     const char *a = "Xbcdefgh";
     const char *b2 = "abcdefgh";
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
-                                                  .word_right = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO,
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
+                                     .word_right = word_of(b2), .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
 }
 
 void test_step_word_stops_at_the_terminator(void)
@@ -336,12 +342,12 @@ void test_step_word_stops_at_the_terminator(void)
     static const char a[16] = {0, "b"[0], "c"[0], "d"[0], "e"[0], "f"[0], "g"[0], "h"[0]};
     const char *b2 = "abcdefgh";
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES,
-                                  MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
-                                            .word_right = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE),
+                                  EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
+                                             .word_right = word_of(b2), .ci = EMBED_FALSE, .end_wins = EMBED_TRUE),
                                   "the pattern ended first and end_wins says that is a match");
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO,
-                                  MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
-                                            .word_right = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
+                                  EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
+                                             .word_right = word_of(b2), .ci = EMBED_FALSE, .end_wins = EMBED_FALSE),
                                   "and without end_wins it is not");
 }
 
@@ -349,37 +355,39 @@ void test_step_word_folds_case(void)
 {
     const char *a = "ABCDEFGH";
     const char *b2 = "abcdefgh";
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
-                                                  .word_right = word_of(b2), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
-                                                  .word_right = word_of(b2), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO,
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
+                                     .word_right = word_of(b2), .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO,
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
+                                     .word_right = word_of(b2), .ci = EMBED_TRUE, .end_wins = EMBED_FALSE));
 }
 
 void test_step_byte_covers_the_same_three_verdicts(void)
 {
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'a',
-                                                  .byte_right = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'a',
-                                                  .byte_right = 'b', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
-                                                   .byte_right = '\0', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'a',
+                                                   .byte_right = 'a', .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'a',
+                                                   .byte_right = 'b', .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
+                                                    .byte_right = '\0', .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES,
-                                  MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'x',
-                                            .ci = MMGR_FALSE, .end_wins = MMGR_TRUE),
+                                  EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'x',
+                                             .ci = EMBED_FALSE, .end_wins = EMBED_TRUE),
                                   "the pattern ended and end_wins says that is a match");
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
-                                                  .byte_right = 'x', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
+                                                   .byte_right = 'x', .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
 
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A',
-                                                  .byte_right = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A',
-                                                  .byte_right = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
-                                                   .byte_right = '\0', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
-                                                   .byte_right = 'x', .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
-                                                  .byte_right = 'x', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A',
+                                                   .byte_right = 'a', .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A',
+                                                   .byte_right = 'a', .ci = EMBED_TRUE, .end_wins = EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
+                                                    .byte_right = '\0', .ci = EMBED_TRUE, .end_wins = EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
+                                                    .byte_right = 'x', .ci = EMBED_TRUE, .end_wins = EMBED_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
+                                                   .byte_right = 'x', .ci = EMBED_TRUE, .end_wins = EMBED_FALSE));
 }
 
 void test_chr_matches_strchr(void)
@@ -392,7 +400,7 @@ void test_chr_matches_strchr(void)
         const size_t cap = strlen(hays[h]) + 1u;
         for (int c = 0; c < 128; c++)
         {
-            const char *got = MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = hays[h], .cap = cap, .byte = (uint8_t)c);
+            const char *got = EMBED_CALL(cellul.chr, CatenaFinitaCfg, .src = hays[h], .cap = cap, .byte = (uint8_t)c);
             const char *want = strchr(hays[h], c);
             char msg[160];
             snprintf(msg, sizeof msg, "chr(\"%s\", '%c')", hays[h], c ? c : '0');
@@ -411,7 +419,7 @@ void test_chr_at_every_alignment(void)
         for (int c = 'a'; c <= 'p'; c++)
         {
             TEST_ASSERT_EQUAL_PTR(strchr(s, c),
-                                  MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = s, .cap = 16u, .byte = (uint8_t)c));
+                                  EMBED_CALL(cellul.chr, CatenaFinitaCfg, .src = s, .cap = 16u, .byte = (uint8_t)c));
         }
     }
 }
@@ -420,9 +428,9 @@ void test_chr_respects_the_cap(void)
 {
     MMGR_SKIP_ON_ORACLE("strchr has no cap to respect");
     const char *s = "abcdef";
-    TEST_ASSERT_NULL_MESSAGE(MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = s, .cap = 3u, .byte = 'f'),
+    TEST_ASSERT_NULL_MESSAGE(EMBED_CALL(cellul.chr, CatenaFinitaCfg, .src = s, .cap = 3u, .byte = 'f'),
                              "f is past the cap");
-    TEST_ASSERT_NOT_NULL(MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = s, .cap = 3u, .byte = 'b'));
+    TEST_ASSERT_NOT_NULL(EMBED_CALL(cellul.chr, CatenaFinitaCfg, .src = s, .cap = 3u, .byte = 'b'));
 }
 
 void test_find_matches_strstr_over_a_corpus(void)
@@ -444,8 +452,8 @@ void test_find_matches_strstr_over_a_corpus(void)
         for (unsigned n = 0; n < sizeof needles / sizeof needles[0]; n++)
         {
             const size_t ncap = strlen(needles[n]) + 1u;
-            const char *got = MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = hays[h], .cap = hcap, .other = needles[n],
-                                        .other_cap = ncap, .ci = MMGR_FALSE);
+            const char *got = EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = hays[h], .cap = hcap, .other = needles[n],
+                                         .other_cap = ncap, .ci = EMBED_FALSE);
             const char *want = strstr(hays[h], needles[n]);
             char msg[200];
             snprintf(msg, sizeof msg, "find(\"%s\", \"%s\")", hays[h], needles[n]);
@@ -465,8 +473,8 @@ void test_find_ci_matches_a_folded_search(void)
         {
             const size_t hlen = strlen(hays[h]);
             const size_t nlen = strlen(needles[n]);
-            const char *got = MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = hays[h], .cap = hlen + 1u,
-                                        .other = needles[n], .other_cap = nlen + 1u, .ci = MMGR_TRUE);
+            const char *got = EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = hays[h], .cap = hlen + 1u,
+                                         .other = needles[n], .other_cap = nlen + 1u, .ci = EMBED_TRUE);
 
             const char *want = NULL;
             if (nlen <= hlen)
@@ -493,10 +501,10 @@ void test_find_ci_matches_a_folded_search(void)
 
 void test_find_needle_longer_than_the_haystack(void)
 {
-    TEST_ASSERT_NULL(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = "ab", .cap = 3u, .other = "abcdef", .other_cap = 7u,
-                               .ci = MMGR_FALSE));
-    TEST_ASSERT_NULL(
-        MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = "", .cap = 1u, .other = "a", .other_cap = 2u, .ci = MMGR_FALSE));
+    TEST_ASSERT_NULL(EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = "ab", .cap = 3u, .other = "abcdef",
+                                .other_cap = 7u, .ci = EMBED_FALSE));
+    TEST_ASSERT_NULL(EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = "", .cap = 1u, .other = "a", .other_cap = 2u,
+                                .ci = EMBED_FALSE));
 }
 
 void test_diff_matches_a_byte_loop(void)
@@ -520,15 +528,15 @@ void test_diff_matches_a_byte_loop(void)
         {
             want++;
         }
-        TEST_ASSERT_EQUAL_size_t(want, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = pairs[i][0], .other = pairs[i][1],
-                                                 .cap = cap, .ci = MMGR_FALSE));
+        TEST_ASSERT_EQUAL_size_t(want, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = pairs[i][0],
+                                                  .other = pairs[i][1], .cap = cap, .ci = EMBED_FALSE));
     }
 }
 
 void test_copy_of_an_empty_destination(void)
 {
     char d[4];
-    TEST_ASSERT_EQUAL_size_t(0u, MMGR_CALL(cellul.copy, CatenaFinitaCfg, .dst = d, .src = "abc", .cap = 0u));
+    TEST_ASSERT_EQUAL_size_t(0u, EMBED_CALL(cellul.copy, CatenaFinitaCfg, .dst = d, .src = "abc", .cap = 0u));
 }
 
 void test_ws_and_digit_agree_with_ctype(void)
@@ -536,10 +544,10 @@ void test_ws_and_digit_agree_with_ctype(void)
     for (int c = 0; c < 256; c++)
     {
         TEST_ASSERT_EQUAL_INT_MESSAGE(
-            isspace(c) != 0, MMGR_CALL(cellul.ws, CatenaFinitaCfg, .src = (const char[]){(char)c, 0}, .at = 0) != 0,
+            isspace(c) != 0, EMBED_CALL(cellul.ws, CatenaFinitaCfg, .src = (const char[]){(char)c, 0}, .at = 0) != 0,
             "ws must agree with isspace");
         TEST_ASSERT_EQUAL_INT_MESSAGE(
-            isdigit(c) != 0, MMGR_CALL(cellul.digit, CatenaFinitaCfg, .src = (const char[]){(char)c, 0}, .at = 0) != 0,
+            isdigit(c) != 0, EMBED_CALL(cellul.digit, CatenaFinitaCfg, .src = (const char[]){(char)c, 0}, .at = 0) != 0,
             "digit must agree with isdigit");
     }
 }
@@ -547,16 +555,17 @@ void test_ws_and_digit_agree_with_ctype(void)
 void test_step_word_ignoring_case_agrees_on_a_folded_word(void)
 {
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_GO,
-                                  MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("ABCDEFGH"),
-                                            .word_right = word_of("abcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE),
+                                  EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("ABCDEFGH"),
+                                             .word_right = word_of("abcdefgh"), .ci = EMBED_TRUE,
+                                             .end_wins = EMBED_FALSE),
                                   "a whole word of case differences is no difference at all");
 }
 
 void test_step_word_ignoring_case_still_sees_a_real_difference(void)
 {
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO,
-                          MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("1bcdefgh"),
-                                    .word_right = word_of("2bcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("1bcdefgh"),
+                                     .word_right = word_of("2bcdefgh"), .ci = EMBED_TRUE, .end_wins = EMBED_FALSE));
 }
 
 static const char ENDS_FIRST_A[8] = {'a', 0, 0, 0, 0, 0, 0, 0};
@@ -568,116 +577,116 @@ static const char TIED_B[8] = {'a', 0, 0, 0, 0, 0, 0, 0};
 void test_step_word_ignoring_case_ends_before_a_difference(void)
 {
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES,
-                                  MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A),
-                                            .word_right = word_of(ENDS_FIRST_B), .ci = MMGR_TRUE,
-                                            .end_wins = MMGR_FALSE),
+                                  EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A),
+                                             .word_right = word_of(ENDS_FIRST_B), .ci = EMBED_TRUE,
+                                             .end_wins = EMBED_FALSE),
                                   "the end came first, so end_wins never had to decide");
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES,
-                          MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A),
-                                    .word_right = word_of(ENDS_FIRST_B), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A),
+                                     .word_right = word_of(ENDS_FIRST_B), .ci = EMBED_TRUE, .end_wins = EMBED_TRUE));
 }
 
 void test_step_word_ignoring_case_ends_in_the_same_lane_as_a_difference(void)
 {
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES,
-                                  MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A),
-                                            .word_right = word_of(TIED_B), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE),
+                                  EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A),
+                                             .word_right = word_of(TIED_B), .ci = EMBED_TRUE, .end_wins = EMBED_TRUE),
                                   "the end takes the tie");
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO,
-                                  MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A),
-                                            .word_right = word_of(TIED_B), .ci = MMGR_TRUE, .end_wins = MMGR_FALSE),
+                                  EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A),
+                                             .word_right = word_of(TIED_B), .ci = EMBED_TRUE, .end_wins = EMBED_FALSE),
                                   "the difference takes the tie");
 }
 
 void test_step_word_matching_case_ends_before_a_difference(void)
 {
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES,
-                          MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A),
-                                    .word_right = word_of(ENDS_FIRST_B), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A),
+                                     .word_right = word_of(ENDS_FIRST_B), .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES,
-                          MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A),
-                                    .word_right = word_of(ENDS_FIRST_B), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE));
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(ENDS_FIRST_A),
+                                     .word_right = word_of(ENDS_FIRST_B), .ci = EMBED_FALSE, .end_wins = EMBED_TRUE));
 }
 
 void test_step_word_matching_case_ends_in_the_same_lane_as_a_difference(void)
 {
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES,
-                          MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A),
-                                    .word_right = word_of(TIED_B), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE));
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A),
+                                     .word_right = word_of(TIED_B), .ci = EMBED_FALSE, .end_wins = EMBED_TRUE));
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO,
-                          MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A),
-                                    .word_right = word_of(TIED_B), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(TIED_A),
+                                     .word_right = word_of(TIED_B), .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
 }
 
 void test_step_word_of_a_difference_that_beats_the_end(void)
 {
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO,
-                          MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("Xbcdefgh"),
-                                    .word_right = word_of("abcdefgh"), .ci = MMGR_FALSE, .end_wins = MMGR_TRUE));
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("Xbcdefgh"),
+                                     .word_right = word_of("abcdefgh"), .ci = EMBED_FALSE, .end_wins = EMBED_TRUE));
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO,
-                          MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("1bcdefgh"),
-                                    .word_right = word_of("2bcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("1bcdefgh"),
+                                     .word_right = word_of("2bcdefgh"), .ci = EMBED_TRUE, .end_wins = EMBED_TRUE));
 }
 
 void test_step_word_of_two_words_that_both_run_on(void)
 {
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO,
-                          MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("abcdefgh"),
-                                    .word_right = word_of("abcdefgh"), .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("abcdefgh"),
+                                     .word_right = word_of("abcdefgh"), .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
     TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO,
-                          MMGR_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("abcdefgh"),
-                                    .word_right = word_of("abcdefgh"), .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
+                          EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of("abcdefgh"),
+                                     .word_right = word_of("abcdefgh"), .ci = EMBED_TRUE, .end_wins = EMBED_TRUE));
 }
 
 void test_step_byte_over_both_foldings_and_both_endings(void)
 {
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'a',
-                                                  .byte_right = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A',
-                                                  .byte_right = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A',
-                                                  .byte_right = 'a', .ci = MMGR_FALSE, .end_wins = MMGR_FALSE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '1',
-                                                  .byte_right = '2', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'a',
+                                                   .byte_right = 'a', .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_GO, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A',
+                                                   .byte_right = 'a', .ci = EMBED_TRUE, .end_wins = EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = 'A',
+                                                   .byte_right = 'a', .ci = EMBED_FALSE, .end_wins = EMBED_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '1',
+                                                   .byte_right = '2', .ci = EMBED_TRUE, .end_wins = EMBED_FALSE));
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES,
-                                  MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = '\0',
-                                            .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
+                                  EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
+                                             .byte_right = '\0', .ci = EMBED_FALSE, .end_wins = EMBED_FALSE),
                                   "both ending together is a match either way");
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
-                                                   .byte_right = '\0', .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
+                                                    .byte_right = '\0', .ci = EMBED_TRUE, .end_wins = EMBED_TRUE));
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_YES,
-                                  MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'a',
-                                            .ci = MMGR_FALSE, .end_wins = MMGR_TRUE),
+                                  EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'a',
+                                             .ci = EMBED_FALSE, .end_wins = EMBED_TRUE),
                                   "the pattern ending is a match when the end wins");
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_NO,
-                                  MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'a',
-                                            .ci = MMGR_FALSE, .end_wins = MMGR_FALSE),
+                                  EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0', .byte_right = 'a',
+                                             .ci = EMBED_FALSE, .end_wins = EMBED_FALSE),
                                   "and is not when it does not");
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
-                                                   .byte_right = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_TRUE));
-    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, MMGR_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
-                                                  .byte_right = 'a', .ci = MMGR_TRUE, .end_wins = MMGR_FALSE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_YES, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
+                                                    .byte_right = 'a', .ci = EMBED_TRUE, .end_wins = EMBED_TRUE));
+    TEST_ASSERT_EQUAL_INT(MMGR_SWAR_NO, EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = '\0',
+                                                   .byte_right = 'a', .ci = EMBED_TRUE, .end_wins = EMBED_FALSE));
 }
 
 void test_diff_finds_the_first_differing_byte(void)
 {
     TEST_ASSERT_EQUAL_size_t(
-        0u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = "abc", .other = "xbc", .cap = 3u, .ci = MMGR_FALSE));
+        0u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = "abc", .other = "xbc", .cap = 3u, .ci = EMBED_FALSE));
     TEST_ASSERT_EQUAL_size_t(
-        1u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = "abc", .other = "axc", .cap = 3u, .ci = MMGR_FALSE));
+        1u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = "abc", .other = "axc", .cap = 3u, .ci = EMBED_FALSE));
     TEST_ASSERT_EQUAL_size_t(
-        2u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = "abc", .other = "abx", .cap = 3u, .ci = MMGR_FALSE));
+        2u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = "abc", .other = "abx", .cap = 3u, .ci = EMBED_FALSE));
 }
 
 void test_diff_of_runs_that_agree_is_the_whole_run(void)
 {
     TEST_ASSERT_EQUAL_size_t_MESSAGE(
-        3u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = "abc", .other = "abc", .cap = 3u, .ci = MMGR_FALSE),
+        3u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = "abc", .other = "abc", .cap = 3u, .ci = EMBED_FALSE),
         "no difference means the read cap, not an index");
     TEST_ASSERT_EQUAL_size_t(
-        0u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = "abc", .other = "abc", .cap = 0u, .ci = MMGR_FALSE));
+        0u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = "abc", .other = "abc", .cap = 0u, .ci = EMBED_FALSE));
 }
 
 void test_diff_past_the_first_word(void)
@@ -686,42 +695,42 @@ void test_diff_past_the_first_word(void)
     static const char b[] = "the quick brown fox jumps over the LAZY dog";
 
     TEST_ASSERT_EQUAL_size_t(
-        35u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = a, .other = b, .cap = sizeof a - 1u, .ci = MMGR_FALSE));
+        35u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = a, .other = b, .cap = sizeof a - 1u, .ci = EMBED_FALSE));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(
         sizeof a - 1u,
-        MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = a, .other = b, .cap = sizeof a - 1u, .ci = MMGR_TRUE),
+        EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = a, .other = b, .cap = sizeof a - 1u, .ci = EMBED_TRUE),
         "the same pair agrees once case stops counting");
 }
 
 void test_diff_ignoring_case(void)
 {
     TEST_ASSERT_EQUAL_size_t(
-        3u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = "ABCd", .other = "abcX", .cap = 4u, .ci = MMGR_TRUE));
+        3u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = "ABCd", .other = "abcX", .cap = 4u, .ci = EMBED_TRUE));
     TEST_ASSERT_EQUAL_size_t(
-        0u, MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = "1", .other = "2", .cap = 1u, .ci = MMGR_TRUE));
+        0u, EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = "1", .other = "2", .cap = 1u, .ci = EMBED_TRUE));
 }
 
 void test_to_double_takes_a_leading_plus(void)
 {
     const char *end = NULL;
-    TEST_ASSERT_EQUAL_DOUBLE(2.5, MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "+2.5", .end = &end));
+    TEST_ASSERT_EQUAL_DOUBLE(2.5, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "+2.5", .end = &end));
     TEST_ASSERT_EQUAL_DOUBLE(2.5, strtod("+2.5", NULL));
 }
 
 void test_to_double_takes_a_signed_exponent(void)
 {
     TEST_ASSERT_EQUAL_DOUBLE(strtod("1e+3", NULL),
-                             MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e+3", .end = &mmgr_cellul_nowhere));
+                             EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e+3", .end = &mmgr_cellul_nowhere));
     TEST_ASSERT_EQUAL_DOUBLE(strtod("1e-3", NULL),
-                             MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-3", .end = &mmgr_cellul_nowhere));
+                             EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-3", .end = &mmgr_cellul_nowhere));
     TEST_ASSERT_EQUAL_DOUBLE(strtod("1e3", NULL),
-                             MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e3", .end = &mmgr_cellul_nowhere));
+                             EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e3", .end = &mmgr_cellul_nowhere));
 }
 
 void test_to_double_clamps_an_absurd_exponent(void)
 {
     const char *end = NULL;
-    const double v = MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e999999", .end = &end);
+    const double v = EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e999999", .end = &end);
 
     TEST_ASSERT_TRUE_MESSAGE(v > 1.0e300 || v != v, "an exponent past the range does not come back small");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(8u, (size_t)(end - (const char *)"1e999999"),
@@ -731,15 +740,15 @@ void test_to_double_clamps_an_absurd_exponent(void)
 void test_to_double_of_a_negative_absurd_exponent(void)
 {
     TEST_ASSERT_EQUAL_DOUBLE(
-        0.0, MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-999999", .end = &mmgr_cellul_nowhere));
+        0.0, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-999999", .end = &mmgr_cellul_nowhere));
 }
 
 void test_to_float_narrows_what_to_double_parses(void)
 {
     TEST_ASSERT_EQUAL_FLOAT(2.5f,
-                            MMGR_CALL(cellul.to_float, TransfiguroCfg, .src = "2.5", .end = &mmgr_cellul_nowhere));
+                            EMBED_CALL(cellul.to_float, TransfiguroCfg, .src = "2.5", .end = &mmgr_cellul_nowhere));
     TEST_ASSERT_EQUAL_FLOAT((float)strtod("-0.125", NULL),
-                            MMGR_CALL(cellul.to_float, TransfiguroCfg, .src = "-0.125", .end = &mmgr_cellul_nowhere));
+                            EMBED_CALL(cellul.to_float, TransfiguroCfg, .src = "-0.125", .end = &mmgr_cellul_nowhere));
 }
 
 void test_starts_when_the_read_cap_ends_first(void)
@@ -748,10 +757,10 @@ void test_starts_when_the_read_cap_ends_first(void)
     static const char s[16] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
 
     TEST_ASSERT_TRUE_MESSAGE(
-        MMGR_CALL(cellul.starts, CatenaFinitaCfg, .src = s, .other = pre, .cap = sizeof pre, .ci = MMGR_FALSE),
+        EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = s, .other = pre, .cap = sizeof pre, .ci = EMBED_FALSE),
         "they agreed for every byte that could be read");
     TEST_ASSERT_TRUE_MESSAGE(
-        MMGR_CALL(cellul.starts, CatenaFinitaCfg, .src = s, .other = pre, .cap = sizeof pre, .ci = MMGR_TRUE),
+        EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = s, .other = pre, .cap = sizeof pre, .ci = EMBED_TRUE),
         "and the same ignoring case");
 }
 
@@ -762,10 +771,10 @@ void test_eq_when_the_read_cap_ends_first(void)
     static const char b2[16] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
 
     TEST_ASSERT_FALSE_MESSAGE(
-        MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = a, .other = b2, .cap = sizeof a, .ci = MMGR_FALSE),
+        EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = a, .other = b2, .cap = sizeof a, .ci = EMBED_FALSE),
         "case counts, and there is no terminator");
     TEST_ASSERT_FALSE_MESSAGE(
-        MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = a, .other = b2, .cap = sizeof a, .ci = MMGR_TRUE),
+        EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = a, .other = b2, .cap = sizeof a, .ci = EMBED_TRUE),
         "case does not count, and there is still no terminator");
 }
 
@@ -775,9 +784,9 @@ void test_starts_finds_a_difference_with_no_terminator_in_the_word(void)
     static const char s[16] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p'};
 
     TEST_ASSERT_FALSE(
-        MMGR_CALL(cellul.starts, CatenaFinitaCfg, .src = s, .other = pre, .cap = sizeof pre, .ci = MMGR_FALSE));
+        EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = s, .other = pre, .cap = sizeof pre, .ci = EMBED_FALSE));
     TEST_ASSERT_FALSE(
-        MMGR_CALL(cellul.starts, CatenaFinitaCfg, .src = s, .other = pre, .cap = sizeof pre, .ci = MMGR_TRUE));
+        EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = s, .other = pre, .cap = sizeof pre, .ci = EMBED_TRUE));
 }
 
 static uint64_t bits_of(double v)
@@ -789,7 +798,7 @@ static uint64_t bits_of(double v)
 
 static void same_as_strtod(const char *s)
 {
-    const double got = MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = s, .end = &mmgr_cellul_nowhere);
+    const double got = EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = s, .end = &mmgr_cellul_nowhere);
     const double want = strtod(s, NULL);
 
     if (bits_of(got) != bits_of(want))
@@ -848,19 +857,19 @@ void test_the_subnormals(void)
 void test_underflow_and_overflow(void)
 {
     TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(
-        0.0, MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-400", .end = &mmgr_cellul_nowhere),
+        0.0, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-400", .end = &mmgr_cellul_nowhere),
         "past the bottom is zero");
     TEST_ASSERT_EQUAL_DOUBLE(
-        0.0, MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-1000", .end = &mmgr_cellul_nowhere));
+        0.0, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-1000", .end = &mmgr_cellul_nowhere));
     TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(
-        -0.0, MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "-1e-1000", .end = &mmgr_cellul_nowhere),
+        -0.0, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "-1e-1000", .end = &mmgr_cellul_nowhere),
         "and keeps its sign");
 
-    const double up = MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e400", .end = &mmgr_cellul_nowhere);
+    const double up = EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e400", .end = &mmgr_cellul_nowhere);
     TEST_ASSERT_TRUE_MESSAGE(up > 1.0e308, "past the top is an infinity");
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e1000", .end = &mmgr_cellul_nowhere) >
+    TEST_ASSERT_TRUE(EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e1000", .end = &mmgr_cellul_nowhere) >
                      1.0e308);
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "-1e1000", .end = &mmgr_cellul_nowhere) <
+    TEST_ASSERT_TRUE(EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "-1e1000", .end = &mmgr_cellul_nowhere) <
                      -1.0e308);
 }
 
@@ -910,7 +919,7 @@ void test_the_conversion_over_random_bit_patterns(void)
         }
         (void)snprintf(s, sizeof s, "%.17g", v);
 
-        const double got = MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = s, .end = &mmgr_cellul_nowhere);
+        const double got = EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = s, .end = &mmgr_cellul_nowhere);
         if (bits_of(got) != bits_of(v))
         {
             char msg[160];
@@ -948,7 +957,7 @@ void test_the_conversion_over_strobed_bits(void)
         }
         (void)snprintf(s, sizeof s, "%.17g", v);
 
-        const double got = MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = s, .end = &mmgr_cellul_nowhere);
+        const double got = EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = s, .end = &mmgr_cellul_nowhere);
         if (bits_of(got) != bits_of(v))
         {
             char msg[160];
@@ -961,18 +970,18 @@ void test_the_conversion_over_strobed_bits(void)
 
 void test_the_ends_of_the_range_through_the_table(void)
 {
-    const double over = MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1.8e308", .end = &mmgr_cellul_nowhere);
+    const double over = EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1.8e308", .end = &mmgr_cellul_nowhere);
     TEST_ASSERT_TRUE_MESSAGE(over > 1.7976931348623157e308, "just past the largest double is an infinity");
-    TEST_ASSERT_TRUE(MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "-1.8e308", .end = &mmgr_cellul_nowhere) <
+    TEST_ASSERT_TRUE(EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "-1.8e308", .end = &mmgr_cellul_nowhere) <
                      -1.7976931348623157e308);
 
     TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(
-        0.0, MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-330", .end = &mmgr_cellul_nowhere),
+        0.0, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-330", .end = &mmgr_cellul_nowhere),
         "below the smallest subnormal is zero");
     TEST_ASSERT_EQUAL_DOUBLE(
-        0.0, MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "4.9e-330", .end = &mmgr_cellul_nowhere));
+        0.0, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "4.9e-330", .end = &mmgr_cellul_nowhere));
     TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(
-        -0.0, MMGR_CALL(cellul.to_double, TransfiguroCfg, .src = "-1e-330", .end = &mmgr_cellul_nowhere),
+        -0.0, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "-1e-330", .end = &mmgr_cellul_nowhere),
         "and keeps its sign on the way");
 }
 

@@ -4,6 +4,11 @@ build-*/
 cmake-build-*/
 CMakeUserPresets.json
 
+# Fetched dependencies. deps/CMakeLists.txt is the declaration and is the only tracked file here.
+# Everything else under deps/ is a checkout of another repository and belongs to that repository.
+deps/*
+!deps/CMakeLists.txt
+
 # CMake/CTest droppings when a configure is run in-source by accident.
 CMakeCache.txt
 CMakeFiles/

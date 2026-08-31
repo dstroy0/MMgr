@@ -1,5 +1,5 @@
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 #
 # Cross translation unit, and combination logic. A unit suite proves one module keeps its
 # own promises; these prove the modules still agree when stacked.

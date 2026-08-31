@@ -3,11 +3,11 @@
 
 #include "config/mmgr_config.h"
 
-typedef mmgr_bool proto_bool;
+typedef embed_bool proto_bool;
 
-#define PROTO_TRUE MMGR_TRUE
+#define PROTO_TRUE EMBED_TRUE
 
-#define PROTO_FALSE MMGR_FALSE
+#define PROTO_FALSE EMBED_FALSE
 
 typedef struct
 {

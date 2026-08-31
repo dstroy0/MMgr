@@ -6,7 +6,7 @@
 
 static inline void proto_raw_read(void *dst, const void *p, size_t sz)
 {
-    MMGR_CALL(proxim.read, ProximusCfg, .dst = dst, .at = p, .size = sz);
+    EMBED_CALL(proxim.read, ProximusCfg, .dst = dst, .at = p, .size = sz);
 }
 
 #endif

@@ -1,9 +1,12 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file proximus_operor.h
- * @brief Typed loads and stores, the raw word width, and the proxim dispatch table.
+ * @brief Typed loads and stores, and the proxim dispatch table.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
@@ -13,45 +16,9 @@
 #ifndef MMGR_PROXIMUS_OPEROR_H
 #define MMGR_PROXIMUS_OPEROR_H
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
-MMGR_INCIPE_DECLS
-
-/**
- * @brief Expands to MMGR_ALIGN(1) MMGR_ALIAS.
- *
- * @note Applied to a typedef, it drops the type's alignment to one byte and lets it alias other types.
- * @warning Either half expands to nothing where its attribute is unavailable, leaving the type's own alignment.
- */
-#define MMGR_RAW MMGR_ALIGN(1) MMGR_ALIAS
-
-/**
- * @brief Bytes in one raw word: 8 at MMGR_WORD_BITS 64 or more, 4 at 32 or more, 2 otherwise.
- *
- * @note Sets the stride of the word loop in proxim_read, and the granularity proxim_head aligns to.
- * @note memoria_operor uses it the same way, for the whole-word part of its copies and fills.
- */
-#if MMGR_WORD_BITS >= 64
-#define MMGR_RAW_WORD 8
-#elif MMGR_WORD_BITS >= 32
-#define MMGR_RAW_WORD 4
-#else
-#define MMGR_RAW_WORD 2
-#endif
-
-/**
- * @brief The unsigned type MMGR_RAW_WORD bytes wide: uint64_t at 8, uint32_t at 4, uint16_t otherwise.
- *
- * @note The type the load, put, al_load and al_put entries carry one word in.
- */
-#if MMGR_RAW_WORD >= 8
-typedef uint64_t mmgr_migro_word;
-#elif MMGR_RAW_WORD >= 4
-typedef uint32_t mmgr_migro_word;
-#else
-
-typedef uint16_t mmgr_migro_word;
-#endif
+EMBED_BEGIN_DECLS
 
 /**
  * @brief Arguments for the proxim calls.
@@ -69,27 +36,28 @@ typedef struct
 /**
  * @brief Type of the proxim dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the thirteen members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the thirteen members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note Each member below states its own alignment requirement.
  */
 typedef struct
 {
-    uint16_t (*load16)(const ProximusCfg *args);         /**< Reads two bytes. */
-    uint32_t (*load32)(const ProximusCfg *args);         /**< Reads four bytes. */
-    uint64_t (*load64)(const ProximusCfg *args);         /**< Reads eight bytes. */
-    void (*put16)(const ProximusCfg *args);              /**< Writes two bytes. */
-    void (*put32)(const ProximusCfg *args);              /**< Writes four bytes. */
-    void (*put64)(const ProximusCfg *args);              /**< Writes eight bytes. */
-    mmgr_migro_word (*load)(const ProximusCfg *args);    /**< Reads MMGR_RAW_WORD bytes. */
-    void (*put)(const ProximusCfg *args);                /**< Writes MMGR_RAW_WORD bytes. */
-    mmgr_migro_word (*al_load)(const ProximusCfg *args); /**< Reads MMGR_RAW_WORD bytes from an aligned address. */
-    void (*al_put)(const ProximusCfg *args);             /**< Writes MMGR_RAW_WORD bytes to an aligned address. */
-    uint64_t (*al_load64)(const ProximusCfg *args);      /**< Reads eight bytes from an aligned address. */
-    void (*al_put64)(const ProximusCfg *args);           /**< Writes eight bytes to an aligned address. */
-    void (*read)(const ProximusCfg *args);               /**< Copies size bytes, aligning the destination first. */
+    uint16_t (*load16)(const ProximusCfg *args);    /**< Reads two bytes. */
+    uint32_t (*load32)(const ProximusCfg *args);    /**< Reads four bytes. */
+    uint64_t (*load64)(const ProximusCfg *args);    /**< Reads eight bytes. */
+    void (*put16)(const ProximusCfg *args);         /**< Writes two bytes. */
+    void (*put32)(const ProximusCfg *args);         /**< Writes four bytes. */
+    void (*put64)(const ProximusCfg *args);         /**< Writes eight bytes. */
+    embed_word (*load)(const ProximusCfg *args);    /**< Reads one word. */
+    void (*put)(const ProximusCfg *args);           /**< Writes one word. */
+    embed_word (*al_load)(const ProximusCfg *args); /**< Reads one word from an aligned address. */
+    void (*al_put)(const ProximusCfg *args);        /**< Writes one word to an aligned address. */
+    uint64_t (*al_load64)(const ProximusCfg *args); /**< Reads eight bytes from an aligned address. */
+    void (*al_put64)(const ProximusCfg *args);      /**< Writes eight bytes to an aligned address. */
+    void (*read)(const ProximusCfg *args);          /**< Copies size bytes, aligning the destination first. */
 } ProximusOperorNs;
-MMGR_NS_LAYOUT(ProximusOperorNs, load16, load32, load64, put16, put32, put64, load, put, al_load, al_put, al_load64,
-               al_put64, read);
+EMBED_TABLE_LAYOUT(ProximusOperorNs, load16, load32, load64, put16, put32, put64, load, put, al_load, al_put, al_load64,
+                   al_put64, read);
 
 /**
  * @brief Reads two bytes from args->at in the target's own order.
@@ -145,38 +113,38 @@ void mmgr_proxim_put32(const ProximusCfg *args);
 void mmgr_proxim_put64(const ProximusCfg *args);
 
 /**
- * @brief Reads MMGR_RAW_WORD bytes from args->at in the target's own order.
+ * @brief Reads one word from args->at in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
- * @return         The bytes as an mmgr_migro_word.
- * @warning args->at must be readable for MMGR_RAW_WORD bytes, at any alignment.
+ * @return         The bytes as an embed_word.
+ * @warning args->at must be readable for a whole embed_word, at any alignment.
  */
-mmgr_migro_word mmgr_proxim_load(const ProximusCfg *args);
+embed_word mmgr_proxim_load(const ProximusCfg *args);
 
 /**
- * @brief Writes the low MMGR_RAW_WORD bytes of args->val to args->dst in the target's own order.
+ * @brief Writes the low word of args->val to args->dst in the target's own order.
  *
  * @param[in] args Destination and value [BORROWS].
- * @warning args->dst must be writable for MMGR_RAW_WORD bytes, at any alignment.
+ * @warning args->dst must be writable for a whole embed_word, at any alignment.
  */
 void mmgr_proxim_put(const ProximusCfg *args);
 
 /**
- * @brief Reads MMGR_RAW_WORD bytes from an aligned args->at, in the target's own order.
+ * @brief Reads one word from an aligned args->at, in the target's own order.
  *
  * @param[in] args Address to read from [BORROWS].
- * @return         The bytes as an mmgr_migro_word.
- * @note Reaches the same bytes as mmgr_proxim_load, through a type that keeps mmgr_migro_word's alignment.
- * @warning args->at must be readable for MMGR_RAW_WORD bytes and aligned for an mmgr_migro_word.
+ * @return         The bytes as an embed_word.
+ * @note Reaches the same bytes as mmgr_proxim_load, through a type that keeps embed_word's alignment.
+ * @warning args->at must be readable for a whole embed_word and aligned for one.
  */
-mmgr_migro_word mmgr_aequus_load(const ProximusCfg *args);
+embed_word mmgr_aequus_load(const ProximusCfg *args);
 
 /**
- * @brief Writes the low MMGR_RAW_WORD bytes of args->val to an aligned args->dst.
+ * @brief Writes the low word of args->val to an aligned args->dst.
  *
  * @param[in] args Destination and value [BORROWS].
- * @note Reaches the same bytes as mmgr_proxim_put, through a type that keeps mmgr_migro_word's alignment.
- * @warning args->dst must be writable for MMGR_RAW_WORD bytes and aligned for an mmgr_migro_word.
+ * @note Reaches the same bytes as mmgr_proxim_put, through a type that keeps embed_word's alignment.
+ * @warning args->dst must be writable for a whole embed_word and aligned for one.
  */
 void mmgr_aequus_put(const ProximusCfg *args);
 
@@ -203,7 +171,7 @@ void mmgr_aequus_put64(const ProximusCfg *args);
  * @brief Copies args->size bytes from args->at to args->dst.
  *
  * @param[in] args Destination, source and count [BORROWS].
- * @note Copies bytes until args->dst reaches an MMGR_RAW_WORD boundary, then whole words, then the odd bytes left.
+ * @note Copies bytes until args->dst reaches a word boundary, then whole words, then the odd bytes left.
  * @note This is the only entry that reads args->size.
  * @warning Copies forward, so an args->dst above args->at within one region would read bytes it has already written.
  */
@@ -215,7 +183,7 @@ void mmgr_proxim_read(const ProximusCfg *args);
  * @note The nine unaligned members call the mmgr_proxim_ functions.
  * @note The four al_ members call the mmgr_aequus_ ones.
  */
-MMGR_NS ProximusOperorNs proxim MMGR_UNUSED = {
+EMBED_TABLE_STORAGE ProximusOperorNs proxim EMBED_UNUSED = {
     .load16 = mmgr_proxim_load16,
     .load32 = mmgr_proxim_load32,
     .load64 = mmgr_proxim_load64,
@@ -231,6 +199,6 @@ MMGR_NS ProximusOperorNs proxim MMGR_UNUSED = {
     .read = mmgr_proxim_read,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

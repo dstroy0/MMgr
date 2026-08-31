@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file clz.h
@@ -19,29 +22,30 @@
 #ifndef MMGR_CLZ_H
 #define MMGR_CLZ_H
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief Argument for both clz calls: the value to count zeros in.
  */
 typedef struct
 {
-    const mmgr_u64 val; /**< Value whose leading or trailing zeros are counted. */
+    const embed_u64 val; /**< Value whose leading or trailing zeros are counted. */
 } ClzCfg;
 
 /**
  * @brief Type of the clz dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the two members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the two members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  */
 typedef struct
 {
-    mmgr_iword (*lead)(const ClzCfg *args);  /**< Leading zero count of val. */
-    mmgr_iword (*trail)(const ClzCfg *args); /**< Trailing zero count of val. */
+    embed_iword (*lead)(const ClzCfg *args);  /**< Leading zero count of val. */
+    embed_iword (*trail)(const ClzCfg *args); /**< Trailing zero count of val. */
 } ClzNs;
-MMGR_NS_LAYOUT(ClzNs, lead, trail);
+EMBED_TABLE_LAYOUT(ClzNs, lead, trail);
 
 /**
  * @brief Counts the zero bits above the highest set bit of args->val.
@@ -51,7 +55,7 @@ MMGR_NS_LAYOUT(ClzNs, lead, trail);
  * @note Runs in a fixed number of steps, none of which branches on the value.
  * @warning An args->val of 0 returns 63, the same answer as an args->val of 1.
  */
-mmgr_iword mmgr_clz_lead(const ClzCfg *args);
+embed_iword mmgr_clz_lead(const ClzCfg *args);
 
 /**
  * @brief Counts the zero bits below the lowest set bit of args->val.
@@ -61,16 +65,16 @@ mmgr_iword mmgr_clz_lead(const ClzCfg *args);
  * @note Runs in a fixed number of steps, none of which branches on the value.
  * @warning An args->val of 0 returns 63, the same answer as an args->val of 2^63.
  */
-mmgr_iword mmgr_clz_trail(const ClzCfg *args);
+embed_iword mmgr_clz_trail(const ClzCfg *args);
 
 /**
  * @brief Dispatch table instance named clz, with each member set to its mmgr_clz_ function.
  */
-MMGR_NS ClzNs clz MMGR_UNUSED = {
+EMBED_TABLE_STORAGE ClzNs clz EMBED_UNUSED = {
     .lead = mmgr_clz_lead,
     .trail = mmgr_clz_trail,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

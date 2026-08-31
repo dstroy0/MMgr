@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file cellularum_laboro.h
@@ -26,9 +29,9 @@
 
 #include "verbum_scrutor/verbum_scrutor.h"
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief Most needle offsets the search sieve tests per candidate word.
@@ -92,7 +95,7 @@ typedef struct
     char *const dst;         /**< Destination for copy [BORROWS]. */
     const size_t at;         /**< Offset into src for len, ws and digit. */
     const uint8_t byte;      /**< Byte sought by chr. */
-    const mmgr_bool ci;      /**< Fold case in diff, eq, starts, find and has. */
+    const embed_bool ci;     /**< Fold case in diff, eq, starts, find and has. */
 } CatenaFinitaCfg;
 
 /**
@@ -103,12 +106,12 @@ typedef struct
  */
 typedef struct
 {
-    const mmgr_word word_left;  /**< First word for step_word. */
-    const mmgr_word word_right; /**< Second word for step_word. */
-    const uint8_t byte_left;    /**< First byte for step_byte. */
-    const uint8_t byte_right;   /**< Second byte for step_byte. */
-    const mmgr_bool ci;         /**< Fold case before comparing. */
-    const mmgr_bool end_wins;   /**< A terminator in the same lane counts as a match. */
+    const embed_word word_left;  /**< First word for step_word. */
+    const embed_word word_right; /**< Second word for step_word. */
+    const uint8_t byte_left;     /**< First byte for step_byte. */
+    const uint8_t byte_right;    /**< Second byte for step_byte. */
+    const embed_bool ci;         /**< Fold case before comparing. */
+    const embed_bool end_wins;   /**< A terminator in the same lane counts as a match. */
 } VerboProgrediorCfg;
 
 /**
@@ -125,32 +128,33 @@ typedef struct
 /**
  * @brief Type of the cellul dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the seventeen members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the seventeen members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note Byte and wire verbs are not here. rd_str and mpint_fixed read a length off the wire rather
  *       than out of a string, so they belong to the byteio module and act on its spans.
  */
 typedef struct
 {
-    CatenaFinitaCfg (*init)(const CatenaFinitaCfg *args);    /**< Copies the argument struct. */
-    size_t (*len)(const CatenaFinitaCfg *args);              /**< Bytes before the terminator. */
-    size_t (*diff)(const CatenaFinitaCfg *args);             /**< Offset of the first differing byte. */
-    mmgr_bool (*eq)(const CatenaFinitaCfg *args);            /**< Whether both end together with no difference. */
-    mmgr_bool (*starts)(const CatenaFinitaCfg *args);        /**< Whether src begins with other. */
-    const char *(*find)(const CatenaFinitaCfg *args);        /**< First occurrence of other in src. */
-    mmgr_bool (*has)(const CatenaFinitaCfg *args);           /**< Whether find would report a match. */
-    const char *(*chr)(const CatenaFinitaCfg *args);         /**< First occurrence of byte in src. */
-    size_t (*copy)(const CatenaFinitaCfg *args);             /**< Bounded copy, terminated unless cap is 0. */
-    mmgr_bool (*ws)(const CatenaFinitaCfg *args);            /**< Whether src[at] is whitespace. */
-    mmgr_bool (*digit)(const CatenaFinitaCfg *args);         /**< Whether src[at] is a decimal digit. */
-    mmgr_iword (*step_word)(const VerboProgrediorCfg *args); /**< One word compare driving a walk. */
-    mmgr_iword (*step_byte)(const VerboProgrediorCfg *args); /**< One byte compare driving a walk. */
-    mmgr_iword (*to_long)(const TransfiguroCfg *args);       /**< Text to signed integer. */
-    mmgr_word (*to_ulong)(const TransfiguroCfg *args);       /**< Text to unsigned integer. */
-    double (*to_double)(const TransfiguroCfg *args);         /**< Text to double. */
-    float (*to_float)(const TransfiguroCfg *args);           /**< Text to float. */
+    CatenaFinitaCfg (*init)(const CatenaFinitaCfg *args);     /**< Copies the argument struct. */
+    size_t (*len)(const CatenaFinitaCfg *args);               /**< Bytes before the terminator. */
+    size_t (*diff)(const CatenaFinitaCfg *args);              /**< Offset of the first differing byte. */
+    embed_bool (*eq)(const CatenaFinitaCfg *args);            /**< Whether both end together with no difference. */
+    embed_bool (*starts)(const CatenaFinitaCfg *args);        /**< Whether src begins with other. */
+    const char *(*find)(const CatenaFinitaCfg *args);         /**< First occurrence of other in src. */
+    embed_bool (*has)(const CatenaFinitaCfg *args);           /**< Whether find would report a match. */
+    const char *(*chr)(const CatenaFinitaCfg *args);          /**< First occurrence of byte in src. */
+    size_t (*copy)(const CatenaFinitaCfg *args);              /**< Bounded copy, terminated unless cap is 0. */
+    embed_bool (*ws)(const CatenaFinitaCfg *args);            /**< Whether src[at] is whitespace. */
+    embed_bool (*digit)(const CatenaFinitaCfg *args);         /**< Whether src[at] is a decimal digit. */
+    embed_iword (*step_word)(const VerboProgrediorCfg *args); /**< One word compare driving a walk. */
+    embed_iword (*step_byte)(const VerboProgrediorCfg *args); /**< One byte compare driving a walk. */
+    embed_iword (*to_long)(const TransfiguroCfg *args);       /**< Text to signed integer. */
+    embed_word (*to_ulong)(const TransfiguroCfg *args);       /**< Text to unsigned integer. */
+    double (*to_double)(const TransfiguroCfg *args);          /**< Text to double. */
+    float (*to_float)(const TransfiguroCfg *args);            /**< Text to float. */
 } CellularumLaboroNs;
-MMGR_NS_LAYOUT(CellularumLaboroNs, init, len, diff, eq, starts, find, has, chr, copy, ws, digit, step_word, step_byte,
-               to_long, to_ulong, to_double, to_float);
+EMBED_TABLE_LAYOUT(CellularumLaboroNs, init, len, diff, eq, starts, find, has, chr, copy, ws, digit, step_word,
+                   step_byte, to_long, to_ulong, to_double, to_float);
 
 /**
  * @brief Returns a copy of the argument struct.
@@ -187,22 +191,22 @@ size_t mmgr_cellul_diff(const CatenaFinitaCfg *args);
  * @brief Reports whether src and other hold the same terminated string.
  *
  * @param[in] args Bytes src and other, the extent cap, and ci [BORROWS].
- * @return         MMGR_TRUE when both reach a terminator with no difference before it.
+ * @return         EMBED_TRUE when both reach a terminator with no difference before it.
  * @warning Both src and other must be readable for cap bytes. The last partial word is loaded whole and
  *          masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
-mmgr_bool mmgr_cellul_eq(const CatenaFinitaCfg *args);
+embed_bool mmgr_cellul_eq(const CatenaFinitaCfg *args);
 
 /**
  * @brief Reports whether src begins with other.
  *
  * @param[in] args Bytes src and other, the extent cap, and ci [BORROWS].
- * @return         MMGR_TRUE when other reaches its terminator with no difference before it.
+ * @return         EMBED_TRUE when other reaches its terminator with no difference before it.
  * @note An empty other matches any src.
  * @warning Both src and other must be readable for cap bytes. The last partial word is loaded whole and
  *          masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
-mmgr_bool mmgr_cellul_starts(const CatenaFinitaCfg *args);
+embed_bool mmgr_cellul_starts(const CatenaFinitaCfg *args);
 
 /**
  * @brief Finds the first occurrence of other within src.
@@ -220,11 +224,11 @@ const char *mmgr_cellul_find(const CatenaFinitaCfg *args);
  * @brief Reports whether other occurs within src.
  *
  * @param[in] args Haystack src with cap, needle other with other_cap, and ci [BORROWS].
- * @return         MMGR_TRUE when mmgr_cellul_find reports a match.
+ * @return         EMBED_TRUE when mmgr_cellul_find reports a match.
  * @warning src must be readable for cap bytes and other for other_cap bytes, with the needle read past
  *          other_cap exactly as mmgr_cellul_find describes.
  */
-mmgr_bool mmgr_cellul_has(const CatenaFinitaCfg *args);
+embed_bool mmgr_cellul_has(const CatenaFinitaCfg *args);
 
 /**
  * @brief Finds the first occurrence of args->byte in src, before the terminator.
@@ -251,19 +255,19 @@ size_t mmgr_cellul_copy(const CatenaFinitaCfg *args);
  * @brief Tests src[at] for whitespace.
  *
  * @param[in] args Bytes src and the offset at [BORROWS].
- * @return         MMGR_TRUE for space, tab, newline, carriage return, form feed or vertical tab.
+ * @return         EMBED_TRUE for space, tab, newline, carriage return, form feed or vertical tab.
  * @warning src[at] must be readable. cap does not bound this call.
  */
-mmgr_bool mmgr_cellul_ws(const CatenaFinitaCfg *args);
+embed_bool mmgr_cellul_ws(const CatenaFinitaCfg *args);
 
 /**
  * @brief Tests src[at] for a decimal digit.
  *
  * @param[in] args Bytes src and the offset at [BORROWS].
- * @return         MMGR_TRUE for the ten decimal digits, '0' through '9'.
+ * @return         EMBED_TRUE for the ten decimal digits, '0' through '9'.
  * @warning src[at] must be readable. cap does not bound this call.
  */
-mmgr_bool mmgr_cellul_digit(const CatenaFinitaCfg *args);
+embed_bool mmgr_cellul_digit(const CatenaFinitaCfg *args);
 
 /**
  * @brief Compares one word pair and reports whether a walk should continue.
@@ -273,7 +277,7 @@ mmgr_bool mmgr_cellul_digit(const CatenaFinitaCfg *args);
  * @note MMGR_SWAR_YES means word_left's terminator arrived before the first difference.
  * @note end_wins makes a terminator in the same lane as the difference count as agreement.
  */
-mmgr_iword mmgr_cellul_step_word(const VerboProgrediorCfg *args);
+embed_iword mmgr_cellul_step_word(const VerboProgrediorCfg *args);
 
 /**
  * @brief Compares one byte pair and reports whether a walk should continue.
@@ -283,7 +287,7 @@ mmgr_iword mmgr_cellul_step_word(const VerboProgrediorCfg *args);
  * @note A terminating byte_left gives MMGR_SWAR_YES when byte_right also terminates, or when
  *       end_wins is set.
  */
-mmgr_iword mmgr_cellul_step_byte(const VerboProgrediorCfg *args);
+embed_iword mmgr_cellul_step_byte(const VerboProgrediorCfg *args);
 
 /**
  * @brief Reads a signed decimal integer from args->src.
@@ -293,9 +297,9 @@ mmgr_iword mmgr_cellul_step_byte(const VerboProgrediorCfg *args);
  * @note Skips leading whitespace, then accepts one optional '+' or '-'.
  * @note When end is not NULL it is set past the last digit, or back to src when none was read.
  * @warning The read stops at the first byte that is not part of the number. No length bounds it.
- * @warning The digit accumulator is mmgr_word wide and wraps on a longer run.
+ * @warning The digit accumulator is embed_word wide and wraps on a longer run.
  */
-mmgr_iword mmgr_cellul_to_long(const TransfiguroCfg *args);
+embed_iword mmgr_cellul_to_long(const TransfiguroCfg *args);
 
 /**
  * @brief Reads an unsigned decimal integer from args->src.
@@ -305,9 +309,9 @@ mmgr_iword mmgr_cellul_to_long(const TransfiguroCfg *args);
  * @note Skips leading whitespace, then accepts one optional '+'. A '-' stops the read.
  * @note When end is not NULL it is set past the last digit, or back to src when none was read.
  * @warning The read stops at the first byte that is not part of the number. No length bounds it.
- * @warning The digit accumulator is mmgr_word wide and wraps on a longer run.
+ * @warning The digit accumulator is embed_word wide and wraps on a longer run.
  */
-mmgr_word mmgr_cellul_to_ulong(const TransfiguroCfg *args);
+embed_word mmgr_cellul_to_ulong(const TransfiguroCfg *args);
 
 /**
  * @brief Reads a decimal floating point number from args->src.
@@ -334,7 +338,7 @@ float mmgr_cellul_to_float(const TransfiguroCfg *args);
 /**
  * @brief Dispatch table instance named cellul, with each member set to its mmgr_cellul_ function.
  */
-MMGR_NS CellularumLaboroNs cellul MMGR_UNUSED = {
+EMBED_TABLE_STORAGE CellularumLaboroNs cellul EMBED_UNUSED = {
     .init = mmgr_cellul_init,
     .len = mmgr_cellul_len,
     .diff = mmgr_cellul_diff,
@@ -354,6 +358,6 @@ MMGR_NS CellularumLaboroNs cellul MMGR_UNUSED = {
     .to_float = mmgr_cellul_to_float,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

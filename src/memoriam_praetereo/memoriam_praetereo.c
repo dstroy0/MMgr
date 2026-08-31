@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file memoriam_praetereo.c
@@ -34,7 +37,7 @@ typedef struct
 {
     uint8_t channel;                     /**< Channel to open. */
     uint8_t peripheral;                  /**< Peripheral the channel is wired to. */
-    mmgr_bool loopback;                  /**< Open the channel looped back on itself. */
+    embed_bool loopback;                 /**< Open the channel looped back on itself. */
     const PraetCallbackCfg *on_complete; /**< Called when a transfer finishes [BORROWS]. */
 } PraetOpenCtx;
 
@@ -56,41 +59,41 @@ typedef struct
  * @brief Weak default for opening a channel, which refuses every request.
  *
  * @param[in] args Channel, peripheral and completion callback [BORROWS].
- * @return         MMGR_FALSE always.
- * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero. An application
+ * @return         EMBED_FALSE always.
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. An application
  *       definition replaces it.
  * @note The (void)args discards the argument, since this body reads nothing.
  */
-MMGR_WEAK mmgr_bool mmgr_praet_hw_open(const PraetCfg *args)
+EMBED_WEAK embed_bool mmgr_praet_hw_open(const PraetCfg *args)
 {
     (void)args;
-    return MMGR_FALSE;
+    return EMBED_FALSE;
 }
 
 /**
  * @brief Weak default for submitting a transfer, which refuses every request.
  *
  * @param[in] args Channel, buffer and byte count [BORROWS].
- * @return         MMGR_FALSE always.
- * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero. An application
+ * @return         EMBED_FALSE always.
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. An application
  *       definition replaces it.
  * @note The (void)args discards the argument, since this body reads nothing.
  */
-MMGR_WEAK mmgr_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args)
+EMBED_WEAK embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args)
 {
     (void)args;
-    return MMGR_FALSE;
+    return EMBED_FALSE;
 }
 
 /**
  * @brief Weak default for closing a channel, which does nothing.
  *
  * @param[in] args Channel to close [BORROWS].
- * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero. An application
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. An application
  *       definition replaces it.
  * @note The (void)args discards the argument, since this body reads nothing.
  */
-MMGR_WEAK void mmgr_praet_hw_close(const PraetTransferCfg *args)
+EMBED_WEAK void mmgr_praet_hw_close(const PraetTransferCfg *args)
 {
     (void)args;
 }
@@ -99,11 +102,11 @@ MMGR_WEAK void mmgr_praet_hw_close(const PraetTransferCfg *args)
  * @brief Weak default for the poll hook, which does nothing.
  *
  * @param[in] args Channel to poll [BORROWS].
- * @note MMGR_WEAK marks this weak where MMGR_HAS_ATTRIBUTE(weak) is non-zero. An application
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. An application
  *       definition replaces it.
  * @note The (void)args discards the argument, since this body reads nothing.
  */
-MMGR_WEAK void mmgr_praet_hw_poll(const PraetCfg *args)
+EMBED_WEAK void mmgr_praet_hw_poll(const PraetCfg *args)
 {
     (void)args;
 }
@@ -115,13 +118,13 @@ MMGR_WEAK void mmgr_praet_hw_poll(const PraetCfg *args)
  * @return         Whatever mmgr_praet_hw_open returns.
  * @warning args->channel must be below praet_init.channels, and args->on_complete must not be NULL.
  */
-MMGR_INLINE mmgr_bool praet_open(const PraetOpenCtx *args)
+EMBED_INLINE embed_bool praet_open(const PraetOpenCtx *args)
 {
     MMGR_ASSERT(args->channel < praet_init.channels, "no such channel");
     MMGR_ASSERT(args->on_complete != NULL, "an open channel reports completion");
 
-    return MMGR_CALL(mmgr_praet_hw_open, PraetCfg, .channel = args->channel, .peripheral = args->peripheral,
-                     .loopback = args->loopback, .on_complete = args->on_complete);
+    return EMBED_CALL(mmgr_praet_hw_open, PraetCfg, .channel = args->channel, .peripheral = args->peripheral,
+                      .loopback = args->loopback, .on_complete = args->on_complete);
 }
 
 /**
@@ -131,13 +134,13 @@ MMGR_INLINE mmgr_bool praet_open(const PraetOpenCtx *args)
  * @return         Whatever mmgr_praet_hw_tx_submit returns.
  * @warning args->channel must be below praet_init.channels, and args->bytes must not exceed praet_init.buf_size.
  */
-MMGR_INLINE mmgr_bool praet_tx_submit(const PraetTransferCtx *args)
+EMBED_INLINE embed_bool praet_tx_submit(const PraetTransferCtx *args)
 {
     MMGR_ASSERT(args->channel < praet_init.channels, "no such channel");
     MMGR_ASSERT(args->bytes <= praet_init.buf_size, "a transfer is bounded by the channel buffer");
 
-    return MMGR_CALL(mmgr_praet_hw_tx_submit, PraetTransferCfg, .channel = args->channel, .buf = args->buf,
-                     .bytes = args->bytes);
+    return EMBED_CALL(mmgr_praet_hw_tx_submit, PraetTransferCfg, .channel = args->channel, .buf = args->buf,
+                      .bytes = args->bytes);
 }
 
 /**
@@ -147,15 +150,15 @@ MMGR_INLINE mmgr_bool praet_tx_submit(const PraetTransferCtx *args)
  * @note Passes only the channel on. buf and bytes take no part.
  * @warning args->channel must be below praet_init.channels.
  */
-MMGR_INLINE void praet_close(const PraetTransferCtx *args)
+EMBED_INLINE void praet_close(const PraetTransferCtx *args)
 {
     MMGR_ASSERT(args->channel < praet_init.channels, "no such channel");
 
-    MMGR_CALL(mmgr_praet_hw_close, PraetTransferCfg, .channel = args->channel);
+    EMBED_CALL(mmgr_praet_hw_close, PraetTransferCfg, .channel = args->channel);
 }
 
 /**
- * @brief Binds this module's fixed arguments to GENERIC_ENTRY, with the two types per entry.
+ * @brief Binds this module's fixed arguments to EMBED_ENTRY, with the two types per entry.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] CtxType_    Context type this entry's backend takes.
@@ -167,10 +170,10 @@ MMGR_INLINE void praet_close(const PraetTransferCtx *args)
  *       arguments, so the module carries two of each rather than one.
  */
 #define PRAET_ENTRY(ReturnType_, CtxType_, CfgType_, name_, ...)                                                       \
-    GENERIC_ENTRY(mmgr_praet_, praet_, CtxType_, CfgType_, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_praet_, praet_, CtxType_, CfgType_, ReturnType_, name_, __VA_ARGS__)
 
 /**
- * @brief Binds the same to GENERIC_ENTRY_V, for an entry that returns nothing.
+ * @brief Binds the same to EMBED_ENTRY_V, for an entry that returns nothing.
  *
  * @param[in] CtxType_ Context type this entry's backend takes.
  * @param[in] CfgType_ Argument type the caller passes.
@@ -179,7 +182,7 @@ MMGR_INLINE void praet_close(const PraetTransferCtx *args)
  *                     entry was handed.
  */
 #define PRAET_ENTRY_V(CtxType_, CfgType_, name_, ...)                                                                  \
-    GENERIC_ENTRY_V(mmgr_praet_, praet_, CtxType_, CfgType_, name_, __VA_ARGS__)
+    EMBED_ENTRY_V(mmgr_praet_, praet_, CtxType_, CfgType_, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
@@ -187,9 +190,9 @@ MMGR_INLINE void praet_close(const PraetTransferCtx *args)
  * @note Each is documented at its declaration in memoriam_praetereo.h.
  * @note mmgr_praet_close forwards args->channel alone. The rest of its argument type is not read.
  */
-PRAET_ENTRY(mmgr_bool, PraetOpenCtx, PraetCfg, open, .channel = args->channel, .peripheral = args->peripheral,
+PRAET_ENTRY(embed_bool, PraetOpenCtx, PraetCfg, open, .channel = args->channel, .peripheral = args->peripheral,
             .loopback = args->loopback, .on_complete = args->on_complete)
-PRAET_ENTRY(mmgr_bool, PraetTransferCtx, PraetTransferCfg, tx_submit, .channel = args->channel, .buf = args->buf,
+PRAET_ENTRY(embed_bool, PraetTransferCtx, PraetTransferCfg, tx_submit, .channel = args->channel, .buf = args->buf,
             .bytes = args->bytes)
 PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = args->channel)
 
@@ -199,7 +202,7 @@ PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = args->channe
  * @param[in] args Channel to poll [BORROWS].
  * @note Hand-rolled rather than an entry line, as mmgr_anular_init is. It hands args to the weak hook
  *       unchanged, with no checking call in between, so there is no argument pack to build and no
- *       praet_ backend for GENERIC_ENTRY to name.
+ *       praet_ backend for EMBED_ENTRY to name.
  * @note Documented at the declaration in memoriam_praetereo.h.
  */
 void mmgr_praet_poll(const PraetCfg *args)

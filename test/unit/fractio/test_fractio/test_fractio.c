@@ -1,35 +1,35 @@
-#include "unity.h"
-
 #include "fractio/fractio.h"
 
-static mmgr_u64 bits_of(double val)
+#include "unity.h"
+
+static embed_u64 bits_of(double val)
 {
-    return MMGR_CALL(fract.to_bits, FractioCfg, .val = val);
+    return EMBED_CALL(fract.to_bits, FractioCfg, .val = val);
 }
 
-static mmgr_u64 sign_of(mmgr_u64 bits)
+static embed_u64 sign_of(embed_u64 bits)
 {
-    return MMGR_CALL(fract.sign, FractioCfg, .bits = bits);
+    return EMBED_CALL(fract.sign, FractioCfg, .bits = bits);
 }
 
-static mmgr_u64 exp_of(mmgr_u64 bits)
+static embed_u64 exp_of(embed_u64 bits)
 {
-    return MMGR_CALL(fract.exp, FractioCfg, .bits = bits);
+    return EMBED_CALL(fract.exp, FractioCfg, .bits = bits);
 }
 
-static mmgr_u64 mant_of(mmgr_u64 bits)
+static embed_u64 mant_of(embed_u64 bits)
 {
-    return MMGR_CALL(fract.mant, FractioCfg, .bits = bits);
+    return EMBED_CALL(fract.mant, FractioCfg, .bits = bits);
 }
 
-static mmgr_u64 merged(mmgr_u64 sign, mmgr_u64 exp, mmgr_u64 mant)
+static embed_u64 merged(embed_u64 sign, embed_u64 exp, embed_u64 mant)
 {
-    return MMGR_CALL(fract.merge, FractioCfg, .sign = sign, .exp = exp, .mant = mant);
+    return EMBED_CALL(fract.merge, FractioCfg, .sign = sign, .exp = exp, .mant = mant);
 }
 
-static double real_of(mmgr_u64 bits)
+static double real_of(embed_u64 bits)
 {
-    return MMGR_CALL(fract.from_bits, FractioCfg, .bits = bits);
+    return EMBED_CALL(fract.from_bits, FractioCfg, .bits = bits);
 }
 
 void test_fractio_header_is_self_contained(void)
@@ -72,8 +72,8 @@ void test_mantissa_drops_the_implicit_bit(void)
 
 void test_infinities(void)
 {
-    const double inf = real_of(merged((mmgr_u64)0u, MMGR_DBL_EXP_ALL, (mmgr_u64)0u));
-    const double ninf = real_of(merged((mmgr_u64)1u, MMGR_DBL_EXP_ALL, (mmgr_u64)0u));
+    const double inf = real_of(merged((embed_u64)0u, MMGR_DBL_EXP_ALL, (embed_u64)0u));
+    const double ninf = real_of(merged((embed_u64)1u, MMGR_DBL_EXP_ALL, (embed_u64)0u));
 
     TEST_ASSERT_EQUAL_UINT64(MMGR_DBL_EXP_ALL, exp_of(bits_of(inf)));
     TEST_ASSERT_EQUAL_UINT64(0u, mant_of(bits_of(inf)));
@@ -85,7 +85,7 @@ void test_infinities(void)
 
 void test_a_nan_has_a_full_exponent_and_a_mantissa(void)
 {
-    const double nan = real_of(merged((mmgr_u64)0u, MMGR_DBL_EXP_ALL, (mmgr_u64)1u));
+    const double nan = real_of(merged((embed_u64)0u, MMGR_DBL_EXP_ALL, (embed_u64)1u));
     TEST_ASSERT_EQUAL_UINT64(MMGR_DBL_EXP_ALL, exp_of(bits_of(nan)));
     TEST_ASSERT_NOT_EQUAL(0u, mant_of(bits_of(nan)));
     TEST_ASSERT_FALSE_MESSAGE(nan == nan, "a NaN is not equal to itself");
@@ -97,9 +97,9 @@ void test_merge_and_from_bits_reverse_the_accessors(void)
 
     for (uint32_t i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
-        const mmgr_u64 was = bits_of(vals[i]);
-        const mmgr_u64 bits = merged(sign_of(was), exp_of(was), mant_of(was));
-        const mmgr_u64 back = bits_of(real_of(bits));
+        const embed_u64 was = bits_of(vals[i]);
+        const embed_u64 bits = merged(sign_of(was), exp_of(was), mant_of(was));
+        const embed_u64 back = bits_of(real_of(bits));
 
         TEST_ASSERT_EQUAL_UINT64(sign_of(was), sign_of(back));
         TEST_ASSERT_EQUAL_UINT64(exp_of(was), exp_of(back));
@@ -109,7 +109,7 @@ void test_merge_and_from_bits_reverse_the_accessors(void)
 
 void test_a_subnormal_keeps_its_mantissa(void)
 {
-    const double tiny = real_of(merged((mmgr_u64)0u, (mmgr_u64)0u, (mmgr_u64)1u));
+    const double tiny = real_of(merged((embed_u64)0u, (embed_u64)0u, (embed_u64)1u));
     TEST_ASSERT_EQUAL_UINT64_MESSAGE(0u, exp_of(bits_of(tiny)), "a subnormal has a zero exponent field");
     TEST_ASSERT_EQUAL_UINT64(1u, mant_of(bits_of(tiny)));
     TEST_ASSERT_TRUE_MESSAGE(tiny > 0.0, "and is still greater than zero");
@@ -117,7 +117,7 @@ void test_a_subnormal_keeps_its_mantissa(void)
 
 void test_merge_masks_each_field(void)
 {
-    const mmgr_u64 bits = merged((mmgr_u64)1u, MMGR_DBL_EXP_ALL, MMGR_DBL_MANT_MASK);
+    const embed_u64 bits = merged((embed_u64)1u, MMGR_DBL_EXP_ALL, MMGR_DBL_MANT_MASK);
     TEST_ASSERT_EQUAL_UINT64(1u, (bits & MMGR_DBL_SIGN_MASK) >> MMGR_DBL_SIGN_SHIFT);
     TEST_ASSERT_EQUAL_UINT64(MMGR_DBL_EXP_ALL, (bits & MMGR_DBL_EXP_MASK) >> MMGR_DBL_MANT_BITS);
     TEST_ASSERT_EQUAL_UINT64(MMGR_DBL_MANT_MASK, bits & MMGR_DBL_MANT_MASK);
@@ -136,12 +136,12 @@ void test_to_bits_is_from_bits_the_other_way(void)
 
     for (uint32_t i = 0; i < 6u; i++)
     {
-        const mmgr_u64 bits = bits_of(vals[i]);
+        const embed_u64 bits = bits_of(vals[i]);
         TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(vals[i], real_of(bits), "the pattern did not come back as the value");
         TEST_ASSERT_EQUAL_HEX64_MESSAGE(bits, bits_of(real_of(bits)), "and back again");
     }
 
-    const mmgr_u64 b = bits_of(-2.5);
+    const embed_u64 b = bits_of(-2.5);
     TEST_ASSERT_EQUAL_HEX64(b, merged(sign_of(b), exp_of(b), mant_of(b)));
 
     TEST_ASSERT_EQUAL_HEX64(MMGR_DBL_EXP_MASK, bits_of(inf));

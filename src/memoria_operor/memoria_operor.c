@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file memoria_operor.c
@@ -71,39 +74,39 @@ typedef struct
  * @warning The regions must not overlap. MemorCpyCtx declares both pointers restrict.
  * @warning args->dst must be writable and args->src readable for args->bytes.
  */
-MMGR_INLINE void memor_cpy(MemorCpyCtx *args)
+EMBED_INLINE void memor_cpy(MemorCpyCtx *args)
 {
     // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
-    size_t tail_bytes = args->bytes & (size_t)(MMGR_RAW_WORD - 1u);
+    size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
     size_t word_bytes = args->bytes - tail_bytes;
 
     // Four words an iteration while there are four to take. At one word the two pointer bumps, the
     // counter and the branch cost as much as the move itself. At four, the same bookkeeping covers
     // four times the bytes. ROM memcpy is unrolled for the same reason, and a one-word loop here
     // measured 1.02 cycles/byte against its 0.65 on the S3.
-    while (word_bytes >= (4u * MMGR_RAW_WORD))
+    while (word_bytes >= (4u * sizeof(embed_word)))
     {
-        MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
-                  .val = MMGR_CALL(proxim.al_load, ProximusCfg, .at = args->src));
-        MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + MMGR_RAW_WORD,
-                  .val = MMGR_CALL(proxim.al_load, ProximusCfg, .at = args->src + MMGR_RAW_WORD));
-        MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (2u * MMGR_RAW_WORD),
-                  .val = MMGR_CALL(proxim.al_load, ProximusCfg, .at = args->src + (2u * MMGR_RAW_WORD)));
-        MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (3u * MMGR_RAW_WORD),
-                  .val = MMGR_CALL(proxim.al_load, ProximusCfg, .at = args->src + (3u * MMGR_RAW_WORD)));
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + sizeof(embed_word),
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + sizeof(embed_word)));
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (2u * sizeof(embed_word)),
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (2u * sizeof(embed_word))));
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (3u * sizeof(embed_word)),
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (3u * sizeof(embed_word))));
 
         // Advances separated from the moves above so the loop body carries no side effect
-        args->dst += 4u * MMGR_RAW_WORD;
-        args->src += 4u * MMGR_RAW_WORD;
-        word_bytes -= 4u * MMGR_RAW_WORD;
+        args->dst += 4u * sizeof(embed_word);
+        args->src += 4u * sizeof(embed_word);
+        word_bytes -= 4u * sizeof(embed_word);
     }
     while (word_bytes != 0u)
     {
-        MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
-                  .val = MMGR_CALL(proxim.al_load, ProximusCfg, .at = args->src));
-        args->dst += MMGR_RAW_WORD;
-        args->src += MMGR_RAW_WORD;
-        word_bytes -= MMGR_RAW_WORD;
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+        args->dst += sizeof(embed_word);
+        args->src += sizeof(embed_word);
+        word_bytes -= sizeof(embed_word);
     }
     if (tail_bytes != 0u)
     {
@@ -131,10 +134,10 @@ MMGR_INLINE void memor_cpy(MemorCpyCtx *args)
  *       why the number paths win everywhere and these do not.
  * @warning args->dst must be writable and args->src readable for args->bytes.
  */
-MMGR_INLINE void memor_move_up(MemorMoveCtx *args)
+EMBED_INLINE void memor_move_up(MemorMoveCtx *args)
 {
     // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
-    size_t tail_bytes = args->bytes & (size_t)(MMGR_RAW_WORD - 1u);
+    size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
     size_t word_bytes = args->bytes - tail_bytes;
 
     args->dst += args->bytes;
@@ -151,11 +154,11 @@ MMGR_INLINE void memor_move_up(MemorMoveCtx *args)
     {
         do
         {
-            args->dst -= MMGR_RAW_WORD;
-            args->src -= MMGR_RAW_WORD;
-            MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
-                      .val = MMGR_CALL(proxim.al_load, ProximusCfg, .at = args->src));
-            word_bytes -= MMGR_RAW_WORD;
+            args->dst -= sizeof(embed_word);
+            args->src -= sizeof(embed_word);
+            EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
+                       .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+            word_bytes -= sizeof(embed_word);
         } while (word_bytes);
     }
 }
@@ -173,7 +176,7 @@ MMGR_INLINE void memor_move_up(MemorMoveCtx *args)
  *          not caught here. The answer is capped at bytes, so it is a safe number of steps only when
  *          bytes is.
  */
-MMGR_INLINE size_t memor_head_bytes(const uint8_t *at, size_t bytes)
+EMBED_INLINE size_t memor_head_bytes(const uint8_t *at, size_t bytes)
 {
     // Explicit cast reads the address as an integer so its low bits can be tested. The value is
     // never dereferenced through it and never converted back
@@ -191,9 +194,9 @@ MMGR_INLINE size_t memor_head_bytes(const uint8_t *at, size_t bytes)
  * @note Takes a word rather than a context type. memor_cmp shares it between the loop that reads
  *       whole words and the tail that reads the last one. Nothing dispatches to it.
  */
-MMGR_INLINE mmgr_word memor_diff_lanes(mmgr_word difference)
+EMBED_INLINE embed_word memor_diff_lanes(embed_word difference)
 {
-    return MMGR_VERBUM_SCRUTOR_HIGH & ~MMGR_CALL(lane.has_zero, ScrutLaneCfg, .word = difference);
+    return MMGR_VERBUM_SCRUTOR_HIGH & ~EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = difference);
 }
 
 /**
@@ -210,7 +213,7 @@ MMGR_INLINE mmgr_word memor_diff_lanes(mmgr_word difference)
  * @warning Both args->src and args->other must be readable for args->bytes rounded up to a whole word.
  *          The tail goes through word.load, which takes MMGR_SWAR_BYTES whatever the count leaves.
  */
-MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *args)
+EMBED_INLINE embed_iword memor_cmp(MemorScanCtx *args)
 {
     const size_t full = (args->bytes / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
     const size_t rest = args->bytes - full;
@@ -221,8 +224,8 @@ MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *args)
     // unaligned one is a sequence on a part that has no unaligned access. Alignment is tested once
     // here rather than once a word. Measured 3.55x on an ESP32-C6 over two thousand bytes, which
     // took the comparison from 6.27 cycles a byte to 1.76 and past memcmp's 2.14
-    const mmgr_bool level =
-        (mmgr_bool)(((((uintptr_t)args->src) | ((uintptr_t)args->other)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
+    const embed_bool level =
+        (embed_bool)(((((uintptr_t)args->src) | ((uintptr_t)args->other)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
 
     // Two loops rather than one carrying the test. With the choice written inside the body, the
     // compiler keeps a branch per word and the loop costs what the unaligned one costs. Lifted
@@ -231,16 +234,16 @@ MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *args)
     {
         while (at != full)
         {
-            const mmgr_word src_word = MMGR_CALL(word.load_al, ScrutWordCfg, .at = args->src + at);
-            const mmgr_word other_word = MMGR_CALL(word.load_al, ScrutWordCfg, .at = args->other + at);
+            const embed_word src_word = EMBED_CALL(word.load_al, ScrutWordCfg, .at = args->src + at);
+            const embed_word other_word = EMBED_CALL(word.load_al, ScrutWordCfg, .at = args->other + at);
 
             if (src_word != other_word)
             {
                 const size_t first_diff =
-                    at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = memor_diff_lanes(src_word ^ other_word));
+                    at + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = memor_diff_lanes(src_word ^ other_word));
 
-                // Explicit casts widen both bytes to mmgr_iword so the difference keeps its sign
-                return (mmgr_iword)args->src[first_diff] - (mmgr_iword)args->other[first_diff];
+                // Explicit casts widen both bytes to embed_iword so the difference keeps its sign
+                return (embed_iword)args->src[first_diff] - (embed_iword)args->other[first_diff];
             }
             // Advance separated from the test above so the loop body carries no side effect
             at += MMGR_SWAR_BYTES;
@@ -250,16 +253,16 @@ MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *args)
     {
         while (at != full)
         {
-            const mmgr_word src_word = MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at);
-            const mmgr_word other_word = MMGR_CALL(word.load, ScrutWordCfg, .at = args->other + at);
+            const embed_word src_word = EMBED_CALL(word.load, ScrutWordCfg, .at = args->src + at);
+            const embed_word other_word = EMBED_CALL(word.load, ScrutWordCfg, .at = args->other + at);
 
             if (src_word != other_word)
             {
                 const size_t first_diff =
-                    at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = memor_diff_lanes(src_word ^ other_word));
+                    at + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = memor_diff_lanes(src_word ^ other_word));
 
-                // Explicit casts widen both bytes to mmgr_iword so the difference keeps its sign
-                return (mmgr_iword)args->src[first_diff] - (mmgr_iword)args->other[first_diff];
+                // Explicit casts widen both bytes to embed_iword so the difference keeps its sign
+                return (embed_iword)args->src[first_diff] - (embed_iword)args->other[first_diff];
             }
             // Advance separated from the test above so the loop body carries no side effect
             at += MMGR_SWAR_BYTES;
@@ -268,18 +271,18 @@ MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *args)
 
     if (rest != 0u)
     {
-        const mmgr_word difference = MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at) ^
-                                     MMGR_CALL(word.load, ScrutWordCfg, .at = args->other + at);
-        // Explicit cast holds the differing-lane mask at mmgr_word width, bounded to the bytes in range
-        const mmgr_word differing_lanes =
-            (mmgr_word)(memor_diff_lanes(difference) & MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest));
+        const embed_word difference = EMBED_CALL(word.load, ScrutWordCfg, .at = args->src + at) ^
+                                      EMBED_CALL(word.load, ScrutWordCfg, .at = args->other + at);
+        // Explicit cast holds the differing-lane mask at embed_word width, bounded to the bytes in range
+        const embed_word differing_lanes =
+            (embed_word)(memor_diff_lanes(difference) & EMBED_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest));
 
         if (differing_lanes != 0u)
         {
-            const size_t first_diff = at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = differing_lanes);
+            const size_t first_diff = at + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = differing_lanes);
 
-            // Explicit casts widen both bytes to mmgr_iword so the difference keeps its sign
-            return (mmgr_iword)args->src[first_diff] - (mmgr_iword)args->other[first_diff];
+            // Explicit casts widen both bytes to embed_iword so the difference keeps its sign
+            return (embed_iword)args->src[first_diff] - (embed_iword)args->other[first_diff];
         }
     }
     return 0;
@@ -298,7 +301,7 @@ MMGR_INLINE mmgr_iword memor_cmp(MemorScanCtx *args)
  * @warning args->src must be readable for args->bytes rounded up to a whole word. The tail goes
  *          through word.load, which takes MMGR_SWAR_BYTES whatever the count leaves.
  */
-MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
+EMBED_INLINE const void *memor_chr(MemorScanCtx *args)
 {
     // Bytes to the first word boundary, so the walk below reads through the aligned load. Normally
     // none, since this library is built for memory that arrives aligned. The unaligned load is not
@@ -308,7 +311,7 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
     const size_t full = lead + (((args->bytes - lead) / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES);
     const size_t rest = args->bytes - full;
     // Explicit cast widens the sought byte into the lane it fills before it is repeated
-    const mmgr_word broadcast = MMGR_SWAR_ONES * (mmgr_word)args->val;
+    const embed_word broadcast = MMGR_SWAR_ONES * (embed_word)args->val;
     size_t at = 0u;
 
     while (at != lead)
@@ -327,12 +330,12 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
     // cover, and the extra prologue is all it added.
     while (at != full)
     {
-        const mmgr_word matching_lanes =
-            MMGR_CALL(lane.has_zero, ScrutLaneCfg,
-                      .word = MMGR_CALL(word.load_al, ScrutWordCfg, .at = args->src + at) ^ broadcast);
+        const embed_word matching_lanes =
+            EMBED_CALL(lane.has_zero, ScrutLaneCfg,
+                       .word = EMBED_CALL(word.load_al, ScrutWordCfg, .at = args->src + at) ^ broadcast);
         if (matching_lanes != 0u)
         {
-            return args->src + at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = matching_lanes);
+            return args->src + at + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = matching_lanes);
         }
         // Advance separated from the test above so the loop body carries no side effect
         at += MMGR_SWAR_BYTES;
@@ -340,14 +343,14 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
 
     if (rest != 0u)
     {
-        // Explicit cast holds the match mask at mmgr_word width, bounded to the bytes in range
-        const mmgr_word matching_lanes =
-            (mmgr_word)(MMGR_CALL(lane.has_zero, ScrutLaneCfg,
-                                  .word = MMGR_CALL(word.load, ScrutWordCfg, .at = args->src + at) ^ broadcast) &
-                        MMGR_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest));
+        // Explicit cast holds the match mask at embed_word width, bounded to the bytes in range
+        const embed_word matching_lanes =
+            (embed_word)(EMBED_CALL(lane.has_zero, ScrutLaneCfg,
+                                    .word = EMBED_CALL(word.load, ScrutWordCfg, .at = args->src + at) ^ broadcast) &
+                         EMBED_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest));
         if (matching_lanes != 0u)
         {
-            return args->src + at + MMGR_CALL(lane.first, ScrutLaneCfg, .mask = matching_lanes);
+            return args->src + at + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = matching_lanes);
         }
     }
     return NULL;
@@ -362,33 +365,33 @@ MMGR_INLINE const void *memor_chr(MemorScanCtx *args)
  * @warning args->dst must be writable for args->bytes. Nothing past the count is written. The word
  *          stores cover a whole number of words, and the byte loop finishes what they leave.
  */
-MMGR_INLINE void memor_set(MemorSetCtx *args)
+EMBED_INLINE void memor_set(MemorSetCtx *args)
 {
     // Explicit casts broadcast the byte into every lane. MMGR_SWAR_ONES has a 1 in each lane's low bit
-    const mmgr_migro_word fill = (mmgr_migro_word)(MMGR_SWAR_ONES * (mmgr_migro_word)args->val);
+    const embed_word fill = (embed_word)(MMGR_SWAR_ONES * (embed_word)args->val);
 
     // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
-    size_t tail_bytes = args->bytes & (size_t)(MMGR_RAW_WORD - 1u);
+    size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
     size_t word_bytes = args->bytes - tail_bytes;
 
     // Four words an iteration while there are four to take, for the reason memor_cpy gives: the
     // pointer bump, the counter and the branch cost as much as the store at one word a pass.
-    while (word_bytes >= (4u * MMGR_RAW_WORD))
+    while (word_bytes >= (4u * sizeof(embed_word)))
     {
-        MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = fill);
-        MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + MMGR_RAW_WORD, .val = fill);
-        MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (2u * MMGR_RAW_WORD), .val = fill);
-        MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (3u * MMGR_RAW_WORD), .val = fill);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = fill);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + sizeof(embed_word), .val = fill);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (2u * sizeof(embed_word)), .val = fill);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (3u * sizeof(embed_word)), .val = fill);
 
         // Advances separated from the stores above so the loop body carries no side effect
-        args->dst += 4u * MMGR_RAW_WORD;
-        word_bytes -= 4u * MMGR_RAW_WORD;
+        args->dst += 4u * sizeof(embed_word);
+        word_bytes -= 4u * sizeof(embed_word);
     }
     while (word_bytes != 0u)
     {
-        MMGR_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = fill);
-        args->dst += MMGR_RAW_WORD;
-        word_bytes -= MMGR_RAW_WORD;
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = fill);
+        args->dst += sizeof(embed_word);
+        word_bytes -= sizeof(embed_word);
     }
     if (tail_bytes != 0u)
     {
@@ -400,7 +403,7 @@ MMGR_INLINE void memor_set(MemorSetCtx *args)
 }
 
 /**
- * @brief Binds this module's fixed arguments to GENERIC_ENTRY, with the context type per entry.
+ * @brief Binds this module's fixed arguments to EMBED_ENTRY, with the context type per entry.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] CtxType_    Context type this entry's backend takes.
@@ -411,17 +414,16 @@ MMGR_INLINE void memor_set(MemorSetCtx *args)
  *       two and a value, a fill takes one and a value, so each has its own argument type.
  */
 #define MEMOR_ENTRY(ReturnType_, CtxType_, name_, ...)                                                                 \
-    GENERIC_ENTRY(mmgr_memor_, memor_, CtxType_, MemoriaCfg, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_memor_, memor_, CtxType_, MemoriaCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
- * @brief Binds the same to GENERIC_ENTRY_V, for an entry that returns nothing.
+ * @brief Binds the same to EMBED_ENTRY_V, for an entry that returns nothing.
  *
  * @param[in] CtxType_ Context type this entry's backend takes.
  * @param[in] name_    Name after the mmgr_memor_ and memor_ prefixes.
  * @param[in] ...      Initializers for the CtxType_ literal, written in terms of args.
  */
-#define MEMOR_ENTRY_V(CtxType_, name_, ...)                                                                            \
-    GENERIC_ENTRY_V(mmgr_memor_, memor_, CtxType_, MemoriaCfg, name_, __VA_ARGS__)
+#define MEMOR_ENTRY_V(CtxType_, name_, ...) EMBED_ENTRY_V(mmgr_memor_, memor_, CtxType_, MemoriaCfg, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
@@ -434,7 +436,7 @@ MMGR_INLINE void memor_set(MemorSetCtx *args)
 MEMOR_ENTRY_V(MemorCpyCtx, cpy, .dst = (uint8_t *)args->dst, .src = (const uint8_t *)args->src, .bytes = args->bytes)
 MEMOR_ENTRY_V(MemorMoveCtx, move_up, .dst = (uint8_t *)args->dst, .src = (const uint8_t *)args->src,
               .bytes = args->bytes)
-MEMOR_ENTRY(mmgr_iword, MemorScanCtx, cmp, .src = (const uint8_t *)args->src, .other = (const uint8_t *)args->other,
+MEMOR_ENTRY(embed_iword, MemorScanCtx, cmp, .src = (const uint8_t *)args->src, .other = (const uint8_t *)args->other,
             .bytes = args->bytes)
 MEMOR_ENTRY(const void *, MemorScanCtx, chr, .src = (const uint8_t *)args->src, .bytes = args->bytes, .val = args->val)
 MEMOR_ENTRY_V(MemorSetCtx, set, .dst = (uint8_t *)args->dst, .bytes = args->bytes, .val = args->val)

@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file ascii_persona_bitorum.c
@@ -49,7 +52,7 @@ static const MmgrAsciiMask s_class[MMGR_ASCII_CLASSES] = {
 };
 
 /**
- * @brief Argument type built by MMGR_CALL in mmgr_ascii_in.
+ * @brief Argument type built by EMBED_CALL in mmgr_ascii_in.
  *
  * @note Fields match AsciiCfg, without its const qualifiers.
  */
@@ -63,12 +66,12 @@ typedef struct
  * @brief Returns whether args->byte has its bit set in s_class[args->kind].
  *
  * @param[in] args Class and byte to test [BORROWS].
- * @return         MMGR_TRUE when the bit is set, MMGR_FALSE otherwise.
- * @note Bytes 0x80 and above return MMGR_FALSE without reading s_class.
+ * @return         EMBED_TRUE when the bit is set, EMBED_FALSE otherwise.
+ * @note Bytes 0x80 and above return EMBED_FALSE without reading s_class.
  * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
  *          MMGR_DEBUG_CHECKS build: a byte under 0x80 then reads past s_class.
  */
-MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *args)
+EMBED_INLINE embed_bool ascii_in(const AsciiCtx *args)
 {
     MMGR_ASSERT(args->kind < MMGR_ASCII_CLASSES, "no such character class");
 
@@ -76,25 +79,25 @@ MMGR_INLINE mmgr_bool ascii_in(const AsciiCtx *args)
 
     // The byte test comes first and && stops there. A byte of 0x80 or above would index bits[16] or
     // past it, outside the sixteen the mask holds. Explicit cast narrows the int result of && to
-    // the mmgr_bool container
-    return (mmgr_bool)((args->byte < 0x80u) && (((entry->bits[args->byte >> 3] >> (args->byte & 7u)) & 1u) != 0u));
+    // the embed_bool container
+    return (embed_bool)((args->byte < 0x80u) && (((entry->bits[args->byte >> 3] >> (args->byte & 7u)) & 1u) != 0u));
 }
 
 /**
- * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
+ * @brief Binds this module's four fixed arguments to EMBED_ENTRY.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_ascii_ and ascii_ prefixes, which the two share.
  * @param[in] ...         Initializers for the AsciiCtx literal, written in terms of args.
- * @note Four of GENERIC_ENTRY's six arguments are the same at every entry in this module, so they
+ * @note Four of EMBED_ENTRY's six arguments are the same at every entry in this module, so they
  *       are bound once here and each entry below states only what differs.
  */
 #define ASCII_ENTRY(ReturnType_, name_, ...)                                                                           \
-    GENERIC_ENTRY(mmgr_ascii_, ascii_, AsciiCtx, AsciiCfg, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_ascii_, ascii_, AsciiCtx, AsciiCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in ascii_persona_bitorum.h.
  */
-ASCII_ENTRY(mmgr_bool, in, .kind = args->kind, .byte = args->byte)
+ASCII_ENTRY(embed_bool, in, .kind = args->kind, .byte = args->byte)

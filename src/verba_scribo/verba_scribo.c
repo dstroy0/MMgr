@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file verba_scribo.c
@@ -102,20 +105,20 @@ static const char mmgr_verba_pairs[201] = "00010203040506070809"
  * @note The compare reads the forced-odd value, so zero counts as one digit. No other input moves:
  *       every power of ten above one is even, so setting the low bit cannot cross a threshold.
  */
-MMGR_INLINE size_t verba_digits10(uint64_t value)
+EMBED_INLINE size_t verba_digits10(uint64_t value)
 {
     // Explicit cast takes the iword the clz entry returns into a 32-bit unsigned. The value is forced
-    // non-zero so the count is defined for every input. The width is fixed rather than mmgr_word
+    // non-zero so the count is defined for every input. The width is fixed rather than embed_word
     // because the multiply below reaches 78912, which does not fit a 16-bit word
-    const uint32_t lead = (uint32_t)MMGR_CALL(clz.lead, ClzCfg, .val = (mmgr_u64)(value | 1u));
+    const uint32_t lead = (uint32_t)EMBED_CALL(clz.lead, ClzCfg, .val = (embed_u64)(value | 1u));
     const uint32_t bits = 64u - lead;
     const uint32_t est = (bits * 1233u) >> 12u;
 
     return (size_t)est + (((value | 1u) >= mmgr_verba_pow10[est]) ? 1u : 0u);
 }
 
-MMGR_STATIC_ASSERT(((64u * 1233u) >> 12u) <= MMGR_VERBA_POW10_MAX,
-                   "verba_digits10 indexes mmgr_verba_pow10 with its estimate, which must stay inside it");
+EMBED_STATIC_ASSERT(((64u * 1233u) >> 12u) <= MMGR_VERBA_POW10_MAX,
+                    "verba_digits10 indexes mmgr_verba_pow10 with its estimate, which must stay inside it");
 
 /**
  * @brief Expands to the multiplicative inverse of five in 64 bits, so five times this is one.
@@ -144,7 +147,7 @@ MMGR_STATIC_ASSERT(((64u * 1233u) >> 12u) <= MMGR_VERBA_POW10_MAX,
  *       ESP32-C6 has no divider and picks the multiply anyway. Forcing it costs the C6 nothing and
  *       measured 1.27x on the S3 at ten digits.
  */
-MMGR_INLINE uint32_t verba_div100(uint32_t value)
+EMBED_INLINE uint32_t verba_div100(uint32_t value)
 {
     // Explicit widening keeps the whole product, and the narrowing cast takes the quotient back once
     // the shift has discarded the fractional half
@@ -179,7 +182,7 @@ MMGR_INLINE uint32_t verba_div100(uint32_t value)
  * @note Only the high word is wanted, so the low half of the product is summed for its carries and
  *       then dropped.
  */
-MMGR_INLINE uint64_t verba_cut8(uint64_t value)
+EMBED_INLINE uint64_t verba_cut8(uint64_t value)
 {
     // Explicit casts hold each half at the 32 bits it carries, so the products are widening
     const uint32_t value_lo = (uint32_t)value;
@@ -206,7 +209,7 @@ MMGR_INLINE uint64_t verba_cut8(uint64_t value)
  * @note Two digits an iteration off mmgr_verba_pairs, so a pair costs one divide rather than two.
  * @warning out must be writable for digits bytes.
  */
-MMGR_INLINE void verba_emit10(char *out, uint32_t value, size_t digits)
+EMBED_INLINE void verba_emit10(char *out, uint32_t value, size_t digits)
 {
     size_t index = digits;
 
@@ -257,7 +260,7 @@ MMGR_INLINE void verba_emit10(char *out, uint32_t value, size_t digits)
  *       same call on an ESP32-C6 from 5258 to 1580.
  * @warning out must be writable for digits bytes, and digits must be enough to hold value.
  */
-MMGR_INLINE void verba_emit20(char *out, uint64_t value, size_t digits)
+EMBED_INLINE void verba_emit20(char *out, uint64_t value, size_t digits)
 {
     if (value <= 0xFFFFFFFFU)
     {
@@ -311,7 +314,7 @@ typedef struct
     uint8_t sig;         /**< Significant digits verba_g keeps. */
     uint8_t decimals;    /**< Digits after the point verba_fixed writes. */
     uint64_t mant;       /**< Digits verba_digits writes, as one integer. */
-    mmgr_u64 bits;       /**< The double's bit pattern, passed between the float calls. */
+    embed_u64 bits;      /**< The double's bit pattern, passed between the float calls. */
     uint8_t digits;      /**< How many digits verba_digits takes from mant. */
     uint8_t point_after; /**< Digits verba_digits writes before the point; 0 writes no point. */
 } VerbaCtx;
@@ -321,14 +324,14 @@ typedef struct
  *
  * @param[in] args Buffer, capacity and the offset to write at [BORROWS].
  * @param[in] want Bytes the caller means to write.
- * @return         MMGR_TRUE when they fit and one byte is left over.
+ * @return         EMBED_TRUE when they fit and one byte is left over.
  * @note The spare byte is the terminator verba_finish stores, so it is held back on every test.
  * @note The args->at below args->cap test comes first, so the subtraction that follows never wraps.
  * @note This is the only backend that takes a second argument rather than reading everything from the struct.
  */
-MMGR_INLINE mmgr_bool verba_room(const VerbaCtx *args, size_t want)
+EMBED_INLINE embed_bool verba_room(const VerbaCtx *args, size_t want)
 {
-    return (mmgr_bool)((args->at < args->cap) && (want <= ((args->cap - args->at) - 1u)));
+    return (embed_bool)((args->at < args->cap) && (want <= ((args->cap - args->at) - 1u)));
 }
 
 /**
@@ -340,14 +343,14 @@ MMGR_INLINE mmgr_bool verba_room(const VerbaCtx *args, size_t want)
  * @note Copies through proxim.read, so args->text needs no particular alignment.
  * @warning args->text must be readable for args->text_len bytes.
  */
-MMGR_INLINE size_t verba_put_n(const VerbaCtx *args)
+EMBED_INLINE size_t verba_put_n(const VerbaCtx *args)
 {
     if (!verba_room(args, args->text_len))
     {
         return args->cap;
     }
 
-    MMGR_CALL(proxim.read, ProximusCfg, .dst = args->out + args->at, .at = args->text, .size = args->text_len);
+    EMBED_CALL(proxim.read, ProximusCfg, .dst = args->out + args->at, .at = args->text, .size = args->text_len);
     return args->at + args->text_len;
 }
 
@@ -362,14 +365,14 @@ MMGR_INLINE size_t verba_put_n(const VerbaCtx *args)
  * @note Writes nothing when the text does not fit, since verba_put_n is all or nothing.
  * @warning args->text must not be NULL here, unlike in verba_put_clip, verba_xml and verba_json.
  */
-MMGR_INLINE size_t verba_put(const VerbaCtx *args)
+EMBED_INLINE size_t verba_put(const VerbaCtx *args)
 {
     const size_t len = (args->text_len != 0u)
                            ? args->text_len
-                           : MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = args->text, .cap = args->cap);
+                           : EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = args->text, .cap = args->cap);
 
-    return MMGR_CALL(verba_put_n, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .text = args->text,
-                     .text_len = len);
+    return EMBED_CALL(verba_put_n, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .text = args->text,
+                      .text_len = len);
 }
 
 /**
@@ -381,7 +384,7 @@ MMGR_INLINE size_t verba_put(const VerbaCtx *args)
  * @note Returns args->at rather than args->cap when it writes nothing, so a later call can still write.
  * @note A NULL args->text writes nothing, where verba_put would pass the NULL on to cellul.len.
  */
-MMGR_INLINE size_t verba_put_clip(const VerbaCtx *args)
+EMBED_INLINE size_t verba_put_clip(const VerbaCtx *args)
 {
     if ((args->text == NULL) || (args->at >= args->cap))
     {
@@ -389,9 +392,9 @@ MMGR_INLINE size_t verba_put_clip(const VerbaCtx *args)
     }
 
     const size_t room = (args->cap - args->at) - 1u;
-    const size_t len = MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = args->text, .cap = room);
+    const size_t len = EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = args->text, .cap = room);
 
-    MMGR_CALL(proxim.read, ProximusCfg, .dst = args->out + args->at, .at = args->text, .size = len);
+    EMBED_CALL(proxim.read, ProximusCfg, .dst = args->out + args->at, .at = args->text, .size = len);
     return args->at + len;
 }
 
@@ -402,7 +405,7 @@ MMGR_INLINE size_t verba_put_clip(const VerbaCtx *args)
  * @return         args->at plus one, or args->cap when there is no room.
  * @note The building block the escape and digit calls write through, one character at a time.
  */
-MMGR_INLINE size_t verba_ch(const VerbaCtx *args)
+EMBED_INLINE size_t verba_ch(const VerbaCtx *args)
 {
     if (!verba_room(args, 1u))
     {
@@ -423,7 +426,7 @@ MMGR_INLINE size_t verba_ch(const VerbaCtx *args)
  * @note Writes the spaces first, then hands the digits to verba_emit20 at the offset past them.
  * @note The digit count comes off verba_digits10, so it costs the same whatever the value is.
  */
-MMGR_INLINE size_t verba_u64_clip(const VerbaCtx *args)
+EMBED_INLINE size_t verba_u64_clip(const VerbaCtx *args)
 {
     uint64_t value = args->val;
     const size_t digits = verba_digits10(value);
@@ -461,14 +464,14 @@ MMGR_INLINE size_t verba_u64_clip(const VerbaCtx *args)
  * @note Raising the count to args->min before the room test is what pads the result with leading zeros.
  * @warning Any args->base other than 8 or 16 is written in base ten, whatever value it holds.
  */
-MMGR_INLINE size_t verba_uint(const VerbaCtx *args)
+EMBED_INLINE size_t verba_uint(const VerbaCtx *args)
 {
     uint64_t value = args->val;
-    const mmgr_word bits_per_digit = (args->base == 16) ? 4U : ((args->base == 8) ? 3U : 0U);
-    const mmgr_bool power_of_two = bits_per_digit != 0;
+    const embed_word bits_per_digit = (args->base == 16) ? 4U : ((args->base == 8) ? 3U : 0U);
+    const embed_bool power_of_two = bits_per_digit != 0;
     const uint64_t digit_mask = power_of_two ? ((1ULL << bits_per_digit) - 1U) : 0U;
 
-    mmgr_word digits = 1;
+    embed_word digits = 1;
     if (power_of_two)
     {
         uint64_t probe = value;
@@ -481,7 +484,7 @@ MMGR_INLINE size_t verba_uint(const VerbaCtx *args)
     else
     {
         // Explicit cast narrows the count into the word the walks below index with. It is at most 20
-        digits = (mmgr_word)verba_digits10(value);
+        digits = (embed_word)verba_digits10(value);
     }
 
     if (digits < args->min)
@@ -495,7 +498,7 @@ MMGR_INLINE size_t verba_uint(const VerbaCtx *args)
 
     if (power_of_two)
     {
-        for (mmgr_word index = digits; index-- > 0;)
+        for (embed_word index = digits; index-- > 0;)
         {
             args->out[args->at + index] = mmgr_hex_lower[value & digit_mask];
             value >>= bits_per_digit;
@@ -516,17 +519,17 @@ MMGR_INLINE size_t verba_uint(const VerbaCtx *args)
  * @note Writes the sign through verba_ch, then hands the magnitude to verba_uint at base ten.
  * @note The magnitude is taken as -(value + 1) plus one, which stays in range for the most negative value.
  */
-MMGR_INLINE size_t verba_i64(const VerbaCtx *args)
+EMBED_INLINE size_t verba_i64(const VerbaCtx *args)
 {
     const int64_t value = args->sval;
     size_t at = args->at;
 
     if (value < 0)
     {
-        at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '-');
+        at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '-');
     }
-    return MMGR_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
-                     .val = (value < 0) ? ((uint64_t)(-(value + 1)) + 1U) : (uint64_t)value, .base = 10u, .min = 1u);
+    return EMBED_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
+                      .val = (value < 0) ? ((uint64_t)(-(value + 1)) + 1U) : (uint64_t)value, .base = 10u, .min = 1u);
 }
 
 /**
@@ -537,7 +540,7 @@ MMGR_INLINE size_t verba_i64(const VerbaCtx *args)
  * @note Takes the count from text_len rather than a count member of its own.
  * @note verba_g uses this for the run of zeros on either side of a point.
  */
-MMGR_INLINE size_t verba_zeros(const VerbaCtx *args)
+EMBED_INLINE size_t verba_zeros(const VerbaCtx *args)
 {
     const size_t want = args->text_len;
 
@@ -574,7 +577,7 @@ MMGR_INLINE size_t verba_zeros(const VerbaCtx *args)
  * @note The apostrophe is written as it stands, so this suits element text and double quoted attributes.
  * @note Walks to the terminator, so args->text is bounded by its own terminator rather than by args->cap.
  */
-MMGR_INLINE size_t verba_xml(const VerbaCtx *args)
+EMBED_INLINE size_t verba_xml(const VerbaCtx *args)
 {
     size_t at = args->at;
 
@@ -607,11 +610,11 @@ MMGR_INLINE size_t verba_xml(const VerbaCtx *args)
 
         if (rep != NULL)
         {
-            at = MMGR_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .text = rep);
+            at = EMBED_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .text = rep);
         }
         else
         {
-            at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = *cursor);
+            at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = *cursor);
         }
     }
     return at;
@@ -629,10 +632,10 @@ MMGR_INLINE size_t verba_xml(const VerbaCtx *args)
  * @note A NULL args->text writes an empty pair of quotes, where verba_xml writes nothing at all.
  * @note Walks to the terminator, so args->text is bounded by its own terminator rather than by args->cap.
  */
-MMGR_INLINE size_t verba_json(const VerbaCtx *args)
+EMBED_INLINE size_t verba_json(const VerbaCtx *args)
 {
     const char *const src = (args->text != NULL) ? args->text : "";
-    size_t at = MMGR_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .text = "\"");
+    size_t at = EMBED_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .text = "\"");
 
     for (const char *cursor = src; *cursor; cursor++)
     {
@@ -641,23 +644,23 @@ MMGR_INLINE size_t verba_json(const VerbaCtx *args)
 
         if (two != 0)
         {
-            at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '\\');
-            at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = two);
+            at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '\\');
+            at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = two);
         }
         else if (ch < 0x20U)
         {
-            at = MMGR_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .text = "\\u00");
-            at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
-                           .ch = mmgr_hex_lower[(ch >> 4) & 0xFU]);
-            at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
-                           .ch = mmgr_hex_lower[ch & 0xFU]);
+            at = EMBED_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .text = "\\u00");
+            at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
+                            .ch = mmgr_hex_lower[(ch >> 4) & 0xFU]);
+            at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
+                            .ch = mmgr_hex_lower[ch & 0xFU]);
         }
         else
         {
-            at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = (char)ch);
+            at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = (char)ch);
         }
     }
-    return MMGR_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .text = "\"");
+    return EMBED_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .text = "\"");
 }
 
 /**
@@ -674,11 +677,11 @@ MMGR_INLINE size_t verba_json(const VerbaCtx *args)
  * @note A args->point_after of 0 writes no point, since the point is only inserted at a non-zero index.
  * @warning args->digits must be 1 through 20.
  */
-MMGR_INLINE size_t verba_digits(const VerbaCtx *args)
+EMBED_INLINE size_t verba_digits(const VerbaCtx *args)
 {
     // A point is written only at a non-zero index inside the run, so whether there is one and how
     // wide the whole thing is are both settled before a byte moves, and one test covers all of it
-    const mmgr_bool has_point = (mmgr_bool)((args->point_after != 0u) && (args->point_after < args->digits));
+    const embed_bool has_point = (embed_bool)((args->point_after != 0u) && (args->point_after < args->digits));
     const size_t width = (size_t)args->digits + (has_point ? 1u : 0u);
 
     if (!verba_room(args, width))
@@ -716,9 +719,9 @@ MMGR_INLINE size_t verba_digits(const VerbaCtx *args)
  * @return         What fract.to_bits reported for args->real.
  * @note The only one of the four float helpers that reads args->real. The other three read args->bits.
  */
-MMGR_INLINE mmgr_u64 verba_bits(const VerbaCtx *args)
+EMBED_INLINE embed_u64 verba_bits(const VerbaCtx *args)
 {
-    return MMGR_CALL(fract.to_bits, FractioCfg, .val = args->real);
+    return EMBED_CALL(fract.to_bits, FractioCfg, .val = args->real);
 }
 
 /**
@@ -728,9 +731,9 @@ MMGR_INLINE mmgr_u64 verba_bits(const VerbaCtx *args)
  * @return         What fract.exp reported for args->bits.
  * @note A value of MMGR_DBL_EXP_ALL marks an infinity or a NaN, which is how the float calls test for one.
  */
-MMGR_INLINE mmgr_u64 verba_exp(const VerbaCtx *args)
+EMBED_INLINE embed_u64 verba_exp(const VerbaCtx *args)
 {
-    return MMGR_CALL(fract.exp, FractioCfg, .bits = args->bits);
+    return EMBED_CALL(fract.exp, FractioCfg, .bits = args->bits);
 }
 
 /**
@@ -740,9 +743,9 @@ MMGR_INLINE mmgr_u64 verba_exp(const VerbaCtx *args)
  * @return         What fract.mant reported for args->bits.
  * @note The implied leading bit is not included, so the float calls put it back when the exponent is non-zero.
  */
-MMGR_INLINE mmgr_u64 verba_mant(const VerbaCtx *args)
+EMBED_INLINE embed_u64 verba_mant(const VerbaCtx *args)
 {
-    return MMGR_CALL(fract.mant, FractioCfg, .bits = args->bits);
+    return EMBED_CALL(fract.mant, FractioCfg, .bits = args->bits);
 }
 
 /**
@@ -752,9 +755,9 @@ MMGR_INLINE mmgr_u64 verba_mant(const VerbaCtx *args)
  * @return         What fract.sign reported for args->bits, non-zero when the value is negative.
  * @note Reads the bit rather than comparing against zero, so a negative zero reports as negative.
  */
-MMGR_INLINE mmgr_u64 verba_sign(const VerbaCtx *args)
+EMBED_INLINE embed_u64 verba_sign(const VerbaCtx *args)
 {
-    return MMGR_CALL(fract.sign, FractioCfg, .bits = args->bits);
+    return EMBED_CALL(fract.sign, FractioCfg, .bits = args->bits);
 }
 
 /**
@@ -766,20 +769,20 @@ MMGR_INLINE mmgr_u64 verba_sign(const VerbaCtx *args)
  * @note A zero mantissa gives inf, with a leading minus when the sign bit is set.
  * @note Both are lower case and unquoted, so neither is valid JSON on its own.
  */
-MMGR_INLINE size_t verba_non_finite(const VerbaCtx *args)
+EMBED_INLINE size_t verba_non_finite(const VerbaCtx *args)
 {
-    if (MMGR_CALL(verba_mant, VerbaCtx, .bits = args->bits) != 0U)
+    if (EMBED_CALL(verba_mant, VerbaCtx, .bits = args->bits) != 0U)
     {
-        return MMGR_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .text = "nan");
+        return EMBED_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .text = "nan");
     }
 
     size_t at = args->at;
 
-    if (MMGR_CALL(verba_sign, VerbaCtx, .bits = args->bits) != 0U)
+    if (EMBED_CALL(verba_sign, VerbaCtx, .bits = args->bits) != 0U)
     {
-        at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '-');
+        at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '-');
     }
-    return MMGR_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .text = "inf");
+    return EMBED_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .text = "inf");
 }
 
 /**
@@ -795,16 +798,16 @@ MMGR_INLINE size_t verba_non_finite(const VerbaCtx *args)
  * @note The four forms are exponential, digits with trailing zeros, digits with the point inside, and 0. with
  *       leading zeros, picked on where the decimal exponent falls against the digit count.
  */
-MMGR_INLINE size_t verba_g(const VerbaCtx *args)
+EMBED_INLINE size_t verba_g(const VerbaCtx *args)
 {
-    const mmgr_u64 bits = verba_bits(args);
+    const embed_u64 bits = verba_bits(args);
     // Read once and used twice: the class test here and the scale below ask the same question of
     // the same bits, and the answer cannot change between them
-    const mmgr_u64 biased_exp = MMGR_CALL(verba_exp, VerbaCtx, .bits = bits);
+    const embed_u64 biased_exp = EMBED_CALL(verba_exp, VerbaCtx, .bits = bits);
 
     if (biased_exp == MMGR_DBL_EXP_ALL)
     {
-        return MMGR_CALL(verba_non_finite, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .bits = bits);
+        return EMBED_CALL(verba_non_finite, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .bits = bits);
     }
 
     uint8_t sig = (args->sig == 0) ? 1u : args->sig;
@@ -815,35 +818,35 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *args)
 
     size_t at = args->at;
 
-    if (MMGR_CALL(verba_sign, VerbaCtx, .bits = bits) != 0U)
+    if (EMBED_CALL(verba_sign, VerbaCtx, .bits = bits) != 0U)
     {
-        at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '-');
+        at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '-');
     }
 
-    mmgr_u64 mantissa = MMGR_CALL(verba_mant, VerbaCtx, .bits = bits);
+    embed_u64 mantissa = EMBED_CALL(verba_mant, VerbaCtx, .bits = bits);
 
     if ((biased_exp == 0U) && (mantissa == 0U))
     {
-        return MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '0');
+        return EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '0');
     }
 
-    mmgr_iword scale = 1 - MMGR_DBL_BIAS - (mmgr_iword)MMGR_DBL_MANT_BITS;
+    embed_iword scale = 1 - MMGR_DBL_BIAS - (embed_iword)MMGR_DBL_MANT_BITS;
     if (biased_exp != 0U)
     {
         mantissa |= 1ULL << MMGR_DBL_MANT_BITS;
-        scale = (mmgr_iword)(biased_exp - MMGR_DBL_BIAS - MMGR_DBL_MANT_BITS);
+        scale = (embed_iword)(biased_exp - MMGR_DBL_BIAS - MMGR_DBL_MANT_BITS);
     }
 
-    const mmgr_u64 limit = mmgr_verba_pow10[sig];
+    const embed_u64 limit = mmgr_verba_pow10[sig];
 
-    mmgr_iword exponent =
-        (mmgr_iword)(((mmgr_i64)(63 - MMGR_CALL(clz.lead, ClzCfg, .val = mantissa) + scale) * 78913) >> 18);
-    mmgr_iword cursor = (mmgr_iword)((mmgr_iword)sig - 1 - exponent);
-    mmgr_u64 mant = 0U;
+    embed_iword exponent =
+        (embed_iword)(((embed_i64)(63 - EMBED_CALL(clz.lead, ClzCfg, .val = mantissa) + scale) * 78913) >> 18);
+    embed_iword cursor = (embed_iword)((embed_iword)sig - 1 - exponent);
+    embed_u64 mant = 0U;
 
     for (uint8_t guard = 0; guard < 4U; guard++)
     {
-        mant = MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &mantissa, .e2 = scale, .ex = cursor, .above = 0U);
+        mant = EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &mantissa, .e2 = scale, .ex = cursor);
         if (mant >= limit)
         {
             exponent++;
@@ -870,7 +873,7 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *args)
             break;
         }
 
-        const mmgr_u64 fifth = (mant >> 1) * MMGR_VERBA_INV5;
+        const embed_u64 fifth = (mant >> 1) * MMGR_VERBA_INV5;
 
         // The product is the divisibility test and the quotient at once: at or below the bound five
         // divided the value, and the product is what dividing by ten would have given
@@ -882,34 +885,34 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *args)
         digits--;
     }
 
-    if ((exponent < -4) || (exponent >= (mmgr_i32)sig))
+    if ((exponent < -4) || (exponent >= (embed_i32)sig))
     {
-        at = MMGR_CALL(verba_digits, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .mant = mant,
-                       .digits = digits, .point_after = 1u);
-        at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = 'e');
-        at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
-                       .ch = (exponent < 0) ? '-' : '+');
-        return MMGR_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
-                         .val = (uint64_t)((exponent < 0) ? -exponent : exponent), .base = 10u, .min = 2u);
+        at = EMBED_CALL(verba_digits, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .mant = mant,
+                        .digits = digits, .point_after = 1u);
+        at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = 'e');
+        at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
+                        .ch = (exponent < 0) ? '-' : '+');
+        return EMBED_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
+                          .val = (uint64_t)((exponent < 0) ? -exponent : exponent), .base = 10u, .min = 2u);
     }
-    if (exponent >= ((mmgr_i32)digits - 1))
+    if (exponent >= ((embed_i32)digits - 1))
     {
-        at = MMGR_CALL(verba_digits, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .mant = mant,
-                       .digits = digits, .point_after = 0u);
-        return MMGR_CALL(verba_zeros, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
-                         .text_len = (size_t)(exponent - (mmgr_i32)digits + 1));
+        at = EMBED_CALL(verba_digits, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .mant = mant,
+                        .digits = digits, .point_after = 0u);
+        return EMBED_CALL(verba_zeros, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
+                          .text_len = (size_t)(exponent - (embed_i32)digits + 1));
     }
     if (exponent >= 0)
     {
-        return MMGR_CALL(verba_digits, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .mant = mant,
-                         .digits = digits, .point_after = (uint8_t)(exponent + 1));
+        return EMBED_CALL(verba_digits, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .mant = mant,
+                          .digits = digits, .point_after = (uint8_t)(exponent + 1));
     }
 
-    at = MMGR_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .text = "0.");
-    at = MMGR_CALL(verba_zeros, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
-                   .text_len = (size_t)(-exponent - 1));
-    return MMGR_CALL(verba_digits, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .mant = mant,
-                     .digits = digits, .point_after = 0u);
+    at = EMBED_CALL(verba_put, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .text = "0.");
+    at = EMBED_CALL(verba_zeros, VerbaCtx, .out = args->out, .cap = args->cap, .at = at,
+                    .text_len = (size_t)(-exponent - 1));
+    return EMBED_CALL(verba_digits, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .mant = mant,
+                      .digits = digits, .point_after = 0u);
 }
 
 /**
@@ -921,31 +924,32 @@ MMGR_INLINE size_t verba_g(const VerbaCtx *args)
  *       else.
  * @note A magnitude too large for 64 bits of integer part falls back to verba_g at ten significant digits.
  * @note args->decimals is held at MMGR_FIXED_MAX_DECIMALS, and a value of 0 writes no point at all.
- * @note The fraction is rounded by muto.scale_to_u64, given the low bit of the integer part so a tie goes to even.
+ * @note The fraction is rounded by muto.scale_to_u64, where a half goes up. The sign is written ahead
+ *       of the magnitude, so a negative half goes up in magnitude and away from zero.
  * @note A fraction that rounds up to the whole scale carries into the integer part and is written as zeros.
  */
-MMGR_INLINE size_t verba_fixed(const VerbaCtx *args)
+EMBED_INLINE size_t verba_fixed(const VerbaCtx *args)
 {
-    const mmgr_u64 bits = verba_bits(args);
-    const mmgr_u64 biased_exp = MMGR_CALL(verba_exp, VerbaCtx, .bits = bits);
+    const embed_u64 bits = verba_bits(args);
+    const embed_u64 biased_exp = EMBED_CALL(verba_exp, VerbaCtx, .bits = bits);
 
     if (biased_exp == MMGR_DBL_EXP_ALL)
     {
-        return MMGR_CALL(verba_non_finite, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .bits = bits);
+        return EMBED_CALL(verba_non_finite, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .bits = bits);
     }
 
     double value = args->real;
     size_t at = args->at;
 
-    if (MMGR_CALL(verba_sign, VerbaCtx, .bits = bits) != 0U)
+    if (EMBED_CALL(verba_sign, VerbaCtx, .bits = bits) != 0U)
     {
-        at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '-');
+        at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '-');
         value = -value;
     }
 
     if (biased_exp >= (MMGR_DBL_BIAS + 64))
     {
-        return MMGR_CALL(verba_g, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .real = value, .sig = 10u);
+        return EMBED_CALL(verba_g, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .real = value, .sig = 10u);
     }
 
     uint8_t decimals = args->decimals;
@@ -954,27 +958,27 @@ MMGR_INLINE size_t verba_fixed(const VerbaCtx *args)
         decimals = MMGR_FIXED_MAX_DECIMALS;
     }
 
-    const mmgr_u64 scale = mmgr_verba_pow10[decimals];
+    const embed_u64 scale = mmgr_verba_pow10[decimals];
 
-    mmgr_u64 mant = MMGR_CALL(verba_mant, VerbaCtx, .bits = bits);
-    mmgr_iword exp2 = 1 - MMGR_DBL_BIAS - (mmgr_iword)MMGR_DBL_MANT_BITS;
+    embed_u64 mant = EMBED_CALL(verba_mant, VerbaCtx, .bits = bits);
+    embed_iword exp2 = 1 - MMGR_DBL_BIAS - (embed_iword)MMGR_DBL_MANT_BITS;
 
     if (biased_exp != 0U)
     {
         mant |= 1ULL << MMGR_DBL_MANT_BITS;
-        exp2 = (mmgr_iword)(biased_exp - MMGR_DBL_BIAS - MMGR_DBL_MANT_BITS);
+        exp2 = (embed_iword)(biased_exp - MMGR_DBL_BIAS - MMGR_DBL_MANT_BITS);
     }
 
-    mmgr_u64 int_part = 0U;
-    mmgr_u64 rem = 0U;
+    embed_u64 int_part = 0U;
+    embed_u64 rem = 0U;
 
     if (exp2 >= 0)
     {
-        int_part = mant << (mmgr_word)exp2;
+        int_part = mant << (embed_word)exp2;
     }
     else
     {
-        const mmgr_word shift = (mmgr_word)(-exp2);
+        const embed_word shift = (embed_word)(-exp2);
 
         if (shift < 64U)
         {
@@ -987,8 +991,8 @@ MMGR_INLINE size_t verba_fixed(const VerbaCtx *args)
         }
     }
 
-    mmgr_u64 frac = MMGR_CALL(muto.scale_to_u64, TransformoCfg, .mant = &rem, .e2 = exp2, .ex = (mmgr_iword)decimals,
-                              .above = (decimals == 0U) ? (mmgr_word)(int_part & 1U) : 0U);
+    embed_u64 frac =
+        EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &rem, .e2 = exp2, .ex = (embed_iword)decimals);
 
     if (frac >= scale)
     {
@@ -996,14 +1000,14 @@ MMGR_INLINE size_t verba_fixed(const VerbaCtx *args)
         frac = 0U;
     }
 
-    at = MMGR_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .val = int_part, .base = 10u,
-                   .min = 1u);
+    at = EMBED_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .val = int_part, .base = 10u,
+                    .min = 1u);
 
     if (decimals != 0u)
     {
-        at = MMGR_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '.');
-        at = MMGR_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .val = frac, .base = 10u,
-                       .min = decimals);
+        at = EMBED_CALL(verba_ch, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .ch = '.');
+        at = EMBED_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = at, .val = frac, .base = 10u,
+                        .min = decimals);
     }
     return at;
 }
@@ -1017,7 +1021,7 @@ MMGR_INLINE size_t verba_fixed(const VerbaCtx *args)
  * @note A return of 0 covers both an empty result and one that ran out of room. verba_ok tells them
  *       apart.
  */
-MMGR_INLINE size_t verba_finish(const VerbaCtx *args)
+EMBED_INLINE size_t verba_finish(const VerbaCtx *args)
 {
     if (args->at >= args->cap)
     {
@@ -1031,12 +1035,12 @@ MMGR_INLINE size_t verba_finish(const VerbaCtx *args)
  * @brief Returns whether args->at is still below args->cap.
  *
  * @param[in] args Capacity and the offset reached [BORROWS].
- * @return         MMGR_TRUE while there is still room, MMGR_FALSE once a call returned args->cap.
+ * @return         EMBED_TRUE while there is still room, EMBED_FALSE once a call returned args->cap.
  * @note Reads neither args->out nor any value member, so it touches no memory.
  */
-MMGR_INLINE mmgr_bool verba_ok(const VerbaCtx *args)
+EMBED_INLINE embed_bool verba_ok(const VerbaCtx *args)
 {
-    return (mmgr_bool)(args->at < args->cap);
+    return (embed_bool)(args->at < args->cap);
 }
 
 /**
@@ -1046,10 +1050,10 @@ MMGR_INLINE mmgr_bool verba_ok(const VerbaCtx *args)
  * @return         The offset past the digits, or args->cap when they do not fit.
  * @note Fixes the base at ten and forwards args->min, which is what separates it from verba_u32.
  */
-MMGR_INLINE size_t verba_u32w(const VerbaCtx *args)
+EMBED_INLINE size_t verba_u32w(const VerbaCtx *args)
 {
-    return MMGR_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .val = args->val,
-                     .base = 10u, .min = args->min);
+    return EMBED_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .val = args->val,
+                      .base = 10u, .min = args->min);
 }
 
 /**
@@ -1059,10 +1063,10 @@ MMGR_INLINE size_t verba_u32w(const VerbaCtx *args)
  * @return         The offset past the digits, or args->cap when they do not fit.
  * @note Fixes the base at sixteen, so the digits come out lower case.
  */
-MMGR_INLINE size_t verba_hex(const VerbaCtx *args)
+EMBED_INLINE size_t verba_hex(const VerbaCtx *args)
 {
-    return MMGR_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .val = args->val,
-                     .base = 16u, .min = args->min);
+    return EMBED_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .val = args->val,
+                      .base = 16u, .min = args->min);
 }
 
 /**
@@ -1072,10 +1076,10 @@ MMGR_INLINE size_t verba_hex(const VerbaCtx *args)
  * @return         The offset past the digits, or args->cap when they do not fit.
  * @note Fixes both the base at ten and the least digit count at one, so args->min and args->base take no part.
  */
-MMGR_INLINE size_t verba_u32(const VerbaCtx *args)
+EMBED_INLINE size_t verba_u32(const VerbaCtx *args)
 {
-    return MMGR_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .val = args->val,
-                     .base = 10u, .min = 1u);
+    return EMBED_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .val = args->val,
+                      .base = 10u, .min = 1u);
 }
 
 /**
@@ -1086,61 +1090,61 @@ MMGR_INLINE size_t verba_u32(const VerbaCtx *args)
  * @note The same walk as verba_u32, since args->val is 64 bits either way. Both names exist so a caller
  *       reads the width it means at the call.
  */
-MMGR_INLINE size_t verba_u64(const VerbaCtx *args)
+EMBED_INLINE size_t verba_u64(const VerbaCtx *args)
 {
-    return MMGR_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .val = args->val,
-                     .base = 10u, .min = 1u);
+    return EMBED_CALL(verba_uint, VerbaCtx, .out = args->out, .cap = args->cap, .at = args->at, .val = args->val,
+                      .base = 10u, .min = 1u);
 }
 
 /**
  * @brief Returns whether args->real has its sign bit set.
  *
  * @param[in] args The value to test, as args->real [BORROWS].
- * @return         MMGR_TRUE when the sign bit is set.
- * @note Reads the bit rather than comparing against zero, so a negative zero returns MMGR_TRUE.
+ * @return         EMBED_TRUE when the sign bit is set.
+ * @note Reads the bit rather than comparing against zero, so a negative zero returns EMBED_TRUE.
  */
-MMGR_INLINE mmgr_bool verba_sign_bit(const VerbaCtx *args)
+EMBED_INLINE embed_bool verba_sign_bit(const VerbaCtx *args)
 {
-    // Explicit cast narrows the bit test into the mmgr_bool container
-    return (mmgr_bool)(MMGR_CALL(verba_sign, VerbaCtx,
-                                 .bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = args->real)) != 0U);
+    // Explicit cast narrows the bit test into the embed_bool container
+    return (embed_bool)(EMBED_CALL(verba_sign, VerbaCtx,
+                                   .bits = EMBED_CALL(fract.to_bits, FractioCfg, .val = args->real)) != 0U);
 }
 
 /**
  * @brief Returns whether args->real is an infinity.
  *
  * @param[in] args The value to test, as args->real [BORROWS].
- * @return         MMGR_TRUE for either infinity.
+ * @return         EMBED_TRUE for either infinity.
  * @note Wants the exponent field all ones and the mantissa zero, where verba_is_nan wants it non-zero.
- * @note Says nothing about the sign, so a negative infinity returns MMGR_TRUE too.
+ * @note Says nothing about the sign, so a negative infinity returns EMBED_TRUE too.
  */
-MMGR_INLINE mmgr_bool verba_is_inf(const VerbaCtx *args)
+EMBED_INLINE embed_bool verba_is_inf(const VerbaCtx *args)
 {
-    const mmgr_u64 bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = args->real);
+    const embed_u64 bits = EMBED_CALL(fract.to_bits, FractioCfg, .val = args->real);
 
-    // Explicit cast narrows the combined test into the mmgr_bool container
-    return (mmgr_bool)((MMGR_CALL(verba_exp, VerbaCtx, .bits = bits) == MMGR_DBL_EXP_ALL) &&
-                       (MMGR_CALL(verba_mant, VerbaCtx, .bits = bits) == 0U));
+    // Explicit cast narrows the combined test into the embed_bool container
+    return (embed_bool)((EMBED_CALL(verba_exp, VerbaCtx, .bits = bits) == MMGR_DBL_EXP_ALL) &&
+                        (EMBED_CALL(verba_mant, VerbaCtx, .bits = bits) == 0U));
 }
 
 /**
  * @brief Returns whether args->real is a NaN.
  *
  * @param[in] args The value to test, as args->real [BORROWS].
- * @return         MMGR_TRUE for any NaN.
+ * @return         EMBED_TRUE for any NaN.
  * @note Wants the exponent field all ones and the mantissa non-zero, where verba_is_inf wants it zero.
  */
-MMGR_INLINE mmgr_bool verba_is_nan(const VerbaCtx *args)
+EMBED_INLINE embed_bool verba_is_nan(const VerbaCtx *args)
 {
-    const mmgr_u64 bits = MMGR_CALL(fract.to_bits, FractioCfg, .val = args->real);
+    const embed_u64 bits = EMBED_CALL(fract.to_bits, FractioCfg, .val = args->real);
 
-    // Explicit cast narrows the combined test into the mmgr_bool container
-    return (mmgr_bool)((MMGR_CALL(verba_exp, VerbaCtx, .bits = bits) == MMGR_DBL_EXP_ALL) &&
-                       (MMGR_CALL(verba_mant, VerbaCtx, .bits = bits) != 0U));
+    // Explicit cast narrows the combined test into the embed_bool container
+    return (embed_bool)((EMBED_CALL(verba_exp, VerbaCtx, .bits = bits) == MMGR_DBL_EXP_ALL) &&
+                        (EMBED_CALL(verba_mant, VerbaCtx, .bits = bits) != 0U));
 }
 
 /**
- * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
+ * @brief Binds this module's four fixed arguments to EMBED_ENTRY.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] CfgType_    The argument pack this entry's table carries.
@@ -1148,13 +1152,13 @@ MMGR_INLINE mmgr_bool verba_is_nan(const VerbaCtx *args)
  * @param[in] ...         Initializers for the VerbaCtx literal, written in terms of args.
  */
 #define VERBA_ENTRY(ReturnType_, CfgType_, name_, ...)                                                                 \
-    GENERIC_ENTRY(mmgr_verba_, verba_, VerbaCtx, CfgType_, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_verba_, verba_, VerbaCtx, CfgType_, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in verba_scribo.h.
- * @note The fields each line forwards are the ones that entry reads, and MMGR_CALL zeroes the rest.
+ * @note The fields each line forwards are the ones that entry reads, and EMBED_CALL zeroes the rest.
  *       ok forwards cap and at alone, so it touches no memory, and the three classifiers forward real.
  * @note uint is the only entry that forwards args->base. u32w, hex, u32 and u64 each fix a base of their
  *       own in the backend above rather than at the call.
@@ -1183,7 +1187,7 @@ VERBA_ENTRY(size_t, VerbaFractioCfg, g, .out = args->out, .cap = args->cap, .at 
 VERBA_ENTRY(size_t, VerbaFractioCfg, fixed, .out = args->out, .cap = args->cap, .at = args->at, .real = args->real,
             .decimals = args->decimals)
 VERBA_ENTRY(size_t, VerbaFinisCfg, finish, .out = args->out, .cap = args->cap, .at = args->at)
-VERBA_ENTRY(mmgr_bool, VerbaFinisCfg, ok, .cap = args->cap, .at = args->at)
-VERBA_ENTRY(mmgr_bool, VerbaFractioCfg, sign_bit, .real = args->real)
-VERBA_ENTRY(mmgr_bool, VerbaFractioCfg, is_inf, .real = args->real)
-VERBA_ENTRY(mmgr_bool, VerbaFractioCfg, is_nan, .real = args->real)
+VERBA_ENTRY(embed_bool, VerbaFinisCfg, ok, .cap = args->cap, .at = args->at)
+VERBA_ENTRY(embed_bool, VerbaFractioCfg, sign_bit, .real = args->real)
+VERBA_ENTRY(embed_bool, VerbaFractioCfg, is_inf, .real = args->real)
+VERBA_ENTRY(embed_bool, VerbaFractioCfg, is_nan, .real = args->real)

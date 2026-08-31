@@ -103,7 +103,7 @@ extern volatile uintptr_t g_dbench_sink;
 #define DBENCH_CYCLES(N, expr, out_cy)                                                                                 \
     do                                                                                                                 \
     {                                                                                                                  \
-        expr;                                                                                                \
+        expr;                                                                                                          \
         uint32_t _c0, _c1;                                                                                             \
         DBENCH_CYCLE_READ(_c0);                                                                                        \
         for (uint32_t _i = 0; _i < (uint32_t)(N); _i++)                                                                \
@@ -119,8 +119,8 @@ extern volatile uintptr_t g_dbench_sink;
     {                                                                                                                  \
         double _cy = 0.0;                                                                                              \
         DBENCH_CYCLES(N, expr, _cy);                                                                                   \
-        DBENCH_PRINTF("DB %-30s cyc=%-11.2f us=%-9.2f ns=%.0f\n", label, _cy, _cy / (double)DBENCH_CPU_MHZ,                   \
-               (_cy * 1000.0) / (double)DBENCH_CPU_MHZ);                                                               \
+        DBENCH_PRINTF("DB %-30s cyc=%-11.2f us=%-9.2f ns=%.0f\n", label, _cy, _cy / (double)DBENCH_CPU_MHZ,            \
+                      (_cy * 1000.0) / (double)DBENCH_CPU_MHZ);                                                        \
         DBENCH_SETTLE();                                                                                               \
     } while (0)
 
@@ -131,7 +131,8 @@ extern volatile uintptr_t g_dbench_sink;
         DBENCH_CYCLES(N, expr, _cy);                                                                                   \
         double _nspb = ((_cy * 1000.0) / (double)DBENCH_CPU_MHZ) / (double)(bytes);                                    \
         double _mbs = (_nspb > 0.0) ? (1000.0 / _nspb) : 0.0;                                                          \
-        DBENCH_PRINTF("DB %-30s cyc=%-11.0f ns/B=%-8.2f MB/s=%-8.1f (%uB)\n", label, _cy, _nspb, _mbs, (unsigned)(bytes));    \
+        DBENCH_PRINTF("DB %-30s cyc=%-11.0f ns/B=%-8.2f MB/s=%-8.1f (%uB)\n", label, _cy, _nspb, _mbs,                 \
+                      (unsigned)(bytes));                                                                              \
         DBENCH_SETTLE();                                                                                               \
     } while (0)
 
@@ -142,8 +143,9 @@ extern volatile uintptr_t g_dbench_sink;
         double _l = 0.0;                                                                                               \
         DBENCH_CYCLES(N, mmgr_expr, _m);                                                                               \
         DBENCH_CYCLES(N, libc_expr, _l);                                                                               \
-        DBENCH_PRINTF("DB %-16s n=%-6u mmgr=%-10.1f libc=%-10.1f ratio=%.2f  mmgr_c/B=%.3f libc_c/B=%.3f\n", label,           \
-               (unsigned)(bytes), _m, _l, (_l > 0.0) ? (_m / _l) : 0.0, _m / (double)(bytes), _l / (double)(bytes));   \
+        DBENCH_PRINTF("DB %-16s n=%-6u mmgr=%-10.1f libc=%-10.1f ratio=%.2f  mmgr_c/B=%.3f libc_c/B=%.3f\n", label,    \
+                      (unsigned)(bytes), _m, _l, (_l > 0.0) ? (_m / _l) : 0.0, _m / (double)(bytes),                   \
+                      _l / (double)(bytes));                                                                           \
         DBENCH_SETTLE();                                                                                               \
     } while (0)
 
@@ -166,14 +168,14 @@ extern volatile uintptr_t g_dbench_sink;
 #define DBENCH_DONE()                                                                                                  \
     do                                                                                                                 \
     {                                                                                                                  \
-        DBENCH_PRINTF("DB ==== DONE ====\n");                                                                                 \
+        DBENCH_PRINTF("DB ==== DONE ====\n");                                                                          \
         vTaskDelay(5000 / portTICK_PERIOD_MS);                                                                         \
     } while (0)
 #elif MMGR_BENCH_TEENSY
 #define DBENCH_DONE()                                                                                                  \
     do                                                                                                                 \
     {                                                                                                                  \
-        DBENCH_PRINTF("DB ==== DONE ====\n");                                                                                 \
+        DBENCH_PRINTF("DB ==== DONE ====\n");                                                                          \
         DBENCH_FLUSH();                                                                                                \
         delay(5000);                                                                                                   \
     } while (0)
@@ -181,7 +183,7 @@ extern volatile uintptr_t g_dbench_sink;
 #define DBENCH_DONE()                                                                                                  \
     do                                                                                                                 \
     {                                                                                                                  \
-        DBENCH_PRINTF("DB ==== DONE ====\n");                                                                                 \
+        DBENCH_PRINTF("DB ==== DONE ====\n");                                                                          \
         DBENCH_FLUSH();                                                                                                \
         exit(0);                                                                                                       \
     } while (0)
@@ -201,7 +203,7 @@ void dbench_run(void);
     void app_main(void)                                                                                                \
     {                                                                                                                  \
         vTaskDelay(2500 / portTICK_PERIOD_MS);                                                                         \
-        DBENCH_PRINTF("\nDB boot: " label " device microbench\n");                                                            \
+        DBENCH_PRINTF("\nDB boot: " label " device microbench\n");                                                     \
         xTaskCreatePinnedToCore(dbench_task, "dbench", 16384, NULL, 24, NULL, portNUM_PROCESSORS - 1);                 \
     }
 #elif MMGR_BENCH_TEENSY
@@ -212,7 +214,7 @@ void dbench_run(void);
     {                                                                                                                  \
         delay(2500);                                                                                                   \
         dbench_teensy_counter_start();                                                                                 \
-        DBENCH_PRINTF("\nDB boot: " label " device microbench\n");                                                            \
+        DBENCH_PRINTF("\nDB boot: " label " device microbench\n");                                                     \
     }                                                                                                                  \
     void loop(void)                                                                                                    \
     {                                                                                                                  \
@@ -223,7 +225,7 @@ void dbench_run(void);
     volatile uintptr_t g_dbench_sink;                                                                                  \
     int main(void)                                                                                                     \
     {                                                                                                                  \
-        DBENCH_PRINTF("\nDB boot: " label " host microbench\n");                                                              \
+        DBENCH_PRINTF("\nDB boot: " label " host microbench\n");                                                       \
         dbench_run();                                                                                                  \
         return 0;                                                                                                      \
     }

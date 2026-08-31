@@ -3,6 +3,18 @@
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
 #include "mmgr.h"
+#include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
+#include "cellularum_laboro/cellularum_laboro.h"
+#include "endian/endian.h"
+#include "fractio/fractio.h"
+#include "locus_carcerum/locus_carcerum.h"
+#include "memoria_operor/memoria_operor.h"
+#include "numeros_scribo/numeros_scribo.h"
+#include "octetus_introitus_exitus/octetus_introitus_exitus.h"
+#include "proximus_operor/proximus_operor.h"
+#include "spatium/spatium.h"
+#include "verba_scribo/verba_scribo.h"
+#include "verbum_scrutor/verbum_scrutor.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
@@ -77,9 +89,9 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/mmgr/test_mmgr\\test_mmgr.c");
-  run_test(test_umbrella_header_is_self_contained, "test_umbrella_header_is_self_contained", 7);
-  run_test(test_every_namespace_is_reachable, "test_every_namespace_is_reachable", 12);
-  run_test(test_namespaces_are_their_own_types, "test_namespaces_are_their_own_types", 34);
+  run_test(test_umbrella_header_is_self_contained, "test_umbrella_header_is_self_contained", 23);
+  run_test(test_every_namespace_is_reachable, "test_every_namespace_is_reachable", 28);
+  run_test(test_namespaces_are_their_own_types, "test_namespaces_are_their_own_types", 50);
 
   return UNITY_END();
 }

@@ -2,8 +2,8 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
-#include "oracle_divergence.h"
 #include "verba_scribo/verba_scribo.h"
+#include "oracle_divergence.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +32,7 @@ extern void test_xml_escapes_its_five(void);
 extern void test_xml_passes_ordinary_text_through(void);
 extern void test_float_predicates(void);
 extern void test_fixed_matches_printf(void);
-extern void test_fixed_rounds_a_tie_to_even(void);
+extern void test_fixed_rounds_a_tie_up(void);
 extern void test_fixed_is_exact_below_a_64_bit_shift(void);
 extern void test_g_rounds_a_tie(void);
 extern void test_g_matches_printf(void);
@@ -139,72 +139,72 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/verba_scribo/test_verba_scribo\\test_verba_scribo.c");
-  run_test(test_verba_header_is_self_contained, "test_verba_header_is_self_contained", 145);
-  run_test(test_put_and_put_n, "test_put_and_put_n", 150);
-  run_test(test_put_of_nothing, "test_put_of_nothing", 158);
-  run_test(test_ch, "test_ch", 166);
-  run_test(test_unsigned_decimal_matches_printf, "test_unsigned_decimal_matches_printf", 176);
-  run_test(test_u32_matches_printf, "test_u32_matches_printf", 189);
-  run_test(test_signed_decimal_matches_printf, "test_signed_decimal_matches_printf", 200);
-  run_test(test_hex_matches_printf, "test_hex_matches_printf", 213);
-  run_test(test_hex_zero_pads_like_printf, "test_hex_zero_pads_like_printf", 225);
-  run_test(test_u32w_zero_pads_like_printf, "test_u32w_zero_pads_like_printf", 235);
-  run_test(test_uint_in_every_base, "test_uint_in_every_base", 245);
-  run_test(test_u64_clip_pads_to_a_column, "test_u64_clip_pads_to_a_column", 264);
-  run_test(test_put_clip_truncates_instead_of_latching, "test_put_clip_truncates_instead_of_latching", 279);
-  run_test(test_json_wraps_and_escapes, "test_json_wraps_and_escapes", 288);
-  run_test(test_json_escapes_control_bytes, "test_json_escapes_control_bytes", 295);
-  run_test(test_json_of_null_is_an_empty_string, "test_json_of_null_is_an_empty_string", 307);
-  run_test(test_xml_escapes_its_five, "test_xml_escapes_its_five", 314);
-  run_test(test_xml_passes_ordinary_text_through, "test_xml_passes_ordinary_text_through", 321);
-  run_test(test_float_predicates, "test_float_predicates", 328);
-  run_test(test_fixed_matches_printf, "test_fixed_matches_printf", 347);
-  run_test(test_fixed_rounds_a_tie_to_even, "test_fixed_rounds_a_tie_to_even", 362);
-  run_test(test_fixed_is_exact_below_a_64_bit_shift, "test_fixed_is_exact_below_a_64_bit_shift", 400);
-  run_test(test_g_rounds_a_tie, "test_g_rounds_a_tie", 433);
-  run_test(test_g_matches_printf, "test_g_matches_printf", 452);
-  run_test(test_g_and_fixed_of_the_specials, "test_g_and_fixed_of_the_specials", 467);
-  run_test(test_overflow_latches_and_finish_reports_it, "test_overflow_latches_and_finish_reports_it", 493);
-  run_test(test_writes_after_overflow_are_ignored, "test_writes_after_overflow_are_ignored", 501);
-  run_test(test_each_entry_can_overflow_on_its_own, "test_each_entry_can_overflow_on_its_own", 517);
-  run_test(test_a_zero_capacity_builder_cannot_write, "test_a_zero_capacity_builder_cannot_write", 540);
-  run_test(test_the_literal_helper, "test_the_literal_helper", 547);
-  run_test(test_namespace_is_wired, "test_namespace_is_wired", 554);
-  run_test(test_the_clipping_entries_stay_quiet_after_overflow, "test_the_clipping_entries_stay_quiet_after_overflow", 563);
-  run_test(test_put_clip_of_null_writes_nothing, "test_put_clip_of_null_writes_nothing", 577);
-  run_test(test_put_clip_with_no_room_left_writes_nothing, "test_put_clip_with_no_room_left_writes_nothing", 584);
-  run_test(test_u64_clip_that_does_not_fit_writes_nothing, "test_u64_clip_that_does_not_fit_writes_nothing", 596);
-  run_test(test_xml_of_null_writes_nothing, "test_xml_of_null_writes_nothing", 603);
-  run_test(test_fixed_of_nan, "test_fixed_of_nan", 609);
-  run_test(test_fixed_of_the_infinities, "test_fixed_of_the_infinities", 616);
-  run_test(test_fixed_of_a_value_too_large_for_the_integer_path, "test_fixed_of_a_value_too_large_for_the_integer_path", 628);
-  run_test(test_fixed_of_a_value_with_no_fraction_left, "test_fixed_of_a_value_with_no_fraction_left", 638);
-  run_test(test_fixed_clamps_its_decimals, "test_fixed_clamps_its_decimals", 644);
-  run_test(test_fixed_carries_a_fraction_that_rounds_to_one, "test_fixed_carries_a_fraction_that_rounds_to_one", 654);
-  run_test(test_fixed_of_negative_zero, "test_fixed_of_negative_zero", 660);
-  run_test(test_g_of_nan, "test_g_of_nan", 667);
-  run_test(test_g_of_zero, "test_g_of_zero", 674);
-  run_test(test_g_of_a_very_small_value, "test_g_of_a_very_small_value", 681);
-  run_test(test_g_of_a_very_large_value, "test_g_of_a_very_large_value", 688);
-  run_test(test_g_of_one_significant_digit, "test_g_of_one_significant_digit", 695);
-  run_test(test_g_of_zero_significant_digits_is_one, "test_g_of_zero_significant_digits_is_one", 703);
-  run_test(test_json_escapes_the_two_character_forms, "test_json_escapes_the_two_character_forms", 716);
-  run_test(test_json_escapes_the_named_control_bytes, "test_json_escapes_the_named_control_bytes", 723);
-  run_test(test_json_escapes_an_unnamed_control_byte_as_a_code_point, "test_json_escapes_an_unnamed_control_byte_as_a_code_point", 732);
-  run_test(test_json_overflows_on_each_escape_form, "test_json_overflows_on_each_escape_form", 740);
-  run_test(test_finish_of_a_zero_capacity_builder_reports_nothing, "test_finish_of_a_zero_capacity_builder_reports_nothing", 755);
-  run_test(test_g_over_every_precision, "test_g_over_every_precision", 761);
-  run_test(test_g_of_a_subnormal, "test_g_of_a_subnormal", 784);
-  run_test(test_g_of_the_largest_finite_double, "test_g_of_the_largest_finite_double", 794);
-  run_test(test_is_inf_says_no_to_a_nan, "test_is_inf_says_no_to_a_nan", 802);
-  run_test(test_fixed_over_every_decimal_count, "test_fixed_over_every_decimal_count", 809);
-  run_test(test_fixed_of_a_fraction_that_lands_on_a_tie, "test_fixed_of_a_fraction_that_lands_on_a_tie", 828);
-  run_test(test_g_where_the_exponent_estimate_overshoots, "test_g_where_the_exponent_estimate_overshoots", 844);
-  run_test(test_g_clamps_its_digit_count, "test_g_clamps_its_digit_count", 889);
-  run_test(test_g_at_its_maximum_still_reads_back, "test_g_at_its_maximum_still_reads_back", 905);
-  run_test(test_g_at_two_to_the_sixty_four, "test_g_at_two_to_the_sixty_four", 916);
-  run_test(test_g_is_exact_at_every_precision_it_can_carry, "test_g_is_exact_at_every_precision_it_can_carry", 925);
-  run_test(test_g_of_the_smallest_normal_double, "test_g_of_the_smallest_normal_double", 944);
+  run_test(test_verba_header_is_self_contained, "test_verba_header_is_self_contained", 146);
+  run_test(test_put_and_put_n, "test_put_and_put_n", 151);
+  run_test(test_put_of_nothing, "test_put_of_nothing", 159);
+  run_test(test_ch, "test_ch", 167);
+  run_test(test_unsigned_decimal_matches_printf, "test_unsigned_decimal_matches_printf", 177);
+  run_test(test_u32_matches_printf, "test_u32_matches_printf", 190);
+  run_test(test_signed_decimal_matches_printf, "test_signed_decimal_matches_printf", 201);
+  run_test(test_hex_matches_printf, "test_hex_matches_printf", 214);
+  run_test(test_hex_zero_pads_like_printf, "test_hex_zero_pads_like_printf", 226);
+  run_test(test_u32w_zero_pads_like_printf, "test_u32w_zero_pads_like_printf", 236);
+  run_test(test_uint_in_every_base, "test_uint_in_every_base", 246);
+  run_test(test_u64_clip_pads_to_a_column, "test_u64_clip_pads_to_a_column", 265);
+  run_test(test_put_clip_truncates_instead_of_latching, "test_put_clip_truncates_instead_of_latching", 280);
+  run_test(test_json_wraps_and_escapes, "test_json_wraps_and_escapes", 289);
+  run_test(test_json_escapes_control_bytes, "test_json_escapes_control_bytes", 296);
+  run_test(test_json_of_null_is_an_empty_string, "test_json_of_null_is_an_empty_string", 308);
+  run_test(test_xml_escapes_its_five, "test_xml_escapes_its_five", 315);
+  run_test(test_xml_passes_ordinary_text_through, "test_xml_passes_ordinary_text_through", 322);
+  run_test(test_float_predicates, "test_float_predicates", 329);
+  run_test(test_fixed_matches_printf, "test_fixed_matches_printf", 348);
+  run_test(test_fixed_rounds_a_tie_up, "test_fixed_rounds_a_tie_up", 363);
+  run_test(test_fixed_is_exact_below_a_64_bit_shift, "test_fixed_is_exact_below_a_64_bit_shift", 406);
+  run_test(test_g_rounds_a_tie, "test_g_rounds_a_tie", 439);
+  run_test(test_g_matches_printf, "test_g_matches_printf", 458);
+  run_test(test_g_and_fixed_of_the_specials, "test_g_and_fixed_of_the_specials", 473);
+  run_test(test_overflow_latches_and_finish_reports_it, "test_overflow_latches_and_finish_reports_it", 499);
+  run_test(test_writes_after_overflow_are_ignored, "test_writes_after_overflow_are_ignored", 507);
+  run_test(test_each_entry_can_overflow_on_its_own, "test_each_entry_can_overflow_on_its_own", 523);
+  run_test(test_a_zero_capacity_builder_cannot_write, "test_a_zero_capacity_builder_cannot_write", 546);
+  run_test(test_the_literal_helper, "test_the_literal_helper", 553);
+  run_test(test_namespace_is_wired, "test_namespace_is_wired", 560);
+  run_test(test_the_clipping_entries_stay_quiet_after_overflow, "test_the_clipping_entries_stay_quiet_after_overflow", 569);
+  run_test(test_put_clip_of_null_writes_nothing, "test_put_clip_of_null_writes_nothing", 583);
+  run_test(test_put_clip_with_no_room_left_writes_nothing, "test_put_clip_with_no_room_left_writes_nothing", 590);
+  run_test(test_u64_clip_that_does_not_fit_writes_nothing, "test_u64_clip_that_does_not_fit_writes_nothing", 602);
+  run_test(test_xml_of_null_writes_nothing, "test_xml_of_null_writes_nothing", 609);
+  run_test(test_fixed_of_nan, "test_fixed_of_nan", 615);
+  run_test(test_fixed_of_the_infinities, "test_fixed_of_the_infinities", 622);
+  run_test(test_fixed_of_a_value_too_large_for_the_integer_path, "test_fixed_of_a_value_too_large_for_the_integer_path", 634);
+  run_test(test_fixed_of_a_value_with_no_fraction_left, "test_fixed_of_a_value_with_no_fraction_left", 644);
+  run_test(test_fixed_clamps_its_decimals, "test_fixed_clamps_its_decimals", 650);
+  run_test(test_fixed_carries_a_fraction_that_rounds_to_one, "test_fixed_carries_a_fraction_that_rounds_to_one", 660);
+  run_test(test_fixed_of_negative_zero, "test_fixed_of_negative_zero", 666);
+  run_test(test_g_of_nan, "test_g_of_nan", 673);
+  run_test(test_g_of_zero, "test_g_of_zero", 680);
+  run_test(test_g_of_a_very_small_value, "test_g_of_a_very_small_value", 687);
+  run_test(test_g_of_a_very_large_value, "test_g_of_a_very_large_value", 694);
+  run_test(test_g_of_one_significant_digit, "test_g_of_one_significant_digit", 701);
+  run_test(test_g_of_zero_significant_digits_is_one, "test_g_of_zero_significant_digits_is_one", 709);
+  run_test(test_json_escapes_the_two_character_forms, "test_json_escapes_the_two_character_forms", 722);
+  run_test(test_json_escapes_the_named_control_bytes, "test_json_escapes_the_named_control_bytes", 729);
+  run_test(test_json_escapes_an_unnamed_control_byte_as_a_code_point, "test_json_escapes_an_unnamed_control_byte_as_a_code_point", 738);
+  run_test(test_json_overflows_on_each_escape_form, "test_json_overflows_on_each_escape_form", 746);
+  run_test(test_finish_of_a_zero_capacity_builder_reports_nothing, "test_finish_of_a_zero_capacity_builder_reports_nothing", 761);
+  run_test(test_g_over_every_precision, "test_g_over_every_precision", 767);
+  run_test(test_g_of_a_subnormal, "test_g_of_a_subnormal", 790);
+  run_test(test_g_of_the_largest_finite_double, "test_g_of_the_largest_finite_double", 800);
+  run_test(test_is_inf_says_no_to_a_nan, "test_is_inf_says_no_to_a_nan", 808);
+  run_test(test_fixed_over_every_decimal_count, "test_fixed_over_every_decimal_count", 815);
+  run_test(test_fixed_of_a_fraction_that_lands_on_a_tie, "test_fixed_of_a_fraction_that_lands_on_a_tie", 834);
+  run_test(test_g_where_the_exponent_estimate_overshoots, "test_g_where_the_exponent_estimate_overshoots", 850);
+  run_test(test_g_clamps_its_digit_count, "test_g_clamps_its_digit_count", 895);
+  run_test(test_g_at_its_maximum_still_reads_back, "test_g_at_its_maximum_still_reads_back", 911);
+  run_test(test_g_at_two_to_the_sixty_four, "test_g_at_two_to_the_sixty_four", 922);
+  run_test(test_g_is_exact_at_every_precision_it_can_carry, "test_g_is_exact_at_every_precision_it_can_carry", 931);
+  run_test(test_g_of_the_smallest_normal_double, "test_g_of_the_smallest_normal_double", 950);
 
   return UNITY_END();
 }

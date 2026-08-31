@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file locus_carcerum.h
@@ -7,12 +10,13 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note LocusCarcerum() emits the storage, its alignment, each cellblock's state, and the warden that
- *       holds them and that every call goes through, all as initialized data. Nothing runs at startup.
- *       A configuration the asserts reject fails the build.
- * @note Each cellblock gets its own aligned array, named after the prison site and the cellblock,
- *       and its CarcerCellBlock record holds that array's address. The linker resolves it, so no
- *       call computes a cellblock's address from a site and an index.
+ * @note LocusCarcerum() emits each cellblock's state and the warden that holds them and that every
+ *       call goes through, all as initialized data. Nothing runs at startup. A configuration the
+ *       asserts reject fails the build.
+ * @note The storage is the caller's. A cellblock is declared over a pool - ParsMemoriaeInternae or
+ *       ParsMemoriaeExternum in mmgr.h - and its CarcerCellBlock record holds that pool's address.
+ *       The linker resolves it, so no call computes a cellblock's address from a site and an index,
+ *       and which memory a cellblock sits in was settled where its pool was declared.
  * @note A cellblock has two tiers. The persistent tier runs up from base and the temporary tier runs
  *       down from size, and a CarcerTier names the extent of one of them.
  * @note A cellblock's declaration picks its security level. MMGR_MINIMUM_SECURITY leaves a cell's
@@ -24,9 +28,9 @@
 #ifndef MMGR_LOCUS_CARCERUM_H
 #define MMGR_LOCUS_CARCERUM_H
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief Set to 1 to track each tier's high-water mark.
@@ -56,7 +60,7 @@ MMGR_INCIPE_DECLS
  * @note LocusCarcerum() puts this alignment on the storage it declares, so what this rounds is only
  *       running offsets inside a cellblock.
  */
-#define MMGR_CARCER_ALIGN ((size_t)sizeof(mmgr_word))
+#define MMGR_CARCER_ALIGN ((size_t)sizeof(embed_word))
 
 /**
  * @brief Asserts MMGR_CARCER_ALIGN is a power of two.
@@ -64,22 +68,8 @@ MMGR_INCIPE_DECLS
  * @note An offset is rounded by masking off its low bits, which lands on a multiple only for a power
  *       of two. carcer_round and CARCER_HDR in locus_carcerum.c both round that way.
  */
-MMGR_STATIC_ASSERT((MMGR_CARCER_ALIGN & (MMGR_CARCER_ALIGN - 1u)) == 0u,
-                   "the cellblock rounds offsets by masking, which needs a power of two alignment");
-
-/**
- * @brief Asserts the configured ceiling leaves room for one cell.
- *
- * @note MMGR_CARCER_BODY holds every cellblock at two words or more and at MMGR_CARCER_MAX or less. A
- *       ceiling below two words leaves no size that meets both, so a site would fail on a pair of
- *       asserts that each read as correct on their own and neither of which names the ceiling. This
- *       one catches that configuration where it is made rather than where it is first used.
- * @note Sized against the word rather than a number, so a build at another width gets the floor that
- *       width needs. On a 64-bit word it is 16 bytes.
- */
-MMGR_STATIC_ASSERT(MMGR_CARCER_MAX >= (2u * MMGR_CARCER_ALIGN),
-                   "MMGR_CARCER_MAX is under two machine words, so no cellblock size can satisfy both bounds - "
-                   "raise MMGR_PLAINTEXT_CONFIN_SIZE or MMGR_SECURE_CONFIN_SIZE");
+EMBED_STATIC_ASSERT((MMGR_CARCER_ALIGN & (MMGR_CARCER_ALIGN - 1u)) == 0u,
+                    "the cellblock rounds offsets by masking, which needs a power of two alignment");
 
 /**
  * @brief One cellblock's state: its bytes and the two tiers that grow toward each other.
@@ -105,7 +95,8 @@ typedef struct
 /**
  * @brief The minimum security guard over one cellblock: a released cell keeps whatever is in it.
  *
- * @note MMGR_NS_LAYOUT asserts the eight members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the eight members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note Every entry is bound to the cellblock its declaration named, so no call carries a cellblock
  *       argument and there is nothing to pass wrongly. A cellblock at this level has no zeroing
  *       release. The difference between the two levels is what exists, not what a caller remembers
@@ -119,16 +110,17 @@ typedef struct
     size_t (*temporary_buf_mark)(void);             /**< The current top, for temporary_buf_release. */
     void (*temporary_buf_release)(size_t mark);     /**< Restores the top a mark reported, zeroing nothing. */
     void (*temporary_buf_reset)(void);              /**< Releases the whole temporary tier at once. */
-    mmgr_bool (*who_owns_buf)(const void *at);      /**< Whether at lies in this cellblock's bytes [BORROWS]. */
+    embed_bool (*who_owns_buf)(const void *at);     /**< Whether at lies in this cellblock's bytes [BORROWS]. */
     size_t (*buf_available)(void);                  /**< Bytes between the two tiers. */
 } MinimumSecurityGuard;
-MMGR_NS_LAYOUT(MinimumSecurityGuard, persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc,
-               temporary_buf_mark, temporary_buf_release, temporary_buf_reset, who_owns_buf, buf_available);
+EMBED_TABLE_LAYOUT(MinimumSecurityGuard, persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc,
+                   temporary_buf_mark, temporary_buf_release, temporary_buf_reset, who_owns_buf, buf_available);
 
 /**
  * @brief The maximum security guard over one cellblock: every release zeroes the cell first.
  *
- * @note MMGR_NS_LAYOUT asserts the eight members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the eight members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note The same eight entries, and no unzeroed release among them. Each zeroing runs before the
  *       boundary moves, so the bytes are zero at the instant they become available. Where the
  *       zeroing is skipped and the boundary still moves, mmgr_max_security_buf_return carries it in
@@ -142,39 +134,41 @@ typedef struct
     size_t (*temporary_buf_mark)(void);             /**< The current top, for temporary_buf_release. */
     void (*temporary_buf_release)(size_t mark);     /**< Zeroes back to the mark, then restores the top. */
     void (*temporary_buf_reset)(void);              /**< Zeroes the whole temporary tier, then releases it. */
-    mmgr_bool (*who_owns_buf)(const void *at);      /**< Whether at lies in this cellblock's bytes [BORROWS]. */
+    embed_bool (*who_owns_buf)(const void *at);     /**< Whether at lies in this cellblock's bytes [BORROWS]. */
     size_t (*buf_available)(void);                  /**< Bytes between the two tiers. */
 } MaximumSecurityGuard;
-MMGR_NS_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc,
-               temporary_buf_mark, temporary_buf_release, temporary_buf_reset, who_owns_buf, buf_available);
+EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc,
+                   temporary_buf_mark, temporary_buf_release, temporary_buf_reset, who_owns_buf, buf_available);
 
 /**
  * @brief Everything one cellblock is: its bytes, its state, and the entries bound to it.
  *
  * @param[in] prisonsite_ Site the cellblock is built at, which every emitted symbol carries.
  * @param[in] type_       MinimumSecurityGuard or MaximumSecurityGuard, read by MMGR_CARCER_MEM.
- * @param[in] name_       Name the cellblock is reached by, as a member of its site.
- * @param[in] row_        Bytes in the cellblock.
+ * @param[in] name_       Pool the cellblock is built over, which is also the name it is reached by
+ *                        as a member of its site [BORROWS].
  * @param[in] wipe_to_zero_on_release_ 1 where a release zeroes the cell first, 0 where it does not.
  * @note The site name is part of every symbol, so two sites may each hold a cellblock of the same
  *       name, at different security levels, without colliding.
  * @note wipe_to_zero_on_release_ is a literal, so the branch it guards folds away and the security
  *       level costs nothing to read.
- * @warning A cellblock whose size is not a power of two, is too small to hold one cell, or is larger
- *          than MMGR_CARCER_MAX, fails the build. The asserts sit here because this is the one place
- *          a size is stated. A bad size is the one mistake the language would otherwise accept. A
- *          wrong name or guard type fails on its own, and two cellblocks are separate objects, so
- *          they cannot share an address and there is no overlap to check.
+ * @note The extent comes from the pool two ways. name_##_bytes is the count its declaration was
+ *       handed and is what the record carries, and sizeof is what the compiler laid down. The
+ *       asserts test the second, so they say something the first cannot say about itself.
+ * @warning A pool whose size is not a power of two, or is too small to hold one cell, fails the
+ *          build. A bad size is the one mistake the language would otherwise accept. A wrong name or
+ *          guard type fails on its own, and two pools are separate objects, so they cannot share an
+ *          address and there is no overlap to check.
+ * @note No upper bound. The pool states how much storage the cellblock gets, and nothing in the
+ *       library sizes anything from a ceiling over it.
  */
-#define MMGR_CARCER_BODY(prisonsite_, type_, name_, row_, wipe_to_zero_on_release_)                                    \
-    MMGR_STATIC_ASSERT(((row_) & ((row_) - 1u)) == 0u, #prisonsite_ "." #name_ " is not a power of two");              \
-    MMGR_STATIC_ASSERT((row_) >= (2u * MMGR_CARCER_ALIGN), #prisonsite_ "." #name_ " is too small for one cell");      \
-    MMGR_STATIC_ASSERT((row_) <= MMGR_CARCER_MAX,                                                                      \
-                       #prisonsite_ "." #name_ " is larger than MMGR_CARCER_MAX, which sizes "                         \
-                                    "verbum_scrutor's worst-case scan and MMGR_STR_MAX - raise "                       \
-                                    "MMGR_PLAINTEXT_CONFIN_SIZE or MMGR_SECURE_CONFIN_SIZE to cover it");              \
-    MMGR_ALIGN(MMGR_CARCER_ALIGN) static uint8_t prisonsite_##_##name_##_bytes[row_];                                  \
-    static CarcerCellBlock prisonsite_##_##name_##_ctx = {prisonsite_##_##name_##_bytes, (row_), 0u, (row_)};          \
+#define MMGR_CARCER_BODY(prisonsite_, type_, name_, wipe_to_zero_on_release_)                                          \
+    MMGR_PARS_CLAIMED_ONCE(name_);                                                                                     \
+    EMBED_STATIC_ASSERT((sizeof(mmgr_pars_storage_##name_) & (sizeof(mmgr_pars_storage_##name_) - 1u)) == 0u,          \
+                        #prisonsite_ "." #name_ " is not a power of two");                                             \
+    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) >= (2u * MMGR_CARCER_ALIGN),                                 \
+                        #prisonsite_ "." #name_ " is too small for one cell");                                         \
+    static CarcerCellBlock prisonsite_##_##name_##_ctx = {mmgr_pars_storage_##name_, name_##_bytes, 0u, name_##_bytes}; \
     static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size)                                             \
     {                                                                                                                  \
         return mmgr_persistent_buf_alloc(&prisonsite_##_##name_##_ctx, size);                                          \
@@ -213,7 +207,7 @@ MMGR_NS_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_releas
     {                                                                                                                  \
         prisonsite_##_##name_##_temporary_buf_release(prisonsite_##_##name_##_ctx.size);                               \
     }                                                                                                                  \
-    static mmgr_bool prisonsite_##_##name_##_who_owns_buf(const void *at)                                              \
+    static embed_bool prisonsite_##_##name_##_who_owns_buf(const void *at)                                             \
     {                                                                                                                  \
         return mmgr_who_owns_buf(&prisonsite_##_##name_##_ctx, at);                                                    \
     }                                                                                                                  \
@@ -227,52 +221,54 @@ MMGR_NS_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_releas
  *
  * @param[in] prisonsite_ Site the cellblock is built at, unused here.
  * @param[in] type_       MinimumSecurityGuard or MaximumSecurityGuard, the member's type.
- * @param[in] name_       Name the member is given.
- * @param[in] row_        Bytes in the cellblock, unused here.
+ * @param[in] name_       Pool the cellblock is built over, which is the name the member is given.
  * @param[in] wipe_to_zero_on_release_ Security flag, unused here.
- * @note Takes all five because the three readers share one tuple shape, as MMGR_MINIMUM_SECURITY
+ * @note Takes all four because the three readers share one tuple shape, as MMGR_MINIMUM_SECURITY
  *       describes.
  */
-#define MMGR_CARCER_MEM(prisonsite_, type_, name_, row_, wipe_to_zero_on_release_) type_ name_;
+#define MMGR_CARCER_MEM(prisonsite_, type_, name_, wipe_to_zero_on_release_) type_ name_;
 
 /**
  * @brief One cellblock's entries, in the order its guard declares them.
  *
  * @param[in] prisonsite_ Site whose name every entry symbol carries.
  * @param[in] type_       Guard type, unused here.
- * @param[in] name_       Cellblock whose name the symbols carry alongside the site's.
- * @param[in] row_        Bytes in the cellblock, unused here.
+ * @param[in] name_       Pool whose name the symbols carry alongside the site's.
  * @param[in] wipe_to_zero_on_release_ Security flag, unused here.
  * @note MinimumSecurityGuard and MaximumSecurityGuard declare the same eight members in the same
  *       order, so one initializer serves either level.
  */
-#define MMGR_CARCER_SEAT(prisonsite_, type_, name_, row_, wipe_to_zero_on_release_)                                    \
+#define MMGR_CARCER_SEAT(prisonsite_, type_, name_, wipe_to_zero_on_release_)                                          \
     {prisonsite_##_##name_##_persistent_buf_alloc,  prisonsite_##_##name_##_persistent_buf_release,                    \
      prisonsite_##_##name_##_temporary_buf_alloc,   prisonsite_##_##name_##_temporary_buf_mark,                        \
      prisonsite_##_##name_##_temporary_buf_release, prisonsite_##_##name_##_temporary_buf_reset,                       \
      prisonsite_##_##name_##_who_owns_buf,          prisonsite_##_##name_##_buf_available},
 
 /**
- * @brief Declares a minimum security cellblock, by name and size.
+ * @brief Declares a minimum security cellblock over a pool.
  *
- * @param[in] name_ Name the cellblock is reached by, as a member of its site.
- * @param[in] row_  Bytes in it.
+ * @param[in] name_ Pool the cellblock is built over, which is also the name it is reached by as a
+ *                  member of its site [BORROWS].
+ * @note The pool carries its own extent, so no size is written here. A cellblock is a dressing over
+ *       bytes that already exist, and where those bytes live was settled by which of
+ *       ParsMemoriaeInternae or ParsMemoriaeExternum declared them.
  * @note Expands to a tuple rather than to code. The site reads the same list three times, once for
  *       the cellblocks' bodies, once for its own members, once for their entries. An element has to
  *       stay data until the site says which of the three it is being read as.
  */
-#define MMGR_MINIMUM_SECURITY(name_, row_) (MinimumSecurityGuard, name_, row_, 0)
+#define MMGR_MINIMUM_SECURITY(name_) (MinimumSecurityGuard, name_, 0)
 
 /**
- * @brief Declares a maximum security cellblock, by name and size.
+ * @brief Declares a maximum security cellblock over a pool.
  *
- * @param[in] name_ Name the cellblock is reached by, as a member of its site.
- * @param[in] row_  Bytes in it.
+ * @param[in] name_ Pool the cellblock is built over, which is also the name it is reached by as a
+ *                  member of its site [BORROWS].
  * @note The trailing 1 is the wipe flag MMGR_CARCER_BODY reads to pick the zeroing release on both
  *       tiers. Choosing this over MMGR_MINIMUM_SECURITY is where a cellblock's level is settled, and
  *       nothing after the declaration can change it.
+ * @note Carries no size, for the reason MMGR_MINIMUM_SECURITY gives.
  */
-#define MMGR_MAXIMUM_SECURITY(name_, row_) (MaximumSecurityGuard, name_, row_, 1)
+#define MMGR_MAXIMUM_SECURITY(name_) (MaximumSecurityGuard, name_, 1)
 
 /**
  * @brief Strips a tuple's parentheses.
@@ -445,12 +441,12 @@ MMGR_NS_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_releas
  * @param[in] what_       Reader to apply: MMGR_CARCER_BODY, MMGR_CARCER_MEM or MMGR_CARCER_SEAT.
  * @param[in] prisonsite_ Site, forwarded to the walk ahead of the tuples.
  * @param[in] ...         MMGR_MINIMUM_SECURITY and MMGR_MAXIMUM_SECURITY tuples, one per cellblock.
- * @note MMGR_CAT builds the line's name from MMGR_NARG's count of the tuples.
- * @warning MMGR_NARG gives 1 for an empty list, so a site declaring no cellblocks reaches
+ * @note EMBED_CAT builds the line's name from EMBED_NARG's count of the tuples.
+ * @warning EMBED_NARG gives 1 for an empty list, so a site declaring no cellblocks reaches
  *          MMGR_CARCER_W1 and fails there with too few arguments for the reader.
  */
 #define MMGR_CARCER_WALK(what_, prisonsite_, ...)                                                                      \
-    MMGR_CAT(MMGR_CARCER_W, MMGR_NARG(__VA_ARGS__))(what_, prisonsite_, __VA_ARGS__)
+    EMBED_CAT(MMGR_CARCER_W, EMBED_NARG(__VA_ARGS__))(what_, prisonsite_, __VA_ARGS__)
 
 /**
  * @brief Declares a prison site and the cellblocks built at it.
@@ -471,10 +467,10 @@ MMGR_NS_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_releas
  */
 #define LocusCarcerum(prisonsite_, ...)                                                                                \
     MMGR_CARCER_WALK(MMGR_CARCER_BODY, prisonsite_, __VA_ARGS__)                                                       \
-    MMGR_NS struct                                                                                                     \
+    EMBED_TABLE_STORAGE struct                                                                                         \
     {                                                                                                                  \
         MMGR_CARCER_WALK(MMGR_CARCER_MEM, prisonsite_, __VA_ARGS__)                                                    \
-    } prisonsite_ MMGR_UNUSED = {MMGR_CARCER_WALK(MMGR_CARCER_SEAT, prisonsite_, __VA_ARGS__)}
+    } prisonsite_ EMBED_UNUSED = {MMGR_CARCER_WALK(MMGR_CARCER_SEAT, prisonsite_, __VA_ARGS__)}
 
 /**
  * @brief Takes size bytes from a cellblock's persistent tier.
@@ -602,14 +598,14 @@ void mmgr_temporary_buf_reset(CarcerCellBlock *cellblock);
  *
  * @param[in] cellblock Cellblock to test against [BORROWS].
  * @param[in] at        Address to test [BORROWS].
- * @return              MMGR_TRUE when at lies in the cellblock's storage, which is [base, base + size).
+ * @return              EMBED_TRUE when at lies in the cellblock's storage, which is [base, base + size).
  * @note One unsigned compare covers both ends, since an address below base wraps to a difference
  *       larger than any size.
  * @warning Any address in the cellblock answers true, not only the first byte of a cell. This says
  *          where an address is, not what is there, so a true answer is not a warrant that at may be
  *          released. The releases read a header from whatever address they are handed.
  */
-mmgr_bool mmgr_who_owns_buf(const CarcerCellBlock *cellblock, const void *at);
+embed_bool mmgr_who_owns_buf(const CarcerCellBlock *cellblock, const void *at);
 
 /**
  * @brief The bytes lying between the two tiers.
@@ -649,6 +645,6 @@ void mmgr_zero_buf(void *prisoner, size_t size);
  */
 size_t mmgr_align_up_buf(size_t size);
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

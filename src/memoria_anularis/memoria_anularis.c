@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file memoria_anularis.c
@@ -21,19 +24,19 @@
 /**
  * @brief The attributes that make an access at an arbitrary address legal.
  *
- * @note MMGR_ALIGN(1) relaxes the required alignment to one byte. MMGR_ALIAS permits the type to
+ * @note EMBED_ALIGN(1) relaxes the required alignment to one byte. EMBED_ALIAS permits the type to
  *       alias another.
  * @warning Either half expands to nothing where its attribute is unavailable. ring_move's accesses
  *          are ordinary ones then, which a target that traps unaligned loads will fault on.
  */
-#define RING_RAW MMGR_ALIGN(1) MMGR_ALIAS
+#define RING_RAW EMBED_ALIGN(1) EMBED_ALIAS
 
 /**
- * @brief Bytes the mover steps at a time: 8 at MMGR_WORD_BITS 64 or more, 4 at 32 or more, 2 otherwise.
+ * @brief Bytes the mover steps at a time: 8 at EMBED_WORD_BITS 64 or more, 4 at 32 or more, 2 otherwise.
  */
-#if MMGR_WORD_BITS >= 64
+#if EMBED_WORD_BITS >= 64
 #define RING_STEP 8
-#elif MMGR_WORD_BITS >= 32
+#elif EMBED_WORD_BITS >= 32
 #define RING_STEP 4
 #else
 #define RING_STEP 2
@@ -46,11 +49,11 @@
  *       the build's step width without any of them naming a fixed type.
  */
 #if RING_STEP >= 8
-typedef mmgr_u64 ring_step_word;
+typedef embed_u64 ring_step_word;
 #elif RING_STEP >= 4
-typedef mmgr_u32 ring_step_word;
+typedef embed_u32 ring_step_word;
 #else
-typedef mmgr_u16 ring_step_word;
+typedef embed_u16 ring_step_word;
 #endif
 
 /**
@@ -68,7 +71,7 @@ typedef ring_step_word ring_raw_word RING_RAW;
  *       that would reach past what the caller gave.
  * @note Reached only at a RING_STEP of 8. A narrower step never leaves four bytes standing.
  */
-typedef mmgr_u32 ring_raw_u32 RING_RAW;
+typedef embed_u32 ring_raw_u32 RING_RAW;
 
 /**
  * @brief The unaligned view below it, two bytes wide.
@@ -77,7 +80,7 @@ typedef mmgr_u32 ring_raw_u32 RING_RAW;
  * @note The byte rung under this one needs no view of its own, since a byte carries no alignment to
  *       relax and already aliases anything.
  */
-typedef mmgr_u16 ring_raw_u16 RING_RAW;
+typedef embed_u16 ring_raw_u16 RING_RAW;
 
 /**
  * @brief Builds the mask of the lowest bit_count_ bits of type Type_.
@@ -168,7 +171,7 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  *       read.
  * @warning The two regions must not overlap.
  */
-MMGR_INLINE void ring_move(uint8_t *dst, const uint8_t *src, size_t bytes)
+EMBED_INLINE void ring_move(uint8_t *dst, const uint8_t *src, size_t bytes)
 {
     // Explicit casts put the step at size_t, holding the divide and the multiply in the type bytes
     // arrives in rather than the int RING_STEP expands to
@@ -225,51 +228,51 @@ MMGR_INLINE void ring_move(uint8_t *dst, const uint8_t *src, size_t bytes)
  *
  * @note Multiplying a per-octet count by this sums every octet into the top one.
  */
-#define RING_ONES ((mmgr_word)(((mmgr_word) ~(mmgr_word)0) / 0xFFu))
+#define RING_ONES ((embed_word)(((embed_word) ~(embed_word)0) / 0xFFu))
 
 /**
  * @brief A word holding 0x55 in every octet, which pairs the bits for the first fold.
  */
-#define RING_PAIRS ((mmgr_word)(((mmgr_word) ~(mmgr_word)0) / 3u))
+#define RING_PAIRS ((embed_word)(((embed_word) ~(embed_word)0) / 3u))
 
 /**
  * @brief A word holding 0x33 in every octet, which pairs the counts for the second fold.
  */
-#define RING_QUADS ((mmgr_word)(((mmgr_word) ~(mmgr_word)0) / 5u))
+#define RING_QUADS ((embed_word)(((embed_word) ~(embed_word)0) / 5u))
 
 /**
  * @brief A word holding 0x0F in every octet, which holds each octet's count after the third fold.
  */
-#define RING_OCTETS ((mmgr_word)(((mmgr_word) ~(mmgr_word)0) / 17u))
+#define RING_OCTETS ((embed_word)(((embed_word) ~(embed_word)0) / 17u))
 
 /**
  * @brief Counts the zero bits below the lowest set bit of mask.
  *
  * @param[in] mask Value to measure.
- * @return         Trailing zero count, 0 through MMGR_WORD_BITS.
+ * @return         Trailing zero count, 0 through EMBED_WORD_BITS.
  * @note Isolating the lowest set bit and taking one off leaves exactly that many bits set, so the
  *       trailing zero count is a population count.
  * @note The count folds in place a lane at a time, then one multiply sums every octet into the top
  *       one, which the final shift reads out. Every constant is derived from the word, so the same
  *       four steps run at any width.
  * @note No step branches on the value.
- * @warning A mask of 0 returns MMGR_WORD_BITS. anular_loculus_next, the one caller, tests for an
+ * @warning A mask of 0 returns EMBED_WORD_BITS. anular_loculus_next, the one caller, tests for an
  *          empty mask first.
  */
-MMGR_INLINE mmgr_iword ring_trail(mmgr_word mask)
+EMBED_INLINE embed_iword ring_trail(embed_word mask)
 {
     // Explicit casts hold the two's complement negation, the one taken off and the subtraction all at
-    // mmgr_word. The first isolates the lowest set bit, and taking one off it leaves the trailing
+    // embed_word. The first isolates the lowest set bit, and taking one off it leaves the trailing
     // zeros standing as set bits
-    mmgr_word folded = (mmgr_word)((mask & (mmgr_word)(0u - mask)) - (mmgr_word)1);
+    embed_word folded = (embed_word)((mask & (embed_word)(0u - mask)) - (embed_word)1);
 
-    // Explicit casts hold each fold at mmgr_word: pairs, then quads, then whole octets
-    folded = (mmgr_word)(folded - ((folded >> 1) & RING_PAIRS));
-    folded = (mmgr_word)((folded & RING_QUADS) + ((folded >> 2) & RING_QUADS));
-    folded = (mmgr_word)((folded + (folded >> 4)) & RING_OCTETS);
-    // Explicit casts hold the summing multiply at mmgr_word, then take the top octet it lands the
-    // whole count in into the mmgr_iword this returns
-    return (mmgr_iword)((mmgr_word)(folded * RING_ONES) >> (MMGR_WORD_BITS - 8u));
+    // Explicit casts hold each fold at embed_word: pairs, then quads, then whole octets
+    folded = (embed_word)(folded - ((folded >> 1) & RING_PAIRS));
+    folded = (embed_word)((folded & RING_QUADS) + ((folded >> 2) & RING_QUADS));
+    folded = (embed_word)((folded + (folded >> 4)) & RING_OCTETS);
+    // Explicit casts hold the summing multiply at embed_word, then take the top octet it lands the
+    // whole count in into the embed_iword this returns
+    return (embed_iword)((embed_word)(folded * RING_ONES) >> (EMBED_WORD_BITS - 8u));
 }
 
 /**
@@ -297,16 +300,16 @@ MMGR_INLINE mmgr_iword ring_trail(mmgr_word mask)
  */
 typedef struct
 {
-    uint8_t *buf;             /**< Ring bytes [BORROWS]. */
-    size_t capacity;          /**< Bytes at buf, always a power of two. */
-    size_t segment_count;     /**< Segments the ring is divided into, a power of two. */
-    size_t segment_bytes;     /**< Bytes per segment, capacity divided by segment_count. */
-    _Atomic size_t head;      /**< Write position, advanced by the producer. */
-    _Atomic size_t tail;      /**< Read position, advanced by the consumer. */
-    _Atomic size_t claimed;   /**< Segments the producer has filled, counting up. */
-    _Atomic size_t released;  /**< Segments the consumer has released, counting up. */
-    _Atomic mmgr_word gratis; /**< One bit per loculus, set while that loculus is free to take. */
-    _Atomic mmgr_word held;   /**< One bit per loculus, set while it still owns bytes in flight. */
+    uint8_t *buf;              /**< Ring bytes [BORROWS]. */
+    size_t capacity;           /**< Bytes at buf, always a power of two. */
+    size_t segment_count;      /**< Segments the ring is divided into, a power of two. */
+    size_t segment_bytes;      /**< Bytes per segment, capacity divided by segment_count. */
+    _Atomic size_t head;       /**< Write position, advanced by the producer. */
+    _Atomic size_t tail;       /**< Read position, advanced by the consumer. */
+    _Atomic size_t claimed;    /**< Segments the producer has filled, counting up. */
+    _Atomic size_t released;   /**< Segments the consumer has released, counting up. */
+    _Atomic embed_word gratis; /**< One bit per loculus, set while that loculus is free to take. */
+    _Atomic embed_word held;   /**< One bit per loculus, set while it still owns bytes in flight. */
     /**
      * @brief Region each held loculus keeps out, recorded at the hold.
      *
@@ -319,13 +322,13 @@ typedef struct
     mmgr_ring_span keepout[(MMGR_RING_LOCULI > 0u) ? MMGR_RING_LOCULI : 1u];
 } RingState;
 
-MMGR_STATIC_ASSERT(sizeof(RingState) <= sizeof(mmgr_ring),
-                   "MMGR_RING_WORDS is short: a consumer cannot declare room for the ring");
+EMBED_STATIC_ASSERT(sizeof(RingState) <= sizeof(mmgr_ring),
+                    "MMGR_RING_WORDS is short: a consumer cannot declare room for the ring");
 
 /**
  * @brief Arguments for every backend in this file, grouped by the calls that read them.
  *
- * @note Each backend reads one group. MMGR_CALL zeroes the members it is not given.
+ * @note Each backend reads one group. EMBED_CALL zeroes the members it is not given.
  * @note Not a mirror of AnularisCfg. RING_S turns that type's ring into the state pointer here, and its
  *       buf, capacity and segment_count have no counterpart, since mmgr_anular_init is written by
  *       hand and reads AnularisCfg without building one of these.
@@ -338,7 +341,7 @@ typedef struct
     size_t bytes;       /**< Byte count the call moves or records. */
     size_t offset;      /**< Offset ahead of the tail that peek starts at. */
     size_t index;       /**< Loculus or segment the call acts on. */
-    mmgr_word mask;     /**< Mask loculus_next picks the lowest set bit of. */
+    embed_word mask;    /**< Mask loculus_next picks the lowest set bit of. */
     size_t *out_index;  /**< Segment index seg_next and seg_front write into [BORROWS]. */
 } AnularisCtx;
 
@@ -348,12 +351,12 @@ typedef struct
  * @param[in] ring Ring storage the caller declared [BORROWS].
  * @return         The state laid into it [BORROWS].
  * @note The cast goes through void *. mmgr_ring aligns opaque to size_t.
- * @warning The state is only valid after mmgr_anular_init has returned MMGR_TRUE for this ring.
+ * @warning The state is only valid after mmgr_anular_init has returned EMBED_TRUE for this ring.
  * @warning That alignment is size_t and no more, so the cast holds only while no member of RingState
  *          needs a stricter one. The assertion below the type checks its size, and nothing checks
  *          this.
  */
-MMGR_INLINE RingState *ring_of(mmgr_ring *ring)
+EMBED_INLINE RingState *ring_of(mmgr_ring *ring)
 {
     return (RingState *)(void *)ring->opaque;
 }
@@ -366,19 +369,19 @@ MMGR_INLINE RingState *ring_of(mmgr_ring *ring)
  * @note The bound is here rather than at each call site, so a shift past the word never happens.
  * @note An out-of-range loculus names nothing, so it reads as held and is never handed out.
  */
-MMGR_INLINE mmgr_word ring_loculus_bit(size_t index)
+EMBED_INLINE embed_word ring_loculus_bit(size_t index)
 {
 #if MMGR_RING_LOCULI == 0u
     // A build with no loculi names none, so the bound below would compare against zero and always hold
     (void)index;
-    return (mmgr_word)0;
+    return (embed_word)0;
 #else
     if (index >= (size_t)MMGR_RING_LOCULI)
     {
-        return (mmgr_word)0;
+        return (embed_word)0;
     }
-    // Explicit casts build the loculus bit at mmgr_word width, matching the masks it is tested against
-    return (mmgr_word)((mmgr_word)1 << index);
+    // Explicit casts build the loculus bit at embed_word width, matching the masks it is tested against
+    return (embed_word)((embed_word)1 << index);
 #endif
 }
 
@@ -388,11 +391,11 @@ MMGR_INLINE mmgr_word ring_loculus_bit(size_t index)
  * @return The mask.
  * @note Full width when the loculus count fills the word, which is the case a shift could not build.
  */
-MMGR_INLINE mmgr_word ring_loculus_all(void)
+EMBED_INLINE embed_word ring_loculus_all(void)
 {
     // Explicit casts put the declared count and the ceiling at size_t, the one type RING_LOW_MASK
     // compares them in
-    return RING_LOW_MASK(mmgr_word, (size_t)MMGR_RING_LOCULI, (size_t)MMGR_RING_LOCULI_MAX);
+    return RING_LOW_MASK(embed_word, (size_t)MMGR_RING_LOCULI, (size_t)MMGR_RING_LOCULI_MAX);
 }
 
 /**
@@ -419,7 +422,7 @@ typedef struct
  *          the buffer. What holds it instead is that every cursor reaching here is one the ring
  *          keeps wrapped.
  */
-MMGR_INLINE RingRun ring_run(const RingState *state, size_t offset, size_t wanted)
+EMBED_INLINE RingRun ring_run(const RingState *state, size_t offset, size_t wanted)
 {
     const size_t bytes = (wanted > state->capacity) ? state->capacity : wanted;
     const size_t room = state->capacity - offset;
@@ -447,7 +450,7 @@ MMGR_INLINE RingRun ring_run(const RingState *state, size_t offset, size_t wante
  *          lie inside the ring's own bytes, which is the non-overlap ring_move requires. Neither is
  *          checked.
  */
-MMGR_INLINE size_t ring_move_out(RingState *state, size_t offset, uint8_t *dst, size_t wanted)
+EMBED_INLINE size_t ring_move_out(RingState *state, size_t offset, uint8_t *dst, size_t wanted)
 {
     const RingRun run = ring_run(state, offset, wanted);
     size_t done = 0u;
@@ -478,7 +481,7 @@ MMGR_INLINE size_t ring_move_out(RingState *state, size_t offset, uint8_t *dst, 
  *          lie inside the ring's own bytes, which is the non-overlap ring_move requires. Neither is
  *          checked.
  */
-MMGR_INLINE size_t ring_move_in(RingState *state, size_t offset, const uint8_t *src, size_t wanted)
+EMBED_INLINE size_t ring_move_in(RingState *state, size_t offset, const uint8_t *src, size_t wanted)
 {
     const RingRun run = ring_run(state, offset, wanted);
     size_t done = 0u;
@@ -506,7 +509,7 @@ MMGR_INLINE size_t ring_move_in(RingState *state, size_t offset, const uint8_t *
  * @note Takes the cursors rather than the ring, so a caller holding one of them from its own load
  *       reaches the same arithmetic without reading it twice.
  */
-MMGR_INLINE size_t ring_used(size_t head, size_t tail, size_t capacity)
+EMBED_INLINE size_t ring_used(size_t head, size_t tail, size_t capacity)
 {
     return MMGR_RING_WRAP(head - tail, capacity);
 }
@@ -520,7 +523,7 @@ MMGR_INLINE size_t ring_used(size_t head, size_t tail, size_t capacity)
  * @return             capacity minus one, minus the readable bytes.
  * @note One byte is withheld so a full ring and an empty one do not share a cursor pair.
  */
-MMGR_INLINE size_t ring_free(size_t head, size_t tail, size_t capacity)
+EMBED_INLINE size_t ring_free(size_t head, size_t tail, size_t capacity)
 {
     return (capacity - 1u) - ring_used(head, tail, capacity);
 }
@@ -533,7 +536,7 @@ MMGR_INLINE size_t ring_free(size_t head, size_t tail, size_t capacity)
  * @warning The head and the tail are read one after the other, so this is only a snapshot. A
  *          producer may add more between the two loads, or after both.
  */
-MMGR_INLINE size_t anular_available(const AnularisCtx *args)
+EMBED_INLINE size_t anular_available(const AnularisCtx *args)
 {
     return ring_used(MMGR_ATOMIC_LOAD(&args->state->head), MMGR_ATOMIC_LOAD(&args->state->tail), args->state->capacity);
 }
@@ -546,7 +549,7 @@ MMGR_INLINE size_t anular_available(const AnularisCtx *args)
  * @warning The head and the tail are read one after the other, so this is only a snapshot. A
  *          consumer may free more between the two loads, or after both.
  */
-MMGR_INLINE size_t anular_vacant(const AnularisCtx *args)
+EMBED_INLINE size_t anular_vacant(const AnularisCtx *args)
 {
     return ring_free(MMGR_ATOMIC_LOAD(&args->state->head), MMGR_ATOMIC_LOAD(&args->state->tail), args->state->capacity);
 }
@@ -555,21 +558,21 @@ MMGR_INLINE size_t anular_vacant(const AnularisCtx *args)
  * @brief Takes one byte from the tail and advances past it.
  *
  * @param[in,out] args Ring and the destination byte [BORROWS].
- * @return             MMGR_TRUE when a byte was taken, MMGR_FALSE when the ring was empty.
- * @note Writes through args->dst only on the MMGR_TRUE path. An empty ring leaves it untouched.
+ * @return             EMBED_TRUE when a byte was taken, EMBED_FALSE when the ring was empty.
+ * @note Writes through args->dst only on the EMBED_TRUE path. An empty ring leaves it untouched.
  * @warning args->dst must be writable for one byte, and nothing here checks it.
  */
-MMGR_INLINE mmgr_bool anular_read_byte(const AnularisCtx *args)
+EMBED_INLINE embed_bool anular_read_byte(const AnularisCtx *args)
 {
     const size_t tail = MMGR_ATOMIC_LOAD(&args->state->tail);
 
     if (tail == MMGR_ATOMIC_LOAD(&args->state->head))
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
     *args->dst = args->state->buf[tail];
     MMGR_ATOMIC_STORE(&args->state->tail, MMGR_RING_WRAP(tail + 1u, args->state->capacity));
-    return MMGR_TRUE;
+    return EMBED_TRUE;
 }
 
 /**
@@ -581,7 +584,7 @@ MMGR_INLINE mmgr_bool anular_read_byte(const AnularisCtx *args)
  * @warning args->dst must be writable for as many bytes as this takes, which is at most
  *          args->bytes, and nothing here checks it.
  */
-MMGR_INLINE size_t anular_read(const AnularisCtx *args)
+EMBED_INLINE size_t anular_read(const AnularisCtx *args)
 {
     const size_t tail = MMGR_ATOMIC_LOAD(&args->state->tail);
     const size_t have = ring_used(MMGR_ATOMIC_LOAD(&args->state->head), tail, args->state->capacity);
@@ -601,7 +604,7 @@ MMGR_INLINE size_t anular_read(const AnularisCtx *args)
  *          no more.
  * @warning args->dst must be writable for the bytes copied, and nothing here checks it.
  */
-MMGR_INLINE void anular_peek(const AnularisCtx *args)
+EMBED_INLINE void anular_peek(const AnularisCtx *args)
 {
     const size_t at = MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&args->state->tail) + args->offset, args->state->capacity);
 
@@ -616,7 +619,7 @@ MMGR_INLINE void anular_peek(const AnularisCtx *args)
  *          tail beyond the head, and anular_available then reports the capacity less the overshoot
  *          rather than nothing.
  */
-MMGR_INLINE void anular_consume(const AnularisCtx *args)
+EMBED_INLINE void anular_consume(const AnularisCtx *args)
 {
     MMGR_ATOMIC_STORE(&args->state->tail,
                       MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&args->state->tail) + args->bytes, args->state->capacity));
@@ -626,20 +629,20 @@ MMGR_INLINE void anular_consume(const AnularisCtx *args)
  * @brief Writes args->bytes of args->src into the ring, or refuses the whole span.
  *
  * @param[in,out] args Ring, the bytes to write and their count [BORROWS].
- * @return             MMGR_TRUE when the span was written, MMGR_FALSE when it would not fit.
+ * @return             EMBED_TRUE when the span was written, EMBED_FALSE when it would not fit.
  * @note The head stays local across the move and is published once, so no half span is visible.
  * @warning args->src must be readable for args->bytes, and nothing here checks it.
  */
-MMGR_INLINE mmgr_bool anular_put(const AnularisCtx *args)
+EMBED_INLINE embed_bool anular_put(const AnularisCtx *args)
 {
     const size_t head = MMGR_ATOMIC_LOAD(&args->state->head);
 
     if (args->bytes > ring_free(head, MMGR_ATOMIC_LOAD(&args->state->tail), args->state->capacity))
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
     MMGR_ATOMIC_STORE(&args->state->head, ring_move_in(args->state, head, args->src, args->bytes));
-    return MMGR_TRUE;
+    return EMBED_TRUE;
 }
 
 /**
@@ -650,7 +653,7 @@ MMGR_INLINE mmgr_bool anular_put(const AnularisCtx *args)
  * @warning The two counters are read one after the other, so the answer is only a snapshot. A
  *          publish or a release may land between the reads, or after both.
  */
-MMGR_INLINE size_t anular_seg_inflight(const AnularisCtx *args)
+EMBED_INLINE size_t anular_seg_inflight(const AnularisCtx *args)
 {
     return MMGR_ATOMIC_LOAD(&args->state->claimed) - MMGR_ATOMIC_LOAD(&args->state->released);
 }
@@ -666,27 +669,27 @@ MMGR_INLINE size_t anular_seg_inflight(const AnularisCtx *args)
  *       for whether a segment exists differs, so each end keeps its own and passes the answer down.
  * @warning args->out_index must be writable whenever have_segment holds, and nothing here checks it.
  */
-MMGR_INLINE mmgr_bool ring_seg_pick(const AnularisCtx *args, size_t cursor, mmgr_bool have_segment)
+EMBED_INLINE embed_bool ring_seg_pick(const AnularisCtx *args, size_t cursor, embed_bool have_segment)
 {
     if (!have_segment)
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
     *args->out_index = cursor & (args->state->segment_count - 1u);
-    return MMGR_TRUE;
+    return EMBED_TRUE;
 }
 
 /**
  * @brief Reports the index of the segment the producer fills next.
  *
  * @param[in,out] args Ring, and where to write the index [BORROWS].
- * @return             MMGR_TRUE with the index in args->out_index, MMGR_FALSE when every segment is
+ * @return             EMBED_TRUE with the index in args->out_index, EMBED_FALSE when every segment is
  *                     in flight.
- * @note Writes through args->out_index only when it returns MMGR_TRUE.
- * @note A MMGR_FALSE can go stale the moment the consumer releases a segment. A MMGR_TRUE cannot,
+ * @note Writes through args->out_index only when it returns EMBED_TRUE.
+ * @note A EMBED_FALSE can go stale the moment the consumer releases a segment. A EMBED_TRUE cannot,
  *       since releases only make room.
  */
-MMGR_INLINE mmgr_bool anular_seg_next(const AnularisCtx *args)
+EMBED_INLINE embed_bool anular_seg_next(const AnularisCtx *args)
 {
     const size_t claimed = MMGR_ATOMIC_LOAD(&args->state->claimed);
 
@@ -701,7 +704,7 @@ MMGR_INLINE mmgr_bool anular_seg_next(const AnularisCtx *args)
  * @note Publishing and releasing are the same step on opposite counters, so both reach this.
  * @note One side owns each counter, so the read and the write need no atomicity between them.
  */
-MMGR_INLINE void ring_bump(_Atomic size_t *counter)
+EMBED_INLINE void ring_bump(_Atomic size_t *counter)
 {
     MMGR_ATOMIC_STORE(counter, MMGR_ATOMIC_LOAD(counter) + 1u);
 }
@@ -716,7 +719,7 @@ MMGR_INLINE void ring_bump(_Atomic size_t *counter)
  *          anular_seg_next puts more in flight than the ring holds, and that call then refuses until
  *          releases catch up.
  */
-MMGR_INLINE void anular_seg_publish(const AnularisCtx *args)
+EMBED_INLINE void anular_seg_publish(const AnularisCtx *args)
 {
     ring_bump(&args->state->claimed);
 }
@@ -725,13 +728,13 @@ MMGR_INLINE void anular_seg_publish(const AnularisCtx *args)
  * @brief Reports the index of the segment the consumer takes next.
  *
  * @param[in,out] args Ring, and where to write the index [BORROWS].
- * @return             MMGR_TRUE with the index in args->out_index, MMGR_FALSE when none is in
+ * @return             EMBED_TRUE with the index in args->out_index, EMBED_FALSE when none is in
  *                     flight.
- * @note Writes through args->out_index only when it returns MMGR_TRUE.
- * @note A MMGR_FALSE can go stale the moment the producer publishes a segment. A MMGR_TRUE cannot,
+ * @note Writes through args->out_index only when it returns EMBED_TRUE.
+ * @note A EMBED_FALSE can go stale the moment the producer publishes a segment. A EMBED_TRUE cannot,
  *       since publishes only add.
  */
-MMGR_INLINE mmgr_bool anular_seg_front(const AnularisCtx *args)
+EMBED_INLINE embed_bool anular_seg_front(const AnularisCtx *args)
 {
     const size_t released = MMGR_ATOMIC_LOAD(&args->state->released);
 
@@ -748,7 +751,7 @@ MMGR_INLINE mmgr_bool anular_seg_front(const AnularisCtx *args)
  *          anular_seg_front wraps the subtraction in anular_seg_inflight and leaves anular_seg_front
  *          handing out a segment that was never filled.
  */
-MMGR_INLINE void anular_seg_release(const AnularisCtx *args)
+EMBED_INLINE void anular_seg_release(const AnularisCtx *args)
 {
     ring_bump(&args->state->released);
 }
@@ -764,7 +767,7 @@ MMGR_INLINE void anular_seg_release(const AnularisCtx *args)
  *          past that count multiplies past the buffer and the pointer returned lies outside the
  *          ring's bytes.
  */
-MMGR_INLINE uint8_t *anular_seg_at(const AnularisCtx *args)
+EMBED_INLINE uint8_t *anular_seg_at(const AnularisCtx *args)
 {
     return &args->state->buf[args->index * args->state->segment_bytes];
 }
@@ -779,7 +782,7 @@ MMGR_INLINE uint8_t *anular_seg_at(const AnularisCtx *args)
  *          may land between the loads, or after both. anular_loculus_hold settles that race, refusing
  *          a loculus another caller took first.
  */
-MMGR_INLINE mmgr_word anular_loculus_ready(const AnularisCtx *args)
+EMBED_INLINE embed_word anular_loculus_ready(const AnularisCtx *args)
 {
     return MMGR_ATOMIC_LOAD(&args->state->gratis) & ~MMGR_ATOMIC_LOAD(&args->state->held) & ring_loculus_all();
 }
@@ -792,18 +795,18 @@ MMGR_INLINE mmgr_word anular_loculus_ready(const AnularisCtx *args)
  * @note Counts rather than scans, and branches on nothing but the empty mask.
  * @note Only args->mask is read. This is the one backend here that never reaches the ring state.
  * @note The test below is the one ring_trail asks of its callers, since an empty mask reaches it as a
- *       count of MMGR_WORD_BITS rather than as no bit at all.
+ *       count of EMBED_WORD_BITS rather than as no bit at all.
  * @warning The mask is taken as given, so a bit above the loculi this build has comes back as its
  *          index. That index names no loculus, and anular_loculus_hold refuses it.
  */
-MMGR_INLINE mmgr_iword anular_loculus_next(const AnularisCtx *args)
+EMBED_INLINE embed_iword anular_loculus_next(const AnularisCtx *args)
 {
-    // Explicit cast puts the empty test at mmgr_word, the width the mask is carried in
-    if (args->mask == (mmgr_word)0)
+    // Explicit cast puts the empty test at embed_word, the width the mask is carried in
+    if (args->mask == (embed_word)0)
     {
-        // Explicit cast builds the miss at the signed mmgr_iword this returns, the one type that
+        // Explicit cast builds the miss at the signed embed_iword this returns, the one type that
         // holds both an index and a -1
-        return (mmgr_iword)-1;
+        return (embed_iword)-1;
     }
     return ring_trail(args->mask);
 }
@@ -812,30 +815,30 @@ MMGR_INLINE mmgr_iword anular_loculus_next(const AnularisCtx *args)
  * @brief Takes loculus args->index and records the region it keeps out.
  *
  * @param[in,out] args Ring, the loculus, and the region to record [BORROWS].
- * @return             MMGR_TRUE when this caller took the loculus, MMGR_FALSE when args->index names
+ * @return             EMBED_TRUE when this caller took the loculus, EMBED_FALSE when args->index names
  *                     none or another caller already holds it.
  * @note The fetch_or is what settles a race between two callers. Whichever finds the bit clear takes
  *       the loculus, and the other sees it already set and is refused.
- * @note Records the region only on the MMGR_TRUE path, so a refused caller leaves the span alone.
+ * @note Records the region only on the EMBED_TRUE path, so a refused caller leaves the span alone.
  * @warning An out-of-range args->index names no bit, so it reads as held and is never handed out.
  * @warning args->src is kept by the ring and handed back by anular_loculus_keepout, so it must outlive
  *          the hold [BORROWS].
  */
-MMGR_INLINE mmgr_bool anular_loculus_hold(const AnularisCtx *args)
+EMBED_INLINE embed_bool anular_loculus_hold(const AnularisCtx *args)
 {
-    const mmgr_word bit = ring_loculus_bit(args->index);
+    const embed_word bit = ring_loculus_bit(args->index);
 
-    // Explicit cast puts the no-bit test at mmgr_word, the width ring_loculus_bit answers in
-    if (bit == (mmgr_word)0)
+    // Explicit cast puts the no-bit test at embed_word, the width ring_loculus_bit answers in
+    if (bit == (embed_word)0)
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
 
-    const mmgr_word prev = atomic_fetch_or_explicit(&args->state->held, bit, memory_order_acquire);
+    const embed_word prev = atomic_fetch_or_explicit(&args->state->held, bit, memory_order_acquire);
 
     if ((prev & bit) != 0u)
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
     // Explicit casts round the const source through uintptr_t and back to the writable uint8_t * the
     // span holds, so the qualifier goes at the integer rather than at a pointer cast, which is what
@@ -843,7 +846,7 @@ MMGR_INLINE mmgr_bool anular_loculus_hold(const AnularisCtx *args)
     args->state->keepout[args->index].buf = (uint8_t *)(uintptr_t)args->src;
     args->state->keepout[args->index].bytes = args->bytes;
     args->state->keepout[args->index].read_offset = 0u;
-    return MMGR_TRUE;
+    return EMBED_TRUE;
 }
 
 /**
@@ -857,7 +860,7 @@ MMGR_INLINE mmgr_bool anular_loculus_hold(const AnularisCtx *args)
  * @warning The const covers the span and not the bytes it names. buf comes back as a writable
  *          pointer, though the region reached anular_loculus_hold as const.
  */
-MMGR_INLINE const mmgr_ring_span *anular_loculus_keepout(const AnularisCtx *args)
+EMBED_INLINE const mmgr_ring_span *anular_loculus_keepout(const AnularisCtx *args)
 {
 #if MMGR_RING_LOCULI == 0u
     // A build with no loculi keeps nothing out, so there is no span to hand back and args goes
@@ -883,11 +886,11 @@ MMGR_INLINE const mmgr_ring_span *anular_loculus_keepout(const AnularisCtx *args
  * @note An out-of-range args->index names no bit and clears nothing, and dropping a loculus that is
  *       not held does nothing.
  */
-MMGR_INLINE void anular_loculus_drop(const AnularisCtx *args)
+EMBED_INLINE void anular_loculus_drop(const AnularisCtx *args)
 {
-    // Explicit cast keeps the complement at mmgr_word width, matching the atomic it clears, and the
+    // Explicit cast keeps the complement at embed_word width, matching the atomic it clears, and the
     // cast to void drops the mask the fetch returns, which this call has no use for
-    (void)atomic_fetch_and_explicit(&args->state->held, (mmgr_word)~ring_loculus_bit(args->index),
+    (void)atomic_fetch_and_explicit(&args->state->held, (embed_word)~ring_loculus_bit(args->index),
                                     memory_order_release);
 }
 
@@ -901,7 +904,7 @@ MMGR_INLINE void anular_loculus_drop(const AnularisCtx *args)
  *       a ring that call has laid down this changes nothing.
  * @note An out-of-range args->index names no bit and sets nothing.
  */
-MMGR_INLINE void anular_loculus_mark(const AnularisCtx *args)
+EMBED_INLINE void anular_loculus_mark(const AnularisCtx *args)
 {
     // Explicit cast to void drops the mask the fetch returns, which this call has no use for
     (void)atomic_fetch_or_explicit(&args->state->gratis, ring_loculus_bit(args->index), memory_order_release);
@@ -912,7 +915,7 @@ MMGR_INLINE void anular_loculus_mark(const AnularisCtx *args)
  *
  * @note Documented at the declaration in memoria_anularis.h.
  */
-mmgr_bool mmgr_anular_init(const AnularisCfg *args)
+embed_bool mmgr_anular_init(const AnularisCfg *args)
 {
     MMGR_ASSERT(args->ring != NULL, "a ring needs storage");
     MMGR_ASSERT(args->buf != NULL, "a ring needs a buffer");
@@ -921,13 +924,13 @@ mmgr_bool mmgr_anular_init(const AnularisCfg *args)
     // is refused on its own. The power of two is what lets every wrap here be a mask, not a divide
     if ((args->capacity == 0u) || !MMGR_RING_POW2(args->capacity))
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
     // The same two tests on the segment count, so ring_seg_pick can wrap a counter by mask, plus one
     // that keeps a segment at a byte or more. A count above the capacity divides to a segment of zero
     if ((args->segment_count == 0u) || !MMGR_RING_POW2(args->segment_count) || (args->segment_count > args->capacity))
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
 
     RingState *const state = ring_of(args->ring);
@@ -941,7 +944,7 @@ mmgr_bool mmgr_anular_init(const AnularisCfg *args)
     atomic_init(&state->claimed, 0u);
     atomic_init(&state->released, 0u);
     atomic_init(&state->gratis, ring_loculus_all());
-    atomic_init(&state->held, (mmgr_word)0);
+    atomic_init(&state->held, (embed_word)0);
 #if MMGR_RING_LOCULI > 0u
     // A build with no loculi has one keepout entry that nothing reaches, so this loop is compiled out
     // rather than run over it
@@ -953,20 +956,20 @@ mmgr_bool mmgr_anular_init(const AnularisCfg *args)
         state->keepout[index].read_offset = 0u;
     }
 #endif
-    return MMGR_TRUE;
+    return EMBED_TRUE;
 }
 
 /**
  * @brief The state argument every entry point but one forwards.
  *
  * @note Reads args, the entry point's own parameter, so the table below carries fields alone.
- * @note Valid only inside a GENERIC_ENTRY body, which is where that parameter is in scope.
+ * @note Valid only inside a EMBED_ENTRY body, which is where that parameter is in scope.
  * @note loculus_next is the entry that leaves it out, since it reads a mask and never the ring.
  */
 #define RING_S .state = ring_of(args->ring)
 
 /**
- * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
+ * @brief Binds this module's four fixed arguments to EMBED_ENTRY.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_anular_ and anular_ prefixes, which the two share.
@@ -976,42 +979,42 @@ mmgr_bool mmgr_anular_init(const AnularisCfg *args)
  * @note The variadic part is the argument pack, never empty, so no comma needs eliding.
  */
 #define RING_ENTRY(ReturnType_, name_, ...)                                                                            \
-    GENERIC_ENTRY(mmgr_anular_, anular_, AnularisCtx, AnularisCfg, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_anular_, anular_, AnularisCtx, AnularisCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
- * @brief Binds the same four to GENERIC_ENTRY_V, for an entry that returns nothing.
+ * @brief Binds the same four to EMBED_ENTRY_V, for an entry that returns nothing.
  *
  * @param[in] name_ Name after the mmgr_anular_ and anular_ prefixes, which the two share.
  * @param[in] ...   Initializers for the AnularisCtx literal, written in terms of args.
  * @note Separate from RING_ENTRY because a return with an expression is not allowed in a void
  *       function, so the two cannot share one body.
  */
-#define RING_ENTRY_V(name_, ...) GENERIC_ENTRY_V(mmgr_anular_, anular_, AnularisCtx, AnularisCfg, name_, __VA_ARGS__)
+#define RING_ENTRY_V(name_, ...) EMBED_ENTRY_V(mmgr_anular_, anular_, AnularisCtx, AnularisCfg, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in memoria_anularis.h.
- * @note The fields each line forwards are the ones that entry reads, and MMGR_CALL zeroes the rest.
+ * @note The fields each line forwards are the ones that entry reads, and EMBED_CALL zeroes the rest.
  * @note mmgr_anular_init is not among them. It checks the sizes and lays the state down, which no
  *       argument pack expresses, so it is written by hand above.
  */
 RING_ENTRY(size_t, available, RING_S)
 RING_ENTRY(size_t, vacant, RING_S)
-RING_ENTRY(mmgr_bool, read_byte, RING_S, .dst = args->dst)
+RING_ENTRY(embed_bool, read_byte, RING_S, .dst = args->dst)
 RING_ENTRY(size_t, read, RING_S, .dst = args->dst, .bytes = args->bytes)
 RING_ENTRY_V(peek, RING_S, .dst = args->dst, .bytes = args->bytes, .offset = args->offset)
 RING_ENTRY_V(consume, RING_S, .bytes = args->bytes)
-RING_ENTRY(mmgr_bool, put, RING_S, .src = args->src, .bytes = args->bytes)
+RING_ENTRY(embed_bool, put, RING_S, .src = args->src, .bytes = args->bytes)
 RING_ENTRY(size_t, seg_inflight, RING_S)
-RING_ENTRY(mmgr_bool, seg_next, RING_S, .out_index = args->out_index)
+RING_ENTRY(embed_bool, seg_next, RING_S, .out_index = args->out_index)
 RING_ENTRY_V(seg_publish, RING_S)
-RING_ENTRY(mmgr_bool, seg_front, RING_S, .out_index = args->out_index)
+RING_ENTRY(embed_bool, seg_front, RING_S, .out_index = args->out_index)
 RING_ENTRY_V(seg_release, RING_S)
 RING_ENTRY(uint8_t *, seg_at, RING_S, .index = args->index)
-RING_ENTRY(mmgr_word, loculus_ready, RING_S)
-RING_ENTRY(mmgr_iword, loculus_next, .mask = args->mask)
-RING_ENTRY(mmgr_bool, loculus_hold, RING_S, .index = args->index, .src = args->src, .bytes = args->bytes)
+RING_ENTRY(embed_word, loculus_ready, RING_S)
+RING_ENTRY(embed_iword, loculus_next, .mask = args->mask)
+RING_ENTRY(embed_bool, loculus_hold, RING_S, .index = args->index, .src = args->src, .bytes = args->bytes)
 RING_ENTRY(const mmgr_ring_span *, loculus_keepout, RING_S, .index = args->index)
 RING_ENTRY_V(loculus_drop, RING_S, .index = args->index)
 RING_ENTRY_V(loculus_mark, RING_S, .index = args->index)

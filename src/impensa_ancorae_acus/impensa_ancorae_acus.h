@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file impensa_ancorae_acus.h
@@ -12,9 +15,9 @@
 #ifndef MMGR_IMPENSA_ANCORAE_ACUS_H
 #define MMGR_IMPENSA_ANCORAE_ACUS_H
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief Argument for the cost lookup.
@@ -27,13 +30,13 @@ typedef struct
 /**
  * @brief Type of the ancorae dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the impensa member is at offset 0 and that the struct holds nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the impensa member is at offset 0 and that the struct holds nothing else.
  */
 typedef struct
 {
     uint8_t (*impensa)(const AncoraeCfg *args); /**< Cost of one byte value. */
 } ImpensaAncoraeAcusNs;
-MMGR_NS_LAYOUT(ImpensaAncoraeAcusNs, impensa);
+EMBED_TABLE_LAYOUT(ImpensaAncoraeAcusNs, impensa);
 
 /**
  * @brief Returns the cost of args->byte under the table this build links.
@@ -50,10 +53,10 @@ uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args);
 /**
  * @brief Dispatch table instance named ancorae, whose impensa member is mmgr_ancorae_impensa.
  */
-MMGR_NS ImpensaAncoraeAcusNs ancorae MMGR_UNUSED = {
+EMBED_TABLE_STORAGE ImpensaAncoraeAcusNs ancorae EMBED_UNUSED = {
     .impensa = mmgr_ancorae_impensa,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

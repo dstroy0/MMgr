@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file numeros_scribo.c
@@ -39,7 +42,7 @@ typedef struct
  * @return         args->one->as.text, or a literal empty string when that arm is NULL [BORROWS].
  * @note Returns a literal empty string in place of NULL, so the verba call always receives a valid pointer.
  */
-MMGR_INLINE const char *numer_str(const NumerCtx *args)
+EMBED_INLINE const char *numer_str(const NumerCtx *args)
 {
     if (args->one->as.text == NULL)
     {
@@ -53,7 +56,7 @@ MMGR_INLINE const char *numer_str(const NumerCtx *args)
  *
  * @note numer_emit_one tests this to pick the union member. NumerKind::fn decides the format.
  */
-typedef enum MMGR_ENUM_PACKED
+typedef enum EMBED_ENUM_PACKED
 {
     NUMER_ARM_NONE = 0, /**< Reads no value at all. */
     NUMER_ARM_STR,      /**< Reads as.s. */
@@ -128,7 +131,7 @@ static const NumerKind s_kind[MMGR_FK_XML + 1u] = {
  * @note One indirect call through the kind's own function, which passes that entry only what it reads.
  * @warning args->one->kind above MMGR_FK_XML returns args->cap without a lookup, since s_kind ends at MMGR_FK_XML.
  */
-MMGR_INLINE size_t numer_emit_one(const NumerCtx *args)
+EMBED_INLINE size_t numer_emit_one(const NumerCtx *args)
 {
     if (args->one->kind > MMGR_FK_XML)
     {
@@ -147,7 +150,7 @@ MMGR_INLINE size_t numer_emit_one(const NumerCtx *args)
  * @note Reads args->out and args->at. cap and the value members take no part.
  * @warning args->out must be writable at args->at.
  */
-MMGR_INLINE size_t numer_abandon(const NumerCtx *args)
+EMBED_INLINE size_t numer_abandon(const NumerCtx *args)
 {
     args->out[args->at] = '\0';
     return 0;
@@ -161,11 +164,11 @@ MMGR_INLINE size_t numer_abandon(const NumerCtx *args)
  * @note Writes no terminator of its own. A 0 return is the caller's to act on, and the caller is the
  *       one that knows where the write began.
  */
-MMGR_INLINE size_t numer_finish(const NumerCtx *args)
+EMBED_INLINE size_t numer_finish(const NumerCtx *args)
 {
     // Reports and terminates nothing on failure. args->at here is the offset the walk reached, not where
     // it began, so this cannot restore the buffer. The caller holds the starting cursor and abandons
-    return MMGR_CALL(verba_finis.finish, VerbaFinisCfg, .out = args->out, .cap = args->cap, .at = args->at);
+    return EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = args->out, .cap = args->cap, .at = args->at);
 }
 
 /**
@@ -179,7 +182,7 @@ MMGR_INLINE size_t numer_finish(const NumerCtx *args)
  * @note Calls numer_abandon when a value is missing, when its kind differs, and when values are left over.
  * @warning args->spec must reach an MMGR_FK_END field, which is what ends the walk.
  */
-MMGR_INLINE size_t numer_build(const NumerCtx *args)
+EMBED_INLINE size_t numer_build(const NumerCtx *args)
 {
     // Begins at the caller's cursor rather than the first byte, so a run of writes never re-measures
     // what the last one left. An unset at is 0, which is where a single write starts anyway.
@@ -195,8 +198,8 @@ MMGR_INLINE size_t numer_build(const NumerCtx *args)
     {
         if (cursor->kind == MMGR_FK_LIT)
         {
-            at = MMGR_CALL(verba_textus.put_n, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = at,
-                           .text = cursor->literal, .text_len = cursor->bytes);
+            at = EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = at,
+                            .text = cursor->literal, .text_len = cursor->bytes);
             continue;
         }
 
@@ -205,15 +208,15 @@ MMGR_INLINE size_t numer_build(const NumerCtx *args)
             return numer_abandon(args);
         }
 
-        at = MMGR_CALL(numer_emit_one, NumerCtx, .out = args->out, .cap = args->cap, .at = at,
-                       .one = &args->vals[taken], .width = cursor->width);
+        at = EMBED_CALL(numer_emit_one, NumerCtx, .out = args->out, .cap = args->cap, .at = at,
+                        .one = &args->vals[taken], .width = cursor->width);
         taken++;
     }
     if (taken != args->nvals)
     {
         return numer_abandon(args);
     }
-    const size_t done = MMGR_CALL(numer_finish, NumerCtx, .out = args->out, .cap = args->cap, .at = at);
+    const size_t done = EMBED_CALL(numer_finish, NumerCtx, .out = args->out, .cap = args->cap, .at = at);
 
     // The finish reports 0 when it ran out of room. args->at is where this write began, so abandoning
     // here puts the terminator back there and leaves earlier text whole.
@@ -229,7 +232,7 @@ MMGR_INLINE size_t numer_build(const NumerCtx *args)
  * @note Passes every value to numer_emit_one whatever its kind, so MMGR_FK_END and MMGR_FK_LIT reach numer_refuse.
  * @warning args->vals must hold args->nvals values.
  */
-MMGR_INLINE size_t numer_emit(const NumerCtx *args)
+EMBED_INLINE size_t numer_emit(const NumerCtx *args)
 {
     // Begins at the caller's cursor, as numer_build does
     size_t at = args->at;
@@ -241,10 +244,10 @@ MMGR_INLINE size_t numer_emit(const NumerCtx *args)
 
     for (size_t taken = 0; taken < args->nvals; taken++)
     {
-        at = MMGR_CALL(numer_emit_one, NumerCtx, .out = args->out, .cap = args->cap, .at = at,
-                       .one = &args->vals[taken], .width = args->vals[taken].width);
+        at = EMBED_CALL(numer_emit_one, NumerCtx, .out = args->out, .cap = args->cap, .at = at,
+                        .one = &args->vals[taken], .width = args->vals[taken].width);
     }
-    const size_t done = MMGR_CALL(numer_finish, NumerCtx, .out = args->out, .cap = args->cap, .at = at);
+    const size_t done = EMBED_CALL(numer_finish, NumerCtx, .out = args->out, .cap = args->cap, .at = at);
 
     // The finish reports 0 when it ran out of room. args->at is where this write began, so abandoning
     // here puts the terminator back there and leaves earlier text whole.
@@ -258,20 +261,20 @@ MMGR_INLINE size_t numer_emit(const NumerCtx *args)
  * @return         What cellul.len returned, given args->out and args->cap.
  * @note Called by mmgr_numer_append and mmgr_numer_emit_append to find where to carry on writing.
  */
-MMGR_INLINE size_t numer_used(const NumerCtx *args)
+EMBED_INLINE size_t numer_used(const NumerCtx *args)
 {
-    return MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = args->out, .cap = args->cap);
+    return EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = args->out, .cap = args->cap);
 }
 
 /**
- * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
+ * @brief Binds this module's four fixed arguments to EMBED_ENTRY.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_numer_ and numer_ prefixes, which the two share.
  * @param[in] ...         Designated initializers for the NumerCtx the entry hands to the inline call.
  */
 #define NUMER_ENTRY(ReturnType_, name_, ...)                                                                           \
-    GENERIC_ENTRY(mmgr_numer_, numer_, NumerCtx, NumerosCfg, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_numer_, numer_, NumerCtx, NumerosCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief The two entries that forward and nothing else.
@@ -305,15 +308,15 @@ size_t mmgr_numer_append(const NumerosCfg *args)
     // pays nothing here. One that does not is measured once per call, which is what made a run of
     // appends cost more the longer the text got
     const size_t used =
-        (args->at != 0u) ? args->at : MMGR_CALL(numer_used, NumerCtx, .out = args->out, .cap = args->cap);
+        (args->at != 0u) ? args->at : EMBED_CALL(numer_used, NumerCtx, .out = args->out, .cap = args->cap);
 
     if (used >= args->cap)
     {
         return 0;
     }
 
-    const size_t count = MMGR_CALL(numer.build, NumerosCfg, .out = args->out, .cap = args->cap, .at = used,
-                                   .spec = args->spec, .vals = args->vals, .nvals = args->nvals);
+    const size_t count = EMBED_CALL(numer.build, NumerosCfg, .out = args->out, .cap = args->cap, .at = used,
+                                    .spec = args->spec, .vals = args->vals, .nvals = args->nvals);
     if (count == 0)
     {
         args->out[used] = '\0';
@@ -341,15 +344,15 @@ size_t mmgr_numer_emit_append(const NumerosCfg *args)
 
     // args->at when the caller threaded it, and only otherwise a scan, as in mmgr_numer_append
     const size_t used =
-        (args->at != 0u) ? args->at : MMGR_CALL(numer_used, NumerCtx, .out = args->out, .cap = args->cap);
+        (args->at != 0u) ? args->at : EMBED_CALL(numer_used, NumerCtx, .out = args->out, .cap = args->cap);
 
     if (used >= args->cap)
     {
         return 0;
     }
 
-    const size_t count = MMGR_CALL(numer.emit, NumerosCfg, .out = args->out, .cap = args->cap, .at = used,
-                                   .vals = args->vals, .nvals = args->nvals);
+    const size_t count = EMBED_CALL(numer.emit, NumerosCfg, .out = args->out, .cap = args->cap, .at = used,
+                                    .vals = args->vals, .nvals = args->nvals);
     if (count == 0)
     {
         args->out[used] = '\0';
@@ -377,7 +380,7 @@ static size_t numer_refuse(const NumerCtx *args)
  * @param[in] args The value and its override [BORROWS].
  * @return         The width every formatting function below passes on.
  */
-MMGR_INLINE uint8_t numer_latitudo(const NumerCtx *args)
+EMBED_INLINE uint8_t numer_latitudo(const NumerCtx *args)
 {
     const uint8_t own = s_kind[args->one->kind].width;
 
@@ -390,7 +393,7 @@ MMGR_INLINE uint8_t numer_latitudo(const NumerCtx *args)
  * @param[in] args The value [BORROWS].
  * @return         as.u32 widened, or as.u64 as it stands.
  */
-MMGR_INLINE uint64_t numer_numerus(const NumerCtx *args)
+EMBED_INLINE uint64_t numer_numerus(const NumerCtx *args)
 {
     // Explicit cast widens the u32 arm to the width every unsigned entry is declared with
     return (s_kind[args->one->kind].arm == NUMER_ARM_U32) ? (uint64_t)args->one->as.u32 : args->one->as.u64;
@@ -404,8 +407,8 @@ MMGR_INLINE uint64_t numer_numerus(const NumerCtx *args)
  */
 static size_t numer_verba_put(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_textus.put, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .text = numer_str(args));
+    return EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .text = numer_str(args));
 }
 
 /**
@@ -416,8 +419,8 @@ static size_t numer_verba_put(const NumerCtx *args)
  */
 static size_t numer_verba_json(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_textus.json, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .text = numer_str(args));
+    return EMBED_CALL(verba_textus.json, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .text = numer_str(args));
 }
 
 /**
@@ -428,8 +431,8 @@ static size_t numer_verba_json(const NumerCtx *args)
  */
 static size_t numer_verba_xml(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_textus.xml, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .text = numer_str(args));
+    return EMBED_CALL(verba_textus.xml, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .text = numer_str(args));
 }
 
 /**
@@ -440,8 +443,8 @@ static size_t numer_verba_xml(const NumerCtx *args)
  */
 static size_t numer_verba_ch(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_littera.ch, VerbaLitteraCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .ch = args->one->as.character);
+    return EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .ch = args->one->as.character);
 }
 
 /**
@@ -452,8 +455,8 @@ static size_t numer_verba_ch(const NumerCtx *args)
  */
 static size_t numer_verba_u32(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .val = numer_numerus(args));
+    return EMBED_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .val = numer_numerus(args));
 }
 
 /**
@@ -464,8 +467,8 @@ static size_t numer_verba_u32(const NumerCtx *args)
  */
 static size_t numer_verba_u64(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .val = numer_numerus(args));
+    return EMBED_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .val = numer_numerus(args));
 }
 
 /**
@@ -476,8 +479,8 @@ static size_t numer_verba_u64(const NumerCtx *args)
  */
 static size_t numer_verba_i64(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .sval = args->one->as.i64);
+    return EMBED_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .sval = args->one->as.i64);
 }
 
 /**
@@ -488,8 +491,8 @@ static size_t numer_verba_i64(const NumerCtx *args)
  */
 static size_t numer_verba_u32w(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_numerus.u32w, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .val = numer_numerus(args), .min = numer_latitudo(args));
+    return EMBED_CALL(verba_numerus.u32w, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .val = numer_numerus(args), .min = numer_latitudo(args));
 }
 
 /**
@@ -500,8 +503,8 @@ static size_t numer_verba_u32w(const NumerCtx *args)
  */
 static size_t numer_verba_hex(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .val = numer_numerus(args), .min = numer_latitudo(args));
+    return EMBED_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .val = numer_numerus(args), .min = numer_latitudo(args));
 }
 
 /**
@@ -512,8 +515,8 @@ static size_t numer_verba_hex(const NumerCtx *args)
  */
 static size_t numer_verba_uint(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .val = numer_numerus(args), .base = s_kind[args->one->kind].base, .min = numer_latitudo(args));
+    return EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .val = numer_numerus(args), .base = s_kind[args->one->kind].base, .min = numer_latitudo(args));
 }
 
 /**
@@ -524,8 +527,8 @@ static size_t numer_verba_uint(const NumerCtx *args)
  */
 static size_t numer_verba_g(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_fractio.g, VerbaFractioCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .real = args->one->as.real, .sig = numer_latitudo(args));
+    return EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .real = args->one->as.real, .sig = numer_latitudo(args));
 }
 
 /**
@@ -536,6 +539,6 @@ static size_t numer_verba_g(const NumerCtx *args)
  */
 static size_t numer_verba_fixed(const NumerCtx *args)
 {
-    return MMGR_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = args->out, .cap = args->cap, .at = args->at,
-                     .real = args->one->as.real, .decimals = numer_latitudo(args));
+    return EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .real = args->one->as.real, .decimals = numer_latitudo(args));
 }

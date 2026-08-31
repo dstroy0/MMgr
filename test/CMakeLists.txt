@@ -1,5 +1,5 @@
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 #
 # Sets up Unity and the harness, then hands off. Every suite declares itself in its own directory,
 # so adding one is a new directory plus a line in its parent, and nothing central has to be kept in

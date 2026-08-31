@@ -8,6 +8,25 @@
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_exter_header_is_self_contained(void);
+extern void test_place_refuses_a_size_of_zero(void);
+extern void test_a_dma_request_reaches_internal_memory(void);
+extern void test_a_dma_request_fails_rather_than_falling_back_to_external(void);
+extern void test_a_dma_request_ignores_the_threshold(void);
+extern void test_at_or_above_the_threshold_external_is_tried_first(void);
+extern void test_below_the_threshold_internal_is_tried_first(void);
+extern void test_a_large_request_falls_back_to_internal_when_external_is_full(void);
+extern void test_a_small_request_falls_back_to_external_when_internal_is_full(void);
+extern void test_a_large_request_that_fits_neither_fails(void);
+extern void test_a_small_request_that_fits_neither_fails(void);
+extern void test_internal_placement_leaves_the_reserve_free(void);
+extern void test_the_reserve_does_not_bound_external_placement(void);
+extern void test_a_size_past_free_internal_memory_does_not_wrap(void);
+extern void test_a_reserve_above_free_internal_memory_refuses_every_request(void);
+extern void test_init_points_the_pair_at_the_first_buffer(void);
+extern void test_the_two_indexes_never_agree(void);
+extern void test_reading_an_index_does_not_move_it(void);
+extern void test_swap_hands_back_the_index_it_moved_to(void);
+extern void test_a_swap_of_a_swap_is_where_it_started(void);
 
 
 /*=======Mock Management=====*/
@@ -20,12 +39,6 @@ static void CMock_Verify(void)
 static void CMock_Destroy(void)
 {
 }
-
-/*=======Setup (stub)=====*/
-void setUp(void) {}
-
-/*=======Teardown (stub)=====*/
-void tearDown(void) {}
 
 /*=======Test Reset Options=====*/
 void resetTest(void);
@@ -74,8 +87,27 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/memoria_externa/test_memoria_externa/test_memoria_externa.c");
-  run_test(test_exter_header_is_self_contained, "test_exter_header_is_self_contained", 5);
+  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/memoria_externa/test_memoria_externa\\test_memoria_externa.c");
+  run_test(test_exter_header_is_self_contained, "test_exter_header_is_self_contained", 54);
+  run_test(test_place_refuses_a_size_of_zero, "test_place_refuses_a_size_of_zero", 65);
+  run_test(test_a_dma_request_reaches_internal_memory, "test_a_dma_request_reaches_internal_memory", 79);
+  run_test(test_a_dma_request_fails_rather_than_falling_back_to_external, "test_a_dma_request_fails_rather_than_falling_back_to_external", 95);
+  run_test(test_a_dma_request_ignores_the_threshold, "test_a_dma_request_ignores_the_threshold", 111);
+  run_test(test_at_or_above_the_threshold_external_is_tried_first, "test_at_or_above_the_threshold_external_is_tried_first", 126);
+  run_test(test_below_the_threshold_internal_is_tried_first, "test_below_the_threshold_internal_is_tried_first", 142);
+  run_test(test_a_large_request_falls_back_to_internal_when_external_is_full, "test_a_large_request_falls_back_to_internal_when_external_is_full", 157);
+  run_test(test_a_small_request_falls_back_to_external_when_internal_is_full, "test_a_small_request_falls_back_to_external_when_internal_is_full", 172);
+  run_test(test_a_large_request_that_fits_neither_fails, "test_a_large_request_that_fits_neither_fails", 186);
+  run_test(test_a_small_request_that_fits_neither_fails, "test_a_small_request_that_fits_neither_fails", 200);
+  run_test(test_internal_placement_leaves_the_reserve_free, "test_internal_placement_leaves_the_reserve_free", 216);
+  run_test(test_the_reserve_does_not_bound_external_placement, "test_the_reserve_does_not_bound_external_placement", 237);
+  run_test(test_a_size_past_free_internal_memory_does_not_wrap, "test_a_size_past_free_internal_memory_does_not_wrap", 253);
+  run_test(test_a_reserve_above_free_internal_memory_refuses_every_request, "test_a_reserve_above_free_internal_memory_refuses_every_request", 267);
+  run_test(test_init_points_the_pair_at_the_first_buffer, "test_init_points_the_pair_at_the_first_buffer", 282);
+  run_test(test_the_two_indexes_never_agree, "test_the_two_indexes_never_agree", 302);
+  run_test(test_reading_an_index_does_not_move_it, "test_reading_an_index_does_not_move_it", 329);
+  run_test(test_swap_hands_back_the_index_it_moved_to, "test_swap_hands_back_the_index_it_moved_to", 348);
+  run_test(test_a_swap_of_a_swap_is_where_it_started, "test_a_swap_of_a_swap_is_where_it_started", 368);
 
   return UNITY_END();
 }

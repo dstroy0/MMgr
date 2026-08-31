@@ -241,8 +241,8 @@ seventeen digits and read back by glibc names its own value on **0 of 2000**.
 So the comparison is identical accuracy, fewer bytes, and fewer cycles, on both directions of the
 conversion. Not a trade.
 
-Two things that number is not. It is one host, and msvcrt's `strtod` — hand-written x86 assembly —
-is faster than both. And the parser has not had the treatment the rest of the library has had:
+Two things that number is not. It is one host. And the parser has not had the treatment the rest of
+the library has had:
 `cellularum_laboro` is still a single translation unit holding the scans and the decimal parser
 together, and it is the one module that has not been cut back to the shape the others are in. The
 1.63x is what it does before that, not after.

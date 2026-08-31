@@ -61,13 +61,22 @@ foreach(_lang C)
   string(REPLACE "-Os" "-O2" CMAKE_${_lang}_FLAGS_MINSIZEREL "${CMAKE_${_lang}_FLAGS_MINSIZEREL}")
 endforeach()
 
+# ------------------------------------------------------------------------------------------------
+# Dependencies
+# ------------------------------------------------------------------------------------------------
+# deps/ declares what this build fetches from GitHub and holds the checkout. It comes before
+# mmgr_flags below, which links embedded_types::embedded_types.
+add_subdirectory(deps)
+
 # One place, so a warning that matters is on for the library, the tests and the benches alike.
 add_library(mmgr_flags INTERFACE)
+
+# Carried on mmgr_flags so every module, suite and bench that takes the flags also takes the include
+# directory. A target reaching include/mmgr.h needs the three embed headers behind it.
+target_link_libraries(mmgr_flags INTERFACE embedded_types::embedded_types)
 target_compile_options(mmgr_flags INTERFACE
-  $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wconversion;-Wsign-conversion;-Wcast-align;-Wcast-qual;-Wstrict-prototypes;-Wmissing-prototypes;-Wpointer-arith;-Wvla>
-  $<$<AND:$<BOOL:${MMGR_WERROR}>,$<C_COMPILER_ID:GNU,Clang,AppleClang>>:-Werror>
-  $<$<C_COMPILER_ID:MSVC>:/W4>
-  $<$<AND:$<BOOL:${MMGR_WERROR}>,$<C_COMPILER_ID:MSVC>>:/WX>
+  $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wconversion;-Wsign-conversion;-Wcast-align;-Wcast-qual;-Wstrict-prototypes;-Wmissing-prototypes;-Wpointer-arith;-Wvla>
+  $<$<AND:$<BOOL:${MMGR_WERROR}>,$<C_COMPILER_ID:GNU,Clang>>:-Werror>
 )
 
 # ------------------------------------------------------------------------------------------------
@@ -80,21 +89,20 @@ target_compile_options(mmgr_flags INTERFACE
 # Each entry is  name|definitions  with definitions separated by semicolons escaped as commas below,
 # because a CMake list cannot nest. Kept as a flat list so adding an environment is one line.
 #
-#   host      whatever this machine is: MMGR_WORD_BITS derives from UINTPTR_MAX. The default build.
-#   swar32    a 32-bit scan lane on a 64-bit word - the case where the lane is narrower than the
-#             register, which is how a wide host models a narrow machine's ingestion path.
-#   swar16    the narrowest lane. Most likely to expose an off-by-one in a tail.
+#   host      whatever this machine is: EMBED_WORD_BITS derives from UINTPTR_MAX. The default build.
 #   word32    a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.
-#   idx16     a 16-bit index against a 64-bit word, which is the pairing the static_assert in
-#             mmgr_types.h exists to police.
-#   checks    debug checks compiled in. MMGR_DEBUG_CHECKS also selects the trapping MMGR_ASSERT in
-#             mmgr_config.h, so an expectation a caller broke fails a test here rather than being a
-#             no-op nobody notices. It is the only environment where an assert is evaluated at all.
+#   word16    the narrowest word. Most likely to expose an off-by-one in a tail.
+#   idx16     a 16-bit index against a 64-bit word, which is the pairing the static assertion in
+#             embed_types.h exists to police.
+#   checks    debug checks compiled in. MMGR_DEBUG_CHECKS selects the trapping MMGR_ASSERT in
+#             test/support/mmgr_host_traps.h, so an expectation a caller broke fails a test here
+#             rather than being a no-op nobody notices. It is the only environment where an assert is
+#             evaluated at all.
 set(MMGR_ENVIRONMENTS
   "host|"
-  "word32|MMGR_WORD_BITS=32"
-  "word16|MMGR_WORD_BITS=16"
-  "idx16|MMGR_INDEX_BITS=16"
+  "word32|EMBED_WORD_BITS=32"
+  "word16|EMBED_WORD_BITS=16"
+  "idx16|EMBED_INDEX_BITS=16"
   "checks|MMGR_DEBUG_CHECKS=1"
 )
 

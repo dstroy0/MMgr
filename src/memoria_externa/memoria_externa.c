@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file memoria_externa.c
@@ -14,34 +17,34 @@
 #if MMGR_ENABLE_EXTRAM
 
 /**
- * @brief Argument type built by MMGR_CALL in the five entry points.
+ * @brief Argument type built by EMBED_CALL in the five entry points.
  *
  * @note Fields match ExternaCfg, without the const on its six figures and the one on its pingpong
  *       pointer.
  * @note exter_place reads the six figures. The four pingpong backends read pingpong alone, and
- *       MMGR_CALL zeroes the members an entry is not given.
+ *       EMBED_CALL zeroes the members an entry is not given.
  */
 typedef struct
 {
-    size_t size;            /**< Bytes the caller wants to place. */
-    mmgr_bool dma_required; /**< The bytes must be reachable by DMA. */
-    size_t free_dram;       /**< Bytes still free in internal memory. */
-    size_t free_psram;      /**< Bytes still free in external memory. */
-    size_t psram_threshold; /**< Size at or above which external memory is tried first. */
-    size_t dram_reserve;    /**< Internal bytes that must remain free after the placement. */
-    PingPong *pingpong;     /**< Pair the pingpong backends act on [BORROWS]. */
+    size_t size;             /**< Bytes the caller wants to place. */
+    embed_bool dma_required; /**< The bytes must be reachable by DMA. */
+    size_t free_dram;        /**< Bytes still free in internal memory. */
+    size_t free_psram;       /**< Bytes still free in external memory. */
+    size_t psram_threshold;  /**< Size at or above which external memory is tried first. */
+    size_t dram_reserve;     /**< Internal bytes that must remain free after the placement. */
+    PingPong *pingpong;      /**< Pair the pingpong backends act on [BORROWS]. */
 } ExterCtx;
 
 /**
  * @brief Reports whether the request fits internal memory and still leaves the reserve.
  *
  * @param[in] args Request size and the internal memory figures [BORROWS].
- * @return         MMGR_TRUE when the bytes fit and dram_reserve would still be free afterwards.
+ * @return         EMBED_TRUE when the bytes fit and dram_reserve would still be free afterwards.
  * @note Tests the size first, so the subtraction that follows cannot wrap.
  * @note dram_reserve is taken as given. A reserve above free_dram refuses every request, size 0
  *       included. A reserve equal to it admits only a size of 0.
  */
-MMGR_INLINE mmgr_bool exter_dram_fits(const ExterCtx *args)
+EMBED_INLINE embed_bool exter_dram_fits(const ExterCtx *args)
 {
     // Two tests in order: the first is what makes the subtraction in the second safe, since && stops
     // at the first that fails and a size past free_dram would otherwise wrap it
@@ -52,10 +55,10 @@ MMGR_INLINE mmgr_bool exter_dram_fits(const ExterCtx *args)
  * @brief Reports whether the request fits external memory.
  *
  * @param[in] args Request size and the external memory figure [BORROWS].
- * @return         MMGR_TRUE when the bytes fit.
+ * @return         EMBED_TRUE when the bytes fit.
  * @note A single comparison, where exter_dram_fits also checks dram_reserve.
  */
-MMGR_INLINE mmgr_bool exter_psram_fits(const ExterCtx *args)
+EMBED_INLINE embed_bool exter_psram_fits(const ExterCtx *args)
 {
     return args->size <= args->free_psram;
 }
@@ -74,15 +77,15 @@ MMGR_INLINE mmgr_bool exter_psram_fits(const ExterCtx *args)
  * @warning The two tests are not the same shape. Internal placement must also leave dram_reserve
  *          free, where the external one is a size comparison alone.
  */
-MMGR_INLINE mmgr_place exter_place(const ExterCtx *args)
+EMBED_INLINE mmgr_place exter_place(const ExterCtx *args)
 {
     if (args->size == 0)
     {
         return PLACE_FAIL;
     }
 
-    const mmgr_bool dram_fits = exter_dram_fits(args);
-    const mmgr_bool psram_fits = exter_psram_fits(args);
+    const embed_bool dram_fits = exter_dram_fits(args);
+    const embed_bool psram_fits = exter_psram_fits(args);
 
     if (args->dma_required)
     {
@@ -122,7 +125,7 @@ MMGR_INLINE mmgr_place exter_place(const ExterCtx *args)
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it, and the
  *          store below goes through it at once.
  */
-MMGR_INLINE void exter_pingpong_init(const ExterCtx *args)
+EMBED_INLINE void exter_pingpong_init(const ExterCtx *args)
 {
     args->pingpong->fill_index = 0;
 }
@@ -136,7 +139,7 @@ MMGR_INLINE void exter_pingpong_init(const ExterCtx *args)
  * @warning Hands back fill_index as it stands. It is 0 or 1 on a pair exter_pingpong_init has set,
  *          and whatever the storage held on one that has not been.
  */
-MMGR_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
+EMBED_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
 {
     return args->pingpong->fill_index;
 }
@@ -152,7 +155,7 @@ MMGR_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
  * @warning The answer is an index only while fill_index is 0 or 1. On a pair exter_pingpong_init has
  *          not set it is the flip of whatever the storage held.
  */
-MMGR_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
+EMBED_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
 {
     // Explicit cast keeps the result in uint8_t after the exclusive or promotes to int
     return (uint8_t)(args->pingpong->fill_index ^ 1u);
@@ -169,7 +172,7 @@ MMGR_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
  *          no atomic and no lock, so two callers swapping the same pair can come away holding the
  *          same index.
  */
-MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
+EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
 {
     // The flip stands on its own line and the answer is read back on the next, so neither is a side
     // effect inside the other. That second read is a fresh load, which is where a concurrent swap
@@ -179,7 +182,7 @@ MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
 }
 
 /**
- * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
+ * @brief Binds this module's four fixed arguments to EMBED_ENTRY.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_extern_ and exter_ prefixes.
@@ -187,7 +190,7 @@ MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  * @note place is the only entry under these prefixes. The other four carry the pingpong pair below.
  */
 #define EXTER_ENTRY(ReturnType_, name_, ...)                                                                           \
-    GENERIC_ENTRY(mmgr_extern_, exter_, ExterCtx, ExternaCfg, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_extern_, exter_, ExterCtx, ExternaCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief Binds the pingpong entries, which carry their own pair of prefixes.
@@ -196,13 +199,13 @@ MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  * @param[in] name_       Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
  * @param[in] ...         Initializers for the ExterCtx literal, written in terms of args.
  * @note A second macro rather than one, because these entries are named mmgr_pingpong_ rather than
- *       mmgr_extern_. GENERIC_ENTRY pastes one prefix onto one name, so the pair differs, not the form.
+ *       mmgr_extern_. EMBED_ENTRY pastes one prefix onto one name, so the pair differs, not the form.
  */
 #define PINGPONG_ENTRY(ReturnType_, name_, ...)                                                                        \
-    GENERIC_ENTRY(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternaCfg, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternaCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
- * @brief Binds the same pair to GENERIC_ENTRY_V, for the entry that returns nothing.
+ * @brief Binds the same pair to EMBED_ENTRY_V, for the entry that returns nothing.
  *
  * @param[in] name_ Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
  * @param[in] ...   Initializers for the ExterCtx literal, written in terms of args.
@@ -211,14 +214,14 @@ MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  * @note init is the only entry that reaches it. The other three pingpong entries hand back an index.
  */
 #define PINGPONG_ENTRY_V(name_, ...)                                                                                   \
-    GENERIC_ENTRY_V(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternaCfg, name_, __VA_ARGS__)
+    EMBED_ENTRY_V(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternaCfg, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in memoria_externa.h.
- * @note The fields each line forwards are the ones that entry reads, and MMGR_CALL zeroes the rest.
- * @note The four pingpong lines pass args->pingpong through as it stands [BORROWS]. MMGR_CALL builds
+ * @note The fields each line forwards are the ones that entry reads, and EMBED_CALL zeroes the rest.
+ * @note The four pingpong lines pass args->pingpong through as it stands [BORROWS]. EMBED_CALL builds
  *       its literal inside the emitted function, so the literal lives for that call alone and the
  *       pair has to outlive it. Nothing here copies the pair or frees it.
  * @warning No line tests what it forwards. A null pingpong reaches a backend that dereferences it

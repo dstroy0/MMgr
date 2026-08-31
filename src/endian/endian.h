@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file endian.h
@@ -17,9 +20,9 @@
 #ifndef MMGR_ENDIAN_H
 #define MMGR_ENDIAN_H
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief Width of one endian read or write, counted in bytes.
@@ -29,7 +32,7 @@ MMGR_INCIPE_DECLS
  * @warning Nothing holds a value to these three. The switches in endian.c test 2 and 4 and take
  *          everything else on the default arm, which moves eight bytes.
  */
-typedef enum MMGR_ENUM_PACKED
+typedef enum EMBED_ENUM_PACKED
 {
     MMGR_ENDIAN_16 = 2, /**< Two bytes. */
     MMGR_ENDIAN_32 = 4, /**< Four bytes. */
@@ -56,7 +59,8 @@ typedef struct
 /**
  * @brief Type of an endian dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the three members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the three members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note Two instances share this type, one per byte order. Which one a call goes through is what sets
  *       the order, and no member takes it as an argument.
  * @note wr hands back args->width as it was given. The other two return the value they produced.
@@ -67,7 +71,7 @@ typedef struct
     uint64_t (*rd)(const EndianCfg *args);  /**< Reads width bytes from src in the table's order. */
     uint64_t (*rev)(const EndianCfg *args); /**< Reverses val at width bytes. */
 } EndianNs;
-MMGR_NS_LAYOUT(EndianNs, wr, rd, rev);
+EMBED_TABLE_LAYOUT(EndianNs, wr, rd, rev);
 
 /**
  * @brief Writes args->width bytes of args->val to args->dst without reversing them.
@@ -142,7 +146,7 @@ uint64_t mmgr_endian_rev(const EndianCfg *args);
  *       big endian bytes on a big endian one.
  * @note rev is the same function both tables use.
  */
-MMGR_NS EndianNs parva_extremitas MMGR_UNUSED = {
+EMBED_TABLE_STORAGE EndianNs parva_extremitas EMBED_UNUSED = {
     .wr = mmgr_wr_le,
     .rd = mmgr_rd_le,
     .rev = mmgr_endian_rev,
@@ -156,12 +160,12 @@ MMGR_NS EndianNs parva_extremitas MMGR_UNUSED = {
  *       records, and little endian on a big endian one.
  * @note rev is shared with parva_extremitas.
  */
-MMGR_NS EndianNs magna_extremitas MMGR_UNUSED = {
+EMBED_TABLE_STORAGE EndianNs magna_extremitas EMBED_UNUSED = {
     .wr = mmgr_wr_be,
     .rd = mmgr_rd_be,
     .rev = mmgr_endian_rev,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif

@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file memoria_externa.h
@@ -12,18 +15,18 @@
 #ifndef MMGR_MEMORIA_EXTERNA_H
 #define MMGR_MEMORIA_EXTERNA_H
 
-#include "config/mmgr_config.h"
+#include "mmgr.h"
 
 #if MMGR_ENABLE_EXTRAM
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief Where a request should be placed.
  *
  * @note Packed to one byte. mmgr_types.h asserts that packing reaches the compiler.
  */
-typedef enum MMGR_ENUM_PACKED
+typedef enum EMBED_ENUM_PACKED
 {
     PLACE_DRAM = 0,  /**< Internal memory. */
     PLACE_PSRAM = 1, /**< External memory. */
@@ -53,19 +56,20 @@ typedef struct
  */
 typedef struct
 {
-    const size_t size;            /**< Bytes to place. */
-    const mmgr_bool dma_required; /**< The bytes must be reachable by DMA. */
-    const size_t free_dram;       /**< Bytes still free in internal memory. */
-    const size_t free_psram;      /**< Bytes still free in external memory. */
-    const size_t psram_threshold; /**< Size at or above which external memory is tried first. */
-    const size_t dram_reserve;    /**< Internal bytes that must remain free afterwards. */
-    PingPong *const pingpong;     /**< Pair the pingpong entries act on [BORROWS]. */
+    const size_t size;             /**< Bytes to place. */
+    const embed_bool dma_required; /**< The bytes must be reachable by DMA. */
+    const size_t free_dram;        /**< Bytes still free in internal memory. */
+    const size_t free_psram;       /**< Bytes still free in external memory. */
+    const size_t psram_threshold;  /**< Size at or above which external memory is tried first. */
+    const size_t dram_reserve;     /**< Internal bytes that must remain free afterwards. */
+    PingPong *const pingpong;      /**< Pair the pingpong entries act on [BORROWS]. */
 } ExternaCfg;
 
 /**
  * @brief Type of the exter dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the five members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the five members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * nothing else.
  * @note Every entry takes the same argument pack, as in locus_carcerum and memoria_anularis.
  */
 typedef struct
@@ -76,7 +80,7 @@ typedef struct
     uint8_t (*pingpong_drain)(const ExternaCfg *args); /**< Index being drained. */
     uint8_t (*pingpong_swap)(const ExternaCfg *args);  /**< Swaps the two roles. */
 } MemoriaExternaNs;
-MMGR_NS_LAYOUT(MemoriaExternaNs, place, pingpong_init, pingpong_fill, pingpong_drain, pingpong_swap);
+EMBED_TABLE_LAYOUT(MemoriaExternaNs, place, pingpong_init, pingpong_fill, pingpong_drain, pingpong_swap);
 
 /**
  * @brief Decides whether a request belongs in internal or external memory.
@@ -144,7 +148,7 @@ uint8_t mmgr_pingpong_swap(const ExternaCfg *args);
  *
  * @note pingpong_fill calls mmgr_pingpong_fill_index and pingpong_drain calls mmgr_pingpong_drain_index.
  */
-MMGR_NS MemoriaExternaNs exter MMGR_UNUSED = {
+EMBED_TABLE_STORAGE MemoriaExternaNs exter EMBED_UNUSED = {
     .place = mmgr_extern_place,
     .pingpong_init = mmgr_pingpong_init,
     .pingpong_fill = mmgr_pingpong_fill_index,
@@ -152,7 +156,7 @@ MMGR_NS MemoriaExternaNs exter MMGR_UNUSED = {
     .pingpong_swap = mmgr_pingpong_swap,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif
 

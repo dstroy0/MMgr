@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file bitorum_introitus_exitus.c
@@ -19,7 +22,7 @@
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
 
 /**
- * @brief Argument type built by MMGR_CALL in the three entry points.
+ * @brief Argument type built by EMBED_CALL in the three entry points.
  *
  * @note Fields match BitorumCfg, without its const qualifiers. The const on the public type is what
  *       stops an entry writing through its own arguments. The backend needs no such promise.
@@ -28,11 +31,11 @@
  */
 typedef struct
 {
-    mmgr_bitor *writer;  /**< Writer bitor_put appends to and bitor_align finishes [BORROWS]. */
-    uint8_t *out;        /**< Buffer bitor_init builds a writer over [BORROWS]. */
-    size_t cap;          /**< Bytes available in out. */
-    uint64_t val;        /**< Bits to write, taken from the low end. */
-    mmgr_word bit_count; /**< Number of bits of val to write. */
+    mmgr_bitor *writer;   /**< Writer bitor_put appends to and bitor_align finishes [BORROWS]. */
+    uint8_t *out;         /**< Buffer bitor_init builds a writer over [BORROWS]. */
+    size_t cap;           /**< Bytes available in out. */
+    uint64_t val;         /**< Bits to write, taken from the low end. */
+    embed_word bit_count; /**< Number of bits of val to write. */
 } BitorCtx;
 
 /**
@@ -47,7 +50,7 @@ typedef struct
  *          MMGR_DEBUG_CHECKS build. A larger count writes zeros past the sixty-fourth bit and
  *          advances the writer as though they were data.
  */
-MMGR_INLINE void bitor_put(const BitorCtx *args)
+EMBED_INLINE void bitor_put(const BitorCtx *args)
 {
     mmgr_bitor *const writer = args->writer;
 
@@ -66,11 +69,11 @@ MMGR_INLINE void bitor_put(const BitorCtx *args)
     // Explicit cast converts the combined residue and request bits, in whole bytes, to size_t
     const size_t whole = (size_t)((writer->bit_count + args->bit_count) / 8u);
     uint64_t work = args->val & mask;
-    mmgr_word left = args->bit_count;
+    embed_word left = args->bit_count;
 
     if (whole > (writer->cap - writer->bytes_written))
     {
-        writer->overflow = MMGR_TRUE;
+        writer->overflow = EMBED_TRUE;
         writer->bit_count = 0;
         writer->residue = 0;
         return;
@@ -80,7 +83,7 @@ MMGR_INLINE void bitor_put(const BitorCtx *args)
 
     if (whole != 0u)
     {
-        const mmgr_word take = 8u - writer->bit_count;
+        const embed_word take = 8u - writer->bit_count;
         // Explicit cast narrows the masked byte to the uint8_t chunk the store below merges
         const uint8_t chunk = (uint8_t)(work & 0xFFu);
 
@@ -129,7 +132,7 @@ MMGR_INLINE void bitor_put(const BitorCtx *args)
  * @note Does nothing when writer->overflow is already set.
  * @warning Sets writer->overflow when the byte would pass writer->cap.
  */
-MMGR_INLINE void bitor_align(const BitorCtx *args)
+EMBED_INLINE void bitor_align(const BitorCtx *args)
 {
     mmgr_bitor *const writer = args->writer;
 
@@ -140,7 +143,7 @@ MMGR_INLINE void bitor_align(const BitorCtx *args)
     }
     if (writer->bytes_written >= writer->cap)
     {
-        writer->overflow = MMGR_TRUE;
+        writer->overflow = EMBED_TRUE;
         return;
     }
     writer->out[writer->bytes_written] = writer->residue;
@@ -159,7 +162,7 @@ MMGR_INLINE void bitor_align(const BitorCtx *args)
  *          MMGR_DEBUG_CHECKS build, and a null out is not noticed here: bitor_put writes through it
  *          on the first whole byte.
  */
-MMGR_INLINE mmgr_bitor bitor_init(const BitorCtx *args)
+EMBED_INLINE mmgr_bitor bitor_init(const BitorCtx *args)
 {
     MMGR_ASSERT(args->out != NULL, "a bit writer needs a buffer");
     MMGR_ASSERT(args->cap != 0, "a bit writer needs a capacity");
@@ -170,37 +173,37 @@ MMGR_INLINE mmgr_bitor bitor_init(const BitorCtx *args)
     writer.bytes_written = 0;
     writer.residue = 0;
     writer.bit_count = 0;
-    writer.overflow = MMGR_FALSE;
+    writer.overflow = EMBED_FALSE;
     return writer;
 }
 
 /**
- * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
+ * @brief Binds this module's four fixed arguments to EMBED_ENTRY.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_bitor_ and bitor_ prefixes, which the two share.
  * @param[in] ...         Initializers for the BitorCtx literal, written in terms of args.
- * @note Four of GENERIC_ENTRY's six arguments are the same at every entry here, so they are bound
+ * @note Four of EMBED_ENTRY's six arguments are the same at every entry here, so they are bound
  *       once and each entry below states only what differs.
  */
 #define BITOR_ENTRY(ReturnType_, name_, ...)                                                                           \
-    GENERIC_ENTRY(mmgr_bitor_, bitor_, BitorCtx, BitorumCfg, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_bitor_, bitor_, BitorCtx, BitorumCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
- * @brief Binds the same four to GENERIC_ENTRY_V, for an entry that returns nothing.
+ * @brief Binds the same four to EMBED_ENTRY_V, for an entry that returns nothing.
  *
  * @param[in] name_ Name after the mmgr_bitor_ and bitor_ prefixes, which the two share.
  * @param[in] ...   Initializers for the BitorCtx literal, written in terms of args.
- * @note Two binders rather than one because GENERIC_ENTRY_V takes no return type, as its own block
+ * @note Two binders rather than one because EMBED_ENTRY_V takes no return type, as its own block
  *       in mmgr_config.h describes.
  */
-#define BITOR_ENTRY_V(name_, ...) GENERIC_ENTRY_V(mmgr_bitor_, bitor_, BitorCtx, BitorumCfg, name_, __VA_ARGS__)
+#define BITOR_ENTRY_V(name_, ...) EMBED_ENTRY_V(mmgr_bitor_, bitor_, BitorCtx, BitorumCfg, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
  *
  * @note Each is documented at its declaration in bitorum_introitus_exitus.h.
- * @note The fields each line forwards are the ones that entry reads; MMGR_CALL zeroes the rest.
+ * @note The fields each line forwards are the ones that entry reads; EMBED_CALL zeroes the rest.
  */
 BITOR_ENTRY(mmgr_bitor, init, .out = args->out, .cap = args->cap)
 BITOR_ENTRY_V(put, .writer = args->writer, .val = args->val, .bit_count = args->bit_count)

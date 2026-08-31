@@ -15,10 +15,10 @@
 
 LocusCarcerum(ram, MMGR_MINIMUM_SECURITY(general, ARENA_BYTES));
 
-static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_proto_bytes[ARENA_BYTES];
+static EMBED_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_proto_bytes[ARENA_BYTES];
 static protocore_arena g_arena;
 
-static MMGR_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_buf[1024];
+static EMBED_ALIGN(MMGR_ALIGN_BYTES) uint8_t g_buf[1024];
 
 static void report(const char *impl, const char *name, size_t bytes, double cycles)
 {
@@ -183,13 +183,13 @@ int main(void)
         report("protocore", "span walk", 0u, cy);
 
         BENCH_TIME_CYCLES(cy, ITERS, {
-            mmgr_span s_ = MMGR_CALL(spat.from, SpatiumCfg, .buf = g_buf, .cap = sizeof g_buf);
+            mmgr_span s_ = EMBED_CALL(spat.from, SpatiumCfg, .buf = g_buf, .cap = sizeof g_buf);
             s_.pos = 128u;
-            BENCH_KEEP(MMGR_CALL(spat.ok, SpatiumCfg,
-                                 .span = MMGR_CALL(spat.first, SpatiumCfg,
-                                                   .span = MMGR_CALL(spat.after, SpatiumCfg, .span = s_, .count = 8u),
-                                                   .count = 64u)));
-            BENCH_KEEP(MMGR_CALL(spat.cok, SpatiumCfg, .cspan = MMGR_CALL(spat.produced, SpatiumCfg, .span = s_)));
+            BENCH_KEEP(EMBED_CALL(
+                spat.ok, SpatiumCfg,
+                .span = EMBED_CALL(spat.first, SpatiumCfg,
+                                   .span = EMBED_CALL(spat.after, SpatiumCfg, .span = s_, .count = 8u), .count = 64u)));
+            BENCH_KEEP(EMBED_CALL(spat.cok, SpatiumCfg, .cspan = EMBED_CALL(spat.produced, SpatiumCfg, .span = s_)));
         });
         report("locus_carcerum", "span walk", 0u, cy);
     }

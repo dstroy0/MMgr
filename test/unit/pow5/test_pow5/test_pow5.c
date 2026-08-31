@@ -1,5 +1,5 @@
 // MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 //
 /**
  * @file test_pow5.c
@@ -48,7 +48,7 @@
  * @note MMGR_POW5_STEPS bounds the walk that multiplies in one entry per set bit. A table shorter
  *       than the constant lets that walk read past its end.
  */
-MMGR_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == MMGR_POW5_STEPS, "mmgr_pow5_up is not MMGR_POW5_STEPS entries long");
+EMBED_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == MMGR_POW5_STEPS, "mmgr_pow5_up is not MMGR_POW5_STEPS entries long");
 
 /**
  * @brief Asserts mmgr_pow5_down holds one reciprocal per mmgr_pow5_up entry.
@@ -56,8 +56,8 @@ MMGR_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == MMGR_POW5_STEPS, "mmgr_pow5_up is not
  * @note The walk picks one table or the other by the sign of the exponent and indexes both the same
  *       way, so a length that differs between them reads past the end of the shorter one.
  */
-MMGR_STATIC_ASSERT(MMGR_POW5_DOWN_ENTRIES == MMGR_POW5_UP_ENTRIES,
-                   "mmgr_pow5_down does not hold one reciprocal per mmgr_pow5_up entry");
+EMBED_STATIC_ASSERT(MMGR_POW5_DOWN_ENTRIES == MMGR_POW5_UP_ENTRIES,
+                    "mmgr_pow5_down does not hold one reciprocal per mmgr_pow5_up entry");
 
 /**
  * @brief Asserts the tables still hold the nine entries this suite was written against.
@@ -65,7 +65,7 @@ MMGR_STATIC_ASSERT(MMGR_POW5_DOWN_ENTRIES == MMGR_POW5_UP_ENTRIES,
  * @note Nine is checked against a literal rather than against MMGR_POW5_STEPS, which would compare
  *       the constant with itself. The counts above are what tie the arrays to the constant.
  */
-MMGR_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == 9, "the pow5 tables changed length; this suite expects nine entries");
+EMBED_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == 9, "the pow5 tables changed length; this suite expects nine entries");
 
 /**
  * @brief Asserts MMGR_POW5_MAX expands to 511.
@@ -73,7 +73,7 @@ MMGR_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == 9, "the pow5 tables changed length; t
  * @note pow5.h asserts the same constant is at least 511. This pins the exact value, so a change to
  *       the expansion that still cleared that floor is caught here.
  */
-MMGR_STATIC_ASSERT(MMGR_POW5_MAX == 511, "MMGR_POW5_MAX no longer expands to 511");
+EMBED_STATIC_ASSERT(MMGR_POW5_MAX == 511, "MMGR_POW5_MAX no longer expands to 511");
 
 /**
  * @brief Prepares the fixture Unity runs before each case in this suite.
@@ -105,13 +105,13 @@ void test_every_significand_is_normalized(void)
 {
     for (int step = 0; step < MMGR_POW5_UP_ENTRIES; step++)
     {
-        // Explicit cast widens the literal to mmgr_u64 before the shift. Shifting a plain int by 63
+        // Explicit cast widens the literal to embed_u64 before the shift. Shifting a plain int by 63
         // is undefined where int is 32 bits, so the cast is what makes the mask well defined
-        TEST_ASSERT_TRUE_MESSAGE((mmgr_pow5_up[step].hi & (mmgr_u64)1 << 63) != 0u,
+        TEST_ASSERT_TRUE_MESSAGE((mmgr_pow5_up[step].hi & (embed_u64)1 << 63) != 0u,
                                  "an up entry whose top bit is clear is not normalized");
-        // Explicit cast widens the literal to mmgr_u64 before the shift. Shifting a plain int by 63
+        // Explicit cast widens the literal to embed_u64 before the shift. Shifting a plain int by 63
         // is undefined where int is 32 bits, so the cast is what makes the mask well defined
-        TEST_ASSERT_TRUE_MESSAGE((mmgr_pow5_down[step].hi & (mmgr_u64)1 << 63) != 0u,
+        TEST_ASSERT_TRUE_MESSAGE((mmgr_pow5_down[step].hi & (embed_u64)1 << 63) != 0u,
                                  "a down entry whose top bit is clear is not normalized");
     }
 }
@@ -166,12 +166,12 @@ void test_the_binary_exponents_run_monotonically_in_both_tables(void)
 {
     for (int step = 1; step < MMGR_POW5_UP_ENTRIES; step++)
     {
-        // Explicit casts take both exponents from mmgr_iword into the int Unity's integer comparison
+        // Explicit casts take both exponents from embed_iword into the int Unity's integer comparison
         // works in. pow5.h bounds e2 between -722 and 467, which fits int on every environment this
         // suite builds for
         TEST_ASSERT_GREATER_THAN_INT_MESSAGE((int)mmgr_pow5_up[step - 1].e2, (int)mmgr_pow5_up[step].e2,
                                              "a larger power of five needs a larger binary exponent");
-        // Explicit casts take both exponents from mmgr_iword into the int Unity's integer comparison
+        // Explicit casts take both exponents from embed_iword into the int Unity's integer comparison
         // works in. pow5.h bounds e2 between -722 and 467, which fits int on every environment this
         // suite builds for
         TEST_ASSERT_LESS_THAN_INT_MESSAGE((int)mmgr_pow5_down[step - 1].e2, (int)mmgr_pow5_down[step].e2,
@@ -180,24 +180,24 @@ void test_the_binary_exponents_run_monotonically_in_both_tables(void)
 }
 
 /**
- * @brief Checks that the narrowest legal mmgr_iword carries the widest exponent in the tables.
+ * @brief Checks that the narrowest legal embed_iword carries the widest exponent in the tables.
  *
- * @note mmgr_types.h raises #error unless MMGR_WORD_BITS is 16, 32 or 64, so the narrowest
- *       mmgr_iword is mmgr_i16. The word16 environment is where this check binds.
+ * @note mmgr_types.h raises #error unless EMBED_WORD_BITS is 16, 32 or 64, so the narrowest
+ *       embed_iword is embed_i16. The word16 environment is where this check binds.
  * @note -722 sits at index 8 of mmgr_pow5_down and is the furthest any e2 reaches from zero.
  */
 void test_the_widest_exponent_fits_the_narrowest_word(void)
 {
-    const mmgr_iword widest_exponent = mmgr_pow5_down[MMGR_POW5_DOWN_ENTRIES - 1].e2;
+    const embed_iword widest_exponent = mmgr_pow5_down[MMGR_POW5_DOWN_ENTRIES - 1].e2;
 
-    // Explicit cast takes the exponent from mmgr_iword into the int Unity's integer assertion
-    // compares in. -722 fits mmgr_i16, the narrowest mmgr_iword, so it fits int everywhere
+    // Explicit cast takes the exponent from embed_iword into the int Unity's integer assertion
+    // compares in. -722 fits embed_i16, the narrowest embed_iword, so it fits int everywhere
     TEST_ASSERT_EQUAL_INT_MESSAGE(-722, (int)widest_exponent,
                                   "the widest binary exponent is the one the header documents");
-    // Explicit casts round -722 through mmgr_iword and back into int. A word that dropped the value
+    // Explicit casts round -722 through embed_iword and back into int. A word that dropped the value
     // would return something other than -722 here
-    TEST_ASSERT_EQUAL_INT_MESSAGE(-722, (int)(mmgr_iword)-722,
-                                  "mmgr_i16 is the narrowest mmgr_iword and it carries -722");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(-722, (int)(embed_iword)-722,
+                                  "embed_i16 is the narrowest embed_iword and it carries -722");
 }
 
 /**

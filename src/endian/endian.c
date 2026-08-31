@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file endian.c
@@ -23,7 +26,7 @@
  * @note Mirrors EndianCfg with the top-level const dropped from every member. src keeps the const on
  *       what it points at, so nothing here writes through it.
  * @note endian_put reads dst, val and width. endian_get reads src and width. endian_rev reads val and
- *       width. MMGR_CALL zeroes the members a call is not given.
+ *       width. EMBED_CALL zeroes the members a call is not given.
  */
 typedef struct
 {
@@ -43,18 +46,18 @@ typedef struct
  * @warning args->dst must be writable for args->width bytes. Nothing checks it here, and nothing checks
  *          it in proximus_operor either, where the store is a plain dereference.
  */
-MMGR_INLINE void endian_put(const EndianCtx *args)
+EMBED_INLINE void endian_put(const EndianCtx *args)
 {
     switch (args->width)
     {
     case 2:
-        MMGR_CALL(proxim.put16, ProximusCfg, .dst = args->dst, .val = args->val);
+        EMBED_CALL(proxim.put16, ProximusCfg, .dst = args->dst, .val = args->val);
         break;
     case 4:
-        MMGR_CALL(proxim.put32, ProximusCfg, .dst = args->dst, .val = args->val);
+        EMBED_CALL(proxim.put32, ProximusCfg, .dst = args->dst, .val = args->val);
         break;
     default:
-        MMGR_CALL(proxim.put64, ProximusCfg, .dst = args->dst, .val = args->val);
+        EMBED_CALL(proxim.put64, ProximusCfg, .dst = args->dst, .val = args->val);
         break;
     }
 }
@@ -70,16 +73,16 @@ MMGR_INLINE void endian_put(const EndianCtx *args)
  * @warning args->src must be readable for args->width bytes. Nothing checks it here, and nothing checks
  *          it in proximus_operor either, where the load is a plain dereference.
  */
-MMGR_INLINE uint64_t endian_get(const EndianCtx *args)
+EMBED_INLINE uint64_t endian_get(const EndianCtx *args)
 {
     switch (args->width)
     {
     case 2:
-        return MMGR_CALL(proxim.load16, ProximusCfg, .at = args->src);
+        return EMBED_CALL(proxim.load16, ProximusCfg, .at = args->src);
     case 4:
-        return MMGR_CALL(proxim.load32, ProximusCfg, .at = args->src);
+        return EMBED_CALL(proxim.load32, ProximusCfg, .at = args->src);
     default:
-        return MMGR_CALL(proxim.load64, ProximusCfg, .at = args->src);
+        return EMBED_CALL(proxim.load64, ProximusCfg, .at = args->src);
     }
 }
 
@@ -94,7 +97,7 @@ MMGR_INLINE uint64_t endian_get(const EndianCtx *args)
  * @warning 8u - args->width is unsigned, so an args->width above 8 wraps into a very large shift count,
  *          and a width of 0 shifts a 64-bit value by 64, which is undefined.
  */
-MMGR_INLINE uint64_t endian_rev(const EndianCtx *args)
+EMBED_INLINE uint64_t endian_rev(const EndianCtx *args)
 {
     uint64_t reversed = args->val;
 
@@ -114,7 +117,7 @@ MMGR_INLINE uint64_t endian_rev(const EndianCtx *args)
  * @note Hands back args->width as it was given, which is not what endian_put wrote when the width is
  *       outside the enumerators.
  */
-MMGR_INLINE size_t endian_wr_le(const EndianCtx *args)
+EMBED_INLINE size_t endian_wr_le(const EndianCtx *args)
 {
     endian_put(args);
     return args->width;
@@ -125,16 +128,16 @@ MMGR_INLINE size_t endian_wr_le(const EndianCtx *args)
  *
  * @param[in,out] args Destination, value and width [BORROWS].
  * @return             args->width.
- * @note Builds a fresh EndianCtx holding the reversed value, leaving args untouched. MMGR_CALL names
+ * @note Builds a fresh EndianCtx holding the reversed value, leaving args untouched. EMBED_CALL names
  *       the initializers once, so endian_rev runs once.
  * @note Hands back args->width as it was given, which is not what endian_put wrote when the width is
  *       outside the enumerators.
  * @warning The width reaches endian_rev unchanged, so one above 8 wraps its shift count and one of 0
  *          shifts by 64, which is undefined.
  */
-MMGR_INLINE size_t endian_wr_be(const EndianCtx *args)
+EMBED_INLINE size_t endian_wr_be(const EndianCtx *args)
 {
-    MMGR_CALL(endian_put, EndianCtx, .dst = args->dst, .val = endian_rev(args), .width = args->width);
+    EMBED_CALL(endian_put, EndianCtx, .dst = args->dst, .val = endian_rev(args), .width = args->width);
     return args->width;
 }
 
@@ -146,7 +149,7 @@ MMGR_INLINE size_t endian_wr_be(const EndianCtx *args)
  * @note Calls endian_get directly, where endian_rd_be reverses the result.
  * @note The upper bytes are zero, since the narrow loads widen into the uint64_t rather than filling it.
  */
-MMGR_INLINE uint64_t endian_rd_le(const EndianCtx *args)
+EMBED_INLINE uint64_t endian_rd_le(const EndianCtx *args)
 {
     return endian_get(args);
 }
@@ -156,18 +159,18 @@ MMGR_INLINE uint64_t endian_rd_le(const EndianCtx *args)
  *
  * @param[in] args Source and width [BORROWS].
  * @return         The reversed value, right-aligned into the low args->width bytes.
- * @note Feeds endian_get's result into endian_rev through a fresh EndianCtx. MMGR_CALL names the
+ * @note Feeds endian_get's result into endian_rev through a fresh EndianCtx. EMBED_CALL names the
  *       initializers once, so endian_get runs once.
  * @warning The width reaches endian_rev unchanged, so one above 8 wraps its shift count and one of 0
  *          shifts by 64, which is undefined.
  */
-MMGR_INLINE uint64_t endian_rd_be(const EndianCtx *args)
+EMBED_INLINE uint64_t endian_rd_be(const EndianCtx *args)
 {
-    return MMGR_CALL(endian_rev, EndianCtx, .val = endian_get(args), .width = args->width);
+    return EMBED_CALL(endian_rev, EndianCtx, .val = endian_get(args), .width = args->width);
 }
 
 /**
- * @brief Binds the four order entries to GENERIC_ENTRY.
+ * @brief Binds the four order entries to EMBED_ENTRY.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_ and endian_ prefixes, which the two share.
@@ -176,7 +179,7 @@ MMGR_INLINE uint64_t endian_rd_be(const EndianCtx *args)
  *       than mmgr_endian_ anything. ENDIAN_REV_ENTRY carries the longer prefix for the one that needs it.
  */
 #define ENDIAN_ENTRY(ReturnType_, name_, ...)                                                                          \
-    GENERIC_ENTRY(mmgr_, endian_, EndianCtx, EndianCfg, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_, endian_, EndianCtx, EndianCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief Binds the reversal entry, which carries the longer public prefix.
@@ -185,10 +188,10 @@ MMGR_INLINE uint64_t endian_rd_be(const EndianCtx *args)
  * @param[in] name_       Name after the mmgr_endian_ and endian_ prefixes.
  * @param[in] ...         Initializers for the EndianCtx literal, written in terms of args.
  * @note A second macro because this entry is named mmgr_endian_rev while the four above are named
- *       mmgr_wr_le and its kin. GENERIC_ENTRY pastes one prefix onto one name, so only the pair differs.
+ *       mmgr_wr_le and its kin. EMBED_ENTRY pastes one prefix onto one name, so only the pair differs.
  */
 #define ENDIAN_REV_ENTRY(ReturnType_, name_, ...)                                                                      \
-    GENERIC_ENTRY(mmgr_endian_, endian_, EndianCtx, EndianCfg, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_endian_, endian_, EndianCtx, EndianCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
@@ -196,7 +199,7 @@ MMGR_INLINE uint64_t endian_rd_be(const EndianCtx *args)
  * @note Each is documented at its declaration in endian.h.
  * @note args->width is forwarded as it stands. EndianCfg and EndianCtx both declare it mmgr_endian_width,
  *       so there is no conversion to make.
- * @note The four wr and rd lines pass args->dst or args->src through as they stand [BORROWS]. MMGR_CALL
+ * @note The four wr and rd lines pass args->dst or args->src through as they stand [BORROWS]. EMBED_CALL
  *       builds its literal inside the emitted function, so the literal lives for that call alone and the
  *       buffer has to outlive it. Nothing here copies the buffer or frees it.
  * @warning No line tests what it forwards. A null dst or src reaches a backend that dereferences it with

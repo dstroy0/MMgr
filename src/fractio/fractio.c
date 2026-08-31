@@ -1,5 +1,8 @@
 /* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
  * @file fractio.c
@@ -19,12 +22,12 @@
 typedef struct
 {
     union {
-        double val;    /**< The value, when the caller supplies a double. */
-        mmgr_u64 bits; /**< The same storage read as a bit pattern. */
+        double val;     /**< The value, when the caller supplies a double. */
+        embed_u64 bits; /**< The same storage read as a bit pattern. */
     };
-    mmgr_u64 sign; /**< Sign for merge, 0 or 1. */
-    mmgr_u64 exp;  /**< Biased exponent for merge. */
-    mmgr_u64 mant; /**< Stored mantissa for merge. */
+    embed_u64 sign; /**< Sign for merge, 0 or 1. */
+    embed_u64 exp;  /**< Biased exponent for merge. */
+    embed_u64 mant; /**< Stored mantissa for merge. */
 } FractioCtx;
 
 /**
@@ -33,7 +36,7 @@ typedef struct
  * @param[in] args Bit pattern to read [BORROWS].
  * @return         0 for a positive value, 1 for a negative one.
  */
-MMGR_INLINE mmgr_u64 fract_sign(const FractioCtx *args)
+EMBED_INLINE embed_u64 fract_sign(const FractioCtx *args)
 {
     return (args->bits & MMGR_DBL_SIGN_MASK) >> MMGR_DBL_SIGN_SHIFT;
 }
@@ -45,7 +48,7 @@ MMGR_INLINE mmgr_u64 fract_sign(const FractioCtx *args)
  * @return         The stored exponent, with MMGR_DBL_BIAS not yet removed.
  * @note 0 marks a zero or subnormal. MMGR_DBL_EXP_ALL marks an infinity or NaN.
  */
-MMGR_INLINE mmgr_u64 fract_exp(const FractioCtx *args)
+EMBED_INLINE embed_u64 fract_exp(const FractioCtx *args)
 {
     return (args->bits & MMGR_DBL_EXP_MASK) >> MMGR_DBL_MANT_BITS;
 }
@@ -56,7 +59,7 @@ MMGR_INLINE mmgr_u64 fract_exp(const FractioCtx *args)
  * @param[in] args Bit pattern to read [BORROWS].
  * @return         The stored mantissa alone.
  */
-MMGR_INLINE mmgr_u64 fract_mant(const FractioCtx *args)
+EMBED_INLINE embed_u64 fract_mant(const FractioCtx *args)
 {
     return args->bits & MMGR_DBL_MANT_MASK;
 }
@@ -68,7 +71,7 @@ MMGR_INLINE mmgr_u64 fract_mant(const FractioCtx *args)
  * @return         The assembled bit pattern.
  * @note Each field is masked to its own width first, so a wide input cannot reach a neighbor.
  */
-MMGR_INLINE mmgr_u64 fract_merge(const FractioCtx *args)
+EMBED_INLINE embed_u64 fract_merge(const FractioCtx *args)
 {
     return ((args->sign & MMGR_DBL_SIGN_ONE) << MMGR_DBL_SIGN_SHIFT) |
            ((args->exp & MMGR_DBL_EXP_ALL) << MMGR_DBL_MANT_BITS) | (args->mant & MMGR_DBL_MANT_MASK);
@@ -80,7 +83,7 @@ MMGR_INLINE mmgr_u64 fract_merge(const FractioCtx *args)
  * @param[in] args Union holding the pattern [BORROWS].
  * @return         The same storage read as a double.
  */
-MMGR_INLINE double fract_from_bits(const FractioCtx *args)
+EMBED_INLINE double fract_from_bits(const FractioCtx *args)
 {
     return args->val;
 }
@@ -91,13 +94,13 @@ MMGR_INLINE double fract_from_bits(const FractioCtx *args)
  * @param[in] args Union holding the value [BORROWS].
  * @return         The same storage read as a bit pattern.
  */
-MMGR_INLINE mmgr_u64 fract_to_bits(const FractioCtx *args)
+EMBED_INLINE embed_u64 fract_to_bits(const FractioCtx *args)
 {
     return args->bits;
 }
 
 /**
- * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
+ * @brief Binds this module's four fixed arguments to EMBED_ENTRY.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_fract_ and fract_ prefixes, which the two share.
@@ -106,7 +109,7 @@ MMGR_INLINE mmgr_u64 fract_to_bits(const FractioCtx *args)
  *       are named once here and the table below states only what each entry reads.
  */
 #define FRACT_ENTRY(ReturnType_, name_, ...)                                                                           \
-    GENERIC_ENTRY(mmgr_fract_, fract_, FractioCtx, FractioCfg, ReturnType_, name_, __VA_ARGS__)
+    EMBED_ENTRY(mmgr_fract_, fract_, FractioCtx, FractioCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
@@ -116,9 +119,9 @@ MMGR_INLINE mmgr_u64 fract_to_bits(const FractioCtx *args)
  *       instead. from_bits is given bits and reads val, to_bits is given val and reads bits, which is
  *       the reinterpretation both exist for.
  */
-FRACT_ENTRY(mmgr_u64, sign, .bits = args->bits)
-FRACT_ENTRY(mmgr_u64, exp, .bits = args->bits)
-FRACT_ENTRY(mmgr_u64, mant, .bits = args->bits)
-FRACT_ENTRY(mmgr_u64, merge, .sign = args->sign, .exp = args->exp, .mant = args->mant)
+FRACT_ENTRY(embed_u64, sign, .bits = args->bits)
+FRACT_ENTRY(embed_u64, exp, .bits = args->bits)
+FRACT_ENTRY(embed_u64, mant, .bits = args->bits)
+FRACT_ENTRY(embed_u64, merge, .sign = args->sign, .exp = args->exp, .mant = args->mant)
 FRACT_ENTRY(double, from_bits, .bits = args->bits)
-FRACT_ENTRY(mmgr_u64, to_bits, .val = args->val)
+FRACT_ENTRY(embed_u64, to_bits, .val = args->val)

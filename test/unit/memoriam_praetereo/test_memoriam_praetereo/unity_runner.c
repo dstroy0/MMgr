@@ -8,6 +8,16 @@
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_dma_header_is_self_contained(void);
+extern void test_every_praet_entry_is_reachable(void);
+extern void test_no_two_praet_entries_share_a_function(void);
+extern void test_an_unported_build_refuses_to_open_a_channel(void);
+extern void test_an_unported_build_refuses_a_transfer(void);
+extern void test_an_empty_transfer_is_refused_as_well(void);
+extern void test_closing_a_channel_that_never_opened_returns(void);
+extern void test_polling_an_unported_build_returns(void);
+extern void test_an_unported_build_reports_no_completion(void);
+extern void test_the_completion_event_carries_every_reported_field(void);
+extern void test_the_completion_event_splits_time_into_two_fields(void);
 
 
 /*=======Mock Management=====*/
@@ -20,12 +30,6 @@ static void CMock_Verify(void)
 static void CMock_Destroy(void)
 {
 }
-
-/*=======Setup (stub)=====*/
-void setUp(void) {}
-
-/*=======Teardown (stub)=====*/
-void tearDown(void) {}
 
 /*=======Test Reset Options=====*/
 void resetTest(void);
@@ -74,8 +78,18 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/memoriam_praetereo/test_memoriam_praetereo/test_memoriam_praetereo.c");
-  run_test(test_dma_header_is_self_contained, "test_dma_header_is_self_contained", 5);
+  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/memoriam_praetereo/test_memoriam_praetereo\\test_memoriam_praetereo.c");
+  run_test(test_dma_header_is_self_contained, "test_dma_header_is_self_contained", 73);
+  run_test(test_every_praet_entry_is_reachable, "test_every_praet_entry_is_reachable", 84);
+  run_test(test_no_two_praet_entries_share_a_function, "test_no_two_praet_entries_share_a_function", 99);
+  run_test(test_an_unported_build_refuses_to_open_a_channel, "test_an_unported_build_refuses_to_open_a_channel", 114);
+  run_test(test_an_unported_build_refuses_a_transfer, "test_an_unported_build_refuses_a_transfer", 127);
+  run_test(test_an_empty_transfer_is_refused_as_well, "test_an_empty_transfer_is_refused_as_well", 142);
+  run_test(test_closing_a_channel_that_never_opened_returns, "test_closing_a_channel_that_never_opened_returns", 155);
+  run_test(test_polling_an_unported_build_returns, "test_polling_an_unported_build_returns", 167);
+  run_test(test_an_unported_build_reports_no_completion, "test_an_unported_build_reports_no_completion", 179);
+  run_test(test_the_completion_event_carries_every_reported_field, "test_the_completion_event_carries_every_reported_field", 195);
+  run_test(test_the_completion_event_splits_time_into_two_fields, "test_the_completion_event_splits_time_into_two_fields", 225);
 
   return UNITY_END();
 }
