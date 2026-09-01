@@ -29,6 +29,17 @@
       ]
     },
     
+    "praet": {
+      "desc": "On-device cycle-counter comparison of three ways to pick a move direction from two addresses, at lengths 8, 64 and 2048.\nmemoria_operor has two moves and the caller picks: move_up when the destination is above the source, move_down when it is below, and the table points move_down at mmgr_memor_cpy because copying forward is already safe that way. Nothing inspects the two addresses and chooses. A DMA submit cannot be told, since both endpoints arrive as addresses, so something has to decide and this weighs what the deciding costs.\nThree forms, all reaching the same two entries the same way: known, which is handed the answer and is the floor rather than a competitor; branch, which compares the two addresses; and mask, which builds an index from the same compare and takes it through a two entry table so nothing is predicted.\nThree cases, because a branch is only expensive when it is wrong: destination above source every call, below every call, and alternating every call. Each head-to-head row is run in both orders, because on the C6 the arm that runs second has measured about 1.1 cycles more whatever it is, and a split that follows the position instead of the code is visible only by swapping.\nCorrectness runs before any timing. All three forms are checked against a byte-walk reference written in the bench rather than taken from the library, over a one byte overlap, a word apart in both directions, a half-length straddle and no overlap, at every length. A form that moves the wrong bytes still produces a number, and the number reads as a result.\nBuild and flash (both parts carry USB-Serial/JTAG):\nidf.py -C test/performance_benching/praet -B build_esp32s3 -D SDKCONFIG=sdkconfig.esp32s3 set-target esp32s3\nninja -C test/performance_benching/praet/build_esp32s3 -j 2\nidf.py -C test/performance_benching/praet -B build_esp32s3 -p COM3 flash\nthen open the port to capture the repeating \"DB ...\" lines. Substitute esp32c6 and its port for the RISC-V part. Cap the job count: ninja defaults to cores + 2, and a full IDF tree at that width took the build machine down.",
+      "path": "praet",
+      "flags": [],
+      "src": [
+        "src/memoria_operor/memoria_operor.c",
+        "src/proximus_operor/proximus_operor.c",
+        "src/verbum_scrutor/verbum_scrutor.c"
+      ]
+    },
+    
     "verba": {
       "desc": "Host and on-device A/B for the text and number writers (verba_scribo), and the rounding arms scale_to_u64 is given for a fixed-point tie.",
       "path": "verba",

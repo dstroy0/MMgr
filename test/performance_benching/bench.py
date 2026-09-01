@@ -720,4 +720,15 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # A module, not an entry point. test/harness.py is the only thing that starts a build, so that
+    # every build's flags and every build's directory are decided in one place. Run directly this
+    # would configure and write wherever it was invoked from, which is how a build tree ends up
+    # beside the source and how two builds come to share objects.
+    sys.exit(
+        "bench.py is a module and does not run on its own.\n"
+        "  Use the harness, which owns the build directories and the environment:\n"
+        "    python test/harness.py device list\n"
+        "    python test/harness.py device build <bench> --target esp32s3\n"
+        "    python test/harness.py device flash <bench> --target esp32s3 --port COM3\n"
+        "  The matrix commands are reached the same way, through the harness."
+    )
