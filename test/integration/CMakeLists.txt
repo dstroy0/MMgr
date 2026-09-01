@@ -5,6 +5,7 @@
 # own promises; these prove the modules still agree when stacked.
 
 add_subdirectory(test_hostile_content)
+add_subdirectory(test_praet_correctness)
 add_subdirectory(test_read_bounds)
 add_subdirectory(test_ring_bounds)
 add_subdirectory(test_scan_reference)

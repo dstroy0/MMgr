@@ -8,6 +8,7 @@
   harness.py ab                               both sides of the A/B, one after the other
   harness.py coverage [--worst N] [--gaps]    build, run and report what src/ the suites reached
   harness.py trees                            which build trees exist and which one each name uses
+  harness.py stray                            anything outside build/ that a build looks to have made
   harness.py device list                      which on-device benches exist and what is built
   harness.py device build B --target T        configure and build one bench for one part
   harness.py device flash B --target T --port P   flash the image that build produced
@@ -84,6 +85,7 @@ and a profile is a .c.
 import argparse
 import csv
 import datetime
+import fnmatch
 import json
 import os
 import re
@@ -995,6 +997,82 @@ def cmd_trees(a):
     return 0
 
 
+# What build output looks like when it turns up somewhere it does not belong. Each carries what it
+# is, because a path on its own does not tell the reader why it was named.
+#
+# The names here are deliberately narrow. sdkconfig.defaults is a source file that is meant to be in
+# the tree and sdkconfig is a generated one that is not, so this matches the second and not the
+# first: a check that cries wolf on a real source file is one that gets run once.
+STRAY_DIRS = (
+    ("__pycache__", "python bytecode, written beside an imported module"),
+    (".pio", "PlatformIO build tree"),
+    ("build", "a build tree outside the container"),
+    ("build_*", "an ESP-IDF build tree outside the container"),
+    ("cmake-build*", "a CMake build tree outside the container"),
+    (".pytest_cache", "pytest state"),
+    (".mypy_cache", "mypy state"),
+)
+
+STRAY_FILES = (
+    ("*.o", "object file"),
+    ("*.obj", "object file"),
+    ("*.a", "static archive"),
+    ("*.elf", "linked image"),
+    ("*.pyc", "python bytecode"),
+    ("*.gcda", "coverage counters"),
+    ("*.gcno", "coverage notes"),
+    ("sdkconfig", "generated ESP-IDF config"),
+    ("sdkconfig.old", "generated ESP-IDF config"),
+    ("sdkconfig.esp32*", "generated ESP-IDF config"),
+)
+
+
+def cmd_stray(a):
+    """Everything outside the container that looks like something a build produced.
+
+    The container rule is only worth having if breaking it is visible. Left to be noticed by hand,
+    a stray tree is found by whoever goes looking, days later, and by then there are several and
+    nobody knows which tool made which - so this makes a dirty tree one line of output instead of
+    an afternoon of going through directories.
+
+    Reports and never removes. What disappears from a checkout is the reader's call, not a tool's.
+    """
+    container = os.path.abspath(BUILD_CONTAINER)
+    hits = []
+    for base, dirs, files in os.walk(ROOT):
+        # Never descend into .git, and never into the container: the container is where every one of
+        # these belongs, so naming its contents would report the rule working as if it were broken.
+        dirs[:] = [
+            d for d in dirs if d != ".git" and os.path.abspath(os.path.join(base, d)) != container
+        ]
+        for name in list(dirs):
+            for pattern, why in STRAY_DIRS:
+                if fnmatch.fnmatch(name, pattern):
+                    hits.append((os.path.join(base, name), why, True))
+                    # Not descended into. One line for the tree, rather than one per object inside
+                    # it, which for an IDF tree is thousands.
+                    dirs.remove(name)
+                    break
+        for name in files:
+            for pattern, why in STRAY_FILES:
+                if fnmatch.fnmatch(name, pattern):
+                    hits.append((os.path.join(base, name), why, False))
+                    break
+
+    where = os.path.relpath(container, ROOT).replace("\\", "/")
+    if not hits:
+        print("nothing outside %s/ looks like build output" % where)
+        return 0
+
+    for path, why, is_dir in sorted(hits, key=lambda h: h[0]):
+        print("  %-4s %-56s %s" % ("dir" if is_dir else "file", os.path.relpath(path, ROOT).replace("\\", "/"), why))
+    print(
+        "\n%d stray path(s). Everything a build makes belongs under %s/, where it is named for what\n"
+        "made it, rotated, and removed with the tree it came from." % (len(hits), where)
+    )
+    return 1 if a.strict else 0
+
+
 def cmd_build(a):
     return build(a.tree, a.jobs, a.fresh)
 
@@ -1278,6 +1356,10 @@ GENERATED = (
     ),
     ("tools/dev_env/gen_pow5.py", ("src/pow5/pow5.h",)),
     (
+        "tools/dev_env/gen_praet_scenarios.py",
+        ("test/integration/test_praet_correctness/praet_scenarios.h",),
+    ),
+    (
         "tools/dev_env/gen_ancorae_formae.py",
         (
             "src/impensa_ancorae_acus/impensa_ancorae_acus_generic.c",
@@ -1383,6 +1465,10 @@ def main():
 
     p = sub.add_parser("trees", help="which build trees exist, and which one each name is using")
     p.set_defaults(fn=cmd_trees)
+
+    p = sub.add_parser("stray", help="anything outside build/ that a build looks to have made")
+    p.add_argument("--strict", action="store_true", help="exit non-zero on a finding, for a CI gate")
+    p.set_defaults(fn=cmd_stray)
 
     p = sub.add_parser("device", help="the on-device benches under test/performance_benching")
     dsub = p.add_subparsers(dest="sub", required=True)
