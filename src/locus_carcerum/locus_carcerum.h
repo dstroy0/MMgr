@@ -168,7 +168,8 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
                         #prisonsite_ "." #name_ " is not a power of two");                                             \
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) >= (2u * MMGR_CARCER_ALIGN),                                 \
                         #prisonsite_ "." #name_ " is too small for one cell");                                         \
-    static CarcerCellBlock prisonsite_##_##name_##_ctx = {mmgr_pars_storage_##name_, name_##_bytes, 0u, name_##_bytes}; \
+    static CarcerCellBlock prisonsite_##_##name_##_ctx = {mmgr_pars_storage_##name_, name_##_bytes, 0u,                \
+                                                          name_##_bytes};                                              \
     MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size)                          \
     {                                                                                                                  \
         return mmgr_persistent_buf_alloc(&prisonsite_##_##name_##_ctx, size);                                          \

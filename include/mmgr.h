@@ -194,8 +194,7 @@
     };                                                                                                                 \
     EMBED_ALIGN(MMGR_ALIGN_BYTES) static uint8_t mmgr_pars_storage_##name_[bytes_];                                    \
     static const uint8_t *const name_ EMBED_UNUSED = mmgr_pars_storage_##name_;                                        \
-    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) == name_##_bytes,                                            \
-                        #name_ " is not the size it was declared")
+    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) == name_##_bytes, #name_ " is not the size it was declared")
 
 /**
  * @brief Declares a pool of bytes in external memory.
@@ -218,8 +217,7 @@
     };                                                                                                                 \
     EMBED_ALIGN(MMGR_ALIGN_BYTES) static uint8_t mmgr_pars_storage_##name_[bytes_] MMGR_EXTRAM_ATTR;                   \
     static const uint8_t *const name_ EMBED_UNUSED = mmgr_pars_storage_##name_;                                        \
-    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) == name_##_bytes,                                            \
-                        #name_ " is not the size it was declared")
+    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) == name_##_bytes, #name_ " is not the size it was declared")
 #endif
 
 /**

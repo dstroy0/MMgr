@@ -23,8 +23,8 @@
  * Every offset and length is read from a volatile inside the arm. Read outside, the whole expression
  * is loop invariant and both arms report the harness floor.
  */
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "device_bench.h"
 

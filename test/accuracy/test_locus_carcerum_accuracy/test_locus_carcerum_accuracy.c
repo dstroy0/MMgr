@@ -268,7 +268,8 @@ void test_persistent_cells_never_share_a_byte(void)
         }
 
         (void)snprintf(label, sizeof label, "after allocating cell %u of %u bytes", index, (unsigned)size);
-        TEST_ASSERT_TRUE_MESSAGE(accuracy_site.plain_cells.who_owns_buf(at), "a cell was handed out from outside the block");
+        TEST_ASSERT_TRUE_MESSAGE(accuracy_site.plain_cells.who_owns_buf(at),
+                                 "a cell was handed out from outside the block");
         TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, ((uintptr_t)at) % MMGR_CARCER_ALIGN, "a cell was not word aligned");
 
         // Explicit cast narrows the loop counter to the byte the pattern is tagged with. The table
