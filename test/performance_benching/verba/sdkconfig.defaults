@@ -1,7 +1,0 @@
-# The library is built for speed on the target, so the bench image is too. ESP-IDF defaults to -Og,
-# which would measure a debug build and answer a question nobody asked.
-CONFIG_COMPILER_OPTIMIZATION_PERF=y
-
-# One line per operation and nothing else, so a runner collecting the port does not have to filter
-# driver chatter back out.
-CONFIG_LOG_DEFAULT_LEVEL_WARN=y

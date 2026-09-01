@@ -81,13 +81,13 @@ int main(void)
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_locus_carcerum_accuracy\\test_locus_carcerum_accuracy.c");
   run_test(test_the_pattern_helpers_this_suite_relies_on_are_themselves_right, "test_the_pattern_helpers_this_suite_relies_on_are_themselves_right", 222);
   run_test(test_persistent_cells_never_share_a_byte, "test_persistent_cells_never_share_a_byte", 254);
-  run_test(test_a_reused_cell_does_not_disturb_its_neighbors, "test_a_reused_cell_does_not_disturb_its_neighbors", 303);
-  run_test(test_the_two_tiers_never_hand_out_the_same_byte, "test_the_two_tiers_never_hand_out_the_same_byte", 367);
-  run_test(test_a_maximum_security_release_leaves_zeros, "test_a_maximum_security_release_leaves_zeros", 424);
-  run_test(test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark, "test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark", 459);
-  run_test(test_a_rewind_to_a_mark_gives_back_every_byte_taken_since_it, "test_a_rewind_to_a_mark_gives_back_every_byte_taken_since_it", 507);
-  run_test(test_two_prison_sites_hold_no_byte_in_common, "test_two_prison_sites_hold_no_byte_in_common", 538);
-  run_test(test_the_rounding_lands_on_the_next_whole_word, "test_the_rounding_lands_on_the_next_whole_word", 595);
+  run_test(test_a_reused_cell_does_not_disturb_its_neighbors, "test_a_reused_cell_does_not_disturb_its_neighbors", 304);
+  run_test(test_the_two_tiers_never_hand_out_the_same_byte, "test_the_two_tiers_never_hand_out_the_same_byte", 368);
+  run_test(test_a_maximum_security_release_leaves_zeros, "test_a_maximum_security_release_leaves_zeros", 425);
+  run_test(test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark, "test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark", 460);
+  run_test(test_a_rewind_to_a_mark_gives_back_every_byte_taken_since_it, "test_a_rewind_to_a_mark_gives_back_every_byte_taken_since_it", 508);
+  run_test(test_two_prison_sites_hold_no_byte_in_common, "test_two_prison_sites_hold_no_byte_in_common", 539);
+  run_test(test_the_rounding_lands_on_the_next_whole_word, "test_the_rounding_lands_on_the_next_whole_word", 596);
 
   return UNITY_END();
 }

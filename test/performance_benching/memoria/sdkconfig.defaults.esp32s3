@@ -1,3 +1,0 @@
-# The S3 runs at 240 MHz. IDF would otherwise settle it at 160, which understates the part and makes
-# the two targets look closer than they are. The C6 has no 240 option and keeps its own 160.
-CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y

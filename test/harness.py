@@ -89,8 +89,15 @@ import os
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
+import time
+
+# No __pycache__ beside the source. This process imports bench.py out of the bench tree, and the
+# interpreter writes bytecode next to whatever it imports - a generated directory in the checkout,
+# left by the one tool whose job is keeping generated things in a single place.
+sys.dont_write_bytecode = True
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -206,6 +213,127 @@ def tree_dirs(tree):
     )
 
 
+# Asked at most once per run. The query costs about a second, and the answer does not change in the
+# middle of a build.
+_DEFENDER_RT = "unasked"
+
+
+def defender_state():
+    """Real time protection, and the paths excluded from it. (None, []) where it cannot be told.
+
+    None is an answer and not a failure. The query needs the Defender module, which a machine
+    running a different anti-virus does not have, and calling that "off" would send the reader after
+    the wrong thing.
+    """
+    global _DEFENDER_RT  # noqa: PLW0603  asked once and cached, which is the point of it
+    if _DEFENDER_RT != "unasked":
+        return _DEFENDER_RT
+
+    _DEFENDER_RT = (None, [])
+    if sys.platform == "win32":
+        r = subprocess.run(
+            [
+                "powershell", "-NoProfile", "-Command",
+                "[pscustomobject]@{rt=(Get-MpComputerStatus).RealTimeProtectionEnabled;"
+                " ex=@((Get-MpPreference).ExclusionPath)} | ConvertTo-Json -Compress",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        try:
+            answer = json.loads(r.stdout.strip())
+            raw = [p for p in answer["ex"] if p]
+            # Unelevated, Get-MpPreference answers the exclusion query with a sentence about needing
+            # to be an administrator rather than with paths. Comparing the tree against a sentence
+            # finds no match and reports "not excluded", which is an assertion this cannot make, so
+            # an answer holding no path at all becomes None: not knowable from here.
+            paths = [p for p in raw if os.path.isabs(p)]
+            _DEFENDER_RT = (bool(answer["rt"]), paths if paths or not raw else None)
+        except (ValueError, KeyError, TypeError):
+            pass
+    return _DEFENDER_RT
+
+
+def defender_covers(path):
+    """True when real time protection is on and @p path is not excluded from it.
+
+    The exclusion is what decides, not the setting. Protection being on says nothing about this
+    tree if the tree is already excluded, and a warning that fires anyway is one that gets ignored
+    the one time it was right.
+    """
+    realtime, excluded = defender_state()
+    if not realtime:
+        return False
+    if excluded is None:
+        # Protection is on and the exclusions cannot be read from here. Worth raising, and the note
+        # says which half is known.
+        return True
+    target = os.path.normcase(os.path.abspath(path))
+    for entry in excluded:
+        # An exclusion covers a directory and everything under it, so the separator matters: without
+        # it "C:\\build" would read as excluding "C:\\build-oracle" too.
+        covered = os.path.normcase(os.path.abspath(entry))
+        if target == covered or target.startswith(covered + os.sep):
+            return False
+    return True
+
+
+def report_defender():
+    """Print the Defender note where it is a likely explanation. A no-op anywhere it is not.
+
+    Printed on failures rather than on every command. On a working build it is noise, and the
+    symptoms it explains - a tree that will not delete, a link step failing on a file nothing else
+    holds, a rebuild slower than the last one - all arrive as a failure that names no cause.
+    """
+    if not defender_covers(BUILD_CONTAINER):
+        return
+
+    _realtime, excluded = defender_state()
+    if excluded is None:
+        print(
+            "  Windows Defender real time protection is on. Whether %s is excluded from it cannot\n"
+            "  be read without an elevated shell, so this may already be handled.\n"
+            "  It scans every file a build writes and holds a handle open while it does. Where it\n"
+            "  is not excluded that makes every build slower, reliably, and breaks a delete or a\n"
+            "  link that lands in the same moment, intermittently - so it may be what just happened\n"
+            "  here, and it may not be. To check and fix, in an elevated shell:\n"
+            "    (Get-MpPreference).ExclusionPath\n"
+            "    Add-MpPreference -ExclusionPath '%s'"
+            % (os.path.relpath(BUILD_CONTAINER, ROOT).replace("\\", "/"), BUILD_CONTAINER)
+        )
+    else:
+        print(
+            "  Windows Defender real time protection is on and %s is not excluded from it.\n"
+            "  It scans every file a build writes and holds a handle open while it does. That makes\n"
+            "  every build slower, reliably. It also breaks a delete or a link that lands in the same\n"
+            "  moment, intermittently - so it may be what just happened here, and it may not be.\n"
+            "  Excluding the tree costs nothing to try, in an elevated shell:\n"
+            "    Add-MpPreference -ExclusionPath '%s'"
+            % (os.path.relpath(BUILD_CONTAINER, ROOT).replace("\\", "/"), BUILD_CONTAINER)
+        )
+
+
+def remove_tree(path):
+    """Remove a build tree, and say whether it actually went.
+
+    Every read-only bit under the tree is cleared first. FetchContent clones Unity into _deps with
+    its .git intact, and git holds pack files at 0444, which Windows will not unlink - so a plain
+    rmtree of any fully built tree stops partway and leaves a directory with most of its contents
+    gone. That husk still matches the tree pattern, so it is counted by the rotation, listed by
+    `trees`, and never removed on any later run either.
+    """
+    for base, dirs, files in os.walk(path):
+        for name in dirs + files:
+            try:
+                os.chmod(os.path.join(base, name), stat.S_IWRITE)
+            except OSError:
+                # Already gone, or not ours to change. Whatever genuinely blocks the removal is
+                # reported by the caller reading the return, rather than guessed at here.
+                pass
+    shutil.rmtree(path, ignore_errors=True)
+    return not os.path.exists(path)
+
+
 def rotate_trees(tree, keep=BUILD_KEEP):
     """Remove all but the newest @p keep directories belonging to @p tree.
 
@@ -218,7 +346,11 @@ def rotate_trees(tree, keep=BUILD_KEEP):
     for name in mine[: max(0, len(mine) - keep)]:
         if name == live:
             continue
-        shutil.rmtree(os.path.join(BUILD_CONTAINER, name), ignore_errors=True)
+        # Said out loud. A rotation that cannot remove what it selected leaves the container one
+        # tree larger every time, and silence turns that into a directory nobody can account for.
+        if not remove_tree(os.path.join(BUILD_CONTAINER, name)):
+            print("rotation could not remove %s, and it is still counted" % name)
+            report_defender()
 
 
 def tree_path(tree, fresh=False):
@@ -237,7 +369,10 @@ def tree_path(tree, fresh=False):
     name = "%s-%s" % (tree, build_stamp())
     current[tree] = name
     write_pointer(current)
-    rotate_trees(tree)
+    # One fewer than the count kept, because the tree named above is not on disk yet - cmake makes it
+    # on the way through configure. Rotating to BUILD_KEEP here leaves that many behind and then adds
+    # one, so the container settles at one more than this file says it keeps.
+    rotate_trees(tree, BUILD_KEEP - 1)
     return os.path.join(BUILD_CONTAINER, name)
 
 # A five-way split. A suite is a directory holding exactly one .c
@@ -534,11 +669,12 @@ def configure(tree, fresh=False):
     if r.returncode != 0:
         sys.stderr.write(r.stdout[-3000:] + r.stderr[-3000:])
         print("configure of %s failed" % tree)
+        report_defender()
         # A configure that failed still leaves a cache, and that cache holds whatever cmake settled
         # on before it stopped - a generator nobody asked for, or a compiler it could not find. The
         # next run sees a cache, treats the tree as configured, and builds against it. Removing it
         # is what makes a failed configure fail again rather than half-succeed.
-        shutil.rmtree(path, ignore_errors=True)
+        remove_tree(path)
         current = read_pointer()
         # Put back whatever the name pointed at before, so a failed --fresh leaves the working tree
         # in place instead of unsetting the name and stranding a tree that is still on disk.
@@ -562,6 +698,7 @@ def build(tree, jobs, fresh=False):
         sys.stdout.write(r.stdout[-4000:])
         sys.stderr.write(r.stderr[-4000:])
         print("build of %s failed" % tree)
+        report_defender()
         return 1
     print("%s built" % os.path.relpath(tree_path(tree), BUILD_ROOT))
     return 0
@@ -636,6 +773,15 @@ def run_script(path, quiet=False):
 # invocation goes through the IDF python explicitly for that reason.
 IDF_PREAMBLE = """\
 $ErrorActionPreference = "Stop"
+
+# idf.py refuses to run under MSys/Mingw and stops before it configures anything. Those variables
+# are inherited from whichever shell started the harness, and a POSIX shell on this machine sets
+# them, so a device build reached from one dies on a message about the environment rather than
+# about the build. Cleared here so an emitted script runs the same way whichever shell got here.
+foreach ($name in "MSYSTEM", "MSYSTEM_PREFIX", "MINGW_PREFIX", "MSYS", "MSYS2_PATH_TYPE") {{
+    Remove-Item -Path ("env:" + $name) -ErrorAction SilentlyContinue
+}}
+
 $env:IDF_PATH = "{idf_path}"
 $env:IDF_TOOLS_PATH = "{idf_tools}"
 $idfPython = "{idf_python}"
@@ -675,19 +821,41 @@ def cmd_device_build(a):
 
     body = IDF_PREAMBLE.format(idf_path=IDF_PATH, idf_tools=IDF_TOOLS_PATH, idf_python=IDF_PYTHON)
     body += '\nSet-Location "{root}"\n'.format(root=ROOT)
-    body += '& $idfPython $idfPy -C "{proj}" -B "{tree}" set-target {target}\n'.format(
-        proj=proj, tree=tree, target=a.target
+    # sdkconfig into the tree, not beside the source. idf.py writes it into the project directory by
+    # default, which leaves generated config in the checkout and leaves it there after the tree it
+    # describes is gone - and the name it writes, plain "sdkconfig", is not what .gitignore covers.
+    # In the tree it is made with the tree, removed with it, and regenerated from sdkconfig.defaults
+    # for the next one. Forward slashes because the value reaches cmake, which reads a backslash in
+    # a -D as an escape.
+    sdkconfig = os.path.join(tree, "sdkconfig").replace("\\", "/")
+    body += '& $idfPython $idfPy -C "{proj}" -B "{tree}" -D SDKCONFIG="{sdkconfig}" set-target {target}\n'.format(
+        proj=proj, tree=tree, sdkconfig=sdkconfig, target=a.target
     )
-    body += 'if ($LASTEXITCODE -ne 0) {{ throw "set-target failed" }}\n'
+    # Single braces, and an explicit exit rather than a throw. This line is concatenated, not
+    # formatted, so a doubled brace is not an escape here - it emits a scriptblock wrapped in a
+    # scriptblock, which PowerShell prints instead of running. The guard then never fires and the
+    # step reports success no matter what it did.
+    body += 'if ($LASTEXITCODE -ne 0) { Write-Error "set-target failed"; exit 1 }\n'
     # Job count capped: ninja defaults to cores + 2, and a full IDF tree at that width has taken this
     # machine down.
     body += 'ninja -C "{tree}" -j {jobs}\n'.format(tree=tree, jobs=a.jobs)
-    body += 'if ($LASTEXITCODE -ne 0) {{ throw "build failed" }}\n'
+    body += 'if ($LASTEXITCODE -ne 0) { Write-Error "build failed"; exit 1 }\n'
+    body += "exit 0\n"
 
     path = emit_script("device-build-%s-%s" % (a.bench, a.target), body)
     r = run_script(path)
     if r.returncode != 0:
         print("device build of %s for %s failed" % (a.bench, a.target))
+        return 1
+    # An exit code is one witness, the image on disk is a second and an independent one. This command
+    # has already once reported a part built while nothing was compiled at all, so what flash needs is
+    # checked for here rather than found missing later by a flash that cannot say why.
+    if not os.path.isfile(os.path.join(tree, "flash_args")):
+        print(
+            "device build of %s for %s exited clean and produced no image in %s - treat the exit\n"
+            "code as unreliable and read the script that ran"
+            % (a.bench, a.target, os.path.relpath(tree, ROOT).replace("\\", "/"))
+        )
         return 1
     print("built %s for %s in %s" % (a.bench, a.target, os.path.relpath(tree, ROOT).replace("\\", "/")))
     return 0
@@ -706,7 +874,8 @@ def cmd_device_flash(a):
     body += '& $idfPython -m esptool --chip {chip} --port {port} --baud {baud} write_flash "@flash_args"\n'.format(
         chip=a.target, port=a.port, baud=a.baud
     )
-    body += 'if ($LASTEXITCODE -ne 0) {{ throw "flash failed" }}\n'
+    body += 'if ($LASTEXITCODE -ne 0) { Write-Error "flash failed"; exit 1 }\n'
+    body += "exit 0\n"
 
     path = emit_script("device-flash-%s-%s" % (a.bench, a.target), body)
     r = run_script(path)
@@ -714,6 +883,57 @@ def cmd_device_flash(a):
         print("flash of %s to %s failed" % (a.bench, a.port))
         return 1
     print("flashed %s to %s on %s" % (a.bench, a.target, a.port))
+    return 0
+
+
+def cmd_device_monitor(a):
+    """Reset a part and print its console until it goes quiet.
+
+    A bench prints its rows once at startup and then stops. idf.py monitor is built for a person
+    watching a log and never returns on its own, and a fixed-duration read either truncates a slow
+    bench or waits out a fast one. So this resets the part, captures from the first line, and stops
+    once it has been silent for --quiet, with --seconds as the ceiling for a part stuck in a loop.
+    """
+    try:
+        import serial  # noqa: PLC0415  only this command needs it, and it is not in the stdlib
+    except ImportError:
+        print("pyserial is not installed for %s - pip install pyserial" % sys.executable)
+        return 1
+
+    try:
+        port = serial.Serial(a.port, a.baud, timeout=0.2)
+    except serial.SerialException as exc:
+        print("cannot open %s: %s" % (a.port, exc))
+        return 1
+
+    with port:
+        # The bridge drives EN from DTR/RTS, which is what makes a capture start at the bench's
+        # first line rather than partway through whatever it had already printed.
+        port.dtr = False
+        port.rts = True
+        time.sleep(0.1)
+        port.rts = False
+
+        said = b""
+        deadline = time.time() + a.seconds
+        last = time.time()
+        while time.time() < deadline:
+            chunk = port.read(4096)
+            if chunk:
+                said += chunk
+                last = time.time()
+                # Written as bytes. A part coming out of reset emits its ROM banner at a different
+                # rate, so the first chunk is always noise, and decoding it produces replacement
+                # characters that a cp1252 console then cannot encode - which crashes the capture
+                # before the bench has said anything.
+                sys.stdout.buffer.write(chunk)
+                sys.stdout.buffer.flush()
+            elif said and (time.time() - last) > a.quiet:
+                break
+
+    if not said:
+        print("%s said nothing in %gs - wrong port, wrong baud, or nothing flashed" % (a.port, a.seconds))
+        return 1
     return 0
 
 
@@ -1182,6 +1402,13 @@ def main():
     d.add_argument("--port", required=True, help="serial port, COM3 and the like")
     d.add_argument("--baud", type=int, default=921600)
     d.set_defaults(fn=cmd_device_flash)
+
+    d = dsub.add_parser("monitor", help="reset a part and print its console until it goes quiet")
+    d.add_argument("--port", required=True, help="serial port, COM3 and the like")
+    d.add_argument("--baud", type=int, default=115200, help="the IDF console rate")
+    d.add_argument("--seconds", type=float, default=60.0, help="ceiling, for a part stuck in a loop")
+    d.add_argument("--quiet", type=float, default=5.0, help="stop after this long with nothing said")
+    d.set_defaults(fn=cmd_device_monitor)
 
     p = sub.add_parser("bench", help="the bench matrix: list, add, update, deps, gen")
     p.add_argument("rest", nargs=argparse.REMAINDER, help="passed to the matrix module unchanged")
