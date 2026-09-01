@@ -188,12 +188,26 @@ The settle comparison is lifted out of the walk. One deadline serves the whole c
 answered once and read per channel. Both timer tests put the flag first, so a channel that is not
 settling and a channel that is not running each cost a mask and no comparison.
 
-`praet_hw_progress` is the fifth port hook (`praet_ordo.h:299`). The four in
+`praet_hw_progress` is the fifth port hook (`praet_ordo.h:306`). The four in
 `memoriam_praetereo.h` have no way to report how far a transfer has got, and every controller this
-library targets exposes a remaining count. It is declared here and defined by the port, and unlike the
-other four it carries no `EMBED_WEAK` refusing default, because the schedule and the engine compile
-into one translation unit where a weak default and a strong definition of one name are a duplicate.
-A version of this in `src` would carry the default the others do. Nothing is proposed for `src` yet.
+library targets exposes a remaining count.
+
+It carries a weak refusing default that answers zero (`test/support/praet_port_default.c:38`), which
+`praet_ordo_take_progress` reads as no movement. The default sits in a file of its own because
+`test_praet_correctness.c` includes `praet_engine.c`, which defines the hook strongly inside the
+suite's own translation unit, and a weak definition beside a strong one in a single unit is a
+duplicate.
+
+One measured limit sits on that. GCC on PE-COFF emits a weak definition as a weak external. The body
+lands under `.weak.praet_hw_progress.` and the name itself stays undefined in the object, and `ld`
+will not resolve it from another translation unit, so an unported build fails to link on this host
+and the refusal cannot be exercised here at all. The four hooks in `src` are untouched by this,
+because `memoriam_praetereo.c` calls them from the unit that defines them and a weak definition does
+resolve inside its own unit. None of this has run on an ELF target, which is where every part this
+module is for lives.
+
+That points at where the default belongs once this moves to `src`. Beside the call, the way the other
+four are, which is an arrangement no linker has trouble with. Nothing is proposed for `src` yet.
 
 ## What the architecture decides
 

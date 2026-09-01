@@ -82,14 +82,14 @@ int main(void)
   run_test(test_dma_header_is_self_contained, "test_dma_header_is_self_contained", 73);
   run_test(test_every_praet_entry_is_reachable, "test_every_praet_entry_is_reachable", 84);
   run_test(test_no_two_praet_entries_share_a_function, "test_no_two_praet_entries_share_a_function", 99);
-  run_test(test_an_unported_build_refuses_to_open_a_channel, "test_an_unported_build_refuses_to_open_a_channel", 114);
-  run_test(test_an_unported_build_refuses_a_transfer, "test_an_unported_build_refuses_a_transfer", 127);
-  run_test(test_an_empty_transfer_is_refused_as_well, "test_an_empty_transfer_is_refused_as_well", 142);
-  run_test(test_closing_a_channel_that_never_opened_returns, "test_closing_a_channel_that_never_opened_returns", 155);
-  run_test(test_polling_an_unported_build_returns, "test_polling_an_unported_build_returns", 167);
-  run_test(test_an_unported_build_reports_no_completion, "test_an_unported_build_reports_no_completion", 179);
-  run_test(test_the_completion_event_carries_every_reported_field, "test_the_completion_event_carries_every_reported_field", 195);
-  run_test(test_the_completion_event_splits_time_into_two_fields, "test_the_completion_event_splits_time_into_two_fields", 225);
+  run_test(test_an_unported_build_refuses_to_open_a_channel, "test_an_unported_build_refuses_to_open_a_channel", 113);
+  run_test(test_an_unported_build_refuses_a_transfer, "test_an_unported_build_refuses_a_transfer", 126);
+  run_test(test_an_empty_transfer_is_refused_as_well, "test_an_empty_transfer_is_refused_as_well", 141);
+  run_test(test_closing_a_channel_that_never_opened_returns, "test_closing_a_channel_that_never_opened_returns", 154);
+  run_test(test_polling_an_unported_build_returns, "test_polling_an_unported_build_returns", 166);
+  run_test(test_an_unported_build_reports_no_completion, "test_an_unported_build_reports_no_completion", 178);
+  run_test(test_the_completion_event_carries_every_reported_field, "test_the_completion_event_carries_every_reported_field", 193);
+  run_test(test_the_completion_event_splits_time_into_two_fields, "test_the_completion_event_splits_time_into_two_fields", 223);
 
   return UNITY_END();
 }

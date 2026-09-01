@@ -294,11 +294,14 @@ typedef struct
  * @note Reached only from praet_ordo_poll. Nothing above it sees a byte count that has not been
  *       through the flag word first, which is what keeps how progress is tracked out of a caller's
  *       business.
- * @warning Declared here and defined by the port. The four hooks in src carry EMBED_WEAK and a
- *          refusing default, and this one cannot: the schedule and the engine are compiled into one
- *          translation unit here, where a weak default and a strong definition of one name are a
- *          duplicate rather than an override. A version of this in src would carry the weak default
- *          the others do.
+ * @note Carries a weak refusing default, the same as the four hooks in src. It lives in
+ *       test/support/praet_port_default.c and returns zero, and praet_ordo_take_progress treats
+ *       zero as no movement. A build that supplies no port walks every channel and still marks a
+ *       stalled one, because an unkicked keepalive window is what says a channel stopped.
+ * @warning The default cannot sit in this suite's own translation unit. test_praet_correctness.c
+ *          includes praet_engine.c, which defines this hook strongly, and a weak definition beside
+ *          a strong one in a single unit is a duplicate. The separate file is what leaves the
+ *          linker a choice to make.
  */
 uint16_t praet_hw_progress(embed_word channel);
 

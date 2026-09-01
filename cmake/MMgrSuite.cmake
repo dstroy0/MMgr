@@ -75,12 +75,19 @@ function(mmgr_add_suite suite_name)
         # environments call it is MMGR_NEEDS_CONTEXT_ID's business, and a suite list that has to
         # track that condition is a second copy of it waiting to disagree. Where nothing calls it,
         # the linker drops it.
+        #
+        # support/praet_port_default.c holds the weak refusing default for praet_hw_progress. A
+        # suite is one translation unit, and a weak default cannot sit beside the strong definition
+        # a port supplies. test_praet_correctness includes praet_engine.c and defines the hook
+        # there, which is what makes this a file of its own. Linked in for the same reason as the
+        # two above: where nothing calls it, the linker drops it.
         add_executable(${target}
             "${suite_src}"
             "${runner}"
             "${unity_SOURCE_DIR}/src/unity.c"
             "${MMGR_TEST_ROOT}/support/platform_host.c"
-            "${MMGR_TEST_ROOT}/support/guard_page.c")
+            "${MMGR_TEST_ROOT}/support/guard_page.c"
+            "${MMGR_TEST_ROOT}/support/praet_port_default.c")
         add_dependencies(${target} ${suite_name}_runner)
         target_include_directories(${target} PRIVATE
             "${unity_SOURCE_DIR}/src"
