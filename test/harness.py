@@ -144,6 +144,50 @@ def write_pointer(current):
         json.dump(current, fh, indent=2, sort_keys=True)
 
 
+# Where the last working toolchain is kept in the pointer. Underscored so the tree lookups can tell
+# it from a tree name without a list of exceptions.
+REMEMBERED_TOOLCHAIN = "_toolchain"
+
+# What a cache has to say for a tree to be worth borrowing from, and the flag each answer becomes.
+TOOLCHAIN_KEYS = {
+    "CMAKE_GENERATOR": "-G",
+    "CMAKE_C_COMPILER": "-DCMAKE_C_COMPILER=",
+    "CMAKE_MAKE_PROGRAM": "-DCMAKE_MAKE_PROGRAM=",
+}
+
+
+def toolchain_from_cache(cache):
+    """The generator and compiler flags a configured tree's cache records, or an empty list."""
+    if not os.path.isfile(cache):
+        return []
+    out = []
+    with open(cache, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            name, sep, value = line.partition(":")
+            if not sep or name not in TOOLCHAIN_KEYS:
+                continue
+            value = value.partition("=")[2].strip()
+            flag = TOOLCHAIN_KEYS[name]
+            out += [flag + value] if flag.endswith("=") else [flag, value]
+    return out
+
+
+def remember_toolchain(path):
+    """Record the toolchain a tree configured with, so it outlives that tree.
+
+    Trees rotate. Without this, a machine that has built a hundred times arrives at the same place a
+    fresh clone does the moment the last tree is removed, and the generator cmake picks by default is
+    not one that works here.
+    """
+    args = toolchain_from_cache(os.path.join(path, "CMakeCache.txt"))
+    if not args:
+        return
+    current = read_pointer()
+    if current.get(REMEMBERED_TOOLCHAIN) != args:
+        current[REMEMBERED_TOOLCHAIN] = args
+        write_pointer(current)
+
+
 def tree_dirs(tree):
     """Directories under the container belonging to @p tree, oldest first.
 
@@ -439,44 +483,48 @@ def run(cmd, quiet=True):
     return subprocess.run(cmd, cwd=ROOT, text=True)
 
 
-def borrowed_toolchain(skip):
+def borrowed_toolchain(skip_path):
     """Generator and compiler taken from whichever tree is already configured.
 
     cmake's default generator is not always the one that works on a given machine, and a tree that
     already built is proof of one that does. Beats a second place to keep a toolchain path.
+
+    @p skip_path is the directory being configured, and it is the only one passed over. Skipping the
+    whole tree NAME instead is what this did when each name had one directory, and under stamped
+    trees that reads as "never borrow from a tree of the kind you are building", which is the kind
+    most likely to have one.
     """
-    keys = {
-        "CMAKE_GENERATOR": "-G",
-        "CMAKE_C_COMPILER": "-DCMAKE_C_COMPILER=",
-        "CMAKE_MAKE_PROGRAM": "-DCMAKE_MAKE_PROGRAM=",
-    }
-    # Read straight off the pointer rather than through tree_path. That function makes a directory
-    # and rotates when a tree has none, and probing for a toolchain must not create anything.
+    # Read off the directories rather than through tree_path. That function makes a directory and
+    # rotates when a tree has none, and probing for a toolchain must not create anything.
+    #
+    # Every tree on disk is considered, newest first, not only the ones the pointer names. A tree
+    # that configured successfully still proves a toolchain that works even after another build took
+    # the name, and skipping it would send a machine that has built many times back to the answer a
+    # fresh clone gets.
+    # The remembered one first. It is written only after a configure succeeded, where a tree on disk
+    # may be the wreck of one that did not.
     current = read_pointer()
+    remembered = current.get(REMEMBERED_TOOLCHAIN, [])
+    if remembered:
+        return remembered
+
     for tree in TREES:
-        if tree == skip:
-            continue
-        name = current.get(tree)
-        if not name:
-            continue
-        cache = os.path.join(BUILD_CONTAINER, name, "CMakeCache.txt")
-        if not os.path.isfile(cache):
-            continue
-        out = []
-        with open(cache, encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                name, sep, value = line.partition(":")
-                if not sep or name not in keys:
-                    continue
-                value = value.partition("=")[2].strip()
-                out += [keys[name] + value] if keys[name].endswith("=") else [keys[name], value]
-        if out:
-            return out
+        for name in reversed(tree_dirs(tree)):
+            path = os.path.join(BUILD_CONTAINER, name)
+            if os.path.abspath(path) == os.path.abspath(skip_path):
+                continue
+            out = toolchain_from_cache(os.path.join(path, "CMakeCache.txt"))
+            if out:
+                return out
     return []
 
 
 def configure(tree, fresh=False):
     """Configure @p tree if it is not there yet."""
+    # Taken before the path, because tree_path writes the pointer when it makes a new tree and a
+    # failed configure has to put back what was there rather than leaving the name unset.
+    was = read_pointer().get(tree)
+
     path = tree_path(tree, fresh)
     if os.path.isfile(os.path.join(path, "CMakeCache.txt")):
         return 0
@@ -486,7 +534,21 @@ def configure(tree, fresh=False):
     if r.returncode != 0:
         sys.stderr.write(r.stdout[-3000:] + r.stderr[-3000:])
         print("configure of %s failed" % tree)
+        # A configure that failed still leaves a cache, and that cache holds whatever cmake settled
+        # on before it stopped - a generator nobody asked for, or a compiler it could not find. The
+        # next run sees a cache, treats the tree as configured, and builds against it. Removing it
+        # is what makes a failed configure fail again rather than half-succeed.
+        shutil.rmtree(path, ignore_errors=True)
+        current = read_pointer()
+        # Put back whatever the name pointed at before, so a failed --fresh leaves the working tree
+        # in place instead of unsetting the name and stranding a tree that is still on disk.
+        if was and os.path.isdir(os.path.join(BUILD_CONTAINER, was)):
+            current[tree] = was
+        else:
+            current.pop(tree, None)
+        write_pointer(current)
         return 1
+    remember_toolchain(path)
     print("configured %s - %s" % (os.path.relpath(path, BUILD_ROOT), TREES[tree]["what"]))
     return 0
 
@@ -704,7 +766,9 @@ def cmd_trees(a):
         return 0
 
     print("%s  (keeping %d per name)" % (os.path.relpath(BUILD_CONTAINER, ROOT).replace("\\", "/"), BUILD_KEEP))
-    live = set(current.values())
+    # Only the tree entries. The pointer also carries the remembered toolchain, whose value is a list
+    # and would not go into a set at all.
+    live = {name for key, name in current.items() if not key.startswith("_")}
     for name in names:
         configured = os.path.isfile(os.path.join(BUILD_CONTAINER, name, "CMakeCache.txt"))
         print("  %-34s %-12s %s" % (name, "current" if name in live else "", "" if configured else "not configured"))

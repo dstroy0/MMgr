@@ -1,21 +1,11 @@
 # Build trees. CMake is driven out-of-source; every configure lands in one of these.
 build/
 build-*/
-cmake-build-*/
-CMakeUserPresets.json
 
 # Fetched dependencies. deps/CMakeLists.txt is the declaration and is the only tracked file here.
 # Everything else under deps/ is a checkout of another repository and belongs to that repository.
 deps/*
 !deps/CMakeLists.txt
-
-# CMake/CTest droppings when a configure is run in-source by accident.
-CMakeCache.txt
-CMakeFiles/
-CTestTestfile.cmake
-Testing/
-install_manifest.txt
-compile_commands.json
 
 # Coverage. gcov/lcov emit one pair per object plus the merged report SonarCloud reads.
 *.gcno
@@ -34,16 +24,8 @@ __pycache__/
 .venv/
 venv/
 
-# Node, for prettier and cspell only. package-lock.json IS tracked - the whole point of a lock file
-# is that CI installs what was tested.
-node_modules/
-
 # Editors and OS.
 .vscode/
-.idea/
-*.swp
-.DS_Store
-Thumbs.db
 docs/html/
 docs/xml/
 docs/doxygen-warnings.log
