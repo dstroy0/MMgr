@@ -5,7 +5,7 @@
  * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
- * @file praet_schedule.h
+ * @file praet_ordo.h
  * @brief The schedule context: one flag word per channel, the two volatiles that coordinate the
  *        interrupt, and the reader/setter that is the only thing touching either.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
@@ -19,32 +19,32 @@
  * @note Time is microseconds throughout. DMA timing is tight enough that a millisecond is not a unit
  *       anything here can be expressed in.
  */
-#ifndef MMGR_TEST_PRAET_SCHEDULE_H
-#define MMGR_TEST_PRAET_SCHEDULE_H
+#ifndef MMGR_TEST_PRAET_ORDO_H
+#define MMGR_TEST_PRAET_ORDO_H
 
 #include "memoriam_praetereo/memoriam_praetereo.h"
 
 // PRAET_CHANNELS, PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS and PRAET_RECOVERY come from here. None
 // has a value that is right for every part, so an unset one takes a default and raises a warning
-// naming itself. What stops the build is praet_config_verdict.h, below, once all of them have spoken
-#include "praet_defaults.h"
+// naming itself. What stops the build is praet_iudex.h, below, once all of them have spoken
+#include "praet_praefinitum.h"
 
 // Every bit of the flag word, and the assertions that keep the map from drifting. Kept apart from the
 // entries because the map is one thing and it is the same on every build - a status a build never
 // sets still owns its bit
-#include "praet_flag_map.h"
+#include "praet_tabula_vexillorum.h"
 
 // Where the microseconds come from, and what a tick is worth against them. Every deadline below is
 // microseconds, so nothing here means anything without it
-#include "praet_clock.h"
+#include "praet_horologiorum_custos.h"
 
 // Last, and after every knob has reported. This is the one place a configuration stops the build, so
 // that a build missing several knobs hears about all of them rather than the first
-#include "praet_config_verdict.h"
+#include "praet_iudex.h"
 
 // The examination arm's recorder. Expands to nothing unless a build asked for it, and the one
 // function that writes a flag word is what calls into it
-#include "praet_examine.h"
+#include "praet_procurator.h"
 
 EMBED_BEGIN_DECLS
 
@@ -56,7 +56,7 @@ EMBED_BEGIN_DECLS
  * @note What you want where the destination is about to be overwritten anyway, or where a partial
  *       result is still worth reading.
  */
-#define PRAET_RECOVER_BACK_OUT 0u
+#define PRAET_RESTITUERE_ET_REDINTEGRARE 0u
 
 /**
  * @brief Recovery that treats the transfer's bytes as unsafe.
@@ -65,7 +65,7 @@ EMBED_BEGIN_DECLS
  *       right depends on where in a program the stall happened, so it is the caller's call and not
  *       this library's.
  */
-#define PRAET_RECOVER_ZERO 1u
+#define PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE 1u
 
 #endif
 
@@ -80,8 +80,8 @@ EMBED_BEGIN_DECLS
  */
 typedef enum
 {
-    RECOVERY_WORD_BOUNDARY_BITWISE_CRC_DISABLE = 0,
-    RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE = 1
+    AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE = 0,
+    AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE = 1
 } PraetRecoveryWordBoundaryBitwiseCrc;
 
 /**
@@ -101,13 +101,13 @@ typedef enum
  *          and only a wrong token still fails, which is the half that cannot be missed.
  */
 #if EMBED_HAS_ATTRIBUTE(deprecated)
-#define PRAET_ANNOUNCE_ATTR(message_) __attribute__((deprecated(message_)))
+#define PRAET_DENUNTIATIO_ATTR(message_) __attribute__((deprecated(message_)))
 #else
-#define PRAET_ANNOUNCE_ATTR(message_)
+#define PRAET_DENUNTIATIO_ATTR(message_)
 #endif
 
 /**
- * @brief A type that exists only for the RECOVERY_WORD_BOUNDARY_BITWISE_CRC_DISABLE token.
+ * @brief A type that exists only for the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE token.
  *
  * @note The declarator pastes the token onto this and typedefs the result, so a token that is neither
  *       of the two fails on an unknown type name that has the offending token in it. Pasting onto a
@@ -117,87 +117,87 @@ typedef enum
  *       choice that only speaks up one way trains everyone to read its silence as the safe answer,
  *       and neither answer here is safe by default.
  */
-typedef PRAET_ANNOUNCE_ATTR("RECOVERY_WORD_BOUNDARY_BITWISE_CRC_DISABLE - this context measures no boundary word, so a "
+typedef PRAET_DENUNTIATIO_ATTR("AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE - this context measures no boundary word, so a "
                             "recovery is exact to the word and no finer") unsigned char
-    PraetCrcAnswer_RECOVERY_WORD_BOUNDARY_BITWISE_CRC_DISABLE;
+    PraetCrcResponsum_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE;
 
 /**
- * @brief A type that exists only for the RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE token.
+ * @brief A type that exists only for the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE token.
  */
-typedef PRAET_ANNOUNCE_ATTR("RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE - this context checksums the word a stalled "
+typedef PRAET_DENUNTIATIO_ATTR("AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE - this context checksums the word a stalled "
                             "transfer was inside, one word, bit at a time, on the recovery path only") unsigned char
-    PraetCrcAnswer_RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE;
+    PraetCrcResponsum_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE;
 
 /**
  * @brief Pastes @p token_ onto the answer type prefix.
  *
- * @param[in] token_ One of the two RECOVERY_WORD_BOUNDARY_BITWISE_CRC tokens.
+ * @param[in] token_ One of the two AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC tokens.
  * @return           The answer type for that token.
  */
-#define PRAET_CRC_ANSWER_PASTE(token_) PraetCrcAnswer_##token_
+#define PRAET_CRC_RESPONSUM_IN_LOCO_FIGERE(token_) PraetCrcResponsum_##token_
 
 /**
  * @brief The answer type @p token_ names, after expanding it.
  *
- * @param[in] token_ One of the two RECOVERY_WORD_BOUNDARY_BITWISE_CRC tokens, or a macro holding one.
+ * @param[in] token_ One of the two AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC tokens, or a macro holding one.
  * @return           That token's answer type.
  * @note This is what refuses a plain 1 or TRUE in the answer's place. Those are values, and the two
  *       tokens are the only things that name a type here.
  */
-#define PRAET_CRC_ANSWER(token_) PRAET_CRC_ANSWER_PASTE(token_)
+#define PRAET_CRC_RESPONSUM(token_) PRAET_CRC_RESPONSUM_IN_LOCO_FIGERE(token_)
 
 /**
- * @brief The value the RECOVERY_WORD_BOUNDARY_BITWISE_CRC_DISABLE token stands for.
+ * @brief The value the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE token stands for.
  *
  * @note Pasted onto rather than read, so the declarator gets the answer at preprocessing time and can
  *       assert on it.
  */
-#define PRAET_CRC_VALUE_RECOVERY_WORD_BOUNDARY_BITWISE_CRC_DISABLE 0
+#define PRAET_CRC_VALUE_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE 0
 
 /**
- * @brief The value the RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE token stands for.
+ * @brief The value the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE token stands for.
  */
-#define PRAET_CRC_VALUE_RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE 1
+#define PRAET_CRC_VALUE_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE 1
 
 /**
  * @brief Pastes @p token_ onto the value prefix.
  *
- * @param[in] token_ One of the two RECOVERY_WORD_BOUNDARY_BITWISE_CRC tokens.
+ * @param[in] token_ One of the two AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC tokens.
  * @return           The value macro for that token.
  */
-#define PRAET_CRC_VALUE_PASTE(token_) PRAET_CRC_VALUE_##token_
+#define PRAET_CRC_VALUE_IN_LOCO_FIGERE(token_) PRAET_CRC_VALUE_##token_
 
 /**
  * @brief The value @p token_ stands for, after expanding it.
  *
- * @param[in] token_ One of the two RECOVERY_WORD_BOUNDARY_BITWISE_CRC tokens, or a macro holding one.
+ * @param[in] token_ One of the two AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC tokens, or a macro holding one.
  * @return           1 for the ENABLE token, 0 for the DISABLE token.
  * @note Usable in an #if, which is what lets a caller compile one thing or another around their own
  *       answer without keeping a second macro in step with it.
  */
-#define PRAET_CRC_VALUE(token_) PRAET_CRC_VALUE_PASTE(token_)
+#define PRAET_CRC_VALUE(token_) PRAET_CRC_VALUE_IN_LOCO_FIGERE(token_)
 
 #if PRAET_RECOVERY
 
 /**
  * @brief Storage the boundary word check needs, where a declaration asked for it.
  *
- * @param crc_choice_ One of the two RECOVERY_WORD_BOUNDARY_BITWISE_CRC tokens.
+ * @param crc_choice_ One of the two AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC tokens.
  * @return            An initializer for the members that carry the choice.
  */
-#define PRAET_SCHEDULE_INIT(crc_choice_) {.word_boundary_crc = PRAET_CRC_VALUE_##crc_choice_}
+#define PRAET_ORDINEM_INCIPE(crc_choice_) {.word_boundary_crc = PRAET_CRC_VALUE_##crc_choice_}
 
 #else
 
 /**
  * @brief An empty context, for a build with no recovery machinery to configure.
  *
- * @param crc_choice_ One of the two RECOVERY_WORD_BOUNDARY_BITWISE_CRC tokens, unused here.
+ * @param crc_choice_ One of the two AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC tokens, unused here.
  * @return            A zero initializer.
  * @note The token is still demanded by the declarator and still reports. What changes is that there
  *       is no member to put it in, and the assertion there refuses the ENABLE arm outright.
  */
-#define PRAET_SCHEDULE_INIT(crc_choice_) {0}
+#define PRAET_ORDINEM_INCIPE(crc_choice_) {0}
 
 #endif
 
@@ -205,8 +205,8 @@ typedef PRAET_ANNOUNCE_ATTR("RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE - this co
  * @brief Declares one schedule context and answers the boundary word question for it.
  *
  * @param name_       Name of the context this declares.
- * @param crc_choice_ RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE or
- *                    RECOVERY_WORD_BOUNDARY_BITWISE_CRC_DISABLE.
+ * @param crc_choice_ AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE or
+ *                    AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE.
  * @note The instantiation is the declaration. This emits initialized data carrying the answer, so
  *       nothing runs to make a context usable and the answer cannot be changed afterwards.
  * @note Reports whichever token it was given. A caller who wanted a quieter build takes the message
@@ -215,12 +215,12 @@ typedef PRAET_ANNOUNCE_ATTR("RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE - this co
  *          the message. Asking for the check on a build with PRAET_RECOVERY off fails the assertion
  *          below, which names what to do about it.
  */
-#define PraetScheduleContext(name_, crc_choice_)                                                                       \
-    typedef PRAET_CRC_ANSWER(crc_choice_) name_##_boundary_word_answer;                                                \
+#define PraetOrdoContext(name_, crc_choice_)                                                                       \
+    typedef PRAET_CRC_RESPONSUM(crc_choice_) name_##_boundary_word_answer;                                                \
     EMBED_STATIC_ASSERT(PRAET_RECOVERY || (PRAET_CRC_VALUE(crc_choice_) == 0),                                         \
-                        "RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE needs PRAET_RECOVERY set to 1, since the word it "   \
+                        "AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE needs PRAET_RECOVERY set to 1, since the word it "   \
                         "measures is the one a recovery is deciding about");                                           \
-    static PraetSchedule name_ = PRAET_SCHEDULE_INIT(crc_choice_)
+    static PraetOrdo name_ = PRAET_ORDINEM_INCIPE(crc_choice_)
 
 /**
  * @brief Everything one context schedules over.
@@ -247,7 +247,7 @@ typedef PRAET_ANNOUNCE_ATTR("RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE - this co
  *                           declaration asked for the check. Meaningful only where the channel reads
  *                           PRAET_MEASURED.
  * @param word_boundary_crc  What the declaration answered about the boundary word check. Written once
- *                           by PraetScheduleContext and never again, which is what lets the one
+ *                           by PraetOrdoContext and never again, which is what lets the one
  *                           branch reading it fold away where the answer was no.
  * @param keepalive_deadline Microsecond mark each running channel must be kicked before.
  * @param settle_deadline    Microsecond mark the engine finishes settling at. One timer, because
@@ -281,7 +281,7 @@ typedef struct
     volatile embed_word praet_set_bitflag;
     volatile embed_word praet_busy_bitflag;
     embed_word elapsed_micros;
-} PraetSchedule;
+} PraetOrdo;
 
 /**
  * @brief Returns how far the port says @p channel has got, in bytes.
@@ -291,7 +291,7 @@ typedef struct
  * @note The fifth port hook, and the one the four in memoriam_praetereo.h do not have. Every
  *       controller this library targets exposes a remaining count, and the orchestrator needs it to
  *       feed a watchdog with something a caller can act on.
- * @note Reached only from praet_schedule_poll. Nothing above it sees a byte count that has not been
+ * @note Reached only from praet_ordo_poll. Nothing above it sees a byte count that has not been
  *       through the flag word first, which is what keeps how progress is tracked out of a caller's
  *       business.
  * @warning Declared here and defined by the port. The four hooks in src carry EMBED_WEAK and a
@@ -310,7 +310,7 @@ uint16_t praet_hw_progress(embed_word channel);
  * @warning Leaves the boundary word answer alone. That came from the declaration and is not state a
  *          reset has any business changing.
  */
-void praet_schedule_reset(PraetSchedule *context);
+void praet_ordo_reset(PraetOrdo *context);
 
 /**
  * @brief Attaches a channel over a block of bytes, claims its vector, and starts the settle timer.
@@ -335,7 +335,7 @@ void praet_schedule_reset(PraetSchedule *context);
  * @warning Two channels may be attached over one block, and nothing here reports it. Which of them
  *          runs when is the caller's plan, and this library does not have it.
  */
-embed_bool praet_schedule_attach(PraetSchedule *context, embed_word channel, uint8_t *bound, embed_word bytes,
+embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t *bound, embed_word bytes,
                                  embed_word region);
 
 /**
@@ -345,7 +345,7 @@ embed_bool praet_schedule_attach(PraetSchedule *context, embed_word channel, uin
  * @param channel_ Channel to attach.
  * @param pool_    Pool declared by ParsMemoriaeInternae or ParsMemoriaeExternum.
  * @param region_  Region descriptor for this channel, as a byte.
- * @return         What praet_schedule_attach answered.
+ * @return         What praet_ordo_adnectere answered.
  * @note The attach surface on a buffer, and how a caller is meant to reach a channel. Naming the pool
  *       is what makes the address and the extent come from one place: mmgr_pars_storage_##pool_ and
  *       pool_##_bytes are both emitted by the declaration, and neither exists for anything that was
@@ -362,8 +362,8 @@ embed_bool praet_schedule_attach(PraetSchedule *context, embed_word channel, uin
  *          deriving it needs something added where the pool is declared.
  */
 #define PraetAttach(context_, channel_, pool_, region_)                                                                \
-    (PRAET_CHANNEL_IS_OVER(context_, channel_, pool_),                                                                 \
-     praet_schedule_attach(&(context_), (channel_), mmgr_pars_storage_##pool_, (embed_word)pool_##_bytes,              \
+    (PRAET_ALVEUS_SUPERARE(context_, channel_, pool_),                                                                 \
+     praet_ordo_adnectere(&(context_), (channel_), mmgr_pars_storage_##pool_, (embed_word)pool_##_bytes,              \
                            (embed_word)(region_)))
 
 /**
@@ -382,7 +382,7 @@ embed_bool praet_schedule_attach(PraetSchedule *context, embed_word channel, uin
  *       paste, because a context has several and they may be over different pools.
  * @note Costs nothing. An enumerator emits no storage and is settled while the unit compiles.
  * @warning Channel numbers are settled at compile time, which is what lets this paste one. A channel
- *          chosen at run time cannot be bound this way and reaches praet_schedule_attach directly,
+ *          chosen at run time cannot be bound this way and reaches praet_ordo_adnectere directly,
  *          where nothing relates the address to the extent.
  */
 #define PraetChannel(context_, channel_, pool_)                                                                        \
@@ -404,7 +404,7 @@ embed_bool praet_schedule_attach(PraetSchedule *context, embed_word channel, uin
  * @note Reads the enumerator PraetChannel emitted. Nothing is computed from it, and the reference is
  *       the whole point: a triple nobody declared names an identifier that does not exist.
  */
-#define PRAET_CHANNEL_IS_OVER(context_, channel_, pool_) ((void)context_##_channel##channel_##_is_over_##pool_)
+#define PRAET_ALVEUS_SUPERARE(context_, channel_, pool_) ((void)context_##_channel##channel_##_is_over_##pool_)
 
 /**
  * @brief Asks for a channel to be detached.
@@ -416,7 +416,7 @@ embed_bool praet_schedule_attach(PraetSchedule *context, embed_word channel, uin
  * @note A second request against a channel already detaching changes nothing. Hardware teardown
  *       writes the disable and polls the busy bit, so calling again is the normal path.
  */
-void praet_schedule_detach(PraetSchedule *context, embed_word channel);
+void praet_ordo_separare(PraetOrdo *context, embed_word channel);
 
 #if PRAET_RECOVERY
 
@@ -442,7 +442,7 @@ void praet_schedule_detach(PraetSchedule *context, embed_word channel);
  *          before anything runs, by PraetSubmit, which has the pool's own extent to compare against.
  *          Reaching this directly with numbers nobody checked is how a transfer runs off the end.
  */
-embed_bool praet_schedule_submit(PraetSchedule *context, embed_word channel, embed_word offset, embed_word length);
+embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word offset, embed_word length);
 
 /**
  * @brief Fails the build when a span runs past the pool it names.
@@ -478,9 +478,9 @@ embed_bool praet_schedule_submit(PraetSchedule *context, embed_word channel, emb
  *       same event, so one call carries both.
  * @note Pushes the keepalive window out and clears a stall that had been recorded, because a channel
  *       that is moving again is not stalled.
- * @note Says nothing about the transfer being finished. That is what praet_schedule_completed is.
+ * @note Says nothing about the transfer being finished. That is what praet_ordo_completed is.
  */
-void praet_schedule_kick(PraetSchedule *context, embed_word channel, embed_word position);
+void praet_ordo_efficere(PraetOrdo *context, embed_word channel, embed_word position);
 
 /**
  * @brief Returns how far a channel's transfer has got.
@@ -492,7 +492,7 @@ void praet_schedule_kick(PraetSchedule *context, embed_word channel, embed_word 
  *       [start, start + position) were written and the rest were not. That is what a caller needs to
  *       back a stalled transfer out, or to zero exactly what was touched instead of the whole buffer.
  */
-embed_word praet_schedule_position(const PraetSchedule *context, embed_word channel);
+embed_word praet_ordo_situs(const PraetOrdo *context, embed_word channel);
 
 /**
  * @brief Returns the bytes a stalled transfer may have written, rounded up to a whole word.
@@ -504,9 +504,9 @@ embed_word praet_schedule_position(const PraetSchedule *context, embed_word chan
  *       up to one word behind what the engine actually wrote. A caller zeroing only as far as the
  *       position would leave a partial word unscrubbed, so the rounding lives here instead of in
  *       every caller that has to remember it.
- * @note This is the number to scrub. praet_schedule_position is what was sampled.
+ * @note This is the number to scrub. praet_ordo_situs is what was sampled.
  */
-embed_word praet_schedule_touched(const PraetSchedule *context, embed_word channel);
+embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel);
 
 /**
  * @brief Returns the checksum of the word a recovery found the engine inside.
@@ -520,7 +520,7 @@ embed_word praet_schedule_touched(const PraetSchedule *context, embed_word chann
  *       source, so it can say what the boundary word now contains and not whether that is what was
  *       meant to be there. Comparing the two is the caller's, which is the only place both are known.
  */
-uint32_t praet_schedule_boundary_crc(const PraetSchedule *context, embed_word channel);
+uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel);
 
 #else
 
@@ -535,7 +535,7 @@ uint32_t praet_schedule_boundary_crc(const PraetSchedule *context, embed_word ch
  * @warning Refuses a channel that is settling, already busy, detaching, or not attached. Fails
  *          closed: a refused submit changes no state.
  */
-embed_bool praet_schedule_submit(PraetSchedule *context, embed_word channel);
+embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel);
 
 /**
  * @brief Fails the build when a span runs past the pool it names.
@@ -563,7 +563,7 @@ embed_bool praet_schedule_submit(PraetSchedule *context, embed_word channel);
  * @note Pushes the keepalive window out and clears a stall that had been recorded, because a channel
  *       that is moving again is not stalled.
  */
-void praet_schedule_kick(PraetSchedule *context, embed_word channel);
+void praet_ordo_efficere(PraetOrdo *context, embed_word channel);
 
 #endif
 
@@ -575,7 +575,7 @@ void praet_schedule_kick(PraetSchedule *context, embed_word channel);
  * @param pool_    Pool declared by ParsMemoriaeInternae or ParsMemoriaeExternum.
  * @param offset_  Bytes into that pool the transfer starts at.
  * @param length_  Bytes it moves.
- * @return         What praet_schedule_submit answered.
+ * @return         What praet_ordo_relatio answered.
  * @note The submit surface on a buffer, and the counterpart of PraetAttach. Naming the pool again is
  *       what gives the bound something to compare against, since the extent lives with the
  *       declaration and not with the channel.
@@ -587,12 +587,12 @@ void praet_schedule_kick(PraetSchedule *context, embed_word channel);
  */
 #if PRAET_RECOVERY
 #define PraetSubmit(context_, channel_, pool_, offset_, length_)                                                       \
-    (PRAET_CHANNEL_IS_OVER(context_, channel_, pool_), PRAET_SPAN_FITS(pool_, offset_, length_),                       \
-     praet_schedule_submit(&(context_), (channel_), (embed_word)(offset_), (embed_word)(length_)))
+    (PRAET_ALVEUS_SUPERARE(context_, channel_, pool_), PRAET_SPAN_FITS(pool_, offset_, length_),                       \
+     praet_ordo_relatio(&(context_), (channel_), (embed_word)(offset_), (embed_word)(length_)))
 #else
 #define PraetSubmit(context_, channel_, pool_, offset_, length_)                                                       \
-    (PRAET_CHANNEL_IS_OVER(context_, channel_, pool_), PRAET_SPAN_FITS(pool_, offset_, length_),                       \
-     praet_schedule_submit(&(context_), (channel_)))
+    (PRAET_ALVEUS_SUPERARE(context_, channel_, pool_), PRAET_SPAN_FITS(pool_, offset_, length_),                       \
+     praet_ordo_relatio(&(context_), (channel_)))
 #endif
 
 /**
@@ -604,7 +604,7 @@ void praet_schedule_kick(PraetSchedule *context, embed_word channel);
  * @note Completion arrives from the port and never from a timer. A timer deciding a transfer had
  *       finished would be this library guessing at hardware.
  */
-void praet_schedule_completed(PraetSchedule *context, embed_word channel, embed_bool failed);
+void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool failed);
 
 #if PRAET_RECOVERY
 
@@ -613,16 +613,16 @@ void praet_schedule_completed(PraetSchedule *context, embed_word channel, embed_
  *
  * @param[in,out] context  Context the channel belongs to [BORROWS].
  * @param[in]     channel  Channel to resolve.
- * @param[in]     recovery PRAET_RECOVER_BACK_OUT or PRAET_RECOVER_ZERO.
+ * @param[in]     recovery PRAET_RESTITUERE_ET_REDINTEGRARE or PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE.
  * @return                 EMBED_TRUE where a stalled channel was resolved.
  * @note Returns the channel to attached and records which recovery was taken, so a later reader can
  *       tell a backed-out transfer from one whose bytes were treated as unsafe.
  * @note Nothing here writes the caller's storage. This context holds no pointer to it, so a caller
- *       choosing PRAET_RECOVER_ZERO zeroes its own bytes and this records that it did.
+ *       choosing PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE zeroes its own bytes and this records that it did.
  * @warning Refuses a channel that is not stalled. Fails closed: state is only ever unknown after the
  *          watchdog said so, and resolving a healthy channel would discard a live transfer.
  */
-embed_bool praet_schedule_resolve(PraetSchedule *context, embed_word channel, embed_word recovery);
+embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word recovery);
 
 #endif
 
@@ -634,7 +634,7 @@ embed_bool praet_schedule_resolve(PraetSchedule *context, embed_word channel, em
  * @note Raises set, because time passing is one of the things that changes what a service call would
  *       find - a keepalive window can elapse without anything else happening.
  */
-void praet_schedule_advance(PraetSchedule *context, embed_word micros);
+void praet_ordo_advance(PraetOrdo *context, embed_word micros);
 
 /**
  * @brief Advances the clock by @p ticks, scaled against the declared frequency.
@@ -648,7 +648,7 @@ void praet_schedule_advance(PraetSchedule *context, embed_word micros);
  *          feeding this one tick at a time on a fast clock never advances anything, which is why a
  *          port reads the counter and passes the difference instead of counting calls.
  */
-void praet_schedule_advance_ticks(PraetSchedule *context, embed_word ticks);
+void praet_ordo_advance_ticks(PraetOrdo *context, embed_word ticks);
 
 /**
  * @brief Stands in for the interrupt raising the set volatile.
@@ -658,7 +658,7 @@ void praet_schedule_advance_ticks(PraetSchedule *context, embed_word ticks);
  *       is exactly one reader and setting a raised flag is a no-op. Nothing is counted and nothing is
  *       queued.
  */
-void praet_schedule_raise(PraetSchedule *context);
+void praet_ordo_raise(PraetOrdo *context);
 
 /**
  * @brief Drives the port and brings every flag word up to date. The caller's poll.
@@ -681,7 +681,7 @@ void praet_schedule_raise(PraetSchedule *context);
  * @note Every state change a channel undergoes goes through here, which is what puts the whole of the
  *       access control in one function. That fell out of the lock: one reader means one place.
  */
-void praet_schedule_poll(PraetSchedule *context);
+void praet_ordo_poll(PraetOrdo *context);
 
 /**
  * @brief Returns one channel's flag word.
@@ -691,7 +691,7 @@ void praet_schedule_poll(PraetSchedule *context);
  * @return            The whole word: quaternary core at the bottom, statuses and region above.
  * @note One load. Knowing a channel is idle does not require waiting for a callback.
  */
-uint32_t praet_schedule_flags(const PraetSchedule *context, embed_word channel);
+uint32_t praet_ordo_flags(const PraetOrdo *context, embed_word channel);
 
 EMBED_END_DECLS
 

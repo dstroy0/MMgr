@@ -133,7 +133,7 @@ uint16_t praet_engine_progress(uint8_t channel)
  *
  * @param[in] channel Channel to read.
  * @return            Bytes moved so far, as the script last reported them.
- * @note praet_schedule.h declares this and the orchestrator calls it. Defining it here is what makes
+ * @note praet_ordo.h declares this and the orchestrator calls it. Defining it here is what makes
  *       this file the port for that hook as well as for the four in memoriam_praetereo.h.
  */
 uint16_t praet_hw_progress(embed_word channel)

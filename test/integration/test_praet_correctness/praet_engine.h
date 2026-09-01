@@ -230,7 +230,7 @@ PraetEngineTally praet_engine_tally(void);
  * @return            Bytes moved so far, or 0 for a channel outside the fixture's table.
  * @note What a port reads off a controller's remaining count, and what it feeds a watchdog with. The
  *       library has no entry for it, so the application asks the port and passes the answer to
- *       praet_schedule_kick. That is the shape a real integration takes until the library grows one.
+ *       praet_ordo_efficere. That is the shape a real integration takes until the library grows one.
  * @note Set by a poll reaction carrying a progress figure, and set to the reported count when a
  *       transfer completes. A channel nothing has reported on holds its last figure.
  */

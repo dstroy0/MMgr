@@ -5,7 +5,7 @@
  * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
- * @file praet_schedule.c
+ * @file praet_ordo.c
  * @brief Attach, detach, submit, the watchdog, and the reader/setter that is the only thing touching
  *        the two volatiles.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
@@ -20,7 +20,7 @@
  * @warning Included by test_praet_correctness.c rather than compiled on its own. mmgr_add_suite
  *          builds the one suite source and the shared files under test/support.
  */
-#include "praet_schedule.h"
+#include "praet_ordo.h"
 
 /**
  * @brief Every bit of a flag word except the ones in @p bits_.
@@ -76,11 +76,11 @@ EMBED_STATIC_ASSERT((PRAET_CLEARED_BITS & (uint32_t)~PRAET_MAP_MASK) == 0u,
  *       instrument, and it is the same reason the whole access control ended up in one function.
  * @note A word that did not change is not written and is not recorded. Recording it would say a
  *       transition happened where nothing moved.
- * @warning praet_schedule_reset writes directly and does not come through here. Clearing a context
+ * @warning praet_ordo_reset writes directly and does not come through here. Clearing a context
  *          back to its declared state is the fixture starting over, and counting that as a run of
  *          transitions would fill the table with one set per case.
  */
-static void praet_schedule_write_flags(PraetSchedule *context, embed_word channel, uint32_t now)
+static void praet_ordo_write_flags(PraetOrdo *context, embed_word channel, uint32_t now)
 {
     const uint32_t was = context->flags[channel];
 
@@ -89,11 +89,11 @@ static void praet_schedule_write_flags(PraetSchedule *context, embed_word channe
         return;
     }
 
-    praet_examine_transition(channel, was, now);
+    praet_procurator_transitus(channel, was, now);
     context->flags[channel] = now;
 }
 
-void praet_schedule_reset(PraetSchedule *context)
+void praet_ordo_reset(PraetOrdo *context)
 {
     for (embed_word channel = 0u; channel < PRAET_CHANNELS; channel++)
     {
@@ -114,9 +114,11 @@ void praet_schedule_reset(PraetSchedule *context)
     context->praet_busy_bitflag = 0u;
 }
 
-embed_bool praet_schedule_attach(PraetSchedule *context, embed_word channel, uint8_t *bound, embed_word bytes,
+embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t *bound, embed_word bytes,
                                  embed_word region)
 {
+    praet_procurator_opus(PRAET_OPUS_ADNECTERE);
+
     if (channel >= PRAET_CHANNELS)
     {
         return EMBED_FALSE;
@@ -146,7 +148,7 @@ embed_bool praet_schedule_attach(PraetSchedule *context, embed_word channel, uin
     // needs - the region byte would otherwise shift off the top of its own type and land as zero
     now |= PRAET_REGION_FIELD(region);
 
-    praet_schedule_write_flags(context, channel, now);
+    praet_ordo_write_flags(context, channel, now);
 #if PRAET_RECOVERY
     context->bound[channel] = bound;
     context->bound_bytes[channel] = bytes;
@@ -161,8 +163,10 @@ embed_bool praet_schedule_attach(PraetSchedule *context, embed_word channel, uin
     return EMBED_TRUE;
 }
 
-void praet_schedule_detach(PraetSchedule *context, embed_word channel)
+void praet_ordo_separare(PraetOrdo *context, embed_word channel)
 {
+    praet_procurator_opus(PRAET_OPUS_SEPARARE);
+
     if (channel >= PRAET_CHANNELS)
     {
         return;
@@ -172,16 +176,18 @@ void praet_schedule_detach(PraetSchedule *context, embed_word channel)
         return;
     }
 
-    praet_schedule_write_flags(context, channel, context->flags[channel] | (uint32_t)PRAET_DETACHING);
+    praet_ordo_write_flags(context, channel, context->flags[channel] | (uint32_t)PRAET_DETACHING);
     context->praet_set_bitflag = 1u;
 }
 
 #if PRAET_RECOVERY
-embed_bool praet_schedule_submit(PraetSchedule *context, embed_word channel, embed_word offset, embed_word length)
+embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word offset, embed_word length)
 #else
-embed_bool praet_schedule_submit(PraetSchedule *context, embed_word channel)
+embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel)
 #endif
 {
+    praet_procurator_opus(PRAET_OPUS_RELATIO);
+
     if (channel >= PRAET_CHANNELS)
     {
         return EMBED_FALSE;
@@ -201,7 +207,7 @@ embed_bool praet_schedule_submit(PraetSchedule *context, embed_word channel)
 
     // The region descriptor rides along untouched. Which memory a channel reaches was settled where
     // the pool was declared, and a submit has no business restating it
-    praet_schedule_write_flags(context, channel,
+    praet_ordo_write_flags(context, channel,
                                (was & PRAET_WITHOUT(PRAET_CORE_MASK | PRAET_TRANSFER_STATUSES)) |
                                    (uint32_t)PRAET_BUSY);
     context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
@@ -217,11 +223,13 @@ embed_bool praet_schedule_submit(PraetSchedule *context, embed_word channel)
 }
 
 #if PRAET_RECOVERY
-void praet_schedule_kick(PraetSchedule *context, embed_word channel, embed_word position)
+void praet_ordo_efficere(PraetOrdo *context, embed_word channel, embed_word position)
 #else
-void praet_schedule_kick(PraetSchedule *context, embed_word channel)
+void praet_ordo_efficere(PraetOrdo *context, embed_word channel)
 #endif
 {
+    praet_procurator_opus(PRAET_OPUS_EFFICERE);
+
     if (channel >= PRAET_CHANNELS)
     {
         return;
@@ -233,7 +241,7 @@ void praet_schedule_kick(PraetSchedule *context, embed_word channel)
 
     // A channel that is moving again is not stalled, so the status comes off with the same kick that
     // pushes the window out
-    praet_schedule_write_flags(context, channel, context->flags[channel] & PRAET_WITHOUT(PRAET_STALLED));
+    praet_ordo_write_flags(context, channel, context->flags[channel] & PRAET_WITHOUT(PRAET_STALLED));
     context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
 
 #if PRAET_RECOVERY
@@ -247,8 +255,10 @@ void praet_schedule_kick(PraetSchedule *context, embed_word channel)
     context->praet_set_bitflag = 1u;
 }
 
-void praet_schedule_completed(PraetSchedule *context, embed_word channel, embed_bool failed)
+void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool failed)
 {
+    praet_procurator_opus(PRAET_OPUS_COMPLETED);
+
     if (channel >= PRAET_CHANNELS)
     {
         return;
@@ -273,7 +283,7 @@ void praet_schedule_completed(PraetSchedule *context, embed_word channel, embed_
     }
 #endif
 
-    praet_schedule_write_flags(context, channel, now);
+    praet_ordo_write_flags(context, channel, now);
     context->keepalive_deadline[channel] = 0u;
     context->praet_set_bitflag = 1u;
 }
@@ -298,7 +308,7 @@ void praet_schedule_completed(PraetSchedule *context, embed_word channel, embed_
  *       a path that runs once per stalled transfer.
  * @note Reads the caller's storage and writes none of it.
  */
-static uint32_t praet_boundary_crc(const PraetSchedule *context, embed_word channel)
+static uint32_t praet_boundary_crc(const PraetOrdo *context, embed_word channel)
 {
     const embed_word word_bytes = (embed_word)sizeof(embed_word);
     const embed_word sampled = context->position[channel];
@@ -335,8 +345,10 @@ static uint32_t praet_boundary_crc(const PraetSchedule *context, embed_word chan
     return running ^ 0xFFFFFFFFu;
 }
 
-embed_bool praet_schedule_resolve(PraetSchedule *context, embed_word channel, embed_word recovery)
+embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word recovery)
 {
+    praet_procurator_opus(PRAET_OPUS_RESOLVE);
+
     if (channel >= PRAET_CHANNELS)
     {
         return EMBED_FALSE;
@@ -352,7 +364,7 @@ embed_bool praet_schedule_resolve(PraetSchedule *context, embed_word channel, em
     uint32_t now = was & PRAET_WITHOUT(PRAET_CORE_MASK | PRAET_STALLED);
 
     now |= (uint32_t)PRAET_ATTACHED;
-    now |= (recovery == (embed_word)PRAET_RECOVER_ZERO) ? (uint32_t)PRAET_SCRUBBED : (uint32_t)PRAET_ABANDONED;
+    now |= (recovery == (embed_word)PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE) ? (uint32_t)PRAET_SCRUBBED : (uint32_t)PRAET_ABANDONED;
 
     // The one optional branch, and the only place it appears. Everything before the sample is written
     // and everything past the rounded boundary is not, so the whole ambiguity is the word the engine
@@ -368,25 +380,25 @@ embed_bool praet_schedule_resolve(PraetSchedule *context, embed_word channel, em
         }
     }
 
-    praet_schedule_write_flags(context, channel, now);
+    praet_ordo_write_flags(context, channel, now);
     context->keepalive_deadline[channel] = 0u;
     context->praet_set_bitflag = 1u;
     return EMBED_TRUE;
 }
 #endif
 
-void praet_schedule_advance(PraetSchedule *context, embed_word micros)
+void praet_ordo_advance(PraetOrdo *context, embed_word micros)
 {
     context->elapsed_micros += micros;
     context->praet_set_bitflag = 1u;
 }
 
-void praet_schedule_advance_ticks(PraetSchedule *context, embed_word ticks)
+void praet_ordo_advance_ticks(PraetOrdo *context, embed_word ticks)
 {
-    praet_schedule_advance(context, PRAET_CLOCK_MICROS(ticks));
+    praet_ordo_advance(context, PRAET_CLOCK_MICROS(ticks));
 }
 
-void praet_schedule_raise(PraetSchedule *context)
+void praet_ordo_raise(PraetOrdo *context)
 {
     context->praet_set_bitflag = 1u;
 }
@@ -396,14 +408,14 @@ void praet_schedule_raise(PraetSchedule *context)
  *
  * @param[in,out] context Context to update [BORROWS].
  * @return                EMBED_TRUE where any channel moved.
- * @note Runs ahead of the short circuit in praet_schedule_poll, because it is what can make the
+ * @note Runs ahead of the short circuit in praet_ordo_poll, because it is what can make the
  *       answer to "did anything happen" true. A part with no interrupt to raise the set volatile has
  *       nothing else that could, and a poll that short circuited before asking would never learn the
  *       engine had moved - measured, on the arm where progress is reported and no interrupt exists.
  * @note Clears a stall and pushes the keepalive window for a channel that moved, since a channel
  *       reporting progress is a channel that has not stopped.
  */
-static embed_bool praet_schedule_take_progress(PraetSchedule *context)
+static embed_bool praet_ordo_take_progress(PraetOrdo *context)
 {
     embed_bool moved = EMBED_FALSE;
 
@@ -414,6 +426,8 @@ static embed_bool praet_schedule_take_progress(PraetSchedule *context)
         {
             continue;
         }
+
+        praet_procurator_opus(PRAET_OPUS_PROGRESS);
 
         const embed_word reached = (embed_word)praet_hw_progress(channel);
 
@@ -426,7 +440,7 @@ static embed_bool praet_schedule_take_progress(PraetSchedule *context)
 
         context->position[channel] = (reached > context->length[channel]) ? context->length[channel] : reached;
         context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
-        praet_schedule_write_flags(context, channel, context->flags[channel] & PRAET_WITHOUT(PRAET_STALLED));
+        praet_ordo_write_flags(context, channel, context->flags[channel] & PRAET_WITHOUT(PRAET_STALLED));
         moved = EMBED_TRUE;
     }
 #else
@@ -436,17 +450,20 @@ static embed_bool praet_schedule_take_progress(PraetSchedule *context)
     return moved;
 }
 
-void praet_schedule_poll(PraetSchedule *context)
+void praet_ordo_poll(PraetOrdo *context)
 {
+    praet_procurator_opus(PRAET_OPUS_POLL);
+
     // Taking the lock is what makes this ignore the interrupt for the span below. A nested call finds
     // it held and declines rather than reworking state the outer call is partway through
     if (context->praet_busy_bitflag != 0u)
     {
+        praet_procurator_opus(PRAET_OPUS_POLL_SHORT);
         return;
     }
     context->praet_busy_bitflag = 1u;
 
-    const embed_bool moved = praet_schedule_take_progress(context);
+    const embed_bool moved = praet_ordo_take_progress(context);
 
     // The short circuit, and it is still here. What changed is that the port is asked first, so a
     // channel that moved is one of the things that can make this false. Nothing happened means no
@@ -454,9 +471,11 @@ void praet_schedule_poll(PraetSchedule *context)
     // every flag word back exactly as it found it
     if ((context->praet_set_bitflag == 0u) && (moved == EMBED_FALSE))
     {
+        praet_procurator_opus(PRAET_OPUS_POLL_SHORT);
         context->praet_busy_bitflag = 0u;
         return;
     }
+    praet_procurator_opus(PRAET_OPUS_POLL_WALK);
 
     // Lifted out of the walk. One deadline serves the whole context, so asking whether it has elapsed
     // once and reading the answer per channel replaces a comparison per channel with a load
@@ -471,6 +490,7 @@ void praet_schedule_poll(PraetSchedule *context)
         {
             continue;
         }
+        praet_procurator_opus(PRAET_OPUS_ALVEUS);
 
         // The bit comes first in both tests below, so a channel that is not settling and a channel
         // that is not running each cost one mask and nothing else. A timer nothing is waiting on is
@@ -504,7 +524,7 @@ void praet_schedule_poll(PraetSchedule *context)
 #endif
         }
 
-        praet_schedule_write_flags(context, channel, now);
+        praet_ordo_write_flags(context, channel, now);
     }
 
     // Both volatiles come down together. A raise that landed during the span above is dropped, and
@@ -514,7 +534,7 @@ void praet_schedule_poll(PraetSchedule *context)
     context->praet_busy_bitflag = 0u;
 }
 
-uint32_t praet_schedule_flags(const PraetSchedule *context, embed_word channel)
+uint32_t praet_ordo_flags(const PraetOrdo *context, embed_word channel)
 {
     if (channel >= PRAET_CHANNELS)
     {
@@ -524,7 +544,7 @@ uint32_t praet_schedule_flags(const PraetSchedule *context, embed_word channel)
 }
 
 #if PRAET_RECOVERY
-embed_word praet_schedule_position(const PraetSchedule *context, embed_word channel)
+embed_word praet_ordo_situs(const PraetOrdo *context, embed_word channel)
 {
     if (channel >= PRAET_CHANNELS)
     {
@@ -533,7 +553,7 @@ embed_word praet_schedule_position(const PraetSchedule *context, embed_word chan
     return context->position[channel];
 }
 
-embed_word praet_schedule_touched(const PraetSchedule *context, embed_word channel)
+embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel)
 {
     if (channel >= PRAET_CHANNELS)
     {
@@ -568,7 +588,7 @@ embed_word praet_schedule_touched(const PraetSchedule *context, embed_word chann
     return (embed_word)(sampled + needed);
 }
 
-uint32_t praet_schedule_boundary_crc(const PraetSchedule *context, embed_word channel)
+uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel)
 {
     if (channel >= PRAET_CHANNELS)
     {

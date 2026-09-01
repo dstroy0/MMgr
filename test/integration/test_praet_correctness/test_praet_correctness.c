@@ -30,7 +30,7 @@
  * @brief Logical channels this suite's context carries.
  *
  * @note Set here because this file is the caller, and a caller is who knows the part. Leaving it
- *       unset would stop the build with a message naming it, which is what praet_defaults.h is for
+ *       unset would stop the build with a message naming it, which is what praet_praefinitum.h is for
  *       and what defaults_sweep.py checks.
  */
 #define PRAET_CHANNELS 8u
@@ -84,13 +84,13 @@
  * @brief Whether this build pins its own timer or reads one the caller runs.
  *
  * @note A plain flag of this file's own, not PRAET_CLOCK_SOURCE. The two source tokens are defined in
- *       praet_clock.h, which is included further down, so testing PRAET_CLOCK_SOURCE against them up
+ *       praet_horologiorum_custos.h, which is included further down, so testing PRAET_CLOCK_SOURCE against them up
  *       here compares two undefined names and both sides come out zero - which reads as true and
  *       takes the wrong arm on every build.
  * @note The caller's clock, because these suites run on a host and a host build has no core to pin a
- *       timer to. praet_platform_detection.h says so and praet_clock.h refuses the other arm on the
+ *       timer to. praet_platform_detection.h says so and praet_horologiorum_custos.h refuses the other arm on the
  *       strength of it, which is the same refusal a Cortex-M0 gets. clock_sweep.py drives that.
- * @note The cases are the clock either way. They call praet_schedule_advance_ticks with the ticks
+ * @note The cases are the clock either way. They call praet_ordo_advance_ticks with the ticks
  *       they mean, which is what a port reading a counter would do with the difference it read.
  */
 #ifndef PRAET_SUITE_CLOCK_IS_OURS
@@ -128,11 +128,14 @@
 
 // The schedule context is compiled in for the same reason. It is the implementation under
 // development, driven here before any of it is proposed for src
-#include "praet_schedule.c"
+#include "praet_ordo.c"
 
-// The examination arm's counters. Every entry compiles out where PRAET_EXAMINE is 0, so a build that
+// The examination arm's counters. Every entry compiles out where PRAET_PROCURATOR is 0, so a build that
 // did not ask for it carries none of this
-#include "praet_examine.c"
+#include "praet_procurator.c"
+
+// A transfer written down, and the linkage the arrangements are made of
+#include "praet_descriptor.c"
 
 /**
  * @brief The schedule context every scheduling case runs against.
@@ -145,10 +148,10 @@
  *       token, because a context answers this once and the other arm needs its own compile.
  */
 #ifndef PRAET_SUITE_CRC_CHOICE
-#define PRAET_SUITE_CRC_CHOICE RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE
+#define PRAET_SUITE_CRC_CHOICE AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE
 #endif
 
-PraetScheduleContext(s_schedule, PRAET_SUITE_CRC_CHOICE);
+PraetOrdoContext(s_schedule, PRAET_SUITE_CRC_CHOICE);
 
 /**
  * @brief Region descriptor the scheduling cases attach with.
@@ -224,7 +227,7 @@ static const PraetCallbackCfg s_completion_binding = {
  * @param[in] event Completion the port layer reports [BORROWS].
  * @param[in] user  Pointer registered alongside this callback [BORROWS].
  * @note The join. A port reports a finished transfer through this callback, and the schedule learns a
- *       channel is no longer busy from the same event. Nothing else can tell it: praet_schedule.c
+ *       channel is no longer busy from the same event. Nothing else can tell it: praet_ordo.c
  *       predicts no duration, so a completion arrives here or it does not arrive.
  * @note This is the application's half. The library does not own the schedule yet, so what wires the
  *       port's events to it is the code that registered the callback, which is what a real
@@ -235,7 +238,7 @@ static const PraetCallbackCfg s_completion_binding = {
 static void praet_joined_completion(const mmgr_praet_event *event, void *user)
 {
     praet_record_completion(event, user);
-    praet_schedule_completed(&s_schedule, (embed_word)event->channel, EMBED_FALSE);
+    praet_ordo_completed(&s_schedule, (embed_word)event->channel, EMBED_FALSE);
 }
 
 /**
@@ -409,15 +412,15 @@ PraetChannel(s_schedule, 4, s_case_pool);
  */
 static void praet_case_attach_and_settle(embed_word channel)
 {
-    // Reaches praet_schedule_attach directly, past PraetAttach. The channel arrives here as a
+    // Reaches praet_ordo_adnectere directly, past PraetAttach. The channel arrives here as a
     // parameter, and the surface pastes the channel number into the symbol that carries the binding,
     // so it needs a literal. The cases that drive the surface itself write one
-    TEST_ASSERT_TRUE_MESSAGE(praet_schedule_attach(&s_schedule, channel, mmgr_pars_storage_s_case_pool,
+    TEST_ASSERT_TRUE_MESSAGE(praet_ordo_adnectere(&s_schedule, channel, mmgr_pars_storage_s_case_pool,
                                                    (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
                              "the attach failed");
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, channel) & PRAET_SETTLING,
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, channel) & PRAET_SETTLING,
                                      "the channel is still settling after its settle elapsed");
 }
 
@@ -427,7 +430,7 @@ static void praet_case_attach_and_settle(embed_word channel)
  * @param[in] channel Channel to run on.
  * @param[in] length  Bytes to ask for.
  * @return            What the submit answered.
- * @note Absorbs the two forms praet_schedule_submit takes, so a case reads the same on both arms.
+ * @note Absorbs the two forms praet_ordo_relatio takes, so a case reads the same on both arms.
  *       Where PRAET_RECOVERY is off the entry takes no bytes, because nothing would record them.
  */
 static embed_bool praet_case_submit(embed_word channel, embed_word length)
@@ -436,9 +439,9 @@ static embed_bool praet_case_submit(embed_word channel, embed_word length)
     // one as an argument. The cases that check the bound call PraetSubmit with literals
     (void)length;
 #if PRAET_RECOVERY
-    return praet_schedule_submit(&s_schedule, channel, 0u, length);
+    return praet_ordo_relatio(&s_schedule, channel, 0u, length);
 #else
-    return praet_schedule_submit(&s_schedule, channel);
+    return praet_ordo_relatio(&s_schedule, channel);
 #endif
 }
 
@@ -447,16 +450,16 @@ static embed_bool praet_case_submit(embed_word channel, embed_word length)
  *
  * @param[in] channel  Channel that showed a sign of life.
  * @param[in] position Bytes moved so far.
- * @note Absorbs the two forms praet_schedule_kick takes, the same way praet_case_submit does. Where
+ * @note Absorbs the two forms praet_ordo_efficere takes, the same way praet_case_submit does. Where
  *       PRAET_RECOVERY is off a kick is a sign of life and nothing more.
  */
 static void praet_case_kick(embed_word channel, embed_word position)
 {
 #if PRAET_RECOVERY
-    praet_schedule_kick(&s_schedule, channel, position);
+    praet_ordo_efficere(&s_schedule, channel, position);
 #else
     (void)position;
-    praet_schedule_kick(&s_schedule, channel);
+    praet_ordo_efficere(&s_schedule, channel);
 #endif
 }
 
@@ -465,7 +468,7 @@ static void praet_case_kick(embed_word channel, embed_word position)
  *
  * @param[in] channel Channel to poll.
  * @note Two calls, and both are the caller's. praet.poll drives the port through the library, and
- *       praet_schedule_poll is what turns whatever that produced into current flag words. The order
+ *       praet_ordo_poll is what turns whatever that produced into current flag words. The order
  *       matters: the port runs first so the orchestrator reads what this poll learned.
  * @note Nothing here reads a byte count or feeds a watchdog. The orchestrator asks the port itself,
  *       through praet_hw_progress, which is why this is two calls and not a driver.
@@ -477,7 +480,7 @@ static void praet_joined_poll(embed_word channel)
     EMBED_CALL(praet.poll, PraetCfg, .channel = (uint8_t)channel, .peripheral = 0u, .loopback = EMBED_FALSE,
                .on_complete = &s_joined_binding);
 
-    praet_schedule_poll(&s_schedule);
+    praet_ordo_poll(&s_schedule);
 }
 
 /**
@@ -485,11 +488,11 @@ static void praet_joined_poll(embed_word channel)
  */
 void test_a_channel_starts_detached(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
 
     for (embed_word channel = 0u; channel < PRAET_CHANNELS; channel++)
     {
-        TEST_ASSERT_EQUAL_UINT32(PRAET_DETACHED, praet_schedule_flags(&s_schedule, channel));
+        TEST_ASSERT_EQUAL_UINT32(PRAET_DETACHED, praet_ordo_flags(&s_schedule, channel));
     }
 }
 
@@ -501,15 +504,15 @@ void test_a_channel_starts_detached(void)
  */
 void test_attach_claims_the_vector_and_detach_releases_it(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
 
     praet_case_attach_and_settle(2u);
-    TEST_ASSERT_TRUE((praet_schedule_flags(&s_schedule, 2u) & PRAET_CLAIMED) != 0u);
+    TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 2u) & PRAET_CLAIMED) != 0u);
 
-    praet_schedule_detach(&s_schedule, 2u);
-    praet_schedule_poll(&s_schedule);
+    praet_ordo_separare(&s_schedule, 2u);
+    praet_ordo_poll(&s_schedule);
 
-    const uint32_t after = praet_schedule_flags(&s_schedule, 2u);
+    const uint32_t after = praet_ordo_flags(&s_schedule, 2u);
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_DETACHED, after & PRAET_CORE_MASK, "the channel is still attached");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, after & PRAET_CLAIMED, "a detached channel is still holding a vector");
@@ -525,28 +528,28 @@ void test_attach_claims_the_vector_and_detach_releases_it(void)
  */
 void test_a_settling_channel_takes_no_transfer(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     TEST_ASSERT_TRUE(PraetAttach(s_schedule, 0, s_case_pool, PRAET_CASE_REGION));
 
 #if PRAET_SETTLE_MICROS == 0u
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, 0u) & PRAET_SETTLING,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 0u) & PRAET_SETTLING,
                                      "an engine that settles in no time reported settling");
     TEST_ASSERT_TRUE_MESSAGE(praet_case_submit(0u, 16u), "a channel with nothing to wait for refused a transfer");
 #else
-    TEST_ASSERT_TRUE_MESSAGE((praet_schedule_flags(&s_schedule, 0u) & PRAET_SETTLING) != 0u,
+    TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 0u) & PRAET_SETTLING) != 0u,
                              "the channel never reported settling");
     TEST_ASSERT_FALSE_MESSAGE(praet_case_submit(0u, 16u), "a settling channel took a transfer");
 
     // One microsecond short of the deadline, so this proves the wait is the length it was asked for
     // rather than clearing on the first service call that happens along
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS - 1u);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE_MESSAGE((praet_schedule_flags(&s_schedule, 0u) & PRAET_SETTLING) != 0u,
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS - 1u);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 0u) & PRAET_SETTLING) != 0u,
                              "the settle cleared before it had elapsed");
 
-    praet_schedule_advance(&s_schedule, 1u);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, 0u) & PRAET_SETTLING,
+    praet_ordo_advance(&s_schedule, 1u);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 0u) & PRAET_SETTLING,
                                      "the settle never cleared");
     TEST_ASSERT_TRUE_MESSAGE(praet_case_submit(0u, 16u), "a settled channel refused a transfer");
 #endif
@@ -560,25 +563,25 @@ void test_a_settling_channel_takes_no_transfer(void)
  */
 void test_a_transfer_reports_ok_when_the_port_says_so(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    TEST_ASSERT_EQUAL_UINT32(PRAET_BUSY, praet_schedule_flags(&s_schedule, 1u) & PRAET_CORE_MASK);
+    TEST_ASSERT_EQUAL_UINT32(PRAET_BUSY, praet_ordo_flags(&s_schedule, 1u) & PRAET_CORE_MASK);
 
     praet_case_kick(1u, 32u);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_schedule_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_ordo_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
                                      "a kick was read as a completion");
 
-    praet_schedule_completed(&s_schedule, 1u, EMBED_FALSE);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_OK, praet_schedule_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
+    praet_ordo_completed(&s_schedule, 1u, EMBED_FALSE);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_OK, praet_ordo_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
                                      "the transfer never reported ok");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, 1u) & PRAET_ERROR,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_ERROR,
                                      "a clean completion reported an error");
 
 #if PRAET_RECOVERY
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(64u, praet_schedule_position(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(64u, praet_ordo_situs(&s_schedule, 1u),
                                      "a finished transfer did not account for every byte");
 #endif
 }
@@ -587,28 +590,28 @@ void test_a_transfer_reports_ok_when_the_port_says_so(void)
  * @brief Checks that a transfer the port says failed reports an error and keeps what it moved.
  *
  * @note Found by the examination arm. PRAET_ERROR was never set and never cleared across the whole
- *       suite, which said the failing half of praet_schedule_completed had no case at all.
+ *       suite, which said the failing half of praet_ordo_completed had no case at all.
  * @note A failed transfer does not account for the length it was asked for. Everything the port
  *       reported is still true and the rest never happened, so the position stays where the last
  *       report left it and a caller can still say which bytes were written.
  */
 void test_a_failed_completion_reports_an_error(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, 20u);
 
-    praet_schedule_completed(&s_schedule, 1u, EMBED_TRUE);
+    praet_ordo_completed(&s_schedule, 1u, EMBED_TRUE);
 
-    const uint32_t after = praet_schedule_flags(&s_schedule, 1u);
+    const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_OK, after & PRAET_CORE_MASK,
                                      "a failed transfer left the channel busy");
     TEST_ASSERT_TRUE_MESSAGE((after & PRAET_ERROR) != 0u, "the failure was not recorded");
 
 #if PRAET_RECOVERY
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(20u, praet_schedule_position(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(20u, praet_ordo_situs(&s_schedule, 1u),
                                      "a failed transfer claimed to have moved everything");
 #endif
 }
@@ -617,7 +620,7 @@ void test_a_failed_completion_reports_an_error(void)
  * @brief Checks that a channel which finished takes another transfer, and starts clean.
  *
  * @note Found by the examination arm. The ok to busy transition was never reached, which said nothing
- *       ever submitted twice on one channel even though praet_schedule_submit accepts a channel whose
+ *       ever submitted twice on one channel even though praet_ordo_relatio accepts a channel whose
  *       last transfer finished.
  * @note The second submit clears what the first one left. An error, a stall or a recovery from the
  *       last transfer carried into the next one would have a caller reading a verdict that belongs to
@@ -625,22 +628,22 @@ void test_a_failed_completion_reports_an_error(void)
  */
 void test_a_finished_channel_takes_another_transfer(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
 
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
-    praet_schedule_completed(&s_schedule, 1u, EMBED_TRUE);
-    TEST_ASSERT_TRUE((praet_schedule_flags(&s_schedule, 1u) & PRAET_ERROR) != 0u);
+    praet_ordo_completed(&s_schedule, 1u, EMBED_TRUE);
+    TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 1u) & PRAET_ERROR) != 0u);
 
     TEST_ASSERT_TRUE_MESSAGE(praet_case_submit(1u, 32u), "a channel that had finished refused a second transfer");
 
-    const uint32_t after = praet_schedule_flags(&s_schedule, 1u);
+    const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK, "the second transfer did not start");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, after & PRAET_ERROR, "the last transfer's error carried into this one");
 
 #if PRAET_RECOVERY
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_position(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_situs(&s_schedule, 1u),
                                      "the second transfer started with the first one's position");
 #endif
 }
@@ -657,19 +660,19 @@ void test_a_finished_channel_takes_another_transfer(void)
 void test_a_recovery_is_cleared_by_the_next_transfer(void)
 {
 #if PRAET_RECOVERY
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, 20u);
 
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE(praet_schedule_resolve(&s_schedule, 1u, PRAET_RECOVER_ZERO));
-    TEST_ASSERT_TRUE((praet_schedule_flags(&s_schedule, 1u) & PRAET_SCRUBBED) != 0u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE));
+    TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 1u) & PRAET_SCRUBBED) != 0u);
 
     TEST_ASSERT_TRUE_MESSAGE(praet_case_submit(1u, 32u), "a recovered channel refused the next transfer");
 
-    const uint32_t after = praet_schedule_flags(&s_schedule, 1u);
+    const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, after & (PRAET_SCRUBBED | PRAET_ABANDONED | PRAET_MEASURED),
                                      "a recovery's record carried into the transfer after it");
@@ -688,19 +691,19 @@ void test_a_recovery_is_cleared_by_the_next_transfer(void)
  */
 void test_the_watchdog_marks_a_stalled_channel(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, 1u) & PRAET_STALLED,
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the watchdog fired before its window elapsed");
 
-    praet_schedule_advance(&s_schedule, 1u);
-    praet_schedule_poll(&s_schedule);
+    praet_ordo_advance(&s_schedule, 1u);
+    praet_ordo_poll(&s_schedule);
 
-    const uint32_t after = praet_schedule_flags(&s_schedule, 1u);
+    const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
     TEST_ASSERT_TRUE_MESSAGE((after & PRAET_STALLED) != 0u, "the watchdog never fired");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK,
@@ -715,21 +718,21 @@ void test_the_watchdog_marks_a_stalled_channel(void)
  */
 void test_a_kick_clears_a_stall_and_pushes_the_window(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE((praet_schedule_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u);
 
     praet_case_kick(1u, 16u);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, 1u) & PRAET_STALLED,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "a channel that moved again is still marked stalled");
 
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, 1u) & PRAET_STALLED,
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the kick did not push the window out");
 }
 
@@ -745,14 +748,14 @@ void test_a_kick_clears_a_stall_and_pushes_the_window(void)
 void test_a_kick_that_goes_backwards_does_not_shrink_the_extent(void)
 {
 #if PRAET_RECOVERY
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     praet_case_kick(1u, 48u);
     praet_case_kick(1u, 16u);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(48u, praet_schedule_position(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(48u, praet_ordo_situs(&s_schedule, 1u),
                                      "a backwards kick shrank the extent a backout has to cover");
 #else
     TEST_IGNORE_MESSAGE("PRAET_RECOVERY is off, so no extent is recorded to shrink");
@@ -762,24 +765,24 @@ void test_a_kick_that_goes_backwards_does_not_shrink_the_extent(void)
 /**
  * @brief Checks that backing a stalled transfer out records the extent and leaves the bytes alone.
  *
- * @note Reports as ignored where PRAET_RECOVERY is off, since praet_schedule_resolve is not declared
+ * @note Reports as ignored where PRAET_RECOVERY is off, since praet_ordo_resolve is not declared
  *       on that build.
  */
 void test_backing_out_records_what_was_touched(void)
 {
 #if PRAET_RECOVERY
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     praet_case_kick(1u, 20u);
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE((praet_schedule_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u);
 
-    TEST_ASSERT_TRUE(praet_schedule_resolve(&s_schedule, 1u, PRAET_RECOVER_BACK_OUT));
+    TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
-    const uint32_t after = praet_schedule_flags(&s_schedule, 1u);
+    const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_ATTACHED, after & PRAET_CORE_MASK,
                                      "a resolved channel did not come back attached");
@@ -803,16 +806,16 @@ void test_backing_out_records_what_was_touched(void)
 void test_zeroing_records_that_the_bytes_were_scrubbed(void)
 {
 #if PRAET_RECOVERY
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
-    praet_schedule_poll(&s_schedule);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
 
-    TEST_ASSERT_TRUE(praet_schedule_resolve(&s_schedule, 1u, PRAET_RECOVER_ZERO));
+    TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE));
 
-    const uint32_t after = praet_schedule_flags(&s_schedule, 1u);
+    const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
     TEST_ASSERT_TRUE_MESSAGE((after & PRAET_SCRUBBED) != 0u, "the scrub was not recorded");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, after & PRAET_ABANDONED, "a scrub also claimed to be a backout");
@@ -832,13 +835,13 @@ void test_zeroing_records_that_the_bytes_were_scrubbed(void)
 void test_a_healthy_channel_refuses_to_be_resolved(void)
 {
 #if PRAET_RECOVERY
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    TEST_ASSERT_FALSE_MESSAGE(praet_schedule_resolve(&s_schedule, 1u, PRAET_RECOVER_ZERO),
+    TEST_ASSERT_FALSE_MESSAGE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE),
                               "a channel that never stalled was resolved");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_schedule_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_ordo_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
                                      "the refused resolve changed the state anyway");
 #else
     TEST_IGNORE_MESSAGE("PRAET_RECOVERY is off, so there is no resolve to refuse");
@@ -855,24 +858,24 @@ void test_a_healthy_channel_refuses_to_be_resolved(void)
 void test_touched_rounds_up_to_the_word(void)
 {
 #if PRAET_RECOVERY
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     const embed_word word_bytes = (embed_word)sizeof(embed_word);
 
     praet_case_kick(1u, word_bytes + 1u);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(word_bytes + 1u, praet_schedule_position(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(word_bytes + 1u, praet_ordo_situs(&s_schedule, 1u),
                                      "the sample was not recorded as taken");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(word_bytes * 2u, praet_schedule_touched(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(word_bytes * 2u, praet_ordo_commotus_est(&s_schedule, 1u),
                                      "the touched extent did not round up to the word");
 
     praet_case_kick(1u, word_bytes * 2u);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(word_bytes * 2u, praet_schedule_touched(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(word_bytes * 2u, praet_ordo_commotus_est(&s_schedule, 1u),
                                      "a sample already on a word boundary was rounded further");
 
     praet_case_kick(1u, 64u);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(64u, praet_schedule_touched(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(64u, praet_ordo_commotus_est(&s_schedule, 1u),
                                      "the touched extent ran past the length that was submitted");
 #else
     TEST_IGNORE_MESSAGE("PRAET_RECOVERY is off, so there is no touched extent to round");
@@ -886,7 +889,7 @@ void test_touched_rounds_up_to_the_word(void)
  *       it is where rounding up runs off the end of the type. Rounding first and clamping afterwards
  *       reads the wrapped value as a small number, which tells a caller almost none of its buffer was
  *       touched at the exact moment nearly all of it was.
- * @note Reaches praet_schedule_submit directly, past PraetSubmit. A length this large cannot come
+ * @note Reaches praet_ordo_relatio directly, past PraetSubmit. A length this large cannot come
  *       through the surface, because PraetSubmit compares it against the pool's own extent before
  *       anything runs. What is under test here is the entry's arithmetic, which is still reachable by
  *       anyone who calls it with numbers nobody checked.
@@ -896,16 +899,16 @@ void test_touched_rounds_up_to_the_word(void)
 void test_the_touched_extent_does_not_wrap_at_the_top_of_the_word(void)
 {
 #if PRAET_RECOVERY
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
 
     const embed_word full_length = (embed_word) ~(embed_word)0u;
 
-    TEST_ASSERT_TRUE(praet_schedule_submit(&s_schedule, 1u, 0u, full_length));
+    TEST_ASSERT_TRUE(praet_ordo_relatio(&s_schedule, 1u, 0u, full_length));
 
     praet_case_kick(1u, full_length);
 
-    const embed_word touched = praet_schedule_touched(&s_schedule, 1u);
+    const embed_word touched = praet_ordo_commotus_est(&s_schedule, 1u);
 
     TEST_ASSERT_TRUE_MESSAGE(touched == full_length, "the rounding wrapped and reported almost nothing touched");
 #else
@@ -937,46 +940,46 @@ void test_the_boundary_word_check_measures_one_word(void)
         mmgr_pars_storage_s_case_pool[walk] = (uint8_t)walk;
     }
 
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, sampled);
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE(praet_schedule_resolve(&s_schedule, 1u, PRAET_RECOVER_BACK_OUT));
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
-    TEST_ASSERT_TRUE_MESSAGE((praet_schedule_flags(&s_schedule, 1u) & PRAET_MEASURED) != 0u,
+    TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 1u) & PRAET_MEASURED) != 0u,
                              "the boundary word was not measured");
 
-    const uint32_t first = praet_schedule_boundary_crc(&s_schedule, 1u);
+    const uint32_t first = praet_ordo_boundary_crc(&s_schedule, 1u);
 
     // A byte inside the boundary word. The measurement is over that word, so this has to move it
     mmgr_pars_storage_s_case_pool[word_bytes] ^= 0xFFu;
 
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, sampled);
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE(praet_schedule_resolve(&s_schedule, 1u, PRAET_RECOVER_BACK_OUT));
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
-    TEST_ASSERT_TRUE_MESSAGE(praet_schedule_boundary_crc(&s_schedule, 1u) != first,
+    TEST_ASSERT_TRUE_MESSAGE(praet_ordo_boundary_crc(&s_schedule, 1u) != first,
                              "a byte inside the boundary word did not change the measurement");
 
     // Put it back, then change a byte outside the word. That one must not reach the measurement
     mmgr_pars_storage_s_case_pool[word_bytes] ^= 0xFFu;
     mmgr_pars_storage_s_case_pool[word_bytes * 3u] ^= 0xFFu;
 
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, sampled);
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE(praet_schedule_resolve(&s_schedule, 1u, PRAET_RECOVER_BACK_OUT));
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(first, praet_schedule_boundary_crc(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(first, praet_ordo_boundary_crc(&s_schedule, 1u),
                                      "a byte outside the boundary word reached the measurement");
 #else
     TEST_IGNORE_MESSAGE("this context answered the boundary word question with the DISABLE token");
@@ -993,16 +996,16 @@ void test_the_boundary_word_check_measures_one_word(void)
 void test_a_sample_on_a_boundary_measures_nothing(void)
 {
 #if PRAET_RECOVERY && PRAET_CRC_VALUE(PRAET_SUITE_CRC_CHOICE)
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     praet_case_kick(1u, (embed_word)sizeof(embed_word) * 2u);
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE(praet_schedule_resolve(&s_schedule, 1u, PRAET_RECOVER_BACK_OUT));
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, 1u) & PRAET_MEASURED,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_MEASURED,
                                      "a sample on a word boundary reported a measurement");
 #else
     TEST_IGNORE_MESSAGE("this context answered the boundary word question with the DISABLE token");
@@ -1018,18 +1021,18 @@ void test_a_sample_on_a_boundary_measures_nothing(void)
 void test_a_context_that_said_no_measures_nothing(void)
 {
 #if PRAET_RECOVERY && !PRAET_CRC_VALUE(PRAET_SUITE_CRC_CHOICE)
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     praet_case_kick(1u, (embed_word)sizeof(embed_word) + 1u);
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE(praet_schedule_resolve(&s_schedule, 1u, PRAET_RECOVER_BACK_OUT));
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, 1u) & PRAET_MEASURED,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_MEASURED,
                                      "a context that said no measured the boundary word anyway");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_boundary_crc(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_boundary_crc(&s_schedule, 1u),
                                      "a context that said no left a checksum behind");
 #else
     TEST_IGNORE_MESSAGE("this context did not answer the boundary word question with the DISABLE token");
@@ -1050,14 +1053,14 @@ void test_a_build_without_recovery_still_stalls_and_records_none(void)
 #if PRAET_RECOVERY
     TEST_IGNORE_MESSAGE("PRAET_RECOVERY is on, so this build has the recovery machinery");
 #else
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
-    praet_schedule_poll(&s_schedule);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
 
-    const uint32_t after = praet_schedule_flags(&s_schedule, 1u);
+    const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
     TEST_ASSERT_TRUE_MESSAGE((after & PRAET_STALLED) != 0u, "the watchdog is gone with the recovery machinery");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK,
@@ -1079,25 +1082,25 @@ void test_ticks_scale_into_microseconds(void)
 {
     const embed_word per_micro = (embed_word)PRAET_TICKS_PER_MICRO;
 
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     // One microsecond short of the window, counted in ticks
-    praet_schedule_advance_ticks(&s_schedule, ((embed_word)PRAET_KEEPALIVE_MICROS - 1u) * per_micro);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, 1u) & PRAET_STALLED,
+    praet_ordo_advance_ticks(&s_schedule, ((embed_word)PRAET_KEEPALIVE_MICROS - 1u) * per_micro);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the ticks scaled up to more microseconds than they are worth");
 
     // A tick short of the last microsecond, which must not close the window either
-    praet_schedule_advance_ticks(&s_schedule, per_micro - 1u);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, 1u) & PRAET_STALLED,
+    praet_ordo_advance_ticks(&s_schedule, per_micro - 1u);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "a part of a microsecond was counted as a whole one");
 
-    praet_schedule_advance_ticks(&s_schedule, per_micro);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE_MESSAGE((praet_schedule_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u,
+    praet_ordo_advance_ticks(&s_schedule, per_micro);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u,
                              "the window never closed, so the ticks scaled down to nothing");
 }
 
@@ -1133,15 +1136,15 @@ void test_the_scaling_uses_the_declared_frequency(void)
 void test_a_span_lands_where_the_pool_puts_it(void)
 {
 #if PRAET_RECOVERY
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
 
     TEST_ASSERT_TRUE(PraetSubmit(s_schedule, 1, s_case_pool, 64u, 32u));
 
-    praet_schedule_kick(&s_schedule, 1u, 32u);
-    praet_schedule_completed(&s_schedule, 1u, EMBED_FALSE);
+    praet_ordo_efficere(&s_schedule, 1u, 32u);
+    praet_ordo_completed(&s_schedule, 1u, EMBED_FALSE);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(32u, praet_schedule_position(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(32u, praet_ordo_situs(&s_schedule, 1u),
                                      "the transfer did not account for the span it was given");
     TEST_ASSERT_EQUAL_PTR_MESSAGE(&mmgr_pars_storage_s_case_pool[64], s_schedule.start[1],
                                   "the transfer did not start at the offset into the attached pool");
@@ -1212,7 +1215,7 @@ static const PraetScenario s_joined_scenario = {
  */
 void test_a_port_completion_moves_the_channel_out_of_busy(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     praet_engine_arm(&s_joined_scenario);
 
@@ -1225,7 +1228,7 @@ void test_a_port_completion_moves_the_channel_out_of_busy(void)
                                         .buf = mmgr_pars_storage_s_case_pool, .bytes = 64u),
                              "the engine refused the transfer");
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_schedule_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_ordo_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
                                      "the channel is not busy while the engine holds the transfer");
 
     praet_joined_poll(1u);
@@ -1233,11 +1236,11 @@ void test_a_port_completion_moves_the_channel_out_of_busy(void)
     praet_joined_poll(1u);
 
     TEST_ASSERT_EQUAL_UINT16_MESSAGE(1u, s_received_completions, "the engine did not report a completion");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_OK, praet_schedule_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_OK, praet_ordo_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
                                      "the completion did not reach the schedule");
 
 #if PRAET_RECOVERY
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(64u, praet_schedule_position(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(64u, praet_ordo_situs(&s_schedule, 1u),
                                      "the finished transfer did not account for every byte");
 #endif
 }
@@ -1253,7 +1256,7 @@ void test_a_port_completion_moves_the_channel_out_of_busy(void)
  */
 void test_the_schedule_stays_busy_while_the_engine_holds_it(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     praet_engine_arm(&s_joined_scenario);
 
@@ -1267,7 +1270,7 @@ void test_the_schedule_stays_busy_while_the_engine_holds_it(void)
 
     TEST_ASSERT_EQUAL_UINT16_MESSAGE(1u, tally.held, "the engine is not holding the transfer");
     TEST_ASSERT_EQUAL_UINT16_MESSAGE(0u, s_received_completions, "a completion arrived before it was due");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_schedule_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_ordo_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
                                      "the channel left busy without the engine finishing anything");
 }
 
@@ -1283,7 +1286,7 @@ void test_the_schedule_stays_busy_while_the_engine_holds_it(void)
 void test_the_recorded_position_comes_from_the_port(void)
 {
 #if PRAET_RECOVERY
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     praet_engine_arm(&s_joined_scenario);
 
@@ -1293,23 +1296,23 @@ void test_the_recorded_position_comes_from_the_port(void)
     TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u,
                                 .buf = mmgr_pars_storage_s_case_pool, .bytes = 64u));
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_position(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_situs(&s_schedule, 1u),
                                      "a transfer nothing has reported on has moved something");
 
     praet_joined_poll(1u);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(20u, praet_schedule_position(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(20u, praet_ordo_situs(&s_schedule, 1u),
                                      "the first report did not reach the schedule");
 
     praet_joined_poll(1u);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(48u, praet_schedule_position(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(48u, praet_ordo_situs(&s_schedule, 1u),
                                      "the second report did not reach the schedule");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_schedule_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_ordo_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
                                      "a progress report was read as the transfer finishing");
 
     praet_joined_poll(1u);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_OK, praet_schedule_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_OK, praet_ordo_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
                                      "the completion did not reach the schedule");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(64u, praet_schedule_position(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(64u, praet_ordo_situs(&s_schedule, 1u),
                                      "the finished transfer did not account for every byte");
 #else
     TEST_IGNORE_MESSAGE("PRAET_RECOVERY is off, so no position is recorded");
@@ -1328,7 +1331,7 @@ void test_the_recorded_position_comes_from_the_port(void)
 void test_a_backout_covers_what_the_port_last_reported(void)
 {
 #if PRAET_RECOVERY
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     praet_engine_arm(&s_joined_scenario);
 
@@ -1339,22 +1342,22 @@ void test_a_backout_covers_what_the_port_last_reported(void)
                                 .buf = mmgr_pars_storage_s_case_pool, .bytes = 64u));
 
     praet_joined_poll(1u);
-    TEST_ASSERT_EQUAL_UINT32(20u, praet_schedule_position(&s_schedule, 1u));
+    TEST_ASSERT_EQUAL_UINT32(20u, praet_ordo_situs(&s_schedule, 1u));
 
     // Nothing reports for a whole window, so the engine stopped where it last said it was
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE_MESSAGE((praet_schedule_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u,
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u,
                              "the engine stopped and the watchdog did not notice");
 
     const embed_word word_bytes = (embed_word)sizeof(embed_word);
     const embed_word expected = (embed_word)(((20u + word_bytes - 1u) / word_bytes) * word_bytes);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(expected, praet_schedule_touched(&s_schedule, 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(expected, praet_ordo_commotus_est(&s_schedule, 1u),
                                      "the extent to back out did not come from what the port reported");
 
-    TEST_ASSERT_TRUE(praet_schedule_resolve(&s_schedule, 1u, PRAET_RECOVER_BACK_OUT));
-    TEST_ASSERT_TRUE_MESSAGE((praet_schedule_flags(&s_schedule, 1u) & PRAET_ABANDONED) != 0u,
+    TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
+    TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 1u) & PRAET_ABANDONED) != 0u,
                              "the backout was not recorded");
 #else
     TEST_IGNORE_MESSAGE("PRAET_RECOVERY is off, so there is nothing to back out");
@@ -1370,22 +1373,22 @@ void test_a_backout_covers_what_the_port_last_reported(void)
  */
 void test_a_refused_attach_does_not_start_the_timer(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
 
     const embed_word settled_at = s_schedule.settle_deadline;
 
-    praet_schedule_advance(&s_schedule, 100u);
+    praet_ordo_advance(&s_schedule, 100u);
 
     // Channel one is already attached, so this is refused
-    TEST_ASSERT_FALSE_MESSAGE(praet_schedule_attach(&s_schedule, 1u, mmgr_pars_storage_s_case_pool,
+    TEST_ASSERT_FALSE_MESSAGE(praet_ordo_adnectere(&s_schedule, 1u, mmgr_pars_storage_s_case_pool,
                                                     (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
                               "a channel that was already attached took a second attach");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(settled_at, s_schedule.settle_deadline,
                                      "a refused attach started the settle timer");
 
     // And one past the end, which is refused before anything is read
-    TEST_ASSERT_FALSE(praet_schedule_attach(&s_schedule, PRAET_CHANNELS, mmgr_pars_storage_s_case_pool,
+    TEST_ASSERT_FALSE(praet_ordo_adnectere(&s_schedule, PRAET_CHANNELS, mmgr_pars_storage_s_case_pool,
                                             (embed_word)s_case_pool_bytes, PRAET_CASE_REGION));
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(settled_at, s_schedule.settle_deadline,
                                      "an attach on a channel that does not exist started the settle timer");
@@ -1402,7 +1405,7 @@ void test_a_refused_attach_does_not_start_the_timer(void)
  */
 void test_polling_the_port_keeps_the_watchdog_fed(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
     praet_engine_arm(&s_joined_scenario);
 
@@ -1414,21 +1417,21 @@ void test_polling_the_port_keeps_the_watchdog_fed(void)
 
     // Most of the window goes by, then the port reports the engine is still alive. Position unchanged,
     // because this engine says how far it got only when it finishes
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
     praet_case_kick(1u, 0u);
-    praet_schedule_poll(&s_schedule);
+    praet_ordo_poll(&s_schedule);
 
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_schedule_flags(&s_schedule, 1u) & PRAET_STALLED,
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "a channel the port kept reporting on was marked stalled");
 
     // Nothing reports for a whole window this time
-    praet_schedule_advance(&s_schedule, 1u);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_TRUE_MESSAGE((praet_schedule_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u,
+    praet_ordo_advance(&s_schedule, 1u);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u,
                              "a channel nothing reported on was not marked stalled");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_schedule_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_ordo_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
                                      "the stall was read as the transfer finishing");
 }
 
@@ -1440,21 +1443,21 @@ void test_polling_the_port_keeps_the_watchdog_fed(void)
  */
 void test_detach_waits_for_the_transfer_under_it(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(3u);
     TEST_ASSERT_TRUE(praet_case_submit(3u, 64u));
 
-    praet_schedule_detach(&s_schedule, 3u);
-    praet_schedule_poll(&s_schedule);
+    praet_ordo_separare(&s_schedule, 3u);
+    praet_ordo_poll(&s_schedule);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_schedule_flags(&s_schedule, 3u) & PRAET_CORE_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_ordo_flags(&s_schedule, 3u) & PRAET_CORE_MASK,
                                      "the detach tore down a channel the engine was still using");
-    TEST_ASSERT_TRUE((praet_schedule_flags(&s_schedule, 3u) & PRAET_DETACHING) != 0u);
+    TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 3u) & PRAET_DETACHING) != 0u);
 
-    praet_schedule_completed(&s_schedule, 3u, EMBED_FALSE);
-    praet_schedule_poll(&s_schedule);
+    praet_ordo_completed(&s_schedule, 3u, EMBED_FALSE);
+    praet_ordo_poll(&s_schedule);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_DETACHED, praet_schedule_flags(&s_schedule, 3u) & PRAET_CORE_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_DETACHED, praet_ordo_flags(&s_schedule, 3u) & PRAET_CORE_MASK,
                                      "the detach never completed once the transfer had");
 }
 
@@ -1466,19 +1469,19 @@ void test_detach_waits_for_the_transfer_under_it(void)
  */
 void test_the_interrupt_can_raise_set_any_number_of_times(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(0u);
     TEST_ASSERT_TRUE(praet_case_submit(0u, 64u));
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
 
     for (unsigned raised = 0u; raised < 100u; raised++)
     {
-        praet_schedule_raise(&s_schedule);
+        praet_ordo_raise(&s_schedule);
     }
 
-    praet_schedule_poll(&s_schedule);
+    praet_ordo_poll(&s_schedule);
 
-    TEST_ASSERT_TRUE_MESSAGE((praet_schedule_flags(&s_schedule, 0u) & PRAET_STALLED) != 0u,
+    TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 0u) & PRAET_STALLED) != 0u,
                              "a hundred raises did not reach the same state as one");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, s_schedule.praet_set_bitflag, "set was left raised after the reader ran");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, s_schedule.praet_busy_bitflag, "the lock was left held");
@@ -1493,24 +1496,24 @@ void test_the_interrupt_can_raise_set_any_number_of_times(void)
  */
 void test_a_nested_service_declines_while_the_lock_is_held(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(0u);
     TEST_ASSERT_TRUE(praet_case_submit(0u, 64u));
-    praet_schedule_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
 
-    const uint32_t before = praet_schedule_flags(&s_schedule, 0u);
+    const uint32_t before = praet_ordo_flags(&s_schedule, 0u);
 
     s_schedule.praet_busy_bitflag = 1u;
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(before, praet_schedule_flags(&s_schedule, 0u),
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(before, praet_ordo_flags(&s_schedule, 0u),
                                      "a nested call changed state the outer call owned");
     TEST_ASSERT_TRUE_MESSAGE(s_schedule.praet_set_bitflag != 0u,
                              "a nested call cleared the raise the outer one had not answered yet");
 
     // The lock comes down and the same work is still there to do, because nothing consumed an event
     s_schedule.praet_busy_bitflag = 0u;
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_NOT_EQUAL_UINT32_MESSAGE(before, praet_schedule_flags(&s_schedule, 0u),
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_NOT_EQUAL_UINT32_MESSAGE(before, praet_ordo_flags(&s_schedule, 0u),
                                          "the work was lost once the lock came down");
 }
 
@@ -1522,20 +1525,20 @@ void test_a_nested_service_declines_while_the_lock_is_held(void)
  */
 void test_the_region_descriptor_survives_a_transfer(void)
 {
-    praet_schedule_reset(&s_schedule);
+    praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(4u);
 
     const uint32_t expected = (uint32_t)PRAET_CASE_REGION << PRAET_REGION_SHIFT;
 
-    TEST_ASSERT_EQUAL_UINT32(expected, praet_schedule_flags(&s_schedule, 4u) & PRAET_REGION_MASK);
+    TEST_ASSERT_EQUAL_UINT32(expected, praet_ordo_flags(&s_schedule, 4u) & PRAET_REGION_MASK);
 
     TEST_ASSERT_TRUE(praet_case_submit(4u, 64u));
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(expected, praet_schedule_flags(&s_schedule, 4u) & PRAET_REGION_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(expected, praet_ordo_flags(&s_schedule, 4u) & PRAET_REGION_MASK,
                                      "the submit clobbered the region");
 
-    praet_schedule_completed(&s_schedule, 4u, EMBED_FALSE);
-    praet_schedule_poll(&s_schedule);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(expected, praet_schedule_flags(&s_schedule, 4u) & PRAET_REGION_MASK,
+    praet_ordo_completed(&s_schedule, 4u, EMBED_FALSE);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(expected, praet_ordo_flags(&s_schedule, 4u) & PRAET_REGION_MASK,
                                      "the completion clobbered the region");
 }
 
@@ -1572,6 +1575,211 @@ void test_the_two_arms_are_not_the_same_engine(void)
 }
 
 /**
+ * @brief A second pool, so a descriptor has somewhere to read from and somewhere else to write to.
+ *
+ * @note Two pools rather than two halves of one, because a descriptor names both ends and each is
+ *       proved against its own declaration. One pool would prove the same span twice.
+ */
+ParsMemoriaeInternae(s_case_source, 128);
+
+/**
+ * @brief One transfer that runs and stops.
+ */
+PraetOneShot(s_one_shot, s_case_source, 0u, s_case_pool, 0u, 64u, PRAET_MENSURA_VERBUM);
+
+/**
+ * @brief One transfer that runs itself again, forever.
+ */
+PraetCircular(s_circular, s_case_source, 0u, s_case_pool, 0u, 32u, PRAET_MENSURA_VERBUM);
+
+/**
+ * @brief Two transfers that hand off to each other, writing alternate halves.
+ */
+PraetPingPong(s_ping, s_pong, s_case_source, s_case_pool, 0u, 0u, 64u, 64u, 64u, PRAET_MENSURA_VERBUM);
+
+/**
+ * @brief A transfer inside one pool, writing upward over its own source.
+ *
+ * @note The overlapping case, and the direction is worked out from the offsets while compiling.
+ */
+PraetDescriptorWithin(s_shift_up, s_case_pool, 0u, 32u, 64u, PRAET_MENSURA_VERBUM, NULL);
+
+/**
+ * @brief A transfer inside one pool, writing downward over its own source.
+ */
+PraetDescriptorWithin(s_shift_down, s_case_pool, 32u, 0u, 64u, PRAET_MENSURA_VERBUM, NULL);
+
+/**
+ * @brief A transfer inside one pool whose two spans do not touch.
+ */
+PraetDescriptorWithin(s_no_overlap, s_case_pool, 0u, 64u, 32u, PRAET_MENSURA_VERBUM, NULL);
+
+/**
+ * @brief Checks that a one shot descriptor says where it reads, where it writes, and that it ends.
+ *
+ * @note What a descriptor is. Everything except who holds it was settled where it was declared, so
+ *       this reads the object the declaration emitted and nothing ran to produce it.
+ */
+void test_a_one_shot_descriptor_ends(void)
+{
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(mmgr_pars_storage_s_case_source, s_one_shot.source,
+                                  "the descriptor does not read from the pool it named");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(mmgr_pars_storage_s_case_pool, s_one_shot.destination,
+                                  "the descriptor does not write to the pool it named");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(64u, s_one_shot.bytes, "the descriptor moves a length nobody asked for");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MENSURA_VERBUM, s_one_shot.ego_sum_mensura, "the descriptor steps a width nobody asked for");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_ADVANCES, s_one_shot.source_addressing,
+                                    "a memory to memory read does not advance");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_ADVANCES, s_one_shot.destination_addressing,
+                                    "a memory to memory write does not advance");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_OWNER_SOFTWARE, s_one_shot.owner,
+                                    "a descriptor nobody gave the engine is not software's");
+    TEST_ASSERT_NULL_MESSAGE(s_one_shot.next, "a one shot descriptor has something after it");
+
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, praet_descriptor_chain_length(&s_one_shot, 8u),
+                                     "a one shot is not a chain of one");
+}
+
+/**
+ * @brief Checks that a circular descriptor points at itself.
+ *
+ * @note Circular is one descriptor whose next is its own address. There is no mode and no bit, and
+ *       the walk that counts it stops at the head rather than following it forever.
+ */
+void test_a_circular_descriptor_points_at_itself(void)
+{
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(&s_circular, s_circular.next, "a circular descriptor does not run itself again");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, praet_descriptor_chain_length(&s_circular, 8u),
+                                     "a cycle of one was not counted as one");
+}
+
+/**
+ * @brief Checks that a ping-pong pair hands off in both directions and writes different halves.
+ *
+ * @note Ping-pong, and it is two descriptors whose next point at each other. What makes it double
+ *       buffering is that the two write different halves, which is the offsets the declaration was
+ *       given and not anything the library decided.
+ */
+void test_a_ping_pong_pair_hands_off_both_ways(void)
+{
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(&s_pong, s_ping.next, "the first half does not hand off to the second");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(&s_ping, s_pong.next, "the second half does not hand back to the first");
+
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(2u, praet_descriptor_chain_length(&s_ping, 8u),
+                                     "a cycle of two was not counted as two");
+
+    TEST_ASSERT_TRUE_MESSAGE(s_ping.destination != s_pong.destination,
+                             "both halves of a ping-pong write the same place");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(&mmgr_pars_storage_s_case_pool[64], s_pong.destination,
+                                  "the second half does not write where the declaration put it");
+}
+
+/**
+ * @brief A register standing in for one a part would name.
+ *
+ * @note A host has no peripherals, so this is a byte of this file's own with a volatile view taken of
+ *       it. What a real caller writes is the name out of their vendor's header, which the compiler has
+ *       already read. No address in this tree is a number anybody here chose.
+ */
+static volatile uint8_t s_case_register;
+
+/**
+ * @brief The peripheral the cases below reach.
+ */
+PraetPeripheralDeclare(s_case_peripheral, &s_case_register);
+
+/**
+ * @brief One transfer that drains a pool into a register.
+ */
+PraetToPeripheral(s_drain, s_case_source, 0u, s_case_peripheral, 64u, PRAET_MENSURA_VERBUM, NULL);
+
+/**
+ * @brief One transfer that fills a pool from a register.
+ */
+PraetFromPeripheral(s_fill, s_case_peripheral, s_case_pool, 0u, 64u, PRAET_MENSURA_VERBUM, NULL);
+
+/**
+ * @brief Checks that a peripheral end stays put and the pool end advances.
+ *
+ * @note The one fact memcpy never needs. A peripheral is an address that does not move, and which
+ *       side does not move is the whole of what makes a transfer a read or a write.
+ * @note Neither way to walk either end, because a pool and a register are not the same object and a
+ *       transfer between them cannot read what it has already written.
+ */
+void test_a_peripheral_end_does_not_advance(void)
+{
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_ADVANCES, s_drain.source_addressing,
+                                    "the pool a drain reads does not advance");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_FIXED, s_drain.destination_addressing,
+                                    "the register a drain writes moves");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(&s_case_register, s_drain.destination,
+                                  "the drain does not write the register that was declared");
+
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_FIXED, s_fill.source_addressing,
+                                    "the register a fill reads moves");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_ADVANCES, s_fill.destination_addressing,
+                                    "the pool a fill writes does not advance");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(&s_case_register, s_fill.source,
+                                  "the fill does not read the register that was declared");
+
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MOTUS_NEUTRUM, s_drain.directio_motus_verbi,
+                                    "a transfer to a register was given a direction");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MOTUS_NEUTRUM, s_fill.directio_motus_verbi,
+                                    "a transfer from a register was given a direction");
+}
+
+/**
+ * @brief Checks that a transfer inside one pool works out which way to walk its bytes.
+ *
+ * @note What memor already answers for a copy, and for the same reason: where the two ends overlap,
+ *       one direction reads bytes the other has written over. Settled once, before anything runs, and
+ *       never asked again.
+ * @note Both ends are offsets into one declared object, which is the whole reason the question can be
+ *       answered while compiling. Two pointers could not be ordered here, and comparing pointers into
+ *       separate objects is not something the language defines.
+ */
+void test_a_transfer_inside_one_pool_picks_its_direction(void)
+{
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MOTUS_DEORSUM, s_shift_up.directio_motus_verbi,
+                                    "writing upward over its own source did not walk downward");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MOTUS_SURSUM, s_shift_down.directio_motus_verbi,
+                                    "writing downward over its own source did not walk upward");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MOTUS_NEUTRUM, s_no_overlap.directio_motus_verbi,
+                                    "two spans that do not touch were given a direction they do not need");
+}
+
+/**
+ * @brief Checks that a transfer between two declared pools needs no direction.
+ *
+ * @note Two pools are two separately declared objects, so they cannot overlap and neither direction
+ *       is wrong. That is a fact about the declarations and not something measured, which is why the
+ *       answer is settled without either address being looked at.
+ */
+void test_a_transfer_between_two_pools_needs_no_direction(void)
+{
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MOTUS_NEUTRUM, s_one_shot.directio_motus_verbi,
+                                    "a transfer between two pools was given a direction");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MOTUS_NEUTRUM, s_ping.directio_motus_verbi,
+                                    "a ping-pong half between two pools was given a direction");
+}
+
+/**
+ * @brief Checks that a chain longer than the walk is allowed to follow reports the limit.
+ *
+ * @note The walk names a cycle by returning to the head, so a chain that closes further along cannot
+ *       be told from one that never ends. Reporting the limit is the honest answer for a walk that
+ *       cannot see where it is.
+ */
+void test_a_chain_walk_stops_at_the_limit(void)
+{
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, praet_descriptor_chain_length(&s_ping, 1u),
+                                     "the walk followed more links than it was allowed");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_descriptor_chain_length(&s_ping, 0u),
+                                     "a walk allowed no links followed one");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_descriptor_chain_length(NULL, 8u), "a walk from nowhere reached a link");
+}
+
+/**
  * @brief Prints which states and transitions this run reached.
  *
  * @note The examination arm, and it asserts nothing. A transition no case walked through is a hole in
@@ -1579,15 +1787,15 @@ void test_the_two_arms_are_not_the_same_engine(void)
  *       would make the suite refuse to build over a judgment nobody has made yet.
  * @note Last in the file, because the generated runner registers cases in the order they are written
  *       and this reports on everything ahead of it.
- * @note Ignored where PRAET_EXAMINE is 0, so a run that did not ask for the instrument says so rather
+ * @note Ignored where PRAET_PROCURATOR is 0, so a run that did not ask for the instrument says so rather
  *       than printing an empty table.
  */
 void test_zz_what_this_run_reached(void)
 {
-#if PRAET_EXAMINE
-    praet_examine_report();
+#if PRAET_PROCURATOR
+    praet_procurator_report();
     TEST_PASS_MESSAGE("the examination arm reports, it does not gate");
 #else
-    TEST_IGNORE_MESSAGE("PRAET_EXAMINE is 0, so this run recorded nothing");
+    TEST_IGNORE_MESSAGE("PRAET_PROCURATOR is 0, so this run recorded nothing");
 #endif
 }

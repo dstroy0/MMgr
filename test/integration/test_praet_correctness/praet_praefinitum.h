@@ -5,7 +5,7 @@
  * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
- * @file praet_defaults.h
+ * @file praet_praefinitum.h
  * @brief Every knob this module reads, what it takes when the caller did not set it, and the warning
  *        that says so.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
@@ -15,7 +15,7 @@
  * @note A knob that quietly takes a default is how a build breaks in a way nobody traces back. Three
  *       knobs get set, two do not, the part misbehaves, and the compiler said nothing.
  * @note Nothing here stops the build. Every unset knob takes its default, raises a warning naming
- *       itself and the value it took, and leaves a flag behind. praet_config_verdict.h reads those
+ *       itself and the value it took, and leaves a flag behind. praet_iudex.h reads those
  *       flags at the end and stops once, listing what to go fix.
  * @note That order is the whole point. An #error halts its translation unit where it stands, so a
  *       build missing four knobs reports one, gets fixed, and reports the next - four rounds to learn
@@ -34,12 +34,12 @@
  *       #warning takes the rest of the line and arrives whole.
  * @warning A directive cannot come out of a macro expansion, so this only works where the report sits
  *          at file scope. Every knob here does. The one report that fires from inside a macro is the
- *          boundary word answer at a declaration, and praet_schedule.h reaches that a different way.
+ *          boundary word answer at a declaration, and praet_ordo.h reaches that a different way.
  * @warning No message interpolates a macro. Neither #warning nor the pragma expands one, so a name in
  *          the middle of a message arrives as the name of the macro rather than its value.
  */
-#ifndef MMGR_TEST_PRAET_DEFAULTS_H
-#define MMGR_TEST_PRAET_DEFAULTS_H
+#ifndef MMGR_TEST_PRAET_PRAEFINITUM_H
+#define MMGR_TEST_PRAET_PRAEFINITUM_H
 
 /**
  * @brief Logical channels one context carries.
@@ -91,7 +91,7 @@
  *       three arrays per channel and a caller who never said where the bytes were cannot back
  *       anything out of them.
  * @note With it on, submit takes the start and the length, kick reports how far the engine got, and
- *       praet_schedule_resolve exists. With it off none of those members are in the context and none
+ *       praet_ordo_resolve exists. With it off none of those members are in the context and none
  *       of those entries are declared, so a call site that wanted them fails to compile instead of
  *       linking against a version that records nothing.
  */
@@ -110,10 +110,10 @@
 #endif
 
 // The boundary word check is not a build knob and has no default. It is answered once per context, in
-// the declaration, by a token nobody writes by accident. See PraetScheduleContext in
-// praet_schedule.h. A -D that sets it here reads as a build-wide switch, which it is not
+// the declaration, by a token nobody writes by accident. See PraetOrdoContext in
+// praet_ordo.h. A -D that sets it here reads as a build-wide switch, which it is not
 #ifdef PRAET_RECOVERY_CRC
-#error "PRAET_RECOVERY_CRC is not a build knob. The boundary word check is answered per context, in the declaration: PraetScheduleContext(name, RECOVERY_WORD_BOUNDARY_BITWISE_CRC_ENABLE) or the DISABLE token."
+#error "PRAET_RECOVERY_CRC is not a build knob. The boundary word check is answered per context, in the declaration: PraetOrdoContext(name, AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE) or the DISABLE token."
 #endif
 
 #endif

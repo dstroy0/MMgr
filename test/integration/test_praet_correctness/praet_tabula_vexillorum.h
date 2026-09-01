@@ -5,7 +5,7 @@
  * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
- * @file praet_flag_map.h
+ * @file praet_tabula_vexillorum.h
  * @brief Every bit of the channel flag word, and the assertions that keep the map from drifting.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
@@ -21,8 +21,8 @@
  * @note The map is the same on every build. A status a build never sets still owns its bit, because a
  *       flag word read on one part has to mean what it means on another.
  */
-#ifndef MMGR_TEST_PRAET_FLAG_MAP_H
-#define MMGR_TEST_PRAET_FLAG_MAP_H
+#ifndef MMGR_TEST_PRAET_TABULA_VEXILLORUM_H
+#define MMGR_TEST_PRAET_TABULA_VEXILLORUM_H
 
 #include "memoriam_praetereo/memoriam_praetereo.h"
 

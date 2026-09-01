@@ -5,7 +5,7 @@
  * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
- * @file praet_clock.h
+ * @file praet_horologiorum_custos.h
  * @brief Where the microseconds come from: the caller's clock, or one of ours pinned to a core they
  *        name, and the scaling between that clock's ticks and a microsecond.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
@@ -19,14 +19,14 @@
  *       requirement - this scales its ticks against the frequency the caller states and never looks
  *       at where it came from.
  */
-#ifndef MMGR_TEST_PRAET_CLOCK_H
-#define MMGR_TEST_PRAET_CLOCK_H
+#ifndef MMGR_TEST_PRAET_HOROLOGIORUM_CUSTOS_H
+#define MMGR_TEST_PRAET_HOROLOGIORUM_CUSTOS_H
 
 // EMBED_STATIC_ASSERT and embed_word, for the scaling below. Reached the same way every other file
 // here reaches them, so this header stands on its own rather than on what included it
 #include "memoriam_praetereo/memoriam_praetereo.h"
 
-#include "praet_defaults.h"
+#include "praet_praefinitum.h"
 
 /**
  * @brief The clock is the caller's, read through the port.

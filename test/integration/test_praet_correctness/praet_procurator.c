@@ -5,27 +5,27 @@
  * negotiated commercial licensing contract or an educator's license issued to you personally.
  */
 /**
- * @file praet_examine.c
+ * @file praet_procurator.c
  * @brief The counters behind the examination arm, and the table it prints.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
  * @note Built and driven in test. Nothing here is proposed for src until it has been run.
- * @note Compiled only where PRAET_EXAMINE is 1. The header turns every entry into a macro expanding
+ * @note Compiled only where PRAET_PROCURATOR is 1. The header turns every entry into a macro expanding
  *       to nothing otherwise, so a build that did not ask for this carries none of it.
  * @warning Included by test_praet_correctness.c rather than compiled on its own, the same way the
  *          engine and the schedule are.
  */
-#include "praet_examine.h"
+#include "praet_procurator.h"
 
-#if PRAET_EXAMINE
+#if PRAET_PROCURATOR
 
 #include <stdio.h>
 
 /**
  * @brief How many core states there are, which is what the transition table is squared over.
  */
-#define PRAET_EXAMINE_CORES (PRAET_CORE_MASK + 1u)
+#define PRAET_PROCURATOR_CORES (PRAET_CORE_MASK + 1u)
 
 /**
  * @brief Times each core transition was taken, indexed by the state before and the state after.
@@ -33,7 +33,7 @@
  * @note The diagonal stays zero. The one writer skips a word that did not change, so a transition to
  *       the state a channel was already in never reaches this.
  */
-static unsigned long s_core_moves[PRAET_EXAMINE_CORES][PRAET_EXAMINE_CORES];
+static unsigned long s_core_moves[PRAET_PROCURATOR_CORES][PRAET_PROCURATOR_CORES];
 
 /**
  * @brief Times each status came on, indexed by its token id.
@@ -59,7 +59,7 @@ static unsigned long s_writes;
  * @note Indexed by the state's own value, which is what makes the table read in the order the states
  *       are numbered rather than the order somebody listed them.
  */
-static const char *const s_core_names[PRAET_EXAMINE_CORES] = {"detached", "attached", "busy", "ok"};
+static const char *const s_core_names[PRAET_PROCURATOR_CORES] = {"detached", "attached", "busy", "ok"};
 
 /**
  * @brief What each status is called in the report, indexed by token id.
@@ -74,7 +74,93 @@ static const char *const s_status_names[PRAET_STATUS_COUNT] = {
 EMBED_STATIC_ASSERT((sizeof s_status_names / sizeof s_status_names[0]) == PRAET_STATUS_COUNT,
                     "the examination arm has a name for every status or for none of them");
 
-void praet_examine_transition(embed_word channel, uint32_t was, uint32_t now)
+#if PRAET_OPTIMIZE
+
+/**
+ * @brief Times each piece of work was done, indexed by its PraetOpus id.
+ */
+static unsigned long s_work[PRAET_OPUS_KINDS];
+
+/**
+ * @brief What each piece of work is called in the report, indexed by its id.
+ */
+static const char *const s_work_names[PRAET_OPUS_KINDS] = {
+    "attach", "detach", "submit",      "kick",         "completed", "resolve",
+    "poll",   "  poll short circuited", "  poll walked", "  channel visited", "  port asked progress",
+};
+
+EMBED_STATIC_ASSERT((sizeof s_work_names / sizeof s_work_names[0]) == PRAET_OPUS_KINDS,
+                    "the optimization arm has a name for every kind of work or for none of them");
+
+void praet_procurator_opus(unsigned kind)
+{
+    if (kind < (unsigned)PRAET_OPUS_KINDS)
+    {
+        s_work[kind]++;
+    }
+}
+
+/**
+ * @brief Prints one figure derived from two counts, where the divisor is not zero.
+ *
+ * @param[in] label   What the figure is called [BORROWS].
+ * @param[in] top     The count being spread.
+ * @param[in] bottom  The count it is spread over.
+ * @note Printed as a whole number and a remainder in hundredths, because this file reaches no floating
+ *       point and a ratio is easier to read than the two counts it came from.
+ */
+static void praet_procurator_ratio(const char *label, unsigned long top, unsigned long bottom)
+{
+    if (bottom == 0uL)
+    {
+        printf("%-30s %10s\n", label, "no runs");
+        return;
+    }
+    printf("%-30s %7lu.%02lu\n", label, top / bottom, ((top % bottom) * 100uL) / bottom);
+}
+
+/**
+ * @brief Prints the work the run did, and what a context costs in state.
+ *
+ * @note No times here. A count of work is the same on every run of one build and is a fact this host
+ *       can state; what that work costs is a property of a part, and a number taken on this machine
+ *       would be a number about this machine wearing the library's name.
+ */
+static void praet_procurator_opus_report(void)
+{
+    printf("work done, by kind\n");
+    for (unsigned kind = 0u; kind < (unsigned)PRAET_OPUS_KINDS; kind++)
+    {
+        printf("%-24s%10lu\n", s_work_names[kind], s_work[kind]);
+    }
+
+    printf("\nwork per transfer, and per poll\n");
+    praet_procurator_ratio("polls per submit", s_work[PRAET_OPUS_POLL], s_work[PRAET_OPUS_RELATIO]);
+    praet_procurator_ratio("channels walked per poll", s_work[PRAET_OPUS_ALVEUS], s_work[PRAET_OPUS_POLL]);
+    praet_procurator_ratio("port asked per poll", s_work[PRAET_OPUS_PROGRESS], s_work[PRAET_OPUS_POLL]);
+    praet_procurator_ratio("flag writes per submit", s_writes, s_work[PRAET_OPUS_RELATIO]);
+
+    // What the short circuit is worth on this run, as a count out of a hundred. A suite drives the
+    // machine and then looks at it, so nearly every poll here has something waiting. A program polling
+    // a channel that is doing nothing is the other case entirely, and this number is where that shows
+    praet_procurator_ratio("polls short circuited in 100", s_work[PRAET_OPUS_POLL_SHORT] * 100uL,
+                        s_work[PRAET_OPUS_POLL]);
+
+    printf("\nstate one context costs\n");
+    printf("%-30s %10u\n", "channels", (unsigned)PRAET_CHANNELS);
+    printf("%-30s %10u\n", "bytes in a context", (unsigned)sizeof(PraetOrdo));
+
+    // Spread over the channels, and the context wide members are in the number. Naming it that way
+    // rather than calling it a per channel cost, which it is not: the settle deadline, the two
+    // volatiles and the elapsed count are carried once however many channels there are
+    printf("%-30s %10u\n", "bytes per channel, all in", (unsigned)(sizeof(PraetOrdo) / PRAET_CHANNELS));
+
+    printf("\nno times are reported here. what this work costs is a property of a part\n");
+}
+
+#endif
+
+void praet_procurator_transitus(embed_word channel, uint32_t was, uint32_t now)
 {
     (void)channel;
 
@@ -111,7 +197,7 @@ void praet_examine_transition(embed_word channel, uint32_t was, uint32_t now)
     }
 }
 
-void praet_examine_report(void)
+void praet_procurator_report(void)
 {
     unsigned reached = 0u;
     unsigned possible = 0u;
@@ -121,16 +207,16 @@ void praet_examine_report(void)
 
     printf("core transitions, from the row to the column\n");
     printf("%-10s", "");
-    for (unsigned after = 0u; after < PRAET_EXAMINE_CORES; after++)
+    for (unsigned after = 0u; after < PRAET_PROCURATOR_CORES; after++)
     {
         printf("%10s", s_core_names[after]);
     }
     printf("\n");
 
-    for (unsigned before = 0u; before < PRAET_EXAMINE_CORES; before++)
+    for (unsigned before = 0u; before < PRAET_PROCURATOR_CORES; before++)
     {
         printf("%-10s", s_core_names[before]);
-        for (unsigned after = 0u; after < PRAET_EXAMINE_CORES; after++)
+        for (unsigned after = 0u; after < PRAET_PROCURATOR_CORES; after++)
         {
             if (before == after)
             {
@@ -176,6 +262,12 @@ void praet_examine_report(void)
     }
 
     printf("\n%u of %u core transitions reached\n", reached, possible);
+
+#if PRAET_OPTIMIZE
+    printf("\n");
+    praet_procurator_opus_report();
+#endif
+
     printf("--- end of examination ---\n\n");
 }
 
