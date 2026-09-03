@@ -32,7 +32,9 @@ import os
 import re
 import sys
 
-from salish_marking import DERIVED, MARKED, SPOKEN, rendered, switches, tagged_spans
+from salish_marking import (DERIVED, MARKED, SPOKEN, UNCLASSIFIED, rendered, switches,
+                            tagged_spans)
+from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PAPERS = os.path.join(ROOT, "build", "papers")
@@ -51,6 +53,12 @@ HEADING = re.compile(r"^(\d+(?:\.\d+)?)\s+(\S.*)$")
 NUMBERED_BLOCK = re.compile(r"^\((\d{1,3})\)\s*(.*)$")
 APPENDIX = re.compile(r"^Appendix", re.IGNORECASE)
 QUOTED = re.compile(r"^['‘“]")
+
+# A segmentation line writes each morpheme on its own and joins them with a hyphen or an equals
+# sign. The blocks of this paper are three lines deep and wrap, so a block holds several
+# transcription lines as well as several segmentation lines, and without this test every
+# transcription after the first went into the record under the name of the line below it.
+SEGMENTED = re.compile(r"[-=]")
 
 # The category labels this paper defines in its appendix and uses on its gloss line
 CATEGORIES = re.compile(
@@ -74,6 +82,8 @@ LAYER = {
     "gloss": DERIVED,
     "cited form": DERIVED,
     "morpheme entry": DERIVED,
+    # Kept and marked, held out of the ingestion stream until someone has classified it.
+    UNCLASSIFIED: DERIVED,
 }
 
 
@@ -170,10 +180,11 @@ def main():
                 elif first and carries_language(one):
                     rows.append(("T", count, story, number, "transcription", one))
                     first = False
-                elif carries_language(one):
+                elif carries_language(one) and SEGMENTED.search(one):
                     rows.append(("T", count, story, number, "segmentation", one))
                 else:
-                    rows.append(("N", count, story, number, "gloss", one))
+                    rows.append(("T" if carries_language(one) else "N",
+                                 count, story, number, UNCLASSIFIED, one))
 
     # Section 2 cites forms while discussing dialect. They are this language and belong in the file.
     for one in held.get("2", []):
@@ -235,9 +246,19 @@ def main():
                 handle.write("%s\n" % run)
                 kept += 1
 
+    # A file of its own for what the tool could not sort: a block line none of the tests typed,
+    # and a line no section reached, which here is the front matter and sections 1 and 4.
+    stuck = TARGET[:-4] + ".unclassifiable.tsv"
+    flagged = [(0, "%s block %d" % (number, count), UNKNOWN_KIND, "", text)
+               for mark, count, story, number, kind, text in rows if kind == UNCLASSIFIED]
+    flagged.extend(unreached(lines, covered_tokens(one[5] for one in rows)))
+    stuck_count = write_unsorted(stuck, "Four Stories by wlwlmelst", flagged)
+
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))
     out.write("  %d target-language spans written to\n  %s\n" % (kept, os.path.basename(pure)))
     out.write("  %d spans skipped as already written\n" % repeated)
+    out.write("  %d lines the tool could not sort written to\n  %s\n"
+              % (stuck_count, os.path.basename(stuck)))
 
     out.write("\n  %-38s %-10s %-16s %s\n" % ("story", "section", "kind", "lines"))
     counted = {}

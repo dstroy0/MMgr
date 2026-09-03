@@ -30,7 +30,9 @@ import os
 import re
 import sys
 
-from salish_marking import DERIVED, SPOKEN, is_mixed, rendered, switches, tagged_spans
+from salish_marking import (DERIVED, SPOKEN, UNCLASSIFIED, is_mixed, rendered, switches,
+                            tagged_spans)
+from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PAPERS = os.path.join(ROOT, "build", "papers")
@@ -47,6 +49,12 @@ TARGET = os.path.join(
 PAGE = re.compile(r"^===== page \d+ =====$")
 CLOCK = re.compile(r"^\s*\[\s*(\d{1,2}):(\d{2})\s*\]\s*$")
 NUMBERED_BLOCK = re.compile(r"^\((\d{1,3})\)\s*(.*)$")
+
+# The paper's second gloss line segments each word into morphemes and joins them with a hyphen or an
+# equals sign, which is the positive evidence that a line is one. Without this test the branch below
+# called a line segmentation because nothing else had matched it, and page numbers, footnote prose
+# and the tails of wrapped sentences all went into the record under that name.
+SEGMENTED = re.compile(r"[-=]")
 
 # The category labels the paper defines in its footnote 3 and uses on its gloss line
 CATEGORIES = re.compile(
@@ -185,8 +193,10 @@ def main():
                 rows.append(("N", number, when, "4", "translation", one))
             elif CATEGORIES.search(one):
                 rows.append(("N", number, when, "4", "gloss", one))
-            else:
+            elif SEGMENTED.search(one):
                 rows.append(("T", number, when, "4", "segmentation", one))
+            else:
+                rows.append(("T", number, when, "4", UNCLASSIFIED, one))
 
     with open(TARGET, "w", encoding="utf-8", newline="") as handle:
         handle.write("# ɬ cutés us ɬ qəɬmín ɬ tmíxʷ (When Old One Created the Earth).\n")
@@ -202,7 +212,7 @@ def main():
         handle.write("# Gloss categories are the paper's own, from its footnote 3, unchanged.\n")
         handle.write("line\ttime\tsection\tswitches\tcontent\n")
         for tag, number, when, section, kind, text in rows:
-            layer = DERIVED if kind in ("segmentation", "gloss") else SPOKEN
+            layer = DERIVED if kind in ("segmentation", "gloss", UNCLASSIFIED) else SPOKEN
             if tag == "T":
                 content = rendered(text, layer, kind)
                 crossings = switches(text)
@@ -237,10 +247,21 @@ def main():
                 handle.write("%s\n" % run)
                 kept += 1
 
+    # A file of its own for what the tool could not sort. Two kinds go in it: a gloss-block line
+    # none of the tests above typed, and a line no section reached, which for this paper is
+    # section 1 and the front matter, since sections() is told to hold only 2, 3 and 4.
+    stuck = TARGET[:-4] + ".unclassifiable.tsv"
+    flagged = [(0, "%s block %d" % (section, number), UNKNOWN_KIND, "", text)
+               for tag, number, when, section, kind, text in rows if kind == UNCLASSIFIED]
+    flagged.extend(unreached(lines, covered_tokens(one[5] for one in rows), repair=tidy))
+    stuck_count = write_unsorted(stuck, "When Old One Created the Earth", flagged)
+
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))
     out.write("  %d target-language spans written to\n  %s\n" % (kept, os.path.basename(pure)))
     out.write("  %d spans skipped as already written, sections 2 and 4 print the same story\n"
               % repeated)
+    out.write("  %d lines the tool could not sort written to\n  %s\n"
+              % (stuck_count, os.path.basename(stuck)))
     out.write("\n  %-10s %-18s %s\n" % ("section", "kind", "lines"))
     counted = {}
     for tag, number, when, section, kind, text in rows:

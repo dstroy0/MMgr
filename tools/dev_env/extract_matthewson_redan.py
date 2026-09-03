@@ -33,7 +33,9 @@ import os
 import re
 import sys
 
-from salish_marking import DERIVED, MARKED, PRACTICAL, SPOKEN, rendered, switches, tagged_spans
+from salish_marking import (DERIVED, MARKED, PRACTICAL, SPOKEN, UNCLASSIFIED, rendered,
+                            switches, tagged_spans)
+from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PAPERS = os.path.join(ROOT, "build", "papers")
@@ -66,6 +68,11 @@ NUMBERED_BLOCK = re.compile(r"^\((\d{1,3})\)\s*(.*)$")
 BRACKETED = re.compile(r"\[([^\]]*)\]")
 QUOTED = re.compile(r"^['‘“]")
 
+# A segmentation line writes each morpheme on its own and joins them with a hyphen or an equals
+# sign. Testing for that is what keeps a wrapped transcription line, a page number or a line of
+# footnote prose from entering the record under the name segmentation because nothing else matched.
+SEGMENTED = re.compile(r"[-=]")
+
 # The category labels the paper defines in its footnote 1 and uses on its gloss line
 CATEGORIES = re.compile(
     r"\b(?:ABS|ACT|ADHORT|AUT|CAUS|CIRC|COMP|COP|D/C|DET|DIM|DIR|ERG|EXCL|EXIS|IND|INS|"
@@ -80,6 +87,8 @@ LAYER = {
     "gloss": DERIVED,
     "stage direction": DERIVED,
     "cited example": DERIVED,
+    # Kept and marked, held out of the ingestion stream until someone has classified it.
+    UNCLASSIFIED: DERIVED,
 }
 
 
@@ -184,10 +193,13 @@ def main():
                          "Lisa Matthewson, checked with Linda", trimmed))
         elif CATEGORIES.search(trimmed):
             rows.append(("N", number, "4", "gloss", "Lisa Matthewson", trimmed))
-        elif carries_language(trimmed):
+        elif carries_language(trimmed) and SEGMENTED.search(trimmed):
             rows.append(("T", number, "4", "segmentation", "Lisa Matthewson", trimmed))
         else:
-            rows.append(("N", number, "4", "gloss", "Lisa Matthewson", trimmed))
+            # Nothing fired, so the line is flagged and its speaker is left unset. Filling that
+            # column would put a name on a line nobody has read.
+            rows.append(("T" if carries_language(trimmed) else "N",
+                         number, "4", UNCLASSIFIED, "", trimmed))
 
     # Section 5 repeats lines from the story and cites one that is not hers
     number = None
@@ -258,9 +270,19 @@ def main():
                 handle.write("%s\n" % run)
                 kept += 1
 
+    # A file of its own for what the tool could not sort: a section 4 line none of the tests typed,
+    # and a line no section reached, which here is the front matter, section 1 and the references.
+    stuck = TARGET[:-4] + ".unclassifiable.tsv"
+    flagged = [(0, "%s block %d" % (section, number), UNKNOWN_KIND, "", text)
+               for mark, number, section, kind, who, text in rows if kind == UNCLASSIFIED]
+    flagged.extend(unreached(lines, covered_tokens(one[5] for one in rows), marks=MARKS))
+    stuck_count = write_unsorted(stuck, "Cw7aoz káti7 láti7 ku naxwít", flagged)
+
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))
     out.write("  %d target-language spans written to\n  %s\n" % (kept, os.path.basename(pure)))
     out.write("  %d spans skipped as already written\n" % repeated)
+    out.write("  %d lines the tool could not sort written to\n  %s\n"
+              % (stuck_count, os.path.basename(stuck)))
 
     out.write("\n  %-8s %-16s %-38s %s\n" % ("section", "kind", "speaker", "lines"))
     counted = {}

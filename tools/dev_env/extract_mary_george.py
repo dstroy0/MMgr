@@ -32,7 +32,9 @@ import os
 import re
 import sys
 
-from salish_marking import DERIVED, MARKED, SPOKEN, rendered, switches, tagged_spans
+from salish_marking import (DERIVED, MARKED, SPOKEN, UNCLASSIFIED, rendered, switches,
+                            tagged_spans)
+from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PAPERS = os.path.join(ROOT, "build", "papers")
@@ -71,6 +73,9 @@ LAYER = {
     "phonetic": SPOKEN,
     "translation": SPOKEN,
     "note": DERIVED,
+    # Kept, marked, and held out of the ingestion stream until someone has looked at it. A line
+    # nobody has classified is not a line to feed to anything, and it is not a line to throw away.
+    UNCLASSIFIED: DERIVED,
 }
 
 
@@ -161,6 +166,13 @@ def main():
         if carries_language(trimmed) and not seen_orthography:
             rows.append(("T", number, section, title, "transcription", who, trimmed))
             seen_orthography = True
+            continue
+        # Anything else carrying the language is kept and marked as unsorted rather than dropped.
+        # A phonetic line that wrapped does not open with its bracket, and the notes cite forms
+        # inline as form = gloss, so both fall past the tests above. Eighty-six tokens of this
+        # paper went missing that way, which is the largest hole the coverage check found.
+        if carries_language(trimmed):
+            rows.append(("T", number, section, title, UNCLASSIFIED, who, trimmed))
 
     with open(TARGET, "w", encoding="utf-8", newline="") as handle:
         handle.write("# Mary George Personal Narratives.\n")
@@ -207,9 +219,21 @@ def main():
                 handle.write("%s\n" % key)
                 kept += 1
 
+    # A file of its own for what the tool could not sort, in the columns every paper's file uses.
+    # A wrapped phonetic line does not open with its bracket and the notes cite forms inline as
+    # form = gloss, so both fall past the tests above and are flagged. The second kind is a line no
+    # section reached, which here is the front matter and the paper's own introduction.
+    stuck = TARGET[:-4] + ".unclassifiable.tsv"
+    flagged = [(0, "%s block %d" % (sect, count), UNKNOWN_KIND, "", text)
+               for mark, count, sect, name, kind, who, text in rows if kind == UNCLASSIFIED]
+    flagged.extend(unreached(lines, covered_tokens(one[6] for one in rows), marks=MARKS))
+    stuck_count = write_unsorted(stuck, "the Mary George narratives", flagged)
+
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))
     out.write("  %d target-language spans written to\n  %s\n" % (kept, os.path.basename(pure)))
     out.write("  %d spans skipped as already written\n" % repeated)
+    out.write("  %d lines the tool could not sort written to\n  %s\n"
+              % (stuck_count, os.path.basename(stuck)))
 
     out.write("\n  %-4s %-46s %-16s %s\n" % ("sec", "title", "speaker", "lines"))
     counted = {}

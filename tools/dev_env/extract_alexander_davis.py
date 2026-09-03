@@ -35,7 +35,9 @@ import os
 import re
 import sys
 
-from salish_marking import DERIVED, MARKED, PRACTICAL, SPOKEN, rendered, switches, tagged_spans
+from salish_marking import (DERIVED, MARKED, PRACTICAL, SPOKEN, UNCLASSIFIED, is_mixed,
+                            rendered, switches, tagged_spans)
+from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PAPERS = os.path.join(ROOT, "build", "papers")
@@ -57,6 +59,12 @@ CLOCK = re.compile(r"\[?\s*(\d{1,2}):(\d{2})\s*\]?")
 QUOTED = re.compile(r"^['‘“]")
 INSERTED = re.compile(r"\[([^\]]*)\]")
 
+# A segmentation line writes each morpheme on its own and joins them with a hyphen or an equals
+# sign. Testing for that is what keeps a wrapped transcription line, a timestamp, a page number or a
+# line of footnote prose from entering the record under the name segmentation because nothing
+# else matched it.
+SEGMENTED = re.compile(r"[-=]")
+
 # The category labels this paper uses. Its appendix II lists them and section 1.3 adds the ones it
 # changed, so both the inherited set and the new labels are here.
 CATEGORIES = re.compile(
@@ -72,6 +80,8 @@ LAYER = {
     "gloss": DERIVED,
     "orthography chart": DERIVED,
     "glossing term": DERIVED,
+    # Kept and marked, held out of the ingestion stream until someone has classified it.
+    UNCLASSIFIED: DERIVED,
 }
 
 
@@ -171,10 +181,16 @@ def main():
             rows.append(("N", number, "4", "translation", one))
         elif CATEGORIES.search(one):
             rows.append(("N", number, "4", "gloss", one))
-        elif carries_language(one):
+        # Not gated on carries_language. Van Eijk's orthography writes the glottal stop as 7 and
+        # many St'át'imcets lines hold no marked character at all, so that test read
+        # i=tsilikútn=a. and l=ta=s=t'ák=ih=a. as not being the language. What separates a
+        # segmentation line from a line of Davis's footnote prose, which also carries hyphens, is
+        # that the prose has English in it and the segmentation does not.
+        elif SEGMENTED.search(one) and not is_mixed(one, MARKS):
             rows.append(("T", number, "4", "segmentation", one))
         else:
-            rows.append(("N", number, "4", "gloss", one))
+            rows.append(("T" if carries_language(one) else "N",
+                         number, "4", UNCLASSIFIED, one))
 
     for one in held.get("appendix I", []):
         if carries_language(one):
@@ -234,9 +250,19 @@ def main():
                 handle.write("%s\n" % key)
                 kept += 1
 
+    # A file of its own for what the tool could not sort: a section 4 line none of the tests typed,
+    # and a line no section reached, which here is the front matter and section 1.
+    stuck = TARGET[:-4] + ".unclassifiable.tsv"
+    flagged = [(0, "%s block %d" % (section, number), UNKNOWN_KIND, "", text)
+               for mark, number, section, kind, text in rows if kind == UNCLASSIFIED]
+    flagged.extend(unreached(lines, covered_tokens(one[4] for one in rows), marks=MARKS))
+    stuck_count = write_unsorted(stuck, "I Tsícwas sQwa7yán'ak Áku7 Graveyard Valley", flagged)
+
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))
     out.write("  %d target-language spans written to\n  %s\n" % (kept, os.path.basename(pure)))
     out.write("  %d spans skipped as already written\n" % repeated)
+    out.write("  %d lines the tool could not sort written to\n  %s\n"
+              % (stuck_count, os.path.basename(stuck)))
 
     out.write("\n  %-12s %-20s %s\n" % ("section", "kind", "lines"))
     counted = {}

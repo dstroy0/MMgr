@@ -27,7 +27,9 @@ import os
 import re
 import sys
 
-from salish_marking import DERIVED, MARKED, SPOKEN, rendered, switches, tagged_spans
+from salish_marking import (DERIVED, MARKED, SPOKEN, UNCLASSIFIED, rendered, switches,
+                            tagged_spans)
+from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PAPERS = os.path.join(ROOT, "build", "papers")
@@ -58,6 +60,8 @@ LAYER = {
     "translation": SPOKEN,
     "gloss": DERIVED,
     "symbol note": DERIVED,
+    # Kept and marked, held out of the ingestion stream until someone has classified it.
+    UNCLASSIFIED: DERIVED,
 }
 
 
@@ -131,6 +135,10 @@ def main():
             rows.append(("N", number, "3", "gloss", trimmed))
         elif carries_language(trimmed):
             rows.append(("T", number, "3", "transcription", trimmed))
+        else:
+            # Nothing fired. This branch used to be absent, so a line inside the text that was
+            # neither quoted, nor glossed, nor holding one of Nater's symbols left without a word.
+            rows.append(("N", number, "3", UNCLASSIFIED, trimmed))
 
     with open(TARGET, "w", encoding="utf-8", newline="") as handle:
         handle.write("# A Bella Coola tale: The Frog Children.\n")
@@ -176,9 +184,19 @@ def main():
                 handle.write("%s\n" % key)
                 kept += 1
 
+    # A file of its own for what the tool could not sort: a line inside the text that none of the
+    # tests typed, and a line no section reached, which here is the introduction and the references.
+    stuck = TARGET[:-4] + ".unclassifiable.tsv"
+    flagged = [(0, "%s block %d" % (sect, count), UNKNOWN_KIND, "", text)
+               for mark, count, sect, kind, text in rows if kind == UNCLASSIFIED]
+    flagged.extend(unreached(lines, covered_tokens(one[4] for one in rows), marks=MARKS))
+    stuck_count = write_unsorted(stuck, "The Frog Children", flagged)
+
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))
     out.write("  %d target-language spans written to\n  %s\n" % (kept, os.path.basename(pure)))
     out.write("  %d spans skipped as already written\n" % repeated)
+    out.write("  %d lines the tool could not sort written to\n  %s\n"
+              % (stuck_count, os.path.basename(stuck)))
 
     kinds = {}
     for mark, count, sect, kind, text in rows:

@@ -26,7 +26,9 @@ import os
 import re
 import sys
 
-from salish_marking import DERIVED, MARKED, SPOKEN, rendered, switches, tagged_spans
+from salish_marking import (DERIVED, MARKED, SPOKEN, UNCLASSIFIED, is_mixed, rendered,
+                            switches, tagged_spans)
+from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PAPERS = os.path.join(ROOT, "build", "papers")
@@ -53,6 +55,11 @@ HEADING = re.compile(r"^(\d{1,2}(?:\.\d+)*)\s+(\S.*)$")
 DOTTED = re.compile(r"\.\s*\.\s*\.")
 NUMBERED_BLOCK = re.compile(r"^\((\d{1,4})\)\s*(.*)$")
 QUOTED = re.compile(r"^['‘“]")
+
+# A segmentation line joins its morphemes with a hyphen or an equals sign, and neither character is
+# touched by the font repair below. Testing for one is what keeps a wrapped transcription line from
+# entering the record as segmentation because nothing else matched it.
+SEGMENTED = re.compile(r"[-=]")
 
 CATEGORIES = re.compile(
     r"\b(?:ABS|APPL|AUT|C1C2|C1|C2|CAUS|CHAR|CISL|CONJ|CUST|DEON|DEV|DIM|DIR|DRV|DUB|EMPH|"
@@ -86,6 +93,8 @@ LAYER = {
     "gloss": DERIVED,
     "commentary": DERIVED,
     "appendix": DERIVED,
+    # Kept and marked, held out of the ingestion stream until someone has classified it.
+    UNCLASSIFIED: DERIVED,
 }
 
 
@@ -187,8 +196,14 @@ def main():
             rows.append(("N", number, section, name, "translation", fixed))
         elif CATEGORIES.search(fixed):
             rows.append(("N", number, section, name, "gloss", fixed))
-        elif carries_language(fixed):
+        elif carries_language(fixed) and SEGMENTED.search(fixed):
             rows.append(("T", number, section, name, "segmentation", fixed))
+        elif carries_language(fixed) and not is_mixed(fixed, MARKS):
+            # Carries the language, holds no running English, and nothing typed it. This branch
+            # used to be absent, so such a line left without a word. The English test is here
+            # because the repair below turns Pierre into ʔierre and Quilchena into ʕuilchena, so a
+            # test on the marked characters alone reads a line of Lyon's prose as the language.
+            rows.append(("T", number, section, name, UNCLASSIFIED, fixed))
 
     with open(TARGET, "w", encoding="utf-8", newline="") as handle:
         handle.write("# 12 more Upper Nicola Okanagan narratives.\n")
@@ -239,9 +254,21 @@ def main():
                 handle.write("%s\n" % key)
                 kept += 1
 
+    # A file of its own for what the tool could not sort: an interlinear line none of the tests
+    # typed, and a line no subsection reached. The source is put through the same font repair
+    # before comparing, so a correctly repaired word is not reported as a hole.
+    stuck = TARGET[:-4] + ".unclassifiable.tsv"
+    flagged = [(0, "%s block %d" % (sect, count), UNKNOWN_KIND, "", text)
+               for mark, count, sect, name, kind, text in rows if kind == UNCLASSIFIED]
+    flagged.extend(unreached(lines, covered_tokens(one[5] for one in rows),
+                             repair=repaired, marks=MARKS))
+    stuck_count = write_unsorted(stuck, "12 more Upper Nicola Okanagan narratives", flagged)
+
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))
     out.write("  %d target-language spans written to\n  %s\n" % (kept, os.path.basename(pure)))
     out.write("  %d spans skipped as already written\n" % repeated)
+    out.write("  %d lines the tool could not sort written to\n  %s\n"
+              % (stuck_count, os.path.basename(stuck)))
 
     out.write("\n  %-40s %s\n" % ("story", "transcriptions"))
     counted = {}

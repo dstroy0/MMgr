@@ -31,7 +31,9 @@ import os
 import re
 import sys
 
-from salish_marking import DERIVED, MARKED, SPOKEN, rendered, switches, tagged_spans
+from salish_marking import (DERIVED, MARKED, SPOKEN, UNCLASSIFIED, is_mixed, rendered,
+                            switches, tagged_spans)
+from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PAPERS = os.path.join(ROOT, "build", "papers")
@@ -58,6 +60,21 @@ DOTTED = re.compile(r"\.\s*\.\s*\.")
 NUMBERED_BLOCK = re.compile(r"^\((\d{1,4})\)\s*(.*)$")
 QUOTED = re.compile(r"^['‘“]")
 
+# A segmentation line joins its morphemes with a hyphen or an equals sign, and neither character is
+# touched by the font repair below. Testing for one is what keeps a wrapped transcription line or a
+# page number from entering the record as segmentation because nothing else matched it.
+SEGMENTED = re.compile(r"[-=]")
+
+# The extraction ran the first two columns of a word together wherever the segmentation opens at
+# the root, giving ’qwQaylqs√ ’qwQay=lqs on one line. A segmentation of its own can also hold √,
+# as in-ks-√ ’ma ’y-ìt-ím does, and what tells the two apart is what stands before the root: a
+# merged line has a bare word there, a segmentation has morpheme separators.
+MERGED = re.compile(r"^([^-=•√]+?)\s*(√.*)$")
+
+# A page number survives inside a block and would put the four-line cycle out of step by one for
+# every word after it. Nothing in this orthography is written with digits alone.
+PAGE_NUMBER = re.compile(r"^\d{1,4}$")
+
 CATEGORIES = re.compile(
     r"\b(?:ABS|APPL|AUT|C1C2|C1|C2|CAUS|CHAR|CISL|CONJ|CUST|DEON|DEV|DIM|DIR|DRV|DUB|EMPH|"
     r"EPIS|EVID|INCEPT|INCH|INDEP|INTERJ|INT|LC|LOC|MID|OCC|RED|STAT|UPOSS|"
@@ -76,6 +93,9 @@ LAYER = {
     "translation": SPOKEN,
     "segmentation": DERIVED,
     "gloss": DERIVED,
+    "word gloss": DERIVED,
+    # Kept and marked, held out of the ingestion stream until someone has classified it.
+    UNCLASSIFIED: DERIVED,
 }
 
 
@@ -89,6 +109,59 @@ def repaired(text):
 def carries_language(text):
     """Whether a line holds any character this paper writes the language with."""
     return any(mark in text for mark in MARKS)
+
+
+def four_line_words(block):
+    """One numbered block of the interlinear, as the four lines the paper gives for each word.
+
+    The PDF handed this paper's interlinear over a column at a time, so a word arrives as four
+    consecutive lines: the word as spoken, its segmentation, its gloss, and an English word for it.
+    Position in that cycle is what says which line is which. Content cannot say it, because a short
+    word written in plain letters is spelled the same on the first two lines and carries nothing to
+    test: block 1 opens with p, then p again, and only the order separates the two.
+
+    Two things break the cycle and both are handled. Where the extraction ran the first two columns
+    together the line fills both positions at once, and a page number sitting inside a block is
+    passed over rather than counted, since counting it puts every word after it out of step.
+
+    Returns the words, the free translation that closes the block, and any line left over.
+    """
+    words = []
+    translation = None
+    leftover = []
+    slot = 0
+    holding = [None, None, None, None]
+
+    def close():
+        if any(one is not None for one in holding):
+            words.append(tuple(holding))
+        holding[0] = holding[1] = holding[2] = holding[3] = None
+
+    for line in block:
+        if PAGE_NUMBER.match(line):
+            continue
+        if QUOTED.match(line):
+            close()
+            slot = 0
+            translation = line
+            continue
+        if translation is not None:
+            leftover.append(line)
+            continue
+        if slot == 0:
+            found = MERGED.match(line)
+            if found:
+                holding[0] = found.group(1)
+                holding[1] = found.group(2)
+                slot = 2
+                continue
+        holding[slot] = line
+        slot += 1
+        if slot == 4:
+            close()
+            slot = 0
+    close()
+    return words, translation, leftover
 
 
 def looks_heading(trimmed):
@@ -115,6 +188,7 @@ def main():
         lines = [one.rstrip("\n") for one in handle]
 
     rows = []
+    blocks = []
     intros = {}
     section = None
     story = None
@@ -159,21 +233,40 @@ def main():
                 rows.append(("T", 0, section, "running speech", who, fixed))
             continue
 
+        # A block is gathered whole and read afterward. Its lines cannot be typed one at a time,
+        # because which column a line belongs to is fixed by its position in the block and not by
+        # anything the line itself holds.
         found = NUMBERED_BLOCK.match(fixed)
         if found:
             number = int(found.group(1))
             rest = found.group(2).strip()
-            if rest:
-                rows.append(("T", number, section, "transcription", who, rest))
+            blocks.append((section, number, who, [rest] if rest else []))
             continue
         if number is None:
             continue
-        if QUOTED.match(fixed):
-            rows.append(("N", number, section, "translation", who, fixed))
-        elif CATEGORIES.search(fixed):
-            rows.append(("N", number, section, "gloss", who, fixed))
-        elif carries_language(fixed):
-            rows.append(("T", number, section, "segmentation", who, fixed))
+        blocks[-1][3].append(fixed)
+
+    # Each block read back as words. The sentence is the first column joined in order, and it is
+    # the only part of a block that was spoken: the other three columns are Lyon's analysis of it.
+    for section, number, who, block in blocks:
+        words, translation, leftover = four_line_words(block)
+        said = " ".join(one[0] for one in words if one[0])
+        if said:
+            rows.append(("T", number, section, "transcription", who, said))
+        for one in words:
+            if one[1]:
+                rows.append(("T", number, section, "segmentation", who, one[1]))
+            if one[2]:
+                rows.append(("N", number, section, "gloss", who, one[2]))
+            if one[3]:
+                rows.append(("N", number, section, "word gloss", who, one[3]))
+        if translation:
+            rows.append(("N", number, section, "translation", who, translation))
+        for one in leftover:
+            # What sits after the free translation is a footnote or a page artifact. Only a line
+            # carrying the language with no running English in it is worth flagging.
+            if carries_language(one) and not is_mixed(one, MARKS):
+                rows.append(("T", number, section, UNCLASSIFIED, who, one))
 
     with open(TARGET, "w", encoding="utf-8", newline="") as handle:
         handle.write("# Three Okanagan stories about priests. John Lyon, Simon Fraser University.\n")
@@ -226,9 +319,23 @@ def main():
                 handle.write("%s\n" % key)
                 kept += 1
 
+    # A file of its own for what the tool could not sort: a line inside a story that none of the
+    # tests typed, and a line no section reached, which here is the front matter and the prose
+    # introducing each story. The source is put through the same font repair before comparing, so
+    # a correctly repaired word is not reported. What that repair does to English is reported: it
+    # turns Pierre into ʔierre and Quilchena into ʕuilchena, and those arrive here as unreached.
+    stuck = TARGET[:-4] + ".unclassifiable.tsv"
+    flagged = [(0, "%s block %d" % (sect, count), UNKNOWN_KIND, "", text)
+               for mark, count, sect, kind, who, text in rows if kind == UNCLASSIFIED]
+    flagged.extend(unreached(lines, covered_tokens(one[5] for one in rows),
+                             repair=repaired, marks=MARKS))
+    stuck_count = write_unsorted(stuck, "Three Okanagan stories about priests", flagged)
+
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))
     out.write("  %d target-language spans written to\n  %s\n" % (kept, os.path.basename(pure)))
     out.write("  %d spans skipped as already written\n" % repeated)
+    out.write("  %d lines the tool could not sort written to\n  %s\n"
+              % (stuck_count, os.path.basename(stuck)))
 
     counted = {}
     for mark, count, sect, kind, who, text in rows:

@@ -88,6 +88,13 @@ def tagged_spans(text, marks=MARKED):
 SPOKEN = "spoken"
 DERIVED = "derived"
 
+# Where a line goes when the extractor cannot say what it is. It carries the language, so it is not
+# discardable, and nothing is known about it, so it is not ingestible either. Naming the category
+# after the tool's own limit keeps that honest: it says a program failed to sort this, not that the
+# line is doubtful. Each extractor writes these to a file of their own beside its output so a person
+# can work through them, and they are held out of the pure stream until someone has.
+UNCLASSIFIED = "unclassifiable by tool"
+
 
 def rendered(text, layer=None, subcategory=None, marks=MARKED):
     """One line written as its tagged spans, in the order they were spoken.
@@ -114,6 +121,11 @@ def switches(text):
     return max(0, len(tagged_spans(text)) - 1)
 
 
-def is_mixed(text):
-    """Whether a line in the target language also holds words said in another one."""
-    return any(mark == "N" for mark, run in tagged_spans(text))
+def is_mixed(text, marks=MARKED):
+    """Whether a line in the target language also holds words said in another one.
+
+    The marking set is passed in for the same reason tagged_spans takes one. A paper writing the
+    glottal stop as 7 carries none of the marked consonants, and a test built on the default set
+    reads every line of it as English.
+    """
+    return any(mark == "N" for mark, run in tagged_spans(text, marks))
