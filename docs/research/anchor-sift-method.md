@@ -57,7 +57,7 @@ Run on 60 extracted papers with $q=7$: one file scored $\mathrm{sets} \ge 5$ wit
 
 To separate a real partition from the arithmetic of splitting a key space, permute the labels within each pre-split group, holding cell counts fixed:
 
-$$\pi^{*} \sim \mathrm{Unif}\bigl(\mathcal{S}(\text{labels within group})\bigr), \qquad \Delta = \mathrm{E}\bigl[\,r(\pi^{*})\,\bigr] - r(\pi_{\text{obs}})$$
+$$\pi^{\ast} \sim \mathrm{Unif}\bigl(\mathcal{S}(\text{labels within group})\bigr), \qquad \Delta = \mathrm{E}\bigl[\,r(\pi^{\ast})\,\bigr] - r(\pi_{\text{obs}})$$
 
 $\Delta \le 0$ means the observed split bought nothing a random split of identical shape would not (`tools/dev_env/case_or_splitting.py:110-131`). Over 19 corpora capped to 60000 tokens, $\Delta$ ranged $+0.0056$ to $+0.0901$, with null scatter $\le 0.0133$ over 5 draws.
 
