@@ -53,8 +53,14 @@
  * @note Wide enough that a case can advance most of the window and still be under it, which is what
  *       proves the window is the length it was asked for and not whatever the next service call
  *       happens to see.
+ * @note Overridable, the way the other knobs this file sets are. It was not, and a sweep built five
+ *       times at five windows got five identical binaries and a redefinition warning nobody read.
+ * @note The pump walks this window one microsecond at a time, so what it costs is linear in this
+ *       number. pump_cost.py builds the suite across a range of them to find where that matters.
  */
+#ifndef PRAET_KEEPALIVE_MICROS
 #define PRAET_KEEPALIVE_MICROS 250u
+#endif
 
 /**
  * @brief Whether this build can back a stalled transfer out or scrub it.
@@ -484,6 +490,82 @@ static void praet_joined_poll(embed_word channel)
 }
 
 /**
+ * @brief The microsecond a pump gives back when what it waited for never happened.
+ *
+ * @note The largest value a word holds. No window a case pumps through comes near it, which keeps it
+ *       apart from every microsecond a pump can legitimately return.
+ * @note The complement runs at int width under the integer promotions, and the outer cast puts the
+ *       result back at the word's own width.
+ */
+#define PRAET_PUMP_NEVER ((embed_word) ~(embed_word)0u)
+
+/**
+ * @brief Runs the schedule for @p micros microseconds, one microsecond at a time.
+ *
+ * @param[in] micros Microseconds to run.
+ * @note The pump. Advancing a whole window and servicing once leaves two observations and nothing
+ *       between them, and a flag that went up early and came back down looks identical to one that
+ *       never went up. This services at every microsecond, so no edge falls between two calls.
+ * @note Every microsecond advanced raises the set volatile, because time passing changes what a
+ *       service call would find. Every poll here therefore walks. The short circuit is reached less
+ *       often than it was before this existed, and the optimization arm puts it at 0.11 in 100
+ *       against the 1.56 the jump-driven cases gave. Reaching it takes a loop that polls faster than
+ *       the clock moves, which is a different fixture from this one.
+ */
+static void praet_pump(embed_word micros)
+{
+    for (embed_word tick = 0u; tick < micros; tick++)
+    {
+        praet_ordo_advance(&s_schedule, 1u);
+        praet_ordo_poll(&s_schedule);
+    }
+}
+
+/**
+ * @brief Pumps until every bit in @p mask is raised or cleared on @p channel, and says when.
+ *
+ * @param[in] channel      Channel to watch.
+ * @param[in] mask         Bits the wait is about. Every one of them has to hold.
+ * @param[in] until_raised EMBED_TRUE to wait for them to come up, EMBED_FALSE for them to go down.
+ * @param[in] limit        Microseconds to pump before giving up.
+ * @return                 Microseconds pumped when the bits first held, or PRAET_PUMP_NEVER.
+ * @note Gives back the first microsecond the bits held, which is the whole difference between timing
+ *       a deadline and noticing one went by. A window honored a microsecond early and one honored on
+ *       time both finish with the flag set, and only the microsecond separates them.
+ * @note One entry with the direction as an argument, not two entries. Every case passes a literal, so
+ *       the comparison folds and the two waits cannot drift apart.
+ * @note Tests the flag word before pumping anything. A state that already holds reports zero.
+ * @note The same shape as the thing it times. A limit, a sign of life, and a verdict when the limit
+ *       goes by is what the keepalive is, and PRAET_PUMP_NEVER is this one's PRAET_STALLED. That was
+ *       not planned and it costs nothing, as long as the next note holds.
+ * @warning The limit comes from PRAET_KEEPALIVE_MICROS or PRAET_SETTLE_MICROS, which are numbers the
+ *          caller declared. Reading it out of context->keepalive_deadline or context->settle_deadline
+ *          would make every case here agree with the schedule by construction and pass forever,
+ *          whatever the schedule did.
+ */
+static embed_word praet_pump_until(embed_word channel, uint32_t mask, embed_bool until_raised, embed_word limit)
+{
+    for (embed_word waited = 0u; waited <= limit; waited++)
+    {
+        const embed_bool raised =
+            ((praet_ordo_flags(&s_schedule, channel) & mask) == mask) ? EMBED_TRUE : EMBED_FALSE;
+
+        if (raised == until_raised)
+        {
+            return waited;
+        }
+        if (waited == limit)
+        {
+            break;
+        }
+
+        praet_ordo_advance(&s_schedule, 1u);
+        praet_ordo_poll(&s_schedule);
+    }
+    return PRAET_PUMP_NEVER;
+}
+
+/**
  * @brief Checks that a fresh context has every channel detached and holding nothing.
  */
 void test_a_channel_starts_detached(void)
@@ -734,6 +816,81 @@ void test_a_kick_clears_a_stall_and_pushes_the_window(void)
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the kick did not push the window out");
+}
+
+/**
+ * @brief Checks that the settle clears on the microsecond it was asked for.
+ *
+ * @note What the pump is for. The jump-driven case proves the flag is up at one point and down at
+ *       another; this walks every microsecond in between and reports the first one where it cleared.
+ *       A settle that ended early passes that case and fails this one.
+ * @note Ignored where PRAET_SETTLE_MICROS is zero. A channel with nothing to wait for never reports
+ *       settling, and there is no edge to time.
+ */
+void test_the_settle_clears_on_the_microsecond_it_was_asked_for(void)
+{
+#if PRAET_SETTLE_MICROS == 0u
+    TEST_IGNORE_MESSAGE("PRAET_SETTLE_MICROS is zero, so nothing settles and there is no edge to time");
+#else
+    praet_ordo_reset(&s_schedule);
+    TEST_ASSERT_TRUE(PraetAttach(s_schedule, 0, s_case_pool, PRAET_CASE_REGION));
+    TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 0u) & PRAET_SETTLING) != 0u,
+                             "the channel never reported settling");
+
+    const embed_word cleared =
+        praet_pump_until(0u, (uint32_t)PRAET_SETTLING, EMBED_FALSE, (embed_word)PRAET_SETTLE_MICROS * 2u);
+
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)PRAET_SETTLE_MICROS, cleared,
+                                     "the settle did not clear on the microsecond it was asked for");
+#endif
+}
+
+/**
+ * @brief Checks that the watchdog fires on the microsecond its window closes.
+ *
+ * @note The keepalive window is a number a caller sets against their own part, and what they are
+ *       entitled to is that it means exactly what it says. One microsecond early is a transfer
+ *       called dead while it was still moving.
+ */
+void test_the_watchdog_fires_on_the_microsecond_the_window_closes(void)
+{
+    praet_ordo_reset(&s_schedule);
+    praet_case_attach_and_settle(1u);
+    TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
+
+    const embed_word fired =
+        praet_pump_until(1u, (uint32_t)PRAET_STALLED, EMBED_TRUE, (embed_word)PRAET_KEEPALIVE_MICROS * 2u);
+
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)PRAET_KEEPALIVE_MICROS, fired,
+                                     "the watchdog did not fire on the microsecond its window closed");
+}
+
+/**
+ * @brief Checks that a kick re-arms the window to a full length.
+ *
+ * @note The dead time after a sign of life. A kick arriving one microsecond before a window closes
+ *       has to buy another whole window, and an implementation that pushed the deadline by whatever
+ *       was left would stall a healthy channel a microsecond later.
+ * @note The case the jumps could not make. Proving the new window is a full one means timing it from
+ *       the kick, at one microsecond of resolution.
+ */
+void test_a_kick_rearms_the_window_to_a_full_length(void)
+{
+    praet_ordo_reset(&s_schedule);
+    praet_case_attach_and_settle(1u);
+    TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
+
+    praet_pump((embed_word)PRAET_KEEPALIVE_MICROS - 1u);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
+                                     "the watchdog fired before its window had closed");
+
+    praet_case_kick(1u, 16u);
+
+    const embed_word fired =
+        praet_pump_until(1u, (uint32_t)PRAET_STALLED, EMBED_TRUE, (embed_word)PRAET_KEEPALIVE_MICROS * 2u);
+
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)PRAET_KEEPALIVE_MICROS, fired,
+                                     "a kick bought less than a whole window");
 }
 
 /**
@@ -1691,12 +1848,12 @@ PraetPeripheralDeclare(s_case_peripheral, &s_case_register);
 /**
  * @brief One transfer that drains a pool into a register.
  */
-PraetToPeripheral(s_drain, s_case_source, 0u, s_case_peripheral, 64u, PRAET_MENSURA_VERBUM, NULL);
+PraetToPeripheral(s_drain, s_case_source, 0u, s_case_peripheral, &s_case_register, 0u, 64u, PRAET_MENSURA_VERBUM, NULL);
 
 /**
  * @brief One transfer that fills a pool from a register.
  */
-PraetFromPeripheral(s_fill, s_case_peripheral, s_case_pool, 0u, 64u, PRAET_MENSURA_VERBUM, NULL);
+PraetFromPeripheral(s_fill, s_case_peripheral, &s_case_register, 0u, s_case_pool, 0u, 64u, PRAET_MENSURA_VERBUM, NULL);
 
 /**
  * @brief Checks that a peripheral end stays put and the pool end advances.

@@ -383,6 +383,8 @@ struct PraetDescriptor
  * @param from_pool_   Pool the bytes are read from.
  * @param from_offset_ Bytes into that pool the read starts at.
  * @param peripheral_  Peripheral declared by PraetPeripheralDeclare.
+ * @param address_     Base of that peripheral, stated again here as the vendor's own name.
+ * @param at_offset_   Bytes into the peripheral block the transfer writes at.
  * @param bytes_       Bytes to move.
  * @param mensura_       Bytes moved in one step, as a EgoSumMensura.
  * @param next_        The descriptor that runs after this one, or NULL.
@@ -390,11 +392,20 @@ struct PraetDescriptor
  *       transfer a write to a peripheral, and it is the one fact memcpy never needs.
  * @note Neither way to walk, because a pool and a register are not the same object and a transfer
  *       between them cannot read what it has written.
+ * @note The address is named at the declaration and named again here, which is how PraetSubmit
+ *       already treats a pool: the pool is named a second time so the extent is worked out from the
+ *       declaration instead of carried around. The enumerator below is the lock and this expression
+ *       is the key.
+ * @note Stating it again is also what keeps the initializer legal. An address constant plus an
+ *       integer constant is still an address constant, while reading the value out of the pointer
+ *       PraetPeripheralDeclare emits is not one at all, whatever a given compiler folds.
+ * @warning A base plus an offset, so one declared peripheral covers every register in its block. The
+ *          offset is bounded by nothing here, because a peripheral has no extent to measure against.
  */
-#define PraetToPeripheral(name_, from_pool_, from_offset_, peripheral_, bytes_, mensura_, next_)                          \
+#define PraetToPeripheral(name_, from_pool_, from_offset_, peripheral_, address_, at_offset_, bytes_, mensura_, next_)   \
     PRAET_STEPS_FIT(#name_ " reading from " #from_pool_, from_pool_, from_offset_, bytes_, mensura_);                     \
     PRAET_DESCRIPTOR_BODY(name_, &mmgr_pars_storage_##from_pool_[from_offset_], PRAET_ADDRESS_ADVANCES,                 \
-                          (uint8_t *)mmgr_praet_peripheral_##peripheral_, PRAET_ADDRESS_FIXED, bytes_, mensura_,          \
+                          ((uint8_t *)(address_) + (at_offset_)), PRAET_ADDRESS_FIXED, bytes_, mensura_,                \
                           PRAET_MOTUS_NEUTRUM, next_);                                                                  \
     enum                                                                                                               \
     {                                                                                                                  \
@@ -406,6 +417,8 @@ struct PraetDescriptor
  *
  * @param name_       Name the descriptor is reached by.
  * @param peripheral_ Peripheral declared by PraetPeripheralDeclare.
+ * @param address_    Base of that peripheral, stated again here as the vendor's own name.
+ * @param at_offset_  Bytes into the peripheral block the transfer reads at.
  * @param to_pool_    Pool the bytes are written to.
  * @param to_offset_  Bytes into that pool the write starts at.
  * @param bytes_      Bytes to move.
@@ -413,10 +426,12 @@ struct PraetDescriptor
  * @param next_       The descriptor that runs after this one, or NULL.
  * @note The mirror of PraetToPeripheral. The source stays where it is and the destination advances,
  *       which is what makes a transfer a read from a peripheral.
+ * @note The address is named at the declaration and named again here, for the reasons written out
+ *       over PraetToPeripheral.
  */
-#define PraetFromPeripheral(name_, peripheral_, to_pool_, to_offset_, bytes_, mensura_, next_)                            \
+#define PraetFromPeripheral(name_, peripheral_, address_, at_offset_, to_pool_, to_offset_, bytes_, mensura_, next_)     \
     PRAET_STEPS_FIT(#name_ " writing to " #to_pool_, to_pool_, to_offset_, bytes_, mensura_);                             \
-    PRAET_DESCRIPTOR_BODY(name_, (const uint8_t *)mmgr_praet_peripheral_##peripheral_, PRAET_ADDRESS_FIXED,             \
+    PRAET_DESCRIPTOR_BODY(name_, ((const uint8_t *)(address_) + (at_offset_)), PRAET_ADDRESS_FIXED,                      \
                           &mmgr_pars_storage_##to_pool_[to_offset_], PRAET_ADDRESS_ADVANCES, bytes_, mensura_,            \
                           PRAET_MOTUS_NEUTRUM, next_);                                                                  \
     enum                                                                                                               \

@@ -1,0 +1,2110 @@
+# Anchor sift: what is known and what is wanted
+
+**Purpose:** Hold the settled results apart from the open ones, so a later session can pick up without
+re-deriving either.
+**Scope:** `docs/research/anchor-sift.md`, `test/bench/bench_ancorae_{sift,lattice,entropy,ab}.c`,
+`src/impensa_ancorae_acus/`, and the corpus tools under `tools/dev_env/`
+
+Numbers here come from two places and they are not interchangeable. The anchor, lattice, entropy and
+A/B rows reproduce from the four benches built through CMake in a clean tree. The corpus rows, meaning
+everything about languages, ciphers, clustering and the selection rules compared in Python, come from
+the scripts under `tools/dev_env/` run against texts fetched into `build/corpora`, which is a model of
+the selection rule and not the library's own path. Nothing here is timed and no row is a performance
+claim.
+
+## Known
+
+### Deductive, needing no data
+
+**Soundness.** Any subset of a pattern's points is a necessary condition, so no selection rule can
+lose a true occurrence. The proof uses no order, no dimension, no alphabet, and no interpretation of a
+symbol.
+
+**No completeness.** For any proper subset the converse is not entailed, in any domain and in any
+state. The exact compare is irreducible and no knowledge of the domain removes it.
+
+**Three corollaries.** The selection rule is free. The alphabet need not be known. The index set need
+not be ordered.
+
+**Collision entropy is permutation invariant, so it cannot detect an arrangement.** $H_2$ is
+$-\log_2 \sum p^2$ and depends on the symbol counts alone. A shuffle preserves every count, so a corpus
+and its own shuffle carry identical $H_2$, exactly and not approximately. No entropy of this order can
+separate a structured domain from a rearrangement of the same symbols, whatever the domain is. The
+measured agreement between English prose at 3.764 bits and a memoryless corpus at 3.779 is a weaker
+statement than this and follows from it.
+
+**What is derivable here and what is not falls exactly on the line between the two propositions.** Every
+quantity this work derives without fitting is computed from the histogram: the uninformed anchor rate
+$2^{-H_2}$, the refutation distance, the cascade depth $\log_2 N / H_2$, the cut per anchor $2^{H_2}$ and
+the branch point $(1+q)/(1-q)$ in units of $2^{H_2}$. Every quantity it has failed to derive needed a
+model of the arrangement: the joint survival of a cascade, whether a regularity belongs to a language,
+and the shape of the advantage curve between the two arrangements.
+
+Those two lists are the same division as the propositions. Histogram quantities are permutation
+invariant, so they describe the maximum entropy case and are free. The arrangement is what remains after
+that, and Proposition 2 states that no knowledge of a domain removes the exact compare, so the cost of an
+arrangement is made of checks that have to be performed. Deriving it would be obtaining the irreducible
+half without paying for it, which is the thing Proposition 2 denies. The derivation failing is therefore
+entailed and not a shortfall in the attempt.
+
+The practical consequence is that measuring the advantage curve is not a fallback. It is the only access
+to that half, and any curve so obtained is a fact about one domain and never a law.
+
+**The shuffle is the maximum entropy background, which is why it cannot be wrong.** Drawing uniformly
+from the arrangements of a fixed multiset is the least committal distribution consistent with the
+observed histogram, so it asserts nothing beyond the quantity already measured. Every other background
+in this work is a model and can be false. This one is the data with one property deleted.
+
+**The maximum entropy domain is the best case for this filter, so $2^{-H_2}$ per anchor is a floor.** A
+filter that selects on symbol rarity reads only the marginals, so an arrangement can add correlated hits
+and cannot make the marginals more informative than independence already makes them. Structure therefore
+costs it and never pays it. Measured at matched first order statistics, English prose at 3.764 bits
+passes 15.9 alignments where a memoryless corpus at 3.779 bits passes 3.9, and C source at 3.627 passes
+44.1. The first order quantity is the same to half a percent and the filtering is four times worse, so
+the whole of the difference is arrangement.
+
+This bounds the filter and not the search. Where an order exists a shift takes it, and Section 4.9
+records the rare anchor arrangement losing to Horspool by 1.2 to 25 times for that reason. The structure
+that costs a marginal filter is the same structure a shift table consumes.
+
+**It is also the largest difference obtainable.** A background that commits to any structure absorbs
+that much of the signal into itself, so what remains measurable against it is smaller and mixed with the
+model's error. The maximum entropy background commits to nothing past the histogram, so the residual
+against it is the whole of the arrangement information and no other reference exposes more.
+
+That is the same statement Section 7.2 records from the physics, arriving by a different route. Maximum
+entropy under a constraint is equilibrium, so a shuffle is the equilibrium state of a corpus, the
+measured departure is a free energy above it, and the maximum extractable is that departure and nothing
+beyond it. The correspondence is exact and not an analogy, since both quantities are a distance to the
+maximum entropy state under the same constraint. It does not revive the reference measure reading that
+Section 4.3.1 refuted, which concerned what an anchor measure is worth and failed because that quantity
+is not a relative entropy.
+
+Those two together give the shape of every measurement here. The quantity that governs cost is computed
+from the histogram, the background is the maximum entropy arrangement under that same histogram, and
+structure is the residual between them. The residual is necessarily invisible to the statistic that
+defined the background, so a second instrument is not a convenience and no refinement of the first one
+would have served.
+
+**Ownership of the three guarantees.** Soundness belongs to the construction. Cost belongs to the
+domain's distribution. Existence of a match at all belongs to the source being stationary and ergodic,
+and the skip $\mathbb{E}[S] = 1/q$ is Kac's recurrence time.
+
+### Measured, and holding
+
+| result | figure | evidence |
+|---|---|---|
+| invariant over byte strings | 9,396,207 occurrences, 0 refused, 582 rows | 3 measures, 1 to 6 anchors, 5 corpora, lengths 1 to 2048 |
+| invariant off the line | 213,840 occurrences, 0 refused, 252 rows | 13 geometries, dimensions 1 to 8, rotated point set, complex alphabet |
+| rotation is invisible | scatter and turned agree at every anchor count | same 8 points a quarter turn apart |
+| uninformed anchor rate | $2^{-H_2}$, within 4% | 4 corpora, $H_2$ from 0 to 7.83 |
+| refutation distance | $m(1-2^{-H_2})$, within 0.7% | 84 rows carrying a ratio, 3 measures |
+| what a measure can be worth | $\sum p^2 / \mathbb{E}[\min_m]$, exact at a point mass | ceiling 1.000 measured 1.00 |
+| the ceiling condition | equals 1 exactly when $p$ is uniform on its support | entropy does not order the corpora, this does |
+| bias correction size | $(1-C)/((N-1)C\ln 2)$ bits | 9 sources, four orders of magnitude |
+| the correction at a point mass | 0.0000 bits, orders 2 to 5, lengths 256 to 16384 | 16 rows, exactly zero |
+| product rule failure | up to 4 orders of magnitude, always under-provisioning | 6 anchors, structured C |
+| the estimator's identity | probe with self hit is the plug in, without it is the U statistic | bias tracks to 0.02 bits |
+| the estimator's cost | 1.4 to 21.7 times the unbiased estimator, falling as $1/\sqrt{k}$ | budget sweep 16 to 4096 |
+| product objective | 11% over Horspool on C source, exactly 1.0000 on uniform | reads the histogram, so it is a ceiling |
+| distance field with triangulated credit | 13.2% over Horspool, beats the histogram oracle on every structured row | no alphabet model, $O(m)$ state |
+| probes chosen from the answers so far | within 2% to 20% of the irreducible floor, exact on all 35 rows | no preprocessing, no carried state |
+| the inverse multiply check | residual exactly 0 on all 35 rows | survivors reconstruct every observation |
+| searching with no pattern | recovered a multiple of the record period from 512 reads | 92 shifts against 0 on a shuffle of the same bytes |
+| finding the boundary marker | space in English at a 5.58 gap, newline in records at exactly 16.00, semicolon in C | gap dispersion against a shuffle, no pattern given |
+| boundaries locating on their own | English unique from $m = 64$, a 2726 fold cut using its most common symbol | perfectly periodic boundaries cap at the period, exactly 16 |
+| the same regularities across languages | space found in 5 of 6 at a gap of 4.70 to 5.40, Zipf slope -0.72 to -1.05, brevity negative in all | Spanish 1605 to French 1862, three families |
+| description packed per unit | Finnish carries 11854 types and 11.9 bits per word against English at 5691 and 9.8, at the same budget | bits per byte spreads 23% where bits per word spreads 33% |
+| subject words from connectives | gap dispersion above one returns begat, Sancho, aventura; the, and, of never appear | no stopword list, no grammar, no dictionary |
+| the regularities are not alphabetic | the same text in Morse, four marks and no letters, Zipf -1.185 and brevity -0.652 | both present with no letters in the corpus |
+| Zipf is a property of the message | -1.185 against -1.183 under a permuted code table | relabeling cannot change how often a word recurs |
+| brevity is mostly not a property of the code | -0.652 against -0.550 under a permuted table | at most 0.10 of it is Morse's assignment, the rest is structural |
+| what a designed code table buys | 22.4% fewer bytes than a permutation of its own codes | the design shows in length, not in the correlation |
+| what a greedy in-order shift collects | $1/((1+m2^{-H_2})(1-2^{-H_2}))$, 47% to 91% at $m{=}16$, 1% to 5% at $m{=}256$ | derived from rows already taken, no fitting |
+| where the best anchor sits | advance saturates at $2^{H_2}$, reaching 95% near $a = 3\cdot 2^{H_2}$ | predicts the chosen offset on four corpora |
+
+**Collision entropy is close to a constant for a language, so the quantities derived from it are too.**
+Ten English texts from 1609 to 1861, covering scripture, drama, epic verse, political argument, folk
+narrative, a novel, scientific writing and a cookbook, give $H_2$ between 3.693 and 3.891 with a mean of
+3.800, a spread of 2.6%. The subject, the century and the author do not move it.
+
+Two of twelve sit at 3.417 and 3.420 and both are layout. Their commonest symbol holds 0.241 and 0.254
+of the corpus against 0.168 to 0.195 for the others, and line endings are folded to spaces before
+measuring, so a short lined file gains spaces and concentrates its distribution. One of the two is set
+one verse to a line. Neither is a property of the writing.
+
+Every quantity in this work is denominated in $2^{H_2}$: the cut per anchor is $2^{H_2}$, the cascade
+depth is $\log_2 N / H_2$, the branch point is $2^{H_2}(1+q)/(1-q)$ and the uninformed rate is
+$2^{-H_2}$. A constant $H_2$ therefore makes all of them constants for that language, where they had
+been measurements of a corpus. For English at 3.800 bits: a cut of 13.93 per anchor, a branch at a needle
+length near 15.0, and $\lceil \log_2 N / 3.80 \rceil$ anchors. Whether to ship such a table instead of a
+histogram pass is a design decision and is not one recorded here.
+
+**It does not survive a change of source, so it is not a property of the language.** All ten texts above
+came from Project Gutenberg. Measured on Common Corpus instead, French reads 3.948 against 3.818 for
+Gutenberg French and Spanish reads 3.933 against 3.694, so one language measured from two sources moves
+by 0.13 and 0.24 bits. The whole spread the constant was built on was 0.198 bits across ten texts, so the
+between source gap is as large as the within source spread.
+
+The cause is the character inventory. Gutenberg texts here carry 73 to 110 distinct symbols and the
+Common Corpus texts carry 143 to 229, because the second preserves accents, punctuation and Unicode that
+the first flattens. A larger inventory admits a higher $H_2$. So the figure is a property of a language
+as one publisher encodes it, and a table of per language constants would be calibrated to that
+publisher's conventions. Whether a constant exists per language and encoding pair is not established
+here, and Greek measures 3.688 and C source 3.627 under the Gutenberg treatment.
+
+**Corruption is detectable from the histogram, and windowing the histogram locates it.** Three detectors
+over an English corpus with a known share of its symbols replaced by uniform draws
+(`tools/dev_env/noise_detection.py`). Collision entropy over the whole corpus reads identically for
+corruption scattered across it and gathered into one block, 3.790 against 3.790 at one percent and 3.889
+against 3.889 at five, which is permutation invariance measured. It is also blunt: the natural band for
+English is 3.693 to 3.891 bits, so a global figure does not leave that band until somewhere between five
+and ten percent.
+
+The same quantity computed window by window regains the position it cannot hold globally, because a
+corruption that is a small share of a corpus is a large share of the window containing it. At half a
+percent gathered in one block the global figure is 3.777 and says nothing, while the worst of the 4096
+symbol windows reads 6.369 against a median of 3.798, eight standard deviations out, and names the
+window. That figure is $\log_2 82$, so the block sits at maximum entropy over the alphabet, which is what
+uniform draws have to give. A clean corpus returns its worst window 0.23 deviations above the median and
+is correctly reported as carrying nothing.
+
+**The same sieve runs at every window and does not stop where the estimator breaks.** Halving the window
+from 4096 to 32 on a block at half a percent gives separations of 8.0, 7.6, 7.5, 7.3, 7.0, 6.5, 5.7 and
+4.3 standard deviations. The alphabet holds 90 symbols, so the last three windows cannot estimate it at
+all, and the block is still found at 4.3 deviations from a window of 32. Undersampling lowers the clean
+windows and the corrupt one together, the median falling from 3.798 to 3.415 while the worst falls from
+6.369 to 4.913 and the deviation stays near 0.35, so differencing two equally poor estimates keeps the
+contrast. A window of 8192 gives only 4.3 because the block is smaller than the window and is diluted in
+it, which makes the maximum at 4096 a matched length and not part of the decay.
+
+**An unnamed quantity in the halving ladder.** Taken at full precision, and starting at 4096 because 8192
+dilutes the block and is not part of the decay:
+
+| window | separation | loss | loss ratio |
+|---|---|---|---|
+| 4096 | 8.03210 | | |
+| 2048 | 7.60885 | 0.42325 | |
+| 1024 | 7.49435 | 0.11450 | 0.2705 |
+| 512 | 7.30620 | 0.18815 | 1.6432 |
+| 256 | 6.97637 | 0.32983 | 1.7530 |
+| 128 | 6.54592 | 0.43045 | 1.3051 |
+| 64 | 5.68814 | 0.85778 | 1.9928 |
+| 32 | 4.25064 | 1.43750 | 1.6758 |
+| 16 | 2.48424 | 1.76640 | 1.2288 |
+
+The loss per halving grows and the ratio of successive losses is stable over the last six rows of this
+corpus at 1.600 with a standard error of 0.107, an interval that contains $\varphi$, $\pi/2$, $\sqrt{e}$
+and $3/2$ and identifies none of them.
+
+There is no quantity there. Four corpora gave 1.049, 1.388, 1.600 and 2.352, which ordered with the
+alphabet weight and was recorded here as a finding. Run over 29 corpora it scatters: at $H_2$ between
+3.69 and 3.83 the values are 0.91, 1.05, 1.07, 1.10, 1.16, 1.16, 1.18, 1.20, 1.30, 1.33, 1.41, 1.42,
+1.64, 1.99 and 2.04, with scientific writing at 2.04 and a memoryless control at 0.91 sitting at almost
+the same $H_2$.
+
+It is not stable on a single corpus either. The novel gives 1.600 under one window set and 1.410 under
+the same procedure with one window removed. A line fitted through 42 corpora gives an unweighted slope of
+-0.118 and a weighted slope of +0.045, which disagree in sign, and absorbs 1.1% and 3.5% of the variance.
+
+Tested without assuming a distribution, the association with the alphabet weight is absent and a
+difference between families is present. Spearman's rank correlation between $H_2$ and the loss ratio over
+42 corpora gives $\rho = +0.049$ at $p = 0.76$, so no monotone association survives. A Wilcoxon rank sum
+between the 19 natural corpora and the 10 memoryless ones gives $p = 0.0009$, with medians of 1.195 and
+0.942. The quantity separates structured sources from unstructured ones and does not vary with the
+alphabet weight, which is the opposite of what the four point ordering suggested.
+
+The standard errors quoted alongside those figures, here and elsewhere in this section, are not valid.
+The loss ratio over 42 corpora has a skew of -4.20 and an excess kurtosis of +19.67, giving a
+Jarque-Bera statistic of 800.1 against a one percent point of 9.21, so normality is rejected by a factor
+of 87 and every $t$ and every $\sigma$ computed from these values assumes something the data denies. The
+$r^2$ figures do not depend on that assumption and the absence of a trend stands. The claim that one
+corpus gave 1.600 with a standard error of 0.107, and the reading that the interval therefore contained
+several named constants, was arithmetic on a distribution that does not support it.
+
+The ladder also runs one step further than the alphabet allows: a window of 16 symbols over 90 distinct
+ones still separates the block at 2.48 deviations.
+
+Dispersion against a permutation null fires lower, at one part in a thousand, and it is not position
+blind: scattered corruption moves it toward 1.00 by destroying clustering and a contiguous block moves it
+toward 0 because the block is itself a cluster, so its sign separates the two shapes. It reads the
+arrangement, so it is on the side of the line that has to be measured. The windowed histogram reaches
+within a factor of five of it and stays on the side that does not.
+
+**How many anchors to place is the log of the domain in the effective alphabet.** Each anchor cuts the
+survivors by $2^{-H_2}$, so $k$ of them leave $N 2^{-kH_2}$ and the excess over the one true occurrence
+reaches zero at $k = \log_2 N / H_2$. On English at $N = 728751$ that predicts 4.9. Measured with
+jittered placement the survivors beyond the true occurrence run 63240.9, 3290.3, 351.0, 17.2 for one to
+four anchors, a cut of 9 to 20 times each, and reach 0.5 at six and 0.0 at seven. The row at five breaks
+the trend at 173.1, which is a mean over 20 trials on a heavy tailed quantity where a median is the
+right statistic.
+
+**The cut per anchor is the constant Section 4.4 names, checked without fitting.** Collision entropy
+computed from the symbol histogram alone gives 3.764 bits on English, so an anchor should cut by
+$2^{H_2} = 13.59$. Backing the same quantity out of the four anchor sweep gives 3.735 bits, which agrees
+to 0.8%. As a prediction of the survivors themselves, $N 2^{-kH_2}$ gives 53625, 3946, 290 and 21.4
+against 63241, 3290, 351 and 17.2 measured, so a single histogram number carries four orders of
+magnitude to within 21% with nothing fitted. The variation in the per step cuts is noise around the
+constant and not drift.
+
+**A language carries constants of its own, and the arrangement measure is not one of them.** Four texts
+in each of seven alphabetic languages, measured at character width so a logographic script is comparable
+(`tools/dev_env/language_constant.py`, `tools/dev_env/language_variance.R`). The mean distance between
+word boundaries separates languages at $F = 13.21$ and $p = 3.5 \times 10^{-6}$, and collision entropy at
+$F = 9.02$ and $p = 6.2 \times 10^{-5}$, with the spread between languages exceeding the spread within one
+in both cases. So a language does have figures belonging to it.
+
+The rare half against a permutation null does not. It gives $F = 0.66$ at $p = 0.68$, and its between
+language spread of 0.0342 is smaller than its within language spread of 0.0731, so two novels in one
+language differ on it more than two languages do. It carries no information about which language it is
+reading, which is what a universal has to look like.
+
+Chinese settles it. Measured in within language standard deviations from the alphabetic mean, it stands
+66.0 away on collision entropy and 22.1 away on the mean gap, carrying 3164 distinct symbols against 87
+to 98, and 0.5 away on the rare half. A change of writing system moves everything structural by tens of
+deviations and leaves the arrangement measure where it was.
+
+That is why the cross language results hold across seven families and two scripts: the measure was never
+reading language identity, so there was nothing for a change of language to disturb.
+
+**That finding is published and belongs to Montemurro and Zanette.** *Universal Entropy of Word Ordering
+Across Linguistic Families*, PLoS ONE 6(5):e19875, 2011. They shuffle the words to build the null, which
+is the same construction, over 7077 texts in eight corpora covering Indo-European, Finno-Ugric,
+Austronesian, Afroasiatic and Sino-Tibetan families and the Sumerian isolate, and report the ordering
+quantity bounded near 3.3 bits per word with a relative variability of 0.07 against 0.23 for the entropy.
+Two hundred times the sample here, reaching Old Egyptian and Sumerian, and fourteen years earlier.
+
+The statistic differs, since theirs is a Shannon entropy reduction per word and this is a dispersion of
+gaps over the rare half, so two unlike measures agreeing is worth recording. The conclusion is theirs.
+This work reached it independently and later, and found the precedent only when asked how such a thing
+could have gone unnoticed, which is the wrong order.
+
+**The rare half also departs from the null on a second source and in four more language families.**
+Measured on Common Corpus instead of Project Gutenberg: Portuguese 0.32, Italian 0.36, Swedish 0.37,
+French 0.38, Turkish 0.46, Tamil 0.64 and Bengali 0.78, against a memoryless corpus at 1.00 on every one
+of ten parameter arms. With the earlier set that covers Germanic, Romance, Hellenic, Indo-Aryan, Uralic,
+Turkic and Dravidian over two independent sources and four scripts, and no natural corpus has yet
+returned 1.00.
+
+The magnitudes are not comparable between the sources. Common Corpus rows are many documents joined, and
+joining distinct subjects drives this measure down on its own, from 0.828 to 0.626 for three works. What
+transfers between the sources is the sign and not the size.
+
+**The published semantic primes are not the frequent half, and they divide along the same line it does.**
+The Natural Semantic Metalanguage of Wierzbicka and Goddard proposes 65 words claimed to be undefinable
+and to have an exponent in every language, which resembles the finding above that the frequent half holds
+person reference, a conjunction and a copula or negation in every language measured. The two are not the
+same object. Ranked by frequency (`tools/dev_env/prime_ranks.py`), 26 of 66 primes fall in the top 100 of
+a novel and 23 of 68 in scientific prose, so a third of them, with a median rank of 179 and 252 and one
+reaching 6443 in a vocabulary of 6730.
+
+They split by category, and the split follows the head and the tail. In the novel the median rank is 39
+for existence, 52 for the intensifier, 73 for the logical primes, 93 for time and 97 for the quantifiers,
+all inside the frequent half. It is 449 for the evaluators, 493 for speech, 615 for the descriptors, 1055
+for the actions and 1456 for life and death, all outside it. Being, negation, when, how many and very are
+machinery; good, say, big, do, live and die are content.
+
+So the two schemes cut the same joint from different sides. One sorts by what cannot be defined and the
+other by where the information sits, and a prime lands in whichever half its category does. An earlier
+reading here treated the frequent half as the prime set and that was wrong.
+
+**The rare half departs from the null in every kind of writing, and the frequent half does not.** Twelve
+corpora carrying six kinds of English writing, five languages, four centuries, a percussive re-encoding
+and a programming language all return a rare half between 0.48 and 0.76 against a memoryless corpus at
+1.00, with no arm of the ten parameter sweep leaving 1.00. Scientific argument reads 0.48, economics
+0.49, recipes 0.53, folk narrative 0.63, legal argument 0.64 and philosophical criticism 0.76. The kind
+of writing does not matter.
+
+The frequent half is not invariant and part of the difference was an artifact. Its value tracked corpus
+size almost monotonically, from 1.01 at 106 KB to 0.72 at 2.4 MB, because a frequent symbol needs enough
+occurrences before a small real departure separates from the estimate. Truncating every corpus to 400000
+symbols moves economics from 0.72 to 0.87 and science from 0.88 to 0.96, while the rare half moves by at
+most 0.06 anywhere. So the rare half is robust to corpus size and the frequent half is not, and
+comparing frequent half values across corpora of different lengths is invalid.
+
+**Folding line endings is right for prose and wrong for source, and it moved one measure and not the
+other.** A wrapped prose file carries line endings its publisher chose, so folding them to spaces is what
+lets the language show. A source file carries line endings and indentation its author chose, since the
+language ignores its own whitespace, so folding them discards the authored layer and keeps what the
+compiler reads. Measured both ways, the C sources give $H_2$ of 3.627 folded and 3.814 with the layout
+kept, a shift of 0.187 bits and the same size as the shift that made two Gutenberg texts look like
+outliers. The rare half measure is 0.50 either way and the frequent half moves from 0.59 to 0.60.
+
+That is the division holding again: merging two frequent symbols changes the histogram and cannot change
+where the rare ones sit. It also removes an outlier. The figure 3.627 was cited here as a programming
+language sitting below the English band, and measured correctly it is 3.814, inside it.
+
+**In a formal language the human layer is measurable because it is definitionally what the compiler
+discards.** Two channels carry it and neither changes what the program means. Whitespace is ignored by
+the language outright, and folding it moves $H_2$ by 0.187 bits as recorded above. Case is not ignored,
+but the convention that an upper snake name is a macro and a lower snake name is a variable is enforced
+by nobody: 42.2% of the uppercase runs in the C sources are three characters or longer, against 1.3% for
+a novel, 4.5% for scientific writing, 7.3% for the King James and 13.5% for political argument. The
+separation is clean and needs no identifier to be read.
+
+**The case channel is community convention and it does not separate formal languages from prose.** Share
+of uppercase runs three characters or longer: makefile 0.544, shell 0.541, VHDL 0.495, Fortran 0.462,
+assembly 0.430, C 0.422, Scheme 0.280, Lisp 0.264, Perl 0.226, Ruby 0.213, R 0.210, Lua 0.159, Matlab
+0.124, TypeScript 0.070, Modelica 0.060, Isabelle 0.025, Mathematica 0.024 and Lean 0.009, against 0.045
+for scientific prose and 0.013 for a novel. An earlier version of this entry recorded a clean separation
+over the first ten languages, and four more break it: Lean sits below the novel, and Isabelle,
+Mathematica and Modelica sit inside the prose range. The measure orders communities that name things in
+upper case above ones that do not, and theorem provers name by mathematical convention so there is
+nothing to shout.
+
+**The language labels on that source are not reliable and the ones carrying findings were checked.** A
+corpus labelled as a fabrication image format holds Ethereum contract code, on the evidence of
+`function`, `uint256`, `contract` and `pragma`, and was nearly reported here as a machine generated
+control. Checked by their distinctive keywords, VHDL carries `signal`, `port`, `attribute` and `generic`;
+Lean carries `theorem`, `lemma`, `have` and `calc`; Isabelle carries `shows`, `assumes`, `qed` and
+`proof`; Modelica carries `annotation`, `redeclare` and `extends`; and the makefile corpus carries
+`ifeq`, `endif` and `cflags`. Those five are what the table above rests on. A corpus labelled as
+Mathematica returns every token exactly once and is not trusted. This is the third mislabelled corpus in
+this work, after one labelled Hungarian that held German and one labelled Latin that held English.
+
+**VHDL is the strongest case of a convention with no machine content, because the language cannot see
+it.** VHDL is case insensitive: `ENTITY` and `entity` are one token to the compiler and no program can
+distinguish them. Its share of long uppercase runs is 0.495, third of eighteen. In C the case at least
+carries identity, so a convention there is a choice among distinguishable options. Here the options are
+not distinguishable at all and the convention is held anyway.
+
+The obvious companion measure does not work. Folding the line endings shifts $H_2$ by 0.078 to 0.330
+across those languages and by 0.110 to 0.139 for prose, so the ranges overlap and the shift is measuring
+line density and not an authored layer. Indentation spread does better, 2.28 to 9.65 for code against
+0.10 and 1.98 for prose, with one exception: a makefile is flat, at 0.72, because its recipe lines carry
+one tab and do not nest.
+
+**The control that was missing all along: a structured domain with no author and no selection.** Every
+corpus in this work that departs from a permutation null was made by a person, so the measure detecting
+arrangement and the measure detecting human production were never separated. A genome will not serve,
+since the selection that shaped language shaped the organism, and all biology shares one machinery.
+Mathematics is under no selection at all. The digits of the square root of two return 1.00, at the null,
+as a number conjectured normal should. The gaps between primes return 0.93, outside the 0.99 to 1.01 band
+that every one of ten memoryless arms occupies.
+
+So the strong reading is refuted. Nothing authored the primes and the measure sees them. It reads
+arrangement, and human production was never intrinsic to it. The weak reading holds and is quantitative:
+the primes depart by 0.07 where the human corpora depart by 0.22 to 0.68, three to ten times further, and
+the square root digits confirm that determinism alone is not what it responds to. The gaps were encoded
+as half the gap capped at one byte, so part of that 0.07 may be the encoding.
+
+**Nor is the signature human, on the fairest comparison available.** Bird song, whale song, a wolf howl
+and two recordings of a person reading aloud were fetched and put through one pipeline: averaged to mono,
+decimated by block averaging to 8 kHz so nothing aliases, and quantized to one byte
+(`tools/dev_env/vocalization_domain.py:53-80`). Whale song returns 0.25, a dawn chorus 0.30, human speech
+0.42 and 0.43 on two independent recordings, and a wolf howl 0.46. The animals bracket the human, and
+two of the three depart further from the null than a person reading an encyclopedia does.
+
+A dawn chorus is many birds at once, so comparing it against one person alone in a studio compares a
+concatenation against a single source, and joining sources moves this measure by itself. Matched by
+number of sources and trimmed to 110000 samples each, the single bird returns 0.23 against 0.32 and 0.45
+for two people reading, and the dawn chorus returns 0.26 against 0.33, 0.49 and 0.71 for three recordings
+of crowds. Both matched comparisons put the birds ahead.
+
+They are birds and not animals. The whale returns 0.37, inside the human range, and the wolf returns
+0.62, less clustered than any human recording. Two of four animals depart further than the people do and
+two do not, with two or three recordings per cell.
+
+**The carving was wrong for a vocalization and correcting it changes the answer.** A whale song unit runs
+one to three seconds and a wolf howl is seconds long, so a statistic over the gaps between rare
+amplitudes at 8 kHz reads inside a single call and never sees how calls are arranged. Taking the
+amplitude envelope at one symbol every 10 ms (`tools/dev_env/envelope_scale.py`) gives whale 0.44, dawn
+chorus 0.45 and wolf 0.49 against 0.56 and 0.72 for two human recordings, which separates without overlap
+where the sample scale had them interleaved. The envelope leaves only 7 to 40 distinct levels, so the
+rare half is a handful of symbols and the figures are thin.
+
+True unit scale is not reachable with these recordings. At one symbol every 50 ms a one minute clip gives
+1053 symbols for the whale, 566 for the wolf and 281 for one bird, which is far too few. Measuring the
+arrangement of units needs recordings of tens of minutes.
+
+**The band where much animal communication happens is absent from the recordings by construction.**
+Measured as a share of spectral energy, the wolf recording carries 0.0007 below 20 Hz, 0.0000 from 20 to
+50 Hz and 0.0001 from 50 to 200 Hz, so 99.92% of it sits above 200 Hz and the low end has been filtered
+out. The whale carries the most low content at 0.0281 in the 20 to 50 Hz band. Sampling is not the cause,
+since 48 kHz resolves 20 Hz easily. Microphones and hydrophones roll off at the low end, and every
+psychoacoustic codec is built to discard what a person cannot hear, so the encoding removes the
+infrasonic channel before the file exists. Any measurement taken from compressed archival audio is
+therefore blind to it.
+
+**Recorded for the band instead of despite it, the blue whale is the furthest from the null of anything
+measured here.** Six uncompressed recordings from the NOAA PMEL Acoustics Program, each time compressed
+by ten so a call near 20 Hz becomes audible, with the speedup undone before measuring
+(`tools/dev_env/infrasound_domain.py`). The band is present: 99.68% of one recording's energy lies below
+20 Hz, against 0.0007 for the archival wolf and 0.0127 for archival human speech, a factor of a thousand.
+
+Four blue whale recordings from four ocean basins return 0.25, 0.27, 0.36 and 0.43 at one symbol per
+100 ms of real time, against 0.44 to 0.49 for animals in the audible band and 0.56 and 0.72 for human
+speech at the same scale. A fin whale returns 0.74 and the 52 Hz whale returns 0.80.
+
+Between 4 and 16 symbols cleared the occurrence floor on those rows. The envelope had to be coarsened to
+32 levels to give each level enough occurrences, and the rare half is then a handful of symbols. The
+recordings are 148 to 264 seconds of true time where the statistic wants tens of minutes. The agreement
+of four independent populations is the strongest thing about the result and the symbol count is the
+weakest; the fin whale row rests on four symbols and is not quotable.
+
+A mechanism unrelated to communication also fits. A bird call is discrete and separated by silence while
+a person reading aloud emits a continuous signal, so clustered rare amplitudes follow from the shape of
+the emission and not from what it carries. Amplitude quantization cannot separate those. Doing so needs
+the measure applied to segmented calls instead of to samples, which is not built.
+
+**On a continuous irregular domain the construction as implemented finds nothing, and the matcher is why.**
+Protein structures were read as what Section 4.2 covers: a cloud of points in three dimensions carrying
+values, with a pattern given as displacements and an alignment surviving where every displacement lands
+on a point holding the value asked for. The null shuffles the values among the points and leaves every
+coordinate where it is, so the shape of the cloud is untouched and only the value to position
+association is destroyed.
+
+At one anchor a 8015 point structure gives 0.023 live against 0.024 null, and a 9364 point structure
+gives 0.023 against 0.022. At two anchors both arms are zero and the ratio has no content. At three
+anchors the cascade clears the whole cloud, which is worth its own note: in text three anchors leave five
+to fifteen survivors, and in three dimensions they leave none, because a displacement must agree on three
+axes at once.
+
+The cause is exact matching on a continuous domain. Coordinates were voxelized at two angstroms and the
+displacements were required to agree exactly, and two occurrences of one structural motif never land on
+identical voxel offsets. The thirteen geometries in Section 4.2 are generated lattices and rotated point
+sets, where exact repeats exist because they were built in. Nature does not supply them.
+
+Proposition 1 survives a tolerance, since a point lying within some distance of every displacement is
+still a necessary condition and a subset of those conditions is still necessary. What fails is this
+implementation.
+
+**Corrected, it works, and the correction took two steps because the first null deleted the wrong
+property.** With a tolerance of two voxels the cascade returns survivors, 6.510 per trial at two anchors,
+and against the value shuffling null it still shows nothing at a ratio of 1.066. The rules a protein
+obeys constrain where its points are, not which residue occupies each one, so a null that moves the
+values and leaves every coordinate in place preserves the whole of the structure and it cancels.
+
+Scattering the positions over the same bounding box while keeping the composition gives 6.510 against
+2.592, a ratio of 2.512. The same live arm, a background that deletes geometry instead of composition,
+and the departure appears. So the construction reaches a natural continuous domain in three dimensions,
+the structure there is geometric and not compositional, and both failures were in the instrument.
+
+**The reading of that result is wrong and the proof of it refuted the rule it produced.** Four clouds
+were built where the answer is known by construction: a lattice or a scatter, carrying values determined
+by position or drawn at random. The prediction was that the value null fires on the two with a pattern
+and the position null on the two with a lattice. Measured, a lattice with a pattern fires on both as
+predicted and a scatter with random values fires on neither as predicted, and the other two are wrong. A
+lattice with random values fires on neither, and a scatter with a pattern fires on both.
+
+Two things follow. The nulls are not independent, since moving a point destroys which values are near it
+as well as where it sits, so the position null deletes the value coupling along with the geometry and is
+strictly the stronger of the two. And the measure cannot see geometric order by itself: a perfect lattice
+carrying random values returns 0.690 live against 0.684 and 0.553, because a survivor needs a displacement
+and a value together and random values supply no repeated pairs.
+
+So the protein figure of 2.512 is not the fold. This measure cannot read backbone angles or secondary
+structure, and what a scatter changes besides the geometry is the local density, since a protein is
+packed in its core and a uniform scatter is Poisson. Local packing is the likeliest reading and it is not
+established here. The rule that a null must delete the property being asked about is refuted as stated,
+because on this domain the two nulls do not delete separable properties.
+
+**A picture read as a sequence returns its own width, and the construction was already written for it.**
+Section 4.2 holds the invariant over thirteen geometries and dimensions one to eight, so an image is the
+case this work covers and not an extension of it: a domain whose alphabet is a range of values and whose
+arrangement has two dimensions. Read row by row, the second dimension survives as a periodicity, since a
+pixel and the pixel below it lie one width apart in the sequence.
+
+Three paintings fetched at a width of 960 return 960 as the strongest lag or the second strongest, with
+959 and 961 beside it, which is what a real period looks like
+(`tools/dev_env/image_domain.py:60-70`). Where 960 is second the winner is a lag of 1, which is a painted
+surface being smooth. Nothing in the detector is told that the bytes are a picture.
+
+The controls hold. Uniform noise returns unrelated lags at an agreement of 0.0050, which is $1/256$ and
+therefore chance. A generated ramp returns 511 at 0.9980, and 511 is the correct answer where 512 is the
+width it was built with, because the ramp is $(row + column) \bmod 256$ and stepping down one row and
+back one column leaves the value alone. The detector found the structure of the object instead of the width it was built with.
+
+The three separate by how strongly they agree, and that ordering is already recorded here: noise at
+0.0050 has nothing to find, a machine made ramp at 0.9980 is perfectly regular and so trivial to detect
+and empty to use, and the paintings at 0.02 to 0.30 sit in the band where a periodicity is both findable
+and carries a position.
+
+**On a board layout the same residue is a grid setting, and it separates two tool communities.** A
+coordinate in a layout may hold any value the format's precision allows, the fabricator accepts it, and
+physics does not prefer one to another. Designers place on a grid regardless. Measured as the share of
+decimal coordinates landing on a grid (`tools/dev_env/layout_grid.py`), a KiCad corpus gives 0.389 on
+0.05 mm and 0.023 on 25 mil, and an EAGLE corpus gives 0.133 on 0.05 mm and 0.414 on 25 mil. One works
+metric and the other imperial, an eighteenfold difference on the imperial grid, with the same physics,
+the same format capability and the same copper.
+
+That measurement also identifies its own corpus, since nothing but a board layout places 41% of its
+coordinates on 0.635 mm. Both labels are otherwise unverified, and the mislabelled corpus recorded above
+is why that matters.
+
+Constructs also pair across a distance the carving cannot hold. In the C sources the median separation is
+7 symbols for a bracket, 16 for the two halves of a conditional, 20 for a parenthesis and 114 for a
+brace, with a mean of 212 for the last. Prose carries 30 parentheses and 4 braces in 728751 bytes. That
+answers a question Section 7.4.4 raised and left open: the C sources return structure at every span from
+8 upward while prose has almost none between a word and a passage, and the spans above are where it
+comes from.
+
+A further caution on comparing the two at all. A byte of C can be a complete operation, where a byte of
+English is a letter inside a word, so one symbol per byte places the two corpora at different levels of
+abstraction. Section 4.10 records the symbol width as an unjustified choice within a corpus, and this is
+the same choice failing between corpora.
+
+**What survives that correction in the frequent half is formatting.** At a common 400000 symbols only two
+corpora keep a frequent half signal: C source at 0.58 and a cookbook at 0.70. Everything else, narrative
+and argument and science and law, sits between 0.87 and 0.99. Both survivors carry a repeated skeleton, a
+language syntax in one and a fixed section structure per recipe in the other, so the measure is reading a
+template and not a language.
+
+**The cell rarest rule holds across kinds of writing.** Against the rule the library uses, on scientific
+argument, legal argument, folk narrative and recipes, the median sizing error moves from 1.72, 2.32, 2.14
+and 2.70 to 0.94, 1.70, 1.16 and 1.16, and the alignments passed move from 12.4, 14.6, 10.8 and 19.3 to
+6.0, 9.6, 3.5 and 16.4. It is better on both counts on all four. The worst case improves on three of them,
+from 90328 to 60 on science and from 221767 to 188 on legal argument, and is 7.8 times worse on recipes.
+
+**The product rule error is a measurement and not only a defect.** Anchors surviving together more often
+than the product of their rates is mutual information between their positions, and the size of the
+departure is that information. On English prose with anchors chosen by rarity the median is 3.55, which
+is 1.8 bits, and the largest of 60 needles is 490336, which is 18.9. So a typical search carries under
+two bits of it and a needle that recurs carries nineteen. Taking the rarest symbol in each cell instead
+brings the median to 1.11, which is 0.15 bits, without changing the maximum.
+
+**The best filter measured is the rarest symbol inside each cell, and it is not the rule in use.** Three
+anchors over 60 needles: taking the rarest symbols in the needle passes a mean of 15.9 alignments on
+English prose and 44.1 on C source; dividing the needle into cells and taking the rarest symbol inside
+each one passes 5.0 and 25.4. That is 3.2 and 1.7 times fewer, against the rule the library uses. On a
+memoryless corpus it passes 6.4 against 3.9, so it costs 1.6 times where there is no structure to
+exploit, because the cells prevent it from taking the three globally rarest symbols. It also brings the
+median sizing error to 1.11 from 3.55, so on a typical search it is both the better filter and the
+better sized one.
+
+**The product rule fails in the tail and not in the middle, and reporting it as a mean hid that.** Over
+60 needles the ratio of measured survivors to the product of the anchor rates has a median of 3.55 on
+English prose and a maximum of 490336, five orders of magnitude apart. On C source the median is 87.5
+against a maximum of 175369. A mean over such a sample is mostly its largest draw: at 25 trials one
+needle contributed 96% of a reported mean of 19684. The original entry in this ledger said the failure
+reaches up to four orders of magnitude, which was correct, and several figures written here in one
+session turned that into a typical value by quoting means.
+
+**Sizing from the measured pair helps the tail and not the typical case.** Kac's lemma makes the
+expected distance between occurrences the reciprocal of their frequency, so a count of surviving
+alignments is an observed joint frequency and not an estimate of one, and that count is already the
+intermediate result of the cascade. Substituting it for two of the three marginals moves the median from
+3.55 to 2.18 on English prose and from 87.5 to 17.9 on C source. Where the anchors are the rarest in each
+cell it moves the median from 1.11 to 1.18, which is no improvement. The correction is worth taking
+because it costs nothing, and it is not worth the two to three orders of magnitude first claimed for it.
+
+**The sizing error distribution, by quantile, and what a buffer would have to hold.** Over 200 needles
+with three anchors, the ratio of measured survivors to the product of the anchor rates:
+
+| corpus and rule | p50 | p75 | p90 | p95 | p99 | max |
+|---|---|---|---|---|---|---|
+| English prose, rarest | 1.87 | 10.81 | 445.59 | 6625.99 | 51073.10 | 490336.80 |
+| English prose, cell rarest | 0.93 | 2.06 | 9.97 | 90.92 | 2382.88 | 490336.80 |
+| C source, rarest | 79.59 | 1219.25 | 12552.23 | 36286.09 | 147227.55 | 175369.07 |
+| C source, cell rarest | 7.40 | 184.70 | 1219.25 | 3169.17 | 18056.99 | 44068.51 |
+| memoryless, rarest | 0.87 | 1.32 | 1.72 | 2.08 | 2.48 | 2.93 |
+
+The memoryless corpus holds its whole distribution inside a factor of three, so the tail belongs to the
+structure and not to the measurement. It is heavy tailed without being a single power law: the slopes
+between successive quantiles in log-log run -2.53, -4.05, -3.90 and -1.27, steeper in the middle than at
+either end.
+
+**What cell selection buys has a peak and then gives it all back.** Dividing the two English rows gives
+2.0, 5.3, 44.7, 72.9, 21.4 and 1.00 across the quantiles above. The advantage rises to 73 times near the
+95th percentile and reaches exactly one at the maximum, where both rules return 490336.80 to six figures.
+So placement is worth the most in the upper middle of the tail and worth nothing at the worst case. The C
+source does not show the same shape, running 10.8, 6.6, 10.3, 11.5, 8.2 and 4.0.
+
+**The tail is the needle recurring in the corpus, and placement does not reach it.** The largest ratio
+over 60 needles is 490336 under both selection rules, identical to six figures, so where the anchors sit
+does not touch it. A needle that recurs as a unit matches every anchor inside it together wherever they
+are placed, which puts the correlation between the needle and the corpus and not between the anchors.
+The jittered rule appears to fix the sizing and does not: it selects common symbols whose chance hits
+swamp the recurrence, and it passes 337.2 alignments to do it.
+
+**There are two structure meters here operating at different spans, and they agree.** The permutation
+null reads clustering above a span of 32 and returns 0.73 on English prose, 0.50 on C source and 1.00 on
+a memoryless corpus, ordering the C source as the more structured of the two. The product rule error
+reads correlation inside a needle of 24 and returns a median of 3.55, 87.5 and 0.86 on the same three,
+in the same order. An earlier version of this entry had the orderings opposite and built an argument on
+the difference, and that came from quoting means of a heavy tailed ratio. Section 7.4.4 separately
+stated the block sweep as prose having almost nothing below a sentence, which was a claim about the
+clustering measure written as a claim about the text.
+
+**Collision entropy cannot see structure, which is why the null had to exist.** English prose measures
+3.764 bits and the memoryless control measures 3.779, so the two are indistinguishable on the quantity
+that governs the cost. One carries four centuries of arrangement and the other carries none, and
+$2^{-H_2}$ predicts the anchor rate correctly on both. Cost belongs to the distribution and structure
+does not live in the distribution at all.
+
+**Predicting the aggregate rate and predicting one search are different problems.** The uninformed rate
+$2^{-H_2}$ carries the survivors across the sweep to within 21%. Multiplying the probabilities of the
+particular symbols a needle put under the anchors is wrong by 2 to 14 times over the same rows. Sizing a
+system is solved and predicting a single query is not.
+
+**The product rule is accurate where it does not matter and wrong where it is needed.** Over the same
+sweep its error runs 1.00, 1.02, 2.09, 2.28, 3.04, 13.89 for one to six anchors. At one and two anchors
+it is exact and tens of thousands of alignments survive. By the depth where the filter is worth using it
+is off by 2 to 14 times, and the error grows with every anchor added.
+
+**Where the anchors are placed changes the sizing more than which symbols they are.** Three rules over
+the same corpora and the same needles: taking the rarest symbols in the needle gives a sizing error of
+20992 times on English prose and 1494 on C source; spacing the offsets evenly with no reference to the
+needle gives 2.02 and 3.76; drawing one offset inside each evenly sized cell gives 1.84 and 1.97. The
+last is better than even spacing on both corpora and passes fewer alignments than it on English, 337.2
+against 345.8. Even spacing is a comb and shares a period with whatever the domain carries; one draw per
+cell keeps the spread and gives the anchor set no period of its own.
+
+**On a perfectly periodic domain the placement rule stops mattering.** A counter of period 90 returns a
+sizing error near 8099 and 8096 survivors under all three rules, identically. Every alignment at the
+right phase survives whatever the anchors are, so there is no resonance to break and nothing to choose
+between. Testing placement against periodicity needs a periodic domain carrying noise, which is not
+built.
+
+**How far a vocabulary spreads across subjects is measurable, and it is the one scale here with resolved
+bands.** Scoring each word for clustering against a permutation null and averaging gives 0.758 to 0.833
+for single works over four languages and three centuries, 0.509 to 0.667 for collections, and 1.010 for a
+memoryless corpus, with no overlap. C source falls with the collections at 0.533, which is forty files
+each concerning a different module. Hugo is the lowest single work at 0.758, and *Les Misérables* turns
+aside into Waterloo, the sewers and a convent, so it is the most varied single work in the set.
+
+The reading is causal and not observed. Joining English single works with the total length held near
+900000 characters walks the score from 0.828 to 0.685 to 0.626 as works are added. Cutting the 66 book
+collection into equal pieces walks it back up, 0.509 whole, then 0.612, 0.648, 0.681 and 0.708 as the
+pieces fall from 8.2 books each to 1.0, with the highest single piece reaching 0.847. It is not a count
+alone: two English works joined give 0.685 against 0.667 for 37 plays, since a novel and an epic poem
+stand further apart than two plays of one period.
+
+**A cipher cannot remove what this measure reads unless it spends key equal to the message.** A
+permutation of the symbols reproduces the boundary dispersion to four decimals at 0.2815. A repeating key
+of length 8 leaves a corpus that looks memoryless read whole, and splitting it at stride 8 and averaging
+all eight cosets returns 0.896 against 0.896 for the plaintext, exactly, since each coset was enciphered
+by one substitution. The key length falls out of a stride scan with nothing told to it: strides coprime to
+it sit at the memoryless value and strides dividing it fall, with the minimum on the true period, checked
+at key lengths 3 and 8. A pseudorandom addend as long as the message reads 1.004 whole and 1.004 under
+every coset scan, and is the only transform that erases anything.
+
+**Subsampling attenuates by a known factor.** Scoring cosets at stride $s$ with the length held fixed
+gives a departure from the null of $1 - c/\sqrt{s}$ with $c$ between 0.237 and 0.277 at eight of ten
+strides. Cluster detection is a counting problem and a larger stride puts $1/s$ as many of a cluster's
+points in the coset, so the signal falls as the square root of that. Structure is not lost at a stride,
+it is attenuated, and a longer corpus buys any stride back at quadratic cost.
+
+**One quantity does three jobs.** $2^{-H_2}$ sets the candidate rate, the refutation distance, and the
+size of the bias correction. None was derived from another and all three were measured independently.
+
+**Five instruments agree on the zero information object, and that is one assumption held five times.**
+Collision entropy 0.000, ceiling 1.000, refutation 0.000, correction 0.0000 at every order, and 2032 of
+2033 positions surviving six anchors. All five read the corpus eight bits at a time. The flat corpus is
+`0x41` repeated, whose bit pattern has period eight, so at any width from six bits up it takes exactly
+eight values and carries $\log_2 8 = 3$ bits. Measured 3.0000 at widths 6, 8, 12 and 16. The object is
+flat only at the byte boundary.
+
+**The symbol width was never justified and it is not free.** $H_2(w)/w$, the discrimination per bit
+read, falls with width on every corpus: English gives 0.984 at one bit and 0.856 at eight, so the byte
+carving forfeits 15%, and sixteen bit symbols forfeit 40%. Soundness is indifferent to the width, since
+Proposition 1 never mentions it. Which width is best depends on whether a read costs per bit, per
+access, or per machine word, and this work counts reads under the third without having said so.
+
+### Measured, and not holding
+
+Recorded because each was built, measured on the case it was designed for, and kept.
+
+| mechanism | result |
+|---|---|
+| rare anchor as a whole search | loses to Horspool by 1.2 to 25 times, mean and worst case |
+| salted anchor | loses on both as well |
+| rare byte as a filter over Horspool | 0.0% to 2.6% |
+| discard the field on divergence | inert, never fires on 15 of 28 rows, at most 1% where it does |
+| pull the anchor to the field's center of mass | 2% to 42% worse than taking the largest value |
+| three term control on the field | mean 1.005 against a plain lag, worse on 24 of 35 rows |
+| deadband against the ambient level, amplify, settle | mean 1.014, better on 2 of 35 rows |
+
+**No drift rate was obtained, over three designs that each lost to a different confound.** Pairs matched
+for form lost to genre: 53 years of epic verse preserves more of the top 100 words, 0.5625, than 12 years
+across a change of form, 0.5038. A series held against one 1611 reference lost to genre as well, and its
+only genre matched interval is also its only undisturbed one, so the disruption term and the genre term
+take the same value on the same rows. Three translations of one book lost to translator lineage: two years
+across a change of translator costs 0.1481 of the top 100 band where 389 years costs 0.0662, and the
+content band agrees better across four centuries, 0.6243, than between two contemporaneous translations,
+0.5440.
+
+**What that work did establish is a floor and a ceiling with nothing between them.** Within one language
+across 389 years the top 100 overlap is 0.7857. Across two languages it is 0.0204. Nothing measured falls
+between, so the measure has a slow regime and a total regime and no resolved middle. A civilization ending
+sits in that gap, because a population leaving is a substitution and not a drift, which is a mechanism for
+changes arriving in groups that requires no rate to vary.
+
+**The pattern across all seven is one sentence.** Extracting more information per observation pays.
+Reacting more cleverly to information already extracted does not. Triangulating one answer across all
+$m$ offsets wins 13.2%. Every refinement of the response is neutral or negative.
+
+**Said as state: one entry is a table walk and six are memory.** The counterfactual credit computes what
+every offset would have earned from the symbol just read, by one backward pass over the needle, holding
+nothing. That is the 13.2%. Crediting only the offset that asked, carrying the field between searches,
+resetting on divergence, selecting by center of mass, adding accumulated and trend terms, and gating on
+a deadband are all memory, and together they are worth nothing. The table is also reversible at the cost
+of a lookup: forward it maps a symbol to an advance, backward it maps one read to the set of alignments
+that read kills. Section 4.9.4 of the paper says an in-order walk collects between 3% and 99% of that
+set, so the reverse direction is where the uncollected refutation is, and nothing here has walked it.
+
+**Where the one winning mechanism breaks, and why it is the same mechanism.** The counterfactual credit
+gives offset $a'$ the advance that the symbol in cell $s+a$ would have bought, while the cell $a'$
+would have read is $s+a'$. That is sound only where the symbol distribution does not depend on
+position. `periodic16` is the only corpus where the field is worse than Horspool across a run of
+lengths, and the loss peaks at needle lengths 16 and 32, the record period and twice it, falling away
+on either side. Reading the second cell instead of inferring it removes the assumption and costs the
+read the counterfactual exists to save. Not measured.
+
+**Where to branch between the two arrangements is derivable and lands at the effective alphabet.** The
+greedy in-order shift collects $1/((1+mq)(1-q))$ of the available refutation with $q = 2^{-H_2}$. Setting
+that to a half gives $m = (1+q)/(q(1-q))$, so the needle length at which the shift stops collecting most
+of what is there is
+
+$$\frac{m}{2^{H_2}} = \frac{1+q}{1-q}$$
+
+which is the effective alphabet size times a factor constant to the extent $q$ is small. Over the
+corpora measured: economics 12.89 against $2^{H_2}$ of 10.68, C source 14.54 against 12.36, Greek 15.05
+against 12.89, English prose 15.74 against 13.59 and science 16.38 against 14.23. The ratio runs 1.151 to
+1.207 and its variation is $(1+q)/(1-q)$ evaluated at each corpus, not scatter.
+
+It agrees with the measurements already taken. Free order loses at every needle length of 16 or below on
+English and reaches 1.47 times the in-order reads at 128, against a predicted crossing at 15.74. The same
+$2^{H_2}$ sets how many anchors to place, at $\log_2 N / H_2$, so one scale governs both the depth of the
+cascade and the length at which discarding the order stops costing more than it returns.
+
+**That makes the branch decidable at run time from two cheap numbers.** $H_2$ is one pass over a
+histogram of the domain and $m$ is known when the call is made, so a caller can choose between the two
+arrangements by arithmetic, without running either one, without a benchmark and without reading a symbol
+for its value. Whether to spend that is a design decision and not recorded here as one.
+
+**The advantage between the two arrangements has a minimum and a maximum, both measured.** On English at
+$N = 2789$ the ratio of in-order reads to free-order reads runs 0.962, 0.878, 0.849, 1.028, 1.380, 1.467
+and 1.329 at needle lengths 4 to 256. The worst point is at $m = 16$, which is the effective alphabet
+$2^{H_2}$, and the best is at $m = 128$. An earlier entry recorded 1.47 at 128 as the best result, and it
+is the best of the lengths tested and not a peak that was located.
+
+An attempt to derive the peak gives $m = r + \sqrt{r^2 + Nr}$ with $r = 1/(1-q)$, which is 56 here. The
+lengths are sampled at powers of two, so 56 falls one sample below the observed maximum and the spacing
+cannot separate a correct prediction from one wrong by a factor of two. The same expression predicts a
+peak advantage of 31 against 1.47 measured, so the cost model behind it is wrong somewhere regardless.
+
+**The needle is drawn from the corpus, so the benchmark answers an easier question than the one posed.**
+Every search therefore finds a guaranteed occurrence and pays the $m$ read verification floor, which is
+already recorded here as its own finding. That floor is what brings the two arrangements together as $m$
+grows, and the convergence is the falling side of the curve above, so the shape may belong to the needle
+selection and not to the algorithms. The construction is specified against a pattern that is unknown and
+of arbitrary width, and such a pattern is almost never present in a given domain. With no occurrence
+there is no verification, no floor and no convergence. The curve for the stated problem has not been
+measured. Also, $N$ is 2789 bytes, so at $m = 256$ the needle is 9% of the corpus and no asymptotic
+reading of any of these rows is available.
+
+**Correctness is measured in thirteen geometries and speed in one, and that one is the dominated case.**
+The invariant rows cover dimensions 1 to 8, a rotated point set, a complex alphabet and an unordered
+index set. Every performance row, every comparison against Horspool, every advance and stride
+measurement, is a one dimensional byte string. That is the single domain where an order exists for a
+shift to take, so it is the domain where this construction is worst positioned, and the domain where it
+is the only available arrangement has never been timed against anything.
+
+The cost of discarding order, dimension and alphabet is paid on every domain and the benefit arrives
+only where those were absent to begin with. On a line the cost is paid for nothing. Off the line
+nothing is given up, because there was nothing there to give. The measurements are arranged so that
+only the first case has a number attached.
+
+**Why the rare anchor loses on a line.** An anchor at offset $a$ advances by at most $a+1$, so $m-1$ is
+optimal for advance by construction, and advance is what governs search cost. Where an order exists it
+is most of the available structure and a shift takes it. Where no order exists there is no shift, and
+rejection is the only lever there is.
+
+### Measured while chasing a want, and bearing on the design
+
+**The vectorized cost model, measured and much smaller than derived.** The model in Section 4.9.5
+predicted 11 to 26 times fewer reads at $m = 256$. Measured, free order runs between 0.27 and 1.47
+times the in-order reads, best at 1.47 on English at $m = 128$, and it loses at every needle length of
+16 or below. Dependency depth is 2 on every row, as the construction requires.
+
+**A long search is verification bound.** Every needle is drawn from its corpus, so every search
+confirms one genuine occurrence at a cost of $m$ reads, and that term was missing from the derivation.
+At $m = 256$ the floor is 256 reads for any algorithm, Horspool runs at 1.10 to 1.57 times it and free
+order at 1.04 to 1.16, so an order of magnitude was never available to anyone. Adding the missing term
+accounts for the measurements to within 3%.
+
+**Both propositions are now measurements and not only arguments.** An arm that probes and declares
+without confirming is 6.6 to 20.5 times cheaper and wrong on 32 to 64 of 64 searches on every row where
+the stride exceeds one. Across all 35 rows the number of searches that over-report equals the number
+that are wrong: no search in any corpus, at any needle length, at any stride, ever reported fewer
+occurrences than exist. That is Proposition 1 visible in data. The persistent over-report is
+Proposition 2 in the same column.
+
+**The one directional error is a control signal.** A miss being impossible means any discrepancy is an
+over-count, so it is detectable without knowing the answer and it means exactly one thing: the stride
+is too coarse. The boundary is sharp. English at $m = 4$ moves from stride 1 to stride 2 and from 0 to
+61 searches wrong of 64.
+
+**A threshold on shift agreement needs a permutation null and not a formula.** Tests of one shift share
+read positions, so a standard error computed as though they were independent is too small. The first
+run reported twelve findings on SHA-256 output. A shuffle of the same bytes holds the histogram and
+destroys the positions, and it reports sixteen, so the raw count carried no information at all. Only
+`periodic16` survives the subtraction, at 92 against 0.
+
+**The Finnish outlier was a genre confound of mine, not agglutination.** The *Kalevala* is verse in
+strict meter, so its lines are more regular than its words and the detector finds the line. Finnish
+prose from 1870 finds the space and returns a brevity of -0.298 against English prose at -0.301. An
+earlier entry here blamed agglutinative morphology and that was wrong. Agglutination does show, in a
+mean word of 6.82 bytes against 4.94 and in 0.37 distinct forms per token against 0.11, and neither
+impairs the detector.
+
+**The symbol width was chosen by habit, and a Greek text is where that showed.** Reading UTF-8's own
+framing out of the bytes gives 71.3% two byte sequences against 99.4% one byte for English, so the
+byte level detector was measuring half a letter. Re-seating the 144 distinct Greek symbols one to a
+byte recovers `U+0020` as the boundary and puts Greek inside the group on every universal. The same
+re-carving moves English by 0.001, so it is not doing the work itself.
+
+**Vocabulary compression separates a translation from a composition.** The 1611 KJV and the 1623
+Shakespeare are twelve years apart in one language, both capped at 1048576 symbols. Shakespeare uses
+fewer tokens, 188474 against 199878, and 92% more distinct types, 25031 against 13058. The KJV's small
+vocabulary belongs to the translation and not to the era.
+
+**Exact matching cannot see an inflected formula, so epic register went undetected.** The Iliad
+returned 108 formulas against Shakespeare's 142 and Austen's 128, which is no signature at all. Greek
+carries 59% more surface forms per token than English at comparable corpus size, which is what
+inflection does to a repeated phrase. Testing the register needs lemmatization, which is not built.
+
+**The most regular thing in a text file is almost never the language.** Four times the detector returned
+the format: the line ending of a wrapped file, Gutenberg's own markup, a ruled separator at a gap of 2
+and a dispersion of 0.005, and verse numbering at a gap of 816. Every language result required stripping
+a layer of the file first, and all four were caught by reading the output.
+
+**A boundary has to be regular enough to find and irregular enough to locate with.** The record corpus
+reports the tightest spacing measured anywhere, a dispersion of exactly zero, and its boundaries reduce
+the search by exactly its period and by nothing more at any needle length. English reports 0.162 and
+its boundaries locate uniquely from a needle length of 64. The variation in the spacing is what carries
+the position, so the two ends of regularity fail in opposite ways: perfect regularity is trivial to
+detect and empty to use, and no regularity cannot be detected at all.
+
+**The pattern free detector finds periodicity and nothing else.** English prose and C source report
+nothing above their own shuffles, and English peaks below its shuffle. Both have structure; neither has
+agreement with itself at a fixed offset, which is the only hypothesis the shift formulation tests.
+
+**A stride calibrated on one known pattern does not transfer.** The over-count is monotone in the
+stride, so one pattern with a known occurrence count can bisect the largest stride that reproduces it.
+Applied to 63 unseen needles the error rate runs 0 to 62 of 63. Every row with no errors is one where
+calibration drove the stride to one or two, which is slower than an in-order search. The calibrated and
+derived strides agree closely, 98 against 91 and 75 against 84, so it is not a mis-set constant. The
+safe stride belongs to the pattern and the corpus together, and one measurement bounds only the pattern
+it was taken on.
+
+**The failure was not where it was flagged.** The section carried a caveat naming the independence
+assumption, which Section 4.6 measures failing worst on `structured`. Independence held: predicted
+survivors 1.25 to 3.84 against measured 1 to 11. The omitted term had nothing probabilistic in it.
+
+The accumulation is still a bitwise OR over an alignment bit vector, the survivors are still its
+complement, and the mask is still $m$ bits wide whatever the alphabet and whatever the dimension. Those
+are properties of the construction and the measurement does not touch them.
+
+### What separates the results that held from the ones that did not
+
+Every quantity here is a departure from a background and none is a value. A dispersion of 0.28 says
+nothing; the same dispersion against a shuffle of the same bytes is 2.91 and says the positions carry
+something. A Zipf slope of -0.988 is inside the natural range and is also what independent draws give.
+
+The results that held were measured against a background built out of the data by removing one property:
+a shuffle that keeps every symbol count and destroys every position, a corpus truncated to a common
+length, a generator swept over ten parameter settings, a total length held fixed while subjects are
+added, an observed pair count substituted for two assumed marginals. Such a background cannot be wrong
+about the property it removes, because it is the same data with that property gone.
+
+The results that failed were measured against a background that was assumed. The product rule assumes
+independence. The Zipf reading assumed a memoryless process would not reproduce it. The frequent half
+comparison assumed corpus length did not enter. A mean assumed the ratio was not heavy tailed. The scale
+test assumed the statistic conserved, and the four order discontinuity it produced was the assumption
+failing and not the corpus changing.
+
+That also states why the method reaches an unknown domain. A background cannot be assumed for something
+that is never interpreted, so it is constructed from the domain itself and only the difference is read.
+
+### Corrections this work forced
+
+Each was invisible until another instrument disagreed, and the count is not kept because it keeps
+growing. A predicted rate including the needle finding itself. A self similar corpus producing a false
+trend. A 1.24 control read as a finding when its $z$ said noise. The corpus matched table prediction,
+refuted. A control summarized as a ratio at counts too small to carry one. A control generator changed
+while its comment still described the old one. A dimension prediction omitting the guaranteed self
+match, which is the first entry made a third time. An interpretation naming entropy as what governs a
+measure's worth, which the corpus ordering contradicts. And a prior art claim asserted from search
+snippets before either source had been read.
+
+Then, in one session on the corpus work: a mean of a heavy tailed ratio quoted as a typical value, which
+put figures three orders too large into several entries here. An ordering of two structure meters built
+on those figures, which reversed once the median was used. An entry stating the measurements cannot read
+a multibyte script, left standing twenty lines below the entry recording the re-carving that fixed it.
+Inflection offered as the reason epic register went undetected, refuted by two English epics failing the
+same way. A claim that prose carries almost nothing below a sentence, which was a claim about the
+clustering measure written as a claim about the text. Frequent half values compared across corpora of
+different lengths, which is a comparison the statistic does not support. And a chained prediction
+reported as recovering two to three orders of magnitude, which was one outlier moving.
+
+### Posits about the method, which fell out of the corrections and are not tested
+
+Each of these was produced by failures recorded above and each would have caught them earlier. None has
+been tested as a claim. They are written here as posits with the evidence that produced them and what
+would settle them, because a rule inferred from the cases that suggested it is a hypothesis and not a
+finding.
+
+**A constructed null deletes one property and it has to be the one being asked about. Proofed and
+refuted.** It came from the protein structures, where shuffling the values among fixed points gave 1.066
+and scattering the points gave 2.512 on the same live arm. Four clouds were then built with the answer
+known by construction, a lattice or a scatter carrying values set by position or drawn at random
+(`tools/dev_env/proof_null_property.py`). Two of the four predictions hold and two fail: a lattice with
+random values fires on neither null where the position null was predicted, and a scatter with a pattern
+fires on both where only the value null was.
+
+The posit assumed the two nulls delete separable properties and they do not. Moving a point destroys
+which values sit near it as well as where it sits, so the position null removes the value coupling along
+with the geometry and is strictly stronger. The measure also cannot see geometric order alone, since a
+survivor needs a displacement and a value together and a lattice with random values supplies no repeated
+pairs.
+
+What survives is narrower and worth keeping: a null can delete more than one property at once, and a
+result read as evidence about one of them is unsupported until a null exists that deletes only that one.
+That is the form the protein reading violated.
+
+**Two instruments are in use here and they keep being reported as one.** The dispersion of gaps against a
+permutation null covers text, source code, recorded sound, prime gaps, the memoryless controls and the
+protein structures. The shift agreement detector covers pictures, crystal lattices, ciphers and the fixed
+width records. They have different nulls, different validation and different scopes, and three separate
+claims in this work merged them: a positive control was reported for the measure that did not receive
+one, a cross media claim was written for a measure that had not been run on two of the media, and an
+ordering of structure meters was drawn between them. Each was corrected after the fact. The pattern is
+worth its own entry because it recurred three times without being noticed once.
+
+**One representation for every corpus, reduced by a sum over vectors. Built, run over 273 corpora, and it
+does not replace the shift detector.** Every corpus is written as points carrying values, and each point
+takes the displacement to the nearest point holding the same value. The lengths of those displacements
+give a spread, and their directions are summed as outer products, which survive the sign flip that makes
+a plain sum cancel. On a line the reduction separates: the ten monkey corpora sit at 1.009 against a null
+of 1.000, and the arranged families sit below it, source at 0.523 and the recordings at 0.420.
+
+Two things are wrong with it and both were measured. Across 273 corpora the length channel tracks the
+size of the alphabet at rho -0.530, so a cross corpus row in that table is comparing symbol inventories
+as much as corpora, and none of those rows should be quoted until the scored symbols are matched by
+occurrence count instead of by rank. Worse, on the pictures the reduction is wrong where the shift
+detector is right. All three pictures are 960 wide. The shift detector returns 960 for all three with the
+1920 harmonic second every time. The orientation channel returns 1324, 760 and 458, and those are the
+heights: 662 doubled, 760 exactly, 1374 divided by three. Reshaping a picture at a wrong width shears the
+rows into diagonals, and a shear is what an orientation tensor scores highest, so the channel finds its
+own reshaping artifact before it finds the picture. The two instruments do not agree, the one that was
+supposed to subsume the other fails the case the other passes, and the picture width result stays with
+the shift detector.
+
+**The volume has no dimension to assign, and assigning one was the defect behind the picture failure.**
+Giving each domain a dimension meant choosing a picture's width and then measuring the choice. Built
+again in bit space instead, where nothing is chosen: each symbol Gray coded so a step in value is one bit
+of distance, the bits laid end to end, and a window of n bits read as a point in binary n space. The
+reduction is a sum of outer products of those windows, which is the correlation of the n bit positions,
+and the statistic is how far its eigenvalue spectrum sits from the even one against the permuted null.
+
+The sum over n does not converge, and that is the result. Every arranged corpus is still climbing at 64
+bits, the largest width swept: the picture reads 0.0066 at 8 bits, 0.2535 at 32 and 0.3677 at 64, with
+the peak sitting on the last width measured. A ceiling would therefore decide the total, so the quantity
+that does not depend on it is the exponent of the growth, near 1.0 to 1.2 for the picture, the byte
+corpora, source and recorded sound. The memoryless corpora are the control and they stay flat, which is
+what separates real correlation at length from the fact that an estimated correlation matrix grows
+lopsided with its size on its own. That bias would lift every corpus alike and it lifts none of them.
+
+**The numbering given to the symbols was suspected and cleared, except on pictures where it is the
+point.** The corpora reading strongest were the ones whose bytes carry a real order, so the reading was
+expected to be an artifact of numbering the rest here. Renumbering the symbols at random, which leaves
+every frequency and position untouched, refuted it: source, recorded sound, English and Greek all sit
+inside the spread of their own renumberings. Only the picture moves, 0.2535 against 0.0246 renumbered and
+20.6 standard deviations out.
+
+**The two instruments are not measuring one quantity, and that part is settled by construction and not by
+a number.** The gap measure reads only where each symbol falls, so renaming the symbols cannot move it,
+and it returned identical values to four decimals over six corpora under renumbering, which is the check
+that the script is sound. The bit volume moves. One instrument invariant to a change the other is not
+cannot be a replacement for it, so the attempt to have the volume subsume the shift detector and the gap
+measure was the wrong shape from the start.
+
+**The explanation offered for that split was wrong and its own test refuted it.** The account was that
+the volume reads structure carried as nearness in value, so any domain with ordered values would move
+under renumbering while symbolic domains held. Recorded sound is as ordered as a greyscale level and it
+does not move, sitting 1.5 standard deviations from its own renumberings against the picture's 20.6. The
+picture is the only corpus measured here whose reading depends on the numbering, and what singles it out
+is not known. The neat account was written before the sound column was read.
+
+**What singles those corpora out is how long they stay near a value, not how small their steps are.**
+Widening the set put all three pictures and humpback song on the moving side, at 278.2, 20.6, 16.0 and
+8.1 standard deviations, with human speech, source and text holding. Nearness between neighbours does not
+separate that: speech sits at 0.54 and whale song at 0.48, both far closer than chance, and only one of
+them moves. Counting instead how long a corpus holds inside a band around where a run started, with the
+band set as a share of each corpus's own spread, does separate it. Vermeer reads 4.11 times the shuffled
+figure, Hokusai 2.56, whale song 1.77 and Starry Night 1.56, then a gap, then speech at 1.38, source at
+1.11, Greek at 1.02, English at 1.01 and the memoryless control at 1.00. Every corpus above the gap
+depends on its numbering and every corpus below it does not.
+
+Speech is the case that decides it, and the reason is physiological. Articulation never stops moving, so
+speech has the small steps and none of the stays, while a held whale call and a flat region of a painting
+both stay. The measure predicts which side a corpus falls on and not how far it goes: Starry Night has
+the largest dependence in the set and the smallest stay of the four that move.
+
+Two defects were found in the measuring and are recorded because both produced confident wrong numbers. A
+band fixed at eight levels is wide for a corpus using few of them and narrow for one using many, which
+read Starry Night as having no stays while it has the strongest dependence, and read a corpus of eight
+symbols as one run covering all 120000 positions. Separately, a distance in standard deviations is
+meaningless where the spread is near zero, which is the whole of the memoryless control's 3.3 and part of
+Starry Night's 278.2.
+
+**Abruptness orders the magnitude inside art and inverts outside it, at rho 0.786 over seven paintings,
+which is not enough paintings.** Stays say which side a corpus falls on and Starry Night showed they do
+not say how far, having the shortest stay of the movers and the largest dependence. Sharpness of the
+crossings between stays was the candidate, and four more paintings were fetched to test it before the
+numbers were seen. Two predictions held: the pointillist surface is the most abrupt of the representative
+paintings at 0.1095 and the most dependent at 302.9, and the flat regions with hard edges give by far the
+longest stay at 20.43 with the lowest abruptness at 0.0064. Two failed, and they failed because the
+prediction came from art history instead of from what a digitized picture holds. A dark canvas covered in
+small bright sparks was called the smooth extreme and measured as the most abrupt thing in the set at
+0.1709, since a dark photographed surface carries noise in its shadows and noise is abrupt.
+
+The relation survived the predictions that did not, at rho 0.786, which for seven points sits on the
+conventional threshold and settles nothing on its own. What is clear without any correlation is that the
+quantity does not cross families: English text is the most abrupt corpus measured anywhere at 0.4903 and
+does not depend on its numbering at all. Abruptness orders magnitude only among corpora already inside
+the smooth regime, and every painting measured lies between 0.0064 and 0.1709 while speech is 0.2236 and
+text is 0.4903. Great contrast in a painting is still smooth against a page of prose.
+
+**The high frequency part of a painting was called camera noise and it is not, which reverses the
+conclusion drawn from it.** Separating the two by a median of every three raised the ranking from 0.786
+to 0.821 and left a quantity that ranked it better still at 0.929, and that quantity was reported as the
+grain of the photograph, making the whole ordering an artifact of how each canvas was shot. The test that
+settles it is what averaging does. Anything uncorrelated falls as one over the square root of the block,
+and not one of seven paintings falls that way. Starry Night reads 12.11 at block one and 13.66 at block
+sixteen where noise would give 3.03, Vermeer goes 0.61 to 1.55 against 0.15, and every other painting
+holds flat or rises. It has power at every scale, which is what a painted surface and a natural scene
+have and what a sensor's noise does not, so it belongs to the painting.
+
+**The exponent of the power against frequency is the first quantity here that holds still, and every
+earlier statistic had a scale inside it.** A window width was chosen, a ceiling was put on an unbounded
+sum, a band was fixed in levels, and a distance in standard deviations was read as an effect size while
+its denominator narrowed with every extra byte read. Data carrying structure at every scale has no
+characteristic scale for any of those to sit at, which is why each one had to be corrected once its scale
+showed. What does not belong to a scale is how the quantity changes with scale, and over crops holding
+each picture's proportions the exponent moves by 0.03 to 0.07 across a change of two and a half times in
+area. Measured over the plane it fits a power law at 0.97 to 0.99, against 0.42 to 0.67 when the same
+picture was read as one long line.
+
+The values place the paintings where the literature on natural scenes places them. Starry Night 1.94,
+Whistler 2.00, Hokusai 2.07, Seurat 2.04 and Turner 2.21 sit at the value a natural scene gives, while
+Vermeer 2.87 and Mondrian 3.41 sit above it, which is what flat regions with little high frequency
+content must give. Text is 0.34, source 0.31 and the memoryless control 0.00, which is white noise and
+what that control has to return.
+
+**A plane goes through one dimension when the coordinates are interleaved, and the exponent halves.**
+Every measurement on a picture here has been handed a width, and the single instrument failed on pictures
+in the first place because a file stored row by row puts vertical neighbours a whole width apart, so a
+reader that is not told the width cannot see the second dimension. Interleaving the bits of the column
+and the row removes the need to tell it: neighbours in the plane become neighbours in the index, and the
+index spends alternate bits on each axis. Read along that index the exponent comes back at 0.475 of the
+plane's, with a spread of 0.064 over seven paintings, which is the one half a curve filling a plane has to
+give, since a distance along it goes as the square of a distance across the picture. Doubling it recovers
+the plane to 0.04 on Seurat, 0.03 on Starry Night and 0.08 on Whistler.
+
+**The squashing works at any number of dimensions, and it was checked against fields whose exponent was
+put in by hand.** Every reading behind it until now was of a painting, where the plane is the only
+authority on what the answer should be and there is nothing independent to catch a wrong one. Shaping
+white noise in the frequency domain gives a field built to a chosen exponent, so the answer exists before
+the measurement. Asked for 2.00 the reading over the set returns 2.044, 2.005 and 1.958 in two, three and
+four dimensions, and asked for 3.00 it returns 2.968, 2.974 and 2.970. That is a positive control with a
+known answer for the spectral reading, which had none before, and it says nothing about the gap measure,
+which still has none.
+
+Read along the interleaved index the exponent comes back at 0.469, 0.285 and 0.185 of the set's, against
+the one half, one third and one quarter that a curve filling n dimensions predicts. The form is right and
+every reading is low, with the shortfall growing as the dimensions do at 0.031, 0.048 and 0.065, so
+multiplying back by n undershoots by 0.335 on average and by 0.507 at worst. Storage order gives 0.429,
+0.209 and 0.170 and holds no such relation, which is the control failing as it should.
+
+One cause covers the bias and the pictures at once. The curve jumps whenever it crosses a boundary
+between blocks, the share of those jumps grows with the dimensions, and quantizing to eight bits lays a
+white floor over everything. Both add power at high frequencies, both flatten the slope that is read, and
+both cost more where the slope is steep, which is why the fields asked for 3.00 miss by more than the
+fields asked for 2.00 at every dimension.
+
+**Under half of that shortfall belongs to the curve and the rest is what one dimension cannot hold.** The
+two separate because a Hilbert curve never jumps, its consecutive positions always being neighbours in
+the set, which is the property interleaving lacks. Measured along both on the same fields the shortfall
+falls from 0.110 to 0.063, so the jumps account for 0.429 of it and the remaining 0.571 survives a curve
+with no jumps to blame. That residue is the cost of the folding itself. It grows with the dimensions,
+0.037 in two and 0.071 in three at the same exponent, and it grows with smoothness, 0.037 to 0.065 as the
+field steepens from 2.00 to 3.00, so a smoother set in more dimensions loses more of itself on the way
+down to a line.
+
+**A line through a set carries how many dimensions the set has, and it took two failures to measure it.**
+The count sits in the index because interleaving hands bit zero to the first axis, bit one to the second
+and bit n back to the first, so a step of exactly two to the k crosses a bit belonging to axis k modulo n
+and the roughness at that step belongs to that axis. There is one magnitude per dimension and they exist
+only at the exact powers of two.
+
+The first attempt looked for a repeat spaced n doublings apart and sampled eight times per doubling,
+which sampled away the only steps that carry anything, and it returned the same period for every field at
+every dimension because that period was the lowest the search allowed. The second read the powers of two
+correctly and scored them by how consistently they grouped, which returned the largest candidate offered
+in all twelve readings, since splitting few readings into many groups raises that score on its own.
+
+Under both of those sat a worse error. The fields were built isotropic, so every axis had identical
+statistics and there was one magnitude repeated n times instead of n magnitudes. No line can count what
+was never made different, and the first two attempts were asked to do exactly that. Rebuilt with a
+different correlation length along each axis, and scored against shuffles of the same readings so the
+group count cancels, eleven of twelve readings return the dimension count with nothing supplied but the
+line.
+
+**The exponent identifies a family and rebuilds nothing, which is this document's own first proposition
+turning up as a measurement.** Every quantity refined here reduces a set to a few numbers, and whether
+that is a dense representation or only a description turns on whether the set comes back from it. A field
+built to a painting's own exponent and nothing else correlates with that painting at 0.079, -0.058,
+0.028, 0.126, -0.197, -0.044 and 0.073, which is one number against six hundred thousand and no picture
+at all. Keeping every amount in the transform and discarding where each sits does no better. Keeping
+where each sits and discarding the amounts returns 0.41 to 0.46 on the representational paintings, and
+costs as much as the set.
+
+The split is the point. A cheap invariant is a necessary condition, so it can reject quickly and can
+never reconstruct, and the irreducible exact compare of the second proposition is here measured in
+numbers held: one identifies the family, the whole set is needed for the member, and nothing was found in
+between. A summary that could do both would refute the propositions this work rests on.
+
+**Saying that where each frequency sits costs as much as the set was too strong, and it confused needing
+every angle with needing every angle exactly.** An angle is knowable and can be held coarsely. Rounded to
+eight steps around the circle, which is three bits, and with the amounts kept, every painting comes back
+at 0.97 to 0.99, and four bits reaches 0.99 and above. Nothing here needs an angle at full precision.
+
+The accounting still lands where the propositions put it, for a reason the second table gives. Three bits
+of angle with the amounts flattened to one number reaches only 0.43, so the amounts are carrying real
+weight and have to be stored too. A picture of N samples at eight bits has N halved independent
+coefficients, so three bits of angle each is one and a half bits per sample and cheap, while the amounts
+beside them bring the total back near what the picture cost to begin with. What survives is the scaling:
+one number rebuilds nothing, the whole set rebuilds it, and nothing in between was found. What does not
+survive is the claim that the angles are the incompressible part, since they need three bits and not
+thirty two.
+
+Each rebuild is a single draw and the amounts column carries one reading of 0.585 that should not be
+trusted without repeats. Flattening the amounts to their mean is a harsher test than the published one,
+which judged whether a picture stayed recognizable, so the positions column understates what positions
+carry.
+
+**Text has no approximate representation at all, and the three bit result on pictures does not carry to
+it.** Held to three steps of angle a painting comes back at 0.97 and is the painting. Text at the same
+three bits comes back at 0.975 and returns 9.7 percent of its characters in Austen, 5.6 in the Iliad and
+9.1 in source. Every symbol needs eight bits of angle, which is no saving over the text itself.
+
+The correlation is worthless here and the two columns show why. At each depth it reads 0.636, 0.900,
+0.975, 0.994 and 1.000 for every corpus measured including the memoryless control, because it describes
+the rounding and not the corpus. A sample of a picture landing two levels off cannot be seen. A letter
+landing one code point off is a different letter, so the share of symbols returned exactly is the only
+measure that means anything and it is far behind.
+
+**Quoting the coefficient in levels compares alphabets and not languages, and dividing by the range each
+alphabet occupies is what makes them comparable.** There is no fixed width to measure a spread against.
+An alphabet of 3150 symbols needs about 11.6 bits and one of 90 needs 6.5, so the same count of levels
+means different things in the two. In levels, 21 languages run from 5.21 to 149.32 with the spread
+between languages 17.83 times the spread inside one, and Chinese sits 150.2 deviations outside. As a
+share of the positions each alphabet occupies the same 21 run from 0.0507 to 0.0790, the ratio falls to
+1.36, and Chinese sits 3.2 deviations out at 0.0855.
+
+Japanese is the case that shows the normalizing is doing real work and not flattening everything. It
+carries 2364 symbols in a mixed logographic and syllabic script, reads 149.32 in levels, and lands at
+0.0630 as a share, which is inside the alphabetic band between Hebrew at 0.0507 and Catalan at 0.0790.
+Chinese carries 3150 symbols and lands at 0.0855, above every alphabetic language but only 8 percent
+above the highest of them.
+
+They come close and they do not converge. A ratio of 1.36 means the spread between languages still
+exceeds the spread inside one, so a language keeps a value of its own, and 21 languages across Germanic,
+Romance, Slavic, Uralic, Celtic, Hellenic, Semitic and Japonic with one constructed language among them
+is enough to say that much.
+
+**Which symbol follows which identifies a language where every scalar failed, and its mistakes are the
+language families.** The scalars were the wrong shape of thing to test: each summarizes the alphabet and
+discards the context, and the context is which symbol follows which, which is a square over the alphabet
+and not one number. Taking that square, with positions given by frequency rank so the first position is
+whatever a text uses most and a Greek square is comparable to a Japanese one, and holding each text out
+in turn: 52.8 percent over 31 languages against 3.2 for guessing, and against 24.5 for the best scalar.
+Eight ranks already reach 42.5 and the gain from there to sixty four is small, so most of it sits in how
+the commonest handful of symbols follow one another.
+
+**Whether the information in a text closes at a finite order is not settled here, and the reading that
+appeared to settle it was measuring its own sample size.** Written as the decomposition it names, the
+question is exact: the entropy of a block of n symbols is the sum of n conditional entropies by the chain
+rule, each one what that order predicts that the orders below it could not, and the object closes if
+those increments reach zero.
+
+Measured over 400000 characters against a shuffle of the same text, the increments rose to order 4 and
+fell, and that was recorded as closure at a finite depth. Measured again over six million characters they
+rise to order 5, and the value there is larger than order 4 held before. The peak moved with the amount
+of data, which is what a measurement running out of samples does and not what a text does. Orders 7 and 8
+return values like -17.9 and 13.6 and one outright nan, so nothing past order 6 is being measured at all.
+
+Counting blocks cannot answer this at any size reachable here, since the possible blocks grow as the
+alphabet raised to the order while a text grows in a line. The instrument for it estimates an entropy
+rate without counting blocks, which is what the compression based estimators do, and that has not been
+run. The claim that the information is held at low order is withdrawn, and nothing replaces it.
+
+**What a text gains at each distance describes the text and not the language, and it is twice as much a
+property of where the text came from.** Since no single window holds a text, the sweep gives a curve
+instead of a number, and that curve was worth testing as a description of a language. On the question
+that gave the character web 0.926, one language from two places against two languages from one place, the
+curve gives 2.064, and it matches its own language elsewhere 2 times in 67 against a chance of 3.4
+percent, which is chance.
+
+It carries nothing about language and it is not directionless. A ratio above two says it belongs to the
+source, twice over. What it reads is how repetitive a text is, and that is subject matter: scripture built
+on refrains compresses far better than a novel does in the same language, so the curve gathers one work's
+translations together across every language they are written in. The character web holds where this fails
+because how characters follow one another belongs to a writing system and stays put across whatever the
+texts are about.
+
+The two instruments have separated by what they read and not by how good they are. One reads the
+language, the other reads the text. That was not the expectation going in, which was that a reading with
+more in it would be better at everything.
+
+The encyclopedia texts fell out of this comparison entirely, since the shortest of them is under the
+300000 characters the sweep needs, so it ran on books against the two translated works only.
+
+**Read by matching instead of by counting, the text has not closed at a quarter of a million characters.**
+Counting blocks cannot see past order 4 because the possible blocks grow as the alphabet raised to the
+order. Matching has no such wall: at each position the shortest string that the window behind it has not
+already seen is found, so a dependency of any length shows up as a long match and nothing needs to be
+seen many times for the reading to work. The window is swept, so how far the text reaches is the result
+and not an assumption.
+
+In all six texts the distance between the text and its own shuffle grows at every window out to 262144
+characters. Vietnamese goes from 2.19 to 2.78 bits, Russian from 1.49 to 2.37, Urdu from 1.24 to 1.99,
+Turkish from 2.06 to 2.59, Indonesian from 1.57 to 2.28 and the Arabic from 3.09 to 3.41. Nothing
+settles. Where counting could see four symbols, this sees a quarter of a million and is still finding
+something.
+
+The shuffled rows are why that can be said. They rise with the window, from 3.71 to 4.19 bits, and a
+shuffle holds nothing beyond one symbol, so that rise is the estimator and not the text. Both arms carry
+it equally, which spoils the absolute rates and leaves the widening distance between them standing.
+
+**That null was the wrong one for the question and the right one gives the same answer.** Shuffling a
+whole text destroys sequential dependency and also destroys the fact that a book is not one distribution,
+since chapters change subject and characters speak unlike the narrator. Entropy is concave, so one pooled
+distribution over a whole book holds more than its parts hold on average, and a matcher finding long
+matches near a position could be finding that a page shares vocabulary with the page before it, which is
+a book changing subject and not a dependency reaching across it.
+
+Scrambling the letters inside blocks keeps every block's composition exactly and destroys only the order,
+so what survives that is dependency. It survives entirely. Against a full shuffle at 4.1848 bits,
+Vietnamese reads 4.0782 scrambled inside 256 characters, 4.1712 inside 2048 and 4.1043 inside 16384,
+while the text itself reads 1.3812, and every other text does the same.
+
+Why it does not bite is worth keeping, because it is a fact about the unit and not about the argument.
+Letter frequencies barely move within a book: a chapter about a ship and a chapter about a trial use
+nearly the same alphabet in nearly the same proportions. Word frequencies move a great deal. The concern
+is sound and its size at this unit is nothing, and at word level it would not be.
+
+The Arabic original reads 0.24 to 0.35 bits per symbol against 1.2 to 1.9 for every translation beside
+it, which is what a text built on refrains and repeated constructions gives to a reader that is looking
+for repeats.
+
+None of this is a separate technique from compression. The entropy rate of a source is the rate an ideal
+compressor reaches on it, so how much structure a text holds and how well it compresses are one quantity
+under two names, and that is why the instrument that compresses sees what the instrument that counts
+cannot.
+
+**Where the reading stops working is now measured instead of guessed, because the shuffle has an answer
+that is arithmetic.** Its symbols are independent by construction, so a block of n of them holds exactly
+n times the entropy of one, and the gap between that and what the estimator returns is the error itself,
+exactly, at every order. Divided by the bins seen over the samples taken, an error made only of
+undersampling has to be one curve for every text.
+
+It is one curve, and then it is not. At order 3 the eight texts read 0.93, 0.96, 1.02, 1.02, 0.93, 0.94,
+0.99 and 1.01, and at order 4 they hold the same, which is the analytic prediction to within a few
+percent. From order 5 they leave it together, reaching 1.15 to 1.90, then 1.94 to 2.98, then 3.29 to
+4.43. Thai leaves earliest and Thai has the least text, 1.1 million characters against six million, which
+is undersampling behaving as undersampling must.
+
+So the estimator is sound through order 4 and outside its range from order 5, and that boundary belongs
+to the arithmetic and not to any language. Inside it the increments are still rising, 0.52 then 0.86 then
+1.07 for Vietnamese and 0.49 then 0.86 then 1.12 for Urdu, monotone with no turn. Both earlier peaks, at
+order 4 and then at order 5, sat outside the range where the reading means anything. What can be said is
+that the information has not closed by order 4 and nothing here sees past it.
+
+This also replaces the correction that was being applied. Subtracting a shuffled text's increments from
+the real ones mixes the error with whatever the shuffle's own estimate did, and subtracting a value known
+by arithmetic does not.
+
+A second reading pointed the same way and is just as weak: identification peaked at order 2 and fell off
+through order 7, which was read as the language living at low order. Distances between longer readings
+degrade as the count of numbers grows whatever those numbers hold, and that was not controlled for.
+
+**A dirty corpus does not give a slightly wrong answer, it gives a confidently inverted one, and it has
+happened twice here.** A Greek to English lexicon, 21.2 percent Greek letters and 78.8 percent Latin, was
+one file of four and stood inside every Greek reading in this work until a first line was read by
+accident. Then seven Dravidian and Indo Aryan files were fetched carrying untranslated English in shares
+from 1.8 to 30.0 percent, and a family came out inverted: the pair that separated most recently read as
+the widest apart of seven, the family sat further from itself than from its neighbors, and three of four
+languages had a language outside the family nearest them.
+
+Thirty percent contamination did not give a thirty percent error. It gave the opposite of the answer, and
+then three explanations were built and tested on top of it, none of which could have worked. Cutting each
+file to its own writing put the family back with nothing else changed.
+
+The check that catches this was written earlier in this work, after the lexicon, and was recorded as
+worth having. It was not run on the next seven corpora fetched. So the lesson is not that corpora should
+be audited, which was already known and written down here, but that a check one has to remember is a
+check that does not run. It belongs where a corpus is loaded and not in a tool of its own.
+
+**Every bound put on a quantity in this work has had to be taken back off, and the reading improved each
+time it was.** This is not a mood about the work, it is the same defect found ten separate times in one
+sitting, each with a number attached.
+
+A dimension was assigned to each domain and the picture reader returned heights instead of widths, and
+the cure was to assign none. A sum over window widths was stopped at 24 and the excess turned out to
+still be climbing at 64, so the total was a property of the ceiling. A band was fixed at eight levels and
+read a picture spread over 160 of them as having no structure, and a corpus of eight symbols as one run
+covering everything, and scaling the band to each corpus fixed both. A spread was quoted in levels and
+put Chinese 565.9 deviations outside every alphabetic language, and quoting it as a share of the range
+brought it to 3.2. One code width was chosen for the binary reading and reading every width at once took
+it from 40.0 to 45.7 percent. A picture was measured at one resolution and the ordering moved with the
+resolution until crops holding the proportions settled it to within 0.03. A distance in standard
+deviations moved one painting from 20.6 to 122.8 on nothing but how much of the file was read, and a
+ratio with no narrowing denominator held still. A period was looked for at powers of two when the period
+was three, which no data could have satisfied. A split at 1810 was chosen by hand and the result rests on
+five books against nine. English was written into a corpus fetch and the resulting narrow range of dates
+was then reported as a property of cookery.
+
+The pattern is the same every time. A bound is chosen because something has to be chosen, the measurement
+returns a number, and the number describes the choice. What works is not choosing better. It is sweeping
+the quantity and letting the data say where it stops mattering, which also turns a wrong ceiling into a
+visible result instead of a silent one: the excess that would not stop climbing is how the divergence was
+found at all.
+
+**The reading belongs to the language by a margin of about seven percent, and this bounds every language
+result in this document.** Several languages are now held from four unrelated places: books, encyclopedia
+articles, and two separate works each translated into many languages, sharing no subject, century,
+translator or kind of writing. That makes the question answerable without argument. One language read
+from two of those places sits 0.0867 apart. Two languages read from the same place sit 0.0936 apart. The
+language wins, and it wins narrowly.
+
+Named directly, 44 of 100 readings find their own language somewhere else before they find any other
+language anywhere, which is seventeen times what guessing gives and is real. Some of the misses are
+relationships and not errors, Malay matching Indonesian being two names for nearly one language, and
+others, Chinese matching Hindi, are nothing.
+
+Every earlier figure in this section was measured inside one source, which is the arrangement that hides
+this. Reading a language from four books of the same catalog and calling the agreement a property of the
+language assumes what this measures, and what it measures is that where a text came from carries almost
+as much as what language it is in.
+
+**Being a procedure leaves no mark here that being formally written does not already leave.** Four bands
+were gathered to test it: source code, which is a procedure carried out exactly; instruction written for
+rulers, which is procedure at the scale of a campaign and reaches back to Xenophon and Caesar; cookery,
+which is procedure at the scale of a kitchen with its measurements no longer readable; and narrative,
+which is not procedure. If procedure marks a text on its own, the two informal bands sit between the code
+and the narrative.
+
+They sit with the narrative. Instruction for rulers falls 0.75 of the way from code toward narrative and
+cookery 0.66, and more decisively the bands do not separate at all: books of one band scatter among
+themselves by 0.0783 and 0.0818 while the centers of those bands sit 0.0321 and 0.0379 from narrative, so
+two books of one register are typically further apart than the registers are. Only source code is its own
+band, scattering by 0.0466 against 0.0722 to the nearest other, and what marks it is the notation and not
+the procedure, since the two informal procedures do not go with it.
+
+Two limits on that. Source code is two texts here, which is too few for the one band that did separate.
+And the reading is a character web, which is a statistic about neighboring letters being asked a question
+about how a whole book is arranged, the same mismatch that made the earlier shuffle test return nothing.
+
+**Everything measured in this work is the writing of people who were taught to write.** A cookbook of 1390
+is a king's cook's, a manual on campaigns is a general's, advice for princes was written for a prince,
+and the survival of any of it selects for the powerful before it selects for anything else. Common
+thinking rarely reached a book at all. Whatever these readings find, it is a property of literate
+production and not of people, and no measurement of a corpus can reach a majority that left nothing in
+it. This bounds every claim in this document that uses the word human.
+
+**Matched across two works that share nothing, what survives is the family and not the language.** Every
+identification before this compared texts of one kind to each other, four books of a language or four
+pieces cut from one translation, and pieces of one translation resemble each other for reasons that are
+not the language. Two different works rendered into the same 22 languages remove that: a language's
+reading from one is matched against every language's reading from the other, with no sentence, no topic
+and no translator in common.
+
+Read as characters it matches its own language 9 times in 22, which is 40.9 percent against 4.5 for
+guessing, and the binary alphabet manages 7. Setting each language's own reading aside, 10 of the 14 with
+a relative present sit nearest that relative, and the errors are why the two numbers differ so much:
+Dutch matches Norwegian, French matches Spanish, Czech matches Russian, Albanian matches Italian. The
+reading finds the right neighborhood and then picks wrongly inside it.
+
+That inverts what one work gave, where identification ran high and the families came out weak, and this
+is the direction to trust. Within one work a book can carry a match. Across two there is nothing left to
+carry it except the language, and what carries across is family sized.
+
+**Every cross language reading in this work compared different books, and holding the content fixed turns
+out to cost the family result almost nothing.** Greek was epic poetry, Dutch was a novel, several were
+encyclopedia articles and one Greek text was a dictionary, so a difference between two languages was also
+a difference between two books. One text translated into 43 languages removes that by construction, and
+it reaches Vietnamese, Tamil, Malayalam, Telugu, Hindi, Marathi, Nepali, Gujarati, Burmese, Thai, Korean,
+Armenian, Albanian, Turkish, Latvian and Estonian, which no book catalog here carried. Urdu is not in it.
+
+Over the same 17 languages the books also hold, the fixed text puts 10 of them nearest a relative against
+15 of 22 from the books, which at those counts is not a difference worth claiming. So the families were
+not being carried by shared topic, and the earlier result survives the control that was expected to
+weaken it.
+
+What does cost is breadth. Over all 33 languages with a relative present it is 18, and the misses stop
+being sensible: Afrikaans goes to Finnish, Hebrew to Hungarian, Italian to Slovenian. Telling Germanic
+from Romance among European languages that have borrowed from each other for a thousand years is an
+easier question than placing Dravidian against Indic against Tai, and most of those families arrive here
+with two members and no contact with the rest.
+
+Identification reads 83.1 percent on the fixed text against 52.8 on the books, and that comparison is not
+available. One text per language has to be cut into pieces to give several samples, and pieces of one
+translation resemble each other far more than four separate books do, so the number is inflated by the
+method and not by the corpus.
+
+**One binary alphabet carries every script at a small cost, once the codes line up with the characters.**
+Taking positions by frequency rank makes alphabets comparable and still leaves each language in an
+alphabet of its own size, three thousand symbols for Chinese against eighty for Welsh. A rank divided by
+the size of its alphabet says how far through that alphabet a symbol sits, which is the same quantity
+everywhere, and held to a fixed count of bits it becomes a code from one shared alphabet with nothing
+dropped for falling past a cutoff.
+
+The first attempt at it returned 12.4 percent and put 2 of 22 languages nearest a relative, against 52.8
+and 15 for the characters read directly. The fault was not the idea. It slid windows of three to six bits
+along a stream carrying ten bits per character, so every window mixed the end of one character's code
+with the start of the next and measured neither. One code to one character returns 40.0 percent at 32
+codes and 13 of 22, and the confusions stay sensible, with Polish, Hungarian and Esperanto all going to
+Czech.
+
+So the universal alphabet costs about 13 points of identification and two families against reading the
+characters as they come, and what it buys is that it needs nothing said about any script, drops no
+symbols, and puts a logographic language and a Celtic one in the same 32 codes.
+
+**Comparing the binary webs at one width compared different resolutions against each other, and reading
+every width at once recovers half of what that cost.** A width means different things in different
+languages: 32 codes hold about a hundred Chinese characters each and about two and a half Welsh ones, so
+two languages read at one width are read at two resolutions and only one of them is fine. Reading every
+width and laying them end to end takes identification from 40.0 to 45.7 percent and the nearest eight
+from 73.3 to 76.2, closing the gap to the characters from 12.8 points to 7.1.
+
+The levels are joined as they come. Each is already shares of one text and so sums to one before
+anything is joined, and scaling them to a common length first was tried and is wrong: it makes a coarse
+level weigh the same as a fine one when the difference between them is the whole of what the several
+widths were read for.
+
+What it does not fix is the families, which stay at 8 of 22 against 15 for the characters. That points at
+where the binary alphabet actually loses. Telling two languages apart needs the shape of a distribution,
+which binning by rank keeps. Knowing that two languages are related rests on the particular letters they
+share, and binning three thousand characters or eighty into 32 codes merges exactly those. The universal
+alphabet keeps what separates languages and loses what connects them.
+
+**It is not sound enough to be a first pass, which is what it was reached for.** A cheap reading before an
+exact compare is only worth anything if it never discards a true match, since that is the whole of the
+first proposition here, and a stage that drops truths silently makes every stage after it wrong. Measured
+as a filter over 31 languages it keeps the right one 40.0 percent of the time at the nearest, 53.3 at the
+nearest three and 73.3 at the nearest eight. Keeping a quarter of the field still throws away better than
+one true match in four. That is a classifier of middling accuracy and not a necessary condition, and the
+difference matters more than the accuracy does.
+
+The two things it might be for do not peak together either. Five bits identifies best at 40.0 percent and
+puts 8 of 22 languages nearest a relative, while seven bits identifies worse at 36.2 and puts 13 of 22
+nearest a relative. Naming a language and grouping languages are different objectives and a width chosen
+for one is not the width for the other.
+
+**With the language held fixed and only the characters changed, the reading moves by twice what changing
+nothing moves, and where a text came from moves it more than either.** Every earlier test changed two
+things at once. Chinese holds one still: simplified and traditional are one language in two character
+sets, and both sides here come from the same software translations, so the words, the grammar and the
+subject are all fixed and only the writing differs.
+
+Simplified to traditional reads 0.1253. Traditional to Hong Kong, which is the same language in the same
+characters from the same collection, reads 0.0585. So changing the characters costs 2.1 times what
+changing nothing costs.
+
+The comparison that should have been the scale for that turns out to be the largest effect in the table.
+The same language from another collection sits further away than a different language does: the
+simplified Mandarin of software translations sits 0.1554 from the Mandarin of a translated scripture and
+0.1274 from Korean, and two Mandarin corpora from two collections sit 0.1140 apart. Ordered by how much
+they move the reading, it is the collection first, the characters second and the language third.
+
+That is the source and language result again, measured a different way and coming out worse. There it was
+0.0867 against 0.0936, a margin of seven percent in the language's favor. Here the source term is larger
+than both of the others outright.
+
+The tool's own line saying the writing does not matter more than the language should be disregarded. It
+sets the clean within collection script pair against cross collection language pairs, so it has register
+on one side of the comparison and characters on the other.
+
+**On the family built to tell descent from contact, the reading follows contact, and that settles what
+the European result was.** In Europe descent and contact travel together: every pair the reading grouped
+shares an alphabet and a thousand years of borrowing, and nothing there separates the two. Uralic
+separates them. Finnish and Estonian sit on the Baltic among Germanic and Baltic neighbors, Hungarian
+sits two thousand kilometers away surrounded by Slavic, German and Turkic and has for a millennium. One
+family by descent, almost nothing shared by contact, which is why the relationship took an argument to
+establish at all.
+
+Read on files the gate passes, Uralic sits 0.0559 from itself and 0.0535 from the neighbors it borrowed
+from, so the family is further from itself than from its surroundings. Not one of the three has a
+relative nearest it. Finnish goes to Swedish, which ruled it for six centuries. Hungarian goes to Czech.
+Estonian goes to Romanian, which is neither and is the mark of a reading close to noise at this distance.
+
+So what was recorded here as recovering language families was recovering contact. Danish and Norwegian,
+Polish and Czech, Spanish and Portuguese are all neighbors as much as they are relatives, and the reading
+cannot see which of those it is answering. The line written earlier, that the mistakes it makes are the
+families, should read that the mistakes it makes are the contact zones, and in Europe the contact zones
+are the families.
+
+**On a family whose branchings are ordered, the reading returns the opposite of the family, and that
+weakens the European result badly.** Dravidian was chosen because its account is not much in dispute and
+it gives a graded prediction: Tamil and Malayalam nearest, having split around the ninth century, Kannada
+beside that pair, Telugu furthest as South Central. Four languages on one parallel text, every text cut
+to one length so nothing follows from how much arrived.
+
+Tamil to Malayalam comes back at 0.1005, which is the widest distance in the whole matrix, so the most
+recent split in the family reads as the most distant pair measured. The four Dravidian languages sit
+0.0873 from each other and 0.0853 from three Indo Aryan languages, so the family is further from itself
+than from its neighbors, and Telugu's nearest of everything is Bengali.
+
+Each of those languages writes in a script of its own, so the scripts were suspected and aligned by
+where each character sits inside its own Unicode block, which is a transliteration with no judgement in
+it since those blocks are laid out in parallel by design. It moves nothing: Tamil to Malayalam goes to
+0.0980 and all three tests fail exactly as before. The reason it could not have helped is that the
+reading ranks characters by frequency inside each text, so which codepoints a script uses never entered
+it. A confound was proposed that the instrument is built to be immune to.
+
+The unit was suspected next, and with better reason. A letter sequence suits an alphabet because that is
+where an alphabet keeps its context, while an abugida keeps its context in the cluster: a consonant
+carries a vowel already, a dependent sign changes it, and a virama binds one consonant to the next, so a
+codepoint is a piece of a unit and not a unit. Read as clusters instead, it gets worse. Tamil to
+Malayalam goes to 0.1186 and two languages leave the family where one left before.
+
+**The inversion was untranslated English in the files, and cutting each to its own script brings the
+family back.** Three explanations were built and tested before anyone looked at what the files held. They
+hold English in wildly uneven amounts: Telugu is 30.0 percent Latin characters and 47.8 percent Telugu,
+Hindi is 14.8 percent Latin, while Tamil is 2.1 and Marathi 1.8. These are subtitles from educational
+video and each translator left a different share untranslated, so Telugu's nearest of everything was
+Bengali because a third of Telugu's file is not Telugu.
+
+Cut to its own writing, Dravidian sits 0.0939 from itself and 0.0947 from Indo Aryan, and every one of
+the four has a Dravidian language nearest it, where three of four left before. The family is there and it
+was buried under the English.
+
+A tool for exactly this was written earlier in this work, after a Greek to English lexicon was found
+standing in a Greek corpus, and it was recorded as worth having. It was not run on any of these seven
+files. Three theories about scripts and units were built and tested against a defect the existing check
+would have named first.
+
+**What remains after cleaning is real and is about the writing.** The order still does not hold: Tamil to
+Malayalam is 0.0984 against 0.0869 for Kannada, so the pair that separated most recently is still the
+widest of the three, and Tamil sits furthest from everything measured, 0.0984 to 0.1211. The inventories
+say why. In the same length of cleaned text Tamil uses 48 distinct symbols and every other language uses
+69 to 85. Tamil script encodes fewer distinctions than its neighbors, which is the Sanskrit question
+again and not something the reading can be blamed for.
+
+Folding the aspirate and voiced stop rows onto their plain forms, which is the distinction set Tamil
+keeps, was tried before the cleaning and did not help. It removed 67 of Malayalam's 524 symbols, an
+eighth, so whatever separates these inventories is not confined to those rows.
+
+Tamil holds
+149 distinct codepoints and 1008 clusters in the same length of text. Malayalam holds 524 and 2644. The
+two languages that separated most recently carry the most unlike writing inventories of the seven, by
+three and a half times, and the reason is Sanskrit. Malayalam took Sanskrit phonology into its script,
+the aspirates and voiced stops that the Grantha letters supply, and built a literary tradition on mixing
+the two languages. Tamil script does not encode those distinctions and Tamil has a long history of
+declining to adopt them.
+
+So the reading is not failing at random. It is reading a writing culture, and these two languages are as
+far apart in writing culture as any pair here while being as close in descent as any pair here. In Europe
+those two things travel together and here they are at right angles, which is why the same reading
+recovered families there and inverts them here.
+
+What is left is worse for the European result than the Dravidian failure is on its own. Danish and
+Norwegian are nearly one written language, Polish and Czech share both conventions and vocabulary, and
+every European pair the reading grouped correctly shares an alphabet and centuries of borrowing. Descent
+and contact travel together there and nothing in that test separates them. Dravidian has the descent
+without the contact, and the reading finds nothing. So what was recorded as recovering families may be
+recovering shared surface, which in Europe tracks descent and here does not.
+
+**Grouping the languages by those squares returns the families, and the tree it is scored against is
+argued and not measured.** Fifteen of the 22 languages with a relative present sit nearest a language in
+their own family, against roughly one in nine by chance, and the first pairs formed are Danish with
+Norwegian at 0.034, then Serbian with Slovenian, French with Romanian, and Portuguese with Spanish. Two
+of the misses are not misses: Finnish sits nearest Swedish, which is six centuries of one country and an
+official language and not a mistake, and Polish sits nearest Esperanto, whose author's first language was
+Polish.
+
+**Greek sitting nearest Hebrew was called a script artifact here and it is neither an artifact nor a
+miss.** Writing both in Latin letters was the test, since a transliteration keeps every word and changes
+only the symbols, and Greek stays nearest Hebrew across it while Slavic holds together across it too. So
+the script is not what joins them. What joins them is that neither has a relative in this set: Hellenic
+and Semitic each hold exactly one language here, so the nearest neighbour of either must fall outside its
+own family whatever it measures. They were scored as errors and they were never scoreable, which is also
+why the honest figure is 15 of the 22 languages with a relative present and not 15 of 28.
+
+**One of the four Greek texts is a Greek to English lexicon and had been standing in every Greek reading
+in this work.** It is 21.2 percent Greek letters and 78.8 percent Latin. It was found by reading the
+first line of a file, which is not a method, so every language text was then scored by the share of its
+letters belonging to the script its language is written in and judged against the other texts of that
+language. One of 106 is out of line, and it is that one. Excluding it moved Hebrew off Greek, removed the
+pair from the identification errors, and brought out Afrikaans sitting nearest Dutch, which is correct
+since one descends from the other.
+
+That agreement is weaker evidence than it appears. A family tree is a reconstruction argued from cognates
+and sound correspondences, so this is agreement with a scholarly consensus and not a check against a
+fact, and where the two disagree nothing here can say whether the instrument or the reconstruction is
+wrong. That is a different kind of check from the protein bond lengths, where valence fixes the answer
+whatever anyone believes. Those are an oracle. This is a strong prior.
+
+**The generated corpora mostly stay outside the languages and the kinds are not cleanly separated.** The
+sharpest control passes: the chain built with English letter frequencies, made to imitate a language,
+sits nearest another generated corpus. Eight of ten generated corpora do. But the mean distance among the
+languages is 0.06317, among the generated 0.09780, and between the two kinds 0.08574, so the gap between
+kinds is smaller than the spread inside the generated set, and one generated corpus sits nearer Hungarian
+than most of its own siblings. What the square reads is the structure of a written language, and a
+distribution chosen well enough reaches part of the way into it. Calling it a human signature is more
+than has been shown.
+
+The errors are what makes it more than a classifier. Danish goes to Norwegian and Norwegian to Danish,
+Polish to Czech, Russian to Czech, Serbian to Slovenian, and Chinese to Japanese. Two Scandinavian
+standards that are nearly one written language, West Slavic neighbors, South Slavic neighbors, and a
+script Japanese took from Chinese. Esperanto goes to Polish, which is the first language of the man who
+constructed it. Nothing in the construction knows about language families, and the mistakes it makes are
+the families.
+
+**No quantity measured here identifies a language, and the coefficient is among the weaker ones at it.**
+That the spread between languages is 1.36 times the spread inside one says a language keeps a value of
+its own. Whether that value picks the language out from every other is a separate claim with a pass and a
+fail, so it was tested that way: each text held out in turn, every language given a value from the texts
+that remain, and the held out text assigned to whichever language it lands nearest. Over 102 texts in 28
+languages, guessing gets 3.6 percent. The coefficient gets 9.8, which is 10 hits against 3.7 expected and
+real at a binomial probability near 0.003, and which is not identification. Collision entropy is the best
+of four at 24.5 percent, the count of symbols gets 15.7, and the spread of gaps gets 5.9, which is barely
+above guessing. All four together get 19.6, below the best single one, which is what fitting noise looks
+like at under four texts per language.
+
+Where the misses go says the same thing. Welsh is taken for Chinese, Greek for Finnish, Hungarian for
+Danish. A quantity carrying a language's identity does not confuse a Celtic language with a logographic
+one.
+
+What this refutes is that any of these four is a constant identifying a language, and it does not refute
+that such a constant exists. Four texts is a thin basis for a language's own value, so the shares above
+are a floor and not a ceiling.
+
+**Reading the alphabetic languages at word width makes it worse, and what it separates them by is
+morphology.** A Chinese character stands for a morpheme and a Latin letter for a piece of one, so
+comparing one symbol against one symbol compares unlike units, and words are the closest unit to a
+morpheme reachable without a morphological analyzer for each language. At word width the ratio rises from
+1.36 to 1.52 and Chinese stays outside at 4.1 deviations. What the word width does instead is sort the
+languages by how much they inflect: Finnish at 0.1612, Hungarian at 0.1609, Polish at 0.1618 and Welsh at
+0.1564 against Spanish at 0.1099, Norwegian at 0.1106 and Dutch at 0.1122. An agglutinative language
+spells many morphemes into one word, so word width overshoots exactly where it overshoots most. The
+morpheme claim is therefore untested and not refuted, since a word is not a morpheme and testing it needs
+segmentation this work does not have.
+
+**The coefficient only becomes a property of the corpus once it is taken at the numbering it converges
+to.** Read at whatever numbering a file arrives in it belongs to the numbering: the Iliad returns the
+least of anything measured at 0.056 because polytonic Greek needs 141 code points laid wide, and the same
+poem renumbered returns four times as much. Minimizing the weighted spread over whole positions has a
+known answer, the commonest symbol taking the middle and the rest going outward by frequency, so the
+value is reachable and not merely approached. Greek moves from a spread of 31.44 to 7.83 and from 0.056
+returned to 0.222, Finnish gains the most at 0.250, and English gains 0.194.
+
+That the numbering was being read is measurable: the ordering as given and the ordering at the tightest
+numbering agree only at rho 0.825. The mechanism survives the change at rho -0.996 between the tightest
+spread and what it returns, while the count of symbols falls to -0.664, so what packs the mass is the
+frequency distribution and not the size of the alphabet.
+
+Under the tightest numbering the languages sit closer together than their alphabets do. Greek carries 141
+symbols and German 73, and both land at a spread of 7.83 and 7.84 and return 0.222. The four natural
+languages span 4.76 to 7.84 where as given they spanned 15.61 to 31.44, and source code sits outside them
+at 9.49. Four languages cannot carry a claim about languages, and one near tie among fifteen corpora in a
+range from 4.76 to 17.01 is not unlikely on its own, so this is recorded as something to test on many
+languages and not as a result.
+
+**The spread of the values is the whole of it, and the generating parameters reach the result only
+through that one number.** The generated corpora settle this because their alphabet and weighting were
+chosen when they were made: ten of them across alphabets of 8, 26 and 64, uniform and geometric
+weightings at two rates and an English weighting, at three chain depths, measured beside five real
+languages carrying 70 to 141 symbols. Ranked against how far the values spread, the share of symbols
+returned gives rho -1.000 over all fifteen. Ranked against the count of symbols it gives -0.911, and the
+cases that separate the two say which is doing the work: a generated corpus of 26 symbols with a spread
+of 3.12 returns 0.523 while one of 8 symbols with a spread of 2.49 returns 0.627, which is the spread
+order and not the alphabet order.
+
+Alphabet size, weighting and chain depth are three knobs feeding one quantity, and once the spread is
+known the parameters that produced it say nothing further about whether the corpus can be put back. The
+level is not predicted, only the order: taking the error as normal and asking how often it stays inside
+the half level between symbols overstates the share returned by as much as 0.238, predicting 0.860 where
+the corpus returns 0.627, which is what a reconstruction error correlated between positions and heavier
+tailed than normal does to that estimate.
+
+What sets the cost is how tightly the alphabet is packed in value, which is not a property of the writing.
+The memoryless corpus carries eight symbols spread across the whole byte range and returns 62.7 percent
+at three bits, since an error has to be large to reach the next symbol. English packs about 65 symbols
+into contiguous positions one apart, so anything above half a level is already a different letter. The
+exponent alone returns 1.5 percent, which is one in 65 and exactly chance.
+
+**A protein represented by its bonds in assembly order returns the chemistry, and two earlier
+representations of the same molecules returned nothing because each discarded the thing that carries it.**
+Laying every atom into a grid discarded the order and left a scatter in a box that is mostly empty.
+Taking the step from one alpha carbon to the next kept the order and discarded the bonds, an alpha carbon
+being a summary of a residue and the step between two of them not a bond. Walking the backbone as it is
+built, nitrogen to alpha carbon to carbon to the next nitrogen, gives the bonds themselves, and their
+lengths come back at 1.47, 1.52 and 1.32 on ubiquitin, 1.47, 1.53 and 1.34 on hemoglobin, 1.45, 1.52 and
+1.33 on the chaperonin and the spike, and 1.48, 1.52 and 1.34 on crambin. Chemistry gives 1.46, 1.52 and
+1.33, so five structures from 137 to 24024 bonds agree to within 0.02 angstroms.
+
+This is a positive control and not an instance of the signature this work is chasing. The three lengths
+are set by valence, the carbon to nitrogen bond being shortest because resonance gives it partial double
+bond character, so the repeat is a physical fact about electrons and nobody wrote it. That is what makes
+it worth having. The answer exists before the measurement and is not supplied by it, which is the
+condition every other reading here has lacked.
+
+**The reader used everywhere else in this work cannot see that period, and the reason is structural.** It
+samples roughness at lags 1, 2, 4, 8 and 16 and sorts them by position modulo the candidate count,
+because it was built for an index whose period counts bit positions. A period of three in a sequence sits
+at lags 3, 6, 9 and 12, and no power of two is a multiple of three, so no data can make that reader
+return three. It returned 2, 2, 4, 2 and 2 on series whose period is known. Two different quantities were
+both being called a period of n, which is the same conflation that reported one instrument's result as
+another's three times earlier in this work.
+
+Read at every lag instead, all five returned a multiple of three, but only two returned three: the others
+gave six and twelve. A series repeating every three agrees with itself at every multiple of three, so the
+tallest of those is settled by noise and taking it reports a harmonic as the period. Scoring a candidate
+together with all of its multiples returns three on five of five.
+
+A phase error had to be found first and it is worth recording because it looked like a result. A backbone
+run holding a break is cut into pieces, and every piece after the first begins somewhere other than the
+first bond of a residue, so concatenating them mixed the three bond types together. The large structures
+read 1.43, 1.43 and 1.43, which is the average of all three reported three times, and it looks exactly
+like a molecule whose bonds are all the same length.
+
+**It does not work on proteins, and the prediction that it would was wrong.** Every set behind the result
+above was built here with a correlation length placed along each axis by hand, which is the case most
+favorable to the method. Real structures from the protein data bank are the honest test: three
+dimensional, shaped by nobody here, and anisotropic because a folded chain is longer one way than
+another. The prediction written before the run was that every structure returns three. Three of ten
+readings did, and nearly every score is negative, meaning the real grouping is worse than its own
+shuffles and there is no signal to have.
+
+The first run smoothed the deposited atoms by 1.6 voxels and put every structure at an exponent between
+5.8 and 7.5, far outside the 2 to 3 the synthetic fields used, with every reading along the line pinned
+near 1.0, which is the curve's floor. That was worth ruling out and it was not the obstacle: sweeping the
+smoothing down to 0.3 brought several structures into range and the scores stayed negative.
+
+What separates the one structure that does give signal is how much of its box it occupies. A spike
+glycoprotein of 22812 atoms returns three at every smoothing and scores 1.85 at the finest, decaying to
+-0.24 as it smooths. A chaperonin carries 58674 atoms and is a hollow barrel, and gives nothing. In empty
+space every axis is identical, so a line crossing mostly vacuum has no magnitude per dimension to carry,
+and a protein is a thin chain in a large box. The method needs the anisotropy spread through the set and
+not confined to a small occupied part of it, and that condition holds in the fields it was demonstrated
+on and fails in the first real case it met.
+
+**What the interleaved curve loses is what carries the count, and the two are the same property.** Split
+by curve, interleaving gets six of six with scores reaching 9.28 standard deviations above its own null,
+while the Hilbert curve gets five of six at scores of -0.05, 0.06, 0.50 and -0.01, which is no signal and
+makes those picks chance. The Hilbert curve was the better of the two above, losing 0.063 against 0.110
+because it never jumps. A jump is a block completing, and which block completes is which axis just turned
+over, so removing the jumps removes the dimension count with them. Fidelity and dimensional structure
+trade against each other here and a curve cannot be chosen for both.
+
+This is the quantity that was assumed away when this construction was first described as carrying every
+corpus with only some information elided. The elided part is not a qualifier and it is not small. Under
+the best curve available it is 0.063 in exponent, more than half of everything the folding costs, and it
+is a property of reducing dimensions and not of any choice made here.
+
+It recovers the steep ones badly, missing Mondrian by 0.99 and Vermeer by 0.34, and the reason is a limit
+of the method and not of those pictures. The curve has structure of its own at every scale, and that
+structure puts a floor under the exponent any reading along it can report, so a picture smoother than the
+curve cannot be measured through it. Read as stored the same pictures rank against the plane at rho
+0.464, and read along the interleaved index at 0.679, which is the wrong statistic for a scaling law and
+is recorded only because it was computed first.
+
+**The ordering is stable under a sixteenfold coarsening, at rho 0.893, so it is not a reading of the
+sampling.** That is what the ladder was built to decide, since a quantity measured at one resolution is
+measured at whatever resolution the file happens to carry and the finest scale is where an artifact would
+sit. The magnitudes are not stable and should not be quoted: reading 600000 bytes of a file instead of
+120000 moved one painting from 20.6 to 122.8. The order survives, the numbers do not, and every earlier
+figure in this entry was taken at the shorter read.
+
+**Print the content and not only the statistic. Proofed as an audit, upheld, and it demonstrated itself
+on its own output.** Nine problems were found here by reading and none by a statistic leaving a range: six
+formats read as language and three corpora holding something other than their label. Written as a check
+and run over every corpus on disk (`tools/dev_env/proof_corpus_audit.py`), it flags 65 of 185, catching
+line wrapping in eight Gutenberg texts, HTML markup and base64 blobs across many Common Corpus entries
+that had never been examined, and two synthetic corpora whose names claim a language they do not hold.
+
+It also found what looked like a serious problem and was not. Three corpora matched a marker for
+publisher boilerplate, including one Finnish text that would then carry English, and a fourth matched
+HTML. Counting the occurrences shows one to three instances of a phrase in files of 459 KB to 1.26 MB,
+which is a stray mention inside the body and not a block of license text. Nothing measured is affected.
+
+Two things follow. The check flags on presence where it should flag on volume, which is a defect in it
+and fixable with a threshold. And the alarm it raised was itself a statistic that reading the content
+corrected, which is the posit applying to its own output.
+
+**The quantities here are heavy tailed by default, so a mean and a deviation need the distribution
+checked first. Proofed on the core measure, upheld in practice and wrong in its description.** It came
+from two derived figures, a loss ratio whose Jarque-Bera reached 800 against a one percent point of 9.21
+and a product rule error where one draw in twenty-five carried 96% of a mean. Tested on the per symbol
+ratios those are built from (`tools/dev_env/dump_ratios.py`, `tools/dev_env/ratio_normality.R`),
+Shapiro-Wilk rejects normality at one percent for five of seven corpora, so the advice holds and now
+rests on seven cases.
+
+The description does not. Skew runs in both directions, from $+2.98$ on prime gaps to $-0.37$ on C
+source, and the excess kurtosis is modest everywhere except the primes at $+15.6$. A logarithm does not
+repair it and often makes it worse, reaching $5 \times 10^{-12}$ on Greek, so these are not log normal
+either. They are non normal in ways that differ by corpus.
+
+**The shape of that distribution is itself a second detector.** The memoryless corpus is the one that
+passes, at $p = 0.891$, and every structured corpus fails, at $p$ below 0.007. Prime gaps fail hardest at
+$2.2 \times 10^{-8}$, which agrees with their tail reading of 0.93, so the two measures order the same
+corpora the same way. This fell out of a test run for another purpose and is not otherwise measured here.
+
+**A negative control cannot show that an instrument works. Proofed, and it passes for one of the two
+instruments here.** Every control until the protein structures was a memoryless process, which shows only
+that an instrument does not invent structure. A crystal supplies the other kind: the Crystallography Open
+Database publishes a cell edge for every entry, so the answer is a number someone else measured.
+
+Tiling published cells and asking the shift detector for the period
+(`tools/dev_env/proof_positive_control.py`) returns 40 voxels against a published 10.1000 angstroms for
+halite, 35 against 8.6633 for fluorite and 56 against 14.0574 for pyrite. Three of three exact, with the
+second harmonic and the neighbouring lags behind each, which is what a real period looks like. Nothing
+was told to the detector.
+
+**The quantization does not lose the parameter, it moves it into the ratio between two lags.** A voxel of
+0.25 angstroms puts none of those cells on a whole number: 10.1000 is 40.40 voxels, 8.6633 is 34.65 and
+14.0574 is 56.23. Successive tiles therefore land alternately on the two lags straddling the true period,
+and the share of agreement at the upper one carries the fraction between them. Measured, that share gives
+0.407 against a true 0.400, 0.618 against 0.653 and 0.227 against 0.230, so the recovered edges are
+10.1018, 8.6545 and 14.0568 angstroms against published values of 10.1000, 8.6633 and 14.0574.
+
+The errors are 0.0018, 0.0088 and 0.0006 angstroms against a grid of 0.25, which is between fourteen and
+four hundred times finer than the carving. Sub voxel precision discarded at every point survives in the
+proportion between neighbouring lags, so no single measurement holds it and the relation between two of
+them does.
+
+The scope is narrow and matters. That is the shift agreement detector, the one that also returned an
+image width of 960 and a Vigenère key length of 8, and it now has external ground truth three times over.
+It is not the permutation null measure, which is what failed on the protein structures and what carries
+most of the findings recorded here. That measure has still only been shown not to invent structure on
+memoryless input, and no positive control with published ground truth exists for it.
+
+**A quantity that fails to conserve under a change that should not move it indicates the instrument and
+not the domain. Proofed as a battery, and it earns its keep.** It came from one case, where the same
+measure over a quarter, a half and the whole of a corpus gave 1.41, 1.25 and 19685 through a mean over a
+heavy tail. Run as a set of transformations with stated expectations
+(`tools/dev_env/proof_conservation.py`), it produced the floor the whole of this work has been compared
+against and never measured, and it found one defect and one wrong expectation.
+
+**The floor.** Reseeding the null twelve times on one corpus gives a mean of 0.7186 with a standard
+deviation of 0.0074, about one percent of the value. Every separation recorded here is far above it: a
+human corpus at 0.73 against a memoryless one at 1.00 is 36 floors, and prime gaps at 0.93 are 9.
+
+**The defect.** Relabelling the symbols cannot change the gaps between occurrences and has to conserve
+exactly, and it moves by 0.9 floors. The ranking sorts symbols by count, so symbols sharing a count are
+ordered by their label, and relabelling changes which of them falls in the rare half. It is small and it
+is real.
+
+**The wrong expectation.** Doubling a corpus was expected to conserve and moves by 9.9 floors, to 0.6453.
+Concatenating a corpus with itself puts an exact copy of every symbol exactly one length away, which is
+periodic structure the operation introduced, and the measure is right to report it. Reading backwards
+moves 1.6 floors for a similar reason: shuffling a reversed corpus with one seed is not the reverse of
+shuffling the original, so the null is effectively reseeded. Truncation to either half moves 2.0 and 4.5
+floors, which is the two halves of a novel genuinely differing. Block shuffling and five percent noise
+move 4.9 and 34.2 floors, as they should.
+
+**The symbol width has to match the scale of the structure being looked for. Proofed and refined, and it
+corrects two earlier diagnoses.** A domain was built whose only arrangement is clustering of units four
+bytes wide, so the structure sits at one scale and at no other
+(`tools/dev_env/proof_symbol_width.py`). Swept across carvings, widths of 1, 2 and 4 return 0.117, 0.119
+and 0.117, and widths of 3, 5 and 6 return 0.450, 0.510 and 0.459.
+
+The structure is visible at every width dividing the true scale and lost at every width coprime to it. A
+repeated unit of four bytes contains repeated subsequences of one and two bytes at fixed positions inside
+it, so a divisor keeps the signal. Phase matters once the width exceeds one: at the true width of four,
+the aligned carving gives 0.117 and the worst offset gives 0.309, so misalignment costs more than a wrong
+width. A width of one divides every scale and has no phase, which makes the finest carving the one that
+cannot hide structure.
+
+That refutes the reading given to two earlier failures. The Greek text and the vocalizations were
+described here as read too finely, and a finer carving cannot lose an arrangement. What those cases
+failed at was selection: the Greek detector ranked candidate boundaries and a code unit won, and the
+8 kHz vocalization reading carried waveform smoothness alongside the call structure. Both are choices
+about what the carving lets one compare, not about whether the structure is present.
+
+## Wanted
+
+### Would change the design
+
+**A spatially correlated domain of more than one dimension.** Needed to test a centroid based anchor
+rule, since on an independent domain every point of a pattern is interchangeable and such a rule
+correctly shows nothing. It is the $n$-dimensional analogue of the separation result on a line. Not
+built.
+
+**The mechanism of the product rule failure, since the obvious candidate is refuted.** Selecting by
+rarity chooses the symbols the rare half of the distribution shows gathering into passages, which
+predicts correlated anchors and a product that under-counts. Measured, the error is 20992 times on
+English prose and 1494 times on C source, while the clustering of the anchors chosen runs the other way,
+0.899 against 0.631. More clustering, less error. The scale is why: a needle of 24 symbols sits below the
+span of 32 where prose carries no structure at all, so the gathering cannot be operating inside the
+window the cascade uses. Short range recurrence of the needle's own sequences is the remaining
+candidate and is not measured. A sweep of needle length from 8 past 128 would say whether the two come
+into agreement where their spans finally overlap.
+
+**Which anchor rule to prefer, as a curve and not two points.** Selecting the rarest symbols in the
+needle gives a sizing error of 20992 times and passes 15.0 alignments. Selecting maximally separated
+offsets, which reads nothing of the needle, gives 2.02 times and passes 345.8. Neither dominates: rarity
+is the better filter with unusable sizing and separation is the honest sizer with a filter 23 times
+weaker. Which one is right depends on a term not yet in this work, whether survivors are verified and
+discarded or buffered and handed on. Under-provisioning is a performance question in the first case and
+a correctness question in the second, because the survivors have to be stored somewhere.
+
+**Whether the memoryless control is enough of a null for the heterogeneity result.** The word burstiness
+bands rest on one memoryless corpus at 1.010. The Zipf claim was withdrawn because it was trusted on two
+arms, and the ten arm sweep exists already.
+
+**Whether subject heterogeneity predicts anything about anchor quality.** The measure orders corpora by
+how far their vocabulary spreads across subjects and nothing has asked whether that ordering predicts
+the product rule error, the achievable advance, or the safe stride.
+
+### Would change the paper
+
+**Baeza-Yates and Régnier, average running time of Boyer-Moore-Horspool.** The one work most likely to
+contain the distributional results in Sections 4.3.1, 4.4 and 4.4.1. Two attempts to retrieve it
+returned 403. Until it is read, the distributional side of this work is unchecked.
+
+**The filtration literature in approximate string matching, which is the closer prior art and is
+blocked.** A necessary condition on shared substrings, used to discard text positions with no false
+negatives and a verification pass afterwards, is the filtering paradigm in that field and it is the same
+contract as this work. Navarro's survey in ACM Computing Surveys 33:31 is the comprehensive treatment.
+Four retrieval attempts across two paths returned 403, matching what this ledger already records for
+Baeza-Yates, so both are blocked behind the same access and neither can be read from here.
+
+**The approximate membership literature, for a contract this work shares and did not invent.** A filter
+that never refuses a true occurrence, admits false ones and leaves confirmation to the caller is the
+Bloom filter contract and the quotient filter contract, and both predate this by decades. What differs
+is where the guarantee comes from: those construct it over a hash of a set held in advance, and
+Proposition 1 derives it from a subset of a necessary condition being a necessary condition, with no
+hash, no codebook and nothing built from the pattern. That is a positioning claim and not a novelty
+claim, and it goes in Section 7 only after both are read in full. Two claims of novelty in this work
+were already withdrawn after the source was read.
+
+**A structured system that no person produced.** Every corpus scoring away from the permutation null was
+written by someone, prose and C source alike, so the measure detecting structure and the measure
+detecting human production are not distinguished by anything measured. A genome or a protein sequence
+separates them, and Rao and colleagues use exactly those.
+
+**Lemmatized text.** Two results are blocked on it. Exact matching cannot see an inflected formula, so
+epic register returned nothing across three languages. And no cross-linguistic test of a semantic
+universal is possible without both a translation and a lemmatizer.
+
+**A corpus series matched for form and densely sampled.** Three drift designs each lost to a different
+confound. What is needed is one register, a court chronicle or a legal series or a newspaper run,
+sampled at close intervals across a known disruption and a known quiet stretch, so the genre term stops
+taking the same value as the disruption term.
+
+**The site reports behind Section 4.13.08.** Göbekli Tepe, the composite burials, the Clovis terminus and
+the community ending deposits are discussed from recall and cited nowhere. The section makes no
+archaeological claim as a result, which is the correct state until they are read.
+
+**Separating the count of subjects from the distance between them.** Two joined English works score 0.685
+and a corpus of 37 plays scores 0.667, so a novel and an epic poem stand further apart than two plays of
+one period. The measure responds to both and neither is isolated.
+
+**Section 7.2 and Section 7.3 are in the wrong order in the paper.** Reordering means moving a block that
+has not been read in full, and renumbering would break this ledger's citation to Section 7.2, which is
+currently correct. Left as it is and recorded here.
+
+### Read, and what it cost
+
+**Vishkin's dueling paradigm and deterministic sampling, from Neuburger's survey.** Order free
+elimination, alphabet independence, and periodicity as a stated precondition with a published repair
+are all there, and this work arrived at them independently. Recorded in Section 7.1 of the paper.
+
+**What that citation should not be stretched to cover.** The deterministic sample is computed from the
+pattern before any text is read, by stacking it and analyzing its own self overlap. That preprocessing
+pass is what buys the worst case guarantee at $\log m$ probes, and it is the step an adaptive search
+declines. The two are different algorithms with different preconditions: a fixed probe set needs the
+per pattern analysis, and Section 4.9.6 measures that a stride calibrated on one pattern is wrong on up
+to 62 of 63 others, so skipping the analysis while keeping a fixed probe set is the arrangement that
+fails. An adaptive search has no guarantee at all, and has instead that the error is one directional,
+so accuracy is monotone in effort with no preprocessing and no bound.
+
+**Parrondo, Horowitz and Sagawa, Thermodynamics of information.** The bound on work from measurement is
+mutual information, $W \ge -kTI(X;M)$, and the maximum extractable work from a non-equilibrium state is
+its free energy above equilibrium. The equilibrium reading in Sections 4.3 and 4.8 survives. The
+reference measure reading does not, because Section 4.3.1 shows the governing quantity is not a
+relative entropy. Recorded in Section 7.2.
+
+**The Sproat and Rao exchange on entropy and the Indus script, all four items in full.** Sproat in
+Computational Linguistics 36(3):585, the replies from Rao and colleagues and from Lee and colleagues in
+36(4), and Sproat's answer to both. The position argued is that these statistics do not separate a
+language from anything else, demonstrated by applying a published classifier to Mesopotamian deity
+symbols and to 75 texts made from dice throws, both of which it reports as writing. Rao's answer is that
+sufficiency was never claimed and that the evidence is a posterior over several properties at once.
+Their own description of the Zipf-Mandelbrot property is that it is necessary and not sufficient for
+language, which is the asymmetry between the propositions here reached independently.
+
+**What that reading cost.** Three of the four regularities in Section 4.13 were withdrawn after building
+the counterexample class it describes. A memoryless process with a delimiter, swept over alphabet size 8
+to 64, delimiter rate 0.06 to 0.35 and uniform, geometric and English weighted distributions, returns a
+Zipf slope of -0.978 to -1.332 against a natural range of -0.723 to -1.185, a brevity correlation of
+-0.124 to -0.401 where the strongest natural text reaches -0.364, and a type count of 5824 to 22160
+against 4171 to 11854. The Zipf slope, the brevity correlation and the type count carry no evidence about
+production. Only dispersion against a permutation null survived, at 0.99 to 1.01 for every memoryless arm
+against 1.79 to 4.82 for natural text, and it establishes that a corpus is not memoryless and nothing
+more. C source departs from that null further than English prose does.
+
+**Montemurro and Zanette on the entropy of word ordering, PLoS ONE 6(5):e19875, 2011.** Read for its
+method, its corpora and its numbers. It shuffles words to build a null and reports the ordering quantity
+near 3.3 bits per word over 7077 texts in eight corpora and six families, with a relative variability of
+0.07 against 0.23 for the entropy, and calls it a statistical linguistic universal. What it cost: the
+cross-language invariance recorded here is a rediscovery of that result, found after the measurement
+instead of before it, and the entry above now says so. The argument for their specific value of 3.3 bits
+was not read and nothing here tests it.
+
+**The Natural Semantic Metalanguage prime inventory, read as the published chart of 65.** Wierzbicka and
+Goddard hold that each is undefinable and has an exponent in every language. The claim is semantic and
+carries no statement about frequency, which is what the measurement above tests and confirms. The
+tradition it comes from is the Lwów-Warsaw school, so reducing meaning to indefinables and composing
+everything else is Tarski's and Leśniewski's programme applied to natural language. Only the prime
+inventory and the universality claim were read; the argument that each is genuinely undefinable was not,
+and nothing here tests it.
+
+**The published corpus of cryptographic oracles.** The digest is held to 1554 vectors from two bodies.
+That is two bodies and not the field.
+
+**Comparison against more published entropy estimators.** Two were used. Neither end of the working
+range of the candidate count estimator is characterized.
+
+### Would change the claim
+
+**A genuinely unenumerable alphabet.** Cannot be performed. The construction's tolerance of one is
+supported by the core never reading a value, and not by a measurement.
+
+**Whether the invariant results are evidence for anything.** They are evidence that the implementation
+agrees with Proposition 1 over the ranges tested. They are not evidence for the proposition, which
+needs none.
+
+**What the surviving statistic actually detects.** Three of the four regularities in Section 4.13 were
+withdrawn after a memoryless process reproduced them: the Zipf slope at -0.988 from independent draws,
+the brevity correlation reaching -0.401 which is stronger than any natural text here, and the type count
+overlapping at three arms. What survives is dispersion against a permutation null, and the C sources
+score further from that null than English prose does, so it orders corpora by how much structure they
+carry and identifies no language. Whether it identifies a person is the open question above.
+
+## Outstanding, and not mine to decide
+
+**Making `ancorae` instantiable.** A `src` change, now authorized. The justification is weaker than it
+was: under a scalar read model the fixed table costs 25 to 30 times when mismatched, but the whole
+rare anchor arrangement loses to a shift anyway. The vectorized measurement above would settle whether
+to build it.
+
+**The praet and DMA integration.** Set aside mid-flight. `PraetScheduleContext` was renamed to
+`PraetOrdoContext` by a rename script that skipped its own protective pair, and that has not been
+ruled on.
+
+**Audience for the paper.** A publishable version needs the shift literature read. An internal design
+record does not.
+
+---
+
+**Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+**Date:** 2026-09-02
+**Copyright:** (c) 2026 Douglas Quigg (dstroy0). All rights reserved.
+**License:** AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational.

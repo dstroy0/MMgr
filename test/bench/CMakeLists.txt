@@ -67,6 +67,13 @@ foreach(bench_src ${MMGR_BENCH_SOURCES})
                 "${MMGR_PROTOCORE_DIR}/src"
                 "${MMGR_PROTOCORE_DIR}"
                 "${MMGR_PROTOCORE_DIR}/test/core_setup/hal/host")
+        elseif(bench_name MATCHES "^bench_ancorae_")
+            # All three draw their corpora from SHA-256 in counter mode, and every independence and
+            # entropy number is read against those corpora having the statistics they are supposed to.
+            # They compile the implementation the suites hold to the published vectors, so the corpora
+            # and the vectors are the same code and not two copies of it.
+            add_executable(${target} "${bench_src}" "${CMAKE_SOURCE_DIR}/test/support/mmgr_sha256.c")
+            target_include_directories(${target} PRIVATE "${CMAKE_SOURCE_DIR}/test/support")
         else()
             add_executable(${target} "${bench_src}")
         endif()

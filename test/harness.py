@@ -16,6 +16,8 @@
   harness.py runners gen <dir> --unity <rb>  write <dir>/unity_runner.c
   harness.py cases <dir>                     what Unity will register, and what it will walk past
   harness.py generated                       are the generated headers what their generators emit
+  harness.py targets [--strict]              compile the module for every part, check its derivation
+  harness.py remote <host> [--user U]        build and run the suite on another machine over ssh
 
 This is the only entry point. Everything else here is a module, and a build reached any other way is
 a build whose flags nobody wrote down.
@@ -613,11 +615,15 @@ TREES = {
 }
 
 
-def run(cmd, quiet=True):
-    """Run a command from the repository root and hand back its completed process."""
+def run(cmd, quiet=True, stdin=None):
+    """Run a command from the repository root and hand back its completed process.
+
+    @p stdin feeds text in. cmd_vectors drives a helper that reads a message per line, and writing
+    those to a file first would put a temporary beside whatever directory it ran from.
+    """
     if quiet:
-        return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
-    return subprocess.run(cmd, cwd=ROOT, text=True)
+        return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, input=stdin)
+    return subprocess.run(cmd, cwd=ROOT, text=True, input=stdin)
 
 
 def borrowed_toolchain(skip_path):
@@ -1429,6 +1435,675 @@ def cmd_generated(a):
     return 0
 
 
+# ------------------------------------------------------------------------------------------------
+# Cross targets and remote runs
+# ------------------------------------------------------------------------------------------------
+# Two questions a host build cannot answer.
+#
+#   targets   compile the module for every part, so the platform derivation is exercised by the
+#             toolchain that actually defines the macros it reads. A host defines none of them.
+#   remote    build and run the whole suite on another machine, which is the only thing here that
+#             runs it on an instruction set that is not x86.
+#
+# Add a part: one row in TARGETS. Add a toolchain: one constant, overridable from the environment so
+# a different install needs no edit. A row whose compiler is absent reports SKIP and never a pass.
+
+ESP_TOOLS = os.environ.get("MMGR_ESP_TOOLS", r"C:\Espressif\tools")
+XT_14 = os.path.join(ESP_TOOLS, "xtensa-esp-elf", "esp-14.2.0_20260121", "xtensa-esp-elf", "bin")
+XT_15 = os.path.join(ESP_TOOLS, "xtensa-esp-elf", "esp-15.2.0_20251204", "xtensa-esp-elf", "bin")
+RV_14 = os.path.join(ESP_TOOLS, "riscv32-esp-elf", "esp-14.2.0_20260121", "riscv32-esp-elf", "bin",
+                     "riscv32-esp-elf-gcc.exe")
+RV_15 = os.path.join(ESP_TOOLS, "riscv32-esp-elf", "esp-15.2.0_20251204", "riscv32-esp-elf", "bin",
+                     "riscv32-esp-elf-gcc.exe")
+
+# Current Arm GNU. PlatformIO ships GCC 5.4.1 from 2016, which predates ARMv8-M and cannot build a
+# Cortex-M23 or M33 at all. ARM_OLD keeps two rows anyway: a header this full of preprocessor tests
+# is exactly what compiles on one compiler generation and not another.
+ARM = os.environ.get("MMGR_ARM_GCC",
+                     r"C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.2 rel1\bin\arm-none-eabi-gcc.exe")
+ARM_OLD = os.environ.get("MMGR_ARM_GCC_OLD",
+                         os.path.expanduser(r"~\.platformio\packages\toolchain-gccarmnoneeabi\bin\arm-none-eabi-gcc.exe"))
+
+# A compiler targeting the 64 bit state, which arm-none-eabi is not. The wsl: prefix routes the row
+# through WSL and translates every path on the way.
+AARCH64 = "wsl:aarch64-linux-gnu-gcc"
+
+HOST_GCC = os.environ.get("MMGR_HOST_GCC", r"C:\Strawberry\c\bin\gcc.exe")
+
+# A target with a counter pins its own timer. One without has to be handed a clock, and asking it to
+# pin one is the refusal row.
+CLOCK_OWN = ["-DPRAET_CLOCK_SOURCE=PRAET_CLOCK_OWN", "-DPRAET_CLOCK_CORE=0u"]
+CLOCK_CALLER = ["-DPRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"]
+
+# name, compiler, arch flags, (arm, riscv, xtensa, xlen, counter), clock, must_build, text a refusal needs
+TARGETS = (
+    ("esp32s3   gcc14", os.path.join(XT_14, "xtensa-esp32s3-elf-gcc.exe"), [], (0, 0, 1, 32, 1), CLOCK_OWN, True, None),
+    ("esp32s3   gcc15", os.path.join(XT_15, "xtensa-esp32s3-elf-gcc.exe"), [], (0, 0, 1, 32, 1), CLOCK_OWN, True, None),
+    ("esp32s2   gcc14", os.path.join(XT_14, "xtensa-esp32s2-elf-gcc.exe"), [], (0, 0, 1, 32, 1), CLOCK_OWN, True, None),
+    ("esp32     gcc14", os.path.join(XT_14, "xtensa-esp32-elf-gcc.exe"), [], (0, 0, 1, 32, 1), CLOCK_OWN, True, None),
+    ("esp32c6   gcc14", RV_14, ["-march=rv32imac_zicsr_zifencei", "-mabi=ilp32"], (0, 1, 0, 32, 1), CLOCK_OWN, True, None),
+    ("esp32c6   gcc15", RV_15, ["-march=rv32imac_zicsr_zifencei", "-mabi=ilp32"], (0, 1, 0, 32, 1), CLOCK_OWN, True, None),
+    ("esp32p4   gcc14", RV_14, ["-march=rv32imafc_zicsr_zifencei", "-mabi=ilp32f"], (0, 1, 0, 32, 1), CLOCK_OWN, True, None),
+    # Teensy 4.1 is an i.MX RT1062: Cortex-M7, ARMv7E-M, carries a DWT.
+    ("teensy41  m7", ARM, ["-mcpu=cortex-m7", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("atsamd51  m4", ARM, ["-mcpu=cortex-m4", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("cortex-m3   v7m", ARM, ["-mcpu=cortex-m3", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("cortex-m33  v8m.main", ARM, ["-mcpu=cortex-m33", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("cortex-m23  v8m.base", ARM, ["-mcpu=cortex-m23", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    # AArch32, not AArch64. arm-none-eabi targets the 32 bit state, so this is __ARM_ARCH 8 with
+    # profile 'A' and no __aarch64__. It is the application profile row and nothing more.
+    ("cortex-a53  v8a aarch32", ARM, ["-mcpu=cortex-a53"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("aarch64     v8a", AARCH64, [], (1, 0, 0, 64, 1), CLOCK_OWN, True, None),
+    # The same two parts on the 2016 compiler. Nine years of GCC must change nothing here.
+    ("teensy41  m7 gcc5", ARM_OLD, ["-mcpu=cortex-m7", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("atsamd51  m4 gcc5", ARM_OLD, ["-mcpu=cortex-m4", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    # ARMv6-M has no DWT. The derivation has to see that, and pinning a timer there has to be refused.
+    ("cortex-m0+  v6m", ARM, ["-mcpu=cortex-m0plus", "-mthumb"], (1, 0, 0, 32, 0), CLOCK_CALLER, True, None),
+    ("cortex-m0+  pinned REFUSAL", ARM, ["-mcpu=cortex-m0plus", "-mthumb"], (1, 0, 0, 32, 0), CLOCK_OWN, False,
+     "defines no cycle counter"),
+    ("host      x86-64", HOST_GCC, [], (0, 0, 0, 64, 0), CLOCK_CALLER, True, None),
+)
+
+# Every knob the probe reads that is not this table's subject, so a row only fails for its own reason.
+TARGET_KNOBS = (
+    "-DMMGR_ENABLE_DMA=1", "-DMMGR_ENABLE_EXTRAM=0",
+    "-DPRAET_CHANNELS=8u", "-DPRAET_SETTLE_MICROS=40u", "-DPRAET_KEEPALIVE_MICROS=250u",
+    "-DPRAET_RECOVERY=1", "-DPRAET_CLOCK_HZ=240000000u",
+)
+
+PRAET_SUITE = os.path.join(INTEGRATION, "test_praet_correctness")
+
+
+def to_wsl(path):
+    """A Windows path as WSL sees it. C:\\x becomes /mnt/c/x."""
+    text = str(path).replace("\\", "/")
+    return "/mnt/" + text[0].lower() + text[2:] if len(text) > 1 and text[1] == ":" else text
+
+
+def compiler_present(compiler):
+    """Whether a row's compiler is there, on either side of the WSL boundary."""
+    if str(compiler).startswith("wsl:"):
+        tool = str(compiler).split(":", 1)[1]
+        return subprocess.run(["wsl", "-e", "which", tool], capture_output=True, text=True).returncode == 0
+    return os.path.isfile(compiler)
+
+
+def cmd_targets(a):
+    """Compile the module for every part, and hold each one's derivation to what it should answer."""
+    probe = os.path.join(PRAET_SUITE, "praet_target_probe.c")
+    if not os.path.isfile(probe):
+        print("no probe at %s" % os.path.relpath(probe, ROOT).replace("\\", "/"))
+        return 1
+
+    scratch = os.path.join(BUILD_CONTAINER, "targets")
+    os.makedirs(scratch, exist_ok=True)
+
+    bad = 0
+    print("%-28s %-8s %s" % ("target", "result", "derived"))
+
+    for name, compiler, arch, expect, clock, must_build, wanted in TARGETS:
+        if not compiler_present(compiler):
+            print("%-28s %-8s no compiler at %s" % (name, "SKIP", compiler))
+            continue
+
+        in_wsl = str(compiler).startswith("wsl:")
+        where = to_wsl if in_wsl else (lambda path: str(path))
+        arm, riscv, xtensa, xlen, counter = expect
+
+        cmd = ["wsl", "-e", str(compiler).split(":", 1)[1]] if in_wsl else [compiler]
+        cmd += ["-std=c11", "-O2", "-Wall", "-Wextra", "-Wconversion", "-Wsign-conversion"]
+        cmd += list(arch) + list(TARGET_KNOBS) + list(clock)
+        cmd += ["-DEXPECT_ARM=%d" % arm, "-DEXPECT_RISCV=%d" % riscv, "-DEXPECT_XTENSA=%d" % xtensa,
+                "-DEXPECT_XLEN=%d" % xlen, "-DEXPECT_COUNTER=%d" % counter]
+        cmd += ["-I" + where(os.path.join(ROOT, "src")), "-I" + where(os.path.join(ROOT, "include")),
+                "-I" + where(os.path.join(ROOT, "deps", "embedded_types", "include")),
+                "-I" + where(PRAET_SUITE)]
+        cmd += ["-c", where(probe), "-o", where(os.path.join(scratch, "probe_%s.o" % name.split()[0]))]
+
+        done = subprocess.run(cmd, capture_output=True, text=True)
+        out = done.stdout + done.stderr
+        built = done.returncode == 0
+
+        family = "arm" if arm else ("riscv" if riscv else ("xtensa" if xtensa else "host"))
+        problems = []
+        if built != must_build:
+            problems.append("expected %s, it %s" % ("a build" if must_build else "a refusal",
+                                                    "built" if built else "failed"))
+            problems += ["  " + ln.strip() for ln in out.splitlines() if "error" in ln.lower()][:3]
+        if wanted and wanted not in out:
+            problems.append("the refusal never said %r" % wanted)
+        # The boundary word token announces itself on every build that declares a context. Anything
+        # else is a diagnostic nobody asked for.
+        noise = [ln for ln in out.splitlines()
+                 if ("warning" in ln.lower() or "error" in ln.lower())
+                 and "AD_VERBI_CONFINIUM" not in ln and "deprecated" not in ln.lower()]
+        if must_build and noise:
+            problems.append("%d diagnostic(s) beyond the token" % len(noise))
+            problems += ["  " + ln.strip() for ln in noise[:3]]
+
+        print("%-28s %-8s %s xlen=%d counter=%d" % (name, "ok" if not problems else "FAIL", family, xlen, counter))
+        for line in problems:
+            print("       %s" % line)
+            bad += 1
+
+    print()
+    if bad:
+        print("%d expectation(s) not met" % bad)
+        return 1 if a.strict else 0
+    print("every target derives its own family, width and counter, and the part with no counter is")
+    print("refused when asked to pin a timer")
+    return 0
+
+
+# The suite's columns, the same ones a host run builds, so a remote run is comparable row for row.
+CRC_OFF = "-DPRAET_SUITE_CRC_CHOICE=AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE"
+REMOTE_COLUMNS = (
+    ("host    ", []),
+    ("word32  ", ["-DEMBED_WORD_BITS=32"]),
+    ("word16  ", ["-DEMBED_WORD_BITS=16"]),
+    ("settle=0", ["-DPRAET_SETTLE_MICROS=0u"]),
+    ("crcoff  ", [CRC_OFF]),
+    ("clk1MHz ", ["-DPRAET_CLOCK_HZ=1000000u"]),
+    ("norecov ", ["-DPRAET_RECOVERY=0", CRC_OFF]),
+    ("examine ", ["-DPRAET_PROCURATOR=1"]),
+    ("optimize", ["-DPRAET_OPTIMIZE=1"]),
+)
+
+
+def cmd_remote(a):
+    """Build and run the praet suite on another machine, over ssh.
+
+    The password comes from MMGR_REMOTE_PW and is never written down here. WSLENV is what carries a
+    Windows variable across into WSL, which is where ssh and rsync live on this host.
+    """
+    if not os.environ.get("MMGR_REMOTE_PW"):
+        print("set MMGR_REMOTE_PW before running this")
+        return 1
+    already = os.environ.get("WSLENV", "")
+    os.environ["WSLENV"] = "MMGR_REMOTE_PW" + (":" + already if already else "")
+
+    target = "%s@%s" % (a.user, a.host)
+
+    unity = os.path.join(tree_path("build"), "_deps", "unity-src", "src")
+    if not os.path.isfile(os.path.join(unity, "unity.c")):
+        print("no unity at %s - run: harness.py build" % unity)
+        return 1
+
+    # Regenerate the runner from the source that is about to be sent. Shipping whatever runner was
+    # last committed runs the cases that existed then: caught here reporting 43 of 46, green, with
+    # three cases that never ran.
+    generate_runner(PRAET_SUITE, os.path.join(os.path.dirname(unity), "auto", "generate_test_runner.rb"))
+    found, _missed = runner_cases(os.path.join(PRAET_SUITE, "test_praet_correctness.c"))
+    print("%d cases" % len(found))
+
+    def over_there(command):
+        """One command on the far end."""
+        return subprocess.run(
+            ["wsl", "-e", "bash", "-lc",
+             'sshpass -p "$MMGR_REMOTE_PW" ssh -o StrictHostKeyChecking=accept-new %s %s'
+             % (target, json.dumps(command))],
+            capture_output=True, text=True)
+
+    made = over_there("mkdir -p %s/{suite,src,include,embed,unity}" % a.dir)
+    if made.returncode != 0:
+        print("cannot reach %s:" % target)
+        print((made.stdout + made.stderr).strip()[:500])
+        return 1
+
+    # src and include go over whole. The suite reaches other modules' headers through them, and a
+    # list of which would be a second copy of that fact waiting to drift.
+    for source, into in ((PRAET_SUITE, "suite"), (os.path.join(ROOT, "src"), "src"),
+                         (os.path.join(ROOT, "include"), "include"),
+                         (os.path.join(ROOT, "deps", "embedded_types", "include"), "embed"),
+                         (unity, "unity")):
+        sent = subprocess.run(
+            ["wsl", "-e", "bash", "-lc",
+             'sshpass -p "$MMGR_REMOTE_PW" rsync -a -e "ssh -o StrictHostKeyChecking=accept-new" %s/ %s:%s/%s/'
+             % (to_wsl(source), target, a.dir, into)],
+            capture_output=True, text=True)
+        if sent.returncode != 0:
+            print("rsync of %s failed:" % into)
+            print((sent.stdout + sent.stderr).strip()[:500])
+            return 1
+
+    said = over_there("uname -srm")
+    print("%s: %s" % (target, (said.stdout or "").strip()))
+    print("%-10s %s" % ("column", "result"))
+
+    bad = 0
+    for label, extra in REMOTE_COLUMNS:
+        tag = label.strip().replace("=", "")
+        build = (
+            "cd %s && gcc -std=c11 -O2 -Wall -Wextra -Wconversion -Wsign-conversion %s "
+            "-DMMGR_ENABLE_DMA=1 -DMMGR_ENABLE_EXTRAM=0 -DMMGR_PRAET_CHANNELS=8 -DMMGR_PRAET_BUF_SIZE=256 "
+            "-DUNITY_INCLUDE_DOUBLE -DUNITY_INCLUDE_FLOAT -Isrc -Iinclude -Iembed -Isuite -Iunity "
+            "suite/test_praet_correctness.c suite/%s unity/unity.c "
+            "src/memoriam_praetereo/memoriam_praetereo.c -o suite_%s 2>&1 | "
+            "grep -E 'error|warning' | grep -v unity | grep -v AD_VERBI_CONFINIUM | wc -l"
+        ) % (a.dir, " ".join(extra), GENERATED_RUNNER, tag)
+
+        built = over_there(build)
+        ours = (built.stdout or "").strip().splitlines()
+        ran = over_there("cd %s && ./suite_%s 2>&1 | tail -3" % (a.dir, tag))
+        summary = [ln for ln in (ran.stdout or "").splitlines() if "Tests" in ln]
+
+        if not summary:
+            print("%-10s BUILD OR RUN FAILED" % label)
+            print("       %s" % (built.stdout + built.stderr).strip()[:300])
+            bad += 1
+            continue
+
+        print("%-10s ours=%s  %s" % (label, ours[-1] if ours else "?", summary[0].strip()))
+        if "0 Failures" not in summary[0]:
+            bad += 1
+
+    print()
+    print("every column passes on %s" % a.host if bad == 0 else "%d column(s) failed" % bad)
+    return 1 if bad else 0
+
+
+# ------------------------------------------------------------------------------------------------
+# Published vectors
+# ------------------------------------------------------------------------------------------------
+# Everything published for SHA-256 that this tree can reach, run offline against the bytes vendored
+# under test/vectors with their sources and digests in MANIFEST.json.
+#
+#   CAVP ShortMsg/LongMsg   the normative one shot tables
+#   CAVP Monte              100 checkpoints x 1000 chained rounds, which is the only published case
+#                           that catches state carried wrongly between blocks
+#   Wycheproof HMAC         adversarial: modified tags that must NOT reproduce
+#   splits                  every way of cutting one message across take() must reach one digest
+#   differential            against a second implementation over boundary and random lengths
+#
+# The last two need no vector file. They are invariants, and they cover the streaming code the
+# published tables cannot reach because those tables only ever hash a message in one call.
+
+VECTORS_DIR = os.path.join(ROOT, "test", "vectors")
+
+# Lengths where SHA-256 padding decides something: the block, one short of the length field, the
+# rollover into a second padding block, and a few multiples.
+VECTOR_EDGE_LENGTHS = (0, 1, 2, 3, 54, 55, 56, 57, 63, 64, 65, 111, 112, 113, 119, 120, 127, 128,
+                       129, 191, 192, 255, 256, 1000)
+
+SHA_HELPER = r'''
+/* Modes: digest (hex per line, "." is empty), monte (seed, 100 checkpoints),
+ * hmac (key<space>msg per line), splits (hex per line, every split verified internally). */
+#include <stdio.h>
+#include <string.h>
+#include "mmgr_sha256.h"
+
+static size_t unhex(const char *text, uint8_t *into, size_t room)
+{
+    size_t used = 0u;
+    while ((text[used * 2u] != '\0') && (text[(used * 2u) + 1u] != '\0') && (used < room))
+    {
+        unsigned value = 0u;
+        sscanf(&text[used * 2u], "%2x", &value);
+        into[used] = (uint8_t)value;
+        used++;
+    }
+    return used;
+}
+
+static void put_hex(const uint8_t *bytes, size_t length)
+{
+    for (size_t i = 0u; i < length; i++) { printf("%02x", bytes[i]); }
+    printf("\n");
+}
+
+static char line[300000];
+static uint8_t msg[150000];
+static uint8_t key[4096];
+
+/* CAVP publishes a hundred checkpoints. The construction does not stop there, and past a hundred it
+ * is still a valid chain with no published answer, so a soak runs it as far as asked and a second
+ * implementation supplies the expectation. Errors in a chain compound forward, which is why this
+ * finds state bugs that independent messages hide. */
+static int monte(unsigned checkpoints)
+{
+    uint8_t md[MMGR_SHA256_BYTES];
+    if (fgets(line, (int)sizeof line, stdin) == NULL) { return 1; }
+    char *end = strchr(line, '\n'); if (end) { *end = '\0'; }
+    if (unhex(line, md, sizeof md) != MMGR_SHA256_BYTES) { return 1; }
+
+    for (unsigned cp = 0u; cp < checkpoints; cp++)
+    {
+        uint8_t a[MMGR_SHA256_BYTES], b[MMGR_SHA256_BYTES], c[MMGR_SHA256_BYTES];
+        memcpy(a, md, sizeof a); memcpy(b, md, sizeof b); memcpy(c, md, sizeof c);
+        for (unsigned r = 0u; r < 1000u; r++)
+        {
+            uint8_t feed[MMGR_SHA256_BYTES * 3u], next[MMGR_SHA256_BYTES];
+            memcpy(feed, a, MMGR_SHA256_BYTES);
+            memcpy(feed + MMGR_SHA256_BYTES, b, MMGR_SHA256_BYTES);
+            memcpy(feed + (MMGR_SHA256_BYTES * 2u), c, MMGR_SHA256_BYTES);
+            mmgr_sha256(feed, sizeof feed, next);
+            memcpy(a, b, MMGR_SHA256_BYTES); memcpy(b, c, MMGR_SHA256_BYTES);
+            memcpy(c, next, MMGR_SHA256_BYTES);
+        }
+        memcpy(md, c, sizeof md);
+        put_hex(md, sizeof md);
+    }
+    return 0;
+}
+
+/* Every single cut of the message, plus the one shot, must reach the same digest. That is the
+ * invariant the published tables cannot test, because they only ever hash in one call. */
+static int splits(void)
+{
+    while (fgets(line, (int)sizeof line, stdin) != NULL)
+    {
+        char *end = strchr(line, '\n'); if (end) { *end = '\0'; }
+        size_t len = 0u;
+        if (strcmp(line, ".") != 0) { len = unhex(line, msg, sizeof msg); }
+
+        uint8_t want[MMGR_SHA256_BYTES];
+        mmgr_sha256(msg, len, want);
+
+        unsigned bad = 0u;
+        for (size_t cut = 0u; cut <= len; cut++)
+        {
+            uint8_t got[MMGR_SHA256_BYTES];
+            MmgrSha256 running;
+            mmgr_sha256_begin(&running);
+            mmgr_sha256_take(&running, msg, cut);
+            mmgr_sha256_take(&running, msg + cut, len - cut);
+            mmgr_sha256_finish(&running, got);
+            if (memcmp(got, want, MMGR_SHA256_BYTES) != 0) { bad++; }
+        }
+        /* And a byte at a time, which is the worst case for the partial block path. */
+        {
+            uint8_t got[MMGR_SHA256_BYTES];
+            MmgrSha256 running;
+            mmgr_sha256_begin(&running);
+            for (size_t i = 0u; i < len; i++) { mmgr_sha256_take(&running, &msg[i], 1u); }
+            mmgr_sha256_finish(&running, got);
+            if (memcmp(got, want, MMGR_SHA256_BYTES) != 0) { bad++; }
+        }
+        printf("%u %u\n", (unsigned)len, bad);
+        fflush(stdout);
+    }
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    const char *mode = (argc > 1) ? argv[1] : "digest";
+
+    if (strcmp(mode, "selftest") == 0) { printf("%d\n", mmgr_sha256_self_test()); return 0; }
+    if (strcmp(mode, "monte") == 0)
+    {
+        unsigned checkpoints = 100u;
+        if (argc > 2) { sscanf(argv[2], "%u", &checkpoints); }
+        return monte(checkpoints);
+    }
+    if (strcmp(mode, "splits") == 0) { return splits(); }
+
+    while (fgets(line, (int)sizeof line, stdin) != NULL)
+    {
+        char *end = strchr(line, '\n'); if (end) { *end = '\0'; }
+        uint8_t out[MMGR_SHA256_BYTES];
+
+        if (strcmp(mode, "bits") == 0)
+        {
+            /* "<bitlen> <hex>", the bits left aligned in the last byte as CAVP packs them. */
+            char *space = strchr(line, ' ');
+            if (space == NULL) { continue; }
+            *space = '\0';
+            unsigned long long want = 0ull;
+            sscanf(line, "%llu", &want);
+            unhex(space + 1, msg, sizeof msg);
+            mmgr_sha256_bits(msg, (uint64_t)want, out);
+        }
+        else if (strcmp(mode, "hmac") == 0)
+        {
+            char *space = strchr(line, ' ');
+            if (space == NULL) { continue; }
+            *space = '\0';
+            const size_t klen = unhex(line, key, sizeof key);
+            const size_t mlen = unhex(space + 1, msg, sizeof msg);
+            mmgr_hmac_sha256(key, klen, msg, mlen, out);
+        }
+        else
+        {
+            size_t len = 0u;
+            if (strcmp(line, ".") != 0) { len = unhex(line, msg, sizeof msg); }
+            mmgr_sha256(msg, len, out);
+        }
+        put_hex(out, MMGR_SHA256_BYTES);
+    }
+    return 0;
+}
+'''
+
+
+def vectors_helper():
+    """Build the helper that reaches mmgr_sha256, and hand back its path."""
+    scratch = os.path.join(BUILD_CONTAINER, "vectors")
+    os.makedirs(scratch, exist_ok=True)
+    source = os.path.join(scratch, "sha_helper.c")
+    with open(source, "w", encoding="utf-8") as fh:
+        fh.write(SHA_HELPER)
+
+    exe = os.path.join(scratch, "sha_helper.exe")
+    built = run([
+        HOST_GCC, "-std=c11", "-O2", "-Wall", "-Wextra", "-Wconversion", "-Wsign-conversion",
+        "-I" + os.path.join(ROOT, "test", "support"), "-I" + os.path.join(ROOT, "include"),
+        "-I" + os.path.join(ROOT, "src"), "-I" + os.path.join(ROOT, "deps", "embedded_types", "include"),
+        source, os.path.join(ROOT, "test", "support", "mmgr_sha256.c"), "-o", exe,
+    ])
+    if built.returncode != 0:
+        sys.stderr.write(built.stdout + built.stderr)
+        return None
+    return exe
+
+
+def parse_rsp(text):
+    """Every (message hex, expected digest hex) pair in a CAVP response file."""
+    cases, msg, length = [], None, None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("Len ="):
+            length = int(line.split("=")[1].strip())
+        elif line.startswith("Msg ="):
+            msg = line.split("=")[1].strip()
+        elif line.startswith("MD ="):
+            # CAVP writes one 00 byte for the zero length message
+            cases.append(("" if length == 0 else msg, line.split("=")[1].strip()))
+    return cases
+
+
+def cmd_vectors(a):
+    """Run every published SHA-256 vector this tree carries, plus the streaming invariants."""
+    import hashlib  # noqa: PLC0415  only this command needs a reference implementation
+
+    manifest_path = os.path.join(VECTORS_DIR, "MANIFEST.json")
+    if not os.path.isfile(manifest_path):
+        print("no vendored vectors - run tools vendor_vectors.py")
+        return 1
+
+    with open(manifest_path, encoding="utf-8") as fh:
+        manifest = json.load(fh)
+
+    # The vectors are evidence, so what they hash to is checked before anything is read from them
+    drifted = 0
+    for entry in manifest["files"]:
+        path = os.path.join(VECTORS_DIR, entry["file"])
+        with open(path, "rb") as fh:
+            got = hashlib.sha256(fh.read()).hexdigest()
+        if got != entry["sha256"]:
+            print("DRIFT %s\n  manifest %s\n  on disk  %s" % (entry["file"], entry["sha256"], got))
+            drifted += 1
+    if drifted:
+        print("\n%d vendored file(s) do not match the manifest" % drifted)
+        return 1
+    print("%d vendored file(s) match the manifest" % len(manifest["files"]))
+
+    exe = vectors_helper()
+    if exe is None:
+        print("the helper did not build")
+        return 1
+
+    said = run([exe, "selftest"])
+    if said.stdout.strip() != "1":
+        print("the RFC 6234 self test failed, so nothing below can be read")
+        return 1
+    print("%-22s %s" % ("RFC 6234 + RFC 8448", "self test passed"))
+
+    bad = 0
+
+    def digest_file(name, label):
+        with open(os.path.join(VECTORS_DIR, name), encoding="utf-8", errors="replace") as fh:
+            cases = parse_rsp(fh.read())
+        feed = "".join((m if m else ".") + "\n" for m, _ in cases)
+        got = [ln.strip() for ln in run([exe], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+        wrong = sum(1 for (_, want), have in zip(cases, got) if have.lower() != want.lower())
+        wrong += abs(len(got) - len(cases))
+        print("%-22s %4d vectors, %d wrong" % (label, len(cases), wrong))
+        return wrong
+
+    bad += digest_file("nist_cavp_sha256shortmsg.rsp", "CAVP ShortMsg")
+    bad += digest_file("nist_cavp_sha256longmsg.rsp", "CAVP LongMsg")
+
+    with open(os.path.join(VECTORS_DIR, "nist_cavp_sha256monte.rsp"), encoding="utf-8") as fh:
+        text = fh.read()
+    seed = next(l.split("=")[1].strip() for l in text.splitlines() if l.strip().startswith("Seed ="))
+    want = [l.split("=")[1].strip() for l in text.splitlines() if l.strip().startswith("MD =")]
+    got = [ln.strip() for ln in run([exe, "monte"], quiet=True, stdin=seed + "\n").stdout.splitlines() if ln.strip()]
+    wrong = sum(1 for w, g in zip(want, got) if w.lower() != g.lower()) + abs(len(got) - len(want))
+    print("%-22s %4d checkpoints x 1000 rounds, %d wrong" % ("CAVP Monte", len(want), wrong))
+    bad += wrong
+
+    # The bit oriented tables, where Len counts bits and a message need not end on a byte. These are
+    # the only published vectors that reach mmgr_sha256_bits.
+    def bit_file(name, label):
+        with open(os.path.join(VECTORS_DIR, name), encoding="utf-8", errors="replace") as fh:
+            text = fh.read()
+        cases, msg, length = [], None, None
+        for raw in text.splitlines():
+            line = raw.strip()
+            if line.startswith("Len ="):
+                length = int(line.split("=")[1].strip())
+            elif line.startswith("Msg ="):
+                msg = line.split("=")[1].strip()
+            elif line.startswith("MD ="):
+                cases.append((length, msg, line.split("=")[1].strip()))
+        feed = "".join("%d %s\n" % (n, m) for n, m, _ in cases)
+        out = [ln.strip() for ln in run([exe, "bits"], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+        wrong = abs(len(out) - len(cases))
+        wrong += sum(1 for (_, _, want), have in zip(cases, out) if have.lower() != want.lower())
+        ragged = sum(1 for n, _, _ in cases if (n % 8) != 0)
+        print("%-22s %4d vectors (%d not on a byte), %d wrong" % (label, len(cases), ragged, wrong))
+        return wrong
+
+    bad += bit_file("nist_cavp_bit_sha256shortmsg.rsp", "CAVP bit ShortMsg")
+    bad += bit_file("nist_cavp_bit_sha256longmsg.rsp", "CAVP bit LongMsg")
+
+    # CAVP HMAC. Tlen is a truncated tag, so the comparison is against the leading Tlen bytes, which
+    # is what makes this reach truncation as well as the MAC itself.
+    with open(os.path.join(VECTORS_DIR, "nist_cavp_hmac_sha256.rsp"), encoding="utf-8") as fh:
+        hmac_text = fh.read()
+    hmac_cases, current = [], {}
+    for raw in hmac_text.splitlines():
+        line = raw.strip()
+        if line.startswith("#") or line.startswith("["):
+            continue
+        if "=" in line:
+            field, _, value = line.partition("=")
+            current[field.strip()] = value.strip()
+            if field.strip() == "Mac":
+                hmac_cases.append(current)
+                current = {}
+    feed = "".join("%s %s\n" % (c["Key"], c["Msg"]) for c in hmac_cases)
+    got = [ln.strip() for ln in run([exe, "hmac"], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+    wrong = abs(len(got) - len(hmac_cases))
+    truncated = 0
+    for case, have in zip(hmac_cases, got):
+        keep = int(case["Tlen"]) * 2
+        if int(case["Tlen"]) < 32:
+            truncated += 1
+        if have[:keep].lower() != case["Mac"].lower():
+            wrong += 1
+    print("%-22s %4d vectors (%d truncated tags), %d wrong"
+          % ("CAVP HMAC", len(hmac_cases), truncated, wrong))
+    bad += wrong
+
+    with open(os.path.join(VECTORS_DIR, "wycheproof_hmac_sha256.json"), encoding="utf-8") as fh:
+        doc = json.load(fh)
+    cases = [v for v in doc["vectors"] if str(v.get("tagSize")) == "256"]
+    feed = "".join("%s %s\n" % (v["key"], v["msg"]) for v in cases)
+    got = [ln.strip() for ln in run([exe, "hmac"], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+    wrong = 0
+    for case, have in zip(cases, got):
+        matched = have.lower() == case["tag"].lower()
+        # An invalid vector is a modified tag: reproducing it would mean a forgery verifies
+        if (case["result"] == "valid") != matched:
+            wrong += 1
+    valid = sum(1 for c in cases if c["result"] == "valid")
+    print("%-22s %4d vectors (%d valid, %d modified), %d wrong"
+          % ("Wycheproof HMAC", len(cases), valid, len(cases) - valid, wrong))
+    bad += wrong
+
+    # Every cut of a message must reach one digest. The published tables hash in a single call and
+    # cannot reach the streaming path at all, so this is the only thing testing it.
+    import random  # noqa: PLC0415  only this command needs it
+    rng = random.Random(20260901)
+    bodies = []
+    for length in VECTOR_EDGE_LENGTHS:
+        bodies.append(bytes(rng.randrange(256) for _ in range(length)))
+    feed = "".join((body.hex() if body else ".") + "\n" for body in bodies)
+    lines = [ln.split() for ln in run([exe, "splits"], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+    cuts = sum(len(b) + 2 for b in bodies)
+    wrong = sum(int(parts[1]) for parts in lines)
+    print("%-22s %4d messages, %d split points, %d disagreed" % ("streaming splits", len(bodies), cuts, wrong))
+    bad += wrong
+
+    # A second implementation, over the padding edges and a spread of random lengths
+    trials = [bytes(rng.randrange(256) for _ in range(n)) for n in VECTOR_EDGE_LENGTHS]
+    trials += [bytes(rng.randrange(256) for _ in range(rng.randrange(0, 4096))) for _ in range(400)]
+    feed = "".join((b.hex() if b else ".") + "\n" for b in trials)
+    got = [ln.strip() for ln in run([exe], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+    wrong = sum(1 for b, g in zip(trials, got) if hashlib.sha256(b).hexdigest() != g)
+    print("%-22s %4d messages, %d disagreed" % ("differential", len(trials), wrong))
+    bad += wrong
+
+    # The chain past where NIST stops. CAVP's hundred checkpoints are the anchored part; beyond them
+    # the construction is still valid and a second implementation supplies the expectation, so the
+    # volume is bounded by patience rather than by what anyone published.
+    if a.soak > 0:
+        checkpoints = a.soak
+        got = [ln.strip() for ln in
+               run([exe, "monte", str(checkpoints)], quiet=True, stdin=seed + "\n").stdout.splitlines() if ln.strip()]
+
+        reference = []
+        md = bytes.fromhex(seed)
+        for _ in range(checkpoints):
+            first, second, third = md, md, md
+            for _ in range(1000):
+                nxt = hashlib.sha256(first + second + third).digest()
+                first, second, third = second, third, nxt
+            md = third
+            reference.append(md.hex())
+
+        anchored = sum(1 for w, g in zip(want, got) if w.lower() == g.lower())
+        diverged = next((i for i, (r, g) in enumerate(zip(reference, got)) if r.lower() != g.lower()), None)
+        wrong = 0 if diverged is None else 1
+
+        print("%-22s %4d checkpoints, %d anchored to CAVP, %s"
+              % ("Monte soak", len(got), anchored,
+                 "no divergence" if diverged is None else "DIVERGED at checkpoint %d" % diverged))
+        print("%-22s %d SHA-256 calls over %d chained rounds"
+              % ("", checkpoints * 1000, checkpoints * 1000))
+        bad += wrong
+
+    print()
+    if bad:
+        print("%d check(s) failed" % bad)
+        return 1
+    print("every published vector this tree carries passes, and the streaming path agrees with a")
+    print("second implementation on every message tried")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1523,6 +2198,21 @@ def main():
     p.add_argument("--write", action="store_true", help="keep the regenerated output instead of restoring")
     p.add_argument("--strict", action="store_true", help="exit non-zero on a finding, for a CI gate")
     p.set_defaults(fn=cmd_generated)
+
+    p = sub.add_parser("vectors", help="run every published SHA-256 vector, offline, plus the streaming invariants")
+    p.add_argument("--soak", type=int, default=0, metavar="N",
+                   help="carry the CAVP Monte chain to N checkpoints, past where NIST stops")
+    p.set_defaults(fn=cmd_vectors)
+
+    p = sub.add_parser("targets", help="compile the module for every part and check its derivation")
+    p.add_argument("--strict", action="store_true", help="exit non-zero on a finding, for a CI gate")
+    p.set_defaults(fn=cmd_targets)
+
+    p = sub.add_parser("remote", help="build and run the praet suite on another machine over ssh")
+    p.add_argument("host", help="address of the machine, as ssh takes it")
+    p.add_argument("--user", default="dstroy0", help="account there")
+    p.add_argument("--dir", default="~/mmgr-praet", help="working directory there, made if absent")
+    p.set_defaults(fn=cmd_remote)
 
     a = ap.parse_args()
     return a.fn(a)
