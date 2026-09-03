@@ -57,7 +57,7 @@ Run on 60 extracted papers with $q=7$: one file scored $\mathrm{sets} \ge 5$ wit
 
 To separate a real partition from the arithmetic of splitting a key space, permute the labels within each pre-split group, holding cell counts fixed:
 
-$$\pi^{*} \sim \mathrm{Unif}\bigl(\mathfrak{S}(\text{labels within group})\bigr), \qquad \Delta = \mathbb{E}[\,r(\pi^{*})\,] - r(\pi_{\text{obs}})$$
+$$\pi^{*} \sim \mathrm{Unif}\bigl(\mathcal{S}(\text{labels within group})\bigr), \qquad \Delta = \mathrm{E}\bigl[\,r(\pi^{*})\,\bigr] - r(\pi_{\text{obs}})$$
 
 $\Delta \le 0$ means the observed split bought nothing a random split of identical shape would not (`tools/dev_env/case_or_splitting.py:110-131`). Over 19 corpora capped to 60000 tokens, $\Delta$ ranged $+0.0056$ to $+0.0901$, with null scatter $\le 0.0133$ over 5 draws.
 
@@ -65,7 +65,7 @@ $\Delta \le 0$ means the observed split bought nothing a random split of identic
 
 Average-linkage agglomeration over $D$. A tree can be built from any matrix, so report the correlation between the cophenetic height $h(i,j)$ at which $i$ and $j$ first join and the measured distance:
 
-$$\rho_c \;=\; \mathrm{corr}\bigl(\,D(i,j),\; h(i,j)\,\bigr)_{i<j}$$
+$$\rho_c \;=\; \mathrm{corr}\bigl(\,D(i,j),\; h(i,j)\,\bigr)_{i \lt j}$$
 
 Low $\rho_c$ means the tree imposes structure the distances do not carry, and the output is an ordering with no groups in it (`tools/dev_env/cluster_profiles.py`). Measured $\rho_c = 0.8406$ over $171$ pairs on 19 languages.
 
