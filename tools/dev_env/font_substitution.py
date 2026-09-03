@@ -36,13 +36,17 @@ EDGES = ".,!?;:“”‘’\"'()[]…«»"
 
 # What the damaged text appears to write, and what the clean papers write in its place. Every entry
 # here is a hypothesis and none of it is applied to anything until the hit rate says it holds.
+# The caron entries come first: this font writes it as a separate character before its letter, so
+# x̌ arrives as ˇx and č as ˇc. Replacing the bare letters first would consume them and leave the
+# caron stranded, so order matters and a plain dict is relied on to keep insertion order.
 CANDIDATE = {
+    "ˇx": "x̌",
+    "ˇc": "č",
+    "ˇs": "š",
     "@": "ə",
     "P": "ʔ",
     "ì": "ɬ",
     "Q": "ʕ",
-    "S": "š",
-    "X": "x̌",
 }
 
 

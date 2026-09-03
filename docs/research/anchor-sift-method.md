@@ -39,25 +39,25 @@ Measured on 20 corpora cut to 6707 bytes each: $D_{\text{self}}$ ranged $0.1118$
 
 $D_{\text{self}}$ falls as the distribution concentrates, independently of the language. Report support and entropy alongside it:
 
-$$\operatorname{supp}(P) = \bigl|\{\,k : P(k) > 0\,\}\bigr|, \qquad H(P) = -\sum_{k} P(k)\log_2 P(k)$$
+$$\mathrm{supp}(P) = \bigl|\{\,k : P(k) > 0\,\}\bigr|, \qquad H(P) = -\sum_{k} P(k)\log_2 P(k)$$
 
-Across those 20 corpora, $\operatorname{supp}$ ran $193$ to $970$ and tracked $D_{\text{self}}$ almost monotonically. A corpus in a low-support encoding looks internally consistent for arithmetic reasons. Any ranking of $D_{\text{self}}$ across different writing systems is a ranking of $\operatorname{supp}$ until shown otherwise (`tools/dev_env/byte_signature.py:157-175`).
+Across those 20 corpora, $\mathrm{supp}$ ran $193$ to $970$ and tracked $D_{\text{self}}$ almost monotonically. A corpus in a low-support encoding looks internally consistent for arithmetic reasons. Any ranking of $D_{\text{self}}$ across different writing systems is a ranking of $\mathrm{supp}$ until shown otherwise (`tools/dev_env/byte_signature.py:157-175`).
 
 ## 5. Corruption against a reference inventory
 
 Given the character sets $S = \{s_1 \dots s_q\}$ that carry the distinctive parts of a writing system:
 
-$$\operatorname{sets}(T) = \sum_{s \in S} \mathbb{1}\bigl[\,\exists\, c \in T,\ c \in s\,\bigr], \qquad \mu(T) = \frac{10^3}{|T_\alpha|}\bigl|\{\,c \in T : \operatorname{comb}(c)\,\}\bigr|$$
+$$\mathrm{sets}(T) = \sum_{s \in S} \mathbf{1}\bigl[\,\exists\, c \in T,\ c \in s\,\bigr], \qquad \mu(T) = \frac{10^3}{|T_\alpha|}\bigl|\{\,c \in T : \mathrm{comb}(c)\,\}\bigr|$$
 
-where $T_\alpha$ is the alphabetic subsequence and $\operatorname{comb}$ marks combining characters. Extraction loss drops combining marks first, so $\mu \to 0$ with $\operatorname{sets} \ll q$ identifies a corrupted file whose surviving text is still well-formed (`tools/dev_env/salish_purity.py:57-71`).
+where $T_\alpha$ is the alphabetic subsequence and $\mathrm{comb}$ marks combining characters. Extraction loss drops combining marks first, so $\mu \to 0$ with $\mathrm{sets} \ll q$ identifies a corrupted file whose surviving text is still well-formed (`tools/dev_env/salish_purity.py:57-71`).
 
-Run on 60 extracted papers with $q=7$: one file scored $\operatorname{sets} \ge 5$ with $\mu > 0$. The rest lost the marks entirely.
+Run on 60 extracted papers with $q=7$: one file scored $\mathrm{sets} \ge 5$ with $\mu > 0$. The rest lost the marks entirely.
 
 ## 6. Null by permutation
 
 To separate a real partition from the arithmetic of splitting a key space, permute the labels within each pre-split group, holding cell counts fixed:
 
-$$\pi^{*} \sim \operatorname{Unif}\bigl(\mathfrak{S}(\text{labels within group})\bigr), \qquad \Delta = \mathbb{E}[\,r(\pi^{*})\,] - r(\pi_{\text{obs}})$$
+$$\pi^{*} \sim \mathrm{Unif}\bigl(\mathfrak{S}(\text{labels within group})\bigr), \qquad \Delta = \mathbb{E}[\,r(\pi^{*})\,] - r(\pi_{\text{obs}})$$
 
 $\Delta \le 0$ means the observed split bought nothing a random split of identical shape would not (`tools/dev_env/case_or_splitting.py:110-131`). Over 19 corpora capped to 60000 tokens, $\Delta$ ranged $+0.0056$ to $+0.0901$, with null scatter $\le 0.0133$ over 5 draws.
 
@@ -65,7 +65,7 @@ $\Delta \le 0$ means the observed split bought nothing a random split of identic
 
 Average-linkage agglomeration over $D$. A tree can be built from any matrix, so report the correlation between the cophenetic height $h(i,j)$ at which $i$ and $j$ first join and the measured distance:
 
-$$\rho_c \;=\; \operatorname{corr}\bigl(\,D(i,j),\; h(i,j)\,\bigr)_{i<j}$$
+$$\rho_c \;=\; \mathrm{corr}\bigl(\,D(i,j),\; h(i,j)\,\bigr)_{i<j}$$
 
 Low $\rho_c$ means the tree imposes structure the distances do not carry, and the output is an ordering with no groups in it (`tools/dev_env/cluster_profiles.py`). Measured $\rho_c = 0.8406$ over $171$ pairs on 19 languages.
 
@@ -73,7 +73,7 @@ Low $\rho_c$ means the tree imposes structure the distances do not carry, and th
 
 Languages are not independent draws. Sampling one per family defeats the shared-history term:
 
-$$\hat{\pi} \;=\; \frac{1}{d}\sum_{t=1}^{d} \frac{1}{|F|}\sum_{f \in F} \mathbb{1}\bigl[\,h(x_{f,t})\,\bigr], \qquad x_{f,t} \sim \operatorname{Unif}(f)$$
+$$\hat{\pi} \;=\; \frac{1}{d}\sum_{t=1}^{d} \frac{1}{|F|}\sum_{f \in F} \mathbf{1}\bigl[\,h(x_{f,t})\,\bigr], \qquad x_{f,t} \sim \mathrm{Unif}(f)$$
 
 over $d$ draws and family set $F$. Report $\hat{\pi}$ with its across-draw standard deviation (`tools/dev_env/evidential_pressure.py:65-78`). Run on 418 languages across 121 families, $d=300$: area rates $0.089$ to $0.716$ with scatter $0.029$ to $0.069$.
 
