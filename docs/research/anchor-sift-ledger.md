@@ -1243,7 +1243,9 @@ rate without counting blocks, which is what the compression based estimators do,
 run. The claim that the information is held at low order is withdrawn, and nothing replaces it.
 
 **What a text gains at each distance describes the text and not the language, and it is twice as much a
-property of where the text came from.** Since no single window holds a text, the sweep gives a curve
+property of where the text came from.** [The measurement is sound and the wording is not. It shows the
+curve carries the source more than the language, not that it carries nothing of the language, and a ratio
+of 2.064 with matching at chance is consistent with a language signal buried under a larger one.] Since no single window holds a text, the sweep gives a curve
 instead of a number, and that curve was worth testing as a description of a language. On the question
 that gave the character web 0.926, one language from two places against two languages from one place, the
 curve gives 2.064, and it matches its own language elsewhere 2 times in 67 against a chance of 3.4
@@ -1349,6 +1351,24 @@ worth having. It was not run on the next seven corpora fetched. So the lesson is
 be audited, which was already known and written down here, but that a check one has to remember is a
 check that does not run. It belongs where a corpus is loaded and not in a tool of its own.
 
+**The best test here was assembled out of the failures before it and could not have been designed
+first.** Zulu against Xhosa is the one measurement in this section with no way out: a close pair, one
+script, one text, one set of translators, so a failure would have meant the reading does not follow
+language at all. Every one of those constraints came from something that had already gone wrong. Tamil
+and Malayalam supplied the need for one script. Uralic supplied the need for a shallow relationship
+instead of a deep one. The Chinese pairs supplied the need for one collection. The test is the leftover
+after the exclusions, and there was no way to reach it except through them.
+
+Whether a failure teaches anything depends on what it removes, and each of these removed something the
+next one needed. That is worth stating because the same sequence read as flailing while it was happening
+and reads as a search afterward, and only the second reading is right.
+
+What improved alongside it was the working method and the two should not be confused. The first three
+explanations offered for the Dravidian inversion were all wrong, and one of them was a confound the
+instrument is built to be immune to, proposed without checking. The predictions after that held, and what
+changed between them was not only that the space had narrowed: the files were being looked at before
+theories were built on them.
+
 **Every bound put on a quantity in this work has had to be taken back off, and the reading improved each
 time it was.** This is not a mood about the work, it is the same defect found ten separate times in one
 sitting, each with a number attached.
@@ -1391,7 +1411,10 @@ this. Reading a language from four books of the same catalog and calling the agr
 language assumes what this measures, and what it measures is that where a text came from carries almost
 as much as what language it is in.
 
-**Being a procedure leaves no mark here that being formally written does not already leave.** Four bands
+**Being a procedure leaves no mark here that being formally written does not already leave.**
+[Overclaimed as a negative, and doubly so. The reading is a character web, which is a statement about
+neighboring letters being asked whether a text is instruction, and a reader tells a recipe from a novel
+at a glance. What was shown is that this reading does not separate them, on two texts of source code.] Four bands
 were gathered to test it: source code, which is a procedure carried out exactly; instruction written for
 rulers, which is procedure at the scale of a campaign and reaches back to Xenophon and Caesar; cookery,
 which is procedure at the scale of a kitchen with its measurements no longer readable; and narrative,
@@ -1408,6 +1431,38 @@ the procedure, since the two informal procedures do not go with it.
 Two limits on that. Source code is two texts here, which is too few for the one band that did separate.
 And the reading is a character web, which is a statistic about neighboring letters being asked a question
 about how a whole book is arranged, the same mismatch that made the earlier shuffle test return nothing.
+
+**Every negative result in this section is ambiguous in a way the positives are not, and they have all
+been written as though they were not.** A reading that finds something has found it. A reading that finds
+nothing has established only that this reading did not find it, and that is compatible with the
+information being absent from the text and with the information being present and needing a competence
+the reading has none of.
+
+The two are not distinguishable here and they have been reported as the first. Japanese authorship scores
+19 percent by the square, and a Japanese reader is not in any doubt about which writer they are reading.
+Finnish and Hungarian read as unrelated and a historical linguist establishes the relationship from
+evidence a character stream does not carry. The participants in a conversation know exactly who is saying
+what, and this reading of the same words is clueless.
+
+That bounds the phrase used throughout this work more tightly than the literacy limit does. What can be
+seen without context is that a text is language and roughly what kind of language. Almost everything a
+competent reader knows at once is opaque to it, and the failures above cannot be told from that opacity.
+
+**The oldest continuous language traditions on earth are outside this work entirely, and two separate
+things put them there.** Everything here reads text. Aboriginal Australian languages carry tens of
+thousands of years of unbroken oral tradition and no writing, so they are not underrepresented in the
+corpus, they are absent from the method. Whatever a reading of written language finds, it has never been
+asked of the longest continuous case there is.
+
+The second reason is not about availability and should not be filed as though it were. In many of those
+traditions the language is sacred and inseparable from law and country, held under restriction by
+initiation, by gender or by clan. Taking such material because a repository serves it would breach
+protocols that exist for reasons unrelated to what a license says.
+
+There is also a plain mismatch between the method and the object. This work reads text as pattern with
+the meaning stripped out, deliberately, which is what let it treat an undeciphered script and a protein
+chain with the same instrument. Where a language is a religion, that operation does not miss part of the
+thing, it mistakes what the thing is, and the numbers would be about something else.
 
 **Everything measured in this work is the writing of people who were taught to write.** A cookbook of 1390
 is a king's cook's, a manual on campaigns is a general's, advice for princes was written for a prince,
@@ -1505,6 +1560,365 @@ puts 8 of 22 languages nearest a relative, while seven bits identifies worse at 
 nearest a relative. Naming a language and grouping languages are different objectives and a width chosen
 for one is not the width for the other.
 
+**Of what separates two German books, the author is worth 11 percent, the century 1 percent, and the book
+itself 88.** Measured over 1244 texts by 608 authors, 268 of whom have more than one work here, with every
+text cut to one length. Two works by one author sit 0.0737 apart. Two by different authors of one century
+sit 0.0824. Two sharing neither sit 0.0833. So sharing a century is worth 0.0009 and sharing an author
+0.0088, and the floor between two works by the same person is nearly the whole distance between two works
+by strangers.
+
+That is the residue named in the diachronic result, opened and measured. What makes two books read
+differently is almost entirely that they are two books.
+
+**The reading is not one reading, because a character is a morpheme in some writing and a fragment of one
+in the rest.** A Chinese character carries meaning and combines with other characters under rules, so
+which character follows which is which morpheme follows which, and that is semantic and syntactic
+structure read directly. A Latin letter carries no meaning, so the same reading over an alphabet is
+orthography and phonotactics. Two different quantities have been carrying one name throughout this
+section.
+
+That explains several things recorded separately. Chinese could not be read at byte width at all and had
+to be given character width, which was noted as a practical matter and is a difference in kind. It sat
+outside every band it was measured against. And reading the alphabetic languages at word width to reach
+the same unit made everything worse, because a word is not a morpheme and is several of them in an
+agglutinative language, which is where that test separated the languages by how much they inflect.
+
+The asymmetry cannot be removed by choosing a unit. Chinese supplies morphemes in its writing and every
+alphabetic language needs segmenting to reach them, so a fair comparison across the two needs a
+morphological analyzer per language, which this work does not have.
+
+**Tone is the first thing measured here that clears the floor everything else sank under.** Three tonal
+languages held here do not allow the tone to be taken out. Chinese fuses it into the character, Thai
+spreads it across marks and the class of the initial consonant together, and Japanese never writes its
+pitch accent at all. Vietnamese writes six tones as marks that are separate from the marks setting vowel
+quality, so the tone can be deleted and nothing else.
+
+Deleting it moves the reading 0.0949. Every other language here was stripped of all of its marks and none
+moved that far: Czech 0.0779, Romanian 0.0723, Turkish 0.0582, Spanish 0.0409, French 0.0369. Vietnamese
+carries 0.209 marks for every letter and that count is tone alone.
+
+The control decides it. Two unrelated passages of Vietnamese, four hundred thousand characters each, sit
+0.0874 apart. Vietnamese with its tone removed sits 0.0949 from itself. Deleting the tone makes a text
+less like itself than a different part of the same language is.
+
+Everything else measured in this section sits under that floor. The writer is worth 7 to 11 percent, the
+century 1, four hundred years of changing orthography 5, and all of it is swamped by two books being two
+books. Tone is over the floor, and it is over it while every letter stays on the page.
+
+**Repeated outside the family, the decomposition holds.** Japanese gives the writer 5 percent of the
+distance between two works and leaves 95, against 11 and 88 in German. Same order and same conclusion, in
+a language outside Indo-European that writes with three systems at once, marks no word boundaries, and
+never puts its pitch accent on the page. So the finding that what separates two books is mostly that they
+are two books is not a fact about Germanic.
+
+The sizes are not comparable. Fifty two works by twenty three writers, thirteen of them with more than
+one work, giving 55 pairs by one writer against Germany's 1370.
+
+**Three numbers beat four thousand at finding a Japanese writer, by nearly five to one.** How much
+Chinese-derived character a text uses against how much syllabary is a choice of register and period and
+person, with no Germanic equivalent, and it was written down as a prediction before the run. It takes 24
+percent of the distance where the character square takes 5.
+
+Both figures moved when the corpus grew from forty works to fifty two, and they moved apart: the square
+fell from 7 percent to 5 and the ratio rose from 16 to 24. So the earlier run understated the gap, and
+this is the second time a small description has matched or beaten the square, after a twenty one bin
+histogram of word lengths equalled it on families.
+
+**Every structural result in this section was measured on one branch of one family.** The breadth here
+looks wide: 26 languages outside Indo-European across Uralic, Turkic, Semitic, Sinitic, Japonic,
+Koreanic, Dravidian, Bantu, Cushitic, Austronesian and Kartvelian. But the questions that take the
+reading apart, what an author is worth, what a century is worth, what is left over, were all asked of
+English and German, which are two Germanic languages of one family.
+
+So the figures above describe Germanic prose and are written here as though they described writing. That
+is not a small qualification: an interrelated family shares inherited structure, a shared alphabet, and a
+thousand years of borrowing from each other, and a constant found across its members can be a fact about
+the family and read as a fact about language. Correcting it needs a corpus outside the family with author
+and date metadata of the same quality, which is what made the German result possible and what every
+earlier attempt at this question lacked.
+
+**Across three centuries of one language, with dates nobody here chose, time leaves a mark of about five
+percent.** The German printed record from 1600 to 1899, prepared to one standard, each text carrying its
+year in its name, split into centuries by the archive. This is the question the cookery books could not
+answer: those were dated by the first four digit number printed in them, then by author lifetimes, and
+split at a boundary chosen so five books fell on one side.
+
+A text lands in its own century 112 times in 210, against 33.3 percent for guessing. The graded form says
+more: mean distance climbs with the years between two texts, 0.0803 under 25 years, 0.0808, 0.0823,
+0.0829, then 0.0820, then 0.0843 above 200. Monotone but for one dip, and the whole span of it is five
+percent.
+
+German spelling, capitalization and typesetting all moved a great deal over those centuries and the
+reading barely registers it. What separates two books written eighty years apart is mostly that they are
+two books.
+
+One figure from that run should not be quoted. The correlation between years apart and distance apart is
+0.076 and was computed over 21945 pairs, which come from 210 texts. Pairwise distances are not
+independent observations, so the effective count is the texts and not the pairs, and any significance
+read off that denominator is invented. The monotone ordering of the bins is the evidence here.
+
+**Dividing the frequencies out of the reading compresses every distance toward the average and does not
+separate script from structure.** The reading holds two things: how often each character is used, which
+belongs to a script and its conventions, and what follows what given those frequencies, which is about
+how a language is built. Since every result in this section says the first dominates, dividing the joint
+counts by the product of the two marginals should leave the second alone.
+
+Half of it came out as predicted. Tamil to Malayalam, the closest pair in its family and the widest
+distance measured, fell from 1.200 to 0.988 of the average. The two Chinese character sets fell from
+1.188 to 0.988. Both of those distances are script and both closed up.
+
+The other half is the answer. Zulu to Xhosa, the closest pair measured anywhere and the one result with
+no confound left in it, rose from 0.737 to 0.909. The control of one language in one character set rose
+from 0.498 to 0.700. Every distance above the average fell and every distance below it rose, and all
+eight landed near 1.0.
+
+That is compression and not correction. What the operation removes is most of the variance, and what
+remains is distances that are all alike. The marginals were never only script: a language with many
+vowels or heavy affixation has different letter counts for reasons that are the language, so dividing
+them out discards that with the conventions. The ratio also weights rare pairs most, where the expected
+count is smallest and the estimate worst, so part of what replaces the removed signal is noise.
+
+**A writer is found at the word and not at the character, which is the same split the languages showed
+one level down.** Seven writers, thirty one works between them, all English prose of nearly one period, so
+the language, the script and the century are fixed and only the writer changes. Guessing gets one in
+seven.
+
+Which character follows which gets 35.5 percent, two and a half times chance and no more, with a writer's
+own works sitting 0.0600 apart against 0.0680 for two writers. How often each common word is used gets
+77.4 percent, with 0.0220 against 0.0331. The words carry the writer and the characters barely do.
+
+That is what the language work predicts once the reading is understood as following surface. These seven
+share an alphabet and its conventions entirely, so a reading of which character follows which has almost
+nothing left to separate them, exactly as it had nothing to separate Zulu from Xhosa in the other
+direction and everything to separate Tamil from Malayalam. The misses say it plainly: Conrad taken for
+Eliot, Eliot for Conrad and for Stevenson, Doyle for Stevenson, which is period and register and not
+authorship.
+
+The words are also where the objection about a text not being one distribution has force. That was raised
+against the whole approach and measured as negligible, because letter frequencies barely move within a
+book. Word frequencies move a great deal between chapters and speakers, and the word reading here is
+built on exactly that quantity, so its 77.4 percent is carried partly by a drift that the character
+reading was immune to.
+
+**Every language carries more than one reading per written word, so a walk through a sentence multiplies
+possibilities and cannot collapse.** Counted on treebanks, where each token carries its lemma and the
+case, number, gender and person it stands in, so readings sharing a surface form are counted and not
+estimated. German 4.0936, English 3.8516, Polish 2.9505, Turkish 2.2818, Estonian 1.8068, Finnish 1.5965,
+Hungarian 1.5440, Vietnamese 1.4492.
+
+That answers why a reading over a growing window kept climbing here and would not settle. The possibilities
+over n words go as the product of the readings each carries, and a product of numbers above one grows.
+The flattest language measured, which has no inflection at all, still stands at 1.4492 and reaches 41 over
+ten words. The steepest reaches 1321429. Nothing collapses on its own, and what collapses it in reading
+is context pruning the space faster than the walk opens it, which is the work of parsing itself.
+
+**The prediction that went with this was backwards and the correction is the finding.** Polish was expected
+highest for its case syncretism and English lowest for having almost no inflection. The order is close to
+the reverse. Agglutination reduces ambiguity instead of making it: a Finnish word spells its case in a
+morpheme of its own, so the form states what it is, while English ambiguity is between parts of speech,
+run and that and set, and German adds case syncretism on top of the same. Many cases explicitly marked is
+the opposite of ambiguous, and the two were conflated here.
+
+The corpora differ seventeen fold in size and a form counts as ambiguous only where the corpus used it
+both ways, so the small ones understate. Hungarian and Vietnamese are the two smallest and among the
+lowest. The split holds among the large ones: Estonian is the largest at 344581 tokens and reads 1.81
+against German at 263777 and 4.09.
+
+**Words for sounds follow the border and not the family.** Hungarian is Uralic and Polish is Slavic and
+they have shared the Carpathian basin since the Magyars arrived into Slavic speaking country around 895.
+Words imitating sounds sit outside the core vocabulary that resists borrowing and attach to shared work,
+so they are where a thousand years of the same fields would show. Taken from a dictionary that files them
+by what they are, stripped to bare letters so neither language is separated by how it decorates its
+vowels, and compared over equal sized draws since the lists run from twenty words to four hundred and
+fifty five.
+
+Hungarian to Polish reads 0.5959 against 0.6530 for unrelated languages sharing no border, so the claim
+holds. What is larger than the claim is the pattern behind it: every bordering pair beats every
+non-bordering pair whatever their families. Polish to Czech 0.5512, Finnish to Estonian 0.5748, Hungarian
+to Czech 0.5857 and Hungarian to Polish 0.5959 sit below Polish to Finnish 0.6167, Hungarian to Finnish
+0.6320, Hungarian to Estonian 0.6883 and Polish to Estonian 0.6892, with no overlap between the two
+groups.
+
+Hungarian sits closer to Czech, which it is not related to, than to Finnish, which it is. For this part
+of a vocabulary geography beats descent outright, which is the reverse of what the same kind of reading
+gives for ordinary words.
+
+Estonian brings twenty words and holds both of the highest readings, though the pattern survives dropping
+it.
+
+**Read as sounds instead of letters the pattern holds and the effect halves.** The dictionary keeps no
+transcriptions for these languages: Hungarian pages carry a template that builds the pronunciation from
+the spelling when the page is drawn, and several Polish pages carry nothing. That is the answer to
+whether transcriptions would be new evidence, and they would not be, since for five languages with
+phonemic orthographies the pronunciation is a function of the spelling. What they give is the shared
+alphabet, so that Hungarian sz and Polish sz stop counting as the same consonant when they are not.
+
+Mapped that way, every bordering pair still sits below every non-bordering one: Polish to Czech 0.5919,
+Hungarian to Czech 0.5926, Finnish to Estonian 0.6374 and Hungarian to Polish 0.6448 against Hungarian to
+Finnish 0.6541, Polish to Finnish 0.6685, Hungarian to Estonian 0.7046 and Polish to Estonian 0.7094. The
+gap between the two groups falls from 0.0208 in letters to 0.0093 in sounds, so about half of what the
+spelling showed was neighbors sharing spelling conventions and about half is the words sounding alike.
+Hungarian still sits nearer Czech than Finnish, which is the part the confound was most likely to have
+manufactured.
+
+The mappings are written by hand here from the standard description of each orthography, so an error in
+them is an error in the result. Every distance rises because the sound alphabet is larger than twenty six
+letters, which is why the numbers move together and only their ordering can be read.
+
+**The families survive losing the alphabet entirely, and the claim below that they do not is wrong.**
+Reducing every Latin written language to the same twenty six bare letters, with every accent, tail and
+stroke removed and nothing kept that any language holds and another lacks, gives 13 of 22 languages
+nearest a relative. Reading the same texts with every character they actually use gives 13 of 22. The
+alphabet is worth nothing to the family result.
+
+Stripping it also corrects some pairings. Latvian moves from Czech to Lithuanian, which is Baltic finding
+Baltic. Polish moves from Slovenian to Czech, which is West Slavic finding West Slavic. Romanian moves to
+Portuguese, Spanish to Portuguese, Swedish to Norwegian. The spelling was interfering with the family
+signal in those cases and removing it helped.
+
+What survives is what the bare letters still hold: the sounds a language uses, and the endings it inflects
+with, which sit in plain letters whatever a language does to its vowels. Latvian and Lithuanian pair on
+shared Baltic morphology as soon as their diacritics stop separating them.
+
+**Most of what this reading calls naming a language is matching an alphabet.** [Overclaimed, and this is
+the correction. Removing the characters each language uses far more than the others moves fourteen of
+twenty to a different nearest, which is true, and it was read as the family signal being spelling. Most
+of those move to another member of the same family, so the fine grained question of which relative is
+nearest is carried by the alphabet and the family is not.] Hungarian is detected here
+while the field's own settings say Hungarian wants shorter runs than anything measured, which is the
+opposite of what its morphology needs, and both cannot be about the same thing. So the characters each
+language uses far more than the others were found and then removed, every language losing its own so none
+is handicapped.
+
+Fourteen of twenty languages find a different nearest neighbor once those characters are gone. The ratios
+say why: Latvian uses its long a 28640000 times more than everything else combined, Turkish its dotless
+i 46996667 times, Vietnamese its barred d 18520000. Those are not characters a language favors, they are
+characters that occur in one language and nowhere else, and a reading that names Latvian by them knows
+nothing about Latvian.
+
+The six that do not move are the informative ones and they are the real clusters: French to Italian,
+Italian to Spanish, Spanish to Italian and Romanian to Italian, which is Romance, together with Latvian
+to Czech and Polish to Slovenian. Those pairings survive every distinctive character being deleted, so
+they rest on something other than the inventory.
+
+Polish is the case where both hold at once. It is trivially identifiable by its alphabet, its slashed l
+alone appearing 22543333 times more than elsewhere, and its pairing with Slovenian holds after all of
+that is stripped out. Being unique in an inventory and being related to a neighbor are separate facts and
+this reading usually cannot tell them apart.
+
+**Mining the field's own settings for language constants does not work from abstracts, and the first
+result that looked like it worked was noise.** The idea is sound: people have built language identifiers
+and authorship attributors for decades, language by language, and the run length each settled on is a
+statement about that language that nobody published as a finding. The whole bibliography of the field is
+served with abstracts, 131040 entries.
+
+Three languages cleared a threshold of eight papers and fell in the predicted order: Chinese 2.35,
+English 2.53, Arabic 2.59, which is logographic lowest and root and pattern highest, exactly as a
+character carrying a whole morpheme against a morphology spanning a discontinuous pattern would give.
+Lowering the threshold to four papers brought in nine more languages and destroyed it. Hungarian reads
+1.25, the lowest of twelve, and is the most strongly agglutinative language in the set, which should need
+the longest runs. German is highest at 3.00 and is fusional.
+
+The method cannot work as built and more data would not save it. Counting how often an abstract says
+bigram or trigram measures what a paper discusses, and a paper reporting that trigrams failed mentions
+them as often as one reporting they won. It reads the vocabulary of the field and not any property of a
+language.
+
+What the idea needs is the results tables of full texts, where a tuned setting is stated as an outcome
+instead of named in passing. That was worth knowing before 42 megabytes were downloaded to find it out.
+
+**Run against every task here, the square wins two of four by margins the size of the noise, and the
+character frequencies alone come within three points of it.** Six descriptions of the same texts were put
+to four questions. Which family a language belongs to: the square 50.0 percent, word lengths 44.1, the
+frequencies 38.2. Which century a German book is from: the square 58.5, the frequencies 55.6. Which
+English writer: the square 47.1 and the frequencies 47.1, exactly level. Which Japanese writer: the
+square 19.0 and the frequencies 35.7, which the square loses by seventeen points.
+
+So the transitions buy six points on families, three on centuries, nothing on English authorship, and
+cost seventeen on Japanese, for sixty four to a hundred and ninety five times the numbers.
+
+The wins do not survive being looked at closely. With 34 items scored, one text is three points, and the
+square returned 15 of 34 on families in an earlier run and 17 here on the same corpus with only the read
+length and the cleaning different. Its advantages are the size of the difference between two runs of
+itself.
+
+What the comparison establishes is smaller and firmer than the question that prompted it. Reading how
+often each character is used, with nothing at all about what follows what, is within three points of the
+whole apparatus on three of four questions and better on the fourth.
+
+**Twenty one numbers do what four thousand were doing.** How the word lengths of a text are distributed
+puts 15 of 34 languages nearest a relative. Which character follows which, over a square of four thousand
+ninety six, puts 15 of 34. Mean word length and its spread alone, which is two numbers, puts 12. So the
+square carries no more of a family than the lengths do, and most of the machinery in this section was
+holding a signal that a histogram holds.
+
+They are not the same signal, since they fail on different languages. The lengths lose Estonian to
+Romanian and Finnish to Lithuanian. The square loses Afrikaans to Finnish and Dutch to Turkish. Partly
+complementary and neither better.
+
+The prediction that went with this was wrong. Word length was expected to rescue the families the square
+lost, since Uralic and Dravidian are agglutinative and should have long words throughout. Estonian reads
+4.08 and Finnish 6.30, which is a wide gap inside one family, and it is not noise: Estonian lost its final
+vowels and its words are shorter for that reason. Dravidian splits the same way, Malayalam at 8.84 and
+Telugu at 6.96. What failed the square fails the lengths, for reasons of its own.
+
+Three languages cannot be measured this way at all. Chinese, Japanese and Thai mark no word boundaries,
+so the descriptor that matches the whole apparatus does not exist for them, which is the plainest form of
+this reading not being one reading across writing systems.
+
+**Cut down to two symbols the relationship still shows, and what is left is word length.** The alphabet
+was coarsened by keeping only the commonest few symbols of each text and folding everything else into
+one, swept from thirty two down to two. At every level the close pairs stay closer than the far pairs,
+including at two, where the only distinction left is whether a character is the commonest one.
+
+For most of these languages the commonest character is the space, so at two symbols the text is a record
+of word lengths and nothing else. That is why it survives, and the lengths line up with the pairings
+exactly: Zulu 5.70 with a spread of 3.75 against Xhosa 5.88 and 3.65, Spanish 4.41 and 2.59 against
+French 4.66 and 2.66, with Finnish at 6.41 which is what puts it away from Spanish.
+
+So at the bottom of the sweep the reading is a single magnitude for each language and not a relation
+between quantities. What survives the reduction is a scalar.
+
+One of the four comparisons is void at that level and it was not noticed until the commonest characters
+were listed. Shona and Somali have the letter a as their commonest, not the space, so their two symbol
+reading records where a falls and not where words end. Any distance between them and a space keyed
+language at that level compares two different quantities, which makes the Zulu to Somali reading at two
+symbols meaningless. The other three hold.
+
+**The one clean success was challenged on its spelling and survived.** Nguni languages write their clicks
+with c, x and q, which is a use of those letters no other language here makes, so the pairing of Zulu and
+Xhosa might have been two spelling conventions agreeing and not two languages. It is not. Those two use
+the letters less than everything else measured, 6.00 and 11.29 per thousand against Vietnamese at 74.91,
+Romanian at 48.50 and Spanish at 45.32, because clicks are not frequent enough in running text to move a
+letter distribution while Romance languages lean on c constantly. Removing all three letters from every
+language moves the pair from 0.0756 to 0.0758.
+
+The same run corrects how that result was described. Spanish to French reads 0.0763, which is the same
+distance, so Zulu to Xhosa is not the uniquely tight pairing it was called. It is an ordinary close pair
+sharing a script, which is what the envelope says it should be and is a smaller claim than the one made
+for it.
+
+**Given a close pair with nothing in the way, the reading finds it, and that fixes how far it reaches.**
+Every failure so far had somewhere to hide. Tamil and Malayalam are close and came out widest apart of
+seven, and their scripts encode different distinctions. Uralic lost its family, and its members have had a
+thousand years of unlike neighbors. The Chinese pairs showed the collection moving the reading more than
+the language does, and those collections were different works.
+
+Zulu and Xhosa remove all of it. Both Nguni, close enough to be partly mutually intelligible, both in the
+Latin alphabet, both from the same translated work as the other 43 languages here, so content, register
+and translators are fixed together. They read 0.0756 apart, which is the closest pair in the matrix, each
+finds the other, and the nearest thing to either of them otherwise is 0.0845.
+
+So the instrument reads surface closeness and the depth it reaches is now measured. A close pair sharing a
+script is found: Zulu with Xhosa, Danish with Norwegian, Serbian with Slovenian. A close pair whose
+scripts diverged is lost, which is Tamil and Malayalam. A deep relationship is lost whatever the script,
+which is Finnish and Hungarian across four thousand years. Shona is the confirming miss: Bantu like the
+other two and far enough from Nguni that it goes to Somali instead.
+
+That partly restores the European result without restoring what was claimed for it. Danish and Norwegian
+are a genuine close pair sharing an alphabet, so finding them was finding something. What it was not is
+descent, and the same reading loses every family whose members have drifted far enough apart to need one.
+
 **With the language held fixed and only the characters changed, the reading moves by twice what changing
 nothing moves, and where a text came from moves it more than either.** Every earlier test changed two
 things at once. Chinese holds one still: simplified and traditional are one language in two character
@@ -1529,8 +1943,32 @@ The tool's own line saying the writing does not matter more than the language sh
 sets the clean within collection script pair against cross collection language pairs, so it has register
 on one side of the comparison and characters on the other.
 
-**On the family built to tell descent from contact, the reading follows contact, and that settles what
-the European result was.** In Europe descent and contact travel together: every pair the reading grouped
+**A family separated by an ocean is found, and the same test loses a relative three times older, which
+puts the depth limit on both sides of one run.** Malagasy is Austronesian, spoken in Madagascar, with its
+nearest relatives across the Indian Ocean and everything it has borrowed from since being African and
+French. Read against its family and its neighbors, all from one collection so the content is fixed, its
+nearest is Malay at 0.0770, then Indonesian at 0.0814, then French at 0.0834. Its family averages 0.0856
+against 0.0972 for everything else. Descent wins.
+
+Uralic answered the same question with contact and this does not overturn it, because the two differ in
+age and the answer follows the age. Malagasy left the Malay world about twelve hundred years ago and is
+found. Maori split from that branch some three thousand years back and reads 0.0983, further from
+Malagasy than French and Portuguese are, while being the only other language in the run from its own
+family. Finnish and Hungarian separated four thousand years ago or more and were lost. Found at a
+thousand, lost at three, in one family and one run.
+
+Two faults in the run. Swahili is the African contact language that matters most for Madagascar and this
+collection holds 1195 characters of it, so contact is represented by French alone, which is real and is
+colonial and recent. And Tagalog was dropped with a message reading that no script is known for it, which
+is the gate's note and not the reason: it was excluded for holding 104971 characters against the 133333
+the run required. That is the same misleading label already fixed in the Uralic tool and not fixed here.
+
+**On the family built to tell descent from contact, the reading follows contact.** [Overclaimed as a
+negative. This says the reading did not find Uralic, and it was written as though it said the descent is
+not there to be found. Historical linguists establish that family from evidence a character stream does
+not carry, so the failure is compatible with the relationship being present and invisible to this
+reading. What is settled is what the European result was, since the reading follows contact where the two
+can be told apart. What is not settled is anything about how deep a relationship can be and still exist.] In Europe descent and contact travel together: every pair the reading grouped
 shares an alphabet and a thousand years of borrowing, and nothing there separates the two. Uralic
 separates them. Finnish and Estonian sit on the Baltic among Germanic and Baltic neighbors, Hungarian
 sits two thousand kilometers away surrounded by Slavic, German and Turkic and has for a millennium. One
@@ -1666,6 +2104,9 @@ constructed it. Nothing in the construction knows about language families, and t
 the families.
 
 **No quantity measured here identifies a language, and the coefficient is among the weaker ones at it.**
+[Overclaimed as a negative. Four quantities failed to identify a language and that was written as though
+no quantity does. A reader of any of these texts identifies its language instantly, so the information is
+in them and these four do not reach it.]
 That the spread between languages is 1.36 times the spread inside one says a language keeps a value of
 its own. Whether that value picks the language out from every other is a separate claim with a pass and a
 fail, so it was tested that way: each text held out in turn, every language given a value from the texts

@@ -24,6 +24,14 @@
 # from outside the measurement, and here it comes from Unicode, which knows Latin from Telugu without
 # consulting anything this work computed.
 #
+# What Unicode cannot judge is who said a text, or when. The speech attributed to Chief Seattle is fluent
+# monolingual English and passes this gate at any floor it can be given. It reaches a reader through
+# Lushootseed, then Chinook Jargon, then English at the podium, then notes published thirty-three years
+# later that their author called incomplete, then a 1972 film script that supplied most of what is quoted
+# from it now. None of that is in the characters. A pass here means the file is written in the writing it
+# claims and means nothing at all about whether it is what it claims to be, and the material most worth
+# having is the material where that difference is largest.
+#
 # Nothing is done silently. A caller says whether foreign matter should be cut out or should stop the
 # read, and either way what was found is on the record.
 

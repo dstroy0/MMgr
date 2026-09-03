@@ -62,8 +62,13 @@ def main():
             out.write("  %-14s not present\n" % label)
             continue
         text, gate = load(path, cap=SAME_LENGTH * 4, clean=False)
-        if (text is None) or (len(text) < SAME_LENGTH):
-            out.write("  %-14s unusable: %s\n" % (label, gate))
+        if text is None:
+            out.write("  %-14s refused by the gate: %s\n" % (label, gate))
+            continue
+        if len(text) < SAME_LENGTH:
+            # The gate's note here read as though the gate had rejected a file it passed
+            out.write("  %-14s passed the gate and holds %d characters, under the %d needed\n"
+                      % (label, len(text), SAME_LENGTH))
             continue
         values = web(text[:SAME_LENGTH], RANKS)
         if values is not None:
