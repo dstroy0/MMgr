@@ -108,6 +108,12 @@ PAIRS = (
     ("2013_Lindley_Lyon",
      "TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
      "_Salish_nsyilxcen_LottieLindley_2013_nomixed.txt", ("font", "columns")),
+    # A fourth field where a paper writes its language with characters MARKS does not hold. The
+    # 1983 Hilbert typescript is unrepaired on purpose, so its glottal stop is ? and its schwa is
+    # ~, J or G, and a check built on ʔ and ə finds nothing in it at all.
+    ("1983_Hilbert",
+     "PokingFunInLushootseed_Hilbert"
+     "_Salish_lushootseed_Vitaqwshablu-Hilbert_1983_mixed.txt", (), "?~JG@V%]!"),
 )
 
 
@@ -176,7 +182,7 @@ def prepared(line, repairs, vocabulary=None):
     return line
 
 
-def marked_tokens(text):
+def marked_tokens(text, marks=MARKS):
     """Every token holding a character of the language, stripped of surrounding punctuation.
 
     What counts as one is decided by salish_unsorted, which is where the readers get it too. Two
@@ -186,12 +192,12 @@ def marked_tokens(text):
     held = {}
     for token in text.split():
         plain = token.strip(EDGES)
-        if is_language_token(plain, MARKS):
+        if is_language_token(plain, marks):
             held[plain] = held.get(plain, 0) + 1
     return held
 
 
-def source_tokens(path, repairs, vocabulary=None):
+def source_tokens(path, repairs, vocabulary=None, marks=MARKS):
     """The language tokens of a paper, with the page each was first seen on."""
     held = {}
     where = {}
@@ -202,13 +208,13 @@ def source_tokens(path, repairs, vocabulary=None):
             if found:
                 page = int(found.group(1))
                 continue
-            for token, times in marked_tokens(prepared(line, repairs, vocabulary)).items():
+            for token, times in marked_tokens(prepared(line, repairs, vocabulary), marks).items():
                 held[token] = held.get(token, 0) + times
                 where.setdefault(token, page)
     return held, where
 
 
-def extracted_tokens(path):
+def extracted_tokens(path, marks=MARKS):
     """The language tokens present anywhere in the content column of an extracted file.
 
     Read from the whole content column instead of from the braces inside it. The record writes a
@@ -226,7 +232,7 @@ def extracted_tokens(path):
             # The marker runs into the first word of its span, giving T.spoken.transcription:{iʔ
             # as one token, so it comes out before the column is split into words.
             content = MARKER.sub(" ", content).replace("{", " ").replace("}", " ")
-            for token, times in marked_tokens(content).items():
+            for token, times in marked_tokens(content, marks).items():
                 held[token] = held.get(token, 0) + times
     return held
 
@@ -237,15 +243,17 @@ def main():
               % ("paper", "in paper", "extracted", "missing", "covered"))
 
     worst = []
-    for stem, name, repairs in PAIRS:
+    for entry in PAIRS:
+        stem, name, repairs = entry[:3]
+        marks = entry[3] if len(entry) > 3 else MARKS
         source = os.path.join(PAPERS, "%s.txt" % stem)
         target = os.path.join(CORPORA, name)
         if not os.path.isfile(source) or not os.path.isfile(target):
             out.write("  %-36s missing a file\n" % stem[:36])
             continue
 
-        held, where = source_tokens(source, repairs, vocabulary_beside(target))
-        got = extracted_tokens(target)
+        held, where = source_tokens(source, repairs, vocabulary_beside(target), marks)
+        got = extracted_tokens(target, marks)
         missing = {token: count for token, count in held.items() if token not in got}
         covered = (100.0 * (len(held) - len(missing)) / len(held)) if held else 0.0
         out.write("  %-36s %-9d %-9d %-9d %.1f%%\n"
