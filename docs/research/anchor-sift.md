@@ -698,8 +698,8 @@ On `periodic16`, reported as $z$:
 A stride equal to the record period is the strongest correlation measured anywhere here, $I = 5.82$ at
 $z = 12.3$, reproducing at every needle length. A coprime stride of 17 is clean.
 
-$I(d)$ is an exponentiated pointwise mutual information, so $\operatorname{PMI}(d) = \log_2 I(d)$ and
-the second anchor's contribution is $-\log_2 p_\beta - \operatorname{PMI}(d)$. At $I = 5.82$ the loss
+$I(d)$ is an exponentiated pointwise mutual information, so $\mathrm{PMI}(d) = \log_2 I(d)$ and
+the second anchor's contribution is $-\log_2 p_\beta - \mathrm{PMI}(d)$. At $I = 5.82$ the loss
 is 2.54 bits, so an anchor nominally worth 8 delivers 5.5.
 
 For fixed width records of period $T$ with field offsets $F$, a layout bound predicts

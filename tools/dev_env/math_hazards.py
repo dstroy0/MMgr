@@ -53,6 +53,28 @@ CHECKS = (
     # A > only takes on a meaning at the start of a line, where it opens a blockquote
     (re.compile(r"^\s*>", re.MULTILINE),
      "> at the start of a line opens a blockquote, use \\gt or move it"),
+    # KaTeX has no align environment. aligned works inside a display block.
+    (re.compile(r"\\begin\{(align|eqnarray|gather)\}"),
+     "that environment is not in KaTeX, use aligned inside the display block"),
+    # A row separator outside an environment has nothing to separate
+    (re.compile(r"\\\\(?!\s*\\end)"),
+     "a \\\\ row break needs an environment such as aligned around it"),
+)
+
+def odd_inline_dollars(line):
+    """Whether a line leaves an inline formula unclosed.
+
+    The display delimiters are removed first. A display block legitimately opens on one line and
+    closes on another, so counting every dollar sign reports each of those as unclosed.
+    """
+    without_display = line.replace("$$", "")
+    return (len(re.findall(r"(?<!\\)\$", without_display)) % 2) == 1
+
+
+# Checks that read a whole line rather than one math span
+LINE_CHECKS = (
+    (odd_inline_dollars,
+     "an odd number of inline $ on the line, so a formula is left unclosed"),
 )
 
 
@@ -99,6 +121,11 @@ def main():
                     if complaint.endswith("use \\ast") and body.count("*") < 2:
                         continue
                     found.append((where, kind, complaint, body.strip()[:70]))
+
+        for where, line in enumerate(whole.splitlines(), 1):
+            for check, complaint in LINE_CHECKS:
+                if check(line):
+                    found.append((where, "line", complaint, line.strip()[:70]))
 
         out.write("\n  %s\n" % name)
         if not found:
