@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+#
+# Extract the Nuxalk of Dr. Margaret Siwallace from ICSNL 50, following that paper's own structure and its
+# own symbols.
+#
+#   Usage:  python tools/dev_env/extract_nater_bella_coola.py
+#
+# Written for one paper. This is the simplest layout of the set: an introduction, a section defining the
+# symbols, the text itself as numbered blocks, and references. Each block gives the Nuxalk with its
+# morpheme markers, a gloss under it, and an English translation. A long sentence wraps, so one block can
+# carry several transcription and gloss pairs before the translation arrives.
+#
+# Nater defines his own symbols in section 2 and they are used unchanged here. The character ˽, which he
+# names Combining Inverted Bridge Below, follows proclitics and precedes enclitics. A hyphen follows a
+# prefix and precedes a suffix. A colon precedes a reduplicated consonant. Those three carry the
+# morphology and are part of the text, not punctuation to be stripped.
+#
+# The story is The Frog Children, told by the late Dr. Margaret Siwallace and recorded over forty years
+# before the paper was published in 2015. Nater notes that the narrator first calls it a sʔalac'i, a
+# family-owned account, and then uses smsmayamk, to tell as a parable, so it sits between the two genres
+# the language names.
+
+import io
+import os
+import re
+import sys
+
+from salish_marking import DERIVED, MARKED, SPOKEN, rendered, switches, tagged_spans
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PAPERS = os.path.join(ROOT, "build", "papers")
+CORPORA = os.path.join(ROOT, "build", "corpora")
+
+SOURCE = os.path.join(PAPERS, "22-Nater-Bella-Coola-tale-10.txt")
+
+# <original paper and author>_Salish_<language without accents>_<spoken by>_<year>_<mixed>
+TARGET = os.path.join(
+    CORPORA,
+    "ABellaCoolaTale_Nater_Salish_nuxalk_MargaretSiwallace_2015_nomixed.txt")
+
+# This paper's inventory, plus the clitic bridge and the glottalization mark it writes
+MARKS = MARKED + "˽’ʷ̓"
+
+PAGE = re.compile(r"^===== page \d+ =====$")
+NUMBERED_BLOCK = re.compile(r"^\((\d{1,4})\)\s*(.*)$")
+QUOTED = re.compile(r"^['‘“]")
+HEADING = re.compile(r"^(\d)\s+(\S.*)$")
+
+# The abbreviations Nater lists in section 2, used unchanged
+CATEGORIES = re.compile(
+    r"\b(?:ACC|APP|ART|BEN|CAUS|CL|CONN|DEF|DEM|DIM|DIR|FEM|HYP|INCH|INDEF|INT|MED|NOM|OBJ|"
+    r"PASS|PL|PREP|PRG|PROX|RECIP|REFL|REM|REP|SEP|SG|SUB|1SG|2SG|3SG|1PL|2PL|3PL|NON-FEM)\b")
+
+LAYER = {
+    "transcription": SPOKEN,
+    "translation": SPOKEN,
+    "gloss": DERIVED,
+    "symbol note": DERIVED,
+}
+
+
+def carries_language(text):
+    """Whether a line holds any character this paper writes the language with."""
+    return any(mark in text for mark in MARKS)
+
+
+def looks_heading(trimmed):
+    """A numbered section heading, told apart from a numbered example and from prose."""
+    if NUMBERED_BLOCK.match(trimmed):
+        return None
+    found = HEADING.match(trimmed)
+    if not found:
+        return None
+    if len(trimmed) > 78 or trimmed.endswith("."):
+        return None
+    return found.group(1)
+
+
+def main():
+    out = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", newline="")
+    os.makedirs(CORPORA, exist_ok=True)
+    if not os.path.isfile(SOURCE):
+        out.write("  no %s\n" % SOURCE)
+        out.flush()
+        return 1
+
+    with open(SOURCE, encoding="utf-8", errors="replace") as handle:
+        lines = [one.rstrip("\n") for one in handle]
+
+    rows = []
+    section = None
+    number = None
+
+    for line in lines:
+        trimmed = " ".join(line.split())
+        if PAGE.match(trimmed) or not trimmed:
+            continue
+        if trimmed.startswith("References"):
+            section = "references"
+            continue
+
+        opened = looks_heading(trimmed)
+        if opened:
+            section = opened
+            number = None
+            continue
+
+        if section == "2" and carries_language(trimmed):
+            rows.append(("T", 0, "2", "symbol note", trimmed))
+            continue
+
+        if section != "3":
+            continue
+
+        found = NUMBERED_BLOCK.match(trimmed)
+        if found:
+            number = int(found.group(1))
+            rest = found.group(2).strip()
+            if rest:
+                rows.append(("T", number, "3", "transcription", rest))
+            continue
+
+        if number is None:
+            continue
+
+        if QUOTED.match(trimmed):
+            rows.append(("N", number, "3", "translation", trimmed))
+        elif CATEGORIES.search(trimmed):
+            rows.append(("N", number, "3", "gloss", trimmed))
+        elif carries_language(trimmed):
+            rows.append(("T", number, "3", "transcription", trimmed))
+
+    with open(TARGET, "w", encoding="utf-8", newline="") as handle:
+        handle.write("# A Bella Coola tale: The Frog Children.\n")
+        handle.write("# Told in Nuxalk by the late Dr. Margaret Siwallace and recorded over forty\n")
+        handle.write("# years before publication. Transcribed and interpreted by Hank Nater.\n")
+        handle.write("# Papers for the International Conference on Salish and Neighbouring\n")
+        handle.write("# Languages 50, UBCWPL 40, 2015.\n")
+        handle.write("# The narrator first names it a sʔalac'i, a family-owned account, then uses\n")
+        handle.write("# smsmayamk, to tell as a parable, so it sits between the two genres.\n")
+        handle.write("#\n")
+        handle.write("# Mark is language.layer.kind. T is Nuxalk, N is anything else.\n")
+        handle.write("# Nater's symbols are kept: ˽ follows a proclitic and precedes an enclitic,\n")
+        handle.write("# a hyphen follows a prefix and precedes a suffix, and a colon precedes a\n")
+        handle.write("# reduplicated consonant. They carry morphology and are not punctuation.\n")
+        handle.write("# Gloss categories are the paper's own, from its section 2, unchanged.\n")
+        handle.write("line\tsection\tkind\tswitches\tcontent\n")
+        for mark, count, sect, kind, text in rows:
+            layer = LAYER[kind]
+            if mark == "T":
+                content = rendered(text, layer, kind, MARKS)
+                crossings = switches(text)
+            else:
+                content = "N.%s.%s:{%s}" % (layer, kind, text)
+                crossings = 0
+            handle.write("line#${%d}\t%s\t%s\t%d\t%s\n" % (count, sect, kind, crossings, content))
+
+    pure = TARGET[:-4] + ".pure.txt"
+    kept = 0
+    repeated = 0
+    already = set()
+    with open(pure, "w", encoding="utf-8", newline="") as handle:
+        for mark, count, sect, kind, text in rows:
+            if (mark != "T") or (kind != "transcription"):
+                continue
+            for span, run in tagged_spans(text, MARKS):
+                if (span != "T") or (not run.strip()):
+                    continue
+                key = " ".join(run.split())
+                if key in already:
+                    repeated += 1
+                    continue
+                already.add(key)
+                handle.write("%s\n" % key)
+                kept += 1
+
+    out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))
+    out.write("  %d target-language spans written to\n  %s\n" % (kept, os.path.basename(pure)))
+    out.write("  %d spans skipped as already written\n" % repeated)
+
+    kinds = {}
+    for mark, count, sect, kind, text in rows:
+        kinds[kind] = kinds.get(kind, 0) + 1
+    out.write("\n  by kind: %s\n" % ", ".join("%s %d" % (one, kinds[one]) for one in sorted(kinds)))
+    numbers = sorted({row[1] for row in rows if row[1]})
+    if numbers:
+        gaps = [one for one in range(1, max(numbers) + 1) if one not in numbers]
+        out.write("  blocks 1..%d, missing %s\n"
+                  % (max(numbers), ", ".join(str(one) for one in gaps) if gaps else "none"))
+
+    out.flush()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -79,6 +79,8 @@ def salish_enough(line):
 def section_two(lines):
     """The monolingual section, as each timestamp and the sentence printed under it."""
     held = []
+    refused = []
+    building = []
     inside = False
     when = None
     for line in lines:
@@ -94,16 +96,26 @@ def section_two(lines):
             continue
         ticked = CLOCK.match(line)
         if ticked:
+            # A sentence that wrapped across PDF lines is one sentence. Emitting each line
+            # separately made the later line overwrite the earlier one downstream, which silently
+            # dropped the front of every long sentence.
+            if building and (when is not None):
+                held.append((when, tidy(" ".join(building))))
+            building = []
             when = "%s:%s" % (ticked.group(1), ticked.group(2))
             continue
         if (when is not None) and salish_enough(trimmed) and not trimmed.startswith("====="):
             # A footnote runs across the bottom of these pages and carries ɬ in the language's own
             # name, so it passes the character test. Two English function words rule it out, and two
-            # are wanted because we, te and e are words of the language.
+            # are wanted because we, te and e are words of the language. Every rejection is counted
+            # and reported, so nothing leaves without being named.
             if len(set(one.lower() for one in ENGLISH.findall(trimmed))) >= 2:
+                refused.append(trimmed)
                 continue
-            held.append((when, tidy(trimmed)))
-    return held
+            building.append(trimmed)
+    if building and (when is not None):
+        held.append((when, tidy(" ".join(building))))
+    return held, refused
 
 
 def section_four(lines):
@@ -168,9 +180,13 @@ def main():
     with open(source, encoding="utf-8", errors="replace") as handle:
         lines = handle.read().splitlines()
 
-    plain = section_two(lines)
+    plain, refused = section_two(lines)
     glossed = section_four(lines)
     out.write("  section 2 gave %d sentences, section 4 gave %d\n" % (len(plain), len(glossed)))
+    if refused:
+        out.write("  %d line(s) in section 2 refused as English footnote text:\n" % len(refused))
+        for line in refused:
+            out.write("    %s\n" % line[:96])
 
     by_clock = {}
     for when, text in plain:
@@ -204,19 +220,38 @@ def main():
         if len(differed) > 14:
             out.write("  and %d more\n" % (len(differed) - 14))
 
-    target = os.path.join(CORPORA, "salish_nlekepmxcin_verified.txt")
+    # Everything is written. A sentence the two printings disagree on is a real sentence with a
+    # discrepancy to record, and a sentence that appears in only one of them is a real sentence with
+    # no second copy. Dropping either loses text from a language that has very little of it left, so
+    # the status is a column and never a filter.
+    target = os.path.join(CORPORA, "salish_nlekepmxcin.txt")
+    written = 0
     with open(target, "w", encoding="utf-8", newline="") as handle:
-        for when, text in agreed:
-            handle.write("%s\t%s\n" % (when, text))
-    out.write("\n  %d verified sentences written to %s\n" % (len(agreed), target))
+        handle.write("time\tstatus\ttext\talternate\n")
+        for when in sorted(by_clock,
+                           key=lambda key: (int(key.split(":")[0]), int(key.split(":")[1]))):
+            first, second = by_clock[when]
+            if first and second and (first == second):
+                handle.write("%s\tagreed\t%s\t\n" % (when, first))
+            elif first and second:
+                handle.write("%s\tdiffers\t%s\t%s\n" % (when, first, second))
+            elif first:
+                handle.write("%s\tsection2only\t%s\t\n" % (when, first))
+            else:
+                handle.write("%s\tsection4only\t%s\t\n" % (when, second))
+            written += 1
+    out.write("\n  %d sentences written to %s, none discarded\n" % (written, target))
+    out.write("  %d agreed, %d differ between the printings, %d in one section only\n"
+              % (len(agreed), len(differed), only_one))
 
     out.write("\n  the first six verified sentences, to be read against the paper\n")
     for when, text in agreed[:6]:
         out.write("  [%s] %s\n" % (when, text))
 
-    words = sum(len(text.split()) for when, text in agreed)
-    letters = sum(1 for when, text in agreed for symbol in text if symbol.isalpha())
-    left = sum(1 for when, text in agreed for index, symbol in enumerate(text)
+    everything = [(when, one) for when, pair in by_clock.items() for one in pair if one]
+    words = sum(len(text.split()) for when, text in everything)
+    letters = sum(1 for when, text in everything for symbol in text if symbol.isalpha())
+    left = sum(1 for when, text in everything for index, symbol in enumerate(text)
                if (symbol == " ") and index and (unicodedata.combining(text[index - 1]) != 0))
     out.write("  %d words, %d letters, %d spaces still following a combining mark\n"
               % (words, letters, left))
