@@ -31,7 +31,9 @@ from salish_marking import (DERIVED, MARKED, SPOKEN, UNCLASSIFIED, rendered, swi
                             tagged_spans)
 from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.abspath(__file__)
+while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "build")):
+    ROOT = os.path.dirname(ROOT)
 PAPERS = os.path.join(ROOT, "build", "papers")
 CORPORA = os.path.join(ROOT, "build", "corpora")
 
@@ -140,6 +142,15 @@ def main():
             # neither quoted, nor glossed, nor holding one of Nater's symbols left without a word.
             rows.append(("N", number, "3", UNCLASSIFIED, trimmed))
 
+    # Every line of the paper no section reached, added to the record as unclassified, so the
+    # marked file holds every token of the language the paper printed. For this one that is the
+    # introduction and the references. They stay out of the pure stream.
+    # The union of every orthography, not this paper's own set. The coverage check counts a token
+    # against the union, so a finder using a narrower set leaves holes the check still reports.
+    missed = unreached(lines, covered_tokens(one[4] for one in rows))
+    for page, where, reason, missing, text in missed:
+        rows.append(("T", 0, "not reached page %d" % page, UNCLASSIFIED, text))
+
     with open(TARGET, "w", encoding="utf-8", newline="") as handle:
         handle.write("# A Bella Coola tale: The Frog Children.\n")
         handle.write("# Told in Nuxalk by the late Dr. Margaret Siwallace and recorded over forty\n")
@@ -188,8 +199,9 @@ def main():
     # tests typed, and a line no section reached, which here is the introduction and the references.
     stuck = TARGET[:-4] + ".unclassifiable.tsv"
     flagged = [(0, "%s block %d" % (sect, count), UNKNOWN_KIND, "", text)
-               for mark, count, sect, kind, text in rows if kind == UNCLASSIFIED]
-    flagged.extend(unreached(lines, covered_tokens(one[4] for one in rows), marks=MARKS))
+               for mark, count, sect, kind, text in rows
+               if (kind == UNCLASSIFIED) and not sect.startswith("not reached")]
+    flagged.extend(missed)
     stuck_count = write_unsorted(stuck, "The Frog Children", flagged)
 
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))

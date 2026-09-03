@@ -37,7 +37,9 @@ from salish_marking import (DERIVED, MARKED, PRACTICAL, SPOKEN, UNCLASSIFIED, re
                             switches, tagged_spans)
 from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.abspath(__file__)
+while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "build")):
+    ROOT = os.path.dirname(ROOT)
 PAPERS = os.path.join(ROOT, "build", "papers")
 CORPORA = os.path.join(ROOT, "build", "corpora")
 
@@ -222,6 +224,15 @@ def main():
                    else "K̓weswapáw̓ Linda Redan")
             rows.append(("T", number, "5", "cited example", who, trimmed))
 
+    # Every line of the paper no section reached, added to the record as unclassified, so the
+    # marked file holds every token of the language the paper printed. The speaker column is left
+    # unset, which also keeps these out of the pure stream, and they are listed in the flag file.
+    # The union of every orthography, not this paper's own set. The coverage check counts a token
+    # against the union, so a finder using a narrower set leaves holes the check still reports.
+    missed = unreached(lines, covered_tokens(one[5] for one in rows))
+    for page, where, reason, missing, text in missed:
+        rows.append(("T", 0, "not reached page %d" % page, UNCLASSIFIED, "", text))
+
     with open(TARGET, "w", encoding="utf-8", newline="") as handle:
         handle.write("# Cw7aoz káti7 láti7 ku naxwít, There was definitely no snake there.\n")
         handle.write("# A story in St'át'imcets by K̓weswapáw̓ / Linda Redan, Qayqáyten, born at\n")
@@ -274,8 +285,9 @@ def main():
     # and a line no section reached, which here is the front matter, section 1 and the references.
     stuck = TARGET[:-4] + ".unclassifiable.tsv"
     flagged = [(0, "%s block %d" % (section, number), UNKNOWN_KIND, "", text)
-               for mark, number, section, kind, who, text in rows if kind == UNCLASSIFIED]
-    flagged.extend(unreached(lines, covered_tokens(one[5] for one in rows), marks=MARKS))
+               for mark, number, section, kind, who, text in rows
+               if (kind == UNCLASSIFIED) and not section.startswith("not reached")]
+    flagged.extend(missed)
     stuck_count = write_unsorted(stuck, "Cw7aoz káti7 láti7 ku naxwít", flagged)
 
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))

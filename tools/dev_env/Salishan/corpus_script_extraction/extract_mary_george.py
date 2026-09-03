@@ -36,7 +36,9 @@ from salish_marking import (DERIVED, MARKED, SPOKEN, UNCLASSIFIED, rendered, swi
                             tagged_spans)
 from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.abspath(__file__)
+while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "build")):
+    ROOT = os.path.dirname(ROOT)
 PAPERS = os.path.join(ROOT, "build", "papers")
 CORPORA = os.path.join(ROOT, "build", "corpora")
 
@@ -174,6 +176,15 @@ def main():
         if carries_language(trimmed):
             rows.append(("T", number, section, title, UNCLASSIFIED, who, trimmed))
 
+    # Every line of the paper no section reached, added to the record as unclassified, so the
+    # marked file holds every token of the language the paper printed. The speaker is left unset
+    # because nobody has said whose line it is. They stay out of the pure stream.
+    # The union of every orthography, not this paper's own set. The coverage check counts a token
+    # against the union, so a finder using a narrower set leaves holes the check still reports.
+    missed = unreached(lines, covered_tokens(one[6] for one in rows))
+    for page, where, reason, missing, text in missed:
+        rows.append(("T", 0, "not reached", "page %d" % page, UNCLASSIFIED, "", text))
+
     with open(TARGET, "w", encoding="utf-8", newline="") as handle:
         handle.write("# Mary George Personal Narratives.\n")
         handle.write("# Mainland Comox, told by Mary George at Sliammon between 1969 and 1980,\n")
@@ -225,8 +236,9 @@ def main():
     # section reached, which here is the front matter and the paper's own introduction.
     stuck = TARGET[:-4] + ".unclassifiable.tsv"
     flagged = [(0, "%s block %d" % (sect, count), UNKNOWN_KIND, "", text)
-               for mark, count, sect, name, kind, who, text in rows if kind == UNCLASSIFIED]
-    flagged.extend(unreached(lines, covered_tokens(one[6] for one in rows), marks=MARKS))
+               for mark, count, sect, name, kind, who, text in rows
+               if (kind == UNCLASSIFIED) and (sect != "not reached")]
+    flagged.extend(missed)
     stuck_count = write_unsorted(stuck, "the Mary George narratives", flagged)
 
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))
@@ -239,7 +251,9 @@ def main():
     counted = {}
     for mark, count, sect, name, kind, who, text in rows:
         counted[(sect, name, who)] = counted.get((sect, name, who), 0) + 1
-    for key in sorted(counted, key=lambda one: int(one[0])):
+    # Sorted numerically where the section is a number. The lines no section reached carry a name
+    # instead of a number and sort after them.
+    for key in sorted(counted, key=lambda one: (0, int(one[0])) if one[0].isdigit() else (1, 0)):
         out.write("  %-4s %-46s %-16s %d\n" % (key[0], (key[1] or "")[:46], key[2], counted[key]))
 
     marks = {}

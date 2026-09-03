@@ -25,9 +25,32 @@
 # language. Both ɬ and ł are here: papers differ on which they use for the lateral fricative, and
 # LaFontaine and Janzen write ł throughout where Hall and Phillips write ɬ. Carrying only one makes
 # every token of the other paper invisible to the marking and to any coverage check built on it.
+import re
+
 MARKED = "ʔʕɬłƛəχ"
 
+# A run of two or more capitals is a gloss label or an acronym, and none of these orthographies
+# writes a word that way: APPL, INCEPT, 1SG.POSS, D/C, NMLZ. Finding one in a line that should hold
+# a word is how every reader here tells that it has lost its place in a block.
+CAPS_RUN = re.compile(r"[A-Z]{2,}")
+
 PUNCTUATION = ".,!?;:“”‘’\"'()[]…"
+
+# Typographic ligatures, which are one codepoint standing for two or three letters concatenated
+# mid-word. 476 of them are in five of these papers. They are not a decision about a glyph the way
+# the font substitutions are: ﬁ is fi and nothing else, so this is applied without a test.
+#
+# Left alone they put ﬁve into a corpus and make a word fail to match itself, which is how this was
+# found: a case-sensitive match against the pure corpus turned up five against ﬁve.
+LIGATURES = (("ﬃ", "ffi"), ("ﬄ", "ffl"), ("ﬁ", "fi"), ("ﬂ", "fl"),
+             ("ﬀ", "ff"), ("ﬅ", "st"), ("ﬆ", "st"))
+
+
+def unligatured(text):
+    """One line with its typographic ligatures written back out as the letters they stand for."""
+    for was, becomes in LIGATURES:
+        text = text.replace(was, becomes)
+    return text
 
 
 def bare_token(token):

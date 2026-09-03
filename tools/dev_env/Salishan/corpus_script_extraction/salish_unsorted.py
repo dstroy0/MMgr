@@ -43,19 +43,42 @@ UNKNOWN_KIND = "kind unknown"
 NOT_REACHED = "not reached"
 
 
+def digit_artifact(plain):
+    """Whether a token opening with a digit is a footnote marker, a year or a gloss label.
+
+    St'át'imcets writes the glottal stop as 7 and a word of it can open with one: 7áts’xen is in
+    the Alexander narrative. What is not a word is 7Mattina, where the extraction welded a footnote
+    marker onto a name, nor 17Nellie, nor 1970s, nor 1SG.POSS, nor the 1line the extraction made of
+    a table. Every one of those is ASCII after its digits and the word is not, which is the test.
+    """
+    if not plain[0].isdigit():
+        return False
+    return plain.lstrip("0123456789").isascii()
+
+
+def is_language_token(plain, marks=MARKS):
+    """Whether one token, already stripped of the punctuation around it, is a word to account for.
+
+    Shared with coverage_check so the finder and the check agree on what they are counting. When
+    they disagree the check reports holes the finder never looked for, and no amount of extraction
+    closes them.
+    """
+    if not plain or not any(mark in plain for mark in marks):
+        return False
+    # A token needs a letter in it. St'át'imcets writes the glottal stop as the digit 7, which puts
+    # a digit in the marks above, and without this every page number holding a 7 is a word.
+    if not any(symbol.isalpha() for symbol in plain):
+        return False
+    return not digit_artifact(plain)
+
+
 def language_tokens(text, marks=MARKS):
     """Every token of a line holding a character the language is written with."""
     held = []
     for token in text.split():
         plain = token.strip(EDGES)
-        if not plain or not any(mark in plain for mark in marks):
-            continue
-        # A token needs a letter in it. St'át'imcets writes the glottal stop as the digit 7, which
-        # puts a digit in the marks above, and without this every year and page number holding a 7
-        # counts as a word of the language.
-        if not any(symbol.isalpha() for symbol in plain):
-            continue
-        held.append(plain)
+        if is_language_token(plain, marks):
+            held.append(plain)
     return held
 
 

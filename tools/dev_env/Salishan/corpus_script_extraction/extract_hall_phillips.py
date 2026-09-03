@@ -30,11 +30,13 @@ import os
 import re
 import sys
 
-from salish_marking import (DERIVED, SPOKEN, UNCLASSIFIED, is_mixed, rendered, switches,
-                            tagged_spans)
+from salish_marking import (CAPS_RUN, DERIVED, SPOKEN, UNCLASSIFIED, is_mixed, rendered,
+                            switches, tagged_spans)
 from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.abspath(__file__)
+while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "build")):
+    ROOT = os.path.dirname(ROOT)
 PAPERS = os.path.join(ROOT, "build", "papers")
 CORPORA = os.path.join(ROOT, "build", "corpora")
 
@@ -49,6 +51,7 @@ TARGET = os.path.join(
 PAGE = re.compile(r"^===== page \d+ =====$")
 CLOCK = re.compile(r"^\s*\[\s*(\d{1,2}):(\d{2})\s*\]\s*$")
 NUMBERED_BLOCK = re.compile(r"^\((\d{1,3})\)\s*(.*)$")
+QUOTED = re.compile(r"^['‘“]")
 
 # The paper's second gloss line segments each word into morphemes and joins them with a hyphen or an
 # equals sign, which is the positive evidence that a line is one. Without this test the branch below
@@ -131,16 +134,15 @@ def timestamped_sentences(lines):
 
 
 def gloss_blocks(lines):
-    """Section 4, as each numbered block with its transcription, analysis lines and translation."""
+    """Section 4, as each numbered block with its timestamp and the lines printed under it."""
     held = []
     when = None
     number = None
-    said = None
-    analysis = []
+    block = []
 
     def close():
         if number is not None:
-            held.append((when, number, said, list(analysis)))
+            held.append((when, number, list(block)))
 
     for line in lines:
         ticked = CLOCK.match(line)
@@ -154,14 +156,62 @@ def gloss_blocks(lines):
         if found:
             close()
             number = int(found.group(1))
-            said = tidy(found.group(2))
-            analysis = []
+            rest = tidy(found.group(2))
+            block = [rest] if rest else []
             continue
         if number is None:
             continue
-        analysis.append(tidy(trimmed))
+        block.append(tidy(trimmed))
     close()
     return held
+
+
+def three_line_parts(block):
+    """One numbered block of section 4, as the three lines the paper gives for each part of it.
+
+    A sentence too long for the page is printed in parts, and each part gets the same three lines:
+    the sentence as spoken, its segmentation, then its gloss. The parts repeat until the free
+    translation closes the block. Block 10 is two of them, and reading its lines one at a time
+    recorded the first part as the sentence and left ʔé scwúws néʔe e spéym flagged, so half of what
+    Bev Phillips said sat outside the record while the other half looked complete.
+
+    Position in the cycle is what says which line is which. Content cannot: a segmentation and a
+    transcription of the same words differ only by the morpheme boundaries written into one.
+
+    A slipped count is caught rather than repaired, on the test every reader here uses: a run of
+    capitals is a gloss label and cannot stand in a spoken sentence or its segmentation.
+
+    Returns the parts, the free translation, any line left over, and whether the cycle slipped.
+    """
+    parts = []
+    translation = None
+    leftover = []
+    holding = [None, None, None]
+    slot = 0
+
+    def close():
+        if any(one is not None for one in holding):
+            parts.append(tuple(holding))
+        holding[0] = holding[1] = holding[2] = None
+
+    for line in block:
+        if QUOTED.match(line):
+            close()
+            slot = 0
+            translation = line
+            continue
+        if translation is not None:
+            leftover.append(line)
+            continue
+        holding[slot] = line
+        slot += 1
+        if slot == 3:
+            close()
+            slot = 0
+    close()
+    slipped = any(CAPS_RUN.search(one[0] or "") or CAPS_RUN.search(one[1] or "")
+                  for one in parts)
+    return parts, translation, leftover, slipped
 
 
 def main():
@@ -185,18 +235,38 @@ def main():
     if english:
         rows.append(("N", 0, "", "3", "free translation", english))
 
-    for when, number, said, analysis in gloss_blocks(held["4"]):
+    slipped_blocks = 0
+    for when, number, block in gloss_blocks(held["4"]):
+        parts, translation, leftover, slipped = three_line_parts(block)
+        if slipped:
+            # The count slipped, so every line after that point is in the wrong column and none of
+            # them can be named. The block is flagged whole.
+            slipped_blocks += 1
+            for one in block:
+                rows.append(("T", number, when, "4", UNCLASSIFIED, one))
+            continue
+        # Each column joined across the parts, which is what puts a wrapped sentence back together.
+        said = " ".join(one[0] for one in parts if one[0])
         if said:
             rows.append(("T", number, when, "4", "transcription", said))
-        for one in analysis:
-            if one.startswith("‘") or one.startswith("'"):
-                rows.append(("N", number, when, "4", "translation", one))
-            elif CATEGORIES.search(one):
-                rows.append(("N", number, when, "4", "gloss", one))
-            elif SEGMENTED.search(one):
-                rows.append(("T", number, when, "4", "segmentation", one))
-            else:
-                rows.append(("T", number, when, "4", UNCLASSIFIED, one))
+        segmented = " ".join(one[1] for one in parts if one[1])
+        if segmented:
+            rows.append(("T", number, when, "4", "segmentation", segmented))
+        glossed = " ".join(one[2] for one in parts if one[2])
+        if glossed:
+            rows.append(("N", number, when, "4", "gloss", glossed))
+        if translation:
+            rows.append(("N", number, when, "4", "translation", translation))
+        for one in leftover:
+            rows.append(("T", number, when, "4", UNCLASSIFIED, one))
+
+    # Every line of the paper no section reached, added to the record as unclassified. The marked
+    # file then holds every token of the language the paper printed, which for this one is
+    # section 1 and the front matter. They stay out of the pure stream and are listed in the flag
+    # file, so the record is complete without anything being called classified that is not.
+    missed = unreached(lines, covered_tokens(one[5] for one in rows), repair=tidy)
+    for page, where, reason, missing, text in missed:
+        rows.append(("T", 0, "page %d" % page, "not reached", UNCLASSIFIED, text))
 
     with open(TARGET, "w", encoding="utf-8", newline="") as handle:
         handle.write("# ɬ cutés us ɬ qəɬmín ɬ tmíxʷ (When Old One Created the Earth).\n")
@@ -252,8 +322,9 @@ def main():
     # section 1 and the front matter, since sections() is told to hold only 2, 3 and 4.
     stuck = TARGET[:-4] + ".unclassifiable.tsv"
     flagged = [(0, "%s block %d" % (section, number), UNKNOWN_KIND, "", text)
-               for tag, number, when, section, kind, text in rows if kind == UNCLASSIFIED]
-    flagged.extend(unreached(lines, covered_tokens(one[5] for one in rows), repair=tidy))
+               for tag, number, when, section, kind, text in rows
+               if (kind == UNCLASSIFIED) and (section != "not reached")]
+    flagged.extend(missed)
     stuck_count = write_unsorted(stuck, "When Old One Created the Earth", flagged)
 
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))

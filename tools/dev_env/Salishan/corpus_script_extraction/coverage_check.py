@@ -34,26 +34,50 @@ import re
 import sys
 import unicodedata
 
-from salish_marking import MARKED, PRACTICAL
+from font_repair import repaired_line
+from salish_marking import MARKED, PRACTICAL, unligatured
+from salish_unsorted import is_language_token
+from space_repair import joined_words
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.abspath(__file__)
+while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "build")):
+    ROOT = os.path.dirname(ROOT)
 PAPERS = os.path.join(ROOT, "build", "papers")
 CORPORA = os.path.join(ROOT, "build", "corpora")
 
-SPAN = re.compile(r"\{([^}]*)\}")
 PAGE = re.compile(r"^===== page (\d+) =====$")
-EDGES = ".,!?;:“”‘’\"'()[]…«»"
+
+# The span marker a record writes ahead of each run, as T.spoken.transcription: or N.derived.gloss:
+MARKER = re.compile(r"\b[TN](?:\.[^:\s{}]*)*:")
+
+# A brace is punctuation on both sides of the comparison. The record delimits a span with them and
+# one paper cites a reduplication template written in them, so neither side may keep them.
+EDGES = ".,!?;:“”‘’\"'()[]…«»{}"
 
 # A token carrying any of these is the language. The union of every orthography in the set, since a
 # checker that knows one paper's alphabet reports the others as empty.
 MARKS = MARKED + PRACTICAL + "̓̔̕ʷ˽"
 
-# The font substitution two of these papers needed, verified in font_substitution.py
-FONT = (("ˇx", "x̌"), ("ˇc", "č"), ("ˇs", "š"),
-        ("@", "ə"), ("P", "ʔ"), ("ì", "ɬ"), ("Q", "ʕ"))
+"""The font substitution two of these papers needed lives in font_repair.py, and the guarded form
+of it is what belongs here. The readers apply every substitution inside a language column and the
+guarded one everywhere else, and the check has no columns to work from, so it takes the guarded
+form for the whole source. That leaves an all-caps gloss label and an address alone, which is what
+stops INCEPT and jmlyon@sfu.ca being counted as words of the language and then reported as holes.
+
+The cost is that a word like Paks keeps its capital here and so is not counted as a language token
+at all. The check under-counts by about ten tokens a paper and never invents a hole, which is the
+direction to be wrong in for a measurement."""
 
 # The marks whose following space the extraction inserted, closed by the Hall and Phillips reader
 JOINING = "̴̡̢̧̨̰̱̮̓̕"
+
+# The Lyon extraction ran a word's first two columns together wherever the segmentation opens at
+# the root, giving ’qwQaylqs√ ’qwQay=lqs where the paper prints a word above its own analysis. Both
+# readers split that, so the source is split the same way here. Without it the source carries one
+# token the extraction has no reason to hold and 46 words of one paper were reported as holes while
+# sitting in the file under their own two names. The test is the reader's: a root marker with a
+# bare word before it is two columns, one with morpheme separators before it is a segmentation.
+COLUMN = re.compile(r"^([^-=•+√]+)(√.*)$")
 
 # paper, extraction, and which repairs the extractor applied to the source
 PAIRS = (
@@ -79,10 +103,11 @@ PAIRS = (
      "ABellaCoolaTale_Nater_Salish_nuxalk_MargaretSiwallace_2015_nomixed.txt", ()),
     ("19-Lyon_ICSNL50_final-78",
      "ThreeOkanaganStoriesAboutPriests_Lyon"
-     "_Salish_nsyilxcen_GeorgeLezard-NellieGuitterez-AndrewMcGinnis_2015_nomixed.txt", ("font",)),
+     "_Salish_nsyilxcen_GeorgeLezard-NellieGuitterez-AndrewMcGinnis_2015_nomixed.txt",
+     ("font", "columns")),
     ("2013_Lindley_Lyon",
      "TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
-     "_Salish_nsyilxcen_LottieLindley_2013_nomixed.txt", ("font",)),
+     "_Salish_nsyilxcen_LottieLindley_2013_nomixed.txt", ("font", "columns")),
 )
 
 
@@ -97,38 +122,76 @@ def close_spaces(line):
 
 
 def font_repaired(line):
-    """Apply the verified substitution for a paper whose font wrote plain letters."""
-    for was, becomes in FONT:
-        line = line.replace(was, becomes)
-    return line
+    """Apply the substitution a paper's own reader would have applied to this line."""
+    return repaired_line(line)
 
 
-def prepared(line, repairs):
+def split_columns(line):
+    """Put back the space between two columns the extraction ran together."""
+    out = []
+    for token in line.split():
+        found = COLUMN.match(token)
+        if found:
+            out.append(found.group(1))
+            out.append(found.group(2))
+        else:
+            out.append(token)
+    return " ".join(out)
+
+
+def vocabulary_beside(target):
+    """The word list a reader wrote out beside its record, if it wrote one.
+
+    A reader that puts words back together publishes the list it used. Building a second list here
+    from the same paper gave a different one, which joined words the reader left apart and then
+    reported every one of them as a hole, so the list is read rather than rebuilt.
+    """
+    path = target[:-4] + ".words.txt"
+    if not os.path.isfile(path):
+        return set()
+    held = set()
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            if line.startswith("#"):
+                continue
+            word = line.strip()
+            if word:
+                held.add(word)
+    return held
+
+
+def prepared(line, repairs, vocabulary=None):
     """One source line put through the same transformation its extractor applied."""
+    # Applied to every paper. A ligature is one codepoint for two letters and the readers take
+    # them out on the way in, so a source keeping them reports every repaired word as a hole.
+    line = unligatured(line)
     if "font" in repairs:
         line = font_repaired(line)
     if "spaces" in repairs:
         line = close_spaces(line)
+    if "columns" in repairs:
+        line = split_columns(line)
+    if vocabulary:
+        line = joined_words(line, vocabulary)
     return line
 
 
 def marked_tokens(text):
-    """Every token holding a character of the language, stripped of surrounding punctuation."""
+    """Every token holding a character of the language, stripped of surrounding punctuation.
+
+    What counts as one is decided by salish_unsorted, which is where the readers get it too. Two
+    copies of that rule drift, and a check counting something the reader never looks for reports
+    holes that no amount of extraction can close.
+    """
     held = {}
     for token in text.split():
         plain = token.strip(EDGES)
-        if not plain or not any(mark in plain for mark in MARKS):
-            continue
-        # A token needs a letter in it. St'át'imcets writes the glottal stop as 7, which puts the
-        # digit in the marks above, and without this every year, page number and timestamp holding
-        # a 7 was counted as a word of the language and then reported missing.
-        if not any(symbol.isalpha() for symbol in plain):
-            continue
-        held[plain] = held.get(plain, 0) + 1
+        if is_language_token(plain, MARKS):
+            held[plain] = held.get(plain, 0) + 1
     return held
 
 
-def source_tokens(path, repairs):
+def source_tokens(path, repairs, vocabulary=None):
     """The language tokens of a paper, with the page each was first seen on."""
     held = {}
     where = {}
@@ -139,22 +202,32 @@ def source_tokens(path, repairs):
             if found:
                 page = int(found.group(1))
                 continue
-            for token, times in marked_tokens(prepared(line, repairs)).items():
+            for token, times in marked_tokens(prepared(line, repairs, vocabulary)).items():
                 held[token] = held.get(token, 0) + times
                 where.setdefault(token, page)
     return held, where
 
 
 def extracted_tokens(path):
-    """The language tokens present anywhere in an extracted file."""
+    """The language tokens present anywhere in the content column of an extracted file.
+
+    Read from the whole content column instead of from the braces inside it. The record writes a
+    span as kind:{text}, and one of these papers cites a reduplication template that is itself
+    written in braces, {C1aC2-ɬəχ.t.ana(n).θot}, which ends a span early and lost the token. The
+    span markers hold no character of any of these languages, so taking the column entire costs
+    nothing, and the column is the last field of every paper's format.
+    """
     held = {}
     with open(path, encoding="utf-8", errors="replace") as handle:
         for line in handle:
             if line.startswith("#"):
                 continue
-            for span in SPAN.findall(line):
-                for token, times in marked_tokens(span).items():
-                    held[token] = held.get(token, 0) + times
+            content = line.rstrip("\n").split("\t")[-1]
+            # The marker runs into the first word of its span, giving T.spoken.transcription:{iʔ
+            # as one token, so it comes out before the column is split into words.
+            content = MARKER.sub(" ", content).replace("{", " ").replace("}", " ")
+            for token, times in marked_tokens(content).items():
+                held[token] = held.get(token, 0) + times
     return held
 
 
@@ -171,7 +244,7 @@ def main():
             out.write("  %-36s missing a file\n" % stem[:36])
             continue
 
-        held, where = source_tokens(source, repairs)
+        held, where = source_tokens(source, repairs, vocabulary_beside(target))
         got = extracted_tokens(target)
         missing = {token: count for token, count in held.items() if token not in got}
         covered = (100.0 * (len(held) - len(missing)) / len(held)) if held else 0.0

@@ -36,7 +36,9 @@ from salish_marking import (DERIVED, MARKED, SPOKEN, UNCLASSIFIED, rendered, swi
                             tagged_spans)
 from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.abspath(__file__)
+while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "build")):
+    ROOT = os.path.dirname(ROOT)
 PAPERS = os.path.join(ROOT, "build", "papers")
 CORPORA = os.path.join(ROOT, "build", "corpora")
 
@@ -148,6 +150,54 @@ def running_and_blocks(lines):
     return " ".join(running), blocks
 
 
+def three_line_parts(block):
+    """One numbered block, as the three lines this paper gives for each part of a sentence.
+
+    A sentence too long for the page is printed in parts, and each part gets the same three lines:
+    the sentence as spoken, its segmentation, then its gloss. Block 12 is three of them. Reading
+    the lines one at a time recorded only the first part as the sentence and left the rest of what
+    wlwlmelst wrote flagged, so two thirds of that sentence sat outside the record.
+
+    Position in the cycle says which line is which. Content cannot: a transcription and its
+    segmentation carry the same words and differ only by the boundaries written into one of them.
+
+    The free translation closes the block and wraps onto a second line when it is long, so lines
+    after it are joined to it rather than left over.
+
+    Hall and Phillips prints its interlinear the same way. The two are read by their own files
+    because everything around the blocks differs, and this shape is what they happen to share.
+    """
+    parts = []
+    translation = None
+    leftover = []
+    holding = [None, None, None]
+    slot = 0
+
+    def close():
+        if any(one is not None for one in holding):
+            parts.append(tuple(holding))
+        holding[0] = holding[1] = holding[2] = None
+
+    for line in block:
+        if QUOTED.match(line):
+            close()
+            slot = 0
+            translation = line
+            continue
+        if translation is not None:
+            translation = "%s %s" % (translation, line)
+            continue
+        holding[slot] = line
+        slot += 1
+        if slot == 3:
+            close()
+            slot = 0
+    close()
+    slipped = any(CATEGORIES.search(one[0] or "") or CATEGORIES.search(one[1] or "")
+                  for one in parts)
+    return parts, translation, leftover, slipped
+
+
 def main():
     out = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", newline="")
     os.makedirs(CORPORA, exist_ok=True)
@@ -171,20 +221,29 @@ def main():
         if running:
             rows.append(("T", 0, story, number, "running speech", running))
         for count, block in blocks:
-            first = True
-            for one in block:
-                if QUOTED.match(one):
-                    rows.append(("N", count, story, number, "translation", one))
-                elif CATEGORIES.search(one):
-                    rows.append(("N", count, story, number, "gloss", one))
-                elif first and carries_language(one):
-                    rows.append(("T", count, story, number, "transcription", one))
-                    first = False
-                elif carries_language(one) and SEGMENTED.search(one):
-                    rows.append(("T", count, story, number, "segmentation", one))
-                else:
+            parts, translation, leftover, slipped = three_line_parts(block)
+            if slipped:
+                # The count slipped, so every line after that point is in the wrong column and
+                # none of them can be named. The block is flagged whole.
+                for one in block:
                     rows.append(("T" if carries_language(one) else "N",
                                  count, story, number, UNCLASSIFIED, one))
+                continue
+            # Each column joined across the parts, which is what puts a wrapped sentence together.
+            said = " ".join(one[0] for one in parts if one[0])
+            if said:
+                rows.append(("T", count, story, number, "transcription", said))
+            segmented = " ".join(one[1] for one in parts if one[1])
+            if segmented:
+                rows.append(("T", count, story, number, "segmentation", segmented))
+            glossed = " ".join(one[2] for one in parts if one[2])
+            if glossed:
+                rows.append(("N", count, story, number, "gloss", glossed))
+            if translation:
+                rows.append(("N", count, story, number, "translation", translation))
+            for one in leftover:
+                rows.append(("T" if carries_language(one) else "N",
+                             count, story, number, UNCLASSIFIED, one))
 
     # Section 2 cites forms while discussing dialect. They are this language and belong in the file.
     for one in held.get("2", []):
@@ -199,6 +258,13 @@ def main():
             continue
         if carries_language(trimmed) or re.match(r"^-?[A-Za-zʔə]{1,8}-?\s+[A-Z]", trimmed):
             rows.append(("T", 0, "glossing terms", "appendix", "morpheme entry", trimmed))
+
+    # Every line of the paper no section reached, added to the record as unclassified, so the
+    # marked file holds every token of the language the paper printed. They stay out of the pure
+    # stream and are listed in the flag file for someone to work through.
+    missed = unreached(lines, covered_tokens(one[5] for one in rows))
+    for page, where, reason, missing, text in missed:
+        rows.append(("T", 0, "not reached", "page %d" % page, UNCLASSIFIED, text))
 
     with open(TARGET, "w", encoding="utf-8", newline="") as handle:
         handle.write("# Four Stories by wlwlmelst.\n")
@@ -250,8 +316,9 @@ def main():
     # and a line no section reached, which here is the front matter and sections 1 and 4.
     stuck = TARGET[:-4] + ".unclassifiable.tsv"
     flagged = [(0, "%s block %d" % (number, count), UNKNOWN_KIND, "", text)
-               for mark, count, story, number, kind, text in rows if kind == UNCLASSIFIED]
-    flagged.extend(unreached(lines, covered_tokens(one[5] for one in rows)))
+               for mark, count, story, number, kind, text in rows
+               if (kind == UNCLASSIFIED) and (story != "not reached")]
+    flagged.extend(missed)
     stuck_count = write_unsorted(stuck, "Four Stories by wlwlmelst", flagged)
 
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))

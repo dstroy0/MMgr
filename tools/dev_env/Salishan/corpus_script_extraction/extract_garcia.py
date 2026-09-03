@@ -36,7 +36,11 @@ from salish_marking import (DERIVED, SPOKEN, UNCLASSIFIED, rendered, switches,
                             tagged_spans)
 from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Walk up to the tree that holds build/ rather than counting directories. Counting has been wrong
+# twice now, once when these moved into Salishan and again when they moved into categories.
+ROOT = os.path.abspath(__file__)
+while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "build")):
+    ROOT = os.path.dirname(ROOT)
 PAPERS = os.path.join(ROOT, "build", "papers")
 CORPORA = os.path.join(ROOT, "build", "corpora")
 
@@ -57,6 +61,11 @@ HEADING = re.compile(r"^(\d+\.\d+)\s+(\S.*)$")
 NUMBERED_INLINE = re.compile(r"(?:(?<=^)|(?<=\s)|(?<=[”\"'’.!?]))(\d{1,3})\.\s")
 NUMBERED_BLOCK = re.compile(r"^\((\d{1,3})\)\s*(.*)$")
 COMMENT = re.compile(r"^Comment:\s*(.*)$")
+
+# The free translation opens a line and this paper writes it with either quote. Narrowing this to
+# the single quote, which is what the two Lyon papers needed, cost seven translations here: this
+# paper does open a translation with a double quote. The convention is per paper and not a family.
+QUOTED = re.compile(r"^['‘“\"]")
 
 # A segmentation line writes each morpheme on its own and joins them with a hyphen or an equals
 # sign, which is the positive evidence that a line is one. Without this test the branch below filed
@@ -253,7 +262,7 @@ def main():
             for one in analysis:
                 # The translation is tested first. A translation can hold a word that matches a
                 # category label, and testing the categories first filed six of them as gloss.
-                if one[:1] in ("‘", "“", "'", "\""):
+                if QUOTED.match(one):
                     rows.append(("N", count, story, number, "translation", one))
                 elif CATEGORIES.search(one):
                     rows.append(("N", count, story, number, "gloss", one))
@@ -263,6 +272,14 @@ def main():
                     rows.append(("T", count, story, number, UNCLASSIFIED, one))
             if comment:
                 rows.append(("N", count, story, number, "speaker comment", comment))
+
+    # Every line of the paper no section reached, added to the record as unclassified. The marked
+    # file then holds every token of the language the paper printed, which is the whole point of
+    # extracting it. They are held out of the pure stream and listed in the flag file, so this
+    # makes the record complete without pretending anything has been classified.
+    missed = unreached(lines, covered_tokens(one[5] for one in rows))
+    for page, where, reason, missing, text in missed:
+        rows.append(("T", 0, "not reached", "page %d" % page, UNCLASSIFIED, text))
 
     with open(TARGET, "w", encoding="utf-8", newline="") as handle:
         handle.write("# Three Glossed Nɬeʔkepmxcín Narratives by Kʷəɬtəzétkʷu (Bernice Garcia).\n")
@@ -320,8 +337,9 @@ def main():
     # this paper's front matter and its prose discussion of particular words sit.
     stuck = TARGET[:-4] + ".unclassifiable.tsv"
     flagged = [(0, "%s block %d" % (number, count), UNKNOWN_KIND, "", text)
-               for mark, count, story, number, kind, text in rows if kind == UNCLASSIFIED]
-    flagged.extend(unreached(lines, covered_tokens(one[5] for one in rows)))
+               for mark, count, story, number, kind, text in rows
+               if (kind == UNCLASSIFIED) and (story != "not reached")]
+    flagged.extend(missed)
     held = write_unsorted(stuck, "the Garcia narratives", flagged)
 
     out.write("  %d lines written to\n  %s\n" % (len(rows), os.path.basename(TARGET)))
