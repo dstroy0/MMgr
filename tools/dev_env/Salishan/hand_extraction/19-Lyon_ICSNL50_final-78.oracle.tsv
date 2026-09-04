@@ -60,3 +60,39 @@ footnote 2	John Lyon	note	What is transcribed as kʷaʔ in (7) may be concealing
 1.2 10	John Lyon	gloss	CONJ say-DIR-1SG.ERG yes 2SG.ABS black=robe CONJ 2SG.ABS white.person
 1.2 10	John Lyon	word gloss	and I.told.him yes you priest but you white.person
 1.2 10	John Lyon	translation	‘And I told him “Yes you’re a priest, but you’re still a white person!” ’
+1.2 11	George Lezard	surface	ixíʔ uɬ kʷu cus, “uc kʷ ck̓ʷúl̓əm iʔ l skʕáciw̓s?”
+1.2 11	John Lyon	parse	ixíʔ uɬ kʷu √cun-nt-s uc kʷ c-√k̓ʷúl̓-m iʔ l s+k+√ʕac=íw̓s
+1.2 11	John Lyon	gloss	DEM CONJ 1SG.ABS say-DIR-3ERG DUB 2SG.ABS CUST-work-MID DET LOC NMLZ+RES+tie=middle
+1.2 11	John Lyon	word gloss	then and me he.told do you work the on Sunday
+1.2 11	John Lyon	translation	‘Then he told me “Do you work on Sundays?” ’
+1.2 12	George Lezard	surface	cun, “kʷaʔ lut t̓ k̓ʷúl̓əm iʔ k̓ʷl̓ncútn t skʕáciw̓s axaʔ iʔ l təmxʷúlaʔxʷ.”
+1.2 12	John Lyon	parse	√cun-nt-n kʷaʔ lut t̓ √k̓ʷúl̓-m iʔ √k̓ʷl̓-ncút+tn t s+k+√ʕac=íw̓s axaʔ iʔ l √tmxʷ=úlaʔxʷ
+1.2 12	John Lyon	gloss	say-DIR-1SG.ERG INTERJ NEG NEG.EMPH make-MID DET make-REFL+INS OBL NMLZ+RES+tie=middle DEM DET LOC land=land
+1.2 12	John Lyon	word gloss	I.told.him not he.made the creator Sundays this the on land
+1.2 12	John Lyon	translation	‘I told him “Well, the Creator didn’t make Sundays in this land!” ’
+1.2 13	George Lezard	surface	cun “anwí kʷ sámaʔ, mat way̓ xʷic̓xtms t skʕáciw̓s iʔ k̓ʷl̓ncútn.”
+1.2 13	John Lyon	parse	√cun-nt-n anwí kʷ sámaʔ mat way̓ √xʷic̓-xt-m-s t s+k+√ʕác=iw̓s iʔ √k̓ʷl̓-ncút+tn
+1.2 13	John Lyon	gloss	say-DIR-1SG.ERG 2SG.INDEP 2SG.ABS white.person EPIS yes give-APPL.BEN-2SG.OBJ-3ERG OBL NMLZ+RES+tie=middle DET make-REFL+INS
+1.2 13	John Lyon	word gloss	I.told.him you you white.person must.be yes he.gave.to.you Sundays the creator
+1.2 13	John Lyon	translation	‘I told him “You’re are white person, the Creator must have given you Sundays.” ’
+1.2 14	George Lezard	surface	cun “iʔ sct̓ak̓ʷs iʔ k̓ʷl̓ncutn axáʔ iʔ l təmxʷúlaʔxʷ, naqs sx̌əlx̌ʕált, uɬ naqs x̌yáɬnəx̌ʷ, uɬ nqspintk, way̓ t̓i ixíʔ t̓i kaʔɬís iʔ sct̓ak̓ʷs”.
+1.2 14	John Lyon	parse	√cun-nt-n iʔ s-c-√t̓ak̓ʷ-s iʔ √k̓ʷl̓-ncut+tn axáʔ iʔ l √tmxʷ=úlaʔxʷ naqs s+x̌l•√x̌ʕál+t uɬ naqs x̌yáɬnx̌ʷ uɬ √nqs+√pintk way̓ t̓i ixíʔ t̓i kaʔɬís iʔ s-c-√t̓ak̓ʷ-s
+1.2 14	John Lyon	gloss	say-DIR-1SG.ERG DET NMLZ-CUST-put.down-3POSS DET make-REFL+INS DEM DET LOC land=land one NMLZ+C1C2.CHAR•clear+STAT CONJ one moon CONJ one+year yes EMPH DEM EMPH three DET NMLZ-CUST-put.down-3POSS
+1.2 14	John Lyon	word gloss	I.told.him the something.laid.down the creator this the on land one sun[?] and one moon and one.year yes just those three the something.laid.down
+1.2 14	John Lyon	translation	‘I told him, “What the creator laid down on this land is one sun, and one moon, and one year, those are the three things he laid down.” ’
+footnote 3	John Lyon	note	The translation of sx̌əlx̌ʕált as ‘sun’ rather than its usual translation as ‘day’ is in keeping with the translation of x̌yáɬnəx̌ʷ as ‘moon’, rather than ‘sun’. The correct interpretation of the sentence may be “What the creator laid down on this land was one day, and one sun, and one year”, but I’m following my consultant’s translation in this case.
+1.2 15	George Lezard	surface	cun, “anwí kʷ sámaʔ, mat way̓ ixíʔ xʷic̓ɬts yaʕyáʕt iʔ kʷu scuɬtxʷ.”
+1.2 15	John Lyon	parse	√cun-nt-n anwí kʷ sámaʔ mat way̓ ixíʔ √xʷic̓-ɬt-s yaʕ•√yáʕt iʔ kʷu s-cun-ɬt-xʷ
+1.2 15	John Lyon	gloss	say-DIR-1SG.ERG 2SG.INDEP 2SG.ABS white.person EPIS yes DEM give-APPL.POSS-3ERG C1C2.PL•all DET 1SG.ABS NMLZ-say-APPL.POSS-2SG.ERG
+1.2 15	John Lyon	word gloss	I.told.him you you white.person must.be yes that he.gave.it.to.you everything what me you.told.me.about.it
+1.2 15	John Lyon	translation	‘I told him “But you’re white, and he must’ve given everything you told me about.” ’
+1.2 16	George Lezard	surface	ixíʔ uɬ kʷu cus, “uc kʷ cʔíɬən iʔ l scəlkstásq̓ət t sɬiqʷ?”
+1.2 16	John Lyon	parse	ixíʔ uɬ kʷu √cun-nt-s uc kʷ c-√ʔíɬn iʔ l s+√cəl=kst=ásq̓t t s+√ɬiqʷ
+1.2 16	John Lyon	gloss	DEM CONJ 1SG.ABS say-DIR-3ERG DUB 2SG.ABS CUST-eat DET LOC NMLZ+five=hand=day OBL NMLZ+meat
+1.2 16	John Lyon	word gloss	then and me he.told do you eat the on Friday meat
+1.2 16	John Lyon	translation	‘And then he told me “Do you eat meat on Fridays?” ’
+1.2 17	George Lezard	surface	cun, “kʷaʔ lut ixíʔ t̓a nk̓stan iʔ sɬiqʷ ɬ iksʔíɬnəm, iʔ kn sqilxʷ.”
+1.2 17	John Lyon	parse	√cun-nt-n kʷaʔ lut ixíʔ t̓a n+√k̓s+tan iʔ s+√ɬiqʷ ɬ in-ks-√ʔíɬn-m ixíʔ kn s+√qilxʷ
+1.2 17	John Lyon	gloss	say-DIR-1SG.ERG INTERJ NEG DEM NEG.EMPH LOC+bad+INS DET NMLZ+meat COMP 1SG.POSS-FUT-eat-MID DEM[?] 1SG.ABS NMLZ+native.person
+1.2 17	John Lyon	word gloss	I.told.him not that sin the meat if I.will.eat.it I native.person
+1.2 17	John Lyon	translation	‘I told him “Well, it wouldn’t be a sin for me to eat meat, I’m an Indian.” ’

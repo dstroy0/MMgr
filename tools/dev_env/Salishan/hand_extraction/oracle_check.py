@@ -294,10 +294,19 @@ def source_forms(path, repair=None, pieces=2):
                         if not joined:
                             continue
                         reach.append("".join(run))
+                        # A run can be a surface form and its own parse, broken in the middle as
+                        # well: k̓ʷ l̓ncútn√k̓ʷ l̓-ncút+tn is k̓ʷl̓ncútn and √k̓ʷl̓-ncút+tn, and the
+                        # table holds those two apart because the paper prints them on two lines.
+                        halves = [joined]
+                        at_join = surface_parse_join(joined)
+                        if at_join > 0:
+                            halves = [bare(joined[:at_join]), bare(joined[at_join:])]
+                            reach.extend(halves)
                         for piece in run:
                             broken = bare(piece)
                             if broken:
-                                welds.setdefault(broken, set()).add(joined)
+                                welds.setdefault(broken, set()).update(one for one in halves
+                                                                       if one)
                     for part in reach:
                         plain = bare(part)
                         if plain:
