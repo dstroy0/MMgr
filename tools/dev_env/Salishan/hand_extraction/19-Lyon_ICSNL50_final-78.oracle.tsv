@@ -504,3 +504,28 @@ footnote 17	John Lyon	note	Nellie Guitterez switches to English for the rest of 
 3.2 13	John Lyon	gloss	one+NMLZ+year COMP.FUT 2PL.ABS return+CISL+gather+INCH DEM
 3.2 13	John Lyon	word gloss	one.year before you.all come.back here
 3.2 13	John Lyon	translation	‘ “In a year’s time, you all come back here again.” ’
+3.2 14	Kiláwnaʔ	surface	“uɬ iʔ knaqs k̓ wtímtk, xiʔ k̓liʔ kʷ xʷuy, lkʷut.”
+3.2 14	John Lyon	parse	uɬ iʔ k(+)√naqs k̓l √wtím(=)tk ixíʔ ik̓líʔ kʷ xʷuy √lkʷ=ut
+3.2 14	John Lyon	gloss	CONJ DET one[HUMAN] LOC south DEM DEM 2SG.ABS go far=place
+3.2 14	John Lyon	word gloss	and the one to south then to.there you go far.away
+3.2 14	John Lyon	translation	‘ “And one will go to the south, you go really far over there.” ’
+3.2 15	Kiláwnaʔ	surface	“mypnúntxʷ stim̓ aʔ ck̓ʷúl̓səlx, nuk̓ʷspíntk.”
+3.2 15	John Lyon	parse	√my+p-nú-nt-xʷ stim̓ aʔ c-√k̓ʷúl̓-st-slx nuk̓ʷ+s+√pín(=)tk
+3.2 15	John Lyon	gloss	know+INCH-manage.to-DIR-2SG.ERG what DET CUST-work-CAUS-3PL.ERG one+NMLZ+year
+3.2 15	John Lyon	word gloss	you.find.out what they.are.working.at one.year
+3.2 15	John Lyon	translation	‘ “You find out what they do there, for one year.” ’
+3.2 16	Kiláwnaʔ	surface	“uɬ iʔ knaqs tac k̓l sk̓lxʷtan.”
+3.2 16	John Lyon	parse	uɬ iʔ k(+)√naqs tac k̓l s+√k̓lxʷ+tan
+3.2 16	John Lyon	gloss	CONJ DET one[HUMAN] over LOC NMLZ+evening+INS
+3.2 16	John Lyon	word gloss	and the one over to west
+3.2 16	John Lyon	translation	‘ “And one will go over to the west.” ’
+3.2 17	Kiláwnaʔ	surface	“t̓ kʷ xʷu····y lkʷut.”
+3.2 17	John Lyon	parse	t̓i kʷ xʷuy √lkʷ=ut
+3.2 17	John Lyon	gloss	EMPH 2SG.ABS go far=place
+3.2 17	John Lyon	word gloss	just you go far.away
+3.2 17	John Lyon	translation	‘ “Just go really far.” ’
+3.2 18	Kiláwnaʔ	surface	“mypnúntxʷ ya·····ʕt aʔ ck̓ʷúl̓səlx.”
+3.2 18	John Lyon	parse	√my+p-nú-nt-xʷ √yaʕ+t aʔ c-√k̓ʷúl̓-st-slx
+3.2 18	John Lyon	gloss	know+INCH-manage.to-DIR-2SG.ERG gather+STAT DET CUST-work-CAUS-3PL.ERG
+3.2 18	John Lyon	word gloss	you.find.out everything that they.are.working.on
+3.2 18	John Lyon	translation	‘ “You find out everything they are doing, the way people live there.” ’
