@@ -1326,3 +1326,28 @@ footnote 24	John Lyon	note	There is no 3rd person possessive -s pronounced on tk
 3.2 176	John Lyon	gloss	EMPH gather 2SG.ABS get-NMLZ+body-MID COMP.FUT go-CAUS-2SG.OBJ-1SG.ERG yes EPIS 2SG.ABS good+STAT OBL black=robe
 3.2 176	John Lyon	word gloss	just all you get.body.and.all will I.take.you yes must.be you a.good priest
 3.2 176	John Lyon	translation	‘ “I will take your body and all, you must be a very good priest.” ’
+3.2 177	Kiláwnaʔ	surface	“yaʕya···ʕt astəm̓tím̓ x̌ʷilstxʷ aláʔ.”
+3.2 177	John Lyon	parse	yaʕ•√yaʕ+t an-s+tm̓•√tím̓ √x̌ʷil-st-xʷ aláʔ
+3.2 177	John Lyon	gloss	C1C2.PL•gather+STAT 2SG.POSS-NMLZ+C1.C2.PL•thing throw.away-CAUS-2SG.ERG DEM
+3.2 177	John Lyon	word gloss	all your.things you.throw.them.away here
+3.2 177	John Lyon	translation	‘ “Throw all your things away here.”
+3.2 178	Kiláwnaʔ	surface	x̌ʷilsts, kɬtəməlxʷncút iʔ q̓ʷʕaylqs, nʔamúts iʔ l t̓áqnaʔ.
+3.2 178	John Lyon	parse	√x̌ʷil-st-s kɬ+√tm=lxʷ-ncut iʔ √q̓ʷʕay=lqs n+√ʔamút-s iʔ l t̓áq(=)naʔ
+3.2 178	John Lyon	gloss	throw.away-CAUS-3ERG DRV+thing=person-REFL DET black=robe LOC+sit-3POSS DET LOC gunny.sack
+3.2 178	John Lyon	word gloss	he.threw.them.away he.took.off.his.clothes the priest he.was.sat.down the in gunny.sack
+3.2 178	John Lyon	translation	‘The priest threw them away, took his clothes off and the boy sat him in a gunny-sack.’
+3.2 179	Kiláwnaʔ	surface	q̓ʷíɬtəm k̓l sənkʕkʕákaʔtən, kiʔ kɬəxʷpəntís.
+3.2 179	John Lyon	parse	√q̓ʷíɬt-m k̓l s+n+kʕ(•)√kʕ(=)ákaʔ+tn kiʔ k+√ɬxʷ(+)p-nt-ís
+3.2 179	John Lyon	gloss	pack-MID LOC NMLZ+LOC+bird+INS COMP.OBL RES+hang-DIR-3ERG
+3.2 179	John Lyon	word gloss	he.packed.him to chicken.house where he.hung.him.up
+3.2 179	John Lyon	translation	‘The boy carried the priest on his back to the chicken house, and he hung him up.’
+3.2 180	Kiláwnaʔ	surface	ixíʔ uɬ xʷuy ɬq̓íləx.
+3.2 180	John Lyon	parse	ixíʔ uɬ xʷuy √ɬq̓+ílx
+3.2 180	John Lyon	gloss	DEM CONJ go lay.down+AUT
+3.2 180	John Lyon	word gloss	then and he.went he.laid.down
+3.2 180	John Lyon	translation	‘And then the boy went home and went to bed.’
+3.2 181	Kiláwnaʔ	surface	ɬkʷkʷʕast, ixíʔ iʔ likók qʷəlqʷílt.
+3.2 181	John Lyon	parse	ɬ(+)kʷ•√kʷʕas(+)t ixíʔ iʔ likók qʷl•√qʷíl+t
+3.2 181	John Lyon	gloss	morning DEM DET rooster C1C2.PL•speak+STAT
+3.2 181	John Lyon	word gloss	in.the.morning that rooster crowed
+3.2 181	John Lyon	translation	‘In the morning, the rooster crowed.’
