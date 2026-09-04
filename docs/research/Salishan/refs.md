@@ -11,7 +11,7 @@ Everything here is generable using the tools/dev_env/ scripts or reachable at a 
 |---|---|---|
 **These languages belong to the people who speak them, and none of this work exists without them.** The corpus everything else here is measured against is their words, written down.
 
-The list of who is in it is [`pure_corpus/README.md`](pure_corpus/README.md), which opens every entry with the speaker and carries the conditions they set. That file is written from `corpus_script_extraction/paper_config.py` by `hand_extraction/pure_corpus_index.py`, so a speaker's name is typed in exactly one place and this document keeps no second copy of it to drift.
+The list of who is in it is [`pure_corpus/README.md`](pure_corpus/README.md), which opens every entry with the speaker and carries the conditions they set. That file is written from `corpus_script_extraction/paper_config.py` by `hand_extraction/pure_corpus_index.py`. A speaker's name is therefore typed in exactly one place, and this document keeps no second copy of it to drift.
 
 Fifteen of the twenty papers name their speakers. The other five cite a published dictionary and never say who spoke, and their entries say so. A linguist wrote the paper and a person read the paper into a table, and neither of those is whose language it is, so neither goes in that slot.
 
@@ -282,6 +282,36 @@ Two things in that reader are worth naming because no other paper here needs the
 `line_breaks.py` holds the join, because `coverage_check.py` has to apply it too. That check compares a paper against its extraction and its own header says both sides go through the same transformation first, and a join the reader makes and the check does not reports every welded word as a hole. With it applied the paper is at 100 percent like the other eleven.
 
 `lyon_encoding.py` holds that table for NimbusRomNo9L as it stands, with the labialization rule still a guess and the insertion rate still unmeasured.
+
+### The algorithm reads the damage the blanket repair cannot
+
+`anchor_sift_algorithmic_extraction/symbol_sift.py`. Reading a broken word off a rendered page works and does not scale: twenty papers at twenty-four pages each is four hundred images, and every reading is a judgment nobody can check afterward. This asks the sift instead.
+
+A break site is a place where the extraction has two tokens and the paper may have had one. The candidates are the two joined by each combining mark the paper writes, and joined by nothing, which is the reading where the space is a real boundary. A candidate counts as attested where the paper writes it as a token, and where the paper writes it inside one: `qʷal út` is `qʷal̓út`, which Davis and Mellesmoen never prints alone and does print inside `qʷəqʷal̓út`. Scoring is the radix from `boundary_check.py`, with run counts taken from the tokens carrying no break and flattened to maximum entropy, so a run common everywhere contributes nothing and what is left belongs to that restoration.
+
+**It finds 86 sites across the fifteen papers with readers, and every one of those papers already reports 100 percent coverage.** That is not a contradiction, it is the blind spot `inserted_space.py` names: the coverage check puts both sides through the same repair, and a word broken in the source and broken in the extraction matches itself.
+
+| paper | read | declined on score |
+|---|---|---|
+| Garcia, Hannon and Stacey | 24 | 9 |
+| Hall and Phillips | 24 | 0 |
+| LaFontaine and Janzen | 18 | 2 |
+| Davis and Mellesmoen | 4 | 1 |
+| Kim | 4 | 0 |
+| Mary George | 4 | 0 |
+| Alexander and Davis | 2 | 2 |
+| Nater, ICSNL 59 | 2 | 0 |
+| Lyon, inchoatives | 2 | 0 |
+| Matthewson and Redan | 1 | 1 |
+| Wolfe | 1 | 0 |
+
+The Garcia row is the one to look at first. `Kʷ əɬtəzétkʷu` reads as `Kʷəɬtəzétkʷu` at a score of 478.0, and that is Kʷəɬtəzétkʷu's own name broken in half in a paper that passes every check. `N ɬeʔkepmxcín` reads as `Nɬeʔkepmxcín` at 302.8 and `s ƛ̓eʔxímn.` as `sƛ̓eʔxímn.` at 244.1. A mark drawn at random from that paper's inventory lands on an attested form 0.000 of the time over 6600 draws.
+
+`closed_spaces` cannot reach any of them and is right not to. The break follows `ʷ`, which is deliberately outside the joining set because it is a spacing modifier letter on the baseline and a space after one is normally a real boundary: including it welded thirteen pairs of real words in one paper. A blanket rule has to choose once for the whole corpus. This decides per site, from what the paper itself writes, which is why it can take `Kʷ əɬtəzétkʷu` and leave `bəlkʷ ‘return’` alone.
+
+The score is what separates them. Garcia's `w ɬ` scores -1.4 and is declined, because the runs `wɬ` would make sit below where a flat distribution puts them, which is this paper saying it does not write words shaped that way. Nine of Garcia's 33 sites are declined on that test.
+
+**Nothing has been changed on the strength of this.** These are candidate corrections. Applying them rewrites the corpora and moves what every downstream measurement reads, which is a decision to take deliberately and measure, not a repair to slip in. What the table above establishes is that the damage is there, that it is larger than the checks can see, and that it is readable without a person opening a page.
 
 ### What the corpus measures now
 
