@@ -145,7 +145,7 @@ Everything above treats the damage as a hazard to route around. It is also the o
 
 Two encodings of one text, aligned line for line, with the page settling which is right, is a measured channel. `build/papers/<stem>.txt` is the mutated side, `.page.txt` is the drafted side, and the hand extraction read off the rendered page is ground truth for both. No other paper here has a second encoding of the same page to compare against.
 
-The mutations sort into four kinds, and the fourth is what makes this a distribution instead of a rewrite table.
+The mutations sort into five kinds, and the last two are what make this a distribution instead of a rewrite table.
 
 | Kind | Instances | Invertible |
 |---|---|---|
@@ -153,8 +153,11 @@ The mutations sort into four kinds, and the fourth is what makes this a distribu
 | Collapse, two symbols onto one | `ʷ`→`w`, and plain `w`→`w` | no |
 | Transposition | a combining mark over its letter becomes a spacing mark before it: `k̓`→`’k`, `x̌`→`ˇx` | yes |
 | Insertion | a space appears in front of a letter carrying a mark | not decidable alone |
+| Deletion | the space at a change of font is dropped, welding two words | not decidable alone |
 
 The insertion does not always fire. `2013_Lindley_Lyon.txt` holds `wa ’y` in most places and `wa’y` in three, for the one word the page prints as `way̓`. So its rate lies strictly between 0 and 1, and the same input shape has two outputs. That is a probability, not a rule, and it is why a repair applied without the page welds words that were never one word.
+
+The deletion fires where the paper changes font mid-sentence. Footnote 5 of the same paper sets its cited forms in italic inside roman prose, and the two arrive as `Okanaganyaxʷt` and `Okanaganyaʕyáʕt`, each one token where the page prints two words. The second is recoverable, because `yaʕyáʕt` is a common word and appears on its own elsewhere in the paper. The first is not: `yaxʷt` occurs nowhere else, so nothing in the text says where the boundary was. Which of the two happens depends on the rest of the corpus rather than on the token, which is the second reason this is a distribution.
 
 The collapse sets a ceiling. No recovery, however good, separates page `kʷukʷ` from page `wist` in the mutated text, because the channel destroyed the distinction rather than disguising it. Anything downstream that claims to have recovered a labialized consonant on these two papers is claiming something the file cannot support.
 
