@@ -33,6 +33,7 @@ import os
 import re
 import sys
 
+from inserted_space import closed_spaces
 from salish_marking import (DERIVED, MARKED, PRACTICAL, SPOKEN, UNCLASSIFIED, rendered,
                             switches, tagged_spans)
 from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
@@ -45,11 +46,11 @@ CORPORA = os.path.join(ROOT, "build", "corpora")
 
 SOURCE = os.path.join(PAPERS, "Matthewson_Redan_ICSNL61.txt")
 
-# <original paper and author>_Salish_<language without accents>_<spoken by>_<year>_<mixed>
+# <spoken by>_<original paper>_<who wrote it down>_Salish_<language without accents>_<year>_<mixed>
 TARGET = os.path.join(
     CORPORA,
-    "Cw7aozKati7Lati7KuNaxwit_MatthewsonRedan"
-    "_Salish_statimcets_Kweswapaw-LindaRedan_2026_mixed.txt")
+    "Kweswapaw-LindaRedan_Cw7aozKati7Lati7KuNaxwit_MatthewsonRedan"
+    "_Salish_statimcets_2026_mixed.txt")
 
 # This paper's orthography, plus the combining marks it writes glottalization with
 MARKS = MARKED + PRACTICAL + "̓̔̕"
@@ -57,7 +58,7 @@ MARKS = MARKED + PRACTICAL + "̓̔̕"
 PAGE = re.compile(r"^===== page \d+ =====$")
 
 # Matched on the actual titles. This paper numbers its sections with bare digits, and its footnotes
-# open with a bare marker followed by prose, so a general number-then-text pattern reads footnote 1
+# open with a bare marker followed by prose. A general number-then-text pattern reads footnote 1
 # as the start of section 1 and refiles the whole glossed story under it. Section 4 came back with
 # two of its thirty-four blocks that way. Naming the four headings is exact and cannot drift.
 HEADINGS = (
@@ -69,6 +70,11 @@ HEADINGS = (
 NUMBERED_BLOCK = re.compile(r"^\((\d{1,3})\)\s*(.*)$")
 BRACKETED = re.compile(r"\[([^\]]*)\]")
 QUOTED = re.compile(r"^['‘“]")
+
+# Where one of her sentences ends. The closing quote comes after the stop, because the story is full
+# of people talking: Nilh swe7áwentsas, “K̓weswapáw̓!” is one sentence and splitting at the ! would
+# leave the quotation mark opening the next one.
+SENTENCE = re.compile(r"(?<=[.!?])(?=\s)|(?<=[.!?][\"”’'])(?=\s)")
 
 # A segmentation line writes each morpheme on its own and joins them with a hyphen or an equals
 # sign. Testing for that is what keeps a wrapped transcription line, a page number or a line of
@@ -147,24 +153,35 @@ def main():
         out.flush()
         return 1
 
+    # This PDF leaves a space after every glottalization mark, 169 of them, and K̓weswapáw̓ arrives
+    # as two tokens. Closed on the way in, so that everything reading these lines sees one word.
+    # The hand extraction is what caught it: reading the paper by eye gives K̓weswapáw̓, and the
+    # record held K̓ and weswapáw̓ while coverage_check reported this paper at 100 percent.
     with open(SOURCE, encoding="utf-8", errors="replace") as handle:
-        lines = handle.read().splitlines()
+        lines = [closed_spaces(one) for one in handle.read().splitlines()]
 
     held = sectioned(lines)
     rows = []
     count = 0
 
-    # Section 2, the story as she told it, with Lisa's notes on laughter and gesture between
-    for one in held.get("2", []):
-        trimmed = " ".join(one.split())
-        if not trimmed:
-            continue
-        for kind, piece in split_brackets(trimmed):
+    # Section 2, the story as she told it, with Lisa's notes on laughter and gesture between.
+    #
+    # Joined into one string before it is read. The line breaks here are the PDF's page width and
+    # nothing else: her first sentence runs across two of them and her fifth starts halfway through
+    # a third. Read line by line, the record held fragments, and the hand extraction of this paper,
+    # which is one row per sentence, matched none of them.
+    whole = " ".join(" ".join(one.split()) for one in held.get("2", []) if one.strip())
+    for kind, piece in split_brackets(whole):
+        if kind == "note":
             count += 1
-            if kind == "note":
-                rows.append(("T", count, "2", "stage direction", "Lisa Matthewson", piece))
-            else:
-                rows.append(("T", count, "2", "running speech", "K̓weswapáw̓ Linda Redan", piece))
+            rows.append(("T", count, "2", "stage direction", "Lisa Matthewson", piece))
+            continue
+        for said in SENTENCE.split(piece):
+            said = said.strip()
+            if said:
+                count += 1
+                rows.append(("T", count, "2", "running speech",
+                             "K̓weswapáw̓ Linda Redan", said))
 
     # Section 3, the English translation, checked with Linda
     for one in held.get("3", []):
@@ -228,7 +245,7 @@ def main():
     # marked file holds every token of the language the paper printed. The speaker column is left
     # unset, which also keeps these out of the pure stream, and they are listed in the flag file.
     # The union of every orthography, not this paper's own set. The coverage check counts a token
-    # against the union, so a finder using a narrower set leaves holes the check still reports.
+    # against the union. A finder using a narrower set leaves holes the check still reports.
     missed = unreached(lines, covered_tokens(one[5] for one in rows))
     for page, where, reason, missing, text in missed:
         rows.append(("T", 0, "not reached page %d" % page, UNCLASSIFIED, "", text))

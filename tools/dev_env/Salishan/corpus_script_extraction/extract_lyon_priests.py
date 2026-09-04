@@ -46,11 +46,11 @@ CORPORA = os.path.join(ROOT, "build", "corpora")
 
 SOURCE = os.path.join(PAPERS, "19-Lyon_ICSNL50_final-78.txt")
 
-# <original paper and author>_Salish_<language without accents>_<spoken by>_<year>_<mixed>
+# <spoken by>_<original paper>_<who wrote it down>_Salish_<language without accents>_<year>_<mixed>
 TARGET = os.path.join(
     CORPORA,
-    "ThreeOkanaganStoriesAboutPriests_Lyon"
-    "_Salish_nsyilxcen_GeorgeLezard-NellieGuitterez-AndrewMcGinnis_2015_nomixed.txt")
+    "GeorgeLezard-NellieGuitterez-AndrewMcGinnis_ThreeOkanaganStoriesAboutPriests_Lyon"
+    "_Salish_nsyilxcen_2015_nomixed.txt")
 
 MARKS = MARKED + "ʷ̓’ʼ"
 
@@ -149,21 +149,21 @@ def split_merged(text):
 def four_line_words(block):
     """One numbered block of the interlinear, as the four lines the paper gives for each word.
 
-    The PDF handed this paper's interlinear over a column at a time, so a word arrives as four
+    The PDF handed this paper's interlinear over a column at a time. A word arrives as four
     consecutive lines: the word as spoken, its segmentation, its gloss, and an English word for it.
-    Position in that cycle is what says which line is which. Content cannot say it, because a short
-    word written in plain letters is spelled the same on the first two lines and carries nothing to
-    test: block 1 opens with p, then p again, and only the order separates the two.
+    Position in that cycle is what fixes which line is which. Content cannot, because a short word
+    written in plain letters comes out the same on the first two lines and carries nothing to test.
+    Block 1 opens with p, then p again, and only the order separates the two.
 
     Two things break the cycle and both are handled. Where the extraction ran the first two columns
-    together the line fills both positions at once, and a page number sitting inside a block is
-    passed over rather than counted, since counting it puts every word after it out of step.
+    together the line fills both positions at once. A page number sitting inside a block is passed
+    over, because counting it puts every word after it out of step.
 
-    A third breaks it and cannot be handled: a word given no English gloss takes three lines rather
-    than four, and block 44 opens with one. Nothing in the lines themselves says so, and every word
-    after it lands a slot early. That is caught rather than repaired. An uppercase category label
-    belongs to a gloss and cannot stand in a spoken word or its segmentation, so finding one in
-    either of those slots is proof the count has slipped, and the caller is told.
+    A third breaks it and cannot be handled: a word given no English gloss takes three lines instead
+    of four, and block 44 opens with one. Nothing in the lines themselves marks it, and every word
+    after it lands a slot early. That is caught, not repaired. An uppercase category label belongs
+    to a gloss and cannot stand in a spoken word or its segmentation. Finding one in either of those
+    slots is proof the count has slipped, and the caller is told.
 
     Returns the words, the free translation that closes the block, any line left over, and whether
     the cycle slipped.
@@ -196,8 +196,8 @@ def four_line_words(block):
         # word after it a slot early. A word gloss is English and carries none of the damaged
         # orthography, which is what separates you.all and priest from yaQyá;;Qt and t@twít.
         # Closing early on a single-letter line was tried, on the reasoning that l, p and t are
-        # proclitics and never an English gloss. It cost 331 lines and eight blocks, so a single
-        # letter does stand in that slot often enough to matter and the rule is not there.
+        # proclitics and never an English gloss. It cost 331 lines and eight blocks. A single letter
+        # does stand in that slot often enough to matter, and the rule is not there.
         if (slot == 3) and any(carries_orthography(one) for one in line.split()):
             close()
             slot = 0
@@ -214,9 +214,9 @@ def four_line_words(block):
             close()
             slot = 0
     close()
-    # Tested on a run of capitals rather than on the label list. The list matches on word
-    # boundaries and there is none inside 3POSS, so a block whose gloss line read father-3POSS
-    # passed the check and put that into the ingestion stream as something somebody said.
+    # Tested on a run of capitals, not on the label list. The list matches on word boundaries and
+    # there is none inside 3POSS. A block whose gloss line read father-3POSS passed the check and
+    # put that into the ingestion stream as something somebody said.
     slipped = any(CAPS_RUN.search(one[0] or "") or CAPS_RUN.search(one[1] or "")
                   for one in words)
     return words, translation, leftover, slipped
@@ -243,8 +243,8 @@ def main():
         return 1
 
     with open(SOURCE, encoding="utf-8", errors="replace") as handle:
-        # Ligatures come out here rather than in the loop below, so that everything reading these
-        # lines sees the same text. This paper holds 76 of them and one reached the corpus as ﬁve.
+        # Ligatures come out here, before the loop below, so that everything reading these lines
+        # sees the same text. This paper holds 76 of them and one reached the corpus as ﬁve.
         lines = [unligatured(one.rstrip("\n")) for one in handle]
 
     rows = []
@@ -264,10 +264,10 @@ def main():
         opened = looks_heading(trimmed)
         if opened:
             number_of, title = opened
-            # The contents list repeats every heading before the body, so a top-level heading
-            # opens its section on its second appearance. Subsection entries in that list are
-            # padded with dot leaders and are already refused above, so they never register as
-            # seen, and skipping their first appearance discarded every one of them.
+            # The contents list repeats every heading before the body. A top-level heading opens
+            # its section on its second appearance. Subsection entries in that list are padded with
+            # dot leaders and are already refused above, so they never register as seen, and
+            # skipping their first appearance discarded every one of them.
             if "." not in number_of:
                 if number_of not in seen_heading:
                     seen_heading.add(number_of)
@@ -403,7 +403,7 @@ def main():
     # marked file holds every token of the language the paper printed. That is the front matter,
     # the prose introducing each story, and Lyon's discussion. They stay out of the pure stream.
     # The union of every orthography, not this paper's own set. The coverage check counts a token
-    # against the union, so a finder using a narrower set leaves holes the check still reports.
+    # against the union. A finder using a narrower set leaves holes the check still reports.
     missed = unreached(lines, covered_tokens(one[5] for one in rows), repair=prepared)
     for page, where, reason, missing, text in missed:
         rows.append(("T", 0, "not reached page %d" % page, UNCLASSIFIED, "", text))

@@ -20,7 +20,7 @@
 #
 # The pure stream takes the community orthography and not the phonetic line, because the two are one
 # utterance and writing both would put every sentence into the stream twice. The phonetic line is kept in
-# the marked file with its own kind, so a reader who wants Davis's ear instead has it.
+# the marked file with its own kind. A reader who wants Davis's ear instead has it there.
 #
 # Notes sections carry his commentary on particular lines and are derived.
 #
@@ -44,11 +44,14 @@ CORPORA = os.path.join(ROOT, "build", "corpora")
 
 SOURCE = os.path.join(PAPERS, "ICSNL56_DavisJ_2_final-1.txt")
 
-# <original paper and author>_Salish_<language without accents>_<spoken by>_<year>_<mixed>
+# <spoken by>_<original paper>_<who wrote it down>_Salish_<language without accents>_<year>_<mixed>
+#
+# Three of the fourteen narratives are not Mary George's, and the speaker column in the record is
+# what says which. The name in the filename is who most of it is by.
 TARGET = os.path.join(
     CORPORA,
-    "MaryGeorgePersonalNarratives_JohnHamiltonDavis"
-    "_Salish_ayajuthem_MaryGeorge_2021_mixed.txt")
+    "MaryGeorge_MaryGeorgePersonalNarratives_JohnHamiltonDavis"
+    "_Salish_ayajuthem_2021_mixed.txt")
 
 MARKS = MARKED + "̓̔̕"
 
@@ -169,7 +172,7 @@ def main():
             rows.append(("T", number, section, title, "transcription", who, trimmed))
             seen_orthography = True
             continue
-        # Anything else carrying the language is kept and marked as unsorted rather than dropped.
+        # Anything else carrying the language is kept and marked unsorted. None of it is dropped.
         # A phonetic line that wrapped does not open with its bracket, and the notes cite forms
         # inline as form = gloss, so both fall past the tests above. Eighty-six tokens of this
         # paper went missing that way, which is the largest hole the coverage check found.
@@ -180,7 +183,7 @@ def main():
     # marked file holds every token of the language the paper printed. The speaker is left unset
     # because nobody has said whose line it is. They stay out of the pure stream.
     # The union of every orthography, not this paper's own set. The coverage check counts a token
-    # against the union, so a finder using a narrower set leaves holes the check still reports.
+    # against the union. A finder using a narrower set leaves holes the check still reports.
     missed = unreached(lines, covered_tokens(one[6] for one in rows))
     for page, where, reason, missing, text in missed:
         rows.append(("T", 0, "not reached", "page %d" % page, UNCLASSIFIED, "", text))

@@ -15,8 +15,8 @@
 # name why, and hold it out of the ingestion stream until a person has said what it is. A guess costs more
 # than a gap, because a gap is visible and a wrong guess is not.
 #
-# The second kind is found by comparing rather than by parsing. Every token in the source carrying a
-# character the language is written with should appear somewhere in the extraction, so a source line
+# The second kind is found by comparing, not by parsing. Every token in the source carrying a
+# character the language is written with should appear somewhere in the extraction. A source line
 # holding words that no extracted row holds was not reached. That is the same test coverage_check.py runs,
 # and the number it reports does not change: these lines are flagged, not classified, so they still count
 # against coverage. What changes is that the gap now has a file naming every line in it.
@@ -41,6 +41,16 @@ MARKS = MARKED + PRACTICAL + "̓̔̕ʷ˽"
 # second is a line no section of the extractor ever looked at.
 UNKNOWN_KIND = "kind unknown"
 NOT_REACHED = "not reached"
+
+
+def tidy(text):
+    """One field with the characters that would break a tab-separated file taken out.
+
+    A tab inside a field opens a column that is not there, and a newline ends the row early. Both
+    turn up in extracted text. Replaced with a space so the field count on every line is the field
+    count in the header.
+    """
+    return " ".join(str(text).split())
 
 
 def digit_artifact(plain):
@@ -116,23 +126,21 @@ def unreached(source_lines, kept, repair=None, marks=MARKS):
 def write_unsorted(path, paper, rows):
     """The flag file for one paper, in the column order every paper's file uses.
 
-    Each row is page, where, reason, missing, text. The where column carries whatever locator the
-    paper has, a section and block number for a line the classifier reached and nothing for a line
-    found by comparison, which carries its page instead.
+    Each row is paper, page, where, reason, missing, text. The where column carries whatever locator
+    the paper has, a section and block number for a line the classifier reached and nothing for a
+    line found by comparison, which carries its page instead.
+
+    A tab-separated file with a header on its first line and the same number of fields on every
+    line. Nothing else. This used to open with seven lines of prose behind a hash, and csvlint has
+    no comment syntax, so every one of these files failed it. The prose that was there is in this
+    module's own header, where a person reading the code finds it, and the reason column carries
+    the two cases into the data.
     """
     ordered = sorted(rows, key=lambda one: (one[0], one[1]))
     with open(path, "w", encoding="utf-8", newline="") as handle:
-        handle.write("# Lines of %s carrying the language that this extractor could not sort.\n"
-                     % paper)
-        handle.write("# They are held out of the pure stream until someone says what they are,\n")
-        handle.write("# and they still count against coverage, because a flag is not a fix.\n")
-        handle.write("#\n")
-        handle.write("# reason %s: the classifier read the line and none of its tests fired.\n"
-                     % UNKNOWN_KIND)
-        handle.write("# reason %s: no section of the extractor ever looked at the line, which\n"
-                     % NOT_REACHED)
-        handle.write("# the missing column shows by naming the words no extracted row holds.\n")
-        handle.write("page\twhere\treason\tmissing\ttext\n")
+        handle.write("paper\tpage\twhere\treason\tmissing\ttext\n")
         for page, where, reason, missing, text in ordered:
-            handle.write("%s\t%s\t%s\t%s\t%s\n" % (page, where, reason, missing, text))
+            handle.write("%s\t%s\t%s\t%s\t%s\t%s\n"
+                         % (tidy(paper), page, tidy(where), tidy(reason), tidy(missing),
+                            tidy(text)))
     return len(ordered)

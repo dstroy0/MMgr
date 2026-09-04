@@ -7,10 +7,10 @@
 #   Usage:  python tools/dev_env/paper_language.py
 #
 # A sifted file carries no language name because taking one from a filename would be inventing it.
-# The paper does not have that problem: it names its language in its title and its abstract, often
-# several times and in several spellings.
+# The paper does not have that problem. It names its language in its title and its abstract, often
+# several times and under several names.
 #
-# So the name is read rather than assigned. Each language below is listed with the spellings the
+# The name is read off the paper, never assigned. Each language below is listed with the names the
 # literature uses for it, including the ones communities use for themselves and the older names
 # outsiders gave them, because a 1974 paper and a 2024 paper on the same language rarely agree. A
 # paper is attributed only where its front matter names one language and no other, which leaves the
@@ -32,7 +32,7 @@ PAPERS = os.path.join(ROOT, "build", "papers")
 # and a comparative paper's references do not, which keeps a citation from naming the subject.
 FRONT = 60
 
-# Each language with the spellings papers use for it. First entry is the name used in output.
+# Each language with every name papers use for it. First entry is the name used in output.
 NAMES = (
     ("Lushootseed", ("lushootseed", "puget salish", "puget sound salish", "skagit",
                      "snohomish", "dxʷləšucid", "twulshootseed")),
@@ -78,8 +78,8 @@ def named_in(path, front=FRONT):
     text = " ".join(" ".join(one.split()) for one in held).casefold()
 
     counted = collections.Counter()
-    for name, spellings in NAMES:
-        for one in spellings:
+    for name, aliases in NAMES:
+        for one in aliases:
             counted[name] += text.count(one.casefold())
     return [(name, times) for name, times in counted.most_common() if times]
 

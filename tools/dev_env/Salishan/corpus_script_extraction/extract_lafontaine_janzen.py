@@ -44,11 +44,11 @@ CORPORA = os.path.join(ROOT, "build", "corpora")
 
 SOURCE = os.path.join(PAPERS, "ICSNL59_LaFontaine_Janzen_final.txt")
 
-# <original paper and author>_Salish_<language without accents>_<spoken by>_<year>_<mixed>
+# <spoken by>_<original paper>_<who wrote it down>_Salish_<language without accents>_<year>_<mixed>
 TARGET = os.path.join(
     CORPORA,
-    "FourStoriesByWlwlmelst_LaFontaineJanzen"
-    "_Salish_nlekepmxcin_wlwlmelst-MauriceMichell_2024_mixed.txt")
+    "wlwlmelst-MauriceMichell_FourStoriesByWlwlmelst_LaFontaineJanzen"
+    "_Salish_nlekepmxcin_2024_mixed.txt")
 
 PAGE = re.compile(r"^===== page \d+ =====$")
 HEADING = re.compile(r"^(\d+(?:\.\d+)?)\s+(\S.*)$")
@@ -57,9 +57,9 @@ APPENDIX = re.compile(r"^Appendix", re.IGNORECASE)
 QUOTED = re.compile(r"^['‘“]")
 
 # A segmentation line writes each morpheme on its own and joins them with a hyphen or an equals
-# sign. The blocks of this paper are three lines deep and wrap, so a block holds several
-# transcription lines as well as several segmentation lines, and without this test every
-# transcription after the first went into the record under the name of the line below it.
+# sign. The blocks of this paper are three lines deep and wrap. A block holds several transcription
+# lines as well as several segmentation lines, and without this test every transcription after the
+# first went into the record under the name of the line below it.
 SEGMENTED = re.compile(r"[-=]")
 
 # The category labels this paper defines in its appendix and uses on its gloss line
@@ -162,7 +162,7 @@ def three_line_parts(block):
     segmentation carry the same words and differ only by the boundaries written into one of them.
 
     The free translation closes the block and wraps onto a second line when it is long, so lines
-    after it are joined to it rather than left over.
+    after it are joined to it, and none is left over.
 
     Hall and Phillips prints its interlinear the same way. The two are read by their own files
     because everything around the blocks differs, and this shape is what they happen to share.

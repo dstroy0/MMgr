@@ -15,7 +15,7 @@
 # Guessing either from a filename would put a name on somebody's words on no evidence, and the
 # whole of the rest of this directory exists to avoid exactly that.
 #
-# What each line does carry is where it came from and how far outside English it fell, so a person
+# What each line does carry is where it came from and how far outside English it fell. A person
 # opening one paper can start at the strongest lines and work down. These are candidates. A line
 # here has been found, not read.
 

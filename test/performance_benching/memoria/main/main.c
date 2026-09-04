@@ -30,6 +30,11 @@ static volatile size_t g_ext_large = 65536u;
 
 static volatile size_t g_cmp_len = 8u;
 
+// The distance between the two ends of a backward move, held in a volatile so the collision check
+// cannot be settled at compile time. Read as a constant, the branch folds and the arm measures a
+// decision the library would have to make at run time
+static volatile size_t g_move_gap = 64u;
+
 static const uint8_t *volatile g_cmp_a;
 static const uint8_t *volatile g_cmp_b;
 
@@ -300,6 +305,306 @@ static embed_iword cmp_aligned(const uint8_t *a, const uint8_t *b, size_t bytes)
     return 0;
 }
 
+/**
+ * @brief Arguments for the backward move arms.
+ *
+ * @note Mirrors MemorMoveCtx in memoria_operor.c, down to neither pointer being restrict qualified.
+ *       move_up is the entry for regions that overlap, which is the thing restrict promises does not
+ *       happen, so an arm that added it would time a move the library is not allowed to make.
+ */
+typedef struct
+{
+    uint8_t *dst;       /**< Destination [BORROWS]. */
+    const uint8_t *src; /**< Source [BORROWS]. */
+    size_t bytes;       /**< Bytes to move. */
+} BenchMoveCtx;
+
+/**
+ * @brief Moves args->bytes backward, one word an iteration, as memor_move_up does today.
+ *
+ * @param[in,out] args Destination, source and count [BORROWS].
+ * @note The control. It reproduces the shipping word loop step for step - decrement both pointers,
+ *       then one aligned load and one aligned store - so the row against memor.move_up itself shows
+ *       whether this reproduction is faithful before the unrolled arms are read against it.
+ * @note Advances both pointers to the end and walks them back, which is what the entry does.
+ * @warning args->dst must be writable and args->src readable for args->bytes, and both must be
+ *          word aligned. The word loop goes through proxim.al_load and proxim.al_put.
+ */
+EMBED_INLINE void move_up_one_word(BenchMoveCtx *args)
+{
+    // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
+    size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
+    size_t word_bytes = args->bytes - tail_bytes;
+
+    args->dst += args->bytes;
+    args->src += args->bytes;
+
+    while (tail_bytes != 0u)
+    {
+        args->dst--;
+        args->src--;
+        *args->dst = *args->src;
+        tail_bytes--;
+    }
+    while (word_bytes != 0u)
+    {
+        args->dst -= sizeof(embed_word);
+        args->src -= sizeof(embed_word);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+        word_bytes -= sizeof(embed_word);
+    }
+}
+
+/**
+ * @brief Moves args->bytes backward, four words an iteration, loading and storing each in turn.
+ *
+ * @param[in,out] args Destination, source and count [BORROWS].
+ * @note The unroll memor_cpy already has walking forward, turned around. Its comment records what
+ *       the width is worth there: a one word loop measured 1.02 cycles a byte against 0.65 on the
+ *       ESP32-S3. This arm is what says whether the backward walk gets the same thing.
+ * @note Each word is loaded and stored before the next is loaded, which is the order memor_cpy
+ *       uses. move_up_four_loads is the same unroll with all four loads taken first, and the row
+ *       between the two is what separates the width from the ordering.
+ * @note Safe on an overlap with the destination above the source. Every store lands at an address
+ *       above every source byte a later pass reads, because the walk descends and the destination
+ *       is the higher of the two.
+ * @warning args->dst must be writable and args->src readable for args->bytes, and both must be
+ *          word aligned.
+ */
+EMBED_INLINE void move_up_four_words(BenchMoveCtx *args)
+{
+    // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
+    size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
+    size_t word_bytes = args->bytes - tail_bytes;
+
+    args->dst += args->bytes;
+    args->src += args->bytes;
+
+    while (tail_bytes != 0u)
+    {
+        args->dst--;
+        args->src--;
+        *args->dst = *args->src;
+        tail_bytes--;
+    }
+    while (word_bytes >= (4u * sizeof(embed_word)))
+    {
+        args->dst -= 4u * sizeof(embed_word);
+        args->src -= 4u * sizeof(embed_word);
+
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (3u * sizeof(embed_word)),
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (3u * sizeof(embed_word))));
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (2u * sizeof(embed_word)),
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (2u * sizeof(embed_word))));
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + sizeof(embed_word),
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + sizeof(embed_word)));
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+
+        word_bytes -= 4u * sizeof(embed_word);
+    }
+    while (word_bytes != 0u)
+    {
+        args->dst -= sizeof(embed_word);
+        args->src -= sizeof(embed_word);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+        word_bytes -= sizeof(embed_word);
+    }
+}
+
+/**
+ * @brief Moves args->bytes backward, four words an iteration, taking all four loads first.
+ *
+ * @param[in,out] args Destination, source and count [BORROWS].
+ * @note Same width as move_up_four_words and a different order. Neither pointer is restrict
+ *       qualified, so the compiler has to assume a store may land on the next word to be loaded and
+ *       cannot lift a load above a store on its own. Writing the four loads out first is how the
+ *       four become independent without promising something move_up cannot promise.
+ * @note Still safe on an overlap with the destination above the source, and for a wider margin than
+ *       the interleaved form: nothing is written until all four words are in registers.
+ * @warning args->dst must be writable and args->src readable for args->bytes, and both must be
+ *          word aligned.
+ */
+EMBED_INLINE void move_up_four_loads(BenchMoveCtx *args)
+{
+    // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
+    size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
+    size_t word_bytes = args->bytes - tail_bytes;
+
+    args->dst += args->bytes;
+    args->src += args->bytes;
+
+    while (tail_bytes != 0u)
+    {
+        args->dst--;
+        args->src--;
+        *args->dst = *args->src;
+        tail_bytes--;
+    }
+    while (word_bytes >= (4u * sizeof(embed_word)))
+    {
+        args->dst -= 4u * sizeof(embed_word);
+        args->src -= 4u * sizeof(embed_word);
+
+        const embed_word third = EMBED_CALL(proxim.al_load, ProximusCfg,
+                                            .at = args->src + (3u * sizeof(embed_word)));
+        const embed_word second = EMBED_CALL(proxim.al_load, ProximusCfg,
+                                             .at = args->src + (2u * sizeof(embed_word)));
+        const embed_word first = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + sizeof(embed_word));
+        const embed_word zeroth = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src);
+
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (3u * sizeof(embed_word)), .val = third);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (2u * sizeof(embed_word)), .val = second);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + sizeof(embed_word), .val = first);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = zeroth);
+
+        word_bytes -= 4u * sizeof(embed_word);
+    }
+    while (word_bytes != 0u)
+    {
+        args->dst -= sizeof(embed_word);
+        args->src -= sizeof(embed_word);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+        word_bytes -= sizeof(embed_word);
+    }
+}
+
+/**
+ * @brief Moves args->bytes backward by copying disjoint chunks down from the far end.
+ *
+ * @param[in,out] args Destination, source and count [BORROWS].
+ * @note The distance between the two pointers is the collision point, and one subtraction finds it
+ *       before anything moves. Nothing here has to be told what the caller is doing - a coalesce, a
+ *       header insert, anything else - only that a move of args->bytes from one address to the other
+ *       runs into itself.
+ * @note Where the destination sits at least args->bytes above the source the regions never touch,
+ *       and the whole move is one memor.cpy - the forward copy, four words an iteration, both
+ *       pointers restrict qualified.
+ * @note Where they do touch, the move splits into chunks of at most the collision point, taken from
+ *       the top down. Each chunk's destination is offset from its own source by exactly that
+ *       distance, which is not less than the chunk, so no chunk overlaps itself and each one is
+ *       another legal memor.cpy. Every write also lands above every byte a later chunk reads,
+ *       because the walk descends, so no chunk clobbers another's source.
+ * @note A collision point below four words falls through to move_up_one_word, since chunks that
+ *       small cost more in per call work than the wide copy returns.
+ * @warning args->dst must be writable and args->src readable for args->bytes, and args->dst must be
+ *          at or above args->src. A destination below the source is what memor.cpy already handles.
+ */
+EMBED_INLINE void move_up_collision(BenchMoveCtx *args)
+{
+    // Explicit casts read both addresses as integers, so the distance is ordinary unsigned
+    // arithmetic and never a comparison of pointers into two different objects
+    const size_t apart = (size_t)((uintptr_t)args->dst - (uintptr_t)args->src);
+
+    if (apart >= args->bytes)
+    {
+        EMBED_CALL(memor.cpy, MemoriaCfg, .dst = args->dst, .src = args->src, .bytes = args->bytes);
+        return;
+    }
+    if (apart >= (4u * sizeof(embed_word)))
+    {
+        size_t left = args->bytes;
+
+        while (left != 0u)
+        {
+            const size_t take = (apart < left) ? apart : left;
+
+            left -= take;
+            EMBED_CALL(memor.cpy, MemoriaCfg, .dst = args->dst + left, .src = args->src + left, .bytes = take);
+        }
+        return;
+    }
+    move_up_one_word(args);
+}
+
+/**
+ * @brief Moves bytes backward one at a time, with no library call in it.
+ *
+ * @param[out] dst   Destination [BORROWS].
+ * @param[in]  src   Source [BORROWS].
+ * @param[in]  bytes Bytes to move.
+ * @note The oracle the three arms are checked against. A byte loop written here, because an
+ *       expectation taken from the entry under test agrees with that entry however wrong it is.
+ */
+static void move_up_reference(uint8_t *dst, const uint8_t *src, size_t bytes)
+{
+    size_t offset = bytes;
+
+    while (offset != 0u)
+    {
+        offset--;
+        dst[offset] = src[offset];
+    }
+}
+
+/**
+ * @brief Checks every backward move form against the byte reference over the overlaps that matter.
+ *
+ * @return Count of forms that disagreed with the reference, over every offset and length tried.
+ * @note Runs before the timing. A form that moves the wrong bytes still produces a number, and the
+ *       number reads as a result.
+ * @note The worst overlap is a destination one byte above the source, where a forward walk would
+ *       overwrite the byte it is about to read. A whole word and four whole words are the offsets
+ *       where the unrolled block straddles its own source.
+ */
+static uint32_t move_up_is_correct(void)
+{
+    static const size_t offsets[4] = {1u, 4u, 16u, 64u};
+    static const size_t lengths[4] = {8u, 15u, 64u, 2048u};
+    uint32_t bad = 0u;
+
+    for (unsigned offset_index = 0u; offset_index < 4u; offset_index++)
+    {
+        for (unsigned length_index = 0u; length_index < 4u; length_index++)
+        {
+            const size_t at = offsets[offset_index];
+            const size_t bytes = lengths[length_index];
+
+            for (unsigned form = 0u; form < 4u; form++)
+            {
+                for (size_t fill_index = 0u; fill_index < (bytes + at); fill_index++)
+                {
+                    // The mix makes a byte carry its own offset, so a byte taken from the wrong
+                    // place shows up as itself instead of only as a mismatch
+                    g_a[fill_index] = (uint8_t)((((fill_index * 31u) + 17u) & 0xFFu) | 1u);
+                    g_d[fill_index] = g_a[fill_index];
+                }
+                move_up_reference(g_a + at, g_a, bytes);
+
+                if (form == 0u)
+                {
+                    move_up_one_word(&(BenchMoveCtx){.dst = g_d + at, .src = g_d, .bytes = bytes});
+                }
+                else if (form == 1u)
+                {
+                    move_up_four_words(&(BenchMoveCtx){.dst = g_d + at, .src = g_d, .bytes = bytes});
+                }
+                else if (form == 2u)
+                {
+                    move_up_four_loads(&(BenchMoveCtx){.dst = g_d + at, .src = g_d, .bytes = bytes});
+                }
+                else
+                {
+                    move_up_collision(&(BenchMoveCtx){.dst = g_d + at, .src = g_d, .bytes = bytes});
+                }
+
+                for (size_t check_index = 0u; check_index < (bytes + at); check_index++)
+                {
+                    if (g_d[check_index] != g_a[check_index])
+                    {
+                        bad++;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return bad;
+}
+
 #define RING_CAP 1024u
 
 #define RING_SEGS 4u
@@ -512,6 +817,8 @@ void dbench_run(void)
 
         printf("DB bitor_check     disagreements=%u\n", (unsigned)bitor_is_correct());
 
+        printf("DB move_up_check   disagreements=%u\n", (unsigned)move_up_is_correct());
+
         for (unsigned li = 0; li < (sizeof lens / sizeof lens[0]); li++)
         {
             const size_t n = lens[li];
@@ -574,6 +881,100 @@ void dbench_run(void)
                                               .bytes = n),
                                    (uintptr_t)g_d)),
                       DBENCH_KEEP(memmove(g_d, g_d + MMGR_ALIGN_BYTES, n)));
+
+            // The entry against a step for step reproduction of it. Both walk one word an
+            // iteration, so this row is the cost of reaching the entry through the dispatch table
+            // and nothing else. It has to read near 1.00 before either row below means anything
+            DBENCH_AB("mv_entry", iters, n,
+                      DBENCH_KEEP((EMBED_CALL(memor.move_up, MemoriaCfg, .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d,
+                                              .bytes = n),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)));
+
+            DBENCH_AB("mv_entry_swapped", iters, n,
+                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((EMBED_CALL(memor.move_up, MemoriaCfg, .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d,
+                                              .bytes = n),
+                                   (uintptr_t)g_d)));
+
+            // One word an iteration against four, the same width memor_cpy takes walking forward.
+            // Only the width differs between these two: both load and store each word in turn
+            DBENCH_AB("mv_roll", iters, n,
+                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)));
+
+            DBENCH_AB("mv_roll_swapped", iters, n,
+                      DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)));
+
+            // Four words either way, and only the order differs: the second arm takes all four
+            // loads before any store. Without restrict the compiler cannot make that move itself
+            DBENCH_AB("mv_hoist", iters, n,
+                      DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((move_up_four_loads(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)));
+
+            DBENCH_AB("mv_hoist_swapped", iters, n,
+                      DBENCH_KEEP((move_up_four_loads(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)));
+
+            // A collision point of one word, which is below the threshold, so the second arm finds
+            // the chunks would be too small and walks backward exactly as the first one does. This
+            // row is what the check costs when it routes nowhere
+            DBENCH_AB("mv_tight", iters, n,
+                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){
+                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)));
+
+            // A collision point of g_move_gap bytes. Below that length the two regions never touch
+            // and the whole move is one forward copy; above it the move goes as chunks of that size,
+            // taken from the top down. This row is the one the question is about
+            DBENCH_AB("mv_collide", iters, n,
+                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
+                                       .dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){
+                                       .dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)));
+
+            DBENCH_AB("mv_collide_swapped", iters, n,
+                      DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){
+                                       .dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
+                                       .dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)));
+
+            // The collision arm against the forward copy it routes to, at the same collision point.
+            // memor.cpy on regions this far apart is the floor a backward move could reach
+            DBENCH_AB("mv_vs_cpy", iters, n,
+                      DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){
+                                       .dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_b, .src = g_d, .bytes = n),
+                                   (uintptr_t)g_d)));
         }
 
         {

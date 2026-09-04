@@ -16,7 +16,7 @@
 # Toponyms and stories, because the claim under test is that meaning here follows the land and the story
 # that gives the land its shape, and a paper on place names is that claim's evidence or its refutation.
 #
-# Each paper is its own PDF, a few hundred kilobytes, so a targeted set costs little and the whole run
+# Each paper is its own PDF, a few hundred kilobytes. A targeted set costs little and the whole run
 # would cost a great deal for material nobody asked a question about.
 #
 # What comes back is reported per paper and not pooled. A count of glossed examples across sixty years of

@@ -12,7 +12,7 @@
 #
 # So match twice. A token that the pure corpus holds exactly is right. A token the pure corpus holds
 # only once case is folded away is the same word written wrong, and the difference between the two
-# counts is the formatting damage in a paper, measured rather than guessed at.
+# counts is the formatting damage in a paper, measured and not guessed at.
 #
 # This needs the oracle to be true, which is why it runs against the .pure.txt files and not against
 # the papers. Those came out of nine readers written line by line against nine layouts.

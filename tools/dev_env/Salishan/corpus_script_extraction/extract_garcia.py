@@ -36,8 +36,8 @@ from salish_marking import (DERIVED, SPOKEN, UNCLASSIFIED, rendered, switches,
                             tagged_spans)
 from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 
-# Walk up to the tree that holds build/ rather than counting directories. Counting has been wrong
-# twice now, once when these moved into Salishan and again when they moved into categories.
+# Walk up to the tree that holds build/. Counting directories has been wrong twice now, once when
+# these moved into Salishan and again when they moved into categories.
 ROOT = os.path.abspath(__file__)
 while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "build")):
     ROOT = os.path.dirname(ROOT)
@@ -46,11 +46,11 @@ CORPORA = os.path.join(ROOT, "build", "corpora")
 
 SOURCE = os.path.join(PAPERS, "ICSNL59_Garcia_Hannon_Stacey_final.txt")
 
-# <original paper and author>_Salish_<language without accents>_<spoken by>_<year>_<mixed>
+# <spoken by>_<original paper>_<who wrote it down>_Salish_<language without accents>_<year>_<mixed>
 TARGET = os.path.join(
     CORPORA,
-    "ThreeGlossedNlekepmxcinNarratives_GarciaHannonStacey"
-    "_Salish_nlekepmxcin_Kweltezetkwu-BerniceGarcia_2024_mixed.txt")
+    "Kweltezetkwu-BerniceGarcia_ThreeGlossedNlekepmxcinNarratives_GarciaHannonStacey"
+    "_Salish_nlekepmxcin_2024_mixed.txt")
 
 PAGE = re.compile(r"^===== page \d+ =====$")
 HEADING = re.compile(r"^(\d+\.\d+)\s+(\S.*)$")
@@ -102,7 +102,7 @@ SECTIONS = (
 # herself. The segmentation normalizes each morpheme to an underlying form and the gloss is written
 # in category labels, so neither is a record of anything uttered.
 # Her self-introduction sits in the acknowledgments footnote on the first page, ahead of every
-# numbered section, so a reader that starts at the first heading never reaches it. It is the one
+# numbered section. A reader that starts at the first heading never reaches it. It is the one
 # place in the paper where she gives her traditional name and says where her home is, in her own
 # language, and the coverage check found it missing along with fifteen other tokens from that page.
 INTRODUCES = re.compile(r"introduces herself thus:\s*(.+)$", re.IGNORECASE)
@@ -214,7 +214,7 @@ def main():
 
     # The self-introduction, taken from the front matter before any numbered section. It runs from
     # the marker to the point where the English rendering of it opens in quotes, and it wraps
-    # across the lines of the page, so it is gathered rather than read from one line.
+    # across the lines of the page, and it is gathered from all of them.
     gathering = False
     said = []
     for line in lines:
@@ -311,8 +311,8 @@ def main():
     #
     # Each sentence is printed twice in this paper, once in the story section and again as the
     # transcription line of its gloss block. Writing both would put every sentence into the stream
-    # twice and weight whatever happens to be glossed, so a span already written is not written
-    # again and the number skipped is reported.
+    # twice and weight whatever happens to be glossed. A span already written is not written again,
+    # and the number skipped is reported.
     pure = TARGET[:-4] + ".pure.txt"
     kept = 0
     repeated = 0

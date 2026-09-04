@@ -114,8 +114,8 @@ DERIVED = "derived"
 # Where a line goes when the extractor cannot say what it is. It carries the language, so it is not
 # discardable, and nothing is known about it, so it is not ingestible either. Naming the category
 # after the tool's own limit keeps that honest: it says a program failed to sort this, not that the
-# line is doubtful. Each extractor writes these to a file of their own beside its output so a person
-# can work through them, and they are held out of the pure stream until someone has.
+# line is doubtful. Each extractor writes these to a file of their own beside its output. A person
+# can then work through them, and they are held out of the pure stream until someone has.
 UNCLASSIFIED = "unclassifiable by tool"
 
 
@@ -128,7 +128,7 @@ def rendered(text, layer=None, subcategory=None, marks=MARKED):
     The layer is the one that has to be right. Both of these papers state that their segmentation
     line normalizes each morpheme to an underlying form while only the transcription line presents
     words as they were uttered. A segmentation line is target-language material and belongs in the
-    record, and it holds forms nobody said, so a corpus of spoken language built without that
+    record, and it holds forms nobody said. A corpus of spoken language built without that
     distinction is seeded with invented words. The English translations are marked spoken where the
     speaker made them herself, which both papers say she did, and the gloss is always derived.
     """

@@ -15,7 +15,7 @@
 # you are sifting for is the noise. That inverts the problem into the half that is well resourced.
 # Nobody has to know Nsyilxcən or Lushootseed to find it. What has to be known is English, and a
 # line that English does not account for is the language, a page number, or a gloss label, and
-# those three are told apart by shape rather than by vocabulary.
+# those three are told apart by shape, never by vocabulary.
 #
 # The measure is the one anchor-sift-method.md describes, in its cheapest form. A line is squashed
 # to the byte pairs it contains, k = 256*b_i + b_(i+1), which is a flat index over 2^16 and takes
@@ -198,7 +198,7 @@ def surprise(text, counts, total):
     anchors of different sizes agreed with the papers' own statements 63 percent of the time under
     that scoring, and every single disagreement named the smallest anchor.
 
-    Averaged over the line rather than summed, so a long line and a short one stay comparable.
+    Averaged over the line, never summed. A long line and a short one stay comparable.
     """
     held = pairs_of(text)
     if not held:
@@ -291,7 +291,7 @@ def calibrated_cut(counts, total, keep=0.99):
 
     Measured, not chosen. Nine papers were read by hand against their own layouts and their
     .pure.txt files are target-language speech and nothing else, so the score below which the
-    language does not fall is a fact about this corpus rather than a threshold somebody picked.
+    language does not fall is a fact about this corpus, and not a threshold somebody picked.
     """
     pure = []
     for path in sorted(glob.glob(os.path.join(CORPORA, "*.pure.txt"))):
@@ -312,7 +312,7 @@ def check(out, counts, total):
     Nine papers were read by hand, line by line, against their own layout. What came out of that is
     the control: the .pure.txt files hold target-language speech and nothing else, and the N spans
     in the marked files hold the English the same readers set aside. Both sides of the question are
-    already answered, so the cut is measured here rather than chosen.
+    already answered. The cut is measured here, never chosen.
 
     The cut is put where it keeps 99 percent of the known-pure lines. Missing language costs more
     than admitting a line of English, because a line wrongly kept is visible to whoever reads it

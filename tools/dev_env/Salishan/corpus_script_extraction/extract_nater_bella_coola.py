@@ -39,10 +39,10 @@ CORPORA = os.path.join(ROOT, "build", "corpora")
 
 SOURCE = os.path.join(PAPERS, "22-Nater-Bella-Coola-tale-10.txt")
 
-# <original paper and author>_Salish_<language without accents>_<spoken by>_<year>_<mixed>
+# <spoken by>_<original paper>_<who wrote it down>_Salish_<language without accents>_<year>_<mixed>
 TARGET = os.path.join(
     CORPORA,
-    "ABellaCoolaTale_Nater_Salish_nuxalk_MargaretSiwallace_2015_nomixed.txt")
+    "MargaretSiwallace_ABellaCoolaTale_Nater_Salish_nuxalk_2015_nomixed.txt")
 
 # This paper's inventory, plus the clitic bridge and the glottalization mark it writes
 MARKS = MARKED + "˽’ʷ̓"
@@ -138,15 +138,15 @@ def main():
         elif carries_language(trimmed):
             rows.append(("T", number, "3", "transcription", trimmed))
         else:
-            # Nothing fired. This branch used to be absent, so a line inside the text that was
-            # neither quoted, nor glossed, nor holding one of Nater's symbols left without a word.
+            # Nothing fired. This branch used to be absent. A line inside the text that was neither
+            # quoted, nor glossed, nor holding one of Nater's symbols left without a word.
             rows.append(("N", number, "3", UNCLASSIFIED, trimmed))
 
     # Every line of the paper no section reached, added to the record as unclassified, so the
     # marked file holds every token of the language the paper printed. For this one that is the
     # introduction and the references. They stay out of the pure stream.
     # The union of every orthography, not this paper's own set. The coverage check counts a token
-    # against the union, so a finder using a narrower set leaves holes the check still reports.
+    # against the union. A finder using a narrower set leaves holes the check still reports.
     missed = unreached(lines, covered_tokens(one[4] for one in rows))
     for page, where, reason, missing, text in missed:
         rows.append(("T", 0, "not reached page %d" % page, UNCLASSIFIED, text))

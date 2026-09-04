@@ -22,6 +22,10 @@ Everything here is generable using the tools/dev_env/ scripts or reachable at a 
 | Kiláwnaʔ (Andrew McGinnis), Penticton Indian Reserve | Nsyilxcən | 9 October 2014 |
 | Lottie Lindley, Upper Nicola | Nsyilxcən | published 2013 |
 | Sam Mitchell | St'át'imcets | in van Eijk and Williams 1981 |
+| Susie Sampson Peter, Upper Skagit | Lushootseed | Leon Metcalf, 1950 to 1958 |
+| Martha LaMont, Tulalip-Skagit | Lushootseed | Leon Metcalf 1952, Thom Hess 1963 |
+| Martha Lamont, Northern dialect | Lushootseed | Leon Metcalf, 1950s |
+| Annie Jack, Southern dialect | Lushootseed | Leon Metcalf, 1950s |
 
 Conditions the speakers set:
 
@@ -32,9 +36,9 @@ Conditions the speakers set:
 
 ## Text sources, extracted
 
-Nine papers, each read by its own file in `tools/dev_env/`. Every token of the language in each is accounted for in the corpus built from it; `tools/dev_env/coverage_check.py` is what says so.
+Eleven papers, each read by its own file in `tools/dev_env/Salishan/corpus_script_extraction/` and each with a hand extraction beside it in `hand_extraction/`. Every token of the language in each is accounted for in the corpus built from it; `coverage_check.py` is what says so.
 
-Every address below was checked. The local filename in `build/papers/` is the PDF's own name, so any paper in the archive resolves the same way.
+Nothing here needs fetching by hand. `python tools/dev_env/Salishan/get_papers.py` reads the archive index, downloads these eleven and converts them. Every address below was checked; the local filename in `build/papers/` is the PDF's own name.
 
 | Paper | Reader | PDF |
 |---|---|---|
@@ -47,8 +51,36 @@ Every address below was checked. The local filename in `build/papers/` is the PD
 | A Bella Coola tale: The Frog Children. Nater. ICSNL 50, 2015 | `extract_nater_bella_coola.py` | `https://lingpapers.sites.olt.ubc.ca/files/2018/01/22-Nater-Bella-Coola-tale-10.pdf` |
 | Three Okanagan stories about priests. Lyon. ICSNL 50, 2015 | `extract_lyon_priests.py` | `https://lingpapers.sites.olt.ubc.ca/files/2018/01/19-Lyon_ICSNL50_final-78.pdf` |
 | 12 more Upper Nicola Okanagan narratives. Lindley and Lyon. 2013 | `extract_lindley_lyon.py` | `https://lingpapers.sites.olt.ubc.ca/files/2018/01/2013_Lindley_Lyon.pdf` |
+| Poking Fun in Lushootseed. Vi taqʷšəblu Hilbert. ICSNL 1983 | `extract_hilbert.py` | `https://lingpapers.sites.olt.ubc.ca/files/2018/03/1983_Hilbert.pdf` |
+| A Comparative Analysis of Stress in Northern and Southern Lushootseed. Mellesmoen and Kye. ICSNL 61 | `extract_mellesmoen_kye.py` | `https://lingpapers.sites.olt.ubc.ca/files/2026/07/Mellesmoen_Kye_ICSNL61.pdf` |
 
-Each reader writes four files into `build/corpora/`: the marked record, a `.pure.txt` holding only target-language speech, a `.unclassifiable.tsv` listing what it could not type, and for the two Lyon papers a `.words.txt` giving the word forms recovered from the interlinear.
+Each reader writes into `build/corpora/`: the marked record, a `.pure.txt` holding only target-language speech, a `.unclassifiable.tsv` listing what it could not type, and for the two Lyon papers a `.words.txt` giving the word forms recovered from the interlinear.
+
+Records are named speaker first: `<spoken by>_<paper>_<who wrote it down>_Salish_<language>_<year>_<mixed>`. The speaker is who the corpus is of.
+
+## Hand extraction
+
+The reader is not the source of the corpus. Each paper is read by a person into `tools/dev_env/Salishan/hand_extraction/<paper>.oracle.tsv`, which says for every form in the paper what it is, and the reader is graded against that.
+
+| Paper | Rows read by hand | Reader |
+|---|---|---|
+| Mellesmoen and Kye, ICSNL 61 | 466 | reproduces it exactly |
+| Hilbert, ICSNL 1983 | 60 | 8 over-runs flagged, 2 more run on by one line |
+| Matthewson and Redan, ICSNL 61 | 102 | disagrees on 77 of 102, see below |
+| the remaining eight | not yet read | ungraded |
+
+Each hand extraction is a `.oracle.tsv` with its prose in a `.oracle.md` beside it, so the table passes a CSV linter: a header on line 1, no comment syntax, the same field count on every row.
+
+`oracle_check.py` tests the hand extraction against the paper both ways. `reader_check.py` tests the reader against the hand extraction.
+
+Two errors it found that coverage could not, because coverage was 100 percent through both:
+
+* The Hilbert record credited Vi Hilbert as the speaker. She wrote the paper; the twenty-one examples were said by her aunt **Susie Sampson Peter** of the Upper Skagit and by **Martha LaMont**, recorded by Leon Metcalf between 1950 and 1958 and by Thom Hess in 1963.
+* Example 2's English translation is the one line "High class, high class was Raven." The record had it with the next eleven lines of Hilbert's commentary welded on, as something Susie Sampson Peter said. The typescript sets examples in an indented column and the essay at full width; the extraction dropped the indent and the width is what recovers it.
+
+* **Six of the eleven PDFs break words in half.** They leave a space after a stacked diacritic, so `K̓weswapáw̓` arrives as `K̓` and `weswapáw̓`. Counts: Hall and Phillips 996, Garcia 943, LaFontaine and Janzen 478, Mellesmoen and Kye 298, Matthewson and Redan 169, Mary George 159. The coverage check cannot see it, because it puts both sides through the same repair and a word broken on both sides matches itself. `inserted_space.py` closes it; `ʷ` is held out, because it is a spacing letter and a space after one is a real boundary.
+
+Matthewson and Redan carries a second form of the same damage that no rule can close safely. The PDF also breaks *before* a marked letter: `cácl̓ep` arrives as `các l̓ep`. The same shape is a real word boundary at `lta q̓íl̓qa`, and nothing in the characters separates the two. The reader leaves both alone; the hand extraction has the true forms. That paper's reader is also blind to sections 1.2 and 1.3, where the story's title and five St'át'imcets forms are cited in prose.
 
 ## Audio sources
 

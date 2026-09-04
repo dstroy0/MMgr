@@ -10,17 +10,17 @@
 # n ʔuɬxw. Nothing in a line can find those, because a space between two words and a space inside
 # one are the same character.
 #
-# The interlinear can find them. It prints one word to an entry, so a space inside an entry is one
-# the extraction put there, and taking those out gives the paper's own list of what its words
-# really look like. The running text of the same story is broken in the same places, so that list
-# repairs it.
+# The interlinear can find them. It prints one word to an entry. A space inside an entry is one the
+# extraction put there, and taking those out gives the paper's own list of what its words really
+# look like. The running text of the same story is broken in the same places, and that list repairs
+# it.
 #
 # The list was tested before being used, on the oracle the font table was tested on: Lyon's later
 # papers on the same language, whose extraction kept its characters. Of the entries holding a
 # space, none has all its pieces attested there as words in their own right, in either paper: 0 of
 # 252 and 0 of 319. Joined, 4% and 36% of them are attested. The pieces are not words and the joins
-# are, and the low rate on the first paper is the reference sharing little vocabulary with it
-# rather than the joins being wrong.
+# are. The low rate on the first paper comes from the reference sharing little vocabulary with it,
+# and not from the joins being wrong.
 #
 # One word already whole is never joined to its neighbor. That is what keeps iʔ sɬiqw two words: a
 # join starts only from a token that is not itself in the list.
@@ -54,9 +54,9 @@ def entries_of(lines):
     more capitals is a gloss. A line carrying none of the damaged orthography is a page number or
     the English word gloss. What is left is a word as spoken or its segmentation, one to a line.
 
-    Written to work from the raw lines rather than from a reader's parse, so that a reader and the
-    coverage check build the same list. Two lists drift, and the check then reports as a hole every
-    word one of them put back together and the other did not.
+    Written to work from the raw lines, not from a reader's parse, so that a reader and the coverage
+    check build the same list. Two lists drift, and the check then reports as a hole every word one
+    of them put back together and the other did not.
     """
     held = []
     inside = False

@@ -7,7 +7,7 @@
 #   Usage:  from font_repair import REPAIR, repaired, repaired_prose
 #
 # Both papers' PDFs wrote plain letters in place of the orthography, so the text arrives as
-# iP naPì ʼqwQaylqs where it should read iʔ naʔɬ ʼqwʕaylqs. The mapping was tested rather than
+# iP naPì ʼqwQaylqs where it should read iʔ naʔɬ ʼqwʕaylqs. The mapping was tested and not
 # assumed: font_substitution.py applies it to the damaged tokens and counts how many become forms
 # attested in Lyon's later papers on the same language. Before the mapping, 1 token of 3599 was
 # attested; after it, 811. On the other paper, 2 of 4332 became 965. A wrong mapping cannot do that,
@@ -99,7 +99,7 @@ def carries_orthography(token):
 
 
 def language_line(text, floor=1):
-    """Whether a line of a damaged paper is the language rather than a line of English prose.
+    """Whether a line of a damaged paper is the language and not a line of English prose.
 
     One token is enough, which is why the test above has to be the sharp one. These stories wrap
     across the page and leave lines as short as sámaP. and t@mxwúlaPxw., and asking for two threw
@@ -156,7 +156,7 @@ def repaired_english(text):
     decided is English. Here a capital at the front of a word is left alone, which repaired_prose
     cannot do: a line that might still hold Paks or Qip needs that capital repaired, and a line
     already known to be English does not. Knowing which line is which is the whole difference, and
-    it comes from the reader's own structure rather than from anything the token carries.
+    it comes from the reader's own structure. Nothing the token carries decides it.
     """
     out = []
     for token in text.split():

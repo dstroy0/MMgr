@@ -42,11 +42,11 @@ CORPORA = os.path.join(ROOT, "build", "corpora")
 
 SOURCE = os.path.join(PAPERS, "HallPhillipsICSNL60.txt")
 
-# <original paper and author>_Salish_<language without accents>_<spoken by>_<year>_<mixed>
+# <spoken by>_<original paper>_<who wrote it down>_Salish_<language without accents>_<year>_<mixed>
 TARGET = os.path.join(
     CORPORA,
-    "WhenOldOneCreatedTheEarth_HallPhillips"
-    "_Salish_nlekepmxcin_BevPhillips_2025_nomixed.txt")
+    "BevPhillips_WhenOldOneCreatedTheEarth_HallPhillips"
+    "_Salish_nlekepmxcin_2025_nomixed.txt")
 
 PAGE = re.compile(r"^===== page \d+ =====$")
 CLOCK = re.compile(r"^\s*\[\s*(\d{1,2}):(\d{2})\s*\]\s*$")
@@ -178,8 +178,8 @@ def three_line_parts(block):
     Position in the cycle is what says which line is which. Content cannot: a segmentation and a
     transcription of the same words differ only by the morpheme boundaries written into one.
 
-    A slipped count is caught rather than repaired, on the test every reader here uses: a run of
-    capitals is a gloss label and cannot stand in a spoken sentence or its segmentation.
+    A slipped count is caught, not repaired, on the test every reader here uses: a run of capitals
+    is a gloss label and cannot stand in a spoken sentence or its segmentation.
 
     Returns the parts, the free translation, any line left over, and whether the cycle slipped.
     """
@@ -354,7 +354,7 @@ def main():
     two = len([one for one in rows if (one[3] == "2") and (one[4] == "transcription")])
     four = len([one for one in rows if (one[3] == "4") and (one[4] == "transcription")])
     out.write("  section 2 sentences %d, section 4 transcriptions %d\n" % (two, four))
-    out.write("  the two sections are two printings of one story, so a difference between\n")
+    out.write("  the two sections are two printings of one story. A difference between\n")
     out.write("  these counts is a discrepancy in the paper or in this reading of it\n")
 
     out.flush()

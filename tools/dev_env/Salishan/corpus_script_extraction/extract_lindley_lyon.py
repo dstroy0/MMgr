@@ -7,16 +7,16 @@
 #
 #   Usage:  python tools/dev_env/extract_lindley_lyon.py
 #
-# Written for one paper. Twelve stories, and unlike the others in this set its subsections are named
-# rather than positional: Okanagan, Interlinear gloss, Free translation, Commentary. Three of the twelve
-# are three tellings of one story and three more are three tellings of another, each with its own
-# commentary, so the section numbers do not line up with the story count and reading them positionally
-# would misfile the versions against each other. The subsections are matched on their titles instead.
+# Written for one paper. Twelve stories, and unlike the others in this set its subsections carry
+# names: Okanagan, Interlinear gloss, Free translation, Commentary. Three of the twelve are three
+# tellings of one story and three more are three tellings of another, each with its own commentary.
+# The section numbers do not line up with the story count, and reading them positionally misfiles the
+# versions against each other. The subsections are matched on their titles instead.
 #
-# This paper carries the same font substitution as the other Lyon volume, and the same table was tested
-# against it independently: before the mapping, 2 tokens of 4332 were attested in Lyon's later papers on
-# this language; after it, 965. That table is applied here and recorded in the output, so a reader knows
-# the text passed through a transformation and can check the mapping rather than trust it.
+# This paper carries the same font substitution as the other Lyon volume, and the same table was
+# tested against it independently: before the mapping, 2 tokens of 4332 were attested in Lyon's later
+# papers on this language; after it, 965. That table is applied here and recorded in the output. A
+# reader can then see the text passed through a transformation, and check the mapping.
 #
 # The appendix holds a note on transcription and glossing practice and two pronominal paradigm tables.
 # Those are the language and they are not narrative, so they are kept and marked derived.
@@ -41,11 +41,11 @@ CORPORA = os.path.join(ROOT, "build", "corpora")
 
 SOURCE = os.path.join(PAPERS, "2013_Lindley_Lyon.txt")
 
-# <original paper and author>_Salish_<language without accents>_<spoken by>_<year>_<mixed>
+# <spoken by>_<original paper>_<who wrote it down>_Salish_<language without accents>_<year>_<mixed>
 TARGET = os.path.join(
     CORPORA,
-    "TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
-    "_Salish_nsyilxcen_LottieLindley_2013_nomixed.txt")
+    "LottieLindley_TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
+    "_Salish_nsyilxcen_2013_nomixed.txt")
 
 MARKS = MARKED + "ʷ̓’ʼ"
 
@@ -113,17 +113,17 @@ def carries_language(text):
 def two_line_words(block):
     """One numbered block of the interlinear, as the two lines this paper gives for each word.
 
-    The PDF handed the interlinear over a column at a time, so a word arrives as its form and then
-    its gloss on the next line, and the pair repeats until the free translation closes the block.
-    Position is what says which line is which. Content cannot say it: iʔ and DET are both plain
-    ASCII, and the form of a word with no affixes carries nothing a gloss does not.
+    The PDF handed the interlinear over a column at a time. A word arrives as its form and then its
+    gloss on the next line, and the pair repeats until the free translation closes the block.
+    Position is what fixes which line is which. Content cannot: iʔ and DET are both plain ASCII, and
+    the form of a word with no affixes carries nothing a gloss does not.
 
-    The form line here is the segmented form. It writes sm-sámaʔ and c-’tʕap-nwíxw where the
-    running text of the same story writes the surface, so a sentence rebuilt from this column is
-    the paper's analysis of what was said and not a record of it.
+    The form line here is the segmented form. It writes sm-sámaʔ and c-’tʕap-nwíxw where the running
+    text of the same story writes the surface. A sentence rebuilt from this column is the paper's
+    analysis of what was said and not a record of it.
 
-    A slipped count is caught rather than repaired, on the same test the other Lyon paper uses: an
-    uppercase category label belongs to a gloss and cannot stand in a form.
+    A slipped count is caught, not repaired, on the same test the other Lyon paper uses: an uppercase
+    category label belongs to a gloss and cannot stand in a form.
 
     Returns the words, the free translation, any line left over, and whether the cycle slipped.
     """
@@ -155,8 +155,8 @@ def two_line_words(block):
             close()
             slot = 0
     close()
-    # Tested on a run of capitals rather than on the label list. The list matches on word
-    # boundaries and there is none inside 3POSS, so a form line reading father-3POSS passed it.
+    # Tested on a run of capitals, not on the label list. The list matches on word boundaries and
+    # there is none inside 3POSS, and a form line reading father-3POSS passed it.
     slipped = any(CAPS_RUN.search(one[0] or "") for one in words)
     return words, translation, leftover, slipped
 
@@ -182,9 +182,9 @@ def main():
         return 1
 
     with open(SOURCE, encoding="utf-8", errors="replace") as handle:
-        # Ligatures come out here rather than in the loop below, so that everything reading these
-        # lines sees the same text. Taking them out later left the unreached check comparing
-        # preﬁxsən- against prefixsən- and reporting a hole that was not one.
+        # Ligatures come out here, before the loop below, so that everything reading these lines
+        # sees the same text. Taking them out later left the unreached check comparing preﬁxsən-
+        # against prefixsən- and reporting a hole that was not one.
         lines = [unligatured(one.rstrip("\n")) for one in handle]
 
     rows = []
@@ -290,7 +290,7 @@ def main():
         words, translation, leftover, slipped = read
         if slipped:
             # The count slipped, so every column after that point is one line out and nothing in
-            # the block can be named. Flagged whole rather than written under a guessed name.
+            # the block can be named. Flagged whole. Nothing is written under a guessed name.
             slipped_blocks += 1
             for one in block:
                 # Which column each line belongs to is exactly what is not known here, so the
@@ -342,7 +342,7 @@ def main():
     # marked file holds every token of the language the paper printed. They stay out of the pure
     # stream and are listed in the flag file for someone to work through.
     # The union of every orthography, not this paper's own set. The coverage check counts a token
-    # against the union, so a finder using a narrower set leaves holes the check still reports.
+    # against the union. A finder using a narrower set leaves holes the check still reports.
     missed = unreached(lines, covered_tokens(one[5] for one in rows), repair=prepared)
     for page, where, reason, missing, text in missed:
         rows.append(("T", 0, "not reached", "page %d" % page, UNCLASSIFIED, text))
@@ -398,7 +398,7 @@ def main():
 
     # A file of its own for what the tool could not sort: an interlinear line none of the tests
     # typed, and a line no subsection reached. The source is put through the same font repair
-    # before comparing, so a correctly repaired word is not reported as a hole.
+    # before comparing. A correctly repaired word is not reported as a hole.
     stuck = TARGET[:-4] + ".unclassifiable.tsv"
     flagged = [(0, "%s block %d" % (sect, count), UNKNOWN_KIND, "", text)
                for mark, count, sect, name, kind, text in rows

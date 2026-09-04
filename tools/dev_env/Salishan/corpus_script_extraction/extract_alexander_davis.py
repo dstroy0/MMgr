@@ -47,11 +47,11 @@ CORPORA = os.path.join(ROOT, "build", "corpora")
 
 SOURCE = os.path.join(PAPERS, "AlexanderDavis_ICSNL61.txt")
 
-# <original paper and author>_Salish_<language without accents>_<spoken by>_<year>_<mixed>
+# <spoken by>_<original paper>_<who wrote it down>_Salish_<language without accents>_<year>_<mixed>
 TARGET = os.path.join(
     CORPORA,
-    "ITsicwasSQwa7yanakAku7GraveyardValley_AlexanderDavis"
-    "_Salish_statimcets_Qwa7yanak-CarlAlexander_2026_mixed.txt")
+    "Qwa7yanak-CarlAlexander_ITsicwasSQwa7yanakAku7GraveyardValley_AlexanderDavis"
+    "_Salish_statimcets_2026_mixed.txt")
 
 MARKS = MARKED + PRACTICAL + "̓̔̕"
 
@@ -208,7 +208,7 @@ def main():
     # marked file holds every token of the language the paper printed. They stay out of the pure
     # stream and are listed in the flag file for someone to work through.
     # The union of every orthography, not this paper's own set. The coverage check counts a token
-    # against the union, so a finder using a narrower set leaves holes the check still reports.
+    # against the union. A finder using a narrower set leaves holes the check still reports.
     missed = unreached(lines, covered_tokens(one[4] for one in rows))
     for page, where, reason, missing, text in missed:
         rows.append(("T", 0, "not reached page %d" % page, UNCLASSIFIED, text))

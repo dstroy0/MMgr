@@ -24,7 +24,7 @@
 # is lossy as long as both sides receive it.
 #
 # What this reports that is not an error: a token is counted as covered if it appears anywhere in the
-# extraction, so a form living only in a footnote is found wherever the extractor kept it. What it reports
+# extraction. A form living only in a footnote is found wherever the extractor kept it. What it reports
 # that is an error: a form cited in prose that no section captures, an appendix nobody read, and a
 # sentence a splitter dropped.
 
@@ -35,6 +35,8 @@ import sys
 import unicodedata
 
 from font_repair import repaired_line
+from inserted_space import closed_spaces
+from mellesmoen_kye_repair import repaired as mellesmoen_repaired
 from salish_marking import MARKED, PRACTICAL, unligatured
 from salish_unsorted import is_language_token
 from space_repair import joined_words
@@ -82,38 +84,45 @@ COLUMN = re.compile(r"^([^-=•+√]+)(√.*)$")
 # paper, extraction, and which repairs the extractor applied to the source
 PAIRS = (
     ("ICSNL59_Garcia_Hannon_Stacey_final",
-     "ThreeGlossedNlekepmxcinNarratives_GarciaHannonStacey"
-     "_Salish_nlekepmxcin_Kweltezetkwu-BerniceGarcia_2024_mixed.txt", ()),
+     "Kweltezetkwu-BerniceGarcia_ThreeGlossedNlekepmxcinNarratives_GarciaHannonStacey"
+     "_Salish_nlekepmxcin_2024_mixed.txt", ()),
     ("HallPhillipsICSNL60",
-     "WhenOldOneCreatedTheEarth_HallPhillips"
-     "_Salish_nlekepmxcin_BevPhillips_2025_nomixed.txt", ("spaces",)),
+     "BevPhillips_WhenOldOneCreatedTheEarth_HallPhillips"
+     "_Salish_nlekepmxcin_2025_nomixed.txt", ("spaces",)),
     ("ICSNL59_LaFontaine_Janzen_final",
-     "FourStoriesByWlwlmelst_LaFontaineJanzen"
-     "_Salish_nlekepmxcin_wlwlmelst-MauriceMichell_2024_mixed.txt", ()),
+     "wlwlmelst-MauriceMichell_FourStoriesByWlwlmelst_LaFontaineJanzen"
+     "_Salish_nlekepmxcin_2024_mixed.txt", ()),
     ("Matthewson_Redan_ICSNL61",
-     "Cw7aozKati7Lati7KuNaxwit_MatthewsonRedan"
-     "_Salish_statimcets_Kweswapaw-LindaRedan_2026_mixed.txt", ()),
+     "Kweswapaw-LindaRedan_Cw7aozKati7Lati7KuNaxwit_MatthewsonRedan"
+     "_Salish_statimcets_2026_mixed.txt", ("inserted spaces",)),
     ("AlexanderDavis_ICSNL61",
-     "ITsicwasSQwa7yanakAku7GraveyardValley_AlexanderDavis"
-     "_Salish_statimcets_Qwa7yanak-CarlAlexander_2026_mixed.txt", ()),
+     "Qwa7yanak-CarlAlexander_ITsicwasSQwa7yanakAku7GraveyardValley_AlexanderDavis"
+     "_Salish_statimcets_2026_mixed.txt", ()),
     ("ICSNL56_DavisJ_2_final-1",
-     "MaryGeorgePersonalNarratives_JohnHamiltonDavis"
-     "_Salish_ayajuthem_MaryGeorge_2021_mixed.txt", ()),
+     "MaryGeorge_MaryGeorgePersonalNarratives_JohnHamiltonDavis"
+     "_Salish_ayajuthem_2021_mixed.txt", ()),
     ("22-Nater-Bella-Coola-tale-10",
-     "ABellaCoolaTale_Nater_Salish_nuxalk_MargaretSiwallace_2015_nomixed.txt", ()),
+     "MargaretSiwallace_ABellaCoolaTale_Nater_Salish_nuxalk_2015_nomixed.txt", ()),
     ("19-Lyon_ICSNL50_final-78",
-     "ThreeOkanaganStoriesAboutPriests_Lyon"
-     "_Salish_nsyilxcen_GeorgeLezard-NellieGuitterez-AndrewMcGinnis_2015_nomixed.txt",
+     "GeorgeLezard-NellieGuitterez-AndrewMcGinnis_ThreeOkanaganStoriesAboutPriests_Lyon"
+     "_Salish_nsyilxcen_2015_nomixed.txt",
      ("font", "columns")),
     ("2013_Lindley_Lyon",
-     "TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
-     "_Salish_nsyilxcen_LottieLindley_2013_nomixed.txt", ("font", "columns")),
+     "LottieLindley_TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
+     "_Salish_nsyilxcen_2013_nomixed.txt", ("font", "columns")),
     # A fourth field where a paper writes its language with characters MARKS does not hold. The
     # 1983 Hilbert typescript is unrepaired on purpose, so its glottal stop is ? and its schwa is
     # ~, J or G, and a check built on ʔ and ə finds nothing in it at all.
     ("1983_Hilbert",
-     "PokingFunInLushootseed_Hilbert"
-     "_Salish_lushootseed_Vitaqwshablu-Hilbert_1983_mixed.txt", (), "?~JG@V%]!"),
+     "SusieSampsonPeter-MarthaLaMont_PokingFunInLushootseed_Hilbert"
+     "_Salish_lushootseed_1983_mixed.txt", (), "?~JG@V%]!"),
+    # The stress paper carries a wider alphabet than the marks the other papers share. yidád ‘fish
+    # trap’, báyac ‘meat’ and x̌il ‘lost’ hold no glottal stop, schwa or lateral, and a check built
+    # on the shared marks reads all three as English and then reports nothing missing about them.
+    ("Mellesmoen_Kye_ICSNL61",
+     "MarthaLamont-AnnieJack_AComparativeAnalysisOfStressInNorthernAndSouthernLushootseed"
+     "_MellesmoenKye_Salish_lushootseed_2026_mixed.txt", ("mellesmoen",),
+     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ǰᶻθáíúàìù" + "̌́̀"),
 )
 
 
@@ -150,7 +159,7 @@ def vocabulary_beside(target):
 
     A reader that puts words back together publishes the list it used. Building a second list here
     from the same paper gave a different one, which joined words the reader left apart and then
-    reported every one of them as a hole, so the list is read rather than rebuilt.
+    reported every one of them as a hole. The list is read here, never rebuilt.
     """
     path = target[:-4] + ".words.txt"
     if not os.path.isfile(path):
@@ -169,7 +178,7 @@ def vocabulary_beside(target):
 def prepared(line, repairs, vocabulary=None):
     """One source line put through the same transformation its extractor applied."""
     # Applied to every paper. A ligature is one codepoint for two letters and the readers take
-    # them out on the way in, so a source keeping them reports every repaired word as a hole.
+    # them out on the way in. A source keeping them reports every repaired word as a hole.
     line = unligatured(line)
     if "font" in repairs:
         line = font_repaired(line)
@@ -177,6 +186,10 @@ def prepared(line, repairs, vocabulary=None):
         line = close_spaces(line)
     if "columns" in repairs:
         line = split_columns(line)
+    if "inserted spaces" in repairs:
+        line = closed_spaces(line)
+    if "mellesmoen" in repairs:
+        line = mellesmoen_repaired(line)
     if vocabulary:
         line = joined_words(line, vocabulary)
     return line
@@ -278,7 +291,7 @@ def main():
     clean = [one for one in worst if not one[0]]
     out.write("\n  %d of %d papers have every token of the language accounted for\n"
               % (len(clean), len(worst)))
-    out.write("  both sides are put through the same repair first, so a correctly repaired\n")
+    out.write("  both sides are put through the same repair first, and a correctly repaired\n")
     out.write("  word is not reported as a hole\n")
 
     out.flush()
