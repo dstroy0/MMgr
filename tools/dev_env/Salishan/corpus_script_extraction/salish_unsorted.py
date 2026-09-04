@@ -27,15 +27,16 @@
 
 import re
 
-from salish_marking import MARKED, PRACTICAL
+from salish_marking import TEXT_SPACE
 
 PAGE = re.compile(r"^===== page (\d+) =====$")
 
 EDGES = ".,!?;:“”‘’\"'()[]…«»"
 
-# The union of every orthography in the set. A finder that knows one paper's alphabet reports the
-# others as holding no language at all, and then reports nothing missing from them either.
-MARKS = MARKED + PRACTICAL + "̓̔̕ʷ˽"
+# The space these papers are represented in, kept under the name this module's callers already use.
+# It was spelled out here as its own union until the copies were noticed; salish_marking holds the
+# one definition and names what is in it.
+MARKS = TEXT_SPACE
 
 # What the reason column holds. The first is a line the classifier reached and could not type. The
 # second is a line no section of the extractor ever looked at.

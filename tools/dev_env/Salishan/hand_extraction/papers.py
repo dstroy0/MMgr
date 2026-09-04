@@ -33,9 +33,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 from inserted_space import closed_spaces  # noqa: E402
 from mary_george_repair import repaired as mary_george  # noqa: E402
 from mellesmoen_kye_repair import repaired as mellesmoen_kye  # noqa: E402
-from salish_marking import MARKED, PRACTICAL  # noqa: E402
+from salish_marking import TEXT_SPACE  # noqa: E402
 
-SHARED = MARKED + PRACTICAL + "̓̔̕ʷ˽"
+# The space every paper here is represented in. This file spelled the union out a second time until
+# the copies were noticed. salish_marking holds the one definition and names what is in it.
+SHARED = TEXT_SPACE
 
 # The stress paper writes yidád ‘fish trap’, báyac ‘meat’ and x̌il ‘lost’ with no glottal stop, no
 # schwa and no lateral, so the shared set reads all three as English.
@@ -44,22 +46,16 @@ STRESS = SHARED + "ǰᶻθáíúàìù" + "̌́̀"
 # The 1983 typescript's damaged orthography. Nothing in the shared set appears in it.
 DAMAGED = "?~JG@V%]!"
 
-# Lyon writes Okanagan in a NW Americanist orthography the PDF renders in ASCII with a few marks
-# on top, and not one character of the shared set survives that rendering.
+# Lyon's two papers are checked against a drafted page text, which is written in the same
+# orthography as every other paper here, so the shared set applies to them. Two characters it does
+# not carry are ordinary in Okanagan: the wedge over x in x̌ast and x̌minks, and the raised dot Lyon
+# writes length with in ya·ʕt and cxʷú·yəlx. A token whose only mark is one of those reads as
+# English without them.
 #
-# Three characters of the orthography are left out, each because it is something else as well.
-#
-#   P   the glottal stop, and an ASCII capital. In it makes a word of every 1SG.POSS on a gloss
-#       line and of Papers, Penticton and Philosophical in the front matter.
-#   ’   glottalization, and the apostrophe of Lyon's English. In it makes a word of father’s,
-#       Nellie’s and Elder’s.
-#   •   the reduplication mark, which the gloss line uses too. In it makes a word of every
-#       -C1C2.PL•speak-CAUS. Parse lines keep their √, so nothing analyzed is lost with it.
-#
-# Q stays: outside the abbreviation list it appears only in Okanagan. What the three cost is real.
-# ’ti, wa ’y, ’kl and sámaP carry none of the marks below, so the check does not ask about them, and
-# they are verified only by being written into the table beside the words it does ask about.
-OKANAGAN = "@ìˇňQ√"
+# An earlier version of this listed the characters of the extraction instead, back when the check
+# read that. None of them survive the draft, so direction two asked about nothing and reported a
+# paper with eleven unread texts as complete.
+OKANAGAN = SHARED + "̌·"
 
 # Papers whose text extraction is not what the page says. Both of these are TeX Type1 with a custom
 # encoding and no ToUnicode map. pypdf and pypdfium2 lose the same things: the page prints

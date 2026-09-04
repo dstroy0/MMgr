@@ -64,6 +64,18 @@ def bare_token(token):
 # word does not occur in English, which makes it a reliable mark where a paper uses it.
 PRACTICAL = "7"
 
+# Every character these orthographies write their languages with, as one set. This is the space a
+# Salishan text is represented in, and a test built on one paper's alphabet instead reads the others
+# as holding no language and then reports nothing missing from them either.
+#
+# What the three above do not carry: ̓ ̔ ̕ are the glottalization marks a paper stacks on a
+# consonant, ʷ is labialization, and ˽ is the raised space Nater sets a clitic boundary with.
+#
+# Two files had their own copy of this union spelled out, salish_unsorted and hand_extraction's
+# papers, and MARKED was the default wherever a caller passed nothing. Both are read from here now.
+# A per-paper set is written as this plus what that paper adds, never as its own alphabet.
+TEXT_SPACE = MARKED + PRACTICAL + "̓̔̕ʷ˽"
+
 
 def looks_english(token, marks=MARKED):
     """A token with no marked character, long enough and vowelled enough to be an English word.
@@ -139,9 +151,15 @@ def rendered(text, layer=None, subcategory=None, marks=MARKED):
     return ", ".join("%s.%s:{%s}" % (mark, tail, run) for mark, run in tagged_spans(text, marks))
 
 
-def switches(text):
-    """How many times a line crosses between languages."""
-    return max(0, len(tagged_spans(text)) - 1)
+def switches(text, marks=MARKED):
+    """How many times a line crosses between languages.
+
+    Takes a marking set for the reason tagged_spans does, and had no way to take one until now. The
+    1983 typescript writes the glottal stop as ? and the schwa as ~, and Lyon's two papers arrive in
+    the TeX font's own codes. Neither holds a character of the set below, so every line of all three
+    came back as one English span and this returned 0 for the whole of them.
+    """
+    return max(0, len(tagged_spans(text, marks)) - 1)
 
 
 def is_mixed(text, marks=MARKED):

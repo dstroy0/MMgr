@@ -8,13 +8,15 @@ Run from the repository root. Everything writes under `build/`.
 ## Start here
 
 ```
-python -m pip install pypdf requests
+python -m pip install pypdf pypdfium2 requests
 python tools/dev_env/Salishan/get_papers.py
 ```
 
-That fetches the eleven papers the readers need and writes `build/papers/<name>.txt` for each. Nothing else in this directory works until it has run, and it is the only step that touches the network.
+That fetches the eleven papers the readers need and writes `build/papers/<name>.txt` for each. Nothing else in this directory works until it has run, and it is the only step that touches the network. `pypdfium2` renders a page to an image, which two of the eleven papers need and the other nine do not.
 
-`--all` fetches all 990 papers in the archive instead of the eleven. `--list` prints what would be fetched and stops. `--convert` converts PDFs already sitting in `build/papers/` and fetches nothing. `--stem <name>` takes one paper by its filename.
+`--all` fetches all 993 papers in the archive instead of the eleven. `--list` prints what would be fetched and stops. `--convert` converts PDFs already sitting in `build/papers/` and fetches nothing, skipping any PDF that already has text beside it. `--stem <name>` takes one paper by its filename.
+
+A converted paper whose fonts renumber their codes and declare no `/ToUnicode` map gets a `.unfaithful` file written beside its text, naming those fonts, and the run says `NOT THE PAGE` on that line. The text is written anyway, because leaving a gap makes every later run try the paper again, and nothing downstream should read it as the paper. Six of the 146 PDFs on disk are in that class. `docs/research/Salishan/refs.md` names them and says what to do instead.
 
 ## Why there is a script for it
 
@@ -32,18 +34,24 @@ Nothing after the fetch needs the network. The sift depends on the readers, beca
 
 ```
 1. get_papers.py       build/papers/*.txt
-2. the eleven readers  build/corpora/*.txt, *.pure.txt, *.unclassifiable.tsv
-3. oracle_check.py     the hand extractions against the papers
-4. reader_check.py     the readers against the hand extractions
-5. coverage_check.py   reads 2, reports missing tokens
-6. english_sift.py     reads 2 for both anchors
-7. sift_extract.py     reads 2, writes build/corpora/sifted/
+2. pdf2png.py          build/pages/<stem>/page_NNN.png
+3. draft_page_text.py  build/papers/<stem>.page.txt
+4. the eleven readers  build/corpora/*.txt, *.pure.txt, *.unclassifiable.tsv
+5. oracle_check.py     the hand extractions against the papers
+6. reader_check.py     the readers against the hand extractions
+7. coverage_check.py   reads 4, reports missing tokens
+8. english_sift.py     reads 4 for both anchors
+9. sift_extract.py     reads 4, writes build/corpora/sifted/
 ```
+
+Steps 2 and 3 apply only to a paper the fetch flagged `NOT THE PAGE`, which is two of the eleven. For the other nine the extracted text is what the page says and both steps are skipped.
 
 ## Where the tools are
 
 ```
 tools/dev_env/Salishan/get_papers.py                         the archive
+tools/dev_env/Salishan/pdf2png.py                            the page as an image
+tools/dev_env/Salishan/draft_page_text.py                    the page as a first draft
 tools/dev_env/Salishan/hand_extraction/                      the control
 tools/dev_env/Salishan/anchor_sift/                          the algorithm
 tools/dev_env/Salishan/corpus_script_extraction/             the eleven readers
@@ -82,11 +90,26 @@ python H/oracle_check.py
 
 Checks each hand extraction against the paper it was read off, in both directions. A form written down that the paper does not hold is a typing slip. A word in the paper that no row holds is a row somebody skipped, which is what a person reading a thirty-seven page paper into a table actually produces. Both must be zero.
 
+Two papers are checked against a drafted page text and the output line says so. For those, direction one measures the draft and not the table: a form the table holds and the draft does not is a place where a person read the page and a rule in `lyon_encoding.py` got it wrong. Direction two still means what it means everywhere else.
+
 ```
 python H/reader_check.py
 ```
 
 Checks each reader against the hand extraction. Grades whether it found each form, whether it says the same kind, and whether it says the same dialect. Kind is the one that decides the corpus: a rejected tableau candidate filed as a citation puts a spelling the paper's own analysis rejects into the pure stream, and nothing downstream asks again.
+
+## When the text is not the page
+
+`19-Lyon_ICSNL50_final-78` and `2013_Lindley_Lyon` are set in a font that renumbers its glyph codes and declares no map back to Unicode, so their `build/papers/*.txt` holds the font's alphabet and not what the page prints. `refs.md` has the detail, the other four papers in the same class, and why the damaged text is kept.
+
+```
+python tools/dev_env/Salishan/pdf2png.py 2013_Lindley_Lyon 1 70
+python tools/dev_env/Salishan/draft_page_text.py 2013_Lindley_Lyon
+```
+
+The first renders each page to `build/pages/<stem>/page_NNN.png`. Arguments are the stem, the first page, the last page, and optionally a scale, which defaults to 3 and puts a 12pt body around 50 pixels tall, where a stacked diacritic stops being a guess.
+
+The second writes `build/papers/<stem>.page.txt`, line for line with the extraction so a page of one is a page of the other. It is a draft, and `oracle_check.py` reads it in place of the extraction for these two papers, which makes it the thing being graded and not the thing that grades. The rules are in `lyon_encoding.py`. Two of them cannot be settled without looking at the page: which `w` is a labialized consonant, and which inserted space is a word boundary.
 
 ## Checks
 
@@ -94,7 +117,7 @@ Checks each reader against the hand extraction. Grades whether it found each for
 python S/coverage_check.py
 ```
 
-Diffs every language token in each paper against the corpus built from it. Both sides go through the same repairs first. Expected result is 0 missing on all eleven.
+Diffs every language token in each paper against the corpus built from it. Both sides go through the same repairs first. Expected result is 0 missing on all eleven. For the two papers named above it reads the extracted text, so 0 there means the reader got everything the font's encoding held, which is a weaker statement than it is for the other nine.
 
 ```
 python S/font_substitution.py <damaged paper> <clean reference> [more]
@@ -144,11 +167,17 @@ These are imported, not run.
 |---|---|
 | `A/anchor_sift.py` | the method itself: squash, total variation, split-half, support, entropy |
 | `A/english_sift.py` | the English anchor and the per-line screen built on it |
-| `S/salish_marking.py` | the T and N marking convention, `tagged_spans`, `CAPS_RUN`, ligatures |
+| `S/salish_marking.py` | the T and N marking convention, `tagged_spans`, `TEXT_SPACE`, `CAPS_RUN`, ligatures |
 | `S/salish_unsorted.py` | the flag file, and what counts as a language token |
 | `S/font_repair.py` | the Lyon substitution table and the three forms of applying it |
 | `S/space_repair.py` | putting back together words the Lyon extraction split internally |
-| `S/mellesmoen_kye_repair.py` | the inserted space, the two ejective marks, and NFC |
+| `S/inserted_space.py` | closing the space a PDF leaves after a stacked diacritic |
+| `S/mellesmoen_kye_repair.py` | the same, with a wider mark set that paper's two spaces allow |
+| `S/mary_george_repair.py` | the same again, where the grave is glottalization and the acute is stress |
+| `lyon_encoding.py` | the NimbusRomNo9L codes read as the orthography, for the drafted page text |
+| `H/papers.py` | which hand extraction goes with which paper, its repair, and its marks |
+
+`TEXT_SPACE` is the one definition of what characters these orthographies are written with. `salish_unsorted.py` and `H/papers.py` each held their own copy of that union until the copies were noticed; both read it from `salish_marking.py` now, and a per-paper set is written as that plus what the paper adds.
 
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
 **Date:** 2026-09-03

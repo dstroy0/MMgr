@@ -21,9 +21,15 @@
 #
 # w is two letters. Page kʷukʷ and page wist both arrive as w, and nothing in the text separates
 # them. The rule below labializes a w that follows one of the consonants that take it, which is
-# right for kʷ, qʷ, xʷ, x̌ʷ and wrong wherever a real w follows a consonant. Those are the sites to
-# read first on any page, and they are why this file is not a repair in papers.py: a repair is
-# applied and trusted, and this has to be checked.
+# right for kʷ, qʷ, xʷ, x̌ʷ and wrong wherever a real w follows a consonant.
+#
+# Word boundaries are the other one. The PDF puts a space in front of a letter carrying a mark.
+# s ’plá ’ks@lx is one word, iP ’kl is two, and both of them are a space in front of a marked
+# letter. Page 25 settles the first as sp̓lák̓səlx and page 24 the second as iʔ k̓l. wa’y and Lyon’s
+# are the same case with the space missing instead of inserted.
+#
+# Those are the sites to read first on any page, and they are why this file is not a repair in
+# papers.py: a repair is applied and trusted, and this has to be checked.
 
 import re
 import unicodedata
@@ -68,9 +74,21 @@ def moved_marks(token):
     return "".join(out)
 
 
-MARKS = "əɬʕƛ·x̌̓áéíóúàèìòù@ˇ"
+# The characters of the extraction that only the language is written with, so a token holding one of
+# them is Salish. These are the codes as they arrive, not what they become: an earlier version of
+# this listed ə ɬ ʕ ƛ, which the test never sees, and s’tmQa’lt came through with its ejective marks
+# still standing in front of their letters.
+#
+# The first two characters are the wedge. drafted() runs WEDGE over the whole line before any of
+# this, so a wedge that stood on an x is a combining caron by the time the test reads it, and the
+# standalone ˇ catches one that stood anywhere else. Writing the pair as the string "x̌" put a bare x
+# in the set and made every English word holding one Salish.
+MARKS = "̌ˇ@ìQňáéíóú"
 
-GLOSS = re.compile(r"^[A-Za-z0-9.()\[\]/,;:'-]+$")
+# A gloss token is plain ASCII, apart from the ligatures the PDF sets its f-words with. The whole
+# gloss of one morpheme is one token, so go-n-dip.ﬂuid-MID-3SG.POSS is a single string and the one ﬂ
+# in it kept it out of this class. It was then read as Salish and its POSS came out as ʔOSS.
+GLOSS = re.compile(r"^[A-Za-z0-9.()\[\]/,;:'ﬁﬂﬀﬃﬄ-]+$")
 LABEL = re.compile(r"[A-Z]{2}")
 
 
@@ -95,8 +113,10 @@ def salish(token):
     not the first letter, which is what iP, smsámaP and nPaysənúlaPxw are and what Philosophical is
     not.
 
-    What this misses is a P-initial Salish word with no other mark on it: Pitx, Pamn, Pasil. Those
-    come through as English and are among the first things to look for on a page.
+    Two things this misses. A P-initial Salish word with no other mark on it, as Pitx, Pamn and
+    Pasil are, comes through as English. So does a word whose ’ the extraction did not put a space
+    in front of, because wa’y and Lyon’s are then the same shape and only the page tells them apart.
+    Both are among the first things to look for on a page.
     """
     if a_gloss(token):
         return False
@@ -105,6 +125,13 @@ def salish(token):
     # A ’ that opens a token is the mark waiting for its letter: ’ti is t̓i. One that follows a
     # letter is the apostrophe of Lyon’s and Society’s.
     if token.startswith("’"):
+        return True
+    # The length mark, which always has the letter it lengthens after it: wu;;;;;t is wu·····t. A ;
+    # at the end of a token is the sentence's semicolon and what carries it is English.
+    if any((token[at] == ";") and token[at + 1].isalpha() for at in range(len(token) - 1)):
+        return True
+    # A glottal stop standing alone, left by a break the PDF put in front of it, as ixí P is.
+    if token == "P":
         return True
     return "P" in token[1:]
 
@@ -132,6 +159,10 @@ def drafted(line):
 
     The wedge goes first and over the whole line: ˇx is x̌ in the Salish and appears nowhere else,
     and it is what makes a token look Salish to the test that follows.
+
+    LETTERS runs on a Salish token only. Its codes are ordinary characters elsewhere, and ; is the
+    one that showed it: Lyon ends a clause with a semicolon in his English, and mapping the line
+    without asking turned long ago over there; we came into over there· we came.
     """
     for before, after in WEDGE:
         line = line.replace(before, after)
@@ -139,7 +170,7 @@ def drafted(line):
     for token in line.split(" "):
         if salish(token):
             token = moved_marks(token).replace("P", "ʔ")
-        for before, after in LETTERS:
-            token = token.replace(before, after)
+            for before, after in LETTERS:
+                token = token.replace(before, after)
         held.append(token)
     return unicodedata.normalize("NFC", labialized(" ".join(held)))
