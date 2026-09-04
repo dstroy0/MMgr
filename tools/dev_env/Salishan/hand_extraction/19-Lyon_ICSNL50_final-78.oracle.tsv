@@ -669,3 +669,23 @@ footnote 17	John Lyon	note	Nellie Guitterez switches to English for the rest of 
 3.2 46	John Lyon	gloss	DET boy straight+STAT COMP.OBL CUST-LOC+happy=thoughts almost FUT-LOC+forget+STAT-MID DET NMLZ-when+do.what COMP.FUT return+go-3PL
 3.2 46	John Lyon	word gloss	the boy sure that he.was.happy almost he.would.forget when will they.returned
 3.2 46	John Lyon	translation	‘The boy was really having a great time, but just about forgot when they were going home.’
+3.2 47	Kiláwnaʔ	surface	ilí····ʔ, “ax! way̓ kn kɬxʷúyaʔx.”
+3.2 47	John Lyon	parse	ilíʔ ax way̓ kn ks-ɬ+√xʷúy-aʔx
+3.2 47	John Lyon	gloss	DEM INTERJ yes 1SG.ABS FUT-return+go-INCEPT
+3.2 47	John Lyon	word gloss	he.was.there *?#! yes I will.go.back
+3.2 47	John Lyon	translation	‘He was there, and said “I’m going to go now.” ’
+3.2 48	Kiláwnaʔ	surface	əɬ ɬxʷuyəlx, t̓i kɬq̓ʷtí··waʔs iʔ l kəwáps, səp̓sqáx̌aʔ.
+3.2 48	John Lyon	parse	ɬ ɬ+√xʷuy-lx t̓i k+√ɬq̓ʷ(=)t(=)íwaʔ-s iʔ l √kʷáp-s √sp̓+s+√qáx̌aʔ
+3.2 48	John Lyon	gloss	COMP return+go-3PL EMPH RES+bent.over-3POSS DET LOC horse-3POSS whip+NMLZ+horse
+3.2 48	John Lyon	word gloss	when he.was.going.back just he.was.bent.over the on horse he.whipped.his.horse
+3.2 48	John Lyon	translation	‘When he went back, oh, he was just bent over his horse, he whipped his horse.’
+3.2 49	Kiláwnaʔ	surface	c̓əlsqáx̌aʔ, iʔ kəwáps tx̌ʷúsəsc̓aʔ, taɬt ʔáyx̌ʷt iʔ kəwáps.
+3.2 49	John Lyon	parse	√c̓l+s+√qáx̌aʔ iʔ √kʷáp-s t+√x̌ʷús•s=c̓aʔ, √taɬ+t ʔáyx̌ʷt iʔ √kʷáp-s
+3.2 49	John Lyon	gloss	stand+NMLZ+horse DET horse-3POSS RES+foam•C2.LC=skin straight+STAT tired DET horse-3POSS
+3.2 49	John Lyon	word gloss	he.stopped.the.horse the his.horse its.skin.was.foaming sure tired the his.horse
+3.2 49	John Lyon	translation	‘He stopped his horse, its skin was foaming like soap, his horse got really tired.’
+3.2 50	Kiláwnaʔ	surface	xʷuy k̓l sənt̓əwstsqáx̌aʔtən, tliʔ kiʔ skʷums iʔ nc̓əlqʷiʔsqáx̌aʔtəns.
+3.2 50	John Lyon	parse	xʷuy k̓l s+n+√t̓wst+s+√qáx̌aʔ+tn itlíʔ kiʔ s-√kʷum-s iʔ n+√c̓lqʷ+iʔ+s+√qáx̌aʔ+tn-s
+3.2 50	John Lyon	gloss	go LOC NMLZ+LOC+stand.in.line+NMLZ+horse+INS DEM COMP.OBL NMLZ-store-3POSS DET LOC+place.on[?]+DRV+NMLZ+horse+INS-3POSS
+3.2 50	John Lyon	word gloss	he.went to barn from.there that he.stored.it the his.saddle
+3.2 50	John Lyon	translation	‘He went to the barn, from there that he hung up his saddle.’
