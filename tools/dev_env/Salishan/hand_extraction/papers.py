@@ -72,12 +72,12 @@ EVERY = (
      "ICSNL59_LaFontaine_Janzen_final",
      "wlwlmelst-MauriceMichell_FourStoriesByWlwlmelst_LaFontaineJanzen"
      "_Salish_nlekepmxcin_2024_mixed.txt",
-     None, SHARED),
+     closed_spaces, SHARED),
     ("ICSNL59_Garcia_Hannon_Stacey_final.oracle.tsv",
      "ICSNL59_Garcia_Hannon_Stacey_final",
      "Kweltezetkwu-BerniceGarcia_ThreeGlossedNlekepmxcinNarratives_GarciaHannonStacey"
      "_Salish_nlekepmxcin_2024_mixed.txt",
-     None, SHARED),
+     closed_spaces, SHARED),
     ("ICSNL56_DavisJ_2_final-1.oracle.tsv",
      "ICSNL56_DavisJ_2_final-1",
      "MaryGeorge_MaryGeorgePersonalNarratives_JohnHamiltonDavis"

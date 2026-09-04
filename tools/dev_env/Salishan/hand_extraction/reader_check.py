@@ -74,7 +74,12 @@ def oracle_rows(path):
 # One span of a record's content column, written by salish_marking as language.layer.kind:{text}.
 # A line the speaker mixed carries several of these, joined with a comma. A row is read as spans and
 # not as one string.
-SPAN = re.compile(r"([TN])((?:\.[^:\s{}]*)*):\{")
+#
+# The kind may hold a space, and nine of the eleven readers write one that does: symbol note,
+# running speech, stage direction, word gloss, free translation, cited example, morpheme entry,
+# speaker comment, orthography chart. Excluding whitespace here made every one of those spans
+# invisible to this check, which then reported the forms in them as forms the reader never wrote.
+SPAN = re.compile(r"([TN])((?:\.[^:{}]*)*):\{")
 
 
 def spans_of(content):

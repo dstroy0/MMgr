@@ -38,7 +38,53 @@ from salish_unsorted import is_language_token  # noqa: E402
 
 from papers import EVERY  # noqa: E402
 
-EDGES = ".,!?;:“”‘’\"'()[]…«»{}/*•→≤≥"
+EDGES = ".,!?;:“”\"()[]…«»{}/*•→≤≥"
+
+# The single quote is not in EDGES because several of these orthographies write with it. ’ is the
+# glottalization mark in Nuxalk and in Lyon's Okanagan, and stripping it turned the enclitic ˽c’
+# into ˽c, a string neither the paper nor the hand extraction holds. It comes off only as one half
+# of a pair around a gloss.
+PAIRED = (("‘", "’"), ("'", "'"), ("“", "”"))
+
+
+# A footnote number, a second closing quote, and a mangled one. All three attach after the
+# sentence's own punctuation: tuʔúʔt.6 puts the marker past the period, yéyeʔ?”’ closes the inner
+# quote past the outer one, and tea.̓ is a ’ the PDF left as a bare combining mark. Peeling any of
+# them off the end of a word outright would take the glottalization off ˽c’ and the 3 off a 3OBJ
+# gloss, so each comes off only where the character in front of it is one of EDGES.
+def trailing_marker(plain):
+    """One token with a footnote marker and a doubled closing quote off the end of it."""
+    while len(plain) > 1:
+        at = len(plain)
+        while (at > 0) and plain[at - 1].isdigit():
+            at -= 1
+        # Nothing numeric came off, so look for the quote forms instead.
+        if (at == len(plain)) and ((plain[-1] == "’") or unicodedata.combining(plain[-1])):
+            at -= 1
+        # A footnote marker set past a closing quote, as walk.’17 is. The ’ counts as a quote only
+        # where the sentence's own punctuation stands in front of it, which is what keeps ˽c’ whole.
+        elif (at > 1) and (plain[at - 1] == "’") and (plain[at - 2] in EDGES):
+            at -= 1
+        if (at == len(plain)) or (at == 0) or (plain[at - 1] not in EDGES):
+            break
+        plain = plain[:at].strip(EDGES)
+    return plain
+
+
+def bare(token):
+    """One token with the punctuation around it off, and its orthography left alone.
+
+    An opening quote always comes off: no orthography here starts a word with one. A closing quote
+    comes off only where an opening one is on the same token, because ’ ends real words in Nuxalk
+    and in Lyon's Okanagan.
+    """
+    plain = token.strip(EDGES)
+    for opens, closes in PAIRED:
+        if (len(plain) > 1) and plain.startswith(opens) and plain.endswith(closes):
+            plain = plain[1:-1].strip(EDGES)
+    while plain and (plain[0] in "‘“"):
+        plain = plain[1:].strip(EDGES)
+    return trailing_marker(plain)
 
 # What a form may be built out of besides its letters. A morpheme boundary, a clitic boundary, a
 # reduplication tilde and the parentheses around a deleted segment are all part of how the paper
@@ -55,7 +101,7 @@ def pieces(form):
     """
     held = set()
     for token in unicodedata.normalize("NFC", form).split():
-        plain = token.strip(EDGES)
+        plain = bare(token)
         if plain:
             held.add(plain)
     return held
@@ -87,6 +133,14 @@ def source_forms(path, repair=None):
     corpus. An over-join here costs nothing but a question not asked.
     """
     held = {}
+    # What the paper actually prints, without the joins and halves offered above. Direction two asks
+    # about these. Asking about a join would make every accidental pairing a hole to answer for.
+    printed = set()
+    # Each printed token against what it makes when welded to the token beside it. A PDF that breaks
+    # a word before a marked letter leaves các and l̓epa, and the hand extraction has cácl̓epa. Both
+    # halves are then words the paper prints that no row holds, and neither is a row anybody should
+    # write: the word is one word.
+    welds = {}
     previous = ""
     with open(path, encoding="utf-8", errors="replace") as handle:
         for number, line in enumerate(handle, 1):
@@ -97,7 +151,13 @@ def source_forms(path, repair=None):
             # at a keyboard as absent from a paper that prints ǰ on ten lines. A repair ends in NFC
             # itself, and has to, because composing a with a combining acute first would take that
             # acute out of the set of marks whose following space gets closed.
-            line = repair(line.rstrip()) if repair else unicodedata.normalize("NFC", line.rstrip())
+            # NFC last, always, and after the repair rather than before it. Before it, composing a
+            # with a combining acute into á takes that acute out of the set of marks whose following
+            # space gets closed. Skipped entirely for a repair that does not end in NFC itself, the
+            # composed á typed by hand stops matching the decomposed one the PDF holds, and 164 of
+            # one paper's hand-read forms were reported as forms the repair had destroyed.
+            line = repair(line.rstrip()) if repair else line.rstrip()
+            line = unicodedata.normalize("NFC", line)
             reach = [line]
             if previous.endswith("-"):
                 reach.append("%s%s" % (previous.split()[-1], line.lstrip()))
@@ -110,11 +170,32 @@ def source_forms(path, repair=None):
                     # prefix, which is why only the last token on a line is dropped.
                     if ((at == 0) and (where == (len(tokens) - 1)) and token.endswith("-")):
                         continue
-                    for part in [token] + token.split("/"):
-                        plain = part.strip(EDGES)
+                    # The token itself, its slash-separated halves, and it joined to the token
+                    # after it. The last of those is for the PDFs that break a word before a
+                    # marked letter: cácl̓ep arrives as các l̓ep, and the hand extraction records
+                    # the word. A join offered here only widens what a lookup finds.
+                    plain = bare(token)
+                    if plain:
+                        held.setdefault(plain, number)
+                        # Only the line as printed adds to printed. The hyphen-join built above is
+                        # a lookup candidate, and counting its tokens made ł-AUX, the tail of one
+                        # line welded to the head of the next, a word the paper holds.
+                        if at == 0:
+                            printed.add(plain)
+                    reach = list(token.split("/"))
+                    if (where + 1) < len(tokens):
+                        joined = bare(token + tokens[where + 1])
+                        reach.append(token + tokens[where + 1])
+                        if plain and joined:
+                            welds.setdefault(plain, set()).add(joined)
+                            after = bare(tokens[where + 1])
+                            if after:
+                                welds.setdefault(after, set()).add(joined)
+                    for part in reach:
+                        plain = bare(part)
                         if plain:
                             held.setdefault(plain, number)
-    return held
+    return held, printed, welds
 
 
 def main():
@@ -133,8 +214,8 @@ def main():
             continue
 
         rows = oracle_rows(table)
-        held = source_forms(source, repair)
-        raw = source_forms(source)
+        held, printed, welds = source_forms(source, repair)
+        raw = source_forms(source)[0]
         out.write("  %s\n" % name)
         out.write("    %d rows read by hand, %d distinct tokens in the paper\n"
                   % (len(rows), len(held)))
@@ -166,7 +247,20 @@ def main():
         # English prose and the hand extraction is not a transcription of that.
         missed = []
         for token, number in sorted(held.items(), key=lambda one: one[1]):
+            if token not in printed:
+                continue
             if not is_language_token(token, marks):
+                continue
+            # Half a word the PDF split. The hand extraction holds the whole of it.
+            if welds.get(token, set()) & written:
+                continue
+            # An English possessive on a name in the language. These papers are written in English
+            # and put one on Kʷəɬtəzétkʷu’s. The word is the name, and the row holds the name.
+            if token.endswith(("’s", "'s")) and (token[:-2] in written):
+                continue
+            # A capital opening a sentence. None of these orthographies tell two words apart by
+            # case, so the Yéyeʔ that opens a translation is the yéyeʔ a row already holds.
+            if token.lower() in written:
                 continue
             # A slashed token is two forms printed in one cell, dᶻəlč̓/ǰəlč̓, and the hand
             # extraction gives each of them its own row. Asking for the whole string back would
