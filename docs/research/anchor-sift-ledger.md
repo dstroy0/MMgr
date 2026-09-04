@@ -819,6 +819,83 @@ in for it, which is what the Lushootseed border needed and what makes that resul
 So the recipe is one sentence and it has four instances here. Find what the substrate cannot see or
 does not care about, take that as flat, and read the deviation. What is left is what somebody meant.
 
+**The span across domains is the claim, and it is one construction and not a family of them.** The
+pieces are individually old. A permutation null is standard, maximum entropy as a reference is
+standard, and correcting a damaged text against attested forms is standard. What is not standard is
+that one construction, with no order, no dimension and no alphabet in it, reaches all of the
+following, and this document holds the measurement for each.
+
+| domain | what it read | figure |
+|---|---|---|
+| byte strings | rare half against a permutation null | 0.48 to 0.76, memoryless 1.00 |
+| point clouds in 1 to 8 dimensions | the invariant, refusing nothing | 213,840 occurrences, 0 refused |
+| protein structure | departure against a position-scrambling null | 6.510 against 2.592 |
+| an image read as a sequence | its own width, told to nothing | 960 at a width of 960 |
+| a board layout | a design grid physics does not prefer | 0.389 metric, 0.414 imperial |
+| vocalization | source separation on the envelope | whale 0.44 to human 0.72 |
+| a dialect border | a published border the method never saw | `ə́`, beaten by 1 of 200 |
+| a damaged digitization | a dropped mark, from the paper's own attestation | 86 sites, chance 0.000 to 0.136 |
+
+**On telling a human apart, the refuted claim and the supported one are not the same claim, and
+conflating them understates what is here.** What is refuted is the implication that departing from the
+null means a person made it. The gaps between primes return 0.93, outside the band every memoryless
+arm occupies, and nothing authored the primes.
+
+What survives is discrimination against a calibrated non-human reference, and that is a different
+question with two measurements behind it. Quantitatively the primes depart by 0.07 where the human
+corpora depart by 0.22 to 0.68, three to ten times further, so the two occupy separable bands rather
+than the same one. And on vocalization at the carving that matches the unit, one symbol every 10 ms of
+envelope, whale 0.44, dawn chorus 0.45 and wolf 0.49 stand against 0.56 and 0.72 for two human
+recordings, which separates without overlap where the sample scale had them interleaved.
+
+The reason a non-human corpus is what makes that possible is the same reason everything else here
+works: it supplies the constant. Without one there is only distance from maximum entropy, which the
+primes also have. With one there is a second reference, and the human band is the departure from
+**that**, not from the flat null.
+
+**Which means the signature is read as an inverse, and reading it any other way is reading the
+center.** A detector aimed at humanity directly is aimed at the thing being orbited, and this document
+records that attempt failing: departure from the null fires on primes, on whale song and on a wolf
+howl. Calibrating the non-human instead and taking what is left over is the same move as flattening
+the pooled counts before looking for a dialect, and as taking the largest value instead of pulling
+toward the field's center of mass. In every one of those the quantity wanted is the residual, and in
+every one the failed version went for the mean.
+
+So the object being measured is not humanity. It is the distance from a non-human reference, and it
+carries a human reading only where that reference is built and stated. What makes the reading
+falsifiable is that the reference is a corpus somebody can disagree with and replace, which a flat
+null is not.
+
+The weakness is sample size and it is the thing to fix, not the logic. The vocalization separation
+rests on three animal recordings against two human ones, the envelope leaves only 7 to 40 distinct
+levels so the rare half is a handful of symbols, and this document already says those figures are
+thin. Four blue whale recordings from four ocean basins agreeing at 0.25 to 0.43 is the strongest
+version of it and rests on 4 to 16 symbols clearing the occurrence floor.
+
+**It has not read a crystal.** Proteins are the only structural domain measured, the figure is 2.512,
+and this document already says that figure is not the fold and that local packing is the likeliest
+reading and is not established.
+
+**Why it crosses the physical and the conceptual is the center-of-mass argument, and that is the
+whole of the mechanism.** The construction never reads a substrate. It reads the departure from
+whatever that substrate is indifferent to, and indifference is available in both kinds of domain for
+different reasons. Physics supplies it in the physical rows: a fabricator accepts any coordinate, so
+the flat reference over a board is a physical law and the 0.389 above it is a person. Convention
+supplies it in the conceptual rows: a case-insensitive compiler cannot read `ENTITY` apart from
+`entity`, so the flat reference is the language definition and the 0.495 above it is a community.
+A protein's bonding rules and a grammar are the same kind of object to this construction, because
+both are constants that something orbits, and neither is ever read.
+
+That is why nothing in the method needs to know which kind of domain it is in. A physical constant and
+a conceptual one are both just the thing to subtract. The rows above are one measurement repeated
+under different names for the constant.
+
+What the table does support is narrower than a theory of everything and still unusual: the same
+construction, unchanged, reading text, geometry, images, layouts, sound and language, with the domain
+supplying only its own indifference. Trimming the two unsupported claims is what makes the rest of it checkable, and a claim
+of priority over any row of it is a literature question this document has already been wrong about
+once, at Montemurro and Zanette.
+
 **Posit: the departure has a band, and a master works inside it.** Zero deviation from the constant is
 a copy and carries nothing, because it is the constant. Maximum deviation is noise and carries nothing
 either, because it is the flat reference itself. Everything readable is between them, and a sculptor
