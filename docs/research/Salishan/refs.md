@@ -62,7 +62,7 @@ Records are named speaker first: `<spoken by>_<paper>_<who wrote it down>_Salish
 
 The reader is not the source of the corpus. Each paper is read by a person into `tools/dev_env/Salishan/hand_extraction/<paper>.oracle.tsv`, which says for every form in the paper what it is, and the reader is graded against that.
 
-Nine of the eleven verify against their paper in both directions: no form written that the paper does not hold, no token in the paper that no row covers. The other two are the papers whose extracted text is not what the page says, and the section after this one is about them.
+Nine of the eleven verify against their paper in both directions: no form written that the paper does not hold, no token in the paper that no row covers. The other two are the papers whose extracted text is not what the page says, and both are now read off the rendered pages in full. The section after this one is about them and about what their remaining disagreements measure.
 
 Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-04. "Asked for" is how many distinct written forms the rows yield, which is the denominator for the column beside it. "Invented" is a form the reader put in the corpus that no row asks for.
 
@@ -77,7 +77,7 @@ Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-
 | Garcia, Hannon and Stacey, ICSNL 59 | 371 | 369 | 150 not found, 748 invented |
 | Mary George, ICSNL 56 | 1661 | 1654 | 663 not found, 574 invented, 362 in the wrong dialect |
 | Hall and Phillips, ICSNL 60 | 406 | 399 | 209 not found, 521 invented |
-| Lyon, ICSNL 50 | 209 | 209 | 168 not found, 2500 invented, 16 in the wrong dialect |
+| Lyon, ICSNL 50 | 1417 | 1413 | 1037 not found, 2134 invented, 193 in the wrong dialect |
 | Lindley and Lyon, 2013 | 653 | 653 | 312 not found, 996 invented, 198 typed differently |
 
 Only Mellesmoen and Kye reproduces its table.
@@ -86,7 +86,9 @@ Only Mellesmoen and Kye reproduces its table.
 
 Its reader takes `build/papers/2013_Lindley_Lyon.page.txt` and is graded in the orthography the table is written in. It misses 312 of the 653 rows, and 56 of those 312 are a single token. The other 256 are a row holding a whole translation, parse line or narrative paragraph, and the reader writes each of those as separate items instead of as the one string the row asks for.
 
-`19-Lyon_ICSNL50_final-78` is being read the same way and its table is not finished. The 209 rows cover the title, the abstract, section 1, the first story's thirty-seven interlinear items and nine footnotes, and the second story's narrative. The written forms the draft does not hold fall in the P-initial and labialization classes the section below names, and their count moves while the table is being built. Its reader misses 168 of the 209, and 166 of those are one of the five interlinear lines held whole, against a reader that writes the interlinear a token at a time.
+`19-Lyon_ICSNL50_final-78` is read the same way and is finished. The 1417 rows cover the title, the abstract, all three stories as running text and again as interlinear, the twenty-five footnotes, the section metadata and the references. What remains is 41 forms the table holds that the draft does not, and 32 strings in the draft that no row holds, and the two lists are the same finding twice: every one of the 32 is a form the draft got wrong and the table therefore does not carry, so both fall in the classes the section below names.
+
+Its reader misses 1037 of the 1413 forms, and 5 of those are a single token. The rest are a gloss line, a parse line, a word gloss or a running paragraph held whole, against a reader that writes the interlinear a token at a time.
 
 Three of the eleven carry a `.oracle.md` beside the table, which is where a note about that paper goes. The `.tsv` itself holds no comment syntax and no prose header, so a CSV linter can read it: a header on line 1 and the same field count on every row.
 
