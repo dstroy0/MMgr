@@ -1281,3 +1281,28 @@ footnote 24	John Lyon	note	There is no 3rd person possessive -s pronounced on tk
 3.2 167	John Lyon	gloss	EMPH stop+INCH DEM C1.C2.PL•kneel-MID-3POSS
 3.2 167	John Lyon	word gloss	just he.stopped then he.got.on.his.knees
 3.2 167	John Lyon	translation	‘The priest just stopped and got on his knees.’
+3.2 168	Kiláwnaʔ	surface	ixíʔ uɬ k̓ʕa····m iʔ tətwít.
+3.2 168	John Lyon	parse	ixíʔ uɬ √k̓ʕa-m iʔ t(•)√twít
+3.2 168	John Lyon	gloss	DEM CONJ pray-MID DET boy
+3.2 168	John Lyon	word gloss	then and he.was.praying the boy
+3.2 168	John Lyon	translation	‘And the boy just kept on praying.’
+3.2 169	Kiláwnaʔ	surface	ʔáx̌əlməncut, cus iʔ q̓ʷʕaylqs “cxʷuyx aláʔ!”
+3.2 169	John Lyon	parse	√ʔáx̌l-m-ncut √cun-nt-s iʔ √q̓ʷʕay=lqs c+√xʷuy-x aláʔ
+3.2 169	John Lyon	gloss	turn.around-APPL-REFL say-DIR-3ERG DET black=robe CISL+go-IMP DEM
+3.2 169	John Lyon	word gloss	he.turned.around he.told.him the priest come here
+3.2 169	John Lyon	translation	‘The boy turned around, and he told the priest “Come here!” ’
+3.2 170	Kiláwnaʔ	surface	q̓ʷʕaylqs xʷuy aláʔ, q̓ʷyq̓ʷyxínəm.
+3.2 170	John Lyon	parse	√q̓ʷʕay=lqs xʷuy aláʔ q̓ʷy•√q̓ʷy(=)xín
+3.2 170	John Lyon	gloss	black=robe go DEM C1C2.PL•kneel-MID
+3.2 170	John Lyon	word gloss	the.priest went here he.got.on.his.knees
+3.2 170	John Lyon	translation	‘The priest came and got on his knees.’
+3.2 171	Kiláwnaʔ	surface	cúntəm t tətwít “təɬtáɬt kiʔ kʷ x̌ast t q̓ʷʕaylqs.”
+3.2 171	John Lyon	parse	√cún-nt-m t t(•)√twít tɬ•√táɬ+t kiʔ kʷ √x̌as+t t √q̓ʷʕay=lqs
+3.2 171	John Lyon	gloss	say-DIR-PASS OBL boy C1C2.CHAR•straight+STAT COMP.OBL 2SG.ABS good+STAT OBL black=robe
+3.2 171	John Lyon	word gloss	he.was.told by the.boy truly that you are.good priest
+3.2 171	John Lyon	translation	‘The boy said “You truly are a good priest.” ’
+3.2 172	Kiláwnaʔ	surface	“k̓ʷúl̓əntxʷ ask̓ʷúl̓ aláʔ iʔ l təmxʷúlaʔxʷ.”
+3.2 172	John Lyon	parse	√k̓ʷúl̓-nt-xʷ an-s-√k̓ʷúl̓ aláʔ iʔ l √tmxʷ=úlaʔxʷ
+3.2 172	John Lyon	gloss	work-DIR-2SG.ERG 2SG.POSS-NMLZ-work DEM DET LOC land=land
+3.2 172	John Lyon	word gloss	you.worked.on.it your.job here this on earth
+3.2 172	John Lyon	translation	‘ “You’ve done your job on this earth.” ’
