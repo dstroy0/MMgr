@@ -61,7 +61,7 @@ tools/dev_env/Salishan/sound_representation/                 the recordings as b
 
 Each script finds the repository by walking up to the tree holding `build/`, so they run from any working directory.
 
-## The eleven readers
+## The twelve readers
 
 One per paper. Each takes no arguments and rebuilds that paper's corpus. Written `S/` for `tools/dev_env/Salishan/corpus_script_extraction/`.
 
@@ -77,6 +77,7 @@ python S/extract_lyon_priests.py
 python S/extract_lindley_lyon.py
 python S/extract_hilbert.py
 python S/extract_mellesmoen_kye.py
+python S/extract_robertson.py
 ```
 
 Each prints its line counts, how many target-language forms reached the pure stream, and how many lines it could not sort. The two Lyon readers also report how many interlinear blocks read cleanly.
@@ -191,6 +192,8 @@ These are imported, not run.
 | `S/inserted_space.py` | closing the space a PDF leaves after a stacked diacritic |
 | `S/mellesmoen_kye_repair.py` | the same, with a wider mark set that paper's two spaces allow |
 | `S/mary_george_repair.py` | the same again, where the grave is glottalization and the acute is stress |
+| `S/glyph_names.py` | the glyph names Robertson's extraction printed, read back as the characters they name |
+| `S/line_breaks.py` | putting back a word that extraction broke across two lines, shared by that reader and the coverage check |
 | `lyon_encoding.py` | the NimbusRomNo9L codes read as the orthography, for the drafted page text |
 | `H/papers.py` | which hand extraction goes with which paper, its repair, and its marks |
 | `sound_representation/perceived_sound.py` | a recording as bits: the log spaced bands, the audiogram, the shift invariant segment field, the prosody field, and the rotation that brings the sample to maximum entropy |

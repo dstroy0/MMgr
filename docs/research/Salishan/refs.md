@@ -38,7 +38,7 @@ Conditions the speakers set:
 
 Eleven papers, each read by its own file in `tools/dev_env/Salishan/corpus_script_extraction/` and each with a hand extraction beside it in `hand_extraction/`. Every token of the language in each is accounted for in the corpus built from it, and `coverage_check.py` is what says so. For the two Lyon papers that statement is about the extracted text, which is the font's own encoding and not what the page prints. The section below on those two says what that means.
 
-A twelfth, `2012_Robertson`, is read by hand and has no reader yet. `papers.py` carries it so both checks grade it, and `reader_check.py` lists it under the papers waiting for one.
+A twelfth, `2012_Robertson`, now has both. `extract_robertson.py` reads it, `coverage_check.py` puts it at 100 percent like the other eleven, and both hand-extraction checks grade it.
 
 Nothing here needs fetching by hand. `python tools/dev_env/Salishan/get_papers.py` reads the archive index, downloads these eleven and converts them. Every address below was checked; the local filename in `build/papers/` is the PDF's own name.
 
@@ -81,7 +81,7 @@ Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-
 | Hall and Phillips, ICSNL 60 | 406 | 399 | 209 not found, 521 invented |
 | Lyon, ICSNL 50 | 1417 | 1413 | 1037 not found, 2134 invented, 193 in the wrong dialect |
 | Lindley and Lyon, 2013 | 653 | 653 | 312 not found, 996 invented, 198 typed differently |
-| Robertson, 2012 | 195 | 193 | no reader written yet |
+| Robertson, 2012 | 195 | 193 | 92 not found, of which 59 are prose the reader does not read |
 
 Only Mellesmoen and Kye reproduces its table.
 
@@ -214,6 +214,12 @@ The other three came off the pages, and the first of them is why the decode is n
 The hand extraction is 195 rows and covers both Salish texts whole, the Chinuk pipa and Chinook Jargon forms cited through the analysis, and the two bibliography entries written in Chinuk Wawa. What it leaves is 40 forms the table holds that the text does not, and 21 strings in the text that no row holds. Those two lists are the same finding twice, as they are in the priests paper: 14 of the 21 are the damaged form of something the table carries correctly, 4 are the doubled epigraph, and 3 are page ranges in the bibliography that `is_language_token` reads as language because they hold a digit inside a token.
 
 Texts 3 through 6 are Chinook Jargon, which is a pidgin. They are the paper's own material and they are not Salish, so nothing in them belongs in a Salish pure corpus. The table marks who each form belongs to for that reason, and `Chinook Jargon` in that column is the instruction to a reader to keep the form out of the target stream.
+
+`extract_robertson.py` reads it against that table. It finds all 20 stanzas of Text 1 and all 7 of Text 2 with their numbering intact, and it reproduces the four rows of a stanza wherever the extraction did not break a word inside a line. Of the 92 rows it does not reproduce, 59 are the analysis prose and the cited forms, which the reader does not read and which stay in the record as unclassified. The 33 that sit inside the two texts split as 10 differing from the reader by the lost labialization alone and 23 by a word the extraction broke in the middle of a line, where the first half ends a long line and the reader has nothing short to key on.
+
+Two things in that reader are worth naming because no other paper here needs them. The transliteration row is plain ASCII, so `o l ha l kukpi,` carries no character of the modern orthography and the test every other reader leans on would call it English. It is marked by where it sits. And the pure stream takes the transliteration row alone: the morphemic row is Robertson's analysis and holds forms nobody wrote, which is the distinction `salish_marking.py` draws between what was said and what was worked out afterward.
+
+`line_breaks.py` holds the join, because `coverage_check.py` has to apply it too. That check compares a paper against its extraction and its own header says both sides go through the same transformation first, and a join the reader makes and the check does not reports every welded word as a hole. With it applied the paper is at 100 percent like the other eleven.
 
 `lyon_encoding.py` holds that table for NimbusRomNo9L as it stands, with the labialization rule still a guess and the insertion rate still unmeasured.
 
