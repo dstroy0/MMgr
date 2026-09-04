@@ -769,3 +769,14 @@ footnote 17	John Lyon	note	Nellie Guitterez switches to English for the rest of 
 3.2 66	John Lyon	gloss	fall.in.with=middle-DIR-1SG.ERG DET NMLZ-CUST-C1.DIM•small=seed-INTR plant=crop-MID gather+STAT DET what know+INCH-manage.to-DIR-1SG.ERG DET peas potatoes onions carrots
 3.2 66	John Lyon	word gloss	I.fell.in.with the ones.who.plant.seeds who.were.farming every thing I.learned.about.it the peas potatoes onions carrots
 3.2 66	John Lyon	translation	‘ “I fell in with ones who were planting seeds, farmers. I learned about everything, peas, potatoes, onions, carrots.” ’
+3.2 67	Kiláwnaʔ	surface	cut, “mypnun iʔ liplí ik̓líʔ k̓a ck̓ʷúl̓əmsəlx. . . yaʕt taʔlíʔ x̌ast. uɬ iʔ lawán.”
+3.2 67	John Lyon	parse	cut √my+p-nu-nt-n iʔ liplí ik̓líʔ kaʔ c-√k̓ʷúl̓-m-st-slx √yaʕ+t taʔlíʔ √x̌as+t uɬ iʔ lawán.
+3.2 67	John Lyon	gloss	say know+INCH-manage.to-DIR-1SG.ERG DET pease DEM COMP.OBL CUST-work-APPL-CAUS-3PL.ERG gather+STAT very good+STAT CONJ DET oats
+3.2 67	John Lyon	word gloss	he.said I.learned.it the peas to.there where they.were.working everything very good and oats
+3.2 67	John Lyon	translation	‘He said “I learned about peas there where they were working, everything was really good. And oats.” ’
+3.2 68	Kiláwnaʔ	surface	“mypnun ik̓líʔ k̓a ck̓ʷúl̓səlx iʔ la. . . iʔ sck̓ʷúl̓əmsəlx t lkalát. ixíʔ yaʕt iscmypənwíɬən.”
+3.2 68	John Lyon	parse	√my+p-nu-nt-n ik̓líʔ kaʔ c-√k̓ʷúl̓-st-səlx iʔ lawán iʔ s-c-√k̓ʷúl̓-m-slx t lkalát ixíʔ √yaʕ+t in-s-c-√my+p=nwíɬn
+3.2 68	John Lyon	gloss	know+INCH-manage.to-DIR-1SG.ERG DEM COMP.OBL CUST-work-CAUS-3PL.ERG DET oats DET NMLZ-CUST-work-MID-3PL.POSS OBL bread DEM gather+STAT 1SG.POSS-NMLZ-CUST-know+INCH=information
+3.2 68	John Lyon	word gloss	I.learned.it to.there where they.worked.on.it the oats that they.made.it bread that everything what.I.learned.about
+3.2 68	John Lyon	translation	‘ “There I learned about how they made oats, that’s what they made bread from. I learned all that.” ’
+footnote 18	John Lyon	note	Andrew McGinnis says that he meant to say ‘flour’ rather than ‘oats’ in this stanza, i.e. ‘what they make bread from’.
