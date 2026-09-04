@@ -872,3 +872,28 @@ footnote 20	John Lyon	note	The form xəlxlákəkəlx literally means “they wer
 3.2 86	John Lyon	gloss	RES+C1C2.PL•how.many DEM one[HUMAN] DEM one[HUMAN]
 3.2 86	John Lyon	word gloss	how.many.people that one that one
 3.2 86	John Lyon	translation	‘ “How many are there? There’s one, and there’s one.” ’
+3.2 87	Kiláwnaʔ	surface	“ya····ʕt uɬ taɬt way̓ lut, way̓ k kʕacíw̓səm isqʷsíʔaʔ, áɬiʔ way̓ cun.”
+3.2 87	John Lyon	parse	√yaʕ+t uɬ √taɬ+t way̓ lut way̓ kn ks-k+√ʕac=íw̓s-m in-s+√qʷsíʔ+aʔ áɬiʔ way̓ √cun-nt-n
+3.2 87	John Lyon	gloss	gather+STAT CONJ straight+STAT yes NEG yes 1SG.ABS FUT-RES+tie=middle-MID 1SG.POSS+NMLZ+son+DRV COMP yes say-DIR-1SG.ERG
+3.2 87	John Lyon	word gloss	all and sure yes no yes I will.hang.him my.son because already I.told.him
+3.2 87	John Lyon	translation	‘The chief said “There’s no way, I’m going to hang my son, that’s what I told him.” ’
+3.2 88	Kiláwnaʔ	surface	ixíʔ xʷu···y uɬ ʔitx.
+3.2 88	John Lyon	parse	ixíʔ xʷuy uɬ ʔitx
+3.2 88	John Lyon	gloss	DEM go CONJ sleep
+3.2 88	John Lyon	word gloss	then he.went and he.slept
+3.2 88	John Lyon	translation	‘The chief went and slept.’
+3.2 89	Kiláwnaʔ	surface	iʔ tətwít lut t̓ ʔitx, k̓laxʷ way̓.
+3.2 89	John Lyon	parse	iʔ t(•)√twít lut t̓ ʔitx k̓laxʷ way̓
+3.2 89	John Lyon	gloss	DET boy NEG NEG.EMPH sleep evening yes
+3.2 89	John Lyon	word gloss	the boy not sleep evening already
+3.2 89	John Lyon	translation	‘The boy did not sleep, it was already evening.’
+3.2 90	Kiláwnaʔ	surface	ntr̓qpəncútx k̓l sənɬəqʷmín.
+3.2 90	John Lyon	parse	n+√tr̓q+p-ncút-x k̓l s+n+√ɬqʷ+mín
+3.2 90	John Lyon	gloss	LOC+stomp+INCH-REFL-INTR LOC NMLZ+LOC+storage.place+INS
+3.2 90	John Lyon	word gloss	he.ran to cellar
+3.2 90	John Lyon	translation	‘He ran to the cellar.’
+3.2 91	Kiláwnaʔ	surface	ilíʔ kylwíc̓aʔ iʔ ylmíxʷəm iʔ sck̓ʷúl̓s iʔ wine.
+3.2 91	John Lyon	parse	ilíʔ k+√ylw=íc̓aʔ iʔ ylmíxʷm iʔ s-c-√k̓ʷúl̓-s iʔ wine
+3.2 91	John Lyon	gloss	DEM RES+twist.twig=outer.covering DET chief DET NMLZ-CUST-make-3POSS DET wine
+3.2 91	John Lyon	word gloss	there barrel the chief that he.made.it the wine
+3.2 91	John Lyon	translation	‘There was a barrel of wine that the chief made.’
