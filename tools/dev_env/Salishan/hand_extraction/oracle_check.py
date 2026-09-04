@@ -208,7 +208,12 @@ def source_forms(path, repair=None):
             line = unicodedata.normalize("NFC", line)
             reach = [line]
             if previous.endswith("-"):
-                reach.append("%s%s" % (previous.split()[-1], line.lstrip()))
+                # Both readings of the hyphen at a line end. sčəbíd- ac is one Salish form whose
+                # hyphen is a morpheme boundary and stays; Lyon's English translations are typeset,
+                # and hold- ing is one word whose hyphen the typesetter put there.
+                tail = previous.split()[-1]
+                reach.append("%s%s" % (tail, line.lstrip()))
+                reach.append("%s%s" % (tail[:-1], line.lstrip()))
             previous = line
             for at, one in enumerate(reach):
                 tokens = one.split()
