@@ -1306,3 +1306,23 @@ footnote 24	John Lyon	note	There is no 3rd person possessive -s pronounced on tk
 3.2 172	John Lyon	gloss	work-DIR-2SG.ERG 2SG.POSS-NMLZ-work DEM DET LOC land=land
 3.2 172	John Lyon	word gloss	you.worked.on.it your.job here this on earth
 3.2 172	John Lyon	translation	‘ “You’ve done your job on this earth.” ’
+3.2 173	Kiláwnaʔ	surface	“iʔ ckʷúlstəmən, kʷ iskʷəlstíɬən áɬiʔ taʔlíʔ kʷ x̌ast t q̓ʷʕaylqs.”
+3.2 173	John Lyon	parse	ixíʔ c-√kʷúl(-)st-m-n kʷ in-s-√kʷl(-)st=íɬn áɬiʔ taʔlíʔ kʷ √x̌as+t t √q̓ʷʕay=lqs
+3.2 173	John Lyon	gloss	DEM CUST-send.for.[CAUS]-2SG.OBJ-1SG.ERG 2SG.ABS 1SG.POSS-NMLZ-send.for=information COMP very 2SG.ABS good+STAT OBL black=robe
+3.2 173	John Lyon	word gloss	I.am.sent.for.you you I.was.sent.here.for because very you are.good priest
+3.2 173	John Lyon	translation	‘The boy said “I was sent here for you because you are a really good priest.” ’
+3.2 174	Kiláwnaʔ	surface	ixíʔ uɬ qʷəlqʷílsts.
+3.2 174	John Lyon	parse	ixíʔ uɬ qʷl•√qʷíl-st-s
+3.2 174	John Lyon	gloss	DEM CONJ C1C2.PL•speak-CAUS-3ERG
+3.2 174	John Lyon	word gloss	then and he.spoke.to.him
+3.2 174	John Lyon	translation	‘And then the boy spoke to him.’
+3.2 175	Kiláwnaʔ	surface	cut “way̓, kʷ iksxʷúystəm k̓ nwíst.”
+3.2 175	John Lyon	parse	cut way̓ kʷ in-ks-√xʷúy-st-m k̓l n+√wís+t
+3.2 175	John Lyon	gloss	say yes 2SG.ABS 1SG.POSS-FUT-go-CAUS-MID LOC LOC+high+STAT
+3.2 175	John Lyon	word gloss	he.said yes you I.will.take to heaven
+3.2 175	John Lyon	translation	‘He said “Yes, I’m going to take you to heaven.” ’
+3.2 176	Kiláwnaʔ	surface	“t̓i yaʕ kʷ ksqíltkəm mi xʷúystəmən, way̓ mat kʷ x̌ast t q̓ʷʕaylqs.”
+3.2 176	John Lyon	parse	t̓i yaʕ kʷ kɬ-s+√qíl(=)tk-m mi √xʷúy-st-m-n way̓ mat kʷ √x̌as+t t √q̓ʷʕay=lqs
+3.2 176	John Lyon	gloss	EMPH gather 2SG.ABS get-NMLZ+body-MID COMP.FUT go-CAUS-2SG.OBJ-1SG.ERG yes EPIS 2SG.ABS good+STAT OBL black=robe
+3.2 176	John Lyon	word gloss	just all you get.body.and.all will I.take.you yes must.be you a.good priest
+3.2 176	John Lyon	translation	‘ “I will take your body and all, you must be a very good priest.” ’
