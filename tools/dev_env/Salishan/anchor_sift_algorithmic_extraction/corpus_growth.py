@@ -40,10 +40,14 @@ SIFTED = os.path.join(CORPORA, "sifted")
 
 
 def pure_by_language():
-    """The known-pure lines of each language, from the nine hand-read papers."""
+    """The known-pure lines of each language, from the eleven hand-read papers.
+
+    Keyed the way language_check.BY_CORPUS is keyed, on the paper title, which is the second
+    underscore-separated field of a record's filename and not the first. The first is the speaker.
+    """
     held = collections.defaultdict(list)
     for path in sorted(glob.glob(os.path.join(CORPORA, "*.pure.txt"))):
-        language = BY_CORPUS.get(os.path.basename(path).split("_")[0])
+        language = BY_CORPUS.get(os.path.basename(path).split("_")[1])
         if not language:
             continue
         with open(path, encoding="utf-8", errors="replace") as handle:

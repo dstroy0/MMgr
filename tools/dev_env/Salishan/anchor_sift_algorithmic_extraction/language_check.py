@@ -38,7 +38,10 @@ while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "
     ROOT = os.path.dirname(ROOT)
 CORPORA = os.path.join(ROOT, "build", "corpora")
 
-# Which language each hand-read corpus is, from its own paper's front matter.
+# Which language each hand-read corpus is, from its own paper's front matter. Keyed on the paper
+# title, which is the second underscore-separated field of a record's filename. A record is named
+# <spoken by>_<paper>_<who wrote it down>_Salish_<language>_<year>_<mixed>, so the first field is
+# the speaker and looking a title up under it finds nothing.
 BY_CORPUS = {
     "ThreeGlossedNlekepmxcinNarratives": "nɬeʔkepmxcín",
     "WhenOldOneCreatedTheEarth": "nɬeʔkepmxcín",
@@ -49,6 +52,8 @@ BY_CORPUS = {
     "ABellaCoolaTale": "Nuxalk",
     "ThreeOkanaganStoriesAboutPriests": "Nsyilxcən",
     "TwelveMoreUpperNicolaOkanaganNarratives": "Nsyilxcən",
+    "PokingFunInLushootseed": "Lushootseed",
+    "AComparativeAnalysisOfStressInNorthernAndSouthernLushootseed": "Lushootseed",
 }
 
 
@@ -56,7 +61,7 @@ def language_texts():
     """The lines of each language's known-pure corpus."""
     held = collections.defaultdict(list)
     for path in sorted(glob.glob(os.path.join(CORPORA, "*.pure.txt"))):
-        language = BY_CORPUS.get(os.path.basename(path).split("_")[0])
+        language = BY_CORPUS.get(os.path.basename(path).split("_")[1])
         if not language:
             continue
         with open(path, encoding="utf-8", errors="replace") as handle:
