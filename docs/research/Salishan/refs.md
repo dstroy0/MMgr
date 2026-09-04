@@ -122,7 +122,7 @@ Every one of the six has now been opened against its own rendered pages, and the
 | `19-Lyon_ICSNL50_final-78` | NimbusRomNo9L Regu, Medi, ReguItal | damaged, and read off the pages in full |
 | `2013_Lindley_Lyon` | NimbusRomNo9L Regu, Medi, ReguItal | damaged the same way, and read off the pages in full |
 | `Lyon-final` | NimbusRomNo9L Regu, Medi, MediItal, ReguItal | damaged, by a different table |
-| `2012_Robertson` | Symbol and five TrueType subsets | damaged, with the glyph names printed as text |
+| `2012_Robertson` | Symbol and five TrueType subsets | damaged four ways, one of them decodable exactly |
 | `21-Abraham_ICSNL50_final-4` | NimbusRomNo9L Regu, Medi | clean |
 | `2011_Lonsdale_Matsushita` | Courier, Times-Roman, Times-Italic, CMSY10 | clean |
 
@@ -200,7 +200,13 @@ Nothing in the tree measures the per-symbol rates yet. `font_substitution.py` sc
 
 So the conversion table is per document and not per font family. Reading these two papers off the page still recovers two papers and still produces a table, and what that table converts is the two of them.
 
-`2012_Robertson` is the one that needs no page at all. Its extractor could not resolve the glyphs and printed their names instead, so the text holds strings like `/uni0294oo /uni026C /xé/uni0294` where page 30 sets a morphemic line. A `/uniXXXX` name carries the code point it stands for, and `/uni0294` is `ʔ`, `/uni026C` is `ɬ`, `/uni0259` is `ə` and `/uni019B` is `ƛ`. Nothing was lost in that paper, only left undecoded, and a reader for it is a name table and not a reading. The named marks around them, `/combiningdotbelow` among others, take the same treatment.
+`2012_Robertson` is damaged four ways, and one of them costs nothing. Its extractor could not resolve a glyph and printed the glyph's name instead, so the text holds `/uni0294oo /uni026C /xé/uni0294` where page 30 sets a morphemic line. A `/uniXXXX` name carries the code point it stands for, and `/uni0294` is `ʔ`, `/uni026C` is `ɬ`, `/uni0259` is `ə` and `/uni019B` is `ƛ`. `glyph_names.py` turns all 103 of them back, along with `/combiningdotbelow` and `/combiningacuteaccent`, and after it runs no glyph name is left standing anywhere in the paper. That part is arithmetic and exact.
+
+The other three came off the pages, and the first of them is why the decode is not the whole recovery.
+
+* **Labialization, collapsed exactly as it is in the Lyon papers.** Page 30 sets `/kʷú[·kʷ]piʔ` and the text gives `/kwú[·kw]pi/uni0294`. The paper's own prose loses it too: page 30 names its symbols `(č, š, xʷ)` and the text holds `( č, š, x w)`, with a space where the raised letter was. Every flag the hand extraction raises on this paper so far is this one.
+* **A word broken across two lines with no hyphen.** 42 lines of the extraction hold nothing but a fragment: `Da` above `vid D. Robertson`, `ma` above `ximal efficiency`. Most of them are in the interlinear, where the break falls inside a gloss: `A` above `UG-`, `s` above `ick`, `gr` above `eet`. A rule that joins every fragment line to the one under it would be wrong in the alphabet tables, where `wa`, `wi` and `waw` are Chinuk pipa letter names and each is a line of its own.
+* **A glyph repeated where the page prints it once.** Page 1's epigraph prints `t’íxʷəɬ γ-ʔ-[χ-]q’y-n’-tén` with one `ɬ` and one `ʔ`, and the text holds four of each. It happens on 2 lines in the paper and both are set in bold italic.
 
 `lyon_encoding.py` holds that table for NimbusRomNo9L as it stands, with the labialization rule still a guess and the insertion rate still unmeasured.
 
