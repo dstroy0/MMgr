@@ -1095,3 +1095,28 @@ footnote 23	John Lyon	note	My analysis of the first word in this stanza is tenta
 3.2 130	John Lyon	gloss	straight+STAT disgusted+STAT DET chief
 3.2 130	John Lyon	word gloss	sure he.was.disgusted the chief
 3.2 130	John Lyon	translation	‘The chief was really disgusted.’
+3.2 131	Kiláwnaʔ	surface	ƛ̓aʔntís iʔ kəwáps uɬ taɬt. . .
+3.2 131	John Lyon	parse	√ƛ̓aʔ-nt-ís iʔ √kwáp-s uɬ √taɬ+t
+3.2 131	John Lyon	gloss	look.for-DIR-3ERG DET horse-3POSS CONJ straight+STAT
+3.2 131	John Lyon	word gloss	he.looked.for.it the his.horse and sure
+3.2 131	John Lyon	translation	‘He looked for his horse, and he was really (disgusted).’
+3.2 132	Kiláwnaʔ	surface	ʔíɬən, wiʔcín, wiʔwiʔcínləx.
+3.2 132	John Lyon	parse	ʔíɬn √wiʔ=cín wiʔ•√wiʔ=cín-lx
+3.2 132	John Lyon	gloss	eat finish=food C1C2.PL•finish=food-3PL
+3.2 132	John Lyon	word gloss	he.ate he.finished.eating they.finished.eating
+3.2 132	John Lyon	translation	‘He ate, he finished eating, they finished eating.’
+3.2 133	Kiláwnaʔ	surface	“way̓ nak̓ʷəm taʔlíʔ kʷ nq̓ʷ,” cut, “kaʔɬís k̓im ʔasíl ascnáq̓ʷ.”
+3.2 133	John Lyon	parse	way̓ nak̓ʷm taʔlíʔ kʷ nq̓ʷ•√nq̓ʷ-m+úɬ cut kaʔɬís k̓im ʔasíl an-s-c-√náq̓ʷ
+3.2 133	John Lyon	gloss	yes EVID very 2SG.ABS C1C2•steal-MID+very say three CONJ two 2SG.POSS-NMLZ-CUST-steal
+3.2 133	John Lyon	word gloss	yes indeed very you thief he.said three more two to.steal
+3.2 133	John Lyon	translation	‘The chief said “Yes, you’re a very good thief, you’re going to steal good two or three more times.” ’
+3.2 134	Kiláwnaʔ	surface	“ʕapnáʔ sənkʷkʷʔac ink̓ɬyxʷtíc̓aʔ, ink̓ɬyxʷtíc̓aʔ kʷu aksnáq̓ʷəməɬtəm.”
+3.2 134	John Lyon	parse	ʕapnáʔ s+n(+)kʷ(•)√kʔwac in-k̓ɬ+√yxʷ+t=íc̓aʔ in-k̓ɬ+√yxʷ+t=íc̓aʔ kʷu an-ks-√náq̓ʷ-m-ɬt-m
+3.2 134	John Lyon	gloss	now NMLZ+night 1SG.POSS-DRV+lower+STAT=covering 1SG.POSS-DRV+lower+STAT=covering 1SG.ABS 2SG.POSS-FUT-steal-APPL-APPL.POSS-MID
+3.2 134	John Lyon	word gloss	now night my.bottom.sheets my.bottom.sheets me you.will.steal.them.from
+3.2 134	John Lyon	translation	‘The chief said “Tonight, it’s my bottom sheets. You’re going to have to steal my bottom sheets,” the chief said.’
+3.2 135	Kiláwnaʔ	surface	“oh, way̓, ixiʔ n̓ín̓w̓iʔs náq̓ʷəməɬtsən.”
+3.2 135	John Lyon	parse	oh way̓ ixiʔ n̓ín̓w̓iʔs √náq̓ʷ-m-ɬt-s-n
+3.2 135	John Lyon	gloss	oh yes DEM in.a.while steal-APPL-APPL.POSS-2SG.OBJ-1SG.ERG
+3.2 135	John Lyon	word gloss	oh yes then in.a.while I.steal.them.from.you
+3.2 135	John Lyon	translation	‘ “Oh, yes, I’ll steal them from you, no problem,” the boy said.’
