@@ -302,3 +302,19 @@ footnote 13	John Lyon	note	There are several points in this story where the swit
 2.2 18	John Lyon	gloss	say EVID NEG 1SG.POSS-want 1SG.POSS-horse 1SG.ABS 2SG.POSS-FUT-feed-POSS.APPL-MID no.use 1SG.INDEP NEG 1SG.ABS NEG.EMPH feed-POSS.APPL-2SG.ERG
 2.2 18	John Lyon	word gloss	he.said they.say no I.want my.horse me you.will.feed.him.for it’s.no.use me not me you.will.feed
 2.2 18	John Lyon	translation	‘The priest said “No, I want for you to feed my horse for me, there’s no point in you feeding me.” ’
+2.2 19	Nellie Guitterez	surface	“ikskʕacálqʷəm aláʔ mi kʷu ʔamɬtixʷ, ɬkʷkʷʕast mi ik̓líʔ kn xʷuy. . . k̓l nGarcia kn ksxʷúyaʔx, k̓l Johnny Garcia uɬ l Merritt, late way̓.”
+2.2 19	John Lyon	parse	in-ks-k+√ʕac=álqʷ-m aláʔ mi kʷu √ʔamn-ɬt-ixʷ ɬ(+)kʷ(•)√kʷʕas(+)t mi ik̓líʔ kn xʷuy k̓l n+Garcia kn ks-√xʷúy-aʔx k̓l Johnny Garcia uɬ l Merritt, late way̓
+2.2 19	John Lyon	gloss	1SG.POSS-FUT-RES+tie=post-MID DEM FUT.COMP 1SG.ABS feed-POSS.APPL-2SG.ERG morning FUT.COMP DEM 1SG.ABS go LOC LOC+Garcia 1SG.ABS FUT-go-INTR LOC Johnny Garcia CONJ LOC Merritt late yes
+2.2 19	John Lyon	word gloss	I.will.tie.it here before me you.feed morning will to.there I go to Garcia I will.go to Johnny Garcia and at Merritt late already
+2.2 19	John Lyon	translation	‘The priest said “I will tie my horse to the post before you feed me, and in the morning I will go there to Garcia, I will go to Johnny Garcia’s in Merritt, it’s already late.” ’
+footnote 14	John Lyon	note	Garcia is a place up above Merritt, going towards Princeton, between Courtney Lake and Merritt.
+2.2 20	Nellie Guitterez	surface	cúntəm kʷukʷ “sure. xʷuyx, xʷuyskʷ ankəwáp k̓l stockyard mi ʔamntíxʷ.”
+2.2 20	John Lyon	parse	√cún-nt-m kʷukʷ sure √xʷuy-x √xʷuy-skʷ an-√kʷáp k̓l stockyard mi √ʔamn-nt-íxʷ
+2.2 20	John Lyon	gloss	say-DIR-PASS EVID sure go-IMP go-IMP.TR 2SG.POSS-horse LOC stockyard FUT.COMP feed-DIR-2SG.ERG
+2.2 20	John Lyon	word gloss	he.was.told they.say sure go take.him your.horse to stockyard and you.feed.him
+2.2 20	John Lyon	translation	‘The settler said “Sure, go, take your horse to the stockyard and feed him.” ’
+2.2 21	Nellie Guitterez	surface	ilíʔ xʷuysts iʔ kəwáps, ʔamntís.
+2.2 21	John Lyon	parse	ilíʔ √xʷuy-st-s iʔ √kʷáp-s √ʔamn-nt-ís
+2.2 21	John Lyon	gloss	DEM go-CAUS-3ERG DET horse-3POSS feed-DIR-3ERG
+2.2 21	John Lyon	word gloss	at.there he.took.him the his.horse he.fed.him
+2.2 21	John Lyon	translation	‘Then the priest took his horse, and fed it.’
