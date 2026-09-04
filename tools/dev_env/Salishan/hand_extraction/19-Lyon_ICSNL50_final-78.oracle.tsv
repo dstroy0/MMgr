@@ -689,3 +689,28 @@ footnote 17	John Lyon	note	Nellie Guitterez switches to English for the rest of 
 3.2 50	John Lyon	gloss	go LOC NMLZ+LOC+stand.in.line+NMLZ+horse+INS DEM COMP.OBL NMLZ-store-3POSS DET LOC+place.on[?]+DRV+NMLZ+horse+INS-3POSS
 3.2 50	John Lyon	word gloss	he.went to barn from.there that he.stored.it the his.saddle
 3.2 50	John Lyon	translation	‘He went to the barn, from there that he hung up his saddle.’
+3.2 51	Kiláwnaʔ	surface	nʔuɬxʷ.
+3.2 51	John Lyon	parse	n+√ʔuɬxʷ
+3.2 51	John Lyon	gloss	LOC+enter
+3.2 51	John Lyon	word gloss	he.went.inside
+3.2 51	John Lyon	translation	‘He went inside.’
+3.2 52	Kiláwnaʔ	surface	way̓, way̓ yáʕtəlx yáʕpəlx.
+3.2 52	John Lyon	parse	way̓ way̓ √yáʕ+t-lx √yáʕ+p-lx
+3.2 52	John Lyon	gloss	yes yes gather+STAT-3PL gather+INCH-3PL
+3.2 52	John Lyon	word gloss	yes already all.of.them they.arrived
+3.2 52	John Lyon	translation	‘Yes, they were all already home.’
+3.2 53	Kiláwnaʔ	surface	cut iʔ ylmíxʷəm, “way̓ límləmt p ɬcyaʕp.”
+3.2 53	John Lyon	parse	cut iʔ ylmíxʷm way̓ lím•√lm+t p ɬ+c+√yaʕ+p
+3.2 53	John Lyon	gloss	say DET chief yes C1C2.CHAR•glad+STAT 2PL.ABS return+CISL+gather+INCH
+3.2 53	John Lyon	word gloss	said the chief yes it.is.very.good you.all came.back
+3.2 53	John Lyon	translation	‘The chief said “I’m glad you all came home.” ’
+3.2 54	Kiláwnaʔ	surface	“hahúy, púlxwi! n̓us kiʔ x̌lap mi p m̓áy̓ncut, kʷu tl wiʔwiʔcín.”
+3.2 54	John Lyon	parse	ha(•)húy √púlx-wi n̓ín̓w̓iʔs kiʔ x̌lap mi p √m̓áy̓-ncut kʷu tl wiʔ•√wiʔ=cín
+3.2 54	John Lyon	gloss	okay go.to.bed-PL in.a.while COMP.OBL tomorrow COMP.FUT 2PL.ABS tell-REFL 1PL.ABS LOC C1C2.PL•finish=food
+3.2 54	John Lyon	word gloss	okay go.to.bed in.a.little.while that tomorrow will you.all tell.about we finish.eating
+3.2 54	John Lyon	translation	‘ “Okay, go to bed! In a little while, tomorrow, you all will tell stories when we get done eating tomorrow.” ’
+3.2 55	Kiláwnaʔ	surface	ixíʔ iʔ tətwít taʔlíʔ k̓int, way̓.
+3.2 55	John Lyon	parse	ixíʔ iʔ t(•)√twít taʔlíʔ √k̓in+t way̓
+3.2 55	John Lyon	gloss	DEM DET boy very afraid+STAT yes
+3.2 55	John Lyon	word gloss	that the boy very afraid yes
+3.2 55	John Lyon	translation	‘That boy was very afraid, yes.’
