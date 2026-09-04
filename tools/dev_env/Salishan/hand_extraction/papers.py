@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
                                 "corpus_script_extraction"))
 
 from inserted_space import closed_spaces  # noqa: E402
+from mary_george_repair import repaired as mary_george  # noqa: E402
 from mellesmoen_kye_repair import repaired as mellesmoen_kye  # noqa: E402
 from salish_marking import MARKED, PRACTICAL  # noqa: E402
 
@@ -82,7 +83,7 @@ EVERY = (
      "ICSNL56_DavisJ_2_final-1",
      "MaryGeorge_MaryGeorgePersonalNarratives_JohnHamiltonDavis"
      "_Salish_ayajuthem_2021_mixed.txt",
-     None, SHARED),
+     mary_george, SHARED),
     ("HallPhillipsICSNL60.oracle.tsv",
      "HallPhillipsICSNL60",
      "BevPhillips_WhenOldOneCreatedTheEarth_HallPhillips"

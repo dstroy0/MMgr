@@ -52,6 +52,13 @@ NUMBERED_BLOCK = re.compile(r"^\((\d{1,4})\)\s*(.*)$")
 QUOTED = re.compile(r"^['‘“]")
 HEADING = re.compile(r"^(\d)\s+(\S.*)$")
 
+# A form with its gloss in single quotes, which is how sections 1 and 2 cite one. The space between
+# them is optional: the paper prints ci˽‘INDEF.FEM.PROX’ with none.
+FORM_GLOSS = re.compile(r"(\S+?)\s*[‘']([^’']*)[’']")
+
+# What the paper puts its own notation labels in.
+BRACKETED = re.compile(r"\(([^)]*)\)")
+
 # The abbreviations Nater lists in section 2, used unchanged
 CATEGORIES = re.compile(
     r"\b(?:ACC|APP|ART|BEN|CAUS|CL|CONN|DEF|DEM|DIM|DIR|FEM|HYP|INCH|INDEF|INT|MED|NOM|OBJ|"
@@ -113,8 +120,23 @@ def main():
             number = None
             continue
 
-        if section == "2" and carries_language(trimmed):
-            rows.append(("T", 0, "2", "symbol note", trimmed))
+        # Section 1 names the two genres this story sits between, and section 2 lists every
+        # preposition, article, deictic and enclitic adverb the text uses, each with its gloss in
+        # quotes. Both are the language. Kept as whole lines, the record held forty-odd forms inside
+        # six blobs of prose, and the hand extraction of this paper, which has one row per form,
+        # matched none of them.
+        if section in ("1", "2") and carries_language(trimmed):
+            for form, meaning in FORM_GLOSS.findall(trimmed):
+                for one in form.strip("(),").split("/"):
+                    if one and carries_language(one):
+                        rows.append(("T", 0, section, "symbol note", one))
+            # The paper names its own notation in brackets: (PREP˽), (˽ART and (˽)DEM), ( ˽CL).
+            for found in BRACKETED.findall(trimmed):
+                for one in found.split():
+                    plain = one.strip(",")
+                    if plain and ("˽" in plain):
+                        rows.append(("T", 0, section, "symbol note", plain))
+            rows.append(("T", 0, section, "symbol note", trimmed))
             continue
 
         if section != "3":

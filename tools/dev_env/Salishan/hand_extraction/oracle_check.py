@@ -47,11 +47,11 @@ EDGES = ".,!?;:“”\"()[]…«»{}/*•→≤≥"
 PAIRED = (("‘", "’"), ("'", "'"), ("“", "”"))
 
 
-# A footnote number, a second closing quote, and a mangled one. All three attach after the
-# sentence's own punctuation: tuʔúʔt.6 puts the marker past the period, yéyeʔ?”’ closes the inner
-# quote past the outer one, and tea.̓ is a ’ the PDF left as a bare combining mark. Peeling any of
-# them off the end of a word outright would take the glottalization off ˽c’ and the 3 off a 3OBJ
-# gloss, so each comes off only where the character in front of it is one of EDGES.
+# A footnote number, a second closing quote, and a mangled one. All three sit past the sentence's
+# own punctuation: tuʔúʔt.6 puts the marker after the period, yéyeʔ?”’ closes the inner quote after
+# the outer one, and tea.̓ is a ’ the PDF left as a bare combining mark. Peeling any of them off the
+# end of a word outright takes the glottalization off ˽c’ and the 3 off a 3OBJ gloss. Each comes off
+# only where an EDGES character stands in front of it.
 def trailing_marker(plain):
     """One token with a footnote marker and a doubled closing quote off the end of it."""
     while len(plain) > 1:
@@ -71,6 +71,22 @@ def trailing_marker(plain):
     return plain
 
 
+# A footnote number set in front of the word it marks, as Mary George's 70gagayat is. The two
+# numbers stack: (28)140chechlhem carries the line number and the footnote number both, so the strip
+# runs until nothing more comes off. 7 is the glottal stop in the van Eijk orthography, so 7amash
+# and t7u open with a digit and are whole words. A run of one 7 stays; a run holding any other digit
+# is the marker.
+def leading_marker(plain):
+    """One token with the line and footnote numbers off the front of it."""
+    while True:
+        at = 0
+        while (at < len(plain)) and plain[at].isdigit():
+            at += 1
+        if (at == 0) or (at == len(plain)) or (plain[:at] == "7"):
+            return plain
+        plain = plain[at:].lstrip(EDGES)
+
+
 def bare(token):
     """One token with the punctuation around it off, and its orthography left alone.
 
@@ -84,7 +100,7 @@ def bare(token):
             plain = plain[1:-1].strip(EDGES)
     while plain and (plain[0] in "‘“"):
         plain = plain[1:].strip(EDGES)
-    return trailing_marker(plain)
+    return leading_marker(trailing_marker(plain))
 
 # What a form may be built out of besides its letters. A morpheme boundary, a clitic boundary, a
 # reduplication tilde and the parentheses around a deleted segment are all part of how the paper
@@ -146,16 +162,12 @@ def source_forms(path, repair=None):
         for number, line in enumerate(handle, 1):
             if line.startswith("====="):
                 continue
-            # NFC on both sides, always. It is not one of the paper's repairs, it is the definition
-            # of two strings being the same string, and a comparison that skips it reports ǰ typed
-            # at a keyboard as absent from a paper that prints ǰ on ten lines. A repair ends in NFC
-            # itself, and has to, because composing a with a combining acute first would take that
-            # acute out of the set of marks whose following space gets closed.
-            # NFC last, always, and after the repair rather than before it. Before it, composing a
-            # with a combining acute into á takes that acute out of the set of marks whose following
-            # space gets closed. Skipped entirely for a repair that does not end in NFC itself, the
-            # composed á typed by hand stops matching the decomposed one the PDF holds, and 164 of
-            # one paper's hand-read forms were reported as forms the repair had destroyed.
+            # NFC on both sides, always. Two strings are the same string only after it, and skipping
+            # it reports ǰ typed at a keyboard as absent from a paper that prints ǰ on ten lines.
+            # It runs after the repair. Composing a with a combining acute into á first takes that
+            # acute out of the set of marks whose following space gets closed, and the repair then
+            # misses every word the PDF split at an accent. The repair ends in NFC for the same
+            # reason; without that, 164 of one paper's forms came back as destroyed by the repair.
             line = repair(line.rstrip()) if repair else line.rstrip()
             line = unicodedata.normalize("NFC", line)
             reach = [line]

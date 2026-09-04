@@ -85,13 +85,13 @@ COLUMN = re.compile(r"^([^-=•+√]+)(√.*)$")
 PAIRS = (
     ("ICSNL59_Garcia_Hannon_Stacey_final",
      "Kweltezetkwu-BerniceGarcia_ThreeGlossedNlekepmxcinNarratives_GarciaHannonStacey"
-     "_Salish_nlekepmxcin_2024_mixed.txt", ()),
+     "_Salish_nlekepmxcin_2024_mixed.txt", ("inserted spaces",)),
     ("HallPhillipsICSNL60",
      "BevPhillips_WhenOldOneCreatedTheEarth_HallPhillips"
      "_Salish_nlekepmxcin_2025_nomixed.txt", ("spaces",)),
     ("ICSNL59_LaFontaine_Janzen_final",
      "wlwlmelst-MauriceMichell_FourStoriesByWlwlmelst_LaFontaineJanzen"
-     "_Salish_nlekepmxcin_2024_mixed.txt", ()),
+     "_Salish_nlekepmxcin_2024_mixed.txt", ("inserted spaces",)),
     ("Matthewson_Redan_ICSNL61",
      "Kweswapaw-LindaRedan_Cw7aozKati7Lati7KuNaxwit_MatthewsonRedan"
      "_Salish_statimcets_2026_mixed.txt", ("inserted spaces",)),

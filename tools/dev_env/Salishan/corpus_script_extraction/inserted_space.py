@@ -37,18 +37,31 @@
 import unicodedata
 
 
+# The stress accents. A word can end in a stressed vowel, and closing the space after one welds it
+# to the word after it. LaFontaine and Janzen has ntes neʔé e sqyéytn, where neʔé ends in a stressed
+# vowel and e is the next word: closing there gives neʔée, which the language does not have. The
+# Hall and Phillips reader recorded this before there was a shared repair, and it is why the general
+# rule stops at the marks that sit over a consonant.
+STRESS = "́̀"
+
+
 def closed_spaces(line):
     """One line with the space the PDF left after a stacked diacritic taken out.
 
-    Uses the Unicode combining class, not a list of marks. The papers between them leave a space
-    after the comma above, the comma above right, the caron, the acute, the grave, the dot below
-    and the hook above, and a hand-kept list of those went stale the first time a new paper arrived.
+    Uses the Unicode combining class instead of a list of marks. The papers between them leave a
+    space after the comma above, the comma above right, the caron, the dot below and the hook above,
+    and a hand-kept list of those went stale the first time a new paper arrived.
+
+    A paper whose own layout makes closing after a stress accent safe passes its own set instead.
+    Mellesmoen and Kye is the one that does. It prints two spaces at a real boundary, which leaves
+    a lone space after an acute there as the inserted one every time.
     """
     out = []
     at = 0
     while at < len(line):
         symbol = line[at]
         if ((symbol == " ") and out and unicodedata.combining(out[-1])
+                and (out[-1] not in STRESS)
                 and (((at + 1) >= len(line)) or (line[at + 1] != " "))):
             at += 1
             continue
