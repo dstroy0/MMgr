@@ -464,3 +464,23 @@ footnote 17	John Lyon	note	Nellie Guitterez switches to English for the rest of 
 3.2 5	John Lyon	gloss	C1C2.PL•eat-3PL DET LOC NMLZ+evening C1C2.PL•finish=food-3PL
 3.2 5	John Lyon	word gloss	they.ate the in evening they.finished.eating
 3.2 5	John Lyon	translation	‘They had supper and finished eating.’
+3.2 6	Kiláwnaʔ	surface	cus iʔ sqʷsqʷasíʔaʔs, “ɬaʔ x̌lap p iksqʷəlqʷílstəm, ɬkʷkʷʕast.”
+3.2 6	John Lyon	parse	√cun-nt-s iʔ s+qʷs•√qʷasíʔ+aʔ-s, ɬaʔ x̌lap p in-ks-qʷl•√qʷíl-st-m ɬ(+)kʷ(•)√kʷʕas(+)t
+3.2 6	John Lyon	gloss	say-DIR-3ERG DET NMLZ+C1C2.PL•son+DRV-3POSS COMP tomorrow 2PL.ABS 1SG.POSS-FUT-C1C2.PL•speak-CAUS-MID morning
+3.2 6	John Lyon	word gloss	he.told.them the his.sons when tomorrow you.all I.will.talk.to morning
+3.2 6	John Lyon	translation	‘He told his sons, “Tomorrow I’m going to talk to you all, in the morning.” ’
+3.2 7	Kiláwnaʔ	surface	“xʷuyx, púlxwi!”
+3.2 7	John Lyon	parse	√xʷuy-x √púlx-wi
+3.2 7	John Lyon	gloss	go-IMP go.to.bed-PL
+3.2 7	John Lyon	word gloss	go go.to.bed
+3.2 7	John Lyon	translation	‘ “Go on, go to bed!” ’
+3.2 8	Kiláwnaʔ	surface	way̓. . . pulx iʔ sqʷsqʷasíʔaʔs.
+3.2 8	John Lyon	parse	way̓ pulx iʔ s+qʷs•√qʷasíʔ+aʔ-s
+3.2 8	John Lyon	gloss	yes go.to.bed DET NMLZ+C1C2.PL•son+DRV-3POSS
+3.2 8	John Lyon	word gloss	yes go.to.bed the his.sons
+3.2 8	John Lyon	translation	‘His sons went to bed.’
+3.2 9	Kiláwnaʔ	surface	x̌lap kʷkʷʕast, cʔaɬʔíɬənləx, wiʔwiʔcínləx.
+3.2 9	John Lyon	parse	x̌lap ɬ(+)kʷ(•)√kʷʕas(+)t c-ʔaɬ•√ʔíɬn-lx wiʔ•√wiʔ=cín-lx.
+3.2 9	John Lyon	gloss	tomorrow morning CUST-C1C2.PL•eat-3PL C1C2.PL•finish=food-3PL
+3.2 9	John Lyon	word gloss	next.day morning they.were.eating they.finished.eating
+3.2 9	John Lyon	translation	‘The next morning, they were eating, and they finished eating.’
