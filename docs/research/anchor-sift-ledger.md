@@ -828,8 +828,8 @@ once broken, and that pair is a labelled example nobody had to supply: Davis and
 
 Scoring is the radix again. Run counts over the tokens that carry no break are flattened to maximum
 entropy, and a candidate restoration is scored on how far its runs sit from where a flat distribution
-would put them, so a run common everywhere contributes nothing and what is left is the part belonging
-to that restoration. On this paper the correct Salish restoration scores 160.5 and the one English
+would put them. A run common everywhere contributes nothing and what is left is the part belonging to
+that restoration. On this paper the correct Salish restoration scores 160.5 and the one English
 case, `S kwxwú7mesh` to `Skwxwú7mesh`, scores -20.9, against a rate of 0.120 for a mark drawn at
 random from the paper's own inventory landing on an attested form.
 
@@ -865,8 +865,8 @@ not been asked. What is measured is that the field separates sources at all: wha
 **Partial knowledge of the boundaries is enough, and that is Proposition 1 and not a new claim.**
 Knowing that a thing exists and knowing some of its boundaries, not necessarily all of them, is
 sufficient to discriminate. Proposition 1 says any subset of a pattern's points is a necessary
-condition, with no order, no dimension and no alphabet, so a partial constraint set is still sound and
-loses no true occurrence. What incomplete knowledge costs is selectivity and never correctness, which
+condition, with no order, no dimension and no alphabet. A partial constraint set is therefore still
+sound and loses no true occurrence. What incomplete knowledge costs is selectivity and never correctness, which
 is the same division this document draws everywhere else: soundness belongs to the construction and
 cost belongs to the domain.
 

@@ -66,6 +66,17 @@ DRAWS = 200
 # the random marks reach the winner's score more than this often is a site with no answer in it.
 BEATEN_AT = 0.05
 
+# How long a restoration has to be before it counts as attested by sitting inside another word. Two
+# or three characters occur inside almost anything, and letting those through would make every site
+# readable and every reading worthless.
+INSIDE_FLOOR = 6
+
+# The score a restoration has to clear. A negative score means the runs the restoration makes sit
+# below where a flat distribution would put them, which is the reading that this paper does not write
+# words shaped like that. Garcia's w ɬ scores -1.4 and is a real word boundary; the same paper's
+# Kʷ əɬtəzétkʷu scores 478.0 and is the speaker's own name broken in half.
+SCORE_FLOOR = 0.0
+
 
 def clean_runs(tokens, width):
     """Every run of one width over the tokens that carry no break, counted."""
@@ -141,8 +152,19 @@ def break_sites(lines, marks, vocabulary, inventory):
                 continue
             # Which restorations this paper attests. The empty mark is in the list because a real
             # word boundary with a lost space is the other thing this damage looks like.
-            attested = [one for one in ([""] + inventory)
-                        if (first + one + second) in vocabulary]
+            #
+            # A restoration counts as attested where the paper writes it as a token, and also where
+            # the paper writes it inside one. qʷal út is qʷal̓út, which this paper never prints alone
+            # and does print inside qʷəqʷal̓út, and a whole-token test reads that site as unreadable
+            # while the answer is on the page. A floor on the length keeps a short candidate from
+            # matching everything: two or three characters occur inside almost any word.
+            attested = []
+            for one in ([""] + inventory):
+                joined = first + one + second
+                if joined in vocabulary:
+                    attested.append(one)
+                elif (len(joined) >= INSIDE_FLOOR) and any(joined in word for word in vocabulary):
+                    attested.append(one)
             if not attested:
                 continue
             held.append((number, first, second, attested))
@@ -179,11 +201,10 @@ def main():
 
     marks = paper.marks
     text = "\n".join(lines)
+    # A paper whose alphabet carries no combining mark still has the other half of this damage: a
+    # space the extraction put where the paper had none. Nater's etymologies are that case, and
+    # bailing out on them left the one class this could read unasked.
     candidates_marks = inventory(text, marks)
-    if not candidates_marks:
-        out.write("  %s writes no combining marks this set carries\n" % stem)
-        out.flush()
-        return 1
 
     # Every token the paper writes, which is what a restoration has to be found in.
     vocabulary = collections.Counter()
@@ -220,9 +241,14 @@ def main():
     trials = 0
     drawn = random.Random(0)
     for number, first, second, attested in sites:
+        if not candidates_marks:
+            continue
         for _ in range(DRAWS):
             trials += 1
-            if (first + drawn.choice(candidates_marks) + second) in vocabulary:
+            joined = first + drawn.choice(candidates_marks) + second
+            if joined in vocabulary:
+                chance += 1
+            elif (len(joined) >= INSIDE_FLOOR) and any(joined in word for word in vocabulary):
                 chance += 1
     rate = (chance / float(trials)) if trials else 0.0
 
@@ -234,19 +260,24 @@ def main():
               % ("as extracted", "the paper's own spelling", "score", "other readings"))
     read = 0
     ambiguous = 0
+    declined = 0
     for number, first, second, attested in sites:
         if len(attested) > 1:
             ambiguous += 1
             continue
-        read += 1
         one = attested[0]
+        mark = scored(first + one + second, table, total, flat)
+        if mark < SCORE_FLOOR:
+            declined += 1
+            continue
+        read += 1
         out.write("    %-30s %-30s %-8.1f %s\n"
-                  % (("%s %s" % (first, second))[:30], (first + one + second)[:30],
-                     scored(first + one + second, table, total, flat),
+                  % (("%s %s" % (first, second))[:30], (first + one + second)[:30], mark,
                      "none" if len(attested) == 1 else ", ".join(attested)))
 
-    out.write("\n    %d sites read, %d left for a person because the paper attests more than one\n"
-              % (read, ambiguous))
+    out.write("\n    %d sites read, %d declined on score, %d left for a person because the\n"
+              % (read, declined, ambiguous))
+    out.write("    paper attests more than one restoration\n")
     out.write("    a word this paper prints once and breaks once cannot be read this way, and is\n")
     out.write("    not counted above\n")
     out.flush()
