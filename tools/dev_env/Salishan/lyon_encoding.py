@@ -54,6 +54,11 @@ LETTERS = (
 # The wedge arrives before its letter as well, and only ever sits on x here.
 WEDGE = (("ˇx", "x̌"),)
 
+# One place the inserted space is not a question. √ opens a root on a parse line and the root
+# follows it immediately, so √ never ends a word and a space after it is always the PDF's. The
+# roots that start with a marked letter get one: √ q̓ʷʕay=lqs is √q̓ʷʕay=lqs on the page.
+AFTER_ROOT = ("√ ", "√")
+
 # The consonants a following w labializes. A w after anything else, or at the front of a word, is
 # the letter w: wist, wa’y, nwíwpəm.
 LABIALIZED = "kqxgɣʕǰč"
@@ -89,7 +94,11 @@ def moved_marks(token):
 # this, so a wedge that stood on an x is a combining caron by the time the test reads it, and the
 # standalone ˇ catches one that stood anywhere else. Writing the pair as the string "x̌" put a bare x
 # in the set and made every English word holding one Salish.
-MARKS = "̌ˇ@ìQň·áéíóú"
+#
+# √ opens a root on a parse line and appears in no English word, so a token carrying one is Salish.
+# Without it in_ks_√’ma came through with the mark still in front of the m, and that is most of the
+# parse lines in the five-line format.
+MARKS = "̌ˇ@ìQň·√áéíóú"
 
 # A gloss token is plain ASCII, apart from two things. The ligatures the PDF sets its f-words with:
 # the whole gloss of one morpheme is one token, so go-n-dip.ﬂuid-MID-3SG.POSS is a single string and
@@ -239,6 +248,7 @@ def drafted(line):
     """
     for before, after in WEDGE:
         line = line.replace(before, after)
+    line = line.replace(*AFTER_ROOT)
     line = lengthened(line)
     held = []
     for token in line.split(" "):

@@ -32,3 +32,31 @@ abstract	John Lyon	language	Nqílxʷcən	another name for the same language
 1.2 5	John Lyon	parse	√wiʔ+s+√x̌c-m-ncút, uɬ kʷu √cun-nt-s way̓
 1.2 5	John Lyon	gloss	finish+NMLZ+get.read-APPL-REFL CONJ 1SG.ABS say-DIR-3ERG yes
 1.2 5	John Lyon	word gloss	he.finished.getting.himself.ready and me he.told hello
+1.2 5	John Lyon	translation	‘He got finished getting himself ready and he told me “Hello.” ’
+1.2 6	George Lezard	surface	uɬ cun, “kn ksxʔkínaʔx?”
+1.2 6	John Lyon	parse	uɬ √cun-nt-n kn ks-x+√ʔkín-aʔx
+1.2 6	John Lyon	gloss	CONJ say-DIR-1SG.ERG 1SG.ABS FUT-DRV+do.what-INCEPT
+1.2 6	John Lyon	word gloss	and I.told.him I am.going.to.do.what
+1.2 6	John Lyon	translation	‘And I said to him “What am I supposed to do?” ’
+footnote 1	John Lyon	note	I am unsure what kɬqʷílpsm refers to. It could refer to the priest’s neck hanging down, or to his wearing a cross around his neck. None of the fluent elders I consulted knew the word either.
+1.2 7	George Lezard	surface	kʷu cus, “kʷaʔ ksnmypmístaʔx.”
+1.2 7	John Lyon	parse	kʷu √cun-nt-s kʷaʔ ks-n+√my+p-míst-aʔx
+1.2 7	John Lyon	gloss	1SG.ABS say-DIR-3ERG INTERJ FUT-LOC+know+INCH-INTR.REFL-INCEPT
+1.2 7	John Lyon	word gloss	me he.told will.confess
+1.2 7	John Lyon	translation	‘He told me “You have to confess.” ’
+footnote 2	John Lyon	note	What is transcribed as kʷaʔ in (7) may be concealing a second person singular subject clitic kʷ, hence Lottie’s translation of this stanza. It is also possible that the transcription is correct, and that an infinitive-like, subjectless interpretation is available, akin to “To confess”.
+1.2 8	George Lezard	surface	uɬ cun, “kʷaʔ lut iʔ k̓l sámaʔ, kn t̓ ksnmypmístaʔx!”
+1.2 8	John Lyon	parse	uɬ √cun-nt-n kʷaʔ lut iʔ k̓l sámaʔ kn t̓ ks-n+√my+p-míst-aʔx
+1.2 8	John Lyon	gloss	CONJ say-DIR-1SG.ERG INTERJ NEG DET LOC white.person 1SG.ABS NEG.EMPH FUT-LOC+know+INCH-INTR.REFL-INCEPT
+1.2 8	John Lyon	word gloss	and I.told.him not the to white.person I will.confess
+1.2 8	John Lyon	translation	‘And I said to him “I won’t confess to a white person.” ’
+1.2 9	George Lezard	surface	kʷu cus, “kʷaʔ lut kn t̓ sámaʔ, kn q̓ʷʕaylqs.”
+1.2 9	John Lyon	parse	kʷu √cun-nt-s kʷaʔ lut kn t̓ sámaʔ kn √q̓ʷʕay=lqs
+1.2 9	John Lyon	gloss	1SG.ABS say-DIR-3ERG INTERJ NEG 1SG.ABS NEG.EMPH white.person 1SG.ABS black=robe
+1.2 9	John Lyon	word gloss	me he.told not I white.person I priest
+1.2 9	John Lyon	translation	‘He told me “But I’m not just a white person, I’m a priest.” ’
+1.2 10	George Lezard	surface	uɬ cun, “way̓ kʷ q̓ʷʕaylqs, náx̌əmɬ kʷ sámaʔ!”
+1.2 10	John Lyon	parse	uɬ √cun-nt-n way̓ kʷ √q̓ʷʕay=lqs náx̌mɬ kʷ sámaʔ
+1.2 10	John Lyon	gloss	CONJ say-DIR-1SG.ERG yes 2SG.ABS black=robe CONJ 2SG.ABS white.person
+1.2 10	John Lyon	word gloss	and I.told.him yes you priest but you white.person
+1.2 10	John Lyon	translation	‘And I told him “Yes you’re a priest, but you’re still a white person!” ’
