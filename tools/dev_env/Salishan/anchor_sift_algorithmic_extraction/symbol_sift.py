@@ -121,6 +121,25 @@ def scored(candidate, counts, total, flat):
     return held
 
 
+# A plain letter the page set as a raised modifier. This is the collapse kind, which is irreversible
+# as a rule: page kʷ and page wist both arrive as w and no rule separates them. Per site it is
+# decidable anyway, wherever the paper writes the joined form somewhere it was not collapsed, which is
+# the same evidence every other candidate here rests on. Robertson's page 30 names its own symbols as
+# (č, š, xʷ) and the text holds ( č, š, x w).
+COLLAPSED = {"w": "ʷ"}
+
+
+def candidates_for(first, second, inventory):
+    """Every reading of one break site: a dropped mark, a lost space, or a collapsed modifier."""
+    held = [(one, first + one + second) for one in inventory]
+    held.append(("", first + second))
+    # The second token opening with a letter the page set raised. Taking that letter as the modifier
+    # is a third reading and it is the one that recovers a labialization.
+    if second and (second[0] in COLLAPSED):
+        held.append((COLLAPSED[second[0]], first + COLLAPSED[second[0]] + second[1:]))
+    return held
+
+
 def break_sites(lines, marks, vocabulary, inventory):
     """Every place the extraction has two tokens where the paper writes one word elsewhere.
 
@@ -148,8 +167,14 @@ def break_sites(lines, marks, vocabulary, inventory):
                 continue
             if not (second[0].isalpha() or second[0] in marks):
                 continue
-            if not (is_language_token(first, marks) or is_language_token(second, marks)):
-                continue
+            # The test is on what the join would be and not on the halves. x w is the page's xʷ and
+            # neither half carries a mark, so asking the halves skipped every labialization in
+            # Robertson while the answer sat in the candidate list.
+            #
+            # It has to be an attested candidate and not any candidate. Inserting a mark makes every
+            # pair look like the language: a way became ạway, which carries a dot below and passes a
+            # test on the candidates alone, and the reading a way to away then arrived at score 9.8.
+            # Requiring the paper to attest the language-token reading throws all of those out.
             # Which restorations this paper attests. The empty mark is in the list because a real
             # word boundary with a lost space is the other thing this damage looks like.
             #
@@ -159,12 +184,12 @@ def break_sites(lines, marks, vocabulary, inventory):
             # while the answer is on the page. A floor on the length keeps a short candidate from
             # matching everything: two or three characters occur inside almost any word.
             attested = []
-            for one in ([""] + inventory):
-                joined = first + one + second
+            for one, joined in candidates_for(first, second, inventory):
                 if joined in vocabulary:
-                    attested.append(one)
+                    attested.append((one, joined))
                 elif (len(joined) >= INSIDE_FLOOR) and any(joined in word for word in vocabulary):
-                    attested.append(one)
+                    attested.append((one, joined))
+            attested = [one for one in attested if is_language_token(one[1], marks)]
             if not attested:
                 continue
             held.append((number, first, second, attested))
@@ -240,12 +265,11 @@ def main():
     chance = 0
     trials = 0
     drawn = random.Random(0)
+    pool = candidates_marks + sorted(set(COLLAPSED.values()))
     for number, first, second, attested in sites:
-        if not candidates_marks:
-            continue
         for _ in range(DRAWS):
             trials += 1
-            joined = first + drawn.choice(candidates_marks) + second
+            joined = first + drawn.choice(pool) + second
             if joined in vocabulary:
                 chance += 1
             elif (len(joined) >= INSIDE_FLOOR) and any(joined in word for word in vocabulary):
@@ -265,15 +289,14 @@ def main():
         if len(attested) > 1:
             ambiguous += 1
             continue
-        one = attested[0]
-        mark = scored(first + one + second, table, total, flat)
+        one, joined = attested[0]
+        mark = scored(joined, table, total, flat)
         if mark < SCORE_FLOOR:
             declined += 1
             continue
         read += 1
         out.write("    %-30s %-30s %-8.1f %s\n"
-                  % (("%s %s" % (first, second))[:30], (first + one + second)[:30], mark,
-                     "none" if len(attested) == 1 else ", ".join(attested)))
+                  % (("%s %s" % (first, second))[:30], joined[:30], mark, "none"))
 
     out.write("\n    %d sites read, %d declined on score, %d left for a person because the\n"
               % (read, declined, ambiguous))

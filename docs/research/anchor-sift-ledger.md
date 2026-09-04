@@ -1025,6 +1025,18 @@ that restoration. On this paper the correct Salish restoration scores 160.5 and 
 case, `S kwxwú7mesh` to `Skwxwú7mesh`, scores -20.9, against a rate of 0.120 for a mark drawn at
 random from the paper's own inventory landing on an attested form.
 
+**Inconsistent damage corrects itself and systematic damage does not, and that is the whole of when
+this works.** A channel that fails sometimes leaves its own answer key, because the word it broke on
+one page it set whole on another. A channel that fails every time leaves nothing to check against.
+Davis and Mellesmoen drops a mark on some printings and not others, so the sift reads it. Robertson
+collapses every labialization in the paper, so the same tool run over it finds six sites and none of
+them a labialization, and reports that instead of guessing. The negative result is the confirmation:
+this document says a collapse destroys the distinction rather than disguising it, and here is the
+instrument agreeing on a paper where the collapse is total.
+
+So the rate of a fault decides whether it is repairable from the text. A fault at rate 1.0 needs the
+page. A fault at any rate below it is a labelled sample of itself.
+
 Two of that paper's roughly twenty-five damaged sites are readable this way and the tool reports the
 bound rather than hiding it. A word printed once and broken once has no second printing to check
 against, so it is not recoverable by attestation and still needs the page. The method is exact where
