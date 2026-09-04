@@ -1140,3 +1140,19 @@ footnote 23	John Lyon	note	My analysis of the first word in this stanza is tenta
 3.2 139	John Lyon	gloss	night DEM DET EPIS NMLZ-CUST-DRV+do.what-INTR
 3.2 139	John Lyon	word gloss	it.was.nighttime then supposed to.do.what
 3.2 139	John Lyon	translation	‘Then it was nighttime, how is he going to do it?’
+3.2 140	Kiláwnaʔ	surface	iʔ ʔácqaʔ iʔ ylmíxʷəm, nɬəx̌ʷp̓am iʔ tətwít.
+3.2 140	John Lyon	parse	ixíʔ ʔácqaʔ iʔ ylmíxʷm n+√ɬx̌ʷp̓-am iʔ t(•)√twít
+3.2 140	John Lyon	gloss	DEM go.outside DET chief LOC+run.in-MID DET boy
+3.2 140	John Lyon	word gloss	then he.went.outside the chief he.ran.in the boy
+3.2 140	John Lyon	translation	‘Then the chief went outside. The boy ran inside.’
+3.2 141	Kiláwnaʔ	surface	cus iʔ tkɬmílxʷ iʔ ylmíxʷəm “k̓aɬáx̌əx! ikskʷaním axáʔ iʔ k̓ɬyxʷtíc̓aʔ.”
+3.2 141	John Lyon	parse	√cun-nt-s iʔ √tkɬmílxʷ-s iʔ ylmíxʷm √k̓aɬáx̌-x in-ks-√kʷan-ím axáʔ iʔ k̓ɬ+√yxʷ+t=íc̓aʔ
+3.2 141	John Lyon	gloss	say-DIR-3ERG DET woman-3POSS DET chief that.way-IMP 1SG.POSS-FUT-take-MID DEM DET DRV+lower+STAT=covering
+3.2 141	John Lyon	word gloss	he.told.her the woman the chief move.over I.will.take these the sheets
+3.2 141	John Lyon	translation	‘The boy told the chief’s wife “Move over! I’m going to take these sheets!” ’
+footnote 24	John Lyon	note	There is no 3rd person possessive -s pronounced on tkɬmilxʷ ‘woman’, which means that the beginning of the stanza could translate to ‘The chief told the woman. . . ’. In this case, the audience would presumably understand that ‘the chief’ in this case refers to the boy, and that the woman mistakenly thinks that the boy is in fact the chief.
+3.2 142	Kiláwnaʔ	surface	“itíʔ mi kylxʷíc̓aʔn iʔ tətwit, way̓ púlstən.”
+3.2 142	John Lyon	parse	itíʔ mi k+√ylxʷ=íc̓aʔ-nt-n iʔ t(•)√twit way̓ √púl(-)st-n
+3.2 142	John Lyon	gloss	DEM COMP.FUT RES+wrap=covering-DIR-1SG.ERG DET boy yes kill.[CAUS]-1SG.ERG
+3.2 142	John Lyon	word gloss	there will I.wrap.him.up the boy already I.killed.him
+3.2 142	John Lyon	translation	‘ “I’m going to wrap the boy up, I killed him already.” ’
