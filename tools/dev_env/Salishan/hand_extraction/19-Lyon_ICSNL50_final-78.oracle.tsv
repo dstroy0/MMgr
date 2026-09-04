@@ -1211,3 +1211,23 @@ footnote 24	John Lyon	note	There is no 3rd person possessive -s pronounced on tk
 3.2 153	John Lyon	gloss	say-DIR-3ERG yes now night DET NMLZ+LOC+pray+INS NEG far=place DEM
 3.2 153	John Lyon	word gloss	he.told.him okay now tonight the church not far.away there
 3.2 153	John Lyon	translation	‘The chief told the boy “Okay, tonight it’s the church, it isn’t far there.” ’
+3.2 154	Kiláwnaʔ	surface	cut “aksnáq̓ʷəminem iʔ q̓ʷʕaylqs. taɬt ksqíltkəm.”
+3.2 154	John Lyon	parse	cut an-ks-√náq̓ʷ-min-em iʔ √q̓ʷʕay=lqs √taɬ+t kɬ-s+√qíl(=)tk-m
+3.2 154	John Lyon	gloss	say 2SG.POSS-FUT-steal-APPL-MID DET black=robe straight+STAT get-NMLZ+body-MID
+3.2 154	John Lyon	word gloss	he.said you.will.steal.him the priest sure get.body.and.all
+3.2 154	John Lyon	translation	‘He said “You’re going to steal the priest, body and all.” ’
+3.2 155	Kiláwnaʔ	surface	“lut t̓ yaʕt iʔ təmtəmút, xʷtəlscút, xʷtəlscút mi kʷintxʷ.”
+3.2 155	John Lyon	parse	lut t̓ √yaʕ+t iʔ tm•√tm=út+tn-s √xʷt=lscút √xʷt=lscút mi √kʷin-nt-xʷ
+3.2 155	John Lyon	gloss	NEG NEG.EMPH gather+STAT DET C1C2.PL•thing=place+INS-3POSS lose=clothes lose=clothes COMP.FUT take-DIR-2SG.ERG
+3.2 155	John Lyon	word gloss	not all the his.robes take.off.his.clothes take.off.his.clothes before you.take.him
+3.2 155	John Lyon	translation	‘ “Not all his robes, you have to take them off, and then take them.” ’
+3.2 156	Kiláwnaʔ	surface	cut “way̓.”
+3.2 156	John Lyon	parse	cut way̓
+3.2 156	John Lyon	gloss	say yes
+3.2 156	John Lyon	word gloss	he.said okay
+3.2 156	John Lyon	translation	‘The boy said “Okay.” ’
+3.2 157	Kiláwnaʔ	surface	n̓ín̓w̓iʔs ixíʔ k̓laxʷ, iʔ. . . xʷuy uɬ ɬq̓íləx. . .
+3.2 157	John Lyon	parse	n̓ín̓w̓iʔs ixíʔ k̓laxʷ ixíʔ xʷuy uɬ √ɬq̓+ílx
+3.2 157	John Lyon	gloss	in.a.while DEM evening DEM go CONJ lay.down+AUT
+3.2 157	John Lyon	word gloss	yes in.a.while it.was.evening then he.went and he.laid.down
+3.2 157	John Lyon	translation	‘After a little while it was evening, and he went to bed.’
