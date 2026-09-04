@@ -379,3 +379,14 @@ footnote 15	John Lyon	note	The surname Tisem is unusual, and its correct spellin
 2.2 33	John Lyon	gloss	not too close apart say-DIR-3ERG EVID alright
 2.2 33	John Lyon	word gloss	not too close apart he.told.him they.say alright
 2.2 33	John Lyon	translation	‘ “Not too close apart.” Smokey told him “That’s alright.”
+2.2 34	Nellie Guitterez	surface	ixíʔ scus iʔ sámaʔ, “Who’s going to put the light out?” uɬ candle kʷaʔ iʔ ʔasəsʔáwst, ʕác̓ənt, iʔ candle iʔ c̓ík̓ʷsxəns.
+2.2 34	John Lyon	parse	ixíʔ s-√cun-nt-s iʔ sámaʔ who’s going to put the light out uɬ candle kʷaʔ iʔ ʔas(•)s(+)√ʔáw(-)st ʕác̓-nt iʔ candle iʔ √c̓ík̓ʷ=sxn-s
+2.2 34	John Lyon	gloss	DEM NMLZ-say-DIR-3ERG DET white.person who’s going to put the light out CONJ candle COMP DET old.timers see-DIR DET candle DET light=round.object-3POSS
+2.2 34	John Lyon	word gloss	then he.told.him the white.person who’s going to put the light out and it.was.a.candle because what old.timers you.see the candle the light
+2.2 34	John Lyon	translation	‘Then the priest asked the white guy (Smokey) “Who’s going to put the light out?”, because it was a candle that the old timers, you see, they used candles for lights.’
+footnote 16	John Lyon	note	I am unsure about the etymology and correct transcription of ʔasəsʔáwst ‘old timers’. Sarah McLeod pronounces the word closer to ʔasəsʔúst.
+2.2 35	Nellie Guitterez	surface	cúntəm kʷukʷ atáʔ t. . . iʔ t akɬowner iʔ t citxʷs “swit úɬiʔ ksƛ̓əwntís iʔ c̓ík̓ʷsxən?”
+2.2 35	John Lyon	parse	√cún-nt-m kʷukʷ atáʔ t iʔ t akɬ-owner iʔ t √citxʷ-s swit úɬiʔ ks-√ƛ̓w-nt-ís iʔ √c̓ík̓ʷ=sxn
+2.2 35	John Lyon	gloss	say-DIR-PASS EVID DEM OBL DET OBL have-owner DET OBL house-3POSS who CONJ FUT-extinguish-DIR-3ERG DET light=round.object
+2.2 35	John Lyon	word gloss	he.was.told they.say here by the by owner the of his.house who and.then he.will.put.it.out the light
+2.2 35	John Lyon	translation	‘The owner of the house, Smokey, said “Who’s going to put the light out?” ’
