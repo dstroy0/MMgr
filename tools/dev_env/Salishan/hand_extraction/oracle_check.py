@@ -38,7 +38,13 @@ from salish_unsorted import is_language_token  # noqa: E402
 
 from papers import EVERY  # noqa: E402
 
-EDGES = ".,!?;:“”\"()[]…«»{}/*•→≤≥"
+EDGES = ".,!?;:“”\"()[]…«»{}/*•→≤≥"
+
+# Hall and Phillips write the null third person clitic with a symbol font, and the extraction
+# carries that glyph through as a private use character. It stands where a morpheme is not
+# pronounced, so it is never part of a form, and it sits inside a token as often as at the end of
+# one: cw-[n]-t-<glyph>-és=us is one word with one unpronounced morpheme in the middle of it.
+NULL_CLITIC = ""
 
 # The single quote is not in EDGES because several of these orthographies write with it. ’ is the
 # glottalization mark in Nuxalk and in Lyon's Okanagan, and stripping it turned the enclitic ˽c’
@@ -58,6 +64,12 @@ def trailing_marker(plain):
         at = len(plain)
         while (at > 0) and plain[at - 1].isdigit():
             at -= 1
+        # A footnote marker set against a word that ends in a stacked mark, as Hall and Phillips'
+        # nhén̓4 is. 7 is the glottal stop in the van Eijk orthography, so a run that is only 7 is
+        # the word's own last letter and stays.
+        if ((at < len(plain)) and (at > 0) and (plain[at] != "7")
+                and unicodedata.combining(plain[at - 1])):
+            return plain[:at].strip(EDGES)
         # Nothing numeric came off, so look for the quote forms instead.
         if (at == len(plain)) and ((plain[-1] == "’") or unicodedata.combining(plain[-1])):
             at -= 1
@@ -94,7 +106,7 @@ def bare(token):
     comes off only where an opening one is on the same token, because ’ ends real words in Nuxalk
     and in Lyon's Okanagan.
     """
-    plain = token.strip(EDGES)
+    plain = token.replace(NULL_CLITIC, "").strip(EDGES)
     for opens, closes in PAIRED:
         if (len(plain) > 1) and plain.startswith(opens) and plain.endswith(closes):
             plain = plain[1:-1].strip(EDGES)

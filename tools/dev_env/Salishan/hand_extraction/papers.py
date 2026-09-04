@@ -88,7 +88,7 @@ EVERY = (
      "HallPhillipsICSNL60",
      "BevPhillips_WhenOldOneCreatedTheEarth_HallPhillips"
      "_Salish_nlekepmxcin_2025_nomixed.txt",
-     None, SHARED),
+     closed_spaces, SHARED),
     ("19-Lyon_ICSNL50_final-78.oracle.tsv",
      "19-Lyon_ICSNL50_final-78",
      "GeorgeLezard-NellieGuitterez-AndrewMcGinnis_ThreeOkanaganStoriesAboutPriests_Lyon"
