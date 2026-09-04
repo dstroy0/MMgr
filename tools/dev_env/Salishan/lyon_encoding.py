@@ -136,6 +136,10 @@ def salish(token):
         return True
     # A ’ that opens a token is the mark waiting for its letter: ’ti is t̓i. One that follows a
     # letter is the apostrophe of Lyon’s and Society’s.
+    #
+    # An English elision opens with one too. Lyon writes ’til in the translation of stanza 137 and
+    # it comes out as t̓il, which is the same shape as ’ti and cannot be told from it inside one
+    # token. That is the only one in this paper.
     if token.startswith("’"):
         return True
     # A glottal stop standing alone, left by a break the PDF put in front of it, as ixí P is.
