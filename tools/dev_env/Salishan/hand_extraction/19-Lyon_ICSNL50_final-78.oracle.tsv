@@ -857,3 +857,18 @@ footnote 19	John Lyon	note	There is no question marker ha in this sentence, but 
 3.2 83	John Lyon	word gloss	night the chief the his.workers many they.went the in barn and they.all.sat.around
 3.2 83	John Lyon	translation	‘At night, the chief’s workers were there, there’s a lot of them, they went in the barn and they all sat around.’
 footnote 20	John Lyon	note	The form xəlxlákəkəlx literally means “they were turning around”, but several speakers I have consulted say it can also mean ‘sitting around in a circle’, in cases where a room is full.
+3.2 84	Kiláwnaʔ	surface	iʔ knaqs k̓amtíw̓s, iʔ knaqs iʔ tkʷənkʷínpláʔs, iʔ knaqs tkʷənkʷínpsts.
+3.2 84	John Lyon	parse	iʔ k(+)√naqs k+√ʔamt=íw̓s iʔ k(+)√naqs iʔ t+kʷn•√kʷín=pláʔ-nt-s iʔ k(+)√naqs t+kʷn•√kʷín=ps-nt-s
+3.2 84	John Lyon	gloss	DET one[HUMAN] RES+sit=middle DET one[HUMAN] DET RES+C1C2.PL•take=handle-DIR-3ERG DET one[HUMAN] RES+C1C2.PL•take=tail-DIR-3ERG
+3.2 84	John Lyon	word gloss	the one got.on.a.horse the one that he.took.the.lead the one he.held.the.tail
+3.2 84	John Lyon	translation	‘One got on a horse, another took the lead, and one followed behind, holding his tail.’
+3.2 85	Kiláwnaʔ	surface	“ah. . . t̓i kʷaʔ xʔkínəm axáʔ mi náq̓ʷəms?”
+3.2 85	John Lyon	parse	ah t̓i kʷaʔ x+√ʔkín-m axáʔ mi √náq̓ʷ-m-nt-s
+3.2 85	John Lyon	gloss	ah EMPH INTERJ DRV+do.what-MID DEM COMP.FUT steal-APPL-DIR-3ERG
+3.2 85	John Lyon	word gloss	ah just how this will he.steal.it
+3.2 85	John Lyon	translation	‘The chief said “How is he gonna steal this horse?” ’
+3.2 86	Kiláwnaʔ	surface	“tk̓ʷənk̓ʷínx? ixíʔ knaqs, ixíʔ knaqs.”
+3.2 86	John Lyon	parse	t+k̓ʷn•√k̓ʷínx ixíʔ k(+)√naqs ixíʔ k(+)√naqs
+3.2 86	John Lyon	gloss	RES+C1C2.PL•how.many DEM one[HUMAN] DEM one[HUMAN]
+3.2 86	John Lyon	word gloss	how.many.people that one that one
+3.2 86	John Lyon	translation	‘ “How many are there? There’s one, and there’s one.” ’
