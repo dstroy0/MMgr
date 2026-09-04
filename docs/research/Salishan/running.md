@@ -96,7 +96,7 @@ Two papers are checked against a drafted page text and the output line says so. 
 python H/reader_check.py
 ```
 
-Checks each reader against the hand extraction. Grades whether it found each form, whether it says the same kind, and whether it says the same dialect. Kind is the one that decides the corpus: a rejected tableau candidate filed as a citation puts a spelling the paper's own analysis rejects into the pure stream, and nothing downstream asks again.
+Checks each reader against the hand extraction. Grades whether it found each form, whether it says the same kind, and whether it says the same dialect. Kind is the one that decides the corpus. A rejected tableau candidate filed as a citation puts a form the paper's own analysis rejects into the pure stream, and nothing downstream asks again.
 
 ## When the text is not the page
 
@@ -111,7 +111,7 @@ The first renders each page to `build/pages/<stem>/page_NNN.png`. Arguments are 
 
 The second writes `build/papers/<stem>.page.txt`, line for line with the extraction so a page of one is a page of the other. It is a draft, and `oracle_check.py` reads it in place of the extraction for these two papers, which makes it the thing being graded and not the thing that grades. The rules are in `lyon_encoding.py`. Two of them cannot be settled without looking at the page: which `w` is a labialized consonant, and which inserted space is a word boundary.
 
-Both of these papers' readers take that file too, and so does `coverage_check.py`. They swap `page_text.py` in for `font_repair.py` to do it, because the mapping is destructive rather than idempotent on text it has already been applied to. Steps 2 and 3 therefore have to run before step 4 for these two, and running the readers without them leaves the last drafted text on disk in the corpus.
+Both of these papers' readers take that file too, and so does `coverage_check.py`. They swap `page_text.py` in for `font_repair.py` to do it, because applying the mapping to text it has already been applied to destroys the text. Steps 2 and 3 therefore have to run before step 4 for these two, and running the readers without them leaves the last drafted text on disk in the corpus.
 
 ## Checks
 
@@ -183,4 +183,4 @@ These are imported, not run.
 `TEXT_SPACE` is the one definition of what characters these orthographies are written with. `salish_unsorted.py` and `H/papers.py` each held their own copy of that union until the copies were noticed; both read it from `salish_marking.py` now, and a per-paper set is written as that plus what the paper adds.
 
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
-**Date:** 2026-09-03
+**Date:** 2026-09-04

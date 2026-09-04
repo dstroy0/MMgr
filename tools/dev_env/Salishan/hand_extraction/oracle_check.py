@@ -288,16 +288,19 @@ def source_forms(path, repair=None, pieces=2):
                         if (where + span) > len(tokens):
                             break
                         run = tokens[where:where + span]
-                        # The footnote marker comes off the join as well. n-t̓ə k̓[ʷ]-t̓í k̓[ʷ]-ləx2
-                        # is one word with a 2 on the end of it, and the row holds the word.
-                        joined = without_marker(bare("".join(run)))
+                        # The join is offered with and without a footnote marker on the end of it.
+                        # n-t̓ə k̓[ʷ]-t̓í k̓[ʷ]-ləx2 is one word carrying a 2 and the row holds the
+                        # word, while (s)K ékets’a7 ends in the letter van Eijk writes the glottal
+                        # stop with and the row holds the 7. Offering only the stripped form lost
+                        # the second one.
+                        joined = bare("".join(run))
                         if not joined:
                             continue
                         reach.append("".join(run))
                         # A run can be a surface form and its own parse, broken in the middle as
                         # well: k̓ʷ l̓ncútn√k̓ʷ l̓-ncút+tn is k̓ʷl̓ncútn and √k̓ʷl̓-ncút+tn, and the
                         # table holds those two apart because the paper prints them on two lines.
-                        halves = [joined]
+                        halves = [joined, without_marker(joined)]
                         at_join = surface_parse_join(joined)
                         if at_join > 0:
                             halves = [bare(joined[:at_join]), bare(joined[at_join:])]

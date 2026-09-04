@@ -605,6 +605,171 @@ static uint32_t move_up_is_correct(void)
     return bad;
 }
 
+/**
+ * @brief Arguments for the forward copy arms.
+ *
+ * @note Mirrors MemorCpyCtx in memoria_operor.c, restrict on both pointers included. That
+ *       qualifier is what tells the compiler no store here can land on a word still to be loaded,
+ *       which it is not told about the backward move. Whether it acts on the permission is the
+ *       question copy_four_loads exists to answer.
+ * @warning Both pointers are restrict qualified, so the two regions must not overlap.
+ */
+typedef struct
+{
+    uint8_t *restrict dst;       /**< Destination [BORROWS]. */
+    const uint8_t *restrict src; /**< Source [BORROWS]. */
+    size_t bytes;                /**< Bytes to copy. */
+} BenchCopyCtx;
+
+/**
+ * @brief Copies args->bytes forward, four words an iteration, loading and storing each in turn.
+ *
+ * @param[in,out] args Destination, source and count [BORROWS].
+ * @note The control. It reproduces memor_cpy's word loop step for step - four moves against
+ *       constant offsets, then one advance of all four - so the row against memor.cpy itself shows
+ *       whether this reproduction is faithful before copy_four_loads is read against it.
+ * @warning args->dst must be writable and args->src readable for args->bytes, the two must not
+ *          overlap, and both must be word aligned.
+ */
+EMBED_INLINE void copy_four_words(BenchCopyCtx *args)
+{
+    // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
+    size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
+    size_t word_bytes = args->bytes - tail_bytes;
+
+    while (word_bytes >= (4u * sizeof(embed_word)))
+    {
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + sizeof(embed_word),
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + sizeof(embed_word)));
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (2u * sizeof(embed_word)),
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (2u * sizeof(embed_word))));
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (3u * sizeof(embed_word)),
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (3u * sizeof(embed_word))));
+
+        args->dst += 4u * sizeof(embed_word);
+        args->src += 4u * sizeof(embed_word);
+        word_bytes -= 4u * sizeof(embed_word);
+    }
+    while (word_bytes != 0u)
+    {
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+        args->dst += sizeof(embed_word);
+        args->src += sizeof(embed_word);
+        word_bytes -= sizeof(embed_word);
+    }
+    while (tail_bytes != 0u)
+    {
+        *args->dst = *args->src;
+        args->dst++;
+        args->src++;
+        tail_bytes--;
+    }
+}
+
+/**
+ * @brief Copies args->bytes forward, four words an iteration, taking all four loads first.
+ *
+ * @param[in,out] args Destination, source and count [BORROWS].
+ * @note Same width as copy_four_words and a different order. restrict already permits the compiler
+ *       to reach this arrangement from the interleaved one, so a row that reads 1.00 says it
+ *       already does and there is nothing here to take. On the backward move, where the qualifier
+ *       is absent, writing the loads out first measured 1.27x on an ESP32-C6 and nothing on an
+ *       ESP32-S3.
+ * @warning args->dst must be writable and args->src readable for args->bytes, the two must not
+ *          overlap, and both must be word aligned.
+ */
+EMBED_INLINE void copy_four_loads(BenchCopyCtx *args)
+{
+    // Explicit cast holds the remainder mask at size_t, matching the byte count it is applied to
+    size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
+    size_t word_bytes = args->bytes - tail_bytes;
+
+    while (word_bytes >= (4u * sizeof(embed_word)))
+    {
+        const embed_word word_zero = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src);
+        const embed_word word_one = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + sizeof(embed_word));
+        const embed_word word_two = EMBED_CALL(proxim.al_load, ProximusCfg,
+                                               .at = args->src + (2u * sizeof(embed_word)));
+        const embed_word word_three = EMBED_CALL(proxim.al_load, ProximusCfg,
+                                                 .at = args->src + (3u * sizeof(embed_word)));
+
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = word_zero);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + sizeof(embed_word), .val = word_one);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (2u * sizeof(embed_word)), .val = word_two);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (3u * sizeof(embed_word)), .val = word_three);
+
+        args->dst += 4u * sizeof(embed_word);
+        args->src += 4u * sizeof(embed_word);
+        word_bytes -= 4u * sizeof(embed_word);
+    }
+    while (word_bytes != 0u)
+    {
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+        args->dst += sizeof(embed_word);
+        args->src += sizeof(embed_word);
+        word_bytes -= sizeof(embed_word);
+    }
+    while (tail_bytes != 0u)
+    {
+        *args->dst = *args->src;
+        args->dst++;
+        args->src++;
+        tail_bytes--;
+    }
+}
+
+/**
+ * @brief Checks both forward copy forms against a byte loop written here.
+ *
+ * @return Count of forms that disagreed with the reference, over every length tried.
+ * @note Runs before the timing, for the reason move_up_is_correct gives. The lengths straddle the
+ *       four word block: below it, one past it, and a long run with an odd tail.
+ */
+static uint32_t copy_is_correct(void)
+{
+    static const size_t lengths[5] = {8u, 15u, 64u, 129u, 2048u};
+    uint32_t bad = 0u;
+
+    for (unsigned length_index = 0u; length_index < 5u; length_index++)
+    {
+        const size_t bytes = lengths[length_index];
+
+        for (unsigned form = 0u; form < 2u; form++)
+        {
+            for (size_t fill_index = 0u; fill_index < bytes; fill_index++)
+            {
+                // The mix makes a byte carry its own offset, so a byte taken from the wrong place
+                // shows up as itself instead of only as a mismatch
+                g_a[fill_index] = (uint8_t)((((fill_index * 31u) + 17u) & 0xFFu) | 1u);
+                g_d[fill_index] = 0u;
+            }
+
+            if (form == 0u)
+            {
+                copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = bytes});
+            }
+            else
+            {
+                copy_four_loads(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = bytes});
+            }
+
+            for (size_t check_index = 0u; check_index < bytes; check_index++)
+            {
+                if (g_d[check_index] != g_a[check_index])
+                {
+                    bad++;
+                    break;
+                }
+            }
+        }
+    }
+    return bad;
+}
+
 #define RING_CAP 1024u
 
 #define RING_SEGS 4u
@@ -819,6 +984,8 @@ void dbench_run(void)
 
         printf("DB move_up_check   disagreements=%u\n", (unsigned)move_up_is_correct());
 
+        printf("DB copy_check      disagreements=%u\n", (unsigned)copy_is_correct());
+
         for (unsigned li = 0; li < (sizeof lens / sizeof lens[0]); li++)
         {
             const size_t n = lens[li];
@@ -974,6 +1141,37 @@ void dbench_run(void)
                                        .dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
                                    (uintptr_t)g_d)),
                       DBENCH_KEEP((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_b, .src = g_d, .bytes = n),
+                                   (uintptr_t)g_d)));
+
+            // memor.cpy against a step for step reproduction of its word loop. Both are four words
+            // an iteration loading and storing each in turn, so this row is the cost of reaching
+            // the entry and nothing else. It has to read near 1.00 before the row below means
+            // anything
+            DBENCH_AB("cp_entry", iters, n,
+                      DBENCH_KEEP((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_d, .src = g_a, .bytes = n),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
+                                   (uintptr_t)g_d)));
+
+            DBENCH_AB("cp_entry_swapped", iters, n,
+                      DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_d, .src = g_a, .bytes = n),
+                                   (uintptr_t)g_d)));
+
+            // Four words either way and only the order differs: the second arm takes all four loads
+            // before any store. Both pointers are restrict qualified here, which already permits
+            // the compiler to reach the second arrangement from the first, so 1.00 says it does
+            DBENCH_AB("cp_hoist", iters, n,
+                      DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((copy_four_loads(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
+                                   (uintptr_t)g_d)));
+
+            DBENCH_AB("cp_hoist_swapped", iters, n,
+                      DBENCH_KEEP((copy_four_loads(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
+                                   (uintptr_t)g_d)),
+                      DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
                                    (uintptr_t)g_d)));
         }
 

@@ -64,7 +64,7 @@ The reader is not the source of the corpus. Each paper is read by a person into 
 
 Nine of the eleven verify against their paper in both directions: no form written that the paper does not hold, no token in the paper that no row covers. The other two are the papers whose extracted text is not what the page says, and the section after this one is about them.
 
-Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-03. "Asked for" is how many distinct written forms the rows yield, which is the denominator for the column beside it. "Invented" is a form the reader put in the corpus that no row asks for.
+Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-04. "Asked for" is how many distinct written forms the rows yield, which is the denominator for the column beside it. "Invented" is a form the reader put in the corpus that no row asks for.
 
 | Paper | Rows read by hand | Forms asked for | Reader |
 |---|---|---|---|
@@ -75,16 +75,18 @@ Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-
 | Nater, ICSNL 50 | 285 | 285 | 29 not found, 80 invented |
 | LaFontaine and Janzen, ICSNL 59 | 226 | 225 | 81 not found, 136 invented |
 | Garcia, Hannon and Stacey, ICSNL 59 | 371 | 369 | 150 not found, 748 invented |
-| Mary George, ICSNL 56 | 1661 | 1654 | 663 not found, 362 in the wrong dialect |
+| Mary George, ICSNL 56 | 1661 | 1654 | 663 not found, 574 invented, 362 in the wrong dialect |
 | Hall and Phillips, ICSNL 60 | 406 | 399 | 209 not found, 521 invented |
-| Lyon, ICSNL 50 | 927 | 920 | the table is still the damaged forms and is being reread from the page |
-| Lindley and Lyon, 2013 | 653 | 653 | 503 not found, because the reader still reads the damaged text |
+| Lyon, ICSNL 50 | 209 | 209 | 168 not found, 2500 invented, 16 in the wrong dialect |
+| Lindley and Lyon, 2013 | 653 | 653 | 312 not found, 996 invented, 198 typed differently |
 
 Only Mellesmoen and Kye reproduces its table.
 
-`2013_Lindley_Lyon` is read off the rendered pages: all twelve texts, both the running transcription and the interlinear, with the footnotes, free translations, commentary, the appendix paradigms and the abbreviation list. What remains is 46 forms the table holds that the draft does not, and 37 strings in the draft that no row holds, and every one of those falls in one of the four classes the section below names. They measure the draft, not the table.
+`2013_Lindley_Lyon` is read off the rendered pages: all twelve texts, both the running transcription and the interlinear, with the footnotes, free translations, commentary, the appendix paradigms and the abbreviation list. What remains is 46 forms the table holds that the draft does not, and 37 strings in the draft that no row holds. All 83 fall in one of the five classes the section below names, which makes the count a measurement of the draft.
 
-Its reader is a separate matter. `extract_lindley_lyon.py` still reads `build/papers/2013_Lindley_Lyon.txt`, which is the font's encoding, so it is being graded in one orthography against a table written in another and misses 503 of 653. Pointing it at the drafted page text is the next step and has not been taken.
+Its reader takes `build/papers/2013_Lindley_Lyon.page.txt` and is graded in the orthography the table is written in. It misses 312 of the 653 rows, and 56 of those 312 are a single token. The other 256 are a row holding a whole translation, parse line or narrative paragraph, and the reader writes each of those as separate items instead of as the one string the row asks for.
+
+`19-Lyon_ICSNL50_final-78` is being read the same way and its table is not finished. The 209 rows cover the title, the abstract, section 1, the first story's thirty-seven interlinear items and nine footnotes, and the second story's narrative. The 2 written forms the draft does not hold are the P-initial class the section below names, and the 806 tokens in the draft that no row holds are the part of the paper nobody has reached yet. Its reader misses 168 of the 209, and 166 of those are one of the five interlinear lines held whole, against a reader that writes the interlinear a token at a time.
 
 Three of the eleven carry a `.oracle.md` beside the table, which is where a note about that paper goes. The `.tsv` itself holds no comment syntax and no prose header, so a CSV linter can read it: a header on line 1 and the same field count on every row.
 
@@ -168,9 +170,9 @@ The mutations sort into five kinds, and the last two are what make this a distri
 
 The insertion does not always fire. `2013_Lindley_Lyon.txt` holds `wa ’y` in most places and `wa’y` in three, for the one word the page prints as `way̓`. So its rate lies strictly between 0 and 1, and the same input shape has two outputs. That is a probability, not a rule, and it is why a repair applied without the page welds words that were never one word.
 
-The deletion fires where the paper changes font mid-sentence. Footnote 5 of the same paper sets its cited forms in italic inside roman prose, and the two arrive as `Okanaganyaxʷt` and `Okanaganyaʕyáʕt`, each one token where the page prints two words. The second is recoverable, because `yaʕyáʕt` is a common word and appears on its own elsewhere in the paper. The first is not: `yaxʷt` occurs nowhere else, so nothing in the text says where the boundary was. Which of the two happens depends on the rest of the corpus rather than on the token, which is the second reason this is a distribution.
+The deletion fires where the paper changes font mid-sentence. Footnote 5 of the same paper sets its cited forms in italic inside roman prose, and the two arrive as `Okanaganyaxʷt` and `Okanaganyaʕyáʕt`, each one token where the page prints two words. The second is recoverable, because `yaʕyáʕt` is a common word and appears on its own elsewhere in the paper. The first is not: `yaxʷt` occurs nowhere else, so nothing in the text says where the boundary was. Which of the two happens depends on the rest of the corpus and not on the token, which is the second reason this is a distribution.
 
-The collapse sets a ceiling. No recovery, however good, separates page `kʷukʷ` from page `wist` in the mutated text, because the channel destroyed the distinction rather than disguising it. Anything downstream that claims to have recovered a labialized consonant on these two papers is claiming something the file cannot support.
+The collapse sets a ceiling. No recovery, however good, separates page `kʷukʷ` from page `wist` in the mutated text, because the channel destroyed the distinction instead of disguising it. Anything downstream that claims to have recovered a labialized consonant on these two papers is claiming something the file cannot support.
 
 A detector keyed to a glyph inventory reads the mutated side as holding no language at all. That is not hypothetical: `is_language_token` did exactly that on these two papers until the marks set for them was corrected, and it reported a paper with eleven unread texts as fully covered. A detector reading the distribution of symbols survives the same input. The pure corpus says how well a vector separates the target language from the English around it. This pair says how much mutation it takes before it stops separating them at all.
 
@@ -198,7 +200,7 @@ The counts in the last two rows are for both Lyon papers together. The corpus us
 
 What is left of the 13 percent is the inserted space: a word arrives in pieces and the corpus keeps the pieces, so `incítxʷ` is in it as `incítx w`. `space_repair.py` exists to close those and cannot reach these, because the vocabulary it joins with comes from the interlinear's form column, which in this paper is the parse and carries morpheme hyphens the running text does not.
 
-`page_text.py` is what the two readers swap in for `font_repair.py`. Every repair in it returns its line, because the mapping is destructive rather than idempotent on text that has already been through it: `P` to `ʔ` turns `Papers` into `ʔapers` and the gloss label `APPL` into `AʔʔL`. Its `language_line` and `carries_orthography` had to be rewritten instead of passed through, because `font_repair`'s versions ask whether a line holds a character only the damaged orthography writes, and the page text holds none of them by construction.
+`page_text.py` is what the two readers swap in for `font_repair.py`. Every repair in it returns its line unchanged, because applying the mapping to text that has already been through it destroys the text. `P` to `ʔ` turns `Papers` into `ʔapers` and the gloss label `APPL` into `AʔʔL`. Its `language_line` and `carries_orthography` had to be rewritten instead of passed through, because `font_repair`'s versions ask whether a line holds a character only the damaged orthography writes, and the page text holds none of them by construction.
 
 `coverage_check.py` reads the same page text for these two, under a `page` entry in its repair list, and all eleven papers are back to 100 percent coverage.
 
@@ -210,7 +212,11 @@ Once each dialect's corpus is pure, the dialects become each other's contargets.
 
 **That comparison has to run on a sound representation in binary, not on the characters.** These orthographies write the same sound differently and the difference is arbitrary. The lateral fricative is `ɬ` in one paper here and `ł` in another. The glottal stop is `ʔ` in most and the digit `7` in the van Eijk papers. Labialization is a raised `ʷ` in some and a plain `w` in others. A model counting character bigrams reads two dialects that share a word as maximally far apart, because it is measuring the transcriber and not the speaker. Encoding each segment as its features and comparing those is what makes the distance a fact about the languages.
 
-Nothing in the tree does this yet. `TEXT_SPACE` in `salish_marking.py` is the inventory of characters these papers are written with, which is the input a sound representation would be built from, and it is one definition rather than a copy per file for that reason.
+The plan those two things sit inside runs in three stages. First the pure text corpus, which fixes what each dialect writes and is what the whole hand extraction workflow above exists to produce. Then a sound representation measured off recordings, where a segment is a set of binary features and the alphabet in `TEXT_SPACE` maps onto those features one written symbol at a time. Then a probability distribution over that representation, which is the thing an interdialect boundary is drawn on. The word webs are built on the encoded forms, so two dialects writing one word two ways arrive at one node.
+
+The recordings are what the sound representation is measured from, and `build/audio/` holds three of them. All three are nɬeʔkepmxcín and two are Bev Phillips, so they are enough to build an encoding against and short of what a second dialect would take. The section below names the recordings that exist and are not published with their papers.
+
+Nothing in the tree does any of this yet. `TEXT_SPACE` in `salish_marking.py` is the inventory of characters these papers are written with, which is the input a sound representation would be built from, and it is one definition instead of a copy per file for that reason.
 
 `english_sift.py --check` reports the separation as healthy against that corpus. Under one anchor, 2327 known-pure lines sit at a median of 14.64 against 1898 known-English spans at 8.49, and a cut at 9.28 keeps 99.0 percent of the pure corpus while admitting 15.1 percent of the English. Under two anchors, 96 percent of the pure lines come back as language and 98 percent of the English spans as English. Those figures say the two anchors are far apart. They do not say the language anchor is the language, and on 39 percent of its material it is the font's encoding.
 
@@ -241,7 +247,7 @@ Fifty of them are about Lushootseed or Skagit. The heaviest, by how much they di
 
 ## Verification sources
 
-Sources used to test a transformation rather than to supply text. Each answers a question the code that made the change cannot answer about itself.
+Sources used to test a transformation instead of to supply text. Each answers a question the code that made the change cannot answer about itself.
 
 * `LyonICSNL60_Inch-2.txt`. Lyon's later paper on Nsyilxcən, whose extraction kept its characters. Used twice: to test the font substitution table, which moved attested tokens from 1 of 3599 to 811 on one paper and 2 of 4332 to 965 on the other, and to test the word list recovered from the interlinear, where none of the broken forms had its pieces attested apart and 4 percent and 36 percent were attested once joined.
 * Each paper's own second printing. Hall and Phillips, Garcia, and both Lyon papers print their stories twice, once as running text and once word by word, so one printing checks a reading of the other.
@@ -263,4 +269,4 @@ Whole volumes: ICSNL 50, `https://lingpapers.sites.olt.ubc.ca/files/2018/01/ICSN
 Paper addresses follow `files/<year>/<month>/<name>.pdf`, and `<name>` is the local filename in `build/papers/`. UBC answers a command-line fetch with a bot-defense captcha; a browser gets the same file.
 
 **Compiled By:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
-**Date:** 2026-09-03
+**Date:** 2026-09-04

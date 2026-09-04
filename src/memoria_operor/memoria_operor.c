@@ -124,14 +124,21 @@ EMBED_INLINE void memor_cpy(MemorCpyCtx *args)
  * @note Starts at the end of both regions and works back toward the start.
  * @note Takes the odd bytes first, then whole words, which is the reverse of memor_cpy's order.
  * @note Advances both pointers to the end, then walks them back, so each ends where it began.
- * @note What this is worth is not one number, and a single figure for it would be wrong. Measured
- *       against each part's own memmove with regions a word apart: on an ESP32-S3 this runs 3.0x to
- *       6.0x faster, and mmgr_memor_cpy standing in for move_down runs 3.1x to 18.6x faster, since
- *       that part's memmove walks a byte at a time at a flat twelve cycles a byte whatever the
- *       length. On an ESP32-C6 the same source is 1.1x to 1.3x slower, because that part's memmove
- *       costs about one cycle a byte. Nothing in the library differs between the two runs. A byte
- *       path is only ever as good as the mem family the part it lands on happens to carry, which is
- *       why the number paths win everywhere and these do not.
+ * @note What this is worth is not one number. Measured 2026-09-03 at -O2 against each part's own
+ *       memmove, over 8 to 2048 bytes with the two regions MMGR_ALIGN_BYTES apart: on an ESP32-S3
+ *       this runs 2.7x to 14.0x faster, since that part's memmove walks a byte at a time and never
+ *       comes under nine cycles a byte at any length. On an ESP32-C6 it runs 1.1x to 2.6x faster,
+ *       where memmove costs about 1.8 cycles a byte. Nothing in the library differs between the two
+ *       runs. A byte path is only ever as good as the mem family the part it lands on happens to
+ *       carry.
+ * @note At 2048 bytes this costs 0.646 cycles a byte on the S3 and 0.707 on the C6. The S3 figure
+ *       is level with mmgr_memor_cpy's 0.644, which is where a backward move belongs - the address
+ *       arithmetic is a subtraction either way and neither direction is inherently dearer. It got
+ *       there by taking the same four word width memor_cpy takes. Before that it was 1.517 and
+ *       1.763, entirely for want of the unroll.
+ * @note The C6 figure is under mmgr_memor_cpy's 0.892 on that part, because the four loads here are
+ *       taken before the four stores and memor_cpy interleaves its own. Measured as its own row,
+ *       that ordering is worth nothing on the S3 and 1.27x on the C6.
  * @warning args->dst must be writable and args->src readable for args->bytes.
  */
 EMBED_INLINE void memor_move_up(MemorMoveCtx *args)
@@ -150,16 +157,39 @@ EMBED_INLINE void memor_move_up(MemorMoveCtx *args)
             *--args->dst = *--args->src;
         } while (--tail_bytes);
     }
-    if (word_bytes != 0u)
+    // Four words an iteration while there are four to take, for the reason memor_cpy gives: at one
+    // word a pass the two pointer bumps, the counter and the branch cost as much as the move. All
+    // four loads are taken before any store, which neither pointer being restrict qualified stops -
+    // the compiler cannot lift a load over a store on its own here, and this arrangement does not
+    // ask it to. Measured at 2048 bytes: 1.517 cycles a byte to 0.643 on an ESP32-S3 and 1.763 to
+    // 0.697 on an ESP32-C6, which puts both level with the forward copy. The ordering is worth
+    // nothing on the S3 and 1.27x on the C6.
+    while (word_bytes >= (4u * sizeof(embed_word)))
     {
-        do
-        {
-            args->dst -= sizeof(embed_word);
-            args->src -= sizeof(embed_word);
-            EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
-                       .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
-            word_bytes -= sizeof(embed_word);
-        } while (word_bytes);
+        args->dst -= 4u * sizeof(embed_word);
+        args->src -= 4u * sizeof(embed_word);
+
+        const embed_word word_three = EMBED_CALL(proxim.al_load, ProximusCfg,
+                                                 .at = args->src + (3u * sizeof(embed_word)));
+        const embed_word word_two = EMBED_CALL(proxim.al_load, ProximusCfg,
+                                               .at = args->src + (2u * sizeof(embed_word)));
+        const embed_word word_one = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + sizeof(embed_word));
+        const embed_word word_zero = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src);
+
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (3u * sizeof(embed_word)), .val = word_three);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + (2u * sizeof(embed_word)), .val = word_two);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + sizeof(embed_word), .val = word_one);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = word_zero);
+
+        word_bytes -= 4u * sizeof(embed_word);
+    }
+    while (word_bytes != 0u)
+    {
+        args->dst -= sizeof(embed_word);
+        args->src -= sizeof(embed_word);
+        EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src));
+        word_bytes -= sizeof(embed_word);
     }
 }
 
