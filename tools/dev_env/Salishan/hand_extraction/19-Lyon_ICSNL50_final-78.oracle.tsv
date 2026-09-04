@@ -952,3 +952,25 @@ footnote 20	John Lyon	note	The form xəlxlákəkəlx literally means “they wer
 3.2 102	John Lyon	gloss	DEM wine INTERJ
 3.2 102	John Lyon	word gloss	that wine see?
 3.2 102	John Lyon	translation	‘ “It’s wine, see?” the boy said.’
+footnote 21	John Lyon	note	LL mentions that kʷaʔ is used in these contexts “if they didn’t know what it was”, hence the colloquial meaning in line 4 “see?”.
+3.2 103	Kiláwnaʔ	surface	“tlaʔ kʷu saʔsiwst, kʷu m̓ay̓xtwíxʷ uɬ x̌lap.”
+3.2 103	John Lyon	parse	atláʔ kʷu saʔ+√siwst kʷu √m̓ay̓-xt-wíxʷ uɬ x̌lap
+3.2 103	John Lyon	gloss	DEM 1PL.ABS DRV+drink 1PL.ABS tell-APPL.BEN-RECP CONJ tomorrow
+3.2 103	John Lyon	word gloss	from.here we drinking we tell.each.other.stories until tomorrow
+3.2 103	John Lyon	translation	‘ “Let’s start drinking and tell stories here until morning.” ’
+3.2 104	Kiláwnaʔ	surface	o, ɬ nxƛ̓í, ixíʔ nk̓áwsəlx.
+3.2 104	John Lyon	parse	oh uɬ n+√xƛ̓=íks-nt-islx ixíʔ n+√k̓áw-nt-slx.
+3.2 104	John Lyon	gloss	oh CONJ LOC+pass.around=hand-DIR-3PL.ERG DEM LOC+gone-DIR-3PL.ERG
+3.2 104	John Lyon	word gloss	oh and they.passed.it.around then they.finished.it
+3.2 104	John Lyon	translation	‘Oh, they passed it around until they finished it.’
+footnote 22	John Lyon	note	Nearly all of the form n+√xƛ̓=íks-nt-islx ‘they passed it around’ is truncated in this stanza, and in (106).
+3.2 105	Kiláwnaʔ	surface	cut “way̓ k̓im iʔ naqs axáʔ.”
+3.2 105	John Lyon	parse	cut way̓ k̓im iʔ naqs axáʔ
+3.2 105	John Lyon	gloss	he.said yes CONJ DET one DEM
+3.2 105	John Lyon	word gloss	he.said yes but the one this
+3.2 105	John Lyon	translation	‘He said, “But there’s one more here.” ’
+3.2 106	Kiláwnaʔ	surface	ixíʔ nixʷ nxƛ̓i. oh, ixíʔ nk̓áwsəlx, ixíʔ uɬ way̓.
+3.2 106	John Lyon	parse	ixíʔ nixʷ n+√xƛ̓=iks-nt-íslx oh ixíʔ n+√k̓áw-nt-slx ixíʔ uɬ way̓
+3.2 106	John Lyon	gloss	DEM also LOC+pass.around=hand-DIR-3PL.ERG oh DEM LOC+gone-DIR-3PL.ERG DEM CONJ finish
+3.2 106	John Lyon	word gloss	that also they.passed.it.around oh then they.finished.it that and finished
+3.2 106	John Lyon	translation	‘And then they passed that one around too. Oh, they finished that one, and that was it.’
