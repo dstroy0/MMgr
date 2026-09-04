@@ -216,11 +216,37 @@ The plan those two things sit inside runs in three stages. First the pure text c
 
 The recordings are what the sound representation is measured from, and `build/audio/` holds three of them. All three are nɬeʔkepmxcín and two are Bev Phillips, so they are enough to build an encoding against and short of what a second dialect would take. The section below names the recordings that exist and are not published with their papers.
 
-Nothing in the tree does any of this yet. `TEXT_SPACE` in `salish_marking.py` is the inventory of characters these papers are written with, which is the input a sound representation would be built from, and it is one definition instead of a copy per file for that reason.
+Stage two is built and the section after this one gives what it measures. What has not been built is the join between the two: nothing takes a character out of `TEXT_SPACE` and hands back the features it stands for, and nothing builds a word web on the encoded forms. `TEXT_SPACE` in `salish_marking.py` is the inventory of characters these papers are written with, which is that join's other side, and it is one definition instead of a copy per file for that reason.
 
 `english_sift.py --check` reports the separation as healthy against that corpus. Under one anchor, 2327 known-pure lines sit at a median of 14.64 against 1898 known-English spans at 8.49, and a cut at 9.28 keeps 99.0 percent of the pure corpus while admitting 15.1 percent of the English. Under two anchors, 96 percent of the pure lines come back as language and 98 percent of the English spans as English. Those figures say the two anchors are far apart. They do not say the language anchor is the language, and on 39 percent of its material it is the font's encoding.
 
 The same measurement on the other nine papers is not comparable and should not be read as one. Each of those goes through its own repair before the comparison, and several of those orthographies write labialization with a plain `w` on purpose.
+
+### The binary sound representation
+
+`sound_representation/perceived_sound.py` turns a recording into two bit fields per 10 ms frame, and `binary_sound.py` writes them to `build/sound/<stem>.bits.tsv`. Four facts about hearing set its shape, and each of them is in the code.
+
+The waveform on its own is not enough. A vowel is a harmonic series under an envelope, and two recordings of one vowel share the envelope while the harmonics sit wherever the speaker's pitch put them, so comparing samples compares the harmonics. The analysis is spectral and the envelope is smoothed off the source before anything is compared.
+
+What a person hears is not what the microphone recorded, and it differs between listeners by physiology and by how much hearing they have lost. The weighting is an argument, with `NO_LOSS` standing for a listener who has lost none. A real audiogram is the six frequencies a hearing test is run at with the loss in dB at each, and the loss comes off a band before loudness, so a band a listener cannot hear stops reaching the code.
+
+Some sounds are the same sound at different frequencies. A phone said by a small speaker and by a large one differs by a scaling of the whole spectrum. The 64 bands are log spaced, so that scaling is a shift along the band axis, and the magnitude of a Fourier transform along that axis is unchanged by the shift. That transform is the segment field.
+
+And some sounds that differ only in frequency mean different things. Stress carries an acute in every orthography in this corpus, and a field made shift invariant to buy the paragraph above would put a stressed form and an unstressed one at one address. The prosody field is separate for that reason and holds loudness, pitch against the speaker's own median, how that pitch is moving, and voicing.
+
+**Bringing the sample to maximum entropy is what makes the delta readable.** Each bit is cut at its own column's median over the recording, so it splits the frames in half, and the segment columns are rotated onto their principal axes first so that no bit restates another. All 24 segment bits come out set on 0.500 of frames on all three recordings, and all 64 of the six bit states and all 256 of the eight bit states are reached on all three. A recording that used those states evenly would be noise, and the distance from that flat reference is the structure in it.
+
+Measured on 2026-09-04 over the three recordings in `build/audio/`, with the entropy and total variation out of `anchor_sift.py`:
+
+| Recording | Frames | 8 bits | 10 bits | 12 bits | Prosody |
+|---|---|---|---|---|---|
+| Givens and Hall, ICSNL 58 | 23489 | 0.2157 | 0.2538 | 0.3161 | 0.3708 |
+| Hall and Phillips, ICSNL 59 | 83249 | 0.2364 | 0.2863 | 0.3207 | 0.3498 |
+| Hall and Phillips, ICSNL 60 | 134997 | 0.1859 | 0.2200 | 0.2519 | 0.4594 |
+
+Each number is the total variation between the codes that width of field took and the flat distribution over its states. The width is part of the figure because the field has to be sampled to be read. At 12 bits the longest recording puts 33 frames in each of 4096 states; at 24 bits it puts 133820 codes in 16.8 million states, which measures the frame count and not the recording. The run reports 6, 8, 10, 12 and 14 bits for that reason, with how many states each width reached.
+
+All three recordings came from the nɬeʔkepmxcín Lab and two of them are Bev Phillips. These numbers are the method working and not a comparison of dialects. A second dialect's recording is what turns them into a reading.
 
 ## Audio sources
 

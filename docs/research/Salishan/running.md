@@ -8,11 +8,11 @@ Run from the repository root. Everything writes under `build/`.
 ## Start here
 
 ```
-python -m pip install pypdf pypdfium2 requests
+python -m pip install pypdf pypdfium2 requests numpy soundfile
 python tools/dev_env/Salishan/get_papers.py
 ```
 
-That fetches the eleven papers the readers need and writes `build/papers/<name>.txt` for each. Nothing else in this directory works until it has run, and it is the only step that touches the network. `pypdfium2` renders a page to an image, which two of the eleven papers need and the other nine do not.
+That fetches the eleven papers the readers need and writes `build/papers/<name>.txt` for each. Nothing else in this directory works until it has run, and it is the only step that touches the network. `pypdfium2` renders a page to an image, which two of the eleven papers need and the other nine do not. `numpy` and `soundfile` are for the sound representation and nothing in the text pipeline imports them; `soundfile` is what decodes the mp3s in `build/audio/`, which are not fetched by this script.
 
 `--all` fetches all 993 papers in the archive instead of the eleven. `--list` prints what would be fetched and stops. `--convert` converts PDFs already sitting in `build/papers/` and fetches nothing, skipping any PDF that already has text beside it. `--stem <name>` takes one paper by its filename.
 
@@ -56,6 +56,7 @@ tools/dev_env/Salishan/hand_extraction/                      the control
 tools/dev_env/Salishan/anchor_sift/                          the algorithm
 tools/dev_env/Salishan/corpus_script_extraction/             the eleven readers
 tools/dev_env/Salishan/anchor_sift_algorithmic_extraction/   the sift applied
+tools/dev_env/Salishan/sound_representation/                 the recordings as bits
 ```
 
 Each script finds the repository by walking up to the tree holding `build/`, so they run from any working directory.
@@ -161,6 +162,19 @@ python X/corpus_admit.py
 
 The first reads which language each paper is about out of its own title and abstract. The second sorts every paper without a reader against both anchors and writes `build/corpora/sifted/`. The third asks whether the distributions agree with what each paper says it is about, with section 3 deciding whether the reading may be made at all. The last two print each corpus's split-half distance, support and entropy as it grows, and admit candidates in batches while the corpus stays on that curve.
 
+## The sound representation
+
+This one does not read `build/papers/` and nothing in the text pipeline depends on it. It reads the recordings.
+
+```
+python tools/dev_env/Salishan/sound_representation/binary_sound.py
+python tools/dev_env/Salishan/sound_representation/binary_sound.py <stem>
+```
+
+Writes `build/sound/<stem>.bits.tsv`, one row per 10 ms frame: the time, a 24 bit segment field, and a 4 bit prosody field. With no argument it does every recording in `build/audio/`; a stem is a filename there without its extension.
+
+What it prints is the delta from a flat distribution over each field, at 6, 8, 10, 12, 14 and 24 bits, with how many states each width reached. Read the narrow widths. A 24 bit field has 16.8 million states and the longest recording has 135 thousand frames, so the wide figure is about the frame count. `refs.md` has the measured numbers and the four facts about hearing the method is built on.
+
 ## What the modules are for
 
 These are imported, not run.
@@ -179,6 +193,7 @@ These are imported, not run.
 | `S/mary_george_repair.py` | the same again, where the grave is glottalization and the acute is stress |
 | `lyon_encoding.py` | the NimbusRomNo9L codes read as the orthography, for the drafted page text |
 | `H/papers.py` | which hand extraction goes with which paper, its repair, and its marks |
+| `sound_representation/perceived_sound.py` | a recording as bits: the log spaced bands, the audiogram, the shift invariant segment field, the prosody field, and the rotation that brings the sample to maximum entropy |
 
 `TEXT_SPACE` is the one definition of what characters these orthographies are written with. `salish_unsorted.py` and `H/papers.py` each held their own copy of that union until the copies were noticed; both read it from `salish_marking.py` now, and a per-paper set is written as that plus what the paper adds.
 
