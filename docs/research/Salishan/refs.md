@@ -113,20 +113,28 @@ Three more the hand extraction found, none of them visible to a coverage check:
 
 ## Papers whose extracted text is not the page
 
-Six of the 146 PDFs in `build/papers/` carry a font that renumbers its glyph codes with an `/Encoding` `/Differences` array and declares no `/ToUnicode` map. An extractor is then handed code numbers with nothing to turn them into, reads them in a default encoding, and what lands in the `.txt` is the font's private alphabet.
+Six of the 146 PDFs in `build/papers/` carry a font that renumbers its glyph codes with an `/Encoding` `/Differences` array and declares no `/ToUnicode` map. An extractor is then handed code numbers with nothing to turn them into, reads them in a default encoding, and what can land in the `.txt` is the font's private alphabet.
 
-| Paper | Fonts declaring no map back to Unicode |
-|---|---|
-| `19-Lyon_ICSNL50_final-78` | NimbusRomNo9L Regu, Medi, ReguItal |
-| `2013_Lindley_Lyon` | NimbusRomNo9L Regu, Medi, ReguItal |
-| `Lyon-final` | NimbusRomNo9L Regu, Medi, MediItal, ReguItal |
-| `21-Abraham_ICSNL50_final-4` | NimbusRomNo9L Regu, Medi |
-| `2011_Lonsdale_Matsushita` | Courier, Times-Roman, Times-Italic, CMSY10 |
-| `2012_Robertson` | Symbol and five TrueType subsets |
+Every one of the six has now been opened against its own rendered pages, and they came out four different ways.
+
+| Paper | Fonts declaring no map back to Unicode | What the page says happened |
+|---|---|---|
+| `19-Lyon_ICSNL50_final-78` | NimbusRomNo9L Regu, Medi, ReguItal | damaged, and read off the pages in full |
+| `2013_Lindley_Lyon` | NimbusRomNo9L Regu, Medi, ReguItal | damaged the same way, and read off the pages in full |
+| `Lyon-final` | NimbusRomNo9L Regu, Medi, MediItal, ReguItal | damaged, by a different table |
+| `2012_Robertson` | Symbol and five TrueType subsets | damaged, with the glyph names printed as text |
+| `21-Abraham_ICSNL50_final-4` | NimbusRomNo9L Regu, Medi | clean |
+| `2011_Lonsdale_Matsushita` | Courier, Times-Roman, Times-Italic, CMSY10 | clean |
 
 A missing `/ToUnicode` is not the fault by itself. 141 of the 146 hold a font without one and nearly all of them extract correctly, because a standard encoding already says what the codes mean and every extractor has that table. It is the renumbering that does the damage, and 6 of those 141 renumber.
 
-The renumbering is a risk and not a verdict. `21-Abraham_ICSNL50_final-4` is on the list and its text is clean: all four pages extract identically to what they print, down to the apostrophes, and page 1's first line reads `Ats’xenlhkán ta sásqets áku7 Nséq’a (Charlie Mack’s), lti Líl’wata Tsel’álh c.walh,` in both. That paper is St'át'imc in the van Eijk orthography, which is ASCII apart from the accented vowels, so its renumbered codes never reach a character they would damage. The list says which files to open, and the page says what happened to each.
+The renumbering is a risk and not a verdict. Two of the six extract correctly, and both were checked line for line against a rendered page.
+
+`21-Abraham_ICSNL50_final-4` is St'át'imc in the van Eijk orthography, which is ASCII apart from the accented vowels, so its renumbered codes never reach a character they would damage. All four pages come through, down to the apostrophes: page 1's first line reads `Ats’xenlhkán ta sásqets áku7 Nséq’a (Charlie Mack’s), lti Líl’wata Tsel’álh c.walh,` on the page and in the text.
+
+`2011_Lonsdale_Matsushita` is clean for a different reason: it prints its Lushootseed in the ASCII transliteration its own parser reads, so there is nothing on the page for a font to lose. Page 5 sets `LEFT-WALL ?u+ da?a +d ?ElgWE? ?E kWi s+ gWistalb ti?E? SukWE? .` and the extraction gives that string exactly. The `?` is the glottal stop, `E` the schwa and `W` the labialization, on the page as much as in the file.
+
+The list says which files to open. The page says what happened to each.
 
 Page 23 of `2013_Lindley_Lyon` prints
 
@@ -190,7 +198,9 @@ Nothing in the tree measures the per-symbol rates yet. `font_substitution.py` sc
 
 `Lyon-final` is damaged and wants a different table. It is John Lyon on the linguistic evidence for a Francis Drake landing in Oregon, and the language data in it comes from Frachtenberg's Oregon transcriptions. `ì` for `ɬ` carries over and so does the transposed acute, but the paper also needs a transposed macron the Okanagan papers never use, `E` for `ɛ`, and several more marks. One code disagrees outright. `;` is the raised length dot in the Okanagan papers and the glottalization mark here, so page 24's `kʼeuʼts!` arrives as `k;eu´ts!`, and applying the Okanagan table to this paper would silently turn every glottalization into a length mark. `font_substitution.py` puts 4 of 407 occurrences into attested forms against 5 before it, which is the same answer measured from the other side.
 
-So the conversion table is per document and not per font family. Reading these two papers off the page still recovers two papers and still produces a table, and what that table converts is the two of them. `2011_Lonsdale_Matsushita` and `2012_Robertson` are set in other fonts and are still unmeasured.
+So the conversion table is per document and not per font family. Reading these two papers off the page still recovers two papers and still produces a table, and what that table converts is the two of them.
+
+`2012_Robertson` is the one that needs no page at all. Its extractor could not resolve the glyphs and printed their names instead, so the text holds strings like `/uni0294oo /uni026C /xé/uni0294` where page 30 sets a morphemic line. A `/uniXXXX` name carries the code point it stands for, and `/uni0294` is `ʔ`, `/uni026C` is `ɬ`, `/uni0259` is `ə` and `/uni019B` is `ƛ`. Nothing was lost in that paper, only left undecoded, and a reader for it is a name table and not a reading. The named marks around them, `/combiningdotbelow` among others, take the same treatment.
 
 `lyon_encoding.py` holds that table for NimbusRomNo9L as it stands, with the labialization rule still a guess and the insertion rate still unmeasured.
 
