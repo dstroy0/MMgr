@@ -734,3 +734,18 @@ footnote 17	John Lyon	note	Nellie Guitterez switches to English for the rest of 
 3.2 59	John Lyon	gloss	say yes ah 1SG.ABS go LOC far=place
 3.2 59	John Lyon	word gloss	he.said yes ah I went to far.away
 3.2 59	John Lyon	translation	‘The oldest said “Okay, I went really far away.” ’
+3.2 60	Kiláwnaʔ	surface	“kcníw̓sən aʔ ck̓ʷəl̓st̓əmʕáltəm iʔ st̓əmʕálts, iʔ nkɬc̓aʔsqáx̌aʔ, yaʕt ixíʔ. ilíʔ kn k̓ʷúl̓əm.”
+3.2 60	John Lyon	parse	√kcn=íw̓s-nt-n aʔ c-√k̓ʷl̓+s+√t̓m(=)ʕált-m iʔ s+√t̓m(=)ʕált-s iʔ √nk(=)ɬc̓aʔ+s+√qáx̌aʔ √yaʕ+t ixíʔ ilíʔ kn √k̓ʷúl̓-m
+3.2 60	John Lyon	gloss	fall.in.with=middle-DIR-1SG.ERG DET CUST-work+NMLZ+cattle-MID DET NMLZ+cattle-3POSS DET horses gather+STAT DEM DEM 1SG.ABS work-MID
+3.2 60	John Lyon	word gloss	I.fell.in.with the ones.who.work.with.cattle the cattle the horses all that there I worked
+3.2 60	John Lyon	translation	‘ “I fell in with a cattle ranch, and horses, all of that. There is where I worked.” ’
+3.2 61	Kiláwnaʔ	surface	“taɬt mypnun ya···ʕt iʔ stim̓ iʔ ksxʔkínəm iʔ st̓əmʕált iʔ sənkɬc̓aʔsqáx̌aʔ.”
+3.2 61	John Lyon	parse	√taɬ+t √my+p-nu-nt-n √yaʕ+t iʔ stim̓ iʔ ks-x+√ʔkín-m iʔ s+√t̓m(=)ʕált iʔ s(+)√nk(=)ɬc̓aʔ(+)s(+)√qáx̌aʔ
+3.2 61	John Lyon	gloss	straight+STAT know+INCH-manage.to-DIR-1SG.ERG gather+STAT DET what DET FUT-DRV+do.what-MID DET NMLZ+cattle DET horses
+3.2 61	John Lyon	word gloss	sure I.learned.it every thing that how.to.do.something the cattle the horses
+3.2 61	John Lyon	translation	‘ “I learned everything about how to look after cows and horses.” ’
+3.2 62	Kiláwnaʔ	surface	“ilíʔ iksk̓ʷxʷsqáx̌aʔm uɬ iksʔəʔamnáməlx uɬ ixíʔ yaʕt mypnun.”
+3.2 62	John Lyon	parse	ilíʔ in-ks-√k̓ʷxʷ+s+√qáx̌aʔ-m uɬ in-ks-ʔ•√ʔamn-ám-lx uɬ ixíʔ √yaʕ+t √my+p-nu-nt-n
+3.2 62	John Lyon	gloss	DEM 1SG.POSS-FUT-untie+NMLZ+horse-MID CONJ 1SG.POSS-FUT-C1•feed-MID-3PL CONJ DEM gather+STAT know+INCH-manage.to-DIR-1SG.ERG
+3.2 62	John Lyon	word gloss	there I.would.take.saddles.off and I.would.feed.them and then everything I.learned.it
+3.2 62	John Lyon	translation	‘ “There I’d take saddles off horses, and I’d feed them, and that’s all I learned about.” ’
