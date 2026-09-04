@@ -841,3 +841,19 @@ footnote 19	John Lyon	note	There is no question marker ha in this sentence, but 
 3.2 80	John Lyon	gloss	1SG.POSS-horse DET NMLZ+fast+NMLZ+horse-3POSS STAT-LOC+tied DET OBL LOC+stand.in.line+NMLZ+horse+INS DEM 2SG.POSS-FUT-steal-APPL-MID LOC night
 3.2 80	John Lyon	word gloss	my.horse the fast.horse is.tied.up the barn that you.will.steal.it at tonight
 3.2 80	John Lyon	translation	‘ “My race horse it is tied up at the barn. You’re going to steal it tonight.” ’
+3.2 81	Kiláwnaʔ	surface	“lut t̓ náq̓ʷəməntxʷ, x̌lap kʷ ikʕácíw̓səm.”
+3.2 81	John Lyon	parse	lut t̓ √náq̓ʷ-m-nt-xʷ x̌lap kʷ in-ks-k+√ʕác=íw̓s-m
+3.2 81	John Lyon	gloss	NEG NEG.EMPH steal-APPL-DIR-2SG.ERG tomorrow 2SG.ABS 1SG.POSS-FUT-RES+tie=middle-MID
+3.2 81	John Lyon	word gloss	not you.steal.it tomorrow you I.will.hang
+3.2 81	John Lyon	translation	‘ “If you don’t steal it, I will hang you tomorrow,” the chief said.’
+3.2 82	Kiláwnaʔ	surface	cut iʔ tətwít, “way̓ ixíʔ n̓ín̓w̓iʔs náq̓ʷəmən.”
+3.2 82	John Lyon	parse	cut iʔ t(•)√twít way̓ ixíʔ n̓ín̓w̓iʔs √náq̓ʷ-m-nt-n
+3.2 82	John Lyon	gloss	say DET boy yes DEM in.a.while steal-APPL-DIR-1SG.ERG
+3.2 82	John Lyon	word gloss	he.said the boy yes that in.a.while I.will.steal.it
+3.2 82	John Lyon	translation	‘The boy said “Yes, okay, I will steal it.” ’
+3.2 83	Kiláwnaʔ	surface	nkʷkʷʔac iʔ ylmíxʷəm iʔ səxʷk̓ʷəl̓k̓ʷúl̓əms, xʷʔit aɬíʔ xʷúyləx iʔ l sənt̓əwstsqáx̌aʔtən uɬ xəlxlákəkəlx.
+3.2 83	John Lyon	parse	n(+)kʷ(•)kʷʔac iʔ ylmíxʷm iʔ sxʷ+k̓ʷl̓•√k̓ʷúl̓-m-s xʷʔit aɬíʔ √xʷúy-lx iʔ l s+n+√t̓wst+s+√qáx̌aʔ+tn uɬ xl•√xlák•k-lx
+3.2 83	John Lyon	gloss	night DET chief DET OCC+C1C2.PL•work-MID-3POSS many COMP go-3PL DET LOC NMLZ+LOC+stand.in.line+NMLZ+horse+INS CONJ C1C2.PL•whirl•C2.LC-3PL
+3.2 83	John Lyon	word gloss	night the chief the his.workers many they.went the in barn and they.all.sat.around
+3.2 83	John Lyon	translation	‘At night, the chief’s workers were there, there’s a lot of them, they went in the barn and they all sat around.’
+footnote 20	John Lyon	note	The form xəlxlákəkəlx literally means “they were turning around”, but several speakers I have consulted say it can also mean ‘sitting around in a circle’, in cases where a room is full.
