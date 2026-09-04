@@ -439,3 +439,28 @@ footnote 17	John Lyon	note	Nellie Guitterez switches to English for the rest of 
 3.1	Kiláwnaʔ	surface	ilíʔ uɬ ʔəɬʔíɬənləx l ɬkʷkʷʕast. cus aʔ lʕíws, “way̓, xʷuyx k̓l sənkʕkʕákaʔtən mi k̓ʷƛ̓əntíxʷ iʔ q̓ʷʕaylqs, mat way̓ k̓iyt!” o, taɬt uɬ k̓iyt. xʷuy, axáʔ ckɬaxʷp iʔ q̓ʷʕaylqs iʔ l sənkʕkʕákaʔtən. tk̓ʷəƛ̓ntis, t̓iɬx iʔ q̓ʷʕaylqs, “ha kʷu yaʕp?” “kʷu yaʕp! kiw̓, isqʷsíʔaʔ ckʔx̌ilməstəms!”
 3.1	Kiláwnaʔ	surface	ixíʔ xʷuy, ʔiɬən, ʔəɬʔíɬənləx. nstils “iʔ q̓ʷʕaylqs, way̓ úɬiʔ way̓ way̓, kaʔɬís.” cus iʔ tətwít “way̓, way̓ kʷ ƛ̓xʷup, way̓ kʷu ƛ̓xʷúpəntxʷ.”
 3.1	Kiláwnaʔ	surface	ixíʔ kiʔ way̓ ism̓áy̓m̓ay̓. iskʷíst kiʔláwnaʔ.
+3.2 1	Kiláwnaʔ	surface	iskʷíst kiʔláwnaʔ.
+3.2 1	John Lyon	parse	in-s(+)√kʷíst kiʔláwnaʔ
+3.2 1	John Lyon	gloss	1SG.POSS-name grizzly.bear
+3.2 1	John Lyon	word gloss	my.name grizzly.bear
+3.2 1	John Lyon	translation	‘My name is Grizzly Bear.’
+3.2 2	Kiláwnaʔ	surface	ismsámaʔ skʷist Andrew McGinnis.
+3.2 2	John Lyon	parse	in-sm•√sámaʔ s(+)√kʷist Andrew McGinnis
+3.2 2	John Lyon	gloss	1SG.POSS-C1C2.PL•white.person name Andrew McGinnis
+3.2 2	John Lyon	word gloss	my.white.person’s name Andrew McGinnis
+3.2 2	John Lyon	translation	‘My white person’s name is Andrew McGinnis.’
+3.2 3	Kiláwnaʔ	surface	kiw̓ kn ksm̓ay̓míxaʔx ixíʔ q̓sá···pi t sm̓aʔm̓áy.
+3.2 3	John Lyon	parse	kiw̓ kn ks-√m̓ay̓-míxaʔx ixíʔ q̓sápi t s+m̓aʔ•√m̓áy
+3.2 3	John Lyon	gloss	yes 1SG.ABS FUT-tell-INCEPT DEM long.ago OBL NMLZ+C1C2.PL•tell
+3.2 3	John Lyon	word gloss	yes I am.going.to.tell.about this long.ago story
+3.2 3	John Lyon	translation	‘Yes, I’m going to tell you an old time story.’
+3.2 4	Kiláwnaʔ	surface	way̓ aláʔ ɬə taxʷsámaʔ, iʔ ylmíxʷəm, kmúsməs iʔ tl sqʷsíʔs.
+3.2 4	John Lyon	parse	way̓ aláʔ ɬ taxʷ+√sámaʔ iʔ ylmíxʷm, k(+)mús(•)√ms iʔ tl s+√qʷsíʔ-s
+3.2 4	John Lyon	gloss	yes DEM before have+white.person DET chief four[human] DET LOC NMLZ+son-3POSS
+3.2 4	John Lyon	word gloss	yes here before with.white.people the chief four the from his.sons
+3.2 4	John Lyon	translation	‘Here, before the white people came, there was a chief, he had four sons.’
+3.2 5	Kiláwnaʔ	surface	ʔəɬʔíɬənləx iʔ l sk̓laxʷ, wiʔwiʔcínləx.
+3.2 5	John Lyon	parse	ʔɬ•√ʔíɬn-lx iʔ l s+√k̓laxʷ, wiʔ•√wiʔ=cín-lx.
+3.2 5	John Lyon	gloss	C1C2.PL•eat-3PL DET LOC NMLZ+evening C1C2.PL•finish=food-3PL
+3.2 5	John Lyon	word gloss	they.ate the in evening they.finished.eating
+3.2 5	John Lyon	translation	‘They had supper and finished eating.’
