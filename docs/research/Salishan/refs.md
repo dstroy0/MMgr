@@ -188,7 +188,7 @@ The difference from the Lyon papers matters more than the size of it. There the 
 
 That also puts a floor under the whole method. A paper this old cannot be verified in both directions, because one direction has no sound source to verify against. What `oracle_check.py` reports on it is the distance between a page and its OCR, which is worth having and is not the same measurement it makes elsewhere.
 
-One defect the paper exposed in the check itself. `oracle_check.bare()` strips `?` as punctuation, and this orthography and the 1983 typescript's both write the glottal stop as `?`. So `?ə` bares to `ə` and a word with a glottal stop cannot be told from one without. It is the same class as the apostrophe case the hand extraction already found, and it wants a per-paper answer rather than a global one, so nothing has been changed.
+One defect the paper exposed in the check itself. `oracle_check.bare()` strips `?` as punctuation, and this orthography and the 1983 typescript's both write the glottal stop as `?`. So `?ə` bares to `ə` and a word with a glottal stop cannot be told from one without. It is the same class as the apostrophe case the hand extraction already found. The answer has to be per paper, since `?` is punctuation in every other paper here, so nothing has been changed.
 
 Page 6 of that paper is a comparative appendix in Upper Chehalis and Cowlitz, thirteen sentences of two other Salishan languages. The table names each of them in its own column so a reader cannot put them in a Lushootseed corpus.
 
