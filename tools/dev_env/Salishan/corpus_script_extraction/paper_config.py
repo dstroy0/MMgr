@@ -35,7 +35,7 @@
 
 from glyph_names import decoded as glyph_names_decoded
 from mary_george_repair import repaired as mary_george_repaired
-from repairs import composed, one_mark, sequence
+from repairs import composed, corrected, one_mark, sequence
 from salish_marking import TEXT_SPACE
 from whitespace import any_of, closed_after_bracket, closed_after_marks, stacked_but_not
 
@@ -132,6 +132,80 @@ HALL_CTR = SHARED + "̣" + "áéíóúè" + "́" + "ǰθ"
 # Davis and Mellesmoen on St'át'imcets reduplication. The caron is its x̌, the dot below its
 # retracted vowels, and √ opens 27 root citations carrying nothing else a check could see.
 DAVIS_MELLESMOEN = SHARED + "̣̌́̀" + "áíú" + "ɣ√ǰθ"
+
+# The marks this paper's extraction dropped outright, put back. Every one of these is a word whose
+# combining mark is gone from the text while the space the typesetter made room for stays, and no
+# rule reaches them: this paper writes l followed by a space for both l̓ and a plain l at a real
+# boundary, and l=ta=q̓íl q-s=a is the second of those.
+#
+# Provenance is one of two things and there is no third. Four pairs were read by symbol_sift.py,
+# which finds a restoration the paper itself writes elsewhere and reports the rate a random mark
+# reaches it: xʷəlp, qʷal út twice, and Secwep emctsín, at scores of 160.9 and 75.9 against a chance
+# rate of 0.136. The rest were read off rendered pages, and the page is named on each line.
+#
+# Order matters. The longer contexts come first, because qʷəl -qʷal út has to be taken before
+# qʷal út or the second fires inside the first and leaves it half repaired.
+DAVIS_MELLESMOEN_DROPPED = (
+    # Read by symbol_sift from the paper's own second printing of the word.
+    ("xʷəlp-í<p>l əx", "xʷəlp-í<p>l̓əx"),
+    ("qʷə-qʷəl -qʷal út", "qʷə-qʷəl̓-qʷal̓út"),
+    ("qʷəl -qʷə-qʷal út", "qʷəl̓-qʷə-qʷal̓út"),
+    ("qʷəl -qʷal út", "qʷəl̓-qʷal̓út"),
+    ("qʷə-qʷal út", "qʷə-qʷal̓út"),
+    ("qʷal ə́<l >t", "qʷal̓ə́<l̓>t"),
+    ("qʷal út", "qʷal̓út"),
+    ("Secwep emctsín", "Secwepemctsín"),
+    ("S kwxwú7mesh", "Skwxwú7mesh"),
+    # Page 13.
+    ("ti  ́pə  ḷ", "típəḷ"),
+    ("tə́<t>pə  l", "tə́<t>pəḷ"),
+    ("k̓ə  ́ḷən", "k̓ə́ḷən"),
+    ("k̓ə̣́́<k̓>l  ən", "k̓ə́<k̓>ḷən"),
+    # Page 14.
+    ("s-k̓ə  ḷ-ə̣́́<l ̣́>c̓aʔ", "s-k̓əḷ-ə́<ḷ̓>c̓aʔ"),
+    ("s-k̓ə  ḷ-íc̓aʔ", "s-k̓əḷ-íc̓aʔ"),
+    ("qḷ-ə ̣́́<l ̣́̓>kaʔ", "qḷ-ə́<ḷ̓>kaʔ"),
+    ("qḷ-a  ́kaʔ", "qḷ-ákaʔ"),
+    # Page 15.
+    ("ṣtə ̣́́<t>əw", "ṣtə́<t>əw"),
+    ("lapḷə̣́́<l ̣́>s", "lapḷə́<ḷ̓>s"),
+    ("lapḷa  ́s", "lapḷás"),
+    ("kḷə̣́́<l ̣́>si", "kḷə́<ḷ̓>si"),
+    ("kḷi  ́si", "kḷísi"),
+    ("ka-mə́<m>l -a", "ka-mə́<m>l̓-a"),
+    ("ta=ṣtu ́h=a", "ta=ṣtụ́h=a"),
+    ("ta=ṣtə ́tw̓=a", "ta=ṣtə́tw̓=a"),
+    ("ta=ṣtə ́t(h)=a", "ta=ṣtə́t(h)=a"),
+    # Page 18.
+    ("q̓ʷə<q̓ʷ>l -ən-ás", "q̓ʷə<q̓ʷ>l̓-ən-ás"),
+    ("kʷu=ḷə ̣́́<ḷ>ạy̓s", "kʷu=ḷə́<ḷ>ạy̓s"),
+    ("n-ká<k>əl -xal", "n-ká<k>əl̓-xal"),
+    # Page 20. mil carries its following quote so the pair cannot fire inside another word.
+    ("q̓í<q̓>ɬil", "q̓í<q̓>ɬil̓"),
+    ("ʕí<ʕ >ƛ̓-əm", "ʕí<ʕ̓>ƛ̓-əm"),
+    ("ƛ̓a ̣́́<ƛ̓>l  -ən", "ƛ̓á<ƛ̓>ḷ-ən"),
+    ("ƛ̓a  ́ḷ-ạn", "ƛ̓áḷ-ạn"),
+    ("n-mí<m>l -ən", "n-mí<m>l̓-ən"),
+    ("mil   ‘", "mil̓   ‘"),
+    ("q̓əɬʔ-ál xən", "q̓əɬʔ-álxən"),
+    ("la-líl təm", "la-líl̓təm"),
+    # Pages 22 and 24, the double pluractionals.
+    ("q̓əy-q̓ə́<q̓>əy-l əx", "q̓əy-q̓ə́<q̓>əy-l̓əx"),
+    ("ɬəʕʷ-ɬʕʷ-í<ʕʷ>l əx", "ɬəʕʷ-ɬʕʷ-í<ʕʷ>l̓əx"),
+    ("ɬəʕʷ-ɬʕʷí-<ʕʷ>l əx", "ɬəʕʷ-ɬʕʷí-<ʕʷ>l̓əx"),
+    # Page 25, the neologisms.
+    ("√ta  ́wən", "√táwən"),
+    ("təw-tə̣́́<t>wən", "təw-tə́<t>wən"),
+    ("pə ̣́y-pə ̣́́<p>y̓ət", "pə́y-pə́<p>y̓ət"),
+    # Page 23, where the extraction breaks a lexical suffix off its own stem.
+    ("ɬəʕʷ-í<ʕ>l əx", "ɬəʕʷ-í<ʕ>l̓əx"),
+    ("k̓ʷs-á<s>l ic̓aʔ", "k̓ʷs-á<s>l̓ic̓aʔ"),
+    ("cə́<c>l əkst", "cə́<c>l̓əkst"),
+    ("məc-xə<x>əl =ɬkán", "məc-xə<x>əl̓=ɬkán"),
+    ("pə mí-<m>l̓əx", "pəmí-<m>l̓əx"),
+    ("pə m-ílx", "pəm-ílx"),
+    ("l=ta=q̓íl q-s=a", "l=ta=q̓ílq-s=a"),
+)
 
 # Every paper, and whose language is in it.
 #
@@ -322,8 +396,12 @@ PAPERS = (
           "St'át'imcets",
           speakers=("Qwa7yán'ak (Carl Alexander), Nxwísten",),
           marks=DAVIS_MELLESMOEN,
+          # The dropped marks go back last, after the other grains and after composition. Each pair
+          # was read off a line that had already been through them, so a pair matches the repaired
+          # text and not the raw text: running it first matched nothing at all.
           repair=sequence(INSERTED_SPACE_AT_ACCENTS, closed_after_bracket(),
-                          one_mark(COMMA_ABOVE_RIGHT, COMMA_ABOVE), composed()),
+                          one_mark(COMMA_ABOVE_RIGHT, COMMA_ABOVE), composed(),
+                          corrected(DAVIS_MELLESMOEN_DROPPED)),
           coverage=("mellesmoen",),
           note="Its data has three sources: van Eijk's dictionary, Davis et al. in preparation, "
                "and elicitation with Carl Alexander. It labels forms (U) and (L) for Upper and "

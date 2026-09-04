@@ -60,6 +60,36 @@ def composed():
     return written
 
 
+def corrected(pairs):
+    """Deletion: marks the extraction dropped, put back from a table read off the page.
+
+    This is the one grain that cannot be derived from the text, and it is here because the damage it
+    repairs is not decidable from the text either. Davis and Mellesmoen prints l followed by a space
+    for both l̓ with its space inserted and a plain l at a real boundary, and q̓íl q-s=a is the second
+    while n-ká<k>əl -xal is the first. No rule separates them.
+
+    So each pair is evidence, not inference, and it comes from one of two places. Some are read by
+    symbol_sift.py, which finds them where the paper prints the same word whole somewhere else and
+    reports the rate a random mark would have scored. The rest are read off a rendered page, and the
+    entry says which page. A pair with neither provenance does not belong in one of these tables.
+
+    The pairs apply in order and the longer contexts come first, because qʷəl -qʷal út has to be
+    taken before qʷal út or the second would fire inside the first and leave it half repaired.
+
+    Both sides of every pair are composed here. A pair is typed into a config file by a person whose
+    keyboard may compose an accent or may not, and this grain runs after composed(), so a pattern
+    left decomposed matches nothing and fails silently. That cost an afternoon on la-líl təm.
+    """
+    held = tuple((unicodedata.normalize("NFC", damaged), unicodedata.normalize("NFC", whole))
+                 for damaged, whole in pairs)
+
+    def written(line):
+        for damaged, whole in held:
+            line = line.replace(damaged, whole)
+        return line
+    return written
+
+
 def sequence(*steps):
     """One paper's repair, as the grains it carries, in the order they have to run.
 

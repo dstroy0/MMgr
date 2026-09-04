@@ -176,10 +176,10 @@ The forms are cited from Thompson and Thompson's grammar and dictionary. These t
 
 * **Qwa7yán'ak (Carl Alexander), Nxwísten**
 
-ICSNL58_Davis_Mellesmoen_final, 201 rows, `ICSNL58_Davis_Mellesmoen_final.oracle.tsv`
+ICSNL58_Davis_Mellesmoen_final, 441 rows, `ICSNL58_Davis_Mellesmoen_final.oracle.tsv`
 
 Its data has three sources: van Eijk's dictionary, Davis et al. in preparation, and elicitation with Carl Alexander. It labels forms (U) and (L) for Upper and Lower St'át'imcets, which is the second external dialect label in the archive.
 
 ---
 
-20 tables, 12102 rows read by hand.
+20 tables, 12342 rows read by hand.

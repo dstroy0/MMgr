@@ -819,6 +819,43 @@ in for it, which is what the Lushootseed border needed and what makes that resul
 So the recipe is one sentence and it has four instances here. Find what the substrate cannot see or
 does not care about, take that as flat, and read the deviation. What is left is what somebody meant.
 
+**Posit: the departure has a band, and a master works inside it.** Zero deviation from the constant is
+a copy and carries nothing, because it is the constant. Maximum deviation is noise and carries nothing
+either, because it is the flat reference itself. Everything readable is between them, and a sculptor
+whose work is called striking is one holding the departure where recognition still fires and has not
+yet tipped into the uncanny. We see ourselves in it, which is the constant, and we see the deviation,
+which is what somebody meant.
+
+The measured analogue is already in this document and is the image row. Uniform noise returns an
+agreement of 0.0050, which is $1/256$ and therefore chance, and has nothing to find. A machine made
+ramp returns 0.9980, is perfectly regular, and is trivial to detect and empty to use. Three paintings
+return 0.02 to 0.30 and sit in the band where a periodicity is both findable and carries a position.
+The ordering of those three was recorded as an observation about detectability. Under this posit it is
+the same statement about where information lives, and the paintings are in the band for the reason the
+sculpture would be.
+
+**They found it without any of this, which is the part that makes it worth recording.** A sculptor
+holding that band derived nothing. The instrument was perception with a feedback loop: they could see
+when it was wrong and adjust, and the optimum is reachable that way by anyone who can see. The theory
+explains what they found and did not guide them to it.
+
+That pattern is already twice in this document. A VHDL community holds a case convention the compiler
+cannot read, at 0.495, and computed no entropy to decide it. Designers place 41 percent of their
+coordinates on a 0.635 mm grid that physics does not prefer, and derived nothing either. In both, a
+population converged on a departure from an indifferent substrate with no access to the quantity being
+departed from. Montemurro and Zanette's word ordering figure is the same thing at the largest scale
+available: bounded near 3.3 bits per word with a relative variability of 0.07 across 7077 texts in
+eight corpora and six language families, held there by speakers who know nothing of entropy.
+
+A quantity that people converge on without being able to state it is evidence the quantity is real and
+not an artifact of the instrument reading it. That is the argument the sculpture case would extend,
+and it is why it is worth testing rather than admiring.
+
+Nothing here has measured a sculpture, or a face, or the uncanny valley, and the posit is recorded as
+a posit. What would test it is a departure scale over one form with a known constant, faces being the
+obvious one, and the prediction is a peak in readable structure strictly between the copy and the
+noise instead of a monotone rise toward either.
+
 **A symbol a bad digitization dropped is recoverable from the distribution, and the document supplies
 its own answer key.** `tools/dev_env/Salishan/anchor_sift_algorithmic_extraction/symbol_sift.py`.
 Some of these PDFs drop a combining mark and leave behind the space the typesetter made room for, so

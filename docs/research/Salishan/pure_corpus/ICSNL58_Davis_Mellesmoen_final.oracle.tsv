@@ -8,7 +8,6 @@ abstract	St'át'imcets	language	Lillooet Salish	the other name the paper gives i
 §1	St'át'imcets	language	át’imcets	the second piece the extraction leaves of the language name
 §1	St'át'imcets	reference	lil	the ISO 639-3 code the paper gives for the language
 §1	Squamish	language	Skwxwú7mesh	the neighbouring language whose terminology Kuipers devised
-§1	Squamish	language	kwxwú7mesh	the piece the extraction leaves of that name in footnote 3, after S
 §1	St'át'imcets	cited form	snək̓ʷnúk̓ʷaʔ	'cousins, relatives, friends', a plural noun with C1C2 reduplication
 §1	St'át'imcets	cited form	sɣəpɣáp	'trees, forest', a plural noun with C1C2 reduplication
 §1	St'át'imcets	cited form	sqʷə́mqʷəm	'mountains, mountain range', a plural noun with C1C2 reduplication
@@ -126,7 +125,7 @@ fn5	St'át'imcets	notation	[w̓]	the segment whose influence rounds the final ve
 (4b)	St'át'imcets	cited form	s-k̓əḷ-ə́<ḷ̓>c̓aʔ	'a small item of buckskin clothing', the diminutive form, read off page 14
 (4c)	St'át'imcets	cited form	paqʷʔ-úɬ	'always afraid', the base form
 (4c)	St'át'imcets	cited form	paqʷʔ-ú<ʔ>ɬ	'scaredy-cat', the diminutive form
-(4d)	St'át'imcets	cited form	qḷ-áka	'clumsy', the base form as page 14 prints it before the glottal stop
+(4d)	St'át'imcets	cited form	qḷ-ákaʔ	'clumsy', the base form, read off page 14
 (4d)	St'át'imcets	cited form	qḷ-ə́<ḷ̓>kaʔ	'a bit clumsy', the diminutive form, read off page 14
 fn6	St'át'imcets	cited affix	-(V)n	the directive transitivizer, sometimes glottalized after the infix
 fn6	St'át'imcets	cited affix	-min	the relation transitivizer, sometimes glottalized after the infix
@@ -138,10 +137,10 @@ fn6	St'át'imcets	cited affix	-min	the relation transitivizer, sometimes glottal
 (5c)	St'át'imcets	cited form	lapḷə́<ḷ̓>s	'little plank or board', the diminutive form, read off page 15
 (5d)	Lower St'át'imcets	cited form	kḷísi	'crazy', a loanword base form, marked (L), read off page 15
 (5d)	Lower St'át'imcets	cited form	kḷə́<ḷ̓>si	'a little crazy', the diminutive form, read off page 15
-(6a)	St'át'imcets	cited example	x̌an̓ ta=s-mə́<m̓>ɬac=a	'The girl got hurt.'
-(6b)	St'át'imcets	cited example	x̌ə́<x̌>ən̓ ta=s-mə́<m̓>ɬac=a	'The girl got a bit hurt.'
+(6a)	St'át'imcets	cited example	x̌an̓  ta=s-mə́<m̓>ɬac=a	'The girl got hurt.'
+(6b)	St'át'imcets	cited example	x̌ə́<x̌>ən̓  ta=s-mə́<m̓>ɬac=a	'The girl got a bit hurt.'
 (7a)	St'át'imcets	cited example	ka-múl-a ta=n-kapúh=a	'My coat got dipped in the water.'
-(7b)	St'át'imcets	cited example	ka-mə́<m>l -a ta=n-kapúh=a	'A bit of my coat got dipped in the water.', as the extraction spaces it
+(7b)	St'át'imcets	cited example	ka-mə́<m>l̓-a ta=n-kapúh=a	'A bit of my coat got dipped in the water.'
 (7b)	St'át'imcets	cited form	ka-mə́<m>l̓-a	'a bit got immersed', the form as page 15 prints it, with the glottalized l
 (8a)	St'át'imcets	cited example	cəs-p  tiʔ kʷu=cəs-p-íc̓aʔ	'That sweater stretched.'
 (8b)	St'át'imcets	cited example	cə́<c>s-əp  tiʔ kʷu=cəs-p-íc̓aʔ	'That sweater stretched a bit.'
@@ -158,12 +157,9 @@ fn7	St'át'imcets	cited form	ta=kapə́pw̓=a	'a little coat, the little coat'
 fn7	Upper St'át'imcets	cited form	ta=ṣtə́tw̓=a	'a little store, the little store'
 fn7	St'át'imcets	impossible	*ta=kapə́p(h)=a	the form the paper says does not occur
 fn7	Upper St'át'imcets	impossible	*ta=ṣtə́t(h)=a	the other form the paper says does not occur
-§2.1.1	St'át'imcets	fragment	́pə	the piece the extraction leaves of típəḷ, whose acute it moves off its vowel
-(1j)	St'át'imcets	fragment	tə́<t>pə	the piece the extraction leaves of the diminutive tə́<t>pəḷ
-(3g)	St'át'imcets	fragment	k̓ə̣́́<k̓>l	the piece the extraction leaves of the diminutive k̓ə́<k̓>ḷən
 (10a)	St'át'imcets	cited example	məc-xál=ɬkan	'I wrote.'
 (10b)	St'át'imcets	impossible	mə<m̓>c-xál=ɬkan	'I wrote a bit.', starred as unacceptable
-(10c)	St'át'imcets	impossible	məc-xə<x>əl =ɬkán	'I wrote a bit.', starred as unacceptable, as the extraction spaces it
+(10c)	St'át'imcets	impossible	məc-xə<x>əl̓=ɬkán	'I wrote a bit.', starred as unacceptable
 (10d)	St'át'imcets	cited example	məc-xál=ɬkan ta=kʷíkʷs=a	'I wrote a bit.', the periphrastic paraphrase
 §2.1.2	St'át'imcets	cited affix	-əm̓	the middle suffix that replaces -xal for some weak roots
 (11a)	St'át'imcets	cited example	pəkʷ-xál=ɬkan  ʔi=c̓x̌ʷút=a	'I poured out the gravel.'
@@ -174,8 +170,8 @@ fn8	St'át'imcets	cited form	cá<c>əy-l̓əx	'crawl, of a child'
 fn8	St'át'imcets	cited form	cáy-ləx	'crawl', the base of cá<c>əy-l̓əx
 fn8	St'át'imcets	cited form	x̌ʷəmí-<m>l̓əx	'hurry a bit more'
 fn8	St'át'imcets	cited form	x̌ʷəm-ílx	'hurry', the base of x̌ʷəmí-<m>l̓əx
-fn8	St'át'imcets	fragment	mí-<m>l̓əx	the piece the extraction leaves of pəmí-<m>l̓əx 'go a bit faster'
-fn8	St'át'imcets	fragment	m-ílx	the piece the extraction leaves of pəm-ílx 'go fast'
+fn8	St'át'imcets	cited form	pəmí-<m>l̓əx	'go a bit faster', with the mark put back from page 16
+fn8	St'át'imcets	cited form	pəm-ílx	'go fast', the base of pəmí-<m>l̓əx
 (12a)	St'át'imcets	cited example	pəʕʷ-xál=ɬkan  l=ta=sə́ps=a	'I knocked on the door.'
 (12b)	St'át'imcets	cited example	pə<p>ʕʷ-əm̓=ɬkán  l=ta=sə́ps=a	'I knocked a little bit on the door.', the translation volunteered
 (13a)	St'át'imcets	cited form	xʷík̓-əm	'cut fish', the base form
@@ -185,8 +181,7 @@ fn8	St'át'imcets	fragment	m-ílx	the piece the extraction leaves of pəm-ílx '
 (14a)	St'át'imcets	cited example	túp-un̓=ɬkan	'I hit him.'
 (14b)	St'át'imcets	cited example	tə́<t>p-ən̓=ɬkan	'I hit him lightly.', the translation volunteered
 (15a)	St'át'imcets	cited example	xʷuz̓  q̓ʷəl-ən-ás  ta=smúɬac=a  ta=c̓íʔ=a	'The woman is going to cook the meat.'
-(15b)	St'át'imcets	cited example	xʷuz̓  q̓ʷə<q̓ʷ>l -ən-ás  ta=smúɬac=a  ta=c̓íʔ=a	'The woman's gonna cook the meat a little bit.', as the extraction spaces it
-(15b)	St'át'imcets	cited form	q̓ʷə<q̓ʷ>l̓-ən-ás	'cook a little bit', the form as page 18 prints it, with the glottalized l
+(15b)	St'át'imcets	cited example	xʷuz̓  q̓ʷə<q̓ʷ>l̓-ən-ás  ta=smúɬac=a  ta=c̓íʔ=a	'The woman's gonna cook the meat a little bit.', with the mark put back from page 18
 §2.1.2	St'át'imcets	cited form	kʷikʷs	'a bit', the periphrastic diminutive
 §2.1.2	St'át'imcets	cited form	k̓ʷík̓ʷənaʔ	'a few', the other periphrastic diminutive
 (16a)	St'át'imcets	cited example	xʷuz̓  q̓ʷəláw̓-ən-as  ta=smúɬac=a  ʔi=scáqʷəm=a	'The woman is going to pick the saskatoon berries.'
@@ -199,15 +194,14 @@ fn8	St'át'imcets	fragment	m-ílx	the piece the extraction leaves of pəm-ílx '
 (17b)	St'át'imcets	impossible	ʔúm̓-ən-c  kʷu=ḷə́<ḷ>ạy̓s	starred as unacceptable, read off page 18
 (18a)	St'át'imcets	cited example	ʔúm̓-ən-c kʷu=k̓ʷík̓ʷənaʔ x̌ʷəl-mín	'Give me a little bit of sawdust.', volunteered
 (18a)	St'át'imcets	cited form	x̌ʷəl-mín	'sawdust'
-(17b)	St'át'imcets	fragment	ḷə̣́́<ḷ>ạy̓s	the piece the extraction leaves of ḷə́<ḷ>ạy̓s
 (18b)	St'át'imcets	impossible	ʔúm̓-ən-c kʷu=x̌ʷəl-mə́<m>ən̓	starred as unacceptable
 §2.1.3	St'át'imcets	cited form	xzum	'big', as the prose of section 2.1.3 writes it without the caron
-§2.2	St'át'imcets	cited form	sk̓ʷú<k̓ʷ>miʔt	'little baby', the diminutive of 'child'
+§2.2	St'át'imcets	cited form	s-k̓ʷú<k̓ʷ>miʔt	'little baby', the diminutive of 'child'
 (19a)	St'át'imcets	cited example	ʕʷə<ʕʷ>y̓ət=kán	'I slept a little bit.'
 (19b)	St'át'imcets	cited example	ʕʷə́<ʕʷ>y̓ət ta=sk̓ʷú<k̓ʷ>miʔt=a	'The little baby slept.'
 (20a)	St'át'imcets	cited example	mə́<m̓>caʔq=ɬkan ʔəɬ xʷúz̓=ɬkan ʔayɬ ʔalkst	'I sat for a while before going back to work.'
 (20b)	St'át'imcets	cited example	mə́<m̓>caʔq ta=sk̓ʷú<k̓ʷ>miʔt=a níɬ=ƛ̓uʔ s=záp̓un[-n]-an	the first line of 'The child sat down and I buckled them in their seat.'
-(20b)	St'át'imcets	cited example	l=ta=q̓íl q-s=a	'in their seat', the second line, as the extraction spaces it
+(20b)	St'át'imcets	cited example	l=ta=q̓ílq-s=a	'in their seat', the second line
 (21a)	St'át'imcets	cited form	n-kám̓-xal	'pick s.t. up', the base form
 (21a)	St'át'imcets	cited form	n-ká<k>əm̓-xal	'pick things up here and there', the pluractional form
 (21b)	Upper St'át'imcets	cited form	súq̓ʷ-ən	'skin an animal', the base form
@@ -227,8 +221,7 @@ fn8	St'át'imcets	fragment	m-ílx	the piece the extraction leaves of pəm-ílx '
 (21i)	St'át'imcets	cited form	síx̌-xal	'move s.t.', the base form
 (21i)	St'át'imcets	cited form	n-sí<s>x̌-əm̓	'move things from one container to another', the pluractional form
 (21j)	St'át'imcets	cited form	ʕíƛ̓-xal	'take a bite', the base form
-(21j)	St'át'imcets	cited form	ʕí<ʕ >ƛ̓-əm̓	'gnaw a hole', as the extraction spaces it
-(21j)	St'át'imcets	cited form	ʕí<ʕ̓>ƛ̓-əm̓	'gnaw a hole', read off page 20, with the glottalized pharyngeal
+(21j)	St'át'imcets	cited form	ʕí<ʕ̓>ƛ̓-əm̓	'gnaw a hole', with the mark put back from page 20
 (21k)	St'át'imcets	cited form	c̓áq-an̓	'pull s.t. out', the base form
 (21k)	St'át'imcets	cited form	c̓á<c̓>q-ən̓	'pluck s.t., a bird', the pluractional form
 (21l)	St'át'imcets	cited form	ƛ̓áḷ-ạn	'bite s.t.', the base form, read off page 20
@@ -244,12 +237,12 @@ fn8	St'át'imcets	fragment	m-ílx	the piece the extraction leaves of pəm-ílx '
 (22f)	St'át'imcets	cited form	ns-ná<n>aʔ	'sneeze', a pluractional with no plain alternant
 (22g)	Upper St'át'imcets	cited form	mi<m̓>x	'move house', marked (U)
 (23a)	St'át'imcets	cited form	xʷəlp-ílx	'turn around', the base form
-(23a)	St'át'imcets	cited form	xʷəlp-í<p>l əx	'turn around and around', as the extraction spaces it
+(23a)	St'át'imcets	cited form	xʷəlp-í<p>l̓əx	'turn around and around', read by symbol_sift from the paper's own second printing
 (23b)	St'át'imcets	cited form	ɬəʕʷ-ílx	'jump', the base form
-(23b)	St'át'imcets	cited form	ɬəʕʷ-í<ʕ>l əx	'jump up and down', as the extraction spaces it
+(23b)	St'át'imcets	cited form	ɬəʕʷ-í<ʕ>l̓əx	'jump up and down', with the mark put back from page 23
 (23c)	St'át'imcets	root	√k̓ʷs	'singe', not attested without reduplication
 (23c)	St'át'imcets	cited affix	-alic̓aʔ	'outer cover', the lexical suffix
-(23c)	St'át'imcets	cited form	k̓ʷs-á<s>l ic̓aʔ	'burn hair or feathers off an animal or bird', as the extraction spaces it
+(23c)	St'át'imcets	cited form	k̓ʷs-á<s>l̓ic̓aʔ	'burn hair or feathers off an animal or bird', with the mark put back from page 23
 (23d)	St'át'imcets	root	√cw̓	'kick', not attested without reduplication
 (23d)	St'át'imcets	cited affix	-usaʔ	'round thing', the lexical suffix
 (23d)	St'át'imcets	cited form	cw̓-ú<w̓>saʔ	'play soccer'
@@ -262,7 +255,7 @@ fn12	St'át'imcets	cited form	x̌ʷayt	'die or perish', the base of x̌ʷá<x̌�
 §2.2.2	St'át'imcets	cited form	qʷú<qʷ>səm̓	'shoot', as section 2.2.2 writes it without the hyphen
 §2.2.2	St'át'imcets	root	√qʷus	'shoot'
 (24)	St'át'imcets	cited example	xʷuz̓   sú<s>q̓ʷ-ən̓-əm  látiʔ  ʔi=s-kʷam<əm>-ɬkáɬ=a  c̓iʔ	'We're going to skin the deer we caught.'
-(25)	St'át'imcets	cited example	cíxʷ=kaɬ  píx̌əm̓, qʷú<qʷ>s-əm̓=ɬkaɬ  látiʔ [kʷu=]cə́<c>l əkst	the first line of 'We went hunting, shot five mountain goats...'
+(25)	St'át'imcets	cited example	cíxʷ=kaɬ  píx̌əm̓, qʷú<qʷ>s-əm̓=ɬkaɬ  látiʔ [kʷu=]cə́<c>l̓əkst	the first line of 'We went hunting, shot five mountain goats...'
 (25)	St'át'imcets	cited example	x̌ʷiƛ̓áz̓,    záy̓-ɬc̓aʔ=ɬkaɬ    ʔayɬ  ʔəɬ    xʷúy̓=ɬkaɬ	the second line of the same sentence
 (25)	St'át'imcets	cited form	zaxən-sqáx̌aʔ	'packed them on horseback', the third line
 (26a)	St'át'imcets	cited form	záq̓il	'peek', the base form
@@ -312,9 +305,9 @@ fn12	St'át'imcets	cited form	x̌ʷayt	'die or perish', the base of x̌ʷá<x̌�
 (33a)	St'át'imcets	cited form	qʷə-qʷal̓út	'talk plural, speak all the time', read by symbol_sift from qʷəqʷal̓út
 (33b)	St'át'imcets	cited form	la-líl̓təm	'adults', initial C1 reduplication with non-initial stress
 (33c)	St'át'imcets	cited form	kə-káw̓	'far', initial C1 reduplication with non-initial stress
-(34)	St'át'imcets	cited example	ɬə mx̌ʷ-ə́<x̌ʷ>s  tiʔ  kʷu=s-k̓ʷú<k̓ʷ>miʔt	'That child's face is a little dirty.', as the extraction spaces it
+(34)	St'át'imcets	cited example	ɬə  mx̌ʷ-ə́<x̌ʷ>s  tiʔ  kʷu=s-k̓ʷú<k̓ʷ>miʔt	'That child's face is a little dirty.', as the extraction spaces it
 (35)	St'át'imcets	cited example	waʔ  p̓kʷ-í<kʷ>l̓əx  ta=n-c̓qáx̌ʔ=a  l=ta=s-q̓áq̓pʔ=a	'My horse is whirling up dust by rolling around in the sand.'
-fn17	St'át'imcets	root	√ɬə mx̌	'dirty', as the extraction spaces it
+fn17	St'át'imcets	root	√ ɬə mx̌	'dirty', as the extraction spaces it, with a gap after the root sign
 fn17	St'át'imcets	cited form	ɬə mx̌ʷ-ús	'dirty face', as the extraction spaces it
 fn17	St'át'imcets	cited affix	-us	'face', the lexical suffix
 fn18	St'át'imcets	cited form	p̓kʷí<kʷ>l̓əx	'whirl up dust', the Upper consultant's form
@@ -430,14 +423,13 @@ References	St'át'imcets	name	St’at’imc	the Upper St'at'imc Language, Cultur
 References	St'át'imcets	name	St’át’imc	the Upper St'át'imc Language Authority
 References	Straits	language	SENĆOŦEN	Saanich, the language Leonard 2019 analyzes
 References	Halkomelem	language	hən’q’əmin’əm’	Musqueam, the language Shaw and colleagues analyze
-References	Secwepemctsin	language	Secwep emctsín	Shuswap, as the extraction splits it in Nakamura 2000
-References	Secwepemctsin	language	Secwepemctsín	the same name whole, read by symbol_sift
+References	Secwepemctsin	language	Secwepemctsín	Shuswap, the language Nakamura 2000 analyzes, split by the extraction and read back by symbol_sift
 References	Comox	language	ʔayʔaǰuθəm	the language Huijsmans and Mellesmoen 2021 analyze
 §2.1.3	St'át'imcets	cited form	xzə́<z>əm̓	'a bit bigger', as section 2.1.3 writes it with the infix marked
 (38b)	St'át'imcets	cited form	s-ɣə<ɣ̓>p	'little tree', the diminutive as example (38b) writes it
 §2.2.2	St'át'imcets	cited form	kál-xal	'follow s.o.', the base of n-ká<k>əl̓-xal
 (23c)	Henry Davis	gloss	√singe	the English gloss set under the root sign in example (23c)
-(23d)	Henry Davis	gloss	√kick	the English gloss set under the root sign in example (23d)
+(23d)	Henry Davis	gloss	kick	the English gloss under √cw̓, which the paper sets without the root sign
 (31a)	Henry Davis	gloss	√throw	the English gloss set under the root sign in example (31a)
 (31b)	Henry Davis	gloss	√visit	the English gloss set under the root sign in example (31b)
 (31c)	Henry Davis	gloss	√fight	the English gloss set under the root sign in example (31c)
@@ -446,51 +438,5 @@ fn15	Henry Davis	name	Bermúdez	the same name, split across a line break by the 
 §3.3.4.1	St'át'imcets	notation	q̓ʷ	the segment candidate (50a) doubles
 (54)	St'át'imcets	notation	əh	the other sequence the constraint bans
 §2.1.1	St'át'imcets	fragment	C1ə-	the prefix as footnote 3 writes it, which the check reads as a form
-(4b)	St'át'imcets	fragment	ḷ-ə̣́́<l	the piece the extraction leaves of s-k̓əḷ-ə́<ḷ̓>c̓aʔ
-(4b)	St'át'imcets	fragment	̣́>c̓aʔ	the tail the extraction leaves of s-k̓əḷ-ə́<ḷ̓>c̓aʔ
-(4d)	St'át'imcets	fragment	́kaʔ	the tail the extraction leaves of qḷ-ákaʔ
-(4d)	St'át'imcets	fragment	qḷ-ə	the head the extraction leaves of qḷ-ə́<ḷ̓>kaʔ
-(4d)	St'át'imcets	fragment	̣́́<l	the middle the extraction leaves of qḷ-ə́<ḷ̓>kaʔ
-(4d)	St'át'imcets	fragment	̣́̓>kaʔ	the tail the extraction leaves of qḷ-ə́<ḷ̓>kaʔ
 (5a)	Henry Davis	gloss	jacket’7	'light jacket' with the footnote marker welded on by the extraction
-(5b)	Upper St'át'imcets	fragment	ṣtə	the head the extraction leaves of ṣtə́<t>əw̓
-(5b)	Upper St'át'imcets	fragment	̣́́<t>əw̓	the tail the extraction leaves of ṣtə́<t>əw̓
-(5c)	St'át'imcets	fragment	́s	the tail the extraction leaves of lapḷás
-(5c)	St'át'imcets	fragment	lapḷə̣́́<l	the head the extraction leaves of lapḷə́<ḷ̓>s
-(5c)	St'át'imcets	fragment	̣́>s	the tail the extraction leaves of lapḷə́<ḷ̓>s
-(5d)	Lower St'át'imcets	fragment	́si	the tail the extraction leaves of kḷísi
-(5d)	Lower St'át'imcets	fragment	kḷə̣́́<l	the head the extraction leaves of kḷə́<ḷ̓>si
-(5d)	Lower St'át'imcets	fragment	̣́>si	the tail the extraction leaves of kḷə́<ḷ̓>si
-fn7	Upper St'át'imcets	fragment	́h=a	the tail the extraction leaves of ta=ṣtụ́h=a
-fn8	St'át'imcets	fragment	pə	the head the extraction leaves of pəmí-<m>l̓əx and pəm-ílx
-(17b)	St'át'imcets	fragment	kʷu=ḷə	the head the extraction leaves of kʷu=ḷə́<ḷ>ạy̓s
-(17b)	St'át'imcets	fragment	̣́́<ḷ>ạy̓s	the tail the extraction leaves of kʷu=ḷə́<ḷ>ạy̓s
-(21d)	St'át'imcets	fragment	n-ká<k>əl	the head the extraction leaves of n-ká<k>əl̓-xal
-(21f)	St'át'imcets	fragment	q̓í<q̓>ɬil	the piece the extraction leaves of q̓í<q̓>ɬil̓
-(21l)	St'át'imcets	fragment	ƛ̓a	the head the extraction leaves of ƛ̓áḷ-ạn
-(21l)	St'át'imcets	fragment	́ḷ-ạn	the tail the extraction leaves of ƛ̓áḷ-ạn
-(21l)	St'át'imcets	fragment	̣́́<ƛ̓>l	the middle the extraction leaves of ƛ̓á<ƛ̓>ḷ-ən̓
-(21l)	St'át'imcets	fragment	-ən̓	the tail the extraction leaves of ƛ̓á<ƛ̓>ḷ-ən̓
-(22a)	St'át'imcets	fragment	n-mí<m>l	the head the extraction leaves of n-mí<m>l̓-ən
-(26c)	St'át'imcets	fragment	q̓əy-q̓ə́<q̓>əy-l	the head the extraction leaves of q̓əy-q̓ə́<q̓>əy-l̓əx
-(29a)	St'át'imcets	fragment	ɬəʕʷ-ɬʕʷ-í<ʕʷ>l	the head the extraction leaves of ɬəʕʷ-ɬʕʷ-í<ʕʷ>l̓əx
-(29b)	St'át'imcets	fragment	ɬəʕʷ-ɬʕʷí-<ʕʷ>l	the head the extraction leaves of ɬəʕʷ-ɬʕʷí-<ʕʷ>l̓əx
-(30b)	St'át'imcets	fragment	kʷ=s=q̓əy-q̓ə́<q̓>əy-l	the head the extraction leaves of the (30b) form
-(30b)	St'át'imcets	fragment	əx=s	the tail the extraction leaves of the (30b) form
-(31b)	St'át'imcets	fragment	√ta	the head the extraction leaves of √táwən
-(31b)	St'át'imcets	fragment	́wən	the tail the extraction leaves of √táwən
-(31b)	St'át'imcets	fragment	təw-tə̣́́<t>wən̓	the piece the extraction leaves of təw-tə́<t>wən̓
-(31c)	St'át'imcets	fragment	̣́y-pə	the middle the extraction leaves of pə́y-pə́<p>y̓ət
-(31c)	St'át'imcets	fragment	̣́́<p>y̓ət	the tail the extraction leaves of pə́y-pə́<p>y̓ət
-(33a)	St'át'imcets	fragment	qʷə-qʷal	the head the extraction leaves of qʷə-qʷal̓út
-(33a)	St'át'imcets	fragment	út	the tail the extraction leaves of qʷal̓út
-(33b)	St'át'imcets	fragment	la-líl	the head the extraction leaves of la-líl̓təm
-(33b)	St'át'imcets	fragment	təm	the tail the extraction leaves of la-líl̓təm
-(36c)	St'át'imcets	fragment	qʷal	the head the extraction leaves of qʷal̓út
-(36c)	St'át'imcets	fragment	ə́<l	the middle the extraction leaves of qʷal̓ə́<l̓>t
-(37b)	St'át'imcets	fragment	qʷəl	the head the extraction leaves of qʷəl̓-qʷal̓út
-(37b)	St'át'imcets	fragment	-qʷal	the tail the extraction leaves of qʷəl̓-qʷal̓út
-(37b)	St'át'imcets	fragment	qʷə-qʷəl	the head the extraction leaves of qʷə-qʷəl̓-qʷal̓út
-(37b)	St'át'imcets	fragment	-qʷə-qʷal	the tail the extraction leaves of qʷəl̓-qʷə-qʷal̓út
-§2.1.1	St'át'imcets	fragment	ən	the piece the extraction leaves of k̓ə́<k̓>ḷən
 §3.1.2	St'át'imcets	fragment	ʔ	the glottal stop standing alone where the extraction split a form
