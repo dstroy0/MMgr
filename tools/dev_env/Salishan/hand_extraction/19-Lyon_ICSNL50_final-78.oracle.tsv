@@ -800,3 +800,18 @@ footnote 18	John Lyon	note	Andrew McGinnis says that he meant to say ‘flour’
 3.2 72	John Lyon	gloss	say yes yes EVID COMP 1SG.ABS FUT-tell-REFL-INCEPT NEG NEG.EMPH good+STAT 1SG.POSS-NMLZ-CUST-know+INCH=information
 3.2 72	John Lyon	word gloss	he.said yes yes guess I will.tell not good what.I.learned
 3.2 72	John Lyon	translation	‘He said “Yes. Okay, I guess I’ll tell. But it is not good what I’ve learned.” ’
+3.2 73	Kiláwnaʔ	surface	cut, “kn xʷu·····y lkʷut, kcníw̓sən iʔ kəwkáwboy, xʷʔítəlx. nák̓ʷəms iʔ cnáq̓ʷxəlx.”
+3.2 73	John Lyon	parse	cut kn xʷuy √lkʷ=ut √kcn=íw̓s-nt-n iʔ kw•káwboy √xʷʔít-lx √nák̓ʷm-s iʔ c-√náq̓ʷ-x-lx
+3.2 73	John Lyon	gloss	say 1SG.ABS go far=place fall.in.with=middle-DIR-1SG.ERG DET C1C2.PL•cowboy many-3PL EVID-3POSS DET CUST-steal-INTR-3PL
+3.2 73	John Lyon	word gloss	he.said I went far.away I.fell.in.with some cowboys many.of.them it.turned.out that they.were.stealing
+3.2 73	John Lyon	translation	‘The boy said “I went a long ways, I fell in with some cowboys, a lot of them. It turned out they were stealing things.” ’
+3.2 74	Kiláwnaʔ	surface	“taɬt xʔítəlx iʔ l snaq̓ʷ. t̓i iʔ xiʔmíx stim̓ uɬ x̌mínksəlx uɬ náq̓ʷəmsəlx.”
+3.2 74	John Lyon	parse	√taɬ+t √xʔít-lx iʔ l s+√naq̓ʷ t̓i iʔ √xiʔ(=)míx stim̓ uɬ √x̌mínk-nt-slx uɬ √náq̓ʷ-m-nt-slx
+3.2 74	John Lyon	gloss	straight+STAT best-3PL DET LOC NMLZ+steal EMPH DET whatever what CONJ want-DIR-3PL.ERG CONJ steal-APPL-DIR-3PL.ERG
+3.2 74	John Lyon	word gloss	sure they.were.the.best the at stealing just whatever thing and they.wanted.it and they.stole.it
+3.2 74	John Lyon	translation	‘ “They’re good thieves. Just whatever they wanted, they’d steal it.” ’
+3.2 75	Kiláwnaʔ	surface	“taɬt xʔítləx. ixíʔ iscmypənwíɬən.”
+3.2 75	John Lyon	parse	√taɬ+t √xʔít-lx ixíʔ in-s-c-√my+p=nwíɬn
+3.2 75	John Lyon	gloss	straight+STAT best-3PL DEM 1SG.POSS-NMLZ-CUST-know+INCH=information
+3.2 75	John Lyon	word gloss	sure best that what.I.learned
+3.2 75	John Lyon	translation	‘ “They were really good thieves. That’s what I learned.” ’
