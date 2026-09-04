@@ -554,3 +554,28 @@ footnote 17	John Lyon	note	Nellie Guitterez switches to English for the rest of 
 3.2 23	John Lyon	gloss	go-3PL go-3PL far•C2.LC-3PL know+INCH-manage.to-DIR-3PL.ERG
 3.2 23	John Lyon	word gloss	they.went they.went they.were.getting.far.away they.learned.it
 3.2 23	John Lyon	translation	‘They were going, going along getting farther away, and they found out how others lived.’
+3.2 24	Kiláwnaʔ	surface	ixíʔ iʔ sxʔitx tac k̓l nʔíƛ̓ltk.
+3.2 24	John Lyon	parse	ixíʔ iʔ s+√xʔit-x tac k̓l n+√ʔíƛ̓l(=)tk
+3.2 24	John Lyon	gloss	DEM DET NMLZ+first-INTR over LOC LOC+north
+3.2 24	John Lyon	word gloss	that the oldest over to north
+3.2 24	John Lyon	translation	‘The oldest one went towards the north.’
+3.2 25	Kiláwnaʔ	surface	kic iʔ sck̓ʷəl̓st̓əmʕáltəm, nkɬc̓aʔsqáx̌aʔ.
+3.2 25	John Lyon	parse	kic iʔ s-c-√k̓ʷl̓+s+√t̓m(=)ʕált-m, √nk(=)ɬc̓aʔ(+)s(+)√qáx̌aʔ
+3.2 25	John Lyon	gloss	arrive DET NMLZ-CUST-work+NMLZ+cattle-MID horses
+3.2 25	John Lyon	word gloss	get.there the ones.who.work.with.cattle horses
+3.2 25	John Lyon	translation	‘He got to a place he could learn about raising cattle and horses.’
+3.2 26	Kiláwnaʔ	surface	ixíʔ ilíʔ iʔ sk̓ʷúl̓əms.
+3.2 26	John Lyon	parse	ixíʔ ilíʔ iʔ s+√k̓ʷúl̓-m-s
+3.2 26	John Lyon	gloss	DEM DEM DET NMLZ+work-MID-3POSS
+3.2 26	John Lyon	word gloss	then there what he.worked.at
+3.2 26	John Lyon	translation	‘And he worked there.’
+3.2 27	Kiláwnaʔ	surface	ya···ʕt iʔ stim̓ mypnús, t ksq̓əy̓sqáx̌aʔs yaʕt, k̓ʷxʷsqáx̌aʔ.
+3.2 27	John Lyon	parse	√yaʕ+t iʔ stim̓ √my+p-nú-nt-s t ks-√q̓y̓+s+√qáx̌aʔ-s √yaʕ+t √k̓ʷxʷ+s+√qáx̌aʔ
+3.2 27	John Lyon	gloss	gather+STAT DET what know+INCH-manage.to-DIR-3ERG OBL FUT-write+NMLZ+horse-3POSS gather+STAT untie+NMLZ+horse
+3.2 27	John Lyon	word gloss	every thing he.found.out.about branding.a.horse everything taking.a.saddle.off
+3.2 27	John Lyon	translation	‘He learned about everything, how to brand a horse and everything, and how to take the saddle off the horse.’
+3.2 28	Kiláwnaʔ	surface	yaʕt iʔ stim̓ mypnús iʔ k̓l st̓əmʕált, iʔ k̓l sənkɬc̓aʔsqáx̌aʔ.
+3.2 28	John Lyon	parse	√yaʕ+t iʔ stim̓ √my+p-nú-nt-s iʔ k̓l s+√t̓m(=)ʕált, iʔ k̓l s+√nk(=)ɬc̓aʔ(+)s(+)√qáx̌aʔ
+3.2 28	John Lyon	gloss	gather+STAT DET what know+INCH-manage.to-DIR-3ERG DET LOC NMLZ+cattle DET LOC NMLZ+horses
+3.2 28	John Lyon	word gloss	every thing he.found.out the about cattle the about horses
+3.2 28	John Lyon	translation	‘He learned everything about cattle, and about horses.’
