@@ -349,3 +349,33 @@ footnote 15	John Lyon	note	The surname Tisem is unusual, and its correct spellin
 2.2 27	John Lyon	gloss	say-DIR-PASS EVID DET OBL black=robe yes we’ll pass the we’ll pass the time
 2.2 27	John Lyon	word gloss	he.was.told they.say the by priest yes we’ll pass the we’ll pass the time
 2.2 27	John Lyon	translation	‘The priest told Smokey “Yes, we’ll pass the. . . we’ll pass the time.” ’
+2.2 28	Nellie Guitterez	surface	cúntəm kʷukʷ “way̓ x̌ast.”
+2.2 28	John Lyon	parse	√cún-nt-m kʷukʷ way̓ √x̌as+t
+2.2 28	John Lyon	gloss	say-DIR-PASS EVID yes good+STAT
+2.2 28	John Lyon	word gloss	he.was.told they.say yes that’s.good
+2.2 28	John Lyon	translation	‘The priest told him “That’s good.” ’
+2.2 29	Nellie Guitterez	surface	ixíʔ smaʔmscúts.
+2.2 29	John Lyon	parse	ixíʔ s-√maʔm-scút-s.
+2.2 29	John Lyon	gloss	DEM NMLZ-play.cards-REFL-3POSS
+2.2 29	John Lyon	word gloss	and.then they.played.cards
+2.2 29	John Lyon	translation	‘And then they played cards.’
+2.2 30	Nellie Guitterez	surface	cúntəm kʷukʷ “mat kʷ ksʔítx, way̓.”
+2.2 30	John Lyon	parse	√cún-nt-m kʷukʷ mat kʷ ks-√ʔítx way̓
+2.2 30	John Lyon	gloss	say-DIR-PASS EVID EPIS 2SG.ABS have-sleep yes
+2.2 30	John Lyon	word gloss	he.was.told they.say must.be you are.sleepy yes
+2.2 30	John Lyon	translation	‘The priest told him “You must be sleepy, yeah.” ’
+2.2 31	Nellie Guitterez	surface	cut kʷukʷ atáʔ Smokey Tisem “way̓ kn ksʔitx, mat nixʷ anwí kʷ ksʔitx.”
+2.2 31	John Lyon	parse	cut kʷukʷ atáʔ Smokey Tisem way̓ kn ks-√ʔitx mat nixʷ anwí kʷ ks-√ʔitx
+2.2 31	John Lyon	gloss	say EVID DEM Smokey Tisem yes 1SG.ABS have-sleep EPIS also 2SG.INDEP 2SG.ABS have-sleep
+2.2 31	John Lyon	word gloss	he.said they.say here Smokey Tisem yes I am.sleepy must.be also you you are.sleepy
+2.2 31	John Lyon	translation	‘Then Smokey Tisem said “Yes, I’m sleepy, you must be sleepy too.” ’
+2.2 32	Nellie Guitterez	surface	ixíʔ cus, cus kʷukʷ “way̓ ilíʔ mi kʷ ɬq̓ilx məɬ aláʔ incákn.”
+2.2 32	John Lyon	parse	ixíʔ √cun-nt-s √cun-nt-s kʷukʷ way̓ ilíʔ mi kʷ √ɬq̓+ilx mɬ aláʔ incá-kn
+2.2 32	John Lyon	gloss	DEM say-DIR-3ERG say-DIR-3ERG EVID yes DEM FUT.COMP 2SG.ABS lay.down+AUT CONJ DEM 1SG.INDEP-1SG.ABS
+2.2 32	John Lyon	word gloss	then he.told.him he.told.him they.say yes there will you lay.down and.then here I
+2.2 32	John Lyon	translation	‘Smokey told the priest “You lay down over there and I’ll lay down here.” ’
+2.2 33	Nellie Guitterez	surface	“Not too close apart. ” cus kʷukʷ “Alright. ”
+2.2 33	John Lyon	parse	not too close apart √cun-nt-s kʷukʷ alright
+2.2 33	John Lyon	gloss	not too close apart say-DIR-3ERG EVID alright
+2.2 33	John Lyon	word gloss	not too close apart he.told.him they.say alright
+2.2 33	John Lyon	translation	‘ “Not too close apart.” Smokey told him “That’s alright.”
