@@ -69,6 +69,20 @@ HILBERT_HESS = "?ə" + "čšɬƛᶻʷ" + "̌̓"
 # and the shared set does not carry it, so /x̣əƛ’ would be found by its ƛ and x̣aw by nothing at all.
 ROBERTSON = SHARED + "̣čš"
 
+# Wolfe is a comparative reconstruction and its forms are affixes, not words, so the marks have to
+# reach a suffix written entirely in plain letters with one accent on it. =álus and =áləs carry
+# nothing of the shared set and are Sechelt and Songish for 'eye'.
+#
+# The accents are given both ways on purpose. The check composes to NFC before it looks, so á
+# arrives as one character and never as an acute, while ə́ has no composed form and keeps its acute
+# standing on its own. Carrying only the composed vowels loses every ə́ in the paper, and carrying
+# only the combining acute loses every á.
+#
+# ε and έ are the Greek epsilon and the Greek epsilon with tonos, and both are in the paper beside
+# the IPA ɛ. The author writes Cw =ən̓έʔ with the Greek letter and Cw =ɛ́n̓əʔ with the IPA one, so a
+# set holding one of them reads half the Halkomelem data as English.
+WOLFE = SHARED + "ʸːɛεέŋᶿθǰčšĺ" + "áéíóú" + "̌́"
+
 # Papers whose text extraction is not what the page says. Both of these are TeX Type1 with a custom
 # encoding and no ToUnicode map. pypdf and pypdfium2 lose the same things: the page prints
 # cítxʷsəlx uɬ ti nyʕip and the text holds cítxws@lx uì ’ti ny ’Qip, with the ejective mark landing
@@ -149,4 +163,14 @@ EVERY = (
      "CharleyAlexisMayoos-WilliamCelestin_BCIndigenousPeoplesChinukPipaScript_Robertson"
      "_Salish_nlekepmxcin-secwepemctsin_2012_mixed.txt",
      robertson, ROBERTSON),
+    # No speaker slot on this one. Every form in it is cited from a published dictionary of one of
+    # eighteen languages, so there is nobody the corpus is of, and the who column carries the
+    # language instead. A reader has to split on that column: the forms are Sliammon, Sechelt,
+    # Squamish, Halkomelem, Straits, Klallam, Lushootseed, Twana, Tillamook and Tsamosan together,
+    # and pouring them into one pure corpus would build a corpus of no language at all.
+    ("WolfeICSNL60.oracle.tsv",
+     "WolfeICSNL60",
+     "unstated_LexicalSuffixesAndConnectivesInProtoCentralSalishAndBeyond_Wolfe"
+     "_Salish_centralsalish_2025_mixed.txt",
+     closed_spaces, WOLFE),
 )

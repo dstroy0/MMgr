@@ -135,6 +135,14 @@ PAIRS = (
      "CharleyAlexisMayoos-WilliamCelestin_BCIndigenousPeoplesChinukPipaScript_Robertson"
      "_Salish_nlekepmxcin-secwepemctsin_2012_mixed.txt", ("glyph names", "line joins"),
      MARKED + PRACTICAL + "̓̔̕ʷ˽" + "̣čš"),
+    # Wolfe compares suffixes across eighteen languages, and most of what it prints is a suffix in
+    # plain letters carrying one accent. =álus and =áləs hold nothing of the shared set, so the
+    # accents are in the marks both composed and combining: the check composes to NFC before it
+    # looks, which turns á into one character while ə́ has no composed form and keeps its acute.
+    ("WolfeICSNL60",
+     "unstated_LexicalSuffixesAndConnectivesInProtoCentralSalishAndBeyond_Wolfe"
+     "_Salish_centralsalish_2025_mixed.txt", ("inserted spaces",),
+     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ʸːɛεέŋᶿθǰčšĺ" + "áéíóú" + "̌́"),
 )
 
 

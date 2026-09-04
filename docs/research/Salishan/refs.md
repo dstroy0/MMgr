@@ -42,6 +42,8 @@ A twelfth, `2012_Robertson`, now has both. `extract_robertson.py` reads it, `cov
 
 A thirteenth, `1975_Hilbert_Hess`, is read by hand and has no reader. `papers.py` carries it so `oracle_check.py` grades it, and `reader_check.py` lists it under the papers waiting for one. The section on papers whose extracted text is not the page says why a reader for it would have nothing sound to read.
 
+A fourteenth, `WolfeICSNL60`, is a different shape from all of them and has both. It is a comparative reconstruction, so instead of one speaker telling one story it cites lexical suffixes from published dictionaries of eighteen languages, laid out in columns under a two-letter abbreviation. Its hand extraction is 772 rows and verifies in both directions with nothing left over. The section below on what a pure corpus is for says why it writes a `.pure.tsv` keyed by language where every other reader writes a flat `.pure.txt`.
+
 Nothing here needs fetching by hand. `python tools/dev_env/Salishan/get_papers.py` reads the archive index, downloads these eleven and converts them. Every address below was checked; the local filename in `build/papers/` is the PDF's own name.
 
 | Paper | Reader | PDF |
@@ -57,6 +59,7 @@ Nothing here needs fetching by hand. `python tools/dev_env/Salishan/get_papers.p
 | 12 more Upper Nicola Okanagan narratives. Lindley and Lyon. 2013 | `extract_lindley_lyon.py` | `https://lingpapers.sites.olt.ubc.ca/files/2018/01/2013_Lindley_Lyon.pdf` |
 | Poking Fun in Lushootseed. Vi taqʷšəblu Hilbert. ICSNL 1983 | `extract_hilbert.py` | `https://lingpapers.sites.olt.ubc.ca/files/2018/03/1983_Hilbert.pdf` |
 | A Comparative Analysis of Stress in Northern and Southern Lushootseed. Mellesmoen and Kye. ICSNL 61 | `extract_mellesmoen_kye.py` | `https://lingpapers.sites.olt.ubc.ca/files/2026/07/Mellesmoen_Kye_ICSNL61.pdf` |
+| Lexical Suffixes and Connectives in Proto-Central Salish and Beyond. Wolfe. ICSNL 60, 2025 | `extract_wolfe.py` | `https://lingpapers.sites.olt.ubc.ca/files/2025/07/WolfeICSNL60.pdf` |
 
 Each reader writes into `build/corpora/`: the marked record, a `.pure.txt` holding only target-language speech, a `.unclassifiable.tsv` listing what it could not type, and for the two Lyon papers a `.words.txt` giving the word forms recovered from the interlinear.
 
@@ -66,7 +69,7 @@ Records are named speaker first: `<spoken by>_<paper>_<who wrote it down>_Salish
 
 The reader is not the source of the corpus. Each paper is read by a person into `tools/dev_env/Salishan/hand_extraction/<paper>.oracle.tsv`, which says for every form in the paper what it is, and the reader is graded against that.
 
-Nine of the eleven verify against their paper in both directions: no form written that the paper does not hold, no token in the paper that no row covers. The other two are the papers whose extracted text is not what the page says, and both are now read off the rendered pages in full. The section after this one is about them and about what their remaining disagreements measure.
+Ten of the fourteen verify against their paper in both directions: no form written that the paper does not hold, no token in the paper that no row covers. The other four are the papers whose extracted text is not what the page says, and what their remaining disagreements measure is the damage in that text. The two sections after this one are about them.
 
 Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-04. "Asked for" is how many distinct written forms the rows yield, which is the denominator for the column beside it. "Invented" is a form the reader put in the corpus that no row asks for.
 
@@ -85,8 +88,11 @@ Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-
 | Lindley and Lyon, 2013 | 653 | 653 | 312 not found, 996 invented, 198 typed differently |
 | Robertson, 2012 | 195 | 193 | 92 not found, of which 59 are prose the reader does not read |
 | Hilbert and Hess, 1975 | 74 | 74 | no reader written yet |
+| Wolfe, ICSNL 60 | 772 | 678 | 153 not found, of which most is front matter and section prose the reader does not read; 224 invented, 0 in the wrong language |
 
 Only Mellesmoen and Kye reproduces its table.
+
+Wolfe is the one whose wrong-language column matters most, because it is the only paper here holding more than two languages. It reads zero. The `who` column carries the language on every row and the reader keys its output to the same column, so a Sechelt suffix cannot arrive in the Twana data by falling through a branch.
 
 `2013_Lindley_Lyon` is read off the rendered pages: all twelve texts, both the running transcription and the interlinear, with the footnotes, free translations, commentary, the appendix paradigms and the abbreviation list. What remains is 46 forms the table holds that the draft does not, and 37 strings in the draft that no row holds. All 83 fall in one of the five classes the section below names, which makes the count a measurement of the draft.
 
@@ -272,6 +278,10 @@ What is left of the 13 percent is the inserted space: a word arrives in pieces a
 
 The purity of both sources is the constraint everything else answers to. The target is the Salishan ingestion and the contarget is the English reference, and a boundary drawn between two distributions says nothing about the languages if either side is holding something other than what it claims.
 
+**A paper holding eighteen languages has no single pure stream, and Wolfe is the first one here that does.** Every other reader writes a `.pure.txt` of one language, because every other paper is one speaker telling one story. Wolfe cites lexical suffixes from published dictionaries of Sliammon, Sechelt, Squamish, three kinds of Halkomelem, three kinds of Straits, Klallam, Lushootseed, Twana, Tillamook, Quinault and two Tsamosan languages. Pouring those into one file builds a corpus of no language at all, and it would be a corpus the sift is then measured against, which is the one place that mistake cannot be recovered from. So `extract_wolfe.py` writes a `.pure.tsv` with the language in the first column and no flat pure file, and `language_check.BY_CORPUS` has no entry for the paper, so nothing joins an anchor by accident.
+
+Two further things are held out of that file. A reconstruction is a form the author worked out and nobody has ever said one, which is the distinction `salish_marking` already draws between a transcription and a segmentation line, applied to a proto-form. And the predicted reflexes of Tables 6 and 8, which give for each language the form expected if the reconstruction was stressed, the form expected if it was not, and the form actually attested; the extraction does not keep those three columns apart reliably, so all of them are held out. Nothing is lost by that, because the attested forms of both tables are printed again in examples (1) and (6) where the columns are unambiguous.
+
 The oracles can also be turned on themselves. Every one of them is verified against its own paper, so they should agree with each other about what these languages look like, and one of them can be measured against the rest of them taken together as the contarget. A row that sits oddly against everything else verified is one of two things: a slip in the transcription, or a real property of that paper nobody has noticed. Both are worth opening the paper for, and neither is visible from inside one table.
 
 The leave-one-out shape of that now runs at the language level. `corpus_derivation.py` measures each dialect against the other five pooled as contarget, which is the question the sift is actually asked, and all six stand off the pool. It does not yet run per row, which is what would name a paper to open.
@@ -339,7 +349,7 @@ Recordings named in papers and not published with them:
 
 ## Text sources
 
-`build/papers/` holds 152 extracted paper texts and 146 of the PDFs they came from. Twelve have a reader and a hand extraction and one more has a hand extraction alone, so 139 of the 152 are unread and 841 of the archive's 993 are not fetched. Six of the 146 are in the class the section above describes, and their texts are the font's encoding.
+`build/papers/` holds 152 extracted paper texts and 146 of the PDFs they came from. Thirteen have a reader and a hand extraction and one more has a hand extraction alone, so 138 of the 152 are unread and 841 of the archive's 993 are not fetched. Six of the 146 are in the class the section above describes, and their texts are the font's encoding.
 
 Fifty of them are about Lushootseed or Skagit. The heaviest, by how much they discuss it, are `Mellesmoen_Kye_ICSNL61.txt`, `Beck_2007.txt`, `1994_Beck.txt`, `1995_Beck.txt`, `1998_Cort.txt`, `2000_Barthmaier.txt`, `1996_Beck.txt`, `ICSNL58_Kye_final.txt`, `01_ICSNL55_Beck_final.txt` and `2002_Lonsdale.txt`. `1983_Hilbert.txt` is in that set.
 
