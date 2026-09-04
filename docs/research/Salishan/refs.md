@@ -40,6 +40,8 @@ Eleven papers, each read by its own file in `tools/dev_env/Salishan/corpus_scrip
 
 A twelfth, `2012_Robertson`, now has both. `extract_robertson.py` reads it, `coverage_check.py` puts it at 100 percent like the other eleven, and both hand-extraction checks grade it.
 
+A thirteenth, `1975_Hilbert_Hess`, is read by hand and has no reader. `papers.py` carries it so `oracle_check.py` grades it, and `reader_check.py` lists it under the papers waiting for one. The section on papers whose extracted text is not the page says why a reader for it would have nothing sound to read.
+
 Nothing here needs fetching by hand. `python tools/dev_env/Salishan/get_papers.py` reads the archive index, downloads these eleven and converts them. Every address below was checked; the local filename in `build/papers/` is the PDF's own name.
 
 | Paper | Reader | PDF |
@@ -82,6 +84,7 @@ Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-
 | Lyon, ICSNL 50 | 1417 | 1413 | 1037 not found, 2134 invented, 193 in the wrong dialect |
 | Lindley and Lyon, 2013 | 653 | 653 | 312 not found, 996 invented, 198 typed differently |
 | Robertson, 2012 | 195 | 193 | 92 not found, of which 59 are prose the reader does not read |
+| Hilbert and Hess, 1975 | 74 | 74 | no reader written yet |
 
 Only Mellesmoen and Kye reproduces its table.
 
@@ -169,6 +172,26 @@ One thing the extraction is better evidence for than the rendered page. The tran
 
 `get_papers.py` applies the same test inside `converted()` and writes a `.unfaithful` file beside the text naming the fonts. It fires only when a PDF is converted, and conversion skips any PDF that already has text beside it, so the 146 already on disk carry no such file. The table above was produced by running the same test over them directly.
 
+### A scanned typescript is a worse case than any font
+
+`1975_Hilbert_Hess` carries no font problem at all. It is a 1975 typescript, scanned, and what sits in `build/papers/` is OCR of the scan. Page 1 prints
+
+> kʷa? ləcux̌əčadadid dxʷ?al ti?ə? s?acuss (h)əlgʷə? dəxʷx̌əbil ?ə ti?ə?.
+
+and the text holds
+
+> kWa? lacuXacadadid dxW?al ti?a? s?acuss (h)algWa? daxwxabil ?a ti?a?
+
+Every schwa is `a`, every raised `ʷ` is `W`, the wedge over `x` is gone, and `sudᶻigʷicuts` comes through as `sudZigWiOltS`. The six pages give 200 forms the table holds that the text does not.
+
+The difference from the Lyon papers matters more than the size of it. There the damage is a font's renumbering, which is deterministic: one code always stands for one glyph, so a table inverts it and `lyon_encoding.py` is that table. Here the damage is a reader guessing at shapes on a scan, and `sudᶻigʷicuts` to `sudZigWiOltS` is not a substitution anything can run backwards. There is nothing to build. The hand extraction is not a check on the extraction for this paper, it is the only correct record of it.
+
+That also puts a floor under the whole method. A paper this old cannot be verified in both directions, because one direction has no sound source to verify against. What `oracle_check.py` reports on it is the distance between a page and its OCR, which is worth having and is not the same measurement it makes elsewhere.
+
+One defect the paper exposed in the check itself. `oracle_check.bare()` strips `?` as punctuation, and this orthography and the 1983 typescript's both write the glottal stop as `?`. So `?ə` bares to `ə` and a word with a glottal stop cannot be told from one without. It is the same class as the apostrophe case the hand extraction already found, and it wants a per-paper answer rather than a global one, so nothing has been changed.
+
+Page 6 of that paper is a comparative appendix in Upper Chehalis and Cowlitz, thirteen sentences of two other Salishan languages. The table names each of them in its own column so a reader cannot put them in a Lushootseed corpus.
+
 ### The delta is a mutation probability distribution
 
 Everything above treats the damage as a hazard to route around. It is also the one calibrated mutation sample in the archive, and the damaged text is kept for that reason.
@@ -247,6 +270,8 @@ What is left of the 13 percent is the inserted space: a word arrives in pieces a
 
 The purity of both sources is the constraint everything else answers to. The target is the Salishan ingestion and the contarget is the English reference, and a boundary drawn between two distributions says nothing about the languages if either side is holding something other than what it claims.
 
+The oracles can also be turned on themselves. Every one of them is verified against its own paper, so they should agree with each other about what these languages look like, and one of them can be measured against the rest of them taken together as the contarget. A row that sits oddly against everything else verified is one of two things: a slip in the transcription, or a real property of that paper nobody has noticed. Both are worth opening the paper for, and neither is visible from inside one table. Nothing does this yet, and it needs enough oracles for the contarget side to mean something.
+
 Once each dialect's corpus is pure, the dialects become each other's contargets. A boundary drawn between Nsyilxcən and Nɬeʔkepmxcín is a claim about where one ends and the other begins, and it is worth drawing because of what sits near it: forms that two dialects share and a third has lost, which is where onomatopoeia that has gone out of one of them would show.
 
 **That comparison has to run on a sound representation in binary, not on the characters.** These orthographies write the same sound differently and the difference is arbitrary. The lateral fricative is `ɬ` in one paper here and `ł` in another. The glottal stop is `ʔ` in most and the digit `7` in the van Eijk papers. Labialization is a raised `ʷ` in some and a plain `w` in others. A model counting character bigrams reads two dialects that share a word as maximally far apart, because it is measuring the transcriber and not the speaker. Encoding each segment as its features and comparing those is what makes the distance a fact about the languages.
@@ -306,7 +331,7 @@ Recordings named in papers and not published with them:
 
 ## Text sources
 
-`build/papers/` holds 152 extracted paper texts and 146 of the PDFs they came from. Eleven have a reader and a hand extraction. The rest are being built. Six of the 146 are in the class the section above describes, and their texts are the font's encoding.
+`build/papers/` holds 152 extracted paper texts and 146 of the PDFs they came from. Twelve have a reader and a hand extraction and one more has a hand extraction alone, so 139 of the 152 are unread and 841 of the archive's 993 are not fetched. Six of the 146 are in the class the section above describes, and their texts are the font's encoding.
 
 Fifty of them are about Lushootseed or Skagit. The heaviest, by how much they discuss it, are `Mellesmoen_Kye_ICSNL61.txt`, `Beck_2007.txt`, `1994_Beck.txt`, `1995_Beck.txt`, `1998_Cort.txt`, `2000_Barthmaier.txt`, `1996_Beck.txt`, `ICSNL58_Kye_final.txt`, `01_ICSNL55_Beck_final.txt` and `2002_Lonsdale.txt`. `1983_Hilbert.txt` is in that set.
 
