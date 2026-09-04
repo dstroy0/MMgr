@@ -35,7 +35,9 @@ import sys
 import unicodedata
 
 from font_repair import repaired_line
+from glyph_names import decoded
 from inserted_space import closed_spaces
+from line_breaks import joined
 from mellesmoen_kye_repair import repaired as mellesmoen_repaired
 from salish_marking import MARKED, PRACTICAL, unligatured
 from salish_unsorted import is_language_token
@@ -126,6 +128,13 @@ PAIRS = (
      "MarthaLamont-AnnieJack_AComparativeAnalysisOfStressInNorthernAndSouthernLushootseed"
      "_MellesmoenKye_Salish_lushootseed_2026_mixed.txt", ("mellesmoen",),
      MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ǰᶻθáíúàìù" + "̌́̀"),
+    # Robertson's extractor printed the glyph names it could not resolve, so the source is decoded
+    # before either side is counted. His Americanist symbols add č, š and a dot under an x, and the
+    # dot is a combining mark the shared set does not carry.
+    ("2012_Robertson",
+     "CharleyAlexisMayoos-WilliamCelestin_BCIndigenousPeoplesChinukPipaScript_Robertson"
+     "_Salish_nlekepmxcin-secwepemctsin_2012_mixed.txt", ("glyph names", "line joins"),
+     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "̣čš"),
 )
 
 
@@ -193,6 +202,8 @@ def prepared(line, repairs, vocabulary=None):
         line = closed_spaces(line)
     if "mellesmoen" in repairs:
         line = mellesmoen_repaired(line)
+    if "glyph names" in repairs:
+        line = decoded(line)
     if vocabulary:
         line = joined_words(line, vocabulary)
     return line
@@ -214,19 +225,29 @@ def marked_tokens(text, marks=MARKS):
 
 
 def source_tokens(path, repairs, vocabulary=None, marks=MARKS):
-    """The language tokens of a paper, with the page each was first seen on."""
+    """The language tokens of a paper, with the page each was first seen on.
+
+    Read whole where the reader put words back together across a line break, because that repair
+    cannot be applied a line at a time. Robertson's extraction breaks /ncéweʔ as /n above céweʔ,
+    the reader welds it, and a check reading one line at a time reported the half it could see as a
+    hole the extraction had no way to hold.
+    """
+    with open(path, encoding="utf-8", errors="replace") as handle:
+        lines = [one.rstrip("\n") for one in handle]
+    if "line joins" in repairs:
+        lines = joined(lines)[0]
+
     held = {}
     where = {}
     page = 0
-    with open(path, encoding="utf-8", errors="replace") as handle:
-        for line in handle:
-            found = PAGE.match(line.strip())
-            if found:
-                page = int(found.group(1))
-                continue
-            for token, times in marked_tokens(prepared(line, repairs, vocabulary), marks).items():
-                held[token] = held.get(token, 0) + times
-                where.setdefault(token, page)
+    for line in lines:
+        found = PAGE.match(line.strip())
+        if found:
+            page = int(found.group(1))
+            continue
+        for token, times in marked_tokens(prepared(line, repairs, vocabulary), marks).items():
+            held[token] = held.get(token, 0) + times
+            where.setdefault(token, page)
     return held, where
 
 
