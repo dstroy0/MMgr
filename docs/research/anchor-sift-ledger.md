@@ -786,6 +786,82 @@ separable without the rules. Knowing them is what makes a null that deletes one 
 the rule is not refuted in general; it is refuted wherever the constraints are unknown, which is where
 it was tested.
 
+**Where the substrate is indifferent, the whole of the departure from maximum entropy is intention,
+and three measurements in this document are that one measurement.** This is the sharpest case of the
+argument above, because the constant does not have to be estimated. A substrate that accepts every
+option equally is already at maximum entropy by construction, so the flat reference is exact and free,
+and everything measured above it was put there on purpose by a person.
+
+VHDL is the cleanest instance and this document already holds it. The language is case insensitive,
+so `ENTITY` and `entity` are one token and no program can distinguish them. The substrate is not
+merely permissive, it is blind. The share of long uppercase runs is 0.495 all the same, third of
+eighteen languages. Nothing in the machine can read that 0.495, so all of it is a community holding a
+convention for other people.
+
+A board layout is the same measurement in another domain. A coordinate may hold any value the format's
+precision allows, the fabricator accepts it and physics prefers none, so the reference is flat by
+physical law. Designers place on a grid regardless: KiCad returns 0.389 on 0.05 mm and EAGLE 0.414 on
+25 mil, an eighteenfold difference on the imperial grid with the same physics, the same format
+capability and the same copper. The departure is not a fact about circuits and there is nothing else
+it can be a fact about.
+
+Whitespace in C is the third. The language ignores its own whitespace outright, so folding it changes
+nothing a compiler sees, and folding it moves $H_2$ by 0.187 bits. That 0.187 is the authored layer,
+measured as the difference between what the machine reads and what the author wrote.
+
+The subject-word result is the same shape with an estimated reference instead of a given one. Gap
+dispersion above one returns `begat`, `Sancho`, `aventura` and never `the`, `and`, `of`, with no
+stopword list, no grammar and no dictionary. The grammar is the constant every sentence in the
+language orbits, so flattening it out leaves what the text is about. Where the substrate hands over
+its own indifference the reference is exact; where it does not, the pooled distribution has to stand
+in for it, which is what the Lushootseed border needed and what makes that result the harder one.
+
+So the recipe is one sentence and it has four instances here. Find what the substrate cannot see or
+does not care about, take that as flat, and read the deviation. What is left is what somebody meant.
+
+**A symbol a bad digitization dropped is recoverable from the distribution, and the document supplies
+its own answer key.** `tools/dev_env/Salishan/anchor_sift_algorithmic_extraction/symbol_sift.py`.
+Some of these PDFs drop a combining mark and leave behind the space the typesetter made room for, so
+one word arrives as two tokens. A paper long enough to print a word twice prints it once whole and
+once broken, and that pair is a labelled example nobody had to supply: Davis and Mellesmoen sets
+`xʷəlp-í<p>l̓əx` in section 2.2.2 and `xʷəlp-í<p>l əx` in example (23).
+
+Scoring is the radix again. Run counts over the tokens that carry no break are flattened to maximum
+entropy, and a candidate restoration is scored on how far its runs sit from where a flat distribution
+would put them, so a run common everywhere contributes nothing and what is left is the part belonging
+to that restoration. On this paper the correct Salish restoration scores 160.5 and the one English
+case, `S kwxwú7mesh` to `Skwxwú7mesh`, scores -20.9, against a rate of 0.120 for a mark drawn at
+random from the paper's own inventory landing on an attested form.
+
+Two of that paper's roughly twenty-five damaged sites are readable this way and the tool reports the
+bound rather than hiding it. A word printed once and broken once has no second printing to check
+against, so it is not recoverable by attestation and still needs the page. The method is exact where
+it applies and silent where it does not, which is the same shape as Proposition 1.
+
+The precedent is already here. `font_substitution.py` scores a candidate mapping by how many mutated
+tokens become forms attested in a clean paper, and it moved attested tokens from 1 of 3599 to 811 on
+one paper and 2 of 4332 to 965 on the other. That is the same instrument with a coarser score.
+
+**Two things that follow and that nobody has run.** Both are predictions and neither is measured.
+
+Recovering a dropped symbol means reading the channel that dropped it. A channel with a per-source
+signature is therefore identifiable from the same residual, and handwriting is such a channel: a
+scanned manuscript is a distortion of a known alphabet, the distortion is systematic per writer, and
+the deviation from the pooled letter distribution is what a writer's hand is. The corpus half of this
+document already separates the message from its code, at Zipf -1.185 against -1.183 under a permuted
+code table where relabeling cannot change how often a word recurs, and brevity at -0.652 against
+-0.550 where at most 0.10 of it is the code's assignment. A writer is a code and the text is a
+message, so that separation is the one this would rest on.
+
+Prosody is the same argument on the sound side, and the field is already built.
+`sound_representation/perceived_sound.py` keeps prosody separate from the segment field precisely
+because a field made shift invariant would put a stressed form and an unstressed one at one address,
+and it holds loudness, pitch against the speaker's own median, how that pitch is moving, and voicing.
+Pitch against the speaker's own median is a per-speaker constant subtracted, which is the center of
+mass again, so what remains in that field is the orbit. Whether the orbit identifies the speaker has
+not been asked. What is measured is that the field separates sources at all: whale 0.44, dawn chorus
+0.45 and wolf 0.49 against 0.56 and 0.72 for two human recordings, without overlap.
+
 **Partial knowledge of the boundaries is enough, and that is Proposition 1 and not a new claim.**
 Knowing that a thing exists and knowing some of its boundaries, not necessarily all of them, is
 sufficient to discriminate. Proposition 1 says any subset of a pattern's points is a necessary
