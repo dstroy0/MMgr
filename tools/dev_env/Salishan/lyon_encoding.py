@@ -34,16 +34,21 @@
 import re
 import unicodedata
 
-# The mark the extraction prints in front of the letter it belongs over.
-EJECTIVE = "̓"
+# The marks the extraction prints in front of the letter they belong over, against the combining
+# mark each one is. ’ is glottalization and is most of them.
+#
+# ´ turns up only where the font has no precomposed letter to carry the accent. á é í ó ú arrive
+# whole, and the schwa does not, so lasy´@t is the page's lasyə́t and is the one word in this paper
+# that needs it.
+MOVED = {"’": "̓", "´": "́"}
 
-# What the glyph codes stand for, one for one, wherever they appear.
+# What the glyph codes stand for, one for one, wherever they appear in a Salish token. ; was in this
+# table until níkmən; showed that it is not one for one: see lengthened().
 LETTERS = (
     ("@", "ə"),
     ("ì", "ɬ"),
     ("Q", "ʕ"),
     ("ň", "ƛ"),
-    (";", "·"),
 )
 
 # The wedge arrives before its letter as well, and only ever sits on x here.
@@ -55,18 +60,19 @@ LABIALIZED = "kqxgɣʕǰč"
 
 
 def moved_marks(token):
-    """One token with each ’ carried onto the letter it was printed in front of.
+    """One token with each spacing mark carried onto the letter it was printed in front of.
 
-    Called only for a token salish() answered for. In the English the same character is an
-    apostrophe and follows its letter, and moving it turns Lyon’s into Lyons̓.
+    Called only for a token salish() answered for. In the English the same ’ is an apostrophe and
+    follows its letter, and moving it turns Lyon’s into Lyons̓.
     """
     out = []
     at = 0
     while at < len(token):
         symbol = token[at]
-        if (symbol == "’") and ((at + 1) < len(token)) and token[at + 1].isalpha():
+        combining = MOVED.get(symbol)
+        if (combining is not None) and ((at + 1) < len(token)) and token[at + 1].isalpha():
             out.append(token[at + 1])
-            out.append(EJECTIVE)
+            out.append(combining)
             at += 2
             continue
         out.append(symbol)
@@ -83,7 +89,7 @@ def moved_marks(token):
 # this, so a wedge that stood on an x is a combining caron by the time the test reads it, and the
 # standalone ˇ catches one that stood anywhere else. Writing the pair as the string "x̌" put a bare x
 # in the set and made every English word holding one Salish.
-MARKS = "̌ˇ@ìQňáéíóú"
+MARKS = "̌ˇ@ìQň·áéíóú"
 
 # A gloss token is plain ASCII, apart from the ligatures the PDF sets its f-words with. The whole
 # gloss of one morpheme is one token, so go-n-dip.ﬂuid-MID-3SG.POSS is a single string and the one ﬂ
@@ -132,14 +138,41 @@ def salish(token):
     # letter is the apostrophe of Lyon’s and Society’s.
     if token.startswith("’"):
         return True
-    # The length mark, which always has the letter it lengthens after it: wu;;;;;t is wu·····t. A ;
-    # at the end of a token is the sentence's semicolon and what carries it is English.
-    if any((token[at] == ";") and token[at + 1].isalpha() for at in range(len(token) - 1)):
-        return True
     # A glottal stop standing alone, left by a break the PDF put in front of it, as ixí P is.
     if token == "P":
         return True
     return "P" in token[1:]
+
+
+def lengthened(line):
+    """One line with ; read as the length mark where the letter it lengthens follows it.
+
+    Lyon writes length with a raised dot and the font gives it the semicolon's code, so ya;Qt is
+    ya·ʕt and ’qsá;;;pi is q̓sá···pi. He also ends a clause with a semicolon, and the page prints
+    ník ’m@n; iP k ’wúl ’m@ns, where a run mapped without asking makes a word of níkmən·.
+
+    Run over the whole line, before the tokens are split, because the mark survives the inserted
+    space and the test needs to see across it. qw@mí;; ’wt is one word: the run is followed by a
+    space and then the ’ that the space was inserted in front of. níkmən; is followed by a space and
+    a plain letter, which is the sentence carrying on.
+    """
+    out = []
+    at = 0
+    while at < len(line):
+        if line[at] != ";":
+            out.append(line[at])
+            at += 1
+            continue
+        end = at
+        while (end < len(line)) and (line[end] == ";"):
+            end += 1
+        after = line[end:end + 2]
+        # The letter it lengthens, either straight after the run or across one inserted space.
+        carries = bool(after) and (after[0].isalpha()
+                                   or ((after[0] == " ") and (len(after) > 1) and (after[1] == "’")))
+        out.append(("·" * (end - at)) if carries else line[at:end])
+        at = end
+    return "".join(out)
 
 
 def labialized(line):
@@ -166,17 +199,24 @@ def drafted(line):
     The wedge goes first and over the whole line: ˇx is x̌ in the Salish and appears nowhere else,
     and it is what makes a token look Salish to the test that follows.
 
-    LETTERS runs on a Salish token only. Its codes are ordinary characters elsewhere, and ; is the
+    The length mark goes over the whole line too, and for the same reason: lengthened() has to see
+    across the inserted space to tell qw@mí;; ’wt from níkmən; iP.
+
+    LETTERS runs on a Salish token only. Its codes are ordinary characters elsewhere, and ; was the
     one that showed it: Lyon ends a clause with a semicolon in his English, and mapping the line
     without asking turned long ago over there; we came into over there· we came.
     """
     for before, after in WEDGE:
         line = line.replace(before, after)
+    line = lengthened(line)
     held = []
     for token in line.split(" "):
         if salish(token):
-            token = moved_marks(token).replace("P", "ʔ")
+            # LETTERS first. moved_marks carries a mark onto the letter after it and asks whether
+            # that letter is one, and @ is not: lasy´@t kept its acute standing in front until the
+            # schwa was a schwa.
             for before, after in LETTERS:
                 token = token.replace(before, after)
+            token = moved_marks(token).replace("P", "ʔ")
         held.append(token)
     return unicodedata.normalize("NFC", labialized(" ".join(held)))
