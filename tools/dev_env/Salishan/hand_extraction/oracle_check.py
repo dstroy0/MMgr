@@ -32,6 +32,11 @@ while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "
 PAPERS = os.path.join(ROOT, "build", "papers")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
+# The hand extractions are evidence and not tooling, so they live in the research body beside the
+# prose that cites them. The language in them belongs to the people who spoke it, and their names
+# open every table and the README beside them.
+ORACLES = os.path.join(ROOT, "docs", "research", "Salishan", "pure_corpus")
+
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "corpus_script_extraction"))
 
 from salish_unsorted import is_language_token  # noqa: E402
@@ -322,7 +327,7 @@ def main():
     failed = 0
     waiting = []
     for name, stem, record, repair, marks in EVERY:
-        table = os.path.join(HERE, name)
+        table = os.path.join(ORACLES, name)
         # A paper whose extraction is the font's encoding is checked against the drafted page text
         # instead, because the extraction is not what the paper says and comparing against it only
         # asks whether the table copied the damage correctly.

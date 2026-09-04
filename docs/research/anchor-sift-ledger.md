@@ -743,6 +743,62 @@ of a lookup: forward it maps a symbol to an advance, backward it maps one read t
 that read kills. Section 4.9.4 of the paper says an in-order walk collects between 3% and 99% of that
 set, so the reverse direction is where the uncollected refutation is, and nothing here has walked it.
 
+**Why the center of mass row loses, and it is the equilibrium argument arriving from the other side.**
+The center of mass of the field is the constant the arrangement orbits, so pulling the anchor toward it
+moves the anchor toward the quantity that carries no arrangement and away from the only part that does.
+The mechanism was built to reduce variance and what it reduces is the signal, which is why it is 2% to
+42% worse and never better.
+
+That is the same statement this document already makes about the background. Maximum entropy under a
+constraint is equilibrium, a shuffle is the equilibrium state of a corpus, and the measured departure
+from it is the whole of the arrangement information. The center of mass is that equilibrium computed
+per field instead of per corpus. Reorienting toward it is therefore reorienting toward the null, and a
+mechanism that moves toward its own null has nothing left to read.
+
+It also predicts the two results that already hold. The largest value wins because it is the furthest
+point from the center, meaning the largest departure. The counterfactual credit wins at 13.2% because it
+computes what every offset would have earned, which is the distribution of departures and not their
+mean. Both are readings of the orbit; every mechanism in the losing table is a reading of the center or
+a memory of it.
+
+The corpus work reached the same shape independently. Comparing whole distributions between two
+Lushootseed dialects failed at 1469 and 2768 bytes against a method resolving at 6707, and flattening the
+pooled counts to maximum entropy and testing one run at a time found the border at `ə́`, southern 45
+against northern 6, beaten by 1 of 200 random borders. Flattening the pooled counts is subtracting the
+constant. What was left was the deviation, and the deviation was the dialect.
+
+This is an explanation of measured rows and not a new measurement. What it predicts and nobody has run:
+a mechanism scoring an anchor by its distance from the field's center of mass, instead of by its raw
+value, should track the largest-value rule and should beat it wherever the field's center drifts.
+
+**Where the constant is given, the method works immediately, and that is what separates chemistry from
+language here.** A domain that states its own rules hands over the constant. Bond lengths, valence and
+angles are the invariant a molecule orbits, so the deviation is available without having to be
+constructed, and a null can delete one property while holding the others. A domain that states nothing
+gives no such reference, and the constant has to be built out of the data before anything can be
+measured against it. Flattening the pooled counts to maximum entropy is that construction, and the
+Lushootseed border came out of it.
+
+That is also the missing piece under the protein row. This document records the rule that a null must
+delete the property being asked about, and records it as refuted, because scattering the positions
+destroyed the geometry and the composition together and the two nulls were not separable. They are not
+separable without the rules. Knowing them is what makes a null that deletes one thing constructible, so
+the rule is not refuted in general; it is refuted wherever the constraints are unknown, which is where
+it was tested.
+
+**Partial knowledge of the boundaries is enough, and that is Proposition 1 and not a new claim.**
+Knowing that a thing exists and knowing some of its boundaries, not necessarily all of them, is
+sufficient to discriminate. Proposition 1 says any subset of a pattern's points is a necessary
+condition, with no order, no dimension and no alphabet, so a partial constraint set is still sound and
+loses no true occurrence. What incomplete knowledge costs is selectivity and never correctness, which
+is the same division this document draws everywhere else: soundness belongs to the construction and
+cost belongs to the domain.
+
+It is why the corpus work can proceed without knowing the phonology. The mark set for a paper is a
+partial boundary, established one paper at a time and never complete, and it discriminates anyway. A
+narrower set reads fewer tokens and reports nothing false about the ones it reads, which is the
+direction to be wrong in and is the reason each paper declares its own.
+
 **Where the one winning mechanism breaks, and why it is the same mechanism.** The counterfactual credit
 gives offset $a'$ the advance that the symbol in cell $s+a$ would have bought, while the cell $a'$
 would have read is $s+a'$. That is sound only where the symbol distribution does not depend on

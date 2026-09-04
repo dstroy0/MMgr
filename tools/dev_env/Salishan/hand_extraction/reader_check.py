@@ -31,6 +31,10 @@ while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "
 CORPORA = os.path.join(ROOT, "build", "corpora")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
+# The hand extractions live in the research body, beside the prose that cites them. They are the
+# speakers' words written down and they are evidence, not tooling.
+ORACLES = os.path.join(ROOT, "docs", "research", "Salishan", "pure_corpus")
+
 sys.path.insert(0, HERE)
 
 from papers import EVERY  # noqa: E402
@@ -139,7 +143,7 @@ def main():
     # reader. The two lists are kept apart because the thing to do about them is different.
     unwritten = []
     for name, stem, record, repair, marks in EVERY:
-        table = os.path.join(HERE, name)
+        table = os.path.join(ORACLES, name)
         written = os.path.join(CORPORA, record)
         if not os.path.isfile(table):
             waiting.append(stem)

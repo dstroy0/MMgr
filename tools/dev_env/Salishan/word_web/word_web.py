@@ -46,7 +46,7 @@ from salish_unsorted import is_language_token  # noqa: E402
 ROOT = os.path.abspath(__file__)
 while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "build")):
     ROOT = os.path.dirname(ROOT)
-TABLES = os.path.join(HERE, "hand_extraction")
+TABLES = os.path.join(ROOT, "docs", "research", "Salishan", "pure_corpus")
 CORPORA = os.path.join(ROOT, "build", "corpora")
 
 # How long a shared leading or trailing run has to be before it counts as a shape edge. Two

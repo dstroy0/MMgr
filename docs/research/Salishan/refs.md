@@ -9,30 +9,11 @@ Everything here is generable using the tools/dev_env/ scripts or reachable at a 
 
 | Speaker | Language | Recorded |
 |---|---|---|
-| Kʷəɬtəzétkʷu (Bernice Garcia), c̓əɬétkʷu (Coldwater) | nɬeʔkepmxcín | 2023, published 2024 |
-| Bev Phillips, Lytton First Nation (ƛ̓q̓əmcín) | nɬeʔkepmxcín | 2024 and 2025 |
-| wlwlmelst (Maurice Michell), Southern yutémkt dialect | nłeʔkepmxcín | published 2024 |
-| K̓weswapáw̓ (Linda Redan), Qayqáyten | St'át'imcets | 31 October 2025 |
-| Qwa7yán'ak (Carl Alexander), Nxwísten (Bridge River) | St'át'imcets | 7 July 2025 |
-| Mary George, Sliammon | Mainland Comox (ayajuthem) | 1969 to 1980 |
-| Noel George Harry, Tommy Paul | Mainland Comox (ayajuthem) | 1969 to 1980 |
-| Dr. Margaret Siwallace | Nuxalk | about 1975, published 2015 |
-| George Lezard, Penticton Indian Reserve | Nsyilxcən | 1966, aged eighty-five |
-| Nellie Guitterez, Upper Nicola Indian Band | Nsyilxcən | 1978 or 1979 |
-| Kiláwnaʔ (Andrew McGinnis), Penticton Indian Reserve | Nsyilxcən | 9 October 2014 |
-| Lottie Lindley, Upper Nicola | Nsyilxcən | published 2013 |
-| Sam Mitchell | St'át'imcets | in van Eijk and Williams 1981 |
-| Susie Sampson Peter, Upper Skagit | Lushootseed | Leon Metcalf, 1950 to 1958 |
-| Martha LaMont, Tulalip-Skagit | Lushootseed | Leon Metcalf 1952, Thom Hess 1963 |
-| Martha Lamont, Northern dialect | Lushootseed | Leon Metcalf, 1950s |
-| Annie Jack, Southern dialect | Lushootseed | Leon Metcalf, 1950s |
+**These languages belong to the people who speak them, and none of this work exists without them.** The corpus everything else here is measured against is their words, written down.
 
-Conditions the speakers set:
+The list of who is in it is [`pure_corpus/README.md`](pure_corpus/README.md), which opens every entry with the speaker and carries the conditions they set. That file is written from `corpus_script_extraction/paper_config.py` by `hand_extraction/pure_corpus_index.py`, so a speaker's name is typed in exactly one place and this document keeps no second copy of it to drift.
 
-* Bernice Garcia asks it be acknowledged she is a Kamloops Indian Residential School speaker re-learning her language.
-* wlwlmelst shares his four stories freely for people connecting with the language. They came from his mother nxwelinek and his grandmother ʔústko.
-* George Lezard's narrative: transcribed by Larry Pierre 1970, updated by permission of Arnie Baptiste, his son.
-* Nellie Guitterez's story: reprinted by permission of Lynne Jorgesen, her great-granddaughter.
+Fifteen of the twenty papers name their speakers. The other five cite a published dictionary and never say who spoke, and their entries say so. A linguist wrote the paper and a person read the paper into a table, and neither of those is whose language it is, so neither goes in that slot.
 
 ## Text sources, extracted
 

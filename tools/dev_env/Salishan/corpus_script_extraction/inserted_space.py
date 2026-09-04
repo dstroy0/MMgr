@@ -2,14 +2,18 @@
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 #
-# Close the space a PDF leaves after a stacked diacritic.
+# The one grain nearly every paper here carries: a space left after a stacked diacritic.
 #
 #   Usage:  from inserted_space import closed_spaces
 #
 # Every one of these PDFs sets a combining mark by leaving room after it, and the extraction reads
-# that room as a space. One word arrives as two tokens. Six of the eleven papers with readers carry
-# it, and the counts are not small: 996 in Hall and Phillips, 943 in Garcia, 478 in LaFontaine and
-# Janzen, 298 in Mellesmoen and Kye, 169 in Matthewson and Redan, 159 in Mary George.
+# that room as a space. One word arrives as two tokens. Six of the papers with readers carry it, and
+# the counts are not small: 996 in Hall and Phillips, 943 in Garcia, 478 in LaFontaine and Janzen,
+# 298 in Mellesmoen and Kye, 169 in Matthewson and Redan, 159 in Mary George.
+#
+# The mechanism moved to repairs.py, where it sits beside the other kinds of damage these extractions
+# do. What stays here is this grain's own evidence and the one decision it turns on, because both are
+# facts about these papers and not about the mechanism.
 #
 # THE COVERAGE CHECK CANNOT SEE THIS
 #
@@ -26,45 +30,21 @@
 # It is a spacing modifier letter on the baseline, and the typesetter never has to make room after
 # one. Every space following a ʷ is a real word boundary: bəlkʷ ‘return’, wix̌ʷ x̌il, sčədadxʷ
 # sʔuladxʷ, tíləxʷ ʔəsxʷák̓ʷilbids. Closing those welded thirteen pairs of words in one paper alone,
-# among them the first two words of Annie Jack's opening sentence.
-#
-# TWO SPACES ARE A COLUMN BOUNDARY
-#
-# Where a real boundary follows a stacked mark the extraction prints two spaces. That is what keeps
-# the two columns of Table A1 apart at č̓ ə́šay̓  č̓ əsáy̓. Only a lone space is closed, and one of the
-# two survives.
+# among them the first two words of Annie Jack's opening sentence. Reading the Unicode combining
+# class is what keeps it out without anyone having to remember to exclude it.
 
-import unicodedata
-
+from whitespace import closed_after_marks, stacked_but_not
 
 # The stress accents. A word can end in a stressed vowel, and closing the space after one welds it
 # to the word after it. LaFontaine and Janzen has ntes neʔé e sqyéytn, where neʔé ends in a stressed
-# vowel and e is the next word: closing there gives neʔée, which the language does not have. The
-# Hall and Phillips reader recorded this before there was a shared repair, and it is why the general
-# rule stops at the marks that sit over a consonant.
+# vowel and e is the next word: closing there gives neʔée, which the language does not have.
+#
+# This is the whole of what separates the general grain from the wider one. A paper whose own layout
+# makes closing after an accent safe declares its own mark set instead, and Mellesmoen and Kye and
+# Davis and Mellesmoen are the two that do. Both print two spaces at a real boundary, which leaves a
+# lone space after an acute as the inserted one every time.
 STRESS = "́̀"
 
-
-def closed_spaces(line):
-    """One line with the space the PDF left after a stacked diacritic taken out.
-
-    Uses the Unicode combining class instead of a list of marks. The papers between them leave a
-    space after the comma above, the comma above right, the caron, the dot below and the hook above,
-    and a hand-kept list of those went stale the first time a new paper arrived.
-
-    A paper whose own layout makes closing after a stress accent safe passes its own set instead.
-    Mellesmoen and Kye is the one that does. It prints two spaces at a real boundary, which leaves
-    a lone space after an acute there as the inserted one every time.
-    """
-    out = []
-    at = 0
-    while at < len(line):
-        symbol = line[at]
-        if ((symbol == " ") and out and unicodedata.combining(out[-1])
-                and (out[-1] not in STRESS)
-                and (((at + 1) >= len(line)) or (line[at + 1] != " "))):
-            at += 1
-            continue
-        out.append(symbol)
-        at += 1
-    return "".join(out)
+# Every stacked mark except those. One word arrives as two tokens wherever one of these is followed
+# by a lone space.
+closed_spaces = closed_after_marks(stacked_but_not(STRESS))

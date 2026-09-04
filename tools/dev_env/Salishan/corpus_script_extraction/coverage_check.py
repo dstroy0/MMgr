@@ -39,6 +39,9 @@ from glyph_names import decoded
 from inserted_space import closed_spaces
 from line_breaks import joined
 from mellesmoen_kye_repair import repaired as mellesmoen_repaired
+# Aliased because this file already calls the directory of paper texts PAPERS, and importing the
+# config under the same name shadowed it with a string that iterated as characters.
+from paper_config import PAPERS as EVERY_PAPER
 from salish_marking import MARKED, PRACTICAL, unligatured
 from salish_unsorted import is_language_token
 from space_repair import joined_words
@@ -83,106 +86,17 @@ JOINING = "̴̡̢̧̨̰̱̮̓̕"
 # bare word before it is two columns, one with morpheme separators before it is a segmentation.
 COLUMN = re.compile(r"^([^-=•+√]+)(√.*)$")
 
-# paper, extraction, and which repairs the extractor applied to the source
-PAIRS = (
-    ("ICSNL59_Garcia_Hannon_Stacey_final",
-     "Kweltezetkwu-BerniceGarcia_ThreeGlossedNlekepmxcinNarratives_GarciaHannonStacey"
-     "_Salish_nlekepmxcin_2024_mixed.txt", ("inserted spaces",)),
-    ("HallPhillipsICSNL60",
-     "BevPhillips_WhenOldOneCreatedTheEarth_HallPhillips"
-     "_Salish_nlekepmxcin_2025_nomixed.txt", ("spaces",)),
-    ("ICSNL59_LaFontaine_Janzen_final",
-     "wlwlmelst-MauriceMichell_FourStoriesByWlwlmelst_LaFontaineJanzen"
-     "_Salish_nlekepmxcin_2024_mixed.txt", ("inserted spaces",)),
-    ("Matthewson_Redan_ICSNL61",
-     "Kweswapaw-LindaRedan_Cw7aozKati7Lati7KuNaxwit_MatthewsonRedan"
-     "_Salish_statimcets_2026_mixed.txt", ("inserted spaces",)),
-    ("AlexanderDavis_ICSNL61",
-     "Qwa7yanak-CarlAlexander_ITsicwasSQwa7yanakAku7GraveyardValley_AlexanderDavis"
-     "_Salish_statimcets_2026_mixed.txt", ()),
-    ("ICSNL56_DavisJ_2_final-1",
-     "MaryGeorge_MaryGeorgePersonalNarratives_JohnHamiltonDavis"
-     "_Salish_ayajuthem_2021_mixed.txt", ()),
-    ("22-Nater-Bella-Coola-tale-10",
-     "MargaretSiwallace_ABellaCoolaTale_Nater_Salish_nuxalk_2015_nomixed.txt", ()),
-    # These two read the drafted page text, which is what their readers read. "page" says so and
-    # picks the source file. There is no font repair on that side of the pair: the mapping has
-    # already been applied by draft_page_text.py, and running it again turns Papers into ʔapers.
-    ("19-Lyon_ICSNL50_final-78",
-     "GeorgeLezard-NellieGuitterez-AndrewMcGinnis_ThreeOkanaganStoriesAboutPriests_Lyon"
-     "_Salish_nsyilxcen_2015_nomixed.txt",
-     ("page", "columns")),
-    ("2013_Lindley_Lyon",
-     "LottieLindley_TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
-     "_Salish_nsyilxcen_2013_nomixed.txt", ("page", "columns")),
-    # A fourth field where a paper writes its language with characters MARKS does not hold. The
-    # 1983 Hilbert typescript is unrepaired on purpose, so its glottal stop is ? and its schwa is
-    # ~, J or G, and a check built on ʔ and ə finds nothing in it at all.
-    ("1983_Hilbert",
-     "SusieSampsonPeter-MarthaLaMont_PokingFunInLushootseed_Hilbert"
-     "_Salish_lushootseed_1983_mixed.txt", (), "?~JG@V%]!"),
-    # The stress paper carries a wider alphabet than the marks the other papers share. yidád ‘fish
-    # trap’, báyac ‘meat’ and x̌il ‘lost’ hold no glottal stop, schwa or lateral, and a check built
-    # on the shared marks reads all three as English and then reports nothing missing about them.
-    ("Mellesmoen_Kye_ICSNL61",
-     "MarthaLamont-AnnieJack_AComparativeAnalysisOfStressInNorthernAndSouthernLushootseed"
-     "_MellesmoenKye_Salish_lushootseed_2026_mixed.txt", ("mellesmoen",),
-     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ǰᶻθáíúàìù" + "̌́̀"),
-    # Robertson's extractor printed the glyph names it could not resolve, so the source is decoded
-    # before either side is counted. His Americanist symbols add č, š and a dot under an x, and the
-    # dot is a combining mark the shared set does not carry.
-    ("2012_Robertson",
-     "CharleyAlexisMayoos-WilliamCelestin_BCIndigenousPeoplesChinukPipaScript_Robertson"
-     "_Salish_nlekepmxcin-secwepemctsin_2012_mixed.txt", ("glyph names", "line joins"),
-     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "̣čš"),
-    # Wolfe compares suffixes across eighteen languages, and most of what it prints is a suffix in
-    # plain letters carrying one accent. =álus and =áləs hold nothing of the shared set, so the
-    # accents are in the marks both composed and combining: the check composes to NFC before it
-    # looks, which turns á into one character while ə́ has no composed form and keeps its acute.
-    ("WolfeICSNL60",
-     "unstated_LexicalSuffixesAndConnectivesInProtoCentralSalishAndBeyond_Wolfe"
-     "_Salish_centralsalish_2025_mixed.txt", ("inserted spaces",),
-     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ʸːɛεέŋᶿθǰčšĺ" + "áéíóú" + "̌́"),
-    # Nater writes his ejectives with the apostrophe, which is also the closing quote of every gloss
-    # on the page, so the apostrophe is deliberately out of this set. hand_extraction/papers.py has
-    # the count behind that: putting it in buys about thirty real tokens and costs a few hundred
-    # English words that happen to end a quotation.
-    ("ICSNL59_Nater_2_final",
-     "unstated_VoicelessWordsInBellaCoolaFactVsFiction_Nater"
-     "_Salish_nuxalk_2024_mixed.txt", ("inserted spaces",),
-     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "̩̌"),
-    # The square root sign is in this paper's set because half its roots carry nothing else. √piq,
-    # √nir, √mir, √yus and √tar are plain letters, and a check without √ reads them as English.
-    ("LyonICSNL60_Inch-2",
-     "DelphineDerricksonArmstrong-DaveMichele_NsyilxcnInchoativesAndTheirDistributions"
-     "AcrossRootTypes_Lyon_Salish_nsyilxcen_2025_mixed.txt", ("inserted spaces",),
-     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "̌́" + "áíúé" + "ɣš√"),
-    # Kim writes the lateral fricative as ɫ, which MARKED does not carry: it holds ɬ and ł, and this
-    # is the paper that makes it three characters for one sound. ˀ is its rule-derived glottal stop,
-    # against phonemic ʔ, and both are all over the reduplicants.
-    ("Kim_TwanaReduplication_final",
-     "unstated_TheTruncatedReduplicationInTwana_Kim_Salish_twana_2017_mixed.txt",
-     ("inserted spaces",),
-     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ɫˀščóéɔ" + "̦́ʹ"),
-    # ǝ is U+01DD and ə is U+0259. NFC does not unify them, this paper prints both, and a set
-    # holding one reads a third of its schwa words as English. ᴗ is the clitic boundary of
-    # ʔinutᴗʔiks, ɢ ʁ ʒ λ belong to the Wakashan and Athabascan cognate columns, and √ is here for
-    # the same reason it is in the Lyon set: half the roots carry nothing else.
-    ("2013_Nater",
-     "unstated_HowSalishIsBellaCoola_Nater_Salish_nuxalk_2013_mixed.txt",
-     ("inserted spaces",),
-     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ǝ√" + "áíúà" + "ᴗɢʁʒščɣλˑ"),
-    # The only paper here whose reader repairs nothing: closed_spaces changes none of its 80 lines.
-    # The dot below is its rounded uvular, in x̣íɬ and sóx̣ʷest. ǰ and θ are here to make ʔayʔaǰuθəm
-    # and -θi visible, which are Comox and not this language; the who column keeps them out of the
-    # target stream, and a set that could not see them would leave nothing for this check to ask.
-    ("Hall-et-al_-ICSNL_61-1",
-     "unstated_CtrlAltDeleteTheControlDirectiveAndAssociatedTDeletionInNlekepmxcin"
-     "_HallLuntzlaraMellesmoenReid_Salish_nlekepmxcin_2026_mixed.txt",
-     (),
-     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "̣" + "áéíóúè" + "́" + "ǰθ"),
-)
-
+# paper, extraction, which repairs the extractor applied to the source, and what that paper writes
+# its language with.
+#
+# Every one of these was written out here a second time until this read the config. The alphabets
+# were literals duplicating hand_extraction/papers.py, and a paper added to one and not the other was
+# a paper this check read with the wrong alphabet and then reported as fully covered. paper_config.py
+# is the one place a paper is described and the notes behind each entry are there.
+#
+# Two of the repair lists still differ from the ones the oracle check applies, and neither difference
+# was deliberate. paper_config.Paper says which and why.
+PAIRS = tuple((one.stem, one.record, one.coverage, one.marks) for one in EVERY_PAPER)
 
 def close_spaces(line):
     """Take out the space the extraction inserted between a consonant's mark and the rest of it."""

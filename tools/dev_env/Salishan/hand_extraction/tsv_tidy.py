@@ -23,7 +23,13 @@ import io
 import os
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(__file__)
+while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "build")):
+    ROOT = os.path.dirname(ROOT)
+
+# The tables sit in the research body, beside the prose that cites them, because they are the
+# speakers' words written down and the evidence everything else here rests on.
+ORACLES = os.path.join(ROOT, "docs", "research", "Salishan", "pure_corpus")
 
 
 def tidy(text):
@@ -43,10 +49,10 @@ def split_out(path):
 def main():
     out = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", newline="")
     done = 0
-    for name in sorted(os.listdir(HERE)):
+    for name in sorted(os.listdir(ORACLES)):
         if not name.endswith(".oracle.tsv"):
             continue
-        path = os.path.join(HERE, name)
+        path = os.path.join(ORACLES, name)
         prose, table = split_out(path)
         if not table:
             out.write("  %s holds no table\n" % name)
