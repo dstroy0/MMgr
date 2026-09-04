@@ -143,6 +143,14 @@ PAIRS = (
      "unstated_LexicalSuffixesAndConnectivesInProtoCentralSalishAndBeyond_Wolfe"
      "_Salish_centralsalish_2025_mixed.txt", ("inserted spaces",),
      MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ʸːɛεέŋᶿθǰčšĺ" + "áéíóú" + "̌́"),
+    # Nater writes his ejectives with the apostrophe, which is also the closing quote of every gloss
+    # on the page, so the apostrophe is deliberately out of this set. hand_extraction/papers.py has
+    # the count behind that: putting it in buys about thirty real tokens and costs a few hundred
+    # English words that happen to end a quotation.
+    ("ICSNL59_Nater_2_final",
+     "unstated_VoicelessWordsInBellaCoolaFactVsFiction_Nater"
+     "_Salish_nuxalk_2024_mixed.txt", ("inserted spaces",),
+     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "̩̌"),
 )
 
 

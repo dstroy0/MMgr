@@ -42,6 +42,8 @@ A twelfth, `2012_Robertson`, now has both. `extract_robertson.py` reads it, `cov
 
 A thirteenth, `1975_Hilbert_Hess`, is read by hand and has no reader. `papers.py` carries it so `oracle_check.py` grades it, and `reader_check.py` lists it under the papers waiting for one. The section on papers whose extracted text is not the page says why a reader for it would have nothing sound to read.
 
+A fifteenth, `ICSNL59_Nater_2_final`, is Nater arguing that Bella Coola has words with no vowel in them, and its data is 127 numbered entries that are each a run of two to four consonants. Six more entries and two comparison tables are Heiltsuk, Oowekyala, Kwak̓wala and Haisla, which are North Wakashan and not Salish at all, so the `who` column is doing more work here than anywhere else in the set. Its hand extraction is 671 rows and verifies in both directions with nothing left over.
+
 A fourteenth, `WolfeICSNL60`, is a different shape from all of them and has both. It is a comparative reconstruction, so instead of one speaker telling one story it cites lexical suffixes from published dictionaries of eighteen languages, laid out in columns under a two-letter abbreviation. Its hand extraction is 772 rows and verifies in both directions with nothing left over. The section below on what a pure corpus is for says why it writes a `.pure.tsv` keyed by language where every other reader writes a flat `.pure.txt`.
 
 Nothing here needs fetching by hand. `python tools/dev_env/Salishan/get_papers.py` reads the archive index, downloads these eleven and converts them. Every address below was checked; the local filename in `build/papers/` is the PDF's own name.
@@ -60,6 +62,7 @@ Nothing here needs fetching by hand. `python tools/dev_env/Salishan/get_papers.p
 | Poking Fun in Lushootseed. Vi taqʷšəblu Hilbert. ICSNL 1983 | `extract_hilbert.py` | `https://lingpapers.sites.olt.ubc.ca/files/2018/03/1983_Hilbert.pdf` |
 | A Comparative Analysis of Stress in Northern and Southern Lushootseed. Mellesmoen and Kye. ICSNL 61 | `extract_mellesmoen_kye.py` | `https://lingpapers.sites.olt.ubc.ca/files/2026/07/Mellesmoen_Kye_ICSNL61.pdf` |
 | Lexical Suffixes and Connectives in Proto-Central Salish and Beyond. Wolfe. ICSNL 60, 2025 | `extract_wolfe.py` | `https://lingpapers.sites.olt.ubc.ca/files/2025/07/WolfeICSNL60.pdf` |
+| Voiceless Words in Bella Coola: Fact vs. Fiction. Nater. ICSNL 59, 2024 | `extract_nater_voiceless.py` | `https://lingpapers.sites.olt.ubc.ca/files/2024/07/ICSNL59_Nater_2_final.pdf` |
 
 Each reader writes into `build/corpora/`: the marked record, a `.pure.txt` holding only target-language speech, a `.unclassifiable.tsv` listing what it could not type, and for the two Lyon papers a `.words.txt` giving the word forms recovered from the interlinear.
 
@@ -69,7 +72,9 @@ Records are named speaker first: `<spoken by>_<paper>_<who wrote it down>_Salish
 
 The reader is not the source of the corpus. Each paper is read by a person into `tools/dev_env/Salishan/hand_extraction/<paper>.oracle.tsv`, which says for every form in the paper what it is, and the reader is graded against that.
 
-Ten of the fourteen verify against their paper in both directions: no form written that the paper does not hold, no token in the paper that no row covers. The other four are the papers whose extracted text is not what the page says, and what their remaining disagreements measure is the damage in that text. The two sections after this one are about them.
+Eleven of the fifteen verify against their paper in both directions: no form written that the paper does not hold, no token in the paper that no row covers. The other four are the papers whose extracted text is not what the page says, and what their remaining disagreements measure is the damage in that text. The two sections after this one are about them.
+
+**One hole in direction two is not a hole in a table, and Nater's paper is where that shows.** His argument is that Bella Coola has words with no vowel in them, so entries like `kp` 'each, all, every', `tp` 'spotted', `ps`, `px` and `sx` are plain ASCII with nothing in them that any mark set can catch. `is_language_token` needs a marked character, so direction two cannot ask about those, and about thirty of the 133 entries are invisible to it. Direction one still checks every one of them, because it looks for what the table wrote down. The apostrophe was tried as a way in, since Nater writes every ejective with one; it also makes every English gloss a word of the language, because a gloss ends in a closing quote and the two characters are the same. That trade is a few hundred false holes for about thirty real ones, so the apostrophe stays out and the limit is recorded here instead.
 
 Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-04. "Asked for" is how many distinct written forms the rows yield, which is the denominator for the column beside it. "Invented" is a form the reader put in the corpus that no row asks for.
 
@@ -89,6 +94,7 @@ Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-
 | Robertson, 2012 | 195 | 193 | 92 not found, of which 59 are prose the reader does not read |
 | Hilbert and Hess, 1975 | 74 | 74 | no reader written yet |
 | Wolfe, ICSNL 60 | 772 | 678 | 153 not found, of which most is front matter and section prose the reader does not read; 224 invented, 0 in the wrong language |
+| Nater, ICSNL 59 | 671 | 288 | 136 not found, which is the cluster charts the reader does not read; 337 invented, 0 in the wrong language |
 
 Only Mellesmoen and Kye reproduces its table.
 
@@ -349,7 +355,7 @@ Recordings named in papers and not published with them:
 
 ## Text sources
 
-`build/papers/` holds 152 extracted paper texts and 146 of the PDFs they came from. Thirteen have a reader and a hand extraction and one more has a hand extraction alone, so 138 of the 152 are unread and 841 of the archive's 993 are not fetched. Six of the 146 are in the class the section above describes, and their texts are the font's encoding.
+`build/papers/` holds 152 extracted paper texts and 146 of the PDFs they came from. Fourteen have a reader and a hand extraction and one more has a hand extraction alone, so 137 of the 152 are unread and 841 of the archive's 993 are not fetched. Six of the 146 are in the class the section above describes, and their texts are the font's encoding.
 
 Fifty of them are about Lushootseed or Skagit. The heaviest, by how much they discuss it, are `Mellesmoen_Kye_ICSNL61.txt`, `Beck_2007.txt`, `1994_Beck.txt`, `1995_Beck.txt`, `1998_Cort.txt`, `2000_Barthmaier.txt`, `1996_Beck.txt`, `ICSNL58_Kye_final.txt`, `01_ICSNL55_Beck_final.txt` and `2002_Lonsdale.txt`. `1983_Hilbert.txt` is in that set.
 

@@ -83,6 +83,22 @@ ROBERTSON = SHARED + "̣čš"
 # set holding one of them reads half the Halkomelem data as English.
 WOLFE = SHARED + "ʸːɛεέŋᶿθǰčšĺ" + "áéíóú" + "̌́"
 
+# Nater argues that Bella Coola has words with no vowel in them, so most of his data is a run of two
+# or three consonants and nothing else. That puts a hole in direction two on this paper and no mark
+# set closes it.
+#
+# The apostrophe was tried and taken out again. Nater writes every ejective with one, so putting ’ in
+# the set makes c’p and sp’ visible; it also makes every English gloss visible, because a gloss ends
+# in a closing quote and bare() only removes a quote pair from one token. ‘(it is a) stone’ arrives
+# as four tokens and the last of them is stone’, which then reads as a word of the language. That is
+# a few hundred false holes to buy about thirty real ones, so ’ stays out.
+#
+# What is left uncovered is every entry written in plain ASCII: kp 'each, all, every', tp 'spotted',
+# ps, px, sx, kx, and the ejective-only forms above. Direction one still checks all of them, because
+# it looks for what the table wrote down in the paper. Direction two cannot ask about them, and that
+# is a limit of the check on this paper rather than a hole in the table.
+NATER = SHARED + "̩̌"
+
 # Papers whose text extraction is not what the page says. Both of these are TeX Type1 with a custom
 # encoding and no ToUnicode map. pypdf and pypdfium2 lose the same things: the page prints
 # cítxʷsəlx uɬ ti nyʕip and the text holds cítxws@lx uì ’ti ny ’Qip, with the ejective mark landing
@@ -173,4 +189,12 @@ EVERY = (
      "unstated_LexicalSuffixesAndConnectivesInProtoCentralSalishAndBeyond_Wolfe"
      "_Salish_centralsalish_2025_mixed.txt",
      closed_spaces, WOLFE),
+    # Another paper with no speaker slot. The forms are Nater's own from his 1990 dictionary and his
+    # 1984 grammar, and the comparanda are Heiltsuk, Oowekyala, Kwak̓wala and Haisla, which are North
+    # Wakashan and not Salish at all. The who column is what keeps those out of a Nuxalk corpus.
+    ("ICSNL59_Nater_2_final.oracle.tsv",
+     "ICSNL59_Nater_2_final",
+     "unstated_VoicelessWordsInBellaCoolaFactVsFiction_Nater"
+     "_Salish_nuxalk_2024_mixed.txt",
+     closed_spaces, NATER),
 )
