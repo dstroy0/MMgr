@@ -61,6 +61,17 @@ DAMAGED = "?~JG@V%]!"
 # they are verified only by being written into the table beside the words it does ask about.
 OKANAGAN = "@ìˇňQ√"
 
+# Papers whose text extraction is not what the page says. Both of these are TeX Type1 with a custom
+# encoding and no ToUnicode map. pypdf and pypdfium2 lose the same things: the page prints
+# cítxʷsəlx uɬ ti nyʕip and the text holds cítxws@lx uì ’ti ny ’Qip, with the ejective mark landing
+# in front of its letter instead of over it.
+#
+# The loss does not invert, which is why no repair is listed for either. Page kʷ and page wist both
+# arrive as w, so a map from the text back to the orthography would have to guess. These two are
+# read off the rendered page instead, and until that is done there is nothing to check an extraction
+# against: comparing a table against this text only asks whether it copied the damage correctly.
+NOT_FAITHFUL = ("19-Lyon_ICSNL50_final-78", "2013_Lindley_Lyon")
+
 EVERY = (
     ("Mellesmoen_Kye_ICSNL61.oracle.tsv",
      "Mellesmoen_Kye_ICSNL61",
@@ -115,5 +126,5 @@ EVERY = (
      "2013_Lindley_Lyon",
      "LottieLindley_TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
      "_Salish_nsyilxcen_2013_nomixed.txt",
-     None, SHARED),
+     None, OKANAGAN),
 )

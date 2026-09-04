@@ -101,11 +101,51 @@ def fetch(session, address, path):
     return os.path.getsize(path)
 
 
+def unmapped_fonts(source):
+    """Every font in a PDF whose glyph codes have no declared meaning, by the name it gives itself.
+
+    A PDF stores glyph codes. ToUnicode is where it says which character each code is, and an
+    /Encoding with /Differences is where it renumbers codes to suit one font. Carrying the second
+    without the first leaves the codes meaning whatever that font decided, and what an extractor
+    hands back is then the encoding. 19-Lyon_ICSNL50 and 2013_Lindley_Lyon come out that way: the
+    page prints cítxʷsəlx uɬ ti nyʕip and the text holds cítxws@lx uì ’ti ny ’Qip, with the ejective
+    mark in front of its letter instead of over it.
+
+    Missing ToUnicode on its own is not the fault, and testing for that alone called 141 of 146
+    papers unreadable. Arial and Times omit it constantly, because a standard encoding already says
+    what the codes are and every extractor knows that table.
+    """
+    import pypdf
+    reader = pypdf.PdfReader(source)
+    held = set()
+    for page in reader.pages:
+        try:
+            fonts = (page.get("/Resources") or {}).get("/Font") or {}
+            for name in fonts:
+                font = fonts[name].get_object()
+                if "/ToUnicode" in font:
+                    continue
+                encoding = font.get("/Encoding")
+                encoding = encoding.get_object() if encoding is not None else None
+                if isinstance(encoding, dict) and ("/Differences" in encoding):
+                    held.add(str(font.get("/BaseFont", name)))
+        except Exception:
+            # A page whose resources cannot be read says nothing either way about the fonts, and a
+            # crash here would stop a fetch over a question that is only advisory.
+            continue
+    return sorted(held)
+
+
 def converted(source, target):
     """One PDF as the text the readers read, with a marker between pages.
 
     The marker is what the coverage check reports positions against and what every reader uses to
     know where it is in the paper.
+
+    A paper whose fonts carry no ToUnicode map gets a .unfaithful file written beside its text,
+    naming those fonts. The text is still written, because leaving a gap makes every later run try
+    the paper again, but nothing downstream should read it as the paper. Rendering the pages is what
+    that paper needs, and pdf2png.py does it.
     """
     import pypdf
     reader = pypdf.PdfReader(source)
@@ -118,7 +158,32 @@ def converted(source, target):
     with open(target, "w", encoding="utf-8", newline="\n") as handle:
         handle.write("\n".join(out))
         handle.write("\n")
-    return len(reader.pages)
+    unmapped = unmapped_fonts(source)
+    notice = target[:-4] + ".unfaithful"
+    if unmapped:
+        with open(notice, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write("The text beside this file is the font's encoding, not the page.\n")
+            handle.write("Read the page instead:\n")
+            handle.write("  python tools/dev_env/Salishan/pdf2png.py %s 1 <last>\n\n"
+                         % os.path.splitext(os.path.basename(source))[0])
+            handle.write("Fonts declaring no ToUnicode map:\n")
+            for one in unmapped:
+                handle.write("  %s\n" % one)
+    elif os.path.isfile(notice):
+        os.remove(notice)
+    return len(reader.pages), unmapped
+
+
+def report_unfaithful(out, stems):
+    """What to say about the papers whose text is the font's encoding, or nothing when there are none."""
+    if not stems:
+        return
+    out.write("\n  %d of these are not the page. Their fonts declare no ToUnicode map, so what\n"
+              % len(stems))
+    out.write("  came out is the encoding: cítxws@lx where the page prints cítxʷsəlx. Read the\n")
+    out.write("  page instead, and do not build an extraction on the text.\n")
+    for stem in stems:
+        out.write("    python tools/dev_env/Salishan/pdf2png.py %s 1 <last>\n" % stem)
 
 
 def main():
@@ -146,6 +211,7 @@ def main():
 
     if given.convert:
         done = 0
+        unfaithful = []
         for name in sorted(os.listdir(PAPERS)):
             if not name.lower().endswith(".pdf"):
                 continue
@@ -153,12 +219,16 @@ def main():
             target = source[:-4] + ".txt"
             if os.path.isfile(target):
                 continue
-            pages = converted(source, target)
+            pages, unmapped = converted(source, target)
             done += 1
-            out.write("  %-46s %d pages\n" % (name[:46], pages))
+            if unmapped:
+                unfaithful.append(name[:-4])
+            out.write("  %-46s %d pages%s\n"
+                      % (name[:46], pages, "  NOT THE PAGE" if unmapped else ""))
         out.write("\n  %d converted, %d already had text beside them\n"
                   % (done, len([one for one in os.listdir(PAPERS)
                                 if one.lower().endswith(".pdf")]) - done))
+        report_unfaithful(out, unfaithful)
         out.flush()
         return 0
 
@@ -193,6 +263,7 @@ def main():
     fetched = 0
     already = 0
     unlisted = []
+    unfaithful = []
     for stem in stems:
         target = os.path.join(PAPERS, "%s.txt" % stem)
         source = os.path.join(PAPERS, "%s.pdf" % stem)
@@ -211,11 +282,15 @@ def main():
                 continue
             out.write("  %-46s %d KB\n" % (stem[:46], size // 1024))
             time.sleep(PAUSE)
-        pages = converted(source, target)
+        pages, unmapped = converted(source, target)
         fetched += 1
-        out.write("  %-46s %d pages of text\n" % ("", pages))
+        if unmapped:
+            unfaithful.append(stem)
+        out.write("  %-46s %d pages of text%s\n"
+                  % ("", pages, "  NOT THE PAGE" if unmapped else ""))
 
     out.write("\n  %d papers now have text, %d already did\n" % (fetched, already))
+    report_unfaithful(out, unfaithful)
     if unlisted:
         out.write("  %d not found in the index by that name:\n" % len(unlisted))
         for stem in unlisted:
