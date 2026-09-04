@@ -164,6 +164,14 @@ PAIRS = (
      "unstated_TheTruncatedReduplicationInTwana_Kim_Salish_twana_2017_mixed.txt",
      ("inserted spaces",),
      MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ɫˀščóéɔ" + "̦́ʹ"),
+    # ǝ is U+01DD and ə is U+0259. NFC does not unify them, this paper prints both, and a set
+    # holding one reads a third of its schwa words as English. ᴗ is the clitic boundary of
+    # ʔinutᴗʔiks, ɢ ʁ ʒ λ belong to the Wakashan and Athabascan cognate columns, and √ is here for
+    # the same reason it is in the Lyon set: half the roots carry nothing else.
+    ("2013_Nater",
+     "unstated_HowSalishIsBellaCoola_Nater_Salish_nuxalk_2013_mixed.txt",
+     ("inserted spaces",),
+     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ǝ√" + "áíúà" + "ᴗɢʁʒščɣλˑ"),
 )
 
 

@@ -118,6 +118,24 @@ LYON_INCH = SHARED + "̌́" + "áíúé" + "ɣš√"
 # and oracle_check normalizes before it looks, so they meet. Nothing to do beyond knowing it.
 KIM = SHARED + "ɫˀščóéɔ" + "̦́ʹ"
 
+# Nater's etymological database carries the worst set of lookalike collisions in the archive, and
+# one of them does not resolve itself.
+#
+# The schwa is written two ways: ǝ, the turned e at U+01DD, 183 times, and ə, the schwa at U+0259,
+# 52 times. These are separate characters with no canonical equivalence, so NFC leaves both standing
+# and a set holding only ə is blind to 183 tokens. That is unlike Kim's koronis, which NFC folds
+# onto the comma above without anyone having to know.
+#
+# The lambda is written two ways as well, ƛ at U+019B 128 times and λ at U+03BB 3 times, and the
+# uvular fricative is the Greek chi, which the shared set already carries.
+#
+# What is deliberately left out is ‟, U+201F. It is this paper's ejective mark, in ƛ‟p and q‟ʷasta,
+# and it is also the closing quote of all 1275 English glosses, which is why there are 1763 of them.
+# Carrying it would make every gloss a word of the language. That leaves the plain-ASCII forms
+# invisible to direction two, qla and smt and sqala among them, which is the same limit Nater's
+# voiceless-words paper has and is recorded in refs.md for the same reason.
+NATER_ETYM = SHARED + "ǝ√" + "áíúà" + "ᴗɢʁʒščɣλˑ"
+
 # Papers whose text extraction is not what the page says. Both of these are TeX Type1 with a custom
 # encoding and no ToUnicode map. pypdf and pypdfium2 lose the same things: the page prints
 # cítxʷsəlx uɬ ti nyʕip and the text holds cítxws@lx uì ’ti ny ’Qip, with the ejective mark landing
@@ -233,4 +251,14 @@ EVERY = (
      "unstated_TheTruncatedReduplicationInTwana_Kim"
      "_Salish_twana_2017_mixed.txt",
      closed_spaces, KIM),
+    # The largest paper in the set: an etymological partition of the whole Bella Coola verbo-nominal
+    # lexicon, about 1275 entries over 52 pages, each one a line number, an English gloss, the Bella
+    # Coola form and its cognate. The cognate column carries Proto-Salish, Coast and Interior Salish,
+    # North Wakashan, Proto-Athabascan and Nootka, so the who column does the same work here that it
+    # does in Wolfe, over a longer table.
+    ("2013_Nater.oracle.tsv",
+     "2013_Nater",
+     "unstated_HowSalishIsBellaCoola_Nater"
+     "_Salish_nuxalk_2013_mixed.txt",
+     closed_spaces, NATER_ETYM),
 )
