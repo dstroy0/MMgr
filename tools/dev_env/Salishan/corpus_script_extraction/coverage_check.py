@@ -151,6 +151,12 @@ PAIRS = (
      "unstated_VoicelessWordsInBellaCoolaFactVsFiction_Nater"
      "_Salish_nuxalk_2024_mixed.txt", ("inserted spaces",),
      MARKED + PRACTICAL + "̓̔̕ʷ˽" + "̩̌"),
+    # The square root sign is in this paper's set because half its roots carry nothing else. √piq,
+    # √nir, √mir, √yus and √tar are plain letters, and a check without √ reads them as English.
+    ("LyonICSNL60_Inch-2",
+     "DelphineDerricksonArmstrong-DaveMichele_NsyilxcnInchoativesAndTheirDistributions"
+     "AcrossRootTypes_Lyon_Salish_nsyilxcen_2025_mixed.txt", ("inserted spaces",),
+     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "̌́" + "áíúé" + "ɣš√"),
 )
 
 

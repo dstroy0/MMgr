@@ -99,6 +99,15 @@ WOLFE = SHARED + "ʸːɛεέŋᶿθǰčšĺ" + "áéíóú" + "̌́"
 # is a limit of the check on this paper rather than a hole in the table.
 NATER = SHARED + "̩̌"
 
+# Lyon's inchoative survey cites its roots with a square root sign, and that sign is what makes half
+# of them visible. √piq 'white', √nir 'smooth', √mir, √yus and √tar carry no character of the shared
+# set at all, and a check built without √ reads every one of them as English. It occurs 129 times in
+# the paper and never outside a root citation, so it costs nothing to carry.
+#
+# The apostrophe is not a letter in this paper, unlike Nater's. Lyon writes every ejective with the
+# combining comma above, 397 times, and the 129 right single quotes are all closing quotes.
+LYON_INCH = SHARED + "̌́" + "áíúé" + "ɣš√"
+
 # Papers whose text extraction is not what the page says. Both of these are TeX Type1 with a custom
 # encoding and no ToUnicode map. pypdf and pypdfium2 lose the same things: the page prints
 # cítxʷsəlx uɬ ti nyʕip and the text holds cítxws@lx uì ’ti ny ’Qip, with the ejective mark landing
@@ -197,4 +206,12 @@ EVERY = (
      "unstated_VoicelessWordsInBellaCoolaFactVsFiction_Nater"
      "_Salish_nuxalk_2024_mixed.txt",
      closed_spaces, NATER),
+    # Elicited from two Westbank speakers, so this one has a speaker slot again. Its cognate columns
+    # carry Spokane, Secwepemctsín, Lillooet, nxaʔamxčín, Thompson and Coeur d'Alene, all Salish and
+    # none of them Nsyilxcən, so the who column keeps them out of the target stream.
+    ("LyonICSNL60_Inch-2.oracle.tsv",
+     "LyonICSNL60_Inch-2",
+     "DelphineDerricksonArmstrong-DaveMichele_NsyilxcnInchoativesAndTheirDistributions"
+     "AcrossRootTypes_Lyon_Salish_nsyilxcen_2025_mixed.txt",
+     closed_spaces, LYON_INCH),
 )
