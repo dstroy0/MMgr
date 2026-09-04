@@ -184,13 +184,33 @@ This is why reading these two papers off the page is worth the time it costs. It
 
 ### What the corpus measures now
 
-The pure corpus is 2358 lines and 16602 tokens across the eleven papers with readers. 793 of those lines and 6466 of those tokens, 39 percent of it, come from the two papers whose readers read the font's encoding.
+The pure corpus is 2314 lines and 16898 tokens across the eleven papers with readers. 749 of those lines and 6762 of those tokens, 40 percent of it, come from the two papers set in the font that renumbers its codes.
 
-`2013_Lindley_Lyon` is the paper to measure against, because its table is now read off the pages in full and it takes no repair, so the table and the corpus can be compared token for token with nothing in between. Of the 1878 language tokens its reader put in the pure corpus, 1231 are forms the table holds and 647 are not. **A third of that paper's contribution to the corpus is a string the page does not print.**
+Both of those readers now take `build/papers/<stem>.page.txt`. They used to take `<stem>.txt`, and what that put in the corpus was the font's alphabet with only the substitutions `font_repair.py` covers applied to it. The measurement that says so is `2013_Lindley_Lyon`, whose table is read off the pages in full and which takes no repair, so the table and the corpus compare token for token with nothing in between.
 
-The third that differs is not random. It is every token carrying a glottalized consonant or a labialized one: the corpus holds `iks’ma’yɬtím` where the page holds `iksm̓ay̓ɬtím`, and `sqwlqwlstwíxwtət` where the page holds `sqʷlqʷlstwíxʷtət`. A token with no mark on it passes through unchanged, which is the two thirds that agree.
+| | reading the extraction | reading the page text |
+|---|---|---|
+| corpus tokens the table holds | 1231 of 1878, 66% | 2204 of 2535, 87% |
+| marks standing in front of their letter | 1832 | 54 |
+| labialized consonants written with a plain `w` | 1630 | 42 |
 
-That is the number the anchor sift has been calibrating against. A distribution built on this corpus has been reading `’m` as a bigram of the language in 39 percent of its material, and reading `kʷ` as `kw`. Fixing it is a reader change, not a table change: `extract_lindley_lyon.py` and `extract_lyon_priests.py` read `build/papers/<stem>.txt` and need to read `<stem>.page.txt` instead.
+The counts in the last two rows are for both Lyon papers together. The corpus used to hold `iks’ma’yɬtím` where the page holds `iksm̓ay̓ɬtím`, and `sqwlqwlstwíxwtət` where the page holds `sqʷlqʷlstwíxʷtət`. It now holds what the page holds.
+
+What is left of the 13 percent is the inserted space: a word arrives in pieces and the corpus keeps the pieces, so `incítxʷ` is in it as `incítx w`. `space_repair.py` exists to close those and cannot reach these, because the vocabulary it joins with comes from the interlinear's form column, which in this paper is the parse and carries morpheme hyphens the running text does not.
+
+`page_text.py` is what the two readers swap in for `font_repair.py`. Every repair in it returns its line, because the mapping is destructive rather than idempotent on text that has already been through it: `P` to `ʔ` turns `Papers` into `ʔapers` and the gloss label `APPL` into `AʔʔL`. Its `language_line` and `carries_orthography` had to be rewritten instead of passed through, because `font_repair`'s versions ask whether a line holds a character only the damaged orthography writes, and the page text holds none of them by construction.
+
+`coverage_check.py` reads the same page text for these two, under a `page` entry in its repair list, and all eleven papers are back to 100 percent coverage.
+
+### What a pure corpus is for
+
+The purity of both sources is the constraint everything else answers to. The target is the Salishan ingestion and the contarget is the English reference, and a boundary drawn between two distributions says nothing about the languages if either side is holding something other than what it claims.
+
+Once each dialect's corpus is pure, the dialects become each other's contargets. A boundary drawn between Nsyilxcən and Nɬeʔkepmxcín is a claim about where one ends and the other begins, and it is worth drawing because of what sits near it: forms that two dialects share and a third has lost, which is where onomatopoeia that has gone out of one of them would show.
+
+**That comparison has to run on a sound representation in binary, not on the characters.** These orthographies write the same sound differently and the difference is arbitrary. The lateral fricative is `ɬ` in one paper here and `ł` in another. The glottal stop is `ʔ` in most and the digit `7` in the van Eijk papers. Labialization is a raised `ʷ` in some and a plain `w` in others. A model counting character bigrams reads two dialects that share a word as maximally far apart, because it is measuring the transcriber and not the speaker. Encoding each segment as its features and comparing those is what makes the distance a fact about the languages.
+
+Nothing in the tree does this yet. `TEXT_SPACE` in `salish_marking.py` is the inventory of characters these papers are written with, which is the input a sound representation would be built from, and it is one definition rather than a copy per file for that reason.
 
 `english_sift.py --check` reports the separation as healthy against that corpus. Under one anchor, 2327 known-pure lines sit at a median of 14.64 against 1898 known-English spans at 8.49, and a cut at 9.28 keeps 99.0 percent of the pure corpus while admitting 15.1 percent of the English. Under two anchors, 96 percent of the pure lines come back as language and 98 percent of the English spans as English. Those figures say the two anchors are far apart. They do not say the language anchor is the language, and on 39 percent of its material it is the font's encoding.
 

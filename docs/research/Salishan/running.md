@@ -111,6 +111,8 @@ The first renders each page to `build/pages/<stem>/page_NNN.png`. Arguments are 
 
 The second writes `build/papers/<stem>.page.txt`, line for line with the extraction so a page of one is a page of the other. It is a draft, and `oracle_check.py` reads it in place of the extraction for these two papers, which makes it the thing being graded and not the thing that grades. The rules are in `lyon_encoding.py`. Two of them cannot be settled without looking at the page: which `w` is a labialized consonant, and which inserted space is a word boundary.
 
+Both of these papers' readers take that file too, and so does `coverage_check.py`. They swap `page_text.py` in for `font_repair.py` to do it, because the mapping is destructive rather than idempotent on text it has already been applied to. Steps 2 and 3 therefore have to run before step 4 for these two, and running the readers without them leaves the last drafted text on disk in the corpus.
+
 ## Checks
 
 ```
@@ -168,6 +170,7 @@ These are imported, not run.
 | `A/anchor_sift.py` | the method itself: squash, total variation, split-half, support, entropy |
 | `A/english_sift.py` | the English anchor and the per-line screen built on it |
 | `S/salish_marking.py` | the T and N marking convention, `tagged_spans`, `TEXT_SPACE`, `CAPS_RUN`, ligatures |
+| `S/page_text.py` | what a reader needs where its source is the drafted page text: every repair a pass-through, and the language test asked on the orthography |
 | `S/salish_unsorted.py` | the flag file, and what counts as a language token |
 | `S/font_repair.py` | the Lyon substitution table and the three forms of applying it |
 | `S/space_repair.py` | putting back together words the Lyon extraction split internally |

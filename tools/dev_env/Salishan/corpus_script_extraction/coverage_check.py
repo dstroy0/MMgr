@@ -103,13 +103,16 @@ PAIRS = (
      "_Salish_ayajuthem_2021_mixed.txt", ()),
     ("22-Nater-Bella-Coola-tale-10",
      "MargaretSiwallace_ABellaCoolaTale_Nater_Salish_nuxalk_2015_nomixed.txt", ()),
+    # These two read the drafted page text, which is what their readers read. "page" says so and
+    # picks the source file. There is no font repair on that side of the pair: the mapping has
+    # already been applied by draft_page_text.py, and running it again turns Papers into ʔapers.
     ("19-Lyon_ICSNL50_final-78",
      "GeorgeLezard-NellieGuitterez-AndrewMcGinnis_ThreeOkanaganStoriesAboutPriests_Lyon"
      "_Salish_nsyilxcen_2015_nomixed.txt",
-     ("font", "columns")),
+     ("page", "columns")),
     ("2013_Lindley_Lyon",
      "LottieLindley_TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
-     "_Salish_nsyilxcen_2013_nomixed.txt", ("font", "columns")),
+     "_Salish_nsyilxcen_2013_nomixed.txt", ("page", "columns")),
     # A fourth field where a paper writes its language with characters MARKS does not hold. The
     # 1983 Hilbert typescript is unrepaired on purpose, so its glottal stop is ? and its schwa is
     # ~, J or G, and a check built on ʔ and ə finds nothing in it at all.
@@ -259,7 +262,7 @@ def main():
     for entry in PAIRS:
         stem, name, repairs = entry[:3]
         marks = entry[3] if len(entry) > 3 else MARKS
-        source = os.path.join(PAPERS, "%s.txt" % stem)
+        source = os.path.join(PAPERS, ("%s.page.txt" if "page" in repairs else "%s.txt") % stem)
         target = os.path.join(CORPORA, name)
         if not os.path.isfile(source) or not os.path.isfile(target):
             out.write("  %-36s missing a file\n" % stem[:36])

@@ -26,10 +26,10 @@ import os
 import re
 import sys
 
-from font_repair import (CAPS_RUN, REPAIR, language_line, repaired, repaired_english,
-                         repaired_line, repaired_prose)
-from salish_marking import (DERIVED, MARKED, SPOKEN, UNCLASSIFIED, is_mixed, rendered,
-                            switches, tagged_spans, unligatured)
+from page_text import (language_line, repaired, repaired_english, repaired_line,
+                       repaired_prose)
+from salish_marking import (CAPS_RUN, DERIVED, MARKED, SPOKEN, TEXT_SPACE, UNCLASSIFIED,
+                            is_mixed, rendered, switches, tagged_spans, unligatured)
 from salish_unsorted import UNKNOWN_KIND, covered_tokens, unreached, write_unsorted
 from space_repair import joined_words, vocabulary_of, welded
 
@@ -39,7 +39,10 @@ while (ROOT != os.path.dirname(ROOT)) and not os.path.isdir(os.path.join(ROOT, "
 PAPERS = os.path.join(ROOT, "build", "papers")
 CORPORA = os.path.join(ROOT, "build", "corpora")
 
-SOURCE = os.path.join(PAPERS, "2013_Lindley_Lyon.txt")
+# The drafted page text, not the extraction. This paper's PDF hands back the font's own alphabet,
+# and a corpus built on that is not the language: measured against the hand extraction read off the
+# rendered pages, a third of what this reader used to write was a string the page does not print.
+SOURCE = os.path.join(PAPERS, "2013_Lindley_Lyon.page.txt")
 
 # <spoken by>_<original paper>_<who wrote it down>_Salish_<language without accents>_<year>_<mixed>
 TARGET = os.path.join(
@@ -355,11 +358,15 @@ def main():
         handle.write("# Three of the twelve are three tellings of one story and three more are\n")
         handle.write("# three tellings of another, each with its own commentary.\n")
         handle.write("#\n")
-        handle.write("# FONT REPAIRED. This paper's PDF substituted plain letters for the\n")
-        handle.write("# orthography. The mapping below was verified against Lyon's later papers on\n")
-        handle.write("# the same language, moving attested tokens from 2 of 4332 to 965.\n")
-        for was, becomes in REPAIR:
-            handle.write("#   %s -> %s\n" % (was, becomes))
+        handle.write("# READ FROM THE PAGE. This paper's PDF hands back the font's own alphabet\n")
+        handle.write("# and not what the page prints, so this reader takes build/papers/\n")
+        handle.write("# 2013_Lindley_Lyon.page.txt, which draft_page_text.py writes in the\n")
+        handle.write("# orthography, and applies no substitution of its own.\n")
+        handle.write("#\n")
+        handle.write("# That text is a draft. Two things in it are settled only by the rendered\n")
+        handle.write("# page and are still open here: which w is a labialized consonant, and which\n")
+        handle.write("# inserted space is a word boundary. The hand extraction beside this paper\n")
+        handle.write("# was read off the pages and is what says so.\n")
         handle.write("#\n")
         handle.write("# Mark is language.layer.kind. T is Nsyilxcən, N is anything else.\n")
         handle.write("# Subsections are matched on their titles, not their numbers, because the\n")
