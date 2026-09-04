@@ -77,10 +77,14 @@ Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-
 | Garcia, Hannon and Stacey, ICSNL 59 | 371 | 369 | 150 not found, 748 invented |
 | Mary George, ICSNL 56 | 1661 | 1654 | 663 not found, 362 in the wrong dialect |
 | Hall and Phillips, ICSNL 60 | 406 | 399 | 209 not found, 521 invented |
-| Lyon, ICSNL 50 | 927 | 920 | the table is being reread from the page |
-| Lindley and Lyon, 2013 | 70 | 70 | text 1 of 12 read from the page, 11 outstanding |
+| Lyon, ICSNL 50 | 927 | 920 | the table is still the damaged forms and is being reread from the page |
+| Lindley and Lyon, 2013 | 653 | 653 | 503 not found, because the reader still reads the damaged text |
 
-Only Mellesmoen and Kye reproduces its table. On the two Lyon papers most of the invented count is scope: the reader reads the whole paper and the table does not yet cover it.
+Only Mellesmoen and Kye reproduces its table.
+
+`2013_Lindley_Lyon` is read off the rendered pages: all twelve texts, both the running transcription and the interlinear, with the footnotes, free translations, commentary, the appendix paradigms and the abbreviation list. What remains is 46 forms the table holds that the draft does not, and 37 strings in the draft that no row holds, and every one of those falls in one of the four classes the section below names. They measure the draft, not the table.
+
+Its reader is a separate matter. `extract_lindley_lyon.py` still reads `build/papers/2013_Lindley_Lyon.txt`, which is the font's encoding, so it is being graded in one orthography against a table written in another and misses 503 of 653. Pointing it at the drafted page text is the next step and has not been taken.
 
 Three of the eleven carry a `.oracle.md` beside the table, which is where a note about that paper goes. The `.tsv` itself holds no comment syntax and no prose header, so a CSV linter can read it: a header on line 1 and the same field count on every row.
 
@@ -136,6 +140,11 @@ What replaces it: `pdf2png.py` renders the pages to `build/pages/<stem>/page_NNN
 
 * **Labialization**, for the reason above. It writes `ʷ` after the consonants that take one, which is right for `kʷ qʷ xʷ x̌ʷ` and wrong wherever a real `w` follows a consonant.
 * **Word boundaries.** The PDF inserts a space in front of a letter carrying a mark. `s ’plá ’ks@lx` is one word and `iP ’kl` is two, and both are a space in front of a marked letter. Page 25 settles the first as `sp̓lák̓səlx`, page 24 the second as `iʔ k̓l`.
+* **The space that was not inserted.** Where the PDF leaves the mark against its letter there is nothing to key on, and a medial `’` is also the apostrophe of `Lyon’s`. `nkw’ritkw`, `xw’tilx` and `wa’y` keep the mark standing in front of its letter; the pages read them `nkʷr̓itkʷ`, `xʷt̓ilx` and `way̓`.
+* **A P-initial word with no other mark on it.** `Pitx`, `Pums`, `Pistkm` and `Paksyilx` come through as English, because a capital P opening a token that holds nothing else is the shape of `Papers` and `Penticton`.
+* **The dropped space.** At a change of font and at some line ends the PDF loses the space entirely, so `Okanagan yaxʷt`, `uɬ ny`, `məɬ ixíʔ` and `axáʔ ikɬcítxʷ` arrive welded into one token.
+
+Those five classes account for all 83 disagreements the check reports on `2013_Lindley_Lyon` now that it has been read off the pages in full, and for nothing else. That count is the measurement the draft exists to produce.
 
 One thing the extraction is better evidence for than the rendered page. The transposition moves a mark off its letter and preserves it, so a token's mark count survives the channel exactly. At the scale these pages render, a run like `m̓y̓m̓y̓á` cannot be told from `m̓ym̓á` by eye, and reading the page alone undercounts. The text settles it: stanza 112 arrives as `s- m̓ y̓- m̓ y̓-á y̓-s`, which is five marks, so the word is `s-m̓y̓-m̓y̓-áy̓-s`. Take the count from the text and the boundaries from the page.
 
