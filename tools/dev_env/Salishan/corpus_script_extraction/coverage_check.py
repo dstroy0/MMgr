@@ -172,6 +172,15 @@ PAIRS = (
      "unstated_HowSalishIsBellaCoola_Nater_Salish_nuxalk_2013_mixed.txt",
      ("inserted spaces",),
      MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ǝ√" + "áíúà" + "ᴗɢʁʒščɣλˑ"),
+    # The only paper here whose reader repairs nothing: closed_spaces changes none of its 80 lines.
+    # The dot below is its rounded uvular, in x̣íɬ and sóx̣ʷest. ǰ and θ are here to make ʔayʔaǰuθəm
+    # and -θi visible, which are Comox and not this language; the who column keeps them out of the
+    # target stream, and a set that could not see them would leave nothing for this check to ask.
+    ("Hall-et-al_-ICSNL_61-1",
+     "unstated_CtrlAltDeleteTheControlDirectiveAndAssociatedTDeletionInNlekepmxcin"
+     "_HallLuntzlaraMellesmoenReid_Salish_nlekepmxcin_2026_mixed.txt",
+     (),
+     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "̣" + "áéíóúè" + "́" + "ǰθ"),
 )
 
 

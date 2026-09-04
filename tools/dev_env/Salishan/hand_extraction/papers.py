@@ -136,6 +136,29 @@ KIM = SHARED + "ɫˀščóéɔ" + "̦́ʹ"
 # voiceless-words paper has and is recorded in refs.md for the same reason.
 NATER_ETYM = SHARED + "ǝ√" + "áíúà" + "ᴗɢʁʒščɣλˑ"
 
+# Hall, Luntzlara, Mellesmoen and Reid on the control directive. The dot below is what this paper
+# writes its rounded uvular with, in x̣íɬ and sóx̣ʷest and c̓x̣, 40 times; the shared set does not carry
+# it and Robertson's entry adds it for the same reason. The acute vowels are given composed and
+# combining both, on the same argument as Wolfe: NFC folds á into one character and leaves ə́ as a
+# schwa carrying an acute of its own.
+#
+# ǰ and θ are in here to make ʔayʔaǰuθəm and -θi visible. Neither is nɬeʔkepmxcín. Section 3.1.1
+# argues from Comox and from St'át'imcets, and the who column is what keeps those two out of the
+# target stream; a set that could not see them would leave them for direction two to never ask about.
+#
+# Three characters are deliberately out.
+#
+# ː, U+02D0, occurs five times and every one is a typo for a colon: 1992ː65, this variationː, in
+# transitive verbsː. Carrying it would make paperː and verbsː words of the language.
+#
+# ’ is not the ejective in this paper, unlike Nater's. The ejective is the combining comma above, 95
+# times, and the 172 right quotes are closing quotes and English possessives. It would buy the two
+# practical-orthography names Snk’y’peplhxw and Nlaka’pamux and cost every Thompson’s and one’s.
+#
+# ∅ marks a null morpheme inside an underlying form. It is notation and the forms it sits in are
+# analysis, which the table holds under a kind that keeps them out of the pure stream anyway.
+HALL_CTR = SHARED + "̣" + "áéíóúè" + "́" + "ǰθ"
+
 # Papers whose text extraction is not what the page says. Both of these are TeX Type1 with a custom
 # encoding and no ToUnicode map. pypdf and pypdfium2 lose the same things: the page prints
 # cítxʷsəlx uɬ ti nyʕip and the text holds cítxws@lx uì ’ti ny ’Qip, with the ejective mark landing
@@ -261,4 +284,19 @@ EVERY = (
      "unstated_HowSalishIsBellaCoola_Nater"
      "_Salish_nuxalk_2013_mixed.txt",
      closed_spaces, NATER_ETYM),
+    # Every form is cited from Thompson and Thompson's 1992 grammar and 1996 dictionary, so there is
+    # no speaker slot for the paper as a whole. Two examples are Bev Phillips out of Hall and
+    # Phillips 2025, which is another paper in this table, and the acknowledgement footnote quotes
+    # kʷaɬtèzetkʷ introducing herself in the language. The who column carries those three.
+    #
+    # This is the first paper here that prints two forms of every example: a surface form in square
+    # brackets and an underlying form in slashes. Only the bracketed one was ever said. The slashed
+    # forms, the derivation tables' intermediate lines, and the starred forms the analysis predicts
+    # and rejects are all held out of the pure stream, on the same rule that holds out Kim's
+    # underlying forms and Wolfe's reconstructions.
+    ("Hall-et-al_-ICSNL_61-1.oracle.tsv",
+     "Hall-et-al_-ICSNL_61-1",
+     "unstated_CtrlAltDeleteTheControlDirectiveAndAssociatedTDeletionInNlekepmxcin"
+     "_HallLuntzlaraMellesmoenReid_Salish_nlekepmxcin_2026_mixed.txt",
+     None, HALL_CTR),
 )
