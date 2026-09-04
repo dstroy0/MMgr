@@ -265,3 +265,28 @@ footnote 11	John Lyon	note	Courtney Lake is right off the highway, between Aspen
 2.2 11	John Lyon	gloss	say-DIR-PASS EVID come in
 2.2 11	John Lyon	word gloss	he.was.told they.say come in
 2.2 11	John Lyon	translation	‘He was told “Come in!” ’
+2.2 12	Nellie Guitterez	surface	lut t̓ cnʔuɬxʷs.
+2.2 12	John Lyon	parse	lut t̓ c+n+√ʔuɬxʷ-s
+2.2 12	John Lyon	gloss	NEG NEG.EMPH CISL+LOC+enter-3POSS
+2.2 12	John Lyon	word gloss	not he.came.in
+2.2 12	John Lyon	translation	‘The priest didn’t come in.’
+2.2 13	Nellie Guitterez	surface	np̓əlk̓, npuwápəm, cúntəm kʷukʷ “Come in!”
+2.2 13	John Lyon	parse	n+√p̓lk̓, n+√puw=áp-m, √cún-nt-m kʷukʷ come in
+2.2 13	John Lyon	gloss	LOC+turn LOC+beat=door-MID say-DIR-PASS EVID come in
+2.2 13	John Lyon	word gloss	he.turned he.was.knocking he.was.told they.say come in
+2.2 13	John Lyon	translation	‘The priest turned and was knocking, and the settler told him “Come in!” ’
+2.2 14	Nellie Guitterez	surface	ixíʔ sctíɬxs uɬ xʷuy k̓l doors, k̓ɬnwəlq̓íps iʔ door uɬ axáʔ iʔ q̓ʷʕaylqs.
+2.2 14	John Lyon	parse	ixíʔ s-c-√tíɬ-x-s uɬ xʷuy k̓l door-s k̓ɬ+n+√wlq̓=íp-s iʔ door uɬ axáʔ iʔ √q̓ʷʕay=lqs
+2.2 14	John Lyon	gloss	DEM NMLZ-CUST-stand-INTR-3POSS CONJ go LOC door-3POSS DRV+LOC+open=door-3POSS DET door CONJ DEM DET black=robe
+2.2 14	John Lyon	word gloss	then he.was.standing and he.went to his.door he.opened.the.door the door and this the priest
+2.2 14	John Lyon	translation	‘The settler stood up and went to his door, he opened the door and there was this priest.’
+2.2 15	Nellie Guitterez	surface	cus kʷukʷ “sxʔkinx, q̓ʷʕaylqs? nkʷkʷʔac uɬ kʷ cxʷylwis?”
+2.2 15	John Lyon	parse	√cun-nt-s kʷukʷ s-x+√ʔkin-x √q̓ʷʕay=lqs n+kʷ(•)√kʷʔac uɬ kʷ c-√xʷy+lwis
+2.2 15	John Lyon	gloss	say-DIR-3ERG EVID NMLZ-DRV+do.what-INTR black=robe LOC+late CONJ 2SG.ABS CUST-go+here.and.there
+2.2 15	John Lyon	word gloss	he.told.him they.say what.happened priest late and you are.travelling
+2.2 15	John Lyon	translation	‘He told the priest “What happened, priest? It’s late and you’re travelling around!” ’
+2.2 16	Nellie Guitterez	surface	cut “kʷ[aʔ] mat cíx̌cəx̌t.”
+2.2 16	John Lyon	parse	cut kʷ mat cíx̌•√cx̌+t
+2.2 16	John Lyon	gloss	say 2SG.ABS EPIS RED•hot+STAT
+2.2 16	John Lyon	word gloss	he.said you must.be very.hot
+2.2 16	John Lyon	translation	‘He said “You must be hot.” ’
