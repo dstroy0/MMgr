@@ -52,6 +52,14 @@ NULL_CLITIC = ""
 # of a pair around a gloss.
 PAIRED = (("‘", "’"), ("'", "'"), ("“", "”"))
 
+# The mark Lyon opens every parsed root with.
+ROOT = "√"
+
+# The Latin ligatures a PDF sets f-words with. None of these orthographies uses one, so every
+# occurrence is the typesetter's and the letters underneath are what the paper says. Lyon's
+# translations carry ﬁnish, ﬁll and ﬁrst, and a table typed at a keyboard holds none of them.
+LIGATURES = (("ﬁ", "fi"), ("ﬂ", "fl"), ("ﬀ", "ff"), ("ﬃ", "ffi"), ("ﬄ", "ffl"))
+
 
 # A footnote number, a second closing quote, and a mangled one. All three sit past the sentence's
 # own punctuation: tuʔúʔt.6 puts the marker after the period, yéyeʔ?”’ closes the inner quote after
@@ -106,7 +114,10 @@ def bare(token):
     comes off only where an opening one is on the same token, because ’ ends real words in Nuxalk
     and in Lyon's Okanagan.
     """
-    plain = token.replace(NULL_CLITIC, "").strip(EDGES)
+    plain = token.replace(NULL_CLITIC, "")
+    for ligature, letters in LIGATURES:
+        plain = plain.replace(ligature, letters)
+    plain = plain.strip(EDGES)
     for opens, closes in PAIRED:
         if (len(plain) > 1) and plain.startswith(opens) and plain.endswith(closes):
             plain = plain[1:-1].strip(EDGES)
@@ -207,6 +218,14 @@ def source_forms(path, repair=None):
                         if at == 0:
                             printed.add(plain)
                     reach = list(token.split("/"))
+                    # Lyon's five-line interlinear puts a form on one line and its parse on the
+                    # next, and the extraction runs the two together wherever the parse opens with
+                    # the root mark: cáwt@t,√cáwt-tt is the word and its analysis in one token. A √
+                    # anywhere but the front is that join, and both sides are offered.
+                    at_root = token.find(ROOT)
+                    if at_root > 0:
+                        reach.append(token[:at_root])
+                        reach.append(token[at_root:])
                     if (where + 1) < len(tokens):
                         joined = bare(token + tokens[where + 1])
                         reach.append(token + tokens[where + 1])
@@ -285,6 +304,13 @@ def main():
             # A capital opening a sentence. None of these orthographies tell two words apart by
             # case, so the Yéyeʔ that opens a translation is the yéyeʔ a row already holds.
             if token.lower() in written:
+                continue
+            # A form run together with its own parse, as Lyon's extraction leaves cáwt@t,√cáwt-tt.
+            # The table holds the word and the analysis apart, which is how the paper sets them.
+            at_root = token.find(ROOT)
+            if (at_root > 0) and all((one in written) for one in
+                                     (token[:at_root], token[at_root:])
+                                     if is_language_token(one, marks)):
                 continue
             # A slashed token is two forms printed in one cell, dᶻəlč̓/ǰəlč̓, and the hand
             # extraction gives each of them its own row. Asking for the whole string back would

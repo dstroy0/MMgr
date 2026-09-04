@@ -44,6 +44,17 @@ STRESS = SHARED + "ǰᶻθáíúàìù" + "̌́̀"
 # The 1983 typescript's damaged orthography. Nothing in the shared set appears in it.
 DAMAGED = "?~JG@V%]!"
 
+# Lyon writes Okanagan in a NW Americanist orthography the PDF renders in ASCII with a few marks
+# on top, and not one character of the shared set survives that rendering.
+#
+# P is left out even though it is the glottal stop of this orthography. It is an ASCII capital, and
+# putting it in makes a word of every 1SG.POSS on a gloss line and of Papers, Penticton and
+# Philosophical in the front matter. Q stays: outside the abbreviation list it appears only in
+# Okanagan. What leaving P out costs is real. iP, naqs, lut and kn carry none of the marks below, so
+# the check does not ask about them, and they are verified only by being written into the table
+# beside the words it does ask about.
+OKANAGAN = "@ì’ˇňQ√•"
+
 EVERY = (
     ("Mellesmoen_Kye_ICSNL61.oracle.tsv",
      "Mellesmoen_Kye_ICSNL61",
@@ -93,7 +104,7 @@ EVERY = (
      "19-Lyon_ICSNL50_final-78",
      "GeorgeLezard-NellieGuitterez-AndrewMcGinnis_ThreeOkanaganStoriesAboutPriests_Lyon"
      "_Salish_nsyilxcen_2015_nomixed.txt",
-     None, SHARED),
+     None, OKANAGAN),
     ("2013_Lindley_Lyon.oracle.tsv",
      "2013_Lindley_Lyon",
      "LottieLindley_TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
