@@ -110,7 +110,7 @@ python tools/dev_env/Salishan/draft_page_text.py 2013_Lindley_Lyon
 
 The first renders each page to `build/pages/<stem>/page_NNN.png`. Arguments are the stem, the first page, the last page, and optionally a scale, which defaults to 3 and puts a 12pt body around 50 pixels tall, where a stacked diacritic stops being a guess.
 
-The second writes `build/papers/<stem>.page.txt`, line for line with the extraction so a page of one is a page of the other. It is a draft, and `oracle_check.py` reads it in place of the extraction for these two papers, which makes it the thing being graded and not the thing that grades. The rules are in `lyon_encoding.py`. Two of them cannot be settled without looking at the page: which `w` is a labialized consonant, and which inserted space is a word boundary.
+The second writes `build/papers/<stem>.page.txt`, line for line with the extraction so a page of one is a page of the other. It is a draft, and `oracle_check.py` reads it in place of the extraction for these two papers, which makes it the thing being graded and not the thing that grades. The rules are in `lyon_encoding.py`. Two of them cannot be settled without looking at the page: which `w` is a labialized consonant, and which inserted space is a word boundary. `refs.md` names those and the four other classes the check keeps reporting.
 
 Both of these papers' readers take that file too, and so does `coverage_check.py`. They swap `page_text.py` in for `font_repair.py` to do it, because applying the mapping to text it has already been applied to destroys the text. Steps 2 and 3 therefore have to run before step 4 for these two, and running the readers without them leaves the last drafted text on disk in the corpus.
 
