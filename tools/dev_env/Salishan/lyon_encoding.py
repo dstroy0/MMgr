@@ -171,12 +171,23 @@ def lengthened(line):
         while (end < len(line)) and (line[end] == ";"):
             end += 1
         after = line[end:end + 2]
-        # The letter it lengthens, either straight after the run or across one inserted space.
-        carries = bool(after) and (after[0].isalpha()
-                                   or ((after[0] == " ") and (len(after) > 1) and (after[1] == "’")))
+        # The letter it lengthens comes next, and one of two things can stand between. A spacing
+        # mark waiting for that letter, as ’kwu;’l-s has. An inserted space in front of that mark,
+        # as qw@mí;; ’wt has. A space with a plain letter after it is the sentence carrying on,
+        # which is what keeps níkmən; iP apart.
+        carries = bool(after) and (after[0].isalpha() or (after[0] in MOVED)
+                                   or ((after[0] == " ") and (len(after) > 1)
+                                       and (after[1] in MOVED)))
         out.append(("·" * (end - at)) if carries else line[at:end])
         at = end
     return "".join(out)
+
+
+# What the look-back steps over on its way to the consonant. Lyon brackets a segment he is
+# reconstructing and parenthesizes one he is restoring, and the page labializes across both:
+# [k̓]w is [k̓]ʷ in stanza 176 and n-t̓ək̓[w] is n-t̓ək̓[ʷ] in stanza 6. A combining mark is stepped
+# over for the same reason, since the mark sits on the consonant doing the labializing.
+TRANSPARENT = "[]()"
 
 
 def labialized(line):
@@ -184,10 +195,10 @@ def labialized(line):
     out = []
     for symbol in line:
         if (symbol == "w") and out:
-            previous = out[-1]
-            if unicodedata.combining(previous) and (len(out) > 1):
-                previous = out[-2]
-            if previous.lower() in LABIALIZED:
+            at = len(out) - 1
+            while (at >= 0) and ((out[at] in TRANSPARENT) or unicodedata.combining(out[at])):
+                at -= 1
+            if (at >= 0) and (out[at].lower() in LABIALIZED):
                 out.append("ʷ")
                 continue
         out.append(symbol)
