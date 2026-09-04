@@ -1156,3 +1156,28 @@ footnote 24	John Lyon	note	There is no 3rd person possessive -s pronounced on tk
 3.2 142	John Lyon	gloss	DEM COMP.FUT RES+wrap=covering-DIR-1SG.ERG DET boy yes kill.[CAUS]-1SG.ERG
 3.2 142	John Lyon	word gloss	there will I.wrap.him.up the boy already I.killed.him
 3.2 142	John Lyon	translation	‘ “I’m going to wrap the boy up, I killed him already.” ’
+3.2 143	Kiláwnaʔ	surface	taʔxíləm, k̓ɬcəkʷəntís iʔ k̓ɬyxʷtíc̓aʔ, ʕácqaʔ.
+3.2 143	John Lyon	parse	ta+√ʔxíl-m k̓ɬ+√ckʷ-nt-ís iʔ k̓ɬ+√yxʷ+t=íc̓aʔ ʕácqaʔ
+3.2 143	John Lyon	gloss	at+do.like-MID DRV+pull-DIR-3ERG DET DRV+lower+STAT=covering go.outside
+3.2 143	John Lyon	word gloss	he.did.like.that he.pulled.them.away the sheets he.went.outside
+3.2 143	John Lyon	translation	‘He pulled away the bottom sheets and went outside.’
+3.2 144	Kiláwnaʔ	surface	ixíʔ cnʔuɬxʷ iʔ ylmíxʷəm, ksɬq̓ílxaʔx.
+3.2 144	John Lyon	parse	ixíʔ c+n+√ʔuɬxʷ iʔ ylmíxʷm ks-√ɬq̓+ílx-aʔx
+3.2 144	John Lyon	gloss	DEM CISL+LOC+enter DET chief FUT-lay.down+AUT-INCEPT
+3.2 144	John Lyon	word gloss	then he.went.inside the chief he.was.going.to.lay.down
+3.2 144	John Lyon	translation	‘Then the chief went back inside, and he was going to go to bed.’
+3.2 145	Kiláwnaʔ	surface	“xʔkínəm ik̓ɬyxʷtíc̓aʔ?”
+3.2 145	John Lyon	parse	x+√ʔkín-m in-k̓ɬ+√yxʷ+t=íc̓aʔ
+3.2 145	John Lyon	gloss	DRV+do.what-MID 1SG.POSS-DRV+lower+STAT=covering
+3.2 145	John Lyon	word gloss	what.happened.to my.bottom.sheets
+3.2 145	John Lyon	translation	‘ “What happened to my bottom sheets?” said the chief.’
+3.2 146	Kiláwnaʔ	surface	“kʷaʔ kʷ scútxaʔx kylxʷíc̓aʔm isqʷsíʔ, way̓ pulstxʷ.”
+3.2 146	John Lyon	parse	kʷaʔ kʷ s-√cút(-)x-aʔx k+√ylxʷ=íc̓aʔ-m in-s+√qʷsíʔ way̓ pul(-)st-xʷ
+3.2 146	John Lyon	gloss	INTERJ 2SG.ABS NMLZ-say-INTR RES+wrap=covering-MID 1SG.POSS-NMLZ+son yes kill.[CAUS]-2SG.ERG
+3.2 146	John Lyon	word gloss	well you were.saying were.wrapping.up my.son already you.killed.him
+3.2 146	John Lyon	translation	‘ “Well, you said that you were going to wrap my son up, and you killed him already,” said his wife.’
+3.2 147	Kiláwnaʔ	surface	“ahahahaha”, t̓i cut. “lutaʔ cʔx̌ílstən itíʔ.”
+3.2 147	John Lyon	parse	ahahahaha t̓i cut lutaʔ c-√ʔx̌íl-st-n itíʔ
+3.2 147	John Lyon	gloss	ahahahaha EMPH say NEG CUST-do.like-CAUS-1SG.ERG DEM
+3.2 147	John Lyon	word gloss	ahahahaha just he.said not I.did.that there
+3.2 147	John Lyon	translation	‘ “Ahahahaha” is all he said. “I didn’t do that.” ’
