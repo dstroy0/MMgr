@@ -30,6 +30,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                 "corpus_script_extraction"))
 
+from glyph_names import decoded as robertson  # noqa: E402
 from inserted_space import closed_spaces  # noqa: E402
 from mary_george_repair import repaired as mary_george  # noqa: E402
 from mellesmoen_kye_repair import repaired as mellesmoen_kye  # noqa: E402
@@ -56,6 +57,11 @@ DAMAGED = "?~JG@V%]!"
 # read that. None of them survive the draft, so direction two asked about nothing and reported a
 # paper with eleven unread texts as complete.
 OKANAGAN = SHARED + "̌·"
+
+# Robertson writes the Thompson and Shuswap of the Chinuk pipa letters in Americanist symbols, and
+# says so on page 30: č, š and x̌ʷ, the last of them a dot under an x. The dot is a combining mark
+# and the shared set does not carry it, so /x̣əƛ’ would be found by its ƛ and x̣aw by nothing at all.
+ROBERTSON = SHARED + "̣čš"
 
 # Papers whose text extraction is not what the page says. Both of these are TeX Type1 with a custom
 # encoding and no ToUnicode map. pypdf and pypdfium2 lose the same things: the page prints
@@ -127,4 +133,9 @@ EVERY = (
      "LottieLindley_TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
      "_Salish_nsyilxcen_2013_nomixed.txt",
      None, OKANAGAN),
+    ("2012_Robertson.oracle.tsv",
+     "2012_Robertson",
+     "CharleyAlexisMayoos-WilliamCelestin_BCIndigenousPeoplesChinukPipaScript_Robertson"
+     "_Salish_nlekepmxcin-secwepemctsin_2012_mixed.txt",
+     robertson, ROBERTSON),
 )

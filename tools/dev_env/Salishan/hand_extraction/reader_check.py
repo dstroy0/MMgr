@@ -134,6 +134,10 @@ def main():
     out = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", newline="")
     failed = 0
     waiting = []
+    # A paper with a hand extraction and no reader yet. It is not graded either, and counting it as
+    # graded is how this file reported 12 of 12 on the day the twelfth paper had a table and no
+    # reader. The two lists are kept apart because the thing to do about them is different.
+    unwritten = []
     for name, stem, record, repair, marks in EVERY:
         table = os.path.join(HERE, name)
         written = os.path.join(CORPORA, record)
@@ -142,6 +146,7 @@ def main():
             continue
         if not os.path.isfile(written):
             out.write("  no record on disk for %s, run its reader first\n" % stem)
+            unwritten.append(stem)
             failed += 1
             continue
 
@@ -259,10 +264,14 @@ def main():
         failed += len(missing) + len(wrong_kind) + len(wrong_dialect) + len(extra)
 
     out.write("\n  %d of %d readers are graded against a hand extraction\n"
-              % (len(EVERY) - len(waiting), len(EVERY)))
+              % (len(EVERY) - len(waiting) - len(unwritten), len(EVERY)))
     if waiting:
         out.write("  ungraded until their paper is read by hand:\n")
         for stem in waiting:
+            out.write("    %s\n" % stem)
+    if unwritten:
+        out.write("  read by hand and ungraded until a reader is written:\n")
+        for stem in unwritten:
             out.write("    %s\n" % stem)
     out.write("\n  %s\n" % ("every reader reproduces its hand extraction" if not failed
                             else "%d disagreements to work through" % failed))
