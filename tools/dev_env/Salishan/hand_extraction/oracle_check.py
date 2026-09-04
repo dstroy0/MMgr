@@ -120,6 +120,25 @@ def leading_marker(plain):
         plain = plain[at:].lstrip(EDGES)
 
 
+# A footnote marker set against a word that ends in a plain letter, as Lyon's zuxʷt5, ʕant7 and
+# ks-cúy-iʔ-səlx11 are. trailing_marker leaves those alone, and it has to: a run of digits at the end
+# of a word is the word's own last letter in the van Eijk orthography, where skúza7 and Cw7aoz spell
+# the glottal stop as 7.
+#
+# So this is never applied. It is offered as a second string to look for, the way a slashed cell and
+# a hyphen join are, and direction two lets a token through only when the table holds the form
+# without the marker. Both sides then have to agree before anything is skipped, and a paper that
+# writes 7 as a letter is unaffected because its rows carry the 7.
+def without_marker(plain):
+    """One token with a trailing run of digits off the end of it, or the token as it came."""
+    at = len(plain)
+    while (at > 0) and plain[at - 1].isdigit():
+        at -= 1
+    if (at == len(plain)) or (at == 0) or (not plain[at - 1].isalpha()):
+        return plain
+    return plain[:at]
+
+
 def bare(token):
     """One token with the punctuation around it off, and its orthography left alone.
 
@@ -236,6 +255,9 @@ def source_forms(path, repair=None):
                         if at == 0:
                             printed.add(plain)
                     reach = list(token.split("/"))
+                    # The same token without a footnote marker welded to its last letter.
+                    if plain:
+                        reach.append(without_marker(plain))
                     # Lyon's five-line interlinear puts a form on one line and its parse on the
                     # next, and the extraction runs the two together wherever the parse opens with
                     # the root mark: cáwt@t,√cáwt-tt is the word and its analysis in one token. A √
@@ -326,6 +348,12 @@ def main():
             # A capital opening a sentence. None of these orthographies tell two words apart by
             # case, so the Yéyeʔ that opens a translation is the yéyeʔ a row already holds.
             if token.lower() in written:
+                continue
+            # A footnote marker welded to the word it marks, as Lyon's zuxʷt5 is. The row holds the
+            # word. A paper spelling the glottal stop as 7 keeps the 7 in its rows, so skúza7 is not
+            # let through here by a row holding skúza.
+            marked = without_marker(token)
+            if (marked != token) and (marked in written):
                 continue
             # A form run together with its own parse, as Lyon's extraction leaves cáwt@t,√cáwt-tt.
             # The table holds the word and the analysis apart, which is how the paper sets them.

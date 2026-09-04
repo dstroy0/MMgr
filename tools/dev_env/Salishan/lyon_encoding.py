@@ -120,6 +120,12 @@ def salish(token):
     """
     if a_gloss(token):
         return False
+    # Qu opening a token is the English digraph, as Quilchena and Queen are. Q is the pharyngeal
+    # everywhere else, at the front of Qant and QapnáP included, so the test asks for a plain ASCII
+    # tail as well and only the English pair comes out. A Salish word opening ʕu and carrying no
+    # other mark would be read as English here. Neither paper holds one.
+    if (token[:2] == "Qu") and token[1:].isascii():
+        return False
     if any((mark in token) for mark in MARKS):
         return True
     # A ’ that opens a token is the mark waiting for its letter: ’ti is t̓i. One that follows a

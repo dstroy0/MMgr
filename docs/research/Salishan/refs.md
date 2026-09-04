@@ -137,6 +137,8 @@ What replaces it: `pdf2png.py` renders the pages to `build/pages/<stem>/page_NNN
 * **Labialization**, for the reason above. It writes `ʷ` after the consonants that take one, which is right for `kʷ qʷ xʷ x̌ʷ` and wrong wherever a real `w` follows a consonant.
 * **Word boundaries.** The PDF inserts a space in front of a letter carrying a mark. `s ’plá ’ks@lx` is one word and `iP ’kl` is two, and both are a space in front of a marked letter. Page 25 settles the first as `sp̓lák̓səlx`, page 24 the second as `iʔ k̓l`.
 
+One thing the extraction is better evidence for than the rendered page. The transposition moves a mark off its letter and preserves it, so a token's mark count survives the channel exactly. At the scale these pages render, a run like `m̓y̓m̓y̓á` cannot be told from `m̓ym̓á` by eye, and reading the page alone undercounts. The text settles it: stanza 112 arrives as `s- m̓ y̓- m̓ y̓-á y̓-s`, which is five marks, so the word is `s-m̓y̓-m̓y̓-áy̓-s`. Take the count from the text and the boundaries from the page.
+
 `get_papers.py` applies the same test inside `converted()` and writes a `.unfaithful` file beside the text naming the fonts. It fires only when a PDF is converted, and conversion skips any PDF that already has text beside it, so the 146 already on disk carry no such file. The table above was produced by running the same test over them directly.
 
 ### The delta is a mutation probability distribution
