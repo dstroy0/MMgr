@@ -58,6 +58,12 @@ DAMAGED = "?~JG@V%]!"
 # paper with eleven unread texts as complete.
 OKANAGAN = SHARED + "̌·"
 
+# The 1975 Hilbert and Hess typescript writes the glottal stop as ? the way the 1983 one does, and
+# keeps the rest of the orthography: ə, č, š, ɬ, the barred lambda, and the wedge over x. Its
+# scanned text is OCR and loses most of that, so the marks here are what the page prints and the
+# check reports the distance between the two.
+HILBERT_HESS = "?ə" + "čšɬƛᶻʷ" + "̌̓"
+
 # Robertson writes the Thompson and Shuswap of the Chinuk pipa letters in Americanist symbols, and
 # says so on page 30: č, š and x̌ʷ, the last of them a dot under an x. The dot is a combining mark
 # and the shared set does not carry it, so /x̣əƛ’ would be found by its ƛ and x̣aw by nothing at all.
@@ -133,6 +139,11 @@ EVERY = (
      "LottieLindley_TwelveMoreUpperNicolaOkanaganNarratives_LindleyLyon"
      "_Salish_nsyilxcen_2013_nomixed.txt",
      None, OKANAGAN),
+    ("1975_Hilbert_Hess.oracle.tsv",
+     "1975_Hilbert_Hess",
+     "ViHilbert-ThomHess_ANoteOnAeConstructionsInLushootseed_HilbertHess"
+     "_Salish_lushootseed_1975_mixed.txt",
+     None, HILBERT_HESS),
     ("2012_Robertson.oracle.tsv",
      "2012_Robertson",
      "CharleyAlexisMayoos-WilliamCelestin_BCIndigenousPeoplesChinukPipaScript_Robertson"
