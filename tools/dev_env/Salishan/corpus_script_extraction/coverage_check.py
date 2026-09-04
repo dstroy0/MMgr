@@ -157,6 +157,13 @@ PAIRS = (
      "DelphineDerricksonArmstrong-DaveMichele_NsyilxcnInchoativesAndTheirDistributions"
      "AcrossRootTypes_Lyon_Salish_nsyilxcen_2025_mixed.txt", ("inserted spaces",),
      MARKED + PRACTICAL + "̓̔̕ʷ˽" + "̌́" + "áíúé" + "ɣš√"),
+    # Kim writes the lateral fricative as ɫ, which MARKED does not carry: it holds ɬ and ł, and this
+    # is the paper that makes it three characters for one sound. ˀ is its rule-derived glottal stop,
+    # against phonemic ʔ, and both are all over the reduplicants.
+    ("Kim_TwanaReduplication_final",
+     "unstated_TheTruncatedReduplicationInTwana_Kim_Salish_twana_2017_mixed.txt",
+     ("inserted spaces",),
+     MARKED + PRACTICAL + "̓̔̕ʷ˽" + "ɫˀščóéɔ" + "̦́ʹ"),
 )
 
 

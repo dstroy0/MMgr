@@ -108,6 +108,16 @@ NATER = SHARED + "̩̌"
 # combining comma above, 397 times, and the 129 right single quotes are all closing quotes.
 LYON_INCH = SHARED + "̌́" + "áíúé" + "ɣš√"
 
+# Kim writes the lateral fricative as ɫ, which is a third character for it. salish_marking carries ɬ
+# and ł and says papers differ on which they use; this is the paper that makes it three. The set also
+# has to hold ˀ as well as ʔ, because footnote 11 says the paper writes a phonemic glottal stop with
+# one and a rule-derived glottal stop with the other, and both are all over the reduplicants.
+#
+# Two characters in here render identically and are not the same code point: the combining comma
+# above U+0313 and the Greek koronis U+0343, 166 and 11 of them. NFC maps the koronis onto the comma,
+# and oracle_check normalizes before it looks, so they meet. Nothing to do beyond knowing it.
+KIM = SHARED + "ɫˀščóéɔ" + "̦́ʹ"
+
 # Papers whose text extraction is not what the page says. Both of these are TeX Type1 with a custom
 # encoding and no ToUnicode map. pypdf and pypdfium2 lose the same things: the page prints
 # cítxʷsəlx uɬ ti nyʕip and the text holds cítxws@lx uì ’ti ny ’Qip, with the ejective mark landing
@@ -214,4 +224,13 @@ EVERY = (
      "DelphineDerricksonArmstrong-DaveMichele_NsyilxcnInchoativesAndTheirDistributions"
      "AcrossRootTypes_Lyon_Salish_nsyilxcen_2025_mixed.txt",
      closed_spaces, LYON_INCH),
+    # The first Twana paper here, and Twana has no anchor yet. Every form is Drachman's, which Kim
+    # calls the only reliable reference in existence for this. Example (1) is the trap: it opens the
+    # paper where the data usually starts and it is Tillamook in Edel's 1939 transcription, not
+    # Twana, so the who column has to carry it.
+    ("Kim_TwanaReduplication_final.oracle.tsv",
+     "Kim_TwanaReduplication_final",
+     "unstated_TheTruncatedReduplicationInTwana_Kim"
+     "_Salish_twana_2017_mixed.txt",
+     closed_spaces, KIM),
 )

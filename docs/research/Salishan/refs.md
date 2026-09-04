@@ -42,6 +42,12 @@ A twelfth, `2012_Robertson`, now has both. `extract_robertson.py` reads it, `cov
 
 A thirteenth, `1975_Hilbert_Hess`, is read by hand and has no reader. `papers.py` carries it so `oracle_check.py` grades it, and `reader_check.py` lists it under the papers waiting for one. The section on papers whose extracted text is not the page says why a reader for it would have nothing sound to read.
 
+A seventeenth, `Kim_TwanaReduplication_final`, is the first Twana paper here, and Twana had no anchor at all before it. Its hand extraction is 362 rows and its reader writes 252 Twana forms. Every Twana form in it is Drachman's, out of a 1969 dissertation the paper calls the only reliable reference in existence for Twana CVC reduplication, so what is on these pages is close to the whole of what is written down.
+
+It also carries the trap this set makes easiest to fall into. Example (1) sits where the data usually starts and it is Tillamook, in Edel's 1939 transcription with its own vowel letters; (19) and (20) are Thompson and Lillooet; footnote 9 mixes Puget Sound Salish, Moses-Columbian and a row of English phonetics. The `who` column carries all of it and the footnote is left unclassified, because the language changes inside one sentence there.
+
+**The lateral fricative has a third character.** `salish_marking.py` says papers differ between `ɬ` and `ł` and carries both. Kim writes it `ɫ`, U+026B, sixty-two times. A mark set holding the other two reads every one of those tokens as English. The same paper writes the glottal stop two ways on purpose, `ʔ` where it is phonemic and `ˀ` where a rule derived it, which its footnote 11 states outright.
+
 A sixteenth, `LyonICSNL60_Inch-2`, is Lyon's survey of how 48 Nsyilxcn roots inchoativize, elicited from ɬk̓mxnalqs Delphine Derrickson-Armstrong and c̓əskʕáknaʔ Dave Michele of stq̓aʔtkʷɬniw̓t. Its hand extraction is 537 rows and verifies in both directions. Most cells of its two tables are starred, which is a form the linguist built and the speakers rejected; those are held out of the pure stream, because a corpus seeded with words the language does not have is worse than a smaller one. The reader writes 295 Nsyilxcn forms and files the Spokane, Secwepemctsín, Lillooet, nxaʔamxčín, Thompson and Coeur d'Alene cognates under their own languages.
 
 This is the first paper here below 100 percent coverage, at 99.5, and the two tokens are worth naming because neither is a word. `closed_spaces` closes the space after a glottalization mark, and on page 9 that mark ends a real word twice, welding `√pul̕` and `púl̕` onto the `qt:{` that opens the dictionary quotation after them. The welded tokens hold a brace, the record delimits its spans with braces, and `coverage_check` therefore splits them on the way back out. They exist in neither the page nor any corpus, so the corpus is correct not to hold them, and the check is correct to say it does not.
@@ -68,6 +74,7 @@ Nothing here needs fetching by hand. `python tools/dev_env/Salishan/get_papers.p
 | Lexical Suffixes and Connectives in Proto-Central Salish and Beyond. Wolfe. ICSNL 60, 2025 | `extract_wolfe.py` | `https://lingpapers.sites.olt.ubc.ca/files/2025/07/WolfeICSNL60.pdf` |
 | Voiceless Words in Bella Coola: Fact vs. Fiction. Nater. ICSNL 59, 2024 | `extract_nater_voiceless.py` | `https://lingpapers.sites.olt.ubc.ca/files/2024/07/ICSNL59_Nater_2_final.pdf` |
 | Nsyilxcn Inchoatives and their Distributions Across Root Types. Lyon. ICSNL 60, 2025 | `extract_lyon_inchoatives.py` | `https://lingpapers.sites.olt.ubc.ca/files/2025/07/LyonICSNL60_Inch-2.pdf` |
+| The truncated reduplication in Twana. Kim. ICSNL 52, 2017 | `extract_kim_twana.py` | `https://lingpapers.sites.olt.ubc.ca/files/2017/07/Kim_TwanaReduplication_final.pdf` |
 
 Each reader writes into `build/corpora/`: the marked record, a `.pure.txt` holding only target-language speech, a `.unclassifiable.tsv` listing what it could not type, and for the two Lyon papers a `.words.txt` giving the word forms recovered from the interlinear.
 
@@ -77,7 +84,7 @@ Records are named speaker first: `<spoken by>_<paper>_<who wrote it down>_Salish
 
 The reader is not the source of the corpus. Each paper is read by a person into `tools/dev_env/Salishan/hand_extraction/<paper>.oracle.tsv`, which says for every form in the paper what it is, and the reader is graded against that.
 
-Twelve of the sixteen verify against their paper in both directions: no form written that the paper does not hold, no token in the paper that no row covers. The other four are the papers whose extracted text is not what the page says, and what their remaining disagreements measure is the damage in that text. The two sections after this one are about them.
+Twelve of the seventeen verify against their paper in both directions: no form written that the paper does not hold, no token in the paper that no row covers. The other four are the papers whose extracted text is not what the page says, and what their remaining disagreements measure is the damage in that text. The two sections after this one are about them.
 
 **One hole in direction two is not a hole in a table, and Nater's paper is where that shows.** His argument is that Bella Coola has words with no vowel in them, so entries like `kp` 'each, all, every', `tp` 'spotted', `ps`, `px` and `sx` are plain ASCII with nothing in them that any mark set can catch. `is_language_token` needs a marked character, so direction two cannot ask about those, and about thirty of the 133 entries are invisible to it. Direction one still checks every one of them, because it looks for what the table wrote down. The apostrophe was tried as a way in, since Nater writes every ejective with one; it also makes every English gloss a word of the language, because a gloss ends in a closing quote and the two characters are the same. That trade is a few hundred false holes for about thirty real ones, so the apostrophe stays out and the limit is recorded here instead.
 
@@ -101,6 +108,7 @@ Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-
 | Wolfe, ICSNL 60 | 772 | 678 | 153 not found, of which most is front matter and section prose the reader does not read; 224 invented, 0 in the wrong language |
 | Nater, ICSNL 59 | 671 | 288 | 136 not found, which is the cluster charts the reader does not read; 337 invented, 0 in the wrong language |
 | Lyon, ICSNL 60 (inchoatives) | 537 | 491 | 76 not found, 61 invented, 0 in the wrong language; 146 typed differently, which is the table's own column vocabulary against the reader's one kind |
+| Kim, ICSNL 52 | 362 | 295 | 67 not found, 120 invented, 0 in the wrong language; 18 the reader flagged rather than guess at |
 
 Only Mellesmoen and Kye reproduces its table.
 
@@ -361,7 +369,7 @@ Recordings named in papers and not published with them:
 
 ## Text sources
 
-`build/papers/` holds 152 extracted paper texts and 146 of the PDFs they came from. Fifteen have a reader and a hand extraction and one more has a hand extraction alone, so 136 of the 152 are unread and 841 of the archive's 993 are not fetched. Six of the 146 are in the class the section above describes, and their texts are the font's encoding.
+`build/papers/` holds 152 extracted paper texts and 146 of the PDFs they came from. Sixteen have a reader and a hand extraction and one more has a hand extraction alone, so 135 of the 152 are unread and 841 of the archive's 993 are not fetched. Six of the 146 are in the class the section above describes, and their texts are the font's encoding.
 
 Fifty of them are about Lushootseed or Skagit. The heaviest, by how much they discuss it, are `Mellesmoen_Kye_ICSNL61.txt`, `Beck_2007.txt`, `1994_Beck.txt`, `1995_Beck.txt`, `1998_Cort.txt`, `2000_Barthmaier.txt`, `1996_Beck.txt`, `ICSNL58_Kye_final.txt`, `01_ICSNL55_Beck_final.txt` and `2002_Lonsdale.txt`. `1983_Hilbert.txt` is in that set.
 

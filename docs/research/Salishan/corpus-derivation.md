@@ -43,8 +43,9 @@ A paper contributes trials only where its extracted text is what the page prints
 | `WolfeICSNL60` | 772 | 763 | 0 | 378 | 0 | yes |
 | `ICSNL59_Nater_2_final` | 671 | 762 | 0 | 282 | 0 | yes |
 | `LyonICSNL60_Inch-2` | 537 | 666 | 0 | 435 | 0 | yes |
+| `Kim_TwanaReduplication_final` | 362 | 532 | 4 | 297 | 0 | yes |
 
-12 of the 16 hand extractions are checked against a sound source. Together they put 10216 distinct written forms and 4303 language tokens through the two directions.
+13 of the 17 hand extractions are checked against a sound source. Together they put 10748 distinct written forms and 4600 language tokens through the two directions.
 
 ## 3. The channels
 
@@ -54,13 +55,13 @@ The reader counts are not a channel here. A reader is written for one paper, so 
 
 | Channel | Failures | Trials | Bound |
 |---|---|---|---|
-| a form written that the paper does not hold | 0 | 10216 | 0.000294 |
-| a token in the paper that no row holds | 0 | 4303 | 0.000697 |
-| a token the corpus lost on the way out | 2 | 6795 | 0.000294 |
+| a form written that the paper does not hold | 4 | 10748 | 0.000372 |
+| a token in the paper that no row holds | 0 | 4600 | 0.000652 |
+| a token the corpus lost on the way out | 2 | 7106 | 0.000281 |
 
 A line has to pass all three. Taking them as independent, the joint bound is the product:
 
-> **6.03e-11** per line
+> **6.83e-11** per line
 
 ### How much of that number has settled
 
@@ -68,20 +69,21 @@ Three significant figures is a format, not a finding. The digit worth reporting 
 
 | Papers counted | Joint bound |
 |---|---|
-| 1 | 1.712e-08 |
-| 2 | 6.572e-09 |
-| 3 | 4.126e-09 |
-| 4 | 1.19e-09 |
-| 5 | 7.13e-10 |
-| 6 | 4.354e-10 |
-| 7 | 2.757e-10 |
-| 8 | 1.493e-10 |
-| 9 | 1.029e-10 |
-| 10 | 8.406e-11 |
-| 11 | 7.171e-11 |
-| 12 | 6.026e-11 |
+| 1 | 1.637e-08 |
+| 2 | 6.284e-09 |
+| 3 | 3.945e-09 |
+| 4 | 1.138e-09 |
+| 5 | 6.818e-10 |
+| 6 | 4.164e-10 |
+| 7 | 2.636e-10 |
+| 8 | 1.428e-10 |
+| 9 | 9.839e-11 |
+| 10 | 8.038e-11 |
+| 11 | 6.857e-11 |
+| 12 | 5.762e-11 |
+| 13 | 6.831e-11 |
 
-No digit has settled. The bound falls with every paper because every paper adds trials and none has yet added a failure, so the mantissa is a number in flight and only the exponent is a finding. Quoting 6.03e-11 as though the 85 meant something would be reporting the format. What the table says is that the extraction is still buying accuracy at the rate of about one order of magnitude every 4.9 papers, and the digit to report will settle when that stops.
+No digit has settled. The bound falls with every paper because every paper adds trials and none has yet added a failure, so the mantissa is a number in flight and only the exponent is a finding. Quoting 6.83e-11 as though the 85 meant something would be reporting the format. What the table says is that the extraction is still buying accuracy at the rate of about one order of magnitude every 5.5 papers, and the digit to report will settle when that stops.
 
 ### Where 1e-26 lands
 
@@ -89,11 +91,11 @@ The target this file was asked for is 1e-26 per line over the whole extraction. 
 
 | Channel | Trials now | Trials at 993 papers | Bound then |
 |---|---|---|---|
-| a form written that the paper does not hold | 10216 | 845374 | 3.55e-06 |
-| a token in the paper that no row holds | 4303 | 356073 | 8.43e-06 |
-| a token the corpus lost on the way out | 6795 | 562286 | 5.34e-06 |
+| a form written that the paper does not hold | 10748 | 820981 | 3.65e-06 |
+| a token in the paper that no row holds | 4600 | 351369 | 8.54e-06 |
+| a token the corpus lost on the way out | 7106 | 542789 | 5.53e-06 |
 
-Reading all 993 papers of the archive, and finding nothing wrong in any of them, takes the joint bound from 6.03e-11 to about 1.6e-16. That is 10 orders of magnitude short of 1e-26.
+Reading all 993 papers of the archive, and finding nothing wrong in any of them, takes the joint bound from 6.83e-11 to about 1.72e-16. That is 10 orders of magnitude short of 1e-26.
 
 Closing the rest by counting is not available. Each channel would have to reach about 1e+09 trials, which is roughly 2e+03 times the whole archive. There is no reading schedule that gets there, and a file claiming 1e-26 from these three channels would be reporting a number nothing measured.
 
@@ -128,8 +130,9 @@ What would move the number honestly is a second person reading a table that has 
 | `WolfeICSNL60` | 678 | 525 | 909 | 223 | 0 |
 | `ICSNL59_Nater_2_final` | 288 | 152 | 533 | 337 | 0 |
 | `LyonICSNL60_Inch-2` | 491 | 415 | 603 | 61 | 0 |
+| `Kim_TwanaReduplication_final` | 295 | 228 | 423 | 120 | 0 |
 
-The readers get a great deal wrong. The median reproduces 0.593 of what its table asks for, and the spread runs from one paper to the next with no common rate behind it, because each reader was written against one paper's layout. That is why these are a table and not a term in Section 3.
+The readers get a great deal wrong. The median reproduces 0.596 of what its table asks for, and the spread runs from one paper to the next with no common rate behind it, because each reader was written against one paper's layout. That is why these are a table and not a term in Section 3.
 
 A reader that does not reproduce a row is not by itself an impurity. The row is in the hand extraction either way, and the extraction is the oracle. What the last two columns count is what the reader added, which is the part that can reach the pure stream without a person having written it.
 
