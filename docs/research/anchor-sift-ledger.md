@@ -819,22 +819,68 @@ in for it, which is what the Lushootseed border needed and what makes that resul
 So the recipe is one sentence and it has four instances here. Find what the substrate cannot see or
 does not care about, take that as flat, and read the deviation. What is left is what somebody meant.
 
+**Said in one line: ask a question loaded with what you are certain of, and read what comes back.**
+The certainty is the constraint, and it is the only thing supplied. The answer is the residual after
+that constraint is subtracted, which is what every row above measures under a different name for the
+constraint: a shuffle of the same multiset, the pooled counts of two dialects, a compiler that cannot
+see case, a fabricator that accepts any coordinate, a published cell edge. Nothing is fitted and
+nothing is assumed past the certainty that was put in. The formal statement of the same thing is the
+two propositions below.
+
+**What is universal here is the soundness, and it is universal because it is deductive. What is not
+universal is the reading, and that is Proposition 2.** The two halves get claimed together and they
+are not the same claim.
+
+Proposition 1 has no parts and no domain in it. Any subset of a pattern's points is a necessary
+condition, so no selection rule can lose a true occurrence, and the proof uses no order, no dimension,
+no alphabet and no interpretation of a symbol. That is why a mineral, a fold, a picture, a cipher and
+a sentence are one object to it. Nothing was ported between those rows; there was nothing to port.
+
+The physical anchor is real and this document already states it exactly. Maximum entropy under a
+constraint is equilibrium, so a shuffle is the equilibrium state of a corpus, the measured departure
+is a free energy above it, and the maximum extractable is that departure and nothing beyond it. The
+correspondence is exact and not an analogy, since both quantities are a distance to the maximum
+entropy state under the same constraint. In that sense the reference is not chosen and not modelled:
+it is the data with one property deleted, computable from the sample, and it would be the same
+reference for anyone.
+
+What does not carry is the reading. Proposition 2 says the exact compare is irreducible and no
+knowledge of a domain removes it, so soundness belongs to the construction while cost belongs to the
+domain's distribution. This document has the failures that prove the distinction is not decorative: a
+memoryless corpus returns 1.00 and there is nothing to read, a perfect lattice carrying random values
+returns 0.690 against 0.684 because a survivor needs a displacement and a value together, the digits
+of the square root of two sit at the null as a normal number should, and the protein nulls do not
+delete separable properties on that domain. In each the construction is sound and finds nothing,
+correctly.
+
+So the model applies everywhere and reports something only where the domain put something there. A
+universal claim about applicability is supported and is deductive. A universal claim about yield is
+refuted by rows already in this file.
+
 **The span across domains is the claim, and it is one construction and not a family of them.** The
 pieces are individually old. A permutation null is standard, maximum entropy as a reference is
 standard, and correcting a damaged text against attested forms is standard. What is not standard is
 that one construction, with no order, no dimension and no alphabet in it, reaches all of the
 following, and this document holds the measurement for each.
 
-| domain | what it read | figure |
-|---|---|---|
-| byte strings | rare half against a permutation null | 0.48 to 0.76, memoryless 1.00 |
-| point clouds in 1 to 8 dimensions | the invariant, refusing nothing | 213,840 occurrences, 0 refused |
-| protein structure | departure against a position-scrambling null | 6.510 against 2.592 |
-| an image read as a sequence | its own width, told to nothing | 960 at a width of 960 |
-| a board layout | a design grid physics does not prefer | 0.389 metric, 0.414 imperial |
-| vocalization | source separation on the envelope | whale 0.44 to human 0.72 |
-| a dialect border | a published border the method never saw | `ə́`, beaten by 1 of 200 |
-| a damaged digitization | a dropped mark, from the paper's own attestation | 86 sites, chance 0.000 to 0.136 |
+| domain | what it read | figure | instrument |
+|---|---|---|---|
+| a crystal | the published cell edge, from tiled COD entries | 3 of 3 exact, to 0.0006 Å | shift |
+| an image read as a sequence | its own width, told to nothing | 960 at a width of 960 | shift |
+| a Vigenère cipher | the key length, told to nothing | 8 at a key of 8 | shift |
+| point clouds in 1 to 8 dimensions | the invariant, refusing nothing | 213,840 occurrences, 0 refused | both |
+| byte strings | rare half against a permutation null | 0.48 to 0.76, memoryless 1.00 | null |
+| protein structure | departure against a position-scrambling null | 6.510 against 2.592 | null |
+| a board layout | a design grid physics does not prefer | 0.389 metric, 0.414 imperial | null |
+| vocalization | source separation on the envelope | whale 0.44 to human 0.72 | null |
+| a dialect border | a published border the method never saw | `ə́`, beaten by 1 of 200 | null |
+| a damaged digitization | a dropped mark, from the paper's own attestation | 86 sites, chance 0.000 to 0.136 | null |
+
+The last column is the distinction that matters most when reading the rest of this. Three rows belong
+to the shift agreement detector and three of those three have ground truth somebody else published.
+The remaining rows belong to the permutation null measure, which carries most of this document and has
+no positive control with an external answer. Both are the same construction under Proposition 1, and
+they are not interchangeable as evidence.
 
 **On telling a human apart, the refuted claim and the supported one are not the same claim, and
 conflating them understates what is here.** What is refuted is the implication that departing from the
@@ -872,9 +918,41 @@ levels so the rare half is a handful of symbols, and this document already says 
 thin. Four blue whale recordings from four ocean basins agreeing at 0.25 to 0.43 is the strongest
 version of it and rests on 4 to 16 symbols clearing the occurrence floor.
 
-**It has not read a crystal.** Proteins are the only structural domain measured, the figure is 2.512,
-and this document already says that figure is not the fold and that local packing is the likeliest
-reading and is not established.
+**A lattice is measured and a protein is measured, and they are not the same result.** An earlier
+version of this entry said no crystal had been read, and that was wrong on this document's own rows.
+The invariant is measured over 13 geometries including generated lattices, 213,840 occurrences with 0
+refused across dimensions 1 to 8 and a rotated point set. The four constructed clouds go further and
+separate the cases: a lattice carrying values determined by position fires on both nulls, and a
+lattice carrying random values fires on neither, at 0.690 live against 0.684 and 0.553, because a
+survivor needs a displacement and a value together and random values supply no repeated pairs.
+
+**Real crystals are read exactly, with published ground truth, and that is the strongest row here.**
+Published cells from the Crystallography Open Database, tiled and voxelized and handed over with
+nothing told to the detector (`tools/dev_env/proof_positive_control.py`), return 40 voxels against a
+published 10.1000 angstroms for halite, 35 against 8.6633 for fluorite and 56 against 14.0574 for
+pyrite. Three of three exact, with the second harmonic and the neighbouring lags behind each. Taking
+the fraction from the ratio between straddling lags recovers 10.1018, 8.6545 and 14.0568 angstroms,
+so the errors are 0.0018, 0.0088 and 0.0006 against a voxel of 0.25, fourteen to four hundred times
+finer than the carving. That is the one positive control in this work whose answer came from outside
+it.
+
+**A protein and a crystal are the same object to this construction, and the difference in the two
+results is the instrument and not the domain.** Everything here arrives as points carrying values,
+which is what Section 4.2 covers and why the invariant holds over 13 geometries and dimensions 1 to 8
+without an alphabet. A mineral and a fold are both that. So the expectation that what works on one
+works on the other follows from the construction and is not a hope.
+
+What differs is which of the two instruments was pointed at each. The crystal belongs to the shift
+agreement detector, the same one that returned an image width of 960 and a Vigenère key length of 8,
+and it now has external ground truth three times over. The protein figure of 2.512 belongs to the
+permutation null measure, which carries most of the findings in this document and has still only been
+shown not to invent structure on memoryless input. This document already records the two nulls on that
+domain failing to delete separable properties, and local packing as the likeliest reading of 2.512,
+not established.
+
+So the protein row is not weak because proteins are hard. It is weak because the instrument with no
+external positive control was pointed at it, and the instrument with three is the one that read the
+crystal. Pointing the shift detector at a fold is the obvious next measurement and has not been run.
 
 **Why it crosses the physical and the conceptual is the center-of-mass argument, and that is the
 whole of the mechanism.** The construction never reads a substrate. It reads the departure from

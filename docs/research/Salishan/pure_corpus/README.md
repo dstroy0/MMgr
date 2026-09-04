@@ -150,9 +150,9 @@ Elicited from both speakers. Most cells of its two tables are starred, which is 
 
 * The paper names no speaker. Its forms are cited from a published source.
 
-Kim_TwanaReduplication_final, 362 rows, `Kim_TwanaReduplication_final.oracle.tsv`
+Kim_TwanaReduplication_final, 358 rows, `Kim_TwanaReduplication_final.oracle.tsv`
 
-Every Twana form is Drachman's, out of a 1969 dissertation the paper calls the only reliable reference in existence for this. No speaker is named.
+Every Twana form is Drachman's, out of a 1969 dissertation the paper calls the only reliable reference in existence for this. No speaker is named. Footnote 9's four Moses-Columbian forms are the one place its extraction repeats a combining mark, and those are corrected from the page.
 
 ## Nuxalk
 
@@ -182,4 +182,4 @@ Its data has three sources: van Eijk's dictionary, Davis et al. in preparation, 
 
 ---
 
-20 tables, 12342 rows read by hand.
+20 tables, 12338 rows read by hand.

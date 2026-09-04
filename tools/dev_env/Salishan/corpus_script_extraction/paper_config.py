@@ -121,6 +121,20 @@ LYON_INCH = SHARED + "̌́" + "áíúé" + "ɣš√"
 # stop ˀ against phonemic ʔ.
 KIM = SHARED + "ɫˀščóéɔ" + "̦́ʹ"
 
+# Footnote 9 cites four Moses-Columbian forms and the extraction damages each of them twice: it
+# inserts a space inside the onset and it repeats the combining mark. x̦̦ carries two commas below
+# where the page prints one, and ƛ̓̓ two commas above.
+#
+# That doubling is its own kind and Robertson has it too, where page 1's epigraph prints one ɬ and
+# one ʔ and the text holds four of each. It is not decidable from the text, because a language may
+# genuinely stack two marks, so these four were read off the page and are listed one at a time.
+KIM_DOUBLED = (
+    ("[p ʰtíx̦̦ʷ]", "[pʰtíx̦ʷ]"),
+    ("[p ətíx̦̦ʷ]", "[pətíx̦ʷ]"),
+    ("[x ƛ̓̓út]", "[xƛ̓út]"),
+    ("[xəƛ̓̓út]", "[xəƛ̓út]"),
+)
+
 # Nater's etymological database, which writes the schwa two ways NFC does not unify: ǝ U+01DD 183
 # times and ə U+0259 52 times.
 NATER_ETYM = SHARED + "ǝ√" + "áíúà" + "ᴗɢʁʒščɣλˑ"
@@ -368,9 +382,15 @@ PAPERS = (
           "unstated_TheTruncatedReduplicationInTwana_Kim"
           "_Salish_twana_2017_mixed.txt",
           "Twana",
-          marks=KIM, repair=INSERTED_SPACE, coverage=("inserted spaces",),
+          marks=KIM,
+          # Composition runs before the corrections for the reason it does everywhere: corrected()
+          # composes its own patterns, so a pattern meets composed text or it matches nothing.
+          repair=sequence(INSERTED_SPACE, composed(), corrected(KIM_DOUBLED)),
+          coverage=("inserted spaces",),
           note="Every Twana form is Drachman's, out of a 1969 dissertation the paper calls the "
-               "only reliable reference in existence for this. No speaker is named."),
+               "only reliable reference in existence for this. No speaker is named. Footnote 9's "
+               "four Moses-Columbian forms are the one place its extraction repeats a combining "
+               "mark, and those are corrected from the page."),
     Paper("2013_Nater",
           "2013_Nater.oracle.tsv",
           "unstated_HowSalishIsBellaCoola_Nater"
