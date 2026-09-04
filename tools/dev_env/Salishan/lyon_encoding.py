@@ -91,10 +91,19 @@ def moved_marks(token):
 # in the set and made every English word holding one Salish.
 MARKS = "̌ˇ@ìQň·áéíóú"
 
-# A gloss token is plain ASCII, apart from the ligatures the PDF sets its f-words with. The whole
-# gloss of one morpheme is one token, so go-n-dip.ﬂuid-MID-3SG.POSS is a single string and the one ﬂ
-# in it kept it out of this class. It was then read as Salish and its POSS came out as ʔOSS.
-GLOSS = re.compile(r"^[A-Za-z0-9.()\[\]/,;:'ﬁﬂﬀﬃﬄ-]+$")
+# A gloss token is plain ASCII, apart from two things. The ligatures the PDF sets its f-words with:
+# the whole gloss of one morpheme is one token, so go-n-dip.ﬂuid-MID-3SG.POSS is a single string and
+# the one ﬂ in it kept it out of this class. It was then read as Salish and its POSS came out as
+# ʔOSS. And the reduplication mark, which the gloss line of the five-line format uses as well as the
+# parse line does: C1C2.PL•speak-CAUS came out as C1C2.ʔL•speak-CAUS.
+#
+# The five-line format's gloss line also carries the morpheme boundaries + and =, and without them
+# +get.read-APPL came out as +get.read-AʔʔL and +C1C2.PL•son+DRV as +C1C2.ʔL•son+DRV.
+#
+# √ stays out. It opens a root on the parse line and appears on no gloss line, and a parse line is
+# Salish. The run of two capitals LABEL asks for is what keeps a parse token out of this class
+# anyway: a parse is written in lower case and a gloss is not.
+GLOSS = re.compile(r"^[A-Za-z0-9.()\[\]/,;:'•+=ﬁﬂﬀﬃﬄ-]+$")
 LABEL = re.compile(r"[A-Z]{2}")
 
 
