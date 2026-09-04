@@ -194,7 +194,7 @@ footnote 7	John Lyon	cited form	ʕac̓ənt	look at it, which it may be short for
 3.2 80	Lottie Lindley	translation	‘They say the snow was as high as a house.’
 3.2 81	John Lyon	parse	uɬ kic-x, wik-s kʷukʷ k̓liʔ aʔ c-xʷʔul, ixíʔ mat iʔ sƛ̓aʔcínəm ilíʔ [n] ɬaʔ mqʷ-a·qʷ uɬ mat k̓ʷnx-ásq̓ət s-mqʷ-aqʷ-s.
 3.2 81	Lottie Lindley	translation	‘And they got there and saw something steaming there, there were deer in the snow; I don’t know how many days it must have snowed.’
-3.2 82	John Lyon	parse	uɬ ilíʔ iʔ sƛ̓aʔcínəm n-xlak uɬ t̓i ilíʔ n-twíst-ləx, lut kaʔkín c-xʷúyʔ-st-səlx.
+3.2 82	John Lyon	parse	uɬ ilíʔ iʔ sƛ̓aʔcínəm n-xlak uɬ t̓i ilíʔ n-t̓wíst-ləx, lut kaʔkín c-xʷúyʔ-st-səlx.
 3.2 82	Lottie Lindley	translation	‘And the deer there went around in circles and just stood there, they couldn’t go anywhere in the snow, they were trapped in there.’
 3.2 83	John Lyon	parse	iʔ smik̓ʷt kʷukʷ mat k̓l sisplq iʔ s-c̓k-ák-s iʔ s-n-wíst-s iʔ s-mqʷaqʷ.
 3.2 83	Lottie Lindley	translation	‘And they say the snow was maybe seven feet high.’
@@ -608,3 +608,42 @@ footnote 14	John Lyon	note	It is unclear to me how to analyze this form.
 12.2 265	Lottie Lindley	translation	‘And they said that whoever saw her, that would happen to them.’
 12.2 266	John Lyon	parse	uɬ ixíʔ cút-ləx aláʔ tkɬmilxʷ t n-x̌aʔ-x̌ʔ-ítkʷ axáʔ l t̓ik̓ʷt. way̓.
 12.2 266	Lottie Lindley	translation	‘And they said there’s a woman monster here in this lake. That’s all.’
+13.1	John Lyon	cited affix	-ləx	one of the two spellings of 3PL.ABS the phonetic schwa produces
+13.1	John Lyon	cited affix	-əlx	the other spelling of the same 3PL.ABS
+13.1	John Lyon	cited form	i;	a lengthened vowel, where the number of ; is how long it is
+13.1	John Lyon	cited form	;	the symbol iterated to mark rhetorical lengthening
+13.1	John Lyon	cited affix	sən-	the prefix analyzed as a locational rather than as s- plus n-
+13.1	John Lyon	cited affix	-tən	the instrumental it occurs in tandem with
+13.1	John Lyon	cited affix	s-	the nominalizer sən- is not further analyzed into
+13.1	John Lyon	cited affix	n-	the derivational prefix sən- is not further analyzed into
+13.1	John Lyon	cited affix	k̓(l)	the locative, written with the predictably reducing phoneme in parentheses
+13.1	John Lyon	cited affix	i(n)-	the 1SG.POSS before a noun beginning with s or ɬ or n
+13.2.1	John Lyon	paradigm	kn i(n)- kʷ a(n)- -s kʷu -tt p -mp -lx -slx	the intransitive absolutive and possessive paradigms
+13.2.2	John Lyon	paradigm	kʷu i(n)- kʷ a(n)- -s -s,-m -(i)n -(i)xʷ -(i)s kʷu -tt -(i)m,-t p -mp -ɬ(ul)m -(i)p -slx -lx -(i)slx	the transitive object, possessive subject and ergative subject paradigms
+13.3	John Lyon	cited affix	-ɬt-	the possessor applicative, glossed APPL
+13.3	John Lyon	cited affix	-x(i)t-	the benefactive applicative, glossed BEN
+13.3	John Lyon	cited form	cakʷ	the bouletic modal, glossed BOUL
+13.3	John Lyon	cited affix	-st-	the causative transitivizer, glossed CAUS
+13.3	John Lyon	cited affix	c-	the cislocative, glossed CISL
+13.3	John Lyon	cited affix	(a)c-	the customary, glossed CUST, and the stative habitual, glossed STAT
+13.3	John Lyon	cited form	iʔ	the determiner, glossed DET
+13.3	John Lyon	cited affix	-wilx	the developmental, glossed DEV
+13.3	John Lyon	cited affix	-nt-	the directive transitivizer, glossed DIR
+13.3	John Lyon	cited form	uc	the dubitative, glossed DUB
+13.3	John Lyon	cited form	cmay	one of the two epistemic modals, glossed EPIS
+13.3	John Lyon	cited form	mat	the other epistemic modal, glossed EPIS
+13.3	John Lyon	cited affix	k(ɬ)-	the existential, glossed HAVE
+13.3	John Lyon	cited affix	-(mí)xaʔx	the inceptive, glossed INCEPT
+13.3	John Lyon	cited affix	-p	the inchoative, glossed INCH
+13.3	John Lyon	cited form	lut	the negative, glossed NEG
+13.3	John Lyon	cited affix	-əm	the middle marker, glossed MID, and the passive, glossed PASS
+13.3	John Lyon	cited affix	-m(i)n-	the pre-transitivizer glossed MIN
+13.3	John Lyon	cited affix	-nu(n)-	the pre-transitivizer glossed MANAGE.TO
+13.3	John Lyon	cited affix	séxʷ-	the occupation prefix, glossed OCC
+13.3	John Lyon	cited form	t	the oblique marker, glossed OBL
+13.3	John Lyon	cited affix	s-c-	the perfective, glossed PERF
+13.3	John Lyon	cited affix	-(n)wixʷ	the reciprocal, glossed RECIP
+13.3	John Lyon	cited affix	-ncut	the reflexive, glossed REFLEX
+13.3	John Lyon	cited form	kʷukʷ	the reportative evidential, glossed REP
+13.3	John Lyon	cited form	ha	the yes/no question particle, glossed YNQ
+references	John Lyon	cited title	ɬaʔ kɬcaptíkʷɬ	from the title of Mattina and DeSautel (2002)

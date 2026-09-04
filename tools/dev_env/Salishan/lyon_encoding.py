@@ -127,10 +127,17 @@ def salish(token):
     if a_gloss(token):
         return False
     # Qu opening a token is the English digraph, as Quilchena and Queen are. Q is the pharyngeal
-    # everywhere else, at the front of Qant and QapnáP included, so the test asks for a plain ASCII
-    # tail as well and only the English pair comes out. A Salish word opening ʕu and carrying no
-    # other mark would be read as English here. Neither paper holds one.
-    if (token[:2] == "Qu") and token[1:].isascii():
+    # everywhere else, at the front of Qant and QapnáP included, so the test asks for a tail with no
+    # other mark in it and only the English pair comes out. Asking for a plain ASCII tail instead
+    # missed Quilchena.’ at the end of a translation, where the closing quote is not ASCII. A Salish
+    # word opening ʕu and carrying no other mark would be read as English here, and neither paper
+    # holds one.
+    if (token[:2] == "Qu") and not any((mark in token[1:]) for mark in MARKS):
+        return False
+    # An address, where @ is the at sign. The last line of the paper is john.lyon@alumni.ubc.ca and
+    # it came out with a schwa in the middle of it. A Salish token is not plain ASCII once its @ is
+    # counted, and none of them holds a dot.
+    if token.isascii() and ("@" in token) and ("." in token):
         return False
     if any((mark in token) for mark in MARKS):
         return True

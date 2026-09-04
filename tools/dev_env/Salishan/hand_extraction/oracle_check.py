@@ -52,6 +52,16 @@ NULL_CLITIC = ""
 # of a pair around a gloss.
 PAIRED = (("‘", "’"), ("'", "'"), ("“", "”"))
 
+# How many tokens one broken word may arrive as. A pair covers the papers that break before a
+# marked letter, where các l̓ep is two. Lyon's break more than once: nt̓ə k̓ʷt̓í k̓ʷləx is three
+# pieces of one word and s- m̓ y̓- m̓ y̓-á y̓-s is five, and a table holding the whole word had every
+# piece of it reported as a word no row covers.
+#
+# Six is where these two papers stop. Reading it higher costs a longer join list and a larger
+# chance that some run of tokens accidentally spells a form the table wrote down wrongly, which is
+# the one thing direction one exists to catch.
+PIECES = 6
+
 # The mark Lyon opens every parsed root with.
 ROOT = "√"
 
@@ -193,8 +203,12 @@ def oracle_rows(path):
     return held
 
 
-def source_forms(path, repair=None):
+def source_forms(path, repair=None, pieces=2):
     """Every string of a paper a written form could be looking for, with the line it sits on.
+
+    pieces is how many tokens one broken word may arrive as, and it is 2 for a paper whose text is
+    the page. Only the drafted ones need more, and giving it to every paper tripled the lookup on
+    the nine that do not, which is a lot of strings for direction one to accidentally agree with.
 
     Three things beyond splitting on spaces. A cell can hold two alternants divided by a slash, as
     Table A2 does at dᶻəlč̓/ǰəlč̓. Each half of a slashed token is offered as well as the whole of
@@ -241,13 +255,12 @@ def source_forms(path, repair=None):
                     # join built from it above is. p̓il- ‘flat’ ends in a hyphen too and is a real
                     # prefix, which is why only the last token on a line is dropped.
                     #
-                    # A line holding one token is not a wrap. Lyon's interlinear arrives one token
-                    # per line, so every token in it is the last on its line, and without this the
-                    # rule dropped an-, a-ks- and ʔakɬ-, which are forms the paper prints.
-                    if ((at == 0) and (len(tokens) > 1) and (where == (len(tokens) - 1))
-                            and token.endswith("-")):
-                        continue
-                    # The token itself, its slash-separated halves, and it joined to the token
+                    # It stays in the lookup all the same, because the page does print those
+                    # characters at that place. Lyon's interlinear arrives one token per line, so
+                    # every token in it is the last on its line, and dropping them outright lost
+                    # an-, a-ks- and ʔakɬ-, which are forms the paper prints on their own.
+                    wrapped = ((at == 0) and (where == (len(tokens) - 1)) and token.endswith("-"))
+                    # The token itself, its slash-separated halves, and it joined to the tokens
                     # after it. The last of those is for the PDFs that break a word before a
                     # marked letter: cácl̓ep arrives as các l̓ep, and the hand extraction records
                     # the word. A join offered here only widens what a lookup finds.
@@ -257,7 +270,7 @@ def source_forms(path, repair=None):
                         # Only the line as printed adds to printed. The hyphen-join built above is
                         # a lookup candidate, and counting its tokens made ł-AUX, the tail of one
                         # line welded to the head of the next, a word the paper holds.
-                        if at == 0:
+                        if (at == 0) and not wrapped:
                             printed.add(plain)
                     reach = list(token.split("/"))
                     # The same token without a footnote marker welded to its last letter.
@@ -271,14 +284,20 @@ def source_forms(path, repair=None):
                     if at_root > 0:
                         reach.append(token[:at_root])
                         reach.append(token[at_root:])
-                    if (where + 1) < len(tokens):
-                        joined = bare(token + tokens[where + 1])
-                        reach.append(token + tokens[where + 1])
-                        if plain and joined:
-                            welds.setdefault(plain, set()).add(joined)
-                            after = bare(tokens[where + 1])
-                            if after:
-                                welds.setdefault(after, set()).add(joined)
+                    for span in range(2, pieces + 1):
+                        if (where + span) > len(tokens):
+                            break
+                        run = tokens[where:where + span]
+                        # The footnote marker comes off the join as well. n-t̓ə k̓[ʷ]-t̓í k̓[ʷ]-ləx2
+                        # is one word with a 2 on the end of it, and the row holds the word.
+                        joined = without_marker(bare("".join(run)))
+                        if not joined:
+                            continue
+                        reach.append("".join(run))
+                        for piece in run:
+                            broken = bare(piece)
+                            if broken:
+                                welds.setdefault(broken, set()).add(joined)
                     for part in reach:
                         plain = bare(part)
                         if plain:
@@ -305,8 +324,9 @@ def main():
             continue
 
         rows = oracle_rows(table)
-        held, printed, welds = source_forms(source, repair)
-        raw = source_forms(source)[0]
+        broken = PIECES if stem in NOT_FAITHFUL else 2
+        held, printed, welds = source_forms(source, repair, broken)
+        raw = source_forms(source, None, broken)[0]
         out.write("  %s%s\n" % (name, "   (against a drafted page text)"
                                 if stem in NOT_FAITHFUL else ""))
         out.write("    %d rows read by hand, %d distinct tokens in the paper\n"
