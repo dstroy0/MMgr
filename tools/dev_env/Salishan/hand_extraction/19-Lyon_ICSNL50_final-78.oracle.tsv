@@ -329,3 +329,23 @@ footnote 15	John Lyon	note	The surname Tisem is unusual, and its correct spellin
 2.2 23	John Lyon	gloss	say-DIR-PASS EVID yes 2SG.ABS NMLZ-eat-INTR yes hot<INCH> DEM DET DET hot-POSS.APPL-2SG.OBJ-1SG.ERG 2SG.POSS-UPOSS-CUST-eat
 2.2 23	John Lyon	word gloss	he.was.told they.say yes you will.eat already hot this the what I.warmed.it.up.for.you what.you.will.eat
 2.2 23	John Lyon	translation	‘Smokey said “Yes, you eat now, it’s hot, I warmed it up for you.” ’
+2.2 24	Nellie Guitterez	surface	cus kʷukʷ “cakʷ lut aks-bother, way̓ n̓ín̓w̓iʔs kn ʔíɬən, kʷu akskʷúkʷstəm.”
+2.2 24	John Lyon	parse	√cun-nt-s kʷukʷ cakʷ lut an-ks-bother way̓ n̓ín̓w̓iʔs kn ʔíɬn kʷu an-ks-√kʷúkʷ-st-m
+2.2 24	John Lyon	gloss	say-DIR-3ERG EVID DEON NEG 2SG.POSS-FUT-bother yes in.a.while 1SG.ABS eat 1SG.ABS 2SG.POSS-FUT-do.much.for-CAUS-MID
+2.2 24	John Lyon	word gloss	he.told.him they.say should not you.will.bother yes in.a.while I eat me you.do.much.for
+2.2 24	John Lyon	translation	‘The priest said “You shouldn’t bother, but I will eat, thank you.” ’
+2.2 25	Nellie Guitterez	surface	ixíʔ sʔíɬəns iʔ q̓ʷʕaylqs, wiʔcín.
+2.2 25	John Lyon	parse	ixíʔ s-√ʔíɬn-s iʔ √q̓ʷʕay=lqs √wiʔ=cín
+2.2 25	John Lyon	gloss	DEM NMLZ-eat-3POSS DET black=robe finish=food
+2.2 25	John Lyon	word gloss	then he.ate the priest he.finished.eating
+2.2 25	John Lyon	translation	‘Then the priest ate, and he finished eating.’
+2.2 26	Nellie Guitterez	surface	cúntəm kʷukʷ atáʔ iʔ t settler ilíʔ mat “uc kʷu ksmaʔmscútaʔx?”
+2.2 26	John Lyon	parse	√cún-nt-m kʷukʷ atáʔ iʔ t settler ilíʔ mat uc kʷu ks-√maʔm-scút-aʔx
+2.2 26	John Lyon	gloss	say-DIR-PASS EVID DEM DET OBL settler DEM EPIS DUB 1PL.ABS FUT-play.cards-REFL-INCEPT
+2.2 26	John Lyon	word gloss	he.was.told they.say at.here the by settler there must.be can we will.play.cards
+2.2 26	John Lyon	translation	‘The priest was told by this settler there “Can we play cards?” ’
+2.2 27	Nellie Guitterez	surface	cúntəm kʷukʷ iʔ t q̓ʷʕaylqs, “way̓, we’ll pass the. . . we’ll pass the time. ”
+2.2 27	John Lyon	parse	√cún-nt-m kʷukʷ iʔ t √q̓ʷʕay=lqs way̓ we’ll pass the we’ll pass the time
+2.2 27	John Lyon	gloss	say-DIR-PASS EVID DET OBL black=robe yes we’ll pass the we’ll pass the time
+2.2 27	John Lyon	word gloss	he.was.told they.say the by priest yes we’ll pass the we’ll pass the time
+2.2 27	John Lyon	translation	‘The priest told Smokey “Yes, we’ll pass the. . . we’ll pass the time.” ’
