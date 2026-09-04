@@ -318,3 +318,14 @@ footnote 14	John Lyon	note	Garcia is a place up above Merritt, going towards Pri
 2.2 21	John Lyon	gloss	DEM go-CAUS-3ERG DET horse-3POSS feed-DIR-3ERG
 2.2 21	John Lyon	word gloss	at.there he.took.him the his.horse he.fed.him
 2.2 21	John Lyon	translation	‘Then the priest took his horse, and fed it.’
+2.2 22	Nellie Guitterez	surface	nʔuɬxʷ kʷukʷ uɬ way̓ ccíxɬtəm iʔ kscʔíɬəns, iʔ. . . Smokey Tisəm iʔ skʷists iʔ ƛ̓əx̌ƛ̓x̌áp iʔ sámaʔ.
+2.2 22	John Lyon	parse	n+√ʔuɬxʷ kʷukʷ uɬ way̓ c-√cíx-ɬt-əm iʔ ks-c-√ʔíɬn-s ixíʔ Smokey Tisəm iʔ s+√kʷist-s iʔ ƛ̓x̌•√ƛ̓x̌á+p iʔ sámaʔ
+2.2 22	John Lyon	gloss	LOC+enter EVID CONJ yes CUST-warm-POSS.APPL-MID DET UPOSS-CUST-eat-3POSS DEM Smokey Tisem DET NMLZ+name-3POSS DET C1C2.CHAR•grow+INCH DET white.person
+2.2 22	John Lyon	word gloss	he.went.inside they.say and already he.was.warming.it.up.for.him what he.was.going.to.eat it.was Smokey Tisem the his.name the old.man the white.person
+2.2 22	John Lyon	translation	‘The priest went inside and he was already warming up what he was going to eat. . . Smokey Tisem was the name of the old white man.’
+footnote 15	John Lyon	note	The surname Tisem is unusual, and its correct spelling is unclear to me. I render it as close to its phonetic pronunciation as possible.
+2.2 23	Nellie Guitterez	surface	cúntəm kʷukʷ “way̓ kʷ sʔíɬənaʔx, way̓ cʔíx axáʔ iʔ. . . iʔ cíxɬtəmən akscʔíɬən.”
+2.2 23	John Lyon	parse	√cún-nt-m kʷukʷ way̓ kʷ ks-√ʔíɬn-aʔx way̓ c<ʔ>íx axáʔ iʔ iʔ √cíx-ɬt-m-n an-ks-c-√ʔíɬn
+2.2 23	John Lyon	gloss	say-DIR-PASS EVID yes 2SG.ABS NMLZ-eat-INTR yes hot<INCH> DEM DET DET hot-POSS.APPL-2SG.OBJ-1SG.ERG 2SG.POSS-UPOSS-CUST-eat
+2.2 23	John Lyon	word gloss	he.was.told they.say yes you will.eat already hot this the what I.warmed.it.up.for.you what.you.will.eat
+2.2 23	John Lyon	translation	‘Smokey said “Yes, you eat now, it’s hot, I warmed it up for you.” ’
