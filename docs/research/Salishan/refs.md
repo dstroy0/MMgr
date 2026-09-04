@@ -38,6 +38,8 @@ Conditions the speakers set:
 
 Eleven papers, each read by its own file in `tools/dev_env/Salishan/corpus_script_extraction/` and each with a hand extraction beside it in `hand_extraction/`. Every token of the language in each is accounted for in the corpus built from it, and `coverage_check.py` is what says so. For the two Lyon papers that statement is about the extracted text, which is the font's own encoding and not what the page prints. The section below on those two says what that means.
 
+A twelfth, `2012_Robertson`, is read by hand and has no reader yet. `papers.py` carries it so both checks grade it, and `reader_check.py` lists it under the papers waiting for one.
+
 Nothing here needs fetching by hand. `python tools/dev_env/Salishan/get_papers.py` reads the archive index, downloads these eleven and converts them. Every address below was checked; the local filename in `build/papers/` is the PDF's own name.
 
 | Paper | Reader | PDF |
@@ -79,6 +81,7 @@ Counts below are what `oracle_check.py` and `reader_check.py` report on 2026-09-
 | Hall and Phillips, ICSNL 60 | 406 | 399 | 209 not found, 521 invented |
 | Lyon, ICSNL 50 | 1417 | 1413 | 1037 not found, 2134 invented, 193 in the wrong dialect |
 | Lindley and Lyon, 2013 | 653 | 653 | 312 not found, 996 invented, 198 typed differently |
+| Robertson, 2012 | 195 | 193 | no reader written yet |
 
 Only Mellesmoen and Kye reproduces its table.
 
@@ -207,6 +210,10 @@ The other three came off the pages, and the first of them is why the decode is n
 * **Labialization, collapsed exactly as it is in the Lyon papers.** Page 30 sets `/kʷú[·kʷ]piʔ` and the text gives `/kwú[·kw]pi/uni0294`. The paper's own prose loses it too: page 30 names its symbols `(č, š, xʷ)` and the text holds `( č, š, x w)`, with a space where the raised letter was. Every flag the hand extraction raises on this paper so far is this one.
 * **A word broken across two lines with no hyphen.** 42 lines of the extraction hold nothing but a fragment: `Da` above `vid D. Robertson`, `ma` above `ximal efficiency`. Most of them are in the interlinear, where the break falls inside a gloss: `A` above `UG-`, `s` above `ick`, `gr` above `eet`. A rule that joins every fragment line to the one under it would be wrong in the alphabet tables, where `wa`, `wi` and `waw` are Chinuk pipa letter names and each is a line of its own.
 * **A glyph repeated where the page prints it once.** Page 1's epigraph prints `t’íxʷəɬ γ-ʔ-[χ-]q’y-n’-tén` with one `ɬ` and one `ʔ`, and the text holds four of each. It happens on 2 lines in the paper and both are set in bold italic.
+
+The hand extraction is 195 rows and covers both Salish texts whole, the Chinuk pipa and Chinook Jargon forms cited through the analysis, and the two bibliography entries written in Chinuk Wawa. What it leaves is 40 forms the table holds that the text does not, and 21 strings in the text that no row holds. Those two lists are the same finding twice, as they are in the priests paper: 14 of the 21 are the damaged form of something the table carries correctly, 4 are the doubled epigraph, and 3 are page ranges in the bibliography that `is_language_token` reads as language because they hold a digit inside a token.
+
+Texts 3 through 6 are Chinook Jargon, which is a pidgin. They are the paper's own material and they are not Salish, so nothing in them belongs in a Salish pure corpus. The table marks who each form belongs to for that reason, and `Chinook Jargon` in that column is the instruction to a reader to keep the form out of the target stream.
 
 `lyon_encoding.py` holds that table for NimbusRomNo9L as it stands, with the labialization rule still a guess and the insertion rate still unmeasured.
 
