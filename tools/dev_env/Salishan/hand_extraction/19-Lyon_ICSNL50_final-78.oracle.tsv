@@ -1120,3 +1120,23 @@ footnote 23	John Lyon	note	My analysis of the first word in this stanza is tenta
 3.2 135	John Lyon	gloss	oh yes DEM in.a.while steal-APPL-APPL.POSS-2SG.OBJ-1SG.ERG
 3.2 135	John Lyon	word gloss	oh yes then in.a.while I.steal.them.from.you
 3.2 135	John Lyon	translation	‘ “Oh, yes, I’ll steal them from you, no problem,” the boy said.’
+3.2 136	Kiláwnaʔ	surface	naʔɬ tkɬmilxʷs ɬq̓əlílxəlx.
+3.2 136	John Lyon	parse	naʔɬ √tkɬmilxʷ-s √ɬq̓-l•ílx-lx
+3.2 136	John Lyon	gloss	CONJ woman-3POSS lay.down-C1.PL•AUT-3PL
+3.2 136	John Lyon	word gloss	with his.wife they.lay.down
+3.2 136	John Lyon	translation	‘With his wife, they went to bed.’
+3.2 137	Kiláwnaʔ	surface	“t̓i kʷaʔ scxʔkínx mi kʷu náq̓ʷəms axáʔ ink̓ɬyxʷtíc̓aʔ?”
+3.2 137	John Lyon	parse	t̓i kʷaʔ s-c-x+√ʔkín-x mi kʷu √náq̓ʷ-m-nt-s axáʔ in-k̓ɬ+√yxʷ+t=íc̓aʔ
+3.2 137	John Lyon	gloss	EMPH INTERJ NMLZ-CUST-DRV+do.what-INTR COMP.FUT 1SG.ABS steal-APPL-DIR-3ERG DEM 1SG.POSS-DRV+lower+STAT=covering
+3.2 137	John Lyon	word gloss	just how will me he.steal.it.from these my.bottom.sheets
+3.2 137	John Lyon	translation	‘The chief said “How is he going to steal my bottom sheets from under me?” ’
+3.2 138	Kiláwnaʔ	surface	“ilíʔ kn ɬq̓íləx, nkʷkʷʔác.”
+3.2 138	John Lyon	parse	ilíʔ kn √ɬq̓+ílx n(+)kʷ(•)√kʷʔác
+3.2 138	John Lyon	gloss	DEM 1SG.ABS lay.down+AUT night
+3.2 138	John Lyon	word gloss	there I am.laying.down tonight
+3.2 138	John Lyon	translation	‘ “I’ll be laying there, tonight,” he said.
+3.2 139	Kiláwnaʔ	surface	nkʷkʷʔac ixíʔ i·····ʔ mat scxʔkínx?
+3.2 139	John Lyon	parse	n(+)kʷ(•)√kʷʔac ixíʔ iʔ mat s-c-x+√ʔkín-x?
+3.2 139	John Lyon	gloss	night DEM DET EPIS NMLZ-CUST-DRV+do.what-INTR
+3.2 139	John Lyon	word gloss	it.was.nighttime then supposed to.do.what
+3.2 139	John Lyon	translation	‘Then it was nighttime, how is he going to do it?’
