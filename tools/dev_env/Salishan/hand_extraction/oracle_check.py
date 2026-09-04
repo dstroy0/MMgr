@@ -55,6 +55,19 @@ PAIRED = (("‘", "’"), ("'", "'"), ("“", "”"))
 # The mark Lyon opens every parsed root with.
 ROOT = "√"
 
+# What stands in front of a √ inside one parse. yaQ•√yáQt is a reduplicant and its root, n+√ ’ks+tan
+# a preposition and its root: one form each. A √ with anything else in front of it is the point
+# where the extraction ran a surface line into the parse line under it.
+INSIDE_PARSE = "+-•="
+
+
+def surface_parse_join(token):
+    """Where a token runs a form into its own parse, the position the parse starts at, else -1."""
+    at = token.find(ROOT)
+    if (at <= 0) or (token[at - 1] in INSIDE_PARSE):
+        return -1
+    return at
+
 # The Latin ligatures a PDF sets f-words with. None of these orthographies uses one, so every
 # occurrence is the typesetter's and the letters underneath are what the paper says. Lyon's
 # translations carry ﬁnish, ﬁll and ﬁrst, and a table typed at a keyboard holds none of them.
@@ -222,7 +235,7 @@ def source_forms(path, repair=None):
                     # next, and the extraction runs the two together wherever the parse opens with
                     # the root mark: cáwt@t,√cáwt-tt is the word and its analysis in one token. A √
                     # anywhere but the front is that join, and both sides are offered.
-                    at_root = token.find(ROOT)
+                    at_root = surface_parse_join(token)
                     if at_root > 0:
                         reach.append(token[:at_root])
                         reach.append(token[at_root:])
@@ -307,9 +320,9 @@ def main():
                 continue
             # A form run together with its own parse, as Lyon's extraction leaves cáwt@t,√cáwt-tt.
             # The table holds the word and the analysis apart, which is how the paper sets them.
-            at_root = token.find(ROOT)
+            at_root = surface_parse_join(token)
             if (at_root > 0) and all((one in written) for one in
-                                     (token[:at_root], token[at_root:])
+                                     (bare(token[:at_root]), bare(token[at_root:]))
                                      if is_language_token(one, marks)):
                 continue
             # A slashed token is two forms printed in one cell, dᶻəlč̓/ǰəlč̓, and the hand
