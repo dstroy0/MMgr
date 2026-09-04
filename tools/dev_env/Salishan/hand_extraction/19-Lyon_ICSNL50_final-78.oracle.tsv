@@ -96,3 +96,67 @@ footnote 3	John Lyon	note	The translation of sx̌əlx̌ʕált as ‘sun’ rathe
 1.2 17	John Lyon	gloss	say-DIR-1SG.ERG INTERJ NEG DEM NEG.EMPH LOC+bad+INS DET NMLZ+meat COMP 1SG.POSS-FUT-eat-MID DEM[?] 1SG.ABS NMLZ+native.person
 1.2 17	John Lyon	word gloss	I.told.him not that sin the meat if I.will.eat.it I native.person
 1.2 17	John Lyon	translation	‘I told him “Well, it wouldn’t be a sin for me to eat meat, I’m an Indian.” ’
+1.2 18	George Lezard	surface	cun “iʔ sƛ̓aʔcínəm iʔ sck̓ʷúl̓s iʔ k̓ʷlncútn iʔ sɬiqʷ.”
+1.2 18	John Lyon	parse	√cun-nt-n iʔ s(+)√ƛ̓aʔ(=)cín(-)m iʔ s-c-√k̓ʷúl̓-s iʔ √k̓ʷl̓-ncút+tn iʔ s+√ɬiqʷ
+1.2 18	John Lyon	gloss	say-DIR-1SG.ERG DET deer DET NMLZ-CUST-make-3POSS DET make-REFL+INS DET NMLZ+meat
+1.2 18	John Lyon	word gloss	I.told.him the deer what he.made the creator the meat
+1.2 18	John Lyon	translation	‘I told him “The Creator made deer for meat.” ’
+footnote 4	John Lyon	note	Fluent speakers often shorten the demonstrative ixíʔ to iʔ, which makes it phonetically equivalent to a determiner. The syntactic context is such that I think the last occurrence of iʔ in this stanza is actually a demonstrative, and so I give the predicted full form in line 2.
+1.2 19	George Lezard	surface	“lut t̓ cúntəm iʔ sqílxʷ “n̓ín̓w̓iʔs, iʔ l naqs sx̌əlx̌ʕált, lut aksʔíɬnəm iʔ sƛ̓aʔcínəm” iʔ t k̓ʷlncútn.”
+1.2 19	John Lyon	parse	lut t̓ √cún-nt-m iʔ s+√qílxʷ n̓ín̓w̓iʔs, iʔ l naqs s+x̌l•√x̌ʕál+t lut an-ks-√ʔíɬn-m iʔ s(+)√ƛ̓aʔ(=)cín(-)m iʔ t √k̓ʷl̓-ncút+tn
+1.2 19	John Lyon	gloss	NEG NEG.EMPH say-DIR-PASS DET NMLZ+native.person in.a.while DET LOC one NMLZ+C1C2.CHAR•clear+STAT NEG 2SG.POSS-FUT-eat-MID DET deer DET OBL make-REFL+INS
+1.2 19	John Lyon	word gloss	not they.were.told the native.people in.a.while the on one day not you.will.eat.it the deer the by creator
+1.2 19	John Lyon	translation	‘ “The creator didn’t say to the Indians ‘On this one day, don’t eat the deer.’ ” ’
+1.2 20	George Lezard	surface	“t̓i way̓ k̓ʷúl̓əl̓ iʔ sqilxʷ, uɬ ksʔíɬiʔs iʔ sɬiqʷ məɬ laʔkín ƛ̓lal mi way̓ ɬ ksʔíɬiʔs.”
+1.2 20	John Lyon	parse	t̓i way̓ √k̓ʷúl̓•l̓ iʔ s+√qilxʷ uɬ ks-√ʔíɬ-iʔ-s iʔ s+√ɬiqʷ mɬ la+√ʔkín √ƛ̓l•al mi way̓ ɬ ks-√ʔíɬ-iʔ-s
+1.2 20	John Lyon	gloss	EMPH yes make•C2.LC DET NMLZ+native.person CONJ FUT-eat-MID-3POSS DET NMLZ+meat CONJ at+when stop•C2.LC COMP.FUT yes COMP FUT-eat-MID-3POSS
+1.2 20	John Lyon	word gloss	just born the native.people and they.will.eat.it the meat and.then when they.die will.be finish when they.will.eat.it
+1.2 20	John Lyon	translation	‘ “As soon as the People were born, they will eat meat, and then when they die will be when they finish eating meat.” ’
+1.2 21	George Lezard	surface	“kəm̓ laʔkín k̓íwəlx, k̓im lut ksʔaɬəɬnúy̓s mi way̓ ɬ ksʔíɬiʔs.”
+1.2 21	John Lyon	parse	km̓ la+√ʔkín √k̓íw+lx k̓im lut ks-ʔaɬ•√ʔɬn+uy̓-s mi way̓ ɬ ks-√ʔíɬ-iʔ-s
+1.2 21	John Lyon	gloss	CONJ at+when old+AUT except NEG FUT-C1C2.PL•eat+able.to-3POSS COMP.FUT finish COMP FUT-eat-MID-3POSS
+1.2 21	John Lyon	word gloss	or when old.body except not they.will.manage.to.eat.it will.be finish when they.will.eat.it
+1.2 21	John Lyon	translation	‘ “Or when they get old, except if they can’t manage to eat it anymore, will be when they finish eating meat.” ’
+1.2 22	George Lezard	surface	cun “anwí kʷ sámaʔ, mat way̓ xʷic̓ɬts iʔ k̓ʷlncútn ɬ lut ɬ aksʔíɬnəm iʔ l naqs sx̌əlx̌ʕált iʔ sɬiqʷ.”
+1.2 22	John Lyon	parse	√cun-nt-n anwí kʷ sámaʔ mat way̓ √xʷic̓-ɬt-s iʔ √k̓ʷl̓-ncút+tn ɬ lut ɬ an-ks-√ʔíɬn-m iʔ l naqs s+x̌l•√x̌ʕál+t iʔ s+√ɬiqʷ
+1.2 22	John Lyon	gloss	say-DIR-1SG.ERG 2SG.INDEP 2SG.ABS white.person EPIS yes give-APPL.POSS-3ERG DET make-REFL+INS COMP NEG COMP 2SG.POSS-FUT-eat-MID DET LOC one NMLZ+C1C2.CHAR•clear+STAT DET NMLZ+meat
+1.2 22	John Lyon	word gloss	I.told.him you you white.person must.be yes he.gave.it.[to.you] the creator that not that you.will.eat.it the on one day the meat
+1.2 22	John Lyon	translation	‘I told him, “But you’re white, and the Creator must have given you something, so that you can’t eat meat one day (out of the week).” ’
+footnote 5	John Lyon	note	The morpheme uy̓ in ks-ʔaɬ•√ʔɬn+uy̓-s may be combination of the applicative -nu- ‘manage to’ (with the initial /n/ coalescing with the final /n/ in √ʔɬn) followed by -iʔ- ‘able to’ (Mattina 1987:25), but this is unclear.
+1.2 23	George Lezard	surface	ixíʔ uɬ kʷu cus “uc kʷ c-kapswalaʔ tl ɬucmən?” (iʔ l ncnukʷcn scúnəms, “naq̓ʷ iʔ tl tkɬmilxʷ”)
+1.2 23	John Lyon	parse	ixíʔ uɬ kʷu √cun-nt-s uc kʷ c-kapshwalaʔ tl ɬucmən iʔ l n+cnukʷ=cn s-√cun-m-s naq̓ʷ iʔ tl tkɬmilxʷ
+1.2 23	John Lyon	gloss	DEM CONJ 1SG.ABS say-DIR-3ERG DUB 2SG.ABS CUST-steal.[CHINUK.WAWA] LOC woman.[CHINUK.WAWA] DET LOC LOC+Chinook=language NMLZ-say-MID-3POSS steal DET LOC woman
+1.2 23	John Lyon	word gloss	then and me he.told do you steal from women the in Chinook.Jargon it’s.said steal the from woman
+1.2 23	John Lyon	translation	‘Then he told me “Do you steal from women?” (In the Chinook Jargon they say, steal from a woman.)’
+footnote 6	John Lyon	note	This is an interesting case of code-switching between Okanagan and Chinuk Wawa, where one CW lexical item carries an Okanagan affix, and two CW items are linked by an Okanagan preposition.
+1.2 24	George Lezard	surface	cun “kʷaʔ lut ixíʔ t̓ snaq̓ʷ. lut ixíʔ t̓a nk̓stan.”
+1.2 24	John Lyon	parse	√cun-nt-n kʷaʔ lut ixíʔ t̓ s+√naq̓ʷ lut ixíʔ t̓a n+√k̓s+tan
+1.2 24	John Lyon	gloss	say-DIR-1SG.ERG INTERJ NEG DEM NEG.EMPH NMLZ+steal NEG DEM NEG.EMPH LOC+bad+INS
+1.2 24	John Lyon	word gloss	I.told.him not that stealing not that sin
+1.2 24	John Lyon	translation	‘I told him “That’s not stealing, that isn’t a sin.” ’
+1.2 25	George Lezard	surface	cun “iʔ k̓ʷl̓ncútn k̓ʷul̓s iʔ sqəltmíxʷ, uɬ k̓ʷul̓s iʔ tkɬmilxʷ.”
+1.2 25	John Lyon	parse	√cun-nt-n iʔ √k̓ʷl̓-ncút+tn √k̓ʷul̓-nt-s iʔ s+√ql+√tmíxʷ uɬ √k̓ʷul̓-nt-s iʔ tkɬmilxʷ
+1.2 25	John Lyon	gloss	say-DIR-1SG.ERG DET make-REFL+INS make-DIR-3ERG DET NMLZ+man+land and make-DIR-3ERG DET woman
+1.2 25	John Lyon	word gloss	I.told.him the creator it.made.it the man and it.made.it the woman
+1.2 25	John Lyon	translation	‘I told him “The Creator made the men, and he made the women.” ’
+1.2 26	George Lezard	surface	“ixíʔ ksk̓ʷúl̓aʔxləx, uɬ xʷaʔtwíl̓x iʔ sqilxʷ.”
+1.2 26	John Lyon	parse	ixíʔ ks-√k̓ʷúl̓-aʔx-lx uɬ √xʷaʔt+wíl̓x iʔ s+√qilxʷ
+1.2 26	John Lyon	gloss	DEM FUT-make-INCEPT-PL CONJ many+DEV DET NMLZ+native.person
+1.2 26	John Lyon	word gloss	he will.make.them and become.more the native.people
+1.2 26	John Lyon	translation	‘ “He will keep on making them, and the People will increase.” ’
+1.2 27	George Lezard	surface	“ksq̓ʷíc̓tsəlx iʔ təmxʷúlaʔxʷ iʔ t cwílxʷ.”
+1.2 27	John Lyon	parse	ks-√q̓ʷíc̓+t-slx iʔ √tmxʷ=úlaʔxʷ iʔ t √cw=ílxʷ.
+1.2 27	John Lyon	gloss	FUT-full+STAT-3PL.POSS DET land=land DET LOC put.there=person
+1.2 27	John Lyon	word gloss	they.will.fill.it the land the with places.to.live
+1.2 27	John Lyon	translation	‘ “They will fill the land with places to live.” ’
+footnote 7	John Lyon	note	Mattina (1987:11) states that √cw=ílxʷ only occurs in compounds, and so its occurrence here in isolation is somewhat unexpected.
+1.2 28	George Lezard	surface	ixíʔ iʔ sqʷlqʷlstwíxʷtət cʔx̌íɬ t kaʔɬís.
+1.2 28	John Lyon	parse	ixíʔ iʔ s-qʷl•√qʷl-st-wíxʷ-tət c-√ʔx̌íɬ t kaʔɬís
+1.2 28	John Lyon	gloss	DEM DET NMLZ-C1C2.PL•speak-CAUS-RECP-1PL.POSS CUST-be.like OBL three
+1.2 28	John Lyon	word gloss	that what we.argued.about.it like three.things
+1.2 28	John Lyon	translation	‘That’s what we argued with each other about, like those three things.’
+1.2 29	George Lezard	surface	ixíʔ uɬ sic itlíʔ t̓i yaʕyáʕt stim̓ t̓əck̓laʔ nixʷ kʷu qʷlqʷltuɬts.
+1.2 29	John Lyon	parse	ixíʔ uɬ sic itlíʔ t̓i yaʕ•√yáʕt s+√tim̓ t̓c+√k̓laʔ nixʷ kʷu qʷl•√qʷl-tuɬt-s
+1.2 29	John Lyon	gloss	DEM CONJ new DEM EMPH C1C2.PL•all NMLZ+what LOC+DEM also 1SG.ABS C1C2.PL•speak-TR-3ERG
+1.2 29	John Lyon	word gloss	then and then from.that just every thing towards.here also me he.talked.about.it.to
+1.2 29	John Lyon	translation	‘And then there was a lot of other things he also wanted to talk to me about.’

@@ -182,6 +182,20 @@ This is why reading these two papers off the page is worth the time it costs. It
 
 `lyon_encoding.py` holds that table for NimbusRomNo9L as it stands, with the labialization rule still a guess and the insertion rate still unmeasured.
 
+### What the corpus measures now
+
+The pure corpus is 2358 lines and 16602 tokens across the eleven papers with readers. 793 of those lines and 6466 of those tokens, 39 percent of it, come from the two papers whose readers read the font's encoding.
+
+`2013_Lindley_Lyon` is the paper to measure against, because its table is now read off the pages in full and it takes no repair, so the table and the corpus can be compared token for token with nothing in between. Of the 1878 language tokens its reader put in the pure corpus, 1231 are forms the table holds and 647 are not. **A third of that paper's contribution to the corpus is a string the page does not print.**
+
+The third that differs is not random. It is every token carrying a glottalized consonant or a labialized one: the corpus holds `iks’ma’yɬtím` where the page holds `iksm̓ay̓ɬtím`, and `sqwlqwlstwíxwtət` where the page holds `sqʷlqʷlstwíxʷtət`. A token with no mark on it passes through unchanged, which is the two thirds that agree.
+
+That is the number the anchor sift has been calibrating against. A distribution built on this corpus has been reading `’m` as a bigram of the language in 39 percent of its material, and reading `kʷ` as `kw`. Fixing it is a reader change, not a table change: `extract_lindley_lyon.py` and `extract_lyon_priests.py` read `build/papers/<stem>.txt` and need to read `<stem>.page.txt` instead.
+
+`english_sift.py --check` reports the separation as healthy against that corpus. Under one anchor, 2327 known-pure lines sit at a median of 14.64 against 1898 known-English spans at 8.49, and a cut at 9.28 keeps 99.0 percent of the pure corpus while admitting 15.1 percent of the English. Under two anchors, 96 percent of the pure lines come back as language and 98 percent of the English spans as English. Those figures say the two anchors are far apart. They do not say the language anchor is the language, and on 39 percent of its material it is the font's encoding.
+
+The same measurement on the other nine papers is not comparable and should not be read as one. Each of those goes through its own repair before the comparison, and several of those orthographies write labialization with a plain `w` on purpose.
+
 ## Audio sources
 
 | Recording | Address | Held |
