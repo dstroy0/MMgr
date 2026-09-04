@@ -1181,3 +1181,33 @@ footnote 24	John Lyon	note	There is no 3rd person possessive -s pronounced on tk
 3.2 147	John Lyon	gloss	ahahahaha EMPH say NEG CUST-do.like-CAUS-1SG.ERG DEM
 3.2 147	John Lyon	word gloss	ahahahaha just he.said not I.did.that there
 3.2 147	John Lyon	translation	‘ “Ahahahaha” is all he said. “I didn’t do that.” ’
+3.2 148	Kiláwnaʔ	surface	pícxʷt, way̓ náq̓ʷəms iʔ k̓ɬyxʷtíc̓aʔ.
+3.2 148	John Lyon	parse	√pícxʷ+t way̓ √náq̓ʷ-m-nt-s iʔ k̓ɬ+√yxʷ+t=íc̓aʔ
+3.2 148	John Lyon	gloss	disgusted+STAT yes steal-APPL-DIR-3ERG DET DRV+lower+STAT=covering
+3.2 148	John Lyon	word gloss	he.was.disgusted yes he.stole.them the bottom.sheets
+3.2 148	John Lyon	translation	‘He was disgusted, because the boy stole the bottoms sheets.’
+3.2 149	Kiláwnaʔ	surface	ixíʔ ɬq̓ílx uɬ ʔitx.
+3.2 149	John Lyon	parse	ixíʔ √ɬq̓+ílx uɬ ʔitx.
+3.2 149	John Lyon	gloss	DEM lay.down+AUT CONJ sleep
+3.2 149	John Lyon	word gloss	then he.lay.down and he.slept
+3.2 149	John Lyon	translation	‘Then he went to bed and slept.’
+3.2 150	Kiláwnaʔ	surface	x̌lap ʔəɬʔíɬənləx, iʔ tətwít ʔíɬən, t̓i sal̓.
+3.2 150	John Lyon	parse	x̌lap ʔɬ•√ʔíɬn-lx iʔ t(•)√twít ʔíɬn t̓i sal̓
+3.2 150	John Lyon	gloss	tomorrow C1C2.PL•eat-3PL DET boy eat EMPH calm
+3.2 150	John Lyon	word gloss	tomorrow they.were.eating the boy he.ate just calm
+3.2 150	John Lyon	translation	‘The next day, they were eating, the boy was just eating away like nothing happened.’
+3.2 151	Kiláwnaʔ	surface	taɬt picxʷt iʔ ylmíxʷəm.
+3.2 151	John Lyon	parse	√taɬ+t √picxʷ+t iʔ ylmíxʷm
+3.2 151	John Lyon	gloss	straight+STAT disgusted+STAT DET chief
+3.2 151	John Lyon	word gloss	sure he.was.disgusted the chief
+3.2 151	John Lyon	translation	‘The chief was really disgusted.’
+3.2 152	Kiláwnaʔ	surface	taɬt nq̓ʷnq̓ʷmúɬ iʔ sqʷsíʔs.
+3.2 152	John Lyon	parse	√taɬ+t nq̓ʷ•√nq̓ʷ-m+úɬ iʔ s+√qʷsíʔ-s
+3.2 152	John Lyon	gloss	straight+STAT C1C2•steal-MID+very DET NMLZ+son-3POSS
+3.2 152	John Lyon	word gloss	sure thief the his.son
+3.2 152	John Lyon	translation	‘His son was a really good thief!’
+3.2 153	Kiláwnaʔ	surface	cus “way̓. ʕapnáʔ nkʷkʷʔac iʔ sənk̓aʕmən, lut lkʷut itíʔ.”
+3.2 153	John Lyon	parse	√cun-nt-s way̓ ʕapnáʔ n(+)kʷ(•)√kʷʔac iʔ s+n+√k̓aʕ+mn lut √lkʷ=ut itíʔ
+3.2 153	John Lyon	gloss	say-DIR-3ERG yes now night DET NMLZ+LOC+pray+INS NEG far=place DEM
+3.2 153	John Lyon	word gloss	he.told.him okay now tonight the church not far.away there
+3.2 153	John Lyon	translation	‘The chief told the boy “Okay, tonight it’s the church, it isn’t far there.” ’
