@@ -66,11 +66,15 @@ OKANAGAN = "@ìˇňQ√"
 # cítxʷsəlx uɬ ti nyʕip and the text holds cítxws@lx uì ’ti ny ’Qip, with the ejective mark landing
 # in front of its letter instead of over it.
 #
-# The loss does not invert, which is why no repair is listed for either. Page kʷ and page wist both
-# arrive as w, so a map from the text back to the orthography would have to guess. These two are
-# read off the rendered page instead, and until that is done there is nothing to check an extraction
-# against: comparing a table against this text only asks whether it copied the damage correctly.
+# draft_page_text.py writes build/papers/<stem>.page.txt for these, line for line with the
+# extraction, and the checks read that instead. Every rule it applies came off a rendered page, but
+# one of them guesses: page kʷ and page wist both arrive as w, and the draft labializes a w after
+# the consonants that take it. Until a person has read the pages, .page.txt is a draft and these two
+# papers are still listed here.
 NOT_FAITHFUL = ("19-Lyon_ICSNL50_final-78", "2013_Lindley_Lyon")
+
+# What to read for a paper whose extraction is not the page.
+PAGE_TEXT = "%s.page.txt"
 
 EVERY = (
     ("Mellesmoen_Kye_ICSNL61.oracle.tsv",

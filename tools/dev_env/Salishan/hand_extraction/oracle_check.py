@@ -36,7 +36,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(HERE), "corpus_script_extraction
 
 from salish_unsorted import is_language_token  # noqa: E402
 
-from papers import EVERY, NOT_FAITHFUL  # noqa: E402
+from papers import EVERY, NOT_FAITHFUL, PAGE_TEXT  # noqa: E402
 
 EDGES = ".,!?;:“”\"()[]…«»{}/*•→≤≥"
 
@@ -265,7 +265,10 @@ def main():
     waiting = []
     for name, stem, record, repair, marks in EVERY:
         table = os.path.join(HERE, name)
-        source = os.path.join(PAPERS, "%s.txt" % stem)
+        # A paper whose extraction is the font's encoding is checked against the drafted page text
+        # instead, because the extraction is not what the paper says and comparing against it only
+        # asks whether the table copied the damage correctly.
+        source = os.path.join(PAPERS, (PAGE_TEXT if stem in NOT_FAITHFUL else "%s.txt") % stem)
         if not os.path.isfile(table):
             waiting.append(stem)
             continue
@@ -273,19 +276,12 @@ def main():
             out.write("  no paper on disk for %s\n" % stem)
             failed += 1
             continue
-        # A table checked against a text that is not the page only proves it copied the damage
-        # correctly. Both directions would report zero and mean nothing by it.
-        if stem in NOT_FAITHFUL:
-            out.write("  %s\n" % name)
-            out.write("    %d rows read by hand, and none of them checked\n" % len(oracle_rows(table)))
-            out.write("    the text for this paper is the font's encoding, not the page\n")
-            failed += 1
-            continue
 
         rows = oracle_rows(table)
         held, printed, welds = source_forms(source, repair)
         raw = source_forms(source)[0]
-        out.write("  %s\n" % name)
+        out.write("  %s%s\n" % (name, "   (against a drafted page text)"
+                                if stem in NOT_FAITHFUL else ""))
         out.write("    %d rows read by hand, %d distinct tokens in the paper\n"
                   % (len(rows), len(held)))
 
