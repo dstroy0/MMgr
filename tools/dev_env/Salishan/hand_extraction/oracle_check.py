@@ -240,7 +240,12 @@ def source_forms(path, repair=None):
                     # The half of a wrapped form left at a line end is not a form to ask about; the
                     # join built from it above is. p̓il- ‘flat’ ends in a hyphen too and is a real
                     # prefix, which is why only the last token on a line is dropped.
-                    if ((at == 0) and (where == (len(tokens) - 1)) and token.endswith("-")):
+                    #
+                    # A line holding one token is not a wrap. Lyon's interlinear arrives one token
+                    # per line, so every token in it is the last on its line, and without this the
+                    # rule dropped an-, a-ks- and ʔakɬ-, which are forms the paper prints.
+                    if ((at == 0) and (len(tokens) > 1) and (where == (len(tokens) - 1))
+                            and token.endswith("-")):
                         continue
                     # The token itself, its slash-separated halves, and it joined to the token
                     # after it. The last of those is for the PDFs that break a word before a
