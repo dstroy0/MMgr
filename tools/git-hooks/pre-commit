@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Refuses a commit whose working tree carries a banned word.
+#
+# Install once per clone:   git config core.hooksPath tools/git-hooks
+#
+# MMgr is a public repository and shipped no hooks at all until this file existed, so commits here
+# ran zero gates. The name guard is a tree-wide control rather than a per-repository preference: a
+# repository that ships nothing has not declared that it needs nothing, it has declared nothing.
+#
+# WHERE THE CHECKER IS, AND WHY IT IS NOT IN THIS TREE
+#
+# The list of banned words is itself the thing being kept out, so a denylist held inside the tree
+# would write every word it bans into the tree and defeat its own purpose. Both the list and the
+# checker sit outside every repository they guard. This hook locates them under the user's home
+# rather than at a literal path, because a hard-coded absolute path is banned tree-wide and would
+# be wrong on any other machine. MMGR_COMMIT_GUARD overrides the directory.
+#
+# IT FAILS CLOSED
+#
+# A missing checker refuses the commit. It does not skip the step and exit 0. A gate that cannot
+# find its instrument reports the same success as a gate that ran and found nothing, and the two
+# are indistinguishable to the person reading the exit code. Set MMGR_HOOK_NO_BANNED_SCAN=1 to
+# bypass deliberately, which is a decision that leaves a trace in the shell rather than a silence.
+#
+# KNOWN GAP
+#
+# The checker skips `.claude/` along with build and cache output. Notes written for agents are the
+# category of tracked file whose purpose is to describe the machine, so they are the likeliest to
+# carry a local path, and they are the one directory this gate does not read. It is recorded here
+# rather than worked around, because the skip belongs to the checker and not to this hook.
+set -uo pipefail
+
+# Resolve the tree being committed rather than this script's own location. A linked worktree runs
+# the shared checkout's copy of this file, so deriving the root from the script path reconciles the
+# wrong tree and reports on files nobody is committing.
+REPO=$(git rev-parse --show-toplevel 2>/dev/null) || exit 1
+cd "$REPO" || exit 1
+
+if [ "${MMGR_HOOK_NO_BANNED_SCAN:-0}" = "1" ]; then
+    echo "pre-commit: banned-word scan bypassed by MMGR_HOOK_NO_BANNED_SCAN=1"
+    exit 0
+fi
+
+GUARD_DIR=${MMGR_COMMIT_GUARD:-$HOME/.claude/commit_guard}
+CHECKER=$GUARD_DIR/check_banned.py
+
+if [ ! -f "$CHECKER" ]; then
+    echo "pre-commit: BLOCKED - no banned-word checker at $CHECKER"
+    echo "            Set MMGR_COMMIT_GUARD to the directory holding check_banned.py."
+    echo "            Refusing rather than skipping: a gate that cannot find its checker and"
+    echo "            exits 0 is indistinguishable from one that ran and passed."
+    exit 1
+fi
+
+PYBIN=$(command -v python 2>/dev/null || command -v python3 2>/dev/null)
+if [ -z "$PYBIN" ]; then
+    echo "pre-commit: BLOCKED - no python on PATH to run $CHECKER"
+    exit 1
+fi
+
+if ! "$PYBIN" "$CHECKER" "$REPO"; then
+    echo "pre-commit: BLOCKED - the tree carries a banned word. The words are listed outside this"
+    echo "            repository, in $GUARD_DIR. Fix the lines named above before committing."
+    exit 1
+fi
+
+exit 0
