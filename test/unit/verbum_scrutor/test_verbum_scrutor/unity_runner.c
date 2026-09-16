@@ -105,7 +105,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/verbum_scrutor/test_verbum_scrutor\\test_verbum_scrutor.c");
+  UnityBegin("test/unit/verbum_scrutor/test_verbum_scrutor\\test_verbum_scrutor.c");
   run_test(test_scrut_header_is_self_contained, "test_scrut_header_is_self_contained", 43);
   run_test(test_scrut_namespace_is_wired, "test_scrut_namespace_is_wired", 48);
   run_test(test_the_word_constants_agree_with_each_other, "test_the_word_constants_agree_with_each_other", 55);

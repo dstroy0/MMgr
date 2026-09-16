@@ -82,7 +82,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/config/mmgr_string_shim/test_mmgr_string_shim\\test_mmgr_string_shim.c");
+  UnityBegin("test/unit/config/mmgr_string_shim/test_mmgr_string_shim\\test_mmgr_string_shim.c");
   run_test(test_shim_header_is_self_contained, "test_shim_header_is_self_contained", 9);
   run_test(test_shim_strlen, "test_shim_strlen", 14);
   run_test(test_shim_strstr, "test_shim_strstr", 21);

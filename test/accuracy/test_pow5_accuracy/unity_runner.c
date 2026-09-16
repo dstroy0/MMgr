@@ -75,7 +75,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_pow5_accuracy\\test_pow5_accuracy.c");
+  UnityBegin("test/accuracy/test_pow5_accuracy\\test_pow5_accuracy.c");
   run_test(test_the_exact_arithmetic_this_suite_relies_on_is_itself_right, "test_the_exact_arithmetic_this_suite_relies_on_is_itself_right", 428);
   run_test(test_every_positive_power_of_five_is_the_top_128_bits_of_the_exact_value, "test_every_positive_power_of_five_is_the_top_128_bits_of_the_exact_value", 463);
   run_test(test_the_first_six_positive_powers_lose_no_bits_at_all, "test_the_first_six_positive_powers_lose_no_bits_at_all", 494);

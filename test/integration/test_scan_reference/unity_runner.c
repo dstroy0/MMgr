@@ -77,7 +77,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_scan_reference\\test_scan_reference.c");
+  UnityBegin("test/integration/test_scan_reference\\test_scan_reference.c");
   run_test(test_the_answer_does_not_depend_on_where_the_buffer_starts, "test_the_answer_does_not_depend_on_where_the_buffer_starts", 138);
   run_test(test_len_matches_the_reference_at_every_length, "test_len_matches_the_reference_at_every_length", 186);
   run_test(test_len_stops_at_the_cap_at_every_length, "test_len_stops_at_the_cap_at_every_length", 201);

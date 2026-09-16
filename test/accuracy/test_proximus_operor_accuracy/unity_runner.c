@@ -75,7 +75,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_proximus_operor_accuracy\\test_proximus_operor_accuracy.c");
+  UnityBegin("test/accuracy/test_proximus_operor_accuracy\\test_proximus_operor_accuracy.c");
   run_test(test_the_byte_order_arithmetic_this_suite_relies_on_is_itself_right, "test_the_byte_order_arithmetic_this_suite_relies_on_is_itself_right", 175);
   run_test(test_every_load_reads_the_bytes_at_its_address, "test_every_load_reads_the_bytes_at_its_address", 222);
   run_test(test_every_store_writes_its_bytes_at_its_address, "test_every_store_writes_its_bytes_at_its_address", 261);

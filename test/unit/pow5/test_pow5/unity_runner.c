@@ -73,7 +73,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/pow5/test_pow5\\test_pow5.c");
+  UnityBegin("test/unit/pow5/test_pow5\\test_pow5.c");
   run_test(test_every_significand_is_normalized, "test_every_significand_is_normalized", 104);
   run_test(test_the_wide_powers_carry_a_low_half, "test_the_wide_powers_carry_a_low_half", 127);
   run_test(test_the_negative_powers_truncate_toward_zero, "test_the_negative_powers_truncate_toward_zero", 144);

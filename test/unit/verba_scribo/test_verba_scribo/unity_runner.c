@@ -138,7 +138,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/verba_scribo/test_verba_scribo\\test_verba_scribo.c");
+  UnityBegin("test/unit/verba_scribo/test_verba_scribo\\test_verba_scribo.c");
   run_test(test_verba_header_is_self_contained, "test_verba_header_is_self_contained", 146);
   run_test(test_put_and_put_n, "test_put_and_put_n", 151);
   run_test(test_put_of_nothing, "test_put_of_nothing", 159);

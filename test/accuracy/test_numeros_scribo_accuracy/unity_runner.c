@@ -79,7 +79,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_numeros_scribo_accuracy\\test_numeros_scribo_accuracy.c");
+  UnityBegin("test/accuracy/test_numeros_scribo_accuracy\\test_numeros_scribo_accuracy.c");
   run_test(test_the_reference_formatting_this_suite_relies_on_behaves_as_assumed, "test_the_reference_formatting_this_suite_relies_on_behaves_as_assumed", 100);
   run_test(test_each_kind_alone_matches_the_reference_formatting, "test_each_kind_alone_matches_the_reference_formatting", 132);
   run_test(test_a_spec_of_literals_and_values_comes_out_in_order, "test_a_spec_of_literals_and_values_comes_out_in_order", 222);

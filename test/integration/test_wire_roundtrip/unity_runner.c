@@ -85,7 +85,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_wire_roundtrip\\test_wire_roundtrip.c");
+  UnityBegin("test/integration/test_wire_roundtrip\\test_wire_roundtrip.c");
   run_test(test_a_byte_written_is_the_byte_read, "test_a_byte_written_is_the_byte_read", 25);
   run_test(test_big_endian_fields_round_trip_at_every_width, "test_big_endian_fields_round_trip_at_every_width", 46);
   run_test(test_the_writer_puts_the_high_byte_first, "test_the_writer_puts_the_high_byte_first", 83);

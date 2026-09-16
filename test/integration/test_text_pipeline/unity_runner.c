@@ -83,7 +83,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_text_pipeline\\test_text_pipeline.c");
+  UnityBegin("test/integration/test_text_pipeline\\test_text_pipeline.c");
   run_test(test_built_text_reads_back_at_the_length_it_reported, "test_built_text_reads_back_at_the_length_it_reported", 7);
   run_test(test_scanner_finds_what_the_builder_wrote, "test_scanner_finds_what_the_builder_wrote", 18);
   run_test(test_case_folding_agrees_across_builder_and_scanner, "test_case_folding_agrees_across_builder_and_scanner", 33);

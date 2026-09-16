@@ -78,7 +78,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_locus_carcerum_accuracy\\test_locus_carcerum_accuracy.c");
+  UnityBegin("test/accuracy/test_locus_carcerum_accuracy\\test_locus_carcerum_accuracy.c");
   run_test(test_the_pattern_helpers_this_suite_relies_on_are_themselves_right, "test_the_pattern_helpers_this_suite_relies_on_are_themselves_right", 222);
   run_test(test_persistent_cells_never_share_a_byte, "test_persistent_cells_never_share_a_byte", 254);
   run_test(test_a_reused_cell_does_not_disturb_its_neighbors, "test_a_reused_cell_does_not_disturb_its_neighbors", 304);

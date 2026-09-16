@@ -77,7 +77,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_memoria_operor_accuracy\\test_memoria_operor_accuracy.c");
+  UnityBegin("test/accuracy/test_memoria_operor_accuracy\\test_memoria_operor_accuracy.c");
   run_test(test_the_helpers_this_suite_relies_on_are_themselves_right, "test_the_helpers_this_suite_relies_on_are_themselves_right", 167);
   run_test(test_the_forward_copy_lands_every_byte_at_every_alignment, "test_the_forward_copy_lands_every_byte_at_every_alignment", 202);
   run_test(test_the_fill_writes_every_byte_at_every_alignment, "test_the_fill_writes_every_byte_at_every_alignment", 246);

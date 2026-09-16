@@ -152,7 +152,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/cellularum_laboro/test_cellularum_laboro\\test_cellularum_laboro.c");
+  UnityBegin("test/unit/cellularum_laboro/test_cellularum_laboro\\test_cellularum_laboro.c");
   run_test(test_len_stops_at_nul_and_at_cap, "test_len_stops_at_nul_and_at_cap", 33);
   run_test(test_find_empty_needle_matches_at_zero, "test_find_empty_needle_matches_at_zero", 40);
   run_test(test_find_at_every_offset, "test_find_at_every_offset", 46);

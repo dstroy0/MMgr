@@ -78,7 +78,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_cellularum_laboro_accuracy\\test_cellularum_laboro_accuracy.c");
+  UnityBegin("test/accuracy/test_cellularum_laboro_accuracy\\test_cellularum_laboro_accuracy.c");
   run_test(test_the_exact_arithmetic_this_suite_relies_on_is_itself_right, "test_the_exact_arithmetic_this_suite_relies_on_is_itself_right", 148);
   run_test(test_a_signed_integer_comes_back_as_the_integer_it_names, "test_a_signed_integer_comes_back_as_the_integer_it_names", 164);
   run_test(test_an_unsigned_integer_comes_back_as_the_integer_it_names, "test_an_unsigned_integer_comes_back_as_the_integer_it_names", 183);

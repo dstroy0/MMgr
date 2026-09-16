@@ -77,7 +77,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_verbum_scrutor_accuracy\\test_verbum_scrutor_accuracy.c");
+  UnityBegin("test/accuracy/test_verbum_scrutor_accuracy\\test_verbum_scrutor_accuracy.c");
   run_test(test_the_exact_arithmetic_this_suite_relies_on_is_itself_right, "test_the_exact_arithmetic_this_suite_relies_on_is_itself_right", 186);
   run_test(test_ge_and_le_answer_per_lane_with_contrasting_neighbors, "test_ge_and_le_answer_per_lane_with_contrasting_neighbors", 234);
   run_test(test_both_candidates_answer_for_every_lane_under_a_low_threshold, "test_both_candidates_answer_for_every_lane_under_a_low_threshold", 277);

@@ -88,7 +88,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/ascii_persona_bitorum/test_ascii_persona_bitorum\\test_ascii_persona_bitorum.c");
+  UnityBegin("test/unit/ascii_persona_bitorum/test_ascii_persona_bitorum\\test_ascii_persona_bitorum.c");
   run_test(test_ascii_header_is_self_contained, "test_ascii_header_is_self_contained", 59);
   run_test(test_ascii_persona_bitorum_is_128_bits, "test_ascii_persona_bitorum_is_128_bits", 64);
   run_test(test_ascii_class_numbering_is_pinned, "test_ascii_class_numbering_is_pinned", 69);

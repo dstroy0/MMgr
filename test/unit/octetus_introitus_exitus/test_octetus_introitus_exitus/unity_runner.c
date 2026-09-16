@@ -92,7 +92,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/octetus_introitus_exitus/test_octetus_introitus_exitus\\test_octetus_introitus_exitus.c");
+  UnityBegin("test/unit/octetus_introitus_exitus/test_octetus_introitus_exitus\\test_octetus_introitus_exitus.c");
   run_test(test_byteio_header_is_self_contained, "test_byteio_header_is_self_contained", 25);
   run_test(test_byteio_namespace_is_wired, "test_byteio_namespace_is_wired", 30);
   run_test(test_put_appends_one_byte_and_moves_the_cursor, "test_put_appends_one_byte_and_moves_the_cursor", 38);

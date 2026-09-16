@@ -75,7 +75,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_clz_accuracy\\test_clz_accuracy.c");
+  UnityBegin("test/accuracy/test_clz_accuracy\\test_clz_accuracy.c");
   run_test(test_the_exact_bit_scans_this_suite_relies_on_are_themselves_right, "test_the_exact_bit_scans_this_suite_relies_on_are_themselves_right", 171);
   run_test(test_both_counts_are_right_at_every_single_bit_value, "test_both_counts_are_right_at_every_single_bit_value", 196);
   run_test(test_both_counts_are_right_at_every_pair_of_set_bits, "test_both_counts_are_right_at_every_pair_of_set_bits", 223);

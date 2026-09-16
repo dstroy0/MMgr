@@ -80,7 +80,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/transformo/test_transformo_internals\\test_transformo_internals.c");
+  UnityBegin("test/unit/transformo/test_transformo_internals\\test_transformo_internals.c");
   run_test(test_the_middle_column_carries_into_the_top, "test_the_middle_column_carries_into_the_top", 21);
   run_test(test_the_multiply_agrees_with_halves_done_by_hand, "test_the_multiply_agrees_with_halves_done_by_hand", 44);
   run_test(test_normalizing_a_fraction_whose_high_word_is_empty, "test_normalizing_a_fraction_whose_high_word_is_empty", 79);

@@ -74,7 +74,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_impensa_ancorae_acus_accuracy\\test_impensa_ancorae_acus_accuracy.c");
+  UnityBegin("test/accuracy/test_impensa_ancorae_acus_accuracy\\test_impensa_ancorae_acus_accuracy.c");
   run_test(test_no_byte_costs_nothing, "test_no_byte_costs_nothing", 96);
   run_test(test_the_terminator_sits_at_the_ceiling, "test_the_terminator_sits_at_the_ceiling", 116);
   run_test(test_the_table_ranks_bytes_instead_of_scoring_them_alike, "test_the_table_ranks_bytes_instead_of_scoring_them_alike", 133);

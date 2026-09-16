@@ -82,7 +82,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_verba_scribo_accuracy\\test_verba_scribo_accuracy.c");
+  UnityBegin("test/accuracy/test_verba_scribo_accuracy\\test_verba_scribo_accuracy.c");
   run_test(test_the_references_this_suite_relies_on_behave_as_assumed, "test_the_references_this_suite_relies_on_behave_as_assumed", 159);
   run_test(test_the_base_ten_entries_match_the_reference, "test_the_base_ten_entries_match_the_reference", 200);
   run_test(test_the_padded_and_based_entries_match_the_reference, "test_the_padded_and_based_entries_match_the_reference", 277);

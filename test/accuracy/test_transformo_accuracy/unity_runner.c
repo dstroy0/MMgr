@@ -74,7 +74,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_transformo_accuracy\\test_transformo_accuracy.c");
+  UnityBegin("test/accuracy/test_transformo_accuracy\\test_transformo_accuracy.c");
   run_test(test_the_exact_arithmetic_this_suite_relies_on_is_itself_right, "test_the_exact_arithmetic_this_suite_relies_on_is_itself_right", 130);
   run_test(test_a_product_a_double_holds_exactly_comes_back_exactly, "test_a_product_a_double_holds_exactly_comes_back_exactly", 155);
   run_test(test_a_negative_exponent_that_ends_in_binary_is_exact, "test_a_negative_exponent_that_ends_in_binary_is_exact", 195);

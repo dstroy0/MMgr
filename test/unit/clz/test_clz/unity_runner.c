@@ -75,7 +75,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/clz/test_clz\\test_clz.c");
+  UnityBegin("test/unit/clz/test_clz\\test_clz.c");
   run_test(test_the_leading_zero_count_at_every_position, "test_the_leading_zero_count_at_every_position", 41);
   run_test(test_the_trailing_zero_count_at_every_position, "test_the_trailing_zero_count_at_every_position", 66);
   run_test(test_the_leading_count_reads_the_highest_set_bit_alone, "test_the_leading_count_reads_the_highest_set_bit_alone", 92);

@@ -78,7 +78,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_octetus_introitus_exitus_accuracy\\test_octetus_introitus_exitus_accuracy.c");
+  UnityBegin("test/accuracy/test_octetus_introitus_exitus_accuracy\\test_octetus_introitus_exitus_accuracy.c");
   run_test(test_the_byte_arithmetic_this_suite_relies_on_is_itself_right, "test_the_byte_arithmetic_this_suite_relies_on_is_itself_right", 132);
   run_test(test_a_big_endian_append_lays_every_byte_where_the_reference_puts_it, "test_a_big_endian_append_lays_every_byte_where_the_reference_puts_it", 181);
   run_test(test_a_big_endian_read_returns_the_value_its_bytes_stand_for, "test_a_big_endian_read_returns_the_value_its_bytes_stand_for", 230);

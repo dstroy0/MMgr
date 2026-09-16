@@ -74,7 +74,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_endian_accuracy\\test_endian_accuracy.c");
+  UnityBegin("test/accuracy/test_endian_accuracy\\test_endian_accuracy.c");
   run_test(test_the_exact_arithmetic_this_suite_relies_on_is_itself_right, "test_the_exact_arithmetic_this_suite_relies_on_is_itself_right", 124);
   run_test(test_the_host_order_write_places_every_byte, "test_the_host_order_write_places_every_byte", 142);
   run_test(test_the_reversed_write_places_every_byte, "test_the_reversed_write_places_every_byte", 185);

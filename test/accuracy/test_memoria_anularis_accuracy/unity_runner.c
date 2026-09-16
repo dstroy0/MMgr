@@ -79,7 +79,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_memoria_anularis_accuracy\\test_memoria_anularis_accuracy.c");
+  UnityBegin("test/accuracy/test_memoria_anularis_accuracy\\test_memoria_anularis_accuracy.c");
   run_test(test_the_reference_queue_this_suite_relies_on_is_itself_right, "test_the_reference_queue_this_suite_relies_on_is_itself_right", 208);
   run_test(test_a_long_run_of_writes_and_reads_delivers_every_byte_in_order, "test_a_long_run_of_writes_and_reads_delivers_every_byte_in_order", 243);
   run_test(test_a_byte_at_a_time_comes_out_in_the_order_it_went_in, "test_a_byte_at_a_time_comes_out_in_the_order_it_went_in", 324);

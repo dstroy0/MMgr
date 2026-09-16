@@ -104,7 +104,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_hostile_content\\test_hostile_content.c");
+  UnityBegin("test/integration/test_hostile_content\\test_hostile_content.c");
   run_test(test_len_of_a_run_that_never_terminates, "test_len_of_a_run_that_never_terminates", 59);
   run_test(test_len_finds_a_terminator_in_every_lane, "test_len_finds_a_terminator_in_every_lane", 72);
   run_test(test_len_at_every_start_alignment, "test_len_at_every_start_alignment", 88);

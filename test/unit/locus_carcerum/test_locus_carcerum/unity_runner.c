@@ -100,7 +100,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/locus_carcerum/test_locus_carcerum\\test_locus_carcerum.c");
+  UnityBegin("test/unit/locus_carcerum/test_locus_carcerum\\test_locus_carcerum.c");
   run_test(test_locus_carcerum_header_is_self_contained, "test_locus_carcerum_header_is_self_contained", 51);
   run_test(test_the_namespace_is_wired, "test_the_namespace_is_wired", 56);
   run_test(test_the_machinery_sits_below_the_arena, "test_the_machinery_sits_below_the_arena", 64);

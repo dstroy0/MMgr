@@ -75,7 +75,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_bitorum_introitus_exitus_accuracy\\test_bitorum_introitus_exitus_accuracy.c");
+  UnityBegin("test/accuracy/test_bitorum_introitus_exitus_accuracy\\test_bitorum_introitus_exitus_accuracy.c");
   run_test(test_the_exact_packing_this_suite_relies_on_is_itself_right, "test_the_exact_packing_this_suite_relies_on_is_itself_right", 215);
   run_test(test_a_single_put_of_every_width_lands_where_the_reference_puts_it, "test_a_single_put_of_every_width_lands_where_the_reference_puts_it", 246);
   run_test(test_a_run_of_puts_across_byte_boundaries_lands_where_the_reference_puts_it, "test_a_run_of_puts_across_byte_boundaries_lands_where_the_reference_puts_it", 303);

@@ -74,7 +74,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_ring_bounds\\test_ring_bounds.c");
+  UnityBegin("test/integration/test_ring_bounds\\test_ring_bounds.c");
   run_test(test_the_guard_is_armed, "test_the_guard_is_armed", 106);
   run_test(test_the_ring_stays_inside_its_buffer_at_every_head, "test_the_ring_stays_inside_its_buffer_at_every_head", 119);
   run_test(test_a_drain_stays_inside_the_destination_it_was_given, "test_a_drain_stays_inside_the_destination_it_was_given", 144);

@@ -85,7 +85,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/integration/test_read_bounds\\test_read_bounds.c");
+  UnityBegin("test/integration/test_read_bounds\\test_read_bounds.c");
   run_test(test_the_guard_is_armed, "test_the_guard_is_armed", 152);
   run_test(test_len_stays_inside_the_reserved_extent, "test_len_stays_inside_the_reserved_extent", 165);
   run_test(test_chr_stays_inside_the_reserved_extent, "test_chr_stays_inside_the_reserved_extent", 171);

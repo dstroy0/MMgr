@@ -88,7 +88,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/memoria_anularis/test_anularis\\test_anularis.c");
+  UnityBegin("test/unit/memoria_anularis/test_anularis\\test_anularis.c");
   run_test(test_init_refuses_bad_sizes, "test_init_refuses_bad_sizes", 27);
   run_test(test_init_starts_empty_with_every_loculus_free, "test_init_starts_empty_with_every_loculus_free", 43);
   run_test(test_put_then_read_round_trips, "test_put_then_read_round_trips", 59);

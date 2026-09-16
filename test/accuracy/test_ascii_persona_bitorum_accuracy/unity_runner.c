@@ -74,7 +74,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_ascii_persona_bitorum_accuracy\\test_ascii_persona_bitorum_accuracy.c");
+  UnityBegin("test/accuracy/test_ascii_persona_bitorum_accuracy\\test_ascii_persona_bitorum_accuracy.c");
   run_test(test_the_code_points_this_suite_tests_with_are_the_characters_the_header_names, "test_the_code_points_this_suite_tests_with_are_the_characters_the_header_names", 207);
   run_test(test_every_class_holds_exactly_the_code_points_its_declaration_names, "test_every_class_holds_exactly_the_code_points_its_declaration_names", 236);
   run_test(test_no_byte_at_or_above_the_ascii_limit_belongs_to_any_class, "test_no_byte_at_or_above_the_ascii_limit_belongs_to_any_class", 261);

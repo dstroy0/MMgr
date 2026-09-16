@@ -73,7 +73,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_fractio_accuracy\\test_fractio_accuracy.c");
+  UnityBegin("test/accuracy/test_fractio_accuracy\\test_fractio_accuracy.c");
   run_test(test_the_exact_arithmetic_this_suite_relies_on_is_itself_right, "test_the_exact_arithmetic_this_suite_relies_on_is_itself_right", 192);
   run_test(test_every_field_comes_out_of_the_place_the_format_puts_it, "test_every_field_comes_out_of_the_place_the_format_puts_it", 228);
   run_test(test_the_three_fields_put_back_together_are_the_pattern_they_came_from, "test_the_three_fields_put_back_together_are_the_pattern_they_came_from", 257);

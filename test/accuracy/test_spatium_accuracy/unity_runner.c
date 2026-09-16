@@ -77,7 +77,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_spatium_accuracy\\test_spatium_accuracy.c");
+  UnityBegin("test/accuracy/test_spatium_accuracy\\test_spatium_accuracy.c");
   run_test(test_the_constructors_build_the_spans_they_are_documented_to, "test_the_constructors_build_the_spans_they_are_documented_to", 146);
   run_test(test_the_span_beginning_a_count_in_names_the_right_bytes, "test_the_span_beginning_a_count_in_names_the_right_bytes", 167);
   run_test(test_the_span_covering_the_first_count_names_the_right_bytes, "test_the_span_covering_the_first_count_names_the_right_bytes", 211);

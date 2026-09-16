@@ -90,7 +90,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/bitorum_introitus_exitus/test_bitorum_introitus_exitus\\test_bitorum_introitus_exitus.c");
+  UnityBegin("test/unit/bitorum_introitus_exitus/test_bitorum_introitus_exitus\\test_bitorum_introitus_exitus.c");
   run_test(test_bitio_header_is_self_contained, "test_bitio_header_is_self_contained", 26);
   run_test(test_init_hands_back_an_empty_writer, "test_init_hands_back_an_empty_writer", 31);
   run_test(test_a_whole_byte_lands_as_that_byte, "test_a_whole_byte_lands_as_that_byte", 40);
