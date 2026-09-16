@@ -31,12 +31,12 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Detached: the channel holds no engine and no vector.
  */
-#define PRAET_DETACHED 0u
+#define PRAET_SEPARATUS 0u
 
 /**
  * @brief Attached: the channel holds the engine and will take a transfer.
  */
-#define PRAET_ATTACHED 1u
+#define PRAET_ADNEXUS 1u
 
 /**
  * @brief Busy: the engine is moving bytes on this channel.
@@ -80,7 +80,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Token id of the status set while a detach is asked for and not finished.
  */
-#define PRAET_ID_DETACHING 2u
+#define PRAET_ID_SEPARANS 2u
 
 /**
  * @brief Token id of the status set where the last transfer ended in an error.
@@ -151,7 +151,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Set where a detach has been asked for and the channel has not finished tearing down.
  */
-#define PRAET_DETACHING PRAET_STATUS_BIT(PRAET_ID_DETACHING)
+#define PRAET_SEPARANS PRAET_STATUS_BIT(PRAET_ID_SEPARANS)
 
 /**
  * @brief Set where the last transfer ended in an error rather than a completion.
@@ -202,7 +202,7 @@ EMBED_BEGIN_DECLS
  *       one produced is what catches a duplicated id or a status nobody placed.
  */
 #define PRAET_EVERY_STATUS                                                                                             \
-    (PRAET_CLAIMED | PRAET_SETTLING | PRAET_DETACHING | PRAET_ERROR | PRAET_STALLED | PRAET_ABANDONED |                 \
+    (PRAET_CLAIMED | PRAET_SETTLING | PRAET_SEPARANS | PRAET_ERROR | PRAET_STALLED | PRAET_ABANDONED |                  \
      PRAET_SCRUBBED | PRAET_MEASURED)
 
 /**
@@ -280,7 +280,7 @@ typedef enum
 
 // Every value the core mask can hold has a name, and the four names are distinct. Setting one bit per
 // core value turns both halves of that into one comparison
-EMBED_STATIC_ASSERT(((1u << PRAET_DETACHED) | (1u << PRAET_ATTACHED) | (1u << PRAET_BUSY) | (1u << PRAET_OK)) ==
+EMBED_STATIC_ASSERT(((1u << PRAET_SEPARATUS) | (1u << PRAET_ADNEXUS) | (1u << PRAET_BUSY) | (1u << PRAET_OK)) ==
                         ((1u << (PRAET_CORE_MASK + 1u)) - 1u),
                     "the four core states are not exactly the values PRAET_CORE_MASK holds");
 

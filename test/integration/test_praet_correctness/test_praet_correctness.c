@@ -574,7 +574,7 @@ void test_a_channel_starts_detached(void)
 
     for (embed_word channel = 0u; channel < PRAET_CHANNELS; channel++)
     {
-        TEST_ASSERT_EQUAL_UINT32(PRAET_DETACHED, praet_ordo_flags(&s_schedule, channel));
+        TEST_ASSERT_EQUAL_UINT32(PRAET_SEPARATUS, praet_ordo_flags(&s_schedule, channel));
     }
 }
 
@@ -596,7 +596,7 @@ void test_attach_claims_the_vector_and_detach_releases_it(void)
 
     const uint32_t after = praet_ordo_flags(&s_schedule, 2u);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_DETACHED, after & PRAET_CORE_MASK, "the channel is still attached");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_SEPARATUS, after & PRAET_CORE_MASK, "the channel is still attached");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, after & PRAET_CLAIMED, "a detached channel is still holding a vector");
 }
 
@@ -941,7 +941,7 @@ void test_backing_out_records_what_was_touched(void)
 
     const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_ATTACHED, after & PRAET_CORE_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_ADNEXUS, after & PRAET_CORE_MASK,
                                      "a resolved channel did not come back attached");
     TEST_ASSERT_TRUE_MESSAGE((after & PRAET_ABANDONED) != 0u, "the backout was not recorded");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, after & PRAET_SCRUBBED, "a backout claimed the bytes were scrubbed");
@@ -1609,12 +1609,12 @@ void test_detach_waits_for_the_transfer_under_it(void)
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_ordo_flags(&s_schedule, 3u) & PRAET_CORE_MASK,
                                      "the detach tore down a channel the engine was still using");
-    TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 3u) & PRAET_DETACHING) != 0u);
+    TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 3u) & PRAET_SEPARANS) != 0u);
 
     praet_ordo_completed(&s_schedule, 3u, EMBED_FALSE);
     praet_ordo_poll(&s_schedule);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_DETACHED, praet_ordo_flags(&s_schedule, 3u) & PRAET_CORE_MASK,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_SEPARATUS, praet_ordo_flags(&s_schedule, 3u) & PRAET_CORE_MASK,
                                      "the detach never completed once the transfer had");
 }
 

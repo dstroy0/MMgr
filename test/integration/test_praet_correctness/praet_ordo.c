@@ -49,7 +49,7 @@
  *       what no run could: a clear cannot reach a bit outside the map, and cannot reach the region
  *       descriptor at all.
  * @note The detach path in service is not in this list, because it does not clear a word - it assigns
- *       PRAET_DETACHED over the whole one. Dropping the region with it is the point: a detached
+ *       PRAET_SEPARATUS over the whole one. Dropping the region with it is the point: a detached
  *       channel reaches no memory, and the next attach states the region again.
  */
 #define PRAET_CLEARED_BITS (PRAET_CORE_MASK | PRAET_TRANSFER_STATUSES | PRAET_SETTLING)
@@ -97,7 +97,7 @@ void praet_ordo_reset(PraetOrdo *context)
 {
     for (embed_word channel = 0u; channel < PRAET_CHANNELS; channel++)
     {
-        context->flags[channel] = (uint32_t)PRAET_DETACHED;
+        context->flags[channel] = (uint32_t)PRAET_SEPARATUS;
         context->keepalive_deadline[channel] = 0u;
 #if PRAET_RECOVERY
         context->bound[channel] = NULL;
@@ -123,7 +123,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
     {
         return EMBED_FALSE;
     }
-    if ((context->flags[channel] & PRAET_CORE_MASK) != PRAET_DETACHED)
+    if ((context->flags[channel] & PRAET_CORE_MASK) != PRAET_SEPARATUS)
     {
         return EMBED_FALSE;
     }
@@ -137,7 +137,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
         context->settle_deadline = deadline;
     }
 
-    uint32_t now = (uint32_t)PRAET_ATTACHED | (uint32_t)PRAET_CLAIMED;
+    uint32_t now = (uint32_t)PRAET_ADNEXUS | (uint32_t)PRAET_CLAIMED;
 
     if (context->elapsed_micros < context->settle_deadline)
     {
@@ -171,12 +171,12 @@ void praet_ordo_separare(PraetOrdo *context, embed_word channel)
     {
         return;
     }
-    if ((context->flags[channel] & PRAET_CORE_MASK) == PRAET_DETACHED)
+    if ((context->flags[channel] & PRAET_CORE_MASK) == PRAET_SEPARATUS)
     {
         return;
     }
 
-    praet_ordo_write_flags(context, channel, context->flags[channel] | (uint32_t)PRAET_DETACHING);
+    praet_ordo_write_flags(context, channel, context->flags[channel] | (uint32_t)PRAET_SEPARANS);
     context->praet_set_bitflag = 1u;
 }
 
@@ -196,11 +196,11 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel)
     const uint32_t was = context->flags[channel];
     const uint32_t core = was & PRAET_CORE_MASK;
 
-    if ((core != PRAET_ATTACHED) && (core != PRAET_OK))
+    if ((core != PRAET_ADNEXUS) && (core != PRAET_OK))
     {
         return EMBED_FALSE;
     }
-    if ((was & (uint32_t)(PRAET_SETTLING | PRAET_DETACHING)) != 0u)
+    if ((was & (uint32_t)(PRAET_SETTLING | PRAET_SEPARANS)) != 0u)
     {
         return EMBED_FALSE;
     }
@@ -363,7 +363,7 @@ embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word
 
     uint32_t now = was & PRAET_WITHOUT(PRAET_CORE_MASK | PRAET_STALLED);
 
-    now |= (uint32_t)PRAET_ATTACHED;
+    now |= (uint32_t)PRAET_ADNEXUS;
     now |= (recovery == (embed_word)PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE) ? (uint32_t)PRAET_SCRUBBED : (uint32_t)PRAET_ABANDONED;
 
     // The one optional branch, and the only place it appears. Everything before the sample is written
@@ -486,7 +486,7 @@ void praet_ordo_poll(PraetOrdo *context)
         const uint32_t was = context->flags[channel];
         uint32_t now = was;
 
-        if ((now & PRAET_CORE_MASK) == PRAET_DETACHED)
+        if ((now & PRAET_CORE_MASK) == PRAET_SEPARATUS)
         {
             continue;
         }
@@ -510,9 +510,9 @@ void praet_ordo_poll(PraetOrdo *context)
 
         // A detach finishes only once the transfer under it has. Tearing down while the engine is
         // still moving bytes would leave it writing into storage the caller believes is released
-        if (((now & (uint32_t)PRAET_DETACHING) != 0u) && ((now & PRAET_CORE_MASK) != PRAET_BUSY))
+        if (((now & (uint32_t)PRAET_SEPARANS) != 0u) && ((now & PRAET_CORE_MASK) != PRAET_BUSY))
         {
-            now = (uint32_t)PRAET_DETACHED;
+            now = (uint32_t)PRAET_SEPARATUS;
             context->keepalive_deadline[channel] = 0u;
 #if PRAET_RECOVERY
             context->bound[channel] = NULL;
@@ -538,7 +538,7 @@ uint32_t praet_ordo_flags(const PraetOrdo *context, embed_word channel)
 {
     if (channel >= PRAET_CHANNELS)
     {
-        return (uint32_t)PRAET_DETACHED;
+        return (uint32_t)PRAET_SEPARATUS;
     }
     return context->flags[channel];
 }
