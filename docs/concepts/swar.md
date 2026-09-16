@@ -3,6 +3,9 @@
 SWAR — SIMD Within A Register. Ordinary integer operations, used to process every byte of a word at
 once, branch-free.
 
+The name and the technique are Randall J. Fisher and Henry G. Dietz, _Compiling for SIMD Within a
+Register_, LCPC'98, LNCS 1656:290-304, doi:10.1007/3-540-48319-5_19.
+
 ## The idea
 
 A `uint64_t` holds eight bytes. An `AND`, an `XOR` or a subtract on that word operates on all eight
@@ -43,6 +46,9 @@ Read it a lane at a time:
 
 No branch, no loop, eight bytes answered. `strlen` over a long string becomes one of these per word
 plus a tail.
+
+The test is Alan Mycroft's, posted to comp.arch on 1987-04-27. Sean Eron Anderson's
+_Bit Twiddling Hacks_ and Henry S. Warren Jr.'s _Hacker's Delight_ chapter 6 both carry it.
 
 The `mask` table on top of it turns "some lane matched" into "which lane": `lane.count` says how
 many, `lane.first` and `lane.last` say where, `mask.drop_first` and `mask.drop_last` walk them in
