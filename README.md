@@ -87,6 +87,11 @@ and MSVC does not build this tree — it stops at `deps/embedded_types/include/e
 where a static assertion reports that `EMBED_ENUM_PACKED` is not honored and no enum keeps its
 declared width. GCC and Clang build it.
 
+To build without the network, put `embedded_types` at `deps/embedded_types` yourself, checked out at
+the pinned SHA, and add `-DFETCHCONTENT_FULLY_DISCONNECTED=ON`. That skips the fetch and uses what is
+on disk; measured here at 190 of 190 targets. It is an escape for a rebuild on a machine that already
+has the dependency, not a first clone — disconnected mode with an empty `deps/` has nothing to use.
+
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=gcc -DMMGR_BUILD_TESTS=ON
 cmake --build build
