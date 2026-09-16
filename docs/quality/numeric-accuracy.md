@@ -17,6 +17,12 @@ The unit is the ulp - one representable step at that magnitude - because relativ
 thing that matters. Being wrong by 1e-300 is nothing next to 1.0 and everything next to a
 subnormal, and a percentage cannot tell those apart.
 
+Both directions are solved problems with named solutions, and this page does not restate their
+proofs. Correctly rounded printing is Guy L. Steele Jr. and Jon L. White, _How to print
+floating-point numbers accurately_, PLDI '90, 112-126, doi:10.1145/93542.93559. Correctly rounded
+reading is William D. Clinger, _How to read floating point numbers accurately_, PLDI '90, 92-101,
+doi:10.1145/93542.93557.
+
 ## What the parser was doing
 
 Measured over 999,480 random bit patterns:
