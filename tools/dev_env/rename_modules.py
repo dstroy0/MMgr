@@ -8,8 +8,9 @@ of mind is an edit to the table rather than to the code.
 
     rename_modules.py symbols   mmgr_<infix>_<tail>, and the verbs inside the tail
     rename_modules.py headers   guards and include paths
+    rename_modules.py types     the data typedefs, the Ns type, and the Ns instance
     rename_modules.py files     git mv of the directories and filenames
-    rename_modules.py all       all three, in that order
+    rename_modules.py all       all four, in that order
 
 Dry run by default; --go writes.
 

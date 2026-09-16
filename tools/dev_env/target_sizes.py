@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Per-translation-unit .text at each optimization level, for the targets the library ships to.
 
 The counterpart to sizes.py, and the one whose numbers decide anything. sizes.py reads its compiler
@@ -14,7 +16,7 @@ Each unit is compiled on its own, no LTO and no link, so a row is that unit alon
 
 Usage:
 
-    python tools/dev_env/target_sizes.py                 both targets
+    python tools/dev_env/target_sizes.py                 all three targets
     python tools/dev_env/target_sizes.py --arch xtensa   one of them
 
 The toolchains are the ones an ESP-IDF install already carries. --bin points at a different one.

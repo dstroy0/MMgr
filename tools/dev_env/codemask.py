@@ -1,4 +1,8 @@
-"""Which byte offsets of a C file are code, and which are comment or literal.
+"""Which character positions of a C file are code, and which are comment or literal.
+
+Positions, not byte offsets. The scan indexes a str, so an accented letter or a non-ASCII name in a
+comment is one position here and two or more bytes in the file. They coincide for ASCII source and
+a caller that seeks in the file by one of these indexes has to convert first.
 
 A converter that rewrites call sites must not rewrite a call that appears inside a /** doc block */
 or a // line comment: the text there describes the API, it does not invoke it. Rewriting it injects
@@ -7,7 +11,7 @@ statements into the middle of a comment and silently corrupts the file.
 
 
 def code_mask(s):
-    """A bytearray parallel to s: 1 where the byte is code, 0 where it is comment or literal text."""
+    """A bytearray parallel to s: 1 where the character is code, 0 where it is comment or literal."""
     m = bytearray(b"\x01" * len(s))
     i, n = 0, len(s)
     while i < n:
