@@ -534,10 +534,22 @@ def generate_runner(suite_dir, unity_rb):
     # no-op where the generator already wrote LF.
     with open(out, "rb") as fh:
         written = fh.read()
-    lf = written.replace(b"\r\n", b"\n")
-    if lf != written:
+    fixed = written.replace(b"\r\n", b"\n")
+    # Unity writes the source path it was handed into UnityBegin, and the caller hands this function
+    # an absolute one. The same argument as the line endings above applies to it and is worse: an
+    # absolute path in a tracked generated file names the machine that produced it, and rewrites
+    # itself on every checkout at a different location. 60 of these were committed carrying
+    # "C:/Users/<name>/Desktop/git_project/mmgrwork/MMgr/...", a layout that no longer exists, so
+    # every build since the tree moved has reported all 60 as modified and each diff reads as
+    # authored work until somebody opens it. Stripping the root here leaves the same bytes on every
+    # machine. Both separators are tried: Unity normalizes the directory it was given to forward
+    # slashes and joins the file name with a backslash of its own.
+    root_forward = ROOT.replace("\\", "/").encode()
+    root_backward = ROOT.replace("/", "\\").encode()
+    fixed = fixed.replace(root_forward + b"/", b"").replace(root_backward + b"\\", b"")
+    if fixed != written:
         with open(out, "wb") as fh:
-            fh.write(lf)
+            fh.write(fixed)
     # Report the near misses even on success: the runner is written, and these still never ran.
     _, missed = runner_cases(src)
     if missed:
