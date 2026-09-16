@@ -1,66 +1,90 @@
-# Your first region {#guide_first_region}
+# Your first prison site {#guide_first_region}
 
-Borrowing a buffer, taking from both ends of it, and giving the interim back.
+**Purpose:** Declare a prison site, allocate from both tiers of one of its cellblocks, and release
+the temporary tier by mark.
+**Scope:** `include/mmgr.h`, `src/locus_carcerum/locus_carcerum.h`, `src/locus_carcerum/locus_carcerum.c`
+**Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+**Date:** 2026-08-29
 
 ## Borrowing
 
 ```c
-mmgr_carcer_init(g_ram, 4096u, MMGR_POOL(g_scratch, 4096u));
+ParsMemoriaeInternae(work, 2048);
+ParsMemoriaeInternae(keys, 2048);
 
-CarcerCtx *const pool = MMGR_CARCER_POOL(g_ram, g_scratch);
+LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work), MMGR_MAXIMUM_SECURITY(keys));
 ```
 
-`mmgr_carcer_init` is a declaration, not a call. It emits the storage, one @ref CarcerCtx per pool,
-and static asserts that the region has an address and an extent and that the pools fit inside it.
-Nothing runs at startup, and a region that does not add up fails to compile.
+The first two lines declare the storage and its alignment. The third dresses each pool as a
+cellblock and emits the site. All three are declarations, not calls: everything they emit is
+initialized data, nothing runs at startup, and a cellblock's first byte is the address of the pool
+it was declared over, which the linker resolves.
 
-Each `MMGR_POOL` names a pool and its size. They are laid out back to back from the base of the
-region, so the second starts where the first ends.
+A cellblock is reached by the name of its pool, so `prison.work` is the cellblock over `work`. Pool
+names stand for one region each, which is why no two cellblocks anywhere in a translation unit can
+share a name.
 
-## Two ends
+`MMGR_MINIMUM_SECURITY` and `MMGR_MAXIMUM_SECURITY` pick which guards hold a cellblock, and the
+choice is settled at the declaration: "The warden is const, so nothing after the declaration can
+change the level a cellblock runs at" (`src/locus_carcerum/locus_carcerum.h:24`). The two guard types
+declare the same eight entries under different behavior, so `prison.keys` has no unzeroed release to
+reach for and `prison.work` has no zeroing one
+(`src/locus_carcerum/locus_carcerum.h:115`, `src/locus_carcerum/locus_carcerum.h:139`).
+
+## Two tiers
 
 ```c
-uint8_t *cfg  = mmgr_carcer_persist_capio(&c, 128, 8);   uint8_t *tmp  = mmgr_carcer_interim_capio(&c, 512, 8);   ```
+uint8_t *config = prison.work.persistent_buf_alloc(128);
+uint8_t *working = prison.work.temporary_buf_alloc(512);
+```
 
-- **persist** is for what lives as long as the region: configuration, tables, buffers you fill once.
-- **interim** is the working space for one operation.
+Both return the first byte of a cell `[RETURNS OWNERSHIP]`. The persistent tier takes it back through
+`prison.work.persistent_buf_release`; the temporary tier takes a whole run back through
+`prison.work.temporary_buf_release` or `prison.work.temporary_buf_reset`.
 
-They grow toward each other and a take that would cross fails, returning `NULL`. Check it — that is
-the only failure mode the allocator has.
+- **persistent** is for what lives as long as the cellblock: configuration, tables, buffers you fill
+  once.
+- **temporary** is the working space for one operation.
+
+The two tiers grow toward each other out of the same gap, and a request the gap cannot meet returns
+`NULL`: "Fails closed. A request the gap cannot meet moves no boundary at all"
+(`src/locus_carcerum/locus_carcerum.c:384`).
 
 ```c
-if (cfg == NULL || tmp == NULL) {
+if (config == NULL || working == NULL) {
     return -1;
 }
 ```
 
-`capio` is _take_. `reddo` is _give back_. The verbs are Latin because the English ones are already
-spoken for by libc; @ref ref_glossary decodes the rest.
+"The public entries are English and the internals are Latin, this filename included"
+(`src/locus_carcerum/locus_carcerum.h:25`). @ref ref_glossary decodes the Latin you will meet inside.
 
 ## Releasing interim, by mark
 
 Interim is a stack. You do not free a pointer, you rewind to a mark.
 
 ```c
-size_t m = mmgr_carcer_interim_mark(&c);       
-uint8_t *a = mmgr_carcer_interim_capio(&c, 256, 8);
-uint8_t *b = mmgr_carcer_interim_capio(&c, 256, 8);
+size_t m = prison.work.temporary_buf_mark();
+uint8_t *a = prison.work.temporary_buf_alloc(256);
+uint8_t *b = prison.work.temporary_buf_alloc(256);
 
-mmgr_carcer_interim_reddo(&c, m);              ```
+prison.work.temporary_buf_release(m);
+```
 
 This is the pattern for any bounded operation: mark on the way in, `reddo` on the way out, and the
 interim cost of the operation is zero afterwards no matter how many takes it made.
 
 @warning Nothing is reallocated and nothing moves, so `a` and `b` still point at readable memory
-after the `reddo`. They are dead all the same, and the next `interim_capio` will hand that same
+after the `reddo`. They are dead all the same, and the next `temporary_buf_alloc` will hand that same
 memory to someone else. A pointer that outlives its mark is the sharpest edge in this library.
 
 ## How much is left
 
 ```c
-size_t left = mmgr_carcer_octas_praesto(&c);   ```
+size_t left = prison.work.buf_available();
+```
 
-`octas_praesto` is **not** a release. It reports the gap still between the two ends. It is what you
+`buf_available` is **not** a release. It reports the gap still between the two ends. It is what you
 log when a take returns `NULL` and you want to know by how much you missed.
 
 ## Sizing it honestly
@@ -68,9 +92,7 @@ log when a take returns `NULL` and you want to know by how much you missed.
 Do not compute the size on paper. Measure it.
 
 ```c
-const size_t persist_now = MMGR_CALL(carcer.persist_used, CarcerCfg, .pool = pool);
-const size_t left       = MMGR_CALL(carcer.octas_praesto, CarcerCfg, .pool = pool);
-const size_t peak       = pool->hw;   /* MMGR_ENABLE_HW_MEM_CAPACITY_CB only */
+const size_t left = prison.work.buf_available();
 ```
 
 Build the `checks` environment, run your real workload, and read those. `checks` compiles in the
@@ -89,21 +111,21 @@ makes the argument for why this is the bill worth paying.
 ## Putting it together
 
 ```c
-static mmgr_bool handle(CarcerCtx *pool, const uint8_t *msg, size_t len)
+static embed_bool handle(const uint8_t *msg, size_t len)
 {
-    const size_t mark = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = pool);
+    const size_t mark = prison.work.temporary_buf_mark();
 
-    uint8_t *const work = MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = pool, .size = len);
-    if (work == NULL) {
-        return MMGR_FALSE;
+    uint8_t *const buf = prison.work.temporary_buf_alloc(len);
+    if (buf == NULL) {
+        return EMBED_FALSE;
     }
 
-    MMGR_CALL(memor.cpy, MemoriaCfg, .dst = work, .src = msg, .bytes = len);
+    EMBED_CALL(memor.cpy, MemoriaCfg, .dst = buf, .src = msg, .bytes = len);
 
-    /* ... use work ... */
+    /* ... use buf ... */
 
-    MMGR_CALL(carcer.interim_reddo, CarcerCfg, .pool = pool, .size = mark);
-    return MMGR_TRUE;
+    prison.work.temporary_buf_release(mark);
+    return EMBED_TRUE;
 }
 ```
 

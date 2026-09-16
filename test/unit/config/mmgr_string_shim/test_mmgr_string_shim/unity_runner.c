@@ -2,13 +2,12 @@
 
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
-#include "config/mmgr_string_shim.h"
+#include "mmgr_string_shim.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_shim_header_is_self_contained(void);
-extern void test_shim_bound_is_a_compile_time_constant(void);
 extern void test_shim_strlen(void);
 extern void test_shim_strstr(void);
 extern void test_shim_strcmp_is_equality(void);
@@ -84,16 +83,15 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/config/mmgr_string_shim/test_mmgr_string_shim\\test_mmgr_string_shim.c");
-  run_test(test_shim_header_is_self_contained, "test_shim_header_is_self_contained", 5);
-  run_test(test_shim_bound_is_a_compile_time_constant, "test_shim_bound_is_a_compile_time_constant", 10);
-  run_test(test_shim_strlen, "test_shim_strlen", 15);
-  run_test(test_shim_strstr, "test_shim_strstr", 22);
-  run_test(test_shim_strcmp_is_equality, "test_shim_strcmp_is_equality", 31);
-  run_test(test_shim_strncmp_bounds_the_compare, "test_shim_strncmp_bounds_the_compare", 38);
-  run_test(test_shim_memory_entries, "test_shim_memory_entries", 44);
-  run_test(test_shim_memmove_handles_overlap, "test_shim_memmove_handles_overlap", 56);
-  run_test(test_shim_strchr_finds_the_terminator, "test_shim_strchr_finds_the_terminator", 66);
-  run_test(test_shim_strlcpy_reports_what_it_wrote, "test_shim_strlcpy_reports_what_it_wrote", 74);
+  run_test(test_shim_header_is_self_contained, "test_shim_header_is_self_contained", 9);
+  run_test(test_shim_strlen, "test_shim_strlen", 14);
+  run_test(test_shim_strstr, "test_shim_strstr", 21);
+  run_test(test_shim_strcmp_is_equality, "test_shim_strcmp_is_equality", 30);
+  run_test(test_shim_strncmp_bounds_the_compare, "test_shim_strncmp_bounds_the_compare", 37);
+  run_test(test_shim_memory_entries, "test_shim_memory_entries", 43);
+  run_test(test_shim_memmove_handles_overlap, "test_shim_memmove_handles_overlap", 55);
+  run_test(test_shim_strchr_finds_the_terminator, "test_shim_strchr_finds_the_terminator", 65);
+  run_test(test_shim_strlcpy_reports_what_it_wrote, "test_shim_strlcpy_reports_what_it_wrote", 73);
 
   return UNITY_END();
 }

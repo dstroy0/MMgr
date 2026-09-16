@@ -22,7 +22,8 @@ endforeach()
 
 idf_component_register(
     SRCS "main.c" ${MMGR_SRCS}
-    INCLUDE_DIRS "." "${MMGR_ROOT}/src" "${CMAKE_CURRENT_LIST_DIR}/../../common"
+    INCLUDE_DIRS "." "${MMGR_ROOT}/src" "${MMGR_ROOT}/include" "${MMGR_ROOT}/deps/embedded_types/include"
+                 "${CMAKE_CURRENT_LIST_DIR}/../../common"
 )
 
 # Link-time optimization, because without it this bench measures the wrong thing. The SWAR

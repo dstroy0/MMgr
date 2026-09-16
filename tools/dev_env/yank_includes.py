@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Move a header's #include lines down into the files that include it.
 
 A header that includes another header hands every consumer a dependency it never asked for and hides
@@ -20,8 +20,19 @@ What it refuses, and why each refusal is right:
   * an include the consumer already has - nothing to add; the header's copy is still removed.
   * a header no .c reaches - removing its includes would break it with nothing to catch it, so it is
     reported and left alone unless --orphan is given.
-  * the entry-point headers (mmgr_config.h and mmgr_types.h) - every file's first include by
-    design. Named in KEEP below.
+  * the entry-point header (mmgr.h) - every file's first include by design. Named in KEEP below.
+
+WHY --go REFUSES TODAY
+
+Yanking an include does not remove the dependency, it moves it: the manifest records what each
+consumer now owes, and something has to turn that into a forced include on that one source file.
+The note this tool writes into the manifest names tools/ci_tooling/build/gen_cmake.py as the thing
+that does it. That file does not exist, and neither does tools/ci_tooling.
+
+So nothing consumes the manifest. A --go run would strip includes out of the headers, write a
+record nobody reads, and leave a tree that does not compile. The dry run is still worth having --
+it reports what would move and what each consumer would owe -- so the report stays and only the
+write refuses.
 """
 
 import argparse
@@ -34,19 +45,30 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 MANIFEST = os.path.join(ROOT, "test", "yanked_includes.json")
 
-# The assembly chain: these exist to be included by everything, so their includes are the point.
+# What has to read the manifest for a yank to be finished: it turns each recorded entry into a
+# forced include on the one source file that owes it. Checked at run time rather than assumed,
+# because --go without it strips headers and records the debt somewhere nothing collects.
+CONSUMER = os.path.join(ROOT, "tools", "ci_tooling", "build", "gen_cmake.py")
+
+# The assembly chain: this exists to be included by everything, so its includes are the point.
+#
+# This named src/config/mmgr_config.h and src/config/mmgr_types.h, and neither path exists. The
+# width and decls vocabulary moved out to the embedded_types dependency under deps/, and what every
+# module header includes now is include/mmgr.h. A KEEP set naming absent files protects nothing.
 KEEP = {
-    "src/config/mmgr_config.h",
-    "src/config/mmgr_types.h",
+    "include/mmgr.h",
 }
 
-# Never yanked, whoever includes it. These carry the vocabulary a header DECLARES in, and a
-# declaration needs its typedefs before it is parsed: an entry taking mmgr_u32 cannot wait for a
+# Never yanked, whoever includes it. It carries the vocabulary a header DECLARES in, and a
+# declaration needs its typedefs before it is parsed: an entry taking embed_u32 cannot wait for a
 # consumer's include, because that arrives after the header has already been read. A header that
-# needs these needs them in the header.
+# needs this needs it in the header.
+#
+# Keyed on the spelling a consumer writes, which is `#include "mmgr.h"` in every module header in
+# the tree. The two names here before, mmgr_config.h and mmgr_types.h, are written nowhere, so the
+# guard was off and a run over src/ would have pulled the one include it exists to protect.
 NEVER_YANK = {
-    "mmgr_config.h",
-    "mmgr_types.h",
+    "mmgr.h",
 }
 
 INC = re.compile(r'^\s*#\s*include\s+(?P<what>"[^"]+"|<[^>]+>)(?P<rest>.*)$')
@@ -214,6 +236,18 @@ def main():
     ap.add_argument("--conditional", action="store_true", help="also take includes inside #if / #ifdef")
     ap.add_argument("--orphan", action="store_true", help="yank even when no file includes the header")
     a = ap.parse_args()
+
+    # Fail closed. The manifest is only half the move; without the thing that reads it, a write
+    # leaves headers stripped of includes their declarations need and a build that does not link.
+    if a.go and not os.path.isfile(CONSUMER):
+        print(
+            "yank_includes: refusing --go. The manifest this writes is turned into a forced include\n"
+            "  by %s, which is not in this tree, so the\n"
+            "  dependency an include carries would be recorded and then dropped.\n"
+            "  The dry run still reports what would move." % rel(CONSUMER),
+            file=sys.stderr,
+        )
+        return 2
 
     targets = []
     for p in a.paths:

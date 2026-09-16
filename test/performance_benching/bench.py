@@ -33,10 +33,24 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "test"))
 
+# Set before the first local import, because the interpreter writes a module's bytecode next to the
+# module. Without it, importing bench_table leaves a __pycache__ in the bench tree.
+sys.dont_write_bytecode = True
+
 from bench_table import lock_acquire, lock_release, read_table, splice_after, splice_replace, write_verified
+
+# The harness owns where anything a build produces is written. Imported for that one answer rather
+# than recomputing the container here, which would be a second place the path lives and would drift
+# from the first the moment either moved.
+import harness
 
 TABLE = os.path.join(HERE, "bench_matrix.json")
 COMMON = os.path.join(HERE, "common")
+
+# Host bench output: executables, object archives, the link probes the src closure runs. Under the
+# build container, never beside the source. This was ROOT/.pio/bench, which put build output in the
+# checkout under a name that reads like a tool's private directory and is nobody's to clean.
+BENCH_OUT = os.path.join(harness.BUILD_CONTAINER, "bench-host")
 
 # The per-project ini is one template: only the relative depth and the -D flags vary.
 INI_HEAD = "; On-device CCOUNT microbenchmark. See performance_benching/README.md."
@@ -238,13 +252,17 @@ HOST_ARMS = []
 
 
 def host_flags(entry):
-    # src/ is the whole include root: MMgr ships its headers beside their sources, so there is no
-    # separate include/ tree. test/support carries the libc oracle a host bench compares against.
+    # Three include roots. src/ holds every module header beside its own source, include/ holds the
+    # one public header each of those includes, and deps/embedded_types/include holds the widths and
+    # entry macros that header is built on. test/support carries the libc oracle a host bench
+    # compares against.
     # Nothing is defined here - every MMgr knob has an #ifndef default, and a bench that wants one
     # states it in its own matrix entry.
     incs = [
         "-Itest/support",
         "-Isrc",
+        "-Iinclude",
+        "-Ideps/embedded_types/include",
         "-I.",
         "-I" + os.path.relpath(COMMON, ROOT).replace("\\", "/"),
     ]
@@ -255,7 +273,7 @@ def host_flags(entry):
 
 # The umbrella header. It names every module in the library, so what it reaches says nothing about
 # what a bench measures.
-UMBRELLA = "src/mmgr.h"
+UMBRELLA = "include/mmgr.h"
 
 
 def _mm_headers(cc, entry, main_c):
@@ -455,7 +473,7 @@ def cmd_deps(a):
                 print(failed)
             continue
         incs, defs = host_flags(e)
-        out_dir = os.path.join(ROOT, ".pio", "bench")
+        out_dir = BENCH_OUT
         os.makedirs(out_dir, exist_ok=True)
         index = symbol_index()
         n_headers = len(srcs)
@@ -532,7 +550,7 @@ def cmd_run(a):
         return 1
     envs = load()
     names = a.benches or list(envs)
-    outdir = os.path.join(ROOT, ".pio", "bench")
+    outdir = BENCH_OUT
     os.makedirs(outdir, exist_ok=True)
     failed = []
     for i, name in enumerate(names, 1):
@@ -605,7 +623,12 @@ def cmd_flash(a):
         cmd += ["-t", "upload"]
     if a.port:
         cmd += ["--upload-port", a.port]
-    return subprocess.run(cmd, cwd=ROOT).returncode
+    # PlatformIO builds into .pio inside the project it was pointed at, so this wrote a build tree
+    # into the bench directory beside the source. PLATFORMIO_BUILD_DIR is how that is redirected,
+    # and it goes under the container with everything else a build makes.
+    env = os.environ.copy()
+    env["PLATFORMIO_BUILD_DIR"] = os.path.join(BENCH_OUT, "pio", a.bench)
+    return subprocess.run(cmd, cwd=ROOT, env=env).returncode
 
 
 # ---------------------------------------------------------------------------
@@ -716,4 +739,15 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # A module, not an entry point. test/harness.py is the only thing that starts a build, so that
+    # every build's flags and every build's directory are decided in one place. Run directly this
+    # would configure and write wherever it was invoked from, which is how a build tree ends up
+    # beside the source and how two builds come to share objects.
+    sys.exit(
+        "bench.py is a module and does not run on its own.\n"
+        "  Use the harness, which owns the build directories and the environment:\n"
+        "    python test/harness.py device list\n"
+        "    python test/harness.py device build <bench> --target esp32s3\n"
+        "    python test/harness.py device flash <bench> --target esp32s3 --port COM3\n"
+        "  The matrix commands are reached the same way, through the harness."
+    )

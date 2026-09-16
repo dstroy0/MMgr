@@ -18,9 +18,8 @@ extern void test_rounding_a_fraction_of_nothing(void);
 extern void test_to_u64_of_an_empty_fraction_is_zero(void);
 extern void test_to_u64_of_a_number_wider_than_the_word_saturates(void);
 extern void test_to_u64_with_the_point_on_the_word_boundary(void);
-extern void test_to_u64_on_the_boundary_rounds_a_tie_to_even(void);
-extern void test_to_u64_on_the_boundary_sees_what_is_under_the_round_bit(void);
-extern void test_to_u64_on_the_boundary_takes_the_parity_of_the_whole_number(void);
+extern void test_to_u64_on_the_boundary_rounds_a_tie_up(void);
+extern void test_to_u64_on_the_boundary_ignores_what_is_under_the_round_bit(void);
 
 
 /*=======Mock Management=====*/
@@ -82,20 +81,19 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/transformo/test_transformo_internals\\test_transformo_internals.c");
-  run_test(test_the_middle_column_carries_into_the_top, "test_the_middle_column_carries_into_the_top", 22);
-  run_test(test_the_multiply_agrees_with_halves_done_by_hand, "test_the_multiply_agrees_with_halves_done_by_hand", 45);
-  run_test(test_normalizing_a_fraction_whose_high_word_is_empty, "test_normalizing_a_fraction_whose_high_word_is_empty", 81);
-  run_test(test_normalizing_nothing_leaves_it_alone, "test_normalizing_nothing_leaves_it_alone", 97);
-  run_test(test_an_exact_tie_goes_to_even, "test_an_exact_tie_goes_to_even", 125);
-  run_test(test_a_tie_with_anything_under_it_goes_up, "test_a_tie_with_anything_under_it_goes_up", 137);
-  run_test(test_below_the_tie_goes_down, "test_below_the_tie_goes_down", 145);
-  run_test(test_rounding_a_fraction_of_nothing, "test_rounding_a_fraction_of_nothing", 153);
-  run_test(test_to_u64_of_an_empty_fraction_is_zero, "test_to_u64_of_an_empty_fraction_is_zero", 181);
-  run_test(test_to_u64_of_a_number_wider_than_the_word_saturates, "test_to_u64_of_a_number_wider_than_the_word_saturates", 186);
-  run_test(test_to_u64_with_the_point_on_the_word_boundary, "test_to_u64_with_the_point_on_the_word_boundary", 191);
-  run_test(test_to_u64_on_the_boundary_rounds_a_tie_to_even, "test_to_u64_on_the_boundary_rounds_a_tie_to_even", 196);
-  run_test(test_to_u64_on_the_boundary_sees_what_is_under_the_round_bit, "test_to_u64_on_the_boundary_sees_what_is_under_the_round_bit", 202);
-  run_test(test_to_u64_on_the_boundary_takes_the_parity_of_the_whole_number, "test_to_u64_on_the_boundary_takes_the_parity_of_the_whole_number", 207);
+  run_test(test_the_middle_column_carries_into_the_top, "test_the_middle_column_carries_into_the_top", 21);
+  run_test(test_the_multiply_agrees_with_halves_done_by_hand, "test_the_multiply_agrees_with_halves_done_by_hand", 44);
+  run_test(test_normalizing_a_fraction_whose_high_word_is_empty, "test_normalizing_a_fraction_whose_high_word_is_empty", 79);
+  run_test(test_normalizing_nothing_leaves_it_alone, "test_normalizing_nothing_leaves_it_alone", 95);
+  run_test(test_an_exact_tie_goes_to_even, "test_an_exact_tie_goes_to_even", 122);
+  run_test(test_a_tie_with_anything_under_it_goes_up, "test_a_tie_with_anything_under_it_goes_up", 134);
+  run_test(test_below_the_tie_goes_down, "test_below_the_tie_goes_down", 142);
+  run_test(test_rounding_a_fraction_of_nothing, "test_rounding_a_fraction_of_nothing", 150);
+  run_test(test_to_u64_of_an_empty_fraction_is_zero, "test_to_u64_of_an_empty_fraction_is_zero", 177);
+  run_test(test_to_u64_of_a_number_wider_than_the_word_saturates, "test_to_u64_of_a_number_wider_than_the_word_saturates", 182);
+  run_test(test_to_u64_with_the_point_on_the_word_boundary, "test_to_u64_with_the_point_on_the_word_boundary", 187);
+  run_test(test_to_u64_on_the_boundary_rounds_a_tie_up, "test_to_u64_on_the_boundary_rounds_a_tie_up", 192);
+  run_test(test_to_u64_on_the_boundary_ignores_what_is_under_the_round_bit, "test_to_u64_on_the_boundary_ignores_what_is_under_the_round_bit", 198);
 
   return UNITY_END();
 }

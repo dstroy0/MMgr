@@ -8,12 +8,12 @@ Anywhere you would call `memcpy`, `memmove`, `memcmp`, `memchr` or `memset` and 
 implementation and a bound you state at the call.
 
 ```c
-MMGR_CALL(memor.cpy, MemoriaCfg, .dst = dst, .src = src, .bytes = n);
-MMGR_CALL(memor.set, MemoriaCfg, .dst = p, .val = 0xFFu, .bytes = n);
+EMBED_CALL(memor.cpy, MemoriaCfg, .dst = dst, .src = src, .bytes = n);
+EMBED_CALL(memor.set, MemoriaCfg, .dst = p, .val = 0xFFu, .bytes = n);
 
-if (MMGR_CALL(memor.cmp, MemoriaCfg, .src = a, .other = b, .bytes = n) == 0) { }
+if (EMBED_CALL(memor.cmp, MemoriaCfg, .src = a, .other = b, .bytes = n) == 0) { }
 
-const void *hit = MMGR_CALL(memor.chr, MemoriaCfg, .src = p, .val = (uint8_t)'x', .bytes = n);
+const void *hit = EMBED_CALL(memor.chr, MemoriaCfg, .src = p, .val = (uint8_t)'x', .bytes = n);
 ```
 
 Both spellings exist: `mmgr_memor_cpy` is the same function. See @ref concept_ns_idiom.
@@ -48,16 +48,16 @@ is the point: there is no entry here that scans forward until it happens to find
 ## Worked example
 
 ```c
-const size_t n = MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = s, .cap = MMGR_STR_MAX);
+const size_t n = EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = s, .cap = MMGR_STR_MAX);
 
-if (MMGR_CALL(cellul.starts, CatenaFinitaCfg, .src = s, .other = "GET ", .cap = n,
-              .ci = MMGR_FALSE)) { }
+if (EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = s, .other = "GET ", .cap = n,
+              .ci = EMBED_FALSE)) { }
 
-const char *host = MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = hay, .cap = hay_len,
-                             .other = "Host:", .other_cap = 5u, .ci = MMGR_TRUE);
+const char *host = EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = hay, .cap = hay_len,
+                             .other = "Host:", .other_cap = 5u, .ci = EMBED_TRUE);
 
 const char *end = NULL;
-const mmgr_iword v = MMGR_CALL(cellul.to_long, TransfiguroCfg, .src = digits, .end = &end);
+const embed_iword v = EMBED_CALL(cellul.to_long, TransfiguroCfg, .src = digits, .end = &end);
 ```
 
 `.ci` is case-insensitivity, not a success flag.
@@ -69,7 +69,7 @@ const mmgr_iword v = MMGR_CALL(cellul.to_long, TransfiguroCfg, .src = digits, .e
 **The parse entries report where they stopped, not whether they succeeded.** `to_long` and the rest
 write the first byte they did not consume to `.end`. Equal to `.src` means nothing was parsed.
 
-**`to_long` and `to_ulong` return `mmgr_iword` and `mmgr_word`,** so they parse to the target's own
+**`to_long` and `to_ulong` return `embed_iword` and `embed_word`,** so they parse to the target's own
 word width. On a 16-bit build `to_ulong` saturates at 65535, not at 4294967295.
 
 **The cap is a cap, not a length.** `len` with `.cap = 64` returns at most 64 whether or not a
@@ -97,8 +97,8 @@ path; the chain compares raw bytes. See `MMGR_FIND_CHAIN_MAX` in @ref ref_config
 Character classes as sixteen-byte bitmaps.
 
 ```c
-if (MMGR_CALL(ascii.in, AsciiCfg, .kind = MMGR_ASCII_NUM, .byte = c)) { }
-if (MMGR_CALL(ascii.in, AsciiCfg, .kind = MMGR_ASCII_HEX, .byte = c)) { }
+if (EMBED_CALL(ascii.in, AsciiCfg, .kind = MMGR_ASCII_NUM, .byte = c)) { }
+if (EMBED_CALL(ascii.in, AsciiCfg, .kind = MMGR_ASCII_HEX, .byte = c)) { }
 ```
 
 Available: `MMGR_ASCII_NUM`, `MMGR_ASCII_ALPHA`, `MMGR_ASCII_ALNUM`, `MMGR_ASCII_UPPER`,
@@ -128,15 +128,17 @@ The table says how common each byte is, so the search can pick.
 
 ## Profiles
 
-Mutually exclusive, generic by default:
+One CMake option taking a value, not a set of defines — `-DMMGR_ANCORAE_FORMA=english`. It selects
+the single translation unit that carries the table
+(`src/impensa_ancorae_acus/CMakeLists.txt:7-15`), so the four not chosen are not in the image:
 
-| define                        | tuned for             |
-| ----------------------------- | --------------------- |
-| _(none)_                      | generic               |
-| `MMGR_ANCORAE_FORMA_ENGLISH` | English prose         |
-| `MMGR_ANCORAE_FORMA_URI`     | URIs and paths        |
-| `MMGR_ANCORAE_FORMA_INET`    | network protocol text |
-| `MMGR_ANCORAE_FORMA_ROUTE`   | routing tables        |
+| value     | tuned for             |
+| --------- | --------------------- |
+| `generic` | generic, the default  |
+| `english` | English prose         |
+| `uri`     | URIs and paths        |
+| `inet`    | network protocol text |
+| `route`   | routing tables        |
 
 **Picking the wrong one costs speed and never correctness.** The search still finds what is there; it
 just tests more candidates on the way. So this is a tuning knob, not a configuration you have to get

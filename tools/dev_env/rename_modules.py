@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Move the modules from the names they arrived under onto this library's Latin category names.
 
 Driven entirely by tools/dev_env/names.tsv. Nothing about the naming lives in this file, so a change
@@ -8,8 +8,9 @@ of mind is an edit to the table rather than to the code.
 
     rename_modules.py symbols   mmgr_<infix>_<tail>, and the verbs inside the tail
     rename_modules.py headers   guards and include paths
+    rename_modules.py types     the data typedefs, the Ns type, and the Ns instance
     rename_modules.py files     git mv of the directories and filenames
-    rename_modules.py all       all three, in that order
+    rename_modules.py all       all four, in that order
 
 Dry run by default; --go writes.
 

@@ -12,7 +12,7 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-A clean run is 165 CTest targets. `test_memoriam_praetereo` and `test_confinium_externum` are not
+A clean run is 160 CTest targets. `test_memoriam_praetereo` and `test_memoria_externa` are not
 among them unless `MMGR_ENABLE_DMA` or `MMGR_ENABLE_EXTRAM` is on. They are skipped loudly, through
 `MMGR_SUITES_SKIPPED` and a CMake status message, because a silently dropped suite leaves a passing
 run that tested less than it looks like.
@@ -45,8 +45,8 @@ column of `tools/dev_env/names.tsv`, and `docs/groups.dox` already declares it -
 `@defgroup` to a header.
 
 ```c
-/* memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
- * SPDX-License-Identifier: AGPL-3.0-or-later
+/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
  */
 /**
  * @file spatium.h
@@ -71,9 +71,9 @@ listing them as parameters of a one-argument function reads as a lie:
  */
 typedef struct
 {
-    void *const buf;
+    uint8_t *const buf;
     const size_t cap;
-} SpatCfg;
+} SpatiumCfg;
 
 /**
  * @brief Builds a span over `buf`.
@@ -84,7 +84,7 @@ typedef struct
  * @slot{0}
  * @warning Does not check that `buf` is non-NULL.
  */
-mmgr_spat mmgr_spat_init(const SpatCfg *c);
+mmgr_span mmgr_spat_from(const SpatiumCfg *c);
 ```
 
 `@slot{n}` is the entry's position in the dispatch table, `@ns{name}` names the table, and

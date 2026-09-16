@@ -11,7 +11,7 @@ It is for the case where you have existing code you do not want to rewrite, on a
 would rather not link libc's string functions at all.
 
 ```c
-#include "config/mmgr_string_shim.h"   /* FIRST. Before anything that might include <string.h> */
+#include "mmgr_string_shim.h"   /* FIRST. Before anything that might include <string.h> */
 #include "some_existing_code.h"
 ```
 
@@ -31,15 +31,15 @@ them and does nothing. Put the include first and keep it first.
 
 ## What is mapped
 
-| you write                                         | you get                                                    |
-| ------------------------------------------------- | ---------------------------------------------------------- |
-| `memcpy`, `memmove`, `memcmp`, `memchr`, `memset` | `memor.*` — SWAR, a word at a time                         |
-| `strlen`, `strnlen`                               | `cellul.len` — bounded by `MMGR_STR_MAX`                   |
-| `strcmp`, `strcasecmp`                            | `cellul.eq`                                                |
-| `strncmp`, `strncasecmp`                          | `cellul.diff`                                              |
-| `strstr`, `strcasestr`                            | `cellul.find` — sieved on the rarest byte of the needle    |
-| `strchr`                                          | `cellul.chr`                                               |
-| `strlcpy`                                         | `cellul.copy` — always terminates                          |
+| you write                                         | you get                                                 |
+| ------------------------------------------------- | ------------------------------------------------------- |
+| `memcpy`, `memmove`, `memcmp`, `memchr`, `memset` | `memor.*` — SWAR, a word at a time                      |
+| `strlen`, `strnlen`                               | `cellul.len` — bounded by `MMGR_STR_MAX`                |
+| `strcmp`, `strcasecmp`                            | `cellul.eq`                                             |
+| `strncmp`, `strncasecmp`                          | `cellul.diff`                                           |
+| `strstr`, `strcasestr`                            | `cellul.find` — sieved on the rarest byte of the needle |
+| `strchr`                                          | `cellul.chr`                                            |
+| `strlcpy`                                         | `cellul.copy` — always terminates                       |
 
 Every `str*` one takes a read cap, explicitly or through `MMGR_STR_MAX`. That is the difference from
 libc: there is no entry here that will run forward until it happens to find a zero.
@@ -82,21 +82,21 @@ bounded by `MMGR_STR_MAX`. It is the answer to "how far will this read before gi
 terminator", and it exists because an unterminated string is a real thing that happens to data
 arriving from outside.
 
-It defaults to `MMGR_CARCER_MAX`. Set it to the largest string your program can legitimately hold:
-too small silently truncates work you meant to do, too large means a runaway read scans further
-before stopping. It is a cap, not a buffer size — nothing is allocated from it.
+Set it to the largest string your program can legitimately hold: too small silently truncates work
+you meant to do, too large means a runaway read scans further before stopping. It is a cap, not a
+buffer size — nothing is allocated from it, and no pool is sized by it.
 
 ## When not to use it
 
 Do not reach for the shim just to get the SWAR implementations. Call them directly:
 
 ```c
-MMGR_CALL(memor.cpy, MemoriaCfg, .dst = dst, .src = src, .bytes = n);
+EMBED_CALL(memor.cpy, MemoriaCfg, .dst = dst, .src = src, .bytes = n);
 
-const char *const hit = MMGR_CALL(cellul.find, CatenaFinitaCfg,
+const char *const hit = EMBED_CALL(cellul.find, CatenaFinitaCfg,
                                   .src = hay,    .cap = hay_cap,
                                   .other = needle, .other_cap = needle_cap,
-                                  .ci = MMGR_FALSE);
+                                  .ci = EMBED_FALSE);
 ```
 
 Direct calls name their arguments, carry their caps explicitly, keep libc's semantics out of the

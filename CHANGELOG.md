@@ -16,7 +16,7 @@ messages, not this file.
 
 ### Changed
 
-- Every source banner reads `memmanager`. Sixteen headers still carried the banner of the project
+- Every source banner reads `MMgr`. Sixteen headers still carried the banner of the project
   they were derived from.
 - Module naming vocabulary is now uniform: the region type is a confinium everywhere, including in
   the package metadata and the developer tooling.

@@ -10,5 +10,3 @@ void mmgr_test_set_context_id(uintptr_t id)
 {
     s_context = id;
 }
-
-

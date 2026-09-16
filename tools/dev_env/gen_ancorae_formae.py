@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Generate the anchor cost profiles.
 
 Cost is "how common", so the picker takes the minimum and a byte that cannot occur in the profile's
@@ -16,10 +16,31 @@ Sources:
   route     RFC 3986 path-abempty plus the template syntax routers actually use.
   generic   no grammar assumed, only the shape of byte data: NUL never, high bytes rare, ASCII
             printable common.
+
+WHAT EACH PROFILE CARRIES BESIDES ITS FREQUENCIES
+
+The generated file is ordinary documented source, so every profile also carries the prose that
+describes ITS table: the @brief, the notes about which bytes were pinned, and the range the entry
+point returns. Those are observations about one table and cannot be derived from another, so they
+sit beside the frequency function rather than in the template.
+
+The two numbers in the @return line ARE derived, from the table that was just computed, so that
+line cannot come to disagree with the data above it.
+
+FORMATTING
+
+The tables are laid out by clang-format, which aligns each column to the widest entry in it. That
+alignment is not reproducible by hand in any way worth maintaining, so the generator emits a plain
+sixteen-per-row table and then runs the formatter over it. Without that step the output differs
+from what is on disk until something else has run, and `harness.py generated` reads that as a dirty
+tree - so a missing clang-format is a refusal rather than a warning.
 """
 
 import math
 import pathlib
+import shutil
+import subprocess
+import sys
 
 # HERE is mmgr/tools/dev_env, LIB is mmgr. Same convention as readclean.py, so the generator runs
 # from anywhere.
@@ -203,111 +224,174 @@ def generic():
     return f
 
 
+# name, the @brief for the file, the notes on the table, the @return phrasing, the frequency source.
+#
+# `notes` are observations about the table this profile produces - which bytes were pinned to the
+# ceiling, where the floor sits, which bytes are unexpectedly above it. They are per profile because
+# they are true of one table and false of the next.
+#
+# `returns` takes the lowest and highest entry of the computed table, so the range it states is read
+# off the data rather than remembered.
 PROFILES = [
     (
         "generic",
-        "MMGR_IMPENSA_ANCORAE_ACUS_GENERIC",
+        "Byte cost table with no floor at 1, where every byte value carries a cost.",
+        [
+            "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
+            "255 marks the NUL and the space, so neither is ever chosen as a sieve offset.",
+            "Bytes 128 through 255 all carry 107, so no high byte is preferred over another.",
+            "The entries carry no U suffix. Each is within 0 to 255, so the initializer stores it as a\n"
+            " *       uint8_t unchanged.",
+        ],
+        "The cost, %d through %d in this table.",
         generic,
-        "No grammar assumed. Printable ASCII is common, control bytes and the high half are not.\n"
-        " * This is the default and it is a weak prior on purpose - it should never be badly wrong.",
     ),
     (
         "english",
-        "MMGR_IMPENSA_ANCORAE_ACUS_ENGLISH",
+        "Byte cost table weighted for English text.",
+        [
+            "Lower means rarer in this corpus, and cellul_pick_rows keeps the lowest cost it finds.",
+            "The floor is 1. The ceiling 255 sits on the NUL and the space, so neither is ever chosen as a\n"
+            " *       sieve offset.",
+        ],
+        "The cost, %d through %d.",
         english,
-        "English prose. Monogram frequencies from 4.5e9 characters of Wortschatz text\n"
-        " * (practicalcryptography.com); space taken at twice E per Wikipedia's letter frequency page.",
     ),
     (
         "uri",
-        "MMGR_IMPENSA_ANCORAE_ACUS_URI",
+        "Byte cost table scoring letters, digits and URI punctuation.",
+        [
+            "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
+            "255 marks the NUL and the slash, so neither is ever chosen as a sieve offset.",
+            "The space sits at 1 here, where the two text tables give it 255.",
+            "Every initializer is a plain int constant from 1 to 255, so narrowing to the uint8_t element"
+            " keeps its value.",
+        ],
+        "The cost, %d through %d.",
         uri,
-        "URIs and URLs. Character classes from RFC 3986, weighted by where they occur: the path\n"
-        " * separator dominates, then the host dots, then the query delimiters.",
     ),
     (
         "inet",
-        "MMGR_IMPENSA_ANCORAE_ACUS_INET",
+        "Byte cost table scoring only the characters an address is built from.",
+        [
+            "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
+            "255 marks the NUL and the colon, so neither is ever chosen as a sieve offset.",
+            "Also above 1: the digits, 'a' to 'f', 'A' to 'F', and 37 '%', 46 '.', 47 '/', 91 '[', 93 ']'.",
+        ],
+        "The cost, %d through %d.",
         inet,
-        "IPv6 text form and dotted quad, RFC 4291. The alphabet is 0-9 a-f A-F : . / % [ ] and\n"
-        " * nothing else, so any needle byte outside it is the most selective anchor there is.",
     ),
     (
         "route",
-        "MMGR_IMPENSA_ANCORAE_ACUS_ROUTE",
+        "Byte cost table scoring letters, digits and path punctuation.",
+        [
+            "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
+            "255 marks the NUL and the slash, so neither is ever chosen as a sieve offset.",
+            "The braces at 123 and 125 carry a cost, where most punctuation sits at 1.",
+        ],
+        "The cost, %d through %d.",
         route,
-        "HTTP route patterns. RFC 3986 path-abempty plus the {param} and :param template syntax\n"
-        " * routers use. The slash is over half of all structural bytes.",
     ),
 ]
 
-# One profile is compiled in and the build picks which .c to compile, so the table is file local
-# to whichever one that is. It was a macro in a per-profile header once; a macro cannot be file
-# local, and the five of them put five names into the preprocessor namespace of everything that
-# included one, to hand a single translation unit a constant it alone reads.
-SRC = """// memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-// SPDX-License-Identifier: AGPL-3.0-or-later
-//
-// Generated by tools/dev_env/gen_ancorae_formae.py. Editing this by hand is undone the next time
-// anyone runs the generator, and `harness.py generated` will say so before that happens.
+SRC = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+ *
+ * Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
+ * negotiated commercial licensing contract or an educator's license issued to you personally.
+ */
+/**
+ * @file impensa_ancorae_acus_%(name)s.c
+ * @brief %(brief)s
+ * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
+ * @date 2026-08-29
+ *
+ * @note One of five files defining mmgr_ancorae_impensa. A build links exactly one of them.
+ */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
 /**
- * @file impensa_ancorae_acus_{name}.c
+ * @brief Cost of each byte value, indexed by the byte itself.
  *
- * {doc}
- *
- * Cost is how common a byte is, so the picker takes the minimum. A byte that cannot occur under
- * this profile scores best, because a needle containing one is filtered on the first row.
- *
- * Generated, not hand tuned. See tools/dev_env/gen_ancorae_formae.py.
- *
- * The table is file local. This translation unit is the only thing that can name it, and the build
- * compiles this file only when the {name} profile is the one selected.
- *
- * No context. The entry is an array subscript and its argument is the index.
+%(notes)s
  */
-
-/** @brief Cost per byte value. Lower is rarer, so lower is a better anchor. NUL is pinned worst. */
-static const uint8_t s_impensa[256] = {{
-{rows}
-}};
+static const uint8_t s_impensa[256] = {
+%(rows)s
+};
 
 /**
- * @brief What @p b costs as an anchor.
- * @param b The byte.
- * @return Its cost. Lower is rarer, so lower is a better anchor. NUL is pinned worst.
+ * @brief Argument type built by EMBED_CALL in mmgr_ancorae_impensa.
  *
- * No context. One byte in, one answer out - a struct to carry it would be a store and a load to
- * reach what was already in a register, and the entry is an array subscript whose argument is the
- * index.
+ * @note Mirrors AncoraeCfg without its const qualifier.
  */
-MMGR_INLINE uint8_t ancorae_impensa(uint8_t b)
-{{
-    return s_impensa[b];
-}}
+typedef struct
+{
+    uint8_t byte; /**< Byte value to look up. */
+} AncoraeCtx;
 
-/* The namespace is a table of function pointers with the caller's argument lists in their types,
-   so this is what it points at. It hands the argument to the body above.
+/**
+ * @brief Returns the table entry for args->byte.
+ *
+ * @param[in] args Byte to look up [BORROWS].
+ * @return         %(returns)s
+ * @note The table holds 256 entries, so every uint8_t value indexes it in range.
+ */
+EMBED_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
+{
+    return s_impensa[args->byte];
+}
 
-   It is nameable rather than file local because a static const table in the header has to be able
-   to point at it, and a static const table is what gcc devirtualizes. Through an extern one every
-   call from another translation unit is a load of the table, a load of the entry, and an indirect
-   call it cannot see through. */
-
-uint8_t mmgr_ancorae_impensa(uint8_t b)
-{{
-    return ancorae_impensa(b);
-}}
+/**
+ * @brief Copies args->byte into an AncoraeCtx and returns the table entry.
+ *
+ * @note Documented at the declaration in impensa_ancorae_acus.h.
+ */
+uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args)
+{
+    return EMBED_CALL(ancorae_impensa, AncoraeCtx, .byte = args->byte);
+}
 """
 
-for name, macro, fn, doc in PROFILES:
-    cost = scale(fn())
-    rows = "\n".join(
-        "    " + ", ".join(f"{c:3d}" for c in cost[i : i + 16]) + ("," if i < 240 else "")
-        for i in range(0, 256, 16)
+
+def formatter():
+    """The clang-format to run over the emitted tables, or a refusal naming why one is needed."""
+    found = shutil.which("clang-format")
+    if found:
+        return found
+    raise SystemExit(
+        "gen_ancorae_formae: clang-format is not on PATH. The cost tables are laid out by the "
+        "formatter, so without it this writes files that differ from the ones on disk and "
+        "`harness.py generated` reports a dirty tree. Install it or put it on PATH."
     )
-    p = OUT / f"impensa_ancorae_acus_{name}.c"
-    p.write_text(SRC.format(name=name, doc=doc, rows=rows), encoding="utf-8")
-    sample = {c: cost[ord(c)] for c in " ./:eqzx"}
-    print(f"{name:8} {p.name:26} {sample}  hi=0x{cost[0xE9]:02x}({cost[0xE9]})")
+
+
+def main():
+    clang = formatter()
+    written = []
+    for name, brief, notes, returns, source in PROFILES:
+        cost = scale(source())
+        rows = "\n".join(
+            "    " + ", ".join("%d" % c for c in cost[i : i + 16]) + ("," if i < 240 else "") for i in range(0, 256, 16)
+        )
+        text = SRC % {
+            "name": name,
+            "brief": brief,
+            "notes": "\n".join(" * @note %s" % one for one in notes),
+            "rows": rows,
+            "returns": returns % (min(cost), max(cost)),
+        }
+        path = OUT / ("impensa_ancorae_acus_%s.c" % name)
+        path.write_text(text, encoding="utf-8", newline="\n")
+        written.append(path)
+
+    # One invocation for all five: the formatter reads .clang-format from the tree above them.
+    subprocess.run([clang, "-i"] + [str(one) for one in written], check=True)
+
+    for path in written:
+        cost = [line for line in path.read_text(encoding="utf-8").splitlines()]
+        print("%-8s %-34s %d lines" % (path.stem.rsplit("_", 1)[-1], path.name, len(cost)))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

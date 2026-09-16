@@ -80,11 +80,11 @@ int main(void)
   run_test(test_little_endian_puts_the_low_byte_first, "test_little_endian_puts_the_low_byte_first", 24);
   run_test(test_big_endian_puts_the_high_byte_first, "test_big_endian_puts_the_high_byte_first", 39);
   run_test(test_every_width_round_trips_little_endian, "test_every_width_round_trips_little_endian", 54);
-  run_test(test_every_width_round_trips_big_endian, "test_every_width_round_trips_big_endian", 81);
-  run_test(test_the_two_orders_are_byte_reverses_of_each_other, "test_the_two_orders_are_byte_reverses_of_each_other", 108);
-  run_test(test_a_read_of_the_other_order_is_the_byte_swap, "test_a_read_of_the_other_order_is_the_byte_swap", 121);
-  run_test(test_writes_touch_exactly_their_width, "test_writes_touch_exactly_their_width", 133);
-  run_test(test_reads_are_unaffected_by_the_bytes_after_them, "test_reads_are_unaffected_by_the_bytes_after_them", 153);
+  run_test(test_every_width_round_trips_big_endian, "test_every_width_round_trips_big_endian", 83);
+  run_test(test_the_two_orders_are_byte_reverses_of_each_other, "test_the_two_orders_are_byte_reverses_of_each_other", 112);
+  run_test(test_a_read_of_the_other_order_is_the_byte_swap, "test_a_read_of_the_other_order_is_the_byte_swap", 125);
+  run_test(test_writes_touch_exactly_their_width, "test_writes_touch_exactly_their_width", 137);
+  run_test(test_reads_are_unaffected_by_the_bytes_after_them, "test_reads_are_unaffected_by_the_bytes_after_them", 157);
 
   return UNITY_END();
 }

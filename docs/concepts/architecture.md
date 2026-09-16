@@ -10,7 +10,7 @@ for memory and never gives any back, because it was never holding any.
 ```
     caller's buffer
     ┌──────────────────────────────────────────────────────────────┐
-    │                       carceribus region                      │
+    │                     locus carcerum region                    │
     │  persist ──────────►                    ◄────────── interim  │
     │  ┌────────┬────────┐                    ┌────────┬────────┐  │
     │  │ tenant │ tenant │      free          │  mark  │  mark  │  │
@@ -25,83 +25,88 @@ for memory and never gives any back, because it was never holding any.
 Five things, in the order a byte meets them. The first four are one path:
 
 ```
-    carceribus [init] ──► carcer.persist_capio ──► spatium ──► operation
+    ParsMemoriae* [declaration] ──► LocusCarcerum [declaration]
+                                          │
+                                          ▼
+                        prison.work.persistent_buf_alloc ──► spatium ──► operation
 ```
 
-A region is carved at compile time; a pool takes a tenancy out of it and hands back its start; a
-span bounds that tenancy; and the text, scan and copy calls work against the span. Rings are the
-fifth, and sit alongside that line rather than on it.
+A pool is declared at compile time; a cellblock is dressed over it; the cellblock hands out a cell
+and returns its first byte; a span bounds that cell; and the text, scan and copy calls work against
+the span. Rings are the fifth, and sit alongside that line instead of on it.
 
-## 1. The region and its pools
+## 1. The pools and the cellblocks over them
 
-`mmgr_carcer_init` is a declaration. It emits the storage, a @ref CarcerCtx per pool, and static
-asserts that the region has an address and an extent. From then on a pool hands out storage from
-two ends of the same buffer:
+`ParsMemoriaeInternae` and `ParsMemoriaeExternum` declare the storage and its alignment.
+`LocusCarcerum` is a declaration too, not a call: it emits each cellblock's state and the entries
+bound to it, and nothing runs at startup. From then on a cellblock hands out storage from two ends of
+its pool's bytes:
 
 - **persist** grows up from the base. It is for things that live as long as the region does.
 - **interim** grows down from the top. It is the working space for one operation.
 
-They grow toward each other, and neither take looks at the gap. `persist_capio` and `interim_capio`
-move the offset and hand back the address; there is no branch in either one and no value they can
-return that means no. `mmgr_carcer_octas_praesto` reports the gap still between them — "bytes at
-hand" — and reading it before a take is what keeps the two ends apart. It is not a release; it
-answers _how much is left_.
+They grow toward each other out of one gap, and both allocations test it. `carcer_grow` compares the
+header plus the payload against the gap and returns `NULL` without moving a boundary when it will not
+fit (`src/locus_carcerum/locus_carcerum.c:386-406`), so both `persistent_buf_alloc` and
+`temporary_buf_alloc` can answer no and every call site has to test the return. `buf_available`
+reports the gap still between them. It is not a release; it answers _how much is left_.
 
-Nothing in a pool is ever individually freed. `persist_reddo` exists, but it takes a byte count, not
-a pointer, and subtracts it from `persist_end`. It unwinds the bottom end by however much you name
-and knows nothing about which take those bytes came from. That is the trade the whole library is
-built on: giving up free-anything-anytime is what makes the footprint decidable.
+`persistent_buf_release` takes the cell itself — `void (*persistent_buf_release)(void *prisoner)`
+(`src/locus_carcerum/locus_carcerum.h:117`) — because the block's own header carries its size, so
+the release does not have to be told. A block freed mid-chain stays in the chain until a release
+reaches the boundary, so the bottom end does not recover on every free. That is the trade the whole
+library is built on: giving up free-anything-anytime is what makes the footprint decidable.
 
 ## 2. Interim is released by mark, not by pointer
 
 Interim is a stack.
 
 ```c
-const size_t mark = MMGR_CALL(carcer.interim_mark, CarcerCfg, .pool = pool);
-uint8_t *work = MMGR_CALL(carcer.interim_capio, CarcerCfg, .pool = pool, .size = 512u);
+const size_t mark = prison.work.temporary_buf_mark();
+uint8_t *buf = prison.work.temporary_buf_alloc(512);
 /* ... use it ... */
-MMGR_CALL(carcer.interim_reset, CarcerCfg, .pool = pool);
+prison.work.temporary_buf_reset();
 ```
 
-`interim_mark` reports the current top. `interim_reset` assigns the top the pool's size, releasing
+`temporary_buf_mark` reports the current top. `temporary_buf_reset` assigns the top the pool's size, releasing
 every interim take at once.
 
-`interim_reddo` winds back to one mark rather than all of them, and takes that mark as `.mark`. The
+`temporary_buf_release` winds back to one mark rather than all of them, and takes that mark as `.mark`. The
 caller holds it, so savepoints nest: an inner mark and its rollback leave an outer one standing.
-`interim_reset` is the same step against the pool's own size.
+`temporary_buf_reset` is the same step against the pool's own size.
 
 Nothing is reallocated and nothing moves, so `work` still points at readable memory after a reset.
 It is dead all the same. A pointer handed out after a mark is invalid the moment that mark is
 released, and the library cannot tell you that you kept it. This is the sharpest edge in MMgr and it
 is worth reading twice.
 
-## 3. A tenancy is given back by one of two names
+## 3. A cell is given back by one call, and the pool decides what that costs
 
-A _tenancy_ is what a pool hands out. Every one is taken the same way, with `carcer.persist_capio`.
-Two calls give one back, and they differ in exactly one thing:
+A _cell_ is what a pool hands out. Every one is taken with the pool's own `persistent_buf_alloc` and
+given back with its own `persistent_buf_release`. There is one release, not two — what differs is
+which guard the pool was declared under:
 
-|                      | `persist_reddo`                | `secura_reddo`                     |
-| -------------------- | ------------------------------ | ---------------------------------- |
-| gives the bytes back | yes                            | yes                                |
-| clears them first    | no                             | yes                                |
-| costs                | a chain walk                   | a chain walk and a pass over the bytes |
+|                      | `MMGR_MINIMUM_SECURITY`    | `MMGR_MAXIMUM_SECURITY`                    |
+| -------------------- | -------------------------- | ------------------------------------------ |
+| gives the bytes back | yes                        | yes                                        |
+| clears them first    | no                         | yes (`locus_carcerum.h:140`)               |
+| costs                | a chain walk               | a chain walk and a pass over the bytes     |
 
-The guarantee is in the name rather than a flag, so a caller cannot ask for a wipe and not get one.
-The extent cleared is the block's own, read from its header, so a caller cannot under-wipe a tenancy
-by naming fewer bytes than it holds.
+The guarantee is in the **declaration** rather than in a flag or a second call, so a caller cannot
+ask for a wipe and not get one, and cannot reach for an unwiped release on a pool that promised one.
+The extent cleared is the block's own, read from its header, so a caller cannot under-wipe a cell by
+naming fewer bytes than it holds.
 
-Both exist rather than one that always clears because the clear costs a pass over the bytes, and most
-tenancies do not hold anything worth paying it for. Which storage is which is a matter of declaring
-two pools and handing secrets to the one you always release with `secura_reddo`. Their sizes are
-arguments to `mmgr_carcer_init`; `MMGR_PLAINTEXT_CONFIN_SIZE` and `MMGR_SECURE_CONFIN_SIZE` do not
-size them and nothing in carceribus reads those two. They state the largest confinium the build
-intends to declare, which is what `MMGR_CARCER_MAX` bounds the scanner and the string shim against.
+Two guards exist instead of one that always clears, because the clear costs a pass over the bytes and
+most cells hold nothing worth paying it for. Which storage is which is settled by declaring two pools
+and handing secrets to the maximum-security cellblock. Each one's extent is the count in its own pool
+declaration, and no build knob sizes it.
 
-Bytes are cleared on release, not on hand-out. A take does **not** return zeroed storage: a block
-released with the plain `reddo` and handed out again carries what the last tenant left. That is the
-whole reason `secura_reddo` matters, and it is why anything sensitive must be released with it.
+Bytes are cleared on release, not on hand-out. An allocation does **not** return zeroed storage: a
+cell released from a minimum-security cellblock and handed out again carries what the last prisoner
+left. That is what declaring the sensitive pool under `MMGR_MAXIMUM_SECURITY` buys.
 
-`carcer.wipe` clears an address and a count in place without giving anything back. Its stores are
+`mmgr_zero_buf` clears an address and a count in place without giving anything back. Its stores are
 `volatile` machine-width stores: a plain store there is a dead store the optimizer is entitled to
 drop, and a byte loop would pay eight times the stores for the same guarantee. Byte edges cover a
 length or an address that is not a whole number of words.
@@ -113,12 +118,12 @@ allocate, and the span dies with the buffer it was given.
 
 There are two, and they are different types on purpose:
 
-|          | `mmgr_span`        | `mmgr_cspan`       |
-| -------- | ------------------ | ------------------ |
-| for      | filling            | reading            |
-| `buf`    | writable           | `const`            |
-| extent   | `cap`              | `len`              |
-| the flag | `overflow`         | `err`              |
+|          | `mmgr_span` | `mmgr_cspan` |
+| -------- | ----------- | ------------ |
+| for      | filling     | reading      |
+| `buf`    | writable    | `const`      |
+| extent   | `cap`       | `len`        |
+| the flag | `overflow`  | `err`        |
 
 Naming the extent differently in each is what stops one being handed where the other belongs without
 the compiler saying so.
@@ -144,19 +149,19 @@ spelling and no information.
 
 ```c
 size_t at = 0;
-at = MMGR_CALL(verba.put, VerbaCfg, .out = buf, .cap = n, .at = at, .text = "id=");
-at = MMGR_CALL(verba.u32, VerbaCfg, .out = buf, .cap = n, .at = at, .val = id);
-at = MMGR_CALL(verba.put, VerbaCfg, .out = buf, .cap = n, .at = at, .text = " len=");
-at = MMGR_CALL(verba.u32, VerbaCfg, .out = buf, .cap = n, .at = at, .val = len);
+at = EMBED_CALL(verba.put, VerbaCfg, .out = buf, .cap = n, .at = at, .text = "id=");
+at = EMBED_CALL(verba.uint, VerbaCfg, .out = buf, .cap = n, .at = at, .val = id);
+at = EMBED_CALL(verba.put, VerbaCfg, .out = buf, .cap = n, .at = at, .text = " len=");
+at = EMBED_CALL(verba.uint, VerbaCfg, .out = buf, .cap = n, .at = at, .val = len);
 
 /* One check, covering all four: a writer with no room returns cap, and so does every writer
    after it, so finish reports zero. */
-if (MMGR_CALL(verba.finish, VerbaCfg, .out = buf, .cap = n, .at = at) == 0u) { }
+if (EMBED_CALL(verba.finish, VerbaCfg, .out = buf, .cap = n, .at = at) == 0u) { }
 ```
 
 ## 5. Rings move bytes between a producer and a consumer
 
-`confinium_exclusivum_infinitas` is the only part of the library that is concurrent, and only in one
+`memoria_anularis` is the only part of the library that is concurrent, and only in one
 shape: **single producer, single consumer**. Exactly one producer advances `head` and exactly one
 consumer advances `tail`, so ordering is all that is needed: every atomic access goes through the
 module's own `MMGR_ATOMIC_LOAD` and `MMGR_ATOMIC_STORE`, acquire and release, and no entry on those
@@ -166,12 +171,12 @@ It offers three things over the same bytes: a byte ring, a segment view that han
 segments by index instead of copying them, and loculi — numbered holds that record a region to keep
 out of, for a reader walking bytes in place.
 
-The ring's size is yours to pick. `cap` is the bytes in the buffer you hand `mmgr_infin_init`, and
+The ring's size is yours to pick. `cap` is the bytes in the buffer you hand `mmgr_anular_init`, and
 any non-zero power of two is accepted, because the ring wraps by masking. `nsegs` is a power of two
 at most `cap`.
 
 What the word width bounds is the loculi, not the segments: their free and held masks are one
-machine word each, so `MMGR_RING_LOCULI_MAX` is `MMGR_WORD_BITS` — 64 on a 64-bit build, 16 on a
+machine word each, so `MMGR_RING_LOCULI_MAX` is `EMBED_WORD_BITS` — 64 on a 64-bit build, 16 on a
 16-bit one. `MMGR_RING_LOCULI` is a build knob under that ceiling, and a static assert names it if
 it is set higher. A build with no use for the loculus view sets it to `0` and gets the keepout
 storage back.
@@ -182,15 +187,15 @@ declared nowhere a consumer can reach.
 
 ## Who owns what
 
-| Thing           | Allocates          | Frees                        | Lifetime                  |
-| --------------- | ------------------ | ---------------------------- | ------------------------- |
-| caller's buffer | the caller         | the caller                   | outlives everything below |
-| pool            | nothing            | nothing                      | the region's              |
-| persist take    | a block from the middle | `persist_reddo` by address | as long as it likes     |
-| interim take    | a block from the middle | a mark, or `interim_reset` | until that mark      |
-| span            | nothing            | nothing                      | its target's              |
-| ring segment    | a counter step     | `seg_release`                | until released            |
-| loculus         | a bit in a mask    | `loculus_drop`               | until dropped             |
+| Thing           | Allocates               | Frees                      | Lifetime                  |
+| --------------- | ----------------------- | -------------------------- | ------------------------- |
+| caller's buffer | the caller              | the caller                 | outlives everything below |
+| pool            | nothing                 | nothing                    | the region's              |
+| persist take    | a block from the middle | `persistent_buf_release` by address | as long as it likes       |
+| interim take    | a block from the middle | a mark, or `temporary_buf_reset` | until that mark           |
+| span            | nothing                 | nothing                    | its target's              |
+| ring segment    | a counter step          | `seg_release`              | until released            |
+| loculus         | a bit in a mask         | `loculus_drop`             | until dropped             |
 
 The column that matters is the third one. Nothing in MMgr reaches an allocator: every take comes out
 of a region the caller declared, and every free either returns a block to that region's own chain,
@@ -211,13 +216,13 @@ fails closed rather than letting the two ends walk into each other, but no alloc
 more. The counters exist for exactly this: run the real workload under the `checks` environment,
 read them, then size the region.
 
-`pool->persist_end` is how far the bottom has reached and `pool->interim_top` how far the top has,
-both read straight off the @ref CarcerCtx you declared. `mmgr_carcer_octas_praesto` reports the gap
+`pool->persistent_end` is how far the bottom has reached and `pool->temporary_top` how far the top has,
+both read straight off the pool's own state. `buf_available` reports the gap
 between them.
 
 For the peak rather than the current value, turn on `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Each end then
-keeps the largest it has seen in its own field — `persist_hw` records `persist_end`, `interim_hw`
-records `size - interim_top` — one per end, so neither is a maximum over the other. It is off by
+keeps the largest it has seen in its own field — `persistent_hw` records `persistent_end`, `temporary_hw`
+records `size - temporary_top` — one per end, so neither is a maximum over the other. It is off by
 default, and there is no entry that returns either: read the field.
 
 See @ref concept_zero_heap for the argument, @ref concept_ownership for the lifetime rules in

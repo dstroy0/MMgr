@@ -68,10 +68,12 @@ void test_every_width_round_trips_little_endian(void)
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
         parva_extremitas.wr(&(EndianCfg){b, 0, (uint16_t)vals[i], MMGR_ENDIAN_16});
-        TEST_ASSERT_EQUAL_HEX16((uint16_t)vals[i], (uint16_t)parva_extremitas.rd(&(EndianCfg){0, b, 0, MMGR_ENDIAN_16}));
+        TEST_ASSERT_EQUAL_HEX16((uint16_t)vals[i],
+                                (uint16_t)parva_extremitas.rd(&(EndianCfg){0, b, 0, MMGR_ENDIAN_16}));
 
         parva_extremitas.wr(&(EndianCfg){b, 0, (uint32_t)vals[i], MMGR_ENDIAN_32});
-        TEST_ASSERT_EQUAL_HEX32((uint32_t)vals[i], (uint32_t)parva_extremitas.rd(&(EndianCfg){0, b, 0, MMGR_ENDIAN_32}));
+        TEST_ASSERT_EQUAL_HEX32((uint32_t)vals[i],
+                                (uint32_t)parva_extremitas.rd(&(EndianCfg){0, b, 0, MMGR_ENDIAN_32}));
 
         parva_extremitas.wr(&(EndianCfg){b, 0, vals[i], MMGR_ENDIAN_64});
         TEST_ASSERT_EQUAL_HEX64(vals[i], parva_extremitas.rd(&(EndianCfg){0, b, 0, MMGR_ENDIAN_64}));
@@ -95,10 +97,12 @@ void test_every_width_round_trips_big_endian(void)
     for (unsigned i = 0; i < sizeof vals / sizeof vals[0]; i++)
     {
         magna_extremitas.wr(&(EndianCfg){b, 0, (uint16_t)vals[i], MMGR_ENDIAN_16});
-        TEST_ASSERT_EQUAL_HEX16((uint16_t)vals[i], (uint16_t)magna_extremitas.rd(&(EndianCfg){0, b, 0, MMGR_ENDIAN_16}));
+        TEST_ASSERT_EQUAL_HEX16((uint16_t)vals[i],
+                                (uint16_t)magna_extremitas.rd(&(EndianCfg){0, b, 0, MMGR_ENDIAN_16}));
 
         magna_extremitas.wr(&(EndianCfg){b, 0, (uint32_t)vals[i], MMGR_ENDIAN_32});
-        TEST_ASSERT_EQUAL_HEX32((uint32_t)vals[i], (uint32_t)magna_extremitas.rd(&(EndianCfg){0, b, 0, MMGR_ENDIAN_32}));
+        TEST_ASSERT_EQUAL_HEX32((uint32_t)vals[i],
+                                (uint32_t)magna_extremitas.rd(&(EndianCfg){0, b, 0, MMGR_ENDIAN_32}));
 
         magna_extremitas.wr(&(EndianCfg){b, 0, vals[i], MMGR_ENDIAN_64});
         TEST_ASSERT_EQUAL_HEX64(vals[i], magna_extremitas.rd(&(EndianCfg){0, b, 0, MMGR_ENDIAN_64}));
@@ -157,4 +161,3 @@ void test_reads_are_unaffected_by_the_bytes_after_them(void)
     b[3] = 0xFFu;
     TEST_ASSERT_EQUAL_HEX16(0x1122u, (uint16_t)parva_extremitas.rd(&(EndianCfg){0, b, 0, MMGR_ENDIAN_16}));
 }
-

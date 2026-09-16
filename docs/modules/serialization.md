@@ -12,16 +12,16 @@ for one byte, `put_be` for a value big end first, `raw` for a run as it stands. 
 right-aligned into a fixed field.
 
 ```c
-mmgr_span w = MMGR_CALL(spat.from, SpatiumCfg, .buf = frame, .cap = sizeof frame);
+mmgr_span w = EMBED_CALL(spat.from, SpatiumCfg, .buf = frame, .cap = sizeof frame);
 
-MMGR_CALL(byteio.put, OctetusCfg, .w = &w, .byte = 0x01u);
-MMGR_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = 0x1234u, .bytes = 2u);
-MMGR_CALL(byteio.raw, OctetusCfg, .w = &w, .src = payload, .bytes = n);
+EMBED_CALL(byteio.put, OctetusCfg, .w = &w, .byte = 0x01u);
+EMBED_CALL(byteio.put_be, OctetusCfg, .w = &w, .val = 0x1234u, .bytes = 2u);
+EMBED_CALL(byteio.raw, OctetusCfg, .w = &w, .src = payload, .bytes = n);
 
-mmgr_cspan r = MMGR_CALL(spat.cfrom, SpatiumCfg, .cbuf = frame, .cap = got);
+mmgr_cspan r = EMBED_CALL(spat.cfrom, SpatiumCfg, .cbuf = frame, .cap = got);
 uint64_t v = 0;
 
-if (!MMGR_CALL(byteio.take_be, OctetusCfg, .r = &r, .out = &v, .bytes = 2u)) {
+if (!EMBED_CALL(byteio.take_be, OctetusCfg, .r = &r, .out = &v, .bytes = 2u)) {
     /* the frame was short */
 }
 ```
@@ -34,7 +34,7 @@ Fields sit `bytes` apart, and the span carries the cursor, so nothing here needs
 that does not fit is a build failure — what a writer emits and how big its buffer is are both fixed
 before the build — so it asserts, stores nothing, and latches the span's `overflow` to keep a wrong
 program off the end. A short read is a runtime fact about whatever sent the bytes, so it sets `err`,
-leaves the cursor alone and returns `MMGR_FALSE` for a caller to act on. See @ref ref_error_handling.
+leaves the cursor alone and returns `EMBED_FALSE` for a caller to act on. See @ref ref_error_handling.
 
 **A value moves a word at a time, not a byte at a time.** `put_be` reverses once through
 @ref mod_endian_guide and then stores at the widest step the count allows: eight bytes is one store,
@@ -61,12 +61,12 @@ is tested, so a value carrying a sign byte still fits a field of its own size.
 Bit-level output for formats that are not byte-aligned.
 
 ```c
-mmgr_bitor w = MMGR_CALL(bitio.init, BitorumCfg, .out = buf, .cap = sizeof buf);
+mmgr_bitor w = EMBED_CALL(bitio.init, BitorumCfg, .out = buf, .cap = sizeof buf);
 
-MMGR_CALL(bitio.put, BitorumCfg, .writer = &w, .val = 0x5u,  .nbits = 3u);
-MMGR_CALL(bitio.put, BitorumCfg, .writer = &w, .val = value, .nbits = 12u);
+EMBED_CALL(bitio.put, BitorumCfg, .writer = &w, .val = 0x5u,  .nbits = 3u);
+EMBED_CALL(bitio.put, BitorumCfg, .writer = &w, .val = value, .nbits = 12u);
 
-MMGR_CALL(bitio.align, BitorumCfg, .writer = &w);   /* 15 bits written; without this, 8 */
+EMBED_CALL(bitio.align, BitorumCfg, .writer = &w);   /* 15 bits written; without this, 8 */
 ```
 
 The writer is yours to hold and the cfg points at it. `init` fills it in; every `put` reads and
@@ -103,10 +103,10 @@ Explicit reads and writes. Two namespaces over three entries each, and the names
 order:
 
 ```c
-MMGR_CALL(parva_extremitas.wr, EndianCfg, .dst = p, .val = v, .width = MMGR_ENDIAN_32);
-MMGR_CALL(magna_extremitas.wr, EndianCfg, .dst = p, .val = v, .width = MMGR_ENDIAN_32);
+EMBED_CALL(parva_extremitas.wr, EndianCfg, .dst = p, .val = v, .width = MMGR_ENDIAN_32);
+EMBED_CALL(magna_extremitas.wr, EndianCfg, .dst = p, .val = v, .width = MMGR_ENDIAN_32);
 
-const uint64_t v16 = MMGR_CALL(magna_extremitas.rd, EndianCfg, .src = p, .width = MMGR_ENDIAN_16);
+const uint64_t v16 = EMBED_CALL(magna_extremitas.rd, EndianCfg, .src = p, .width = MMGR_ENDIAN_16);
 ```
 
 `parva_extremitas` is little end first, `magna_extremitas` is big. The width is an argument rather
@@ -117,8 +117,8 @@ number advances your cursor.
 implementation detail of the host, and code that writes "native" order to a wire has a bug that
 appears the first time the other end is a different machine.
 
-`MMGR_HW_BIG_ENDIAN` exists so the library can take the cheap path when the requested order happens
-to match the host — not so a caller can ask for whatever the machine does.
+`EMBED_BIG_ENDIAN` exists so the library can take the cheap path when the requested order happens to
+match the host — not so a caller can ask for whatever the machine does.
 
 @ref mod_endian "Generated reference" · @ref concept_width
 
@@ -129,13 +129,13 @@ to match the host — not so a caller can ask for whatever the machine does.
 Getting at the parts of a `double` without `<math.h>` and without a heap.
 
 ```c
-const mmgr_u64 bits = MMGR_CALL(fract.to_bits, FractioCfg, .val  = x);
-const mmgr_u64 sign = MMGR_CALL(fract.sign,    FractioCfg, .bits = bits);
-const mmgr_u64 exp  = MMGR_CALL(fract.exp,     FractioCfg, .bits = bits);
-const mmgr_u64 mant = MMGR_CALL(fract.mant,    FractioCfg, .bits = bits);
+const mmgr_u64 bits = EMBED_CALL(fract.to_bits, FractioCfg, .val  = x);
+const mmgr_u64 sign = EMBED_CALL(fract.sign,    FractioCfg, .bits = bits);
+const mmgr_u64 exp  = EMBED_CALL(fract.exp,     FractioCfg, .bits = bits);
+const mmgr_u64 mant = EMBED_CALL(fract.mant,    FractioCfg, .bits = bits);
 
-const mmgr_u64 back = MMGR_CALL(fract.merge,     FractioCfg, .sign = sign, .exp = exp, .mant = mant);
-const double   y    = MMGR_CALL(fract.from_bits, FractioCfg, .bits = back);
+const mmgr_u64 back = EMBED_CALL(fract.merge,     FractioCfg, .sign = sign, .exp = exp, .mant = mant);
+const double   y    = EMBED_CALL(fract.from_bits, FractioCfg, .bits = back);
 ```
 
 `to_bits` and `from_bits` are the two directions of the same union, and `merge` returns a bit

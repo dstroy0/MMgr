@@ -1,18 +1,31 @@
-
 html {
-    --mg-surface: #edf0f2;     --mg-raised: #e1e6ea;     --mg-recessed: #e6eaee;     --mg-rule: #d3dae0;     --mg-rule-2: #b9c3cc; 
-    --mg-ink: #1f2933;     --mg-bright: #0e161d;     --mg-dim: #5a6875;     --mg-dim-soft: #68757f; 
-    --mg-accent: #b4552d;     --mg-accent-dim: #8f4122;     --mg-accent-bright: #d1774d;     --mg-accent-wash: #dfe6ec; 
-    --mg-state: #3f7a6b;     --mg-state-wash: #e4efec;
+    --mg-surface: #edf0f2;
+    --mg-raised: #e1e6ea;
+    --mg-recessed: #e6eaee;
+    --mg-rule: #d3dae0;
+    --mg-rule-2: #b9c3cc;
+    --mg-ink: #1f2933;
+    --mg-bright: #0e161d;
+    --mg-dim: #5a6875;
+    --mg-dim-soft: #68757f;
+    --mg-accent: #b4552d;
+    --mg-accent-dim: #8f4122;
+    --mg-accent-bright: #d1774d;
+    --mg-accent-wash: #dfe6ec;
+    --mg-state: #3f7a6b;
+    --mg-state-wash: #e4efec;
 
-    --mg-cost: #8a6d2f;     --mg-cost-ink: #6b5423;     --mg-cost-wash: #f1ece0;
+    --mg-cost: #8a6d2f;
+    --mg-cost-ink: #6b5423;
+    --mg-cost-wash: #f1ece0;
 
-    --mg-error: #9e3b3b;     --mg-error-wash: #f6e7e7;
+    --mg-error: #9e3b3b;
+    --mg-error-wash: #f6e7e7;
 
     --mg-code-bg: #e7ecf0;
     --mg-code-fg: #232d36;
 
-        --mg-syn-keyword: #7a4a86;
+    --mg-syn-keyword: #7a4a86;
     --mg-syn-flow: #96455f;
     --mg-syn-type: #2f6b78;
     --mg-syn-string: #3f7a6b;
@@ -22,27 +35,30 @@ html {
     --mg-shadow: rgba(31, 41, 51, 0.1);
     --mg-scrollbar: #b9c3cc;
 
-        --mg-sans:
+    --mg-sans:
         "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
         Roboto, "Helvetica Neue", Arial, sans-serif;
     --mg-mono:
         "IBM Plex Mono", ui-monospace, SFMono-Regular, "Cascadia Code",
         Consolas, Menlo, monospace;
 
-        --mg-t-body: 1rem;     --mg-t-small: 0.875rem;
-    --mg-t-micro: 0.75rem;     --mg-t-h3: 1.15rem;
+    --mg-t-body: 1rem;
+    --mg-t-small: 0.875rem;
+    --mg-t-micro: 0.75rem;
+    --mg-t-h3: 1.15rem;
     --mg-t-h2: 1.55rem;
     --mg-t-h1: 2.25rem;
 
-        --mg-s1: 0.35rem;
+    --mg-s1: 0.35rem;
     --mg-s2: 0.7rem;
     --mg-s3: 1.15rem;
     --mg-s4: 1.9rem;
     --mg-s5: 3rem;
 
-        --mg-prose: min(72ch, 100%);
+    --mg-prose: min(72ch, 100%);
     --mg-track: 1080px;
-    --mg-radius: 3px; }
+    --mg-radius: 3px;
+}
 
 html.dark-mode {
     --mg-surface: #171c22;
@@ -51,18 +67,24 @@ html.dark-mode {
     --mg-rule: #2b333c;
     --mg-rule-2: #3d4750;
 
-    --mg-ink: #c6cdd4;     --mg-bright: #e9eef2;     --mg-dim: #8b97a3;     --mg-dim-soft: #75818c;
+    --mg-ink: #c6cdd4;
+    --mg-bright: #e9eef2;
+    --mg-dim: #8b97a3;
+    --mg-dim-soft: #75818c;
 
-    --mg-accent: #e08a5c;     --mg-accent-dim: #c4744a;
+    --mg-accent: #e08a5c;
+    --mg-accent-dim: #c4744a;
     --mg-accent-bright: #eeab84;
-    --mg-accent-wash: #1e2833; 
-    --mg-state: #6fb3a2;     --mg-state-wash: #14251f;
+    --mg-accent-wash: #1e2833;
+    --mg-state: #6fb3a2;
+    --mg-state-wash: #14251f;
 
-        --mg-cost: #cfa863;
+    --mg-cost: #cfa863;
     --mg-cost-ink: #cfa863;
     --mg-cost-wash: #241f13;
 
-    --mg-error: #d97b7b;     --mg-error-wash: #241616;
+    --mg-error: #d97b7b;
+    --mg-error-wash: #241616;
 
     --mg-code-bg: #1a2027;
     --mg-code-fg: #ced5db;
@@ -80,7 +102,7 @@ html.dark-mode {
 
 html,
 html.dark-mode {
-        --primary-color: var(--mg-accent);
+    --primary-color: var(--mg-accent);
     --primary-dark-color: var(--mg-accent-dim);
     --primary-light-color: var(--mg-accent-bright);
     --primary-lighter-color: var(--mg-accent-wash);
@@ -95,13 +117,13 @@ html.dark-mode {
     --separator-color: var(--mg-rule);
     --border-color: var(--mg-rule);
 
-        --header-background-color: var(--mg-surface);
+    --header-background-color: var(--mg-surface);
     --header-separator-color: var(--mg-rule-2);
     --title-background-color: var(--mg-surface);
     --title-separator-color: var(--mg-rule-2);
     --footer-foreground-color: var(--mg-dim);
 
-        --nav-background-color: var(--mg-recessed);
+    --nav-background-color: var(--mg-recessed);
     --nav-foreground-color: var(--mg-ink);
     --nav-border-color: var(--mg-rule-2);
     --nav-text-normal-color: var(--mg-ink);
@@ -120,7 +142,7 @@ html.dark-mode {
     --nav-breadcrumb-separator-color: var(--mg-rule-2);
     --nav-breadcrumb-active-bg: var(--mg-accent-wash);
 
-        --fragment-background-color: var(--mg-code-bg);
+    --fragment-background-color: var(--mg-code-bg);
     --fragment-foreground-color: var(--mg-code-fg);
     --fragment-border-color: var(--mg-rule);
     --fragment-copy-ok-color: var(--mg-state);
@@ -133,7 +155,7 @@ html.dark-mode {
     --fragment-lineno-link-hover-bg-color: var(--mg-accent-wash);
     --fold-line-color: var(--mg-rule-2);
 
-        --code-keyword-color: var(--mg-syn-keyword);
+    --code-keyword-color: var(--mg-syn-keyword);
     --code-flow-keyword-color: var(--mg-syn-flow);
     --code-type-keyword-color: var(--mg-syn-type);
     --code-string-literal-color: var(--mg-syn-string);
@@ -142,7 +164,7 @@ html.dark-mode {
     --code-preprocessor-color: var(--mg-syn-preproc);
     --code-vhdl-keyword-color: var(--mg-syn-keyword);
 
-        --memdecl-background-color: var(--mg-surface);
+    --memdecl-background-color: var(--mg-surface);
     --memdecl-foreground-color: var(--mg-dim);
     --memdecl-border-color: var(--mg-rule);
     --memdecl-template-color: var(--mg-dim);
@@ -155,12 +177,12 @@ html.dark-mode {
     --memdef-template-color: var(--mg-dim);
     --memdef-doc-background-color: var(--mg-surface);
 
-        --label-background-color: var(--mg-cost-wash);
+    --label-background-color: var(--mg-cost-wash);
     --label-foreground-color: var(--mg-cost-ink);
     --label-left-top-border-color: var(--mg-cost);
     --label-right-bottom-border-color: var(--mg-cost);
 
-        --table-header-background-color: var(--mg-raised);
+    --table-header-background-color: var(--mg-raised);
     --table-header-foreground-color: var(--mg-bright);
     --table-cell-border-color: var(--mg-rule);
     --index-header-color: var(--mg-dim);
@@ -168,7 +190,7 @@ html.dark-mode {
     --index-odd-item-bg-color: var(--mg-surface);
     --index-even-item-bg-color: var(--mg-raised);
 
-        --note-color-bg: var(--mg-accent-wash);
+    --note-color-bg: var(--mg-accent-wash);
     --note-color-hl: var(--mg-accent);
     --note-color-text: var(--mg-ink);
     --warning-color-bg: var(--mg-cost-wash);
@@ -208,7 +230,7 @@ html.dark-mode {
     --post-color-hl: var(--mg-accent);
     --post-color-text: var(--mg-ink);
 
-        --search-background-color: var(--mg-surface);
+    --search-background-color: var(--mg-surface);
     --search-foreground-color: var(--mg-ink);
     --search-box-border-color: var(--mg-rule-2);
     --search-active-color: var(--mg-bright);
@@ -222,10 +244,10 @@ html.dark-mode {
     --search-filter-highlight-bg-color: var(--mg-accent-wash);
     --search-close-icon-fg-color: var(--mg-dim);
     --search-close-icon-bg-color: transparent;
-        --search-results-backdrop-filter: none;
+    --search-results-backdrop-filter: none;
     --search-filter-backdrop-filter: none;
 
-        --blockquote-background-color: var(--mg-raised);
+    --blockquote-background-color: var(--mg-raised);
     --blockquote-border-color: var(--mg-rule-2);
     --group-header-color: var(--mg-dim);
     --group-header-separator-color: var(--mg-rule);
@@ -246,7 +268,7 @@ html.dark-mode {
     --tooltip-shadow: 0 2px 8px var(--mg-shadow);
     --tooltip-backdrop-filter: none;
 
-        --font-family-normal: var(--mg-sans);
+    --font-family-normal: var(--mg-sans);
     --font-family-monospace: var(--mg-mono);
     --font-family-title: var(--mg-sans);
     --font-family-nav: var(--mg-sans);
@@ -466,7 +488,6 @@ hr {
 #nav-tree {
     background-color: transparent;
 }
-
 
 #nav-tree a {
     color: var(--mg-ink);
@@ -898,7 +919,7 @@ li.mg-colophon .mg-gen {
         page-break-inside: avoid;
     }
 
-        a[href^="http"]::after {
+    a[href^="http"]::after {
         content: " (" attr(href) ")";
         font-size: 0.8em;
         color: var(--mg-dim);

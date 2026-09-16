@@ -1,23 +1,47 @@
 #!/usr/bin/env python3
-# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """MMgr test harness: suite discovery and Unity runner generation.
 
-  harness.py build [--tree T]                 configure if needed, then build
+  harness.py build [--tree T] [--fresh]       configure if needed, then build
   harness.py test [--tree T] [--filter RE]    build, then run the suites
   harness.py ab                               both sides of the A/B, one after the other
   harness.py coverage [--worst N] [--gaps]    build, run and report what src/ the suites reached
+  harness.py trees                            which build trees exist and which one each name uses
+  harness.py stray                            anything outside build/ that a build looks to have made
+  harness.py device list                      which on-device benches exist and what is built
+  harness.py device build B --target T        configure and build one bench for one part
+  harness.py device flash B --target T --port P   flash the image that build produced
   harness.py suites                          every suite, its cases, and the capabilities it needs
   harness.py runners gen <dir> --unity <rb>  write <dir>/unity_runner.c
   harness.py cases <dir>                     what Unity will register, and what it will walk past
   harness.py generated                       are the generated headers what their generators emit
+  harness.py targets [--strict]              compile the module for every part, check its derivation
+  harness.py remote <host> [--user U]        build and run the suite on another machine over ssh
 
-There are three build trees and each one is a different question, so each carries its own flags
-here rather than in somebody's shell history:
+This is the only entry point. Everything else here is a module, and a build reached any other way is
+a build whose flags nobody wrote down.
+
+Every tree lives under one container, build/, named for what it is and stamped with when it was
+made: build/build-20260831-181500. Two builds can then never share objects, and a tree can be kept
+and compared against rather than overwritten. A tree is reused between invocations, because a fresh
+one costs a full configure and a full compile every time; --fresh forces a new one, which is what a
+changed target or a changed toolchain needs. The newest three per name are kept and older ones are
+removed on the way in.
+
+There are three host trees and each one is a different question, so each carries its own flags here
+rather than in somebody's shell history:
 
   build         the library, as it ships
   build-oracle  MMGR_TEST_ORACLE on, so every suite that includes oracle_divergence.h calls libc
   build-cov     instrumented, always_inline off, link time optimisation off
+
+The device benches are ESP-IDF projects, which is a second build system with its own toolchain and
+environment. Reaching it needs a shell, so the shell script is written out from here, run, and
+removed when it succeeds. A script kept in the tree is a second place the paths live and it drifts
+from what this file computes; one generated from the paths this file just resolved cannot. A failing
+script is left behind with its path printed, because a build that failed is exactly when the command
+that ran is worth reading.
 
 The last two matter. always_inline is honoured at -O0, so without turning it off every call site of
 a header entry gets its own copy of that entry's branch records and the report counts optimiser
@@ -62,13 +86,22 @@ and a profile is a .c.
 
 import argparse
 import csv
+import datetime
+import fnmatch
 import json
 import os
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
+import time
+
+# No __pycache__ beside the source. This process imports bench.py out of the bench tree, and the
+# interpreter writes bytecode next to whatever it imports - a generated directory in the checkout,
+# left by the one tool whose job is keeping generated things in a single place.
+sys.dont_write_bytecode = True
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -87,19 +120,281 @@ BUILD_ROOT = os.path.abspath(os.environ.get("MMGR_BUILD_ROOT", ROOT))
 CMAKE_ARGS = os.environ.get("MMGR_CMAKE_ARGS", "")
 
 
-def tree_path(tree):
-    """Absolute path of build tree @p tree."""
-    return os.path.join(BUILD_ROOT, tree)
+# Every build tree lives under one container and nowhere else. A tree written beside the source, or
+# into whatever directory a command happened to run from, is how two builds come to share objects.
+BUILD_CONTAINER = os.path.join(BUILD_ROOT, "build")
 
-# A four-way split. A suite is a directory holding exactly one .c
+# Which directory each tree is currently using. Written here rather than inferred from the newest
+# timestamp on disk, so a run that was interrupted does not silently hand the next one a half
+# configured tree.
+BUILD_POINTER = os.path.join(BUILD_CONTAINER, "current.json")
+
+# Trees kept per name before the oldest is removed. Small on purpose: an instrumented tree is
+# hundreds of megabytes, and what anyone wants is the last few rather than the last month.
+BUILD_KEEP = 3
+
+
+def build_stamp():
+    """A directory-safe stamp for a new tree, to the second."""
+    return datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+
+
+def read_pointer():
+    """Which directory each tree is currently using, as the pointer records it."""
+    try:
+        with open(BUILD_POINTER, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return {}
+
+
+def write_pointer(current):
+    """Record which directory each tree is using."""
+    os.makedirs(BUILD_CONTAINER, exist_ok=True)
+    with open(BUILD_POINTER, "w", encoding="utf-8") as fh:
+        json.dump(current, fh, indent=2, sort_keys=True)
+
+
+# Where the last working toolchain is kept in the pointer. Underscored so the tree lookups can tell
+# it from a tree name without a list of exceptions.
+REMEMBERED_TOOLCHAIN = "_toolchain"
+
+# What a cache has to say for a tree to be worth borrowing from, and the flag each answer becomes.
+TOOLCHAIN_KEYS = {
+    "CMAKE_GENERATOR": "-G",
+    "CMAKE_C_COMPILER": "-DCMAKE_C_COMPILER=",
+    "CMAKE_MAKE_PROGRAM": "-DCMAKE_MAKE_PROGRAM=",
+}
+
+
+def toolchain_from_cache(cache):
+    """The generator and compiler flags a configured tree's cache records, or an empty list."""
+    if not os.path.isfile(cache):
+        return []
+    out = []
+    with open(cache, encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            name, sep, value = line.partition(":")
+            if not sep or name not in TOOLCHAIN_KEYS:
+                continue
+            value = value.partition("=")[2].strip()
+            flag = TOOLCHAIN_KEYS[name]
+            out += [flag + value] if flag.endswith("=") else [flag, value]
+    return out
+
+
+def remember_toolchain(path):
+    """Record the toolchain a tree configured with, so it outlives that tree.
+
+    Trees rotate. Without this, a machine that has built a hundred times arrives at the same place a
+    fresh clone does the moment the last tree is removed, and the generator cmake picks by default is
+    not one that works here.
+    """
+    args = toolchain_from_cache(os.path.join(path, "CMakeCache.txt"))
+    if not args:
+        return
+    current = read_pointer()
+    if current.get(REMEMBERED_TOOLCHAIN) != args:
+        current[REMEMBERED_TOOLCHAIN] = args
+        write_pointer(current)
+
+
+def tree_dirs(tree):
+    """Directories under the container belonging to @p tree, oldest first.
+
+    Matched against the whole name and not its prefix. "build" is a prefix of "build-oracle", so a
+    prefix test would let a rotation of one name remove another's trees. The stamp is part of the
+    pattern for the same reason: anything under the container that is not a tree this made is left
+    alone.
+    """
+    if not os.path.isdir(BUILD_CONTAINER):
+        return []
+    pattern = re.compile(r"^" + re.escape(tree) + r"-\d{8}-\d{6}$")
+    return sorted(
+        name
+        for name in os.listdir(BUILD_CONTAINER)
+        if pattern.match(name) and os.path.isdir(os.path.join(BUILD_CONTAINER, name))
+    )
+
+
+# Asked at most once per run. The query costs about a second, and the answer does not change in the
+# middle of a build.
+_DEFENDER_RT = "unasked"
+
+
+def defender_state():
+    """Real time protection, and the paths excluded from it. (None, []) where it cannot be told.
+
+    None is an answer and not a failure. The query needs the Defender module, which a machine
+    running a different anti-virus does not have, and calling that "off" would send the reader after
+    the wrong thing.
+    """
+    global _DEFENDER_RT  # noqa: PLW0603  asked once and cached, which is the point of it
+    if _DEFENDER_RT != "unasked":
+        return _DEFENDER_RT
+
+    _DEFENDER_RT = (None, [])
+    if sys.platform == "win32":
+        r = subprocess.run(
+            [
+                "powershell", "-NoProfile", "-Command",
+                "[pscustomobject]@{rt=(Get-MpComputerStatus).RealTimeProtectionEnabled;"
+                " ex=@((Get-MpPreference).ExclusionPath)} | ConvertTo-Json -Compress",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        try:
+            answer = json.loads(r.stdout.strip())
+            raw = [p for p in answer["ex"] if p]
+            # Unelevated, Get-MpPreference answers the exclusion query with a sentence about needing
+            # to be an administrator rather than with paths. Comparing the tree against a sentence
+            # finds no match and reports "not excluded", which is an assertion this cannot make, so
+            # an answer holding no path at all becomes None: not knowable from here.
+            paths = [p for p in raw if os.path.isabs(p)]
+            _DEFENDER_RT = (bool(answer["rt"]), paths if paths or not raw else None)
+        except (ValueError, KeyError, TypeError):
+            pass
+    return _DEFENDER_RT
+
+
+def defender_covers(path):
+    """True when real time protection is on and @p path is not excluded from it.
+
+    The exclusion is what decides, not the setting. Protection being on says nothing about this
+    tree if the tree is already excluded, and a warning that fires anyway is one that gets ignored
+    the one time it was right.
+    """
+    realtime, excluded = defender_state()
+    if not realtime:
+        return False
+    if excluded is None:
+        # Protection is on and the exclusions cannot be read from here. Worth raising, and the note
+        # says which half is known.
+        return True
+    target = os.path.normcase(os.path.abspath(path))
+    for entry in excluded:
+        # An exclusion covers a directory and everything under it, so the separator matters: without
+        # it "C:\\build" would read as excluding "C:\\build-oracle" too.
+        covered = os.path.normcase(os.path.abspath(entry))
+        if target == covered or target.startswith(covered + os.sep):
+            return False
+    return True
+
+
+def report_defender():
+    """Print the Defender note where it is a likely explanation. A no-op anywhere it is not.
+
+    Printed on failures rather than on every command. On a working build it is noise, and the
+    symptoms it explains - a tree that will not delete, a link step failing on a file nothing else
+    holds, a rebuild slower than the last one - all arrive as a failure that names no cause.
+    """
+    if not defender_covers(BUILD_CONTAINER):
+        return
+
+    _realtime, excluded = defender_state()
+    if excluded is None:
+        print(
+            "  Windows Defender real time protection is on. Whether %s is excluded from it cannot\n"
+            "  be read without an elevated shell, so this may already be handled.\n"
+            "  It scans every file a build writes and holds a handle open while it does. Where it\n"
+            "  is not excluded that makes every build slower, reliably, and breaks a delete or a\n"
+            "  link that lands in the same moment, intermittently - so it may be what just happened\n"
+            "  here, and it may not be. To check and fix, in an elevated shell:\n"
+            "    (Get-MpPreference).ExclusionPath\n"
+            "    Add-MpPreference -ExclusionPath '%s'"
+            % (os.path.relpath(BUILD_CONTAINER, ROOT).replace("\\", "/"), BUILD_CONTAINER)
+        )
+    else:
+        print(
+            "  Windows Defender real time protection is on and %s is not excluded from it.\n"
+            "  It scans every file a build writes and holds a handle open while it does. That makes\n"
+            "  every build slower, reliably. It also breaks a delete or a link that lands in the same\n"
+            "  moment, intermittently - so it may be what just happened here, and it may not be.\n"
+            "  Excluding the tree costs nothing to try, in an elevated shell:\n"
+            "    Add-MpPreference -ExclusionPath '%s'"
+            % (os.path.relpath(BUILD_CONTAINER, ROOT).replace("\\", "/"), BUILD_CONTAINER)
+        )
+
+
+def remove_tree(path):
+    """Remove a build tree, and say whether it actually went.
+
+    Every read-only bit under the tree is cleared first. FetchContent clones Unity into _deps with
+    its .git intact, and git holds pack files at 0444, which Windows will not unlink - so a plain
+    rmtree of any fully built tree stops partway and leaves a directory with most of its contents
+    gone. That husk still matches the tree pattern, so it is counted by the rotation, listed by
+    `trees`, and never removed on any later run either.
+    """
+    for base, dirs, files in os.walk(path):
+        for name in dirs + files:
+            try:
+                os.chmod(os.path.join(base, name), stat.S_IWRITE)
+            except OSError:
+                # Already gone, or not ours to change. Whatever genuinely blocks the removal is
+                # reported by the caller reading the return, rather than guessed at here.
+                pass
+    shutil.rmtree(path, ignore_errors=True)
+    return not os.path.exists(path)
+
+
+def rotate_trees(tree, keep=BUILD_KEEP):
+    """Remove all but the newest @p keep directories belonging to @p tree.
+
+    The name carries the stamp, so sorting the names sorts them by age without stat-ing anything.
+    The one the pointer names is kept whatever its position, since a rotation that removes the tree
+    a build is about to use has removed the wrong thing.
+    """
+    live = read_pointer().get(tree)
+    mine = tree_dirs(tree)
+    for name in mine[: max(0, len(mine) - keep)]:
+        if name == live:
+            continue
+        # Said out loud. A rotation that cannot remove what it selected leaves the container one
+        # tree larger every time, and silence turns that into a directory nobody can account for.
+        if not remove_tree(os.path.join(BUILD_CONTAINER, name)):
+            print("rotation could not remove %s, and it is still counted" % name)
+            report_defender()
+
+
+def tree_path(tree, fresh=False):
+    """Absolute path of build tree @p tree, making a new one where @p fresh or none is current.
+
+    A tree is reused between invocations, because a fresh one means a full configure and a full
+    compile every time and the common command is run constantly. What fresh buys is the case where
+    reuse would be wrong: a different target, a different toolchain, anything that leaves a cache
+    describing a build nobody asked for.
+    """
+    current = read_pointer()
+    name = current.get(tree)
+    if not fresh and name and os.path.isdir(os.path.join(BUILD_CONTAINER, name)):
+        return os.path.join(BUILD_CONTAINER, name)
+
+    name = "%s-%s" % (tree, build_stamp())
+    current[tree] = name
+    write_pointer(current)
+    # One fewer than the count kept, because the tree named above is not on disk yet - cmake makes it
+    # on the way through configure. Rotating to BUILD_KEEP here leaves that many behind and then adds
+    # one, so the container settles at one more than this file says it keeps.
+    rotate_trees(tree, BUILD_KEEP - 1)
+    return os.path.join(BUILD_CONTAINER, name)
+
+# A five-way split. A suite is a directory holding exactly one .c
 # with cases, and its generated runner sits beside it.
 #
 #   unit/<module>/test_<name>/     one per translation unit, mirroring src/<module>/
+#   accuracy/test_<name>/          the value a conversion produces, against a reference that is
+#                                  right by construction rather than by agreement with this library
 #   environment/test_<env>/        one per entry in MMGR_ENVIRONMENTS, asserting that the widths
 #                                  the build claims are the widths the code actually got
 #   integration/test_<name>/       more than one module together
 #   interop/test_<name>/           this library's output against another implementation's
+#
+# accuracy is separate from unit on purpose. A unit suite asks whether an entry keeps the contract
+# its header states, which a table-driven module can satisfy with a table that is internally
+# consistent and numerically wrong. An accuracy suite asks what the number actually is.
 UNIT = os.path.join(ROOT, "test", "unit")
+ACCURACY = os.path.join(ROOT, "test", "accuracy")
 ENVIRONMENT = os.path.join(ROOT, "test", "environment")
 INTEGRATION = os.path.join(ROOT, "test", "integration")
 INTEROP = os.path.join(ROOT, "test", "interop")
@@ -182,7 +477,7 @@ def suite_source(suite_dir):
 def discover():
     """Every suite directory, which is any dir holding a .c with a collectable case."""
     out = []
-    for base in (UNIT, ENVIRONMENT, INTEGRATION, INTEROP):
+    for base in (UNIT, ACCURACY, ENVIRONMENT, INTEGRATION, INTEROP):
         if not os.path.isdir(base):
             continue
         for dirpath, _dirnames, filenames in os.walk(base):
@@ -320,69 +615,100 @@ TREES = {
 }
 
 
-def run(cmd, quiet=True):
-    """Run a command from the repository root and hand back its completed process."""
+def run(cmd, quiet=True, stdin=None):
+    """Run a command from the repository root and hand back its completed process.
+
+    @p stdin feeds text in. cmd_vectors drives a helper that reads a message per line, and writing
+    those to a file first would put a temporary beside whatever directory it ran from.
+    """
     if quiet:
-        return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
-    return subprocess.run(cmd, cwd=ROOT, text=True)
+        return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, input=stdin)
+    return subprocess.run(cmd, cwd=ROOT, text=True, input=stdin)
 
 
-def borrowed_toolchain(skip):
+def borrowed_toolchain(skip_path):
     """Generator and compiler taken from whichever tree is already configured.
 
     cmake's default generator is not always the one that works on a given machine, and a tree that
     already built is proof of one that does. Beats a second place to keep a toolchain path.
+
+    @p skip_path is the directory being configured, and it is the only one passed over. Skipping the
+    whole tree NAME instead is what this did when each name had one directory, and under stamped
+    trees that reads as "never borrow from a tree of the kind you are building", which is the kind
+    most likely to have one.
     """
-    keys = {
-        "CMAKE_GENERATOR": "-G",
-        "CMAKE_C_COMPILER": "-DCMAKE_C_COMPILER=",
-        "CMAKE_MAKE_PROGRAM": "-DCMAKE_MAKE_PROGRAM=",
-    }
+    # Read off the directories rather than through tree_path. That function makes a directory and
+    # rotates when a tree has none, and probing for a toolchain must not create anything.
+    #
+    # Every tree on disk is considered, newest first, not only the ones the pointer names. A tree
+    # that configured successfully still proves a toolchain that works even after another build took
+    # the name, and skipping it would send a machine that has built many times back to the answer a
+    # fresh clone gets.
+    # The remembered one first. It is written only after a configure succeeded, where a tree on disk
+    # may be the wreck of one that did not.
+    current = read_pointer()
+    remembered = current.get(REMEMBERED_TOOLCHAIN, [])
+    if remembered:
+        return remembered
+
     for tree in TREES:
-        if tree == skip:
-            continue
-        cache = os.path.join(tree_path(tree), "CMakeCache.txt")
-        if not os.path.isfile(cache):
-            continue
-        out = []
-        with open(cache, encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                name, sep, value = line.partition(":")
-                if not sep or name not in keys:
-                    continue
-                value = value.partition("=")[2].strip()
-                out += [keys[name] + value] if keys[name].endswith("=") else [keys[name], value]
-        if out:
-            return out
+        for name in reversed(tree_dirs(tree)):
+            path = os.path.join(BUILD_CONTAINER, name)
+            if os.path.abspath(path) == os.path.abspath(skip_path):
+                continue
+            out = toolchain_from_cache(os.path.join(path, "CMakeCache.txt"))
+            if out:
+                return out
     return []
 
 
-def configure(tree):
+def configure(tree, fresh=False):
     """Configure @p tree if it is not there yet."""
-    if os.path.isfile(os.path.join(tree_path(tree), "CMakeCache.txt")):
+    # Taken before the path, because tree_path writes the pointer when it makes a new tree and a
+    # failed configure has to put back what was there rather than leaving the name unset.
+    was = read_pointer().get(tree)
+
+    path = tree_path(tree, fresh)
+    if os.path.isfile(os.path.join(path, "CMakeCache.txt")):
         return 0
-    cmd = ["cmake", "-S", ".", "-B", tree_path(tree), "-DCMAKE_BUILD_TYPE=Debug", "-DMMGR_BUILD_TESTS=ON"]
+    cmd = ["cmake", "-S", ".", "-B", path, "-DCMAKE_BUILD_TYPE=Debug", "-DMMGR_BUILD_TESTS=ON"]
     cmd += TREES[tree]["args"] + borrowed_toolchain(tree) + shlex.split(CMAKE_ARGS)
     r = run(cmd)
     if r.returncode != 0:
         sys.stderr.write(r.stdout[-3000:] + r.stderr[-3000:])
         print("configure of %s failed" % tree)
+        report_defender()
+        # A configure that failed still leaves a cache, and that cache holds whatever cmake settled
+        # on before it stopped - a generator nobody asked for, or a compiler it could not find. The
+        # next run sees a cache, treats the tree as configured, and builds against it. Removing it
+        # is what makes a failed configure fail again rather than half-succeed.
+        remove_tree(path)
+        current = read_pointer()
+        # Put back whatever the name pointed at before, so a failed --fresh leaves the working tree
+        # in place instead of unsetting the name and stranding a tree that is still on disk.
+        if was and os.path.isdir(os.path.join(BUILD_CONTAINER, was)):
+            current[tree] = was
+        else:
+            current.pop(tree, None)
+        write_pointer(current)
         return 1
-    print("configured %s - %s" % (tree, TREES[tree]["what"]))
+    remember_toolchain(path)
+    print("configured %s - %s" % (os.path.relpath(path, BUILD_ROOT), TREES[tree]["what"]))
     return 0
 
 
-def build(tree, jobs):
+def build(tree, jobs, fresh=False):
     """Build @p tree, reporting only what went wrong."""
-    if configure(tree) != 0:
+    if configure(tree, fresh) != 0:
         return 1
     r = run(["cmake", "--build", tree_path(tree), "-j", str(jobs)])
     if r.returncode != 0:
         sys.stdout.write(r.stdout[-4000:])
         sys.stderr.write(r.stderr[-4000:])
         print("build of %s failed" % tree)
+        report_defender()
         return 1
-    print("%s built" % tree)
+    print("%s built" % os.path.relpath(tree_path(tree), BUILD_ROOT))
     return 0
 
 
@@ -403,12 +729,362 @@ def ctest(tree, pattern):
     return r.returncode
 
 
+# ------------------------------------------------------------------------------------------------
+# Device benches
+# ------------------------------------------------------------------------------------------------
+# The on-device benches are ESP-IDF projects, which is a second build system with its own toolchain
+# and its own environment. Reaching it needs a shell, and a shell script kept in the tree is a second
+# place the paths live: it drifts from what this file computes and is wrong exactly when nobody
+# checks. So the script is written out from here, run, and removed on success.
+#
+# Left behind on failure, with its path printed. A build that failed is when the exact command that
+# ran is worth reading, and reconstructing it from a script that deleted itself is guesswork.
+BENCH_ROOT = os.path.join(ROOT, "test", "performance_benching")
+
+# Where an emitted script goes. Under the container with the build trees, so one directory holds
+# everything a build makes and nothing lands beside the source.
+SANDBOX = os.path.join(BUILD_CONTAINER, "sandbox")
+
+# The IDF install this machine carries. Read from the environment where it is set, so a different
+# install needs no edit here.
+IDF_PATH = os.environ.get("IDF_PATH", r"C:\Espressif\frameworks\esp-idf-v5.5.5")
+IDF_TOOLS_PATH = os.environ.get("IDF_TOOLS_PATH", r"C:\Espressif")
+IDF_PYTHON = os.environ.get("MMGR_IDF_PYTHON", r"C:\Espressif\python_env\idf5.5_py3.14_env\Scripts\python.exe")
+
+
+def emit_script(name, body):
+    """Write @p body to a script under the sandbox and hand back its path."""
+    os.makedirs(SANDBOX, exist_ok=True)
+    path = os.path.join(SANDBOX, "%s-%s.ps1" % (name, build_stamp()))
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(body)
+    return path
+
+
+def run_script(path, quiet=False):
+    """Run an emitted script, removing it on success and leaving it on failure."""
+    r = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path],
+        cwd=ROOT,
+        text=True,
+        capture_output=quiet,
+    )
+    if r.returncode == 0:
+        os.unlink(path)
+    else:
+        print("script kept for reading: %s" % os.path.relpath(path, ROOT).replace("\\", "/"))
+    return r
+
+
+# idf.py invoked by name goes through the Windows .py association on this machine, which prints
+# nothing and exits 0 - so a failure reads as a success and the build directory is never made. Every
+# invocation goes through the IDF python explicitly for that reason.
+IDF_PREAMBLE = """\
+$ErrorActionPreference = "Stop"
+
+# idf.py refuses to run under MSys/Mingw and stops before it configures anything. Those variables
+# are inherited from whichever shell started the harness, and a POSIX shell on this machine sets
+# them, so a device build reached from one dies on a message about the environment rather than
+# about the build. Cleared here so an emitted script runs the same way whichever shell got here.
+foreach ($name in "MSYSTEM", "MSYSTEM_PREFIX", "MINGW_PREFIX", "MSYS", "MSYS2_PATH_TYPE") {{
+    Remove-Item -Path ("env:" + $name) -ErrorAction SilentlyContinue
+}}
+
+$env:IDF_PATH = "{idf_path}"
+$env:IDF_TOOLS_PATH = "{idf_tools}"
+$idfPython = "{idf_python}"
+
+$pairs = & $idfPython "$env:IDF_PATH\\tools\\idf_tools.py" export --format key-value
+foreach ($line in $pairs) {{
+    if ($line -match '^\\s*([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {{
+        Set-Item -Path ("env:" + $matches[1]) -Value $matches[2].Replace('%PATH%', $env:PATH)
+    }}
+}}
+$env:PATH = "$env:IDF_PATH\\tools;" + $env:PATH
+$idfPy = "$env:IDF_PATH\\tools\\idf.py"
+"""
+
+
+def bench_names():
+    """Every bench project under test/performance_benching that carries a CMakeLists."""
+    if not os.path.isdir(BENCH_ROOT):
+        return []
+    return sorted(
+        name
+        for name in os.listdir(BENCH_ROOT)
+        if os.path.isfile(os.path.join(BENCH_ROOT, name, "CMakeLists.txt"))
+    )
+
+
+def cmd_device_build(a):
+    """Configure and build one device bench into its own tree under the container."""
+    if a.bench not in bench_names():
+        print("no bench called %s. There is: %s" % (a.bench, ", ".join(bench_names())))
+        return 1
+
+    proj = os.path.join(BENCH_ROOT, a.bench)
+    # Always a new tree. An IDF tree carries the target it was configured for, so reusing one across
+    # targets is the case that reports success for a part the image was not built for.
+    tree = tree_path("%s-%s" % (a.bench, a.target), fresh=True)
+
+    body = IDF_PREAMBLE.format(idf_path=IDF_PATH, idf_tools=IDF_TOOLS_PATH, idf_python=IDF_PYTHON)
+    body += '\nSet-Location "{root}"\n'.format(root=ROOT)
+    # sdkconfig into the tree, not beside the source. idf.py writes it into the project directory by
+    # default, which leaves generated config in the checkout and leaves it there after the tree it
+    # describes is gone - and the name it writes, plain "sdkconfig", is not what .gitignore covers.
+    # In the tree it is made with the tree, removed with it, and regenerated from sdkconfig.defaults
+    # for the next one. Forward slashes because the value reaches cmake, which reads a backslash in
+    # a -D as an escape.
+    sdkconfig = os.path.join(tree, "sdkconfig").replace("\\", "/")
+    body += '& $idfPython $idfPy -C "{proj}" -B "{tree}" -D SDKCONFIG="{sdkconfig}" set-target {target}\n'.format(
+        proj=proj, tree=tree, sdkconfig=sdkconfig, target=a.target
+    )
+    # Single braces, and an explicit exit rather than a throw. This line is concatenated, not
+    # formatted, so a doubled brace is not an escape here - it emits a scriptblock wrapped in a
+    # scriptblock, which PowerShell prints instead of running. The guard then never fires and the
+    # step reports success no matter what it did.
+    body += 'if ($LASTEXITCODE -ne 0) { Write-Error "set-target failed"; exit 1 }\n'
+    # Job count capped: ninja defaults to cores + 2, and a full IDF tree at that width has taken this
+    # machine down.
+    body += 'ninja -C "{tree}" -j {jobs}\n'.format(tree=tree, jobs=a.jobs)
+    body += 'if ($LASTEXITCODE -ne 0) { Write-Error "build failed"; exit 1 }\n'
+    body += "exit 0\n"
+
+    path = emit_script("device-build-%s-%s" % (a.bench, a.target), body)
+    r = run_script(path)
+    if r.returncode != 0:
+        print("device build of %s for %s failed" % (a.bench, a.target))
+        return 1
+    # An exit code is one witness, the image on disk is a second and an independent one. This command
+    # has already once reported a part built while nothing was compiled at all, so what flash needs is
+    # checked for here rather than found missing later by a flash that cannot say why.
+    if not os.path.isfile(os.path.join(tree, "flash_args")):
+        print(
+            "device build of %s for %s exited clean and produced no image in %s - treat the exit\n"
+            "code as unreliable and read the script that ran"
+            % (a.bench, a.target, os.path.relpath(tree, ROOT).replace("\\", "/"))
+        )
+        return 1
+    print("built %s for %s in %s" % (a.bench, a.target, os.path.relpath(tree, ROOT).replace("\\", "/")))
+    return 0
+
+
+def cmd_device_flash(a):
+    """Flash the image a previous device build produced."""
+    tree = tree_path("%s-%s" % (a.bench, a.target))
+    if not os.path.isfile(os.path.join(tree, "flash_args")):
+        print("no built image for %s at %s - run: harness.py device build %s --target %s"
+              % (a.bench, os.path.relpath(tree, ROOT).replace("\\", "/"), a.bench, a.target))
+        return 1
+
+    body = IDF_PREAMBLE.format(idf_path=IDF_PATH, idf_tools=IDF_TOOLS_PATH, idf_python=IDF_PYTHON)
+    body += '\nSet-Location "{tree}"\n'.format(tree=tree)
+    body += '& $idfPython -m esptool --chip {chip} --port {port} --baud {baud} write_flash "@flash_args"\n'.format(
+        chip=a.target, port=a.port, baud=a.baud
+    )
+    body += 'if ($LASTEXITCODE -ne 0) { Write-Error "flash failed"; exit 1 }\n'
+    body += "exit 0\n"
+
+    path = emit_script("device-flash-%s-%s" % (a.bench, a.target), body)
+    r = run_script(path)
+    if r.returncode != 0:
+        print("flash of %s to %s failed" % (a.bench, a.port))
+        return 1
+    print("flashed %s to %s on %s" % (a.bench, a.target, a.port))
+    return 0
+
+
+def cmd_device_monitor(a):
+    """Reset a part and print its console until it goes quiet.
+
+    A bench prints its rows once at startup and then stops. idf.py monitor is built for a person
+    watching a log and never returns on its own, and a fixed-duration read either truncates a slow
+    bench or waits out a fast one. So this resets the part, captures from the first line, and stops
+    once it has been silent for --quiet, with --seconds as the ceiling for a part stuck in a loop.
+    """
+    try:
+        import serial  # noqa: PLC0415  only this command needs it, and it is not in the stdlib
+    except ImportError:
+        print("pyserial is not installed for %s - pip install pyserial" % sys.executable)
+        return 1
+
+    try:
+        port = serial.Serial(a.port, a.baud, timeout=0.2)
+    except serial.SerialException as exc:
+        print("cannot open %s: %s" % (a.port, exc))
+        return 1
+
+    with port:
+        # The bridge drives EN from DTR/RTS, which is what makes a capture start at the bench's
+        # first line rather than partway through whatever it had already printed.
+        port.dtr = False
+        port.rts = True
+        time.sleep(0.1)
+        port.rts = False
+
+        said = b""
+        deadline = time.time() + a.seconds
+        last = time.time()
+        while time.time() < deadline:
+            chunk = port.read(4096)
+            if chunk:
+                said += chunk
+                last = time.time()
+                # Written as bytes. A part coming out of reset emits its ROM banner at a different
+                # rate, so the first chunk is always noise, and decoding it produces replacement
+                # characters that a cp1252 console then cannot encode - which crashes the capture
+                # before the bench has said anything.
+                sys.stdout.buffer.write(chunk)
+                sys.stdout.buffer.flush()
+            elif said and (time.time() - last) > a.quiet:
+                break
+
+    if not said:
+        print("%s said nothing in %gs - wrong port, wrong baud, or nothing flashed" % (a.port, a.seconds))
+        return 1
+    return 0
+
+
+def cmd_bench(a):
+    """Forward to the matrix module, which does not run on its own.
+
+    bench.py owns bench_matrix.json and every mutation of it. Those commands are still worth
+    reaching, so they are reached through here rather than being reimplemented in a second place.
+    """
+    sys.path.insert(0, BENCH_ROOT)
+    try:
+        import bench  # noqa: PLC0415  the module is only importable once BENCH_ROOT is on the path
+    except ImportError as exc:
+        print("cannot reach the matrix module: %s" % exc)
+        return 1
+    # bench.py resolves the matrix beside itself, so it is run from its own directory.
+    here = os.getcwd()
+    os.chdir(BENCH_ROOT)
+    try:
+        return bench.main(a.rest)
+    finally:
+        os.chdir(here)
+
+
+def cmd_device_list(a):
+    """Which bench projects exist, and which trees have been built for them."""
+    del a
+    names = bench_names()
+    if not names:
+        print("no bench projects under %s" % os.path.relpath(BENCH_ROOT, ROOT).replace("\\", "/"))
+        return 0
+    current = read_pointer()
+    for name in names:
+        built = sorted(key for key in current if key.startswith(name + "-"))
+        print("  %-14s %s" % (name, ", ".join(built) if built else "not built"))
+    return 0
+
+
+def cmd_trees(a):
+    """What is under the container, and which directory each name is currently using."""
+    del a
+    current = read_pointer()
+    if not os.path.isdir(BUILD_CONTAINER):
+        print("no build container at %s" % os.path.relpath(BUILD_CONTAINER, ROOT).replace("\\", "/"))
+        return 0
+
+    names = [name for tree in sorted(TREES) for name in tree_dirs(tree)]
+    if not names:
+        print("no build trees yet")
+        return 0
+
+    print("%s  (keeping %d per name)" % (os.path.relpath(BUILD_CONTAINER, ROOT).replace("\\", "/"), BUILD_KEEP))
+    # Only the tree entries. The pointer also carries the remembered toolchain, whose value is a list
+    # and would not go into a set at all.
+    live = {name for key, name in current.items() if not key.startswith("_")}
+    for name in names:
+        configured = os.path.isfile(os.path.join(BUILD_CONTAINER, name, "CMakeCache.txt"))
+        print("  %-34s %-12s %s" % (name, "current" if name in live else "", "" if configured else "not configured"))
+    return 0
+
+
+# What build output looks like when it turns up somewhere it does not belong. Each carries what it
+# is, because a path on its own does not tell the reader why it was named.
+#
+# The names here are deliberately narrow. sdkconfig.defaults is a source file that is meant to be in
+# the tree and sdkconfig is a generated one that is not, so this matches the second and not the
+# first: a check that cries wolf on a real source file is one that gets run once.
+STRAY_DIRS = (
+    ("__pycache__", "python bytecode, written beside an imported module"),
+    (".pio", "PlatformIO build tree"),
+    ("build", "a build tree outside the container"),
+    ("build_*", "an ESP-IDF build tree outside the container"),
+    ("cmake-build*", "a CMake build tree outside the container"),
+    (".pytest_cache", "pytest state"),
+    (".mypy_cache", "mypy state"),
+)
+
+STRAY_FILES = (
+    ("*.o", "object file"),
+    ("*.obj", "object file"),
+    ("*.a", "static archive"),
+    ("*.elf", "linked image"),
+    ("*.pyc", "python bytecode"),
+    ("*.gcda", "coverage counters"),
+    ("*.gcno", "coverage notes"),
+    ("sdkconfig", "generated ESP-IDF config"),
+    ("sdkconfig.old", "generated ESP-IDF config"),
+    ("sdkconfig.esp32*", "generated ESP-IDF config"),
+)
+
+
+def cmd_stray(a):
+    """Everything outside the container that looks like something a build produced.
+
+    The container rule is only worth having if breaking it is visible. Left to be noticed by hand,
+    a stray tree is found by whoever goes looking, days later, and by then there are several and
+    nobody knows which tool made which - so this makes a dirty tree one line of output instead of
+    an afternoon of going through directories.
+
+    Reports and never removes. What disappears from a checkout is the reader's call, not a tool's.
+    """
+    container = os.path.abspath(BUILD_CONTAINER)
+    hits = []
+    for base, dirs, files in os.walk(ROOT):
+        # Never descend into .git, and never into the container: the container is where every one of
+        # these belongs, so naming its contents would report the rule working as if it were broken.
+        dirs[:] = [
+            d for d in dirs if d != ".git" and os.path.abspath(os.path.join(base, d)) != container
+        ]
+        for name in list(dirs):
+            for pattern, why in STRAY_DIRS:
+                if fnmatch.fnmatch(name, pattern):
+                    hits.append((os.path.join(base, name), why, True))
+                    # Not descended into. One line for the tree, rather than one per object inside
+                    # it, which for an IDF tree is thousands.
+                    dirs.remove(name)
+                    break
+        for name in files:
+            for pattern, why in STRAY_FILES:
+                if fnmatch.fnmatch(name, pattern):
+                    hits.append((os.path.join(base, name), why, False))
+                    break
+
+    where = os.path.relpath(container, ROOT).replace("\\", "/")
+    if not hits:
+        print("nothing outside %s/ looks like build output" % where)
+        return 0
+
+    for path, why, is_dir in sorted(hits, key=lambda h: h[0]):
+        print("  %-4s %-56s %s" % ("dir" if is_dir else "file", os.path.relpath(path, ROOT).replace("\\", "/"), why))
+    print(
+        "\n%d stray path(s). Everything a build makes belongs under %s/, where it is named for what\n"
+        "made it, rotated, and removed with the tree it came from." % (len(hits), where)
+    )
+    return 1 if a.strict else 0
+
+
 def cmd_build(a):
-    return build(a.tree, a.jobs)
+    return build(a.tree, a.jobs, a.fresh)
 
 
 def cmd_test(a):
-    if build(a.tree, a.jobs) != 0:
+    if build(a.tree, a.jobs, a.fresh) != 0:
         return 1
     return 1 if ctest(a.tree, a.filter) != 0 else 0
 
@@ -422,7 +1098,7 @@ def cmd_ab(a):
     bad = 0
     for tree in ("build", "build-oracle"):
         print("%s - %s" % (tree, TREES[tree]["what"]))
-        if build(tree, a.jobs) != 0:
+        if build(tree, a.jobs, a.fresh) != 0:
             return 1
         if ctest(tree, a.filter) != 0:
             bad = 1
@@ -439,7 +1115,7 @@ def cmd_coverage(a):
     all is MMGR_ENVIRONMENTS' business and only the whole set describes the library.
     """
     tree = "build-cov"
-    if not a.no_build and build(tree, a.jobs) != 0:
+    if not a.no_build and build(tree, a.jobs, a.fresh) != 0:
         return 1
 
     if not a.no_run:
@@ -686,6 +1362,10 @@ GENERATED = (
     ),
     ("tools/dev_env/gen_pow5.py", ("src/pow5/pow5.h",)),
     (
+        "tools/dev_env/gen_praet_scenarios.py",
+        ("test/integration/test_praet_correctness/praet_scenarios.h",),
+    ),
+    (
         "tools/dev_env/gen_ancorae_formae.py",
         (
             "src/impensa_ancorae_acus/impensa_ancorae_acus_generic.c",
@@ -755,24 +1435,698 @@ def cmd_generated(a):
     return 0
 
 
+# ------------------------------------------------------------------------------------------------
+# Cross targets and remote runs
+# ------------------------------------------------------------------------------------------------
+# Two questions a host build cannot answer.
+#
+#   targets   compile the module for every part, so the platform derivation is exercised by the
+#             toolchain that actually defines the macros it reads. A host defines none of them.
+#   remote    build and run the whole suite on another machine, which is the only thing here that
+#             runs it on an instruction set that is not x86.
+#
+# Add a part: one row in TARGETS. Add a toolchain: one constant, overridable from the environment so
+# a different install needs no edit. A row whose compiler is absent reports SKIP and never a pass.
+
+ESP_TOOLS = os.environ.get("MMGR_ESP_TOOLS", r"C:\Espressif\tools")
+XT_14 = os.path.join(ESP_TOOLS, "xtensa-esp-elf", "esp-14.2.0_20260121", "xtensa-esp-elf", "bin")
+XT_15 = os.path.join(ESP_TOOLS, "xtensa-esp-elf", "esp-15.2.0_20251204", "xtensa-esp-elf", "bin")
+RV_14 = os.path.join(ESP_TOOLS, "riscv32-esp-elf", "esp-14.2.0_20260121", "riscv32-esp-elf", "bin",
+                     "riscv32-esp-elf-gcc.exe")
+RV_15 = os.path.join(ESP_TOOLS, "riscv32-esp-elf", "esp-15.2.0_20251204", "riscv32-esp-elf", "bin",
+                     "riscv32-esp-elf-gcc.exe")
+
+# Current Arm GNU. PlatformIO ships GCC 5.4.1 from 2016, which predates ARMv8-M and cannot build a
+# Cortex-M23 or M33 at all. ARM_OLD keeps two rows anyway: a header this full of preprocessor tests
+# is exactly what compiles on one compiler generation and not another.
+ARM = os.environ.get("MMGR_ARM_GCC",
+                     r"C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.2 rel1\bin\arm-none-eabi-gcc.exe")
+ARM_OLD = os.environ.get("MMGR_ARM_GCC_OLD",
+                         os.path.expanduser(r"~\.platformio\packages\toolchain-gccarmnoneeabi\bin\arm-none-eabi-gcc.exe"))
+
+# A compiler targeting the 64 bit state, which arm-none-eabi is not. The wsl: prefix routes the row
+# through WSL and translates every path on the way.
+AARCH64 = "wsl:aarch64-linux-gnu-gcc"
+
+HOST_GCC = os.environ.get("MMGR_HOST_GCC", r"C:\Strawberry\c\bin\gcc.exe")
+
+# A target with a counter pins its own timer. One without has to be handed a clock, and asking it to
+# pin one is the refusal row.
+CLOCK_OWN = ["-DPRAET_CLOCK_SOURCE=PRAET_CLOCK_OWN", "-DPRAET_CLOCK_CORE=0u"]
+CLOCK_CALLER = ["-DPRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"]
+
+# name, compiler, arch flags, (arm, riscv, xtensa, xlen, counter), clock, must_build, text a refusal needs
+TARGETS = (
+    ("esp32s3   gcc14", os.path.join(XT_14, "xtensa-esp32s3-elf-gcc.exe"), [], (0, 0, 1, 32, 1), CLOCK_OWN, True, None),
+    ("esp32s3   gcc15", os.path.join(XT_15, "xtensa-esp32s3-elf-gcc.exe"), [], (0, 0, 1, 32, 1), CLOCK_OWN, True, None),
+    ("esp32s2   gcc14", os.path.join(XT_14, "xtensa-esp32s2-elf-gcc.exe"), [], (0, 0, 1, 32, 1), CLOCK_OWN, True, None),
+    ("esp32     gcc14", os.path.join(XT_14, "xtensa-esp32-elf-gcc.exe"), [], (0, 0, 1, 32, 1), CLOCK_OWN, True, None),
+    ("esp32c6   gcc14", RV_14, ["-march=rv32imac_zicsr_zifencei", "-mabi=ilp32"], (0, 1, 0, 32, 1), CLOCK_OWN, True, None),
+    ("esp32c6   gcc15", RV_15, ["-march=rv32imac_zicsr_zifencei", "-mabi=ilp32"], (0, 1, 0, 32, 1), CLOCK_OWN, True, None),
+    ("esp32p4   gcc14", RV_14, ["-march=rv32imafc_zicsr_zifencei", "-mabi=ilp32f"], (0, 1, 0, 32, 1), CLOCK_OWN, True, None),
+    # Teensy 4.1 is an i.MX RT1062: Cortex-M7, ARMv7E-M, carries a DWT.
+    ("teensy41  m7", ARM, ["-mcpu=cortex-m7", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("atsamd51  m4", ARM, ["-mcpu=cortex-m4", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("cortex-m3   v7m", ARM, ["-mcpu=cortex-m3", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("cortex-m33  v8m.main", ARM, ["-mcpu=cortex-m33", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("cortex-m23  v8m.base", ARM, ["-mcpu=cortex-m23", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    # AArch32, not AArch64. arm-none-eabi targets the 32 bit state, so this is __ARM_ARCH 8 with
+    # profile 'A' and no __aarch64__. It is the application profile row and nothing more.
+    ("cortex-a53  v8a aarch32", ARM, ["-mcpu=cortex-a53"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("aarch64     v8a", AARCH64, [], (1, 0, 0, 64, 1), CLOCK_OWN, True, None),
+    # The same two parts on the 2016 compiler. Nine years of GCC must change nothing here.
+    ("teensy41  m7 gcc5", ARM_OLD, ["-mcpu=cortex-m7", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    ("atsamd51  m4 gcc5", ARM_OLD, ["-mcpu=cortex-m4", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
+    # ARMv6-M has no DWT. The derivation has to see that, and pinning a timer there has to be refused.
+    ("cortex-m0+  v6m", ARM, ["-mcpu=cortex-m0plus", "-mthumb"], (1, 0, 0, 32, 0), CLOCK_CALLER, True, None),
+    ("cortex-m0+  pinned REFUSAL", ARM, ["-mcpu=cortex-m0plus", "-mthumb"], (1, 0, 0, 32, 0), CLOCK_OWN, False,
+     "defines no cycle counter"),
+    ("host      x86-64", HOST_GCC, [], (0, 0, 0, 64, 0), CLOCK_CALLER, True, None),
+)
+
+# Every knob the probe reads that is not this table's subject, so a row only fails for its own reason.
+TARGET_KNOBS = (
+    "-DMMGR_ENABLE_DMA=1", "-DMMGR_ENABLE_EXTRAM=0",
+    "-DPRAET_CHANNELS=8u", "-DPRAET_SETTLE_MICROS=40u", "-DPRAET_KEEPALIVE_MICROS=250u",
+    "-DPRAET_RECOVERY=1", "-DPRAET_CLOCK_HZ=240000000u",
+)
+
+PRAET_SUITE = os.path.join(INTEGRATION, "test_praet_correctness")
+
+
+def to_wsl(path):
+    """A Windows path as WSL sees it. C:\\x becomes /mnt/c/x."""
+    text = str(path).replace("\\", "/")
+    return "/mnt/" + text[0].lower() + text[2:] if len(text) > 1 and text[1] == ":" else text
+
+
+def compiler_present(compiler):
+    """Whether a row's compiler is there, on either side of the WSL boundary."""
+    if str(compiler).startswith("wsl:"):
+        tool = str(compiler).split(":", 1)[1]
+        return subprocess.run(["wsl", "-e", "which", tool], capture_output=True, text=True).returncode == 0
+    return os.path.isfile(compiler)
+
+
+def cmd_targets(a):
+    """Compile the module for every part, and hold each one's derivation to what it should answer."""
+    probe = os.path.join(PRAET_SUITE, "praet_target_probe.c")
+    if not os.path.isfile(probe):
+        print("no probe at %s" % os.path.relpath(probe, ROOT).replace("\\", "/"))
+        return 1
+
+    scratch = os.path.join(BUILD_CONTAINER, "targets")
+    os.makedirs(scratch, exist_ok=True)
+
+    bad = 0
+    print("%-28s %-8s %s" % ("target", "result", "derived"))
+
+    for name, compiler, arch, expect, clock, must_build, wanted in TARGETS:
+        if not compiler_present(compiler):
+            print("%-28s %-8s no compiler at %s" % (name, "SKIP", compiler))
+            continue
+
+        in_wsl = str(compiler).startswith("wsl:")
+        where = to_wsl if in_wsl else (lambda path: str(path))
+        arm, riscv, xtensa, xlen, counter = expect
+
+        cmd = ["wsl", "-e", str(compiler).split(":", 1)[1]] if in_wsl else [compiler]
+        cmd += ["-std=c11", "-O2", "-Wall", "-Wextra", "-Wconversion", "-Wsign-conversion"]
+        cmd += list(arch) + list(TARGET_KNOBS) + list(clock)
+        cmd += ["-DEXPECT_ARM=%d" % arm, "-DEXPECT_RISCV=%d" % riscv, "-DEXPECT_XTENSA=%d" % xtensa,
+                "-DEXPECT_XLEN=%d" % xlen, "-DEXPECT_COUNTER=%d" % counter]
+        cmd += ["-I" + where(os.path.join(ROOT, "src")), "-I" + where(os.path.join(ROOT, "include")),
+                "-I" + where(os.path.join(ROOT, "deps", "embedded_types", "include")),
+                "-I" + where(PRAET_SUITE)]
+        cmd += ["-c", where(probe), "-o", where(os.path.join(scratch, "probe_%s.o" % name.split()[0]))]
+
+        done = subprocess.run(cmd, capture_output=True, text=True)
+        out = done.stdout + done.stderr
+        built = done.returncode == 0
+
+        family = "arm" if arm else ("riscv" if riscv else ("xtensa" if xtensa else "host"))
+        problems = []
+        if built != must_build:
+            problems.append("expected %s, it %s" % ("a build" if must_build else "a refusal",
+                                                    "built" if built else "failed"))
+            problems += ["  " + ln.strip() for ln in out.splitlines() if "error" in ln.lower()][:3]
+        if wanted and wanted not in out:
+            problems.append("the refusal never said %r" % wanted)
+        # The boundary word token announces itself on every build that declares a context. Anything
+        # else is a diagnostic nobody asked for.
+        noise = [ln for ln in out.splitlines()
+                 if ("warning" in ln.lower() or "error" in ln.lower())
+                 and "AD_VERBI_CONFINIUM" not in ln and "deprecated" not in ln.lower()]
+        if must_build and noise:
+            problems.append("%d diagnostic(s) beyond the token" % len(noise))
+            problems += ["  " + ln.strip() for ln in noise[:3]]
+
+        print("%-28s %-8s %s xlen=%d counter=%d" % (name, "ok" if not problems else "FAIL", family, xlen, counter))
+        for line in problems:
+            print("       %s" % line)
+            bad += 1
+
+    print()
+    if bad:
+        print("%d expectation(s) not met" % bad)
+        return 1 if a.strict else 0
+    print("every target derives its own family, width and counter, and the part with no counter is")
+    print("refused when asked to pin a timer")
+    return 0
+
+
+# The suite's columns, the same ones a host run builds, so a remote run is comparable row for row.
+CRC_OFF = "-DPRAET_SUITE_CRC_CHOICE=AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE"
+REMOTE_COLUMNS = (
+    ("host    ", []),
+    ("word32  ", ["-DEMBED_WORD_BITS=32"]),
+    ("word16  ", ["-DEMBED_WORD_BITS=16"]),
+    ("settle=0", ["-DPRAET_SETTLE_MICROS=0u"]),
+    ("crcoff  ", [CRC_OFF]),
+    ("clk1MHz ", ["-DPRAET_CLOCK_HZ=1000000u"]),
+    ("norecov ", ["-DPRAET_RECOVERY=0", CRC_OFF]),
+    ("examine ", ["-DPRAET_PROCURATOR=1"]),
+    ("optimize", ["-DPRAET_OPTIMIZE=1"]),
+)
+
+
+def cmd_remote(a):
+    """Build and run the praet suite on another machine, over ssh.
+
+    The password comes from MMGR_REMOTE_PW and is never written down here. WSLENV is what carries a
+    Windows variable across into WSL, which is where ssh and rsync live on this host.
+    """
+    if not os.environ.get("MMGR_REMOTE_PW"):
+        print("set MMGR_REMOTE_PW before running this")
+        return 1
+    already = os.environ.get("WSLENV", "")
+    os.environ["WSLENV"] = "MMGR_REMOTE_PW" + (":" + already if already else "")
+
+    target = "%s@%s" % (a.user, a.host)
+
+    unity = os.path.join(tree_path("build"), "_deps", "unity-src", "src")
+    if not os.path.isfile(os.path.join(unity, "unity.c")):
+        print("no unity at %s - run: harness.py build" % unity)
+        return 1
+
+    # Regenerate the runner from the source that is about to be sent. Shipping whatever runner was
+    # last committed runs the cases that existed then: caught here reporting 43 of 46, green, with
+    # three cases that never ran.
+    generate_runner(PRAET_SUITE, os.path.join(os.path.dirname(unity), "auto", "generate_test_runner.rb"))
+    found, _missed = runner_cases(os.path.join(PRAET_SUITE, "test_praet_correctness.c"))
+    print("%d cases" % len(found))
+
+    def over_there(command):
+        """One command on the far end."""
+        return subprocess.run(
+            ["wsl", "-e", "bash", "-lc",
+             'sshpass -p "$MMGR_REMOTE_PW" ssh -o StrictHostKeyChecking=accept-new %s %s'
+             % (target, json.dumps(command))],
+            capture_output=True, text=True)
+
+    made = over_there("mkdir -p %s/{suite,src,include,embed,unity}" % a.dir)
+    if made.returncode != 0:
+        print("cannot reach %s:" % target)
+        print((made.stdout + made.stderr).strip()[:500])
+        return 1
+
+    # src and include go over whole. The suite reaches other modules' headers through them, and a
+    # list of which would be a second copy of that fact waiting to drift.
+    for source, into in ((PRAET_SUITE, "suite"), (os.path.join(ROOT, "src"), "src"),
+                         (os.path.join(ROOT, "include"), "include"),
+                         (os.path.join(ROOT, "deps", "embedded_types", "include"), "embed"),
+                         (unity, "unity")):
+        sent = subprocess.run(
+            ["wsl", "-e", "bash", "-lc",
+             'sshpass -p "$MMGR_REMOTE_PW" rsync -a -e "ssh -o StrictHostKeyChecking=accept-new" %s/ %s:%s/%s/'
+             % (to_wsl(source), target, a.dir, into)],
+            capture_output=True, text=True)
+        if sent.returncode != 0:
+            print("rsync of %s failed:" % into)
+            print((sent.stdout + sent.stderr).strip()[:500])
+            return 1
+
+    said = over_there("uname -srm")
+    print("%s: %s" % (target, (said.stdout or "").strip()))
+    print("%-10s %s" % ("column", "result"))
+
+    bad = 0
+    for label, extra in REMOTE_COLUMNS:
+        tag = label.strip().replace("=", "")
+        build = (
+            "cd %s && gcc -std=c11 -O2 -Wall -Wextra -Wconversion -Wsign-conversion %s "
+            "-DMMGR_ENABLE_DMA=1 -DMMGR_ENABLE_EXTRAM=0 -DMMGR_PRAET_CHANNELS=8 -DMMGR_PRAET_BUF_SIZE=256 "
+            "-DUNITY_INCLUDE_DOUBLE -DUNITY_INCLUDE_FLOAT -Isrc -Iinclude -Iembed -Isuite -Iunity "
+            "suite/test_praet_correctness.c suite/%s unity/unity.c "
+            "src/memoriam_praetereo/memoriam_praetereo.c -o suite_%s 2>&1 | "
+            "grep -E 'error|warning' | grep -v unity | grep -v AD_VERBI_CONFINIUM | wc -l"
+        ) % (a.dir, " ".join(extra), GENERATED_RUNNER, tag)
+
+        built = over_there(build)
+        ours = (built.stdout or "").strip().splitlines()
+        ran = over_there("cd %s && ./suite_%s 2>&1 | tail -3" % (a.dir, tag))
+        summary = [ln for ln in (ran.stdout or "").splitlines() if "Tests" in ln]
+
+        if not summary:
+            print("%-10s BUILD OR RUN FAILED" % label)
+            print("       %s" % (built.stdout + built.stderr).strip()[:300])
+            bad += 1
+            continue
+
+        print("%-10s ours=%s  %s" % (label, ours[-1] if ours else "?", summary[0].strip()))
+        if "0 Failures" not in summary[0]:
+            bad += 1
+
+    print()
+    print("every column passes on %s" % a.host if bad == 0 else "%d column(s) failed" % bad)
+    return 1 if bad else 0
+
+
+# ------------------------------------------------------------------------------------------------
+# Published vectors
+# ------------------------------------------------------------------------------------------------
+# Everything published for SHA-256 that this tree can reach, run offline against the bytes vendored
+# under test/vectors with their sources and digests in MANIFEST.json.
+#
+#   CAVP ShortMsg/LongMsg   the normative one shot tables
+#   CAVP Monte              100 checkpoints x 1000 chained rounds, which is the only published case
+#                           that catches state carried wrongly between blocks
+#   Wycheproof HMAC         adversarial: modified tags that must NOT reproduce
+#   splits                  every way of cutting one message across take() must reach one digest
+#   differential            against a second implementation over boundary and random lengths
+#
+# The last two need no vector file. They are invariants, and they cover the streaming code the
+# published tables cannot reach because those tables only ever hash a message in one call.
+
+VECTORS_DIR = os.path.join(ROOT, "test", "vectors")
+
+# Lengths where SHA-256 padding decides something: the block, one short of the length field, the
+# rollover into a second padding block, and a few multiples.
+VECTOR_EDGE_LENGTHS = (0, 1, 2, 3, 54, 55, 56, 57, 63, 64, 65, 111, 112, 113, 119, 120, 127, 128,
+                       129, 191, 192, 255, 256, 1000)
+
+SHA_HELPER = r'''
+/* Modes: digest (hex per line, "." is empty), monte (seed, 100 checkpoints),
+ * hmac (key<space>msg per line), splits (hex per line, every split verified internally). */
+#include <stdio.h>
+#include <string.h>
+#include "mmgr_sha256.h"
+
+static size_t unhex(const char *text, uint8_t *into, size_t room)
+{
+    size_t used = 0u;
+    while ((text[used * 2u] != '\0') && (text[(used * 2u) + 1u] != '\0') && (used < room))
+    {
+        unsigned value = 0u;
+        sscanf(&text[used * 2u], "%2x", &value);
+        into[used] = (uint8_t)value;
+        used++;
+    }
+    return used;
+}
+
+static void put_hex(const uint8_t *bytes, size_t length)
+{
+    for (size_t i = 0u; i < length; i++) { printf("%02x", bytes[i]); }
+    printf("\n");
+}
+
+static char line[300000];
+static uint8_t msg[150000];
+static uint8_t key[4096];
+
+/* CAVP publishes a hundred checkpoints. The construction does not stop there, and past a hundred it
+ * is still a valid chain with no published answer, so a soak runs it as far as asked and a second
+ * implementation supplies the expectation. Errors in a chain compound forward, which is why this
+ * finds state bugs that independent messages hide. */
+static int monte(unsigned checkpoints)
+{
+    uint8_t md[MMGR_SHA256_BYTES];
+    if (fgets(line, (int)sizeof line, stdin) == NULL) { return 1; }
+    char *end = strchr(line, '\n'); if (end) { *end = '\0'; }
+    if (unhex(line, md, sizeof md) != MMGR_SHA256_BYTES) { return 1; }
+
+    for (unsigned cp = 0u; cp < checkpoints; cp++)
+    {
+        uint8_t a[MMGR_SHA256_BYTES], b[MMGR_SHA256_BYTES], c[MMGR_SHA256_BYTES];
+        memcpy(a, md, sizeof a); memcpy(b, md, sizeof b); memcpy(c, md, sizeof c);
+        for (unsigned r = 0u; r < 1000u; r++)
+        {
+            uint8_t feed[MMGR_SHA256_BYTES * 3u], next[MMGR_SHA256_BYTES];
+            memcpy(feed, a, MMGR_SHA256_BYTES);
+            memcpy(feed + MMGR_SHA256_BYTES, b, MMGR_SHA256_BYTES);
+            memcpy(feed + (MMGR_SHA256_BYTES * 2u), c, MMGR_SHA256_BYTES);
+            mmgr_sha256(feed, sizeof feed, next);
+            memcpy(a, b, MMGR_SHA256_BYTES); memcpy(b, c, MMGR_SHA256_BYTES);
+            memcpy(c, next, MMGR_SHA256_BYTES);
+        }
+        memcpy(md, c, sizeof md);
+        put_hex(md, sizeof md);
+    }
+    return 0;
+}
+
+/* Every single cut of the message, plus the one shot, must reach the same digest. That is the
+ * invariant the published tables cannot test, because they only ever hash in one call. */
+static int splits(void)
+{
+    while (fgets(line, (int)sizeof line, stdin) != NULL)
+    {
+        char *end = strchr(line, '\n'); if (end) { *end = '\0'; }
+        size_t len = 0u;
+        if (strcmp(line, ".") != 0) { len = unhex(line, msg, sizeof msg); }
+
+        uint8_t want[MMGR_SHA256_BYTES];
+        mmgr_sha256(msg, len, want);
+
+        unsigned bad = 0u;
+        for (size_t cut = 0u; cut <= len; cut++)
+        {
+            uint8_t got[MMGR_SHA256_BYTES];
+            MmgrSha256 running;
+            mmgr_sha256_begin(&running);
+            mmgr_sha256_take(&running, msg, cut);
+            mmgr_sha256_take(&running, msg + cut, len - cut);
+            mmgr_sha256_finish(&running, got);
+            if (memcmp(got, want, MMGR_SHA256_BYTES) != 0) { bad++; }
+        }
+        /* And a byte at a time, which is the worst case for the partial block path. */
+        {
+            uint8_t got[MMGR_SHA256_BYTES];
+            MmgrSha256 running;
+            mmgr_sha256_begin(&running);
+            for (size_t i = 0u; i < len; i++) { mmgr_sha256_take(&running, &msg[i], 1u); }
+            mmgr_sha256_finish(&running, got);
+            if (memcmp(got, want, MMGR_SHA256_BYTES) != 0) { bad++; }
+        }
+        printf("%u %u\n", (unsigned)len, bad);
+        fflush(stdout);
+    }
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    const char *mode = (argc > 1) ? argv[1] : "digest";
+
+    if (strcmp(mode, "selftest") == 0) { printf("%d\n", mmgr_sha256_self_test()); return 0; }
+    if (strcmp(mode, "monte") == 0)
+    {
+        unsigned checkpoints = 100u;
+        if (argc > 2) { sscanf(argv[2], "%u", &checkpoints); }
+        return monte(checkpoints);
+    }
+    if (strcmp(mode, "splits") == 0) { return splits(); }
+
+    while (fgets(line, (int)sizeof line, stdin) != NULL)
+    {
+        char *end = strchr(line, '\n'); if (end) { *end = '\0'; }
+        uint8_t out[MMGR_SHA256_BYTES];
+
+        if (strcmp(mode, "bits") == 0)
+        {
+            /* "<bitlen> <hex>", the bits left aligned in the last byte as CAVP packs them. */
+            char *space = strchr(line, ' ');
+            if (space == NULL) { continue; }
+            *space = '\0';
+            unsigned long long want = 0ull;
+            sscanf(line, "%llu", &want);
+            unhex(space + 1, msg, sizeof msg);
+            mmgr_sha256_bits(msg, (uint64_t)want, out);
+        }
+        else if (strcmp(mode, "hmac") == 0)
+        {
+            char *space = strchr(line, ' ');
+            if (space == NULL) { continue; }
+            *space = '\0';
+            const size_t klen = unhex(line, key, sizeof key);
+            const size_t mlen = unhex(space + 1, msg, sizeof msg);
+            mmgr_hmac_sha256(key, klen, msg, mlen, out);
+        }
+        else
+        {
+            size_t len = 0u;
+            if (strcmp(line, ".") != 0) { len = unhex(line, msg, sizeof msg); }
+            mmgr_sha256(msg, len, out);
+        }
+        put_hex(out, MMGR_SHA256_BYTES);
+    }
+    return 0;
+}
+'''
+
+
+def vectors_helper():
+    """Build the helper that reaches mmgr_sha256, and hand back its path."""
+    scratch = os.path.join(BUILD_CONTAINER, "vectors")
+    os.makedirs(scratch, exist_ok=True)
+    source = os.path.join(scratch, "sha_helper.c")
+    with open(source, "w", encoding="utf-8") as fh:
+        fh.write(SHA_HELPER)
+
+    exe = os.path.join(scratch, "sha_helper.exe")
+    built = run([
+        HOST_GCC, "-std=c11", "-O2", "-Wall", "-Wextra", "-Wconversion", "-Wsign-conversion",
+        "-I" + os.path.join(ROOT, "test", "support"), "-I" + os.path.join(ROOT, "include"),
+        "-I" + os.path.join(ROOT, "src"), "-I" + os.path.join(ROOT, "deps", "embedded_types", "include"),
+        source, os.path.join(ROOT, "test", "support", "mmgr_sha256.c"), "-o", exe,
+    ])
+    if built.returncode != 0:
+        sys.stderr.write(built.stdout + built.stderr)
+        return None
+    return exe
+
+
+def parse_rsp(text):
+    """Every (message hex, expected digest hex) pair in a CAVP response file."""
+    cases, msg, length = [], None, None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("Len ="):
+            length = int(line.split("=")[1].strip())
+        elif line.startswith("Msg ="):
+            msg = line.split("=")[1].strip()
+        elif line.startswith("MD ="):
+            # CAVP writes one 00 byte for the zero length message
+            cases.append(("" if length == 0 else msg, line.split("=")[1].strip()))
+    return cases
+
+
+def cmd_vectors(a):
+    """Run every published SHA-256 vector this tree carries, plus the streaming invariants."""
+    import hashlib  # noqa: PLC0415  only this command needs a reference implementation
+
+    manifest_path = os.path.join(VECTORS_DIR, "MANIFEST.json")
+    if not os.path.isfile(manifest_path):
+        print("no vendored vectors - run tools vendor_vectors.py")
+        return 1
+
+    with open(manifest_path, encoding="utf-8") as fh:
+        manifest = json.load(fh)
+
+    # The vectors are evidence, so what they hash to is checked before anything is read from them
+    drifted = 0
+    for entry in manifest["files"]:
+        path = os.path.join(VECTORS_DIR, entry["file"])
+        with open(path, "rb") as fh:
+            got = hashlib.sha256(fh.read()).hexdigest()
+        if got != entry["sha256"]:
+            print("DRIFT %s\n  manifest %s\n  on disk  %s" % (entry["file"], entry["sha256"], got))
+            drifted += 1
+    if drifted:
+        print("\n%d vendored file(s) do not match the manifest" % drifted)
+        return 1
+    print("%d vendored file(s) match the manifest" % len(manifest["files"]))
+
+    exe = vectors_helper()
+    if exe is None:
+        print("the helper did not build")
+        return 1
+
+    said = run([exe, "selftest"])
+    if said.stdout.strip() != "1":
+        print("the RFC 6234 self test failed, so nothing below can be read")
+        return 1
+    print("%-22s %s" % ("RFC 6234 + RFC 8448", "self test passed"))
+
+    bad = 0
+
+    def digest_file(name, label):
+        with open(os.path.join(VECTORS_DIR, name), encoding="utf-8", errors="replace") as fh:
+            cases = parse_rsp(fh.read())
+        feed = "".join((m if m else ".") + "\n" for m, _ in cases)
+        got = [ln.strip() for ln in run([exe], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+        wrong = sum(1 for (_, want), have in zip(cases, got) if have.lower() != want.lower())
+        wrong += abs(len(got) - len(cases))
+        print("%-22s %4d vectors, %d wrong" % (label, len(cases), wrong))
+        return wrong
+
+    bad += digest_file("nist_cavp_sha256shortmsg.rsp", "CAVP ShortMsg")
+    bad += digest_file("nist_cavp_sha256longmsg.rsp", "CAVP LongMsg")
+
+    with open(os.path.join(VECTORS_DIR, "nist_cavp_sha256monte.rsp"), encoding="utf-8") as fh:
+        text = fh.read()
+    seed = next(l.split("=")[1].strip() for l in text.splitlines() if l.strip().startswith("Seed ="))
+    want = [l.split("=")[1].strip() for l in text.splitlines() if l.strip().startswith("MD =")]
+    got = [ln.strip() for ln in run([exe, "monte"], quiet=True, stdin=seed + "\n").stdout.splitlines() if ln.strip()]
+    wrong = sum(1 for w, g in zip(want, got) if w.lower() != g.lower()) + abs(len(got) - len(want))
+    print("%-22s %4d checkpoints x 1000 rounds, %d wrong" % ("CAVP Monte", len(want), wrong))
+    bad += wrong
+
+    # The bit oriented tables, where Len counts bits and a message need not end on a byte. These are
+    # the only published vectors that reach mmgr_sha256_bits.
+    def bit_file(name, label):
+        with open(os.path.join(VECTORS_DIR, name), encoding="utf-8", errors="replace") as fh:
+            text = fh.read()
+        cases, msg, length = [], None, None
+        for raw in text.splitlines():
+            line = raw.strip()
+            if line.startswith("Len ="):
+                length = int(line.split("=")[1].strip())
+            elif line.startswith("Msg ="):
+                msg = line.split("=")[1].strip()
+            elif line.startswith("MD ="):
+                cases.append((length, msg, line.split("=")[1].strip()))
+        feed = "".join("%d %s\n" % (n, m) for n, m, _ in cases)
+        out = [ln.strip() for ln in run([exe, "bits"], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+        wrong = abs(len(out) - len(cases))
+        wrong += sum(1 for (_, _, want), have in zip(cases, out) if have.lower() != want.lower())
+        ragged = sum(1 for n, _, _ in cases if (n % 8) != 0)
+        print("%-22s %4d vectors (%d not on a byte), %d wrong" % (label, len(cases), ragged, wrong))
+        return wrong
+
+    bad += bit_file("nist_cavp_bit_sha256shortmsg.rsp", "CAVP bit ShortMsg")
+    bad += bit_file("nist_cavp_bit_sha256longmsg.rsp", "CAVP bit LongMsg")
+
+    # CAVP HMAC. Tlen is a truncated tag, so the comparison is against the leading Tlen bytes, which
+    # is what makes this reach truncation as well as the MAC itself.
+    with open(os.path.join(VECTORS_DIR, "nist_cavp_hmac_sha256.rsp"), encoding="utf-8") as fh:
+        hmac_text = fh.read()
+    hmac_cases, current = [], {}
+    for raw in hmac_text.splitlines():
+        line = raw.strip()
+        if line.startswith("#") or line.startswith("["):
+            continue
+        if "=" in line:
+            field, _, value = line.partition("=")
+            current[field.strip()] = value.strip()
+            if field.strip() == "Mac":
+                hmac_cases.append(current)
+                current = {}
+    feed = "".join("%s %s\n" % (c["Key"], c["Msg"]) for c in hmac_cases)
+    got = [ln.strip() for ln in run([exe, "hmac"], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+    wrong = abs(len(got) - len(hmac_cases))
+    truncated = 0
+    for case, have in zip(hmac_cases, got):
+        keep = int(case["Tlen"]) * 2
+        if int(case["Tlen"]) < 32:
+            truncated += 1
+        if have[:keep].lower() != case["Mac"].lower():
+            wrong += 1
+    print("%-22s %4d vectors (%d truncated tags), %d wrong"
+          % ("CAVP HMAC", len(hmac_cases), truncated, wrong))
+    bad += wrong
+
+    with open(os.path.join(VECTORS_DIR, "wycheproof_hmac_sha256.json"), encoding="utf-8") as fh:
+        doc = json.load(fh)
+    cases = [v for v in doc["vectors"] if str(v.get("tagSize")) == "256"]
+    feed = "".join("%s %s\n" % (v["key"], v["msg"]) for v in cases)
+    got = [ln.strip() for ln in run([exe, "hmac"], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+    wrong = 0
+    for case, have in zip(cases, got):
+        matched = have.lower() == case["tag"].lower()
+        # An invalid vector is a modified tag: reproducing it would mean a forgery verifies
+        if (case["result"] == "valid") != matched:
+            wrong += 1
+    valid = sum(1 for c in cases if c["result"] == "valid")
+    print("%-22s %4d vectors (%d valid, %d modified), %d wrong"
+          % ("Wycheproof HMAC", len(cases), valid, len(cases) - valid, wrong))
+    bad += wrong
+
+    # Every cut of a message must reach one digest. The published tables hash in a single call and
+    # cannot reach the streaming path at all, so this is the only thing testing it.
+    import random  # noqa: PLC0415  only this command needs it
+    rng = random.Random(20260901)
+    bodies = []
+    for length in VECTOR_EDGE_LENGTHS:
+        bodies.append(bytes(rng.randrange(256) for _ in range(length)))
+    feed = "".join((body.hex() if body else ".") + "\n" for body in bodies)
+    lines = [ln.split() for ln in run([exe, "splits"], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+    cuts = sum(len(b) + 2 for b in bodies)
+    wrong = sum(int(parts[1]) for parts in lines)
+    print("%-22s %4d messages, %d split points, %d disagreed" % ("streaming splits", len(bodies), cuts, wrong))
+    bad += wrong
+
+    # A second implementation, over the padding edges and a spread of random lengths
+    trials = [bytes(rng.randrange(256) for _ in range(n)) for n in VECTOR_EDGE_LENGTHS]
+    trials += [bytes(rng.randrange(256) for _ in range(rng.randrange(0, 4096))) for _ in range(400)]
+    feed = "".join((b.hex() if b else ".") + "\n" for b in trials)
+    got = [ln.strip() for ln in run([exe], quiet=True, stdin=feed).stdout.splitlines() if ln.strip()]
+    wrong = sum(1 for b, g in zip(trials, got) if hashlib.sha256(b).hexdigest() != g)
+    print("%-22s %4d messages, %d disagreed" % ("differential", len(trials), wrong))
+    bad += wrong
+
+    # The chain past where NIST stops. CAVP's hundred checkpoints are the anchored part; beyond them
+    # the construction is still valid and a second implementation supplies the expectation, so the
+    # volume is bounded by patience rather than by what anyone published.
+    if a.soak > 0:
+        checkpoints = a.soak
+        got = [ln.strip() for ln in
+               run([exe, "monte", str(checkpoints)], quiet=True, stdin=seed + "\n").stdout.splitlines() if ln.strip()]
+
+        reference = []
+        md = bytes.fromhex(seed)
+        for _ in range(checkpoints):
+            first, second, third = md, md, md
+            for _ in range(1000):
+                nxt = hashlib.sha256(first + second + third).digest()
+                first, second, third = second, third, nxt
+            md = third
+            reference.append(md.hex())
+
+        anchored = sum(1 for w, g in zip(want, got) if w.lower() == g.lower())
+        diverged = next((i for i, (r, g) in enumerate(zip(reference, got)) if r.lower() != g.lower()), None)
+        wrong = 0 if diverged is None else 1
+
+        print("%-22s %4d checkpoints, %d anchored to CAVP, %s"
+              % ("Monte soak", len(got), anchored,
+                 "no divergence" if diverged is None else "DIVERGED at checkpoint %d" % diverged))
+        print("%-22s %d SHA-256 calls over %d chained rounds"
+              % ("", checkpoints * 1000, checkpoints * 1000))
+        bad += wrong
+
+    print()
+    if bad:
+        print("%d check(s) failed" % bad)
+        return 1
+    print("every published vector this tree carries passes, and the streaming path agrees with a")
+    print("second implementation on every message tried")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
 
+    fresh_help = "make a new tree instead of reusing the current one"
+
     p = sub.add_parser("build", help="configure if needed, then build")
     p.add_argument("--tree", default="build", choices=sorted(TREES), help="which build tree")
     p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.add_argument("--fresh", action="store_true", help=fresh_help)
     p.set_defaults(fn=cmd_build)
 
     p = sub.add_parser("test", help="build, then run the suites")
     p.add_argument("--tree", default="build", choices=sorted(TREES), help="which build tree")
     p.add_argument("--filter", help="only suites matching this regex")
     p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.add_argument("--fresh", action="store_true", help=fresh_help)
     p.set_defaults(fn=cmd_test)
 
     p = sub.add_parser("ab", help="both sides of the A/B, one after the other")
     p.add_argument("--filter", help="only suites matching this regex")
     p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.add_argument("--fresh", action="store_true", help=fresh_help)
     p.set_defaults(fn=cmd_ab)
 
     p = sub.add_parser("coverage", help="what of src/ the suites reached")
@@ -781,7 +2135,45 @@ def main():
     p.add_argument("--no-build", action="store_true", help="report on what is already built")
     p.add_argument("--no-run", action="store_true", help="report on the counters already there")
     p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.add_argument("--fresh", action="store_true", help=fresh_help)
     p.set_defaults(fn=cmd_coverage)
+
+    p = sub.add_parser("trees", help="which build trees exist, and which one each name is using")
+    p.set_defaults(fn=cmd_trees)
+
+    p = sub.add_parser("stray", help="anything outside build/ that a build looks to have made")
+    p.add_argument("--strict", action="store_true", help="exit non-zero on a finding, for a CI gate")
+    p.set_defaults(fn=cmd_stray)
+
+    p = sub.add_parser("device", help="the on-device benches under test/performance_benching")
+    dsub = p.add_subparsers(dest="sub", required=True)
+
+    d = dsub.add_parser("list", help="which bench projects exist and what has been built")
+    d.set_defaults(fn=cmd_device_list)
+
+    d = dsub.add_parser("build", help="configure and build one bench for one part")
+    d.add_argument("bench")
+    d.add_argument("--target", required=True, help="esp32s3, esp32c6")
+    d.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    d.set_defaults(fn=cmd_device_build)
+
+    d = dsub.add_parser("flash", help="flash the image a build produced")
+    d.add_argument("bench")
+    d.add_argument("--target", required=True, help="esp32s3, esp32c6")
+    d.add_argument("--port", required=True, help="serial port, COM3 and the like")
+    d.add_argument("--baud", type=int, default=921600)
+    d.set_defaults(fn=cmd_device_flash)
+
+    d = dsub.add_parser("monitor", help="reset a part and print its console until it goes quiet")
+    d.add_argument("--port", required=True, help="serial port, COM3 and the like")
+    d.add_argument("--baud", type=int, default=115200, help="the IDF console rate")
+    d.add_argument("--seconds", type=float, default=60.0, help="ceiling, for a part stuck in a loop")
+    d.add_argument("--quiet", type=float, default=5.0, help="stop after this long with nothing said")
+    d.set_defaults(fn=cmd_device_monitor)
+
+    p = sub.add_parser("bench", help="the bench matrix: list, add, update, deps, gen")
+    p.add_argument("rest", nargs=argparse.REMAINDER, help="passed to the matrix module unchanged")
+    p.set_defaults(fn=cmd_bench)
 
     p = sub.add_parser("suites", help="every suite, its cases, and the capabilities it needs")
     p.add_argument("--strict", action="store_true", help="exit non-zero on a finding, for a CI gate")
@@ -806,6 +2198,21 @@ def main():
     p.add_argument("--write", action="store_true", help="keep the regenerated output instead of restoring")
     p.add_argument("--strict", action="store_true", help="exit non-zero on a finding, for a CI gate")
     p.set_defaults(fn=cmd_generated)
+
+    p = sub.add_parser("vectors", help="run every published SHA-256 vector, offline, plus the streaming invariants")
+    p.add_argument("--soak", type=int, default=0, metavar="N",
+                   help="carry the CAVP Monte chain to N checkpoints, past where NIST stops")
+    p.set_defaults(fn=cmd_vectors)
+
+    p = sub.add_parser("targets", help="compile the module for every part and check its derivation")
+    p.add_argument("--strict", action="store_true", help="exit non-zero on a finding, for a CI gate")
+    p.set_defaults(fn=cmd_targets)
+
+    p = sub.add_parser("remote", help="build and run the praet suite on another machine over ssh")
+    p.add_argument("host", help="address of the machine, as ssh takes it")
+    p.add_argument("--user", default="dstroy0", help="account there")
+    p.add_argument("--dir", default="~/mmgr-praet", help="working directory there, made if absent")
+    p.set_defaults(fn=cmd_remote)
 
     a = ap.parse_args()
     return a.fn(a)

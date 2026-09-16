@@ -1,0 +1,80 @@
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+#
+# What MMgr answers differently from the toolkit defaults, and nothing that agrees with them.
+# lib/repotools/defaults.toml carries the rest with a comment on each key saying what it decides.
+#
+# Every value below was read off this tree rather than assumed. Where the tree and a metadata file
+# disagreed, the tree won and the disagreement is noted on the line.
+
+[project]
+name = "MMgr"
+# CMakeLists.txt project(MMgr VERSION 0.1.0), library.json and library.properties all agree.
+version = "0.1.0"
+# The expression the source files actually carry. library.json records the bare "AGPL-3.0-or-later"
+# for the package registries, which is the AGPL arm alone; the file headers state all three arms and
+# a generated file has to match the files beside it.
+spdx = "AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational"
+# MMgr's own macros and public symbols: MMGR_ENABLE_DMA, MMGR_DEBUG_CHECKS, mmgr_memor_chr.
+#
+# Not EMBED. The width and decls vocabulary this tree is written in - EMBED_WORD_BITS,
+# EMBED_BEGIN_DECLS, EMBED_STATIC_ASSERT, embed_word - belongs to the embedded_types dependency
+# fetched under deps/, not to MMgr. A tool that took EMBED as this project's prefix would rename a
+# dependency's public surface.
+prefix = "MMGR"
+
+[layout]
+# source, docs, tests, tools and scratch all match the defaults and are left to them.
+#
+# MMgr ships no examples directory. Stated as empty rather than omitted, because the default is
+# ["examples"] and Config.existing() refuses a root list whose every entry is missing - inheriting
+# the default would turn any examples walk into a hard exit instead of an empty result.
+examples = []
+
+[code]
+# extensions are .c and .h, which is the default, so it is not restated here.
+#
+# One generated file per suite, emitted by the test framework. It is nobody's source and it is
+# already skipped by name inside three separate tools in tools/dev_env, which is the duplication
+# this key exists to end.
+skip_files = ["unity_runner.c"]
+# One entry, not the whole list. [code] exclude is in the loader's EXTENDED_LISTS, so this is
+# unioned with the fourteen defaults rather than replacing them, and MMgr picks up any exclusion the
+# toolkit adds later. Checked rather than assumed: loading this file resolves to fifteen names, all
+# fourteen defaults present, no duplicate.
+#
+# html is the Doxygen output tree under docs/. Excluded by NAME, so it is skipped wherever it
+# appears, and the prose walk reads the same list - docs/html leaves both walks with one entry here.
+exclude = ["html"]
+
+[prose]
+# extensions is [".md"], the default.
+#
+# The timestamped build-*, bench-* and praet-* trees under build/ are reached by the "build"
+# exclusion above rather than named here: exclusion is by directory NAME anywhere in a walk, and
+# they all sit inside build/.
+#
+# docs/ carries the generated Doxygen tree at docs/html, which "html" in [code] exclude removes from
+# this walk too - the prose walk and the code walk read the same exclusion list.
+roots = [
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "dma-plan.md",
+    "writing-bans.md",
+    "docs",
+]
+
+# [hooks] gates is deliberately not set, so it inherits the empty default and no pre-commit gate is
+# installed. Turning one on points git at a hook driver, and that is a decision about this tree's
+# git configuration rather than a setting.
+#
+# [fetch] sets is deliberately not set, so MMgr fetches nothing from the toolkit yet. Naming a set
+# here is what makes the toolkit upstream of these files.
+#
+# The maintenance set is not ready for MMgr to fetch. strip_comments.py, move_code.py and nsconv.py
+# were broken when this was drafted and have since been fixed upstream, but readclean.py there is a
+# different tool wearing the same name: it shares no API at all with the shape-aware C blinder in
+# tools/dev_env, and fetching it would orphan readclean_test.py, which passes twenty-five assertions
+# against the local one. sizes.py and dedup.py are worth fetching once they are promoted.

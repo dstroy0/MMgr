@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Find the same code written twice, when it was written twice under different names.
 
   dedup.py fns   [PATH ...]   whole functions that share a shape
@@ -10,10 +10,11 @@
 
 A textual diff cannot see this. Two units that both walk a table looking for a match write the same
 five statements with `i`/`n`/`e` in one and `loculus`/`count`/`ent` in the other, and a hash of the text
-puts them in different buckets. So the text is not what is hashed. Comments come off first through
-readclean's own pass - the literal-aware one, not a regex - the result is tokenized, and every
-identifier is replaced by the position at which it was first seen. Two blocks that differ only in
-what things are called then reduce to the same token string and land in one bucket.
+puts them in different buckets. So the text is not what is hashed. Comments are blanked first by
+`mask_comments` below - literal-aware, not a regex, and blanking in place rather than deleting so a
+reported line number is the line number - the result is tokenized, and every identifier is replaced
+by the position at which it was first seen. Two blocks that differ only in what things are called
+then reduce to the same token string and land in one bucket.
 
 Three renaming strengths, because they answer different questions:
 
@@ -43,9 +44,6 @@ import json
 import os
 import re
 import sys
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from strip_comments import rewrite
 
 ROOT = os.getcwd()
 
@@ -85,9 +83,9 @@ def tokenize(text, first_line=1):
 def mask_comments(text):
     """Replace every comment byte with a space, leaving literals and every newline where they are.
 
-    readclean's `rewrite` deletes comment lines outright, which is right for reading and wrong for
-    reporting: a hit at token line 137 of the stripped text is not line 137 of the file, and the two
-    drift further apart the more prose a file carries. Blanking in place keeps every offset, so a
+    strip_comments.rewrite, which readclean reads a file through, deletes comment lines outright.
+    That is right for reading and wrong for reporting: a hit at token line 137 of the stripped text
+    is not line 137 of the file, and the two drift further apart the more prose a file carries. Blanking in place keeps every offset, so a
     line number is the line number. Literals survive, so "http://x" is still one token and not a
     comment, which is the same reason readclean does not use a regex.
     """

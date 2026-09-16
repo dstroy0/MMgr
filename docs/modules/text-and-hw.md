@@ -11,14 +11,14 @@ Any time you would reach for `snprintf` and would rather not link a formatter, o
 ```c
 size_t at = 0;
 
-at = MMGR_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = "id=");
-at = MMGR_CALL(verba.u32,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .val = id);
-at = MMGR_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = " rate=");
-at = MMGR_CALL(verba.fixed, VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .real = rate,
+at = EMBED_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = "id=");
+at = EMBED_CALL(verba.uint,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .val = id);
+at = EMBED_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = " rate=");
+at = EMBED_CALL(verba.fixed, VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .real = rate,
                .decimals = 2);
-at = MMGR_CALL(verba.ch,    VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .ch = '\n');
+at = EMBED_CALL(verba.ch,    VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .ch = '\n');
 
-const size_t len = MMGR_CALL(verba.finish, VerbaCfg, .out = buf, .cap = sizeof buf, .at = at);
+const size_t len = EMBED_CALL(verba.finish, VerbaCfg, .out = buf, .cap = sizeof buf, .at = at);
 if (len == 0u) {
     }
 ```
@@ -81,18 +81,21 @@ static const mmgr_field row[] = {
     {MMGR_FK_LIT, 0, 3, "id="},
     MMGR_U32,
     {MMGR_FK_LIT, 0, 5, " hex="},
-    MMGR_HEX,
+    {MMGR_FK_HEX, 0u, 0u, NULL},
     MMGR_END
 };
 
 const mmgr_fval vals[] = { MMGR_VU32(id), MMGR_VHEX(flags) };
 
-MMGR_CALL(numer.build, NumerosCfg, .out = buf, .cap = sizeof buf,
+EMBED_CALL(numer.build, NumerosCfg, .out = buf, .cap = sizeof buf,
           .spec = row, .vals = vals, .nvals = 2u);
 ```
 
 A literal is a `MMGR_FK_LIT` field carrying its own text and length, so it costs no scan. Every
-other spec entry is a bare kind — `MMGR_U32`, `MMGR_HEX`, `MMGR_END` and the rest take no argument.
+other spec entry is a bare kind taking no argument. There is a one-word macro for some of them —
+`MMGR_STR`, `MMGR_U32`, `MMGR_U64`, `MMGR_I64`, `MMGR_CH`, `MMGR_JSON`, `MMGR_XML`, `MMGR_END`
+(`src/numeros_scribo/numeros_scribo.h:60-85`) — and the rest are written as the brace form above.
+`MMGR_FK_HEX`, `MMGR_FK_DEC`, `MMGR_FK_OCT`, `MMGR_FK_G` and `MMGR_FK_FIX` have no such macro.
 
 Four entries: `build` writes a record from a spec, `emit` writes values with no spec at all,
 and `append` and `emit_append` add to a record already in the buffer.
@@ -128,16 +131,18 @@ A thin, portable surface over a DMA controller: open a channel, submit a transfe
 callback, close it.
 
 ```c
+/* peripheral is a plain uint8_t the port assigns a meaning to; the library carries no
+   enum of peripherals, because which ones exist is the part's business and not its own. */
 const PraetCfg ch = {
     .channel = 0,
-    .periph  = MMGR_PRAET_UART,
+    .peripheral = PORT_UART0,
 };
 
-if (MMGR_CALL(praet.open, PraetCfg, .channel = ch.channel, .periph = ch.periph))
+if (EMBED_CALL(praet.open, PraetCfg, .channel = ch.channel, .peripheral = ch.peripheral))
 {
-    MMGR_CALL(praet.tx_submit, PraetTransferCfg, .channel = 0, .buf = buf, .len = len);
-    MMGR_CALL(praet.poll, PraetCfg, .channel = 0);
-    MMGR_CALL(praet.close, PraetTransferCfg, .channel = 0);
+    EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 0, .buf = buf, .len = len);
+    EMBED_CALL(praet.poll, PraetCfg, .channel = 0);
+    EMBED_CALL(praet.close, PraetTransferCfg, .channel = 0);
 }
 ```
 
@@ -149,12 +154,12 @@ is called with a @ref mmgr_praet_event describing what finished.
 
 ## The hardware hooks are weak
 
-The functions that actually touch a controller are `MMGR_WEAK`. A board support file overrides one
+The functions that actually touch a controller are `EMBED_WEAK`. A board support file overrides one
 by defining a symbol with the same name — no registration, no function pointer table, no init order
 to get right.
 
-Without an override they are present and inert, which is what lets `memoriam_praetereo` compile and
-its tests link on a host with no DMA controller at all.
+Without an override they are present and refuse every request, which is what lets
+`memoriam_praetereo` compile and its tests link on a host with no DMA controller at all.
 
 ## Gotchas
 

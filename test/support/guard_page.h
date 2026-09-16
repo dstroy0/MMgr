@@ -1,7 +1,6 @@
 #ifndef MMGR_TEST_GUARD_PAGE_H
 #define MMGR_TEST_GUARD_PAGE_H
 
-
 #include <stddef.h>
 
 #if defined(_WIN32)

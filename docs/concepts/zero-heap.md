@@ -26,11 +26,11 @@ path that is not an inconvenience, it is a defect.
 
 Storage is decided at compile time and carved at run time by bumping a pointer.
 
-- The sizes are `MMGR_PLAINTEXT_CONFIN_SIZE`, `MMGR_SECURE_CONFIN_SIZE` and whatever buffer you hand
-  `mmgr_carcer_init`. All are known when the binary is linked.
-- A take is a bounds check and an addition. Same cost every time.
-- Failure is `NULL` from a take against a region you sized, not an out-of-memory condition arriving
-  from somewhere else in the program.
+- The sizes are the byte counts in your pool declarations, and nothing else. No build knob sizes a
+  pool, and all of them are known when the binary is linked.
+- An allocation is a bounds check and an addition. Same cost every time.
+- Failure is `NULL` from an allocation against a pool you sized, not an out-of-memory condition
+  arriving from somewhere else in the program.
 - There is no free list, so there is nothing to fragment.
 
 The library reaches for `stddef`, `stdint` and `stdatomic` and nothing else. There is no `stdlib.h`
@@ -54,23 +54,22 @@ cmake --build build
 ./build/test/checks/<your workload>
 ```
 
-`mmgr_carcer_persist_used()`, `mmgr_soluta_used()` and `mmgr_secura_used()` report what is
-outstanding at the moment you call them, not the largest it ever got.
+`buf_available()` is per cellblock — `prison.work.buf_available()` — and reports the bytes still
+between the two tiers at the moment you call it, not the largest it ever got.
 
-For the largest, build with `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Every take then keeps the peak in the
-`hw` field of the pool's @ref CarcerCtx, the hardware heap and stack cap: persist records
-`persist_end`, interim records `size - interim_top`. It is off by default, so a workload run without
-it leaves `hw` at zero. Read the field, add whatever margin your failure policy wants, then set the
-knob in @ref ref_configuration.
+For the largest, build with `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Every allocation then keeps a peak in
+the cellblock's own state, one per tier: `persistent_hw` tracks `persistent_end` and `temporary_hw`
+tracks the bytes taken from the top. It is off by default, so a workload run without it leaves both
+at zero. Read the field, add whatever margin your failure policy wants, then size the pool.
 
-**You give up free-anything-anytime.** Persist unwinds; interim releases by mark; a tenant resets as
-a whole. If your data structure genuinely needs arbitrary-order release of arbitrary-size objects
-with a long tail of lifetimes, this library is the wrong shape and no amount of configuration will
-change that.
+**You give up free-anything-anytime.** The persistent tier reuses a released cell and merges empty
+neighbors; the temporary tier releases by mark, or resets whole. If your data structure genuinely
+needs arbitrary-order release of arbitrary-size objects with a long tail of lifetimes, this library is
+the wrong shape and no amount of configuration will change that.
 
-**A lie about a capacity is unrecoverable.** `mmgr_carcer_init` believes the length it is given.
-Pass it a length longer than the buffer and every bounds check afterwards is computed against a
-number that was never true. See @ref proj_security.
+**A cellblock can no longer be lied to about its extent.** It takes the count from the pool's own
+declaration, and the pool asserts that count against its `sizeof`, so the two cannot disagree. What is
+still taken as written is any address the library did not hand out. See @ref proj_security.
 
 ## When to reach for it
 

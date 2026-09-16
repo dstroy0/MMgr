@@ -1,5 +1,5 @@
-# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 #
 # One bench binary per environment, for the same reason the suites are built per environment: the
 # point of the SWAR bench is the comparison BETWEEN lane widths, and that comparison does not exist
@@ -67,14 +67,20 @@ foreach(bench_src ${MMGR_BENCH_SOURCES})
                 "${MMGR_PROTOCORE_DIR}/src"
                 "${MMGR_PROTOCORE_DIR}"
                 "${MMGR_PROTOCORE_DIR}/test/core_setup/hal/host")
+        elseif(bench_name MATCHES "^bench_ancorae_")
+            # All three draw their corpora from SHA-256 in counter mode, and every independence and
+            # entropy number is read against those corpora having the statistics they are supposed to.
+            # They compile the implementation the suites hold to the published vectors, so the corpora
+            # and the vectors are the same code and not two copies of it.
+            add_executable(${target} "${bench_src}" "${CMAKE_SOURCE_DIR}/test/support/mmgr_sha256.c")
+            target_include_directories(${target} PRIVATE "${CMAKE_SOURCE_DIR}/test/support")
         else()
             add_executable(${target} "${bench_src}")
         endif()
         target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
         target_link_libraries(${target} PRIVATE mmgr_${env})
         target_compile_options(${target} PRIVATE
-            $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-O2>
-            $<$<C_COMPILER_ID:MSVC>:/O2>)
+            $<$<C_COMPILER_ID:GNU,Clang>:-O2>)
         set_target_properties(${target} PROPERTIES
             RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bench/${env}"
             INTERPROCEDURAL_OPTIMIZATION FALSE)

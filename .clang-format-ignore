@@ -3,8 +3,14 @@
 # report a dirty tree.
 test/**/unity_runner.c
 
-# Generated from the predicates by tools/dev_env/gen_ascii_masks.py and gen_anchor_profiles.py.
-# clang-format and the generators disagree about the tables, and the generator wins - formatting
-# these makes test/harness.py generated report a dirty tree on every run.
+# Generated from the predicates by tools/dev_env/gen_ascii_persona_bitorum.py. clang-format and the
+# generator disagree about the enum's comment column, and the generator wins - formatting this makes
+# test/harness.py generated report a dirty tree on every run.
+#
+# Only the header. This list named two generators that do not exist, gen_ascii_masks.py and
+# gen_anchor_profiles.py, and carried a second pattern for
+# src/impensa_ancorae_acus/impensa_ancorae_acus_*.h that matched nothing, because that generator
+# writes .c files. Both are gone. The .c files it does write, and ascii_persona_bitorum.c beside
+# this one, are laid out BY clang-format: their generators run it before they finish, so they must
+# stay formatted and must not be listed here.
 src/ascii_persona_bitorum/ascii_persona_bitorum.h
-src/impensa_ancorae_acus/impensa_ancorae_acus_*.h

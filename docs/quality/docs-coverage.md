@@ -24,11 +24,11 @@ summary.
 Every module has a `@file` block and every free function has `@brief`, `@param` and `@return`. The
 remaining gap is two specific classes:
 
-| class                  | roughly | why                                                 |
-| ---------------------- | ------: | --------------------------------------------------- |
+| class                  | roughly | why                                                    |
+| ---------------------- | ------: | ------------------------------------------------------ |
 | dispatch-table members |    ~180 | each `(*name)(args)` loculus inside a `<Mod>Ns` struct |
-| macro definitions      |     ~77 | `MMGR_DBL_*`, `MMGR_ANCHOR_*`, the directive macros |
-| typedefs               |     ~11 | mostly internal shapes                              |
+| macro definitions      |     ~77 | `MMGR_DBL_*`, `MMGR_RING_*`, the directive macros      |
+| typedefs               |     ~11 | mostly internal shapes                                 |
 
 The dispatch-table members are the bulk, and they are a genuine question rather than an oversight:
 each loculus points at a free function that is already documented, so documenting the loculus as well
@@ -64,8 +64,7 @@ Two real examples, both already fixed, both invisible until the site was built:
 - A literal backtick inside an ASCII bit-layout table in `verbum_scrutor.h` opened a code span that
   never closed and swallowed the rest of the file. Bit layouts and ASCII tables belong inside
   `@verbatim` / `@endverbatim`.
-- `<Mod>Ns` in `mmgr_compiler_directives.h` was parsed as an HTML tag. Angle-bracket placeholders
-  need backticks.
+- `<Mod>Ns` in a comment was parsed as an HTML tag. Angle-bracket placeholders need backticks.
 
 Both are in the comment rules in `CONTRIBUTING.md`.
 
@@ -73,7 +72,7 @@ Both are in the comment rules in `CONTRIBUTING.md`.
 
 `cspell` runs over `README.md` and `docs/**`, not over `src/`. This library's vocabulary is nineteen
 Latin module names and a wall of SWAR terminology; a spellchecker pointed at the C comments would
-spend its life being told that `confinium_exclusivum_infinitas` is a word.
+spend its life being told that `memoria_anularis` is a word.
 
 The project dictionary is a flat `words` list in `cspell.json` rather than a separate dictionary
 file, so there is one place to look and a diff shows exactly which term a change introduced.

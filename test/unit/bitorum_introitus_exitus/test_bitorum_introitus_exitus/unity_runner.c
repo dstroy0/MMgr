@@ -108,12 +108,12 @@ int main(void)
   run_test(test_a_completed_byte_with_no_room_overflows, "test_a_completed_byte_with_no_room_overflows", 158);
   run_test(test_two_writers_do_not_share_state, "test_two_writers_do_not_share_state", 170);
   run_test(test_namespace_is_wired, "test_namespace_is_wired", 184);
-  run_test(test_align_writes_the_partial_byte, "test_align_writes_the_partial_byte", 197);
-  run_test(test_align_on_a_byte_boundary_writes_nothing, "test_align_on_a_byte_boundary_writes_nothing", 210);
-  run_test(test_align_twice_is_the_same_as_once, "test_align_twice_is_the_same_as_once", 221);
-  run_test(test_a_stream_of_odd_length_round_trips, "test_a_stream_of_odd_length_round_trips", 234);
-  run_test(test_align_on_a_full_buffer_overflows_rather_than_writing, "test_align_on_a_full_buffer_overflows_rather_than_writing", 250);
-  run_test(test_the_align_entry_is_wired, "test_the_align_entry_is_wired", 266);
+  run_test(test_align_writes_the_partial_byte, "test_align_writes_the_partial_byte", 190);
+  run_test(test_align_on_a_byte_boundary_writes_nothing, "test_align_on_a_byte_boundary_writes_nothing", 203);
+  run_test(test_align_twice_is_the_same_as_once, "test_align_twice_is_the_same_as_once", 214);
+  run_test(test_a_stream_of_odd_length_round_trips, "test_a_stream_of_odd_length_round_trips", 224);
+  run_test(test_align_on_a_full_buffer_overflows_rather_than_writing, "test_align_on_a_full_buffer_overflows_rather_than_writing", 239);
+  run_test(test_the_align_entry_is_wired, "test_the_align_entry_is_wired", 255);
 
   return UNITY_END();
 }

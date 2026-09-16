@@ -73,24 +73,28 @@ INFIX	worker	worker
 # ================================================================================================
 # VERBS   old  new
 # ================================================================================================
-# alloc is out. capio takes, reddo gives back, interim replaces scratch entirely.
+# The public face is English. A handle is built from ordered slots, every slot optional and spent
+# only where it disambiguates: [fundamental type]_[security]_[what it is]_[action].
 #
-# free_bytes is NOT a release and does not become reddo: it returns a count of bytes still
-# available. octas_praesto - "bytes at hand". persist_free DOES take a pointer, so it is a real
-# release and does become reddo.
+# temporary replaces the old scratch name entirely, and persistent is the other tier.
 #
-VERB	scratch_alloc_aligned	interim_capio_aligned
-VERB	scratch_alloc	interim_capio
-VERB	scratch_release	interim_reddo
-VERB	scratch_reset	interim_reset
-VERB	scratch_mark	interim_mark
-VERB	scratch_used	interim_used
-VERB	persist_alloc	persist_capio
-VERB	persist_free	persist_reddo
-VERB	persist_used	persist_used
-VERB	free_bytes	octas_praesto
-VERB	alloc	capio
-VERB	release	reddo
+# free_bytes is NOT a release and does not take the release verb. It returns a count of bytes still
+# available between the two tiers, so it becomes buf_available. persist_free DOES take a pointer, so
+# it is a real release and does take the release verb.
+#
+VERB	scratch_alloc_aligned	temporary_buf_alloc_aligned
+VERB	scratch_alloc	temporary_buf_alloc
+VERB	scratch_release	temporary_buf_release
+VERB	scratch_reset	temporary_buf_reset
+VERB	scratch_mark	temporary_buf_mark
+VERB	scratch_used	temporary_buf_used
+VERB	persist_alloc	persistent_buf_alloc
+VERB	persist_free	persistent_buf_release
+VERB	persist_used	persistent_buf_used
+VERB	free_bytes	buf_available
+VERB	secure_wipe	zero_buf
+VERB	alloc	buf_alloc
+VERB	release	buf_release
 
 # ================================================================================================
 # TYPES   old  new

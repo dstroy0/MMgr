@@ -9,6 +9,7 @@ README.
 GNU Affero General Public License, version 3 or later. Every source file carries an SPDX identifier:
 
 ```c
+
 ```
 
 So the license of any file is a machine-readable fact rather than something to infer from a

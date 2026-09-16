@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
-# SPDX-License-Identifier: AGPL-3.0-or-later
-"""Three reading passes over a memmanager module. Writes nothing.
+# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
+"""Three reading passes over a MMgr module. Writes nothing.
 
   code <module.h> ...     comments stripped: the structure, with nothing to take on trust
   blind <module.h> ...    comments stripped AND every name this project chose replaced, so the code
@@ -22,7 +22,7 @@ suffixes and the fixed vocabulary survive and only the IDENTITY moves:
 
     ConfiniumNs ConfiniumVars ConfiniumV ConfiniumCtx  ->  X1Ns X1Vars X1V X1Ctx
     MMGR_CONFIN_BORROW CONFIN_OFF_W                    ->  MMGR_X1_BORROW X1_OFF_A
-    mmgr_confin_persist_capio                          ->  mmgr_fn3
+    mmgr_persistent_buf_alloc                          ->  mmgr_fn3
     mmgr_word, uint8_t, size_t, static_assert, atomic_load  ->  unchanged
 
 What is left reads as "an entry, taking the borrow, casting a region at an asserted offset" with no

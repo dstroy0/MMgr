@@ -22,7 +22,7 @@ void tearDown(void)
 
 static size_t word_rounded(size_t n)
 {
-    return MMGR_CALL(word.count, ScrutWordCfg, .bytes = n) * MMGR_SWAR_BYTES;
+    return EMBED_CALL(word.count, ScrutWordCfg, .bytes = n) * MMGR_SWAR_BYTES;
 }
 
 static unsigned char *place(size_t cap, size_t reserved)
@@ -50,50 +50,54 @@ static void keep(size_t v)
 static void ask_len(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = a->s, .cap = a->cap)));
+    keep((size_t)(EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = a->s, .cap = a->cap)));
 }
 static void ask_chr(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = a->s, .cap = a->cap, .byte = 0x02u)));
+    keep((size_t)(EMBED_CALL(cellul.chr, CatenaFinitaCfg, .src = a->s, .cap = a->cap, .byte = 0x02u)));
 }
 static void ask_eq(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap, .ci = MMGR_FALSE)));
+    keep(
+        (size_t)(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap, .ci = EMBED_FALSE)));
 }
 static void ask_eq_ci(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap, .ci = MMGR_TRUE)));
+    keep((size_t)(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap, .ci = EMBED_TRUE)));
 }
 static void ask_starts(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(MMGR_CALL(cellul.starts, CatenaFinitaCfg, .src = a->s, .other = "aaa", .cap = a->cap, .ci = MMGR_FALSE)));
+    keep((size_t)(EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = a->s, .other = "aaa", .cap = a->cap,
+                             .ci = EMBED_FALSE)));
 }
 static void ask_diff(void *v)
 {
     const Ask *a = (const Ask *)v;
-    keep((size_t)(MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap, .ci = MMGR_FALSE)));
+    keep((size_t)(EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap,
+                             .ci = EMBED_FALSE)));
 }
 static void ask_copy(void *v)
 {
     const Ask *a = (const Ask *)v;
     static char dst[CAPS + 8u];
-    keep((size_t)(MMGR_CALL(cellul.copy, CatenaFinitaCfg, .dst = dst, .src = a->s, .cap = a->cap < sizeof dst ? a->cap : sizeof dst)));
+    keep((size_t)(EMBED_CALL(cellul.copy, CatenaFinitaCfg, .dst = dst, .src = a->s,
+                             .cap = a->cap < sizeof dst ? a->cap : sizeof dst)));
 }
 static void ask_memor_cmp(void *v)
 {
     const Ask *a = (const Ask *)v;
-    // Explicit cast reads the run as bytes, which is what the region entries take
-    keep((size_t)(MMGR_CALL(memor.cmp, MemoriaCfg, .src = a->s, .other = a->s, .bytes = a->cap)));
+
+    keep((size_t)(EMBED_CALL(memor.cmp, MemoriaCfg, .src = a->s, .other = a->s, .bytes = a->cap)));
 }
 static void ask_memor_chr(void *v)
 {
     const Ask *a = (const Ask *)v;
-    // 0x02 does not occur in the run, so the walk goes the whole way rather than stopping early
-    keep((size_t)(MMGR_CALL(memor.chr, MemoriaCfg, .src = a->s, .bytes = a->cap, .val = 0x02u)));
+
+    keep((size_t)(EMBED_CALL(memor.chr, MemoriaCfg, .src = a->s, .bytes = a->cap, .val = 0x02u)));
 }
 typedef struct
 {
@@ -101,18 +105,20 @@ typedef struct
     size_t cap;
     const char *needle;
     size_t nlen;
-    mmgr_bool ci;
+    embed_bool ci;
 } Hunt;
 
 static void ask_find(void *v)
 {
     const Hunt *h = (const Hunt *)v;
-    keep((size_t)(MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = h->s, .cap = h->cap, .other = h->needle, .other_cap = h->nlen, .ci = h->ci)));
+    keep((size_t)(EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = h->s, .cap = h->cap, .other = h->needle,
+                             .other_cap = h->nlen, .ci = h->ci)));
 }
 static void ask_has(void *v)
 {
     const Hunt *h = (const Hunt *)v;
-    keep((size_t)(MMGR_CALL(cellul.has, CatenaFinitaCfg, .src = h->s, .cap = h->cap, .other = h->needle, .other_cap = h->nlen, .ci = h->ci)));
+    keep((size_t)(EMBED_CALL(cellul.has, CatenaFinitaCfg, .src = h->s, .cap = h->cap, .other = h->needle,
+                             .other_cap = h->nlen, .ci = h->ci)));
 }
 
 static void none_past(const char *what, void (*fn)(void *), int raw_bound)
@@ -156,7 +162,6 @@ void test_the_guard_is_armed(void)
     TEST_ASSERT_FALSE_MESSAGE(mmgr_guard_traps_on(run), "the run itself must be readable");
 }
 
-
 void test_len_stays_inside_the_reserved_extent(void)
 {
     needs_our_bounds();
@@ -194,12 +199,6 @@ void test_copy_stays_inside_the_reserved_extent(void)
     none_past("copy", ask_copy, 0);
 }
 
-/**
- * The region walks answer to the same reserved extent the string walks do: they read whole words and
- * mask the last one, so a scan may reach the word-rounded bound and no further. Covered here because
- * they walk the same way and were not: cellul.diff and memor.cmp are the same loop over different
- * argument types, and only one of them was ever held against a guard.
- */
 void test_memor_cmp_stays_inside_the_reserved_extent(void)
 {
     needs_our_bounds();
@@ -214,7 +213,7 @@ void test_memor_chr_stays_inside_the_reserved_extent(void)
 
 static void find_none_past(const char *what, void (*fn)(void *))
 {
-        for (size_t nlen = 1; nlen <= 2u * MMGR_SWAR_BYTES; nlen++)
+    for (size_t nlen = 1; nlen <= 2u * MMGR_SWAR_BYTES; nlen++)
     {
         for (size_t rare = 0; rare < nlen; rare++)
         {
@@ -232,7 +231,7 @@ static void find_none_past(const char *what, void (*fn)(void *))
                     h.cap = cap;
                     h.needle = needle;
                     h.nlen = nlen;
-                    h.ci = ci ? MMGR_TRUE : MMGR_FALSE;
+                    h.ci = ci ? EMBED_TRUE : EMBED_FALSE;
 
                     if (mmgr_guard_run_thunk(fn, &h))
                     {
@@ -262,7 +261,7 @@ void test_has_stays_inside_the_raw_cap(void)
 
 void test_find_still_finds_things_with_the_buffer_flush_to_the_guard(void)
 {
-            needs_our_bounds();
+    needs_our_bounds();
 
     for (size_t cap = 8u; cap <= CAPS; cap++)
     {
@@ -275,10 +274,12 @@ void test_find_still_finds_things_with_the_buffer_flush_to_the_guard(void)
         h.cap = cap;
         h.needle = "qzj";
         h.nlen = 3u;
-        h.ci = MMGR_FALSE;
+        h.ci = EMBED_FALSE;
 
         TEST_ASSERT_FALSE_MESSAGE(mmgr_guard_run_thunk(ask_find, &h), "find read past the cap looking for a match");
-        TEST_ASSERT_EQUAL_PTR_MESSAGE((const char *)p + cap - 3u, MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = h.s, .cap = cap, .other = "qzj", .other_cap = 3u, .ci = MMGR_FALSE),
+        TEST_ASSERT_EQUAL_PTR_MESSAGE((const char *)p + cap - 3u,
+                                      EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = h.s, .cap = cap, .other = "qzj",
+                                                 .other_cap = 3u, .ci = EMBED_FALSE),
                                       "find missed a match flush with the end of the buffer");
     }
 }

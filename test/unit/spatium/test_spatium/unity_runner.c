@@ -84,12 +84,12 @@ int main(void)
   run_test(test_a_span_covers_the_buffer_it_was_given, "test_a_span_covers_the_buffer_it_was_given", 31);
   run_test(test_a_read_span_covers_the_buffer_it_was_given, "test_a_read_span_covers_the_buffer_it_was_given", 43);
   run_test(test_a_span_with_no_storage_is_not_ok, "test_a_span_with_no_storage_is_not_ok", 53);
-  run_test(test_a_narrowing_past_the_end_fails_rather_than_shortening, "test_a_narrowing_past_the_end_fails_rather_than_shortening", 72);
-  run_test(test_a_narrowing_keeps_the_bytes_it_names, "test_a_narrowing_keeps_the_bytes_it_names", 86);
-  run_test(test_a_narrowing_carries_the_cursor, "test_a_narrowing_carries_the_cursor", 100);
-  run_test(test_reset_clears_the_sticky_overflow, "test_reset_clears_the_sticky_overflow", 111);
-  run_test(test_a_read_span_reports_what_was_written, "test_a_read_span_reports_what_was_written", 125);
-  run_test(test_a_read_span_carries_the_fill_spans_failure, "test_a_read_span_carries_the_fill_spans_failure", 143);
+  run_test(test_a_narrowing_past_the_end_fails_rather_than_shortening, "test_a_narrowing_past_the_end_fails_rather_than_shortening", 66);
+  run_test(test_a_narrowing_keeps_the_bytes_it_names, "test_a_narrowing_keeps_the_bytes_it_names", 84);
+  run_test(test_a_narrowing_carries_the_cursor, "test_a_narrowing_carries_the_cursor", 95);
+  run_test(test_reset_clears_the_sticky_overflow, "test_reset_clears_the_sticky_overflow", 109);
+  run_test(test_a_read_span_reports_what_was_written, "test_a_read_span_reports_what_was_written", 124);
+  run_test(test_a_read_span_carries_the_fill_spans_failure, "test_a_read_span_carries_the_fill_spans_failure", 144);
 
   return UNITY_END();
 }

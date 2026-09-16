@@ -93,13 +93,13 @@ int main(void)
   run_test(test_exponent_of_one_is_the_bias, "test_exponent_of_one_is_the_bias", 53);
   run_test(test_zero_has_no_exponent_and_no_mantissa, "test_zero_has_no_exponent_and_no_mantissa", 60);
   run_test(test_mantissa_drops_the_implicit_bit, "test_mantissa_drops_the_implicit_bit", 66);
-  run_test(test_infinities, "test_infinities", 74);
-  run_test(test_a_nan_has_a_full_exponent_and_a_mantissa, "test_a_nan_has_a_full_exponent_and_a_mantissa", 87);
-  run_test(test_merge_and_from_bits_reverse_the_accessors, "test_merge_and_from_bits_reverse_the_accessors", 95);
-  run_test(test_a_subnormal_keeps_its_mantissa, "test_a_subnormal_keeps_its_mantissa", 111);
-  run_test(test_merge_masks_each_field, "test_merge_masks_each_field", 119);
-  run_test(test_namespace_is_wired, "test_namespace_is_wired", 127);
-  run_test(test_to_bits_is_from_bits_the_other_way, "test_to_bits_is_from_bits_the_other_way", 133);
+  run_test(test_infinities, "test_infinities", 73);
+  run_test(test_a_nan_has_a_full_exponent_and_a_mantissa, "test_a_nan_has_a_full_exponent_and_a_mantissa", 86);
+  run_test(test_merge_and_from_bits_reverse_the_accessors, "test_merge_and_from_bits_reverse_the_accessors", 94);
+  run_test(test_a_subnormal_keeps_its_mantissa, "test_a_subnormal_keeps_its_mantissa", 110);
+  run_test(test_merge_masks_each_field, "test_merge_masks_each_field", 118);
+  run_test(test_namespace_is_wired, "test_namespace_is_wired", 126);
+  run_test(test_to_bits_is_from_bits_the_other_way, "test_to_bits_is_from_bits_the_other_way", 132);
 
   return UNITY_END();
 }
