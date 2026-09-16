@@ -81,9 +81,16 @@ Latin names, because they were carved out of a larger tree and the short English
 
 ## Building it
 
+The first configure reaches the network: it fetches `embedded_types` into `deps/` at the SHA pinned
+in `deps/CMakeLists.txt:19`. Name a generator and a compiler, because the default on Windows is MSVC
+and MSVC does not build this tree — it stops at `deps/embedded_types/include/embed_types.h:263`,
+where a static assertion reports that `EMBED_ENUM_PACKED` is not honored and no enum keeps its
+declared width. GCC and Clang build it.
+
 ```sh
-cmake -S . -B build -DMMGR_BUILD_TESTS=ON
+cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=gcc -DMMGR_BUILD_TESTS=ON
 cmake --build build
+ctest --test-dir build
 ```
 
 Or through the harness, which carries the flags each build tree needs:
