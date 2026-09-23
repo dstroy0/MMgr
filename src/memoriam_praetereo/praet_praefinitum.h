@@ -26,7 +26,7 @@
  *       something this depends on.
  * @note #warning is a GNU and clang directive and is standard from C23. This library targets those
  *       two compilers and no others, so it is available everywhere this builds.
- * @note Every message is a #warning directive rather than a macro over _Pragma. GCC's warning pragma
+ * @note Every message is a #warning directive, with no macro over _Pragma. GCC's warning pragma
  *       keeps only the first string literal after it. A message written as adjacent literals
  *       arrives cut off at the first one - which still reads as a finished sentence and still passes a
  *       check written against its opening words. That got past a green sweep column here once. A
@@ -35,7 +35,7 @@
  *          at file scope. Every knob here does. The one report that fires from inside a macro is the
  *          boundary word answer at a declaration, and praet_ordo.h reaches that a different way.
  * @warning No message interpolates a macro. Neither #warning nor the pragma expands one. A name in
- *          the middle of a message arrives as the name of the macro rather than its value.
+ *          the middle of a message arrives as the name of the macro, and its value never appears.
  */
 #ifndef MMGR_PRAET_PRAEFINITUM_H
 #define MMGR_PRAET_PRAEFINITUM_H
@@ -102,7 +102,7 @@
 
 // A capability switch is on or off, and a third value is somebody reading it as a count or a channel
 // number. Every test on it below would take the on arm silently. This one stops where it stands
-// rather than joining the basket, because every gate after it would be answering a question about a
+// and stays out of the basket, because every gate after it would be answering a question about a
 // value nobody can read
 #if (PRAET_RECOVERY != 0) && (PRAET_RECOVERY != 1)
 #error "PRAET_RECOVERY must be 0 or 1. It is a capability switch, not a count."

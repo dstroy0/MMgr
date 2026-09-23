@@ -72,7 +72,7 @@ EMBED_STATIC_ASSERT((PRAET_CLEARED_BITS & (uint32_t)~PRAET_MAP_MASK) == 0u,
  * @param[in]     channel Channel to write.
  * @param[in]     now     The word to leave behind.
  * @note Every entry that changes a channel's state goes through this. That is what lets the
- *       examination arm record a complete picture rather than the sites somebody remembered to
+ *       examination arm record every site, including the ones nobody remembered to
  *       instrument, and it is the same reason the whole access control ended up in one function.
  * @note A word that did not change is not written and is not recorded. Recording it would say a
  *       transition happened where nothing moved.
@@ -129,7 +129,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
     }
 
     // The engine settles once, when it first comes up. A later attach takes what is left of that
-    // deadline rather than restarting it, since the engine is already up by then
+    // deadline and leaves it running, since the engine is already up by then
     const embed_word deadline = context->elapsed_micros + (embed_word)PRAET_SETTLE_MICROS;
 
     if (deadline > context->settle_deadline)
@@ -294,7 +294,7 @@ void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool fai
  * @brief The CRC-32 polynomial, reflected.
  *
  * @note The ordinary one. A caller checking this against a checksum of their source can use any
- *       CRC-32 they already have rather than one of ours.
+ *       CRC-32 they already have.
  */
 #define PRAET_CRC_POLYNOMIAL 0xEDB88320u
 
@@ -472,7 +472,7 @@ void praet_ordo_poll(PraetOrdo *context)
     praet_procurator_opus(PRAET_OPUS_POLL);
 
     // Taking the lock is what makes this ignore the interrupt for the span below. A nested call finds
-    // it held and declines rather than reworking state the outer call is partway through
+    // it held and declines, leaving the outer call's half-done state untouched
     if (context->praet_busy_bitflag != 0u)
     {
         praet_procurator_opus(PRAET_OPUS_POLL_SHORT);
@@ -545,8 +545,8 @@ void praet_ordo_poll(PraetOrdo *context)
     }
 
     // Both volatiles come down together. A raise that landed during the span above is dropped, and
-    // nothing is lost by it: this recomputes every channel from what it can see rather than consuming
-    // an event, so the next call reaches the same answer from the same state
+    // nothing is lost by it: this recomputes every channel from what it can see and consumes no
+    // event, and the next call reaches the same answer from the same state
     context->praet_set_bitflag = 0u;
     context->praet_busy_bitflag = 0u;
 }
@@ -593,7 +593,7 @@ embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel)
     const embed_word needed = word_bytes - remainder;
     const embed_word headroom = length - sampled;
 
-    // Compared against the headroom rather than added and clamped afterwards. A length near the top
+    // Compared against the headroom, with no addition to clamp afterwards. A length near the top
     // of the word wraps the addition, and the clamp then reads the wrapped value as a small number
     if (needed >= headroom)
     {

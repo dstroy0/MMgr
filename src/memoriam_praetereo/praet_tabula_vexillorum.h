@@ -153,7 +153,7 @@ EMBED_BEGIN_DECLS
 #define PRAET_SEPARANS PRAET_STATUS_BIT(PRAET_ID_SEPARANS)
 
 /**
- * @brief Set where the last transfer ended in an error rather than a completion.
+ * @brief Set where the last transfer ended in an error, clear where it completed.
  */
 #define PRAET_ERROR PRAET_STATUS_BIT(PRAET_ID_ERROR)
 
@@ -196,7 +196,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Every status, listed by name.
  *
- * @note Written out rather than derived, because this is the half of the check that has to come from
+ * @note Written out by hand, because this is the half of the check that has to come from
  *       somewhere other than PRAET_STATUS_COUNT. Comparing a list of names against a count neither
  *       one produced is what catches a duplicated id or a status nobody placed.
  */
@@ -245,7 +245,7 @@ EMBED_BEGIN_DECLS
  * @brief The regions a channel can be attached over.
  *
  * @note Token ids, the same way the statuses above are token ids. A region arrives at an attach as one
- *       of these names. A misspelling is an undeclared identifier carrying the name that was
+ *       of these names. A mistyped one is an undeclared identifier carrying the name that was
  *       written, and a caller cannot pass a byte that means nothing.
  * @note Two of them, because ParsMemoriaeInternae and ParsMemoriaeExternum are the two declarations a
  *       pool can be written with. A part with more address spaces than that adds ids here and the

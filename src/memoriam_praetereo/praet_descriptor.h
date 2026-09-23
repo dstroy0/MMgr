@@ -37,7 +37,7 @@ EMBED_BEGIN_DECLS
  * @note The one fact memcpy does not need. Memory to memory advances both sides; a peripheral is an
  *       address that stays where it is, and which side stays put is what makes a transfer a read or a
  *       write.
- * @note Token ids, the same as the statuses and the regions. A misspelling is an undeclared
+ * @note Token ids, the same as the statuses and the regions. A mistyped name is an undeclared
  *       identifier carrying the name that was written.
  */
 typedef enum
@@ -51,7 +51,7 @@ typedef enum
  *
  * @note Named in full for what it is. A transfer's offsets, its length and the boundary a recovery
  *       rounds to are all counted in this, so it is the measure and not a property beside the others.
- * @note Carries the count itself rather than a code, so the assertions below divide a length by it
+ * @note Carries the count itself, so the assertions below divide a length by it
  *       and test an offset against it with no table in between.
  * @note octetus and verbum are the tree's own words for a byte and a word, as in
  *       octetus_introitus_exitus and verba_scribo.
@@ -167,8 +167,8 @@ struct PraetDescriptor
  * @note Three conditions in one assertion, because they fail for one reason and a caller fixing one
  *       wants to see the others. The span fits the pool, the offset lands on a step boundary, and the
  *       length is a whole number of steps.
- * @note Static assertions rather than the expression form PraetSubmit uses, because a declarator is
- *       at file scope and a bare expression cannot sit there. Naming the end in the message is what
+ * @note Static assertions, where PraetSubmit uses the expression form. A declarator is at file scope
+ *       and a bare expression cannot sit there. Naming the end in the message is what
  *       replaces the member name the expression form prints.
  * @warning Reads sizeof(mmgr_pars_storage_##pool_), so it holds for a span whose offset, length and
  *          width are known while compiling. Anything computed at run time is not bounded by this and
@@ -192,7 +192,7 @@ struct PraetDescriptor
  * @param mensura_         Bytes moved in one step, as a EgoSumMensura.
  * @param next_          The descriptor that runs after this one, or NULL.
  * @note Both pools are named, so both spans are proved to fit before anything runs and both addresses
- *       come from a declaration rather than from a caller stating one. That is the same check
+ *       come from a declaration, with no caller stating one. That is the same check
  *       PraetAttach makes, applied to each end.
  * @note Both addresses advance, which is what memory to memory means. A side that stays put is a
  *       peripheral, and naming one needs an address this has no way to take.

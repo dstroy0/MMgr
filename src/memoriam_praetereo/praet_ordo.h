@@ -74,7 +74,7 @@ EMBED_BEGIN_DECLS
  * @note Spelled at length on purpose. This is not a knob that rides along with recovery being on - it
  *       is its own deliberate yes or no, made once per context, and the name is meant to be
  *       impossible to skim past in a declaration.
- * @note Real enumerators rather than bare tokens. A misspelling is an undeclared identifier at the
+ * @note Real enumerators. A mistyped token is an undeclared identifier at the
  *       declaration instead of quietly reading as the off arm.
  */
 typedef enum
@@ -87,14 +87,14 @@ typedef enum
  * @brief Marks a declaration so that every use of it reports, carrying a message.
  *
  * @param[in] message_ Text the diagnostic reports, as a string literal.
- * @note Aliased under this module's prefix rather than spelled at the use sites, which is what
+ * @note Aliased under this module's prefix and written once, which is what
  *       embed_compiler_directives.h asks a consumer to do with an attribute.
- * @note The deprecated attribute rather than the error or warning one. Those two report at a call
+ * @note The deprecated attribute, where the error and warning ones fall short. Those report at a call
  *       that survives compilation, and a declaration at file scope has no call in it - measured, both
  *       silent. This one reports at any use, and a typedef naming the type is a use.
  * @note Nothing marked with this is deprecated. It is the only attribute that reports from a
- *       declarator, and what it is being used for is to make a deliberate answer visible rather than
- *       to retire anything. The message says which answer, so the line reads correctly whatever GCC
+ *       declarator, and what it is being used for is to make a deliberate answer visible. Nothing is
+ *       retired. The message says which answer, so the line reads correctly whatever GCC
  *       prefixes it with.
  * @warning Expands to nothing where EMBED_HAS_ATTRIBUTE(deprecated) is 0. The answer is then silent
  *          and only a wrong token still fails, which is the half that cannot be missed.
@@ -111,7 +111,7 @@ typedef enum
  * @note The declarator pastes the token onto this and typedefs the result. A token that is neither
  *       of the two fails on an unknown type name that has the offending token in it. Pasting onto a
  *       macro instead gave a syntax error several lines down that named nothing - measured, on the
- *       misspelling this exists to catch.
+ *       mistyped token this exists to catch.
  * @note That same typedef is what makes the answer report. Both arms carry the attribute, because a
  *       choice that only speaks up one way trains everyone to read its silence as the safe answer,
  *       and neither answer here is safe by default.
@@ -148,7 +148,7 @@ typedef PRAET_DENUNTIATIO_ATTR("AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE 
 /**
  * @brief The value the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE token stands for.
  *
- * @note Pasted onto rather than read, so the declarator gets the answer at preprocessing time and can
+ * @note Pasted onto, so the declarator gets the answer at preprocessing time and can
  *       assert on it.
  */
 #define PRAET_CRC_VALUE_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE 0
@@ -227,7 +227,7 @@ typedef PRAET_DENUNTIATIO_ATTR("AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE 
  * @param flags              One uint32 per channel: quaternary core at the bottom, statuses above it,
  *                           region descriptor in the byte at PRAET_REGION_SHIFT. Plain, because the
  *                           two volatiles below are what coordinate against the interrupt. Fixed at
- *                           32 bits rather than embed_word, because the layout is a fixed set of bits
+ *                           32 bits whatever embed_word is, because the layout is a fixed set of bits
  *                           and an environment building at a 16-bit word has nowhere to put the
  *                           region byte.
  * @param bound              First byte of the memory each attached channel moves, as the pool named
@@ -601,7 +601,7 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel);
  *
  * @param[in,out] context Context the channel belongs to [BORROWS].
  * @param[in]     channel Channel that finished.
- * @param[in]     failed  EMBED_TRUE where it ended in an error rather than a completion.
+ * @param[in]     failed  EMBED_TRUE where it ended in an error, EMBED_FALSE on a completion.
  * @note Completion arrives from the port and never from a timer. A timer deciding a transfer had
  *       finished would be this library guessing at hardware.
  */
@@ -645,7 +645,7 @@ void praet_ordo_advance(PraetOrdo *context, embed_word micros);
  * @note What a port calls, because a counter reads in ticks and every deadline here is microseconds.
  *       The scaling is one compile-time constant. A build whose clock runs at a whole megahertz
  *       pays a multiply and a shift for it.
- * @warning Ticks that do not add up to a whole microsecond are dropped rather than carried. A port
+ * @warning Ticks short of a whole microsecond are dropped, and nothing carries them over. A port
  *          feeding this one tick at a time on a fast clock never advances anything, which is why a
  *          port reads the counter and passes the difference instead of counting calls.
  */
@@ -675,10 +675,10 @@ void praet_ordo_raise(PraetOrdo *context);
  * @note Also the reader/setter, and the first call on interrupt exit. It reads set, takes busy, does
  *       the above, then unsets both volatiles. Taking busy is what makes it ignore the interrupt for
  *       that span, and the interrupt may keep raising set throughout without anything being lost,
- *       because this recomputes every channel from what it can see rather than consuming an event.
+ *       because this recomputes every channel from what it can see and consumes no event.
  * @note Does nothing where set was not raised, and where busy was already held. A nested call while
- *       the lock is out is the re-entry case, and it declines rather than reworking state the outer
- *       call is partway through.
+ *       the lock is out is the re-entry case, and it declines, leaving the outer call's half-done
+ *       state untouched.
  * @note Every state change a channel undergoes goes through here, which is what puts the whole of the
  *       access control in one function. That fell out of the lock: one reader means one place.
  */

@@ -157,7 +157,7 @@ EMBED_INLINE void praet_close(const PraetTransferCtx *args)
  * @param[in] ...         Initializers for the CtxType_ literal, written in terms of the CfgType_ the
  *                        entry was handed.
  * @note Both types are parameters here. Opening a channel and moving bytes on one take different
- *       arguments, so the module carries two of each rather than one.
+ *       arguments, so the module carries two of each.
  */
 #define PRAET_ENTRY(ReturnType_, CtxType_, CfgType_, name_, ...)                                                       \
     EMBED_ENTRY(mmgr_praet_, praet_, CtxType_, CfgType_, ReturnType_, name_, __VA_ARGS__)
@@ -190,7 +190,7 @@ PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = args->channe
  * @brief Calls the port layer's poll hook.
  *
  * @param[in] args Channel to poll [BORROWS].
- * @note Hand-rolled rather than an entry line, as mmgr_anular_init is. It hands args to the weak hook
+ * @note Hand-rolled, as mmgr_anular_init is, with no entry line. It hands args to the weak hook
  *       unchanged, with no checking call in between, so there is no argument pack to build and no
  *       praet_ backend for EMBED_ENTRY to name.
  * @note Documented at the declaration in memoriam_praetereo.h.

@@ -85,8 +85,8 @@ EMBED_BEGIN_DECLS
  * @param[in] channel Channel whose word changed.
  * @param[in] was     The word before.
  * @param[in] now     The word after.
- * @note Called from the one function that writes a flag word, which is what makes the record complete
- *       rather than a sample of the sites somebody remembered to instrument.
+ * @note Called from the one function that writes a flag word, which is what makes the record complete,
+ *       including the sites nobody remembered to instrument.
  * @note Records the core transition as a pair, and every status bit that came on or went off. A word
  *       that changed only its region descriptor records neither, and nothing here reads the region.
  */

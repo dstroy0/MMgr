@@ -38,7 +38,7 @@
 #define PRAET_CLOCK_OWN 0
 
 // Which architecture this is, and what that architecture gives a clock. The default source below is
-// picked off that rather than assumed, since an architecture with no counter has nothing to pin
+// picked off that, since an architecture with no counter has nothing to pin
 #include "memoriam_praetereo/praet_platform_detection.h"
 
 /**
@@ -86,7 +86,7 @@
 
 // Asking this to pin a timer on an architecture that defines no counter to pin. The caller has to
 // supply the clock there, and finding that out from a timer that never ticks is the whole reason the
-// capability is derived rather than assumed
+// capability is derived from the architecture
 #if (PRAET_CLOCK_SOURCE == PRAET_CLOCK_OWN) && !PRAET_PLATFORM_HAS_CYCLE_COUNTER
 #error "PRAET_CLOCK_SOURCE is PRAET_CLOCK_OWN, but this architecture defines no cycle counter for this to pin a timer to. Set PRAET_CLOCK_SOURCE to PRAET_CLOCK_CALLER and supply the clock. An ARMv6-M part and a host build both land here."
 #endif
@@ -120,8 +120,8 @@
 /**
  * @brief Ticks this clock counts in one microsecond.
  *
- * @note A compile-time constant, so the division below folds to a multiply and a shift rather than
- *       reaching a divide instruction on a part that may not have one.
+ * @note A compile-time constant, so the division below folds to a multiply and a shift, and
+ *       reaches no divide instruction on a part that may not have one.
  */
 #define PRAET_TICKS_PER_MICRO (PRAET_CLOCK_HZ / 1000000u)
 

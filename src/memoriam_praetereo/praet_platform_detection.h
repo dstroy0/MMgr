@@ -45,7 +45,7 @@
 /**
  * @brief Set where this is a RISC-V build, at any register width.
  *
- * @note The RISC-V C API defines __riscv as 1 on every RISC-V target. There is no second spelling and
+ * @note The RISC-V C API defines __riscv as 1 on every RISC-V target. There is no second name and
  *       no per-vendor variant of it.
  */
 #if defined(__riscv)
@@ -57,7 +57,7 @@
 /**
  * @brief Set where this is an Xtensa build.
  *
- * @note GCC predefines both spellings unconditionally for Xtensa. Both are tested because a clang
+ * @note GCC predefines both names unconditionally for Xtensa. Both are tested because a clang
  *       build for Xtensa is a separate front end and there is no reason to depend on it agreeing
  *       about which one to emit.
  */
@@ -82,7 +82,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #if PRAET_PLATFORM_ARM
 
 /*
- * ARM subfamilies, by architecture level and profile rather than by part.
+ * ARM subfamilies, by architecture level and profile. No part is named.
  *
  * __ARM_ARCH is the architecture level as an integer and __ARM_ARCH_PROFILE is the profile as a
  * character constant, 'A', 'R' or 'M'. Between them they name every Cortex subfamily, and a
@@ -142,7 +142,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 /**
  * @brief Bits in this architecture's general purpose register.
  *
- * @note ACLE reports the execution state rather than the register width, and on ARM those are the
+ * @note ACLE reports the execution state, and says nothing of the register width. On ARM those are the
  *       same question: the 64-bit state is what gives 64-bit registers.
  */
 #if defined(__ARM_64BIT_STATE)
@@ -265,7 +265,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 /**
  * @brief Set where the architecture loads and stores at an address that is not aligned to the size.
  *
- * @note Zero, which is the fail-closed answer rather than a measured one. The base ISA raises a load
+ * @note Zero, which is the fail-closed answer and was not measured. The base ISA raises a load
  *       or store alignment exception, the unaligned option is a core configuration choice, and GCC
  *       predefines nothing that reports it. A core that does support it is described conservatively
  *       here and loses nothing by it.
@@ -278,7 +278,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
  * @brief What to call this architecture in a diagnostic.
  *
  * @note A host build. The suites run here, and a host has a clock the caller reaches through the
- *       standard library rather than one this library would pin.
+ *       standard library. This library has nothing to pin there.
  */
 #define PRAET_PLATFORM_NAME "this host"
 
@@ -316,7 +316,7 @@ EMBED_STATIC_ASSERT(EMBED_WORD_BITS <= PRAET_PLATFORM_XLEN,
  * @brief The core a platform default pins a timer to.
  *
  * @note Core zero, on every family. A part with one core has it and a part with several starts at it,
- *       so it is the number that exists everywhere rather than the number that is right anywhere in
+ *       so it is the number that exists everywhere. It is the right one on no part in
  *       particular. Which core is right is the caller's to say, and PRAET_CLOCK_CORE is where they
  *       say it.
  */
