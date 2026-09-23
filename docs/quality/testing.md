@@ -81,7 +81,7 @@ knowing:
 `suites --strict`, `deps --strict` and `generated --strict` exit non-zero on a finding, which is
 what makes them usable as CI gates.
 
-Five build trees, each a different question, and each carries its own flags in the harness instead
+Six build trees, each a different question, and each carries its own flags in the harness instead
 of in somebody's shell history:
 
 | tree             | what it is                                                          |
@@ -91,11 +91,13 @@ of in somebody's shell history:
 | `build-cov`      | instrumented, with `always_inline` and link time optimization off   |
 | `build-dma`      | DMA on, with recovery, the boundary word check and a settle window  |
 | `build-dma-lean` | DMA on, with recovery and the settle window off                     |
+| `build-extram`   | external memory on                                                  |
 
 The two DMA trees answer every schedule knob through `MMGR_PRAET_KNOBS` (`PRAET_KNOBS` in
 `test/harness.py`). A context the suites declare has to be the size the library walks, so the knobs
 reach the library and the suites together. The cases gate on the knobs, and each tree compiles the
-arm the other one leaves out.
+arm the other one leaves out. The Capabilities workflow runs the two DMA trees and `build-extram` on
+every pull request, since the analysis job builds with both capabilities off.
 
 `build-oracle` and `build-cov` matter for coverage. `always_inline` is honoured at `-O0`, so without turning it off every call site
 of a header entry gets its own copy of that entry's branch records and the report counts optimizer
@@ -197,5 +199,5 @@ big endian target, a guard its own invariants will not let fire. Each says what 
 again. A build option that changes the answer takes the marker with it.
 
 The same numbers come out of the SonarQube workflow, which configures with the same flags. The order
-there is load-bearing — no `.gcda` exists until the tests have run. A scanner invoked before
+there matters: no `.gcda` exists until the tests have run. A scanner invoked before
 `ctest` reports zero.
