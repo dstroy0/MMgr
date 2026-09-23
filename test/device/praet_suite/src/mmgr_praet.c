@@ -12,7 +12,9 @@
  *
  * @note This is src, compiled for the part. The suite reaches the four mmgr_praet_ entries through
  *       it, and the engine under the suite is what answers the hooks underneath.
- * @note MMGR_PRAET_CHANNELS and MMGR_PRAET_BUF_SIZE arrive from platformio.ini. Nothing in the tree
- *       supplies them yet, which is the same reason a CMake build with DMA on needs them passed in.
+ * @note The PRAET_ knobs arrive from platformio.ini, the same ones a CMake build passes through
+ *       MMGR_PRAET_KNOBS.
+ * @note One library unit per file here, as the library compiles them. mmgr_praet_ordo.c and
+ *       mmgr_praet_descriptor.c pull in the other two.
  */
 #include "../../../../src/memoriam_praetereo/memoriam_praetereo.c"

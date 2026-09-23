@@ -10,13 +10,14 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note Compiled only where PRAET_PROCURATOR is 1. The header turns every entry into a macro expanding
  *       to nothing otherwise. A build that did not ask for this carries none of it.
- * @warning Included by test_praet_correctness.c rather than compiled on its own, the same way the
- *          engine and the schedule are.
+ * @note Stays in the suite. The library calls these from the one function that writes a flag word,
+ *       and a build that turns them on links this in beside it.
+ * @warning Included by test_praet_correctness.c instead of compiled on its own, the same way the
+ *          engine is.
  */
-#include "praet_procurator.h"
+#include "memoriam_praetereo/memoriam_praetereo.h"
 
 #if PRAET_PROCURATOR
 

@@ -17,11 +17,9 @@
  *       fails a row instead of agreeing with itself.
  * @note Carries no cases, so Unity's generator walks past it and mmgr_add_suite does not build it.
  */
-#include "praet_ordo.h"
-
-// The descriptor declarators, which praet_ordo.h does not reach. praet_descriptor.h includes it, not
-// the other way round. A probe that wants both names it
-#include "praet_descriptor.h"
+// The module header reaches the schedule and the descriptors both, where MMGR_ENABLE_DMA is set.
+// `harness.py targets` sets it
+#include "memoriam_praetereo/memoriam_praetereo.h"
 
 EMBED_STATIC_ASSERT(PRAET_PLATFORM_ARM == EXPECT_ARM, "the ARM flag is not what this target gives");
 EMBED_STATIC_ASSERT(PRAET_PLATFORM_RISCV == EXPECT_RISCV, "the RISC-V flag is not what this target gives");

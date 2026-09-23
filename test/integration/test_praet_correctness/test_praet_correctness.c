@@ -21,127 +21,19 @@
 
 #include "praet_scenarios.h"
 
-// The engine is compiled in rather than linked. mmgr_add_suite builds the one suite source and the
+// The engine is compiled in instead of linked. mmgr_add_suite builds the one suite source and the
 // shared files under test/support, and these hooks must not reach any other suite -
 // test_memoriam_praetereo exists to prove the weak defaults refuse
 #include "praet_engine.c"
 
-/**
- * @brief Logical channels this suite's context carries.
- *
- * @note Set here because this file is the caller, and a caller is who knows the part. Leaving it
- *       unset would stop the build with a message naming it, which is what praet_praefinitum.h is for
- *       and what defaults_sweep.py checks.
- */
-#define PRAET_CHANNELS 8u
-
-/**
- * @brief Microseconds this suite's engine spends settling.
- *
- * @note Deliberately not zero, so the settling branch of test_a_settling_channel_takes_no_transfer is
- *       the one this build compiles. A build has one value, so reaching the other arm takes a second
- *       compile - run_praet_suite.py builds this file again with the knob set to zero, which is what
- *       the ifndef is here for. Nothing under the module defaults it; this file is the caller.
- */
-#ifndef PRAET_SETTLE_MICROS
-#define PRAET_SETTLE_MICROS 40u
-#endif
-
-/**
- * @brief Microseconds a running channel may go unkicked before the watchdog marks it stalled.
- *
- * @note Wide enough that a case can advance most of the window and still be under it, which is what
- *       proves the window is the length it was asked for and not whatever the next service call
- *       happens to see.
- * @note Overridable, the way the other knobs this file sets are. It was not, and a sweep built five
- *       times at five windows got five identical binaries and a redefinition warning nobody read.
- * @note The pump walks this window one microsecond at a time, so what it costs is linear in this
- *       number. pump_cost.py builds the suite across a range of them to find where that matters.
- */
-#ifndef PRAET_KEEPALIVE_MICROS
-#define PRAET_KEEPALIVE_MICROS 250u
-#endif
-
-/**
- * @brief Whether this build can back a stalled transfer out or scrub it.
- *
- * @note On by default here, because the cases that watch the recovery machinery are most of what this
- *       suite is for. run_praet_suite.py builds the file again with it off, which is the arm where
- *       none of that machinery is declared and the cases have to say something else instead.
- */
-#ifndef PRAET_RECOVERY
-#define PRAET_RECOVERY 1
-#endif
-
-/**
- * @brief The clock this suite declares, in ticks per second.
- *
- * @note Deliberately not one megahertz, so PRAET_TICKS_PER_MICRO is a number the scaling has to
- *       actually divide by. At the floor a tick is a microsecond and a broken conversion would still
- *       come out right.
- * @note An ESP32-S3 at its top frequency, because it is a part on the bench rather than a number
- *       picked to be convenient.
- */
-#ifndef PRAET_CLOCK_HZ
-#define PRAET_CLOCK_HZ 240000000u
-#endif
-
-/**
- * @brief Whether this build pins its own timer or reads one the caller runs.
- *
- * @note A plain flag of this file's own, not PRAET_CLOCK_SOURCE. The two source tokens are defined in
- *       praet_horologiorum_custos.h, which is included further down, so testing PRAET_CLOCK_SOURCE against them up
- *       here compares two undefined names and both sides come out zero - which reads as true and
- *       takes the wrong arm on every build.
- * @note The caller's clock, because these suites run on a host and a host build has no core to pin a
- *       timer to. praet_platform_detection.h says so and praet_horologiorum_custos.h refuses the other arm on the
- *       strength of it, which is the same refusal a Cortex-M0 gets. clock_sweep.py drives that.
- * @note The cases are the clock either way. They call praet_ordo_advance_ticks with the ticks
- *       they mean, which is what a port reading a counter would do with the difference it read.
- */
-#ifndef PRAET_SUITE_CLOCK_IS_OURS
-#define PRAET_SUITE_CLOCK_IS_OURS 0
-#endif
-
-#if PRAET_SUITE_CLOCK_IS_OURS
-
-/**
- * @brief Where the clock comes from: ours, pinned to a core.
- *
- * @note The arm that needs nothing from whoever builds this. run_praet_suite.py builds the file again
- *       on the caller arm.
- */
-#define PRAET_CLOCK_SOURCE PRAET_CLOCK_OWN
-
-/**
- * @brief The core our timer is pinned to.
- *
- * @note Only set on the arm that pins one. Setting it on the caller arm is a build error naming it,
- *       which is the guard clock_sweep.py drives.
- */
-#ifndef PRAET_CLOCK_CORE
-#define PRAET_CLOCK_CORE 1u
-#endif
-
-#else
-
-/**
- * @brief Where the clock comes from: one the caller already runs.
- */
-#define PRAET_CLOCK_SOURCE PRAET_CLOCK_CALLER
-
-#endif
-
-// The schedule context is compiled in for the same reason. It is the implementation under
-// development, driven here before any of it is proposed for src
-#include "praet_ordo.c"
+// No knob is set in this file. The schedule is compiled into the library, and a context declared
+// here has to be the size the library walks, so every knob arrives on the build line through
+// MMGR_PRAET_KNOBS and reaches both. harness.py builds two arms: build-dma with recovery on and a
+// settle window, build-dma-lean with both off. The cases gate on the knobs and hold on either
 
 // The examination arm's counters. Every entry compiles out where PRAET_PROCURATOR is 0. A build that
 // did not ask for it carries none of this
 #include "praet_procurator.c"
-
-// A transfer written down, and the linkage the arrangements are made of
-#include "praet_descriptor.c"
 
 /**
  * @brief The schedule context every scheduling case runs against.
@@ -150,8 +42,8 @@
  *       is an offset from that address.
  * @note The token is the declaration answering the boundary word question, and it reports whichever
  *       way it goes. Every build of this suite carries that line, which is what the token is for.
- * @note run_praet_suite.py builds the file again with PRAET_SUITE_CRC_CHOICE set to the DISABLE
- *       token, because a context answers this once and the other arm needs its own compile.
+ * @note build-dma-lean sets PRAET_SUITE_CRC_CHOICE to the DISABLE token, because a context answers
+ *       this once and the other arm needs its own compile.
  */
 #ifndef PRAET_SUITE_CRC_CHOICE
 #define PRAET_SUITE_CRC_CHOICE AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE
@@ -235,9 +127,9 @@ static const PraetCallbackCfg s_completion_binding = {
  * @note The join. A port reports a finished transfer through this callback, and the schedule learns a
  *       channel is no longer busy from the same event. Nothing else can tell it: praet_ordo.c
  *       predicts no duration. A completion arrives here or it does not arrive.
- * @note This is the application's half. The library does not own the schedule yet, so what wires the
- *       port's events to it is the code that registered the callback, which is what a real
- *       integration writes.
+ * @note This is the application's half. The library holds the schedule and the port layer, and joins
+ *       neither to the other, so what wires the port's events to the schedule is the code that
+ *       registered the callback, which is what a real integration writes.
  * @note An event carries no failure flag, so every completion the engine reports is a clean one. A
  *       port that distinguishes them has somewhere to say so and this does not invent one.
  */

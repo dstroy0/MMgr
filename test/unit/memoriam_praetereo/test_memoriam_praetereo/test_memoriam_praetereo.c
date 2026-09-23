@@ -3,8 +3,8 @@
 //
 /**
  * @file test_memoriam_praetereo.c
- * @brief Exercises the praet dispatch table against the unported build, where every hardware hook
- *        keeps its refusing default.
+ * @brief Exercises the praet dispatch table and the schedule against the unported build, where every
+ *        hardware hook keeps its refusing default.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-30
  */
@@ -44,6 +44,25 @@ static const PraetCallbackCfg s_completion_binding = {
     .callback = count_one_completion,
     .user = NULL,
 };
+
+/**
+ * @brief The schedule context the progress case runs against.
+ *
+ * @note The boundary word check is off. It needs PRAET_RECOVERY, and this suite builds on both arms.
+ */
+PraetOrdoContext(s_schedule, AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE);
+
+/**
+ * @brief Bytes the progress case submits over.
+ */
+ParsMemoriaeInternae(s_transfer_pool, 64);
+
+/**
+ * @brief Binds channel zero of that context to the pool.
+ *
+ * @note A literal, because the channel is pasted into the binding's name.
+ */
+PraetChannel(s_schedule, 0, s_transfer_pool);
 
 /**
  * @brief Prepares the fixture Unity runs before each case in this suite.
@@ -182,6 +201,36 @@ void test_an_unported_build_reports_no_completion(void)
     EMBED_CALL(praet.poll, PraetCfg, .channel = PRAET_TEST_CHANNEL, .on_complete = &s_completion_binding);
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(0, s_completion_count, "a refused transfer must not reach the completion callback");
+}
+
+/**
+ * @brief Checks that the progress hook's default reports no movement, and a running channel stalls.
+ *
+ * @note praet_hw_progress keeps its weak default here, as the four mmgr_praet_hw_ hooks do. It
+ *       answers zero, so a channel nothing moves is marked stalled once its keepalive window passes,
+ *       with its position where the submit left it.
+ * @note Reached through praet_ordo_poll, which calls the hook from the unit that defines the default.
+ *       That is the call a build with no port makes.
+ */
+void test_an_unported_build_reports_no_progress_and_stalls(void)
+{
+    praet_ordo_reset(&s_schedule);
+    TEST_ASSERT_TRUE_MESSAGE(PraetAttach(s_schedule, 0, s_transfer_pool, PRAET_REGION_INTERNAL), "the attach failed");
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE_MESSAGE(PraetSubmit(s_schedule, 0, s_transfer_pool, 0u, 32u), "a settled channel refused a transfer");
+
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
+
+    const uint32_t after = praet_ordo_flags(&s_schedule, PRAET_TEST_CHANNEL);
+
+    TEST_ASSERT_TRUE_MESSAGE((after & PRAET_STALLED) != 0u, "a channel the default reported no movement on never stalled");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK, "a stall was read as the transfer finishing");
+#if PRAET_RECOVERY
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_situs(&s_schedule, PRAET_TEST_CHANNEL),
+                                     "the default reported movement");
+#endif
 }
 
 /**

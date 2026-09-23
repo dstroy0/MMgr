@@ -29,12 +29,14 @@ one costs a full configure and a full compile every time; --fresh forces a new o
 changed target or a changed toolchain needs. The newest three per name are kept and older ones are
 removed on the way in.
 
-There are three host trees and each one is a different question, so each carries its own flags here
-rather than in somebody's shell history:
+There are five host trees and each one is a different question, so each carries its own flags here
+instead of in somebody's shell history:
 
-  build         the library, as it ships
-  build-oracle  MMGR_TEST_ORACLE on, so every suite that includes oracle_divergence.h calls libc
-  build-cov     instrumented, always_inline off, link time optimisation off
+  build           the library, as it ships
+  build-oracle    MMGR_TEST_ORACLE on, so every suite that includes oracle_divergence.h calls libc
+  build-cov       instrumented, always_inline off, link time optimisation off
+  build-dma       DMA on, with recovery, the boundary word check and a settle window
+  build-dma-lean  DMA on, with recovery and the settle window off
 
 The device benches are ESP-IDF projects, which is a second build system with its own toolchain and
 environment. Reaching it needs a shell, so the shell script is written out from here, run, and
@@ -602,8 +604,32 @@ def undriven_deps(path):
 # ------------------------------------------------------------------------------------------------
 # Build trees
 # ------------------------------------------------------------------------------------------------
+# The DMA schedule's knobs, answered the way a host build answers them. A host defines no counter to
+# pin a timer to, so the clock is the caller's. The two DMA trees, the target probe and the remote
+# columns all start from these, and each replaces a knob by name where it asks a different question.
+PRAET_KNOBS = (
+    "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u", "PRAET_KEEPALIVE_MICROS=250u",
+    "PRAET_RECOVERY=1", "PRAET_CLOCK_HZ=240000000u", "PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER",
+)
+
+
+def praet_knobs(replaced):
+    """PRAET_KNOBS as NAME=value, with each knob @p replaced names taking the value it gives there.
+
+    A replaced knob is left out of the base instead of repeated after it. A second definition of one
+    name is a redefinition warning on every build that sets it, and the suites count warnings.
+    """
+    names = {knob.split("=", 1)[0] for knob in replaced}
+    return [knob for knob in PRAET_KNOBS if knob.split("=", 1)[0] not in names] + list(replaced)
+
+
+# The boundary word answer the lean arm declares its context with. Test side, the same way the oracle
+# is: the library reads no such knob, and the suite needs it on the arm where recovery is off, since
+# asking for the check without recovery is refused.
+CRC_OFF = "-DPRAET_SUITE_CRC_CHOICE=AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE"
+
 # Each tree is a question, and the flags are the question. Written down here so that running one is
-# a command rather than a remembered incantation.
+# a command instead of a remembered incantation.
 TREES = {
     "build": {
         "what": "the library as it ships",
@@ -622,6 +648,18 @@ TREES = {
             "-DMMGR_LTO=OFF",
             "-DCMAKE_C_FLAGS=--coverage -O0 -g -include " + os.path.join(ROOT, "test", "support", "coverage_inline.h"),
             "-DCMAKE_EXE_LINKER_FLAGS=--coverage",
+        ],
+    },
+    "build-dma": {
+        "what": "DMA on, with recovery, the boundary word check and a settle window",
+        "args": ["-DMMGR_ENABLE_DMA=ON", "-DMMGR_PRAET_KNOBS=" + ";".join(praet_knobs([]))],
+    },
+    "build-dma-lean": {
+        "what": "DMA on, with recovery and the settle window off",
+        "args": [
+            "-DMMGR_ENABLE_DMA=ON",
+            "-DMMGR_PRAET_KNOBS=" + ";".join(praet_knobs(["PRAET_SETTLE_MICROS=0u", "PRAET_RECOVERY=0"])),
+            "-DCMAKE_C_FLAGS=" + CRC_OFF,
         ],
     },
 }
@@ -1517,11 +1555,9 @@ TARGETS = (
 )
 
 # Every knob the probe reads that is not this table's subject. A row only fails for its own reason.
-TARGET_KNOBS = (
-    "-DMMGR_ENABLE_DMA=1", "-DMMGR_ENABLE_EXTRAM=0",
-    "-DPRAET_CHANNELS=8u", "-DPRAET_SETTLE_MICROS=40u", "-DPRAET_KEEPALIVE_MICROS=250u",
-    "-DPRAET_RECOVERY=1", "-DPRAET_CLOCK_HZ=240000000u",
-)
+# The clock source is each row's own, so it is left out here.
+TARGET_KNOBS = ["-DMMGR_ENABLE_DMA=1", "-DMMGR_ENABLE_EXTRAM=0"] + [
+    "-D" + knob for knob in PRAET_KNOBS if not knob.startswith("PRAET_CLOCK_SOURCE=")]
 
 PRAET_SUITE = os.path.join(INTEGRATION, "test_praet_correctness")
 
@@ -1568,8 +1604,7 @@ def cmd_targets(a):
         cmd += ["-DEXPECT_ARM=%d" % arm, "-DEXPECT_RISCV=%d" % riscv, "-DEXPECT_XTENSA=%d" % xtensa,
                 "-DEXPECT_XLEN=%d" % xlen, "-DEXPECT_COUNTER=%d" % counter]
         cmd += ["-I" + where(os.path.join(ROOT, "src")), "-I" + where(os.path.join(ROOT, "include")),
-                "-I" + where(os.path.join(ROOT, "deps", "embedded_types", "include")),
-                "-I" + where(PRAET_SUITE)]
+                "-I" + where(os.path.join(ROOT, "deps", "embedded_types", "include"))]
         cmd += ["-c", where(probe), "-o", where(os.path.join(scratch, "probe_%s.o" % name.split()[0]))]
 
         done = subprocess.run(cmd, capture_output=True, text=True)
@@ -1607,18 +1642,18 @@ def cmd_targets(a):
     return 0
 
 
-# The suite's columns, the same ones a host run builds. A remote run is comparable row for row.
-CRC_OFF = "-DPRAET_SUITE_CRC_CHOICE=AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE"
+# The suite's columns: label, knobs replaced by name, and any other flags. A remote run is comparable
+# row for row with the host trees.
 REMOTE_COLUMNS = (
-    ("host    ", []),
-    ("word32  ", ["-DEMBED_WORD_BITS=32"]),
-    ("word16  ", ["-DEMBED_WORD_BITS=16"]),
-    ("settle=0", ["-DPRAET_SETTLE_MICROS=0u"]),
-    ("crcoff  ", [CRC_OFF]),
-    ("clk1MHz ", ["-DPRAET_CLOCK_HZ=1000000u"]),
-    ("norecov ", ["-DPRAET_RECOVERY=0", CRC_OFF]),
-    ("examine ", ["-DPRAET_PROCURATOR=1"]),
-    ("optimize", ["-DPRAET_OPTIMIZE=1"]),
+    ("host    ", [], []),
+    ("word32  ", [], ["-DEMBED_WORD_BITS=32"]),
+    ("word16  ", [], ["-DEMBED_WORD_BITS=16"]),
+    ("settle=0", ["PRAET_SETTLE_MICROS=0u"], []),
+    ("crcoff  ", [], [CRC_OFF]),
+    ("clk1MHz ", ["PRAET_CLOCK_HZ=1000000u"], []),
+    ("norecov ", ["PRAET_RECOVERY=0"], [CRC_OFF]),
+    ("examine ", ["PRAET_PROCURATOR=1"], []),
+    ("optimize", ["PRAET_OPTIMIZE=1"], []),
 )
 
 
@@ -1683,16 +1718,18 @@ def cmd_remote(a):
     print("%-10s %s" % ("column", "result"))
 
     bad = 0
-    for label, extra in REMOTE_COLUMNS:
+    for label, replaced, extra in REMOTE_COLUMNS:
         tag = label.strip().replace("=", "")
+        flags = ["-D" + knob for knob in praet_knobs(replaced)] + extra
         build = (
             "cd %s && gcc -std=c11 -O2 -Wall -Wextra -Wconversion -Wsign-conversion %s "
-            "-DMMGR_ENABLE_DMA=1 -DMMGR_ENABLE_EXTRAM=0 -DMMGR_PRAET_CHANNELS=8 -DMMGR_PRAET_BUF_SIZE=256 "
+            "-DMMGR_ENABLE_DMA=1 -DMMGR_ENABLE_EXTRAM=0 "
             "-DUNITY_INCLUDE_DOUBLE -DUNITY_INCLUDE_FLOAT -Isrc -Iinclude -Iembed -Isuite -Iunity "
             "suite/test_praet_correctness.c suite/%s unity/unity.c "
-            "src/memoriam_praetereo/memoriam_praetereo.c -o suite_%s 2>&1 | "
+            "src/memoriam_praetereo/memoriam_praetereo.c src/memoriam_praetereo/praet_ordo.c "
+            "src/memoriam_praetereo/praet_descriptor.c -o suite_%s 2>&1 | "
             "grep -E 'error|warning' | grep -v unity | grep -v AD_VERBI_CONFINIUM | wc -l"
-        ) % (a.dir, " ".join(extra), GENERATED_RUNNER, tag)
+        ) % (a.dir, " ".join(flags), GENERATED_RUNNER, tag)
 
         built = over_there(build)
         ours = (built.stdout or "").strip().splitlines()
