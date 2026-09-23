@@ -221,7 +221,7 @@ size_t mmgr_verba_put(const VerbaTextusCfg *args);
  *
  * @param[in] args Buffer, capacity, offset and the text [BORROWS].
  * @return         The offset past what was written, which is args->at when nothing was.
- * @note Returns args->at rather than args->cap when it writes nothing, so a later call can still write.
+ * @note Returns args->at rather than args->cap when it writes nothing. A later call can still write.
  * @note Bounds the measure by the room left, so the length measured is already the length that fits.
  * @warning A NULL args->text writes nothing rather than faulting, unlike put.
  */
@@ -234,7 +234,7 @@ size_t mmgr_verba_put_clip(const VerbaTextusCfg *args);
  * @return         The offset past what was written, which is args->at for a NULL args->text.
  * @note Replaces the ampersand, the two angle brackets and the double quote. The apostrophe is
  *       written as it stands, so this suits element text and double quoted attributes.
- * @warning Walks to the terminator, so args->text is bounded by its own terminator rather than by args->cap.
+ * @warning Walks to the terminator. args->text is bounded by its own terminator rather than by args->cap.
  */
 size_t mmgr_verba_xml(const VerbaTextusCfg *args);
 
@@ -245,7 +245,7 @@ size_t mmgr_verba_xml(const VerbaTextusCfg *args);
  * @return         The offset past the closing quote, or args->cap once something did not fit.
  * @note Writes the opening and closing quotes itself, so the result is a complete JSON string, and a
  *       NULL args->text writes an empty pair of quotes where xml writes nothing at all.
- * @warning Walks to the terminator, so args->text is bounded by its own terminator rather than by args->cap.
+ * @warning Walks to the terminator. args->text is bounded by its own terminator rather than by args->cap.
  */
 size_t mmgr_verba_json(const VerbaTextusCfg *args);
 
@@ -265,7 +265,7 @@ size_t mmgr_verba_ch(const VerbaLitteraCfg *args);
  *
  * @param[in] args Buffer, capacity, offset, the value and the column count [BORROWS].
  * @return         The offset past what was written, which is args->at when there was no room.
- * @note Takes args->columns as a floor, so a value needing more digits than that widens the field.
+ * @note Takes args->columns as a floor. A value needing more digits than that widens the field.
  * @note Pads on the left with spaces, where uint pads with leading zeros.
  * @warning args->out must be writable for args->cap bytes, and a byte is held back for the terminator.
  */
@@ -317,8 +317,8 @@ size_t mmgr_verba_u32(const VerbaNumerusCfg *args);
  *
  * @param[in] args Buffer, capacity, offset and the value [BORROWS].
  * @return         The offset past the digits, or args->cap when they do not fit.
- * @note The same walk as u32, since args->val is 64 bits either way. Both names exist so a caller
- *       reads the width it means at the call.
+ * @note The same walk as u32, since args->val is 64 bits either way. Both names exist to let a caller
+ *       read the width it means at the call.
  * @warning Neither args->base nor args->min takes any part here. Reach for u32w to pad.
  */
 size_t mmgr_verba_u64(const VerbaNumerusCfg *args);
@@ -330,7 +330,7 @@ size_t mmgr_verba_u64(const VerbaNumerusCfg *args);
  * @return         The offset past the digits, or args->cap when they do not fit.
  * @note Writes the sign through ch, then hands the magnitude to uint at base ten.
  * @note The magnitude is taken as -(sval + 1) plus one, which stays in range for the most negative value.
- * @warning Reads args->sval and not args->val, so a caller filling the unsigned member writes a zero.
+ * @warning Reads args->sval and not args->val. A caller filling the unsigned member writes a zero.
  */
 size_t mmgr_verba_i64(const VerbaNumerusCfg *args);
 
@@ -353,7 +353,7 @@ size_t mmgr_verba_g(const VerbaFractioCfg *args);
  * @return         The offset past what was written, or args->cap once something did not fit.
  * @note args->decimals is held at MMGR_FIXED_MAX_DECIMALS, and a value of 0 writes no point at all.
  * @note A half rounds up, and a fraction that carries raises the integer part. The sign is written
- *       ahead of the magnitude, so a negative half rounds away from zero.
+ *       ahead of the magnitude. A negative half rounds away from zero.
  * @warning A magnitude too large for 64 bits of integer part falls back to g at ten significant
  *          digits, so the result is not always in the fixed form asked for.
  */
@@ -364,8 +364,8 @@ size_t mmgr_verba_fixed(const VerbaFractioCfg *args);
  *
  * @param[in] args The value to test, as args->real [BORROWS].
  * @return         EMBED_TRUE when the sign bit is set, with nothing written.
- * @note Reads the bit rather than comparing against zero, so a negative zero returns EMBED_TRUE.
- * @note Reads no member but args->real, so args->out may be left unset.
+ * @note Reads the bit rather than comparing against zero. A negative zero returns EMBED_TRUE.
+ * @note Reads no member but args->real. args->out may be left unset.
  */
 embed_bool mmgr_verba_sign_bit(const VerbaFractioCfg *args);
 
@@ -375,7 +375,7 @@ embed_bool mmgr_verba_sign_bit(const VerbaFractioCfg *args);
  * @param[in] args The value to test, as args->real [BORROWS].
  * @return         EMBED_TRUE for either infinity, with nothing written.
  * @note Wants the exponent field all ones and the mantissa zero, where is_nan wants it non-zero.
- * @note The sign takes no part, so a negative infinity returns EMBED_TRUE too.
+ * @note The sign takes no part. A negative infinity returns EMBED_TRUE too.
  */
 embed_bool mmgr_verba_is_inf(const VerbaFractioCfg *args);
 
@@ -395,7 +395,7 @@ embed_bool mmgr_verba_is_nan(const VerbaFractioCfg *args);
  * @param[in] args Buffer, capacity and the offset reached [BORROWS].
  * @return         args->at, or 0 when args->at already reached args->cap.
  * @note A return of 0 covers both an empty result and one that ran out of room. ok tells them apart.
- * @warning The only entry that writes a terminator, so a buffer is not a string until this has run.
+ * @warning The only entry that writes a terminator. A buffer is not a string until this has run.
  */
 size_t mmgr_verba_finish(const VerbaFinisCfg *args);
 

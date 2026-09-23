@@ -132,7 +132,7 @@ static uint8_t g_pattern[POOL_BYTES];
  *
  * @param[out] at    First byte to fill [BORROWS].
  * @param[in]  bytes Bytes to write.
- * @note Mixed from the offset so a byte copied from the wrong place is visible as itself, not merely
+ * @note Mixed from the offset, which makes a byte copied from the wrong place visible as itself, not merely
  *       as a mismatch. A run of one repeated value would hide a move that overlapped itself.
  */
 static void praet_fill_pattern(uint8_t *at, size_t bytes)
@@ -140,7 +140,7 @@ static void praet_fill_pattern(uint8_t *at, size_t bytes)
     for (size_t offset = 0u; offset < bytes; offset++)
     {
         // Explicit cast narrows the mixed value to the byte it fills. The or with 1 keeps it away
-        // from zero, so a byte left untouched by a short move is distinguishable from a written one
+        // from zero. A byte left untouched by a short move is distinguishable from a written one
         at[offset] = (uint8_t)((((offset * 31u) + 17u) & 0xFFu) | 1u);
     }
 }
@@ -382,7 +382,7 @@ void dbench_run(void)
         DBENCH_OP("dir_known_down", iters, arm_known_down());
 
         /* Head to head, which is the row that answers the question. Run both orders: on the C6 the
-         * arm that runs second has measured about 1.1 cycles more whatever it is, so a small split
+         * arm that runs second has measured about 1.1 cycles more whatever it is. A small split
          * that follows the position instead of the code is visible only by swapping. */
         DBENCH_AB("dir_up", iters, bytes, arm_branch_up(), arm_mask_up());
         DBENCH_AB("dir_up_swapped", iters, bytes, arm_mask_up(), arm_branch_up());

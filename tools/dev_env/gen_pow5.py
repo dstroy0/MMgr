@@ -9,7 +9,7 @@ The fives are what has to be carried, and they are the same handful of numbers o
 they belong in a table rather than in a loop that rebuilds them.
 
 Each entry is five to a power of two, held as a 128 bit fraction with the top bit set and its own
-binary exponent, so any exponent up to 511 is the product of at most nine of them. The reciprocals
+binary exponent. Any exponent up to 511 is the product of at most nine of them. The reciprocals
 are here too, which is what keeps a negative exponent a multiply instead of a division.
 
 Truncated rather than rounded, on purpose. A truncated entry is never larger than the true power,
@@ -28,13 +28,13 @@ the widest. Those are statements about STEPS and BITS, so the two are asserted b
 left to be quietly contradicted. A generator that emits prose describing a shape it no longer
 produces is the defect this file was rewritten to remove.
 
-The layout matches what clang-format produces, so a formatter run over the output is a no-op and a
+The layout matches what clang-format produces. A formatter run over the output is a no-op and a
 header that comes back from the formatter changed reads as one somebody edited by hand.
 """
 
 import pathlib
 
-STEPS = 9  # 5^1, 5^2, 5^4 ... 5^256, so any exponent below 512
+STEPS = 9  # 5^1, 5^2, 5^4 ... 5^256, enough for any exponent below 512
 BITS = 128
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / "src" / "pow5" / "pow5.h"
@@ -107,7 +107,7 @@ HEADER = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmai
  *
  * @note transformo walks the bits of the decimal exponent and multiplies in one entry per set bit, so nine
  *       entries reach 511.
- * @note Declares no function. Both tables are static const data that outlive every call, so a pointer into
+ * @note Declares no function. Both tables are static const data that outlive every call. A pointer into
  *       one stays good for the whole program [BORROWS].
  */
 #ifndef MMGR_POW5_H
@@ -134,7 +134,7 @@ EMBED_BEGIN_DECLS
  *       carried in wherever the two are compared.
  * @warning muto_scale bounds against this and returns infinity above it and zero below its negative;
  *          muto_scale_to_u64 does not. What keeps either off the end of the tables is the walk itself,
- *          which takes only MMGR_POW5_STEPS steps, so an exponent past this loses its higher bits.
+ *          which takes only MMGR_POW5_STEPS steps. An exponent past this loses its higher bits.
  */
 #define MMGR_POW5_MAX ((1 << MMGR_POW5_STEPS) - 1)
 
@@ -173,7 +173,7 @@ static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
  *
  * @note Entry i is the multiplier for bit i of the exponent magnitude, and the walk in muto_apply_pow10
  *       takes this table when the decimal exponent is negative.
- * @note No negative power of five ends in binary, so all nine are the exact value truncated toward zero.
+ * @note No negative power of five ends in binary. All nine are the exact value truncated toward zero.
  *       Every entry reads a little low and none of them round up: 5^-1 is the repeating 0xCCCC..., not the
  *       0xCCCD... that rounding to nearest would give.
  * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int

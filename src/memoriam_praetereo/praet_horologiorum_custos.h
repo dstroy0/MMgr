@@ -11,7 +11,6 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note Every deadline in this module is microseconds, and a clock is what makes a microsecond mean
  *       anything. A build with no clock declared has deadlines it cannot honor, so it stops and asks
  *       for one.
@@ -19,14 +18,14 @@
  *       requirement - this scales its ticks against the frequency the caller states and never looks
  *       at where it came from.
  */
-#ifndef MMGR_TEST_PRAET_HOROLOGIORUM_CUSTOS_H
-#define MMGR_TEST_PRAET_HOROLOGIORUM_CUSTOS_H
+#ifndef MMGR_PRAET_HOROLOGIORUM_CUSTOS_H
+#define MMGR_PRAET_HOROLOGIORUM_CUSTOS_H
 
 // EMBED_STATIC_ASSERT and embed_word, for the scaling below. Reached the same way every other file
-// here reaches them, so this header stands on its own rather than on what included it
-#include "memoriam_praetereo/memoriam_praetereo.h"
+// here reaches them, so this header stands on its own instead of on what included it
+#include "mmgr.h"
 
-#include "praet_praefinitum.h"
+#include "memoriam_praetereo/praet_praefinitum.h"
 
 /**
  * @brief The clock is the caller's, read through the port.
@@ -39,8 +38,8 @@
 #define PRAET_CLOCK_OWN 0
 
 // Which architecture this is, and what that architecture gives a clock. The default source below is
-// picked off that rather than assumed, since an architecture with no counter has nothing to pin
-#include "praet_platform_detection.h"
+// picked off that, since an architecture with no counter has nothing to pin
+#include "memoriam_praetereo/praet_platform_detection.h"
 
 /**
  * @brief Ticks the clock counts in one second.
@@ -55,7 +54,8 @@
 #ifndef PRAET_CLOCK_HZ
 #define PRAET_CLOCK_HZ 1000000u
 #define PRAET_UNSET_CLOCK_HZ 1
-#warning "No clock is declared, so PRAET_CLOCK_HZ took the library default of 1000000 and a tick is read as one microsecond. Every deadline in this module is then wrong by whatever the real frequency is. Set it to the frequency of the clock this reads."
+#warning                                                                                                               \
+    "No clock is declared, so PRAET_CLOCK_HZ took the library default of 1000000 and a tick is read as one microsecond. Every deadline in this module is then wrong by whatever the real frequency is. Set it to the frequency of the clock this reads."
 #endif
 
 /**
@@ -72,10 +72,12 @@
 #define PRAET_UNSET_CLOCK_SOURCE 1
 #if PRAET_PLATFORM_HAS_CYCLE_COUNTER
 #define PRAET_CLOCK_SOURCE PRAET_CLOCK_OWN
-#warning "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_OWN, because this architecture defines a cycle counter a port can read. Say so, or set PRAET_CLOCK_CALLER to have this read a clock you already run."
+#warning                                                                                                               \
+    "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_OWN, because this architecture defines a cycle counter a port can read. Say so, or set PRAET_CLOCK_CALLER to have this read a clock you already run."
 #else
 #define PRAET_CLOCK_SOURCE PRAET_CLOCK_CALLER
-#warning "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_CALLER, because this architecture defines no cycle counter a timer could be pinned to. Say so, and supply the clock."
+#warning                                                                                                               \
+    "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_CALLER, because this architecture defines no cycle counter a timer could be pinned to. Say so, and supply the clock."
 #endif
 #endif
 
@@ -87,9 +89,10 @@
 
 // Asking this to pin a timer on an architecture that defines no counter to pin. The caller has to
 // supply the clock there, and finding that out from a timer that never ticks is the whole reason the
-// capability is derived rather than assumed
+// capability is derived from the architecture
 #if (PRAET_CLOCK_SOURCE == PRAET_CLOCK_OWN) && !PRAET_PLATFORM_HAS_CYCLE_COUNTER
-#error "PRAET_CLOCK_SOURCE is PRAET_CLOCK_OWN, but this architecture defines no cycle counter for this to pin a timer to. Set PRAET_CLOCK_SOURCE to PRAET_CLOCK_CALLER and supply the clock. An ARMv6-M part and a host build both land here."
+#error                                                                                                                 \
+    "PRAET_CLOCK_SOURCE is PRAET_CLOCK_OWN, but this architecture defines no cycle counter for this to pin a timer to. Set PRAET_CLOCK_SOURCE to PRAET_CLOCK_CALLER and supply the clock. An ARMv6-M part and a host build both land here."
 #endif
 
 #if PRAET_CLOCK_SOURCE == PRAET_CLOCK_OWN
@@ -105,7 +108,8 @@
 #ifndef PRAET_CLOCK_CORE
 #define PRAET_CLOCK_CORE PRAET_PLATFORM_CLOCK_CORE
 #define PRAET_UNSET_CLOCK_CORE 1
-#warning "PRAET_CLOCK_CORE was not set and took PRAET_PLATFORM_CLOCK_CORE, which is core zero on every family this library targets. Set it to the core this should pin its timer to."
+#warning                                                                                                               \
+    "PRAET_CLOCK_CORE was not set and took PRAET_PLATFORM_CLOCK_CORE, which is core zero on every family this library targets. Set it to the core this should pin its timer to."
 #endif
 
 #else
@@ -113,7 +117,8 @@
 // A field of the arm this build did not take. The core would sit in the build looking set while
 // nothing pins a timer anywhere, and the caller would find that out from behavior
 #ifdef PRAET_CLOCK_CORE
-#error "PRAET_CLOCK_CORE is set but PRAET_CLOCK_SOURCE is PRAET_CLOCK_CALLER. Nothing pins a timer in this build, so there is no core to pin it to. Set PRAET_CLOCK_SOURCE to PRAET_CLOCK_OWN, or take PRAET_CLOCK_CORE out."
+#error                                                                                                                 \
+    "PRAET_CLOCK_CORE is set but PRAET_CLOCK_SOURCE is PRAET_CLOCK_CALLER. Nothing pins a timer in this build, so there is no core to pin it to. Set PRAET_CLOCK_SOURCE to PRAET_CLOCK_OWN, or take PRAET_CLOCK_CORE out."
 #endif
 
 #endif
@@ -121,8 +126,8 @@
 /**
  * @brief Ticks this clock counts in one microsecond.
  *
- * @note A compile-time constant, so the division below folds to a multiply and a shift rather than
- *       reaching a divide instruction on a part that may not have one.
+ * @note A compile-time constant, so the division below folds to a multiply and a shift, and
+ *       reaches no divide instruction on a part that may not have one.
  */
 #define PRAET_TICKS_PER_MICRO (PRAET_CLOCK_HZ / 1000000u)
 

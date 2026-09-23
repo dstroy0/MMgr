@@ -130,5 +130,5 @@ ESP32-S3, `cellul.len` measured **26.6 cycles/byte without LTO against 5.0 with 
 byte-at-a-time ROM `strnlen` it is compared to. `MMGR_LTO` defaults to `ON` for that reason.
 
 @warning A toolchain that cannot do link-time optimization does not give a slower build of the same
-library; it gives a different one. ESP-IDF appends `-fno-lto` to every link unconditionally, so an
+library; it gives a different one. ESP-IDF appends `-fno-lto` to every link unconditionally. An
 IDF project has to take that flag back out — see `test/performance_benching` for how.

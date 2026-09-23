@@ -43,7 +43,7 @@
  * @param block  Bytes taken that do not yet fill a block.
  * @param filled How many of those there are.
  * @note Streaming rather than one shot, because the standard's own vectors do not fit otherwise. RFC
- *       6234 TEST3 is one million bytes and a Cortex-M4 has 192 KB of RAM, so a one shot form cannot
+ *       6234 TEST3 is one million bytes and a Cortex-M4 has 192 KB of RAM. A one shot form cannot
  *       run the case that exercises a length field past 2^23 bits.
  * @note Also the shape a caller wants for a transfer. A destination is hashed as it fills, without a
  *       second copy of it anywhere.
@@ -105,7 +105,7 @@ void mmgr_sha256(const uint8_t *bytes, size_t length, uint8_t digest[MMGR_SHA256
  *       This is the general entry, and mmgr_sha256 is it with the length multiplied by eight.
  * @note The trailing bits sit in the high end of the final byte, most significant first, which is how
  *       the standard writes a partial byte and how CAVP's bit oriented vectors are packed. Bits below
- *       the stated length are ignored, so a caller need not clear them.
+ *       the stated length are ignored. A caller need not clear them.
  * @note uint64_t rather than size_t, because the length field the standard writes is 64 bits and a
  *       16 bit part would otherwise cap the expressible message far below what the padding allows.
  * @warning bytes must hold ceil(bit_length / 8) bytes. Only the top bits of the last one are read.
@@ -122,7 +122,7 @@ void mmgr_sha256_bits(const uint8_t *bytes, uint64_t bit_length, uint8_t digest[
  * @param[out] tag     Where the 32 byte tag is written [BORROWS].
  * @note Here to test the hash, not because this tree needs a MAC. Wycheproof publishes adversarial
  *       HMAC-SHA-256 vectors and no bare SHA-256 vectors, and HMAC exercises the hash with keys, two
- *       nested digests and messages that straddle the block, so a hash that is wrong anywhere cannot
+ *       nested digests and messages that straddle the block. A hash that is wrong anywhere cannot
  *       produce a matching tag. It is a third party oracle reached through one extra layer.
  * @note RFC 2104: a key longer than a block is hashed first, a shorter one is zero padded.
  */
@@ -158,7 +158,7 @@ unsigned mmgr_sha256_first_bit_difference(uint8_t left, uint8_t right);
  * @brief Checks this implementation against the RFC 6234 published vectors.
  *
  * @return 1 where every vector matched, 0 where any did not.
- * @note Run before any digest is trusted. The vectors are published, so agreeing with them is
+ * @note Run before any digest is trusted. The vectors are published. Agreeing with them is
  *       evidence about this code, where agreeing with another copy of this code is not.
  * @note RFC 6234 section 8.5 picks its four messages to sit on the padding boundaries: "abc" is one
  *       block with room, the 56 octet message pushes its padding into a second block, 640 octets is

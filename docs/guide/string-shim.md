@@ -18,7 +18,7 @@ would rather not link libc's string functions at all.
 ## Include order is the whole of it
 
 The shim works by claiming libc's include guards. It defines `_STRING_H`, `_STRING_H_`,
-`__STRING_H__`, `_STRING_H_INCLUDED` and `_INC_STRING` itself, so a later `#include <string.h>`
+`__STRING_H__`, `_STRING_H_INCLUDED` and `_INC_STRING` itself. A later `#include <string.h>`
 anywhere in the translation unit expands to nothing and the real declarations never arrive.
 
 That only works if the shim gets there first. If something above it already pulled in the real

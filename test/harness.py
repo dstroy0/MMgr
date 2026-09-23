@@ -29,12 +29,15 @@ one costs a full configure and a full compile every time; --fresh forces a new o
 changed target or a changed toolchain needs. The newest three per name are kept and older ones are
 removed on the way in.
 
-There are three host trees and each one is a different question, so each carries its own flags here
-rather than in somebody's shell history:
+There are six host trees and each one is a different question, so each carries its own flags here
+instead of in somebody's shell history:
 
-  build         the library, as it ships
-  build-oracle  MMGR_TEST_ORACLE on, so every suite that includes oracle_divergence.h calls libc
-  build-cov     instrumented, always_inline off, link time optimisation off
+  build           the library, as it ships
+  build-oracle    MMGR_TEST_ORACLE on, so every suite that includes oracle_divergence.h calls libc
+  build-cov       instrumented, always_inline off, link time optimisation off
+  build-dma       DMA on, with recovery, the boundary word check and a settle window
+  build-dma-lean  DMA on, with recovery and the settle window off
+  build-extram    external memory on
 
 The device benches are ESP-IDF projects, which is a second build system with its own toolchain and
 environment. Reaching it needs a shell, so the shell script is written out from here, run, and
@@ -63,7 +66,7 @@ what makes this machine unusable, and the comparison does not need them concurre
 The mechanisms here are generic; the names, the paths and the two patterns that key on a per-project
 idiom are this tree's.
 
-A capability is a set of translation units the config selects, so a suite whose capabilities are off
+A capability is a set of translation units the config selects. A suite whose capabilities are off
 is not built at all:
 
   cmake -S . -B build -DMMGR_ENABLE_DMA=OFF
@@ -107,7 +110,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Where the build trees live. ROOT by default, because a tree beside the source is what anyone
 # expects to find. MMGR_BUILD_ROOT moves them, which is not a convenience: Windows caps a full
-# object path at 250 characters, and this tree's deepest object sits ~180 below its build dir, so a
+# object path at 250 characters, and this tree's deepest object sits ~180 below its build dir. A
 # checkout more than ~60 characters down - a git worktree under .claude/worktrees/ is already past
 # it - cannot build in place at all. The cap is the compiler's, so the only fix is a shorter prefix.
 BUILD_ROOT = os.path.abspath(os.environ.get("MMGR_BUILD_ROOT", ROOT))
@@ -115,7 +118,7 @@ BUILD_ROOT = os.path.abspath(os.environ.get("MMGR_BUILD_ROOT", ROOT))
 # Extra configure arguments, split like a shell would. borrowed_toolchain() reads the generator and
 # the compiler off a tree that already built, which answers the question everywhere there is such a
 # tree - and nowhere there is not, which is any fresh clone or worktree whose first build is this
-# one. cmake's default generator is not always one that works on a given machine, so a first build
+# one. cmake's default generator is not always one that works on a given machine. A first build
 # with nothing to borrow from needs somewhere to be told.
 CMAKE_ARGS = os.environ.get("MMGR_CMAKE_ARGS", "")
 
@@ -125,7 +128,7 @@ CMAKE_ARGS = os.environ.get("MMGR_CMAKE_ARGS", "")
 BUILD_CONTAINER = os.path.join(BUILD_ROOT, "build")
 
 # Which directory each tree is currently using. Written here rather than inferred from the newest
-# timestamp on disk, so a run that was interrupted does not silently hand the next one a half
+# timestamp on disk. A run that was interrupted does not silently hand the next one a half
 # configured tree.
 BUILD_POINTER = os.path.join(BUILD_CONTAINER, "current.json")
 
@@ -202,7 +205,7 @@ def remember_toolchain(path):
 def tree_dirs(tree):
     """Directories under the container belonging to @p tree, oldest first.
 
-    Matched against the whole name and not its prefix. "build" is a prefix of "build-oracle", so a
+    Matched against the whole name and not its prefix. "build" is a prefix of "build-oracle". A
     prefix test would let a rotation of one name remove another's trees. The stamp is part of the
     pattern for the same reason: anything under the container that is not a tree this made is left
     alone.
@@ -321,7 +324,7 @@ def remove_tree(path):
     """Remove a build tree, and say whether it actually went.
 
     Every read-only bit under the tree is cleared first. FetchContent clones Unity into _deps with
-    its .git intact, and git holds pack files at 0444, which Windows will not unlink - so a plain
+    its .git intact, and git holds pack files at 0444, which Windows will not unlink. A plain
     rmtree of any fully built tree stops partway and leaves a directory with most of its contents
     gone. That husk still matches the tree pattern, so it is counted by the rotation, listed by
     `trees`, and never removed on any later run either.
@@ -419,7 +422,7 @@ def guarded_cases(path):
     """Each registered case in @p path, with the capabilities whose #if it sits inside.
 
     Unity's generator reads the case names out of the source text and does not see a preprocessor
-    conditional, so a case inside a capability's #if is still declared and called by the runner. With
+    conditional. A case inside a capability's #if is still declared and called by the runner. With
     that capability off the definition is gone and the suite fails to LINK, which is what makes this
     the same finding as a capability the map does not name.
     """
@@ -602,8 +605,32 @@ def undriven_deps(path):
 # ------------------------------------------------------------------------------------------------
 # Build trees
 # ------------------------------------------------------------------------------------------------
+# The DMA schedule's knobs, answered the way a host build answers them. A host defines no counter to
+# pin a timer to, so the clock is the caller's. The two DMA trees, the target probe and the remote
+# columns all start from these, and each replaces a knob by name where it asks a different question.
+PRAET_KNOBS = (
+    "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u", "PRAET_KEEPALIVE_MICROS=250u",
+    "PRAET_RECOVERY=1", "PRAET_CLOCK_HZ=240000000u", "PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER",
+)
+
+
+def praet_knobs(replaced):
+    """PRAET_KNOBS as NAME=value, with each knob @p replaced names taking the value it gives there.
+
+    A replaced knob is left out of the base instead of repeated after it. A second definition of one
+    name is a redefinition warning on every build that sets it, and the suites count warnings.
+    """
+    names = {knob.split("=", 1)[0] for knob in replaced}
+    return [knob for knob in PRAET_KNOBS if knob.split("=", 1)[0] not in names] + list(replaced)
+
+
+# The boundary word answer the lean arm declares its context with. Test side, the same way the oracle
+# is: the library reads no such knob, and the suite needs it on the arm where recovery is off, since
+# asking for the check without recovery is refused.
+CRC_OFF = "-DPRAET_SUITE_CRC_CHOICE=AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE"
+
 # Each tree is a question, and the flags are the question. Written down here so that running one is
-# a command rather than a remembered incantation.
+# a command instead of a remembered incantation.
 TREES = {
     "build": {
         "what": "the library as it ships",
@@ -623,6 +650,22 @@ TREES = {
             "-DCMAKE_C_FLAGS=--coverage -O0 -g -include " + os.path.join(ROOT, "test", "support", "coverage_inline.h"),
             "-DCMAKE_EXE_LINKER_FLAGS=--coverage",
         ],
+    },
+    "build-dma": {
+        "what": "DMA on, with recovery, the boundary word check and a settle window",
+        "args": ["-DMMGR_ENABLE_DMA=ON", "-DMMGR_PRAET_KNOBS=" + ";".join(praet_knobs([]))],
+    },
+    "build-dma-lean": {
+        "what": "DMA on, with recovery and the settle window off",
+        "args": [
+            "-DMMGR_ENABLE_DMA=ON",
+            "-DMMGR_PRAET_KNOBS=" + ";".join(praet_knobs(["PRAET_SETTLE_MICROS=0u", "PRAET_RECOVERY=0"])),
+            "-DCMAKE_C_FLAGS=" + CRC_OFF,
+        ],
+    },
+    "build-extram": {
+        "what": "external memory on",
+        "args": ["-DMMGR_ENABLE_EXTRAM=ON"],
     },
 }
 
@@ -696,7 +739,7 @@ def configure(tree, fresh=False):
         # is what makes a failed configure fail again rather than half-succeed.
         remove_tree(path)
         current = read_pointer()
-        # Put back whatever the name pointed at before, so a failed --fresh leaves the working tree
+        # Put back whatever the name pointed at before. A failed --fresh leaves the working tree
         # in place instead of unsetting the name and stranding a tree that is still on disk.
         if was and os.path.isdir(os.path.join(BUILD_CONTAINER, was)):
             current[tree] = was
@@ -757,7 +800,7 @@ BENCH_ROOT = os.path.join(ROOT, "test", "performance_benching")
 # everything a build makes and nothing lands beside the source.
 SANDBOX = os.path.join(BUILD_CONTAINER, "sandbox")
 
-# The IDF install this machine carries. Read from the environment where it is set, so a different
+# The IDF install this machine carries. Read from the environment where it is set. A different
 # install needs no edit here.
 IDF_PATH = os.environ.get("IDF_PATH", r"C:\Espressif\frameworks\esp-idf-v5.5.5")
 IDF_TOOLS_PATH = os.environ.get("IDF_TOOLS_PATH", r"C:\Espressif")
@@ -789,15 +832,15 @@ def run_script(path, quiet=False):
 
 
 # idf.py invoked by name goes through the Windows .py association on this machine, which prints
-# nothing and exits 0 - so a failure reads as a success and the build directory is never made. Every
+# nothing and exits 0. A failure reads as a success and the build directory is never made. Every
 # invocation goes through the IDF python explicitly for that reason.
 IDF_PREAMBLE = """\
 $ErrorActionPreference = "Stop"
 
 # idf.py refuses to run under MSys/Mingw and stops before it configures anything. Those variables
 # are inherited from whichever shell started the harness, and a POSIX shell on this machine sets
-# them, so a device build reached from one dies on a message about the environment rather than
-# about the build. Cleared here so an emitted script runs the same way whichever shell got here.
+# them. A device build reached from one dies on a message about the environment rather than
+# about the build. Clearing them here makes an emitted script run the same way whichever shell got here.
 foreach ($name in "MSYSTEM", "MSYSTEM_PREFIX", "MINGW_PREFIX", "MSYS", "MSYS2_PATH_TYPE") {{
     Remove-Item -Path ("env:" + $name) -ErrorAction SilentlyContinue
 }}
@@ -852,7 +895,7 @@ def cmd_device_build(a):
         proj=proj, tree=tree, sdkconfig=sdkconfig, target=a.target
     )
     # Single braces, and an explicit exit rather than a throw. This line is concatenated, not
-    # formatted, so a doubled brace is not an escape here - it emits a scriptblock wrapped in a
+    # formatted. A doubled brace is not an escape here - it emits a scriptblock wrapped in a
     # scriptblock, which PowerShell prints instead of running. The guard then never fires and the
     # step reports success no matter what it did.
     body += 'if ($LASTEXITCODE -ne 0) { Write-Error "set-target failed"; exit 1 }\n'
@@ -1290,7 +1333,7 @@ def cmd_deps(a):
         "\n"
         "  This is a smell, not a proof. A unit the suite reaches only THROUGH the unit under\n"
         "  test is still exercised, and this cannot see that. What it does prove is that no case\n"
-        "  ASSERTS anything about the dependency's own state, so a defect in the interaction\n"
+        "  ASSERTS anything about the dependency's own state. A defect in the interaction\n"
         "  between the two is invisible either way.\n"
         "\n"
         "  Fix one of two ways: drive it and assert its state, or stop binding it so the suite\n"
@@ -1391,7 +1434,7 @@ GENERATED = (
 
 
 def cmd_generated(a):
-    """Regenerate into a scratch copy and diff, so a check never writes."""
+    """Regenerate into a scratch copy and diff. A check never writes."""
     stale, missing = [], []
 
     for tool, outs in GENERATED:
@@ -1516,12 +1559,10 @@ TARGETS = (
     ("host      x86-64", HOST_GCC, [], (0, 0, 0, 64, 0), CLOCK_CALLER, True, None),
 )
 
-# Every knob the probe reads that is not this table's subject, so a row only fails for its own reason.
-TARGET_KNOBS = (
-    "-DMMGR_ENABLE_DMA=1", "-DMMGR_ENABLE_EXTRAM=0",
-    "-DPRAET_CHANNELS=8u", "-DPRAET_SETTLE_MICROS=40u", "-DPRAET_KEEPALIVE_MICROS=250u",
-    "-DPRAET_RECOVERY=1", "-DPRAET_CLOCK_HZ=240000000u",
-)
+# Every knob the probe reads that is not this table's subject. A row only fails for its own reason.
+# The clock source is each row's own, so it is left out here.
+TARGET_KNOBS = ["-DMMGR_ENABLE_DMA=1", "-DMMGR_ENABLE_EXTRAM=0"] + [
+    "-D" + knob for knob in PRAET_KNOBS if not knob.startswith("PRAET_CLOCK_SOURCE=")]
 
 PRAET_SUITE = os.path.join(INTEGRATION, "test_praet_correctness")
 
@@ -1568,8 +1609,7 @@ def cmd_targets(a):
         cmd += ["-DEXPECT_ARM=%d" % arm, "-DEXPECT_RISCV=%d" % riscv, "-DEXPECT_XTENSA=%d" % xtensa,
                 "-DEXPECT_XLEN=%d" % xlen, "-DEXPECT_COUNTER=%d" % counter]
         cmd += ["-I" + where(os.path.join(ROOT, "src")), "-I" + where(os.path.join(ROOT, "include")),
-                "-I" + where(os.path.join(ROOT, "deps", "embedded_types", "include")),
-                "-I" + where(PRAET_SUITE)]
+                "-I" + where(os.path.join(ROOT, "deps", "embedded_types", "include"))]
         cmd += ["-c", where(probe), "-o", where(os.path.join(scratch, "probe_%s.o" % name.split()[0]))]
 
         done = subprocess.run(cmd, capture_output=True, text=True)
@@ -1607,18 +1647,18 @@ def cmd_targets(a):
     return 0
 
 
-# The suite's columns, the same ones a host run builds, so a remote run is comparable row for row.
-CRC_OFF = "-DPRAET_SUITE_CRC_CHOICE=AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE"
+# The suite's columns: label, knobs replaced by name, and any other flags. A remote run is comparable
+# row for row with the host trees.
 REMOTE_COLUMNS = (
-    ("host    ", []),
-    ("word32  ", ["-DEMBED_WORD_BITS=32"]),
-    ("word16  ", ["-DEMBED_WORD_BITS=16"]),
-    ("settle=0", ["-DPRAET_SETTLE_MICROS=0u"]),
-    ("crcoff  ", [CRC_OFF]),
-    ("clk1MHz ", ["-DPRAET_CLOCK_HZ=1000000u"]),
-    ("norecov ", ["-DPRAET_RECOVERY=0", CRC_OFF]),
-    ("examine ", ["-DPRAET_PROCURATOR=1"]),
-    ("optimize", ["-DPRAET_OPTIMIZE=1"]),
+    ("host    ", [], []),
+    ("word32  ", [], ["-DEMBED_WORD_BITS=32"]),
+    ("word16  ", [], ["-DEMBED_WORD_BITS=16"]),
+    ("settle=0", ["PRAET_SETTLE_MICROS=0u"], []),
+    ("crcoff  ", [], [CRC_OFF]),
+    ("clk1MHz ", ["PRAET_CLOCK_HZ=1000000u"], []),
+    ("norecov ", ["PRAET_RECOVERY=0"], [CRC_OFF]),
+    ("examine ", ["PRAET_PROCURATOR=1"], []),
+    ("optimize", ["PRAET_OPTIMIZE=1"], []),
 )
 
 
@@ -1683,16 +1723,18 @@ def cmd_remote(a):
     print("%-10s %s" % ("column", "result"))
 
     bad = 0
-    for label, extra in REMOTE_COLUMNS:
+    for label, replaced, extra in REMOTE_COLUMNS:
         tag = label.strip().replace("=", "")
+        flags = ["-D" + knob for knob in praet_knobs(replaced)] + extra
         build = (
             "cd %s && gcc -std=c11 -O2 -Wall -Wextra -Wconversion -Wsign-conversion %s "
-            "-DMMGR_ENABLE_DMA=1 -DMMGR_ENABLE_EXTRAM=0 -DMMGR_PRAET_CHANNELS=8 -DMMGR_PRAET_BUF_SIZE=256 "
+            "-DMMGR_ENABLE_DMA=1 -DMMGR_ENABLE_EXTRAM=0 "
             "-DUNITY_INCLUDE_DOUBLE -DUNITY_INCLUDE_FLOAT -Isrc -Iinclude -Iembed -Isuite -Iunity "
             "suite/test_praet_correctness.c suite/%s unity/unity.c "
-            "src/memoriam_praetereo/memoriam_praetereo.c -o suite_%s 2>&1 | "
+            "src/memoriam_praetereo/memoriam_praetereo.c src/memoriam_praetereo/praet_ordo.c "
+            "src/memoriam_praetereo/praet_descriptor.c -o suite_%s 2>&1 | "
             "grep -E 'error|warning' | grep -v unity | grep -v AD_VERBI_CONFINIUM | wc -l"
-        ) % (a.dir, " ".join(extra), GENERATED_RUNNER, tag)
+        ) % (a.dir, " ".join(flags), GENERATED_RUNNER, tag)
 
         built = over_there(build)
         ours = (built.stdout or "").strip().splitlines()
@@ -1768,7 +1810,7 @@ static uint8_t msg[150000];
 static uint8_t key[4096];
 
 /* CAVP publishes a hundred checkpoints. The construction does not stop there, and past a hundred it
- * is still a valid chain with no published answer, so a soak runs it as far as asked and a second
+ * is still a valid chain with no published answer. A soak runs it as far as asked and a second
  * implementation supplies the expectation. Errors in a chain compound forward, which is why this
  * finds state bugs that independent messages hide. */
 static int monte(unsigned checkpoints)

@@ -3,7 +3,7 @@
 
 Cuts the named ranges out of --src and splices them into --dst, either before or
 after a regex anchor or appended at the end. Line endings and encoding are
-preserved (LF, UTF-8 without BOM), so a move produces no spurious whitespace diff.
+preserved (LF, UTF-8 without BOM). A move produces no spurious whitespace diff.
 
 Ranges are 1-indexed and inclusive, and are read from the ORIGINAL numbering, so
 several --range flags can be given at once without the earlier cuts shifting the

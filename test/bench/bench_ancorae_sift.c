@@ -23,7 +23,7 @@
  *       with no candidate at all, and a search that jumps those runs never touches them. Expected
  *       skip is the corpus length over the occurrence count, and it is what decides whether a sieve
  *       can visit a space it could never enumerate.
- * @warning The cost table is a link time singleton, so a build links exactly one of the five
+ * @warning The cost table is a link time singleton. A build links exactly one of the five
  *          profiles and this binary can only report on that one. It does not even carry its own
  *          name, which is why every row below is stamped with a fingerprint of the 256 costs.
  *          Comparing profiles means five builds, which is the cost of the current design.
@@ -35,8 +35,8 @@
 #include "mmgr_sha256.h"
 
 #include <math.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 /**
@@ -123,59 +123,58 @@ static uint8_t s_flat_corpus[CORPUS_BYTES];
  *       has almost none: a handful of punctuation marks and the same dozen keywords, so the anchor
  *       has much less to work with and the correlation between any two positions is far stronger.
  */
-static const char s_structured[] =
-    "static void mmgr_walk_rows(const uint8_t *bytes, size_t length, uint32_t *counts)\n"
-    "{\n"
-    "    for (size_t index = 0u; index < length; index++)\n"
-    "    {\n"
-    "        counts[bytes[index]]++;\n"
-    "    }\n"
-    "}\n"
-    "\n"
-    "static uint32_t mmgr_pick_lowest(const uint8_t *needle, size_t length)\n"
-    "{\n"
-    "    uint32_t best = 0u;\n"
-    "    unsigned best_cost = 256u;\n"
-    "    for (size_t index = 0u; index < length; index++)\n"
-    "    {\n"
-    "        const unsigned cost = table[needle[index]];\n"
-    "        if (cost < best_cost)\n"
-    "        {\n"
-    "            best_cost = cost;\n"
-    "            best = (uint32_t)index;\n"
-    "        }\n"
-    "    }\n"
-    "    return best;\n"
-    "}\n"
-    "\n"
-    "embed_bool mmgr_sift_span(const SiftCfg *args)\n"
-    "{\n"
-    "    MMGR_ASSERT(args->bytes != NULL, \"a span with no bytes\");\n"
-    "    if (args->length < args->needle_len)\n"
-    "    {\n"
-    "        return EMBED_FALSE;\n"
-    "    }\n"
-    "    const size_t anchor = mmgr_pick_lowest(args->needle, args->needle_len);\n"
-    "    for (size_t start = 0u; (start + args->needle_len) <= args->length; start++)\n"
-    "    {\n"
-    "        if (args->bytes[start + anchor] != args->needle[anchor])\n"
-    "        {\n"
-    "            continue;\n"
-    "        }\n"
-    "        if (mmgr_span_equal(&args->bytes[start], args->needle, args->needle_len))\n"
-    "        {\n"
-    "            return EMBED_TRUE;\n"
-    "        }\n"
-    "    }\n"
-    "    return EMBED_FALSE;\n"
-    "}\n"
-    "\n"
-    "static uint32_t mmgr_fold_word(uint32_t word, uint32_t mask, unsigned places)\n"
-    "{\n"
-    "    const uint32_t high = (word >> places) & mask;\n"
-    "    const uint32_t low = (word << (32u - places)) & ~mask;\n"
-    "    return high | low;\n"
-    "}\n";
+static const char s_structured[] = "static void mmgr_walk_rows(const uint8_t *bytes, size_t length, uint32_t *counts)\n"
+                                   "{\n"
+                                   "    for (size_t index = 0u; index < length; index++)\n"
+                                   "    {\n"
+                                   "        counts[bytes[index]]++;\n"
+                                   "    }\n"
+                                   "}\n"
+                                   "\n"
+                                   "static uint32_t mmgr_pick_lowest(const uint8_t *needle, size_t length)\n"
+                                   "{\n"
+                                   "    uint32_t best = 0u;\n"
+                                   "    unsigned best_cost = 256u;\n"
+                                   "    for (size_t index = 0u; index < length; index++)\n"
+                                   "    {\n"
+                                   "        const unsigned cost = table[needle[index]];\n"
+                                   "        if (cost < best_cost)\n"
+                                   "        {\n"
+                                   "            best_cost = cost;\n"
+                                   "            best = (uint32_t)index;\n"
+                                   "        }\n"
+                                   "    }\n"
+                                   "    return best;\n"
+                                   "}\n"
+                                   "\n"
+                                   "embed_bool mmgr_sift_span(const SiftCfg *args)\n"
+                                   "{\n"
+                                   "    MMGR_ASSERT(args->bytes != NULL, \"a span with no bytes\");\n"
+                                   "    if (args->length < args->needle_len)\n"
+                                   "    {\n"
+                                   "        return EMBED_FALSE;\n"
+                                   "    }\n"
+                                   "    const size_t anchor = mmgr_pick_lowest(args->needle, args->needle_len);\n"
+                                   "    for (size_t start = 0u; (start + args->needle_len) <= args->length; start++)\n"
+                                   "    {\n"
+                                   "        if (args->bytes[start + anchor] != args->needle[anchor])\n"
+                                   "        {\n"
+                                   "            continue;\n"
+                                   "        }\n"
+                                   "        if (mmgr_span_equal(&args->bytes[start], args->needle, args->needle_len))\n"
+                                   "        {\n"
+                                   "            return EMBED_TRUE;\n"
+                                   "        }\n"
+                                   "    }\n"
+                                   "    return EMBED_FALSE;\n"
+                                   "}\n"
+                                   "\n"
+                                   "static uint32_t mmgr_fold_word(uint32_t word, uint32_t mask, unsigned places)\n"
+                                   "{\n"
+                                   "    const uint32_t high = (word >> places) & mask;\n"
+                                   "    const uint32_t low = (word << (32u - places)) & ~mask;\n"
+                                   "    return high | low;\n"
+                                   "}\n";
 
 /**
  * @brief Fills @p into with @p length bytes of the text at @p text, repeating it.
@@ -215,7 +214,7 @@ static size_t fill_from_text(uint8_t *into, const char *text, size_t length)
  * @return            Bytes written.
  * @note The distinction that makes this a period and not a repetition. A corpus built by repeating
  *       one string is self similar and every needle finds itself, which is the artifact that already
- *       ruined one measurement here. This varies every field per record, so a needle occurs once,
+ *       ruined one measurement here. This varies every field per record. A needle occurs once,
  *       and only the column positions recur.
  * @note Layout: four hex digits, a comma, six letters, a comma, three digits, a newline.
  */
@@ -257,7 +256,7 @@ static size_t fill_periodic(uint8_t *into, size_t length)
  *       What it stands in for is a sequence with no rank ordering and no correlation between
  *       positions, which is what a normal constant's digits look like empirically.
  * @note It was a 64 bit xorshift when the skip figures of 261.1, 262.7 and 261.1 were recorded. The
- *       same rows read 271.9, 273.6 and 281.3 under this generator, so any uniform number older than
+ *       same rows read 271.9, 273.6 and 281.3 under this generator. Any uniform number older than
  *       this change is on the old one and cannot be compared against a new row.
  */
 static void fill_uniform(uint8_t *into, size_t length)
@@ -331,7 +330,7 @@ static void histogram(const uint8_t *corpus, size_t length, uint32_t *counts)
  * @brief How an anchor gets picked out of a needle.
  *
  * @note The policy is a free variable, and that is the point of having it. An anchor is a condition
- *       copied out of the needle, so a position that really does hold the needle satisfies every
+ *       copied out of the needle. A position that really does hold the needle satisfies every
  *       anchor whatever chose it. Correctness cannot turn on the policy. What the policy moves is how
  *       many false candidates survive, and that is cost.
  * @note ANCHOR_BY_TABLE asks the linked cost table, which ranks a byte by how rare it is.
@@ -404,21 +403,18 @@ static unsigned anchor_cost(uint8_t byte, AnchorPolicy policy)
 {
     switch (policy)
     {
-        case ANCHOR_BY_RANDOM:
-        {
-            return s_random_cost[byte];
-        }
-        case ANCHOR_BY_MAXIMUM_ENTROPY:
-        {
-            // One cost for every byte. Ties go leftmost, so the anchors come out at 0, 1, 2 and sit
-            // adjacent, which is the hardest case there is for two rates to multiply
-            return 0u;
-        }
-        case ANCHOR_BY_TABLE:
-        default:
-        {
-            return (unsigned)EMBED_CALL(ancorae.impensa, AncoraeCfg, .byte = byte);
-        }
+    case ANCHOR_BY_RANDOM: {
+        return s_random_cost[byte];
+    }
+    case ANCHOR_BY_MAXIMUM_ENTROPY: {
+        // One cost for every byte. Ties go leftmost, so the anchors come out at 0, 1, 2 and sit
+        // adjacent, which is the hardest case there is for two rates to multiply
+        return 0u;
+    }
+    case ANCHOR_BY_TABLE:
+    default: {
+        return (unsigned)EMBED_CALL(ancorae.impensa, AncoraeCfg, .byte = byte);
+    }
     }
 }
 
@@ -432,19 +428,16 @@ static const char *policy_name(AnchorPolicy policy)
 {
     switch (policy)
     {
-        case ANCHOR_BY_RANDOM:
-        {
-            return "random";
-        }
-        case ANCHOR_BY_MAXIMUM_ENTROPY:
-        {
-            return "maxent";
-        }
-        case ANCHOR_BY_TABLE:
-        default:
-        {
-            return "table";
-        }
+    case ANCHOR_BY_RANDOM: {
+        return "random";
+    }
+    case ANCHOR_BY_MAXIMUM_ENTROPY: {
+        return "maxent";
+    }
+    case ANCHOR_BY_TABLE:
+    default: {
+        return "table";
+    }
     }
 }
 
@@ -690,8 +683,7 @@ static void report_cascade(const char *name, const uint8_t *corpus, size_t corpu
 
         printf("ancorae_cascade,%08x,%s,%s,%u,%u,%u,%u,%.3f,%.4f,%.2f,%.1f\n", stamp, name, policy_name(policy),
                (unsigned)needle_len, count, (unsigned)corpus_len, samples, mean, expect,
-               (expect > 0.0) ? (mean / expect) : 0.0,
-               (error > 0.0) ? ((mean - expect) / error) : 0.0);
+               (expect > 0.0) ? (mean / expect) : 0.0, (error > 0.0) ? ((mean - expect) / error) : 0.0);
     }
 }
 
@@ -707,7 +699,7 @@ static void report_cascade(const char *name, const uint8_t *corpus, size_t corpu
  * @param[out] found      Receives how many true occurrences the corpus holds [BORROWS].
  * @return                How many of those an anchor rejected.
  * @note The deductive half, run as code. An anchor is a byte lifted out of the needle at an offset
- *       inside the needle, so a position holding the whole needle holds that byte at that offset. The
+ *       inside the needle. A position holding the whole needle holds that byte at that offset. The
  *       argument never names how many anchors there are, what picked them, how large the alphabet is,
  *       or that positions are ordered, which is why every sweep in main can vary all four and still
  *       expect zero back. A nonzero return is an implementation defect, never a property of the data.
@@ -751,8 +743,8 @@ static uint32_t refused_occurrences(const uint8_t *corpus, size_t length, const 
  * @note Unlike the cost rows this one takes the degenerate lengths, because that is where a claim
  *       about all sizes either holds or does not. A needle as long as the corpus leaves one position,
  *       and a needle of one byte is the shortest thing that can carry an anchor at all.
- * @note A verdict of none means the case had nothing to check, and it is printed instead of hold so a
- *       reader cannot mistake an empty sweep for a passing one.
+ * @note A verdict of none means the case had nothing to check, and it is printed instead of hold to keep a
+ *       reader from mistaking an empty sweep for a passing one.
  */
 static void report_invariant(const char *name, const uint8_t *corpus, size_t corpus_len, size_t needle_len,
                              AnchorPolicy policy, uint32_t stamp)
@@ -863,8 +855,8 @@ static void report(const char *name, const uint8_t *corpus, size_t corpus_len, s
         }
 
         const uint32_t one = candidates(corpus, corpus_len, needle[first_at], first_at, 0u, (size_t)-1, needle_len);
-        const uint32_t two = candidates(corpus, corpus_len, needle[first_at], first_at, needle[second_at], second_at,
-                                        needle_len);
+        const uint32_t two =
+            candidates(corpus, corpus_len, needle[first_at], first_at, needle[second_at], second_at, needle_len);
 
         // What two independent anchors would admit: the first anchor's rate times the second's,
         // over the positions the first already kept
@@ -908,9 +900,9 @@ static void report(const char *name, const uint8_t *corpus, size_t corpus_len, s
     // zero is independence; large is correlation the multiplication does not account for
     const double zscore = (stderr_two > 0.0) ? ((two_mean - predicted_mean) / stderr_two) : 0.0;
 
-    printf("ancorae_sift,%08x,%s,%s,%u,%u,%u,%u,%.2f,%.2f,%.2f,%.1f,%.2f,%.3f,%.1f\n", stamp, name,
-           policy_name(policy), (unsigned)needle_len, (unsigned)anchor_stride, (unsigned)corpus_len, samples,
-           one_mean, two_mean, predicted_mean, skip, independence, stderr_two, zscore);
+    printf("ancorae_sift,%08x,%s,%s,%u,%u,%u,%u,%.2f,%.2f,%.2f,%.1f,%.2f,%.3f,%.1f\n", stamp, name, policy_name(policy),
+           (unsigned)needle_len, (unsigned)anchor_stride, (unsigned)corpus_len, samples, one_mean, two_mean,
+           predicted_mean, skip, independence, stderr_two, zscore);
 }
 
 /**
@@ -930,8 +922,7 @@ static void report(const char *name, const uint8_t *corpus, size_t corpus_len, s
  *       many bits a byte carries on average. Collision says how often two independent draws agree,
  *       and that second one is what an anchor is actually paid in.
  */
-static void report_domain(const char *name, const uint8_t *corpus, size_t corpus_len, size_t needle_len,
-                          uint32_t stamp)
+static void report_domain(const char *name, const uint8_t *corpus, size_t corpus_len, size_t needle_len, uint32_t stamp)
 {
     uint32_t counts[256];
     unsigned distinct = 0u;
@@ -996,10 +987,9 @@ static void report_domain(const char *name, const uint8_t *corpus, size_t corpus
         previous = shares[index];
     }
 
-    printf("ancorae_domain,%08x,%s,%u,%u,%u,%.4f,%.4f,%.6f,%.2f,%.3f,%.8f,%.3f\n", stamp, name,
-           (unsigned)corpus_len, (unsigned)needle_len, distinct, shannon, -log2(collision), collision,
-           1.0 / collision, positions * collision, expected_min,
-           (expected_min > 0.0) ? (collision / expected_min) : 0.0);
+    printf("ancorae_domain,%08x,%s,%u,%u,%u,%.4f,%.4f,%.6f,%.2f,%.3f,%.8f,%.3f\n", stamp, name, (unsigned)corpus_len,
+           (unsigned)needle_len, distinct, shannon, -log2(collision), collision, 1.0 / collision, positions * collision,
+           expected_min, (expected_min > 0.0) ? (collision / expected_min) : 0.0);
 }
 
 /**
@@ -1125,8 +1115,8 @@ static void report_widths(const char *name, const uint8_t *corpus, size_t corpus
 
     for (unsigned width = 1u; width <= WIDEST_SYMBOL; width++)
     {
-        if ((width != 1u) && (width != 2u) && (width != 3u) && (width != 4u) && (width != 6u) &&
-            (width != 8u) && (width != 12u) && (width != 16u))
+        if ((width != 1u) && (width != 2u) && (width != 3u) && (width != 4u) && (width != 6u) && (width != 8u) &&
+            (width != 12u) && (width != 16u))
         {
             continue;
         }
@@ -1175,8 +1165,8 @@ static void report_widths(const char *name, const uint8_t *corpus, size_t corpus
 
         const double renyi = -log2(collision);
 
-        printf("ancorae_width,%08x,%s,%u,%u,%u,%u,%.4f,%.4f\n", stamp, name, (unsigned)corpus_len, width,
-               values, distinct, renyi, renyi / (double)width);
+        printf("ancorae_width,%08x,%s,%u,%u,%u,%u,%.4f,%.4f\n", stamp, name, (unsigned)corpus_len, width, values,
+               distinct, renyi, renyi / (double)width);
     }
 }
 

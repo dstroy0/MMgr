@@ -14,7 +14,7 @@
  * @note A span only points at the caller's bytes [BORROWS]. Every span cut from a buffer, and every
  *       span cut from that one, is good for exactly as long as the buffer is, and none of them frees
  *       it.
- * @note A span travels inside the argument pack rather than being pointed at, so a walk reads the
+ * @note A span travels inside the argument pack rather than being pointed at. A walk reads the
  *       caller's span and cannot change it. reset is the exception and takes args->at.
  * @note Reaches nothing outside config.
  */
@@ -123,7 +123,7 @@ EMBED_INLINE embed_bool spat_cok(const SpatiumCtx *args)
  * @param[in,out] args Span to rewind, as args->at [BORROWS].
  * @warning at is written through with no check of its own, so it has to point at a live span. The
  *          const on the pack covers the pack, not the span at the far end of at.
- * @note Rewinds the span only. The bytes it covers are left exactly as they were, so a reset span
+ * @note Rewinds the span only. The bytes it covers are left exactly as they were. A reset span
  *       hands out storage that still holds whatever the last fill wrote.
  */
 EMBED_INLINE void spat_reset(const SpatiumCtx *args)
@@ -182,7 +182,7 @@ EMBED_INLINE mmgr_span spat_after(const SpatiumCtx *args)
  * @param[in] args Span to narrow, as args->span, and the bytes to keep as args->count [BORROWS].
  * @return         A span over those bytes, or a failed span when args->count is past cap.
  * @note The span that comes back starts on the same byte args->span starts on [BORROWS], holding a
- *       shorter cap over the same storage. Both cover the opening bytes, so a fill through one is
+ *       shorter cap over the same storage. Both cover the opening bytes. A fill through one is
  *       read by the other. pos comes forward, held down to the shorter cap when it sat past it.
  */
 EMBED_INLINE mmgr_span spat_first(const SpatiumCtx *args)
@@ -261,7 +261,7 @@ EMBED_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
  *
  * @note Each is documented at its declaration in spatium.h.
  * @note The fields each line forwards are the ones that entry reads; EMBED_CALL zeroes the rest.
- * @note from forwards buf and cfrom forwards cbuf, so a buffer that may not be written cannot reach
+ * @note from forwards buf and cfrom forwards cbuf. A buffer that may not be written cannot reach
  *       the fill constructor. Both take their extent from cap.
  */
 SPAT_ENTRY(mmgr_span, from, .buf = args->buf, .cap = args->cap)

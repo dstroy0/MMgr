@@ -107,9 +107,9 @@ static double accuracy_power_of_ten(unsigned exponent)
  * @param[in] decimals Digits after the point.
  * @return             1 when the value is an exact tie at that count, 0 otherwise.
  * @note A tie is the one input the two rounding rules disagree about, and which rule a C library
- *       applies is not fixed by the standard. This module documents ties to even and the host's
- *       printf on this toolchain rounds them away from zero. A comparison at a tie would then report
- *       a difference of convention as a defect.
+ *       applies is not fixed by the standard. This module takes a half away from zero, printf on MinGW
+ *       does the same, and printf on glibc rounds a tie to even. A comparison at a tie would then
+ *       report a difference of convention as a defect on one host or the other.
  * @note Ties are checked directly against the documented rule in their own case below, so nothing is
  *       lost by leaving them out of the comparison against the reference.
  * @warning Only meaningful where the scaled value is small enough to carry a fractional part. A
@@ -455,14 +455,12 @@ void test_a_double_written_at_fewer_digits_stays_inside_the_allowed_error(void)
  * @brief Checks the fixed form against snprintf at every decimal count.
  *
  * @note The fixed form and the printf conversion agree on what they mean, so this is a direct
- *       comparison. The header states ties round to even, which is what the reference does under the
- *       default rounding mode.
+ *       comparison at every input that is not an exact tie.
  * @note A decimal count of zero is documented to write no point at all, which is the boundary a count
  *       taken as one-based would get wrong, and the reference writes it the same way.
- * @note Exact ties are included. The module takes a half up on the magnitude and writes the sign
- *       separately, which is away from zero, and that is what this toolchain's printf does with one
- *       too. A toolchain whose printf broke ties to even instead would disagree here, and the case
- *       below is the one that pins the rule without a formatter in it.
+ * @note Exact ties are left out. The module takes a half up on the magnitude and writes the sign
+ *       separately, which is away from zero, and which way printf breaks a tie depends on the C
+ *       library. The case below pins the rule with no formatter in it.
  */
 void test_the_fixed_form_matches_the_reference(void)
 {
@@ -474,6 +472,13 @@ void test_the_fixed_form_matches_the_reference(void)
     {
         for (unsigned decimals = 0u; decimals <= 10u; decimals++)
         {
+            // A tie would compare the module's rule against the C library's, and the case below
+            // checks that rule directly
+            if (accuracy_is_tie(value_of[index], decimals) != 0)
+            {
+                continue;
+            }
+
             char produced[MMGR_ACCURACY_VERBA_BUFFER];
             char reference[64];
             char message[192];
@@ -494,14 +499,14 @@ void test_the_fixed_form_matches_the_reference(void)
  * @brief Checks that an exact tie rounds up.
  *
  * @note The header states a half rounds up, and this is the case that holds it to that. Every
- *       expectation is written out by hand from the rule rather than taken from a formatter, since
- *       the C standard leaves the rule open and a library is free to pick either.
+ *       expectation is written out by hand from the rule, with no formatter consulted, since the C
+ *       standard leaves the rule open and a library is free to pick either.
  * @note At no decimals every half moves to the next integer. That is what separates this from the
  *       tie-to-even rule it replaced, which took a half down to an even neighbor half the time.
  * @note All the values are exact in binary, so each one really is a tie and not a value that merely
  *       prints like one.
  * @note The negative ties are what show the direction. The sign is written ahead of the magnitude and
- *       the magnitude is what rounds up, so a negative half moves away from zero.
+ *       the magnitude is what rounds up. A negative half moves away from zero.
  */
 void test_an_exact_tie_rounds_up(void)
 {
@@ -509,7 +514,7 @@ void test_an_exact_tie_rounds_up(void)
     {
         double value;         /**< The tie being written. */
         uint8_t decimals;     /**< Digits after the point. */
-        const char *expected; /**< What rounding to even gives [BORROWS]. */
+        const char *expected; /**< What rounding the half up gives [BORROWS]. */
     } tie_of[] = {
         {0.5, 0u, "1"},      {1.5, 0u, "2"},    {2.5, 0u, "3"},      {3.5, 0u, "4"},        {-0.5, 0u, "-1"},
         {-1.5, 0u, "-2"},    {-2.5, 0u, "-3"},  {0.125, 2u, "0.13"}, {0.375, 2u, "0.38"},   {0.625, 2u, "0.63"},
@@ -529,7 +534,7 @@ void test_an_exact_tie_rounds_up(void)
         (void)accuracy_finish_at(produced, EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = produced,
                                                       .cap = sizeof produced, .at = 0u, .real = tie_of[index].value,
                                                       .decimals = tie_of[index].decimals));
-        (void)snprintf(message, sizeof message, "%f at %u decimals did not round to even", tie_of[index].value,
+        (void)snprintf(message, sizeof message, "%f at %u decimals did not round the half up", tie_of[index].value,
                        tie_of[index].decimals);
         TEST_ASSERT_EQUAL_STRING_MESSAGE(tie_of[index].expected, produced, message);
     }

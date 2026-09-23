@@ -13,13 +13,13 @@ has the position it was taken from moved back past it".
 
 ## Lifetimes, shortest first
 
-| what you hold         | dies when                                                          |
-| --------------------- | ------------------------------------------------------------------ |
-| a temporary pointer   | its mark is rewound, or the temporary tier is reset                |
-| a span over temporary | same, and it does not know                                         |
-| a persistent pointer  | `persistent_buf_release` takes it, or its cellblock dies           |
-| the cellblock         | its declaration goes out of scope, which is never                  |
-| the pool              | the same, and it outlives the cellblock dressed over it            |
+| what you hold         | dies when                                                |
+| --------------------- | -------------------------------------------------------- |
+| a temporary pointer   | its mark is rewound, or the temporary tier is reset      |
+| a span over temporary | same, and it does not know                               |
+| a persistent pointer  | `persistent_buf_release` takes it, or its cellblock dies |
+| the cellblock         | its declaration goes out of scope, which is never        |
+| the pool              | the same, and it outlives the cellblock dressed over it  |
 
 Read that table downward: everything above a row is invalidated by the row below it. A span over a
 cell dies when that cell is released even though the span was never told.
@@ -104,7 +104,7 @@ condition with `sizeof` and then discards it, so it costs nothing and cannot rot
 
 The `checks` environment is where they are checks. `MMGR_DEBUG_CHECKS=1` selects the trapping form in
 `test/support/mmgr_host_traps.h`, which reports the expectation, the file and the line and then
-aborts — so an expectation a caller broke fails a test there instead of being a no-op nobody notices.
+aborts. An expectation a caller broke fails a test there instead of being a no-op nobody notices.
 It is the only environment where an assert is evaluated at all, which means an expectation never
 exercised under `checks` is one nothing has ever tested. A target with no `stderr` and no `abort`
 defines `MMGR_ASSERT` itself before including the header, and neither form is used.

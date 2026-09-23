@@ -76,7 +76,7 @@ uint8_t *p = prison.work.persistent_buf_alloc(256);
 
 An allocation does not name an alignment, because there is only one. Every cell comes back aligned to
 `MMGR_CARCER_ALIGN`, which is `sizeof(embed_word)` — derived from the width instead of written as a
-number, so a build at another width gets the alignment that width needs.
+number. A build at another width gets the alignment that width needs.
 
 `locus_carcerum.h` asserts that `MMGR_CARCER_ALIGN` is a power of two, since an offset rounds by
 masking and masking lands on a multiple only for a power of two. `mmgr.h` asserts the same of

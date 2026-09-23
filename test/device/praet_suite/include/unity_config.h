@@ -23,13 +23,13 @@ extern "C"
 {
 #endif
 
-/**
- * @brief Sends one character to the part's serial port.
- *
- * @param[in] letter Character to send, as Unity hands it over.
- * @note Defined in device_main.cpp, which is the only file here that knows what a serial port is.
- */
-void device_putchar(int letter);
+    /**
+     * @brief Sends one character to the part's serial port.
+     *
+     * @param[in] letter Character to send, as Unity hands it over.
+     * @note Defined in device_main.cpp, which is the only file here that knows what a serial port is.
+     */
+    void device_putchar(int letter);
 
 #ifdef __cplusplus
 }

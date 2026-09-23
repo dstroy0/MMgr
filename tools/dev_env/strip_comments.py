@@ -11,7 +11,7 @@ makes the rewrite mechanical.
 What is preserved:
   - the leading copyright / SPDX block, which states a license rather than describing code
   - string and character literals, including escapes, so "http://x" is not read as a comment
-  - the line count of block comments, so a compiler error still points at the right line
+  - the line count of block comments. A compiler error still points at the right line
 
 Usage:
     python tools/dev_env/strip_comments.py PATH [PATH ...]      # dry run: report only
@@ -22,7 +22,7 @@ Usage:
     --no-header     strip that block too
     --exclude PAT   skip any path containing PAT (repeatable)
 
-A file is only rewritten when the result differs, so a second run is a no-op.
+A file is only rewritten when the result differs. A second run is a no-op.
 """
 
 import argparse

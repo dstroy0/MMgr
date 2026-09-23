@@ -10,13 +10,14 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note Compiled only where PRAET_PROCURATOR is 1. The header turns every entry into a macro expanding
- *       to nothing otherwise, so a build that did not ask for this carries none of it.
- * @warning Included by test_praet_correctness.c rather than compiled on its own, the same way the
- *          engine and the schedule are.
+ *       to nothing otherwise. A build that did not ask for this carries none of it.
+ * @note Stays in the suite. The library calls these from the one function that writes a flag word,
+ *       and a build that turns them on links this in beside it.
+ * @warning Included by test_praet_correctness.c instead of compiled on its own, the same way the
+ *          engine is.
  */
-#include "praet_procurator.h"
+#include "memoriam_praetereo/memoriam_praetereo.h"
 
 #if PRAET_PROCURATOR
 
@@ -30,7 +31,7 @@
 /**
  * @brief Times each core transition was taken, indexed by the state before and the state after.
  *
- * @note The diagonal stays zero. The one writer skips a word that did not change, so a transition to
+ * @note The diagonal stays zero. The one writer skips a word that did not change. A transition to
  *       the state a channel was already in never reaches this.
  */
 static unsigned long s_core_moves[PRAET_PROCURATOR_CORES][PRAET_PROCURATOR_CORES];
@@ -57,7 +58,7 @@ static unsigned long s_writes;
  * @brief What each core state is called in the report.
  *
  * @note Indexed by the state's own value, which is what makes the table read in the order the states
- *       are numbered rather than the order somebody listed them.
+ *       are numbered, whatever order somebody listed them in.
  */
 static const char *const s_core_names[PRAET_PROCURATOR_CORES] = {"detached", "attached", "busy", "ok"};
 
@@ -85,8 +86,17 @@ static unsigned long s_work[PRAET_OPUS_KINDS];
  * @brief What each piece of work is called in the report, indexed by its id.
  */
 static const char *const s_work_names[PRAET_OPUS_KINDS] = {
-    "attach", "detach", "submit",      "kick",         "completed", "resolve",
-    "poll",   "  poll short circuited", "  poll walked", "  channel visited", "  port asked progress",
+    "attach",
+    "detach",
+    "submit",
+    "kick",
+    "completed",
+    "resolve",
+    "poll",
+    "  poll short circuited",
+    "  poll walked",
+    "  channel visited",
+    "  port asked progress",
 };
 
 EMBED_STATIC_ASSERT((sizeof s_work_names / sizeof s_work_names[0]) == PRAET_OPUS_KINDS,
@@ -144,14 +154,14 @@ static void praet_procurator_opus_report(void)
     // machine and then looks at it, so nearly every poll here has something waiting. A program polling
     // a channel that is doing nothing is the other case entirely, and this number is where that shows
     praet_procurator_ratio("polls short circuited in 100", s_work[PRAET_OPUS_POLL_SHORT] * 100uL,
-                        s_work[PRAET_OPUS_POLL]);
+                           s_work[PRAET_OPUS_POLL]);
 
     printf("\nstate one context costs\n");
     printf("%-30s %10u\n", "channels", (unsigned)PRAET_CHANNELS);
     printf("%-30s %10u\n", "bytes in a context", (unsigned)sizeof(PraetOrdo));
 
-    // Spread over the channels, and the context wide members are in the number. Naming it that way
-    // rather than calling it a per channel cost, which it is not: the settle deadline, the two
+    // Spread over the channels, and the context wide members are in the number. It is named that way
+    // because it is no per channel cost: the settle deadline, the two
     // volatiles and the elapsed count are carried once however many channels there are
     printf("%-30s %10u\n", "bytes per channel, all in", (unsigned)(sizeof(PraetOrdo) / PRAET_CHANNELS));
 

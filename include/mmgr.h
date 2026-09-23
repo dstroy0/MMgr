@@ -13,8 +13,8 @@
  * @note Every module header includes this one. The widths, the word, the static assertion, the
  *       attribute wrappers, the dispatch layout assertions and the entry point macros all come from
  *       embedded_types, and nothing here declares an MMgr copy of any of them.
- * @note No module header is included from here. A module includes what it needs itself, and an
- *       umbrella that pulled them all in could not also be the header each of them includes.
+ * @note Only the two gated module headers below are included from here. A module includes what it
+ *       needs itself, and an umbrella could not also be the header each module includes.
  * @note mmgr_string_shim.h is separate. Including it changes what the <string.h> names mean, which
  *       is a decision a consumer makes for itself.
  */
@@ -49,8 +49,8 @@
  * @note Nothing under src reads it. The tests, the benches and the region-edges example are what
  *       write EMBED_ALIGN(MMGR_ALIGN_BYTES) on their arrays. The default is 16.
  * @note Has to be a power of two, which the build checks below. It reaches an alignment specifier,
- *       and one given anything else is ill-formed, so the check is here to name the knob rather than
- *       leave the diagnostic pointing at whichever array was declared with it.
+ *       and one given anything else is ill-formed. The check is here to name the knob, where the
+ *       diagnostic would otherwise point at whichever array was declared with it.
  * @warning Not the alignment a locus_carcerum cell comes back at. That is MMGR_CARCER_ALIGN, which is
  *          sizeof(embed_word), and nothing asserts the two agree.
  */
@@ -70,7 +70,7 @@
  *       defines it ahead of this header, or on the command line.
  * @note Read only by ParsMemoriaeExternum, which is declared only where MMGR_ENABLE_EXTRAM is set.
  * @warning Empty by default, and an external pool then lands wherever the linker puts an ordinary
- *          one. Nothing diagnoses that, so a build enabling external memory has to supply this.
+ *          one. Nothing diagnoses that. A build enabling external memory has to supply this.
  */
 #ifndef MMGR_EXTRAM_ATTR
 #define MMGR_EXTRAM_ATTR
@@ -80,8 +80,8 @@
  * @brief Marks a declaration so that a reference to it fails the build, carrying a message.
  *
  * @param[in] msg_ Text the diagnostic reports, as a string literal.
- * @note Reported at the site that referenced the declaration, so the message names what a caller did
- *       rather than what the linker found. That is the whole reason to reach for it over a token: the
+ * @note Reported at the site that referenced the declaration, so the message names what a caller did.
+ *       The linker can only say what it found. That is the whole reason to reach for it over a token: the
  *       linker names a symbol, this names the mistake.
  * @warning The diagnostic arrives only where a reference survives to the end of compilation, so what
  *          this marks has to be something nothing legitimately calls.
@@ -134,14 +134,14 @@
  *
  * @param[in] name_ Pool being declared.
  * @note The enumerator is the guard. A second declaration of one name collides on it, and the
- *       compiler prints the identifier, which is why the identifier reads as the reason rather than
- *       naming a mechanism.
+ *       compiler prints the identifier, which is why the identifier reads as the reason and names no
+ *       mechanism.
  * @note Two pools of one name would sit at unique addresses and the language would take them. The
- *       name is the whole of what a consumer is handed, so a name meaning internal memory in one
+ *       name is the whole of what a consumer is handed. A name meaning internal memory in one
  *       place and external in another leaves the placement out of reach of the line that uses it,
  *       and those two differ in what a DMA engine can address and in settling time.
  * @warning One translation unit is as far as this guard reaches. The enumerator is settled while a
- *          unit is compiled, so a pool of the same name declared in a separate unit does not collide
+ *          unit is compiled. A pool of the same name declared in a separate unit does not collide
  *          on it. Catching that one is the linker's to do, over a symbol it can see.
  */
 #define MMGR_PARS_DECLARED_ONCE(name_)                                                                                 \
@@ -155,7 +155,7 @@
  *
  * @param[in] name_ Pool being claimed.
  * @note Emitted by whatever lays state over a pool - a cellblock, a ring, anything that writes its
- *       own records into those bytes. It sits here rather than in any one of them because the rule
+ *       own records into those bytes. It sits here and in none of them, because the rule
  *       is the pool's and not a dresser's, and a copy in each would let the next dresser be written
  *       without one.
  * @note Keyed on the pool alone, with no dresser's name in it. Every other symbol a site emits
@@ -179,11 +179,11 @@
  * @note A pool is a block of bytes and nothing else. Hand it to LocusCarcerum to have it dressed as
  *       a cellblock, to mmgr_anular_init to have it dressed as a ring, or to a memor entry to work
  *       on it as the bytes it is. A pool nobody hands anywhere is a pool that exists and is unclaimed.
- * @note The count is carried as name_##_bytes as well as laid down as the array, so a consumer has
+ * @note The count is carried as name_##_bytes as well as laid down as the array. A consumer has
  *       the extent without deriving it. The assertion is what compares the two, and it has content
  *       only because the two are produced separately.
- * @note Aligned to MMGR_ALIGN_BYTES, which is what makes that knob the contract it is documented as
- *       rather than something every caller writes out.
+ * @note Aligned to MMGR_ALIGN_BYTES, which is what makes that knob the contract it is documented as.
+ *       No caller writes it out.
  */
 #define ParsMemoriaeInternae(name_, bytes_)                                                                            \
     MMGR_PARS_DECLARED_ONCE(name_);                                                                                    \
@@ -204,8 +204,8 @@
  * @note The same declaration as ParsMemoriaeInternae, carrying MMGR_EXTRAM_ATTR. Which memory a pool
  *       sits in is settled by which of the two a caller writes, and nothing afterwards inspects an
  *       address to find out.
- * @warning Declared only where MMGR_ENABLE_EXTRAM is set, so a build without external memory fails
- *          on the name rather than quietly placing the bytes internally.
+ * @warning Declared only where MMGR_ENABLE_EXTRAM is set. A build without external memory fails
+ *          on the name, where it would otherwise quietly place the bytes internally.
  */
 #if MMGR_ENABLE_EXTRAM
 #define ParsMemoriaeExternum(name_, bytes_)                                                                            \
@@ -255,7 +255,7 @@
  *       which is what keeps this header free of libc.
  * @warning A build may define its own before including this header, and the form below is then not
  *          used. A target reporting a fault through its own handler wants that, and so does a test
- *          harness, which would otherwise hang on this form rather than failing.
+ *          harness, which would otherwise hang on this form and never report a failure.
  * @warning This form spins. A target without abort has no other way to stop, and a halt is what a
  *          debugger can catch.
  */

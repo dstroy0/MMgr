@@ -18,7 +18,7 @@
  *       extent or the cursor, and every ordering among those occurs within the first few integers, so
  *       the grid is walked exhaustively instead of sampled.
  * @note The spans the grid walks are built here as values and not through the constructors. The walks
- *       take a span inside their argument pack, so any span is a legal input, and building them
+ *       take a span inside their argument pack. Any span is a legal input, and building them
  *       directly is what reaches an extent of zero and a flag already set.
  * @note One case uses real storage and writes through a derived span, since the header states a
  *       derived span is a second view of the same bytes and not a copy of them. Numbers alone cannot

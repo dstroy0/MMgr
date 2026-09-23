@@ -10,13 +10,13 @@ Every public function is:
 mmgr_<infix>_<tail>
 ```
 
-`<infix>` is the module's stem. So a symbol tells you its module without a lookup:
+`<infix>` is the module's stem, which tells you a symbol's module without a lookup:
 
-| symbol                | infix    | module           |
-| --------------------- | -------- | ---------------- |
-| `mmgr_spat_from`      | `spat`   | `spatium`        |
-| `mmgr_scrut_has_zero` | `scrut`  | `verbum_scrutor` |
-| `mmgr_memor_cmp`      | `memor`  | `memoria_operor` |
+| symbol                | infix    | module              |
+| --------------------- | -------- | ------------------- |
+| `mmgr_spat_from`      | `spat`   | `spatium`           |
+| `mmgr_scrut_has_zero` | `scrut`  | `verbum_scrutor`    |
+| `mmgr_memor_cmp`      | `memor`  | `memoria_operor`    |
 | `mmgr_cellul_len`     | `cellul` | `cellularum_laboro` |
 
 `locus_carcerum` is the exception. Its public entries are named for what they do rather than for the
@@ -67,14 +67,14 @@ conversion needs. See @ref qa_numeric for what it is for.
 
 ## Types
 
-| prefix        | is                                                              |
-| ------------- | --------------------------------------------------------------- |
-| `mmgr_<stem>` | a data type — `mmgr_span`, `mmgr_bitor`                         |
-| `<Pascal>Cfg` | the argument struct an entry takes — `SpatiumCfg`, `MemoriaCfg` |
-| `<Pascal>Ctx` | the state a module operates on — `CarcerCellBlock`               |
-| `<Pascal>Ns`  | a dispatch table type — `SpatiumNs`, `ScrutLaneNs`              |
-| `MMGR_<NAME>` | a macro or a constant this library owns                         |
-| `EMBED_<NAME>` | a macro or a constant from `embedded_types`                    |
+| prefix         | is                                                              |
+| -------------- | --------------------------------------------------------------- |
+| `mmgr_<stem>`  | a data type — `mmgr_span`, `mmgr_bitor`                         |
+| `<Pascal>Cfg`  | the argument struct an entry takes — `SpatiumCfg`, `MemoriaCfg` |
+| `<Pascal>Ctx`  | the state a module operates on — `CarcerCellBlock`              |
+| `<Pascal>Ns`   | a dispatch table type — `SpatiumNs`, `ScrutLaneNs`              |
+| `MMGR_<NAME>`  | a macro or a constant this library owns                         |
+| `EMBED_<NAME>` | a macro or a constant from `embedded_types`                     |
 
 Every entry takes one `const <Pascal>Cfg *`, built at the call site with `EMBED_CALL`. A module
 whose state outlives a call names that state `<Pascal>Ctx` and the caller holds it; the cfg carries

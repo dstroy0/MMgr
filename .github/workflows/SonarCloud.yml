@@ -9,7 +9,7 @@ name: SonarQube
 #
 # Coverage comes from gcov. The build is configured with --coverage so every TU emits .gcno at
 # compile time and .gcda when a test runs it, then ctest runs the whole suite to produce the .gcda,
-# then gcovr merges them. Order matters: no .gcda exists until the tests have run, so a scanner
+# then gcovr merges them. Order matters: no .gcda exists until the tests have run. A scanner
 # invoked before ctest reports 0%.
 
 on:

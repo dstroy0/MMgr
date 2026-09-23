@@ -184,7 +184,7 @@ EMBED_INLINE size_t numer_finish(const NumerCtx *args)
  */
 EMBED_INLINE size_t numer_build(const NumerCtx *args)
 {
-    // Begins at the caller's cursor rather than the first byte, so a run of writes never re-measures
+    // Begins at the caller's cursor rather than the first byte. A run of writes never re-measures
     // what the last one left. An unset at is 0, which is where a single write starts anyway.
     size_t at = args->at;
     size_t taken = 0;
@@ -218,7 +218,7 @@ EMBED_INLINE size_t numer_build(const NumerCtx *args)
     }
     const size_t done = EMBED_CALL(numer_finish, NumerCtx, .out = args->out, .cap = args->cap, .at = at);
 
-    // The finish reports 0 when it ran out of room. args->at is where this write began, so abandoning
+    // The finish reports 0 when it ran out of room. args->at is where this write began. Abandoning
     // here puts the terminator back there and leaves earlier text whole.
     return (done == 0u) ? numer_abandon(args) : done;
 }
@@ -249,7 +249,7 @@ EMBED_INLINE size_t numer_emit(const NumerCtx *args)
     }
     const size_t done = EMBED_CALL(numer_finish, NumerCtx, .out = args->out, .cap = args->cap, .at = at);
 
-    // The finish reports 0 when it ran out of room. args->at is where this write began, so abandoning
+    // The finish reports 0 when it ran out of room. args->at is where this write began. Abandoning
     // here puts the terminator back there and leaves earlier text whole.
     return (done == 0u) ? numer_abandon(args) : done;
 }

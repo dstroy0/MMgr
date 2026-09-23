@@ -1,7 +1,7 @@
 # What each optimization level costs {#qa_optimization}
 
 One optimization level for a whole library is a guess that suits some of it. This page is the
-measurement, so a module that names its own level has a reason on record rather than a preference.
+measurement. A module that names its own level has a reason on record rather than a preference.
 
 Reproduce it with:
 
@@ -22,7 +22,7 @@ while you are working on the desktop - and decide with the table below.
 
 ## Size
 
-`.text`, in bytes, per translation unit. Each unit compiled on its own, no LTO and no link, so a row
+`.text`, in bytes, per translation unit. Each unit compiled on its own, no LTO and no link. A row
 is that unit alone:
 
 ```
@@ -145,9 +145,9 @@ the part in question - there is no per-level sweep on silicon yet, so no such cl
 
 `tools/dev_env/against_libc.py` weighs this library against newlib for the same core at the same
 level. newlib because it is the libc an embedded target actually ships, it is a static archive with
-one object per entry so a single function can be weighed, and it is built by the same compiler
+one object per entry, which lets a single function be weighed, and it is built by the same compiler
 family. Only `.text` is counted: an archive member also carries relocations and symbol tables that
-never reach flash, and the linker pulls whole members, so a member is the unit whether or not every
+never reach flash, and the linker pulls whole members. A member is the unit whether or not every
 entry in it is called.
 
 cortex-m4, -Os, newlib from armv7e-m:

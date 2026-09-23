@@ -120,7 +120,7 @@ static inline embed_word bench_alpha_current(embed_word word)
  * @return         A lane mask holding the lanes that carry an ASCII letter.
  * @note One and more than bench_alpha_current. It puts the lanes in the quadrant where the shipping
  *       comparison is exact, which the accuracy suite measures at 0 wrong out of 16384 pairs.
- * @note The closing and is against the unmasked word, so a lane that carried the high bit is still
+ * @note The closing and is against the unmasked word. A lane that carried the high bit is still
  *       thrown out and no byte at 0x80 or above can pass as a letter.
  */
 static inline embed_word bench_alpha_narrowed(embed_word word)
@@ -174,7 +174,7 @@ static inline embed_word bench_alpha_cast(embed_word word)
  * @brief Counts the words the two narrowing forms disagree on.
  *
  * @return The disagreement count, which is expected to be zero.
- * @note Walks a fixed recurrence so a failure reproduces, and covers every lane pattern the walk
+ * @note Walks a fixed recurrence, which makes a failure reproduce, and covers every lane pattern the walk
  *       reaches rather than the one word the timing row uses.
  */
 static uint32_t alpha_masks_agree(void)

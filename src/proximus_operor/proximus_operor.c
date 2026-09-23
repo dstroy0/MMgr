@@ -16,17 +16,17 @@
 #include "proximus_operor/proximus_operor.h"
 
 /**
- * @brief The sixteen-bit access type, carrying EMBED_RAW so a read or write takes any address.
+ * @brief The sixteen-bit access type, carrying EMBED_RAW, which lets a read or write take any address.
  */
 typedef uint16_t mmgr_proxim_u16_t EMBED_RAW;
 
 /**
- * @brief The thirty-two-bit access type, carrying EMBED_RAW so a read or write takes any address.
+ * @brief The thirty-two-bit access type, carrying EMBED_RAW, which lets a read or write take any address.
  */
 typedef uint32_t mmgr_proxim_u32_t EMBED_RAW;
 
 /**
- * @brief The sixty-four-bit access type, carrying EMBED_RAW so a read or write takes any address.
+ * @brief The sixty-four-bit access type, carrying EMBED_RAW, which lets a read or write take any address.
  */
 typedef uint64_t mmgr_proxim_u64_t EMBED_RAW;
 
@@ -39,7 +39,7 @@ typedef uint64_t mmgr_proxim_u64_t EMBED_RAW;
 typedef uint64_t mmgr_aequus_u64_t EMBED_ALIAS;
 
 /**
- * @brief The word-width access type, carrying EMBED_RAW so a read or write takes any address.
+ * @brief The word-width access type, carrying EMBED_RAW, which lets a read or write take any address.
  */
 typedef embed_word mmgr_proxim_word_t EMBED_RAW;
 
@@ -86,7 +86,7 @@ typedef struct
  *
  * @param[in] args Address to read from [BORROWS].
  * @return         The two bytes as a uint16_t.
- * @note Reads through mmgr_proxim_u16_t, so args->at needs no particular alignment.
+ * @note Reads through mmgr_proxim_u16_t. args->at needs no particular alignment.
  * @warning args->at must be readable for two bytes.
  */
 EMBED_INLINE uint16_t proxim_load16(const ProximLoadCtx *args)
@@ -99,7 +99,7 @@ EMBED_INLINE uint16_t proxim_load16(const ProximLoadCtx *args)
  *
  * @param[in] args Address to read from [BORROWS].
  * @return         The four bytes as a uint32_t.
- * @note Reads through mmgr_proxim_u32_t, so args->at needs no particular alignment.
+ * @note Reads through mmgr_proxim_u32_t. args->at needs no particular alignment.
  * @warning args->at must be readable for four bytes.
  */
 EMBED_INLINE uint32_t proxim_load32(const ProximLoadCtx *args)
@@ -112,7 +112,7 @@ EMBED_INLINE uint32_t proxim_load32(const ProximLoadCtx *args)
  *
  * @param[in] args Address to read from [BORROWS].
  * @return         The eight bytes as a uint64_t.
- * @note Reads through mmgr_proxim_u64_t, so args->at needs no particular alignment.
+ * @note Reads through mmgr_proxim_u64_t. args->at needs no particular alignment.
  * @warning args->at must be readable for eight bytes.
  */
 EMBED_INLINE uint64_t proxim_load64(const ProximLoadCtx *args)
@@ -125,7 +125,7 @@ EMBED_INLINE uint64_t proxim_load64(const ProximLoadCtx *args)
  *
  * @param[in] args Address to read from [BORROWS].
  * @return         The bytes as an embed_word.
- * @note Reads through mmgr_proxim_word_t, so args->at needs no particular alignment.
+ * @note Reads through mmgr_proxim_word_t. args->at needs no particular alignment.
  * @warning args->at must be readable for sizeof(embed_word) bytes.
  */
 EMBED_INLINE embed_word proxim_load(const ProximLoadCtx *args)
@@ -163,7 +163,7 @@ EMBED_INLINE uint64_t aequus_load64(const ProximLoadCtx *args)
  * @brief Writes the low two bytes of args->val to args->dst in the target's own order.
  *
  * @param[in] args Destination and value [BORROWS].
- * @note Writes through mmgr_proxim_u16_t, so args->dst needs no particular alignment.
+ * @note Writes through mmgr_proxim_u16_t. args->dst needs no particular alignment.
  * @warning args->dst must be writable for two bytes.
  */
 EMBED_INLINE void proxim_put16(const ProximPutCtx *args)
@@ -176,7 +176,7 @@ EMBED_INLINE void proxim_put16(const ProximPutCtx *args)
  * @brief Writes the low four bytes of args->val to args->dst in the target's own order.
  *
  * @param[in] args Destination and value [BORROWS].
- * @note Writes through mmgr_proxim_u32_t, so args->dst needs no particular alignment.
+ * @note Writes through mmgr_proxim_u32_t. args->dst needs no particular alignment.
  * @warning args->dst must be writable for four bytes.
  */
 EMBED_INLINE void proxim_put32(const ProximPutCtx *args)
@@ -189,7 +189,7 @@ EMBED_INLINE void proxim_put32(const ProximPutCtx *args)
  * @brief Writes all eight bytes of args->val to args->dst in the target's own order.
  *
  * @param[in] args Destination and value [BORROWS].
- * @note Writes through mmgr_proxim_u64_t, so args->dst needs no particular alignment.
+ * @note Writes through mmgr_proxim_u64_t. args->dst needs no particular alignment.
  * @note No cast is needed here, since args->val is already a uint64_t.
  * @warning args->dst must be writable for eight bytes.
  */
@@ -202,7 +202,7 @@ EMBED_INLINE void proxim_put64(const ProximPutCtx *args)
  * @brief Writes the low sizeof(embed_word) bytes of args->val to args->dst in the target's own order.
  *
  * @param[in] args Destination and value [BORROWS].
- * @note Writes through mmgr_proxim_word_t, so args->dst needs no particular alignment.
+ * @note Writes through mmgr_proxim_word_t. args->dst needs no particular alignment.
  * @warning args->dst must be writable for sizeof(embed_word) bytes.
  */
 EMBED_INLINE void proxim_put(const ProximPutCtx *args)
@@ -347,7 +347,7 @@ EMBED_INLINE void proxim_tail(ProximReadCtx *args)
  *
  * @param[in,out] args Destination, source and count [BORROWS].
  * @note Runs proxim_head, then proxim_words, then proxim_tail.
- * @warning Copies forward, so an args->dst above args->src within one region would read bytes it has already written.
+ * @warning Copies forward. An args->dst above args->src within one region would read bytes it has already written.
  */
 EMBED_INLINE void proxim_read(ProximReadCtx *args)
 {

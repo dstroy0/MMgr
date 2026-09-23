@@ -33,7 +33,7 @@ The tables are laid out by clang-format, which aligns each column to the widest 
 alignment is not reproducible by hand in any way worth maintaining, so the generator emits a plain
 sixteen-per-row table and then runs the formatter over it. Without that step the output differs
 from what is on disk until something else has run, and `harness.py generated` reads that as a dirty
-tree - so a missing clang-format is a refusal rather than a warning.
+tree. A missing clang-format is a refusal rather than a warning.
 """
 
 import math

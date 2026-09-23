@@ -1,7 +1,7 @@
 # memmanager - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-# The ring state and every entry are defined in the .c and only declared in the header, so a
+# The ring state and every entry are defined in the .c and only declared in the header. A
 # consumer compiles against no layout at all and <stdatomic.h> stays this file's problem. LTO is
 # what folds a call back into its caller across that boundary, so the separation costs nothing at
 # link time. No DEPS: the span mover, the bit index and the span type are all defined in the .c,

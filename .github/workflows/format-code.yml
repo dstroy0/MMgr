@@ -6,7 +6,7 @@ name: Format
 #   black         tools/       .py          line-length in pyproject.toml
 #   prettier      everywhere   md json yml  ignores in .prettierignore
 #
-# All three wrap at 120 columns, so a tool in tools/dev_env and the C it rewrites line up in a
+# All three wrap at 120 columns. A tool in tools/dev_env and the C it rewrites line up in a
 # side-by-side diff.
 #
 # This job CHECKS, it does not write. A formatter that rewrites on CI produces commits nobody

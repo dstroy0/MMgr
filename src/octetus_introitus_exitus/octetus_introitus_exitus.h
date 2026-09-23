@@ -11,14 +11,14 @@
  * @date 2026-08-29
  *
  * @note These act on a caller's span and hold nothing of their own. The span carries the cursor and
- *       the sticky flag, so a caller may append a whole message and test once at the end.
+ *       the sticky flag. A caller may append a whole message and test once at the end.
  * @note mmgr_byteio_put, mmgr_byteio_put_be and mmgr_byteio_raw return nothing. What a writer emits
  *       and how big its buffer is are both fixed before the build, so writing past the end means the
  *       program is wrong. Those three assert, store nothing, and latch overflow to keep a wrong
  *       program off the end, and none of that leaves a caller anything to act on.
  * @note mmgr_byteio_take_be and mmgr_byteio_rd_str answer EMBED_FALSE when the bytes are not there,
  *       set the read span's err, and leave the cursor and the output where they were. A reader is
- *       handed whatever was sent to it, so a short read is a runtime fact rather than a build
+ *       handed whatever was sent to it. A short read is a runtime fact rather than a build
  *       failure. The cursor does not advance on failure, because a caller that keeps reading still
  *       needs it to mean something.
  * @note mmgr_byteio_mpint_fixed is neither of those. It writes a whole field rather than appending,
@@ -90,7 +90,7 @@ void mmgr_byteio_put(const OctetusCfg *args);
  * @brief Appends the low args->bytes of args->value to args->write_span, most significant byte first.
  *
  * @param[in,out] args Span, value and byte count [BORROWS].
- * @note The value is reversed once and then stored at the widest step the count allows, so a count of
+ * @note The value is reversed once and then stored at the widest step the count allows. A count of
  *       eight is one store and a count of seven is three.
  * @warning Appending past the span's cap is a build failure. It asserts, stores nothing and latches
  *          overflow. pos advances either way.
@@ -127,7 +127,7 @@ embed_bool mmgr_byteio_take_be(const OctetusCfg *args);
  * @return             EMBED_TRUE when the length and its run both lay within the span.
  * @note Nothing is copied. args->blob points into the span's own bytes, so it lives only as long as
  *       they do [BORROWS].
- * @note The cursor advances past the length and the run together, so a caller reading a sequence of
+ * @note The cursor advances past the length and the run together. A caller reading a sequence of
  *       these needs to track nothing between them.
  * @note A run reaching past the end leaves the cursor where it started, sets the span's err, and
  *       writes nothing through args->blob or args->blob_bytes. The length alone having been read does
@@ -142,12 +142,12 @@ embed_bool mmgr_byteio_rd_str(const OctetusCfg *args);
  * @param[in,out] args The integer with its length in args->src and args->bytes, and the field as
  *                     args->write_span [BORROWS].
  * @return             EMBED_TRUE when the integer fits the field, EMBED_FALSE when it does not.
- * @note Leading zero bytes of the integer are skipped before the width is tested, so a value carrying
+ * @note Leading zero bytes of the integer are skipped before the width is tested. A value carrying
  *       a sign byte still fits a field of its own size.
  * @note The field is written whole rather than appended to. On success args->write_span's cursor ends
  *       at its cap.
  * @note Nothing is written to the field when it returns EMBED_FALSE, but args->write_span's overflow
- *       is latched, so a span tested later reports the failure too.
+ *       is latched. A span tested later reports the failure too.
  * @warning args->src must be readable for args->bytes, and must not overlap args->write_span's buffer.
  */
 embed_bool mmgr_byteio_mpint_fixed(const OctetusCfg *args);

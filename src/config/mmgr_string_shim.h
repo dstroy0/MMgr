@@ -1,7 +1,7 @@
 /**
  * @brief Redirects the <string.h> names onto MMgr's bounded implementations.
  *
- * @note Defines the usual <string.h> include guards, so a later #include <string.h> contributes nothing.
+ * @note Defines the usual <string.h> include guards. A later #include <string.h> contributes nothing.
  * @warning strcmp, strcasecmp, strncmp and strncasecmp report equality only and never order.
  * @warning Including this header changes the meaning of those names for the whole translation unit.
  */
@@ -69,7 +69,8 @@ MMGR_INLINE void *mmgr_shim_cpy(void *dest, const void *source, size_t bytes)
  * @param[in]  source Bytes to read [BORROWS].
  * @param[in]  bytes  Number of bytes to copy.
  * @return            dest [BORROWS].
- * @note Compares the two addresses and walks upwards or downwards so overlapping bytes are read before they are written.
+ * @note Compares the two addresses and walks upwards or downwards so overlapping bytes are read before they are
+ * written.
  */
 MMGR_INLINE void *mmgr_shim_move(void *dest, const void *source, size_t bytes)
 {
@@ -130,7 +131,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 /**
  * @brief Replaces memcpy with mmgr_shim_cpy.
  *
- * @note Every argument is parenthesized, so any expression may be passed.
+ * @note Every argument is parenthesized. Any expression may be passed.
  */
 #define memcpy(dest, source, bytes) mmgr_shim_cpy((dest), (source), (bytes))
 
@@ -177,8 +178,8 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  * @warning Both operands are read to MMGR_STR_MAX, so both must be terminated within it.
  */
 #define strstr(haystack, needle)                                                                                       \
-    ((char *)(size_t)MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX, .other = (needle),      \
-                               .other_cap = MMGR_STR_MAX, .ci = MMGR_FALSE))
+    ((char *)(size_t)MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX,                   \
+                               .other = (needle), .other_cap = MMGR_STR_MAX, .ci = MMGR_FALSE))
 
 /**
  * @brief Replaces strcasestr with a case-folded search bounded at MMGR_STR_MAX.
@@ -187,8 +188,8 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  * @warning Both operands are read to MMGR_STR_MAX, so both must be terminated within it.
  */
 #define strcasestr(haystack, needle)                                                                                   \
-    ((char *)(size_t)MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX, .other = (needle),      \
-                               .other_cap = MMGR_STR_MAX, .ci = MMGR_TRUE))
+    ((char *)(size_t)MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX,                   \
+                               .other = (needle), .other_cap = MMGR_STR_MAX, .ci = MMGR_TRUE))
 
 /**
  * @brief Replaces strcmp with an equality test bounded at MMGR_STR_MAX.
@@ -216,7 +217,8 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  * @warning A terminator does not end the comparison; all limit bytes must be readable in both operands.
  */
 #define strncmp(left, right, limit)                                                                                    \
-    (MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = MMGR_FALSE) < (limit))
+    (MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = MMGR_FALSE) <      \
+     (limit))
 
 /**
  * @brief Replaces strncasecmp with a case-folded equality test over at most limit bytes.
@@ -226,7 +228,8 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  * @warning A terminator does not end the comparison; all limit bytes must be readable in both operands.
  */
 #define strncasecmp(left, right, limit)                                                                                \
-    (MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = MMGR_TRUE) < (limit))
+    (MMGR_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = MMGR_TRUE) <       \
+     (limit))
 
 /**
  * @brief Replaces strlcpy with a bounded copy that always terminates unless limit is 0.
@@ -244,7 +247,8 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  * @warning text is read to MMGR_STR_MAX, so it must be terminated within it.
  */
 #define strchr(text, value)                                                                                            \
-    ((char *)(size_t)MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = (text), .cap = MMGR_STR_MAX, .byte = (uint8_t)(value)))
+    ((char *)(size_t)MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = (text), .cap = MMGR_STR_MAX,                        \
+                               .byte = (uint8_t)(value)))
 
 MMGR_FINIS_DECLS
 

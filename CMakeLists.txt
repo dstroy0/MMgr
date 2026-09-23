@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(MMgr VERSION 0.1.0 LANGUAGES C)
 
 # Everything here is host-buildable and host-testable by design. There is no cross-toolchain step
-# and no board in the loop: the widths that make a target different are compile-time knobs, so a
+# and no board in the loop: the widths that make a target different are compile-time knobs. A
 # 16-bit SWAR lane is exercised on this machine by defining it, not by owning the hardware.
 
 set(CMAKE_C_STANDARD 11)
@@ -28,12 +28,20 @@ set(MMGR_CAPABILITIES DMA EXTRAM)
 option(MMGR_ENABLE_DMA "The part has a DMA engine" OFF)
 option(MMGR_ENABLE_EXTRAM "The part has external RAM" OFF)
 
+# The DMA schedule's knobs, as NAME=value pairs separated by semicolons: PRAET_CHANNELS,
+# PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS, PRAET_RECOVERY, PRAET_CLOCK_HZ and PRAET_CLOCK_SOURCE,
+# with PRAET_CLOCK_CORE where the clock source reads one. Empty by default, because none of them has
+# a value that is right for every part. An unset knob is named in a warning and
+# src/memoriam_praetereo/praet_iudex.h stops the build, unless MMGR_ACCEPT_DEFAULTS is in the list.
+# Read only where MMGR_ENABLE_DMA is on.
+set(MMGR_PRAET_KNOBS "" CACHE STRING "DMA schedule knobs, NAME=value pairs separated by semicolons")
+
 # Test only. Points every namespace entry that has a libc equivalent at libc, so the whole suite
 # runs against libc unchanged and any disagreement is a finding. libc is the oracle: a str or mem
 # entry that has shipped for decades has been beaten on harder than anything written here.
 #
 # It is the only thing that makes src/ include a header outside the budget, which is why it is a
-# separate option and never a default - the library exists so a target with no libc still has these
+# separate option and never a default - the library exists to give a target with no libc these
 # entries.
 
 # ------------------------------------------------------------------------------------------------
@@ -68,7 +76,7 @@ endforeach()
 # mmgr_flags below, which links embedded_types::embedded_types.
 add_subdirectory(deps)
 
-# One place, so a warning that matters is on for the library, the tests and the benches alike.
+# One place. A warning that matters is on for the library, the tests and the benches alike.
 add_library(mmgr_flags INTERFACE)
 
 # Carried on mmgr_flags so every module, suite and bench that takes the flags also takes the include
@@ -83,11 +91,11 @@ target_compile_options(mmgr_flags INTERFACE
 # Environments
 # ------------------------------------------------------------------------------------------------
 # An "environment" is one set of compile-time widths. The whole library and the whole test suite are
-# built once per environment, so a change that only breaks the 16-bit SWAR lane fails a build rather
+# built once per environment. A change that only breaks the 16-bit SWAR lane fails a build rather
 # than waiting for someone to own that hardware.
 #
 # Each entry is  name|definitions  with definitions separated by semicolons escaped as commas below,
-# because a CMake list cannot nest. Kept as a flat list so adding an environment is one line.
+# because a CMake list cannot nest. As a flat list, adding an environment is one line.
 #
 #   host      whatever this machine is: EMBED_WORD_BITS derives from UINTPTR_MAX. The default build.
 #   word32    a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.
@@ -95,7 +103,7 @@ target_compile_options(mmgr_flags INTERFACE
 #   idx16     a 16-bit index against a 64-bit word, which is the pairing the static assertion in
 #             embed_types.h exists to police.
 #   checks    debug checks compiled in. MMGR_DEBUG_CHECKS selects the trapping MMGR_ASSERT in
-#             test/support/mmgr_host_traps.h, so an expectation a caller broke fails a test here
+#             test/support/mmgr_host_traps.h. An expectation a caller broke fails a test here
 #             rather than being a no-op nobody notices. It is the only environment where an assert is
 #             evaluated at all.
 set(MMGR_ENVIRONMENTS
@@ -109,7 +117,7 @@ set(MMGR_ENVIRONMENTS
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(MMgrModule)
 
-# No list of modules here. Each directory declares itself with mmgr_add_module(), so adding one is
+# No list of modules here. Each directory declares itself with mmgr_add_module(). Adding one is
 # a new directory plus a line in src/mmgr/CMakeLists.txt, and nothing central has to be kept in step.
 add_subdirectory(src)
 

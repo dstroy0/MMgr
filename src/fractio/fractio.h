@@ -12,12 +12,12 @@
  * @date 2026-08-29
  *
  * @note Everything here is written for binary64. The assertions below are what hold the target to it,
- *       and they are EMBED_STATIC_ASSERT, so a target whose double is another shape fails the build
+ *       and they are EMBED_STATIC_ASSERT. A target whose double is another shape fails the build
  *       rather than reading the wrong bits.
  * @note FractioCfg carries no pointer, so no call here follows one into a caller's buffer. The whole
  *       module is field arithmetic on the one value it is handed.
  * @warning args is the one pointer the six entry points take, and none of them tests it. The bodies
- *          EMBED_ENTRY writes read its members straight through, so a null args is dereferenced.
+ *          EMBED_ENTRY writes read its members straight through. A null args is dereferenced.
  */
 #ifndef MMGR_FRACTIO_H
 #define MMGR_FRACTIO_H
@@ -152,7 +152,7 @@ EMBED_TABLE_LAYOUT(FractioNs, sign, exp, mant, merge, from_bits, to_bits);
  *
  * @param[in] args Bit pattern in the union [BORROWS].
  * @return         0 for a positive sign, 1 for a negative one.
- * @note The bit is read as stored and nothing else is examined, so a negative zero answers 1, and so
+ * @note The bit is read as stored and nothing else is examined. A negative zero answers 1, and so
  *       does a NaN carrying the sign.
  */
 embed_u64 mmgr_fract_sign(const FractioCfg *args);
@@ -181,7 +181,7 @@ embed_u64 mmgr_fract_mant(const FractioCfg *args);
  *
  * @param[in] args The three fields [BORROWS].
  * @return         The assembled pattern.
- * @note Each field is masked to its own width, so a wide input cannot reach a neighboring field.
+ * @note Each field is masked to its own width. A wide input cannot reach a neighboring field.
  * @warning What the mask drops is gone and nothing reports it. A sign above MMGR_DBL_SIGN_ONE, an
  *          exponent above MMGR_DBL_EXP_ALL or a mantissa above MMGR_DBL_MANT_MASK keeps only its low
  *          bits.

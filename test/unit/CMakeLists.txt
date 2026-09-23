@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 #
 # A mirror of src: one directory per module, and config beside them, now holding the string shim
-# suite alone. Every translation unit has a suite, so a module that grows a second .c grows a second
+# suite alone. Every translation unit has a suite. A module that grows a second .c grows a second
 # suite beside it rather than sharing one.
 
 add_subdirectory(clz)

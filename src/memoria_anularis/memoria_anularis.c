@@ -92,7 +92,7 @@ typedef embed_u16 ring_raw_u16 RING_RAW;
  * @note A bit_count_ at the full width is the case a shift cannot express, so it is answered by
  *       complement instead. A bit_count_ of 0 falls out of the shift, so neither end needs a test of
  *       its own.
- * @warning bit_count_ appears twice in the expansion, so an argument with a side effect is evaluated
+ * @warning bit_count_ appears twice in the expansion. An argument with a side effect is evaluated
  *          twice whenever the mask is built by the shift.
  */
 #define RING_LOW_MASK(Type_, bit_count_, width_)                                                                       \
@@ -104,7 +104,7 @@ typedef embed_u16 ring_raw_u16 RING_RAW;
  * @param[in] offset_ First of the two word offsets.
  * @note Reads dest_word and src_word from the enclosing scope, so the cascade below reads as widths
  *       alone.
- * @warning offset_ appears four times in the expansion, so an argument with a side effect is
+ * @warning offset_ appears four times in the expansion. An argument with a side effect is
  *          evaluated four times.
  * @warning Both offsets must lie inside the words dest_word and src_word walk over, and nothing here
  *          bounds them. ring_move is what holds them there, by taking a rung only when the remaining
@@ -145,7 +145,7 @@ typedef embed_u16 ring_raw_u16 RING_RAW;
  *       widths alone.
  * @note One rung per bit of remainder, so each runs at most once and together they carry every tail
  *       exactly, without an access reaching past the bytes the caller gave.
- * @warning bytes_ appears three times in the expansion, so an argument with a side effect is
+ * @warning bytes_ appears three times in the expansion. An argument with a side effect is
  *          evaluated three times.
  */
 #define RING_TAIL(Type_, bytes_)                                                                                       \
@@ -162,7 +162,7 @@ typedef embed_u16 ring_raw_u16 RING_RAW;
  * @param[out] dst   Destination [BORROWS].
  * @param[in]  src   Source [BORROWS].
  * @param[in]  bytes Bytes to move.
- * @note Steps whole words, then narrows through half a step at a time for the tail, so a tail of
+ * @note Steps whole words, then narrows through half a step at a time for the tail. A tail of
  *       seven bytes is three accesses rather than seven and none of them is a single byte twice.
  * @note Both sides go through the unaligned view. A ring offset is any byte, so neither pointer can
  *       be walked to a boundary first without putting a per-byte head back.
@@ -366,7 +366,7 @@ EMBED_INLINE RingState *ring_of(mmgr_ring *ring)
  *
  * @param[in] index Loculus index.
  * @return          The bit, or 0.
- * @note The bound is here rather than at each call site, so a shift past the word never happens.
+ * @note The bound is here rather than at each call site. A shift past the word never happens.
  * @note An out-of-range loculus names nothing, so it reads as held and is never handed out.
  */
 EMBED_INLINE embed_word ring_loculus_bit(size_t index)
@@ -415,9 +415,9 @@ typedef struct
  * @param[in] wanted Bytes the caller asked for.
  * @return           The count to carry and how much of it precedes the wrap.
  * @note Both directions divide the same way, so the arithmetic lives here once.
- * @warning wanted is held at the capacity. Two runs cannot express more than one lap, so a larger
+ * @warning wanted is held at the capacity. Two runs cannot express more than one lap. A larger
  *          count would take the second run past the end of the buffer.
- * @warning offset is not held to anything. The room ahead of it is the capacity minus offset, so an
+ * @warning offset is not held to anything. The room ahead of it is the capacity minus offset. An
  *          offset at or past the capacity wraps that subtraction and the first run then reaches past
  *          the buffer. What holds it instead is that every cursor reaching here is one the ring
  *          keeps wrapped.
@@ -506,7 +506,7 @@ EMBED_INLINE size_t ring_move_in(RingState *state, size_t offset, const uint8_t 
  * @param[in] tail     Tail the caller read.
  * @param[in] capacity Ring size.
  * @return             Distance from tail to head, wrapped into the ring.
- * @note Takes the cursors rather than the ring, so a caller holding one of them from its own load
+ * @note Takes the cursors rather than the ring. A caller holding one of them from its own load
  *       reaches the same arithmetic without reading it twice.
  */
 EMBED_INLINE size_t ring_used(size_t head, size_t tail, size_t capacity)
@@ -521,7 +521,7 @@ EMBED_INLINE size_t ring_used(size_t head, size_t tail, size_t capacity)
  * @param[in] tail     Tail the caller read.
  * @param[in] capacity Ring size.
  * @return             capacity minus one, minus the readable bytes.
- * @note One byte is withheld so a full ring and an empty one do not share a cursor pair.
+ * @note One byte is withheld to keep a full ring and an empty one from sharing a cursor pair.
  */
 EMBED_INLINE size_t ring_free(size_t head, size_t tail, size_t capacity)
 {
@@ -600,7 +600,7 @@ EMBED_INLINE size_t anular_read(const AnularisCtx *args)
  *
  * @param[in,out] args Ring, destination, byte count and starting offset [BORROWS].
  * @warning Copies args->bytes whether or not that many are available.
- * @warning ring_run holds the count at the capacity, so a request above it copies the capacity and
+ * @warning ring_run holds the count at the capacity. A request above it copies the capacity and
  *          no more.
  * @warning args->dst must be writable for the bytes copied, and nothing here checks it.
  */
@@ -715,7 +715,7 @@ EMBED_INLINE void ring_bump(_Atomic size_t *counter)
  * @param[in,out] args Ring to advance [BORROWS].
  * @note Only the producer calls this, which is what lets ring_bump read and write claimed as two
  *       steps.
- * @warning Advances whether or not a segment was filled, so a publish with no matching
+ * @warning Advances whether or not a segment was filled. A publish with no matching
  *          anular_seg_next puts more in flight than the ring holds, and that call then refuses until
  *          releases catch up.
  */
@@ -747,7 +747,7 @@ EMBED_INLINE embed_bool anular_seg_front(const AnularisCtx *args)
  * @param[in,out] args Ring to advance [BORROWS].
  * @note Only the consumer calls this, which is what lets ring_bump read and write released as two
  *       steps.
- * @warning Advances whether or not a segment was in flight, so a release with no matching
+ * @warning Advances whether or not a segment was in flight. A release with no matching
  *          anular_seg_front wraps the subtraction in anular_seg_inflight and leaves anular_seg_front
  *          handing out a segment that was never filled.
  */
@@ -796,7 +796,7 @@ EMBED_INLINE embed_word anular_loculus_ready(const AnularisCtx *args)
  * @note Only args->mask is read. This is the one backend here that never reaches the ring state.
  * @note The test below is the one ring_trail asks of its callers, since an empty mask reaches it as a
  *       count of EMBED_WORD_BITS rather than as no bit at all.
- * @warning The mask is taken as given, so a bit above the loculi this build has comes back as its
+ * @warning The mask is taken as given. A bit above the loculi this build has comes back as its
  *          index. That index names no loculus, and anular_loculus_hold refuses it.
  */
 EMBED_INLINE embed_iword anular_loculus_next(const AnularisCtx *args)
@@ -819,7 +819,7 @@ EMBED_INLINE embed_iword anular_loculus_next(const AnularisCtx *args)
  *                     none or another caller already holds it.
  * @note The fetch_or is what settles a race between two callers. Whichever finds the bit clear takes
  *       the loculus, and the other sees it already set and is refused.
- * @note Records the region only on the EMBED_TRUE path, so a refused caller leaves the span alone.
+ * @note Records the region only on the EMBED_TRUE path. A refused caller leaves the span alone.
  * @warning An out-of-range args->index names no bit, so it reads as held and is never handed out.
  * @warning args->src is kept by the ring and handed back by anular_loculus_keepout, so it must outlive
  *          the hold [BORROWS].
@@ -854,7 +854,7 @@ EMBED_INLINE embed_bool anular_loculus_hold(const AnularisCtx *args)
  *
  * @param[in] args Ring and the loculus [BORROWS].
  * @return         The recorded span, or NULL when args->index names none [BORROWS].
- * @note Handed back const, so a reader walks it without moving the ring's own record.
+ * @note Handed back const. A reader walks it without moving the ring's own record.
  * @note A loculus that was never held reads back as the span mmgr_anular_init cleared, a NULL buf and
  *       a bytes of zero.
  * @warning The const covers the span and not the bytes it names. buf comes back as a writable
@@ -880,7 +880,7 @@ EMBED_INLINE const mmgr_ring_span *anular_loculus_keepout(const AnularisCtx *arg
  * @brief Gives loculus args->index back.
  *
  * @param[in,out] args Ring and the loculus [BORROWS].
- * @note Leaves the recorded span and the bytes alone, so a restream can run again.
+ * @note Leaves the recorded span and the bytes alone. A restream can run again.
  * @note Releases what the acquire in anular_loculus_hold took, so the writes a holder made before the
  *       drop are visible to whoever takes the loculus next.
  * @note An out-of-range args->index names no bit and clears nothing, and dropping a loculus that is

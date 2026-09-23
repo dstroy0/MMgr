@@ -1,8 +1,8 @@
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 #
-# Sets up Unity and the harness, then hands off. Every suite declares itself in its own directory,
-# so adding one is a new directory plus a line in its parent, and nothing central has to be kept in
+# Sets up Unity and the harness, then hands off. Every suite declares itself in its own directory.
+# Adding one is a new directory plus a line in its parent, and nothing central has to be kept in
 # step - the same rule src/ follows.
 #
 #   unit/<module>/test_<name>/   one per translation unit, mirroring src/<module>/
@@ -12,7 +12,7 @@
 #                                widths, and built in that one only
 #
 # The one structural feature worth naming is the environment loop inside mmgr_add_suite: a suite is
-# built and registered once per environment, against that environment's own library targets, so a
+# built and registered once per environment, against that environment's own library targets. A
 # defect that only shows at a 16-bit word fails a run here.
 
 include(FetchContent)

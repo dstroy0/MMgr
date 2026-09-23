@@ -13,7 +13,7 @@
  * @note For code already written against <string.h> that has to run where there is no libc, or
  *       where an unbounded read is not acceptable. The call sites do not change. What the names
  *       mean does.
- * @note Defines the usual <string.h> include guards, so a later #include <string.h> contributes
+ * @note Defines the usual <string.h> include guards. A later #include <string.h> contributes
  *       nothing and the real declarations never arrive to conflict with these.
  * @note Not reached from mmgr.h. Including this changes what the <string.h> names mean, which is a
  *       decision a consumer makes for itself.
@@ -147,7 +147,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces memcpy with mmgr_shim_cpy.
  *
- * @note Every argument is parenthesized, so any expression may be passed.
+ * @note Every argument is parenthesized. Any expression may be passed.
  */
 #define memcpy(dest, source, bytes) mmgr_shim_cpy((dest), (source), (bytes))
 
@@ -255,7 +255,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @warning Never negative and never above 1, so it cannot be used to order strings.
  * @warning A terminator does not end the comparison. All limit bytes must be readable in both
  *          operands, with the tail word read whole as mmgr_cellul_diff describes.
- * @warning limit appears twice in the expansion, so an argument with a side effect is evaluated twice.
+ * @warning limit appears twice in the expansion. An argument with a side effect is evaluated twice.
  */
 #define strncmp(left, right, limit)                                                                                    \
     (EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = EMBED_FALSE) <    \
@@ -268,7 +268,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @warning Never negative and never above 1, so it cannot be used to order strings.
  * @warning A terminator does not end the comparison. All limit bytes must be readable in both
  *          operands, with the tail word read whole as mmgr_cellul_diff describes.
- * @warning limit appears twice in the expansion, so an argument with a side effect is evaluated twice.
+ * @warning limit appears twice in the expansion. An argument with a side effect is evaluated twice.
  */
 #define strncasecmp(left, right, limit)                                                                                \
     (EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = EMBED_TRUE) <     \
@@ -278,7 +278,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @brief Replaces strlcpy with a bounded copy that always terminates unless limit is 0.
  *
  * @return Bytes copied, not counting the terminator.
- * @warning Not the source length the real strlcpy returns, so a caller cannot detect truncation by
+ * @warning Not the source length the real strlcpy returns. A caller cannot detect truncation by
  *          comparing the result against limit.
  * @warning dest must be writable for limit bytes and source readable for limit minus one.
  */

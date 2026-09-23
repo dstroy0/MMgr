@@ -69,7 +69,7 @@ EMBED_INLINE embed_u64 fract_mant(const FractioCtx *args)
  *
  * @param[in] args The three fields to pack [BORROWS].
  * @return         The assembled bit pattern.
- * @note Each field is masked to its own width first, so a wide input cannot reach a neighbor.
+ * @note Each field is masked to its own width first. A wide input cannot reach a neighbor.
  */
 EMBED_INLINE embed_u64 fract_merge(const FractioCtx *args)
 {

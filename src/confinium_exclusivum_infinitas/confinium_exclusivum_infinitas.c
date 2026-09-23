@@ -65,8 +65,7 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @note An n at the full width is the case a shift cannot express, so it is answered by complement
  *       instead. An n of 0 falls out of the shift, so neither end needs a test of its own.
  */
-#define RING_LOW_MASK(T, n, bits)                                                                     \
-    (((n) >= (bits)) ? (T) ~(T)0 : (T)(((T)(((T)1) << (n))) - (T)1))
+#define RING_LOW_MASK(T, n, bits) (((n) >= (bits)) ? (T) ~(T)0 : (T)(((T)(((T)1) << (n))) - (T)1))
 
 /**
  * @brief Copies two words at offset i of the mover's walking pointers.
@@ -74,8 +73,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @param[in] i First of the two word offsets.
  * @note Named d and s from the enclosing scope, so the cascade below reads as widths alone.
  */
-#define RING_COPY_2(i)                                                                                \
-    d[(i)] = s[(i)];                                                                                  \
+#define RING_COPY_2(i)                                                                                                 \
+    d[(i)] = s[(i)];                                                                                                   \
     d[(i) + 1] = s[(i) + 1]
 
 /**
@@ -83,8 +82,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  *
  * @param[in] i First of the four word offsets.
  */
-#define RING_COPY_4(i)                                                                                \
-    RING_COPY_2(i);                                                                                   \
+#define RING_COPY_4(i)                                                                                                 \
+    RING_COPY_2(i);                                                                                                    \
     RING_COPY_2((i) + 2)
 
 /**
@@ -92,8 +91,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  *
  * @param[in] i First of the eight word offsets.
  */
-#define RING_COPY_8(i)                                                                                \
-    RING_COPY_4(i);                                                                                   \
+#define RING_COPY_8(i)                                                                                                 \
+    RING_COPY_4(i);                                                                                                    \
     RING_COPY_4((i) + 4)
 
 /**
@@ -105,12 +104,12 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @note One rung per bit of rem, so each runs at most once and together they carry every tail
  *       exactly, without an access reaching past the bytes the caller gave.
  */
-#define RING_TAIL(T, n)                                                                               \
-    if ((rem & (n)) != 0u)                                                                            \
-    {                                                                                                 \
-        *(T *)db = *(const T *)sb;                                                                    \
-        db += (n);                                                                                    \
-        sb += (n);                                                                                    \
+#define RING_TAIL(T, n)                                                                                                \
+    if ((rem & (n)) != 0u)                                                                                             \
+    {                                                                                                                  \
+        *(T *)db = *(const T *)sb;                                                                                     \
+        db += (n);                                                                                                     \
+        sb += (n);                                                                                                     \
     }
 
 /**
@@ -119,7 +118,7 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @param[out] dst Destination [BORROWS].
  * @param[in]  src Source [BORROWS].
  * @param[in]  sz  Bytes to move.
- * @note Steps whole words, then narrows through half a step at a time for the tail, so a tail of
+ * @note Steps whole words, then narrows through half a step at a time for the tail. A tail of
  *       seven bytes is three accesses rather than seven and none of them is a single byte twice.
  * @note Both sides go through the unaligned view: a ring offset is any byte, so neither pointer can
  *       be walked to a boundary first without putting a per-byte head back.
@@ -302,7 +301,7 @@ MMGR_INLINE RingState *ring_of(mmgr_ring *r)
  *
  * @param[in] idx Loculus index.
  * @return        The bit, or 0.
- * @note The bound is here rather than at each call site, so a shift past the word never happens.
+ * @note The bound is here rather than at each call site. A shift past the word never happens.
  * @note An out-of-range loculus names nothing, so it reads as held and is never handed out.
  */
 MMGR_INLINE mmgr_word ring_loculus_bit(size_t idx)
@@ -349,7 +348,7 @@ typedef struct
  * @param[in] want Bytes the caller asked for.
  * @return         The count to carry and how much of it precedes the wrap.
  * @note Both directions divide the same way, so the arithmetic lives here once.
- * @warning want is held at cap: two runs cannot express more than one lap, so a larger count would
+ * @warning want is held at cap: two runs cannot express more than one lap. A larger count would
  *          take the second run past the end of the buffer.
  */
 MMGR_INLINE RingRun ring_run(const RingState *s, size_t at, size_t want)
@@ -430,7 +429,7 @@ MMGR_INLINE size_t ring_move_in(RingState *s, size_t at, const uint8_t *src, siz
  * @param[in] t   Tail the caller read.
  * @param[in] cap Ring size.
  * @return        Distance from t to h, wrapped into the ring.
- * @note Takes the cursors rather than the ring, so a caller holding one of them from its own load
+ * @note Takes the cursors rather than the ring. A caller holding one of them from its own load
  *       reaches the same arithmetic without reading it twice.
  */
 MMGR_INLINE size_t ring_used(size_t h, size_t t, size_t cap)
@@ -445,7 +444,7 @@ MMGR_INLINE size_t ring_used(size_t h, size_t t, size_t cap)
  * @param[in] t   Tail the caller read.
  * @param[in] cap Ring size.
  * @return        cap minus one, minus the readable bytes.
- * @note One byte is withheld so a full ring and an empty one do not share a cursor pair.
+ * @note One byte is withheld to keep a full ring and an empty one from sharing a cursor pair.
  */
 MMGR_INLINE size_t ring_free(size_t h, size_t t, size_t cap)
 {
@@ -731,7 +730,7 @@ MMGR_INLINE const mmgr_ring_span *infin_loculus_keepout(const InfinCtx *c)
  * @brief Gives loculus c->idx back.
  *
  * @param[in,out] c Ring and the loculus [BORROWS].
- * @note Leaves the recorded span and the bytes alone, so a restream can run again.
+ * @note Leaves the recorded span and the bytes alone. A restream can run again.
  */
 MMGR_INLINE void infin_loculus_drop(const InfinCtx *c)
 {

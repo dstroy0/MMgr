@@ -83,7 +83,7 @@ check("and the name in code is still blinded", "Sha256V.ok" not in b)
 check("the shape's fixed vocabulary survives", "MMGR_TRUE" in b and ".ok = " in b)
 
 print()
-print("the table is one per run, so a name crossing files stays itself")
+print("the table is one per run. A name crossing files stays itself")
 bl = RC.Blinder(set())
 h = bl.whole("extern FooVars FooV;\n")
 c = bl.whole("FooVars FooV;\nvoid f(void) { FooV.ok = MMGR_TRUE; }\n")

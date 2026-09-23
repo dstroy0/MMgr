@@ -182,7 +182,7 @@ EMBED_INLINE embed_word scrut_has_zero(const ScrutLaneCtx *args)
  *       and is narrowed on the way back, which is a diagnostic at a 16-bit word for no gain: the two
  *       measured the same on an ESP32-S3 and an ESP32-C6, over 8192 words with no disagreement.
  * @note The range test does not need that bit. The final and with the complement of the unmasked
- *       word still keeps only lanes whose high bit is clear, so a byte at 0x80 or above cannot pass
+ *       word still keeps only lanes whose high bit is clear. A byte at 0x80 or above cannot pass
  *       by folding into the letter range.
  * @note scrut_xor and scrut_fold_lower both shift this result down two places to reach the case bit.
  */
@@ -203,7 +203,7 @@ EMBED_INLINE embed_word scrut_alpha(const ScrutLaneCtx *args)
  * @note With args->ci clear this is a plain exclusive or, and every bit of every lane counts.
  * @note With args->ci set, scrut_alpha shifted down two gives the case bit of each letter lane, and clearing
  *       it in the difference makes the two cases of a letter compare equal.
- * @note Only letter lanes are folded, so a difference in bit five of a digit or a symbol still counts.
+ * @note Only letter lanes are folded. A difference in bit five of a digit or a symbol still counts.
  */
 EMBED_INLINE embed_word scrut_xor(const ScrutLaneCtx *args)
 {
@@ -222,7 +222,7 @@ EMBED_INLINE embed_word scrut_xor(const ScrutLaneCtx *args)
  * @param[in] args The word, the byte to find, and the case flag [BORROWS].
  * @return         A lane mask holding the matching lanes.
  * @note Broadcasts args->byte into every lane, takes the difference through scrut_xor, then tests for zero.
- * @note args->ci is passed on to scrut_xor, so a letter matches either case when it is set.
+ * @note args->ci is passed on to scrut_xor. A letter matches either case when it is set.
  */
 EMBED_INLINE embed_word scrut_eq(const ScrutLaneCtx *args)
 {
@@ -399,7 +399,7 @@ EMBED_INLINE embed_word scrut_drop_hi(const ScrutMaskCtx *args)
  * @note Shifts one way on a little endian target and the other on a big endian one, so the bytes covered are
  *       always the ones that come first in memory.
  * @note The inner cast types the zero as an embed_word before the complement, and the outer one pins the
- *       complement back to the word width, so all holds set bits over exactly one word and none above it.
+ *       complement back to the word width, leaving all with set bits over exactly one word and none above it.
  * @note A count of 0 gives an empty mask and a count of MMGR_SWAR_BYTES or more gives a full one, which is
  *       also what keeps the shift count below the word width.
  */
@@ -479,10 +479,10 @@ EMBED_INLINE embed_word scrut_lanes_before(const ScrutMaskCtx *args)
  * @param[in] args The lane mask and the run length wanted [BORROWS].
  * @return         A lane mask holding the lanes each run starts at, or 0 when args->bytes exceeds
  *                 one word.
- * @note Ands the mask with itself shifted along, doubling the reach each pass, so a run of eight takes
+ * @note Ands the mask with itself shifted along, doubling the reach each pass. A run of eight takes
  *       three passes rather than seven.
- * @note The step is held to what is still wanted, so a run length that is not a power of two lands exactly.
- * @note Shifts toward the earlier bytes on either byte order, so a surviving lane is where a run begins.
+ * @note The step is held to what is still wanted. A run length that is not a power of two lands exactly.
+ * @note Shifts toward the earlier bytes on either byte order. A surviving lane is where a run begins.
  * @note A args->bytes of 0 or 1 returns args->mask as it stands, since the loop runs no passes.
  */
 EMBED_INLINE embed_word scrut_run(const ScrutMaskCtx *args)
@@ -537,7 +537,7 @@ EMBED_INLINE embed_word scrut_run_edge(const ScrutMaskCtx *args)
  *
  * @param[in] args Address to load from [BORROWS].
  * @return         The bytes at args->at, one per lane, in the target's own order.
- * @note Goes through proxim.load, so args->at needs no particular alignment.
+ * @note Goes through proxim.load. args->at needs no particular alignment.
  * @warning args->at must be readable for MMGR_SWAR_BYTES bytes, even when fewer are wanted.
  */
 EMBED_INLINE embed_word scrut_load(const ScrutWordCtx *args)
@@ -564,7 +564,7 @@ EMBED_INLINE embed_word scrut_load_al(const ScrutWordCtx *args)
  * @param[in] args The word to fold [BORROWS].
  * @return         The word with the case bit set on its letter lanes and every other lane untouched.
  * @note scrut_alpha shifted down two gives the case bit of each letter lane, and or-ing it in forces lower case.
- * @note Only letter lanes are touched, so a digit or a symbol keeps bit five exactly as it was.
+ * @note Only letter lanes are touched. A digit or a symbol keeps bit five exactly as it was.
  * @note scrut_xor uses the same shifted mask, but clears the bit rather than setting it.
  */
 EMBED_INLINE embed_word scrut_fold_lower(const ScrutWordCtx *args)
@@ -576,12 +576,12 @@ EMBED_INLINE embed_word scrut_fold_lower(const ScrutWordCtx *args)
  * @brief Returns how many whole words a scan of args->bytes bytes must read.
  *
  * @param[in] args The byte count to convert [BORROWS].
- * @return         The count rounded up, so a partial last word still counts as one.
- * @note Written as a divide plus a test of the low bits rather than adding before dividing, so a very large
+ * @return         The count rounded up. A partial last word still counts as one.
+ * @note Written as a divide plus a test of the low bits rather than adding before dividing. A very large
  *       byte count cannot wrap on the way in.
  * @note The and against MMGR_SWAR_BYTES - 1u stands in for the remainder of that divide, which holds only
  *       because a word is a power of two bytes wide. Its arms are typed 1u and 0u to match what they add to.
- * @note A args->bytes of 0 gives 0, so a caller loops no times rather than reading one word.
+ * @note A args->bytes of 0 gives 0. A caller loops no times rather than reading one word.
  */
 EMBED_INLINE size_t scrut_words(const ScrutWordCtx *args)
 {

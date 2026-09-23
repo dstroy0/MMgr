@@ -4,7 +4,7 @@ Lifted from ProtoCore's test/harness.py, which carries the same machinery for it
 They sit beside bench.py rather than in MMgr's test/harness.py because bench.py is the only
 caller, and that file has a different job.
 
-The table is edited as text rather than reserialized, so a write is a minimal diff and a desc
+The table is edited as text rather than reserialized. A write is a minimal diff and a desc
 that took an hour to word is not reflowed by a tool that only changed a flag.
 """
 
@@ -93,7 +93,7 @@ def splice_after(text, anchor, name, entry):
 def splice_replace(text, name, entry):
     """Replace an env's whole `"name": {...}` in place, rendered at the indent it already sits at.
 
-    The same render as splice_after, so an updated env and a new one are indented identically. The
+    The same render as splice_after. An updated env and a new one are indented identically. The
     leading pad is dropped because the text kept ahead of key_start already carries it.
     """
     pad, key_start, close = env_span(text, name)

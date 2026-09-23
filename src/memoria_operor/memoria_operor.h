@@ -64,7 +64,7 @@ void mmgr_memor_cpy(const MemoriaCfg *args);
  * @brief Copies args->bytes from args->src to args->dst, walking downward from the far end.
  *
  * @param[in] args Destination, source and count [BORROWS].
- * @note Works back from the end, so an args->dst above args->src is safe even when the regions overlap.
+ * @note Works back from the end. An args->dst above args->src is safe even when the regions overlap.
  * @warning args->dst must be writable and args->src readable for args->bytes.
  */
 void mmgr_memor_move_up(const MemoriaCfg *args);

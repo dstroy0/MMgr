@@ -43,7 +43,7 @@ typedef struct
  *
  * @param[in,out] args Writer, value and bit count [BORROWS].
  * @note Writes whole bytes only. Leftover bits stay in writer->residue.
- * @note Does nothing when writer->overflow is already set, so a caller may write a whole stream and
+ * @note Does nothing when writer->overflow is already set. A caller may write a whole stream and
  *       test overflow once at the end rather than after every call.
  * @note Sets writer->overflow and clears the residue when the bytes would pass writer->cap.
  * @warning args->bit_count must not exceed 64, and nothing holds it there outside a

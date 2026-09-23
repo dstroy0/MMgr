@@ -86,15 +86,15 @@ A _cell_ is what a pool hands out. Every one is taken with the pool's own `persi
 given back with its own `persistent_buf_release`. There is one release, not two — what differs is
 which guard the pool was declared under:
 
-|                      | `MMGR_MINIMUM_SECURITY`    | `MMGR_MAXIMUM_SECURITY`                    |
-| -------------------- | -------------------------- | ------------------------------------------ |
-| gives the bytes back | yes                        | yes                                        |
-| clears them first    | no                         | yes (`locus_carcerum.h:140`)               |
-| costs                | a chain walk               | a chain walk and a pass over the bytes     |
+|                      | `MMGR_MINIMUM_SECURITY` | `MMGR_MAXIMUM_SECURITY`                |
+| -------------------- | ----------------------- | -------------------------------------- |
+| gives the bytes back | yes                     | yes                                    |
+| clears them first    | no                      | yes (`locus_carcerum.h:140`)           |
+| costs                | a chain walk            | a chain walk and a pass over the bytes |
 
-The guarantee is in the **declaration** rather than in a flag or a second call, so a caller cannot
+The guarantee is in the **declaration** rather than in a flag or a second call. A caller cannot
 ask for a wipe and not get one, and cannot reach for an unwiped release on a pool that promised one.
-The extent cleared is the block's own, read from its header, so a caller cannot under-wipe a cell by
+The extent cleared is the block's own, read from its header. A caller cannot under-wipe a cell by
 naming fewer bytes than it holds.
 
 Two guards exist instead of one that always clears, because the clear costs a pass over the bytes and
@@ -141,7 +141,7 @@ keeping it from walking off the end rather than offering it somewhere to go.
 **`err` is a runtime fact**: a read span runs out because whatever sent the bytes sent fewer, and
 nothing was built wrong. That is why every take answers and no append returns anything — a short
 read is a case to handle, an overrun append is a bug to fix. A take that reaches past the end leaves
-the cursor where it was, so a caller that keeps reading after a failure still knows where it is.
+the cursor where it was. A caller that keeps reading after a failure still knows where it is.
 
 A read is a buffer, how far it may go, and where it is. Those are the members
 @ref mod_cellul_guide names `src`, `cap` and `at`. A struct holding the three added a second
@@ -187,22 +187,22 @@ declared nowhere a consumer can reach.
 
 ## Who owns what
 
-| Thing           | Allocates               | Frees                      | Lifetime                  |
-| --------------- | ----------------------- | -------------------------- | ------------------------- |
-| caller's buffer | the caller              | the caller                 | outlives everything below |
-| pool            | nothing                 | nothing                    | the region's              |
+| Thing           | Allocates               | Frees                               | Lifetime                  |
+| --------------- | ----------------------- | ----------------------------------- | ------------------------- |
+| caller's buffer | the caller              | the caller                          | outlives everything below |
+| pool            | nothing                 | nothing                             | the region's              |
 | persist take    | a block from the middle | `persistent_buf_release` by address | as long as it likes       |
-| interim take    | a block from the middle | a mark, or `temporary_buf_reset` | until that mark           |
-| span            | nothing                 | nothing                    | its target's              |
-| ring segment    | a counter step          | `seg_release`              | until released            |
-| loculus         | a bit in a mask         | `loculus_drop`             | until dropped             |
+| interim take    | a block from the middle | a mark, or `temporary_buf_reset`    | until that mark           |
+| span            | nothing                 | nothing                             | its target's              |
+| ring segment    | a counter step          | `seg_release`                       | until released            |
+| loculus         | a bit in a mask         | `loculus_drop`                      | until dropped             |
 
 The column that matters is the third one. Nothing in MMgr reaches an allocator: every take comes out
 of a region the caller declared, and every free either returns a block to that region's own chain,
 moves a boundary, or clears a bit.
 
 The persistent end is the one exception to "nothing is ever really freed" — it keeps a chain of
-blocks, so a release there is a genuine free that merges with its neighbours and can be reused. The
+blocks. A release there is a genuine free that merges with its neighbours and can be reused. The
 interim end is not: nothing is released one at a time, and the whole run comes back at once.
 
 ## What this buys, and what it costs

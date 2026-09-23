@@ -10,7 +10,6 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note The examination arm. The correctness arm says every case passed, and that says nothing about
  *       which of the machine's states and transitions any case walked through. A four state core with
  *       eight statuses has more paths than a suite this size can cover by accident, so the ones it
@@ -18,16 +17,21 @@
  * @note Reports and never gates. A transition nothing reached is a hole in the cases, and whether it
  *       is worth filling is a reading of the report and not a build failure. The optimization arm is
  *       this same instrument carrying timings.
- * @note Off unless PRAET_PROCURATOR is 1, and every entry is then a macro expanding to nothing, so a
+ * @note Off unless PRAET_PROCURATOR is 1, and every entry is then a macro expanding to nothing. A
  *       build that did not ask for it carries no counter and no call.
+ * @note Declared here and defined in the suite. The one function that writes a flag word calls these,
+ *       and the counters and the table they print belong to a run of the suite, at
+ *       test/integration/test_praet_correctness/praet_procurator.c.
+ * @warning A build setting PRAET_PROCURATOR to 1 links against those definitions and fails to link
+ *          without them. A shipping image has no reason to set it.
  * @warning Not a knob praet_iudex.h asks about. Every knob there describes the image a
  *          caller ships; this describes a run of the suite, which is the harness's business and not
  *          the caller's.
  */
-#ifndef MMGR_TEST_PRAET_PROCURATOR_H
-#define MMGR_TEST_PRAET_PROCURATOR_H
+#ifndef MMGR_PRAET_PROCURATOR_H
+#define MMGR_PRAET_PROCURATOR_H
 
-#include "praet_tabula_vexillorum.h"
+#include "memoriam_praetereo/praet_tabula_vexillorum.h"
 
 /**
  * @brief Whether a run records the work it did, on top of the states it reached.
@@ -81,8 +85,8 @@ EMBED_BEGIN_DECLS
  * @param[in] channel Channel whose word changed.
  * @param[in] was     The word before.
  * @param[in] now     The word after.
- * @note Called from the one function that writes a flag word, which is what makes the record complete
- *       rather than a sample of the sites somebody remembered to instrument.
+ * @note Called from the one function that writes a flag word, which is what makes the record complete,
+ *       including the sites nobody remembered to instrument.
  * @note Records the core transition as a pair, and every status bit that came on or went off. A word
  *       that changed only its region descriptor records neither, and nothing here reads the region.
  */
@@ -107,7 +111,7 @@ EMBED_END_DECLS
  * @param channel_ Channel whose word changed, discarded.
  * @param was_     The word before, discarded.
  * @param now_     The word after, discarded.
- * @note Casts each argument to void so a build without the instrument does not warn about the values
+ * @note Casts each argument to void, which keeps a build without the instrument from warning about the values
  *       it was handed.
  */
 #define praet_procurator_transitus(channel_, was_, now_) ((void)(channel_), (void)(was_), (void)(now_))
@@ -131,16 +135,16 @@ EMBED_BEGIN_DECLS
  */
 typedef enum
 {
-    PRAET_OPUS_ADNECTERE = 0,    /**< praet_ordo_adnectere ran. */
-    PRAET_OPUS_SEPARARE = 1,    /**< praet_ordo_separare ran. */
+    PRAET_OPUS_ADNECTERE = 0,  /**< praet_ordo_adnectere ran. */
+    PRAET_OPUS_SEPARARE = 1,   /**< praet_ordo_separare ran. */
     PRAET_OPUS_RELATIO = 2,    /**< praet_ordo_relatio ran. */
-    PRAET_OPUS_EFFICERE = 3,      /**< praet_ordo_efficere ran. */
-    PRAET_OPUS_COMPLETED = 4, /**< praet_ordo_completed ran. */
-    PRAET_OPUS_RESOLVE = 5,   /**< praet_ordo_resolve ran. */
-    PRAET_OPUS_POLL = 6,      /**< praet_ordo_poll ran. */
+    PRAET_OPUS_EFFICERE = 3,   /**< praet_ordo_efficere ran. */
+    PRAET_OPUS_COMPLETED = 4,  /**< praet_ordo_completed ran. */
+    PRAET_OPUS_RESOLVE = 5,    /**< praet_ordo_resolve ran. */
+    PRAET_OPUS_POLL = 6,       /**< praet_ordo_poll ran. */
     PRAET_OPUS_POLL_SHORT = 7, /**< A poll that found nothing to do and returned. */
     PRAET_OPUS_POLL_WALK = 8,  /**< A poll that walked every channel. */
-    PRAET_OPUS_ALVEUS = 9,    /**< One channel visited inside a walk. */
+    PRAET_OPUS_ALVEUS = 9,     /**< One channel visited inside a walk. */
     PRAET_OPUS_PROGRESS = 10,  /**< The port was asked how far a channel had got. */
     PRAET_OPUS_KINDS = 11      /**< How many kinds there are, which is what the counters are sized by. */
 } PraetOpus;

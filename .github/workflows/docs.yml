@@ -7,7 +7,7 @@ name: Docs
 # TWO JOBS ON PURPOSE. `build` runs the doc toolchain and holds contents:read and nothing else.
 # `deploy` holds pages:write and id-token:write and runs none of our code - it consumes an artifact.
 # One job holding all three scopes would mean every apt install and every doxygen run in this file
-# executes with a token that can publish. A pull request therefore gets the full build, so a broken
+# executes with a token that can publish. A pull request therefore gets the full build. A broken
 # Doxyfile fails BEFORE it reaches main, and no deployment.
 #
 # DOXYGEN IS PINNED, not whatever the runner ships. Same reason clang-format is pinned in

@@ -310,7 +310,7 @@ static embed_iword cmp_aligned(const uint8_t *a, const uint8_t *b, size_t bytes)
  *
  * @note Mirrors MemorMoveCtx in memoria_operor.c, down to neither pointer being restrict qualified.
  *       move_up is the entry for regions that overlap, which is the thing restrict promises does not
- *       happen, so an arm that added it would time a move the library is not allowed to make.
+ *       happen. An arm that added it would time a move the library is not allowed to make.
  */
 typedef struct
 {
@@ -448,10 +448,8 @@ EMBED_INLINE void move_up_four_loads(BenchMoveCtx *args)
         args->dst -= 4u * sizeof(embed_word);
         args->src -= 4u * sizeof(embed_word);
 
-        const embed_word third = EMBED_CALL(proxim.al_load, ProximusCfg,
-                                            .at = args->src + (3u * sizeof(embed_word)));
-        const embed_word second = EMBED_CALL(proxim.al_load, ProximusCfg,
-                                             .at = args->src + (2u * sizeof(embed_word)));
+        const embed_word third = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (3u * sizeof(embed_word)));
+        const embed_word second = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (2u * sizeof(embed_word)));
         const embed_word first = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + sizeof(embed_word));
         const embed_word zeroth = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src);
 
@@ -567,7 +565,7 @@ static uint32_t move_up_is_correct(void)
             {
                 for (size_t fill_index = 0u; fill_index < (bytes + at); fill_index++)
                 {
-                    // The mix makes a byte carry its own offset, so a byte taken from the wrong
+                    // The mix makes a byte carry its own offset. A byte taken from the wrong
                     // place shows up as itself instead of only as a mismatch
                     g_a[fill_index] = (uint8_t)((((fill_index * 31u) + 17u) & 0xFFu) | 1u);
                     g_d[fill_index] = g_a[fill_index];
@@ -674,7 +672,7 @@ EMBED_INLINE void copy_four_words(BenchCopyCtx *args)
  *
  * @param[in,out] args Destination, source and count [BORROWS].
  * @note Same width as copy_four_words and a different order. restrict already permits the compiler
- *       to reach this arrangement from the interleaved one, so a row that reads 1.00 says it
+ *       to reach this arrangement from the interleaved one. A row that reads 1.00 says it
  *       already does and there is nothing here to take. On the backward move, where the qualifier
  *       is absent, writing the loads out first measured 1.27x on an ESP32-C6 and nothing on an
  *       ESP32-S3.
@@ -691,10 +689,10 @@ EMBED_INLINE void copy_four_loads(BenchCopyCtx *args)
     {
         const embed_word word_zero = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src);
         const embed_word word_one = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + sizeof(embed_word));
-        const embed_word word_two = EMBED_CALL(proxim.al_load, ProximusCfg,
-                                               .at = args->src + (2u * sizeof(embed_word)));
-        const embed_word word_three = EMBED_CALL(proxim.al_load, ProximusCfg,
-                                                 .at = args->src + (3u * sizeof(embed_word)));
+        const embed_word word_two =
+            EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (2u * sizeof(embed_word)));
+        const embed_word word_three =
+            EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (3u * sizeof(embed_word)));
 
         EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst, .val = word_zero);
         EMBED_CALL(proxim.al_put, ProximusCfg, .dst = args->dst + sizeof(embed_word), .val = word_one);
@@ -742,7 +740,7 @@ static uint32_t copy_is_correct(void)
         {
             for (size_t fill_index = 0u; fill_index < bytes; fill_index++)
             {
-                // The mix makes a byte carry its own offset, so a byte taken from the wrong place
+                // The mix makes a byte carry its own offset. A byte taken from the wrong place
                 // shows up as itself instead of only as a mismatch
                 g_a[fill_index] = (uint8_t)((((fill_index * 31u) + 17u) & 0xFFu) | 1u);
                 g_d[fill_index] = 0u;
@@ -1052,127 +1050,113 @@ void dbench_run(void)
             // The entry against a step for step reproduction of it. Both walk one word an
             // iteration, so this row is the cost of reaching the entry through the dispatch table
             // and nothing else. It has to read near 1.00 before either row below means anything
-            DBENCH_AB("mv_entry", iters, n,
-                      DBENCH_KEEP((EMBED_CALL(memor.move_up, MemoriaCfg, .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d,
-                                              .bytes = n),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "mv_entry", iters, n,
+                DBENCH_KEEP(
+                    (EMBED_CALL(memor.move_up, MemoriaCfg, .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n),
+                     (uintptr_t)g_d)),
+                DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)));
 
-            DBENCH_AB("mv_entry_swapped", iters, n,
-                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((EMBED_CALL(memor.move_up, MemoriaCfg, .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d,
-                                              .bytes = n),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "mv_entry_swapped", iters, n,
+                DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)),
+                DBENCH_KEEP(
+                    (EMBED_CALL(memor.move_up, MemoriaCfg, .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n),
+                     (uintptr_t)g_d)));
 
             // One word an iteration against four, the same width memor_cpy takes walking forward.
             // Only the width differs between these two: both load and store each word in turn
-            DBENCH_AB("mv_roll", iters, n,
-                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "mv_roll", iters, n,
+                DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)),
+                DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)));
 
-            DBENCH_AB("mv_roll_swapped", iters, n,
-                      DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "mv_roll_swapped", iters, n,
+                DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)),
+                DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)));
 
             // Four words either way, and only the order differs: the second arm takes all four
             // loads before any store. Without restrict the compiler cannot make that move itself
-            DBENCH_AB("mv_hoist", iters, n,
-                      DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((move_up_four_loads(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "mv_hoist", iters, n,
+                DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)),
+                DBENCH_KEEP((move_up_four_loads(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)));
 
-            DBENCH_AB("mv_hoist_swapped", iters, n,
-                      DBENCH_KEEP((move_up_four_loads(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "mv_hoist_swapped", iters, n,
+                DBENCH_KEEP((move_up_four_loads(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)),
+                DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)));
 
             // A collision point of one word, which is below the threshold, so the second arm finds
             // the chunks would be too small and walks backward exactly as the first one does. This
             // row is what the check costs when it routes nowhere
-            DBENCH_AB("mv_tight", iters, n,
-                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){
-                                       .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "mv_tight", iters, n,
+                DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)),
+                DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)));
 
             // A collision point of g_move_gap bytes. Below that length the two regions never touch
             // and the whole move is one forward copy; above it the move goes as chunks of that size,
             // taken from the top down. This row is the one the question is about
             DBENCH_AB("mv_collide", iters, n,
-                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
-                                       .dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
                                    (uintptr_t)g_d)),
-                      DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){
-                                       .dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                      DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
                                    (uintptr_t)g_d)));
 
             DBENCH_AB("mv_collide_swapped", iters, n,
-                      DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){
-                                       .dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                      DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
                                    (uintptr_t)g_d)),
-                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){
-                                       .dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                      DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
                                    (uintptr_t)g_d)));
 
             // The collision arm against the forward copy it routes to, at the same collision point.
             // memor.cpy on regions this far apart is the floor a backward move could reach
-            DBENCH_AB("mv_vs_cpy", iters, n,
-                      DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){
-                                       .dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_b, .src = g_d, .bytes = n),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "mv_vs_cpy", iters, n,
+                DBENCH_KEEP((move_up_collision(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                             (uintptr_t)g_d)),
+                DBENCH_KEEP((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_b, .src = g_d, .bytes = n), (uintptr_t)g_d)));
 
             // memor.cpy against a step for step reproduction of its word loop. Both are four words
             // an iteration loading and storing each in turn, so this row is the cost of reaching
             // the entry and nothing else. It has to read near 1.00 before the row below means
             // anything
-            DBENCH_AB("cp_entry", iters, n,
-                      DBENCH_KEEP((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_d, .src = g_a, .bytes = n),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "cp_entry", iters, n,
+                DBENCH_KEEP((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_d, .src = g_a, .bytes = n), (uintptr_t)g_d)),
+                DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}), (uintptr_t)g_d)));
 
-            DBENCH_AB("cp_entry_swapped", iters, n,
-                      DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_d, .src = g_a, .bytes = n),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "cp_entry_swapped", iters, n,
+                DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}), (uintptr_t)g_d)),
+                DBENCH_KEEP((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_d, .src = g_a, .bytes = n), (uintptr_t)g_d)));
 
             // Four words either way and only the order differs: the second arm takes all four loads
             // before any store. Both pointers are restrict qualified here, which already permits
             // the compiler to reach the second arrangement from the first, so 1.00 says it does
-            DBENCH_AB("cp_hoist", iters, n,
-                      DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((copy_four_loads(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "cp_hoist", iters, n,
+                DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}), (uintptr_t)g_d)),
+                DBENCH_KEEP((copy_four_loads(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}), (uintptr_t)g_d)));
 
-            DBENCH_AB("cp_hoist_swapped", iters, n,
-                      DBENCH_KEEP((copy_four_loads(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "cp_hoist_swapped", iters, n,
+                DBENCH_KEEP((copy_four_loads(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}), (uintptr_t)g_d)),
+                DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}), (uintptr_t)g_d)));
         }
 
         {

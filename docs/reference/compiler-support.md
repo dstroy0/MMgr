@@ -1,6 +1,6 @@
 # Compilers, attributes and fallbacks {#ref_compiler_support}
 
-Every compiler conditional in the library lives in one file, so adding a toolchain is one file to
+Every compiler conditional in the library lives in one file. Adding a toolchain is one file to
 read.
 
 ## The policy
@@ -27,18 +27,18 @@ policed by a static assert at the point of use rather than trusted.
 
 ## What is in it
 
-| macro                                      | with the attribute                             | without                         |
-| ------------------------------------------ | ---------------------------------------------- | ------------------------------- |
-| `EMBED_INLINE`                             | `static inline __attribute__((always_inline))` | `static inline`                 |
-| `EMBED_TABLE_STORAGE`                      | `static const`                                 | —                               |
-| `EMBED_UNUSED`                             | `__attribute__((unused))`                      | empty                           |
-| `EMBED_WEAK`                               | `__attribute__((weak))`                        | empty                           |
-| `EMBED_ALIAS`                              | `__attribute__((may_alias))`                   | empty                           |
-| `EMBED_ALIGN(bytes_)`                      | `__attribute__((aligned(bytes_)))`             | empty                           |
-| `EMBED_FLATTEN`                            | `__attribute__((flatten))`                     | empty                           |
-| `EMBED_ENUM_PACKED`                        | `__attribute__((packed))`                      | empty — **asserted**, see below |
-| `EMBED_BEGIN_DECLS` / `EMBED_END_DECLS`    | `extern "C" {` / `}` under C++                 | empty under C                   |
-| `EMBED_STATIC_ASSERT`                      | `static_assert` or `_Static_assert`            | `#error` below C11              |
+| macro                                   | with the attribute                             | without                         |
+| --------------------------------------- | ---------------------------------------------- | ------------------------------- |
+| `EMBED_INLINE`                          | `static inline __attribute__((always_inline))` | `static inline`                 |
+| `EMBED_TABLE_STORAGE`                   | `static const`                                 | —                               |
+| `EMBED_UNUSED`                          | `__attribute__((unused))`                      | empty                           |
+| `EMBED_WEAK`                            | `__attribute__((weak))`                        | empty                           |
+| `EMBED_ALIAS`                           | `__attribute__((may_alias))`                   | empty                           |
+| `EMBED_ALIGN(bytes_)`                   | `__attribute__((aligned(bytes_)))`             | empty                           |
+| `EMBED_FLATTEN`                         | `__attribute__((flatten))`                     | empty                           |
+| `EMBED_ENUM_PACKED`                     | `__attribute__((packed))`                      | empty — **asserted**, see below |
+| `EMBED_BEGIN_DECLS` / `EMBED_END_DECLS` | `extern "C" {` / `}` under C++                 | empty under C                   |
+| `EMBED_STATIC_ASSERT`                   | `static_assert` or `_Static_assert`            | `#error` below C11              |
 
 MMgr adds three of its own, in `include/mmgr.h`, for what the compiler offers and this library needs:
 `MMGR_ERROR_ATTR` puts our own text on a reference that must not link, `MMGR_ALLOC_SIZE` states which
@@ -70,7 +70,7 @@ names the cause — instead of producing a binary whose struct offsets are wrong
 
 ## EMBED_TABLE_LAYOUT
 
-The dispatch tables are addressed by offset, so a positional initializer mis-wires silently when a
+The dispatch tables are addressed by offset. A positional initializer mis-wires silently when a
 member moves. `EMBED_TABLE_LAYOUT(Table_, ...)` expands to a chain of static assertions pinning each
 named member to its own slot, in order, and pinning `sizeof(Table_)` to exactly that many pointers.
 
@@ -88,13 +88,13 @@ order. See @ref concept_ns_idiom.
 ## Byte order
 
 `EMBED_BIG_ENDIAN` derives from `__BYTE_ORDER__` where the compiler defines it, and falls to 0 where
-it does not. It exists so the library can take the cheap path when a requested order matches the host
-— never so a caller can ask for "whatever this machine does". Wire formats state their order. See
+it does not. It exists so the library can take the cheap path when a requested order matches the host.
+It is never there for a caller to ask for "whatever this machine does". Wire formats state their order. See
 @ref concept_width.
 
 ## Weak hardware hooks
 
-The DMA module's hardware entries are `EMBED_WEAK`, so a board support file overrides them by
+The DMA module's hardware entries are `EMBED_WEAK`. A board support file overrides them by
 defining the same symbol. Without an override they are present and refuse every request, which is
 what lets `memoriam_praetereo` build and its tests link on a host with no DMA controller.
 

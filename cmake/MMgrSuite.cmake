@@ -15,12 +15,16 @@
 # translation units that are not in the library when it is off, so the suite would fail to link.
 # It is skipped loudly - silently dropping it leaves a passing run that tested less than it looks
 # like. Unity's generator reads case names out of the source text and does not see a preprocessor
-# conditional, so a case cannot be compiled out of a suite: the whole suite is what a capability
+# conditional. A case cannot be compiled out of a suite: the whole suite is what a capability
 # gates.
 #
 # ENVIRONMENT pins the suite to one entry in MMGR_ENVIRONMENTS. An environment suite asserts the
 # widths of one environment, so building it against the others would assert a lane that was never
 # selected and fail for the right reason at the wrong target.
+
+# floor and the rest of <math.h> live in a separate libm on glibc, which a link reaches only when
+# asked. MinGW folds them into its C runtime, which is why the Windows host links without this.
+find_library(MMGR_LIBM m)
 
 function(mmgr_add_suite suite_name)
     cmake_parse_arguments(ARG "" "CAPABILITY;ENVIRONMENT" "" ${ARGN})
@@ -57,6 +61,15 @@ function(mmgr_add_suite suite_name)
     add_custom_target(${suite_name}_runner DEPENDS "${runner}")
     set_source_files_properties("${runner}" PROPERTIES GENERATED TRUE)
 
+    # guard_page.c sets the POSIX feature macros ahead of its first include, and that is too late
+    # where an environment forces a header in first: checks does, and its <stdio.h> settles glibc's
+    # feature set as strict C11, which leaves sigjmp_buf and sigaction undeclared. On the command
+    # line they are in place before any header is read.
+    if(NOT WIN32)
+        set_source_files_properties("${MMGR_TEST_ROOT}/support/guard_page.c" PROPERTIES
+            COMPILE_DEFINITIONS "_POSIX_C_SOURCE=200809L;_DEFAULT_SOURCE=1")
+    endif()
+
     foreach(entry IN LISTS MMGR_ENVIRONMENTS)
         mmgr_env_name("${entry}" env defs)
         if(ARG_ENVIRONMENT AND NOT env STREQUAL ARG_ENVIRONMENT)
@@ -75,19 +88,12 @@ function(mmgr_add_suite suite_name)
         # environments call it is MMGR_NEEDS_CONTEXT_ID's business, and a suite list that has to
         # track that condition is a second copy of it waiting to disagree. Where nothing calls it,
         # the linker drops it.
-        #
-        # support/praet_port_default.c holds the weak refusing default for praet_hw_progress. A
-        # suite is one translation unit, and a weak default cannot sit beside the strong definition
-        # a port supplies. test_praet_correctness includes praet_engine.c and defines the hook
-        # there, which is what makes this a file of its own. Linked in for the same reason as the
-        # two above: where nothing calls it, the linker drops it.
         add_executable(${target}
             "${suite_src}"
             "${runner}"
             "${unity_SOURCE_DIR}/src/unity.c"
             "${MMGR_TEST_ROOT}/support/platform_host.c"
-            "${MMGR_TEST_ROOT}/support/guard_page.c"
-            "${MMGR_TEST_ROOT}/support/praet_port_default.c")
+            "${MMGR_TEST_ROOT}/support/guard_page.c")
         add_dependencies(${target} ${suite_name}_runner)
         target_include_directories(${target} PRIVATE
             "${unity_SOURCE_DIR}/src"
@@ -103,6 +109,9 @@ function(mmgr_add_suite suite_name)
         # assertion bodies they call.
         target_compile_definitions(${target} PRIVATE UNITY_INCLUDE_DOUBLE UNITY_INCLUDE_FLOAT)
         target_link_libraries(${target} PRIVATE mmgr_${env})
+        if(MMGR_LIBM)
+            target_link_libraries(${target} PRIVATE ${MMGR_LIBM})
+        endif()
         set_target_properties(${target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test/${env}")
 
         add_test(NAME ${target} COMMAND ${target})

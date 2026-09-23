@@ -12,7 +12,7 @@
  * @date 2026-09-01
  *
  * @note What this exists to settle. The soundness argument for an anchor uses only that a position is
- *       a position: an anchor is a condition copied out of the pattern, so anything holding the whole
+ *       a position: an anchor is a condition copied out of the pattern. Anything holding the whole
  *       pattern holds that condition. Nothing in it names a dimension, an order on positions, or a
  *       symbol. The sift bench measures byte strings and cannot tell whether that generality is real
  *       or whether the argument quietly leans on the line it was written over.
@@ -26,7 +26,7 @@
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
-// The domains and the anchor shuffles are drawn from this, so a run reproduces. Held to RFC 6234's
+// Drawing the domains and the anchor shuffles from this makes a run reproduce. Held to RFC 6234's
 // vectors by its own self test
 #include "mmgr_sha256.h"
 
@@ -40,7 +40,7 @@
 /**
  * @brief Points in every pattern this bench uses.
  *
- * @note One value across every domain, so a row from a volume and a row from a line are comparable.
+ * @note One value across every domain. A row from a volume and a row from a line are comparable.
  *       Eight points over a two symbol alphabet puts the pattern at one position in 256, which leaves
  *       real occurrences to lose in a domain of roughly four thousand positions. A pattern rare enough
  *       to occur once would make the invariant check a test of one sample.
@@ -55,7 +55,7 @@
 /**
  * @brief Distinct symbols in every domain here.
  *
- * @note Two. The alphabet is deliberately at the bottom of its range so a pattern recurs often enough
+ * @note Two. The alphabet is deliberately at the bottom of its range, where a pattern recurs often enough
  *       for a lost occurrence to have somewhere to hide. What the alphabet costs is measured in the
  *       sift bench; what it is made of is the question here, and two of anything is enough for that.
  */
@@ -122,19 +122,16 @@ static const char *rule_name(LatticeRule rule)
 {
     switch (rule)
     {
-        case ANCHOR_SPREAD:
-        {
-            return "spread";
-        }
-        case ANCHOR_SHUFFLED:
-        {
-            return "shuffled";
-        }
-        case ANCHOR_LEADING:
-        default:
-        {
-            return "leading";
-        }
+    case ANCHOR_SPREAD: {
+        return "spread";
+    }
+    case ANCHOR_SHUFFLED: {
+        return "shuffled";
+    }
+    case ANCHOR_LEADING:
+    default: {
+        return "leading";
+    }
     }
 }
 
@@ -144,7 +141,7 @@ static const char *rule_name(LatticeRule rule)
  * @param[out] into   Storage to fill [BORROWS].
  * @param[in]  length Bytes to write.
  * @param[in]  salt   Distinguishes one stream from another.
- * @note Every domain and every shuffle in this file comes from here, so a run reproduces exactly and
+ * @note Every domain and every shuffle in this file comes from here. A run reproduces exactly and
  *       two domains built with different salts share no structure.
  */
 static void draw_bytes(uint8_t *into, size_t length, uint64_t salt)
@@ -233,7 +230,7 @@ static uint32_t candidates_lattice(SameSymbol same, const void *domain, const si
  * @return                   How many of those an anchor rejected.
  * @note The same obligation the sift bench checks over byte strings, asked here where the positions
  *       are not on a line and the symbols may not be readable. An anchor is one of the pattern's own
- *       points, so anything matching every point matches that one. A nonzero return is a defect in
+ *       points. Anything matching every point matches that one. A nonzero return is a defect in
  *       this file and never a property of a geometry.
  */
 static uint32_t refused_lattice(SameSymbol same, const void *domain, const size_t *bases, size_t base_count,
@@ -298,48 +295,45 @@ static unsigned pick_lattice_anchors(LatticeRule rule, unsigned point_count, uns
 
     switch (rule)
     {
-        case ANCHOR_SPREAD:
+    case ANCHOR_SPREAD: {
+        for (unsigned index = 0u; index < want; index++)
         {
-            for (unsigned index = 0u; index < want; index++)
-            {
-                anchors[index] = (index * point_count) / want;
-            }
-            break;
+            anchors[index] = (index * point_count) / want;
         }
-        case ANCHOR_SHUFFLED:
+        break;
+    }
+    case ANCHOR_SHUFFLED: {
+        unsigned order[PATTERN_POINTS];
+        uint8_t noise[PATTERN_POINTS];
+
+        draw_bytes(noise, sizeof noise, salt);
+
+        for (unsigned index = 0u; index < point_count; index++)
         {
-            unsigned order[PATTERN_POINTS];
-            uint8_t noise[PATTERN_POINTS];
-
-            draw_bytes(noise, sizeof noise, salt);
-
-            for (unsigned index = 0u; index < point_count; index++)
-            {
-                order[index] = index;
-            }
-            for (unsigned slot = point_count - 1u; slot > 0u; slot--)
-            {
-                const unsigned pick = (unsigned)noise[slot] % (slot + 1u);
-                const unsigned held = order[slot];
-
-                order[slot] = order[pick];
-                order[pick] = held;
-            }
-            for (unsigned index = 0u; index < want; index++)
-            {
-                anchors[index] = order[index];
-            }
-            break;
+            order[index] = index;
         }
-        case ANCHOR_LEADING:
-        default:
+        for (unsigned slot = point_count - 1u; slot > 0u; slot--)
         {
-            for (unsigned index = 0u; index < want; index++)
-            {
-                anchors[index] = index;
-            }
-            break;
+            const unsigned pick = (unsigned)noise[slot] % (slot + 1u);
+            const unsigned held = order[slot];
+
+            order[slot] = order[pick];
+            order[pick] = held;
         }
+        for (unsigned index = 0u; index < want; index++)
+        {
+            anchors[index] = order[index];
+        }
+        break;
+    }
+    case ANCHOR_LEADING:
+    default: {
+        for (unsigned index = 0u; index < want; index++)
+        {
+            anchors[index] = index;
+        }
+        break;
+    }
     }
     return want;
 }
@@ -393,9 +387,8 @@ static void report_lattice(const LatticeCase *shape)
                 continue;
             }
 
-            printf("ancorae_lattice,%s,%s,%u,%u,%u,%u,%u,%.2f,%s\n", shape->name, rule_name(rule),
-                   shape->point_count, count, (unsigned)shape->base_count, samples, checked,
-                   candidates / (double)samples,
+            printf("ancorae_lattice,%s,%s,%u,%u,%u,%u,%u,%.2f,%s\n", shape->name, rule_name(rule), shape->point_count,
+                   count, (unsigned)shape->base_count, samples, checked, candidates / (double)samples,
                    (checked == 0u) ? "none" : ((refused == 0u) ? "hold" : "BROKEN"));
         }
     }
@@ -434,7 +427,7 @@ static uint8_t s_cube[CUBE_SIDE * CUBE_SIDE * CUBE_SIDE];
  * @brief A domain whose symbols are complex numbers with irrational parts.
  *
  * @note Here to make one point concretely. Nothing below ever reads one of these values, compares
- *       their magnitudes, or orders them. The comparison is over their storage, so a symbol that
+ *       their magnitudes, or orders them. The comparison is over their storage. A symbol that
  *       cannot be written down exactly, or interpreted at all, is handled the same as a byte.
  */
 static double _Complex s_field[FIELD_LENGTH];
@@ -595,8 +588,7 @@ static size_t build_grid(void)
         s_grid_box[point] = (ptrdiff_t)((row * GRID_SIDE) + column);
         s_grid_scatter[point] = (ptrdiff_t)((scatter[point][0] * GRID_SIDE) + scatter[point][1]);
         // A quarter turn inside the window: (row, column) goes to (column, side - 1 - row)
-        s_grid_turned[point] =
-            (ptrdiff_t)((scatter[point][1] * GRID_SIDE) + ((SCATTER_SIDE - 1u) - scatter[point][0]));
+        s_grid_turned[point] = (ptrdiff_t)((scatter[point][1] * GRID_SIDE) + ((SCATTER_SIDE - 1u) - scatter[point][0]));
     }
 
     for (unsigned row = 0u; (row + SCATTER_SIDE) <= GRID_SIDE; row++)
@@ -669,7 +661,7 @@ static ptrdiff_t s_hypercube_points[PATTERN_POINTS];
  *       point it has. Filling a corner of a hypercube instead would have placed all eight points
  *       inside three axes at every dimension above three, which would have measured a three
  *       dimensional pattern in a larger space and reported it as a higher dimensional result.
- * @note Seven points off the origin can touch at most seven axes, so at dimension eight the pattern
+ * @note Seven points off the origin can touch at most seven axes. At dimension eight the pattern
  *       spans seven of them. Every dimension up to seven is spanned completely.
  * @note Bases are every position where the whole pattern stays in bounds, which is the geometry the
  *       core reads. Nothing about the dimension reaches the core by any other route.
@@ -768,8 +760,8 @@ int main(void)
         fill_levels(s_hypercube, cells, 0x400u + dimension);
         snprintf(label, sizeof label, "cube%ud", dimension);
 
-        const LatticeCase shape = {label,           s_hypercube,         same_byte, s_hypercube_bases,
-                                   bases,           s_hypercube_points,  PATTERN_POINTS};
+        const LatticeCase shape = {label, s_hypercube,        same_byte,     s_hypercube_bases,
+                                   bases, s_hypercube_points, PATTERN_POINTS};
 
         report_lattice(&shape);
     }

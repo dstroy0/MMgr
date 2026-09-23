@@ -37,7 +37,7 @@ typedef enum EMBED_ENUM_PACKED
  * @brief A pair of buffers, one being filled while the other is drained.
  *
  * @note fill_index is the only member. The buffers it indexes are held elsewhere.
- * @note The two roles are one bit. The drain index is this one's complement, so a swap is a flip and
+ * @note The two roles are one bit. The drain index is this one's complement. A swap is a flip and
  *       there is no second member to keep in step.
  * @warning What holds fill_index to 0 or 1 is mmgr_pingpong_init setting it and mmgr_pingpong_swap
  *          flipping it. A pair that has not been through mmgr_pingpong_init carries whatever its
@@ -135,7 +135,7 @@ uint8_t mmgr_pingpong_drain_index(const ExternaCfg *args);
  *
  * @param[in,out] args Pair to flip, as args->pingpong [BORROWS].
  * @return             The index now being filled, 0 or 1.
- * @note Flips the low bit, so a swap of a swap is where it started.
+ * @note Flips the low bit. A swap of a swap is where it started.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning One caller at a time. The flip and the read that follows it are two steps on a plain byte,
  *          with no atomic and no lock, so two callers swapping the same pair can come away holding

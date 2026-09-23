@@ -11,16 +11,16 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note No atomics anywhere. Exclusion comes from the lock the reader/setter takes, and from the
  *       interrupt being structurally unable to take it - the interrupt only ever raises set.
  * @note Nothing here predicts how long a transfer takes. The port kicks the watchdog while the
- *       engine is moving and reports completion when it happens, and an unkicked window says the
- *       channel stopped rather than that it finished.
- * @warning Included by test_praet_correctness.c rather than compiled on its own. mmgr_add_suite
- *          builds the one suite source and the shared files under test/support.
+ *       engine is moving and reports completion when it happens. An unkicked window marks the
+ *       channel stopped, and a stopped channel has not finished.
+ * @warning The whole file is compiled only when MMGR_ENABLE_DMA is set.
  */
-#include "praet_ordo.h"
+#include "memoriam_praetereo/memoriam_praetereo.h"
+
+#if MMGR_ENABLE_DMA
 
 /**
  * @brief Every bit of a flag word except the ones in @p bits_.
@@ -31,7 +31,7 @@
  *       int on its way back into an unsigned flag word. The outer cast puts it at the width these
  *       masks work at.
  */
-#define PRAET_WITHOUT(bits_) ((uint32_t) ~(uint32_t)(bits_))
+#define PRAET_WITHOUT(bits_) ((uint32_t)~(uint32_t)(bits_))
 
 /**
  * @brief Statuses a transfer leaves behind, cleared when the next one starts.
@@ -72,7 +72,7 @@ EMBED_STATIC_ASSERT((PRAET_CLEARED_BITS & (uint32_t)~PRAET_MAP_MASK) == 0u,
  * @param[in]     channel Channel to write.
  * @param[in]     now     The word to leave behind.
  * @note Every entry that changes a channel's state goes through this. That is what lets the
- *       examination arm record a complete picture rather than the sites somebody remembered to
+ *       examination arm record every site, including the ones nobody remembered to
  *       instrument, and it is the same reason the whole access control ended up in one function.
  * @note A word that did not change is not written and is not recorded. Recording it would say a
  *       transition happened where nothing moved.
@@ -115,7 +115,7 @@ void praet_ordo_reset(PraetOrdo *context)
 }
 
 embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t *bound, embed_word bytes,
-                                 embed_word region)
+                                embed_word region)
 {
     praet_procurator_opus(PRAET_OPUS_ADNECTERE);
 
@@ -129,7 +129,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
     }
 
     // The engine settles once, when it first comes up. A later attach takes what is left of that
-    // deadline rather than restarting it, since the engine is already up by then
+    // deadline and leaves it running, since the engine is already up by then
     const embed_word deadline = context->elapsed_micros + (embed_word)PRAET_SETTLE_MICROS;
 
     if (deadline > context->settle_deadline)
@@ -208,8 +208,7 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel)
     // The region descriptor rides along untouched. Which memory a channel reaches was settled where
     // the pool was declared, and a submit has no business restating it
     praet_ordo_write_flags(context, channel,
-                               (was & PRAET_WITHOUT(PRAET_CORE_MASK | PRAET_TRANSFER_STATUSES)) |
-                                   (uint32_t)PRAET_BUSY);
+                           (was & PRAET_WITHOUT(PRAET_CORE_MASK | PRAET_TRANSFER_STATUSES)) | (uint32_t)PRAET_BUSY);
     context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
 #if PRAET_RECOVERY
     // The address comes from what the channel was attached over. A submit states how far into it the
@@ -293,8 +292,8 @@ void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool fai
 /**
  * @brief The CRC-32 polynomial, reflected.
  *
- * @note The ordinary one, so a caller checking this against a checksum of their source can use any
- *       CRC-32 they already have rather than one of ours.
+ * @note The ordinary one. A caller checking this against a checksum of their source can use any
+ *       CRC-32 they already have.
  */
 #define PRAET_CRC_POLYNOMIAL 0xEDB88320u
 
@@ -323,7 +322,9 @@ static uint32_t praet_boundary_crc(const PraetOrdo *context, embed_word channel)
 
     const embed_word first = sampled - remainder;
     const embed_word length = context->length[channel];
-    const embed_word last = ((first + word_bytes) > length) ? length : (first + word_bytes);
+    // The sum runs at int width and is compared there, so it cannot wrap. It comes back narrower only
+    // on the arm where it is at most the length, which is an embed_word already
+    const embed_word last = ((first + word_bytes) > length) ? length : (embed_word)(first + word_bytes);
     const uint8_t *const bytes = context->start[channel];
 
     uint32_t running = 0xFFFFFFFFu;
@@ -364,7 +365,8 @@ embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word
     uint32_t now = was & PRAET_WITHOUT(PRAET_CORE_MASK | PRAET_STALLED);
 
     now |= (uint32_t)PRAET_ADNEXUS;
-    now |= (recovery == (embed_word)PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE) ? (uint32_t)PRAET_SCRUBBED : (uint32_t)PRAET_ABANDONED;
+    now |= (recovery == (embed_word)PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE) ? (uint32_t)PRAET_SCRUBBED
+                                                                             : (uint32_t)PRAET_ABANDONED;
 
     // The one optional branch, and the only place it appears. Everything before the sample is written
     // and everything past the rounded boundary is not, so the whole ambiguity is the word the engine
@@ -404,7 +406,22 @@ void praet_ordo_raise(PraetOrdo *context)
 }
 
 /**
- * @brief Asks the port how far every running channel has got, and records what it says.
+ * @brief Weak default for the progress hook, which reports no movement.
+ *
+ * @param[in] channel Channel to ask about.
+ * @return            0 always, which praet_ordo_take_progress reads as no movement.
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. An application
+ *       definition replaces it.
+ * @note The (void)channel discards the argument, since this body reads nothing.
+ */
+EMBED_WEAK uint16_t praet_hw_progress(embed_word channel)
+{
+    (void)channel;
+    return 0u;
+}
+
+/**
+ * @brief Asks the port how far every running channel has got, and records the answer.
  *
  * @param[in,out] context Context to update [BORROWS].
  * @return                EMBED_TRUE where any channel moved.
@@ -455,7 +472,7 @@ void praet_ordo_poll(PraetOrdo *context)
     praet_procurator_opus(PRAET_OPUS_POLL);
 
     // Taking the lock is what makes this ignore the interrupt for the span below. A nested call finds
-    // it held and declines rather than reworking state the outer call is partway through
+    // it held and declines, leaving the outer call's half-done state untouched
     if (context->praet_busy_bitflag != 0u)
     {
         praet_procurator_opus(PRAET_OPUS_POLL_SHORT);
@@ -465,7 +482,7 @@ void praet_ordo_poll(PraetOrdo *context)
 
     const embed_bool moved = praet_ordo_take_progress(context);
 
-    // The short circuit, and it is still here. What changed is that the port is asked first, so a
+    // The short circuit, and it is still here. What changed is that the port is asked first. A
     // channel that moved is one of the things that can make this false. Nothing happened means no
     // interrupt raised anything and the port reports no movement, and the walk below would then write
     // every flag word back exactly as it found it
@@ -477,7 +494,7 @@ void praet_ordo_poll(PraetOrdo *context)
     }
     praet_procurator_opus(PRAET_OPUS_POLL_WALK);
 
-    // Lifted out of the walk. One deadline serves the whole context, so asking whether it has elapsed
+    // Lifted out of the walk. One deadline serves the whole context. Asking whether it has elapsed
     // once and reading the answer per channel replaces a comparison per channel with a load
     const embed_bool settled = (context->elapsed_micros >= context->settle_deadline) ? EMBED_TRUE : EMBED_FALSE;
 
@@ -492,7 +509,7 @@ void praet_ordo_poll(PraetOrdo *context)
         }
         praet_procurator_opus(PRAET_OPUS_ALVEUS);
 
-        // The bit comes first in both tests below, so a channel that is not settling and a channel
+        // The bit comes first in both tests below. A channel that is not settling and a channel
         // that is not running each cost one mask and nothing else. A timer nothing is waiting on is
         // never compared against
         if (((now & (uint32_t)PRAET_SETTLING) != 0u) && (settled != EMBED_FALSE))
@@ -528,8 +545,8 @@ void praet_ordo_poll(PraetOrdo *context)
     }
 
     // Both volatiles come down together. A raise that landed during the span above is dropped, and
-    // nothing is lost by it: this recomputes every channel from what it can see rather than consuming
-    // an event, so the next call reaches the same answer from the same state
+    // nothing is lost by it: this recomputes every channel from what it can see and consumes no
+    // event, and the next call reaches the same answer from the same state
     context->praet_set_bitflag = 0u;
     context->praet_busy_bitflag = 0u;
 }
@@ -576,7 +593,7 @@ embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel)
     const embed_word needed = word_bytes - remainder;
     const embed_word headroom = length - sampled;
 
-    // Compared against the headroom rather than added and clamped afterwards. A length near the top
+    // Compared against the headroom, with no addition to clamp afterwards. A length near the top
     // of the word wraps the addition, and the clamp then reads the wrapped value as a small number
     if (needed >= headroom)
     {
@@ -596,4 +613,6 @@ uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel)
     }
     return context->boundary_crc[channel];
 }
+#endif
+
 #endif

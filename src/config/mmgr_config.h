@@ -1,7 +1,7 @@
 /**
  * @brief Build-time settings: widths, region sizes, feature switches and the region carving macros.
  *
- * @note The tunables are guarded by #ifndef so a build may set them first; MMGR_SWAR_BITS is the exception.
+ * @note Each tunable sits behind #ifndef, which lets a build set it first; MMGR_SWAR_BITS is the exception.
  */
 #ifndef MMGR_CONFIG_H
 #define MMGR_CONFIG_H
@@ -57,7 +57,7 @@
 /**
  * @brief Width in bits of one SWAR word, always equal to MMGR_WORD_BITS.
  *
- * @warning Any earlier definition is discarded, so a build cannot set the two widths apart.
+ * @warning Any earlier definition is discarded. A build cannot set the two widths apart.
  */
 #ifdef MMGR_SWAR_BITS
 #undef MMGR_SWAR_BITS
@@ -80,7 +80,7 @@
  * @param[in] msg  String literal describing the expectation.
  * @note An expectation the library asserts is one a correct caller cannot break, so the shipping
  *       form pays nothing for it: it expands to a sizeof, which type checks cond and never evaluates
- *       it. The checks build evaluates it instead and stops on the spot, so a caller that broke one
+ *       it. The checks build evaluates it instead and stops on the spot. A caller that broke one
  *       fails a test rather than carrying on with the damage done.
  * @note A build may define its own before including this header, and neither form below is then used.
  *       A target with no stderr and no abort wants that.
@@ -95,7 +95,7 @@
 // it to the abort and reports the failure with nothing naming which case reached it
 #define MMGR_ASSERT(cond, msg)                                                                                         \
     ((cond) ? (void)0                                                                                                  \
-            : (void)(fprintf(stderr, "MMGR_ASSERT failed: %s\n  %s:%d\n", (msg), __FILE__, __LINE__), fflush(NULL),     \
+            : (void)(fprintf(stderr, "MMGR_ASSERT failed: %s\n  %s:%d\n", (msg), __FILE__, __LINE__), fflush(NULL),    \
                      abort()))
 #else
 #define MMGR_ASSERT(cond, msg) ((void)sizeof((cond) ? 1 : 0), (void)0)
@@ -146,7 +146,8 @@
 /**
  * @brief Set to 1 to build the memoriam_praetereo DMA path.
  *
- * @note mmgr.h includes memoriam_praetereo.h only when this is set, and it gates MMGR_PRAET_CHANNELS below.
+ * @note mmgr.h includes memoriam_praetereo.h only when this is set. The schedule's knobs are read in
+ *       memoriam_praetereo/praet_praefinitum.h and memoriam_praetereo/praet_horologiorum_custos.h.
  */
 #ifndef MMGR_ENABLE_DMA
 #define MMGR_ENABLE_DMA 0
@@ -182,22 +183,6 @@
 #endif
 
 /**
- * @brief DMA channels memoriam_praetereo carries, and the bytes each one buffers.
- *
- * @warning Both are defined only when MMGR_ENABLE_DMA is set.
- */
-#if MMGR_ENABLE_DMA
-#ifndef MMGR_PRAET_CHANNELS
-
-#define MMGR_PRAET_CHANNELS 2
-#endif
-#ifndef MMGR_PRAET_BUF_SIZE
-
-#define MMGR_PRAET_BUF_SIZE 256
-#endif
-#endif
-
-/**
  * @brief Fails the build unless x_ has type size_t.
  *
  * @param[in] x_ Expression whose type is checked.
@@ -213,7 +198,6 @@
  */
 #define MMGR_MEMOR_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
 
-
 /**
  * @brief Defines a value-returning entry point that forwards an argument pack.
  *
@@ -225,20 +209,19 @@
  * @param NAME       The core name of the function
  * @param ...        The variadic argument pack/fields to forward
  */
-#define GENERIC_ENTRY(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, RET_TYPE, NAME, ...) \
-    RET_TYPE PREFIX##NAME(const CFG_TYPE *c) \
-    { \
-        return MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__); \
+#define GENERIC_ENTRY(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, RET_TYPE, NAME, ...)                                        \
+    RET_TYPE PREFIX##NAME(const CFG_TYPE *c)                                                                           \
+    {                                                                                                                  \
+        return MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__);                                                        \
     }
 
 /**
  * @brief Defines a void entry point that forwards an argument pack.
  */
-#define GENERIC_ENTRY_V(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, NAME, ...) \
-    void PREFIX##NAME(const CFG_TYPE *c) \
-    { \
-        MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__); \
+#define GENERIC_ENTRY_V(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, NAME, ...)                                                \
+    void PREFIX##NAME(const CFG_TYPE *c)                                                                               \
+    {                                                                                                                  \
+        MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__);                                                               \
     }
-
 
 #endif

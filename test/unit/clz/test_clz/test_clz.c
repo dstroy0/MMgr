@@ -162,7 +162,7 @@ void test_a_full_word_counts_no_zeros_at_either_end(void)
  * @brief Checks that both counts answer 63 for a value of zero.
  *
  * @note clz.h warns that clz.lead gives 0 the same answer as 1, and that clz.trail gives 0 the same
- *       answer as 2^63. This pins both warnings so a caller that can be handed zero knows it has to
+ *       answer as 2^63. This pins both warnings. A caller that can be handed zero knows it has to
  *       test for zero before calling.
  */
 void test_zero_is_not_told_apart_from_the_single_bit_at_the_end_each_counts_from(void)

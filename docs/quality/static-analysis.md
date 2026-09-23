@@ -30,7 +30,7 @@ It runs the `security-and-quality` suite over two languages:
 
 - **`c-cpp`** — the library.
 - **`actions`** — the workflows themselves. Worth having precisely because this repository
-  auto-merges Dependabot pull requests, so a compromised action version would otherwise land
+  auto-merges Dependabot pull requests. A compromised action version would otherwise land
   unreviewed.
 
 ## SonarQube
@@ -65,7 +65,7 @@ Three, one per language, each owning its own files:
 | black        | `tools/` — `.py`                      | `pyproject.toml`  |
 | prettier     | everywhere — md, json, yml, css, html | `.prettierignore` |
 
-All three wrap at **120 columns**, so a Python tool and the C it rewrites line up in a side-by-side
+All three wrap at **120 columns**. A Python tool and the C it rewrites line up in a side-by-side
 diff.
 
 clang-format is pinned to 20.1.7 rather than whatever the runner ships: `.clang-format` uses keys

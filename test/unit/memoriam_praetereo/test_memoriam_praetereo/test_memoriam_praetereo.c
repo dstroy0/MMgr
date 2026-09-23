@@ -3,8 +3,8 @@
 //
 /**
  * @file test_memoriam_praetereo.c
- * @brief Exercises the praet dispatch table against the unported build, where every hardware hook
- *        keeps its refusing default.
+ * @brief Exercises the praet dispatch table and the schedule against the unported build, where every
+ *        hardware hook keeps its refusing default.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-30
  */
@@ -18,7 +18,7 @@
 #define PRAET_TEST_CHANNEL 0u
 
 /**
- * @brief Records that a completion callback ran, so a case can assert the port layer never invoked one.
+ * @brief Records that a completion callback ran. A case can assert the port layer never invoked one.
  */
 static int s_completion_count;
 
@@ -46,9 +46,28 @@ static const PraetCallbackCfg s_completion_binding = {
 };
 
 /**
+ * @brief The schedule context the progress case runs against.
+ *
+ * @note The boundary word check is off. It needs PRAET_RECOVERY, and this suite builds on both arms.
+ */
+PraetOrdoContext(s_schedule, AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE);
+
+/**
+ * @brief Bytes the progress case submits over.
+ */
+ParsMemoriaeInternae(s_transfer_pool, 64);
+
+/**
+ * @brief Binds channel zero of that context to the pool.
+ *
+ * @note A literal, because the channel is pasted into the binding's name.
+ */
+PraetChannel(s_schedule, 0, s_transfer_pool);
+
+/**
  * @brief Prepares the fixture Unity runs before each case in this suite.
  *
- * @note Clears the completion counter so a case reads only what it itself provoked.
+ * @note Clears the completion counter, and a case then reads only what it itself provoked.
  */
 void setUp(void)
 {
@@ -68,7 +87,7 @@ void tearDown(void)
  * @brief Checks that memoriam_praetereo.h compiles with no header ahead of it.
  *
  * @note The include above is the whole test. A header that needs a prior include fails to compile
- *       here rather than at some caller that happened to include the two in the other order.
+ *       here, ahead of any caller that happened to include the two in the other order.
  */
 void test_dma_header_is_self_contained(void)
 {
@@ -78,7 +97,7 @@ void test_dma_header_is_self_contained(void)
 /**
  * @brief Checks that every praet member points at a function.
  *
- * @note A null member would fault at the first call rather than at the declaration, so the table is
+ * @note A null member would fault at the first call, long after the declaration, so the table is
  *       read before any case calls through it.
  */
 void test_every_praet_entry_is_reachable(void)
@@ -135,7 +154,7 @@ void test_an_unported_build_refuses_a_transfer(void)
 /**
  * @brief Checks that a transfer of no bytes is refused the same way as any other.
  *
- * @note The refusing default reads neither the buffer nor the count, so an empty transfer takes the
+ * @note The refusing default reads neither the buffer nor the count. An empty transfer takes the
  *       same path as a full one and must answer the same.
  */
 void test_an_empty_transfer_is_refused_as_well(void)
@@ -148,8 +167,8 @@ void test_an_empty_transfer_is_refused_as_well(void)
 /**
  * @brief Checks that closing a channel that never opened does nothing and returns.
  *
- * @note The default mmgr_praet_hw_close does nothing, so this case fails by faulting rather than by
- *       an assertion.
+ * @note The default mmgr_praet_hw_close does nothing, so this case fails by faulting, with no
+ *       assertion to report it.
  */
 void test_closing_a_channel_that_never_opened_returns(void)
 {
@@ -185,6 +204,38 @@ void test_an_unported_build_reports_no_completion(void)
 }
 
 /**
+ * @brief Checks that the progress hook's default reports no movement, and a running channel stalls.
+ *
+ * @note praet_hw_progress keeps its weak default here, as the four mmgr_praet_hw_ hooks do. It
+ *       answers zero, and any channel nothing moves is marked stalled once its keepalive window passes,
+ *       with its position where the submit left it.
+ * @note Reached through praet_ordo_poll, which calls the hook from the unit that defines the default.
+ *       That is the call a build with no port makes.
+ */
+void test_an_unported_build_reports_no_progress_and_stalls(void)
+{
+    praet_ordo_reset(&s_schedule);
+    TEST_ASSERT_TRUE_MESSAGE(PraetAttach(s_schedule, 0, s_transfer_pool, PRAET_REGION_INTERNAL), "the attach failed");
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS);
+    praet_ordo_poll(&s_schedule);
+    TEST_ASSERT_TRUE_MESSAGE(PraetSubmit(s_schedule, 0, s_transfer_pool, 0u, 32u),
+                             "a settled channel refused a transfer");
+
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_poll(&s_schedule);
+
+    const uint32_t after = praet_ordo_flags(&s_schedule, PRAET_TEST_CHANNEL);
+
+    TEST_ASSERT_TRUE_MESSAGE((after & PRAET_STALLED) != 0u,
+                             "a channel the default reported no movement on never stalled");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK, "a stall was read as the transfer finishing");
+#if PRAET_RECOVERY
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_situs(&s_schedule, PRAET_TEST_CHANNEL),
+                                     "the default reported movement");
+#endif
+}
+
+/**
  * @brief Checks that the completion event carries every field the port layer fills.
  *
  * @note The event is the port layer's whole report. A field dropped from the struct would compile
@@ -217,7 +268,7 @@ void test_the_completion_event_carries_every_reported_field(void)
 /**
  * @brief Checks that microseconds within a millisecond stay below one thousand.
  *
- * @note completion_ms and completion_us are separate members, so a port that folded the whole
+ * @note completion_ms and completion_us are separate members. A port that folded the whole
  *       elapsed time into completion_us would still fill both and read wrong here.
  */
 void test_the_completion_event_splits_time_into_two_fields(void)

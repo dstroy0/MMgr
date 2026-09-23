@@ -6,7 +6,7 @@
  * @note The caller declares the ring and supplies the bytes; every index, mask and span is the ring's.
  * @note Exactly one producer advances head and exactly one consumer advances tail, so ordering is
  *       all that is needed and no entry takes a lock or a read-modify-write on those two.
- * @note Nothing is ever zeroed: a loculus keeps its bytes after a drop so a restream can run again.
+ * @note Nothing is ever zeroed: a loculus keeps its bytes after a drop, which lets a restream run again.
  */
 #ifndef MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H
 #define MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H
@@ -30,7 +30,7 @@ typedef struct
 /**
  * @brief Size of the ring storage a caller declares, counted in size_t units.
  *
- * @note The implementation asserts its state fits inside this, so a change there fails a build
+ * @note The implementation asserts its state fits inside this. A change there fails a build
  *       rather than overrunning a caller's object.
  * @note Most of it is the keepout array, so raising MMGR_RING_LOCULI may require raising this too;
  *       the assertion names it when that happens. A build sets this the same way it sets the
@@ -51,7 +51,7 @@ typedef struct
 /**
  * @brief Loculi this build reserves, which a build may set before including this header.
  *
- * @note The keepout spans are most of the ring's storage, so a build with no use for the loculus
+ * @note The keepout spans are most of the ring's storage. A build with no use for the loculus
  *       view sets this to 0 and gets that space back. Every loculus entry then reports empty or
  *       refuses.
  */
@@ -60,8 +60,9 @@ typedef struct
 #define MMGR_RING_LOCULI 8u
 #endif
 
-MMGR_STATIC_ASSERT(MMGR_RING_LOCULI <= MMGR_RING_LOCULI_MAX,
-                   "the loculus masks are one machine word; widen them or fall back to a scan past MMGR_RING_LOCULI_MAX");
+MMGR_STATIC_ASSERT(
+    MMGR_RING_LOCULI <= MMGR_RING_LOCULI_MAX,
+    "the loculus masks are one machine word; widen them or fall back to a scan past MMGR_RING_LOCULI_MAX");
 
 /**
  * @brief Reports whether cap is a power of two.
@@ -101,17 +102,17 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_ring *const ring;     /**< Ring to act on [BORROWS]. */
-    uint8_t *const buf;        /**< Ring bytes, for init [BORROWS]. */
-    const size_t cap;          /**< Bytes in buf; a non-zero power of two. */
-    const size_t nsegs;        /**< Segments to divide the ring into; a power of two, at most cap. */
-    uint8_t *const dst;        /**< Destination for read, read_byte and peek [BORROWS]. */
-    const uint8_t *const src;  /**< Bytes put writes, or the region hold records [BORROWS]. */
-    const size_t bytes;        /**< Byte count the call moves or records. */
-    const size_t off;          /**< Offset ahead of the tail that peek starts at. */
-    const size_t idx;          /**< Loculus or segment the call acts on. */
-    const mmgr_word mask;      /**< Mask loculus_next picks the lowest set bit of. */
-    size_t *const out;         /**< Set to the segment index a next or front call chose [BORROWS]. */
+    mmgr_ring *const ring;    /**< Ring to act on [BORROWS]. */
+    uint8_t *const buf;       /**< Ring bytes, for init [BORROWS]. */
+    const size_t cap;         /**< Bytes in buf; a non-zero power of two. */
+    const size_t nsegs;       /**< Segments to divide the ring into; a power of two, at most cap. */
+    uint8_t *const dst;       /**< Destination for read, read_byte and peek [BORROWS]. */
+    const uint8_t *const src; /**< Bytes put writes, or the region hold records [BORROWS]. */
+    const size_t bytes;       /**< Byte count the call moves or records. */
+    const size_t off;         /**< Offset ahead of the tail that peek starts at. */
+    const size_t idx;         /**< Loculus or segment the call acts on. */
+    const mmgr_word mask;     /**< Mask loculus_next picks the lowest set bit of. */
+    size_t *const out;        /**< Set to the segment index a next or front call chose [BORROWS]. */
 } InfinCfg;
 
 /**
@@ -122,26 +123,26 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_bool (*init)(const InfinCfg *c);         /**< Lays a fresh ring into the caller's storage. */
-    size_t (*available)(const InfinCfg *c);       /**< Bytes waiting to be read. */
-    size_t (*vacant)(const InfinCfg *c);          /**< Bytes still free to write. */
-    mmgr_bool (*read_byte)(const InfinCfg *c);    /**< Takes one byte and advances the tail. */
-    size_t (*read)(const InfinCfg *c);            /**< Takes up to bytes and advances the tail once. */
-    void (*peek)(const InfinCfg *c);              /**< Copies bytes out without advancing the tail. */
-    void (*consume)(const InfinCfg *c);           /**< Advances the tail past bytes. */
-    mmgr_bool (*put)(const InfinCfg *c);          /**< Writes a whole span, or refuses it entire. */
-    size_t (*seg_inflight)(const InfinCfg *c);    /**< Segments filled and not yet released. */
-    mmgr_bool (*seg_next)(const InfinCfg *c);     /**< Index of the segment the producer fills next. */
-    void (*seg_publish)(const InfinCfg *c);       /**< Makes the filled segment visible to the consumer. */
-    mmgr_bool (*seg_front)(const InfinCfg *c);    /**< Index of the segment the consumer takes next. */
-    void (*seg_release)(const InfinCfg *c);       /**< Frees the front segment. */
-    uint8_t *(*seg_at)(const InfinCfg *c);        /**< The contiguous span of one segment. */
-    mmgr_word (*loculus_ready)(const InfinCfg *c);         /**< Loculi that are free and not held. */
-    mmgr_iword (*loculus_next)(const InfinCfg *c);         /**< Lowest set bit of a mask, or -1. */
-    mmgr_bool (*loculus_hold)(const InfinCfg *c);          /**< Takes a loculus and records its keepout. */
+    mmgr_bool (*init)(const InfinCfg *c);          /**< Lays a fresh ring into the caller's storage. */
+    size_t (*available)(const InfinCfg *c);        /**< Bytes waiting to be read. */
+    size_t (*vacant)(const InfinCfg *c);           /**< Bytes still free to write. */
+    mmgr_bool (*read_byte)(const InfinCfg *c);     /**< Takes one byte and advances the tail. */
+    size_t (*read)(const InfinCfg *c);             /**< Takes up to bytes and advances the tail once. */
+    void (*peek)(const InfinCfg *c);               /**< Copies bytes out without advancing the tail. */
+    void (*consume)(const InfinCfg *c);            /**< Advances the tail past bytes. */
+    mmgr_bool (*put)(const InfinCfg *c);           /**< Writes a whole span, or refuses it entire. */
+    size_t (*seg_inflight)(const InfinCfg *c);     /**< Segments filled and not yet released. */
+    mmgr_bool (*seg_next)(const InfinCfg *c);      /**< Index of the segment the producer fills next. */
+    void (*seg_publish)(const InfinCfg *c);        /**< Makes the filled segment visible to the consumer. */
+    mmgr_bool (*seg_front)(const InfinCfg *c);     /**< Index of the segment the consumer takes next. */
+    void (*seg_release)(const InfinCfg *c);        /**< Frees the front segment. */
+    uint8_t *(*seg_at)(const InfinCfg *c);         /**< The contiguous span of one segment. */
+    mmgr_word (*loculus_ready)(const InfinCfg *c); /**< Loculi that are free and not held. */
+    mmgr_iword (*loculus_next)(const InfinCfg *c); /**< Lowest set bit of a mask, or -1. */
+    mmgr_bool (*loculus_hold)(const InfinCfg *c);  /**< Takes a loculus and records its keepout. */
     const mmgr_ring_span *(*loculus_keepout)(const InfinCfg *c); /**< The region a held loculus keeps out. */
-    void (*loculus_drop)(const InfinCfg *c);               /**< Gives a loculus back, leaving its bytes alone. */
-    void (*loculus_mark)(const InfinCfg *c);               /**< Marks a loculus free. */
+    void (*loculus_drop)(const InfinCfg *c);                     /**< Gives a loculus back, leaving its bytes alone. */
+    void (*loculus_mark)(const InfinCfg *c);                     /**< Marks a loculus free. */
 } InfinitasNs;
 MMGR_NS_LAYOUT(InfinitasNs, init, available, vacant, read_byte, read, peek, consume, put, seg_inflight, seg_next,
                seg_publish, seg_front, seg_release, seg_at, loculus_ready, loculus_next, loculus_hold, loculus_keepout,
@@ -223,7 +224,7 @@ void mmgr_infin_consume(const InfinCfg *c);
  *
  * @param[in] c Ring, the bytes to write and their count [BORROWS].
  * @return      MMGR_TRUE when the span was written, MMGR_FALSE when it would not fit.
- * @note Checks the whole span against mmgr_infin_vacant first, so a partial write never happens.
+ * @note Checks the whole span against mmgr_infin_vacant first. A partial write never happens.
  * @note Advances a local head across the wrap and publishes it once, so no half span is ever visible.
  * @warning c->src must be readable for c->bytes.
  */
@@ -242,7 +243,7 @@ size_t mmgr_infin_seg_inflight(const InfinCfg *c);
  *
  * @param[in] c Ring, and where to write the index [BORROWS].
  * @return      MMGR_FALSE when every segment is in flight.
- * @note Publishing is separate, so a half-filled segment is never visible to the consumer.
+ * @note Publishing is separate. A half-filled segment is never visible to the consumer.
  */
 mmgr_bool mmgr_infin_seg_next(const InfinCfg *c);
 
@@ -300,7 +301,7 @@ mmgr_iword mmgr_infin_loculus_next(const InfinCfg *c);
  *
  * @param[in] c Ring, the loculus, and the region to record [BORROWS].
  * @return      MMGR_TRUE when this caller took it, MMGR_FALSE when it was already held.
- * @note The recorded region stays valid until mmgr_infin_loculus_drop, so a reader walks it in place.
+ * @note The recorded region stays valid until mmgr_infin_loculus_drop. A reader walks it in place.
  * @warning An out-of-range c->idx names nothing, so it reads as held and is never handed out.
  */
 mmgr_bool mmgr_infin_loculus_hold(const InfinCfg *c);
@@ -310,7 +311,7 @@ mmgr_bool mmgr_infin_loculus_hold(const InfinCfg *c);
  *
  * @param[in] c Ring and the loculus [BORROWS].
  * @return      The recorded span, or NULL when c->idx is out of range [BORROWS].
- * @note Handed back const, so a reader walks it without moving the ring's own record.
+ * @note Handed back const. A reader walks it without moving the ring's own record.
  */
 const mmgr_ring_span *mmgr_infin_loculus_keepout(const InfinCfg *c);
 
@@ -318,7 +319,7 @@ const mmgr_ring_span *mmgr_infin_loculus_keepout(const InfinCfg *c);
  * @brief Gives loculus c->idx back.
  *
  * @param[in] c Ring and the loculus [BORROWS].
- * @note Leaves the recorded span and the bytes alone, so a restream can run again.
+ * @note Leaves the recorded span and the bytes alone. A restream can run again.
  */
 void mmgr_infin_loculus_drop(const InfinCfg *c);
 

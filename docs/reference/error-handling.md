@@ -50,9 +50,9 @@ A span does carry an `overflow` and a read span an `err`, and the two do not mea
 thing.
 
 `overflow` is mechanism 4, not mechanism 3. What a writer emits and how big its buffer is are both
-settled before the build, so a correct writer cannot overrun a correctly sized span — the append
+settled before the build. A correct writer cannot overrun a correctly sized span — the append
 asserts. What the flag adds is what a **shipping** build does with a wrong program: the first bad
-append stores nothing, latches, and every append after it is a no-op, so a writer that was built
+append stores nothing, latches, and every append after it is a no-op. A writer that was built
 wrong is kept off the end of the buffer rather than walking down it. Read it to find out something is
 broken, not to decide what to do next.
 
@@ -80,7 +80,7 @@ honest answer is `NULL`.
 | you are asking                    | it answers with                          |
 | --------------------------------- | ---------------------------------------- |
 | can I have some storage           | a pointer, or `NULL`                     |
-| is this true                      | `embed_bool`                              |
+| is this true                      | `embed_bool`                             |
 | did any of that formatting fail   | a latched flag, checked once at the end  |
-| did what arrived off the wire fit | `embed_bool`, at the call                 |
+| did what arrived off the wire fit | `embed_bool`, at the call                |
 | did I violate a precondition      | nothing, unless you built with checks on |

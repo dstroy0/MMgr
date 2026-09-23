@@ -8,7 +8,7 @@ does is where the bugs live.
 
 **It does bound its own reads and writes.** Every entry takes a capacity or a read cap and stops
 there. A span that runs out of room latches `overflow` and keeps latching it; a short read latches
-`err`. Neither is cleared by a later call, so a long run of appends is checked once at the end
+`err`. Neither is cleared by a later call. A long run of appends is checked once at the end
 rather than after every one.
 
 **It does zero secrets on request.** `occult.wipe()` writes through a `volatile` word pointer, so
@@ -28,7 +28,7 @@ What is still taken as written is everything reached through a pointer the libra
 An address the caller supplies is used as given.
 
 **It does not protect against a caller holding a stale pointer.** Interim storage is released by
-mark, not by pointer. Nothing is reallocated and nothing moves, so a pointer handed out after a mark
+mark, not by pointer. Nothing is reallocated and nothing moves. A pointer handed out after a mark
 is dead the moment that mark is released - and it still points at readable memory.
 
 **It is not concurrent, and there is no knob that makes it so.** There is no synchronization

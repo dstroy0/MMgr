@@ -25,7 +25,7 @@ if (len == 0u) {
 
 The writers hold no state. Each one takes the position it should write at and returns the position
 after what it wrote, so the cursor is the caller's `at` and nothing is carried between calls. A
-writer with no room returns `cap`, which every later writer also returns, so an overflow propagates
+writer with no room returns `cap`, which every later writer also returns. An overflow propagates
 to `finish` without a flag and `finish` reports it as a length of zero.
 
 There is no format string anywhere. Nothing parses `%d` at runtime, so nothing can disagree with the
@@ -42,7 +42,7 @@ argument you passed.
 | escaping       | `xml`, `json`                                   |
 | finishing      | `finish`                                        |
 
-`put_n` takes the length with the text, so a literal costs no scan: pass
+`put_n` takes the length with the text. A literal costs no scan: pass
 `sizeof "literal" - 1u`. `put` measures what it is given.
 
 ## Gotchas
@@ -171,7 +171,11 @@ the hardware says so.
 **Cache coherency is not handled here.** On a part with a data cache and a DMA engine that does not
 snoop it, the clean and invalidate are the board file's job.
 
-**`MMGR_PRAET_CHANNELS` and `MMGR_PRAET_BUF_SIZE` only exist when the gate is on.** See
-@ref ref_configuration.
+**The schedule's knobs are read only when the gate is on, and an unset one stops the build.**
+`PRAET_CHANNELS` and the rest arrive through `MMGR_PRAET_KNOBS`. See @ref ref_configuration.
+
+**`praet_hw_progress` is a fifth hook, with a weak default in `praet_ordo.c` that reports no
+movement.** A port that leaves it in place still gets the watchdog: a running channel nothing
+reports on is marked stalled once its keepalive window passes.
 
 @ref mod_praet "Generated reference"

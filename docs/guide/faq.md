@@ -48,7 +48,7 @@ slow-and-small.
 ## Why are there five builds of everything?
 
 There aren't five builds — there is one build that produces five sets of targets. Each is the library
-at a different set of compile-time widths, so a defect that only appears at a 16-bit carrier fails a
+at a different set of compile-time widths. A defect that only appears at a 16-bit carrier fails a
 run on your machine instead of waiting for the hardware. One `cmake --build`, one `ctest`. See
 @ref ref_environments.
 

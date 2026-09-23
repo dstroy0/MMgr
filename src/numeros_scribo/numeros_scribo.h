@@ -92,7 +92,7 @@ typedef struct
  *
  * @note numer_build requires kind to equal the field's kind, and abandons the whole write when it does not.
  * @note numer_emit takes width from here, where numer_build takes it from the field.
- * @warning numer_emit_one reads the arm that kind names and no other, so a value whose kind and
+ * @warning numer_emit_one reads the arm that kind names and no other. A value whose kind and
  *          filled arm disagree formats what that arm was left holding.
  */
 typedef struct

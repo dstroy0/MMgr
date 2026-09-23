@@ -37,7 +37,7 @@ EMBED_BEGIN_DECLS
  * @brief Most needle offsets the search sieve tests per candidate word.
  *
  * @note A ceiling rather than a count. cellul_pick_rows takes the smallest of this, the needle length
- *       and MMGR_SWAR_BYTES, so a short needle is sieved on fewer offsets than this allows.
+ *       and MMGR_SWAR_BYTES. A short needle is sieved on fewer offsets than this allows.
  * @note cellul_find_core sizes two arrays by it, the chosen offsets and their broadcasts, and reads
  *       element 0 of each outside the loop that walks the rest.
  * @warning Taken only when MMGR_SIEVE_ROWS is not already defined. A build may supply its own.
@@ -53,10 +53,10 @@ EMBED_BEGIN_DECLS
  * @brief Longest haystack a one or two byte needle is settled over by a mask chain rather than by
  *        building a sieve.
  *
- * @note Case sensitive searches only. The chain compares its broadcasts without folding them, so a
+ * @note Case sensitive searches only. The chain compares its broadcasts without folding them. A
  *       folded search takes the sieve at every length, whatever this is set to.
  * @note Defaults to no limit, which folds the test away: `read_cap <= SIZE_MAX` is true for every
- *       size_t, so a default build emits no comparison and no second path is chosen at run time.
+ *       size_t. A default build emits no comparison and no second path is chosen at run time.
  * @note The chain settles every start position in a word at once, with no anchor to choose and
  *       nothing to verify afterwards. A two byte needle costs it a second read a step and a one byte
  *       needle none. The sieve picks its offsets out of the cost table before a haystack byte is

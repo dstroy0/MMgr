@@ -1,7 +1,7 @@
 name: "CodeQL Advanced"
 
 # Advanced setup rather than GitHub default setup, because C has to be analyzed from a real compile.
-# CodeQL extracts what the traced compiler actually did, so a translation unit is in the database
+# CodeQL extracts what the traced compiler actually did. A translation unit is in the database
 # only if something below compiled it - which is why the manual build configures the whole project
 # rather than a hand-picked subset.
 #
@@ -62,7 +62,7 @@ jobs:
           config-file: ./.github/codeql/codeql-config.yml
 
       # Everything here is host-buildable by design, so there is no cross-toolchain to install and
-      # the runner's default compiler is the one traced. --fresh so a stale CMakeCache.txt cannot
+      # the runner's default compiler is the one traced. With --fresh, a stale CMakeCache.txt cannot
       # turn this into a no-op build that extracts nothing and reports a clean scan.
       - name: Build (traced by CodeQL)
         if: matrix.build-mode == 'manual'

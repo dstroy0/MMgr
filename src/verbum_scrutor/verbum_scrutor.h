@@ -11,7 +11,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note One embed_word is treated as MMGR_SWAR_BYTES independent lanes, so a whole word is tested at once.
+ * @note One embed_word is treated as MMGR_SWAR_BYTES independent lanes. A whole word is tested at once.
  * @note A lane mask carries one set bit per matching lane, in that lane's high bit. mask.spread widens it.
  * @note The entries whose meaning depends on byte order are bound through MMGR_HW_BIG_ENDIAN in the tables below.
  */
@@ -52,7 +52,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Expands to a word holding 0x80 in every lane, which is 0x8080...80.
  *
- * @note The shape every lane mask takes, so a caller can and two masks together lane by lane.
+ * @note The shape every lane mask takes. A caller can and two masks together lane by lane.
  * @note Or-ing it into a word before a subtraction gives each lane a borrow to spend, keeping lanes separate.
  */
 #define MMGR_VERBUM_SCRUTOR_HIGH (MMGR_SWAR_ONES * 0x80u)
@@ -440,7 +440,7 @@ embed_word mmgr_scrut_run_edge(const ScrutMaskCfg *args);
  *
  * @param[in] args Address to load from [BORROWS].
  * @return         The bytes at args->at, one per lane, in the target's own order.
- * @warning Reads MMGR_SWAR_BYTES bytes even when fewer are wanted, so args->at must be readable for all of them.
+ * @warning Reads MMGR_SWAR_BYTES bytes even when fewer are wanted. args->at must be readable for all of them.
  * @note Any alignment will do. Use mmgr_scrut_load_al when the address is known to be aligned.
  */
 embed_word mmgr_scrut_load(const ScrutWordCfg *args);
@@ -460,7 +460,7 @@ embed_word mmgr_scrut_load_al(const ScrutWordCfg *args);
  *
  * @param[in] args The word to fold [BORROWS].
  * @return         The word with its letter lanes lowered and every other lane untouched.
- * @note Only letter lanes are changed, so a digit or a symbol keeps bit five exactly as it was.
+ * @note Only letter lanes are changed. A digit or a symbol keeps bit five exactly as it was.
  * @note Fold two words and compare them for a case insensitive test over whole words at once.
  */
 embed_word mmgr_scrut_fold_lower(const ScrutWordCfg *args);
@@ -469,8 +469,8 @@ embed_word mmgr_scrut_fold_lower(const ScrutWordCfg *args);
  * @brief Returns how many whole words a scan of args->bytes bytes must read.
  *
  * @param[in] args The byte count to convert [BORROWS].
- * @return         The count rounded up, so a partial last word still counts as one.
- * @note A args->bytes of 0 gives 0, so a caller loops no times rather than reading one word.
+ * @return         The count rounded up. A partial last word still counts as one.
+ * @note A args->bytes of 0 gives 0. A caller loops no times rather than reading one word.
  * @note Pair this with mask.tail, which supplies the lane mask for that partial last word.
  */
 size_t mmgr_scrut_words(const ScrutWordCfg *args);

@@ -5,5 +5,5 @@
 # negotiated commercial licensing contract or an educator's license issued to you personally.
 
 mmgr_add_module(memoriam_praetereo
-  SOURCES memoriam_praetereo.c
+  SOURCES memoriam_praetereo.c praet_ordo.c praet_descriptor.c
 )

@@ -38,7 +38,7 @@ void setUp(void)
 /**
  * @brief Runs after each Unity test case.
  *
- * @note Empty because exter.place answers with a placement decision rather than an allocation, so a
+ * @note Empty because exter.place answers with a placement decision rather than an allocation. A
  *       case that called it holds nothing to hand back.
  */
 void tearDown(void)
@@ -88,17 +88,17 @@ void test_a_dma_request_reaches_internal_memory(void)
 /**
  * @brief Checks that a DMA request too large for internal memory fails instead of moving outward.
  *
- * @note External memory is given a megabyte free against 64 bytes internal, so a policy that fell
+ * @note External memory is given a megabyte free against 64 bytes internal. A policy that fell
  *       back would have somewhere to fall. The DMA engine cannot reach external memory, so the
  *       address such a fallback returned would be one the transfer could not use.
  */
 void test_a_dma_request_fails_rather_than_falling_back_to_external(void)
 {
-    TEST_ASSERT_EQUAL_INT_MESSAGE(
-        PLACE_FAIL,
-        EMBED_CALL(exter.place, ExternaCfg, .size = 4096u, .dma_required = EMBED_TRUE, .free_dram = 64u,
-                   .free_psram = 1048576u, .psram_threshold = ROOMY_THRESHOLD),
-        "external memory is not reachable by DMA, so a fallback would hand back a bad address");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(PLACE_FAIL,
+                                  EMBED_CALL(exter.place, ExternaCfg, .size = 4096u, .dma_required = EMBED_TRUE,
+                                             .free_dram = 64u, .free_psram = 1048576u,
+                                             .psram_threshold = ROOMY_THRESHOLD),
+                                  "external memory is not reachable by DMA. A fallback would hand back a bad address");
 }
 
 /**
@@ -275,7 +275,7 @@ void test_a_reserve_above_free_internal_memory_refuses_every_request(void)
 /**
  * @brief Checks that init points the pair at buffer 0 to fill and buffer 1 to drain.
  *
- * @note fill_index is set to 1 before init runs, so an init that left the member alone would read
+ * @note fill_index is set to 1 before init runs. An init that left the member alone would read
  *       back 1 and fail here. A pair with automatic storage holds an indeterminate index otherwise,
  *       which would let that defect pass whenever the stack happened to hold zero.
  */
@@ -342,7 +342,7 @@ void test_reading_an_index_does_not_move_it(void)
 /**
  * @brief Checks that swap returns the fill index it just moved to.
  *
- * @note What swap returned is read back against the pair itself, so a swap that moved the pair and
+ * @note What swap returned is read back against the pair itself. A swap that moved the pair and
  *       returned the old index fails on the second assertion rather than passing unnoticed.
  */
 void test_swap_hands_back_the_index_it_moved_to(void)
@@ -362,7 +362,7 @@ void test_swap_hands_back_the_index_it_moved_to(void)
 /**
  * @brief Checks that two swaps in a row leave the pair where it began.
  *
- * @note Repeats eight times, so a pair drifting by one buffer per round is caught. A single pair of
+ * @note Repeats eight times. A pair drifting by one buffer per round is caught. A single pair of
  *       swaps would pass even where the state walked away over many.
  */
 void test_a_swap_of_a_swap_is_where_it_started(void)

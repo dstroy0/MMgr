@@ -2,6 +2,6 @@
 # which would measure a debug build and answer a question nobody asked.
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
 
-# One line per operation and nothing else, so a runner collecting the port does not have to filter
+# One line per operation and nothing else. A runner collecting the port does not have to filter
 # driver chatter back out.
 CONFIG_LOG_DEFAULT_LEVEL_WARN=y

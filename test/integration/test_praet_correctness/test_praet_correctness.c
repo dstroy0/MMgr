@@ -21,127 +21,19 @@
 
 #include "praet_scenarios.h"
 
-// The engine is compiled in rather than linked. mmgr_add_suite builds the one suite source and the
+// The engine is compiled in instead of linked. mmgr_add_suite builds the one suite source and the
 // shared files under test/support, and these hooks must not reach any other suite -
 // test_memoriam_praetereo exists to prove the weak defaults refuse
 #include "praet_engine.c"
 
-/**
- * @brief Logical channels this suite's context carries.
- *
- * @note Set here because this file is the caller, and a caller is who knows the part. Leaving it
- *       unset would stop the build with a message naming it, which is what praet_praefinitum.h is for
- *       and what defaults_sweep.py checks.
- */
-#define PRAET_CHANNELS 8u
+// No knob is set in this file. The schedule is compiled into the library, and a context declared
+// here has to be the size the library walks, so every knob arrives on the build line through
+// MMGR_PRAET_KNOBS and reaches both. harness.py builds two arms: build-dma with recovery on and a
+// settle window, build-dma-lean with both off. The cases gate on the knobs and hold on either
 
-/**
- * @brief Microseconds this suite's engine spends settling.
- *
- * @note Deliberately not zero, so the settling branch of test_a_settling_channel_takes_no_transfer is
- *       the one this build compiles. A build has one value, so reaching the other arm takes a second
- *       compile - run_praet_suite.py builds this file again with the knob set to zero, which is what
- *       the ifndef is here for. Nothing under the module defaults it; this file is the caller.
- */
-#ifndef PRAET_SETTLE_MICROS
-#define PRAET_SETTLE_MICROS 40u
-#endif
-
-/**
- * @brief Microseconds a running channel may go unkicked before the watchdog marks it stalled.
- *
- * @note Wide enough that a case can advance most of the window and still be under it, which is what
- *       proves the window is the length it was asked for and not whatever the next service call
- *       happens to see.
- * @note Overridable, the way the other knobs this file sets are. It was not, and a sweep built five
- *       times at five windows got five identical binaries and a redefinition warning nobody read.
- * @note The pump walks this window one microsecond at a time, so what it costs is linear in this
- *       number. pump_cost.py builds the suite across a range of them to find where that matters.
- */
-#ifndef PRAET_KEEPALIVE_MICROS
-#define PRAET_KEEPALIVE_MICROS 250u
-#endif
-
-/**
- * @brief Whether this build can back a stalled transfer out or scrub it.
- *
- * @note On by default here, because the cases that watch the recovery machinery are most of what this
- *       suite is for. run_praet_suite.py builds the file again with it off, which is the arm where
- *       none of that machinery is declared and the cases have to say something else instead.
- */
-#ifndef PRAET_RECOVERY
-#define PRAET_RECOVERY 1
-#endif
-
-/**
- * @brief The clock this suite declares, in ticks per second.
- *
- * @note Deliberately not one megahertz, so PRAET_TICKS_PER_MICRO is a number the scaling has to
- *       actually divide by. At the floor a tick is a microsecond and a broken conversion would still
- *       come out right.
- * @note An ESP32-S3 at its top frequency, because it is a part on the bench rather than a number
- *       picked to be convenient.
- */
-#ifndef PRAET_CLOCK_HZ
-#define PRAET_CLOCK_HZ 240000000u
-#endif
-
-/**
- * @brief Whether this build pins its own timer or reads one the caller runs.
- *
- * @note A plain flag of this file's own, not PRAET_CLOCK_SOURCE. The two source tokens are defined in
- *       praet_horologiorum_custos.h, which is included further down, so testing PRAET_CLOCK_SOURCE against them up
- *       here compares two undefined names and both sides come out zero - which reads as true and
- *       takes the wrong arm on every build.
- * @note The caller's clock, because these suites run on a host and a host build has no core to pin a
- *       timer to. praet_platform_detection.h says so and praet_horologiorum_custos.h refuses the other arm on the
- *       strength of it, which is the same refusal a Cortex-M0 gets. clock_sweep.py drives that.
- * @note The cases are the clock either way. They call praet_ordo_advance_ticks with the ticks
- *       they mean, which is what a port reading a counter would do with the difference it read.
- */
-#ifndef PRAET_SUITE_CLOCK_IS_OURS
-#define PRAET_SUITE_CLOCK_IS_OURS 0
-#endif
-
-#if PRAET_SUITE_CLOCK_IS_OURS
-
-/**
- * @brief Where the clock comes from: ours, pinned to a core.
- *
- * @note The arm that needs nothing from whoever builds this. run_praet_suite.py builds the file again
- *       on the caller arm.
- */
-#define PRAET_CLOCK_SOURCE PRAET_CLOCK_OWN
-
-/**
- * @brief The core our timer is pinned to.
- *
- * @note Only set on the arm that pins one. Setting it on the caller arm is a build error naming it,
- *       which is the guard clock_sweep.py drives.
- */
-#ifndef PRAET_CLOCK_CORE
-#define PRAET_CLOCK_CORE 1u
-#endif
-
-#else
-
-/**
- * @brief Where the clock comes from: one the caller already runs.
- */
-#define PRAET_CLOCK_SOURCE PRAET_CLOCK_CALLER
-
-#endif
-
-// The schedule context is compiled in for the same reason. It is the implementation under
-// development, driven here before any of it is proposed for src
-#include "praet_ordo.c"
-
-// The examination arm's counters. Every entry compiles out where PRAET_PROCURATOR is 0, so a build that
+// The examination arm's counters. Every entry compiles out where PRAET_PROCURATOR is 0. A build that
 // did not ask for it carries none of this
 #include "praet_procurator.c"
-
-// A transfer written down, and the linkage the arrangements are made of
-#include "praet_descriptor.c"
 
 /**
  * @brief The schedule context every scheduling case runs against.
@@ -150,8 +42,8 @@
  *       is an offset from that address.
  * @note The token is the declaration answering the boundary word question, and it reports whichever
  *       way it goes. Every build of this suite carries that line, which is what the token is for.
- * @note run_praet_suite.py builds the file again with PRAET_SUITE_CRC_CHOICE set to the DISABLE
- *       token, because a context answers this once and the other arm needs its own compile.
+ * @note build-dma-lean sets PRAET_SUITE_CRC_CHOICE to the DISABLE token, because a context answers
+ *       this once and the other arm needs its own compile.
  */
 #ifndef PRAET_SUITE_CRC_CHOICE
 #define PRAET_SUITE_CRC_CHOICE AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE
@@ -234,10 +126,10 @@ static const PraetCallbackCfg s_completion_binding = {
  * @param[in] user  Pointer registered alongside this callback [BORROWS].
  * @note The join. A port reports a finished transfer through this callback, and the schedule learns a
  *       channel is no longer busy from the same event. Nothing else can tell it: praet_ordo.c
- *       predicts no duration, so a completion arrives here or it does not arrive.
- * @note This is the application's half. The library does not own the schedule yet, so what wires the
- *       port's events to it is the code that registered the callback, which is what a real
- *       integration writes.
+ *       predicts no duration. A completion arrives here or it does not arrive.
+ * @note This is the application's half. The library holds the schedule and the port layer, and joins
+ *       neither to the other, so what wires the port's events to the schedule is the code that
+ *       registered the callback, which is what a real integration writes.
  * @note An event carries no failure flag, so every completion the engine reports is a clean one. A
  *       port that distinguishes them has somewhere to say so and this does not invent one.
  */
@@ -254,7 +146,6 @@ static const PraetCallbackCfg s_joined_binding = {
     .callback = praet_joined_completion,
     .user = NULL,
 };
-
 
 /**
  * @brief Prepares the fixture Unity runs before each case in this suite.
@@ -318,7 +209,7 @@ static void praet_make_call(const PraetProgramStep *made, uint16_t *opens, uint1
  * @brief Runs one scenario and asserts every count and the completion order.
  *
  * @param[in] scenario Scenario to run [BORROWS].
- * @note Every assertion carries the scenario's name, so a ctest failure says which row broke and on
+ * @note Every assertion carries the scenario's name. A ctest failure says which row broke and on
  *       which arm without anyone reading the table.
  */
 static void praet_check_one(const PraetScenario *scenario)
@@ -371,7 +262,7 @@ void test_the_control_is_clean(void)
  * @brief Checks every scenario, on both arms, against the outcome the generator computed.
  *
  * @note The expectations come from gen_praet_scenarios.py, which walks each program against its
- *       script. Nothing here derives them, so agreement is evidence rather than a tautology.
+ *       script. Nothing here derives them, so agreement is evidence.
  */
 void test_every_scenario_matches_its_oracle(void)
 {
@@ -413,7 +304,7 @@ PraetChannel(s_schedule, 4, s_case_pool);
  *
  * @param[in] channel Channel to attach.
  * @note Every case but the settling one wants a channel it can submit on. How long that takes is
- *       PRAET_SETTLE_MICROS, which is per part and arrives at compile time, so a case cannot pick a
+ *       PRAET_SETTLE_MICROS, which is per part and arrives at compile time. A case cannot pick a
  *       convenient number for itself.
  */
 static void praet_case_attach_and_settle(embed_word channel)
@@ -422,7 +313,7 @@ static void praet_case_attach_and_settle(embed_word channel)
     // parameter, and the surface pastes the channel number into the symbol that carries the binding,
     // so it needs a literal. The cases that drive the surface itself write one
     TEST_ASSERT_TRUE_MESSAGE(praet_ordo_adnectere(&s_schedule, channel, mmgr_pars_storage_s_case_pool,
-                                                   (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
+                                                  (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
                              "the attach failed");
     praet_ordo_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS);
     praet_ordo_poll(&s_schedule);
@@ -436,7 +327,7 @@ static void praet_case_attach_and_settle(embed_word channel)
  * @param[in] channel Channel to run on.
  * @param[in] length  Bytes to ask for.
  * @return            What the submit answered.
- * @note Absorbs the two forms praet_ordo_relatio takes, so a case reads the same on both arms.
+ * @note Absorbs the two forms praet_ordo_relatio takes. A case reads the same on both arms.
  *       Where PRAET_RECOVERY is off the entry takes no bytes, because nothing would record them.
  */
 static embed_bool praet_case_submit(embed_word channel, embed_word length)
@@ -547,8 +438,7 @@ static embed_word praet_pump_until(embed_word channel, uint32_t mask, embed_bool
 {
     for (embed_word waited = 0u; waited <= limit; waited++)
     {
-        const embed_bool raised =
-            ((praet_ordo_flags(&s_schedule, channel) & mask) == mask) ? EMBED_TRUE : EMBED_FALSE;
+        const embed_bool raised = ((praet_ordo_flags(&s_schedule, channel) & mask) == mask) ? EMBED_TRUE : EMBED_FALSE;
 
         if (raised == until_raised)
         {
@@ -581,7 +471,7 @@ void test_a_channel_starts_detached(void)
 /**
  * @brief Checks that attach claims the vector and a completed detach releases it.
  *
- * @note The claim is the reason a vector is not held for a mover with nothing to move, so a channel
+ * @note The claim is the reason a vector is not held for a mover with nothing to move. A channel
  *       that came back detached while still claimed would be the defect this case exists for.
  */
 void test_attach_claims_the_vector_and_detach_releases_it(void)
@@ -622,8 +512,8 @@ void test_a_settling_channel_takes_no_transfer(void)
                              "the channel never reported settling");
     TEST_ASSERT_FALSE_MESSAGE(praet_case_submit(0u, 16u), "a settling channel took a transfer");
 
-    // One microsecond short of the deadline, so this proves the wait is the length it was asked for
-    // rather than clearing on the first service call that happens along
+    // One microsecond short of the deadline. This proves the wait is the length it was asked for, and
+    // that the first service call that happens along does not clear it
     praet_ordo_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS - 1u);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 0u) & PRAET_SETTLING) != 0u,
@@ -640,7 +530,7 @@ void test_a_settling_channel_takes_no_transfer(void)
 /**
  * @brief Checks that a transfer reads busy until the port says it finished.
  *
- * @note No timer decides this. How long a transfer runs is not something the library can know, so a
+ * @note No timer decides this. How long a transfer runs is not something the library can know. A
  *       clock that promoted busy to ok would be it guessing at hardware.
  */
 void test_a_transfer_reports_ok_when_the_port_says_so(void)
@@ -688,8 +578,7 @@ void test_a_failed_completion_reports_an_error(void)
 
     const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_OK, after & PRAET_CORE_MASK,
-                                     "a failed transfer left the channel busy");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_OK, after & PRAET_CORE_MASK, "a failed transfer left the channel busy");
     TEST_ASSERT_TRUE_MESSAGE((after & PRAET_ERROR) != 0u, "the failure was not recorded");
 
 #if PRAET_RECOVERY
@@ -788,8 +677,7 @@ void test_the_watchdog_marks_a_stalled_channel(void)
     const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
     TEST_ASSERT_TRUE_MESSAGE((after & PRAET_STALLED) != 0u, "the watchdog never fired");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK,
-                                     "a stall was read as the transfer finishing");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK, "a stall was read as the transfer finishing");
 }
 
 /**
@@ -957,7 +845,7 @@ void test_backing_out_records_what_was_touched(void)
  * @note Nothing in the schedule writes the caller's storage, since it holds no pointer a write could
  *       go through. The flag records the decision and the caller zeroes its own bytes.
  * @note Reads the region byte back too. PRAET_SCRUBBED is the highest status and the region starts
- *       above it, so a region placed one byte too low overlaps this one flag and nothing else - a
+ *       above it. A region placed one byte too low overlaps this one flag and nothing else - a
  *       scrub would then flip the low bit of a descriptor that has no business changing.
  */
 void test_zeroing_records_that_the_bytes_were_scrubbed(void)
@@ -1079,7 +967,7 @@ void test_the_touched_extent_does_not_wrap_at_the_top_of_the_word(void)
  * @note What the check buys is a statement about one word. The library holds the destination and not
  *       the source, so it reports what that word now contains and the caller compares it against what
  *       was meant to be there. That is the whole of the contract here.
- * @note The checksum is taken over the word the sample landed inside, so a case that changes only a
+ * @note The checksum is taken over the word the sample landed inside. A case that changes only a
  *       byte in that word has to move it. A case that changes a byte outside it must not.
  */
 void test_the_boundary_word_check_measures_one_word(void)
@@ -1090,7 +978,7 @@ void test_the_boundary_word_check_measures_one_word(void)
     // A sample one byte into a word, so the engine stopped mid-word and there is something to measure
     const embed_word sampled = word_bytes + 1u;
 
-    // The pool's storage rather than the pool's own name, because the name is a const view and this is
+    // The pool's storage, where the pool's own name would not do. The name is a const view and this is
     // standing in for the engine writing the bytes
     for (embed_word walk = 0u; walk < s_case_pool_bytes; walk++)
     {
@@ -1220,8 +1108,7 @@ void test_a_build_without_recovery_still_stalls_and_records_none(void)
     const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
     TEST_ASSERT_TRUE_MESSAGE((after & PRAET_STALLED) != 0u, "the watchdog is gone with the recovery machinery");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK,
-                                     "a stall was read as the transfer finishing");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK, "a stall was read as the transfer finishing");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, after & (PRAET_ABANDONED | PRAET_SCRUBBED),
                                      "a build with no recovery recorded one anyway");
 #endif
@@ -1232,7 +1119,7 @@ void test_a_build_without_recovery_still_stalls_and_records_none(void)
  *
  * @note The whole point of declaring a frequency. A port reads a counter and hands over ticks; every
  *       deadline in this module is microseconds, and this is the one place the two meet.
- * @note Driven against the watchdog rather than read back off a counter, because what matters is that
+ * @note Driven against the watchdog, with no counter read back, because what matters is that
  *       a window measured in microseconds closes after the right number of ticks.
  */
 void test_ticks_scale_into_microseconds(void)
@@ -1284,7 +1171,7 @@ void test_the_scaling_uses_the_declared_frequency(void)
  * @brief Checks that a span submitted through the surface lands where the pool says it does.
  *
  * @note What PraetAttach and PraetSubmit buy together. The address came from the pool named at the
- *       attach and the offset came from the submit, so a transfer starts at a place neither call
+ *       attach and the offset came from the submit. A transfer starts at a place neither call
  *       stated on its own.
  * @note The pool is 128 bytes and this submits 32 at offset 64, which PRAET_SPAN_FITS settled before
  *       anything ran. A span that did not fit would not have compiled, which is why no case here
@@ -1317,25 +1204,59 @@ void test_a_span_lands_where_the_pool_puts_it(void)
 /**
  * @brief The engine's script for the joined cases: open, take a transfer, finish it on the next poll.
  *
- * @note Software arm, so a completion comes out only when a poll asks for it. That makes the moment
+ * @note Software arm. A completion comes out only when a poll asks for it. That makes the moment
  *       the schedule learns of it a thing the case chooses.
  * @note One hook call is one tick. The open is tick one, the submit is tick two, and a cycle of one
  *       tick puts the completion due at tick three, which is the poll.
  */
 static const PraetEngineStep s_joined_steps[] = {
-    {.hook = (uint8_t)PRAET_HOOK_OPEN, .channel = 0u, .accepted = 1u, .complete_when = 0u, .completions = 0u,
-     .moved = 0u, .settle_ticks = 0u, .cycle_ticks = 0u, .progress = 0u},
-    {.hook = (uint8_t)PRAET_HOOK_SUBMIT, .channel = 0u, .accepted = 1u,
-     .complete_when = (uint8_t)PRAET_COMPLETE_WHEN_DUE, .completions = 1u, .moved = 64u, .settle_ticks = 0u,
-     .cycle_ticks = 3u, .progress = 0u},
+    {.hook = (uint8_t)PRAET_HOOK_OPEN,
+     .channel = 0u,
+     .accepted = 1u,
+     .complete_when = 0u,
+     .completions = 0u,
+     .moved = 0u,
+     .settle_ticks = 0u,
+     .cycle_ticks = 0u,
+     .progress = 0u},
+    {.hook = (uint8_t)PRAET_HOOK_SUBMIT,
+     .channel = 0u,
+     .accepted = 1u,
+     .complete_when = (uint8_t)PRAET_COMPLETE_WHEN_DUE,
+     .completions = 1u,
+     .moved = 64u,
+     .settle_ticks = 0u,
+     .cycle_ticks = 3u,
+     .progress = 0u},
     // Two polls that report how far the engine has got and release nothing, because the cycle has not
     // elapsed. The third is where the completion comes out
-    {.hook = (uint8_t)PRAET_HOOK_POLL, .channel = PRAET_RELEASE_EVERY_CHANNEL, .accepted = 1u, .complete_when = 0u,
-     .completions = 0u, .moved = 0u, .settle_ticks = 0u, .cycle_ticks = 0u, .progress = 20u},
-    {.hook = (uint8_t)PRAET_HOOK_POLL, .channel = PRAET_RELEASE_EVERY_CHANNEL, .accepted = 1u, .complete_when = 0u,
-     .completions = 0u, .moved = 0u, .settle_ticks = 0u, .cycle_ticks = 0u, .progress = 48u},
-    {.hook = (uint8_t)PRAET_HOOK_POLL, .channel = PRAET_RELEASE_EVERY_CHANNEL, .accepted = 1u, .complete_when = 0u,
-     .completions = 0u, .moved = 0u, .settle_ticks = 0u, .cycle_ticks = 0u, .progress = 0u},
+    {.hook = (uint8_t)PRAET_HOOK_POLL,
+     .channel = PRAET_RELEASE_EVERY_CHANNEL,
+     .accepted = 1u,
+     .complete_when = 0u,
+     .completions = 0u,
+     .moved = 0u,
+     .settle_ticks = 0u,
+     .cycle_ticks = 0u,
+     .progress = 20u},
+    {.hook = (uint8_t)PRAET_HOOK_POLL,
+     .channel = PRAET_RELEASE_EVERY_CHANNEL,
+     .accepted = 1u,
+     .complete_when = 0u,
+     .completions = 0u,
+     .moved = 0u,
+     .settle_ticks = 0u,
+     .cycle_ticks = 0u,
+     .progress = 48u},
+    {.hook = (uint8_t)PRAET_HOOK_POLL,
+     .channel = PRAET_RELEASE_EVERY_CHANNEL,
+     .accepted = 1u,
+     .complete_when = 0u,
+     .completions = 0u,
+     .moved = 0u,
+     .settle_ticks = 0u,
+     .cycle_ticks = 0u,
+     .progress = 0u},
 };
 
 /**
@@ -1376,8 +1297,8 @@ void test_a_port_completion_moves_the_channel_out_of_busy(void)
     praet_case_attach_and_settle(1u);
     praet_engine_arm(&s_joined_scenario);
 
-    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u,
-                                        .loopback = EMBED_FALSE, .on_complete = &s_joined_binding),
+    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u, .loopback = EMBED_FALSE,
+                                        .on_complete = &s_joined_binding),
                              "the engine refused the open");
 
     TEST_ASSERT_TRUE_MESSAGE(praet_case_submit(1u, 64u), "the schedule refused the transfer");
@@ -1420,8 +1341,8 @@ void test_the_schedule_stays_busy_while_the_engine_holds_it(void)
     TEST_ASSERT_TRUE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u, .loopback = EMBED_FALSE,
                                 .on_complete = &s_joined_binding));
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
-    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u,
-                                .buf = mmgr_pars_storage_s_case_pool, .bytes = 64u));
+    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u, .buf = mmgr_pars_storage_s_case_pool,
+                                .bytes = 64u));
 
     const PraetEngineTally tally = praet_engine_tally();
 
@@ -1450,8 +1371,8 @@ void test_the_recorded_position_comes_from_the_port(void)
     TEST_ASSERT_TRUE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u, .loopback = EMBED_FALSE,
                                 .on_complete = &s_joined_binding));
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
-    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u,
-                                .buf = mmgr_pars_storage_s_case_pool, .bytes = 64u));
+    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u, .buf = mmgr_pars_storage_s_case_pool,
+                                .bytes = 64u));
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_situs(&s_schedule, 1u),
                                      "a transfer nothing has reported on has moved something");
@@ -1480,8 +1401,8 @@ void test_the_recorded_position_comes_from_the_port(void)
  * @brief Checks that a stalled transfer is backed out over the extent the port last reported.
  *
  * @note The whole point of the reporting. The engine stops after saying it reached 20 bytes, the
- *       watchdog notices, and what a caller is handed is an extent that came off the controller
- *       rather than out of this library.
+ *       watchdog notices, and what a caller is handed is an extent that came off the controller.
+ *       This library made none of it up.
  * @note The touched extent rounds that sample up to a whole word, because the sample is exact to word
  *       granularity and the engine may have been part way into the next one.
  */
@@ -1495,8 +1416,8 @@ void test_a_backout_covers_what_the_port_last_reported(void)
     TEST_ASSERT_TRUE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u, .loopback = EMBED_FALSE,
                                 .on_complete = &s_joined_binding));
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
-    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u,
-                                .buf = mmgr_pars_storage_s_case_pool, .bytes = 64u));
+    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u, .buf = mmgr_pars_storage_s_case_pool,
+                                .bytes = 64u));
 
     praet_joined_poll(1u);
     TEST_ASSERT_EQUAL_UINT32(20u, praet_ordo_situs(&s_schedule, 1u));
@@ -1539,14 +1460,14 @@ void test_a_refused_attach_does_not_start_the_timer(void)
 
     // Channel one is already attached, so this is refused
     TEST_ASSERT_FALSE_MESSAGE(praet_ordo_adnectere(&s_schedule, 1u, mmgr_pars_storage_s_case_pool,
-                                                    (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
+                                                   (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
                               "a channel that was already attached took a second attach");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(settled_at, s_schedule.settle_deadline,
                                      "a refused attach started the settle timer");
 
     // And one past the end, which is refused before anything is read
     TEST_ASSERT_FALSE(praet_ordo_adnectere(&s_schedule, PRAET_CHANNELS, mmgr_pars_storage_s_case_pool,
-                                            (embed_word)s_case_pool_bytes, PRAET_CASE_REGION));
+                                           (embed_word)s_case_pool_bytes, PRAET_CASE_REGION));
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(settled_at, s_schedule.settle_deadline,
                                      "an attach on a channel that does not exist started the settle timer");
 }
@@ -1569,8 +1490,8 @@ void test_polling_the_port_keeps_the_watchdog_fed(void)
     TEST_ASSERT_TRUE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u, .loopback = EMBED_FALSE,
                                 .on_complete = &s_joined_binding));
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
-    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u,
-                                .buf = mmgr_pars_storage_s_case_pool, .bytes = 64u));
+    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u, .buf = mmgr_pars_storage_s_case_pool,
+                                .bytes = 64u));
 
     // Most of the window goes by, then the port reports the engine is still alive. Position unchanged,
     // because this engine says how far it got only when it finishes
@@ -1621,7 +1542,7 @@ void test_detach_waits_for_the_transfer_under_it(void)
 /**
  * @brief Checks that the interrupt may raise set any number of times without loss or accumulation.
  *
- * @note One reader means the raises collapse. Nothing is counted and nothing is queued, so a hundred
+ * @note One reader means the raises collapse. Nothing is counted and nothing is queued. A hundred
  *       raises and one raise reach the same state.
  */
 void test_the_interrupt_can_raise_set_any_number_of_times(void)
@@ -1732,9 +1653,9 @@ void test_the_two_arms_are_not_the_same_engine(void)
 }
 
 /**
- * @brief A second pool, so a descriptor has somewhere to read from and somewhere else to write to.
+ * @brief A second pool. A descriptor has somewhere to read from and somewhere else to write to.
  *
- * @note Two pools rather than two halves of one, because a descriptor names both ends and each is
+ * @note Two pools, where two halves of one would not do. A descriptor names both ends and each is
  *       proved against its own declaration. One pool would prove the same span twice.
  */
 ParsMemoriaeInternae(s_case_source, 128);
@@ -1784,7 +1705,8 @@ void test_a_one_shot_descriptor_ends(void)
     TEST_ASSERT_EQUAL_PTR_MESSAGE(mmgr_pars_storage_s_case_pool, s_one_shot.destination,
                                   "the descriptor does not write to the pool it named");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(64u, s_one_shot.bytes, "the descriptor moves a length nobody asked for");
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MENSURA_VERBUM, s_one_shot.ego_sum_mensura, "the descriptor steps a width nobody asked for");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MENSURA_VERBUM, s_one_shot.ego_sum_mensura,
+                                    "the descriptor steps a width nobody asked for");
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_ADVANCES, s_one_shot.source_addressing,
                                     "a memory to memory read does not advance");
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_ADVANCES, s_one_shot.destination_addressing,
@@ -1801,7 +1723,7 @@ void test_a_one_shot_descriptor_ends(void)
  * @brief Checks that a circular descriptor points at itself.
  *
  * @note Circular is one descriptor whose next is its own address. There is no mode and no bit, and
- *       the walk that counts it stops at the head rather than following it forever.
+ *       the walk that counts it stops at the head, where it would otherwise follow it forever.
  */
 void test_a_circular_descriptor_points_at_itself(void)
 {
@@ -1872,8 +1794,7 @@ void test_a_peripheral_end_does_not_advance(void)
     TEST_ASSERT_EQUAL_PTR_MESSAGE(&s_case_register, s_drain.destination,
                                   "the drain does not write the register that was declared");
 
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_FIXED, s_fill.source_addressing,
-                                    "the register a fill reads moves");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_FIXED, s_fill.source_addressing, "the register a fill reads moves");
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_ADVANCES, s_fill.destination_addressing,
                                     "the pool a fill writes does not advance");
     TEST_ASSERT_EQUAL_PTR_MESSAGE(&s_case_register, s_fill.source,
@@ -1923,7 +1844,7 @@ void test_a_transfer_between_two_pools_needs_no_direction(void)
 /**
  * @brief Checks that a chain longer than the walk is allowed to follow reports the limit.
  *
- * @note The walk names a cycle by returning to the head, so a chain that closes further along cannot
+ * @note The walk names a cycle by returning to the head. A chain that closes further along cannot
  *       be told from one that never ends. Reporting the limit is the honest answer for a walk that
  *       cannot see where it is.
  */
@@ -1944,8 +1865,8 @@ void test_a_chain_walk_stops_at_the_limit(void)
  *       would make the suite refuse to build over a judgment nobody has made yet.
  * @note Last in the file, because the generated runner registers cases in the order they are written
  *       and this reports on everything ahead of it.
- * @note Ignored where PRAET_PROCURATOR is 0, so a run that did not ask for the instrument says so rather
- *       than printing an empty table.
+ * @note Ignored where PRAET_PROCURATOR is 0. A run that did not ask for the instrument says so, and
+ *       prints no empty table.
  */
 void test_zz_what_this_run_reached(void)
 {

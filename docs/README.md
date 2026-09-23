@@ -73,7 +73,7 @@ resource allocation lifetime cycles.
 
 The call-site idiom follows from that. Each module exposes a dispatch table named for a short stem,
 and every entry takes one argument: a pointer to that module's config struct. `EMBED_CALL` builds it
-as a compound literal, so a call reads
+as a compound literal. A call reads
 `EMBED_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = n)` with the arguments named instead of
 ordered. Both forms exist and both are documented; the free function is what the table points at.
 @ref concept_ns_idiom

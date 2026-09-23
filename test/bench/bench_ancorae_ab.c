@@ -25,7 +25,7 @@
  * @note The counter is corpus symbol accesses. Every algorithm reads cells out of the same corpus and
  *       that is the resource they share, so counting reads compares the algorithms instead of
  *       comparing their inner loops. No timing appears here and no row is a performance claim.
- * @warning Every algorithm below is written here, so a defect in one would show as a result. All of
+ * @warning Every algorithm below is written here. A defect in one would show as a result. All of
  *          them are held to the occurrence set that a brute force scan finds, and a row that
  *          disagrees prints BROKEN and is not a number to read.
  */
@@ -103,7 +103,7 @@ static uint8_t s_ab_uniform[AB_CORPUS_BYTES];
  * @brief Four regions of a thousand bytes each, laid end to end.
  *
  * @note The case every other corpus here fails to be. English, then C source, then fixed width
- *       records, then uniform bytes, so a search crosses three boundaries and anything it learned
+ *       records, then uniform bytes. A search crosses three boundaries and anything it learned
  *       about one region is wrong in the next. A field accumulated over the whole thing describes no
  *       part of it, which is the only condition under which discarding the field can pay.
  */
@@ -148,52 +148,51 @@ static const char s_ab_prose[] =
 /**
  * @brief C source, a narrow alphabet with heavy repetition of a few identifiers.
  */
-static const char s_ab_source[] =
-    "static void mmgr_walk_rows(const uint8_t *bytes, size_t length, uint32_t *counts)\n"
-    "{\n"
-    "    for (size_t index = 0u; index < length; index++)\n"
-    "    {\n"
-    "        counts[bytes[index]]++;\n"
-    "    }\n"
-    "}\n"
-    "\n"
-    "static uint32_t mmgr_pick_lowest(const uint8_t *needle, size_t length)\n"
-    "{\n"
-    "    uint32_t best = 0u;\n"
-    "    unsigned best_cost = 256u;\n"
-    "    for (size_t index = 0u; index < length; index++)\n"
-    "    {\n"
-    "        const unsigned cost = table[needle[index]];\n"
-    "        if (cost < best_cost)\n"
-    "        {\n"
-    "            best_cost = cost;\n"
-    "            best = (uint32_t)index;\n"
-    "        }\n"
-    "    }\n"
-    "    return best;\n"
-    "}\n"
-    "\n"
-    "embed_bool mmgr_sift_span(const SiftCfg *args)\n"
-    "{\n"
-    "    MMGR_ASSERT(args->bytes != NULL, \"a span with no bytes\");\n"
-    "    if (args->length < args->needle_len)\n"
-    "    {\n"
-    "        return EMBED_FALSE;\n"
-    "    }\n"
-    "    const size_t anchor = mmgr_pick_lowest(args->needle, args->needle_len);\n"
-    "    for (size_t start = 0u; (start + args->needle_len) <= args->length; start++)\n"
-    "    {\n"
-    "        if (args->bytes[start + anchor] != args->needle[anchor])\n"
-    "        {\n"
-    "            continue;\n"
-    "        }\n"
-    "        if (mmgr_span_equal(&args->bytes[start], args->needle, args->needle_len))\n"
-    "        {\n"
-    "            return EMBED_TRUE;\n"
-    "        }\n"
-    "    }\n"
-    "    return EMBED_FALSE;\n"
-    "}\n";
+static const char s_ab_source[] = "static void mmgr_walk_rows(const uint8_t *bytes, size_t length, uint32_t *counts)\n"
+                                  "{\n"
+                                  "    for (size_t index = 0u; index < length; index++)\n"
+                                  "    {\n"
+                                  "        counts[bytes[index]]++;\n"
+                                  "    }\n"
+                                  "}\n"
+                                  "\n"
+                                  "static uint32_t mmgr_pick_lowest(const uint8_t *needle, size_t length)\n"
+                                  "{\n"
+                                  "    uint32_t best = 0u;\n"
+                                  "    unsigned best_cost = 256u;\n"
+                                  "    for (size_t index = 0u; index < length; index++)\n"
+                                  "    {\n"
+                                  "        const unsigned cost = table[needle[index]];\n"
+                                  "        if (cost < best_cost)\n"
+                                  "        {\n"
+                                  "            best_cost = cost;\n"
+                                  "            best = (uint32_t)index;\n"
+                                  "        }\n"
+                                  "    }\n"
+                                  "    return best;\n"
+                                  "}\n"
+                                  "\n"
+                                  "embed_bool mmgr_sift_span(const SiftCfg *args)\n"
+                                  "{\n"
+                                  "    MMGR_ASSERT(args->bytes != NULL, \"a span with no bytes\");\n"
+                                  "    if (args->length < args->needle_len)\n"
+                                  "    {\n"
+                                  "        return EMBED_FALSE;\n"
+                                  "    }\n"
+                                  "    const size_t anchor = mmgr_pick_lowest(args->needle, args->needle_len);\n"
+                                  "    for (size_t start = 0u; (start + args->needle_len) <= args->length; start++)\n"
+                                  "    {\n"
+                                  "        if (args->bytes[start + anchor] != args->needle[anchor])\n"
+                                  "        {\n"
+                                  "            continue;\n"
+                                  "        }\n"
+                                  "        if (mmgr_span_equal(&args->bytes[start], args->needle, args->needle_len))\n"
+                                  "        {\n"
+                                  "            return EMBED_TRUE;\n"
+                                  "        }\n"
+                                  "    }\n"
+                                  "    return EMBED_FALSE;\n"
+                                  "}\n";
 
 /**
  * @brief Copies text into a corpus without repeating it.
@@ -735,7 +734,7 @@ static AbResult ab_interrogative(const uint8_t *corpus, size_t corpus_len, const
  *       so every offset starts at its own ceiling and can only be revised downward. The largest
  *       ceiling is the last offset, so the search opens as Horspool and gives up ground only where an
  *       answer has shown the ceiling to be out of reach.
- * @note The running value forgets, so an offset that stops paying loses its lead and the search
+ * @note The running value forgets. An offset that stops paying loses its lead and the search
  *       reconsiders. A corpus that changes character partway through is the case that needs it.
  */
 static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle, size_t needle_len,
@@ -840,9 +839,9 @@ static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const
         for (size_t offset = 0u; offset < needle_len; offset++)
         {
             const double would_travel =
-                (needle[offset] == answer) ? 1.0
-                                           : ((previous == needle_len) ? (double)(offset + 1u)
-                                                                       : (double)(offset - previous));
+                (needle[offset] == answer)
+                    ? 1.0
+                    : ((previous == needle_len) ? (double)(offset + 1u) : (double)(offset - previous));
 
             // Three responses to one error and they answer different questions. The immediate term
             // moves on what this answer said. The accumulated term moves on a bias that persists
@@ -855,7 +854,7 @@ static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const
                 // answers land where the background already sits and carry nothing, so they are
                 // dropped whole and never reach the estimate. An answer far enough off the ambient
                 // level is signal, and it is applied at full weight. What is not reinforced settles
-                // back to the ceiling it can be proved to have, so a deviation has to keep being paid
+                // back to the ceiling it can be proved to have. A deviation has to keep being paid
                 // for to be kept
                 const double excess = would_travel - background;
                 const double deadband = 0.25 * background;
@@ -879,7 +878,7 @@ static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const
             const double trend = error - last_error[offset];
 
             history[offset] += error;
-            // Bounded so a long run of one sign cannot drive the accumulated term without limit
+            // Bounded to stop a long run of one sign driving the accumulated term without limit
             if (history[offset] > 64.0)
             {
                 history[offset] = 64.0;
@@ -1039,7 +1038,6 @@ static AbResult ab_free_order(const uint8_t *corpus, size_t corpus_len, const ui
                 alive[start] = 0u;
             }
         }
-
     }
 
     // The mirror. A refutation runs from an observed symbol to the alignments it rules out, and the
@@ -1049,7 +1047,7 @@ static AbResult ab_free_order(const uint8_t *corpus, size_t corpus_len, const ui
     // indexing defect in this function, which the occurrence check at the end of a search cannot see.
     //
     // Checked once over the survivors instead of after every probe. The alive array only ever loses
-    // entries, so an alignment consistent with the whole probe set is consistent with every prefix of
+    // entries. An alignment consistent with the whole probe set is consistent with every prefix of
     // it, and the per step form costs a factor of the probe count for no further coverage.
     if (mirror != NULL)
     {
@@ -1085,7 +1083,7 @@ static AbResult ab_free_order(const uint8_t *corpus, size_t corpus_len, const ui
         }
         (*depth)++;
 
-        // Proposition 1 says every occurrence survives every anchor set, so a survivor set the same
+        // Proposition 1 says every occurrence survives every anchor set. A survivor set the same
         // size as the occurrence set contains exactly the occurrences and nothing else. Confirming
         // then distinguishes nothing, and it is the only step that costs the needle's whole length
         if (confirm == 0u)
@@ -1385,8 +1383,8 @@ static double ab_shift_survey(const uint8_t *corpus, size_t corpus_len, unsigned
     {
         for (unsigned right = left + 1u; right < AB_DISCOVER_READS; right++)
         {
-            const size_t apart = (spots[left] > spots[right]) ? (spots[left] - spots[right])
-                                                              : (spots[right] - spots[left]);
+            const size_t apart =
+                (spots[left] > spots[right]) ? (spots[left] - spots[right]) : (spots[right] - spots[left]);
             if (apart == 0u)
             {
                 continue;
@@ -1483,8 +1481,8 @@ static void ab_discover(const char *name, const uint8_t *corpus, size_t corpus_l
 
     (void)ab_shift_survey(shuffled, corpus_len, &null_found, &null_peak, &null_shift);
 
-    printf("ancorae_discover,%s,%u,%.6f,%u,%u,%u,%.1f,%.1f\n", name, (unsigned)corpus_len, collision,
-           real_found, null_found, (unsigned)real_shift, real_peak, null_peak);
+    printf("ancorae_discover,%s,%u,%.6f,%u,%u,%u,%.1f,%.1f\n", name, (unsigned)corpus_len, collision, real_found,
+           null_found, (unsigned)real_shift, real_peak, null_peak);
 }
 
 /**
@@ -1557,7 +1555,7 @@ static double ab_spacing(const uint8_t *corpus, size_t length, unsigned *which, 
         // A boundary has to be regular enough to find and irregular enough to say where anything is,
         // which Section 4.12.1 measures: a perfectly regular one fixes the phase of its own period and
         // nothing further. Ruled decoration and padding sit at the bottom of this statistic for that
-        // reason, so a candidate below the floor is a ruled line and not a language. Every real
+        // reason. A candidate below the floor is a ruled line and not a language. Every real
         // boundary measured here sits between 0.21 and 0.41
         if (dispersion < 0.05)
         {
@@ -1623,9 +1621,8 @@ static void ab_language(const char *name, const uint8_t *corpus, size_t corpus_l
 
     const double null_tight = ab_spacing(shuffled, corpus_len, &null_byte, &null_gap);
 
-    printf("ancorae_language,%s,%u,%u,%.2f,%.4f,%u,%.4f,%.2f\n", name, (unsigned)corpus_len, real_byte,
-           real_gap, real_tight, null_byte, null_tight,
-           (real_tight > 0.0) ? (null_tight / real_tight) : 0.0);
+    printf("ancorae_language,%s,%u,%u,%.2f,%.4f,%u,%.4f,%.2f\n", name, (unsigned)corpus_len, real_byte, real_gap,
+           real_tight, null_byte, null_tight, (real_tight > 0.0) ? (null_tight / real_tight) : 0.0);
 }
 
 /**
@@ -1641,7 +1638,7 @@ static void ab_language(const char *name, const uint8_t *corpus, size_t corpus_l
  *       A needle carrying $k$ boundaries carries $k-1$ gaps between them, and any true occurrence has
  *       to reproduce that run of gaps exactly. So the run is a filter, and the question is how much it
  *       removes compared with the bytes it is made of.
- * @note Why it might beat the symbols. A boundary symbol is common, so as an anchor it is poor: the
+ * @note Why it might beat the symbols. A boundary symbol is common, which makes it a poor anchor: the
  *       space is near a fifth of English and two of them admit one position in twenty five. The gaps
  *       between them are not independent, which is the property that defeats every product rule in
  *       this document, and here it works the other way: a run of specific gaps is far less likely than
@@ -1727,9 +1724,8 @@ static void ab_boundary_filter(const char *name, const uint8_t *corpus, size_t c
     const double mean_marks = signature / count;
     const double mean_kept = survivors / count;
 
-    printf("ancorae_boundary,%s,%u,%u,%u,%.2f,%.2f,%.1f,%.4f\n", name, (unsigned)needle_len,
-           (unsigned)corpus_len, (unsigned)marked, mean_marks, mean_kept,
-           (double)alignments / ((mean_kept > 0.0) ? mean_kept : 1.0),
+    printf("ancorae_boundary,%s,%u,%u,%u,%.2f,%.2f,%.1f,%.4f\n", name, (unsigned)needle_len, (unsigned)corpus_len,
+           (unsigned)marked, mean_marks, mean_kept, (double)alignments / ((mean_kept > 0.0) ? mean_kept : 1.0),
            (double)marked / (double)corpus_len);
 }
 
@@ -1968,9 +1964,8 @@ static void ab_universals(const char *name, const uint8_t *corpus, size_t corpus
         }
     }
 
-    printf("ancorae_universal,%s,%u,%u,%u,%.2f,%.3f,%.3f,%u,%.3f\n", name, (unsigned)corpus_len,
-           (unsigned)held, (unsigned)distinct, mean_span, slope, brevity, (unsigned)distinct_budgeted,
-           carried);
+    printf("ancorae_universal,%s,%u,%u,%u,%.2f,%.3f,%.3f,%u,%.3f\n", name, (unsigned)corpus_len, (unsigned)held,
+           (unsigned)distinct, mean_span, slope, brevity, (unsigned)distinct_budgeted, carried);
 }
 
 /**
@@ -2341,8 +2336,8 @@ static void ab_salience(const char *name, const uint8_t *corpus, size_t corpus_l
         score[pick] = swap;
         counted[pick] = swap_seen;
 
-        printf("#   %-18.*s %-8u %.2f\n", (int)best[slot].span, &corpus[best[slot].where],
-               (unsigned)counted[slot], score[slot]);
+        printf("#   %-18.*s %-8u %.2f\n", (int)best[slot].span, &corpus[best[slot].where], (unsigned)counted[slot],
+               score[slot]);
     }
 }
 
@@ -2378,7 +2373,7 @@ static size_t ab_rarest(const uint8_t *needle, size_t length)
  * @param[in] salt   Varies the choice between searches.
  * @return           An offset inside the needle, chosen without looking at it.
  * @note The arm the deterministic rules cannot cover. Rarest, last and first are all functions of the
- *       needle, so an adversary holding the needle knows where the anchor will land and can build a
+ *       needle. An adversary holding the needle knows where the anchor will land and can build a
  *       corpus that defeats it. A salted offset is a function of the salt, and the same needle
  *       searched twice under two salts anchors in two places.
  * @note Drawn from SHA-256 so the choice is reproducible from the salt and carries no structure the
@@ -2396,8 +2391,8 @@ static size_t ab_salted_offset(size_t length, uint64_t salt)
     }
     mmgr_sha256(seed, sizeof seed, digest);
 
-    const uint32_t drawn = ((uint32_t)digest[0] << 24) | ((uint32_t)digest[1] << 16) |
-                           ((uint32_t)digest[2] << 8) | (uint32_t)digest[3];
+    const uint32_t drawn =
+        ((uint32_t)digest[0] << 24) | ((uint32_t)digest[1] << 16) | ((uint32_t)digest[2] << 8) | (uint32_t)digest[3];
 
     return (size_t)(drawn % (uint32_t)length);
 }
@@ -2473,7 +2468,7 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
     unsigned unique_over = 0u;
 
     // Reconstruction failures across every probe of every arm below. The algebra says this stays zero
-    // at every step, so any other value is a defect and not a property of a corpus
+    // at every step. Any other value is a defect and not a property of a corpus
     uint64_t mirror_error = 0u;
 
     const size_t step = (corpus_len - needle_len) / AB_SAMPLES;
@@ -2536,8 +2531,7 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
         // check is whether that set is the occurrence set and not whether it verified
         size_t unique_depth = 0u;
         const AbResult unique =
-            ab_free_order(corpus, corpus_len, needle, needle_len, unique_stride, &unique_depth, 0u,
-                          &mirror_error);
+            ab_free_order(corpus, corpus_len, needle, needle_len, unique_stride, &unique_depth, 0u, &mirror_error);
 
         unique_reads += (double)unique.reads;
         if (unique.found != arms[0].found)
@@ -2624,8 +2618,7 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
         const uint8_t *const needle = &corpus[sample * step];
         size_t reached = 0u;
         const AbResult held =
-            ab_free_order(corpus, corpus_len, needle, needle_len, calibrated_stride, &reached, 0u,
-                          &mirror_error);
+            ab_free_order(corpus, corpus_len, needle, needle_len, calibrated_stride, &reached, 0u, &mirror_error);
 
         calibrated_reads += (double)held.reads;
         if (held.found != ab_naive(corpus, corpus_len, needle, needle_len).found)
@@ -2656,31 +2649,26 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
         }
     }
 
-    printf("ancorae_adaptive,%s,%u,%u,%.1f,%.1f,%.1f,%u,%.3f\n", name, (unsigned)needle_len,
-           (unsigned)corpus_len, totals[2] / count, adaptive_reads / (double)AB_SAMPLES,
-           adaptive_probes / (double)AB_SAMPLES, adaptive_wrong,
+    printf("ancorae_adaptive,%s,%u,%u,%.1f,%.1f,%.1f,%u,%.3f\n", name, (unsigned)needle_len, (unsigned)corpus_len,
+           totals[2] / count, adaptive_reads / (double)AB_SAMPLES, adaptive_probes / (double)AB_SAMPLES, adaptive_wrong,
            (adaptive_reads > 0.0) ? (totals[2] / count / (adaptive_reads / (double)AB_SAMPLES)) : 0.0);
 
     printf("ancorae_mirror,%s,%u,%u,%llu,%s\n", name, (unsigned)needle_len, (unsigned)corpus_len,
            (unsigned long long)mirror_error, (mirror_error == 0u) ? "exact" : "BROKEN");
 
-    printf("ancorae_calib,%s,%u,%u,%u,%u,%.1f,%.1f,%u,%u,%.2f\n", name, (unsigned)needle_len,
-           (unsigned)corpus_len, (unsigned)calibrated_stride, (unsigned)unique_stride,
-           calibration_reads, calibrated_reads / (double)calibrated_tried, calibrated_wrong,
-           calibrated_tried, (calibrated_reads > 0.0)
-                                 ? (totals[2] / count / (calibrated_reads / (double)calibrated_tried))
-                                 : 0.0);
+    printf("ancorae_calib,%s,%u,%u,%u,%u,%.1f,%.1f,%u,%u,%.2f\n", name, (unsigned)needle_len, (unsigned)corpus_len,
+           (unsigned)calibrated_stride, (unsigned)unique_stride, calibration_reads,
+           calibrated_reads / (double)calibrated_tried, calibrated_wrong, calibrated_tried,
+           (calibrated_reads > 0.0) ? (totals[2] / count / (calibrated_reads / (double)calibrated_tried)) : 0.0);
 
     printf("ancorae_ab,%s,%u,%u,%u,"
            "%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,"
            "%.1f,%u,%u,%u,%.4f,%s\n",
-           name,
-           (unsigned)needle_len, (unsigned)corpus_len, samples, totals[0] / count, totals[1] / count, totals[2] / count,
-           totals[3] / count, totals[4] / count, totals[5] / count, totals[6] / count, totals[7] / count,
-           totals[8] / count, totals[9] / count, totals[10] / count, totals[11] / count,
+           name, (unsigned)needle_len, (unsigned)corpus_len, samples, totals[0] / count, totals[1] / count,
+           totals[2] / count, totals[3] / count, totals[4] / count, totals[5] / count, totals[6] / count,
+           totals[7] / count, totals[8] / count, totals[9] / count, totals[10] / count, totals[11] / count,
            unique_reads / count, (unsigned)unique_stride, unique_wrong, unique_over,
-           (unique_reads > 0.0) ? (totals[2] / unique_reads) : 0.0,
-           (disagreed == 0u) ? "agree" : "BROKEN");
+           (unique_reads > 0.0) ? (totals[2] / unique_reads) : 0.0, (disagreed == 0u) ? "agree" : "BROKEN");
 }
 
 /**
@@ -2708,7 +2696,7 @@ static size_t ab_fill_mixed(uint8_t *into, size_t length)
 int main(int argc, char **argv)
 {
     // A corpus named on the command line is measured for its boundary and its unit statistics only.
-    // Those two are one pass each, so a real text can be used, which the built in corpora are far too
+    // Those two are one pass each. A real text can be used, which the built in corpora are far too
     // small to stand in for when the question is what every language does
     if (argc > 1)
     {

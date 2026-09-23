@@ -123,7 +123,7 @@ static void fill_uniform(uint8_t *corpus, size_t length, uint32_t seed)
  * @param[in,out] corpus Bytes to remap in place [BORROWS].
  * @param[in]     length How many.
  * @note The table is a geometric weighting over 27 symbols, which lands H2 in the 3.7 to 3.9 band the
- *       ledger records for English. It is a distribution and carries no arrangement, so an arm that
+ *       ledger records for English. It is a distribution and carries no arrangement. An arm that
  *       reads only the histogram cannot tell it from English and an arm that reads position can.
  */
 static void fill_skewed(uint8_t *corpus, size_t length)
@@ -187,8 +187,7 @@ static void fill_periodic(uint8_t *corpus, size_t length)
  * @return                How many alignments match exactly.
  * @note The reference arm. Every other arm here has to agree with it or its row is void.
  */
-static size_t search_naive(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle,
-                           size_t needle_len)
+static size_t search_naive(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle, size_t needle_len)
 {
     size_t found = 0u;
 
@@ -213,8 +212,7 @@ static size_t search_naive(const uint8_t *corpus, size_t corpus_len, const uint8
  * @note The arm to beat, and the one whose next shift depends on the byte just read. That dependency
  *       is the whole of what the sift arms trade away.
  */
-static size_t search_horspool(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle,
-                              size_t needle_len)
+static size_t search_horspool(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle, size_t needle_len)
 {
     size_t shift[256];
     size_t found = 0u;
@@ -277,8 +275,7 @@ static void choose_offsets(size_t *offsets, size_t wanted, size_t needle_len)
  * @note Short circuiting makes each probe depend on the one before it, which is the arrangement a
  *       branch predictor handles and an issue window cannot overlap.
  */
-static size_t search_anchor_inorder(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle,
-                                    size_t needle_len)
+static size_t search_anchor_inorder(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle, size_t needle_len)
 {
     size_t offsets[ANCHOR_COUNT];
     size_t found = 0u;
@@ -319,8 +316,7 @@ static size_t search_anchor_inorder(const uint8_t *corpus, size_t corpus_len, co
  *       nothing waits on anything. It reads more bytes than the in-order arm by construction and the
  *       question this bench exists for is whether the machine issues them for free.
  */
-static size_t search_anchor_free(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle,
-                                 size_t needle_len)
+static size_t search_anchor_free(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle, size_t needle_len)
 {
     size_t offsets[ANCHOR_COUNT];
     uint8_t wanted[ANCHOR_COUNT];
@@ -336,10 +332,9 @@ static size_t search_anchor_free(const uint8_t *corpus, size_t corpus_len, const
     {
         /* No short circuit. All four loads are issued, the comparisons are folded together, and the
          * branch is taken once on the combined result. */
-        const unsigned agree = (unsigned)(corpus[at + offsets[0]] == wanted[0]) &
-                               (unsigned)(corpus[at + offsets[1]] == wanted[1]) &
-                               (unsigned)(corpus[at + offsets[2]] == wanted[2]) &
-                               (unsigned)(corpus[at + offsets[3]] == wanted[3]);
+        const unsigned agree =
+            (unsigned)(corpus[at + offsets[0]] == wanted[0]) & (unsigned)(corpus[at + offsets[1]] == wanted[1]) &
+            (unsigned)(corpus[at + offsets[2]] == wanted[2]) & (unsigned)(corpus[at + offsets[3]] == wanted[3]);
         if (agree != 0u)
         {
             if (memcmp(corpus + at, needle, needle_len) == 0)
@@ -465,9 +460,9 @@ int main(void)
                 }
 
                 const double per_search = (double)best / (double)NEEDLES_PER_ROW;
-                printf("ancorae_cycles,%s,%zu,%u,%s,%.1f,%.4f,%zu,%s\n", CORPORA[which].name,
-                       needle_len, (unsigned)CORPUS_BYTES, ARMS[slot].name, per_search,
-                       per_search / (double)CORPUS_BYTES, total_found, matched ? "agree" : "DIFFER");
+                printf("ancorae_cycles,%s,%zu,%u,%s,%.1f,%.4f,%zu,%s\n", CORPORA[which].name, needle_len,
+                       (unsigned)CORPUS_BYTES, ARMS[slot].name, per_search, per_search / (double)CORPUS_BYTES,
+                       total_found, matched ? "agree" : "DIFFER");
             }
         }
     }

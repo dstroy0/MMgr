@@ -13,7 +13,7 @@
 #     ./build/bench/swar16/bench_scrutor_swar16
 #
 # Built with -O2 regardless of CMAKE_BUILD_TYPE. A Debug bench measures the debug build, which is
-# not a number anyone wants, and the library's own inline entries do not inline at -O0 - so a Debug
+# not a number anyone wants, and the library's own inline entries do not inline at -O0. A Debug
 # reading would be timing function calls the shipped build does not make.
 #
 # IPO is off here, and that is what makes the line above true. LTO re-optimizes from IR at link

@@ -59,8 +59,8 @@ typedef struct
  */
 typedef struct
 {
-    mmgr_place (*place)(const ExternumCfg *c);     /**< Decides where a request goes. */
-    void (*pingpong_init)(const ExternumCfg *c);   /**< Points the pair at buffer 0. */
+    mmgr_place (*place)(const ExternumCfg *c);       /**< Decides where a request goes. */
+    void (*pingpong_init)(const ExternumCfg *c);     /**< Points the pair at buffer 0. */
     uint8_t (*pingpong_fill)(const ExternumCfg *c);  /**< Index being filled. */
     uint8_t (*pingpong_drain)(const ExternumCfg *c); /**< Index being drained. */
     uint8_t (*pingpong_swap)(const ExternumCfg *c);  /**< Swaps the two roles. */

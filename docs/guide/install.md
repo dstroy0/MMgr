@@ -24,7 +24,7 @@ add_subdirectory(third_party/MMgr)
 ## Include paths
 
 Two roots: `include/` carries the umbrella header, `src/` carries the modules. Both come with the
-CMake target, so a consumer adds neither by hand.
+CMake target. A consumer adds neither by hand.
 
 ```c
 #include "mmgr.h"                    /* the pool declarations, the guards, the widths */

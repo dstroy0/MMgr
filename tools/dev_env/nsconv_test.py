@@ -113,7 +113,7 @@ except ValueError:
     eq("repeating macro refused", "refused", "refused")
 
 # 11a. the right operand of || is refused: `if (!r8(REG, &irq) || !old_call(irq))` fills irq in the
-# left operand and reads it in the right, so a hoisted call sees the value from before the read
+# left operand and reads it in the right. A hoisted call sees the value from before the read
 src6a = "void t(void)\n{\n    if (!r8(REG, &irq) || !old_call(irq))\n    {\n        return;\n    }\n}\n"
 pos6a = src6a.index("old_call")
 end6a = N.close_paren(src6a, pos6a + len("old_call("))
@@ -159,7 +159,7 @@ for label, src6e in (
     except ValueError:
         eq(label, "refused", "refused")
 
-# 11a5. a label's colon is not a conditional's, so a call after one still converts
+# 11a5. a label's colon is not a conditional's. A call after one still converts
 src6f = "void t(void)\n{\n    goto done;\ndone:\n    old_call(a);\n}\n"
 pos6f = src6f.index("old_call")
 end6f = N.close_paren(src6f, pos6f + len("old_call("))
@@ -224,7 +224,7 @@ eq(
     "void t(void)\n{\n    int a = 1;\n    Ns.entry(w);\n    reg(Ns.ptr);\n}\n",
 )
 
-# 14. one statement becomes several, so a braceless control head has to gain a brace. Without it
+# 14. one statement becomes several. A braceless control head has to gain a brace. Without it
 # dtls_conn's `else` kept only the first staging line and ran the other five unconditionally, which
 # overwrote the RawPublicKey Certificate with the X.509 one.
 src9 = "void t(void)\n{\n    if (rpk)\n    {\n        x = 1;\n    }\n    else\n        n = old_call(a);\n}\n"

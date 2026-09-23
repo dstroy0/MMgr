@@ -101,9 +101,9 @@ prison.work.persistent_buf_release(table);   /* minimum security: the bytes are 
 prison.keys.persistent_buf_release(secret);  /* maximum security: they are cleared first */
 ```
 
-The guarantee is in the declaration rather than in a flag or a second call, so a caller cannot ask
+The guarantee is in the declaration rather than in a flag or a second call. A caller cannot ask
 for a wipe and not get one, and cannot forget to. `prison.keys` has no unwiped release to reach for.
-The extent cleared is the block's own, read from its header, so a caller cannot under-wipe a tenancy
+The extent cleared is the block's own, read from its header. A caller cannot under-wipe a tenancy
 by naming fewer bytes than it holds.
 
 `mmgr_zero_buf` clears an address and a count in place without giving anything back, for when a secret
@@ -121,7 +121,7 @@ through byte edges.
 
 ## Marks nest
 
-`temporary_buf_mark` returns a value and stores nothing, so a caller may hold two at once:
+`temporary_buf_mark` returns a value and stores nothing. A caller may hold two at once:
 
 ```c
 const size_t outer = prison.work.temporary_buf_mark();
@@ -166,7 +166,7 @@ accessor that would be a second way to spell a member read.
 chain stays in it until a release trims the end.
 
 The peaks are `persistent_hw` and `temporary_hw`, one per end so that neither is a maximum over the other,
-and they are only maintained when `MMGR_ENABLE_HW_MEM_CAPACITY_CB` is on — off by default, so a run
+and they are only maintained when `MMGR_ENABLE_HW_MEM_CAPACITY_CB` is on — off by default. A run
 without it leaves both at zero and a reading from that run means nothing. @ref guide_first_region has
 the procedure.
 

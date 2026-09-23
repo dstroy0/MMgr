@@ -55,7 +55,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Alignment every prisoner is handed out at, which is one machine word.
  *
- * @note Derived from the word rather than named as a number, so a build at another width gets the
+ * @note Derived from the word rather than named as a number. A build at another width gets the
  *       alignment that width actually needs.
  * @note LocusCarcerum() puts this alignment on the storage it declares, so what this rounds is only
  *       running offsets inside a cellblock.
@@ -443,7 +443,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] prisonsite_ Site, forwarded to the walk ahead of the tuples.
  * @param[in] ...         MMGR_MINIMUM_SECURITY and MMGR_MAXIMUM_SECURITY tuples, one per cellblock.
  * @note EMBED_CAT builds the line's name from EMBED_NARG's count of the tuples.
- * @warning EMBED_NARG gives 1 for an empty list, so a site declaring no cellblocks reaches
+ * @warning EMBED_NARG gives 1 for an empty list. A site declaring no cellblocks reaches
  *          MMGR_CARCER_W1 and fails there with too few arguments for the reader.
  */
 #define MMGR_CARCER_WALK(what_, prisonsite_, ...)                                                                      \
@@ -458,12 +458,12 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  *       byte is the address of its own storage, which the linker resolves.
  * @note The warden is the const struct this emits under the site's name. Every call reaches a
  *       cellblock through it.
- * @note Every emitted symbol carries the site's name, so a program may declare as many sites as it
+ * @note Every emitted symbol carries the site's name. A program may declare as many sites as it
  *       likes and two of them may each hold a cellblock called the same thing.
  * @note A cellblock's entries are bound to that cellblock, so no call names one and none can reach
  *       another's bytes. A minimum security cellblock has no zeroing release and a maximum security
  *       one has no plain release.
- * @warning The bytes, the state and the warden are all static, so a declaration in a header gives
+ * @warning The bytes, the state and the warden are all static. A declaration in a header gives
  *          every translation unit that includes it a site of its own rather than one they share.
  */
 #define LocusCarcerum(prisonsite_, ...)                                                                                \
@@ -491,9 +491,9 @@ MMGR_ALLOC_SIZE(2) void *mmgr_persistent_buf_alloc(CarcerCellBlock *cellblock, s
  *
  * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
  * @param[in]     prisoner  First byte of the cell [TAKES OWNERSHIP].
- * @note Which tier the cell came from is read from its address, so a release cannot be given to the
+ * @note Which tier the cell came from is read from its address. A release cannot be given to the
  *       wrong tier. A NULL prisoner returns without touching the cellblock.
- * @note A prisoner outside this cellblock's own bytes returns without touching it, so a pointer from
+ * @note A prisoner outside this cellblock's own bytes returns without touching it. A pointer from
  *       another cellblock cannot move this one's boundaries.
  * @warning prisoner is dead once this returns and its bytes are not zeroed. The cellblock may hand
  *          them out again.
@@ -507,11 +507,11 @@ void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner);
  *
  * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
  * @param[in,out] prisoner  First byte of the cell, zeroed before release [TAKES OWNERSHIP].
- * @note The extent comes from the cell's own header, so a caller cannot under-zero a cell by naming
+ * @note The extent comes from the cell's own header. A caller cannot under-zero a cell by naming
  *       fewer bytes than it holds. A NULL prisoner returns without touching the cellblock.
  * @note The zeroing is the only step that separates this from mmgr_persistent_buf_release, which it
  *       calls to do the release.
- * @note A prisoner outside this cellblock's own bytes returns before the zeroing, so a pointer from
+ * @note A prisoner outside this cellblock's own bytes returns before the zeroing. A pointer from
  *       another cellblock is neither cleared nor released.
  * @warning prisoner is dead once this returns. The cellblock may hand those bytes out again.
  * @warning The bound is the cellblock's storage, not a cell boundary. An address inside these bytes
@@ -603,7 +603,7 @@ void mmgr_temporary_buf_reset(CarcerCellBlock *cellblock);
  * @note One unsigned compare covers both ends, since an address below base wraps to a difference
  *       larger than any size.
  * @warning Any address in the cellblock answers true, not only the first byte of a cell. This says
- *          where an address is, not what is there, so a true answer is not a warrant that at may be
+ *          where an address is, not what is there. A true answer is not a warrant that at may be
  *          released. The releases read a header from whatever address they are handed.
  */
 embed_bool mmgr_who_owns_buf(const CarcerCellBlock *cellblock, const void *at);
@@ -614,7 +614,7 @@ embed_bool mmgr_who_owns_buf(const CarcerCellBlock *cellblock, const void *at);
  * @param[in] cellblock Cellblock to read [BORROWS].
  * @return              temporary_top minus persistent_end, or 0 once the two tiers have met.
  * @note An allocation out of that gap needs a cell header from the same bytes, and the request is
- *       rounded up to a whole word first, so a request of exactly this many bytes cannot be met.
+ *       rounded up to a whole word first. A request of exactly this many bytes cannot be met.
  * @warning The two tiers are read one after the other and the answer is a snapshot. An allocation
  *          from a preempting handler landing between the reads gives a value matching neither state,
  *          and any allocation at all leaves it stale before the caller can act on it.
@@ -641,7 +641,7 @@ void mmgr_zero_buf(void *prisoner, size_t size);
  *                 is one.
  * @note A size of 0 rounds to 0. The allocators do not round a request this way. They carry a
  *       request of 0 up to one word first, so no cell is handed out empty.
- * @warning MMGR_CARCER_ALIGN - 1 is added before the mask, so a size within a word of SIZE_MAX wraps
+ * @warning MMGR_CARCER_ALIGN - 1 is added before the mask. A size within a word of SIZE_MAX wraps
  *          to 0.
  */
 size_t mmgr_align_up_buf(size_t size);

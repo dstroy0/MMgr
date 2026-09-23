@@ -132,7 +132,7 @@ uint64_t mmgr_rd_be(const EndianCfg *args);
  *       no part.
  * @note Both tables point rev at this one function, which reverses whatever it is given without
  *       reference to either order.
- * @warning args->width must be one of the mmgr_endian_width enumerators. 8 minus it is unsigned, so a
+ * @warning args->width must be one of the mmgr_endian_width enumerators. 8 minus it is unsigned. A
  *          width above eight wraps into a very large shift count, and a width of 0 shifts a 64-bit
  *          value by 64, which is undefined.
  */
