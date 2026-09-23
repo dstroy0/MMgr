@@ -26,6 +26,8 @@
 
 EMBED_BEGIN_DECLS
 
+// clang-format off
+
 /** @brief Calls the control_one_transfer_completes case makes. */
 static const PraetProgramStep praet_program_control_one_transfer_completes[] = {
     {0u, 0u, 0u},
@@ -990,6 +992,8 @@ static const PraetScenario praet_scenarios[] = {
         0u,
     },
 };
+
+// clang-format on
 
 EMBED_END_DECLS
 

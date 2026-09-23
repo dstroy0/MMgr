@@ -16,8 +16,8 @@ due. Same fixture, one difference. A divergence in outcome is the arm and nothin
 the whole question behind falling back to a busy timer where there is no vector to spare.
 
 The expectations are computed here by walking the program against the script. They are never derived
-by the engine or by the library. An expectation that agrees with the run is evidence rather than a
-tautology. That includes the order completions arrive in, which a total count cannot express: two
+by the engine or by the library. An expectation computed apart from the run, and agreeing with it,
+is evidence. That includes the order completions arrive in, which a total count cannot express: two
 completions on the wrong channels sum to the same number as two on the right ones.
 
 DMA owns no bytes and no buffer. A transfer names the caller's storage and its extent. Nothing here
@@ -31,8 +31,8 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_OUT = os.path.join(ROOT, "test", "integration", "test_praet_correctness", "praet_scenarios.h")
 
-# Hook identifiers, matching PraetHook in praet_engine.h. Written out rather than imported, because
-# the C header is the interface and a mismatch has to fail the compile, not go unnoticed.
+# Hook identifiers, matching PraetHook in praet_engine.h. Written out by hand, because the C header
+# is the interface, and a mismatch there has to fail the compile.
 OPEN = 0
 SUBMIT = 1
 CLOSE = 2
@@ -190,7 +190,7 @@ def scenarios():
     """Every correctness scenario, control first.
 
     The control is the one case that must come out clean on both arms. If it ever fails, nothing else
-    in this table can be read, because whatever broke it broke the harness rather than the library.
+    in this table can be read, because whatever broke it is in the harness, ahead of the library.
     """
     out = []
 
@@ -378,9 +378,15 @@ HEADER = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmai
 #include "praet_engine.h"
 
 EMBED_BEGIN_DECLS
+
+// clang-format off
 """
 
+# The formatter packs short rows side by side, which turns a table of one step per line into a grid.
+# HEADER opens a fence and FOOTER closes it, so the format check leaves the generator's layout alone.
 FOOTER = """
+// clang-format on
+
 EMBED_END_DECLS
 
 #endif
@@ -484,8 +490,9 @@ def main():
     with open(out, "w", encoding="utf-8", newline="\n") as handle:
         handle.write(text)
 
-    print("wrote %s, %d scenarios on %d arms" % (os.path.relpath(out, ROOT).replace("\\", "/"), len(rows),
-                                                 len(ARM_NAMES)))
+    print(
+        "wrote %s, %d scenarios on %d arms" % (os.path.relpath(out, ROOT).replace("\\", "/"), len(rows), len(ARM_NAMES))
+    )
     if corrupt is not None:
         print("  NEGATIVE CONTROL: %s carries a completion expectation one too high" % corrupt)
 
