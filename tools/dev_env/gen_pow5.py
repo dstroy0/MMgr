@@ -19,7 +19,7 @@ tie would stop being decidable from the bits that are there.
 
 WHAT THIS FILE OWES THE HEADER IT WRITES
 
-The output is ordinary documented source: the licence block, an @file block, and a Doxygen comment
+The output is ordinary documented source: the license block, an @file block, and a Doxygen comment
 on every macro, the struct and both tables. It is written here rather than by hand because the
 significands cannot be checked by eye, and the prose around them describes THIS configuration.
 
@@ -155,7 +155,7 @@ typedef struct
  *
  * @note Entry i is the multiplier for bit i of the exponent magnitude, and the walk in muto_apply_pow10
  *       takes this table over mmgr_pow5_down whenever the decimal exponent is not negative.
- * @note Index 0 through 5 are exact. 5^64 and up need more than 128 bits, so the last three entries are
+ * @note Indexes 0 through 5 are exact. 5^64 and up need more than 128 bits, so the last three entries are
  *       truncated toward zero and read a little low.
  * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int
  *       that converts to embed_iword.

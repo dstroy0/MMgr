@@ -6,7 +6,7 @@
  */
 /**
  * @file impensa_ancorae_acus_generic.c
- * @brief Byte cost table with no floor at 1, where every byte value carries a cost.
+ * @brief Byte cost table with no entry at the floor of 1, because every byte value carries a cost.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *

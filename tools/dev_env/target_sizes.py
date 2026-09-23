@@ -122,7 +122,7 @@ def render(arch, rows, totals):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--arch", choices=sorted(TARGETS), help="one target; both when not given")
+    ap.add_argument("--arch", choices=sorted(TARGETS), help="one target; all three when not given")
     ap.add_argument("--bin", help="toolchain bin directory, when it is not where ESP-IDF puts it")
     a = ap.parse_args()
 

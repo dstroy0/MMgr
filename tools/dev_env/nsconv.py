@@ -1,4 +1,4 @@
-"""Shared call-rewriting primitives, correct about the three things my ad-hoc converters got wrong:
+"""Shared call-rewriting primitives, correct about the three things the ad-hoc converters got wrong:
 
 1. String and character literals. A '(' or ',' inside "a\"b" or ')' is not syntax, so every scan
    here steps over literals rather than counting their characters.
@@ -163,16 +163,16 @@ def statement_start(s, pos, mask=None):
             depth += 1
         elif c in "([":
             if depth == 0:
-                i -= 1  # an argument list we are inside: the statement started before it
+                i -= 1  # an argument list the position sits inside: the statement started before it
                 continue
             depth -= 1
         elif c == "}":
             if depth == 0:
-                break  # a complete block precedes us: it ended the previous statement
+                break  # a complete block precedes it: that block ended the previous statement
             depth += 1
         elif c == "{":
             # `(T[]){ ... }` is a compound literal, not a block: stopping at its brace put the
-            # staging inside the initializer. `if (x) {` looks the same until you read past the '('.
+            # staging inside the initializer. `if (x) {` looks the same until the '(' is read past.
             if depth:
                 depth -= 1
             elif _brace_is_compound_literal(s, i - 1, mask):
@@ -294,7 +294,7 @@ def in_loop_condition(s, pos, mask=None):
     head = s[st:pos]
     if re.match(r"\s*(while|for)\s*\(", head):
         return True
-    # `do { ... } while (f(x));` - the statement starts at the 'while'
+    # `do { ... } while (f(x));` - the statement starts at the 'while'.
     return bool(re.match(r"\s*while\s*\(", head))
 
 

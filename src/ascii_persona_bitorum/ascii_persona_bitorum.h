@@ -39,8 +39,8 @@ typedef struct
  *
  * @note mmgr_ascii_in reads bits[byte >> 3] for every byte below 0x80. All sixteen have to be
  *       there.
- * @note Sixteen reach code point 127 and no further, which is what leaves a byte of 0x80 or above in
- *       no class at all.
+ * @note Sixteen bytes reach code point 127 and no further, which is what leaves a byte of 0x80 or
+ *       above in no class at all.
  */
 EMBED_STATIC_ASSERT(sizeof(MmgrAsciiMask) == 16u, "an ASCII class mask is exactly 128 bits");
 
@@ -76,7 +76,8 @@ typedef struct
 /**
  * @brief Type of the ascii dispatch table.
  *
- * @note EMBED_TABLE_LAYOUT asserts the in member is at offset 0 and that the struct holds nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts that the in member is at offset 0 and that the struct holds
+ *       nothing else.
  */
 typedef struct
 {

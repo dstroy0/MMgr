@@ -60,7 +60,7 @@ typedef struct
  *
  * @note Entry i is the multiplier for bit i of the exponent magnitude, and the walk in muto_apply_pow10
  *       takes this table over mmgr_pow5_down whenever the decimal exponent is not negative.
- * @note Index 0 through 5 are exact. 5^64 and up need more than 128 bits, so the last three entries are
+ * @note Indexes 0 through 5 are exact. 5^64 and up need more than 128 bits, so the last three entries are
  *       truncated toward zero and read a little low.
  * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int
  *       that converts to embed_iword.

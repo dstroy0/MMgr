@@ -116,7 +116,7 @@ def oracle(program, script, arm):
 
     def hold(channel, answer):
         if held_count[channel] != 0:
-            raise SystemExit("channel %d is already holding. A second hold would restate it" % channel)
+            raise SystemExit("channel %d is already holding. A second hold would restate it." % channel)
         held_count[channel] = answer["completions"]
         held_moved[channel] = answer["moved"]
         due_at[channel] = tick + answer["cycle"]
@@ -483,7 +483,7 @@ def main():
     corrupt = None
     argv = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
     if "--negative-control" in sys.argv[1:]:
-        # The last row, so the control and every row above it still pass and the run shows both halves
+        # The last row, so the control and every row above it still pass and the run shows both halves.
         corrupt = "%s_%s" % (rows[-1][0], ARM_NAMES[SOFTWARE])
     text = emit(rows, corrupt)
     out = argv[0] if argv else DEFAULT_OUT

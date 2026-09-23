@@ -1,7 +1,11 @@
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 #
-# Decide whether a language carries a constant, for Section 4.13 of docs/research/anchor-sift.md.
+# Decide whether a language carries a constant, for Section 4.13 of the anchor sift method.
+#
+# docs/research/README.md records where that work went, and on what terms: the ledger, the method
+# and the tools that build them are in https://github.com/dstroy0/anchor_sift, not under
+# docs/research/ here.
 #
 #   Usage:  Rscript tools/dev_env/language_variance.R [build/language_constant.csv]
 #

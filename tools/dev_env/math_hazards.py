@@ -4,7 +4,7 @@
 #
 # Find the characters and commands inside a document's math that break before the math is rendered.
 #
-#   Usage:  python tools/dev_env/math_hazards.py docs/research/anchor-sift-method.md [more.md]
+#   Usage:  python tools/dev_env/math_hazards.py <document.md> [more.md]
 #
 # Markdown gets the first pass at the text and the math renderer gets the second. Anything that means
 # something to markdown or to HTML is consumed before the formula is ever parsed. Three of these turned up
@@ -48,14 +48,14 @@ CHECKS = (
     (re.compile(r"(?<!\\)\*"), "a literal asterisk is read as emphasis, use \\ast"),
     # A tag opener is < followed by a letter or a slash. A < with space around it is arithmetic.
     (re.compile(r"(?<!\\)<[A-Za-z/]"), "< followed by a letter is read as a tag opener, use \\lt"),
-    # A > only takes on a meaning at the start of a line, where it opens a blockquote
+    # A > only takes on a meaning at the start of a line, where it opens a blockquote.
     (re.compile(r"^\s*>", re.MULTILINE), "> at the start of a line opens a blockquote, use \\gt or move it"),
     # KaTeX has no align environment. aligned works inside a display block.
     (
         re.compile(r"\\begin\{(align|eqnarray|gather)\}"),
         "that environment is not in KaTeX, use aligned inside the display block",
     ),
-    # A row separator outside an environment has nothing to separate
+    # A row separator outside an environment has nothing to separate.
     (re.compile(r"\\\\(?!\s*\\end)"), "a \\\\ row break needs an environment such as aligned around it"),
 )
 
@@ -70,7 +70,7 @@ def odd_inline_dollars(line):
     return (len(re.findall(r"(?<!\\)\$", without_display)) % 2) == 1
 
 
-# Checks that read a whole line rather than one math span
+# Checks that read a whole line rather than one math span.
 LINE_CHECKS = ((odd_inline_dollars, "an odd number of inline $ on the line. A formula is left unclosed"),)
 
 
@@ -112,7 +112,7 @@ def main():
                     hit = check.search(body)
                     if not hit:
                         continue
-                    # An asterisk is only eaten when a second one closes the emphasis
+                    # An asterisk is only eaten when a second one closes the emphasis.
                     if complaint.endswith("use \\ast") and body.count("*") < 2:
                         continue
                     found.append((where, kind, complaint, body.strip()[:70]))
@@ -132,7 +132,7 @@ def main():
             total += 1
 
     out.write("\n  %d hazard(s). A hit is a hazard and not a proven failure: which of these\n" % total)
-    out.write("  break depends on the renderer the reader happens to use\n")
+    out.write("  break depends on the renderer the reader happens to use.\n")
     out.flush()
     return 0
 

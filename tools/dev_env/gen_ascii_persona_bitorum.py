@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Emit src/ascii_persona_bitorum/{ascii_persona_bitorum.h,ascii_persona_bitorum.c,CMakeLists.txt}.
 
-Bitmaps, not range chains: one shift and one and answers any class, and every class costs the same.
+Bitmaps, not range chains: one shift and one and answer any class, and every class costs the same.
 
 Sixteen bytes rather than two uint64, because this library builds at EMBED_WORD_BITS 16 as well as
 64 and a 64-bit shift is a called routine there. Indexing bytes is the same one load, one shift, one
@@ -202,8 +202,8 @@ typedef struct
  *
  * @note mmgr_ascii_in reads bits[byte >> 3] for every byte below 0x80. All sixteen have to be
  *       there.
- * @note Sixteen reach code point 127 and no further, which is what leaves a byte of 0x80 or above in
- *       no class at all.
+ * @note Sixteen bytes reach code point 127 and no further, which is what leaves a byte of 0x80 or
+ *       above in no class at all.
  */
 EMBED_STATIC_ASSERT(sizeof(MmgrAsciiMask) == 16u, "an ASCII class mask is exactly 128 bits");
 
@@ -229,7 +229,8 @@ typedef struct
 /**
  * @brief Type of the ascii dispatch table.
  *
- * @note EMBED_TABLE_LAYOUT asserts the in member is at offset 0 and that the struct holds nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts that the in member is at offset 0 and that the struct holds
+ *       nothing else.
  */
 typedef struct
 {
@@ -323,7 +324,7 @@ EMBED_INLINE embed_bool ascii_in(const AsciiCtx *args)
 
     // The byte test comes first and && stops there. A byte of 0x80 or above would index bits[16] or
     // past it, outside the sixteen the mask holds. Explicit cast narrows the int result of && to
-    // the embed_bool container
+    // the embed_bool container.
     return (embed_bool)((args->byte < 0x80u) && (((entry->bits[args->byte >> 3] >> (args->byte & 7u)) & 1u) != 0u));
 }
 

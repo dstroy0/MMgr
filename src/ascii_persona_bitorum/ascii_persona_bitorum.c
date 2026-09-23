@@ -79,7 +79,7 @@ EMBED_INLINE embed_bool ascii_in(const AsciiCtx *args)
 
     // The byte test comes first and && stops there. A byte of 0x80 or above would index bits[16] or
     // past it, outside the sixteen the mask holds. Explicit cast narrows the int result of && to
-    // the embed_bool container
+    // the embed_bool container.
     return (embed_bool)((args->byte < 0x80u) && (((entry->bits[args->byte >> 3] >> (args->byte & 7u)) & 1u) != 0u));
 }
 

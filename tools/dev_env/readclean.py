@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
-"""Three reading passes over a MMgr module. Writes nothing.
+"""Three reading passes over an MMgr module. Writes nothing.
 
   code <module.h> ...     comments stripped: the structure, with nothing to take on trust
   blind <module.h> ...    comments stripped AND every name this project chose replaced, so the code
@@ -55,8 +55,8 @@ from strip_comments import rewrite
 from codemask import code_mask
 
 # Path arguments are resolved against the working directory FIRST, so the spelling a reader types
-# is the spelling that works, then against the library and the repo. `src/confinium/confinium.h` and
-# `mmgr/src/confinium/confinium.h` both land on the same file from either directory.
+# is the spelling that works, then against the library and the repo. `src/locus_carcerum/locus_carcerum.h` and
+# `mmgr/src/locus_carcerum/locus_carcerum.h` both land on the same file from either directory.
 ROOT = os.getcwd()
 BASES = (ROOT, LIB, REPO)
 
@@ -301,7 +301,7 @@ def banner(p):
 
 
 def stripped(p):
-    """The file with every comment gone, the license and @file block included.
+    """The file with every comment gone, the license header and the @file block among them.
 
     Not a formality: a doc block states what the code is MEANT to do, and reading it first is how a
     conformity pass ends up confirming the prose instead of the code.

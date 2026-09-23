@@ -152,7 +152,7 @@ def mode_headers(go):
 def mode_types(go):
     """Data typedefs, the Ns type, and the Ns instance.
 
-    The instance is the delicate one. It is a bare lowercase word - mem, span, raw, bytes - and each
+    The instance is the delicate one. It is a bare lowercase word - mem, span, raw, secure - and each
     of those is also something else in this tree: `mem` is the struct member holding pool storage,
     `span` and `raw` are function-pointer member names inside the very structs being renamed, and
     `secure` appears inside an MMGR_ASSERT message. Rewriting the bare identifier corrupts all four,

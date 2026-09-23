@@ -30,8 +30,8 @@ The note this tool writes into the manifest names tools/ci_tooling/build/gen_cma
 that does it. That file does not exist, and neither does tools/ci_tooling.
 
 So nothing consumes the manifest. A --go run would strip includes out of the headers, write a
-record nobody reads, and leave a tree that does not compile. The dry run is still worth having --
-it reports what would move and what each consumer would owe -- so the report stays and only the
+record nobody reads, and leave a tree that does not compile. The dry run is still worth having -
+it reports what would move and what each consumer would owe - so the report stays and only the
 write refuses.
 """
 

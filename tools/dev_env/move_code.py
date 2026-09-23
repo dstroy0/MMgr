@@ -102,9 +102,9 @@ def main() -> int:
             raise SystemExit(f"--expect-end failed at {args.src}:{end}\n  {src[end - 1]!r}")
 
     ordered = sorted(spans)
-    for (a1, a2), (b1, _) in zip(ordered, ordered[1:]):
+    for (a1, a2), (b1, b2) in zip(ordered, ordered[1:]):
         if b1 <= a2:
-            raise SystemExit(f"ranges {a1}-{a2} and {b1}- overlap")
+            raise SystemExit(f"ranges {a1}-{a2} and {b1}-{b2} overlap")
 
     block: list[str] = []
     for start, end in spans:

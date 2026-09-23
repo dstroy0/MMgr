@@ -80,7 +80,7 @@ MONO = {
 
 
 def scale(freq, floor=0.001):
-    """map a frequency dict to 1..255 on a log scale; absent bytes get the floor"""
+    """Map a frequency dict onto 1 through 255 on a log scale. An absent byte gets the floor."""
     vals = [max(f, floor) for f in freq.values() if f > 0]
     lo, hi = math.log(floor), math.log(max(vals))
     out = []
@@ -235,7 +235,7 @@ def generic():
 PROFILES = [
     (
         "generic",
-        "Byte cost table with no floor at 1, where every byte value carries a cost.",
+        "Byte cost table with no entry at the floor of 1, because every byte value carries a cost.",
         [
             "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
             "255 marks the NUL and the space, so neither is ever chosen as a sieve offset.",

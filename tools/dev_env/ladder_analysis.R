@@ -1,8 +1,11 @@
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 #
-# Test the halving ladder's loss ratio against collision entropy, for the ledger entry in
-# docs/research/anchor-sift-ledger.md.
+# Test the halving ladder's loss ratio against collision entropy, for the anchor sift ledger entry.
+#
+# docs/research/README.md records where that work went, and on what terms: the ledger, the method
+# and the tools that build them are in https://github.com/dstroy0/anchor_sift, not under
+# docs/research/ here.
 #
 #   Usage:  Rscript tools/dev_env/ladder_analysis.R [build/ladder.csv]
 #
