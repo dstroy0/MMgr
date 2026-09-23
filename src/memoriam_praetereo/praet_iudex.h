@@ -32,7 +32,8 @@
 #if defined(PRAET_UNSET_CHANNELS) || defined(PRAET_UNSET_SETTLE_MICROS) || defined(PRAET_UNSET_KEEPALIVE_MICROS) ||    \
     defined(PRAET_UNSET_RECOVERY) || defined(PRAET_UNSET_CLOCK_HZ) || defined(PRAET_UNSET_CLOCK_SOURCE) ||             \
     defined(PRAET_UNSET_CLOCK_CORE)
-#error "This build did not declare every knob this module reads. Each one that took a library default is named in a warning above this line, with the value it took and what to set it to. Set them, or define MMGR_ACCEPT_DEFAULTS to build on the defaults and keep the warnings as the record of which ones you took."
+#error                                                                                                                 \
+    "This build did not declare every knob this module reads. Each one that took a library default is named in a warning above this line, with the value it took and what to set it to. Set them, or define MMGR_ACCEPT_DEFAULTS to build on the defaults and keep the warnings as the record of which ones you took."
 #endif
 
 #endif

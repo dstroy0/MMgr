@@ -49,7 +49,8 @@
 #ifndef PRAET_CHANNELS
 #define PRAET_CHANNELS 8u
 #define PRAET_UNSET_CHANNELS 1
-#warning "PRAET_CHANNELS was not set and took the library default of 8. Set it to the channels your part gives one engine."
+#warning                                                                                                               \
+    "PRAET_CHANNELS was not set and took the library default of 8. Set it to the channels your part gives one engine."
 #endif
 
 /**
@@ -63,7 +64,8 @@
 #ifndef PRAET_SETTLE_MICROS
 #define PRAET_SETTLE_MICROS 0u
 #define PRAET_UNSET_SETTLE_MICROS 1
-#warning "PRAET_SETTLE_MICROS was not set and took the library default of 0, so this build waits for nothing after an attach. Set it to what your engine takes to come up."
+#warning                                                                                                               \
+    "PRAET_SETTLE_MICROS was not set and took the library default of 0, so this build waits for nothing after an attach. Set it to what your engine takes to come up."
 #endif
 
 /**
@@ -80,7 +82,8 @@
 #ifndef PRAET_KEEPALIVE_MICROS
 #define PRAET_KEEPALIVE_MICROS 1000u
 #define PRAET_UNSET_KEEPALIVE_MICROS 1
-#warning "PRAET_KEEPALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
+#warning                                                                                                               \
+    "PRAET_KEEPALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
 #endif
 
 /**
@@ -97,7 +100,8 @@
 #ifndef PRAET_RECOVERY
 #define PRAET_RECOVERY 0
 #define PRAET_UNSET_RECOVERY 1
-#warning "PRAET_RECOVERY was not set and took the library default of 0. A stalled transfer cannot be backed out or scrubbed in this build. Set it to 1 to have that machinery, 0 to say you meant to leave it out."
+#warning                                                                                                               \
+    "PRAET_RECOVERY was not set and took the library default of 0. A stalled transfer cannot be backed out or scrubbed in this build. Set it to 1 to have that machinery, 0 to say you meant to leave it out."
 #endif
 
 // A capability switch is on or off, and a third value is somebody reading it as a count or a channel
@@ -112,7 +116,8 @@
 // the declaration, by a token nobody writes by accident. See PraetOrdoContext in
 // praet_ordo.h. A -D that sets it here reads as a build-wide switch, which it is not
 #ifdef PRAET_RECOVERY_CRC
-#error "PRAET_RECOVERY_CRC is not a build knob. The boundary word check is answered per context, in the declaration: PraetOrdoContext(name, AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE) or the DISABLE token."
+#error                                                                                                                 \
+    "PRAET_RECOVERY_CRC is not a build knob. The boundary word check is answered per context, in the declaration: PraetOrdoContext(name, AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE) or the DISABLE token."
 #endif
 
 #endif

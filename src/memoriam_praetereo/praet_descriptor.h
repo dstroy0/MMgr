@@ -84,9 +84,9 @@ typedef enum
  */
 typedef enum
 {
-    PRAET_MOTUS_NEUTRUM = 0,  /**< Neither way. The ends do not overlap, so nothing is at risk. */
-    PRAET_MOTUS_SURSUM = 1,   /**< Upward, from the low word on, which is safe writing downward. */
-    PRAET_MOTUS_DEORSUM = 2   /**< Downward, from the high word back, which is safe writing upward. */
+    PRAET_MOTUS_NEUTRUM = 0, /**< Neither way. The ends do not overlap, so nothing is at risk. */
+    PRAET_MOTUS_SURSUM = 1,  /**< Upward, from the low word on, which is safe writing downward. */
+    PRAET_MOTUS_DEORSUM = 2  /**< Downward, from the high word back, which is safe writing upward. */
 } DirectioMotusVerbi;
 
 /**
@@ -105,8 +105,8 @@ typedef enum
  *       anything and take neither.
  */
 #define PRAET_DIRECTIO_MOTUS_VERBI_FOR(from_, to_, bytes_)                                                             \
-    ((((from_) < ((to_) + (bytes_))) && ((to_) < ((from_) + (bytes_))) && ((to_) != (from_)))                           \
-         ? (((to_) > (from_)) ? PRAET_MOTUS_DEORSUM : PRAET_MOTUS_SURSUM)                                               \
+    ((((from_) < ((to_) + (bytes_))) && ((to_) < ((from_) + (bytes_))) && ((to_) != (from_)))                          \
+         ? (((to_) > (from_)) ? PRAET_MOTUS_DEORSUM : PRAET_MOTUS_SURSUM)                                              \
          : PRAET_MOTUS_NEUTRUM)
 
 /**
@@ -174,10 +174,10 @@ struct PraetDescriptor
  *          width are known while compiling. Anything computed at run time is not bounded by this and
  *          is not bounded anywhere else.
  */
-#define PRAET_STEPS_FIT(what_, pool_, offset_, bytes_, mensura_)                                                         \
+#define PRAET_STEPS_FIT(what_, pool_, offset_, bytes_, mensura_)                                                       \
     EMBED_STATIC_ASSERT(((offset_) + (bytes_)) <= sizeof(mmgr_pars_storage_##pool_),                                   \
                         what_ " runs past the end of " #pool_);                                                        \
-    EMBED_STATIC_ASSERT(((offset_) % (mensura_)) == 0u, what_ " starts part way into a step of " #pool_);                 \
+    EMBED_STATIC_ASSERT(((offset_) % (mensura_)) == 0u, what_ " starts part way into a step of " #pool_);              \
     EMBED_STATIC_ASSERT(((bytes_) % (mensura_)) == 0u, what_ " is not a whole number of steps")
 
 /**
@@ -205,10 +205,10 @@ struct PraetDescriptor
  * @warning direction_ is stated here and derived by the two macros above this one. Reaching this
  *          directly with the wrong answer is a transfer that reads bytes it has already written over.
  */
-#define PRAET_DESCRIPTOR_BODY(name_, source_, source_mode_, dest_, dest_mode_, bytes_, mensura_, motus_, next_)          \
-    EMBED_STATIC_ASSERT((mensura_) <= (int)PRAET_MENSURA_MAXIMA,                                                           \
+#define PRAET_DESCRIPTOR_BODY(name_, source_, source_mode_, dest_, dest_mode_, bytes_, mensura_, motus_, next_)        \
+    EMBED_STATIC_ASSERT((mensura_) <= (int)PRAET_MENSURA_MAXIMA,                                                       \
                         #name_ " asks for a step wider than anything this module carries");                            \
-    EMBED_STATIC_ASSERT(((mensura_) & ((mensura_) - 1)) == 0, #name_ " asks for a step that is not a power of two");        \
+    EMBED_STATIC_ASSERT(((mensura_) & ((mensura_) - 1)) == 0, #name_ " asks for a step that is not a power of two");   \
     static PraetDescriptor name_ EMBED_UNUSED = {                                                                      \
         .source = (source_),                                                                                           \
         .destination = (dest_),                                                                                        \
@@ -216,7 +216,7 @@ struct PraetDescriptor
         .next = (next_),                                                                                               \
         .source_addressing = (uint8_t)(source_mode_),                                                                  \
         .destination_addressing = (uint8_t)(dest_mode_),                                                               \
-        .ego_sum_mensura = (uint8_t)(mensura_),                                                                                    \
+        .ego_sum_mensura = (uint8_t)(mensura_),                                                                        \
         .directio_motus_verbi = (uint8_t)(motus_),                                                                     \
         .owner = (uint8_t)PRAET_OWNER_SOFTWARE,                                                                        \
     }
@@ -234,11 +234,11 @@ struct PraetDescriptor
  * @param motus_         Which way the words are walked, as a DirectioMotusVerbi.
  * @param next_          The descriptor that runs after this one, or NULL.
  */
-#define PraetDescriptorDeclare(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_, motus_, next_)    \
-    PRAET_STEPS_FIT(#name_ " reading from " #from_pool_, from_pool_, from_offset_, bytes_, mensura_);                     \
-    PRAET_STEPS_FIT(#name_ " writing to " #to_pool_, to_pool_, to_offset_, bytes_, mensura_);                             \
-    PRAET_DESCRIPTOR_BODY(name_, &mmgr_pars_storage_##from_pool_[from_offset_], PRAET_ADDRESS_ADVANCES,                 \
-                          &mmgr_pars_storage_##to_pool_[to_offset_], PRAET_ADDRESS_ADVANCES, bytes_, mensura_, motus_,    \
+#define PraetDescriptorDeclare(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_, motus_, next_) \
+    PRAET_STEPS_FIT(#name_ " reading from " #from_pool_, from_pool_, from_offset_, bytes_, mensura_);                  \
+    PRAET_STEPS_FIT(#name_ " writing to " #to_pool_, to_pool_, to_offset_, bytes_, mensura_);                          \
+    PRAET_DESCRIPTOR_BODY(name_, &mmgr_pars_storage_##from_pool_[from_offset_], PRAET_ADDRESS_ADVANCES,                \
+                          &mmgr_pars_storage_##to_pool_[to_offset_], PRAET_ADDRESS_ADVANCES, bytes_, mensura_, motus_, \
                           next_)
 
 /**
@@ -255,7 +255,7 @@ struct PraetDescriptor
  *       ends can overlap itself, and PraetDescriptorWithin is what has the offsets to work that out.
  */
 #define PRAET_DESCRIPTOR_ENDS_DIFFER(name_, from_pool_, to_pool_)                                                      \
-    enum                                                                                                              \
+    enum                                                                                                               \
     {                                                                                                                  \
         name_##_end_##from_pool_ = 1,                                                                                  \
         name_##_end_##to_pool_ = 2                                                                                     \
@@ -273,9 +273,9 @@ struct PraetDescriptor
  * @param mensura_       Bytes moved in one step.
  * @note A next of NULL, which is the whole of what makes a transfer one shot.
  */
-#define PraetOneShot(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_)                             \
-    PRAET_DESCRIPTOR_ENDS_DIFFER(name_, from_pool_, to_pool_);                                                          \
-    PraetDescriptorDeclare(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_,                       \
+#define PraetOneShot(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_)                          \
+    PRAET_DESCRIPTOR_ENDS_DIFFER(name_, from_pool_, to_pool_);                                                         \
+    PraetDescriptorDeclare(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_,                    \
                            PRAET_MOTUS_NEUTRUM, NULL)
 
 /**
@@ -295,8 +295,8 @@ struct PraetDescriptor
  *       The same question about two pointers could not be answered while compiling, and comparing
  *       pointers into separate objects is not something the language defines.
  */
-#define PraetDescriptorWithin(name_, pool_, from_offset_, to_offset_, bytes_, mensura_, next_)                            \
-    PraetDescriptorDeclare(name_, pool_, from_offset_, pool_, to_offset_, bytes_, mensura_,                               \
+#define PraetDescriptorWithin(name_, pool_, from_offset_, to_offset_, bytes_, mensura_, next_)                         \
+    PraetDescriptorDeclare(name_, pool_, from_offset_, pool_, to_offset_, bytes_, mensura_,                            \
                            PRAET_DIRECTIO_MOTUS_VERBI_FOR(from_offset_, to_offset_, bytes_), next_)
 
 /**
@@ -314,10 +314,10 @@ struct PraetDescriptor
  * @note The forward declaration ahead of it is a tentative definition, which C merges with the real
  *       one below. It is what lets the initializer name an address the declaration is still writing.
  */
-#define PraetCircular(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_)                            \
-    PRAET_DESCRIPTOR_ENDS_DIFFER(name_, from_pool_, to_pool_);                                                          \
+#define PraetCircular(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_)                         \
+    PRAET_DESCRIPTOR_ENDS_DIFFER(name_, from_pool_, to_pool_);                                                         \
     static PraetDescriptor name_;                                                                                      \
-    PraetDescriptorDeclare(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_,                       \
+    PraetDescriptorDeclare(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_,                    \
                            PRAET_MOTUS_NEUTRUM, &name_)
 
 /**
@@ -339,14 +339,14 @@ struct PraetDescriptor
  * @note Both spans are proved against their pools separately. A pair whose halves overlap or run
  *       off the end fails at the declaration that wrote it.
  */
-#define PraetPingPong(first_, second_, from_pool_, to_pool_, first_from_, first_to_, second_from_, second_to_, bytes_,  \
-                      mensura_)                                                                                          \
-    PRAET_DESCRIPTOR_ENDS_DIFFER(first_, from_pool_, to_pool_);                                                         \
-    PRAET_DESCRIPTOR_ENDS_DIFFER(second_, from_pool_, to_pool_);                                                        \
-    static PraetDescriptor second_;                                                                                     \
-    PraetDescriptorDeclare(first_, from_pool_, first_from_, to_pool_, first_to_, bytes_, mensura_,                        \
-                           PRAET_MOTUS_NEUTRUM, &second_);                                                           \
-    PraetDescriptorDeclare(second_, from_pool_, second_from_, to_pool_, second_to_, bytes_, mensura_,                     \
+#define PraetPingPong(first_, second_, from_pool_, to_pool_, first_from_, first_to_, second_from_, second_to_, bytes_, \
+                      mensura_)                                                                                        \
+    PRAET_DESCRIPTOR_ENDS_DIFFER(first_, from_pool_, to_pool_);                                                        \
+    PRAET_DESCRIPTOR_ENDS_DIFFER(second_, from_pool_, to_pool_);                                                       \
+    static PraetDescriptor second_;                                                                                    \
+    PraetDescriptorDeclare(first_, from_pool_, first_from_, to_pool_, first_to_, bytes_, mensura_,                     \
+                           PRAET_MOTUS_NEUTRUM, &second_);                                                             \
+    PraetDescriptorDeclare(second_, from_pool_, second_from_, to_pool_, second_to_, bytes_, mensura_,                  \
                            PRAET_MOTUS_NEUTRUM, &first_)
 
 /**
@@ -368,8 +368,7 @@ struct PraetDescriptor
  *          pool at its other end alone.
  */
 #define PraetPeripheralDeclare(name_, address_)                                                                        \
-    static volatile uint8_t *const mmgr_praet_peripheral_##name_ EMBED_UNUSED =                                        \
-        (volatile uint8_t *)(address_);                                                                                \
+    static volatile uint8_t *const mmgr_praet_peripheral_##name_ EMBED_UNUSED = (volatile uint8_t *)(address_);        \
     enum                                                                                                               \
     {                                                                                                                  \
         name_##_is_a_declared_peripheral = 1                                                                           \
@@ -401,11 +400,11 @@ struct PraetDescriptor
  * @warning A base plus an offset, so one declared peripheral covers every register in its block. The
  *          offset is bounded by nothing here, because a peripheral has no extent to measure against.
  */
-#define PraetToPeripheral(name_, from_pool_, from_offset_, peripheral_, address_, at_offset_, bytes_, mensura_, next_)   \
-    PRAET_STEPS_FIT(#name_ " reading from " #from_pool_, from_pool_, from_offset_, bytes_, mensura_);                     \
-    PRAET_DESCRIPTOR_BODY(name_, &mmgr_pars_storage_##from_pool_[from_offset_], PRAET_ADDRESS_ADVANCES,                 \
-                          ((uint8_t *)(address_) + (at_offset_)), PRAET_ADDRESS_FIXED, bytes_, mensura_,                \
-                          PRAET_MOTUS_NEUTRUM, next_);                                                                  \
+#define PraetToPeripheral(name_, from_pool_, from_offset_, peripheral_, address_, at_offset_, bytes_, mensura_, next_) \
+    PRAET_STEPS_FIT(#name_ " reading from " #from_pool_, from_pool_, from_offset_, bytes_, mensura_);                  \
+    PRAET_DESCRIPTOR_BODY(name_, &mmgr_pars_storage_##from_pool_[from_offset_], PRAET_ADDRESS_ADVANCES,                \
+                          ((uint8_t *)(address_) + (at_offset_)), PRAET_ADDRESS_FIXED, bytes_, mensura_,               \
+                          PRAET_MOTUS_NEUTRUM, next_);                                                                 \
     enum                                                                                                               \
     {                                                                                                                  \
         name_##_writes_##peripheral_ = peripheral_##_is_a_declared_peripheral                                          \
@@ -428,11 +427,11 @@ struct PraetDescriptor
  * @note The address is named at the declaration and named again here, for the reasons written out
  *       over PraetToPeripheral.
  */
-#define PraetFromPeripheral(name_, peripheral_, address_, at_offset_, to_pool_, to_offset_, bytes_, mensura_, next_)     \
-    PRAET_STEPS_FIT(#name_ " writing to " #to_pool_, to_pool_, to_offset_, bytes_, mensura_);                             \
-    PRAET_DESCRIPTOR_BODY(name_, ((const uint8_t *)(address_) + (at_offset_)), PRAET_ADDRESS_FIXED,                      \
-                          &mmgr_pars_storage_##to_pool_[to_offset_], PRAET_ADDRESS_ADVANCES, bytes_, mensura_,            \
-                          PRAET_MOTUS_NEUTRUM, next_);                                                                  \
+#define PraetFromPeripheral(name_, peripheral_, address_, at_offset_, to_pool_, to_offset_, bytes_, mensura_, next_)   \
+    PRAET_STEPS_FIT(#name_ " writing to " #to_pool_, to_pool_, to_offset_, bytes_, mensura_);                          \
+    PRAET_DESCRIPTOR_BODY(name_, ((const uint8_t *)(address_) + (at_offset_)), PRAET_ADDRESS_FIXED,                    \
+                          &mmgr_pars_storage_##to_pool_[to_offset_], PRAET_ADDRESS_ADVANCES, bytes_, mensura_,         \
+                          PRAET_MOTUS_NEUTRUM, next_);                                                                 \
     enum                                                                                                               \
     {                                                                                                                  \
         name_##_reads_##peripheral_ = peripheral_##_is_a_declared_peripheral                                           \

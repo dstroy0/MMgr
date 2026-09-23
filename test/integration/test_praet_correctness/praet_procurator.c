@@ -86,8 +86,17 @@ static unsigned long s_work[PRAET_OPUS_KINDS];
  * @brief What each piece of work is called in the report, indexed by its id.
  */
 static const char *const s_work_names[PRAET_OPUS_KINDS] = {
-    "attach", "detach", "submit",      "kick",         "completed", "resolve",
-    "poll",   "  poll short circuited", "  poll walked", "  channel visited", "  port asked progress",
+    "attach",
+    "detach",
+    "submit",
+    "kick",
+    "completed",
+    "resolve",
+    "poll",
+    "  poll short circuited",
+    "  poll walked",
+    "  channel visited",
+    "  port asked progress",
 };
 
 EMBED_STATIC_ASSERT((sizeof s_work_names / sizeof s_work_names[0]) == PRAET_OPUS_KINDS,
@@ -145,7 +154,7 @@ static void praet_procurator_opus_report(void)
     // machine and then looks at it, so nearly every poll here has something waiting. A program polling
     // a channel that is doing nothing is the other case entirely, and this number is where that shows
     praet_procurator_ratio("polls short circuited in 100", s_work[PRAET_OPUS_POLL_SHORT] * 100uL,
-                        s_work[PRAET_OPUS_POLL]);
+                           s_work[PRAET_OPUS_POLL]);
 
     printf("\nstate one context costs\n");
     printf("%-30s %10u\n", "channels", (unsigned)PRAET_CHANNELS);

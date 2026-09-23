@@ -218,14 +218,16 @@ void test_an_unported_build_reports_no_progress_and_stalls(void)
     TEST_ASSERT_TRUE_MESSAGE(PraetAttach(s_schedule, 0, s_transfer_pool, PRAET_REGION_INTERNAL), "the attach failed");
     praet_ordo_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS);
     praet_ordo_poll(&s_schedule);
-    TEST_ASSERT_TRUE_MESSAGE(PraetSubmit(s_schedule, 0, s_transfer_pool, 0u, 32u), "a settled channel refused a transfer");
+    TEST_ASSERT_TRUE_MESSAGE(PraetSubmit(s_schedule, 0, s_transfer_pool, 0u, 32u),
+                             "a settled channel refused a transfer");
 
     praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
 
     const uint32_t after = praet_ordo_flags(&s_schedule, PRAET_TEST_CHANNEL);
 
-    TEST_ASSERT_TRUE_MESSAGE((after & PRAET_STALLED) != 0u, "a channel the default reported no movement on never stalled");
+    TEST_ASSERT_TRUE_MESSAGE((after & PRAET_STALLED) != 0u,
+                             "a channel the default reported no movement on never stalled");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK, "a stall was read as the transfer finishing");
 #if PRAET_RECOVERY
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_situs(&s_schedule, PRAET_TEST_CHANNEL),

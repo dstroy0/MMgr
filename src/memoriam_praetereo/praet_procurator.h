@@ -135,16 +135,16 @@ EMBED_BEGIN_DECLS
  */
 typedef enum
 {
-    PRAET_OPUS_ADNECTERE = 0,    /**< praet_ordo_adnectere ran. */
-    PRAET_OPUS_SEPARARE = 1,    /**< praet_ordo_separare ran. */
+    PRAET_OPUS_ADNECTERE = 0,  /**< praet_ordo_adnectere ran. */
+    PRAET_OPUS_SEPARARE = 1,   /**< praet_ordo_separare ran. */
     PRAET_OPUS_RELATIO = 2,    /**< praet_ordo_relatio ran. */
-    PRAET_OPUS_EFFICERE = 3,      /**< praet_ordo_efficere ran. */
-    PRAET_OPUS_COMPLETED = 4, /**< praet_ordo_completed ran. */
-    PRAET_OPUS_RESOLVE = 5,   /**< praet_ordo_resolve ran. */
-    PRAET_OPUS_POLL = 6,      /**< praet_ordo_poll ran. */
+    PRAET_OPUS_EFFICERE = 3,   /**< praet_ordo_efficere ran. */
+    PRAET_OPUS_COMPLETED = 4,  /**< praet_ordo_completed ran. */
+    PRAET_OPUS_RESOLVE = 5,    /**< praet_ordo_resolve ran. */
+    PRAET_OPUS_POLL = 6,       /**< praet_ordo_poll ran. */
     PRAET_OPUS_POLL_SHORT = 7, /**< A poll that found nothing to do and returned. */
     PRAET_OPUS_POLL_WALK = 8,  /**< A poll that walked every channel. */
-    PRAET_OPUS_ALVEUS = 9,    /**< One channel visited inside a walk. */
+    PRAET_OPUS_ALVEUS = 9,     /**< One channel visited inside a walk. */
     PRAET_OPUS_PROGRESS = 10,  /**< The port was asked how far a channel had got. */
     PRAET_OPUS_KINDS = 11      /**< How many kinds there are, which is what the counters are sized by. */
 } PraetOpus;

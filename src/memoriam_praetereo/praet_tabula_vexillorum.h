@@ -201,7 +201,7 @@ EMBED_BEGIN_DECLS
  *       one produced is what catches a duplicated id or a status nobody placed.
  */
 #define PRAET_EVERY_STATUS                                                                                             \
-    (PRAET_CLAIMED | PRAET_SETTLING | PRAET_SEPARANS | PRAET_ERROR | PRAET_STALLED | PRAET_ABANDONED |                  \
+    (PRAET_CLAIMED | PRAET_SETTLING | PRAET_SEPARANS | PRAET_ERROR | PRAET_STALLED | PRAET_ABANDONED |                 \
      PRAET_SCRUBBED | PRAET_MEASURED)
 
 /**

@@ -116,16 +116,18 @@ typedef enum
  *       choice that only speaks up one way trains everyone to read its silence as the safe answer,
  *       and neither answer here is safe by default.
  */
-typedef PRAET_DENUNTIATIO_ATTR("AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE - this context measures no boundary word. A "
-                            "recovery is exact to the word and no finer") unsigned char
-    PraetCrcResponsum_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE;
+typedef PRAET_DENUNTIATIO_ATTR(
+    "AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE - this context measures no boundary word. A "
+    "recovery is exact to the word and no "
+    "finer") unsigned char PraetCrcResponsum_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE;
 
 /**
  * @brief A type that exists only for the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE token.
  */
-typedef PRAET_DENUNTIATIO_ATTR("AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE - this context checksums the word a stalled "
-                            "transfer was inside, one word, bit at a time, on the recovery path only") unsigned char
-    PraetCrcResponsum_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE;
+typedef PRAET_DENUNTIATIO_ATTR(
+    "AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE - this context checksums the word a stalled "
+    "transfer was inside, one word, bit at a time, on the recovery path "
+    "only") unsigned char PraetCrcResponsum_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE;
 
 /**
  * @brief Pastes @p token_ onto the answer type prefix.
@@ -214,11 +216,12 @@ typedef PRAET_DENUNTIATIO_ATTR("AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE 
  *          the message. Asking for the check on a build with PRAET_RECOVERY off fails the assertion
  *          below, which names what to do about it.
  */
-#define PraetOrdoContext(name_, crc_choice_)                                                                       \
-    typedef PRAET_CRC_RESPONSUM(crc_choice_) name_##_boundary_word_answer;                                                \
-    EMBED_STATIC_ASSERT(PRAET_RECOVERY || (PRAET_CRC_VALUE(crc_choice_) == 0),                                         \
-                        "AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE needs PRAET_RECOVERY set to 1, since the word it "   \
-                        "measures is the one a recovery is deciding about");                                           \
+#define PraetOrdoContext(name_, crc_choice_)                                                                           \
+    typedef PRAET_CRC_RESPONSUM(crc_choice_) name_##_boundary_word_answer;                                             \
+    EMBED_STATIC_ASSERT(                                                                                               \
+        PRAET_RECOVERY || (PRAET_CRC_VALUE(crc_choice_) == 0),                                                         \
+        "AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE needs PRAET_RECOVERY set to 1, since the word it "            \
+        "measures is the one a recovery is deciding about");                                                           \
     static PraetOrdo name_ = PRAET_ORDINEM_INCIPE(crc_choice_)
 
 /**
@@ -337,7 +340,7 @@ void praet_ordo_reset(PraetOrdo *context);
  *          runs when is the caller's plan, and this library does not have it.
  */
 embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t *bound, embed_word bytes,
-                                 embed_word region);
+                                embed_word region);
 
 /**
  * @brief Attaches a channel over a declared pool, by name.
@@ -364,8 +367,8 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
  */
 #define PraetAttach(context_, channel_, pool_, region_)                                                                \
     (PRAET_ALVEUS_SUPERARE(context_, channel_, pool_),                                                                 \
-     praet_ordo_adnectere(&(context_), (channel_), mmgr_pars_storage_##pool_, (embed_word)pool_##_bytes,              \
-                           (embed_word)(region_)))
+     praet_ordo_adnectere(&(context_), (channel_), mmgr_pars_storage_##pool_, (embed_word)pool_##_bytes,               \
+                          (embed_word)(region_)))
 
 /**
  * @brief Declares which pool a channel of a context is over.
@@ -464,9 +467,11 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word
  *          anywhere else either.
  */
 #define PRAET_SPAN_FITS(pool_, offset_, length_)                                                                       \
-    ((void)sizeof(struct {                                                                                            \
+    ((void)sizeof(struct {                                                                                             \
         int this_span_runs_past_the_pool_the_channel_was_attached_over                                                 \
-            : (((offset_) + (length_)) <= sizeof(mmgr_pars_storage_##pool_)) ? 1 : -1;                                 \
+            : (((offset_) + (length_)) <= sizeof(mmgr_pars_storage_##pool_))                                           \
+              ? 1                                                                                                      \
+              : -1;                                                                                                    \
     }))
 
 /**
@@ -549,9 +554,11 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel);
  *       pool is still a span that runs off the end of the pool.
  */
 #define PRAET_SPAN_FITS(pool_, offset_, length_)                                                                       \
-    ((void)sizeof(struct {                                                                                            \
+    ((void)sizeof(struct {                                                                                             \
         int this_span_runs_past_the_pool_the_channel_was_attached_over                                                 \
-            : (((offset_) + (length_)) <= sizeof(mmgr_pars_storage_##pool_)) ? 1 : -1;                                 \
+            : (((offset_) + (length_)) <= sizeof(mmgr_pars_storage_##pool_))                                           \
+              ? 1                                                                                                      \
+              : -1;                                                                                                    \
     }))
 
 /**

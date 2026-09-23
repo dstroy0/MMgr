@@ -147,7 +147,6 @@ static const PraetCallbackCfg s_joined_binding = {
     .user = NULL,
 };
 
-
 /**
  * @brief Prepares the fixture Unity runs before each case in this suite.
  */
@@ -314,7 +313,7 @@ static void praet_case_attach_and_settle(embed_word channel)
     // parameter, and the surface pastes the channel number into the symbol that carries the binding,
     // so it needs a literal. The cases that drive the surface itself write one
     TEST_ASSERT_TRUE_MESSAGE(praet_ordo_adnectere(&s_schedule, channel, mmgr_pars_storage_s_case_pool,
-                                                   (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
+                                                  (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
                              "the attach failed");
     praet_ordo_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS);
     praet_ordo_poll(&s_schedule);
@@ -439,8 +438,7 @@ static embed_word praet_pump_until(embed_word channel, uint32_t mask, embed_bool
 {
     for (embed_word waited = 0u; waited <= limit; waited++)
     {
-        const embed_bool raised =
-            ((praet_ordo_flags(&s_schedule, channel) & mask) == mask) ? EMBED_TRUE : EMBED_FALSE;
+        const embed_bool raised = ((praet_ordo_flags(&s_schedule, channel) & mask) == mask) ? EMBED_TRUE : EMBED_FALSE;
 
         if (raised == until_raised)
         {
@@ -580,8 +578,7 @@ void test_a_failed_completion_reports_an_error(void)
 
     const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_OK, after & PRAET_CORE_MASK,
-                                     "a failed transfer left the channel busy");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_OK, after & PRAET_CORE_MASK, "a failed transfer left the channel busy");
     TEST_ASSERT_TRUE_MESSAGE((after & PRAET_ERROR) != 0u, "the failure was not recorded");
 
 #if PRAET_RECOVERY
@@ -680,8 +677,7 @@ void test_the_watchdog_marks_a_stalled_channel(void)
     const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
     TEST_ASSERT_TRUE_MESSAGE((after & PRAET_STALLED) != 0u, "the watchdog never fired");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK,
-                                     "a stall was read as the transfer finishing");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK, "a stall was read as the transfer finishing");
 }
 
 /**
@@ -1112,8 +1108,7 @@ void test_a_build_without_recovery_still_stalls_and_records_none(void)
     const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
 
     TEST_ASSERT_TRUE_MESSAGE((after & PRAET_STALLED) != 0u, "the watchdog is gone with the recovery machinery");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK,
-                                     "a stall was read as the transfer finishing");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, after & PRAET_CORE_MASK, "a stall was read as the transfer finishing");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, after & (PRAET_ABANDONED | PRAET_SCRUBBED),
                                      "a build with no recovery recorded one anyway");
 #endif
@@ -1215,19 +1210,53 @@ void test_a_span_lands_where_the_pool_puts_it(void)
  *       tick puts the completion due at tick three, which is the poll.
  */
 static const PraetEngineStep s_joined_steps[] = {
-    {.hook = (uint8_t)PRAET_HOOK_OPEN, .channel = 0u, .accepted = 1u, .complete_when = 0u, .completions = 0u,
-     .moved = 0u, .settle_ticks = 0u, .cycle_ticks = 0u, .progress = 0u},
-    {.hook = (uint8_t)PRAET_HOOK_SUBMIT, .channel = 0u, .accepted = 1u,
-     .complete_when = (uint8_t)PRAET_COMPLETE_WHEN_DUE, .completions = 1u, .moved = 64u, .settle_ticks = 0u,
-     .cycle_ticks = 3u, .progress = 0u},
+    {.hook = (uint8_t)PRAET_HOOK_OPEN,
+     .channel = 0u,
+     .accepted = 1u,
+     .complete_when = 0u,
+     .completions = 0u,
+     .moved = 0u,
+     .settle_ticks = 0u,
+     .cycle_ticks = 0u,
+     .progress = 0u},
+    {.hook = (uint8_t)PRAET_HOOK_SUBMIT,
+     .channel = 0u,
+     .accepted = 1u,
+     .complete_when = (uint8_t)PRAET_COMPLETE_WHEN_DUE,
+     .completions = 1u,
+     .moved = 64u,
+     .settle_ticks = 0u,
+     .cycle_ticks = 3u,
+     .progress = 0u},
     // Two polls that report how far the engine has got and release nothing, because the cycle has not
     // elapsed. The third is where the completion comes out
-    {.hook = (uint8_t)PRAET_HOOK_POLL, .channel = PRAET_RELEASE_EVERY_CHANNEL, .accepted = 1u, .complete_when = 0u,
-     .completions = 0u, .moved = 0u, .settle_ticks = 0u, .cycle_ticks = 0u, .progress = 20u},
-    {.hook = (uint8_t)PRAET_HOOK_POLL, .channel = PRAET_RELEASE_EVERY_CHANNEL, .accepted = 1u, .complete_when = 0u,
-     .completions = 0u, .moved = 0u, .settle_ticks = 0u, .cycle_ticks = 0u, .progress = 48u},
-    {.hook = (uint8_t)PRAET_HOOK_POLL, .channel = PRAET_RELEASE_EVERY_CHANNEL, .accepted = 1u, .complete_when = 0u,
-     .completions = 0u, .moved = 0u, .settle_ticks = 0u, .cycle_ticks = 0u, .progress = 0u},
+    {.hook = (uint8_t)PRAET_HOOK_POLL,
+     .channel = PRAET_RELEASE_EVERY_CHANNEL,
+     .accepted = 1u,
+     .complete_when = 0u,
+     .completions = 0u,
+     .moved = 0u,
+     .settle_ticks = 0u,
+     .cycle_ticks = 0u,
+     .progress = 20u},
+    {.hook = (uint8_t)PRAET_HOOK_POLL,
+     .channel = PRAET_RELEASE_EVERY_CHANNEL,
+     .accepted = 1u,
+     .complete_when = 0u,
+     .completions = 0u,
+     .moved = 0u,
+     .settle_ticks = 0u,
+     .cycle_ticks = 0u,
+     .progress = 48u},
+    {.hook = (uint8_t)PRAET_HOOK_POLL,
+     .channel = PRAET_RELEASE_EVERY_CHANNEL,
+     .accepted = 1u,
+     .complete_when = 0u,
+     .completions = 0u,
+     .moved = 0u,
+     .settle_ticks = 0u,
+     .cycle_ticks = 0u,
+     .progress = 0u},
 };
 
 /**
@@ -1268,8 +1297,8 @@ void test_a_port_completion_moves_the_channel_out_of_busy(void)
     praet_case_attach_and_settle(1u);
     praet_engine_arm(&s_joined_scenario);
 
-    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u,
-                                        .loopback = EMBED_FALSE, .on_complete = &s_joined_binding),
+    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u, .loopback = EMBED_FALSE,
+                                        .on_complete = &s_joined_binding),
                              "the engine refused the open");
 
     TEST_ASSERT_TRUE_MESSAGE(praet_case_submit(1u, 64u), "the schedule refused the transfer");
@@ -1312,8 +1341,8 @@ void test_the_schedule_stays_busy_while_the_engine_holds_it(void)
     TEST_ASSERT_TRUE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u, .loopback = EMBED_FALSE,
                                 .on_complete = &s_joined_binding));
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
-    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u,
-                                .buf = mmgr_pars_storage_s_case_pool, .bytes = 64u));
+    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u, .buf = mmgr_pars_storage_s_case_pool,
+                                .bytes = 64u));
 
     const PraetEngineTally tally = praet_engine_tally();
 
@@ -1342,8 +1371,8 @@ void test_the_recorded_position_comes_from_the_port(void)
     TEST_ASSERT_TRUE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u, .loopback = EMBED_FALSE,
                                 .on_complete = &s_joined_binding));
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
-    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u,
-                                .buf = mmgr_pars_storage_s_case_pool, .bytes = 64u));
+    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u, .buf = mmgr_pars_storage_s_case_pool,
+                                .bytes = 64u));
 
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_situs(&s_schedule, 1u),
                                      "a transfer nothing has reported on has moved something");
@@ -1387,8 +1416,8 @@ void test_a_backout_covers_what_the_port_last_reported(void)
     TEST_ASSERT_TRUE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u, .loopback = EMBED_FALSE,
                                 .on_complete = &s_joined_binding));
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
-    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u,
-                                .buf = mmgr_pars_storage_s_case_pool, .bytes = 64u));
+    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u, .buf = mmgr_pars_storage_s_case_pool,
+                                .bytes = 64u));
 
     praet_joined_poll(1u);
     TEST_ASSERT_EQUAL_UINT32(20u, praet_ordo_situs(&s_schedule, 1u));
@@ -1431,14 +1460,14 @@ void test_a_refused_attach_does_not_start_the_timer(void)
 
     // Channel one is already attached, so this is refused
     TEST_ASSERT_FALSE_MESSAGE(praet_ordo_adnectere(&s_schedule, 1u, mmgr_pars_storage_s_case_pool,
-                                                    (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
+                                                   (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
                               "a channel that was already attached took a second attach");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(settled_at, s_schedule.settle_deadline,
                                      "a refused attach started the settle timer");
 
     // And one past the end, which is refused before anything is read
     TEST_ASSERT_FALSE(praet_ordo_adnectere(&s_schedule, PRAET_CHANNELS, mmgr_pars_storage_s_case_pool,
-                                            (embed_word)s_case_pool_bytes, PRAET_CASE_REGION));
+                                           (embed_word)s_case_pool_bytes, PRAET_CASE_REGION));
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(settled_at, s_schedule.settle_deadline,
                                      "an attach on a channel that does not exist started the settle timer");
 }
@@ -1461,8 +1490,8 @@ void test_polling_the_port_keeps_the_watchdog_fed(void)
     TEST_ASSERT_TRUE(EMBED_CALL(praet.open, PraetCfg, .channel = 1u, .peripheral = 0u, .loopback = EMBED_FALSE,
                                 .on_complete = &s_joined_binding));
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
-    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u,
-                                .buf = mmgr_pars_storage_s_case_pool, .bytes = 64u));
+    TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u, .buf = mmgr_pars_storage_s_case_pool,
+                                .bytes = 64u));
 
     // Most of the window goes by, then the port reports the engine is still alive. Position unchanged,
     // because this engine says how far it got only when it finishes
@@ -1676,7 +1705,8 @@ void test_a_one_shot_descriptor_ends(void)
     TEST_ASSERT_EQUAL_PTR_MESSAGE(mmgr_pars_storage_s_case_pool, s_one_shot.destination,
                                   "the descriptor does not write to the pool it named");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(64u, s_one_shot.bytes, "the descriptor moves a length nobody asked for");
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MENSURA_VERBUM, s_one_shot.ego_sum_mensura, "the descriptor steps a width nobody asked for");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_MENSURA_VERBUM, s_one_shot.ego_sum_mensura,
+                                    "the descriptor steps a width nobody asked for");
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_ADVANCES, s_one_shot.source_addressing,
                                     "a memory to memory read does not advance");
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_ADVANCES, s_one_shot.destination_addressing,
@@ -1764,8 +1794,7 @@ void test_a_peripheral_end_does_not_advance(void)
     TEST_ASSERT_EQUAL_PTR_MESSAGE(&s_case_register, s_drain.destination,
                                   "the drain does not write the register that was declared");
 
-    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_FIXED, s_fill.source_addressing,
-                                    "the register a fill reads moves");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_FIXED, s_fill.source_addressing, "the register a fill reads moves");
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(PRAET_ADDRESS_ADVANCES, s_fill.destination_addressing,
                                     "the pool a fill writes does not advance");
     TEST_ASSERT_EQUAL_PTR_MESSAGE(&s_case_register, s_fill.source,

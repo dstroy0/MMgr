@@ -31,7 +31,7 @@
  *       int on its way back into an unsigned flag word. The outer cast puts it at the width these
  *       masks work at.
  */
-#define PRAET_WITHOUT(bits_) ((uint32_t) ~(uint32_t)(bits_))
+#define PRAET_WITHOUT(bits_) ((uint32_t)~(uint32_t)(bits_))
 
 /**
  * @brief Statuses a transfer leaves behind, cleared when the next one starts.
@@ -115,7 +115,7 @@ void praet_ordo_reset(PraetOrdo *context)
 }
 
 embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t *bound, embed_word bytes,
-                                 embed_word region)
+                                embed_word region)
 {
     praet_procurator_opus(PRAET_OPUS_ADNECTERE);
 
@@ -208,8 +208,7 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel)
     // The region descriptor rides along untouched. Which memory a channel reaches was settled where
     // the pool was declared, and a submit has no business restating it
     praet_ordo_write_flags(context, channel,
-                               (was & PRAET_WITHOUT(PRAET_CORE_MASK | PRAET_TRANSFER_STATUSES)) |
-                                   (uint32_t)PRAET_BUSY);
+                           (was & PRAET_WITHOUT(PRAET_CORE_MASK | PRAET_TRANSFER_STATUSES)) | (uint32_t)PRAET_BUSY);
     context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
 #if PRAET_RECOVERY
     // The address comes from what the channel was attached over. A submit states how far into it the
@@ -366,7 +365,8 @@ embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word
     uint32_t now = was & PRAET_WITHOUT(PRAET_CORE_MASK | PRAET_STALLED);
 
     now |= (uint32_t)PRAET_ADNEXUS;
-    now |= (recovery == (embed_word)PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE) ? (uint32_t)PRAET_SCRUBBED : (uint32_t)PRAET_ABANDONED;
+    now |= (recovery == (embed_word)PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE) ? (uint32_t)PRAET_SCRUBBED
+                                                                             : (uint32_t)PRAET_ABANDONED;
 
     // The one optional branch, and the only place it appears. Everything before the sample is written
     // and everything past the rounded boundary is not, so the whole ambiguity is the word the engine

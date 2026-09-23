@@ -54,7 +54,8 @@
 #ifndef PRAET_CLOCK_HZ
 #define PRAET_CLOCK_HZ 1000000u
 #define PRAET_UNSET_CLOCK_HZ 1
-#warning "No clock is declared, so PRAET_CLOCK_HZ took the library default of 1000000 and a tick is read as one microsecond. Every deadline in this module is then wrong by whatever the real frequency is. Set it to the frequency of the clock this reads."
+#warning                                                                                                               \
+    "No clock is declared, so PRAET_CLOCK_HZ took the library default of 1000000 and a tick is read as one microsecond. Every deadline in this module is then wrong by whatever the real frequency is. Set it to the frequency of the clock this reads."
 #endif
 
 /**
@@ -71,10 +72,12 @@
 #define PRAET_UNSET_CLOCK_SOURCE 1
 #if PRAET_PLATFORM_HAS_CYCLE_COUNTER
 #define PRAET_CLOCK_SOURCE PRAET_CLOCK_OWN
-#warning "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_OWN, because this architecture defines a cycle counter a port can read. Say so, or set PRAET_CLOCK_CALLER to have this read a clock you already run."
+#warning                                                                                                               \
+    "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_OWN, because this architecture defines a cycle counter a port can read. Say so, or set PRAET_CLOCK_CALLER to have this read a clock you already run."
 #else
 #define PRAET_CLOCK_SOURCE PRAET_CLOCK_CALLER
-#warning "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_CALLER, because this architecture defines no cycle counter a timer could be pinned to. Say so, and supply the clock."
+#warning                                                                                                               \
+    "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_CALLER, because this architecture defines no cycle counter a timer could be pinned to. Say so, and supply the clock."
 #endif
 #endif
 
@@ -88,7 +91,8 @@
 // supply the clock there, and finding that out from a timer that never ticks is the whole reason the
 // capability is derived from the architecture
 #if (PRAET_CLOCK_SOURCE == PRAET_CLOCK_OWN) && !PRAET_PLATFORM_HAS_CYCLE_COUNTER
-#error "PRAET_CLOCK_SOURCE is PRAET_CLOCK_OWN, but this architecture defines no cycle counter for this to pin a timer to. Set PRAET_CLOCK_SOURCE to PRAET_CLOCK_CALLER and supply the clock. An ARMv6-M part and a host build both land here."
+#error                                                                                                                 \
+    "PRAET_CLOCK_SOURCE is PRAET_CLOCK_OWN, but this architecture defines no cycle counter for this to pin a timer to. Set PRAET_CLOCK_SOURCE to PRAET_CLOCK_CALLER and supply the clock. An ARMv6-M part and a host build both land here."
 #endif
 
 #if PRAET_CLOCK_SOURCE == PRAET_CLOCK_OWN
@@ -104,7 +108,8 @@
 #ifndef PRAET_CLOCK_CORE
 #define PRAET_CLOCK_CORE PRAET_PLATFORM_CLOCK_CORE
 #define PRAET_UNSET_CLOCK_CORE 1
-#warning "PRAET_CLOCK_CORE was not set and took PRAET_PLATFORM_CLOCK_CORE, which is core zero on every family this library targets. Set it to the core this should pin its timer to."
+#warning                                                                                                               \
+    "PRAET_CLOCK_CORE was not set and took PRAET_PLATFORM_CLOCK_CORE, which is core zero on every family this library targets. Set it to the core this should pin its timer to."
 #endif
 
 #else
@@ -112,7 +117,8 @@
 // A field of the arm this build did not take. The core would sit in the build looking set while
 // nothing pins a timer anywhere, and the caller would find that out from behavior
 #ifdef PRAET_CLOCK_CORE
-#error "PRAET_CLOCK_CORE is set but PRAET_CLOCK_SOURCE is PRAET_CLOCK_CALLER. Nothing pins a timer in this build, so there is no core to pin it to. Set PRAET_CLOCK_SOURCE to PRAET_CLOCK_OWN, or take PRAET_CLOCK_CORE out."
+#error                                                                                                                 \
+    "PRAET_CLOCK_CORE is set but PRAET_CLOCK_SOURCE is PRAET_CLOCK_CALLER. Nothing pins a timer in this build, so there is no core to pin it to. Set PRAET_CLOCK_SOURCE to PRAET_CLOCK_OWN, or take PRAET_CLOCK_CORE out."
 #endif
 
 #endif

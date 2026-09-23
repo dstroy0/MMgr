@@ -212,8 +212,8 @@ EMBED_END_DECLS
 
 // The schedule, its knobs and its flag word, then the descriptors that ride on it. Both need the
 // knobs this build set, and neither is reached where MMGR_ENABLE_DMA is off
-#include "memoriam_praetereo/praet_ordo.h"
 #include "memoriam_praetereo/praet_descriptor.h"
+#include "memoriam_praetereo/praet_ordo.h"
 
 #endif
 
