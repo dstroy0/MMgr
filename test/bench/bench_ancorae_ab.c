@@ -148,52 +148,51 @@ static const char s_ab_prose[] =
 /**
  * @brief C source, a narrow alphabet with heavy repetition of a few identifiers.
  */
-static const char s_ab_source[] =
-    "static void mmgr_walk_rows(const uint8_t *bytes, size_t length, uint32_t *counts)\n"
-    "{\n"
-    "    for (size_t index = 0u; index < length; index++)\n"
-    "    {\n"
-    "        counts[bytes[index]]++;\n"
-    "    }\n"
-    "}\n"
-    "\n"
-    "static uint32_t mmgr_pick_lowest(const uint8_t *needle, size_t length)\n"
-    "{\n"
-    "    uint32_t best = 0u;\n"
-    "    unsigned best_cost = 256u;\n"
-    "    for (size_t index = 0u; index < length; index++)\n"
-    "    {\n"
-    "        const unsigned cost = table[needle[index]];\n"
-    "        if (cost < best_cost)\n"
-    "        {\n"
-    "            best_cost = cost;\n"
-    "            best = (uint32_t)index;\n"
-    "        }\n"
-    "    }\n"
-    "    return best;\n"
-    "}\n"
-    "\n"
-    "embed_bool mmgr_sift_span(const SiftCfg *args)\n"
-    "{\n"
-    "    MMGR_ASSERT(args->bytes != NULL, \"a span with no bytes\");\n"
-    "    if (args->length < args->needle_len)\n"
-    "    {\n"
-    "        return EMBED_FALSE;\n"
-    "    }\n"
-    "    const size_t anchor = mmgr_pick_lowest(args->needle, args->needle_len);\n"
-    "    for (size_t start = 0u; (start + args->needle_len) <= args->length; start++)\n"
-    "    {\n"
-    "        if (args->bytes[start + anchor] != args->needle[anchor])\n"
-    "        {\n"
-    "            continue;\n"
-    "        }\n"
-    "        if (mmgr_span_equal(&args->bytes[start], args->needle, args->needle_len))\n"
-    "        {\n"
-    "            return EMBED_TRUE;\n"
-    "        }\n"
-    "    }\n"
-    "    return EMBED_FALSE;\n"
-    "}\n";
+static const char s_ab_source[] = "static void mmgr_walk_rows(const uint8_t *bytes, size_t length, uint32_t *counts)\n"
+                                  "{\n"
+                                  "    for (size_t index = 0u; index < length; index++)\n"
+                                  "    {\n"
+                                  "        counts[bytes[index]]++;\n"
+                                  "    }\n"
+                                  "}\n"
+                                  "\n"
+                                  "static uint32_t mmgr_pick_lowest(const uint8_t *needle, size_t length)\n"
+                                  "{\n"
+                                  "    uint32_t best = 0u;\n"
+                                  "    unsigned best_cost = 256u;\n"
+                                  "    for (size_t index = 0u; index < length; index++)\n"
+                                  "    {\n"
+                                  "        const unsigned cost = table[needle[index]];\n"
+                                  "        if (cost < best_cost)\n"
+                                  "        {\n"
+                                  "            best_cost = cost;\n"
+                                  "            best = (uint32_t)index;\n"
+                                  "        }\n"
+                                  "    }\n"
+                                  "    return best;\n"
+                                  "}\n"
+                                  "\n"
+                                  "embed_bool mmgr_sift_span(const SiftCfg *args)\n"
+                                  "{\n"
+                                  "    MMGR_ASSERT(args->bytes != NULL, \"a span with no bytes\");\n"
+                                  "    if (args->length < args->needle_len)\n"
+                                  "    {\n"
+                                  "        return EMBED_FALSE;\n"
+                                  "    }\n"
+                                  "    const size_t anchor = mmgr_pick_lowest(args->needle, args->needle_len);\n"
+                                  "    for (size_t start = 0u; (start + args->needle_len) <= args->length; start++)\n"
+                                  "    {\n"
+                                  "        if (args->bytes[start + anchor] != args->needle[anchor])\n"
+                                  "        {\n"
+                                  "            continue;\n"
+                                  "        }\n"
+                                  "        if (mmgr_span_equal(&args->bytes[start], args->needle, args->needle_len))\n"
+                                  "        {\n"
+                                  "            return EMBED_TRUE;\n"
+                                  "        }\n"
+                                  "    }\n"
+                                  "    return EMBED_FALSE;\n"
+                                  "}\n";
 
 /**
  * @brief Copies text into a corpus without repeating it.
@@ -840,9 +839,9 @@ static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const
         for (size_t offset = 0u; offset < needle_len; offset++)
         {
             const double would_travel =
-                (needle[offset] == answer) ? 1.0
-                                           : ((previous == needle_len) ? (double)(offset + 1u)
-                                                                       : (double)(offset - previous));
+                (needle[offset] == answer)
+                    ? 1.0
+                    : ((previous == needle_len) ? (double)(offset + 1u) : (double)(offset - previous));
 
             // Three responses to one error and they answer different questions. The immediate term
             // moves on what this answer said. The accumulated term moves on a bias that persists
@@ -1039,7 +1038,6 @@ static AbResult ab_free_order(const uint8_t *corpus, size_t corpus_len, const ui
                 alive[start] = 0u;
             }
         }
-
     }
 
     // The mirror. A refutation runs from an observed symbol to the alignments it rules out, and the
@@ -1385,8 +1383,8 @@ static double ab_shift_survey(const uint8_t *corpus, size_t corpus_len, unsigned
     {
         for (unsigned right = left + 1u; right < AB_DISCOVER_READS; right++)
         {
-            const size_t apart = (spots[left] > spots[right]) ? (spots[left] - spots[right])
-                                                              : (spots[right] - spots[left]);
+            const size_t apart =
+                (spots[left] > spots[right]) ? (spots[left] - spots[right]) : (spots[right] - spots[left]);
             if (apart == 0u)
             {
                 continue;
@@ -1483,8 +1481,8 @@ static void ab_discover(const char *name, const uint8_t *corpus, size_t corpus_l
 
     (void)ab_shift_survey(shuffled, corpus_len, &null_found, &null_peak, &null_shift);
 
-    printf("ancorae_discover,%s,%u,%.6f,%u,%u,%u,%.1f,%.1f\n", name, (unsigned)corpus_len, collision,
-           real_found, null_found, (unsigned)real_shift, real_peak, null_peak);
+    printf("ancorae_discover,%s,%u,%.6f,%u,%u,%u,%.1f,%.1f\n", name, (unsigned)corpus_len, collision, real_found,
+           null_found, (unsigned)real_shift, real_peak, null_peak);
 }
 
 /**
@@ -1623,9 +1621,8 @@ static void ab_language(const char *name, const uint8_t *corpus, size_t corpus_l
 
     const double null_tight = ab_spacing(shuffled, corpus_len, &null_byte, &null_gap);
 
-    printf("ancorae_language,%s,%u,%u,%.2f,%.4f,%u,%.4f,%.2f\n", name, (unsigned)corpus_len, real_byte,
-           real_gap, real_tight, null_byte, null_tight,
-           (real_tight > 0.0) ? (null_tight / real_tight) : 0.0);
+    printf("ancorae_language,%s,%u,%u,%.2f,%.4f,%u,%.4f,%.2f\n", name, (unsigned)corpus_len, real_byte, real_gap,
+           real_tight, null_byte, null_tight, (real_tight > 0.0) ? (null_tight / real_tight) : 0.0);
 }
 
 /**
@@ -1727,9 +1724,8 @@ static void ab_boundary_filter(const char *name, const uint8_t *corpus, size_t c
     const double mean_marks = signature / count;
     const double mean_kept = survivors / count;
 
-    printf("ancorae_boundary,%s,%u,%u,%u,%.2f,%.2f,%.1f,%.4f\n", name, (unsigned)needle_len,
-           (unsigned)corpus_len, (unsigned)marked, mean_marks, mean_kept,
-           (double)alignments / ((mean_kept > 0.0) ? mean_kept : 1.0),
+    printf("ancorae_boundary,%s,%u,%u,%u,%.2f,%.2f,%.1f,%.4f\n", name, (unsigned)needle_len, (unsigned)corpus_len,
+           (unsigned)marked, mean_marks, mean_kept, (double)alignments / ((mean_kept > 0.0) ? mean_kept : 1.0),
            (double)marked / (double)corpus_len);
 }
 
@@ -1968,9 +1964,8 @@ static void ab_universals(const char *name, const uint8_t *corpus, size_t corpus
         }
     }
 
-    printf("ancorae_universal,%s,%u,%u,%u,%.2f,%.3f,%.3f,%u,%.3f\n", name, (unsigned)corpus_len,
-           (unsigned)held, (unsigned)distinct, mean_span, slope, brevity, (unsigned)distinct_budgeted,
-           carried);
+    printf("ancorae_universal,%s,%u,%u,%u,%.2f,%.3f,%.3f,%u,%.3f\n", name, (unsigned)corpus_len, (unsigned)held,
+           (unsigned)distinct, mean_span, slope, brevity, (unsigned)distinct_budgeted, carried);
 }
 
 /**
@@ -2341,8 +2336,8 @@ static void ab_salience(const char *name, const uint8_t *corpus, size_t corpus_l
         score[pick] = swap;
         counted[pick] = swap_seen;
 
-        printf("#   %-18.*s %-8u %.2f\n", (int)best[slot].span, &corpus[best[slot].where],
-               (unsigned)counted[slot], score[slot]);
+        printf("#   %-18.*s %-8u %.2f\n", (int)best[slot].span, &corpus[best[slot].where], (unsigned)counted[slot],
+               score[slot]);
     }
 }
 
@@ -2396,8 +2391,8 @@ static size_t ab_salted_offset(size_t length, uint64_t salt)
     }
     mmgr_sha256(seed, sizeof seed, digest);
 
-    const uint32_t drawn = ((uint32_t)digest[0] << 24) | ((uint32_t)digest[1] << 16) |
-                           ((uint32_t)digest[2] << 8) | (uint32_t)digest[3];
+    const uint32_t drawn =
+        ((uint32_t)digest[0] << 24) | ((uint32_t)digest[1] << 16) | ((uint32_t)digest[2] << 8) | (uint32_t)digest[3];
 
     return (size_t)(drawn % (uint32_t)length);
 }
@@ -2536,8 +2531,7 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
         // check is whether that set is the occurrence set and not whether it verified
         size_t unique_depth = 0u;
         const AbResult unique =
-            ab_free_order(corpus, corpus_len, needle, needle_len, unique_stride, &unique_depth, 0u,
-                          &mirror_error);
+            ab_free_order(corpus, corpus_len, needle, needle_len, unique_stride, &unique_depth, 0u, &mirror_error);
 
         unique_reads += (double)unique.reads;
         if (unique.found != arms[0].found)
@@ -2624,8 +2618,7 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
         const uint8_t *const needle = &corpus[sample * step];
         size_t reached = 0u;
         const AbResult held =
-            ab_free_order(corpus, corpus_len, needle, needle_len, calibrated_stride, &reached, 0u,
-                          &mirror_error);
+            ab_free_order(corpus, corpus_len, needle, needle_len, calibrated_stride, &reached, 0u, &mirror_error);
 
         calibrated_reads += (double)held.reads;
         if (held.found != ab_naive(corpus, corpus_len, needle, needle_len).found)
@@ -2656,31 +2649,26 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
         }
     }
 
-    printf("ancorae_adaptive,%s,%u,%u,%.1f,%.1f,%.1f,%u,%.3f\n", name, (unsigned)needle_len,
-           (unsigned)corpus_len, totals[2] / count, adaptive_reads / (double)AB_SAMPLES,
-           adaptive_probes / (double)AB_SAMPLES, adaptive_wrong,
+    printf("ancorae_adaptive,%s,%u,%u,%.1f,%.1f,%.1f,%u,%.3f\n", name, (unsigned)needle_len, (unsigned)corpus_len,
+           totals[2] / count, adaptive_reads / (double)AB_SAMPLES, adaptive_probes / (double)AB_SAMPLES, adaptive_wrong,
            (adaptive_reads > 0.0) ? (totals[2] / count / (adaptive_reads / (double)AB_SAMPLES)) : 0.0);
 
     printf("ancorae_mirror,%s,%u,%u,%llu,%s\n", name, (unsigned)needle_len, (unsigned)corpus_len,
            (unsigned long long)mirror_error, (mirror_error == 0u) ? "exact" : "BROKEN");
 
-    printf("ancorae_calib,%s,%u,%u,%u,%u,%.1f,%.1f,%u,%u,%.2f\n", name, (unsigned)needle_len,
-           (unsigned)corpus_len, (unsigned)calibrated_stride, (unsigned)unique_stride,
-           calibration_reads, calibrated_reads / (double)calibrated_tried, calibrated_wrong,
-           calibrated_tried, (calibrated_reads > 0.0)
-                                 ? (totals[2] / count / (calibrated_reads / (double)calibrated_tried))
-                                 : 0.0);
+    printf("ancorae_calib,%s,%u,%u,%u,%u,%.1f,%.1f,%u,%u,%.2f\n", name, (unsigned)needle_len, (unsigned)corpus_len,
+           (unsigned)calibrated_stride, (unsigned)unique_stride, calibration_reads,
+           calibrated_reads / (double)calibrated_tried, calibrated_wrong, calibrated_tried,
+           (calibrated_reads > 0.0) ? (totals[2] / count / (calibrated_reads / (double)calibrated_tried)) : 0.0);
 
     printf("ancorae_ab,%s,%u,%u,%u,"
            "%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,"
            "%.1f,%u,%u,%u,%.4f,%s\n",
-           name,
-           (unsigned)needle_len, (unsigned)corpus_len, samples, totals[0] / count, totals[1] / count, totals[2] / count,
-           totals[3] / count, totals[4] / count, totals[5] / count, totals[6] / count, totals[7] / count,
-           totals[8] / count, totals[9] / count, totals[10] / count, totals[11] / count,
+           name, (unsigned)needle_len, (unsigned)corpus_len, samples, totals[0] / count, totals[1] / count,
+           totals[2] / count, totals[3] / count, totals[4] / count, totals[5] / count, totals[6] / count,
+           totals[7] / count, totals[8] / count, totals[9] / count, totals[10] / count, totals[11] / count,
            unique_reads / count, (unsigned)unique_stride, unique_wrong, unique_over,
-           (unique_reads > 0.0) ? (totals[2] / unique_reads) : 0.0,
-           (disagreed == 0u) ? "agree" : "BROKEN");
+           (unique_reads > 0.0) ? (totals[2] / unique_reads) : 0.0, (disagreed == 0u) ? "agree" : "BROKEN");
 }
 
 /**

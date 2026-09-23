@@ -94,11 +94,11 @@ void test_a_dma_request_reaches_internal_memory(void)
  */
 void test_a_dma_request_fails_rather_than_falling_back_to_external(void)
 {
-    TEST_ASSERT_EQUAL_INT_MESSAGE(
-        PLACE_FAIL,
-        EMBED_CALL(exter.place, ExternaCfg, .size = 4096u, .dma_required = EMBED_TRUE, .free_dram = 64u,
-                   .free_psram = 1048576u, .psram_threshold = ROOMY_THRESHOLD),
-        "external memory is not reachable by DMA. A fallback would hand back a bad address");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(PLACE_FAIL,
+                                  EMBED_CALL(exter.place, ExternaCfg, .size = 4096u, .dma_required = EMBED_TRUE,
+                                             .free_dram = 64u, .free_psram = 1048576u,
+                                             .psram_threshold = ROOMY_THRESHOLD),
+                                  "external memory is not reachable by DMA. A fallback would hand back a bad address");
 }
 
 /**

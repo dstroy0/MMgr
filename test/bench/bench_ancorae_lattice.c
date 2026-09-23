@@ -122,19 +122,16 @@ static const char *rule_name(LatticeRule rule)
 {
     switch (rule)
     {
-        case ANCHOR_SPREAD:
-        {
-            return "spread";
-        }
-        case ANCHOR_SHUFFLED:
-        {
-            return "shuffled";
-        }
-        case ANCHOR_LEADING:
-        default:
-        {
-            return "leading";
-        }
+    case ANCHOR_SPREAD: {
+        return "spread";
+    }
+    case ANCHOR_SHUFFLED: {
+        return "shuffled";
+    }
+    case ANCHOR_LEADING:
+    default: {
+        return "leading";
+    }
     }
 }
 
@@ -298,48 +295,45 @@ static unsigned pick_lattice_anchors(LatticeRule rule, unsigned point_count, uns
 
     switch (rule)
     {
-        case ANCHOR_SPREAD:
+    case ANCHOR_SPREAD: {
+        for (unsigned index = 0u; index < want; index++)
         {
-            for (unsigned index = 0u; index < want; index++)
-            {
-                anchors[index] = (index * point_count) / want;
-            }
-            break;
+            anchors[index] = (index * point_count) / want;
         }
-        case ANCHOR_SHUFFLED:
+        break;
+    }
+    case ANCHOR_SHUFFLED: {
+        unsigned order[PATTERN_POINTS];
+        uint8_t noise[PATTERN_POINTS];
+
+        draw_bytes(noise, sizeof noise, salt);
+
+        for (unsigned index = 0u; index < point_count; index++)
         {
-            unsigned order[PATTERN_POINTS];
-            uint8_t noise[PATTERN_POINTS];
-
-            draw_bytes(noise, sizeof noise, salt);
-
-            for (unsigned index = 0u; index < point_count; index++)
-            {
-                order[index] = index;
-            }
-            for (unsigned slot = point_count - 1u; slot > 0u; slot--)
-            {
-                const unsigned pick = (unsigned)noise[slot] % (slot + 1u);
-                const unsigned held = order[slot];
-
-                order[slot] = order[pick];
-                order[pick] = held;
-            }
-            for (unsigned index = 0u; index < want; index++)
-            {
-                anchors[index] = order[index];
-            }
-            break;
+            order[index] = index;
         }
-        case ANCHOR_LEADING:
-        default:
+        for (unsigned slot = point_count - 1u; slot > 0u; slot--)
         {
-            for (unsigned index = 0u; index < want; index++)
-            {
-                anchors[index] = index;
-            }
-            break;
+            const unsigned pick = (unsigned)noise[slot] % (slot + 1u);
+            const unsigned held = order[slot];
+
+            order[slot] = order[pick];
+            order[pick] = held;
         }
+        for (unsigned index = 0u; index < want; index++)
+        {
+            anchors[index] = order[index];
+        }
+        break;
+    }
+    case ANCHOR_LEADING:
+    default: {
+        for (unsigned index = 0u; index < want; index++)
+        {
+            anchors[index] = index;
+        }
+        break;
+    }
     }
     return want;
 }
@@ -393,9 +387,8 @@ static void report_lattice(const LatticeCase *shape)
                 continue;
             }
 
-            printf("ancorae_lattice,%s,%s,%u,%u,%u,%u,%u,%.2f,%s\n", shape->name, rule_name(rule),
-                   shape->point_count, count, (unsigned)shape->base_count, samples, checked,
-                   candidates / (double)samples,
+            printf("ancorae_lattice,%s,%s,%u,%u,%u,%u,%u,%.2f,%s\n", shape->name, rule_name(rule), shape->point_count,
+                   count, (unsigned)shape->base_count, samples, checked, candidates / (double)samples,
                    (checked == 0u) ? "none" : ((refused == 0u) ? "hold" : "BROKEN"));
         }
     }
@@ -595,8 +588,7 @@ static size_t build_grid(void)
         s_grid_box[point] = (ptrdiff_t)((row * GRID_SIDE) + column);
         s_grid_scatter[point] = (ptrdiff_t)((scatter[point][0] * GRID_SIDE) + scatter[point][1]);
         // A quarter turn inside the window: (row, column) goes to (column, side - 1 - row)
-        s_grid_turned[point] =
-            (ptrdiff_t)((scatter[point][1] * GRID_SIDE) + ((SCATTER_SIDE - 1u) - scatter[point][0]));
+        s_grid_turned[point] = (ptrdiff_t)((scatter[point][1] * GRID_SIDE) + ((SCATTER_SIDE - 1u) - scatter[point][0]));
     }
 
     for (unsigned row = 0u; (row + SCATTER_SIDE) <= GRID_SIDE; row++)
@@ -768,8 +760,8 @@ int main(void)
         fill_levels(s_hypercube, cells, 0x400u + dimension);
         snprintf(label, sizeof label, "cube%ud", dimension);
 
-        const LatticeCase shape = {label,           s_hypercube,         same_byte, s_hypercube_bases,
-                                   bases,           s_hypercube_points,  PATTERN_POINTS};
+        const LatticeCase shape = {label, s_hypercube,        same_byte,     s_hypercube_bases,
+                                   bases, s_hypercube_points, PATTERN_POINTS};
 
         report_lattice(&shape);
     }

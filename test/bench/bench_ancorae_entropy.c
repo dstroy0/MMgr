@@ -523,8 +523,8 @@ static void score_ladder(const Source *source, size_t length)
             correction += fabs(freed - plug);
         }
 
-        printf("ancorae_ladder,%s,%u,%u,%u,%.4f,%.4f,%.4f,%.4f\n", source->name, (unsigned)length, order, TRIALS,
-               truth, plug_bias / (double)TRIALS, free_bias / (double)TRIALS, correction / (double)TRIALS);
+        printf("ancorae_ladder,%s,%u,%u,%u,%.4f,%.4f,%.4f,%.4f\n", source->name, (unsigned)length, order, TRIALS, truth,
+               plug_bias / (double)TRIALS, free_bias / (double)TRIALS, correction / (double)TRIALS);
     }
 }
 

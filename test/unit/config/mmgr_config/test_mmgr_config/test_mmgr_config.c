@@ -31,4 +31,3 @@ void test_tenant_bound_is_a_real_size(void)
                                  MMGR_CARCER_MAX >= MMGR_SECURE_CONFIN_SIZE,
                              "the bound must cover the largest tenant");
 }
-
