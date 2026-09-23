@@ -209,7 +209,7 @@ def after_short_circuit(s, pos, mask=None):
 
     Hoisting it above the statement runs it before the operand that gates it, and unconditionally.
     `if (!r8(REG, &irq) || !data_ready(irq))` is the shape: r8 fills irq and the right operand reads
-    it, so a hoisted data_ready sees the value from before the read - and runs even when r8 already
+    it. A hoisted data_ready sees the value from before the read - and runs even when r8 already
     decided the answer.
 
     A conditional operator gates its branches the same way, and it is worse when it is missed: the
@@ -256,8 +256,8 @@ def _statement_before(s, pos, mask):
 
 
 # Macros that evaluate an argument more than once. Hoisting a call out of one of these is the
-# loop-condition mistake wearing a macro: DBENCH_OP(label, n, expr) runs expr n times to time it,
-# so a call lifted above it is measured once and the benchmark then times an addition. DBENCH_BULK
+# loop-condition mistake wearing a macro: DBENCH_OP(label, n, expr) runs expr n times to time it.
+# A call lifted above it is measured once and the benchmark then times an addition. DBENCH_BULK
 # hands its expr to the same DBENCH_CYCLES loop and was missed, which is how one bench came out
 # timing `sink += Ns.n`.
 REPEATING = ("DBENCH_OP", "DBENCH_BULK", "DBENCH_CYCLES")
@@ -484,7 +484,7 @@ def rewrite(s, call_start, call_end, staging, value, pattern=None, mask=None):
             "into a local and rewrite by hand"
         )
     st = statement_start(s, call_start, mask)
-    # One statement becomes several, so a control head with no brace has to gain one: without it the
+    # One statement becomes several. A control head with no brace has to gain one: without it the
     # call runs whatever the condition said, and only the first staging line stays in the body.
     brace = unbraced_body_head(s, st, mask)
     if not brace:

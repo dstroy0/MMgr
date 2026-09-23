@@ -71,7 +71,7 @@ EMBED_INLINE embed_bool exter_psram_fits(const ExterCtx *args)
  * @note A size of 0 is refused outright.
  * @note A DMA request only ever goes to internal memory, and fails rather than falling back.
  * @note At or above psram_threshold external memory is tried first, below it internal is. On both
- *       paths the other is tried second, so a non-zero request without the DMA requirement reaches
+ *       paths the other is tried second. A non-zero request without the DMA requirement reaches
  *       PLACE_FAIL only when it fits neither.
  * @note Both fit tests are taken once, above the branches, so no arm evaluates one twice.
  * @warning The two tests are not the same shape. Internal placement must also leave dram_reserve
@@ -166,7 +166,7 @@ EMBED_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
  *
  * @param[in,out] args Pair to flip, as args->pingpong [BORROWS].
  * @return             The index now being filled, 0 or 1.
- * @note Flips the low bit, so a swap of a swap is where it started.
+ * @note Flips the low bit. A swap of a swap is where it started.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning One caller at a time. The flip and the read below it are two steps on a plain byte, with
  *          no atomic and no lock, so two callers swapping the same pair can come away holding the

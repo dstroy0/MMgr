@@ -320,7 +320,7 @@ void test_both_candidates_answer_for_every_lane_under_a_low_threshold(void)
 /**
  * @brief The four boundary bytes the exhaustive word sweep draws its lanes from.
  *
- * @note Ordered low to high, so an index into this is also an ordering of the values.
+ * @note Ordered low to high. An index into this is also an ordering of the values.
  */
 static const uint8_t accuracy_edge_of[MMGR_ACCURACY_EDGE_VALUES] = {0x00u, 0x7Fu, 0x80u, 0xFFu};
 

@@ -25,7 +25,7 @@
 #include "memoriam_praetereo/memoriam_praetereo.h"
 
 // PRAET_CHANNELS, PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS and PRAET_RECOVERY come from here. None
-// has a value that is right for every part, so an unset one takes a default and raises a warning
+// has a value that is right for every part. An unset one takes a default and raises a warning
 // naming itself. What stops the build is praet_iudex.h, below, once all of them have spoken
 #include "praet_praefinitum.h"
 
@@ -75,7 +75,7 @@ EMBED_BEGIN_DECLS
  * @note Spelled at length on purpose. This is not a knob that rides along with recovery being on - it
  *       is its own deliberate yes or no, made once per context, and the name is meant to be
  *       impossible to skim past in a declaration.
- * @note Real enumerators rather than bare tokens, so a misspelling is an undeclared identifier at the
+ * @note Real enumerators rather than bare tokens. A misspelling is an undeclared identifier at the
  *       declaration instead of quietly reading as the off arm.
  */
 typedef enum
@@ -109,7 +109,7 @@ typedef enum
 /**
  * @brief A type that exists only for the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE token.
  *
- * @note The declarator pastes the token onto this and typedefs the result, so a token that is neither
+ * @note The declarator pastes the token onto this and typedefs the result. A token that is neither
  *       of the two fails on an unknown type name that has the offending token in it. Pasting onto a
  *       macro instead gave a syntax error several lines down that named nothing - measured, on the
  *       misspelling this exists to catch.
@@ -117,7 +117,7 @@ typedef enum
  *       choice that only speaks up one way trains everyone to read its silence as the safe answer,
  *       and neither answer here is safe by default.
  */
-typedef PRAET_DENUNTIATIO_ATTR("AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE - this context measures no boundary word, so a "
+typedef PRAET_DENUNTIATIO_ATTR("AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE - this context measures no boundary word. A "
                             "recovery is exact to the word and no finer") unsigned char
     PraetCrcResponsum_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE;
 
@@ -357,7 +357,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
  *       has every answer about them: the address, the extent, and which channel is over them. A
  *       caller holding all three has said everything this needs, and where the bytes came from is
  *       their business.
- * @note Both names have internal linkage, so a translation unit that did not declare the pool cannot
+ * @note Both names have internal linkage. A translation unit that did not declare the pool cannot
  *       reach either and does not compile. That is what makes the answers first hand, and a caller
  *       giving all of them is what makes these bytes legal to touch. The caller said so.
  * @warning The region descriptor is still stated here. Which memory a pool sits in was settled by
@@ -380,7 +380,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
  *       binding: PraetAttach and PraetSubmit both name it, so reaching either with a pool the channel
  *       was not declared over is an undeclared identifier that prints the triple that was written.
  * @note The same shape locus_carcerum uses. MMGR_CARCER_BODY pastes the site and the pool into
- *       prisonsite_##_##name_##_ctx and MMGR_CARCER_MEM makes the pool the member's name, so a
+ *       prisonsite_##_##name_##_ctx and MMGR_CARCER_MEM makes the pool the member's name. A
  *       cellblock's entries cannot be handed another cellblock's bytes. Here the channel joins the
  *       paste, because a context has several and they may be over different pools.
  * @note Costs nothing. An enumerator emits no storage and is settled while the unit compiles.
@@ -431,7 +431,7 @@ void praet_ordo_separare(PraetOrdo *context, embed_word channel);
  * @param[in]     offset  Bytes into the attached memory the transfer starts at.
  * @param[in]     length  Bytes it was asked to move.
  * @return                EMBED_TRUE where the channel took it.
- * @note Takes no pointer. The address came from the pool named at the attach, so an offset and a
+ * @note Takes no pointer. The address came from the pool named at the attach. An offset and a
  *       length are the whole of what a transfer adds. Handing an address here would let a caller
  *       state one that has nothing to do with what the channel is attached over.
  * @note Start, length and position are what make a backout possible. Without the three, a stalled
@@ -533,8 +533,8 @@ uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel);
  * @param[in,out] context Context the channel belongs to [BORROWS].
  * @param[in]     channel Channel to run on.
  * @return                EMBED_TRUE where the channel took it.
- * @note Takes no bytes. Where PRAET_RECOVERY is off nothing records what a transfer was pointed at,
- *       so a start and a length would be stored and never read.
+ * @note Takes no bytes. Where PRAET_RECOVERY is off nothing records what a transfer was pointed at.
+ *       A start and a length would be stored and never read.
  * @warning Refuses a channel that is settling, already busy, detaching, or not attached. Fails
  *          closed: a refused submit changes no state.
  */
@@ -583,7 +583,7 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel);
  *       what gives the bound something to compare against, since the extent lives with the
  *       declaration and not with the channel.
  * @note The bound is checked here and never inside the entry. Sizes and spans are settled while
- *       compiling, so a test at run time would be paying for a question that was already answered.
+ *       compiling. A test at run time would be paying for a question that was already answered.
  * @note Names the binding PraetChannel declared, so submitting a pool this channel is not over fails
  *       on an identifier carrying the context, the channel and the pool that was written. That is the
  *       same guarantee locus_carcerum gets from pasting the site and the pool into one symbol.
@@ -618,9 +618,9 @@ void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool fai
  * @param[in]     channel  Channel to resolve.
  * @param[in]     recovery PRAET_RESTITUERE_ET_REDINTEGRARE or PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE.
  * @return                 EMBED_TRUE where a stalled channel was resolved.
- * @note Returns the channel to attached and records which recovery was taken, so a later reader can
+ * @note Returns the channel to attached and records which recovery was taken. A later reader can
  *       tell a backed-out transfer from one whose bytes were treated as unsafe.
- * @note Nothing here writes the caller's storage. This context holds no pointer to it, so a caller
+ * @note Nothing here writes the caller's storage. This context holds no pointer to it. A caller
  *       choosing PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE zeroes its own bytes and this records that it did.
  * @warning Refuses a channel that is not stalled. Fails closed: state is only ever unknown after the
  *          watchdog said so, and resolving a healthy channel would discard a live transfer.
@@ -645,7 +645,7 @@ void praet_ordo_advance(PraetOrdo *context, embed_word micros);
  * @param[in,out] context Context to advance [BORROWS].
  * @param[in]     ticks   Ticks read off the clock this build declared.
  * @note What a port calls, because a counter reads in ticks and every deadline here is microseconds.
- *       The scaling is one compile-time constant, so a build whose clock runs at a whole megahertz
+ *       The scaling is one compile-time constant. A build whose clock runs at a whole megahertz
  *       pays a multiply and a shift for it.
  * @warning Ticks that do not add up to a whole microsecond are dropped rather than carried. A port
  *          feeding this one tick at a time on a fast clock never advances anything, which is why a

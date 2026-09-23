@@ -80,7 +80,7 @@ static uint16_t s_due_at[PRAET_ENGINE_CHANNELS];
  * @brief Bytes each channel has moved, as the engine last reported them.
  *
  * @note What a controller's remaining count stands for here. A poll reaction carrying a progress
- *       figure writes it, and a completion writes the count it reported, so a finished transfer reads
+ *       figure writes it, and a completion writes the count it reported. A finished transfer reads
  *       as having moved everything it said it did.
  */
 static uint16_t s_progress[PRAET_ENGINE_CHANNELS];
@@ -177,7 +177,7 @@ static const PraetEngineStep *praet_engine_take(uint8_t hook)
  *
  * @param[in] channel Logical channel the completion reports.
  * @param[in] moved   Bytes the completion reports.
- * @note Counted here rather than in the callback, so a case whose callback does nothing still
+ * @note Counted here rather than in the callback. A case whose callback does nothing still
  *       produces a tally.
  * @note data is left null. The correctness arm reads the counts and the channel order, and a pointer
  *       into the engine's own storage would be a fact about this engine instead of about the
@@ -236,7 +236,7 @@ static void praet_engine_release_one(uint8_t channel)
 /**
  * @brief Delivers every due completion, on the interrupt arm alone.
  *
- * @note Runs at the end of every hook call. The interrupt arm reports without being asked, so a
+ * @note Runs at the end of every hook call. The interrupt arm reports without being asked. A
  *       completion coming due during a close or during a submit on another channel arrives there.
  *       The software arm has no vector and reports only when polled.
  */
@@ -283,7 +283,7 @@ static void praet_engine_schedule(const PraetEngineStep *step, uint8_t channel)
         return;
     }
 
-    // One byte count and one due tick per channel, so a second hold against a channel that is still
+    // One byte count and one due tick per channel. A second hold against a channel that is still
     // holding would silently restate the first one's. The scenario releases before it holds again
     if (s_held_completions[channel] != 0u)
     {
@@ -386,7 +386,7 @@ void mmgr_praet_hw_poll(const PraetCfg *args)
         return;
     }
     // How far the polled channel has got, as a controller's remaining count would say. Written before
-    // any completion is released, so a poll that both reports progress and finishes the transfer
+    // any completion is released. A poll that both reports progress and finishes the transfer
     // leaves the completion's own count standing
     if ((step->progress != 0u) && (args->channel < PRAET_ENGINE_CHANNELS))
     {

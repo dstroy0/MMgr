@@ -12,7 +12,7 @@
  *
  * @note transformo walks the bits of the decimal exponent and multiplies in one entry per set bit, so nine
  *       entries reach 511.
- * @note Declares no function. Both tables are static const data that outlive every call, so a pointer into
+ * @note Declares no function. Both tables are static const data that outlive every call. A pointer into
  *       one stays good for the whole program [BORROWS].
  */
 #ifndef MMGR_POW5_H
@@ -39,7 +39,7 @@ EMBED_BEGIN_DECLS
  *       carried in wherever the two are compared.
  * @warning muto_scale bounds against this and returns infinity above it and zero below its negative;
  *          muto_scale_to_u64 does not. What keeps either off the end of the tables is the walk itself,
- *          which takes only MMGR_POW5_STEPS steps, so an exponent past this loses its higher bits.
+ *          which takes only MMGR_POW5_STEPS steps. An exponent past this loses its higher bits.
  */
 #define MMGR_POW5_MAX ((1 << MMGR_POW5_STEPS) - 1)
 
@@ -82,7 +82,7 @@ static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
  *
  * @note Entry i is the multiplier for bit i of the exponent magnitude, and the walk in muto_apply_pow10
  *       takes this table when the decimal exponent is negative.
- * @note No negative power of five ends in binary, so all nine are the exact value truncated toward zero.
+ * @note No negative power of five ends in binary. All nine are the exact value truncated toward zero.
  *       Every entry reads a little low and none of them round up: 5^-1 is the repeating 0xCCCC..., not the
  *       0xCCCD... that rounding to nearest would give.
  * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int

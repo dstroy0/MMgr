@@ -104,7 +104,7 @@ condition with `sizeof` and then discards it, so it costs nothing and cannot rot
 
 The `checks` environment is where they are checks. `MMGR_DEBUG_CHECKS=1` selects the trapping form in
 `test/support/mmgr_host_traps.h`, which reports the expectation, the file and the line and then
-aborts — so an expectation a caller broke fails a test there instead of being a no-op nobody notices.
+aborts. An expectation a caller broke fails a test there instead of being a no-op nobody notices.
 It is the only environment where an assert is evaluated at all, which means an expectation never
 exercised under `checks` is one nothing has ever tested. A target with no `stderr` and no `abort`
 defines `MMGR_ASSERT` itself before including the header, and neither form is used.

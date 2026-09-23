@@ -36,9 +36,9 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Expands to 400, the count at which a parsed decimal exponent stops accumulating.
  *
- * @note cellul_expo tests its running exponent against this before each multiply and add, so a long run
+ * @note cellul_expo tests its running exponent against this before each multiply and add. A long run
  *       of digits cannot run the count away with the embed_iword it is kept in.
- * @note 400 is past the 308 a double reaches, so anything the clamp holds back has already gone to a
+ * @note 400 is past the 308 a double reaches. Anything the clamp holds back has already gone to a
  *       signed infinity or a signed zero, and stopping the count early cannot change the result.
  * @note The literal is untyped, matching the embed_iword exponent it is compared against.
  */
@@ -82,7 +82,7 @@ EMBED_TABLE_LAYOUT(TransformoNs, take, scale, scale_to_u64);
  * @param[in] args The mantissa to extend and the digit to append [BORROWS].
  * @return         EMBED_TRUE when the digit was appended, EMBED_FALSE when *args->mant already passed
  *                 MMGR_MUTO_MANT_MAX.
- * @note On EMBED_FALSE the mantissa is left as it was, so a caller can count the digits it had to drop.
+ * @note On EMBED_FALSE the mantissa is left as it was. A caller can count the digits it had to drop.
  * @warning args->digit must be an ASCII decimal digit, since the value added is args->digit minus '0'.
  * @warning Writes through args->mant [BORROWS].
  */
@@ -112,7 +112,7 @@ double mmgr_muto_scale(const TransformoCfg *args);
  *       this deliberately does not do.
  * @note Reads neither args->rest, args->above nor args->neg, so the result is always unsigned.
  * @warning Does not bound args->ex against MMGR_POW5_MAX the way mmgr_muto_scale does. Only
- *          MMGR_POW5_STEPS bits of the magnitude are walked, so a larger exponent loses its high
+ *          MMGR_POW5_STEPS bits of the magnitude are walked. A larger exponent loses its high
  *          bits and the value scaled is not the one asked for.
  */
 embed_u64 mmgr_muto_scale_to_u64(const TransformoCfg *args);

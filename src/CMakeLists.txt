@@ -9,7 +9,7 @@
 set(MMGR_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "include root")
 
 # One directory per module, each declaring only what it is and what it needs.
-# Ordered so a dependency is defined before whatever links it.
+# Ordered with each dependency defined before whatever links it.
 add_subdirectory(clz)
 add_subdirectory(impensa_ancorae_acus)
 add_subdirectory(ascii_persona_bitorum)
@@ -31,7 +31,7 @@ add_subdirectory(fractio)
 add_subdirectory(verba_scribo)
 add_subdirectory(numeros_scribo)
 
-# One aggregate per environment, so a test or a consumer links `mmgr_<env>` rather than naming
+# One aggregate per environment. A test or a consumer links `mmgr_<env>` rather than naming
 # seventeen modules and getting the list wrong.
 foreach(entry IN LISTS MMGR_ENVIRONMENTS)
   mmgr_env_name("${entry}" env defs)

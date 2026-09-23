@@ -5,7 +5,7 @@
 
 The directory form walks <dir>, renders every file whose extension is in
 WALK_EXTS, and writes <dest>/<name>_<ext>_<n>.png. Pages break on whole lines
-once the page holds kb_per_page kilobytes, so a line never splits across two.
+once the page holds kb_per_page kilobytes. A line never splits across two.
 """
 
 import os

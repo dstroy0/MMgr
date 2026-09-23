@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Move the modules from the names they arrived under onto this library's Latin category names.
 
-Driven entirely by tools/dev_env/names.tsv. Nothing about the naming lives in this file, so a change
+Driven entirely by tools/dev_env/names.tsv. Nothing about the naming lives in this file. A change
 of mind is an edit to the table rather than to the code.
 
     rename_modules.py symbols   mmgr_<infix>_<tail>, and the verbs inside the tail
@@ -20,7 +20,7 @@ into a single name. That is a miscompile no rename tool reports afterwards: the 
 succeeds, it just calls the wrong function. Every mode below computes its whole map first, refuses
 on a collision, and only then writes.
 
-The verb pass runs on the TAIL only, never on the whole symbol, so a module whose stem happens to
+The verb pass runs on the TAIL only, never on the whole symbol. A module whose stem happens to
 contain a verb is not rewritten by accident. Verbs are applied longest-first, or scratch_alloc is
 eaten by alloc and leaves scratch_capio behind.
 """
@@ -82,7 +82,7 @@ def mode_symbols(go):
     modules, infixes, verbs, _t, _n = load_table()
     SYM = re.compile(r"\bmmgr_([a-z0-9]+)_([a-z0-9_]+)\b")
 
-    # Whole-tree map first, so a collision is found before a single file is touched.
+    # Whole-tree map first. A collision is found before a single file is touched.
     mapping = {}
     for p in sources(SRC):
         text = io.open(p, encoding="utf-8", errors="replace").read()

@@ -12,7 +12,7 @@
  * @date 2026-09-01
  *
  * @note What this exists to settle. The soundness argument for an anchor uses only that a position is
- *       a position: an anchor is a condition copied out of the pattern, so anything holding the whole
+ *       a position: an anchor is a condition copied out of the pattern. Anything holding the whole
  *       pattern holds that condition. Nothing in it names a dimension, an order on positions, or a
  *       symbol. The sift bench measures byte strings and cannot tell whether that generality is real
  *       or whether the argument quietly leans on the line it was written over.
@@ -26,7 +26,7 @@
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
-// The domains and the anchor shuffles are drawn from this, so a run reproduces. Held to RFC 6234's
+// Drawing the domains and the anchor shuffles from this makes a run reproduce. Held to RFC 6234's
 // vectors by its own self test
 #include "mmgr_sha256.h"
 
@@ -40,7 +40,7 @@
 /**
  * @brief Points in every pattern this bench uses.
  *
- * @note One value across every domain, so a row from a volume and a row from a line are comparable.
+ * @note One value across every domain. A row from a volume and a row from a line are comparable.
  *       Eight points over a two symbol alphabet puts the pattern at one position in 256, which leaves
  *       real occurrences to lose in a domain of roughly four thousand positions. A pattern rare enough
  *       to occur once would make the invariant check a test of one sample.
@@ -55,7 +55,7 @@
 /**
  * @brief Distinct symbols in every domain here.
  *
- * @note Two. The alphabet is deliberately at the bottom of its range so a pattern recurs often enough
+ * @note Two. The alphabet is deliberately at the bottom of its range, where a pattern recurs often enough
  *       for a lost occurrence to have somewhere to hide. What the alphabet costs is measured in the
  *       sift bench; what it is made of is the question here, and two of anything is enough for that.
  */
@@ -144,7 +144,7 @@ static const char *rule_name(LatticeRule rule)
  * @param[out] into   Storage to fill [BORROWS].
  * @param[in]  length Bytes to write.
  * @param[in]  salt   Distinguishes one stream from another.
- * @note Every domain and every shuffle in this file comes from here, so a run reproduces exactly and
+ * @note Every domain and every shuffle in this file comes from here. A run reproduces exactly and
  *       two domains built with different salts share no structure.
  */
 static void draw_bytes(uint8_t *into, size_t length, uint64_t salt)
@@ -233,7 +233,7 @@ static uint32_t candidates_lattice(SameSymbol same, const void *domain, const si
  * @return                   How many of those an anchor rejected.
  * @note The same obligation the sift bench checks over byte strings, asked here where the positions
  *       are not on a line and the symbols may not be readable. An anchor is one of the pattern's own
- *       points, so anything matching every point matches that one. A nonzero return is a defect in
+ *       points. Anything matching every point matches that one. A nonzero return is a defect in
  *       this file and never a property of a geometry.
  */
 static uint32_t refused_lattice(SameSymbol same, const void *domain, const size_t *bases, size_t base_count,
@@ -434,7 +434,7 @@ static uint8_t s_cube[CUBE_SIDE * CUBE_SIDE * CUBE_SIDE];
  * @brief A domain whose symbols are complex numbers with irrational parts.
  *
  * @note Here to make one point concretely. Nothing below ever reads one of these values, compares
- *       their magnitudes, or orders them. The comparison is over their storage, so a symbol that
+ *       their magnitudes, or orders them. The comparison is over their storage. A symbol that
  *       cannot be written down exactly, or interpreted at all, is handled the same as a byte.
  */
 static double _Complex s_field[FIELD_LENGTH];
@@ -669,7 +669,7 @@ static ptrdiff_t s_hypercube_points[PATTERN_POINTS];
  *       point it has. Filling a corner of a hypercube instead would have placed all eight points
  *       inside three axes at every dimension above three, which would have measured a three
  *       dimensional pattern in a larger space and reported it as a higher dimensional result.
- * @note Seven points off the origin can touch at most seven axes, so at dimension eight the pattern
+ * @note Seven points off the origin can touch at most seven axes. At dimension eight the pattern
  *       spans seven of them. Every dimension up to seven is spanned completely.
  * @note Bases are every position where the whole pattern stays in bounds, which is the geometry the
  *       core reads. Nothing about the dimension reaches the core by any other route.

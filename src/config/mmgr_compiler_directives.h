@@ -267,7 +267,7 @@
  *       is 253 against 240.
  * @note Costs the walk's code at every site that takes it, so it belongs on the one hot function a
  *       caller cares about rather than on a translation unit.
- * @warning Needs the entry body visible, so a build without link-time optimization gets nothing from
+ * @warning Needs the entry body visible. A build without link-time optimization gets nothing from
  *          it. See MMGR_LTO.
  * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(flatten) is 0, which costs speed and never
  *          correctness.

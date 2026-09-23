@@ -59,7 +59,7 @@ broken, not to decide what to do next.
 nothing was built wrong. That is why every take answers `embed_bool` and no append returns anything:
 a short read is a case to handle, an overrun append is a bug to fix.
 
-Either way the flag is sticky, so a caller walks a span through several steps and tests once at the
+Either way the flag is sticky. A caller walks a span through several steps and tests once at the
 end rather than after each:
 
 ```c
@@ -74,7 +74,7 @@ EMBED_CALL(byteio.raw, OctetusCfg, .w = &w, .src = body, .bytes = n);
 MMGR_ASSERT(EMBED_CALL(spat.ok, SpatiumCfg, .span = w), "frame does not fit buf");
 ```
 
-A take that reaches past the end leaves the cursor where it was, so a caller that keeps reading after
+A take that reaches past the end leaves the cursor where it was. A caller that keeps reading after
 a failure still knows where it is. `spat.reset` is the only call that clears a flag.
 
 ## The ten entries
@@ -90,12 +90,12 @@ are already in hand, and a call to fetch them would be a second way to spell a m
 ## Gotchas
 
 **A span travels inside the argument pack, not as a pointer to one.** `SpatiumCfg` holds an
-`mmgr_span` in `.span` and an `mmgr_cspan` in `.cspan`, so a walk reads a copy and cannot change the
+`mmgr_span` in `.span` and an `mmgr_cspan` in `.cspan`. A walk reads a copy and cannot change the
 span you gave it. `reset` is the exception and takes `.at`, a pointer, because it is the one entry
 that must change one.
 
 **`from` takes `.buf` and `cfrom` takes `.cbuf`.** They are separate members on purpose: a
-`const uint8_t *` cannot reach the fill constructor, so a buffer you may not write cannot be turned
+`const uint8_t *` cannot reach the fill constructor. A buffer you may not write cannot be turned
 into a span you may write through.
 
 **`.cap` carries the extent for both constructors, and `.count` the byte count for `after`, `first`

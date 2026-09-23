@@ -11,7 +11,7 @@
  * @date 2026-08-29
  *
  * @note Packs bit fields of any width into a byte buffer without a bit ever crossing a call. The
- *       writer holds the partial byte, so a caller states widths and values and never does its own
+ *       writer holds the partial byte. A caller states widths and values and never does its own
  *       shifting or masking.
  * @note The writer is a value the caller owns, not state this module keeps. Two streams are two
  *       writers, and neither module state nor a lock is involved.
@@ -90,7 +90,7 @@ mmgr_bitor mmgr_bitor_init(const BitorumCfg *args);
  *
  * @param[in,out] args Writer, value and bit count [BORROWS].
  * @note Writes whole bytes only. Leftover bits stay in the writer's residue.
- * @note Does nothing when the writer's overflow is already set, so a caller may write a whole
+ * @note Does nothing when the writer's overflow is already set. A caller may write a whole
  *       stream and test overflow once at the end rather than after every call.
  * @note Sets the writer's overflow and clears its residue when the bytes would pass its cap.
  * @warning args->bit_count must not exceed 64, and nothing holds it there outside a
@@ -104,7 +104,7 @@ void mmgr_bitor_put(const BitorumCfg *args);
  *
  * @param[in,out] args Writer to finish [BORROWS].
  * @note mmgr_bitor_put writes whole bytes only. Without this call the residue is never written.
- * @note Does nothing when the residue is empty, so a second call writes nothing.
+ * @note Does nothing when the residue is empty. A second call writes nothing.
  * @note Does nothing when the writer's overflow is already set.
  * @note Only args->writer is read.
  * @warning Sets the writer's overflow when the byte would pass its cap.

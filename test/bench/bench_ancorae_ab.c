@@ -25,7 +25,7 @@
  * @note The counter is corpus symbol accesses. Every algorithm reads cells out of the same corpus and
  *       that is the resource they share, so counting reads compares the algorithms instead of
  *       comparing their inner loops. No timing appears here and no row is a performance claim.
- * @warning Every algorithm below is written here, so a defect in one would show as a result. All of
+ * @warning Every algorithm below is written here. A defect in one would show as a result. All of
  *          them are held to the occurrence set that a brute force scan finds, and a row that
  *          disagrees prints BROKEN and is not a number to read.
  */
@@ -103,7 +103,7 @@ static uint8_t s_ab_uniform[AB_CORPUS_BYTES];
  * @brief Four regions of a thousand bytes each, laid end to end.
  *
  * @note The case every other corpus here fails to be. English, then C source, then fixed width
- *       records, then uniform bytes, so a search crosses three boundaries and anything it learned
+ *       records, then uniform bytes. A search crosses three boundaries and anything it learned
  *       about one region is wrong in the next. A field accumulated over the whole thing describes no
  *       part of it, which is the only condition under which discarding the field can pay.
  */
@@ -735,7 +735,7 @@ static AbResult ab_interrogative(const uint8_t *corpus, size_t corpus_len, const
  *       so every offset starts at its own ceiling and can only be revised downward. The largest
  *       ceiling is the last offset, so the search opens as Horspool and gives up ground only where an
  *       answer has shown the ceiling to be out of reach.
- * @note The running value forgets, so an offset that stops paying loses its lead and the search
+ * @note The running value forgets. An offset that stops paying loses its lead and the search
  *       reconsiders. A corpus that changes character partway through is the case that needs it.
  */
 static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle, size_t needle_len,
@@ -855,7 +855,7 @@ static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const
                 // answers land where the background already sits and carry nothing, so they are
                 // dropped whole and never reach the estimate. An answer far enough off the ambient
                 // level is signal, and it is applied at full weight. What is not reinforced settles
-                // back to the ceiling it can be proved to have, so a deviation has to keep being paid
+                // back to the ceiling it can be proved to have. A deviation has to keep being paid
                 // for to be kept
                 const double excess = would_travel - background;
                 const double deadband = 0.25 * background;
@@ -879,7 +879,7 @@ static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const
             const double trend = error - last_error[offset];
 
             history[offset] += error;
-            // Bounded so a long run of one sign cannot drive the accumulated term without limit
+            // Bounded to stop a long run of one sign driving the accumulated term without limit
             if (history[offset] > 64.0)
             {
                 history[offset] = 64.0;
@@ -1049,7 +1049,7 @@ static AbResult ab_free_order(const uint8_t *corpus, size_t corpus_len, const ui
     // indexing defect in this function, which the occurrence check at the end of a search cannot see.
     //
     // Checked once over the survivors instead of after every probe. The alive array only ever loses
-    // entries, so an alignment consistent with the whole probe set is consistent with every prefix of
+    // entries. An alignment consistent with the whole probe set is consistent with every prefix of
     // it, and the per step form costs a factor of the probe count for no further coverage.
     if (mirror != NULL)
     {
@@ -1085,7 +1085,7 @@ static AbResult ab_free_order(const uint8_t *corpus, size_t corpus_len, const ui
         }
         (*depth)++;
 
-        // Proposition 1 says every occurrence survives every anchor set, so a survivor set the same
+        // Proposition 1 says every occurrence survives every anchor set. A survivor set the same
         // size as the occurrence set contains exactly the occurrences and nothing else. Confirming
         // then distinguishes nothing, and it is the only step that costs the needle's whole length
         if (confirm == 0u)
@@ -1557,7 +1557,7 @@ static double ab_spacing(const uint8_t *corpus, size_t length, unsigned *which, 
         // A boundary has to be regular enough to find and irregular enough to say where anything is,
         // which Section 4.12.1 measures: a perfectly regular one fixes the phase of its own period and
         // nothing further. Ruled decoration and padding sit at the bottom of this statistic for that
-        // reason, so a candidate below the floor is a ruled line and not a language. Every real
+        // reason. A candidate below the floor is a ruled line and not a language. Every real
         // boundary measured here sits between 0.21 and 0.41
         if (dispersion < 0.05)
         {
@@ -1641,7 +1641,7 @@ static void ab_language(const char *name, const uint8_t *corpus, size_t corpus_l
  *       A needle carrying $k$ boundaries carries $k-1$ gaps between them, and any true occurrence has
  *       to reproduce that run of gaps exactly. So the run is a filter, and the question is how much it
  *       removes compared with the bytes it is made of.
- * @note Why it might beat the symbols. A boundary symbol is common, so as an anchor it is poor: the
+ * @note Why it might beat the symbols. A boundary symbol is common, which makes it a poor anchor: the
  *       space is near a fifth of English and two of them admit one position in twenty five. The gaps
  *       between them are not independent, which is the property that defeats every product rule in
  *       this document, and here it works the other way: a run of specific gaps is far less likely than
@@ -2378,7 +2378,7 @@ static size_t ab_rarest(const uint8_t *needle, size_t length)
  * @param[in] salt   Varies the choice between searches.
  * @return           An offset inside the needle, chosen without looking at it.
  * @note The arm the deterministic rules cannot cover. Rarest, last and first are all functions of the
- *       needle, so an adversary holding the needle knows where the anchor will land and can build a
+ *       needle. An adversary holding the needle knows where the anchor will land and can build a
  *       corpus that defeats it. A salted offset is a function of the salt, and the same needle
  *       searched twice under two salts anchors in two places.
  * @note Drawn from SHA-256 so the choice is reproducible from the salt and carries no structure the
@@ -2473,7 +2473,7 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
     unsigned unique_over = 0u;
 
     // Reconstruction failures across every probe of every arm below. The algebra says this stays zero
-    // at every step, so any other value is a defect and not a property of a corpus
+    // at every step. Any other value is a defect and not a property of a corpus
     uint64_t mirror_error = 0u;
 
     const size_t step = (corpus_len - needle_len) / AB_SAMPLES;
@@ -2708,7 +2708,7 @@ static size_t ab_fill_mixed(uint8_t *into, size_t length)
 int main(int argc, char **argv)
 {
     // A corpus named on the command line is measured for its boundary and its unit statistics only.
-    // Those two are one pass each, so a real text can be used, which the built in corpora are far too
+    // Those two are one pass each. A real text can be used, which the built in corpora are far too
     // small to stand in for when the question is what every language does
     if (argc > 1)
     {

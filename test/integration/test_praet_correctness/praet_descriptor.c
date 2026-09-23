@@ -29,7 +29,7 @@ embed_word praet_descriptor_chain_length(const PraetDescriptor *first, embed_wor
     embed_word reached = 1u;
     const PraetDescriptor *walk = first->next;
 
-    // Stops at the head as well as at the end, so a cycle is counted once instead of followed. The
+    // Stops at the head as well as at the end. A cycle is counted once instead of followed. The
     // limit is what covers a chain that closes somewhere other than the head
     while ((walk != NULL) && (walk != first) && (reached < limit))
     {

@@ -81,14 +81,14 @@ no assert — exactly one producer advances `head` and exactly one consumer adva
 is the whole reason acquire and release ordering is enough and no entry on those two needs a
 read-modify-write.
 
-**`put` is all or nothing.** It checks the whole span against `vacant` first, so a partial write
+**`put` is all or nothing.** It checks the whole span against `vacant` first. A partial write
 never happens and a half span is never visible. It answers `EMBED_FALSE` instead of writing what
 fits.
 
 **`peek` copies what you ask for whether or not it arrived.** Read `available` first. A count above
 the ring's capacity is held there, since one lap is all two runs can express.
 
-**Nothing is ever zeroed.** A loculus keeps its bytes after a drop, so a restream can run again over
+**Nothing is ever zeroed.** A loculus keeps its bytes after a drop. A restream can run again over
 the same region. Bytes read are not scrubbed behind the cursor either.
 
 **Capacity must be a power of two.** The index wrap is a mask. `nsegs` likewise, and at most `cap`.
@@ -172,7 +172,7 @@ moves rather than in a third entry to pick.
 | ------------------- | --------- | -------------------------------------------------------------------------------------- |
 | `load`, `put`       | unaligned | the address may be anything                                                            |
 | `al_load`, `al_put` | aligned   | you know the alignment holds                                                           |
-| `mmgr_migro_word`   | may alias | the type the above move, so a load cannot be reordered against a store of another type |
+| `mmgr_migro_word`   | may alias | the type the above move. A load cannot be reordered against a store of another type |
 
 ```c
 const mmgr_migro_word any = EMBED_CALL(proxim.load, ProximusCfg, .at = p);

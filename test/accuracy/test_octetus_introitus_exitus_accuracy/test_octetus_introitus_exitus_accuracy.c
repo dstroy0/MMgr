@@ -444,7 +444,7 @@ void test_a_run_reaching_past_the_end_leaves_the_cursor_where_it_started(void)
  * @note The field is the span's whole buffer, and the claim is that the value ends at its last byte
  *       with zeros in front. A value left-aligned or centred is a different number to any reader of
  *       the field.
- * @note Leading zero bytes of the source are skipped before the width is tested, so an integer
+ * @note Leading zero bytes of the source are skipped before the width is tested. An integer
  *       carrying a sign byte still fits a field of its own size. That case is offered at every field
  *       width.
  * @note The cursor is checked to end at the field's cap, since the field is written whole and not

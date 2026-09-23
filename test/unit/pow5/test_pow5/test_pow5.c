@@ -26,7 +26,7 @@
 /**
  * @brief Expands to the number of entries mmgr_pow5_up actually holds.
  *
- * @note Sized from the array rather than from MMGR_POW5_STEPS, so a table that gained or lost an
+ * @note Sized from the array rather than from MMGR_POW5_STEPS. A table that gained or lost an
  *       entry is walked in full without an edit here. Taking the count from the library would let
  *       the library decide how much of itself this suite reads.
  * @note The cast takes the sizeof quotient from size_t into the int a loop counter carries. The
@@ -37,7 +37,7 @@
 /**
  * @brief Expands to the number of entries mmgr_pow5_down actually holds.
  *
- * @note Sized from its own array rather than shared with MMGR_POW5_UP_ENTRIES, so a change to one
+ * @note Sized from its own array rather than shared with MMGR_POW5_UP_ENTRIES. A change to one
  *       table cannot silently set the bound for walks over the other.
  */
 #define MMGR_POW5_DOWN_ENTRIES ((int)(sizeof mmgr_pow5_down / sizeof mmgr_pow5_down[0]))
@@ -54,7 +54,7 @@ EMBED_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == MMGR_POW5_STEPS, "mmgr_pow5_up is no
  * @brief Asserts mmgr_pow5_down holds one reciprocal per mmgr_pow5_up entry.
  *
  * @note The walk picks one table or the other by the sign of the exponent and indexes both the same
- *       way, so a length that differs between them reads past the end of the shorter one.
+ *       way. A length that differs between them reads past the end of the shorter one.
  */
 EMBED_STATIC_ASSERT(MMGR_POW5_DOWN_ENTRIES == MMGR_POW5_UP_ENTRIES,
                     "mmgr_pow5_down does not hold one reciprocal per mmgr_pow5_up entry");
@@ -70,7 +70,7 @@ EMBED_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == 9, "the pow5 tables changed length; 
 /**
  * @brief Asserts MMGR_POW5_MAX expands to 511.
  *
- * @note pow5.h asserts the same constant is at least 511. This pins the exact value, so a change to
+ * @note pow5.h asserts the same constant is at least 511. This pins the exact value. A change to
  *       the expansion that still cleared that floor is caught here.
  */
 EMBED_STATIC_ASSERT(MMGR_POW5_MAX == 511, "MMGR_POW5_MAX no longer expands to 511");
@@ -206,7 +206,7 @@ void test_the_widest_exponent_fits_the_narrowest_word(void)
  * @note 511 is written as a literal rather than as MMGR_POW5_MAX. That constant expands to
  *       ((1 << MMGR_POW5_STEPS) - 1), which is what this loop computes, so comparing the two would
  *       assert a value against itself and hold for any entry count.
- * @note pow5.h states that a double's decimal exponent stays well inside 511, so a walk reaching it
+ * @note pow5.h states that a double's decimal exponent stays well inside 511. A walk reaching it
  *       covers every value one can hold.
  */
 void test_the_table_walk_reaches_the_exponent_range_a_double_needs(void)

@@ -18,10 +18,10 @@
 #
 # Every environment in MMGR_ENVIRONMENTS gets its own target, named mmgr_<module>_<env>. That is the
 # whole point of the widths being compile-time knobs: a 16-bit scan lane is exercised on this
-# machine by defining it, so a change that only breaks that lane fails a build here rather than
+# machine by defining it. A change that only breaks that lane fails a build here rather than
 # waiting for someone to own the hardware.
 #
-# DEPS names modules, not targets. The environment suffix is appended here, so a module never has to
+# DEPS names modules, not targets. The environment suffix is appended here. A module never has to
 # know which environment it is being built for and cannot accidentally link across two of them -
 # which would mix objects compiled with different word widths into one binary.
 
@@ -44,7 +44,7 @@ function(mmgr_add_module name)
 
     if(ARG_HEADER_ONLY)
       # No .c to compile, but it still carries includes, definitions and dependencies, and it still
-      # has to exist once per environment so a consumer can link it without crossing width settings.
+      # has to exist once per environment for a consumer to link it without crossing width settings.
       add_library(${target} INTERFACE)
       set(scope INTERFACE)
     else()
@@ -74,7 +74,7 @@ function(mmgr_add_module name)
 
     # Capabilities ride the module target, not mmgr_flags, because a suite links the module and
     # deliberately does not link mmgr_flags. On mmgr_flags the define would reach src/ and not the
-    # cases that exercise it, so a suite could be built believing a feature absent that the library
+    # cases that exercise it. A suite could be built believing a feature absent that the library
     # was compiled with.
     #
     # Every capability, not only the new one. Before this they reached mmgr_add_suite and stopped
@@ -96,7 +96,7 @@ function(mmgr_add_module name)
     # definitions src/ meets on this environment.
     #
     # On the module target rather than only the suite, because the asserts being armed are the ones
-    # compiled into src/. Carried at ${scope}, so a suite linking this module inherits it.
+    # compiled into src/. Carried at ${scope}. A suite linking this module inherits it.
     if(env STREQUAL "checks")
       target_compile_options(${target} ${scope}
                              "-include" "${CMAKE_SOURCE_DIR}/test/support/mmgr_host_traps.h")

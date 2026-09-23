@@ -244,7 +244,7 @@ ATTRS = {
 }
 # --- this project's prefixes -------------------------------------------------
 # The one place a fork of this tool has to be edited. Every rule below that names a project prefix
-# builds its regex from here rather than spelling the prefix inline, so adding a second spelling is
+# builds its regex from here rather than spelling the prefix inline. Adding a second spelling is
 # one edit instead of four. If one is ever added, order it longest first: a shorter alternative
 # that matches first leaves the tail of the longer spelling behind as the stem.
 PREFIX_UPPER = ("MMGR",)
@@ -311,7 +311,7 @@ def stripped(p):
 
 
 class Blinder(object):
-    """One naming table for a whole run, so a name crossing from the .h into the .c stays itself.
+    """One naming table for a whole run. A name crossing from the .h into the .c stays itself.
 
     The categories are the shape's own, not a compiler's. Nothing here parses C: the pass has to be
     CONSISTENT, not correct, because its job is to remove meaning rather than to recover it. A name
@@ -410,7 +410,7 @@ class Blinder(object):
         return seen[region]
 
     def whole(self, text):
-        """`text` blinded in one pass, so a literal and a directive can be told from a name.
+        """`text` blinded in one pass. A literal and a directive can be told from a name.
 
         Not line by line. Three things in a C file look like identifiers and are not:
 
@@ -477,7 +477,7 @@ def show_blind(p, state):
 
 
 def show_claims(p, _state):
-    """Every comment, with the code line it introduces, so a claim can be met with its subject."""
+    """Every comment, with the code line it introduces. A claim can be met with its subject."""
     text = io.open(p, encoding="utf-8", errors="replace").read()
     m = code_mask(text)
     lines = text.splitlines()

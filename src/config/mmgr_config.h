@@ -1,7 +1,7 @@
 /**
  * @brief Build-time settings: widths, region sizes, feature switches and the region carving macros.
  *
- * @note The tunables are guarded by #ifndef so a build may set them first; MMGR_SWAR_BITS is the exception.
+ * @note Each tunable sits behind #ifndef, which lets a build set it first; MMGR_SWAR_BITS is the exception.
  */
 #ifndef MMGR_CONFIG_H
 #define MMGR_CONFIG_H
@@ -57,7 +57,7 @@
 /**
  * @brief Width in bits of one SWAR word, always equal to MMGR_WORD_BITS.
  *
- * @warning Any earlier definition is discarded, so a build cannot set the two widths apart.
+ * @warning Any earlier definition is discarded. A build cannot set the two widths apart.
  */
 #ifdef MMGR_SWAR_BITS
 #undef MMGR_SWAR_BITS
@@ -80,7 +80,7 @@
  * @param[in] msg  String literal describing the expectation.
  * @note An expectation the library asserts is one a correct caller cannot break, so the shipping
  *       form pays nothing for it: it expands to a sizeof, which type checks cond and never evaluates
- *       it. The checks build evaluates it instead and stops on the spot, so a caller that broke one
+ *       it. The checks build evaluates it instead and stops on the spot. A caller that broke one
  *       fails a test rather than carrying on with the damage done.
  * @note A build may define its own before including this header, and neither form below is then used.
  *       A target with no stderr and no abort wants that.

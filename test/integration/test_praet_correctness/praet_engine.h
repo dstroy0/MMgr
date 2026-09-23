@@ -19,7 +19,7 @@
  * @note Channels here are logical. One engine schedules all of them, which is what a part with fewer
  *       channels than a program wants actually does, and it is why completions can come back in an
  *       order the submissions did not.
- * @note Every behavior is scripted. Nothing decides anything at run time, so a failure is a fixture
+ * @note Every behavior is scripted. Nothing decides anything at run time. A failure is a fixture
  *       the next run reproduces exactly.
  */
 #ifndef MMGR_TEST_PRAET_ENGINE_H
@@ -54,7 +54,7 @@ typedef enum
  * @note The two are the same engine with one difference: whether it can report without being asked.
  *       A part with a spare interrupt takes the first; a part without one falls back to the second,
  *       which is what makes the module practical on a part that has no vector to give it.
- * @note Every scenario runs on both. The fixture is the same and only the arm changes, so a
+ * @note Every scenario runs on both. The fixture is the same and only the arm changes. A
  *       difference in outcome is the arm and nothing else.
  */
 typedef enum
@@ -115,7 +115,7 @@ typedef struct
  * @param complete_when When the completions are delivered, as a PraetCompleteWhen.
  * @param completions   How many completion callbacks this reaction delivers. Two for one transfer is
  *                      a case no part produces and the library still has to survive.
- * @param moved         Bytes each completion reports. Free of the submitted count on purpose, so a
+ * @param moved         Bytes each completion reports. Free of the submitted count on purpose. A
  *                      short transfer and an over-count are both expressible.
  * @param settle_ticks  Read by an open reaction. Hook calls the channel spends settling before it
  *                      will take a transfer. Zero is a channel usable at once.
@@ -127,7 +127,7 @@ typedef struct
  *                      existed does.
  * @note A reaction that refuses delivers no completion whatever the other members hold. Refusing and
  *       reporting a completion is not a state hardware reaches.
- * @note progress is last on purpose. The generated scenarios initialize these positionally, so a
+ * @note progress is last on purpose. The generated scenarios initialize these positionally. A
  *       field at the end leaves every one of them reporting no progress and behaving as it did.
  */
 typedef struct

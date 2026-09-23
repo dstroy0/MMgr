@@ -15,9 +15,9 @@
  * @note Only the persistent tier walks its free list and splits a cell. A temporary allocation moves
  *       the top down and does nothing else.
  * @note A cell from either tier can be released on its own. The release reads which tier a cell came
- *       from off its address, so a caller does not name it. The temporary tier can also be rewound
+ *       from off its address. A caller does not name it. The temporary tier can also be rewound
  *       to a mark, or reset in one step.
- * @note Nothing is zeroed on allocation, so a cell holds whatever the last prisoner left in it. Two
+ * @note Nothing is zeroed on allocation. A cell holds whatever the last prisoner left in it. Two
  *       of the five releases zero the cell first. A cellblock's declaration decides which guard its
  *       entries reach.
  * @note Reaches nothing outside config.
@@ -29,7 +29,7 @@
  *
  * @note size counts the payload alone. Every walk here adds CARCER_HDR itself to step to the next
  *       cell, and every fit test compares against the payload.
- * @note The header lies immediately ahead of the bytes handed out, so a cell's header is reached by
+ * @note The header lies immediately ahead of the bytes handed out. A cell's header is reached by
  *       subtracting CARCER_HDR from its address and no tier is walked to find it.
  */
 typedef struct
@@ -43,7 +43,7 @@ typedef struct
  *
  * @note The rounding is a mask, and a mask rounds only because MMGR_CARCER_ALIGN is a power of two,
  *       which locus_carcerum.h asserts.
- * @note Charged on top of the payload every time a cell is allocated, so an allocation of size bytes
+ * @note Charged on top of the payload every time a cell is allocated. An allocation of size bytes
  *       costs the gap this much more than size.
  */
 #define CARCER_HDR ((sizeof(CarcerCell) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
@@ -69,7 +69,7 @@ typedef struct
  * @return         want rounded up to a multiple of MMGR_CARCER_ALIGN, and want itself when it
  *                 already is one.
  * @note The mask is what rounds, which holds only because MMGR_CARCER_ALIGN is a power of two.
- * @warning MMGR_CARCER_ALIGN - 1 is added before the mask, so a want within a word of SIZE_MAX wraps
+ * @warning MMGR_CARCER_ALIGN - 1 is added before the mask. A want within a word of SIZE_MAX wraps
  *          to 0. Every allocation rounds its request through here, and a request that wraps is met
  *          with a small cell rather than refused.
  */
@@ -88,7 +88,7 @@ EMBED_INLINE size_t carcer_round(size_t want)
  *       through its own volatile pointer, and does not come through here.
  * @note The stores are volatile, so clearing bytes nothing reads afterwards is not dropped as dead
  *       work.
- * @warning want comes off *left with no test, so a want above *left wraps it. Both call sites hold
+ * @warning want comes off *left with no test. A want above *left wraps it. Both call sites hold
  *          want at or below what is left.
  * @warning *walk must be writable for want bytes.
  */
@@ -150,7 +150,7 @@ EMBED_INLINE size_t carcer_next(const CarcerCellBlock *cellblock, size_t off)
  * @return              Offset of its header in the cellblock.
  * @warning at is taken to be a cell of this cellblock and nothing here tests that it is. Both
  *          releases bound their address with mmgr_who_owns_buf before reaching this, so what arrives
- *          lies inside the cellblock. That bound does not say a cell begins there, so an address
+ *          lies inside the cellblock. That bound does not say a cell begins there. An address
  *          inside these bytes but off a cell boundary still yields an offset reading bytes which are
  *          not a header.
  */
@@ -233,9 +233,9 @@ EMBED_INLINE void carcer_split(const CarcerCellBlock *cellblock, CarcerCell *wal
  * @return              The cell, or NULL when no cell in the tier fits [RETURNS OWNERSHIP].
  * @note First fit, not best fit. A best fit would walk the whole tier to save slack the split
  *       already recovers.
- * @note The cell is marked used inside the walk, so a tier that yields a cell has already given it
+ * @note The cell is marked used inside the walk. A tier that yields a cell has already given it
  *       away. There is no found-but-not-taken result.
- * @warning The whole tier is walked in the failing case, so an allocation on a tier holding many
+ * @warning The whole tier is walked in the failing case. An allocation on a tier holding many
  *          cells costs their number.
  */
 EMBED_INLINE void *carcer_fit(const CarcerCellBlock *cellblock, CarcerTier tier, size_t want)
@@ -303,7 +303,7 @@ EMBED_INLINE size_t carcer_middle(const CarcerCellBlock *cellblock)
  * @param[in] cellblock Cellblock whose tier to walk [BORROWS].
  * @param[in] tier      Tier to merge.
  * @return              Offset of the last cell, or tier.lo when the tier is empty.
- * @note A merged cell is revisited rather than stepped past, so a run of three or more collapses in
+ * @note A merged cell is revisited rather than stepped past. A run of three or more collapses in
  *       one pass. The walk still ends, because the revisited cell is larger by what it swallowed and
  *       the step recomputed from it reaches further than the one before.
  * @note The last offset is returned from this walk so trimming needs no second one.
@@ -379,7 +379,7 @@ EMBED_INLINE void carcer_hw(size_t *hw, size_t used)
  * @return                  The cell, or NULL when the gap cannot meet it [RETURNS OWNERSHIP].
  * @note Both tiers reach this, so the size test, the allocation and the high-water mark are written
  *       once.
- * @note The test is the header plus the payload against the gap, so a want the size of the whole gap
+ * @note The test is the header plus the payload against the gap. A want the size of the whole gap
  *       is refused.
  * @note Fails closed. A request the gap cannot meet moves no boundary at all.
  */
@@ -464,7 +464,7 @@ void *mmgr_temporary_buf_alloc(CarcerCellBlock *cellblock, size_t size)
  * @param[in,out] prisoner First byte to clear [BORROWS].
  * @param[in]     size     Bytes to clear.
  * @note The stores are volatile, so clearing bytes nothing reads afterwards is not dropped as dead
- *       work. Whole words go down between the two edges, and volatile counts per access, so a word
+ *       work. Whole words go down between the two edges, and volatile counts per access. A word
  *       store is kept for the same reason a byte store is.
  * @warning prisoner must be writable for size bytes.
  */
@@ -506,7 +506,7 @@ void mmgr_zero_buf(void *prisoner, size_t size)
  *
  * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
  * @param[in]     prisoner  First byte of the cell [TAKES OWNERSHIP].
- * @note Which tier the cell came from is read from its address rather than named by the caller, so a
+ * @note Which tier the cell came from is read from its address rather than named by the caller. A
  *       release cannot be given to the wrong tier.
  * @note After coalescing, an empty cell at the tier's own boundary is returned to the gap, so the
  *       tiers recover. That boundary is the last cell on the persistent tier and the first on the
@@ -571,7 +571,7 @@ void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner)
  * @param[in,out] prisoner  First byte of the cell, zeroed before release [TAKES OWNERSHIP].
  * @note The one step that separates a zeroing release from a plain one. The release itself is
  *       shared.
- * @note The extent comes from the cell's own header, so a caller cannot under-zero a cell.
+ * @note The extent comes from the cell's own header. A caller cannot under-zero a cell.
  * @note A NULL prisoner returns without touching the cellblock.
  * @warning prisoner is dead once this returns. The cellblock may hand those bytes out again.
  * @warning A prisoner from another cellblock stops the program through MMGR_FATAL, ahead of the
@@ -624,7 +624,7 @@ size_t mmgr_temporary_buf_mark(const CarcerCellBlock *cellblock)
  * @note A mark past the cellblock's size, or below the current top, is one this cellblock never
  *       reported, and either returns without moving the tier.
  * @warning The two tests bound the mark to the cellblock. They do not tell one of its own marks from
- *          another, so an older mark still releases every cell taken since it.
+ *          another. An older mark still releases every cell taken since it.
  * @warning Every temporary cell taken since mark is dead once this returns. Nothing is zeroed, so
  *          such a pointer still dereferences and reads whatever the next allocation puts there.
  */
@@ -647,7 +647,7 @@ void mmgr_temporary_buf_release(CarcerCellBlock *cellblock, size_t mark)
  * @note Zeroes before the top moves, so the bytes are already zero at the instant they become
  *       available. Reclaiming first would leave a window in which the very next allocation sees
  *       them.
- * @note The extent comes from the two tops rather than a cell header, so a run of allocations is
+ * @note The extent comes from the two tops rather than a cell header. A run of allocations is
  *       cleared in one pass and a caller cannot under-zero by naming fewer bytes than it holds.
  * @note The zeroing and the restore now agree on which marks they accept. A mark past the
  *       cellblock's size zeroes nothing and moves nothing, since mmgr_temporary_buf_release turns it
@@ -705,7 +705,7 @@ embed_bool mmgr_who_owns_buf(const CarcerCellBlock *cellblock, const void *at)
  *
  * @param[in] cellblock Cellblock to read [BORROWS].
  * @return              The free gap, as carcer_middle reports it.
- * @note An allocation out of that gap needs a cell header from the same bytes, so a request of
+ * @note An allocation out of that gap needs a cell header from the same bytes. A request of
  *       exactly this many cannot be met.
  * @warning The two tiers are read one after the other, so the answer is a snapshot. carcer_middle
  *          carries what that costs a caller.
@@ -722,7 +722,7 @@ size_t mmgr_buf_available(const CarcerCellBlock *cellblock)
  * @return         The rounded count.
  * @note A size of 0 rounds to 0. The allocators carry a request of 0 up to one word before rounding
  *       it.
- * @warning MMGR_CARCER_ALIGN - 1 is added before the mask, so a size within a word of SIZE_MAX wraps
+ * @warning MMGR_CARCER_ALIGN - 1 is added before the mask. A size within a word of SIZE_MAX wraps
  *          to 0.
  */
 size_t mmgr_align_up_buf(size_t size)

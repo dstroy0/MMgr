@@ -41,5 +41,5 @@ argument that does not change is hoisted out of the loop even with the memory cl
 the loop left behind times a counter while the work happens once. A bench whose reading does not
 move when `SPREAD` changes is almost certainly doing that.
 
-`results/` holds committed CSVs so a change in these numbers is visible as a diff. They are a record
+`results/` holds committed CSVs, which makes a change in these numbers visible as a diff. They are a record
 of one machine on one day, not a threshold — nothing fails a build over them.

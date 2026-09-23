@@ -77,7 +77,7 @@ Three things in that listing are the library's whole personality:
 
 ## Linking it
 
-`src/` is the include root, so a consumer adds one include directory and reaches everything as
+`src/` is the include root. A consumer adds one include directory and reaches everything as
 `<module>/<module>.h`, or takes the lot through `mmgr.h`.
 
 ```cmake

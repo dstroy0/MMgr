@@ -44,7 +44,7 @@ for.
 **Cap the job count.** ninja defaults to cores + 2, and a full IDF tree at that width took the build
 machine down.
 
-Each image prints one `DB ` line per operation and repeats every few seconds, so a capture opened at
+Each image prints one `DB ` line per operation and repeats every few seconds. A capture opened at
 any time catches a whole pass.
 
 ## Two things the harness has to get right

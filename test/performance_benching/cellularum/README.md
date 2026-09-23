@@ -27,7 +27,7 @@ other's build directory pointing at a config that no longer matches the part it 
 Cap the job count. ninja defaults to cores + 2, and a full IDF tree at that width took this machine
 down.
 
-The image prints one `DB ` line per operation and repeats every five seconds, so a capture opened at
+The image prints one `DB ` line per operation and repeats every five seconds. A capture opened at
 any time catches a whole pass.
 
 ## LTO is not optional

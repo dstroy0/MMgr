@@ -13,14 +13,14 @@
  *
  * @note Nothing here runs. `harness.py targets` compiles it once per part, with the expectations
  *       arriving as EXPECT_ defines from that table.
- * @note The expectations are not read out of the header, so a header that decided something else
+ * @note The expectations are not read out of the header. A header that decided something else
  *       fails a row instead of agreeing with itself.
  * @note Carries no cases, so Unity's generator walks past it and mmgr_add_suite does not build it.
  */
 #include "praet_ordo.h"
 
 // The descriptor declarators, which praet_ordo.h does not reach. praet_descriptor.h includes it, not
-// the other way round, so a probe that wants both names it
+// the other way round. A probe that wants both names it
 #include "praet_descriptor.h"
 
 EMBED_STATIC_ASSERT(PRAET_PLATFORM_ARM == EXPECT_ARM, "the ARM flag is not what this target gives");
@@ -46,7 +46,7 @@ ParsMemoriaeInternae(s_probe_pool, 256);
 PraetChannel(s_probe_context, 0, s_probe_pool);
 
 /**
- * @brief A second pool, so a descriptor has somewhere to read from and somewhere else to write to.
+ * @brief A second pool. A descriptor has somewhere to read from and somewhere else to write to.
  */
 ParsMemoriaeInternae(s_probe_source, 256);
 

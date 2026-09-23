@@ -71,7 +71,7 @@ being compared to. The walks have since been reworked and `len` is at 2.547, so 
 is wider now than that measurement records; it is left as taken rather than scaled by guesswork.
 
 @warning A toolchain that cannot do link-time optimization does not give a slower build of the same
-library; it gives a different one. ESP-IDF appends `-fno-lto` to every link unconditionally, so an
+library; it gives a different one. ESP-IDF appends `-fno-lto` to every link unconditionally. An
 IDF project has to take that flag back out - see `test/performance_benching` for how.
 
 ## On the parts it ships to
@@ -152,14 +152,14 @@ for. A long scan amortises the call and will not notice: the same measurement at
 against 240. And it costs the walk's code at every site that takes it, so it belongs on the one hot
 function rather than on a translation unit.
 
-`EMBED_FLATTEN` needs the entry body visible, so a build without link-time optimization gets nothing
+`EMBED_FLATTEN` needs the entry body visible. A build without link-time optimization gets nothing
 from it. It resolves to the attribute on every toolchain in the target list - Xtensa, RISC-V, and ARM
 from Cortex-M3 up - and expands to nothing anywhere else, which costs speed and never correctness.
 
 What remains above 1.00 at eight bytes is `find`, at 134 cycles against 106. That is prologue - two
 broadcasts, a span, a reach and a word count settled before the first byte is read - and routing
 short haystacks past it has been tried twice and lost twice. Both attempts are written up in
-`test/performance_benching/cellularum/README.md` so a third is not started from scratch.
+`test/performance_benching/cellularum/README.md`, and a third starts from there instead of from scratch.
 
 ## Writing a bench
 

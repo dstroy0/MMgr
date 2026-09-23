@@ -12,7 +12,7 @@
  *
  * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note Compiled only where PRAET_PROCURATOR is 1. The header turns every entry into a macro expanding
- *       to nothing otherwise, so a build that did not ask for this carries none of it.
+ *       to nothing otherwise. A build that did not ask for this carries none of it.
  * @warning Included by test_praet_correctness.c rather than compiled on its own, the same way the
  *          engine and the schedule are.
  */
@@ -30,7 +30,7 @@
 /**
  * @brief Times each core transition was taken, indexed by the state before and the state after.
  *
- * @note The diagonal stays zero. The one writer skips a word that did not change, so a transition to
+ * @note The diagonal stays zero. The one writer skips a word that did not change. A transition to
  *       the state a channel was already in never reaches this.
  */
 static unsigned long s_core_moves[PRAET_PROCURATOR_CORES][PRAET_PROCURATOR_CORES];

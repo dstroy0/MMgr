@@ -136,7 +136,7 @@
 // development, driven here before any of it is proposed for src
 #include "praet_ordo.c"
 
-// The examination arm's counters. Every entry compiles out where PRAET_PROCURATOR is 0, so a build that
+// The examination arm's counters. Every entry compiles out where PRAET_PROCURATOR is 0. A build that
 // did not ask for it carries none of this
 #include "praet_procurator.c"
 
@@ -234,7 +234,7 @@ static const PraetCallbackCfg s_completion_binding = {
  * @param[in] user  Pointer registered alongside this callback [BORROWS].
  * @note The join. A port reports a finished transfer through this callback, and the schedule learns a
  *       channel is no longer busy from the same event. Nothing else can tell it: praet_ordo.c
- *       predicts no duration, so a completion arrives here or it does not arrive.
+ *       predicts no duration. A completion arrives here or it does not arrive.
  * @note This is the application's half. The library does not own the schedule yet, so what wires the
  *       port's events to it is the code that registered the callback, which is what a real
  *       integration writes.
@@ -318,7 +318,7 @@ static void praet_make_call(const PraetProgramStep *made, uint16_t *opens, uint1
  * @brief Runs one scenario and asserts every count and the completion order.
  *
  * @param[in] scenario Scenario to run [BORROWS].
- * @note Every assertion carries the scenario's name, so a ctest failure says which row broke and on
+ * @note Every assertion carries the scenario's name. A ctest failure says which row broke and on
  *       which arm without anyone reading the table.
  */
 static void praet_check_one(const PraetScenario *scenario)
@@ -371,7 +371,7 @@ void test_the_control_is_clean(void)
  * @brief Checks every scenario, on both arms, against the outcome the generator computed.
  *
  * @note The expectations come from gen_praet_scenarios.py, which walks each program against its
- *       script. Nothing here derives them, so agreement is evidence rather than a tautology.
+ *       script. Nothing here derives them. Agreement is evidence rather than a tautology.
  */
 void test_every_scenario_matches_its_oracle(void)
 {
@@ -413,7 +413,7 @@ PraetChannel(s_schedule, 4, s_case_pool);
  *
  * @param[in] channel Channel to attach.
  * @note Every case but the settling one wants a channel it can submit on. How long that takes is
- *       PRAET_SETTLE_MICROS, which is per part and arrives at compile time, so a case cannot pick a
+ *       PRAET_SETTLE_MICROS, which is per part and arrives at compile time. A case cannot pick a
  *       convenient number for itself.
  */
 static void praet_case_attach_and_settle(embed_word channel)
@@ -436,7 +436,7 @@ static void praet_case_attach_and_settle(embed_word channel)
  * @param[in] channel Channel to run on.
  * @param[in] length  Bytes to ask for.
  * @return            What the submit answered.
- * @note Absorbs the two forms praet_ordo_relatio takes, so a case reads the same on both arms.
+ * @note Absorbs the two forms praet_ordo_relatio takes. A case reads the same on both arms.
  *       Where PRAET_RECOVERY is off the entry takes no bytes, because nothing would record them.
  */
 static embed_bool praet_case_submit(embed_word channel, embed_word length)
@@ -581,7 +581,7 @@ void test_a_channel_starts_detached(void)
 /**
  * @brief Checks that attach claims the vector and a completed detach releases it.
  *
- * @note The claim is the reason a vector is not held for a mover with nothing to move, so a channel
+ * @note The claim is the reason a vector is not held for a mover with nothing to move. A channel
  *       that came back detached while still claimed would be the defect this case exists for.
  */
 void test_attach_claims_the_vector_and_detach_releases_it(void)
@@ -640,7 +640,7 @@ void test_a_settling_channel_takes_no_transfer(void)
 /**
  * @brief Checks that a transfer reads busy until the port says it finished.
  *
- * @note No timer decides this. How long a transfer runs is not something the library can know, so a
+ * @note No timer decides this. How long a transfer runs is not something the library can know. A
  *       clock that promoted busy to ok would be it guessing at hardware.
  */
 void test_a_transfer_reports_ok_when_the_port_says_so(void)
@@ -957,7 +957,7 @@ void test_backing_out_records_what_was_touched(void)
  * @note Nothing in the schedule writes the caller's storage, since it holds no pointer a write could
  *       go through. The flag records the decision and the caller zeroes its own bytes.
  * @note Reads the region byte back too. PRAET_SCRUBBED is the highest status and the region starts
- *       above it, so a region placed one byte too low overlaps this one flag and nothing else - a
+ *       above it. A region placed one byte too low overlaps this one flag and nothing else - a
  *       scrub would then flip the low bit of a descriptor that has no business changing.
  */
 void test_zeroing_records_that_the_bytes_were_scrubbed(void)
@@ -1079,7 +1079,7 @@ void test_the_touched_extent_does_not_wrap_at_the_top_of_the_word(void)
  * @note What the check buys is a statement about one word. The library holds the destination and not
  *       the source, so it reports what that word now contains and the caller compares it against what
  *       was meant to be there. That is the whole of the contract here.
- * @note The checksum is taken over the word the sample landed inside, so a case that changes only a
+ * @note The checksum is taken over the word the sample landed inside. A case that changes only a
  *       byte in that word has to move it. A case that changes a byte outside it must not.
  */
 void test_the_boundary_word_check_measures_one_word(void)
@@ -1284,7 +1284,7 @@ void test_the_scaling_uses_the_declared_frequency(void)
  * @brief Checks that a span submitted through the surface lands where the pool says it does.
  *
  * @note What PraetAttach and PraetSubmit buy together. The address came from the pool named at the
- *       attach and the offset came from the submit, so a transfer starts at a place neither call
+ *       attach and the offset came from the submit. A transfer starts at a place neither call
  *       stated on its own.
  * @note The pool is 128 bytes and this submits 32 at offset 64, which PRAET_SPAN_FITS settled before
  *       anything ran. A span that did not fit would not have compiled, which is why no case here
@@ -1317,7 +1317,7 @@ void test_a_span_lands_where_the_pool_puts_it(void)
 /**
  * @brief The engine's script for the joined cases: open, take a transfer, finish it on the next poll.
  *
- * @note Software arm, so a completion comes out only when a poll asks for it. That makes the moment
+ * @note Software arm. A completion comes out only when a poll asks for it. That makes the moment
  *       the schedule learns of it a thing the case chooses.
  * @note One hook call is one tick. The open is tick one, the submit is tick two, and a cycle of one
  *       tick puts the completion due at tick three, which is the poll.
@@ -1621,7 +1621,7 @@ void test_detach_waits_for_the_transfer_under_it(void)
 /**
  * @brief Checks that the interrupt may raise set any number of times without loss or accumulation.
  *
- * @note One reader means the raises collapse. Nothing is counted and nothing is queued, so a hundred
+ * @note One reader means the raises collapse. Nothing is counted and nothing is queued. A hundred
  *       raises and one raise reach the same state.
  */
 void test_the_interrupt_can_raise_set_any_number_of_times(void)
@@ -1732,7 +1732,7 @@ void test_the_two_arms_are_not_the_same_engine(void)
 }
 
 /**
- * @brief A second pool, so a descriptor has somewhere to read from and somewhere else to write to.
+ * @brief A second pool. A descriptor has somewhere to read from and somewhere else to write to.
  *
  * @note Two pools rather than two halves of one, because a descriptor names both ends and each is
  *       proved against its own declaration. One pool would prove the same span twice.
@@ -1923,7 +1923,7 @@ void test_a_transfer_between_two_pools_needs_no_direction(void)
 /**
  * @brief Checks that a chain longer than the walk is allowed to follow reports the limit.
  *
- * @note The walk names a cycle by returning to the head, so a chain that closes further along cannot
+ * @note The walk names a cycle by returning to the head. A chain that closes further along cannot
  *       be told from one that never ends. Reporting the limit is the honest answer for a walk that
  *       cannot see where it is.
  */
@@ -1944,7 +1944,7 @@ void test_a_chain_walk_stops_at_the_limit(void)
  *       would make the suite refuse to build over a judgment nobody has made yet.
  * @note Last in the file, because the generated runner registers cases in the order they are written
  *       and this reports on everything ahead of it.
- * @note Ignored where PRAET_PROCURATOR is 0, so a run that did not ask for the instrument says so rather
+ * @note Ignored where PRAET_PROCURATOR is 0. A run that did not ask for the instrument says so rather
  *       than printing an empty table.
  */
 void test_zz_what_this_run_reached(void)

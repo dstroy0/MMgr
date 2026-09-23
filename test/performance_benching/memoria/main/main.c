@@ -310,7 +310,7 @@ static embed_iword cmp_aligned(const uint8_t *a, const uint8_t *b, size_t bytes)
  *
  * @note Mirrors MemorMoveCtx in memoria_operor.c, down to neither pointer being restrict qualified.
  *       move_up is the entry for regions that overlap, which is the thing restrict promises does not
- *       happen, so an arm that added it would time a move the library is not allowed to make.
+ *       happen. An arm that added it would time a move the library is not allowed to make.
  */
 typedef struct
 {
@@ -567,7 +567,7 @@ static uint32_t move_up_is_correct(void)
             {
                 for (size_t fill_index = 0u; fill_index < (bytes + at); fill_index++)
                 {
-                    // The mix makes a byte carry its own offset, so a byte taken from the wrong
+                    // The mix makes a byte carry its own offset. A byte taken from the wrong
                     // place shows up as itself instead of only as a mismatch
                     g_a[fill_index] = (uint8_t)((((fill_index * 31u) + 17u) & 0xFFu) | 1u);
                     g_d[fill_index] = g_a[fill_index];
@@ -674,7 +674,7 @@ EMBED_INLINE void copy_four_words(BenchCopyCtx *args)
  *
  * @param[in,out] args Destination, source and count [BORROWS].
  * @note Same width as copy_four_words and a different order. restrict already permits the compiler
- *       to reach this arrangement from the interleaved one, so a row that reads 1.00 says it
+ *       to reach this arrangement from the interleaved one. A row that reads 1.00 says it
  *       already does and there is nothing here to take. On the backward move, where the qualifier
  *       is absent, writing the loads out first measured 1.27x on an ESP32-C6 and nothing on an
  *       ESP32-S3.
@@ -742,7 +742,7 @@ static uint32_t copy_is_correct(void)
         {
             for (size_t fill_index = 0u; fill_index < bytes; fill_index++)
             {
-                // The mix makes a byte carry its own offset, so a byte taken from the wrong place
+                // The mix makes a byte carry its own offset. A byte taken from the wrong place
                 // shows up as itself instead of only as a mismatch
                 g_a[fill_index] = (uint8_t)((((fill_index * 31u) + 17u) & 0xFFu) | 1u);
                 g_d[fill_index] = 0u;

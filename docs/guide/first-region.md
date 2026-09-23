@@ -96,7 +96,7 @@ const size_t left = prison.work.buf_available();
 ```
 
 Build the `checks` environment, run your real workload, and read those. `checks` compiles in the
-library's checks and selects the trapping `MMGR_ASSERT`, so a precondition you broke fails loudly
+library's checks and selects the trapping `MMGR_ASSERT`. A precondition you broke fails loudly
 instead of being a no-op:
 
 ```sh

@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note The runner is generated from the case names in the suite source, so a case added there is
+ * @note The runner is generated from the case names in the suite source. A case added there is
  *       registered here without anything being written by hand. Regenerate it with harness.py build.
  * @warning A stale runner registers the cases that existed when it was written and the rest never
  *          run, while the suite still reports green. harness.py remote regenerates before it sends

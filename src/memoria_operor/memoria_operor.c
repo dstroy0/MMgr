@@ -202,7 +202,7 @@ EMBED_INLINE void memor_move_up(MemorMoveCtx *args)
  * @note Normally zero. This library is built for memory that arrives aligned, and an aligned address
  *       is already on a boundary. It is computed rather than assumed because a region entry takes
  *       whatever address a caller hands it.
- * @warning at is examined as an address and never read, so a bytes larger than the region there is
+ * @warning at is examined as an address and never read. A bytes larger than the region there is
  *          not caught here. The answer is capped at bytes, so it is a safe number of steps only when
  *          bytes is.
  */

@@ -39,7 +39,7 @@ RECURSIVE              = YES
 USE_MDFILE_AS_MAINPAGE = docs/README.md
 IMAGE_PATH             = docs/assets
 
-# \snippet pulls worked examples straight out of the test suite, so an example in the docs is a
+# \snippet pulls worked examples straight out of the test suite. An example in the docs is a
 # compiled, passing test rather than prose that drifts.
 EXAMPLE_PATH           = .
 EXAMPLE_RECURSIVE      = YES
@@ -171,13 +171,13 @@ MAX_INITIALIZER_LINES  = 0
 # Markdown and linking
 # -------------------------------------------------------------------------------------------------
 MARKDOWN_SUPPORT       = YES
-# GITHUB so a heading anchor is spelled the same here and on github.com, and one link works in both.
+# GITHUB gives a heading anchor the same form here and on github.com, and one link works in both.
 MARKDOWN_ID_STYLE      = GITHUB
 TOC_INCLUDE_HEADINGS   = 3
 AUTOLINK_SUPPORT       = YES
 ENUM_VALUES_PER_LINE   = 1
 
-# Repo-specific commands, so a comment can be terse and the output stays consistent.
+# Repo-specific commands. A comment can be terse and the output stays consistent.
 ALIASES                = "ns{1}=@par Namespace^^`\1`" \
                          "slot{1}=@par Dispatch slot^^\1" \
                          "borrows=@par Borrows^^Does not allocate. Writes only into storage the caller supplied." \
@@ -200,8 +200,8 @@ REFERENCES_RELATION    = YES
 # Warnings
 # -------------------------------------------------------------------------------------------------
 # src/ carries real Doxygen comments, so these have something to say. The log is a product of the
-# docs job rather than a side effect: it is captured, summarized into the job summary, and ratcheted
-# so a NEW undocumented symbol fails a pull request while the existing backlog does not.
+# docs job rather than a side effect: it is captured, summarized into the job summary, and ratcheted.
+# A NEW undocumented symbol fails a pull request while the existing backlog does not.
 #
 # WARN_AS_ERROR becomes FAIL_ON_WARNINGS_PRINT once the count reaches zero. Not YES: YES aborts at
 # the first warning, so you fix one, re-run, and find the next. FAIL_ON_WARNINGS_PRINT completes the
@@ -253,7 +253,7 @@ HTML_COPY_CLIPBOARD    = YES
 HTML_CODE_FOLDING      = YES
 HTML_INDEX_NUM_ENTRIES = 100
 
-# 300 rather than doxygen's 260, so a long module name is not ellipsised in the tree view.
+# 300 rather than doxygen's 260. A long module name is not ellipsised in the tree view.
 GENERATE_TREEVIEW      = YES
 FULL_SIDEBAR           = YES
 TREEVIEW_WIDTH         = 300

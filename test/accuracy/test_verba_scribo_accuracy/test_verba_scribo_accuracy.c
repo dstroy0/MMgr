@@ -501,7 +501,7 @@ void test_the_fixed_form_matches_the_reference(void)
  * @note All the values are exact in binary, so each one really is a tie and not a value that merely
  *       prints like one.
  * @note The negative ties are what show the direction. The sign is written ahead of the magnitude and
- *       the magnitude is what rounds up, so a negative half moves away from zero.
+ *       the magnitude is what rounds up. A negative half moves away from zero.
  */
 void test_an_exact_tie_rounds_up(void)
 {

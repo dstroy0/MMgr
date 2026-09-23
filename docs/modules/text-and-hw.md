@@ -25,7 +25,7 @@ if (len == 0u) {
 
 The writers hold no state. Each one takes the position it should write at and returns the position
 after what it wrote, so the cursor is the caller's `at` and nothing is carried between calls. A
-writer with no room returns `cap`, which every later writer also returns, so an overflow propagates
+writer with no room returns `cap`, which every later writer also returns. An overflow propagates
 to `finish` without a flag and `finish` reports it as a length of zero.
 
 There is no format string anywhere. Nothing parses `%d` at runtime, so nothing can disagree with the
@@ -42,7 +42,7 @@ argument you passed.
 | escaping       | `xml`, `json`                                   |
 | finishing      | `finish`                                        |
 
-`put_n` takes the length with the text, so a literal costs no scan: pass
+`put_n` takes the length with the text. A literal costs no scan: pass
 `sizeof "literal" - 1u`. `put` measures what it is given.
 
 ## Gotchas

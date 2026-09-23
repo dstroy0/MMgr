@@ -13,7 +13,7 @@
  *
  * @note A zero count is how a scan turns a lane mask into a lane index, so these sit under the SWAR
  *       walks rather than being a general utility.
- * @note Both run branchless and in a fixed number of steps, so a caller pays the same whatever the
+ * @note Both run branchless and in a fixed number of steps. A caller pays the same whatever the
  *       value is. That is the reason they are written out rather than reached through a builtin,
  *       which is absent on some targets and a call on others.
  * @warning Neither distinguishes a value of 0 from a value with one bit set at the end it counts

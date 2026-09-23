@@ -10,7 +10,7 @@ Every public function is:
 mmgr_<infix>_<tail>
 ```
 
-`<infix>` is the module's stem. So a symbol tells you its module without a lookup:
+`<infix>` is the module's stem, which tells you a symbol's module without a lookup:
 
 | symbol                | infix    | module           |
 | --------------------- | -------- | ---------------- |

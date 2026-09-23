@@ -6,7 +6,7 @@
  * @note The caller declares the ring and supplies the bytes; every index, mask and span is the ring's.
  * @note Exactly one producer advances head and exactly one consumer advances tail, so ordering is
  *       all that is needed and no entry takes a lock or a read-modify-write on those two.
- * @note Nothing is ever zeroed: a loculus keeps its bytes after a drop so a restream can run again.
+ * @note Nothing is ever zeroed: a loculus keeps its bytes after a drop, which lets a restream run again.
  */
 #ifndef MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H
 #define MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H
@@ -30,7 +30,7 @@ typedef struct
 /**
  * @brief Size of the ring storage a caller declares, counted in size_t units.
  *
- * @note The implementation asserts its state fits inside this, so a change there fails a build
+ * @note The implementation asserts its state fits inside this. A change there fails a build
  *       rather than overrunning a caller's object.
  * @note Most of it is the keepout array, so raising MMGR_RING_LOCULI may require raising this too;
  *       the assertion names it when that happens. A build sets this the same way it sets the
@@ -51,7 +51,7 @@ typedef struct
 /**
  * @brief Loculi this build reserves, which a build may set before including this header.
  *
- * @note The keepout spans are most of the ring's storage, so a build with no use for the loculus
+ * @note The keepout spans are most of the ring's storage. A build with no use for the loculus
  *       view sets this to 0 and gets that space back. Every loculus entry then reports empty or
  *       refuses.
  */
@@ -223,7 +223,7 @@ void mmgr_infin_consume(const InfinCfg *c);
  *
  * @param[in] c Ring, the bytes to write and their count [BORROWS].
  * @return      MMGR_TRUE when the span was written, MMGR_FALSE when it would not fit.
- * @note Checks the whole span against mmgr_infin_vacant first, so a partial write never happens.
+ * @note Checks the whole span against mmgr_infin_vacant first. A partial write never happens.
  * @note Advances a local head across the wrap and publishes it once, so no half span is ever visible.
  * @warning c->src must be readable for c->bytes.
  */
@@ -242,7 +242,7 @@ size_t mmgr_infin_seg_inflight(const InfinCfg *c);
  *
  * @param[in] c Ring, and where to write the index [BORROWS].
  * @return      MMGR_FALSE when every segment is in flight.
- * @note Publishing is separate, so a half-filled segment is never visible to the consumer.
+ * @note Publishing is separate. A half-filled segment is never visible to the consumer.
  */
 mmgr_bool mmgr_infin_seg_next(const InfinCfg *c);
 
@@ -300,7 +300,7 @@ mmgr_iword mmgr_infin_loculus_next(const InfinCfg *c);
  *
  * @param[in] c Ring, the loculus, and the region to record [BORROWS].
  * @return      MMGR_TRUE when this caller took it, MMGR_FALSE when it was already held.
- * @note The recorded region stays valid until mmgr_infin_loculus_drop, so a reader walks it in place.
+ * @note The recorded region stays valid until mmgr_infin_loculus_drop. A reader walks it in place.
  * @warning An out-of-range c->idx names nothing, so it reads as held and is never handed out.
  */
 mmgr_bool mmgr_infin_loculus_hold(const InfinCfg *c);
@@ -310,7 +310,7 @@ mmgr_bool mmgr_infin_loculus_hold(const InfinCfg *c);
  *
  * @param[in] c Ring and the loculus [BORROWS].
  * @return      The recorded span, or NULL when c->idx is out of range [BORROWS].
- * @note Handed back const, so a reader walks it without moving the ring's own record.
+ * @note Handed back const. A reader walks it without moving the ring's own record.
  */
 const mmgr_ring_span *mmgr_infin_loculus_keepout(const InfinCfg *c);
 
@@ -318,7 +318,7 @@ const mmgr_ring_span *mmgr_infin_loculus_keepout(const InfinCfg *c);
  * @brief Gives loculus c->idx back.
  *
  * @param[in] c Ring and the loculus [BORROWS].
- * @note Leaves the recorded span and the bytes alone, so a restream can run again.
+ * @note Leaves the recorded span and the bytes alone. A restream can run again.
  */
 void mmgr_infin_loculus_drop(const InfinCfg *c);
 

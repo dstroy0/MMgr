@@ -23,7 +23,7 @@
  *       with no candidate at all, and a search that jumps those runs never touches them. Expected
  *       skip is the corpus length over the occurrence count, and it is what decides whether a sieve
  *       can visit a space it could never enumerate.
- * @warning The cost table is a link time singleton, so a build links exactly one of the five
+ * @warning The cost table is a link time singleton. A build links exactly one of the five
  *          profiles and this binary can only report on that one. It does not even carry its own
  *          name, which is why every row below is stamped with a fingerprint of the 256 costs.
  *          Comparing profiles means five builds, which is the cost of the current design.
@@ -215,7 +215,7 @@ static size_t fill_from_text(uint8_t *into, const char *text, size_t length)
  * @return            Bytes written.
  * @note The distinction that makes this a period and not a repetition. A corpus built by repeating
  *       one string is self similar and every needle finds itself, which is the artifact that already
- *       ruined one measurement here. This varies every field per record, so a needle occurs once,
+ *       ruined one measurement here. This varies every field per record. A needle occurs once,
  *       and only the column positions recur.
  * @note Layout: four hex digits, a comma, six letters, a comma, three digits, a newline.
  */
@@ -257,7 +257,7 @@ static size_t fill_periodic(uint8_t *into, size_t length)
  *       What it stands in for is a sequence with no rank ordering and no correlation between
  *       positions, which is what a normal constant's digits look like empirically.
  * @note It was a 64 bit xorshift when the skip figures of 261.1, 262.7 and 261.1 were recorded. The
- *       same rows read 271.9, 273.6 and 281.3 under this generator, so any uniform number older than
+ *       same rows read 271.9, 273.6 and 281.3 under this generator. Any uniform number older than
  *       this change is on the old one and cannot be compared against a new row.
  */
 static void fill_uniform(uint8_t *into, size_t length)
@@ -331,7 +331,7 @@ static void histogram(const uint8_t *corpus, size_t length, uint32_t *counts)
  * @brief How an anchor gets picked out of a needle.
  *
  * @note The policy is a free variable, and that is the point of having it. An anchor is a condition
- *       copied out of the needle, so a position that really does hold the needle satisfies every
+ *       copied out of the needle. A position that really does hold the needle satisfies every
  *       anchor whatever chose it. Correctness cannot turn on the policy. What the policy moves is how
  *       many false candidates survive, and that is cost.
  * @note ANCHOR_BY_TABLE asks the linked cost table, which ranks a byte by how rare it is.
@@ -707,7 +707,7 @@ static void report_cascade(const char *name, const uint8_t *corpus, size_t corpu
  * @param[out] found      Receives how many true occurrences the corpus holds [BORROWS].
  * @return                How many of those an anchor rejected.
  * @note The deductive half, run as code. An anchor is a byte lifted out of the needle at an offset
- *       inside the needle, so a position holding the whole needle holds that byte at that offset. The
+ *       inside the needle. A position holding the whole needle holds that byte at that offset. The
  *       argument never names how many anchors there are, what picked them, how large the alphabet is,
  *       or that positions are ordered, which is why every sweep in main can vary all four and still
  *       expect zero back. A nonzero return is an implementation defect, never a property of the data.
@@ -751,8 +751,8 @@ static uint32_t refused_occurrences(const uint8_t *corpus, size_t length, const 
  * @note Unlike the cost rows this one takes the degenerate lengths, because that is where a claim
  *       about all sizes either holds or does not. A needle as long as the corpus leaves one position,
  *       and a needle of one byte is the shortest thing that can carry an anchor at all.
- * @note A verdict of none means the case had nothing to check, and it is printed instead of hold so a
- *       reader cannot mistake an empty sweep for a passing one.
+ * @note A verdict of none means the case had nothing to check, and it is printed instead of hold to keep a
+ *       reader from mistaking an empty sweep for a passing one.
  */
 static void report_invariant(const char *name, const uint8_t *corpus, size_t corpus_len, size_t needle_len,
                              AnchorPolicy policy, uint32_t stamp)

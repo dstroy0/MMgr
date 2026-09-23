@@ -53,7 +53,7 @@ void device_putchar(int letter)
  *       repeats of the same answer.
  */
 /**
- * @brief What the run reported, kept so a listener that arrived late can still be told.
+ * @brief What the run reported, kept to tell a listener that arrived late.
  */
 static int s_failed;
 
@@ -63,8 +63,8 @@ void setup(void)
 
     const unsigned long waited_from = millis();
 
-    // A minute, not five seconds. On a native USB part nothing resets when the host opens the port,
-    // so a suite that ran before anyone was listening printed into nothing and the board looks dead.
+    // A minute, not five seconds. On a native USB part nothing resets when the host opens the port.
+    // A suite that ran before anyone was listening printed into nothing and the board looks dead.
     // Measured, on a Feather M4 that had already run by the time the port was opened.
     while (!Serial && ((millis() - waited_from) < 60000ul))
     {
@@ -83,7 +83,7 @@ void setup(void)
 }
 
 /**
- * @brief Repeats the verdict, so attaching after the run still tells you how it went.
+ * @brief Repeats the verdict. Attaching after the run still tells you how it went.
  *
  * @note The case by case output is streamed and gone. This is the summary alone, which is what a
  *       script reads to decide whether the part passed.

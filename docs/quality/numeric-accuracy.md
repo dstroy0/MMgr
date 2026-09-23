@@ -98,12 +98,12 @@ the render side has the same problem in the other direction and should not solve
 entries are `mmgr_muto_*`.
 
 `src/pow5/pow5.h` is 360 bytes: nine powers of five and nine reciprocals, as 128 bit fractions with
-their own binary exponents. Any decimal exponent below 512 is the product of at most nine of them,
-so a loop that ran four hundred times runs nine. The reciprocals are what keep a negative exponent a
+their own binary exponents. Any decimal exponent below 512 is the product of at most nine of them.
+A loop that ran four hundred times runs nine. The reciprocals are what keep a negative exponent a
 multiply rather than a division.
 
 They are truncated rather than rounded, deliberately. A truncated entry is never above the true
-power, so a product is never above the true product, and the bit that decides a tie is never
+power. A product is never above the true product, and the bit that decides a tie is never
 wrongly clear. Rounded entries would put error on both sides and the tie would stop being decidable
 from the bits present.
 
@@ -174,7 +174,7 @@ The 1264 bytes `verba_scribo` grew at -O2 are the engine being inlined. See @ref
 
 `verba.g` was the last one. It ran its conversion in a 58 bit working word - a little over seventeen
 decimal digits - and `g_mul10` and `g_div10` renormalized on every step, which shifts bits off the
-bottom. The digits it was trying to produce are made of exactly those bits, so a seventeen digit
+bottom. The digits it was trying to produce are made of exactly those bits. A seventeen digit
 render failed to name its own value back **87.1%** of the time even when parsed by a correctly
 rounded reader, worst 6 ulp.
 

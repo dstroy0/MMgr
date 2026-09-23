@@ -1,7 +1,7 @@
 /**
  * @brief Redirects the <string.h> names onto MMgr's bounded implementations.
  *
- * @note Defines the usual <string.h> include guards, so a later #include <string.h> contributes nothing.
+ * @note Defines the usual <string.h> include guards. A later #include <string.h> contributes nothing.
  * @warning strcmp, strcasecmp, strncmp and strncasecmp report equality only and never order.
  * @warning Including this header changes the meaning of those names for the whole translation unit.
  */
@@ -130,7 +130,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 /**
  * @brief Replaces memcpy with mmgr_shim_cpy.
  *
- * @note Every argument is parenthesized, so any expression may be passed.
+ * @note Every argument is parenthesized. Any expression may be passed.
  */
 #define memcpy(dest, source, bytes) mmgr_shim_cpy((dest), (source), (bytes))
 

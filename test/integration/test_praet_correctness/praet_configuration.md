@@ -21,7 +21,7 @@ Several facts are derived from the architecture and are not answerable at all. `
 
 Every knob that was not set takes a documented default, raises a warning naming itself and the value it took, and leaves a flag behind. No knob stops the build where it sits. `praet_iudex.h` reads the flags after every knob has spoken and stops once (`praet_iudex.h:33-36`).
 
-The order matters more than it looks. An `#error` halts its translation unit at the line it appears on, so a build missing four knobs would report the first, get corrected, then report the second. Four rounds would deliver four facts that were all knowable on the first pass. Warning at each knob and stopping at the end delivers them together.
+The order matters more than it looks. An `#error` halts its translation unit at the line it appears on. A build missing four knobs would report the first, get corrected, then report the second. Four rounds would deliver four facts that were all knowable on the first pass. Warning at each knob and stopping at the end delivers them together.
 
 A build with nothing declared reports six warnings and one error:
 
@@ -29,7 +29,7 @@ A build with nothing declared reports six warnings and one error:
 warning: #warning "PRAET_CHANNELS was not set and took the library default of 8. Set it to the channels your part gives one engine."
 warning: #warning "PRAET_SETTLE_MICROS was not set and took the library default of 0, so this build waits for nothing after an attach. Set it to what your engine takes to come up."
 warning: #warning "PRAET_KEEPALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
-warning: #warning "PRAET_RECOVERY was not set and took the library default of 0, so a stalled transfer cannot be backed out or scrubbed in this build. Set it to 1 to have that machinery, 0 to say you meant to leave it out."
+warning: #warning "PRAET_RECOVERY was not set and took the library default of 0. A stalled transfer cannot be backed out or scrubbed in this build. Set it to 1 to have that machinery, 0 to say you meant to leave it out."
 warning: #warning "No clock is declared, so PRAET_CLOCK_HZ took the library default of 1000000 and a tick is read as one microsecond. Every deadline in this module is then wrong by whatever the real frequency is. Set it to the frequency of the clock this reads."
 warning: #warning "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_CALLER, because this architecture defines no cycle counter a timer could be pinned to. Say so, and supply the clock."
 error: #error "This build did not declare every knob this module reads. Each one that took a library default is named in a warning above this line, with the value it took and what to set it to. Set them, or define MMGR_ACCEPT_DEFAULTS to build on the defaults and keep the warnings as the record of which ones you took."
@@ -73,7 +73,7 @@ and `word_boundary_crc` (`praet_ordo.h:267-275`), and six entries exist that do 
 
 With it off, `praet_ordo_relatio` takes no span and `praet_ordo_efficere` takes no position
 (`praet_ordo.h:521-562`). A call site written for the other form fails to compile. The watchdog
-still runs, so a channel still reads stalled; what is gone is any statement about which bytes were
+still runs. A channel still reads stalled; what is gone is any statement about which bytes were
 touched.
 
 ### PRAET_CLOCK_HZ
@@ -143,20 +143,20 @@ surface settles it before anything runs.
 
 `PraetAttach` hands the entry `mmgr_pars_storage_##pool_` and `pool_##_bytes` (`praet_ordo.h:360-363`).
 Both are emitted by `ParsMemoriaeInternae` and `ParsMemoriaeExternum` and by nothing else, and both
-have internal linkage, so a translation unit that did not declare the pool cannot reach either. What
+have internal linkage. A translation unit that did not declare the pool cannot reach either. What
 that tests is not who owns the bytes. It is whether whoever hands them over can answer everything
 about them: the address, the extent, and which channel is over them. A caller with all three has said
 the bytes are legal to touch.
 
 Attaching does not claim the pool. `MMGR_PARS_CLAIMED_ONCE` exists because a cellblock and a ring both
 write their own records into the bytes they dress, and two of those over one pool would each believe
-they owned it. A channel writes no records into the pool, so a ring can be a DMA destination, which is
+they owned it. A channel writes no records into the pool. A ring can be a DMA destination, which is
 the arrangement the module is for. The cost is that two channels may target one pool and nothing
 reports it, which reads the same as two channels on one peripheral: it can collide, and this library
 does not have the caller's plan.
 
 `praet_ordo_relatio` takes no pointer (`praet_ordo.h:441`). The address came from the pool named
-at the attach, so a transfer adds an offset and a length. `PraetSubmit` compares that span against
+at the attach. A transfer adds an offset and a length. `PraetSubmit` compares that span against
 `sizeof(mmgr_pars_storage_##pool_)` while compiling (`praet_ordo.h:461-466`). That is what the
 compiler laid down, and not the count the declaration was handed. A span that does not fit gives a
 negative bitfield width, and the member's name is the diagnostic. Measured at `-O0` and at `-O2`: a
@@ -178,14 +178,14 @@ It reports nothing. What a caller wants is in the flag word, which the call leav
 load reads it. A return value would be a second way to learn the same thing and the two would drift.
 
 The port is asked before the short circuit, not after (`praet_ordo.c:376-407`). A part with no
-interrupt to raise the set volatile has nothing else that could, so a poll that short circuited on
+interrupt to raise the set volatile has nothing else that could. A poll that short circuited on
 that volatile alone would never learn the engine had moved. That was measured on the arm where
 progress is reported and no interrupt exists, and the second report never reached the flag word. The
 short circuit itself is intact: a channel that moved is one of the things that makes it false, and a
 poll with nothing to do costs one volatile read and a return.
 
 The settle comparison is lifted out of the walk. One deadline serves the whole context, so it is
-answered once and read per channel. Both timer tests put the flag first, so a channel that is not
+answered once and read per channel. Both timer tests put the flag first. A channel that is not
 settling and a channel that is not running each cost a mask and no comparison.
 
 `praet_hw_progress` is the fifth port hook (`praet_ordo.h:306`). The four in
@@ -200,7 +200,7 @@ duplicate.
 
 One measured limit sits on that. GCC on PE-COFF emits a weak definition as a weak external. The body
 lands under `.weak.praet_hw_progress.` and the name itself stays undefined in the object, and `ld`
-will not resolve it from another translation unit, so an unported build fails to link on this host
+will not resolve it from another translation unit. An unported build fails to link on this host
 and the refusal cannot be exercised here at all. The four hooks in `src` are untouched by this,
 because `memoriam_praetereo.c` calls them from the unit that defines them and a weak definition does
 resolve inside its own unit. None of this has run on an ELF target, which is where every part this

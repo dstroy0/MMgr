@@ -74,7 +74,7 @@ typedef struct
  * @param[in,out] args The mantissa to extend and the digit to append [BORROWS].
  * @return             EMBED_TRUE when the digit was appended, EMBED_FALSE when *args->mant was
  *                     already too large.
- * @note Multiplies by ten and adds args->digit minus '0', so args->digit must be an ASCII decimal digit.
+ * @note Multiplies by ten and adds args->digit minus '0'. args->digit must be an ASCII decimal digit.
  * @note MMGR_MUTO_MANT_MAX is (~0 - 9) / 10, so the multiply and the add both stay inside a 64-bit value.
  * @warning Writes through args->mant, so the caller's mantissa changes [BORROWS].
  */
@@ -305,13 +305,13 @@ EMBED_INLINE void muto_mul_pow10(MutoCtx *args)
  * @note Adding args->ex to args->fe2 at the end of that walk supplies the two raised to args->ex half
  *       of ten raised to args->ex. The exact power path needs no such addition, since it applies the
  *       whole power.
- * @warning Only MMGR_POW5_STEPS bits are walked, so a magnitude above MMGR_POW5_MAX that reaches the
+ * @warning Only MMGR_POW5_STEPS bits are walked. A magnitude above MMGR_POW5_MAX that reaches the
  *          walk loses its higher bits.
  */
 EMBED_INLINE void muto_apply_pow10(MutoCtx *args)
 {
     // A positive exponent is applied as exact powers of ten rather than by walking the bits of the
-    // wide tables. Ten to the eighteenth is the widest that fits 64 bits, so a larger exponent goes
+    // wide tables. Ten to the eighteenth is the widest that fits 64 bits. A larger exponent goes
     // on in chunks of it. Each chunk is a 128 by 64 multiply, where every set bit of the walk is a
     // 128 by 128 one, and the walk needs one per bit rather than one per eighteen.
     if (args->ex > 0)
@@ -358,8 +358,8 @@ EMBED_INLINE void muto_apply_pow10(MutoCtx *args)
  * @brief Loads *args->mant into the 128-bit significand and normalizes it.
  *
  * @param[in,out] args The mantissa, its binary exponent, and the bits already dropped [BORROWS].
- * @note Puts the mantissa in args->hi with args->lo zero, so args->fe2 starts 64 below args->e2.
- * @note Carries args->dropped into args->rest, so a truncation the caller already made still reaches the rounding.
+ * @note Puts the mantissa in args->hi with args->lo zero. args->fe2 starts 64 below args->e2.
+ * @note Carries args->dropped into args->rest. A truncation the caller already made still reaches the rounding.
  */
 EMBED_INLINE void muto_seat(MutoCtx *args)
 {
@@ -570,7 +570,7 @@ EMBED_INLINE double muto_scale(MutoCtx *args)
  * @return             The rounded integer, or 0 when *args->mant is zero.
  * @note Always takes the 128-bit path, with no exact double shortcut, unlike muto_scale.
  * @note Reads args->e2, which muto_scale leaves at zero.
- * @warning Does not bound args->ex against MMGR_POW5_MAX the way muto_scale does, so a larger one loses its high bits.
+ * @warning Does not bound args->ex against MMGR_POW5_MAX the way muto_scale does. A larger one loses its high bits.
  */
 EMBED_INLINE embed_u64 muto_scale_to_u64(MutoCtx *args)
 {

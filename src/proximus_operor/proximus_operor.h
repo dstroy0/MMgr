@@ -173,7 +173,7 @@ void mmgr_aequus_put64(const ProximusCfg *args);
  * @param[in] args Destination, source and count [BORROWS].
  * @note Copies bytes until args->dst reaches a word boundary, then whole words, then the odd bytes left.
  * @note This is the only entry that reads args->size.
- * @warning Copies forward, so an args->dst above args->at within one region would read bytes it has already written.
+ * @warning Copies forward. An args->dst above args->at within one region would read bytes it has already written.
  */
 void mmgr_proxim_read(const ProximusCfg *args);
 

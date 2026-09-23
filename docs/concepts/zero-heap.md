@@ -59,7 +59,7 @@ between the two tiers at the moment you call it, not the largest it ever got.
 
 For the largest, build with `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Every allocation then keeps a peak in
 the cellblock's own state, one per tier: `persistent_hw` tracks `persistent_end` and `temporary_hw`
-tracks the bytes taken from the top. It is off by default, so a workload run without it leaves both
+tracks the bytes taken from the top. It is off by default. A workload run without it leaves both
 at zero. Read the field, add whatever margin your failure policy wants, then size the pool.
 
 **You give up free-anything-anytime.** The persistent tier reuses a released cell and merges empty

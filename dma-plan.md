@@ -27,7 +27,7 @@ and each one is reached with a channel number.
 **Planned.** `MemoriamPraetereo(name_, pool_)` follows the shape the ring already uses. The ring's
 form emits the claim guard for the pool and declares the ring's own storage
 (`src/memoria_anularis/memoria_anularis.h:143-145`). A channel declaration does the same for a DMA
-channel, so a pool cannot be dressed as a cellblock and a DMA buffer at once.
+channel. A pool cannot be dressed as a cellblock and a DMA buffer at once.
 
 The channel is then reached by the name of its pool, and the count of channels falls out of how
 many declarations a translation unit contains. `MMGR_PRAET_CHANNELS` goes away for the reason
@@ -39,7 +39,7 @@ unit (`include/mmgr.h:147-151`), and the channel is named for its pool, so the e
 that two sites may reuse a channel name is withdrawn.
 
 The declaration has to sit at file scope. `MMGR_PARS_CLAIMED_ONCE` emits an enumerator
-(`include/mmgr.h:168-172`), and an enumerator inside a function body is block scoped, so a channel
+(`include/mmgr.h:168-172`), and an enumerator inside a function body is block scoped. A channel
 declared inside a function shadows the file-scope guard instead of colliding with it. That case
 compiles today and needs its own must-fail test.
 
@@ -62,7 +62,7 @@ a declaration and the diagnostic arrives at the site that referenced it
 ## Bounds on a transfer
 
 **Planned.** `PraetTransferCfg` takes a buffer pointer and a separate byte count today
-(`src/memoriam_praetereo/memoriam_praetereo.h:95-100`), so a caller can state a length the buffer
+(`src/memoriam_praetereo/memoriam_praetereo.h:95-100`). A caller can state a length the buffer
 does not have. Entries take the pool type instead, and the extent arrives with the pointer. A macro
 can be generic over a per-pool type where a function cannot, and a bare `void *` then fails to
 satisfy the parameter.
@@ -89,7 +89,7 @@ cell-level extent is gone. A check build has to turn it off. The shipping build 
 
 **Planned.** `close` returns nothing (`src/memoriam_praetereo/memoriam_praetereo.h:112`, `:146`), and
 the caller has no way to learn whether the channel closed. Hardware teardown writes the disable and
-polls the busy bit, so a second call is the normal path.
+polls the busy bit. A second call is the normal path.
 
 A state word carries the four-state core in its low bits with flags above it, in one machine word.
 `close` writes the request, the word reports the result, and the poll reads the word, so `close`
@@ -111,7 +111,7 @@ bounds checks depend on.
 ## Direction on an overlapping transfer
 
 `memoria_operor` has two moves and the caller chooses between them. A DMA submit has no caller to
-ask, because both endpoints arrive as addresses. Real controllers walk forward, so an overlap with
+ask, because both endpoints arrive as addresses. Real controllers walk forward. An overlap with
 the destination above the source corrupts.
 
 The comparison is unsigned, and `locus_carcerum` already reads two addresses through `uintptr_t`
@@ -137,7 +137,7 @@ is a stopwatch reading.
 
 ## The port layer and the host simulator
 
-Four hooks carry `EMBED_WEAK` and refuse or do nothing by default, so a build links without a port
+Four hooks carry `EMBED_WEAK` and refuse or do nothing by default. A build links without a port
 (`src/memoriam_praetereo/memoriam_praetereo.h:168`, `:181`, `:193`, `:205`). A board support file
 replaces one by defining the same name.
 
@@ -152,7 +152,7 @@ engine that cannot address a given region, which exercises the internal and exte
 without a part that has PSRAM; and alignment and burst rules stricter than any real controller.
 
 Behavior is scripted. A simulator that completes on a coin flip produces a failure nobody can
-reproduce, so a test states what the engine does and in what order, and a failure is a fixture.
+reproduce. A test states what the engine does and in what order, and a failure is a fixture.
 Fuzzing sits on top of that layer once it exists.
 
 It composes with the guard page in `test/support/`, which puts a region between two inaccessible
@@ -173,7 +173,7 @@ completing inside the submit call, or completing only while another channel is b
 Python writes the scenarios and emits C tables. It decides what the scenarios are. C decides what
 happens when one runs. The moment the engine's behavior lives in Python, the port stops being a
 port. Sweeps follow `MMGR_ENVIRONMENTS`: the harness builds the suite once per scenario and each
-becomes its own CTest target, so a failure names the scenario and one scenario can run alone.
+becomes its own CTest target. A failure names the scenario and one scenario can run alone.
 
 ## Illegal configurations
 
@@ -214,7 +214,7 @@ reached by many translation units repeat unless the collector deduplicates on fi
 
 1. Flash `praet` to the S3 and the C6, capture the direction A/B, and record the rows.
 2. Declare `MemoriamPraetereo(name_, pool_)`, and remove `MMGR_PRAET_CHANNELS`.
-3. Move the entries onto the pool type, so a transfer carries its extent.
+3. Move the entries onto the pool type. A transfer carries its extent.
 4. Add the state word, and make `close` a request the caller polls.
 5. Build the illegal configuration suite, with a control in every sweep.
 6. Build the host simulator as a port, correctness arm first.

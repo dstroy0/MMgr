@@ -25,7 +25,7 @@
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
-// Sources are drawn from this so a run reproduces exactly. Held to RFC 6234's vectors by its own
+// Drawing sources from this makes a run reproduce exactly. Held to RFC 6234's vectors by its own
 // self test
 #include "mmgr_sha256.h"
 
@@ -47,7 +47,7 @@
 /**
  * @brief How many independent corpora each row averages over.
  *
- * @note Bias and root mean square error are properties of an estimator and not of one sample, so a
+ * @note Bias and root mean square error are properties of an estimator and not of one sample. A
  *       single corpus cannot report either. Each trial draws a fresh corpus from the same
  *       distribution under a different salt.
  */
@@ -176,7 +176,7 @@ static double true_collision(const Source *source)
  * @param[in]  length How many symbols.
  * @param[in]  salt   Which stream to draw from, so trials differ.
  * @note Inverse transform sampling on a uniform built from four bytes of SHA-256 counter mode output.
- *       The generator is the one held to published vectors elsewhere in this tree, so a source that
+ *       The generator is the one held to published vectors elsewhere in this tree. A source that
  *       comes out wrong is a defect here and not in the randomness.
  */
 static void draw_from(const Source *source, uint8_t *into, size_t length, uint64_t salt)

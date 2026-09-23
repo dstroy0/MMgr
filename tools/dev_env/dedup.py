@@ -11,8 +11,8 @@
 A textual diff cannot see this. Two units that both walk a table looking for a match write the same
 five statements with `i`/`n`/`e` in one and `loculus`/`count`/`ent` in the other, and a hash of the text
 puts them in different buckets. So the text is not what is hashed. Comments are blanked first by
-`mask_comments` below - literal-aware, not a regex, and blanking in place rather than deleting so a
-reported line number is the line number - the result is tokenized, and every identifier is replaced
+`mask_comments` below - literal-aware, not a regex, and blanking in place rather than deleting, which keeps a
+reported line number equal to the real one - the result is tokenized, and every identifier is replaced
 by the position at which it was first seen. Two blocks that differ only in what things are called
 then reduce to the same token string and land in one bucket.
 
@@ -69,8 +69,8 @@ TOKEN = re.compile(
 def tokenize(text, first_line=1):
     """The code as (kind, text, line) triples. Comments are gone; whitespace never survives.
 
-    The line travels with the token so a hit can be reported where it is, rather than only as a
-    shape. Nothing downstream reads past the second element, so a shape does not see it.
+    The line travels with the token, which lets a hit be reported where it is, rather than only as a
+    shape. Nothing downstream reads past the second element. A shape does not see it.
     """
     out = []
     for m in TOKEN.finditer(text):
@@ -85,7 +85,7 @@ def mask_comments(text):
 
     strip_comments.rewrite, which readclean reads a file through, deletes comment lines outright.
     That is right for reading and wrong for reporting: a hit at token line 137 of the stripped text
-    is not line 137 of the file, and the two drift further apart the more prose a file carries. Blanking in place keeps every offset, so a
+    is not line 137 of the file, and the two drift further apart the more prose a file carries. Blanking in place keeps every offset. A
     line number is the line number. Literals survive, so "http://x" is still one token and not a
     comment, which is the same reason readclean does not use a regex.
     """
@@ -219,7 +219,7 @@ def digest(strings):
 def bag_digest(stmts, rename, fold_nums):
     """A hash of the statements as a set rather than a sequence.
 
-    Each statement canonicalizes on its own, so a name introduced in one statement does not fix the
+    Each statement canonicalizes on its own. A name introduced in one statement does not fix the
     numbering of the next. That is what makes the hash blind to order.
     """
     parts = sorted(digest(canon(s, rename, fold_nums)) for s in stmts)

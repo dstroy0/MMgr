@@ -15,7 +15,7 @@
 # translation units that are not in the library when it is off, so the suite would fail to link.
 # It is skipped loudly - silently dropping it leaves a passing run that tested less than it looks
 # like. Unity's generator reads case names out of the source text and does not see a preprocessor
-# conditional, so a case cannot be compiled out of a suite: the whole suite is what a capability
+# conditional. A case cannot be compiled out of a suite: the whole suite is what a capability
 # gates.
 #
 # ENVIRONMENT pins the suite to one entry in MMGR_ENVIRONMENTS. An environment suite asserts the

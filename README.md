@@ -109,7 +109,7 @@ python test/harness.py coverage    # what of src/ the suites reached
 Two environment variables matter on a first build, because there is no earlier tree to read them
 off. `MMGR_CMAKE_ARGS` carries the generator and the compiler. `MMGR_BUILD_ROOT` moves the build
 trees, which Windows makes necessary. A full object path is capped at 250 characters there and the
-deepest object here sits about 180 below its build directory, so a checkout more than about 60
+deepest object here sits about 180 below its build directory. A checkout more than about 60
 characters down cannot build in place (`test/harness.py:27-34`).
 
 ## What it claims, and where that is answered

@@ -20,7 +20,7 @@ These come from `embedded_types`, not from MMgr, and carry its prefix.
 | `EMBED_INDEX_BITS` | 32, or `EMBED_WORD_BITS` if narrower | the type of an offset into a region               |
 
 Setting `EMBED_WORD_BITS` narrower than the machine does not make anything faster — it makes the
-scanner answer for fewer bytes per load. It exists so a wide host can exercise a narrow machine's
+scanner answer for fewer bytes per load. It exists to let a wide host exercise a narrow machine's
 code paths. See @ref concept_swar.
 
 `embed_types.h` carries static asserts that police the combination; `idx16` is the environment that
@@ -106,7 +106,7 @@ picking the wrong one costs speed and never correctness: the search still finds 
 @ref mod_anchor_guide.
 
 `MMGR_FIND_CHAIN_MAX` defaults to no limit, which folds its test away: `read_cap <= SIZE_MAX` holds
-for every `size_t`, so a default build emits no comparison. A one or two byte needle is settled by a
+for every `size_t`. A default build emits no comparison. A one or two byte needle is settled by a
 mask chain — one broadcast per needle byte, every start position in the word decided at once, nothing
 to verify — rather than by building the sieve, which exists to find a rare byte in a long needle and
 prove the rest once. Measured with a two byte needle, cycles for the whole call:

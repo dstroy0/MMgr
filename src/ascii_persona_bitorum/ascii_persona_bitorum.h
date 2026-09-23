@@ -27,7 +27,7 @@ EMBED_BEGIN_DECLS
  * @brief Sixteen bytes holding one bit for each of the code points 0 to 127.
  *
  * @note A code point is located by shift and mask rather than by search. Code point n is bit
- *       (n & 7) of bits[n >> 3], so any class answers in the same three operations.
+ *       (n & 7) of bits[n >> 3]. Any class answers in the same three operations.
  */
 typedef struct
 {
@@ -37,7 +37,7 @@ typedef struct
 /**
  * @brief Asserts an MmgrAsciiMask is exactly sixteen bytes.
  *
- * @note mmgr_ascii_in reads bits[byte >> 3] for every byte below 0x80, so all sixteen have to be
+ * @note mmgr_ascii_in reads bits[byte >> 3] for every byte below 0x80. All sixteen have to be
  *       there.
  * @note Sixteen reach code point 127 and no further, which is what leaves a byte of 0x80 or above in
  *       no class at all.
@@ -91,7 +91,7 @@ EMBED_TABLE_LAYOUT(AsciiPersonaBitorumNs, in);
  * @return         EMBED_TRUE when the bit is set, EMBED_FALSE otherwise.
  * @note Bytes 0x80 and above return EMBED_FALSE.
  * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
- *          MMGR_DEBUG_CHECKS build: the bitmap is indexed by it, so a byte under 0x80 then reads
+ *          MMGR_DEBUG_CHECKS build: the bitmap is indexed by it. A byte under 0x80 then reads
  *          past the table.
  */
 embed_bool mmgr_ascii_in(const AsciiCfg *args);

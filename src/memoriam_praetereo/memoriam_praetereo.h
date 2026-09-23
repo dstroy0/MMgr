@@ -150,7 +150,7 @@ void mmgr_praet_close(const PraetTransferCfg *args);
  *
  * @param[in] args Channel to poll [BORROWS].
  * @note Passes args straight to mmgr_praet_hw_poll, unlike the other three entries, which assert first.
- * @warning No assertion runs here, so args and args->channel reach the port layer exactly as the caller gave them.
+ * @warning No assertion runs here. args and args->channel reach the port layer exactly as the caller gave them.
  */
 void mmgr_praet_poll(const PraetCfg *args);
 
@@ -160,7 +160,7 @@ void mmgr_praet_poll(const PraetCfg *args);
  * @param[in] args Channel, peripheral, loopback flag and completion callback, as mmgr_praet_open
  *                 forwards them [BORROWS].
  * @return         EMBED_TRUE when the hardware accepted the request.
- * @note The default in memoriam_praetereo.c refuses every request, so a build links without a port.
+ * @note The default in memoriam_praetereo.c refuses every request. A build links without a port.
  * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
  * @warning Reached through mmgr_praet_open, which asserts the channel and the callback first.
@@ -172,7 +172,7 @@ embed_bool mmgr_praet_hw_open(const PraetCfg *args);
  *
  * @param[in] args Channel, buffer and byte count, as mmgr_praet_tx_submit forwards them [BORROWS].
  * @return         EMBED_TRUE when the hardware accepted the transfer.
- * @note The default in memoriam_praetereo.c refuses every transfer, so a build links without a port.
+ * @note The default in memoriam_praetereo.c refuses every transfer. A build links without a port.
  * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
  * @warning Reached through mmgr_praet_tx_submit, which asserts the channel and the byte count first.
@@ -184,7 +184,7 @@ embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args);
  * @brief Closes a DMA channel on real hardware.
  *
  * @param[in] args Channel to close, as mmgr_praet_close forwards it [BORROWS].
- * @note The default in memoriam_praetereo.c does nothing, so a build links without a port.
+ * @note The default in memoriam_praetereo.c does nothing. A build links without a port.
  * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
  * @note Only args->channel is forwarded. buf and bytes take no part.
@@ -196,7 +196,7 @@ void mmgr_praet_hw_close(const PraetTransferCfg *args);
  * @brief Advances whatever polling the port layer needs.
  *
  * @param[in] args Channel to poll, exactly as the caller gave it [BORROWS].
- * @note The default in memoriam_praetereo.c does nothing, so a build links without a port.
+ * @note The default in memoriam_praetereo.c does nothing. A build links without a port.
  * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
  * @warning mmgr_praet_poll calls this directly, with no checking call in between. args and

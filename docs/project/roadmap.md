@@ -50,7 +50,7 @@ away the property the whole library exists for — a footprint decided before th
 **Runtime configuration.** Every knob is a compile-time define. A runtime-sized pool would move
 allocation failure from configure time back to run time, which is the thing being avoided.
 
-**`install()` rules and a binary artifact.** The ABI is a function of the compile-time widths, so a
+**`install()` rules and a binary artifact.** The ABI is a function of the compile-time widths. A
 prebuilt archive can silently disagree with its consumer about the size of `embed_word`. Consuming
 the source makes that impossible. See @ref guide_install.
 

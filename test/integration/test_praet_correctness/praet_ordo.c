@@ -293,7 +293,7 @@ void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool fai
 /**
  * @brief The CRC-32 polynomial, reflected.
  *
- * @note The ordinary one, so a caller checking this against a checksum of their source can use any
+ * @note The ordinary one. A caller checking this against a checksum of their source can use any
  *       CRC-32 they already have rather than one of ours.
  */
 #define PRAET_CRC_POLYNOMIAL 0xEDB88320u
@@ -465,7 +465,7 @@ void praet_ordo_poll(PraetOrdo *context)
 
     const embed_bool moved = praet_ordo_take_progress(context);
 
-    // The short circuit, and it is still here. What changed is that the port is asked first, so a
+    // The short circuit, and it is still here. What changed is that the port is asked first. A
     // channel that moved is one of the things that can make this false. Nothing happened means no
     // interrupt raised anything and the port reports no movement, and the walk below would then write
     // every flag word back exactly as it found it
@@ -477,7 +477,7 @@ void praet_ordo_poll(PraetOrdo *context)
     }
     praet_procurator_opus(PRAET_OPUS_POLL_WALK);
 
-    // Lifted out of the walk. One deadline serves the whole context, so asking whether it has elapsed
+    // Lifted out of the walk. One deadline serves the whole context. Asking whether it has elapsed
     // once and reading the answer per channel replaces a comparison per channel with a load
     const embed_bool settled = (context->elapsed_micros >= context->settle_deadline) ? EMBED_TRUE : EMBED_FALSE;
 
@@ -492,7 +492,7 @@ void praet_ordo_poll(PraetOrdo *context)
         }
         praet_procurator_opus(PRAET_OPUS_ALVEUS);
 
-        // The bit comes first in both tests below, so a channel that is not settling and a channel
+        // The bit comes first in both tests below. A channel that is not settling and a channel
         // that is not running each cost one mask and nothing else. A timer nothing is waiting on is
         // never compared against
         if (((now & (uint32_t)PRAET_SETTLING) != 0u) && (settled != EMBED_FALSE))

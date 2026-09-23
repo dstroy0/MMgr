@@ -53,7 +53,7 @@ typedef struct
  * @return                   Where to write them, or NULL when they do not fit [BORROWS].
  * @note byteio_put, byteio_raw and byteio_put_be all reach this, so the room test, the latch and the
  *       cursor live in one place rather than three.
- * @note pos advances by bytes whether or not they fit, so a span that overran reports how far past
+ * @note pos advances by bytes whether or not they fit. A span that overran reports how far past
  *       the end the run went rather than stopping at cap. That is a number for reading in a
  *       post-mortem, not a sizing pass to build on - see the warning.
  * @warning Writing past the end is a build failure. What a writer emits and how big its buffer is are
@@ -84,11 +84,11 @@ EMBED_INLINE uint8_t *byteio_claim(mmgr_span *write_span, size_t bytes)
  * @param[in,out] read_span Span to read from [BORROWS].
  * @param[in]     bytes     Bytes wanted.
  * @return                  Where they start, or NULL when the span is short [BORROWS].
- * @note The cursor moves only when the bytes were there. A failed read leaves it where it was, so a
+ * @note The cursor moves only when the bytes were there. A failed read leaves it where it was. A
  *       caller that keeps going still knows where it is.
  * @note No assert here, unlike byteio_claim, and the difference is not an oversight. A writer's
  *       output length is settled before the build, so writing past the end means the program is
- *       wrong. A reader is handed whatever was sent to it, so a short read is a fact about the
+ *       wrong. A reader is handed whatever was sent to it. A short read is a fact about the
  *       input rather than a defect.
  * @note byteio_take_be and byteio_rd_str return a result, because a caller has to act on a short
  *       read. byteio_put, byteio_raw and byteio_put_be return nothing, because the span latches its
@@ -300,7 +300,7 @@ EMBED_INLINE embed_bool byteio_rd_str(const ByteioCtx *args)
  * @return             EMBED_TRUE when the integer fits the field.
  * @note args->src must hold args->bytes readable bytes. The field is the span's cap wide, not
  *       args->bytes, and a value too wide for it latches the span's overflow and stores nothing.
- * @note Leading zero bytes are skipped before the width is tested, so a value carrying a sign byte
+ * @note Leading zero bytes are skipped before the width is tested. A value carrying a sign byte
  *       still fits a field of its own size.
  * @note The zero fill covers only what lies ahead of the value, since the copy lands on the rest of
  *       the field exactly.

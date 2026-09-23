@@ -53,7 +53,7 @@ The entries split by what they operate on, and each has its own config struct.
 | `mask` | a mask of lanes     | `spread`, `drop_first`, `drop_last`, `bytes_below`, `lanes_below`, `before`, `tail`, `run`, `run_edge`              |
 
 `lane.first` and `lane.last` are address order, not bit order. On a big-endian target they are wired
-to the opposite internal entries from a little-endian one, so a caller never has to know which way
+to the opposite internal entries from a little-endian one. A caller never has to know which way
 the lanes run. `mask.drop_first` and `mask.drop_last` are wired the same way.
 
 `lane.count` counts set lanes in a mask; `word.count` is unrelated and reports how many words cover

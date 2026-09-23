@@ -57,7 +57,7 @@ add_test(NAME test_spatium_word32 ...)
 add_test(NAME test_spatium_word16 ...)
 ```
 
-so a defect that only appears at a 16-bit carrier fails a run here rather than waiting for someone
+A defect that only appears at a 16-bit carrier fails a run here rather than waiting for someone
 to own that hardware. The environment suites themselves are built only in their own environment, and
 assert that the widths actually reached the translation unit.
 
@@ -106,7 +106,7 @@ is for.
 
 `test_memoriam_praetereo` needs `MMGR_ENABLE_DMA`. `test_memoria_externa` and
 `test_memoria_externa_accuracy` need `MMGR_ENABLE_EXTRAM`. Both knobs default off
-(`CMakeLists.txt:28-29`), so all three are skipped **loudly**, with a CMake status message naming the
+(`CMakeLists.txt:28-29`). All three are skipped **loudly**, with a CMake status message naming the
 capability that turned each one off:
 
 ```
@@ -134,12 +134,12 @@ the call. Six cases do that today.
 
 **Nothing reads past its bound.** A poison pattern cannot catch a read, because a read leaves
 nothing behind. `test_read_bounds` puts the buffer flush against a page marked no-access and catches
-the trap, so a load one byte too far is reported rather than being someone else's crash later. It
+the trap. A load one byte too far is reported rather than being someone else's crash later. It
 holds `len`, `chr`, `eq`, `starts`, `diff`, `copy` and `take_be` to the word-rounded cap, and `find`
 and `has` to the raw cap with nothing rounded.
 
 **Hostile content, inside legitimate bounds.** Sizes here are the caller's own and bound at compile
-time, so a nonsense size is not an input this library accepts. What arrives from outside is the
+time. A nonsense size is not an input this library accepts. What arrives from outside is the
 bytes. `test_hostile_content` drives runs that never terminate, a terminator walked through every
 lane, every start alignment, bytes with the high bit set through a compare that is only exact below
 it, needles flush with the end and longer than the hay, and builders and spans walked to their caps
@@ -180,14 +180,14 @@ The counters carry a stamp from the `.gcno` they were built beside, so they are 
 build and before the run: a report always describes the binaries that produced it.
 
 Every environment runs, not just host. Which arm of a width conditional exists at all is
-`MMGR_ENVIRONMENTS`' business, so a line dead at 64 bits is live at 16 and only the whole set
+`MMGR_ENVIRONMENTS`' business. A line dead at 64 bits is live at 16 and only the whole set
 describes the library.
 
 Where a branch cannot be reached at any configured environment it carries a `GCOVR_EXCL` marker with
 the reason on it - a debug assertion that needs `MMGR_DEBUG_CHECKS`, an arm that only exists on a
 big endian target, a guard its own invariants will not let fire. Each says what would make it live
-again, so a build option that changes the answer takes the marker with it.
+again. A build option that changes the answer takes the marker with it.
 
 The same numbers come out of the SonarQube workflow, which configures with the same flags. The order
-there is load-bearing — no `.gcda` exists until the tests have run, so a scanner invoked before
+there is load-bearing — no `.gcda` exists until the tests have run. A scanner invoked before
 `ctest` reports zero.

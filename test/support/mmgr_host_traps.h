@@ -31,7 +31,7 @@
  * @note Takes 0 or 1 and nothing else. A switch read with #if treats any non-zero as set, so the
  *       check below is what keeps a mistyped value from quietly meaning on.
  * @note A suite built for another environment never reaches this header, and #if on an undefined
- *       name is 0, so a case testing it there reads false without needing a default.
+ *       name is 0. A case testing it there reads false without needing a default.
  */
 #ifndef MMGR_DEBUG_CHECKS
 #define MMGR_DEBUG_CHECKS 0
@@ -47,7 +47,7 @@
  * @param[in] msg_  String literal describing the expectation.
  * @note fflush(NULL) before the trap, or a harness that buffers its progress on stdout loses every
  *       line of it to the abort and reports the failure with nothing naming which case reached it.
- * @warning cond_ must carry no side effect. The form in src/ never evaluates it, so an assert
+ * @warning cond_ must carry no side effect. The form in src/ never evaluates it. An assert
  *          holding the work would do nothing in the build that ships.
  */
 #ifndef MMGR_ASSERT

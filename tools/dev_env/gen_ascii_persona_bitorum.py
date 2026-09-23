@@ -19,7 +19,7 @@ WHAT IS GENERATED AND WHAT IS NOT
 
 The masks are generated from the predicates below, because they are exactly the constants nobody
 can check by eye: the first three written out by hand had 'Z' missing from ALPHA, and space, DEL
-and 0x1F wrongly in PUNCT. The enum is generated with them, so a class can never be numbered
+and 0x1F wrongly in PUNCT. The enum is generated with them. A class can never be numbered
 differently from the row it indexes.
 
 Everything else in the two files is prose and structure that describes THIS module, and it is
@@ -35,7 +35,7 @@ including the column the enum comments sit in.
 
 ascii_persona_bitorum.c is NOT ignored, so clang-format owns its layout and the generator emits a
 plain table and runs the formatter over it. Without that the output differs from what is on disk
-until something else has run, and `harness.py generated` reads that as a dirty tree - so a missing
+until something else has run, and `harness.py generated` reads that as a dirty tree. A missing
 clang-format is a refusal rather than a warning.
 """
 
@@ -190,7 +190,7 @@ EMBED_BEGIN_DECLS
  * @brief Sixteen bytes holding one bit for each of the code points 0 to 127.
  *
  * @note A code point is located by shift and mask rather than by search. Code point n is bit
- *       (n & 7) of bits[n >> 3], so any class answers in the same three operations.
+ *       (n & 7) of bits[n >> 3]. Any class answers in the same three operations.
  */
 typedef struct
 {
@@ -200,7 +200,7 @@ typedef struct
 /**
  * @brief Asserts an MmgrAsciiMask is exactly sixteen bytes.
  *
- * @note mmgr_ascii_in reads bits[byte >> 3] for every byte below 0x80, so all sixteen have to be
+ * @note mmgr_ascii_in reads bits[byte >> 3] for every byte below 0x80. All sixteen have to be
  *       there.
  * @note Sixteen reach code point 127 and no further, which is what leaves a byte of 0x80 or above in
  *       no class at all.
@@ -244,7 +244,7 @@ EMBED_TABLE_LAYOUT(AsciiPersonaBitorumNs, in);
  * @return         EMBED_TRUE when the bit is set, EMBED_FALSE otherwise.
  * @note Bytes 0x80 and above return EMBED_FALSE.
  * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
- *          MMGR_DEBUG_CHECKS build: the bitmap is indexed by it, so a byte under 0x80 then reads
+ *          MMGR_DEBUG_CHECKS build: the bitmap is indexed by it. A byte under 0x80 then reads
  *          past the table.
  */
 embed_bool mmgr_ascii_in(const AsciiCfg *args);

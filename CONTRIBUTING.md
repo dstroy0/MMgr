@@ -3,7 +3,7 @@
 ## Build and test
 
 All five environments are one build. `cmake/MMgrModule.cmake` emits `mmgr_<module>_<env>` for every
-entry in `MMGR_ENVIRONMENTS`, so a single configure builds `host`, `word32`, `word16`, `idx16` and
+entry in `MMGR_ENVIRONMENTS`. A single configure builds `host`, `word32`, `word16`, `idx16` and
 `checks` together, and a single `ctest` run covers all five.
 
 ```sh
@@ -23,7 +23,7 @@ away still reports as passing.
 ## Formatting
 
 Three formatters, one per language, each owning its own files and nothing else. All three wrap at
-120 columns, so a Python tool and the C it rewrites line up in a side-by-side diff.
+120 columns. A Python tool and the C it rewrites line up in a side-by-side diff.
 
 ```sh
 find src test -name '*.c' -o -name '*.h' | grep -v '^test/vendor/' | xargs clang-format -i
@@ -95,7 +95,7 @@ Doxygen takes one branch of a `#if`. Put the doc block on the branch it takes, n
 `#if`, or the entity comes out undocumented - `docs/Doxyfile` sets `PREDEFINED` and that is what
 decides which branch that is.
 
-Run `doxygen docs/Doxyfile` before committing. `WARN_IF_UNDOCUMENTED` is on, so anything you added
+Run `doxygen docs/Doxyfile` before committing. `WARN_IF_UNDOCUMENTED` is on. Anything you added
 and did not document shows up in `docs/doxygen-warnings.log`.
 
 ## Adding a module

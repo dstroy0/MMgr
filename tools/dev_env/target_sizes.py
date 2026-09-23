@@ -10,7 +10,7 @@ RISC-V and ARM, and they do not merely differ from the host by a constant: on al
 than -O2, and on the host it is smaller. A level chosen off the host table is chosen off the wrong
 measurement.
 
-Each unit is compiled on its own, no LTO and no link, so a row is that unit alone:
+Each unit is compiled on its own, no LTO and no link. A row is that unit alone:
 
     <target>-gcc -std=c11 -I src -O<level> -c <unit>.c -o <unit>.o && <target>-size <unit>.o
 

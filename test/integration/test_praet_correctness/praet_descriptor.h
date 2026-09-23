@@ -22,7 +22,7 @@
  *       quaternary core in its flag word, and that answers a different question: the core says what
  *       the channel is doing, and an owner says which link in the chain the engine is on.
  * @note A peripheral end is an address that does not advance. Where that address is comes from the
- *       vendor's own header, which the compiler has already read, so a caller names theirs and no
+ *       vendor's own header, which the compiler has already read. A caller names theirs and no
  *       number of any part appears in this tree.
  */
 #ifndef MMGR_TEST_PRAET_DESCRIPTOR_H
@@ -337,7 +337,7 @@ struct PraetDescriptor
  * @note Ping-pong, and it is two descriptors whose next point at each other. Nothing here is a mode
  *       and no part has a bit for it. What makes it double buffering is that the two write different
  *       halves, which is the caller's to arrange by the offsets they pass.
- * @note Both spans are proved against their pools separately, so a pair whose halves overlap or run
+ * @note Both spans are proved against their pools separately. A pair whose halves overlap or run
  *       off the end fails at the declaration that wrote it.
  */
 #define PraetPingPong(first_, second_, from_pool_, to_pool_, first_from_, first_to_, second_from_, second_to_, bytes_,  \
@@ -360,7 +360,7 @@ struct PraetDescriptor
  *       is that name. An ESP32 reaches one through its GDMA peripheral struct, an i.MX RT through
  *       LPUART1->DATA, and neither number appears in this tree.
  * @note Emits a pointer under a mangled name and an enumerator carrying the peripheral's. A
- *       descriptor naming a peripheral pastes onto both, so anything that was not declared here fails
+ *       descriptor naming a peripheral pastes onto both. Anything that was not declared here fails
  *       on a name nobody wrote. The same proof a pool gives, for a thing that has no extent.
  * @note volatile, because a register is read and written by something other than this program and a
  *       compiler that cached one would be reading a value the part has moved on from.

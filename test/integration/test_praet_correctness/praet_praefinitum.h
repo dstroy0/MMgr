@@ -17,25 +17,25 @@
  * @note Nothing here stops the build. Every unset knob takes its default, raises a warning naming
  *       itself and the value it took, and leaves a flag behind. praet_iudex.h reads those
  *       flags at the end and stops once, listing what to go fix.
- * @note That order is the whole point. An #error halts its translation unit where it stands, so a
+ * @note That order is the whole point. An #error halts its translation unit where it stands. A
  *       build missing four knobs reports one, gets fixed, and reports the next - four rounds to learn
  *       four facts that were all known on the first. Warning here and stopping at the end hands the
  *       whole basket over at once.
- * @note Nothing about it needs a build system. It is preprocessor directives, so a bare gcc or clang
+ * @note Nothing about it needs a build system. It is preprocessor directives. A bare gcc or clang
  *       on one file behaves the same way as any tree that drives them. A keep-going build reaches
  *       across translation units on top of this, which is a separate half of the same idea and not
  *       something this depends on.
  * @note #warning is a GNU and clang directive and is standard from C23. This library targets those
  *       two compilers and no others, so it is available everywhere this builds.
  * @note Every message is a #warning directive rather than a macro over _Pragma. GCC's warning pragma
- *       keeps only the first string literal after it, so a message written as adjacent literals
+ *       keeps only the first string literal after it. A message written as adjacent literals
  *       arrives cut off at the first one - which still reads as a finished sentence and still passes a
  *       check written against its opening words. That got past a green sweep column here once. A
  *       #warning takes the rest of the line and arrives whole.
  * @warning A directive cannot come out of a macro expansion, so this only works where the report sits
  *          at file scope. Every knob here does. The one report that fires from inside a macro is the
  *          boundary word answer at a declaration, and praet_ordo.h reaches that a different way.
- * @warning No message interpolates a macro. Neither #warning nor the pragma expands one, so a name in
+ * @warning No message interpolates a macro. Neither #warning nor the pragma expands one. A name in
  *          the middle of a message arrives as the name of the macro rather than its value.
  */
 #ifndef MMGR_TEST_PRAET_PRAEFINITUM_H
@@ -92,13 +92,13 @@
  *       anything out of them.
  * @note With it on, submit takes the start and the length, kick reports how far the engine got, and
  *       praet_ordo_resolve exists. With it off none of those members are in the context and none
- *       of those entries are declared, so a call site that wanted them fails to compile instead of
+ *       of those entries are declared. A call site that wanted them fails to compile instead of
  *       linking against a version that records nothing.
  */
 #ifndef PRAET_RECOVERY
 #define PRAET_RECOVERY 0
 #define PRAET_UNSET_RECOVERY 1
-#warning "PRAET_RECOVERY was not set and took the library default of 0, so a stalled transfer cannot be backed out or scrubbed in this build. Set it to 1 to have that machinery, 0 to say you meant to leave it out."
+#warning "PRAET_RECOVERY was not set and took the library default of 0. A stalled transfer cannot be backed out or scrubbed in this build. Set it to 1 to have that machinery, 0 to say you meant to leave it out."
 #endif
 
 // A capability switch is on or off, and a third value is somebody reading it as a count or a channel

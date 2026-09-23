@@ -18,7 +18,7 @@
  * @note Reports and never gates. A transition nothing reached is a hole in the cases, and whether it
  *       is worth filling is a reading of the report and not a build failure. The optimization arm is
  *       this same instrument carrying timings.
- * @note Off unless PRAET_PROCURATOR is 1, and every entry is then a macro expanding to nothing, so a
+ * @note Off unless PRAET_PROCURATOR is 1, and every entry is then a macro expanding to nothing. A
  *       build that did not ask for it carries no counter and no call.
  * @warning Not a knob praet_iudex.h asks about. Every knob there describes the image a
  *          caller ships; this describes a run of the suite, which is the harness's business and not
@@ -107,7 +107,7 @@ EMBED_END_DECLS
  * @param channel_ Channel whose word changed, discarded.
  * @param was_     The word before, discarded.
  * @param now_     The word after, discarded.
- * @note Casts each argument to void so a build without the instrument does not warn about the values
+ * @note Casts each argument to void, which keeps a build without the instrument from warning about the values
  *       it was handed.
  */
 #define praet_procurator_transitus(channel_, was_, now_) ((void)(channel_), (void)(was_), (void)(now_))

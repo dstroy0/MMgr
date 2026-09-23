@@ -70,7 +70,7 @@
  *       defines it ahead of this header, or on the command line.
  * @note Read only by ParsMemoriaeExternum, which is declared only where MMGR_ENABLE_EXTRAM is set.
  * @warning Empty by default, and an external pool then lands wherever the linker puts an ordinary
- *          one. Nothing diagnoses that, so a build enabling external memory has to supply this.
+ *          one. Nothing diagnoses that. A build enabling external memory has to supply this.
  */
 #ifndef MMGR_EXTRAM_ATTR
 #define MMGR_EXTRAM_ATTR
@@ -137,11 +137,11 @@
  *       compiler prints the identifier, which is why the identifier reads as the reason rather than
  *       naming a mechanism.
  * @note Two pools of one name would sit at unique addresses and the language would take them. The
- *       name is the whole of what a consumer is handed, so a name meaning internal memory in one
+ *       name is the whole of what a consumer is handed. A name meaning internal memory in one
  *       place and external in another leaves the placement out of reach of the line that uses it,
  *       and those two differ in what a DMA engine can address and in settling time.
  * @warning One translation unit is as far as this guard reaches. The enumerator is settled while a
- *          unit is compiled, so a pool of the same name declared in a separate unit does not collide
+ *          unit is compiled. A pool of the same name declared in a separate unit does not collide
  *          on it. Catching that one is the linker's to do, over a symbol it can see.
  */
 #define MMGR_PARS_DECLARED_ONCE(name_)                                                                                 \
@@ -179,7 +179,7 @@
  * @note A pool is a block of bytes and nothing else. Hand it to LocusCarcerum to have it dressed as
  *       a cellblock, to mmgr_anular_init to have it dressed as a ring, or to a memor entry to work
  *       on it as the bytes it is. A pool nobody hands anywhere is a pool that exists and is unclaimed.
- * @note The count is carried as name_##_bytes as well as laid down as the array, so a consumer has
+ * @note The count is carried as name_##_bytes as well as laid down as the array. A consumer has
  *       the extent without deriving it. The assertion is what compares the two, and it has content
  *       only because the two are produced separately.
  * @note Aligned to MMGR_ALIGN_BYTES, which is what makes that knob the contract it is documented as
@@ -204,7 +204,7 @@
  * @note The same declaration as ParsMemoriaeInternae, carrying MMGR_EXTRAM_ATTR. Which memory a pool
  *       sits in is settled by which of the two a caller writes, and nothing afterwards inspects an
  *       address to find out.
- * @warning Declared only where MMGR_ENABLE_EXTRAM is set, so a build without external memory fails
+ * @warning Declared only where MMGR_ENABLE_EXTRAM is set. A build without external memory fails
  *          on the name rather than quietly placing the bytes internally.
  */
 #if MMGR_ENABLE_EXTRAM

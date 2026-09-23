@@ -123,7 +123,7 @@ static void fill_uniform(uint8_t *corpus, size_t length, uint32_t seed)
  * @param[in,out] corpus Bytes to remap in place [BORROWS].
  * @param[in]     length How many.
  * @note The table is a geometric weighting over 27 symbols, which lands H2 in the 3.7 to 3.9 band the
- *       ledger records for English. It is a distribution and carries no arrangement, so an arm that
+ *       ledger records for English. It is a distribution and carries no arrangement. An arm that
  *       reads only the histogram cannot tell it from English and an arm that reads position can.
  */
 static void fill_skewed(uint8_t *corpus, size_t length)

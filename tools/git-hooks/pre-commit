@@ -9,7 +9,7 @@
 #
 # WHERE THE CHECKER IS, AND WHY IT IS NOT IN THIS TREE
 #
-# The list of banned words is itself the thing being kept out, so a denylist held inside the tree
+# The list of banned words is itself the thing being kept out. A denylist held inside the tree
 # would write every word it bans into the tree and defeat its own purpose. Both the list and the
 # checker sit outside every repository they guard. This hook locates them under the user's home
 # rather than at a literal path, because a hard-coded absolute path is banned tree-wide and would

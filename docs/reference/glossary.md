@@ -113,7 +113,7 @@ the metaphor stays behind the name.
 | **carrier**        | the integer a SWAR operation runs on. Always the machine word                  |
 | **lane**           | one byte inside the carrier                                                    |
 | **environment**    | one set of compile-time widths. See @ref ref_environments                      |
-| **latch**          | a flag that stays set once set, so a run is checked once at the end            |
+| **latch**          | a flag that stays set once set. A run is checked once at the end               |
 
 The two axes are independent, which is the part worth holding on to. **Which custodia** is the
 environment. It is fixed at the cellblock's declaration and governs how a release behaves.

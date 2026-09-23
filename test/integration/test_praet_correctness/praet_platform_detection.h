@@ -123,7 +123,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
  *        one.
  *
  * @note ARMv7-M and up carry the DWT, whose cycle counter is what a port reads. ARMv6-M does not have
- *       one at all, so a Cortex-M0 or M0+ has nothing here and the caller has to supply the clock.
+ *       one at all. A Cortex-M0 or M0+ has nothing here and the caller has to supply the clock.
  * @note The application and real-time profiles have the generic timer and the performance monitors,
  *       either of which a port can read.
  * @warning Says the architecture defines one, and never that this part implemented it. DWT_CYCCNT is
@@ -213,7 +213,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 /**
  * @brief Set where the architecture loads and stores at an address that is not aligned to the size.
  *
- * @note The three __riscv_misaligned_ macros arrived in GCC 14, so an older toolchain defines none of
+ * @note The three __riscv_misaligned_ macros arrived in GCC 14. An older toolchain defines none of
  *       them and this reads as strict. That is the fail-closed answer: a build described as strict on
  *       a part that is not loses nothing, and the reverse is a fault at run time.
  */

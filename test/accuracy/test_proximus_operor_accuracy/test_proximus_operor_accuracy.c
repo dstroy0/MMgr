@@ -333,7 +333,7 @@ void test_every_store_writes_its_bytes_at_its_address(void)
  *       is allowed to assume. A value stored through one is read back by the other.
  * @note Only aligned addresses are offered, which is what these entries document. The buffer is
  *       declared with the alignment MMGR_ALIGN_BYTES states, and the offsets step by whole words.
- * @note Both directions are checked at both widths, so an aligned store read by an unaligned load and
+ * @note Both directions are checked at both widths. An aligned store read by an unaligned load and
  *       an unaligned store read by an aligned load both have to agree.
  */
 void test_the_aligned_entries_reach_the_same_bytes_as_the_unaligned_ones(void)

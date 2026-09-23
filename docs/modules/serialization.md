@@ -40,7 +40,7 @@ leaves the cursor alone and returns `EMBED_FALSE` for a caller to act on. See @r
 @ref mod_endian_guide and then stores at the widest step the count allows: eight bytes is one store,
 seven is three, and only an odd final byte is ever written alone. `take_be` is the mirror.
 
-**Neither access needs to be aligned.** They reach @ref mod_proxim_guide's unaligned entries, so a
+**Neither access needs to be aligned.** They reach @ref mod_proxim_guide's unaligned entries. A
 field may start anywhere in the span. The cost does vary with the field width, because the number of
 stores does.
 
@@ -50,7 +50,7 @@ cursor back where it started — a partial read is not a read.
 
 **`mpint_fixed` writes the field whole rather than appending to it.** It zero-fills ahead of the
 value and leaves the cursor at `cap`. Leading zero bytes of the integer are skipped before the width
-is tested, so a value carrying a sign byte still fits a field of its own size.
+is tested. A value carrying a sign byte still fits a field of its own size.
 
 @ref mod_byteio "Generated reference"
 
@@ -118,7 +118,7 @@ implementation detail of the host, and code that writes "native" order to a wire
 appears the first time the other end is a different machine.
 
 `EMBED_BIG_ENDIAN` exists so the library can take the cheap path when the requested order happens to
-match the host — not so a caller can ask for whatever the machine does.
+match the host. It is not there for a caller to ask for whatever the machine does.
 
 @ref mod_endian "Generated reference" · @ref concept_width
 
@@ -141,7 +141,7 @@ const double   y    = EMBED_CALL(fract.from_bits, FractioCfg, .bits = back);
 `to_bits` and `from_bits` are the two directions of the same union, and `merge` returns a bit
 pattern, not a `double` — put it through `from_bits` to get the value back.
 
-The `MMGR_DBL_*` constants — masks, shifts, the bias — are exposed too, so a caller doing something
+The `MMGR_DBL_*` constants — masks, shifts, the bias — are exposed too. A caller doing something
 the entries do not cover is not forced to re-derive them.
 
 ## When to reach for it
@@ -155,7 +155,7 @@ than the number.
 **This is `double`, not `float`.** There are no single-precision entries.
 
 **It is bit manipulation, not arithmetic.** `merge` will happily build a NaN or a denormal from the
-fields you hand it. It masks each one to its width rather than rejecting it, so a value too large
+fields you hand it. It masks each one to its width rather than rejecting it. A value too large
 for its field loses the high bits silently.
 
 @ref mod_fract "Generated reference"

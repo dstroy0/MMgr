@@ -18,7 +18,7 @@
 #define PRAET_TEST_CHANNEL 0u
 
 /**
- * @brief Records that a completion callback ran, so a case can assert the port layer never invoked one.
+ * @brief Records that a completion callback ran. A case can assert the port layer never invoked one.
  */
 static int s_completion_count;
 
@@ -48,7 +48,7 @@ static const PraetCallbackCfg s_completion_binding = {
 /**
  * @brief Prepares the fixture Unity runs before each case in this suite.
  *
- * @note Clears the completion counter so a case reads only what it itself provoked.
+ * @note Clears the completion counter, and a case then reads only what it itself provoked.
  */
 void setUp(void)
 {
@@ -135,7 +135,7 @@ void test_an_unported_build_refuses_a_transfer(void)
 /**
  * @brief Checks that a transfer of no bytes is refused the same way as any other.
  *
- * @note The refusing default reads neither the buffer nor the count, so an empty transfer takes the
+ * @note The refusing default reads neither the buffer nor the count. An empty transfer takes the
  *       same path as a full one and must answer the same.
  */
 void test_an_empty_transfer_is_refused_as_well(void)
@@ -217,7 +217,7 @@ void test_the_completion_event_carries_every_reported_field(void)
 /**
  * @brief Checks that microseconds within a millisecond stay below one thousand.
  *
- * @note completion_ms and completion_us are separate members, so a port that folded the whole
+ * @note completion_ms and completion_us are separate members. A port that folded the whole
  *       elapsed time into completion_us would still fill both and read wrong here.
  */
 void test_the_completion_event_splits_time_into_two_fields(void)

@@ -4,12 +4,12 @@
 """How much of a target this library costs against the libc it would replace.
 
 newlib is the comparison because it is the libc an embedded target actually ships, it is a static
-archive with one object per entry so a single function can be weighed, and it is built by the same
+archive with one object per entry, which lets a single function be weighed, and it is built by the same
 compiler family. Both sides are compiled for the same core at the same optimisation level, so the
 difference is the code and not the toolchain.
 
 Only .text is counted. An archive member also carries relocations and symbol tables that never
-reach flash, and the linker pulls whole members, so a member is the unit whether or not every entry
+reach flash, and the linker pulls whole members. A member is the unit whether or not every entry
 in it is called.
 
     python tools/dev_env/against_libc.py

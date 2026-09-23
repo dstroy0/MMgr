@@ -17,7 +17,7 @@
  * @note Both folds are Henry S. Warren Jr., Hacker's Delight, 2nd edition: the leading-zero binary
  *       search is section 5-3 and the trailing-zero isolate is section 5-4. ISBN 978-0-321-84268-8.
  *       Neither is a de Bruijn sequence index. The arm below halves the search five times rather
- *       than multiplying by a de Bruijn constant and reading a table, so a de Bruijn citation here
+ *       than multiplying by a de Bruijn constant and reading a table. A de Bruijn citation here
  *       would name the wrong technique.
  */
 #include "clz/clz.h"

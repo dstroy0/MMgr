@@ -382,7 +382,7 @@ static void big_top_128(const BigNumber *number, int length, uint64_t *high, uin
  *
  * @param[out] number   Destination, set to 1 before the multiplications begin [BORROWS].
  * @param[in]  exponent Power to raise five to. Zero leaves the value at 1.
- * @warning big_multiply_small drops a carry off the top limb, so an exponent large enough to need
+ * @warning big_multiply_small drops a carry off the top limb. An exponent large enough to need
  *          more than MMGR_ACCURACY_TOTAL_BITS loses its top silently. No caller passes above 256.
  */
 static void big_power_of_five(BigNumber *number, int exponent)

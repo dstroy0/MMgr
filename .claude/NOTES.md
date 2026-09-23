@@ -86,7 +86,7 @@ checkout is working-tree-only and is not committed.
 lock file and the stamp subsystem does not touch this repository.
 
 `.gitattributes` is present here. That matters under submodules: a mount has no CRLF normalization
-layer of its own, so a consumer cloning this repository on a machine with a different
+layer of its own. A consumer cloning this repository on a machine with a different
 `core.autocrlf` gets whatever `.gitattributes` says. Do not delete it.
 
 ## 3. Backgrounded agents may commit
@@ -101,7 +101,7 @@ Two preconditions apply here specifically:
   this working tree and this index with the foreground session. Stage explicitly with
   `git add <named paths>`. Do not use `git commit -a` and do not use bare `git add .`.
 - `core.hooksPath` is unset in this clone and `.git/hooks` holds only samples. MMgr ships no hooks
-  of its own, so a commit here currently runs zero gates, including the banned-word guard at
+  of its own. A commit here currently runs zero gates, including the banned-word guard at
   `C:/Users/Douglas/.claude/commit_guard/`. Wire the gates before granting commit authority in
   practice.
 
@@ -179,7 +179,7 @@ Every repository, public and private, gets exactly two directories for written w
   **this** repository: its engine, its results, its reproduction instructions.
 - `theory/` — wholly a git dependency of the `theory_bucket` repository. Nothing is authored here.
   Every directory inside arrived from the theory_bucket remote, and the whole directory can be
-  deleted and re-fetched without losing work. Each upstream book is pulled individually, so a
+  deleted and re-fetched without losing work. Each upstream book is pulled individually. A
   consumer takes only the books it asks for.
 
 All theory, from every public and private repository, is authored upstream in theory_bucket.

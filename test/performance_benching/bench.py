@@ -3,7 +3,7 @@
 bench.py - the one entry point for the microbenchmark matrix.
 
 Adapted from ProtoCore's bench.py, whose commands and matrix shape this keeps. What changed is
-the host arm: MMgr has no platform HAL to stand in for, so a host build compiles the module's
+the host arm: MMgr has no platform HAL to stand in for. A host build compiles the module's
 own sources and nothing else. `bench.py help` is the whole surface:
 
   help    every command's help in one call, or one command's
@@ -244,7 +244,7 @@ def cmd_list(a):
 # ---------------------------------------------------------------------------
 
 
-# MMgr asks nothing of a platform: no clock, no NVS, no crypto or PHY seam, so a host build has
+# MMgr asks nothing of a platform: no clock, no NVS, no crypto or PHY seam. A host build has
 # no vendor arm to stand in for and this list is empty. It is kept rather than deleted because
 # host_arm_archive still runs over it, and an empty archive is the honest answer for a library
 # whose every module compiles on its own.
@@ -351,7 +351,7 @@ def _defines(path):
 
     Compiling each source and reading nm is exact but costs minutes over the whole tree, and the
     exactness buys nothing: this table is only ever consulted for a symbol a real link has already
-    reported missing, so a name it lists that the file does not actually define is never looked up.
+    reported missing. A name it lists that the file does not actually define is never looked up.
     Reading the text is the same answer for this purpose, at a thousandth of the cost.
     """
     with open(os.path.join(ROOT, path), "r", encoding="utf-8", errors="replace") as f:

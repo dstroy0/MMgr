@@ -6,7 +6,7 @@
 #
 #   Usage:  python tools/dev_env/math_hazards.py docs/research/anchor-sift-method.md [more.md]
 #
-# Markdown gets the first pass at the text and the math renderer gets the second, so anything that means
+# Markdown gets the first pass at the text and the math renderer gets the second. Anything that means
 # something to markdown or to HTML is consumed before the formula is ever parsed. Three of these turned up
 # in one paper and none of them reported the cause.
 #
@@ -74,7 +74,7 @@ def odd_inline_dollars(line):
 # Checks that read a whole line rather than one math span
 LINE_CHECKS = (
     (odd_inline_dollars,
-     "an odd number of inline $ on the line, so a formula is left unclosed"),
+     "an odd number of inline $ on the line. A formula is left unclosed"),
 )
 
 

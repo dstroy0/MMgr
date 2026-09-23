@@ -12,10 +12,10 @@
  *
  * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note The map is ours, which is exactly why it needs checking. Nothing outside this library assigns
- *       these bits, so a status added at the wrong offset or a region moved one byte down is a change
+ *       these bits. A status added at the wrong offset or a region moved one byte down is a change
  *       no compiler would question and no test would necessarily reach. Placing one status on top of
  *       the region descriptor already happened once here.
- * @note Statuses are named by token id and their bits are derived from it, so a name and its bit
+ * @note Statuses are named by token id and their bits are derived from it. A name and its bit
  *       cannot disagree. What the assertions below check is the id set: that it is dense, that no two
  *       ids collide, and that the three fields do not overlap each other.
  * @note The map is the same on every build. A status a build never sets still owns its bit, because a
@@ -170,7 +170,7 @@ EMBED_BEGIN_DECLS
  * @brief Set where a stalled transfer was backed out and its bytes left as they were.
  *
  * @note Owns its bit on every build. A build with recovery off never sets it, and the bit stays
- *       reserved so a flag word means one thing everywhere.
+ *       reserved to keep a flag word meaning one thing everywhere.
  */
 #define PRAET_ABANDONED PRAET_STATUS_BIT(PRAET_ID_ABANDONED)
 
@@ -186,7 +186,7 @@ EMBED_BEGIN_DECLS
  * @brief Set where a recovery measured the word the engine was in the middle of.
  *
  * @note What tells a reader that the boundary checksum means anything. A checksum of zero is a legal
- *       one, so a reader that took the value alone could not tell a measured word from an unmeasured
+ *       one. A reader that took the value alone could not tell a measured word from an unmeasured
  *       context.
  * @note A context whose declaration chose the DISABLE token never sets this, and neither does a
  *       recovery whose sample already landed on a word boundary - there is no partial word to
@@ -246,7 +246,7 @@ EMBED_BEGIN_DECLS
  * @brief The regions a channel can be attached over.
  *
  * @note Token ids, the same way the statuses above are token ids. A region arrives at an attach as one
- *       of these names, so a misspelling is an undeclared identifier carrying the name that was
+ *       of these names. A misspelling is an undeclared identifier carrying the name that was
  *       written, and a caller cannot pass a byte that means nothing.
  * @note Two of them, because ParsMemoriaeInternae and ParsMemoriaeExternum are the two declarations a
  *       pool can be written with. A part with more address spaces than that adds ids here and the
