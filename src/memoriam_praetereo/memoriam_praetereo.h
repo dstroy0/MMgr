@@ -6,10 +6,13 @@
  */
 /**
  * @file memoriam_praetereo.h
- * @brief DMA channels: the completion event, the port hooks, and the praet dispatch table.
+ * @brief DMA channels: the completion event, the port hooks, the praet dispatch table, and the
+ *        schedule and descriptors under them.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
+ * @note The one header a caller includes. praet_ordo.h and praet_descriptor.h come in at the end,
+ *       and the knobs they read are set on the build line, before this is reached.
  * @warning Everything below is declared only when MMGR_ENABLE_DMA is set.
  */
 #ifndef MMGR_MEMORIAM_PRAETEREO_H
@@ -51,21 +54,10 @@ typedef struct
 typedef void (*mmgr_praet_callback)(const mmgr_praet_event *event, void *user);
 
 /**
- * @brief The channel count and buffer size a build was configured with.
- *
- * @note The implementation holds one of these, filled from MMGR_PRAET_CHANNELS and MMGR_PRAET_BUF_SIZE.
- */
-typedef struct
-{
-    const size_t channels; /**< Channels available. */
-    const size_t buf_size; /**< Largest transfer one channel accepts. */
-} PraetInit;
-
-/**
  * @brief A completion callback and the pointer handed back to it.
  *
- * @warning mmgr_praet_open forwards the pointer to this struct unchanged, rather than copying it, so
- *          it must stay valid for as long as the channel is open [BORROWS].
+ * @warning mmgr_praet_open forwards the pointer to this struct unchanged and keeps no copy, so it
+ *          must stay valid for as long as the channel is open [BORROWS].
  */
 typedef struct
 {
@@ -120,7 +112,7 @@ EMBED_TABLE_LAYOUT(MemoriamPraetereoNs, open, tx_submit, close, poll);
  * @param[in] args Channel, peripheral, loopback flag and completion callback [BORROWS].
  * @return         EMBED_TRUE when the port layer accepted the request.
  * @note The default mmgr_praet_hw_open refuses, so this returns EMBED_FALSE until a port replaces it.
- * @warning args->channel must be below the configured channel count, and args->on_complete must not be NULL.
+ * @warning args->channel must be below PRAET_CHANNELS, and args->on_complete must not be NULL.
  */
 embed_bool mmgr_praet_open(const PraetCfg *args);
 
@@ -131,8 +123,7 @@ embed_bool mmgr_praet_open(const PraetCfg *args);
  * @return         EMBED_TRUE when the port layer accepted the transfer.
  * @note The default mmgr_praet_hw_tx_submit refuses, so this returns EMBED_FALSE until a port replaces it.
  * @warning args->buf must stay valid until the completion callback runs [BORROWS].
- * @warning args->channel must be below the configured channel count, and args->bytes must not exceed
- *          the buffer size.
+ * @warning args->channel must be below PRAET_CHANNELS.
  */
 embed_bool mmgr_praet_tx_submit(const PraetTransferCfg *args);
 
@@ -141,7 +132,7 @@ embed_bool mmgr_praet_tx_submit(const PraetTransferCfg *args);
  *
  * @param[in] args Channel to close [BORROWS].
  * @note Only args->channel is read. buf and bytes take no part.
- * @warning args->channel must be below the configured channel count.
+ * @warning args->channel must be below PRAET_CHANNELS.
  */
 void mmgr_praet_close(const PraetTransferCfg *args);
 
@@ -175,7 +166,7 @@ embed_bool mmgr_praet_hw_open(const PraetCfg *args);
  * @note The default in memoriam_praetereo.c refuses every transfer. A build links without a port.
  * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
- * @warning Reached through mmgr_praet_tx_submit, which asserts the channel and the byte count first.
+ * @warning Reached through mmgr_praet_tx_submit, which asserts the channel first.
  * @warning args->buf must stay valid until this reports completion through the registered callback [BORROWS].
  */
 embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args);
@@ -218,6 +209,11 @@ EMBED_TABLE_STORAGE MemoriamPraetereoNs praet EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+// The schedule, its knobs and its flag word, then the descriptors that ride on it. Both need the
+// knobs this build set, and neither is reached where MMGR_ENABLE_DMA is off
+#include "memoriam_praetereo/praet_ordo.h"
+#include "memoriam_praetereo/praet_descriptor.h"
 
 #endif
 

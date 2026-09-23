@@ -11,7 +11,6 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note A knob that quietly takes a default is how a build breaks in a way nobody traces back. Three
  *       knobs get set, two do not, the part misbehaves, and the compiler said nothing.
  * @note Nothing here stops the build. Every unset knob takes its default, raises a warning naming
@@ -38,8 +37,8 @@
  * @warning No message interpolates a macro. Neither #warning nor the pragma expands one. A name in
  *          the middle of a message arrives as the name of the macro rather than its value.
  */
-#ifndef MMGR_TEST_PRAET_PRAEFINITUM_H
-#define MMGR_TEST_PRAET_PRAEFINITUM_H
+#ifndef MMGR_PRAET_PRAEFINITUM_H
+#define MMGR_PRAET_PRAEFINITUM_H
 
 /**
  * @brief Logical channels one context carries.

@@ -17,17 +17,6 @@
 #if MMGR_ENABLE_DMA
 
 /**
- * @brief The channel count and buffer size this build was configured with.
- *
- * @note Named only by the assertions in the three checking calls. The default MMGR_ASSERT leaves
- *       them unevaluated.
- */
-static const PraetInit praet_init = {
-    .channels = MMGR_PRAET_CHANNELS,
-    .buf_size = MMGR_PRAET_BUF_SIZE,
-};
-
-/**
  * @brief Arguments for opening a channel.
  *
  * @note Mirrors PraetCfg without its top-level const qualifiers. on_complete still points at a const
@@ -116,11 +105,11 @@ EMBED_WEAK void mmgr_praet_hw_poll(const PraetCfg *args)
  *
  * @param[in] args Channel, peripheral, loopback flag and completion callback [BORROWS].
  * @return         Whatever mmgr_praet_hw_open returns.
- * @warning args->channel must be below praet_init.channels, and args->on_complete must not be NULL.
+ * @warning args->channel must be below PRAET_CHANNELS, and args->on_complete must not be NULL.
  */
 EMBED_INLINE embed_bool praet_open(const PraetOpenCtx *args)
 {
-    MMGR_ASSERT(args->channel < praet_init.channels, "no such channel");
+    MMGR_ASSERT(args->channel < PRAET_CHANNELS, "no such channel");
     MMGR_ASSERT(args->on_complete != NULL, "an open channel reports completion");
 
     return EMBED_CALL(mmgr_praet_hw_open, PraetCfg, .channel = args->channel, .peripheral = args->peripheral,
@@ -128,16 +117,17 @@ EMBED_INLINE embed_bool praet_open(const PraetOpenCtx *args)
 }
 
 /**
- * @brief Checks the channel and the byte count, then hands the transfer to the port layer.
+ * @brief Checks the channel, then hands the transfer to the port layer.
  *
  * @param[in] args Channel, buffer and byte count [BORROWS].
  * @return         Whatever mmgr_praet_hw_tx_submit returns.
- * @warning args->channel must be below praet_init.channels, and args->bytes must not exceed praet_init.buf_size.
+ * @note No byte bound is asserted here. A span the schedule runs is bounded where PraetSubmit
+ *       declares it, and a port bounds what it accepts.
+ * @warning args->channel must be below PRAET_CHANNELS.
  */
 EMBED_INLINE embed_bool praet_tx_submit(const PraetTransferCtx *args)
 {
-    MMGR_ASSERT(args->channel < praet_init.channels, "no such channel");
-    MMGR_ASSERT(args->bytes <= praet_init.buf_size, "a transfer is bounded by the channel buffer");
+    MMGR_ASSERT(args->channel < PRAET_CHANNELS, "no such channel");
 
     return EMBED_CALL(mmgr_praet_hw_tx_submit, PraetTransferCfg, .channel = args->channel, .buf = args->buf,
                       .bytes = args->bytes);
@@ -148,11 +138,11 @@ EMBED_INLINE embed_bool praet_tx_submit(const PraetTransferCtx *args)
  *
  * @param[in] args Channel to close [BORROWS].
  * @note Passes only the channel on. buf and bytes take no part.
- * @warning args->channel must be below praet_init.channels.
+ * @warning args->channel must be below PRAET_CHANNELS.
  */
 EMBED_INLINE void praet_close(const PraetTransferCtx *args)
 {
-    MMGR_ASSERT(args->channel < praet_init.channels, "no such channel");
+    MMGR_ASSERT(args->channel < PRAET_CHANNELS, "no such channel");
 
     EMBED_CALL(mmgr_praet_hw_close, PraetTransferCfg, .channel = args->channel);
 }

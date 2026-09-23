@@ -10,14 +10,14 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note One entry, because a descriptor is data and almost everything about it is settled where it
  *       was declared. What cannot be settled there is how long a chain is, since a chain is made by
  *       pointing descriptors at each other after each has been written down.
- * @warning Included by test_praet_correctness.c rather than compiled on its own, the same way the
- *          engine and the schedule are.
+ * @warning The whole file is compiled only when MMGR_ENABLE_DMA is set.
  */
-#include "praet_descriptor.h"
+#include "memoriam_praetereo/memoriam_praetereo.h"
+
+#if MMGR_ENABLE_DMA
 
 embed_word praet_descriptor_chain_length(const PraetDescriptor *first, embed_word limit)
 {
@@ -39,3 +39,5 @@ embed_word praet_descriptor_chain_length(const PraetDescriptor *first, embed_wor
 
     return reached;
 }
+
+#endif

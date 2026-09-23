@@ -28,6 +28,14 @@ set(MMGR_CAPABILITIES DMA EXTRAM)
 option(MMGR_ENABLE_DMA "The part has a DMA engine" OFF)
 option(MMGR_ENABLE_EXTRAM "The part has external RAM" OFF)
 
+# The DMA schedule's knobs, as NAME=value pairs separated by semicolons: PRAET_CHANNELS,
+# PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS, PRAET_RECOVERY, PRAET_CLOCK_HZ and PRAET_CLOCK_SOURCE,
+# with PRAET_CLOCK_CORE where the clock source reads one. Empty by default, because none of them has
+# a value that is right for every part. An unset knob is named in a warning and
+# src/memoriam_praetereo/praet_iudex.h stops the build, unless MMGR_ACCEPT_DEFAULTS is in the list.
+# Read only where MMGR_ENABLE_DMA is on.
+set(MMGR_PRAET_KNOBS "" CACHE STRING "DMA schedule knobs, NAME=value pairs separated by semicolons")
+
 # Test only. Points every namespace entry that has a libc equivalent at libc, so the whole suite
 # runs against libc unchanged and any disagreement is a finding. libc is the oracle: a str or mem
 # entry that has shipped for decades has been beaten on harder than anything written here.

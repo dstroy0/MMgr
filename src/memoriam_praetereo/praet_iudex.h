@@ -10,7 +10,6 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note Included last, after praet_praefinitum.h and praet_horologiorum_custos.h have both had their say. Each of them
  *       gives every unset knob a default, a warning naming it, and a flag. This reads the flags.
  * @note Why the stop is here and not at each knob: an #error halts its translation unit where it
@@ -22,11 +21,11 @@
  * @warning Skipped entirely where MMGR_ACCEPT_DEFAULTS is defined. The warnings still stand and are
  *          still the report; what the define changes is whether the build continues past it.
  */
-#ifndef MMGR_TEST_PRAET_IUDEX_H
-#define MMGR_TEST_PRAET_IUDEX_H
+#ifndef MMGR_PRAET_IUDEX_H
+#define MMGR_PRAET_IUDEX_H
 
-#include "praet_horologiorum_custos.h"
-#include "praet_praefinitum.h"
+#include "memoriam_praetereo/praet_horologiorum_custos.h"
+#include "memoriam_praetereo/praet_praefinitum.h"
 
 #if !defined(MMGR_ACCEPT_DEFAULTS)
 

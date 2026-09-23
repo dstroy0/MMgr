@@ -10,7 +10,6 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note The examination arm. The correctness arm says every case passed, and that says nothing about
  *       which of the machine's states and transitions any case walked through. A four state core with
  *       eight statuses has more paths than a suite this size can cover by accident, so the ones it
@@ -20,14 +19,19 @@
  *       this same instrument carrying timings.
  * @note Off unless PRAET_PROCURATOR is 1, and every entry is then a macro expanding to nothing. A
  *       build that did not ask for it carries no counter and no call.
+ * @note Declared here and defined in the suite. The one function that writes a flag word calls these,
+ *       and the counters and the table they print belong to a run of the suite, at
+ *       test/integration/test_praet_correctness/praet_procurator.c.
+ * @warning A build setting PRAET_PROCURATOR to 1 links against those definitions and fails to link
+ *          without them. A shipping image has no reason to set it.
  * @warning Not a knob praet_iudex.h asks about. Every knob there describes the image a
  *          caller ships; this describes a run of the suite, which is the harness's business and not
  *          the caller's.
  */
-#ifndef MMGR_TEST_PRAET_PROCURATOR_H
-#define MMGR_TEST_PRAET_PROCURATOR_H
+#ifndef MMGR_PRAET_PROCURATOR_H
+#define MMGR_PRAET_PROCURATOR_H
 
-#include "praet_tabula_vexillorum.h"
+#include "memoriam_praetereo/praet_tabula_vexillorum.h"
 
 /**
  * @brief Whether a run records the work it did, on top of the states it reached.

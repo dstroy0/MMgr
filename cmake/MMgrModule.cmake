@@ -85,6 +85,13 @@ function(mmgr_add_module name)
       list(APPEND defs MMGR_ENABLE_${cap}=$<BOOL:${MMGR_ENABLE_${cap}}>)
     endforeach()
 
+    # The DMA knobs ride the same way and for the same reason. The schedule's contexts are sized by
+    # them in the header, and a suite that saw a different channel count from the library would
+    # declare contexts of a different size from the ones the library walks.
+    if(MMGR_ENABLE_DMA)
+      list(APPEND defs ${MMGR_PRAET_KNOBS})
+    endif()
+
     if(NOT defs STREQUAL "")
       target_compile_definitions(${target} ${scope} ${defs})
     endif()

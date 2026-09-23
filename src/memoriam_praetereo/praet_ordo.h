@@ -11,7 +11,6 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note A context exists only where DMA has to schedule internally. A channel is not a context.
  * @note Two separate concerns live here and must not be folded together. The quaternary core in the
  *       flag word is the channel's DMA state, where busy means the engine is moving bytes. The busy
@@ -19,32 +18,32 @@
  * @note Time is microseconds throughout. DMA timing is tight enough that a millisecond is not a unit
  *       anything here can be expressed in.
  */
-#ifndef MMGR_TEST_PRAET_ORDO_H
-#define MMGR_TEST_PRAET_ORDO_H
+#ifndef MMGR_PRAET_ORDO_H
+#define MMGR_PRAET_ORDO_H
 
-#include "memoriam_praetereo/memoriam_praetereo.h"
+#include "mmgr.h"
 
 // PRAET_CHANNELS, PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS and PRAET_RECOVERY come from here. None
 // has a value that is right for every part. An unset one takes a default and raises a warning
 // naming itself. What stops the build is praet_iudex.h, below, once all of them have spoken
-#include "praet_praefinitum.h"
+#include "memoriam_praetereo/praet_praefinitum.h"
 
 // Every bit of the flag word, and the assertions that keep the map from drifting. Kept apart from the
 // entries because the map is one thing and it is the same on every build - a status a build never
 // sets still owns its bit
-#include "praet_tabula_vexillorum.h"
+#include "memoriam_praetereo/praet_tabula_vexillorum.h"
 
 // Where the microseconds come from, and what a tick is worth against them. Every deadline below is
 // microseconds, so nothing here means anything without it
-#include "praet_horologiorum_custos.h"
+#include "memoriam_praetereo/praet_horologiorum_custos.h"
 
 // Last, and after every knob has reported. This is the one place a configuration stops the build, so
-// that a build missing several knobs hears about all of them rather than the first
-#include "praet_iudex.h"
+// that a build missing several knobs hears about all of them instead of the first
+#include "memoriam_praetereo/praet_iudex.h"
 
 // The examination arm's recorder. Expands to nothing unless a build asked for it, and the one
 // function that writes a flag word is what calls into it
-#include "praet_procurator.h"
+#include "memoriam_praetereo/praet_procurator.h"
 
 EMBED_BEGIN_DECLS
 
@@ -294,14 +293,13 @@ typedef struct
  * @note Reached only from praet_ordo_poll. Nothing above it sees a byte count that has not been
  *       through the flag word first, which is what keeps how progress is tracked out of a caller's
  *       business.
- * @note Carries a weak refusing default, the same as the four hooks in src. It lives in
- *       test/support/praet_port_default.c and returns zero, and praet_ordo_take_progress treats
- *       zero as no movement. A build that supplies no port walks every channel and still marks a
- *       stalled one, because an unkicked keepalive window is what says a channel stopped.
- * @warning The default cannot sit in this suite's own translation unit. test_praet_correctness.c
- *          includes praet_engine.c, which defines this hook strongly, and a weak definition beside
- *          a strong one in a single unit is a duplicate. The separate file is what leaves the
- *          linker a choice to make.
+ * @note Carries a weak refusing default, the same as the four hooks in memoriam_praetereo.c. It
+ *       returns zero, and praet_ordo_take_progress treats zero as no movement. A build that supplies
+ *       no port walks every channel and still marks a stalled one, because an unkicked keepalive
+ *       window is what marks a channel stopped.
+ * @note The default sits in praet_ordo.c, the unit that calls it. GCC on PE-COFF emits a weak
+ *       definition as a weak external that ld does not resolve from another unit, and a weak
+ *       definition beside its call resolves on every linker this library is built with.
  */
 uint16_t praet_hw_progress(embed_word channel);
 

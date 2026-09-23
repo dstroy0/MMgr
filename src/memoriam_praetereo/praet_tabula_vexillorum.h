@@ -10,7 +10,6 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note The map is ours, which is exactly why it needs checking. Nothing outside this library assigns
  *       these bits. A status added at the wrong offset or a region moved one byte down is a change
  *       no compiler would question and no test would necessarily reach. Placing one status on top of
@@ -21,10 +20,10 @@
  * @note The map is the same on every build. A status a build never sets still owns its bit, because a
  *       flag word read on one part has to mean what it means on another.
  */
-#ifndef MMGR_TEST_PRAET_TABULA_VEXILLORUM_H
-#define MMGR_TEST_PRAET_TABULA_VEXILLORUM_H
+#ifndef MMGR_PRAET_TABULA_VEXILLORUM_H
+#define MMGR_PRAET_TABULA_VEXILLORUM_H
 
-#include "memoriam_praetereo/memoriam_praetereo.h"
+#include "mmgr.h"
 
 EMBED_BEGIN_DECLS
 

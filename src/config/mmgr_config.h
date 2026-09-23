@@ -146,7 +146,8 @@
 /**
  * @brief Set to 1 to build the memoriam_praetereo DMA path.
  *
- * @note mmgr.h includes memoriam_praetereo.h only when this is set, and it gates MMGR_PRAET_CHANNELS below.
+ * @note mmgr.h includes memoriam_praetereo.h only when this is set. The schedule's knobs are read in
+ *       memoriam_praetereo/praet_praefinitum.h and memoriam_praetereo/praet_horologiorum_custos.h.
  */
 #ifndef MMGR_ENABLE_DMA
 #define MMGR_ENABLE_DMA 0
@@ -178,22 +179,6 @@
 #if MMGR_ENABLE_CLOCK
 #ifndef MMGR_RING_ATTACH_US
 #define MMGR_RING_ATTACH_US 100u
-#endif
-#endif
-
-/**
- * @brief DMA channels memoriam_praetereo carries, and the bytes each one buffers.
- *
- * @warning Both are defined only when MMGR_ENABLE_DMA is set.
- */
-#if MMGR_ENABLE_DMA
-#ifndef MMGR_PRAET_CHANNELS
-
-#define MMGR_PRAET_CHANNELS 2
-#endif
-#ifndef MMGR_PRAET_BUF_SIZE
-
-#define MMGR_PRAET_BUF_SIZE 256
 #endif
 #endif
 

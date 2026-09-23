@@ -10,7 +10,6 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note Nothing below names a part, a vendor or a board, and nothing should. A list of parts covers
  *       the ones somebody thought of on the day they wrote it and silently misses every part released
  *       afterwards. What is tested here is the architecture level, which every member of a family
@@ -18,18 +17,18 @@
  *       and a part nobody here has heard of answers it too.
  * @note The three families are the ones this library targets: ARM, RISC-V and Xtensa, all through
  *       GCC or clang. A build that is none of them is a host build, which is where the suites run.
- * @note This block is the one place an architecture is tested. When this moves to src it goes through
- *       the config header, the way every other compiler and platform test in the tree does.
+ * @note The architecture tests below exist for the clock. embedded_types answers the compiler and
+ *       width questions, and does not say whether a cycle counter exists.
  *
  * Sources for the macros used below:
  *   Arm C Language Extensions   https://arm-software.github.io/acle/main/acle.html
  *   RISC-V C API specification  https://github.com/riscv-non-isa/riscv-c-api-doc
  *   GCC gcc/config/xtensa/xtensa.h TARGET_CPU_CPP_BUILTINS
  */
-#ifndef MMGR_TEST_PRAET_PLATFORM_DETECTION_H
-#define MMGR_TEST_PRAET_PLATFORM_DETECTION_H
+#ifndef MMGR_PRAET_PLATFORM_DETECTION_H
+#define MMGR_PRAET_PLATFORM_DETECTION_H
 
-#include "memoriam_praetereo/memoriam_praetereo.h"
+#include "mmgr.h"
 
 /**
  * @brief Set where this is an ARM build, in either execution state.

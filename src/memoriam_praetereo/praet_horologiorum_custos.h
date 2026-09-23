@@ -11,7 +11,6 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note Every deadline in this module is microseconds, and a clock is what makes a microsecond mean
  *       anything. A build with no clock declared has deadlines it cannot honor, so it stops and asks
  *       for one.
@@ -19,14 +18,14 @@
  *       requirement - this scales its ticks against the frequency the caller states and never looks
  *       at where it came from.
  */
-#ifndef MMGR_TEST_PRAET_HOROLOGIORUM_CUSTOS_H
-#define MMGR_TEST_PRAET_HOROLOGIORUM_CUSTOS_H
+#ifndef MMGR_PRAET_HOROLOGIORUM_CUSTOS_H
+#define MMGR_PRAET_HOROLOGIORUM_CUSTOS_H
 
 // EMBED_STATIC_ASSERT and embed_word, for the scaling below. Reached the same way every other file
-// here reaches them, so this header stands on its own rather than on what included it
-#include "memoriam_praetereo/memoriam_praetereo.h"
+// here reaches them, so this header stands on its own instead of on what included it
+#include "mmgr.h"
 
-#include "praet_praefinitum.h"
+#include "memoriam_praetereo/praet_praefinitum.h"
 
 /**
  * @brief The clock is the caller's, read through the port.
@@ -40,7 +39,7 @@
 
 // Which architecture this is, and what that architecture gives a clock. The default source below is
 // picked off that rather than assumed, since an architecture with no counter has nothing to pin
-#include "praet_platform_detection.h"
+#include "memoriam_praetereo/praet_platform_detection.h"
 
 /**
  * @brief Ticks the clock counts in one second.

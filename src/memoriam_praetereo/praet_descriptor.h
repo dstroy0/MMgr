@@ -11,7 +11,6 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note The shape three vendors already agree on. An ESP32 GDMA dma_descriptor_t, an i.MX RT eDMA
  *       TCD and a Zephyr dma_block_config each carry where from, where to, how much, how the
  *       addresses move, who holds it, and what is next. Three architectures, one descriptor.
@@ -25,10 +24,10 @@
  *       vendor's own header, which the compiler has already read. A caller names theirs and no
  *       number of any part appears in this tree.
  */
-#ifndef MMGR_TEST_PRAET_DESCRIPTOR_H
-#define MMGR_TEST_PRAET_DESCRIPTOR_H
+#ifndef MMGR_PRAET_DESCRIPTOR_H
+#define MMGR_PRAET_DESCRIPTOR_H
 
-#include "praet_ordo.h"
+#include "memoriam_praetereo/praet_ordo.h"
 
 EMBED_BEGIN_DECLS
 

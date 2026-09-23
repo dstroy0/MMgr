@@ -11,16 +11,16 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Built and driven in test. Nothing here is proposed for src until it has been run.
  * @note No atomics anywhere. Exclusion comes from the lock the reader/setter takes, and from the
  *       interrupt being structurally unable to take it - the interrupt only ever raises set.
  * @note Nothing here predicts how long a transfer takes. The port kicks the watchdog while the
- *       engine is moving and reports completion when it happens, and an unkicked window says the
- *       channel stopped rather than that it finished.
- * @warning Included by test_praet_correctness.c rather than compiled on its own. mmgr_add_suite
- *          builds the one suite source and the shared files under test/support.
+ *       engine is moving and reports completion when it happens. An unkicked window marks the
+ *       channel stopped, and a stopped channel has not finished.
+ * @warning The whole file is compiled only when MMGR_ENABLE_DMA is set.
  */
-#include "praet_ordo.h"
+#include "memoriam_praetereo/memoriam_praetereo.h"
+
+#if MMGR_ENABLE_DMA
 
 /**
  * @brief Every bit of a flag word except the ones in @p bits_.
@@ -323,7 +323,9 @@ static uint32_t praet_boundary_crc(const PraetOrdo *context, embed_word channel)
 
     const embed_word first = sampled - remainder;
     const embed_word length = context->length[channel];
-    const embed_word last = ((first + word_bytes) > length) ? length : (first + word_bytes);
+    // The sum runs at int width and is compared there, so it cannot wrap. It comes back narrower only
+    // on the arm where it is at most the length, which is an embed_word already
+    const embed_word last = ((first + word_bytes) > length) ? length : (embed_word)(first + word_bytes);
     const uint8_t *const bytes = context->start[channel];
 
     uint32_t running = 0xFFFFFFFFu;
@@ -404,7 +406,22 @@ void praet_ordo_raise(PraetOrdo *context)
 }
 
 /**
- * @brief Asks the port how far every running channel has got, and records what it says.
+ * @brief Weak default for the progress hook, which reports no movement.
+ *
+ * @param[in] channel Channel to ask about.
+ * @return            0 always, which praet_ordo_take_progress reads as no movement.
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. An application
+ *       definition replaces it.
+ * @note The (void)channel discards the argument, since this body reads nothing.
+ */
+EMBED_WEAK uint16_t praet_hw_progress(embed_word channel)
+{
+    (void)channel;
+    return 0u;
+}
+
+/**
+ * @brief Asks the port how far every running channel has got, and records the answer.
  *
  * @param[in,out] context Context to update [BORROWS].
  * @return                EMBED_TRUE where any channel moved.
@@ -596,4 +613,6 @@ uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel)
     }
     return context->boundary_crc[channel];
 }
+#endif
+
 #endif
