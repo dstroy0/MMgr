@@ -86,12 +86,12 @@ Three more changes followed, each measured on the part:
 
 Cycles per byte at n=2048 on the S3, start of the work to now:
 
-| op | before | after | libc ROM |
-|------|--------|-------|----------|
-| len  | 8.04 | **2.547** | 9.024 |
-| chr  | 15.30 | **4.274** | 7.021 |
-| cmp  | 5.77 | **2.020** | 2.773 |
-| find | 11.32 | **6.543** | 9.021 |
+| op   | before | after     | libc ROM |
+| ---- | ------ | --------- | -------- |
+| len  | 8.04   | **2.547** | 9.024    |
+| chr  | 15.30  | **4.274** | 7.021    |
+| cmp  | 5.77   | **2.020** | 2.773    |
+| find | 11.32  | **6.543** | 9.021    |
 
 The module's .text grew from 6506 to 8550 at -O2 on Xtensa for all of it.
 
@@ -105,13 +105,13 @@ reported `0.00` cycles for both arms because both loops had been removed.
 
 Raw captures are in `results/`. Ratios are mmgr/libc, so below 1.00 is a win.
 
-| op | S3 n=8 | S3 n=2048 | C6 n=8 | C6 n=2048 |
-|------|--------|-----------|--------|-----------|
-| len  | **0.99** | **0.28** | 1.11 | **0.25** |
-| chr  | **0.86** | **0.61** | **0.81** | **0.42** |
-| cmp  | **0.83** | **0.73** | 1.07 | **0.83** |
-| find | 1.26 | **0.73** | 1.45 | **0.90** |
-| find_hot | 1.11 | **0.66** | 1.29 | **0.81** |
+| op       | S3 n=8   | S3 n=2048 | C6 n=8   | C6 n=2048 |
+| -------- | -------- | --------- | -------- | --------- |
+| len      | **0.99** | **0.28**  | 1.11     | **0.25**  |
+| chr      | **0.86** | **0.61**  | **0.81** | **0.42**  |
+| cmp      | **0.83** | **0.73**  | 1.07     | **0.83**  |
+| find     | 1.26     | **0.73**  | 1.45     | **0.90**  |
+| find_hot | 1.11     | **0.66**  | 1.29     | **0.81**  |
 
 Every entry beats libc once the buffer is a few words long. `find` crosses over at n=32 on the S3
 with the easy needle and n=16 with the hostile one.
@@ -146,10 +146,10 @@ comparison is against that, not against a portable C libc.
 
 `MMGR_CALL` was measured against a direct call to the same entry, same work, same buffer:
 
-| target | dispatch_len8 | direct_len8 |
-|--------|---------------|-------------|
-| ESP32-S3 (Xtensa) | 116.02 | 116.01 |
-| ESP32-C6 (RISC-V) | 111.06 | 111.06 |
+| target            | dispatch_len8 | direct_len8 |
+| ----------------- | ------------- | ----------- |
+| ESP32-S3 (Xtensa) | 116.02        | 116.01      |
+| ESP32-C6 (RISC-V) | 111.06        | 111.06      |
 
 Identical on both. The compound literal folds into registers and no argument struct is materialized.
 This is worth stating because it does not hold everywhere: on Cortex-M4, `MMGR_CALL` emitted a

@@ -225,40 +225,40 @@ Unaligned access is `EMBED_FAST_UNALIGNED_LOAD`, which `embed_compiler_directive
 
 Every row is a configuration and what it produces. `warning` continues; `error` and `assert` stop.
 
-| Configuration | Result | Where |
-|---|---|---|
-| Every knob declared | builds, silent except the declaration's token | |
-| Any knob unset, no `MMGR_ACCEPT_DEFAULTS` | one warning per unset knob, then one error | `praet_iudex.h:32-37` |
-| Any knob unset, `MMGR_ACCEPT_DEFAULTS` defined | one warning per unset knob, builds | `praet_iudex.h:30` |
-| `PRAET_RECOVERY` neither 0 nor 1 | error | `praet_praefinitum.h:111-113` |
-| `PRAET_RECOVERY_CRC` defined at all | error | `praet_praefinitum.h:118-121` |
-| `PRAET_CLOCK_SOURCE` neither token | error | `praet_horologiorum_custos.h:86-88` |
-| `PRAET_CLOCK_SOURCE` is `PRAET_CLOCK_OWN`, architecture has no counter | error | `praet_horologiorum_custos.h:93-96` |
-| `PRAET_CLOCK_CORE` set, source is `PRAET_CLOCK_CALLER` | error | `praet_horologiorum_custos.h:119-122` |
-| `PRAET_CLOCK_HZ` not a whole number of megahertz | assert | `praet_horologiorum_custos.h:147-148` |
-| `PRAET_CLOCK_HZ` below one megahertz | assert | `praet_horologiorum_custos.h:150-152` |
-| `EMBED_WORD_BITS` wider than the register | assert | `praet_platform_detection.h:312` |
-| More than one architecture family selected, or none | assert | `praet_platform_detection.h:79` |
-| Declaration token mistyped | error naming the token given | `praet_ordo.h:138` |
-| Declaration token is a value, such as `1` | error naming the value given | `praet_ordo.h:148` |
-| `AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE` with `PRAET_RECOVERY` 0 | assert | `praet_ordo.h:221-224` |
-| A channel submitting a span of a pool it is not over | error naming the context, channel and pool | `praet_ordo.h:411` |
-| A channel attached over a pool it is not declared over | error naming the context, channel and pool | `praet_ordo.h:411` |
-| A channel the context never declared with `PraetChannel` | error naming the context, channel and pool | `praet_ordo.h:411` |
-| A span past the pool, by length or by offset | error naming the span | `praet_ordo.h:469-475` |
-| An ordinary array where a pool belongs | error naming the array | `praet_ordo.h:368-371` |
-| `PraetChannel` on a channel past `PRAET_CHANNELS` | assert | `praet_ordo.h:393-394` |
-| `PraetChannel` over a pool with no bytes | assert | `praet_ordo.h:395-396` |
-| A region that is neither token | error naming the region written | `praet_tabula_vexillorum.h:257-261` |
-| More region token ids than the descriptor field holds | assert | `praet_tabula_vexillorum.h:324` |
-| Two statuses sharing a token id, or one missing from the list | assert | `praet_tabula_vexillorum.h:289` |
-| Region descriptor overlapping a status | assert | `praet_tabula_vexillorum.h:294` |
-| Region descriptor off a byte boundary | assert | `praet_tabula_vexillorum.h:303` |
-| Region descriptor past the top of the flag word | assert | `praet_tabula_vexillorum.h:305` |
-| The field write unable to fill the region, or overrunning it | assert | `praet_tabula_vexillorum.h:311-315` |
-| Two core states sharing a value, or one past the mask | assert | `praet_tabula_vexillorum.h:282` |
-| An entry clearing a bit inside the region | assert | `praet_ordo.c:62` |
-| An entry clearing a bit the map does not account for | assert | `praet_ordo.c:65` |
+| Configuration                                                             | Result                                        | Where                                 |
+| ------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------- |
+| Every knob declared                                                       | builds, silent except the declaration's token |                                       |
+| Any knob unset, no `MMGR_ACCEPT_DEFAULTS`                                 | one warning per unset knob, then one error    | `praet_iudex.h:32-37`                 |
+| Any knob unset, `MMGR_ACCEPT_DEFAULTS` defined                            | one warning per unset knob, builds            | `praet_iudex.h:30`                    |
+| `PRAET_RECOVERY` neither 0 nor 1                                          | error                                         | `praet_praefinitum.h:111-113`         |
+| `PRAET_RECOVERY_CRC` defined at all                                       | error                                         | `praet_praefinitum.h:118-121`         |
+| `PRAET_CLOCK_SOURCE` neither token                                        | error                                         | `praet_horologiorum_custos.h:86-88`   |
+| `PRAET_CLOCK_SOURCE` is `PRAET_CLOCK_OWN`, architecture has no counter    | error                                         | `praet_horologiorum_custos.h:93-96`   |
+| `PRAET_CLOCK_CORE` set, source is `PRAET_CLOCK_CALLER`                    | error                                         | `praet_horologiorum_custos.h:119-122` |
+| `PRAET_CLOCK_HZ` not a whole number of megahertz                          | assert                                        | `praet_horologiorum_custos.h:147-148` |
+| `PRAET_CLOCK_HZ` below one megahertz                                      | assert                                        | `praet_horologiorum_custos.h:150-152` |
+| `EMBED_WORD_BITS` wider than the register                                 | assert                                        | `praet_platform_detection.h:312`      |
+| More than one architecture family selected, or none                       | assert                                        | `praet_platform_detection.h:79`       |
+| Declaration token mistyped                                                | error naming the token given                  | `praet_ordo.h:138`                    |
+| Declaration token is a value, such as `1`                                 | error naming the value given                  | `praet_ordo.h:148`                    |
+| `AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE` with `PRAET_RECOVERY` 0 | assert                                        | `praet_ordo.h:221-224`                |
+| A channel submitting a span of a pool it is not over                      | error naming the context, channel and pool    | `praet_ordo.h:411`                    |
+| A channel attached over a pool it is not declared over                    | error naming the context, channel and pool    | `praet_ordo.h:411`                    |
+| A channel the context never declared with `PraetChannel`                  | error naming the context, channel and pool    | `praet_ordo.h:411`                    |
+| A span past the pool, by length or by offset                              | error naming the span                         | `praet_ordo.h:469-475`                |
+| An ordinary array where a pool belongs                                    | error naming the array                        | `praet_ordo.h:368-371`                |
+| `PraetChannel` on a channel past `PRAET_CHANNELS`                         | assert                                        | `praet_ordo.h:393-394`                |
+| `PraetChannel` over a pool with no bytes                                  | assert                                        | `praet_ordo.h:395-396`                |
+| A region that is neither token                                            | error naming the region written               | `praet_tabula_vexillorum.h:257-261`   |
+| More region token ids than the descriptor field holds                     | assert                                        | `praet_tabula_vexillorum.h:324`       |
+| Two statuses sharing a token id, or one missing from the list             | assert                                        | `praet_tabula_vexillorum.h:289`       |
+| Region descriptor overlapping a status                                    | assert                                        | `praet_tabula_vexillorum.h:294`       |
+| Region descriptor off a byte boundary                                     | assert                                        | `praet_tabula_vexillorum.h:303`       |
+| Region descriptor past the top of the flag word                           | assert                                        | `praet_tabula_vexillorum.h:305`       |
+| The field write unable to fill the region, or overrunning it              | assert                                        | `praet_tabula_vexillorum.h:311-315`   |
+| Two core states sharing a value, or one past the mask                     | assert                                        | `praet_tabula_vexillorum.h:282`       |
+| An entry clearing a bit inside the region                                 | assert                                        | `praet_ordo.c:62`                     |
+| An entry clearing a bit the map does not account for                      | assert                                        | `praet_ordo.c:65`                     |
 
 No sweep in the tree drives these rows yet. One that does has to require the named diagnostic, because a build that failed for an unrelated reason passes an exit-code check while proving nothing.
 

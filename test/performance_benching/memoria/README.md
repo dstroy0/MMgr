@@ -23,7 +23,7 @@ idf.py -C test/performance_benching/memoria -B build_esp32s3 -p COM4 flash
 Raw captures in `results/`. Ratios are mmgr/libc, so below 1.00 is a win. Cycles per byte at n=2048:
 
 | op  | S3 mmgr | S3 libc | S3 ratio | C6 mmgr | C6 libc | C6 ratio |
-|-----|--------:|--------:|---------:|--------:|--------:|---------:|
+| --- | ------: | ------: | -------: | ------: | ------: | -------: |
 | cmp |   2.019 |   2.774 | **0.73** |   1.763 |   2.137 | **0.82** |
 | chr |   3.270 |   7.020 | **0.47** |   2.765 |  12.017 | **0.23** |
 | cpy |   0.646 |   0.646 |     1.00 |   0.705 |   0.701 |     1.01 |
@@ -36,7 +36,7 @@ set 0.75; C6 cmp 0.97, chr 0.44, cpy 0.97, set 0.97. Every entry is at or under 
 
 `cmp` and `chr` walk a word at a time. Both were rewritten off the same defect the string scans had:
 they rebuilt an extent mask on every word, where the count is settled before the loop and lanes past
-it can only fall in the last one, and `cmp` resolved *which* lane differed on every word when the
+it can only fall in the last one, and `cmp` resolved _which_ lane differed on every word when the
 common case only needs to know whether two words differ at all. Whole words now run on an inequality
 test with no mask and the lane is resolved once, after the loop finds the word that differs.
 
