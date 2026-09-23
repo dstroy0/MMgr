@@ -22,6 +22,10 @@
 # widths of one environment, so building it against the others would assert a lane that was never
 # selected and fail for the right reason at the wrong target.
 
+# floor and the rest of <math.h> live in a separate libm on glibc, which a link reaches only when
+# asked. MinGW folds them into its C runtime, which is why the Windows host links without this.
+find_library(MMGR_LIBM m)
+
 function(mmgr_add_suite suite_name)
     cmake_parse_arguments(ARG "" "CAPABILITY;ENVIRONMENT" "" ${ARGN})
 
@@ -56,6 +60,15 @@ function(mmgr_add_suite suite_name)
     )
     add_custom_target(${suite_name}_runner DEPENDS "${runner}")
     set_source_files_properties("${runner}" PROPERTIES GENERATED TRUE)
+
+    # guard_page.c sets the POSIX feature macros ahead of its first include, and that is too late
+    # where an environment forces a header in first: checks does, and its <stdio.h> settles glibc's
+    # feature set as strict C11, which leaves sigjmp_buf and sigaction undeclared. On the command
+    # line they are in place before any header is read.
+    if(NOT WIN32)
+        set_source_files_properties("${MMGR_TEST_ROOT}/support/guard_page.c" PROPERTIES
+            COMPILE_DEFINITIONS "_POSIX_C_SOURCE=200809L;_DEFAULT_SOURCE=1")
+    endif()
 
     foreach(entry IN LISTS MMGR_ENVIRONMENTS)
         mmgr_env_name("${entry}" env defs)
@@ -96,6 +109,9 @@ function(mmgr_add_suite suite_name)
         # assertion bodies they call.
         target_compile_definitions(${target} PRIVATE UNITY_INCLUDE_DOUBLE UNITY_INCLUDE_FLOAT)
         target_link_libraries(${target} PRIVATE mmgr_${env})
+        if(MMGR_LIBM)
+            target_link_libraries(${target} PRIVATE ${MMGR_LIBM})
+        endif()
         set_target_properties(${target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test/${env}")
 
         add_test(NAME ${target} COMMAND ${target})
