@@ -171,7 +171,11 @@ the hardware says so.
 **Cache coherency is not handled here.** On a part with a data cache and a DMA engine that does not
 snoop it, the clean and invalidate are the board file's job.
 
-**`MMGR_PRAET_CHANNELS` and `MMGR_PRAET_BUF_SIZE` only exist when the gate is on.** See
-@ref ref_configuration.
+**The schedule's knobs are read only when the gate is on, and an unset one stops the build.**
+`PRAET_CHANNELS` and the rest arrive through `MMGR_PRAET_KNOBS`. See @ref ref_configuration.
+
+**`praet_hw_progress` is a fifth hook, with a weak default in `praet_ordo.c` that reports no
+movement.** A port that leaves it in place still gets the watchdog: a running channel nothing
+reports on is marked stalled once its keepalive window passes.
 
 @ref mod_praet "Generated reference"

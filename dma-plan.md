@@ -3,7 +3,8 @@
 **Purpose:** Bring `memoriam_praetereo` onto the pool declaration, and know which of its
 open questions are settled, which are measured, and which are still yours to answer.
 **Scope:** `src/memoriam_praetereo/memoriam_praetereo.h`, `src/memoriam_praetereo/memoriam_praetereo.c`,
-`include/mmgr.h`, `test/performance_benching/praet/`
+`src/memoriam_praetereo/praet_ordo.h`, `src/memoriam_praetereo/praet_ordo.c`, `include/mmgr.h`,
+`test/performance_benching/praet/`
 
 Sections marked **planned** describe work that is not in the tree. Everything else carries a
 citation and describes the tree as it stands on the date at the foot.
@@ -12,36 +13,33 @@ citation and describes the tree as it stands on the date at the foot.
 
 A channel is a `uint8_t` index. `PraetCfg` carries it alongside the peripheral, a loopback flag
 and a completion callback, and `PraetTransferCfg` carries it alongside a buffer pointer and a byte
-count (`src/memoriam_praetereo/memoriam_praetereo.h:82-100`). The count of channels a build has is
-a separate compile-time number, held in a `PraetInit` filled from `MMGR_PRAET_CHANNELS` and
-`MMGR_PRAET_BUF_SIZE` (`src/memoriam_praetereo/memoriam_praetereo.h:53-62`).
+count (`src/memoriam_praetereo/memoriam_praetereo.h:74-92`). The count of channels a build has is
+the schedule knob `PRAET_CHANNELS` (`src/memoriam_praetereo/praet_praefinitum.h:49-53`), which the
+entries assert against.
 
-Neither config struct ties an index to storage (`src/memoriam_praetereo/memoriam_praetereo.h:82-100`).
+Neither config struct ties an index to storage (`src/memoriam_praetereo/memoriam_praetereo.h:74-92`).
 A caller writes `.channel = 2` and the library takes it, so the
 association between a channel and the bytes it moves lives in the caller's head. The four entries
-are `open`, `tx_submit`, `close` and `poll` (`src/memoriam_praetereo/memoriam_praetereo.h:108-115`),
-and each one is reached with a channel number.
+are `open`, `tx_submit`, `close` and `poll` (`src/memoriam_praetereo/memoriam_praetereo.h:100-107`),
+and each one is reached with a channel number. The schedule beside them in `praet_ordo.h` is reached
+by pool, and the sections below say which parts of this plan it has taken.
 
 ## The declaration a channel gets instead
 
-**Planned.** `MemoriamPraetereo(name_, pool_)` follows the shape the ring already uses. The ring's
-form emits the claim guard for the pool and declares the ring's own storage
-(`src/memoria_anularis/memoria_anularis.h:143-145`). A channel declaration does the same for a DMA
-channel. A pool cannot be dressed as a cellblock and a DMA buffer at once.
+**Landed in another shape.** `PraetChannel(context_, channel_, pool_)` says which pool a channel of
+a schedule context is over (`src/memoriam_praetereo/praet_ordo.h:389-397`). It emits an enumerator
+whose name carries the context, the channel and the pool, and `PraetAttach` and `PraetSubmit` both
+name it (`src/memoriam_praetereo/praet_ordo.h:408`). Reaching either with a pool the channel is not
+over is an undeclared identifier printing the triple.
 
-The channel is then reached by the name of its pool, and the count of channels falls out of how
-many declarations a translation unit contains. `MMGR_PRAET_CHANNELS` goes away for the reason
-`MMGR_CARCER_MAX` did: a ceiling over declarations sizes nothing once the declarations state their
-own extent.
+Two things differ from the plan. The channel does not claim the pool: a channel writes no records
+into the bytes, and a ring as a DMA destination is the arrangement the module is for.
+`test/integration/test_praet_correctness/praet_configuration.md` has the reasoning. And the count
+stays a knob, `PRAET_CHANNELS`, because a context sizes its per-channel arrays from it
+(`src/memoriam_praetereo/praet_ordo.h:266-283`).
 
-Two sites cannot declare channels of the same name. Pool names are unique inside a translation
-unit (`include/mmgr.h:147-151`), and the channel is named for its pool, so the earlier requirement
-that two sites may reuse a channel name is withdrawn.
-
-The declaration has to sit at file scope. `MMGR_PARS_CLAIMED_ONCE` emits an enumerator
-(`include/mmgr.h:168-172`), and an enumerator inside a function body is block scoped. A channel
-declared inside a function shadows the file-scope guard instead of colliding with it. That case
-compiles today and needs its own must-fail test.
+The enumerator is block scoped where `PraetChannel` sits inside a function body, the way the claim
+guard's is (`include/mmgr.h:168-172`). That case compiles and has no must-fail test yet.
 
 ## Guards the declaration inherits
 
@@ -61,11 +59,15 @@ a declaration and the diagnostic arrives at the site that referenced it
 
 ## Bounds on a transfer
 
-**Planned.** `PraetTransferCfg` takes a buffer pointer and a separate byte count today
-(`src/memoriam_praetereo/memoriam_praetereo.h:95-100`). A caller can state a length the buffer
+**Planned for the entries.** `PraetTransferCfg` takes a buffer pointer and a separate byte count today
+(`src/memoriam_praetereo/memoriam_praetereo.h:87-92`). A caller can state a length the buffer
 does not have. Entries take the pool type instead, and the extent arrives with the pointer. A macro
 can be generic over a per-pool type where a function cannot, and a bare `void *` then fails to
 satisfy the parameter.
+
+The schedule has this already. `PraetSubmit` takes an offset and a length into a named pool and
+compares the span against the pool's storage while compiling
+(`src/memoriam_praetereo/praet_ordo.h:466-470`). A span that does not fit fails the build.
 
 For allocated storage the mechanism is `MMGR_ALLOC_SIZE`, which states which argument gives the
 extent of what an entry returns (`include/mmgr.h:112-116`). `locus_carcerum` carries it on both
@@ -87,8 +89,11 @@ cell-level extent is gone. A check build has to turn it off. The shipping build 
 
 ## The state word and closing a channel
 
-**Planned.** `close` returns nothing (`src/memoriam_praetereo/memoriam_praetereo.h:112`, `:146`), and
-the caller has no way to learn whether the channel closed. Hardware teardown writes the disable and
+**Planned for the entries, landed on the schedule.** `close` returns nothing
+(`src/memoriam_praetereo/memoriam_praetereo.h:104`, `:137`), and the caller has no way to learn
+whether the channel closed. The schedule carries one flag word per channel
+(`src/memoriam_praetereo/praet_ordo.h:268`), with the four-state core under `PRAET_CORE_MASK` and
+the statuses above it (`src/memoriam_praetereo/praet_tabula_vexillorum.h:67`, `:135`). Hardware teardown writes the disable and
 polls the busy bit. A second call is the normal path.
 
 A state word carries the four-state core in its low bits with flags above it, in one machine word.
@@ -138,10 +143,15 @@ is a stopwatch reading.
 ## The port layer and the host simulator
 
 Four hooks carry `EMBED_WEAK` and refuse or do nothing by default. A build links without a port
-(`src/memoriam_praetereo/memoriam_praetereo.h:168`, `:181`, `:193`, `:205`). A board support file
-replaces one by defining the same name.
+(`src/memoriam_praetereo/memoriam_praetereo.c:56`, `:71`, `:85`, `:98`). A fifth,
+`praet_hw_progress`, reports how far a transfer has got, and its weak default answers no movement
+(`src/memoriam_praetereo/praet_ordo.c:417`). A board support file replaces one by defining the same
+name.
 
-**Planned.** The host simulator is a strong definition of those four names. It implements the
+**In the tree.** The host simulator is
+`test/integration/test_praet_correctness/praet_engine.c`, a strong definition of all five names
+(`praet_engine.c:139`, `:324`, `:344`, `:368`, `:379`). Its scenarios are C tables in
+`praet_scenarios.h`, written by `tools/dev_env/gen_praet_scenarios.py`. It implements the
 contract a board support file implements, so what it catches is an integration defect.
 
 Hardware visits a few of the states an implementation can reach, in whatever order the silicon
@@ -191,8 +201,8 @@ one pool dressed as a ring twice.
 
 Expected and not yet written: `ParsMemoriaeExternum` where `MMGR_ENABLE_EXTRAM` is off, which fails
 on the name because the macro is declared only under that flag (`include/mmgr.h:210-221`);
-`MemoriamPraetereo` where `MMGR_ENABLE_DMA` is off, which fails the same way
-(`src/memoriam_praetereo/memoriam_praetereo.h:20`); a pool too small for one transfer; a channel
+`PraetOrdoContext` where `MMGR_ENABLE_DMA` is off, which fails the same way
+(`src/memoriam_praetereo/memoriam_praetereo.h:23`, `:215`); a pool too small for one transfer; a channel
 declared in a header two translation units include, which collides on the token; and a channel over
 a pool from another translation unit, which fails as an undefined reference because the storage is
 static (`include/mmgr.h:195`).
@@ -212,13 +222,14 @@ reached by many translation units repeat unless the collector deduplicates on fi
 
 ## Order of work
 
+Done: a channel declared over a pool, and `MMGR_PRAET_CHANNELS` removed, as `PraetChannel` and
+`PRAET_CHANNELS`. The state word, on the schedule. The host simulator, correctness arm first.
+
 1. Flash `praet` to the S3 and the C6, capture the direction A/B, and record the rows.
-2. Declare `MemoriamPraetereo(name_, pool_)`, and remove `MMGR_PRAET_CHANNELS`.
-3. Move the entries onto the pool type. A transfer carries its extent.
-4. Add the state word, and make `close` a request the caller polls.
-5. Build the illegal configuration suite, with a control in every sweep.
-6. Build the host simulator as a port, correctness arm first.
-7. Turn link-time optimization off in the check build.
+2. Move the entries onto the pool type. A transfer carries its extent.
+3. Make `close` a request the caller polls, through the flag word.
+4. Build the illegal configuration suite, with a control in every sweep.
+5. Turn link-time optimization off in the check build.
 
 ## Decisions already taken
 
@@ -269,4 +280,4 @@ other, which is the same reason the pool's own assertion compares `sizeof` again
 handed (`include/mmgr.h:197`).
 
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
-**Date:** 2026-09-01
+**Date:** 2026-09-22

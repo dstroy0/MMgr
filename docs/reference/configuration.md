@@ -71,15 +71,37 @@ See @ref ref_error_handling.
 
 ## Optional modules
 
-| knob                  | default | what it changes                                        |
-| --------------------- | ------: | ------------------------------------------------------ |
-| `MMGR_ENABLE_DMA`     |     `0` | compiles `memoriam_praetereo/`, included from `mmgr.h` |
-| `MMGR_ENABLE_EXTRAM`  |     `0` | compiles `memoria_externa/`, included from `mmgr.h`    |
-| `MMGR_PRAET_CHANNELS` |     `2` | only when DMA is on                                    |
-| `MMGR_PRAET_BUF_SIZE` |   `256` | only when DMA is on                                    |
+| knob                 | default | what it changes                                        |
+| -------------------- | ------: | ------------------------------------------------------ |
+| `MMGR_ENABLE_DMA`    |     `0` | compiles `memoriam_praetereo/`, included from `mmgr.h` |
+| `MMGR_ENABLE_EXTRAM` |     `0` | compiles `memoria_externa/`, included from `mmgr.h`    |
 
-With these off, the modules are absent entirely — not stubbed. Their test suites are skipped with a
-CMake status message rather than silently dropped.
+With these off, the modules are absent entirely, with no stubs. Their test suites are skipped with a
+CMake status message instead of being silently dropped.
+
+## The DMA schedule
+
+Read only where `MMGR_ENABLE_DMA` is on. None of these has a value that is right for every part, so
+a build answers them. From CMake, pass them as one list in `MMGR_PRAET_KNOBS`, which reaches the
+library and every suite over it:
+
+```
+-DMMGR_PRAET_KNOBS="PRAET_CHANNELS=8u;PRAET_SETTLE_MICROS=40u;PRAET_KEEPALIVE_MICROS=250u;PRAET_RECOVERY=1;PRAET_CLOCK_HZ=240000000u;PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"
+```
+
+| knob                     |            default when unset | what it changes                                                  |
+| ------------------------ | ----------------------------: | ---------------------------------------------------------------- |
+| `PRAET_CHANNELS`         |                           `8` | logical channels one context carries                             |
+| `PRAET_SETTLE_MICROS`    |                           `0` | microseconds the engine takes to come up after an attach         |
+| `PRAET_KEEPALIVE_MICROS` |                        `1000` | microseconds a moving channel may go unkicked before it stalls   |
+| `PRAET_RECOVERY`         |                           `0` | whether a stalled transfer can be backed out or scrubbed         |
+| `PRAET_CLOCK_HZ`         |                     `1000000` | ticks per second of the clock the deadlines are scaled from      |
+| `PRAET_CLOCK_SOURCE`     | derived from the architecture | `PRAET_CLOCK_CALLER` or `PRAET_CLOCK_OWN`                        |
+| `PRAET_CLOCK_CORE`       |   `PRAET_PLATFORM_CLOCK_CORE` | the core a pinned timer runs on, read only on `PRAET_CLOCK_OWN`  |
+
+Each unset knob takes its default and raises a warning naming itself. After every knob has been
+read, `praet_iudex.h` stops the build once if any of them was unset. Define `MMGR_ACCEPT_DEFAULTS` to
+build on the defaults and keep the warnings as the record.
 
 ## Scanning and text
 

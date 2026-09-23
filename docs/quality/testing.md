@@ -81,16 +81,23 @@ knowing:
 `suites --strict`, `deps --strict` and `generated --strict` exit non-zero on a finding, which is
 what makes them usable as CI gates.
 
-Three build trees, each a different question, and each carries its own flags in the harness rather
-than in somebody's shell history:
+Five build trees, each a different question, and each carries its own flags in the harness instead
+of in somebody's shell history:
 
-| tree           | what it is                                                        |
-| -------------- | ----------------------------------------------------------------- |
-| `build`        | the library as it ships                                           |
-| `build-oracle` | every entry with a libc equivalent replaced by that equivalent    |
-| `build-cov`    | instrumented, with `always_inline` and link time optimization off |
+| tree             | what it is                                                          |
+| ---------------- | ------------------------------------------------------------------- |
+| `build`          | the library as it ships                                             |
+| `build-oracle`   | every entry with a libc equivalent replaced by that equivalent      |
+| `build-cov`      | instrumented, with `always_inline` and link time optimization off   |
+| `build-dma`      | DMA on, with recovery, the boundary word check and a settle window  |
+| `build-dma-lean` | DMA on, with recovery and the settle window off                     |
 
-The last two matter. `always_inline` is honoured at `-O0`, so without turning it off every call site
+The two DMA trees answer every schedule knob through `MMGR_PRAET_KNOBS` (`PRAET_KNOBS` in
+`test/harness.py`). A context the suites declare has to be the size the library walks, so the knobs
+reach the library and the suites together. The cases gate on the knobs, and each tree compiles the
+arm the other one leaves out.
+
+`build-oracle` and `build-cov` matter for coverage. `always_inline` is honoured at `-O0`, so without turning it off every call site
 of a header entry gets its own copy of that entry's branch records and the report counts optimizer
 copies instead of source branches - `mmgr_ascii_in` is one condition on one line and came back
 holding 28 branches. Link time optimization rewrites the code across translation units before the
@@ -104,16 +111,17 @@ is for.
 
 ## Capability gating
 
-`test_memoriam_praetereo` needs `MMGR_ENABLE_DMA`. `test_memoria_externa` and
-`test_memoria_externa_accuracy` need `MMGR_ENABLE_EXTRAM`. Both knobs default off
-(`CMakeLists.txt:28-29`). All three are skipped **loudly**, with a CMake status message naming the
-capability that turned each one off:
+`test_memoriam_praetereo` and `test_praet_correctness` need `MMGR_ENABLE_DMA`.
+`test_memoria_externa` and `test_memoria_externa_accuracy` need `MMGR_ENABLE_EXTRAM`. Both knobs
+default off (`CMakeLists.txt:28-29`). All four are skipped **loudly**, with a CMake status message
+naming the capability that turned each one off:
 
 ```
--- MMgr: 3 suites NOT built, their capability is off:
+-- MMgr: 4 suites NOT built, their capability is off:
 -- MMgr:   test_memoria_externa (MMGR_ENABLE_EXTRAM=OFF)
 -- MMgr:   test_memoriam_praetereo (MMGR_ENABLE_DMA=OFF)
 -- MMgr:   test_memoria_externa_accuracy (MMGR_ENABLE_EXTRAM=OFF)
+-- MMgr:   test_praet_correctness (MMGR_ENABLE_DMA=OFF)
 ```
 
 Silently dropping them would leave a passing run that tested less than it looks like, which is worse
