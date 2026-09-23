@@ -18,7 +18,7 @@
  *       completions arrive in is the scenario's to choose and need not match the order submitted.
  * @note One hook call is one tick. Settling and cycle time are both counted in them, which keeps the
  *       whole fixture deterministic and free of a clock.
- * @warning Included by test_praet_correctness.c rather than compiled on its own. mmgr_add_suite
+ * @warning Included by test_praet_correctness.c and never compiled on its own. mmgr_add_suite
  *          compiles the one suite source and the shared files under test/support, and these hooks
  *          must not reach any other suite - test_memoriam_praetereo exists to prove the weak
  *          defaults refuse, and a strong definition linked into it would answer for them.
@@ -51,7 +51,7 @@ static PraetEngineTally s_tally;
 /**
  * @brief Completion callback the last accepted open registered.
  *
- * @note Held rather than copied, as mmgr_praet_open documents. The case owns the binding and keeps
+ * @note Held and never copied, as mmgr_praet_open documents. The case owns the binding and keeps
  *       it alive for the whole scenario [BORROWS].
  */
 static const PraetCallbackCfg *s_binding;
@@ -177,7 +177,7 @@ static const PraetEngineStep *praet_engine_take(uint8_t hook)
  *
  * @param[in] channel Logical channel the completion reports.
  * @param[in] moved   Bytes the completion reports.
- * @note Counted here rather than in the callback. A case whose callback does nothing still
+ * @note Counted here, outside the callback. A case whose callback does nothing still
  *       produces a tally.
  * @note data is left null. The correctness arm reads the counts and the channel order, and a pointer
  *       into the engine's own storage would be a fact about this engine instead of about the
@@ -352,7 +352,7 @@ embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args)
     }
 
     // A channel still settling takes no transfer, whatever the script answered. Settling is a rule
-    // the engine enforces rather than a reaction, the same way a burst constraint would be
+    // the engine enforces up front, the same way a burst constraint would be
     if ((args->channel < PRAET_ENGINE_CHANNELS) && (s_tick < s_settled_at[args->channel]))
     {
         s_tally.settling++;

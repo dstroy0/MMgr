@@ -87,7 +87,7 @@ void tearDown(void)
  * @brief Checks that memoriam_praetereo.h compiles with no header ahead of it.
  *
  * @note The include above is the whole test. A header that needs a prior include fails to compile
- *       here rather than at some caller that happened to include the two in the other order.
+ *       here, ahead of any caller that happened to include the two in the other order.
  */
 void test_dma_header_is_self_contained(void)
 {
@@ -97,7 +97,7 @@ void test_dma_header_is_self_contained(void)
 /**
  * @brief Checks that every praet member points at a function.
  *
- * @note A null member would fault at the first call rather than at the declaration, so the table is
+ * @note A null member would fault at the first call, long after the declaration, so the table is
  *       read before any case calls through it.
  */
 void test_every_praet_entry_is_reachable(void)
@@ -167,8 +167,8 @@ void test_an_empty_transfer_is_refused_as_well(void)
 /**
  * @brief Checks that closing a channel that never opened does nothing and returns.
  *
- * @note The default mmgr_praet_hw_close does nothing, so this case fails by faulting rather than by
- *       an assertion.
+ * @note The default mmgr_praet_hw_close does nothing, so this case fails by faulting, with no
+ *       assertion to report it.
  */
 void test_closing_a_channel_that_never_opened_returns(void)
 {
@@ -207,7 +207,7 @@ void test_an_unported_build_reports_no_completion(void)
  * @brief Checks that the progress hook's default reports no movement, and a running channel stalls.
  *
  * @note praet_hw_progress keeps its weak default here, as the four mmgr_praet_hw_ hooks do. It
- *       answers zero, so a channel nothing moves is marked stalled once its keepalive window passes,
+ *       answers zero, and any channel nothing moves is marked stalled once its keepalive window passes,
  *       with its position where the submit left it.
  * @note Reached through praet_ordo_poll, which calls the hook from the unit that defines the default.
  *       That is the call a build with no port makes.

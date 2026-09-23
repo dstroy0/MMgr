@@ -58,7 +58,7 @@ static unsigned long s_writes;
  * @brief What each core state is called in the report.
  *
  * @note Indexed by the state's own value, which is what makes the table read in the order the states
- *       are numbered rather than the order somebody listed them.
+ *       are numbered, whatever order somebody listed them in.
  */
 static const char *const s_core_names[PRAET_PROCURATOR_CORES] = {"detached", "attached", "busy", "ok"};
 
@@ -151,8 +151,8 @@ static void praet_procurator_opus_report(void)
     printf("%-30s %10u\n", "channels", (unsigned)PRAET_CHANNELS);
     printf("%-30s %10u\n", "bytes in a context", (unsigned)sizeof(PraetOrdo));
 
-    // Spread over the channels, and the context wide members are in the number. Naming it that way
-    // rather than calling it a per channel cost, which it is not: the settle deadline, the two
+    // Spread over the channels, and the context wide members are in the number. It is named that way
+    // because it is no per channel cost: the settle deadline, the two
     // volatiles and the elapsed count are carried once however many channels there are
     printf("%-30s %10u\n", "bytes per channel, all in", (unsigned)(sizeof(PraetOrdo) / PRAET_CHANNELS));
 

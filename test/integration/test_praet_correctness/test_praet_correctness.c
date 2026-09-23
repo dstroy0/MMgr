@@ -263,7 +263,7 @@ void test_the_control_is_clean(void)
  * @brief Checks every scenario, on both arms, against the outcome the generator computed.
  *
  * @note The expectations come from gen_praet_scenarios.py, which walks each program against its
- *       script. Nothing here derives them. Agreement is evidence rather than a tautology.
+ *       script. Nothing here derives them, so agreement is evidence.
  */
 void test_every_scenario_matches_its_oracle(void)
 {
@@ -514,8 +514,8 @@ void test_a_settling_channel_takes_no_transfer(void)
                              "the channel never reported settling");
     TEST_ASSERT_FALSE_MESSAGE(praet_case_submit(0u, 16u), "a settling channel took a transfer");
 
-    // One microsecond short of the deadline, so this proves the wait is the length it was asked for
-    // rather than clearing on the first service call that happens along
+    // One microsecond short of the deadline. This proves the wait is the length it was asked for, and
+    // that the first service call that happens along does not clear it
     praet_ordo_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS - 1u);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 0u) & PRAET_SETTLING) != 0u,
@@ -982,7 +982,7 @@ void test_the_boundary_word_check_measures_one_word(void)
     // A sample one byte into a word, so the engine stopped mid-word and there is something to measure
     const embed_word sampled = word_bytes + 1u;
 
-    // The pool's storage rather than the pool's own name, because the name is a const view and this is
+    // The pool's storage, where the pool's own name would not do. The name is a const view and this is
     // standing in for the engine writing the bytes
     for (embed_word walk = 0u; walk < s_case_pool_bytes; walk++)
     {
@@ -1124,7 +1124,7 @@ void test_a_build_without_recovery_still_stalls_and_records_none(void)
  *
  * @note The whole point of declaring a frequency. A port reads a counter and hands over ticks; every
  *       deadline in this module is microseconds, and this is the one place the two meet.
- * @note Driven against the watchdog rather than read back off a counter, because what matters is that
+ * @note Driven against the watchdog, with no counter read back, because what matters is that
  *       a window measured in microseconds closes after the right number of ticks.
  */
 void test_ticks_scale_into_microseconds(void)
@@ -1372,8 +1372,8 @@ void test_the_recorded_position_comes_from_the_port(void)
  * @brief Checks that a stalled transfer is backed out over the extent the port last reported.
  *
  * @note The whole point of the reporting. The engine stops after saying it reached 20 bytes, the
- *       watchdog notices, and what a caller is handed is an extent that came off the controller
- *       rather than out of this library.
+ *       watchdog notices, and what a caller is handed is an extent that came off the controller.
+ *       This library made none of it up.
  * @note The touched extent rounds that sample up to a whole word, because the sample is exact to word
  *       granularity and the engine may have been part way into the next one.
  */
@@ -1626,7 +1626,7 @@ void test_the_two_arms_are_not_the_same_engine(void)
 /**
  * @brief A second pool. A descriptor has somewhere to read from and somewhere else to write to.
  *
- * @note Two pools rather than two halves of one, because a descriptor names both ends and each is
+ * @note Two pools, where two halves of one would not do. A descriptor names both ends and each is
  *       proved against its own declaration. One pool would prove the same span twice.
  */
 ParsMemoriaeInternae(s_case_source, 128);
@@ -1693,7 +1693,7 @@ void test_a_one_shot_descriptor_ends(void)
  * @brief Checks that a circular descriptor points at itself.
  *
  * @note Circular is one descriptor whose next is its own address. There is no mode and no bit, and
- *       the walk that counts it stops at the head rather than following it forever.
+ *       the walk that counts it stops at the head, where it would otherwise follow it forever.
  */
 void test_a_circular_descriptor_points_at_itself(void)
 {
@@ -1836,8 +1836,8 @@ void test_a_chain_walk_stops_at_the_limit(void)
  *       would make the suite refuse to build over a judgment nobody has made yet.
  * @note Last in the file, because the generated runner registers cases in the order they are written
  *       and this reports on everything ahead of it.
- * @note Ignored where PRAET_PROCURATOR is 0. A run that did not ask for the instrument says so rather
- *       than printing an empty table.
+ * @note Ignored where PRAET_PROCURATOR is 0. A run that did not ask for the instrument says so, and
+ *       prints no empty table.
  */
 void test_zz_what_this_run_reached(void)
 {

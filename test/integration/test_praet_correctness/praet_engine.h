@@ -210,7 +210,7 @@ typedef struct
  *
  * @param[in] scenario Scenario the engine runs until the next arm [BORROWS].
  * @note Called before each case. The scenario outlives the run, since the engine reads its steps
- *       from the hooks rather than copying them.
+ *       from the hooks and keeps no copy.
  */
 void praet_engine_arm(const PraetScenario *scenario);
 
