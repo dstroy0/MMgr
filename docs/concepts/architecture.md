@@ -86,11 +86,11 @@ A _cell_ is what a pool hands out. Every one is taken with the pool's own `persi
 given back with its own `persistent_buf_release`. There is one release, not two — what differs is
 which guard the pool was declared under:
 
-|                      | `MMGR_MINIMUM_SECURITY`    | `MMGR_MAXIMUM_SECURITY`                    |
-| -------------------- | -------------------------- | ------------------------------------------ |
-| gives the bytes back | yes                        | yes                                        |
-| clears them first    | no                         | yes (`locus_carcerum.h:140`)               |
-| costs                | a chain walk               | a chain walk and a pass over the bytes     |
+|                      | `MMGR_MINIMUM_SECURITY` | `MMGR_MAXIMUM_SECURITY`                |
+| -------------------- | ----------------------- | -------------------------------------- |
+| gives the bytes back | yes                     | yes                                    |
+| clears them first    | no                      | yes (`locus_carcerum.h:140`)           |
+| costs                | a chain walk            | a chain walk and a pass over the bytes |
 
 The guarantee is in the **declaration** rather than in a flag or a second call. A caller cannot
 ask for a wipe and not get one, and cannot reach for an unwiped release on a pool that promised one.
@@ -187,15 +187,15 @@ declared nowhere a consumer can reach.
 
 ## Who owns what
 
-| Thing           | Allocates               | Frees                      | Lifetime                  |
-| --------------- | ----------------------- | -------------------------- | ------------------------- |
-| caller's buffer | the caller              | the caller                 | outlives everything below |
-| pool            | nothing                 | nothing                    | the region's              |
+| Thing           | Allocates               | Frees                               | Lifetime                  |
+| --------------- | ----------------------- | ----------------------------------- | ------------------------- |
+| caller's buffer | the caller              | the caller                          | outlives everything below |
+| pool            | nothing                 | nothing                             | the region's              |
 | persist take    | a block from the middle | `persistent_buf_release` by address | as long as it likes       |
-| interim take    | a block from the middle | a mark, or `temporary_buf_reset` | until that mark           |
-| span            | nothing                 | nothing                    | its target's              |
-| ring segment    | a counter step          | `seg_release`              | until released            |
-| loculus         | a bit in a mask         | `loculus_drop`             | until dropped             |
+| interim take    | a block from the middle | a mark, or `temporary_buf_reset`    | until that mark           |
+| span            | nothing                 | nothing                             | its target's              |
+| ring segment    | a counter step          | `seg_release`                       | until released            |
+| loculus         | a bit in a mask         | `loculus_drop`                      | until dropped             |
 
 The column that matters is the third one. Nothing in MMgr reaches an allocator: every take comes out
 of a region the caller declared, and every free either returns a block to that region's own chain,

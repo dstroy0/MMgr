@@ -80,7 +80,7 @@ honest answer is `NULL`.
 | you are asking                    | it answers with                          |
 | --------------------------------- | ---------------------------------------- |
 | can I have some storage           | a pointer, or `NULL`                     |
-| is this true                      | `embed_bool`                              |
+| is this true                      | `embed_bool`                             |
 | did any of that formatting fail   | a latched flag, checked once at the end  |
-| did what arrived off the wire fit | `embed_bool`, at the call                 |
+| did what arrived off the wire fit | `embed_bool`, at the call                |
 | did I violate a precondition      | nothing, unless you built with checks on |

@@ -14,10 +14,10 @@ than defines.
 
 These come from `embedded_types`, not from MMgr, and carry its prefix.
 
-| knob               |                              default | what it changes                                   |
-| ------------------ | -----------------------------------: | ------------------------------------------------- |
-| `EMBED_WORD_BITS`  |           derived from `UINTPTR_MAX` | the SWAR carrier and `embed_word`. 64, 32 or 16   |
-| `EMBED_INDEX_BITS` | 32, or `EMBED_WORD_BITS` if narrower | the type of an offset into a region               |
+| knob               |                              default | what it changes                                 |
+| ------------------ | -----------------------------------: | ----------------------------------------------- |
+| `EMBED_WORD_BITS`  |           derived from `UINTPTR_MAX` | the SWAR carrier and `embed_word`. 64, 32 or 16 |
+| `EMBED_INDEX_BITS` | 32, or `EMBED_WORD_BITS` if narrower | the type of an offset into a region             |
 
 Setting `EMBED_WORD_BITS` narrower than the machine does not make anything faster — it makes the
 scanner answer for fewer bytes per load. It exists to let a wide host exercise a narrow machine's
@@ -32,11 +32,11 @@ There is no knob that sets a size here. **The size is in the declaration**, whic
 `ParsMemoriaeInternae(work, 4096)` states the extent at the one place the storage exists, and
 `sizeof` is asserted against the count it was handed so the two cannot disagree.
 
-| knob                |             default | what it changes                                                     |
-| ------------------- | ------------------: | ------------------------------------------------------------------- |
-| `MMGR_ALIGN_BYTES`  |              `16`   | alignment every pool declaration puts on its storage                |
-| `MMGR_CARCER_ALIGN` | `sizeof(embed_word)` | **derived.** The alignment every cell is handed out at              |
-| `MMGR_EXTRAM_ATTR`  |               empty | placement an external pool carries. The port supplies it            |
+| knob                |              default | what it changes                                          |
+| ------------------- | -------------------: | -------------------------------------------------------- |
+| `MMGR_ALIGN_BYTES`  |                 `16` | alignment every pool declaration puts on its storage     |
+| `MMGR_CARCER_ALIGN` | `sizeof(embed_word)` | **derived.** The alignment every cell is handed out at   |
+| `MMGR_EXTRAM_ATTR`  |                empty | placement an external pool carries. The port supplies it |
 
 `MMGR_EXTRAM_ATTR` is named here and filled by the port, because which section a part puts external
 memory in is the part's business. A build that enables external memory and leaves this empty gets
@@ -89,15 +89,15 @@ library and every suite over it:
 -DMMGR_PRAET_KNOBS="PRAET_CHANNELS=8u;PRAET_SETTLE_MICROS=40u;PRAET_KEEPALIVE_MICROS=250u;PRAET_RECOVERY=1;PRAET_CLOCK_HZ=240000000u;PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"
 ```
 
-| knob                     |            default when unset | what it changes                                                  |
-| ------------------------ | ----------------------------: | ---------------------------------------------------------------- |
-| `PRAET_CHANNELS`         |                           `8` | logical channels one context carries                             |
-| `PRAET_SETTLE_MICROS`    |                           `0` | microseconds the engine takes to come up after an attach         |
-| `PRAET_KEEPALIVE_MICROS` |                        `1000` | microseconds a moving channel may go unkicked before it stalls   |
-| `PRAET_RECOVERY`         |                           `0` | whether a stalled transfer can be backed out or scrubbed         |
-| `PRAET_CLOCK_HZ`         |                     `1000000` | ticks per second of the clock the deadlines are scaled from      |
-| `PRAET_CLOCK_SOURCE`     | derived from the architecture | `PRAET_CLOCK_CALLER` or `PRAET_CLOCK_OWN`                        |
-| `PRAET_CLOCK_CORE`       |   `PRAET_PLATFORM_CLOCK_CORE` | the core a pinned timer runs on, read only on `PRAET_CLOCK_OWN`  |
+| knob                     |            default when unset | what it changes                                                 |
+| ------------------------ | ----------------------------: | --------------------------------------------------------------- |
+| `PRAET_CHANNELS`         |                           `8` | logical channels one context carries                            |
+| `PRAET_SETTLE_MICROS`    |                           `0` | microseconds the engine takes to come up after an attach        |
+| `PRAET_KEEPALIVE_MICROS` |                        `1000` | microseconds a moving channel may go unkicked before it stalls  |
+| `PRAET_RECOVERY`         |                           `0` | whether a stalled transfer can be backed out or scrubbed        |
+| `PRAET_CLOCK_HZ`         |                     `1000000` | ticks per second of the clock the deadlines are scaled from     |
+| `PRAET_CLOCK_SOURCE`     | derived from the architecture | `PRAET_CLOCK_CALLER` or `PRAET_CLOCK_OWN`                       |
+| `PRAET_CLOCK_CORE`       |   `PRAET_PLATFORM_CLOCK_CORE` | the core a pinned timer runs on, read only on `PRAET_CLOCK_OWN` |
 
 Each unset knob takes its default and raises a warning naming itself. After every knob has been
 read, `praet_iudex.h` stops the build once if any of them was unset. Define `MMGR_ACCEPT_DEFAULTS` to

@@ -137,10 +137,10 @@ EMBED_FLATTEN static size_t field_len(const char *s)
 
 ESP32-S3, `cellul.len` over the same eight bytes:
 
-| shape                        |    cycles |
-| ---------------------------- | --------: |
-| through the namespace table  |    112.01 |
-| calling the entry by name    |    112.01 |
+| shape                         |    cycles |
+| ----------------------------- | --------: |
+| through the namespace table   |    112.01 |
+| calling the entry by name     |    112.01 |
 | `EMBED_FLATTEN` on the caller | **80.02** |
 
 **32 cycles, a third of the work at that length.** Against ROM `strnlen`'s 113 that is 0.99 called

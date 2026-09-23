@@ -27,18 +27,18 @@ policed by a static assert at the point of use rather than trusted.
 
 ## What is in it
 
-| macro                                      | with the attribute                             | without                         |
-| ------------------------------------------ | ---------------------------------------------- | ------------------------------- |
-| `EMBED_INLINE`                             | `static inline __attribute__((always_inline))` | `static inline`                 |
-| `EMBED_TABLE_STORAGE`                      | `static const`                                 | —                               |
-| `EMBED_UNUSED`                             | `__attribute__((unused))`                      | empty                           |
-| `EMBED_WEAK`                               | `__attribute__((weak))`                        | empty                           |
-| `EMBED_ALIAS`                              | `__attribute__((may_alias))`                   | empty                           |
-| `EMBED_ALIGN(bytes_)`                      | `__attribute__((aligned(bytes_)))`             | empty                           |
-| `EMBED_FLATTEN`                            | `__attribute__((flatten))`                     | empty                           |
-| `EMBED_ENUM_PACKED`                        | `__attribute__((packed))`                      | empty — **asserted**, see below |
-| `EMBED_BEGIN_DECLS` / `EMBED_END_DECLS`    | `extern "C" {` / `}` under C++                 | empty under C                   |
-| `EMBED_STATIC_ASSERT`                      | `static_assert` or `_Static_assert`            | `#error` below C11              |
+| macro                                   | with the attribute                             | without                         |
+| --------------------------------------- | ---------------------------------------------- | ------------------------------- |
+| `EMBED_INLINE`                          | `static inline __attribute__((always_inline))` | `static inline`                 |
+| `EMBED_TABLE_STORAGE`                   | `static const`                                 | —                               |
+| `EMBED_UNUSED`                          | `__attribute__((unused))`                      | empty                           |
+| `EMBED_WEAK`                            | `__attribute__((weak))`                        | empty                           |
+| `EMBED_ALIAS`                           | `__attribute__((may_alias))`                   | empty                           |
+| `EMBED_ALIGN(bytes_)`                   | `__attribute__((aligned(bytes_)))`             | empty                           |
+| `EMBED_FLATTEN`                         | `__attribute__((flatten))`                     | empty                           |
+| `EMBED_ENUM_PACKED`                     | `__attribute__((packed))`                      | empty — **asserted**, see below |
+| `EMBED_BEGIN_DECLS` / `EMBED_END_DECLS` | `extern "C" {` / `}` under C++                 | empty under C                   |
+| `EMBED_STATIC_ASSERT`                   | `static_assert` or `_Static_assert`            | `#error` below C11              |
 
 MMgr adds three of its own, in `include/mmgr.h`, for what the compiler offers and this library needs:
 `MMGR_ERROR_ATTR` puts our own text on a reference that must not link, `MMGR_ALLOC_SIZE` states which

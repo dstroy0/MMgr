@@ -84,14 +84,14 @@ what makes them usable as CI gates.
 Six build trees, each a different question, and each carries its own flags in the harness instead
 of in somebody's shell history:
 
-| tree             | what it is                                                          |
-| ---------------- | ------------------------------------------------------------------- |
-| `build`          | the library as it ships                                             |
-| `build-oracle`   | every entry with a libc equivalent replaced by that equivalent      |
-| `build-cov`      | instrumented, with `always_inline` and link time optimization off   |
-| `build-dma`      | DMA on, with recovery, the boundary word check and a settle window  |
-| `build-dma-lean` | DMA on, with recovery and the settle window off                     |
-| `build-extram`   | external memory on                                                  |
+| tree             | what it is                                                         |
+| ---------------- | ------------------------------------------------------------------ |
+| `build`          | the library as it ships                                            |
+| `build-oracle`   | every entry with a libc equivalent replaced by that equivalent     |
+| `build-cov`      | instrumented, with `always_inline` and link time optimization off  |
+| `build-dma`      | DMA on, with recovery, the boundary word check and a settle window |
+| `build-dma-lean` | DMA on, with recovery and the settle window off                    |
+| `build-extram`   | external memory on                                                 |
 
 The two DMA trees answer every schedule knob through `MMGR_PRAET_KNOBS` (`PRAET_KNOBS` in
 `test/harness.py`). A context the suites declare has to be the size the library walks, so the knobs

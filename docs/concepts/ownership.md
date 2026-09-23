@@ -13,13 +13,13 @@ has the position it was taken from moved back past it".
 
 ## Lifetimes, shortest first
 
-| what you hold         | dies when                                                          |
-| --------------------- | ------------------------------------------------------------------ |
-| a temporary pointer   | its mark is rewound, or the temporary tier is reset                |
-| a span over temporary | same, and it does not know                                         |
-| a persistent pointer  | `persistent_buf_release` takes it, or its cellblock dies           |
-| the cellblock         | its declaration goes out of scope, which is never                  |
-| the pool              | the same, and it outlives the cellblock dressed over it            |
+| what you hold         | dies when                                                |
+| --------------------- | -------------------------------------------------------- |
+| a temporary pointer   | its mark is rewound, or the temporary tier is reset      |
+| a span over temporary | same, and it does not know                               |
+| a persistent pointer  | `persistent_buf_release` takes it, or its cellblock dies |
+| the cellblock         | its declaration goes out of scope, which is never        |
+| the pool              | the same, and it outlives the cellblock dressed over it  |
 
 Read that table downward: everything above a row is invalidated by the row below it. A span over a
 cell dies when that cell is released even though the span was never told.

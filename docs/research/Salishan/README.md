@@ -15,12 +15,12 @@ The corpus is Salishan speech, written down, and it belongs to the people who sp
 
 ## What moved
 
-| was here | is now |
-|---|---|
-| `pure_corpus/` | the twenty hand extractions, speaker first |
-| `refs.md` | every source, held or cited, with addresses |
-| `corpus-derivation.md` | how wrong the corpus could be, and what that number rests on |
-| `anchor-sift-salishan.md` | what happens when the method is fed these papers |
+| was here                  | is now                                                       |
+| ------------------------- | ------------------------------------------------------------ |
+| `pure_corpus/`            | the twenty hand extractions, speaker first                   |
+| `refs.md`                 | every source, held or cited, with addresses                  |
+| `corpus-derivation.md`    | how wrong the corpus could be, and what that number rests on |
+| `anchor-sift-salishan.md` | what happens when the method is fed these papers             |
 
 The tools that build and check all of it moved with them, from `tools/dev_env/Salishan/` in this tree to the same path in that one.
 

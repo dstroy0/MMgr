@@ -168,10 +168,10 @@ One dispatch table, `proxim` (`src/proximus_operor/proximus_operor.h:218`). The 
 entry name rather than in a table of its own, and the may-alias part is in the type every entry
 moves rather than in a third entry to pick.
 
-| entry               | strategy  | use when                                                                               |
-| ------------------- | --------- | -------------------------------------------------------------------------------------- |
-| `load`, `put`       | unaligned | the address may be anything                                                            |
-| `al_load`, `al_put` | aligned   | you know the alignment holds                                                           |
+| entry               | strategy  | use when                                                                            |
+| ------------------- | --------- | ----------------------------------------------------------------------------------- |
+| `load`, `put`       | unaligned | the address may be anything                                                         |
+| `al_load`, `al_put` | aligned   | you know the alignment holds                                                        |
 | `mmgr_migro_word`   | may alias | the type the above move. A load cannot be reordered against a store of another type |
 
 ```c

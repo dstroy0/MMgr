@@ -45,15 +45,15 @@ void frame(void)
 
 ## Where things are
 
-|                                                        |                                                                                                  |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| [`src/`](src)                                          | the library, one directory per module                                                            |
-| [`include/mmgr.h`](include/mmgr.h)                     | the header a consumer includes: pool declarations, the name guards, the assert hook              |
-| [`deps/embedded_types/`](deps/embedded_types)          | the widths, the word, the attribute wrappers and the dispatch macros every module builds on      |
-| [`test/`](test)                                        | `unit` per translation unit, `integration` and `interop` across modules, `environment` per width |
-| [`test/harness.py`](test/harness.py)                   | build, run, the A/B, coverage, and the suite and generator checks                                |
-| [`tools/dev_env/`](tools/dev_env)                      | the generators for `src/`'s tables, the size sweep, the source rewriters                         |
-| [`docs/`](docs)                                        | the prose, and the Doxygen configuration that renders it                                         |
+|                                               |                                                                                                  |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [`src/`](src)                                 | the library, one directory per module                                                            |
+| [`include/mmgr.h`](include/mmgr.h)            | the header a consumer includes: pool declarations, the name guards, the assert hook              |
+| [`deps/embedded_types/`](deps/embedded_types) | the widths, the word, the attribute wrappers and the dispatch macros every module builds on      |
+| [`test/`](test)                               | `unit` per translation unit, `integration` and `interop` across modules, `environment` per width |
+| [`test/harness.py`](test/harness.py)          | build, run, the A/B, coverage, and the suite and generator checks                                |
+| [`tools/dev_env/`](tools/dev_env)             | the generators for `src/`'s tables, the size sweep, the source rewriters                         |
+| [`docs/`](docs)                               | the prose, and the Doxygen configuration that renders it                                         |
 
 ### The modules
 
