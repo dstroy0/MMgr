@@ -11,15 +11,15 @@ Four things answer a configuration, and they answer it in different places.
 
 Six build knobs arrive as `-D` on the command line or as a `#define` ahead of the include. A CMake build passes them as one list in `MMGR_PRAET_KNOBS`, which reaches the library and every suite over it. Four of them describe the part, and are read in `praet_praefinitum.h`. Two more describe the clock, and are read in `praet_horologiorum_custos.h`, which also reads a seventh knob on one arm.
 
-One answer is given at the declaration instead, as a token passed to `PraetOrdoContext` (`praet_ordo.h:217-222`). It is not a build knob, and setting the build knob that used to hold it stops the build (`praet_praefinitum.h:114-116`).
+One answer is given at the declaration instead, as a token passed to `PraetOrdoContext` (`praet_ordo.h:219-225`). It is not a build knob, and setting the build knob that used to hold it stops the build (`praet_praefinitum.h:118-121`).
 
-Several facts are derived from the architecture and are not answerable at all. `praet_platform_detection.h` reads what the compiler predefines and settles which family this is, how wide its register is, and whether it defines a cycle counter. One of those decides what an unanswered clock source falls back to (`praet_horologiorum_custos.h:70-79`).
+Several facts are derived from the architecture and are not answerable at all. `praet_platform_detection.h` reads what the compiler predefines and settles which family this is, how wide its register is, and whether it defines a cycle counter. One of those decides what an unanswered clock source falls back to (`praet_horologiorum_custos.h:71-82`).
 
-`MMGR_ACCEPT_DEFAULTS` is the last piece. It changes nothing about which value a knob takes. What it changes is whether an incomplete configuration stops the build (`praet_iudex.h:30-36`).
+`MMGR_ACCEPT_DEFAULTS` is the last piece. It changes nothing about which value a knob takes. What it changes is whether an incomplete configuration stops the build (`praet_iudex.h:30-37`).
 
 ## How an unanswered knob reports
 
-Every knob that was not set takes a documented default, raises a warning naming itself and the value it took, and leaves a flag behind. No knob stops the build where it sits. `praet_iudex.h` reads the flags after every knob has spoken and stops once (`praet_iudex.h:32-36`).
+Every knob that was not set takes a documented default, raises a warning naming itself and the value it took, and leaves a flag behind. No knob stops the build where it sits. `praet_iudex.h` reads the flags after every knob has spoken and stops once (`praet_iudex.h:32-37`).
 
 The order matters more than it looks. An `#error` halts its translation unit at the line it appears on. A build missing four knobs would report the first, get corrected, then report the second. Four rounds would deliver four facts that were all knowable on the first pass. Warning at each knob and stopping at the end delivers them together.
 
@@ -43,58 +43,58 @@ Nothing in this depends on a build system. These are preprocessor directives, so
 
 ### PRAET_CHANNELS
 
-Logical channels one context carries. Sizes every per-channel array in `PraetOrdo` (`praet_ordo.h:266-283`).
+Logical channels one context carries. Sizes every per-channel array in `PraetOrdo` (`praet_ordo.h:269-286`).
 
-Default 8, with a warning (`praet_praefinitum.h:49-53`).
+Default 8, with a warning (`praet_praefinitum.h:49-54`).
 
 ### PRAET_SETTLE_MICROS
 
-Microseconds the engine spends coming up before it will take a transfer. One timer for the context, because settling is a property of the engine and not of a channel (`praet_ordo.h:252-253`).
+Microseconds the engine spends coming up before it will take a transfer. One timer for the context, because settling is a property of the engine and not of a channel (`praet_ordo.h:255-256`).
 
-Default 0, with a warning (`praet_praefinitum.h:63-67`). A build taking that default waits for nothing after an attach.
+Default 0, with a warning (`praet_praefinitum.h:64-69`). A build taking that default waits for nothing after an attach.
 
 ### PRAET_KEEPALIVE_MICROS
 
 Microseconds a running channel may go unkicked before it reads stalled. This is a watchdog window and never a transfer length. An unkicked window means the engine stopped moving, and says nothing about the transfer having finished.
 
-Default 1000, with a warning (`praet_praefinitum.h:80-84`).
+Default 1000, with a warning (`praet_praefinitum.h:82-87`).
 
 ### PRAET_RECOVERY
 
-Whether a stalled transfer can be backed out or scrubbed. Legal values are 0 and 1, and a third value stops the build where it sits (`praet_praefinitum.h:107-109`). That one does not join the basket, because every later gate would be reading a value nobody can interpret.
+Whether a stalled transfer can be backed out or scrubbed. Legal values are 0 and 1, and a third value stops the build where it sits (`praet_praefinitum.h:111-113`). That one does not join the basket, because every later gate would be reading a value nobody can interpret.
 
-Default 0, with a warning (`praet_praefinitum.h:97-101`).
+Default 0, with a warning (`praet_praefinitum.h:100-105`).
 
 With it on, the context carries `bound`, `bound_bytes`, `start`, `length`, `position`, `boundary_crc`
-and `word_boundary_crc` (`praet_ordo.h:270-277`), and six entries exist that do not otherwise:
+and `word_boundary_crc` (`praet_ordo.h:273-280`), and six entries exist that do not otherwise:
 `praet_ordo_relatio` taking an offset and a length, `praet_ordo_efficere` taking a position,
 `praet_ordo_situs`, `praet_ordo_commotus_est`, `praet_ordo_boundary_crc`
-(`praet_ordo.h:422-525`) and `praet_ordo_resolve` (`praet_ordo.h:610-628`).
+(`praet_ordo.h:425-530`) and `praet_ordo_resolve` (`praet_ordo.h:617-635`).
 
 With it off, `praet_ordo_relatio` takes no span and `praet_ordo_efficere` takes no position
-(`praet_ordo.h:526-569`). A call site written for the other form fails to compile. The watchdog
+(`praet_ordo.h:531-576`). A call site written for the other form fails to compile. The watchdog
 still runs. A channel still reads stalled; what is gone is any statement about which bytes were
 touched.
 
 ### PRAET_CLOCK_HZ
 
-Ticks the clock counts in one second. Every deadline in this module is microseconds, and this is what a tick is scaled against (`praet_horologiorum_custos.h:126`).
+Ticks the clock counts in one second. Every deadline in this module is microseconds, and this is what a tick is scaled against (`praet_horologiorum_custos.h:132`).
 
-Two conditions hold at compile time. The frequency divides evenly into microseconds, and it is at least one megahertz (`praet_horologiorum_custos.h:141-146`). Every part this library targets runs at a whole number of megahertz, and a clock below one megahertz cannot resolve a microsecond.
+Two conditions hold at compile time. The frequency divides evenly into microseconds, and it is at least one megahertz (`praet_horologiorum_custos.h:147-152`). Every part this library targets runs at a whole number of megahertz, and a clock below one megahertz cannot resolve a microsecond.
 
-Default 1000000, with a warning (`praet_horologiorum_custos.h:54-58`). That default reads a tick as a microsecond. It is not an estimate of any part's frequency, because an estimate would make every deadline wrong by however much it missed by.
+Default 1000000, with a warning (`praet_horologiorum_custos.h:54-59`). That default reads a tick as a microsecond. It is not an estimate of any part's frequency, because an estimate would make every deadline wrong by however much it missed by.
 
 ### PRAET_CLOCK_SOURCE
 
-`PRAET_CLOCK_CALLER` where the caller already runs a counter this reads. `PRAET_CLOCK_OWN` where this pins its own timer to a core. A third value stops the build (`praet_horologiorum_custos.h:83-85`).
+`PRAET_CLOCK_CALLER` where the caller already runs a counter this reads. `PRAET_CLOCK_OWN` where this pins its own timer to a core. A third value stops the build (`praet_horologiorum_custos.h:86-88`).
 
-Unset, it is derived from `PRAET_PLATFORM_HAS_CYCLE_COUNTER` (`praet_horologiorum_custos.h:70-79`). Both arms warn, and each says which way it went and why.
+Unset, it is derived from `PRAET_PLATFORM_HAS_CYCLE_COUNTER` (`praet_horologiorum_custos.h:71-82`). Both arms warn, and each says which way it went and why.
 
 ### PRAET_CLOCK_CORE
 
-The core a pinned timer runs on. Read only where the source is `PRAET_CLOCK_OWN`, and setting it on the other arm stops the build (`praet_horologiorum_custos.h:114-116`).
+The core a pinned timer runs on. Read only where the source is `PRAET_CLOCK_OWN`, and setting it on the other arm stops the build (`praet_horologiorum_custos.h:119-122`).
 
-Default `PRAET_PLATFORM_CLOCK_CORE`, with a warning (`praet_horologiorum_custos.h:104-108`).
+Default `PRAET_PLATFORM_CLOCK_CORE`, with a warning (`praet_horologiorum_custos.h:108-113`).
 
 ## The declaration
 
@@ -104,11 +104,11 @@ A context is declared, and the declaration is the instantiation. It emits initia
 PraetOrdoContext(s_schedule, AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE);
 ```
 
-The second argument answers whether a recovery checksums the word the engine was inside. It is one of two tokens (`praet_ordo.h:80-84`), and both of them report at every build that declares a context (`praet_ordo.h:116-128`). A choice that only spoke up one way would train a reader to take its silence as the safe answer, and neither answer here is safe by default.
+The second argument answers whether a recovery checksums the word the engine was inside. It is one of two tokens (`praet_ordo.h:80-84`), and both of them report at every build that declares a context (`praet_ordo.h:119-130`). A choice that only spoke up one way would train a reader to take its silence as the safe answer, and neither answer here is safe by default.
 
-The token is independent of `PRAET_RECOVERY`. Turning recovery on does not turn the check on, and asking for the check on a build with recovery off fails an assertion naming what to do (`praet_ordo.h:219-221`).
+The token is independent of `PRAET_RECOVERY`. Turning recovery on does not turn the check on, and asking for the check on a build with recovery off fails an assertion naming what to do (`praet_ordo.h:221-224`).
 
-Three things are refused. A misspelled token fails on an unknown type name carrying the token it was given, since the declarator pastes it onto a type that exists for the two tokens and nothing else (`praet_ordo.h:136`). A plain `1` or `TRUE` fails the same way, because those are values and neither names a type. `PRAET_RECOVERY_CRC` as a build knob is refused outright (`praet_praefinitum.h:114-116`).
+Three things are refused. A mistyped token fails on an unknown type name carrying the token it was given, since the declarator pastes it onto a type that exists for the two tokens and nothing else (`praet_ordo.h:138`). A plain `1` or `TRUE` fails the same way, because those are values and neither names a type. `PRAET_RECOVERY_CRC` as a build knob is refused outright (`praet_praefinitum.h:118-121`).
 
 ## The attach surface
 
@@ -121,9 +121,9 @@ PraetOrdoContext(s_frame_dma, AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE);
 PraetChannel(s_frame_dma, 0, frame_pool);
 ```
 
-`PraetChannel` says which pool a channel is over (`praet_ordo.h:389-397`). It emits an enumerator
+`PraetChannel` says which pool a channel is over (`praet_ordo.h:392-400`). It emits an enumerator
 whose name carries the context, the channel and the pool. `PraetAttach` and `PraetSubmit` both name
-that enumerator (`praet_ordo.h:408`), so reaching either with a pool the channel is not over is an
+that enumerator (`praet_ordo.h:411`), so reaching either with a pool the channel is not over is an
 undeclared identifier printing the triple that was written. This is the shape `locus_carcerum` uses,
 where `MMGR_CARCER_BODY` pastes the site and the pool into `prisonsite_##_##name_##_ctx` and a
 cellblock's entries cannot be handed another cellblock's bytes. The channel joins the paste here
@@ -133,7 +133,7 @@ The channel number is pasted, so it is written as a plain literal. `0u` pastes t
 names an enumerator nobody declared.
 
 `PraetChannel` also asserts the channel is below `PRAET_CHANNELS` and that the pool has bytes in it
-(`praet_ordo.h:390-393`). The entry still refuses an out of range channel at run time, and the
+(`praet_ordo.h:393-396`). The entry still refuses an out of range channel at run time, and the
 surface settles it before anything runs.
 
 ```c
@@ -141,7 +141,7 @@ surface settles it before anything runs.
 (void)PraetSubmit(s_frame_dma, 0, frame_pool, 1024u, 512u);
 ```
 
-`PraetAttach` hands the entry `mmgr_pars_storage_##pool_` and `pool_##_bytes` (`praet_ordo.h:365-368`).
+`PraetAttach` hands the entry `mmgr_pars_storage_##pool_` and `pool_##_bytes` (`praet_ordo.h:368-371`).
 Both are emitted by `ParsMemoriaeInternae` and `ParsMemoriaeExternum` and by nothing else, and both
 have internal linkage. A translation unit that did not declare the pool cannot reach either. What
 that tests is not who owns the bytes. It is whether whoever hands them over can answer everything
@@ -155,9 +155,9 @@ the arrangement the module is for. The cost is that two channels may target one 
 reports it, which reads the same as two channels on one peripheral: it can collide, and this library
 does not have the caller's plan.
 
-`praet_ordo_relatio` takes no pointer (`praet_ordo.h:446`). The address came from the pool named
+`praet_ordo_relatio` takes no pointer (`praet_ordo.h:449`). The address came from the pool named
 at the attach. A transfer adds an offset and a length. `PraetSubmit` compares that span against
-`sizeof(mmgr_pars_storage_##pool_)` while compiling (`praet_ordo.h:466-470`). That is what the
+`sizeof(mmgr_pars_storage_##pool_)` while compiling (`praet_ordo.h:469-475`). That is what the
 compiler laid down, and not the count the declaration was handed. A span that does not fit gives a
 negative bitfield width, and the member's name is the diagnostic. Measured at `-O0` and at `-O2`: a
 span that fits reports nothing at either, and one that does not fails at both.
@@ -169,7 +169,7 @@ descriptor field (`praet_tabula_vexillorum.h:324`).
 
 ## The poll
 
-`praet_ordo_poll` is what a caller calls, and the only thing they have to (`praet_ordo.h:685`).
+`praet_ordo_poll` is what a caller calls, and the only thing they have to (`praet_ordo.h:692`).
 Everything a channel does between an attach and a completion happens there: the port is asked how far
 each running channel has got, the watchdog is fed with the answer, an elapsed settle is cleared, a
 channel nothing reported on is marked stalled, and a detach whose transfer has finished completes.
@@ -188,7 +188,7 @@ The settle comparison is lifted out of the walk. One deadline serves the whole c
 answered once and read per channel. Both timer tests put the flag first. A channel that is not
 settling and a channel that is not running each cost a mask and no comparison.
 
-`praet_hw_progress` is the fifth port hook (`praet_ordo.h:304`). The four in
+`praet_hw_progress` is the fifth port hook (`praet_ordo.h:307`). The four in
 `memoriam_praetereo.h` have no way to report how far a transfer has got, and every controller this
 library targets exposes a remaining count.
 
@@ -228,27 +228,27 @@ Every row is a configuration and what it produces. `warning` continues; `error` 
 | Configuration | Result | Where |
 |---|---|---|
 | Every knob declared | builds, silent except the declaration's token | |
-| Any knob unset, no `MMGR_ACCEPT_DEFAULTS` | one warning per unset knob, then one error | `praet_iudex.h:32-36` |
+| Any knob unset, no `MMGR_ACCEPT_DEFAULTS` | one warning per unset knob, then one error | `praet_iudex.h:32-37` |
 | Any knob unset, `MMGR_ACCEPT_DEFAULTS` defined | one warning per unset knob, builds | `praet_iudex.h:30` |
-| `PRAET_RECOVERY` neither 0 nor 1 | error | `praet_praefinitum.h:107-109` |
-| `PRAET_RECOVERY_CRC` defined at all | error | `praet_praefinitum.h:114-116` |
-| `PRAET_CLOCK_SOURCE` neither token | error | `praet_horologiorum_custos.h:83-85` |
-| `PRAET_CLOCK_SOURCE` is `PRAET_CLOCK_OWN`, architecture has no counter | error | `praet_horologiorum_custos.h:90-92` |
-| `PRAET_CLOCK_CORE` set, source is `PRAET_CLOCK_CALLER` | error | `praet_horologiorum_custos.h:114-116` |
-| `PRAET_CLOCK_HZ` not a whole number of megahertz | assert | `praet_horologiorum_custos.h:141-142` |
-| `PRAET_CLOCK_HZ` below one megahertz | assert | `praet_horologiorum_custos.h:144-146` |
+| `PRAET_RECOVERY` neither 0 nor 1 | error | `praet_praefinitum.h:111-113` |
+| `PRAET_RECOVERY_CRC` defined at all | error | `praet_praefinitum.h:118-121` |
+| `PRAET_CLOCK_SOURCE` neither token | error | `praet_horologiorum_custos.h:86-88` |
+| `PRAET_CLOCK_SOURCE` is `PRAET_CLOCK_OWN`, architecture has no counter | error | `praet_horologiorum_custos.h:93-96` |
+| `PRAET_CLOCK_CORE` set, source is `PRAET_CLOCK_CALLER` | error | `praet_horologiorum_custos.h:119-122` |
+| `PRAET_CLOCK_HZ` not a whole number of megahertz | assert | `praet_horologiorum_custos.h:147-148` |
+| `PRAET_CLOCK_HZ` below one megahertz | assert | `praet_horologiorum_custos.h:150-152` |
 | `EMBED_WORD_BITS` wider than the register | assert | `praet_platform_detection.h:312` |
 | More than one architecture family selected, or none | assert | `praet_platform_detection.h:79` |
-| Declaration token misspelled | error naming the token given | `praet_ordo.h:136` |
-| Declaration token is a value, such as `1` | error naming the value given | `praet_ordo.h:146` |
-| `AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE` with `PRAET_RECOVERY` 0 | assert | `praet_ordo.h:219-221` |
-| A channel submitting a span of a pool it is not over | error naming the context, channel and pool | `praet_ordo.h:408` |
-| A channel attached over a pool it is not declared over | error naming the context, channel and pool | `praet_ordo.h:408` |
-| A channel the context never declared with `PraetChannel` | error naming the context, channel and pool | `praet_ordo.h:408` |
-| A span past the pool, by length or by offset | error naming the span | `praet_ordo.h:466-470` |
-| An ordinary array where a pool belongs | error naming the array | `praet_ordo.h:365-368` |
-| `PraetChannel` on a channel past `PRAET_CHANNELS` | assert | `praet_ordo.h:390-391` |
-| `PraetChannel` over a pool with no bytes | assert | `praet_ordo.h:392-393` |
+| Declaration token mistyped | error naming the token given | `praet_ordo.h:138` |
+| Declaration token is a value, such as `1` | error naming the value given | `praet_ordo.h:148` |
+| `AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE` with `PRAET_RECOVERY` 0 | assert | `praet_ordo.h:221-224` |
+| A channel submitting a span of a pool it is not over | error naming the context, channel and pool | `praet_ordo.h:411` |
+| A channel attached over a pool it is not declared over | error naming the context, channel and pool | `praet_ordo.h:411` |
+| A channel the context never declared with `PraetChannel` | error naming the context, channel and pool | `praet_ordo.h:411` |
+| A span past the pool, by length or by offset | error naming the span | `praet_ordo.h:469-475` |
+| An ordinary array where a pool belongs | error naming the array | `praet_ordo.h:368-371` |
+| `PraetChannel` on a channel past `PRAET_CHANNELS` | assert | `praet_ordo.h:393-394` |
+| `PraetChannel` over a pool with no bytes | assert | `praet_ordo.h:395-396` |
 | A region that is neither token | error naming the region written | `praet_tabula_vexillorum.h:257-261` |
 | More region token ids than the descriptor field holds | assert | `praet_tabula_vexillorum.h:324` |
 | Two statuses sharing a token id, or one missing from the list | assert | `praet_tabula_vexillorum.h:289` |
@@ -294,7 +294,7 @@ An ESP32-S3 at its top frequency wants the same knobs with the clock pinned inst
 ```
 
 Xtensa defines a cycle counter, so that arm is available there. It is refused on a host, where the
-same two lines produce the `praet_horologiorum_custos.h:90-92` error alongside the token's line. The S3 build has
+same two lines produce the `praet_horologiorum_custos.h:93-96` error alongside the token's line. The S3 build has
 not been run; what has been checked is that a host refuses it, which is the derivation working.
 
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>

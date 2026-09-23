@@ -14,7 +14,7 @@ citation and describes the tree as it stands on the date at the foot.
 A channel is a `uint8_t` index. `PraetCfg` carries it alongside the peripheral, a loopback flag
 and a completion callback, and `PraetTransferCfg` carries it alongside a buffer pointer and a byte
 count (`src/memoriam_praetereo/memoriam_praetereo.h:74-92`). The count of channels a build has is
-the schedule knob `PRAET_CHANNELS` (`src/memoriam_praetereo/praet_praefinitum.h:49-53`), which the
+the schedule knob `PRAET_CHANNELS` (`src/memoriam_praetereo/praet_praefinitum.h:49-54`), which the
 entries assert against.
 
 Neither config struct ties an index to storage (`src/memoriam_praetereo/memoriam_praetereo.h:74-92`).
@@ -27,16 +27,16 @@ by pool, and the sections below say which parts of this plan it has taken.
 ## The declaration a channel gets instead
 
 **Landed in another shape.** `PraetChannel(context_, channel_, pool_)` says which pool a channel of
-a schedule context is over (`src/memoriam_praetereo/praet_ordo.h:389-397`). It emits an enumerator
+a schedule context is over (`src/memoriam_praetereo/praet_ordo.h:392-400`). It emits an enumerator
 whose name carries the context, the channel and the pool, and `PraetAttach` and `PraetSubmit` both
-name it (`src/memoriam_praetereo/praet_ordo.h:408`). Reaching either with a pool the channel is not
+name it (`src/memoriam_praetereo/praet_ordo.h:411`). Reaching either with a pool the channel is not
 over is an undeclared identifier printing the triple.
 
 Two things differ from the plan. The channel does not claim the pool: a channel writes no records
 into the bytes, and a ring as a DMA destination is the arrangement the module is for.
 `test/integration/test_praet_correctness/praet_configuration.md` has the reasoning. And the count
 stays a knob, `PRAET_CHANNELS`, because a context sizes its per-channel arrays from it
-(`src/memoriam_praetereo/praet_ordo.h:266-283`).
+(`src/memoriam_praetereo/praet_ordo.h:269-286`).
 
 The enumerator is block scoped where `PraetChannel` sits inside a function body, the way the claim
 guard's is (`include/mmgr.h:168-172`). That case compiles and has no must-fail test yet.
@@ -67,7 +67,7 @@ satisfy the parameter.
 
 The schedule has this already. `PraetSubmit` takes an offset and a length into a named pool and
 compares the span against the pool's storage while compiling
-(`src/memoriam_praetereo/praet_ordo.h:466-470`). A span that does not fit fails the build.
+(`src/memoriam_praetereo/praet_ordo.h:469-475`). A span that does not fit fails the build.
 
 For allocated storage the mechanism is `MMGR_ALLOC_SIZE`, which states which argument gives the
 extent of what an entry returns (`include/mmgr.h:112-116`). `locus_carcerum` carries it on both
@@ -92,7 +92,7 @@ cell-level extent is gone. A check build has to turn it off. The shipping build 
 **Planned for the entries, landed on the schedule.** `close` returns nothing
 (`src/memoriam_praetereo/memoriam_praetereo.h:104`, `:137`), and the caller has no way to learn
 whether the channel closed. The schedule carries one flag word per channel
-(`src/memoriam_praetereo/praet_ordo.h:268`), with the four-state core under `PRAET_CORE_MASK` and
+(`src/memoriam_praetereo/praet_ordo.h:271`), with the four-state core under `PRAET_CORE_MASK` and
 the statuses above it (`src/memoriam_praetereo/praet_tabula_vexillorum.h:67`, `:135`). Hardware teardown writes the disable and
 polls the busy bit. A second call is the normal path.
 
@@ -202,7 +202,7 @@ one pool dressed as a ring twice.
 Expected and not yet written: `ParsMemoriaeExternum` where `MMGR_ENABLE_EXTRAM` is off, which fails
 on the name because the macro is declared only under that flag (`include/mmgr.h:210-221`);
 `PraetOrdoContext` where `MMGR_ENABLE_DMA` is off, which fails the same way
-(`src/memoriam_praetereo/memoriam_praetereo.h:23`, `:215`); a pool too small for one transfer; a channel
+(`src/memoriam_praetereo/memoriam_praetereo.h:23`, `:216`); a pool too small for one transfer; a channel
 declared in a header two translation units include, which collides on the token; and a channel over
 a pool from another translation unit, which fails as an undefined reference because the storage is
 static (`include/mmgr.h:195`).
