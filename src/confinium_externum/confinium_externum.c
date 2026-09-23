@@ -14,13 +14,13 @@
  */
 typedef struct
 {
-    size_t size;              /**< Bytes the caller wants to place. */
-    mmgr_bool dma_required;   /**< The bytes must be reachable by DMA. */
-    size_t free_dram;         /**< Bytes still free in internal memory. */
-    size_t free_psram;        /**< Bytes still free in external memory. */
-    size_t psram_threshold;   /**< Size at or above which external memory is tried first. */
-    size_t dram_reserve;      /**< Internal bytes that must remain free after the placement. */
-    PingPong *pp;             /**< Pair the pingpong backends act on [BORROWS]. */
+    size_t size;            /**< Bytes the caller wants to place. */
+    mmgr_bool dma_required; /**< The bytes must be reachable by DMA. */
+    size_t free_dram;       /**< Bytes still free in internal memory. */
+    size_t free_psram;      /**< Bytes still free in external memory. */
+    size_t psram_threshold; /**< Size at or above which external memory is tried first. */
+    size_t dram_reserve;    /**< Internal bytes that must remain free after the placement. */
+    PingPong *pp;           /**< Pair the pingpong backends act on [BORROWS]. */
 } ExterCtx;
 
 /**

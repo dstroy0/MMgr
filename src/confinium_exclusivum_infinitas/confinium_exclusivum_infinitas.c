@@ -65,8 +65,7 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @note An n at the full width is the case a shift cannot express, so it is answered by complement
  *       instead. An n of 0 falls out of the shift, so neither end needs a test of its own.
  */
-#define RING_LOW_MASK(T, n, bits)                                                                     \
-    (((n) >= (bits)) ? (T) ~(T)0 : (T)(((T)(((T)1) << (n))) - (T)1))
+#define RING_LOW_MASK(T, n, bits) (((n) >= (bits)) ? (T) ~(T)0 : (T)(((T)(((T)1) << (n))) - (T)1))
 
 /**
  * @brief Copies two words at offset i of the mover's walking pointers.
@@ -74,8 +73,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @param[in] i First of the two word offsets.
  * @note Named d and s from the enclosing scope, so the cascade below reads as widths alone.
  */
-#define RING_COPY_2(i)                                                                                \
-    d[(i)] = s[(i)];                                                                                  \
+#define RING_COPY_2(i)                                                                                                 \
+    d[(i)] = s[(i)];                                                                                                   \
     d[(i) + 1] = s[(i) + 1]
 
 /**
@@ -83,8 +82,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  *
  * @param[in] i First of the four word offsets.
  */
-#define RING_COPY_4(i)                                                                                \
-    RING_COPY_2(i);                                                                                   \
+#define RING_COPY_4(i)                                                                                                 \
+    RING_COPY_2(i);                                                                                                    \
     RING_COPY_2((i) + 2)
 
 /**
@@ -92,8 +91,8 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  *
  * @param[in] i First of the eight word offsets.
  */
-#define RING_COPY_8(i)                                                                                \
-    RING_COPY_4(i);                                                                                   \
+#define RING_COPY_8(i)                                                                                                 \
+    RING_COPY_4(i);                                                                                                    \
     RING_COPY_4((i) + 4)
 
 /**
@@ -105,12 +104,12 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @note One rung per bit of rem, so each runs at most once and together they carry every tail
  *       exactly, without an access reaching past the bytes the caller gave.
  */
-#define RING_TAIL(T, n)                                                                               \
-    if ((rem & (n)) != 0u)                                                                            \
-    {                                                                                                 \
-        *(T *)db = *(const T *)sb;                                                                    \
-        db += (n);                                                                                    \
-        sb += (n);                                                                                    \
+#define RING_TAIL(T, n)                                                                                                \
+    if ((rem & (n)) != 0u)                                                                                             \
+    {                                                                                                                  \
+        *(T *)db = *(const T *)sb;                                                                                     \
+        db += (n);                                                                                                     \
+        sb += (n);                                                                                                     \
     }
 
 /**

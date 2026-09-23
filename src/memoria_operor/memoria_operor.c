@@ -169,10 +169,10 @@ EMBED_INLINE void memor_move_up(MemorMoveCtx *args)
         args->dst -= 4u * sizeof(embed_word);
         args->src -= 4u * sizeof(embed_word);
 
-        const embed_word word_three = EMBED_CALL(proxim.al_load, ProximusCfg,
-                                                 .at = args->src + (3u * sizeof(embed_word)));
-        const embed_word word_two = EMBED_CALL(proxim.al_load, ProximusCfg,
-                                               .at = args->src + (2u * sizeof(embed_word)));
+        const embed_word word_three =
+            EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (3u * sizeof(embed_word)));
+        const embed_word word_two =
+            EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + (2u * sizeof(embed_word)));
         const embed_word word_one = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src + sizeof(embed_word));
         const embed_word word_zero = EMBED_CALL(proxim.al_load, ProximusCfg, .at = args->src);
 
