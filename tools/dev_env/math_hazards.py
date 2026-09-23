@@ -38,28 +38,27 @@ INLINE = re.compile(r"(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)")
 # every \mathbb{E} and \mathbb{Z} in the tree, which are exactly what \mathbb accepts, and 17 of its
 # 26 hits were formulas that render correctly.
 CHECKS = (
-    (re.compile(r"\\operatorname"),
-     "\\operatorname is missing from some builds, use \\mathrm"),
+    (re.compile(r"\\operatorname"), "\\operatorname is missing from some builds, use \\mathrm"),
     # Only a single uppercase letter is supported. \mathbb{1} and \mathbb{ab} throw.
-    (re.compile(r"\\mathbb\{(?![A-Z]\})[^}]*\}"),
-     "\\mathbb takes one uppercase letter, this argument is something else"),
-    (re.compile(r"\\mathfrak"),
-     "\\mathfrak needs a font that is often not shipped, use \\mathcal"),
-    (re.compile(r"(?<!\\)\*"),
-     "a literal asterisk is read as emphasis, use \\ast"),
+    (
+        re.compile(r"\\mathbb\{(?![A-Z]\})[^}]*\}"),
+        "\\mathbb takes one uppercase letter, this argument is something else",
+    ),
+    (re.compile(r"\\mathfrak"), "\\mathfrak needs a font that is often not shipped, use \\mathcal"),
+    (re.compile(r"(?<!\\)\*"), "a literal asterisk is read as emphasis, use \\ast"),
     # A tag opener is < followed by a letter or a slash. A < with space around it is arithmetic.
-    (re.compile(r"(?<!\\)<[A-Za-z/]"),
-     "< followed by a letter is read as a tag opener, use \\lt"),
+    (re.compile(r"(?<!\\)<[A-Za-z/]"), "< followed by a letter is read as a tag opener, use \\lt"),
     # A > only takes on a meaning at the start of a line, where it opens a blockquote
-    (re.compile(r"^\s*>", re.MULTILINE),
-     "> at the start of a line opens a blockquote, use \\gt or move it"),
+    (re.compile(r"^\s*>", re.MULTILINE), "> at the start of a line opens a blockquote, use \\gt or move it"),
     # KaTeX has no align environment. aligned works inside a display block.
-    (re.compile(r"\\begin\{(align|eqnarray|gather)\}"),
-     "that environment is not in KaTeX, use aligned inside the display block"),
+    (
+        re.compile(r"\\begin\{(align|eqnarray|gather)\}"),
+        "that environment is not in KaTeX, use aligned inside the display block",
+    ),
     # A row separator outside an environment has nothing to separate
-    (re.compile(r"\\\\(?!\s*\\end)"),
-     "a \\\\ row break needs an environment such as aligned around it"),
+    (re.compile(r"\\\\(?!\s*\\end)"), "a \\\\ row break needs an environment such as aligned around it"),
 )
+
 
 def odd_inline_dollars(line):
     """Whether a line leaves an inline formula unclosed.
@@ -72,10 +71,7 @@ def odd_inline_dollars(line):
 
 
 # Checks that read a whole line rather than one math span
-LINE_CHECKS = (
-    (odd_inline_dollars,
-     "an odd number of inline $ on the line. A formula is left unclosed"),
-)
+LINE_CHECKS = ((odd_inline_dollars, "an odd number of inline $ on the line. A formula is left unclosed"),)
 
 
 def unescaped_braces(text):
@@ -111,8 +107,7 @@ def main():
                 where = line_of(whole, span.start())
                 opens, closes = unescaped_braces(body)
                 if opens != closes:
-                    found.append((where, kind, "braces %d open %d close" % (opens, closes),
-                                  body.strip()[:70]))
+                    found.append((where, kind, "braces %d open %d close" % (opens, closes), body.strip()[:70]))
                 for check, complaint in CHECKS:
                     hit = check.search(body)
                     if not hit:
@@ -136,8 +131,7 @@ def main():
             out.write("      %s\n" % snippet)
             total += 1
 
-    out.write("\n  %d hazard(s). A hit is a hazard and not a proven failure: which of these\n"
-              % total)
+    out.write("\n  %d hazard(s). A hit is a hazard and not a proven failure: which of these\n" % total)
     out.write("  break depends on the renderer the reader happens to use\n")
     out.flush()
     return 0
