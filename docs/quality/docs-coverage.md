@@ -70,9 +70,12 @@ Both are in the comment rules in `CONTRIBUTING.md`.
 
 ## Spelling
 
-`cspell` runs over `README.md` and `docs/**`, not over `src/`. This library's vocabulary is nineteen
-Latin module names and a wall of SWAR terminology; a spellchecker pointed at the C comments would
-spend its life being told that `memoria_anularis` is a word.
+There is no spell-check gate. No workflow under `.github/workflows/` runs one, `package.json` pulls
+in prettier alone, and the tree carries no spellchecker config. The prose is checked by review.
 
-The project dictionary is a flat `words` list in `cspell.json` rather than a separate dictionary
-file, so there is one place to look and a diff shows exactly which term a change introduced.
+If one is added it belongs over `README.md` and `docs/**`, not over `src/`. This library's
+vocabulary is nineteen Latin module names and a wall of SWAR terminology, and a spellchecker pointed
+at the C comments would spend its life being told that `memoria_anularis` is a word.
+
+A flat `words` list inside the one config file beats a separate dictionary file, so there is one
+place to look and a diff shows exactly which term a change introduced.

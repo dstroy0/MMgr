@@ -68,10 +68,11 @@ Three, one per language, each owning its own files:
 All three wrap at **120 columns**. A Python tool and the C it rewrites line up in a side-by-side
 diff.
 
-clang-format is pinned to 20.1.7 rather than whatever the runner ships: `.clang-format` uses keys
-that only exist from version 20, and an older one failed on `unknown key` rather than on any actual
-formatting. Pinning also means CI and a developer's machine agree about what "formatted" means,
-which an unpinned formatter cannot promise across versions.
+clang-format is pinned in the workflow rather than taken from whatever the runner ships:
+`.clang-format` uses keys that only exist from version 20 — `AlignFunctionDeclarations` among them —
+and an older one fails on `unknown key` rather than on any actual formatting. Pinning also means CI
+and a developer's machine agree about what "formatted" means, which an unpinned formatter cannot
+promise across versions.
 
 **The job checks and never rewrites.** A formatter that rewrites on CI produces commits nobody
 reviewed and races the author's own push. Each step reports the exact command that fixes it locally,
@@ -80,8 +81,9 @@ steps tell you everything in one run.
 
 ## Docs
 
-The documentation has its own gates: Doxygen's warning stream for undocumented public symbols, and
-cspell over the prose. See @ref qa_docs_coverage.
+The documentation has one gate: Doxygen's warning stream for undocumented public symbols. Spelling
+is not gated at all; @ref qa_docs_coverage says what gating it would take and why it would stop at
+the prose.
 
 ## What none of this catches
 
