@@ -62,7 +62,6 @@ roots = [
     "CONTRIBUTING.md",
     "SECURITY.md",
     "dma-plan.md",
-    "writing-bans.md",
     "docs",
 ]
 

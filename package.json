@@ -2,7 +2,7 @@
   "name": "mmgr-ci-tooling",
   "version": "v0.0.0",
   "private": true,
-  "description": "Dev/CI tooling manifest for MMgr. Node is here for prettier and cspell only; the library itself has no JavaScript.",
+  "description": "Dev/CI tooling manifest for MMgr. Node is here for prettier only; the library itself has no JavaScript.",
   "license": "AGPL-3.0-or-later",
   "homepage": "https://github.com/dstroy0/MMgr",
   "repository": {

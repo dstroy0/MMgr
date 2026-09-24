@@ -1,5 +1,7 @@
-# Black is the Python formatter for this repo. It formats tools/dev_env only - the library itself is
-# C, and nothing under src/ or test/ is Python.
+# Black is the Python formatter for this repo. Everything it formats is a development tool: src/ is
+# C with no Python in it at all, and the only Python outside tools/dev_env is the three scripts that
+# drive the suites - test/harness.py and the two under test/performance_benching. Those are in
+# scope too. No .py in this tree is compiled into anything MMgr ships.
 #
 # line-length matches ColumnLimit in .clang-format and max_line_length in .editorconfig, so C and
 # Python wrap at the same width and a side-by-side diff of a tool and the code it rewrites lines up.
