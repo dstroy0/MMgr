@@ -72,8 +72,14 @@ roots = [
 # [fetch] sets is deliberately not set, so MMgr fetches nothing from the toolkit yet. Naming a set
 # here is what makes the toolkit upstream of these files.
 #
-# The maintenance set is not ready for MMgr to fetch. strip_comments.py, move_code.py and nsconv.py
-# were broken when this was drafted and have since been fixed upstream, but readclean.py there is a
-# different tool wearing the same name: it shares no API at all with the shape-aware C blinder in
-# tools/dev_env, and fetching it would orphan readclean_test.py, which passes twenty-five assertions
-# against the local one. sizes.py and dedup.py are worth fetching once they are promoted.
+# The maintenance set - code/code_maint/ in the toolkit - is not ready for MMgr to fetch whole.
+# strip_comments.py, move_code.py and nsconv.py were broken when this was drafted and all three are
+# fixed upstream now, the first two promoted and nsconv.py not; the toolkit's own promotion.py says
+# which is which. On one file MMgr is ahead: move_code.py upstream still prints the truncated
+# `{b1}-` in its overlap message, which the local copy fixes. readclean.py there is not a different
+# tool, as this comment used to claim - it is the same one promoted, with the same code/blind/claims
+# modes and the same --keep. What it trades away is the shape: it reads py/c/r/m and walks
+# directories, drops --legend, and knows nothing of the <X>Ns / <X>Cfg / <X>Ctx grammar the local
+# copy blinds around and readclean_test.py pins with twenty-six checks. Fetching it would swap a
+# tested tool for an untested one. sizes.py sits in measure/ rather than the maintenance set; it and
+# dedup.py are worth fetching once they are promoted.
