@@ -240,7 +240,9 @@ def defender_state():
     if sys.platform == "win32":
         r = subprocess.run(
             [
-                "powershell", "-NoProfile", "-Command",
+                "powershell",
+                "-NoProfile",
+                "-Command",
                 "[pscustomobject]@{rt=(Get-MpComputerStatus).RealTimeProtectionEnabled;"
                 " ex=@((Get-MpPreference).ExclusionPath)} | ConvertTo-Json -Compress",
             ],
@@ -381,6 +383,7 @@ def tree_path(tree, fresh=False):
     # one, so the container settles at one more than this file says it keeps.
     rotate_trees(tree, BUILD_KEEP - 1)
     return os.path.join(BUILD_CONTAINER, name)
+
 
 # A five-way split. A suite is a directory holding exactly one .c
 # with cases, and its generated runner sits beside it.
@@ -609,8 +612,12 @@ def undriven_deps(path):
 # pin a timer to, so the clock is the caller's. The two DMA trees, the target probe and the remote
 # columns all start from these, and each replaces a knob by name where it asks a different question.
 PRAET_KNOBS = (
-    "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u", "PRAET_KEEPALIVE_MICROS=250u",
-    "PRAET_RECOVERY=1", "PRAET_CLOCK_HZ=240000000u", "PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER",
+    "PRAET_CHANNELS=8u",
+    "PRAET_SETTLE_MICROS=40u",
+    "PRAET_KEEPALIVE_MICROS=250u",
+    "PRAET_RECOVERY=1",
+    "PRAET_CLOCK_HZ=240000000u",
+    "PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER",
 )
 
 
@@ -865,9 +872,7 @@ def bench_names():
     if not os.path.isdir(BENCH_ROOT):
         return []
     return sorted(
-        name
-        for name in os.listdir(BENCH_ROOT)
-        if os.path.isfile(os.path.join(BENCH_ROOT, name, "CMakeLists.txt"))
+        name for name in os.listdir(BENCH_ROOT) if os.path.isfile(os.path.join(BENCH_ROOT, name, "CMakeLists.txt"))
     )
 
 
@@ -928,8 +933,10 @@ def cmd_device_flash(a):
     """Flash the image a previous device build produced."""
     tree = tree_path("%s-%s" % (a.bench, a.target))
     if not os.path.isfile(os.path.join(tree, "flash_args")):
-        print("no built image for %s at %s - run: harness.py device build %s --target %s"
-              % (a.bench, os.path.relpath(tree, ROOT).replace("\\", "/"), a.bench, a.target))
+        print(
+            "no built image for %s at %s - run: harness.py device build %s --target %s"
+            % (a.bench, os.path.relpath(tree, ROOT).replace("\\", "/"), a.bench, a.target)
+        )
         return 1
 
     body = IDF_PREAMBLE.format(idf_path=IDF_PATH, idf_tools=IDF_TOOLS_PATH, idf_python=IDF_PYTHON)
@@ -1103,9 +1110,7 @@ def cmd_stray(a):
     for base, dirs, files in os.walk(ROOT):
         # Never descend into .git, and never into the container: the container is where every one of
         # these belongs, so naming its contents would report the rule working as if it were broken.
-        dirs[:] = [
-            d for d in dirs if d != ".git" and os.path.abspath(os.path.join(base, d)) != container
-        ]
+        dirs[:] = [d for d in dirs if d != ".git" and os.path.abspath(os.path.join(base, d)) != container]
         for name in list(dirs):
             for pattern, why in STRAY_DIRS:
                 if fnmatch.fnmatch(name, pattern):
@@ -1191,9 +1196,22 @@ def cmd_coverage(a):
     # written down, not silently dropped from the denominator.
     r = run(
         [
-            sys.executable, "-m", "gcovr", "--root", ".", "--filter", "src/",
-            "--print-summary", "--txt-metric", "branch",
-            "--csv", "-o", out, "--json", js, tree_path(tree),
+            sys.executable,
+            "-m",
+            "gcovr",
+            "--root",
+            ".",
+            "--filter",
+            "src/",
+            "--print-summary",
+            "--txt-metric",
+            "branch",
+            "--csv",
+            "-o",
+            out,
+            "--json",
+            js,
+            tree_path(tree),
         ]
     )
     if r.returncode != 0:
@@ -1293,10 +1311,7 @@ def report_gaps(js):
     for _gap, path, lines, branches, ul, ub in files:
         lc = sum(1 for c in lines.values() if c > 0)
         bc = sum(1 for c in branches.values() if c > 0)
-        print(
-            "\n=== %s  %d/%d lines, %d/%d branches"
-            % (path, lc, len(lines), bc, len(branches))
-        )
+        print("\n=== %s  %d/%d lines, %d/%d branches" % (path, lc, len(lines), bc, len(branches)))
         for lo, hi in line_runs(ul):
             if lo == hi:
                 print("  line   %s:%d | %s" % (path, lo, src_line(path, lo)))
@@ -1506,18 +1521,22 @@ def cmd_generated(a):
 ESP_TOOLS = os.environ.get("MMGR_ESP_TOOLS", r"C:\Espressif\tools")
 XT_14 = os.path.join(ESP_TOOLS, "xtensa-esp-elf", "esp-14.2.0_20260121", "xtensa-esp-elf", "bin")
 XT_15 = os.path.join(ESP_TOOLS, "xtensa-esp-elf", "esp-15.2.0_20251204", "xtensa-esp-elf", "bin")
-RV_14 = os.path.join(ESP_TOOLS, "riscv32-esp-elf", "esp-14.2.0_20260121", "riscv32-esp-elf", "bin",
-                     "riscv32-esp-elf-gcc.exe")
-RV_15 = os.path.join(ESP_TOOLS, "riscv32-esp-elf", "esp-15.2.0_20251204", "riscv32-esp-elf", "bin",
-                     "riscv32-esp-elf-gcc.exe")
+RV_14 = os.path.join(
+    ESP_TOOLS, "riscv32-esp-elf", "esp-14.2.0_20260121", "riscv32-esp-elf", "bin", "riscv32-esp-elf-gcc.exe"
+)
+RV_15 = os.path.join(
+    ESP_TOOLS, "riscv32-esp-elf", "esp-15.2.0_20251204", "riscv32-esp-elf", "bin", "riscv32-esp-elf-gcc.exe"
+)
 
 # Current Arm GNU. PlatformIO ships GCC 5.4.1 from 2016, which predates ARMv8-M and cannot build a
 # Cortex-M23 or M33 at all. ARM_OLD keeps two rows anyway: a header this full of preprocessor tests
 # is exactly what compiles on one compiler generation and not another.
-ARM = os.environ.get("MMGR_ARM_GCC",
-                     r"C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.2 rel1\bin\arm-none-eabi-gcc.exe")
-ARM_OLD = os.environ.get("MMGR_ARM_GCC_OLD",
-                         os.path.expanduser(r"~\.platformio\packages\toolchain-gccarmnoneeabi\bin\arm-none-eabi-gcc.exe"))
+ARM = os.environ.get(
+    "MMGR_ARM_GCC", r"C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.2 rel1\bin\arm-none-eabi-gcc.exe"
+)
+ARM_OLD = os.environ.get(
+    "MMGR_ARM_GCC_OLD", os.path.expanduser(r"~\.platformio\packages\toolchain-gccarmnoneeabi\bin\arm-none-eabi-gcc.exe")
+)
 
 # A compiler targeting the 64 bit state, which arm-none-eabi is not. The wsl: prefix routes the row
 # through WSL and translates every path on the way.
@@ -1536,9 +1555,33 @@ TARGETS = (
     ("esp32s3   gcc15", os.path.join(XT_15, "xtensa-esp32s3-elf-gcc.exe"), [], (0, 0, 1, 32, 1), CLOCK_OWN, True, None),
     ("esp32s2   gcc14", os.path.join(XT_14, "xtensa-esp32s2-elf-gcc.exe"), [], (0, 0, 1, 32, 1), CLOCK_OWN, True, None),
     ("esp32     gcc14", os.path.join(XT_14, "xtensa-esp32-elf-gcc.exe"), [], (0, 0, 1, 32, 1), CLOCK_OWN, True, None),
-    ("esp32c6   gcc14", RV_14, ["-march=rv32imac_zicsr_zifencei", "-mabi=ilp32"], (0, 1, 0, 32, 1), CLOCK_OWN, True, None),
-    ("esp32c6   gcc15", RV_15, ["-march=rv32imac_zicsr_zifencei", "-mabi=ilp32"], (0, 1, 0, 32, 1), CLOCK_OWN, True, None),
-    ("esp32p4   gcc14", RV_14, ["-march=rv32imafc_zicsr_zifencei", "-mabi=ilp32f"], (0, 1, 0, 32, 1), CLOCK_OWN, True, None),
+    (
+        "esp32c6   gcc14",
+        RV_14,
+        ["-march=rv32imac_zicsr_zifencei", "-mabi=ilp32"],
+        (0, 1, 0, 32, 1),
+        CLOCK_OWN,
+        True,
+        None,
+    ),
+    (
+        "esp32c6   gcc15",
+        RV_15,
+        ["-march=rv32imac_zicsr_zifencei", "-mabi=ilp32"],
+        (0, 1, 0, 32, 1),
+        CLOCK_OWN,
+        True,
+        None,
+    ),
+    (
+        "esp32p4   gcc14",
+        RV_14,
+        ["-march=rv32imafc_zicsr_zifencei", "-mabi=ilp32f"],
+        (0, 1, 0, 32, 1),
+        CLOCK_OWN,
+        True,
+        None,
+    ),
     # Teensy 4.1 is an i.MX RT1062: Cortex-M7, ARMv7E-M, carries a DWT.
     ("teensy41  m7", ARM, ["-mcpu=cortex-m7", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
     ("atsamd51  m4", ARM, ["-mcpu=cortex-m4", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
@@ -1554,15 +1597,23 @@ TARGETS = (
     ("atsamd51  m4 gcc5", ARM_OLD, ["-mcpu=cortex-m4", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
     # ARMv6-M has no DWT. The derivation has to see that, and pinning a timer there has to be refused.
     ("cortex-m0+  v6m", ARM, ["-mcpu=cortex-m0plus", "-mthumb"], (1, 0, 0, 32, 0), CLOCK_CALLER, True, None),
-    ("cortex-m0+  pinned REFUSAL", ARM, ["-mcpu=cortex-m0plus", "-mthumb"], (1, 0, 0, 32, 0), CLOCK_OWN, False,
-     "defines no cycle counter"),
+    (
+        "cortex-m0+  pinned REFUSAL",
+        ARM,
+        ["-mcpu=cortex-m0plus", "-mthumb"],
+        (1, 0, 0, 32, 0),
+        CLOCK_OWN,
+        False,
+        "defines no cycle counter",
+    ),
     ("host      x86-64", HOST_GCC, [], (0, 0, 0, 64, 0), CLOCK_CALLER, True, None),
 )
 
 # Every knob the probe reads that is not this table's subject. A row only fails for its own reason.
 # The clock source is each row's own, so it is left out here.
 TARGET_KNOBS = ["-DMMGR_ENABLE_DMA=1", "-DMMGR_ENABLE_EXTRAM=0"] + [
-    "-D" + knob for knob in PRAET_KNOBS if not knob.startswith("PRAET_CLOCK_SOURCE=")]
+    "-D" + knob for knob in PRAET_KNOBS if not knob.startswith("PRAET_CLOCK_SOURCE=")
+]
 
 PRAET_SUITE = os.path.join(INTEGRATION, "test_praet_correctness")
 
@@ -1606,10 +1657,18 @@ def cmd_targets(a):
         cmd = ["wsl", "-e", str(compiler).split(":", 1)[1]] if in_wsl else [compiler]
         cmd += ["-std=c11", "-O2", "-Wall", "-Wextra", "-Wconversion", "-Wsign-conversion"]
         cmd += list(arch) + list(TARGET_KNOBS) + list(clock)
-        cmd += ["-DEXPECT_ARM=%d" % arm, "-DEXPECT_RISCV=%d" % riscv, "-DEXPECT_XTENSA=%d" % xtensa,
-                "-DEXPECT_XLEN=%d" % xlen, "-DEXPECT_COUNTER=%d" % counter]
-        cmd += ["-I" + where(os.path.join(ROOT, "src")), "-I" + where(os.path.join(ROOT, "include")),
-                "-I" + where(os.path.join(ROOT, "deps", "embedded_types", "include"))]
+        cmd += [
+            "-DEXPECT_ARM=%d" % arm,
+            "-DEXPECT_RISCV=%d" % riscv,
+            "-DEXPECT_XTENSA=%d" % xtensa,
+            "-DEXPECT_XLEN=%d" % xlen,
+            "-DEXPECT_COUNTER=%d" % counter,
+        ]
+        cmd += [
+            "-I" + where(os.path.join(ROOT, "src")),
+            "-I" + where(os.path.join(ROOT, "include")),
+            "-I" + where(os.path.join(ROOT, "deps", "embedded_types", "include")),
+        ]
         cmd += ["-c", where(probe), "-o", where(os.path.join(scratch, "probe_%s.o" % name.split()[0]))]
 
         done = subprocess.run(cmd, capture_output=True, text=True)
@@ -1619,16 +1678,21 @@ def cmd_targets(a):
         family = "arm" if arm else ("riscv" if riscv else ("xtensa" if xtensa else "host"))
         problems = []
         if built != must_build:
-            problems.append("expected %s, it %s" % ("a build" if must_build else "a refusal",
-                                                    "built" if built else "failed"))
+            problems.append(
+                "expected %s, it %s" % ("a build" if must_build else "a refusal", "built" if built else "failed")
+            )
             problems += ["  " + ln.strip() for ln in out.splitlines() if "error" in ln.lower()][:3]
         if wanted and wanted not in out:
             problems.append("the refusal never said %r" % wanted)
         # The boundary word token announces itself on every build that declares a context. Anything
         # else is a diagnostic nobody asked for.
-        noise = [ln for ln in out.splitlines()
-                 if ("warning" in ln.lower() or "error" in ln.lower())
-                 and "AD_VERBI_CONFINIUM" not in ln and "deprecated" not in ln.lower()]
+        noise = [
+            ln
+            for ln in out.splitlines()
+            if ("warning" in ln.lower() or "error" in ln.lower())
+            and "AD_VERBI_CONFINIUM" not in ln
+            and "deprecated" not in ln.lower()
+        ]
         if must_build and noise:
             problems.append("%d diagnostic(s) beyond the token" % len(noise))
             problems += ["  " + ln.strip() for ln in noise[:3]]
@@ -1691,10 +1755,17 @@ def cmd_remote(a):
     def over_there(command):
         """One command on the far end."""
         return subprocess.run(
-            ["wsl", "-e", "bash", "-lc",
-             'sshpass -p "$MMGR_REMOTE_PW" ssh -o StrictHostKeyChecking=accept-new %s %s'
-             % (target, json.dumps(command))],
-            capture_output=True, text=True)
+            [
+                "wsl",
+                "-e",
+                "bash",
+                "-lc",
+                'sshpass -p "$MMGR_REMOTE_PW" ssh -o StrictHostKeyChecking=accept-new %s %s'
+                % (target, json.dumps(command)),
+            ],
+            capture_output=True,
+            text=True,
+        )
 
     made = over_there("mkdir -p %s/{suite,src,include,embed,unity}" % a.dir)
     if made.returncode != 0:
@@ -1704,15 +1775,25 @@ def cmd_remote(a):
 
     # src and include go over whole. The suite reaches other modules' headers through them, and a
     # list of which would be a second copy of that fact waiting to drift.
-    for source, into in ((PRAET_SUITE, "suite"), (os.path.join(ROOT, "src"), "src"),
-                         (os.path.join(ROOT, "include"), "include"),
-                         (os.path.join(ROOT, "deps", "embedded_types", "include"), "embed"),
-                         (unity, "unity")):
+    for source, into in (
+        (PRAET_SUITE, "suite"),
+        (os.path.join(ROOT, "src"), "src"),
+        (os.path.join(ROOT, "include"), "include"),
+        (os.path.join(ROOT, "deps", "embedded_types", "include"), "embed"),
+        (unity, "unity"),
+    ):
         sent = subprocess.run(
-            ["wsl", "-e", "bash", "-lc",
-             'sshpass -p "$MMGR_REMOTE_PW" rsync -a -e "ssh -o StrictHostKeyChecking=accept-new" %s/ %s:%s/%s/'
-             % (to_wsl(source), target, a.dir, into)],
-            capture_output=True, text=True)
+            [
+                "wsl",
+                "-e",
+                "bash",
+                "-lc",
+                'sshpass -p "$MMGR_REMOTE_PW" rsync -a -e "ssh -o StrictHostKeyChecking=accept-new" %s/ %s:%s/%s/'
+                % (to_wsl(source), target, a.dir, into),
+            ],
+            capture_output=True,
+            text=True,
+        )
         if sent.returncode != 0:
             print("rsync of %s failed:" % into)
             print((sent.stdout + sent.stderr).strip()[:500])
@@ -1776,10 +1857,34 @@ VECTORS_DIR = os.path.join(ROOT, "test", "vectors")
 
 # Lengths where SHA-256 padding decides something: the block, one short of the length field, the
 # rollover into a second padding block, and a few multiples.
-VECTOR_EDGE_LENGTHS = (0, 1, 2, 3, 54, 55, 56, 57, 63, 64, 65, 111, 112, 113, 119, 120, 127, 128,
-                       129, 191, 192, 255, 256, 1000)
+VECTOR_EDGE_LENGTHS = (
+    0,
+    1,
+    2,
+    3,
+    54,
+    55,
+    56,
+    57,
+    63,
+    64,
+    65,
+    111,
+    112,
+    113,
+    119,
+    120,
+    127,
+    128,
+    129,
+    191,
+    192,
+    255,
+    256,
+    1000,
+)
 
-SHA_HELPER = r'''
+SHA_HELPER = r"""
 /* Modes: digest (hex per line, "." is empty), monte (seed, 100 checkpoints),
  * hmac (key<space>msg per line), splits (hex per line, every split verified internally). */
 #include <stdio.h>
@@ -1927,7 +2032,7 @@ int main(int argc, char **argv)
     }
     return 0;
 }
-'''
+"""
 
 
 def vectors_helper():
@@ -1939,12 +2044,25 @@ def vectors_helper():
         fh.write(SHA_HELPER)
 
     exe = os.path.join(scratch, "sha_helper.exe")
-    built = run([
-        HOST_GCC, "-std=c11", "-O2", "-Wall", "-Wextra", "-Wconversion", "-Wsign-conversion",
-        "-I" + os.path.join(ROOT, "test", "support"), "-I" + os.path.join(ROOT, "include"),
-        "-I" + os.path.join(ROOT, "src"), "-I" + os.path.join(ROOT, "deps", "embedded_types", "include"),
-        source, os.path.join(ROOT, "test", "support", "mmgr_sha256.c"), "-o", exe,
-    ])
+    built = run(
+        [
+            HOST_GCC,
+            "-std=c11",
+            "-O2",
+            "-Wall",
+            "-Wextra",
+            "-Wconversion",
+            "-Wsign-conversion",
+            "-I" + os.path.join(ROOT, "test", "support"),
+            "-I" + os.path.join(ROOT, "include"),
+            "-I" + os.path.join(ROOT, "src"),
+            "-I" + os.path.join(ROOT, "deps", "embedded_types", "include"),
+            source,
+            os.path.join(ROOT, "test", "support", "mmgr_sha256.c"),
+            "-o",
+            exe,
+        ]
+    )
     if built.returncode != 0:
         sys.stderr.write(built.stdout + built.stderr)
         return None
@@ -2077,8 +2195,7 @@ def cmd_vectors(a):
             truncated += 1
         if have[:keep].lower() != case["Mac"].lower():
             wrong += 1
-    print("%-22s %4d vectors (%d truncated tags), %d wrong"
-          % ("CAVP HMAC", len(hmac_cases), truncated, wrong))
+    print("%-22s %4d vectors (%d truncated tags), %d wrong" % ("CAVP HMAC", len(hmac_cases), truncated, wrong))
     bad += wrong
 
     with open(os.path.join(VECTORS_DIR, "wycheproof_hmac_sha256.json"), encoding="utf-8") as fh:
@@ -2093,13 +2210,16 @@ def cmd_vectors(a):
         if (case["result"] == "valid") != matched:
             wrong += 1
     valid = sum(1 for c in cases if c["result"] == "valid")
-    print("%-22s %4d vectors (%d valid, %d modified), %d wrong"
-          % ("Wycheproof HMAC", len(cases), valid, len(cases) - valid, wrong))
+    print(
+        "%-22s %4d vectors (%d valid, %d modified), %d wrong"
+        % ("Wycheproof HMAC", len(cases), valid, len(cases) - valid, wrong)
+    )
     bad += wrong
 
     # Every cut of a message must reach one digest. The published tables hash in a single call and
     # cannot reach the streaming path at all, so this is the only thing testing it.
     import random  # noqa: PLC0415  only this command needs it
+
     rng = random.Random(20260901)
     bodies = []
     for length in VECTOR_EDGE_LENGTHS:
@@ -2125,8 +2245,11 @@ def cmd_vectors(a):
     # volume is bounded by patience rather than by what anyone published.
     if a.soak > 0:
         checkpoints = a.soak
-        got = [ln.strip() for ln in
-               run([exe, "monte", str(checkpoints)], quiet=True, stdin=seed + "\n").stdout.splitlines() if ln.strip()]
+        got = [
+            ln.strip()
+            for ln in run([exe, "monte", str(checkpoints)], quiet=True, stdin=seed + "\n").stdout.splitlines()
+            if ln.strip()
+        ]
 
         reference = []
         md = bytes.fromhex(seed)
@@ -2142,11 +2265,16 @@ def cmd_vectors(a):
         diverged = next((i for i, (r, g) in enumerate(zip(reference, got)) if r.lower() != g.lower()), None)
         wrong = 0 if diverged is None else 1
 
-        print("%-22s %4d checkpoints, %d anchored to CAVP, %s"
-              % ("Monte soak", len(got), anchored,
-                 "no divergence" if diverged is None else "DIVERGED at checkpoint %d" % diverged))
-        print("%-22s %d SHA-256 calls over %d chained rounds"
-              % ("", checkpoints * 1000, checkpoints * 1000))
+        print(
+            "%-22s %4d checkpoints, %d anchored to CAVP, %s"
+            % (
+                "Monte soak",
+                len(got),
+                anchored,
+                "no divergence" if diverged is None else "DIVERGED at checkpoint %d" % diverged,
+            )
+        )
+        print("%-22s %d SHA-256 calls over %d chained rounds" % ("", checkpoints * 1000, checkpoints * 1000))
         bad += wrong
 
     print()
@@ -2254,8 +2382,13 @@ def main():
     p.set_defaults(fn=cmd_generated)
 
     p = sub.add_parser("vectors", help="run every published SHA-256 vector, offline, plus the streaming invariants")
-    p.add_argument("--soak", type=int, default=0, metavar="N",
-                   help="carry the CAVP Monte chain to N checkpoints, past where NIST stops")
+    p.add_argument(
+        "--soak",
+        type=int,
+        default=0,
+        metavar="N",
+        help="carry the CAVP Monte chain to N checkpoints, past where NIST stops",
+    )
     p.set_defaults(fn=cmd_vectors)
 
     p = sub.add_parser("targets", help="compile the module for every part and check its derivation")
