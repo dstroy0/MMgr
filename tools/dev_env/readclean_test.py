@@ -91,10 +91,32 @@ name = h.split("extern ")[1].split("Vars")[0]
 check("the header and the source agree on the name", ("%sV." % name) in c)
 
 print()
+print("the shape this tree is written in today: an Ns table, its Cfg, and the .c-side Ctx")
+b = blind(
+    "typedef struct { embed_u64 bits; } FractioCfg;\n"
+    "typedef struct { embed_u64 (*sign)(const FractioCfg *args); } FractioNs;\n"
+    "EMBED_TABLE_LAYOUT(FractioNs, sign);\n"
+    "EMBED_TABLE_STORAGE FractioNs fract EMBED_UNUSED = {.sign = mmgr_fract_sign};\n"
+)
+check("the name fractio is gone entirely", "Fractio" not in b and "fract" not in b.replace("EMBED_", ""))
+# The Cfg is the argument struct an entry takes. Blinding it to T7 loses the one thing the reader
+# is being asked to check: that this table's entries all take THIS module's arguments.
+stem = b.split("Cfg;")[0].split()[-1]
+check("Ns and Cfg share one stem", ("%sNs" % stem) in b and ("%sCfg" % stem) in b)
+check("the Cfg still reads as an argument struct", ("const %sCfg *" % stem) in b)
+
+print()
 print("what is not this project's to rename")
 b = blind("size_t n = strlen(s); memcpy(dst, src, n);\n")
 check("a standard function keeps its name", "strlen(" in b and "memcpy(" in b)
 check("a standard type keeps its name", "size_t " in b)
+# EMBED is the embedded_types dependency's vocabulary, fetched under deps/. It is not a name this
+# project chose, and blinding it takes away grammar rather than a claim.
+b = blind("EMBED_INLINE embed_bool f(embed_word w) { return EMBED_TRUE; }\nEMBED_TABLE_LAYOUT(T, a);\n")
+check(
+    "the dependency's vocabulary survives",
+    all(n in b for n in ("EMBED_INLINE", "embed_bool", "embed_word", "EMBED_TRUE", "EMBED_TABLE_LAYOUT")),
+)
 
 print()
 print("FAILURES: %d" % FAIL)

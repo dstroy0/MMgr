@@ -15,18 +15,25 @@ clear something. With those names replaced, only what the statements actually do
 that then looks wrong IS wrong, rather than being a mismatch the reader was primed not to see.
 
 WHAT BLIND KEEPS, AND WHY IT IS NOT A GENERIC RENAMER. This tree has one shape, and the shape is
-grammar rather than vocabulary: an entry is a function-pointer member of an `<X>Ns` table, operands
-are members of `<X>V`, state is carved out of `MMGR_<X>_BORROW` at `<X>_OFF_*` offsets under a
-static_assert. Blinding that away would leave text no one can check conformity against. So the
-suffixes and the fixed vocabulary survive and only the IDENTITY moves:
+grammar rather than vocabulary: an entry is a function-pointer member of an `<X>Ns` table, its
+operands arrive as a const `<X>Cfg` declared beside that table, the .c mirrors that Cfg as a
+non-const `<X>Ctx`, and EMBED_TABLE_LAYOUT asserts the table's member order. Blinding that away
+would leave text no one can check conformity against. So the suffixes and the fixed vocabulary
+survive and only the IDENTITY moves:
 
-    ConfiniumNs ConfiniumVars ConfiniumV ConfiniumCtx  ->  X1Ns X1Vars X1V X1Ctx
-    MMGR_CONFIN_BORROW CONFIN_OFF_W                    ->  MMGR_X1_BORROW X1_OFF_A
-    mmgr_persistent_buf_alloc                          ->  mmgr_fn3
-    mmgr_word, uint8_t, size_t, static_assert, atomic_load  ->  unchanged
+    FractioNs FractioCfg FractioCtx  ->  X1Ns X1Cfg X1Ctx
+    MMGR_FRACTIO_H                   ->  MMGR_X1_H
+    mmgr_fract_sign                  ->  mmgr_fn3
+    embed_u64, uint8_t, size_t, EMBED_TABLE_LAYOUT, EMBED_INLINE  ->  unchanged
 
-What is left reads as "an entry, taking the borrow, casting a region at an asserted offset" with no
-opinion about whether that region is a hash state or a parser. That is the question worth asking.
+Two older spellings are still read, though nothing in this tree writes them now: the `<X>V` object
+and its `<X>Vars` type, and the region carved out of `MMGR_<X>_BORROW` at `<X>_OFF_*` offsets. A
+module written either way blinds the same, so a fork of this tool keeps working on a tree that has
+not moved yet.
+
+What is left reads as "an entry on a table of asserted member order, reading operands out of this
+module's own argument struct" with no opinion about whether those operands are a hash state or a
+parser. That is the question worth asking.
 
 Run `blind` FIRST, form a judgement, then `code` or `claims` to put the names back. The legend is
 written to a file and never printed, because reading it in the same breath undoes the pass.
@@ -210,8 +217,6 @@ SHAPE = {
     "MMGR_FALSE",
     "MMGR_INCIPE_DECLS",
     "MMGR_FINIS_DECLS",
-    "MMGR_CONFIN_ALIGN",
-    "MMGR_CONFIN_MAX_ALIGN",
     "mmgr_config",
 }
 # An __attribute__ argument is grammar too. `__attribute__((unused))` came out as
@@ -257,10 +262,18 @@ RE_GUARD = re.compile(r"^(%s)_(\w+)_H$" % _PU)
 RE_FN = re.compile(r"^(%s)_(\w+)$" % _PL)
 
 SAFE = KEYWORDS | STDLIB | SHAPE | ATTRS
+# The width and decls vocabulary this tree is written in - embed_word, EMBED_INLINE,
+# EMBED_TABLE_LAYOUT - belongs to the embedded_types dependency under deps/, not to MMgr. Blinding
+# is for the names THIS project chose, and matching the prefix rather than listing the members
+# keeps the rule from going stale the way a hand-written list does.
+RE_DEP_VOCAB = re.compile(r"^(?:EMBED|embed)_\w+$")
 
 IDENT = re.compile(r"\b[A-Za-z_]\w*\b")
-# The shape suffixes, longest first so `Vars` is tested before the bare object name.
-ROLE_SUFFIX = ("Vars", "Args", "Ctx", "Ns", "V")
+# The shape suffixes, longest first so `Vars` is tested before the bare object name. `Cfg` is the
+# argument struct an entry takes and is the commonest of them in this tree; without it here an
+# `<X>Cfg` fell through to the generic bucket as T7 and stopped reading as an argument struct at
+# all, while the `<X>Ns` it belongs beside came out as X3.
+ROLE_SUFFIX = ("Vars", "Args", "Cfg", "Ctx", "Ns", "V")
 # The member whose type IS the shape: a function pointer inside a dispatch table. The signature is
 # not fixed here - entries take spans, caps and flags, and every table spells them differently - so
 # what identifies an entry is the pointer-to-function member itself, not its argument list.
@@ -330,8 +343,9 @@ class Blinder(object):
     def _object(self, stem):
         """The generic identity for a module's object stem, shared by all of its role types.
 
-        Sha256Ns, Sha256Vars, Sha256V and Sha256Ctx are four spellings of ONE module, and giving
-        them four unrelated generic names would hide the very relationship the shape is built on.
+        FractioNs, FractioCfg and FractioCtx are three spellings of ONE module - the table, the
+        arguments its entries take and the .c-side mirror of those arguments - and giving them
+        three unrelated generic names would hide the very relationship the shape is built on.
         """
         key = ("obj", stem)
         if key not in self.table:
@@ -339,7 +353,7 @@ class Blinder(object):
         return self.table[key]
 
     def rename(self, name):
-        if name in SAFE or name in self.keep:
+        if name in SAFE or name in self.keep or RE_DEP_VOCAB.match(name):
             return name
         if name in self.table:
             return self.table[name]

@@ -367,13 +367,37 @@ mmgr_add_module(ascii_persona_bitorum
 def formatter():
     """The clang-format to run over the .c, or a refusal naming why one is needed."""
     found = shutil.which("clang-format")
-    if found:
-        return found
-    raise SystemExit(
-        "gen_ascii_persona_bitorum: clang-format is not on PATH. The mask table in the .c is laid "
-        "out by the formatter, so without it this writes a file that differs from the one on disk "
-        "and `harness.py generated` reports a dirty tree. Install it or put it on PATH."
+    if not found:
+        raise SystemExit(
+            "gen_ascii_persona_bitorum: clang-format is not on PATH. The mask table in the .c is "
+            "laid out by the formatter, so without it this writes a file that differs from the one "
+            "on disk and `harness.py generated` reports a dirty tree. Install it or put it on PATH."
+        )
+    # Being on PATH is not enough. .clang-format uses keys that only exist from clang-format 20, and
+    # an older binary refuses the whole file rather than passing over the one key it does not know.
+    # It is asked here, over a throwaway buffer, because finding out during the -i below leaves the
+    # generated files already written and unformatted, with a traceback in place of this message.
+    probe = subprocess.run(
+        [found, "--style=file", "--assume-filename=%s" % (OUT / "probe.c")],
+        input="int a;\n",
+        capture_output=True,
+        text=True,
     )
+    if probe.returncode != 0:
+        version = subprocess.run([found, "--version"], capture_output=True, text=True).stdout.strip()
+        raise SystemExit(
+            "%s: %s cannot read %s.\n%s\n"
+            "%s, so a run with this binary would leave files that differ from the ones on disk. "
+            "Use the version .github/workflows/format-code.yml pins."
+            % (
+                "gen_ascii_persona_bitorum",
+                version or found,
+                LIB / ".clang-format",
+                probe.stderr.strip(),
+                "The mask table in the .c is laid out by the formatter",
+            )
+        )
+    return found
 
 
 def main():

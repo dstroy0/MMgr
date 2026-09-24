@@ -69,9 +69,24 @@ def strip(text):
 
 
 def header_of(text):
-    """The leading copyright / SPDX lines, if the file opens with them."""
+    """The leading copyright / SPDX lines, if the file opens with them.
+
+    Both forms this tree writes are recognized: the // run, and the /* ... */ block every
+    hand-written .c and .h opens with. A /** block is Doxygen rather than a license, so it is left
+    to strip(). An unterminated block is not a header either, and keeping none beats keeping the
+    whole file.
+    """
+    lines = text.split("\n")
+    first = lines[0].strip() if lines else ""
+    if first.startswith("/*") and not first.startswith("/**") and ("Copyright" in first or "SPDX" in first):
+        head = []
+        for line in lines:
+            head.append(line)
+            if line.strip().endswith("*/"):
+                return head
+        return []
     head = []
-    for line in text.split("\n"):
+    for line in lines:
         s = line.strip()
         if s.startswith("//") and ("Copyright" in s or "SPDX" in s or s == "//"):
             head.append(line)
