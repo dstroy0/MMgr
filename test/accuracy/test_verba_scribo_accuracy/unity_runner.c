@@ -88,11 +88,11 @@ int main(void)
   run_test(test_the_padded_and_based_entries_match_the_reference, "test_the_padded_and_based_entries_match_the_reference", 277);
   run_test(test_a_double_written_at_seventeen_digits_reads_back_the_same, "test_a_double_written_at_seventeen_digits_reads_back_the_same", 341);
   run_test(test_a_double_written_at_fewer_digits_stays_inside_the_allowed_error, "test_a_double_written_at_fewer_digits_stays_inside_the_allowed_error", 397);
-  run_test(test_the_fixed_form_matches_the_reference, "test_the_fixed_form_matches_the_reference", 467);
-  run_test(test_an_exact_tie_rounds_up, "test_an_exact_tie_rounds_up", 506);
-  run_test(test_the_text_entries_write_the_bytes_they_are_documented_to, "test_the_text_entries_write_the_bytes_they_are_documented_to", 548);
-  run_test(test_the_non_finite_forms_and_the_predicates, "test_the_non_finite_forms_and_the_predicates", 603);
-  run_test(test_a_run_of_entries_threads_the_cursor, "test_a_run_of_entries_threads_the_cursor", 656);
+  run_test(test_the_fixed_form_matches_the_reference, "test_the_fixed_form_matches_the_reference", 465);
+  run_test(test_an_exact_tie_rounds_up, "test_an_exact_tie_rounds_up", 511);
+  run_test(test_the_text_entries_write_the_bytes_they_are_documented_to, "test_the_text_entries_write_the_bytes_they_are_documented_to", 553);
+  run_test(test_the_non_finite_forms_and_the_predicates, "test_the_non_finite_forms_and_the_predicates", 608);
+  run_test(test_a_run_of_entries_threads_the_cursor, "test_a_run_of_entries_threads_the_cursor", 661);
 
   return UNITY_END();
 }

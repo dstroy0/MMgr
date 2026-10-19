@@ -47,9 +47,10 @@ A cellblock is reached by the name of its pool, and a pool name stands for one r
 name twice fails the build, so two sites cannot hold cellblocks of the same name and a program never
 has two meanings for one symbol.
 
-Requiring a power of two is what keeps the arithmetic free: an offset inside a cellblock is masked
-instead of divided, which holds only for a power of two. `MMGR_CARCER_BODY` asserts it at the
-declaration, against the pool's own `sizeof` and not against the count it was handed.
+The alignment is a power of two, which is what keeps the arithmetic free: an offset inside a
+cellblock is rounded by a mask instead of divided, which holds only for a power of two. A pool's size
+is any count that holds one cell, which `MMGR_CARCER_BODY` asserts at the declaration, against the
+pool's own `sizeof` and not against the count it was handed.
 
 ## The two ends
 

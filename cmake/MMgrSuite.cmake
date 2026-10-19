@@ -108,6 +108,12 @@ function(mmgr_add_suite suite_name)
         # each suite target rather than shared, so defining it here reaches both the cases and the
         # assertion bodies they call.
         target_compile_definitions(${target} PRIVATE UNITY_INCLUDE_DOUBLE UNITY_INCLUDE_FLOAT)
+        # On C11 Unity reaches for <stdnoreturn.h>, whose `noreturn` macro turns the Windows CRT's
+        # own __declspec(noreturn) into an error in every header after it. Handed the keyword
+        # itself, Unity never includes it.
+        if(CMAKE_C_COMPILER_ID STREQUAL "MSVC" OR CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
+            target_compile_definitions(${target} PRIVATE UNITY_NORETURN=_Noreturn)
+        endif()
         target_link_libraries(${target} PRIVATE mmgr_${env})
         if(MMGR_LIBM)
             target_link_libraries(${target} PRIVATE ${MMGR_LIBM})

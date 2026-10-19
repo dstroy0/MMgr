@@ -155,17 +155,15 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @note The extent comes from the pool two ways. name_##_bytes is the count its declaration was
  *       handed and is what the record carries, and sizeof is what the compiler laid down. The
  *       asserts test the second, so they say something the first cannot say about itself.
- * @warning A pool whose size is not a power of two, or is too small to hold one cell, fails the
- *          build. A bad size is the one mistake the language would otherwise accept. A wrong name or
- *          guard type fails on its own, and two pools are separate objects, so they cannot share an
- *          address and there is no overlap to check.
+ * @warning A pool too small to hold one cell fails the build. Only the alignment is a power of two,
+ *          and nothing reads the size as a mask. A bad size is the one mistake the language would
+ *          otherwise accept. A wrong name or guard type fails on its own, and two pools are separate
+ *          objects, so they cannot share an address and there is no overlap to check.
  * @note No upper bound. The pool states how much storage the cellblock gets, and nothing in the
  *       library sizes anything from a ceiling over it.
  */
 #define MMGR_CARCER_BODY(prisonsite_, type_, name_, wipe_to_zero_on_release_)                                          \
     MMGR_PARS_CLAIMED_ONCE(name_);                                                                                     \
-    EMBED_STATIC_ASSERT((sizeof(mmgr_pars_storage_##name_) & (sizeof(mmgr_pars_storage_##name_) - 1u)) == 0u,          \
-                        #prisonsite_ "." #name_ " is not a power of two");                                             \
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) >= (2u * MMGR_CARCER_ALIGN),                                 \
                         #prisonsite_ "." #name_ " is too small for one cell");                                         \
     static CarcerCellBlock prisonsite_##_##name_##_ctx = {mmgr_pars_storage_##name_, name_##_bytes, 0u,                \
