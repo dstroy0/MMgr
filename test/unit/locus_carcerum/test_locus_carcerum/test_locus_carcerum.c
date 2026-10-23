@@ -147,6 +147,33 @@ void test_a_fresh_cellblock_is_empty_and_whole(void)
     TEST_ASSERT_EQUAL_size_t(A_BYTES, ram.a.temporary_buf_mark());
 }
 
+#if MMGR_ENABLE_HOST
+LocusCarcerumHospes(host, MMGR_MINIMUM_SECURITY(h));
+#endif
+
+void test_a_host_site_made_is_zero_and_whole_and_made_anew_for_another_ask(void)
+{
+#if !MMGR_ENABLE_HOST
+    TEST_IGNORE_MESSAGE("the host site is built where MMGR_ENABLE_HOST is 1");
+#else
+    TEST_ASSERT_NULL(host_cellblock());
+    TEST_ASSERT_TRUE(host_made(8192u));
+    TEST_ASSERT_TRUE(mmgr_host_cellblock_zero(host_cellblock()));
+    TEST_ASSERT_EQUAL_size_t(8192u, host.h.buf_available());
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)(uintptr_t)host_cellblock()->base % MMGR_ALIGN_BYTES);
+    void *const cell = host.h.persistent_buf_alloc(100u);
+    TEST_ASSERT_NOT_NULL(cell);
+    TEST_ASSERT_TRUE(host.h.who_owns_buf(cell));
+    TEST_ASSERT_FALSE(mmgr_host_cellblock_zero(host_cellblock()));
+    TEST_ASSERT_TRUE(host_made(4096u));
+    TEST_ASSERT_TRUE(mmgr_host_cellblock_zero(host_cellblock()));
+    TEST_ASSERT_EQUAL_size_t(4096u, host.h.buf_available());
+    host_freed();
+    TEST_ASSERT_NULL(host_cellblock());
+    TEST_ASSERT_FALSE(mmgr_host_cellblock_zero(NULL));
+#endif
+}
+
 void test_align_up_rounds_to_a_whole_word(void)
 {
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_align_up_buf(0u));

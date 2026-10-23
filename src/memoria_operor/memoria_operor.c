@@ -14,6 +14,7 @@
  *       chr mask the tail lanes instead.
  */
 #include "memoria_operor/memoria_operor.h"
+#include "config/mmgr_vector.h"
 
 #include "proximus_operor/proximus_operor.h"
 #include "verbum_scrutor/verbum_scrutor.h"
@@ -80,6 +81,20 @@ EMBED_INLINE void memor_cpy(MemorCpyCtx *args)
     size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
     size_t word_bytes = args->bytes - tail_bytes;
 
+#if MMGR_VECTOR_BYTES != 0u
+    // A vector a pass while a whole one remains, the machine's widest load and store, which carries
+    // MMGR_VECTOR_BYTES where a word carries sizeof(embed_word). The word walks below take the rest,
+    // which a vector's bytes being whole words leaves them whole
+    while (word_bytes >= MMGR_VECTOR_BYTES)
+    {
+        mmgr_vector_put(args->dst, mmgr_vector_load(args->src));
+
+        // Advances separated from the move above so the loop body carries no side effect
+        args->dst += MMGR_VECTOR_BYTES;
+        args->src += MMGR_VECTOR_BYTES;
+        word_bytes -= MMGR_VECTOR_BYTES;
+    }
+#endif
     // Four words an iteration while there are four to take. At one word the two pointer bumps, the
     // counter and the branch cost as much as the move itself. At four, the same bookkeeping covers
     // four times the bytes. ROM memcpy is unrolled for the same reason, and a one-word loop here
@@ -257,6 +272,25 @@ EMBED_INLINE embed_iword memor_cmp(MemorScanCtx *args)
     const embed_bool level =
         (embed_bool)(((((uintptr_t)args->src) | ((uintptr_t)args->other)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
 
+#if MMGR_VECTOR_BYTES != 0u
+    // A vector a pass while a whole one remains within the bytes to compare, the lanes that differ
+    // read off the vector comparison, so the word walks below start past every vector that agreed
+    while ((full - at) >= MMGR_VECTOR_BYTES)
+    {
+        const MmgrVectorMask differing =
+            mmgr_vector_differ_lanes(mmgr_vector_load(args->src + at), mmgr_vector_load(args->other + at));
+
+        if (differing != 0u)
+        {
+            const size_t first_diff = at + mmgr_vector_mask_first(differing);
+
+            // Explicit casts widen both bytes to embed_iword so the difference keeps its sign
+            return (embed_iword)args->src[first_diff] - (embed_iword)args->other[first_diff];
+        }
+        // Advance separated from the test above so the loop body carries no side effect
+        at += MMGR_VECTOR_BYTES;
+    }
+#endif
     // Two loops rather than one carrying the test. With the choice written inside the body, the
     // compiler keeps a branch per word and the loop costs what the unaligned one costs. Lifted
     // out, each loop holds one kind of load, and the aligned one is a single instruction a word
@@ -354,6 +388,23 @@ EMBED_INLINE const void *memor_chr(MemorScanCtx *args)
         at += 1u;
     }
 
+#if MMGR_VECTOR_BYTES != 0u
+    // A vector a pass while a whole one remains within the bytes to search, the sought byte repeated
+    // into every lane once ahead of the walk, as the word walk below repeats it into a word
+    const MmgrVector sought = mmgr_vector_fill(args->val);
+
+    while ((full - at) >= MMGR_VECTOR_BYTES)
+    {
+        const MmgrVectorMask matching = mmgr_vector_equal_lanes(mmgr_vector_load(args->src + at), sought);
+
+        if (matching != 0u)
+        {
+            return args->src + at + mmgr_vector_mask_first(matching);
+        }
+        // Advance separated from the test above so the loop body carries no side effect
+        at += MMGR_VECTOR_BYTES;
+    }
+#endif
     // One word a pass, deliberately. Unrolling this the way cellul_len is unrolled was measured and
     // lost: 6696 cycles to 6959 at 2048 bytes, and 64 to 72 at eight. This walk was already the
     // faster of the two before either was touched, so there was no stall left for a second word to
@@ -404,6 +455,20 @@ EMBED_INLINE void memor_set(MemorSetCtx *args)
     size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
     size_t word_bytes = args->bytes - tail_bytes;
 
+#if MMGR_VECTOR_BYTES != 0u
+    // A vector a pass while a whole one remains, the byte repeated into every lane once ahead of the
+    // walk; the word walks below take the rest
+    const MmgrVector filled = mmgr_vector_fill(args->val);
+
+    while (word_bytes >= MMGR_VECTOR_BYTES)
+    {
+        mmgr_vector_put(args->dst, filled);
+
+        // Advances separated from the store above so the loop body carries no side effect
+        args->dst += MMGR_VECTOR_BYTES;
+        word_bytes -= MMGR_VECTOR_BYTES;
+    }
+#endif
     // Four words an iteration while there are four to take, for the reason memor_cpy gives: the
     // pointer bump, the counter and the branch cost as much as the store at one word a pass.
     while (word_bytes >= (4u * sizeof(embed_word)))

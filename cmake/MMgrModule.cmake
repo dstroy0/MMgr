@@ -64,7 +64,7 @@ function(mmgr_add_module name)
 
     # src/ is the include root, so every module header is reached as <module>/<module>.h. include/
     # carries mmgr.h, which every module header includes for the embed macros and the widths.
-    target_include_directories(${target} ${scope} "${MMGR_INCLUDE_DIR}" "${CMAKE_SOURCE_DIR}/include")
+    target_include_directories(${target} ${scope} "${MMGR_INCLUDE_DIR}" "${MMgr_SOURCE_DIR}/include")
 
     # embedded_types rides the module target at the module's own scope, for the same reason the
     # capabilities below do: a suite links the module and deliberately does not link mmgr_flags.
@@ -106,7 +106,7 @@ function(mmgr_add_module name)
     # compiled into src/. Carried at ${scope}. A suite linking this module inherits it.
     if(env STREQUAL "checks")
       target_compile_options(${target} ${scope}
-                             "-include" "${CMAKE_SOURCE_DIR}/test/support/mmgr_host_traps.h")
+                             "-include" "${MMgr_SOURCE_DIR}/test/support/mmgr_host_traps.h")
     endif()
 
     foreach(dep IN LISTS ARG_DEPS)

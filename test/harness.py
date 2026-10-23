@@ -111,8 +111,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Where the build trees live. ROOT by default, because a tree beside the source is what anyone
 # expects to find. MMGR_BUILD_ROOT moves them, which is not a convenience: Windows caps a full
 # object path at 250 characters, and this tree's deepest object sits ~180 below its build dir. A
-# checkout more than ~60 characters down - a git worktree under .claude/worktrees/ is already past
-# it - cannot build in place at all. The cap is the compiler's, so the only fix is a shorter prefix.
+# checkout more than ~60 characters down cannot build in place at all. The cap is the compiler's, so the only fix is a shorter prefix.
 BUILD_ROOT = os.path.abspath(os.environ.get("MMGR_BUILD_ROOT", ROOT))
 
 # Extra configure arguments, split like a shell would. borrowed_toolchain() reads the generator and

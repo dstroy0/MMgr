@@ -729,3 +729,73 @@ size_t mmgr_align_up_buf(size_t size)
 {
     return carcer_round(size);
 }
+
+#if MMGR_ENABLE_HOST
+#include <stdint.h>
+#include <stdlib.h>
+
+embed_bool mmgr_host_cellblock_made(CarcerCellBlock **held, size_t bytes)
+{
+    const size_t head = (sizeof(CarcerCellBlock) + MMGR_ALIGN_BYTES - 1u) & ~(size_t)(MMGR_ALIGN_BYTES - 1u);
+
+    if (bytes < (2u * MMGR_CARCER_ALIGN))
+    {
+        return 0u;
+    }
+    uint8_t *const block = calloc(1u, head + bytes + MMGR_ALIGN_BYTES);
+
+    if (block == NULL)
+    {
+        return 0u;
+    }
+    // Explicit casts read the block's address as the integer the alignment is taken on
+    const uintptr_t at = (uintptr_t)block;
+    const uintptr_t base = (at + head + MMGR_ALIGN_BYTES - 1u) & ~(uintptr_t)(MMGR_ALIGN_BYTES - 1u);
+    const CarcerCellBlock made = {(uint8_t *)base,
+                                  bytes,
+                                  0u,
+                                  bytes
+#if MMGR_ENABLE_HW_MEM_CAPACITY_CB
+                                  ,
+                                  0u,
+                                  0u
+#endif
+    };
+    // The record is laid byte by byte into the block's first bytes, which are its first use
+    const uint8_t *const from = (const uint8_t *)&made;
+
+    for (size_t byte = 0u; byte < sizeof(made); byte += 1u)
+    {
+        block[byte] = from[byte];
+    }
+    mmgr_host_cellblock_freed(held);
+    *held = (CarcerCellBlock *)(void *)block;
+    return 1u;
+}
+
+void mmgr_host_cellblock_freed(CarcerCellBlock **held)
+{
+    if (*held != NULL)
+    {
+        // The record is the block's first bytes, so freeing it frees the block whole
+        free(*held);
+        *held = NULL;
+    }
+}
+
+embed_bool mmgr_host_cellblock_zero(const CarcerCellBlock *cellblock)
+{
+    if ((cellblock == NULL) || (cellblock->persistent_end != 0u) || (cellblock->temporary_top != cellblock->size))
+    {
+        return 0u;
+    }
+    for (size_t byte = 0u; byte < cellblock->size; byte += 1u)
+    {
+        if (cellblock->base[byte] != 0u)
+        {
+            return 0u;
+        }
+    }
+    return 1u;
+}
+#endif

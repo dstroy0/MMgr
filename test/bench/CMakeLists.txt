@@ -25,7 +25,7 @@
 # The A/B benches build against ProtoCore's own sources rather than a copy of them, so what they
 # measure is its code and not a transcription. It is a sibling checkout and not a dependency: when
 # it is not there, those benches are skipped and the rest still build.
-set(MMGR_PROTOCORE_DIR "${CMAKE_SOURCE_DIR}/../../ProtoCore" CACHE PATH "ProtoCore checkout for the A/B benches")
+set(MMGR_PROTOCORE_DIR "${MMgr_SOURCE_DIR}/../../ProtoCore" CACHE PATH "ProtoCore checkout for the A/B benches")
 
 # The four under test, plus what they call: protomem for the moves, swar for the lane work under
 # it, and the host HAL for the context id the worker slots are keyed on.
@@ -72,8 +72,8 @@ foreach(bench_src ${MMGR_BENCH_SOURCES})
             # entropy number is read against those corpora having the statistics they are supposed to.
             # They compile the implementation the suites hold to the published vectors, so the corpora
             # and the vectors are the same code and not two copies of it.
-            add_executable(${target} "${bench_src}" "${CMAKE_SOURCE_DIR}/test/support/mmgr_sha256.c")
-            target_include_directories(${target} PRIVATE "${CMAKE_SOURCE_DIR}/test/support")
+            add_executable(${target} "${bench_src}" "${MMgr_SOURCE_DIR}/test/support/mmgr_sha256.c")
+            target_include_directories(${target} PRIVATE "${MMgr_SOURCE_DIR}/test/support")
         else()
             add_executable(${target} "${bench_src}")
         endif()

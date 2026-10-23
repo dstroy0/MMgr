@@ -163,6 +163,17 @@
 #endif
 
 /**
+ * @brief Set to 1 to build the host-allocated prison site, LocusCarcerumHospes, whose cellblock
+ *        stands over a block the host's allocator hands out at run time.
+ *
+ * @note calloc and free are reached only when this is set. A build for a part with no heap leaves
+ *       it 0 and the host site undeclared.
+ */
+#ifndef MMGR_ENABLE_HOST
+#define MMGR_ENABLE_HOST 0
+#endif
+
+/**
  * @brief Set to 1 to build the time-based ring behavior.
  *
  * @note MMGR_RING_ATTACH_US exists only when this is set.

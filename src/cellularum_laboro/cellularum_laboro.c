@@ -18,6 +18,7 @@
  * @note ws and digit read src at at without consulting cap, and the conversions carry no bound at all.
  */
 #include "cellularum_laboro/cellularum_laboro.h"
+#include "config/mmgr_vector.h"
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 #include "transformo/transformo.h"
 #include "verbum_scrutor/verbum_scrutor.h"
@@ -271,6 +272,35 @@ EMBED_INLINE size_t cellul_len(const CellulCtx *args)
         at += 1u;
     }
 
+#if MMGR_VECTOR_BYTES != 0u
+    // A word a pass up to the first aligned vector, as the word walk below steps, then an aligned
+    // vector a pass while a whole one remains within cap, the lanes holding zero read off the vector
+    // comparison; the word walks below take the rest
+    while ((at != full) && ((((uintptr_t)args->src + at) & (MMGR_VECTOR_BYTES - 1u)) != 0u))
+    {
+        const embed_word zero_lanes = EMBED_CALL(lane.has_zero, ScrutLaneCfg,
+                                                 .word = EMBED_CALL(word.load_al, ScrutWordCfg, .at = args->src + at));
+        if (zero_lanes != 0u)
+        {
+            return at + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = zero_lanes);
+        }
+        // Advance separated from the test above so the loop body carries no side effect
+        at += MMGR_SWAR_BYTES;
+    }
+    while ((full - at) >= MMGR_VECTOR_BYTES)
+    {
+        // Explicit cast reads the text as the bytes the vector loads
+        const MmgrVectorMask zero_lanes =
+            mmgr_vector_zero_lanes(mmgr_vector_load_aligned((const uint8_t *)args->src + at));
+
+        if (zero_lanes != 0u)
+        {
+            return at + mmgr_vector_mask_first(zero_lanes);
+        }
+        // Advance separated from the test above so the loop body carries no side effect
+        at += MMGR_VECTOR_BYTES;
+    }
+#endif
     // Two words a pass while two remain. The load and the arithmetic that reads it are a dependent
     // pair, and neither part issues them back to back without stalling. Taking two lets the second
     // load be in flight while the first word is examined. The single-word loop below finishes the
@@ -392,6 +422,43 @@ EMBED_INLINE const char *cellul_chr(const CellulCtx *args)
         at += 1u;
     }
 
+#if MMGR_VECTOR_BYTES != 0u
+    // A vector a pass while a whole one remains within cap, the sought byte repeated into every lane
+    // once ahead of the walk; a vector holding a terminator or a match settles the walk, a match
+    // counting only before the terminator, as cellul_chr_settle settles a word
+    const MmgrVector sought = mmgr_vector_fill(args->byte);
+
+    // A word a pass up to the first aligned vector, as the word walk below steps
+    while ((at != full) && ((((uintptr_t)args->src + at) & (MMGR_VECTOR_BYTES - 1u)) != 0u))
+    {
+        const embed_word loaded = EMBED_CALL(word.load_al, ScrutWordCfg, .at = args->src + at);
+        const embed_word end = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = loaded);
+        const embed_word hit = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = loaded ^ bcast);
+
+        if ((end | hit) != 0u)
+        {
+            return cellul_chr_settle(args->src + at, end, hit);
+        }
+        // Advance separated from the test above so the loop body carries no side effect
+        at += MMGR_SWAR_BYTES;
+    }
+    while ((full - at) >= MMGR_VECTOR_BYTES)
+    {
+        // Explicit cast reads the text as the bytes the vector loads
+        const MmgrVector loaded = mmgr_vector_load_aligned((const uint8_t *)args->src + at);
+        const MmgrVectorMask end = mmgr_vector_zero_lanes(loaded);
+        const MmgrVectorMask hit = mmgr_vector_equal_lanes(loaded, sought);
+
+        if ((end | hit) != 0u)
+        {
+            const MmgrVectorMask live = hit & mmgr_vector_mask_before(end);
+
+            return (live != 0u) ? (args->src + at + mmgr_vector_mask_first(live)) : NULL;
+        }
+        // Advance separated from the test above so the loop body carries no side effect
+        at += MMGR_VECTOR_BYTES;
+    }
+#endif
     // One word a pass, deliberately. Unrolling this the way cellul_len is unrolled was measured and
     // lost: 8261 cycles to 8277 at 2048 bytes, and 98 to 114 at eight. len has one has_zero in its
     // body and stalls waiting for the load. This has two, which is already enough work to cover the
