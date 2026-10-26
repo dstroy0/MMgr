@@ -2,3 +2,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 
 add_subdirectory(test_locus_carcerum)
+add_subdirectory(test_locus_carcerum_lock)
+add_subdirectory(test_locus_carcerum_owner_list)
+add_subdirectory(test_locus_carcerum_owners)

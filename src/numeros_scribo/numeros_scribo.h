@@ -25,26 +25,23 @@ EMBED_BEGIN_DECLS
  * @brief What one field formats, and which mmgr_fval arm it reads.
  *
  * @note numeros_scribo.c indexes s_kind by this value, so MMGR_FK_XML is the largest one it accepts.
- * @note EMBED_ENUM_PACKED asks for the narrowest representation. mmgr_types.h asserts that it took
- *       effect.
+ * @note One byte on every compiler, through EMBED_ENUM_BYTE.
  */
-typedef enum EMBED_ENUM_PACKED
-{
-    MMGR_FK_END = 0, /**< Ends a spec. numer_build stops at this field. */
-    MMGR_FK_LIT,     /**< Literal text, taken from mmgr_field::lit and mmgr_field::len. */
-    MMGR_FK_STR,     /**< String from as.s, through mmgr_verba_put. */
-    MMGR_FK_U32,     /**< Unsigned 32-bit from as.u32, base 10, through mmgr_verba_u32. */
-    MMGR_FK_U64,     /**< Unsigned 64-bit from as.u64, base 10, through mmgr_verba_u64. */
-    MMGR_FK_I64,     /**< Signed 64-bit from as.i64, base 10, through mmgr_verba_i64. */
-    MMGR_FK_DEC,     /**< Unsigned 32-bit from as.u32, base 10, through mmgr_verba_u32w. */
-    MMGR_FK_HEX,     /**< Unsigned 64-bit from as.u64, base 16, through mmgr_verba_hex. */
-    MMGR_FK_OCT,     /**< Unsigned 64-bit from as.u64, base 8, through mmgr_verba_uint. */
-    MMGR_FK_G,       /**< Double from as.d, through mmgr_verba_g, defaulting to six significant digits. */
-    MMGR_FK_FIX,     /**< Double from as.d, through mmgr_verba_fixed. */
-    MMGR_FK_CH,      /**< Single character from as.c, through mmgr_verba_ch. */
-    MMGR_FK_JSON,    /**< String from as.s, through mmgr_verba_json. */
-    MMGR_FK_XML,     /**< String from as.s, through mmgr_verba_xml. */
-} mmgr_fk;
+EMBED_ENUM_BYTE(mmgr_fk, MMGR_FK_END = 0, /**< Ends a spec. numer_build stops at this field. */
+                MMGR_FK_LIT,              /**< Literal text, taken from mmgr_field::lit and mmgr_field::len. */
+                MMGR_FK_STR,              /**< String from as.s, through mmgr_verba_put. */
+                MMGR_FK_U32,              /**< Unsigned 32-bit from as.u32, base 10, through mmgr_verba_u32. */
+                MMGR_FK_U64,              /**< Unsigned 64-bit from as.u64, base 10, through mmgr_verba_u64. */
+                MMGR_FK_I64,              /**< Signed 64-bit from as.i64, base 10, through mmgr_verba_i64. */
+                MMGR_FK_DEC,              /**< Unsigned 32-bit from as.u32, base 10, through mmgr_verba_u32w. */
+                MMGR_FK_HEX,              /**< Unsigned 64-bit from as.u64, base 16, through mmgr_verba_hex. */
+                MMGR_FK_OCT,              /**< Unsigned 64-bit from as.u64, base 8, through mmgr_verba_uint. */
+                MMGR_FK_G,    /**< Double from as.d, through mmgr_verba_g, defaulting to six significant digits. */
+                MMGR_FK_FIX,  /**< Double from as.d, through mmgr_verba_fixed. */
+                MMGR_FK_CH,   /**< Single character from as.c, through mmgr_verba_ch. */
+                MMGR_FK_JSON, /**< String from as.s, through mmgr_verba_json. */
+                MMGR_FK_XML   /**< String from as.s, through mmgr_verba_xml. */
+);
 
 /**
  * @brief One field of a spec.

@@ -45,13 +45,25 @@ pools placed wherever the linker puts an ordinary one, and nothing diagnoses tha
 These are the numbers you change after measuring. Do not guess them — see @ref guide_first_region
 for reading the high-water marks.
 
-## Workers
+## Workers and owners
 
-There is no knob here, which is the point rather than an omission.
+| knob                 | default | what it changes                                                          |
+| -------------------- | ------: | ------------------------------------------------------------------------ |
+| `MMGR_ENABLE_LOCK`   |     `0` | every entry of a cellblock's guard but `who_owns_buf` takes its spinlock |
+| `MMGR_ENABLE_OWNERS` |     `0` | each cellblock lists the owners that took a cell from it                 |
+| `MMGR_CARCER_OWNERS` |   `128` | the most owners one cellblock's list carries                             |
 
-There is no synchronization anywhere in the allocator, because there is nothing to synchronize. A
-region is a pointer, an extent, and two offsets, used by whoever holds it. Two contexts that must
-not share get two regions.
+Off, there is no synchronization anywhere in the allocator. A region is a pointer, an extent, and two
+offsets, used by whoever holds it, and two contexts that must not share get two regions. On, the lock
+is an `embed_spinlock` from `embedded_types`, which spins and never sleeps, so the same build serves a
+host thread, a part's task and a GPU thread.
+
+An owner's own counts, its bytes in use and its peak, are kept in the `CellOwner` the caller names on
+every persistent take and release, whatever `MMGR_ENABLE_OWNERS` is. The switch adds the list, which
+costs `MMGR_CARCER_OWNERS` pointers and a count in every cellblock. See @ref concept_ownership.
+
+`MMGR_ENABLE_LOCK` and `MMGR_ENABLE_OWNERS` are CMake options as well, `-DMMGR_ENABLE_LOCK=ON`, which
+reach the library and every suite over it, the way the optional modules below do.
 
 ## Debug
 

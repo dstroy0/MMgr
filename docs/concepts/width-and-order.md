@@ -24,16 +24,18 @@ An enum that silently becomes an `int` moves every field after it in every struc
 and this library addresses borrows by offset, so every offset computed from such a struct is then
 wrong.
 
-That is not detectable at the use site, so it is asserted at the source:
+So every enum a struct holds is declared through `EMBED_ENUM_BYTE`, which gives it one byte on every
+compiler: the enum itself where the compiler can pin it to a byte, with `: unsigned char` or
+`__attribute__((packed))`, and its constants with an `unsigned char` name where it cannot, as on
+MSVC's C. A probe at the source asserts the width:
 
 ```c
 EMBED_STATIC_ASSERT(sizeof(EmbedEnumProbe) == 1,
-    "EMBED_ENUM_PACKED is not honored here, so no enum keeps its declared width ...");
+    "EMBED_ENUM_BYTE gave an enum more than one byte here, so no enum keeps its declared width ...");
 ```
 
-`EMBED_ENUM_PACKED` is `__attribute__((packed))` where the attribute exists and empty where it does
-not — and the probe is what turns "the fallback was taken" from a silent behavior change into a
-build failure. On TI toolchains, pass `--small_enum`.
+It fails only where a compiler accepts the packed attribute and ignores it. On TI toolchains, pass
+`--small_enum`.
 
 ## Three access strategies, not one
 
@@ -71,7 +73,7 @@ machine does".
 ## Alignment of an allocation
 
 ```c
-uint8_t *p = prison.work.persistent_buf_alloc(256);
+uint8_t *p = prison.work.persistent_buf_alloc(256, NULL);
 ```
 
 An allocation does not name an alignment, because there is only one. Every cell comes back aligned to

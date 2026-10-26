@@ -90,10 +90,10 @@ void test_a_four_cellblock_site_lays_them_end_to_end(void)
 
 void test_every_cellblock_of_a_four_cellblock_site_allocates_from_its_own_bytes(void)
 {
-    void *const g0 = quad.q0.persistent_buf_alloc(32u);
-    void *const g1 = quad.q1.persistent_buf_alloc(32u);
-    void *const g2 = quad.q2.persistent_buf_alloc(32u);
-    void *const g3 = quad.q3.persistent_buf_alloc(32u);
+    void *const g0 = quad.q0.persistent_buf_alloc(32u, NULL);
+    void *const g1 = quad.q1.persistent_buf_alloc(32u, NULL);
+    void *const g2 = quad.q2.persistent_buf_alloc(32u, NULL);
+    void *const g3 = quad.q3.persistent_buf_alloc(32u, NULL);
 
     TEST_ASSERT_NOT_NULL_MESSAGE(g0, "an allocation from a declared cellblock must succeed");
     TEST_ASSERT_TRUE_MESSAGE(quad.q0.who_owns_buf(g0), "and must land inside that cellblock");
@@ -109,8 +109,8 @@ void test_an_eight_cellblock_site_builds_and_allocates(void)
     TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_o7, octo_o7_ctx.base);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(OCTO_BYTES, octo_o7_ctx.size, "eight cellblocks is a legal count");
 
-    void *const first = octo.o0.persistent_buf_alloc(16u);
-    void *const last = octo.o7.persistent_buf_alloc(16u);
+    void *const first = octo.o0.persistent_buf_alloc(16u, NULL);
+    void *const last = octo.o7.persistent_buf_alloc(16u, NULL);
 
     TEST_ASSERT_NOT_NULL(first);
     TEST_ASSERT_NOT_NULL(last);
@@ -161,7 +161,7 @@ void test_a_host_site_made_is_zero_and_whole_and_made_anew_for_another_ask(void)
     TEST_ASSERT_TRUE(mmgr_host_cellblock_zero(host_cellblock()));
     TEST_ASSERT_EQUAL_size_t(8192u, host.h.buf_available());
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)(uintptr_t)host_cellblock()->base % MMGR_ALIGN_BYTES);
-    void *const cell = host.h.persistent_buf_alloc(100u);
+    void *const cell = host.h.persistent_buf_alloc(100u, NULL);
     TEST_ASSERT_NOT_NULL(cell);
     TEST_ASSERT_TRUE(host.h.who_owns_buf(cell));
     TEST_ASSERT_FALSE(mmgr_host_cellblock_zero(host_cellblock()));
@@ -189,7 +189,7 @@ void test_both_tiers_hand_out_aligned_addresses(void)
 
         setUp();
 
-        void *const p = ram.a.persistent_buf_alloc(n);
+        void *const p = ram.a.persistent_buf_alloc(n, NULL);
         void *const q = ram.a.temporary_buf_alloc(n);
 
         TEST_ASSERT_NOT_NULL(p);
@@ -201,8 +201,8 @@ void test_both_tiers_hand_out_aligned_addresses(void)
 
 void test_the_persistent_tier_hands_out_the_bottom_and_walks_up(void)
 {
-    uint8_t *p = (uint8_t *)ram.a.persistent_buf_alloc(64u);
-    uint8_t *q = (uint8_t *)ram.a.persistent_buf_alloc(64u);
+    uint8_t *p = (uint8_t *)ram.a.persistent_buf_alloc(64u, NULL);
+    uint8_t *q = (uint8_t *)ram.a.persistent_buf_alloc(64u, NULL);
 
     TEST_ASSERT_TRUE_MESSAGE(p < q, "the next cell sits above the first");
     TEST_ASSERT_TRUE(ram.a.who_owns_buf(p));
@@ -221,7 +221,7 @@ void test_the_two_tiers_allocate_from_the_same_gap(void)
 {
     const size_t room = ram.a.buf_available();
 
-    (void)ram.a.persistent_buf_alloc(64u);
+    (void)ram.a.persistent_buf_alloc(64u, NULL);
     (void)ram.a.temporary_buf_alloc(64u);
 
     TEST_ASSERT_TRUE_MESSAGE(ram.a.buf_available() < room, "both tiers allocate from the same gap");
@@ -229,7 +229,7 @@ void test_the_two_tiers_allocate_from_the_same_gap(void)
 
 void test_both_tiers_fail_closed(void)
 {
-    TEST_ASSERT_NULL(ram.a.persistent_buf_alloc(A_BYTES * 4u));
+    TEST_ASSERT_NULL(ram.a.persistent_buf_alloc(A_BYTES * 4u, NULL));
     TEST_ASSERT_NULL(ram.a.temporary_buf_alloc(A_BYTES * 4u));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram.a.buf_available(),
                                      "a refused request must not have moved a boundary");
@@ -237,29 +237,29 @@ void test_both_tiers_fail_closed(void)
 
 void test_a_released_cell_is_reused(void)
 {
-    void *const p = ram.a.persistent_buf_alloc(64u);
+    void *const p = ram.a.persistent_buf_alloc(64u, NULL);
 
-    (void)ram.a.persistent_buf_alloc(64u);
-    ram.a.persistent_buf_release(p);
+    (void)ram.a.persistent_buf_alloc(64u, NULL);
+    ram.a.persistent_buf_release(p, NULL);
 
-    void *const q = ram.a.persistent_buf_alloc(64u);
+    void *const q = ram.a.persistent_buf_alloc(64u, NULL);
 
     TEST_ASSERT_EQUAL_PTR_MESSAGE(p, q, "the released cell is the one that fits");
 }
 
 void test_the_persistent_tier_releases_out_of_order(void)
 {
-    void *const p = ram.a.persistent_buf_alloc(32u);
-    void *const q = ram.a.persistent_buf_alloc(32u);
-    void *const r = ram.a.persistent_buf_alloc(32u);
+    void *const p = ram.a.persistent_buf_alloc(32u, NULL);
+    void *const q = ram.a.persistent_buf_alloc(32u, NULL);
+    void *const r = ram.a.persistent_buf_alloc(32u, NULL);
 
     TEST_ASSERT_NOT_NULL(p);
     TEST_ASSERT_NOT_NULL(q);
     TEST_ASSERT_NOT_NULL(r);
 
-    ram.a.persistent_buf_release(q);
-    ram.a.persistent_buf_release(p);
-    ram.a.persistent_buf_release(r);
+    ram.a.persistent_buf_release(q, NULL);
+    ram.a.persistent_buf_release(p, NULL);
+    ram.a.persistent_buf_release(r, NULL);
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, ram_a_ctx.persistent_end,
                                      "every cell released, so the tier must have wound back to base");
@@ -267,28 +267,28 @@ void test_the_persistent_tier_releases_out_of_order(void)
 
 void test_adjacent_empty_cells_merge(void)
 {
-    void *const p = ram.a.persistent_buf_alloc(32u);
-    void *const q = ram.a.persistent_buf_alloc(32u);
-    void *const keep = ram.a.persistent_buf_alloc(32u);
+    void *const p = ram.a.persistent_buf_alloc(32u, NULL);
+    void *const q = ram.a.persistent_buf_alloc(32u, NULL);
+    void *const keep = ram.a.persistent_buf_alloc(32u, NULL);
 
     TEST_ASSERT_NOT_NULL(keep);
-    ram.a.persistent_buf_release(p);
-    ram.a.persistent_buf_release(q);
+    ram.a.persistent_buf_release(p, NULL);
+    ram.a.persistent_buf_release(q, NULL);
 
-    void *const big = ram.a.persistent_buf_alloc(72u);
+    void *const big = ram.a.persistent_buf_alloc(72u, NULL);
 
     TEST_ASSERT_EQUAL_PTR_MESSAGE(p, big, "the two released cells must have merged into one");
 }
 
 void test_a_minimum_security_release_leaves_the_bytes_alone(void)
 {
-    uint8_t *const p = (uint8_t *)ram.a.persistent_buf_alloc(64u);
+    uint8_t *const p = (uint8_t *)ram.a.persistent_buf_alloc(64u, NULL);
 
     for (size_t i = 0; i < 64u; i++)
     {
         p[i] = 0xA5u;
     }
-    ram.a.persistent_buf_release(p);
+    ram.a.persistent_buf_release(p, NULL);
 
     for (size_t i = 0; i < 64u; i++)
     {
@@ -298,13 +298,13 @@ void test_a_minimum_security_release_leaves_the_bytes_alone(void)
 
 void test_a_maximum_security_release_zeroes_the_bytes_first(void)
 {
-    uint8_t *const p = (uint8_t *)ram.b.persistent_buf_alloc(64u);
+    uint8_t *const p = (uint8_t *)ram.b.persistent_buf_alloc(64u, NULL);
 
     for (size_t i = 0; i < 64u; i++)
     {
         p[i] = 0xA5u;
     }
-    ram.b.persistent_buf_release(p);
+    ram.b.persistent_buf_release(p, NULL);
 
     for (size_t i = 0; i < 64u; i++)
     {
@@ -314,19 +314,23 @@ void test_a_maximum_security_release_zeroes_the_bytes_first(void)
 
 void test_a_maximum_security_release_zeroes_the_whole_cell(void)
 {
-
-    uint8_t *const p = (uint8_t *)ram.b.persistent_buf_alloc(33u);
+    const size_t before = ram.b.buf_available();
+    uint8_t *const p = (uint8_t *)ram.b.persistent_buf_alloc(33u, NULL);
     const size_t held = mmgr_align_up_buf(33u);
+    // The take's alloc_size bounds p at the 33 bytes asked for, so the slack past them is reached
+    // through the cellblock's storage, which holds it. The cell starts where the gap it took ends
+    uint8_t *const cell = ram_b_ctx.base + (before - ram.b.buf_available()) - held;
 
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(p, cell, "the cell was not found where its take left it");
     for (size_t i = 0; i < held; i++)
     {
-        p[i] = 0xA5u;
+        cell[i] = 0xA5u;
     }
-    ram.b.persistent_buf_release(p);
+    ram.b.persistent_buf_release(p, NULL);
 
     for (size_t i = 0; i < held; i++)
     {
-        TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x00u, p[i], "the rounded slack was left holding key material");
+        TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x00u, cell[i], "the rounded slack was left holding key material");
     }
 }
 
@@ -389,8 +393,8 @@ void test_reset_releases_the_whole_temporary_tier(void)
 
 void test_who_owns_buf_tells_a_cellblock_from_its_neighbor(void)
 {
-    void *p = ram.a.persistent_buf_alloc(32u);
-    void *q = ram.b.persistent_buf_alloc(32u);
+    void *p = ram.a.persistent_buf_alloc(32u, NULL);
+    void *q = ram.b.persistent_buf_alloc(32u, NULL);
 
     TEST_ASSERT_TRUE(ram.a.who_owns_buf(p));
     TEST_ASSERT_TRUE(ram.b.who_owns_buf(q));
@@ -412,7 +416,7 @@ void test_who_owns_buf_refuses_the_edges(void)
 
 void test_the_cellblocks_do_not_share_a_fill_point(void)
 {
-    (void)ram.a.persistent_buf_alloc(64u);
+    (void)ram.a.persistent_buf_alloc(64u, NULL);
 
     TEST_ASSERT_TRUE(ram_a_ctx.persistent_end > 0u);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, ram_b_ctx.persistent_end, "one cellblock filling must not move the other");
@@ -420,7 +424,7 @@ void test_the_cellblocks_do_not_share_a_fill_point(void)
 
 void test_a_span_over_cellblock_bytes_carries_the_cellblock_address(void)
 {
-    uint8_t *const p = (uint8_t *)ram.a.persistent_buf_alloc(64u);
+    uint8_t *const p = (uint8_t *)ram.a.persistent_buf_alloc(64u, NULL);
     const mmgr_span s = EMBED_CALL(spat.from, SpatiumCfg, .buf = p, .cap = 64u);
 
     TEST_ASSERT_TRUE_MESSAGE(ram.a.who_owns_buf(s.buf),

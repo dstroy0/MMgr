@@ -27,18 +27,18 @@ policed by a static assert at the point of use rather than trusted.
 
 ## What is in it
 
-| macro                                   | with the attribute                             | without                         |
-| --------------------------------------- | ---------------------------------------------- | ------------------------------- |
-| `EMBED_INLINE`                          | `static inline __attribute__((always_inline))` | `static inline`                 |
-| `EMBED_TABLE_STORAGE`                   | `static const`                                 | —                               |
-| `EMBED_UNUSED`                          | `__attribute__((unused))`                      | empty                           |
-| `EMBED_WEAK`                            | `__attribute__((weak))`                        | empty                           |
-| `EMBED_ALIAS`                           | `__attribute__((may_alias))`                   | empty                           |
-| `EMBED_ALIGN(bytes_)`                   | `__attribute__((aligned(bytes_)))`             | empty                           |
-| `EMBED_FLATTEN`                         | `__attribute__((flatten))`                     | empty                           |
-| `EMBED_ENUM_PACKED`                     | `__attribute__((packed))`                      | empty — **asserted**, see below |
-| `EMBED_BEGIN_DECLS` / `EMBED_END_DECLS` | `extern "C" {` / `}` under C++                 | empty under C                   |
-| `EMBED_STATIC_ASSERT`                   | `static_assert` or `_Static_assert`            | `#error` below C11              |
+| macro                                   | with the attribute                             | without                       |
+| --------------------------------------- | ---------------------------------------------- | ----------------------------- |
+| `EMBED_INLINE`                          | `static inline __attribute__((always_inline))` | `static inline`               |
+| `EMBED_TABLE_STORAGE`                   | `static const`                                 | —                             |
+| `EMBED_UNUSED`                          | `__attribute__((unused))`                      | empty                         |
+| `EMBED_WEAK`                            | `__attribute__((weak))`                        | empty                         |
+| `EMBED_ALIAS`                           | `__attribute__((may_alias))`                   | empty                         |
+| `EMBED_ALIGN(bytes_)`                   | `__attribute__((aligned(bytes_)))`             | empty                         |
+| `EMBED_FLATTEN`                         | `__attribute__((flatten))`                     | empty                         |
+| `EMBED_ENUM_BYTE(name_, ...)`           | a one-byte enum                                | constants and `unsigned char` |
+| `EMBED_BEGIN_DECLS` / `EMBED_END_DECLS` | `extern "C" {` / `}` under C++                 | empty under C                 |
+| `EMBED_STATIC_ASSERT`                   | `static_assert` or `_Static_assert`            | `#error` below C11            |
 
 MMgr adds three of its own, in `include/mmgr.h`, for what the compiler offers and this library needs:
 `MMGR_ERROR_ATTR` puts our own text on a reference that must not link, `MMGR_ALLOC_SIZE` states which
@@ -50,21 +50,27 @@ port fills in.
 
 ## The one that cannot be allowed to fail quietly
 
-`EMBED_ENUM_PACKED` is the exception to "every fallback still compiles and that is enough". An enum
-that silently widens to `int` moves every field after it in every struct containing one, and this
-library computes offsets from those structs.
+An enum width is the exception to "every fallback still compiles and that is enough". An enum that
+silently widens to `int` moves every field after it in every struct containing one, and this library
+computes offsets from those structs.
 
-So there is a probe, in `embed_types.h`:
+So `EMBED_ENUM_BYTE` declares every such enum with one byte on every compiler. Clang on the MSVC ABI
+and C++ take the fixed underlying type `: unsigned char`, every other compiler with the packed
+attribute takes `__attribute__((packed))`, and MSVC's C, which has neither, gets the enumerators as
+constants and the name as an `unsigned char`. A struct holding one is laid out the same whichever
+compiler reads it.
+
+There is a probe, in `embed_types.h`:
 
 ```c
-typedef enum EMBED_ENUM_PACKED { EMBED_ENUM_PROBE_MIN = 0, EMBED_ENUM_PROBE_MAX = 255 } EmbedEnumProbe;
+EMBED_ENUM_BYTE(EmbedEnumProbe, EMBED_ENUM_PROBE_MIN = 0, EMBED_ENUM_PROBE_MAX = 255);
 
 EMBED_STATIC_ASSERT(sizeof(EmbedEnumProbe) == 1,
-    "EMBED_ENUM_PACKED is not honored here, so no enum keeps its declared width ...");
+    "EMBED_ENUM_BYTE gave an enum more than one byte here, so no enum keeps its declared width ...");
 ```
 
-If the attribute was not honored, the build stops at the source of the problem with a message that
-names the cause — instead of producing a binary whose struct offsets are wrong.
+If a compiler accepted the attribute and ignored it, the build stops at the source of the problem with
+a message that names the cause — instead of producing a binary whose struct offsets are wrong.
 
 @note On TI toolchains, pass `--small_enum`. The assert message says so.
 

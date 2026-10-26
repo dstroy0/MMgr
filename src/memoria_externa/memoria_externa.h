@@ -24,14 +24,12 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Where a request should be placed.
  *
- * @note Packed to one byte. mmgr_types.h asserts that packing reaches the compiler.
+ * @note One byte on every compiler, through EMBED_ENUM_BYTE.
  */
-typedef enum EMBED_ENUM_PACKED
-{
-    PLACE_DRAM = 0,  /**< Internal memory. */
-    PLACE_PSRAM = 1, /**< External memory. */
-    PLACE_FAIL = 2   /**< Neither will take it. */
-} mmgr_place;
+EMBED_ENUM_BYTE(mmgr_place, PLACE_DRAM = 0, /**< Internal memory. */
+                PLACE_PSRAM = 1,            /**< External memory. */
+                PLACE_FAIL = 2              /**< Neither will take it. */
+);
 
 /**
  * @brief A pair of buffers, one being filled while the other is drained.

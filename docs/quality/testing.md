@@ -81,7 +81,7 @@ knowing:
 `suites --strict`, `deps --strict` and `generated --strict` exit non-zero on a finding, which is
 what makes them usable as CI gates.
 
-Six build trees, each a different question, and each carries its own flags in the harness instead
+Seven build trees, each a different question, and each carries its own flags in the harness instead
 of in somebody's shell history:
 
 | tree             | what it is                                                         |
@@ -92,12 +92,13 @@ of in somebody's shell history:
 | `build-dma`      | DMA on, with recovery, the boundary word check and a settle window |
 | `build-dma-lean` | DMA on, with recovery and the settle window off                    |
 | `build-extram`   | external memory on                                                 |
+| `build-lock`     | the cellblock lock and the owner lists on                          |
 
 The two DMA trees answer every schedule knob through `MMGR_PRAET_KNOBS` (`PRAET_KNOBS` in
 `test/harness.py`). A context the suites declare has to be the size the library walks, so the knobs
 reach the library and the suites together. The cases gate on the knobs, and each tree compiles the
-arm the other one leaves out. The Capabilities workflow runs the two DMA trees and `build-extram` on
-every pull request, since the analysis job builds with both capabilities off.
+arm the other one leaves out. The Capabilities workflow runs the two DMA trees, `build-extram` and
+`build-lock` on every pull request, since the analysis job builds with every capability off.
 
 `build-oracle` and `build-cov` matter for coverage. `always_inline` is honoured at `-O0`, so without turning it off every call site
 of a header entry gets its own copy of that entry's branch records and the report counts optimizer
@@ -114,12 +115,15 @@ is for.
 ## Capability gating
 
 `test_memoriam_praetereo` and `test_praet_correctness` need `MMGR_ENABLE_DMA`.
-`test_memoria_externa` and `test_memoria_externa_accuracy` need `MMGR_ENABLE_EXTRAM`. Both knobs
-default off (`CMakeLists.txt:28-29`). All four are skipped **loudly**, with a CMake status message
-naming the capability that turned each one off:
+`test_memoria_externa` and `test_memoria_externa_accuracy` need `MMGR_ENABLE_EXTRAM`.
+`test_locus_carcerum_lock` needs `MMGR_ENABLE_LOCK`, and `test_locus_carcerum_owner_list` needs
+`MMGR_ENABLE_OWNERS`. Every one of those knobs defaults off (`CMakeLists.txt:31-34`). All six suites
+are skipped **loudly**, with a CMake status message naming the capability that turned each one off:
 
 ```
--- MMgr: 4 suites NOT built, their capability is off:
+-- MMgr: 6 suites NOT built, their capability is off:
+-- MMgr:   test_locus_carcerum_lock (MMGR_ENABLE_LOCK=OFF)
+-- MMgr:   test_locus_carcerum_owner_list (MMGR_ENABLE_OWNERS=OFF)
 -- MMgr:   test_memoria_externa (MMGR_ENABLE_EXTRAM=OFF)
 -- MMgr:   test_memoriam_praetereo (MMGR_ENABLE_DMA=OFF)
 -- MMgr:   test_memoria_externa_accuracy (MMGR_ENABLE_EXTRAM=OFF)

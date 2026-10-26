@@ -55,17 +55,16 @@ EMBED_INLINE const char *numer_str(const NumerCtx *args)
  * @brief Which member of an mmgr_fval union a field kind reads.
  *
  * @note numer_emit_one tests this to pick the union member. NumerKind::fn decides the format.
+ * @note One byte on every compiler, through EMBED_ENUM_BYTE.
  */
-typedef enum EMBED_ENUM_PACKED
-{
-    NUMER_ARM_NONE = 0, /**< Reads no value at all. */
-    NUMER_ARM_STR,      /**< Reads as.s. */
-    NUMER_ARM_U32,      /**< Reads as.u32. */
-    NUMER_ARM_U64,      /**< Reads as.u64. */
-    NUMER_ARM_I64,      /**< Reads as.i64. */
-    NUMER_ARM_D,        /**< Reads as.d. */
-    NUMER_ARM_CH,       /**< Reads as.c. */
-} NumerArm;
+EMBED_ENUM_BYTE(NumerArm, NUMER_ARM_NONE = 0, /**< Reads no value at all. */
+                NUMER_ARM_STR,                /**< Reads as.s. */
+                NUMER_ARM_U32,                /**< Reads as.u32. */
+                NUMER_ARM_U64,                /**< Reads as.u64. */
+                NUMER_ARM_I64,                /**< Reads as.i64. */
+                NUMER_ARM_D,                  /**< Reads as.d. */
+                NUMER_ARM_CH                  /**< Reads as.c. */
+);
 
 /**
  * @brief One field kind's formatting function, union arm, numeric base and default width.

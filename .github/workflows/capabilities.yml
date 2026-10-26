@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tree: [build-dma, build-dma-lean, build-extram]
+        tree: [build-dma, build-dma-lean, build-extram, build-lock]
     steps:
       - uses: actions/checkout@v7
 

@@ -31,10 +31,11 @@ An address the caller supplies is used as given.
 mark, not by pointer. Nothing is reallocated and nothing moves. A pointer handed out after a mark
 is dead the moment that mark is released - and it still points at readable memory.
 
-**It is not concurrent, and there is no knob that makes it so.** There is no synchronization
-anywhere in the allocator because there is nothing to synchronize: a region is a pointer, an extent
-and two offsets, used by whoever holds it, and two contexts that must not share get two regions. The
-lock-free ring in `memoria_anularis` is the one concurrent part, it is single-producer
+**It is not concurrent unless `MMGR_ENABLE_LOCK` is 1.** Off, there is no synchronization anywhere
+in the allocator: a region is a pointer, an extent and two offsets, used by whoever holds it, and two
+contexts that must not share get two regions. On, every entry of a cellblock's guard but
+`who_owns_buf` takes that cellblock's spinlock for the call; a temporary mark is still good only to
+the caller that took it. The lock-free ring in `memoria_anularis` is single-producer
 single-consumer, and it is not safe for more.
 
 ## Hardening the build

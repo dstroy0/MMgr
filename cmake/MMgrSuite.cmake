@@ -26,6 +26,10 @@
 # asked. MinGW folds them into its C runtime, which is why the Windows host links without this.
 find_library(MMGR_LIBM m)
 
+# support/host_threads.c starts the threads a contention case runs on. pthreads is a library of its
+# own on older glibc, and Threads::Threads names it there and nothing on Windows.
+find_package(Threads REQUIRED)
+
 function(mmgr_add_suite suite_name)
     cmake_parse_arguments(ARG "" "CAPABILITY;ENVIRONMENT" "" ${ARGN})
 
@@ -88,12 +92,15 @@ function(mmgr_add_suite suite_name)
         # environments call it is MMGR_NEEDS_CONTEXT_ID's business, and a suite list that has to
         # track that condition is a second copy of it waiting to disagree. Where nothing calls it,
         # the linker drops it.
+        #
+        # support/host_threads.c is linked the same way and for the same reason.
         add_executable(${target}
             "${suite_src}"
             "${runner}"
             "${unity_SOURCE_DIR}/src/unity.c"
             "${MMGR_TEST_ROOT}/support/platform_host.c"
-            "${MMGR_TEST_ROOT}/support/guard_page.c")
+            "${MMGR_TEST_ROOT}/support/guard_page.c"
+            "${MMGR_TEST_ROOT}/support/host_threads.c")
         add_dependencies(${target} ${suite_name}_runner)
         target_include_directories(${target} PRIVATE
             "${unity_SOURCE_DIR}/src"
@@ -114,7 +121,7 @@ function(mmgr_add_suite suite_name)
         if(CMAKE_C_COMPILER_ID STREQUAL "MSVC" OR CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
             target_compile_definitions(${target} PRIVATE UNITY_NORETURN=_Noreturn)
         endif()
-        target_link_libraries(${target} PRIVATE mmgr_${env})
+        target_link_libraries(${target} PRIVATE mmgr_${env} Threads::Threads)
         if(MMGR_LIBM)
             target_link_libraries(${target} PRIVATE ${MMGR_LIBM})
         endif()

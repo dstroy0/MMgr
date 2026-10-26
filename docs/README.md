@@ -18,7 +18,7 @@ can check against a budget rather than a thing you find out at runtime.
 ParsMemoriaeInternae(work, 4096);
 LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work));
 
-char *const buf = prison.work.persistent_buf_alloc(256u);
+char *const buf = prison.work.persistent_buf_alloc(256u, NULL);
 
 size_t at = 0;
 at = EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = 256u, .at = at, .text = "id=");

@@ -6,7 +6,7 @@ is decided by what kind of thing failed.
 ## 1. NULL, from a take that will not fit
 
 ```c
-void *const cell = prison.work.persistent_buf_alloc(256u);
+void *const cell = prison.work.persistent_buf_alloc(256u, NULL);
 if (cell == NULL) { }
 ```
 

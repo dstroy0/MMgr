@@ -149,7 +149,7 @@ PREDEFINED             = DOXYGEN \
                          EMBED_WEAK= \
                          EMBED_ALIAS= \
                          EMBED_RAW= \
-                         EMBED_ENUM_PACKED= \
+                         "EMBED_ENUM_BYTE(name_,...)=typedef enum { __VA_ARGS__ } name_" \
                          EMBED_ALIGN(x)= \
                          EMBED_CALL(...)= \
                          EMBED_STATIC_ASSERT(c,m)= \
@@ -159,6 +159,8 @@ PREDEFINED             = DOXYGEN \
                          MMGR_EXTRAM_ATTR= \
                          MMGR_ENABLE_DMA=1 \
                          MMGR_ENABLE_EXTRAM=1 \
+                         MMGR_ENABLE_LOCK=1 \
+                         MMGR_ENABLE_OWNERS=1 \
                          EMBED_WORD_BITS=64 \
                          EMBED_INDEX_BITS=32
 

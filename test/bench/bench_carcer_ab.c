@@ -62,9 +62,9 @@ static void proto_fresh(void)
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            void *p_ = ram.general.persistent_buf_alloc((N));                                                          \
+            void *p_ = ram.general.persistent_buf_alloc((N), NULL);                                                    \
             BENCH_KEEP(p_ != NULL);                                                                                    \
-            ram.general.persistent_buf_release(p_);                                                                    \
+            ram.general.persistent_buf_release(p_, NULL);                                                              \
         });                                                                                                            \
         report("locus_carcerum", "persist alloc+free", (N), cy_);                                                      \
     } while (0)
@@ -126,9 +126,9 @@ static void proto_fresh(void)
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            void *p_ = ram.general.persistent_buf_alloc((N));                                                          \
+            void *p_ = ram.general.persistent_buf_alloc((N), NULL);                                                    \
             BENCH_KEEP(p_ != NULL);                                                                                    \
-            ram.general.persistent_buf_release(p_);                                                                    \
+            ram.general.persistent_buf_release(p_, NULL);                                                              \
         });                                                                                                            \
         report("locus_carcerum", "max security alloc+zeroing release", (N), cy_);                                      \
                                                                                                                        \
@@ -141,9 +141,9 @@ static void proto_fresh(void)
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            void *p_ = ram.general.persistent_buf_alloc((N));                                                          \
+            void *p_ = ram.general.persistent_buf_alloc((N), NULL);                                                    \
             BENCH_KEEP(p_ != NULL);                                                                                    \
-            ram.general.persistent_buf_release(p_);                                                                    \
+            ram.general.persistent_buf_release(p_, NULL);                                                              \
         });                                                                                                            \
         report("locus_carcerum", "min security alloc+release", (N), cy_);                                              \
     } while (0)

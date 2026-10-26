@@ -421,22 +421,73 @@ EMBED_INLINE size_t carcer_want(size_t want)
 }
 
 /**
+ * @brief Adds an owner to the cellblock's list where it is not in it and the list has room.
+ *
+ * @param[in,out] cellblock Cellblock whose list to add to [BORROWS].
+ * @param[in,out] owner     The owner that took a cell [BORROWS].
+ * @note An owner listed by this cellblock already is found by listed_in and costs no walk. One last
+ *       listed elsewhere is looked for in this list before it is added, so an owner taking from two
+ *       cellblocks in turn appears once in each.
+ * @note listed_in is set only where this list carries the owner. One that finds the list full keeps
+ *       the value it had, and each take of it walks the list again.
+ * @note Expands to nothing where MMGR_ENABLE_OWNERS is 0, and the list does not exist.
+ */
+EMBED_INLINE void carcer_owner_listed(CarcerCellBlock *cellblock, CellOwner *owner)
+{
+#if MMGR_ENABLE_OWNERS
+    if (owner->listed_in == cellblock)
+    {
+        return;
+    }
+    embed_bool found = EMBED_FALSE;
+    for (size_t at = 0u; (at < cellblock->owner_count) && !found; at += 1u)
+    {
+        found = (embed_bool)(cellblock->owners[at] == owner);
+    }
+    if (!found && (cellblock->owner_count < MMGR_CARCER_OWNERS))
+    {
+        cellblock->owners[cellblock->owner_count] = owner;
+        cellblock->owner_count += 1u;
+        found = EMBED_TRUE;
+    }
+    // An owner past the list's room is in no list, so it names none and is looked for on its next take
+    if (found)
+    {
+        owner->listed_in = cellblock;
+    }
+#else
+    (void)cellblock;
+    (void)owner;
+#endif
+}
+
+/**
  * @brief Takes size bytes from the persistent tier.
  *
  * @param[in,out] cellblock Cellblock to take from [BORROWS].
  * @param[in]     size      Bytes wanted.
+ * @param[in,out] owner     The owner the cell is counted to, or NULL to count it to none [BORROWS].
  * @return                  Start of the cell, or NULL when the cellblock cannot meet it [RETURNS OWNERSHIP].
  * @note Reuses a released cell before moving the boundary, which is what makes this tier a free list
  *       rather than a cursor.
  * @note The reuse walk runs first and costs the tier its full length whenever nothing in it fits.
  *       Only then does the boundary move.
+ * @note The bytes counted to owner are the cell's payload as its header records it, which a reused
+ *       cell may carry past the request. The give reads the same header, so the two agree.
  */
-void *mmgr_persistent_buf_alloc(CarcerCellBlock *cellblock, size_t size)
+void *mmgr_persistent_buf_alloc(CarcerCellBlock *cellblock, size_t size, CellOwner *owner)
 {
     const size_t want = carcer_want(size);
     void *const reused = carcer_fit(cellblock, carcer_up(cellblock), want);
+    void *const prisoner = (reused != NULL) ? reused : carcer_grow(cellblock, want, EMBED_FALSE);
 
-    return (reused != NULL) ? reused : carcer_grow(cellblock, want, EMBED_FALSE);
+    if ((prisoner != NULL) && (owner != NULL))
+    {
+        owner->in_use += carcer_blk(cellblock, carcer_off_of(cellblock, prisoner))->size;
+        carcer_hw(&owner->hw, owner->in_use);
+        carcer_owner_listed(cellblock, owner);
+    }
+    return prisoner;
 }
 
 /**
@@ -506,8 +557,12 @@ void mmgr_zero_buf(void *prisoner, size_t size)
  *
  * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
  * @param[in]     prisoner  First byte of the cell [TAKES OWNERSHIP].
+ * @param[in,out] owner     The owner the cell was counted to, or NULL where it was counted to none
+ *                          [BORROWS].
  * @note Which tier the cell came from is read from its address rather than named by the caller. A
  *       release cannot be given to the wrong tier.
+ * @note The cell's payload bytes, read off its header, come off owner's in_use ahead of the release,
+ *       while the header still reads as the take left it.
  * @note After coalescing, an empty cell at the tier's own boundary is returned to the gap, so the
  *       tiers recover. That boundary is the last cell on the persistent tier and the first on the
  *       temporary one.
@@ -520,7 +575,7 @@ void mmgr_zero_buf(void *prisoner, size_t size)
  *          that is not the first byte of a cell passes the test and is still read as a header, so
  *          mmgr_who_owns_buf narrows this and does not close it.
  */
-void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner)
+void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner)
 {
     if (prisoner == NULL)
     {
@@ -535,6 +590,10 @@ void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner)
 
     const size_t off = carcer_off_of(cellblock, prisoner);
 
+    if (owner != NULL)
+    {
+        owner->in_use -= carcer_blk(cellblock, off)->size;
+    }
     carcer_blk(cellblock, off)->used = 0u;
 
     if (off < cellblock->persistent_end)
@@ -569,8 +628,10 @@ void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner)
  *
  * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
  * @param[in,out] prisoner  First byte of the cell, zeroed before release [TAKES OWNERSHIP].
+ * @param[in,out] owner     The owner the cell was counted to, or NULL where it was counted to none
+ *                          [BORROWS].
  * @note The one step that separates a zeroing release from a plain one. The release itself is
- *       shared.
+ *       shared, and it takes the cell's bytes off owner.
  * @note The extent comes from the cell's own header. A caller cannot under-zero a cell.
  * @note A NULL prisoner returns without touching the cellblock.
  * @warning prisoner is dead once this returns. The cellblock may hand those bytes out again.
@@ -581,7 +642,7 @@ void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner)
  *          that is not the first byte of a cell passes the test, has its extent read from the bytes
  *          lying ahead of it, and is zeroed for whatever length those hold.
  */
-void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *prisoner)
+void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner)
 {
     if (prisoner == NULL)
     {
@@ -597,7 +658,7 @@ void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *
     const CarcerCell *const walk = carcer_blk(cellblock, carcer_off_of(cellblock, prisoner));
 
     mmgr_zero_buf(prisoner, walk->size);
-    mmgr_persistent_buf_release(cellblock, prisoner);
+    mmgr_persistent_buf_release(cellblock, prisoner, owner);
 }
 
 /**

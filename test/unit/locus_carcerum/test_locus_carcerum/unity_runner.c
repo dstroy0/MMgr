@@ -127,14 +127,14 @@ int main(void)
   run_test(test_a_minimum_security_release_leaves_the_bytes_alone, "test_a_minimum_security_release_leaves_the_bytes_alone", 283);
   run_test(test_a_maximum_security_release_zeroes_the_bytes_first, "test_a_maximum_security_release_zeroes_the_bytes_first", 299);
   run_test(test_a_maximum_security_release_zeroes_the_whole_cell, "test_a_maximum_security_release_zeroes_the_whole_cell", 315);
-  run_test(test_the_zeroing_clears_exactly_what_it_was_given, "test_the_zeroing_clears_exactly_what_it_was_given", 333);
-  run_test(test_a_mark_releases_everything_taken_after_it, "test_a_mark_releases_everything_taken_after_it", 353);
-  run_test(test_marks_nest_because_the_caller_holds_them, "test_marks_nest_because_the_caller_holds_them", 365);
-  run_test(test_reset_releases_the_whole_temporary_tier, "test_reset_releases_the_whole_temporary_tier", 382);
-  run_test(test_who_owns_buf_tells_a_cellblock_from_its_neighbor, "test_who_owns_buf_tells_a_cellblock_from_its_neighbor", 390);
-  run_test(test_who_owns_buf_refuses_the_edges, "test_who_owns_buf_refuses_the_edges", 401);
-  run_test(test_the_cellblocks_do_not_share_a_fill_point, "test_the_cellblocks_do_not_share_a_fill_point", 413);
-  run_test(test_a_span_over_cellblock_bytes_carries_the_cellblock_address, "test_a_span_over_cellblock_bytes_carries_the_cellblock_address", 421);
+  run_test(test_the_zeroing_clears_exactly_what_it_was_given, "test_the_zeroing_clears_exactly_what_it_was_given", 337);
+  run_test(test_a_mark_releases_everything_taken_after_it, "test_a_mark_releases_everything_taken_after_it", 357);
+  run_test(test_marks_nest_because_the_caller_holds_them, "test_marks_nest_because_the_caller_holds_them", 369);
+  run_test(test_reset_releases_the_whole_temporary_tier, "test_reset_releases_the_whole_temporary_tier", 386);
+  run_test(test_who_owns_buf_tells_a_cellblock_from_its_neighbor, "test_who_owns_buf_tells_a_cellblock_from_its_neighbor", 394);
+  run_test(test_who_owns_buf_refuses_the_edges, "test_who_owns_buf_refuses_the_edges", 405);
+  run_test(test_the_cellblocks_do_not_share_a_fill_point, "test_the_cellblocks_do_not_share_a_fill_point", 417);
+  run_test(test_a_span_over_cellblock_bytes_carries_the_cellblock_address, "test_a_span_over_cellblock_bytes_carries_the_cellblock_address", 425);
 
   return UNITY_END();
 }

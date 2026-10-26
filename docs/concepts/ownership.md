@@ -80,17 +80,40 @@ If two execution contexts must not share, declare two pools and hand each contex
 cellblock learns there were two, so there is nothing to count, nothing to index, and nothing to
 check. See @ref mod_confin_guide.
 
+## A take names its owner
+
+The caller says who a persistent cell is for. Every `persistent_buf_alloc` and
+`persistent_buf_release` takes a `CellOwner *` beside its size or its prisoner:
+
+```c
+static CellOwner reader = MMGR_CELL_OWNER("reader");
+
+void *const cell = prison.work.persistent_buf_alloc(256u, &reader);
+/* ... */
+prison.work.persistent_buf_release(cell, &reader);
+```
+
+The take adds the cell's payload, read off its header, to `reader.in_use` and raises `reader.hw` to
+it; the release takes the same bytes off. `NULL` in place of an owner counts nothing. The owner is
+the caller's storage, so the cellblock still does not ask which context reached it.
+
+With `MMGR_ENABLE_OWNERS` at 1, each cellblock also lists every owner that took a cell from it, in the
+order of each one's first take, up to `MMGR_CARCER_OWNERS`. An owner past that room keeps its own
+counts and is absent from the list.
+
 ## Concurrency
 
-There isn't any, and there is no knob that adds it.
+A cellblock synchronizes nothing unless `MMGR_ENABLE_LOCK` is 1. Off, it is a pool, an extent and two
+tier boundaries, reached only through the entries bound to it, and two contexts that must not share
+get two pools.
 
-There is no synchronization anywhere in a cellblock, because there is nothing to synchronize. It is a
-pool, an extent and two tier boundaries, reached only through the entries bound to it. Two contexts
-that must not share get two pools.
+On, every entry of a cellblock's guard but `who_owns_buf` takes that cellblock's `embed_spinlock` for
+the call. The lock spins and never sleeps, so one build serves a host thread, a part's task and a GPU
+thread. It serializes the entries; it does not make a temporary mark one caller took good against a
+release by another.
 
-The one genuinely concurrent module is `memoria_anularis`, and it is
-**single-producer, single-consumer only**. Two producers on one ring is not a slower correct program,
-it is a broken one. See @ref mod_anular_guide.
+The ring in `memoria_anularis` is **single-producer, single-consumer only**. Two producers on one
+ring is not a slower correct program, it is a broken one. See @ref mod_anular_guide.
 
 ## What a check would catch, and what none of them do
 

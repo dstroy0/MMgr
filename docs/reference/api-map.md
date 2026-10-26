@@ -53,6 +53,10 @@ function reached two ways. See @ref concept_ns_idiom.
 
 ## The exceptions
 
+`verba_scribo/verba_linea.h` has no table. Its `mmgr_line_*` entries take a `VerbaLinea` and the
+value as plain arguments, and the header includes `mmgr.h` alone, so a C++ translation unit reaches
+them without the designated initializers the module's tables are written with.
+
 `proximus_operor` has one table, `proxim`, and keeps its three **strategies** apart in the entry
 names instead: `load` and `put` are unaligned, `al_load` and `al_put` are aligned, and the may-alias
 part is `mmgr_migro_word`, the type they all move. Merging them is a miscompile the compiler cannot

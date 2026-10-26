@@ -73,7 +73,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/accuracy/test_memoria_externa_accuracy\\test_memoria_externa_accuracy.c");
+  UnityBegin("test/accuracy/test_memoria_externa_accuracy\\test_memoria_externa_accuracy.c");
   run_test(test_the_reference_policy_this_suite_relies_on_is_itself_right, "test_the_reference_policy_this_suite_relies_on_is_itself_right", 147);
   run_test(test_every_placement_decision_matches_the_documented_policy, "test_every_placement_decision_matches_the_documented_policy", 179);
   run_test(test_a_request_larger_than_the_free_bytes_is_refused_at_the_top_of_the_range, "test_a_request_larger_than_the_free_bytes_is_refused_at_the_top_of_the_range", 234);

@@ -280,13 +280,20 @@
 #endif
 
 /**
- * @brief Expands to __attribute__((packed)) where MMGR_HAS_ATTRIBUTE(packed) is non-zero.
+ * @brief Expands to __attribute__((packed)) where MMGR_HAS_ATTRIBUTE(packed) is non-zero, and to the
+ *        fixed underlying type `: unsigned char` for a C++ compiler without it.
  *
- * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(packed) is 0.
+ * @note The C++ arm is nvcc over MSVC, which a .cu reaching MMgr on Windows compiles under. C++11 made
+ *       the fixed underlying type standard.
+ * @warning On the C++ arm the width is one byte whatever the range, so an enumerator past 255 or below
+ *          0 fails the build there.
+ * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(packed) is 0 in C.
  * @note mmgr_types.h asserts sizeof(MmgrEnumProbe) == 1 to catch that case.
  */
 #if MMGR_HAS_ATTRIBUTE(packed)
 #define MMGR_ENUM_PACKED __attribute__((packed))
+#elif defined(__cplusplus)
+#define MMGR_ENUM_PACKED : unsigned char
 #else
 
 #define MMGR_ENUM_PACKED

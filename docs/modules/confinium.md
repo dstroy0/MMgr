@@ -73,7 +73,7 @@ released one at a time and the walk would be pure cost.
 ## Worked example
 
 ```c
-char *const table = prison.work.persistent_buf_alloc(512);
+char *const table = prison.work.persistent_buf_alloc(512, NULL);
 if (table == NULL) {
     return -1;                       /* the region is full; nothing moved */
 }
@@ -84,7 +84,7 @@ char *const  buf  = prison.work.temporary_buf_alloc(256);
 /* ... use buf ... */
 
 prison.work.temporary_buf_release(mark);
-prison.work.persistent_buf_release(table);
+prison.work.persistent_buf_release(table, NULL);
 ```
 
 @ref ref_glossary decodes the Latin the module names are built from.
@@ -98,8 +98,8 @@ because the block's own header carries its size.
 One call gives a persistent tenancy back, and what it does depends on which pool it is:
 
 ```c
-prison.work.persistent_buf_release(table);   /* minimum security: the bytes are left as they are */
-prison.keys.persistent_buf_release(secret);  /* maximum security: they are cleared first */
+prison.work.persistent_buf_release(table, NULL);   /* minimum security: the bytes are left as they are */
+prison.keys.persistent_buf_release(secret, NULL);  /* maximum security: they are cleared first */
 ```
 
 The guarantee is in the declaration rather than in a flag or a second call. A caller cannot ask

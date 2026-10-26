@@ -24,8 +24,8 @@ void tearDown(void)
 
 void test_the_two_cellblocks_are_separate(void)
 {
-    void *s = ram.secret.persistent_buf_alloc((size_t)32);
-    void *p = ram.plain.persistent_buf_alloc((size_t)32);
+    void *s = ram.secret.persistent_buf_alloc((size_t)32, NULL);
+    void *p = ram.plain.persistent_buf_alloc((size_t)32, NULL);
 
     TEST_ASSERT_NOT_NULL(s);
     TEST_ASSERT_NOT_NULL(p);
@@ -48,14 +48,14 @@ void test_the_allocation_puts_them_back_to_back(void)
 
 void test_maximum_security_release_zeroes_the_cell(void)
 {
-    unsigned char *p = (unsigned char *)ram.secret.persistent_buf_alloc((size_t)32);
+    unsigned char *p = (unsigned char *)ram.secret.persistent_buf_alloc((size_t)32, NULL);
 
     TEST_ASSERT_NOT_NULL(p);
     EMBED_CALL(memor.set, MemoriaCfg, .dst = p, .val = (uint8_t)0xA5u, .bytes = (size_t)32u);
     TEST_ASSERT_EQUAL_UINT8(0xA5u, p[0]);
     TEST_ASSERT_EQUAL_UINT8(0xA5u, p[31]);
 
-    ram.secret.persistent_buf_release(p);
+    ram.secret.persistent_buf_release(p, NULL);
     for (unsigned i = 0; i < 32u; i++)
     {
         TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, p[i], "released maximum security bytes must be zeroed");
@@ -64,12 +64,12 @@ void test_maximum_security_release_zeroes_the_cell(void)
 
 void test_minimum_security_release_does_not_zero(void)
 {
-    unsigned char *p = (unsigned char *)ram.plain.persistent_buf_alloc((size_t)32);
+    unsigned char *p = (unsigned char *)ram.plain.persistent_buf_alloc((size_t)32, NULL);
 
     TEST_ASSERT_NOT_NULL(p);
     EMBED_CALL(memor.set, MemoriaCfg, .dst = p, .val = (uint8_t)0xA5u, .bytes = (size_t)32u);
 
-    ram.plain.persistent_buf_release(p);
+    ram.plain.persistent_buf_release(p, NULL);
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(0xA5u, p[0], "the minimum security guard does not clear, that is its whole point");
     TEST_ASSERT_EQUAL_UINT8(0xA5u, p[31]);
 }
@@ -80,33 +80,33 @@ void test_each_cellblock_tracks_its_own_fill(void)
     TEST_ASSERT_EQUAL_size_t(0u, ram_secret_ctx.persistent_end);
     TEST_ASSERT_EQUAL_size_t(0u, ram_plain_ctx.persistent_end);
 
-    (void)ram.secret.persistent_buf_alloc((size_t)64);
+    (void)ram.secret.persistent_buf_alloc((size_t)64, NULL);
     TEST_ASSERT_TRUE(ram_secret_ctx.persistent_end >= 64u);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, ram_plain_ctx.persistent_end, "one cellblock filling must not move the other");
 
     const size_t secret_was = ram_secret_ctx.persistent_end;
 
-    (void)ram.plain.persistent_buf_alloc((size_t)128);
+    (void)ram.plain.persistent_buf_alloc((size_t)128, NULL);
     TEST_ASSERT_EQUAL_size_t(secret_was, ram_secret_ctx.persistent_end);
     TEST_ASSERT_TRUE(ram_plain_ctx.persistent_end >= 128u);
 }
 
 void test_release_gives_the_bytes_back_to_the_right_cellblock(void)
 {
-    void *s = ram.secret.persistent_buf_alloc((size_t)64);
-    void *p = ram.plain.persistent_buf_alloc((size_t)64);
+    void *s = ram.secret.persistent_buf_alloc((size_t)64, NULL);
+    void *p = ram.plain.persistent_buf_alloc((size_t)64, NULL);
 
     TEST_ASSERT_NOT_NULL(s);
     TEST_ASSERT_NOT_NULL(p);
 
     const size_t plain_held = ram_plain_ctx.persistent_end;
 
-    ram.secret.persistent_buf_release(s);
+    ram.secret.persistent_buf_release(s, NULL);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, ram_secret_ctx.persistent_end,
                                      "the only cell released, so the tier winds back");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(plain_held, ram_plain_ctx.persistent_end,
                                      "releasing one cellblock must not touch the other");
 
-    ram.plain.persistent_buf_release(p);
+    ram.plain.persistent_buf_release(p, NULL);
     TEST_ASSERT_EQUAL_size_t(0u, ram_plain_ctx.persistent_end);
 }

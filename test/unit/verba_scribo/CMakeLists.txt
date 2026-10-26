@@ -2,3 +2,4 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 
 add_subdirectory(test_verba_scribo)
+add_subdirectory(test_verba_linea)

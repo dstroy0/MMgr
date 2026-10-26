@@ -916,9 +916,9 @@ static uintptr_t ring_round_hand(void)
 
 static uintptr_t cellblock_persistent_alloc_release(void)
 {
-    void *const held = ram.general.persistent_buf_alloc(g_take);
+    void *const held = ram.general.persistent_buf_alloc(g_take, NULL);
 
-    ram.general.persistent_buf_release(held);
+    ram.general.persistent_buf_release(held, NULL);
     return (uintptr_t)held;
 }
 

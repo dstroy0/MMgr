@@ -15,7 +15,7 @@
 # trailing one, so none of them is long enough to earn it back. Off, the loop measured 26 cycles
 # against 32 at two zeros, 34 against 60 at six and 58 against 144 at eighteen, on an ESP32-S3.
 mmgr_add_module(verba_scribo
-  SOURCES verba_scribo.c
+  SOURCES verba_scribo.c verba_linea.c
   DEPS
     cellularum_laboro
     clz

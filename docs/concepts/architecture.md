@@ -51,8 +51,8 @@ fit (`src/locus_carcerum/locus_carcerum.c:386-406`), so both `persistent_buf_all
 `temporary_buf_alloc` can answer no and every call site has to test the return. `buf_available`
 reports the gap still between them. It is not a release; it answers _how much is left_.
 
-`persistent_buf_release` takes the cell itself — `void (*persistent_buf_release)(void *prisoner)`
-(`src/locus_carcerum/locus_carcerum.h:117`) — because the block's own header carries its size, so
+`persistent_buf_release` takes the cell itself — `void (*persistent_buf_release)(void *prisoner,
+CellOwner *owner)` (`src/locus_carcerum/locus_carcerum.h:191`) — because the block's own header carries its size, so
 the release does not have to be told. A block freed mid-chain stays in the chain until a release
 reaches the boundary, so the bottom end does not recover on every free. That is the trade the whole
 library is built on: giving up free-anything-anytime is what makes the footprint decidable.
@@ -161,8 +161,8 @@ if (EMBED_CALL(verba.finish, VerbaCfg, .out = buf, .cap = n, .at = at) == 0u) { 
 
 ## 5. Rings move bytes between a producer and a consumer
 
-`memoria_anularis` is the only part of the library that is concurrent, and only in one
-shape: **single producer, single consumer**. Exactly one producer advances `head` and exactly one
+Apart from the cellblock spinlock `MMGR_ENABLE_LOCK` turns on, `memoria_anularis` is the only part
+of the library that is concurrent, and only in one shape: **single producer, single consumer**. Exactly one producer advances `head` and exactly one
 consumer advances `tail`, so ordering is all that is needed: every atomic access goes through the
 module's own `MMGR_ATOMIC_LOAD` and `MMGR_ATOMIC_STORE`, acquire and release, and no entry on those
 two takes a lock or a read-modify-write.

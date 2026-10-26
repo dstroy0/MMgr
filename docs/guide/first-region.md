@@ -34,7 +34,7 @@ reach for and `prison.work` has no zeroing one
 ## Two tiers
 
 ```c
-uint8_t *config = prison.work.persistent_buf_alloc(128);
+uint8_t *config = prison.work.persistent_buf_alloc(128, NULL);
 uint8_t *working = prison.work.temporary_buf_alloc(512);
 ```
 

@@ -36,7 +36,7 @@ LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work), MMGR_MAXIMUM_SECURITY(keys));
 
 void frame(void)
 {
-    void *const cell = prison.work.persistent_buf_alloc(256u);
+    void *const cell = prison.work.persistent_buf_alloc(256u, NULL);
     mmgr_span span = EMBED_CALL(spat.from, SpatiumCfg, .buf = cell, .cap = 256u);
 
     EMBED_CALL(byteio.put_be, OctetusCfg, .write_span = &span, .value = 0xDEADBEEFu, .bytes = 4u);
@@ -83,9 +83,9 @@ Latin names, because they were carved out of a larger tree and the short English
 
 The first configure reaches the network: it fetches `embedded_types` into `deps/` at the SHA pinned
 in `deps/CMakeLists.txt:19`. Name a generator and a compiler, because the default on Windows is MSVC
-and MSVC does not build this tree — it stops at `deps/embedded_types/include/embed_types.h:263`,
-where a static assertion reports that `EMBED_ENUM_PACKED` is not honored and no enum keeps its
-declared width. GCC and Clang build it.
+and MSVC does not build the whole tree — `src/memoria_anularis` includes `<stdatomic.h>`, which MSVC's
+C enables only under `/experimental:c11atomics`. Every other module builds there. GCC and Clang build
+it all.
 
 To build without the network, put `embedded_types` at `deps/embedded_types` yourself, checked out at
 the pinned SHA, and add `-DFETCHCONTENT_FULLY_DISCONNECTED=ON`. That skips the fetch and uses what is

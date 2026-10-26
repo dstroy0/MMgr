@@ -58,8 +58,9 @@ the source makes that impossible. See @ref guide_install.
 performance answer, keeping them out is what keeps every compiler conditional in one file.
 
 **Thread-safe everything.** A cellblock is handed to whoever holds it, and two contexts that must not
-share get two pools; that is the concurrency model. A lock inside a bump allocator would be a lock on
-the hot path of a library whose whole claim is bounded, predictable cost.
+share get two pools; that is the concurrency model by default. A lock inside a bump allocator is a lock
+on the hot path of a library whose whole claim is bounded, predictable cost, so the cellblock's
+spinlock is a build switch, `MMGR_ENABLE_LOCK`, off unless a target asks for it.
 
 ## Versioning
 

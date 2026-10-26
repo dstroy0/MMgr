@@ -13,9 +13,10 @@ observation about one run. The long answer, including what it costs you, is @ref
 
 ## Is it thread-safe?
 
-A cellblock synchronizes nothing, because there is nothing to synchronize: it is a pool, an extent
-and two tier boundaries, used by whoever holds it. Two contexts that must not share get two pools,
-and neither cellblock learns there were two.
+A cellblock synchronizes nothing unless `MMGR_ENABLE_LOCK` is 1: it is a pool, an extent and two tier
+boundaries, used by whoever holds it. Two contexts that must not share get two pools, and neither
+cellblock learns there were two. With the switch at 1, every entry of a cellblock's guard but
+`who_owns_buf` takes that cellblock's spinlock for the call.
 
 The one genuinely concurrent module is `memoria_anularis`, which is single-producer
 single-consumer only. Two producers on one ring is broken, not slow. See @ref concept_ownership.
@@ -55,7 +56,8 @@ run on your machine instead of waiting for the hardware. One `cmake --build`, on
 ## A test says `test_memoriam_praetereo` was skipped. Is that a problem?
 
 No. `memoriam_praetereo` and `memoria_externa` are behind `MMGR_ENABLE_DMA` and
-`MMGR_ENABLE_EXTRAM`, both off by default, so their suites are skipped — loudly, with a CMake status
+`MMGR_ENABLE_EXTRAM`, and the cellblock lock and owner list suites behind `MMGR_ENABLE_LOCK` and
+`MMGR_ENABLE_OWNERS`, all off by default, so their suites are skipped — loudly, with a CMake status
 message. Turn the flag on if you want them built. A capability gates the whole suite, never a case
 inside one, because a suite that compiles half its cases away still reports as passing.
 

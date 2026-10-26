@@ -87,7 +87,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/memoria_externa/test_memoria_externa\\test_memoria_externa.c");
+  UnityBegin("test/unit/memoria_externa/test_memoria_externa\\test_memoria_externa.c");
   run_test(test_exter_header_is_self_contained, "test_exter_header_is_self_contained", 54);
   run_test(test_place_refuses_a_size_of_zero, "test_place_refuses_a_size_of_zero", 65);
   run_test(test_a_dma_request_reaches_internal_memory, "test_a_dma_request_reaches_internal_memory", 79);

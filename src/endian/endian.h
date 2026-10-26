@@ -28,16 +28,14 @@ EMBED_BEGIN_DECLS
  * @brief Width of one endian read or write, counted in bytes.
  *
  * @note The enumerators are the byte counts themselves, so the implementation switches on them directly.
- * @note Packed to one byte. mmgr_types.h asserts that packing reaches the compiler.
+ * @note One byte on every compiler, through EMBED_ENUM_BYTE.
  * @warning Nothing holds a value to these three. The switches in endian.c test 2 and 4 and take
  *          everything else on the default arm, which moves eight bytes.
  */
-typedef enum EMBED_ENUM_PACKED
-{
-    MMGR_ENDIAN_16 = 2, /**< Two bytes. */
-    MMGR_ENDIAN_32 = 4, /**< Four bytes. */
-    MMGR_ENDIAN_64 = 8, /**< Eight bytes. */
-} mmgr_endian_width;
+EMBED_ENUM_BYTE(mmgr_endian_width, MMGR_ENDIAN_16 = 2, /**< Two bytes. */
+                MMGR_ENDIAN_32 = 4,                    /**< Four bytes. */
+                MMGR_ENDIAN_64 = 8                     /**< Eight bytes. */
+);
 
 /**
  * @brief Arguments for the endian calls, where each call reads only the members it needs.

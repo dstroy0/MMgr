@@ -45,6 +45,39 @@ argument you passed.
 `put_n` takes the length with the text. A literal costs no scan: pass
 `sizeof "literal" - 1u`. `put` measures what it is given.
 
+## A line that carries its own cursor
+
+`verba_scribo/verba_linea.h` keeps the buffer, the cursor and an optional flush together in a
+`VerbaLinea`, and its `mmgr_line_*` entries take that line and the value as plain arguments. The
+header includes `mmgr.h` alone and defines no table, so a C++ translation unit calls them as they
+are.
+
+```c
+char out[128];
+VerbaLinea line = {out, sizeof out, 0u, NULL, NULL, 0u};
+
+mmgr_line_put(&line, "id=");
+mmgr_line_decimal(&line, id, 1u);
+mmgr_line_put(&line, " addr=");
+mmgr_line_hex(&line, addr, 8u);
+
+const size_t len = mmgr_line_finish(&line);
+```
+
+A line with no flush behaves as the writers above do: a write that does not fit leaves it full and
+`finish` reports zero. A line with a flush hands what it holds to the flush as it fills and goes on,
+so a text of any length passes through a buffer of any size. A flush answers 1 where it took the
+bytes, `MMGR_LINE_GROWN` where it moved the line into a larger buffer holding them still, and 0
+where it refused, which leaves the line full. `mmgr_line_put` reads its text a room at a time and
+never past the terminator, so it needs no bound on the text's length.
+
+| job       | entries                                                                  |
+| --------- | ------------------------------------------------------------------------ |
+| raw text  | `mmgr_line_put`, `mmgr_line_put_n`, `mmgr_line_put_most`, `mmgr_line_ch` |
+| columns   | `mmgr_line_put_columns`, `mmgr_line_decimal_columns`                     |
+| numbers   | `mmgr_line_decimal`, `mmgr_line_decimal_signed`, `mmgr_line_hex`         |
+| finishing | `mmgr_line_flush`, `mmgr_line_finish`, `mmgr_line_ok`                    |
+
 ## Gotchas
 
 **Overflow propagates, so check once at the end.** A writer with no room returns `cap` and every
