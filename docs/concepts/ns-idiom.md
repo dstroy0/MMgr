@@ -59,7 +59,7 @@ translation unit that does not use it.
 ## EMBED_TABLE_LAYOUT is the interesting part
 
 The table is addressed **by offset**. A positional initializer mis-wires silently when a member is
-inserted, removed or moved — the code still compiles, and `spat.from` calls something else.
+inserted, removed or moved: the code still compiles, and `spat.from` calls something else.
 
 `EMBED_TABLE_LAYOUT` pins it. It expands to a chain of `_Static_assert`s checking that each named member
 sits at its own loculus, in the order given, and that `sizeof` the struct is exactly that many
@@ -68,15 +68,15 @@ fail **at the declaration**, at compile time.
 
 That has one consequence for this documentation: **the order of the members is the layout**, so the
 reference must not sort them alphabetically. `SORT_MEMBER_DOCS` is `NO` in `docs/Doxyfile` for that
-reason, and it is not a cosmetic setting — sorting `MemoriaOperorNs` would show loculus 0 as `chr`
+reason, and it is not a cosmetic setting: sorting `MemoriaOperorNs` would show loculus 0 as `chr`
 when it is `cpy`.
 
 ## What the indirection costs
 
 Nothing, when `const` is respected.
 
-Measured: gcc devirtualizes a call through a `static const <Mod>Ns` down to the inlined body —
-identical instructions to calling the entry directly — and does **not** devirtualize the same call
+Measured: gcc devirtualizes a call through a `static const <Mod>Ns` down to the inlined body,
+identical instructions to calling the entry directly, and does **not** devirtualize the same call
 through a non-const table, which becomes a real call with an 88-byte frame. clang devirtualizes
 both. So the `const` in `EMBED_TABLE_STORAGE` is load-bearing: it is what makes the two compilers agree.
 
@@ -86,8 +86,8 @@ the gap. See @ref concept_swar for the measurement.
 ## Modules with more than one table
 
 `verbum_scrutor` has three: `lane`, `mask` and `word`. The entries were one table until the count
-passed what `EMBED_TABLE_LAYOUT` accepts, and splitting them by what they operate on — a lane of a word,
-a mask of lanes, a whole word — reads better than one table of everything did.
+passed what `EMBED_TABLE_LAYOUT` accepts, and splitting them by what they operate on, a lane of a word,
+a mask of lanes, a whole word, reads better than one table of everything did.
 
 `endian` is the other shape: two tables, `parva_extremitas` and `magna_extremitas`, over the same
 `EndianNs` type. The byte order is chosen by which table you call through, not by an argument.

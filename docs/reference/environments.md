@@ -5,7 +5,7 @@ one of them, in one build.
 
 ## What an environment is
 
-An environment is one set of width macros. It is not a target, a toolchain or a board — it is the
+An environment is one set of width macros. It is not a target, a toolchain or a board: it is the
 handful of numbers that make one machine different from another, turned into a compile-time knob so
 that a wide host can exercise a narrow machine's code paths without owning the narrow machine.
 
@@ -29,7 +29,7 @@ mmgr_spatium_host   mmgr_spatium_word32   mmgr_spatium_word16   ...
 mmgr_locus_carcerum_host mmgr_locus_carcerum_word32 mmgr_locus_carcerum_word16 ...
 ```
 
-and `src/CMakeLists.txt` aggregates each column into an interface target — `mmgr_host`,
+and `src/CMakeLists.txt` aggregates each column into an interface target, `mmgr_host`,
 `mmgr_word32`, `mmgr_word16`, `mmgr_idx16`, `mmgr_checks`. That aggregate is what a consumer or a
 test links.
 
@@ -59,7 +59,7 @@ ctest --test-dir build -R '_word16$' --output-on-failure
 ## Why these five
 
 `word16` and `idx16` are the two that earn their place most often. A SWAR scan is written once and
-runs at whatever the carrier is; the tail — the bytes after the last whole word — is where an
+runs at whatever the carrier is; the tail, the bytes after the last whole word, is where an
 off-by-one hides, and a 16-bit carrier reaches that tail four times sooner than a 64-bit one.
 `idx16` exists because a narrow index against a wide word is the combination nothing else covers,
 and it is what the static asserts in `embed_types.h` are there to catch.
@@ -72,7 +72,7 @@ is one nothing has ever tested.
 ## A note about earlier names
 
 Two environments called `swar16` and `swar32` used to exist. They set the _scan lane_ narrower than
-the machine word — a configuration no real target has, because the carrier is the machine word on
+the machine word, a configuration no real target has, because the carrier is the machine word on
 every machine. They were replaced by narrowing the whole machine instead, which is a case that does
 exist. If you find `swar16` in a path or a comment, it is stale.
 
@@ -94,6 +94,6 @@ set(MMGR_ENVIRONMENTS
 Every module target, every aggregate and every test registration follows from it. Nothing central
 lists the modules, so nothing central has to be kept in step.
 
-@note The generated API reference on this site is produced at one configuration — 64-bit word,
-32-bit index — because Doxygen must resolve `embed_word` to a single concrete type. The other four
+@note The generated API reference on this site is produced at one configuration, 64-bit word,
+32-bit index, because Doxygen must resolve `embed_word` to a single concrete type. The other four
 environments differ only in those typedefs. See `PREDEFINED` in `docs/Doxyfile`.

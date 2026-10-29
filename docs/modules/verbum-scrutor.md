@@ -1,4 +1,4 @@
-# Verbum scrutor — the SWAR scanner {#mod_scrut_guide}
+# Verbum scrutor: the SWAR scanner {#mod_scrut_guide}
 
 Word-at-a-time lane primitives. Branch-free, and the performance core of the library.
 
@@ -9,7 +9,7 @@ Word-at-a-time lane primitives. Branch-free, and the performance core of the lib
 - You are implementing something in the `mem*` or `str*` shape and want the same engine the rest of
   the library uses.
 
-Most callers never touch it directly — they use @ref mod_memor_guide or @ref mod_cellul_guide, which
+Most callers never touch it directly: they use @ref mod_memor_guide or @ref mod_cellul_guide, which
 are built on it.
 
 ## What it composes with
@@ -39,7 +39,7 @@ size_t find_zero(const uint8_t *p, size_t n)
 }
 ```
 
-The tail is where off-by-ones live, which is why `word16` exists as an environment — it reaches the
+The tail is where off-by-ones live, which is why `word16` exists as an environment: it reaches the
 tail four times sooner than a 64-bit carrier. See @ref ref_environments.
 
 ## Three tables
@@ -63,7 +63,7 @@ a byte length.
 
 **The carrier is the machine word, always.** There is no separate lane width to set: the scanner
 reads `EMBED_WORD_BITS` directly, so there is no second number to disagree with the first. A narrower
-carrier is never faster — it moves the same cache line and answers for fewer lanes.
+carrier is never faster: it moves the same cache line and answers for fewer lanes.
 
 **A gate may be a superset.** Some entries answer "possibly" rather than "definitely" because a false
 yes only costs a re-check while a false no is a bug. Read the brief on each entry before assuming an
@@ -75,7 +75,7 @@ x86-64. See @ref concept_swar.
 
 **The bodies are in a `.c`, and the build has to be optimized for that to be free.** The internals
 are `EMBED_INLINE` within the module, but the entries a caller reaches are ordinary functions in
-another translation unit. At `-O2` with LTO the bench binary contains no call to any of them — they
+another translation unit. At `-O2` with LTO the bench binary contains no call to any of them: they
 inline through the dispatch table and through the archive. Built with no optimization the same calls
 survive, and `lane.has_zero` measures 22 cycles instead of 3. Configure with a `CMAKE_BUILD_TYPE`.
 

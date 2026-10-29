@@ -51,8 +51,8 @@ fit (`src/locus_carcerum/locus_carcerum.c:386-406`), so both `persistent_buf_all
 `temporary_buf_alloc` can answer no and every call site has to test the return. `buf_available`
 reports the gap still between them. It is not a release; it answers _how much is left_.
 
-`persistent_buf_release` takes the cell itself — `void (*persistent_buf_release)(void *prisoner,
-CellOwner *owner)` (`src/locus_carcerum/locus_carcerum.h:191`) — because the block's own header carries its size, so
+`persistent_buf_release` takes the cell itself, `void (*persistent_buf_release)(void *prisoner,
+CellOwner *owner)` (`src/locus_carcerum/locus_carcerum.h:191`), because the block's own header carries its size, so
 the release does not have to be told. A block freed mid-chain stays in the chain until a release
 reaches the boundary, so the bottom end does not recover on every free. That is the trade the whole
 library is built on: giving up free-anything-anytime is what makes the footprint decidable.
@@ -83,7 +83,7 @@ is worth reading twice.
 ## 3. A cell is given back by one call, and the pool decides what that costs
 
 A _cell_ is what a pool hands out. Every one is taken with the pool's own `persistent_buf_alloc` and
-given back with its own `persistent_buf_release`. There is one release, not two — what differs is
+given back with its own `persistent_buf_release`. There is one release, not two. What differs is
 which guard the pool was declared under:
 
 |                      | `MMGR_MINIMUM_SECURITY` | `MMGR_MAXIMUM_SECURITY`                |
@@ -134,12 +134,12 @@ a whole message through several calls and test once at the end, rather than afte
 
 The two flags do not mean the same kind of thing. **`overflow` is a build failure**: what a writer
 emits and how big its buffer is are both fixed before the build, so there is no runtime condition
-under which a correct writer overruns a correctly sized span. It asserts — nothing in a shipping
-build, an abort in `checks` — and the latch is what a shipping build does with a wrong program,
+under which a correct writer overruns a correctly sized span. It asserts, nothing in a shipping
+build, an abort in `checks`, and the latch is what a shipping build does with a wrong program,
 keeping it from walking off the end rather than offering it somewhere to go.
 
 **`err` is a runtime fact**: a read span runs out because whatever sent the bytes sent fewer, and
-nothing was built wrong. That is why every take answers and no append returns anything — a short
+nothing was built wrong. That is why every take answers and no append returns anything: a short
 read is a case to handle, an overrun append is a bug to fix. A take that reaches past the end leaves
 the cursor where it was. A caller that keeps reading after a failure still knows where it is.
 
@@ -168,7 +168,7 @@ module's own `MMGR_ATOMIC_LOAD` and `MMGR_ATOMIC_STORE`, acquire and release, an
 two takes a lock or a read-modify-write.
 
 It offers three things over the same bytes: a byte ring, a segment view that hands out whole
-segments by index instead of copying them, and loculi — numbered holds that record a region to keep
+segments by index instead of copying them, and loculi, numbered holds that record a region to keep
 out of, for a reader walking bytes in place.
 
 The ring's size is yours to pick. `cap` is the bytes in the buffer you hand `mmgr_anular_init`, and
@@ -176,13 +176,13 @@ any non-zero power of two is accepted, because the ring wraps by masking. `nsegs
 at most `cap`.
 
 What the word width bounds is the loculi, not the segments: their free and held masks are one
-machine word each, so `MMGR_RING_LOCULI_MAX` is `EMBED_WORD_BITS` — 64 on a 64-bit build, 16 on a
+machine word each, so `MMGR_RING_LOCULI_MAX` is `EMBED_WORD_BITS`, 64 on a 64-bit build, 16 on a
 16-bit one. `MMGR_RING_LOCULI` is a build knob under that ceiling, and a static assert names it if
 it is set higher. A build with no use for the loculus view sets it to `0` and gets the keepout
 storage back.
 
-The caller declares the ring as an `mmgr_ring` and supplies the bytes. Everything else — the two
-cursors, the segment counters, the masks and the keepout records — lives inside that storage and is
+The caller declares the ring as an `mmgr_ring` and supplies the bytes. Everything else, the two
+cursors, the segment counters, the masks and the keepout records, lives inside that storage and is
 declared nowhere a consumer can reach.
 
 ## Who owns what
@@ -201,7 +201,7 @@ The column that matters is the third one. Nothing in MMgr reaches an allocator: 
 of a region the caller declared, and every free either returns a block to that region's own chain,
 moves a boundary, or clears a bit.
 
-The persistent end is the one exception to "nothing is ever really freed" — it keeps a chain of
+The persistent end is the one exception to "nothing is ever really freed": it keeps a chain of
 blocks. A release there is a genuine free that merges with its neighbours and can be reused. The
 interim end is not: nothing is released one at a time, and the whole run comes back at once.
 
@@ -211,7 +211,7 @@ interim end is not: nothing is released one at a time, and the whole run comes b
 general free. There is no allocation failure at an arbitrary point, because every take is against a
 region whose size you chose. Worst-case timing is a pointer bump.
 
-**Costs.** You must size it yourself, up front. Get it wrong and the take returns NULL — the region
+**Costs.** You must size it yourself, up front. Get it wrong and the take returns NULL: the region
 fails closed rather than letting the two ends walk into each other, but no allocator quietly finds
 more. The counters exist for exactly this: run the real workload under the `checks` environment,
 read them, then size the region.
@@ -221,8 +221,8 @@ both read straight off the pool's own state. `buf_available` reports the gap
 between them.
 
 For the peak rather than the current value, turn on `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Each end then
-keeps the largest it has seen in its own field — `persistent_hw` records `persistent_end`, `temporary_hw`
-records `size - temporary_top` — one per end, so neither is a maximum over the other. It is off by
+keeps the largest it has seen in its own field, `persistent_hw` records `persistent_end`, `temporary_hw`
+records `size - temporary_top`, one per end, so neither is a maximum over the other. It is off by
 default, and there is no entry that returns either: read the field.
 
 See @ref concept_zero_heap for the argument, @ref concept_ownership for the lifetime rules in

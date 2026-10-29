@@ -5,7 +5,7 @@ Every module, stem and verb in the library, and what it means in plain English.
 ## Why Latin at all
 
 libc and `<string.h>` are everywhere, and these are not libc functions. They reach the same
-conclusion for the same input, across every domain — that is all they share. How they reach it is
+conclusion for the same input, across every domain: that is all they share. How they reach it is
 entirely different: the backend is machine-width parallel word processing throughout, bitmath is
 extensive, and SIMD within a register is used wherever it applies.
 
@@ -26,34 +26,34 @@ The stem is the name of the module's dispatch table, so it is what a call site r
 
 | Latin                      | stem                                   | in English                                      |
 | -------------------------- | -------------------------------------- | ----------------------------------------------- |
-| `memoria_anularis`         | `anularis`                             | ring memory — the lock-free SPSC ring           |
-| `memoria_externa`          | `exter`                                | external memory — the PSRAM pool                |
-| `locus_carcerum`           | —                                      | place of prisons — the region and both its ends |
-| `spatium`                  | `spat`                                 | space, extent — a span                          |
-| `proximus_operor`          | `proxim`                               | nearest work — raw load and store               |
-| `verbum_scrutor`           | `lane`, `mask`, `word`                 | word examiner — the SWAR scanner                |
-| `memoria_operor`           | `memor`                                | memory work — the `mem*` family                 |
-| `cellularum_laboro`        | `cellul`                               | cell work — bounded string operations           |
-| `verba_scribo`             | `verba`                                | I write words — the string writer               |
-| `numeros_scribo`           | `numer`                                | I write numbers — the field formatter           |
-| `transformo`               | `muto`                                 | I transform — decimal to binary scaling         |
-| `fractio`                  | `fract`                                | a breaking — IEEE-754 field access              |
-| `bitorum_introitus_exitus` | `bitio`                                | entry and exit of bits — the bit writer         |
-| `octetus_introitus_exitus` | `byteio`                               | entry and exit of octets — byte transfers       |
+| `memoria_anularis`         | `anularis`                             | ring memory, the lock-free SPSC ring           |
+| `memoria_externa`          | `exter`                                | external memory, the PSRAM pool                |
+| `locus_carcerum`           |                                        | place of prisons, the region and both its ends |
+| `spatium`                  | `spat`                                 | space, extent, a span                          |
+| `proximus_operor`          | `proxim`                               | nearest work, raw load and store               |
+| `verbum_scrutor`           | `lane`, `mask`, `word`                 | word examiner, the SWAR scanner                |
+| `memoria_operor`           | `memor`                                | memory work, the `mem*` family                 |
+| `cellularum_laboro`        | `cellul`                               | cell work, bounded string operations           |
+| `verba_scribo`             | `verba`                                | I write words, the string writer               |
+| `numeros_scribo`           | `numer`                                | I write numbers, the field formatter           |
+| `transformo`               | `muto`                                 | I transform, decimal to binary scaling         |
+| `fractio`                  | `fract`                                | a breaking, IEEE-754 field access              |
+| `bitorum_introitus_exitus` | `bitio`                                | entry and exit of bits, the bit writer         |
+| `octetus_introitus_exitus` | `byteio`                               | entry and exit of octets, byte transfers       |
 | `endian`                   | `parva_extremitas`, `magna_extremitas` | _(English)_ byte order. small end, large end    |
-| `ascii_persona_bitorum`    | `ascii`                                | character masks of bits — the class bitmaps     |
-| `impensa_ancorae_acus`     | `ancorae`                              | cost of an anchor point — the frequency tables  |
-| `memoriam_praetereo`       | `praet`                                | I pass memory by — DMA transfer submission      |
+| `ascii_persona_bitorum`    | `ascii`                                | character masks of bits, the class bitmaps     |
+| `impensa_ancorae_acus`     | `ancorae`                              | cost of an anchor point, the frequency tables  |
+| `memoriam_praetereo`       | `praet`                                | I pass memory by, DMA transfer submission      |
 | `clz`                      | `clz`                                  | _(English)_ count leading zeros                 |
-| `pow5`                     | —                                      | _(English)_ powers of five for decimal work     |
+| `pow5`                     |                                        | _(English)_ powers of five for decimal work     |
 
 ## Verbs
 
 The verbs are where the Latin does the most work, because the English words were the ones most
 likely to mislead.
 
-The public entries are English. A handle is assembled from its slots — `[lifetime]_[security]_[what
-it is]_[action]` — with each slot spent only where it disambiguates.
+The public entries are English. A handle is assembled from its slots, `[lifetime]_[security]_[what
+it is]_[action]`, with each slot spent only where it disambiguates.
 
 | slot       | values                       | what it settles                                                       |
 | ---------- | ---------------------------- | --------------------------------------------------------------------- |
@@ -62,18 +62,18 @@ it is]_[action]` — with each slot spent only where it disambiguates.
 | what it is | `buf`                        | bytes, as against a mark or a count                                   |
 | action     | `alloc`, `release`, `return` | what the entry does to them                                           |
 
-So `persistent_buf_alloc` is lifetime/—/buf/alloc, and `persistent_max_security_buf_release` fills
+So `persistent_buf_alloc` is lifetime//buf/alloc, and `persistent_max_security_buf_release` fills
 all four. `max_security_buf_return` drops the lifetime slot, because `return` restores a mark and
 only the temporary tier has one.
 
 | entry           | means                   | why not the English                                                            |
 | --------------- | ----------------------- | ------------------------------------------------------------------------------ |
 | `buf_available` | bytes at hand           | `free_bytes` reads as a verb, as though it frees something. It reports a count |
-| `mark`          | a position to rewind to | —                                                                              |
-| `reset`         | return to empty         | —                                                                              |
+| `mark`          | a position to rewind to |                                                                                |
+| `reset`         | return to empty         |                                                                                |
 
 `temporary_buf_alloc` takes a cell from the temporary tier. `persistent_buf_release` takes **the cell
-itself** and gives it back — in any order, because the cell's own header carries its extent, so the
+itself** and gives it back, in any order, because the cell's own header carries its extent, so the
 release does not have to be told which one it is or when it was taken.
 
 ## Types
@@ -95,7 +95,7 @@ The `embed_` types come from `embedded_types`, a separate library MMgr consumes.
 ## Other terms this documentation uses
 
 The prison is a teaching metaphor, and the vocabulary follows it end to end. Where memory management
-already has the exact word — `persistent`, `temporary`, `alignment`, `header` — that word ships, and
+already has the exact word, `persistent`, `temporary`, `alignment`, `header`, that word ships, and
 the metaphor stays behind the name.
 
 | term            | means                                                                           |
@@ -126,11 +126,11 @@ solitary.
 Every public function is `mmgr_<infix>_<tail>`, where `<infix>` is the module's stem. `spat.from` is
 `mmgr_spat_from`, `memor.cpy` is `mmgr_memor_cpy`.
 
-`verbum_scrutor` is the exception: its three tables are named for what they operate on — `lane`,
-`mask`, `word` — while the functions all carry the module's own infix, so `lane.has_zero` is
+`verbum_scrutor` is the exception: its three tables are named for what they operate on, `lane`,
+`mask`, `word`, while the functions all carry the module's own infix, so `lane.has_zero` is
 `mmgr_scrut_has_zero`.
 
-Three infixes do not name their module, and that is deliberate rather than an oversight — they name
+Three infixes do not name their module, and that is deliberate rather than an oversight: they name
 distinct _concepts_ inside `proximus_operor`, and collapsing them onto one stem would merge things
 that are not the same thing:
 

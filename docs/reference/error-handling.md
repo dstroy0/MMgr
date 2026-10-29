@@ -12,11 +12,11 @@ if (cell == NULL) { }
 
 Checking after every call would be five branches that are almost never taken, and the fifth would
 eventually be the one somebody forgot. Latching moves the check to one place and makes forgetting it
-the only mistake available — which is a mistake a reviewer can actually see.
+the only mistake available, which is a mistake a reviewer can actually see.
 
 This applies to `verba` because what it is appending is not a length the caller had. A formatted
-number is as long as it turns out to be. Where the length **is** known at the call — a four byte
-field, a run of `n` bytes — the answer was settled before the build, and mechanism 4 covers it.
+number is as long as it turns out to be. Where the length **is** known at the call, a four byte
+field, a run of `n` bytes, the answer was settled before the build, and mechanism 4 covers it.
 
 ## 4. MMGR_ASSERT, for a broken precondition
 
@@ -34,8 +34,8 @@ build pays nothing.
 Set `MMGR_DEBUG_CHECKS=1` and `test/support/mmgr_host_traps.h` supplies the other form instead: a
 report to `stderr` naming the expectation, the file and the line, then `abort()`. Nothing else is
 needed to arm them.
-That is the `checks` environment, and it is a genuine gate in CI rather than a developer convenience
-— a broken precondition fails a test instead of being a no-op nobody notices.
+That is the `checks` environment, and it is a genuine gate in CI rather than a developer convenience:
+a broken precondition fails a test instead of being a no-op nobody notices.
 
 ```sh
 ctest --test-dir build -R '_checks$' --output-on-failure
@@ -50,7 +50,7 @@ A span does carry an `overflow` and a read span an `err`, and the two do not mea
 thing.
 
 `overflow` is mechanism 4, not mechanism 3. What a writer emits and how big its buffer is are both
-settled before the build. A correct writer cannot overrun a correctly sized span — the append
+settled before the build. A correct writer cannot overrun a correctly sized span: the append
 asserts. What the flag adds is what a **shipping** build does with a wrong program: the first bad
 append stores nothing, latches, and every append after it is a no-op. A writer that was built
 wrong is kept off the end of the buffer rather than walking down it. Read it to find out something is

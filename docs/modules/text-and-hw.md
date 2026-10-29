@@ -1,4 +1,4 @@
-# Verba scribo — the string builder {#mod_verba_guide}
+# Verba scribo: the string builder {#mod_verba_guide}
 
 Text out, without `printf` and without a heap.
 
@@ -95,13 +95,13 @@ as running out of room.
 
 ---
 
-# Numeros scribo — the field formatter {#mod_numer_guide}
+# Numeros scribo: the field formatter {#mod_numer_guide}
 
 A declarative layout. The format is data, not a string.
 
 ## When to reach for it
 
-A record with a fixed shape emitted many times — a log line, a telemetry frame, a fixed-width table.
+A record with a fixed shape emitted many times: a log line, a telemetry frame, a fixed-width table.
 Describe the layout once as an array and fill values in.
 
 ## Worked example
@@ -125,9 +125,9 @@ EMBED_CALL(numer.build, NumerosCfg, .out = buf, .cap = sizeof buf,
 ```
 
 A literal is a `MMGR_FK_LIT` field carrying its own text and length, so it costs no scan. Every
-other spec entry is a bare kind taking no argument. There is a one-word macro for some of them —
+other spec entry is a bare kind taking no argument. There is a one-word macro for some of them,
 `MMGR_STR`, `MMGR_U32`, `MMGR_U64`, `MMGR_I64`, `MMGR_CH`, `MMGR_JSON`, `MMGR_XML`, `MMGR_END`
-(`src/numeros_scribo/numeros_scribo.h:60-85`) — and the rest are written as the brace form above.
+(`src/numeros_scribo/numeros_scribo.h:60-85`), and the rest are written as the brace form above.
 `MMGR_FK_HEX`, `MMGR_FK_DEC`, `MMGR_FK_OCT`, `MMGR_FK_G` and `MMGR_FK_FIX` have no such macro.
 
 Four entries: `build` writes a record from a spec, `emit` writes values with no spec at all,
@@ -153,7 +153,7 @@ the layout is not fixed.
 
 ---
 
-# Memoriam praetereo — transfer submission {#mod_praet_guide}
+# Memoriam praetereo: transfer submission {#mod_praet_guide}
 
 @note Compiled only when `MMGR_ENABLE_DMA` is set, which defaults off. With it off the module is not
 in the library and its suite is skipped with a message rather than passing empty.
@@ -188,7 +188,7 @@ is called with a @ref mmgr_praet_event describing what finished.
 ## The hardware hooks are weak
 
 The functions that actually touch a controller are `EMBED_WEAK`. A board support file overrides one
-by defining a symbol with the same name — no registration, no function pointer table, no init order
+by defining a symbol with the same name: no registration, no function pointer table, no init order
 to get right.
 
 Without an override they are present and refuse every request, which is what lets
@@ -197,7 +197,7 @@ Without an override they are present and refuse every request, which is what let
 ## Gotchas
 
 **A submitted buffer must stay valid until the transfer completes** [BORROWS]. The module does not
-copy it and cannot tell when the controller is done — that is what `poll` and the completion
+copy it and cannot tell when the controller is done: that is what `poll` and the completion
 callback report. Everywhere else in MMgr a lifetime ends at a mark you control; here it ends when
 the hardware says so.
 

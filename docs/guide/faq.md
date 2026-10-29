@@ -24,13 +24,13 @@ single-consumer only. Two producers on one ring is broken, not slow. See @ref co
 ## What does the dispatch table cost?
 
 Nothing, given `const`. gcc devirtualizes a call through a `static const <Mod>Ns` to the inlined
-body — identical instructions to calling the entry directly — and does not devirtualize through a
+body, identical instructions to calling the entry directly, and does not devirtualize through a
 non-const one, which becomes a real call with an 88-byte frame. clang devirtualizes both. That is
 why `EMBED_TABLE_STORAGE` includes `const`. See @ref concept_ns_idiom.
 
 ## Do I need LTO?
 
-Not for the hot entries — they are `EMBED_INLINE` in their headers. For cross-module calls that are
+Not for the hot entries: they are `EMBED_INLINE` in their headers. For cross-module calls that are
 not, it is worth a lot: `mmgr_memor_chr` over 512 bytes measured 610 cycles without and 187 with.
 `MMGR_LTO` defaults to `ON`.
 
@@ -48,7 +48,7 @@ slow-and-small.
 
 ## Why are there five builds of everything?
 
-There aren't five builds — there is one build that produces five sets of targets. Each is the library
+There aren't five builds. There is one build that produces five sets of targets. Each is the library
 at a different set of compile-time widths. A defect that only appears at a 16-bit carrier fails a
 run on your machine instead of waiting for the hardware. One `cmake --build`, one `ctest`. See
 @ref ref_environments.
@@ -57,7 +57,7 @@ run on your machine instead of waiting for the hardware. One `cmake --build`, on
 
 No. `memoriam_praetereo` and `memoria_externa` are behind `MMGR_ENABLE_DMA` and
 `MMGR_ENABLE_EXTRAM`, and the cellblock lock and owner list suites behind `MMGR_ENABLE_LOCK` and
-`MMGR_ENABLE_OWNERS`, all off by default, so their suites are skipped — loudly, with a CMake status
+`MMGR_ENABLE_OWNERS`, all off by default, so their suites are skipped, loudly, with a CMake status
 message. Turn the flag on if you want them built. A capability gates the whole suite, never a case
 inside one, because a suite that compiles half its cases away still reports as passing.
 
@@ -80,7 +80,7 @@ and nothing can detect it for you. @ref concept_ownership.
 
 ## Why is there no `strcpy` in the string shim?
 
-There is no bounded spelling of it — the destination size is not one of its arguments, so there is
+There is no bounded spelling of it: the destination size is not one of its arguments, so there is
 nothing for the shim to map it onto. The name is simply not provided, and the shim also defines the
 `<string.h>` include guards so libc's declaration never arrives either. A call to it fails to
 compile instead of overflowing quietly. Use `strlcpy`, which takes the size. @ref guide_string_shim.
@@ -95,4 +95,4 @@ avoiding them keeps the scan path free of per-compiler `#ifdef`s. @ref concept_s
 
 The license text governs, not this page, and this is not legal advice. @ref proj_license_notes has
 the practical notes for a library consumed by `add_subdirectory`. If the terms do not suit your
-project, ask — dual licensing is a conversation, not a policy.
+project, ask: dual licensing is a conversation, not a policy.

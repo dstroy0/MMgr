@@ -40,7 +40,7 @@ That constraint is what lets the harness find them without a registry.
 
 Unity v2.6.1 arrives through CMake's `FetchContent` with `GIT_SHALLOW`. It is not committed, which
 is why `sonar-project.properties` and the CodeQL config exclude a `test/vendor/**` path that does
-not exist — that exclusion is vestigial.
+not exist: that exclusion is vestigial.
 
 Tests deliberately do **not** link `mmgr_flags`. Unity's assertion macros do not survive
 `-Wconversion`, and the choice is between weakening the warning set for the library or accepting
@@ -109,7 +109,7 @@ counters are read, which measures something nobody wrote.
 `ab` runs the two sides one after the other, never at once: two full builds at the same time makes
 the machine unusable and the comparison does not need them concurrent.
 
-A suite that borrows a region and never drives it looks covered and is not — that is what `deps`
+A suite that borrows a region and never drives it looks covered and is not: that is what `deps`
 is for.
 
 ## Capability gating

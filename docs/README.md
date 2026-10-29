@@ -58,7 +58,7 @@ The modules carry Latin category names: `locus_carcerum` is the region and its p
 span, `verbum_scrutor` is the SWAR scanner. Every one of them is decoded in @ref ref_glossary.
 
 The reason is that libc and `<string.h>` are everywhere, and these are not libc functions. They
-reach the same conclusion for the same input, across every domain — that is the whole of what they
+reach the same conclusion for the same input, across every domain: that is the whole of what they
 share. How they reach it is entirely different.
 
 The backend is machine-width parallel word processing throughout. Bitmath is extensive and SIMD

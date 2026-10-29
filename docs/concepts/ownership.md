@@ -8,7 +8,7 @@ the rules.
 **MMgr owns nothing.** Every byte it hands out is inside a buffer you gave it. Every "allocation" is
 a bump of a pointer into that buffer, and every "free" either unwinds that bump or clears a bit.
 
-So the question is never "has this been freed" — it is "is the thing it points into still valid, and
+So the question is never "has this been freed". It is "is the thing it points into still valid, and
 has the position it was taken from moved back past it".
 
 ## Lifetimes, shortest first
@@ -35,7 +35,7 @@ void *const cell = prison.work.temporary_buf_alloc(256u);
 prison.work.temporary_buf_release(mark);
 ```
 
-Nothing is reallocated, so `cell` dereferences without faulting and returns whatever is there —
+Nothing is reallocated, so `cell` dereferences without faulting and returns whatever is there,
 which, after the next allocation, is somebody else's data. This is the single most likely way to
 misuse this library. On a maximum-security cellblock the release zeroes back to the mark first, so
 what is read afterwards is zeros instead of the previous prisoner; on a minimum-security one nothing
@@ -61,7 +61,7 @@ rewinds its own mark is a use-after-free with extra steps.
 
 ## A cellblock does not ask who is calling
 
-A cellblock is one dressing over one pool. It does not ask which context reached it — a memory
+A cellblock is one dressing over one pool. It does not ask which context reached it: a memory
 manager has no concept of a worker, and the moment it tries to have one it needs a count of them, an
 index per allocation, a registry mapping platform contexts to that index, and a spare cellblock for
 when the index is wrong.
@@ -74,7 +74,7 @@ prison.work.who_owns_buf(cell);
 ```
 
 One unsigned subtract and one compare. It exists for asserts and for debugging, not for control
-flow — it says the pointer is inside the cellblock's storage, not that it is live.
+flow. It says the pointer is inside the cellblock's storage, not that it is live.
 
 If two execution contexts must not share, declare two pools and hand each context its own. Neither
 cellblock learns there were two, so there is nothing to count, nothing to index, and nothing to
@@ -118,7 +118,7 @@ ring is not a slower correct program, it is a broken one. See @ref mod_anular_gu
 ## What a check would catch, and what none of them do
 
 The preconditions that are asserted at all are in `spatium`, `bitorum_introitus_exitus`,
-`memoria_anularis`, `memoriam_praetereo` and `ascii_persona_bitorum` — a span with no
+`memoria_anularis`, `memoriam_praetereo` and `ascii_persona_bitorum`, a span with no
 buffer, a bit writer with no capacity, a ring with no storage, a channel that does not exist, a
 character class out of range.
 
@@ -136,6 +136,6 @@ defines `MMGR_ASSERT` itself before including the header, and neither form is us
 prisoner from another cellblock has shown the caller does not know which memory it is holding, and
 continuing would move this cellblock's boundaries using a header read out of another's bytes.
 
-What no check catches, in any configuration, is a **stale temporary-tier pointer**. Nothing can — the
+What no check catches, in any configuration, is a **stale temporary-tier pointer**. Nothing can: the
 memory is readable, the value is plausible, and there is no bit anywhere recording that the mark
 moved. That one is on you, and it is why the mark-and-rewind pattern is worth being rigid about.

@@ -1,4 +1,4 @@
-# Locus carcerum — the region {#mod_confin_guide}
+# Locus carcerum: the region {#mod_confin_guide}
 
 One region, carved from both ends by one allocator. Persist grows up from the base, interim grows
 down from the top, and the free middle between them is what both take from.
@@ -55,7 +55,7 @@ pool's own `sizeof` and not against the count it was handed.
 ## The two ends
 
 Both ends are the same block allocator. Each keeps a chain of blocks, each block behind its own
-header, and each carves from the free middle. All that differs is which way the boundary moves —
+header, and each carves from the free middle. All that differs is which way the boundary moves,
 and what that buys you:
 
 |              | persist                             | interim                        |
@@ -89,8 +89,8 @@ prison.work.persistent_buf_release(table, NULL);
 
 @ref ref_glossary decodes the Latin the module names are built from.
 
-Note what each release is given. The temporary one takes a **mark** — a value `temporary_buf_mark`
-handed back — and drops everything carved since. The persistent one takes the **cell itself**,
+Note what each release is given. The temporary one takes a **mark**, a value `temporary_buf_mark`
+handed back, and drops everything carved since. The persistent one takes the **cell itself**,
 because the block's own header carries its size.
 
 ## Giving back a secret
@@ -160,14 +160,14 @@ const size_t grown = pool->persistent_end;                 /* how far the bottom
 const size_t peak  = pool->persistent_hw;                  /* MMGR_ENABLE_HW_MEM_CAPACITY_CB only */
 ```
 
-A pool's counters are its own state, read rather than asked for — there is no
+A pool's counters are its own state, read rather than asked for: there is no
 accessor that would be a second way to spell a member read.
 
 `persistent_end` bounds the block chain rather than counting what is held: a freed block inside the
 chain stays in it until a release trims the end.
 
 The peaks are `persistent_hw` and `temporary_hw`, one per end so that neither is a maximum over the other,
-and they are only maintained when `MMGR_ENABLE_HW_MEM_CAPACITY_CB` is on — off by default. A run
+and they are only maintained when `MMGR_ENABLE_HW_MEM_CAPACITY_CB` is on, off by default. A run
 without it leaves both at zero and a reading from that run means nothing. @ref guide_first_region has
 the procedure.
 

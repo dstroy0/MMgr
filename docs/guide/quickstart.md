@@ -70,7 +70,7 @@ Three things in that listing are the library's whole personality:
   `ParsMemoriaeInternae` emits the storage and its alignment; `LocusCarcerum` emits each cellblock's
   state and the static asserts that the pool is a legal size for one. Neither is a call, and nothing
   runs at startup.
-- **`persistent_buf_alloc` borrows.** It allocates nothing from the heap — it hands back part of the
+- **`persistent_buf_alloc` borrows.** It allocates nothing from the heap: it hands back part of the
   cellblock's own storage and moves a boundary, and what it returns dies when that tier unwinds. Its
   second argument is the `CellOwner` the cell's bytes are counted to; `NULL` counts them to none. See
   @ref concept_ownership.
@@ -92,6 +92,6 @@ Arduino, and why there are no `install()` rules.
 
 ## Where to go from here
 
-- @ref guide_first_region — persist against interim, and releasing by mark
-- @ref concept_architecture — how a region becomes pools, spans and rings
-- @ref nav_modules — the module you actually need
+- @ref guide_first_region: persist against interim, and releasing by mark
+- @ref concept_architecture: how a region becomes pools, spans and rings
+- @ref nav_modules: the module you actually need

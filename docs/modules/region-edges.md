@@ -1,4 +1,4 @@
-# Memoria anularis — the lock-free edge {#mod_anular_guide}
+# Memoria anularis: the lock-free edge {#mod_anular_guide}
 
 Single-producer, single-consumer. A byte ring, a segment view over the same bytes, and loculus
 keepouts.
@@ -17,7 +17,7 @@ so nothing is copied across the boundary.
 ## Three things over the same bytes
 
 **A byte ring.** `available`, `vacant`, `put`, `read`, `read_byte`, `peek`, `consume`. Capacity must
-be a power of two — the wrap is a mask, not a modulo.
+be a power of two: the wrap is a mask, not a modulo.
 
 **A segment view.** `seg_next`, `seg_publish`, `seg_front`, `seg_release`, `seg_at`, `seg_inflight`.
 The producer fills a segment and publishes its index; the consumer reads that index and releases it
@@ -42,7 +42,7 @@ EMBED_CALL(anularis.init, AnularisCfg, .ring = &ring, .buf = mmgr_pars_storage_r
 ```
 
 `MemoriaAnularis` declares the ring's storage and claims the pool. The claim is what stops those same
-bytes being dressed a second time — as a cellblock, or as another ring — which would put two sets of
+bytes being dressed a second time, as a cellblock, or as another ring, which would put two sets of
 records over one region with nothing at run time to report it.
 
 Filling and draining:
@@ -77,7 +77,7 @@ a caller never needs a sentinel index to mean "none".
 ## Gotchas
 
 **SPSC only.** Two producers on one ring is a broken program, not a slow one. There is no check and
-no assert — exactly one producer advances `head` and exactly one consumer advances `tail`, and that
+no assert: exactly one producer advances `head` and exactly one consumer advances `tail`, and that
 is the whole reason acquire and release ordering is enough and no entry on those two needs a
 read-modify-write.
 
@@ -95,7 +95,7 @@ the same region. Bytes read are not scrubbed behind the cursor either.
 
 **The buffer is aligned before the ring gets it.** The ring does not check and has no way to.
 
-**`loculus_next` is a SWAR popcount fold, not a builtin.** Same reasoning as the rest of the library —
+**`loculus_next` is a SWAR popcount fold, not a builtin.** Same reasoning as the rest of the library,
 see @ref concept_swar.
 
 **Self-contained.** It reaches nothing outside `config`: the span mover, the bit index and the span
@@ -107,7 +107,7 @@ type it records are all defined in its own `.c`, which is also where `<stdatomic
 
 ---
 
-# Memoria externa — DRAM or PSRAM {#mod_exter_guide}
+# Memoria externa: DRAM or PSRAM {#mod_exter_guide}
 
 Decides where a buffer should live when there is more than one kind of memory.
 
@@ -158,7 +158,7 @@ passing `EMBED_TRUE` is what stops the answer being `PLACE_PSRAM`.
 
 ---
 
-# Proximus operor — load and store {#mod_proxim_guide}
+# Proximus operor: load and store {#mod_proxim_guide}
 
 Three access strategies. Not one thing under three names.
 
@@ -186,7 +186,7 @@ const uint32_t narrow = EMBED_CALL(proxim.load32, ProximusCfg, .at = p);
 
 An aligned load emitted for an address that is not aligned faults on some machines and silently
 returns a wrong value on others. A load without the may-alias marking lets the optimizer reorder it
-against a store it genuinely conflicts with — and the reordering is legal, because you told the
+against a store it genuinely conflicts with, and the reordering is legal, because you told the
 compiler the pointers could not alias.
 
 This is also why `tools/dev_env/names.tsv` keeps three infixes for one module. Collapsing them onto

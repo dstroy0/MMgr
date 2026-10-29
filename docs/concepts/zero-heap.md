@@ -54,7 +54,7 @@ cmake --build build
 ./build/test/checks/<your workload>
 ```
 
-`buf_available()` is per cellblock — `prison.work.buf_available()` — and reports the bytes still
+`buf_available()` is per cellblock, `prison.work.buf_available()`, and reports the bytes still
 between the two tiers at the moment you call it, not the largest it ever got.
 
 For the largest, build with `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Every allocation then keeps a peak in
@@ -74,7 +74,7 @@ still taken as written is any address the library did not hand out. See @ref pro
 ## When to reach for it
 
 It fits when the set of things you allocate is known, the sizes are bounded, and the lifetimes are
-either "forever" or "until this operation finishes" — which describes most protocol handling, most
+either "forever" or "until this operation finishes", which describes most protocol handling, most
 parsing, and most device I/O.
 
 It does not fit a workload whose shape is discovered at runtime and whose objects outlive each other

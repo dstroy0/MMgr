@@ -33,13 +33,13 @@ them and does nothing. Put the include first and keep it first.
 
 | you write                                         | you get                                                 |
 | ------------------------------------------------- | ------------------------------------------------------- |
-| `memcpy`, `memmove`, `memcmp`, `memchr`, `memset` | `memor.*` — SWAR, a word at a time                      |
-| `strlen`, `strnlen`                               | `cellul.len` — bounded by `MMGR_STR_MAX`                |
+| `memcpy`, `memmove`, `memcmp`, `memchr`, `memset` | `memor.*`, SWAR, a word at a time                      |
+| `strlen`, `strnlen`                               | `cellul.len`, bounded by `MMGR_STR_MAX`                |
 | `strcmp`, `strcasecmp`                            | `cellul.eq`                                             |
 | `strncmp`, `strncasecmp`                          | `cellul.diff`                                           |
-| `strstr`, `strcasestr`                            | `cellul.find` — sieved on the rarest byte of the needle |
+| `strstr`, `strcasestr`                            | `cellul.find`, sieved on the rarest byte of the needle |
 | `strchr`                                          | `cellul.chr`                                            |
-| `strlcpy`                                         | `cellul.copy` — always terminates                       |
+| `strlcpy`                                         | `cellul.copy`, always terminates                       |
 
 Every `str*` one takes a read cap, explicitly or through `MMGR_STR_MAX`. That is the difference from
 libc: there is no entry here that will run forward until it happens to find a zero.
@@ -63,7 +63,7 @@ libc's does. It is the string compares that lose the sign, not the memory ones.
 ## Why strcpy and strcat are missing
 
 There is no bounded spelling of `strcpy`. What it promises is "copy until the source ends", and the
-destination's size is not one of its arguments — so there is nothing to check against and no cap to
+destination's size is not one of its arguments, so there is nothing to check against and no cap to
 pass. The same is true of `strcat`.
 
 Defining them to something bounded would be worse than leaving them out: it would change their
@@ -84,7 +84,7 @@ arriving from outside.
 
 Set it to the largest string your program can legitimately hold: too small silently truncates work
 you meant to do, too large means a runaway read scans further before stopping. It is a cap, not a
-buffer size — nothing is allocated from it, and no pool is sized by it.
+buffer size: nothing is allocated from it, and no pool is sized by it.
 
 ## When not to use it
 

@@ -20,7 +20,7 @@ mmgr_<infix>_<tail>
 | `mmgr_cellul_len`     | `cellul` | `cellularum_laboro` |
 
 `locus_carcerum` is the exception. Its public entries are named for what they do rather than for the
-module — `mmgr_persistent_buf_alloc`, `mmgr_temporary_buf_mark`, `mmgr_buf_available` — so there is
+module, `mmgr_persistent_buf_alloc`, `mmgr_temporary_buf_mark`, `mmgr_buf_available`, so there is
 no `carcer` infix to read a module off. Reach them through a declared region's pools instead
 (`prison.work.persistent_buf_alloc`), which is how the header presents them.
 
@@ -61,9 +61,9 @@ them without the designated initializers the module's tables are written with.
 names instead: `load` and `put` are unaligned, `al_load` and `al_put` are aligned, and the may-alias
 part is `mmgr_migro_word`, the type they all move. Merging them is a miscompile the compiler cannot
 report, so the naming keeps them apart. `aequus` and `migro` are backend prefixes inside the `.c`
-and a type name — neither is a table a caller reaches for.
+and a type name: neither is a table a caller reaches for.
 
-`verbum_scrutor` splits the other way: three tables — `lane`, `mask`, `word` — over one module, named
+`verbum_scrutor` splits the other way: three tables, `lane`, `mask`, `word`, over one module, named
 for what each operates on, while every function keeps the module's own `scrut` infix.
 
 `pow5` has no stem because it exposes only data: the two tables of powers of five a decimal
@@ -73,10 +73,10 @@ conversion needs. See @ref qa_numeric for what it is for.
 
 | prefix         | is                                                              |
 | -------------- | --------------------------------------------------------------- |
-| `mmgr_<stem>`  | a data type — `mmgr_span`, `mmgr_bitor`                         |
-| `<Pascal>Cfg`  | the argument struct an entry takes — `SpatiumCfg`, `MemoriaCfg` |
-| `<Pascal>Ctx`  | the state a module operates on — `CarcerCellBlock`              |
-| `<Pascal>Ns`   | a dispatch table type — `SpatiumNs`, `ScrutLaneNs`              |
+| `mmgr_<stem>`  | a data type, `mmgr_span`, `mmgr_bitor`                         |
+| `<Pascal>Cfg`  | the argument struct an entry takes, `SpatiumCfg`, `MemoriaCfg` |
+| `<Pascal>Ctx`  | the state a module operates on, `CarcerCellBlock`              |
+| `<Pascal>Ns`   | a dispatch table type, `SpatiumNs`, `ScrutLaneNs`              |
 | `MMGR_<NAME>`  | a macro or a constant this library owns                         |
 | `EMBED_<NAME>` | a macro or a constant from `embedded_types`                     |
 
@@ -92,5 +92,5 @@ a pointer to it rather than the state itself.
 
 The search box indexes all three.
 
-@note `tools/dev_env/names.tsv` is the machine-readable version of this page — the table the naming
+@note `tools/dev_env/names.tsv` is the machine-readable version of this page, the table the naming
 law is enforced from.

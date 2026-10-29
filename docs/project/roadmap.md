@@ -16,14 +16,14 @@ lives on the free function it points at. See @ref qa_docs_coverage.
 
 **A generator toolchain for the derived documentation.** The module table, the configuration table,
 the glossary and the symbol index are all derivable from the tree, and are currently maintained by
-hand — which is exactly how "seventeen small modules" survived in a comment until there were
+hand, which is exactly how "seventeen small modules" survived in a comment until there were
 nineteen.
 
 ## Done since this was written
 
 **The unit suites are no longer thin.** 240 targets at 100% of lines, branches and functions, and
 the whole suite runs a second time with `MMGR_ORACLE_LIBC` on so libc answers the same questions.
-What that turned up is in @ref qa_testing and @ref qa_numeric — a parser that was returning the
+What that turned up is in @ref qa_testing and @ref qa_numeric, a parser that was returning the
 right double 16% of the time, a search that read up to seven bytes past its cap, an exponent that
 silently became zero past 1e308.
 
@@ -45,7 +45,7 @@ A page of non-goals is worth more than a page of goals, because it is the one th
 
 **A general allocator.** No free lists, no size classes, no arbitrary-order release. If a workload
 needs those, it needs a heap, and MMgr is the wrong shape for it. Adding a general free would take
-away the property the whole library exists for — a footprint decided before the program runs.
+away the property the whole library exists for: a footprint decided before the program runs.
 
 **Runtime configuration.** Every knob is a compile-time define. A runtime-sized pool would move
 allocation failure from configure time back to run time, which is the thing being avoided.
@@ -54,7 +54,7 @@ allocation failure from configure time back to run time, which is the thing bein
 prebuilt archive can silently disagree with its consumer about the size of `embed_word`. Consuming
 the source makes that impossible. See @ref guide_install.
 
-**Compiler intrinsics in the scan path.** Measured and rejected — see @ref concept_swar. Beyond the
+**Compiler intrinsics in the scan path.** Measured and rejected. See @ref concept_swar. Beyond the
 performance answer, keeping them out is what keeps every compiler conditional in one file.
 
 **Thread-safe everything.** A cellblock is handed to whoever holds it, and two contexts that must not
@@ -64,7 +64,7 @@ spinlock is a build switch, `MMGR_ENABLE_LOCK`, off unless a target asks for it.
 
 ## Versioning
 
-Pre-1.0, so the API may change. It is currently 0.1.0 in five places —
+Pre-1.0, so the API may change. It is currently 0.1.0 in five places:
 `CMakeLists.txt`, `library.json`, `library.properties`, `CITATION.cff` and
-`sonar-project.properties` — with nothing keeping them in step. That wants a generator before it
+`sonar-project.properties`, with nothing keeping them in step. That wants a generator before it
 wants a 1.0.

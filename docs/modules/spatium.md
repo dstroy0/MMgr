@@ -1,4 +1,4 @@
-# Spatium — spans {#mod_spat_guide}
+# Spatium: spans {#mod_spat_guide}
 
 A bounded view over memory the span does not own, with a cursor and a flag that latches.
 
@@ -47,7 +47,7 @@ error rather than a puzzle.
 
 **`overflow` is a build failure.** What a writer emits and how big its buffer is are both settled
 before the build, so the two are either compatible or the program is wrong. There is no runtime
-condition under which a correct writer overruns a correctly sized span. `MMGR_ASSERT` says so —
+condition under which a correct writer overruns a correctly sized span. `MMGR_ASSERT` says so,
 nothing in a shipping build, an abort in `checks`. See @ref ref_error_handling.
 
 The flag is what a shipping build does with a wrong program, not a path to design for. It latches so
@@ -79,9 +79,9 @@ a failure still knows where it is. `spat.reset` is the only call that clears a f
 
 ## The ten entries
 
-Two build one — `from`, `cfrom`. Two ask whether it is still usable — `ok`, `cok`. One asks whether
-it covers any bytes at all — `has_storage`. One rewinds — `reset`. Two narrow — `after` a count of
-bytes, and `first` so many. Two turn a filled span back into a readable one — `produced` for
+Two build one: `from`, `cfrom`. Two ask whether it is still usable: `ok`, `cok`. One asks whether
+it covers any bytes at all: `has_storage`. One rewinds: `reset`. Two narrow: `after` a count of
+bytes, and `first` so many. Two turn a filled span back into a readable one: `produced` for
 everything written, `read` for a named prefix of it.
 
 There is no `len` and no `room`. The span is the caller's own value, so `s.pos` and `s.cap - s.pos`

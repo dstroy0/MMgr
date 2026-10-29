@@ -18,7 +18,7 @@ cmake --build build-bench
 
 Benches are off by default and are added independently of `MMGR_BUILD_TESTS`, so
 `-DMMGR_BUILD_BENCH=ON` alone is enough. They are always compiled `-O2` regardless of
-`CMAKE_BUILD_TYPE` — measuring a debug build tells you about the debug build.
+`CMAKE_BUILD_TYPE`: measuring a debug build tells you about the debug build.
 
 One binary per bench **per environment**, because the reading that matters is the comparison
 _between_ environments. A SWAR bench built only at the host's carrier width cannot show what

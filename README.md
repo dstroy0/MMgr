@@ -1,6 +1,6 @@
 # MMgr
 
-Zero-heap memory manager in C11. A pool is a block of bytes you declare — `ParsMemoriaeInternae`, or
+Zero-heap memory manager in C11. A pool is a block of bytes you declare, `ParsMemoriaeInternae`, or
 `ParsMemoriaeExternum` where the part has external RAM and `MMGR_ENABLE_EXTRAM` is set. Which memory
 a pool sits in is settled where it is declared, and nothing afterwards inspects an address to find
 out.
@@ -11,7 +11,7 @@ members and that every call goes through, all of it is initialized data, and not
 The footprint is a number you can check against a budget.
 
 A pool name stands for one region. Declaring it twice in a translation unit fails to compile, in two
-units fails to link, and dressing one pool twice fails to compile — each with a diagnostic naming
+units fails to link, and dressing one pool twice fails to compile, each with a diagnostic naming
 what went wrong.
 
 A cellblock hands out from both ends. The persistent tier runs up from base. The temporary tier runs
@@ -83,14 +83,14 @@ Latin names, because they were carved out of a larger tree and the short English
 
 The first configure reaches the network: it fetches `embedded_types` into `deps/` at the SHA pinned
 in `deps/CMakeLists.txt:19`. Name a generator and a compiler, because the default on Windows is MSVC
-and MSVC does not build the whole tree — `src/memoria_anularis` includes `<stdatomic.h>`, which MSVC's
+and MSVC does not build the whole tree: `src/memoria_anularis` includes `<stdatomic.h>`, which MSVC's
 C enables only under `/experimental:c11atomics`. Every other module builds there. GCC and Clang build
 it all.
 
 To build without the network, put `embedded_types` at `deps/embedded_types` yourself, checked out at
 the pinned SHA, and add `-DFETCHCONTENT_FULLY_DISCONNECTED=ON`. That skips the fetch and uses what is
 on disk; measured here at 190 of 190 targets. It is an escape for a rebuild on a machine that already
-has the dependency, not a first clone — disconnected mode with an empty `deps/` has nothing to use.
+has the dependency, not a first clone: disconnected mode with an empty `deps/` has nothing to use.
 
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=gcc -DMMGR_BUILD_TESTS=ON
@@ -124,7 +124,7 @@ characters down cannot build in place (`test/harness.py:27-34`).
 
 ## Status
 
-0.1.0, pre-1.0, so the API may change. What is measured is measured — the numbers in
+0.1.0, pre-1.0, so the API may change. What is measured is measured: the numbers in
 [`docs/quality/`](docs/quality) come out of tools in this repository and can be rerun.
 
 ## Licensing - This library is dual licensed.

@@ -1,6 +1,6 @@
 # Doing eight bytes at a time {#concept_swar}
 
-SWAR — SIMD Within A Register. Ordinary integer operations, used to process every byte of a word at
+SWAR: SIMD Within A Register. Ordinary integer operations, used to process every byte of a word at
 once, branch-free.
 
 The name and the technique are Randall J. Fisher and Henry G. Dietz, _Compiling for SIMD Within a
@@ -21,7 +21,7 @@ correct at 16, 32 and 64 bits without a `#if`:
 #define MMGR_SWAR_LOW7           (MMGR_SWAR_ONES * 0x7Fu)              /* 0x7F7F...7F */
 ```
 
-`ONES` is the broadcast multiplier — multiply a byte by it and you get that byte in every lane.
+`ONES` is the broadcast multiplier: multiply a byte by it and you get that byte in every lane.
 `HIGH` is where an answer lands. `LOW7` is the room a lane has to carry into before it disturbs the
 answer bit.
 
@@ -39,7 +39,7 @@ Read it a lane at a time:
 - `w & LOW7` drops the top bit of every lane, so no lane can carry into its neighbour.
 - `+ LOW7` adds `0x7F` to each. A lane whose low seven bits held anything at all carries into bit 7;
   a lane that held zero in those bits does not.
-- `| w` puts the top bits back, so bit 7 of each lane is now set exactly when the lane was nonzero —
+- `| w` puts the top bits back, so bit 7 of each lane is now set exactly when the lane was nonzero,
   either because the add carried, or because the byte was `0x80` or above to begin with.
 - `~` inverts it, and `& HIGH` keeps one bit per lane. What is left is the answer: a set bit for
   every lane that held zero.
@@ -67,10 +67,10 @@ if (m != 0)
 
 **Use `word.load_al` in a walk, not `word.load`.** `load` takes any address, which it pays for: the
 type it moves carries `EMBED_RAW`, which is `EMBED_ALIGN(1)` and `EMBED_ALIAS`, and on a target with no unaligned word load the
-compiler assembles each one out of byte loads and shifts — twelve instructions on Xtensa, eleven on
+compiler assembles each one out of byte loads and shifts, twelve instructions on Xtensa, eleven on
 RISC-V, one on ARMv7-M. A walk steps to the first word boundary once and reads the body through
 `load_al`, which is a single instruction everywhere. That change alone took `cellul.len` from 3.788
-cycles per byte to 3.055. `load` is for the address that genuinely is arbitrary — verifying a
+cycles per byte to 3.055. `load` is for the address that genuinely is arbitrary, verifying a
 candidate mid-haystack, say.
 
 ## The carrier is the machine word
@@ -79,7 +79,7 @@ Not a knob. A narrower carrier is never faster: a 16-bit load on a 32-bit machin
 cache line, occupies the same load port, and then answers for half the lanes.
 
 There is no separate lane width to set. The scanner reads `EMBED_WORD_BITS` directly, so nothing can
-desync the carrier from the word — there is no second number to disagree with the first.
+desync the carrier from the word: there is no second number to disagree with the first.
 
 What _is_ a knob is `EMBED_WORD_BITS` itself. Set it and the carrier and the machine word move
 together, which is how the `word32` and `word16` environments run a narrow machine's scan path on a
@@ -91,7 +91,7 @@ There are no `__builtin_ctz`, `__builtin_popcount` or intrinsics anywhere in `sr
 measured decision, not an aesthetic one:
 
 - An open-coded trailing-zero fold measured **3.609 cycles** against **3.680** for
-  `__builtin_ctzll` — the builtin was not faster.
+  `__builtin_ctzll`: the builtin was not faster.
 - `__builtin_popcountll` compiles to a **call to `__popcountdi2`** on baseline x86-64, because
   `popcnt` is not in the base ISA. A libgcc call in the middle of a branch-free scan is worse than
   the fold it replaced.
@@ -114,7 +114,7 @@ operation, so cycles-per-byte should fall as the carrier widens.
 | `spread`   |   7.74 |   2.89 |   1.33 |    5.8x |
 | `eq`       |  10.09 |   4.30 |   2.32 |    4.4x |
 
-It does fall — roughly halving per doubling. `eq` sits about 11% above `has_zero`, which is the
+It does fall, roughly halving per doubling. `eq` sits about 11% above `has_zero`, which is the
 `movzbl`, `imul` and `xor` it adds. Nothing to explain.
 
 Read these as a comparison **between rows of one build**, never against a number from another
@@ -126,9 +126,9 @@ Link-time optimization is load-bearing, and it is worth being blunt about how mu
 generated in `verbum_scrutor.c` by `GENERIC_ENTRY` and called by name from every other module, so no
 translation unit can inline them on its own. `mmgr_memor_chr` over 512 bytes measured **610 cycles**
 with them as out-of-line calls and **187** when the linker was allowed to inline them. On an
-ESP32-S3, `cellul.len` measured **26.6 cycles/byte without LTO against 5.0 with it** — worse than the
+ESP32-S3, `cellul.len` measured **26.6 cycles/byte without LTO against 5.0 with it**, worse than the
 byte-at-a-time ROM `strnlen` it is compared to. `MMGR_LTO` defaults to `ON` for that reason.
 
 @warning A toolchain that cannot do link-time optimization does not give a slower build of the same
 library; it gives a different one. ESP-IDF appends `-fno-lto` to every link unconditionally. An
-IDF project has to take that flag back out — see `test/performance_benching` for how.
+IDF project has to take that flag back out. See `test/performance_benching` for how.

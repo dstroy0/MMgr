@@ -13,14 +13,14 @@ region. On a 64-bit host they are 64 and 32 bits, and code that conflates them w
 breaks on the first machine where they differ. `idx16` is the environment that exists to reach that
 case.
 
-`embed_types.h` carries static asserts policing the combination — that an index can address the
+`embed_types.h` carries static asserts policing the combination: that an index can address the
 largest region the configuration allows, that the word is at least as wide as the index, that the
 fixed-width types are the widths they claim. They fire at compile time, in the build that got it
 wrong, naming the pairing.
 
 ## Enums must keep their declared width
 
-An enum that silently becomes an `int` moves every field after it in every struct containing one —
+An enum that silently becomes an `int` moves every field after it in every struct containing one,
 and this library addresses borrows by offset, so every offset computed from such a struct is then
 wrong.
 
@@ -67,7 +67,7 @@ implementation detail of the host, and code that writes "native" order to a wire
 appears when the other end is different.
 
 `EMBED_BIG_ENDIAN` derives from `__BYTE_ORDER__` and exists so the library can pick the cheap path
-when the requested order happens to match the host — not so callers can ask for "whatever this
+when the requested order happens to match the host, not so callers can ask for "whatever this
 machine does".
 
 ## Alignment of an allocation
@@ -77,7 +77,7 @@ uint8_t *p = prison.work.persistent_buf_alloc(256, NULL);
 ```
 
 An allocation does not name an alignment, because there is only one. Every cell comes back aligned to
-`MMGR_CARCER_ALIGN`, which is `sizeof(embed_word)` — derived from the width instead of written as a
+`MMGR_CARCER_ALIGN`, which is `sizeof(embed_word)`, derived from the width instead of written as a
 number. A build at another width gets the alignment that width needs.
 
 `locus_carcerum.h` asserts that `MMGR_CARCER_ALIGN` is a power of two, since an offset rounds by
@@ -102,6 +102,6 @@ cmake -S . -B build -DMMGR_BUILD_TESTS=ON && cmake --build build && ctest --test
 `word16` reaches the scan tails four times sooner than `host`. `idx16` reaches the width asserts.
 Between them they cover the two mistakes this page is about. See @ref ref_environments.
 
-@note The generated reference on this site is produced at one configuration — 64-bit word, 32-bit
-index — because Doxygen has to resolve `embed_word` to a single concrete type. The other environments
+@note The generated reference on this site is produced at one configuration, 64-bit word, 32-bit
+index, because Doxygen has to resolve `embed_word` to a single concrete type. The other environments
 differ only in these typedefs.

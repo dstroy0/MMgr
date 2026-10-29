@@ -23,14 +23,14 @@ compiles. Where the absence of the directive would silently break the layout, th
 policed by a static assert at the point of use rather than trusted.
 
 **A directive is not an operation.** Nothing in that file computes anything. The library asks for no
-`__builtin_` at all — see @ref concept_swar for the measurements behind that.
+`__builtin_` at all. See @ref concept_swar for the measurements behind that.
 
 ## What is in it
 
 | macro                                   | with the attribute                             | without                       |
 | --------------------------------------- | ---------------------------------------------- | ----------------------------- |
 | `EMBED_INLINE`                          | `static inline __attribute__((always_inline))` | `static inline`               |
-| `EMBED_TABLE_STORAGE`                   | `static const`                                 | —                             |
+| `EMBED_TABLE_STORAGE`                   | `static const`                                 |                               |
 | `EMBED_UNUSED`                          | `__attribute__((unused))`                      | empty                         |
 | `EMBED_WEAK`                            | `__attribute__((weak))`                        | empty                         |
 | `EMBED_ALIAS`                           | `__attribute__((may_alias))`                   | empty                         |
@@ -70,7 +70,7 @@ EMBED_STATIC_ASSERT(sizeof(EmbedEnumProbe) == 1,
 ```
 
 If a compiler accepted the attribute and ignored it, the build stops at the source of the problem with
-a message that names the cause — instead of producing a binary whose struct offsets are wrong.
+a message that names the cause, instead of producing a binary whose struct offsets are wrong.
 
 @note On TI toolchains, pass `--small_enum`. The assert message says so.
 

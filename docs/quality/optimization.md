@@ -65,11 +65,11 @@ The other two, totals only - the shape is the same on all three:
 | _host (x86-64), for contrast_ | 108592 | 37696 |     30768 | 38992 | 44320 |
 
 `memoria_externa` and `memoriam_praetereo` compile to nothing and are left out. The five
-`impensa_ancorae_acus_*` units are one row because they are alternatives, not additions — a build
+`impensa_ancorae_acus_*` units are one row because they are alternatives, not additions: a build
 links exactly one cost table and they all define the same symbol. The total counts one.
 
-**-Os is the smallest, and -O1 is not second.** On all three targets -O1 lands _above_ -O2 — by 2521
-bytes on Xtensa, 2934 on RISC-V and 1596 on ARM — so the order is -Os, -O2, -O1, -O3. A build that
+**-Os is the smallest, and -O1 is not second.** On all three targets -O1 lands _above_ -O2, by 2521
+bytes on Xtensa, 2934 on RISC-V and 1596 on ARM, so the order is -Os, -O2, -O1, -O3. A build that
 wants small and does not want to think about it should ask for -Os and stop there; there is no reason
 to reach for -O1. -O3 costs 7080 bytes over -O2 on Xtensa, and @ref ref_performance is where to look
 before paying it.
@@ -82,7 +82,7 @@ with the desktop.
 Two units carry most of it. `verba_scribo` and `cellularum_laboro` are half the total at every level,
 which is what a decimal engine and a string module cost. `verba_scribo` is also the one unit where
 the size is buying correctness rather than speed: both of its render entries were wrong before it
-inlined that engine — `verba.fixed` by 15.87% below about 1e-41, and `verba.g` failing to name its
+inlined that engine, `verba.fixed` by 15.87% below about 1e-41, and `verba.g` failing to name its
 own value back 87.07% of the time. Both are 0.0000% now. See @ref qa_numeric.
 
 `transformo` has the widest spread that matters, 2898 at -Os against 5936 at -O3 on Xtensa. It is the
@@ -192,8 +192,8 @@ side does not do the same. Three answers, and the third is the one that matters 
 
 **The result is newer than the code.** newlib's is David Gay's `dtoa` and `mprec`, which date from
 1990 and are the reference implementation everyone inherited. That a fixed-width intermediate always
-suffices — that you need enough bits to decide guard, round and sticky and never the full expansion
-— is Grisu in 2010, Ryu in 2018, Eisel-Lemire in 2020. Twenty to thirty years later. Gay's code is
+suffices, that you need enough bits to decide guard, round and sticky and never the full expansion,
+is Grisu in 2010, Ryu in 2018, Eisel-Lemire in 2020. Twenty to thirty years later. Gay's code is
 not naive; it is correct, and it predates the result that makes it unnecessary.
 
 **A bignum serves every width with one body.** `mprec` is exact for `double`, `long double` and
@@ -203,7 +203,7 @@ for one, and bought the difference by narrowing what it promises.
 
 **And a bignum has to put its limbs somewhere.** `mprec.o` in this newlib carries undefined
 references to `malloc` and `_calloc_r`. On a target with a heap that is a cost. On a target without
-one it is not a trade at all — the entry does not link. So the table is not a smaller way of doing
+one it is not a trade at all: the entry does not link. So the table is not a smaller way of doing
 what libc does. It is the only way available to a library that must not allocate, and it happens to
 also be smaller. See @ref qa_numeric.
 
@@ -224,7 +224,7 @@ wash, because there is not much room in either.
 ### And the speed, on a libc that can be measured
 
 Size is measured cross-compiled for a cortex-m4, which cannot be run here. Speed is measured on the
-host against glibc — a different target and a different libc, so the two tables are about different
+host against glibc, a different target and a different libc, so the two tables are about different
 things and neither transfers to the other.
 
 gcc 13.3, glibc 2.39, x86-64. Same corpus, same order, best of fifteen:

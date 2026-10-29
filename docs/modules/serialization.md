@@ -1,4 +1,4 @@
-# Byteio — bytes on a wire {#mod_byteio_guide}
+# Byteio: bytes on a wire {#mod_byteio_guide}
 
 Byte and wire serialization over spans.
 
@@ -6,9 +6,9 @@ Byte and wire serialization over spans.
 
 Building or parsing a binary frame where the layout is fixed and the byte order is part of the spec.
 
-Six entries over @ref mod_spat_guide's two span types. Three append into a span being filled — `put`
-for one byte, `put_be` for a value big end first, `raw` for a run as it stands. Three read out of one
-— `take_be` for a value, `rd_str` for a length-prefixed run, `mpint_fixed` for an integer
+Six entries over @ref mod_spat_guide's two span types. Three append into a span being filled: `put`
+for one byte, `put_be` for a value big end first, `raw` for a run as it stands. Three read out of one:
+`take_be` for a value, `rd_str` for a length-prefixed run, `mpint_fixed` for an integer
 right-aligned into a fixed field.
 
 ```c
@@ -31,8 +31,8 @@ Fields sit `bytes` apart, and the span carries the cursor, so nothing here needs
 ## Gotchas
 
 **The appends answer nothing and the takes all answer.** That is the whole failure model. An append
-that does not fit is a build failure — what a writer emits and how big its buffer is are both fixed
-before the build — so it asserts, stores nothing, and latches the span's `overflow` to keep a wrong
+that does not fit is a build failure: what a writer emits and how big its buffer is are both fixed
+before the build, so it asserts, stores nothing, and latches the span's `overflow` to keep a wrong
 program off the end. A short read is a runtime fact about whatever sent the bytes, so it sets `err`,
 leaves the cursor alone and returns `EMBED_FALSE` for a caller to act on. See @ref ref_error_handling.
 
@@ -46,7 +46,7 @@ stores does.
 
 **`rd_str` copies nothing.** It points `blob` into the span's own bytes, so what it hands back lives
 exactly as long as the buffer does. A length that is read but not followed by its payload puts the
-cursor back where it started — a partial read is not a read.
+cursor back where it started: a partial read is not a read.
 
 **`mpint_fixed` writes the field whole rather than appending to it.** It zero-fills ahead of the
 value and leaves the cursor at `cap`. Leading zero bytes of the integer are skipped before the width
@@ -56,7 +56,7 @@ is tested. A value carrying a sign byte still fits a field of its own size.
 
 ---
 
-# Bitio — the bit writer {#mod_bitio_guide}
+# Bitio: the bit writer {#mod_bitio_guide}
 
 Bit-level output for formats that are not byte-aligned.
 
@@ -75,7 +75,7 @@ updates it through `writer`.
 **`align` is how a stream ends, and leaving it out loses the tail.** `put` writes whole bytes only,
 so bits that do not fill one stay in `residue` and are never stored on their own. Any stream whose
 length is not a multiple of eight needs `align` before its buffer is read. It pads with zeros above
-the bits it holds, and does nothing when the residue is empty — so calling it on a stream that
+the bits it holds, and does nothing when the residue is empty, so calling it on a stream that
 happened to end on a byte, or calling it twice, costs nothing.
 
 **Bits pack from the low end.** A 3-bit put of `0b101` then a 5-bit put of zero produces `0x05`, not
@@ -86,7 +86,7 @@ in `residue` and goes out when a later put completes it. A byte-level write to t
 between lands in the wrong place.
 
 **`overflow` latches.** A put whose completed bytes would run past `cap` writes nothing, sets the
-flag and clears the residue, and nothing clears it again — so one check after a run of puts covers
+flag and clears the residue, and nothing clears it again, so one check after a run of puts covers
 the whole run. As with a span, reaching it means the buffer was sized wrong for a stream whose
 length was known before the build.
 
@@ -97,7 +97,7 @@ length was known before the build.
 
 ---
 
-# Endian — stated byte order {#mod_endian_guide}
+# Endian: stated byte order {#mod_endian_guide}
 
 Explicit reads and writes. Two namespaces over three entries each, and the namespace is the byte
 order:
@@ -124,7 +124,7 @@ match the host. It is not there for a caller to ask for whatever the machine doe
 
 ---
 
-# Fractio — IEEE-754 fields {#mod_fract_guide}
+# Fractio: IEEE-754 fields {#mod_fract_guide}
 
 Getting at the parts of a `double` without `<math.h>` and without a heap.
 
@@ -139,9 +139,9 @@ const double   y    = EMBED_CALL(fract.from_bits, FractioCfg, .bits = back);
 ```
 
 `to_bits` and `from_bits` are the two directions of the same union, and `merge` returns a bit
-pattern, not a `double` — put it through `from_bits` to get the value back.
+pattern, not a `double`: put it through `from_bits` to get the value back.
 
-The `MMGR_DBL_*` constants — masks, shifts, the bias — are exposed too. A caller doing something
+The `MMGR_DBL_*` constants, masks, shifts, the bias, are exposed too. A caller doing something
 the entries do not cover is not forced to re-derive them.
 
 ## When to reach for it

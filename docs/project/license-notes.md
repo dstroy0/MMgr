@@ -18,7 +18,7 @@ directory it happens to sit in.
 ## The part that surprises people
 
 MMgr is consumed as **source**, by `add_subdirectory` or by PlatformIO and Arduino copying `src/`
-into your build. There are no `install()` rules and no binary artifact — see @ref guide_install for
+into your build. There are no `install()` rules and no binary artifact. See @ref guide_install for
 why.
 
 That means the ordinary "am I linking or copying" distinction does not apply here in the way it does
@@ -26,7 +26,7 @@ for a shared library. Your build compiles these files into your program.
 
 The AGPL's distinguishing clause is section 13: if you modify the program and let users interact
 with it **over a network**, those users must be able to get the corresponding source. That obligation
-attaches to network interaction, not only to shipping binaries — which is what separates the AGPL
+attaches to network interaction, not only to shipping binaries, which is what separates the AGPL
 from the GPL.
 
 For a memory manager on a device this often does not arise. For a memory manager inside a networked
@@ -45,7 +45,7 @@ https://github.com/dstroy0/MMgr
 ## If the terms do not suit you
 
 Ask. The copyright is held by one person, which means dual licensing is a conversation rather than a
-policy question — <dquigg123@gmail.com>.
+policy question: <dquigg123@gmail.com>.
 
 Saying so here is deliberate. A project that offers no route other than the AGPL gets silently passed
 over by people who would otherwise have used it and contributed back.

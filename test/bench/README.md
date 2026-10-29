@@ -20,7 +20,7 @@ is the harness's own cost. A row that is not clearly above `nop` is noise, not a
 
 `cycles_per_byte` is `cycles_per_call / MMGR_SWAR_BYTES`. That is the column the design claim lives
 in: a wider lane answers for more bytes per register operation, so cycles-per-byte should fall as
-the lane widens. It does — roughly halving per doubling, measured on gcc 13.2 `-O2`, x86-64:
+the lane widens. It does, roughly halving per doubling, measured on gcc 13.2 `-O2`, x86-64:
 
 | case     | 16-bit | 32-bit | 64-bit | 16 -> 64 |
 | -------- | -----: | -----: | -----: | -------: |
@@ -42,4 +42,4 @@ the loop left behind times a counter while the work happens once. A bench whose 
 move when `SPREAD` changes is almost certainly doing that.
 
 `results/` holds committed CSVs, which makes a change in these numbers visible as a diff. They are a record
-of one machine on one day, not a threshold — nothing fails a build over them.
+of one machine on one day, not a threshold: nothing fails a build over them.
