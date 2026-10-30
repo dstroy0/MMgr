@@ -1,5 +1,5 @@
 // The six shims that take no length of their own read to this bound. A caller states it, and this
-// suite is the caller: 64 covers "the quick brown fox" below, which is the longest string it holds
+// suite is the caller: 64 covers "the quick brown fox" below, the longest string it holds
 #define MMGR_STR_MAX 64u
 
 #include "mmgr_string_shim.h"
