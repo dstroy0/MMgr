@@ -235,7 +235,7 @@ void test_an_owner_for_each_thread_is_counted_back_to_nothing(void)
         s_own[at] = (CellOwner)MMGR_CELL_OWNER("own");
     }
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_own_owner, MMGR_HOST_THREADS_MOST));
-    // a thread whose every take the gap refused has a peak of 0, and the tier promises it nothing more; the
+    // a thread whose every take the gap refused has a peak of 0, and the tier promises it no take; the
     // threads together took cells
     size_t peaks = 0u;
     for (size_t at = 0u; at < MMGR_HOST_THREADS_MOST; at++)
