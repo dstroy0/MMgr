@@ -86,8 +86,7 @@ masking and masking lands on a multiple only for a power of two. `mmgr.h` assert
 
 The width costs bytes twice over. A request rounds up to a whole word before it is carved, and every
 cell carries three words beside its payload, each rounded to the same alignment: its size ahead of
-it, and behind it its owner and its tail, the cell's own offset on the persistent tier and 0 on the
-temporary one. On a 64-bit build that is 24 bytes per cell; on a 16-bit build it
+it, and behind it its owner and its tail, the cell's own offset. On a 64-bit build that is 24 bytes per cell; on a 16-bit build it
 is 6. A cellblock full of small cells pays that per cell, and in a 4 KB pool the width is worth
 thinking about for that reason.
 

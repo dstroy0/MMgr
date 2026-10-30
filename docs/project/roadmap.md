@@ -43,7 +43,7 @@ justifies it.
 
 A page of non-goals is worth more than a page of goals, because it stops arguments.
 
-**A general allocator.** No free lists, no size classes, no arbitrary-order release. If a workload
+**A general allocator.** No free lists and no size classes. If a workload
 needs those, it needs a heap, and MMgr is the wrong shape for it. Adding a general free would take
 away the property the whole library exists for: a footprint decided before the program runs.
 

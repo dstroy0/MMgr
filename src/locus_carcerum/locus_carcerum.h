@@ -255,7 +255,7 @@ EMBED_INLINE size_t mmgr_tiers_temporary_top(embed_atomic_usize_value tiers)
  *       reads the word again and decides over what it says now. The tiers cannot cross, since every
  *       move of either is one swap on the word that names both.
  * @note The persistent end bounds that tier and does not count what is in use. A freed cell inside
- *       the tier stays in it until a release trims the end.
+ *       the tier merges with its free neighbors and stays in it for a take the gap cannot meet.
  */
 typedef struct
 {
@@ -734,9 +734,9 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @note A persistent cell stands until the same cellblock's persistent_buf_release takes it.
  * @note A cell handed out adds its payload bytes, the request rounded to a word, to owner's in_use
  *       and raises owner's hw to it. A refused take counts nothing.
- * @note The take is one swap on the tiers word, which moves the persistent end up by the cell. No take
- *       steps through the tier for a cell given back below the end: such a cell waits, free, until the
- *       cells above it are given back, and the give at the end trims them all off together.
+ * @note The take is one swap on the tiers word, which moves the persistent end up by the cell. Where
+ *       the gap cannot meet it, the take reads the tier for the first free cell that fits, split where
+ *       the remainder holds another cell, and only then is refused.
  * @warning The bytes are not zeroed, and a cell laid over bytes a prisoner occupied before still
  *          carries what that prisoner left. A cellblock declared MMGR_MAXIMUM_SECURITY zeroes, and it
  *          zeroes on release.
@@ -852,9 +852,8 @@ void *mmgr_max_security_buf_grow(CarcerCellBlock *cellblock, void *prisoner, siz
  * @note The take is one swap on the tiers word, which moves the top down by the cell. A rewind landing
  *       between that swap and the cell's words drops the cell, and the take then answers NULL with
  *       nothing counted.
- * @note A single release through mmgr_persistent_buf_release works here too, but trims the top only
- *       when the freed cell sits at it. Anything freed below stays in the tier, free, until a rewind
- *       reaches it from the top.
+ * @note A single release through mmgr_persistent_buf_release works here too, in any order: the release
+ *       merges the cell with its free neighbors and returns a free cell at the top to the gap.
  * @warning The bytes are not zeroed, and an allocation returns whatever the last prisoner left. A
  *          cellblock declared MMGR_MAXIMUM_SECURITY zeroes, and it zeroes on release.
  */
@@ -1007,8 +1006,7 @@ size_t mmgr_align_up_buf(size_t size);
  *       cases over one declared cellblock; a program with a cellblock to empty while another context
  *       reaches it has a cellblock whose cells that context still holds.
  * @note The free cells are marked dead because bytes outside the tiers must never read as a free
- *       cell: a give that trims the cell above them reads the cell below through the tail behind it,
- *       and trims it only where it reads free.
+ *       cell.
  */
 void mmgr_cellblock_emptied(CarcerCellBlock *cellblock);
 

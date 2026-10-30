@@ -43,6 +43,11 @@ extern void test_the_cellblocks_do_not_share_a_fill_point(void);
 extern void test_a_span_over_cellblock_bytes_carries_the_cellblock_address(void);
 extern void test_the_newest_persistent_cell_grows_in_place(void);
 extern void test_a_persistent_cell_with_another_above_it_does_not_grow(void);
+extern void test_a_take_the_gap_cannot_meet_reuses_a_free_cell(void);
+extern void test_a_reused_cell_splits_what_it_does_not_need(void);
+extern void test_a_cell_given_back_merges_with_the_free_cell_above_it(void);
+extern void test_a_cell_given_back_merges_with_the_free_cell_below_it(void);
+extern void test_temporary_cells_given_back_in_any_order_return_to_the_gap(void);
 extern void test_the_top_temporary_cell_grows_by_moving_down(void);
 extern void test_a_temporary_cell_below_the_top_does_not_grow(void);
 extern void test_a_growth_the_gap_cannot_meet_is_refused(void);
@@ -143,10 +148,15 @@ int main(void)
   run_test(test_a_span_over_cellblock_bytes_carries_the_cellblock_address, "test_a_span_over_cellblock_bytes_carries_the_cellblock_address", 448);
   run_test(test_the_newest_persistent_cell_grows_in_place, "test_the_newest_persistent_cell_grows_in_place", 457);
   run_test(test_a_persistent_cell_with_another_above_it_does_not_grow, "test_a_persistent_cell_with_another_above_it_does_not_grow", 490);
-  run_test(test_the_top_temporary_cell_grows_by_moving_down, "test_the_top_temporary_cell_grows_by_moving_down", 502);
-  run_test(test_a_temporary_cell_below_the_top_does_not_grow, "test_a_temporary_cell_below_the_top_does_not_grow", 532);
-  run_test(test_a_growth_the_gap_cannot_meet_is_refused, "test_a_growth_the_gap_cannot_meet_is_refused", 544);
-  run_test(test_a_cell_carrying_the_size_asked_is_answered_as_it_stands, "test_a_cell_carrying_the_size_asked_is_answered_as_it_stands", 554);
+  run_test(test_a_take_the_gap_cannot_meet_reuses_a_free_cell, "test_a_take_the_gap_cannot_meet_reuses_a_free_cell", 510);
+  run_test(test_a_reused_cell_splits_what_it_does_not_need, "test_a_reused_cell_splits_what_it_does_not_need", 522);
+  run_test(test_a_cell_given_back_merges_with_the_free_cell_above_it, "test_a_cell_given_back_merges_with_the_free_cell_above_it", 538);
+  run_test(test_a_cell_given_back_merges_with_the_free_cell_below_it, "test_a_cell_given_back_merges_with_the_free_cell_below_it", 551);
+  run_test(test_temporary_cells_given_back_in_any_order_return_to_the_gap, "test_temporary_cells_given_back_in_any_order_return_to_the_gap", 564);
+  run_test(test_the_top_temporary_cell_grows_by_moving_down, "test_the_top_temporary_cell_grows_by_moving_down", 577);
+  run_test(test_a_temporary_cell_below_the_top_does_not_grow, "test_a_temporary_cell_below_the_top_does_not_grow", 607);
+  run_test(test_a_growth_the_gap_cannot_meet_is_refused, "test_a_growth_the_gap_cannot_meet_is_refused", 619);
+  run_test(test_a_cell_carrying_the_size_asked_is_answered_as_it_stands, "test_a_cell_carrying_the_size_asked_is_answered_as_it_stands", 629);
 
   return UNITY_END();
 }

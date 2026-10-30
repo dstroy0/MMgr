@@ -258,11 +258,11 @@ void test_a_cell_given_back_below_the_end_waits_for_the_cells_above_it(void)
 
     void *const r = ram.a.persistent_buf_alloc(64u, &cells);
 
-    TEST_ASSERT_TRUE_MESSAGE(r != p, "no take walks the tier for a cell given back below the end");
+    TEST_ASSERT_TRUE_MESSAGE(r != p, "a take the gap can meet comes from the gap");
     ram.a.persistent_buf_release(r, &cells);
     ram.a.persistent_buf_release(q, &cells);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_persistent_end(&ram_a_ctx),
-                                     "the give of the cell above trims the waiting cell with it");
+                                     "the two given back return the tier to the gap");
     TEST_ASSERT_EQUAL_PTR_MESSAGE(p, ram.a.persistent_buf_alloc(64u, &cells), "the next take lands where the first did");
 }
 
@@ -497,6 +497,81 @@ void test_a_persistent_cell_with_another_above_it_does_not_grow(void)
     TEST_ASSERT_EQUAL_size_t(end_before, mmgr_cellblock_persistent_end(&ram_a_ctx));
     ram.a.persistent_buf_release(second, &cells);
     ram.a.persistent_buf_release(first, &cells);
+}
+
+// the gap spent on the persistent tier, every cell of it counted to the grower
+static void gap_spent(void)
+{
+    while (ram.a.persistent_buf_alloc(64u, &grower) != NULL)
+    {
+    }
+}
+
+void test_a_take_the_gap_cannot_meet_reuses_a_free_cell(void)
+{
+    void *const first = ram.a.persistent_buf_alloc(64u, &grower);
+    void *const held = ram.a.persistent_buf_alloc(64u, &grower);
+
+    gap_spent();
+    TEST_ASSERT_NULL_MESSAGE(ram.a.persistent_buf_alloc(64u, &grower), "the gap is spent and no cell is free");
+    ram.a.persistent_buf_release(first, &grower);
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.persistent_buf_alloc(64u, &grower) == first, "the free cell is reused");
+    TEST_ASSERT_NOT_NULL(held);
+}
+
+void test_a_reused_cell_splits_what_it_does_not_need(void)
+{
+    void *const large = ram.a.persistent_buf_alloc(256u, &grower);
+    void *const held = ram.a.persistent_buf_alloc(64u, &grower);
+
+    gap_spent();
+    ram.a.persistent_buf_release(large, &grower);
+
+    void *const first = ram.a.persistent_buf_alloc(64u, &grower);
+    void *const second = ram.a.persistent_buf_alloc(64u, &grower);
+
+    TEST_ASSERT_TRUE_MESSAGE(first == large, "the first take lands on the free cell");
+    TEST_ASSERT_TRUE_MESSAGE((char *)second > (char *)first, "the second lands on what the split left");
+    TEST_ASSERT_TRUE_MESSAGE((char *)second < (char *)held, "inside the free cell");
+}
+
+void test_a_cell_given_back_merges_with_the_free_cell_above_it(void)
+{
+    void *const one = ram.a.persistent_buf_alloc(64u, &grower);
+    void *const two = ram.a.persistent_buf_alloc(64u, &grower);
+    void *const held = ram.a.persistent_buf_alloc(64u, &grower);
+
+    gap_spent();
+    ram.a.persistent_buf_release(two, &grower);
+    ram.a.persistent_buf_release(one, &grower);
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.persistent_buf_alloc(128u, &grower) == one, "two neighbors carry what neither does");
+    TEST_ASSERT_NOT_NULL(held);
+}
+
+void test_a_cell_given_back_merges_with_the_free_cell_below_it(void)
+{
+    void *const one = ram.a.persistent_buf_alloc(64u, &grower);
+    void *const two = ram.a.persistent_buf_alloc(64u, &grower);
+    void *const held = ram.a.persistent_buf_alloc(64u, &grower);
+
+    gap_spent();
+    ram.a.persistent_buf_release(one, &grower);
+    ram.a.persistent_buf_release(two, &grower);
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.persistent_buf_alloc(128u, &grower) == one, "two neighbors carry what neither does");
+    TEST_ASSERT_NOT_NULL(held);
+}
+
+void test_temporary_cells_given_back_in_any_order_return_to_the_gap(void)
+{
+    void *const first = ram.a.temporary_buf_alloc(64u, &grower);
+    void *const second = ram.a.temporary_buf_alloc(64u, &grower);
+    void *const third = ram.a.temporary_buf_alloc(64u, &grower);
+
+    ram.a.persistent_buf_release(second, &grower);
+    ram.a.persistent_buf_release(first, &grower);
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.buf_available() < A_BYTES, "the cell at the top still holds the tier");
+    ram.a.persistent_buf_release(third, &grower);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram.a.buf_available(), "the last give returns them all");
 }
 
 void test_the_top_temporary_cell_grows_by_moving_down(void)

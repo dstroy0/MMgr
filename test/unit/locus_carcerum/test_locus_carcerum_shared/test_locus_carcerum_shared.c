@@ -217,9 +217,8 @@ void test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave(void)
 
 void test_threads_taking_and_giving_at_once_never_share_a_cell(void)
 {
-    // a cell given back below the end waits there until the cells above it are given back, and sixteen
-    // threads giving back in their own order can fill the tier for a while; a take refused then is the
-    // tier's shape, and the case holds what the tier promises: no cell handed to two
+    // a take refused while sixteen threads hold cells is the pool's size, and the case holds what the
+    // tier promises: no cell handed to two
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MOST));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten), "a cell was handed to two threads at once");
 }
@@ -228,16 +227,14 @@ void test_threads_taking_and_giving_at_once_leave_the_cellblock_whole(void)
 {
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MOST));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_persistent_end(&crowded_shared_ctx),
-                                     "every cell given back trims the tier away");
+                                     "every cell given back returns the tier to the gap");
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
 }
 
 void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(void)
 {
-    // the temporary tier reuses nothing below its top until a rewind, and sixteen threads giving cells
-    // back one at a time leave dead cells below cells still busy; a take refused once the gap is spent
-    // is that tier's shape, and the case holds what the tier promises: no cell handed to two, and the
-    // tier whole once it is reset
+    // a take refused once the gap is spent is the pool's size, and the case holds what the tier promises:
+    // no cell handed to two, and the tier whole once it is reset
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary, MMGR_HOST_THREADS_MOST));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten), "a temporary cell was handed to two threads at once");
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_persistent_end(&crowded_shared_ctx));

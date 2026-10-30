@@ -62,13 +62,14 @@ and what that buys you:
 | ------------ | ----------------------------------- | ------------------------------ |
 | grows        | up, from the base                   | down, from the top             |
 | lifetime     | as long as it likes                 | one call                       |
-| given back   | one tenancy at a time, in any order | the whole run at once, by mark |
-| a take costs | a walk of the chain, then a carve   | a carve                        |
+| given back   | one tenancy at a time, in any order | by mark, or one at a time      |
+| a take costs | a carve                             | a carve                        |
 
 The persistent end holds what outlives a call: key material, a runtime seed, a constant a run works
 out once. The interim end holds what a call needs while it runs. A take at either end is one move of
-the boundary; nothing looks for a freed block, since no take walks the tier. A block freed at the
-persistent end comes off it with every freed block below, and one freed under a busy block waits.
+the boundary. A release merges the block with its free neighbors and returns a free block at the
+boundary to the free middle. A persistent take the middle cannot meet reads the chain for a free block
+that fits.
 
 ## Worked example
 
@@ -164,7 +165,7 @@ A pool's peaks are its own state, read as members. The two boundaries share one 
 `mmgr_cellblock_persistent_end` and `mmgr_cellblock_temporary_top` read each off it.
 
 The persistent end bounds the block chain and counts nothing of what is busy: a freed block inside the
-chain stays in it until a release trims the end.
+chain merges with its free neighbors and stays in it for a take the middle cannot meet.
 
 The peaks are `persistent_hw` and `temporary_hw`, one per end so that neither is a maximum over the other,
 and they are only maintained when `MMGR_ENABLE_HW_MEM_CAPACITY_CB` is on, off by default. A run

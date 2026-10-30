@@ -31,7 +31,7 @@ Storage is decided at compile time and carved at run time by bumping a pointer.
 - An allocation is a bounds check and an addition. Same cost every time.
 - Failure is `NULL` from an allocation against a pool you sized, not an out-of-memory condition
   arriving from somewhere else in the program.
-- There is no free list: there is nothing to fragment.
+- There is no free list: a release merges a cell with its free neighbors.
 
 The library reaches for `stddef`, `stdint` and `stdatomic` alone. There is no `stdlib.h`
 anywhere in `src/`, which is a property you can check in place of a claim you have to trust:
@@ -62,9 +62,9 @@ the cellblock's own state, one per tier: `persistent_hw` tracks the persistent e
 tracks the bytes taken from the top. It is off by default. A workload run without it leaves both
 at zero. Read the field, add whatever margin your failure policy wants, then size the pool.
 
-**You give up free-anything-anytime.** The persistent tier trims a released cell off its end, and
-every released cell below it with it, while a cell released under a busy one waits; the temporary
-tier releases by mark, or resets whole. If your data structure genuinely
+**You give up a heap's reach.** A release merges a cell with its free neighbors and returns a free cell
+at a tier's boundary to the gap, and a persistent take the gap cannot meet reuses a free cell that
+fits; the temporary tier also releases by mark, or resets whole. If your data structure genuinely
 needs arbitrary-order release of arbitrary-size objects with a long tail of lifetimes, this library is
 the wrong shape and no amount of configuration will change that.
 
