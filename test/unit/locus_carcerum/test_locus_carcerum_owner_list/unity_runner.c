@@ -77,15 +77,15 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_owner_list\\test_locus_carcerum_owner_list.c");
-  run_test(test_a_fresh_cellblock_lists_no_owner, "test_a_fresh_cellblock_lists_no_owner", 26);
-  run_test(test_an_owner_is_listed_by_the_cellblock_it_takes_from, "test_an_owner_is_listed_by_the_cellblock_it_takes_from", 31);
-  run_test(test_an_owner_is_listed_once_over_many_takes, "test_an_owner_is_listed_once_over_many_takes", 41);
-  run_test(test_an_owner_stays_listed_after_giving_everything_back, "test_an_owner_stays_listed_after_giving_everything_back", 52);
-  run_test(test_owners_are_listed_in_the_order_of_their_first_take, "test_owners_are_listed_in_the_order_of_their_first_take", 63);
-  run_test(test_an_owner_taking_from_two_cellblocks_is_listed_once_in_each, "test_an_owner_taking_from_two_cellblocks_is_listed_once_in_each", 76);
-  run_test(test_a_take_naming_no_owner_lists_nothing, "test_a_take_naming_no_owner_lists_nothing", 90);
-  run_test(test_a_refused_take_lists_nothing, "test_a_refused_take_lists_nothing", 96);
-  run_test(test_the_list_stops_at_its_room_and_the_owner_past_it_is_still_counted, "test_the_list_stops_at_its_room_and_the_owner_past_it_is_still_counted", 105);
+  run_test(test_a_fresh_cellblock_lists_no_owner, "test_a_fresh_cellblock_lists_no_owner", 24);
+  run_test(test_an_owner_is_listed_by_the_cellblock_it_takes_from, "test_an_owner_is_listed_by_the_cellblock_it_takes_from", 29);
+  run_test(test_an_owner_is_listed_once_over_many_takes, "test_an_owner_is_listed_once_over_many_takes", 39);
+  run_test(test_an_owner_stays_listed_after_giving_everything_back, "test_an_owner_stays_listed_after_giving_everything_back", 50);
+  run_test(test_owners_are_listed_in_the_order_of_their_first_take, "test_owners_are_listed_in_the_order_of_their_first_take", 61);
+  run_test(test_an_owner_taking_from_two_cellblocks_is_listed_once_in_each, "test_an_owner_taking_from_two_cellblocks_is_listed_once_in_each", 74);
+  run_test(test_a_take_naming_no_owner_lists_nothing, "test_a_take_naming_no_owner_lists_nothing", 88);
+  run_test(test_a_refused_take_lists_nothing, "test_a_refused_take_lists_nothing", 94);
+  run_test(test_the_list_stops_at_its_room_and_the_owner_past_it_is_still_counted, "test_the_list_stops_at_its_room_and_the_owner_past_it_is_still_counted", 103);
 
   return UNITY_END();
 }

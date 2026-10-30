@@ -76,14 +76,14 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("test/unit/config/mmgr_vector/test_mmgr_vector\\test_mmgr_vector.c");
-  run_test(test_the_vector_width_is_the_lane_or_nothing, "test_the_vector_width_is_the_lane_or_nothing", 70);
-  run_test(test_the_mask_of_a_count_is_that_many_low_bits, "test_the_mask_of_a_count_is_that_many_low_bits", 81);
-  run_test(test_a_vector_loaded_at_an_odd_address_is_put_back_whole, "test_a_vector_loaded_at_an_odd_address_is_put_back_whole", 89);
-  run_test(test_an_aligned_load_reads_the_aligned_bytes, "test_an_aligned_load_reads_the_aligned_bytes", 105);
-  run_test(test_a_fill_repeats_the_byte_into_every_lane, "test_a_fill_repeats_the_byte_into_every_lane", 120);
-  run_test(test_equal_lanes_answer_the_byte_loop_at_every_position, "test_equal_lanes_answer_the_byte_loop_at_every_position", 133);
-  run_test(test_zero_lanes_find_each_zero_byte_and_the_first_is_the_lowest, "test_zero_lanes_find_each_zero_byte_and_the_first_is_the_lowest", 160);
-  run_test(test_the_bytes_before_a_terminator_are_the_bytes_a_match_counts_in, "test_the_bytes_before_a_terminator_are_the_bytes_a_match_counts_in", 180);
+  run_test(test_the_vector_width_is_the_lane_or_nothing, "test_the_vector_width_is_the_lane_or_nothing", 71);
+  run_test(test_the_mask_of_a_count_is_that_many_low_bits, "test_the_mask_of_a_count_is_that_many_low_bits", 82);
+  run_test(test_a_vector_loaded_at_an_odd_address_is_put_back_whole, "test_a_vector_loaded_at_an_odd_address_is_put_back_whole", 90);
+  run_test(test_an_aligned_load_reads_the_aligned_bytes, "test_an_aligned_load_reads_the_aligned_bytes", 106);
+  run_test(test_a_fill_repeats_the_byte_into_every_lane, "test_a_fill_repeats_the_byte_into_every_lane", 121);
+  run_test(test_equal_lanes_answer_the_byte_loop_at_every_position, "test_equal_lanes_answer_the_byte_loop_at_every_position", 134);
+  run_test(test_zero_lanes_find_each_zero_byte_and_the_first_is_the_lowest, "test_zero_lanes_find_each_zero_byte_and_the_first_is_the_lowest", 161);
+  run_test(test_the_bytes_before_a_terminator_are_the_bytes_a_match_counts_in, "test_the_bytes_before_a_terminator_are_the_bytes_a_match_counts_in", 181);
 
   return UNITY_END();
 }

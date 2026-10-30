@@ -25,11 +25,11 @@ can still take. A cell from the persistent tier is the caller's
 ```c
 #include "mmgr.h"
 
-/* Two pools. Each is a block of bytes and nothing more until something dresses it. */
+/* Two pools. Each is a bare block of bytes until something dresses it. */
 ParsMemoriaeInternae(work, 2048);
 ParsMemoriaeInternae(keys, 2048);
 
-/* Dressing them is the claim, and it happens here rather than at run time. Releasing a cell in work
+/* Dressing them is the claim, and it happens here, never at run time. Releasing a cell in work
    leaves its bytes as they are. Releasing one in keys zeroes them. Nothing after this line can
    change either, and a cellblock is reached by the name of the pool it was built over. */
 LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work), MMGR_MAXIMUM_SECURITY(keys));
@@ -90,7 +90,7 @@ it all.
 To build without the network, put `embedded_types` at `deps/embedded_types` yourself, checked out at
 the pinned SHA, and add `-DFETCHCONTENT_FULLY_DISCONNECTED=ON`. That skips the fetch and uses what is
 on disk; measured here at 190 of 190 targets. It is an escape for a rebuild on a machine that already
-has the dependency, not a first clone: disconnected mode with an empty `deps/` has nothing to use.
+has the dependency and never a first clone: disconnected mode with an empty `deps/` has nothing to use.
 
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=gcc -DMMGR_BUILD_TESTS=ON
@@ -124,7 +124,7 @@ characters down cannot build in place (`test/harness.py:27-34`).
 
 ## Status
 
-0.1.0, pre-1.0, so the API may change. What is measured is measured: the numbers in
+0.1.0, pre-1.0: the API may change. The numbers in
 [`docs/quality/`](docs/quality) come out of tools in this repository and can be rerun.
 
 ## Licensing - This library is dual licensed.
@@ -132,7 +132,7 @@ characters down cannot build in place (`test/harness.py:27-34`).
 Licensed AGPL-3.0-or-later. // various commercial contracts available
 It will always be free to use under the AGPL.
 Educators: If you would like an exception to use this in your classrooms or research projects,
-please feel free to email dstroy0 (Douglas Quigg) <dquigg123@gmail.com> from your _.edu or _.org
+please email dstroy0 (Douglas Quigg) <dquigg123@gmail.com> from your _.edu or _.org
 faculty email address, I would be happy to grant you an exception on a case-by-case basis. Your exception
 governs your use, specifically the accreditation requirement of underlying systems in any research/presentation materials.
 Academic exemptions can lead to viable market products, in which case this license shifts to a royalty ladder,

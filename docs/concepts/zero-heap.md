@@ -6,18 +6,18 @@ The case for giving up dynamic allocation, and the bill that comes with it.
 
 A general allocator promises you can ask for any size at any time and give it back in any order. On
 a host that promise is cheap. On a device with 64 KB of RAM and a watchdog it is expensive in four
-separate ways, and only the first is the one people mention.
+separate ways, and people mention only the first.
 
 **It is not decidable.** A build that links `malloc` has a footprint you cannot state. You can
 measure a run, but you cannot say what the worst case is, because the worst case depends on the
-sequence of requests. "It fits" becomes an observation rather than a property.
+sequence of requests. "It fits" becomes an observation in place of a property.
 
 **It fragments.** Free space and usable space stop being the same number. The failure arrives after
 hours of correct operation, at the request that happened to want a contiguous block, and it does not
 reproduce.
 
-**It fails late and everywhere.** Every call site that allocates is a call site that can fail, so
-either every one carries a branch nobody exercises, or some of them do not and the null propagates.
+**It fails late and everywhere.** Every call site that allocates is a call site that can fail.
+Either every one carries a branch nobody exercises, or some of them do not and the null propagates.
 
 **Its timing is unbounded.** A free-list walk is not a fixed number of instructions. In an interrupt
 path that is not an inconvenience, it is a defect.
@@ -26,15 +26,15 @@ path that is not an inconvenience, it is a defect.
 
 Storage is decided at compile time and carved at run time by bumping a pointer.
 
-- The sizes are the byte counts in your pool declarations, and nothing else. No build knob sizes a
+- The sizes are the byte counts in your pool declarations alone. No build knob sizes a
   pool, and all of them are known when the binary is linked.
 - An allocation is a bounds check and an addition. Same cost every time.
 - Failure is `NULL` from an allocation against a pool you sized, not an out-of-memory condition
   arriving from somewhere else in the program.
-- There is no free list, so there is nothing to fragment.
+- There is no free list: there is nothing to fragment.
 
-The library reaches for `stddef`, `stdint` and `stdatomic` and nothing else. There is no `stdlib.h`
-anywhere in `src/`, which is a property you can check rather than a claim you have to trust:
+The library reaches for `stddef`, `stdint` and `stdatomic` alone. There is no `stdlib.h`
+anywhere in `src/`, which is a property you can check in place of a claim you have to trust:
 
 ```sh
 grep -rn 'include <stdlib' src/    # no matches
@@ -45,7 +45,7 @@ grep -rn 'include <stdlib' src/    # no matches
 **You have to size it.** This is the whole cost and it is not small. Nobody is going to find you
 more memory at runtime.
 
-The way through it is measurement, not arithmetic. Build the `checks` environment, run the real
+The way through it is measurement in place of arithmetic. Build the `checks` environment, run the real
 workload, and read the high-water marks:
 
 ```sh
@@ -55,20 +55,21 @@ cmake --build build
 ```
 
 `buf_available()` is per cellblock, `prison.work.buf_available()`, and reports the bytes still
-between the two tiers at the moment you call it, not the largest it ever got.
+between the two tiers at the moment you call it, never the largest it ever got.
 
 For the largest, build with `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Every allocation then keeps a peak in
-the cellblock's own state, one per tier: `persistent_hw` tracks `persistent_end` and `temporary_hw`
+the cellblock's own state, one per tier: `persistent_hw` tracks the persistent end and `temporary_hw`
 tracks the bytes taken from the top. It is off by default. A workload run without it leaves both
 at zero. Read the field, add whatever margin your failure policy wants, then size the pool.
 
-**You give up free-anything-anytime.** The persistent tier reuses a released cell and merges empty
-neighbors; the temporary tier releases by mark, or resets whole. If your data structure genuinely
+**You give up free-anything-anytime.** The persistent tier trims a released cell off its end, and
+every released cell below it with it, while a cell released under a busy one waits; the temporary
+tier releases by mark, or resets whole. If your data structure genuinely
 needs arbitrary-order release of arbitrary-size objects with a long tail of lifetimes, this library is
 the wrong shape and no amount of configuration will change that.
 
 **A cellblock can no longer be lied to about its extent.** It takes the count from the pool's own
-declaration, and the pool asserts that count against its `sizeof`, so the two cannot disagree. What is
+declaration, and the pool asserts that count against its `sizeof`: the two cannot disagree. What is
 still taken as written is any address the library did not hand out. See @ref proj_security.
 
 ## When to reach for it

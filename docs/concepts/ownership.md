@@ -35,9 +35,9 @@ void *const cell = prison.work.temporary_buf_alloc(256u);
 prison.work.temporary_buf_release(mark);
 ```
 
-Nothing is reallocated, so `cell` dereferences without faulting and returns whatever is there,
+Nothing is reallocated: `cell` dereferences without faulting and returns whatever is there,
 which, after the next allocation, is somebody else's data. This is the single most likely way to
-misuse this library. On a maximum-security cellblock the release zeroes back to the mark first, so
+misuse this library. On a maximum-security cellblock the release zeroes back to the mark first, and
 what is read afterwards is zeros instead of the previous prisoner; on a minimum-security one nothing
 is scrubbed.
 
@@ -73,11 +73,11 @@ One entry answers an ownership question directly:
 prison.work.who_owns_buf(cell);
 ```
 
-One unsigned subtract and one compare. It exists for asserts and for debugging, not for control
-flow. It says the pointer is inside the cellblock's storage, not that it is live.
+One unsigned subtract and one compare. It exists for asserts and for debugging, never for control
+flow. It says the pointer is inside the cellblock's storage, and nothing about whether it is live.
 
 If two execution contexts must not share, declare two pools and hand each context its own. Neither
-cellblock learns there were two, so there is nothing to count, nothing to index, and nothing to
+cellblock learns there were two: there is nothing to count, nothing to index, and nothing to
 check. See @ref mod_confin_guide.
 
 ## A take names its owner
@@ -95,7 +95,7 @@ prison.work.persistent_buf_release(cell, &reader);
 
 The take adds the cell's payload, read off its header, to `reader.in_use` and raises `reader.hw` to
 it; the release takes the same bytes off. `NULL` in place of an owner counts nothing. The owner is
-the caller's storage, so the cellblock still does not ask which context reached it.
+the caller's storage: the cellblock still does not ask which context reached it.
 
 With `MMGR_ENABLE_OWNERS` at 1, each cellblock also lists every owner that took a cell from it, in the
 order of each one's first take, up to `MMGR_CARCER_OWNERS`. An owner past that room keeps its own
@@ -103,32 +103,33 @@ counts and is absent from the list.
 
 ## Concurrency
 
-A cellblock synchronizes nothing unless `MMGR_ENABLE_LOCK` is 1. Off, it is a pool, an extent and two
-tier boundaries, reached only through the entries bound to it, and two contexts that must not share
-get two pools.
+A cellblock is shared by every context that reaches it. Each tier's boundary, each cell's claim, the
+reservation that holds the two tiers apart, and every owner's count is an atomic word, and every move
+of one is a single step: a cell is claimed by one compare-and-swap, a boundary moves by one fetch-add,
+a count by one add. No context waits for another, and the one wait in the library is two takes landing
+in the same instant publishing their cells in order, the second after the first's one header store.
+One build serves a host thread, a part's task and a GPU thread.
 
-On, every entry of a cellblock's guard but `who_owns_buf` takes that cellblock's `embed_spinlock` for
-the call. The lock spins and never sleeps, so one build serves a host thread, a part's task and a GPU
-thread. It serializes the entries; it does not make a temporary mark one caller took good against a
-release by another.
+Sharing a cellblock does not make a temporary mark one caller took good against a release by another:
+a rewind drops every temporary cell taken since the mark, whoever took it.
 
 The ring in `memoria_anularis` is **single-producer, single-consumer only**. Two producers on one
 ring is not a slower correct program, it is a broken one. See @ref mod_anular_guide.
 
 ## What a check would catch, and what none of them do
 
-The preconditions that are asserted at all are in `spatium`, `bitorum_introitus_exitus`,
+The preconditions asserted anywhere are in `spatium`, `bitorum_introitus_exitus`,
 `memoria_anularis`, `memoriam_praetereo` and `ascii_persona_bitorum`, a span with no
 buffer, a bit writer with no capacity, a ring with no storage, a channel that does not exist, a
 character class out of range.
 
 In a shipping build none of them fire. The default `MMGR_ASSERT` in `mmgr.h` type-checks the
-condition with `sizeof` and then discards it, so it costs nothing and cannot rot.
+condition with `sizeof` and then discards it: it costs nothing and cannot rot.
 
 The `checks` environment is where they are checks. `MMGR_DEBUG_CHECKS=1` selects the trapping form in
 `test/support/mmgr_host_traps.h`, which reports the expectation, the file and the line and then
 aborts. An expectation a caller broke fails a test there instead of being a no-op nobody notices.
-It is the only environment where an assert is evaluated at all, which means an expectation never
+It is the only environment where an assert is evaluated, which means an expectation never
 exercised under `checks` is one nothing has ever tested. A target with no `stderr` and no `abort`
 defines `MMGR_ASSERT` itself before including the header, and neither form is used.
 

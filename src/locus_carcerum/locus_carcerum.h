@@ -15,12 +15,12 @@
  *       asserts reject fails the build.
  * @note The storage is the caller's. A cellblock is declared over a pool - ParsMemoriaeInternae or
  *       ParsMemoriaeExternum in mmgr.h - and its CarcerCellBlock record holds that pool's address.
- *       The linker resolves it, so no call computes a cellblock's address from a site and an index,
+ *       The linker resolves it. No call computes a cellblock's address from a site and an index,
  *       and which memory a cellblock sits in was settled where its pool was declared.
  * @note A cellblock has two tiers. The persistent tier runs up from base and the temporary tier runs
- *       down from size, and a CarcerTier names the extent of one of them.
+ *       down from size, and one atomic word holds both boundaries.
  * @note A cellblock's declaration picks its security level. MMGR_MINIMUM_SECURITY leaves a cell's
- *       bytes as they are on release. MMGR_MAXIMUM_SECURITY zeroes them. The warden is const, so
+ *       bytes as they are on release. MMGR_MAXIMUM_SECURITY zeroes them. The warden is const:
  *       nothing after the declaration can change the level a cellblock runs at.
  * @note The public entries are English and the internals are Latin, this filename included.
  * @note spatium provides the spans over those bytes.
@@ -38,12 +38,12 @@ EMBED_BEGIN_DECLS
  * @note Off by default because the two marks cost a size_t each in every CarcerCellBlock, and a
  *       build that never reads them should not carry them.
  * @note Adds CarcerCellBlock::persistent_hw and CarcerCellBlock::temporary_hw, and the update that
- *       raises them in carcer_grow, which both tiers reach. One mark per tier, so neither counts the
+ *       raises them in carcer_grow, which both tiers reach. One mark per tier: neither counts the
  *       other's bytes.
  * @note The #ifndef leaves a build's own definition standing, whether it arrives on the command line
  *       or from a header included ahead of this one.
- * @note Takes 0 or 1 and nothing else. Both readers are #if, which would take any non-zero as set, so
- *       the check below is what keeps a mistyped value from quietly widening every CarcerCellBlock.
+ * @note Takes 0 or 1 alone. Both readers are #if, which would take any non-zero as set. The check
+ *       below keeps a mistyped value from quietly widening every CarcerCellBlock.
  */
 #ifndef MMGR_ENABLE_HW_MEM_CAPACITY_CB
 #define MMGR_ENABLE_HW_MEM_CAPACITY_CB 0
@@ -53,32 +53,14 @@ EMBED_BEGIN_DECLS
 #endif
 
 /**
- * @brief Set to 1 to have every custodia take its cellblock's spinlock around each call.
- *
- * @note Off by default. A cellblock reached from one context needs no lock and pays nothing for it.
- * @note On, each cellblock carries an embed_spinlock (embed_spinlock.h) beside its state, and every
- *       entry of its guard but who_owns_buf takes it for the call and frees it after. The lock spins
- *       and never sleeps, so the same build serves a host thread, a part's task and a GPU thread.
- * @note who_owns_buf takes no lock. It compares an address against a base and a size that do not
- *       change after the declaration.
- * @note Takes 0 or 1 and nothing else, for the reason MMGR_ENABLE_HW_MEM_CAPACITY_CB gives.
- */
-#ifndef MMGR_ENABLE_LOCK
-#define MMGR_ENABLE_LOCK 0
-#endif
-#if (MMGR_ENABLE_LOCK != 0) && (MMGR_ENABLE_LOCK != 1)
-#error "MMGR_ENABLE_LOCK must be 0 or 1"
-#endif
-
-/**
  * @brief Set to 1 to have each cellblock list the owners that take cells from it.
  *
  * @note Off by default because the list costs MMGR_CARCER_OWNERS pointers and a count in every
  *       CarcerCellBlock, and a build that never reads it should not carry it.
  * @note An owner's own counts, its bytes in use and its peak, are kept in its CellOwner either way.
  *       This adds the cellblock's list of every owner that took a cell, in the order of each one's
- *       first take, so a reader finds them all from the cellblock.
- * @note Takes 0 or 1 and nothing else, for the reason MMGR_ENABLE_HW_MEM_CAPACITY_CB gives.
+ *       first take. A reader finds them all from the cellblock.
+ * @note Takes 0 or 1 alone, for the reason MMGR_ENABLE_HW_MEM_CAPACITY_CB gives.
  */
 #ifndef MMGR_ENABLE_OWNERS
 #define MMGR_ENABLE_OWNERS 0
@@ -97,16 +79,14 @@ EMBED_BEGIN_DECLS
 #define MMGR_CARCER_OWNERS 128u
 #endif
 
-#if MMGR_ENABLE_LOCK
-#include "embed_spinlock.h"
-#endif
+#include "embed_atomic.h"
 
 /**
  * @brief Alignment every prisoner is handed out at, which is one machine word.
  *
- * @note Derived from the word rather than named as a number. A build at another width gets the
- *       alignment that width actually needs.
- * @note LocusCarcerum() puts this alignment on the storage it declares, so what this rounds is only
+ * @note Derived from the word in place of a number. A build at another width gets the alignment
+ *       that width actually needs.
+ * @note LocusCarcerum() puts this alignment on the storage it declares. This rounds only
  *       running offsets inside a cellblock.
  */
 #define MMGR_CARCER_ALIGN ((size_t)sizeof(embed_word))
@@ -126,21 +106,22 @@ EMBED_STATIC_ASSERT((MMGR_CARCER_ALIGN & (MMGR_CARCER_ALIGN - 1u)) == 0u,
  *
  * @note The caller's storage, named on every persistent take and give. A take adds the cell's payload
  *       bytes to in_use and raises hw to it; a give takes the same bytes off. NULL in place of an
- *       owner counts nothing.
- * @note The bytes counted are the cell's own, read off its header: a reused cell larger than the
- *       request counts its whole payload on the take and the give alike, so a matched pair returns
- *       in_use to where it stood.
- * @note listed_in is the cellblock whose owner list carries this owner, NULL until one does. An owner
- *       is listed by the first cellblock it takes from, where MMGR_ENABLE_OWNERS is 1.
+ *       owner counts nothing. Every count is an atomic word, added to and raised in one step each, and
+ *       an owner shared between contexts counts exactly.
+ * @note The bytes counted are the cell's own: the request rounded to a whole word, counted on the take
+ *       and read off the cell's word on the give, and a matched pair returns in_use to where it stood.
+ * @note listed_in is the cellblock whose owner list carries this owner, as the integer of its address,
+ *       0 until one does. An owner is listed by the first cellblock it takes from, where
+ *       MMGR_ENABLE_OWNERS is 1.
  * @warning Counts the persistent tier alone. A temporary cell given back through the persistent
  *          release with an owner named takes bytes off that owner which no take added.
  */
 typedef struct
 {
-    const char *name;      /**< The owner's name, as a reader prints it [BORROWS]. */
-    size_t in_use;         /**< Payload bytes of the cells the owner has now. */
-    size_t hw;             /**< Running maximum of in_use. */
-    const void *listed_in; /**< The cellblock whose owner list carries this owner, NULL until listed. */
+    const char *name;             /**< The owner's name, as a reader prints it [BORROWS]. */
+    embed_atomic_usize in_use;     /**< Payload bytes of the cells the owner has now. */
+    embed_atomic_usize hw;         /**< Running maximum of in_use. */
+    embed_atomic_uptr listed_in;  /**< The cellblock whose owner list carries this owner, as an integer, 0 until listed. */
 } CellOwner;
 
 /**
@@ -148,39 +129,193 @@ typedef struct
  *
  * @param[in] name_ The owner's name [BORROWS].
  */
-#define MMGR_CELL_OWNER(name_) {(name_), 0u, 0u, NULL}
+#define MMGR_CELL_OWNER(name_) {(name_), EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u)}
 
 /**
- * @brief One cellblock's state: its bytes and the two tiers that grow toward each other.
+ * @brief Bits each tier's boundary takes in the word that holds both: half the word.
+ *
+ * @note The word is embed_atomic_usize, keyed on SIZE_MAX the way that type is. The half follows the
+ *       machine word.
+ */
+#if SIZE_MAX == 0xFFFFFFFFFFFFFFFFu
+#define MMGR_CARCER_TIER_BITS 32u
+#else
+#define MMGR_CARCER_TIER_BITS 16u
+#endif
+
+/**
+ * @brief The shift that turns an offset in bytes into the units a boundary is kept in, which are
+ *        machine words.
+ *
+ * @note Every offset in a cellblock is a multiple of MMGR_CARCER_ALIGN: the low bits it drops are
+ *       zero, and keeping offsets in words lets a half word reach MMGR_CARCER_ALIGN times further.
+ */
+#define MMGR_CARCER_UNIT_SHIFT ((MMGR_CARCER_ALIGN == 8u) ? 3u : ((MMGR_CARCER_ALIGN == 4u) ? 2u : 1u))
+EMBED_STATIC_ASSERT(((size_t)1u << MMGR_CARCER_UNIT_SHIFT) == MMGR_CARCER_ALIGN,
+                    "a boundary is kept in machine words, and the alignment must be 2, 4 or 8 bytes");
+
+/** @brief The mask of one boundary's half of the word. */
+#define MMGR_CARCER_TIER_MASK (((embed_atomic_usize_value)1u << MMGR_CARCER_TIER_BITS) - 1u)
+
+/**
+ * @brief The most bytes one cellblock may hold: the largest offset a half word names, in bytes.
+ *
+ * @note The temporary top stands at the cellblock's size while that tier is empty: the size itself
+ *       must fit a half. LocusCarcerum() asserts each pool against this, and mmgr_host_cellblock_made
+ *       refuses a block past it.
+ */
+#define MMGR_CARCER_BYTES_MOST ((size_t)MMGR_CARCER_TIER_MASK << MMGR_CARCER_UNIT_SHIFT)
+
+/**
+ * @brief Both boundaries as one word: the persistent end in the low half and the temporary top in the
+ *        high half, each in machine words.
+ *
+ * @param[in] end_ Offset just past the last persistent cell, in bytes.
+ * @param[in] top_ Offset of the lowest temporary cell, in bytes.
+ * @return         The word, a constant expression where both arguments are.
+ */
+#define MMGR_CARCER_TIERS(end_, top_)                                                                                  \
+    ((((embed_atomic_usize_value)(top_) >> MMGR_CARCER_UNIT_SHIFT) << MMGR_CARCER_TIER_BITS) |                        \
+     ((embed_atomic_usize_value)(end_) >> MMGR_CARCER_UNIT_SHIFT))
+
+/**
+ * @brief The persistent end a tiers word holds, in bytes.
+ *
+ * @param[in] tiers The word.
+ * @return          Offset just past the last persistent cell.
+ */
+EMBED_INLINE size_t mmgr_tiers_persistent_end(embed_atomic_usize_value tiers)
+{
+    // Explicit cast reads the low half, machine words, back as the byte offset it names
+    return (size_t)(tiers & MMGR_CARCER_TIER_MASK) << MMGR_CARCER_UNIT_SHIFT;
+}
+
+/**
+ * @brief The temporary top a tiers word holds, in bytes.
+ *
+ * @param[in] tiers The word.
+ * @return          Offset of the lowest temporary cell.
+ */
+EMBED_INLINE size_t mmgr_tiers_temporary_top(embed_atomic_usize_value tiers)
+{
+    // Explicit cast reads the high half, machine words, back as the byte offset it names
+    return (size_t)(tiers >> MMGR_CARCER_TIER_BITS) << MMGR_CARCER_UNIT_SHIFT;
+}
+
+/**
+ * @brief One cellblock's state: its bytes and the two tiers that grow toward each other, both
+ *        boundaries in one atomic word.
  *
  * @note Written by the declaration that emits the cellblock and by the entries that cellblock owns.
- *       The base is the cellblock's own storage, so nothing derives an address from a site and an
+ *       The base is the cellblock's own storage, and nothing derives an address from a site and an
  *       index.
- * @note persistent_end bounds that tier rather than counting what is in use. A freed cell inside the
- *       tier stays in it until a release trims the end.
+ * @note tiers holds the persistent end and the temporary top together, MMGR_CARCER_TIERS's way. A
+ *       take reads the word, finds the room between the two, and moves one boundary by one swap on
+ *       the word read; a swap that fails is a take whose room another context took first, and it
+ *       reads the word again and decides over what it says now. The tiers cannot cross, since every
+ *       move of either is one swap on the word that names both.
+ * @note The persistent end bounds that tier and does not count what is in use. A freed cell inside
+ *       the tier stays in it until a release trims the end.
  */
 typedef struct
 {
-    uint8_t *const base;   /**< First byte of the cellblock [BORROWS]. */
-    const size_t size;     /**< Bytes in the cellblock. */
-    size_t persistent_end; /**< Offset just past the last persistent cell, counting up from base. */
-    size_t temporary_top;  /**< Offset of the lowest temporary byte, counting down from size. */
+    uint8_t *const base;     /**< First byte of the cellblock [BORROWS]. */
+    const size_t size;       /**< Bytes in the cellblock. */
+    embed_atomic_usize tiers; /**< Both boundaries, MMGR_CARCER_TIERS's way: the persistent end low, the temporary top high. */
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
-    size_t persistent_hw; /**< Running maximum of persistent_end. */
-    size_t temporary_hw;  /**< Running maximum of the bytes taken from the top. */
+    embed_atomic_usize persistent_hw; /**< Running maximum of persistent_end. */
+    embed_atomic_usize temporary_hw;  /**< Running maximum of the bytes taken from the top. */
 #endif
 #if MMGR_ENABLE_OWNERS
-    CellOwner *owners[MMGR_CARCER_OWNERS]; /**< Every owner that took a cell, in the order of its first take. */
-    size_t owner_count;                    /**< Owners in the list, at most MMGR_CARCER_OWNERS. */
+    embed_atomic_uptr owners[MMGR_CARCER_OWNERS]; /**< Every owner that took a cell, as the integer of its address, in the order of its first take; 0 where an entry is not yet written. */
+    embed_atomic_usize owner_count;                /**< Owners in the list, at most MMGR_CARCER_OWNERS. */
 #endif
 } CarcerCellBlock;
+
+/** @brief The high-water members' first values, or nothing where the build tracks none. */
+#if MMGR_ENABLE_HW_MEM_CAPACITY_CB
+#define MMGR_CARCER_STATE_HW , EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u)
+#else
+#define MMGR_CARCER_STATE_HW
+#endif
+
+/** @brief The owner list's first values, or nothing where the build keeps none. */
+#if MMGR_ENABLE_OWNERS
+#define MMGR_CARCER_STATE_OWNERS , {EMBED_ATOMIC_INIT(0u)}, EMBED_ATOMIC_INIT(0u)
+#else
+#define MMGR_CARCER_STATE_OWNERS
+#endif
+
+/**
+ * @brief A cellblock's state as it stands over bytes_ bytes at base_ with no cell taken: both tiers
+ *        empty, every mark at zero and no owner listed.
+ *
+ * @param[in] base_  First byte of the cellblock [BORROWS].
+ * @param[in] bytes_ Bytes in the cellblock.
+ */
+#define MMGR_CARCER_STATE(base_, bytes_)                                                                               \
+    {                                                                                                                  \
+        (base_), (bytes_), EMBED_ATOMIC_INIT(MMGR_CARCER_TIERS(0u, bytes_)) MMGR_CARCER_STATE_HW                        \
+            MMGR_CARCER_STATE_OWNERS                                                                                   \
+    }
+
+/**
+ * @brief Offset just past the last persistent cell, read off the tiers word.
+ *
+ * @param[in] cellblock Cellblock to read [BORROWS].
+ * @return              The persistent end, in bytes.
+ */
+EMBED_INLINE size_t mmgr_cellblock_persistent_end(const CarcerCellBlock *cellblock)
+{
+    return mmgr_tiers_persistent_end(embed_atomic_usize_load(&cellblock->tiers));
+}
+
+/**
+ * @brief Offset of the lowest temporary cell, read off the tiers word.
+ *
+ * @param[in] cellblock Cellblock to read [BORROWS].
+ * @return              The temporary top, in bytes.
+ */
+EMBED_INLINE size_t mmgr_cellblock_temporary_top(const CarcerCellBlock *cellblock)
+{
+    return mmgr_tiers_temporary_top(embed_atomic_usize_load(&cellblock->tiers));
+}
+
+#if MMGR_ENABLE_OWNERS
+/**
+ * @brief The owners a cellblock lists, as a reader counts them.
+ *
+ * @param[in] cellblock Cellblock to read [BORROWS].
+ * @return              The entries written or being written, at most MMGR_CARCER_OWNERS.
+ */
+EMBED_INLINE size_t mmgr_cellblock_owner_count(const CarcerCellBlock *cellblock)
+{
+    // Explicit cast reads the count, size_t's width, as the entries it counts
+    const size_t count = (size_t)embed_atomic_usize_load(&cellblock->owner_count);
+
+    return (count < MMGR_CARCER_OWNERS) ? count : MMGR_CARCER_OWNERS;
+}
+
+/**
+ * @brief The owner at one place in a cellblock's list.
+ *
+ * @param[in] cellblock Cellblock to read [BORROWS].
+ * @param[in] at        The place, below mmgr_cellblock_owner_count.
+ * @return              The owner, or NULL where the entry is counted and not yet written [BORROWS].
+ */
+EMBED_INLINE CellOwner *mmgr_cellblock_owner(const CarcerCellBlock *cellblock, size_t at)
+{
+    // Explicit casts read the entry's integer back as the address it holds
+    return (CellOwner *)(uintptr_t)embed_atomic_uptr_load(&cellblock->owners[at]);
+}
+#endif
 
 /**
  * @brief The minimum security guard over one cellblock: a released cell keeps whatever is in it.
  *
  * @note EMBED_TABLE_LAYOUT asserts the eight members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
  * nothing else.
- * @note Every entry is bound to the cellblock its declaration named, so no call carries a cellblock
+ * @note Every entry is bound to the cellblock its declaration named. No call carries a cellblock
  *       argument and there is nothing to pass wrongly. A cellblock at this level has no zeroing
  *       release. The difference between the two levels is what exists, not what a caller remembers
  *       to reach for.
@@ -208,7 +343,7 @@ EMBED_TABLE_LAYOUT(MinimumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @note EMBED_TABLE_LAYOUT asserts the eight members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
  * nothing else.
  * @note The same eight entries, and no unzeroed release among them. Each zeroing runs before the
- *       boundary moves, so the bytes are zero at the instant they become available. Where the
+ *       boundary moves: the bytes are zero at the instant they become available. Where the
  *       zeroing is skipped and the boundary still moves, mmgr_max_security_buf_return carries it in
  *       its warnings.
  */
@@ -228,40 +363,6 @@ typedef struct
 EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc,
                    temporary_buf_mark, temporary_buf_release, temporary_buf_reset, who_owns_buf, buf_available);
 
-#if MMGR_ENABLE_LOCK
-/**
- * @brief Declares a cellblock's spinlock, free as it is declared.
- *
- * @param[in] lock_ The lock's name, the site's and the cellblock's spliced together.
- * @note Static beside the cellblock's state and outside it, so a host site made anew in the place
- *       of the block before keeps the lock its callers spin on.
- */
-#define MMGR_CARCER_LOCK(lock_) static embed_spinlock lock_ = EMBED_SPINLOCK_INIT;
-
-/**
- * @brief Takes a cellblock's spinlock, spinning until it is free.
- *
- * @param[in] lock_ The lock MMGR_CARCER_LOCK declared.
- */
-#define MMGR_CARCER_ACQUIRE(lock_) EMBED_SPINLOCK_ACQUIRE(&(lock_))
-
-/**
- * @brief Frees a cellblock's spinlock.
- *
- * @param[in] lock_ The lock MMGR_CARCER_LOCK declared.
- */
-#define MMGR_CARCER_RELEASE(lock_) EMBED_SPINLOCK_RELEASE(&(lock_))
-#else
-/** @brief Declares nothing where MMGR_ENABLE_LOCK is 0. */
-#define MMGR_CARCER_LOCK(lock_)
-
-/** @brief Takes nothing where MMGR_ENABLE_LOCK is 0. */
-#define MMGR_CARCER_ACQUIRE(lock_) ((void)0)
-
-/** @brief Frees nothing where MMGR_ENABLE_LOCK is 0. */
-#define MMGR_CARCER_RELEASE(lock_) ((void)0)
-#endif
-
 /**
  * @brief Everything one cellblock is: its bytes, its state, and the entries bound to it.
  *
@@ -270,17 +371,17 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] name_       Pool the cellblock is built over, which is also the name it is reached by
  *                        as a member of its site [BORROWS].
  * @param[in] wipe_to_zero_on_release_ 1 where a release zeroes the cell first, 0 where it does not.
- * @note The site name is part of every symbol, so two sites may each hold a cellblock of the same
- *       name, at different security levels, without colliding.
- * @note wipe_to_zero_on_release_ is a literal, so the branch it guards folds away and the security
+ * @note The site name is part of every symbol. Two sites may each hold a cellblock of the same name,
+ *       at different security levels, without colliding.
+ * @note wipe_to_zero_on_release_ is a literal: the branch it guards folds away and the security
  *       level costs nothing to read.
  * @note The extent comes from the pool two ways. name_##_bytes is the count its declaration was
  *       handed and is what the record carries, and sizeof is what the compiler laid down. The
- *       asserts test the second, so they say something the first cannot say about itself.
+ *       asserts test the second: they say something the first cannot say about itself.
  * @warning A pool too small to hold one cell fails the build. Only the alignment is a power of two,
- *          and nothing reads the size as a mask. A bad size is the one mistake the language would
+ *          and nothing reads the size as a mask. A bad size is a mistake the language would
  *          otherwise accept. A wrong name or guard type fails on its own, and two pools are separate
- *          objects, so they cannot share an address and there is no overlap to check.
+ *          objects: they cannot share an address and there is no overlap to check.
  * @note No upper bound. The pool states how much storage the cellblock gets, and nothing in the
  *       library sizes anything from a ceiling over it.
  */
@@ -288,19 +389,16 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
     MMGR_PARS_CLAIMED_ONCE(name_);                                                                                     \
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) >= (2u * MMGR_CARCER_ALIGN),                                 \
                         #prisonsite_ "." #name_ " is too small for one cell");                                         \
-    static CarcerCellBlock prisonsite_##_##name_##_ctx = {mmgr_pars_storage_##name_, name_##_bytes, 0u,                \
-                                                          name_##_bytes};                                              \
-    MMGR_CARCER_LOCK(prisonsite_##_##name_##_lock)                                                                     \
+    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) <= MMGR_CARCER_BYTES_MOST,                                   \
+                        #prisonsite_ "." #name_ " is larger than a tier boundary's half word can name");                \
+    static CarcerCellBlock prisonsite_##_##name_##_ctx = MMGR_CARCER_STATE(mmgr_pars_storage_##name_, name_##_bytes);  \
     MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size, CellOwner *owner)        \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         void *const prisoner = mmgr_persistent_buf_alloc(&prisonsite_##_##name_##_ctx, size, owner);                   \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
         return prisoner;                                                                                               \
     }                                                                                                                  \
     static void prisonsite_##_##name_##_persistent_buf_release(void *prisoner, CellOwner *owner)                       \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
             mmgr_persistent_max_security_buf_release(&prisonsite_##_##name_##_ctx, prisoner, owner);                   \
@@ -309,25 +407,19 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
         {                                                                                                              \
             mmgr_persistent_buf_release(&prisonsite_##_##name_##_ctx, prisoner, owner);                                \
         }                                                                                                              \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
     }                                                                                                                  \
     MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size)                           \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         void *const prisoner = mmgr_temporary_buf_alloc(&prisonsite_##_##name_##_ctx, size);                           \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
         return prisoner;                                                                                               \
     }                                                                                                                  \
     static size_t prisonsite_##_##name_##_temporary_buf_mark(void)                                                     \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         const size_t mark = mmgr_temporary_buf_mark(&prisonsite_##_##name_##_ctx);                                     \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
         return mark;                                                                                                   \
     }                                                                                                                  \
     static void prisonsite_##_##name_##_temporary_buf_release(size_t mark)                                             \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
             mmgr_max_security_buf_return(&prisonsite_##_##name_##_ctx, mark);                                          \
@@ -336,7 +428,6 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
         {                                                                                                              \
             mmgr_temporary_buf_release(&prisonsite_##_##name_##_ctx, mark);                                            \
         }                                                                                                              \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
     }                                                                                                                  \
     static void prisonsite_##_##name_##_temporary_buf_reset(void)                                                      \
     {                                                                                                                  \
@@ -348,9 +439,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
     }                                                                                                                  \
     static size_t prisonsite_##_##name_##_buf_available(void)                                                          \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         const size_t available = mmgr_buf_available(&prisonsite_##_##name_##_ctx);                                     \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
         return available;                                                                                              \
     }
 
@@ -359,7 +448,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  *
  * @param[in] prisonsite_ Site the cellblock is built at, unused here.
  * @param[in] type_       MinimumSecurityGuard or MaximumSecurityGuard, the member's type.
- * @param[in] name_       Pool the cellblock is built over, which is the name the member is given.
+ * @param[in] name_       Pool the cellblock is built over, and the name the member is given.
  * @param[in] wipe_to_zero_on_release_ Security flag, unused here.
  * @note Takes all four because the three readers share one tuple shape, as MMGR_MINIMUM_SECURITY
  *       describes.
@@ -374,7 +463,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] name_       Pool whose name the symbols carry alongside the site's.
  * @param[in] wipe_to_zero_on_release_ Security flag, unused here.
  * @note MinimumSecurityGuard and MaximumSecurityGuard declare the same eight members in the same
- *       order, so one initializer serves either level.
+ *       order. One initializer serves either level.
  */
 #define MMGR_CARCER_SEAT(prisonsite_, type_, name_, wipe_to_zero_on_release_)                                          \
     {prisonsite_##_##name_##_persistent_buf_alloc,  prisonsite_##_##name_##_persistent_buf_release,                    \
@@ -387,10 +476,10 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  *
  * @param[in] name_ Pool the cellblock is built over, which is also the name it is reached by as a
  *                  member of its site [BORROWS].
- * @note The pool carries its own extent, so no size is written here. A cellblock is a dressing over
+ * @note The pool carries its own extent: no size is written here. A cellblock is a dressing over
  *       bytes that already exist, and where those bytes live was settled by which of
  *       ParsMemoriaeInternae or ParsMemoriaeExternum declared them.
- * @note Expands to a tuple rather than to code. The site reads the same list three times, once for
+ * @note Expands to a tuple in place of code. The site reads the same list three times, once for
  *       the cellblocks' bodies, once for its own members, once for their entries. An element has to
  *       stay data until the site says which of the three it is being read as.
  */
@@ -413,7 +502,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  *
  * @param[in] ... The tuple's elements, which its own parentheses deliver as this macro's arguments.
  * @return        Those elements, comma separated, with nothing around them.
- * @note Written MMGR_UNTUPLE tuple_, with no parentheses of its own, so the tuple supplies them.
+ * @note Written MMGR_UNTUPLE tuple_, with no parentheses of its own: the tuple supplies them.
  */
 #define MMGR_UNTUPLE(...) __VA_ARGS__
 
@@ -425,7 +514,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] tuple_      One MMGR_MINIMUM_SECURITY or MMGR_MAXIMUM_SECURITY tuple.
  * @return                What the reader expands to.
  * @note Two steps, because a macro's arguments are counted before they are expanded. The inner call
- *       is what lets the flattened tuple reach the reader as separate arguments.
+ *       lets the flattened tuple reach the reader as separate arguments.
  */
 #define MMGR_CARCER_APPLY(what_, prisonsite_, tuple_) MMGR_CARCER_APPLY_(what_, prisonsite_, MMGR_UNTUPLE tuple_)
 
@@ -437,8 +526,8 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] ...         The tuple's elements, already flattened by MMGR_UNTUPLE.
  * @return                What the reader expands to.
  * @note The inner half of MMGR_CARCER_APPLY's two steps. Its arguments are expanded before they are
- *       substituted, so MMGR_UNTUPLE runs here and the tuple's elements reach the reader as
- *       separate arguments rather than as one.
+ *       substituted: MMGR_UNTUPLE runs here and the tuple's elements reach the reader as separate
+ *       arguments in place of one.
  */
 #define MMGR_CARCER_APPLY_(what_, prisonsite_, ...) what_(prisonsite_, __VA_ARGS__)
 
@@ -448,8 +537,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] what_       Reader to apply: MMGR_CARCER_BODY, MMGR_CARCER_MEM or MMGR_CARCER_SEAT.
  * @param[in] prisonsite_ Site, which reaches the reader ahead of the tuple's own elements.
  * @param[in] CellBlock1_ The cellblock's tuple.
- * @note The base of the walk. Every longer line ends in this one, so it is the only line here that
- *       names no other.
+ * @note The base of the expansion. Every longer line ends in this one, and it alone names no other.
  */
 #define MMGR_CARCER_W1(what_, prisonsite_, CellBlock1_) MMGR_CARCER_APPLY(what_, prisonsite_, CellBlock1_)
 
@@ -461,7 +549,8 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] CellBlock1_ First cellblock's tuple, which MMGR_CARCER_W1 takes.
  * @param[in] CellBlock2_ Second cellblock's tuple, applied after it.
  * @note The step every longer line repeats: expand the line one shorter, then apply the reader once
- *       more. The preprocessor cannot walk a list, so each cellblock count needs a line of its own.
+ *       more. The preprocessor cannot step through a list: each cellblock count needs a line of its
+ *       own.
  */
 #define MMGR_CARCER_W2(what_, prisonsite_, CellBlock1_, CellBlock2_)                                                   \
     MMGR_CARCER_W1(what_, prisonsite_, CellBlock1_)                                                                    \
@@ -597,11 +686,11 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  *       cellblock through it.
  * @note Every emitted symbol carries the site's name. A program may declare as many sites as it
  *       likes and two of them may each hold a cellblock called the same thing.
- * @note A cellblock's entries are bound to that cellblock, so no call names one and none can reach
+ * @note A cellblock's entries are bound to that cellblock. No call names one and none can reach
  *       another's bytes. A minimum security cellblock has no zeroing release and a maximum security
  *       one has no plain release.
  * @warning The bytes, the state and the warden are all static. A declaration in a header gives
- *          every translation unit that includes it a site of its own rather than one they share.
+ *          every translation unit that includes it a site of its own in place of one they share.
  */
 #define LocusCarcerum(prisonsite_, ...)                                                                                \
     MMGR_CARCER_WALK(MMGR_CARCER_BODY, prisonsite_, __VA_ARGS__)                                                       \
@@ -617,13 +706,17 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in]     size      Bytes wanted.
  * @param[in,out] owner     The owner the cell is counted to, or NULL to count it to none [BORROWS].
  * @return                  Start of the cell, or NULL when the cellblock cannot meet it [RETURNS OWNERSHIP].
- * @note Reached through the cellblock's own guard rather than called by name.
+ * @note Reached through the cellblock's own guard, never called by name.
  * @note The cell goes back through the same cellblock's persistent_buf_release, which takes it.
- * @note A cell handed out adds its payload bytes, read off its header, to owner's in_use and raises
- *       owner's hw to it. Where MMGR_ENABLE_OWNERS is 1, an owner no cellblock lists yet is added to
- *       this one's list while the list has room. A refused take counts nothing.
- * @warning The bytes are not zeroed, and a reused cell still carries what the last prisoner left. A
- *          cellblock declared MMGR_MAXIMUM_SECURITY is the one that zeroes, and it zeroes on release.
+ * @note A cell handed out adds its payload bytes, the request rounded to a word, to owner's in_use
+ *       and raises owner's hw to it. Where MMGR_ENABLE_OWNERS is 1, an owner no cellblock lists yet
+ *       is added to this one's list while the list has room. A refused take counts nothing.
+ * @note The take is one swap on the tiers word, which moves the persistent end up by the cell. No take
+ *       steps through the tier for a cell given back below the end: such a cell waits, free, until the
+ *       cells above it are given back, and the give at the end trims them all off together.
+ * @warning The bytes are not zeroed, and a cell laid over bytes a prisoner occupied before still
+ *          carries what that prisoner left. A cellblock declared MMGR_MAXIMUM_SECURITY zeroes, and it
+ *          zeroes on release.
  */
 MMGR_ALLOC_SIZE(2) void *mmgr_persistent_buf_alloc(CarcerCellBlock *cellblock, size_t size, CellOwner *owner);
 
@@ -641,8 +734,8 @@ MMGR_ALLOC_SIZE(2) void *mmgr_persistent_buf_alloc(CarcerCellBlock *cellblock, s
  *       another cellblock cannot move this one's boundaries.
  * @warning prisoner is dead once this returns and its bytes are not zeroed. The cellblock may hand
  *          them out again.
- * @warning The bound is the cellblock's storage, not a cell boundary. An address inside these bytes
- *          that is not the first byte of a cell is still read as a header.
+ * @warning The bound is the cellblock's storage and never a cell boundary. An address inside these
+ *          bytes that is not the first byte of a cell is still read as a cell's word.
  */
 void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner);
 
@@ -660,9 +753,9 @@ void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, Cel
  * @note A prisoner outside this cellblock's own bytes returns before the zeroing. A pointer from
  *       another cellblock is neither cleared nor released.
  * @warning prisoner is dead once this returns. The cellblock may hand those bytes out again.
- * @warning The bound is the cellblock's storage, not a cell boundary. An address inside these bytes
- *          that is not the first byte of a cell still has its extent read from the bytes ahead of it,
- *          and is zeroed for whatever length those hold.
+ * @warning The bound is the cellblock's storage and never a cell boundary. An address inside these
+ *          bytes that is not the first byte of a cell still has its extent read from the bytes ahead
+ *          of it, and is zeroed for whatever length those hold.
  */
 void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner);
 
@@ -675,10 +768,10 @@ void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *
  * @note The bytes normally go back by mark, through mmgr_temporary_buf_release or
  *       mmgr_temporary_buf_reset.
  * @note A single release through mmgr_persistent_buf_release works here too, but trims the top only
- *       when the freed cell sits at it. Anything freed below stays in the tier, and no allocation at
- *       this tier walks it, so nothing reuses that cell before the next rewind.
+ *       when the freed cell sits at it. Anything freed below stays in the tier, free, and no
+ *       allocation at this tier reads it: nothing reuses that cell before the next rewind.
  * @warning The bytes are not zeroed, and an allocation returns whatever the last prisoner left. A
- *          cellblock declared MMGR_MAXIMUM_SECURITY is the one that zeroes, and it zeroes on release.
+ *          cellblock declared MMGR_MAXIMUM_SECURITY zeroes, and it zeroes on release.
  */
 MMGR_ALLOC_SIZE(2) void *mmgr_temporary_buf_alloc(CarcerCellBlock *cellblock, size_t size);
 
@@ -686,11 +779,11 @@ MMGR_ALLOC_SIZE(2) void *mmgr_temporary_buf_alloc(CarcerCellBlock *cellblock, si
  * @brief The temporary tier's current top, to hand back to mmgr_temporary_buf_release.
  *
  * @param[in] cellblock Cellblock to read [BORROWS].
- * @return              The value of temporary_top.
+ * @return              The temporary top.
  * @note Good against this cellblock alone, and only until a restore to an older mark. The restore
- *       assigns the value it is handed without testing it.
- * @warning The value is a snapshot. An allocation from a preempting handler lowers the top after
- *          this has read it, and restoring the mark then releases that allocation's bytes as well.
+ *       refuses a mark below the top as it stands and assigns any other.
+ * @warning The value is a snapshot. An allocation from another context lowers the top after this has
+ *          read it, and restoring the mark then releases that allocation's bytes as well.
  */
 size_t mmgr_temporary_buf_mark(const CarcerCellBlock *cellblock);
 
@@ -699,13 +792,13 @@ size_t mmgr_temporary_buf_mark(const CarcerCellBlock *cellblock);
  *
  * @param[in,out] cellblock Cellblock to rewind [BORROWS].
  * @param[in]     mark      Top to restore, as mmgr_temporary_buf_mark reported it.
- * @note The top is assigned, not tested, so the mark must be one this cellblock reported, and it
- *       must not lie below the current top. A mark below it lowers the tier onto bytes an earlier
- *       restore already released.
- * @warning A mark this cellblock never reported, or one past its size, is taken as given and moves
- *          the tier there.
- * @warning Every temporary cell taken since mark is dead once this returns. Nothing is zeroed, so
- *          such a pointer still dereferences and reads whatever the next allocation puts there.
+ * @note The top moves to mark by one swap on the tiers word, read again where the end moved. A mark
+ *       below the top as it stands is refused, since it would lower the tier onto bytes an earlier
+ *       restore already released, and a mark past the cellblock's size is refused too.
+ * @warning A mark this cellblock never reported, above the top and inside the size, is taken as given
+ *          and moves the tier there.
+ * @warning Every temporary cell taken since mark is dead once this returns. Nothing is zeroed: such a
+ *          pointer still dereferences and reads whatever the next allocation puts there.
  */
 void mmgr_temporary_buf_release(CarcerCellBlock *cellblock, size_t mark);
 
@@ -714,7 +807,7 @@ void mmgr_temporary_buf_release(CarcerCellBlock *cellblock, size_t mark);
  *
  * @param[in,out] cellblock Cellblock to rewind [BORROWS].
  * @param[in]     mark      Top to restore, as mmgr_temporary_buf_mark reported it.
- * @note The order is the point. The temporary tier grows down, so the live bytes are [top, mark) and
+ * @note The order is the point. The temporary tier grows down: the live bytes are [top, mark) and
  *       reclaiming means raising the top. Zeroing first means they are already zero at the instant
  *       they become available. Reclaiming first would leave a window in which the next allocation,
  *       or a preempting handler, sees what the last prisoner left.
@@ -748,9 +841,9 @@ void mmgr_temporary_buf_reset(CarcerCellBlock *cellblock);
  * @return              EMBED_TRUE when at lies in the cellblock's storage, which is [base, base + size).
  * @note One unsigned compare covers both ends, since an address below base wraps to a difference
  *       larger than any size.
- * @warning Any address in the cellblock answers true, not only the first byte of a cell. This says
- *          where an address is, not what is there. A true answer is not a warrant that at may be
- *          released. The releases read a header from whatever address they are handed.
+ * @warning Any address in the cellblock answers true, the first byte of a cell or any other. This says
+ *          where an address is and nothing of what is there. A true answer is not a warrant that at
+ *          may be released. The releases read a cell's word from whatever address they are handed.
  */
 embed_bool mmgr_who_owns_buf(const CarcerCellBlock *cellblock, const void *at);
 
@@ -758,12 +851,11 @@ embed_bool mmgr_who_owns_buf(const CarcerCellBlock *cellblock, const void *at);
  * @brief The bytes lying between the two tiers.
  *
  * @param[in] cellblock Cellblock to read [BORROWS].
- * @return              temporary_top minus persistent_end, or 0 once the two tiers have met.
+ * @return              The temporary top less the persistent end, read off one word.
  * @note An allocation out of that gap needs a cell header from the same bytes, and the request is
  *       rounded up to a whole word first. A request of exactly this many bytes cannot be met.
- * @warning The two tiers are read one after the other and the answer is a snapshot. An allocation
- *          from a preempting handler landing between the reads gives a value matching neither state,
- *          and any allocation at all leaves it stale before the caller can act on it.
+ * @warning The answer is a snapshot. Any allocation at all leaves it stale before the caller can act
+ *          on it.
  */
 size_t mmgr_buf_available(const CarcerCellBlock *cellblock);
 
@@ -772,9 +864,9 @@ size_t mmgr_buf_available(const CarcerCellBlock *cellblock);
  *
  * @param[in,out] prisoner First byte to clear [BORROWS].
  * @param[in]     size     Bytes to clear.
- * @note The stores are volatile, so clearing bytes nothing reads afterwards is not dropped as dead
+ * @note The stores are volatile: clearing bytes nothing reads afterwards is not dropped as dead
  *       work. The middle is stored a word at a time, the two edges a byte at a time.
- * @note The extent is the caller's to state. A zeroing release takes it from the cell's own header.
+ * @note The extent is the caller's to state. A zeroing release takes it from the cell's own word.
  * @warning prisoner must be writable for size bytes.
  */
 void mmgr_zero_buf(void *prisoner, size_t size);
@@ -786,11 +878,26 @@ void mmgr_zero_buf(void *prisoner, size_t size);
  * @return         size rounded up to a multiple of MMGR_CARCER_ALIGN, and size itself when it already
  *                 is one.
  * @note A size of 0 rounds to 0. The allocators do not round a request this way. They carry a
- *       request of 0 up to one word first, so no cell is handed out empty.
+ *       request of 0 up to one word first: no cell is handed out empty.
  * @warning MMGR_CARCER_ALIGN - 1 is added before the mask. A size within a word of SIZE_MAX wraps
  *          to 0.
  */
 size_t mmgr_align_up_buf(size_t size);
+
+/**
+ * @brief Puts a cellblock back to the state it was declared in: both tiers empty and no owner listed,
+ *        every free cell the persistent tier holds marked dead and no other byte of its storage
+ *        touched.
+ *
+ * @param[in,out] cellblock Cellblock to empty [BORROWS].
+ * @note Every cell the cellblock has handed out is dead once this returns. A suite calls it between
+ *       cases over one declared cellblock; a program with a cellblock to empty while another context
+ *       reaches it has a cellblock whose cells that context still holds.
+ * @note The free cells are marked dead because bytes outside the tiers must never read as a free
+ *       cell: a give that trims the cell above them reads the cell below through the word behind it,
+ *       and trims it only where it reads free.
+ */
+void mmgr_cellblock_emptied(CarcerCellBlock *cellblock);
 
 #if MMGR_ENABLE_HOST
 /**
@@ -802,10 +909,10 @@ size_t mmgr_align_up_buf(size_t size);
  *                        the member's; it names no pool, the block being the pool.
  * @note prisonsite_##_made(bytes) takes a block for the bytes asked through calloc, which hands it out
  *       zero, lays the cellblock's record at the block's start and the cell bytes after it on an
- *       MMGR_ALIGN_BYTES boundary, and frees the block held before; prisonsite_##_freed() frees the
- *       block. A site made anew holds nothing from before, so there is nothing to collect from it.
- * @note The entries read the record through one pointer, so a site made anew serves the same calls,
- *       and prisonsite_##_cellblock() reads the record, NULL where no block is held.
+ *       MMGR_ALIGN_BYTES boundary, and frees the block kept before; prisonsite_##_freed() frees the
+ *       block. A site made anew holds nothing from before: there is nothing to collect from it.
+ * @note The entries read the record through one pointer. A site made anew serves the same calls,
+ *       and prisonsite_##_cellblock() reads the record, NULL where no block is kept.
  * @warning Every entry reads the pointer: a site is made before its first take, and the block of a
  *          site freed holds no cell anyone still reads.
  */
@@ -817,17 +924,13 @@ size_t mmgr_align_up_buf(size_t size);
  */
 #define MMGR_CARCER_HOST(prisonsite_, type_, name_, wipe_to_zero_on_release_)                                          \
     static CarcerCellBlock *prisonsite_##_##name_##_ctx;                                                               \
-    MMGR_CARCER_LOCK(prisonsite_##_##name_##_lock)                                                                     \
     MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size, CellOwner *owner)        \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         void *const prisoner = mmgr_persistent_buf_alloc(prisonsite_##_##name_##_ctx, size, owner);                    \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
         return prisoner;                                                                                               \
     }                                                                                                                  \
     static void prisonsite_##_##name_##_persistent_buf_release(void *prisoner, CellOwner *owner)                       \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
             mmgr_persistent_max_security_buf_release(prisonsite_##_##name_##_ctx, prisoner, owner);                    \
@@ -836,25 +939,19 @@ size_t mmgr_align_up_buf(size_t size);
         {                                                                                                              \
             mmgr_persistent_buf_release(prisonsite_##_##name_##_ctx, prisoner, owner);                                 \
         }                                                                                                              \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
     }                                                                                                                  \
     MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size)                           \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         void *const prisoner = mmgr_temporary_buf_alloc(prisonsite_##_##name_##_ctx, size);                            \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
         return prisoner;                                                                                               \
     }                                                                                                                  \
     static size_t prisonsite_##_##name_##_temporary_buf_mark(void)                                                     \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         const size_t mark = mmgr_temporary_buf_mark(prisonsite_##_##name_##_ctx);                                      \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
         return mark;                                                                                                   \
     }                                                                                                                  \
     static void prisonsite_##_##name_##_temporary_buf_release(size_t mark)                                             \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
             mmgr_max_security_buf_return(prisonsite_##_##name_##_ctx, mark);                                           \
@@ -863,7 +960,6 @@ size_t mmgr_align_up_buf(size_t size);
         {                                                                                                              \
             mmgr_temporary_buf_release(prisonsite_##_##name_##_ctx, mark);                                             \
         }                                                                                                              \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
     }                                                                                                                  \
     static void prisonsite_##_##name_##_temporary_buf_reset(void)                                                      \
     {                                                                                                                  \
@@ -875,9 +971,7 @@ size_t mmgr_align_up_buf(size_t size);
     }                                                                                                                  \
     static size_t prisonsite_##_##name_##_buf_available(void)                                                          \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         const size_t available = mmgr_buf_available(prisonsite_##_##name_##_ctx);                                      \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
         return available;                                                                                              \
     }                                                                                                                  \
     EMBED_TABLE_STORAGE struct                                                                                         \
@@ -886,16 +980,12 @@ size_t mmgr_align_up_buf(size_t size);
     } prisonsite_ EMBED_UNUSED = {MMGR_CARCER_SEAT(prisonsite_, type_, name_, wipe_to_zero_on_release_)};              \
     static embed_bool prisonsite_##_made(size_t bytes)                                                                 \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         const embed_bool made = mmgr_host_cellblock_made(&prisonsite_##_##name_##_ctx, bytes);                         \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
         return made;                                                                                                   \
     }                                                                                                                  \
     static void prisonsite_##_freed(void)                                                                              \
     {                                                                                                                  \
-        MMGR_CARCER_ACQUIRE(prisonsite_##_##name_##_lock);                                                             \
         mmgr_host_cellblock_freed(&prisonsite_##_##name_##_ctx);                                                       \
-        MMGR_CARCER_RELEASE(prisonsite_##_##name_##_lock);                                                             \
     }                                                                                                                  \
     static const CarcerCellBlock *prisonsite_##_cellblock(void)                                                        \
     {                                                                                                                  \
@@ -904,24 +994,24 @@ size_t mmgr_align_up_buf(size_t size);
 
 /**
  * @brief Makes a cellblock over a block of size bytes the host hands out zero, in the place of the one
- *        held, which is freed.
+ *        kept, which is freed.
  *
- * @param[in,out] held  Where the cellblock's record is held: the one before freed, the one made put
+ * @param[in,out] kept  Where the cellblock's record is kept: the one before freed, the one made put
  *                      there [BORROWS].
  * @param[in]     bytes Cell bytes the block holds.
- * @return              1 where the block was handed out, 0 where the host gave none or bytes holds no
- *                      cell.
+ * @return              1 where the block was handed out, 0 where the host gave none, bytes holds no
+ *                      cell, or bytes is past MMGR_CARCER_BYTES_MOST.
  * @note The record is laid into the block's first bytes, which calloc left zero, and the cells start
  *       after it on an MMGR_ALIGN_BYTES boundary: the whole block is one allocation.
  */
-embed_bool mmgr_host_cellblock_made(CarcerCellBlock **held, size_t bytes);
+embed_bool mmgr_host_cellblock_made(CarcerCellBlock **kept, size_t bytes);
 
 /**
  * @brief Frees the block a cellblock stands over, record and cells together, and holds none.
  *
- * @param[in,out] held Where the record is held, NULL after [BORROWS].
+ * @param[in,out] kept Where the record is kept, NULL after [BORROWS].
  */
-void mmgr_host_cellblock_freed(CarcerCellBlock **held);
+void mmgr_host_cellblock_freed(CarcerCellBlock **kept);
 
 /**
  * @brief Whether a cellblock stands as the host handed it out: no cell taken from either tier and
@@ -929,7 +1019,7 @@ void mmgr_host_cellblock_freed(CarcerCellBlock **held);
  *
  * @param[in] cellblock Record to read, NULL reads as not [BORROWS].
  * @return              1 where it does, 0 where it does not.
- * @note Walks every byte, so it is a check for a test to make, not a step of a take.
+ * @note Reads every byte: a check for a test to make, never a step of a take.
  */
 embed_bool mmgr_host_cellblock_zero(const CarcerCellBlock *cellblock);
 #endif

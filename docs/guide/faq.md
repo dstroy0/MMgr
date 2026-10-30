@@ -8,25 +8,25 @@ the benefit is never renaming anything again.
 
 ## Why no malloc?
 
-Because the footprint is then a number you can state before the program runs, rather than an
+Because the footprint is then a number you can state before the program runs, in place of an
 observation about one run. The long answer, including what it costs you, is @ref concept_zero_heap.
 
 ## Is it thread-safe?
 
-A cellblock synchronizes nothing unless `MMGR_ENABLE_LOCK` is 1: it is a pool, an extent and two tier
-boundaries, used by whoever holds it. Two contexts that must not share get two pools, and neither
-cellblock learns there were two. With the switch at 1, every entry of a cellblock's guard but
-`who_owns_buf` takes that cellblock's spinlock for the call.
+Yes, with no switch. A cellblock's boundaries, claims and counts are atomic words, each moved in one
+step, and every context that reaches a cellblock reaches it at once without waiting for another. A
+temporary mark is still good only to the caller that took it: a rewind drops every temporary cell taken
+since the mark, whoever took it.
 
 The one genuinely concurrent module is `memoria_anularis`, which is single-producer
-single-consumer only. Two producers on one ring is broken, not slow. See @ref concept_ownership.
+single-consumer only. Two producers on one ring is broken, and never merely slow. See @ref concept_ownership.
 
 ## What does the dispatch table cost?
 
 Nothing, given `const`. gcc devirtualizes a call through a `static const <Mod>Ns` to the inlined
 body, identical instructions to calling the entry directly, and does not devirtualize through a
-non-const one, which becomes a real call with an 88-byte frame. clang devirtualizes both. That is
-why `EMBED_TABLE_STORAGE` includes `const`. See @ref concept_ns_idiom.
+non-const one, which becomes a real call with an 88-byte frame. clang devirtualizes both. For that reason
+`EMBED_TABLE_STORAGE` includes `const`. See @ref concept_ns_idiom.
 
 ## Do I need LTO?
 
@@ -41,14 +41,14 @@ C++ compiler. The dispatch tables are plain structs of function pointers and wor
 
 ## Why is MinSizeRel not -Os?
 
-Because `-Os` declines to inline the small branch-free entries that _are_ this library, so the calls
+Because `-Os` declines to inline the small branch-free entries that _are_ this library, and the calls
 it saves space on are the calls that cost the most. The top-level `CMakeLists.txt` rewrites `-Os` to
 `-O2` for that configuration. An embedded build reaching for `MinSizeRel` wants small, not
 slow-and-small.
 
 ## Why are there five builds of everything?
 
-There aren't five builds. There is one build that produces five sets of targets. Each is the library
+There aren't five builds. One build produces five sets of targets. Each is the library
 at a different set of compile-time widths. A defect that only appears at a 16-bit carrier fails a
 run on your machine instead of waiting for the hardware. One `cmake --build`, one `ctest`. See
 @ref ref_environments.
@@ -56,19 +56,19 @@ run on your machine instead of waiting for the hardware. One `cmake --build`, on
 ## A test says `test_memoriam_praetereo` was skipped. Is that a problem?
 
 No. `memoriam_praetereo` and `memoria_externa` are behind `MMGR_ENABLE_DMA` and
-`MMGR_ENABLE_EXTRAM`, and the cellblock lock and owner list suites behind `MMGR_ENABLE_LOCK` and
-`MMGR_ENABLE_OWNERS`, all off by default, so their suites are skipped, loudly, with a CMake status
+`MMGR_ENABLE_EXTRAM`, and the owner list suite behind `MMGR_ENABLE_OWNERS`, all off by default, and
+their suites are skipped, loudly, with a CMake status
 message. Turn the flag on if you want them built. A capability gates the whole suite, never a case
 inside one, because a suite that compiles half its cases away still reports as passing.
 
 ## How do I know how big to make my pool?
 
 Measure it, and turn the peak tracking on first. A cellblock's own counters and `buf_available`
-report where the tier boundaries are **right now**, not where they have been, so reading them after a
-workload tells you about that instant and nothing else.
+report where the tier boundaries are **right now** and never where they have been. Reading them after a
+workload tells you about that instant alone.
 
 The peaks are `persistent_hw` and `temporary_hw`, one per tier, and they only exist and are only maintained when
-`MMGR_ENABLE_HW_MEM_CAPACITY_CB` is on. It is off by default, so both stay zero and a reading from
+`MMGR_ENABLE_HW_MEM_CAPACITY_CB` is on. It is off by default: both stay zero and a reading from
 a default build means nothing. Build the `checks` environment with it on, run your real workload,
 read them, and size to the peak plus margin. @ref guide_first_region has the procedure.
 
@@ -80,7 +80,7 @@ and nothing can detect it for you. @ref concept_ownership.
 
 ## Why is there no `strcpy` in the string shim?
 
-There is no bounded spelling of it: the destination size is not one of its arguments, so there is
+There is no bounded form of it: the target size is not one of its arguments, and there is
 nothing for the shim to map it onto. The name is simply not provided, and the shim also defines the
 `<string.h>` include guards so libc's declaration never arrives either. A call to it fails to
 compile instead of overflowing quietly. Use `strlcpy`, which takes the size. @ref guide_string_shim.
@@ -95,4 +95,4 @@ avoiding them keeps the scan path free of per-compiler `#ifdef`s. @ref concept_s
 
 The license text governs, not this page, and this is not legal advice. @ref proj_license_notes has
 the practical notes for a library consumed by `add_subdirectory`. If the terms do not suit your
-project, ask: dual licensing is a conversation, not a policy.
+project, ask: dual licensing is settled in conversation, with no policy to read first.

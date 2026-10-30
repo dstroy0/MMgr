@@ -41,30 +41,29 @@ justifies it.
 
 ## Deliberately not
 
-A page of non-goals is worth more than a page of goals, because it is the one that stops arguments.
+A page of non-goals is worth more than a page of goals, because it stops arguments.
 
 **A general allocator.** No free lists, no size classes, no arbitrary-order release. If a workload
 needs those, it needs a heap, and MMgr is the wrong shape for it. Adding a general free would take
 away the property the whole library exists for: a footprint decided before the program runs.
 
 **Runtime configuration.** Every knob is a compile-time define. A runtime-sized pool would move
-allocation failure from configure time back to run time, which is the thing being avoided.
+allocation failure from configure time back to run time, the very thing being avoided.
 
 **`install()` rules and a binary artifact.** The ABI is a function of the compile-time widths. A
 prebuilt archive can silently disagree with its consumer about the size of `embed_word`. Consuming
 the source makes that impossible. See @ref guide_install.
 
 **Compiler intrinsics in the scan path.** Measured and rejected. See @ref concept_swar. Beyond the
-performance answer, keeping them out is what keeps every compiler conditional in one file.
+performance answer, keeping them out keeps every compiler conditional in one file.
 
-**Thread-safe everything.** A cellblock is handed to whoever holds it, and two contexts that must not
-share get two pools; that is the concurrency model by default. A lock inside a bump allocator is a lock
-on the hot path of a library whose whole claim is bounded, predictable cost, so the cellblock's
-spinlock is a build switch, `MMGR_ENABLE_LOCK`, off unless a target asks for it.
+**Locks.** A cellblock is shared on atomic words, each boundary, claim and count moved in one step,
+and no context waits for another. A lock inside a bump allocator is a lock on the hot path of a
+library whose whole claim is bounded, predictable cost, and there is none.
 
 ## Versioning
 
-Pre-1.0, so the API may change. It is currently 0.1.0 in five places:
+Pre-1.0: the API may change. It is currently 0.1.0 in five places:
 `CMakeLists.txt`, `library.json`, `library.properties`, `CITATION.cff` and
 `sonar-project.properties`, with nothing keeping them in step. That wants a generator before it
 wants a 1.0.

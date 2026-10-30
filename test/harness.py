@@ -24,44 +24,44 @@ a build whose flags nobody wrote down.
 
 Every tree lives under one container, build/, named for what it is and stamped with when it was
 made: build/build-20260831-181500. Two builds can then never share objects, and a tree can be kept
-and compared against rather than overwritten. A tree is reused between invocations, because a fresh
-one costs a full configure and a full compile every time; --fresh forces a new one, which is what a
+and compared against in place of overwritten. A tree is reused between invocations, because a fresh
+one costs a full configure and a full compile every time; --fresh forces a new one, the thing a
 changed target or a changed toolchain needs. The newest three per name are kept and older ones are
 removed on the way in.
 
-There are seven host trees and each one is a different question, so each carries its own flags here
+There are seven host trees and each one is a different question: each carries its own flags here
 instead of in somebody's shell history:
 
   build           the library, as it ships
-  build-oracle    MMGR_TEST_ORACLE on, so every suite that includes oracle_divergence.h calls libc
-  build-cov       instrumented, always_inline off, link time optimisation off
+  build-oracle    MMGR_TEST_ORACLE on: every suite that includes oracle_divergence.h calls libc
+  build-cov       instrumented, always_inline off, link time optimization off
   build-dma       DMA on, with recovery, the boundary word check and a settle window
   build-dma-lean  DMA on, with recovery and the settle window off
   build-extram    external memory on
-  build-lock      the cellblock lock and the owner lists on
+  build-owners    the owner lists on
 
 The device benches are ESP-IDF projects, which is a second build system with its own toolchain and
-environment. Reaching it needs a shell, so the shell script is written out from here, run, and
+environment. Reaching it needs a shell: the shell script is written out from here, run, and
 removed when it succeeds. A script kept in the tree is a second place the paths live and it drifts
 from what this file computes; one generated from the paths this file just resolved cannot. A failing
 script is left behind with its path printed, because a build that failed is exactly when the command
 that ran is worth reading.
 
-The last two matter. always_inline is honoured at -O0, so without turning it off every call site of
-a header entry gets its own copy of that entry's branch records and the report counts optimiser
-copies instead of source branches. Link time optimisation rewrites the code across translation
+The last two matter. always_inline is honored at -O0, and without turning it off every call site of
+a header entry gets its own copy of that entry's branch records and the report counts optimizer
+copies instead of source branches. Link time optimization rewrites the code across translation
 units before the counters are read, which measures something that is not what anyone wrote.
 
 Two environment variables, because a first build has nothing to infer them from:
 
   MMGR_BUILD_ROOT   where the trees are made, ROOT by default. Windows caps a full object path at
-                    250 characters and this tree's deepest object sits ~180 below its build dir, so
+                    250 characters and this tree's deepest object sits ~180 below its build dir, and
                     a checkout more than ~60 characters down cannot build in place at all.
   MMGR_CMAKE_ARGS   extra configure arguments, split like a shell would. The generator and the
                     compiler are otherwise read off a tree that already built, which answers
                     nothing in a fresh clone or worktree whose first build is this one.
 
-`ab` runs the two sides one after the other, never at once. Two full builds at the same time is
+`ab` runs the two sides one after the other, never at once. Two full builds at the same time are
 what makes this machine unusable, and the comparison does not need them concurrent.
 
 The mechanisms here are generic; the names, the paths and the two patterns that key on a per-project
@@ -72,18 +72,18 @@ is not built at all:
 
   cmake -S . -B build -DMMGR_ENABLE_DMA=OFF
 
-The capabilities each suite needs are test/CMakeLists.txt's map, which is what `suites` reads: a
+The capabilities each suite needs are test/CMakeLists.txt's map, the one `suites` reads: a
 suite naming a capability it never drives, or driving one it does not name, is how a reduced build
 fails while the full one passes.
 
 A case Unity's generator does not collect is not an error to the generator: it is simply never
-registered, so the suite passes while the case never ran. `cases` and `runners gen` both break that
+registered, and the suite passes while the case never ran. `cases` and `runners gen` both break that
 silence by naming the near misses.
 
-Some of src/ is generated rather than written, because it is tables nobody can check by eye - the
+Some of src/ is generated and never written by hand, because it is tables nobody can check by eye - the
 ASCII class bitmaps, the anchor cost profiles and the powers of five. Editing any of it by hand is
-silently undone the next time anyone runs the generator, so `generated` compares what is on disk
-against what the generators emit and says which is which. It covers whole modules, not just
+silently undone the next time anyone runs the generator: `generated` compares what is on disk
+against what the generators emit and says which is which. It covers whole modules and never only
 headers: the ASCII module's .c and its CMakeLists.txt come out of the same generator as its header,
 and a profile is a .c.
 """
@@ -112,7 +112,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Where the build trees live. ROOT by default, because a tree beside the source is what anyone
 # expects to find. MMGR_BUILD_ROOT moves them, which is not a convenience: Windows caps a full
 # object path at 250 characters, and this tree's deepest object sits ~180 below its build dir. A
-# checkout more than ~60 characters down cannot build in place at all. The cap is the compiler's, so the only fix is a shorter prefix.
+# checkout more than ~60 characters down cannot build in place at all. The cap is the compiler's: the only fix is a shorter prefix.
 BUILD_ROOT = os.path.abspath(os.environ.get("MMGR_BUILD_ROOT", ROOT))
 
 # Extra configure arguments, split like a shell would. borrowed_toolchain() reads the generator and
@@ -127,13 +127,13 @@ CMAKE_ARGS = os.environ.get("MMGR_CMAKE_ARGS", "")
 # into whatever directory a command happened to run from, is how two builds come to share objects.
 BUILD_CONTAINER = os.path.join(BUILD_ROOT, "build")
 
-# Which directory each tree is currently using. Written here rather than inferred from the newest
+# Which directory each tree is currently using. Written here in place of inferred from the newest
 # timestamp on disk. A run that was interrupted does not silently hand the next one a half
 # configured tree.
 BUILD_POINTER = os.path.join(BUILD_CONTAINER, "current.json")
 
-# Trees kept per name before the oldest is removed. Small on purpose: an instrumented tree is
-# hundreds of megabytes, and what anyone wants is the last few rather than the last month.
+# Trees kept per name before the oldest is removed. Small by design: an instrumented tree is
+# hundreds of megabytes, and what anyone wants is the last few and never the last month.
 BUILD_KEEP = 3
 
 
@@ -187,7 +187,7 @@ def toolchain_from_cache(cache):
 
 
 def remember_toolchain(path):
-    """Record the toolchain a tree configured with, so it outlives that tree.
+    """Record the toolchain a tree configured with: it outlives that tree.
 
     Trees rotate. Without this, a machine that has built a hundred times arrives at the same place a
     fresh clone does the moment the last tree is removed, and the generator cmake picks by default is
@@ -228,7 +228,7 @@ _DEFENDER_RT = "unasked"
 def defender_state():
     """Real time protection, and the paths excluded from it. (None, []) where it cannot be told.
 
-    None is an answer and not a failure. The query needs the Defender module, which a machine
+    None is an answer, no failure. The query needs the Defender module, which a machine
     running a different anti-virus does not have, and calling that "off" would send the reader after
     the wrong thing.
     """
@@ -251,8 +251,8 @@ def defender_state():
             answer = json.loads(r.stdout.strip())
             raw = [p for p in answer["ex"] if p]
             # Unelevated, Get-MpPreference answers the exclusion query with a sentence about needing
-            # to be an administrator rather than with paths. Comparing the tree against a sentence
-            # finds no match and reports "not excluded", which is an assertion this cannot make, so
+            # to be an administrator and never with paths. Comparing the tree against a sentence
+            # finds no match and reports "not excluded", which is an assertion this cannot make, and
             # an answer holding no path at all becomes None: not knowable from here.
             paths = [p for p in raw if os.path.isabs(p)]
             _DEFENDER_RT = (bool(answer["rt"]), paths if paths or not raw else None)
@@ -264,7 +264,7 @@ def defender_state():
 def defender_covers(path):
     """True when real time protection is on and @p path is not excluded from it.
 
-    The exclusion is what decides, not the setting. Protection being on says nothing about this
+    The exclusion decides and the setting does not. Protection being on says nothing about this
     tree if the tree is already excluded, and a warning that fires anyway is one that gets ignored
     the one time it was right.
     """
@@ -277,7 +277,7 @@ def defender_covers(path):
         return True
     target = os.path.normcase(os.path.abspath(path))
     for entry in excluded:
-        # An exclusion covers a directory and everything under it, so the separator matters: without
+        # An exclusion covers a directory and everything under it: the separator matters, without
         # it "C:\\build" would read as excluding "C:\\build-oracle" too.
         covered = os.path.normcase(os.path.abspath(entry))
         if target == covered or target.startswith(covered + os.sep):
@@ -288,7 +288,7 @@ def defender_covers(path):
 def report_defender():
     """Print the Defender note where it is a likely explanation. A no-op anywhere it is not.
 
-    Printed on failures rather than on every command. On a working build it is noise, and the
+    Printed on failures and never on every command. On a working build it is noise, and the
     symptoms it explains - a tree that will not delete, a link step failing on a file nothing else
     holds, a rebuild slower than the last one - all arrive as a failure that names no cause.
     """
@@ -299,7 +299,7 @@ def report_defender():
     if excluded is None:
         print(
             "  Windows Defender real time protection is on. Whether %s is excluded from it cannot\n"
-            "  be read without an elevated shell, so this may already be handled.\n"
+            "  be read without an elevated shell: this may already be handled.\n"
             "  It scans every file a build writes and holds a handle open while it does. Where it\n"
             "  is not excluded that makes every build slower, reliably, and breaks a delete or a\n"
             "  link that lands in the same moment, intermittently - so it may be what just happened\n"
@@ -326,7 +326,7 @@ def remove_tree(path):
     Every read-only bit under the tree is cleared first. FetchContent clones Unity into _deps with
     its .git intact, and git holds pack files at 0444, which Windows will not unlink. A plain
     rmtree of any fully built tree stops partway and leaves a directory with most of its contents
-    gone. That husk still matches the tree pattern, so it is counted by the rotation, listed by
+    gone. That husk still matches the tree pattern: it is counted by the rotation, listed by
     `trees`, and never removed on any later run either.
     """
     for base, dirs, files in os.walk(path):
@@ -335,7 +335,7 @@ def remove_tree(path):
                 os.chmod(os.path.join(base, name), stat.S_IWRITE)
             except OSError:
                 # Already gone, or not ours to change. Whatever genuinely blocks the removal is
-                # reported by the caller reading the return, rather than guessed at here.
+                # reported by the caller reading the return and never guessed at here.
                 pass
     shutil.rmtree(path, ignore_errors=True)
     return not os.path.exists(path)
@@ -344,7 +344,7 @@ def remove_tree(path):
 def rotate_trees(tree, keep=BUILD_KEEP):
     """Remove all but the newest @p keep directories belonging to @p tree.
 
-    The name carries the stamp, so sorting the names sorts them by age without stat-ing anything.
+    The name carries the stamp: sorting the names sorts them by age without stat-ing anything.
     The one the pointer names is kept whatever its position, since a rotation that removes the tree
     a build is about to use has removed the wrong thing.
     """
@@ -378,7 +378,7 @@ def tree_path(tree, fresh=False):
     write_pointer(current)
     # One fewer than the count kept, because the tree named above is not on disk yet - cmake makes it
     # on the way through configure. Rotating to BUILD_KEEP here leaves that many behind and then adds
-    # one, so the container settles at one more than this file says it keeps.
+    # one, and the container settles at one more than this file says it keeps.
     rotate_trees(tree, BUILD_KEEP - 1)
     return os.path.join(BUILD_CONTAINER, name)
 
@@ -387,13 +387,13 @@ def tree_path(tree, fresh=False):
 #
 #   unit/<module>/test_<name>/     one per translation unit, mirroring src/<module>/
 #   accuracy/test_<name>/          the value a conversion produces, against a reference that is
-#                                  right by construction rather than by agreement with this library
+#                                  right by construction and never by agreement with this library
 #   environment/test_<env>/        one per entry in MMGR_ENVIRONMENTS, asserting that the widths
 #                                  the build claims are the widths the code actually got
 #   integration/test_<name>/       more than one module together
 #   interop/test_<name>/           this library's output against another implementation's
 #
-# accuracy is separate from unit on purpose. A unit suite asks whether an entry keeps the contract
+# accuracy is separate from unit by design. A unit suite asks whether an entry keeps the contract
 # its header states, which a table-driven module can satisfy with a table that is internally
 # consistent and numerically wrong. An accuracy suite asks what the number actually is.
 UNIT = os.path.join(ROOT, "test", "unit")
@@ -423,7 +423,7 @@ def guarded_cases(path):
 
     Unity's generator reads the case names out of the source text and does not see a preprocessor
     conditional. A case inside a capability's #if is still declared and called by the runner. With
-    that capability off the definition is gone and the suite fails to LINK, which is what makes this
+    that capability off the definition is gone and the suite fails to LINK, and that makes this
     the same finding as a capability the map does not name.
     """
     with open(path, encoding="utf-8") as fh:
@@ -512,7 +512,7 @@ def generate_runner(suite_dir, unity_rb):
                     % (os.path.relpath(os.path.join(suite_dir, f), ROOT), ", ".join(missed))
                 )
         raise SystemExit("runners: no test case found in %s" % os.path.relpath(suite_dir, ROOT))
-    # The generator takes one input file and emits one main(), so cases spread across several
+    # The generator takes one input file and emits one main(): cases spread across several
     # sources cannot be registered from any single one of them.
     if len(sources) > 1:
         raise SystemExit(
@@ -529,10 +529,10 @@ def generate_runner(suite_dir, unity_rb):
     src = os.path.join(suite_dir, sources[0])
     out = os.path.join(suite_dir, GENERATED_RUNNER)
     subprocess.run([ruby, unity_rb, src, out], check=True)
-    # Unity's generator opens its output in text mode, so on Windows every line lands CRLF while
+    # Unity's generator opens its output in text mode, and on Windows every line lands CRLF while
     # .gitattributes holds this tree at "LF in the repository and LF in the working copy". The runner
     # is tracked, so that difference shows as a modified file after every build that regenerates one.
-    # git normalizes the content it stores either way, so nothing was ever committed wrong; rewriting
+    # git normalizes the content it stores either way, and nothing was ever committed wrong; rewriting
     # the bytes here is what leaves the working copy as the build found it, on every platform. A
     # no-op where the generator already wrote LF.
     with open(out, "rb") as fh:
@@ -542,7 +542,7 @@ def generate_runner(suite_dir, unity_rb):
     # an absolute one. The same argument as the line endings above applies to it and is worse: an
     # absolute path in a tracked generated file names the machine that produced it, and rewrites
     # itself on every checkout at a different location. 60 of these were committed carrying
-    # "C:/Users/<name>/Desktop/git_project/mmgrwork/MMgr/...", a layout that no longer exists, so
+    # "C:/Users/<name>/Desktop/git_project/mmgrwork/MMgr/...", a layout that no longer exists, and
     # every build since the tree moved has reported all 60 as modified and each diff reads as
     # authored work until somebody opens it. Stripping the root here leaves the same bytes on every
     # machine. Both separators are tried: Unity normalizes the directory it was given to forward
@@ -576,8 +576,8 @@ def _is_setup_use(line, mem):
     """True when this line only declares, binds, or clears the borrow.
 
     Those three are how a dependency is made ready, not how it is exercised, and a suite that does
-    only them has bound a unit it never asks anything of. Where the setup lives does not matter, so
-    this keys on the line rather than on the enclosing function.
+    only them has bound a unit it never asks anything of. Where the setup lives does not matter, and
+    this keys on the line and never on the enclosing function.
     """
     esc = re.escape(mem)
     if re.search(r"\b(static|uint8_t)\b.*\b" + esc + r"\b\s*\[", line):
@@ -606,7 +606,7 @@ def undriven_deps(path):
 # Build trees
 # ------------------------------------------------------------------------------------------------
 # The DMA schedule's knobs, answered the way a host build answers them. A host defines no counter to
-# pin a timer to, so the clock is the caller's. The two DMA trees, the target probe and the remote
+# pin a timer to: the clock is the caller's. The two DMA trees, the target probe and the remote
 # columns all start from these, and each replaces a knob by name where it asks a different question.
 PRAET_KNOBS = (
     "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u", "PRAET_KEEPALIVE_MICROS=250u",
@@ -667,9 +667,9 @@ TREES = {
         "what": "external memory on",
         "args": ["-DMMGR_ENABLE_EXTRAM=ON"],
     },
-    "build-lock": {
-        "what": "the cellblock lock and the owner lists on",
-        "args": ["-DMMGR_ENABLE_LOCK=ON", "-DMMGR_ENABLE_OWNERS=ON"],
+    "build-owners": {
+        "what": "the owner lists on",
+        "args": ["-DMMGR_ENABLE_OWNERS=ON"],
     },
 }
 
@@ -693,10 +693,10 @@ def borrowed_toolchain(skip_path):
 
     @p skip_path is the directory being configured, and it is the only one passed over. Skipping the
     whole tree NAME instead is what this did when each name had one directory, and under stamped
-    trees that reads as "never borrow from a tree of the kind you are building", which is the kind
+    trees that reads as "never borrow from a tree of the kind you are building", the kind
     most likely to have one.
     """
-    # Read off the directories rather than through tree_path. That function makes a directory and
+    # Read off the directories and never through tree_path. That function makes a directory and
     # rotates when a tree has none, and probing for a toolchain must not create anything.
     #
     # Every tree on disk is considered, newest first, not only the ones the pointer names. A tree
@@ -724,7 +724,7 @@ def borrowed_toolchain(skip_path):
 def configure(tree, fresh=False):
     """Configure @p tree if it is not there yet."""
     # Taken before the path, because tree_path writes the pointer when it makes a new tree and a
-    # failed configure has to put back what was there rather than leaving the name unset.
+    # failed configure has to put back what was there in place of leaving the name unset.
     was = read_pointer().get(tree)
 
     path = tree_path(tree, fresh)
@@ -740,7 +740,7 @@ def configure(tree, fresh=False):
         # A configure that failed still leaves a cache, and that cache holds whatever cmake settled
         # on before it stopped - a generator nobody asked for, or a compiler it could not find. The
         # next run sees a cache, treats the tree as configured, and builds against it. Removing it
-        # is what makes a failed configure fail again rather than half-succeed.
+        # makes a failed configure fail again in place of half-succeeding.
         remove_tree(path)
         current = read_pointer()
         # Put back whatever the name pointed at before. A failed --fresh leaves the working tree
@@ -800,7 +800,7 @@ def ctest(tree, pattern):
 # ran is worth reading, and reconstructing it from a script that deleted itself is guesswork.
 BENCH_ROOT = os.path.join(ROOT, "test", "performance_benching")
 
-# Where an emitted script goes. Under the container with the build trees, so one directory holds
+# Where an emitted script goes. Under the container with the build trees: one directory holds
 # everything a build makes and nothing lands beside the source.
 SANDBOX = os.path.join(BUILD_CONTAINER, "sandbox")
 
@@ -843,7 +843,7 @@ $ErrorActionPreference = "Stop"
 
 # idf.py refuses to run under MSys/Mingw and stops before it configures anything. Those variables
 # are inherited from whichever shell started the harness, and a POSIX shell on this machine sets
-# them. A device build reached from one dies on a message about the environment rather than
+# them. A device build reached from one dies on a message about the environment and never
 # about the build. Clearing them here makes an emitted script run the same way whichever shell got here.
 foreach ($name in "MSYSTEM", "MSYSTEM_PREFIX", "MINGW_PREFIX", "MSYS", "MSYS2_PATH_TYPE") {{
     Remove-Item -Path ("env:" + $name) -ErrorAction SilentlyContinue
@@ -882,13 +882,13 @@ def cmd_device_build(a):
         return 1
 
     proj = os.path.join(BENCH_ROOT, a.bench)
-    # Always a new tree. An IDF tree carries the target it was configured for, so reusing one across
+    # Always a new tree. An IDF tree carries the target it was configured for, and reusing one across
     # targets is the case that reports success for a part the image was not built for.
     tree = tree_path("%s-%s" % (a.bench, a.target), fresh=True)
 
     body = IDF_PREAMBLE.format(idf_path=IDF_PATH, idf_tools=IDF_TOOLS_PATH, idf_python=IDF_PYTHON)
     body += '\nSet-Location "{root}"\n'.format(root=ROOT)
-    # sdkconfig into the tree, not beside the source. idf.py writes it into the project directory by
+    # sdkconfig into the tree and never beside the source. idf.py writes it into the project directory by
     # default, which leaves generated config in the checkout and leaves it there after the tree it
     # describes is gone - and the name it writes, plain "sdkconfig", is not what .gitignore covers.
     # In the tree it is made with the tree, removed with it, and regenerated from sdkconfig.defaults
@@ -898,7 +898,7 @@ def cmd_device_build(a):
     body += '& $idfPython $idfPy -C "{proj}" -B "{tree}" -D SDKCONFIG="{sdkconfig}" set-target {target}\n'.format(
         proj=proj, tree=tree, sdkconfig=sdkconfig, target=a.target
     )
-    # Single braces, and an explicit exit rather than a throw. This line is concatenated, not
+    # Single braces, and an explicit exit in place of a throw. This line is concatenated and never
     # formatted. A doubled brace is not an escape here - it emits a scriptblock wrapped in a
     # scriptblock, which PowerShell prints instead of running. The guard then never fires and the
     # step reports success no matter what it did.
@@ -915,8 +915,8 @@ def cmd_device_build(a):
         print("device build of %s for %s failed" % (a.bench, a.target))
         return 1
     # An exit code is one witness, the image on disk is a second and an independent one. This command
-    # has already once reported a part built while nothing was compiled at all, so what flash needs is
-    # checked for here rather than found missing later by a flash that cannot say why.
+    # has already once reported a part built while nothing was compiled, and what flash needs is
+    # checked for here in place of found missing later by a flash that cannot say why.
     if not os.path.isfile(os.path.join(tree, "flash_args")):
         print(
             "device build of %s for %s exited clean and produced no image in %s - treat the exit\n"
@@ -974,8 +974,8 @@ def cmd_device_monitor(a):
         return 1
 
     with port:
-        # The bridge drives EN from DTR/RTS, which is what makes a capture start at the bench's
-        # first line rather than partway through whatever it had already printed.
+        # The bridge drives EN from DTR/RTS, and that makes a capture start at the bench's
+        # first line in place of partway through whatever it had already printed.
         port.dtr = False
         port.rts = True
         time.sleep(0.1)
@@ -990,7 +990,7 @@ def cmd_device_monitor(a):
                 said += chunk
                 last = time.time()
                 # Written as bytes. A part coming out of reset emits its ROM banner at a different
-                # rate, so the first chunk is always noise, and decoding it produces replacement
+                # rate: the first chunk is always noise, and decoding it produces replacement
                 # characters that a cp1252 console then cannot encode - which crashes the capture
                 # before the bench has said anything.
                 sys.stdout.buffer.write(chunk)
@@ -1008,7 +1008,7 @@ def cmd_bench(a):
     """Forward to the matrix module, which does not run on its own.
 
     bench.py owns bench_matrix.json and every mutation of it. Those commands are still worth
-    reaching, so they are reached through here rather than being reimplemented in a second place.
+    reaching: they are reached through here in place of being reimplemented in a second place.
     """
     sys.path.insert(0, BENCH_ROOT)
     try:
@@ -1016,7 +1016,7 @@ def cmd_bench(a):
     except ImportError as exc:
         print("cannot reach the matrix module: %s" % exc)
         return 1
-    # bench.py resolves the matrix beside itself, so it is run from its own directory.
+    # bench.py resolves the matrix beside itself: it is run from its own directory.
     here = os.getcwd()
     os.chdir(BENCH_ROOT)
     try:
@@ -1066,7 +1066,7 @@ def cmd_trees(a):
 # is, because a path on its own does not tell the reader why it was named.
 #
 # The names here are deliberately narrow. sdkconfig.defaults is a source file that is meant to be in
-# the tree and sdkconfig is a generated one that is not, so this matches the second and not the
+# the tree and sdkconfig is a generated one that is not: this matches the second and not the
 # first: a check that cries wolf on a real source file is one that gets run once.
 STRAY_DIRS = (
     ("__pycache__", "python bytecode, written beside an imported module"),
@@ -1100,13 +1100,13 @@ def cmd_stray(a):
     nobody knows which tool made which - so this makes a dirty tree one line of output instead of
     an afternoon of going through directories.
 
-    Reports and never removes. What disappears from a checkout is the reader's call, not a tool's.
+    Reports and removes nothing. What disappears from a checkout is the reader's call, not a tool's.
     """
     container = os.path.abspath(BUILD_CONTAINER)
     hits = []
     for base, dirs, files in os.walk(ROOT):
         # Never descend into .git, and never into the container: the container is where every one of
-        # these belongs, so naming its contents would report the rule working as if it were broken.
+        # these belongs: naming its contents would report the rule working as if it were broken.
         dirs[:] = [
             d for d in dirs if d != ".git" and os.path.abspath(os.path.join(base, d)) != container
         ]
@@ -1114,7 +1114,7 @@ def cmd_stray(a):
             for pattern, why in STRAY_DIRS:
                 if fnmatch.fnmatch(name, pattern):
                     hits.append((os.path.join(base, name), why, True))
-                    # Not descended into. One line for the tree, rather than one per object inside
+                    # Not descended into. One line for the tree in place of one per object inside
                     # it, which for an IDF tree is thousands.
                     dirs.remove(name)
                     break
@@ -1168,9 +1168,9 @@ def cmd_ab(a):
 def cmd_coverage(a):
     """Build, run and report what of src/ the suites reached.
 
-    The counters carry a stamp from the .gcno they were built beside, so last run's are cleared
+    The counters carry a stamp from the .gcno they were built beside: last run's are cleared
     after the build and before the run: a report always describes the binaries that produced it.
-    Every environment runs, not just host, because which arm of a width conditional is compiled at
+    Every environment runs, not just host, because which arm of a width conditional is compiled
     all is MMGR_ENVIRONMENTS' business and only the whole set describes the library.
     """
     tree = "build-cov"
@@ -1189,8 +1189,8 @@ def cmd_coverage(a):
     out = os.path.join(tree_path(tree), "coverage.csv")
     js = os.path.join(tree_path(tree), "coverage.json")
     # No --exclude-unreachable-branches. It drops branches gcov attributes to a line gcovr believes
-    # cannot be reached, which is the tool deciding what does not have to be covered - and it decides
-    # it from the compiler's records, not from the source. A branch this report does not print is a
+    # cannot be reached: the tool rules on what does not have to be covered - and it rules
+    # it from the compiler's records and never from the source. A branch this report does not print is a
     # branch nobody looked at. Anything genuinely unreachable is established by reading it and
     # written down, not silently dropped from the denominator.
     r = run(
@@ -1214,7 +1214,7 @@ def cmd_coverage(a):
             rows = list(csv.DictReader(fh))
 
         def gap(row):
-            """How many uncovered lines and branches a file still holds."""
+            """How many unreached lines and branches a file still has."""
             return (int(row["line_total"]) - int(row["line_covered"])) + (
                 int(row["branch_total"]) - int(row["branch_covered"])
             )
@@ -1238,8 +1238,8 @@ def cmd_coverage(a):
 def line_runs(nums):
     """Collapse sorted line numbers into (first, last) runs.
 
-    A function no case ever calls is a run of uncovered lines, so printed one per line it is forty
-    entries that say one thing. Printed as a range it says the one thing.
+    A function no case ever calls is a run of unreached lines, and printed one per line it is forty
+    entries that say one thing. Printed as a range it says it once.
     """
     out = []
     for n in nums:
@@ -1263,7 +1263,7 @@ def src_line(path, n):
 
 
 def report_gaps(js):
-    """Name every uncovered line and branch, with the source that is not being reached.
+    """Name every unreached line and branch, with the source that is not being reached.
 
     gcovr's JSON carries one entry per line per translation unit that compiled it, and this library
     compiles every source once per environment - so the same physical line arrives five times. They
@@ -1272,7 +1272,7 @@ def report_gaps(js):
     environment and reports a gap five times its real size.
 
     Lines and branches fail in different places and both are printed. A function no case calls has
-    no uncovered branch at all - it has no *covered* branch either, and a branch-only report calls
+    no unreached branch - it has no *covered* branch either, and a branch-only report calls
     it clean.
     """
     with open(js, encoding="utf-8") as fh:
@@ -1313,7 +1313,7 @@ def report_gaps(js):
 
     tl = sum(len(r[4]) for r in files)
     tb = sum(len(r[5]) for r in files)
-    print("\n%d files with gaps: %d uncovered lines, %d uncovered branches" % (len(files), tl, tb))
+    print("\n%d files with gaps: %d unreached lines, %d unreached branches" % (len(files), tl, tb))
 
 
 def cmd_deps(a):
@@ -1335,7 +1335,7 @@ def cmd_deps(a):
     print(
         "\n%d dependencies are bound and then never named again outside setup.\n"
         "\n"
-        "  This is a smell, not a proof. A unit the suite reaches only THROUGH the unit under\n"
+        "  This points at a smell and proves nothing. A unit the suite reaches only THROUGH the unit under\n"
         "  test is still exercised, and this cannot see that. What it does prove is that no case\n"
         "  ASSERTS anything about the dependency's own state. A defect in the interaction\n"
         "  between the two is invisible either way.\n"
@@ -1373,8 +1373,8 @@ def cmd_suites(a):
         print("   %-22s needs %-10s %s" % (suite, cap, case))
     print("""
   Unity's generator reads the case names out of the source text and does not see a
-  preprocessor conditional, so the runner declares and calls each of these however the
-  capability is set. With it off the definition is gone and the suite fails to LINK, so
+  preprocessor conditional, and the runner declares and calls each of these however the
+  capability is set. With it off the definition is gone and the suite fails to LINK, and
   the reduced build breaks while the full one stays green.
 
   Fix one of two ways: add the capability to the suite's MMGR_SUITE_CAP_ line in
@@ -1409,7 +1409,7 @@ def cmd_runners_gen(a):
 # Generated headers
 # ------------------------------------------------------------------------------------------------
 # A generated header that someone edited by hand looks fine until the next regeneration throws the
-# edit away. These pair each output with the tool that owns it, so the check is mechanical.
+# edit away. These pair each output with the tool that owns it: the check is mechanical.
 GENERATED = (
     (
         "tools/dev_env/gen_ascii_persona_bitorum.py",
@@ -1499,12 +1499,12 @@ def cmd_generated(a):
 # ------------------------------------------------------------------------------------------------
 # Two questions a host build cannot answer.
 #
-#   targets   compile the module for every part, so the platform derivation is exercised by the
+#   targets   compile the module for every part, and the platform derivation is exercised by the
 #             toolchain that actually defines the macros it reads. A host defines none of them.
-#   remote    build and run the whole suite on another machine, which is the only thing here that
+#   remote    build and run the whole suite on another machine, the only thing here that
 #             runs it on an instruction set that is not x86.
 #
-# Add a part: one row in TARGETS. Add a toolchain: one constant, overridable from the environment so
+# Add a part: one row in TARGETS. Add a toolchain: one constant, overridable from the environment, and
 # a different install needs no edit. A row whose compiler is absent reports SKIP and never a pass.
 
 ESP_TOOLS = os.environ.get("MMGR_ESP_TOOLS", r"C:\Espressif\tools")
@@ -1517,7 +1517,7 @@ RV_15 = os.path.join(ESP_TOOLS, "riscv32-esp-elf", "esp-15.2.0_20251204", "riscv
 
 # Current Arm GNU. PlatformIO ships GCC 5.4.1 from 2016, which predates ARMv8-M and cannot build a
 # Cortex-M23 or M33 at all. ARM_OLD keeps two rows anyway: a header this full of preprocessor tests
-# is exactly what compiles on one compiler generation and not another.
+# is just what compiles on one compiler generation and not another.
 ARM = os.environ.get("MMGR_ARM_GCC",
                      r"C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.2 rel1\bin\arm-none-eabi-gcc.exe")
 ARM_OLD = os.environ.get("MMGR_ARM_GCC_OLD",
@@ -1549,8 +1549,8 @@ TARGETS = (
     ("cortex-m3   v7m", ARM, ["-mcpu=cortex-m3", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
     ("cortex-m33  v8m.main", ARM, ["-mcpu=cortex-m33", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
     ("cortex-m23  v8m.base", ARM, ["-mcpu=cortex-m23", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
-    # AArch32, not AArch64. arm-none-eabi targets the 32 bit state, so this is __ARM_ARCH 8 with
-    # profile 'A' and no __aarch64__. It is the application profile row and nothing more.
+    # AArch32 and never AArch64. arm-none-eabi targets the 32 bit state: this is __ARM_ARCH 8 with
+    # profile 'A' and no __aarch64__. It is the application profile row alone.
     ("cortex-a53  v8a aarch32", ARM, ["-mcpu=cortex-a53"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
     ("aarch64     v8a", AARCH64, [], (1, 0, 0, 64, 1), CLOCK_OWN, True, None),
     # The same two parts on the 2016 compiler. Nine years of GCC must change nothing here.
@@ -1564,7 +1564,7 @@ TARGETS = (
 )
 
 # Every knob the probe reads that is not this table's subject. A row only fails for its own reason.
-# The clock source is each row's own, so it is left out here.
+# The clock source is each row's own: it is left out here.
 TARGET_KNOBS = ["-DMMGR_ENABLE_DMA=1", "-DMMGR_ENABLE_EXTRAM=0"] + [
     "-D" + knob for knob in PRAET_KNOBS if not knob.startswith("PRAET_CLOCK_SOURCE=")]
 
@@ -1628,7 +1628,7 @@ def cmd_targets(a):
             problems += ["  " + ln.strip() for ln in out.splitlines() if "error" in ln.lower()][:3]
         if wanted and wanted not in out:
             problems.append("the refusal never said %r" % wanted)
-        # The boundary word token announces itself on every build that declares a context. Anything
+        # The boundary word token appears on every build that declares a context. Anything
         # else is a diagnostic nobody asked for.
         noise = [ln for ln in out.splitlines()
                  if ("warning" in ln.lower() or "error" in ln.lower())
@@ -1669,7 +1669,7 @@ REMOTE_COLUMNS = (
 def cmd_remote(a):
     """Build and run the praet suite on another machine, over ssh.
 
-    The password comes from MMGR_REMOTE_PW and is never written down here. WSLENV is what carries a
+    The password comes from MMGR_REMOTE_PW and is never written down here. WSLENV carries a
     Windows variable across into WSL, which is where ssh and rsync live on this host.
     """
     if not os.environ.get("MMGR_REMOTE_PW"):
@@ -1767,7 +1767,7 @@ def cmd_remote(a):
 # under test/vectors with their sources and digests in MANIFEST.json.
 #
 #   CAVP ShortMsg/LongMsg   the normative one shot tables
-#   CAVP Monte              100 checkpoints x 1000 chained rounds, which is the only published case
+#   CAVP Monte              100 checkpoints x 1000 chained rounds, the only published case
 #                           that catches state carried wrongly between blocks
 #   Wycheproof HMAC         adversarial: modified tags that must NOT reproduce
 #   splits                  every way of cutting one message across take() must reach one digest
@@ -1815,7 +1815,7 @@ static uint8_t key[4096];
 
 /* CAVP publishes a hundred checkpoints. The construction does not stop there, and past a hundred it
  * is still a valid chain with no published answer. A soak runs it as far as asked and a second
- * implementation supplies the expectation. Errors in a chain compound forward, which is why this
+ * implementation supplies the expectation. Errors in a chain compound forward, and for that reason this
  * finds state bugs that independent messages hide. */
 static int monte(unsigned checkpoints)
 {
@@ -1868,7 +1868,7 @@ static int splits(void)
             mmgr_sha256_finish(&running, got);
             if (memcmp(got, want, MMGR_SHA256_BYTES) != 0) { bad++; }
         }
-        /* And a byte at a time, which is the worst case for the partial block path. */
+        /* And a byte at a time, the worst case for the partial block path. */
         {
             uint8_t got[MMGR_SHA256_BYTES];
             MmgrSha256 running;
@@ -1982,7 +1982,7 @@ def cmd_vectors(a):
     with open(manifest_path, encoding="utf-8") as fh:
         manifest = json.load(fh)
 
-    # The vectors are evidence, so what they hash to is checked before anything is read from them
+    # The vectors are evidence: what they hash to is checked before anything is read from them
     drifted = 0
     for entry in manifest["files"]:
         path = os.path.join(VECTORS_DIR, entry["file"])
@@ -2003,7 +2003,7 @@ def cmd_vectors(a):
 
     said = run([exe, "selftest"])
     if said.stdout.strip() != "1":
-        print("the RFC 6234 self test failed, so nothing below can be read")
+        print("the RFC 6234 self test failed: nothing below can be read")
         return 1
     print("%-22s %s" % ("RFC 6234 + RFC 8448", "self test passed"))
 
@@ -2056,8 +2056,8 @@ def cmd_vectors(a):
     bad += bit_file("nist_cavp_bit_sha256shortmsg.rsp", "CAVP bit ShortMsg")
     bad += bit_file("nist_cavp_bit_sha256longmsg.rsp", "CAVP bit LongMsg")
 
-    # CAVP HMAC. Tlen is a truncated tag, so the comparison is against the leading Tlen bytes, which
-    # is what makes this reach truncation as well as the MAC itself.
+    # CAVP HMAC. Tlen is a truncated tag: the comparison is against the leading Tlen bytes, and that
+    # makes this reach truncation as well as the MAC itself.
     with open(os.path.join(VECTORS_DIR, "nist_cavp_hmac_sha256.rsp"), encoding="utf-8") as fh:
         hmac_text = fh.read()
     hmac_cases, current = [], {}
@@ -2102,7 +2102,7 @@ def cmd_vectors(a):
     bad += wrong
 
     # Every cut of a message must reach one digest. The published tables hash in a single call and
-    # cannot reach the streaming path at all, so this is the only thing testing it.
+    # cannot reach the streaming path: this is the only thing testing it.
     import random  # noqa: PLC0415  only this command needs it
     rng = random.Random(20260901)
     bodies = []
@@ -2125,8 +2125,8 @@ def cmd_vectors(a):
     bad += wrong
 
     # The chain past where NIST stops. CAVP's hundred checkpoints are the anchored part; beyond them
-    # the construction is still valid and a second implementation supplies the expectation, so the
-    # volume is bounded by patience rather than by what anyone published.
+    # the construction is still valid and a second implementation supplies the expectation, and the
+    # volume is bounded by patience and never by what anyone published.
     if a.soak > 0:
         checkpoints = a.soak
         got = [ln.strip() for ln in

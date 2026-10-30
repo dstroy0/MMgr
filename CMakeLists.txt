@@ -3,7 +3,7 @@ project(MMgr VERSION 0.1.0 LANGUAGES C)
 
 # Everything here is host-buildable and host-testable by design. There is no cross-toolchain step
 # and no board in the loop: the widths that make a target different are compile-time knobs. A
-# 16-bit SWAR lane is exercised on this machine by defining it, not by owning the hardware.
+# 16-bit SWAR lane is exercised on this machine by defining it, with no need to own the hardware.
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -20,17 +20,16 @@ option(MMGR_LTO "Link-time optimization" ON)
 # Capabilities. Each one says the part has something - an engine, external memory, somewhere to
 # defer work to - and a build for a part without it must not carry the code that would use it.
 #
-# Named here in one list because every module target gets every capability as a definition, so the
+# Named here in one list because every module target gets every capability as a definition, and the
 # library and the suites that exercise it can never disagree about which are present. Gating only
-# which suites are built decides what is tested and not what is compiled, which is the wrong half.
+# which suites are built decides what is tested and not what is compiled, the wrong half.
 #
-# LOCK and OWNERS ride the same list for the same reason: each changes what locus_carcerum compiles,
-# and OWNERS changes the size of every cellblock, which a suite and the library must agree on.
-set(MMGR_CAPABILITIES DMA EXTRAM LOCK OWNERS)
+# OWNERS rides the same list for the same reason: it changes what locus_carcerum compiles, and it
+# changes the size of every cellblock, which a suite and the library must agree on.
+set(MMGR_CAPABILITIES DMA EXTRAM OWNERS)
 
 option(MMGR_ENABLE_DMA "The part has a DMA engine" OFF)
 option(MMGR_ENABLE_EXTRAM "The part has external RAM" OFF)
-option(MMGR_ENABLE_LOCK "Every cellblock entry takes the cellblock's spinlock" OFF)
 option(MMGR_ENABLE_OWNERS "Every cellblock lists the owners that took a cell from it" OFF)
 
 # The DMA schedule's knobs, as NAME=value pairs separated by semicolons: PRAET_CHANNELS,
@@ -41,11 +40,11 @@ option(MMGR_ENABLE_OWNERS "Every cellblock lists the owners that took a cell fro
 # Read only where MMGR_ENABLE_DMA is on.
 set(MMGR_PRAET_KNOBS "" CACHE STRING "DMA schedule knobs, NAME=value pairs separated by semicolons")
 
-# Test only. Points every namespace entry that has a libc equivalent at libc, so the whole suite
+# Test only. Points every namespace entry that has a libc equivalent at libc: the whole suite
 # runs against libc unchanged and any disagreement is a finding. libc is the oracle: a str or mem
 # entry that has shipped for decades has been beaten on harder than anything written here.
 #
-# It is the only thing that makes src/ include a header outside the budget, which is why it is a
+# It is the only thing that makes src/ include a header outside the budget, and for that reason it is a
 # separate option and never a default - the library exists to give a target with no libc these
 # entries.
 
@@ -55,7 +54,7 @@ set(MMGR_PRAET_KNOBS "" CACHE STRING "DMA schedule knobs, NAME=value pairs separ
 # LTO, because this library is seventeen small modules that call each other and the calls between
 # them are the cost. Measured in test/bench: mmgr_memor_chr over 512 bytes is 610 cycles when its
 # SWAR entries are out-of-line calls and 187 when the linker may inline them. The hot entries are
-# MMGR_INLINE in their headers now, so LTO is no longer load-bearing for those - it still is for
+# MMGR_INLINE in their headers now: LTO carries nothing for those - it still does for
 # every cross-module call that is not.
 if(MMGR_LTO)
   include(CheckIPOSupported)
@@ -68,7 +67,7 @@ if(MMGR_LTO)
 endif()
 
 # MinSizeRel is -Os by default, and -Os is the wrong trade for this library: it declines to inline
-# the small branch-free entries that ARE the library, so the calls it saves space on are the calls
+# the small branch-free entries that ARE the library, and the calls it saves space on are the calls
 # that cost the most. An embedded build reaching for MinSizeRel wants small, not slow-and-small.
 foreach(_lang C)
   string(REPLACE "-Os" "-O2" CMAKE_${_lang}_FLAGS_MINSIZEREL "${CMAKE_${_lang}_FLAGS_MINSIZEREL}")
@@ -81,7 +80,7 @@ endforeach()
 # mmgr_flags below, which links embedded_types::embedded_types.
 add_subdirectory(deps)
 
-# One place. A warning that matters is on for the library, the tests and the benches alike.
+# One place. A warning worth having is on for the library, the tests and the benches alike.
 add_library(mmgr_flags INTERFACE)
 
 # Carried on mmgr_flags so every module, suite and bench that takes the flags also takes the include
@@ -96,8 +95,8 @@ target_compile_options(mmgr_flags INTERFACE
 # Environments
 # ------------------------------------------------------------------------------------------------
 # An "environment" is one set of compile-time widths. The whole library and the whole test suite are
-# built once per environment. A change that only breaks the 16-bit SWAR lane fails a build rather
-# than waiting for someone to own that hardware.
+# built once per environment. A change that only breaks the 16-bit SWAR lane fails a build here,
+# with no wait for someone to own that hardware.
 #
 # Each entry is  name|definitions  with definitions separated by semicolons escaped as commas below,
 # because a CMake list cannot nest. As a flat list, adding an environment is one line.
@@ -105,12 +104,12 @@ target_compile_options(mmgr_flags INTERFACE
 #   host      whatever this machine is: EMBED_WORD_BITS derives from UINTPTR_MAX. The default build.
 #   word32    a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.
 #   word16    the narrowest word. Most likely to expose an off-by-one in a tail.
-#   idx16     a 16-bit index against a 64-bit word, which is the pairing the static assertion in
+#   idx16     a 16-bit index against a 64-bit word, the pairing the static assertion in
 #             embed_types.h exists to police.
 #   checks    debug checks compiled in. MMGR_DEBUG_CHECKS selects the trapping MMGR_ASSERT in
 #             test/support/mmgr_host_traps.h. An expectation a caller broke fails a test here
-#             rather than being a no-op nobody notices. It is the only environment where an assert is
-#             evaluated at all.
+#             in place of being a no-op nobody notices. It is the only environment where an assert is
+#             evaluated.
 set(MMGR_ENVIRONMENTS
   "host|"
   "word32|EMBED_WORD_BITS=32"
@@ -131,7 +130,7 @@ if(MMGR_BUILD_TESTS)
   add_subdirectory(test)
 endif()
 
-# Added here rather than from test/CMakeLists.txt, so it does not depend on the tests being on.
+# Added here and not from test/CMakeLists.txt: it does not depend on the tests being on.
 # Nested under MMGR_BUILD_TESTS it silently produced nothing for -DMMGR_BUILD_BENCH=ON alone, which
 # is exactly how a bench gets measured against a build nobody meant to measure.
 if(MMGR_BUILD_BENCH)

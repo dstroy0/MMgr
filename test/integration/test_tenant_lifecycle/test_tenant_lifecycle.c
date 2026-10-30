@@ -12,8 +12,8 @@ LocusCarcerum(ram, MMGR_MAXIMUM_SECURITY(secret), MMGR_MINIMUM_SECURITY(plain));
 
 void setUp(void)
 {
-    ram_secret_ctx.persistent_end = 0;
-    ram_plain_ctx.persistent_end = 0;
+    mmgr_cellblock_emptied(&ram_secret_ctx);
+    mmgr_cellblock_emptied(&ram_plain_ctx);
     ram.secret.temporary_buf_reset();
     ram.plain.temporary_buf_reset();
 }
@@ -77,18 +77,18 @@ void test_minimum_security_release_does_not_zero(void)
 void test_each_cellblock_tracks_its_own_fill(void)
 {
 
-    TEST_ASSERT_EQUAL_size_t(0u, ram_secret_ctx.persistent_end);
-    TEST_ASSERT_EQUAL_size_t(0u, ram_plain_ctx.persistent_end);
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_persistent_end(&ram_secret_ctx));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_persistent_end(&ram_plain_ctx));
 
     (void)ram.secret.persistent_buf_alloc((size_t)64, NULL);
-    TEST_ASSERT_TRUE(ram_secret_ctx.persistent_end >= 64u);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, ram_plain_ctx.persistent_end, "one cellblock filling must not move the other");
+    TEST_ASSERT_TRUE(mmgr_cellblock_persistent_end(&ram_secret_ctx) >= 64u);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_persistent_end(&ram_plain_ctx), "one cellblock filling must not move the other");
 
-    const size_t secret_was = ram_secret_ctx.persistent_end;
+    const size_t secret_was = mmgr_cellblock_persistent_end(&ram_secret_ctx);
 
     (void)ram.plain.persistent_buf_alloc((size_t)128, NULL);
-    TEST_ASSERT_EQUAL_size_t(secret_was, ram_secret_ctx.persistent_end);
-    TEST_ASSERT_TRUE(ram_plain_ctx.persistent_end >= 128u);
+    TEST_ASSERT_EQUAL_size_t(secret_was, mmgr_cellblock_persistent_end(&ram_secret_ctx));
+    TEST_ASSERT_TRUE(mmgr_cellblock_persistent_end(&ram_plain_ctx) >= 128u);
 }
 
 void test_release_gives_the_bytes_back_to_the_right_cellblock(void)
@@ -99,14 +99,14 @@ void test_release_gives_the_bytes_back_to_the_right_cellblock(void)
     TEST_ASSERT_NOT_NULL(s);
     TEST_ASSERT_NOT_NULL(p);
 
-    const size_t plain_held = ram_plain_ctx.persistent_end;
+    const size_t plain_held = mmgr_cellblock_persistent_end(&ram_plain_ctx);
 
     ram.secret.persistent_buf_release(s, NULL);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, ram_secret_ctx.persistent_end,
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_persistent_end(&ram_secret_ctx),
                                      "the only cell released, so the tier winds back");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(plain_held, ram_plain_ctx.persistent_end,
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(plain_held, mmgr_cellblock_persistent_end(&ram_plain_ctx),
                                      "releasing one cellblock must not touch the other");
 
     ram.plain.persistent_buf_release(p, NULL);
-    TEST_ASSERT_EQUAL_size_t(0u, ram_plain_ctx.persistent_end);
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_persistent_end(&ram_plain_ctx));
 }

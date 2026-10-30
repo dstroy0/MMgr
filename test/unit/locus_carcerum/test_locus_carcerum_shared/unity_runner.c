@@ -3,15 +3,16 @@
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
 #include "locus_carcerum/locus_carcerum.h"
-#include "embed_spinlock.h"
+#include "embed_atomic.h"
 #include "host_threads.h"
 
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_every_entry_frees_the_lock_it_took(void);
+extern void test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave(void);
 extern void test_threads_taking_and_giving_at_once_never_share_a_cell(void);
 extern void test_threads_taking_and_giving_at_once_leave_the_cellblock_whole(void);
+extern void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(void);
 extern void test_an_owner_shared_by_every_thread_is_counted_back_to_nothing(void);
 extern void test_an_owner_for_each_thread_is_counted_back_to_nothing(void);
 
@@ -74,12 +75,13 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_lock\\test_locus_carcerum_lock.c");
-  run_test(test_every_entry_frees_the_lock_it_took, "test_every_entry_frees_the_lock_it_took", 100);
-  run_test(test_threads_taking_and_giving_at_once_never_share_a_cell, "test_threads_taking_and_giving_at_once_never_share_a_cell", 119);
-  run_test(test_threads_taking_and_giving_at_once_leave_the_cellblock_whole, "test_threads_taking_and_giving_at_once_leave_the_cellblock_whole", 126);
-  run_test(test_an_owner_shared_by_every_thread_is_counted_back_to_nothing, "test_an_owner_shared_by_every_thread_is_counted_back_to_nothing", 134);
-  run_test(test_an_owner_for_each_thread_is_counted_back_to_nothing, "test_an_owner_for_each_thread_is_counted_back_to_nothing", 142);
+  UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_shared\\test_locus_carcerum_shared.c");
+  run_test(test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave, "test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave", 145);
+  run_test(test_threads_taking_and_giving_at_once_never_share_a_cell, "test_threads_taking_and_giving_at_once_never_share_a_cell", 164);
+  run_test(test_threads_taking_and_giving_at_once_leave_the_cellblock_whole, "test_threads_taking_and_giving_at_once_leave_the_cellblock_whole", 173);
+  run_test(test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell, "test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell", 181);
+  run_test(test_an_owner_shared_by_every_thread_is_counted_back_to_nothing, "test_an_owner_shared_by_every_thread_is_counted_back_to_nothing", 196);
+  run_test(test_an_owner_for_each_thread_is_counted_back_to_nothing, "test_an_owner_for_each_thread_is_counted_back_to_nothing", 204);
 
   return UNITY_END();
 }

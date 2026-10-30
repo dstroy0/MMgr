@@ -38,7 +38,7 @@ the span. Rings are the fifth, and sit alongside that line instead of on it.
 ## 1. The pools and the cellblocks over them
 
 `ParsMemoriaeInternae` and `ParsMemoriaeExternum` declare the storage and its alignment.
-`LocusCarcerum` is a declaration too, not a call: it emits each cellblock's state and the entries
+`LocusCarcerum` is a declaration too and never a call: it emits each cellblock's state and the entries
 bound to it, and nothing runs at startup. From then on a cellblock hands out storage from two ends of
 its pool's bytes:
 
@@ -47,15 +47,15 @@ its pool's bytes:
 
 They grow toward each other out of one gap, and both allocations test it. `carcer_grow` compares the
 header plus the payload against the gap and returns `NULL` without moving a boundary when it will not
-fit (`src/locus_carcerum/locus_carcerum.c:386-406`), so both `persistent_buf_alloc` and
+fit, and both `persistent_buf_alloc` and
 `temporary_buf_alloc` can answer no and every call site has to test the return. `buf_available`
 reports the gap still between them. It is not a release; it answers _how much is left_.
 
 `persistent_buf_release` takes the cell itself, `void (*persistent_buf_release)(void *prisoner,
-CellOwner *owner)` (`src/locus_carcerum/locus_carcerum.h:191`), because the block's own header carries its size, so
+CellOwner *owner)`, because the block's own word carries its size, and
 the release does not have to be told. A block freed mid-chain stays in the chain until a release
-reaches the boundary, so the bottom end does not recover on every free. That is the trade the whole
-library is built on: giving up free-anything-anytime is what makes the footprint decidable.
+reaches the boundary: the bottom end does not recover on every free. That is the trade the whole
+library is built on: giving up free-anything-anytime makes the footprint decidable.
 
 ## 2. Interim is released by mark, not by pointer
 
@@ -71,11 +71,11 @@ prison.work.temporary_buf_reset();
 `temporary_buf_mark` reports the current top. `temporary_buf_reset` assigns the top the pool's size, releasing
 every interim take at once.
 
-`temporary_buf_release` winds back to one mark rather than all of them, and takes that mark as `.mark`. The
-caller holds it, so savepoints nest: an inner mark and its rollback leave an outer one standing.
+`temporary_buf_release` winds back to one mark alone, and takes that mark as `.mark`. The
+caller holds it, and savepoints nest: an inner mark and its rollback leave an outer one standing.
 `temporary_buf_reset` is the same step against the pool's own size.
 
-Nothing is reallocated and nothing moves, so `work` still points at readable memory after a reset.
+Nothing is reallocated and nothing moves: `work` still points at readable memory after a reset.
 It is dead all the same. A pointer handed out after a mark is invalid the moment that mark is
 released, and the library cannot tell you that you kept it. This is the sharpest edge in MMgr and it
 is worth reading twice.
@@ -83,7 +83,7 @@ is worth reading twice.
 ## 3. A cell is given back by one call, and the pool decides what that costs
 
 A _cell_ is what a pool hands out. Every one is taken with the pool's own `persistent_buf_alloc` and
-given back with its own `persistent_buf_release`. There is one release, not two. What differs is
+given back with its own `persistent_buf_release`. There is one release and never two. What differs is
 which guard the pool was declared under:
 
 |                      | `MMGR_MINIMUM_SECURITY` | `MMGR_MAXIMUM_SECURITY`                |
@@ -92,7 +92,7 @@ which guard the pool was declared under:
 | clears them first    | no                      | yes (`locus_carcerum.h:140`)           |
 | costs                | a chain walk            | a chain walk and a pass over the bytes |
 
-The guarantee is in the **declaration** rather than in a flag or a second call. A caller cannot
+The guarantee is in the **declaration**, never in a flag or a second call. A caller cannot
 ask for a wipe and not get one, and cannot reach for an unwiped release on a pool that promised one.
 The extent cleared is the block's own, read from its header. A caller cannot under-wipe a cell by
 naming fewer bytes than it holds.
@@ -104,7 +104,7 @@ declaration, and no build knob sizes it.
 
 Bytes are cleared on release, not on hand-out. An allocation does **not** return zeroed storage: a
 cell released from a minimum-security cellblock and handed out again carries what the last prisoner
-left. That is what declaring the sensitive pool under `MMGR_MAXIMUM_SECURITY` buys.
+left. Declaring the sensitive pool under `MMGR_MAXIMUM_SECURITY` buys the zeroing.
 
 `mmgr_zero_buf` clears an address and a count in place without giving anything back. Its stores are
 `volatile` machine-width stores: a plain store there is a dead store the optimizer is entitled to
@@ -116,7 +116,7 @@ length or an address that is not a whole number of words.
 A span is a pointer, an extent, a position and a sticky flag. `spat.from` borrows; it does not
 allocate, and the span dies with the buffer it was given.
 
-There are two, and they are different types on purpose:
+There are two, and they are different types by design:
 
 |          | `mmgr_span` | `mmgr_cspan` |
 | -------- | ----------- | ------------ |
@@ -125,27 +125,27 @@ There are two, and they are different types on purpose:
 | extent   | `cap`       | `len`        |
 | the flag | `overflow`  | `err`        |
 
-Naming the extent differently in each is what stops one being handed where the other belongs without
+Naming the extent differently in each stops one being handed where the other belongs without
 the compiler saying so.
 
-The flag is sticky, and that is what a span buys over a bare pointer and length. A caller may append
-a whole message through several calls and test once at the end, rather than after each.
-`spat.reset` is the one call that clears the flag.
+The flag is sticky, and the stickiness is the gain of a span over a bare pointer and length. A caller may append
+a whole message through several calls and test once at the end in place of after each.
+`spat.reset` alone clears the flag.
 
 The two flags do not mean the same kind of thing. **`overflow` is a build failure**: what a writer
-emits and how big its buffer is are both fixed before the build, so there is no runtime condition
+emits and how big its buffer is are both fixed before the build: there is no runtime condition
 under which a correct writer overruns a correctly sized span. It asserts, nothing in a shipping
 build, an abort in `checks`, and the latch is what a shipping build does with a wrong program,
-keeping it from walking off the end rather than offering it somewhere to go.
+keeping it from running off the end in place of offering it somewhere to go.
 
 **`err` is a runtime fact**: a read span runs out because whatever sent the bytes sent fewer, and
-nothing was built wrong. That is why every take answers and no append returns anything: a short
+nothing was built wrong. For that reason every take answers and no append returns anything: a short
 read is a case to handle, an overrun append is a bug to fix. A take that reaches past the end leaves
 the cursor where it was. A caller that keeps reading after a failure still knows where it is.
 
 A read is a buffer, how far it may go, and where it is. Those are the members
 @ref mod_cellul_guide names `src`, `cap` and `at`. A struct holding the three added a second
-spelling and no information.
+name and no information.
 
 ```c
 size_t at = 0;
@@ -155,15 +155,15 @@ at = EMBED_CALL(verba.put, VerbaCfg, .out = buf, .cap = n, .at = at, .text = " l
 at = EMBED_CALL(verba.uint, VerbaCfg, .out = buf, .cap = n, .at = at, .val = len);
 
 /* One check, covering all four: a writer with no room returns cap, and so does every writer
-   after it, so finish reports zero. */
+   after it, and finish reports zero. */
 if (EMBED_CALL(verba.finish, VerbaCfg, .out = buf, .cap = n, .at = at) == 0u) { }
 ```
 
 ## 5. Rings move bytes between a producer and a consumer
 
-Apart from the cellblock spinlock `MMGR_ENABLE_LOCK` turns on, `memoria_anularis` is the only part
-of the library that is concurrent, and only in one shape: **single producer, single consumer**. Exactly one producer advances `head` and exactly one
-consumer advances `tail`, so ordering is all that is needed: every atomic access goes through the
+The cellblock is shared by every context that reaches it, on atomic words and with no lock, and
+`memoria_anularis` is concurrent in one shape: **single producer, single consumer**. Exactly one producer advances `head` and exactly one
+consumer advances `tail`: ordering is all that is needed, and every atomic access goes through the
 module's own `MMGR_ATOMIC_LOAD` and `MMGR_ATOMIC_STORE`, acquire and release, and no entry on those
 two takes a lock or a read-modify-write.
 
@@ -175,8 +175,8 @@ The ring's size is yours to pick. `cap` is the bytes in the buffer you hand `mmg
 any non-zero power of two is accepted, because the ring wraps by masking. `nsegs` is a power of two
 at most `cap`.
 
-What the word width bounds is the loculi, not the segments: their free and held masks are one
-machine word each, so `MMGR_RING_LOCULI_MAX` is `EMBED_WORD_BITS`, 64 on a 64-bit build, 16 on a
+What the word width bounds is the loculi and never the segments: their free and busy masks are one
+machine word each, and `MMGR_RING_LOCULI_MAX` is `EMBED_WORD_BITS`, 64 on a 64-bit build, 16 on a
 16-bit one. `MMGR_RING_LOCULI` is a build knob under that ceiling, and a static assert names it if
 it is set higher. A build with no use for the loculus view sets it to `0` and gets the keepout
 storage back.
@@ -197,13 +197,14 @@ declared nowhere a consumer can reach.
 | ring segment    | a counter step          | `seg_release`                       | until released            |
 | loculus         | a bit in a mask         | `loculus_drop`                      | until dropped             |
 
-The column that matters is the third one. Nothing in MMgr reaches an allocator: every take comes out
+Read the third column. Nothing in MMgr reaches an allocator: every take comes out
 of a region the caller declared, and every free either returns a block to that region's own chain,
 moves a boundary, or clears a bit.
 
-The persistent end is the one exception to "nothing is ever really freed": it keeps a chain of
-blocks. A release there is a genuine free that merges with its neighbours and can be reused. The
-interim end is not: nothing is released one at a time, and the whole run comes back at once.
+The persistent end is the exception to "nothing is ever really freed": a release there frees the
+block, and a block freed at the end comes off it, along with every freed block below it in turn. A
+block freed under a busy one waits in the tier until that one goes. The interim end is not: nothing
+is released one at a time, and the whole run comes back at once.
 
 ## What this buys, and what it costs
 
@@ -212,17 +213,17 @@ general free. There is no allocation failure at an arbitrary point, because ever
 region whose size you chose. Worst-case timing is a pointer bump.
 
 **Costs.** You must size it yourself, up front. Get it wrong and the take returns NULL: the region
-fails closed rather than letting the two ends walk into each other, but no allocator quietly finds
+fails closed in place of letting the two ends run into each other, but no allocator quietly finds
 more. The counters exist for exactly this: run the real workload under the `checks` environment,
 read them, then size the region.
 
-`pool->persistent_end` is how far the bottom has reached and `pool->temporary_top` how far the top has,
-both read straight off the pool's own state. `buf_available` reports the gap
-between them.
+`mmgr_cellblock_persistent_end(pool)` is how far the bottom has reached and
+`mmgr_cellblock_temporary_top(pool)` how far the top has, both read off the one atomic word that holds
+the two boundaries. `buf_available` reports the gap between them.
 
-For the peak rather than the current value, turn on `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Each end then
-keeps the largest it has seen in its own field, `persistent_hw` records `persistent_end`, `temporary_hw`
-records `size - temporary_top`, one per end, so neither is a maximum over the other. It is off by
+For the peak in place of the current value, turn on `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Each end then
+keeps the largest it has seen in its own field, `persistent_hw` records the persistent end, `temporary_hw`
+records the bytes taken from the top, one per end: neither is a maximum over the other. It is off by
 default, and there is no entry that returns either: read the field.
 
 See @ref concept_zero_heap for the argument, @ref concept_ownership for the lifetime rules in

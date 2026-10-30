@@ -11,7 +11,7 @@ extern void test_a_new_owner_has_nothing_counted(void);
 extern void test_a_take_counts_the_cell_to_its_owner(void);
 extern void test_a_give_takes_the_same_bytes_off(void);
 extern void test_the_peak_is_the_most_held_at_once(void);
-extern void test_a_reused_cell_counts_its_whole_payload_both_ways(void);
+extern void test_a_cell_given_back_below_the_end_counts_off_at_once(void);
 extern void test_a_refused_take_counts_nothing(void);
 extern void test_a_null_owner_counts_nothing(void);
 extern void test_two_owners_are_counted_apart(void);
@@ -82,12 +82,12 @@ int main(void)
   run_test(test_a_take_counts_the_cell_to_its_owner, "test_a_take_counts_the_cell_to_its_owner", 33);
   run_test(test_a_give_takes_the_same_bytes_off, "test_a_give_takes_the_same_bytes_off", 42);
   run_test(test_the_peak_is_the_most_held_at_once, "test_the_peak_is_the_most_held_at_once", 52);
-  run_test(test_a_reused_cell_counts_its_whole_payload_both_ways, "test_a_reused_cell_counts_its_whole_payload_both_ways", 69);
-  run_test(test_a_refused_take_counts_nothing, "test_a_refused_take_counts_nothing", 89);
-  run_test(test_a_null_owner_counts_nothing, "test_a_null_owner_counts_nothing", 99);
-  run_test(test_two_owners_are_counted_apart, "test_two_owners_are_counted_apart", 112);
-  run_test(test_a_maximum_security_give_counts_like_a_plain_one, "test_a_maximum_security_give_counts_like_a_plain_one", 127);
-  run_test(test_one_owner_counts_across_cellblocks, "test_one_owner_counts_across_cellblocks", 138);
+  run_test(test_a_cell_given_back_below_the_end_counts_off_at_once, "test_a_cell_given_back_below_the_end_counts_off_at_once", 69);
+  run_test(test_a_refused_take_counts_nothing, "test_a_refused_take_counts_nothing", 91);
+  run_test(test_a_null_owner_counts_nothing, "test_a_null_owner_counts_nothing", 101);
+  run_test(test_two_owners_are_counted_apart, "test_two_owners_are_counted_apart", 114);
+  run_test(test_a_maximum_security_give_counts_like_a_plain_one, "test_a_maximum_security_give_counts_like_a_plain_one", 129);
+  run_test(test_one_owner_counts_across_cellblocks, "test_one_owner_counts_across_cellblocks", 140);
 
   return UNITY_END();
 }

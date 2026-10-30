@@ -40,14 +40,14 @@ LocusCarcerum(four, MMGR_MINIMUM_SECURITY(alpha), MMGR_MINIMUM_SECURITY(beta),
 ```
 
 Three cellblocks is as legal as four, and the sizes need not relate to each other: each is declared
-over its own pool, so nothing divides and nothing is rounded. The count is bounded only by how many
+over its own pool: nothing divides and nothing is rounded. The count is bounded only by how many
 `MMGR_CARCER_W` lines the header carries; another count is another line.
 
 A cellblock is reached by the name of its pool, and a pool name stands for one region. Declaring one
-name twice fails the build, so two sites cannot hold cellblocks of the same name and a program never
+name twice fails the build: two sites cannot hold cellblocks of the same name and a program never
 has two meanings for one symbol.
 
-The alignment is a power of two, which is what keeps the arithmetic free: an offset inside a
+The alignment is a power of two, and that keeps the arithmetic free: an offset inside a
 cellblock is rounded by a mask instead of divided, which holds only for a power of two. A pool's size
 is any count that holds one cell, which `MMGR_CARCER_BODY` asserts at the declaration, against the
 pool's own `sizeof` and not against the count it was handed.
@@ -66,9 +66,9 @@ and what that buys you:
 | a take costs | a walk of the chain, then a carve   | a carve                        |
 
 The persistent end holds what outlives a call: key material, a runtime seed, a constant a run works
-out once. The interim end holds what a call needs while it runs. A take at the persistent end looks
-for a freed block it can reuse first; a take at the interim end never does, because nothing there is
-released one at a time and the walk would be pure cost.
+out once. The interim end holds what a call needs while it runs. A take at either end is one move of
+the boundary; nothing looks for a freed block, since no take walks the tier. A block freed at the
+persistent end comes off it with every freed block below, and one freed under a busy block waits.
 
 ## Worked example
 
@@ -102,21 +102,21 @@ prison.work.persistent_buf_release(table, NULL);   /* minimum security: the byte
 prison.keys.persistent_buf_release(secret, NULL);  /* maximum security: they are cleared first */
 ```
 
-The guarantee is in the declaration rather than in a flag or a second call. A caller cannot ask
+The guarantee is in the declaration, never in a flag or a second call. A caller cannot ask
 for a wipe and not get one, and cannot forget to. `prison.keys` has no unwiped release to reach for.
-The extent cleared is the block's own, read from its header. A caller cannot under-wipe a tenancy
+The extent cleared is the block's own, read from its word. A caller cannot under-wipe a tenancy
 by naming fewer bytes than it holds.
 
 `mmgr_zero_buf` clears an address and a count in place without giving anything back, for when a secret
 is finished with but the storage is not.
 
-Bytes are cleared on release rather than on hand-out. That means `persistent_buf_alloc` does **not**
+Bytes are cleared on release, never on hand-out. That means `persistent_buf_alloc` does **not**
 return zeroed storage: a block released from a minimum-security pool and handed out again still
 carries what the last occupant left. Anything whose bytes are worth clearing is declared under
-`MMGR_MAXIMUM_SECURITY`, whose release zeroes the cell first, and that is what keeps the next
+`MMGR_MAXIMUM_SECURITY`, whose release zeroes the cell first and keeps the next
 occupant from reading it.
 
-@note The clear uses `volatile` machine-width stores, so it survives however dead the bytes look to
+@note The clear uses `volatile` machine-width stores: it survives however dead the bytes look to
 the optimizer afterwards, and it handles a length or an address that is not a whole number of words
 through byte edges.
 
@@ -138,15 +138,15 @@ of a dispatch does.
 
 ## Gotchas
 
-**A take that does not fit returns NULL and moves nothing.** Both ends fail closed rather than
+**A take that does not fit returns NULL and moves nothing.** Both ends fail closed in place of
 crossing into each other. Test the return; that is the check.
 
 **`buf_available` is the raw gap between the ends.** A persistent take also needs a block header out
-of it, so the gap is not the largest request that will succeed. Ask for what you want and test the
-answer rather than predicting it from this.
+of it: the gap is not the largest request that will succeed. Ask for what you want and test the
+answer in place of predicting it from this.
 
 **A pointer that outlives its mark is dead and still readable.** Nothing moves and nothing is
-scrubbed by an interim rollback, so it dereferences fine and returns whatever the next take put
+scrubbed by an interim rollback: it dereferences fine and returns whatever the next take put
 there. Keep a mark and its release in the same function.
 
 **`who_owns_buf` is for asserts.** It says a pointer is inside the pool's storage. It does not say
@@ -156,14 +156,14 @@ the pointer is live.
 
 ```c
 const size_t left  = prison.work.buf_available();
-const size_t grown = pool->persistent_end;                 /* how far the bottom has reached */
+const size_t grown = mmgr_cellblock_persistent_end(pool);  /* how far the bottom has reached */
 const size_t peak  = pool->persistent_hw;                  /* MMGR_ENABLE_HW_MEM_CAPACITY_CB only */
 ```
 
-A pool's counters are its own state, read rather than asked for: there is no
-accessor that would be a second way to spell a member read.
+A pool's peaks are its own state, read as members. The two boundaries share one atomic word, and
+`mmgr_cellblock_persistent_end` and `mmgr_cellblock_temporary_top` read each off it.
 
-`persistent_end` bounds the block chain rather than counting what is held: a freed block inside the
+The persistent end bounds the block chain and counts nothing of what is busy: a freed block inside the
 chain stays in it until a release trims the end.
 
 The peaks are `persistent_hw` and `temporary_hw`, one per end so that neither is a maximum over the other,

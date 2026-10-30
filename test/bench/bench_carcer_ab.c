@@ -39,7 +39,7 @@ static void report(const char *impl, const char *name, size_t bytes, double cycl
 
 static void carcer_fresh(void)
 {
-    ram_general_ctx.persistent_end = 0u;
+    mmgr_cellblock_emptied(&ram_general_ctx);
     ram.general.temporary_buf_reset();
 }
 
