@@ -14,6 +14,7 @@ extern void test_threads_taking_and_giving_at_once_never_share_a_cell(void);
 extern void test_threads_taking_and_giving_at_once_leave_the_cellblock_whole(void);
 extern void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(void);
 extern void test_an_owner_shared_by_every_thread_is_counted_back_to_nothing(void);
+extern void test_owners_registering_at_once_are_each_queued_once(void);
 extern void test_an_owner_for_each_thread_is_counted_back_to_nothing(void);
 extern void test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing(void);
 extern void test_a_reset_counts_every_temporary_cell_off_its_owner(void);
@@ -78,14 +79,15 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_shared\\test_locus_carcerum_shared.c");
-  run_test(test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave, "test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave", 172);
-  run_test(test_threads_taking_and_giving_at_once_never_share_a_cell, "test_threads_taking_and_giving_at_once_never_share_a_cell", 191);
-  run_test(test_threads_taking_and_giving_at_once_leave_the_cellblock_whole, "test_threads_taking_and_giving_at_once_leave_the_cellblock_whole", 200);
-  run_test(test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell, "test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell", 208);
-  run_test(test_an_owner_shared_by_every_thread_is_counted_back_to_nothing, "test_an_owner_shared_by_every_thread_is_counted_back_to_nothing", 223);
-  run_test(test_an_owner_for_each_thread_is_counted_back_to_nothing, "test_an_owner_for_each_thread_is_counted_back_to_nothing", 231);
-  run_test(test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing, "test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing", 250);
-  run_test(test_a_reset_counts_every_temporary_cell_off_its_owner, "test_a_reset_counts_every_temporary_cell_off_its_owner", 262);
+  run_test(test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave, "test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave", 199);
+  run_test(test_threads_taking_and_giving_at_once_never_share_a_cell, "test_threads_taking_and_giving_at_once_never_share_a_cell", 218);
+  run_test(test_threads_taking_and_giving_at_once_leave_the_cellblock_whole, "test_threads_taking_and_giving_at_once_leave_the_cellblock_whole", 227);
+  run_test(test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell, "test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell", 235);
+  run_test(test_an_owner_shared_by_every_thread_is_counted_back_to_nothing, "test_an_owner_shared_by_every_thread_is_counted_back_to_nothing", 250);
+  run_test(test_owners_registering_at_once_are_each_queued_once, "test_owners_registering_at_once_are_each_queued_once", 258);
+  run_test(test_an_owner_for_each_thread_is_counted_back_to_nothing, "test_an_owner_for_each_thread_is_counted_back_to_nothing", 284);
+  run_test(test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing, "test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing", 303);
+  run_test(test_a_reset_counts_every_temporary_cell_off_its_owner, "test_a_reset_counts_every_temporary_cell_off_its_owner", 315);
 
   return UNITY_END();
 }

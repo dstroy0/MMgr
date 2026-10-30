@@ -8,8 +8,8 @@ persistent tier grows up from base, the temporary tier grows down from size, and
 is what either can still take. An allocation the gap cannot meet returns NULL and moves no boundary.
 Spans are bounded views over cells, and rings move bytes between one producer and one consumer.
 
-Nothing calls `malloc`. Every size is fixed before the program runs, so the footprint is a number you
-can check against a budget rather than a thing you find out at runtime.
+Nothing calls `malloc`. Every size is fixed before the program runs. The footprint is a number you
+can check against a budget before the program starts.
 
 ```c
 #include "mmgr.h"
@@ -18,7 +18,12 @@ can check against a budget rather than a thing you find out at runtime.
 ParsMemoriaeInternae(work, 4096);
 LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work));
 
-char *const buf = prison.work.persistent_buf_alloc(256u, NULL);
+/* The owner a cell is counted to, registered once before its first take. */
+static CellOwner writer = MMGR_CELL_OWNER("writer");
+
+mmgr_owner_register(&writer);
+
+char *const buf = prison.work.persistent_buf_alloc(256u, &writer);
 
 size_t at = 0;
 at = EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = 256u, .at = at, .text = "id=");
@@ -29,13 +34,12 @@ const size_t len = EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = buf, .ca
 
 ## What it claims
 
-Each of these is a claim the documentation has to answer for, so each links to the page that does.
+Each of these is a claim the documentation has to answer for, and each links to the page that does.
 
 - **Nothing allocates.** Storage is borrowed, never owned. @ref concept_zero_heap
-- **One region, carved by asserted offset.** Persist grows up and interim grows down; what keeps them
-  apart is asserted when the region is defined, not tested on each take. @ref concept_architecture
-- **Scanning is SWAR, and the carrier is the machine word.** Measured, not asserted.
-  @ref concept_swar
+- **One region, two tiers.** Persist grows up and interim grows down, and one atomic word holds both
+  boundaries. @ref concept_architecture
+- **Scanning is SWAR, and the carrier is the machine word.** The benches measure it. @ref concept_swar
 - **The width is a compile-time knob, and every width is built.** Five environments, one build.
   @ref ref_environments
 - **Host-buildable and host-testable.** The only headers it reaches for are `stddef`, `stdint` and
@@ -58,12 +62,12 @@ The modules carry Latin category names: `locus_carcerum` is the region and its p
 span, `verbum_scrutor` is the SWAR scanner. Every one of them is decoded in @ref ref_glossary.
 
 The reason is that libc and `<string.h>` are everywhere, and these are not libc functions. They
-reach the same conclusion for the same input, across every domain: that is the whole of what they
-share. How they reach it is entirely different.
+reach the same conclusion for the same input, across every domain, and share nothing else. How they
+reach it is entirely different.
 
 The backend is machine-width parallel word processing throughout. Bitmath is extensive and SIMD
-within a register is used wherever it applies, which is what buys speed far above the traditional
-embedded string and memory routines in far less space. A name that collided with libc's would
+within a register is used wherever it applies. That gives speed far above the traditional embedded
+string and memory routines in far less space. A name that collided with libc's would
 suggest a drop-in replacement of the implementation as well as the result, and it is not one.
 
 That difference is also why the testing is what it is. Every translation unit is fuzzed with bit

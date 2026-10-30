@@ -49,19 +49,16 @@ for reading the high-water marks.
 
 | knob                 | default | what it changes                                                          |
 | -------------------- | ------: | ------------------------------------------------------------------------ |
-| `MMGR_ENABLE_OWNERS` |     `0` | each cellblock lists the owners that took a cell from it                 |
-| `MMGR_CARCER_OWNERS` |   `128` | the most owners one cellblock's list carries                             |
+| `MMGR_CARCER_OWNERS` |   `128` | the most owners the owner queue holds                                    |
 
 A cellblock is shared by every context that reaches it, with no switch and no lock. Every boundary,
 every cell's claim and every count is an atomic word from `embedded_types`, moved in one step each, and
 no context waits for another. The same build serves a host thread, a part's task and a GPU thread.
 
-An owner's own counts, its bytes in use and its peak, are kept in the `CellOwner` the caller names on
-every persistent take and release, whatever `MMGR_ENABLE_OWNERS` is. The switch adds the list, which
-costs `MMGR_CARCER_OWNERS` words and a count in every cellblock. See @ref concept_ownership.
-
-`MMGR_ENABLE_OWNERS` is a CMake option as well, `-DMMGR_ENABLE_OWNERS=ON`, which reaches the library
-and every suite over it, the way the optional modules below do.
+An owner's own counts, its bytes in use and its peak, are kept in the `CellOwner` the caller registers
+once and names on every take, give and growth. The library keeps one queue of the registered owners,
+`MMGR_CARCER_OWNERS` words and a count, and a registration past its room is refused. See
+@ref concept_ownership.
 
 ## Debug
 

@@ -6,7 +6,7 @@ is decided by what kind of thing failed.
 ## 1. NULL, from a take that will not fit
 
 ```c
-void *const cell = prison.work.persistent_buf_alloc(256u, NULL);
+void *const cell = prison.work.persistent_buf_alloc(256u, &reader);
 if (cell == NULL) { }
 ```
 
@@ -34,35 +34,35 @@ build pays nothing.
 Set `MMGR_DEBUG_CHECKS=1` and `test/support/mmgr_host_traps.h` supplies the other form instead: a
 report to `stderr` naming the expectation, the file and the line, then `abort()`. Nothing else is
 needed to arm them.
-That is the `checks` environment, and it is a genuine gate in CI rather than a developer convenience:
-a broken precondition fails a test instead of being a no-op nobody notices.
+That is the `checks` environment, and it is a gate in CI: a broken precondition fails a test instead
+of being a no-op nobody notices.
 
 ```sh
 ctest --test-dir build -R '_checks$' --output-on-failure
 ```
 
-Define `MMGR_ASSERT` yourself before including the header and neither form is used, which is what a
-target with no `stderr` and no `abort()` wants.
+Define `MMGR_ASSERT` yourself before including the header and neither form is used. A target with no
+`stderr` and no `abort()` defines its own.
 
 ### Where a span's flags fit
 
 A span does carry an `overflow` and a read span an `err`, and the two do not mean the same kind of
 thing.
 
-`overflow` is mechanism 4, not mechanism 3. What a writer emits and how big its buffer is are both
-settled before the build. A correct writer cannot overrun a correctly sized span: the append
-asserts. What the flag adds is what a **shipping** build does with a wrong program: the first bad
-append stores nothing, latches, and every append after it is a no-op. A writer that was built
-wrong is kept off the end of the buffer rather than walking down it. Read it to find out something is
-broken, not to decide what to do next.
+`overflow` belongs to mechanism 4. What a writer emits and how big its buffer is are both settled
+before the build. A correct writer cannot overrun a correctly sized span: the append asserts. The
+flag settles what a **shipping** build does with a wrong program: the first bad append stores
+nothing, latches, and every append after it is a no-op. A writer that was built wrong is kept off the
+end of the buffer and never walks down it. Read it to find out something is broken, never to decide
+what to do next.
 
-`err` is a genuine runtime answer. A read span runs out because whatever sent the bytes sent fewer,
-and nothing was built wrong. That is the whole reason every take returns `embed_bool` and no append
-returns anything: a short read is a case to handle, an overrun append is a bug to fix.
+`err` is a runtime answer. A read span runs out because whatever sent the bytes sent fewer, and
+nothing was built wrong. Every take returns `embed_bool` and no append returns anything for that
+reason: a short read is a case to handle, an overrun append is a bug to fix.
 
 The same line divides two bounds inside `byteio` that stay runtime checks: `rd_str`'s length prefix
-and `mpint_fixed`'s value length. Both come off the wire, so whether they fit is a fact about what
-arrived rather than a promise the caller made.
+and `mpint_fixed`'s value length. Both come off the wire. Whether they fit is a fact about what
+arrived, never a promise the caller made.
 
 ## What is deliberately absent
 
@@ -72,8 +72,8 @@ a global one is not usable from more than one caller.
 
 **No exceptions and no longjmp.** This is C11 targeting devices with no unwinder.
 
-**No allocation failure callbacks.** There is nowhere for a handler to get memory from, so the only
-honest answer is `NULL`.
+**No allocation failure callbacks.** There is nowhere for a handler to get memory from, and the
+answer is `NULL`.
 
 ## Summary
 

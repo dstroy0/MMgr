@@ -56,8 +56,7 @@ run on your machine instead of waiting for the hardware. One `cmake --build`, on
 ## A test says `test_memoriam_praetereo` was skipped. Is that a problem?
 
 No. `memoriam_praetereo` and `memoria_externa` are behind `MMGR_ENABLE_DMA` and
-`MMGR_ENABLE_EXTRAM`, and the owner list suite behind `MMGR_ENABLE_OWNERS`, all off by default, and
-their suites are skipped, loudly, with a CMake status
+`MMGR_ENABLE_EXTRAM`, both off by default, and their suites are skipped, loudly, with a CMake status
 message. Turn the flag on if you want them built. A capability gates the whole suite, never a case
 inside one, because a suite that compiles half its cases away still reports as passing.
 

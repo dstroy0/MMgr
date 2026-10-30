@@ -75,12 +75,12 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("test/integration/test_tenant_lifecycle\\test_tenant_lifecycle.c");
-  run_test(test_the_two_cellblocks_are_separate, "test_the_two_cellblocks_are_separate", 25);
-  run_test(test_the_allocation_puts_them_back_to_back, "test_the_allocation_puts_them_back_to_back", 39);
-  run_test(test_maximum_security_release_zeroes_the_cell, "test_maximum_security_release_zeroes_the_cell", 49);
-  run_test(test_minimum_security_release_does_not_zero, "test_minimum_security_release_does_not_zero", 65);
-  run_test(test_each_cellblock_tracks_its_own_fill, "test_each_cellblock_tracks_its_own_fill", 77);
-  run_test(test_release_gives_the_bytes_back_to_the_right_cellblock, "test_release_gives_the_bytes_back_to_the_right_cellblock", 94);
+  run_test(test_the_two_cellblocks_are_separate, "test_the_two_cellblocks_are_separate", 31);
+  run_test(test_the_allocation_puts_them_back_to_back, "test_the_allocation_puts_them_back_to_back", 45);
+  run_test(test_maximum_security_release_zeroes_the_cell, "test_maximum_security_release_zeroes_the_cell", 55);
+  run_test(test_minimum_security_release_does_not_zero, "test_minimum_security_release_does_not_zero", 71);
+  run_test(test_each_cellblock_tracks_its_own_fill, "test_each_cellblock_tracks_its_own_fill", 83);
+  run_test(test_release_gives_the_bytes_back_to_the_right_cellblock, "test_release_gives_the_bytes_back_to_the_right_cellblock", 100);
 
   return UNITY_END();
 }

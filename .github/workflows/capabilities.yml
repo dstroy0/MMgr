@@ -1,7 +1,7 @@
 name: Capabilities
 
 # The trees the default build skips. MMGR_ENABLE_DMA and MMGR_ENABLE_EXTRAM both default off, and
-# with them off their modules are absent and their suites skipped, so the analysis job never compiles
+# with them off their modules are absent and their suites skipped: the analysis job never compiles
 # them. Each tree here is one test/harness.py carries, with its flags, and the harness is what runs
 # it: a flag written out here as well would be a second copy of it.
 
@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tree: [build-dma, build-dma-lean, build-extram, build-lock]
+        tree: [build-dma, build-dma-lean, build-extram]
     steps:
       - uses: actions/checkout@v7
 

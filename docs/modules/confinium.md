@@ -73,18 +73,18 @@ persistent end comes off it with every freed block below, and one freed under a 
 ## Worked example
 
 ```c
-char *const table = prison.work.persistent_buf_alloc(512, NULL);
+char *const table = prison.work.persistent_buf_alloc(512, &reader);
 if (table == NULL) {
     return -1;                       /* the region is full; nothing moved */
 }
 
 const size_t mark = prison.work.temporary_buf_mark();
-char *const  buf  = prison.work.temporary_buf_alloc(256, NULL);
+char *const  buf  = prison.work.temporary_buf_alloc(256, &reader, 50u);
 
 /* ... use buf ... */
 
 prison.work.temporary_buf_release(mark);
-prison.work.persistent_buf_release(table, NULL);
+prison.work.persistent_buf_release(table, &reader);
 ```
 
 @ref ref_glossary decodes the Latin the module names are built from.
@@ -98,8 +98,8 @@ because the block's own header carries its size.
 One call gives a persistent tenancy back, and what it does depends on which pool it is:
 
 ```c
-prison.work.persistent_buf_release(table, NULL);   /* minimum security: the bytes are left as they are */
-prison.keys.persistent_buf_release(secret, NULL);  /* maximum security: they are cleared first */
+prison.work.persistent_buf_release(table, &reader);   /* minimum security: the bytes are left as they are */
+prison.keys.persistent_buf_release(secret, &reader);  /* maximum security: they are cleared first */
 ```
 
 The guarantee is in the declaration, never in a flag or a second call. A caller cannot ask

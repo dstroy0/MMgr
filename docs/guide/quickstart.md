@@ -12,8 +12,8 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-A clean run is 240 tests and takes a few seconds. Every suite is built once per compile-time
-environment, and there are five of them, so one `cmake` invocation builds every width. See
+A clean run is 265 tests and takes a few seconds. Every suite is built once per compile-time
+environment, and there are five of them: one `cmake` invocation builds every width. See
 @ref ref_environments.
 
 Three suites are skipped unless you ask for them, and the configure says so instead of dropping them
@@ -39,10 +39,16 @@ Storage comes from you. This is the whole shape of the library in twenty lines.
 ParsMemoriaeInternae(work, 4096);
 LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work));
 
+/* The owner every cell is counted to, registered once before its first take. */
+static CellOwner report = MMGR_CELL_OWNER("report");
+
 int main(void)
 {
+    if (!mmgr_owner_register(&report)) {
+        return 1;
+    }
 
-    char *const store = prison.work.persistent_buf_alloc(256, NULL);
+    char *const store = prison.work.persistent_buf_alloc(256, &report);
     if (store == NULL) {
         return 1;
     }
@@ -72,10 +78,10 @@ Three things in that listing are the library's whole personality:
   runs at startup.
 - **`persistent_buf_alloc` borrows.** It allocates nothing from the heap: it hands back part of the
   cellblock's own storage and moves a boundary, and what it returns dies when that tier unwinds. Its
-  second argument is the `CellOwner` the cell's bytes are counted to; `NULL` counts them to none. See
-  @ref concept_ownership.
+  second argument is the registered `CellOwner` the cell's bytes are counted to, and a take naming
+  `NULL` or an owner not registered is refused. See @ref concept_ownership.
 - **The error check is at the end**, not after every write, because a writer with no room returns
-  `cap` and every later writer does the same, so `finish` reports it. See @ref ref_error_handling.
+  `cap` and every later writer does the same, and `finish` reports it. See @ref ref_error_handling.
 
 ## Linking it
 

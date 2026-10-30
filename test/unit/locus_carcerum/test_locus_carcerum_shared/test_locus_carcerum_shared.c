@@ -34,8 +34,24 @@ static embed_atomic_u32 s_next_index = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_refused = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_overwritten = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_kept = EMBED_ATOMIC_INIT(0u);
+static embed_atomic_usize s_registered = EMBED_ATOMIC_INIT(0u);
 static CellOwner s_crowd = MMGR_CELL_OWNER("crowd");
+static CellOwner s_scratch = MMGR_CELL_OWNER("scratch");
+static CellOwner s_contested = MMGR_CELL_OWNER("contested");
 static CellOwner s_own[MMGR_HOST_THREADS_MOST];
+static char s_own_names[MMGR_HOST_THREADS_MOST][8];
+
+// An owner registered by the first case that names it, its counts put back to zero for every case:
+// the owner queue lives as long as the program does
+static void owner_ready(CellOwner *owner)
+{
+    if (embed_atomic_usize_load(&owner->place) == 0u)
+    {
+        TEST_ASSERT_TRUE(mmgr_owner_register(owner));
+    }
+    embed_atomic_usize_store(&owner->in_use, 0u);
+    embed_atomic_usize_store(&owner->hw, 0u);
+}
 
 void setUp(void)
 {
@@ -44,7 +60,9 @@ void setUp(void)
     embed_atomic_usize_store(&s_refused, 0u);
     embed_atomic_usize_store(&s_overwritten, 0u);
     embed_atomic_usize_store(&s_kept, 0u);
-    s_crowd = (CellOwner)MMGR_CELL_OWNER("crowd");
+    embed_atomic_usize_store(&s_registered, 0u);
+    owner_ready(&s_crowd);
+    owner_ready(&s_scratch);
 }
 
 void tearDown(void)
@@ -126,7 +144,7 @@ static void contend_temporary_with(CellOwner *owner, embed_bool giving)
         for (size_t at = 0u; at < CONTEND_HELD; at++)
         {
             wanted[at] = 8u + (8u * ((round + at + index) % 6u));
-            held[at] = (uint8_t *)crowded.shared.temporary_buf_alloc(wanted[at], owner);
+            held[at] = (uint8_t *)crowded.shared.temporary_buf_alloc(wanted[at], owner, 1000u);
             refused += (held[at] == NULL) ? 1u : 0u;
             for (size_t byte = 0u; (held[at] != NULL) && (byte < wanted[at]); byte++)
             {
@@ -141,7 +159,7 @@ static void contend_temporary_with(CellOwner *owner, embed_bool giving)
             }
             if (giving)
             {
-                crowded.shared.persistent_buf_release(held[at], NULL);
+                crowded.shared.persistent_buf_release(held[at], owner);
             }
             else
             {
@@ -156,7 +174,16 @@ static void contend_temporary_with(CellOwner *owner, embed_bool giving)
 
 static void contend_temporary(void)
 {
-    contend_temporary_with(NULL, EMBED_TRUE);
+    contend_temporary_with(&s_scratch, EMBED_TRUE);
+}
+
+// Every thread registers an owner of its own and tries the one contested owner, all at once
+static void contend_registration(void)
+{
+    const unsigned int index = contend_index_taken();
+
+    (void)embed_atomic_usize_fetch_add(&s_registered, mmgr_owner_register(&s_contested) ? 1u : 0u);
+    (void)embed_atomic_usize_fetch_add(&s_refused, mmgr_owner_register(&s_own[index]) ? 0u : 1u);
 }
 
 static void contend_temporary_shared_owner(void)
@@ -171,18 +198,18 @@ static void contend_temporary_kept(void)
 
 void test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave(void)
 {
-    void *const prisoner = crowded.shared.persistent_buf_alloc(16u, NULL);
+    void *const prisoner = crowded.shared.persistent_buf_alloc(16u, &s_crowd);
 
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
-    crowded.shared.persistent_buf_release(prisoner, NULL);
+    crowded.shared.persistent_buf_release(prisoner, &s_crowd);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
     const size_t mark = crowded.shared.temporary_buf_mark();
-    void *const scratch = crowded.shared.temporary_buf_alloc(16u, NULL);
+    void *const scratch = crowded.shared.temporary_buf_alloc(16u, &s_scratch, 1000u);
     TEST_ASSERT_NOT_NULL(scratch);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
     crowded.shared.temporary_buf_release(mark);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
-    (void)crowded.shared.temporary_buf_alloc(16u, NULL);
+    (void)crowded.shared.temporary_buf_alloc(16u, &s_scratch, 1000u);
     crowded.shared.temporary_buf_reset();
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, tiers_held(), "nothing held, nothing in either tier");
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
@@ -228,11 +255,37 @@ void test_an_owner_shared_by_every_thread_is_counted_back_to_nothing(void)
     TEST_ASSERT_TRUE(embed_atomic_usize_load(&s_crowd.hw) <= SHARED_BYTES);
 }
 
+void test_owners_registering_at_once_are_each_queued_once(void)
+{
+    const size_t before = mmgr_owner_count();
+
+    for (size_t at = 0u; at < MMGR_HOST_THREADS_MOST; at++)
+    {
+        s_own_names[at][0] = 'o';
+        s_own_names[at][1] = 'w';
+        s_own_names[at][2] = 'n';
+        s_own_names[at][3] = (char)('0' + ((at / 10u) % 10u));
+        s_own_names[at][4] = (char)('0' + (at % 10u));
+        s_own_names[at][5] = '\0';
+        s_own[at] = (CellOwner)MMGR_CELL_OWNER(s_own_names[at]);
+    }
+    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_registration, MMGR_HOST_THREADS_MOST));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, (size_t)embed_atomic_usize_load(&s_registered),
+                                     "one owner tried by every thread at once registers once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_refused), "each thread's own owner registers");
+    TEST_ASSERT_EQUAL_size_t(before + 1u + MMGR_HOST_THREADS_MOST, mmgr_owner_count());
+    for (size_t at = 0u; at < mmgr_owner_count(); at++)
+    {
+        TEST_ASSERT_EQUAL_size_t_MESSAGE(at + 1u, (size_t)embed_atomic_usize_load(&mmgr_owner_at(at)->place),
+                                         "each owner's place is where the queue holds it");
+    }
+}
+
 void test_an_owner_for_each_thread_is_counted_back_to_nothing(void)
 {
     for (size_t at = 0u; at < MMGR_HOST_THREADS_MOST; at++)
     {
-        s_own[at] = (CellOwner)MMGR_CELL_OWNER("own");
+        owner_ready(&s_own[at]);
     }
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_own_owner, MMGR_HOST_THREADS_MOST));
     // a thread whose every take the gap refused has a peak of 0, and the tier promises it no take; the

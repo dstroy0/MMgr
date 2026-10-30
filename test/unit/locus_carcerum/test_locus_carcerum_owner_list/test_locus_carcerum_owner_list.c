@@ -2,118 +2,127 @@
 
 #include "unity.h"
 
-// Room for one more 8 byte cell than the list has places, each cell's header and payload within 32
-#define LISTED_BYTES ((MMGR_CARCER_OWNERS + 1u) * 32u)
-#define OTHER_BYTES 256u
+// The owner queue lives as long as the program does and no case empties it: the cases run in the
+// order they are written, and each reads the queue as the ones before it left it
+#define ROLL_BYTES 256u
 
-ParsMemoriaeInternae(listed, LISTED_BYTES);
-ParsMemoriaeInternae(other, OTHER_BYTES);
+ParsMemoriaeInternae(listed, ROLL_BYTES);
 
-LocusCarcerum(roll, MMGR_MINIMUM_SECURITY(listed), MMGR_MINIMUM_SECURITY(other));
+LocusCarcerum(roll, MMGR_MINIMUM_SECURITY(listed));
+
+static CellOwner writer = MMGR_CELL_OWNER("writer");
+static CellOwner reader = MMGR_CELL_OWNER("reader");
+static CellOwner second_writer = MMGR_CELL_OWNER("writer");
+static CellOwner nameless = {NULL, EMBED_ATOMIC_INIT(0u), 0u, EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u)};
+
+// Owners enough to fill the queue's room, each named by its place
+static CellOwner s_crowd[MMGR_CARCER_OWNERS];
+static char s_crowd_names[MMGR_CARCER_OWNERS][8];
+
+// The clock the library reads, which each case sets
+static uint32_t s_now_ms;
+
+uint32_t mmgr_carcer_hw_clock_ms(void)
+{
+    return s_now_ms;
+}
 
 void setUp(void)
 {
     mmgr_cellblock_emptied(&roll_listed_ctx);
-    mmgr_cellblock_emptied(&roll_other_ctx);
 }
 
 void tearDown(void)
 {
 }
 
-void test_a_fresh_cellblock_lists_no_owner(void)
+static size_t place_of(const CellOwner *owner)
 {
-    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_owner_count(&roll_listed_ctx));
+    return (size_t)embed_atomic_usize_load(&owner->place);
 }
 
-void test_an_owner_is_listed_by_the_cellblock_it_takes_from(void)
+void test_no_owner_is_registered_before_the_first_registers(void)
 {
-    CellOwner owner = MMGR_CELL_OWNER("reader");
-
-    (void)roll.listed.persistent_buf_alloc(16u, &owner);
-    TEST_ASSERT_EQUAL_size_t(1u, mmgr_cellblock_owner_count(&roll_listed_ctx));
-    TEST_ASSERT_EQUAL_PTR(&owner, mmgr_cellblock_owner(&roll_listed_ctx, 0));
-    TEST_ASSERT_EQUAL_PTR(&roll_listed_ctx, (const void *)(uintptr_t)embed_atomic_uptr_load(&owner.listed_in));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_count());
+    TEST_ASSERT_NULL(mmgr_owner_at(0u));
 }
 
-void test_an_owner_is_listed_once_over_many_takes(void)
+void test_an_owner_not_registered_takes_nothing(void)
 {
-    CellOwner owner = MMGR_CELL_OWNER("reader");
+    TEST_ASSERT_NULL(roll.listed.persistent_buf_alloc(16u, &writer));
+    TEST_ASSERT_NULL(roll.listed.temporary_buf_alloc(16u, &writer, 10u));
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&writer.in_use));
+    TEST_ASSERT_EQUAL_size_t(ROLL_BYTES, mmgr_buf_available(&roll_listed_ctx));
+}
 
-    for (size_t take = 0u; take < 4u; take++)
+void test_the_first_registration_is_the_first_place_at_the_time_it_lands(void)
+{
+    s_now_ms = 1234u;
+    TEST_ASSERT_TRUE(mmgr_owner_register(&writer));
+    TEST_ASSERT_EQUAL_size_t(1u, place_of(&writer));
+    TEST_ASSERT_EQUAL_UINT32(1234u, writer.registered_ms);
+    TEST_ASSERT_EQUAL_size_t(1u, mmgr_owner_count());
+    TEST_ASSERT_EQUAL_PTR(&writer, mmgr_owner_at(0u));
+    TEST_ASSERT_NOT_NULL_MESSAGE(roll.listed.persistent_buf_alloc(16u, &writer), "a registered owner takes");
+}
+
+void test_owners_are_queued_in_the_order_they_register(void)
+{
+    s_now_ms = 1240u;
+    TEST_ASSERT_TRUE(mmgr_owner_register(&reader));
+    TEST_ASSERT_EQUAL_size_t(2u, place_of(&reader));
+    TEST_ASSERT_EQUAL_UINT32(1240u, reader.registered_ms);
+    TEST_ASSERT_EQUAL_size_t(2u, mmgr_owner_count());
+    TEST_ASSERT_EQUAL_PTR(&writer, mmgr_owner_at(0u));
+    TEST_ASSERT_EQUAL_PTR(&reader, mmgr_owner_at(1u));
+}
+
+void test_an_owner_registers_once(void)
+{
+    s_now_ms = 9999u;
+    TEST_ASSERT_FALSE(mmgr_owner_register(&writer));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, place_of(&writer), "the key stands as the first registration gave it");
+    TEST_ASSERT_EQUAL_UINT32(1234u, writer.registered_ms);
+    TEST_ASSERT_EQUAL_size_t(2u, mmgr_owner_count());
+}
+
+void test_a_second_owner_of_a_registered_name_is_refused(void)
+{
+    TEST_ASSERT_FALSE(mmgr_owner_register(&second_writer));
+    TEST_ASSERT_EQUAL_size_t(0u, place_of(&second_writer));
+    TEST_ASSERT_EQUAL_size_t(2u, mmgr_owner_count());
+    TEST_ASSERT_NULL(roll.listed.persistent_buf_alloc(16u, &second_writer));
+}
+
+void test_no_owner_and_an_owner_with_no_name_are_refused(void)
+{
+    TEST_ASSERT_FALSE(mmgr_owner_register(NULL));
+    TEST_ASSERT_FALSE(mmgr_owner_register(&nameless));
+    TEST_ASSERT_EQUAL_size_t(0u, place_of(&nameless));
+    TEST_ASSERT_EQUAL_size_t(2u, mmgr_owner_count());
+}
+
+void test_the_queue_takes_owners_up_to_its_room_and_refuses_the_next(void)
+{
+    const size_t room = MMGR_CARCER_OWNERS - mmgr_owner_count();
+
+    for (size_t at = 0u; at < MMGR_CARCER_OWNERS; at++)
     {
-        (void)roll.listed.persistent_buf_alloc(16u, &owner);
+        s_crowd_names[at][0] = 'c';
+        s_crowd_names[at][1] = (char)('0' + ((at / 100u) % 10u));
+        s_crowd_names[at][2] = (char)('0' + ((at / 10u) % 10u));
+        s_crowd_names[at][3] = (char)('0' + (at % 10u));
+        s_crowd_names[at][4] = '\0';
+        s_crowd[at] = (CellOwner)MMGR_CELL_OWNER(s_crowd_names[at]);
     }
-    TEST_ASSERT_EQUAL_size_t(1u, mmgr_cellblock_owner_count(&roll_listed_ctx));
-}
-
-void test_an_owner_stays_listed_after_giving_everything_back(void)
-{
-    CellOwner owner = MMGR_CELL_OWNER("reader");
-    void *const prisoner = roll.listed.persistent_buf_alloc(16u, &owner);
-
-    roll.listed.persistent_buf_release(prisoner, &owner);
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&owner.in_use));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, mmgr_cellblock_owner_count(&roll_listed_ctx), "the list records every owner that took");
-    TEST_ASSERT_EQUAL_PTR(&owner, mmgr_cellblock_owner(&roll_listed_ctx, 0));
-}
-
-void test_owners_are_listed_in_the_order_of_their_first_take(void)
-{
-    CellOwner reader = MMGR_CELL_OWNER("reader");
-    CellOwner writer = MMGR_CELL_OWNER("writer");
-
-    (void)roll.listed.persistent_buf_alloc(16u, &writer);
-    (void)roll.listed.persistent_buf_alloc(16u, &reader);
-    (void)roll.listed.persistent_buf_alloc(16u, &writer);
-    TEST_ASSERT_EQUAL_size_t(2u, mmgr_cellblock_owner_count(&roll_listed_ctx));
-    TEST_ASSERT_EQUAL_PTR(&writer, mmgr_cellblock_owner(&roll_listed_ctx, 0));
-    TEST_ASSERT_EQUAL_PTR(&reader, mmgr_cellblock_owner(&roll_listed_ctx, 1));
-}
-
-void test_an_owner_taking_from_two_cellblocks_is_listed_once_in_each(void)
-{
-    CellOwner owner = MMGR_CELL_OWNER("reader");
-
-    (void)roll.listed.persistent_buf_alloc(16u, &owner);
-    (void)roll.other.persistent_buf_alloc(16u, &owner);
-    TEST_ASSERT_EQUAL_PTR(&roll_other_ctx, (const void *)(uintptr_t)embed_atomic_uptr_load(&owner.listed_in));
-    (void)roll.listed.persistent_buf_alloc(16u, &owner);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, mmgr_cellblock_owner_count(&roll_listed_ctx),
-                                     "a return to the first cellblock adds no second entry");
-    TEST_ASSERT_EQUAL_size_t(1u, mmgr_cellblock_owner_count(&roll_other_ctx));
-    TEST_ASSERT_EQUAL_PTR(&roll_listed_ctx, (const void *)(uintptr_t)embed_atomic_uptr_load(&owner.listed_in));
-}
-
-void test_a_take_naming_no_owner_lists_nothing(void)
-{
-    (void)roll.listed.persistent_buf_alloc(16u, NULL);
-    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_owner_count(&roll_listed_ctx));
-}
-
-void test_a_refused_take_lists_nothing(void)
-{
-    CellOwner owner = MMGR_CELL_OWNER("reader");
-
-    TEST_ASSERT_NULL(roll.listed.persistent_buf_alloc(LISTED_BYTES, &owner));
-    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_owner_count(&roll_listed_ctx));
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_uptr_load(&owner.listed_in));
-}
-
-void test_the_list_stops_at_its_room_and_the_owner_past_it_is_still_counted(void)
-{
-    static CellOwner crowd[MMGR_CARCER_OWNERS + 1u];
-
-    for (size_t at = 0u; at <= MMGR_CARCER_OWNERS; at++)
+    for (size_t at = 0u; at < room; at++)
     {
-        crowd[at] = (CellOwner)MMGR_CELL_OWNER("crowd");
-        TEST_ASSERT_NOT_NULL(roll.listed.persistent_buf_alloc(8u, &crowd[at]));
+        TEST_ASSERT_TRUE(mmgr_owner_register(&s_crowd[at]));
+        TEST_ASSERT_EQUAL_size_t(at + 3u, place_of(&s_crowd[at]));
     }
-    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_OWNERS, mmgr_cellblock_owner_count(&roll_listed_ctx));
-    TEST_ASSERT_EQUAL_PTR(&crowd[MMGR_CARCER_OWNERS - 1u], mmgr_cellblock_owner(&roll_listed_ctx, MMGR_CARCER_OWNERS - 1u));
-
-    CellOwner *const past = &crowd[MMGR_CARCER_OWNERS];
-
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(8u, (size_t)embed_atomic_usize_load(&past->in_use), "an owner past the room keeps its own counts");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_uptr_load(&past->listed_in), "an owner no list carries names no cellblock as its list");
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_OWNERS, mmgr_owner_count());
+    TEST_ASSERT_EQUAL_PTR(&s_crowd[room - 1u], mmgr_owner_at(MMGR_CARCER_OWNERS - 1u));
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_owner_register(&s_crowd[room]), "a full queue refuses the next owner");
+    TEST_ASSERT_EQUAL_size_t(0u, place_of(&s_crowd[room]));
+    TEST_ASSERT_NULL(mmgr_owner_at(MMGR_CARCER_OWNERS));
 }

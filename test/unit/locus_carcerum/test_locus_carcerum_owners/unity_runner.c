@@ -7,13 +7,16 @@
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_a_new_owner_has_nothing_counted(void);
+extern void test_a_new_owner_has_nothing_counted_and_no_key(void);
 extern void test_a_take_counts_the_cell_to_its_owner(void);
 extern void test_a_give_takes_the_same_bytes_off(void);
 extern void test_the_peak_is_the_most_held_at_once(void);
 extern void test_a_cell_given_back_below_the_end_counts_off_at_once(void);
 extern void test_a_refused_take_counts_nothing(void);
-extern void test_a_null_owner_counts_nothing(void);
+extern void test_a_take_naming_no_owner_is_refused(void);
+extern void test_a_take_naming_an_owner_not_registered_is_refused(void);
+extern void test_a_give_naming_no_owner_gives_nothing_back(void);
+extern void test_a_growth_naming_no_owner_is_refused(void);
 extern void test_two_owners_are_counted_apart(void);
 extern void test_a_maximum_security_give_counts_like_a_plain_one(void);
 extern void test_one_owner_counts_across_cellblocks(void);
@@ -21,6 +24,14 @@ extern void test_a_temporary_take_counts_the_cell_to_its_owner(void);
 extern void test_a_rewind_counts_the_dropped_cells_off_their_owners(void);
 extern void test_a_temporary_cell_given_back_alone_counts_off_the_owner_that_took_it(void);
 extern void test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner(void);
+extern void test_a_lifetime_outside_its_range_is_refused(void);
+extern void test_a_cell_in_its_lifetime_is_left_to_its_holder(void);
+extern void test_a_cell_past_its_lifetime_is_given_back_by_the_next_take_and_told(void);
+extern void test_every_lapsed_cell_at_the_top_is_given_back_in_turn(void);
+extern void test_a_lapsed_cell_under_one_in_its_lifetime_waits(void);
+extern void test_a_lifetime_holds_across_the_clock_wrapping(void);
+extern void test_a_persistent_take_the_gap_cannot_meet_gives_lapsed_cells_back_and_tries_again(void);
+extern void test_a_maximum_security_cell_past_its_lifetime_is_given_back_too(void);
 
 
 /*=======Mock Management=====*/
@@ -82,20 +93,31 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_owners\\test_locus_carcerum_owners.c");
-  run_test(test_a_new_owner_has_nothing_counted, "test_a_new_owner_has_nothing_counted", 23);
-  run_test(test_a_take_counts_the_cell_to_its_owner, "test_a_take_counts_the_cell_to_its_owner", 33);
-  run_test(test_a_give_takes_the_same_bytes_off, "test_a_give_takes_the_same_bytes_off", 42);
-  run_test(test_the_peak_is_the_most_held_at_once, "test_the_peak_is_the_most_held_at_once", 52);
-  run_test(test_a_cell_given_back_below_the_end_counts_off_at_once, "test_a_cell_given_back_below_the_end_counts_off_at_once", 69);
-  run_test(test_a_refused_take_counts_nothing, "test_a_refused_take_counts_nothing", 91);
-  run_test(test_a_null_owner_counts_nothing, "test_a_null_owner_counts_nothing", 101);
-  run_test(test_two_owners_are_counted_apart, "test_two_owners_are_counted_apart", 114);
-  run_test(test_a_maximum_security_give_counts_like_a_plain_one, "test_a_maximum_security_give_counts_like_a_plain_one", 129);
-  run_test(test_one_owner_counts_across_cellblocks, "test_one_owner_counts_across_cellblocks", 140);
-  run_test(test_a_temporary_take_counts_the_cell_to_its_owner, "test_a_temporary_take_counts_the_cell_to_its_owner", 153);
-  run_test(test_a_rewind_counts_the_dropped_cells_off_their_owners, "test_a_rewind_counts_the_dropped_cells_off_their_owners", 163);
-  run_test(test_a_temporary_cell_given_back_alone_counts_off_the_owner_that_took_it, "test_a_temporary_cell_given_back_alone_counts_off_the_owner_that_took_it", 183);
-  run_test(test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner, "test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner", 195);
+  run_test(test_a_new_owner_has_nothing_counted_and_no_key, "test_a_new_owner_has_nothing_counted_and_no_key", 81);
+  run_test(test_a_take_counts_the_cell_to_its_owner, "test_a_take_counts_the_cell_to_its_owner", 91);
+  run_test(test_a_give_takes_the_same_bytes_off, "test_a_give_takes_the_same_bytes_off", 99);
+  run_test(test_the_peak_is_the_most_held_at_once, "test_the_peak_is_the_most_held_at_once", 108);
+  run_test(test_a_cell_given_back_below_the_end_counts_off_at_once, "test_a_cell_given_back_below_the_end_counts_off_at_once", 124);
+  run_test(test_a_refused_take_counts_nothing, "test_a_refused_take_counts_nothing", 145);
+  run_test(test_a_take_naming_no_owner_is_refused, "test_a_take_naming_no_owner_is_refused", 152);
+  run_test(test_a_take_naming_an_owner_not_registered_is_refused, "test_a_take_naming_an_owner_not_registered_is_refused", 160);
+  run_test(test_a_give_naming_no_owner_gives_nothing_back, "test_a_give_naming_no_owner_gives_nothing_back", 170);
+  run_test(test_a_growth_naming_no_owner_is_refused, "test_a_growth_naming_no_owner_is_refused", 182);
+  run_test(test_two_owners_are_counted_apart, "test_two_owners_are_counted_apart", 192);
+  run_test(test_a_maximum_security_give_counts_like_a_plain_one, "test_a_maximum_security_give_counts_like_a_plain_one", 205);
+  run_test(test_one_owner_counts_across_cellblocks, "test_one_owner_counts_across_cellblocks", 215);
+  run_test(test_a_temporary_take_counts_the_cell_to_its_owner, "test_a_temporary_take_counts_the_cell_to_its_owner", 227);
+  run_test(test_a_rewind_counts_the_dropped_cells_off_their_owners, "test_a_rewind_counts_the_dropped_cells_off_their_owners", 237);
+  run_test(test_a_temporary_cell_given_back_alone_counts_off_the_owner_that_took_it, "test_a_temporary_cell_given_back_alone_counts_off_the_owner_that_took_it", 257);
+  run_test(test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner, "test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner", 270);
+  run_test(test_a_lifetime_outside_its_range_is_refused, "test_a_lifetime_outside_its_range_is_refused", 283);
+  run_test(test_a_cell_in_its_lifetime_is_left_to_its_holder, "test_a_cell_in_its_lifetime_is_left_to_its_holder", 294);
+  run_test(test_a_cell_past_its_lifetime_is_given_back_by_the_next_take_and_told, "test_a_cell_past_its_lifetime_is_given_back_by_the_next_take_and_told", 304);
+  run_test(test_every_lapsed_cell_at_the_top_is_given_back_in_turn, "test_every_lapsed_cell_at_the_top_is_given_back_in_turn", 322);
+  run_test(test_a_lapsed_cell_under_one_in_its_lifetime_waits, "test_a_lapsed_cell_under_one_in_its_lifetime_waits", 338);
+  run_test(test_a_lifetime_holds_across_the_clock_wrapping, "test_a_lifetime_holds_across_the_clock_wrapping", 350);
+  run_test(test_a_persistent_take_the_gap_cannot_meet_gives_lapsed_cells_back_and_tries_again, "test_a_persistent_take_the_gap_cannot_meet_gives_lapsed_cells_back_and_tries_again", 367);
+  run_test(test_a_maximum_security_cell_past_its_lifetime_is_given_back_too, "test_a_maximum_security_cell_past_its_lifetime_is_given_back_too", 378);
 
   return UNITY_END();
 }

@@ -28,7 +28,7 @@ cell dies when that cell is released even though the span was never told.
 
 ```c
 const size_t mark = prison.work.temporary_buf_mark();
-void *const cell = prison.work.temporary_buf_alloc(256u, NULL);
+void *const cell = prison.work.temporary_buf_alloc(256u, &reader, 50u);
 
 /* ... use cell ... */
 
@@ -82,34 +82,54 @@ check. See @ref mod_confin_guide.
 
 ## A take names its owner
 
-The caller says who a cell is for. Every `persistent_buf_alloc`, `temporary_buf_alloc` and
-`persistent_buf_release` takes a `CellOwner *` beside its size or its prisoner:
+The caller says who a cell is for. Every `persistent_buf_alloc`, `temporary_buf_alloc`,
+`persistent_buf_release` and `buf_grow` takes a `CellOwner *` beside its size or its prisoner, and
+none takes `NULL`. An owner registers once, before its first take:
 
 ```c
 static CellOwner reader = MMGR_CELL_OWNER("reader");
+
+mmgr_owner_register(&reader);
 
 void *const cell = prison.work.persistent_buf_alloc(256u, &reader);
 /* ... */
 prison.work.persistent_buf_release(cell, &reader);
 
 const size_t mark = prison.work.temporary_buf_mark();
-void *const scratch = prison.work.temporary_buf_alloc(256u, &reader);
+void *const scratch = prison.work.temporary_buf_alloc(256u, &reader, 50u);
 /* ... */
 prison.work.temporary_buf_release(mark);
 ```
 
+`mmgr_owner_register` puts the owner at the back of the library's owner queue and gives it its key:
+its place in the queue, counted from 1, and the time it registered, in milliseconds on
+`mmgr_carcer_hw_clock_ms`. It refuses `NULL`, an owner with no name, an owner registered already, a
+second owner of a name already registered, and a queue holding `MMGR_CARCER_OWNERS` owners. A take
+naming an owner that is not registered is refused as a take the gap cannot meet is.
+`mmgr_owner_count` and `mmgr_owner_at` read the queue in the order the owners registered.
+
+A persistent cell has no lifetime: it stands until its release. A temporary cell lives as long as its
+take says, in milliseconds on the same clock, from 1 up to 2^31 - 1, and its holder gives it back
+within that, by a rewind to a mark or by a single release. The end of a lifetime is a backstop: every
+take gives back the cells at the temporary top whose lifetimes have ended, as their holders' release
+would, and calls `mmgr_carcer_hw_expired` with the owner, the bytes and how long past its lifetime the
+cell stood, for a port to log. A cell below one still in its lifetime waits for it. A persistent take
+the gap cannot meet runs the backstop once and tries again.
+
+`mmgr_carcer_hw_clock_ms` and `mmgr_carcer_hw_expired` are weak. The default clock answers 0 every
+time, and no lifetime ends; the default report does nothing. A port defines both names.
+
 The take adds the cell's payload, read off its header, to `reader.in_use` and raises `reader.hw` to
 it; the release takes the same bytes off. A temporary cell keeps its owner in its trailing word, and
 the rewind that drops it takes its bytes off that owner, as does a single release of it, whatever
-owner the release is handed. `NULL` in place of an owner counts nothing. The owner is the caller's
-storage: the cellblock still does not ask which context reached it.
+owner the release is handed, and as does the backstop at the end of its lifetime. The owner is the
+caller's storage: the cellblock still does not ask which context reached it.
 
-@warning An owner named by a temporary take must outlive every rewind that drops the cell: the
-rewind writes the count through the pointer the cell kept.
+@warning An owner must outlive every cell counted to it: the queue holds its address, and a rewind
+writes the count through the pointer a temporary cell kept.
 
-With `MMGR_ENABLE_OWNERS` at 1, each cellblock also lists every owner that took a cell from it, in the
-order of each one's first take, up to `MMGR_CARCER_OWNERS`. An owner past that room keeps its own
-counts and is absent from the list.
+@warning A temporary cell past its lifetime is not its holder's. The backstop gives it back and the
+cellblock may hand its bytes to another take.
 
 ## Concurrency
 

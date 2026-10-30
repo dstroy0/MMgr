@@ -29,7 +29,7 @@ one costs a full configure and a full compile every time; --fresh forces a new o
 changed target or a changed toolchain needs. The newest three per name are kept and older ones are
 removed on the way in.
 
-There are seven host trees and each one is a different question: each carries its own flags here
+There are six host trees and each one is a different question: each carries its own flags here
 instead of in somebody's shell history:
 
   build           the library, as it ships
@@ -38,7 +38,6 @@ instead of in somebody's shell history:
   build-dma       DMA on, with recovery, the boundary word check and a settle window
   build-dma-lean  DMA on, with recovery and the settle window off
   build-extram    external memory on
-  build-owners    the owner lists on
 
 The device benches are ESP-IDF projects, which is a second build system with its own toolchain and
 environment. Reaching it needs a shell: the shell script is written out from here, run, and
@@ -666,10 +665,6 @@ TREES = {
     "build-extram": {
         "what": "external memory on",
         "args": ["-DMMGR_ENABLE_EXTRAM=ON"],
-    },
-    "build-owners": {
-        "what": "the owner lists on",
-        "args": ["-DMMGR_ENABLE_OWNERS=ON"],
     },
 }
 

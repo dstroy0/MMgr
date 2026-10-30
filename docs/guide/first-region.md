@@ -34,17 +34,24 @@ reach for and `prison.work` has no zeroing one
 ## Two tiers
 
 ```c
-uint8_t *config = prison.work.persistent_buf_alloc(128, NULL);
-uint8_t *working = prison.work.temporary_buf_alloc(512, NULL);
+static CellOwner reader = MMGR_CELL_OWNER("reader");
+
+mmgr_owner_register(&reader);
+
+uint8_t *config = prison.work.persistent_buf_alloc(128, &reader);
+uint8_t *working = prison.work.temporary_buf_alloc(512, &reader, 50u);
 ```
 
-Both return the first byte of a cell `[RETURNS OWNERSHIP]`. The persistent tier takes it back through
-`prison.work.persistent_buf_release`; the temporary tier takes a whole run back through
+Every take names the owner its bytes are counted to, and an owner registers once before its first
+take. Both return the first byte of a cell `[RETURNS OWNERSHIP]`. The persistent tier takes it back
+through `prison.work.persistent_buf_release`; the temporary tier takes a whole run back through
 `prison.work.temporary_buf_release` or `prison.work.temporary_buf_reset`.
 
 - **persistent** is for what lives as long as the cellblock: configuration, tables, buffers you fill
-  once.
-- **temporary** is the working space for one operation.
+  once. A persistent cell has no lifetime.
+- **temporary** is the working space for one operation, and its take names how many milliseconds the
+  cell is yours. Give it back within that; a cell past its lifetime is given back for you and the
+  port is told. See @ref concept_ownership.
 
 The two tiers grow toward each other out of the same gap, and a request the gap cannot meet returns
 `NULL`: "Fails closed. A request the gap cannot meet moves no boundary at all"
@@ -65,8 +72,8 @@ Interim is a stack. You do not free a pointer, you rewind to a mark.
 
 ```c
 size_t m = prison.work.temporary_buf_mark();
-uint8_t *a = prison.work.temporary_buf_alloc(256, NULL);
-uint8_t *b = prison.work.temporary_buf_alloc(256, NULL);
+uint8_t *a = prison.work.temporary_buf_alloc(256, &reader, 50u);
+uint8_t *b = prison.work.temporary_buf_alloc(256, &reader, 50u);
 
 prison.work.temporary_buf_release(m);
 ```
@@ -115,7 +122,7 @@ static embed_bool handle(const uint8_t *msg, size_t len)
 {
     const size_t mark = prison.work.temporary_buf_mark();
 
-    uint8_t *const buf = prison.work.temporary_buf_alloc(len, NULL);
+    uint8_t *const buf = prison.work.temporary_buf_alloc(len, &reader, 50u);
     if (buf == NULL) {
         return EMBED_FALSE;
     }

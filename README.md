@@ -34,9 +34,12 @@ ParsMemoriaeInternae(keys, 2048);
    change either, and a cellblock is reached by the name of the pool it was built over. */
 LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work), MMGR_MAXIMUM_SECURITY(keys));
 
+/* Every cell is counted to an owner, registered once with mmgr_owner_register before its first take. */
+static CellOwner framer = MMGR_CELL_OWNER("framer");
+
 void frame(void)
 {
-    void *const cell = prison.work.persistent_buf_alloc(256u, NULL);
+    void *const cell = prison.work.persistent_buf_alloc(256u, &framer);
     mmgr_span span = EMBED_CALL(spat.from, SpatiumCfg, .buf = cell, .cap = 256u);
 
     EMBED_CALL(byteio.put_be, OctetusCfg, .write_span = &span, .value = 0xDEADBEEFu, .bytes = 4u);

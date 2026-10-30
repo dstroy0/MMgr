@@ -23,14 +23,10 @@ option(MMGR_LTO "Link-time optimization" ON)
 # Named here in one list because every module target gets every capability as a definition, and the
 # library and the suites that exercise it can never disagree about which are present. Gating only
 # which suites are built decides what is tested and not what is compiled, the wrong half.
-#
-# OWNERS rides the same list for the same reason: it changes what locus_carcerum compiles, and it
-# changes the size of every cellblock, which a suite and the library must agree on.
-set(MMGR_CAPABILITIES DMA EXTRAM OWNERS)
+set(MMGR_CAPABILITIES DMA EXTRAM)
 
 option(MMGR_ENABLE_DMA "The part has a DMA engine" OFF)
 option(MMGR_ENABLE_EXTRAM "The part has external RAM" OFF)
-option(MMGR_ENABLE_OWNERS "Every cellblock lists the owners that took a cell from it" OFF)
 
 # The DMA schedule's knobs, as NAME=value pairs separated by semicolons: PRAET_CHANNELS,
 # PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS, PRAET_RECOVERY, PRAET_CLOCK_HZ and PRAET_CLOCK_SOURCE,

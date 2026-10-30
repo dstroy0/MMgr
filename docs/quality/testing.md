@@ -1,11 +1,11 @@
 # The test suite {#qa_testing}
 
-240 CTest targets covering every compile-time width, at 100% of lines, branches and functions,
+265 CTest targets covering every compile-time width, at 100% of lines, branches and functions,
 green against this library and against libc.
 
 ## Running it
 
-The harness carries the flags, so running it is a command rather than a remembered incantation:
+The harness carries the flags. Running it is a command, never a remembered incantation:
 
 ```sh
 python test/harness.py test            # build, then run
@@ -34,13 +34,13 @@ test/bench/                                     benchmarks, off by default
 ```
 
 A suite is a **directory holding exactly one `.c`** with file-scope `void test_<name>(void)` cases.
-That constraint is what lets the harness find them without a registry.
+The harness finds them by that shape, with no registry.
 
 ## Unity, fetched not vendored
 
-Unity v2.6.1 arrives through CMake's `FetchContent` with `GIT_SHALLOW`. It is not committed, which
-is why `sonar-project.properties` and the CodeQL config exclude a `test/vendor/**` path that does
-not exist: that exclusion is vestigial.
+Unity v2.6.1 arrives through CMake's `FetchContent` with `GIT_SHALLOW`. It is not committed.
+`sonar-project.properties` and the CodeQL config exclude a `test/vendor/**` path that does not exist,
+and the exclusion matches nothing.
 
 Tests deliberately do **not** link `mmgr_flags`. Unity's assertion macros do not survive
 `-Wconversion`, and the choice is between weakening the warning set for the library or accepting
@@ -57,8 +57,7 @@ add_test(NAME test_spatium_word32 ...)
 add_test(NAME test_spatium_word16 ...)
 ```
 
-A defect that only appears at a 16-bit carrier fails a run here rather than waiting for someone
-to own that hardware. The environment suites themselves are built only in their own environment, and
+A defect that only appears at a 16-bit carrier fails a run here, before anyone owns that hardware. The environment suites themselves are built only in their own environment, and
 assert that the widths actually reached the translation unit.
 
 ## harness.py
@@ -78,10 +77,10 @@ knowing:
 | `deps`      | which suites bind a capability they never assert on  |
 | `generated` | whether the generated headers match their generators |
 
-`suites --strict`, `deps --strict` and `generated --strict` exit non-zero on a finding, which is
-what makes them usable as CI gates.
+`suites --strict`, `deps --strict` and `generated --strict` exit non-zero on a finding. A CI job
+gates on that exit.
 
-Seven build trees, each a different question, and each carries its own flags in the harness instead
+Six build trees, each a different question, and each carries its own flags in the harness instead
 of in somebody's shell history:
 
 | tree             | what it is                                                         |
@@ -92,38 +91,33 @@ of in somebody's shell history:
 | `build-dma`      | DMA on, with recovery, the boundary word check and a settle window |
 | `build-dma-lean` | DMA on, with recovery and the settle window off                    |
 | `build-extram`   | external memory on                                                 |
-| `build-lock`     | the cellblock lock and the owner lists on                          |
 
 The two DMA trees answer every schedule knob through `MMGR_PRAET_KNOBS` (`PRAET_KNOBS` in
-`test/harness.py`). A context the suites declare has to be the size the library walks, so the knobs
+`test/harness.py`). A context the suites declare has to be the size the library walks, and the knobs
 reach the library and the suites together. The cases gate on the knobs, and each tree compiles the
-arm the other one leaves out. The Capabilities workflow runs the two DMA trees, `build-extram` and
-`build-lock` on every pull request, since the analysis job builds with every capability off.
+arm the other one leaves out. The Capabilities workflow runs the two DMA trees and `build-extram` on
+every pull request, because the analysis job builds with every capability off.
 
-`build-oracle` and `build-cov` matter for coverage. `always_inline` is honoured at `-O0`, so without turning it off every call site
-of a header entry gets its own copy of that entry's branch records and the report counts optimizer
-copies instead of source branches - `mmgr_ascii_in` is one condition on one line and came back
-holding 28 branches. Link time optimization rewrites the code across translation units before the
-counters are read, which measures something nobody wrote.
+`build-oracle` and `build-cov` matter for coverage. `always_inline` is honored at `-O0`. With it on,
+every call site of a header entry gets its own copy of that entry's branch records and the report
+counts optimizer copies instead of source branches: `mmgr_ascii_in` is one condition on one line and
+reports 28 branches. Link time optimization rewrites the code across translation units before the
+counters are read, and the report then measures something nobody wrote.
 
 `ab` runs the two sides one after the other, never at once: two full builds at the same time makes
 the machine unusable and the comparison does not need them concurrent.
 
-A suite that borrows a region and never drives it looks covered and is not: that is what `deps`
-is for.
+A suite that borrows a region and never drives it looks covered and is not, and `deps` reports it.
 
 ## Capability gating
 
 `test_memoriam_praetereo` and `test_praet_correctness` need `MMGR_ENABLE_DMA`.
-`test_memoria_externa` and `test_memoria_externa_accuracy` need `MMGR_ENABLE_EXTRAM`.
-`test_locus_carcerum_lock` needs `MMGR_ENABLE_LOCK`, and `test_locus_carcerum_owner_list` needs
-`MMGR_ENABLE_OWNERS`. Every one of those knobs defaults off (`CMakeLists.txt:31-34`). All six suites
-are skipped **loudly**, with a CMake status message naming the capability that turned each one off:
+`test_memoria_externa` and `test_memoria_externa_accuracy` need `MMGR_ENABLE_EXTRAM`. Both knobs
+default off (`CMakeLists.txt`). All four suites are skipped **loudly**, with a CMake status message
+naming the capability that turned each one off:
 
 ```
--- MMgr: 6 suites NOT built, their capability is off:
--- MMgr:   test_locus_carcerum_lock (MMGR_ENABLE_LOCK=OFF)
--- MMgr:   test_locus_carcerum_owner_list (MMGR_ENABLE_OWNERS=OFF)
+-- MMgr: 4 suites NOT built, their capability is off:
 -- MMgr:   test_memoria_externa (MMGR_ENABLE_EXTRAM=OFF)
 -- MMgr:   test_memoriam_praetereo (MMGR_ENABLE_DMA=OFF)
 -- MMgr:   test_memoria_externa_accuracy (MMGR_ENABLE_EXTRAM=OFF)
@@ -142,13 +136,13 @@ it - so what follows is what the cases are actually checking.
 **libc is the oracle wherever it has one.** The whole suite is built a second time with
 `MMGR_ORACLE_LIBC` on, which replaces every entry that has a libc equivalent with that equivalent.
 Both runs have to be green. Where the two deliberately differ - a rounding rule C leaves to the
-implementation, a bound libc does not have, the platform's spelling of nan - the case is pinned
+implementation, a bound libc does not have, the platform's text for nan - the case is pinned
 against this library and stood down on the other run by `MMGR_SKIP_ON_ORACLE`, with the reason in
 the call. Six cases do that today.
 
 **Nothing reads past its bound.** A poison pattern cannot catch a read, because a read leaves
-nothing behind. `test_read_bounds` puts the buffer flush against a page marked no-access and catches
-the trap. A load one byte too far is reported rather than being someone else's crash later. It
+nothing behind. `test_read_bounds` puts the buffer's last byte against a page marked no-access and
+catches the trap. A load one byte too far is reported there, never left to crash elsewhere later. It
 holds `len`, `chr`, `eq`, `starts`, `diff`, `copy` and `take_be` to the word-rounded cap, and `find`
 and `has` to the raw cap with nothing rounded.
 
@@ -156,7 +150,7 @@ and `has` to the raw cap with nothing rounded.
 time. A nonsense size is not an input this library accepts. What arrives from outside is the
 bytes. `test_hostile_content` drives runs that never terminate, a terminator walked through every
 lane, every start alignment, bytes with the high bit set through a compare that is only exact below
-it, needles flush with the end and longer than the hay, and builders and spans walked to their caps
+it, needles ending at the hay's last byte and longer than the hay, and builders and spans walked to their caps
 with a poison fence either side.
 
 **A reference that is correct by reading it.** `test_scan_reference` checks the scans against a byte
@@ -165,35 +159,33 @@ word boundary to 300. Not libc: the oracle run asks libc separately, and half of
 a cap libc has no equivalent for.
 
 **Numbers, against a right answer.** A double printed to seventeen digits names exactly one double,
-so there is no tolerance to argue about. See @ref qa_numeric for what that found and what it still
+and there is no tolerance to argue about. See @ref qa_numeric for what that found and what it still
 says is wrong.
 
 **The insides, where the outside cannot reach.** `test_cellularum_internals` compiles the
-translation unit in rather than linking it, so file-local entries are callable. It is where a carry
-that happens once in 2^63 multiplies gets executed, on operands that were solved for rather than
-found.
+translation unit in instead of linking it, and file-local entries are callable. It is where a carry
+that happens once in 2^63 multiplies gets executed, on operands the case solves for.
 
 **Every width is a separate implementation.** `MMGR_ENVIRONMENTS` decides which arm of a width
-conditional is compiled at all, so the five environments are five builds of the same source and all
-five run. That is this library's answer to what glibc gets from testing every ifunc variant rather
-than only the one the processor selected.
+conditional is compiled. The five environments are five builds of the same source, and all five run.
+It answers what glibc gets from testing every ifunc variant and not only the one the processor
+selected.
 
 What is deliberately _not_ swept is start alignment. glibc sweeps it because its string functions
 peel - single bytes until the pointer reaches a word boundary, then whole words - so the alignment
 picks which code runs. Nothing here peels: every load in the scans is at whatever address it was
-handed. One case states that property rather than hunting a bug that cannot exist. The one place
-this library does peel is the bulk move in `memoria_operor`, and `test_memoria_operor` sweeps both
-offsets against every length there.
+handed. One case states that property, and no case hunts a bug that cannot exist. The bulk move in
+`memoria_operor` does peel, and `test_memoria_operor` sweeps both offsets against every length there.
 
 ## Coverage
 
 `python test/harness.py coverage` builds the instrumented tree, clears last run's counters, runs
 every environment and reports. 100% of lines, branches and functions.
 
-The counters carry a stamp from the `.gcno` they were built beside, so they are cleared after the
-build and before the run: a report always describes the binaries that produced it.
+The counters carry a stamp from the `.gcno` they were built beside. They are cleared after the
+build and before the run, and a report describes the binaries that produced it.
 
-Every environment runs, not just host. Which arm of a width conditional exists at all is
+Every environment runs, host and the four others. Which arm of a width conditional exists at all is
 `MMGR_ENVIRONMENTS`' business. A line dead at 64 bits is live at 16 and only the whole set
 describes the library.
 

@@ -8,7 +8,7 @@ The three machine properties this library refuses to assume.
 embed_word   embed_iword
 ```
 
-They are separate on purpose. A word is what the scanner loads; an index is what addresses a
+They are separate by design. A word is what the scanner loads; an index is what addresses a
 region. On a 64-bit host they are 64 and 32 bits, and code that conflates them works there and
 breaks on the first machine where they differ. `idx16` is the environment that exists to reach that
 case.
@@ -21,7 +21,7 @@ wrong, naming the pairing.
 ## Enums must keep their declared width
 
 An enum that silently becomes an `int` moves every field after it in every struct containing one,
-and this library addresses borrows by offset, so every offset computed from such a struct is then
+and this library addresses borrows by offset. Every offset computed from such a struct is then
 wrong.
 
 So every enum a struct holds is declared through `EMBED_ENUM_BYTE`, which gives it one byte on every
@@ -51,7 +51,7 @@ Merging them is a miscompile the compiler cannot report. An aligned load emitted
 is not aligned is a fault on some machines and a silently wrong value on others; a load without the
 may-alias marking lets the optimizer reorder it against a store it genuinely conflicts with.
 
-This is also why `tools/dev_env/names.tsv` keeps three infixes for one module rather than collapsing
+This is also why `tools/dev_env/names.tsv` keeps three infixes for one module and does not collapse
 them onto the stem: collapsing `rawmemcpy`'s three onto one merged seven symbol pairs, including the
 aligned and unaligned load.
 
@@ -73,7 +73,7 @@ machine does".
 ## Alignment of an allocation
 
 ```c
-uint8_t *p = prison.work.persistent_buf_alloc(256, NULL);
+uint8_t *p = prison.work.persistent_buf_alloc(256, &reader);
 ```
 
 An allocation does not name an alignment, because there is only one. Every cell comes back aligned to
@@ -82,18 +82,18 @@ number. A build at another width gets the alignment that width needs.
 
 `locus_carcerum.h` asserts that `MMGR_CARCER_ALIGN` is a power of two, since an offset rounds by
 masking and masking lands on a multiple only for a power of two. `mmgr.h` asserts the same of
-`MMGR_ALIGN_BYTES`, which is the alignment a pool declaration puts on its storage. Both fail the
-build, not a test run.
+`MMGR_ALIGN_BYTES`, the alignment a pool declaration puts on its storage. Both stop the build.
 
 The width costs bytes twice over. A request rounds up to a whole word before it is carved, and every
-cell carries a header of two `size_t` ahead of its payload, itself rounded to the same alignment. On
-a 64-bit build that is 16 bytes of header per cell; on a 16-bit build it is 4. A cellblock full of
-small cells pays that overhead per cell, which is what makes the width worth thinking about in a 4 KB
-pool.
+cell carries words beside its payload, each rounded to the same alignment: a persistent cell a word
+ahead and a word behind, a temporary cell those two and a third word behind that holds the end of its
+lifetime. On a 64-bit build that is 16 bytes per persistent cell and 24 per temporary cell; on a
+16-bit build it is 4 and 6. A cellblock full of small cells pays that per cell, and in a 4 KB pool the
+width is worth thinking about for that reason.
 
 ## What to do with all this
 
-Build all five environments, which is what the default build already does:
+Build all five environments. The default build already does:
 
 ```sh
 cmake -S . -B build -DMMGR_BUILD_TESTS=ON && cmake --build build && ctest --test-dir build
