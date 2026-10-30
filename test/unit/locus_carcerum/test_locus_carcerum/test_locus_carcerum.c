@@ -201,7 +201,7 @@ void test_both_tiers_hand_out_aligned_addresses(void)
         setUp();
 
         void *const p = ram.a.persistent_buf_alloc(n, &cells);
-        void *const q = ram.a.temporary_buf_alloc(n, &cells, 1000u);
+        void *const q = ram.a.temporary_buf_alloc(n, &cells);
 
         TEST_ASSERT_NOT_NULL(p);
         TEST_ASSERT_NOT_NULL(q);
@@ -221,8 +221,8 @@ void test_the_persistent_tier_hands_out_the_bottom_and_walks_up(void)
 
 void test_the_temporary_tier_hands_out_the_top_and_walks_down(void)
 {
-    uint8_t *p = (uint8_t *)ram.a.temporary_buf_alloc(64u, &cells, 1000u);
-    uint8_t *q = (uint8_t *)ram.a.temporary_buf_alloc(64u, &cells, 1000u);
+    uint8_t *p = (uint8_t *)ram.a.temporary_buf_alloc(64u, &cells);
+    uint8_t *q = (uint8_t *)ram.a.temporary_buf_alloc(64u, &cells);
 
     TEST_ASSERT_TRUE_MESSAGE(q < p, "the next cell sits below the first");
     TEST_ASSERT_TRUE(ram.a.who_owns_buf(p));
@@ -233,7 +233,7 @@ void test_the_two_tiers_allocate_from_the_same_gap(void)
     const size_t room = ram.a.buf_available();
 
     (void)ram.a.persistent_buf_alloc(64u, &cells);
-    (void)ram.a.temporary_buf_alloc(64u, &cells, 1000u);
+    (void)ram.a.temporary_buf_alloc(64u, &cells);
 
     TEST_ASSERT_TRUE_MESSAGE(ram.a.buf_available() < room, "both tiers allocate from the same gap");
 }
@@ -241,7 +241,7 @@ void test_the_two_tiers_allocate_from_the_same_gap(void)
 void test_both_tiers_fail_closed(void)
 {
     TEST_ASSERT_NULL(ram.a.persistent_buf_alloc(A_BYTES * 4u, &cells));
-    TEST_ASSERT_NULL(ram.a.temporary_buf_alloc(A_BYTES * 4u, &cells, 1000u));
+    TEST_ASSERT_NULL(ram.a.temporary_buf_alloc(A_BYTES * 4u, &cells));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram.a.buf_available(),
                                      "a refused request must not have moved a boundary");
 }
@@ -381,8 +381,8 @@ void test_a_mark_releases_everything_taken_after_it(void)
 {
     const size_t before = ram.a.temporary_buf_mark();
 
-    (void)ram.a.temporary_buf_alloc(64u, &cells, 1000u);
-    (void)ram.a.temporary_buf_alloc(128u, &cells, 1000u);
+    (void)ram.a.temporary_buf_alloc(64u, &cells);
+    (void)ram.a.temporary_buf_alloc(128u, &cells);
     TEST_ASSERT_TRUE(mmgr_cellblock_temporary_top(&ram_a_ctx) < before);
 
     ram.a.temporary_buf_release(before);
@@ -393,11 +393,11 @@ void test_marks_nest_because_the_caller_holds_them(void)
 {
     const size_t outer = ram.a.temporary_buf_mark();
 
-    (void)ram.a.temporary_buf_alloc(64u, &cells, 1000u);
+    (void)ram.a.temporary_buf_alloc(64u, &cells);
 
     const size_t inner = ram.a.temporary_buf_mark();
 
-    (void)ram.a.temporary_buf_alloc(32u, &cells, 1000u);
+    (void)ram.a.temporary_buf_alloc(32u, &cells);
 
     ram.a.temporary_buf_release(inner);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(inner, mmgr_cellblock_temporary_top(&ram_a_ctx), "the inner savepoint comes back");
@@ -408,7 +408,7 @@ void test_marks_nest_because_the_caller_holds_them(void)
 
 void test_reset_releases_the_whole_temporary_tier(void)
 {
-    (void)ram.a.temporary_buf_alloc(128u, &cells, 1000u);
+    (void)ram.a.temporary_buf_alloc(128u, &cells);
     ram.a.temporary_buf_reset();
 
     TEST_ASSERT_EQUAL_size_t(ram_a_ctx.size, mmgr_cellblock_temporary_top(&ram_a_ctx));
@@ -501,7 +501,7 @@ void test_a_persistent_cell_with_another_above_it_does_not_grow(void)
 
 void test_the_top_temporary_cell_grows_by_moving_down(void)
 {
-    uint8_t *const cell = ram.b.temporary_buf_alloc(32u, &grower, 1000u);
+    uint8_t *const cell = ram.b.temporary_buf_alloc(32u, &grower);
     const size_t top_before = mmgr_cellblock_temporary_top(&ram_b_ctx);
 
     TEST_ASSERT_NOT_NULL(cell);
@@ -531,8 +531,8 @@ void test_the_top_temporary_cell_grows_by_moving_down(void)
 
 void test_a_temporary_cell_below_the_top_does_not_grow(void)
 {
-    void *const first = ram.a.temporary_buf_alloc(32u, &cells, 1000u);
-    void *const second = ram.a.temporary_buf_alloc(32u, &cells, 1000u);
+    void *const first = ram.a.temporary_buf_alloc(32u, &cells);
+    void *const second = ram.a.temporary_buf_alloc(32u, &cells);
     const size_t top_before = mmgr_cellblock_temporary_top(&ram_a_ctx);
 
     TEST_ASSERT_NOT_NULL(second);

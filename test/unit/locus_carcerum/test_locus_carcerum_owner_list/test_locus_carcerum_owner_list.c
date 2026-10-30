@@ -50,7 +50,7 @@ void test_no_owner_is_registered_before_the_first_registers(void)
 void test_an_owner_not_registered_takes_nothing(void)
 {
     TEST_ASSERT_NULL(roll.listed.persistent_buf_alloc(16u, &writer));
-    TEST_ASSERT_NULL(roll.listed.temporary_buf_alloc(16u, &writer, 10u));
+    TEST_ASSERT_NULL(roll.listed.temporary_buf_alloc(16u, &writer));
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&writer.in_use));
     TEST_ASSERT_EQUAL_size_t(ROLL_BYTES, mmgr_buf_available(&roll_listed_ctx));
 }

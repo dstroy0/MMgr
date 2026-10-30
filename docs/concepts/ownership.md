@@ -28,7 +28,7 @@ cell dies when that cell is released even though the span was never told.
 
 ```c
 const size_t mark = prison.work.temporary_buf_mark();
-void *const cell = prison.work.temporary_buf_alloc(256u, &reader, 50u);
+void *const cell = prison.work.temporary_buf_alloc(256u, &reader);
 
 /* ... use cell ... */
 
@@ -96,7 +96,7 @@ void *const cell = prison.work.persistent_buf_alloc(256u, &reader);
 prison.work.persistent_buf_release(cell, &reader);
 
 const size_t mark = prison.work.temporary_buf_mark();
-void *const scratch = prison.work.temporary_buf_alloc(256u, &reader, 50u);
+void *const scratch = prison.work.temporary_buf_alloc(256u, &reader);
 /* ... */
 prison.work.temporary_buf_release(mark);
 ```
@@ -108,21 +108,15 @@ second owner of a name already registered, and a queue holding `MMGR_CARCER_OWNE
 naming an owner that is not registered is refused as a take the gap cannot meet is.
 `mmgr_owner_count` and `mmgr_owner_at` read the queue in the order the owners registered.
 
-A persistent cell has no lifetime: it stands until its release. A temporary cell lives as long as its
-take says, in milliseconds on the same clock, from 1 up to 2^31 - 1, and its holder gives it back
-within that, by a rewind to a mark or by a single release. The end of a lifetime is a backstop: every
-take gives back the cells at the temporary top whose lifetimes have ended, as their holders' release
-would, and calls `mmgr_carcer_hw_expired` with the owner, the bytes and how long past its lifetime the
-cell stood, for a port to log. A cell below one still in its lifetime waits for it. A persistent take
-the gap cannot meet runs the backstop once and tries again.
+A persistent cell stands until its release. A temporary cell stands until its holder gives it back, by
+a rewind to a mark or by a single release.
 
-`mmgr_carcer_hw_clock_ms`, `mmgr_carcer_hw_expired` and `mmgr_carcer_hw_misnamed` are weak. The
-default clock answers 0 every time, and no lifetime ends; the default reports do nothing. A port
-defines all three names.
+`mmgr_carcer_hw_clock_ms` and `mmgr_carcer_hw_misnamed` are weak. The default clock answers 0 every
+time; the default report does nothing. A port defines both names.
 
 The take adds the cell's payload, read off its header, to `reader.in_use` and raises `reader.hw` to
 it; the release takes the same bytes off. Every cell keeps its owner in the word behind its payload.
-A release, a growth, a rewind and the backstop each count the cell's bytes off that owner. A release
+A release, a growth and a rewind each count the cell's bytes off that owner. A release
 or a growth must name it: one naming another owner is refused, changes nothing, the payload of a
 maximum security cell included, and calls `mmgr_carcer_hw_misnamed` with the owner named, the owner
 the cell counts to and its bytes. The owner is the caller's storage: the cellblock still does not ask
@@ -130,9 +124,6 @@ which context reached it.
 
 @warning An owner must outlive every cell counted to it: the queue holds its address, and a release or
 a rewind writes the count through the pointer the cell kept.
-
-@warning A temporary cell past its lifetime is not its holder's. The backstop gives it back and the
-cellblock may hand its bytes to another take.
 
 ## Concurrency
 

@@ -91,7 +91,7 @@ static void proto_fresh(void)
             const size_t m_ = ram.general.temporary_buf_mark();                                                        \
             for (unsigned k_ = 0; k_ < CHAIN; k_++)                                                                    \
             {                                                                                                          \
-                BENCH_KEEP(ram.general.temporary_buf_alloc((N), &cells, 1000u) != NULL);                               \
+                BENCH_KEEP(ram.general.temporary_buf_alloc((N), &cells)        != NULL);                               \
             }                                                                                                          \
             ram.general.temporary_buf_release(m_);                                                                     \
         });                                                                                                            \

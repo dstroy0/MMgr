@@ -938,7 +938,7 @@ static uintptr_t cellblock_temporary_mark_run(void)
 
     for (unsigned index = 0; index < 8u; index++)
     {
-        seen |= (uintptr_t)ram.general.temporary_buf_alloc(g_take, &cells, 1000u);
+        seen |= (uintptr_t)ram.general.temporary_buf_alloc(g_take, &cells);
     }
     ram.general.temporary_buf_release(mark);
     return seen;

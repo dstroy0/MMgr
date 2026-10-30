@@ -17,33 +17,11 @@ static CellOwner writer = MMGR_CELL_OWNER("writer");
 static CellOwner scratch = MMGR_CELL_OWNER("scratch");
 static CellOwner keys = MMGR_CELL_OWNER("keys");
 
-// The clock the library reads, which each case sets
-static uint32_t s_now_ms;
-
-// What the backstop told: how many cells, and the last one's owner, bytes and time past its lifetime
-static size_t s_expired_count;
-static const CellOwner *s_expired_owner;
-static size_t s_expired_bytes;
-static uint32_t s_expired_overdue_ms;
-
 // What a give or growth naming the wrong owner told: how many, and the last one's two owners and bytes
 static size_t s_misnamed_count;
 static const CellOwner *s_misnamed_named;
 static const CellOwner *s_misnamed_cell_owner;
 static size_t s_misnamed_bytes;
-
-uint32_t mmgr_carcer_hw_clock_ms(void)
-{
-    return s_now_ms;
-}
-
-void mmgr_carcer_hw_expired(const CellOwner *owner, size_t bytes, uint32_t overdue_ms)
-{
-    s_expired_count += 1u;
-    s_expired_owner = owner;
-    s_expired_bytes = bytes;
-    s_expired_overdue_ms = overdue_ms;
-}
 
 void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes)
 {
@@ -81,11 +59,6 @@ void setUp(void)
     owner_ready(&writer);
     owner_ready(&scratch);
     owner_ready(&keys);
-    s_now_ms = 0u;
-    s_expired_count = 0u;
-    s_expired_owner = NULL;
-    s_expired_bytes = 0u;
-    s_expired_overdue_ms = 0u;
     s_misnamed_count = 0u;
     s_misnamed_named = NULL;
     s_misnamed_cell_owner = NULL;
@@ -170,7 +143,7 @@ void test_a_refused_take_counts_nothing(void)
 void test_a_take_naming_no_owner_is_refused(void)
 {
     TEST_ASSERT_NULL(counted.plain.persistent_buf_alloc(32u, NULL));
-    TEST_ASSERT_NULL(counted.plain.temporary_buf_alloc(32u, NULL, 100u));
+    TEST_ASSERT_NULL(counted.plain.temporary_buf_alloc(32u, NULL));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(PLAIN_BYTES, mmgr_buf_available(&counted_plain_ctx),
                                      "a refused take moves no boundary");
 }
@@ -180,7 +153,7 @@ void test_a_take_naming_an_owner_not_registered_is_refused(void)
     CellOwner stranger = MMGR_CELL_OWNER("stranger");
 
     TEST_ASSERT_NULL(counted.plain.persistent_buf_alloc(32u, &stranger));
-    TEST_ASSERT_NULL(counted.plain.temporary_buf_alloc(32u, &stranger, 100u));
+    TEST_ASSERT_NULL(counted.plain.temporary_buf_alloc(32u, &stranger));
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&stranger));
     TEST_ASSERT_EQUAL_size_t(PLAIN_BYTES, mmgr_buf_available(&counted_plain_ctx));
 }
@@ -244,7 +217,7 @@ void test_one_owner_counts_across_cellblocks(void)
 
 void test_a_temporary_take_counts_the_cell_to_its_owner(void)
 {
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(33u, &scratch, 100u));
+    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(33u, &scratch));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(mmgr_align_up_buf(33u), in_use_of(&scratch),
                                      "the cell's payload is what is counted");
     TEST_ASSERT_EQUAL_size_t(in_use_of(&scratch), hw_of(&scratch));
@@ -254,12 +227,12 @@ void test_a_temporary_take_counts_the_cell_to_its_owner(void)
 
 void test_a_rewind_counts_the_dropped_cells_off_their_owners(void)
 {
-    void *const kept = counted.plain.temporary_buf_alloc(16u, &reader, 100u);
+    void *const kept = counted.plain.temporary_buf_alloc(16u, &reader);
     const size_t mark = counted.plain.temporary_buf_mark();
 
     TEST_ASSERT_NOT_NULL(kept);
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(24u, &reader, 100u));
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(40u, &writer, 100u));
+    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(24u, &reader));
+    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(40u, &writer));
     TEST_ASSERT_EQUAL_size_t(40u, in_use_of(&reader));
     TEST_ASSERT_EQUAL_size_t(40u, in_use_of(&writer));
     counted.plain.temporary_buf_release(mark);
@@ -268,13 +241,11 @@ void test_a_rewind_counts_the_dropped_cells_off_their_owners(void)
     counted.plain.temporary_buf_reset();
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&reader));
     TEST_ASSERT_EQUAL_size_t(40u, hw_of(&reader));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, s_expired_count,
-                                     "a rewind is the holder's give, and the backstop tells nothing");
 }
 
 void test_a_temporary_cell_given_back_alone_counts_off_its_owner(void)
 {
-    void *const prisoner = counted.plain.temporary_buf_alloc(32u, &scratch, 100u);
+    void *const prisoner = counted.plain.temporary_buf_alloc(32u, &scratch);
 
     counted.plain.persistent_buf_release(prisoner, &scratch);
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&scratch));
@@ -286,7 +257,7 @@ void test_a_temporary_cell_given_back_alone_counts_off_its_owner(void)
 void test_a_give_naming_another_owner_is_refused_and_told(void)
 {
     void *const kept = counted.plain.persistent_buf_alloc(32u, &writer);
-    void *const scratched = counted.plain.temporary_buf_alloc(16u, &scratch, 100u);
+    void *const scratched = counted.plain.temporary_buf_alloc(16u, &scratch);
     const size_t available = mmgr_buf_available(&counted_plain_ctx);
 
     counted.plain.persistent_buf_release(kept, &reader);
@@ -333,7 +304,7 @@ void test_a_growth_naming_another_owner_is_refused_and_told(void)
 void test_a_cell_answers_the_owner_it_counts_to(void)
 {
     void *const kept = counted.plain.persistent_buf_alloc(32u, &writer);
-    void *const scratched = counted.wiped.temporary_buf_alloc(16u, &scratch, 100u);
+    void *const scratched = counted.wiped.temporary_buf_alloc(16u, &scratch);
 
     TEST_ASSERT_EQUAL_PTR(&writer, mmgr_owner_of_buf(&counted_plain_ctx, kept));
     TEST_ASSERT_EQUAL_PTR(&scratch, mmgr_owner_of_buf(&counted_wiped_ctx, scratched));
@@ -361,7 +332,7 @@ void test_a_cell_given_back_twice_counts_off_once_and_tells_nothing(void)
 void test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner(void)
 {
     const size_t mark = counted.wiped.temporary_buf_mark();
-    uint8_t *const prisoner = (uint8_t *)counted.wiped.temporary_buf_alloc(24u, &keys, 100u);
+    uint8_t *const prisoner = (uint8_t *)counted.wiped.temporary_buf_alloc(24u, &keys);
 
     TEST_ASSERT_NOT_NULL(prisoner);
     prisoner[0] = 0xA5u;
@@ -369,110 +340,4 @@ void test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner(voi
     counted.wiped.temporary_buf_release(mark);
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&keys));
     TEST_ASSERT_EQUAL_UINT8(0u, prisoner[0]);
-}
-
-void test_a_lifetime_outside_its_range_is_refused(void)
-{
-    TEST_ASSERT_NULL_MESSAGE(counted.plain.temporary_buf_alloc(16u, &scratch, 0u),
-                             "a cell must live at least a millisecond");
-    TEST_ASSERT_NULL_MESSAGE(counted.plain.temporary_buf_alloc(16u, &scratch, 0x80000000u),
-                             "a lifetime the wrapping clock cannot tell from the past is refused");
-    TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&scratch));
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(16u, &scratch, 0x7FFFFFFFu));
-    counted.plain.temporary_buf_reset();
-}
-
-void test_a_cell_in_its_lifetime_is_left_to_its_holder(void)
-{
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(16u, &scratch, 10u));
-    s_now_ms = 9u;
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(16u, &writer, 10u));
-    TEST_ASSERT_EQUAL_size_t(16u, in_use_of(&scratch));
-    TEST_ASSERT_EQUAL_size_t(0u, s_expired_count);
-    counted.plain.temporary_buf_reset();
-}
-
-void test_a_cell_past_its_lifetime_is_given_back_by_the_next_take_and_told(void)
-{
-    uint8_t *const lapsed = (uint8_t *)counted.plain.temporary_buf_alloc(16u, &scratch, 10u);
-
-    TEST_ASSERT_NOT_NULL(lapsed);
-    s_now_ms = 15u;
-    uint8_t *const next = (uint8_t *)counted.plain.temporary_buf_alloc(16u, &writer, 10u);
-
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, in_use_of(&scratch), "the lapsed cell's bytes come off its owner");
-    TEST_ASSERT_EQUAL_size_t(16u, in_use_of(&writer));
-    TEST_ASSERT_EQUAL_size_t(1u, s_expired_count);
-    TEST_ASSERT_EQUAL_PTR(&scratch, s_expired_owner);
-    TEST_ASSERT_EQUAL_size_t(16u, s_expired_bytes);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(5u, s_expired_overdue_ms, "told how long past its lifetime the cell stood");
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(lapsed, next, "the take lands where the lapsed cell stood");
-    counted.plain.temporary_buf_reset();
-}
-
-void test_every_lapsed_cell_at_the_top_is_given_back_in_turn(void)
-{
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(16u, &scratch, 10u));
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(24u, &writer, 20u));
-    s_now_ms = 30u;
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(8u, &reader, 10u));
-    TEST_ASSERT_EQUAL_size_t(2u, s_expired_count);
-    TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&scratch));
-    TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&writer));
-    TEST_ASSERT_EQUAL_size_t(8u, in_use_of(&reader));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(PLAIN_BYTES - (3u * sizeof(embed_atomic_usize)) - 8u,
-                                     mmgr_cellblock_temporary_top(&counted_plain_ctx),
-                                     "the tier holds the new cell alone");
-    counted.plain.temporary_buf_reset();
-}
-
-void test_a_lapsed_cell_under_one_in_its_lifetime_waits(void)
-{
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(16u, &scratch, 10u));
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(16u, &writer, 100u));
-    s_now_ms = 50u;
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(16u, &reader, 100u));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, s_expired_count,
-                                     "the top reads a cell in its lifetime, and the walk ends there");
-    TEST_ASSERT_EQUAL_size_t(16u, in_use_of(&scratch));
-    counted.plain.temporary_buf_reset();
-}
-
-void test_a_lifetime_holds_across_the_clock_wrapping(void)
-{
-    s_now_ms = 0xFFFFFFF0u;
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(16u, &scratch, 0x20u));
-    s_now_ms = 0x0Fu;
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(8u, &reader, 0x20u));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, s_expired_count, "one millisecond short of the end, past the wrap");
-    counted.plain.temporary_buf_reset();
-    s_now_ms = 0xFFFFFFF0u;
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(16u, &scratch, 0x20u));
-    s_now_ms = 0x11u;
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(8u, &reader, 0x20u));
-    TEST_ASSERT_EQUAL_size_t(1u, s_expired_count);
-    TEST_ASSERT_EQUAL_UINT32(1u, s_expired_overdue_ms);
-    counted.plain.temporary_buf_reset();
-}
-
-void test_a_persistent_take_the_gap_cannot_meet_gives_lapsed_cells_back_and_tries_again(void)
-{
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(PLAIN_BYTES / 2u, &scratch, 10u));
-    TEST_ASSERT_NULL(counted.plain.persistent_buf_alloc(PLAIN_BYTES * 3u / 4u, &reader));
-    TEST_ASSERT_EQUAL_size_t(0u, s_expired_count);
-    s_now_ms = 10u;
-    TEST_ASSERT_NOT_NULL(counted.plain.persistent_buf_alloc(PLAIN_BYTES * 3u / 4u, &reader));
-    TEST_ASSERT_EQUAL_size_t(1u, s_expired_count);
-    TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&scratch));
-}
-
-void test_a_maximum_security_cell_past_its_lifetime_is_given_back_too(void)
-{
-    TEST_ASSERT_NOT_NULL(counted.wiped.temporary_buf_alloc(24u, &keys, 5u));
-    s_now_ms = 5u;
-    TEST_ASSERT_NOT_NULL(counted.wiped.temporary_buf_alloc(8u, &reader, 5u));
-    TEST_ASSERT_EQUAL_size_t(1u, s_expired_count);
-    TEST_ASSERT_EQUAL_PTR(&keys, s_expired_owner);
-    TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&keys));
-    counted.wiped.temporary_buf_reset();
 }

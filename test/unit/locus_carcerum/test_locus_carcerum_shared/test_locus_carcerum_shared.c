@@ -144,7 +144,7 @@ static void contend_temporary_with(CellOwner *owner, embed_bool giving)
         for (size_t at = 0u; at < CONTEND_HELD; at++)
         {
             wanted[at] = 8u + (8u * ((round + at + index) % 6u));
-            held[at] = (uint8_t *)crowded.shared.temporary_buf_alloc(wanted[at], owner, 1000u);
+            held[at] = (uint8_t *)crowded.shared.temporary_buf_alloc(wanted[at], owner);
             refused += (held[at] == NULL) ? 1u : 0u;
             for (size_t byte = 0u; (held[at] != NULL) && (byte < wanted[at]); byte++)
             {
@@ -204,12 +204,12 @@ void test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave(void)
     crowded.shared.persistent_buf_release(prisoner, &s_crowd);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
     const size_t mark = crowded.shared.temporary_buf_mark();
-    void *const scratch = crowded.shared.temporary_buf_alloc(16u, &s_scratch, 1000u);
+    void *const scratch = crowded.shared.temporary_buf_alloc(16u, &s_scratch);
     TEST_ASSERT_NOT_NULL(scratch);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
     crowded.shared.temporary_buf_release(mark);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
-    (void)crowded.shared.temporary_buf_alloc(16u, &s_scratch, 1000u);
+    (void)crowded.shared.temporary_buf_alloc(16u, &s_scratch);
     crowded.shared.temporary_buf_reset();
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, tiers_held(), "nothing held, nothing in either tier");
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());

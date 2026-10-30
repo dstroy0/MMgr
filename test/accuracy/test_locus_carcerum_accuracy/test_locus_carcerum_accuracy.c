@@ -381,7 +381,7 @@ void test_the_two_tiers_never_hand_out_the_same_byte(void)
     while (count < (MMGR_ACCURACY_CARCER_CELLS - 1u))
     {
         uint8_t *const from_bottom = (uint8_t *)accuracy_meeting_site.meeting_cells.persistent_buf_alloc(96u, &cells);
-        uint8_t *const from_top = (uint8_t *)accuracy_meeting_site.meeting_cells.temporary_buf_alloc(96u, &cells, 1000u);
+        uint8_t *const from_top = (uint8_t *)accuracy_meeting_site.meeting_cells.temporary_buf_alloc(96u, &cells);
         char label[96];
 
         if ((from_bottom == NULL) && (from_top == NULL))
@@ -472,7 +472,7 @@ void test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark(void)
 
     for (unsigned index = 0u; index < 3u; index++)
     {
-        live[index].at = (uint8_t *)accuracy_site.secure_cells.temporary_buf_alloc(size, &cells, 1000u);
+        live[index].at = (uint8_t *)accuracy_site.secure_cells.temporary_buf_alloc(size, &cells);
         live[index].size = size;
         // Explicit cast narrows the loop counter to the byte the pattern is tagged with
         live[index].tag = (uint8_t)(index + 20u);
@@ -519,7 +519,7 @@ void test_a_rewind_to_a_mark_gives_back_every_byte_taken_since_it(void)
 
     for (unsigned index = 0u; index < 8u; index++)
     {
-        TEST_ASSERT_NOT_NULL_MESSAGE(accuracy_site.plain_cells.temporary_buf_alloc(24u, &cells, 1000u),
+        TEST_ASSERT_NOT_NULL_MESSAGE(accuracy_site.plain_cells.temporary_buf_alloc(24u, &cells),
                                      "the cellblock refused a temporary request");
     }
     TEST_ASSERT_TRUE_MESSAGE(accuracy_site.plain_cells.buf_available() < before, "eight allocations took no bytes");

@@ -39,7 +39,7 @@ static CellOwner reader = MMGR_CELL_OWNER("reader");
 mmgr_owner_register(&reader);
 
 uint8_t *config = prison.work.persistent_buf_alloc(128, &reader);
-uint8_t *working = prison.work.temporary_buf_alloc(512, &reader, 50u);
+uint8_t *working = prison.work.temporary_buf_alloc(512, &reader);
 ```
 
 Every take names the owner its bytes are counted to, and an owner registers once before its first
@@ -48,10 +48,9 @@ through `prison.work.persistent_buf_release`; the temporary tier takes a whole r
 `prison.work.temporary_buf_release` or `prison.work.temporary_buf_reset`.
 
 - **persistent** is for what lives as long as the cellblock: configuration, tables, buffers you fill
-  once. A persistent cell has no lifetime.
-- **temporary** is the working space for one operation, and its take names how many milliseconds the
-  cell is yours. Give it back within that; a cell past its lifetime is given back for you and the
-  port is told. See @ref concept_ownership.
+  once.
+- **temporary** is the working space for one operation. Give the cell back when the operation ends.
+  See @ref concept_ownership.
 
 The two tiers grow toward each other out of the same gap, and a request the gap cannot meet returns
 `NULL`: "Fails closed. A request the gap cannot meet moves no boundary at all"
@@ -72,8 +71,8 @@ Interim is a stack. You do not free a pointer, you rewind to a mark.
 
 ```c
 size_t m = prison.work.temporary_buf_mark();
-uint8_t *a = prison.work.temporary_buf_alloc(256, &reader, 50u);
-uint8_t *b = prison.work.temporary_buf_alloc(256, &reader, 50u);
+uint8_t *a = prison.work.temporary_buf_alloc(256, &reader);
+uint8_t *b = prison.work.temporary_buf_alloc(256, &reader);
 
 prison.work.temporary_buf_release(m);
 ```
@@ -122,7 +121,7 @@ static embed_bool handle(const uint8_t *msg, size_t len)
 {
     const size_t mark = prison.work.temporary_buf_mark();
 
-    uint8_t *const buf = prison.work.temporary_buf_alloc(len, &reader, 50u);
+    uint8_t *const buf = prison.work.temporary_buf_alloc(len, &reader);
     if (buf == NULL) {
         return EMBED_FALSE;
     }

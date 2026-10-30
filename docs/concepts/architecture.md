@@ -63,7 +63,7 @@ Interim is a stack.
 
 ```c
 const size_t mark = prison.work.temporary_buf_mark();
-uint8_t *buf = prison.work.temporary_buf_alloc(512, &reader, 50u);
+uint8_t *buf = prison.work.temporary_buf_alloc(512, &reader);
 /* ... use it ... */
 prison.work.temporary_buf_reset();
 ```

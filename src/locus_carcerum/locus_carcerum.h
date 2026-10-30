@@ -100,7 +100,7 @@ EMBED_STATIC_ASSERT((MMGR_CARCER_ALIGN & (MMGR_CARCER_ALIGN - 1u)) == 0u,
  * @note The bytes counted are the cell's own: the request rounded to a whole word, counted on the take
  *       and read off the cell's word on the give, and a matched pair returns in_use to where it stood.
  * @note Every cell carries its owner in the word behind its payload, and comes off that owner whether
- *       a give, a rewind or the end of its lifetime drops it. A give or a growth naming another owner
+ *       a give or a rewind drops it. A give or a growth naming another owner
  *       is refused and told through mmgr_carcer_hw_misnamed.
  * @warning An owner must outlive every cell counted to it: the queue holds its address, and a give or
  *          a rewind writes the owner through the address a cell carries.
@@ -150,29 +150,13 @@ size_t mmgr_owner_count(void);
 CellOwner *mmgr_owner_at(size_t at);
 
 /**
- * @brief The library's clock, in milliseconds, which an owner's key and a temporary cell's lifetime
- *        are read on.
+ * @brief The library's clock, in milliseconds, which an owner's key is read on.
  *
  * @return The milliseconds since a start the port chooses, wrapping at 2^32.
  * @note Weak, and the default answers 0 every time: a build that defines none has every owner
- *       registered at 0 and no temporary cell whose lifetime ends. A port defines this name to replace
- *       it.
- * @note Read as a 32-bit count that wraps. A lifetime is measured as the difference of two readings, and
- *       holds across the wrap while it is below 2^31 milliseconds.
+ *       registered at 0. A port defines this name to replace it.
  */
 uint32_t mmgr_carcer_hw_clock_ms(void);
-
-/**
- * @brief Told of each temporary cell given back because its lifetime ended before its holder gave it.
- *
- * @param[in] owner      The owner the cell was counted to [BORROWS].
- * @param[in] bytes      The cell's payload bytes, taken off owner.
- * @param[in] overdue_ms Milliseconds the cell stood past its lifetime when it was given back.
- * @note The end of a lifetime is a backstop: a holder gives its temporary cells back itself, by a give
- *       or a rewind. Every time the backstop gives one back it calls this, for a port to log.
- * @note Weak, and the default does nothing. A port defines this name to replace it.
- */
-void mmgr_carcer_hw_expired(const CellOwner *owner, size_t bytes, uint32_t overdue_ms);
 
 /**
  * @brief Told of each give or growth that names an owner other than the one the cell counts to.
@@ -342,8 +326,8 @@ typedef struct
         CellOwner *owner); /**< Takes size bytes from the bottom for owner, unzeroed [RETURNS OWNERSHIP]. */
     void (*persistent_buf_release)(
         void *prisoner, CellOwner *owner);      /**< Releases owner's prisoner, cell left as it is [TAKES OWNERSHIP]. */
-    void *(*temporary_buf_alloc)(size_t size, CellOwner *owner,
-                                 uint32_t lifetime_ms); /**< Takes size bytes from the top for owner, for lifetime_ms, unzeroed [RETURNS OWNERSHIP]. */
+    void *(*temporary_buf_alloc)(
+        size_t size, CellOwner *owner); /**< Takes size bytes from the top for owner, unzeroed [RETURNS OWNERSHIP]. */
     size_t (*temporary_buf_mark)(void);         /**< The current top, for temporary_buf_release. */
     void (*temporary_buf_release)(size_t mark); /**< Restores the top a mark reported, zeroing nothing. */
     void (*temporary_buf_reset)(void);          /**< Releases the whole temporary tier at once. */
@@ -372,8 +356,8 @@ typedef struct
         size_t size, CellOwner *owner); /**< Takes size bytes from the bottom for owner [RETURNS OWNERSHIP]. */
     void (*persistent_buf_release)(void *prisoner,
                                    CellOwner *owner); /**< Zeroes owner's cell, then releases it [TAKES OWNERSHIP]. */
-    void *(*temporary_buf_alloc)(size_t size, CellOwner *owner,
-                                 uint32_t lifetime_ms); /**< Takes size bytes from the top for owner, for lifetime_ms [RETURNS OWNERSHIP]. */
+    void *(*temporary_buf_alloc)(
+        size_t size, CellOwner *owner); /**< Takes size bytes from the top for owner [RETURNS OWNERSHIP]. */
     size_t (*temporary_buf_mark)(void);               /**< The current top, for temporary_buf_release. */
     void (*temporary_buf_release)(size_t mark);       /**< Zeroes back to the mark, then restores the top. */
     void (*temporary_buf_reset)(void);                /**< Zeroes the whole temporary tier, then releases it. */
@@ -435,13 +419,13 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
         }                                                                                                              \
     }                                                                                                                  \
     MMGR_ALLOC_SIZE(1)                                                                                                 \
-    static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size, CellOwner *owner, uint32_t lifetime_ms)      \
+    static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size, CellOwner *owner)                            \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
-            return mmgr_temporary_max_security_buf_alloc(&prisonsite_##_##name_##_ctx, size, owner, lifetime_ms);      \
+            return mmgr_temporary_max_security_buf_alloc(&prisonsite_##_##name_##_ctx, size, owner)             ;      \
         }                                                                                                              \
-        return mmgr_temporary_buf_alloc(&prisonsite_##_##name_##_ctx, size, owner, lifetime_ms);                       \
+        return mmgr_temporary_buf_alloc(&prisonsite_##_##name_##_ctx, size, owner)             ;                       \
     }                                                                                                                  \
     static size_t prisonsite_##_##name_##_temporary_buf_mark(void)                                                     \
     {                                                                                                                  \
@@ -747,15 +731,12 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @return                  Start of the cell, or NULL when owner is NULL or not registered or the
  *                          cellblock cannot meet the take [RETURNS OWNERSHIP].
  * @note Reached through the cellblock's own guard, never called by name.
- * @note A persistent cell has no lifetime: it stands until the same cellblock's persistent_buf_release
- *       takes it.
+ * @note A persistent cell stands until the same cellblock's persistent_buf_release takes it.
  * @note A cell handed out adds its payload bytes, the request rounded to a word, to owner's in_use
  *       and raises owner's hw to it. A refused take counts nothing.
  * @note The take is one swap on the tiers word, which moves the persistent end up by the cell. No take
  *       steps through the tier for a cell given back below the end: such a cell waits, free, until the
  *       cells above it are given back, and the give at the end trims them all off together.
- * @note A take the gap cannot meet gives back the temporary cells at the top whose lifetimes have
- *       ended, as a temporary take does, and tries once more.
  * @warning The bytes are not zeroed, and a cell laid over bytes a prisoner occupied before still
  *          carries what that prisoner left. A cellblock declared MMGR_MAXIMUM_SECURITY zeroes, and it
  *          zeroes on release.
@@ -769,8 +750,7 @@ MMGR_ALLOC_SIZE(2) void *mmgr_persistent_buf_alloc(CarcerCellBlock *cellblock, s
  * @param[in]     size      Bytes wanted.
  * @param[in,out] owner     The registered owner the cell is counted to [BORROWS].
  * @return                  As mmgr_persistent_buf_alloc answers [RETURNS OWNERSHIP].
- * @note The take mmgr_persistent_buf_alloc makes, but for the backstop it runs where the gap cannot
- *       meet it: each temporary cell it gives back is zeroed first.
+ * @note The take mmgr_persistent_buf_alloc makes. A maximum security cellblock zeroes on release.
  */
 MMGR_ALLOC_SIZE(2)
 void *mmgr_persistent_max_security_buf_alloc(CarcerCellBlock *cellblock, size_t size, CellOwner *owner);
@@ -831,7 +811,6 @@ void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *
  *                          the gap cannot meet the growth. A NULL prisoner, a NULL owner, or an owner
  *                          other than the cell's, which is told through mmgr_carcer_hw_misnamed, returns
  *                          NULL [RETURNS OWNERSHIP].
- * @note A temporary cell keeps the lifetime its take gave it: the growth moves no end of it.
  * @note The newest cell of a tier is the cell its boundary stands against: the persistent end at the
  *       cell's end, the temporary top at the cell's word. The boundary moves by one swap on the tiers
  *       word, by the growth alone, and no other cell moves. A caller whose growth is refused takes a
@@ -863,49 +842,36 @@ void *mmgr_max_security_buf_grow(CarcerCellBlock *cellblock, void *prisoner, siz
  * @brief Takes size bytes from a cellblock's temporary tier.
  *
  * @param[in,out] cellblock Cellblock to take from [BORROWS].
- * @param[in]     size        Bytes wanted.
- * @param[in,out] owner       The registered owner the cell is counted to [BORROWS].
- * @param[in]     lifetime_ms Milliseconds the cell is the holder's, on mmgr_carcer_hw_clock_ms, from 1
- *                            up to 2^31 - 1.
- * @return                    Start of the cell, or NULL when owner is NULL or not registered, the
- *                            lifetime is out of its range, or the cellblock cannot meet the take
- *                            [RETURNS OWNERSHIP].
- * @note The caller gives the cell its lifetime, and gives the cell back itself within it, by mark
- *       through mmgr_temporary_buf_release or mmgr_temporary_buf_reset, or by a single give. The
- *       give or the rewind takes the bytes off owner. The cell carries owner in the word behind its
- *       payload and the end of its lifetime in its tail, the word behind that.
- * @note The end of a lifetime is a backstop. Every take first gives back the cells at the top whose
- *       lifetimes have ended, one after another while the top reads so, as their holders' give would,
- *       and calls mmgr_carcer_hw_expired for each. A cell below a cell still in its lifetime waits.
+ * @param[in]     size      Bytes wanted.
+ * @param[in,out] owner     The registered owner the cell is counted to [BORROWS].
+ * @return                  Start of the cell, or NULL when owner is NULL or not registered or the
+ *                          cellblock cannot meet the take [RETURNS OWNERSHIP].
+ * @note The caller gives the cell back itself, by mark through mmgr_temporary_buf_release or
+ *       mmgr_temporary_buf_reset, or by a single give. The give or the rewind takes the bytes off owner.
+ *       The cell carries owner in the word behind its payload.
  * @note The take is one swap on the tiers word, which moves the top down by the cell. A rewind landing
  *       between that swap and the cell's words drops the cell, and the take then answers NULL with
  *       nothing counted.
  * @note A single release through mmgr_persistent_buf_release works here too, but trims the top only
  *       when the freed cell sits at it. Anything freed below stays in the tier, free, until a rewind
- *       or the backstop reaches it from the top.
- * @warning A cell is not the holder's past its lifetime: the backstop gives it back and the cellblock
- *          may hand its bytes out again. A holder that reads or writes it after is reading or writing
- *          another holder's cell.
+ *       reaches it from the top.
  * @warning The bytes are not zeroed, and an allocation returns whatever the last prisoner left. A
  *          cellblock declared MMGR_MAXIMUM_SECURITY zeroes, and it zeroes on release.
  */
 MMGR_ALLOC_SIZE(2)
-void *mmgr_temporary_buf_alloc(CarcerCellBlock *cellblock, size_t size, CellOwner *owner, uint32_t lifetime_ms);
+void *mmgr_temporary_buf_alloc(CarcerCellBlock *cellblock, size_t size, CellOwner *owner);
 
 /**
  * @brief Takes size bytes from a maximum security cellblock's temporary tier.
  *
- * @param[in,out] cellblock   Cellblock to take from [BORROWS].
- * @param[in]     size        Bytes wanted.
- * @param[in,out] owner       The registered owner the cell is counted to [BORROWS].
- * @param[in]     lifetime_ms Milliseconds the cell is the holder's, from 1 up to 2^31 - 1.
- * @return                    As mmgr_temporary_buf_alloc answers [RETURNS OWNERSHIP].
- * @note The take mmgr_temporary_buf_alloc makes, but for the backstop: each cell past its lifetime is
- *       zeroed before it is given back, as a maximum security give zeroes it.
+ * @param[in,out] cellblock Cellblock to take from [BORROWS].
+ * @param[in]     size      Bytes wanted.
+ * @param[in,out] owner     The registered owner the cell is counted to [BORROWS].
+ * @return                  As mmgr_temporary_buf_alloc answers [RETURNS OWNERSHIP].
+ * @note The take mmgr_temporary_buf_alloc makes. A maximum security cellblock zeroes on release.
  */
 MMGR_ALLOC_SIZE(2)
-void *mmgr_temporary_max_security_buf_alloc(CarcerCellBlock *cellblock, size_t size, CellOwner *owner,
-                                            uint32_t lifetime_ms);
+void *mmgr_temporary_max_security_buf_alloc(CarcerCellBlock *cellblock, size_t size, CellOwner *owner);
 
 /**
  * @brief The temporary tier's current top, to hand back to mmgr_temporary_buf_release.
@@ -914,8 +880,9 @@ void *mmgr_temporary_max_security_buf_alloc(CarcerCellBlock *cellblock, size_t s
  * @return              The temporary top.
  * @note Good against this cellblock alone, and only until a restore to an older mark. The restore
  *       refuses a mark below the top as it stands and assigns any other.
- * @warning The value is a snapshot. An allocation from another context lowers the top after this has
- *          read it, and restoring the mark then releases that allocation's bytes as well.
+ * @warning Not thread safe across contexts sharing a cellblock. The value is a snapshot: an allocation from
+ *          another context lowers the top after this has read it, and restoring the mark then releases that
+ *          allocation's bytes as well. Contexts sharing a cellblock give their cells back singly.
  */
 size_t mmgr_temporary_buf_mark(const CarcerCellBlock *cellblock);
 
@@ -1090,13 +1057,13 @@ void mmgr_cellblock_emptied(CarcerCellBlock *cellblock);
         }                                                                                                              \
     }                                                                                                                  \
     MMGR_ALLOC_SIZE(1)                                                                                                 \
-    static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size, CellOwner *owner, uint32_t lifetime_ms)      \
+    static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size, CellOwner *owner)                            \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
-            return mmgr_temporary_max_security_buf_alloc(prisonsite_##_##name_##_ctx, size, owner, lifetime_ms);       \
+            return mmgr_temporary_max_security_buf_alloc(prisonsite_##_##name_##_ctx, size, owner)             ;       \
         }                                                                                                              \
-        return mmgr_temporary_buf_alloc(prisonsite_##_##name_##_ctx, size, owner, lifetime_ms);                        \
+        return mmgr_temporary_buf_alloc(prisonsite_##_##name_##_ctx, size, owner)             ;                        \
     }                                                                                                                  \
     static size_t prisonsite_##_##name_##_temporary_buf_mark(void)                                                     \
     {                                                                                                                  \
