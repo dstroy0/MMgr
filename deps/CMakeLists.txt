@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------------------------------
 # The widths, the machine word, the static assertion, the attribute wrappers, the dispatch-layout
 # assertions and the entry point macros are not MMgr's. They are the same boilerplate every library
-# here carries, so they are declared once in their own repository and this one names them as they
+# here carries. They are declared once in their own repository and this one names them as they
 # come. There is no alias layer: src/ writes EMBED_ directly.
 #
 # Pinned to an explicit SHA. The two repositories move together: when the widths change, the code
@@ -18,9 +18,9 @@ include(FetchContent)
 FetchContent_Declare(
   embedded_types
   GIT_REPOSITORY https://github.com/dstroy0/embedded_types.git
-  GIT_TAG b0aacdaafd986b8c5b23f127f312a02a5cfd13e6
+  GIT_TAG 5eb70f23ced837b7b23fbf1c8a614047feae08f0
   # GIT_SHALLOW with a commit hash needs the remote to serve a reachable SHA to `fetch --depth 1`.
-  # github.com/dstroy0/embedded_types does, measured against this SHA, so the depth stays.
+  # github.com/dstroy0/embedded_types does, measured against this SHA. The depth stays.
   GIT_SHALLOW TRUE
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/embedded_types")
 
