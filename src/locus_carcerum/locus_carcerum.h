@@ -316,7 +316,7 @@ EMBED_INLINE CellOwner *mmgr_cellblock_owner(const CarcerCellBlock *cellblock, s
 /**
  * @brief The minimum security guard over one cellblock: a released cell keeps whatever is in it.
  *
- * @note EMBED_TABLE_LAYOUT asserts the eight members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * @note EMBED_TABLE_LAYOUT asserts the nine members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
  * nothing else.
  * @note Every entry is bound to the cellblock its declaration named. No call carries a cellblock
  *       argument and there is nothing to pass wrongly. A cellblock at this level has no zeroing
@@ -336,16 +336,19 @@ typedef struct
     void (*temporary_buf_reset)(void);          /**< Releases the whole temporary tier at once. */
     embed_bool (*who_owns_buf)(const void *at); /**< Whether at lies in this cellblock's bytes [BORROWS]. */
     size_t (*buf_available)(void);              /**< Bytes between the two tiers. */
+    void *(*buf_grow)(void *prisoner, size_t size,
+                      CellOwner *owner); /**< Grows the newest cell of its tier to size bytes in place, unzeroed. */
 } MinimumSecurityGuard;
 EMBED_TABLE_LAYOUT(MinimumSecurityGuard, persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc,
-                   temporary_buf_mark, temporary_buf_release, temporary_buf_reset, who_owns_buf, buf_available);
+                   temporary_buf_mark, temporary_buf_release, temporary_buf_reset, who_owns_buf, buf_available,
+                   buf_grow);
 
 /**
  * @brief The maximum security guard over one cellblock: every release zeroes the cell first.
  *
- * @note EMBED_TABLE_LAYOUT asserts the eight members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * @note EMBED_TABLE_LAYOUT asserts the nine members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
  * nothing else.
- * @note The same eight entries, and no unzeroed release among them. Each zeroing runs before the
+ * @note The same nine entries, and no unzeroed release among them. Each zeroing runs before the
  *       boundary moves: the bytes are zero at the instant they become available. Where the
  *       zeroing is skipped and the boundary still moves, mmgr_max_security_buf_return carries it in
  *       its warnings.
@@ -362,9 +365,12 @@ typedef struct
     void (*temporary_buf_reset)(void);                /**< Zeroes the whole temporary tier, then releases it. */
     embed_bool (*who_owns_buf)(const void *at);       /**< Whether at lies in this cellblock's bytes [BORROWS]. */
     size_t (*buf_available)(void);                    /**< Bytes between the two tiers. */
+    void *(*buf_grow)(void *prisoner, size_t size,
+                      CellOwner *owner); /**< Grows the newest cell of its tier to size bytes in place, the added bytes zeroed. */
 } MaximumSecurityGuard;
 EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc,
-                   temporary_buf_mark, temporary_buf_release, temporary_buf_reset, who_owns_buf, buf_available);
+                   temporary_buf_mark, temporary_buf_release, temporary_buf_reset, who_owns_buf, buf_available,
+                   buf_grow);
 
 /**
  * @brief Everything one cellblock is: its bytes, its state, and the entries bound to it.
@@ -444,6 +450,14 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
     {                                                                                                                  \
         const size_t available = mmgr_buf_available(&prisonsite_##_##name_##_ctx);                                     \
         return available;                                                                                              \
+    }                                                                                                                  \
+    MMGR_ALLOC_SIZE(2) static void *prisonsite_##_##name_##_buf_grow(void *prisoner, size_t size, CellOwner *owner)    \
+    {                                                                                                                  \
+        if (wipe_to_zero_on_release_)                                                                                  \
+        {                                                                                                              \
+            return mmgr_max_security_buf_grow(&prisonsite_##_##name_##_ctx, prisoner, size, owner);                    \
+        }                                                                                                              \
+        return mmgr_buf_grow(&prisonsite_##_##name_##_ctx, prisoner, size, owner);                                     \
     }
 
 /**
@@ -465,14 +479,15 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] type_       Guard type, unused here.
  * @param[in] name_       Pool whose name the symbols carry alongside the site's.
  * @param[in] wipe_to_zero_on_release_ Security flag, unused here.
- * @note MinimumSecurityGuard and MaximumSecurityGuard declare the same eight members in the same
+ * @note MinimumSecurityGuard and MaximumSecurityGuard declare the same nine members in the same
  *       order. One initializer serves either level.
  */
 #define MMGR_CARCER_SEAT(prisonsite_, type_, name_, wipe_to_zero_on_release_)                                          \
     {prisonsite_##_##name_##_persistent_buf_alloc,  prisonsite_##_##name_##_persistent_buf_release,                    \
      prisonsite_##_##name_##_temporary_buf_alloc,   prisonsite_##_##name_##_temporary_buf_mark,                        \
      prisonsite_##_##name_##_temporary_buf_release, prisonsite_##_##name_##_temporary_buf_reset,                       \
-     prisonsite_##_##name_##_who_owns_buf,          prisonsite_##_##name_##_buf_available},
+     prisonsite_##_##name_##_who_owns_buf,          prisonsite_##_##name_##_buf_available,                             \
+     prisonsite_##_##name_##_buf_grow},
 
 /**
  * @brief Declares a minimum security cellblock over a pool.
@@ -763,6 +778,47 @@ void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, Cel
 void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner);
 
 /**
+ * @brief Grows a cell to size payload bytes in place, where it is the newest cell of its tier.
+ *
+ * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
+ * @param[in,out] prisoner  First byte of the cell [BORROWS].
+ * @param[in]     size      Payload bytes the cell is to carry, rounded as a take rounds them.
+ * @param[in,out] owner     The owner a persistent cell's growth is counted to, or NULL to count it to
+ *                          none [BORROWS]. A temporary cell's growth is counted to the owner its
+ *                          trailing word names, whatever is passed.
+ * @return                  The cell's first byte after the growth: the prisoner itself for a persistent
+ *                          cell, or for one that carries size already; a lower address for a temporary
+ *                          cell, whose bytes moved down. NULL with nothing changed where the cell is not
+ *                          the newest of its tier, a cell having been taken above it since, or where
+ *                          the gap cannot meet the growth. A NULL prisoner returns NULL [RETURNS OWNERSHIP].
+ * @note The newest cell of a tier is the cell its boundary stands against: the persistent end at the
+ *       cell's end, the temporary top at the cell's word. The boundary moves by one swap on the tiers
+ *       word, by the growth alone, and no other cell moves. A caller whose growth is refused takes a
+ *       larger cell, copies into it and releases the first, as it would without this entry.
+ * @note The added bytes are as they lie: a persistent growth's hold the word that stood behind the
+ *       payload, a temporary growth's the cell's own old word and payload. mmgr_max_security_buf_grow
+ *       zeroes them.
+ * @warning The prisoner's address is dead after a temporary growth that answers a lower one: the cell
+ *          is reached at the address answered from then on. A prisoner outside this cellblock's own
+ *          bytes stops with MMGR_FATAL, as a release does.
+ */
+MMGR_ALLOC_SIZE(3) void *mmgr_buf_grow(CarcerCellBlock *cellblock, void *prisoner, size_t size, CellOwner *owner);
+
+/**
+ * @brief Grows a cell in place as mmgr_buf_grow does, and zeroes the bytes the growth adds.
+ *
+ * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
+ * @param[in,out] prisoner  First byte of the cell [BORROWS].
+ * @param[in]     size      Payload bytes the cell is to carry.
+ * @param[in,out] owner     The owner a persistent cell's growth is counted to, or NULL [BORROWS].
+ * @return                  As mmgr_buf_grow answers [RETURNS OWNERSHIP].
+ * @note The zeroing covers the growth's bytes alone: the payload the cell carried keeps its bytes, moved
+ *       for a temporary cell.
+ */
+MMGR_ALLOC_SIZE(3)
+void *mmgr_max_security_buf_grow(CarcerCellBlock *cellblock, void *prisoner, size_t size, CellOwner *owner);
+
+/**
  * @brief Takes size bytes from a cellblock's temporary tier.
  *
  * @param[in,out] cellblock Cellblock to take from [BORROWS].
@@ -982,6 +1038,14 @@ void mmgr_cellblock_emptied(CarcerCellBlock *cellblock);
     {                                                                                                                  \
         const size_t available = mmgr_buf_available(prisonsite_##_##name_##_ctx);                                      \
         return available;                                                                                              \
+    }                                                                                                                  \
+    MMGR_ALLOC_SIZE(2) static void *prisonsite_##_##name_##_buf_grow(void *prisoner, size_t size, CellOwner *owner)    \
+    {                                                                                                                  \
+        if (wipe_to_zero_on_release_)                                                                                  \
+        {                                                                                                              \
+            return mmgr_max_security_buf_grow(prisonsite_##_##name_##_ctx, prisoner, size, owner);                     \
+        }                                                                                                              \
+        return mmgr_buf_grow(prisonsite_##_##name_##_ctx, prisoner, size, owner);                                      \
     }                                                                                                                  \
     EMBED_TABLE_STORAGE struct                                                                                         \
     {                                                                                                                  \

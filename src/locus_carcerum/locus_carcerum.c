@@ -30,6 +30,8 @@
  */
 #include "locus_carcerum/locus_carcerum.h"
 
+#include "memoria_operor/memoria_operor.h"
+
 /** @brief The state of a cell no context holds. */
 #define CARCER_FREE 0u
 
@@ -609,6 +611,95 @@ EMBED_INLINE size_t carcer_held_size(const CarcerCellBlock *cellblock, size_t of
     return carcer_word_size(embed_atomic_usize_load(carcer_word_at(cellblock, off)));
 }
 
+/**
+ * @brief Grows the newest cell of its tier in place, to a larger payload.
+ *
+ * @param[in,out] cellblock Cellblock the cell sits in [BORROWS].
+ * @param[in]     off       The cell's offset.
+ * @param[in]     carried   Its payload size as its word carries it.
+ * @param[in]     want      The payload it grows to, rounded, above carried.
+ * @param[in,out] owner     The owner a persistent cell is counted to, or NULL to count to none
+ *                          [BORROWS]. A temporary cell is counted to the owner its trailing word names.
+ * @param[in]     zeroing   Whether the bytes the growth adds are zeroed.
+ * @return                  The cell's first payload byte after the growth, moved for a temporary cell,
+ *                          or NULL with nothing changed.
+ * @note The cell is the newest of its tier where that tier's boundary stands at its edge: the
+ *       persistent end at the cell's end, the temporary top at the cell's word. The boundary moves by
+ *       one swap on the tiers word, by the growth alone. A swap that finds neither boundary at the cell
+ *       is a cell taken since, and the growth is refused; one that finds the other boundary moved is
+ *       read again.
+ * @note A persistent cell keeps its address. The word behind its payload is written past the growth
+ *       first, then its own word with the new size. The bytes the growth adds, the word the payload stood
+ *       behind among them, are zeroed where zeroing is set.
+ * @note A temporary cell moves down by the growth. Its word is written at the new top first, its
+ *       payload moved down with memor.move_down, and the owner's word behind the payload stands where
+ *       it stood. The bytes between the moved payload and that word are the old word and payload,
+ *       zeroed where zeroing is set.
+ * @note A temporary growth reads the top once more, as a take does: a top above the grown cell is a
+ *       rewind that dropped it meanwhile, and the growth drops what the rewind left and answers NULL.
+ */
+EMBED_INLINE void *carcer_grown(CarcerCellBlock *cellblock, size_t off, size_t carried, size_t want,
+                                CellOwner *owner, embed_bool zeroing)
+{
+    const size_t extra = want - carried;
+    embed_atomic_usize_value tiers = embed_atomic_usize_load(&cellblock->tiers);
+    embed_bool down;
+
+    for (;;)
+    {
+        const size_t end = mmgr_tiers_persistent_end(tiers);
+        const size_t top = mmgr_tiers_temporary_top(tiers);
+
+        down = (top == off);
+        if ((!down && (end != carcer_end_of(off, carried))) || ((top - end) < extra))
+        {
+            return NULL;
+        }
+        const embed_atomic_usize_value moved =
+            down ? MMGR_CARCER_TIERS(end, off - extra) : MMGR_CARCER_TIERS(end + extra, top);
+
+        if (embed_atomic_usize_swap_if(&cellblock->tiers, &tiers, moved))
+        {
+            break;
+        }
+    }
+    if (!down)
+    {
+        // Explicit cast carries the cell's offset as the integer the trailing word holds
+        embed_atomic_usize_store(carcer_word_at(cellblock, carcer_foot_of(off, want)), (embed_atomic_usize_value)off);
+        embed_atomic_usize_store(carcer_word_at(cellblock, off), carcer_word(want, CARCER_BUSY));
+        if (zeroing)
+        {
+            mmgr_zero_buf(cellblock->base + carcer_foot_of(off, carried), extra);
+        }
+        carcer_owner_took(owner, extra);
+        CARCER_HW(cellblock, persistent_hw, carcer_end_of(off, want));
+        return cellblock->base + off + CARCER_WORD;
+    }
+    const size_t at = off - extra;
+
+    embed_atomic_usize_store(carcer_word_at(cellblock, at), carcer_word(want, CARCER_BUSY));
+    memor.move_down(&(MemoriaCfg){
+        .dst = cellblock->base + at + CARCER_WORD, .src = cellblock->base + off + CARCER_WORD, .bytes = carried});
+    if (zeroing)
+    {
+        mmgr_zero_buf(cellblock->base + at + CARCER_WORD + carried, extra);
+    }
+    // Explicit casts read the trailing word's integer back as the owner's address
+    const embed_atomic_usize_value named = embed_atomic_usize_load(carcer_word_at(cellblock, carcer_foot_of(at, want)));
+
+    carcer_owner_took((CellOwner *)(uintptr_t)named, extra);
+    CARCER_HW(cellblock, temporary_hw, cellblock->size - at);
+    const size_t top = mmgr_cellblock_temporary_top(cellblock);
+
+    if (top > at)
+    {
+        carcer_dropped(cellblock, at, top);
+        return NULL;
+    }
+    return cellblock->base + at + CARCER_WORD;
+}
+
 void *mmgr_persistent_buf_alloc(CarcerCellBlock *cellblock, size_t size, CellOwner *owner)
 {
     void *const prisoner = carcer_grow(cellblock, carcer_want(size), EMBED_FALSE, owner);
@@ -724,6 +815,49 @@ void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *
     }
     mmgr_zero_buf(prisoner, carcer_held_size(cellblock, carcer_off_of(cellblock, prisoner)));
     mmgr_persistent_buf_release(cellblock, prisoner, owner);
+}
+
+/**
+ * @brief The growth both grow entries share: the cell found, its size read, and the request rounded.
+ *
+ * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
+ * @param[in,out] prisoner  First byte of the cell [BORROWS].
+ * @param[in]     size      Payload bytes the cell is to carry.
+ * @param[in,out] owner     The owner a persistent cell is counted to, or NULL [BORROWS].
+ * @param[in]     zeroing   Whether the bytes the growth adds are zeroed.
+ * @return                  The cell after the growth, the prisoner itself where it carries size already,
+ *                          or NULL with nothing changed.
+ */
+EMBED_INLINE void *carcer_grow_asked(CarcerCellBlock *cellblock, void *prisoner, size_t size, CellOwner *owner,
+                                     embed_bool zeroing)
+{
+    if (prisoner == NULL)
+    {
+        return NULL;
+    }
+    if (!mmgr_who_owns_buf(cellblock, prisoner))
+    {
+        MMGR_FATAL("a prisoner was grown in a cellblock that does not hold it");
+    }
+    const size_t off = carcer_off_of(cellblock, prisoner);
+    const size_t held = carcer_held_size(cellblock, off);
+    const size_t want = carcer_want(size);
+
+    if (want <= held)
+    {
+        return prisoner;
+    }
+    return carcer_grown(cellblock, off, held, want, owner, zeroing);
+}
+
+void *mmgr_buf_grow(CarcerCellBlock *cellblock, void *prisoner, size_t size, CellOwner *owner)
+{
+    return carcer_grow_asked(cellblock, prisoner, size, owner, EMBED_FALSE);
+}
+
+void *mmgr_max_security_buf_grow(CarcerCellBlock *cellblock, void *prisoner, size_t size, CellOwner *owner)
+{
+    return carcer_grow_asked(cellblock, prisoner, size, owner, EMBED_TRUE);
 }
 
 size_t mmgr_temporary_buf_mark(const CarcerCellBlock *cellblock)

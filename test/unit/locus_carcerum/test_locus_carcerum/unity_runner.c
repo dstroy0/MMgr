@@ -41,6 +41,12 @@ extern void test_who_owns_buf_tells_a_cellblock_from_its_neighbor(void);
 extern void test_who_owns_buf_refuses_the_edges(void);
 extern void test_the_cellblocks_do_not_share_a_fill_point(void);
 extern void test_a_span_over_cellblock_bytes_carries_the_cellblock_address(void);
+extern void test_the_newest_persistent_cell_grows_in_place(void);
+extern void test_a_persistent_cell_with_another_above_it_does_not_grow(void);
+extern void test_the_top_temporary_cell_grows_by_moving_down(void);
+extern void test_a_temporary_cell_below_the_top_does_not_grow(void);
+extern void test_a_growth_the_gap_cannot_meet_is_refused(void);
+extern void test_a_cell_carrying_the_size_asked_is_answered_as_it_stands(void);
 
 
 /*=======Mock Management=====*/
@@ -135,6 +141,12 @@ int main(void)
   run_test(test_who_owns_buf_refuses_the_edges, "test_who_owns_buf_refuses_the_edges", 417);
   run_test(test_the_cellblocks_do_not_share_a_fill_point, "test_the_cellblocks_do_not_share_a_fill_point", 429);
   run_test(test_a_span_over_cellblock_bytes_carries_the_cellblock_address, "test_a_span_over_cellblock_bytes_carries_the_cellblock_address", 437);
+  run_test(test_the_newest_persistent_cell_grows_in_place, "test_the_newest_persistent_cell_grows_in_place", 446);
+  run_test(test_a_persistent_cell_with_another_above_it_does_not_grow, "test_a_persistent_cell_with_another_above_it_does_not_grow", 480);
+  run_test(test_the_top_temporary_cell_grows_by_moving_down, "test_the_top_temporary_cell_grows_by_moving_down", 492);
+  run_test(test_a_temporary_cell_below_the_top_does_not_grow, "test_a_temporary_cell_below_the_top_does_not_grow", 523);
+  run_test(test_a_growth_the_gap_cannot_meet_is_refused, "test_a_growth_the_gap_cannot_meet_is_refused", 535);
+  run_test(test_a_cell_carrying_the_size_asked_is_answered_as_it_stands, "test_a_cell_carrying_the_size_asked_is_answered_as_it_stands", 545);
 
   return UNITY_END();
 }

@@ -13,7 +13,7 @@ A name that collided with libc's would advertise a drop-in replacement of the im
 as of the result. The names also keep the library clear of a consumer's own vocabulary and of the
 half-dozen other things in an embedded codebase already called `buffer`, `pool`, `arena` or `span`.
 
-That is the whole reason. It is not decoration, and it is not obscurity for its own sake: a module
+That reason stands alone. It is not decoration, and it is not obscurity for its own sake: a module
 called `spatium` can be grepped for with confidence, and a symbol called `mmgr_spat_from` cannot be
 confused with anybody else's span. The cost is this page, which is a fair trade for never having to
 rename anything again.
@@ -22,7 +22,7 @@ rename anything again.
 
 ## Modules
 
-The stem is the name of the module's dispatch table, so it is what a call site reads.
+The stem is the name of the module's dispatch table, and a call site reads it.
 
 | Latin                      | stem                                   | in English                                      |
 | -------------------------- | -------------------------------------- | ----------------------------------------------- |
@@ -52,10 +52,10 @@ The stem is the name of the module's dispatch table, so it is what a call site r
 The verbs are where the Latin does the most work, because the English words were the ones most
 likely to mislead.
 
-The public entries are English. A handle is assembled from its slots, `[lifetime]_[security]_[what
-it is]_[action]`, with each slot spent only where it disambiguates.
+The public entries are English. A handle is assembled from its parts, `[lifetime]_[security]_[what
+it is]_[action]`, with each part spent only where it disambiguates.
 
-| slot       | values                       | what it settles                                                       |
+| part       | values                       | what it settles                                                       |
 | ---------- | ---------------------------- | --------------------------------------------------------------------- |
 | lifetime   | `persistent`, `temporary`    | the sentence. How long the prisoner holds the cell                    |
 | security   | `max_security`               | present only where the zeroing form has to be told from the plain one |
@@ -63,17 +63,18 @@ it is]_[action]`, with each slot spent only where it disambiguates.
 | action     | `alloc`, `release`, `return` | what the entry does to them                                           |
 
 So `persistent_buf_alloc` is lifetime//buf/alloc, and `persistent_max_security_buf_release` fills
-all four. `max_security_buf_return` drops the lifetime slot, because `return` restores a mark and
+all four. `max_security_buf_return` drops the lifetime part, because `return` restores a mark and
 only the temporary tier has one.
 
 | entry           | means                   | why not the English                                                            |
 | --------------- | ----------------------- | ------------------------------------------------------------------------------ |
 | `buf_available` | bytes at hand           | `free_bytes` reads as a verb, as though it frees something. It reports a count |
+| `buf_grow`      | a cell made larger where it stands | `realloc` moves a cell and reuses holes. This moves no other cell, and answers no where the cell is not its tier's newest |
 | `mark`          | a position to rewind to |                                                                                |
 | `reset`         | return to empty         |                                                                                |
 
 `temporary_buf_alloc` takes a cell from the temporary tier. `persistent_buf_release` takes **the cell
-itself** and gives it back, in any order, because the cell's own header carries its extent, so the
+itself** and gives it back, in any order, because the cell's own header carries its extent, and the
 release does not have to be told which one it is or when it was taken.
 
 ## Types
@@ -81,7 +82,7 @@ release does not have to be told which one it is or when it was taken.
 | type              | is                                                                      |
 | ----------------- | ----------------------------------------------------------------------- |
 | `CarcerCellBlock` | a cellblock's state: the pool it covers, its extent, and both tier ends |
-| `CarcerCell`      | one cell's header: the payload behind it, and whether it is held        |
+| `CarcerCell`      | one cell's header: the payload behind it, and whether it is busy        |
 | `mmgr_span`       | a buffer, its capacity and a cursor. `pos` is how much was written      |
 | `mmgr_cspan`      | the read counterpart. `len` is the extent, `err` latches a short read   |
 | `mmgr_ring`       | opaque storage a caller declares for one ring                           |
@@ -115,7 +116,7 @@ the metaphor stays behind the name.
 | **environment** | one set of compile-time widths. See @ref ref_environments                       |
 | **latch**       | a flag that stays set once set. A run is checked once at the end                |
 
-The two axes are independent, which is the part worth holding on to. **Which custodia** is the
+The two axes are independent, and that independence is the part to keep. **Which custodia** is the
 environment. It is fixed at the cellblock's declaration and governs how a release behaves.
 **Persistent or temporary** is the sentence, how long the prisoner holds the cell, and it is chosen
 per allocation. A long sentence in general population is an ordinary thing, and so is a short stay in
@@ -127,10 +128,10 @@ Every public function is `mmgr_<infix>_<tail>`, where `<infix>` is the module's 
 `mmgr_spat_from`, `memor.cpy` is `mmgr_memor_cpy`.
 
 `verbum_scrutor` is the exception: its three tables are named for what they operate on, `lane`,
-`mask`, `word`, while the functions all carry the module's own infix, so `lane.has_zero` is
+`mask`, `word`, while the functions all carry the module's own infix, and `lane.has_zero` is
 `mmgr_scrut_has_zero`.
 
-Three infixes do not name their module, and that is deliberate rather than an oversight: they name
+Three infixes do not name their module, and that is by design: they name
 distinct _concepts_ inside `proximus_operor`, and collapsing them onto one stem would merge things
 that are not the same thing:
 

@@ -442,3 +442,113 @@ void test_a_span_over_cellblock_bytes_carries_the_cellblock_address(void)
     TEST_ASSERT_TRUE_MESSAGE(ram.a.who_owns_buf(s.buf),
                              "the cellblock the span was allocated from still owns its bytes");
 }
+
+void test_the_newest_persistent_cell_grows_in_place(void)
+{
+    CellOwner owner = MMGR_CELL_OWNER("grower");
+    uint8_t *const cell = ram.b.persistent_buf_alloc(32u, &owner);
+    const size_t end_before = mmgr_cellblock_persistent_end(&ram_b_ctx);
+
+    TEST_ASSERT_NOT_NULL(cell);
+    for (size_t at = 0u; at < 32u; at += 1u)
+    {
+        cell[at] = 0xA5u;
+    }
+    uint8_t *const grown = ram.b.buf_grow(cell, 96u, &owner);
+
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(cell, grown, "a persistent cell keeps its address as it grows");
+    TEST_ASSERT_EQUAL_size_t(end_before + mmgr_align_up_buf(96u) - mmgr_align_up_buf(32u),
+                             mmgr_cellblock_persistent_end(&ram_b_ctx));
+    for (size_t at = 0u; at < 32u; at += 1u)
+    {
+        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0xA5u, grown[at], "the payload keeps its bytes");
+    }
+    for (size_t at = 32u; at < 96u; at += 1u)
+    {
+        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, grown[at], "the bytes the growth uncovers are zero");
+    }
+    TEST_ASSERT_EQUAL_size_t(mmgr_align_up_buf(96u), (size_t)embed_atomic_usize_load(&owner.in_use));
+    uint8_t *const next = ram.b.persistent_buf_alloc(8u, NULL);
+
+    TEST_ASSERT_TRUE_MESSAGE(next >= grown + mmgr_align_up_buf(96u), "the next take lands past the grown cell");
+    ram.b.persistent_buf_release(next, NULL);
+    ram.b.persistent_buf_release(grown, &owner);
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&owner.in_use));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_persistent_end(&ram_b_ctx));
+}
+
+void test_a_persistent_cell_with_another_above_it_does_not_grow(void)
+{
+    void *const first = ram.a.persistent_buf_alloc(32u, NULL);
+    void *const second = ram.a.persistent_buf_alloc(32u, NULL);
+    const size_t end_before = mmgr_cellblock_persistent_end(&ram_a_ctx);
+
+    TEST_ASSERT_NULL_MESSAGE(ram.a.buf_grow(first, 96u, NULL), "a cell under another is not the newest");
+    TEST_ASSERT_EQUAL_size_t(end_before, mmgr_cellblock_persistent_end(&ram_a_ctx));
+    ram.a.persistent_buf_release(second, NULL);
+    ram.a.persistent_buf_release(first, NULL);
+}
+
+void test_the_top_temporary_cell_grows_by_moving_down(void)
+{
+    CellOwner owner = MMGR_CELL_OWNER("grower");
+    uint8_t *const cell = ram.b.temporary_buf_alloc(32u, &owner);
+    const size_t top_before = mmgr_cellblock_temporary_top(&ram_b_ctx);
+
+    TEST_ASSERT_NOT_NULL(cell);
+    for (size_t at = 0u; at < 32u; at += 1u)
+    {
+        cell[at] = 0x5Au;
+    }
+    uint8_t *const grown = ram.b.buf_grow(cell, 96u, NULL);
+    const size_t growth = mmgr_align_up_buf(96u) - mmgr_align_up_buf(32u);
+
+    TEST_ASSERT_NOT_NULL(grown);
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(cell - growth, grown, "a temporary cell moves down by its growth");
+    TEST_ASSERT_EQUAL_size_t(top_before - growth, mmgr_cellblock_temporary_top(&ram_b_ctx));
+    for (size_t at = 0u; at < 32u; at += 1u)
+    {
+        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0x5Au, grown[at], "the payload keeps its bytes, moved");
+    }
+    for (size_t at = 32u; at < 96u; at += 1u)
+    {
+        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, grown[at], "the bytes the growth uncovers are zero");
+    }
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(mmgr_align_up_buf(96u), (size_t)embed_atomic_usize_load(&owner.in_use),
+                                     "the growth counts to the owner the cell names");
+    ram.b.temporary_buf_reset();
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&owner.in_use));
+}
+
+void test_a_temporary_cell_below_the_top_does_not_grow(void)
+{
+    void *const first = ram.a.temporary_buf_alloc(32u, NULL);
+    void *const second = ram.a.temporary_buf_alloc(32u, NULL);
+    const size_t top_before = mmgr_cellblock_temporary_top(&ram_a_ctx);
+
+    TEST_ASSERT_NOT_NULL(second);
+    TEST_ASSERT_NULL_MESSAGE(ram.a.buf_grow(first, 96u, NULL), "a cell under the top is not the newest");
+    TEST_ASSERT_EQUAL_size_t(top_before, mmgr_cellblock_temporary_top(&ram_a_ctx));
+    ram.a.temporary_buf_reset();
+}
+
+void test_a_growth_the_gap_cannot_meet_is_refused(void)
+{
+    void *const cell = ram.a.persistent_buf_alloc(32u, NULL);
+    const size_t end_before = mmgr_cellblock_persistent_end(&ram_a_ctx);
+
+    TEST_ASSERT_NULL(ram.a.buf_grow(cell, A_BYTES, NULL));
+    TEST_ASSERT_EQUAL_size_t(end_before, mmgr_cellblock_persistent_end(&ram_a_ctx));
+    ram.a.persistent_buf_release(cell, NULL);
+}
+
+void test_a_cell_carrying_the_size_asked_is_answered_as_it_stands(void)
+{
+    void *const cell = ram.a.persistent_buf_alloc(64u, NULL);
+    const size_t end_before = mmgr_cellblock_persistent_end(&ram_a_ctx);
+
+    TEST_ASSERT_EQUAL_PTR(cell, ram.a.buf_grow(cell, 16u, NULL));
+    TEST_ASSERT_EQUAL_size_t(end_before, mmgr_cellblock_persistent_end(&ram_a_ctx));
+    TEST_ASSERT_NULL(ram.a.buf_grow(NULL, 16u, NULL));
+    ram.a.persistent_buf_release(cell, NULL);
+}

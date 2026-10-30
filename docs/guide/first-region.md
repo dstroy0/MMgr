@@ -27,7 +27,7 @@ share a name.
 `MMGR_MINIMUM_SECURITY` and `MMGR_MAXIMUM_SECURITY` pick which guards hold a cellblock, and the
 choice is settled at the declaration: "The warden is const, so nothing after the declaration can
 change the level a cellblock runs at" (`src/locus_carcerum/locus_carcerum.h:24`). The two guard types
-declare the same eight entries under different behavior, and `prison.keys` has no unzeroed release to
+declare the same nine entries under different behavior, and `prison.keys` has no unzeroed release to
 reach for and `prison.work` has no zeroing one
 (`src/locus_carcerum/locus_carcerum.h:115`, `src/locus_carcerum/locus_carcerum.h:139`).
 

@@ -84,8 +84,8 @@ int main(void)
   run_test(test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell, "test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell", 208);
   run_test(test_an_owner_shared_by_every_thread_is_counted_back_to_nothing, "test_an_owner_shared_by_every_thread_is_counted_back_to_nothing", 223);
   run_test(test_an_owner_for_each_thread_is_counted_back_to_nothing, "test_an_owner_for_each_thread_is_counted_back_to_nothing", 231);
-  run_test(test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing, "test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing", 246);
-  run_test(test_a_reset_counts_every_temporary_cell_off_its_owner, "test_a_reset_counts_every_temporary_cell_off_its_owner", 258);
+  run_test(test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing, "test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing", 250);
+  run_test(test_a_reset_counts_every_temporary_cell_off_its_owner, "test_a_reset_counts_every_temporary_cell_off_its_owner", 262);
 
   return UNITY_END();
 }
