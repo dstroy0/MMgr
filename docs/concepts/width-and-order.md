@@ -85,11 +85,11 @@ masking and masking lands on a multiple only for a power of two. `mmgr.h` assert
 `MMGR_ALIGN_BYTES`, the alignment a pool declaration puts on its storage. Both stop the build.
 
 The width costs bytes twice over. A request rounds up to a whole word before it is carved, and every
-cell carries words beside its payload, each rounded to the same alignment: a persistent cell a word
-ahead and a word behind, a temporary cell those two and a third word behind that holds the end of its
-lifetime. On a 64-bit build that is 16 bytes per persistent cell and 24 per temporary cell; on a
-16-bit build it is 4 and 6. A cellblock full of small cells pays that per cell, and in a 4 KB pool the
-width is worth thinking about for that reason.
+cell carries three words beside its payload, each rounded to the same alignment: its size ahead of
+it, and behind it its owner and its tail, the cell's own offset on the persistent tier and the end of
+its lifetime on the temporary one. On a 64-bit build that is 24 bytes per cell; on a 16-bit build it
+is 6. A cellblock full of small cells pays that per cell, and in a 4 KB pool the width is worth
+thinking about for that reason.
 
 ## What to do with all this
 

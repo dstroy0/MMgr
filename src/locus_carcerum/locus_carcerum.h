@@ -99,11 +99,11 @@ EMBED_STATIC_ASSERT((MMGR_CARCER_ALIGN & (MMGR_CARCER_ALIGN - 1u)) == 0u,
  *       shared between contexts counts exactly.
  * @note The bytes counted are the cell's own: the request rounded to a whole word, counted on the take
  *       and read off the cell's word on the give, and a matched pair returns in_use to where it stood.
- * @note A persistent cell comes off the owner its give names. A temporary cell carries its owner in
- *       the word behind its payload, and comes off that owner whether a single give, a rewind or its
- *       lifetime's end drops it; the owner a single give names for a temporary cell is not read.
- * @warning An owner must outlive every cell counted to it: the queue holds its address, and a rewind
- *          writes the owner through the address a temporary cell carries.
+ * @note Every cell carries its owner in the word behind its payload, and comes off that owner whether
+ *       a give, a rewind or the end of its lifetime drops it. A give or a growth naming another owner
+ *       is refused and told through mmgr_carcer_hw_misnamed.
+ * @warning An owner must outlive every cell counted to it: the queue holds its address, and a give or
+ *          a rewind writes the owner through the address a cell carries.
  */
 typedef struct
 {
@@ -173,6 +173,19 @@ uint32_t mmgr_carcer_hw_clock_ms(void);
  * @note Weak, and the default does nothing. A port defines this name to replace it.
  */
 void mmgr_carcer_hw_expired(const CellOwner *owner, size_t bytes, uint32_t overdue_ms);
+
+/**
+ * @brief Told of each give or growth that names an owner other than the one the cell counts to.
+ *
+ * @param[in] named      The owner the give or the growth named [BORROWS].
+ * @param[in] cell_owner The owner the cell counts to, NULL where its owner word names no registered
+ *                       owner [BORROWS].
+ * @param[in] bytes      The cell's payload bytes.
+ * @note Such a give or growth is refused and changes nothing: the cell stays with its holder, counted
+ *       to its owner. A program that sees this has a give in the wrong place, and a port logs it.
+ * @note Weak, and the default does nothing. A port defines this name to replace it.
+ */
+void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes);
 
 /**
  * @brief Bits each tier's boundary takes in the word that holds both: half the word.
@@ -767,10 +780,12 @@ void *mmgr_persistent_max_security_buf_alloc(CarcerCellBlock *cellblock, size_t 
  *
  * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
  * @param[in]     prisoner  First byte of the cell [TAKES OWNERSHIP].
- * @param[in,out] owner     The owner the cell was counted to [BORROWS].
+ * @param[in,out] owner     The owner the cell counts to, as its owner word names it [BORROWS].
  * @note Which tier the cell came from is read from its address. A release cannot be given to the
  *       wrong tier. A NULL prisoner or a NULL owner returns without touching the cellblock.
- * @note The cell's payload bytes, read off its header, come off owner's in_use before the release.
+ * @note The cell's payload bytes, read off its header, come off owner's in_use before the release. A
+ *       release naming an owner other than the cell's changes nothing and is told through
+ *       mmgr_carcer_hw_misnamed; one of a cell given back already changes nothing either.
  * @note A prisoner outside this cellblock's own bytes returns without touching it. A pointer from
  *       another cellblock cannot move this one's boundaries.
  * @warning prisoner is dead once this returns and its bytes are not zeroed. The cellblock may hand
@@ -785,12 +800,13 @@ void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, Cel
  *
  * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
  * @param[in,out] prisoner  First byte of the cell, zeroed before release [TAKES OWNERSHIP].
- * @param[in,out] owner     The owner the cell was counted to [BORROWS].
+ * @param[in,out] owner     The owner the cell counts to, as its owner word names it [BORROWS].
  * @note The extent comes from the cell's own header. A caller cannot under-zero a cell by naming
  *       fewer bytes than it carries. A NULL prisoner or a NULL owner returns without touching the
  *       cellblock.
- * @note The zeroing is the only step that separates this from mmgr_persistent_buf_release, which it
- *       calls to do the release.
+ * @note The zeroing is the only step that separates this from mmgr_persistent_buf_release, and it runs
+ *       once the owner named is found to be the cell's: a release naming another owner zeroes
+ *       nothing.
  * @note A prisoner outside this cellblock's own bytes returns before the zeroing. A pointer from
  *       another cellblock is neither cleared nor released.
  * @warning prisoner is dead once this returns. The cellblock may hand those bytes out again.
@@ -806,15 +822,15 @@ void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *
  * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
  * @param[in,out] prisoner  First byte of the cell [BORROWS].
  * @param[in]     size      Payload bytes the cell is to carry, rounded as a take rounds them.
- * @param[in,out] owner     The owner a persistent cell's growth is counted to [BORROWS]. A temporary
- *                          cell's growth is counted to the owner its trailing word names, whatever is
- *                          passed.
+ * @param[in,out] owner     The owner the cell counts to, as its owner word names it, which the growth
+ *                          is counted to [BORROWS].
  * @return                  The cell's first byte after the growth: the prisoner itself for a persistent
  *                          cell, or for one that carries size already; a lower address for a temporary
  *                          cell, whose bytes moved down. NULL with nothing changed where the cell is not
  *                          the newest of its tier, a cell having been taken above it since, or where
- *                          the gap cannot meet the growth. A NULL prisoner or a NULL owner returns NULL
- *                          [RETURNS OWNERSHIP].
+ *                          the gap cannot meet the growth. A NULL prisoner, a NULL owner, or an owner
+ *                          other than the cell's, which is told through mmgr_carcer_hw_misnamed, returns
+ *                          NULL [RETURNS OWNERSHIP].
  * @note A temporary cell keeps the lifetime its take gave it: the growth moves no end of it.
  * @note The newest cell of a tier is the cell its boundary stands against: the persistent end at the
  *       cell's end, the temporary top at the cell's word. The boundary moves by one swap on the tiers
@@ -857,7 +873,7 @@ void *mmgr_max_security_buf_grow(CarcerCellBlock *cellblock, void *prisoner, siz
  * @note The caller gives the cell its lifetime, and gives the cell back itself within it, by mark
  *       through mmgr_temporary_buf_release or mmgr_temporary_buf_reset, or by a single give. The
  *       give or the rewind takes the bytes off owner. The cell carries owner in the word behind its
- *       payload and the end of its lifetime in the word behind that.
+ *       payload and the end of its lifetime in its tail, the word behind that.
  * @note The end of a lifetime is a backstop. Every take first gives back the cells at the top whose
  *       lifetimes have ended, one after another while the top reads so, as their holders' give would,
  *       and calls mmgr_carcer_hw_expired for each. A cell below a cell still in its lifetime waits.
@@ -1009,7 +1025,7 @@ size_t mmgr_align_up_buf(size_t size);
  *       cases over one declared cellblock; a program with a cellblock to empty while another context
  *       reaches it has a cellblock whose cells that context still holds.
  * @note The free cells are marked dead because bytes outside the tiers must never read as a free
- *       cell: a give that trims the cell above them reads the cell below through the word behind it,
+ *       cell: a give that trims the cell above them reads the cell below through the tail behind it,
  *       and trims it only where it reads free.
  */
 void mmgr_cellblock_emptied(CarcerCellBlock *cellblock);

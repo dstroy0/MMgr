@@ -509,7 +509,7 @@ void test_the_top_temporary_cell_grows_by_moving_down(void)
     {
         cell[at] = 0x5Au;
     }
-    uint8_t *const grown = ram.b.buf_grow(cell, 96u, &cells);
+    uint8_t *const grown = ram.b.buf_grow(cell, 96u, &grower);
     const size_t growth = mmgr_align_up_buf(96u) - mmgr_align_up_buf(32u);
 
     TEST_ASSERT_NOT_NULL(grown);

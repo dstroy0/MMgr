@@ -26,6 +26,12 @@ static const CellOwner *s_expired_owner;
 static size_t s_expired_bytes;
 static uint32_t s_expired_overdue_ms;
 
+// What a give or growth naming the wrong owner told: how many, and the last one's two owners and bytes
+static size_t s_misnamed_count;
+static const CellOwner *s_misnamed_named;
+static const CellOwner *s_misnamed_cell_owner;
+static size_t s_misnamed_bytes;
+
 uint32_t mmgr_carcer_hw_clock_ms(void)
 {
     return s_now_ms;
@@ -37,6 +43,14 @@ void mmgr_carcer_hw_expired(const CellOwner *owner, size_t bytes, uint32_t overd
     s_expired_owner = owner;
     s_expired_bytes = bytes;
     s_expired_overdue_ms = overdue_ms;
+}
+
+void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes)
+{
+    s_misnamed_count += 1u;
+    s_misnamed_named = named;
+    s_misnamed_cell_owner = cell_owner;
+    s_misnamed_bytes = bytes;
 }
 
 static void owner_ready(CellOwner *owner)
@@ -72,6 +86,10 @@ void setUp(void)
     s_expired_owner = NULL;
     s_expired_bytes = 0u;
     s_expired_overdue_ms = 0u;
+    s_misnamed_count = 0u;
+    s_misnamed_named = NULL;
+    s_misnamed_cell_owner = NULL;
+    s_misnamed_bytes = 0u;
 }
 
 void tearDown(void)
@@ -254,17 +272,75 @@ void test_a_rewind_counts_the_dropped_cells_off_their_owners(void)
                                      "a rewind is the holder's give, and the backstop tells nothing");
 }
 
-void test_a_temporary_cell_given_back_alone_counts_off_the_owner_that_took_it(void)
+void test_a_temporary_cell_given_back_alone_counts_off_its_owner(void)
 {
     void *const prisoner = counted.plain.temporary_buf_alloc(32u, &scratch, 100u);
 
-    // the footer names the owner, and the give reads it there whatever registered owner it is handed
-    counted.plain.persistent_buf_release(prisoner, &reader);
+    counted.plain.persistent_buf_release(prisoner, &scratch);
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&scratch));
-    TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&reader));
     counted.plain.temporary_buf_reset();
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, in_use_of(&scratch),
                                      "the reset counts a cell given back once already off no owner");
+}
+
+void test_a_give_naming_another_owner_is_refused_and_told(void)
+{
+    void *const kept = counted.plain.persistent_buf_alloc(32u, &writer);
+    void *const scratched = counted.plain.temporary_buf_alloc(16u, &scratch, 100u);
+    const size_t available = mmgr_buf_available(&counted_plain_ctx);
+
+    counted.plain.persistent_buf_release(kept, &reader);
+    TEST_ASSERT_EQUAL_size_t(1u, s_misnamed_count);
+    TEST_ASSERT_EQUAL_PTR(&reader, s_misnamed_named);
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(&writer, s_misnamed_cell_owner, "told which owner the cell counts to");
+    TEST_ASSERT_EQUAL_size_t(32u, s_misnamed_bytes);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(32u, in_use_of(&writer), "the cell stays counted to its owner");
+    TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&reader));
+    counted.plain.persistent_buf_release(scratched, &reader);
+    TEST_ASSERT_EQUAL_size_t(2u, s_misnamed_count);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(16u, in_use_of(&scratch), "a temporary cell is held the same way");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(available, mmgr_buf_available(&counted_plain_ctx), "and no cell left a tier");
+    counted.plain.persistent_buf_release(kept, &writer);
+    counted.plain.persistent_buf_release(scratched, &scratch);
+    TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&writer));
+    TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&scratch));
+    TEST_ASSERT_EQUAL_size_t(2u, s_misnamed_count);
+}
+
+void test_a_maximum_security_give_naming_another_owner_zeroes_nothing(void)
+{
+    uint8_t *const secret = (uint8_t *)counted.wiped.persistent_buf_alloc(16u, &keys);
+
+    secret[0] = 0xA5u;
+    counted.wiped.persistent_buf_release(secret, &reader);
+    TEST_ASSERT_EQUAL_size_t(1u, s_misnamed_count);
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(0xA5u, secret[0], "the holder's bytes are left as they are");
+    counted.wiped.persistent_buf_release(secret, &keys);
+    TEST_ASSERT_EQUAL_UINT8(0u, secret[0]);
+}
+
+void test_a_growth_naming_another_owner_is_refused_and_told(void)
+{
+    void *const prisoner = counted.plain.persistent_buf_alloc(32u, &writer);
+
+    TEST_ASSERT_NULL(counted.plain.buf_grow(prisoner, 64u, &reader));
+    TEST_ASSERT_EQUAL_size_t(1u, s_misnamed_count);
+    TEST_ASSERT_EQUAL_size_t(32u, in_use_of(&writer));
+    TEST_ASSERT_EQUAL_PTR(prisoner, counted.plain.buf_grow(prisoner, 64u, &writer));
+    TEST_ASSERT_EQUAL_size_t(64u, in_use_of(&writer));
+}
+
+void test_a_cell_given_back_twice_counts_off_once_and_tells_nothing(void)
+{
+    void *const prisoner = counted.plain.persistent_buf_alloc(32u, &writer);
+    void *const pin = counted.plain.persistent_buf_alloc(8u, &writer);
+
+    counted.plain.persistent_buf_release(prisoner, &writer);
+    counted.plain.persistent_buf_release(prisoner, &writer);
+    TEST_ASSERT_EQUAL_size_t(8u, in_use_of(&writer));
+    TEST_ASSERT_EQUAL_size_t(0u, s_misnamed_count);
+    counted.plain.persistent_buf_release(pin, &writer);
+    TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&writer));
 }
 
 void test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner(void)

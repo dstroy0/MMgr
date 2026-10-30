@@ -11,9 +11,11 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-10-29
  *
- * @note A cellblock is a run of bytes with a word ahead of each cell and a word behind it. The
- *       persistent tier allocates upward from base and the temporary tier allocates downward from
- *       size, and the gap between them is what either can still take.
+ * @note A cellblock is a run of bytes with a word ahead of each cell and two words behind it: the
+ *       cell's owner, then its tail, the cell's own offset on the persistent tier and the end of its
+ *       lifetime on the temporary one. The persistent tier allocates upward from base and the
+ *       temporary tier allocates downward from size, and the gap between them is what either can still
+ *       take.
  * @note A take reads the tiers word, finds the room between the two boundaries, and moves one of them
  *       by one swap on the word read; a swap that fails is a word another context moved first, and the
  *       take reads it again and decides over what it says now. A give clears the busy bit of the
@@ -21,17 +23,19 @@
  *       for another, and no context steps through another context's cells.
  * @note A cell given back below a tier's boundary stays in the tier, free, until the cells between it
  *       and the boundary are given back too. The give that frees the cell at the boundary trims it
- *       off by one swap on the tiers word, then reads the cell below through the word behind it, and
+ *       off by one swap on the tiers word, then reads the cell below through the tail behind it, and
  *       trims that one the same way while it reads free. Every cell trimmed off is marked dead. No
  *       byte outside the tiers reads as a free cell.
  * @note A take lays its words after the swap that gave it the bytes, by a swap from the word it reads
  *       there once they are its own, the word ahead of the payload last. A header another context has
  *       laid since is refused and never written over.
- * @note A temporary cell carries a third word, behind the word that names its owner: the end of the
- *       lifetime its take gave it, on the library's clock. A take gives back the cells at the top whose
- *       lifetimes have ended before it takes its own, and tells the port of each.
+ * @note A temporary cell's tail holds the end of the lifetime its take gave it, on the library's
+ *       clock. A take gives back the cells at the top whose lifetimes have ended before it takes its
+ *       own, and tells the port of each.
  * @note Every take, give and growth names a registered owner. The owners are kept in one queue, in
  *       the order they registered, and an owner's place in it with the time it registered is its key.
+ *       A cell counts to the owner its owner word names, and a give or a growth naming another owner
+ *       is refused and told to the port.
  */
 #include "locus_carcerum/locus_carcerum.h"
 
@@ -59,18 +63,13 @@
 #define CARCER_WORD ((sizeof(embed_atomic_usize) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
 
 /**
- * @brief Bytes a cell costs beyond its payload: the word ahead of it and the word behind it.
+ * @brief Bytes a cell costs beyond its payload: the word ahead of it, the owner's word behind it and
+ *        the tail behind that.
  *
  * @note Charged on top of the payload every time a cell is allocated. An allocation of size bytes
  *       costs the gap this much more than size.
  */
-#define CARCER_HDR (2u * CARCER_WORD)
-
-/**
- * @brief Bytes a temporary cell costs beyond its payload: the word ahead of it, the word behind it that
- *        names its owner, and the word behind that which holds the end of its lifetime.
- */
-#define CARCER_TEMPORARY_HDR (3u * CARCER_WORD)
+#define CARCER_HDR (3u * CARCER_WORD)
 
 /** @brief A difference of two clock readings at or above this is a time not yet reached. */
 #define CARCER_CLOCK_AHEAD 0x80000000u
@@ -174,11 +173,11 @@ EMBED_INLINE embed_atomic_usize_value carcer_word_state(embed_atomic_usize_value
 }
 
 /**
- * @brief Offset of the word behind a cell, which holds the cell's own offset.
+ * @brief Offset of the word behind a cell's payload, which names the cell's owner.
  *
  * @param[in] off  The cell's offset.
  * @param[in] size Its payload size.
- * @return         The offset of the word behind the payload.
+ * @return         The offset of the owner's word.
  */
 EMBED_INLINE size_t carcer_foot_of(size_t off, size_t size)
 {
@@ -186,7 +185,20 @@ EMBED_INLINE size_t carcer_foot_of(size_t off, size_t size)
 }
 
 /**
- * @brief Offset just past a cell: past its word, its payload and the word behind it.
+ * @brief Offset of a cell's tail, behind its owner's word: the cell's own offset on the persistent
+ *        tier, the end of its lifetime on the temporary one.
+ *
+ * @param[in] off  The cell's offset.
+ * @param[in] size Its payload size.
+ * @return         The offset of the tail.
+ */
+EMBED_INLINE size_t carcer_tail_of(size_t off, size_t size)
+{
+    return off + (2u * CARCER_WORD) + size;
+}
+
+/**
+ * @brief Offset just past a cell: past its word, its payload, its owner's word and its tail.
  *
  * @param[in] off  The cell's offset.
  * @param[in] size Its payload size.
@@ -195,31 +207,6 @@ EMBED_INLINE size_t carcer_foot_of(size_t off, size_t size)
 EMBED_INLINE size_t carcer_end_of(size_t off, size_t size)
 {
     return off + CARCER_HDR + size;
-}
-
-/**
- * @brief Offset just past a temporary cell: past its word, its payload, its owner's word and the word
- *        that holds the end of its lifetime.
- *
- * @param[in] off  The cell's offset.
- * @param[in] size Its payload size.
- * @return         The offset the next cell up begins at.
- */
-EMBED_INLINE size_t carcer_temporary_end_of(size_t off, size_t size)
-{
-    return off + CARCER_TEMPORARY_HDR + size;
-}
-
-/**
- * @brief Offset of the word that holds the end of a temporary cell's lifetime, behind its owner's word.
- *
- * @param[in] off  The cell's offset.
- * @param[in] size Its payload size.
- * @return         The offset of that word.
- */
-EMBED_INLINE size_t carcer_lifetime_of(size_t off, size_t size)
-{
-    return off + (2u * CARCER_WORD) + size;
 }
 
 /**
@@ -328,9 +315,9 @@ EMBED_INLINE embed_bool carcer_names_same(const char *left, const char *right)
 /**
  * @brief Whether an address is one of the registered owners'.
  *
- * @param[in] named The address, as the integer a cell's trailing word holds.
+ * @param[in] named The address, as the integer a cell's owner word holds.
  * @return          The owner where one is registered at that address, NULL where none is [BORROWS].
- * @note A cell's trailing word is read before any context has said the bytes are a cell's. The
+ * @note A cell's owner word is read before any context has said the bytes are a cell's. The
  *       address is matched against the queue before it is written through.
  */
 EMBED_INLINE CellOwner *carcer_owner_found(embed_atomic_usize_value named)
@@ -340,10 +327,10 @@ EMBED_INLINE CellOwner *carcer_owner_found(embed_atomic_usize_value named)
 
     for (size_t at = 0u; (at < count) && (at < MMGR_CARCER_OWNERS); at += 1u)
     {
-        // Explicit cast widens the trailing word's integer to the queue entry's to compare the two
+        // Explicit cast widens the owner word's integer to the queue entry's to compare the two
         if (embed_atomic_uptr_load(&s_owner_queue[at]) == (embed_atomic_uptr_value)named)
         {
-            // Explicit casts read the trailing word's integer back as the address it holds
+            // Explicit casts read the owner word's integer back as the address it holds
             return (CellOwner *)(uintptr_t)named;
         }
     }
@@ -435,6 +422,24 @@ EMBED_WEAK void mmgr_carcer_hw_expired(const CellOwner *owner, size_t bytes, uin
 }
 
 /**
+ * @brief Weak default for the report of a give or a growth naming an owner other than the cell's, which
+ *        does nothing.
+ *
+ * @param[in] named      The owner the give or the growth named [BORROWS].
+ * @param[in] cell_owner The owner the cell counts to, NULL where its word names no registered owner
+ *                       [BORROWS].
+ * @param[in] bytes      The cell's payload bytes.
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. A port defines the
+ *       name to replace it.
+ */
+EMBED_WEAK void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes)
+{
+    (void)named;
+    (void)cell_owner;
+    (void)bytes;
+}
+
+/**
  * @brief Clears the busy bit of a cell's word by one and, and reads the word as it was.
  *
  * @param[in,out] cellblock Cellblock the cell sits in [BORROWS].
@@ -451,12 +456,12 @@ EMBED_INLINE embed_atomic_usize_value carcer_freed(const CarcerCellBlock *cellbl
 }
 
 /**
- * @brief Takes a temporary cell's bytes off the owner its trailing word names, once.
+ * @brief Takes a cell's bytes off the owner its owner word names, once.
  *
  * @param[in,out] cellblock Cellblock the cell sits in [BORROWS].
  * @param[in]     off       The cell's offset.
  * @param[in]     size      Its payload size.
- * @note The trailing word is swapped from the owner read to none, and the context whose swap lands
+ * @note The owner word is swapped from the owner read to none, and the context whose swap lands
  *       takes the bytes off that owner. A give and a rewind reaching the same cell at once both come
  *       here, and the bytes come off once between them. A word that reads none names no owner and is
  *       left as it is.
@@ -468,7 +473,7 @@ EMBED_INLINE void carcer_foot_claimed(const CarcerCellBlock *cellblock, size_t o
 
     if ((named != 0u) && carcer_swapped(cellblock, foot, named, 0u))
     {
-        // Explicit casts read the trailing word's integer back as the address it holds
+        // Explicit casts read the owner word's integer back as the address it holds
         carcer_owner_gave((CellOwner *)(uintptr_t)named, size);
     }
 }
@@ -480,7 +485,7 @@ EMBED_INLINE void carcer_foot_claimed(const CarcerCellBlock *cellblock, size_t o
  * @param[in]     off       Offset of the lowest cell dropped.
  * @param[in]     bound     Offset the dropped cells end at: the mark of a rewind, or the top as it stands.
  * @note Each cell is claimed by one swap of its word, busy or free, for the dead word of the same size,
- *       and the context whose swap lands takes the bytes off the owner the trailing word names. Two
+ *       and the context whose swap lands takes the bytes off the owner the owner word names. Two
  *       contexts dropping the same cells count each once between them.
  * @note The walk steps by each cell's size and ends at bound, at a word that reads dead already, or at
  *       a word that is no cell: a size under one word or one that reaches past bound. A take whose
@@ -495,13 +500,13 @@ EMBED_INLINE void carcer_dropped(CarcerCellBlock *cellblock, size_t off, size_t 
         const size_t size = carcer_word_size(word);
 
         if ((carcer_word_state(word) == CARCER_DEAD) || (size < MMGR_CARCER_ALIGN) ||
-            (carcer_temporary_end_of(off, size) > bound) ||
+            (carcer_end_of(off, size) > bound) ||
             !carcer_swapped(cellblock, off, word, carcer_word(size, CARCER_DEAD)))
         {
             return;
         }
         carcer_foot_claimed(cellblock, off, size);
-        off = carcer_temporary_end_of(off, size);
+        off = carcer_end_of(off, size);
     }
 }
 
@@ -536,10 +541,10 @@ EMBED_INLINE void carcer_dropped(CarcerCellBlock *cellblock, size_t off, size_t 
  *       and the one boundary moves by one swap on the tiers word read. A swap that fails is a word
  *       another context moved, and the test runs again over what it holds now.
  * @note The cell's words are laid once the swap has landed, each read first and then swapped from what
- *       the read found: on the temporary tier the end of the lifetime first, then the word behind the
- *       payload, the cell's offset on the persistent tier and the owner on the temporary one, and the
- *       word ahead last, the size in the busy state. A context that reads the word ahead as busy reads
- *       the words behind as this take laid them. The reads come after the swap, since the bytes are
+ *       the read found: the tail first, the cell's offset on the persistent tier and the end of its
+ *       lifetime on the temporary one, then the owner's word, and the word ahead last, the size in the
+ *       busy state. A context that reads the word ahead as busy reads the words behind as this take laid
+ *       them. The reads come after the swap, since the bytes are
  *       this context's from that instant and from no earlier one: a read taken before it can be of a
  *       cell long gone, with the tiers word back at the value read by the time the swap lands. Outside
  *       the tiers every word is dead, and nothing writes a dead word but the take that owns its bytes.
@@ -553,7 +558,7 @@ EMBED_INLINE void carcer_dropped(CarcerCellBlock *cellblock, size_t off, size_t 
 EMBED_INLINE void *carcer_grow(CarcerCellBlock *cellblock, size_t want, embed_bool down, CellOwner *owner,
                                uint32_t ends_ms)
 {
-    const size_t need = (down ? CARCER_TEMPORARY_HDR : CARCER_HDR) + want;
+    const size_t need = CARCER_HDR + want;
     embed_atomic_usize_value tiers = embed_atomic_usize_load(&cellblock->tiers);
     size_t off;
 
@@ -575,22 +580,16 @@ EMBED_INLINE void *carcer_grow(CarcerCellBlock *cellblock, size_t want, embed_bo
         }
     }
     const size_t foot = carcer_foot_of(off, want);
-    const size_t lifetime = carcer_lifetime_of(off, want);
+    const size_t tail = carcer_tail_of(off, want);
     const embed_atomic_usize_value found_word = embed_atomic_usize_load(carcer_word_at(cellblock, off));
     const embed_atomic_usize_value found_foot = embed_atomic_usize_load(carcer_word_at(cellblock, foot));
-    // Explicit casts carry the owner's address as the integer the trailing word holds
-    const embed_atomic_usize_value behind = down ? (embed_atomic_usize_value)(uintptr_t)owner : (embed_atomic_usize_value)off;
+    const embed_atomic_usize_value found_tail = embed_atomic_usize_load(carcer_word_at(cellblock, tail));
+    // Explicit casts carry the owner's address as the integer the owner's word holds, and the offset as
+    // the integer a persistent tail holds
+    const embed_atomic_usize_value named = (embed_atomic_usize_value)(uintptr_t)owner;
+    const embed_atomic_usize_value tail_word = down ? (embed_atomic_usize_value)ends_ms : (embed_atomic_usize_value)off;
 
-    if (down)
-    {
-        const embed_atomic_usize_value found_lifetime = embed_atomic_usize_load(carcer_word_at(cellblock, lifetime));
-
-        if (!carcer_swapped(cellblock, lifetime, found_lifetime, ends_ms))
-        {
-            return NULL;
-        }
-    }
-    if (!carcer_swapped(cellblock, foot, found_foot, behind) ||
+    if (!carcer_swapped(cellblock, tail, found_tail, tail_word) || !carcer_swapped(cellblock, foot, found_foot, named) ||
         !carcer_swapped(cellblock, off, found_word, carcer_word(want, CARCER_BUSY)))
     {
         return NULL;
@@ -642,7 +641,7 @@ EMBED_INLINE size_t carcer_want(size_t want)
  *       free: the cell stays in the tier, free, for the give of the cell above to trim.
  * @note A dead word stands on every byte outside the tiers. No such byte reads as a free cell, and a
  *       take that lands on dead bytes swaps the dead word for its own.
- * @note The cell below is reached through the word behind it, which holds its offset. It is trimmed
+ * @note The cell below is reached through the tail behind it, which holds its offset. It is trimmed
  *       only where its word reads free with a size that ends exactly at this cell. A word not yet
  *       laid by a take, or bytes that are no cell, end the trim.
  */
@@ -670,7 +669,7 @@ EMBED_INLINE void carcer_trimmed(CarcerCellBlock *cellblock, size_t off, size_t 
         {
             return;
         }
-        // Explicit cast reads the word behind the cell below, size_t's width, as the offset it holds
+        // Explicit cast reads the tail behind the cell below, size_t's width, as the offset it holds
         const size_t below = (size_t)embed_atomic_usize_load(carcer_word_at(cellblock, off - CARCER_WORD));
 
         if ((below >= off) || ((below & (MMGR_CARCER_ALIGN - 1u)) != 0u))
@@ -713,7 +712,7 @@ EMBED_INLINE void carcer_top_trimmed(CarcerCellBlock *cellblock, size_t off, siz
     }
     while (!embed_atomic_usize_swap_if(&cellblock->tiers, &tiers,
                                        MMGR_CARCER_TIERS(mmgr_tiers_persistent_end(tiers),
-                                                         carcer_temporary_end_of(off, size))))
+                                                         carcer_end_of(off, size))))
     {
         if (mmgr_tiers_temporary_top(tiers) != off)
         {
@@ -761,7 +760,7 @@ EMBED_INLINE void carcer_expired_given(CarcerCellBlock *cellblock, embed_bool ze
     {
         const size_t top = mmgr_cellblock_temporary_top(cellblock);
 
-        if ((cellblock->size - top) < (CARCER_TEMPORARY_HDR + MMGR_CARCER_ALIGN))
+        if ((cellblock->size - top) < (CARCER_HDR + MMGR_CARCER_ALIGN))
         {
             return;
         }
@@ -770,7 +769,7 @@ EMBED_INLINE void carcer_expired_given(CarcerCellBlock *cellblock, embed_bool ze
         const embed_atomic_usize_value state = carcer_word_state(word);
 
         if ((state != CARCER_BUSY) || (size < MMGR_CARCER_ALIGN) ||
-            (carcer_temporary_end_of(top, size) > cellblock->size))
+            (carcer_end_of(top, size) > cellblock->size))
         {
             return;
         }
@@ -780,7 +779,7 @@ EMBED_INLINE void carcer_expired_given(CarcerCellBlock *cellblock, embed_bool ze
             clocked = EMBED_TRUE;
         }
         // Explicit cast narrows the lifetime's word to the 32-bit clock reading its take wrote into it
-        const uint32_t ends_ms = (uint32_t)embed_atomic_usize_load(carcer_word_at(cellblock, carcer_lifetime_of(top, size)));
+        const uint32_t ends_ms = (uint32_t)embed_atomic_usize_load(carcer_word_at(cellblock, carcer_tail_of(top, size)));
         const uint32_t overdue_ms = now - ends_ms;
 
         if (overdue_ms >= CARCER_CLOCK_AHEAD)
@@ -833,8 +832,7 @@ EMBED_INLINE size_t carcer_held_size(const CarcerCellBlock *cellblock, size_t of
  * @param[in]     off       The cell's offset.
  * @param[in]     carried   Its payload size as its word carries it.
  * @param[in]     want      The payload it grows to, rounded, above carried.
- * @param[in,out] owner     The owner a persistent cell is counted to [BORROWS]. A temporary cell is
- *                          counted to the owner its trailing word names.
+ * @param[in,out] owner     The owner the cell's owner word names, which the growth counts to [BORROWS].
  * @param[in]     zeroing   Whether the bytes the growth adds are zeroed.
  * @return                  The cell's first payload byte after the growth, moved for a temporary cell,
  *                          or NULL with nothing changed.
@@ -843,9 +841,9 @@ EMBED_INLINE size_t carcer_held_size(const CarcerCellBlock *cellblock, size_t of
  *       one swap on the tiers word, by the growth alone. A swap that finds neither boundary at the cell
  *       is a cell taken since, and the growth is refused; one that finds the other boundary moved is
  *       read again.
- * @note A persistent cell keeps its address. The word behind its payload is written past the growth
- *       first, then its own word with the new size. The bytes the growth adds, the word the payload stood
- *       behind among them, are zeroed where zeroing is set.
+ * @note A persistent cell keeps its address. Its tail and its owner's word are written past the growth
+ *       first, then its own word with the new size. The bytes the growth adds, the two words the payload
+ *       stood ahead of among them, are zeroed where zeroing is set.
  * @note A temporary cell moves down by the growth. Its word is written at the new top first, its
  *       payload moved down with memor.move_down, and the owner's word behind the payload stands where
  *       it stood. The bytes between the moved payload and that word are the old word and payload,
@@ -880,8 +878,11 @@ EMBED_INLINE void *carcer_grown(CarcerCellBlock *cellblock, size_t off, size_t c
     }
     if (!down)
     {
-        // Explicit cast carries the cell's offset as the integer the trailing word holds
-        embed_atomic_usize_store(carcer_word_at(cellblock, carcer_foot_of(off, want)), (embed_atomic_usize_value)off);
+        // Explicit casts carry the cell's offset as the integer the tail holds, and the owner's address as
+        // the integer its word holds
+        embed_atomic_usize_store(carcer_word_at(cellblock, carcer_tail_of(off, want)), (embed_atomic_usize_value)off);
+        embed_atomic_usize_store(carcer_word_at(cellblock, carcer_foot_of(off, want)),
+                                 (embed_atomic_usize_value)(uintptr_t)owner);
         embed_atomic_usize_store(carcer_word_at(cellblock, off), carcer_word(want, CARCER_BUSY));
         if (zeroing)
         {
@@ -906,7 +907,7 @@ EMBED_INLINE void *carcer_grown(CarcerCellBlock *cellblock, size_t off, size_t c
     // top read below finds it
     if (named != 0u)
     {
-        // Explicit casts read the trailing word's integer back as the owner's address
+        // Explicit casts read the owner word's integer back as the owner's address
         carcer_owner_took((CellOwner *)(uintptr_t)named, extra);
     }
     CARCER_HW(cellblock, temporary_hw, cellblock->size - at);
@@ -1026,7 +1027,51 @@ void mmgr_zero_buf(void *prisoner, size_t size)
     carcer_zero_bytes(&walk, &left, left);
 }
 
-void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner)
+/**
+ * @brief Whether the owner a give or a growth names is the owner the cell's owner word names.
+ *
+ * @param[in] cellblock Cellblock the cell sits in [BORROWS].
+ * @param[in] off       The cell's offset.
+ * @param[in] size      Its payload size.
+ * @param[in] owner     The owner named [BORROWS].
+ * @return              EMBED_TRUE where the two are the same owner.
+ * @note A word that names none is a cell given back already or dropped by a rewind or by the end of
+ *       its lifetime, and nothing is told. A word naming another owner is told to the port through
+ *       mmgr_carcer_hw_misnamed, with the owner the word names where it is a registered one.
+ */
+EMBED_INLINE embed_bool carcer_owner_named(const CarcerCellBlock *cellblock, size_t off, size_t size, const CellOwner *owner)
+{
+    const embed_atomic_usize_value held = embed_atomic_usize_load(carcer_word_at(cellblock, carcer_foot_of(off, size)));
+
+    // Explicit cast carries the owner's address as the integer the owner's word holds
+    if (held == (embed_atomic_usize_value)(uintptr_t)owner)
+    {
+        return EMBED_TRUE;
+    }
+    if (held != 0u)
+    {
+        mmgr_carcer_hw_misnamed(owner, carcer_owner_found(held), size);
+    }
+    return EMBED_FALSE;
+}
+
+/**
+ * @brief The give both security levels share: the owner tested against the cell's, the payload zeroed
+ *        where asked, the owner's word claimed and the cell freed and trimmed.
+ *
+ * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
+ * @param[in]     prisoner  First byte of the cell [TAKES OWNERSHIP].
+ * @param[in]     owner     The owner named [BORROWS].
+ * @param[in]     zeroing   Whether the payload is zeroed before the give.
+ * @note The cell's bytes come off the owner its owner word names, claimed by one swap of that word to
+ *       none: a rewind or the end of a lifetime dropping a temporary cell in the same instant claims it
+ *       the same way, and the bytes come off once between them. A give naming another owner changes
+ *       nothing, the payload included.
+ * @note The tier is read off the address ahead of the give, while the cell is busy and no trim can move
+ *       the end past it: a persistent cell lies below the end, a temporary one at or above the top, and
+ *       the end never passes the top.
+ */
+EMBED_INLINE void carcer_given(CarcerCellBlock *cellblock, void *prisoner, const CellOwner *owner, embed_bool zeroing)
 {
     if ((prisoner == NULL) || (owner == NULL))
     {
@@ -1038,54 +1083,42 @@ void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, Cel
     {
         MMGR_FATAL("a prisoner was released to a cellblock that does not hold it");
     }
-
     const size_t off = carcer_off_of(cellblock, prisoner);
-    // The tier is read off the address ahead of the give, while the cell is busy and no trim can move
-    // the end past it: a persistent cell lies below the end, a temporary one at or above the top, and
-    // the end never passes the top
+    const size_t size = carcer_held_size(cellblock, off);
+
+    if (!carcer_owner_named(cellblock, off, size, owner))
+    {
+        return;
+    }
     const embed_bool persistent = (embed_bool)(off < mmgr_cellblock_persistent_end(cellblock));
 
+    if (zeroing)
+    {
+        mmgr_zero_buf(prisoner, size);
+    }
+    carcer_foot_claimed(cellblock, off, size);
+    // A word that was not busy is a cell given back already, or dropped: the and has touched nothing a
+    // holder relies on, and the give ends here
+    if (carcer_word_state(carcer_freed(cellblock, off)) != CARCER_BUSY)
+    {
+        return;
+    }
     if (persistent)
     {
-        const embed_atomic_usize_value was = carcer_freed(cellblock, off);
-        const size_t size = carcer_word_size(was);
-
-        // A word that was not busy is a cell given back already, or bytes that are no cell: the and
-        // has touched nothing a holder relies on, and the give ends here
-        if (carcer_word_state(was) != CARCER_BUSY)
-        {
-            return;
-        }
-        carcer_owner_gave(owner, size);
         carcer_trimmed(cellblock, off, size);
         return;
     }
-    // A temporary cell comes off the owner its trailing word names, and the owner named here is not
-    // read. The count is claimed first, by the swap of that word to none, since a rewind dropping the
-    // cell at the same instant claims it the same way and the bytes come off once between the two
-    const size_t size = carcer_held_size(cellblock, off);
+    carcer_top_trimmed(cellblock, off, size);
+}
 
-    carcer_foot_claimed(cellblock, off, size);
-    if (carcer_word_state(carcer_freed(cellblock, off)) == CARCER_BUSY)
-    {
-        carcer_top_trimmed(cellblock, off, size);
-    }
+void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner)
+{
+    carcer_given(cellblock, prisoner, owner, EMBED_FALSE);
 }
 
 void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner)
 {
-    if ((prisoner == NULL) || (owner == NULL))
-    {
-        return;
-    }
-    // The same test as the plain release, taken ahead of the word read below. A quiet return here
-    // would report a wipe that never happened, and this stops instead
-    if (!mmgr_who_owns_buf(cellblock, prisoner))
-    {
-        MMGR_FATAL("a prisoner was released to a maximum security cellblock that does not hold it");
-    }
-    mmgr_zero_buf(prisoner, carcer_held_size(cellblock, carcer_off_of(cellblock, prisoner)));
-    mmgr_persistent_buf_release(cellblock, prisoner, owner);
+    carcer_given(cellblock, prisoner, owner, EMBED_TRUE);
 }
 
 /**
@@ -1094,10 +1127,11 @@ void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *
  * @param[in,out] cellblock Cellblock the prisoner came from [BORROWS].
  * @param[in,out] prisoner  First byte of the cell [BORROWS].
  * @param[in]     size      Payload bytes the cell is to carry.
- * @param[in,out] owner     The owner a persistent cell is counted to [BORROWS].
+ * @param[in,out] owner     The owner the cell's owner word names [BORROWS].
  * @param[in]     zeroing   Whether the bytes the growth adds are zeroed.
  * @return                  The cell after the growth, the prisoner itself where it carries size already,
- *                          or NULL with nothing changed, as for a NULL prisoner or a NULL owner.
+ *                          or NULL with nothing changed, as for a NULL prisoner, a NULL owner, or an
+ *                          owner other than the cell's.
  */
 EMBED_INLINE void *carcer_grow_asked(CarcerCellBlock *cellblock, void *prisoner, size_t size, CellOwner *owner,
                                      embed_bool zeroing)
@@ -1114,6 +1148,10 @@ EMBED_INLINE void *carcer_grow_asked(CarcerCellBlock *cellblock, void *prisoner,
     const size_t held = carcer_held_size(cellblock, off);
     const size_t want = carcer_want(size);
 
+    if (!carcer_owner_named(cellblock, off, held, owner))
+    {
+        return NULL;
+    }
     if (want <= held)
     {
         return prisoner;
@@ -1239,7 +1277,7 @@ void mmgr_cellblock_emptied(CarcerCellBlock *cellblock)
         {
             (void)carcer_swapped(cellblock, off, word, carcer_word(size, CARCER_DEAD));
         }
-        off = carcer_temporary_end_of(off, size);
+        off = carcer_end_of(off, size);
     }
     embed_atomic_usize_store(&cellblock->tiers, MMGR_CARCER_TIERS(0u, cellblock->size));
 }

@@ -116,17 +116,20 @@ would, and calls `mmgr_carcer_hw_expired` with the owner, the bytes and how long
 cell stood, for a port to log. A cell below one still in its lifetime waits for it. A persistent take
 the gap cannot meet runs the backstop once and tries again.
 
-`mmgr_carcer_hw_clock_ms` and `mmgr_carcer_hw_expired` are weak. The default clock answers 0 every
-time, and no lifetime ends; the default report does nothing. A port defines both names.
+`mmgr_carcer_hw_clock_ms`, `mmgr_carcer_hw_expired` and `mmgr_carcer_hw_misnamed` are weak. The
+default clock answers 0 every time, and no lifetime ends; the default reports do nothing. A port
+defines all three names.
 
 The take adds the cell's payload, read off its header, to `reader.in_use` and raises `reader.hw` to
-it; the release takes the same bytes off. A temporary cell keeps its owner in its trailing word, and
-the rewind that drops it takes its bytes off that owner, as does a single release of it, whatever
-owner the release is handed, and as does the backstop at the end of its lifetime. The owner is the
-caller's storage: the cellblock still does not ask which context reached it.
+it; the release takes the same bytes off. Every cell keeps its owner in the word behind its payload.
+A release, a growth, a rewind and the backstop each count the cell's bytes off that owner. A release
+or a growth must name it: one naming another owner is refused, changes nothing, the payload of a
+maximum security cell included, and calls `mmgr_carcer_hw_misnamed` with the owner named, the owner
+the cell counts to and its bytes. The owner is the caller's storage: the cellblock still does not ask
+which context reached it.
 
-@warning An owner must outlive every cell counted to it: the queue holds its address, and a rewind
-writes the count through the pointer a temporary cell kept.
+@warning An owner must outlive every cell counted to it: the queue holds its address, and a release or
+a rewind writes the count through the pointer the cell kept.
 
 @warning A temporary cell past its lifetime is not its holder's. The backstop gives it back and the
 cellblock may hand its bytes to another take.
