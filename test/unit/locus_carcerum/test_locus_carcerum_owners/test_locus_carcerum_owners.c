@@ -149,3 +149,59 @@ void test_one_owner_counts_across_cellblocks(void)
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&owner.in_use));
     TEST_ASSERT_EQUAL_size_t(32u, (size_t)embed_atomic_usize_load(&owner.hw));
 }
+
+void test_a_temporary_take_counts_the_cell_to_its_owner(void)
+{
+    CellOwner owner = MMGR_CELL_OWNER("scratch");
+
+    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(33u, &owner));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(mmgr_align_up_buf(33u), (size_t)embed_atomic_usize_load(&owner.in_use), "the cell's payload is what is counted");
+    TEST_ASSERT_EQUAL_size_t((size_t)embed_atomic_usize_load(&owner.in_use), (size_t)embed_atomic_usize_load(&owner.hw));
+    counted.plain.temporary_buf_reset();
+}
+
+void test_a_rewind_counts_the_dropped_cells_off_their_owners(void)
+{
+    CellOwner reader = MMGR_CELL_OWNER("reader");
+    CellOwner writer = MMGR_CELL_OWNER("writer");
+    void *const kept = counted.plain.temporary_buf_alloc(16u, &reader);
+    const size_t mark = counted.plain.temporary_buf_mark();
+
+    TEST_ASSERT_NOT_NULL(kept);
+    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(24u, &reader));
+    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(40u, &writer));
+    TEST_ASSERT_EQUAL_size_t(40u, (size_t)embed_atomic_usize_load(&reader.in_use));
+    TEST_ASSERT_EQUAL_size_t(40u, (size_t)embed_atomic_usize_load(&writer.in_use));
+    counted.plain.temporary_buf_release(mark);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(16u, (size_t)embed_atomic_usize_load(&reader.in_use), "the cell below the mark stays counted");
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&writer.in_use));
+    counted.plain.temporary_buf_reset();
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&reader.in_use));
+    TEST_ASSERT_EQUAL_size_t(40u, (size_t)embed_atomic_usize_load(&reader.hw));
+}
+
+void test_a_temporary_cell_given_back_alone_counts_off_the_owner_that_took_it(void)
+{
+    CellOwner owner = MMGR_CELL_OWNER("scratch");
+    void *const prisoner = counted.plain.temporary_buf_alloc(32u, &owner);
+
+    // the footer names the owner, and the give reads it there whatever owner it is handed
+    counted.plain.persistent_buf_release(prisoner, NULL);
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&owner.in_use));
+    counted.plain.temporary_buf_reset();
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&owner.in_use), "the reset counts a cell given back once already off no owner");
+}
+
+void test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner(void)
+{
+    CellOwner owner = MMGR_CELL_OWNER("keys");
+    const size_t mark = counted.wiped.temporary_buf_mark();
+    uint8_t *const prisoner = (uint8_t *)counted.wiped.temporary_buf_alloc(24u, &owner);
+
+    TEST_ASSERT_NOT_NULL(prisoner);
+    prisoner[0] = 0xA5u;
+    TEST_ASSERT_EQUAL_size_t(24u, (size_t)embed_atomic_usize_load(&owner.in_use));
+    counted.wiped.temporary_buf_release(mark);
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&owner.in_use));
+    TEST_ASSERT_EQUAL_UINT8(0u, prisoner[0]);
+}

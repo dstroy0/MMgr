@@ -101,20 +101,23 @@ EMBED_STATIC_ASSERT((MMGR_CARCER_ALIGN & (MMGR_CARCER_ALIGN - 1u)) == 0u,
                     "the cellblock rounds offsets by masking, which needs a power of two alignment");
 
 /**
- * @brief One owner of persistent cells: its name, the payload bytes of the cells it has now, and the
+ * @brief One owner of cells: its name, the payload bytes of the cells it has now on both tiers, and the
  *        most it had at once.
  *
- * @note The caller's storage, named on every persistent take and give. A take adds the cell's payload
- *       bytes to in_use and raises hw to it; a give takes the same bytes off. NULL in place of an
- *       owner counts nothing. Every count is an atomic word, added to and raised in one step each, and
- *       an owner shared between contexts counts exactly.
+ * @note The caller's storage, named on every take. A take adds the cell's payload bytes to in_use and
+ *       raises hw to it; a give takes the same bytes off. NULL in place of an owner counts nothing.
+ *       Every count is an atomic word, added to and raised in one step each, and an owner shared
+ *       between contexts counts exactly.
  * @note The bytes counted are the cell's own: the request rounded to a whole word, counted on the take
  *       and read off the cell's word on the give, and a matched pair returns in_use to where it stood.
+ * @note A persistent cell comes off the owner its give names. A temporary cell carries its owner in
+ *       the word behind its payload, and comes off that owner whether a single give or a rewind drops
+ *       it; the owner a single give names for a temporary cell is not read.
  * @note listed_in is the cellblock whose owner list carries this owner, as the integer of its address,
  *       0 until one does. An owner is listed by the first cellblock it takes from, where
  *       MMGR_ENABLE_OWNERS is 1.
- * @warning Counts the persistent tier alone. A temporary cell given back through the persistent
- *          release with an owner named takes bytes off that owner which no take added.
+ * @warning An owner must outlive every temporary cell counted to it until the rewind that drops the
+ *          cell: the rewind writes the owner through the address the cell carries.
  */
 typedef struct
 {
@@ -327,7 +330,7 @@ typedef struct
         CellOwner *owner); /**< Takes size bytes from the bottom for owner, unzeroed [RETURNS OWNERSHIP]. */
     void (*persistent_buf_release)(
         void *prisoner, CellOwner *owner);      /**< Releases owner's prisoner, cell left as it is [TAKES OWNERSHIP]. */
-    void *(*temporary_buf_alloc)(size_t size);  /**< Takes size bytes from the top, unzeroed [RETURNS OWNERSHIP]. */
+    void *(*temporary_buf_alloc)(size_t size, CellOwner *owner); /**< Takes size bytes from the top for owner, unzeroed [RETURNS OWNERSHIP]. */
     size_t (*temporary_buf_mark)(void);         /**< The current top, for temporary_buf_release. */
     void (*temporary_buf_release)(size_t mark); /**< Restores the top a mark reported, zeroing nothing. */
     void (*temporary_buf_reset)(void);          /**< Releases the whole temporary tier at once. */
@@ -353,7 +356,7 @@ typedef struct
         size_t size, CellOwner *owner); /**< Takes size bytes from the bottom for owner [RETURNS OWNERSHIP]. */
     void (*persistent_buf_release)(void *prisoner,
                                    CellOwner *owner); /**< Zeroes owner's cell, then releases it [TAKES OWNERSHIP]. */
-    void *(*temporary_buf_alloc)(size_t size);        /**< Takes size bytes from the top [RETURNS OWNERSHIP]. */
+    void *(*temporary_buf_alloc)(size_t size, CellOwner *owner); /**< Takes size bytes from the top for owner [RETURNS OWNERSHIP]. */
     size_t (*temporary_buf_mark)(void);               /**< The current top, for temporary_buf_release. */
     void (*temporary_buf_release)(size_t mark);       /**< Zeroes back to the mark, then restores the top. */
     void (*temporary_buf_reset)(void);                /**< Zeroes the whole temporary tier, then releases it. */
@@ -408,9 +411,9 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
             mmgr_persistent_buf_release(&prisonsite_##_##name_##_ctx, prisoner, owner);                                \
         }                                                                                                              \
     }                                                                                                                  \
-    MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size)                           \
+    MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size, CellOwner *owner)         \
     {                                                                                                                  \
-        void *const prisoner = mmgr_temporary_buf_alloc(&prisonsite_##_##name_##_ctx, size);                           \
+        void *const prisoner = mmgr_temporary_buf_alloc(&prisonsite_##_##name_##_ctx, size, owner);                    \
         return prisoner;                                                                                               \
     }                                                                                                                  \
     static size_t prisonsite_##_##name_##_temporary_buf_mark(void)                                                     \
@@ -764,16 +767,22 @@ void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *
  *
  * @param[in,out] cellblock Cellblock to take from [BORROWS].
  * @param[in]     size      Bytes wanted.
+ * @param[in,out] owner     The owner the cell is counted to, or NULL to count it to none [BORROWS].
  * @return                  Start of the cell, or NULL when the cellblock cannot meet it [RETURNS OWNERSHIP].
  * @note The bytes normally go back by mark, through mmgr_temporary_buf_release or
- *       mmgr_temporary_buf_reset.
+ *       mmgr_temporary_buf_reset, and the rewind takes them off owner then. The cell carries owner in
+ *       the word behind its payload, and the take counts to owner and lists it as a persistent take
+ *       does.
+ * @note The take is one swap on the tiers word, which moves the top down by the cell. A rewind landing
+ *       between that swap and the cell's words drops the cell, and the take then answers NULL with
+ *       nothing counted.
  * @note A single release through mmgr_persistent_buf_release works here too, but trims the top only
  *       when the freed cell sits at it. Anything freed below stays in the tier, free, and no
  *       allocation at this tier reads it: nothing reuses that cell before the next rewind.
  * @warning The bytes are not zeroed, and an allocation returns whatever the last prisoner left. A
  *          cellblock declared MMGR_MAXIMUM_SECURITY zeroes, and it zeroes on release.
  */
-MMGR_ALLOC_SIZE(2) void *mmgr_temporary_buf_alloc(CarcerCellBlock *cellblock, size_t size);
+MMGR_ALLOC_SIZE(2) void *mmgr_temporary_buf_alloc(CarcerCellBlock *cellblock, size_t size, CellOwner *owner);
 
 /**
  * @brief The temporary tier's current top, to hand back to mmgr_temporary_buf_release.
@@ -792,9 +801,12 @@ size_t mmgr_temporary_buf_mark(const CarcerCellBlock *cellblock);
  *
  * @param[in,out] cellblock Cellblock to rewind [BORROWS].
  * @param[in]     mark      Top to restore, as mmgr_temporary_buf_mark reported it.
- * @note The top moves to mark by one swap on the tiers word, read again where the end moved. A mark
- *       below the top as it stands is refused, since it would lower the tier onto bytes an earlier
- *       restore already released, and a mark past the cellblock's size is refused too.
+ * @note Every cell from the top to mark is dropped first: its word is swapped from busy or free to
+ *       dead, and its payload bytes come off the owner its trailing word names. Then the top moves to
+ *       mark by one swap on the tiers word. Where a take lowered the top meanwhile, its cells are
+ *       dropped too and the swap runs again. A mark below the top as it stands is refused, since it
+ *       would lower the tier onto bytes an earlier restore already released, and a mark past the
+ *       cellblock's size is refused too.
  * @warning A mark this cellblock never reported, above the top and inside the size, is taken as given
  *          and moves the tier there.
  * @warning Every temporary cell taken since mark is dead once this returns. Nothing is zeroed: such a
@@ -808,16 +820,13 @@ void mmgr_temporary_buf_release(CarcerCellBlock *cellblock, size_t mark);
  * @param[in,out] cellblock Cellblock to rewind [BORROWS].
  * @param[in]     mark      Top to restore, as mmgr_temporary_buf_mark reported it.
  * @note The order is the point. The temporary tier grows down: the live bytes are [top, mark) and
- *       reclaiming means raising the top. Zeroing first means they are already zero at the instant
- *       they become available. Reclaiming first would leave a window in which the next allocation,
- *       or a preempting handler, sees what the last prisoner left.
+ *       reclaiming means raising the top. The cells are dropped off their owners first, as
+ *       mmgr_temporary_buf_release drops them, then zeroed, then the top moves: the bytes are already
+ *       zero at the instant they become available. Where a take lowered the top meanwhile, its cells
+ *       are dropped and zeroed too and the swap runs again.
  * @warning Every temporary cell taken since mark is dead once this returns.
- * @warning The zeroing is skipped when mark is not above the current top, or lies past the
- *          cellblock's size, and the top is assigned either way. A mark this cellblock did not
- *          report can rewind the tier without zeroing anything.
- * @warning The top is read once, ahead of the zeroing. An allocation from a preempting handler
- *          landing between that read and the restore is dropped unzeroed, since the extent was
- *          settled from the older top.
+ * @warning A mark not above the top as it stands, or past the cellblock's size, is refused: nothing is
+ *          zeroed and the top stays.
  */
 void mmgr_max_security_buf_return(CarcerCellBlock *cellblock, size_t mark);
 
@@ -940,9 +949,9 @@ void mmgr_cellblock_emptied(CarcerCellBlock *cellblock);
             mmgr_persistent_buf_release(prisonsite_##_##name_##_ctx, prisoner, owner);                                 \
         }                                                                                                              \
     }                                                                                                                  \
-    MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size)                           \
+    MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size, CellOwner *owner)         \
     {                                                                                                                  \
-        void *const prisoner = mmgr_temporary_buf_alloc(prisonsite_##_##name_##_ctx, size);                            \
+        void *const prisoner = mmgr_temporary_buf_alloc(prisonsite_##_##name_##_ctx, size, owner);                     \
         return prisoner;                                                                                               \
     }                                                                                                                  \
     static size_t prisonsite_##_##name_##_temporary_buf_mark(void)                                                     \

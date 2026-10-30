@@ -33,6 +33,7 @@ LocusCarcerum(crowded, MMGR_MINIMUM_SECURITY(shared));
 static embed_atomic_u32 s_next_index = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_refused = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_overwritten = EMBED_ATOMIC_INIT(0u);
+static embed_atomic_usize s_kept = EMBED_ATOMIC_INIT(0u);
 static CellOwner s_crowd = MMGR_CELL_OWNER("crowd");
 static CellOwner s_own[MMGR_HOST_THREADS_MOST];
 
@@ -42,6 +43,7 @@ void setUp(void)
     embed_atomic_u32_store(&s_next_index, 0u);
     embed_atomic_usize_store(&s_refused, 0u);
     embed_atomic_usize_store(&s_overwritten, 0u);
+    embed_atomic_usize_store(&s_kept, 0u);
     s_crowd = (CellOwner)MMGR_CELL_OWNER("crowd");
 }
 
@@ -107,14 +109,16 @@ static void contend_own_owner(void)
     contend_with(&s_own[index], index);
 }
 
-// Each thread takes temporary cells, fills and reads them back as the persistent case does, and gives
-// each back one at a time through the release that reads the tier off the address
-static void contend_temporary(void)
+// Each thread takes temporary cells for owner, fills and reads them back as the persistent case does,
+// and where giving is set gives each back one at a time through the release that reads the tier off
+// the address; otherwise the cells stay for the rewind
+static void contend_temporary_with(CellOwner *owner, embed_bool giving)
 {
     const unsigned int index = contend_index_taken();
     const uint8_t mark = (uint8_t)(index + 1u);
     size_t refused = 0u;
     size_t overwritten = 0u;
+    size_t kept = 0u;
     for (size_t round = 0u; round < CONTEND_ROUNDS; round++)
     {
         uint8_t *held[CONTEND_HELD];
@@ -122,7 +126,7 @@ static void contend_temporary(void)
         for (size_t at = 0u; at < CONTEND_HELD; at++)
         {
             wanted[at] = 8u + (8u * ((round + at + index) % 6u));
-            held[at] = (uint8_t *)crowded.shared.temporary_buf_alloc(wanted[at]);
+            held[at] = (uint8_t *)crowded.shared.temporary_buf_alloc(wanted[at], owner);
             refused += (held[at] == NULL) ? 1u : 0u;
             for (size_t byte = 0u; (held[at] != NULL) && (byte < wanted[at]); byte++)
             {
@@ -135,11 +139,34 @@ static void contend_temporary(void)
             {
                 overwritten += (held[at][byte] != mark) ? 1u : 0u;
             }
-            crowded.shared.persistent_buf_release(held[at], NULL);
+            if (giving)
+            {
+                crowded.shared.persistent_buf_release(held[at], NULL);
+            }
+            else
+            {
+                kept += (held[at] != NULL) ? mmgr_align_up_buf(wanted[at]) : 0u;
+            }
         }
     }
     (void)embed_atomic_usize_fetch_add(&s_refused, refused);
     (void)embed_atomic_usize_fetch_add(&s_overwritten, overwritten);
+    (void)embed_atomic_usize_fetch_add(&s_kept, kept);
+}
+
+static void contend_temporary(void)
+{
+    contend_temporary_with(NULL, EMBED_TRUE);
+}
+
+static void contend_temporary_shared_owner(void)
+{
+    contend_temporary_with(&s_crowd, EMBED_TRUE);
+}
+
+static void contend_temporary_kept(void)
+{
+    contend_temporary_with(&s_crowd, EMBED_FALSE);
 }
 
 void test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave(void)
@@ -150,12 +177,12 @@ void test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave(void)
     crowded.shared.persistent_buf_release(prisoner, NULL);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
     const size_t mark = crowded.shared.temporary_buf_mark();
-    void *const scratch = crowded.shared.temporary_buf_alloc(16u);
+    void *const scratch = crowded.shared.temporary_buf_alloc(16u, NULL);
     TEST_ASSERT_NOT_NULL(scratch);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
     crowded.shared.temporary_buf_release(mark);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
-    (void)crowded.shared.temporary_buf_alloc(16u);
+    (void)crowded.shared.temporary_buf_alloc(16u, NULL);
     crowded.shared.temporary_buf_reset();
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, tiers_held(), "nothing held, nothing in either tier");
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
@@ -214,4 +241,28 @@ void test_an_owner_for_each_thread_is_counted_back_to_nothing(void)
         TEST_ASSERT_TRUE(embed_atomic_usize_load(&s_own[at].hw) > 0u);
     }
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&s_overwritten));
+}
+
+void test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing(void)
+{
+    // every temporary take counts to the owner it names, and the single give counts the cell off the
+    // owner its footer names whatever owner the give is handed
+    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_shared_owner, MMGR_HOST_THREADS_MOST));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten), "a temporary cell was handed to two threads at once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_crowd.in_use), "a temporary take or give was counted twice or not at all");
+    TEST_ASSERT_TRUE(embed_atomic_usize_load(&s_crowd.hw) > 0u);
+    crowded.shared.temporary_buf_reset();
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_crowd.in_use), "the reset found a cell still counted");
+}
+
+void test_a_reset_counts_every_temporary_cell_off_its_owner(void)
+{
+    // the threads keep every cell they are handed, and the reset alone counts them off
+    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_kept, MMGR_HOST_THREADS_MOST));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten), "a temporary cell was handed to two threads at once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE((size_t)embed_atomic_usize_load(&s_kept), (size_t)embed_atomic_usize_load(&s_crowd.in_use),
+                                     "the owner counts every payload the tier holds");
+    crowded.shared.temporary_buf_reset();
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_crowd.in_use), "the reset left a cell counted");
+    TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
 }

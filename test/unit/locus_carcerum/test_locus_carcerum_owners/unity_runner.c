@@ -17,6 +17,10 @@ extern void test_a_null_owner_counts_nothing(void);
 extern void test_two_owners_are_counted_apart(void);
 extern void test_a_maximum_security_give_counts_like_a_plain_one(void);
 extern void test_one_owner_counts_across_cellblocks(void);
+extern void test_a_temporary_take_counts_the_cell_to_its_owner(void);
+extern void test_a_rewind_counts_the_dropped_cells_off_their_owners(void);
+extern void test_a_temporary_cell_given_back_alone_counts_off_the_owner_that_took_it(void);
+extern void test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner(void);
 
 
 /*=======Mock Management=====*/
@@ -88,6 +92,10 @@ int main(void)
   run_test(test_two_owners_are_counted_apart, "test_two_owners_are_counted_apart", 114);
   run_test(test_a_maximum_security_give_counts_like_a_plain_one, "test_a_maximum_security_give_counts_like_a_plain_one", 129);
   run_test(test_one_owner_counts_across_cellblocks, "test_one_owner_counts_across_cellblocks", 140);
+  run_test(test_a_temporary_take_counts_the_cell_to_its_owner, "test_a_temporary_take_counts_the_cell_to_its_owner", 153);
+  run_test(test_a_rewind_counts_the_dropped_cells_off_their_owners, "test_a_rewind_counts_the_dropped_cells_off_their_owners", 163);
+  run_test(test_a_temporary_cell_given_back_alone_counts_off_the_owner_that_took_it, "test_a_temporary_cell_given_back_alone_counts_off_the_owner_that_took_it", 183);
+  run_test(test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner, "test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner", 195);
 
   return UNITY_END();
 }

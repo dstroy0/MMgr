@@ -79,7 +79,7 @@ if (table == NULL) {
 }
 
 const size_t mark = prison.work.temporary_buf_mark();
-char *const  buf  = prison.work.temporary_buf_alloc(256);
+char *const  buf  = prison.work.temporary_buf_alloc(256, NULL);
 
 /* ... use buf ... */
 

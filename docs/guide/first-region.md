@@ -16,18 +16,18 @@ LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work), MMGR_MAXIMUM_SECURITY(keys));
 ```
 
 The first two lines declare the storage and its alignment. The third dresses each pool as a
-cellblock and emits the site. All three are declarations, not calls: everything they emit is
+cellblock and emits the site. All three are declarations and none is a call: everything they emit is
 initialized data, nothing runs at startup, and a cellblock's first byte is the address of the pool
 it was declared over, which the linker resolves.
 
-A cellblock is reached by the name of its pool, so `prison.work` is the cellblock over `work`. Pool
-names stand for one region each, which is why no two cellblocks anywhere in a translation unit can
+A cellblock is reached by the name of its pool, and `prison.work` is the cellblock over `work`. Pool
+names stand for one region each, and no two cellblocks anywhere in a translation unit can
 share a name.
 
 `MMGR_MINIMUM_SECURITY` and `MMGR_MAXIMUM_SECURITY` pick which guards hold a cellblock, and the
 choice is settled at the declaration: "The warden is const, so nothing after the declaration can
 change the level a cellblock runs at" (`src/locus_carcerum/locus_carcerum.h:24`). The two guard types
-declare the same eight entries under different behavior, so `prison.keys` has no unzeroed release to
+declare the same eight entries under different behavior, and `prison.keys` has no unzeroed release to
 reach for and `prison.work` has no zeroing one
 (`src/locus_carcerum/locus_carcerum.h:115`, `src/locus_carcerum/locus_carcerum.h:139`).
 
@@ -35,7 +35,7 @@ reach for and `prison.work` has no zeroing one
 
 ```c
 uint8_t *config = prison.work.persistent_buf_alloc(128, NULL);
-uint8_t *working = prison.work.temporary_buf_alloc(512);
+uint8_t *working = prison.work.temporary_buf_alloc(512, NULL);
 ```
 
 Both return the first byte of a cell `[RETURNS OWNERSHIP]`. The persistent tier takes it back through
@@ -65,8 +65,8 @@ Interim is a stack. You do not free a pointer, you rewind to a mark.
 
 ```c
 size_t m = prison.work.temporary_buf_mark();
-uint8_t *a = prison.work.temporary_buf_alloc(256);
-uint8_t *b = prison.work.temporary_buf_alloc(256);
+uint8_t *a = prison.work.temporary_buf_alloc(256, NULL);
+uint8_t *b = prison.work.temporary_buf_alloc(256, NULL);
 
 prison.work.temporary_buf_release(m);
 ```
@@ -74,7 +74,7 @@ prison.work.temporary_buf_release(m);
 This is the pattern for any bounded operation: mark on the way in, `reddo` on the way out, and the
 interim cost of the operation is zero afterwards no matter how many takes it made.
 
-@warning Nothing is reallocated and nothing moves, so `a` and `b` still point at readable memory
+@warning Nothing is reallocated and nothing moves, and `a` and `b` still point at readable memory
 after the `reddo`. They are dead all the same, and the next `temporary_buf_alloc` will hand that same
 memory to someone else. A pointer that outlives its mark is the sharpest edge in this library.
 
@@ -106,7 +106,7 @@ ctest --test-dir build -R '_checks$' --output-on-failure
 ```
 
 Then size the region to the peak plus whatever margin your failure policy wants. @ref concept_zero_heap
-makes the argument for why this is the bill worth paying.
+argues why this is the bill worth paying.
 
 ## Putting it together
 
@@ -115,7 +115,7 @@ static embed_bool handle(const uint8_t *msg, size_t len)
 {
     const size_t mark = prison.work.temporary_buf_mark();
 
-    uint8_t *const buf = prison.work.temporary_buf_alloc(len);
+    uint8_t *const buf = prison.work.temporary_buf_alloc(len, NULL);
     if (buf == NULL) {
         return EMBED_FALSE;
     }

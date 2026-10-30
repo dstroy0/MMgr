@@ -30,8 +30,8 @@ static volatile size_t g_ext_large = 65536u;
 
 static volatile size_t g_cmp_len = 8u;
 
-// The distance between the two ends of a backward move, held in a volatile so the collision check
-// cannot be settled at compile time. Read as a constant, the branch folds and the arm measures a
+// The distance between the two ends of a backward move, kept in a volatile that keeps the collision
+// check from being settled at compile time. Read as a constant, the branch folds and the arm measures a
 // decision the library would have to make at run time
 static volatile size_t g_move_gap = 64u;
 
@@ -309,12 +309,12 @@ static embed_iword cmp_aligned(const uint8_t *a, const uint8_t *b, size_t bytes)
  * @brief Arguments for the backward move arms.
  *
  * @note Mirrors MemorMoveCtx in memoria_operor.c, down to neither pointer being restrict qualified.
- *       move_up is the entry for regions that overlap, which is the thing restrict promises does not
+ *       move_up is the entry for regions that overlap, the thing restrict promises does not
  *       happen. An arm that added it would time a move the library is not allowed to make.
  */
 typedef struct
 {
-    uint8_t *dst;       /**< Destination [BORROWS]. */
+    uint8_t *dst;       /**< Where the move writes [BORROWS]. */
     const uint8_t *src; /**< Source [BORROWS]. */
     size_t bytes;       /**< Bytes to move. */
 } BenchMoveCtx;
@@ -322,11 +322,11 @@ typedef struct
 /**
  * @brief Moves args->bytes backward, one word an iteration, as memor_move_up does today.
  *
- * @param[in,out] args Destination, source and count [BORROWS].
+ * @param[in,out] args dst, src and the count [BORROWS].
  * @note The control. It reproduces the shipping word loop step for step - decrement both pointers,
  *       then one aligned load and one aligned store - so the row against memor.move_up itself shows
  *       whether this reproduction is faithful before the unrolled arms are read against it.
- * @note Advances both pointers to the end and walks them back, which is what the entry does.
+ * @note Advances both pointers to the end and walks them back, as the entry does.
  * @warning args->dst must be writable and args->src readable for args->bytes, and both must be
  *          word aligned. The word loop goes through proxim.al_load and proxim.al_put.
  */
@@ -359,16 +359,15 @@ EMBED_INLINE void move_up_one_word(BenchMoveCtx *args)
 /**
  * @brief Moves args->bytes backward, four words an iteration, loading and storing each in turn.
  *
- * @param[in,out] args Destination, source and count [BORROWS].
+ * @param[in,out] args dst, src and the count [BORROWS].
  * @note The unroll memor_cpy already has walking forward, turned around. Its comment records what
  *       the width is worth there: a one word loop measured 1.02 cycles a byte against 0.65 on the
- *       ESP32-S3. This arm is what says whether the backward walk gets the same thing.
- * @note Each word is loaded and stored before the next is loaded, which is the order memor_cpy
- *       uses. move_up_four_loads is the same unroll with all four loads taken first, and the row
- *       between the two is what separates the width from the ordering.
- * @note Safe on an overlap with the destination above the source. Every store lands at an address
- *       above every source byte a later pass reads, because the walk descends and the destination
- *       is the higher of the two.
+ *       ESP32-S3. This arm says whether the backward walk gets the same thing.
+ * @note Each word is loaded and stored before the next is loaded, the order memor_cpy uses.
+ *       move_up_four_loads is the same unroll with all four loads taken first, and the row between
+ *       the two separates the width from the ordering.
+ * @note Safe on an overlap with dst above src. Every store lands at an address above every src
+ *       byte a later pass reads, because the walk descends and dst is the higher of the two.
  * @warning args->dst must be writable and args->src readable for args->bytes, and both must be
  *          word aligned.
  */
@@ -417,12 +416,12 @@ EMBED_INLINE void move_up_four_words(BenchMoveCtx *args)
 /**
  * @brief Moves args->bytes backward, four words an iteration, taking all four loads first.
  *
- * @param[in,out] args Destination, source and count [BORROWS].
+ * @param[in,out] args dst, src and the count [BORROWS].
  * @note Same width as move_up_four_words and a different order. Neither pointer is restrict
- *       qualified, so the compiler has to assume a store may land on the next word to be loaded and
+ *       qualified, and the compiler has to assume a store may land on the next word to be loaded and
  *       cannot lift a load above a store on its own. Writing the four loads out first is how the
  *       four become independent without promising something move_up cannot promise.
- * @note Still safe on an overlap with the destination above the source, and for a wider margin than
+ * @note Still safe on an overlap with dst above src, and for a wider margin than
  *       the interleaved form: nothing is written until all four words are in registers.
  * @warning args->dst must be writable and args->src readable for args->bytes, and both must be
  *          word aligned.
@@ -473,27 +472,27 @@ EMBED_INLINE void move_up_four_loads(BenchMoveCtx *args)
 /**
  * @brief Moves args->bytes backward by copying disjoint chunks down from the far end.
  *
- * @param[in,out] args Destination, source and count [BORROWS].
+ * @param[in,out] args dst, src and the count [BORROWS].
  * @note The distance between the two pointers is the collision point, and one subtraction finds it
  *       before anything moves. Nothing here has to be told what the caller is doing - a coalesce, a
  *       header insert, anything else - only that a move of args->bytes from one address to the other
  *       runs into itself.
- * @note Where the destination sits at least args->bytes above the source the regions never touch,
+ * @note Where args->dst sits at least args->bytes above args->src the regions never touch,
  *       and the whole move is one memor.cpy - the forward copy, four words an iteration, both
  *       pointers restrict qualified.
  * @note Where they do touch, the move splits into chunks of at most the collision point, taken from
- *       the top down. Each chunk's destination is offset from its own source by exactly that
- *       distance, which is not less than the chunk, so no chunk overlaps itself and each one is
- *       another legal memor.cpy. Every write also lands above every byte a later chunk reads,
- *       because the walk descends, so no chunk clobbers another's source.
+ *       the top down. Each chunk's dst is offset from its own src by exactly that distance, at
+ *       least the chunk's size, and no chunk overlaps itself: each one is another legal memor.cpy.
+ *       Every write also lands above every byte a later chunk reads, because the walk descends,
+ *       and no chunk clobbers another's src.
  * @note A collision point below four words falls through to move_up_one_word, since chunks that
  *       small cost more in per call work than the wide copy returns.
  * @warning args->dst must be writable and args->src readable for args->bytes, and args->dst must be
- *          at or above args->src. A destination below the source is what memor.cpy already handles.
+ *          at or above args->src. memor.cpy already handles a dst below src.
  */
 EMBED_INLINE void move_up_collision(BenchMoveCtx *args)
 {
-    // Explicit casts read both addresses as integers, so the distance is ordinary unsigned
+    // Explicit casts read both addresses as integers, and the distance is ordinary unsigned
     // arithmetic and never a comparison of pointers into two different objects
     const size_t apart = (size_t)((uintptr_t)args->dst - (uintptr_t)args->src);
 
@@ -521,7 +520,7 @@ EMBED_INLINE void move_up_collision(BenchMoveCtx *args)
 /**
  * @brief Moves bytes backward one at a time, with no library call in it.
  *
- * @param[out] dst   Destination [BORROWS].
+ * @param[out] dst   Where the copy writes [BORROWS].
  * @param[in]  src   Source [BORROWS].
  * @param[in]  bytes Bytes to move.
  * @note The oracle the three arms are checked against. A byte loop written here, because an
@@ -544,7 +543,7 @@ static void move_up_reference(uint8_t *dst, const uint8_t *src, size_t bytes)
  * @return Count of forms that disagreed with the reference, over every offset and length tried.
  * @note Runs before the timing. A form that moves the wrong bytes still produces a number, and the
  *       number reads as a result.
- * @note The worst overlap is a destination one byte above the source, where a forward walk would
+ * @note The worst overlap is a dst one byte above the src, where a forward walk would
  *       overwrite the byte it is about to read. A whole word and four whole words are the offsets
  *       where the unrolled block straddles its own source.
  */
@@ -607,14 +606,14 @@ static uint32_t move_up_is_correct(void)
  * @brief Arguments for the forward copy arms.
  *
  * @note Mirrors MemorCpyCtx in memoria_operor.c, restrict on both pointers included. That
- *       qualifier is what tells the compiler no store here can land on a word still to be loaded,
+ *       qualifier tells the compiler no store here can land on a word still to be loaded,
  *       which it is not told about the backward move. Whether it acts on the permission is the
  *       question copy_four_loads exists to answer.
- * @warning Both pointers are restrict qualified, so the two regions must not overlap.
+ * @warning Both pointers are restrict qualified, and the two regions must not overlap.
  */
 typedef struct
 {
-    uint8_t *restrict dst;       /**< Destination [BORROWS]. */
+    uint8_t *restrict dst;       /**< Where the copy writes [BORROWS]. */
     const uint8_t *restrict src; /**< Source [BORROWS]. */
     size_t bytes;                /**< Bytes to copy. */
 } BenchCopyCtx;
@@ -622,7 +621,7 @@ typedef struct
 /**
  * @brief Copies args->bytes forward, four words an iteration, loading and storing each in turn.
  *
- * @param[in,out] args Destination, source and count [BORROWS].
+ * @param[in,out] args dst, src and the count [BORROWS].
  * @note The control. It reproduces memor_cpy's word loop step for step - four moves against
  *       constant offsets, then one advance of all four - so the row against memor.cpy itself shows
  *       whether this reproduction is faithful before copy_four_loads is read against it.
@@ -670,7 +669,7 @@ EMBED_INLINE void copy_four_words(BenchCopyCtx *args)
 /**
  * @brief Copies args->bytes forward, four words an iteration, taking all four loads first.
  *
- * @param[in,out] args Destination, source and count [BORROWS].
+ * @param[in,out] args dst, src and the count [BORROWS].
  * @note Same width as copy_four_words and a different order. restrict already permits the compiler
  *       to reach this arrangement from the interleaved one. A row that reads 1.00 says it
  *       already does and there is nothing here to take. On the backward move, where the qualifier
@@ -937,7 +936,7 @@ static uintptr_t cellblock_temporary_mark_run(void)
 
     for (unsigned index = 0; index < 8u; index++)
     {
-        seen |= (uintptr_t)ram.general.temporary_buf_alloc(g_take);
+        seen |= (uintptr_t)ram.general.temporary_buf_alloc(g_take, NULL);
     }
     ram.general.temporary_buf_release(mark);
     return seen;
@@ -1048,8 +1047,8 @@ void dbench_run(void)
                       DBENCH_KEEP(memmove(g_d, g_d + MMGR_ALIGN_BYTES, n)));
 
             // The entry against a step for step reproduction of it. Both walk one word an
-            // iteration, so this row is the cost of reaching the entry through the dispatch table
-            // and nothing else. It has to read near 1.00 before either row below means anything
+            // iteration, and this row is the cost of reaching the entry through the dispatch table
+            // alone. It has to read near 1.00 before either row below means anything
             DBENCH_AB(
                 "mv_entry", iters, n,
                 DBENCH_KEEP(
@@ -1098,7 +1097,7 @@ void dbench_run(void)
                 DBENCH_KEEP((move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
                              (uintptr_t)g_d)));
 
-            // A collision point of one word, which is below the threshold, so the second arm finds
+            // A collision point of one word, below the threshold, and the second arm finds
             // the chunks would be too small and walks backward exactly as the first one does. This
             // row is what the check costs when it routes nowhere
             DBENCH_AB(
@@ -1110,7 +1109,7 @@ void dbench_run(void)
 
             // A collision point of g_move_gap bytes. Below that length the two regions never touch
             // and the whole move is one forward copy; above it the move goes as chunks of that size,
-            // taken from the top down. This row is the one the question is about
+            // taken from the top down. This row answers the question
             DBENCH_AB("mv_collide", iters, n,
                       DBENCH_KEEP((move_up_one_word(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
                                    (uintptr_t)g_d)),
@@ -1132,8 +1131,8 @@ void dbench_run(void)
                 DBENCH_KEEP((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_b, .src = g_d, .bytes = n), (uintptr_t)g_d)));
 
             // memor.cpy against a step for step reproduction of its word loop. Both are four words
-            // an iteration loading and storing each in turn, so this row is the cost of reaching
-            // the entry and nothing else. It has to read near 1.00 before the row below means
+            // an iteration loading and storing each in turn, and this row is the cost of reaching
+            // the entry alone. It has to read near 1.00 before the row below means
             // anything
             DBENCH_AB(
                 "cp_entry", iters, n,
@@ -1147,7 +1146,7 @@ void dbench_run(void)
 
             // Four words either way and only the order differs: the second arm takes all four loads
             // before any store. Both pointers are restrict qualified here, which already permits
-            // the compiler to reach the second arrangement from the first, so 1.00 says it does
+            // the compiler to reach the second arrangement from the first, and 1.00 says it does
             DBENCH_AB(
                 "cp_hoist", iters, n,
                 DBENCH_KEEP((copy_four_words(&(BenchCopyCtx){.dst = g_d, .src = g_a, .bytes = n}), (uintptr_t)g_d)),

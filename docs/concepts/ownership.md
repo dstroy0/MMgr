@@ -28,7 +28,7 @@ cell dies when that cell is released even though the span was never told.
 
 ```c
 const size_t mark = prison.work.temporary_buf_mark();
-void *const cell = prison.work.temporary_buf_alloc(256u);
+void *const cell = prison.work.temporary_buf_alloc(256u, NULL);
 
 /* ... use cell ... */
 
@@ -82,7 +82,7 @@ check. See @ref mod_confin_guide.
 
 ## A take names its owner
 
-The caller says who a persistent cell is for. Every `persistent_buf_alloc` and
+The caller says who a cell is for. Every `persistent_buf_alloc`, `temporary_buf_alloc` and
 `persistent_buf_release` takes a `CellOwner *` beside its size or its prisoner:
 
 ```c
@@ -91,11 +91,21 @@ static CellOwner reader = MMGR_CELL_OWNER("reader");
 void *const cell = prison.work.persistent_buf_alloc(256u, &reader);
 /* ... */
 prison.work.persistent_buf_release(cell, &reader);
+
+const size_t mark = prison.work.temporary_buf_mark();
+void *const scratch = prison.work.temporary_buf_alloc(256u, &reader);
+/* ... */
+prison.work.temporary_buf_release(mark);
 ```
 
 The take adds the cell's payload, read off its header, to `reader.in_use` and raises `reader.hw` to
-it; the release takes the same bytes off. `NULL` in place of an owner counts nothing. The owner is
-the caller's storage: the cellblock still does not ask which context reached it.
+it; the release takes the same bytes off. A temporary cell keeps its owner in its trailing word, and
+the rewind that drops it takes its bytes off that owner, as does a single release of it, whatever
+owner the release is handed. `NULL` in place of an owner counts nothing. The owner is the caller's
+storage: the cellblock still does not ask which context reached it.
+
+@warning An owner named by a temporary take must outlive every rewind that drops the cell: the
+rewind writes the count through the pointer the cell kept.
 
 With `MMGR_ENABLE_OWNERS` at 1, each cellblock also lists every owner that took a cell from it, in the
 order of each one's first take, up to `MMGR_CARCER_OWNERS`. An owner past that room keeps its own
