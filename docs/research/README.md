@@ -7,7 +7,7 @@ The anchor sift research, the ledger, the Salishan corpus work and the Python to
 
 > **https://github.com/dstroy0/anchor_sift**
 
-That is where the work continues. Anything here is a copy kept for reference and the repository above is the one to read.
+That is where the work continues. Anything here is a copy kept for reference and the repository above is the single one to read.
 
 ## What moved
 

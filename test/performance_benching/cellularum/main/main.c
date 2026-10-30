@@ -21,9 +21,9 @@ static volatile uint8_t g_scrut_threshold = 0x7Au;
  * @brief Word the letter test arms are given, read out of a volatile.
  *
  * @note Volatile so the whole test cannot be hoisted out of the timing loop. Both arms take the word
- *       and nothing else, and a loop invariant one would let the optimiser compute each result once
+ *      , alone, and a loop invariant one would let the optimizer compute each result once
  *       and measure an empty loop.
- * @note The lanes alternate a letter with a byte at or above 0x80, which is the shape the two arms
+ * @note The lanes alternate a letter with a byte at or above 0x80, the shape the two arms
  *       disagree about.
  */
 static volatile embed_word g_scrut_word = (embed_word)0xFF7AFF7Aul;
@@ -72,7 +72,7 @@ static inline embed_word bench_le_seven_bit(embed_word word, uint8_t byte)
  * @param[in] byte Byte every lane is compared against, under 0x80.
  * @return         A lane mask holding the lanes at or above byte, over the whole 0 to 255 range.
  * @note A lane at or above 0x80 is above any threshold under 0x80, and its own high bit carries
- *       that. No lane can borrow out, so the neighbor is untouched either way.
+ *       that. No lane can borrow out, and so the neighbor is untouched either way.
  * @note Proved against a byte-at-a-time reference over every lane value and every threshold under
  *       0x80 in test/accuracy/test_verbum_scrutor_accuracy before it was brought here.
  */
@@ -90,7 +90,7 @@ static inline embed_word bench_ge_or_high(embed_word word, uint8_t byte)
  * @param[in] byte Byte every lane is compared against, under 0x80.
  * @return         A lane mask holding the lanes at or below byte, over the whole 0 to 255 range.
  * @note The mirror of bench_ge_or_high and not symmetric with it. A lane at or above 0x80 is never
- *       at or below a threshold under 0x80, so those lanes come out of the result.
+ *       at or below a threshold under 0x80, and so those lanes come out of the result.
  * @note Proved over the same range as bench_ge_or_high before it was brought here.
  */
 static inline embed_word bench_le_mask_high(embed_word word, uint8_t byte)
@@ -136,7 +136,7 @@ static inline embed_word bench_alpha_narrowed(embed_word word)
  *
  * @param[in] word Lanes to test.
  * @return         A lane mask holding the lanes that carry an ASCII letter.
- * @note The header names MMGR_SWAR_LOW7 the complement of MMGR_VERBUM_SCRUTOR_HIGH, so this is the
+ * @note The header names MMGR_SWAR_LOW7 the complement of MMGR_VERBUM_SCRUTOR_HIGH, and so this is the
  *       same mask as bench_alpha_narrowed reaches by complementing. What differs is the width the
  *       complement is taken at: LOW7 is built from MMGR_SWAR_ONES and stays an embed_word, where
  *       ~MMGR_VERBUM_SCRUTOR_HIGH promotes to int first and is narrowed on the way back.
@@ -175,7 +175,7 @@ static inline embed_word bench_alpha_cast(embed_word word)
  *
  * @return The disagreement count, which is expected to be zero.
  * @note Walks a fixed recurrence, which makes a failure reproduce, and covers every lane pattern the walk
- *       reaches rather than the one word the timing row uses.
+ *       reaches and not the one word the timing row uses.
  */
 static uint32_t alpha_masks_agree(void)
 {
@@ -1342,14 +1342,14 @@ void dbench_run(void)
         }
 
         // The letter test the module ships against the same test with its lanes narrowed first. Both
-        // arms are static inline in this translation unit over the same volatile word, so neither is
+        // arms are static inline in this translation unit over the same volatile word, and so neither is
         // privileged by a call the other pays or an inlining the other does not get, and neither can
         // be hoisted out of the loop.
         DBENCH_AB("alpha_now_vs_narrow", 20000u, 4u, DBENCH_KEEP(bench_alpha_current(g_scrut_word)),
                   DBENCH_KEEP(bench_alpha_narrowed(g_scrut_word)));
 
         // The shipping narrowing against the same mask taken from MMGR_SWAR_LOW7. The two are the
-        // same value, so this row prices the width the complement is taken at and nothing else.
+        // same value, and so this row prices the width the complement is taken at, alone.
         DBENCH_PRINTF("DB alpha_mask_check disagreements=%u\n", (unsigned)alpha_masks_agree());
 
         DBENCH_AB("alpha_notHIGH_vs_LOW7", 20000u, 4u, DBENCH_KEEP(bench_alpha_narrowed(g_scrut_word)),
@@ -1358,8 +1358,8 @@ void dbench_run(void)
         DBENCH_AB("alpha_notHIGH_vs_cast", 20000u, 4u, DBENCH_KEEP(bench_alpha_narrowed(g_scrut_word)),
                   DBENCH_KEEP(bench_alpha_cast(g_scrut_word)));
 
-        // The two candidates against each other, so the pair is priced without the shipping form in
-        // between and a one cycle move on one part can be read against a second row rather than alone
+        // The two candidates against each other, and so the pair is priced without the shipping form in
+        // between and a one cycle move on one part can be read against a second row and not alone
         DBENCH_AB("alpha_LOW7_vs_cast", 20000u, 4u, DBENCH_KEEP(bench_alpha_low7(g_scrut_word)),
                   DBENCH_KEEP(bench_alpha_cast(g_scrut_word)));
 

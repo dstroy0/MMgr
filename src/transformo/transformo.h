@@ -26,10 +26,10 @@ EMBED_BEGIN_DECLS
  * @brief Expands to the largest mantissa mmgr_muto_take will extend, which is (~0 - 9) / 10.
  *
  * @note Chosen so multiplying by ten and adding a digit of nine both stay inside an embed_u64.
- * @note mmgr_muto_take returns EMBED_FALSE rather than appending once the mantissa passes this.
+ * @note mmgr_muto_take returns EMBED_FALSE instead of appending once the mantissa passes this.
  * @note Explicit casts hold both the complement and the result at embed_u64, and the 9u and 10u are
- *       suffixed to match, so the subtraction and the divide are done at the mantissa's own width
- *       rather than at int's.
+ *       suffixed to match, and so the subtraction and the divide are done at the mantissa's own width
+ *       and not at int's.
  */
 #define MMGR_MUTO_MANT_MAX ((embed_u64)((~(embed_u64)0 - 9u) / 10u))
 
@@ -50,7 +50,7 @@ EMBED_BEGIN_DECLS
  * @note take reads mant and digit.
  * @note scale reads mant, ex, rest and neg.
  * @note scale_to_u64 reads mant, e2 and ex.
- * @warning mant is written through by take, so the caller's mantissa changes [BORROWS].
+ * @warning mant is written through by take, and so the caller's mantissa changes [BORROWS].
  */
 typedef struct
 {
@@ -58,7 +58,7 @@ typedef struct
     const char digit;       /**< ASCII decimal digit take appends. */
     const embed_iword e2;   /**< Binary exponent the mantissa already carries, read by scale_to_u64. */
     const embed_iword ex;   /**< Decimal exponent to apply. */
-    const embed_iword rest; /**< Non-zero when the caller already dropped bits, so rounding can see them. */
+    const embed_iword rest; /**< Non-zero when the caller already dropped bits, and so rounding can see them. */
     const embed_bool neg;   /**< Sign scale gives its result. */
 } TransformoCfg;
 
@@ -93,9 +93,9 @@ embed_bool mmgr_muto_take(const TransformoCfg *args);
  *
  * @param[in] args The mantissa, the decimal exponent, the dropped bits and the sign [BORROWS].
  * @return         The nearest double, with ties going to even.
- * @note Set args->rest when digits were dropped from the mantissa, so the rounding still accounts for them.
+ * @note Set args->rest when digits were dropped from the mantissa, and so the rounding still accounts for them.
  * @note Takes a plain double path when nothing was dropped, the mantissa is under 2^53 and args->ex is within 22.
- * @note Does not read args->e2, so the mantissa is taken as a plain integer.
+ * @note Does not read args->e2, and so the mantissa is taken as a plain integer.
  * @warning Returns a signed infinity for an args->ex above MMGR_POW5_MAX and a signed zero below its negative.
  */
 double mmgr_muto_scale(const TransformoCfg *args);
@@ -106,11 +106,11 @@ double mmgr_muto_scale(const TransformoCfg *args);
  * @param[in] args The mantissa, its binary exponent and the decimal exponent [BORROWS].
  * @return         The nearest integer with a half going up, 0 when the value rounds below one, or all
  *                 ones when too large.
- * @note Reads args->e2, which mmgr_muto_scale leaves alone, so the mantissa may carry a binary exponent here.
- * @note A half is taken up whatever lies below it, so the result is the magnitude rounded away from
- *       zero. mmgr_muto_scale rounds its own halves to even, which is what a double wants and what
+ * @note Reads args->e2, which mmgr_muto_scale leaves alone, and so the mantissa may carry a binary exponent here.
+ * @note A half is taken up whatever lies below it, and so the result is the magnitude rounded away from
+ *       zero. mmgr_muto_scale rounds its own halves to even, as a double wants and what
  *       this deliberately does not do.
- * @note Reads neither args->rest, args->above nor args->neg, so the result is always unsigned.
+ * @note Reads neither args->rest, args->above nor args->neg, and so the result is always unsigned.
  * @warning Does not bound args->ex against MMGR_POW5_MAX the way mmgr_muto_scale does. Only
  *          MMGR_POW5_STEPS bits of the magnitude are walked. A larger exponent loses its high
  *          bits and the value scaled is not the one asked for.

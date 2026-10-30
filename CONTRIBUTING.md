@@ -22,7 +22,7 @@ away still reports as passing.
 
 ## Formatting
 
-Three formatters, one per language, each owning its own files and nothing else. All three wrap at
+Three formatters, one per language, each owning its own files, alone. All three wrap at
 120 columns. A Python tool and the C it rewrites line up in a side-by-side diff.
 
 ```sh
@@ -37,7 +37,7 @@ races the author's own push; the fix belongs in the working tree.
 ## Comments
 
 Public headers carry Doxygen comments. Implementation files carry a comment only where the code
-cannot say it for itself - a bound that is not obvious, a cast that is load-bearing, a failure mode
+cannot say it for itself - a bound that is not obvious, a cast that is essential, a failure mode
 you would see at runtime. A comment that restates the line is worse than none.
 
 Every header opens with an SPDX line and a `@file` block. The group is `mod_<stem>`, the stem
@@ -54,7 +54,7 @@ column of `tools/dev_env/names.tsv`, and `docs/groups.dox` already declares it -
  * @brief A buffer, its capacity and a cursor, carried as one object.
  *
  * What the module is for, and what a caller has to know before using it. Warnings about what is
- * not checked go here, not in every entry.
+ * not checked go here and not in every entry.
  */
 ```
 
@@ -89,7 +89,7 @@ mmgr_span mmgr_spat_from(const SpatiumCfg *c);
 
 `@slot{n}` is the entry's position in the dispatch table, `@ns{name}` names the table, and
 `[BORROWS]`, `[TAKES OWNERSHIP]` and `[RETURNS OWNERSHIP]` mark who owns a pointer. Everything is
-a borrow here, so `[BORROWS]` is what you will write.
+a borrow here, and so `[BORROWS]` is what you will write.
 
 Doxygen takes one branch of a `#if`. Put the doc block on the branch it takes, not above the
 `#if`, or the entity comes out undocumented - `docs/Doxyfile` sets `PREDEFINED` and that is what
@@ -101,7 +101,7 @@ and did not document shows up in `docs/doxygen-warnings.log`.
 ## Adding a module
 
 1. A directory under `src/`.
-2. A three-line `CMakeLists.txt` calling `mmgr_add_module()`. Nothing central lists the modules, so
+2. A three-line `CMakeLists.txt` calling `mmgr_add_module()`. Nothing central lists the modules, and so
    there is no registry to keep in step.
 3. One line in `src/CMakeLists.txt`.
 4. One `@defgroup` in `docs/groups.dox`, placed where it belongs in the data path.

@@ -1,25 +1,25 @@
 name: Docs
 
 # Doxygen to GitHub Pages, through the official Pages actions. No gh-pages branch and no third-party
-# deploy action: the artifact goes straight from the build job to the Pages service over OIDC, so
+# deploy action: the artifact goes straight from the build job to the Pages service over OIDC, and so
 # nothing needs a long-lived token and the site's history is not a second copy of this repo.
 #
-# TWO JOBS ON PURPOSE. `build` runs the doc toolchain and holds contents:read and nothing else.
+# TWO JOBS ON PURPOSE. `build` runs the doc toolchain and holds contents:read, alone.
 # `deploy` holds pages:write and id-token:write and runs none of our code - it consumes an artifact.
 # One job holding all three scopes would mean every apt install and every doxygen run in this file
 # executes with a token that can publish. A pull request therefore gets the full build. A broken
 # Doxyfile fails BEFORE it reaches main, and no deployment.
 #
-# DOXYGEN IS PINNED, not whatever the runner ships. Same reason clang-format is pinned in
+# DOXYGEN IS PINNED and not whatever the runner ships. Same reason clang-format is pinned in
 # format-code.yml: docs/mmgr.css keys on doxygen's generated class names and custom properties, and
 # those move between releases - 1.17 renamed a third of the variables the theme maps. An unpinned
 # doxygen means the site silently restyles itself on a runner image bump. apt ships a version that
 # lags by a year or more and does not know this markup at all.
 #
-# WARNINGS ARE A PRODUCT OF THIS JOB, not a side effect. src/ carries real Doxygen comments now, so
+# WARNINGS ARE A PRODUCT OF THIS JOB and not a side effect. src/ carries real Doxygen comments now, and so
 # WARN_IF_UNDOCUMENTED has something to say. The log is captured, counted, and summarized into the
 # job summary. It does not fail the build yet: the remaining warnings are dispatch-table members and
-# macro definitions, and failing on them today would block every deploy for a backlog rather than
+# macro definitions, and failing on them today would block every deploy for a backlog and not
 # for a regression. Flip WARN_AS_ERROR in docs/Doxyfile from NO to FAIL_ON_WARNINGS_PRINT when that
 # count reaches zero, and this job becomes the gate with no change to this file.
 
@@ -38,7 +38,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Bump this and the local install together, so what a maintainer previews is what gets published.
+  # Bump this and the local install together, and so what a maintainer previews is what gets published.
   DOXYGEN_VERSION: "1.18.0"
 
 jobs:
@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # The static Linux binary from the release, not apt. The tag form is Release_1_18_0 and the
+      # The static Linux binary from the release and not apt. The tag form is Release_1_18_0 and the
       # asset is doxygen-1.18.0.linux.bin.tar.gz, both derived from DOXYGEN_VERSION so there is one
       # place to edit.
       - name: Install Doxygen ${{ env.DOXYGEN_VERSION }}
@@ -75,7 +75,7 @@ jobs:
       - name: Generate
         run: |
           doxygen docs/Doxyfile
-          # docs/*.md embed docs/assets and docs/diagrams with relative paths, so those directories
+          # docs/*.md embed docs/assets and docs/diagrams with relative paths, and so those directories
           # have to sit beside the generated HTML. They cannot go in HTML_EXTRA_FILES: doxygen
           # rejects a directory there, and listing each file would need a Doxyfile edit every time a
           # diagram is added.
@@ -104,7 +104,7 @@ jobs:
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
           # A structural warning is an unterminated code span, a bad @ref, or an angle bracket read
-          # as an HTML tag. Those corrupt the rendered page from that point on, so unlike an
+          # as an HTML tag. Those corrupt the rendered page from that point on, and so unlike an
           # undocumented member they are worth naming individually.
           if [ "$other" -gt 0 ]; then
             {
@@ -144,7 +144,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     # Deliberately NOT cancel-in-progress, and deliberately a different group from the build above.
-    # Cancelling a half-finished deployment leaves the Pages service holding a partial site; the
+    # Canceling a half-finished deployment leaves the Pages service holding a partial site; the
     # build is the thing worth canceling, and it has its own group.
     concurrency:
       group: pages

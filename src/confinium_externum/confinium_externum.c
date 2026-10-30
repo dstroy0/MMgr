@@ -28,7 +28,7 @@ typedef struct
  *
  * @param[in] c Request size and the internal memory figures [BORROWS].
  * @return      MMGR_TRUE when the bytes fit and dram_reserve would still be free afterwards.
- * @note Tests the size first, so the subtraction that follows cannot wrap.
+ * @note Tests the size first, and so the subtraction that follows cannot wrap.
  */
 MMGR_INLINE mmgr_bool exter_dram_fits(const ExterCtx *c)
 {
@@ -53,7 +53,7 @@ MMGR_INLINE mmgr_bool exter_psram_fits(const ExterCtx *c)
  * @param[in] c Request size, the DMA requirement and both memory figures [BORROWS].
  * @return      PLACE_DRAM, PLACE_PSRAM, or PLACE_FAIL when neither will take it.
  * @note A size of 0 is refused outright.
- * @note A DMA request only ever goes to internal memory, and fails rather than falling back.
+ * @note A DMA request only ever goes to internal memory, and fails instead of falling back.
  * @note At or above psram_threshold external memory is tried first, below it internal is.
  */
 MMGR_INLINE mmgr_place exter_place(const ExterCtx *c)
@@ -153,8 +153,8 @@ MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *c)
  *
  * @param[in] ret  Return type of the entry point.
  * @param[in] name Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
- * @note A second macro rather than one, because these entries are named mmgr_pingpong_ rather than
- *       mmgr_exter_. GENERIC_ENTRY pastes one prefix onto one name, so the pair differs, not the form.
+ * @note A second macro and not one, because these entries are named mmgr_pingpong_ rather than
+ *       mmgr_exter_. GENERIC_ENTRY pastes one prefix onto one name, and so the pair differs and not the form.
  */
 #define PINGPONG_ENTRY(ret, name, ...)                                                                                 \
     GENERIC_ENTRY(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternumCfg, ret, name, __VA_ARGS__)

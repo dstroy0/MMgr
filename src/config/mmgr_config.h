@@ -78,10 +78,10 @@
  *
  * @param[in] cond Condition the caller expects to hold.
  * @param[in] msg  String literal describing the expectation.
- * @note An expectation the library asserts is one a correct caller cannot break, so the shipping
+ * @note An expectation the library asserts is one a correct caller cannot break, and so the shipping
  *       form pays nothing for it: it expands to a sizeof, which type checks cond and never evaluates
  *       it. The checks build evaluates it instead and stops on the spot. A caller that broke one
- *       fails a test rather than carrying on with the damage done.
+ *       fails a test instead of carrying on with the damage done.
  * @note A build may define its own before including this header, and neither form below is then used.
  *       A target with no stderr and no abort wants that.
  * @warning With MMGR_DEBUG_CHECKS at 0, a failed expectation produces no diagnostic and no trap. It

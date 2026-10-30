@@ -19,14 +19,14 @@
  * @brief Expands to 5, the number of mmgr_pow5_up entries whose significand fits the high half alone.
  *
  * @note Lower than the six entries pow5.h documents as exact. Entry 5 is 5^32, which is exact at 75
- *       bits and still needs its low half, so it sits outside this count.
+ *       bits and still needs its low half, and so it sits outside this count.
  */
 #define MMGR_POW5_SINGLE_HALF_STEPS 5
 
 /**
  * @brief Expands to the number of entries mmgr_pow5_up actually holds.
  *
- * @note Sized from the array rather than from MMGR_POW5_STEPS. A table that gained or lost an
+ * @note Sized from the array and not from MMGR_POW5_STEPS. A table that gained or lost an
  *       entry is walked in full without an edit here. Taking the count from the library would let
  *       the library decide how much of itself this suite reads.
  * @note The cast takes the sizeof quotient from size_t into the int a loop counter carries. The
@@ -37,7 +37,7 @@
 /**
  * @brief Expands to the number of entries mmgr_pow5_down actually holds.
  *
- * @note Sized from its own array rather than shared with MMGR_POW5_UP_ENTRIES. A change to one
+ * @note Sized from its own array and not shared with MMGR_POW5_UP_ENTRIES. A change to one
  *       table cannot silently set the bound for walks over the other.
  */
 #define MMGR_POW5_DOWN_ENTRIES ((int)(sizeof mmgr_pow5_down / sizeof mmgr_pow5_down[0]))
@@ -62,7 +62,7 @@ EMBED_STATIC_ASSERT(MMGR_POW5_DOWN_ENTRIES == MMGR_POW5_UP_ENTRIES,
 /**
  * @brief Asserts the tables still hold the nine entries this suite was written against.
  *
- * @note Nine is checked against a literal rather than against MMGR_POW5_STEPS, which would compare
+ * @note Nine is checked against a literal and not against MMGR_POW5_STEPS, which would compare
  *       the constant with itself. The counts above are what tie the arrays to the constant.
  */
 EMBED_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == 9, "the pow5 tables changed length; this suite expects nine entries");
@@ -88,7 +88,7 @@ void setUp(void)
 /**
  * @brief Releases the fixture Unity runs after each case in this suite.
  *
- * @note Empty because the tables are static const and outlive every call, so no case allocates and
+ * @note Empty because the tables are static const and outlive every call, and so no case allocates and
  *       none leaves anything to release.
  */
 void tearDown(void)
@@ -136,9 +136,9 @@ void test_the_wide_powers_carry_a_low_half(void)
 /**
  * @brief Checks that mmgr_pow5_down holds each negative power of five truncated toward zero.
  *
- * @note 5^-1 repeats in binary, so both halves of entry 0 are 0xCCCCCCCCCCCCCCCC. Rounding to
+ * @note 5^-1 repeats in binary, and so both halves of entry 0 are 0xCCCCCCCCCCCCCCCC. Rounding to
  *       nearest would end the low half in D.
- * @note No negative power of five terminates in binary, so every entry in the table carries a
+ * @note No negative power of five terminates in binary, and so every entry in the table carries a
  *       nonzero low half.
  */
 void test_the_negative_powers_truncate_toward_zero(void)
@@ -182,7 +182,7 @@ void test_the_binary_exponents_run_monotonically_in_both_tables(void)
 /**
  * @brief Checks that the narrowest legal embed_iword carries the widest exponent in the tables.
  *
- * @note mmgr_types.h raises #error unless EMBED_WORD_BITS is 16, 32 or 64, so the narrowest
+ * @note mmgr_types.h raises #error unless EMBED_WORD_BITS is 16, 32 or 64, and so the narrowest
  *       embed_iword is embed_i16. The word16 environment is where this check binds.
  * @note -722 sits at index 8 of mmgr_pow5_down and is the furthest any e2 reaches from zero.
  */
@@ -191,7 +191,7 @@ void test_the_widest_exponent_fits_the_narrowest_word(void)
     const embed_iword widest_exponent = mmgr_pow5_down[MMGR_POW5_DOWN_ENTRIES - 1].e2;
 
     // Explicit cast takes the exponent from embed_iword into the int Unity's integer assertion
-    // compares in. -722 fits embed_i16, the narrowest embed_iword, so it fits int everywhere
+    // compares in. -722 fits embed_i16, the narrowest embed_iword, and so it fits int everywhere
     TEST_ASSERT_EQUAL_INT_MESSAGE(-722, (int)widest_exponent,
                                   "the widest binary exponent is the one the header documents");
     // Explicit casts round -722 through embed_iword and back into int. A word that dropped the value
@@ -203,8 +203,8 @@ void test_the_widest_exponent_fits_the_narrowest_word(void)
 /**
  * @brief Checks that walking one entry per set bit reaches a decimal exponent of 511.
  *
- * @note 511 is written as a literal rather than as MMGR_POW5_MAX. That constant expands to
- *       ((1 << MMGR_POW5_STEPS) - 1), which is what this loop computes, so comparing the two would
+ * @note 511 is written as a literal and not as MMGR_POW5_MAX. That constant expands to
+ *       ((1 << MMGR_POW5_STEPS) - 1), as this loop computes, and so comparing the two would
  *       assert a value against itself and hold for any entry count.
  * @note pow5.h states that a double's decimal exponent stays well inside 511. A walk reaching it
  *       covers every value one can hold.

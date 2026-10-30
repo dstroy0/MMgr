@@ -1,6 +1,6 @@
 name: Format
 
-# Three formatters, one per language, each owning its own files and nothing else:
+# Three formatters, one per language, each owning its own files, alone:
 #
 #   clang-format  src/ test/   .c .h        style in .clang-format
 #   black         tools/       .py          line-length in pyproject.toml
@@ -35,9 +35,9 @@ jobs:
       # continue-on-error on each step so one failure does not hide the other two: three separate
       # red steps tell you everything that needs fixing in one run, where a hard fail on the first
       # would send you round again for the second.
-      # Pinned, not whatever the runner ships. .clang-format uses keys that only exist from
+      # Pinned and not whatever the runner ships. .clang-format uses keys that only exist from
       # clang-format 20 (AlignFunctionDeclarations among them), and ubuntu-latest is older - the
-      # check failed on `unknown key` rather than on any actual formatting. Pinning also means CI
+      # check failed on `unknown key` and not on any actual formatting. Pinning also means CI
       # and a developer's machine agree about what formatted means, which an unpinned formatter
       # cannot promise across versions.
       - name: clang-format (C)

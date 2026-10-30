@@ -34,10 +34,10 @@
 #include "memoriam_praetereo/praet_tabula_vexillorum.h"
 
 // Where the microseconds come from, and what a tick is worth against them. Every deadline below is
-// microseconds, so nothing here means anything without it
+// microseconds, and so nothing here means anything without it
 #include "memoriam_praetereo/praet_horologiorum_custos.h"
 
-// Last, and after every knob has reported. This is the one place a configuration stops the build, so
+// Last, and after every knob has reported. This is the single one place a configuration stops the build, so
 // that a build missing several knobs hears about all of them instead of the first
 #include "memoriam_praetereo/praet_iudex.h"
 
@@ -61,7 +61,7 @@ EMBED_BEGIN_DECLS
  * @brief Recovery that treats the transfer's bytes as unsafe.
  *
  * @note What you want where a half-written buffer would be read as a whole one. Which of the two is
- *       right depends on where in a program the stall happened, so it is the caller's call and not
+ *       right depends on where in a program the stall happened, and so it is the caller's call and not
  *       this library's.
  */
 #define PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE 1u
@@ -71,7 +71,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief The two answers a declaration may give about the boundary word check.
  *
- * @note Spelled at length on purpose. This is not a knob that rides along with recovery being on - it
+ * @note Spelled at length deliberately. This is not a knob that rides along with recovery being on - it
  *       is its own deliberate yes or no, made once per context, and the name is meant to be
  *       impossible to skim past in a declaration.
  * @note Real enumerators. A mistyped token is an undeclared identifier at the
@@ -87,17 +87,17 @@ typedef enum
  * @brief Marks a declaration so that every use of it reports, carrying a message.
  *
  * @param[in] message_ Text the diagnostic reports, as a string literal.
- * @note Aliased under this module's prefix and written once, which is what
+ * @note Aliased under this module's prefix and written once, as
  *       embed_compiler_directives.h asks a consumer to do with an attribute.
  * @note The deprecated attribute, where the error and warning ones fall short. Those report at a call
  *       that survives compilation, and a declaration at file scope has no call in it - measured, both
  *       silent. This one reports at any use, and a typedef naming the type is a use.
  * @note Nothing marked with this is deprecated. It is the only attribute that reports from a
  *       declarator, and what it is being used for is to make a deliberate answer visible. Nothing is
- *       retired. The message says which answer, so the line reads correctly whatever GCC
+ *       retired. The message says which answer, and so the line reads correctly whatever GCC
  *       prefixes it with.
  * @warning Expands to nothing where EMBED_HAS_ATTRIBUTE(deprecated) is 0. The answer is then silent
- *          and only a wrong token still fails, which is the half that cannot be missed.
+ *          and only a wrong token still fails, the half that cannot be missed.
  */
 #if EMBED_HAS_ATTRIBUTE(deprecated)
 #define PRAET_DENUNTIATIO_ATTR(message_) __attribute__((deprecated(message_)))
@@ -112,7 +112,7 @@ typedef enum
  *       of the two fails on an unknown type name that has the offending token in it. Pasting onto a
  *       macro instead gave a syntax error several lines down that named nothing - measured, on the
  *       mistyped token this exists to catch.
- * @note That same typedef is what makes the answer report. Both arms carry the attribute, because a
+ * @note That same typedef makes the answer report. Both arms carry the attribute, because a
  *       choice that only speaks up one way trains everyone to read its silence as the safe answer,
  *       and neither answer here is safe by default.
  */
@@ -150,7 +150,7 @@ typedef PRAET_DENUNTIATIO_ATTR(
 /**
  * @brief The value the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE token stands for.
  *
- * @note Pasted onto, so the declarator gets the answer at preprocessing time and can
+ * @note Pasted onto, and so the declarator gets the answer at preprocessing time and can
  *       assert on it.
  */
 #define PRAET_CRC_VALUE_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE 0
@@ -173,7 +173,7 @@ typedef PRAET_DENUNTIATIO_ATTR(
  *
  * @param[in] token_ One of the two AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC tokens, or a macro holding one.
  * @return           1 for the ENABLE token, 0 for the DISABLE token.
- * @note Usable in an #if, which is what lets a caller compile one thing or another around their own
+ * @note Usable in an #if, as lets a caller compile one thing or another around their own
  *       answer without keeping a second macro in step with it.
  */
 #define PRAET_CRC_VALUE(token_) PRAET_CRC_VALUE_IN_LOCO_FIGERE(token_)
@@ -208,10 +208,10 @@ typedef PRAET_DENUNTIATIO_ATTR(
  * @param name_       Name of the context this declares.
  * @param crc_choice_ AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE or
  *                    AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE.
- * @note The instantiation is the declaration. This emits initialized data carrying the answer, so
+ * @note The instantiation is the declaration. This emits initialized data carrying the answer, and so
  *       nothing runs to make a context usable and the answer cannot be changed afterwards.
  * @note Reports whichever token it was given. A caller who wanted a quieter build takes the message
- *       away by not declaring a context, which is the only honest way out of it.
+ *       away by not declaring a context, the only honest way out of it.
  * @warning A token that is neither of the two fails on the typedef, with the token it was given in
  *          the message. Asking for the check on a build with PRAET_RECOVERY off fails the assertion
  *          below, which names what to do about it.
@@ -249,13 +249,13 @@ typedef PRAET_DENUNTIATIO_ATTR(
  *                           declaration asked for the check. Meaningful only where the channel reads
  *                           PRAET_MEASURED.
  * @param word_boundary_crc  What the declaration answered about the boundary word check. Written once
- *                           by PraetOrdoContext and never again, which is what lets the one
+ *                           by PraetOrdoContext and never again, as lets the one
  *                           branch reading it fold away where the answer was no.
  * @param keepalive_deadline Microsecond mark each running channel must be kicked before.
  * @param settle_deadline    Microsecond mark the engine finishes settling at. One timer, because
  *                           settling is the engine coming up and not a property of a channel.
  * @param praet_set_bitflag  Raised by the interrupt, and by anything that changes what a service call
- *                           would find. Volatile, so it is not cached across the preemption.
+ *                           would find. Volatile, and so it is not cached across the preemption.
  * @param praet_busy_bitflag The reader/setter's lock. Volatile, and held while it updates, which is
  *                           what makes it ignore the interrupt for that span.
  * @param elapsed_micros     Microseconds elapsed, as the caller advances them.
@@ -294,7 +294,7 @@ typedef struct
  *       controller this library targets exposes a remaining count, and the orchestrator needs it to
  *       feed a watchdog with something a caller can act on.
  * @note Reached only from praet_ordo_poll. Nothing above it sees a byte count that has not been
- *       through the flag word first, which is what keeps how progress is tracked out of a caller's
+ *       through the flag word first, as keeps how progress is tracked out of a caller's
  *       business.
  * @note Carries a weak refusing default, the same as the four hooks in memoriam_praetereo.c. It
  *       returns zero, and praet_ordo_take_progress treats zero as no movement. A build that supplies
@@ -326,13 +326,13 @@ void praet_ordo_reset(PraetOrdo *context);
  * @param[in]     region  Region descriptor for this channel, as a byte.
  * @return                EMBED_TRUE where the channel was detached and is now attached.
  * @note Attach and detach are the only entry and exit, and configuration takes no part in either.
- *       How long the engine takes to come up is a property of the part, so it arrives as
+ *       How long the engine takes to come up is a property of the part, and so it arrives as
  *       PRAET_SETTLE_MICROS at compile time and not as an argument here.
  * @note Reach this through PraetAttach, which takes the pool by name. Calling it directly means
  *       stating an address and an extent separately, and nothing here can tell whether the two go
  *       together.
  * @note Attaching does not claim the pool. A cellblock and a ring both write their own records into
- *       the bytes they dress, so MMGR_PARS_CLAIMED_ONCE exists to keep two of those off one pool.
+ *       the bytes they dress, and so MMGR_PARS_CLAIMED_ONCE exists to keep two of those off one pool.
  *       This writes no records into the bytes, and an engine filling ring segments while a consumer
  *       drains them is the arrangement the module is for.
  * @warning Fails closed. A channel that is not detached is left exactly as it was.
@@ -351,7 +351,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
  * @param region_  Region descriptor for this channel, as a byte.
  * @return         What praet_ordo_adnectere answered.
  * @note The attach surface on a buffer, and how a caller is meant to reach a channel. Naming the pool
- *       is what makes the address and the extent come from one place: mmgr_pars_storage_##pool_ and
+ *       makes the address and the extent come from one place: mmgr_pars_storage_##pool_ and
  *       pool_##_bytes are both emitted by the declaration, and neither exists for anything that was
  *       not declared as a pool.
  * @note Not a question of who owns the bytes. What is being tested is whether whoever hands them over
@@ -359,10 +359,10 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
  *       caller holding all three has said everything this needs, and where the bytes came from is
  *       their business.
  * @note Both names have internal linkage. A translation unit that did not declare the pool cannot
- *       reach either and does not compile. That is what makes the answers first hand, and a caller
- *       giving all of them is what makes these bytes legal to touch. The caller said so.
+ *       reach either and does not compile. That leaves the answers first hand, and a caller
+ *       giving all of them makes these bytes legal to touch. The caller said so.
  * @warning The region descriptor is still stated here. Which memory a pool sits in was settled by
- *          which of the two declarations wrote it, and neither emits a marker this could read, so
+ *          which of the two declarations wrote it, and neither emits a marker this could read, and so
  *          deriving it needs something added where the pool is declared.
  */
 #define PraetAttach(context_, channel_, pool_, region_)                                                                \
@@ -378,14 +378,14 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
  * @param pool_    Pool declared by ParsMemoriaeInternae or ParsMemoriaeExternum.
  * @note Written once per channel, at file scope, beside the context's own declaration. It emits an
  *       enumerator whose name carries the context, the channel and the pool, and that name is the
- *       binding: PraetAttach and PraetSubmit both name it, so reaching either with a pool the channel
+ *       binding: PraetAttach and PraetSubmit both name it, and so reaching either with a pool the channel
  *       was not declared over is an undeclared identifier that prints the triple that was written.
  * @note The same shape locus_carcerum uses. MMGR_CARCER_BODY pastes the site and the pool into
  *       prisonsite_##_##name_##_ctx and MMGR_CARCER_MEM makes the pool the member's name. A
  *       cellblock's entries cannot be handed another cellblock's bytes. Here the channel joins the
  *       paste, because a context has several and they may be over different pools.
  * @note Costs nothing. An enumerator emits no storage and is settled while the unit compiles.
- * @warning Channel numbers are settled at compile time, which is what lets this paste one. A channel
+ * @warning Channel numbers are settled at compile time, as lets this paste one. A channel
  *          chosen at run time cannot be bound this way and reaches praet_ordo_adnectere directly,
  *          where nothing relates the address to the extent.
  */
@@ -416,9 +416,9 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
  * @param[in,out] context Context the channel belongs to [BORROWS].
  * @param[in]     channel Channel to detach.
  * @note Writes the request and reports nothing. The caller reads the result out of the flag word,
- *       which is what gives a void teardown something to report through.
+ *       as gives a void teardown something to report through.
  * @note A second request against a channel already detaching changes nothing. Hardware teardown
- *       writes the disable and polls the busy bit, so calling again is the normal path.
+ *       writes the disable and polls the busy bit, and so calling again is the normal path.
  */
 void praet_ordo_separare(PraetOrdo *context, embed_word channel);
 
@@ -436,9 +436,9 @@ void praet_ordo_separare(PraetOrdo *context, embed_word channel);
  *       length are the whole of what a transfer adds. Handing an address here would let a caller
  *       state one that has nothing to do with what the channel is attached over.
  * @note Start, length and position are what make a backout possible. Without the three, a stalled
- *       transfer leaves a buffer nobody can say anything about, which is why this is the form
+ *       transfer leaves a buffer nobody can say anything about, and so this is the form
  *       PRAET_RECOVERY selects and why it is not optional once that is on.
- * @note Takes no duration. How long a transfer runs is not something this library can know, so
+ * @note Takes no duration. How long a transfer runs is not something this library can know, and so
  *       nothing here predicts it - the port reports completion when it happens.
  * @warning Refuses a channel that is settling, already busy, detaching, or not attached. Fails
  *          closed: a refused submit changes no state.
@@ -455,14 +455,14 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word
  * @param offset_ Bytes into that pool the span starts at.
  * @param length_ Bytes in the span.
  * @note The bound, and it is settled before anything runs. A span that does not fit gives a negative
- *       bitfield width, and the member's name is what the compiler prints, which is the same way
+ *       bitfield width, and the member's name is what the compiler prints, the same way
  *       MMGR_PARS_CLAIMED_ONCE says what it means.
- * @note Usable in an expression, which a static assertion is not. That is what lets the check sit in
+ * @note Usable in an expression, which a static assertion is not. That lets the check sit in
  *       front of a call whose answer the caller reads.
  * @note Measured at -O0 and at -O2: a span that fits reports nothing at either, and one that does not
  *       fails at both. Nothing here needs the optimizer, unlike a check riding on a call that has to
  *       be folded away.
- * @warning Reads pool_##_bytes, so it holds for a span whose offset and length are known while
+ * @warning Reads pool_##_bytes, and so it holds for a span whose offset and length are known while
  *          compiling. A length computed at run time is not bounded by this and is not bounded
  *          anywhere else either.
  */
@@ -481,7 +481,7 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word
  * @param[in]     channel  Channel that showed a sign of life.
  * @param[in]     position Bytes moved so far.
  * @note What the port calls when the engine has moved. A sign of life and how far it got are the
- *       same event, so one call carries both.
+ *       same event, and so one call carries both.
  * @note Pushes the keepalive window out and clears a stall that had been recorded, because a channel
  *       that is moving again is not stalled.
  * @note Says nothing about the transfer being finished. That is what praet_ordo_completed is.
@@ -506,9 +506,9 @@ embed_word praet_ordo_situs(const PraetOrdo *context, embed_word channel);
  * @param[in] context Context the channel belongs to [BORROWS].
  * @param[in] channel Channel to read.
  * @return            Bytes at start that must be treated as written, never above the length.
- * @note The position is sampled every few poll ticks, so it is exact to word granularity and can be
+ * @note The position is sampled every few poll ticks, and so it is exact to word granularity and can be
  *       up to one word behind what the engine actually wrote. A caller zeroing only as far as the
- *       position would leave a partial word unscrubbed, so the rounding lives here instead of in
+ *       position would leave a partial word unscrubbed, and so the rounding lives here instead of in
  *       every caller that has to remember it.
  * @note This is the number to scrub. praet_ordo_situs is what was sampled.
  */
@@ -520,11 +520,11 @@ embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel)
  * @param[in] context Context the channel belongs to [BORROWS].
  * @param[in] channel Channel to read.
  * @return            The checksum, where the channel reads PRAET_MEASURED. Zero otherwise.
- * @note Read PRAET_MEASURED first. Zero is a legal checksum, so the value alone does not say whether
+ * @note Read PRAET_MEASURED first. Zero is a legal checksum, and so the value alone does not say whether
  *       a word was measured.
- * @note The caller is what makes this useful. This library holds the destination and never the
- *       source, so it can say what the boundary word now contains and not whether that is what was
- *       meant to be there. Comparing the two is the caller's, which is the only place both are known.
+ * @note The caller makes this useful. This library holds the destination and never the
+ *       source, and so it can say what the boundary word now contains and not whether that is what was
+ *       meant to be there. Comparing the two is the caller's, the only place both are known.
  */
 uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel);
 
@@ -566,7 +566,7 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel);
  *
  * @param[in,out] context Context the channel belongs to [BORROWS].
  * @param[in]     channel Channel that showed a sign of life.
- * @note A sign of life and nothing else. How far the engine got is what PRAET_RECOVERY buys, and this
+ * @note A sign of life, alone. How far the engine got is what PRAET_RECOVERY buys, and this
  *       build does not carry it.
  * @note Pushes the keepalive window out and clears a stall that had been recorded, because a channel
  *       that is moving again is not stalled.
@@ -589,7 +589,7 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel);
  *       declaration and not with the channel.
  * @note The bound is checked here and never inside the entry. Sizes and spans are settled while
  *       compiling. A test at run time would be paying for a question that was already answered.
- * @note Names the binding PraetChannel declared, so submitting a pool this channel is not over fails
+ * @note Names the binding PraetChannel declared, and so submitting a pool this channel is not over fails
  *       on an identifier carrying the context, the channel and the pool that was written. That is the
  *       same guarantee locus_carcerum gets from pasting the site and the pool into one symbol.
  */
@@ -680,13 +680,13 @@ void praet_ordo_raise(PraetOrdo *context);
  *       load reads it. A return value here would be a second way to learn the same thing, and the two
  *       would eventually disagree.
  * @note Also the reader/setter, and the first call on interrupt exit. It reads set, takes busy, does
- *       the above, then unsets both volatiles. Taking busy is what makes it ignore the interrupt for
+ *       the above, then unsets both volatiles. Taking busy makes it ignore the interrupt for
  *       that span, and the interrupt may keep raising set throughout without anything being lost,
  *       because this recomputes every channel from what it can see and consumes no event.
  * @note Does nothing where set was not raised, and where busy was already held. A nested call while
  *       the lock is out is the re-entry case, and it declines, leaving the outer call's half-done
  *       state untouched.
- * @note Every state change a channel undergoes goes through here, which is what puts the whole of the
+ * @note Every state change a channel undergoes goes through here, as puts the whole of the
  *       access control in one function. That fell out of the lock: one reader means one place.
  */
 void praet_ordo_poll(PraetOrdo *context);

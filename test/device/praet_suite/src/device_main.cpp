@@ -11,7 +11,7 @@
  * @date 2026-09-01
  *
  * @note The only file here that is not the suite. Everything under test is compiled from where it
- *       already lives, so the part runs the same source the host does and there is no second copy to
+ *       already lives, and so the part runs the same source the host does and there is no second copy to
  *       drift.
  * @note C++ because the Arduino core is, and it is the shortest way to a serial port that works the
  *       same on every board. Nothing under test is C++ and none of it is compiled as C++.
@@ -24,13 +24,13 @@ extern "C"
      * @brief Sends one character to the serial port, which is where Unity writes.
      *
      * @param[in] letter Character to send, as Unity hands it over.
-     * @note UNITY_OUTPUT_CHAR names this. Unity emits a character at a time and never a line, so
+     * @note UNITY_OUTPUT_CHAR names this. Unity emits a character at a time and never a line, and so
      *       buffering is the port's business.
      */
     void device_putchar(int letter);
 
     /**
-     * @brief The suite's own entry, which is the generated runner's main under another name.
+     * @brief The suite's own entry, the generated runner's main under another name.
      *
      * @return The number of cases that failed, as Unity counts them.
      * @note platformio.ini renames it with -Dmain=praet_suite_main, because the Arduino core already
@@ -48,7 +48,7 @@ void device_putchar(int letter)
  * @brief Waits for the serial port, runs every case once, and reports what the part said.
  *
  * @note Waits for a host to open the port, with a ceiling. A board nobody is watching still runs and
- *       still reports, which is what lets this be flashed and read later.
+ *       still reports, as lets this be flashed and read later.
  * @note Runs once. The suite is not a loop, and a part that reran it would fill a capture with
  *       repeats of the same answer.
  */
@@ -63,12 +63,12 @@ void setup(void)
 
     const unsigned long waited_from = millis();
 
-    // A minute, not five seconds. On a native USB part nothing resets when the host opens the port.
+    // A minute and not five seconds. On a native USB part nothing resets when the host opens the port.
     // A suite that ran before anyone was listening printed into nothing and the board looks dead.
     // Measured, on a Feather M4 that had already run by the time the port was opened.
     while (!Serial && ((millis() - waited_from) < 60000ul))
     {
-        // Nothing. A UART part never asserts this at all, which is what the ceiling is for
+        // Nothing. A UART part never asserts this at all, as the ceiling is for
     }
 
     Serial.println();
@@ -85,7 +85,7 @@ void setup(void)
 /**
  * @brief Repeats the verdict. Attaching after the run still tells you how it went.
  *
- * @note The case by case output is streamed and gone. This is the summary alone, which is what a
+ * @note The case by case output is streamed and gone. This is the summary alone, as a
  *       script reads to decide whether the part passed.
  */
 void loop(void)

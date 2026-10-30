@@ -12,7 +12,7 @@
  *
  * @note The examination arm. The correctness arm says every case passed, and that says nothing about
  *       which of the machine's states and transitions any case walked through. A four state core with
- *       eight statuses has more paths than a suite this size can cover by accident, so the ones it
+ *       eight statuses has more paths than a suite this size can cover by accident, and so the ones it
  *       misses are worth knowing before any of it reaches a part.
  * @note Reports and never gates. A transition nothing reached is a hole in the cases, and whether it
  *       is worth filling is a reading of the report and not a build failure. The optimization arm is
@@ -25,7 +25,7 @@
  * @warning A build setting PRAET_PROCURATOR to 1 links against those definitions and fails to link
  *          without them. A shipping image has no reason to set it.
  * @warning Not a knob praet_iudex.h asks about. Every knob there describes the image a
- *          caller ships; this describes a run of the suite, which is the harness's business and not
+ *          caller ships; this describes a run of the suite, the harness's business and not
  *          the caller's.
  */
 #ifndef MMGR_PRAET_PROCURATOR_H
@@ -39,7 +39,7 @@
  * @note The optimization arm, and it is the examination arm carrying more counters. What it records
  *       is work: entries called, channels walked, times the poll short circuited, times the port was
  *       asked anything, and the bytes of state a context costs.
- * @note No times, and none on purpose. A count of work is the same on every run of one build, so it
+ * @note No times, and none deliberately. A count of work is the same on every run of one build, and so it
  *       is a fact a host can state. What that work costs is a property of a part, and a number taken
  *       here would be a number about this machine dressed as a number about the library.
  * @note Reports and never gates, the same as the examination arm. A count that grew is worth reading
@@ -85,7 +85,7 @@ EMBED_BEGIN_DECLS
  * @param[in] channel Channel whose word changed.
  * @param[in] was     The word before.
  * @param[in] now     The word after.
- * @note Called from the one function that writes a flag word, which is what makes the record complete,
+ * @note Called from the one function that writes a flag word, and that leaves the record complete,
  *       including the sites nobody remembered to instrument.
  * @note Records the core transition as a pair, and every status bit that came on or went off. A word
  *       that changed only its region descriptor records neither, and nothing here reads the region.
@@ -146,7 +146,7 @@ typedef enum
     PRAET_OPUS_POLL_WALK = 8,  /**< A poll that walked every channel. */
     PRAET_OPUS_ALVEUS = 9,     /**< One channel visited inside a walk. */
     PRAET_OPUS_PROGRESS = 10,  /**< The port was asked how far a channel had got. */
-    PRAET_OPUS_KINDS = 11      /**< How many kinds there are, which is what the counters are sized by. */
+    PRAET_OPUS_KINDS = 11      /**< How many kinds there are, as the counters are sized by. */
 } PraetOpus;
 
 /**

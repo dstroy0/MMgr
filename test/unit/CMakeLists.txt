@@ -3,7 +3,7 @@
 #
 # A mirror of src: one directory per module, and config beside them, now holding the string shim
 # suite alone. Every translation unit has a suite. A module that grows a second .c grows a second
-# suite beside it rather than sharing one.
+# suite beside it instead of sharing one.
 
 add_subdirectory(clz)
 add_subdirectory(impensa_ancorae_acus)

@@ -4,7 +4,7 @@
 """Per-translation-unit .text at each optimization level, for the targets the library ships to.
 
 The counterpart to sizes.py, and the one whose numbers decide anything. sizes.py reads its compiler
-options out of build/compile_commands.json, which is the desktop build, so every figure it prints is
+options out of build/compile_commands.json, the desktop build, and so every figure it prints is
 x86-64 code size. That is the wrong instruction set for a library whose targets are 32-bit Xtensa,
 RISC-V and ARM, and they do not merely differ from the host by a constant: on all three -O1 is LARGER
 than -O2, and on the host it is smaller. A level chosen off the host table is chosen off the wrong
@@ -50,7 +50,7 @@ TARGETS = {
 }
 
 # The five cost tables are alternatives, not additions - they all define the same symbol and a build
-# links exactly one, so only the selected one is counted.
+# links exactly one, and so only the selected one is counted.
 SKIP = re.compile(r"impensa_ancorae_acus_(english|inet|route|uri)\.c$")
 
 

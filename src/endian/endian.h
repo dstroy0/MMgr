@@ -12,7 +12,7 @@
  * @date 2026-08-29
  *
  * @note parva_extremitas moves bytes in the host's own order and magna_extremitas in the reverse of it.
- *       Nothing here consults MMGR_HW_BIG_ENDIAN, so the two names hold on a little endian host and
+ *       Nothing here consults MMGR_HW_BIG_ENDIAN, and so the two names hold on a little endian host and
  *       stand for the opposite orders on a big endian one.
  * @note The two tables share the table type and the rev entry. Their wr and rd differ, since one pair
  *       reverses and the other does not.
@@ -27,7 +27,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Width of one endian read or write, counted in bytes.
  *
- * @note The enumerators are the byte counts themselves, so the implementation switches on them directly.
+ * @note The enumerators are the byte counts themselves, and so the implementation switches on them directly.
  * @note One byte on every compiler, through EMBED_ENUM_BYTE.
  * @warning Nothing holds a value to these three. The switches in endian.c test 2 and 4 and take
  *          everything else on the default arm, which moves eight bytes.
@@ -126,7 +126,7 @@ uint64_t mmgr_rd_be(const EndianCfg *args);
  *
  * @param[in] args Value and width [BORROWS].
  * @return         The reversed value, right-aligned into the low args->width bytes.
- * @note Reads args->val and args->width and nothing else, so it touches no buffer and dst and src take
+ * @note Reads args->val and args->width, alone, and so it touches no buffer and dst and src take
  *       no part.
  * @note Both tables point rev at this one function, which reverses whatever it is given without
  *       reference to either order.
@@ -139,8 +139,8 @@ uint64_t mmgr_endian_rev(const EndianCfg *args);
 /**
  * @brief Dispatch table instance named parva_extremitas, the little endian order.
  *
- * @note wr and rd move bytes as they lie, so they land in the host's own order. This module never
- *       consults MMGR_HW_BIG_ENDIAN, so the name holds on a little endian host and this table writes
+ * @note wr and rd move bytes as they lie, and so they land in the host's own order. This module never
+ *       consults MMGR_HW_BIG_ENDIAN, and so the name holds on a little endian host and this table writes
  *       big endian bytes on a big endian one.
  * @note rev is the same function both tables use.
  */
@@ -153,8 +153,8 @@ EMBED_TABLE_STORAGE EndianNs parva_extremitas EMBED_UNUSED = {
 /**
  * @brief Dispatch table instance named magna_extremitas, the big endian order.
  *
- * @note wr reverses before writing and rd reverses after reading, so the bytes land in the reverse of
- *       the host's own order. That is big endian on a little endian host, which is what the name
+ * @note wr reverses before writing and rd reverses after reading, and so the bytes land in the reverse of
+ *       the host's own order. That is big endian on a little endian host, as the name
  *       records, and little endian on a big endian one.
  * @note rev is shared with parva_extremitas.
  */

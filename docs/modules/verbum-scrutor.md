@@ -39,7 +39,7 @@ size_t find_zero(const uint8_t *p, size_t n)
 }
 ```
 
-The tail is where off-by-ones live, which is why `word16` exists as an environment: it reaches the
+The tail is where off-by-ones live, and so `word16` exists as an environment: it reaches the
 tail four times sooner than a 64-bit carrier. See @ref ref_environments.
 
 ## Three tables
@@ -52,7 +52,7 @@ The entries split by what they operate on, and each has its own config struct.
 | `lane` | the lanes of a word | `ge`, `le`, `sub7`, `has_zero`, `eq`, `xor_`, `fam_eq`, `any_upper`, `any_digit`, `alpha`, `count`, `first`, `last` |
 | `mask` | a mask of lanes     | `spread`, `drop_first`, `drop_last`, `bytes_below`, `lanes_below`, `before`, `tail`, `run`, `run_edge`              |
 
-`lane.first` and `lane.last` are address order, not bit order. On a big-endian target they are wired
+`lane.first` and `lane.last` are address order and not bit order. On a big-endian target they are wired
 to the opposite internal entries from a little-endian one. A caller never has to know which way
 the lanes run. `mask.drop_first` and `mask.drop_last` are wired the same way.
 
@@ -62,10 +62,10 @@ a byte length.
 ## Gotchas
 
 **The carrier is the machine word, always.** There is no separate lane width to set: the scanner
-reads `EMBED_WORD_BITS` directly, so there is no second number to disagree with the first. A narrower
+reads `EMBED_WORD_BITS` directly, and so there is no second number to disagree with the first. A narrower
 carrier is never faster: it moves the same cache line and answers for fewer lanes.
 
-**A gate may be a superset.** Some entries answer "possibly" rather than "definitely" because a false
+**A gate may be a superset.** Some entries answer "possibly" and not "definitely" because a false
 yes only costs a re-check while a false no is a bug. Read the brief on each entry before assuming an
 exact answer.
 

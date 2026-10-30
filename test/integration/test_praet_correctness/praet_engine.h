@@ -11,12 +11,12 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note This is a port. It supplies strong definitions of the four mmgr_praet_hw_ hooks, so what it
+ * @note This is a port. It supplies strong definitions of the four mmgr_praet_hw_ hooks, and so what it
  *       exercises is the contract a board support file implements and a failure here is an
  *       integration defect.
  * @note The engine owns no bytes and no buffer. A transfer names the caller's storage and its
  *       extent, the same way memor.cpy does, and the engine reports how much of it moved.
- * @note Channels here are logical. One engine schedules all of them, which is what a part with fewer
+ * @note Channels here are logical. One engine schedules all of them, as a part with fewer
  *       channels than a program wants actually does, and it is why completions can come back in an
  *       order the submissions did not.
  * @note Every behavior is scripted. Nothing decides anything at run time. A failure is a fixture
@@ -32,8 +32,8 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Logical channels one scenario may name.
  *
- * @note A ceiling on the fixture, not on the library. The engine schedules every logical channel
- *       over itself, so this bounds the pending table and nothing else.
+ * @note A ceiling on the fixture and not on the library. The engine schedules every logical channel
+ *       over itself, and so this bounds the pending table, alone.
  */
 #define PRAET_ENGINE_CHANNELS 8u
 
@@ -53,9 +53,9 @@ typedef enum
  *
  * @note The two are the same engine with one difference: whether it can report without being asked.
  *       A part with a spare interrupt takes the first; a part without one falls back to the second,
- *       which is what makes the module practical on a part that has no vector to give it.
+ *       and that leaves the module practical on a part that has no vector to give it.
  * @note Every scenario runs on both. The fixture is the same and only the arm changes. A
- *       difference in outcome is the arm and nothing else.
+ *       difference in outcome is the arm, alone.
  */
 typedef enum
 {
@@ -67,7 +67,7 @@ typedef enum
  * @brief When a scripted reaction delivers the completions it was given.
  *
  * @note PRAET_COMPLETE_INSIDE_CALL is the re-entrancy case. The callback runs before the hook
- *       returns, so the library is called back while it is still inside a submit it has not
+ *       returns, and so the library is called back while it is still inside a submit it has not
  *       finished. It ignores the cycle timer, since nothing has elapsed yet.
  * @note PRAET_COMPLETE_WHEN_DUE holds the completions against the logical channel until the cycle
  *       ticks have elapsed and the arm allows them out.
@@ -94,7 +94,7 @@ typedef enum
  * @param channel Logical channel the call names.
  * @param bytes   Bytes the call submits. Read by PRAET_HOOK_SUBMIT; the other three ignore it.
  * @note The program is part of the fixture. What the library is asked to do decides as much of the
- *       outcome as what the engine answers, so both live in the scenario.
+ *       outcome as what the engine answers, and so both live in the scenario.
  */
 typedef struct
 {
@@ -115,7 +115,7 @@ typedef struct
  * @param complete_when When the completions are delivered, as a PraetCompleteWhen.
  * @param completions   How many completion callbacks this reaction delivers. Two for one transfer is
  *                      a case no part produces and the library still has to survive.
- * @param moved         Bytes each completion reports. Free of the submitted count on purpose. A
+ * @param moved         Bytes each completion reports. Free of the submitted count deliberately. A
  *                      short transfer and an over-count are both expressible.
  * @param settle_ticks  Read by an open reaction. Hook calls the channel spends settling before it
  *                      will take a transfer. Zero is a channel usable at once.
@@ -123,11 +123,11 @@ typedef struct
  *                      Zero is due immediately.
  * @param progress      Read by a poll reaction. Bytes the polled channel has moved by then, as a
  *                      controller's remaining count would say. Zero reports nothing and leaves the
- *                      last figure standing, which is what every scenario written before this field
+ *                      last figure standing, as every scenario written before this field
  *                      existed does.
  * @note A reaction that refuses delivers no completion whatever the other members hold. Refusing and
  *       reporting a completion is not a state hardware reaches.
- * @note progress is last on purpose. The generated scenarios initialize these positionally. A
+ * @note progress is last deliberately. The generated scenarios initialize these positionally. A
  *       field at the end leaves every one of them reporting no progress and behaving as it did.
  */
 typedef struct
@@ -229,7 +229,7 @@ PraetEngineTally praet_engine_tally(void);
  * @param[in] channel Logical channel to read.
  * @return            Bytes moved so far, or 0 for a channel outside the fixture's table.
  * @note What a port reads off a controller's remaining count, and what it feeds a watchdog with. The
- *       library has no entry for it, so the application asks the port and passes the answer to
+ *       library has no entry for it, and so the application asks the port and passes the answer to
  *       praet_ordo_efficere. That is the shape a real integration takes until the library grows one.
  * @note Set by a poll reaction carrying a progress figure, and set to the reported count when a
  *       transfer completes. A channel nothing has reported on holds its last figure.

@@ -9,9 +9,9 @@
  * @date 2026-08-31
  *
  * @note The module is a bitmap lookup, and a bitmap is 128 independent bits per class. One wrong bit
- *       is one wrong byte out of 128 and shows up nowhere else, so every byte of every class is
+ *       is one wrong byte out of 128 and shows up nowhere else, and so every byte of every class is
  *       tested and none is sampled.
- * @note The reference is a chain of range compares on the code point, which is the construction the
+ * @note The reference is a chain of range compares on the code point, the construction the
  *       bitmap replaced. It reads no part of s_class and shares no arithmetic with the module.
  * @note Each range below is transcribed from the class list in the header, written as the numbers
  *       ASCII gives those characters. The first case ties those numbers back to the characters the
@@ -29,7 +29,7 @@
 /**
  * @brief Expands to 256u, the number of values a byte holds and the width of every sweep here.
  *
- * @note The sweep runs past 0x7F on purpose. The half above it is where the module returns
+ * @note The sweep runs past 0x7F deliberately. The half above it is where the module returns
  *       EMBED_FALSE without reading a bitmap, and that half is a claim like any other.
  */
 #define MMGR_ACCURACY_ASCII_BYTES 256u
@@ -37,7 +37,7 @@
 /**
  * @brief Expands to 0x80u, the first code point no class covers.
  *
- * @note Sixteen bytes of bitmap reach code point 127. This is the one past it.
+ * @note Sixteen bytes of bitmap reach code point 127. This is the single one past it.
  */
 #define MMGR_ACCURACY_ASCII_LIMIT 0x80u
 
@@ -82,7 +82,7 @@ static const AccuracyClassRow accuracy_class_of[] = {
  *
  * @note A class added to MmgrAsciiClass without a row here would go untested, and every sweep below
  *       would keep passing while covering one class fewer than the module ships.
- * @note Both sides are known at compile time, so the build refuses the mismatch and no case has to
+ * @note Both sides are known at compile time, and so the build refuses the mismatch and no case has to
  *       run to find it.
  */
 EMBED_STATIC_ASSERT(MMGR_ACCURACY_ASCII_ROWS == (size_t)MMGR_ASCII_CLASSES,
@@ -95,7 +95,7 @@ EMBED_STATIC_ASSERT(MMGR_ACCURACY_ASCII_ROWS == (size_t)MMGR_ASCII_CLASSES,
  * @param[in] first Lowest code point in the range.
  * @param[in] last  Highest code point in the range, included.
  * @return          1 inside the range, 0 outside it.
- * @note Both ends are included, which is how every run in the header is written.
+ * @note Both ends are included, and that is how every run in the header is written.
  */
 static int accuracy_range_holds_code(unsigned code, unsigned first, unsigned last)
 {
@@ -110,8 +110,8 @@ static int accuracy_range_holds_code(unsigned code, unsigned first, unsigned las
  * @return         1 when the class covers the code point, 0 when it does not.
  * @note This is the whole reference. Each arm is the header's run list written as ASCII numbers, and
  *       no arm consults another: MMGR_ASCII_ALNUM lists its three runs out in full instead of
- *       reaching for the digit and letter arms, so one wrong bitmap cannot hide behind another.
- * @note Code points at or above MMGR_ACCURACY_ASCII_LIMIT return 0 for every class, which is the
+ *       reaching for the digit and letter arms, and so one wrong bitmap cannot hide behind another.
+ * @note Code points at or above MMGR_ACCURACY_ASCII_LIMIT return 0 for every class, the
  *       coverage the header states.
  * @warning A kind of MMGR_ASCII_CLASSES returns 0. Nothing here passes it, and the module documents
  *          it as out of range.
@@ -174,8 +174,8 @@ static int accuracy_module_membership(MmgrAsciiClass kind, unsigned code)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
- * @note The bitmaps are initialized data and no case writes anything, so there is no state to
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
+ * @note The bitmaps are initialized data and no case writes anything, and so there is no state to
  *       prepare.
  */
 void setUp(void)
@@ -186,7 +186,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -291,7 +291,7 @@ void test_each_class_holds_the_number_of_code_points_its_runs_add_up_to(void)
         for (unsigned code = 0u; code < MMGR_ACCURACY_ASCII_BYTES; code++)
         {
             // Explicit widening of the 0 or 1 membership into the running total. Nothing else is
-            // added here, so the total is the population
+            // added here, and so the total is the population
             counted += (unsigned)accuracy_module_membership(accuracy_class_of[row].kind, code);
         }
 
@@ -312,13 +312,13 @@ void test_each_class_holds_the_number_of_code_points_its_runs_add_up_to(void)
  * @note Each pair is the last character outside a run and the first inside it, or the reverse at the
  *       far end. '/' and '0' bracket the digits, '@' and 'A' the upper case letters, and '`' and 'a'
  *       the lower case ones, which are the three joins where the runs sit next to each other.
- * @note 'F' and 'G' and 'f' and 'g' bracket the hexadecimal letters, which is the one run that stops
+ * @note 'F' and 'G' and 'f' and 'g' bracket the hexadecimal letters, the one run that stops
  *       partway through a letter range and the one place a bitmap copied from its neighbor shows up.
  */
 void test_the_byte_on_each_side_of_every_run_falls_on_the_right_side_of_it(void)
 {
     // Explicit casts take each character literal from the int the language gives it to the unsigned
-    // the helper counts in. Every one is a code point below 128, so no value changes crossing over
+    // the helper counts in. Every one is a code point below 128, and so no value changes crossing over
     TEST_ASSERT_EQUAL_INT_MESSAGE(0, accuracy_module_membership(MMGR_ASCII_NUM, (unsigned)'/'), "'/' is not a digit");
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, accuracy_module_membership(MMGR_ASCII_NUM, (unsigned)'0'), "'0' is a digit");
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, accuracy_module_membership(MMGR_ASCII_NUM, (unsigned)'9'), "'9' is a digit");

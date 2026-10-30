@@ -16,13 +16,13 @@ if (EMBED_CALL(memor.cmp, MemoriaCfg, .src = a, .other = b, .bytes = n) == 0) { 
 const void *hit = EMBED_CALL(memor.chr, MemoriaCfg, .src = p, .val = (uint8_t)'x', .bytes = n);
 ```
 
-Both spellings exist: `mmgr_memor_cpy` is the same function. See @ref concept_ns_idiom.
+Both forms exist: `mmgr_memor_cpy` is the same function. See @ref concept_ns_idiom.
 
 ## Gotchas
 
 **`cpy` does not handle overlap, and there is no single `move`.** There are two, and which one is
 safe depends on which way the regions lie: `move_up` when `dst` is above `src`, `move_down` when it
-is below. `move_down` is `cpy`, copying forward is already the safe direction that way, so the
+is below. `move_down` is `cpy`, copying forward is already the safe direction that way, and so the
 table points both at the same function.
 
 **There is no `zero` entry.** Use `set` with `.val = 0`.
@@ -60,27 +60,27 @@ const char *end = NULL;
 const embed_iword v = EMBED_CALL(cellul.to_long, TransfiguroCfg, .src = digits, .end = &end);
 ```
 
-`.ci` is case-insensitivity, not a success flag.
+`.ci` is case-insensitivity and not a success flag.
 
 ## Gotchas
 
-**`find` returns a pointer, not an offset.** NULL when the needle is not there.
+**`find` returns a pointer and not an offset.** NULL when the needle is not there.
 
-**The parse entries report where they stopped, not whether they succeeded.** `to_long` and the rest
+**The parse entries report where they stopped and not whether they succeeded.** `to_long` and the rest
 write the first byte they did not consume to `.end`. Equal to `.src` means nothing was parsed.
 
 **`to_long` and `to_ulong` return `embed_iword` and `embed_word`,** so they parse to the target's own
-word width. On a 16-bit build `to_ulong` saturates at 65535, not at 4294967295.
+word width. On a 16-bit build `to_ulong` saturates at 65535 and not at 4294967295.
 
-**The cap is a cap, not a length.** `len` with `.cap = 64` returns at most 64 whether or not a
+**The cap is a cap and not a length.** `len` with `.cap = 64` returns at most 64 regardless of whether a
 terminator was found. If you need to know which happened, compare against the cap.
 
-**`find` anchors on the rarest byte of the needle**, using @ref mod_anchor_guide. That is why it is
+**`find` anchors on the rarest byte of the needle**, using @ref mod_anchor_guide. For that reason it is
 fast on real text and why the profile matters.
 
 **Except for a needle of one or two bytes**, which is settled by a mask chain instead: one broadcast
 per needle byte, every start position in a word decided at once, nothing to verify afterwards. There
-is no rare byte to find in two bytes and no rest to prove, so the anchor's cost table would be read
+is no rare byte to find in two bytes and no rest to prove, and so the anchor's cost table would be read
 before a haystack byte is. The chain also costs the same whatever the haystack holds, where an
 anchor costs more when its byte is common, measured against a needle whose first byte turns up every
 fifteen bytes, MMgr does not move and ROM `strstr` loses 10%. Case folding always takes the anchor
@@ -106,7 +106,7 @@ Available: `MMGR_ASCII_NUM`, `MMGR_ASCII_ALPHA`, `MMGR_ASCII_ALNUM`, `MMGR_ASCII
 `MMGR_ASCII_CTRL`.
 
 **Why sixteen bytes and not two `uint64_t`.** Because a `uint64_t` is not available as a single
-value on a 16-bit build. Byte-indexed, the same table works at every carrier width, which is the
+value on a 16-bit build. Byte-indexed, the same table works at every carrier width, the
 constraint that shapes half the decisions in this library.
 
 Header-only, no dispatch table, no state. @ref mod_ascii "Generated reference"
@@ -115,7 +115,7 @@ Header-only, no dispatch table, no state. @ref mod_ascii "Generated reference"
 
 # Anchor cost: where a search starts {#mod_anchor_guide}
 
-A byte-frequency cost table. Substring search anchors on the rarest byte of the needle rather than
+A byte-frequency cost table. Substring search anchors on the rarest byte of the needle and not
 the first.
 
 ## Why
@@ -124,13 +124,13 @@ Searching for `"Content-Length:"` by scanning for `'C'` finds a candidate on nea
 English text, and each one costs a full comparison. Scanning for `'-'`, or whichever byte is rarest
 in the expected input, finds far fewer candidates and rejects them sooner.
 
-The table says how common each byte is, so the search can pick.
+The table says how common each byte is, and so the search can pick.
 
 ## Profiles
 
-One CMake option taking a value, not a set of defines: `-DMMGR_ANCORAE_FORMA=english`. It selects
+One CMake option taking a value and not a set of defines: `-DMMGR_ANCORAE_FORMA=english`. It selects
 the single translation unit that carries the table
-(`src/impensa_ancorae_acus/CMakeLists.txt:7-15`), so the four not chosen are not in the image:
+(`src/impensa_ancorae_acus/CMakeLists.txt:7-15`), and so the four not chosen are not in the image:
 
 | value     | tuned for             |
 | --------- | --------------------- |

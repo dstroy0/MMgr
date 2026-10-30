@@ -5,7 +5,7 @@ All notable changes to this project are recorded here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 This file is generated from the git history by `git-cliff` using `docs/cliff.toml`. Edit the commit
-messages, not this file.
+messages and not this file.
 
 ## [Unreleased]
 
@@ -28,7 +28,7 @@ messages, not this file.
   `@verbatim`.
 - `mmgr_compiler_directives.h`: `<Mod>Ns` was parsed as an HTML tag in two comment blocks.
 - `tools/dev_env/readclean.py`: the entry-member pattern matched one fixed signature that no module
-  in this tree uses, so no dispatch entry was ever recognized as an entry. It now matches any
+  in this tree uses, and so no dispatch entry was ever recognized as an entry. It now matches any
   function-pointer member of a dispatch table.
 
 ## [0.1.0] - 2026-08-20

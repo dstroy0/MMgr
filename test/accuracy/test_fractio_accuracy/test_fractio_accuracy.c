@@ -71,7 +71,7 @@ typedef union {
 /**
  * @brief One pattern and the three fields the binary64 format puts in it.
  *
- * @note Every row below is worked out from the format by hand, which is what lets a row stand as an
+ * @note Every row below is worked out from the format by hand, as lets a row stand as an
  *       expectation on its own.
  */
 typedef struct
@@ -86,7 +86,7 @@ typedef struct
 /**
  * @brief One pattern from each class a double can be, with its fields worked out by hand.
  *
- * @note 1.0 is a biased exponent of 1023 over a zero mantissa. 3.0 is 1.5 times two, which is the
+ * @note 1.0 is a biased exponent of 1023 over a zero mantissa. 3.0 is 1.5 times two, the
  *       same exponent plus one over a mantissa of a half, and a half of 2^52 is 0x8000000000000.
  * @note The smallest subnormal is a single low bit with an exponent field of zero, and the largest
  *       finite value is the highest exponent short of the all-ones one over a full mantissa.
@@ -147,7 +147,7 @@ static double accuracy_double_of(uint64_t bits)
  * @param[in] exponent Biased exponent, 0 through 2047.
  * @param[in] mantissa Fifty-two stored bits.
  * @return             The three fields placed where the binary64 format puts them.
- * @note Built from the shifts declared at the top of this file, which is what makes it usable as an
+ * @note Built from the shifts declared at the top of this file, and that leaves it usable as an
  *       expectation for mmgr_fract_merge.
  * @note Each field is masked before it is shifted, matching what the format allows a field to hold.
  *       A caller here passes values already inside those bounds.
@@ -162,7 +162,7 @@ static uint64_t accuracy_pattern_from(uint64_t sign, uint64_t exponent, uint64_t
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Every value this suite uses is either a file-scope constant or has automatic storage inside
  *       the case that builds it, and there is no shared state to prepare here.
  */
@@ -174,7 +174,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -186,7 +186,7 @@ void tearDown(void)
  *
  * @note Exists to catch a defect in the helpers as itself. Without this case a broken
  *       accuracy_pattern_from would surface as a merge mismatch, and fractio would be blamed for it.
- * @note The last check walks the whole table and reassembles each row from its own three fields, so
+ * @note The last check walks the whole table and reassembles each row from its own three fields, and so
  *       a row whose fields do not add back up to its pattern fails here and not in a later case.
  */
 void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)

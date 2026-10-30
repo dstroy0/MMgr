@@ -14,7 +14,7 @@
  *       back to external memory, the threshold that reverses which memory is tried first, and the
  *       reserve that only the internal test applies.
  * @note Six inputs over nine values each, with the DMA flag both ways, is 118098 decisions. That is
- *       every ordering of size against the two free figures, the threshold and the reserve, so no
+ *       every ordering of size against the two free figures, the threshold and the reserve, and so no
  *       boundary between them goes unvisited.
  * @note Small numbers are the whole point. Every boundary in the policy is a comparison between two
  *       of the inputs, and the orderings that matter all occur among the first few integers.
@@ -34,7 +34,7 @@
 /**
  * @brief Expands to 9u, the values each figure in the exhaustive sweep takes.
  *
- * @note Zero through eight. The policy compares the inputs against each other, so what a sweep needs
+ * @note Zero through eight. The policy compares the inputs against each other, and so what a sweep needs
  *       is every ordering among them and not a wide range of magnitudes.
  */
 #define MMGR_ACCURACY_EXTERN_STEPS 9u
@@ -55,7 +55,7 @@
  * @note The two fit tests differ, which the header calls out. Internal has to leave the reserve free
  *       afterwards, and external is a size comparison on its own.
  * @note The internal test is written as an addition, where the module subtracts. Both express the
- *       same rule and neither can wrap at the values this file sweeps, so the two arrive at the same
+ *       same rule and neither can wrap at the values this file sweeps, and so the two arrive at the same
  *       decision without sharing the arithmetic that reaches it.
  */
 static mmgr_place accuracy_policy_place(size_t size, embed_bool dma_required, size_t free_dram, size_t free_psram,
@@ -114,9 +114,9 @@ static const char *accuracy_place_name(mmgr_place place)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note The placement reads nothing but its arguments, and each pingpong case initializes its own
- *       pair, so there is no state to prepare.
+ *       pair, and so there is no state to prepare.
  */
 void setUp(void)
 {
@@ -126,7 +126,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -173,7 +173,7 @@ void test_the_reference_policy_this_suite_relies_on_is_itself_right(void)
  *       figures, the threshold and the reserve is visited, with the DMA flag taken both ways.
  * @note The failure message names all six inputs and both placements. A disagreement is reproducible
  *       from the message alone, with no part of the grid to narrow down by hand.
- * @note The sweep is 118098 decisions and each one is a handful of comparisons, which is why the
+ * @note The sweep is 118098 decisions and each one is a handful of comparisons, and so the
  *       whole grid is walked instead of a sample of it.
  */
 void test_every_placement_decision_matches_the_documented_policy(void)
@@ -191,7 +191,7 @@ void test_every_placement_decision_matches_the_documented_policy(void)
                         for (unsigned dma = 0u; dma < 2u; dma++)
                         {
                             // Explicit cast puts the loop counter in the embed_bool the entry takes.
-                            // The counter is 0 or 1, which is what that container holds
+                            // The counter is 0 or 1, as that container holds
                             const embed_bool dma_required = (embed_bool)dma;
                             const mmgr_place expected =
                                 accuracy_policy_place(size, dma_required, free_dram, free_psram, threshold, reserve);
@@ -228,7 +228,7 @@ void test_every_placement_decision_matches_the_documented_policy(void)
  * @note The figures sit near the top of a size_t, where a wrap produces a number larger than any
  *       reserve. At small values a wrapped remainder can still fall below a reserve by chance, which
  *       is why the case is written up here.
- * @note External memory is given nothing to offer in the arms that expect a refusal, so the refusal
+ * @note External memory is given nothing to offer in the arms that expect a refusal, and so the refusal
  *       is the internal test's and not a fallback that happened to fail as well.
  */
 void test_a_request_larger_than_the_free_bytes_is_refused_at_the_top_of_the_range(void)
@@ -255,7 +255,7 @@ void test_a_request_larger_than_the_free_bytes_is_refused_at_the_top_of_the_rang
  *
  * @note The pair keeps one member and derives the other, and the claim is that the two never name the
  *       same buffer. A producer and a consumer holding the same index write and read the same bytes
- *       at once, which is the failure the whole arrangement exists to prevent.
+ *       at once, the failure the whole arrangement exists to prevent.
  * @note Checked after the initial state and after every swap in a long run, which tests the property
  *       at both values many times over instead of at whichever one a single swap lands on.
  * @note The swap's return is checked against a separate read of the fill index, since a swap that
@@ -285,7 +285,7 @@ void test_the_two_buffer_indexes_are_always_each_others_complement(void)
         TEST_ASSERT_TRUE_MESSAGE(drain <= 1u, "the drain index left the pair of buffers");
         TEST_ASSERT_NOT_EQUAL_MESSAGE(fill, drain, message);
         // A pair started at zero is filling the buffer the swap count's parity names. That count is
-        // kept here, so the expectation reaches this line without reading the pair at all
+        // kept here, and so the expectation reaches this line without reading the pair at all
         TEST_ASSERT_EQUAL_UINT8_MESSAGE((uint8_t)((step + 1u) & 1u), fill, message);
     }
 }

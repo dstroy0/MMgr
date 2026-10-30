@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note PlatformIO's Unity package is built with UNITY_INCLUDE_CONFIG_H set, so unity_internals.h
+ * @note PlatformIO's Unity package is built with UNITY_INCLUDE_CONFIG_H set, and so unity_internals.h
  *       includes this file and the build fails without it. Measured, on the first build here.
  * @note This is where the output hook belongs. Passing it as a define on the command line reaches
  *       the suite but not Unity's own translation unit, and Unity is what calls it.
@@ -27,7 +27,7 @@ extern "C"
      * @brief Sends one character to the part's serial port.
      *
      * @param[in] letter Character to send, as Unity hands it over.
-     * @note Defined in device_main.cpp, which is the only file here that knows what a serial port is.
+     * @note Defined in device_main.cpp, the only file here that knows what a serial port is.
      */
     void device_putchar(int letter);
 

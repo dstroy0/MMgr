@@ -13,18 +13,18 @@
  * @note These act on a caller's span and hold nothing of their own. The span carries the cursor and
  *       the sticky flag. A caller may append a whole message and test once at the end.
  * @note mmgr_byteio_put, mmgr_byteio_put_be and mmgr_byteio_raw return nothing. What a writer emits
- *       and how big its buffer is are both fixed before the build, so writing past the end means the
+ *       and how big its buffer is are both fixed before the build, and so writing past the end means the
  *       program is wrong. Those three assert, store nothing, and latch overflow to keep a wrong
  *       program off the end, and none of that leaves a caller anything to act on.
  * @note mmgr_byteio_take_be and mmgr_byteio_rd_str answer EMBED_FALSE when the bytes are not there,
  *       set the read span's err, and leave the cursor and the output where they were. A reader is
- *       handed whatever was sent to it. A short read is a runtime fact rather than a build
+ *       handed whatever was sent to it. A short read is a runtime fact and not a build
  *       failure. The cursor does not advance on failure, because a caller that keeps reading still
  *       needs it to mean something.
- * @note mmgr_byteio_mpint_fixed is neither of those. It writes a whole field rather than appending,
- *       and answers whether the integer fit, so its own declaration carries the contract.
+ * @note mmgr_byteio_mpint_fixed is neither of those. It writes a whole field and not appending,
+ *       and answers whether the integer fit, and so its own declaration carries the contract.
  * @note Whole values move a word at a time. The big endian entries reverse once and then store or
- *       load at the widest step the count allows, rather than walking bytes.
+ *       load at the widest step the count allows, instead of walking bytes.
  */
 #ifndef MMGR_OCTETUS_INTROITUS_EXITUS_H
 #define MMGR_OCTETUS_INTROITUS_EXITUS_H
@@ -41,7 +41,7 @@ EMBED_BEGIN_DECLS
  * @note put reads write_span and byte. put_be reads write_span, value and bytes. raw reads
  *       write_span, src and bytes. take_be reads read_span, bytes and out. rd_str reads read_span,
  *       blob and blob_bytes. mpint_fixed reads write_span, src and bytes, where bytes is the
- *       integer's length rather than a big endian width.
+ *       integer's length and not a big endian width.
  */
 typedef struct
 {
@@ -125,7 +125,7 @@ embed_bool mmgr_byteio_take_be(const OctetusCfg *args);
  *
  * @param[in,out] args Span, and where to report the run and its length [BORROWS].
  * @return             EMBED_TRUE when the length and its run both lay within the span.
- * @note Nothing is copied. args->blob points into the span's own bytes, so it lives only as long as
+ * @note Nothing is copied. args->blob points into the span's own bytes, and so it lives only as long as
  *       they do [BORROWS].
  * @note The cursor advances past the length and the run together. A caller reading a sequence of
  *       these needs to track nothing between them.
@@ -144,7 +144,7 @@ embed_bool mmgr_byteio_rd_str(const OctetusCfg *args);
  * @return             EMBED_TRUE when the integer fits the field, EMBED_FALSE when it does not.
  * @note Leading zero bytes of the integer are skipped before the width is tested. A value carrying
  *       a sign byte still fits a field of its own size.
- * @note The field is written whole rather than appended to. On success args->write_span's cursor ends
+ * @note The field is written whole and not appended to. On success args->write_span's cursor ends
  *       at its cap.
  * @note Nothing is written to the field when it returns EMBED_FALSE, but args->write_span's overflow
  *       is latched. A span tested later reports the failure too.

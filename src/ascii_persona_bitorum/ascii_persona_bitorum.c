@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note The whole module is one table lookup. The bitmaps are emitted as initialized data, so
+ * @note The whole module is one table lookup. The bitmaps are emitted as initialized data, and so
  *       nothing runs before main and a membership test costs a shift, a mask and a compare whatever
  *       the class covers.
  * @note Reaches nothing outside config.
@@ -23,9 +23,9 @@
  * @note Indexed by MmgrAsciiClass. Code point n is bit (n & 7) of byte (n >> 3).
  * @note Worked through, MMGR_ASCII_NUM holds 0xFF at byte 6 and 0x03 at byte 7. Byte 6 carries code
  *       points 48 through 55, which is '0' to '7', and the low two bits of byte 7 carry 56 and 57,
- *       which is '8' and '9'. Every row below reads the same way, so none of them has to be taken
+ *       which is '8' and '9'. Every row below reads the same way, and so none of them has to be taken
  *       on trust.
- * @note Sixteen bytes reach code point 127 and no further, which is what leaves a byte at 0x80 or
+ * @note Sixteen bytes reach code point 127 and no further, as leaves a byte at 0x80 or
  *       above with no row it could be found in.
  */
 static const MmgrAsciiMask s_class[MMGR_ASCII_CLASSES] = {
@@ -88,8 +88,8 @@ EMBED_INLINE embed_bool ascii_in(const AsciiCtx *args)
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_ascii_ and ascii_ prefixes, which the two share.
- * @param[in] ...         Initializers for the AsciiCtx literal, written in terms of args.
- * @note Four of EMBED_ENTRY's six arguments are the same at every entry in this module, so they
+ * @param[in] ...         Initializers for the AsciiCtx literal, written through args.
+ * @note Four of EMBED_ENTRY's six arguments are the same at every entry in this module, and so they
  *       are bound once here and each entry below states only what differs.
  */
 #define ASCII_ENTRY(ReturnType_, name_, ...)                                                                           \

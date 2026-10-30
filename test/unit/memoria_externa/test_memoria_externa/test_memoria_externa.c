@@ -10,7 +10,7 @@
  *
  * @note Built only where MMGR_ENABLE_EXTRAM is on, which the CAPABILITY EXTRAM line in this
  *       directory's CMakeLists sets. A default configure leaves this suite out of the build.
- * @note Every placement case supplies free_dram and free_psram itself, so the policy is driven at
+ * @note Every placement case supplies free_dram and free_psram itself, and so the policy is driven at
  *       sizes no board has to have.
  */
 #include "memoria_externa/memoria_externa.h"
@@ -21,7 +21,7 @@
  * @brief Expands to 10000, a threshold no size in this suite reaches.
  *
  * @note Cases pass this where they want the below-threshold path, in which internal memory is tried
- *       first. The largest size any case requests is 4096, so nothing here meets it.
+ *       first. The largest size any case requests is 4096, and so nothing here meets it.
  */
 #define ROOMY_THRESHOLD 10000u
 
@@ -38,7 +38,7 @@ void setUp(void)
 /**
  * @brief Runs after each Unity test case.
  *
- * @note Empty because exter.place answers with a placement decision rather than an allocation. A
+ * @note Empty because exter.place answers with a placement decision and not an allocation. A
  *       case that called it holds nothing to hand back.
  */
 void tearDown(void)
@@ -48,7 +48,7 @@ void tearDown(void)
 /**
  * @brief Checks that memoria_externa.h compiles with no header ahead of it.
  *
- * @note The include order above is the whole test. memoria_externa.h is listed before unity.h, so
+ * @note The include order above is the whole test. memoria_externa.h is listed before unity.h, and so
  *       anything the header needs and does not include itself fails to compile here.
  */
 void test_exter_header_is_self_contained(void)
@@ -59,7 +59,7 @@ void test_exter_header_is_self_contained(void)
 /**
  * @brief Checks that a size of zero is refused whatever free space is offered.
  *
- * @note Both memories are given 4096 bytes free, so the refusal cannot come from a shortage. A
+ * @note Both memories are given 4096 bytes free, and so the refusal cannot come from a shortage. A
  *       policy testing size against free space before testing it against zero would place it.
  */
 void test_place_refuses_a_size_of_zero(void)
@@ -73,8 +73,8 @@ void test_place_refuses_a_size_of_zero(void)
 /**
  * @brief Checks that a DMA request fitting internal memory is placed there.
  *
- * @note Both memories are given the same free space, so the answer turns on the DMA requirement
- *       alone rather than on which one has more room.
+ * @note Both memories are given the same free space, and so the answer turns on the DMA requirement
+ *       alone and not on which one has more room.
  */
 void test_a_dma_request_reaches_internal_memory(void)
 {
@@ -89,7 +89,7 @@ void test_a_dma_request_reaches_internal_memory(void)
  * @brief Checks that a DMA request too large for internal memory fails instead of moving outward.
  *
  * @note External memory is given a megabyte free against 64 bytes internal. A policy that fell
- *       back would have somewhere to fall. The DMA engine cannot reach external memory, so the
+ *       back would have somewhere to fall. The DMA engine cannot reach external memory, and so the
  *       address such a fallback returned would be one the transfer could not use.
  */
 void test_a_dma_request_fails_rather_than_falling_back_to_external(void)
@@ -117,11 +117,11 @@ void test_a_dma_request_ignores_the_threshold(void)
 }
 
 /**
- * @brief Checks that a size equal to the threshold counts as at it, so external memory is tried
+ * @brief Checks that a size equal to the threshold counts as at it, and so external memory is tried
  *        first.
  *
- * @note Both memories are given a megabyte free, so either could take the request and the answer
- *       comes from the policy rather than from available room.
+ * @note Both memories are given a megabyte free, and so either could take the request and the answer
+ *       comes from the policy and not from available room.
  */
 void test_at_or_above_the_threshold_external_is_tried_first(void)
 {
@@ -132,7 +132,7 @@ void test_at_or_above_the_threshold_external_is_tried_first(void)
 }
 
 /**
- * @brief Checks that one byte under the threshold counts as below it, so internal memory is tried
+ * @brief Checks that one byte under the threshold counts as below it, and so internal memory is tried
  *        first.
  *
  * @note Sits one byte from test_at_or_above_the_threshold_external_is_tried_first. The two pin which
@@ -151,7 +151,7 @@ void test_below_the_threshold_internal_is_tried_first(void)
  * @brief Checks that a request above the threshold falls back to internal memory when external is
  *        too full to take it.
  *
- * @note External memory holds exactly half what the request needs, so the first choice refuses and
+ * @note External memory holds exactly half what the request needs, and so the first choice refuses and
  *       the second is reached. Without the fallback the request would fail with a megabyte free.
  */
 void test_a_large_request_falls_back_to_internal_when_external_is_full(void)
@@ -166,8 +166,8 @@ void test_a_large_request_falls_back_to_internal_when_external_is_full(void)
  * @brief Checks that a request below the threshold falls back to external memory when internal is
  *        too full to take it.
  *
- * @note The mirror of the fallback above, entered from the other side of the threshold, so both
- *       orderings are covered rather than only the one.
+ * @note The mirror of the fallback above, entered from the other side of the threshold, and so both
+ *       orderings are covered and not only the one.
  */
 void test_a_small_request_falls_back_to_external_when_internal_is_full(void)
 {
@@ -180,8 +180,8 @@ void test_a_small_request_falls_back_to_external_when_internal_is_full(void)
 /**
  * @brief Checks that a request above the threshold fails once both memories have refused it.
  *
- * @note Neither memory has room, so both branches of the above-threshold path are walked and the
- *       failure comes from the end of that walk rather than from an early refusal.
+ * @note Neither memory has room, and so both branches of the above-threshold path are walked and the
+ *       failure comes from the end of that walk and not from an early refusal.
  */
 void test_a_large_request_that_fits_neither_fails(void)
 {
@@ -194,8 +194,8 @@ void test_a_large_request_that_fits_neither_fails(void)
 /**
  * @brief Checks that a request below the threshold fails once both memories have refused it.
  *
- * @note Walks the below-threshold path to its end, which is the ordering the case above never
- *       reaches. Both paths have to fail closed, not only the one tried first.
+ * @note Walks the below-threshold path to its end, the ordering the case above never
+ *       reaches. Both paths have to fail closed and not only the one tried first.
  */
 void test_a_small_request_that_fits_neither_fails(void)
 {
@@ -209,9 +209,9 @@ void test_a_small_request_that_fits_neither_fails(void)
  * @brief Checks that the internal reserve is held back, at the exact byte where a request begins to
  *        eat into it.
  *
- * @note The two sizes sit one byte apart at 800 and 801 against 1000 free with 200 reserved, so the
+ * @note The two sizes sit one byte apart at 800 and 801 against 1000 free with 200 reserved, and so the
  *       first leaves the reserve exactly whole and the second takes one byte of it.
- * @note External memory is given nothing free in both, so neither answer can come from a fallback.
+ * @note External memory is given nothing free in both, and so neither answer can come from a fallback.
  */
 void test_internal_placement_leaves_the_reserve_free(void)
 {
@@ -232,7 +232,7 @@ void test_internal_placement_leaves_the_reserve_free(void)
  * @brief Checks that the internal reserve does not bound a placement that lands externally.
  *
  * @note The same 801 bytes the case above refused internally, now with external memory holding 1000
- *       free. The external test is a size comparison alone, so the reserve never enters it.
+ *       free. The external test is a size comparison alone, and so the reserve never enters it.
  */
 void test_the_reserve_does_not_bound_external_placement(void)
 {
@@ -244,7 +244,7 @@ void test_the_reserve_does_not_bound_external_placement(void)
 }
 
 /**
- * @brief Checks that a size past free internal memory is refused rather than wrapping the
+ * @brief Checks that a size past free internal memory is refused instead of wrapping the
  *        subtraction that bounds it.
  *
  * @note Asks 2000 bytes of 1000 free. A policy subtracting the size from free space in unsigned
@@ -312,7 +312,7 @@ void test_the_two_indexes_never_agree(void)
 
         TEST_ASSERT_NOT_EQUAL_MESSAGE(fill, drain, "one buffer cannot be filled and drained at once");
         // Explicit cast narrows the promoted exclusive-or back to the width the assertion compares.
-        // Both operands are uint8_t and the result is 0 or 1, so the narrowing drops nothing
+        // Both operands are uint8_t and the result is 0 or 1, and so the narrowing drops nothing
         TEST_ASSERT_EQUAL_UINT8_MESSAGE(1u, (uint8_t)(fill ^ drain),
                                         "the drain index is the fill index low bit flipped");
         EMBED_CALL(exter.pingpong_swap, ExternaCfg, .pingpong = &pair);
@@ -343,7 +343,7 @@ void test_reading_an_index_does_not_move_it(void)
  * @brief Checks that swap returns the fill index it just moved to.
  *
  * @note What swap returned is read back against the pair itself. A swap that moved the pair and
- *       returned the old index fails on the second assertion rather than passing unnoticed.
+ *       returned the old index fails on the second assertion instead of passing unnoticed.
  */
 void test_swap_hands_back_the_index_it_moved_to(void)
 {

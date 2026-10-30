@@ -12,7 +12,7 @@
  *
  * @note Every write comes down to mmgr_line_put_n, which places each piece through verba_textus.put_n
  *       and hands the line to its flush between pieces. A number is written into a buffer of its own
- *       first, so its digits cross a flush the way a text does.
+ *       first, and so its digits cross a flush the way a text does.
  */
 #include "verba_scribo/verba_linea.h"
 #include "cellularum_laboro/cellularum_laboro.h"
@@ -63,7 +63,7 @@ EMBED_INLINE void linea_number(VerbaLinea *line, const char *digits, size_t writ
  */
 EMBED_INLINE uint8_t linea_least(unsigned int count)
 {
-    // Explicit cast narrows a count already held at 255 into the byte verba reads it from
+    // Explicit cast narrows a count already clamped at 255 into the byte verba reads it from
     return (uint8_t)((count < LINEA_LEAST_MOST) ? count : LINEA_LEAST_MOST);
 }
 
@@ -100,7 +100,7 @@ void mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
 
     while (done < length)
     {
-        // A byte of the line is held back for the terminator, as verba holds it
+        // A byte of the line is reserved for the terminator, as verba holds it
         const size_t room = (line->at < line->capacity) ? (line->capacity - line->at - 1u) : 0u;
         const size_t left = length - done;
 
@@ -127,7 +127,7 @@ void mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
  * @param[in,out] line The line [BORROWS].
  * @param[in]     text Terminated text [BORROWS].
  * @return             Bytes of text written, 0 where the line filled.
- * @note Each piece is measured as far as one byte past what the room takes, so the text is read no
+ * @note Each piece is measured as far as one byte past what the room takes, and so the text is read no
  *       further than its terminator or the room, whichever comes first, and needs no bound of its own.
  * @note A piece reaching the room's last byte goes on a line with a flush and is handed on before the
  *       next is measured. On a line with none it fills the line.

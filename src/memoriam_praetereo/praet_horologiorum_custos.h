@@ -11,8 +11,8 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Every deadline in this module is microseconds, and a clock is what makes a microsecond mean
- *       anything. A build with no clock declared has deadlines it cannot honor, so it stops and asks
+ * @note Every deadline in this module is microseconds, and a clock makes a microsecond mean
+ *       anything. A build with no clock declared has deadlines it cannot honor, and so it stops and asks
  *       for one.
  * @note What the clock is does not matter here. A counter that runs and can be read is the whole
  *       requirement - this scales its ticks against the frequency the caller states and never looks
@@ -22,7 +22,7 @@
 #define MMGR_PRAET_HOROLOGIORUM_CUSTOS_H
 
 // EMBED_STATIC_ASSERT and embed_word, for the scaling below. Reached the same way every other file
-// here reaches them, so this header stands on its own instead of on what included it
+// here reaches them, and so this header stands on its own instead of on what included it
 #include "mmgr.h"
 
 #include "memoriam_praetereo/praet_praefinitum.h"
@@ -45,10 +45,10 @@
  * @brief Ticks the clock counts in one second.
  *
  * @note This is the PLL figure, and it is what everything else scales against. There is no way to
- *       read it off a part at compile time, so it is declared or the build stops.
+ *       read it off a part at compile time, and so it is declared or the build stops.
  * @note The default is one megahertz, which reads a tick as a microsecond. Not a guess at the part's
  *       frequency - guessing one would make every deadline in the module quietly wrong by whatever
- *       the guess missed by. One megahertz is the floor this module supports, so what a build gets by
+ *       the guess missed by. One megahertz is the floor this module supports, and so what a build gets by
  *       taking it is timing that is honest about being unscaled.
  */
 #ifndef PRAET_CLOCK_HZ
@@ -61,7 +61,7 @@
 /**
  * @brief Whether the clock is the caller's or ours.
  *
- * @note PRAET_CLOCK_CALLER where the caller already runs a counter this can read, which is the usual
+ * @note PRAET_CLOCK_CALLER where the caller already runs a counter this can read, the usual
  *       answer on a part whose application owns the timers. PRAET_CLOCK_OWN where it does not, and
  *       this pins one to a core.
  * @note The default is ours, because that is the arm that needs nothing from the caller. A build that
@@ -126,7 +126,7 @@
 /**
  * @brief Ticks this clock counts in one microsecond.
  *
- * @note A compile-time constant, so the division below folds to a multiply and a shift, and
+ * @note A compile-time constant, and so the division below folds to a multiply and a shift, and
  *       reaches no divide instruction on a part that may not have one.
  */
 #define PRAET_TICKS_PER_MICRO (PRAET_CLOCK_HZ / 1000000u)
@@ -136,7 +136,7 @@
  *
  * @param[in] ticks_ Ticks read off the clock.
  * @return           Those ticks as whole microseconds, rounded down.
- * @note Rounded down on purpose. A deadline reached a fraction of a microsecond early is a window
+ * @note Rounded down deliberately. A deadline reached a fraction of a microsecond early is a window
  *       that was slightly short; one reached late is a stall reported after the fact.
  */
 #define PRAET_CLOCK_MICROS(ticks_) ((ticks_) / (embed_word)PRAET_TICKS_PER_MICRO)

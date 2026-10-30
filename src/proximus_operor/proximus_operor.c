@@ -10,8 +10,8 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note The proxim_ types carry EMBED_RAW, so their loads and stores accept any address.
- * @note The aequus_ types carry EMBED_ALIAS alone, so their loads and stores need a naturally aligned address.
+ * @note The proxim_ types carry EMBED_RAW, and so their loads and stores accept any address.
+ * @note The aequus_ types carry EMBED_ALIAS alone, and so their loads and stores need a naturally aligned address.
  */
 #include "proximus_operor/proximus_operor.h"
 
@@ -33,7 +33,7 @@ typedef uint64_t mmgr_proxim_u64_t EMBED_RAW;
 /**
  * @brief The aligned access type for sixty-four bits.
  *
- * @note EMBED_ALIAS without EMBED_ALIGN(1), so this keeps uint64_t's own alignment.
+ * @note EMBED_ALIAS without EMBED_ALIGN(1), and so this keeps uint64_t's own alignment.
  * @warning An access through this needs an address aligned for a uint64_t.
  */
 typedef uint64_t mmgr_aequus_u64_t EMBED_ALIAS;
@@ -271,9 +271,9 @@ EMBED_INLINE void proxim_head(ProximReadCtx *args)
  * @note Stores through mmgr_aequus_word_t always, since proxim_head is what put args->dst on a boundary.
  * @note Loads through mmgr_aequus_word_t as well when args->src came to rest on a boundary too, and
  *       through mmgr_proxim_word_t when it did not. Two addresses that started the copy at the same
- *       offset within a word reach the aligned run, which is one load an instruction rather than the
+ *       offset within a word reach the aligned run, which is one load an instruction and not the
  *       byte sequence the unaligned type compiles to on a target with no unaligned load.
- * @note The test is one mask and one compare for the whole run, not one per word.
+ * @note The test is one mask and one compare for the whole run and not one per word.
  * @note Advances both pointers and draws the whole words off args->bytes.
  * @note The aligned load is what this shape is for: thirty bytes took 143 cycles on an ESP32-S3
  *       before it and 91 after. Seven other shapes were measured against that 91 and every one lost
@@ -285,7 +285,7 @@ EMBED_INLINE void proxim_head(ProximReadCtx *args)
  *       measured against copies the whole thirty in 73. The twenty five cycles proxim_read carries
  *       over it are the entry, the head test and the tail. Removing every per word branch, which the
  *       dispatch row did, moved nothing.
- * @warning Depends on proxim_head having run, which is what puts args->dst on a boundary.
+ * @warning Depends on proxim_head having run, as puts args->dst on a boundary.
  */
 EMBED_INLINE void proxim_words(ProximReadCtx *args)
 {
@@ -362,7 +362,7 @@ EMBED_INLINE void proxim_read(ProximReadCtx *args)
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] CtxType_    Context type this entry's backend takes.
  * @param[in] name_       Name after the mmgr_proxim_ and proxim_ prefixes, which the two share.
- * @param[in] ...         Initializers for the CtxType_ literal, written in terms of args.
+ * @param[in] ...         Initializers for the CtxType_ literal, written from args.
  * @note CtxType_ is a parameter because a load carries an address, a put carries an address and a
  *       value, and a read carries two addresses and a count.
  */
@@ -374,7 +374,7 @@ EMBED_INLINE void proxim_read(ProximReadCtx *args)
  *
  * @param[in] CtxType_ Context type this entry's backend takes.
  * @param[in] name_    Name after the mmgr_proxim_ and proxim_ prefixes.
- * @param[in] ...      Initializers for the CtxType_ literal, written in terms of args.
+ * @param[in] ...      Initializers for the CtxType_ literal, written from args.
  */
 #define PROXIM_ENTRY_V(CtxType_, name_, ...)                                                                           \
     EMBED_ENTRY_V(mmgr_proxim_, proxim_, CtxType_, ProximusCfg, name_, __VA_ARGS__)
@@ -385,8 +385,8 @@ EMBED_INLINE void proxim_read(ProximReadCtx *args)
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] CtxType_    Context type this entry's backend takes.
  * @param[in] name_       Name after the mmgr_aequus_ and aequus_ prefixes.
- * @param[in] ...         Initializers for the CtxType_ literal, written in terms of args.
- * @note A separate pair because the aligned strategy is a separate name, not a flag. Merging the two
+ * @param[in] ...         Initializers for the CtxType_ literal, written from args.
+ * @note A separate pair because the aligned strategy is a separate name and not a flag. Merging the two
  *       would emit an aligned access for an address that may not be aligned, which faults on some
  *       machines and silently reads wrong on others.
  */
@@ -398,7 +398,7 @@ EMBED_INLINE void proxim_read(ProximReadCtx *args)
  *
  * @param[in] CtxType_ Context type this entry's backend takes.
  * @param[in] name_    Name after the mmgr_aequus_ and aequus_ prefixes.
- * @param[in] ...      Initializers for the CtxType_ literal, written in terms of args.
+ * @param[in] ...      Initializers for the CtxType_ literal, written from args.
  */
 #define AEQUUS_ENTRY_V(CtxType_, name_, ...)                                                                           \
     EMBED_ENTRY_V(mmgr_aequus_, aequus_, CtxType_, ProximusCfg, name_, __VA_ARGS__)

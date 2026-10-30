@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
-"""Write src/pow5/pow5.h: the powers of five a decimal conversion needs, and nothing else.
+"""Write src/pow5/pow5.h: the powers of five a decimal conversion needs,, alone.
 
 A decimal value is mant * 10^ex, and ten to the ex is five to the ex times two to the ex. The twos
 never need arithmetic - they are the exponent field of the result, and putting one there is an add.
-The fives are what has to be carried, and they are the same handful of numbers on every call, so
-they belong in a table rather than in a loop that rebuilds them.
+The fives are what has to be carried, and they are the same handful of numbers on every call, and so
+they belong in a table and not in a loop that rebuilds them.
 
 Each entry is five to a power of two, held as a 128 bit fraction with the top bit set and its own
 binary exponent. Any exponent up to 511 is the product of at most nine of them. The reciprocals
-are here too, which is what keeps a negative exponent a multiply instead of a division.
+are here too, as keeps a negative exponent a multiply instead of a division.
 
-Truncated rather than rounded, on purpose. A truncated entry is never larger than the true power,
+Truncated and not rounded, deliberately. A truncated entry is never larger than the true power,
 so the product is never larger than the true product, and the sticky bit that decides a tie is
 never wrongly clear. Rounding the entries would put an error either side of the true value and the
 tie would stop being decidable from the bits that are there.
 
 WHAT THIS FILE OWES THE HEADER IT WRITES
 
-The output is ordinary documented source: the licence block, an @file block, and a Doxygen comment
-on every macro, the struct and both tables. It is written here rather than by hand because the
+The output is ordinary documented source: the license block, an @file block, and a Doxygen comment
+on every macro, the struct and both tables. It is written here and not by hand because the
 significands cannot be checked by eye, and the prose around them describes THIS configuration.
 
 That prose names nine steps, 128 bit significands, an exponent reach of 511 and an e2 of -722 at
-the widest. Those are statements about STEPS and BITS, so the two are asserted below rather than
+the widest. Those are statements about STEPS and BITS, and so the two are asserted below and not
 left to be quietly contradicted. A generator that emits prose describing a shape it no longer
 produces is the defect this file was rewritten to remove.
 
@@ -40,7 +40,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / "src" / "pow5" / "pow5.h"
 
 # The prose below states nine entries, 128 bit significands, a reach of 511 and a widest e2 of -722.
-# Every one of those is a claim about these two numbers, so changing either makes the generated
+# Every one of those is a claim about these two numbers, and so changing either makes the generated
 # documentation false. Refusing here is cheaper than shipping a header that describes itself wrongly.
 if STEPS != 9 or BITS != 128:
     raise SystemExit(
@@ -105,7 +105,7 @@ HEADER = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmai
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note transformo walks the bits of the decimal exponent and multiplies in one entry per set bit, so nine
+ * @note transformo walks the bits of the decimal exponent and multiplies in one entry per set bit, and so nine
  *       entries reach 511.
  * @note Declares no function. Both tables are static const data that outlive every call. A pointer into
  *       one stays good for the whole program [BORROWS].
@@ -120,7 +120,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Expands to %(steps)d, the number of entries in each table.
  *
- * @note Entry i holds five raised to two to the i, so the nine entries run from 5^1 to 5^%(reach)d.
+ * @note Entry i holds five raised to two to the i, and so the nine entries run from 5^1 to 5^%(reach)d.
  * @note Carries no suffix: it sizes both tables and bounds the walk, where it converts to the signed
  *       embed_iword the loop counts in.
  */
@@ -155,11 +155,11 @@ typedef struct
  *
  * @note Entry i is the multiplier for bit i of the exponent magnitude, and the walk in muto_apply_pow10
  *       takes this table over mmgr_pow5_down whenever the decimal exponent is not negative.
- * @note Index 0 through 5 are exact. 5^64 and up need more than 128 bits, so the last three entries are
+ * @note Index 0 through 5 are exact. 5^64 and up need more than 128 bits, and so the last three entries are
  *       truncated toward zero and read a little low.
  * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int
  *       that converts to embed_iword.
- * @note static const at header scope, so each translation unit gets its own copy, EMBED_UNUSED keeps a unit
+ * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED keeps a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
  * @warning transformo settles a positive exponent from its exact powers of ten and returns before the walk,
  *          so the only exponent reaching this table there is zero, which sets no bit.
@@ -178,7 +178,7 @@ static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
  *       0xCCCD... that rounding to nearest would give.
  * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int
  *       that converts to embed_iword.
- * @note static const at header scope, so each translation unit gets its own copy, EMBED_UNUSED keeps a unit
+ * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED keeps a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
  */
 static const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {
@@ -188,7 +188,7 @@ static const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {
 /**
  * @brief Asserts MMGR_POW5_MAX is at least %(max)d.
  *
- * @note A double's decimal exponent stays well inside %(max)d, so nine steps cover every value one can hold.
+ * @note A double's decimal exponent stays well inside %(max)d, and so nine steps cover every value one can hold.
  */
 EMBED_STATIC_ASSERT(MMGR_POW5_MAX >= %(max)d, "the tables do not reach the exponents a double can carry");
 

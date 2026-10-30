@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note transformo walks the bits of the decimal exponent and multiplies in one entry per set bit, so nine
+ * @note transformo walks the bits of the decimal exponent and multiplies in one entry per set bit, and so nine
  *       entries reach 511.
  * @note Declares no function. Both tables are static const data that outlive every call. A pointer into
  *       one stays good for the whole program [BORROWS].
@@ -25,7 +25,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Expands to 9, the number of entries in each table.
  *
- * @note Entry i holds five raised to two to the i, so the nine entries run from 5^1 to 5^256.
+ * @note Entry i holds five raised to two to the i, and so the nine entries run from 5^1 to 5^256.
  * @note Carries no suffix: it sizes both tables and bounds the walk, where it converts to the signed
  *       embed_iword the loop counts in.
  */
@@ -60,11 +60,11 @@ typedef struct
  *
  * @note Entry i is the multiplier for bit i of the exponent magnitude, and the walk in muto_apply_pow10
  *       takes this table over mmgr_pow5_down whenever the decimal exponent is not negative.
- * @note Index 0 through 5 are exact. 5^64 and up need more than 128 bits, so the last three entries are
+ * @note Index 0 through 5 are exact. 5^64 and up need more than 128 bits, and so the last three entries are
  *       truncated toward zero and read a little low.
  * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int
  *       that converts to embed_iword.
- * @note static const at header scope, so each translation unit gets its own copy, EMBED_UNUSED keeps a unit
+ * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED keeps a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
  * @warning transformo settles a positive exponent from its exact powers of ten and returns before the walk,
  *          so the only exponent reaching this table there is zero, which sets no bit.
@@ -87,7 +87,7 @@ static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
  *       0xCCCD... that rounding to nearest would give.
  * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int
  *       that converts to embed_iword.
- * @note static const at header scope, so each translation unit gets its own copy, EMBED_UNUSED keeps a unit
+ * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED keeps a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
  */
 static const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {
@@ -101,7 +101,7 @@ static const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {
 /**
  * @brief Asserts MMGR_POW5_MAX is at least 511.
  *
- * @note A double's decimal exponent stays well inside 511, so nine steps cover every value one can hold.
+ * @note A double's decimal exponent stays well inside 511, and so nine steps cover every value one can hold.
  */
 EMBED_STATIC_ASSERT(MMGR_POW5_MAX >= 511, "the tables do not reach the exponents a double can carry");
 

@@ -22,7 +22,7 @@
 /**
  * @brief Arguments for the forward copy.
  *
- * @warning Both pointers are restrict qualified, so the two regions must not overlap.
+ * @warning Both pointers are restrict qualified, and so the two regions must not overlap.
  */
 typedef struct
 {
@@ -71,7 +71,7 @@ typedef struct
  *
  * @param[in,out] args Destination, source and count [BORROWS].
  * @note Moves whole words first, then the remaining bytes one at a time.
- * @note Advances args->dst and args->src as it goes, so both point past the copy when it returns.
+ * @note Advances args->dst and args->src as it goes, and so both point past the copy when it returns.
  * @warning The regions must not overlap. MemorCpyCtx declares both pointers restrict.
  * @warning args->dst must be writable and args->src readable for args->bytes.
  */
@@ -137,8 +137,8 @@ EMBED_INLINE void memor_cpy(MemorCpyCtx *args)
  *
  * @param[in,out] args Destination, source and count [BORROWS].
  * @note Starts at the end of both regions and works back toward the start.
- * @note Takes the odd bytes first, then whole words, which is the reverse of memor_cpy's order.
- * @note Advances both pointers to the end, then walks them back, so each ends where it began.
+ * @note Takes the odd bytes first, then whole words, the reverse of memor_cpy's order.
+ * @note Advances both pointers to the end, then walks them back, and so each ends where it began.
  * @note What this is worth is not one number. Measured 2026-09-03 at -O2 against each part's own
  *       memmove, over 8 to 2048 bytes with the two regions MMGR_ALIGN_BYTES apart: on an ESP32-S3
  *       this runs 2.7x to 14.0x faster, since that part's memmove walks a byte at a time and never
@@ -215,10 +215,10 @@ EMBED_INLINE void memor_move_up(MemorMoveCtx *args)
  * @param[in] bytes Bytes readable at that address, which the answer never exceeds.
  * @return          Bytes to step one at a time before whole aligned words can be read.
  * @note Normally zero. This library is built for memory that arrives aligned, and an aligned address
- *       is already on a boundary. It is computed rather than assumed because a region entry takes
+ *       is already on a boundary. It is computed and not assumed because a region entry takes
  *       whatever address a caller hands it.
  * @warning at is examined as an address and never read. A bytes larger than the region there is
- *          not caught here. The answer is capped at bytes, so it is a safe number of steps only when
+ *          not caught here. The answer is capped at bytes, and so it is a safe number of steps only when
  *          bytes is.
  */
 EMBED_INLINE size_t memor_head_bytes(const uint8_t *at, size_t bytes)
@@ -236,7 +236,7 @@ EMBED_INLINE size_t memor_head_bytes(const uint8_t *at, size_t bytes)
  *
  * @param[in] difference Zero in every lane where the two sides agreed, non-zero where they did not.
  * @return               One high bit per differing lane.
- * @note Takes a word rather than a context type. memor_cmp shares it between the loop that reads
+ * @note Takes a word and not a context type. memor_cmp shares it between the loop that reads
  *       whole words and the tail that reads the last one. Nothing dispatches to it.
  */
 EMBED_INLINE embed_word memor_diff_lanes(embed_word difference)
@@ -252,9 +252,9 @@ EMBED_INLINE embed_word memor_diff_lanes(embed_word difference)
  * @note Compares whole words with nothing but an inequality test, and resolves which lane differs
  *       once, after the loop has found the word that does. Which lane it is cannot matter until a
  *       word differs, and no word differs on all but one iteration of a scan.
- * @note The count is settled before the loop, so lanes past it can only fall in the last word.
- *       mask.lanes_below is applied to that word alone rather than rebuilt on every iteration.
- * @note The sign follows the differing bytes, so the result orders the two regions.
+ * @note The count is settled before the loop, and so lanes past it can only fall in the last word.
+ *       mask.lanes_below is applied to that word alone and not rebuilt on every iteration.
+ * @note The sign follows the differing bytes, and so the result orders the two regions.
  * @warning Both args->src and args->other must be readable for args->bytes rounded up to a whole word.
  *          The tail goes through word.load, which takes MMGR_SWAR_BYTES whatever the count leaves.
  */
@@ -267,14 +267,14 @@ EMBED_INLINE embed_iword memor_cmp(MemorScanCtx *args)
     // Explicit casts read both addresses as integers so one mask answers for both. Two aligned
     // addresses select the loop that uses the aligned load, which is one instruction where the
     // unaligned one is a sequence on a part that has no unaligned access. Alignment is tested once
-    // here rather than once a word. Measured 3.55x on an ESP32-C6 over two thousand bytes, which
+    // here and not once a word. Measured 3.55x on an ESP32-C6 over two thousand bytes, which
     // took the comparison from 6.27 cycles a byte to 1.76 and past memcmp's 2.14
     const embed_bool level =
         (embed_bool)(((((uintptr_t)args->src) | ((uintptr_t)args->other)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
 
 #if MMGR_VECTOR_BYTES != 0u
     // A vector a pass while a whole one remains within the bytes to compare, the lanes that differ
-    // read off the vector comparison, so the word walks below start past every vector that agreed
+    // read off the vector comparison, and so the word walks below start past every vector that agreed
     while ((full - at) >= MMGR_VECTOR_BYTES)
     {
         const MmgrVectorMask differing =
@@ -291,7 +291,7 @@ EMBED_INLINE embed_iword memor_cmp(MemorScanCtx *args)
         at += MMGR_VECTOR_BYTES;
     }
 #endif
-    // Two loops rather than one carrying the test. With the choice written inside the body, the
+    // Two loops and not one carrying the test. With the choice written inside the body, the
     // compiler keeps a branch per word and the loop costs what the unaligned one costs. Lifted
     // out, each loop holds one kind of load, and the aligned one is a single instruction a word
     if (level)
@@ -358,7 +358,7 @@ EMBED_INLINE embed_iword memor_cmp(MemorScanCtx *args)
  * @param[in] args Region, count and the byte sought [BORROWS].
  * @return         Address of the match, or NULL when the byte does not occur [BORROWS].
  * @note Scans whole words with no mask at all, then masks the one short word at the end. The count
- *       is settled before the loop, so lanes past it can only fall in that last word.
+ *       is settled before the loop, and so lanes past it can only fall in that last word.
  * @note The sought byte is broadcast once, ahead of the walk. lane.eq answers the same question but
  *       rebuilds the broadcast from a byte on every call, which is a multiply per word.
  * @note A terminator is not special here. All args->bytes are searched.
@@ -367,7 +367,7 @@ EMBED_INLINE embed_iword memor_cmp(MemorScanCtx *args)
  */
 EMBED_INLINE const void *memor_chr(MemorScanCtx *args)
 {
-    // Bytes to the first word boundary, so the walk below reads through the aligned load. Normally
+    // Bytes to the first word boundary, and so the walk below reads through the aligned load. Normally
     // none, since this library is built for memory that arrives aligned. The unaligned load is not
     // one instruction on either shipping part - eleven on RISC-V, twelve on Xtensa, because neither
     // has it and the compiler assembles the word out of byte loads and shifts inside the walk.
@@ -407,7 +407,7 @@ EMBED_INLINE const void *memor_chr(MemorScanCtx *args)
 #endif
     // One word a pass, deliberately. Unrolling this the way cellul_len is unrolled was measured and
     // lost: 6696 cycles to 6959 at 2048 bytes, and 64 to 72 at eight. This walk was already the
-    // faster of the two before either was touched, so there was no stall left for a second word to
+    // faster of the two before either was touched, and so there was no stall left for a second word to
     // cover, and the extra prologue is all it added.
     while (at != full)
     {
@@ -442,7 +442,7 @@ EMBED_INLINE const void *memor_chr(MemorScanCtx *args)
  *
  * @param[in,out] args Destination, count and the byte to write [BORROWS].
  * @note Builds a word with args->val in every lane, stores whole words, then finishes byte by byte.
- * @note Advances args->dst as it goes, so it points past the bytes it wrote when it returns.
+ * @note Advances args->dst as it goes, and so it points past the bytes it wrote when it returns.
  * @warning args->dst must be writable for args->bytes. Nothing past the count is written. The word
  *          stores cover a whole number of words, and the byte loop finishes what they leave.
  */
@@ -503,10 +503,10 @@ EMBED_INLINE void memor_set(MemorSetCtx *args)
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] CtxType_    Context type this entry's backend takes.
  * @param[in] name_       Name after the mmgr_memor_ and memor_ prefixes, which the two share.
- * @param[in] ...         Initializers for the CtxType_ literal, written in terms of args.
+ * @param[in] ...         Initializers for the CtxType_ literal, written through args.
  * @note CtxType_ is a parameter here, unlike locus_carcerum and memoria_anularis, which
  *       each have one. The backends split by what they touch: a copy takes two pointers, a scan takes
- *       two and a value, a fill takes one and a value, so each has its own argument type.
+ *       two and a value, a fill takes one and a value, and so each has its own argument type.
  */
 #define MEMOR_ENTRY(ReturnType_, CtxType_, name_, ...)                                                                 \
     EMBED_ENTRY(mmgr_memor_, memor_, CtxType_, MemoriaCfg, ReturnType_, name_, __VA_ARGS__)
@@ -516,7 +516,7 @@ EMBED_INLINE void memor_set(MemorSetCtx *args)
  *
  * @param[in] CtxType_ Context type this entry's backend takes.
  * @param[in] name_    Name after the mmgr_memor_ and memor_ prefixes.
- * @param[in] ...      Initializers for the CtxType_ literal, written in terms of args.
+ * @param[in] ...      Initializers for the CtxType_ literal, written through args.
  */
 #define MEMOR_ENTRY_V(CtxType_, name_, ...) EMBED_ENTRY_V(mmgr_memor_, memor_, CtxType_, MemoriaCfg, name_, __VA_ARGS__)
 

@@ -6,7 +6,7 @@
  */
 /**
  * @file bench_ancorae_cycles.c
- * @brief Cycles per search for four arrangements, so the crossover between them can be read.
+ * @brief Cycles per search for four arrangements, and so the crossover between them can be read.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-04
  *
@@ -18,7 +18,7 @@
  *       dependency depth of two and no carried state, which a superscalar machine can overlap, while
  *       Horspool's next shift depends on the byte it just read. Whether that overlap pays is a
  *       measurement and it has never been taken here.
- * @note Corpora are SHA-256 in counter mode, mapped where a skewed distribution is wanted, so the
+ * @note Corpora are SHA-256 in counter mode, mapped where a skewed distribution is wanted, and so the
  *       bytes are reproducible from the seed and no corpus file is needed.
  * @warning Cycle counts are host figures and belong to the machine that produced them. A ratio
  *          between two arms on one machine is the portable part; the absolute count is not.
@@ -45,7 +45,7 @@
 /** @brief Needle lengths swept, chosen as powers of two around the effective alphabet. */
 static const size_t NEEDLE_LENGTHS[] = {4u, 8u, 16u, 32u, 64u, 128u, 256u};
 
-/** @brief How many needles are drawn per row. Each is taken from the corpus, so each has a match. */
+/** @brief How many needles are drawn per row. Each is taken from the corpus, and so each has a match. */
 #define NEEDLES_PER_ROW 64u
 
 /** @brief How many times one row is timed. The smallest of these is reported. */
@@ -58,14 +58,14 @@ static const size_t NEEDLE_LENGTHS[] = {4u, 8u, 16u, 32u, 64u, 128u, 256u};
  * @brief Reads the cycle counter, or a monotonic substitute where the part has none.
  *
  * @return A count that increases with time, in cycles where the host supplies them.
- * @note The minimum over repeated trials is what this feeds, which is the statistic that rejects
+ * @note The minimum over repeated trials is what this feeds, the statistic that rejects
  *       preemption and interrupt noise. A mean over a timing sample measures the scheduler.
  */
 static uint64_t cycles_now(void)
 {
 #if MMGR_CYCLES_ARE_REAL
     /* Ordering deviation: __rdtsc may be reordered against the work being timed. The compiler
-     * barrier below keeps the loads and stores of one arm from crossing it, which is what makes
+     * barrier below keeps the loads and stores of one arm from crossing it, and that leaves
      * the difference between two reads attributable to that arm. */
     __asm__ __volatile__("" ::: "memory");
     const uint64_t taken = (uint64_t)__rdtsc();
@@ -84,7 +84,7 @@ static uint64_t cycles_now(void)
  * @param[out] corpus Where the bytes are written [BORROWS].
  * @param[in]  length How many to write.
  * @param[in]  seed   Counter start, which selects the corpus.
- * @note Uniform over the byte range by construction, which is the memoryless control every other
+ * @note Uniform over the byte range by construction, the memoryless control every other
  *       reading here is measured against.
  */
 static void fill_uniform(uint8_t *corpus, size_t length, uint32_t seed)
@@ -166,7 +166,7 @@ static void fill_skewed(uint8_t *corpus, size_t length)
  *
  * @param[out] corpus Where the bytes are written [BORROWS].
  * @param[in]  length How many to write.
- * @note The one corpus here whose arrangement is known exactly, which is what makes it the row that
+ * @note The one corpus here whose arrangement is known exactly, and that leaves it the row that
  *       says whether an arm is reading structure or reading its own placement.
  */
 static void fill_periodic(uint8_t *corpus, size_t length)
@@ -253,8 +253,8 @@ static void choose_offsets(size_t *offsets, size_t wanted, size_t needle_len)
 
     for (size_t slot = 0u; slot < wanted; slot += 1u)
     {
-        /* A fixed position inside the cell, so the set is reproducible between arms and between
-         * runs. Jitter belongs to the sizing question and this bench is timing, not sizing. */
+        /* A fixed position inside the cell, and so the set is reproducible between arms and between
+         * runs. Jitter belongs to the sizing question and this bench is timing and not sizing. */
         const size_t inside = (cell > 1u) ? ((slot * 7u) % cell) : 0u;
         offsets[slot] = (slot * cell) + inside;
         if (offsets[slot] >= needle_len)
@@ -272,7 +272,7 @@ static void choose_offsets(size_t *offsets, size_t wanted, size_t needle_len)
  * @param[in] needle      Bytes to find [BORROWS].
  * @param[in] needle_len  How many.
  * @return                How many alignments match exactly.
- * @note Short circuiting makes each probe depend on the one before it, which is the arrangement a
+ * @note Short circuiting makes each probe depend on the one before it, the arrangement a
  *       branch predictor handles and an issue window cannot overlap.
  */
 static size_t search_anchor_inorder(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle, size_t needle_len)
@@ -414,7 +414,7 @@ int main(void)
             size_t expected[NEEDLES_PER_ROW];
             size_t starts[NEEDLES_PER_ROW];
 
-            /* Every needle is drawn from the corpus, so every search confirms one genuine occurrence
+            /* Every needle is drawn from the corpus, and so every search confirms one genuine occurrence
              * and pays the needle_len read verification floor. That floor is why the arms converge as
              * the needle grows, and the ledger records it as the term an earlier derivation omitted. */
             for (size_t pick = 0u; pick < NEEDLES_PER_ROW; pick += 1u)

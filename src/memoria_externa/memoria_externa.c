@@ -40,13 +40,13 @@ typedef struct
  *
  * @param[in] args Request size and the internal memory figures [BORROWS].
  * @return         EMBED_TRUE when the bytes fit and dram_reserve would still be free afterwards.
- * @note Tests the size first, so the subtraction that follows cannot wrap.
+ * @note Tests the size first, and so the subtraction that follows cannot wrap.
  * @note dram_reserve is taken as given. A reserve above free_dram refuses every request, size 0
  *       included. A reserve equal to it admits only a size of 0.
  */
 EMBED_INLINE embed_bool exter_dram_fits(const ExterCtx *args)
 {
-    // Two tests in order: the first is what makes the subtraction in the second safe, since && stops
+    // Two tests in order: the first makes the subtraction in the second safe, since && stops
     // at the first that fails and a size past free_dram would otherwise wrap it
     return (args->size <= args->free_dram) && ((args->free_dram - args->size) >= args->dram_reserve);
 }
@@ -69,11 +69,11 @@ EMBED_INLINE embed_bool exter_psram_fits(const ExterCtx *args)
  * @param[in] args Request size, the DMA requirement and both memory figures [BORROWS].
  * @return         PLACE_DRAM, PLACE_PSRAM, or PLACE_FAIL when neither will take it.
  * @note A size of 0 is refused outright.
- * @note A DMA request only ever goes to internal memory, and fails rather than falling back.
+ * @note A DMA request only ever goes to internal memory, and fails instead of falling back.
  * @note At or above psram_threshold external memory is tried first, below it internal is. On both
  *       paths the other is tried second. A non-zero request without the DMA requirement reaches
  *       PLACE_FAIL only when it fits neither.
- * @note Both fit tests are taken once, above the branches, so no arm evaluates one twice.
+ * @note Both fit tests are taken once, above the branches, and so no arm evaluates one twice.
  * @warning The two tests are not the same shape. Internal placement must also leave dram_reserve
  *          free, where the external one is a size comparison alone.
  */
@@ -120,7 +120,7 @@ EMBED_INLINE mmgr_place exter_place(const ExterCtx *args)
  * @brief Points the pair at buffer 0.
  *
  * @param[in,out] args Pair to reset, as args->pingpong [BORROWS].
- * @note The store below is what puts fill_index in range. The other three backends read it as it
+ * @note The store below puts fill_index in range. The other three backends read it as it
  *       stands.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it, and the
  *          store below goes through it at once.
@@ -137,7 +137,7 @@ EMBED_INLINE void exter_pingpong_init(const ExterCtx *args)
  * @return         0 or 1.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning Hands back fill_index as it stands. It is 0 or 1 on a pair exter_pingpong_init has set,
- *          and whatever the storage held on one that has not been.
+ *          and whatever the storage contained on one that has not been.
  */
 EMBED_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
 {
@@ -149,11 +149,11 @@ EMBED_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
  *
  * @param[in] args Pair to read, as args->pingpong [BORROWS].
  * @return         The other index, 0 or 1.
- * @note Flips the low bit of fill_index rather than keeping a second member, so the two indexes
+ * @note Flips the low bit of fill_index instead of keeping a second member, and so the two indexes
  *       cannot drift apart.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning The answer is an index only while fill_index is 0 or 1. On a pair exter_pingpong_init has
- *          not set it is the flip of whatever the storage held.
+ *          not set it is the flip of whatever the storage contained.
  */
 EMBED_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
 {
@@ -169,12 +169,12 @@ EMBED_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
  * @note Flips the low bit. A swap of a swap is where it started.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning One caller at a time. The flip and the read below it are two steps on a plain byte, with
- *          no atomic and no lock, so two callers swapping the same pair can come away holding the
+ *          no atomic and no lock, and so two callers swapping the same pair can come away holding the
  *          same index.
  */
 EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
 {
-    // The flip stands on its own line and the answer is read back on the next, so neither is a side
+    // The flip stands on its own line and the answer is read back on the next, and so neither is a side
     // effect inside the other. That second read is a fresh load, which is where a concurrent swap
     // would show up
     args->pingpong->fill_index ^= 1u;
@@ -186,7 +186,7 @@ EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_extern_ and exter_ prefixes.
- * @param[in] ...         Initializers for the ExterCtx literal, written in terms of args.
+ * @param[in] ...         Initializers for the ExterCtx literal, written from args.
  * @note place is the only entry under these prefixes. The other four carry the pingpong pair below.
  */
 #define EXTER_ENTRY(ReturnType_, name_, ...)                                                                           \
@@ -197,9 +197,9 @@ EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
- * @param[in] ...         Initializers for the ExterCtx literal, written in terms of args.
- * @note A second macro rather than one, because these entries are named mmgr_pingpong_ rather than
- *       mmgr_extern_. EMBED_ENTRY pastes one prefix onto one name, so the pair differs, not the form.
+ * @param[in] ...         Initializers for the ExterCtx literal, written from args.
+ * @note A second macro and not one, because these entries are named mmgr_pingpong_ rather than
+ *       mmgr_extern_. EMBED_ENTRY pastes one prefix onto one name, and so the pair differs and not the form.
  */
 #define PINGPONG_ENTRY(ReturnType_, name_, ...)                                                                        \
     EMBED_ENTRY(mmgr_pingpong_, exter_pingpong_, ExterCtx, ExternaCfg, ReturnType_, name_, __VA_ARGS__)
@@ -208,9 +208,9 @@ EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  * @brief Binds the same pair to EMBED_ENTRY_V, for the entry that returns nothing.
  *
  * @param[in] name_ Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
- * @param[in] ...   Initializers for the ExterCtx literal, written in terms of args.
+ * @param[in] ...   Initializers for the ExterCtx literal, written through args.
  * @note Separate from PINGPONG_ENTRY because a return with an expression is not allowed in a void
- *       function, so the two cannot share one body.
+ *       function, and so the two cannot share one body.
  * @note init is the only entry that reaches it. The other three pingpong entries hand back an index.
  */
 #define PINGPONG_ENTRY_V(name_, ...)                                                                                   \
@@ -222,7 +222,7 @@ EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  * @note Each is documented at its declaration in memoria_externa.h.
  * @note The fields each line forwards are the ones that entry reads, and EMBED_CALL zeroes the rest.
  * @note The four pingpong lines pass args->pingpong through as it stands [BORROWS]. EMBED_CALL builds
- *       its literal inside the emitted function, so the literal lives for that call alone and the
+ *       its literal inside the emitted function, and so the literal lives for that call alone and the
  *       pair has to outlive it. Nothing here copies the pair or frees it.
  * @warning No line tests what it forwards. A null pingpong reaches a backend that dereferences it
  *          with no check and no assertion.

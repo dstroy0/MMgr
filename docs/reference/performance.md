@@ -1,6 +1,6 @@
 # What it costs {#ref_performance}
 
-Measured, not asserted. This page is how to run the benchmarks and how to tell a result from noise.
+Measured and not asserted. This page is how to run the benchmarks and how to tell a result from noise.
 
 There are two sets, and they answer different questions. The host benches under `test/bench` compare
 the library against itself - carrier widths, optimization levels, what LTO is worth. The on-device
@@ -16,7 +16,7 @@ cmake --build build-bench
 ./build-bench/bench/word16/bench_scrutor_word16
 ```
 
-Benches are off by default and are added independently of `MMGR_BUILD_TESTS`, so
+Benches are off by default and are added independently of `MMGR_BUILD_TESTS`, and so
 `-DMMGR_BUILD_BENCH=ON` alone is enough. They are always compiled `-O2` regardless of
 `CMAKE_BUILD_TYPE`: measuring a debug build tells you about the debug build.
 
@@ -30,11 +30,11 @@ widening the carrier bought.
 another compiler, or a machine that was doing something else at the time.
 
 **The `nop` row is the harness.** It runs the loop, the index derivation and the barrier and calls no
-module entry, so it is the cost of measuring. A row that is not clearly above `nop` is noise, not a
+module entry, and so it is the cost of measuring. A row that is not clearly above `nop` is noise, not a
 result.
 
 **`cycles_per_byte` is the column the design claim lives in.** It is `cycles_per_call / MMGR_SWAR_BYTES`.
-A wider carrier answers for more bytes per register operation, so cycles-per-byte should fall as the
+A wider carrier answers for more bytes per register operation, and so cycles-per-byte should fall as the
 carrier widens. If it does not, the claim is wrong.
 
 ## The numbers
@@ -49,7 +49,7 @@ gcc 13.2 `-O2`, x86-64.
 | `spread`   |   7.74 |   2.89 |   1.33 |    5.8x |
 | `eq`       |  10.09 |   4.30 |   2.32 |    4.4x |
 
-It halves, roughly, per doubling. `eq` sits about 11% above `has_zero`, which is the `movzbl`,
+It halves, roughly, per doubling. `eq` sits about 11% above `has_zero`, the `movzbl`,
 `imul` and `xor` it adds. Nothing to explain.
 
 ## What LTO is worth
@@ -61,14 +61,14 @@ It halves, roughly, per doubling. `eq` sits about 11% above `has_zero`, which is
 | SWAR entries as out-of-line calls |    610 |
 | linker permitted to inline them   |    187 |
 
-LTO is load-bearing, and it is worth being blunt about how much. The SWAR primitives are generated
-in `verbum_scrutor.c` by `GENERIC_ENTRY` and called by name from every other module, so no
+LTO is essential, and it is worth being blunt about how much. The SWAR primitives are generated
+in `verbum_scrutor.c` by `GENERIC_ENTRY` and called by name from every other module, and so no
 translation unit can inline them on its own; the build sets `CMAKE_INTERPROCEDURAL_OPTIMIZATION` for
 exactly that reason. Built without it, one machine-word step becomes three to five out-of-line calls,
 each with its argument struct spilled to the stack first, and `cellul.len` measured **26.6
 cycles/byte on an ESP32-S3 against 5.0 with it** - worse than the byte-at-a-time ROM `strnlen` it is
-being compared to. The walks have since been reworked and `len` is at 2.547, so the gap without LTO
-is wider now than that measurement records; it is left as taken rather than scaled by guesswork.
+being compared to. The walks have since been reworked and `len` is at 2.547, and so the gap without LTO
+is wider now than that measurement records; it is left as taken and not scaled by guesswork.
 
 @warning A toolchain that cannot do link-time optimization does not give a slower build of the same
 library; it gives a different one. ESP-IDF appends `-fno-lto` to every link unconditionally. An
@@ -98,14 +98,14 @@ Cycles per byte at n=2048, ratios mmgr/libc so below 1.00 is a win:
 | `memor`  | cpy  |   0.646 |   0.646 |     1.00 |   0.705 |   0.701 |     1.01 |
 | `memor`  | set  |   0.333 |   0.336 | **0.99** |   0.391 |   0.394 | **0.99** |
 
-`memor.cpy` is parity, not a win. ROM `memcpy` is hand-written assembly, and matching it with
+`memor.cpy` is parity and not a win. ROM `memcpy` is hand-written assembly, and matching it with
 portable C word moves is the ceiling short of writing assembly or handing the move to DMA.
 
 ## Reading the short lengths
 
 Every row above is at 2048 bytes, where the per-byte work dominates. At eight it does not, and the
 number that matters there is the harness floor - the loop, the counter and the volatile store, plus
-one call the optimiser is not allowed to remove:
+one call the optimizer is not allowed to remove:
 
 | part     | loop alone | plus one call |
 | -------- | ---------: | ------------: |
@@ -147,10 +147,10 @@ ESP32-S3, `cellul.len` over the same eight bytes:
 and 0.71 inlined. libc cannot answer it - its routine is in mask ROM and is reached by a call no
 matter what the caller does.
 
-It is worth it where an extent is short and settled before the build, which is what this library is
-for. A long scan amortises the call and will not notice: the same measurement at 64 bytes is 253
-against 240. And it costs the walk's code at every site that takes it, so it belongs on the one hot
-function rather than on a translation unit.
+It is worth it where an extent is short and settled before the build, as this library is
+for. A long scan amortizes the call and will not notice: the same measurement at 64 bytes is 253
+against 240. And it costs the walk's code at every site that takes it, and so it belongs on the one hot
+function and not on a translation unit.
 
 `EMBED_FLATTEN` needs the entry body visible. A build without link-time optimization gets nothing
 from it. It resolves to the attribute on every toolchain in the target list - Xtensa, RISC-V, and ARM

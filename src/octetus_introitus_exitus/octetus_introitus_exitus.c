@@ -11,12 +11,12 @@
  * @date 2026-08-29
  *
  * @note byteio_put, byteio_raw and byteio_put_be ask the same two questions before they write,
- *       whether the span has room and whether it is still good. Both live in byteio_claim, so each
+ *       whether the span has room and whether it is still good. Both live in byteio_claim, and so each
  *       of the three is only what it does after that call.
- * @note byteio_mpint_fixed does not reach byteio_claim. It writes the field whole rather than
- *       appending to it, so it tests the width against the span's cap itself.
+ * @note byteio_mpint_fixed does not reach byteio_claim. It writes the field whole and not
+ *       appending to it, and so it tests the width against the span's cap itself.
  * @note A whole value moves a word at a time. magna_extremitas.rev reverses it once, and the count
- *       then selects stores or loads of eight, four, two and one byte, so nothing walks a byte at a
+ *       then selects stores or loads of eight, four, two and one byte, and so nothing walks a byte at a
  *       time except the odd byte at the end of an odd count.
  */
 #include "octetus_introitus_exitus/octetus_introitus_exitus.h"
@@ -51,13 +51,13 @@ typedef struct
  * @param[in,out] write_span Span to append into [BORROWS].
  * @param[in]     bytes      Bytes wanted.
  * @return                   Where to write them, or NULL when they do not fit [BORROWS].
- * @note byteio_put, byteio_raw and byteio_put_be all reach this, so the room test, the latch and the
- *       cursor live in one place rather than three.
- * @note pos advances by bytes whether or not they fit. A span that overran reports how far past
- *       the end the run went rather than stopping at cap. That is a number for reading in a
+ * @note byteio_put, byteio_raw and byteio_put_be all reach this, and so the room test, the latch and the
+ *       cursor live in one place and not three.
+ * @note pos advances by bytes regardless of whether they fit. A span that overran reports how far past
+ *       the end the run went instead of stopping at cap. That is a number for reading in a
  *       post-mortem, not a sizing pass to build on - see the warning.
  * @warning Writing past the end is a build failure. What a writer emits and how big its buffer is are
- *          both fixed before the build, so the two are either compatible or the program is wrong.
+ *          both fixed before the build, and so the two are either compatible or the program is wrong.
  *          MMGR_ASSERT stops the program in the checks build. In a shipping build the latch is damage
  *          control, keeping a wrong program from writing past the end, and not a path to design for.
  */
@@ -87,9 +87,9 @@ EMBED_INLINE uint8_t *byteio_claim(mmgr_span *write_span, size_t bytes)
  * @note The cursor moves only when the bytes were there. A failed read leaves it where it was. A
  *       caller that keeps going still knows where it is.
  * @note No assert here, unlike byteio_claim, and the difference is not an oversight. A writer's
- *       output length is settled before the build, so writing past the end means the program is
+ *       output length is settled before the build, and so writing past the end means the program is
  *       wrong. A reader is handed whatever was sent to it. A short read is a fact about the
- *       input rather than a defect.
+ *       input and not a defect.
  * @note byteio_take_be and byteio_rd_str return a result, because a caller has to act on a short
  *       read. byteio_put, byteio_raw and byteio_put_be return nothing, because the span latches its
  *       own failure and leaves no answer to act on.
@@ -128,7 +128,7 @@ EMBED_INLINE void byteio_put(const ByteioCtx *args)
  * @brief Appends args->bytes from args->src as they are.
  *
  * @param[in,out] args Span, source and count [BORROWS].
- * @note Reaches memor.cpy rather than walking bytes here, so this module carries no second copy.
+ * @note Reaches memor.cpy instead of walking bytes here, and so this module carries no second copy.
  * @note args->src must hold args->bytes readable bytes, and byteio_claim asks whether the span has
  *       room for them. It does not on a full span, and then nothing is copied and the span's
  *       overflow is latched - see the warning there.
@@ -147,7 +147,7 @@ EMBED_INLINE void byteio_raw(const ByteioCtx *args)
  * @brief Appends the low args->bytes of args->value, most significant byte first.
  *
  * @param[in,out] args Span, value and count [BORROWS].
- * @note magna_extremitas.rev right-aligns the reversed value into its low args->bytes, so storing those
+ * @note magna_extremitas.rev right-aligns the reversed value into its low args->bytes, and so storing those
  *       in the target's own order lays the bytes out most significant first.
  * @note The count selects the stores: eight is one, seven is three, and only an odd final byte is
  *       ever written alone.
@@ -169,14 +169,14 @@ EMBED_INLINE void byteio_put_be(const ByteioCtx *args)
     uint64_t reversed =
         EMBED_CALL(magna_extremitas.rev, EndianCfg, .val = args->value, .width = (mmgr_endian_width)args->bytes);
 
-    // A count of eight takes the first branch alone, so the shifts below never reach the full width
+    // A count of eight takes the first branch alone, and so the shifts below never reach the full width
     if ((args->bytes & 8u) != 0u)
     {
         EMBED_CALL(proxim.put64, ProximusCfg, .dst = at, .val = reversed);
         return;
     }
 
-    // The cursor and the value advance on lines of their own after each store, so neither is a side
+    // The cursor and the value advance on lines of their own after each store, and so neither is a side
     // effect of the store that read them
     if ((args->bytes & 4u) != 0u)
     {
@@ -206,7 +206,7 @@ EMBED_INLINE void byteio_put_be(const ByteioCtx *args)
  *       at the widest step the count allows, and reversed once at the end.
  * @note args->bytes must be 1 to 8, which is what the cast to mmgr_endian_width below rests on.
  *       args->out is written only on EMBED_TRUE, and a span too short to answer is a fact about the
- *       input rather than a wrong program - see byteio_take.
+ *       input and not a wrong program - see byteio_take.
  */
 EMBED_INLINE embed_bool byteio_take_be(const ByteioCtx *args)
 {
@@ -219,7 +219,7 @@ EMBED_INLINE embed_bool byteio_take_be(const ByteioCtx *args)
 
     uint64_t gathered = 0u;
 
-    // A count of eight is the whole width, so the narrower tests below cannot be true
+    // A count of eight is the whole width, and so the narrower tests below cannot be true
     if ((args->bytes & 8u) != 0u)
     {
         gathered = EMBED_CALL(proxim.load64, ProximusCfg, .at = at);
@@ -227,7 +227,7 @@ EMBED_INLINE embed_bool byteio_take_be(const ByteioCtx *args)
     else
     {
         // Explicit casts widen each load to the uint64_t gathered collects into, before the shift
-        // promotes it. The cursor and the shift then advance on lines of their own, so neither is a
+        // promotes it. The cursor and the shift then advance on lines of their own, and so neither is a
         // side effect of the bitwise or that reads them
         size_t shift = 0u;
 
@@ -260,11 +260,11 @@ EMBED_INLINE embed_bool byteio_take_be(const ByteioCtx *args)
  *
  * @param[in,out] args Span, and where to report the run [BORROWS].
  * @return             EMBED_TRUE when the length and its run both lay within the span.
- * @note The length ahead of the run is four bytes, big endian, which is what fixes the format.
+ * @note The length ahead of the run is four bytes, big endian, as fixes the format.
  * @note The cursor is put back when the run does not fit. A length read that is then not followed by
  *       its payload is not a read at all, and leaving the cursor between the two would give a caller
  *       a position that means nothing.
- * @warning args->blob is left pointing into the read span itself, not at a copy, so the run is good
+ * @warning args->blob is left pointing into the read span itself, not at a copy, and so the run is good
  *          only as long as that buffer is [BORROWS]. Nothing here allocates and nothing frees, and
  *          args->blob and args->blob_bytes are written only on EMBED_TRUE.
  */
@@ -279,7 +279,7 @@ EMBED_INLINE embed_bool byteio_rd_str(const ByteioCtx *args)
     }
 
     // Explicit casts narrow the length to the size_t the span is measured in and args->blob_bytes
-    // holds. It was read as four bytes, so it cannot exceed what a 32-bit size_t carries
+    // holds. It was read as four bytes, and so it cannot exceed what a 32-bit size_t carries
     const uint8_t *const at = byteio_take(args->read_span, (size_t)run_bytes);
 
     if (at == NULL)
@@ -310,7 +310,7 @@ EMBED_INLINE embed_bool byteio_mpint_fixed(const ByteioCtx *args)
     mmgr_span *const field = args->write_span;
     size_t leading_zeros = 0u;
 
-    // The step is kept out of the condition, so the bound and the byte test read the offset without
+    // The step is kept out of the condition, and so the bound and the byte test read the offset without
     // advancing it
     while ((leading_zeros < args->bytes) && (args->src[leading_zeros] == 0u))
     {
@@ -325,12 +325,12 @@ EMBED_INLINE embed_bool byteio_mpint_fixed(const ByteioCtx *args)
         return EMBED_FALSE;
     }
     // Only the run ahead of the value is cleared. The copy below fills the rest of the field
-    // exactly, so clearing that part first would store every byte of it twice
+    // exactly, and so clearing that part first would store every byte of it twice
     // Explicit cast matches MemoriaCfg, where val is a single byte and bytes is a size_t count
     EMBED_CALL(memor.set, MemoriaCfg, .dst = field->buf, .val = (uint8_t)0, .bytes = field->cap - value_bytes);
     EMBED_CALL(memor.cpy, MemoriaCfg, .dst = field->buf + (field->cap - value_bytes), .src = args->src + leading_zeros,
                .bytes = value_bytes);
-    // The field is written whole rather than appended to, so the cursor ends at cap
+    // The field is written whole and not appended to, and so the cursor ends at cap
     field->pos = field->cap;
     return EMBED_TRUE;
 }
@@ -340,9 +340,9 @@ EMBED_INLINE embed_bool byteio_mpint_fixed(const ByteioCtx *args)
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_byteio_ and byteio_ prefixes, which the two share.
- * @param[in] ...         Initializers for the ByteioCtx literal, written in terms of args.
+ * @param[in] ...         Initializers for the ByteioCtx literal, written through args.
  * @warning The emitted entry takes a const OctetusCfg * named args and the initializers dereference
- *          it, so it must not be NULL [BORROWS].
+ *          it, and it must not be NULL [BORROWS].
  */
 #define BYTEIO_ENTRY(ReturnType_, name_, ...)                                                                          \
     EMBED_ENTRY(mmgr_byteio_, byteio_, ByteioCtx, OctetusCfg, ReturnType_, name_, __VA_ARGS__)
@@ -351,9 +351,9 @@ EMBED_INLINE embed_bool byteio_mpint_fixed(const ByteioCtx *args)
  * @brief Binds this module's four fixed arguments to EMBED_ENTRY_V, for an entry returning nothing.
  *
  * @param[in] name_ Name after the mmgr_byteio_ and byteio_ prefixes, which the two share.
- * @param[in] ...   Initializers for the ByteioCtx literal, written in terms of args.
+ * @param[in] ...   Initializers for the ByteioCtx literal, written through args.
  * @warning The emitted entry takes a const OctetusCfg * named args and the initializers dereference
- *          it, so it must not be NULL [BORROWS].
+ *          it, and it must not be NULL [BORROWS].
  */
 #define BYTEIO_ENTRY_V(name_, ...) EMBED_ENTRY_V(mmgr_byteio_, byteio_, ByteioCtx, OctetusCfg, name_, __VA_ARGS__)
 

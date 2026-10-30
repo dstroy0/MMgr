@@ -40,7 +40,7 @@ typedef struct
  *
  * @param[in] args The value to read [BORROWS].
  * @return         args->one->as.text, or a literal empty string when that arm is NULL [BORROWS].
- * @note Returns a literal empty string in place of NULL, so the verba call always receives a valid pointer.
+ * @note Returns a literal empty string in place of NULL, and so the verba call always receives a valid pointer.
  */
 EMBED_INLINE const char *numer_str(const NumerCtx *args)
 {
@@ -69,9 +69,9 @@ EMBED_ENUM_BYTE(NumerArm, NUMER_ARM_NONE = 0, /**< Reads no value at all. */
 /**
  * @brief One field kind's formatting function, union arm, numeric base and default width.
  *
- * @note The verba entries are split by what they write, so they no longer share an argument pack
+ * @note The verba entries are split by what they write, and so they no longer share an argument pack
  *       and cannot sit in one function pointer table directly. Each kind gets a small function of
- *       its own with a common signature, which keeps the dispatch one indirect call rather than a
+ *       its own with a common signature, which keeps the dispatch one indirect call and not a
  *       walk of cases.
  */
 typedef struct
@@ -82,7 +82,7 @@ typedef struct
     uint8_t width;                      /**< Default width, used when the field and value both leave it 0. */
 } NumerKind;
 
-/* The table names these and they read the table, so the names come first. */
+/* The table names these and they read the table, and so the names come first. */
 static size_t numer_refuse(const NumerCtx *args);
 static size_t numer_verba_put(const NumerCtx *args);
 static size_t numer_verba_json(const NumerCtx *args);
@@ -100,7 +100,7 @@ static size_t numer_verba_fixed(const NumerCtx *args);
 /**
  * @brief One entry per field kind, indexed by the mmgr_fk value itself.
  *
- * @note Sized to MMGR_FK_XML plus one, so every enumerator has a row.
+ * @note Sized to MMGR_FK_XML plus one, and so every enumerator has a row.
  * @note MMGR_FK_DEC and MMGR_FK_U32 share the U32 arm but differ in call and default width.
  * @note MMGR_FK_G defaults to six significant digits. Every other kind defaults to 1 or 0.
  */
@@ -144,8 +144,8 @@ EMBED_INLINE size_t numer_emit_one(const NumerCtx *args)
  *
  * @param[in] args Destination buffer and the starting cursor [BORROWS].
  * @return         0 always.
- * @note Terminates at args->at, which is where this write began, so text already in the buffer survives
- *       an abandoned append. args->at is the starting cursor here, not the offset the walk reached.
+ * @note Terminates at args->at, which is where this write began, and so text already in the buffer survives
+ *       an abandoned append. args->at is the starting cursor here and not the offset the walk reached.
  * @note Reads args->out and args->at. cap and the value members take no part.
  * @warning args->out must be writable at args->at.
  */
@@ -166,7 +166,7 @@ EMBED_INLINE size_t numer_abandon(const NumerCtx *args)
 EMBED_INLINE size_t numer_finish(const NumerCtx *args)
 {
     // Reports and terminates nothing on failure. args->at here is the offset the walk reached, not where
-    // it began, so this cannot restore the buffer. The caller holds the starting cursor and abandons
+    // it began, and so this cannot restore the buffer. The caller holds the starting cursor and abandons
     return EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = args->out, .cap = args->cap, .at = args->at);
 }
 
@@ -179,11 +179,11 @@ EMBED_INLINE size_t numer_finish(const NumerCtx *args)
  * @note An MMGR_FK_LIT field takes cursor->literal and cursor->bytes. Every other field takes
  *       cursor->width.
  * @note Calls numer_abandon when a value is missing, when its kind differs, and when values are left over.
- * @warning args->spec must reach an MMGR_FK_END field, which is what ends the walk.
+ * @warning args->spec must reach an MMGR_FK_END field, as ends the walk.
  */
 EMBED_INLINE size_t numer_build(const NumerCtx *args)
 {
-    // Begins at the caller's cursor rather than the first byte. A run of writes never re-measures
+    // Begins at the caller's cursor and not the first byte. A run of writes never re-measures
     // what the last one left. An unset at is 0, which is where a single write starts anyway.
     size_t at = args->at;
     size_t taken = 0;
@@ -228,7 +228,7 @@ EMBED_INLINE size_t numer_build(const NumerCtx *args)
  * @param[in] args Buffer, capacity and the values [BORROWS].
  * @return         What numer_finish returned, or 0 when args->cap is 0.
  * @note Each value carries its own width in args->vals[taken].width, where build takes the width from the field.
- * @note Passes every value to numer_emit_one whatever its kind, so MMGR_FK_END and MMGR_FK_LIT reach numer_refuse.
+ * @note Passes every value to numer_emit_one whatever its kind, and so MMGR_FK_END and MMGR_FK_LIT reach numer_refuse.
  * @warning args->vals must hold args->nvals values.
  */
 EMBED_INLINE size_t numer_emit(const NumerCtx *args)
@@ -276,11 +276,11 @@ EMBED_INLINE size_t numer_used(const NumerCtx *args)
     EMBED_ENTRY(mmgr_numer_, numer_, NumerCtx, NumerosCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
- * @brief The two entries that forward and nothing else.
+ * @brief The two entries that forward, alone.
  *
  * @note Each is documented at its declaration in numeros_scribo.h.
  * @note The two append entries below are not here. They read the text already in args->out and re-enter
- *       through the numer table, so they carry logic rather than an argument pack alone.
+ *       through the numer table, and so they carry logic and not an argument pack alone.
  */
 NUMER_ENTRY(size_t, build, .out = args->out, .cap = args->cap, .at = args->at, .spec = args->spec, .vals = args->vals,
             .nvals = args->nvals)
@@ -304,7 +304,7 @@ size_t mmgr_numer_append(const NumerosCfg *args)
     }
 
     // args->at when the caller threaded it, and only otherwise a scan. A caller that keeps the cursor
-    // pays nothing here. One that does not is measured once per call, which is what made a run of
+    // pays nothing here. One that does not is measured once per call, as made a run of
     // appends cost more the longer the text got
     const size_t used =
         (args->at != 0u) ? args->at : EMBED_CALL(numer_used, NumerCtx, .out = args->out, .cap = args->cap);

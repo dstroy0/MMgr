@@ -154,10 +154,10 @@ EMBED_INLINE void praet_close(const PraetTransferCtx *args)
  * @param[in] CtxType_    Context type this entry's backend takes.
  * @param[in] CfgType_    Argument type the caller passes.
  * @param[in] name_       Name after the mmgr_praet_ and praet_ prefixes, which the two share.
- * @param[in] ...         Initializers for the CtxType_ literal, written in terms of the CfgType_ the
+ * @param[in] ...         Initializers for the CtxType_ literal, written through the CfgType_ the
  *                        entry was handed.
  * @note Both types are parameters here. Opening a channel and moving bytes on one take different
- *       arguments, so the module carries two of each.
+ *       arguments, and so the module carries two of each.
  */
 #define PRAET_ENTRY(ReturnType_, CtxType_, CfgType_, name_, ...)                                                       \
     EMBED_ENTRY(mmgr_praet_, praet_, CtxType_, CfgType_, ReturnType_, name_, __VA_ARGS__)
@@ -168,7 +168,7 @@ EMBED_INLINE void praet_close(const PraetTransferCtx *args)
  * @param[in] CtxType_ Context type this entry's backend takes.
  * @param[in] CfgType_ Argument type the caller passes.
  * @param[in] name_    Name after the mmgr_praet_ and praet_ prefixes.
- * @param[in] ...      Initializers for the CtxType_ literal, written in terms of the CfgType_ the
+ * @param[in] ...      Initializers for the CtxType_ literal, written through the CfgType_ the
  *                     entry was handed.
  */
 #define PRAET_ENTRY_V(CtxType_, CfgType_, name_, ...)                                                                  \
@@ -191,7 +191,7 @@ PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = args->channe
  *
  * @param[in] args Channel to poll [BORROWS].
  * @note Hand-rolled, as mmgr_anular_init is, with no entry line. It hands args to the weak hook
- *       unchanged, with no checking call in between, so there is no argument pack to build and no
+ *       unchanged, with no checking call in between, and so there is no argument pack to build and no
  *       praet_ backend for EMBED_ENTRY to name.
  * @note Documented at the declaration in memoriam_praetereo.h.
  */

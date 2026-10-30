@@ -26,14 +26,14 @@ if (!EMBED_CALL(byteio.take_be, OctetusCfg, .r = &r, .out = &v, .bytes = 2u)) {
 }
 ```
 
-Fields sit `bytes` apart, and the span carries the cursor, so nothing here needs an offset passed in.
+Fields sit `bytes` apart, and the span carries the cursor, and so nothing here needs an offset passed in.
 
 ## Gotchas
 
 **The appends answer nothing and the takes all answer.** That is the whole failure model. An append
 that does not fit is a build failure: what a writer emits and how big its buffer is are both fixed
-before the build, so it asserts, stores nothing, and latches the span's `overflow` to keep a wrong
-program off the end. A short read is a runtime fact about whatever sent the bytes, so it sets `err`,
+before the build, and so it asserts, stores nothing, and latches the span's `overflow` to keep a wrong
+program off the end. A short read is a runtime fact about whatever sent the bytes, and so it sets `err`,
 leaves the cursor alone and returns `EMBED_FALSE` for a caller to act on. See @ref ref_error_handling.
 
 **A value moves a word at a time, not a byte at a time.** `put_be` reverses once through
@@ -44,11 +44,11 @@ seven is three, and only an odd final byte is ever written alone. `take_be` is t
 field may start anywhere in the span. The cost does vary with the field width, because the number of
 stores does.
 
-**`rd_str` copies nothing.** It points `blob` into the span's own bytes, so what it hands back lives
+**`rd_str` copies nothing.** It points `blob` into the span's own bytes, and so what it hands back lives
 exactly as long as the buffer does. A length that is read but not followed by its payload puts the
 cursor back where it started: a partial read is not a read.
 
-**`mpint_fixed` writes the field whole rather than appending to it.** It zero-fills ahead of the
+**`mpint_fixed` writes the field whole instead of appending to it.** It zero-fills ahead of the
 value and leaves the cursor at `cap`. Leading zero bytes of the integer are skipped before the width
 is tested. A value carrying a sign byte still fits a field of its own size.
 
@@ -75,7 +75,7 @@ updates it through `writer`.
 **`align` is how a stream ends, and leaving it out loses the tail.** `put` writes whole bytes only,
 so bits that do not fill one stay in `residue` and are never stored on their own. Any stream whose
 length is not a multiple of eight needs `align` before its buffer is read. It pads with zeros above
-the bits it holds, and does nothing when the residue is empty, so calling it on a stream that
+the bits it holds, and does nothing when the residue is empty, and so calling it on a stream that
 happened to end on a byte, or calling it twice, costs nothing.
 
 **Bits pack from the low end.** A 3-bit put of `0b101` then a 5-bit put of zero produces `0x05`, not
@@ -86,7 +86,7 @@ in `residue` and goes out when a later put completes it. A byte-level write to t
 between lands in the wrong place.
 
 **`overflow` latches.** A put whose completed bytes would run past `cap` writes nothing, sets the
-flag and clears the residue, and nothing clears it again, so one check after a run of puts covers
+flag and clears the residue, and nothing clears it again, and so one check after a run of puts covers
 the whole run. As with a span, reaching it means the buffer was sized wrong for a stream whose
 length was known before the build.
 
@@ -110,7 +110,7 @@ const uint64_t v16 = EMBED_CALL(magna_extremitas.rd, EndianCfg, .src = p, .width
 ```
 
 `parva_extremitas` is little end first, `magna_extremitas` is big. The width is an argument rather
-than part of the entry name, and `mmgr_endian_width`'s values are the byte counts, so the same
+than part of the entry name, and `mmgr_endian_width`'s values are the byte counts, and so the same
 number advances your cursor.
 
 **There is no `host` variant, deliberately.** A wire format has a byte order. The host's order is an
@@ -146,7 +146,7 @@ the entries do not cover is not forced to re-derive them.
 
 ## When to reach for it
 
-Formatting a float without `printf`, which is what @ref mod_verba_guide's `g` and `fixed` entries do.
+Formatting a float without `printf`, as @ref mod_verba_guide's `g` and `fixed` entries do.
 Classifying a value as infinite or NaN without a library call. Anything that needs the fields rather
 than the number.
 
@@ -154,8 +154,8 @@ than the number.
 
 **This is `double`, not `float`.** There are no single-precision entries.
 
-**It is bit manipulation, not arithmetic.** `merge` will happily build a NaN or a denormal from the
-fields you hand it. It masks each one to its width rather than rejecting it. A value too large
+**It is bit manipulation and not arithmetic.** `merge` will happily build a NaN or a denormal from the
+fields you hand it. It masks each one to its width instead of rejecting it. A value too large
 for its field loses the high bits silently.
 
 @ref mod_fract "Generated reference"

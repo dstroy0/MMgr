@@ -15,7 +15,7 @@
  *       starts, how long it is, where its cursor lands, and what its flag carries. Nothing here calls
  *       one entry to check another.
  * @note Small extents are the whole point. Every rule is a comparison between the count and the
- *       extent or the cursor, and every ordering among those occurs within the first few integers, so
+ *       extent or the cursor, and every ordering among those occurs within the first few integers, and so
  *       the grid is walked exhaustively instead of sampled.
  * @note The spans the grid walks are built here as values and not through the constructors. The walks
  *       take a span inside their argument pack. Any span is a legal input, and building them
@@ -115,7 +115,7 @@ static void accuracy_expect_cspan(mmgr_cspan produced, const uint8_t *buf, size_
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note The storage the grid points at is never read through, and the one case that writes through a
  *       span fills what it needs itself.
  */
@@ -127,7 +127,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -161,7 +161,7 @@ void test_the_constructors_build_the_spans_they_are_documented_to(void)
  *       forward unchanged. Each is written out separately here.
  * @note A count of exactly the extent is documented to give an empty span that has not failed, and a
  *       count past it is documented to fail. Both boundaries are in the grid, and they are one apart.
- * @note Every cursor from zero to the extent is offered at every extent, with the flag both ways, so
+ * @note Every cursor from zero to the extent is offered at every extent, with the flag both ways, and so
  *       the rebasing rule is checked on both sides of the skip.
  */
 void test_the_span_beginning_a_count_in_names_the_right_bytes(void)
@@ -282,7 +282,7 @@ void test_the_read_span_over_what_was_written_covers_the_right_bytes(void)
 /**
  * @brief Checks that the read span over everything written covers exactly the cursor's bytes.
  *
- * @note Documented as the same step against the span's own cursor, which is the one count that cannot
+ * @note Documented as the same step against the span's own cursor, the one count that cannot
  *       ask for more than was written. Its error flag is the fill span's overflow alone.
  * @note Checked directly against the rule and not against the other entry, which keeps the two from
  *       being measured against each other.
@@ -314,8 +314,8 @@ void test_the_read_span_over_everything_written_covers_the_cursor(void)
  *
  * @note Each is a combination of two or three conditions, and a predicate that dropped one of them
  *       agrees with the rule on most of the grid. Every combination is offered.
- * @note The two usability predicates differ in the member they read, which is what keeps a read span
- *       from being handed where a fill span belongs, so both are swept separately.
+ * @note The two usability predicates differ in the member they read, as keeps a read span
+ *       from being handed where a fill span belongs, and so both are swept separately.
  * @note A null buffer and a zero extent are each offered on their own as well as together, since a
  *       predicate testing only one of them passes whenever both hold.
  */
@@ -357,7 +357,7 @@ void test_the_predicates_test_what_they_are_documented_to(void)
  * @note Both narrowings are covered. The span beginning a count in starts further along the same
  *       buffer, and the span covering the first bytes starts on the same byte with a shorter extent,
  *       so the two are checked at different addresses.
- * @note The bytes outside the derived span are checked to be untouched, which is what shows the view
+ * @note The bytes outside the derived span are checked to be untouched, as shows the view
  *       is bounded and not merely offset.
  */
 void test_a_derived_span_is_a_second_view_of_the_same_bytes(void)
@@ -416,8 +416,8 @@ void test_a_derived_span_is_a_second_view_of_the_same_bytes(void)
  * @note The bytes are checked to survive, since the header states a reset span hands out storage that
  *       still holds whatever the last fill wrote. A rewind that cleared them would be a different
  *       operation with the same name.
- * @note The extent and the start are checked to be unchanged as well, so the rewind is exactly the
- *       two members it names and nothing else.
+ * @note The extent and the start are checked to be unchanged as well, and so the rewind is exactly the
+ *       two members it names, alone.
  */
 void test_a_rewind_returns_the_cursor_and_leaves_the_bytes(void)
 {

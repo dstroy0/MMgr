@@ -12,12 +12,12 @@
  *       byte loads and shifts on one that does not. Which of those the compiler emitted is invisible
  *       from the return value, and both have to arrive at the same number.
  * @note The reference assembles a value one byte at a time, placing each at the position the host's
- *       byte order gives it. The compiler states that order in __BYTE_ORDER__, so nothing here works
+ *       byte order gives it. The compiler states that order in __BYTE_ORDER__, and so nothing here works
  *       it out and nothing reads the library's own idea of it.
  * @note Every unaligned entry is offered every offset from a word boundary. That is the whole point
  *       of the unaligned family, and an entry that quietly required alignment would still pass at
  *       offset zero.
- * @note The four aligned entries are offered only aligned addresses, which is what they document. What
+ * @note The four aligned entries are offered only aligned addresses, as they document. What
  *       is checked of them is that they reach the same bytes their unaligned counterparts do.
  * @note Contract checks live in test_proximus_operor. This file asks which bytes a load reads and a
  *       store writes.
@@ -32,7 +32,7 @@
 /**
  * @brief Expands to 8u, the offsets from a word boundary each unaligned entry is offered.
  *
- * @note One more than the widest word any environment uses, so every offset is reached whatever
+ * @note One more than the widest word any environment uses, and so every offset is reached whatever
  *       embed_word is on this build.
  */
 #define MMGR_ACCURACY_PROXIM_OFFSETS 8u
@@ -48,7 +48,7 @@
 /**
  * @brief Expands to 0xA5, the byte a buffer is filled with before a store.
  *
- * @note A byte no case stores on purpose. A position still holding it is one the store did not
+ * @note A byte no case stores deliberately. A position still holding it is one the store did not
  *       reach, and a position past the width holding anything else is a store that ran long.
  */
 #define MMGR_ACCURACY_PROXIM_GUARD 0xA5u
@@ -56,9 +56,9 @@
 /**
  * @brief Set to 1 where this host puts a value's least significant byte at the lowest address.
  *
- * @note The compiler states the order in __BYTE_ORDER__, so nothing here works it out. Reading the
+ * @note The compiler states the order in __BYTE_ORDER__, and so nothing here works it out. Reading the
  *       library's own idea of the order would put one value on both sides of every comparison.
- * @note A compile-time constant, so every expectation below folds and no case carries a run-time
+ * @note A compile-time constant, and so every expectation below folds and no case carries a run-time
  *       branch on the order.
  * @warning The #error arm fires on a toolchain that predefines neither. Guessing an order there would
  *          make every case pass against whatever this file assumed.
@@ -129,7 +129,7 @@ static void accuracy_fill_guard(uint8_t *buffer)
  *
  * @param[in] position Position within the region.
  * @return             The byte that position holds.
- * @note Every byte differs from its neighbors along the run, which is what makes a load or a copy
+ * @note Every byte differs from its neighbors along the run, and that leaves a load or a copy
  *       that shifted by one visible. Never the guard byte either.
  */
 static uint8_t accuracy_source_byte(size_t position)
@@ -143,8 +143,8 @@ static uint8_t accuracy_source_byte(size_t position)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
- * @note Every buffer here has automatic or file scope storage that the case fills itself, so there
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
+ * @note Every buffer here has automatic or file scope storage that the case fills itself, and so there
  *       is no shared state to prepare.
  */
 void setUp(void)
@@ -155,7 +155,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -166,10 +166,10 @@ void tearDown(void)
  *
  * @note Exists to catch a defect in the reference as itself. A reference that placed the bytes in the
  *       other order would report every entry as wrong, and the module would be blamed for it.
- * @note The expectations are built from the same order the compiler states, so they read the same on
+ * @note The expectations are built from the same order the compiler states, and so they read the same on
  *       a host of either order. What is checked is that the two helpers are each other's inverse and
  *       that a run of distinct bytes assembles to a value with those bytes in it.
- * @note The lowest addressed byte is checked directly against the order, which is the one fact every
+ * @note The lowest addressed byte is checked directly against the order, the one fact every
  *       other expectation in this file rests on.
  */
 void test_the_byte_order_arithmetic_this_suite_relies_on_is_itself_right(void)
@@ -214,7 +214,7 @@ void test_the_byte_order_arithmetic_this_suite_relies_on_is_itself_right(void)
  * @note This is the case the file exists for. The unaligned family lets a caller read at any address,
  *       and an entry that read the right bytes only at offset zero is exactly what it is meant to
  *       prevent.
- * @note The word-width load is included alongside the fixed widths, so the environments that carry a
+ * @note The word-width load is included alongside the fixed widths, and so the environments that carry a
  *       narrower embed_word check it at their own width.
  * @note The bytes differ along the run. A load that read one byte early or late then arrives at a
  *       different number instead of the same one.
@@ -331,7 +331,7 @@ void test_every_store_writes_its_bytes_at_its_address(void)
  * @note The aligned family exists to emit a single instruction where the unaligned one compiles to a
  *       sequence. The claim is that the two are the same access and differ only in what the compiler
  *       is allowed to assume. A value stored through one is read back by the other.
- * @note Only aligned addresses are offered, which is what these entries document. The buffer is
+ * @note Only aligned addresses are offered, as these entries document. The buffer is
  *       declared with the alignment MMGR_ALIGN_BYTES states, and the offsets step by whole words.
  * @note Both directions are checked at both widths. An aligned store read by an unaligned load and
  *       an unaligned store read by an aligned load both have to agree.
@@ -381,7 +381,7 @@ void test_the_aligned_entries_reach_the_same_bytes_as_the_unaligned_ones(void)
  * @note The two cases above pin each direction against the reference. This one puts them together,
  *       because a pair that disagreed with each other would still lose a caller's value.
  * @note The value is masked to the width first, since only the low bytes of it are stored.
- * @note Every offset from a word boundary is covered, so the round trip is exercised on the paths a
+ * @note Every offset from a word boundary is covered, and so the round trip is exercised on the paths a
  *       machine with no unaligned access assembles out of byte moves.
  */
 void test_a_value_stored_and_loaded_at_the_same_width_comes_back(void)

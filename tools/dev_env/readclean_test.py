@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Self-test for readclean.py: what the blind pass removes, and what it must NOT remove.
 
-Both halves are load-bearing. A pass that removes too little leaves the names it was meant to take
+Both halves are essential. A pass that removes too little leaves the names it was meant to take
 off; a pass that removes too much leaves text nothing can be checked against - and the second is the
 easier mistake to ship, because the output still looks blinded.
 """
@@ -36,7 +36,7 @@ b = blind(
     "static const Sha256Ns Sha256 __attribute__((unused)) = {.update = mmgr_sha256_update};\n"
 )
 check("the name sha256 is gone entirely", "Sha256" not in b and "sha256" not in b)
-# Sha256Ns, Sha256Vars, Sha256V and Sha256 are four spellings of ONE module. Four unrelated
+# Sha256Ns, Sha256Vars, Sha256V and Sha256 are four forms of ONE module. Four unrelated
 # generic names would hide the relationship the whole shape is built on.
 stem = b.split("Vars")[0].split()[-1]
 check("Ns, Vars, V and the table share one stem", all("%s%s" % (stem, s) in b for s in ("Vars", "Ns", "V")))
@@ -61,7 +61,7 @@ b = blind(
 )
 check("the first region is A", "_OFF_A 0u" in b)
 check("the second is B", "_OFF_B (" in b)
-# The one thing worth checking about a region macro is that it reads the offset it belongs to.
+# The single thing worth checking about a region macro is that it reads the offset it belongs to.
 # Falling through to the generic macro bucket gave the cast and its offset unrelated numbers.
 check("the cast for A reads OFF_A", "_A(v1) ((" in b and "+ " in b and "_OFF_A))" in b)
 check("the cast for B reads OFF_B", "_B(v1) ((" in b and "_OFF_B))" in b)

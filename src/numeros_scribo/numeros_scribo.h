@@ -24,7 +24,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief What one field formats, and which mmgr_fval arm it reads.
  *
- * @note numeros_scribo.c indexes s_kind by this value, so MMGR_FK_XML is the largest one it accepts.
+ * @note numeros_scribo.c indexes s_kind by this value, and so MMGR_FK_XML is the largest one it accepts.
  * @note One byte on every compiler, through EMBED_ENUM_BYTE.
  */
 EMBED_ENUM_BYTE(mmgr_fk, MMGR_FK_END = 0, /**< Ends a spec. numer_build stops at this field. */
@@ -80,7 +80,7 @@ typedef struct
 /**
  * @brief Expands to an mmgr_field of kind MMGR_FK_END, with width 0, bytes 0 and literal NULL.
  *
- * @note numer_build stops at this field, so every spec array needs one as its last entry.
+ * @note numer_build stops at this field, and so every spec array needs one as its last entry.
  */
 #define MMGR_END {MMGR_FK_END, 0u, 0u, NULL}
 
@@ -243,9 +243,9 @@ typedef struct
  * @brief Arguments for the four numer calls.
  *
  * @note build and append read all six members. emit and emit_append leave spec alone.
- * @note at is the cursor, as in verba. build and emit begin there and return where they finished, so
- *       a run of writes threads the cursor rather than measuring the text again between each. Leave
- *       it unset and a call starts at the first byte, which is what a single write wants.
+ * @note at is the cursor, as in verba. build and emit begin there and return where they finished, and so
+ *       a run of writes threads the cursor instead of measuring the text again between each. Leave
+ *       it unset and a call starts at the first byte, as a single write wants.
  */
 typedef struct
 {

@@ -5,11 +5,11 @@
 
 newlib is the comparison because it is the libc an embedded target actually ships, it is a static
 archive with one object per entry, which lets a single function be weighed, and it is built by the same
-compiler family. Both sides are compiled for the same core at the same optimisation level, so the
+compiler family. Both sides are compiled for the same core at the same optimization level, and so the
 difference is the code and not the toolchain.
 
 Only .text is counted. An archive member also carries relocations and symbol tables that never
-reach flash, and the linker pulls whole members. A member is the unit whether or not every entry
+reach flash, and the linker pulls whole members. A member is the unit regardless of whether every entry
 in it is called.
 
     python tools/dev_env/against_libc.py
@@ -28,10 +28,10 @@ TOOLCHAIN = pathlib.Path.home() / ".platformio" / "packages" / "toolchain-gccarm
 
 # What this library's modules stand in for.
 #
-# The two sides do not divide the work the same way, so the families are drawn where the code
-# actually is rather than where the header names suggest. cellularum_laboro holds the bounded
+# The two sides do not divide the work the same way, and so the families are drawn where the code
+# actually is and not where the header names suggest. cellularum_laboro holds the bounded
 # scans and the decimal parser in one translation unit, which on the newlib side is str* plus the
-# whole strtod, dtoa and mprec apparatus. pow5 is header only, so its table lands in whoever
+# whole strtod, dtoa and mprec apparatus. pow5 is header only, and so its table lands in whoever
 # includes it, which is cellularum_laboro.
 #
 # Every newlib member is named once across all the families. dtoa and mprec serve both parsing and
@@ -114,9 +114,9 @@ def run(cmd, cwd=None):
 
 
 def tool(name):
-    """The named binutil, under whichever of its spellings this toolchain ships.
+    """The named binutil, under whichever of its forms this toolchain ships.
 
-    Some drops have ar and some only have gcc-ar, which is the same program with a plugin already
+    Some drops have ar and some only have gcc-ar, the same program with a plugin already
     arranged. Either answers the questions here.
     """
     for stem in (name, "gcc-" + name):
@@ -130,9 +130,9 @@ def tool(name):
 def archive_text(lib, wanted, ar, objdump, tmp):
     """.text of each named member of an archive, and which names were not there.
 
-    Members are extracted into the working directory rather than read from a pipe: an object is
+    Members are extracted into the working directory and not read from a pipe: an object is
     binary and a text pipe will not carry it. newlib prefixes some members with lib_a-, which is a
-    build artefact rather than part of the name, so it is taken off before matching.
+    build artifact and not part of the name, and so it is taken off before matching.
     """
     by_stem = {}
     for m in run([ar, "t", str(lib)]).stdout.split():

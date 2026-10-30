@@ -18,7 +18,7 @@
  *       store and a width of seven is three, and the three have to land next to each other in the
  *       right order.
  * @note Nothing here overruns a fill span. byteio_claim asserts on that, and the checks environment
- *       traps a failed assertion, so overrunning a writer is test_octetus_introitus_exitus's to cover.
+ *       traps a failed assertion, and so overrunning a writer is test_octetus_introitus_exitus's to cover.
  *       The short read and the refused field are covered here, since neither asserts.
  * @note Contract checks live in test_octetus_introitus_exitus. This file asks where the bytes go.
  */
@@ -32,7 +32,7 @@
 /**
  * @brief Expands to 64u, the bytes every span here covers.
  *
- * @note Room for several eight byte fields with space left over, so no case runs a writer past its
+ * @note Room for several eight byte fields with space left over, and so no case runs a writer past its
  *       end by accident.
  */
 #define MMGR_ACCURACY_BYTEIO_BUFFER 64u
@@ -40,7 +40,7 @@
 /**
  * @brief Expands to 0xA5, the byte a buffer is filled with before a write.
  *
- * @note A byte no case writes on purpose. A position still holding it is one the call did not reach.
+ * @note A byte no case writes deliberately. A position still holding it is one the call did not reach.
  */
 #define MMGR_ACCURACY_BYTEIO_GUARD 0xA5u
 
@@ -52,14 +52,14 @@
  * @param[in] offset Offset within the field, 0 being the first byte written.
  * @return           That byte.
  * @note One shift and one mask. Most significant first means offset 0 holds the highest byte of the
- *       low width bytes, which is the shift below and nothing else.
- * @note This is the whole reference. It reverses nothing and selects no step width, which is what
+ *       low width bytes, the shift below, alone.
+ * @note This is the whole reference. It reverses nothing and selects no step width, as
  *       lets it disagree with the module.
  */
 static uint8_t accuracy_big_endian_byte(uint64_t value, unsigned width, unsigned offset)
 {
     // Explicit cast narrows the shifted value to the byte a field position holds. The mask keeps
-    // eight bits, which is what a uint8_t carries
+    // eight bits, as a uint8_t carries
     return (uint8_t)((value >> (8u * (width - 1u - offset))) & 0xFFu);
 }
 
@@ -101,9 +101,9 @@ static void accuracy_fill_guard(uint8_t *buffer)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Every span and buffer here has automatic storage inside the case that builds it, and each
- *       case builds its own span, so there is no shared state to prepare.
+ *       case builds its own span, and so there is no shared state to prepare.
  */
 void setUp(void)
 {
@@ -113,7 +113,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -151,7 +151,7 @@ void test_the_byte_arithmetic_this_suite_relies_on_is_itself_right(void)
 
     for (unsigned width = 1u; width <= 8u; width++)
     {
-        // A width of eight would shift a 64-bit value by its full width, which C leaves undefined, so
+        // A width of eight would shift a 64-bit value by its full width, which C leaves undefined, and so
         // the all ones mask is written out instead of computed
         const uint64_t mask = (width == 8u) ? UINT64_MAX : ((UINT64_C(1) << (8u * width)) - 1u);
         uint8_t rebuilt[8];
@@ -221,8 +221,8 @@ void test_a_big_endian_append_lays_every_byte_where_the_reference_puts_it(void)
  * @brief Checks that a big endian read returns the value its bytes stand for.
  *
  * @note The bytes are laid down here one at a time and the expectation is assembled from them by the
- *       reference, so nothing about the value comes from the module's own gathering.
- * @note Every width is read from the same run of bytes, which is what shows the width bounds the read
+ *       reference, and so nothing about the value comes from the module's own gathering.
+ * @note Every width is read from the same run of bytes, as shows the width bounds the read
  *       and the run does not.
  * @note The cursor is checked to advance by the width, and a read that succeeded is checked to leave
  *       the span usable.
@@ -253,7 +253,7 @@ void test_a_big_endian_read_returns_the_value_its_bytes_stand_for(void)
  *       because a pair that disagreed with each other would still lose a caller's value.
  * @note The value is masked to the width first. Only the low width bytes are written, and the rest
  *       are not part of what comes back.
- * @note A run of fields is written into one span and read back in order, so the cursor threading is
+ * @note A run of fields is written into one span and read back in order, and so the cursor threading is
  *       exercised as well as the single field.
  */
 void test_a_value_written_and_read_at_the_same_width_comes_back(void)
@@ -285,7 +285,7 @@ void test_a_value_written_and_read_at_the_same_width_comes_back(void)
         for (unsigned index = 0u; index < width_count; index++)
         {
             // A width of eight would shift a 64-bit value by its full width, which C leaves
-            // undefined, so the all ones mask is written out instead of computed
+            // undefined, and so the all ones mask is written out instead of computed
             const uint64_t mask = (width_of[index] == 8u) ? UINT64_MAX : ((UINT64_C(1) << (8u * width_of[index])) - 1u);
             uint64_t taken = 0u;
             char message[128];
@@ -303,10 +303,10 @@ void test_a_value_written_and_read_at_the_same_width_comes_back(void)
 /**
  * @brief Checks that a raw append copies its bytes unchanged and advances the cursor by the count.
  *
- * @note raw is the one append that changes nothing about the bytes, and the claim is exactly that.
+ * @note raw is the single one append that changes nothing about the bytes, and the claim is exactly that.
  *       Every length from none to past a word is offered, since the copy underneath moves whole words
  *       and finishes the odd bytes separately.
- * @note Successive appends are checked to land end to end, which is what the cursor is for. A cursor
+ * @note Successive appends are checked to land end to end, as the cursor is for. A cursor
  *       that advanced by the wrong amount leaves a gap or an overlap between two runs.
  */
 void test_a_raw_append_copies_its_bytes_unchanged(void)
@@ -352,7 +352,7 @@ void test_a_raw_append_copies_its_bytes_unchanged(void)
  *       bytes alone.
  * @note Every payload length from none to sixteen is offered, and the length prefix is laid down by
  *       hand as four big endian bytes instead of through the module.
- * @note The cursor is checked to end past the length and the run together, which is what lets a
+ * @note The cursor is checked to end past the length and the run together, as lets a
  *       caller read a sequence of these with nothing tracked between them.
  */
 void test_a_length_prefixed_read_points_at_the_run_and_advances_past_both(void)
@@ -404,7 +404,7 @@ void test_a_length_prefixed_read_points_at_the_run_and_advances_past_both(void)
  *       to stay where it was. A cursor left between the two names a position in the middle of a field,
  *       which no later read can make sense of.
  * @note The length prefix names more bytes than the span holds, at every shortfall from one byte to
- *       several, so the failure is the payload's and not the prefix's.
+ *       several, and so the failure is the payload's and not the prefix's.
  * @note Neither output is written on the failing path, which is checked by leaving both holding
  *       values no successful read would produce.
  */
@@ -488,9 +488,9 @@ void test_a_fixed_field_right_aligns_its_integer_and_zero_fills_ahead(void)
 /**
  * @brief Checks that an integer too wide for the field is refused without writing anything.
  *
- * @note This entry reports whether the integer fit instead of asserting the caller sized it right, so
+ * @note This entry reports whether the integer fit instead of asserting the caller sized it right, and so
  *       the refusal is a return value a case can check.
- * @note Nothing is written on the refusing path, which is what the guard bytes show. A field left
+ * @note Nothing is written on the refusing path, as the guard bytes show. A field left
  *       half written is one a reader cannot tell from a complete one.
  * @note The span's overflow is checked to latch, which leaves the failure there for a caller that
  *       tests the span later.

@@ -19,7 +19,7 @@
  *          implementations and does not by itself say which one is wrong, though a correctly rounded
  *          reference is the far likelier of the two to be right.
  * @note Doubles are compared bit for bit through a union declared here. An approximate comparison
- *       passes a conversion that is one unit in the last place out, which is the whole of what this
+ *       passes a conversion that is one unit in the last place out, the entirety of of what this
  *       file is looking for.
  * @note Every integer type below comes from stdint.h. A wrong width alias would resize the values
  *       each comparison is made in.
@@ -45,7 +45,7 @@ typedef union {
  * @brief One decimal and the value a correctly rounded conversion gives for it.
  *
  * @note expected carries the compiler's reading of the same digits text holds. The two are written
- *       side by side in every row below, which is what lets a reader check that they say the same
+ *       side by side in every row below, as lets a reader check that they say the same
  *       number.
  */
 typedef struct
@@ -118,7 +118,7 @@ static uint64_t accuracy_bits_of(double value)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Every value this suite uses is either a file-scope constant or has automatic storage inside
  *       the case that builds it, and there is no shared state to prepare here.
  */
@@ -130,7 +130,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -143,7 +143,7 @@ void tearDown(void)
  *       accuracy_bits_of would surface as a conversion mismatch, and cellularum_laboro would be
  *       blamed for it.
  * @note A double of 1.0 is a biased exponent of 1023 over a zero significand, which is
- *       0x3FF0000000000000. A negative zero is the sign bit and nothing else.
+ *       0x3FF0000000000000. A negative zero is the sign bit, alone.
  */
 void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
 {
@@ -239,7 +239,7 @@ void test_a_decimal_no_double_holds_comes_back_correctly_rounded(void)
  * @brief Checks that the float entry gives the double entry's value narrowed to float.
  *
  * @note The expectation is the double entry's own result put through the same narrowing the C
- *       conversion performs, which is what the entry documents itself as doing.
+ *       conversion performs, as the entry documents itself as doing.
  * @note Compared as floats through TEST_ASSERT_EQUAL_FLOAT's exact form for equal values. A float
  *       carries twenty four significand bits, and two values agreeing there agree in every bit.
  */
@@ -252,7 +252,7 @@ void test_the_float_entry_is_the_double_entry_narrowed(void)
     for (unsigned row = 0u; row < row_count; row++)
     {
         // Explicit cast narrows the correctly rounded double to the float the entry returns. This is
-        // the same conversion the entry performs on its own result, and it is what makes the two
+        // the same conversion the entry performs on its own result, and it makes the two
         // comparable
         const float expected = (float)accuracy_rounded_of[row].expected;
         const float produced = EMBED_CALL(cellul.to_float, TransfiguroCfg, .src = accuracy_rounded_of[row].text);
@@ -283,7 +283,7 @@ void test_a_case_insensitive_compare_holds_on_an_accented_word(void)
     // "muller" and "MULLER", the same name with no umlaut on it
     static const char plain_lower[32] = {'m', 'u', 'l', 'l', 'e', 'r', '\0'};
     static const char plain_upper[32] = {'M', 'U', 'L', 'L', 'E', 'R', '\0'};
-    // The same name spelled with the umlaut, as Latin-1. 0xFC is a lowercase u with diaeresis, and
+    // The same name written with the umlaut, as Latin-1. 0xFC is a lowercase u with diaeresis, and
     // it is the identical byte in both
     static const char accented_lower[32] = {'m', '\xFC', 'l', 'l', 'e', 'r', '\0'};
     static const char accented_upper[32] = {'M', '\xFC', 'L', 'L', 'E', 'R', '\0'};
@@ -314,7 +314,7 @@ void test_a_case_insensitive_compare_holds_on_an_accented_word(void)
  * @note The other thing a caller does with these entries: find a word in a line of text without
  *       caring about its case. The line here is a Latin-1 name of the kind a directory listing or a
  *       contact record carries.
- * @note The needle is entirely ASCII, so nothing about the search itself involves a byte at or above
+ * @note The needle is entirely ASCII, and so nothing about the search itself involves a byte at or above
  *       0x80. What differs from the plain line is only that the text around the needle carries one.
  */
 void test_a_case_insensitive_search_finds_a_word_after_an_accented_one(void)
@@ -339,7 +339,7 @@ void test_a_case_insensitive_search_finds_a_word_after_an_accented_one(void)
  * @note Builds two strings holding the same bytes, one lowercase and one uppercase in its ASCII
  *       letters, with one non-letter byte planted at a chosen position in both. A case-insensitive
  *       compare is defined to call every such pair equal, whatever the planted byte is.
- * @note Reports the first pair that disagrees, naming the byte and the position, so the domain the
+ * @note Reports the first pair that disagrees, naming the byte and the position, and so the domain the
  *       lane comparison actually holds over is measured and not guessed at.
  */
 void test_a_case_insensitive_compare_holds_for_every_planted_byte(void)
@@ -383,7 +383,7 @@ void test_a_case_insensitive_compare_holds_for_every_planted_byte(void)
 /**
  * @brief Checks that a sign in the text reaches the value it belongs to.
  *
- * @note A negative zero is included because it is the one value where the sign is the only bit that
+ * @note A negative zero is included because it is the single one value where the sign is the only bit that
  *       carries it, and a conversion that dropped the sign would return a positive zero that
  *       compares equal to it under every test but this one.
  */

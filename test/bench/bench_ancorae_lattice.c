@@ -21,8 +21,8 @@
  *       learns how many dimensions there are, because the geometry is entirely inside the base list
  *       the caller built. It never learns what a symbol is, because it only ever asks whether two of
  *       them agree. A core that cannot see either one cannot depend on either one.
- * @note Counts, not cycles. Every number here is a property of the data and the geometry, identical on
- *       every part, so nothing needs a board and nothing here is a timing claim.
+ * @note Counts and not cycles. Every number here is a property of the data and the geometry, identical on
+ *       every part, and so nothing needs a board and nothing here is a timing claim.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
@@ -75,7 +75,7 @@
  * @return           EMBED_TRUE when the two agree.
  * @note This is the only thing the core ever asks about a symbol. It does not read a value, compare
  *       magnitudes, or need the alphabet to be finite or enumerable. A domain whose symbols are
- *       irrational, complex, or simply unknown supplies one of these and nothing else.
+ *       irrational, complex, or simply unknown supplies one of these, alone.
  */
 typedef embed_bool (*SameSymbol)(const void *domain, size_t left, size_t right);
 
@@ -83,7 +83,7 @@ typedef embed_bool (*SameSymbol)(const void *domain, size_t left, size_t right);
  * @brief One domain, its geometry, and how to compare two of its positions.
  *
  * @note The geometry lives in @c bases and @c displacements and nowhere else. A grid, a volume and a
- *       line differ here only in which integers those two arrays hold, which is what lets one core
+ *       line differ here only in which integers those two arrays hold, as lets one core
  *       serve all three without a dimension parameter.
  */
 typedef struct
@@ -102,7 +102,7 @@ typedef struct
  *
  * @note All three are uninformed. There is no cost table in this file and there cannot be one, since
  *       a domain whose alphabet cannot be enumerated has no frequencies to weigh. That is the setting
- *       the claim has to survive, so the rules here differ from each other and none of them looks at
+ *       the claim has to survive, and so the rules here differ from each other and none of them looks at
  *       the data.
  */
 typedef enum
@@ -498,7 +498,7 @@ static void fill_levels(uint8_t *into, size_t length, uint64_t salt)
  *
  * @note The values are built from square roots of primes so no member of the set has an exact
  *       representation. Which one a position holds is drawn from the same generator everything else
- *       here uses, so the domain has the same statistics as the byte domains and differs only in what
+ *       here uses, and so the domain has the same statistics as the byte domains and differs only in what
  *       a symbol is made of.
  */
 static void fill_field(void)
@@ -544,7 +544,7 @@ static size_t build_line(void)
 }
 
 /**
- * @brief Builds the complex domain's geometry, which is the line's geometry over other symbols.
+ * @brief Builds the complex domain's geometry, the line's geometry over other symbols.
  *
  * @return How many bases were written.
  * @note Deliberately identical in shape to the line. Holding the geometry fixed and changing only
@@ -567,15 +567,15 @@ static size_t build_field(void)
  *
  * @return How many bases were written, shared by all three.
  * @note The box is a 2 by 4 rectangle. The scatter is eight points placed inside a 5 by 5 window with
- *       no row or column filled, which is the case a rectangle cannot stand in for. The turned set is
- *       the scatter under (row, column) going to (column, 4 - row), so it is the same eight points
+ *       no row or column filled, the case a rectangle cannot stand in for. The turned set is
+ *       the scatter under (row, column) going to (column, 4 - row), and so it is the same eight points
  *       rotated a quarter turn. A rotation permutes displacements and does nothing else, and the three
- *       sharing one base list is what makes that visible in the rows.
+ *       sharing one base list makes that visible in the rows.
  */
 static size_t build_grid(void)
 {
     // Eight points inside a 5 by 5 window, listed as row then column. No row and no column holds more
-    // than two of them, so nothing about the set can be read as a run
+    // than two of them, and so nothing about the set can be read as a run
     static const unsigned scatter[PATTERN_POINTS][2] = {{0u, 0u}, {0u, 3u}, {1u, 1u}, {2u, 4u},
                                                         {3u, 0u}, {3u, 2u}, {4u, 1u}, {4u, 4u}};
     size_t count = 0u;
@@ -663,12 +663,12 @@ static ptrdiff_t s_hypercube_points[PATTERN_POINTS];
  *       dimensional pattern in a larger space and reported it as a higher dimensional result.
  * @note Seven points off the origin can touch at most seven axes. At dimension eight the pattern
  *       spans seven of them. Every dimension up to seven is spanned completely.
- * @note Bases are every position where the whole pattern stays in bounds, which is the geometry the
+ * @note Bases are every position where the whole pattern stays in bounds, the geometry the
  *       core reads. Nothing about the dimension reaches the core by any other route.
  */
 static size_t build_hypercube(unsigned dimension, unsigned side, size_t *cells)
 {
-    // The furthest step any point takes, which is how far the last point reaches once the axes have
+    // The furthest step any point takes, and that is how far the last point reaches once the axes have
     // been cycled through
     const unsigned extent = 2u + ((PATTERN_POINTS - 2u) / dimension);
 

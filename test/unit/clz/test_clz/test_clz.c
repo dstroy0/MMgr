@@ -15,7 +15,7 @@
 /**
  * @brief Prepares the fixture Unity runs before each case in this suite.
  *
- * @note Empty because clz.lead and clz.trail declare no static storage and read only args->val, so
+ * @note Empty because clz.lead and clz.trail declare no static storage and read only args->val, and so
  *       nothing carries from one case into the next.
  */
 void setUp(void)
@@ -25,7 +25,7 @@ void setUp(void)
 /**
  * @brief Releases the fixture Unity runs after each case in this suite.
  *
- * @note Empty because every case here holds its operands in automatic storage, so no case leaves an
+ * @note Empty because every case here holds its operands in automatic storage, and so no case leaves an
  *       allocation to release.
  */
 void tearDown(void)
@@ -35,7 +35,7 @@ void tearDown(void)
 /**
  * @brief Checks clz.lead against the known count at all 64 single-bit positions.
  *
- * @note Each position is measured twice. The second value sets every bit below the highest one, so
+ * @note Each position is measured twice. The second value sets every bit below the highest one, and so
  *       an implementation that reads anything but the highest set bit fails here.
  */
 void test_the_leading_zero_count_at_every_position(void)
@@ -60,7 +60,7 @@ void test_the_leading_zero_count_at_every_position(void)
 /**
  * @brief Checks clz.trail against the known count at all 64 single-bit positions.
  *
- * @note Each position is measured twice. The second value sets every bit above the lowest one, so
+ * @note Each position is measured twice. The second value sets every bit above the lowest one, and so
  *       an implementation that reads anything but the lowest set bit fails here.
  */
 void test_the_trailing_zero_count_at_every_position(void)
@@ -125,7 +125,7 @@ void test_the_trailing_count_reads_the_lowest_set_bit_alone(void)
 /**
  * @brief Checks that the two counts of one set bit sum to 63 at every position.
  *
- * @note A word holds 64 bits, so one set bit leaves 63 zeros divided between the two ends. A count
+ * @note A word holds 64 bits, and so one set bit leaves 63 zeros divided between the two ends. A count
  *       that is off by one at either end fails this sum.
  */
 void test_the_two_counts_bracket_a_single_set_bit(void)
@@ -137,7 +137,7 @@ void test_the_two_counts_bracket_a_single_set_bit(void)
         const embed_iword trail = EMBED_CALL(clz.trail, ClzCfg, .val = single);
 
         // Explicit casts take both counts from embed_iword into the int Unity's integer assertion
-        // compares in. clz.h documents each count as 0 through 63, so the sum stays at 63 and fits
+        // compares in. clz.h documents each count as 0 through 63, and so the sum stays at 63 and fits
         // whichever of the two types is narrower
         TEST_ASSERT_EQUAL_INT_MESSAGE(63, (int)lead + (int)trail,
                                       "one set bit leaves 63 zeros split between the two ends");
@@ -148,7 +148,7 @@ void test_the_two_counts_bracket_a_single_set_bit(void)
  * @brief Checks that a word with every bit set counts zero at both ends.
  *
  * @note Both ends answer 0 here because bit 0 and bit 63 are both set. An implementation that
- *       returned a width rather than a count would pass the single-bit cases above and fail here.
+ *       returned a width and not a count would pass the single-bit cases above and fail here.
  */
 void test_a_full_word_counts_no_zeros_at_either_end(void)
 {
@@ -182,7 +182,7 @@ void test_zero_is_not_told_apart_from_the_single_bit_at_the_end_each_counts_from
 /**
  * @brief Checks that both counts stay within 0 through 63 across a widening run of set bits.
  *
- * @note The loop shifts a set bit in on each step, so it measures the 64 values of the form 2^n
+ * @note The loop shifts a set bit in on each step, and so it measures the 64 values of the form 2^n
  *       minus 1. A count outside the documented range would index past a lane table at any caller
  *       that used it as an index.
  */

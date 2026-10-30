@@ -3,17 +3,17 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Emit src/ascii_persona_bitorum/{ascii_persona_bitorum.h,ascii_persona_bitorum.c,CMakeLists.txt}.
 
-Bitmaps, not range chains: one shift and one and answers any class, and every class costs the same.
+Bitmaps and not range chains: one shift and one and answers any class, and every class costs the same.
 
-Sixteen bytes rather than two uint64, because this library builds at EMBED_WORD_BITS 16 as well as
+Sixteen bytes and not two uint64, because this library builds at EMBED_WORD_BITS 16 as well as
 64 and a 64-bit shift is a called routine there. Indexing bytes is the same one load, one shift, one
-and on every width, and needs no per-width spelling of the constants.
+and on every width, and needs no per-width form of the constants.
 
 A class is named by an index and answered by the .c that holds the masks. The masks used to be ten
 static const objects in the header, which is a hundred and sixty bytes of them in every translation
 unit that wanted to ask one question, and their initializer macros stayed in the header after the
 storage moved out - ten names in the global preprocessor namespace of every consumer, for the
-benefit of one file. Both now live in the .c, which is the only thing that reads them.
+benefit of one file. Both now live in the .c, the only thing that reads them.
 
 WHAT IS GENERATED AND WHAT IS NOT
 
@@ -23,8 +23,8 @@ and 0x1F wrongly in PUNCT. The enum is generated with them. A class can never be
 differently from the row it indexes.
 
 Everything else in the two files is prose and structure that describes THIS module, and it is
-written out here in full rather than left to a hand pass over the output. A generated file that is
-then documented by hand loses the documentation the next time the generator runs, which is what
+written out here in full and not left to a hand pass over the output. A generated file that is
+then documented by hand loses the documentation the next time the generator runs, as
 happened to all three of this tree's generators.
 
 FORMATTING, AND WHY THE TWO FILES ARE TREATED DIFFERENTLY
@@ -33,10 +33,10 @@ ascii_persona_bitorum.h is listed in .clang-format-ignore: the formatter and thi
 about the mask table, and the generator wins. So the header is emitted byte for byte as it must land,
 including the column the enum comments sit in.
 
-ascii_persona_bitorum.c is NOT ignored, so clang-format owns its layout and the generator emits a
+ascii_persona_bitorum.c is NOT ignored, and so clang-format owns its layout and the generator emits a
 plain table and runs the formatter over it. Without that the output differs from what is on disk
 until something else has run, and `harness.py generated` reads that as a dirty tree. A missing
-clang-format is a refusal rather than a warning.
+clang-format is a refusal and not a warning.
 """
 
 import pathlib
@@ -44,7 +44,7 @@ import shutil
 import subprocess
 import sys
 
-# HERE is mmgr/tools/dev_env, LIB is mmgr. Same convention as readclean.py, so the generator runs
+# HERE is mmgr/tools/dev_env, LIB is mmgr. Same convention as readclean.py, and so the generator runs
 # from anywhere.
 HERE = pathlib.Path(__file__).resolve().parent
 LIB = HERE.parent.parent
@@ -92,11 +92,11 @@ def ctrl(c):
     return c < 0x20 or c == 0x7F
 
 
-# In enum order. These are the values of MmgrAsciiClass, so this list is API: reordering it
+# In enum order. These are the values of MmgrAsciiClass, and so this list is API: reordering it
 # renumbers the classes under every caller that already compiled against them.
 #
 # The third column is the enumerator's own Doxygen line in the header. It states the code points the
-# class covers, in the spelling a reader checks the mask against.
+# class covers, in the form a reader checks the mask against.
 CLASSES = [
     ("NUM", num, "'0' to '9'."),
     ("ALPHA", alpha, "'A' to 'Z' and 'a' to 'z'."),
@@ -124,10 +124,10 @@ def bytes_of(pred):
 
 # The column the enumerator comments start in, measured from the end of the four space indent.
 #
-# The header is listed in .clang-format-ignore, so the formatter never sees it and this alignment is
+# The header is listed in .clang-format-ignore, and so the formatter never sees it and this alignment is
 # the generator's to hold. The width is two wider than the longest entry plus the one space
-# SpacesBeforeTrailingComments asks for, which is the column the header has carried since before the
-# masks moved out of it. It is reproduced rather than normalised: closing the gap would rewrite
+# SpacesBeforeTrailingComments asks for, the column the header has carried since before the
+# masks moved out of it. It is reproduced and not normalized: closing the gap would rewrite
 # eleven lines of a generated file to no effect anybody reads.
 ENUM_COMMENT_WIDTH = 22
 
@@ -135,7 +135,7 @@ ENUM_COMMENT_WIDTH = 22
 def enum_block():
     """The enumerator lines, with every Doxygen comment in one column.
 
-    Refuses rather than overflowing the column, because a single long enumerator would push its own
+    Refuses instead of overflowing the column, because a single long enumerator would push its own
     comment out and leave the other ten where they are, which reads as ten misaligned lines instead
     of one long one.
     """
@@ -173,11 +173,11 @@ HDR = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.c
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note Class membership as a bitmap lookup rather than a chain of range compares. One shift, one
+ * @note Class membership as a bitmap lookup and not a chain of range compares. One shift, one
  *       mask and one test answer any class, and the cost does not grow with how many ranges the
  *       class covers.
  * @note Covers code points 0 to 127 only. A byte of 0x80 or above is in no class here, which is
- *       what keeps the table sixteen bytes rather than thirty-two.
+ *       what keeps the table sixteen bytes and not thirty-two.
  */
 #ifndef MMGR_ASCII_PERSONA_BITORUM_H
 #define MMGR_ASCII_PERSONA_BITORUM_H
@@ -189,7 +189,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Sixteen bytes holding one bit for each of the code points 0 to 127.
  *
- * @note A code point is located by shift and mask rather than by search. Code point n is bit
+ * @note A code point is located by shift and mask and not by search. Code point n is bit
  *       (n & 7) of bits[n >> 3]. Any class answers in the same three operations.
  */
 typedef struct
@@ -202,7 +202,7 @@ typedef struct
  *
  * @note mmgr_ascii_in reads bits[byte >> 3] for every byte below 0x80. All sixteen have to be
  *       there.
- * @note Sixteen reach code point 127 and no further, which is what leaves a byte of 0x80 or above in
+ * @note Sixteen reach code point 127 and no further, as leaves a byte of 0x80 or above in
  *       no class at all.
  */
 EMBED_STATIC_ASSERT(sizeof(MmgrAsciiMask) == 16u, "an ASCII class mask is exactly 128 bits");
@@ -210,7 +210,7 @@ EMBED_STATIC_ASSERT(sizeof(MmgrAsciiMask) == 16u, "an ASCII class mask is exactl
 /**
  * @brief Character class selector, numbered from 0.
  *
- * @note MMGR_ASCII_CLASSES is the enumerator count, not a class. Passing it is out of range.
+ * @note MMGR_ASCII_CLASSES is the enumerator count and not a class. Passing it is out of range.
  */
 typedef enum
 {
@@ -273,7 +273,7 @@ SRC = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.c
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note The whole module is one table lookup. The bitmaps are emitted as initialized data, so
+ * @note The whole module is one table lookup. The bitmaps are emitted as initialized data, and so
  *       nothing runs before main and a membership test costs a shift, a mask and a compare whatever
  *       the class covers.
  * @note Reaches nothing outside config.
@@ -286,9 +286,9 @@ SRC = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.c
  * @note Indexed by MmgrAsciiClass. Code point n is bit (n & 7) of byte (n >> 3).
  * @note Worked through, MMGR_ASCII_NUM holds 0xFF at byte 6 and 0x03 at byte 7. Byte 6 carries code
  *       points 48 through 55, which is '0' to '7', and the low two bits of byte 7 carry 56 and 57,
- *       which is '8' and '9'. Every row below reads the same way, so none of them has to be taken
+ *       which is '8' and '9'. Every row below reads the same way, and so none of them has to be taken
  *       on trust.
- * @note Sixteen bytes reach code point 127 and no further, which is what leaves a byte at 0x80 or
+ * @note Sixteen bytes reach code point 127 and no further, as leaves a byte at 0x80 or
  *       above with no row it could be found in.
  */
 static const MmgrAsciiMask s_class[MMGR_ASCII_CLASSES] = {
@@ -332,8 +332,8 @@ EMBED_INLINE embed_bool ascii_in(const AsciiCtx *args)
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_ascii_ and ascii_ prefixes, which the two share.
- * @param[in] ...         Initializers for the AsciiCtx literal, written in terms of args.
- * @note Four of EMBED_ENTRY's six arguments are the same at every entry in this module, so they
+ * @param[in] ...         Initializers for the AsciiCtx literal, written through args.
+ * @note Four of EMBED_ENTRY's six arguments are the same at every entry in this module, and so they
  *       are bound once here and each entry below states only what differs.
  */
 #define ASCII_ENTRY(ReturnType_, name_, ...)                                                                           \\

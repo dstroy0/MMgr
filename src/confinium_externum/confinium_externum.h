@@ -27,7 +27,7 @@ typedef enum MMGR_ENUM_PACKED
 /**
  * @brief A pair of buffers, one being filled while the other is drained.
  *
- * @note fill_idx is the only member; the buffers it indexes are held elsewhere.
+ * @note fill_idx is the only member; the buffers it indexes are stored elsewhere.
  */
 typedef struct
 {

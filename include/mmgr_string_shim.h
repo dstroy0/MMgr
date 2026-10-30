@@ -161,8 +161,8 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces memset with mmgr_shim_set.
  *
- * @note value reaches mmgr_shim_set as embed_iword and is narrowed there, which is the signature the
- *       real memset has and the reason the shim takes a word rather than a byte.
+ * @note value reaches mmgr_shim_set as embed_iword and is narrowed there, the signature the
+ *       real memset has and the reason the shim takes a word and not a byte.
  */
 #define memset(dest, value, bytes) mmgr_shim_set((dest), (value), (bytes))
 
@@ -176,8 +176,8 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces memchr with mmgr_shim_chr.
  *
- * @note The only one of the five mem shims that is bounded by its own argument rather than by a
- *       terminator, so it needs no MMGR_STR_MAX and cannot stop short of what it was asked for.
+ * @note The only one of the five mem shims that is bounded by its own argument and not by a
+ *       terminator, and so it needs no MMGR_STR_MAX and cannot stop short of what it was asked for.
  */
 #define memchr(region, value, bytes) mmgr_shim_chr((region), (value), (bytes))
 
@@ -185,7 +185,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @brief Replaces strlen with a scan bounded at MMGR_STR_MAX.
  *
  * @return Bytes before the terminator, at most MMGR_STR_MAX.
- * @warning Returns MMGR_STR_MAX when no terminator appears within it, rather than scanning further.
+ * @warning Returns MMGR_STR_MAX when no terminator appears within it, instead of scanning further.
  * @warning text must be readable until its terminator, or for MMGR_STR_MAX bytes when it has none,
  *          with the tail word read whole as mmgr_cellul_len describes.
  */
@@ -230,7 +230,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  *
  * @return 0 when left and right hold the same string, 1 when they differ.
  * @note Both == 0 and ! therefore test equality, as they do with the real strcmp.
- * @warning Never negative and never above 1, so it cannot be used to order strings.
+ * @warning Never negative and never above 1: it cannot be used to order strings.
  * @warning Both operands must be terminated within MMGR_STR_MAX. Without a terminator the compare
  *          reads that many bytes from them.
  */
@@ -241,7 +241,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @brief Replaces strcasecmp with a case-folded equality test bounded at MMGR_STR_MAX.
  *
  * @return 0 when left and right hold the same string ignoring case, 1 when they differ.
- * @warning Never negative and never above 1, so it cannot be used to order strings.
+ * @warning Never negative and never above 1: it cannot be used to order strings.
  * @warning Both operands must be terminated within MMGR_STR_MAX. Without a terminator the compare
  *          reads that many bytes from them.
  */
@@ -252,7 +252,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @brief Replaces strncmp with an equality test over at most limit bytes.
  *
  * @return 0 when left and right agree through limit bytes, 1 when they differ before it.
- * @warning Never negative and never above 1, so it cannot be used to order strings.
+ * @warning Never negative and never above 1: it cannot be used to order strings.
  * @warning A terminator does not end the comparison. All limit bytes must be readable in both
  *          operands, with the tail word read whole as mmgr_cellul_diff describes.
  * @warning limit appears twice in the expansion. An argument with a side effect is evaluated twice.
@@ -265,7 +265,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @brief Replaces strncasecmp with a case-folded equality test over at most limit bytes.
  *
  * @return 0 when left and right agree through limit bytes ignoring case, 1 when they differ before it.
- * @warning Never negative and never above 1, so it cannot be used to order strings.
+ * @warning Never negative and never above 1: it cannot be used to order strings.
  * @warning A terminator does not end the comparison. All limit bytes must be readable in both
  *          operands, with the tail word read whole as mmgr_cellul_diff describes.
  * @warning limit appears twice in the expansion. An argument with a side effect is evaluated twice.
@@ -277,7 +277,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces strlcpy with a bounded copy that always terminates unless limit is 0.
  *
- * @return Bytes copied, not counting the terminator.
+ * @return Bytes copied and not counting the terminator.
  * @warning Not the source length the real strlcpy returns. A caller cannot detect truncation by
  *          comparing the result against limit.
  * @warning dest must be writable for limit bytes and source readable for limit minus one.

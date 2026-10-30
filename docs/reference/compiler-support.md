@@ -9,7 +9,7 @@ read.
 compiler. No other file in the library tests for GNU, Clang or a version. That is a rule, not a
 tendency, and it has two consequences worth stating:
 
-- Porting to a new toolchain means reading one header, not grepping twenty modules.
+- Porting to a new toolchain means reading one header and not grepping twenty modules.
 - A module cannot quietly acquire a compiler dependency, because there is nowhere in it to put one.
 
 That header belongs to `embedded_types`, a separate library MMgr consumes. The macros below carry its
@@ -20,7 +20,7 @@ Two further rules govern what is allowed in that file.
 
 **A directive is a request the compiler may refuse.** Everything there has a fallback that still
 compiles. Where the absence of the directive would silently break the layout, the fallback is
-policed by a static assert at the point of use rather than trusted.
+policed by a static assert at the point of use and not trusted.
 
 **A directive is not an operation.** Nothing in that file computes anything. The library asks for no
 `__builtin_` at all. See @ref concept_swar for the measurements behind that.
@@ -84,7 +84,7 @@ It is variadic up to 24 members via `EMBED_NARG` and `EMBED_TABLE_SLOTS_1`…`EM
 That 24 is also the ceiling on a dispatch table: `verbum_scrutor` splits into three tables partly
 because of it.
 
-Every table is pure function pointers, so `sizeof(Table_)` against
+Every table is pure function pointers, and so `sizeof(Table_)` against
 `EMBED_NARG * EMBED_FUNCTION_POINTER_BYTES` is the whole assertion. A table carrying trailing state
 would need its own variant testing `offsetof` instead.
 
@@ -107,7 +107,7 @@ what lets `memoriam_praetereo` build and its tests link on a host with no DMA co
 ## Adding a toolchain
 
 1. Read `embed_compiler_directives.h` top to bottom. It is the whole surface.
-2. Add the branch for your compiler to `EMBED_HAS_ATTRIBUTE` and to any macro whose spelling differs.
+2. Add the branch for your compiler to `EMBED_HAS_ATTRIBUTE` and to any macro whose form differs.
 3. Build all five environments and run the suite. The static asserts in `embed_types.h` and the enum
    probe are the ones that will catch a wrong answer.
 4. If the enum probe fails, find the toolchain's flag for packed enums before working around it.

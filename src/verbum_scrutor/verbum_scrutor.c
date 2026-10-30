@@ -12,7 +12,7 @@
  *
  * @note A lane mask carries one set bit per matching lane, in that lane's high bit, and zero elsewhere.
  * @note scrut_spread widens such a mask to full 0xFF lanes when whole bytes are wanted instead.
- * @note The lane index calls count set high bits, so they report positions rather than masks.
+ * @note The lane index calls count set high bits, and so they report positions and not masks.
  */
 #include "verbum_scrutor/verbum_scrutor.h"
 
@@ -63,9 +63,9 @@ typedef struct
  * @brief Returns the lanes that sit below the lowest set lane of args->mask.
  *
  * @param[in] args The lane mask to examine [BORROWS].
- * @return         A lane mask holding those lanes and nothing else.
+ * @return         A lane mask holding those lanes, alone.
  * @note Subtracting one sets every bit below the lowest set one, and ~args->mask drops that lowest one again.
- * @note An empty args->mask gives every lane, which is what makes scrut_lane_lo report MMGR_SWAR_BYTES.
+ * @note An empty args->mask gives every lane, and that leaves scrut_lane_lo report MMGR_SWAR_BYTES.
  */
 EMBED_INLINE embed_word scrut_below_lo(const ScrutMaskCtx *args)
 {
@@ -77,16 +77,16 @@ EMBED_INLINE embed_word scrut_below_lo(const ScrutMaskCtx *args)
  *
  * @param[in] args The lane mask to smear [BORROWS].
  * @return         A mask set from the highest set lane down to lane zero.
- * @note Doubles the shift each pass, so it covers the whole word in three passes at 64 bits.
- * @note Smears downward only, so the highest set lane is what the result reaches up to.
+ * @note Doubles the shift each pass, and so it covers the whole word in three passes at 64 bits.
+ * @note Smears downward only, and so the highest set lane is what the result reaches up to.
  */
 EMBED_INLINE embed_word scrut_smear(const ScrutMaskCtx *args)
 {
     embed_word smeared = args->mask;
 
-    // shift doubles from 8 rather than counting up, and the walk ends when it reaches
+    // shift doubles from 8 instead of counting up, and the walk ends when it reaches
     // MMGR_SWAR_LANE_BITS: three passes on a 64 bit word, two on a 32 bit one. The step stays in the
-    // header, so the body does one or and changes nothing else.
+    // header, and so the body does one or and changes nothing else.
     for (uint32_t shift = 8u; shift < MMGR_SWAR_LANE_BITS; shift <<= 1)
     {
         smeared |= (smeared >> shift);
@@ -145,8 +145,8 @@ EMBED_INLINE embed_word scrut_le(const ScrutLaneCtx *args)
  *
  * @param[in] args The word and the byte to subtract [BORROWS].
  * @return         The seven low bits of each lane's difference, with every lane's high bit clear.
- * @note Runs the same subtraction as scrut_ge but keeps MMGR_SWAR_LOW7, so this yields values rather than a mask.
- * @note A lane below args->byte wraps, so its seven bits are the difference taken modulo 128.
+ * @note Runs the same subtraction as scrut_ge but keeps MMGR_SWAR_LOW7, and so this yields values and not a mask.
+ * @note A lane below args->byte wraps, and so its seven bits are the difference taken modulo 128.
  */
 EMBED_INLINE embed_word scrut_sub7(const ScrutLaneCtx *args)
 {
@@ -172,13 +172,13 @@ EMBED_INLINE embed_word scrut_has_zero(const ScrutLaneCtx *args)
  *
  * @param[in] args The word to test [BORROWS].
  * @return         A lane mask holding the letter lanes.
- * @note Setting bit five in every lane folds the two cases together, so one range test covers both.
+ * @note Setting bit five in every lane folds the two cases together, and so one range test covers both.
  * @note The range tests take the lanes with their high bits cleared. scrut_ge and scrut_le are exact
  *       while both the lanes and the threshold are under 0x80, and a lane at or above it borrows out
  *       of its neighbor and answers for that lane instead. Both thresholds here are already under
  *       0x80, 'a' at 0x61 and 'z' at 0x7A, and clearing the lanes puts the other operand there too.
  * @note MMGR_SWAR_LOW7 is the complement of MMGR_VERBUM_SCRUTOR_HIGH and is built from
- *       MMGR_SWAR_ONES, so it stays an embed_word. Writing the complement out instead promotes to int
+ *       MMGR_SWAR_ONES, and so it stays an embed_word. Writing the complement out instead promotes to int
  *       and is narrowed on the way back, which is a diagnostic at a 16-bit word for no gain: the two
  *       measured the same on an ESP32-S3 and an ESP32-C6, over 8192 words with no disagreement.
  * @note The range test does not need that bit. The final and with the complement of the unmasked
@@ -237,7 +237,7 @@ EMBED_INLINE embed_word scrut_eq(const ScrutLaneCtx *args)
  *
  * @param[in] args The word, the byte to match, and the bits that count [BORROWS].
  * @return         A lane mask holding the matching lanes.
- * @note args->byte is itself reduced by args->fam first, so bits outside the family take no part on either side.
+ * @note args->byte is itself reduced by args->fam first, and so bits outside the family take no part on either side.
  * @note A args->fam of 0xFF makes this a plain equality test, and an args->fam of 0 marks every lane.
  */
 EMBED_INLINE embed_word scrut_fam_eq(const ScrutLaneCtx *args)
@@ -253,7 +253,7 @@ EMBED_INLINE embed_word scrut_fam_eq(const ScrutLaneCtx *args)
  *
  * @param[in] args The word to test [BORROWS].
  * @return         A lane mask holding those lanes.
- * @warning That covers the whole 0x40 to 0x5F block, so the at sign and the six symbols among the capitals
+ * @warning That covers the whole 0x40 to 0x5F block, and so the at sign and the six symbols among the capitals
  *          are marked alongside A through Z.
  * @note Use scrut_alpha when only letters should count.
  */
@@ -267,7 +267,7 @@ EMBED_INLINE embed_word scrut_any_upper(const ScrutLaneCtx *args)
  *
  * @param[in] args The word to test [BORROWS].
  * @return         A lane mask holding those lanes.
- * @warning That covers the whole 0x30 to 0x3F block, so the seven symbols after the nine are marked as well.
+ * @warning That covers the whole 0x30 to 0x3F block, and so the seven symbols after the nine are marked as well.
  * @note A caller that needs only 0 through 9 can and this with scrut_le at the character nine.
  */
 EMBED_INLINE embed_word scrut_any_digit(const ScrutLaneCtx *args)
@@ -282,9 +282,9 @@ EMBED_INLINE embed_word scrut_any_digit(const ScrutLaneCtx *args)
  * @return         How many lanes are set, 0 through MMGR_SWAR_BYTES.
  * @note Shifting down seven puts each lane's bit at its own low position, and multiplying by MMGR_SWAR_ONES
  *       sums every one of them into the top lane, which the final shift then reads out.
- * @note The explicit embed_word cast holds the product at the word width, so the last shift reads the top lane
- *       out of a known size. The count is at most MMGR_SWAR_BYTES, so the size_t return loses nothing.
- * @note Reads args->mask alone, so the word and byte members take no part.
+ * @note The explicit embed_word cast holds the product at the word width, and so the last shift reads the top lane
+ *       out of a known size. The count is at most MMGR_SWAR_BYTES, and so the size_t return loses nothing.
+ * @note Reads args->mask alone, and so the word and byte members take no part.
  */
 EMBED_INLINE size_t scrut_lane_count(const ScrutLaneCtx *args)
 {
@@ -306,7 +306,7 @@ EMBED_INLINE size_t scrut_lane_count(const ScrutLaneCtx *args)
 EMBED_INLINE size_t scrut_lane_lo(const ScrutLaneCtx *args)
 {
 #if EMBED_HAS_BUILTIN(__builtin_ctzll)
-    // A lane's flag sits in its high bit, so the trailing zero count of the mask is eight times the
+    // A lane's flag sits in its high bit, and so the trailing zero count of the mask is eight times the
     // index plus seven and the index is that shifted down three. The empty mask is answered first,
     // because the count below reports every lane for it and the builtin leaves it undefined.
     // Measured on an ESP32-S3 over sixty four masks: 24.2 cycles a mask to 17.3, which is 1.40x
@@ -350,7 +350,7 @@ EMBED_INLINE size_t scrut_lane_hi(const ScrutLaneCtx *args)
  * @param[in] args The lane mask to widen [BORROWS].
  * @return         A word holding 0xFF in each set lane and 0x00 in the rest.
  * @note A set lane holds 0x80, and adding 0x7F to it fills the lane. A clear lane contributes nothing.
- * @note The explicit embed_word cast pins the sum back to the word width, so neither addition can leave a
+ * @note The explicit embed_word cast pins the sum back to the word width, and so neither addition can leave a
  *       promoted wider type behind on a target whose int is wider than embed_word.
  * @note Use this when whole bytes are wanted, such as for selecting between two words lane by lane.
  */
@@ -363,11 +363,11 @@ EMBED_INLINE embed_word scrut_spread(const ScrutMaskCtx *args)
  * @brief Clears the lowest set lane of args->mask.
  *
  * @param[in] args The lane mask to reduce [BORROWS].
- * @return         The mask with that lane cleared, or 0 when it held only one.
- * @note Subtracting one turns the lowest set bit into zeros below it, so the and clears just that bit.
+ * @return         The mask with that lane cleared, or 0 when it contained only one.
+ * @note Subtracting one turns the lowest set bit into zeros below it, and so the and clears just that bit.
  * @note The explicit embed_word cast pins the result to the word width, since the subtraction against 1u can
  *       promote on a target whose int is wider than embed_word.
- * @note An empty mask stays empty, so stepping a mask down repeatedly ends rather than wrapping.
+ * @note An empty mask stays empty, and so stepping a mask down repeatedly ends and not wrapping.
  * @note The mask table binds this to drop_first on a little endian target and to drop_last on a big endian one.
  */
 EMBED_INLINE embed_word scrut_drop_lo(const ScrutMaskCtx *args)
@@ -379,8 +379,8 @@ EMBED_INLINE embed_word scrut_drop_lo(const ScrutMaskCtx *args)
  * @brief Clears the highest set lane of args->mask.
  *
  * @param[in] args The lane mask to reduce [BORROWS].
- * @return         The mask with that lane cleared, or 0 when it held only one.
- * @note The smear runs from the highest set lane down, so exclusive or-ing it with itself shifted one lane
+ * @return         The mask with that lane cleared, or 0 when it contained only one.
+ * @note The smear runs from the highest set lane down, and so exclusive or-ing it with itself shifted one lane
  *       down leaves just that top lane, which the and then removes.
  * @note The mask table binds this to drop_last on a little endian target and to drop_first on a big endian one.
  */
@@ -396,7 +396,7 @@ EMBED_INLINE embed_word scrut_drop_hi(const ScrutMaskCtx *args)
  *
  * @param[in] args The byte count to cover [BORROWS].
  * @return         A word of ones over those bytes and zeros over the rest.
- * @note Shifts one way on a little endian target and the other on a big endian one, so the bytes covered are
+ * @note Shifts one way on a little endian target and the other on a big endian one, and so the bytes covered are
  *       always the ones that come first in memory.
  * @note The inner cast types the zero as an embed_word before the complement, and the outer one pins the
  *       complement back to the word width, leaving all with set bits over exactly one word and none above it.
@@ -427,8 +427,8 @@ EMBED_INLINE embed_word scrut_bytes_below(const ScrutMaskCtx *args)
  *
  * @param[in] args The lane count to cover [BORROWS].
  * @return         A lane mask holding those lanes.
- * @note scrut_bytes_below reduced to lane bits, so this suits and-ing against another lane mask.
- * @note This is what keeps a scan from reading past its count when the last word is only partly wanted.
+ * @note scrut_bytes_below reduced to lane bits, and so this suits and-ing against another lane mask.
+ * @note This keeps a scan from reading past its count when the last word is only partly wanted.
  */
 EMBED_INLINE embed_word scrut_lanes_below(const ScrutMaskCtx *args)
 {
@@ -441,7 +441,7 @@ EMBED_INLINE embed_word scrut_lanes_below(const ScrutMaskCtx *args)
  * @param[in] args The total byte count and the whole words already done [BORROWS].
  * @return         A lane mask over the bytes still wanted, or 0 once the count is reached.
  * @note Takes the words already done off the total, then hands what is left to scrut_lanes_below.
- * @note A word that is wanted in full gets a full mask, so this can be applied on every pass of a loop.
+ * @note A word that is wanted in full gets a full mask, and so this can be applied on every pass of a loop.
  * @note The only backend that reads args->wi.
  */
 EMBED_INLINE embed_word scrut_tail_mask(const ScrutMaskCtx *args)
@@ -460,8 +460,8 @@ EMBED_INLINE embed_word scrut_tail_mask(const ScrutMaskCtx *args)
  *
  * @param[in] args The lane mask to examine [BORROWS].
  * @return         A lane mask holding those lanes.
- * @note On a little endian target the earlier bytes are the lower lanes, so scrut_below_lo gives them.
- * @note On a big endian target they are the higher lanes, so the complement of the smear gives them instead.
+ * @note On a little endian target the earlier bytes are the lower lanes, and so scrut_below_lo gives them.
+ * @note On a big endian target they are the higher lanes, and so the complement of the smear gives them instead.
  * @note An empty args->mask reports every lane on either branch, since nothing comes first.
  */
 EMBED_INLINE embed_word scrut_lanes_before(const ScrutMaskCtx *args)
@@ -480,8 +480,8 @@ EMBED_INLINE embed_word scrut_lanes_before(const ScrutMaskCtx *args)
  * @return         A lane mask holding the lanes each run starts at, or 0 when args->bytes exceeds
  *                 one word.
  * @note Ands the mask with itself shifted along, doubling the reach each pass. A run of eight takes
- *       three passes rather than seven.
- * @note The step is held to what is still wanted. A run length that is not a power of two lands exactly.
+ *       three passes and not seven.
+ * @note The step is clamped to what is still wanted. A run length that is not a power of two lands exactly.
  * @note Shifts toward the earlier bytes on either byte order. A surviving lane is where a run begins.
  * @note A args->bytes of 0 or 1 returns args->mask as it stands, since the loop runs no passes.
  */
@@ -496,9 +496,9 @@ EMBED_INLINE embed_word scrut_run(const ScrutMaskCtx *args)
     }
     while (have < args->bytes)
     {
-        // step is the smaller of the run length already covered and the length still wanted, so the last
+        // step is the smaller of the run length already covered and the length still wanted, and so the last
         // pass lands exactly on args->bytes instead of overshooting it. have advances on its own line
-        // below, so nothing in the test changes it.
+        // below, and so nothing in the test changes it.
         const size_t step = (have < args->bytes - have) ? have : args->bytes - have;
 #if MMGR_HW_BIG_ENDIAN
         starts &= (starts << (step * 8u));
@@ -565,7 +565,7 @@ EMBED_INLINE embed_word scrut_load_al(const ScrutWordCtx *args)
  * @return         The word with the case bit set on its letter lanes and every other lane untouched.
  * @note scrut_alpha shifted down two gives the case bit of each letter lane, and or-ing it in forces lower case.
  * @note Only letter lanes are touched. A digit or a symbol keeps bit five exactly as it was.
- * @note scrut_xor uses the same shifted mask, but clears the bit rather than setting it.
+ * @note scrut_xor uses the same shifted mask, but clears the bit instead of setting it.
  */
 EMBED_INLINE embed_word scrut_fold_lower(const ScrutWordCtx *args)
 {
@@ -577,11 +577,11 @@ EMBED_INLINE embed_word scrut_fold_lower(const ScrutWordCtx *args)
  *
  * @param[in] args The byte count to convert [BORROWS].
  * @return         The count rounded up. A partial last word still counts as one.
- * @note Written as a divide plus a test of the low bits rather than adding before dividing. A very large
+ * @note Written as a divide plus a test of the low bits instead of adding before dividing. A very large
  *       byte count cannot wrap on the way in.
  * @note The and against MMGR_SWAR_BYTES - 1u stands in for the remainder of that divide, which holds only
  *       because a word is a power of two bytes wide. Its arms are typed 1u and 0u to match what they add to.
- * @note A args->bytes of 0 gives 0. A caller loops no times rather than reading one word.
+ * @note A args->bytes of 0 gives 0. A caller loops no times instead of reading one word.
  */
 EMBED_INLINE size_t scrut_words(const ScrutWordCtx *args)
 {
@@ -597,7 +597,7 @@ EMBED_INLINE size_t scrut_words(const ScrutWordCtx *args)
  * @param[in] name_       Name after the mmgr_scrut_ and scrut_ prefixes, which the two share.
  * @param[in] ...         Initializers for the CtxType_ literal, forwarded from the entry's CfgType_
  *                        as args.
- * @warning The arguments are pasted into the expansion rather than evaluated as call arguments, so none of
+ * @warning The arguments are pasted into the expansion and not evaluated as call arguments, and so none of
  *          them may carry a side effect.
  * @note Both types are parameters. The module carries three of each, one per view. A lane view covers
  *       the bytes of a word, a mask view covers the bits a lane test produced, and a word view covers
@@ -648,7 +648,7 @@ SCRUT_ENTRY(embed_word, ScrutMaskCtx, ScrutMaskCfg, run_edge, .bytes = args->byt
  * @brief The word view, one line per entry point.
  *
  * @note Each is documented at its declaration in verbum_scrutor.h.
- * @note load and load_al differ in the alignment each promises, not in what they forward.
+ * @note load and load_al differ in the alignment each promises and not in what they forward.
  */
 SCRUT_ENTRY(embed_word, ScrutWordCtx, ScrutWordCfg, load, .at = args->at)
 SCRUT_ENTRY(embed_word, ScrutWordCtx, ScrutWordCfg, load_al, .at = args->at)

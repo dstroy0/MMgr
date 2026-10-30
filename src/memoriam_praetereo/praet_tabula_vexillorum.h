@@ -49,7 +49,7 @@ EMBED_BEGIN_DECLS
  * @brief Ok: the last transfer finished and the channel is still attached.
  *
  * @note The transfer's result, not the channel's health. A channel that failed carries PRAET_ERROR
- *       alongside, which is why the two are separate bits.
+ *       alongside, and so the two are separate bits.
  */
 #define PRAET_OK 3u
 
@@ -61,7 +61,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief The two bits the quaternary core occupies.
  *
- * @note The core sits at the bottom with every status above it, so reading the state is a mask and
+ * @note The core sits at the bottom with every status above it, and so reading the state is a mask and
  *       reading a status is a test. Nothing shifts.
  */
 #define PRAET_CORE_MASK ((uint32_t)((1u << PRAET_CORE_BITS) - 1u))
@@ -115,7 +115,7 @@ EMBED_BEGIN_DECLS
 #define PRAET_STATUS_COUNT 8u
 
 /**
- * @brief First bit the statuses occupy, which is the bit above the core.
+ * @brief First bit the statuses occupy, the bit above the core.
  */
 #define PRAET_STATUS_SHIFT PRAET_CORE_BITS
 
@@ -124,7 +124,7 @@ EMBED_BEGIN_DECLS
  *
  * @param[in] id_ Status token id, below PRAET_STATUS_COUNT.
  * @return        That id's bit, placed above the core.
- * @note Every status below is defined through this, so no status carries a hand-written bit that
+ * @note Every status below is defined through this, and so no status carries a hand-written bit that
  *       could disagree with the id beside it.
  */
 #define PRAET_STATUS_BIT(id_) ((uint32_t)1u << (PRAET_STATUS_SHIFT + (id_)))
@@ -138,7 +138,7 @@ EMBED_BEGIN_DECLS
  * @brief Set while the channel holds an interrupt vector.
  *
  * @note Claimed at attach and released at detach. There is no reason to hold a vector for a memory
- *       mover that is not moving anything, and the claim is what gives the context one owner.
+ *       mover that is not moving anything, and the claim gives the context one owner.
  */
 #define PRAET_CLAIMED PRAET_STATUS_BIT(PRAET_ID_CLAIMED)
 
@@ -176,7 +176,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Set where a stalled transfer was resolved by treating its bytes as unsafe.
  *
- * @note The bytes are the caller's and this context has no pointer to them, so nothing here scrubs
+ * @note The bytes are the caller's and this context has no pointer to them, and so nothing here scrubs
  *       anything. The flag records the decision; the caller zeroes its own storage.
  */
 #define PRAET_SCRUBBED PRAET_STATUS_BIT(PRAET_ID_SCRUBBED)
@@ -208,9 +208,9 @@ EMBED_BEGIN_DECLS
  * @brief First bit of the region descriptor.
  *
  * @note A byte on a byte boundary. The descriptor is a number derived from the address space that
- *       the region is inferred from, so nothing here stores an address. Placing it at a byte edge is
+ *       the region is inferred from, and so nothing here stores an address. Placing it at a byte edge is
  *       what lets a build that wants to compress it to eight bits do so without moving a status.
- * @note The third byte, not the second. Statuses grow upward from the core and the region has to
+ * @note The third byte and not the second. Statuses grow upward from the core and the region has to
  *       start above all of them - at bit 8 it shared a bit with PRAET_SCRUBBED, which reads as a
  *       region whose low bit flips when a transfer is scrubbed.
  */
@@ -237,7 +237,7 @@ EMBED_BEGIN_DECLS
  * @param[in] region_ Region descriptor, narrowed to what the field holds.
  * @return            region_ in position, and never a bit outside PRAET_REGION_MASK.
  * @note The one way to write the field. Narrowing at the write site instead would put the field's
- *       width in two places, and the copy that stops matching is the one nothing checks.
+ *       width in two places, and the copy that stops matching is the single one nothing checks.
  */
 #define PRAET_REGION_FIELD(region_) (((uint32_t)(region_) & PRAET_REGION_MAX) << PRAET_REGION_SHIFT)
 
@@ -249,7 +249,7 @@ EMBED_BEGIN_DECLS
  *       written, and a caller cannot pass a byte that means nothing.
  * @note Two of them, because ParsMemoriaeInternae and ParsMemoriaeExternum are the two declarations a
  *       pool can be written with. A part with more address spaces than that adds ids here and the
- *       assertion below is what keeps them inside the field.
+ *       assertion below keeps them inside the field.
  * @note The values are ordinals. A build wanting a descriptor it can infer an address space from
  *       replaces the numbers and changes nothing else, because the field is a byte and everything
  *       reading it goes through PRAET_REGION_FIELD.
@@ -272,7 +272,7 @@ typedef enum
  * @brief Every bit the map accounts for.
  *
  * @note What a flag word is allowed to carry. A build whose writes stay inside this cannot produce a
- *       word with a bit nobody named, which is why nothing has to look at a word at run time to find
+ *       word with a bit nobody named, and so nothing has to look at a word at run time to find
  *       that out.
  */
 #define PRAET_MAP_MASK (PRAET_CORE_MASK | PRAET_STATUS_MASK | PRAET_REGION_MASK)

@@ -9,8 +9,8 @@ that crosses a comment boundary splices the sentence into the code. Removing the
 makes the rewrite mechanical.
 
 What is preserved:
-  - the leading copyright / SPDX block, which states a license rather than describing code
-  - string and character literals, including escapes, so "http://x" is not read as a comment
+  - the leading copyright / SPDX block, which states a license instead of describing code
+  - string and character literals, including escapes, and so "http://x" is not read as a comment
   - the line count of block comments. A compiler error still points at the right line
 
 Usage:

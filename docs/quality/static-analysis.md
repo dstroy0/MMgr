@@ -4,7 +4,7 @@ Four tools run on every push and pull request, each answering a different questi
 
 ## The warning set
 
-Before any analyzer, the compiler. `mmgr_flags` is one interface target carrying the whole set, so
+Before any analyzer, the compiler. `mmgr_flags` is one interface target carrying the whole set, and so
 the library, the tests and the benches are all held to the same standard:
 
 ```
@@ -18,11 +18,11 @@ is a compile-time knob: they catch the implicit narrowing that only becomes wron
 `EMBED_WORD_BITS=16`.
 
 `MMGR_WERROR` turns them into errors. It is off by default, because a working tree mid-edit should
-not be blocked by a warning you are about to fix, and on in CI, which is the wall.
+not be blocked by a warning you are about to fix, and on in CI, the wall.
 
 ## CodeQL
 
-Advanced setup rather than GitHub's default, because C cannot be analyzed from source alone,
+Advanced setup and not GitHub's default, because C cannot be analyzed from source alone,
 CodeQL has to observe a real compile to know how each translation unit was built. The workflow does a
 traced CMake build and CodeQL extracts the database from it.
 
@@ -35,7 +35,7 @@ It runs the `security-and-quality` suite over two languages:
 
 ## SonarQube
 
-Analysis plus coverage, in one job, and the order of its steps is load-bearing.
+Analysis plus coverage, in one job, and the order of its steps is essential.
 
 C needs the build wrapper for the same reason CodeQL needs a traced build: without it the C files are
 skipped and the dashboard shows a green project that analyzed nothing.
@@ -50,7 +50,7 @@ Coverage comes from gcov. The build is configured with `--coverage` so every tra
 5. scan
 
 A scanner invoked before `ctest` reports 0%. The test step is also a real gate: a failing test fails
-the job rather than quietly reporting the coverage of a broken build.
+the job and not quietly reporting the coverage of a broken build.
 
 `sonar.sources` and `sonar.tests` are split so the dashboard does not charge test code against the
 library's own duplication and complexity numbers.
@@ -68,8 +68,8 @@ Three, one per language, each owning its own files:
 All three wrap at **120 columns**. A Python tool and the C it rewrites line up in a side-by-side
 diff.
 
-clang-format is pinned to 20.1.7 rather than whatever the runner ships: `.clang-format` uses keys
-that only exist from version 20, and an older one failed on `unknown key` rather than on any actual
+clang-format is pinned to 20.1.7 and not whatever the runner ships: `.clang-format` uses keys
+that only exist from version 20, and an older one failed on `unknown key` and not on any actual
 formatting. Pinning also means CI and a developer's machine agree about what "formatted" means,
 which an unpinned formatter cannot promise across versions.
 
@@ -85,6 +85,6 @@ cspell over the prose. See @ref qa_docs_coverage.
 
 ## What none of this catches
 
-Static analysis does not know that a pointer outlived its mark. That is the one real hazard in this
+Static analysis does not know that a pointer outlived its mark. That is the single one real hazard in this
 library's model, it is invisible to the compiler and to every tool above, and the only defense is the
 discipline in @ref concept_ownership.

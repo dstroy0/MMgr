@@ -11,22 +11,22 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Counts, not cycles. How many positions survive an anchor over a corpus is a property of the
- *       data and the table, identical on every part, so this reports numbers that are true
+ * @note Counts and not cycles. How many positions survive an anchor over a corpus is a property of the
+ *       data and the table, identical on every part, and so this reports numbers that are true
  *       everywhere and times nothing. What a SWAR word costs is the other bench and needs a board.
  * @note The question. One anchor admits the positions where its byte occurs. Two anchors at a fixed
  *       stride admit the positions where both occur, and the useful claim is that those rates
  *       multiply. They multiply exactly when the two are independent, and English is not memoryless
  *       - q is followed by u, th and he are enormously overrepresented - so the claim is measured
- *       here rather than assumed.
+ *       here and not assumed.
  * @note The skip is the other half. A rare anchor does not only cut candidates, it means long runs
  *       with no candidate at all, and a search that jumps those runs never touches them. Expected
  *       skip is the corpus length over the occurrence count, and it is what decides whether a sieve
  *       can visit a space it could never enumerate.
  * @warning The cost table is a link time singleton. A build links exactly one of the five
  *          profiles and this binary can only report on that one. It does not even carry its own
- *          name, which is why every row below is stamped with a fingerprint of the 256 costs.
- *          Comparing profiles means five builds, which is the cost of the current design.
+ *          name, and so every row below is stamped with a fingerprint of the 256 costs.
+ *          Comparing profiles means five builds, the cost of the current design.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
@@ -47,14 +47,14 @@
 /**
  * @brief How many needles are drawn from each corpus at each length.
  *
- * @note Drawn from the corpus itself, so every needle is one that genuinely occurs. A needle made up
+ * @note Drawn from the corpus itself, and so every needle is one that genuinely occurs. A needle made up
  *       out of nothing has no occurrences and would report a skip of the whole corpus, which flatters
  *       every anchor equally and measures none of them.
  */
 #define NEEDLE_SAMPLES 64u
 
 /**
- * @brief English prose, which is the corpus the english profile was weighted against.
+ * @brief English prose, the corpus the english profile was weighted against.
  *
  * @note Ordinary text with ordinary structure: the letter frequencies are Zipf skewed and the
  *       digraphs are correlated, which is exactly the condition the independence question is about.
@@ -97,9 +97,9 @@ static const char s_english[] =
  *
  * @note english is the prose above, repeated to fill. structured is C punctuation and identifiers,
  *       which has a different and much narrower alphabet. uniform stands in for a normal sequence:
- *       every byte equally likely and no correlation between positions, which is the regime where a
+ *       every byte equally likely and no correlation between positions, the regime where a
  *       weird anchor does not exist and the multiplication is exact.
- * @warning uniform is a surrogate produced by a fixed generator, not the digits of any constant.
+ * @warning uniform is a surrogate produced by a fixed generator and not the digits of any constant.
  *          Nothing here claims to have hashed pi.
  */
 static uint8_t s_english_corpus[CORPUS_BYTES];
@@ -108,9 +108,9 @@ static uint8_t s_uniform_corpus[CORPUS_BYTES];
 static uint8_t s_periodic_corpus[CORPUS_BYTES];
 
 /**
- * @brief One byte repeated, which is the zero entropy end of the range.
+ * @brief One byte repeated, the zero entropy end of the range.
  *
- * @note The opposite limit from uniform. Every position holds every needle, so nothing an anchor does
+ * @note The opposite limit from uniform. Every position holds every needle, and so nothing an anchor does
  *       can remove a candidate and the cost columns have nothing to report. What it is here for is the
  *       invariant: the case with the most occurrences to lose is the case where losing one would show.
  */
@@ -120,7 +120,7 @@ static uint8_t s_flat_corpus[CORPUS_BYTES];
  * @brief C source, which is a narrow alphabet with heavy repetition of a few identifiers.
  *
  * @note The other end of the range from prose. Where English has a long tail of rare letters, this
- *       has almost none: a handful of punctuation marks and the same dozen keywords, so the anchor
+ *       has almost none: a handful of punctuation marks and the same dozen keywords, and so the anchor
  *       has much less to work with and the correlation between any two positions is far stronger.
  */
 static const char s_structured[] = "static void mmgr_walk_rows(const uint8_t *bytes, size_t length, uint32_t *counts)\n"
@@ -213,7 +213,7 @@ static size_t fill_from_text(uint8_t *into, const char *text, size_t length)
  * @param[in]  length Bytes to write.
  * @return            Bytes written.
  * @note The distinction that makes this a period and not a repetition. A corpus built by repeating
- *       one string is self similar and every needle finds itself, which is the artifact that already
+ *       one string is self similar and every needle finds itself, the artifact that already
  *       ruined one measurement here. This varies every field per record. A needle occurs once,
  *       and only the column positions recur.
  * @note Layout: four hex digits, a comma, six letters, a comma, three digits, a newline.
@@ -252,18 +252,18 @@ static size_t fill_periodic(uint8_t *into, size_t length)
  *
  * @param[out] into   Corpus to fill [BORROWS].
  * @param[in]  length Bytes to write.
- * @note SHA-256 in counter mode, starting from block zero every run, so the numbers are reproducible.
+ * @note SHA-256 in counter mode, starting from block zero every run, and so the numbers are reproducible.
  *       What it stands in for is a sequence with no rank ordering and no correlation between
- *       positions, which is what a normal constant's digits look like empirically.
+ *       positions, as a normal constant's digits look like empirically.
  * @note It was a 64 bit xorshift when the skip figures of 261.1, 262.7 and 261.1 were recorded. The
  *       same rows read 271.9, 273.6 and 281.3 under this generator. Any uniform number older than
  *       this change is on the old one and cannot be compared against a new row.
  */
 static void fill_uniform(uint8_t *into, size_t length)
 {
-    // SHA-256 in counter mode, not a small PRNG. The control corpus carries the whole weight of
-    // every independence claim here, so what generates it should be the thing whose uniformity has
-    // been checked against published vectors rather than a shift register nobody validated.
+    // SHA-256 in counter mode and not a small PRNG. The control corpus carries the whole weight of
+    // every independence claim here, and so what generates it should be the thing whose uniformity has
+    // been checked against published vectors and not a shift register nobody validated.
     // mmgr_sha256_self_test holds it to RFC 6234 and wycheproof_run.py to Wycheproof's HMAC vectors.
     uint8_t counter[8];
     uint8_t digest[MMGR_SHA256_BYTES];
@@ -292,7 +292,7 @@ static void fill_uniform(uint8_t *into, size_t length)
  * @brief Identifies the cost table this build linked, since it does not carry its own name.
  *
  * @return A checksum over all 256 costs.
- * @note Stamped on every row. Five builds produce five fingerprints, which is what lets rows from
+ * @note Stamped on every row. Five builds produce five fingerprints, as lets rows from
  *       separate binaries be told apart after the fact.
  */
 static uint32_t table_fingerprint(void)
@@ -335,7 +335,7 @@ static void histogram(const uint8_t *corpus, size_t length, uint32_t *counts)
  *       many false candidates survive, and that is cost.
  * @note ANCHOR_BY_TABLE asks the linked cost table, which ranks a byte by how rare it is.
  *       ANCHOR_BY_RANDOM assigns costs by a permutation with no relation to how often a byte occurs.
- *       ANCHOR_BY_MAXIMUM_ENTROPY gives every byte the same cost, which is the table carrying no
+ *       ANCHOR_BY_MAXIMUM_ENTROPY gives every byte the same cost, the table carrying no
  *       information at all and the floor this whole idea has to hold at.
  */
 typedef enum
@@ -354,7 +354,7 @@ static unsigned s_random_cost[256];
  * @brief Fills the random cost table with a permutation of 0 through 255.
  *
  * @note Drawn from SHA-256 in counter mode for the same reason the uniform corpus is. A permutation
- *       keeps the arm honest: every cost is still distinct, so the picker behaves exactly as it does
+ *       keeps the arm honest: every cost is still distinct, and so the picker behaves exactly as it does
  *       under the real table and the only thing removed is the table being right.
  */
 static void fill_random_costs(void)
@@ -407,8 +407,8 @@ static unsigned anchor_cost(uint8_t byte, AnchorPolicy policy)
         return s_random_cost[byte];
     }
     case ANCHOR_BY_MAXIMUM_ENTROPY: {
-        // One cost for every byte. Ties go leftmost, so the anchors come out at 0, 1, 2 and sit
-        // adjacent, which is the hardest case there is for two rates to multiply
+        // One cost for every byte. Ties go leftmost, and so the anchors come out at 0, 1, 2 and sit
+        // adjacent, the hardest case there is for two rates to multiply
         return 0u;
     }
     case ANCHOR_BY_TABLE:
@@ -449,9 +449,9 @@ static const char *policy_name(AnchorPolicy policy)
  * @param[in] skip   An offset to pass over, or length to pass over nothing.
  * @param[in] policy Which pricing rule decides what best means.
  * @return           The offset of the lowest cost byte, ties going to the leftmost.
- * @note Under ANCHOR_BY_TABLE lowest cost is rarest, which is the byte that admits the fewest
+ * @note Under ANCHOR_BY_TABLE lowest cost is rarest, the byte that admits the fewest
  *       positions and leaves the longest runs between them. Under the other two policies the word
- *       cheapest still applies and no longer means rare, which is the arm those policies exist for.
+ *       cheapest still applies and no longer means rare, the arm those policies exist for.
  */
 static size_t cheapest_offset(const uint8_t *needle, size_t length, size_t skip, AnchorPolicy policy)
 {
@@ -499,7 +499,7 @@ static uint32_t candidates(const uint8_t *corpus, size_t length, uint8_t first, 
         {
             continue;
         }
-        // The second anchor is one more compare on a word already in hand, which is what makes it
+        // The second anchor is one more compare on a word already in hand, and that leaves it
         // nearly free under SWAR and what the multiplication below is about
         if ((second_at != (size_t)-1) && (corpus[start + second_at] != second))
         {
@@ -514,7 +514,7 @@ static uint32_t candidates(const uint8_t *corpus, size_t length, uint8_t first, 
  * @brief The most anchors a cascade row will stack.
  *
  * @note Six is where this bench stops sweeping. The count is a parameter of the shape and not a limit
- *       of it, so the ceiling is a choice about run time and the rows say what each step buys.
+ *       of it, and so the ceiling is a choice about run time and the rows say what each step buys.
  */
 #define CASCADE_MAX 6u
 
@@ -585,7 +585,7 @@ static unsigned pick_anchors(const uint8_t *needle, size_t needle_len, AnchorPol
  * @param[in] count      How many anchors.
  * @param[in] needle_len Bytes in the needle, which bounds where a candidate can start.
  * @return               Positions that survive every anchor.
- * @note One early exit per anchor. Under SWAR each is a mask and the whole set is an AND, so the
+ * @note One early exit per anchor. Under SWAR each is a mask and the whole set is an AND, and so the
  *       shape here counts the same survivors a branchless form would keep.
  */
 static uint32_t candidates_n(const uint8_t *corpus, size_t length, const uint8_t *needle, const size_t *offsets,
@@ -618,7 +618,7 @@ static uint32_t candidates_n(const uint8_t *corpus, size_t length, const uint8_t
  * @param[in] needle_len Bytes in the needles drawn from it.
  * @param[in] policy     Which pricing rule picks the anchors.
  * @param[in] stamp      Fingerprint of the linked cost table.
- * @note Each anchor is the cheapest offset not already taken, which is the same rule the picker uses
+ * @note Each anchor is the cheapest offset not already taken, the same rule the picker uses
  *       for one and for two. Nothing in the shape caps the count, and the row exists to say what each
  *       additional anchor removes once the obvious two are spent.
  */
@@ -701,7 +701,7 @@ static void report_cascade(const char *name, const uint8_t *corpus, size_t corpu
  * @note The deductive half, run as code. An anchor is a byte lifted out of the needle at an offset
  *       inside the needle. A position holding the whole needle holds that byte at that offset. The
  *       argument never names how many anchors there are, what picked them, how large the alphabet is,
- *       or that positions are ordered, which is why every sweep in main can vary all four and still
+ *       or that positions are ordered, and so every sweep in main can vary all four and still
  *       expect zero back. A nonzero return is an implementation defect, never a property of the data.
  */
 static uint32_t refused_occurrences(const uint8_t *corpus, size_t length, const uint8_t *needle, size_t needle_len,
@@ -756,7 +756,7 @@ static void report_invariant(const char *name, const uint8_t *corpus, size_t cor
 
     const size_t positions = (corpus_len - needle_len) + 1u;
 
-    // A long needle over the flat corpus makes every position a full length compare, so the sample
+    // A long needle over the flat corpus makes every position a full length compare, and so the sample
     // count comes down as the needle grows. This claim needs every sample honest, not many samples
     const size_t wanted = (needle_len > 128u) ? 8u : NEEDLE_SAMPLES;
     const size_t step = (positions > wanted) ? (positions / wanted) : 1u;
@@ -831,8 +831,8 @@ static void report(const char *name, const uint8_t *corpus, size_t corpus_len, s
 
         const size_t first_at = cheapest_offset(needle, needle_len, needle_len, policy);
 
-        // Stride zero asks the table for the second anchor as well, which is the policy the tree
-        // has now. Any other stride pins the second anchor a fixed distance away, which is what
+        // Stride zero asks the table for the second anchor as well, the policy the tree
+        // has now. Any other stride pins the second anchor a fixed distance away, as
         // tests whether the distance decorrelates the pair or the corpus defeats it
         size_t second_at;
 
@@ -870,7 +870,7 @@ static void report(const char *name, const uint8_t *corpus, size_t corpus_len, s
         one_total += (double)one;
         two_total += two_excess;
         two_squares += two_excess * two_excess;
-        // The prediction is about false positives, so it runs over the first anchor's candidates
+        // The prediction is about false positives, and so it runs over the first anchor's candidates
         // with the needle's own occurrence taken out. Using the count with the self hit still in it
         // inflated every predicted value and biased the ratio low
         predicted_total += ((double)one - 1.0) * second_rate;
@@ -915,7 +915,7 @@ static void report(const char *name, const uint8_t *corpus, size_t corpus_len, s
  * @param[in] stamp      Fingerprint of the linked cost table.
  * @note What an uninformed anchor costs is not a free parameter, and this row is here to say so
  *       before the sweep runs. An anchor picked with no information is a byte drawn from the corpus
- *       by the corpus's own frequencies, so it matches at the collision probability, the sum of the
+ *       by the corpus's own frequencies, and so it matches at the collision probability, the sum of the
  *       squared byte frequencies. Multiply that by the number of positions and the maximum entropy
  *       candidate count is predicted in advance. The sweep either lands on it or the account is wrong.
  * @note Shannon entropy sits beside it because the two answer different questions. Shannon says how
@@ -947,8 +947,8 @@ static void report_domain(const char *name, const uint8_t *corpus, size_t corpus
 
     const double positions = (double)((corpus_len - needle_len) + 1u);
 
-    // The rate a perfectly matched table would reach, which is the ceiling on what any measure can be
-    // worth. The anchor is the rarest of needle_len symbols and a needle is drawn from the corpus, so
+    // The rate a perfectly matched table would reach, the ceiling on what any measure can be
+    // worth. The anchor is the rarest of needle_len symbols and a needle is drawn from the corpus, and so
     // each symbol arrives with probability equal to its own frequency. For draws weighted that way,
     // the expected minimum is the integral of the survival function raised to the draw count, and a
     // sorted frequency list turns that integral into a sum over its steps
@@ -1003,10 +1003,10 @@ static void report_domain(const char *name, const uint8_t *corpus, size_t corpus
  * @param[in] stamp      Fingerprint of the linked cost table.
  * @note A refutation is not local, and the rest of this bench treats it as though it were. Testing the
  *       anchor at pattern offset a against corpus position s+a reads one cell. For any shift d, the
- *       alignment starting at s+d puts pattern offset a-d on that same cell, so every d whose pattern
+ *       alignment starting at s+d puts pattern offset a-d on that same cell, and so every d whose pattern
  *       byte differs from what was read is refused by the one read. A byte the needle does not carry
  *       at all refutes every alignment touching the cell.
- * @note The count is the needle length less how many times the observed byte occurs in the needle, so
+ * @note The count is the needle length less how many times the observed byte occurs in the needle, and so
  *       its expectation over a corpus is needle_len times one minus the collision probability. That
  *       is the same collision probability the candidate count measures, appearing here as a distance
  *       instead of a rate.
@@ -1061,8 +1061,8 @@ static void report_refutation(const char *name, const uint8_t *corpus, size_t co
         {
             const uint8_t seen = corpus[start + anchor];
 
-            // Alignments the one read rules out. The needle carrying that byte somewhere is what keeps
-            // an alignment alive, so every offset holding a different byte is settled by this read
+            // Alignments the one read rules out. The needle carrying that byte somewhere keeps
+            // an alignment alive, and so every offset holding a different byte is settled by this read
             refuted += (double)needle_len - (double)inside[seen];
             observations += 1.0;
         }
@@ -1137,7 +1137,7 @@ static void report_widths(const char *name, const uint8_t *corpus, size_t corpus
             for (unsigned step = 0u; step < width; step++)
             {
                 const size_t at = bit + step;
-                // Bits are taken most significant first inside each byte, which is how a byte is
+                // Bits are taken most significant first inside each byte, and that is how a byte is
                 // written down and how the standard's padding indexes them
                 const unsigned held = (corpus[at / 8u] >> (7u - (at % 8u))) & 1u;
 
@@ -1215,11 +1215,11 @@ int main(void)
     static const size_t lengths[] = {4u, 8u, 16u, 32u, 64u, 128u, 256u};
 
     // Stride zero is the table's own choice of second anchor. The rest are fixed distances, primes
-    // against powers of two, which is the comparison that says whether a coprime distance breaks the
+    // against powers of two, the comparison that says whether a coprime distance breaks the
     // correlation or the corpus has structure at every distance
     static const size_t strides[] = {0u, 1u, 2u, 3u, 4u, 5u, 7u, 8u, 11u, 13u, 16u, 17u};
 
-    // Both ends, not the comfortable middle. One byte is the shortest needle that can carry an anchor,
+    // Both ends and not the comfortable middle. One byte is the shortest needle that can carry an anchor,
     // and a needle as long as the corpus leaves exactly one position to find it in
     static const size_t limits[] = {1u, 2u, 3u, 4u, 16u, 64u, 256u, 1024u, CORPUS_BYTES};
 
@@ -1244,7 +1244,7 @@ int main(void)
             report_cascade("uniform", s_uniform_corpus, CORPUS_BYTES, lengths[index], policy, stamp);
 
             // The zero entropy end belongs in the cost sweep and not only the invariant one. Every
-            // position holds every needle, so no anchor can ever fail and none of them remove
+            // position holds every needle, and so no anchor can ever fail and none of them remove
             // anything. It is the case where the whole method is worth nothing, and a claim about
             // all domains has to include the domain where that is true
             report_cascade("flat", s_flat_corpus, CORPUS_BYTES, lengths[index], policy, stamp);

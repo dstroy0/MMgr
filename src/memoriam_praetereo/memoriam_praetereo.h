@@ -56,7 +56,7 @@ typedef void (*mmgr_praet_callback)(const mmgr_praet_event *event, void *user);
 /**
  * @brief A completion callback and the pointer handed back to it.
  *
- * @warning mmgr_praet_open forwards the pointer to this struct unchanged and keeps no copy, so it
+ * @warning mmgr_praet_open forwards the pointer to this struct unchanged and keeps no copy, and so it
  *          must stay valid for as long as the channel is open [BORROWS].
  */
 typedef struct
@@ -111,7 +111,7 @@ EMBED_TABLE_LAYOUT(MemoriamPraetereoNs, open, tx_submit, close, poll);
  *
  * @param[in] args Channel, peripheral, loopback flag and completion callback [BORROWS].
  * @return         EMBED_TRUE when the port layer accepted the request.
- * @note The default mmgr_praet_hw_open refuses, so this returns EMBED_FALSE until a port replaces it.
+ * @note The default mmgr_praet_hw_open refuses, and so this returns EMBED_FALSE until a port replaces it.
  * @warning args->channel must be below PRAET_CHANNELS, and args->on_complete must not be NULL.
  */
 embed_bool mmgr_praet_open(const PraetCfg *args);
@@ -121,7 +121,7 @@ embed_bool mmgr_praet_open(const PraetCfg *args);
  *
  * @param[in] args Channel, buffer and byte count [BORROWS].
  * @return         EMBED_TRUE when the port layer accepted the transfer.
- * @note The default mmgr_praet_hw_tx_submit refuses, so this returns EMBED_FALSE until a port replaces it.
+ * @note The default mmgr_praet_hw_tx_submit refuses, and so this returns EMBED_FALSE until a port replaces it.
  * @warning args->buf must stay valid until the completion callback runs [BORROWS].
  * @warning args->channel must be below PRAET_CHANNELS.
  */

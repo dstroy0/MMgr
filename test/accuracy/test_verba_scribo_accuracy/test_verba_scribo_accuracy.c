@@ -8,13 +8,13 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-31
  *
- * @note The integer entries have an exact printf equivalent, so snprintf is the reference for them. It
+ * @note The integer entries have an exact printf equivalent, and so snprintf is the reference for them. It
  *       is a separate implementation of the same formatting and shares nothing with this tree.
  * @note The floating point form is checked by round trip instead. Seventeen significant digits are
  *       enough to name any double exactly. A value written at that width and read back with strtod
  *       has to give the same bits, which is a statement about the digits with no reference formatter
  *       in it at all, and it fails on a single wrong digit anywhere in the run.
- * @note At fewer than seventeen digits the round trip cannot be exact, so what is checked there is the
+ * @note At fewer than seventeen digits the round trip cannot be exact, and so what is checked there is the
  *       error bound the digit count implies. A form that dropped a digit or rounded the wrong way
  *       lands outside it.
  * @note The two forms g picks between are chosen on where the decimal exponent falls, and the values
@@ -72,7 +72,7 @@ static uint64_t accuracy_bits_of(double value)
  * @return         The length the terminator was stored at.
  * @note Every case writes its fields and then finishes, and doing that in one place keeps the cases
  *       reading as the values and widths they are checking.
- * @warning The capacity is fixed at MMGR_ACCURACY_VERBA_BUFFER here, so out must be a buffer of that
+ * @warning The capacity is fixed at MMGR_ACCURACY_VERBA_BUFFER here, and so out must be a buffer of that
  *          size. The one case that uses a smaller buffer terminates it itself.
  */
 static size_t accuracy_finish_at(char *out, size_t at)
@@ -106,11 +106,11 @@ static double accuracy_power_of_ten(unsigned exponent)
  * @param[in] value    Value being written.
  * @param[in] decimals Digits after the point.
  * @return             1 when the value is an exact tie at that count, 0 otherwise.
- * @note A tie is the one input the two rounding rules disagree about, and which rule a C library
+ * @note A tie is the single one input the two rounding rules disagree about, and which rule a C library
  *       applies is not fixed by the standard. This module takes a half away from zero, printf on MinGW
  *       does the same, and printf on glibc rounds a tie to even. A comparison at a tie would then
  *       report a difference of convention as a defect on one host or the other.
- * @note Ties are checked directly against the documented rule in their own case below, so nothing is
+ * @note Ties are checked directly against the documented rule in their own case below, and so nothing is
  *       lost by leaving them out of the comparison against the reference.
  * @warning Only meaningful where the scaled value is small enough to carry a fractional part. A
  *          magnitude past two to the fifty-third has no fraction left and reports no tie, which is
@@ -126,8 +126,8 @@ static int accuracy_is_tie(double value, unsigned decimals)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
- * @note Every buffer here has automatic storage inside the case that builds it, so there is no shared
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
+ * @note Every buffer here has automatic storage inside the case that builds it, and so there is no shared
  *       state to prepare.
  */
 void setUp(void)
@@ -138,7 +138,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -191,7 +191,7 @@ void test_the_references_this_suite_relies_on_behave_as_assumed(void)
 /**
  * @brief Checks the unsigned and signed base ten entries against snprintf.
  *
- * @note The extremes of both types are included. The most negative signed value is the one input with
+ * @note The extremes of both types are included. The most negative signed value is the single one input with
  *       no positive counterpart, and a magnitude taken by negating it wraps back to itself.
  * @note Four entries write base ten and differ in what they pad with and where the width comes from.
  *       Each is checked separately, since a table that pointed two of them at one function would pass
@@ -329,10 +329,10 @@ void test_the_padded_and_based_entries_match_the_reference(void)
 /**
  * @brief Checks that a double written at seventeen significant digits reads back as the same value.
  *
- * @note This is the case the file exists for. Seventeen digits name a binary64 exactly, so the value
+ * @note This is the case the file exists for. Seventeen digits name a binary64 exactly, and so the value
  *       that comes back through strtod has to carry the same bits. A single wrong digit anywhere in
  *       the run gives a different double.
- * @note Nothing here compares against a reference rendering, so the module is free to write the digits
+ * @note Nothing here compares against a reference rendering, and so the module is free to write the digits
  *       in whatever form it picks. What is checked is that the number those digits stand for is the
  *       number that went in.
  * @note The values straddle both form boundaries in both directions, cover both signs, and include
@@ -384,10 +384,10 @@ void test_a_double_written_at_seventeen_digits_reads_back_the_same(void)
 /**
  * @brief Checks that a double written at fewer digits stays inside the error that count allows.
  *
- * @note Below seventeen digits the round trip cannot be exact, so the claim is the weaker one that
+ * @note Below seventeen digits the round trip cannot be exact, and so the claim is the weaker one that
  *       holds at every width: the value read back differs from the original by no more than half a
  *       unit in the last digit written.
- * @note Every significant digit count from one to seventeen is offered on every value, so the bound
+ * @note Every significant digit count from one to seventeen is offered on every value, and so the bound
  *       is checked as it tightens instead of at one convenient width.
  * @note A form that dropped a digit, or rounded away from the nearest, lands outside the bound at the
  *       width where it did so and stays outside at every width past it.
@@ -432,7 +432,7 @@ void test_a_double_written_at_fewer_digits_stays_inside_the_allowed_error(void)
             const double original = value_of[index];
 
             // A value near the top of the range rounds up out of it at a small digit count. The
-            // largest double written to one digit is 2e+308, which no double carries, so the reading
+            // largest double written to one digit is 2e+308, which no double carries, and so the reading
             // back overflows and there is no error to measure. That is the digits being right
             if (!isfinite(parsed))
             {
@@ -454,9 +454,9 @@ void test_a_double_written_at_fewer_digits_stays_inside_the_allowed_error(void)
 /**
  * @brief Checks the fixed form against snprintf at every decimal count.
  *
- * @note The fixed form and the printf conversion agree on what they mean, so this is a direct
+ * @note The fixed form and the printf conversion agree on what they mean, and so this is a direct
  *       comparison at every input that is not an exact tie.
- * @note A decimal count of zero is documented to write no point at all, which is the boundary a count
+ * @note A decimal count of zero is documented to write no point at all, the boundary a count
  *       taken as one-based would get wrong, and the reference writes it the same way.
  * @note Exact ties are left out. The module takes a half up on the magnitude and writes the sign
  *       separately, which is away from zero, and which way printf breaks a tie depends on the C
@@ -501,9 +501,9 @@ void test_the_fixed_form_matches_the_reference(void)
  * @note The header states a half rounds up, and this is the case that holds it to that. Every
  *       expectation is written out by hand from the rule, with no formatter consulted, since the C
  *       standard leaves the rule open and a library is free to pick either.
- * @note At no decimals every half moves to the next integer. That is what separates this from the
+ * @note At no decimals every half moves to the next integer. That separates this from the
  *       tie-to-even rule it replaced, which took a half down to an even neighbor half the time.
- * @note All the values are exact in binary, so each one really is a tie and not a value that merely
+ * @note All the values are exact in binary, and so each one really is a tie and not a value that merely
  *       prints like one.
  * @note The negative ties are what show the direction. The sign is written ahead of the magnitude and
  *       the magnitude is what rounds up. A negative half moves away from zero.
@@ -545,9 +545,9 @@ void test_an_exact_tie_rounds_up(void)
  *
  * @note The escaping entries differ from the plain one in exactly which bytes they replace, and the
  *       expected strings are written out by hand from the two formats' rules.
- * @note The counted write is offered a length shorter than the string it points at, which is what
+ * @note The counted write is offered a length shorter than the string it points at, as
  *       shows the count is read and the terminator is not.
- * @note The clipping write is offered a buffer too small for its text, which is the one text entry
+ * @note The clipping write is offered a buffer too small for its text, the one text entry
  *       documented to write what fits instead of refusing.
  */
 void test_the_text_entries_write_the_bytes_they_are_documented_to(void)
@@ -598,7 +598,7 @@ void test_the_text_entries_write_the_bytes_they_are_documented_to(void)
 /**
  * @brief Checks the words written for an infinity and a NaN, and the three predicates.
  *
- * @note Neither form is a number, so nothing reads them back. What is checked is the exact text the
+ * @note Neither form is a number, and so nothing reads them back. What is checked is the exact text the
  *       header names, lower case and unquoted.
  * @note The sign is documented to reach the infinity and not the NaN, and both are checked, since a
  *       sign written on a NaN would be neither valid nor what the header states.
@@ -651,11 +651,11 @@ void test_the_non_finite_forms_and_the_predicates(void)
  * @brief Checks that a run of entries writing in turn lands each field where the last one ended.
  *
  * @note Every writing entry takes the offset to write at and reports the offset past what it wrote,
- *       which is what lets a caller chain them. A cursor off by one shows up as a lost or a doubled
+ *       as lets a caller chain them. A cursor off by one shows up as a lost or a doubled
  *       character at every join and nowhere else.
- * @note The run mixes text, a character and three numeric forms, so the threading is checked across
+ * @note The run mixes text, a character and three numeric forms, and so the threading is checked across
  *       entries in different tables instead of within one.
- * @note The reference is assembled by snprintf in the same order, so the comparison is between two
+ * @note The reference is assembled by snprintf in the same order, and so the comparison is between two
  *       whole strings.
  */
 void test_a_run_of_entries_threads_the_cursor(void)

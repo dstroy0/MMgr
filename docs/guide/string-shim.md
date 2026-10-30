@@ -50,7 +50,7 @@ These are not bugs and they are not going to change. Read them before you assume
 actually a drop-in.
 
 **`strcmp` and `strncmp` do not order.** They answer 0 when the strings are equal and 1 when they
-are not. That is the right truth value, so `if (strcmp(a, b) == 0)` and `if (strcmp(a, b))` both
+are not. That is the right truth value, and so `if (strcmp(a, b) == 0)` and `if (strcmp(a, b))` both
 behave, but there is no sign. **A `qsort` comparator built on either one will not sort.** Use
 `cellul.diff` and compare the bytes yourself if you need an ordering.
 
@@ -58,12 +58,12 @@ behave, but there is no sign. **A `qsort` comparator built on either one will no
 length so `>= size` detects truncation; here the truncation test is the return against `limit - 1`.
 
 **`memcmp` does order.** It comes from `memor.cmp` and returns negative, zero or positive the way
-libc's does. It is the string compares that lose the sign, not the memory ones.
+libc's does. It is the string compares that lose the sign and not the memory ones.
 
 ## Why strcpy and strcat are missing
 
-There is no bounded spelling of `strcpy`. What it promises is "copy until the source ends", and the
-destination's size is not one of its arguments, so there is nothing to check against and no cap to
+There is no bounded form of `strcpy`. What it promises is "copy until the source ends", and the
+destination's size is not one of its arguments, and so there is nothing to check against and no cap to
 pass. The same is true of `strcat`.
 
 Defining them to something bounded would be worse than leaving them out: it would change their
@@ -77,7 +77,7 @@ terminates.
 
 ## MMGR_STR_MAX
 
-`strlen`, `strcmp`, `strcasecmp`, `strstr`, `strcasestr` and `strchr` take no length, so they are
+`strlen`, `strcmp`, `strcasecmp`, `strstr`, `strcasestr` and `strchr` take no length, and so they are
 bounded by `MMGR_STR_MAX`. It is the answer to "how far will this read before giving up on finding a
 terminator", and it exists because an unterminated string is a real thing that happens to data
 arriving from outside.

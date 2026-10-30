@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
-"""What each translation unit costs, at whichever optimisation levels are asked for.
+"""What each translation unit costs, at whichever optimization levels are asked for.
 
-The options are read out of the build rather than written down here. cmake already emits every
-compile command it issues into build/compile_commands.json, so that is the one place the flags
+The options are read out of the build and not written down here. cmake already emits every
+compile command it issues into build/compile_commands.json, so that is the single one place the flags
 live: a list copied into this file would agree with CMakeLists.txt until somebody changed one of
-them, and then it would quietly be measuring something else. The optimisation level and link time
-optimisation are the only things taken out - the level because it is what varies, and LTO because
-an object built with it holds intermediate form rather than instructions and its size says nothing
+them, and then it would quietly be measuring something else. The optimization level and link time
+optimization are the only things taken out - the level because it is what varies, and LTO because
+an object built with it holds intermediate form and not instructions and its size says nothing
 about what would land on a target.
 
-Sections are read rather than file lengths, because an object also carries relocations, symbol
+Sections are read and not file lengths, because an object also carries relocations, symbol
 tables and debug records that never reach flash.
 
   text    instructions
@@ -107,7 +107,7 @@ def build(level, cc, flags, objdump, tmp):
 
 
 def main():
-    # -O2 and -Os read as options to argparse, so the levels are taken out of the arguments first.
+    # -O2 and -Os read as options to argparse, and so the levels are taken out of the arguments first.
     # It is a small thing to write and it means the command reads the way the compiler's does.
     levels = [t for t in sys.argv[1:] if re.fullmatch(r"-O[0-3sgz]?", t)]
     rest = [t for t in sys.argv[1:] if t not in levels]

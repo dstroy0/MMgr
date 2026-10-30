@@ -12,18 +12,18 @@
 #   mmgr_add_suite(test_word16 ENVIRONMENT word16)
 #
 # CAPABILITY names a config option the suite cannot be built without. The capability names
-# translation units that are not in the library when it is off, so the suite would fail to link.
+# translation units that are not in the library when it is off, and so the suite would fail to link.
 # It is skipped loudly - silently dropping it leaves a passing run that tested less than it looks
 # like. Unity's generator reads case names out of the source text and does not see a preprocessor
 # conditional. A case cannot be compiled out of a suite: the whole suite is what a capability
 # gates.
 #
 # ENVIRONMENT pins the suite to one entry in MMGR_ENVIRONMENTS. An environment suite asserts the
-# widths of one environment, so building it against the others would assert a lane that was never
+# widths of one environment, and so building it against the others would assert a lane that was never
 # selected and fail for the right reason at the wrong target.
 
 # floor and the rest of <math.h> live in a separate libm on glibc, which a link reaches only when
-# asked. MinGW folds them into its C runtime, which is why the Windows host links without this.
+# asked. MinGW folds them into its C runtime, and so the Windows host links without this.
 find_library(MMGR_LIBM m)
 
 # support/host_threads.c starts the threads a contention case runs on. pthreads is a library of its
@@ -47,7 +47,7 @@ function(mmgr_add_suite suite_name)
         return()
     endif()
 
-    # One runner per suite, not per environment: the cases are the same source either way.
+    # One runner per suite and not per environment: the cases are the same source either way.
     #
     # The custom command is wrapped in a target, and the executables depend on the TARGET rather
     # than each listing the OUTPUT. With the Makefile generator, an OUTPUT consumed by several
@@ -82,13 +82,13 @@ function(mmgr_add_suite suite_name)
 
         set(target ${suite_name}_${env})
 
-        # support/guard_page.c arms a no-access page either side of a buffer, which is the only
+        # support/guard_page.c arms a no-access page either side of a buffer, the only
         # instrument that catches a read past a bound - a read leaves nothing behind for a poison
         # pattern to notice. Linked into every suite for the same reason platform_host.c is: which
         # suites want it is their business, and where nothing calls it the linker drops it.
         #
         # support/platform_host.c supplies mmgr_platform_context_id(), which the library declares
-        # and does not define. Linked into every suite rather than only the ones that need it: which
+        # and does not define. Linked into every suite and not only the ones that need it: which
         # environments call it is MMGR_NEEDS_CONTEXT_ID's business, and a suite list that has to
         # track that condition is a second copy of it waiting to disagree. Where nothing calls it,
         # the linker drops it.
@@ -107,12 +107,12 @@ function(mmgr_add_suite suite_name)
             "${MMGR_TEST_ROOT}"
             "${MMGR_TEST_ROOT}/support"
         )
-        # mmgr_<env> carries this environment's definitions and its include root, so the suite is
+        # mmgr_<env> carries this environment's definitions and its include root, and so the suite is
         # compiled with exactly the widths the library under it was compiled with. mmgr_flags is
         # deliberately not linked: test/ is exempt from the src/ warning set, and Unity's assertion
         # macros do not survive -Wconversion.
         # Unity compiles its float and double assertions out unless asked. unity.c is built into
-        # each suite target rather than shared, so defining it here reaches both the cases and the
+        # each suite target and not shared, and so defining it here reaches both the cases and the
         # assertion bodies they call.
         target_compile_definitions(${target} PRIVATE UNITY_INCLUDE_DOUBLE UNITY_INCLUDE_FLOAT)
         # On C11 Unity reaches for <stdnoreturn.h>, whose `noreturn` macro turns the Windows CRT's

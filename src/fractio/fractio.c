@@ -17,7 +17,7 @@
  * @brief Arguments for every fract backend, grouped by the calls that read them.
  *
  * @note Mirrors FractioCfg without its const qualifiers, union included.
- * @note val and bits share storage, so writing one and reading the other reinterprets the same bytes.
+ * @note val and bits share storage, and so writing one and reading the other reinterprets the same bytes.
  */
 typedef struct
 {
@@ -104,8 +104,8 @@ EMBED_INLINE embed_u64 fract_to_bits(const FractioCtx *args)
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_fract_ and fract_ prefixes, which the two share.
- * @param[in] ...         Initializers for the FractioCtx literal, written in terms of args.
- * @note The six entries differ only in what they forward, so the prefixes and the two structure types
+ * @param[in] ...         Initializers for the FractioCtx literal, written through args.
+ * @note The six entries differ only in what they forward, and so the prefixes and the two structure types
  *       are named once here and the table below states only what each entry reads.
  */
 #define FRACT_ENTRY(ReturnType_, name_, ...)                                                                           \

@@ -15,7 +15,7 @@
  *       arriving as EXPECT_ defines from that table.
  * @note The expectations are not read out of the header. A header that decided something else
  *       fails a row instead of agreeing with itself.
- * @note Carries no cases, so Unity's generator walks past it and mmgr_add_suite does not build it.
+ * @note Carries no cases, and so Unity's generator walks past it and mmgr_add_suite does not build it.
  */
 // The module header reaches the schedule and the descriptors both, where MMGR_ENABLE_DMA is set.
 // `harness.py targets` sets it
@@ -59,7 +59,7 @@ static volatile uint8_t s_probe_register;
 PraetPeripheralDeclare(s_probe_peripheral, &s_probe_register);
 
 /**
- * @brief One memory to memory transfer, so the ordinary descriptor path is compiled here too.
+ * @brief One memory to memory transfer, and so the ordinary descriptor path is compiled here too.
  */
 PraetOneShot(s_probe_one_shot, s_probe_source, 0u, s_probe_pool, 0u, 64u, PRAET_MENSURA_VERBUM);
 
@@ -68,7 +68,7 @@ PraetOneShot(s_probe_one_shot, s_probe_source, 0u, s_probe_pool, 0u, 64u, PRAET_
  *
  * @note Here because a static initializer that reads a const object is not a constant expression in
  *       C, and a compiler that folds it anyway hides that. GCC 13 accepts these two; GCC 5.4.1
- *       refuses them, which is what the old toolchain rows are for. Measured, on a Cortex-M7 build
+ *       refuses them, as the old toolchain rows are for. Measured, on a Cortex-M7 build
  *       of the suite that reported "initializer element is not constant" and named these lines.
  */
 PraetToPeripheral(s_probe_drain, s_probe_source, 0u, s_probe_peripheral, &s_probe_register, 0u, 64u,
@@ -81,7 +81,7 @@ PraetFromPeripheral(s_probe_fill, s_probe_peripheral, &s_probe_register, 0u, s_p
                     PRAET_MENSURA_VERBUM, NULL);
 
 /**
- * @brief Reaches the attach and submit surfaces, so both declarators are compiled for this target.
+ * @brief Reaches the attach and submit surfaces, and so both declarators are compiled for this target.
  *
  * @return The channel's flag word, as an int.
  * @note Never called. It exists to make the compiler expand and generate code for the macros, which

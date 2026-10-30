@@ -9,7 +9,7 @@
  * @date 2026-08-31
  *
  * @note The costs are weights gathered from a corpus to make parsing faster. There is no arithmetic
- *       that reproduces them and no reference outside the corpus they came from, so nothing here
+ *       that reproduces them and no reference outside the corpus they came from, and so nothing here
  *       predicts a value. What is checkable is whether the table can still do its job.
  * @note A second copy of the table written out in this file would be the same data twice and would
  *       agree with the module until one of the two was edited. It would prove nothing on the day it
@@ -18,7 +18,7 @@
  *       that costs nothing wins every comparison, a table with one value ranks nothing, and a NUL
  *       that dropped below the ceiling starts being chosen out of text it terminates.
  * @note Which of the five tables is linked is a build option, and no macro carries the choice into
- *       this file. Every case here is written to hold for all five, which is why none of them names
+ *       this file. Every case here is written to hold for all five, and so none of them names
  *       a byte other than the NUL.
  * @note Contract checks on the argument itself live in test_impensa_ancorae_acus. This file asks
  *       whether the numbers that come back can be ranked.
@@ -65,8 +65,8 @@ static uint8_t accuracy_cost_of(unsigned byte)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
- * @note The table is initialized data and no case writes anything, so there is no state to prepare.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
+ * @note The table is initialized data and no case writes anything, and so there is no state to prepare.
  */
 void setUp(void)
 {
@@ -76,7 +76,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -107,7 +107,7 @@ void test_no_byte_costs_nothing(void)
 /**
  * @brief Checks that the NUL sits at the ceiling.
  *
- * @note All five tables document the NUL at 255, which is the one byte-specific fact they agree on.
+ * @note All five tables document the NUL at 255, the one byte-specific fact they agree on.
  *       It terminates the strings the sieve walks, and one that could be chosen anchors the search
  *       on a byte that is present exactly once and at the end of every string.
  * @note Checked against the ceiling and not merely against a high value, since the ceiling is what
@@ -156,7 +156,7 @@ void test_the_table_ranks_bytes_instead_of_scoring_them_alike(void)
 }
 
 /**
- * @brief Checks that a lookup depends on its own byte and nothing else.
+ * @brief Checks that a lookup depends on its own byte, alone.
  *
  * @note The sieve looks a byte up once per candidate row, in whatever order the walk reaches them.
  *       A lookup that carried state between calls would rank the same string differently depending
@@ -202,7 +202,7 @@ void test_a_lookup_depends_on_its_own_byte_and_nothing_else(void)
  * @note Bytes 0 through 127 are read against 128 through 255. A lookup that masked the high bit off
  *       returns the low half's costs for both halves, and this fails as soon as one pair differs.
  * @note A table where a pair legitimately holds the same cost is fine. The case is looking for every
- *       pair matching, which is what a dropped bit produces and what a real weighting does not.
+ *       pair matching, as a dropped bit produces and what a real weighting does not.
  */
 void test_the_high_half_is_not_the_low_half_read_twice(void)
 {

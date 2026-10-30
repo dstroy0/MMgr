@@ -16,13 +16,13 @@
 # not a number anyone wants, and the library's own inline entries do not inline at -O0. A Debug
 # reading would be timing function calls the shipped build does not make.
 #
-# IPO is off here, and that is what makes the line above true. LTO re-optimizes from IR at link
-# time using the LINK line's flags, so with it on the -O2 below never reached the generated code:
+# IPO is off here, and that leaves the line above true. LTO re-optimizes from IR at link
+# time using the LINK line's flags, and so with it on the -O2 below never reached the generated code:
 # the link line carried the build type's -O3 and that is what the bench was measuring. The give
-# away was the size - .text came out at the -O3 figure rather than the -O2 one - and -O3 measured
+# away was the size - .text came out at the -O3 figure and not the -O2 one - and -O3 measured
 # slower on put and read while inflating .text by a third.
 
-# The A/B benches build against ProtoCore's own sources rather than a copy of them, so what they
+# The A/B benches build against ProtoCore's own sources and not a copy of them, and so what they
 # measure is its code and not a transcription. It is a sibling checkout and not a dependency: when
 # it is not there, those benches are skipped and the rest still build.
 set(MMGR_PROTOCORE_DIR "${MMgr_SOURCE_DIR}/../../ProtoCore" CACHE PATH "ProtoCore checkout for the A/B benches")
@@ -70,7 +70,7 @@ foreach(bench_src ${MMGR_BENCH_SOURCES})
         elseif(bench_name MATCHES "^bench_ancorae_")
             # All three draw their corpora from SHA-256 in counter mode, and every independence and
             # entropy number is read against those corpora having the statistics they are supposed to.
-            # They compile the implementation the suites hold to the published vectors, so the corpora
+            # They compile the implementation the suites hold to the published vectors, and so the corpora
             # and the vectors are the same code and not two copies of it.
             add_executable(${target} "${bench_src}" "${MMgr_SOURCE_DIR}/test/support/mmgr_sha256.c")
             target_include_directories(${target} PRIVATE "${MMgr_SOURCE_DIR}/test/support")

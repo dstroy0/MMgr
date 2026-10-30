@@ -9,7 +9,7 @@
 /**
  * @brief Set to 1 when __clang__ is defined, 0 otherwise.
  *
- * @note Defined on both branches, so #ifdef MMGR_CC_CLANG is always true.
+ * @note Defined on both branches, and so #ifdef MMGR_CC_CLANG is always true.
  */
 #if defined(__clang__)
 #define MMGR_CC_CLANG 1
@@ -257,16 +257,16 @@
 /**
  * @brief Expands to __attribute__((flatten)) where MMGR_HAS_ATTRIBUTE(flatten) is non-zero.
  *
- * @note For a caller, not for the library. It asks the compiler to inline everything the function it
+ * @note For a caller and not for the library. It asks the compiler to inline everything the function it
  *       marks calls, which reaches an entry body that the inliner would otherwise leave out of line
  *       on size. The entries are large enough that it does leave them: measured on an ESP32-S3, a
- *       cellul.len over eight bytes costs 112 cycles called and 80 inlined, so the call is 32 of
+ *       cellul.len over eight bytes costs 112 cycles called and 80 inlined, and so the call is 32 of
  *       them - a third of the work at that length, and it is paid on every entry.
- * @note Worth it where an extent is short and settled before the build, which is what this library
- *       is for. A long scan amortises the call and will not notice: the same measurement at 64 bytes
+ * @note Worth it where an extent is short and settled before the build, as this library
+ *       is for. A long scan amortizes the call and will not notice: the same measurement at 64 bytes
  *       is 253 against 240.
- * @note Costs the walk's code at every site that takes it, so it belongs on the one hot function a
- *       caller cares about rather than on a translation unit.
+ * @note Costs the walk's code at every site that takes it, and so it belongs on the one hot function a
+ *       caller cares about and not on a translation unit.
  * @warning Needs the entry body visible. A build without link-time optimization gets nothing from
  *          it. See MMGR_LTO.
  * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(flatten) is 0, which costs speed and never
@@ -285,7 +285,7 @@
  *
  * @note The C++ arm is nvcc over MSVC, which a .cu reaching MMgr on Windows compiles under. C++11 made
  *       the fixed underlying type standard.
- * @warning On the C++ arm the width is one byte whatever the range, so an enumerator past 255 or below
+ * @warning On the C++ arm the width is one byte whatever the range, and therefore an enumerator past 255 or below
  *          0 fails the build there.
  * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(packed) is 0 in C.
  * @note mmgr_types.h asserts sizeof(MmgrEnumProbe) == 1 to catch that case.

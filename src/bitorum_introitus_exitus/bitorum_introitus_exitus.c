@@ -11,10 +11,10 @@
  * @date 2026-08-29
  *
  * @note bitor_init fills a writer in and writes nothing. Of the two that write, bitor_put writes
- *       whole bytes and nothing else, so bits that do not fill one stay in the residue, and
- *       bitor_align is what puts that last partial byte out.
- * @note The residue is what makes a bit stream possible across calls. Without it a caller would have
- *       to hand whole bytes at every call, which is the problem this module exists to remove.
+ *       whole bytes, alone, and so bits that do not fill one stay in the residue, and
+ *       bitor_align puts that last partial byte out.
+ * @note The residue makes a bit stream possible across calls. Without it a caller would have
+ *       to hand whole bytes at every call, the problem this module exists to remove.
  * @note Reaches nothing outside config.
  * @warning A stream whose length is not a multiple of eight and that never calls align ends one byte
  *          short, with no flag raised and nothing to notice at the call.
@@ -44,7 +44,7 @@ typedef struct
  * @param[in,out] args Writer, value and bit count [BORROWS].
  * @note Writes whole bytes only. Leftover bits stay in writer->residue.
  * @note Does nothing when writer->overflow is already set. A caller may write a whole stream and
- *       test overflow once at the end rather than after every call.
+ *       test overflow once at the end and not after every call.
  * @note Sets writer->overflow and clears the residue when the bytes would pass writer->cap.
  * @warning args->bit_count must not exceed 64, and nothing holds it there outside a
  *          MMGR_DEBUG_CHECKS build. A larger count writes zeros past the sixty-fourth bit and
@@ -90,7 +90,7 @@ EMBED_INLINE void bitor_put(const BitorCtx *args)
         // Explicit casts hold each step at uint8_t, because the shift and the or promote away from it
         to[0] = (uint8_t)(writer->residue | (uint8_t)(chunk << writer->bit_count));
 
-        // The value and remaining count step on lines of their own, so neither is a side effect
+        // The value and remaining count step on lines of their own, and so neither is a side effect
         // inside the store above
         work >>= take;
         left -= take;
@@ -98,9 +98,9 @@ EMBED_INLINE void bitor_put(const BitorCtx *args)
         writer->bit_count = 0;
 
         // The first byte is the only one the residue reaches: it is cleared just above and nothing
-        // refills it before the loop ends, so every byte after it is a mask and a store, with no
+        // refills it before the loop ends, and so every byte after it is a mask and a store, with no
         // merge and no shift to work out. The value and remaining count step on lines of their own
-        // after the store, so neither is a side effect inside it.
+        // after the store, and so neither is a side effect inside it.
         for (size_t index = 1u; index < whole; index++)
         {
             // Explicit cast narrows the masked byte to the uint8_t the buffer holds
@@ -113,7 +113,7 @@ EMBED_INLINE void bitor_put(const BitorCtx *args)
     if (left != 0u)
     {
         // Explicit casts narrow the leftover bits into the uint8_t residue. left plus
-        // writer->bit_count is under 8, so the shift below stays inside the byte
+        // writer->bit_count is under 8, and so the shift below stays inside the byte
         const uint8_t tail = (uint8_t)(work & ((1u << left) - 1u));
 
         writer->residue = (uint8_t)(writer->residue | (uint8_t)(tail << writer->bit_count));
@@ -126,9 +126,9 @@ EMBED_INLINE void bitor_put(const BitorCtx *args)
  * @brief Writes the partial byte args->writer still holds, padded with zeros above its bits.
  *
  * @param[in,out] args Writer to finish [BORROWS].
- * @note The residue holds its bits in the low bit_count positions with zeros above, so no padding is
+ * @note The residue holds its bits in the low bit_count positions with zeros above, and so no padding is
  *       added here.
- * @note Does nothing when the residue is empty, so it is safe to call at the end of any stream.
+ * @note Does nothing when the residue is empty, and so it is safe to call at the end of any stream.
  * @note Does nothing when writer->overflow is already set.
  * @warning Sets writer->overflow when the byte would pass writer->cap.
  */
@@ -158,7 +158,7 @@ EMBED_INLINE void bitor_align(const BitorCtx *args)
  * @param[in] args Buffer out and its extent cap [BORROWS].
  * @return         A writer with no bytes written and no residue.
  * @note The returned writer keeps args->out, which must outlive it [BORROWS].
- * @warning args->out must not be null and args->cap must not be zero. Neither is held to outside a
+ * @warning args->out must not be null and args->cap must not be zero. Neither is checked outside a
  *          MMGR_DEBUG_CHECKS build, and a null out is not noticed here: bitor_put writes through it
  *          on the first whole byte.
  */
@@ -182,8 +182,8 @@ EMBED_INLINE mmgr_bitor bitor_init(const BitorCtx *args)
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_bitor_ and bitor_ prefixes, which the two share.
- * @param[in] ...         Initializers for the BitorCtx literal, written in terms of args.
- * @note Four of EMBED_ENTRY's six arguments are the same at every entry here, so they are bound
+ * @param[in] ...         Initializers for the BitorCtx literal, written through args.
+ * @note Four of EMBED_ENTRY's six arguments are the same at every entry here, and so they are bound
  *       once and each entry below states only what differs.
  */
 #define BITOR_ENTRY(ReturnType_, name_, ...)                                                                           \
@@ -193,8 +193,8 @@ EMBED_INLINE mmgr_bitor bitor_init(const BitorCtx *args)
  * @brief Binds the same four to EMBED_ENTRY_V, for an entry that returns nothing.
  *
  * @param[in] name_ Name after the mmgr_bitor_ and bitor_ prefixes, which the two share.
- * @param[in] ...   Initializers for the BitorCtx literal, written in terms of args.
- * @note Two binders rather than one because EMBED_ENTRY_V takes no return type, as its own block
+ * @param[in] ...   Initializers for the BitorCtx literal, written through args.
+ * @note Two binders and not one because EMBED_ENTRY_V takes no return type, as its own block
  *       in mmgr_config.h describes.
  */
 #define BITOR_ENTRY_V(name_, ...) EMBED_ENTRY_V(mmgr_bitor_, bitor_, BitorCtx, BitorumCfg, name_, __VA_ARGS__)

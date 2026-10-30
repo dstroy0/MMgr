@@ -27,7 +27,7 @@
  * @brief Expands to 32, the number of limbs a BigNumber holds.
  *
  * @note 32 limbs give 1024 bits. 5^256 is 595 bits, and the reciprocal test sets a bit 127 above
- *       that before dividing, so the widest value this suite builds reaches bit 722.
+ *       that before dividing, and so the widest value this suite builds reaches bit 722.
  */
 #define MMGR_ACCURACY_LIMBS 32
 /**
@@ -49,7 +49,7 @@
  * @brief Expands to 6, the number of mmgr_pow5_up entries that fit 128 bits with nothing dropped.
  *
  * @note pow5.h documents index 0 through 5 as exact. 5^32 at index 5 is 75 bits and 5^64 at index 6
- *       is 149 bits, so the boundary falls here.
+ *       is 149 bits, and so the boundary falls here.
  * @note Counts a different thing from MMGR_POW5_SINGLE_HALF_STEPS in test_pow5, which is 5 because
  *       entry 5 still needs its low half.
  */
@@ -110,7 +110,7 @@ typedef struct
  *
  * @param[out] number Destination, zeroed across every limb before the value lands [BORROWS].
  * @param[in]  value  Value to place in limb[0].
- * @note A BigNumber with automatic storage holds indeterminate limbs until this runs, so every value
+ * @note A BigNumber with automatic storage holds indeterminate limbs until this runs, and so every value
  *       this suite builds starts here.
  */
 static void big_set_small(BigNumber *number, uint32_t value)
@@ -129,9 +129,9 @@ static void big_set_small(BigNumber *number, uint32_t value)
  * @param[in]  high   Bits 64 through 127 of the significand.
  * @param[in]  low    Bits 0 through 63 of the significand.
  * @note Exists to multiply a table entry back out against the scale it divides. Every other
- *       value this suite handles is built here from 1, and an mmgr_pow5_down significand is the one
+ *       value this suite handles is built here from 1, and an mmgr_pow5_down significand is the single one
  *       input that arrives already assembled.
- * @warning Writes limb[0] through limb[3] by name, so it places 128 bits only while
+ * @warning Writes limb[0] through limb[3] by name, and so it places 128 bits only while
  *          MMGR_ACCURACY_LIMB_BITS is 32. A narrower limb would leave the top of the significand in
  *          limbs this never touches, and the value loaded would be too small with no diagnostic.
  */
@@ -140,7 +140,7 @@ static void big_set_128(BigNumber *number, uint64_t high, uint64_t low)
     big_set_small(number, 0u);
 
     // Explicit casts narrow each half to the limb that holds it. The shift takes the upper 32 bits
-    // before the cast discards them, so the two limbs together keep every bit of the half
+    // before the cast discards them, and so the two limbs together keep every bit of the half
     number->limb[0] = (uint32_t)low;
     number->limb[1] = (uint32_t)(low >> MMGR_ACCURACY_LIMB_BITS);
     number->limb[2] = (uint32_t)high;
@@ -162,11 +162,11 @@ static void big_multiply_small(BigNumber *number, uint32_t multiplier)
     for (int index = 0; index < MMGR_ACCURACY_LIMBS; index++)
     {
         // Explicit casts widen both factors to uint64_t before multiplying. Two uint32_t operands
-        // would multiply in 32 bits and drop the high half, which is the carry this loop needs
+        // would multiply in 32 bits and drop the high half, the carry this loop needs
         const uint64_t product = ((uint64_t)number->limb[index] * (uint64_t)multiplier) + carry;
 
         // Explicit cast narrows to the low limb deliberately. The bits it drops are the ones the
-        // next line keeps as the carry, so nothing is lost between the two statements
+        // next line keeps as the carry, and so nothing is lost between the two statements
         number->limb[index] = (uint32_t)product;
         carry = product >> 32;
     }
@@ -245,7 +245,7 @@ static int big_bit_length(const BigNumber *number)
  * @note The top-bit shift is derived from MMGR_ACCURACY_LIMB_BITS and not written as 31. A change
  *       to the limb width cannot then leave this reading the wrong bit.
  * @warning A carry out of the top limb is dropped. big_divide is the only caller and it shifts a
- *          remainder held below its denominator, so the widest value reaching here is 5^256 at 595
+ *          remainder held below its denominator, and so the widest value reaching here is 5^256 at 595
  *          bits and the shift never reaches the top limb.
  */
 static void big_shift_left_one(BigNumber *number)
@@ -269,7 +269,7 @@ static void big_shift_left_one(BigNumber *number)
  * @return          1 where left is greater, -1 where right is greater, 0 where the two are equal.
  * @note Walks from the top limb down and stops at the first pair that differ.
  * @note big_divide calls this once per bit position to decide whether the remainder has reached the
- *       denominator, which is what makes the quotient truncate instead of rounding.
+ *       denominator, and that leaves the quotient truncate instead of rounding.
  */
 static int big_compare(const BigNumber *left, const BigNumber *right)
 {
@@ -289,7 +289,7 @@ static int big_compare(const BigNumber *left, const BigNumber *right)
  * @param[in,out] left  Minuend, overwritten with the difference [BORROWS].
  * @param[in]     right Subtrahend [BORROWS].
  * @note big_divide is the only caller, and it subtracts only after big_compare reports the minuend
- *       has reached the subtrahend, so the difference is never negative.
+ *       has reached the subtrahend, and so the difference is never negative.
  * @warning A borrow out of the top limb is dropped. A caller passing the smaller value as the
  *          minuend would get the difference modulo 2^1024 with no diagnostic.
  */
@@ -301,11 +301,11 @@ static void big_subtract(BigNumber *left, const BigNumber *right)
     {
         // Explicit casts widen both limbs to uint64_t before subtracting. The true difference lies
         // in -2^32 through 2^32 - 1. A negative one wraps above 2^63 and a non-negative one cannot
-        // reach it, which is what makes bit 63 the borrow
+        // reach it, and that leaves bit 63 the borrow
         const uint64_t difference = (uint64_t)left->limb[index] - (uint64_t)right->limb[index] - borrow;
 
         // Explicit cast narrows to the low limb deliberately. It drops bits 32 through 63, which are
-        // all set on a negative difference and all clear otherwise, so the single bit the next line
+        // all set on a negative difference and all clear otherwise, and so the single bit the next line
         // reads out of position 63 carries everything the cast discarded
         left->limb[index] = (uint32_t)difference;
         borrow = (difference >> 63) & 1u;
@@ -321,7 +321,7 @@ static void big_subtract(BigNumber *left, const BigNumber *right)
  * @note Restoring binary long division, taking one bit of the numerator per position.
  * @note The quotient is the floor of the division. The reciprocal cases rest on that, because
  *       mmgr_pow5_down holds truncated reciprocals and a rounded quotient would not match one.
- * @warning Zeroes quotient before reading numerator, so passing one BigNumber as both would leave
+ * @warning Zeroes quotient before reading numerator, and so passing one BigNumber as both would leave
  *          the walk reading limbs this already cleared. Both call sites pass separate objects.
  * @warning A denominator of zero sets every quotient bit and does not fail. Both call sites divide
  *          by a big_power_of_five result, which starts at 1 and is never zero.
@@ -397,8 +397,8 @@ static void big_power_of_five(BigNumber *number, int exponent)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
- * @note Every value this suite uses has automatic storage inside the case that builds it, so there
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
+ * @note Every value this suite uses has automatic storage inside the case that builds it, and so there
  *       is no shared state to prepare here.
  */
 void setUp(void)
@@ -410,7 +410,7 @@ void setUp(void)
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
  * @note Nothing in this suite allocates. Every BigNumber has automatic storage and ends its lifetime
- *       when the case that declared it returns, so there is nothing to release.
+ *       when the case that declared it returns, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -457,7 +457,7 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
  *
  * @note Covers all three members. A significand that matches while its exponent does not still names
  *       the wrong value, and e2 is checked against length - 128 instead of being left implied.
- * @note Holds whether or not the entry dropped bits, because the stored significand is the top 128
+ * @note Holds regardless of whether the entry dropped bits, because the stored significand is the top 128
  *       bits either way. How many entries are exact is what the two cases below separate.
  */
 void test_every_positive_power_of_five_is_the_top_128_bits_of_the_exact_value(void)
@@ -507,7 +507,7 @@ void test_the_first_six_positive_powers_lose_no_bits_at_all(void)
  * @brief Checks that the last three entries need more than 128 bits and that what they drop is not
  *        zero.
  *
- * @note A power of five is odd, so bit 0 is set in every one. Once the value passes 128 bits, bit 0
+ * @note A power of five is odd, and so bit 0 is set in every one. Once the value passes 128 bits, bit 0
  *       falls among the dropped ones, which makes the discarded remainder nonzero and the stored
  *       significand strictly below the exact value.
  */
@@ -533,7 +533,7 @@ void test_the_last_three_positive_powers_drop_bits_and_drop_them_downward(void)
  *
  * @note Divides 2^(length + 127) by the power of five and inverts nothing. What the entry is
  *       compared against is an exact integer quotient.
- * @note The quotient is always 128 bits. 5^n sits at or above 2^(length-1) and below 2^length, so
+ * @note The quotient is always 128 bits. 5^n sits at or above 2^(length-1) and below 2^length, and so
  *       the ratio lands above 2^127 and at or below 2^128, and the assertion on quotient_length
  *       pins that before either half is read out.
  */
@@ -613,11 +613,11 @@ void test_no_reciprocal_was_rounded_up(void)
 /**
  * @brief Checks the one reciprocal whose value can be read by eye, five to the minus one.
  *
- * @note 1/5 is 0.8, so the normalized significand is 0.8 * 2^128, which is 0xCCCC... across both
- *       halves. The remainder left over is four fifths of a unit, so rounding to nearest would carry
+ * @note 1/5 is 0.8, and so the normalized significand is 0.8 * 2^128, which is 0xCCCC... across both
+ *       halves. The remainder left over is four fifths of a unit, and so rounding to nearest would carry
  *       the low half to 0xCCCC...CCCD instead.
  * @note Overlaps test_every_negative_power_of_five_is_the_exact_reciprocal_truncated_toward_zero on
- *       this entry. A literal checkable by hand does not rest on the arithmetic above, so it still
+ *       this entry. A literal checkable by hand does not rest on the arithmetic above, and so it still
  *       holds where that arithmetic is broken.
  */
 void test_the_reciprocal_of_five_repeats_instead_of_rounding(void)

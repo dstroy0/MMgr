@@ -11,7 +11,7 @@
 A textual diff cannot see this. Two units that both walk a table looking for a match write the same
 five statements with `i`/`n`/`e` in one and `loculus`/`count`/`ent` in the other, and a hash of the text
 puts them in different buckets. So the text is not what is hashed. Comments are blanked first by
-`mask_comments` below - literal-aware, not a regex, and blanking in place rather than deleting, which keeps a
+`mask_comments` below - literal-aware, not a regex, and blanking in place and not deleting, which keeps a
 reported line number equal to the real one - the result is tokenized, and every identifier is replaced
 by the position at which it was first seen. Two blocks that differ only in what things are called
 then reduce to the same token string and land in one bucket.
@@ -19,7 +19,7 @@ then reduce to the same token string and land in one bucket.
 Three renaming strengths, because they answer different questions:
 
   --rename all     every identifier goes, types and callees included. Answers "is this the same
-                   shape", which is what finds one idiom written out forty-eight times.
+                   shape", as finds one idiom written out forty-eight times.
   --rename vars    an identifier immediately followed by `(` keeps its name, and so does anything
                    in ALL_CAPS, which in this tree is a macro. Answers "is this the same algorithm
                    over different data" - the calls and the widths still have to line up. Default.
@@ -30,12 +30,12 @@ Three renaming strengths, because they answer different questions:
 Statement order is not required to match. Every unit carries two hashes: the token sequence, and the
 multiset of its statements with each statement hashed on its own. Two blocks holding the same
 statements in a different order collide on the second and not the first, and are reported as a
-reorder rather than a copy - which is the case a sequence hash silently misses.
+reorder and not a copy - the case a sequence hash silently misses.
 
   --min N      the fewest tokens a unit may hold to be reported (default 24 for fns, 12 for block)
   --win N      statements in a block window (default 4)
   --nums       fold integer literals to one token as well
-  --json       machine-readable, for a script that wants the groups rather than the report
+  --json       machine-readable, for a script that wants the groups and not the report
 """
 
 import hashlib
@@ -69,7 +69,7 @@ TOKEN = re.compile(
 def tokenize(text, first_line=1):
     """The code as (kind, text, line) triples. Comments are gone; whitespace never survives.
 
-    The line travels with the token, which lets a hit be reported where it is, rather than only as a
+    The line travels with the token, which lets a hit be reported where it is, and not only as a
     shape. Nothing downstream reads past the second element. A shape does not see it.
     """
     out = []
@@ -86,8 +86,8 @@ def mask_comments(text):
     strip_comments.rewrite, which readclean reads a file through, deletes comment lines outright.
     That is right for reading and wrong for reporting: a hit at token line 137 of the stripped text
     is not line 137 of the file, and the two drift further apart the more prose a file carries. Blanking in place keeps every offset. A
-    line number is the line number. Literals survive, so "http://x" is still one token and not a
-    comment, which is the same reason readclean does not use a regex.
+    line number is the line number. Literals survive, and so "http://x" is still one token and not a
+    comment, the same reason readclean does not use a regex.
     """
     out = []
     i, n = 0, len(text)
@@ -133,7 +133,7 @@ def split_pp(text):
     it as that macro's body. So the directive lines are lifted out first, and what is left is code
     with the directives blanked to spaces - the offsets do not move, and neither does any line.
 
-    A directive continues while its line ends in a backslash (C11 sec 5.1.1.2), so the continuation
+    A directive continues while its line ends in a backslash (C11 sec 5.1.1.2), and so the continuation
     lines belong to it too.
     """
     lines = text.split("\n")
@@ -158,7 +158,7 @@ def canon(tokens, rename, fold_nums):
     """Rewrite the token list so that only its shape survives.
 
     An identifier becomes I<k>, where k is how many distinct renameable identifiers were seen before
-    it. First appearance is what fixes k, so the same shape reaches the same string no matter what
+    it. First appearance is what fixes k, and so the same shape reaches the same string no matter what
     the names were, and two different shapes cannot reach it by accident: a name reused later in the
     block still maps to the k it was given.
     """
@@ -190,7 +190,7 @@ def statements(tokens):
     """Split a token list at the `;` and the braces, at depth 0 of any parenthesis.
 
     A `for (a; b; c)` header holds two semicolons that do not end a statement, and they sit inside
-    parentheses, which is what separates them.
+    parentheses, as separates them.
     """
     out, cur, paren = [], [], 0
     for tok in tokens:
@@ -217,10 +217,10 @@ def digest(strings):
 
 
 def bag_digest(stmts, rename, fold_nums):
-    """A hash of the statements as a set rather than a sequence.
+    """A hash of the statements as a set and not a sequence.
 
     Each statement canonicalizes on its own. A name introduced in one statement does not fix the
-    numbering of the next. That is what makes the hash blind to order.
+    numbering of the next. That leaves the hash blind to order.
     """
     parts = sorted(digest(canon(s, rename, fold_nums)) for s in stmts)
     return digest(parts)
@@ -234,7 +234,7 @@ def functions(tokens):
 
     A definition is an identifier followed by a parenthesis that closes, and then a `{`, all at brace
     depth 0. A declaration reaches the `;` instead and is walked past. A `struct ... { }` initializer
-    does not open at depth 0 behind a closing parenthesis, so it is not mistaken for one.
+    does not open at depth 0 behind a closing parenthesis, and so it is not mistaken for one.
     """
     out = []
     i, n, depth = 0, len(tokens), 0
@@ -299,7 +299,7 @@ def sources(paths, excludes):
 def load(p):
     """A file, comments off, tokenized, with the directives kept apart from the code.
 
-    This is readclean's `code` view, taken as tokens rather than as lines.
+    This is readclean's `code` view, taken as tokens and not as lines.
     """
     text = io.open(p, encoding="utf-8", errors="replace").read()
     code, directives = split_pp(mask_comments(text))

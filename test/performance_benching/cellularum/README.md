@@ -7,7 +7,7 @@ because the library is built for both instruction sets and they answer different
 ## Build and run
 
 The install used here is ESP-IDF 5.5.5 under `C:\Espressif`, whose virtualenv is named for Python
-3.14. `export.ps1` derives both locations from the environment, so both have to be set:
+3.14. `export.ps1` derives both locations from the environment, and so both have to be set:
 
 ```powershell
 $env:IDF_PATH          = 'C:\Espressif\frameworks\esp-idf-v5.5.5'
@@ -21,7 +21,7 @@ idf.py -B build_esp32s3 -p COM4 flash
 ```
 
 Substitute `esp32c6` and its port for the RISC-V part. Each target keeps its own sdkconfig: the
-default is one shared file, and the two do not agree on CPU frequency, so configuring one leaves the
+default is one shared file, and the two do not agree on CPU frequency, and so configuring one leaves the
 other's build directory pointing at a config that no longer matches the part it was built for.
 
 Cap the job count. ninja defaults to cores + 2, and a full IDF tree at that width took this machine
@@ -51,7 +51,7 @@ the stack first:
 
 Measured on the S3, `len` at n=2048 when that was taken: **26.6 cycles/byte without LTO, 5.0 with**.
 The no-LTO figure is worse than the byte-at-a-time ROM `strnlen` it is being compared to, at 9.0.
-`len` is 2.547 now, so the gap is wider than that pair records; it is left as taken rather than
+`len` is 2.547 now, and so the gap is wider than that pair records; it is left as taken and not
 scaled by guesswork.
 
 ## What the walks stopped doing
@@ -59,7 +59,7 @@ scaled by guesswork.
 The scan loops used to compute two things on every word that can only matter on one word of a scan,
 and that, not the ROM assembly on the other side, was the whole gap against libc:
 
-- **mask.tail per word.** cap is known before the loop, so lanes past it can only fall in the last
+- **mask.tail per word.** cap is known before the loop, and so lanes past it can only fall in the last
   word. The walks now run whole words with no mask and take the short word once, below the loop.
 - **Which lane differs, per word.** `cmp` resolved the differing lane on every word when the common
   case only needs to know whether two words differ at all - one compare. The lane is resolved once,
@@ -67,15 +67,15 @@ and that, not the ROM assembly on the other side, was the whole gap against libc
   that carried a hit or a terminator.
 
 `find` had a third: `lane.eq` rebuilds its broadcast from a byte on every call, and LTO left it as
-an out-of-line call in the hot loop. The sieve's bytes are fixed for the walk, so they are broadcast
+an out-of-line call in the hot loop. The sieve's bytes are fixed for the walk, and so they are broadcast
 once ahead of it and compared inline.
 
-Per 4-byte word, `cmp` went from ~18 instructions to ~6, which is what a word-wise memcmp does.
+Per 4-byte word, `cmp` went from ~18 instructions to ~6, as a word-wise memcmp does.
 
 Three more changes followed, each measured on the part:
 
 - **The aligned load.** Every word was read through `word.load`, which goes to a type carrying
-  `MMGR_ALIGN(1)`. Neither shipping part has an unaligned word load, so the compiler assembled one
+  `MMGR_ALIGN(1)`. Neither shipping part has an unaligned word load, and so the compiler assembled one
   out of four byte loads and six shifts, in the loop. The walks now step to the first word boundary
   and read the body through `word.load_al`. `len` went 3.788 cycles/byte to 3.055 on that alone.
 - **Two words a pass in `len`.** The load and the `has_zero` reading it are a dependent pair and
@@ -98,12 +98,12 @@ The module's .text grew from 6506 to 8550 at -O2 on Xtensa for all of it.
 ## Every timed result must be kept
 
 `DBENCH_KEEP` stores each result to a volatile sink. A result that is computed and dropped is a call
-the optimiser may delete outright, and under LTO it does: the first run of the dispatch measurement
+the optimizer may delete outright, and under LTO it does: the first run of the dispatch measurement
 reported `0.00` cycles for both arms because both loops had been removed.
 
 ## Results
 
-Raw captures are in `results/`. Ratios are mmgr/libc, so below 1.00 is a win.
+Raw captures are in `results/`. Ratios are mmgr/libc, and so below 1.00 is a win.
 
 | op       | S3 n=8   | S3 n=2048 | C6 n=8   | C6 n=2048 |
 | -------- | -------- | --------- | -------- | --------- |
@@ -120,11 +120,11 @@ with the easy needle and n=16 with the hostile one.
 occurs; `find` searches for one whose first byte is not in the haystack's alphabet at all. MMgr
 costs the same either way - 13400.7 cycles at n=2048 against 13400.8 - because the chain settles
 every start position in a word arithmetically. ROM `strstr` does not: 18474 against 20394. That is
-why the chain keeps its third `has_zero` rather than anchoring on one byte and verifying the other,
+why the chain keeps its third `has_zero` instead of anchoring on one byte and verifying the other,
 which would be about 20% cheaper and would buy it by becoming data dependent exactly where libc
 already is.
 
-What remains above 1.00 is at n=8, and it is fixed cost rather than per-byte work. Subtract the
+What remains above 1.00 is at n=8, and it is fixed cost and not per-byte work. Subtract the
 floor first: `floor_call` is 41 cycles on the S3 and 28 on the C6, and both arms pay it. For `find`
 the rest is prologue - two broadcasts, a span, a reach and a word count settled before the first byte
 is read.
@@ -132,7 +132,7 @@ is read.
 Routing short haystacks past the word machinery to the byte walk was tried twice and lost twice, for
 two different reasons, and both are recorded here so it is not tried a third time. The first attempt
 went through cellul_step_byte per byte, which cost more than the single sieved word it replaced: n=8
-went 207 to 260. The walk's case-sensitive arm is a plain byte compare now, so the second attempt
+went 207 to 260. The walk's case-sensitive arm is a plain byte compare now, and so the second attempt
 should have been cheaper - but factoring the walk into a function both arms could call made it a real
 call on the hot path too, and n=8 went 187 to 308 while n=2048 regressed 10%. Forcing it inline
 instead puts the whole walk in the entry twice. What is left is the shape here: no bypass, one copy

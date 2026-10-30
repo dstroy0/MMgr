@@ -160,7 +160,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 /**
  * @brief Replaces strlen with a scan bounded at MMGR_STR_MAX.
  *
- * @warning Returns MMGR_STR_MAX when no terminator appears within it, rather than scanning further.
+ * @warning Returns MMGR_STR_MAX when no terminator appears within it, instead of scanning further.
  */
 #define strlen(text) MMGR_CALL(cellul.len, CatenaFinitaCfg, .src = (text), .cap = MMGR_STR_MAX)
 
@@ -175,7 +175,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  * @brief Replaces strstr with a case-sensitive search bounded at MMGR_STR_MAX.
  *
  * @note The cast through size_t drops the const the backend returns, matching the strstr signature.
- * @warning Both operands are read to MMGR_STR_MAX, so both must be terminated within it.
+ * @warning Both operands are read to MMGR_STR_MAX, and both must be terminated within it.
  */
 #define strstr(haystack, needle)                                                                                       \
     ((char *)(size_t)MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX,                   \
@@ -185,7 +185,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  * @brief Replaces strcasestr with a case-folded search bounded at MMGR_STR_MAX.
  *
  * @note Differs from the strstr shim only in passing ci as MMGR_TRUE.
- * @warning Both operands are read to MMGR_STR_MAX, so both must be terminated within it.
+ * @warning Both operands are read to MMGR_STR_MAX, and both must be terminated within it.
  */
 #define strcasestr(haystack, needle)                                                                                   \
     ((char *)(size_t)MMGR_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX,                   \
@@ -194,8 +194,8 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 /**
  * @brief Replaces strcmp with an equality test bounded at MMGR_STR_MAX.
  *
- * @note Gives 0 when the two agree and 1 when they do not, so == 0 and ! both test equality.
- * @warning Never negative and never above 1, so it cannot be used to order strings.
+ * @note Gives 0 when the two agree and 1 when they do not, and so == 0 and ! both test equality.
+ * @warning Never negative and never above 1: it cannot be used to order strings.
  */
 #define strcmp(left, right)                                                                                            \
     (!MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = (left), .other = (right), .cap = MMGR_STR_MAX, .ci = MMGR_FALSE))
@@ -204,7 +204,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  * @brief Replaces strcasecmp with a case-folded equality test bounded at MMGR_STR_MAX.
  *
  * @note Gives 0 when the two agree and 1 when they do not.
- * @warning Never negative and never above 1, so it cannot be used to order strings.
+ * @warning Never negative and never above 1: it cannot be used to order strings.
  */
 #define strcasecmp(left, right)                                                                                        \
     (!MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = (left), .other = (right), .cap = MMGR_STR_MAX, .ci = MMGR_TRUE))
@@ -213,7 +213,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  * @brief Replaces strncmp with an equality test over at most limit bytes.
  *
  * @note Gives 0 when the two agree through limit and 1 when they differ before it.
- * @warning Never negative and never above 1, so it cannot be used to order strings.
+ * @warning Never negative and never above 1: it cannot be used to order strings.
  * @warning A terminator does not end the comparison; all limit bytes must be readable in both operands.
  */
 #define strncmp(left, right, limit)                                                                                    \
@@ -224,7 +224,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  * @brief Replaces strncasecmp with a case-folded equality test over at most limit bytes.
  *
  * @note Gives 0 when the two agree through limit and 1 when they differ before it.
- * @warning Never negative and never above 1, so it cannot be used to order strings.
+ * @warning Never negative and never above 1: it cannot be used to order strings.
  * @warning A terminator does not end the comparison; all limit bytes must be readable in both operands.
  */
 #define strncasecmp(left, right, limit)                                                                                \
@@ -234,7 +234,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 /**
  * @brief Replaces strlcpy with a bounded copy that always terminates unless limit is 0.
  *
- * @note Returns the bytes copied, which is the truncated length rather than the source length.
+ * @note Returns the bytes copied, the truncated length and not the source length.
  */
 #define strlcpy(dest, source, limit)                                                                                   \
     MMGR_CALL(cellul.copy, CatenaFinitaCfg, .dst = (dest), .src = (source), .cap = (limit))
@@ -244,7 +244,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
  *
  * @note A value of 0 returns the address of the terminator, as strchr does.
  * @note The cast through size_t drops the const the backend returns, matching the strchr signature.
- * @warning text is read to MMGR_STR_MAX, so it must be terminated within it.
+ * @warning text is read to MMGR_STR_MAX, and so it must be terminated within it.
  */
 #define strchr(text, value)                                                                                            \
     ((char *)(size_t)MMGR_CALL(cellul.chr, CatenaFinitaCfg, .src = (text), .cap = MMGR_STR_MAX,                        \

@@ -2,7 +2,7 @@
 #define MMGR_TEST_HOST_THREADS_H
 
 // The platform's thread headers live in host_threads.c alone. Unity's generator copies every
-// #include of a suite into its runner and reads no #if, so a suite naming windows.h on one arm and
+// #include of a suite into its runner and reads no #if, and therefore a suite naming windows.h on one arm and
 // pthread.h on the other would hand the runner both.
 
 #define MMGR_HOST_THREADS_MOST 16u

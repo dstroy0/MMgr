@@ -987,7 +987,7 @@ static uint64_t bench_to_u64_even(const BenchWide *w, uint32_t above)
 }
 
 // The same, with the tie taken up. A half rounds up whatever lies below it and whatever the parity
-// is, which is what leaves rest and above with nothing to say.
+// is, as leaves rest and above with nothing to say.
 static uint64_t bench_to_u64_up(const BenchWide *w)
 {
     if ((w->hi | w->lo) == 0u)
@@ -1647,7 +1647,7 @@ static BenchFixedParts bench_fixed_parts(double value)
     return parts;
 }
 
-// What the shipped entry produces, which is what the report is checked against.
+// What the shipped entry produces, as the report is checked against.
 static embed_u64 bench_fixed_frac(BenchFixedParts parts, uint8_t decimals)
 {
     embed_u64 rem = parts.rem;
@@ -1656,7 +1656,7 @@ static embed_u64 bench_fixed_frac(BenchFixedParts parts, uint8_t decimals)
 }
 
 // The local copy of the scale, rounded by whichever of the two tie rules is asked for. The library
-// entry is not on this path, so both rules stay measurable whichever one the module carries.
+// entry is not on this path, and so both rules stay measurable whichever one the module carries.
 static uint64_t bench_local_frac(BenchFixedParts parts, uint8_t decimals, embed_word above, int take_tie_up)
 {
     BenchWide wide;
@@ -1682,9 +1682,9 @@ static BenchFixedParts g_tie_half;
 static BenchFixedParts g_tie_eighth;
 static BenchFixedParts g_tie_pi;
 
-// The cost rows read every operand through these, so neither arm can be folded to a constant and
+// The cost rows read every operand through these, and so neither arm can be folded to a constant and
 // both pay the same load. The only difference left between the arms is how `above` is arrived at,
-// which is the change being measured.
+// the change being measured.
 static volatile uint64_t g_tie_rem;
 static volatile int32_t g_tie_e2;
 static volatile uint8_t g_tie_dec;
@@ -1699,7 +1699,7 @@ static void bench_tie_load(BenchFixedParts parts, uint8_t decimals)
     g_tie_int = parts.int_part;
 }
 
-// Both cost arms walk the same local scale and differ only in the tie rule, so what the row reports
+// Both cost arms walk the same local scale and differ only in the tie rule, and so what the row reports
 // is the rule and not the path to it.
 static uint64_t bench_tie_even(void)
 {
@@ -1747,7 +1747,7 @@ static void bench_round_report(void)
     }
     // live_wrong is the shipped entry against the rule. even_wrong is the rule it replaced, kept as
     // the local copy so the two stay comparable. copy_disagrees is the up copy against the shipped
-    // entry, which is what makes the cost rows below a comparison of the same two functions.
+    // entry, and that leaves the cost rows below a comparison of the same two functions.
     DBENCH_PRINTF("DB round_check     live_wrong=%u even_wrong=%u copy_disagrees=%u\n", live_wrong, even_wrong,
                   copy_wrong);
 }

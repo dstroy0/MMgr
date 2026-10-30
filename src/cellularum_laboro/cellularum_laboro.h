@@ -10,16 +10,16 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note The calls taking CatenaFinitaCfg are bounded by a cap the caller states, so no walk runs
- *       past it even where the bytes carry no terminator. That bound is what makes these usable
- *       where a libc string call is not, since a missing terminator stops a walk rather than
+ * @note The calls taking CatenaFinitaCfg are bounded by a cap the caller states, and so no walk runs
+ *       past it even where the bytes carry no terminator. That bound makes these usable
+ *       where a libc string call is not, since a missing terminator stops a walk and not
  *       running it off the end.
  * @note ws and digit are the exception. Each reads the single byte at args->at and never consults
  *       cap, because a one byte test has nothing to run past.
  * @note The TransfiguroCfg conversions carry no bound at all. Each reads until the first byte that is
- *       not part of the number, so the caller owes them such a byte inside readable storage. A
+ *       not part of the number, and so the caller owes them such a byte inside readable storage. A
  *       terminator is the usual one.
- * @note The VerboProgrediorCfg pair take their operands by value and read no memory, which is why
+ * @note The VerboProgrediorCfg pair take their operands by value and read no memory, and so
  *       neither carries a bound.
  * @warning Nothing here allocates or hands back ownership. Every pointer in and out is the caller's,
  *          and the addresses find and chr return point into the src they were given.
@@ -36,7 +36,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Most needle offsets the search sieve tests per candidate word.
  *
- * @note A ceiling rather than a count. cellul_pick_rows takes the smallest of this, the needle length
+ * @note A ceiling and not a count. cellul_pick_rows takes the smallest of this, the needle length
  *       and MMGR_SWAR_BYTES. A short needle is sieved on fewer offsets than this allows.
  * @note cellul_find_core sizes two arrays by it, the chosen offsets and their broadcasts, and reads
  *       element 0 of each outside the loop that walks the rest.
@@ -50,7 +50,7 @@ EMBED_BEGIN_DECLS
 #endif
 
 /**
- * @brief Longest haystack a one or two byte needle is settled over by a mask chain rather than by
+ * @brief Longest haystack a one or two byte needle is settled over by a mask chain and not by
  *        building a sieve.
  *
  * @note Case sensitive searches only. The chain compares its broadcasts without folding them. A
@@ -69,8 +69,8 @@ EMBED_BEGIN_DECLS
  *           RISC-V chain 124     488   13393
  *           RISC-V sieve 219     680   17059
  *
- *       The chain wins at every length on both parts, which is why the default is no limit. The knob
- *       is kept because that is a measurement rather than a proof, and a part or a workload that
+ *       The chain wins at every length on both parts, and so the default is no limit. The knob
+ *       is kept because that is a measurement and not a proof, and a part or a workload that
  *       disagrees should be able to say so without editing the walk.
  * @warning Taken only when MMGR_FIND_CHAIN_MAX is not already defined. A build may supply its own.
  *          Zero sends every needle through the sieve.
@@ -91,7 +91,7 @@ typedef struct
     const size_t cap;        /**< Bytes readable from src, and for copy the bytes writable at dst. */
     const char *const other; /**< Second operand for diff, eq, starts, find and has [BORROWS]. */
     const size_t other_cap;  /**< Bytes readable from other. */
-    const size_t other_len;  /**< Needle length find and has take when non-zero, rather than measuring. */
+    const size_t other_len;  /**< Needle length find and has take when non-zero, and not measuring. */
     char *const dst;         /**< Destination for copy [BORROWS]. */
     const size_t at;         /**< Offset into src for len, ws and digit. */
     const uint8_t byte;      /**< Byte sought by chr. */
@@ -102,7 +102,7 @@ typedef struct
  * @brief Arguments for the single-step compares used to drive a walk.
  *
  * @note step_word reads word_left and word_right. step_byte reads byte_left and byte_right.
- * @note Both operands come by value, so neither call reads memory and neither needs a bound.
+ * @note Both operands come by value, and so neither call reads memory and neither needs a bound.
  */
 typedef struct
 {
@@ -131,7 +131,7 @@ typedef struct
  * @note EMBED_TABLE_LAYOUT asserts the seventeen members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
  * nothing else.
  * @note Byte and wire verbs are not here. rd_str and mpint_fixed read a length off the wire rather
- *       than out of a string, so they belong to the byteio module and act on its spans.
+ *       than out of a string, and so they belong to the byteio module and act on its spans.
  */
 typedef struct
 {
@@ -172,7 +172,7 @@ CatenaFinitaCfg mmgr_cellul_init(const CatenaFinitaCfg *args);
  * @return         Bytes before the terminator, at most cap minus at.
  * @note Returns cap minus at when no terminator is found in range.
  * @warning args->at must not exceed args->cap, and src must be readable to args->cap. The last partial
- *          word is loaded whole and masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read.
+ *          word is loaded whole and masked after, and so up to MMGR_SWAR_BYTES - 1 bytes past cap are read.
  */
 size_t mmgr_cellul_len(const CatenaFinitaCfg *args);
 
@@ -183,7 +183,7 @@ size_t mmgr_cellul_len(const CatenaFinitaCfg *args);
  * @return         Offset of the first difference, or cap when the two agree throughout.
  * @note A terminator does not end the scan. cap is the only bound.
  * @warning Both src and other must be readable for cap bytes. The last partial word is loaded whole and
- *          masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
+ *          masked after, and up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
 size_t mmgr_cellul_diff(const CatenaFinitaCfg *args);
 
@@ -193,7 +193,7 @@ size_t mmgr_cellul_diff(const CatenaFinitaCfg *args);
  * @param[in] args Bytes src and other, the extent cap, and ci [BORROWS].
  * @return         EMBED_TRUE when both reach a terminator with no difference before it.
  * @warning Both src and other must be readable for cap bytes. The last partial word is loaded whole and
- *          masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
+ *          masked after, and up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
 embed_bool mmgr_cellul_eq(const CatenaFinitaCfg *args);
 
@@ -204,7 +204,7 @@ embed_bool mmgr_cellul_eq(const CatenaFinitaCfg *args);
  * @return         EMBED_TRUE when other reaches its terminator with no difference before it.
  * @note An empty other matches any src.
  * @warning Both src and other must be readable for cap bytes. The last partial word is loaded whole and
- *          masked after, so up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
+ *          masked after, and up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
 embed_bool mmgr_cellul_starts(const CatenaFinitaCfg *args);
 
@@ -215,7 +215,7 @@ embed_bool mmgr_cellul_starts(const CatenaFinitaCfg *args);
  * @return         Address inside src, or NULL when there is no match [BORROWS].
  * @note An empty needle returns src. A needle longer than cap returns NULL.
  * @warning src must be readable for cap bytes and other for other_cap bytes. The needle is loaded a
- *          whole word at a time and masked after, so up to MMGR_SWAR_BYTES - 1 bytes past other_cap
+ *          whole word at a time and masked after, and so up to MMGR_SWAR_BYTES - 1 bytes past other_cap
  *          are read. The haystack walk holds itself inside cap.
  */
 const char *mmgr_cellul_find(const CatenaFinitaCfg *args);
@@ -245,8 +245,8 @@ const char *mmgr_cellul_chr(const CatenaFinitaCfg *args);
  * @brief Copies src into dst, writing at most cap bytes including the terminator.
  *
  * @param[in,out] args Source src, destination dst, and the destination extent cap [BORROWS].
- * @return             Bytes copied, not counting the terminator.
- * @note A cap of 0 writes nothing at all, not even a terminator.
+ * @return             Bytes copied and not counting the terminator.
+ * @note A cap of 0 writes nothing at all and not even a terminator.
  * @warning dst must be writable for cap bytes and src readable for cap minus one.
  */
 size_t mmgr_cellul_copy(const CatenaFinitaCfg *args);

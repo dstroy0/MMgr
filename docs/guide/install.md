@@ -42,8 +42,8 @@ lib_deps = https://github.com/dstroy0/MMgr.git
 build_flags = -std=gnu11
 ```
 
-`library.json` sets `srcDir` to `src`, unflags `-std=gnu99` and adds `-std=gnu11`, so the C11
-requirement is carried by the manifest rather than by your build file.
+`library.json` sets `srcDir` to `src`, unflags `-std=gnu99` and adds `-std=gnu11`, and so the C11
+requirement is carried by the manifest and not by your build file.
 
 ## Arduino
 
@@ -53,7 +53,7 @@ editor the module stems so `spat` and `scrut` highlight.
 
 ## Configuring it
 
-Every knob is a preprocessor define with a default, so you set only what you are changing:
+Every knob is a preprocessor define with a default, and so you set only what you are changing:
 
 ```cmake
 target_compile_definitions(my_app PRIVATE
@@ -62,7 +62,7 @@ target_compile_definitions(my_app PRIVATE
 )
 ```
 
-Sizes are not among them. A pool states its own extent at its declaration, so there is no build knob
+Sizes are not among them. A pool states its own extent at its declaration, and so there is no build knob
 that sizes one.
 
 @ref ref_configuration lists all of them.
@@ -70,7 +70,7 @@ that sizes one.
 ## Why there are no install() rules
 
 There is no `install()`, no `export()`, no `MMgrConfig.cmake` and no `find_package` support, and
-that is deliberate rather than unfinished.
+that is deliberate and not unfinished.
 
 The ABI is a function of the compile-time widths. A `libmmgr.a` built at `EMBED_WORD_BITS=64` and a
 consumer compiled at `EMBED_WORD_BITS=32` disagree about the size of `embed_word`, therefore about

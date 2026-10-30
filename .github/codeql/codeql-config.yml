@@ -5,8 +5,8 @@ name: "MMgr CodeQL config"
 # Unity is vendored under test/vendor and is not our code; its findings are noise that recurs on
 # every run and buries the ones that are ours. The build tree is machine output.
 #
-# Anchored two ways on purpose: a leading "**/" matches path segments BEFORE the directory, of which
-# a repo-root directory has none, so the bare pattern is the one that actually catches it.
+# Anchored two ways deliberately: a leading "**/" matches path segments BEFORE the directory, of which
+# a repo-root directory has none, and so the bare pattern is the single one that actually catches it.
 paths-ignore:
   - "test/vendor/**"
   - "**/test/vendor/**"

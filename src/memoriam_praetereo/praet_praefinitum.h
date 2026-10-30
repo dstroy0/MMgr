@@ -25,13 +25,13 @@
  *       across translation units on top of this, which is a separate half of the same idea and not
  *       something this depends on.
  * @note #warning is a GNU and clang directive and is standard from C23. This library targets those
- *       two compilers and no others, so it is available everywhere this builds.
+ *       two compilers and no others, and so it is available everywhere this builds.
  * @note Every message is a #warning directive, with no macro over _Pragma. GCC's warning pragma
  *       keeps only the first string literal after it. A message written as adjacent literals
  *       arrives cut off at the first one - which still reads as a finished sentence and still passes a
  *       check written against its opening words. That got past a green sweep column here once. A
  *       #warning takes the rest of the line and arrives whole.
- * @warning A directive cannot come out of a macro expansion, so this only works where the report sits
+ * @warning A directive cannot come out of a macro expansion, and so this only works where the report sits
  *          at file scope. Every knob here does. The one report that fires from inside a macro is the
  *          boundary word answer at a declaration, and praet_ordo.h reaches that a different way.
  * @warning No message interpolates a macro. Neither #warning nor the pragma expands one. A name in
@@ -43,7 +43,7 @@
 /**
  * @brief Logical channels one context carries.
  *
- * @note Per part, and the caller is the one who knows which part. There is no number here that is
+ * @note Per part, and the caller is the single one who knows which part. There is no number here that is
  *       right for everyone.
  */
 #ifndef PRAET_CHANNELS
@@ -56,10 +56,10 @@
 /**
  * @brief Microseconds the engine spends settling before it will take a transfer.
  *
- * @note Microseconds, not milliseconds. DMA timing is tight enough that a millisecond is not a unit
+ * @note Microseconds and not milliseconds. DMA timing is tight enough that a millisecond is not a unit
  *       anything here can be expressed in.
  * @warning At EMBED_WORD_BITS=16 a microsecond count wraps at 65535, about 65 milliseconds. No
- *          engine takes that long to come up, so this knob is safe at every width.
+ *          engine takes that long to come up, and so this knob is safe at every width.
  */
 #ifndef PRAET_SETTLE_MICROS
 #define PRAET_SETTLE_MICROS 0u
@@ -71,11 +71,11 @@
 /**
  * @brief Microseconds a running channel may go without the port kicking it before it reads stalled.
  *
- * @note A watchdog window, not a transfer length. The port kicks this whenever the engine shows a
+ * @note A watchdog window and not a transfer length. The port kicks this whenever the engine shows a
  *       sign of life, and a window that goes unkicked says the channel stopped moving - it never
  *       says the transfer finished. Completion arrives from the port, because how long a transfer
  *       takes is not something this library can know.
- * @note That is also why the width is not a problem. A watchdog window is short on purpose, so the
+ * @note That is also why the width is not a problem. A watchdog window is short deliberately, and so the
  *       65 millisecond ceiling a 16-bit word puts on a microsecond count is far above any value
  *       worth setting here, while a transfer's runtime has no bound at all.
  */

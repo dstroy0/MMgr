@@ -31,7 +31,7 @@ add_subdirectory(fractio)
 add_subdirectory(verba_scribo)
 add_subdirectory(numeros_scribo)
 
-# One aggregate per environment. A test or a consumer links `mmgr_<env>` rather than naming
+# One aggregate per environment. A test or a consumer links `mmgr_<env>` instead of naming
 # seventeen modules and getting the list wrong.
 foreach(entry IN LISTS MMGR_ENVIRONMENTS)
   mmgr_env_name("${entry}" env defs)

@@ -27,7 +27,7 @@
  *
  * @param[in] bits_ Bits to clear.
  * @return          The complement, at the flag word's width.
- * @note The integer promotions run the complement at int width, so the result arrives as a negative
+ * @note The integer promotions run the complement at int width, and so the result arrives as a negative
  *       int on its way back into an unsigned flag word. The outer cast puts it at the width these
  *       masks work at.
  */
@@ -45,7 +45,7 @@
  * @brief Every bit the entries below take out of a flag word they are keeping.
  *
  * @note The union of what submit, kick, completed, resolve and the settle clear in service mask away.
- *       Those five keep the rest of the word, so the two assertions under this settle at compile time
+ *       Those five keep the rest of the word, and so the two assertions under this settle at compile time
  *       what no run could: a clear cannot reach a bit outside the map, and cannot reach the region
  *       descriptor at all.
  * @note The detach path in service is not in this list, because it does not clear a word - it assigns
@@ -71,7 +71,7 @@ EMBED_STATIC_ASSERT((PRAET_CLEARED_BITS & (uint32_t)~PRAET_MAP_MASK) == 0u,
  * @param[in,out] context Context the channel belongs to [BORROWS].
  * @param[in]     channel Channel to write.
  * @param[in]     now     The word to leave behind.
- * @note Every entry that changes a channel's state goes through this. That is what lets the
+ * @note Every entry that changes a channel's state goes through this. That lets the
  *       examination arm record every site, including the ones nobody remembered to
  *       instrument, and it is the same reason the whole access control ended up in one function.
  * @note A word that did not change is not written and is not recorded. Recording it would say a
@@ -144,7 +144,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
         now |= (uint32_t)PRAET_SETTLING;
     }
 
-    // The field macro widens to the flag word before the shift, which is what a 16-bit embed_word
+    // The field macro widens to the flag word before the shift, as a 16-bit embed_word
     // needs - the region byte would otherwise shift off the top of its own type and land as zero
     now |= PRAET_REGION_FIELD(region);
 
@@ -153,7 +153,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
     context->bound[channel] = bound;
     context->bound_bytes[channel] = bytes;
 #else
-    // A build with no recovery records nothing about a transfer, so it has nowhere to keep these and
+    // A build with no recovery records nothing about a transfer, and so it has nowhere to keep these and
     // nothing that would read them. The pool was still named at the attach, and the compiler still
     // proved it exists
     (void)bound;
@@ -238,7 +238,7 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel)
         return;
     }
 
-    // A channel that is moving again is not stalled, so the status comes off with the same kick that
+    // A channel that is moving again is not stalled, and so the status comes off with the same kick that
     // pushes the window out
     praet_ordo_write_flags(context, channel, context->flags[channel] & PRAET_WITHOUT(PRAET_STALLED));
     context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
@@ -313,7 +313,7 @@ static uint32_t praet_boundary_crc(const PraetOrdo *context, embed_word channel)
     const embed_word sampled = context->position[channel];
     const embed_word remainder = sampled % word_bytes;
 
-    // A sample already on a boundary has no partial word under it, so there is nothing to measure and
+    // A sample already on a boundary has no partial word under it, and so there is nothing to measure and
     // the word boundary was already the exact answer
     if (remainder == 0u)
     {
@@ -322,7 +322,7 @@ static uint32_t praet_boundary_crc(const PraetOrdo *context, embed_word channel)
 
     const embed_word first = sampled - remainder;
     const embed_word length = context->length[channel];
-    // The sum runs at int width and is compared there, so it cannot wrap. It comes back narrower only
+    // The sum runs at int width and is compared there, and so it cannot wrap. It comes back narrower only
     // on the arm where it is at most the length, which is an embed_word already
     const embed_word last = ((first + word_bytes) > length) ? length : (embed_word)(first + word_bytes);
     const uint8_t *const bytes = context->start[channel];
@@ -335,7 +335,7 @@ static uint32_t praet_boundary_crc(const PraetOrdo *context, embed_word channel)
 
         for (unsigned turn = 0u; turn < 8u; turn++)
         {
-            // The low bit spread across the whole word, so the polynomial is taken or not without a
+            // The low bit spread across the whole word, and so the polynomial is taken or not without a
             // branch. Eight branches per byte on a recovery path is eight chances to mispredict
             const uint32_t taken = (uint32_t)0u - (running & 1u);
 
@@ -369,7 +369,7 @@ embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word
                                                                              : (uint32_t)PRAET_ABANDONED;
 
     // The one optional branch, and the only place it appears. Everything before the sample is written
-    // and everything past the rounded boundary is not, so the whole ambiguity is the word the engine
+    // and everything past the rounded boundary is not, and so the whole ambiguity is the word the engine
     // was inside - and a context that answered no at its declaration folds this away entirely
     if (context->word_boundary_crc != EMBED_FALSE)
     {
@@ -471,7 +471,7 @@ void praet_ordo_poll(PraetOrdo *context)
 {
     praet_procurator_opus(PRAET_OPUS_POLL);
 
-    // Taking the lock is what makes this ignore the interrupt for the span below. A nested call finds
+    // Taking the lock makes this ignore the interrupt for the span below. A nested call finds
     // it held and declines, leaving the outer call's half-done state untouched
     if (context->praet_busy_bitflag != 0u)
     {
@@ -510,14 +510,14 @@ void praet_ordo_poll(PraetOrdo *context)
         praet_procurator_opus(PRAET_OPUS_ALVEUS);
 
         // The bit comes first in both tests below. A channel that is not settling and a channel
-        // that is not running each cost one mask and nothing else. A timer nothing is waiting on is
+        // that is not running each cost one mask, alone. A timer nothing is waiting on is
         // never compared against
         if (((now & (uint32_t)PRAET_SETTLING) != 0u) && (settled != EMBED_FALSE))
         {
             now &= PRAET_WITHOUT(PRAET_SETTLING);
         }
 
-        // The watchdog says the engine stopped moving. It never says the transfer finished, so the
+        // The watchdog says the engine stopped moving. It never says the transfer finished, and so the
         // core stays busy and the caller decides what to do about bytes whose state is now unknown
         if (((now & PRAET_CORE_MASK) == PRAET_BUSY) &&
             (context->elapsed_micros >= context->keepalive_deadline[channel]))
@@ -581,7 +581,7 @@ embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel)
     const embed_word sampled = context->position[channel];
     const embed_word length = context->length[channel];
 
-    // The sample can be up to one word behind what the engine wrote, so round up to the word it was
+    // The sample can be up to one word behind what the engine wrote, and so round up to the word it was
     // in the middle of. A caller zeroing only as far as the sample would leave a partial word
     const embed_word remainder = sampled % word_bytes;
 
@@ -600,7 +600,7 @@ embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel)
         return length;
     }
 
-    // The addition runs at int width and comes back narrower. The test above is what makes it safe:
+    // The addition runs at int width and comes back narrower. The test above makes it safe:
     // it only reaches here where the length has room for another whole word
     return (embed_word)(sampled + needed);
 }

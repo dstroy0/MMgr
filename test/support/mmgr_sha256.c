@@ -11,13 +11,13 @@
  * @date 2026-09-01
  *
  * @note The six helpers are one expression each and every one is called eight times a round. Left as
- *       calls they cost a frame each time for work that is three instructions, so they carry the
+ *       calls they cost a frame each time for work that is three instructions, and so they carry the
  *       always-inline attribute.
  * @note What inlining buys is not the same on every part. On any of them it removes the call, the
  *       return and the stack traffic. On a superscalar host it also lets the compiler interleave the
  *       independent chains, since S1(e) and Ch(e,f,g) share no operand and can issue together. A
- *       Cortex-M4 is single issue and in order, so it takes the first win and none of the second.
- * @note Everything is unsigned 32 bit and wraps on purpose, which is what the standard specifies.
+ *       Cortex-M4 is single issue and in order, and so it takes the first win and none of the second.
+ * @note Everything is unsigned 32 bit and wraps deliberately, as the standard specifies.
  */
 #include "mmgr_sha256.h"
 
@@ -91,7 +91,7 @@ EMBED_INLINE uint32_t mmgr_sha256_big_sigma1(uint32_t x)
  *
  * @param[in] x Word to mix.
  * @return      The mixed word.
- * @note The third term is a shift and not a rotate, which is the whole difference between this and
+ * @note The third term is a shift and not a rotate, the entirety of difference between this and
  *       the upper case form.
  */
 EMBED_INLINE uint32_t mmgr_sha256_small_sigma0(uint32_t x)
@@ -113,7 +113,7 @@ EMBED_INLINE uint32_t mmgr_sha256_small_sigma1(uint32_t x)
 /**
  * @brief The sixty four round constants, which are the cube roots of the first sixty four primes.
  *
- * @note Written out rather than computed. The standard publishes them, and a table derived here
+ * @note Written out and not computed. The standard publishes them, and a table derived here
  *       would be this file checking its own arithmetic.
  */
 static const uint32_t s_round_constants[64] = {
@@ -139,9 +139,9 @@ static const uint32_t s_initial_state[8] = {
  *
  * @param[in,out] state One eight word hash state [BORROWS].
  * @param[in]     block The 64 bytes to take in [BORROWS].
- * @note The message schedule is 64 words and lives here, so nothing carries it between blocks.
+ * @note The message schedule is 64 words and lives here, and so nothing carries it between blocks.
  * @note Big endian on the way in, whatever the part is. The standard reads the message as bytes and
- *       assembles them, which is what the shifts below do without asking what order the part stores
+ *       assembles them, as the shifts below do without asking what order the part stores
  *       a word in.
  */
 static void mmgr_sha256_compress(uint32_t *state, const uint8_t *block)
@@ -150,7 +150,7 @@ static void mmgr_sha256_compress(uint32_t *state, const uint8_t *block)
 
     for (unsigned index = 0u; index < 16u; index++)
     {
-        // Assembled from bytes rather than read as a word, so the part's own byte order takes no
+        // Assembled from bytes and not read as a word, and so the part's own byte order takes no
         // part in the answer
         schedule[index] = ((uint32_t)block[(index * 4u) + 0u] << 24) | ((uint32_t)block[(index * 4u) + 1u] << 16) |
                           ((uint32_t)block[(index * 4u) + 2u] << 8) | ((uint32_t)block[(index * 4u) + 3u]);
@@ -246,17 +246,17 @@ void mmgr_sha256_take(MmgrSha256 *running, const uint8_t *bytes, size_t length)
  * @param[in,out] running    Context to finish [BORROWS].
  * @param[in]     marker     Byte written where the message ends: 0x80 on a byte boundary, or the
  *                           partial bits with the terminator bit already set into them.
- * @param[in]     total_bits Message length in bits, which is what the standard's length field holds.
+ * @param[in]     total_bits Message length in bits, as the standard's length field holds.
  * @param[out]    digest     Where the 32 byte result is written [BORROWS].
  * @note The standard defines SHA-256 over bit strings and the byte case is the common specialization
- *       of it. Both entries below are this function with the two arguments filled in differently, so
+ *       of it. Both entries below are this function with the two arguments filled in differently, and so
  *       there is one padding implementation and no second copy to disagree with the first.
  */
 static void mmgr_sha256_finish_with(MmgrSha256 *running, uint8_t marker, uint64_t total_bits,
                                     uint8_t digest[MMGR_SHA256_BYTES])
 {
     // The marker, then zeros, then the length. Where the marker leaves under eight bytes of room the
-    // length goes into a second block, which is the case RFC 6234 TEST2_1 exists to reach
+    // length goes into a second block, the case RFC 6234 TEST2_1 exists to reach
     const size_t left = running->filled;
     uint8_t tail[MMGR_SHA256_BLOCK_BYTES * 2u];
 
@@ -280,7 +280,7 @@ static void mmgr_sha256_finish_with(MmgrSha256 *running, uint8_t marker, uint64_
 
     for (unsigned index = 0u; index < 8u; index++)
     {
-        // Explicit cast narrows one byte out of the count. The shift picks it, so nothing is lost
+        // Explicit cast narrows one byte out of the count. The shift picks it, and so nothing is lost
         tail[tail_bytes - 1u - index] = (uint8_t)(bits & 0xFFu);
         bits >>= 8;
     }
@@ -319,7 +319,7 @@ void mmgr_sha256_bits(const uint8_t *bytes, uint64_t bit_length, uint8_t digest[
     MmgrSha256 running;
 
     // Whole bytes go in the ordinary way. What is left is under eight bits, sitting in the high end
-    // of one more byte, which is how the standard writes a partial final byte and how CAVP's bit
+    // of one more byte, and that is how the standard writes a partial final byte and how CAVP's bit
     // oriented vectors are packed
     const size_t whole = (size_t)(bit_length / 8u);
     const unsigned spare = (unsigned)(bit_length % 8u);
@@ -411,7 +411,7 @@ unsigned mmgr_sha256_first_bit_difference(uint8_t left, uint8_t right)
 
     for (unsigned bit = 0u; bit < 8u; bit++)
     {
-        // Most significant first, so the answer counts the way the byte is written down
+        // Most significant first, and so the answer counts the way the byte is written down
         if ((differing & (uint8_t)(0x80u >> bit)) != 0u)
         {
             return bit;
@@ -437,9 +437,9 @@ typedef struct
  * @brief The vectors this implementation is held to, and how many times each message repeats.
  *
  * @note RFC 6234 section 8.5 picks these to sit on the padding boundaries. "abc" is one block with
- *       room to spare. The 56 octet message leaves under eight bytes after its marker, so the length
+ *       room to spare. The 56 octet message leaves under eight bytes after its marker, and so the length
  *       is pushed into a second block. The 64 octet unit fed ten times is 640 octets, an exact
- *       multiple of the block, so the padding forms a whole block on its own with no message in it.
+ *       multiple of the block, and so the padding forms a whole block on its own with no message in it.
  * @note The empty message is RFC 8448 section 3's Transcript-Hash("").
  * @note The fourth entry repeats, which is also what makes it a streaming case: ten takes of 64
  *       bytes must reach the same digest as one take of 640.
@@ -513,7 +513,7 @@ int mmgr_sha256_self_test(void)
     }
 
     // One million 'a', fed as a thousand takes of a thousand bytes. The pieces do not line up with
-    // the 64 byte block, which is what makes this the case that proves any split reaches one answer
+    // the 64 byte block, and that leaves this the case that proves any split reaches one answer
     uint8_t chunk[1000];
     uint8_t got[MMGR_SHA256_BYTES];
     MmgrSha256 running;

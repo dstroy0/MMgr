@@ -6,8 +6,8 @@ differently: ESP32-S3 (Xtensa LX7, 240 MHz) and ESP32-C6 (RISC-V, 160 MHz).
 
 The harness is ProtoCore's, brought over and adapted: the same `bench.py`, the same
 `bench_matrix.json` shape, the same `DBENCH_*` macros and the same `DB ` line. What changed is the
-plumbing underneath - MMgr has no clock module and no platform seam, so the counter is read straight
-from the part and a host build compiles the module's own sources and nothing else.
+plumbing underneath - MMgr has no clock module and no platform seam, and so the counter is read straight
+from the part and a host build compiles the module's own sources, alone.
 
 ## Layout
 
@@ -37,7 +37,7 @@ idf.py -C test/performance_benching/cellularum -B build_esp32s3 -p COM4 flash
 ```
 
 Substitute `esp32c6` and its port for the RISC-V part. Each target keeps its own sdkconfig: the
-default is one shared file, and the two do not agree on CPU frequency, so configuring one otherwise
+default is one shared file, and the two do not agree on CPU frequency, and so configuring one otherwise
 leaves the other's build directory pointing at a config that no longer matches the part it was built
 for.
 
@@ -50,14 +50,14 @@ any time catches a whole pass.
 ## Two things the harness has to get right
 
 **LTO is not optional.** The SWAR primitives are generated in `verbum_scrutor.c` and called by name
-from every other module, so nothing inlines them across translation units on its own; the desktop
+from every other module, and so nothing inlines them across translation units on its own; the desktop
 build sets `CMAKE_INTERPROCEDURAL_OPTIMIZATION` for that reason. ESP-IDF appends `-fno-lto` to every
 link unconditionally, and appending `-flto` after it is not enough - the flag has to be taken back
 out, which each bench's `main/CMakeLists.txt` does. Built without it, one four-byte word step becomes
 three to five windowed calls with their argument structs spilled to the stack.
 
 **Every timed result must be kept.** `DBENCH_KEEP` stores each one to a volatile sink. A result that
-is computed and dropped is a call the optimiser may delete outright, and under LTO it does: the first
+is computed and dropped is a call the optimizer may delete outright, and under LTO it does: the first
 run of the dispatch measurement reported `0.00` cycles for both arms because both loops had been
 removed.
 
@@ -69,7 +69,7 @@ pressure, while the library executes from flash through the instruction cache. T
 against that, not against a portable C libc - and not against a desktop one, which would answer the
 same calls with SSE or AVX that neither part has.
 
-Ratios are mmgr/libc, so below 1.00 is a win. Cycles per byte at n=2048:
+Ratios are mmgr/libc, and so below 1.00 is a win. Cycles per byte at n=2048:
 
 | module     | op   | S3 mmgr | S3 libc |       S3 | C6 mmgr | C6 libc |       C6 |
 | ---------- | ---- | ------: | ------: | -------: | ------: | ------: | -------: |
@@ -89,7 +89,7 @@ libc at length.
 ## Subtract the floor before reading a short length
 
 Both benches report `floor_loop` and `floor_call`: the loop, counter and volatile store with nothing
-in them, and the same plus one call the optimiser may not remove.
+in them, and the same plus one call the optimizer may not remove.
 
 | part     | loop alone | plus one call |
 | -------- | ---------: | ------------: |

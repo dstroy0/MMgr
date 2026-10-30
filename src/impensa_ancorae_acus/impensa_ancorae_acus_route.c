@@ -18,7 +18,7 @@
  * @brief Cost of each byte value, indexed by the byte itself.
  *
  * @note Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.
- * @note 255 marks the NUL and the slash, so neither is ever chosen as a sieve offset.
+ * @note 255 marks the NUL and the slash, and so neither is ever chosen as a sieve offset.
  * @note The braces at 123 and 125 carry a cost, where most punctuation sits at 1.
  */
 static const uint8_t s_impensa[256] = {
@@ -50,7 +50,7 @@ typedef struct
  *
  * @param[in] args Byte to look up [BORROWS].
  * @return         The cost, 1 through 255.
- * @note The table holds 256 entries, so every uint8_t value indexes it in range.
+ * @note The table holds 256 entries, and so every uint8_t value indexes it in range.
  */
 EMBED_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
 {

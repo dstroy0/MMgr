@@ -81,7 +81,7 @@ except ValueError:
     eq("loop condition refused", "refused", "refused")
 
 # 9. a trailing comment on the PREVIOUS statement is text: the statement start is the call's own
-# line, so the staging does not land above the statement before it
+# line, and so the staging does not land above the statement before it
 src4 = "void t(void)\n{\n    fill(1); // the oldest loculus\n\n    old_call(a);\n}\n"
 pos4 = src4.index("old_call")
 end4 = N.close_paren(src4, pos4 + len("old_call("))
@@ -133,7 +133,7 @@ try:
 except ValueError:
     eq("short-circuit && right operand refused", "refused", "refused")
 
-# 11a3. but the LEFT operand has nothing before it to be gated by, so it still converts
+# 11a3. but the LEFT operand has nothing before it to be gated by, and so it still converts
 src6d = "void t(void)\n{\n    if (old_call(a) || fallback())\n    {\n        return;\n    }\n}\n"
 pos6d = src6d.index("old_call")
 end6d = N.close_paren(src6d, pos6d + len("old_call("))
@@ -191,7 +191,7 @@ eq(
 )
 
 # 13. a `#if` / `#endif` bounds the arm. The walk back used to run past both and land the staging in
-# the PREVIOUS arm, so the call ran under another capability's gate and the read ran under none.
+# the PREVIOUS arm, and so the call ran under another capability's gate and the read ran under none.
 src8 = (
     "void t(void)\n" "{\n" "#if A\n" "    reg(one());\n" "#endif\n" "#if B\n" "    reg(old_call());\n" "#endif\n" "}\n"
 )
@@ -203,7 +203,7 @@ eq(
     "void t(void)\n{\n#if A\n    reg(one());\n#endif\n#if B\n    Ns.entry(w);\n    reg(Ns.ptr);\n#endif\n}\n",
 )
 
-# 13b. the first statement of an arm has the directive directly above it and nothing else
+# 13b. the first statement of an arm has the directive directly above it, alone
 src8b = "void t(void)\n{\n#if B\n    reg(old_call());\n#endif\n}\n"
 pos8b = src8b.index("old_call")
 end8b = N.close_paren(src8b, pos8b + len("old_call("))
@@ -248,7 +248,7 @@ eq(
     "        Ns.entry(w);\n        n = Ns.n;\n        }\n}\n",
 )
 
-# 14b. a braceless `if` body is one statement to statement_start, so the staging used to land ABOVE
+# 14b. a braceless `if` body is one statement to statement_start, and so the staging used to land ABOVE
 # the head and the call ran whatever the condition said.
 src9b = "void t(void)\n{\n    if (ok)\n        n = old_call(a);\n    next();\n}\n"
 pos9b = src9b.index("old_call")

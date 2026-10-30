@@ -6,7 +6,7 @@
 
 # The ring state and every entry are defined in the .c and only declared in the header. A
 # consumer compiles against no layout at all and <stdatomic.h> stays this file's problem. LTO is
-# what folds a call back into its caller across that boundary, so the separation costs nothing at
+# what folds a call back into its caller across that boundary, and so the separation costs nothing at
 # link time. No DEPS: the span mover, the bit index and the span type are all defined in the .c,
 # so the module reaches nothing outside mmgr.h and what embedded_types puts behind it.
 mmgr_add_module(memoria_anularis

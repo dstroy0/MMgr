@@ -10,11 +10,11 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note Class membership as a bitmap lookup rather than a chain of range compares. One shift, one
+ * @note Class membership as a bitmap lookup and not a chain of range compares. One shift, one
  *       mask and one test answer any class, and the cost does not grow with how many ranges the
  *       class covers.
  * @note Covers code points 0 to 127 only. A byte of 0x80 or above is in no class here, which is
- *       what keeps the table sixteen bytes rather than thirty-two.
+ *       what keeps the table sixteen bytes and not thirty-two.
  */
 #ifndef MMGR_ASCII_PERSONA_BITORUM_H
 #define MMGR_ASCII_PERSONA_BITORUM_H
@@ -26,7 +26,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief Sixteen bytes holding one bit for each of the code points 0 to 127.
  *
- * @note A code point is located by shift and mask rather than by search. Code point n is bit
+ * @note A code point is located by shift and mask and not by search. Code point n is bit
  *       (n & 7) of bits[n >> 3]. Any class answers in the same three operations.
  */
 typedef struct
@@ -39,7 +39,7 @@ typedef struct
  *
  * @note mmgr_ascii_in reads bits[byte >> 3] for every byte below 0x80. All sixteen have to be
  *       there.
- * @note Sixteen reach code point 127 and no further, which is what leaves a byte of 0x80 or above in
+ * @note Sixteen reach code point 127 and no further, as leaves a byte of 0x80 or above in
  *       no class at all.
  */
 EMBED_STATIC_ASSERT(sizeof(MmgrAsciiMask) == 16u, "an ASCII class mask is exactly 128 bits");
@@ -47,7 +47,7 @@ EMBED_STATIC_ASSERT(sizeof(MmgrAsciiMask) == 16u, "an ASCII class mask is exactl
 /**
  * @brief Character class selector, numbered from 0.
  *
- * @note MMGR_ASCII_CLASSES is the enumerator count, not a class. Passing it is out of range.
+ * @note MMGR_ASCII_CLASSES is the enumerator count and not a class. Passing it is out of range.
  */
 typedef enum
 {
@@ -61,7 +61,7 @@ typedef enum
     MMGR_ASCII_SPACE,     /**< 9 to 13, and 32. */
     MMGR_ASCII_CTRL,      /**< 0 to 31, and 127. */
     MMGR_ASCII_PRINT,     /**< 32 to 126. */
-    MMGR_ASCII_CLASSES    /**< Enumerator count, not a class. */
+    MMGR_ASCII_CLASSES    /**< Enumerator count and not a class. */
 } MmgrAsciiClass;
 
 /**

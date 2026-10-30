@@ -18,7 +18,7 @@ the schedule knob `PRAET_CHANNELS` (`src/memoriam_praetereo/praet_praefinitum.h:
 entries assert against.
 
 Neither config struct ties an index to storage (`src/memoriam_praetereo/memoriam_praetereo.h:74-92`).
-A caller writes `.channel = 2` and the library takes it, so the
+A caller writes `.channel = 2` and the library takes it, and so the
 association between a channel and the bytes it moves lives in the caller's head. The four entries
 are `open`, `tx_submit`, `close` and `poll` (`src/memoriam_praetereo/memoriam_praetereo.h:100-107`),
 and each one is reached with a channel number. The schedule beside them in `praet_ordo.h` is reached
@@ -48,7 +48,7 @@ cost of its own.
 
 `MMGR_PARS_DECLARED_ONCE` catches a second declaration of one pool name inside a translation unit,
 and prints the identifier `name_##_declared_twice_but_a_pool_symbol_names_one_region_only`
-(`include/mmgr.h:147-151`). `MMGR_PARS_TOKEN` emits an initialized object with external linkage, so
+(`include/mmgr.h:147-151`). `MMGR_PARS_TOKEN` emits an initialized object with external linkage, and so
 two translation units declaring one pool name give the linker two strong definitions and it refuses
 them by name (`include/mmgr.h:130`). `MMGR_PARS_CLAIMED_ONCE` catches a pool dressed twice, keyed on
 the pool alone with no dresser's name in it (`include/mmgr.h:168-172`).
@@ -78,12 +78,12 @@ Measured against those entries at `-O2`, with a legal-use control clean in every
 past the cell by an explicit length, an index below the cell, one index past the cell, an index far
 past the cell but still inside the pool, and an index past the pool are all reported. The
 diagnostics name the cell extent. `-fanalyzer` added nothing over `-O2` at either optimization
-level, so the two analyzer environments once planned for `MMGR_ENVIRONMENTS`
+level, and so the two analyzer environments once planned for `MMGR_ENVIRONMENTS`
 (`CMakeLists.txt:101-107`) are not needed.
 
 Two conditions on that result, both measured. The bound survives only where the call is not folded
 away, which the dispatch table convention already guarantees
-(`include/mmgr.h:106-108`). And link-time optimization removes it: with `MMGR_LTO` on, which is the
+(`include/mmgr.h:106-108`). And link-time optimization removes it: with `MMGR_LTO` on, the
 default (`CMakeLists.txt:18`), the allocator inlines across the translation unit boundary and the
 cell-level extent is gone. A check build has to turn it off. The shipping build keeps it.
 
@@ -97,15 +97,15 @@ the statuses above it (`src/memoriam_praetereo/praet_tabula_vexillorum.h:67`, `:
 polls the busy bit. A second call is the normal path.
 
 A state word carries the four-state core in its low bits with flags above it, in one machine word.
-`close` writes the request, the word reports the result, and the poll reads the word, so `close`
+`close` writes the request, the word reports the result, and the poll reads the word, and so `close`
 keeps its signature and the caller has something to poll. That makes the state word the completion
 mechanism for teardown.
 
 Exclusion on that word is a compile-time setting with three values, and a part pays for what it
 has. No qualifier where there is no interrupt handler and no second core. `volatile` for an
-interrupt handler on the same core. Acquire and release for a second core, which is the pattern
+interrupt handler on the same core. Acquire and release for a second core, the pattern
 `memoria_anularis` already uses. Measured on the host, all three produce identical object size and
-leave the cell bounds firing, so the qualifier on the state word does not reach the buffer. That
+leave the cell bounds firing, and so the qualifier on the state word does not reach the buffer. That
 result holds wherever it is built, because it is a property of what the compiler can see. The host
 figure itself is not a result: x86-64 emits no barrier for acquire or release, and Xtensa and
 RISC-V both need real fence instructions.
@@ -152,10 +152,10 @@ name.
 `test/integration/test_praet_correctness/praet_engine.c`, a strong definition of all five names
 (`praet_engine.c:139`, `:324`, `:344`, `:368`, `:379`). Its scenarios are C tables in
 `praet_scenarios.h`, written by `tools/dev_env/gen_praet_scenarios.py`. It implements the
-contract a board support file implements, so what it catches is an integration defect.
+contract a board support file implements, and so what it catches is an integration defect.
 
 Hardware visits a few of the states an implementation can reach, in whatever order the silicon
-produces. A simulator reaches them on purpose: completion immediately, never, inside the submit
+produces. A simulator reaches them deliberately: completion immediately, never, inside the submit
 call, after a close, and twice for one transfer; completions out of submission order; channel counts
 no part has; fewer bytes moved than were asked for, and more; refusal at each of the four hooks; an
 engine that cannot address a given region, which exercises the internal and external decision
@@ -171,11 +171,11 @@ fault at the instruction that caused it.
 
 Three arms, separated by what each may do when it fails. Correctness runs scripted engines against
 fixed expectations and fails the build. Optimization reports cycles per submit and bytes of state
-per channel, and never gates, which is the standing the bench results already have. Examination
+per channel, and never gates, the standing the bench results already have. Examination
 reports which states and transitions the correctness arm reached, and is what shows that arm has
 holes.
 
-Scenarios are C tables, not JSON. A table compiles into an image and the same fixture can be
+Scenarios are C tables and not JSON. A table compiles into an image and the same fixture can be
 pointed at a real part; a JSON file needs a filesystem and the comparison is gone. `numeros_scribo`
 takes a spec array for the same reason. Where a table cannot express a scenario, a callback does:
 completing inside the submit call, or completing only while another channel is busy.
@@ -213,7 +213,7 @@ external pool on a part whose engine cannot address external memory has no answe
 
 ## The check build
 
-Warnings are the product of the check build. Its objects are discarded, so its flags are free of
+Warnings are the product of the check build. Its objects are discarded, and so its flags are free of
 what the shipping build needs. It compiles everything with warnings not fatal and fails once at the
 end, which hands a whole list to the user in one pass. Three things decide whether that list is
 worth reading. Ninja needs `-k 0`, or one hard error truncates it. Warnings are complete and hard
@@ -243,13 +243,13 @@ program runs. The compile-time literal does the same work for no bytes.
 too far, and `#undef` removes a macro definition, which an object declaration is not.
 
 **Parameterized header includes for the pool and the dressing.** A macro expansion cannot contain a
-directive, so `#ifndef` and `#error` per pool would turn both into includes and make the user define
+directive, and so `#ifndef` and `#error` per pool would turn both into includes and make the user define
 the parameters.
 
 **Linker section aggregation for a whole-program total.** Both the ELF and the PE forms work
 cross-unit on the host, and the pool footprint is readable off the linked image with one
 `objdump -h`. A walk between the start and stop symbols steps by `sizeof` while the linker places
-each record on its own alignment boundary, and the two disagreed at 24 against 32, so the walk read
+each record on its own alignment boundary, and the two disagreed at 24 against 32, and so the walk read
 a field out of the previous record's padding. Records also arrive in link order.
 
 **Ping-pong as two channels with a completion arming the other.** ESP32 GDMA, i.MX eDMA and Zephyr
@@ -271,12 +271,12 @@ no result. It neither suppressed a check nor added one.
 **Planned.** Nothing in the tree knows about more than one site. A whole-program footprint cannot be
 a compile-time constant, because a static assertion sees one translation unit and a consumer's pools
 are invisible to it. `MMGR_PARS_TOKEN` gives every pool a symbol the linker sees
-(`include/mmgr.h:130`), which is what a build-step total would be built on.
+(`include/mmgr.h:130`), as a build-step total would be built on.
 
 Where a user states a budget, the two sides stay separate. The user's list is a claim, the
 declarations are the fact, and the assertion compares them. A pool declared and not listed, listed
 and not declared, or listed at the wrong size fails the build. Neither side is the oracle for the
-other, which is the same reason the pool's own assertion compares `sizeof` against the count it was
+other, the same reason the pool's own assertion compares `sizeof` against the count it was
 handed (`include/mmgr.h:197`).
 
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>

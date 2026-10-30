@@ -1,7 +1,7 @@
 # AGPL-3.0-or-later, in practice {#proj_license_notes}
 
-@warning This page is a plain-language summary written by the author, not legal advice. The license
-text in `LICENSE` governs. If the distinction matters to your project, ask a lawyer rather than a
+@warning This page is a plain-language summary written by the author and not legal advice. The license
+text in `LICENSE` governs. If the distinction matters to your project, ask a lawyer and not a
 README.
 
 ## What the project is under
@@ -12,7 +12,7 @@ GNU Affero General Public License, version 3 or later. Every source file carries
 
 ```
 
-So the license of any file is a machine-readable fact rather than something to infer from a
+So the license of any file is a machine-readable fact instead of something to infer from a
 directory it happens to sit in.
 
 ## The part that surprises people
@@ -26,7 +26,7 @@ for a shared library. Your build compiles these files into your program.
 
 The AGPL's distinguishing clause is section 13: if you modify the program and let users interact
 with it **over a network**, those users must be able to get the corresponding source. That obligation
-attaches to network interaction, not only to shipping binaries, which is what separates the AGPL
+attaches to network interaction, not only to shipping binaries, as separates the AGPL
 from the GPL.
 
 For a memory manager on a device this often does not arise. For a memory manager inside a networked
@@ -44,7 +44,7 @@ https://github.com/dstroy0/MMgr
 
 ## If the terms do not suit you
 
-Ask. The copyright is held by one person, which means dual licensing is a conversation rather than a
+Ask. The copyright is held by one person, which means dual licensing is a conversation and not a
 policy question: <dquigg123@gmail.com>.
 
 Saying so here is deliberate. A project that offers no route other than the AGPL gets silently passed
@@ -56,5 +56,5 @@ Contributions are accepted under the same license. There is no CLA. Opening a pu
 have the right to contribute the code and are doing so under AGPL-3.0-or-later.
 
 Keep the SPDX header on every new file. `check_stale_facts` in the docs tooling asserts that every
-file under `src/` carries the project banner. A missing one fails a pull request rather than
+file under `src/` carries the project banner. A missing one fails a pull request and not
 being noticed a year later.

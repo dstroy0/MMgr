@@ -5,7 +5,7 @@
 
 A header that includes another header hands every consumer a dependency it never asked for and hides
 what a translation unit actually needs. This takes the includes out of the header and puts them in
-each .c that reaches it, immediately before that file's own include of the header, so what a TU
+each .c that reaches it, immediately before that file's own include of the header, and so what a TU
 compiles against is stated in the TU.
 
 Dry run by default; --go rewrites in place.
@@ -16,9 +16,9 @@ Dry run by default; --go rewrites in place.
 What it refuses, and why each refusal is right:
 
   * an include inside `#if` / `#ifdef` - it is conditional on something the consumer may not have
-    settled, so moving it changes when it is read. Pass --conditional to take those too.
+    settled, and so moving it changes when it is read. Pass --conditional to take those too.
   * an include the consumer already has - nothing to add; the header's copy is still removed.
-  * a header no .c reaches - removing its includes would break it with nothing to catch it, so it is
+  * a header no .c reaches - removing its includes would break it with nothing to catch it, and so it is
     reported and left alone unless --orphan is given.
   * the entry-point header (mmgr.h) - every file's first include by design. Named in KEEP below.
 
@@ -46,11 +46,11 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 MANIFEST = os.path.join(ROOT, "test", "yanked_includes.json")
 
 # What has to read the manifest for a yank to be finished: it turns each recorded entry into a
-# forced include on the one source file that owes it. Checked at run time rather than assumed,
+# forced include on the one source file that owes it. Checked at run time and not assumed,
 # because --go without it strips headers and records the debt somewhere nothing collects.
 CONSUMER = os.path.join(ROOT, "tools", "ci_tooling", "build", "gen_cmake.py")
 
-# The assembly chain: this exists to be included by everything, so its includes are the point.
+# The assembly chain: this exists to be included by everything, and so its includes are the point.
 #
 # This named src/config/mmgr_config.h and src/config/mmgr_types.h, and neither path exists. The
 # width and decls vocabulary moved out to the embedded_types dependency under deps/, and what every
@@ -64,8 +64,8 @@ KEEP = {
 # consumer's include, because that arrives after the header has already been read. A header that
 # needs this needs it in the header.
 #
-# Keyed on the spelling a consumer writes, which is `#include "mmgr.h"` in every module header in
-# the tree. The two names here before, mmgr_config.h and mmgr_types.h, are written nowhere, so the
+# Keyed on the form a consumer writes, which is `#include "mmgr.h"` in every module header in
+# the tree. The two names here before, mmgr_config.h and mmgr_types.h, are written nowhere, and so the
 # guard was off and a run over src/ would have pulled the one include it exists to protect.
 NEVER_YANK = {
     "mmgr.h",
@@ -105,8 +105,8 @@ def write(p, lines):
 def header_includes(lines, take_conditional):
     """(index, text) of every include to yank, and the include-guard depth map.
 
-    The file's own include guard is depth 1 for the whole body, so it is discounted: an include at
-    guard depth is top level, not conditional.
+    The file's own include guard is depth 1 for the whole body, and so it is discounted: an include at
+    guard depth is top level and not conditional.
     """
     out = []
     depth = 0
@@ -143,7 +143,7 @@ _INDEX = None
 def build_index():
     """basename -> [(file, line, what it named)], read once.
 
-    One pass over the tree rather than one per header: the walk is the cost, and a sweep over src/
+    One pass over the tree and not one per header: the walk is the cost, and a sweep over src/
     asks the same question a few hundred times.
     """
     global _INDEX
@@ -196,7 +196,7 @@ def apply(plan, go, manifest):
 
     The dependency does not vanish with the line: a TU that reached the header for those types still
     needs them. It is recorded per consumer in the manifest, which gen_cmake.py turns into a forced
-    include on exactly that source file, so the build states the dependency instead of the header.
+    include on exactly that source file, and so the build states the dependency instead of the header.
     """
     header, lines, yanks, cons = plan["header"], plan["lines"], plan["yanks"], plan["consumers"]
     hrel = rel(header)

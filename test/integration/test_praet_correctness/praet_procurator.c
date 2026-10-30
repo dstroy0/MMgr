@@ -24,7 +24,7 @@
 #include <stdio.h>
 
 /**
- * @brief How many core states there are, which is what the transition table is squared over.
+ * @brief How many core states there are, as the transition table is squared over.
  */
 #define PRAET_PROCURATOR_CORES (PRAET_CORE_MASK + 1u)
 
@@ -57,7 +57,7 @@ static unsigned long s_writes;
 /**
  * @brief What each core state is called in the report.
  *
- * @note Indexed by the state's own value, which is what makes the table read in the order the states
+ * @note Indexed by the state's own value, and that leaves the table read in the order the states
  *       are numbered, whatever order somebody listed them in.
  */
 static const char *const s_core_names[PRAET_PROCURATOR_CORES] = {"detached", "attached", "busy", "ok"};
@@ -66,7 +66,7 @@ static const char *const s_core_names[PRAET_PROCURATOR_CORES] = {"detached", "at
  * @brief What each status is called in the report, indexed by token id.
  *
  * @note One name per id, in id order. A status added to the map without a name here reads as a blank
- *       column, which is why the assertion below counts them.
+ *       column, and so the assertion below counts them.
  */
 static const char *const s_status_names[PRAET_STATUS_COUNT] = {
     "claimed", "settling", "detaching", "error", "stalled", "abandoned", "scrubbed", "measured",
@@ -151,7 +151,7 @@ static void praet_procurator_opus_report(void)
     praet_procurator_ratio("flag writes per submit", s_writes, s_work[PRAET_OPUS_RELATIO]);
 
     // What the short circuit is worth on this run, as a count out of a hundred. A suite drives the
-    // machine and then looks at it, so nearly every poll here has something waiting. A program polling
+    // machine and then looks at it, and so nearly every poll here has something waiting. A program polling
     // a channel that is doing nothing is the other case entirely, and this number is where that shows
     praet_procurator_ratio("polls short circuited in 100", s_work[PRAET_OPUS_POLL_SHORT] * 100uL,
                            s_work[PRAET_OPUS_POLL]);
@@ -230,7 +230,7 @@ void praet_procurator_report(void)
         {
             if (before == after)
             {
-                // The one writer never records a word that did not change, so this cell cannot fill
+                // The one writer never records a word that did not change, and so this cell cannot fill
                 printf("%10s", "-");
                 continue;
             }

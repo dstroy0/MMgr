@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note Every call takes the offset to write at and returns the offset past what it wrote, so calls chain.
+ * @note Every call takes the offset to write at and returns the offset past what it wrote, and so calls chain.
  * @note A call that will not fit returns args->cap, which every later call then sees as no room left.
  *       The two clip calls are the exception. They return the offset they started at. A later call
  *       can still write.
@@ -27,7 +27,7 @@
 /**
  * @brief Digit characters for bases up to sixteen, indexed by the digit value.
  *
- * @note Lower case, so verba_hex and the \\u escapes in verba_json both write lower case letters.
+ * @note Lower case, and so verba_hex and the \\u escapes in verba_json both write lower case letters.
  */
 static const char mmgr_hex_lower[] = "0123456789abcdef";
 
@@ -35,7 +35,7 @@ static const char mmgr_hex_lower[] = "0123456789abcdef";
  * @brief The letter that follows a backslash for each control byte JSON gives a short escape.
  *
  * @note Only 8, 9, 10, 12 and 13 have one, giving \\b, \\t, \\n, \\f and \\r.
- * @note A zero entry sends that byte down verba_json's \\u00 path instead, so every control byte is covered.
+ * @note A zero entry sends that byte down verba_json's \\u00 path instead, and so every control byte is covered.
  */
 static const char JSON_CTRL_ESC[32] = {0, 0, 0, 0, 0, 0, 0, 0, 'b', 't', 'n', 0, 'f', 'r', 0, 0,
                                        0, 0, 0, 0, 0, 0, 0, 0, 0,   0,   0,   0, 0,   0,   0, 0};
@@ -75,10 +75,10 @@ static const uint64_t mmgr_verba_pow10[MMGR_VERBA_POW10_MAX + 1u] = {1ull,
                                                                      10000000000000000000ull};
 
 /**
- * @brief Every two digit combination. A pair costs one table read rather than two divides.
+ * @brief Every two digit combination. A pair costs one table read and not two divides.
  *
- * @note 200 characters and a terminator. Indexed by twice the value, which is why the pairs are
- *       written out rather than computed.
+ * @note 200 characters and a terminator. Indexed by twice the value, and so the pairs are
+ *       written out and not computed.
  */
 static const char mmgr_verba_pairs[201] = "00010203040506070809"
                                           "10111213141516171819"
@@ -96,19 +96,19 @@ static const char mmgr_verba_pairs[201] = "00010203040506070809"
  *
  * @param[in] value Value to measure.
  * @return          1 through 20.
- * @note One leading zero count and one table compare, so the cost does not rise with the digit count.
+ * @note One leading zero count and one table compare, and so the cost does not rise with the digit count.
  *       Walking mmgr_verba_pow10 instead cost 11 cycles a digit on an ESP32-S3 and 6 on an ESP32-C6,
  *       paid before a single digit was written. This measured at the bench's own floor on both.
  * @note log10 comes off log2 by multiplying by 1233 and shifting twelve, which is 0.301025 against
  *       log10(2) = 0.30103. The estimate is exact or one low, and the compare corrects it.
- * @note clz.lead counts a 64-bit value whatever the machine word is, so the bit index comes off 64.
- * @note The compare reads the forced-odd value, so zero counts as one digit. No other input moves:
- *       every power of ten above one is even, so setting the low bit cannot cross a threshold.
+ * @note clz.lead counts a 64-bit value whatever the machine word is, and so the bit index comes off 64.
+ * @note The compare reads the forced-odd value, and so zero counts as one digit. No other input moves:
+ *       every power of ten above one is even, and so setting the low bit cannot cross a threshold.
  */
 EMBED_INLINE size_t verba_digits10(uint64_t value)
 {
     // Explicit cast takes the iword the clz entry returns into a 32-bit unsigned. The value is forced
-    // non-zero so the count is defined for every input. The width is fixed rather than embed_word
+    // non-zero so the count is defined for every input. The width is fixed and not embed_word
     // because the multiply below reaches 78912, which does not fit a 16-bit word
     const uint32_t lead = (uint32_t)EMBED_CALL(clz.lead, ClzCfg, .val = (embed_u64)(value | 1u));
     const uint32_t bits = 64u - lead;
@@ -121,7 +121,7 @@ EMBED_STATIC_ASSERT(((64u * 1233u) >> 12u) <= MMGR_VERBA_POW10_MAX,
                     "verba_digits10 indexes mmgr_verba_pow10 with its estimate, which must stay inside it");
 
 /**
- * @brief Expands to the multiplicative inverse of five in 64 bits, so five times this is one.
+ * @brief Expands to the multiplicative inverse of five in 64 bits, and so five times this is one.
  *
  * @note Divides a value already known to be a multiple of five, exactly and with no division: the
  *       product is the quotient outright.
@@ -142,8 +142,8 @@ EMBED_STATIC_ASSERT(((64u * 1233u) >> 12u) <= MMGR_VERBA_POW10_MAX,
  * @param[in] value Value to divide.
  * @return          value / 100.
  * @note 0x51EB851F over 2^37 is 1/100 to more precision than a 32-bit input can expose.
- * @note Written as a multiply rather than left as `/ 100u` because the two targets disagree: the
- *       ESP32-S3's compiler picks its hardware divider, which is the slower of the two, while the
+ * @note Written as a multiply and not left as `/ 100u` because the two targets disagree: the
+ *       ESP32-S3's compiler picks its hardware divider, the slower of the two, while the
  *       ESP32-C6 has no divider and picks the multiply anyway. Forcing it costs the C6 nothing and
  *       measured 1.27x on the S3 at ten digits.
  */
@@ -157,9 +157,9 @@ EMBED_INLINE uint32_t verba_div100(uint32_t value)
 /**
  * @brief Expands to the ceiling of two to the ninetieth over ten to the eighth.
  *
- * @note The approximation only ever rounds up, so the quotient it gives is exact while the error
+ * @note The approximation only ever rounds up, and so the quotient it gives is exact while the error
  *       accumulated over the input stays under one unit. That holds to ten to the twentieth, which
- *       is past what a uint64_t can carry, so it is exact for every value verba_cut8 can be given.
+ *       is past what a uint64_t can carry, and so it is exact for every value verba_cut8 can be given.
  */
 #define MMGR_VERBA_CUT_MAGIC 0xABCC77118461CEFDull
 
@@ -174,17 +174,17 @@ EMBED_INLINE uint32_t verba_div100(uint32_t value)
  * @param[in] value Value to cut.
  * @return          value / 100000000.
  * @note Written as a multiply for the same reason verba_div100 is, and the reason is sharper here:
- *       neither target has a 64-bit divider at all, so the division this replaces is a libgcc call.
+ *       neither target has a 64-bit divider at all, and so the division this replaces is a libgcc call.
  *       Measured on an ESP32-S3 at 106 cycles for the division against 44 for this.
- * @note The quotient lives above the sixty-fourth bit of the product, so the whole 128-bit product
- *       has to be formed. Both halves of each operand are held at 32 bits so the four partial
- *       products are widening multiplies the part carries rather than 64-bit ones.
- * @note Only the high word is wanted, so the low half of the product is summed for its carries and
+ * @note The quotient lives above the sixty-fourth bit of the product, and so the whole 128-bit product
+ *       has to be formed. Both halves of each operand are kept at 32 bits so the four partial
+ *       products are widening multiplies the part carries and not 64-bit ones.
+ * @note Only the high word is wanted, and so the low half of the product is summed for its carries and
  *       then dropped.
  */
 EMBED_INLINE uint64_t verba_cut8(uint64_t value)
 {
-    // Explicit casts hold each half at the 32 bits it carries, so the products are widening
+    // Explicit casts hold each half at the 32 bits it carries, and so the products are widening
     const uint32_t value_lo = (uint32_t)value;
     const uint32_t value_hi = (uint32_t)(value >> 32);
     const uint32_t magic_lo = (uint32_t)MMGR_VERBA_CUT_MAGIC;
@@ -206,7 +206,7 @@ EMBED_INLINE uint64_t verba_cut8(uint64_t value)
  * @param[out] out    Where the digits go [BORROWS].
  * @param[in]  value  Value to write, which must need no more than digits characters.
  * @param[in]  digits How many to write, padding a shorter value with leading zeros.
- * @note Two digits an iteration off mmgr_verba_pairs. A pair costs one divide rather than two.
+ * @note Two digits an iteration off mmgr_verba_pairs. A pair costs one divide and not two.
  * @warning out must be writable for digits bytes.
  */
 EMBED_INLINE void verba_emit10(char *out, uint32_t value, size_t digits)
@@ -216,8 +216,8 @@ EMBED_INLINE void verba_emit10(char *out, uint32_t value, size_t digits)
     while (index >= 2u)
     {
         const uint32_t quotient = verba_div100(value);
-        // The remainder is taken from the quotient rather than asked for separately, so the compiler
-        // answers one division here rather than two
+        // The remainder is taken from the quotient instead of asked for separately, and so the compiler
+        // answers one division here and not two
         const uint32_t remainder = value - (quotient * 100u);
 
         index -= 2u;
@@ -235,8 +235,8 @@ EMBED_INLINE void verba_emit10(char *out, uint32_t value, size_t digits)
 /**
  * @brief Expands to 8u, the power of ten a 64-bit value is cut at to reach verba_emit10.
  *
- * @note Eight rather than nine, so that a value of MMGR_G_MAX_SIG digits still leaves at most nine
- *       above the cut, which is the widest that fits the uint32_t verba_emit10 takes.
+ * @note Eight and not nine, so that a value of MMGR_G_MAX_SIG digits still leaves at most nine
+ *       above the cut, the widest that fits the uint32_t verba_emit10 takes.
  */
 #define MMGR_VERBA_CUT 8u
 
@@ -247,14 +247,14 @@ EMBED_INLINE void verba_emit10(char *out, uint32_t value, size_t digits)
  * @param[in]  value  Value to write, which must need no more than digits characters.
  * @param[in]  digits How many to write, 1 through 20, padding a shorter value with leading zeros.
  * @note Cuts the value into pieces that each fit a uint32_t and hands every piece to verba_emit10,
- *       rather than walking a descending 64-bit divisor. Neither target has a 64-bit divider. A
+ *       instead of walking a descending 64-bit divisor. Neither target has a 64-bit divider. A
  *       divisor walk is two libgcc calls for every digit written. This is one for the whole run, or
  *       two past eighteen digits, and none at all for a value that already fits 32 bits.
  * @note Both tests are on what the value holds, not on how many digits were asked for. A value of
  *       ten digits still inside 32 bits takes no cut at all, and a digit count raised by args->min
  *       only pads: verba_emit10 writes leading zeros once its value reaches zero. Branching on the
  *       digit count instead sends a ten digit uint32_t down the cut and cost verba_uint half again
- *       as much, 220 cycles to 332, which is the whole reason the test is written this way.
+ *       as much, 220 cycles to 332, the entirety of reason the test is written this way.
  * @note Measured on an ESP32-S3 at 240 MHz against the descending divisor this replaced: 1189 to 94
  *       at six digits, 3746 to 275 at seventeen. It took verba_g from 4551 cycles to 1647 and the
  *       same call on an ESP32-C6 from 5258 to 1580.
@@ -270,7 +270,7 @@ EMBED_INLINE void verba_emit20(char *out, uint64_t value, size_t digits)
     }
 
     const uint64_t rest = verba_cut8(value);
-    // The remainder is taken from the quotient rather than asked for separately, so nothing here
+    // The remainder is taken from the quotient instead of asked for separately, and so nothing here
     // divides at all: one multiply gives the quotient and a second gives the remainder from it
     const uint32_t low = (uint32_t)(value - (rest * mmgr_verba_pow10[MMGR_VERBA_CUT]));
 
@@ -280,7 +280,7 @@ EMBED_INLINE void verba_emit20(char *out, uint64_t value, size_t digits)
     }
     else
     {
-        // A value this large leaves more than 32 bits above the cut, so it is cut a second time
+        // A value this large leaves more than 32 bits above the cut, and so it is cut a second time
         const uint64_t top = verba_cut8(rest);
         const uint32_t mid = (uint32_t)(rest - (top * mmgr_verba_pow10[MMGR_VERBA_CUT]));
 
@@ -325,9 +325,9 @@ typedef struct
  * @param[in] args Buffer, capacity and the offset to write at [BORROWS].
  * @param[in] want Bytes the caller means to write.
  * @return         EMBED_TRUE when they fit and one byte is left over.
- * @note The spare byte is the terminator verba_finish stores, so it is held back on every test.
- * @note The args->at below args->cap test comes first, so the subtraction that follows never wraps.
- * @note This is the only backend that takes a second argument rather than reading everything from the struct.
+ * @note The spare byte is the terminator verba_finish stores, and it is reserved on every test.
+ * @note The args->at below args->cap test comes first, and so the subtraction that follows never wraps.
+ * @note This is the only backend that takes a second argument instead of reading everything from the struct.
  */
 EMBED_INLINE embed_bool verba_room(const VerbaCtx *args, size_t want)
 {
@@ -339,7 +339,7 @@ EMBED_INLINE embed_bool verba_room(const VerbaCtx *args, size_t want)
  *
  * @param[in] args Buffer, capacity, offset, text and its length [BORROWS].
  * @return         The offset past the text, or args->cap when it does not fit.
- * @note Writes nothing at all when it does not fit, rather than writing what it can.
+ * @note Writes nothing at all when it does not fit, instead of writing what it can.
  * @note Copies through proxim.read. args->text needs no particular alignment.
  * @warning args->text must be readable for args->text_len bytes.
  */
@@ -361,7 +361,7 @@ EMBED_INLINE size_t verba_put_n(const VerbaCtx *args)
  * @return         The offset past the text, or args->cap when it does not fit.
  * @note args->text_len when the caller knows it, and only otherwise a measure. A length settled before
  *       the build is one this has no reason to derive again, and most text handed here is a literal.
- * @note A text_len of 0 measures, which is the same answer an empty string gives either way.
+ * @note A text_len of 0 measures, the same answer an empty string gives either way.
  * @note Writes nothing when the text does not fit, since verba_put_n is all or nothing.
  * @warning args->text must not be NULL here, unlike in verba_put_clip, verba_xml and verba_json.
  */
@@ -376,12 +376,12 @@ EMBED_INLINE size_t verba_put(const VerbaCtx *args)
 }
 
 /**
- * @brief Writes as much of args->text as fits at args->at, cutting it short rather than refusing.
+ * @brief Writes as much of args->text as fits at args->at, cutting it short and not refusing.
  *
  * @param[in] args Buffer, capacity, offset and the text [BORROWS].
  * @return         The offset past what was written, which is args->at when nothing was.
- * @note Bounds cellul.len by the room left, so the length measured is already the length that fits.
- * @note Returns args->at rather than args->cap when it writes nothing. A later call can still write.
+ * @note Bounds cellul.len by the room left, and so the length measured is already the length that fits.
+ * @note Returns args->at and not args->cap when it writes nothing. A later call can still write.
  * @note A NULL args->text writes nothing, where verba_put would pass the NULL on to cellul.len.
  */
 EMBED_INLINE size_t verba_put_clip(const VerbaCtx *args)
@@ -424,7 +424,7 @@ EMBED_INLINE size_t verba_ch(const VerbaCtx *args)
  * @note Pads on the left with spaces, where verba_uint pads with leading zeros.
  * @note Takes args->columns as a floor. A value needing more digits than that widens the field.
  * @note Writes the spaces first, then hands the digits to verba_emit20 at the offset past them.
- * @note The digit count comes off verba_digits10, so it costs the same whatever the value is.
+ * @note The digit count comes off verba_digits10, and so it costs the same whatever the value is.
  */
 EMBED_INLINE size_t verba_u64_clip(const VerbaCtx *args)
 {
@@ -537,15 +537,15 @@ EMBED_INLINE size_t verba_i64(const VerbaCtx *args)
  *
  * @param[in] args Buffer, capacity, offset and the count in text_len [BORROWS].
  * @return         The offset past the zeros, or args->cap once one of them did not fit.
- * @note Takes the count from text_len rather than a count member of its own.
+ * @note Takes the count from text_len and not a count member of its own.
  * @note verba_g uses this for the run of zeros on either side of a point.
  */
 EMBED_INLINE size_t verba_zeros(const VerbaCtx *args)
 {
     const size_t want = args->text_len;
 
-    // One room test for the whole run rather than one a zero. verba_ch tests before every store and
-    // the count is settled before the first, so the walk this replaces asked the same question as
+    // One room test for the whole run and not one a zero. verba_ch tests before every store and
+    // the count is settled before the first, and so the walk this replaces asked the same question as
     // many times as there were zeros to write
     if (!verba_room(args, want))
     {
@@ -557,8 +557,8 @@ EMBED_INLINE size_t verba_zeros(const VerbaCtx *args)
     // A plain loop, and this module is compiled with -fno-tree-loop-distribute-patterns so that it
     // stays one. That pass would rewrite this as a memset, which costs about sixty cycles before it
     // writes a byte. The runs verba_g asks for are three at the leading end and about seventeen at
-    // the trailing one, so none of them is long enough to earn the call back. With the pass off the
-    // compiler still merges and unrolls the stores, which is why this beats laying the bytes down by
+    // the trailing one, and so none of them is long enough to earn the call back. With the pass off the
+    // compiler still merges and unrolls the stores, and so this beats laying the bytes down by
     // hand as well. Measured on an ESP32-S3 against the per zero walk: 32 cycles to 26 at two zeros,
     // 60 to 34 at six, and 144 to 58 at eighteen
     for (size_t index = 0; index < want; index++)
@@ -574,8 +574,8 @@ EMBED_INLINE size_t verba_zeros(const VerbaCtx *args)
  * @param[in] args Buffer, capacity, offset and the text [BORROWS].
  * @return         The offset past what was written, which is args->at for a NULL args->text.
  * @note Replaces &amp; with &amp;amp;, &lt; with &amp;lt;, &gt; with &amp;gt; and the double quote with &amp;quot;.
- * @note The apostrophe is written as it stands, so this suits element text and double quoted attributes.
- * @note Walks to the terminator. args->text is bounded by its own terminator rather than by args->cap.
+ * @note The apostrophe is written as it stands, and so this suits element text and double quoted attributes.
+ * @note Walks to the terminator. args->text is bounded by its own terminator instead of by args->cap.
  */
 EMBED_INLINE size_t verba_xml(const VerbaCtx *args)
 {
@@ -625,12 +625,12 @@ EMBED_INLINE size_t verba_xml(const VerbaCtx *args)
  *
  * @param[in] args Buffer, capacity, offset and the text [BORROWS].
  * @return         The offset past the closing quote, or args->cap once something did not fit.
- * @note Writes the opening and closing quotes itself, so the result is a complete JSON string.
+ * @note Writes the opening and closing quotes itself, and so the result is a complete JSON string.
  * @note The double quote and the backslash escape as themselves. The five control bytes in
  *       JSON_CTRL_ESC take a letter.
  * @note Every other byte below 0x20 is written as \\u00 followed by two lower case hexadecimal digits.
  * @note A NULL args->text writes an empty pair of quotes, where verba_xml writes nothing at all.
- * @note Walks to the terminator. args->text is bounded by its own terminator rather than by args->cap.
+ * @note Walks to the terminator. args->text is bounded by its own terminator instead of by args->cap.
  */
 EMBED_INLINE size_t verba_json(const VerbaCtx *args)
 {
@@ -669,9 +669,9 @@ EMBED_INLINE size_t verba_json(const VerbaCtx *args)
  * @param[in] args Buffer, capacity, offset, the digits and where the point goes [BORROWS].
  * @return         The offset past the last digit, or args->cap when the run does not fit.
  * @note The width is known before anything is written - the digit count is given and the point is
- *       one more byte at a given index - so the room is tested once for the whole run rather than
+ *       one more byte at a given index - so the room is tested once for the whole run and not
  *       once a character, and a run that does not fit writes nothing at all.
- * @note verba_emit20 writes into the destination itself rather than into a temporary buffer that is
+ * @note verba_emit20 writes into the destination itself and not into a temporary buffer that is
  *       then copied out. With no point it writes where the digits belong. With one it writes a byte
  *       along and only the digits ahead of the point move back over it.
  * @note A args->point_after of 0 writes no point, since the point is only inserted at a non-zero index.
@@ -679,7 +679,7 @@ EMBED_INLINE size_t verba_json(const VerbaCtx *args)
  */
 EMBED_INLINE size_t verba_digits(const VerbaCtx *args)
 {
-    // A point is written only at a non-zero index inside the run, so whether there is one and how
+    // A point is written only at a non-zero index inside the run, and so whether there is one and how
     // wide the whole thing is are both settled before a byte moves, and one test covers all of it
     const embed_bool has_point = (embed_bool)((args->point_after != 0u) && (args->point_after < args->digits));
     const size_t width = (size_t)args->digits + (has_point ? 1u : 0u);
@@ -696,12 +696,12 @@ EMBED_INLINE size_t verba_digits(const VerbaCtx *args)
     }
 
     // The digits are laid one byte along so the point has somewhere to go, and only those ahead of
-    // it move back over it. For the exponential form that is one byte rather than the whole run.
+    // it move back over it. For the exponential form that is one byte and not the whole run.
     verba_emit20(args->out + args->at + 1u, args->mant, args->digits);
 
     const size_t lead = (size_t)args->point_after;
 
-    // Ascending on purpose: each byte is read before the one below it is written, so every step
+    // Ascending deliberately: each byte is read before the one below it is written, and so every step
     // still finds the digit that was emitted there
     for (size_t index = 0; index < lead; index++)
     {
@@ -729,7 +729,7 @@ EMBED_INLINE embed_u64 verba_bits(const VerbaCtx *args)
  *
  * @param[in] args The bit pattern to read [BORROWS].
  * @return         What fract.exp reported for args->bits.
- * @note A value of MMGR_DBL_EXP_ALL marks an infinity or a NaN, which is how the float calls test for one.
+ * @note A value of MMGR_DBL_EXP_ALL marks an infinity or a NaN, and that is how the float calls test for one.
  */
 EMBED_INLINE embed_u64 verba_exp(const VerbaCtx *args)
 {
@@ -741,7 +741,7 @@ EMBED_INLINE embed_u64 verba_exp(const VerbaCtx *args)
  *
  * @param[in] args The bit pattern to read [BORROWS].
  * @return         What fract.mant reported for args->bits.
- * @note The implied leading bit is not included, so the float calls put it back when the exponent is non-zero.
+ * @note The implied leading bit is not included, and so the float calls put it back when the exponent is non-zero.
  */
 EMBED_INLINE embed_u64 verba_mant(const VerbaCtx *args)
 {
@@ -753,7 +753,7 @@ EMBED_INLINE embed_u64 verba_mant(const VerbaCtx *args)
  *
  * @param[in] args The bit pattern to read [BORROWS].
  * @return         What fract.sign reported for args->bits, non-zero when the value is negative.
- * @note Reads the bit rather than comparing against zero. A negative zero reports as negative.
+ * @note Reads the bit instead of comparing against zero. A negative zero reports as negative.
  */
 EMBED_INLINE embed_u64 verba_sign(const VerbaCtx *args)
 {
@@ -767,7 +767,7 @@ EMBED_INLINE embed_u64 verba_sign(const VerbaCtx *args)
  * @return         The offset past what was written, or args->cap when it did not fit.
  * @note A non-zero mantissa gives nan, written without a sign whatever the sign bit holds.
  * @note A zero mantissa gives inf, with a leading minus when the sign bit is set.
- * @note Both are lower case and unquoted, so neither is valid JSON on its own.
+ * @note Both are lower case and unquoted, and so neither is valid JSON on its own.
  */
 EMBED_INLINE size_t verba_non_finite(const VerbaCtx *args)
 {
@@ -790,7 +790,7 @@ EMBED_INLINE size_t verba_non_finite(const VerbaCtx *args)
  *
  * @param[in] args Buffer, capacity, offset, the value and the significant digit count [BORROWS].
  * @return         The offset past what was written, or args->cap once something did not fit.
- * @note A args->sig of 0 is taken as 1, and anything above MMGR_G_MAX_SIG is held there.
+ * @note A args->sig of 0 is taken as 1, and anything above MMGR_G_MAX_SIG is clamped there.
  * @note An exponent field of all ones goes to verba_non_finite, and a zero value writes a single 0.
  * @note The decimal exponent is first estimated by multiplying the binary one by 78913 and shifting right 18,
  *       which is 0.30103 to five places, then corrected by muto.scale_to_u64 in at most four passes.
@@ -923,7 +923,7 @@ EMBED_INLINE size_t verba_g(const VerbaCtx *args)
  * @note An exponent field of all ones goes to verba_non_finite. The sign is written before anything
  *       else.
  * @note A magnitude too large for 64 bits of integer part falls back to verba_g at ten significant digits.
- * @note args->decimals is held at MMGR_FIXED_MAX_DECIMALS, and a value of 0 writes no point at all.
+ * @note args->decimals is clamped at MMGR_FIXED_MAX_DECIMALS, and a value of 0 writes no point at all.
  * @note The fraction is rounded by muto.scale_to_u64, where a half goes up. The sign is written ahead
  *       of the magnitude. A negative half goes up in magnitude and away from zero.
  * @note A fraction that rounds up to the whole scale carries into the integer part and is written as zeros.
@@ -1036,7 +1036,7 @@ EMBED_INLINE size_t verba_finish(const VerbaCtx *args)
  *
  * @param[in] args Capacity and the offset reached [BORROWS].
  * @return         EMBED_TRUE while there is still room, EMBED_FALSE once a call returned args->cap.
- * @note Reads neither args->out nor any value member, so it touches no memory.
+ * @note Reads neither args->out nor any value member, and so it touches no memory.
  */
 EMBED_INLINE embed_bool verba_ok(const VerbaCtx *args)
 {
@@ -1048,7 +1048,7 @@ EMBED_INLINE embed_bool verba_ok(const VerbaCtx *args)
  *
  * @param[in] args Buffer, capacity, offset, the value and the least digit count [BORROWS].
  * @return         The offset past the digits, or args->cap when they do not fit.
- * @note Fixes the base at ten and forwards args->min, which is what separates it from verba_u32.
+ * @note Fixes the base at ten and forwards args->min, as separates it from verba_u32.
  */
 EMBED_INLINE size_t verba_u32w(const VerbaCtx *args)
 {
@@ -1061,7 +1061,7 @@ EMBED_INLINE size_t verba_u32w(const VerbaCtx *args)
  *
  * @param[in] args Buffer, capacity, offset, the value and the least digit count [BORROWS].
  * @return         The offset past the digits, or args->cap when they do not fit.
- * @note Fixes the base at sixteen, so the digits come out lower case.
+ * @note Fixes the base at sixteen, and so the digits come out lower case.
  */
 EMBED_INLINE size_t verba_hex(const VerbaCtx *args)
 {
@@ -1101,7 +1101,7 @@ EMBED_INLINE size_t verba_u64(const VerbaCtx *args)
  *
  * @param[in] args The value to test, as args->real [BORROWS].
  * @return         EMBED_TRUE when the sign bit is set.
- * @note Reads the bit rather than comparing against zero. A negative zero returns EMBED_TRUE.
+ * @note Reads the bit instead of comparing against zero. A negative zero returns EMBED_TRUE.
  */
 EMBED_INLINE embed_bool verba_sign_bit(const VerbaCtx *args)
 {
@@ -1149,7 +1149,7 @@ EMBED_INLINE embed_bool verba_is_nan(const VerbaCtx *args)
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] CfgType_    The argument pack this entry's table carries.
  * @param[in] name_       Name after the mmgr_verba_ and verba_ prefixes, which the two share.
- * @param[in] ...         Initializers for the VerbaCtx literal, written in terms of args.
+ * @param[in] ...         Initializers for the VerbaCtx literal, written through args.
  */
 #define VERBA_ENTRY(ReturnType_, CfgType_, name_, ...)                                                                 \
     EMBED_ENTRY(mmgr_verba_, verba_, VerbaCtx, CfgType_, ReturnType_, name_, __VA_ARGS__)
@@ -1159,9 +1159,9 @@ EMBED_INLINE embed_bool verba_is_nan(const VerbaCtx *args)
  *
  * @note Each is documented at its declaration in verba_scribo.h.
  * @note The fields each line forwards are the ones that entry reads, and EMBED_CALL zeroes the rest.
- *       ok forwards cap and at alone, so it touches no memory, and the three classifiers forward real.
+ *       ok forwards cap and at alone, and so it touches no memory, and the three classifiers forward real.
  * @note uint is the only entry that forwards args->base. u32w, hex, u32 and u64 each fix a base of their
- *       own in the backend above rather than at the call.
+ *       own in the backend above and not at the call.
  */
 VERBA_ENTRY(size_t, VerbaTextusCfg, put_n, .out = args->out, .cap = args->cap, .at = args->at, .text = args->text,
             .text_len = args->text_len)

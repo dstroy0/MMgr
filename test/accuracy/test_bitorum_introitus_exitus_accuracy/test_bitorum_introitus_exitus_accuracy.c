@@ -10,12 +10,12 @@
  *
  * @note The module merges a partial byte with the low bits of the next value and moves whole bytes
  *       from a 64-bit working copy. The reference holds a bit per array element and packs at the
- *       end, so the two share no shift, no mask and no idea of a byte boundary.
+ *       end, and so the two share no shift, no mask and no idea of a byte boundary.
  * @note Bit order is the whole contract here. The header states least significant first, and a
  *       writer that reversed a byte's bits produces the same byte count, the same overflow point and
- *       the same length, which is why nothing below compares lengths alone.
+ *       the same length, and so nothing below compares lengths alone.
  * @note Widths that straddle a byte are the interesting ones. A width of 8 and a residue of 0 keeps
- *       every bit in the byte it started in, and a defect in the merge never surfaces there, so the
+ *       every bit in the byte it started in, and a defect in the merge never surfaces there, and so the
  *       sequences below are built from widths that leave a residue.
  * @note Contract checks on a bit count above 64, on a null buffer and on a capacity of zero live in
  *       test_bitorum_introitus_exitus. This file asks where the bits go.
@@ -47,14 +47,14 @@
  * @brief Expands to 0xA5, the byte every destination is filled with before a write.
  *
  * @note Neither 0x00 nor 0xFF. A byte the writer left alone is then distinguishable from one it
- *       wrote, which is what makes the untouched tail checkable.
+ *       wrote, and that leaves the untouched tail checkable.
  */
 #define MMGR_ACCURACY_BITOR_GUARD 0xA5u
 
 /**
  * @brief A stream of single bits, in the order they were appended.
  *
- * @note One array element per bit is the point. Nothing here packs until the comparison, so the
+ * @note One array element per bit is the point. Nothing here packs until the comparison, and so the
  *       reference never forms a byte and cannot share a byte-boundary defect with the module.
  */
 typedef struct
@@ -70,8 +70,8 @@ typedef struct
  * @param[in]     value  Value whose low bits are appended.
  * @param[in]     width  How many of its bits to append, 0 through 64.
  * @note This is the whole reference for what a put contributes. The header states least significant
- *       first, and that ordering is the loop below and nothing else.
- * @note A width of 0 appends nothing, which is what a put of no bits is meant to do.
+ *       first, and that ordering is the loop below, alone.
+ * @note A width of 0 appends nothing, as a put of no bits is meant to do.
  * @warning The caller keeps the total under MMGR_ACCURACY_BITOR_MAX_BITS. Nothing here bounds it.
  */
 static void accuracy_stream_append(AccuracyBitStream *stream, uint64_t value, unsigned width)
@@ -79,7 +79,7 @@ static void accuracy_stream_append(AccuracyBitStream *stream, uint64_t value, un
     for (unsigned position = 0u; position < width; position++)
     {
         // Explicit cast narrows the extracted bit to the uint8_t element holding it. The mask keeps
-        // one bit, which is what the element carries
+        // one bit, as the element carries
         stream->bit[stream->count] = (uint8_t)((value >> position) & 1u);
         stream->count++;
     }
@@ -91,9 +91,9 @@ static void accuracy_stream_append(AccuracyBitStream *stream, uint64_t value, un
  * @param[in]  stream Stream to pack [BORROWS].
  * @param[out] packed Destination for the packed bytes [BORROWS].
  * @return            Bytes written, counting a partial last byte as one.
- * @note The layout is the one the header describes: bit n of the stream is bit n modulo 8 of byte n
- *       over 8. A partial last byte is padded with zeros above its bits, which is what align writes.
- * @note Called after every stream is complete. Packing at the end is what keeps the reference from
+ * @note The layout is the single one the header describes: bit n of the stream is bit n modulo 8 of byte n
+ *       over 8. A partial last byte is padded with zeros above its bits, as align writes.
+ * @note Called after every stream is complete. Packing at the end keeps the reference from
  *       carrying the residue the module carries.
  * @warning packed must be writable for the byte count this returns.
  */
@@ -148,7 +148,7 @@ static uint64_t accuracy_next_pattern(uint64_t *state)
  *
  * @param[out] buffer Bytes to fill [BORROWS].
  * @param[in]  bytes  How many to fill.
- * @note Every case starts here. A byte the writer did not reach still holds the guard, which is what
+ * @note Every case starts here. A byte the writer did not reach still holds the guard, as
  *       catches a write that ran past the bytes it accounted for.
  */
 static void accuracy_fill_guard(uint8_t *buffer, size_t bytes)
@@ -183,7 +183,7 @@ static void accuracy_expect_bytes(const uint8_t *produced, const uint8_t *expect
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Every writer and buffer here has automatic storage inside the case that builds it, and there
  *       is no shared state to prepare.
  */
@@ -195,7 +195,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -240,7 +240,7 @@ void test_the_exact_packing_this_suite_relies_on_is_itself_right(void)
  *       pattern is what catches that.
  * @note The value is masked to the width before the reference sees it, since put is documented to
  *       take the low bits and the bits above the width are not part of what was written.
- * @note bytes_written is checked before align and again after, so the whole byte count and the
+ * @note bytes_written is checked before align and again after, and so the whole byte count and the
  *       residue are both accounted for.
  */
 void test_a_single_put_of_every_width_lands_where_the_reference_puts_it(void)
@@ -293,11 +293,11 @@ void test_a_single_put_of_every_width_lands_where_the_reference_puts_it(void)
  * @brief Checks long runs of puts at widths that leave a residue against the packed reference.
  *
  * @note This is the case the file exists for. A bit that crosses a byte boundary is merged by the
- *       module out of a residue and a fresh value, and that merge is the one piece of arithmetic
+ *       module out of a residue and a fresh value, and that merge is the single one piece of arithmetic
  *       nothing else here exercises.
  * @note The widths run 1 through 17 and repeat, which never settles on a multiple of eight. A run of
  *       widths that all divide eight keeps the residue empty and the merge unused.
- * @note Sixty four appends a run and thirty two runs, so the merge is exercised at every residue
+ * @note Sixty four appends a run and thirty two runs, and so the merge is exercised at every residue
  *       length from 0 to 7 many times over, at values that differ every time.
  */
 void test_a_run_of_puts_across_byte_boundaries_lands_where_the_reference_puts_it(void)
@@ -346,7 +346,7 @@ void test_a_run_of_puts_across_byte_boundaries_lands_where_the_reference_puts_it
  * @brief Checks that the bits read back out of the buffer are the values that were written.
  *
  * @note The cases above compare packed bytes. This one goes the other way and takes the buffer apart
- *       a bit at a time to rebuild each value, which is what a reader of this format would do.
+ *       a bit at a time to rebuild each value, as a reader of this format would do.
  * @note A pair of defects that cancel in the packing comparison, such as a reversal applied on the
  *       way in and undone by the reference, still fails here, because the values are the ones the
  *       case handed the writer and nothing derived them again.
@@ -395,7 +395,7 @@ void test_the_bits_read_back_out_rebuild_the_values_that_were_written(void)
 /**
  * @brief Checks that align pads above the residue with zeros and writes nothing on a second call.
  *
- * @note The padding is the one part of the output no caller supplied, and a writer that padded with
+ * @note The padding is the single one part of the output no caller supplied, and a writer that padded with
  *       ones produces a byte a reader cannot tell from data.
  * @note Every residue length from 1 to 7 is covered by writing that many one bits. All ones below
  *       the padding makes a padding bit that leaked through visible as a set bit above them.
@@ -407,7 +407,7 @@ void test_align_pads_the_last_byte_with_zeros_above_the_bits_written(void)
     for (unsigned held = 1u; held < 8u; held++)
     {
         const uint64_t all_ones = (UINT64_C(1) << held) - 1u;
-        // The bits written are all ones, so the byte is exactly the low held bits set and the rest
+        // The bits written are all ones, and so the byte is exactly the low pending bits set and the rest
         // clear. Explicit cast narrows that to the uint8_t the buffer holds
         const uint8_t expected = (uint8_t)all_ones;
         uint8_t produced[MMGR_ACCURACY_BITOR_MAX_BYTES];

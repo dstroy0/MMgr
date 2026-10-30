@@ -13,10 +13,10 @@
  * @note Packs bit fields of any width into a byte buffer without a bit ever crossing a call. The
  *       writer holds the partial byte. A caller states widths and values and never does its own
  *       shifting or masking.
- * @note The writer is a value the caller owns, not state this module keeps. Two streams are two
+ * @note The writer is a value the caller owns and not state this module keeps. Two streams are two
  *       writers, and neither module state nor a lock is involved.
- * @warning put writes whole bytes only, so bits that do not fill one stay in the writer's residue
- *          and align is what puts that last partial byte out. A stream whose length is not a
+ * @warning put writes whole bytes only, and so bits that do not fill one stay in the writer's residue
+ *          and align puts that last partial byte out. A stream whose length is not a
  *          multiple of eight and that never calls align ends one byte short, with no flag raised
  *          and nothing to notice at the call.
  */
@@ -38,7 +38,7 @@ typedef struct
     size_t cap;           /**< Bytes available in out. */
     size_t bytes_written; /**< Whole bytes written so far. */
     uint8_t residue;      /**< Bits not yet written, in the low bit_count positions. */
-    embed_word bit_count; /**< Bits held in residue, always under 8. */
+    embed_word bit_count; /**< Bits stored in residue, always under 8. */
     embed_bool overflow;  /**< Set once a request would pass cap, which blocks later writes. */
 } mmgr_bitor;
 
@@ -47,8 +47,8 @@ typedef struct
  *
  * @note mmgr_bitor_init reads out and cap. mmgr_bitor_put reads writer, val and bit_count.
  *       mmgr_bitor_align reads writer alone.
- * @note One argument type for all three entries, so every call has the same shape and an unnamed
- *       member is zeroed rather than left undefined.
+ * @note One argument type for all three entries, and so every call has the same shape and an unnamed
+ *       member is zeroed and not left undefined.
  */
 typedef struct
 {
@@ -69,7 +69,7 @@ typedef struct
 {
     mmgr_bitor (*init)(const BitorumCfg *args); /**< Builds a writer over a buffer. */
     void (*put)(const BitorumCfg *args);        /**< Appends bits, writing whole bytes only. */
-    void (*align)(const BitorumCfg *args);      /**< Writes the partial byte still held. */
+    void (*align)(const BitorumCfg *args);      /**< Writes the partial byte still pending. */
 } BitorumIntroitusExitusNs;
 EMBED_TABLE_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
 
@@ -79,7 +79,7 @@ EMBED_TABLE_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
  * @param[in] args Buffer and capacity [BORROWS].
  * @return         A writer with no bytes written and no residue.
  * @note The returned writer keeps args->out, which must outlive it [BORROWS].
- * @warning args->out must not be null and args->cap must not be zero. Neither is held to outside a
+ * @warning args->out must not be null and args->cap must not be zero. Neither is checked outside a
  *          MMGR_DEBUG_CHECKS build, and a null out is not noticed here: mmgr_bitor_put writes
  *          through it on the first whole byte.
  */
@@ -91,7 +91,7 @@ mmgr_bitor mmgr_bitor_init(const BitorumCfg *args);
  * @param[in,out] args Writer, value and bit count [BORROWS].
  * @note Writes whole bytes only. Leftover bits stay in the writer's residue.
  * @note Does nothing when the writer's overflow is already set. A caller may write a whole
- *       stream and test overflow once at the end rather than after every call.
+ *       stream and test overflow once at the end and not after every call.
  * @note Sets the writer's overflow and clears its residue when the bytes would pass its cap.
  * @warning args->bit_count must not exceed 64, and nothing holds it there outside a
  *          MMGR_DEBUG_CHECKS build. A larger count writes zeros past the sixty-fourth bit and

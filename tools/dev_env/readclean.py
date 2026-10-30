@@ -4,18 +4,18 @@
 """Three reading passes over a MMgr module. Writes nothing.
 
   code <module.h> ...     comments stripped: the structure, with nothing to take on trust
-  blind <module.h> ...    comments stripped AND every name this project chose replaced, so the code
-                          is read for what it DOES rather than for what it is called
-  claims <module.h> ...   every comment paired with the code it sits above, so the prose can be
+  blind <module.h> ...    comments stripped AND every name this project chose replaced, and so the code
+                          is read for what it DOES and not for what it is called
+  claims <module.h> ...   every comment paired with the code it sits above, and so the prose can be
                           checked against what the code does instead of read as if it were true
 
-WHY BLIND. A name is a claim, and it is the one claim that never gets checked: a function called
+WHY BLIND. A name is a claim, and it is the single one claim that never gets checked: a function called
 `verify` is read as verifying, an `ok` member is read as an outcome, a `_reset` entry is assumed to
 clear something. With those names replaced, only what the statements actually do is left. Anything
-that then looks wrong IS wrong, rather than being a mismatch the reader was primed not to see.
+that then looks wrong IS wrong, instead of being a mismatch the reader was primed not to see.
 
 WHAT BLIND KEEPS, AND WHY IT IS NOT A GENERIC RENAMER. This tree has one shape, and the shape is
-grammar rather than vocabulary: an entry is a function-pointer member of an `<X>Ns` table, operands
+grammar and not vocabulary: an entry is a function-pointer member of an `<X>Ns` table, operands
 are members of `<X>V`, state is carved out of `MMGR_<X>_BORROW` at `<X>_OFF_*` offsets under a
 static_assert. Blinding that away would leave text no one can check conformity against. So the
 suffixes and the fixed vocabulary survive and only the IDENTITY moves:
@@ -44,8 +44,8 @@ A PATH is a module header (its .c is read with it), a single file, or a director
 
 import io, os, re, sys
 
-# Anchored to this file, not to the working directory: the tool has to find its own modules no
-# matter where it is invoked from, and os.getcwd() is a property of the caller rather than of the
+# Anchored to this file and not to the working directory: the tool has to find its own modules no
+# matter where it is invoked from, and os.getcwd() is a property of the caller and not of the
 # tool. HERE is mmgr/tools/dev_env, LIB is mmgr, REPO is the tree above it.
 HERE = os.path.dirname(os.path.abspath(__file__))
 LIB = os.path.dirname(os.path.dirname(HERE))
@@ -54,8 +54,8 @@ sys.path.insert(0, HERE)
 from strip_comments import rewrite
 from codemask import code_mask
 
-# Path arguments are resolved against the working directory FIRST, so the spelling a reader types
-# is the spelling that works, then against the library and the repo. `src/confinium/confinium.h` and
+# Path arguments are resolved against the working directory FIRST, and so the form a reader types
+# is the form that works, then against the library and the repo. `src/confinium/confinium.h` and
 # `mmgr/src/confinium/confinium.h` both land on the same file from either directory.
 ROOT = os.getcwd()
 BASES = (ROOT, LIB, REPO)
@@ -192,8 +192,8 @@ STDLIB = {
     "EOF",
 }
 # This library's own grammar: the fixed words the shape is written in. `ok` is where an entry states
-# its outcome, the width typedefs are what every signature is spelled in, and the DECLS macros
-# bracket every header. These say nothing about which module is being read, so blinding them costs
+# its outcome, the width typedefs are what every signature is written in, and the DECLS macros
+# bracket every header. These say nothing about which module is being read, and so blinding them costs
 # the reader the shape and buys no independence.
 SHAPE = {
     "ok",
@@ -215,7 +215,7 @@ SHAPE = {
     "mmgr_config",
 }
 # An __attribute__ argument is grammar too. `__attribute__((unused))` came out as
-# `__attribute__((v7))`, which reads as a call on a variable rather than as the attribute that lets
+# `__attribute__((v7))`, which reads as a call on a variable and not as the attribute that lets
 # an unreferenced table drop.
 ATTRS = {
     "unused",
@@ -243,10 +243,10 @@ ATTRS = {
     "transparent_union",
 }
 # --- this project's prefixes -------------------------------------------------
-# The one place a fork of this tool has to be edited. Every rule below that names a project prefix
-# builds its regex from here rather than spelling the prefix inline. Adding a second spelling is
+# The single place a fork of this tool has to be edited. Every rule below that names a project prefix
+# builds its regex from here instead of form the prefix inline. Adding a second spelling is
 # one edit instead of four. If one is ever added, order it longest first: a shorter alternative
-# that matches first leaves the tail of the longer spelling behind as the stem.
+# that matches first leaves the tail of the longer form behind as the stem.
 PREFIX_UPPER = ("MMGR",)
 PREFIX_LOWER = ("mmgr",)
 _PU = "(?:%s)" % "|".join(PREFIX_UPPER)
@@ -262,8 +262,8 @@ IDENT = re.compile(r"\b[A-Za-z_]\w*\b")
 # The shape suffixes, longest first so `Vars` is tested before the bare object name.
 ROLE_SUFFIX = ("Vars", "Args", "Ctx", "Ns", "V")
 # The member whose type IS the shape: a function pointer inside a dispatch table. The signature is
-# not fixed here - entries take spans, caps and flags, and every table spells them differently - so
-# what identifies an entry is the pointer-to-function member itself, not its argument list.
+# not fixed here - entries take spans, caps and flags, and every table writes them differently - so
+# what identifies an entry is the pointer-to-function member itself and not its argument list.
 ENTRY_MEMBER = re.compile(r"\(\s*\*\s*(?:const\s+)?(\w+)\s*\)\s*\(")
 # A function-like macro and its body: the cast that reads a region off the borrow.
 REGION_MACRO = re.compile(r"^[ \t]*#[ \t]*define[ \t]+(\w+)\([^)]*\)[ \t]*(.*)$", re.M)
@@ -314,7 +314,7 @@ class Blinder(object):
     """One naming table for a whole run. A name crossing from the .h into the .c stays itself.
 
     The categories are the shape's own, not a compiler's. Nothing here parses C: the pass has to be
-    CONSISTENT, not correct, because its job is to remove meaning rather than to recover it. A name
+    CONSISTENT, not correct, because its job is to remove meaning and not to recover it. A name
     filed under the wrong category still reads as a name with nothing to assume about it.
     """
 
@@ -330,7 +330,7 @@ class Blinder(object):
     def _object(self, stem):
         """The generic identity for a module's object stem, shared by all of its role types.
 
-        Sha256Ns, Sha256Vars, Sha256V and Sha256Ctx are four spellings of ONE module, and giving
+        Sha256Ns, Sha256Vars, Sha256V and Sha256Ctx are four forms of ONE module, and giving
         them four unrelated generic names would hide the very relationship the shape is built on.
         """
         key = ("obj", stem)
@@ -372,9 +372,9 @@ class Blinder(object):
                 out = "%s_OFF_%s" % (self._object(m.group(1)), self._region(m.group(1), m.group(2)))
         if out is None and name.isupper() and "_" in name:
             # The cast that reads a region, beside the offset that locates it. `SHA256_CTX(w)` and
-            # `SHA256_OFF_CTX` name the same region, so they take the same letter - `X1_A(w)` at
+            # `SHA256_OFF_CTX` name the same region, and so they take the same letter - `X1_A(w)` at
             # `X1_OFF_A`. Falling through to the generic macro bucket gave them unrelated numbers
-            # and hid the one thing worth checking: that each cast reads the offset it belongs to.
+            # and hid the single thing worth checking: that each cast reads the offset it belongs to.
             for cut in range(len(name) - 1, 0, -1):
                 if name[cut] != "_":
                     continue
@@ -387,7 +387,7 @@ class Blinder(object):
             if m:
                 out = m.group(1) + "_" + self._next("fn")
         if out is None and ("obj", name) in self.table:
-            # The bare object: `Sha256` beside `Sha256Ns` and `Sha256V`. It carries no suffix, so it
+            # The bare object: `Sha256` beside `Sha256Ns` and `Sha256V`. It carries no suffix, and so it
             # reached the generic bucket and came out as T1 while its own role types were X5 - the
             # published table looked unrelated to the namespace it is an instance of.
             out = self.table[("obj", name)]
@@ -416,7 +416,7 @@ class Blinder(object):
 
           - the bytes inside a STRING LITERAL. Every static_assert message came out as
             `"MMGR_X1_BORROW v10 short v11 v12"` - the diagnostic a build would print,
-            rewritten into nonsense. code_mask already marks a literal as non-code, so it is asked.
+            rewritten into nonsense. code_mask already marks a literal as non-code, and so it is asked.
           - a DIRECTIVE keyword. `#ifndef MMGR_CONFINIUM_H` became `#v1 MMGR_X1_H`, losing
             the guard, the gate and every conditional arm.
           - an #include PATH. It is a location, not a claim about behavior, and blinding it leaves
@@ -432,16 +432,16 @@ class Blinder(object):
         def protected(i):
             return any(a <= i < b for a, b in skip)
 
-        # An ENTRY is not a variable: it is the one member whose type IS the shape's signature. It
+        # An ENTRY is not a variable: it is the single one member whose type IS the shape's signature. It
         # is registered ahead of the general pass, or it falls through and reads as another local.
         for e in ENTRY_MEMBER.finditer(text):
             nm = e.group(1)
             if mask[e.start()] and nm not in self.table and nm not in SAFE and nm not in self.keep:
                 self.table[nm] = self._next("e")
 
-        # A REGION MACRO is named for its region by its BODY, not by its own spelling: sha256.c
+        # A REGION MACRO is named for its region by its BODY, not by its own form: sha256.c
         # writes `SHA256_FS(w)` over `SHA256_OFF_STATE`. Reading the letter off the macro's suffix
-        # filed FS as a region of its own, so the cast and the offset it reads came out as X1_C and
+        # filed FS as a region of its own, and so the cast and the offset it reads came out as X1_C and
         # X1_OFF_B - and whether each cast reads the offset it belongs to is the whole question.
         for d in REGION_MACRO.finditer(text):
             nm, body = d.group(1), d.group(2)
@@ -544,7 +544,7 @@ def main():
     if mode == "blind":
         pairs = state["blinder"].legend()
         # Written to a FILE and never printed. Reading it in the same breath as the blinded code
-        # puts every name back before a judgement has been formed, which is the one thing this pass
+        # puts every name back before a judgement has been formed, the single thing this pass
         # exists to prevent.
         if legend:
             with io.open(legend, "w", encoding="utf-8", newline="") as f:

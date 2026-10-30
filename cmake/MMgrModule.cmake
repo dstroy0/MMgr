@@ -11,17 +11,17 @@
 # guess that suits some of it: -O3 unrolls and inlines, which is worth paying for where the work is
 # in a loop the compiler can see through, and is dead weight where the code is already the shape it
 # wants to be. tools/dev_env/sizes.py measures the difference per unit and the numbers are in
-# docs/quality/optimisation.md - a module that names a level here should have a reason there.
+# docs/quality/optimization.md - a module that names a level here should have a reason there.
 #
-# A target's own options come after the build's on the command line, and the last -O wins, so this
+# A target's own options come after the build's on the command line, and the last -O wins, and so this
 # needs nothing removed to take effect.
 #
 # Every environment in MMGR_ENVIRONMENTS gets its own target, named mmgr_<module>_<env>. That is the
 # whole point of the widths being compile-time knobs: a 16-bit scan lane is exercised on this
-# machine by defining it. A change that only breaks that lane fails a build here rather than
+# machine by defining it. A change that only breaks that lane fails a build here and not
 # waiting for someone to own the hardware.
 #
-# DEPS names modules, not targets. The environment suffix is appended here. A module never has to
+# DEPS names modules and not targets. The environment suffix is appended here. A module never has to
 # know which environment it is being built for and cannot accidentally link across two of them -
 # which would mix objects compiled with different word widths into one binary.
 
@@ -57,18 +57,18 @@ function(mmgr_add_module name)
       target_link_libraries(${target} PRIVATE mmgr_flags)
 
       if(ARG_OPTIMIZE)
-        # After mmgr_flags, so this is the last -O on the line and the one that counts.
+        # After mmgr_flags, and so this is the last -O on the line and the one that counts.
         target_compile_options(${target} PRIVATE ${ARG_OPTIMIZE})
       endif()
     endif()
 
-    # src/ is the include root, so every module header is reached as <module>/<module>.h. include/
+    # src/ is the include root, and so every module header is reached as <module>/<module>.h. include/
     # carries mmgr.h, which every module header includes for the embed macros and the widths.
     target_include_directories(${target} ${scope} "${MMGR_INCLUDE_DIR}" "${MMgr_SOURCE_DIR}/include")
 
     # embedded_types rides the module target at the module's own scope, for the same reason the
     # capabilities below do: a suite links the module and deliberately does not link mmgr_flags.
-    # include/mmgr.h includes the three embed headers and every module header includes it, so every
+    # include/mmgr.h includes the three embed headers and every module header includes it, and so every
     # translation unit reaching any MMgr header needs this include directory, cases included.
     target_link_libraries(${target} ${scope} embedded_types::embedded_types)
 
@@ -77,8 +77,8 @@ function(mmgr_add_module name)
     # cases that exercise it. A suite could be built believing a feature absent that the library
     # was compiled with.
     #
-    # Every capability, not only the new one. Before this they reached mmgr_add_suite and stopped
-    # there, so turning one on built its suite against a module whose body was still compiled out -
+    # Every capability and not only the new one. Before this they reached mmgr_add_suite and stopped
+    # there, and so turning one on built its suite against a module whose body was still compiled out -
     # the suite passed, and it had tested nothing. A capability has to decide what is compiled, not
     # only what is run.
     foreach(cap IN LISTS MMGR_CAPABILITIES)
@@ -99,10 +99,10 @@ function(mmgr_add_module name)
     # checks is a test environment, and what it wants is a failed expectation that reports and stops.
     # That needs stdio and stdlib, which cannot sit in src/ - a library for a part with no libc does
     # not reach for fprintf and abort because a test flag was set. The reporting forms live in
-    # test/support/mmgr_host_traps.h and are forced in ahead of every other header, so they are the
+    # test/support/mmgr_host_traps.h and are forced in ahead of every other header, and so they are the
     # definitions src/ meets on this environment.
     #
-    # On the module target rather than only the suite, because the asserts being armed are the ones
+    # On the module target and not only the suite, because the asserts being armed are the ones
     # compiled into src/. Carried at ${scope}. A suite linking this module inherits it.
     if(env STREQUAL "checks")
       target_compile_options(${target} ${scope}

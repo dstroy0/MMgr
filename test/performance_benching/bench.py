@@ -4,7 +4,7 @@ bench.py - the one entry point for the microbenchmark matrix.
 
 Adapted from ProtoCore's bench.py, whose commands and matrix shape this keeps. What changed is
 the host arm: MMgr has no platform HAL to stand in for. A host build compiles the module's
-own sources and nothing else. `bench.py help` is the whole surface:
+own sources, alone. `bench.py help` is the whole surface:
 
   help    every command's help in one call, or one command's
   add     splice a new bench into bench_matrix.json
@@ -121,7 +121,7 @@ def cmd_add(a):
 
 def cmd_rename(a):
     """Change a bench's key. A module that moves takes its bench's name with it, and the name is
-    stored rather than derived, so without this the table keeps naming the tree the module left."""
+    stored and not derived, and so without this the table keeps naming the tree the module left."""
     lock = lock_acquire(TABLE)
     if not lock:
         print("could not take the bench table lock")
@@ -245,7 +245,7 @@ def cmd_list(a):
 
 
 # MMgr asks nothing of a platform: no clock, no NVS, no crypto or PHY seam. A host build has
-# no vendor arm to stand in for and this list is empty. It is kept rather than deleted because
+# no vendor arm to stand in for and this list is empty. It is kept and not deleted because
 # host_arm_archive still runs over it, and an empty archive is the honest answer for a library
 # whose every module compiles on its own.
 HOST_ARMS = []
@@ -271,7 +271,7 @@ def host_flags(entry):
     return incs, defs
 
 
-# The umbrella header. It names every module in the library, so what it reaches says nothing about
+# The umbrella header. It names every module in the library, and so what it reaches says nothing about
 # what a bench measures.
 UMBRELLA = "include/mmgr.h"
 
@@ -279,7 +279,7 @@ UMBRELLA = "include/mmgr.h"
 def _mm_headers(cc, entry, main_c):
     """The src/ headers a TU pulls in on its own account, from the compiler's include tree.
 
-    Read as a tree (-H) rather than a flat list (-MM) so the subtree under the umbrella can be
+    Read as a tree (-H) and not a flat list (-MM) so the subtree under the umbrella can be
     pruned. A bench measures one module; reaching mmgr.h through any header would otherwise
     make the whole server its source list - server_gpio_map went 10 -> 288 translation units that
     way, for the same measured numbers. Pruning the subtree keeps the path available so every TU
@@ -314,14 +314,14 @@ def _siblings_of(header):
     """The other .c files in a header's own directory that include it.
 
     One module is not always one .c: exc_decoder.h is served by exc_decoder.c and exc_coredump.c,
-    and the namespace one defines points at calls the other holds. Naming the header is what makes
+    and the namespace one defines points at calls the other holds. Naming the header makes
     such a file part of the module, so that is the test - a .c in the same directory that does not
     include the header is a different module and is not taken.
     """
     d = os.path.dirname(header)
     base = os.path.basename(header)
-    # An include names the header from an include-path root, not from the repo root: src/ is one of
-    # those roots, so both spellings are accepted.
+    # An include names the header from an include-path root and not from the repo root: src/ is one of
+    # those roots, and so both forms are accepted.
     wants = ['#include "' + header + '"', '#include "' + header[4:] + '"', '#include "' + base + '"']
     out = []
     for f in sorted(os.listdir(os.path.join(ROOT, d))):
@@ -336,7 +336,7 @@ def _siblings_of(header):
 
 
 # A file-scope definition: a return type at column 0, then a name, then the parameter list. `static`
-# is kept rather than skipped - a definition behind a feature gate is still the file that would
+# is kept and not skipped - a definition behind a feature gate is still the file that would
 # provide the symbol, and reading it wrong costs nothing here (see symbol_index).
 DEFN = re.compile(r"^[A-Za-z_][\w\s\*]*?\b(\w+)\s*\([^;]*$", re.M)
 
@@ -360,8 +360,8 @@ def _defines(path):
 
 
 # symbol -> the src/ .c that defines it. Built once per run; the answer does not depend on which
-# bench is asking. Feature gates are ignored on purpose: a symbol only ever reaches this table
-# because a link reported it missing, so listing more than a given build defines cannot pull
+# bench is asking. Feature gates are ignored deliberately: a symbol only ever reaches this table
+# because a link reported it missing, and so listing more than a given build defines cannot pull
 # anything in that the linker did not ask for.
 _SYM_INDEX = None
 
@@ -387,12 +387,12 @@ def symbol_closure(cc, entry, incs, defs, srcs, out_dir, name, index, rounds=12)
     An include closure finds a module's own translation unit, and the sibling rule finds the other
     .c files of that module. Neither finds a definition that lives in a different module with no
     header of its own on the path - response.c's send_text, regex.c's regex_match, the pcap and
-    uuid helpers. The linker is the only thing that knows what is actually missing, so it is asked:
+    uuid helpers. The linker is the only thing that knows what is actually missing, and so it is asked:
     link, read the undefined names, and add whatever src/ file defines each one.
     """
     exe = os.path.join(out_dir, "_deps_" + name + ".exe")
     main_c = os.path.relpath(os.path.join(bench_dir(entry), "main", "main.c"), ROOT).replace("\\", "/")
-    # Built once, not once per round: the arms depend on this bench's flags, and those do not
+    # Built once and not once per round: the arms depend on this bench's flags, and those do not
     # change while its source list is being closed over.
     lib, _err = host_arm_archive(cc, entry, incs, defs, out_dir, name)
     for _ in range(rounds):
@@ -419,7 +419,7 @@ def cmd_deps(a):
 
     Iterated to a fixpoint: a .c pulled in for main.c has its own include closure, and the
     definitions it needs (protomem, swar, ...) are only reachable from there. Whatever the link is
-    still missing after that is resolved by symbol, which is the only way to reach a definition
+    still missing after that is resolved by symbol, the only way to reach a definition
     that no header on the path declares.
     """
     cc = shutil.which("gcc") or shutil.which("cc")
@@ -564,7 +564,7 @@ def cmd_run(a):
             failed.append(name)
             continue
         incs, defs = host_flags(e)
-        # 'host' leaves both rates unstated, so the counter is the host CPU's own and the bench
+        # 'host' leaves both rates unstated, and so the counter is the host CPU's own and the bench
         # measures it once and reports against it - the host runs all the way. A number pins the
         # reported rate instead, for comparing a host figure against a part's.
         if str(getattr(a, "mhz", "host")).lower() != "host":
@@ -623,7 +623,7 @@ def cmd_flash(a):
         cmd += ["-t", "upload"]
     if a.port:
         cmd += ["--upload-port", a.port]
-    # PlatformIO builds into .pio inside the project it was pointed at, so this wrote a build tree
+    # PlatformIO builds into .pio inside the project it was pointed at, and so this wrote a build tree
     # into the bench directory beside the source. PLATFORMIO_BUILD_DIR is how that is redirected,
     # and it goes under the container with everything else a build makes.
     env = os.environ.copy()
@@ -647,7 +647,7 @@ def _subcommands(parser):
 def cmd_help(a):
     """Every command's own help in one call, or one command's.
 
-    `-h` prints usage one level at a time, so reading the whole surface means invoking it once per
+    `-h` prints usage one level at a time, and so reading the whole surface means invoking it once per
     subcommand. This prints all of it.
     """
     subs = _subcommands(build_parser())
@@ -739,9 +739,9 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    # A module, not an entry point. test/harness.py is the only thing that starts a build, so that
+    # A module and not an entry point. test/harness.py is the only thing that starts a build, so that
     # every build's flags and every build's directory are decided in one place. Run directly this
-    # would configure and write wherever it was invoked from, which is how a build tree ends up
+    # would configure and write wherever it was invoked from, and that is how a build tree ends up
     # beside the source and how two builds come to share objects.
     sys.exit(
         "bench.py is a module and does not run on its own.\n"

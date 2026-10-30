@@ -59,7 +59,7 @@ void test_call_macro_passes_the_aggregate(void)
 void test_call_macro_zeroes_what_is_not_named(void)
 {
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, MMGR_CALL(probe_sum, ProbeArgs, .x = 1),
-                                  "unnamed fields are zero by the standard, which is how a default costs nothing");
+                                  "unnamed fields are zero by the standard, and that is how a default costs nothing");
 }
 
 void test_inline_and_unused_are_defined(void)

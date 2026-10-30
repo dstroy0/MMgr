@@ -66,7 +66,7 @@
  * @brief Attribute that places a pool in external memory.
  *
  * @note Named here and filled by the port. Which section a part puts external memory in is the
- *       part's business, so this library names the knob and supplies no value for it. A build
+ *       part's business, and so this library names the knob and supplies no value for it. A build
  *       defines it ahead of this header, or on the command line.
  * @note Read only by ParsMemoriaeExternum, which is declared only where MMGR_ENABLE_EXTRAM is set.
  * @warning Empty by default, and an external pool then lands wherever the linker puts an ordinary
@@ -80,10 +80,10 @@
  * @brief Marks a declaration so that a reference to it fails the build, carrying a message.
  *
  * @param[in] msg_ Text the diagnostic reports, as a string literal.
- * @note Reported at the site that referenced the declaration, so the message names what a caller did.
+ * @note Reported at the site that referenced the declaration, and so the message names what a caller did.
  *       The linker can only say what it found. That is the whole reason to reach for it over a token: the
  *       linker names a symbol, this names the mistake.
- * @warning The diagnostic arrives only where a reference survives to the end of compilation, so what
+ * @warning The diagnostic arrives only where a reference survives to the end of compilation, and so what
  *          this marks has to be something nothing legitimately calls.
  * @warning Expands to nothing where EMBED_HAS_ATTRIBUTE(error) is 0. A reference then compiles and
  *          the misuse goes unreported.
@@ -98,7 +98,7 @@
  * @brief States which argument of an allocation entry gives the extent of what it returns.
  *
  * @param[in] arg_ One-based position of the byte count in the entry's parameter list.
- * @note Feeds the compiler's object-size analysis, which is what lets a write past the cell a caller
+ * @note Feeds the compiler's object-size analysis, as lets a write past the cell a caller
  *       was given be reported at the line that wrote it. Without it the returned pointer carries the
  *       extent of the pool it came out of, and a cell overrun reads as a legal access.
  * @note Costs nothing. Measured byte-identical with and without, both for a direct call and for one
@@ -119,10 +119,10 @@
  * @brief Fails the link when a pool name is declared in a second translation unit.
  *
  * @param[in] name_ Pool being declared.
- * @note An initialized object with external linkage, so two units declaring one pool name give the
+ * @note An initialized object with external linkage, and so two units declaring one pool name give the
  *       linker two strong definitions of this symbol and it refuses them by name. The enumerator
  *       guard cannot see across a unit boundary; this is what does.
- * @note The pool's own array stays static, so it is this token and not the bytes that collide. That
+ * @note The pool's own array stays static, and so it is this token and not the bytes that collide. That
  *       keeps the storage private to its unit while the name stays answerable across all of them.
  * @warning Costs one object per pool, in .bss or .data depending on the toolchain. Fixed and small,
  *          but not nothing on a part where pools are the point.
@@ -134,7 +134,7 @@
  *
  * @param[in] name_ Pool being declared.
  * @note The enumerator is the guard. A second declaration of one name collides on it, and the
- *       compiler prints the identifier, which is why the identifier reads as the reason and names no
+ *       compiler prints the identifier, and so the identifier reads as the reason and names no
  *       mechanism.
  * @note Two pools of one name would sit at unique addresses and the language would take them. The
  *       name is the whole of what a consumer is handed. A name meaning internal memory in one
@@ -159,7 +159,7 @@
  *       is the pool's and not a dresser's, and a copy in each would let the next dresser be written
  *       without one.
  * @note Keyed on the pool alone, with no dresser's name in it. Every other symbol a site emits
- *       carries the site's name, so two sites over one pool collide on nothing else and each would
+ *       carries the site's name, and so two sites over one pool collide on nothing else and each would
  *       lay its own records over the same bytes while holding that it owned them.
  * @note Costs nothing. An enumerator emits no storage and is settled while the unit compiles.
  * @warning Says a pool is dressed once. It says nothing about the bytes being reached directly,
@@ -176,13 +176,13 @@
  *
  * @param[in] name_  Name the pool is reached by, which is also the array.
  * @param[in] bytes_ Bytes in it.
- * @note A pool is a block of bytes and nothing else. Hand it to LocusCarcerum to have it dressed as
+ * @note A pool is a block of bytes, alone. Hand it to LocusCarcerum to have it dressed as
  *       a cellblock, to mmgr_anular_init to have it dressed as a ring, or to a memor entry to work
  *       on it as the bytes it is. A pool nobody hands anywhere is a pool that exists and is unclaimed.
  * @note The count is carried as name_##_bytes as well as laid down as the array. A consumer has
  *       the extent without deriving it. The assertion is what compares the two, and it has content
  *       only because the two are produced separately.
- * @note Aligned to MMGR_ALIGN_BYTES, which is what makes that knob the contract it is documented as.
+ * @note Aligned to MMGR_ALIGN_BYTES, and that leaves that knob the contract it is documented as.
  *       No caller writes it out.
  */
 #define ParsMemoriaeInternae(name_, bytes_)                                                                            \
@@ -225,7 +225,7 @@
  *
  * @param[in] cond_ Condition the caller expects to hold.
  * @param[in] msg_  String literal describing the expectation.
- * @note An expectation the library asserts is one a correct caller cannot break, so the form here
+ * @note An expectation the library asserts is one a correct caller cannot break, and so the form here
  *       pays nothing for it. It expands to a sizeof, which type checks cond_ and never evaluates it.
  * @note A build wanting a failed expectation to report and stop defines its own ahead of this
  *       header, and the guard below stands down. That is what test/support/mmgr_host_traps.h does
@@ -244,15 +244,15 @@
  * @param[in] msg_ String literal naming what was violated.
  * @note Separate from MMGR_ASSERT because the two answer different questions. MMGR_ASSERT states an
  *       expectation a correct caller cannot break, and it is inert in the build that ships. This one
- *       marks a call that is illegal to make, so it has to hold in that build too.
+ *       marks a call that is illegal to make, and so it has to hold in that build too.
  * @note Reached where continuing would be worse than stopping. A release handed a prisoner from
  *       another cellblock is the case it exists for: the caller has shown it does not know which
- *       cellblock owns that memory, so its next release and its next allocation are both suspect,
+ *       cellblock owns that memory, and so its next release and its next allocation are both suspect,
  *       and on a maximum security cellblock a quiet return would leave bytes unzeroed that the
  *       caller believes were wiped.
  * @note Does not return. Every call site is written on that basis and carries no fallback after it.
- * @note What is unconditional is the stop, not the diagnostic. The form here halts and names nothing,
- *       which is what keeps this header free of libc.
+ * @note What is unconditional is the stop and not the diagnostic. The form here halts and names nothing,
+ *       as keeps this header free of libc.
  * @warning A build may define its own before including this header, and the form below is then not
  *          used. A target reporting a fault through its own handler wants that, and so does a test
  *          harness, which would otherwise hang on this form and never report a failure.
@@ -260,7 +260,7 @@
  *          debugger can catch.
  */
 #ifndef MMGR_FATAL
-// No libc here, so the trap is a halt. The cast to void discards msg_, which nothing reads on this
+// No libc here, and so the trap is a halt. The cast to void discards msg_, which nothing reads on this
 // arm and would otherwise be an unused argument
 #define MMGR_FATAL(msg_)                                                                                               \
     do                                                                                                                 \

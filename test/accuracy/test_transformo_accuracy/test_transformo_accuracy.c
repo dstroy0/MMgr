@@ -18,7 +18,7 @@
  * @note Every integer type below comes from stdint.h. A wrong width alias would resize the
  *       arithmetic each comparison is made in.
  * @note The two entries are compared bit for bit. An approximate comparison passes a conversion that
- *       is one unit in the last place out, which is the defect this suite exists to catch.
+ *       is one unit in the last place out, the defect this suite exists to catch.
  * @note Contract checks on what the entries do with a mantissa of zero or an exponent past the
  *       tables live in test_transformo. This file asks what the number is.
  */
@@ -32,7 +32,7 @@
  * @brief Expands to the first integer a double can no longer hold exactly, which is two to the 53.
  *
  * @note A double carries a 53-bit significand. Every integer below this converts with nothing
- *       rounded, which is what lets the conversion stand as an expectation. The cases below assert a
+ *       rounded, as lets the conversion stand as an expectation. The cases below assert a
  *       product is under this before comparing against it.
  */
 #define MMGR_ACCURACY_DOUBLE_EXACT_MAX (1ULL << 53)
@@ -98,7 +98,7 @@ static uint64_t accuracy_ten_to_the(unsigned exponent)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Every value this suite uses has automatic storage inside the case that builds it, and there
  *       is no shared state to prepare here.
  */
@@ -110,7 +110,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -150,7 +150,7 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
  *       exact below MMGR_ACCURACY_DOUBLE_EXACT_MAX. Nothing this library does is involved in it.
  * @note The pairs span both routes muto_scale takes. An exponent at or under twenty-two with a small
  *       mantissa is settled in double arithmetic, and the last pair passes that bound and goes
- *       through the 128-bit path, so one expectation covers both.
+ *       through the 128-bit path, and so one expectation covers both.
  */
 void test_a_product_a_double_holds_exactly_comes_back_exactly(void)
 {
@@ -216,7 +216,7 @@ void test_a_negative_exponent_that_ends_in_binary_is_exact(void)
  * @brief Checks that the sign is applied to the value and changes nothing else about it.
  *
  * @note Compares against the negation of the positive result, which holds whatever the magnitude
- *       rounds to. What it pins is that the sign bit is the one bit differing between the two.
+ *       rounds to. What it pins is that the sign bit is the single one bit differing between the two.
  */
 void test_the_sign_changes_one_bit_and_nothing_else(void)
 {
@@ -236,7 +236,7 @@ void test_the_sign_changes_one_bit_and_nothing_else(void)
  * @brief Checks that the integer entry returns the exact product wherever that product fits a
  *        64-bit integer.
  *
- * @note The expectation is the same repeated multiplication the case above uses, so nothing about
+ * @note The expectation is the same repeated multiplication the case above uses, and so nothing about
  *       the answer comes from the powers of ten or the pow5 entries the entry applies.
  * @note A binary exponent of zero is left unset, which the compound literal zeroes. The mantissa
  *       reaches the entry as a plain integer, and the product is the whole of what is checked.
@@ -265,7 +265,7 @@ void test_the_integer_entry_returns_the_exact_product(void)
 /**
  * @brief Checks that a binary exponent scales the mantissa by exactly that power of two.
  *
- * @note Reads args->e2, which the double entry leaves at zero. That is the one input the two entries
+ * @note Reads args->e2, which the double entry leaves at zero. That is the single one input the two entries
  *       do not share.
  * @note The expectation is a shift, which is exact for every case here. A scaling that lost or
  *       gained a bit shows up as a wrong integer.

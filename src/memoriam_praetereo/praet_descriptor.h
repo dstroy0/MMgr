@@ -35,7 +35,7 @@ EMBED_BEGIN_DECLS
  * @brief How an address behaves as a transfer runs.
  *
  * @note The one fact memcpy does not need. Memory to memory advances both sides; a peripheral is an
- *       address that stays where it is, and which side stays put is what makes a transfer a read or a
+ *       address that stays where it is, and which side stays put makes a transfer a read or a
  *       write.
  * @note Token ids, the same as the statuses and the regions. A mistyped name is an undeclared
  *       identifier carrying the name that was written.
@@ -43,15 +43,15 @@ EMBED_BEGIN_DECLS
 typedef enum
 {
     PRAET_ADDRESS_ADVANCES = 0, /**< The address moves on by the transfer width each step. */
-    PRAET_ADDRESS_FIXED = 1     /**< The address stays where it is, which is what a peripheral is. */
+    PRAET_ADDRESS_FIXED = 1     /**< The address stays where it is, as a peripheral is. */
 } PraetAddressing;
 
 /**
- * @brief Bytes the engine moves in one step, which is the measure everything else is counted in.
+ * @brief Bytes the engine moves in one step, the measure everything else is counted in.
  *
  * @note Named in full for what it is. A transfer's offsets, its length and the boundary a recovery
- *       rounds to are all counted in this, so it is the measure and not a property beside the others.
- * @note Carries the count itself, so the assertions below divide a length by it
+ *       rounds to are all counted in this, and so it is the measure and not a property beside the others.
+ * @note Carries the count itself, and so the assertions below divide a length by it
  *       and test an offset against it with no table in between.
  * @note octetus and verbum are the tree's own words for a byte and a word, as in
  *       octetus_introitus_exitus and verba_scribo.
@@ -84,7 +84,7 @@ typedef enum
  */
 typedef enum
 {
-    PRAET_MOTUS_NEUTRUM = 0, /**< Neither way. The ends do not overlap, so nothing is at risk. */
+    PRAET_MOTUS_NEUTRUM = 0, /**< Neither way. The ends do not overlap, and so nothing is at risk. */
     PRAET_MOTUS_SURSUM = 1,  /**< Upward, from the low word on, which is safe writing downward. */
     PRAET_MOTUS_DEORSUM = 2  /**< Downward, from the high word back, which is safe writing upward. */
 } DirectioMotusVerbi;
@@ -96,11 +96,11 @@ typedef enum
  * @param to_    Bytes into the pool the write starts at.
  * @param bytes_ Bytes moved.
  * @return       A DirectioMotusVerbi.
- * @note Integers, so this is answered while compiling. Both spans are offsets into one declared
- *       object, and where they came from is what makes them comparable at all: two addresses handed
+ * @note Integers, and so this is answered while compiling. Both spans are offsets into one declared
+ *       object, and where they came from makes them comparable at all: two addresses handed
  *       in as pointers could not be ordered at compile time, and comparing pointers into separate
  *       objects is not something the language defines.
- * @note Writing upward over a source means the high words must move first, so the walk goes downward.
+ * @note Writing upward over a source means the high words must move first, and so the walk goes downward.
  *       Writing downward is the mirror of it. Spans that start at the same place move nothing over
  *       anything and take neither.
  */
@@ -118,7 +118,7 @@ typedef enum
 typedef enum
 {
     PRAET_OWNER_SOFTWARE = 0, /**< The program may read it and write it. */
-    PRAET_OWNER_ENGINE = 1    /**< The engine is working from it, and nothing else may touch it. */
+    PRAET_OWNER_ENGINE = 1    /**< The engine is working from it,, alone may touch it. */
 } PraetDescriptorOwner;
 
 /**
@@ -136,7 +136,7 @@ typedef enum
  * @param directio_motus_verbi   Which way the words are walked, as a DirectioMotusVerbi.
  * @param owner                  Who holds it, as a PraetDescriptorOwner.
  * @note Every field except owner is settled when the descriptor is declared. A declaration emits it
- *       as initialized data, so nothing runs to make one usable.
+ *       as initialized data, and so nothing runs to make one usable.
  * @warning source and destination belong to whoever declared the pools they came from, and this holds
  *          neither. The declarator is what proves those pools exist and that the spans fit inside
  *          them.
@@ -170,7 +170,7 @@ struct PraetDescriptor
  * @note Static assertions, where PraetSubmit uses the expression form. A declarator is at file scope
  *       and a bare expression cannot sit there. Naming the end in the message is what
  *       replaces the member name the expression form prints.
- * @warning Reads sizeof(mmgr_pars_storage_##pool_), so it holds for a span whose offset, length and
+ * @warning Reads sizeof(mmgr_pars_storage_##pool_), and so it holds for a span whose offset, length and
  *          width are known while compiling. Anything computed at run time is not bounded by this and
  *          is not bounded anywhere else.
  */
@@ -191,14 +191,14 @@ struct PraetDescriptor
  * @param bytes_         Bytes to move.
  * @param mensura_         Bytes moved in one step, as a EgoSumMensura.
  * @param next_          The descriptor that runs after this one, or NULL.
- * @note Both pools are named, so both spans are proved to fit before anything runs and both addresses
+ * @note Both pools are named, and so both spans are proved to fit before anything runs and both addresses
  *       come from a declaration, with no caller stating one. That is the same check
  *       PraetAttach makes, applied to each end.
- * @note Both addresses advance, which is what memory to memory means. A side that stays put is a
+ * @note Both addresses advance, as memory to memory means. A side that stays put is a
  *       peripheral, and naming one needs an address this has no way to take.
  * @note Emitted as initialized data with the owner in software's hands. A descriptor the engine has
  *       not been given is one the program may still write.
- * @note Two different pools are two separately declared objects, so they cannot overlap and the
+ * @note Two different pools are two separately declared objects, and so they cannot overlap and the
  *       direction is settled as either. Naming one pool at both ends collides on the enumerators this
  *       emits, because the two carry the same prefix and differ only by the pool. A transfer inside
  *       one pool is PraetDescriptorWithin, which has offsets it can compare.
@@ -247,7 +247,7 @@ struct PraetDescriptor
  * @param name_      Name of the descriptor this belongs to.
  * @param from_pool_ Pool the bytes are read from.
  * @param to_pool_   Pool the bytes are written to.
- * @note Two enumerators carrying one prefix and differing only by the pool, so naming one pool at
+ * @note Two enumerators carrying one prefix and differing only by the pool, and so naming one pool at
  *       both ends declares the same enumerator twice in one enum and the compiler refuses it. The
  *       same idiom MMGR_PARS_CLAIMED_ONCE uses, applied to a pair.
  * @note Worth refusing because the direction a transfer between two pools takes is settled as either,
@@ -271,7 +271,7 @@ struct PraetDescriptor
  * @param to_offset_   Bytes into that pool the write starts at.
  * @param bytes_       Bytes to move.
  * @param mensura_       Bytes moved in one step.
- * @note A next of NULL, which is the whole of what makes a transfer one shot.
+ * @note A next of NULL, the entirety of of what makes a transfer one shot.
  */
 #define PraetOneShot(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_)                          \
     PRAET_DESCRIPTOR_ENDS_DIFFER(name_, from_pool_, to_pool_);                                                         \
@@ -288,10 +288,10 @@ struct PraetDescriptor
  * @param bytes_       Bytes to move.
  * @param mensura_       Bytes moved in one step, as a EgoSumMensura.
  * @param next_        The descriptor that runs after this one, or NULL.
- * @note Where the two spans overlap, the direction is what keeps the transfer from reading bytes it
+ * @note Where the two spans overlap, the direction keeps the transfer from reading bytes it
  *       has already written over. It is worked out here from the offsets, once, and never asked
  *       again: a run of this descriptor has the answer in front of it.
- * @note Both spans are offsets into one declared object, which is what makes them comparable at all.
+ * @note Both spans are offsets into one declared object, and that leaves them comparable at all.
  *       The same question about two pointers could not be answered while compiling, and comparing
  *       pointers into separate objects is not something the language defines.
  */
@@ -312,7 +312,7 @@ struct PraetDescriptor
  * @note A descriptor whose next is itself. That is the whole of circular, and no part has a feature
  *       called that either.
  * @note The forward declaration ahead of it is a tentative definition, which C merges with the real
- *       one below. It is what lets the initializer name an address the declaration is still writing.
+ *       one below. It lets the initializer name an address the declaration is still writing.
  */
 #define PraetCircular(name_, from_pool_, from_offset_, to_pool_, to_offset_, bytes_, mensura_)                         \
     PRAET_DESCRIPTOR_ENDS_DIFFER(name_, from_pool_, to_pool_);                                                         \
@@ -335,7 +335,7 @@ struct PraetDescriptor
  * @param mensura_       Bytes moved in one step.
  * @note Ping-pong, and it is two descriptors whose next point at each other. Nothing here is a mode
  *       and no part has a bit for it. What makes it double buffering is that the two write different
- *       halves, which is the caller's to arrange by the offsets they pass.
+ *       halves, the caller's to arrange by the offsets they pass.
  * @note Both spans are proved against their pools separately. A pair whose halves overlap or run
  *       off the end fails at the declaration that wrote it.
  */
@@ -363,7 +363,7 @@ struct PraetDescriptor
  *       on a name nobody wrote. The same proof a pool gives, for a thing that has no extent.
  * @note volatile, because a register is read and written by something other than this program and a
  *       compiler that cached one would be reading a value the part has moved on from.
- * @warning No extent, which is the point. A peripheral is one address that stays where it is, so
+ * @warning No extent, the point. A peripheral is one address that stays where it is, and so
  *          there is nothing for a span check to measure and a transfer's length is bounded by the
  *          pool at its other end alone.
  */
@@ -387,17 +387,17 @@ struct PraetDescriptor
  * @param mensura_       Bytes moved in one step, as a EgoSumMensura.
  * @param next_        The descriptor that runs after this one, or NULL.
  * @note The source advances and the destination stays where it is. That is the whole of what makes a
- *       transfer a write to a peripheral, and it is the one fact memcpy never needs.
+ *       transfer a write to a peripheral, and it is the single one fact memcpy never needs.
  * @note Neither way to walk, because a pool and a register are not the same object and a transfer
  *       between them cannot read what it has written.
- * @note The address is named at the declaration and named again here, which is how PraetSubmit
+ * @note The address is named at the declaration and named again here, and that is how PraetSubmit
  *       already treats a pool: the pool is named a second time so the extent is worked out from the
  *       declaration instead of carried around. The enumerator below is the lock and this expression
  *       is the key.
  * @note Stating it again is also what keeps the initializer legal. An address constant plus an
  *       integer constant is still an address constant, while reading the value out of the pointer
  *       PraetPeripheralDeclare emits is not one at all, whatever a given compiler folds.
- * @warning A base plus an offset, so one declared peripheral covers every register in its block. The
+ * @warning A base plus an offset, and so one declared peripheral covers every register in its block. The
  *          offset is bounded by nothing here, because a peripheral has no extent to measure against.
  */
 #define PraetToPeripheral(name_, from_pool_, from_offset_, peripheral_, address_, at_offset_, bytes_, mensura_, next_) \
@@ -423,7 +423,7 @@ struct PraetDescriptor
  * @param mensura_      Bytes moved in one step, as a EgoSumMensura.
  * @param next_       The descriptor that runs after this one, or NULL.
  * @note The mirror of PraetToPeripheral. The source stays where it is and the destination advances,
- *       which is what makes a transfer a read from a peripheral.
+ *       and that leaves a transfer a read from a peripheral.
  * @note The address is named at the declaration and named again here, for the reasons written out
  *       over PraetToPeripheral.
  */
@@ -445,9 +445,9 @@ struct PraetDescriptor
  * @return          Descriptors reached, or @p limit where the chain is longer than that.
  * @note What tells a one shot from a cycle without following a cycle forever. A chain that ends
  *       returns its length; a chain that closes returns the number of distinct descriptors in it.
- * @note Walks by pointer identity against the first descriptor alone, so it names a cycle that
+ * @note Walks by pointer identity against the first descriptor alone, and so it names a cycle that
  *       returns to the head and not one that closes further along. A chain that loops back to its
- *       middle reaches the limit, which is the honest answer for a walk that cannot see where it is.
+ *       middle reaches the limit, the honest answer for a walk that cannot see where it is.
  */
 embed_word praet_descriptor_chain_length(const PraetDescriptor *first, embed_word limit);
 

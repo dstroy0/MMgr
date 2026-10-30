@@ -8,15 +8,15 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-31
  *
- * @note Byte order is a statement about which byte of a value lands at which address, so the
+ * @note Byte order is a statement about which byte of a value lands at which address, and so the
  *       reference is one shift per byte. It shares no code with the module, which moves whole words
  *       through proximus_operor.
  * @note endian.h documents parva_extremitas as the host's own order and magna_extremitas as the
  *       reverse of it, neither one pinned to little or big. The compiler states which order this
- *       host uses in __BYTE_ORDER__, and both expectations are built from that, so the checks hold
+ *       host uses in __BYTE_ORDER__, and both expectations are built from that, and so the checks hold
  *       on a host of either order.
  * @note Every value below has eight different bytes. A value with repeated bytes passes a reversal
- *       that moved them to the wrong places, which is the defect this file is looking for.
+ *       that moved them to the wrong places, the defect this file is looking for.
  * @note Every integer type comes from stdint.h. A wrong width alias would resize the shifts each
  *       expectation is built from.
  * @note Contract checks on a width outside the enumerators, and on the shift that a width of zero
@@ -47,11 +47,11 @@
 /**
  * @brief Set to 1 where this host puts a value's least significant byte at the lowest address.
  *
- * @note The compiler states the order in __BYTE_ORDER__, so nothing here works it out. That is the
- *       toolchain's answer and not the library's, which is what keeps it usable as a reference:
+ * @note The compiler states the order in __BYTE_ORDER__, and so nothing here works it out. That is the
+ *       toolchain's answer and not the library's, as keeps it usable as a reference:
  *       MMGR_HW_BIG_ENDIAN is what the module branches on, and reading it would put the same answer
  *       on both sides of every comparison below.
- * @note A compile-time constant, so every expectation below folds and no case carries a run-time
+ * @note A compile-time constant, and so every expectation below folds and no case carries a run-time
  *       branch on the order.
  * @warning The #error arm fires on a toolchain that predefines neither. Guessing an order there
  *          would make every placement check pass against whatever this file assumed.
@@ -73,7 +73,7 @@
 static uint8_t accuracy_byte_at(uint64_t value, unsigned position)
 {
     // Explicit cast narrows the shifted value to the byte this returns. The mask keeps eight bits,
-    // which is what a uint8_t holds
+    // as a uint8_t holds
     return (uint8_t)((value >> (position * 8u)) & 0xFFu);
 }
 
@@ -95,7 +95,7 @@ static void accuracy_fill_guard(uint8_t *buffer)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Every buffer here has automatic storage inside the case that builds it, and there is no
  *       shared state to prepare.
  */
@@ -107,7 +107,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -220,9 +220,9 @@ void test_the_reversed_write_places_every_byte(void)
  * @brief Checks that each read returns the value its bytes stand for under that table's order.
  *
  * @note The bytes are laid out here one at a time and the expectation is assembled from them with
- *       shifts, so nothing about the answer comes from the module's own loads.
+ *       shifts, and so nothing about the answer comes from the module's own loads.
  * @note Both tables are read from the same buffer. The two answers are the value and its reversal at
- *       that width, which is what makes a read that ignored its order visible.
+ *       that width, and that leaves a read that ignored its order visible.
  */
 void test_each_read_returns_the_value_its_bytes_stand_for(void)
 {
@@ -260,9 +260,9 @@ void test_each_read_returns_the_value_its_bytes_stand_for(void)
 /**
  * @brief Checks that the reversal moves each byte to the position mirroring it across the width.
  *
- * @note rev takes no buffer and reads no memory, so the expectation is built from the value alone.
+ * @note rev takes no buffer and reads no memory, and so the expectation is built from the value alone.
  *       Byte at position i of the result is byte at width minus one minus i of the input.
- * @note The result is right-aligned into the low width bytes, so the positions above the width are
+ * @note The result is right-aligned into the low width bytes, and so the positions above the width are
  *       checked to be zero.
  */
 void test_the_reversal_mirrors_every_byte_across_the_width(void)
@@ -295,7 +295,7 @@ void test_the_reversal_mirrors_every_byte_across_the_width(void)
 /**
  * @brief Checks that a write followed by a read of the same order returns what was written.
  *
- * @note A round trip through one table holds whether or not that table's order is the one intended,
+ * @note A round trip through one table holds regardless of whether that table's order is the single one intended,
  *       so this alone proves nothing about placement. It is here because a pair that disagreed with
  *       each other would pass every placement check above and still lose a caller's value.
  * @note The value is masked to the width first. Only the low width bytes survive a write of that
@@ -314,7 +314,7 @@ void test_a_write_then_a_read_of_the_same_order_returns_the_value(void)
         for (unsigned width_index = 0u; width_index < width_count; width_index++)
         {
             const unsigned width = (unsigned)width_of[width_index];
-            // A width of eight would shift a 64-bit value by 64, which C leaves undefined, so the
+            // A width of eight would shift a 64-bit value by 64, which C leaves undefined, and so the
             // full-width mask is written out instead of computed
             const uint64_t mask =
                 (width == MMGR_ACCURACY_ENDIAN_MAX) ? 0xFFFFFFFFFFFFFFFFull : ((1ull << (width * 8u)) - 1ull);

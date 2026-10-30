@@ -45,8 +45,8 @@ static const double mmgr_muto_ten[MMGR_MUTO_EXACT_POW10 + 1] = {1e0,  1e1,  1e2,
  * @note left and right are muto_mul's two operands, and phi and plo are where it leaves the product.
  * @note pow points at the pow5 entry being applied.
  * @note pow addresses an entry of mmgr_pow5_up or mmgr_pow5_down, which are static const tables that
- *       outlive every call, so it is only ever read through [BORROWS].
- * @warning mant is written through, so muto_take changes the caller's mantissa [BORROWS].
+ *       outlive every call, and so it is only ever read through [BORROWS].
+ * @warning mant is written through, and so muto_take changes the caller's mantissa [BORROWS].
  */
 typedef struct
 {
@@ -75,8 +75,8 @@ typedef struct
  * @return             EMBED_TRUE when the digit was appended, EMBED_FALSE when *args->mant was
  *                     already too large.
  * @note Multiplies by ten and adds args->digit minus '0'. args->digit must be an ASCII decimal digit.
- * @note MMGR_MUTO_MANT_MAX is (~0 - 9) / 10, so the multiply and the add both stay inside a 64-bit value.
- * @warning Writes through args->mant, so the caller's mantissa changes [BORROWS].
+ * @note MMGR_MUTO_MANT_MAX is (~0 - 9) / 10, and so the multiply and the add both stay inside a 64-bit value.
+ * @warning Writes through args->mant, and so the caller's mantissa changes [BORROWS].
  */
 EMBED_INLINE embed_bool muto_take(const MutoCtx *args)
 {
@@ -93,16 +93,16 @@ EMBED_INLINE embed_bool muto_take(const MutoCtx *args)
  * @brief Multiplies args->left by args->right and leaves the 128-bit product in args->phi and args->plo.
  *
  * @param[in,out] args The two operands, and where the product is left [BORROWS].
- * @note Splits both operands at 32 bits and sums the four partial products, so no 128-bit type is needed.
+ * @note Splits both operands at 32 bits and sums the four partial products, and so no 128-bit type is needed.
  * @note mid holds the low half of each middle partial product plus the carry out of the low one. The
  *       two high halves and the carry out of mid go into args->phi.
- * @note The halves are held at 32 bits, so each partial product is a 32 by 32 widening multiply the
- *       target carries in hardware rather than one a compiler must narrow for itself.
+ * @note The halves are kept at 32 bits, and so each partial product is a 32 by 32 widening multiply the
+ *       target carries in hardware and not one a compiler must narrow for itself.
  */
 EMBED_INLINE void muto_mul(MutoCtx *args)
 {
-    // Explicit casts hold each half at the 32 bits it actually carries, so the products below are
-    // widening multiplies rather than full 64-bit ones
+    // Explicit casts hold each half at the 32 bits it actually carries, and so the products below are
+    // widening multiplies and not full 64-bit ones
     const uint32_t left_lo = (uint32_t)args->left;
     const uint32_t left_hi = (uint32_t)(args->left >> 32);
     const uint32_t right_lo = (uint32_t)args->right;
@@ -114,7 +114,7 @@ EMBED_INLINE void muto_mul(MutoCtx *args)
     const embed_u64 p11 = (embed_u64)left_hi * right_hi;
     // Explicit casts take the low half of the two middle partial products, the part this column
     // holds. Their high halves go into phi below. The leading embed_u64 term carries the sum at 64
-    // bits, so mid keeps its own carry rather than dropping it
+    // bits, and so mid keeps its own carry instead of dropping it
     const embed_u64 mid = (p00 >> 32) + (uint32_t)p01 + (uint32_t)p10;
 
     args->plo = (embed_u64)(uint32_t)p00 | (mid << 32);
@@ -128,7 +128,7 @@ EMBED_INLINE void muto_mul(MutoCtx *args)
  * @note Moves args->lo up into args->hi first when args->hi is zero, taking 64 off args->fe2.
  * @note Returns with the value untouched when both halves are zero, since there is no top bit to find.
  * @note clz.lead gives the remaining shift, and args->fe2 falls by exactly what the significand rises.
- * @note A count of zero is tested for rather than shifted by, since the complementary shift would
+ * @note A count of zero is tested for and not shifted by, since the complementary shift would
  *       then be by the full width, which is undefined.
  */
 EMBED_INLINE void muto_norm(MutoCtx *args)
@@ -158,7 +158,7 @@ EMBED_INLINE void muto_norm(MutoCtx *args)
  *
  * @param[in,out] args The significand, its exponent, and the pow5 entry to apply [BORROWS].
  * @note Builds the 256-bit product from four 64-bit multiplies, then adds the columns with their carries.
- * @note Sets args->rest when either discarded column held anything, so the rounding still sees those bits.
+ * @note Sets args->rest when either discarded column contained anything, and so the rounding still sees those bits.
  * @note Adds args->pow->e2 and 128 to args->fe2, the 128 standing for the bits the product was taken down by.
  */
 EMBED_INLINE void muto_mul_pow5(MutoCtx *args)
@@ -218,10 +218,10 @@ EMBED_INLINE void muto_mul_pow5(MutoCtx *args)
 }
 
 /**
- * @brief Expands to 18, the largest power of ten held exactly in a 64-bit integer here.
+ * @brief Expands to 18, the largest power of ten represented exactly in a 64-bit integer here.
  *
- * @note Ten to the eighteenth is under two to the sixtieth, so every entry of mmgr_muto_pow10 below
- *       is exact. MMGR_FIXED_MAX_DECIMALS is eighteen as well, so verba_fixed never asks for more.
+ * @note Ten to the eighteenth is under two to the sixtieth, and so every entry of mmgr_muto_pow10 below
+ *       is exact. MMGR_FIXED_MAX_DECIMALS is eighteen as well, and so verba_fixed never asks for more.
  */
 #define MMGR_MUTO_EXACT_U64_POW10 18
 
@@ -229,7 +229,7 @@ EMBED_INLINE void muto_mul_pow5(MutoCtx *args)
  * @brief Ten raised to 0 through 18, as exact 64-bit integers.
  *
  * @note muto_apply_pow10 applies these for a positive decimal exponent, one outright when the
- *       exponent is within the table and otherwise in chunks of the largest, rather than walking
+ *       exponent is within the table and otherwise in chunks of the largest, instead of walking
  *       the pow5 tables a set bit at a time.
  */
 static const embed_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {1ull,
@@ -257,7 +257,7 @@ static const embed_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {1ull,
  *
  * @param[in,out] args The significand, its exponent, and the power to apply as args->right [BORROWS].
  * @note Two multiplies where muto_mul_pow5 takes four, and one column sum where it takes three.
- * @note The power is applied whole, both its five and its two, so nothing is added to args->fe2 for it.
+ * @note The power is applied whole, both its five and its two, and so nothing is added to args->fe2 for it.
  * @note Sets args->rest from the discarded low 64 bits, as muto_mul_pow5 does from its columns.
  * @note Adds 64 to args->fe2, for the bits the 192-bit product was taken down by.
  */
@@ -310,13 +310,13 @@ EMBED_INLINE void muto_mul_pow10(MutoCtx *args)
  */
 EMBED_INLINE void muto_apply_pow10(MutoCtx *args)
 {
-    // A positive exponent is applied as exact powers of ten rather than by walking the bits of the
+    // A positive exponent is applied as exact powers of ten and not by walking the bits of the
     // wide tables. Ten to the eighteenth is the widest that fits 64 bits. A larger exponent goes
     // on in chunks of it. Each chunk is a 128 by 64 multiply, where every set bit of the walk is a
-    // 128 by 128 one, and the walk needs one per bit rather than one per eighteen.
+    // 128 by 128 one, and the walk needs one per bit and not one per eighteen.
     if (args->ex > 0)
     {
-        // Below the table's reach one power covers the whole exponent, so it needs no loop
+        // Below the table's reach one power covers the whole exponent, and so it needs no loop
         if (args->ex <= MMGR_MUTO_EXACT_U64_POW10)
         {
             args->right = mmgr_muto_pow10[args->ex];
@@ -445,10 +445,10 @@ EMBED_INLINE double muto_round(const MutoCtx *args)
  * @param[in] args The significand and its exponent [BORROWS].
  * @return         The rounded integer, 0 when the value rounds below one, or all ones when it needs
  *                 more than 64 bits.
- * @note k is the negated exponent, so it says how far right the significand must move to become an integer.
+ * @note k is the negated exponent, and so it says how far right the significand must move to become an integer.
  * @note The three branches split on word_shift, the part past 64: none of it, under 64 more, and
  *       64 or more, in that order.
- * @note Only the halfway bit decides. Each branch reads a shift and a mask and nothing else, which is
+ * @note Only the halfway bit decides. Each branch reads a shift and a mask, alone, which is
  *       less for the compiler to carry than gathering the bits below the half and then testing them.
  * @note Reads neither args->rest nor args->above. A half is taken up whatever either holds.
  */
@@ -472,7 +472,7 @@ EMBED_INLINE embed_u64 muto_to_u64(const MutoCtx *args)
     }
 
     // Explicit cast holds the shift width at the embed_word the shifts below take. The tests above
-    // established total_shift is between 64 and 128, so the subtraction cannot wrap
+    // established total_shift is between 64 and 128, and so the subtraction cannot wrap
     const embed_word word_shift = (embed_word)(total_shift - 64);
     embed_u64 whole;
     embed_u64 half;
@@ -518,7 +518,7 @@ EMBED_INLINE embed_u64 muto_to_u64(const MutoCtx *args)
  *       one divide is fifty six percent of what cellul.to_double costs end to end. Multiplying by
  *       the reciprocal would buy all of it and would not be the same function. A divide by a power
  *       of ten the table holds exactly rounds correctly, and the inverse of that power is not
- *       representable, so the last bit moves for some inputs. The other exact route is the fixed
+ *       representable, and so the last bit moves for some inputs. The other exact route is the fixed
  *       point path below, which measured about three times the divide.
  * @warning Returns a signed infinity above MMGR_POW5_MAX and a signed zero below its negative.
  */
@@ -531,7 +531,7 @@ EMBED_INLINE double muto_scale(MutoCtx *args)
 
     // The gate for the exact path: nothing dropped, a mantissa a double holds outright, and an
     // exponent mmgr_muto_ten covers. Explicit cast widens the one to the embed_u64 the mantissa is
-    // compared in, so the shift has room
+    // compared in, and so the shift has room
     if ((args->dropped == 0) && (*args->mant < ((embed_u64)1 << 53)) && (args->ex >= -MMGR_MUTO_EXACT_POW10) &&
         (args->ex <= MMGR_MUTO_EXACT_POW10))
     {
@@ -601,7 +601,7 @@ EMBED_INLINE embed_u64 muto_scale_to_u64(MutoCtx *args)
  * @note Each is documented at its declaration in transformo.h.
  * @note scale forwards args->rest as MutoCtx::dropped. The two structs give that member different
  *       names.
- * @note The members each line leaves out stay zero in the compound literal. scale omits e2, so its
+ * @note The members each line leaves out stay zero in the compound literal. scale omits e2, and so its
  *       mantissa carries no binary exponent, and scale_to_u64 omits dropped and neg.
  */
 MUTO_ENTRY(embed_bool, take, .mant = args->mant, .digit = args->digit)

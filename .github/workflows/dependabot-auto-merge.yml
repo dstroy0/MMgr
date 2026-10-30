@@ -6,7 +6,7 @@ name: Dependabot auto-merge
 # once every required status check passes. So the gate is the branch protection rule on main, not
 # this file: if build-and-test / CodeQL / Sonar are required contexts there, a red one blocks the
 # merge and the PR just sits. With no required checks configured, auto-merge fires as soon as the
-# PR is mergeable - which is why the branch ruleset is the thing to get right, not this workflow.
+# PR is mergeable - and so the branch ruleset is the thing to get right and not this workflow.
 #
 # Major version bumps are deliberately left alone. A major is an announced breaking change and the
 # point of reading it is to find out what broke.
@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   automerge:
-    # pull_request_target runs with a write-capable token against the BASE repo, so it must never
+    # pull_request_target runs with a write-capable token against the BASE repo, and so it must never
     # check out or execute the PR's code. Nothing below does: the only thing this job runs is the
     # metadata action and gh, both against the API.
     if: github.actor == 'dependabot[bot]'

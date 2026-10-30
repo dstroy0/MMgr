@@ -45,7 +45,7 @@
 /**
  * @brief Expands to 0x7E, the byte a destination is filled with before a write.
  *
- * @note A printable byte no case writes on purpose. A position the call did not reach then reads as
+ * @note A printable byte no case writes deliberately. A position the call did not reach then reads as
  *       itself in a failure message instead of as an unprintable value.
  */
 #define MMGR_ACCURACY_NUMER_GUARD 0x7Eu
@@ -68,7 +68,7 @@ static void accuracy_fill_guard(char *buffer)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Every buffer, spec and value list here has automatic storage inside the case that builds it,
  *       so there is no shared state to prepare.
  */
@@ -80,7 +80,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -122,11 +122,11 @@ void test_the_reference_formatting_this_suite_relies_on_behaves_as_assumed(void)
  * @brief Checks each kind on its own against the same value formatted by snprintf.
  *
  * @note One field and one value at a time. A disagreement then names the kind instead of a position
- *       in a longer string, which is what pins each route from a kind to its verba call.
+ *       in a longer string, as pins each route from a kind to its verba call.
  * @note The values are chosen to span each kind: zero, one, a value that fills the width, and the
  *       extremes of the type. The most negative signed value is included, since a magnitude taken by
- *       negating it is the one input that has no positive counterpart.
- * @note Both entry points are exercised on the same value, which is what shows build and emit agree
+ *       negating it is the single one input that has no positive counterpart.
+ * @note Both entry points are exercised on the same value, as shows build and emit agree
  *       wherever the width plays no part.
  */
 void test_each_kind_alone_matches_the_reference_formatting(void)
@@ -157,7 +157,7 @@ void test_each_kind_alone_matches_the_reference_formatting(void)
         TEST_ASSERT_EQUAL_STRING_MESSAGE(reference, produced, message);
         TEST_ASSERT_EQUAL_size_t_MESSAGE(strlen(reference), length, message);
 
-        // The 32-bit kind takes the same value narrowed, which is what its own union arm holds
+        // The 32-bit kind takes the same value narrowed, as its own union arm holds
         const mmgr_field spec_u32[] = {MMGR_U32, MMGR_END};
         // Explicit cast narrows the sweep value to the 32-bit arm this kind reads
         const mmgr_fval vals_u32[] = {MMGR_VU32((uint32_t)unsigned_of[index])};
@@ -214,10 +214,10 @@ void test_each_kind_alone_matches_the_reference_formatting(void)
  * @note Ordering is the claim. A module that wrote the values before the literals, or paired the
  *       second value with the first field, produces every one of the same substrings in the wrong
  *       arrangement, which no single-field case can see.
- * @note The reference is assembled by snprintf in the same order the spec lists, so the comparison is
+ * @note The reference is assembled by snprintf in the same order the spec lists, and so the comparison is
  *       between two whole strings and not between a set of pieces.
  * @note The literal fields carry their own byte counts, and one of them holds a byte count shorter
- *       than the string it points at, which is what shows the count is read and the terminator is not.
+ *       than the string it points at, as shows the count is read and the terminator is not.
  */
 void test_a_spec_of_literals_and_values_comes_out_in_order(void)
 {
@@ -229,7 +229,7 @@ void test_a_spec_of_literals_and_values_comes_out_in_order(void)
         MMGR_U32,
         {MMGR_FK_LIT, 0u, (uint16_t)(sizeof unit - 1u), unit},
         {MMGR_FK_HEX, 0u, 0u, NULL},
-        // A byte count shorter than the string it points at, so only that many bytes are written
+        // A byte count shorter than the string it points at, and so only that many bytes are written
         {MMGR_FK_LIT, 0u, 4u, trailing},
         MMGR_STR,
         MMGR_END,
@@ -258,7 +258,7 @@ void test_a_spec_of_literals_and_values_comes_out_in_order(void)
  * @note Only the kinds whose width reaches a minimum digit count are used. The plain unsigned and
  *       signed kinds fix their own minimum at one and ignore the width entirely, which the module
  *       documents.
- * @note The widths are checked against snprintf zero padding at the same width, so what is compared
+ * @note The widths are checked against snprintf zero padding at the same width, and so what is compared
  *       is the padded string and not merely its length.
  */
 void test_build_takes_the_width_from_the_field_and_emit_from_the_value(void)
@@ -267,7 +267,7 @@ void test_build_takes_the_width_from_the_field_and_emit_from_the_value(void)
     {
         // Explicit cast narrows the loop counter to the width member, which is a uint8_t
         const uint8_t field_width = (uint8_t)width;
-        // A different width in the value, so whichever one is read is visible in the output
+        // A different width in the value, and so whichever one is read is visible in the output
         const uint8_t value_width = (uint8_t)(width + 4u);
         const mmgr_field spec[] = {{MMGR_FK_HEX, field_width, 0u, NULL}, MMGR_END};
         const mmgr_fval vals[] = {MMGR_VHEXW(0xABCuLL, value_width)};
@@ -295,8 +295,8 @@ void test_build_takes_the_width_from_the_field_and_emit_from_the_value(void)
 /**
  * @brief Checks that the decimal kind pads to the width it is given.
  *
- * @note MMGR_FK_DEC is the one kind whose default width is zero, so the width it formats at is the
- *       one the caller states and nothing else. Every width from none to past the value's own digit
+ * @note MMGR_FK_DEC is the single one kind whose default width is zero, and so the width it formats at is the
+ *       one the caller states, alone. Every width from none to past the value's own digit
  *       count is offered.
  * @note A width narrower than the value is checked to widen the field and not to cut the value, which
  *       is what a minimum digit count means and what a maximum would get wrong.
@@ -332,12 +332,12 @@ void test_the_decimal_kind_pads_to_the_width_it_is_given(void)
 /**
  * @brief Checks that the fixed kind writes exactly the decimals its width names.
  *
- * @note The routing claim, not the rounding. The width reaches verba as the digits after the point,
+ * @note The routing claim and not the rounding. The width reaches verba as the digits after the point,
  *       so what is checked is that the output carries a point with exactly that many digits behind
  *       it, whatever those digits are.
- * @note A width of zero is documented to write no point at all, which is the boundary a count taken
+ * @note A width of zero is documented to write no point at all, the boundary a count taken
  *       as one-based would get wrong.
- * @note The values are exact in binary, so the digits themselves are not in question and a failure
+ * @note The values are exact in binary, and so the digits themselves are not in question and a failure
  *       here is the width having gone astray.
  */
 void test_the_fixed_kind_writes_exactly_the_decimals_its_width_names(void)
@@ -381,7 +381,7 @@ void test_the_fixed_kind_writes_exactly_the_decimals_its_width_names(void)
  * @brief Checks that a mismatched spec abandons the write and leaves earlier text whole.
  *
  * @note Abandoning is the accuracy claim that matters most for an append. A partially written record
- *       left in the buffer is one a reader cannot tell from a complete one, so the terminator has to
+ *       left in the buffer is one a reader cannot tell from a complete one, and so the terminator has to
  *       go back where the write started.
  * @note Three ways to mismatch are covered, and the header names all three: a value missing, a value
  *       whose kind differs from its field, and values left over past the spec.
@@ -429,10 +429,10 @@ void test_a_mismatched_spec_abandons_the_write_and_keeps_the_earlier_text(void)
  * @note An append carries on where the last write finished, and the claim is that a record assembled
  *       piece by piece is byte for byte the record assembled in one call. A cursor off by one shows
  *       up as a lost or a doubled character at every join.
- * @note The run is threaded through the returned length, which is the path the header describes as
+ * @note The run is threaded through the returned length, the path the header describes as
  *       the one that measures nothing. A second run leaves the cursor unset so the length is measured
  *       instead, and the two are checked to agree.
- * @note Both are compared against snprintf, so neither run is measured against the other alone.
+ * @note Both are compared against snprintf, and so neither run is measured against the other alone.
  */
 void test_a_run_of_appends_builds_the_same_string_as_one_spec(void)
 {
@@ -481,7 +481,7 @@ void test_a_run_of_appends_builds_the_same_string_as_one_spec(void)
  *       for the format it was meant for.
  * @note The input carries one of every byte each format replaces, along with bytes neither replaces,
  *       which shows a route to the wrong call as a byte escaped that should not have been.
- * @note The expected strings are written out by hand from the two formats' rules, which is what keeps
+ * @note The expected strings are written out by hand from the two formats' rules, as keeps
  *       this independent of what either call happens to produce.
  */
 void test_the_string_kinds_escape_what_their_format_requires(void)

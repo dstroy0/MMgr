@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Generate the anchor cost profiles.
 
-Cost is "how common", so the picker takes the minimum and a byte that cannot occur in the profile's
+Cost is "how common", and so the picker takes the minimum and a byte that cannot occur in the profile's
 grammar scores best - if a needle contains one, it is the most selective anchor available.
 
 Sources:
@@ -19,10 +19,10 @@ Sources:
 
 WHAT EACH PROFILE CARRIES BESIDES ITS FREQUENCIES
 
-The generated file is ordinary documented source, so every profile also carries the prose that
+The generated file is ordinary documented source, and so every profile also carries the prose that
 describes ITS table: the @brief, the notes about which bytes were pinned, and the range the entry
-point returns. Those are observations about one table and cannot be derived from another, so they
-sit beside the frequency function rather than in the template.
+point returns. Those are observations about one table and cannot be derived from another, and so they
+sit beside the frequency function and not in the template.
 
 The two numbers in the @return line ARE derived, from the table that was just computed, so that
 line cannot come to disagree with the data above it.
@@ -30,10 +30,10 @@ line cannot come to disagree with the data above it.
 FORMATTING
 
 The tables are laid out by clang-format, which aligns each column to the widest entry in it. That
-alignment is not reproducible by hand in any way worth maintaining, so the generator emits a plain
+alignment is not reproducible by hand in any way worth maintaining, and so the generator emits a plain
 sixteen-per-row table and then runs the formatter over it. Without that step the output differs
 from what is on disk until something else has run, and `harness.py generated` reads that as a dirty
-tree. A missing clang-format is a refusal rather than a warning.
+tree. A missing clang-format is a refusal and not a warning.
 """
 
 import math
@@ -42,7 +42,7 @@ import shutil
 import subprocess
 import sys
 
-# HERE is mmgr/tools/dev_env, LIB is mmgr. Same convention as readclean.py, so the generator runs
+# HERE is mmgr/tools/dev_env, LIB is mmgr. Same convention as readclean.py, and so the generator runs
 # from anywhere.
 HERE = pathlib.Path(__file__).resolve().parent
 LIB = HERE.parent.parent
@@ -230,8 +230,8 @@ def generic():
 # ceiling, where the floor sits, which bytes are unexpectedly above it. They are per profile because
 # they are true of one table and false of the next.
 #
-# `returns` takes the lowest and highest entry of the computed table, so the range it states is read
-# off the data rather than remembered.
+# `returns` takes the lowest and highest entry of the computed table, and so the range it states is read
+# off the data and not remembered.
 PROFILES = [
     (
         "generic",
@@ -334,7 +334,7 @@ typedef struct
  *
  * @param[in] args Byte to look up [BORROWS].
  * @return         %(returns)s
- * @note The table holds 256 entries, so every uint8_t value indexes it in range.
+ * @note The table holds 256 entries, and so every uint8_t value indexes it in range.
  */
 EMBED_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
 {

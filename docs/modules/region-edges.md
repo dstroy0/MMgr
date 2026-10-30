@@ -17,7 +17,7 @@ so nothing is copied across the boundary.
 ## Three things over the same bytes
 
 **A byte ring.** `available`, `vacant`, `put`, `read`, `read_byte`, `peek`, `consume`. Capacity must
-be a power of two: the wrap is a mask, not a modulo.
+be a power of two: the wrap is a mask and not a modulo.
 
 **A segment view.** `seg_next`, `seg_publish`, `seg_front`, `seg_release`, `seg_at`, `seg_inflight`.
 The producer fills a segment and publishes its index; the consumer reads that index and releases it
@@ -25,7 +25,7 @@ when done. The bytes never move.
 
 **Loculi.** `loculus_ready`, `loculus_next`, `loculus_hold`, `loculus_keepout`, `loculus_drop`,
 `loculus_mark`. A numbered hold that records a region to keep out of, for a reader walking bytes in
-place. Their free and held masks are one machine word each, so `MMGR_RING_LOCULI_MAX` is
+place. Their free and held masks are one machine word each, and so `MMGR_RING_LOCULI_MAX` is
 `EMBED_WORD_BITS`. `MMGR_RING_LOCULI` is the build knob under that ceiling, and a static assert names
 it if it is set higher; a build with no use for them sets it to `0` and gets the keepout storage back.
 
@@ -41,7 +41,7 @@ EMBED_CALL(anularis.init, AnularisCfg, .ring = &ring, .buf = mmgr_pars_storage_r
            .capacity = ring_bytes_bytes, .segment_count = 8u);
 ```
 
-`MemoriaAnularis` declares the ring's storage and claims the pool. The claim is what stops those same
+`MemoriaAnularis` declares the ring's storage and claims the pool. The claim stops those same
 bytes being dressed a second time, as a cellblock, or as another ring, which would put two sets of
 records over one region with nothing at run time to report it.
 
@@ -55,7 +55,7 @@ if (!EMBED_CALL(anularis.put, AnularisCfg, .ring = &ring, .src = msg, .bytes = n
 const size_t got = EMBED_CALL(anularis.read, AnularisCfg, .ring = &ring, .dst = out, .bytes = n);
 ```
 
-Passing whole segments by index instead, so nothing is copied across the boundary:
+Passing whole segments by index instead, and so nothing is copied across the boundary:
 
 ```c
 size_t seg = 0;
@@ -71,12 +71,12 @@ if (EMBED_CALL(anularis.seg_front, AnularisCfg, .ring = &ring, .out_index = &seg
 }
 ```
 
-`seg_next` and `seg_front` answer whether there is one and write the index through `.out_index`, so
+`seg_next` and `seg_front` answer whether there is one and write the index through `.out_index`, and so
 a caller never needs a sentinel index to mean "none".
 
 ## Gotchas
 
-**SPSC only.** Two producers on one ring is a broken program, not a slow one. There is no check and
+**SPSC only.** Two producers on one ring is a broken program and not a slow one. There is no check and
 no assert: exactly one producer advances `head` and exactly one consumer advances `tail`, and that
 is the whole reason acquire and release ordering is enough and no entry on those two needs a
 read-modify-write.
@@ -85,7 +85,7 @@ read-modify-write.
 never happens and a half span is never visible. It answers `EMBED_FALSE` instead of writing what
 fits.
 
-**`peek` copies what you ask for whether or not it arrived.** Read `available` first. A count above
+**`peek` copies what you ask for regardless of whether it arrived.** Read `available` first. A count above
 the ring's capacity is held there, since one lap is all two runs can express.
 
 **Nothing is ever zeroed.** A loculus keeps its bytes after a drop. A restream can run again over
@@ -95,7 +95,7 @@ the same region. Bytes read are not scrubbed behind the cursor either.
 
 **The buffer is aligned before the ring gets it.** The ring does not check and has no way to.
 
-**`loculus_next` is a SWAR popcount fold, not a builtin.** Same reasoning as the rest of the library,
+**`loculus_next` is a SWAR popcount fold and not a builtin.** Same reasoning as the rest of the library,
 see @ref concept_swar.
 
 **Self-contained.** It reaches nothing outside `config`: the span mover, the bit index and the span
@@ -112,7 +112,7 @@ type it records are all defined in its own `.c`, which is also where `<stdatomic
 Decides where a buffer should live when there is more than one kind of memory.
 
 @note Compiled only when `MMGR_ENABLE_EXTRAM` is set. It defaults off, and its test suite is
-skipped loudly rather than silently.
+skipped loudly and not silently.
 
 ## When to reach for it
 
@@ -121,8 +121,8 @@ scarce, external is large and slower, and some of it cannot be reached by DMA.
 
 ## What it does
 
-Every entry takes one argument pack, as the rest of the library does, so the six figures are named
-rather than positional:
+Every entry takes one argument pack, as the rest of the library does, and so the six figures are named
+and not positional:
 
 ```c
 const mmgr_place where = EMBED_CALL(exter.place, ExternaCfg, .size = want, .dma_required = needs_dma,
@@ -148,7 +148,7 @@ const uint8_t now = EMBED_CALL(exter.pingpong_swap, ExternaCfg, .pingpong = &pai
 ## Gotchas
 
 **`dma_required` is not advisory.** On parts where the DMA engine cannot address external memory,
-passing `EMBED_TRUE` is what stops the answer being `PLACE_PSRAM`.
+passing `EMBED_TRUE` stops the answer being `PLACE_PSRAM`.
 
 **`PLACE_FAIL` is a real answer**, not an error code. Handle it.
 
@@ -165,8 +165,8 @@ Three access strategies. Not one thing under three names.
 ## The three
 
 One dispatch table, `proxim` (`src/proximus_operor/proximus_operor.h:218`). The strategy is in the
-entry name rather than in a table of its own, and the may-alias part is in the type every entry
-moves rather than in a third entry to pick.
+entry name and not in a table of its own, and the may-alias part is in the type every entry
+moves and not in a third entry to pick.
 
 | entry               | strategy  | use when                                                                            |
 | ------------------- | --------- | ----------------------------------------------------------------------------------- |
@@ -194,7 +194,7 @@ one stem merged seven symbol pairs, including the aligned and the unaligned load
 
 ## Gotchas
 
-**`aequus` does not check.** It is a promise you are making, not a request to verify.
+**`aequus` does not check.** It is a promise you are making and not a request to verify.
 
 **Unaligned is not always slower.** On x86-64 `proxim.u32` is one `mov`. The distinction matters most
 on parts where it is not.

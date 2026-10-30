@@ -9,14 +9,14 @@
  * @date 2026-08-31
  *
  * @note The module halves the search five times and folds the result, or hands the value to a
- *       builtin. The reference walks one bit at a time from the end it counts from, which is the
+ *       builtin. The reference walks one bit at a time from the end it counts from, the
  *       construction the halving replaced and shares no step with it.
- * @note Both counts are exact integers, so every comparison here is an equality and none of them has
+ * @note Both counts are exact integers, and so every comparison here is an equality and none of them has
  *       a tolerance.
  * @note Which arm the module compiled is a build detail. The header states both arms agree on every
- *       input, and the cases below are written against the documented count, so whichever arm this
- *       build took is the one being measured.
- * @note The reference reports 64 for a value of zero, which is the true count. The module documents
+ *       input, and the cases below are written against the documented count, and so whichever arm this
+ *       build took is the single one being measured.
+ * @note The reference reports 64 for a value of zero, the true count. The module documents
  *       63 for that input, and the case that covers zero states the documented value directly
  *       instead of bending the reference to it.
  */
@@ -30,7 +30,7 @@
 /**
  * @brief Expands to 64u, the bits in the value both counts are taken over.
  *
- * @note The argument is an embed_u64 whatever the machine word is, so this is 64 in every build
+ * @note The argument is an embed_u64 whatever the machine word is, and so this is 64 in every build
  *       environment and not a width that moves with the target.
  */
 #define MMGR_ACCURACY_CLZ_BITS 64u
@@ -50,7 +50,7 @@
  * @return          Leading zero count, 0 through 64, with 64 for a value of zero.
  * @note One test per bit from the top down, stopping at the first set bit. This is the whole
  *       reference for the leading count.
- * @note A value of zero falls out of the loop having counted all 64, which is the true count and not
+ * @note A value of zero falls out of the loop having counted all 64, the true count and not
  *       what the module returns. The case covering zero handles that difference in the open.
  */
 static int accuracy_leading_zeros(uint64_t value)
@@ -140,7 +140,7 @@ static uint64_t accuracy_next_pattern(uint64_t *state)
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Neither call reads or writes anything outside its argument, and there is no state to
  *       prepare.
  */
@@ -152,7 +152,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -165,7 +165,7 @@ void tearDown(void)
  *       surface as a module mismatch, and the module would be blamed for it.
  * @note The expectations are values a reader can check. 0xFF has 56 zeros above it and none below.
  *       A single bit at the top has none above and 63 below.
- * @note Zero is checked to give 64 from both scans, which is the true count and the one place the
+ * @note Zero is checked to give 64 from both scans, the true count and the one place the
  *       reference and the module are documented to differ.
  */
 void test_the_exact_bit_scans_this_suite_relies_on_are_themselves_right(void)
@@ -217,7 +217,7 @@ void test_both_counts_are_right_at_every_single_bit_value(void)
  * @note The leading count is fixed by the highest set bit and the trailing count by the lowest, and
  *       a value with two set bits is the smallest one where those are different bits. 64 positions
  *       against 64 gives 4096 values, which covers every ordered pair of ends.
- * @note The bits between the two ends stay clear here on purpose. A fold that read a bit it should
+ * @note The bits between the two ends stay clear here deliberately. A fold that read a bit it should
  *       have shifted past reaches the wrong end without anything in the middle to hide behind.
  */
 void test_both_counts_are_right_at_every_pair_of_set_bits(void)
@@ -251,7 +251,7 @@ void test_both_counts_are_right_across_the_run_masks(void)
 {
     for (unsigned length = 1u; length <= MMGR_ACCURACY_CLZ_BITS; length++)
     {
-        // A length of 64 would shift a 64-bit value by its full width, which C leaves undefined, so
+        // A length of 64 would shift a 64-bit value by its full width, which C leaves undefined, and so
         // the all ones mask is written out instead of computed
         const uint64_t low_run = (length == MMGR_ACCURACY_CLZ_BITS) ? UINT64_MAX : ((UINT64_C(1) << length) - 1u);
         const uint64_t high_run = low_run << (MMGR_ACCURACY_CLZ_BITS - length);
@@ -283,7 +283,7 @@ void test_both_counts_are_right_across_the_run_masks(void)
  * @note The cases above are all built values with structure. This one covers values with none, where
  *       the bits between the two ends are whatever the pattern gave, and 65536 of them is enough to
  *       reach every leading and trailing count many times.
- * @note Every value is masked down through the widths as well, so the sweep reaches small values and
+ * @note Every value is masked down through the widths as well, and so the sweep reaches small values and
  *       not only ones with a bit near the top. An unmasked 64-bit pattern has a leading count of 0
  *       or 1 almost every time.
  */
@@ -295,7 +295,7 @@ void test_both_counts_are_right_over_a_long_sweep_of_arbitrary_values(void)
     {
         const uint64_t pattern = accuracy_next_pattern(&state);
         const unsigned width = (step % MMGR_ACCURACY_CLZ_BITS) + 1u;
-        // A width of 64 would shift a 64-bit value by its full width, which C leaves undefined, so
+        // A width of 64 would shift a 64-bit value by its full width, which C leaves undefined, and so
         // the all ones mask is written out instead of computed
         const uint64_t mask = (width == MMGR_ACCURACY_CLZ_BITS) ? UINT64_MAX : ((UINT64_C(1) << width) - 1u);
         const uint64_t value = pattern & mask;
@@ -318,7 +318,7 @@ void test_both_counts_are_right_over_a_long_sweep_of_arbitrary_values(void)
 /**
  * @brief Checks that a value of zero gives the documented count from both calls.
  *
- * @note Zero has no set bit, and the header documents 63 from both calls, which is the same count a
+ * @note Zero has no set bit, and the header documents 63 from both calls, the same count a
  *       single bit at the counted end gives. The reference counts 64 for it, and this case states
  *       the documented value directly instead of teaching the reference an exception.
  * @note Pinned here because the two arms reach it differently. One sets a bit the builtin needs and

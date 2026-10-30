@@ -34,12 +34,12 @@ EMBED_ENUM_BYTE(mmgr_place, PLACE_DRAM = 0, /**< Internal memory. */
 /**
  * @brief A pair of buffers, one being filled while the other is drained.
  *
- * @note fill_index is the only member. The buffers it indexes are held elsewhere.
+ * @note fill_index is the only member. The buffers it indexes are stored elsewhere.
  * @note The two roles are one bit. The drain index is this one's complement. A swap is a flip and
  *       there is no second member to keep in step.
  * @warning What holds fill_index to 0 or 1 is mmgr_pingpong_init setting it and mmgr_pingpong_swap
  *          flipping it. A pair that has not been through mmgr_pingpong_init carries whatever its
- *          storage held, and no call here tests the value.
+ *          storage contained, and no call here tests the value.
  */
 typedef struct
 {
@@ -111,7 +111,7 @@ void mmgr_pingpong_init(const ExternaCfg *args);
  * @note Does not modify args->pingpong.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning Reports fill_index as it stands. On a pair that has not been through mmgr_pingpong_init
- *          that is whatever its storage held, and this call does not bound it to 0 or 1.
+ *          that is whatever its storage contained, and this call does not bound it to 0 or 1.
  */
 uint8_t mmgr_pingpong_fill_index(const ExternaCfg *args);
 
@@ -120,11 +120,11 @@ uint8_t mmgr_pingpong_fill_index(const ExternaCfg *args);
  *
  * @param[in] args Pair to read, as args->pingpong [BORROWS].
  * @return         The other index, 0 or 1.
- * @note The answer is fill_index with its low bit flipped, so the two indexes always disagree.
+ * @note The answer is fill_index with its low bit flipped, and so the two indexes always disagree.
  * @note Does not modify args->pingpong.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning The answer is an index only while fill_index is 0 or 1. On a pair that has not been
- *          through mmgr_pingpong_init it is the flip of whatever its storage held.
+ *          through mmgr_pingpong_init it is the flip of whatever its storage contained.
  */
 uint8_t mmgr_pingpong_drain_index(const ExternaCfg *args);
 
@@ -136,7 +136,7 @@ uint8_t mmgr_pingpong_drain_index(const ExternaCfg *args);
  * @note Flips the low bit. A swap of a swap is where it started.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning One caller at a time. The flip and the read that follows it are two steps on a plain byte,
- *          with no atomic and no lock, so two callers swapping the same pair can come away holding
+ *          with no atomic and no lock, and so two callers swapping the same pair can come away holding
  *          the same index.
  */
 uint8_t mmgr_pingpong_swap(const ExternaCfg *args);

@@ -19,12 +19,12 @@ mmgr_<infix>_<tail>
 | `mmgr_memor_cmp`      | `memor`  | `memoria_operor`    |
 | `mmgr_cellul_len`     | `cellul` | `cellularum_laboro` |
 
-`locus_carcerum` is the exception. Its public entries are named for what they do rather than for the
-module, `mmgr_persistent_buf_alloc`, `mmgr_temporary_buf_mark`, `mmgr_buf_available`, so there is
+`locus_carcerum` is the exception. Its public entries are named for what they do and not for the
+module, `mmgr_persistent_buf_alloc`, `mmgr_temporary_buf_mark`, `mmgr_buf_available`, and so there is
 no `carcer` infix to read a module off. Reach them through a declared region's pools instead
-(`prison.work.persistent_buf_alloc`), which is how the header presents them.
+(`prison.work.persistent_buf_alloc`), and that is how the header presents them.
 
-And the dispatch table is named for the same stem, so `spat.from` and `mmgr_spat_from` are the same
+And the dispatch table is named for the same stem, and so `spat.from` and `mmgr_spat_from` are the same
 function reached two ways. See @ref concept_ns_idiom.
 
 ## Stem to module
@@ -54,13 +54,13 @@ function reached two ways. See @ref concept_ns_idiom.
 ## The exceptions
 
 `verba_scribo/verba_linea.h` has no table. Its `mmgr_line_*` entries take a `VerbaLinea` and the
-value as plain arguments, and the header includes `mmgr.h` alone, so a C++ translation unit reaches
+value as plain arguments, and the header includes `mmgr.h` alone, and therefore a C++ translation unit reaches
 them without the designated initializers the module's tables are written with.
 
 `proximus_operor` has one table, `proxim`, and keeps its three **strategies** apart in the entry
 names instead: `load` and `put` are unaligned, `al_load` and `al_put` are aligned, and the may-alias
 part is `mmgr_migro_word`, the type they all move. Merging them is a miscompile the compiler cannot
-report, so the naming keeps them apart. `aequus` and `migro` are backend prefixes inside the `.c`
+report, and so the naming keeps them apart. `aequus` and `migro` are backend prefixes inside the `.c`
 and a type name: neither is a table a caller reaches for.
 
 `verbum_scrutor` splits the other way: three tables, `lane`, `mask`, `word`, over one module, named
@@ -82,13 +82,13 @@ conversion needs. See @ref qa_numeric for what it is for.
 
 Every entry takes one `const <Pascal>Cfg *`, built at the call site with `EMBED_CALL`. A module
 whose state outlives a call names that state `<Pascal>Ctx` and the caller holds it; the cfg carries
-a pointer to it rather than the state itself.
+a pointer to it and not the state itself.
 
 ## Finding it in the reference
 
 - **API by module** groups every entity under the seven sections in @ref nav_modules.
 - **Data Structures** lists every struct and typedef.
-- **Files** lists every header with its include path, which is the path you actually write.
+- **Files** lists every header with its include path, the path you actually write.
 
 The search box indexes all three.
 

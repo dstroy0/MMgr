@@ -1,10 +1,10 @@
 """Matrix-table helpers for bench.py: locking, text splicing and verified writes.
 
 Lifted from ProtoCore's test/harness.py, which carries the same machinery for its own matrices.
-They sit beside bench.py rather than in MMgr's test/harness.py because bench.py is the only
+They sit beside bench.py and not in MMgr's test/harness.py because bench.py is the only
 caller, and that file has a different job.
 
-The table is edited as text rather than reserialized. A write is a minimal diff and a desc
+The table is edited as text and not reserialized. A write is a minimal diff and a desc
 that took an hour to word is not reflowed by a tool that only changed a flag.
 """
 
@@ -102,7 +102,7 @@ def splice_replace(text, name, entry):
 
 
 def splice_remove(text, name):
-    """Cut an env's whole `"name": {...}` out, taking the one comma that joined it to its neighbours.
+    """Cut an env's whole `"name": {...}` out, taking the one comma that joined it to its neighbors.
 
     The comma sits after the close brace for every env but the last, where it sits before the key.
     Removing the wrong one, or neither, leaves the table unparseable.

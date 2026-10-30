@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # Shallow clones break blame-based new-code detection, so Sonar cannot tell which
+          # Shallow clones break blame-based new-code detection, and so Sonar cannot tell which
           # findings are new.
           fetch-depth: 0
 
@@ -47,7 +47,7 @@ jobs:
       # compiling and -lgcov when linking, and setting only the compile half fails at link time.
       #
       # -include test/support/coverage_inline.h drops always_inline off MMGR_INLINE for this build
-      # only. gcc honors always_inline at -O0, so without it a header entry gets a full set of
+      # only. gcc honors always_inline at -O0, and so without it a header entry gets a full set of
       # branch records at every call site and the report counts optimizer copies instead of source
       # branches. The header says the rest.
       - name: Configure
@@ -63,7 +63,7 @@ jobs:
         run: build-wrapper-linux-x86-64 --out-dir bw-output cmake --build build --parallel
 
       # The suite is the thing that produces .gcda. It is also a real gate: a failing test should
-      # fail this job rather than quietly reporting the coverage of a broken build.
+      # fail this job and not quietly reporting the coverage of a broken build.
       - name: Test
         run: ctest --test-dir build --output-on-failure
 

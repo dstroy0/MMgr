@@ -10,11 +10,11 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Every symbol the library declares weak is defined here strongly, so the linker takes these
+ * @note Every symbol the library declares weak is defined here strongly, and so the linker takes these
  *       over the refusing defaults in memoriam_praetereo.c. That is the same seam a board support
  *       file uses, and it holds with link-time optimization on.
  * @note One engine schedules every logical channel. A completion is held against the channel that
- *       earned it and comes out when its cycle has elapsed and the arm lets it, so the order
+ *       earned it and comes out when its cycle has elapsed and the arm lets it, and so the order
  *       completions arrive in is the scenario's to choose and need not match the order submitted.
  * @note One hook call is one tick. Settling and cycle time are both counted in them, which keeps the
  *       whole fixture deterministic and free of a clock.
@@ -28,7 +28,7 @@
 /**
  * @brief Scenario the engine is currently running.
  *
- * @note Null until praet_engine_arm runs. Every hook refuses against a null scenario, which is what
+ * @note Null until praet_engine_arm runs. Every hook refuses against a null scenario, as
  *       an unarmed engine should look like.
  */
 static const PraetScenario *s_scenario;
@@ -133,7 +133,7 @@ uint16_t praet_engine_progress(uint8_t channel)
  *
  * @param[in] channel Channel to read.
  * @return            Bytes moved so far, as the script last reported them.
- * @note praet_ordo.h declares this and the orchestrator calls it. Defining it here is what makes
+ * @note praet_ordo.h declares this and the orchestrator calls it. Defining it here makes
  *       this file the port for that hook as well as for the four in memoriam_praetereo.h.
  */
 uint16_t praet_hw_progress(embed_word channel)
@@ -146,7 +146,7 @@ uint16_t praet_hw_progress(embed_word channel)
  *
  * @param[in] hook Hook being answered, as a PraetHook.
  * @return         The reaction, or NULL where the script is spent or answers a different hook.
- * @note Advances the tick, because every hook call is one whether or not the script had an answer.
+ * @note Advances the tick, because every hook call is one regardless of whether the script had an answer.
  * @note A reaction scripted for another hook comes back NULL and raises overrun. A script that has
  *       drifted out of step with the program is a defect in the fixture, and reading it as a refusal
  *       would hide that.
@@ -187,7 +187,7 @@ static void praet_engine_report(uint8_t channel, uint16_t moved)
 {
     s_tally.completions++;
 
-    // A finished transfer moved what it reported, so the progress figure ends where the completion
+    // A finished transfer moved what it reported, and so the progress figure ends where the completion
     // says it does. Written before the callback runs, since the callback is what reads it
     if (channel < PRAET_ENGINE_CHANNELS)
     {
@@ -258,8 +258,8 @@ static void praet_engine_service_interrupt(void)
  * @param[in] step    Reaction that was accepted [BORROWS].
  * @param[in] channel Logical channel the call named.
  * @note A refused reaction never reaches this. Refusing and reporting a completion is not a state
- *       hardware produces, so the engine does not offer it.
- * @note A channel at or above PRAET_ENGINE_CHANNELS has nowhere to be held, so it raises overrun.
+ *       hardware produces, and so the engine does not offer it.
+ * @note A channel at or above PRAET_ENGINE_CHANNELS has nowhere to be held, and so it raises overrun.
  *       The scenario named a channel the fixture cannot schedule.
  */
 static void praet_engine_schedule(const PraetEngineStep *step, uint8_t channel)

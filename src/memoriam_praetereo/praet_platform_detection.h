@@ -34,7 +34,7 @@
  * @brief Set where this is an ARM build, in either execution state.
  *
  * @note __arm__ covers every 32-bit ARM back to ARMv4, and __aarch64__ covers the 64-bit state. ACLE
- *       leaves both in place, so testing the pair catches every ARM subfamily without naming one.
+ *       leaves both in place, and so testing the pair catches every ARM subfamily without naming one.
  */
 #if defined(__arm__) || defined(__aarch64__) || defined(__thumb__)
 #define PRAET_PLATFORM_ARM 1
@@ -143,7 +143,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
  * @brief Bits in this architecture's general purpose register.
  *
  * @note ACLE reports the execution state, and says nothing of the register width. On ARM those are the
- *       same question: the 64-bit state is what gives 64-bit registers.
+ *       same question: the 64-bit state gives 64-bit registers.
  */
 #if defined(__ARM_64BIT_STATE)
 #define PRAET_PLATFORM_XLEN 64u
@@ -229,7 +229,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
  *
  * GCC predefines exactly one of __XTENSA_WINDOWED_ABI__ and __XTENSA_CALL0_ABI__ for every Xtensa
  * configuration. The register windows are the difference that shows up in anything reaching the
- * stack, which is why it is the split worth naming.
+ * stack, and so it is the split worth naming.
  */
 #if defined(__XTENSA_WINDOWED_ABI__)
 
@@ -249,7 +249,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
  *
  * @note CCOUNT, the cycle count special register. A port reads it with rsr.
  * @warning Says the architecture defines one, and never that this core was configured with it. An
- *          Xtensa core is configurable and the timer option can be left out, which is the port's to
+ *          Xtensa core is configurable and the timer option can be left out, the port's to
  *          find out.
  */
 #define PRAET_PLATFORM_HAS_CYCLE_COUNTER 1
@@ -265,7 +265,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 /**
  * @brief Set where the architecture loads and stores at an address that is not aligned to the size.
  *
- * @note Zero, which is the fail-closed answer and was not measured. The base ISA raises a load
+ * @note Zero, the fail-closed answer and was not measured. The base ISA raises a load
  *       or store alignment exception, the unaligned option is a core configuration choice, and GCC
  *       predefines nothing that reports it. A core that does support it is described conservatively
  *       here and loses nothing by it.
@@ -287,7 +287,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
  *        one.
  *
  * @note Zero, and not because a host has no counter. A host build has no core to pin a timer to and
- *       no architectural register to read, so the clock is the caller's - which is what makes a host
+ *       no architectural register to read, and so the clock is the caller's - and that leaves a host
  *       build take the same arm a Cortex-M0 does, for the same reason.
  */
 #define PRAET_PLATFORM_HAS_CYCLE_COUNTER 0
@@ -296,7 +296,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
  * @brief Bits in this architecture's general purpose register.
  *
  * @note Off the pointer size, which GCC and clang both predefine everywhere. A host is whatever the
- *       machine running the suites is, so there is nothing else to read it from.
+ *       machine running the suites is, and so there is nothing else to read it from.
  */
 #define PRAET_PLATFORM_XLEN (__SIZEOF_POINTER__ * 8u)
 
@@ -308,7 +308,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #endif
 
 // A word wider than the register it is carried in. The environments build this at 16 and 32 bits on a
-// 64-bit host on purpose, so narrower is expected and only the other direction is wrong
+// 64-bit host deliberately, and so narrower is expected and only the other direction is wrong
 EMBED_STATIC_ASSERT(EMBED_WORD_BITS <= PRAET_PLATFORM_XLEN,
                     "EMBED_WORD_BITS is wider than this architecture's register");
 

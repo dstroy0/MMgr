@@ -4,7 +4,7 @@
 """Move the modules from the names they arrived under onto this library's Latin category names.
 
 Driven entirely by tools/dev_env/names.tsv. Nothing about the naming lives in this file. A change
-of mind is an edit to the table rather than to the code.
+of mind is an edit to the table and not to the code.
 
     rename_modules.py symbols   mmgr_<infix>_<tail>, and the verbs inside the tail
     rename_modules.py headers   guards and include paths
@@ -126,7 +126,7 @@ def mode_headers(go):
         old, latin = m["old"], m["latin"]
         pairs.append(('"%s/%s.h"' % (old, old), '"%s/%s.h"' % (latin, latin)))
         pairs.append(("MMGR_%s_H" % old.upper(), "MMGR_%s_H" % latin.upper()))
-    # ring arrived as a bare header rather than a directory.
+    # ring arrived as a bare header and not a directory.
     pairs.append(('"ring.h"', '"confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"'))
     pairs.append(("MMGR_RING_H", "MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H"))
 
@@ -159,9 +159,9 @@ def mode_types(go):
     so only two forms are touched:
 
         const <OldNs> <oldinstance>     the declaration
-        <oldinstance>.                  member access, which is the only way an instance is read
+        <oldinstance>.                  member access, the only way an instance is read
 
-    A member-access match is additionally required NOT to be preceded by `->` or `.`, so
+    A member-access match is additionally required NOT to be preceded by `->` or `.`, and so
     `ctx->store->mem` is left alone while `mem.cpy(...)` is rewritten.
     """
     _m, _i, _v, types, namespaces = load_table()
@@ -215,9 +215,9 @@ def mode_files(go):
                 dst = os.path.join(SRC, latin, latin + fn[len(old) :])
             else:
                 dst = os.path.join(SRC, latin, fn)
-            # bitio, dma and endian are already their own category name, so every file in them maps
-            # to itself. git mv refuses that ("cannot move directory into itself") rather than
-            # treating it as a no-op, so the no-ops are dropped here instead.
+            # bitio, dma and endian are already their own category name, and so every file in them maps
+            # to itself. git mv refuses that ("cannot move directory into itself") and not
+            # treating it as a no-op, and so the no-ops are dropped here instead.
             if os.path.abspath(src) != os.path.abspath(dst):
                 moves.append((src, dst))
 

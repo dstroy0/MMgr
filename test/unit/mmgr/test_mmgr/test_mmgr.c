@@ -1,7 +1,7 @@
 #include "mmgr.h"
 
-// mmgr.h carries the embed headers and nothing else, so each namespace below comes from the module
-// that declares it. The header stays first, which is what test_umbrella_header_is_self_contained
+// mmgr.h carries the embed headers, alone, and so each namespace below comes from the module
+// that declares it. The header stays first, as test_umbrella_header_is_self_contained
 // still checks
 #include "bitorum_introitus_exitus/bitorum_introitus_exitus.h"
 #include "cellularum_laboro/cellularum_laboro.h"

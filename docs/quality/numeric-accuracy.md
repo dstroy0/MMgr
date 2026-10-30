@@ -1,14 +1,14 @@
 # Numbers, and how far they can be trusted {#qa_numeric}
 
 `to_double` returns the correctly rounded double for every input, and `verba.g` and `verba.fixed`
-render one exactly. All three are measured rather than believed, and this page says how, because a numeric routine that
+render one exactly. All three are measured and not believed, and this page says how, because a numeric routine that
 nobody checked is a routine that is wrong in a way nobody has noticed yet.
 
 ## What correct means here
 
 A double printed to seventeen significant digits names exactly one double. That is not a
-convention, it is a property of binary64: seventeen digits is enough to tell any two neighbours
-apart, so there is exactly one right answer for such a string and any other answer is a defect.
+convention, it is a property of binary64: seventeen digits is enough to tell any two neighbors
+apart, and so there is exactly one right answer for such a string and any other answer is a defect.
 
 That gives a test with no judgement in it. Take a bit pattern, read it as a double, print it to
 seventeen digits, read it back, and compare the patterns. Same bits or not.
@@ -46,7 +46,7 @@ and an error in `scale` that divided into every digit after it. Seventeen digits
 rounding steps.
 
 **The exponent saturated.** The power of ten was built by multiplying: `for k < ex: m *= 10.0`.
-Ten to the three hundred and ninth is larger than any double, so it became an infinity, and
+Ten to the three hundred and ninth is larger than any double, and so it became an infinity, and
 dividing by an infinity is zero. Every value with a decimal exponent past 308 came back as nothing
 at all. That is where the 282 million ulp came from - it is not a rounding error, it is the whole
 value.
@@ -91,7 +91,7 @@ step keeps the fraction in place and pushes the growth into an `int` exponent.
 
 ## What is in the module
 
-The engine is `src/transformo`, and it is a module rather than something the parser keeps to itself.
+The engine is `src/transformo`, and it is a module instead of something the parser keeps to itself.
 It was written inside `cellularum_laboro` because that is where a decimal first had to become a
 double, but turning a mantissa and an exponent into the value they name is not a parsing problem -
 the render side has the same problem in the other direction and should not solve it twice. Its
@@ -100,9 +100,9 @@ entries are `mmgr_muto_*`.
 `src/pow5/pow5.h` is 360 bytes: nine powers of five and nine reciprocals, as 128 bit fractions with
 their own binary exponents. Any decimal exponent below 512 is the product of at most nine of them.
 A loop that ran four hundred times runs nine. The reciprocals are what keep a negative exponent a
-multiply rather than a division.
+multiply and not a division.
 
-They are truncated rather than rounded, deliberately. A truncated entry is never above the true
+They are truncated and not rounded, deliberately. A truncated entry is never above the true
 power. A product is never above the true product, and the bit that decides a tie is never
 wrongly clear. Rounded entries would put error on both sides and the tie would stop being decidable
 from the bits present.
@@ -116,7 +116,7 @@ Set with nothing below is the tie, and the tie goes to even. Nothing in it looks
 was.
 
 `mmgr_muto_scale_to_u64` is the same rounding stopping at an integer instead of going on to assemble a
-double, which is the end a digit string needs. It is told the parity of whatever sits above it,
+double, the end a digit string needs. It is told the parity of whatever sits above it,
 because ties go to even and even means even _in the number that gets written_: past the point that
 is the last digit of the fraction, but ask for no decimals and the tie is decided by the integer
 part instead.
@@ -128,14 +128,14 @@ Six ways, because each one catches something the others do not.
 **Against a reference with a right answer.** 999,480 random bit patterns through print and parse,
 comparing bit patterns. No tolerance, no judgement.
 
-**Random bit patterns, not chosen values.** Values a person picks cluster around the ordinary. A bit
+**Random bit patterns and not chosen values.** Values a person picks cluster around the ordinary. A bit
 pattern read as a double reaches subnormals, the exponent boundaries and the awkward mantissas that
 nobody would think to write down.
 
 **Strobed bits.** The other half of the same idea: start from a plain value and flip a few bits,
-which lands on the exponents either side of the ordinary range rather than uniformly across it.
+which lands on the exponents either side of the ordinary range and not uniformly across it.
 
-**Every entry in the table.** The exponent selects entries by its set bits, so exponents with each
+**Every entry in the table.** The exponent selects entries by its set bits, and so exponents with each
 bit in turn reach each entry in turn, and one with several bits set makes the multiplies compound.
 
 **The edges, named.** The largest finite double, the smallest normal, the smallest subnormal, the
@@ -143,14 +143,14 @@ step between the largest subnormal and the smallest normal, past the top, past t
 digits than the mantissa holds.
 
 **The insides, where the outside cannot reach.** `test_cellularum_internals` compiles the
-translation unit in rather than linking it, so the file-local entries are callable. Three things
+translation unit in instead of linking it, and so the file-local entries are callable. Three things
 live there:
 
 - A carry out of the middle column of the 128 by 128 multiply. It happens about once in 2^63
   multiplies; forty thousand random and strobed values did not produce one and never would. The
   operands were solved for. A carry that is written and never executed is a carry nobody knows
   works.
-- An exact tie handed to the rounding directly, rather than hunting for a decimal that lands
+- An exact tie handed to the rounding directly, instead of hunting for a decimal that lands
   exactly halfway between two doubles.
 - The normalize path for a fraction with an empty high word, which the conversion never produces
   because it guards the mantissa first.
@@ -158,14 +158,14 @@ live there:
 ## What the render side got from it
 
 `verba.fixed` was wrong for about one value in six below roughly 1e-41. Two faults stacked. The
-scale came off the mantissa only while the shift was under 64, so past that the remainder was the
+scale came off the mantissa only while the shift was under 64, and so past that the remainder was the
 whole mantissa unscaled; then the correction that followed shifted a 64 bit word by more than 64,
 which C does not define and x86 turns into no shift at all. Together they put the answer out by
 2^128, and two times ten to the minus forty one printed as `0.006958041`.
 
 It goes through the engine now. Measured against a correctly rounding reference over 66,000 cases:
 **15.87% wrong to 0.0000%**. The tie went with it - `fixed` truncated an exact tie toward zero while
-`g` rounded it, so one library rendered one number two ways. That was pinned as a finding and is now
+`g` rounded it, and so one library rendered one number two ways. That was pinned as a finding and is now
 the rule the test asserts.
 
 The 1264 bytes `verba_scribo` grew at -O2 are the engine being inlined. See @ref qa_optimization.
@@ -192,8 +192,8 @@ of ten the requested digit count is away from where the value sits. That is the 
 Measured the same way as the parse - 500,000 random bit patterns, rendered at seventeen digits, read
 back by a correctly rounded reader, bit patterns compared: **87.07% wrong to 0.0000%**.
 
-It cost 1088 bytes at -O2, and one shape decision. The engine is `always_inline`, so it is copied
-wherever it is written; the correction loop calls it from one place on purpose, because a second
+It cost 1088 bytes at -O2, and one shape decision. The engine is `always_inline`, and so it is copied
+wherever it is written; the correction loop calls it from one place deliberately, because a second
 call site is a second copy of the whole thing. Written the obvious way, with a call before the loop
 and another inside it, the module was 1200 bytes larger for no change in output.
 
@@ -202,7 +202,7 @@ the result is a `uint64_t` and nineteen digits is where that stops being able to
 
 ## What is still not exact
 
-Nothing, on the three paths above. `to_float` is `(float)to_double`, so it rounds twice - once to a
-double and once down again - and double rounding can land on the wrong neighbour where a single
+Nothing, on the three paths above. `to_float` is `(float)to_double`, and so it rounds twice - once to a
+double and once down again - and double rounding can land on the wrong neighbor where a single
 rounding would not. Measured against `strtof` over 500,000 patterns it has not yet been seen to,
 but it is a real property of the shape and not something the numbers rule out.

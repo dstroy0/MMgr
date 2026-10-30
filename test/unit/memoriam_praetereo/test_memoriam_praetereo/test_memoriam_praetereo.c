@@ -27,8 +27,8 @@ static int s_completion_count;
  *
  * @param[in] event Completion the port layer reports [BORROWS].
  * @param[in] user  Pointer registered alongside this callback [BORROWS].
- * @note Never runs in this suite. The refusing hardware defaults accept no transfer, so nothing
- *       reaches a completion, which is what test_an_unported_build_reports_no_completion asserts.
+ * @note Never runs in this suite. The refusing hardware defaults accept no transfer, and so nothing
+ *       reaches a completion, as test_an_unported_build_reports_no_completion asserts.
  */
 static void count_one_completion(const mmgr_praet_event *event, void *user)
 {
@@ -77,7 +77,7 @@ void setUp(void)
 /**
  * @brief Releases the fixture Unity runs after each case in this suite.
  *
- * @note Empty because no case opens a channel the port layer accepted, so none leaves one to close.
+ * @note Empty because no case opens a channel the port layer accepted, and so none leaves one to close.
  */
 void tearDown(void)
 {
@@ -97,7 +97,7 @@ void test_dma_header_is_self_contained(void)
 /**
  * @brief Checks that every praet member points at a function.
  *
- * @note A null member would fault at the first call, long after the declaration, so the table is
+ * @note A null member would fault at the first call, long after the declaration, and so the table is
  *       read before any case calls through it.
  */
 void test_every_praet_entry_is_reachable(void)
@@ -126,7 +126,7 @@ void test_no_two_praet_entries_share_a_function(void)
 /**
  * @brief Checks that opening a channel fails while the hardware hook keeps its default.
  *
- * @note A port layer replaces mmgr_praet_hw_open through weak linkage. This suite links no port, so
+ * @note A port layer replaces mmgr_praet_hw_open through weak linkage. This suite links no port, and so
  *       the refusing default stands and an unported build fails visibly instead of appearing to work.
  */
 void test_an_unported_build_refuses_to_open_a_channel(void)
@@ -139,7 +139,7 @@ void test_an_unported_build_refuses_to_open_a_channel(void)
 /**
  * @brief Checks that submitting a transfer fails while the hardware hook keeps its default.
  *
- * @note Submitted against a channel that never opened, which is the state an unported build is
+ * @note Submitted against a channel that never opened, the state an unported build is
  *       always in.
  */
 void test_an_unported_build_refuses_a_transfer(void)
@@ -167,7 +167,7 @@ void test_an_empty_transfer_is_refused_as_well(void)
 /**
  * @brief Checks that closing a channel that never opened does nothing and returns.
  *
- * @note The default mmgr_praet_hw_close does nothing, so this case fails by faulting, with no
+ * @note The default mmgr_praet_hw_close does nothing, and so this case fails by faulting, with no
  *       assertion to report it.
  */
 void test_closing_a_channel_that_never_opened_returns(void)
@@ -179,7 +179,7 @@ void test_closing_a_channel_that_never_opened_returns(void)
 /**
  * @brief Checks that polling an unported build does nothing and returns.
  *
- * @note mmgr_praet_poll forwards to the hook with no assertion in between, so this reaches the
+ * @note mmgr_praet_poll forwards to the hook with no assertion in between, and so this reaches the
  *       default hook exactly as written here.
  */
 void test_polling_an_unported_build_returns(void)

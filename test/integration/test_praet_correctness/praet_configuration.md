@@ -37,7 +37,7 @@ error: #error "This build did not declare every knob this module reads. Each one
 
 `PRAET_CLOCK_CORE` is absent from that list because the derivation put this build on the caller's clock, and nothing pins a timer there. On an architecture that defines a counter, the source falls back to `PRAET_CLOCK_OWN` and the core joins the list.
 
-Nothing in this depends on a build system. These are preprocessor directives, so `gcc` or `clang` invoked on one file behaves the way any tree driving them does. A keep-going build (`ninja -k 0`, `make -k`) collects failures across translation units, which is the same idea at a different scale and is not something this needs.
+Nothing in this depends on a build system. These are preprocessor directives, and so `gcc` or `clang` invoked on one file behaves the way any tree driving them does. A keep-going build (`ninja -k 0`, `make -k`) collects failures across translation units, the same idea at a different scale and is not something this needs.
 
 ## The build knobs
 
@@ -98,7 +98,7 @@ Default `PRAET_PLATFORM_CLOCK_CORE`, with a warning (`praet_horologiorum_custos.
 
 ## The declaration
 
-A context is declared, and the declaration is the instantiation. It emits initialized data, so nothing runs before `main` to make a context usable.
+A context is declared, and the declaration is the instantiation. It emits initialized data, and so nothing runs before `main` to make a context usable.
 
 ```c
 PraetOrdoContext(s_schedule, AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE);
@@ -108,7 +108,7 @@ The second argument answers whether a recovery checksums the word the engine was
 
 The token is independent of `PRAET_RECOVERY`. Turning recovery on does not turn the check on, and asking for the check on a build with recovery off fails an assertion naming what to do (`praet_ordo.h:221-224`).
 
-Three things are refused. A mistyped token fails on an unknown type name carrying the token it was given, since the declarator pastes it onto a type that exists for the two tokens and nothing else (`praet_ordo.h:138`). A plain `1` or `TRUE` fails the same way, because those are values and neither names a type. `PRAET_RECOVERY_CRC` as a build knob is refused outright (`praet_praefinitum.h:118-121`).
+Three things are refused. A mistyped token fails on an unknown type name carrying the token it was given, since the declarator pastes it onto a type that exists for the two tokens, alone (`praet_ordo.h:138`). A plain `1` or `TRUE` fails the same way, because those are values and neither names a type. `PRAET_RECOVERY_CRC` as a build knob is refused outright (`praet_praefinitum.h:118-121`).
 
 ## The attach surface
 
@@ -123,13 +123,13 @@ PraetChannel(s_frame_dma, 0, frame_pool);
 
 `PraetChannel` says which pool a channel is over (`praet_ordo.h:392-400`). It emits an enumerator
 whose name carries the context, the channel and the pool. `PraetAttach` and `PraetSubmit` both name
-that enumerator (`praet_ordo.h:411`), so reaching either with a pool the channel is not over is an
+that enumerator (`praet_ordo.h:411`), and so reaching either with a pool the channel is not over is an
 undeclared identifier printing the triple that was written. This is the shape `locus_carcerum` uses,
 where `MMGR_CARCER_BODY` pastes the site and the pool into `prisonsite_##_##name_##_ctx` and a
 cellblock's entries cannot be handed another cellblock's bytes. The channel joins the paste here
 because a context has several and they may be over different pools.
 
-The channel number is pasted, so it is written as a plain literal. `0u` pastes to `channel0u` and
+The channel number is pasted, and so it is written as a plain literal. `0u` pastes to `channel0u` and
 names an enumerator nobody declared.
 
 `PraetChannel` also asserts the channel is below `PRAET_CHANNELS` and that the pool has bytes in it
@@ -184,7 +184,7 @@ progress is reported and no interrupt exists, and the second report never reache
 short circuit itself is intact: a channel that moved is one of the things that makes it false, and a
 poll with nothing to do costs one volatile read and a return.
 
-The settle comparison is lifted out of the walk. One deadline serves the whole context, so it is
+The settle comparison is lifted out of the walk. One deadline serves the whole context, and so it is
 answered once and read per channel. Both timer tests put the flag first. A channel that is not
 settling and a channel that is not running each cost a mask and no comparison.
 
@@ -201,7 +201,7 @@ The default sits in `praet_ordo.c` because that is the unit that calls it, the w
 beside their calls in `memoriam_praetereo.c`. GCC on PE-COFF emits a weak definition as a weak
 external. The body lands under `.weak.praet_hw_progress.` and the name itself stays undefined in the
 object, and `ld` will not resolve it from another translation unit. Inside its own unit it does
-resolve, which is the arrangement every linker handles. None of this has run on an ELF target, which
+resolve, the arrangement every linker handles. None of this has run on an ELF target, which
 is where every part this module is for lives.
 
 `test_praet_correctness.c` includes `praet_engine.c`, which defines the hook strongly in the suite's
@@ -209,15 +209,15 @@ own unit. The library object carries the weak default, and the strong definition
 
 ## What the architecture decides
 
-`praet_platform_detection.h` names no part, no vendor and no board. A list of parts covers the ones known on the day it was written and misses every part released afterwards, so what is tested is the architecture level that every member of a family defines. An ATSAMD21 answers the ARMv6-M question the way every other Cortex-M0+ does.
+`praet_platform_detection.h` names no part, no vendor and no board. A list of parts covers the ones known on the day it was written and misses every part released afterwards, and so what is tested is the architecture level that every member of a family defines. An ATSAMD21 answers the ARMv6-M question the way every other Cortex-M0+ does.
 
 The family comes from `__arm__` or `__aarch64__` or `__thumb__`, from `__riscv`, and from `__XTENSA__` or `__xtensa__`. Anything else is a host build. Exactly one of the four is selected, and an assertion says so.
 
 Within ARM, the subfamily comes from `__ARM_ARCH` and `__ARM_ARCH_PROFILE`. Those two name every Cortex subfamily, and a pre-Cortex core defines neither profile nor a level above 6. Within RISC-V it is `__riscv_xlen` with the embedded profiles reported by `__riscv_32e`, `__riscv_64e` or `__riscv_abi_rve`. Within Xtensa it is the calling convention, `__XTENSA_WINDOWED_ABI__` or `__XTENSA_CALL0_ABI__`.
 
-`PRAET_PLATFORM_HAS_CYCLE_COUNTER` is the one derived fact that changes behavior. It is 0 on ARMv6-M, which has no DWT at all, and on a host build, which has no core to pin a timer to. It is 1 elsewhere. The flag says the architecture defines a counter and never that this part implemented it: DWT_CYCCNT is optional even where the DWT is present, RISC-V `cycle` can be closed off by `mcounteren`, and an Xtensa core can be configured without the timer option. Finding out for certain is the port's job, and this decides which default to take.
+`PRAET_PLATFORM_HAS_CYCLE_COUNTER` is the single one derived fact that changes behavior. It is 0 on ARMv6-M, which has no DWT at all, and on a host build, which has no core to pin a timer to. It is 1 elsewhere. The flag says the architecture defines a counter and never that this part implemented it: DWT_CYCCNT is optional even where the DWT is present, RISC-V `cycle` can be closed off by `mcounteren`, and an Xtensa core can be configured without the timer option. Finding out for certain is the port's job, and this decides which default to take.
 
-`PRAET_PLATFORM_XLEN` is the register width, and `EMBED_WORD_BITS` is asserted not to exceed it. The environments build at 16 and 32 bits on a 64-bit host deliberately, so narrower is expected and only wider is wrong.
+`PRAET_PLATFORM_XLEN` is the register width, and `EMBED_WORD_BITS` is asserted not to exceed it. The environments build at 16 and 32 bits on a 64-bit host deliberately, and so narrower is expected and only wider is wrong.
 
 Unaligned access is `EMBED_FAST_UNALIGNED_LOAD`, which `embed_compiler_directives.h:375-382` already provides. This module does not define its own.
 
@@ -265,7 +265,7 @@ No sweep in the tree drives these rows yet. One that does has to require the nam
 ## Two complete configurations
 
 A host build, with recovery and the boundary word check on. A host defines no counter to pin a timer
-to, so the clock is the caller's and no core is named:
+to, and so the clock is the caller's and no core is named:
 
 ```
 -DPRAET_CHANNELS=8u
@@ -295,7 +295,7 @@ An ESP32-S3 at its top frequency wants the same knobs with the clock pinned inst
 
 Xtensa defines a cycle counter, so that arm is available there. It is refused on a host, where the
 same two lines produce the `praet_horologiorum_custos.h:93-96` error alongside the token's line. The S3 build has
-not been run; what has been checked is that a host refuses it, which is the derivation working.
+not been run; what has been checked is that a host refuses it, the derivation working.
 
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
 **Date:** 2026-09-01

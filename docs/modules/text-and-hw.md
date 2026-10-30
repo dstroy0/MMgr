@@ -24,11 +24,11 @@ if (len == 0u) {
 ```
 
 The writers hold no state. Each one takes the position it should write at and returns the position
-after what it wrote, so the cursor is the caller's `at` and nothing is carried between calls. A
+after what it wrote, and so the cursor is the caller's `at` and nothing is carried between calls. A
 writer with no room returns `cap`, which every later writer also returns. An overflow propagates
 to `finish` without a flag and `finish` reports it as a length of zero.
 
-There is no format string anywhere. Nothing parses `%d` at runtime, so nothing can disagree with the
+There is no format string anywhere. Nothing parses `%d` at runtime, and so nothing can disagree with the
 argument you passed.
 
 ## The entries, by job
@@ -49,7 +49,7 @@ argument you passed.
 
 `verba_scribo/verba_linea.h` keeps the buffer, the cursor and an optional flush together in a
 `VerbaLinea`, and its `mmgr_line_*` entries take that line and the value as plain arguments. The
-header includes `mmgr.h` alone and defines no table, so a C++ translation unit calls them as they
+header includes `mmgr.h` alone and defines no table, and therefore a C++ translation unit calls them as they
 are.
 
 ```c
@@ -69,7 +69,7 @@ A line with no flush behaves as the writers above do: a write that does not fit 
 so a text of any length passes through a buffer of any size. A flush answers 1 where it took the
 bytes, `MMGR_LINE_GROWN` where it moved the line into a larger buffer holding them still, and 0
 where it refused, which leaves the line full. `mmgr_line_put` reads its text a room at a time and
-never past the terminator, so it needs no bound on the text's length.
+never past the terminator, and so it needs no bound on the text's length.
 
 | job       | entries                                                                  |
 | --------- | ------------------------------------------------------------------------ |
@@ -80,8 +80,8 @@ never past the terminator, so it needs no bound on the text's length.
 
 ## Gotchas
 
-**Overflow propagates, so check once at the end.** A writer with no room returns `cap` and every
-later writer returns `cap` too, so the writes after an overflow are safe no-ops and `finish`
+**Overflow propagates, and so check once at the end.** A writer with no room returns `cap` and every
+later writer returns `cap` too, and so the writes after an overflow are safe no-ops and `finish`
 reports zero. See @ref ref_error_handling.
 
 **`xml` and `json` escape, they do not quote.** You supply the surrounding quotes.
@@ -97,7 +97,7 @@ as running out of room.
 
 # Numeros scribo: the field formatter {#mod_numer_guide}
 
-A declarative layout. The format is data, not a string.
+A declarative layout. The format is data and not a string.
 
 ## When to reach for it
 
@@ -124,7 +124,7 @@ EMBED_CALL(numer.build, NumerosCfg, .out = buf, .cap = sizeof buf,
           .spec = row, .vals = vals, .nvals = 2u);
 ```
 
-A literal is a `MMGR_FK_LIT` field carrying its own text and length, so it costs no scan. Every
+A literal is a `MMGR_FK_LIT` field carrying its own text and length, and so it costs no scan. Every
 other spec entry is a bare kind taking no argument. There is a one-word macro for some of them,
 `MMGR_STR`, `MMGR_U32`, `MMGR_U64`, `MMGR_I64`, `MMGR_CH`, `MMGR_JSON`, `MMGR_XML`, `MMGR_END`
 (`src/numeros_scribo/numeros_scribo.h:60-85`), and the rest are written as the brace form above.
@@ -133,7 +133,7 @@ other spec entry is a bare kind taking no argument. There is a one-word macro fo
 Four entries: `build` writes a record from a spec, `emit` writes values with no spec at all,
 and `append` and `emit_append` add to a record already in the buffer.
 
-## Why a spec array rather than a format string
+## Why a spec array and not a format string
 
 A format string is parsed at runtime and nothing checks it against the arguments. Here the spec is a
 `const` array in flash, the kind is an enum, and every value carries its own kind tag. `build`
@@ -146,7 +146,7 @@ compares the two and refuses the record if they disagree.
 **A kind mismatch returns 0 and empties the buffer.** So does too few values, or too many. The
 record is written or it is not; there is no partial record.
 
-**`emit` takes no spec.** Each value carries its own kind and width, so it is the entry to use when
+**`emit` takes no spec.** Each value carries its own kind and width, and so it is the entry to use when
 the layout is not fixed.
 
 @ref mod_numer "Generated reference"
@@ -156,7 +156,7 @@ the layout is not fixed.
 # Memoriam praetereo: transfer submission {#mod_praet_guide}
 
 @note Compiled only when `MMGR_ENABLE_DMA` is set, which defaults off. With it off the module is not
-in the library and its suite is skipped with a message rather than passing empty.
+in the library and its suite is skipped with a message instead of passing empty.
 
 ## What it is
 
@@ -179,7 +179,7 @@ if (EMBED_CALL(praet.open, PraetCfg, .channel = ch.channel, .peripheral = ch.per
 }
 ```
 
-There is no handle. The channel number identifies the transfer, so nothing has to be stored between
+There is no handle. The channel number identifies the transfer, and so nothing has to be stored between
 `open` and `close`. `open` and `tx_submit` return false when the channel is busy or out of range.
 
 A completion callback is optional: point `PraetCfg::on_complete` at a @ref PraetCallbackCfg and it
@@ -191,7 +191,7 @@ The functions that actually touch a controller are `EMBED_WEAK`. A board support
 by defining a symbol with the same name: no registration, no function pointer table, no init order
 to get right.
 
-Without an override they are present and refuse every request, which is what lets
+Without an override they are present and refuse every request, as lets
 `memoriam_praetereo` compile and its tests link on a host with no DMA controller at all.
 
 ## Gotchas

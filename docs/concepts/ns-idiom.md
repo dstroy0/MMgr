@@ -2,26 +2,26 @@
 
 Why a call reads `EMBED_CALL(spat.from, SpatiumCfg, .buf = p, .cap = n)` and what that costs.
 
-## Two spellings, one function
+## Two forms, one function
 
 Every module declares plain C functions with a long, prefixed name, and also gathers them into a
 `static const` struct of function pointers named for a short Latin stem.
 
 Every entry takes exactly one argument: a pointer to that module's config struct. @ref EMBED_CALL
-builds the struct as a compound literal and passes its address, so the members are named at the
+builds the struct as a compound literal and passes its address, and so the members are named at the
 call site and anything left out is zero:
 
 ```c
 mmgr_span s = EMBED_CALL(spat.from, SpatiumCfg, .buf = p, .cap = n);
 ```
 
-which is the same call as
+the same call as
 
 ```c
 mmgr_span s = mmgr_spat_from(&(SpatiumCfg){.buf = p, .cap = n});
 ```
 
-Both spellings are public and both are documented. The table is what call sites use, because at a
+Both forms are public and both are documented. The table is what call sites use, because at a
 call site the module is context you already have and repeating it is noise:
 
 ```c
@@ -53,7 +53,7 @@ EMBED_TABLE_LAYOUT(SpatiumNs, from, cfrom);
 EMBED_TABLE_STORAGE SpatiumNs spat EMBED_UNUSED = {.from = mmgr_spat_from, .cfrom = mmgr_spat_cfrom};
 ```
 
-`EMBED_TABLE_STORAGE` is `static const`. `EMBED_UNUSED` is what lets an unreferenced table drop out of a
+`EMBED_TABLE_STORAGE` is `static const`. `EMBED_UNUSED` lets an unreferenced table drop out of a
 translation unit that does not use it.
 
 ## EMBED_TABLE_LAYOUT is the interesting part
@@ -66,7 +66,7 @@ sits at its own loculus, in the order given, and that `sizeof` the struct is exa
 pointers. A member added and not listed, a member reordered, or padding appearing between them all
 fail **at the declaration**, at compile time.
 
-That has one consequence for this documentation: **the order of the members is the layout**, so the
+That has one consequence for this documentation: **the order of the members is the layout**, and so the
 reference must not sort them alphabetically. `SORT_MEMBER_DOCS` is `NO` in `docs/Doxyfile` for that
 reason, and it is not a cosmetic setting: sorting `MemoriaOperorNs` would show loculus 0 as `chr`
 when it is `cpy`.
@@ -78,7 +78,7 @@ Nothing, when `const` is respected.
 Measured: gcc devirtualizes a call through a `static const <Mod>Ns` down to the inlined body,
 identical instructions to calling the entry directly, and does **not** devirtualize the same call
 through a non-const table, which becomes a real call with an 88-byte frame. clang devirtualizes
-both. So the `const` in `EMBED_TABLE_STORAGE` is load-bearing: it is what makes the two compilers agree.
+both. So the `const` in `EMBED_TABLE_STORAGE` is essential: it makes the two compilers agree.
 
 Across module boundaries where the entry is not `EMBED_INLINE`, link-time optimization is what closes
 the gap. See @ref concept_swar for the measurement.
@@ -90,6 +90,6 @@ passed what `EMBED_TABLE_LAYOUT` accepts, and splitting them by what they operat
 a mask of lanes, a whole word, reads better than one table of everything did.
 
 `endian` is the other shape: two tables, `parva_extremitas` and `magna_extremitas`, over the same
-`EndianNs` type. The byte order is chosen by which table you call through, not by an argument.
+`EndianNs` type. The byte order is chosen by which table you call through and not by an argument.
 
 @ref ref_glossary lists every stem and the module it belongs to.

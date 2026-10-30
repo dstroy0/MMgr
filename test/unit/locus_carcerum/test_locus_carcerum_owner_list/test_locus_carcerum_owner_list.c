@@ -109,10 +109,11 @@ void test_the_queue_takes_owners_up_to_its_room_and_refuses_the_next(void)
     for (size_t at = 0u; at < MMGR_CARCER_OWNERS; at++)
     {
         s_crowd_names[at][0] = 'c';
-        s_crowd_names[at][1] = (char)('0' + ((at / 100u) % 10u));
-        s_crowd_names[at][2] = (char)('0' + ((at / 10u) % 10u));
-        s_crowd_names[at][3] = (char)('0' + (at % 10u));
-        s_crowd_names[at][4] = '\0';
+        s_crowd_names[at][1] = (char)('0' + ((at / 1000u) % 10u));
+        s_crowd_names[at][2] = (char)('0' + ((at / 100u) % 10u));
+        s_crowd_names[at][3] = (char)('0' + ((at / 10u) % 10u));
+        s_crowd_names[at][4] = (char)('0' + (at % 10u));
+        s_crowd_names[at][5] = '\0';
         s_crowd[at] = (CellOwner)MMGR_CELL_OWNER(s_crowd_names[at]);
     }
     for (size_t at = 0u; at < room; at++)

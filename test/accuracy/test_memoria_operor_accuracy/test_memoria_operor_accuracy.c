@@ -10,12 +10,12 @@
  *
  * @note Every call here moves whole words and finishes the odd bytes separately, and two of them pick
  *       a different walk depending on whether both operands are aligned. That makes the length and
- *       the two alignments the three axes a defect hides along, so every case below sweeps all three
+ *       the two alignments the three axes a defect hides along, and so every case below sweeps all three
  *       instead of testing a convenient size.
  * @note The references are single byte loops. They share no word load, no lane mask and no tail
- *       handling with the module, which is the whole reason they can disagree with it.
+ *       handling with the module, the entirety of reason they can disagree with it.
  * @note Every destination is checked past the bytes it was given. A copy that wrote one byte too many
- *       lands on a guard, and nothing else in a passing result would show it.
+ *       lands on a guard,, alone in a passing result would show it.
  * @note The compare widens both bytes as unsigned before subtracting. A byte at or above 0x80 then
  *       orders above one below it, and an implementation that let a plain char through returns the
  *       opposite sign for exactly those pairs, which the sweep below covers at every position.
@@ -33,7 +33,7 @@
 /**
  * @brief Expands to 72u, the longest run any case here copies, compares or fills.
  *
- * @note Past four words at every environment's word width, which is what reaches the unrolled arm of
+ * @note Past four words at every environment's word width, as reaches the unrolled arm of
  *       the copy and the fill as well as the one-word arm and the odd byte tail.
  */
 #define MMGR_ACCURACY_MEMOR_RUN 72u
@@ -41,7 +41,7 @@
 /**
  * @brief Expands to 8u, the alignments each operand is offered.
  *
- * @note One more than the widest word any environment uses, so every offset from a word boundary is
+ * @note One more than the widest word any environment uses, and so every offset from a word boundary is
  *       reached whatever embed_word is on this build.
  */
 #define MMGR_ACCURACY_MEMOR_OFFSETS 8u
@@ -49,7 +49,7 @@
 /**
  * @brief Expands to 32u, the bytes of padding past every region.
  *
- * @note Two purposes. cmp and chr read the last word whole whatever the count leaves, so the region
+ * @note Two purposes. cmp and chr read the last word whole whatever the count leaves, and so the region
  *       has to be readable past it. A write that ran long lands here instead of outside the object.
  */
 #define MMGR_ACCURACY_MEMOR_PAD 32u
@@ -64,7 +64,7 @@
 /**
  * @brief Expands to 0xA5, the byte a destination is filled with before a write.
  *
- * @note A byte no case writes on purpose. A destination position still holding it is one the call did
+ * @note A byte no case writes deliberately. A destination position still holding it is one the call did
  *       not reach, and a position past the count holding anything else is a write that ran long.
  */
 #define MMGR_ACCURACY_MEMOR_GUARD 0xA5u
@@ -74,7 +74,7 @@
  *
  * @param[in] position Position within the region.
  * @return             The byte that position holds.
- * @note Every byte differs from its neighbors along the run, which is what makes a copy that shifted
+ * @note Every byte differs from its neighbors along the run, and that leaves a copy that shifted
  *       its output by one visible. Never the guard byte either, which tells a byte the copy wrote
  *       apart from one it did not.
  */
@@ -91,7 +91,7 @@ static uint8_t accuracy_source_byte(size_t position)
  * @brief Fills a buffer with the guard byte.
  *
  * @param[out] buffer Bytes to fill [BORROWS].
- * @note Every write case starts here, so what the call left untouched is distinguishable from what it
+ * @note Every write case starts here, and so what the call left untouched is distinguishable from what it
  *       wrote.
  */
 static void accuracy_fill_guard(uint8_t *buffer)
@@ -110,7 +110,7 @@ static void accuracy_fill_guard(uint8_t *buffer)
  * @param[in] expected Bytes the run should hold [BORROWS].
  * @param[in] bytes    Length of the run.
  * @param[in] label    Text naming the case, printed when a byte disagrees.
- * @note Walks the whole buffer, not the run alone. A byte before the destination or past the count is
+ * @note Walks the whole buffer and not the run alone. A byte before the destination or past the count is
  *       a write that reached outside what the call was given, and checking only the run misses both.
  */
 static void accuracy_expect_run(const uint8_t *buffer, size_t at, const uint8_t *expected, size_t bytes,
@@ -135,9 +135,9 @@ static void accuracy_expect_run(const uint8_t *buffer, size_t at, const uint8_t 
 /**
  * @brief Runs before each Unity test case.
  *
- * @note Unity calls this around every case, so the symbol has to exist even when it does nothing.
+ * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Every buffer here has automatic storage inside the case that builds it, and each case fills
- *       its own, so there is no shared state to prepare.
+ *       its own, and so there is no shared state to prepare.
  */
 void setUp(void)
 {
@@ -147,7 +147,7 @@ void setUp(void)
  * @brief Runs after each Unity test case.
  *
  * @note Required alongside setUp, since the generated runner calls both around every case.
- * @note Nothing here allocates, so there is nothing to release.
+ * @note Nothing here allocates, and so there is nothing to release.
  */
 void tearDown(void)
 {
@@ -236,9 +236,9 @@ void test_the_forward_copy_lands_every_byte_at_every_alignment(void)
 /**
  * @brief Checks the fill at every length and every alignment.
  *
- * @note The fill builds a word from the byte and stores whole words before finishing byte by byte, so
+ * @note The fill builds a word from the byte and stores whole words before finishing byte by byte, and so
  *       it has the same three arms the copy has and the same lengths reach them.
- * @note Two byte values are used. Zero is the one a fill written with a word store gets right by
+ * @note Two byte values are used. Zero is the single one a fill written with a word store gets right by
  *       accident when the broadcast is wrong, since every lane of a zero word is already zero.
  * @note The destination is checked over its whole extent. A fill that ran one byte long fails at the
  *       guard.
@@ -278,13 +278,13 @@ void test_the_fill_writes_every_byte_at_every_alignment(void)
 /**
  * @brief Checks that the upward move carries overlapping bytes without eating its own source.
  *
- * @note move_up walks from the far end back, which is what a destination above an overlapping source
+ * @note move_up walks from the far end back, as a destination above an overlapping source
  *       needs. A forward walk over the same regions overwrites bytes it has not read yet, and the
  *       result is the first few bytes repeated along the run.
- * @note Every overlap distance from one byte to past a word is offered at every length, which is what
+ * @note Every overlap distance from one byte to past a word is offered at every length, as
  *       reaches the case where the two regions share their first word and the case where they share
  *       only the tail.
- * @note The reference copies through a scratch region first, so it reads the source as it stood
+ * @note The reference copies through a scratch region first, and so it reads the source as it stood
  *       before any of it was overwritten.
  */
 void test_the_upward_move_carries_overlapping_bytes(void)
@@ -329,7 +329,7 @@ void test_the_upward_move_carries_overlapping_bytes(void)
 /**
  * @brief Checks that the downward move carries overlapping bytes without eating its own source.
  *
- * @note move_down is the upward walk, which is what a destination below an overlapping source needs.
+ * @note move_down is the upward walk, as a destination below an overlapping source needs.
  *       The dispatch table points it at the same function the plain copy uses, and the claim under
  *       test is that this direction of overlap really is safe through it.
  * @note The mirror of the upward case, with the destination below the source by the same distances.
@@ -379,9 +379,9 @@ void test_the_downward_move_carries_overlapping_bytes(void)
  * @note The sign is the accuracy claim. A byte at or above 0x80 orders above one below it, and an
  *       implementation that let a plain char through gets the opposite sign for exactly those pairs.
  *       The pairs below include both orderings across that boundary.
- * @note The difference is planted at every position along every length, so the lane that differs is
+ * @note The difference is planted at every position along every length, and so the lane that differs is
  *       walked through every position of a word and every word of the run.
- * @note Only the sign is compared, not the magnitude. The header states the result orders the two
+ * @note Only the sign is compared and not the magnitude. The header states the result orders the two
  *       regions, which is a statement about sign.
  * @note Regions that match everywhere are checked to give zero at every length, including none.
  */
@@ -452,7 +452,7 @@ void test_the_search_returns_the_first_occurrence(void)
     for (unsigned sought_index = 0u; sought_index < sought_count; sought_index++)
     {
         const uint8_t sought = sought_of[sought_index];
-        // A filler that is never the byte being looked for, so the only matches are the planted ones
+        // A filler that is never the byte being looked for, and so the only matches are the planted ones
         const uint8_t filler = (uint8_t)(sought ^ 0x5Au);
 
         for (size_t bytes = 0u; bytes <= MMGR_ACCURACY_MEMOR_RUN; bytes++)
@@ -497,7 +497,7 @@ void test_the_search_returns_the_first_occurrence(void)
  *       lanes past the count take no part in the result. A tail mask that covered one lane too many
  *       reports a match or a difference the caller never asked about.
  * @note The byte immediately past the count is set to the one being looked for, and to a differing
- *       value for the compare. Every length is offered, so the planted byte falls at every position
+ *       value for the compare. Every length is offered, and so the planted byte falls at every position
  *       within the last word.
  */
 void test_a_byte_past_the_count_takes_no_part_in_either_scan(void)

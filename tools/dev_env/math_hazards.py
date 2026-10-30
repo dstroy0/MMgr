@@ -22,7 +22,7 @@
 #
 # So the rule this checks is that a character with a meaning in markdown has to be written as a command:
 # \ast for the asterisk, \lt and \gt for the angle brackets. Nothing here is repaired. It reports where to
-# look, and a hit is a hazard rather than a proven failure, since which of these break depends on the
+# look, and a hit is a hazard and not a proven failure, since which of these break depends on the
 # renderer the reader happens to use.
 
 import io
@@ -64,13 +64,13 @@ def odd_inline_dollars(line):
     """Whether a line leaves an inline formula unclosed.
 
     The display delimiters are removed first. A display block legitimately opens on one line and
-    closes on another, so counting every dollar sign reports each of those as unclosed.
+    closes on another, and so counting every dollar sign reports each of those as unclosed.
     """
     without_display = line.replace("$$", "")
     return (len(re.findall(r"(?<!\\)\$", without_display)) % 2) == 1
 
 
-# Checks that read a whole line rather than one math span
+# Checks that read a whole line and not one math span
 LINE_CHECKS = ((odd_inline_dollars, "an odd number of inline $ on the line. A formula is left unclosed"),)
 
 

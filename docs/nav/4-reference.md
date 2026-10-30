@@ -1,6 +1,6 @@
 # Reference {#nav_reference}
 
-Look-up material. Most of what is on these pages is generated from the tree, so it cannot drift from
+Look-up material. Most of what is on these pages is generated from the tree, and so it cannot drift from
 what the code actually does.
 
 - @subpage ref_configuration

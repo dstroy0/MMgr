@@ -36,7 +36,7 @@ typedef _Bool mmgr_bool;
 #endif
 
 /**
- * @brief The two mmgr_bool values, each cast so it carries the boolean type rather than int.
+ * @brief The two mmgr_bool values, each cast so it carries the boolean type and not int.
  */
 #define MMGR_TRUE ((mmgr_bool)1)
 #define MMGR_FALSE ((mmgr_bool)0)
@@ -103,7 +103,7 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_idx) <= sizeof(mmgr_word), "an index must fit the
 /**
  * @brief A one-byte enum used only to prove MMGR_ENUM_PACKED reaches the compiler.
  *
- * @note Its range needs a single byte, so the assertion below fails exactly when packing is ignored.
+ * @note Its range needs a single byte, and so the assertion below fails exactly when packing is ignored.
  * @warning A failure means MMGR_ENUM_PACKED expanded to nothing; the assertion message states the consequence.
  */
 typedef enum MMGR_ENUM_PACKED
