@@ -17,9 +17,9 @@
 # reading would be timing function calls the shipped build does not make.
 #
 # IPO is off here, and that leaves the line above true. LTO re-optimizes from IR at link
-# time using the LINK line's flags, and so with it on the -O2 below never reached the generated code:
-# the link line carried the build type's -O3 and that is what the bench was measuring. The give
-# away was the size - .text came out at the -O3 figure and not the -O2 one - and -O3 measured
+# time using the LINK line's flags, and so with it on the -O2 below would not reach the generated code:
+# the link line carries the build type's -O3, and the bench would measure that. The size shows
+# it - .text comes out at the -O3 figure and not the -O2 one - and -O3 measures
 # slower on put and read while inflating .text by a third.
 
 # The A/B benches build against ProtoCore's own sources and not a copy of them, and so what they
@@ -28,7 +28,7 @@
 set(MMGR_PROTOCORE_DIR "${MMgr_SOURCE_DIR}/../../ProtoCore" CACHE PATH "ProtoCore checkout for the A/B benches")
 
 # The four under test, plus what they call: protomem for the moves, swar for the lane work under
-# it, and the host HAL for the context id the worker slots are keyed on.
+# it, and the host HAL for the context id the worker entries are keyed on.
 set(MMGR_PROTOCORE_SOURCES
     "${MMGR_PROTOCORE_DIR}/src/mmgr/arena/arena.c"
     "${MMGR_PROTOCORE_DIR}/src/mmgr/span/span.c"
@@ -62,7 +62,7 @@ foreach(bench_src ${MMGR_BENCH_SOURCES})
         if(bench_name STREQUAL "bench_carcer_ab")
             add_executable(${target} "${bench_src}" ${MMGR_PROTOCORE_SOURCES})
             # ProtoCore's own three roots: its sources, its vendor detect, and the host answers that
-            # detect selects. It is held to its own warning set, not this library's.
+            # detect selects. It is compiled under its own warning set, not this library's.
             target_include_directories(${target} PRIVATE
                 "${MMGR_PROTOCORE_DIR}/src"
                 "${MMGR_PROTOCORE_DIR}"

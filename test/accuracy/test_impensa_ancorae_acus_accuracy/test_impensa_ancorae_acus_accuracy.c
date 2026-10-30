@@ -8,17 +8,17 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-31
  *
- * @note The costs are weights gathered from a corpus to make parsing faster. There is no arithmetic
- *       that reproduces them and no reference outside the corpus they came from, and so nothing here
- *       predicts a value. What is checkable is whether the table can still do its job.
+ * @note The costs are weights gathered from a corpus to make parsing faster. No arithmetic
+ *       reproduces them and no reference exists outside the corpus they came from, and so nothing here
+ *       predicts a value. The checkable question is whether the table can still do its job.
  * @note A second copy of the table written out in this file would be the same data twice and would
- *       agree with the module until one of the two was edited. It would prove nothing on the day it
+ *       agree with the module until one of the two was edited. It would show nothing on the day it
  *       was written and would be wrong on the day the table changed.
  * @note cellul_pick_rows keeps the lowest cost it finds. Every case below follows from that: a byte
  *       that costs nothing wins every comparison, a table with one value ranks nothing, and a NUL
  *       that dropped below the ceiling starts being chosen out of text it terminates.
  * @note Which of the five tables is linked is a build option, and no macro carries the choice into
- *       this file. Every case here is written to hold for all five, and so none of them names
+ *       this file. Every case here is written to hold for all five, and so not one of them names
  *       a byte other than the NUL.
  * @note Contract checks on the argument itself live in test_impensa_ancorae_acus. This file asks
  *       whether the numbers that come back can be ranked.
@@ -110,7 +110,7 @@ void test_no_byte_costs_nothing(void)
  * @note All five tables document the NUL at 255, the one byte-specific fact they agree on.
  *       It terminates the strings the sieve walks, and one that could be chosen anchors the search
  *       on a byte that is present exactly once and at the end of every string.
- * @note Checked against the ceiling and not merely against a high value, since the ceiling is what
+ * @note Checked against the ceiling and not merely against a high value, since the ceiling
  *       keeps it from ever being the lowest cost in a set that contains anything else.
  */
 void test_the_terminator_sits_at_the_ceiling(void)

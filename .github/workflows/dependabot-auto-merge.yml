@@ -3,8 +3,8 @@ name: Dependabot auto-merge
 # Turns a green Dependabot PR into a merge without a human in the loop.
 #
 # It does NOT merge immediately. `gh pr merge --auto` arms auto-merge, and GitHub then merges only
-# once every required status check passes. So the gate is the branch protection rule on main, not
-# this file: if build-and-test / CodeQL / Sonar are required contexts there, a red one blocks the
+# once every required status check passes. So the gate is the branch protection rule on main;
+# this file is no gate: if build-and-test / CodeQL / Sonar are required contexts there, a red one blocks the
 # merge and the PR just sits. With no required checks configured, auto-merge fires as soon as the
 # PR is mergeable - and so the branch ruleset is the thing to get right and not this workflow.
 #

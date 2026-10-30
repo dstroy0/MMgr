@@ -119,8 +119,8 @@ with the easy needle and n=16 with the hostile one.
 `find_hot` searches for a needle whose first byte turns up every fifteen bytes and whose pair never
 occurs; `find` searches for one whose first byte is not in the haystack's alphabet at all. MMgr
 costs the same either way - 13400.7 cycles at n=2048 against 13400.8 - because the chain settles
-every start position in a word arithmetically. ROM `strstr` does not: 18474 against 20394. That is
-why the chain keeps its third `has_zero` instead of anchoring on one byte and verifying the other,
+every start position in a word arithmetically. ROM `strstr` does not: 18474 against 20394. For that reason
+the chain keeps its third `has_zero` instead of anchoring on one byte and verifying the other,
 which would be about 20% cheaper and would buy it by becoming data dependent exactly where libc
 already is.
 
@@ -135,7 +135,7 @@ went through cellul_step_byte per byte, which cost more than the single sieved w
 went 207 to 260. The walk's case-sensitive arm is a plain byte compare now, and so the second attempt
 should have been cheaper - but factoring the walk into a function both arms could call made it a real
 call on the hot path too, and n=8 went 187 to 308 while n=2048 regressed 10%. Forcing it inline
-instead puts the whole walk in the entry twice. What is left is the shape here: no bypass, one copy
+instead puts the whole walk in the entry twice. That leaves the shape here: no bypass, one copy
 of the walk, inline.
 
 The libc side is ESP-ROM code (`strnlen` at `0x400013f8`, `memcmp` at `0x4000120c`), hand-written

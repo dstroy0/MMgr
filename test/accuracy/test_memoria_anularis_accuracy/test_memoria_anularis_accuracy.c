@@ -12,7 +12,7 @@
  *       is arithmetic that can be off by one and still return plausible counts, and a caller only
  *       finds out when a byte arrives in the wrong place.
  * @note The reference queue appends at the end of an array and removes from the front by shifting the
- *       rest down. It has no capacity mask, no wrap and no two-run move, and so it and the module have no
+ *       rest down. It has neither a capacity mask, a wrap nor a two-run move, and so it and the module have no
  *       arithmetic in common and cannot be wrong the same way.
  * @note The capacity here is deliberately small. A large ring wraps once in a long run of operations,
  *       and the wrap is where the two-run move either divides correctly or does not. A small ring
@@ -49,7 +49,7 @@
  * @brief Expands to the bytes one segment covers, worked out from the two numbers init was given.
  *
  * @note Computed here from what this file passed to mmgr_anular_init, not read back from the ring.
- *       The ring's own segment_bytes is exactly what the segment cases are checking.
+ *       The ring's own segment_bytes is the quantity the segment cases are checking.
  */
 #define MMGR_ACCURACY_RING_SEGMENT_BYTES (MMGR_ACCURACY_RING_CAPACITY / MMGR_ACCURACY_RING_SEGMENTS)
 
@@ -65,7 +65,7 @@
  * @brief A byte queue that holds its contents in order, with no wrap of any kind.
  *
  * @note The whole reference. Bytes go on at the end and come off the front, and removing shifts the
- *       rest down. That shift is what a ring exists to avoid, which is exactly why it is the right
+ *       rest down. That shift is what a ring exists to avoid, and for that reason it is the right
  *       construction to check a ring against.
  */
 typedef struct
@@ -98,7 +98,7 @@ static void accuracy_queue_push(AccuracyQueue *queue, const uint8_t *src, size_t
  * @param[in,out] queue Queue to remove from [BORROWS].
  * @param[out]    dst   Where the removed bytes go, or NULL to discard them [BORROWS].
  * @param[in]     bytes How many to remove.
- * @note Shifts the rest down one position at a time. The cost is beside the point here; what matters
+ * @note Shifts the rest down one position at a time. The cost is beside the point here; the property under test
  *       is that the order the bytes come off in is a property of the array and of nothing else.
  * @warning The caller keeps bytes at or below the count stored. Nothing here bounds it.
  */
@@ -366,10 +366,10 @@ void test_a_byte_at_a_time_comes_out_in_the_order_it_went_in(void)
  *
  * @note peek is the single one read that moves no cursor. The property under test is that it is a window on
  *       the same bytes and not a second reader with a position of its own.
- * @note The peek is taken at every offset into the held bytes and at every length that fits, which
+ * @note The peek is taken at every offset into the stored bytes and at every length that fits, which
  *       walks the window across the end of the buffer at both of its ends.
- * @note The bytes are read again with a real read afterwards, and they are the same ones, which is
- *       what shows the peek moved nothing.
+ * @note The bytes are read again with a real read afterwards, and they are the same ones, and that
+ *       shows the peek moved nothing.
  */
 void test_a_peek_returns_what_a_read_would_and_moves_nothing(void)
 {
@@ -433,9 +433,9 @@ void test_a_peek_returns_what_a_read_would_and_moves_nothing(void)
  * @note A partial write is worse than a refusal, since the consumer then reads a span that was never
  *       complete and nothing reports it. The claim is that the head does not move at all.
  * @note The ring is filled to every level, and at each one a span one byte too large is offered. The
- *       readable count is checked before and after, and the bytes already held are read back to show
+ *       readable count is checked before and after, and the bytes already stored are read back to show
  *       none of them was overwritten.
- * @note One byte is held back always, and so the largest span an empty ring takes is the capacity less
+ * @note One byte is reserved always, and so the largest span an empty ring takes is the capacity less
  *       one. The refusal is offered at exactly one byte past what is vacant.
  */
 void test_a_span_too_large_is_refused_whole(void)
@@ -447,7 +447,7 @@ void test_a_span_too_large_is_refused_whole(void)
     for (size_t index = 0u; index < sizeof oversized; index++)
     {
         // Explicit cast narrows the index to the byte the span carries. Any value distinct from what
-        // is already held would do; this one is distinct along the span as well
+        // is already stored would do; this one is distinct along the span as well
         oversized[index] = (uint8_t)(index + 200u);
     }
 
@@ -604,12 +604,12 @@ void test_the_producer_is_refused_once_every_segment_is_in_flight(void)
 /**
  * @brief Checks the loculus masks against a bitset this file keeps for itself.
  *
- * @note A loculus is takeable only while it is free and not held, and the ready mask is that pair of
+ * @note A loculus is takeable only while it is free and not pinned, and the ready mask is that pair of
  *       conditions as one word. The reference keeps the two conditions as separate arrays and builds
  *       the mask a bit at a time, and so it shares no masking with the module.
- * @note Every loculus is held and dropped in turn, and the mask is compared after each step. A hold
+ * @note Every loculus is pinned and dropped in turn, and the mask is compared after each step. A hold
  *       that set the wrong bit shows up as two loculi disagreeing at once.
- * @note A second hold of a loculus already held is expected to be refused, as keeps two
+ * @note A second hold of a loculus already pinned is expected to be refused, as keeps two
  *       callers from recording keepouts over each other.
  */
 void test_the_loculus_masks_match_a_bitset_kept_alongside(void)
@@ -718,7 +718,7 @@ void test_the_lowest_set_bit_matches_a_bit_at_a_time_scan(void)
 }
 
 /**
- * @brief Checks that a held loculus hands back the region it was given.
+ * @brief Checks that a pinned loculus hands back the region it was given.
  *
  * @note The keepout is what a reader walks in place, and the claim is that the span comes back naming
  *       the same bytes the hold recorded. A span that came back short leaves a reader walking past

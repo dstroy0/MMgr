@@ -10,7 +10,7 @@
  *
  * @note The module merges a partial byte with the low bits of the next value and moves whole bytes
  *       from a 64-bit working copy. The reference holds a bit per array element and packs at the
- *       end, and so the two share no shift, no mask and no idea of a byte boundary.
+ *       end, and so the two share neither a shift, a mask nor a byte boundary.
  * @note Bit order is the whole contract here. The header states least significant first, and a
  *       writer that reversed a byte's bits produces the same byte count, the same overflow point and
  *       the same length, and so nothing below compares lengths alone.
@@ -118,8 +118,8 @@ static size_t accuracy_stream_pack(const AccuracyBitStream *stream, uint8_t *pac
  *
  * @param[in] stream Stream to measure [BORROWS].
  * @return           Bits appended, over eight.
- * @note This is what bytes_written is expected to hold before align runs. put writes whole bytes and
- *       nothing else, and the bits past the last whole byte are the residue.
+ * @note This is what bytes_written is expected to hold before align runs. put writes whole bytes only,
+ *       and the bits past the last whole byte are the residue.
  */
 static size_t accuracy_stream_whole_bytes(const AccuracyBitStream *stream)
 {
@@ -255,7 +255,7 @@ void test_a_single_put_of_every_width_lands_where_the_reference_puts_it(void)
         for (unsigned width = 1u; width <= 64u; width++)
         {
             // A width of 64 would shift a 64-bit value by its full width, which C leaves undefined,
-            // so the all ones mask is written out instead of computed
+            // and so the all ones mask is written out instead of computed
             const uint64_t mask = (width == 64u) ? UINT64_MAX : ((UINT64_C(1) << width) - 1u);
             const uint64_t value = source_of[source_index] & mask;
             AccuracyBitStream stream = {{0u}, 0u};
@@ -294,7 +294,7 @@ void test_a_single_put_of_every_width_lands_where_the_reference_puts_it(void)
  *
  * @note This is the case the file exists for. A bit that crosses a byte boundary is merged by the
  *       module out of a residue and a fresh value, and that merge is the single one piece of arithmetic
- *       nothing else here exercises.
+ *       no other case here exercises.
  * @note The widths run 1 through 17 and repeat, which never settles on a multiple of eight. A run of
  *       widths that all divide eight keeps the residue empty and the merge unused.
  * @note Sixty four appends a run and thirty two runs, and so the merge is exercised at every residue
@@ -407,7 +407,7 @@ void test_align_pads_the_last_byte_with_zeros_above_the_bits_written(void)
     for (unsigned held = 1u; held < 8u; held++)
     {
         const uint64_t all_ones = (UINT64_C(1) << held) - 1u;
-        // The bits written are all ones, and so the byte is exactly the low pending bits set and the rest
+        // The bits written are all ones, and so the byte has exactly the low pending bits set and the rest
         // clear. Explicit cast narrows that to the uint8_t the buffer holds
         const uint8_t expected = (uint8_t)all_ones;
         uint8_t produced[MMGR_ACCURACY_BITOR_MAX_BYTES];
@@ -438,7 +438,7 @@ void test_align_pads_the_last_byte_with_zeros_above_the_bits_written(void)
  * @brief Checks that a put of no bits moves nothing.
  *
  * @note A width of 0 is the boundary of the append loop, and a writer that treated it as one bit
- *       would shift every value after it by a position. Every later byte then differs, which makes
+ *       would shift every value after it by a position. Every later byte then differs, and that makes
  *       this the cheapest case here and one of the more destructive defects.
  * @note Checked from an empty writer and again from one holding a residue, since the two take
  *       different paths through the byte count.

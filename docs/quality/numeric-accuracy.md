@@ -83,7 +83,7 @@ the first line by putting it into a double and doing arithmetic.
 The temptation is to conclude that an exact decimal conversion needs arbitrary precision. It does
 not, and the difference is worth being precise about. An exact decimal _expansion_ would: a
 subnormal needs 5^1074, which is a 2,494 bit integer, 39 words at 64 bits. But nobody needs the
-expansion. What is needed is enough bits to decide the rounding, and that is 53 for the mantissa,
+expansion. The requirement is enough bits to decide the rounding, and that is 53 for the mantissa,
 one below it, and one bit saying whether anything at all is set under that.
 
 128 bits carries all three with 74 to spare, and it never grows, because normalizing after each

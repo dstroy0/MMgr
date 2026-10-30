@@ -116,7 +116,7 @@ EMBED_INLINE embed_u64 fract_to_bits(const FractioCtx *args)
  *
  * @note Each is documented at its declaration in fractio.h.
  * @note The five union lines forward the member the caller filled. merge forwards its three fields
- *       instead. from_bits is given bits and reads val, to_bits is given val and reads bits, which is
+ *       instead. from_bits is given bits and reads val, to_bits is given val and reads bits:
  *       the reinterpretation both exist for.
  */
 FRACT_ENTRY(embed_u64, sign, .bits = args->bits)

@@ -8,14 +8,14 @@ An opt-in header that redirects the `mem*` and `str*` family onto this library's
 `strncmp`, `strlcpy` and the rest as macros over MMgr's SWAR implementations.
 
 It is for the case where you have existing code you do not want to rewrite, on a target where you
-would rather not link libc's string functions at all.
+prefer not to link libc's string functions at all.
 
 ```c
 #include "mmgr_string_shim.h"   /* FIRST. Before anything that might include <string.h> */
 #include "some_existing_code.h"
 ```
 
-## Include order is the whole of it
+## Include order decides everything
 
 The shim works by claiming libc's include guards. It defines `_STRING_H`, `_STRING_H_`,
 `__STRING_H__`, `_STRING_H_INCLUDED` and `_INC_STRING` itself. A later `#include <string.h>`
@@ -41,7 +41,7 @@ them and does nothing. Put the include first and keep it first.
 | `strchr`                                          | `cellul.chr`                                            |
 | `strlcpy`                                         | `cellul.copy`, always terminates                       |
 
-Every `str*` one takes a read cap, explicitly or through `MMGR_STR_MAX`. That is the difference from
+Every `str*` one takes a read cap, explicitly or through `MMGR_STR_MAX`. This is how it differs from
 libc: there is no entry here that will run forward until it happens to find a zero.
 
 ## Three places the behavior differs
@@ -62,7 +62,7 @@ libc's does. It is the string compares that lose the sign and not the memory one
 
 ## Why strcpy and strcat are missing
 
-There is no bounded form of `strcpy`. What it promises is "copy until the source ends", and the
+There is no bounded form of `strcpy`. It promises "copy until the source ends", and the
 destination's size is not one of its arguments, and so there is nothing to check against and no cap to
 pass. The same is true of `strcat`.
 
@@ -71,7 +71,7 @@ meaning while leaving the call sites looking correct, and truncation that nobody
 bug.
 
 So the names are simply not provided, and because the shim also blocks libc's declarations, a call
-to one does not compile. That build failure names the file, and that call site is exactly the one
+to one does not compile. That build failure names the file, and that call site is precisely one
 worth looking at. Replace it with `strlcpy`, which takes the destination's size and always
 terminates.
 
@@ -83,8 +83,8 @@ terminator", and it exists because an unterminated string is a real thing that h
 arriving from outside.
 
 Set it to the largest string your program can legitimately hold: too small silently truncates work
-you meant to do, too large means a runaway read scans further before stopping. It is a cap, not a
-buffer size: nothing is allocated from it, and no pool is sized by it.
+you meant to do, too large means a runaway read scans further before stopping. It is a cap and sizes no
+buffer: nothing is allocated from it, and no pool is sized by it.
 
 ## When not to use it
 

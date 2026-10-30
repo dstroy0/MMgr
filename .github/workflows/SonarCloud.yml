@@ -3,7 +3,7 @@ name: SonarQube
 # Analysis plus coverage.
 #
 # C is not a language SonarQube can analyze from source alone - it needs to know how each
-# translation unit was actually compiled. That is what the build wrapper is for: it wraps the real
+# translation unit was actually compiled. The build wrapper exists for that: it wraps the real
 # build and records every compiler invocation, and the scanner reads that. Without it the C files
 # are skipped and the dashboard shows a green project that analyzed nothing.
 #

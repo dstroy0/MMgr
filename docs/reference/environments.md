@@ -66,7 +66,7 @@ and it is what the static asserts in `embed_types.h` are there to catch.
 
 `checks` is not a width at all. It compiles in the library's checks and selects the trapping
 `MMGR_ASSERT`, which turns a broken precondition from a silent no-op into a failed test. It is the
-only environment where an assert is evaluated at all. An expectation that is never exercised there
+only environment where an assert is evaluated. An expectation that is never exercised there
 is one nothing has ever tested.
 
 ## A note about earlier names

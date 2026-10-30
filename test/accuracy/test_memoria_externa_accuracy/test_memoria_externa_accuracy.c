@@ -32,10 +32,10 @@
 #include "unity.h"
 
 /**
- * @brief Expands to 9u, the values each figure in the exhaustive sweep takes.
+ * @brief Expands to 9u, the values each figure in the complete sweep takes.
  *
  * @note Zero through eight. The policy compares the inputs against each other, and so what a sweep needs
- *       is every ordering among them and not a wide range of magnitudes.
+ *       is every ordering among them and not many magnitudes.
  */
 #define MMGR_ACCURACY_EXTERN_STEPS 9u
 
@@ -226,8 +226,8 @@ void test_every_placement_decision_matches_the_documented_policy(void)
  *       the reserve. A subtraction taken before its guard wraps to a very large remainder, and the
  *       request is then admitted to memory that cannot hold it.
  * @note The figures sit near the top of a size_t, where a wrap produces a number larger than any
- *       reserve. At small values a wrapped remainder can still fall below a reserve by chance, which
- *       is why the case is written up here.
+ *       reserve. At small values a wrapped remainder can still fall below a reserve by chance, and for that reason
+ *       the case is written up here.
  * @note External memory is given nothing to offer in the arms that expect a refusal, and so the refusal
  *       is the internal test's and not a fallback that happened to fail as well.
  */

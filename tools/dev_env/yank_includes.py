@@ -242,7 +242,7 @@ def main():
     if a.go and not os.path.isfile(CONSUMER):
         print(
             "yank_includes: refusing --go. The manifest this writes is turned into a forced include\n"
-            "  by %s, which is not in this tree, so the\n"
+            "  by %s, which is not in this tree, and so the\n"
             "  dependency an include carries would be recorded and then dropped.\n"
             "  The dry run still reports what would move." % rel(CONSUMER),
             file=sys.stderr,

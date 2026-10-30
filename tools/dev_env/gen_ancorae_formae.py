@@ -12,7 +12,7 @@ Sources:
   uri       RFC 3986 character classes: unreserved, gen-delims, sub-delims, weighted by which parts
             of a URI they appear in.
   inet      RFC 4291 IPv6 text form and dotted-quad: the alphabet is 0-9 a-f A-F : . / % and
-            nothing else.
+            no other byte.
   route     RFC 3986 path-abempty plus the template syntax routers actually use.
   generic   no grammar assumed, only the shape of byte data: NUL never, high bytes rare, ASCII
             printable common.
@@ -33,7 +33,7 @@ The tables are laid out by clang-format, which aligns each column to the widest 
 alignment is not reproducible by hand in any way worth maintaining, and so the generator emits a plain
 sixteen-per-row table and then runs the formatter over it. Without that step the output differs
 from what is on disk until something else has run, and `harness.py generated` reads that as a dirty
-tree. A missing clang-format is a refusal and not a warning.
+tree. A missing clang-format stops the run with an error.
 """
 
 import math

@@ -26,7 +26,7 @@
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
-// Drawing the domains and the anchor shuffles from this makes a run reproduce. Held to RFC 6234's
+// Drawing the domains and the anchor shuffles from this makes a run reproduce. Checked against RFC 6234's
 // vectors by its own self test
 #include "mmgr_sha256.h"
 
@@ -56,7 +56,7 @@
  * @brief Distinct symbols in every domain here.
  *
  * @note Two. The alphabet is deliberately at the bottom of its range, where a pattern recurs often enough
- *       for a lost occurrence to have somewhere to hide. What the alphabet costs is measured in the
+ *       for a lost occurrence to have somewhere to hide. The alphabet's cost is measured in the
  *       sift bench; what it is made of is the question here, and two of anything is enough for that.
  */
 #define SYMBOL_LEVELS 2u
@@ -102,7 +102,7 @@ typedef struct
  *
  * @note All three are uninformed. There is no cost table in this file and there cannot be one, since
  *       a domain whose alphabet cannot be enumerated has no frequencies to weigh. That is the setting
- *       the claim has to survive, and so the rules here differ from each other and none of them looks at
+ *       the claim has to survive, and so the rules here differ from each other and no rule looks at
  *       the data.
  */
 typedef enum

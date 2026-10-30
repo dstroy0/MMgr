@@ -8,7 +8,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note The engine under praet_engine.c is a port and not a test double. It defines the four
+ * @note The engine under praet_engine.c is a real port. It defines the four
  *       mmgr_praet_hw_ hooks strongly, and so what these cases exercise is the contract a board support
  *       file implements.
  * @note The counts and the order that decide a case are taken at this file's own completion
@@ -232,7 +232,7 @@ static void praet_check_one(const PraetScenario *scenario)
     TEST_ASSERT_EQUAL_UINT16_MESSAGE(scenario->expect_opens, opened, scenario->name);
     TEST_ASSERT_EQUAL_UINT16_MESSAGE(scenario->expect_submits, submitted, scenario->name);
     TEST_ASSERT_EQUAL_UINT16_MESSAGE(scenario->expect_settling, tally.settling, scenario->name);
-    TEST_ASSERT_EQUAL_UINT16_MESSAGE(scenario->expect_held, tally.held, scenario->name);
+    TEST_ASSERT_EQUAL_UINT16_MESSAGE(scenario->expect_deferred, tally.deferred, scenario->name);
     TEST_ASSERT_EQUAL_UINT16_MESSAGE(scenario->expect_completions, s_received_completions, scenario->name);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(scenario->expect_moved, s_received_moved, scenario->name);
 
@@ -277,7 +277,7 @@ void test_every_scenario_matches_its_oracle(void)
 /**
  * @brief The pool the scheduling cases attach a channel over.
  *
- * @note A pool declared the way any caller declares one. That is what PraetAttach takes, and taking it
+ * @note A pool declared the way any caller declares one. PraetAttach takes one, and taking it
  *       by name lets the address and the extent come from the same declaration.
  * @note Declared on both arms. A build with no recovery records nothing about a transfer, and the
  *       attach still names a pool and the compiler still proves it exists.
@@ -311,7 +311,7 @@ static void praet_case_attach_and_settle(embed_word channel)
 {
     // Reaches praet_ordo_adnectere directly, past PraetAttach. The channel arrives here as a
     // parameter, and the surface pastes the channel number into the symbol that carries the binding,
-    // so it needs a literal. The cases that drive the surface itself write one
+    // and so it needs a literal. The cases that drive the surface itself write one
     TEST_ASSERT_TRUE_MESSAGE(praet_ordo_adnectere(&s_schedule, channel, mmgr_pars_storage_s_case_pool,
                                                   (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
                              "the attach failed");
@@ -419,8 +419,8 @@ static void praet_pump(embed_word micros)
  * @param[in] mask         Bits the wait is about. Every one of them has to hold.
  * @param[in] until_raised EMBED_TRUE to wait for them to come up, EMBED_FALSE for them to go down.
  * @param[in] limit        Microseconds to pump before giving up.
- * @return                 Microseconds pumped when the bits first held, or PRAET_PUMP_NEVER.
- * @note Gives back the first microsecond the bits held, which is the whole difference between timing
+ * @return                 Microseconds pumped when the bits first matched, or PRAET_PUMP_NEVER.
+ * @note Gives back the first microsecond the bits matched, the difference between timing
  *       a deadline and noticing one went by. A window honored a microsecond early and one honored on
  *       time both finish with the flag set, and only the microsecond separates them.
  * @note One entry with the direction as an argument and not two entries. Every case passes a literal, and so
@@ -471,7 +471,7 @@ void test_a_channel_starts_detached(void)
 /**
  * @brief Checks that attach claims the vector and a completed detach releases it.
  *
- * @note The claim is the reason a vector is not held for a mover with nothing to move. A channel
+ * @note The claim is the reason a vector is not reserved for a mover with nothing to move. A channel
  *       that came back detached while still claimed would be the defect this case exists for.
  */
 void test_attach_claims_the_vector_and_detach_releases_it(void)
@@ -939,7 +939,7 @@ void test_touched_rounds_up_to_the_word(void)
  *       anything runs. What is under test here is the entry's arithmetic, which is still reachable by
  *       anyone who calls it with numbers nobody checked.
  * @note Nothing runs this transfer. The context never writes through the pointer it was given, and so the
- *       length is the whole of what this case is about and no storage of that size has to exist.
+ *       length is the sole subject of this case and no storage of that size has to exist.
  */
 void test_the_touched_extent_does_not_wrap_at_the_top_of_the_word(void)
 {
@@ -966,7 +966,7 @@ void test_the_touched_extent_does_not_wrap_at_the_top_of_the_word(void)
  *
  * @note What the check buys is a statement about one word. The library holds the destination and not
  *       the source, and so it reports what that word now contains and the caller compares it against what
- *       was meant to be there. That is the whole of the contract here.
+ *       was meant to be there. The contract here ends there.
  * @note The checksum is taken over the word the sample landed inside. A case that changes only a
  *       byte in that word has to move it. A case that changes a byte outside it must not.
  */
@@ -1119,7 +1119,7 @@ void test_a_build_without_recovery_still_stalls_and_records_none(void)
  *
  * @note The whole point of declaring a frequency. A port reads a counter and hands over ticks; every
  *       deadline in this module is microseconds, and this is the single one place the two meet.
- * @note Driven against the watchdog, with no counter read back, because what matters is that
+ * @note Driven against the watchdog, with no counter read back, because the property under test is that
  *       a window measured in microseconds closes after the right number of ticks.
  */
 void test_ticks_scale_into_microseconds(void)
@@ -1263,7 +1263,7 @@ static const PraetEngineStep s_joined_steps[] = {
  * @brief The scenario the joined cases arm.
  *
  * @note Carries no program and no expectations. The case makes its own calls and reads the schedule
- *       afterward, and so what is under test is the join and not the table.
+ *       afterward, and so the test covers the join alone.
  */
 static const PraetScenario s_joined_scenario = {
     .name = "the port drives the schedule",
@@ -1277,7 +1277,7 @@ static const PraetScenario s_joined_scenario = {
     .expect_completions = 0u,
     .expect_moved = 0u,
     .expect_settling = 0u,
-    .expect_held = 0u,
+    .expect_deferred = 0u,
     .expect_order = NULL,
     .expect_order_count = 0u,
 };
@@ -1289,7 +1289,7 @@ static const PraetScenario s_joined_scenario = {
  *       it finished, because nothing here predicts how long a transfer runs. The port's completion
  *       callback is the only thing that can say so, and this drives it through the real hooks.
  * @note Both halves run on logical channel one, and that leaves them the same channel. The engine
- *       schedules every logical channel over itself, and so the number is the whole of the correspondence.
+ *       schedules every logical channel over itself, and so the shared number alone ties the two halves together.
  */
 void test_a_port_completion_moves_the_channel_out_of_busy(void)
 {
@@ -1328,8 +1328,8 @@ void test_a_port_completion_moves_the_channel_out_of_busy(void)
  *
  * @note The other side of the join. A poll that releases nothing leaves the channel where it was, and so
  *       the schedule reads busy for exactly as long as the engine has not finished.
- * @note The script is the same one, and this case stops before the poll that releases. What it proves
- *       is that the completion is what changed the state, and not the submit or the passage of hook
+ * @note The script is the same one, and this case stops before the poll that releases. It proves
+ *       that the completion changed the state, and not the submit or the passage of hook
  *       calls.
  */
 void test_the_schedule_stays_busy_while_the_engine_holds_it(void)
@@ -1346,7 +1346,7 @@ void test_the_schedule_stays_busy_while_the_engine_holds_it(void)
 
     const PraetEngineTally tally = praet_engine_tally();
 
-    TEST_ASSERT_EQUAL_UINT16_MESSAGE(1u, tally.held, "the engine is not holding the transfer");
+    TEST_ASSERT_EQUAL_UINT16_MESSAGE(1u, tally.deferred, "the engine is not holding the transfer");
     TEST_ASSERT_EQUAL_UINT16_MESSAGE(0u, s_received_completions, "a completion arrived before it was due");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(PRAET_BUSY, praet_ordo_flags(&s_schedule, 1u) & PRAET_CORE_MASK,
                                      "the channel left busy without the engine finishing anything");
@@ -1445,7 +1445,7 @@ void test_a_backout_covers_what_the_port_last_reported(void)
 /**
  * @brief Checks that a refused attach leaves the settle timer where it was.
  *
- * @note A successful attach is what starts the engine settling, because that is the point the channel
+ * @note A successful attach is what starts the engine settling, because the attach is the moment the channel
  *       is told to get to work. An attach that was refused told it nothing, and moving the deadline
  *       there would hold off every other channel on the strength of a call that did nothing.
  */
@@ -1566,13 +1566,13 @@ void test_the_interrupt_can_raise_set_any_number_of_times(void)
 }
 
 /**
- * @brief Checks that a service call arriving while the lock is held declines and changes nothing.
+ * @brief Checks that a service call arriving while the lock is taken declines and changes nothing.
  *
  * @note The re-entry case. The lock is set directly here, the state an interrupt landing
  *       mid-update would find, and the nested call must not rework state the outer one is partway
  *       through.
  */
-void test_a_nested_service_declines_while_the_lock_is_held(void)
+void test_a_nested_service_declines_while_the_lock_is_taken(void)
 {
     praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(0u);
@@ -1641,7 +1641,7 @@ void test_the_two_arms_are_not_the_same_engine(void)
         TEST_ASSERT_EQUAL_UINT8_MESSAGE((uint8_t)PRAET_ARM_SOFTWARE, software_arm->arm, software_arm->name);
 
         if ((interrupt_arm->expect_completions != software_arm->expect_completions) ||
-            (interrupt_arm->expect_held != software_arm->expect_held) ||
+            (interrupt_arm->expect_deferred != software_arm->expect_deferred) ||
             (interrupt_arm->expect_order_count != software_arm->expect_order_count))
         {
             differing++;
@@ -1781,7 +1781,7 @@ PraetFromPeripheral(s_fill, s_case_peripheral, &s_case_register, 0u, s_case_pool
  * @brief Checks that a peripheral end stays put and the pool end advances.
  *
  * @note The one fact memcpy never needs. A peripheral is an address that does not move, and which
- *       side does not move is the whole of what makes a transfer a read or a write.
+ *       side does not move alone makes a transfer a read or a write.
  * @note Neither way to walk either end, because a pool and a register are not the same object and a
  *       transfer between them cannot read what it has already written.
  */

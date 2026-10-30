@@ -66,7 +66,7 @@ typedef enum
 /**
  * @brief The largest measure this module knows about.
  *
- * @note Raise this when a wider step is added, and the assertion on a descriptor's measure is what
+ * @note Raise this when a wider step is added, and the assertion on a descriptor's measure
  *       stops one being written that nothing here can carry.
  */
 #define PRAET_MENSURA_MAXIMA PRAET_MENSURA_VERBUM
@@ -309,7 +309,7 @@ struct PraetDescriptor
  * @param to_offset_   Bytes into that pool the write starts at.
  * @param bytes_       Bytes to move.
  * @param mensura_       Bytes moved in one step.
- * @note A descriptor whose next is itself. That is the whole of circular, and no part has a feature
+ * @note A descriptor whose next is itself. This defines circular, and no part has a feature
  *       called that either.
  * @note The forward declaration ahead of it is a tentative definition, which C merges with the real
  *       one below. It lets the initializer name an address the declaration is still writing.
@@ -386,7 +386,7 @@ struct PraetDescriptor
  * @param bytes_       Bytes to move.
  * @param mensura_       Bytes moved in one step, as a EgoSumMensura.
  * @param next_        The descriptor that runs after this one, or NULL.
- * @note The source advances and the destination stays where it is. That is the whole of what makes a
+ * @note The source advances and the destination stays where it is. This alone makes a
  *       transfer a write to a peripheral, and it is the single one fact memcpy never needs.
  * @note Neither way to walk, because a pool and a register are not the same object and a transfer
  *       between them cannot read what it has written.

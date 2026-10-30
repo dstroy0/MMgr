@@ -13,7 +13,7 @@
  *       fractio.h. A wrong constant there would otherwise supply both the answer and the
  *       expectation, and every case would pass while every field was read from the wrong place.
  * @note Doubles are taken apart through a union declared here. mmgr_fract_to_bits performs that same
- *       reinterpretation, and using it to check itself would prove nothing.
+ *       reinterpretation, and using it to check itself would show nothing.
  * @note Every expectation is either a literal a reader can work out from the format, or a
  *       reassembly built here from shifts. Neither reads a value the module produced.
  * @note Every integer type below comes from stdint.h. A wrong width alias would resize the shifts
@@ -46,7 +46,7 @@
 /**
  * @brief Expands to the eleven-bit mask an unshifted binary64 exponent fills.
  *
- * @note 0x7FF is eleven ones. A biased exponent runs 0 through 2047, and this is the whole of it.
+ * @note 0x7FF is eleven ones. A biased exponent runs 0 through 2047, and this is all of it.
  */
 #define MMGR_ACCURACY_EXPONENT_MASK 0x7FFULL
 
@@ -186,7 +186,7 @@ void tearDown(void)
  *
  * @note Exists to catch a defect in the helpers as itself. Without this case a broken
  *       accuracy_pattern_from would surface as a merge mismatch, and fractio would be blamed for it.
- * @note The last check walks the whole table and reassembles each row from its own three fields, and so
+ * @note The last check walks the whole table and reassembles each row from its own three fields, and therefore
  *       a row whose fields do not add back up to its pattern fails here and not in a later case.
  */
 void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
@@ -303,7 +303,7 @@ void test_merge_places_the_fields_where_the_format_puts_them(void)
  * @note Each is compared against this file's own union on the same storage. A defect in either
  *       direction shows up on its own, without the other covering for it.
  * @note Compared as patterns in both directions. A double comparison would report two NaN patterns
- *       unequal and two zero patterns equal, and neither is what this case asks.
+ *       unequal and two zero patterns equal, and this case asks for neither.
  */
 void test_the_two_readings_of_one_storage_agree_with_the_format(void)
 {

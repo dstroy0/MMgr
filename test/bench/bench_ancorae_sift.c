@@ -21,7 +21,7 @@
  *       here and not assumed.
  * @note The skip is the other half. A rare anchor does not only cut candidates, it means long runs
  *       with no candidate at all, and a search that jumps those runs never touches them. Expected
- *       skip is the corpus length over the occurrence count, and it is what decides whether a sieve
+ *       skip is the corpus length over the occurrence count, and it decides whether a sieve
  *       can visit a space it could never enumerate.
  * @warning The cost table is a link time singleton. A build links exactly one of the five
  *          profiles and this binary can only report on that one. It does not even carry its own
@@ -31,7 +31,7 @@
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
 // The control corpus comes out of this, and its uniformity is what every independence number here is
-// read against. Held to RFC 6234's vectors by its own self test
+// read against. Checked against RFC 6234's vectors by its own self test
 #include "mmgr_sha256.h"
 
 #include <math.h>
@@ -57,7 +57,7 @@
  * @brief English prose, the corpus the english profile was weighted against.
  *
  * @note Ordinary text with ordinary structure: the letter frequencies are Zipf skewed and the
- *       digraphs are correlated, which is exactly the condition the independence question is about.
+ *       digraphs are correlated, the very condition the independence question is about.
  */
 static const char s_english[] =
     "the quick brown fox jumps over the lazy dog while the quiet queen quietly questioned whether "
@@ -329,9 +329,9 @@ static void histogram(const uint8_t *corpus, size_t length, uint32_t *counts)
 /**
  * @brief How an anchor gets picked out of a needle.
  *
- * @note The policy is a free variable, and that is the point of having it. An anchor is a condition
+ * @note The policy is a free variable by design. An anchor is a condition
  *       copied out of the needle. A position that really does hold the needle satisfies every
- *       anchor whatever chose it. Correctness cannot turn on the policy. What the policy moves is how
+ *       anchor whatever chose it. Correctness cannot turn on the policy. The policy moves how
  *       many false candidates survive, and that is cost.
  * @note ANCHOR_BY_TABLE asks the linked cost table, which ranks a byte by how rare it is.
  *       ANCHOR_BY_RANDOM assigns costs by a permutation with no relation to how often a byte occurs.
@@ -1101,7 +1101,7 @@ static uint32_t s_width_counts[1u << WIDEST_SYMBOL];
  * @param[in] stamp      Fingerprint of the linked cost table.
  * @note Every other row in this file reads the corpus eight bits at a time, which is a choice nobody
  *       here made deliberately. A corpus is a bit pattern and the byte boundary is one carving of it,
- *       so the entropy this document treats as a property of the data is really a property of the data
+ *       and so the entropy this document treats as a property of the data is really a property of the data
  *       and that carving together.
  * @note What matters to a search is not what one read yields but what one bit of reading yields, since
  *       a wider read touches more of the corpus. The last column is that ratio, and the width that
@@ -1187,7 +1187,7 @@ int main(void)
     const uint32_t stamp = table_fingerprint();
 
     // Three pricing rules, ending at the one that prices nothing. If the last arm moves the cost
-    // columns and leaves the invariant column alone, that separation is the whole claim
+    // columns and leaves the invariant column alone, that separation alone is the claim
     static const AnchorPolicy policies[] = {ANCHOR_BY_TABLE, ANCHOR_BY_RANDOM, ANCHOR_BY_MAXIMUM_ENTROPY};
 
     printf("bench,table,corpus,policy,needle_len,stride,corpus_bytes,samples,one_anchor,two_anchor,predicted,"

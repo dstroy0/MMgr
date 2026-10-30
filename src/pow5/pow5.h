@@ -67,7 +67,7 @@ typedef struct
  * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED keeps a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
  * @warning transformo settles a positive exponent from its exact powers of ten and returns before the walk,
- *          so the only exponent reaching this table there is zero, which sets no bit.
+ *          and the only exponent reaching this table there is zero, which sets no bit.
  */
 static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
     {0xA000000000000000ULL, 0x0000000000000000ULL, -125}, {0xC800000000000000ULL, 0x0000000000000000ULL, -123},

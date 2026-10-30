@@ -12,8 +12,8 @@ asked to do decides as much of the outcome as what the engine answers.
 
 Every scenario is emitted twice, once per arm. The interrupt arm reports at the first hook call at
 or after a transfer is due; the software arm reports only when a poll selects the channel and it is
-due. Same fixture, one difference. A divergence in outcome is the arm, alone - which is
-the whole question behind falling back to a busy timer where there is no vector to spare.
+due. Same fixture, one difference. A divergence in outcome is the arm alone, and that
+decides the question of falling back to a busy timer where there is no vector to spare.
 
 The expectations are computed here by walking the program against the script. They are never derived
 by the engine or by the library. An expectation computed apart from the run, and agreeing with it,
@@ -21,8 +21,8 @@ is evidence. That includes the order completions arrive in, which a total count 
 completions on the wrong channels sum to the same number as two on the right ones.
 
 DMA owns no bytes and no buffer. A transfer names the caller's storage and its extent. Nothing here
-configures a size for the engine, and channels are logical - one engine schedules all of them, which
-is what a part with fewer channels than a program wants actually does.
+configures a size for the engine, and channels are logical - one engine schedules all of them, as
+a part with fewer channels than a program wants actually does.
 """
 
 import os
@@ -101,24 +101,24 @@ def oracle(program, script, arm):
     moved_total = 0
     tick = 0
     settled_at = [0] * ENGINE_CHANNELS
-    held_count = [0] * ENGINE_CHANNELS
-    held_moved = [0] * ENGINE_CHANNELS
+    deferred_count = [0] * ENGINE_CHANNELS
+    deferred_moved = [0] * ENGINE_CHANNELS
     due_at = [0] * ENGINE_CHANNELS
 
     def release_one(channel):
         nonlocal moved_total
         if tick < due_at[channel]:
             return
-        while held_count[channel] != 0:
-            held_count[channel] -= 1
+        while deferred_count[channel] != 0:
+            deferred_count[channel] -= 1
             order.append(channel)
-            moved_total += held_moved[channel]
+            moved_total += deferred_moved[channel]
 
     def hold(channel, answer):
-        if held_count[channel] != 0:
+        if deferred_count[channel] != 0:
             raise SystemExit("channel %d is already holding. A second hold would restate it" % channel)
-        held_count[channel] = answer["completions"]
-        held_moved[channel] = answer["moved"]
+        deferred_count[channel] = answer["completions"]
+        deferred_moved[channel] = answer["moved"]
         due_at[channel] = tick + answer["cycle"]
 
     def schedule(channel, answer):
@@ -182,7 +182,7 @@ def oracle(program, script, arm):
         "settling": settling,
         "order": order,
         "moved": moved_total,
-        "held": sum(held_count),
+        "deferred": sum(deferred_count),
     }
 
 
@@ -286,7 +286,7 @@ def scenarios():
     add("eight_logical_channels_on_one_engine", program, script)
 
     # The channel is still settling when the transfer arrives. The engine refuses it whatever the
-    # script answered, because settling is a rule and not a reaction.
+    # script answered, because the settling rule overrides any reaction.
     add(
         "submit_before_the_channel_has_settled",
         [call(OPEN), call(SUBMIT, byte_count=64), call(POLL), call(CLOSE)],
@@ -341,7 +341,7 @@ def scenarios():
         ],
     )
 
-    # Polled before the cycle elapsed. A busy timer says not yet and the completion stays held.
+    # Polled before the cycle elapsed. A busy timer says not yet and the completion stays deferred.
     add(
         "polled_before_the_cycle_elapsed",
         [call(OPEN), call(SUBMIT, byte_count=64), call(POLL), call(CLOSE)],
@@ -468,7 +468,7 @@ def emit(rows, corrupt=None):
             parts.append("        %du,\n" % completions)
             parts.append("        %duL,\n" % found["moved"])
             parts.append("        %du,\n" % found["settling"])
-            parts.append("        %du,\n" % found["held"])
+            parts.append("        %du,\n" % found["deferred"])
             parts.append("        praet_order_%s,\n" % label)
             parts.append("        %du,\n" % len(found["order"]))
             parts.append("    },\n")

@@ -106,11 +106,11 @@ void test_every_significand_is_normalized(void)
     for (int step = 0; step < MMGR_POW5_UP_ENTRIES; step++)
     {
         // Explicit cast widens the literal to embed_u64 before the shift. Shifting a plain int by 63
-        // is undefined where int is 32 bits, so the cast is what makes the mask well defined
+        // is undefined where int is 32 bits, and the cast makes the mask well defined
         TEST_ASSERT_TRUE_MESSAGE((mmgr_pow5_up[step].hi & (embed_u64)1 << 63) != 0u,
                                  "an up entry whose top bit is clear is not normalized");
         // Explicit cast widens the literal to embed_u64 before the shift. Shifting a plain int by 63
-        // is undefined where int is 32 bits, so the cast is what makes the mask well defined
+        // is undefined where int is 32 bits, and the cast makes the mask well defined
         TEST_ASSERT_TRUE_MESSAGE((mmgr_pow5_down[step].hi & (embed_u64)1 << 63) != 0u,
                                  "a down entry whose top bit is clear is not normalized");
     }

@@ -17,7 +17,7 @@
 # needs nothing removed to take effect.
 #
 # Every environment in MMGR_ENVIRONMENTS gets its own target, named mmgr_<module>_<env>. That is the
-# whole point of the widths being compile-time knobs: a 16-bit scan lane is exercised on this
+# purpose of the widths being compile-time knobs: a 16-bit scan lane is exercised on this
 # machine by defining it. A change that only breaks that lane fails a build here and not
 # waiting for someone to own the hardware.
 #
@@ -77,10 +77,10 @@ function(mmgr_add_module name)
     # cases that exercise it. A suite could be built believing a feature absent that the library
     # was compiled with.
     #
-    # Every capability and not only the new one. Before this they reached mmgr_add_suite and stopped
-    # there, and so turning one on built its suite against a module whose body was still compiled out -
-    # the suite passed, and it had tested nothing. A capability has to decide what is compiled, not
-    # only what is run.
+    # Every capability and not only the new one. A capability that reaches mmgr_add_suite and stops
+    # there builds its suite, once turned on, against a module whose body is still compiled out -
+    # the suite passes, and it tests nothing. A capability has to decide what is compiled as well as
+    # what is run.
     foreach(cap IN LISTS MMGR_CAPABILITIES)
       list(APPEND defs MMGR_ENABLE_${cap}=$<BOOL:${MMGR_ENABLE_${cap}}>)
     endforeach()

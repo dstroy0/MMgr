@@ -22,7 +22,7 @@
 #
 # So the rule this checks is that a character with a meaning in markdown has to be written as a command:
 # \ast for the asterisk, \lt and \gt for the angle brackets. Nothing here is repaired. It reports where to
-# look, and a hit is a hazard and not a proven failure, since which of these break depends on the
+# look, and a hit marks a hazard and proves no failure, since which of these break depends on the
 # renderer the reader happens to use.
 
 import io
@@ -131,7 +131,7 @@ def main():
             out.write("      %s\n" % snippet)
             total += 1
 
-    out.write("\n  %d hazard(s). A hit is a hazard and not a proven failure: which of these\n" % total)
+    out.write("\n  %d hazard(s). A hit marks a hazard and proves no failure: which of these\n" % total)
     out.write("  break depends on the renderer the reader happens to use\n")
     out.flush()
     return 0

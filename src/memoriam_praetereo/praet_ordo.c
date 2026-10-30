@@ -472,7 +472,7 @@ void praet_ordo_poll(PraetOrdo *context)
     praet_procurator_opus(PRAET_OPUS_POLL);
 
     // Taking the lock makes this ignore the interrupt for the span below. A nested call finds
-    // it held and declines, leaving the outer call's half-done state untouched
+    // it already has and declines, leaving the outer call's half-done state untouched
     if (context->praet_busy_bitflag != 0u)
     {
         praet_procurator_opus(PRAET_OPUS_POLL_SHORT);

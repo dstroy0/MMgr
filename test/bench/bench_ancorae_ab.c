@@ -26,12 +26,12 @@
  *       that is the resource they share, and so counting reads compares the algorithms instead of
  *       comparing their inner loops. No timing appears here and no row is a performance claim.
  * @warning Every algorithm below is written here. A defect in one would show as a result. All of
- *          them are held to the occurrence set that a brute force scan finds, and a row that
+ *          them are checked against the occurrence set that a brute force scan finds, and a row that
  *          disagrees prints BROKEN and is not a number to read.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
-// The uniform corpus comes out of this. Held to RFC 6234's vectors by its own self test
+// The uniform corpus comes out of this. Checked against RFC 6234's vectors by its own self test
 #include "mmgr_sha256.h"
 
 #include <math.h>
@@ -731,7 +731,7 @@ static AbResult ab_interrogative(const uint8_t *corpus, size_t corpus_len, const
  * @note Where the starting value comes from. An answer read at offset a can advance the search by at
  *       most a + 1, since beyond that the pattern has left the cell behind and the read says nothing
  *       about where it lands. That bound is a fact about the geometry and not a guess about the data,
- *       so every offset starts at its own ceiling and can only be revised downward. The largest
+ *       and so every offset starts at its own ceiling and can only be revised downward. The largest
  *       ceiling is the last offset, and so the search opens as Horspool and gives up ground only where an
  *       answer has shown the ceiling to be out of reach.
  * @note The running value forgets. An offset that stops paying loses its lead and the search
@@ -992,9 +992,9 @@ static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const
  * @note Why the order can be given up. A refutation depends only on the cell that produced it, and so the
  *       set of alignments a group of reads rules out is the union of what each rules out separately,
  *       and a union does not care what order it was built in. Every other arm here computes its next
- *       position from the symbol it just read, which makes the reads a chain. The positions here are
+ *       position from the symbol it just read, and so the reads form a chain. The positions here are
  *       fixed before the first one happens, and so no read waits on another and the chain has length one.
- * @note What that costs. A greedy shift always jumps to the next position not yet ruled out, which is
+ * @note What that costs. A greedy shift always jumps to the next position not yet ruled out,
  *       the most any single read can buy. A fixed stride reads some cells that a greedy walk would
  *       have skipped. The count below is what that waste amounts to, and the depth beside it is what
  *       it bought.
@@ -1020,7 +1020,7 @@ static AbResult ab_free_order(const uint8_t *corpus, size_t corpus_len, const ui
         alive[start] = 1u;
     }
 
-    // Every cell this phase reads is picked before any of them is read, and so none of them waits on
+    // Every cell this phase reads is picked before any of them is read, and so no read waits on
     // another. A cell at position p speaks about every alignment covering it, and kills the ones whose
     // needle position holds a different symbol
     for (size_t at = 0u; at < corpus_len; at += stride)
@@ -1136,8 +1136,8 @@ static AbResult ab_free_order(const uint8_t *corpus, size_t corpus_len, const ui
  *       looks at which alignments are still alive and asks where the next read would do the most.
  * @note Why coverage is the criterion. The symbol about to be read is unknown, and so every candidate
  *       position kills the same expected fraction of the alignments it touches. What differs between
- *       positions is how many live alignments they touch at all, and so the most informative next read is
- *       the one the surviving candidates overlap on. That quantity is a property of the answers so far
+ *       positions is how many live alignments they touch at all, and so the most informative next read lies where
+ *       the surviving candidates overlap. That quantity is a property of the answers so far
  *       and of nothing else.
  * @note It stops when a read kills nothing, which means the position separated no survivors, and the
  *       survivors are then confirmed. Stopping without confirming is measured in Section 4.9.6 of the
@@ -1401,7 +1401,7 @@ static double ab_shift_survey(const uint8_t *corpus, size_t corpus_len, unsigned
     // A shift is reported when its agreement rate stands far enough above the collision probability
     // that a run of luck does not reach it. The threshold is not trusted on its own: the tests for one
     // shift share read positions, and so they are not independent and a standard error computed as though
-    // they were is too small. What the threshold means is fixed below by running the same count over a
+    // they were is too small. The threshold's meaning is fixed below by running the same count over a
     // shuffle of the same bytes
     unsigned reported = 0u;
     double strongest = 0.0;
@@ -1445,8 +1445,8 @@ static double ab_shift_survey(const uint8_t *corpus, size_t corpus_len, unsigned
  *       many pairs and one common byte lifts all of its own. So the count it produces means nothing
  *       until something says what the count is on data with no structure to find.
  * @note A shuffle of the same bytes is that something. It holds the byte histogram exactly, which
- *       fixes the collision probability, and destroys every relationship between positions, which is
- *       the only thing a shift can be. Whatever the detector reports there is what it reports on
+ *       fixes the collision probability, and destroys every relationship between positions:
+ *       a shift can be nothing else. Whatever the detector reports there is what it reports on
  *       nothing, and the difference is what it found.
  */
 static void ab_discover(const char *name, const uint8_t *corpus, size_t corpus_len)
@@ -1638,7 +1638,7 @@ static void ab_language(const char *name, const uint8_t *corpus, size_t corpus_l
  *       A needle carrying $k$ boundaries carries $k-1$ gaps between them, and any true occurrence has
  *       to reproduce that run of gaps exactly. So the run is a filter, and the question is how much it
  *       removes compared with the bytes it is made of.
- * @note Why it might beat the symbols. A boundary symbol is common, which makes it a poor anchor: the
+ * @note Why it might beat the symbols. A boundary symbol is common and therefore a poor anchor: the
  *       space is near a fifth of English and two of them admit one position in twenty five. The gaps
  *       between them are not independent, the property that defeats every product rule in
  *       this document, and here it works the other way: a run of specific gaps is far less likely than
@@ -1688,7 +1688,7 @@ static void ab_boundary_filter(const char *name, const uint8_t *corpus, size_t c
         }
 
         // Every alignment whose boundaries fall at the same offsets. The first boundary anchors the
-        // run and the rest are checked against it, and so what is compared is the spacing and not the
+        // run and the rest are checked against it, and so the comparison covers the spacing, not the
         // absolute position
         size_t kept = 0u;
 
@@ -2468,7 +2468,7 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
     unsigned unique_over = 0u;
 
     // Reconstruction failures across every probe of every arm below. The algebra says this stays zero
-    // at every step. Any other value is a defect and not a property of a corpus
+    // at every step. Any other value is a defect, never a property of a corpus
     uint64_t mirror_error = 0u;
 
     const size_t step = (corpus_len - needle_len) / AB_SAMPLES;
@@ -2521,7 +2521,7 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
             ab_interrogative(corpus, corpus_len, needle, needle_len, NULL),
             ab_interrogative(corpus, corpus_len, needle, needle_len, carried),
             ab_distance_only(corpus, corpus_len, needle, needle_len, distance_value, 0u, 0u, 0.1, 0.0, 0.0),
-            // Amplification for an answer that stands out, settling for one that does not, and a
+            // Amplification for an answer above the rest, settling for one that is not, and a
             // negative trend gain selects that rule in place of the three term one
             ab_distance_only(corpus, corpus_len, needle, needle_len, steered_value, 0u, 0u, 0.35, 0.05, -1.0),
             ab_free_order(corpus, corpus_len, needle, needle_len, free_stride, &free_depth, 1u, &mirror_error),
@@ -2581,8 +2581,8 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
     // Calibration. One needle whose occurrence count is known picks the largest stride that reproduces
     // that count, and every other needle is then searched at it without confirming. The count is
     // monotone in the stride, since a smaller stride only ever probes more, and so the largest safe value
-    // can be bisected. What this asks is whether a stride calibrated on one pattern is safe for the
-    // rest, which no analytic formula in this document can answer because none of them sees the
+    // can be bisected. The question is whether a stride calibrated on one pattern is safe for the
+    // rest, which no analytic formula in this document can answer because no such formula sees the
     // correlation that decides it.
     const uint8_t *const calibrator = &corpus[0];
     const uint32_t calibrator_truth = ab_naive(corpus, corpus_len, calibrator, needle_len).found;

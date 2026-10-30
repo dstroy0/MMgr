@@ -70,7 +70,7 @@ static void accuracy_fill_guard(char *buffer)
  *
  * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Every buffer, spec and value list here has automatic storage inside the case that builds it,
- *       so there is no shared state to prepare.
+ *       and there is no shared state to prepare.
  */
 void setUp(void)
 {
@@ -94,8 +94,8 @@ void tearDown(void)
  *       either differently would report the module as wrong at every padded field.
  * @note The expectations are strings a reader can check. A width of five over 42 pads to 00042, and
  *       255 in hexadecimal is ff and not FF.
- * @note A width smaller than the value is checked to widen the field and not to truncate it, which is
- *       what the module documents for its own minimum digit counts.
+ * @note A width smaller than the value is checked to widen the field and not to truncate it, as
+ *       the module documents for its own minimum digit counts.
  */
 void test_the_reference_formatting_this_suite_relies_on_behaves_as_assumed(void)
 {
@@ -258,8 +258,8 @@ void test_a_spec_of_literals_and_values_comes_out_in_order(void)
  * @note Only the kinds whose width reaches a minimum digit count are used. The plain unsigned and
  *       signed kinds fix their own minimum at one and ignore the width entirely, which the module
  *       documents.
- * @note The widths are checked against snprintf zero padding at the same width, and so what is compared
- *       is the padded string and not merely its length.
+ * @note The widths are checked against snprintf zero padding at the same width, and so the comparison covers
+ *       the padded string and not merely its length.
  */
 void test_build_takes_the_width_from_the_field_and_emit_from_the_value(void)
 {
@@ -295,11 +295,11 @@ void test_build_takes_the_width_from_the_field_and_emit_from_the_value(void)
 /**
  * @brief Checks that the decimal kind pads to the width it is given.
  *
- * @note MMGR_FK_DEC is the single one kind whose default width is zero, and so the width it formats at is the
- *       one the caller states, alone. Every width from none to past the value's own digit
+ * @note MMGR_FK_DEC is the single one kind whose default width is zero, and so it formats at the width
+ *       the caller states, alone. Every width from none to past the value's own digit
  *       count is offered.
- * @note A width narrower than the value is checked to widen the field and not to cut the value, which
- *       is what a minimum digit count means and what a maximum would get wrong.
+ * @note A width narrower than the value is checked to widen the field and not to cut the value, as
+ *       a minimum digit count requires and a maximum would get wrong.
  */
 void test_the_decimal_kind_pads_to_the_width_it_is_given(void)
 {
@@ -333,7 +333,7 @@ void test_the_decimal_kind_pads_to_the_width_it_is_given(void)
  * @brief Checks that the fixed kind writes exactly the decimals its width names.
  *
  * @note The routing claim and not the rounding. The width reaches verba as the digits after the point,
- *       so what is checked is that the output carries a point with exactly that many digits behind
+ *       and the check is that the output carries a point with exactly that many digits behind
  *       it, whatever those digits are.
  * @note A width of zero is documented to write no point at all, the boundary a count taken
  *       as one-based would get wrong.
@@ -380,7 +380,7 @@ void test_the_fixed_kind_writes_exactly_the_decimals_its_width_names(void)
 /**
  * @brief Checks that a mismatched spec abandons the write and leaves earlier text whole.
  *
- * @note Abandoning is the accuracy claim that matters most for an append. A partially written record
+ * @note Abandoning is the most important accuracy claim for an append. A partially written record
  *       left in the buffer is one a reader cannot tell from a complete one, and so the terminator has to
  *       go back where the write started.
  * @note Three ways to mismatch are covered, and the header names all three: a value missing, a value

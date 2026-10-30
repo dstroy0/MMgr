@@ -16,8 +16,8 @@
  * @note Reaches nothing outside config.
  * @note Both folds are Henry S. Warren Jr., Hacker's Delight, 2nd edition: the leading-zero binary
  *       search is section 5-3 and the trailing-zero isolate is section 5-4. ISBN 978-0-321-84268-8.
- *       Neither is a de Bruijn sequence index. The arm below halves the search five times rather
- *       than multiplying by a de Bruijn constant and reading a table. A de Bruijn citation here
+ *       Neither is a de Bruijn sequence index. The arm below halves the search five times instead
+ *       of multiplying by a de Bruijn constant and reading a table. A de Bruijn citation here
  *       would name the wrong technique.
  */
 #include "clz/clz.h"
@@ -58,7 +58,7 @@ EMBED_INLINE embed_iword clz_lead(const ClzCtx *args)
 
     // Each step: the comparison gives 0 or 1, cast to embed_u64 so the shift builds 32, 16, 8, 4 or 2.
     // A step that finds the top half empty shifts it away and adds that half's width to the count,
-    // so five halvings narrow the search to one bit. Explicit cast converts each step into the
+    // and five halvings narrow the search to one bit. Explicit cast converts each step into the
     // signed embed_iword total
     shift = (embed_u64)((remaining >> 32) == 0u) << 5;
     remaining <<= shift;

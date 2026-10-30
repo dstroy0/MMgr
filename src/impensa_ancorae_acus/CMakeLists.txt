@@ -5,7 +5,7 @@
 # negotiated commercial licensing contract or an educator's license issued to you personally.
 
 # One profile, one translation unit. The table is file local to whichever of these is compiled,
-# so the four that are not selected are not in the image and none of the five puts a 256 byte
+# and the four that are not selected are not in the image and none of the five puts a 256 byte
 # copy of itself into every module that asks what a byte costs.
 if(DEFINED MMGR_ANCORAE_FORMA)
   string(TOLOWER "${MMGR_ANCORAE_FORMA}" _forma)

@@ -70,7 +70,7 @@ that sizes one.
 ## Why there are no install() rules
 
 There is no `install()`, no `export()`, no `MMgrConfig.cmake` and no `find_package` support, and
-that is deliberate and not unfinished.
+by design, and complete.
 
 The ABI is a function of the compile-time widths. A `libmmgr.a` built at `EMBED_WORD_BITS=64` and a
 consumer compiled at `EMBED_WORD_BITS=32` disagree about the size of `embed_word`, therefore about

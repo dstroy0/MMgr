@@ -316,7 +316,7 @@ EMBED_STATIC_ASSERT(EMBED_WORD_BITS <= PRAET_PLATFORM_XLEN,
  * @brief The core a platform default pins a timer to.
  *
  * @note Core zero, on every family. A part with one core has it and a part with several starts at it,
- *       so it is the number that exists everywhere. It is the right one on no part in
+ *       and so it is the number that exists everywhere. It is the right one on no part in
  *       particular. Which core is right is the caller's to say, and PRAET_CLOCK_CORE is where they
  *       say it.
  */

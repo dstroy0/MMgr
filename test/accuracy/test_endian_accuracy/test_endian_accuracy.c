@@ -14,7 +14,7 @@
  * @note endian.h documents parva_extremitas as the host's own order and magna_extremitas as the
  *       reverse of it, neither one pinned to little or big. The compiler states which order this
  *       host uses in __BYTE_ORDER__, and both expectations are built from that, and so the checks hold
- *       on a host of either order.
+ *       on a host with either byte order.
  * @note Every value below has eight different bytes. A value with repeated bytes passes a reversal
  *       that moved them to the wrong places, the defect this file is looking for.
  * @note Every integer type comes from stdint.h. A wrong width alias would resize the shifts each
@@ -68,7 +68,7 @@
  * @param[in] value    Value to take a byte out of.
  * @param[in] position Byte position, 0 being the least significant.
  * @return             That byte.
- * @note One shift and one mask. This is the whole of the reference every expectation is built from.
+ * @note One shift and one mask. This is the complete reference every expectation is built from.
  */
 static uint8_t accuracy_byte_at(uint64_t value, unsigned position)
 {
@@ -81,8 +81,8 @@ static uint8_t accuracy_byte_at(uint64_t value, unsigned position)
  * @brief Fills a buffer with the guard byte.
  *
  * @param[out] buffer Bytes to fill [BORROWS].
- * @note Every write test starts here. A byte the call did not write still holds the guard, which is
- *       what catches a write that ran past its width.
+ * @note Every write test starts here. A byte the call did not write still holds the guard, and that
+ *       catches a write that ran past its width.
  */
 static void accuracy_fill_guard(uint8_t *buffer)
 {
@@ -296,7 +296,7 @@ void test_the_reversal_mirrors_every_byte_across_the_width(void)
  * @brief Checks that a write followed by a read of the same order returns what was written.
  *
  * @note A round trip through one table holds regardless of whether that table's order is the single one intended,
- *       so this alone proves nothing about placement. It is here because a pair that disagreed with
+ *       and so this alone proves nothing about placement. It is here because a pair that disagreed with
  *       each other would pass every placement check above and still lose a caller's value.
  * @note The value is masked to the width first. Only the low width bytes survive a write of that
  *       width, and the rest are not part of what comes back.

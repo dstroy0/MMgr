@@ -88,7 +88,7 @@
 /**
  * @brief Expands to extern "C" { where __cplusplus is defined.
  *
- * @warning The expansion contains an unmatched {; MMGR_FINIS_DECLS supplies the }.
+ * @warning The expansion contains an open {; MMGR_FINIS_DECLS supplies the }.
  * @note Expands to nothing where __cplusplus is undefined.
  */
 #ifdef __cplusplus

@@ -13,7 +13,7 @@
  *       of a run of digits.
  * @note A decimal a double cannot hold is checked against the same decimal written as a literal, and
  *       the compiler is what converts that one. GCC folds a floating literal through MPFR and rounds
- *       it correctly, which makes it a second implementation of the conversion under test and not a
+ *       it correctly, and that makes it a second implementation of the conversion under test and not a
  *       second copy of it.
  * @warning That oracle is the toolchain's. A disagreement names a difference between the two
  *          implementations and does not by itself say which one is wrong, though a correctly rounded
@@ -58,8 +58,8 @@ typedef struct
  * @brief Decimals a double holds with nothing rounded.
  *
  * @note Every value here is a fraction whose denominator is a power of two, or an integer under
- *       2^53. A conversion has one correct answer for each and no rounding to get wrong, which is
- *       what separates a placement defect from a rounding defect.
+ *       2^53. A conversion has one correct answer for each and no rounding to get wrong, and that
+ *       separates a placement defect from a rounding defect.
  * @note The exponent forms are here to check they reach the same value as the plain ones. 1e2 and
  *       100 and 0.01e4 are one number written three ways.
  */
@@ -157,7 +157,7 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
  * @brief Checks that a signed decimal integer comes back as the integer it names.
  *
  * @note The expectations are literals. A run of digits under the accumulator's width has one value
- *       and no rounding, which makes the comparison exact.
+ *       and no rounding, and that makes the comparison exact.
  * @note Leading whitespace and an explicit sign are included because the entry documents accepting
  *       both, and a value that survives them is the value the digits name.
  */
@@ -274,7 +274,7 @@ void test_the_float_entry_is_the_double_entry_narrowed(void)
  *       saved in. Latin-1 is what a legacy protocol, an older filesystem or a serial device hands a
  *       caller, and 0xFC is its lowercase u with a diaeresis.
  * @note The plain ASCII pair is checked first. It is the same comparison with the accent removed,
- *       and it is what shows the difference is the accent and not the comparison.
+ *       and it is what shows the difference is the accent, while the comparison is the same.
  * @note The buffers are padded past the terminator because the compare reads a whole word at a time,
  *       which its own warning states.
  */

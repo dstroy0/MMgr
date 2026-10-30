@@ -12,7 +12,7 @@
  *
  * @note Holds no storage of its own, and every entry returns by value and not through a pointer.
  * @note A span only points at the caller's bytes [BORROWS]. Every span cut from a buffer, and every
- *       span cut from that one, is good for exactly as long as the buffer is, and none of them frees
+ *       span cut from that one, is good for exactly as long as the buffer is, and not one of them frees
  *       it.
  * @note A span travels inside the argument pack instead of being pointed at. A walk reads the
  *       caller's span and cannot change it. reset is the exception and takes args->at.
@@ -229,7 +229,7 @@ EMBED_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
  * @param[in] args Span to read back, as args->span [BORROWS].
  * @return         A read span over its first pos bytes, carrying span's overflow as its err.
  * @warning Hands back spat_read's span, and so it points at args->span's own bytes [BORROWS] and the
- *          same caution holds. What it covers is whatever the next fill leaves there.
+ *          same caution holds. It covers whatever the next fill leaves there.
  */
 EMBED_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
 {

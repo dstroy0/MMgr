@@ -33,7 +33,7 @@
 #include "unity.h"
 
 /**
- * @brief Expands to 8u, the largest extent the exhaustive grid walks.
+ * @brief Expands to 8u, the largest extent the full grid walks.
  *
  * @note Every rule compares the count against the extent or the cursor, and every ordering among
  *       three small numbers occurs well inside this. A larger grid repeats orderings it already
@@ -116,7 +116,7 @@ static void accuracy_expect_cspan(mmgr_cspan produced, const uint8_t *buf, size_
  * @brief Runs before each Unity test case.
  *
  * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
- * @note The storage the grid points at is never read through, and the one case that writes through a
+ * @note The storage the grid points at is never read through, and the single case that writes through a
  *       span fills what it needs itself.
  */
 void setUp(void)
@@ -202,7 +202,7 @@ void test_the_span_beginning_a_count_in_names_the_right_bytes(void)
  * @brief Checks the span covering only the first bytes, over the whole grid.
  *
  * @note The rules are the header's: the start does not move, the extent becomes the count, the cursor
- *       is held down to the shorter extent, and the flag comes forward unchanged.
+ *       is clamped to the shorter extent, and the flag comes forward unchanged.
  * @note Holding the cursor down is the rule a narrowing gets wrong most quietly. A span whose cursor
  *       sat past the new extent would report more written than it covers.
  * @note A count past the extent is documented to fail, and that boundary sits one past a count of
@@ -356,7 +356,7 @@ void test_the_predicates_test_what_they_are_documented_to(void)
  *       that. This case writes through the derived span and reads the parent's own storage back.
  * @note Both narrowings are covered. The span beginning a count in starts further along the same
  *       buffer, and the span covering the first bytes starts on the same byte with a shorter extent,
- *       so the two are checked at different addresses.
+ *       and so the two are checked at different addresses.
  * @note The bytes outside the derived span are checked to be untouched, as shows the view
  *       is bounded and not merely offset.
  */
@@ -416,7 +416,7 @@ void test_a_derived_span_is_a_second_view_of_the_same_bytes(void)
  * @note The bytes are checked to survive, since the header states a reset span hands out storage that
  *       still holds whatever the last fill wrote. A rewind that cleared them would be a different
  *       operation with the same name.
- * @note The extent and the start are checked to be unchanged as well, and so the rewind is exactly the
+ * @note The extent and the start are checked to be unchanged as well, and so the rewind changes only the
  *       two members it names, alone.
  */
 void test_a_rewind_returns_the_cursor_and_leaves_the_bytes(void)

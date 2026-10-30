@@ -6,7 +6,7 @@ What the library costs, measured and not asserted.
     cmake --build build
     ./build/bench/swar16/bench_scrutor_swar16
 
-One binary per bench per environment, because the reading that matters is the comparison **between**
+One binary per bench per environment, because the reading of interest is the comparison **between**
 environments. A SWAR bench built only at the host's lane width cannot show what widening the lane
 bought.
 
@@ -41,5 +41,5 @@ argument that does not change is hoisted out of the loop even with the memory cl
 the loop left behind times a counter while the work happens once. A bench whose reading does not
 move when `SPREAD` changes is almost certainly doing that.
 
-`results/` holds committed CSVs, which makes a change in these numbers visible as a diff. They are a record
+`results/` holds committed CSVs, and a change in these numbers shows as a diff. They are a record
 of one machine on one day and not a threshold: nothing fails a build over them.

@@ -29,7 +29,7 @@
  * @brief Arguments for the byteio backends, built from a caller's OctetusCfg by the entry macros.
  *
  * @note Same members as OctetusCfg, without the const qualifiers. Every OctetusCfg member is const,
- *       so neither the struct nor any field of it can be assigned once the caller has built it.
+ *       and neither the struct nor any field of it can be assigned once the caller has built it.
  *       BYTEIO_ENTRY initializes one of these from those fields instead.
  */
 typedef struct
@@ -151,7 +151,7 @@ EMBED_INLINE void byteio_raw(const ByteioCtx *args)
  *       in the target's own order lays the bytes out most significant first.
  * @note The count selects the stores: eight is one, seven is three, and only an odd final byte is
  *       ever written alone.
- * @note args->bytes must be 1 to 8, which is what the cast to mmgr_endian_width below rests on.
+ * @note args->bytes must be 1 to 8: the cast to mmgr_endian_width below rests on it.
  *       byteio_claim asks whether that many fit, and on a span with no room nothing is stored and
  *       the span's overflow is latched - see the warning there.
  */
@@ -165,7 +165,7 @@ EMBED_INLINE void byteio_put_be(const ByteioCtx *args)
     }
 
     // Explicit cast narrows the count to the mmgr_endian_width the reversal takes. The 1 to 8 bound
-    // on args->bytes is what keeps it inside that type
+    // on args->bytes keeps it inside that type
     uint64_t reversed =
         EMBED_CALL(magna_extremitas.rev, EndianCfg, .val = args->value, .width = (mmgr_endian_width)args->bytes);
 
@@ -204,7 +204,7 @@ EMBED_INLINE void byteio_put_be(const ByteioCtx *args)
  * @return             EMBED_TRUE when the bytes were there.
  * @note This reads back what byteio_put_be writes. The bytes are gathered in the target's own order
  *       at the widest step the count allows, and reversed once at the end.
- * @note args->bytes must be 1 to 8, which is what the cast to mmgr_endian_width below rests on.
+ * @note args->bytes must be 1 to 8: the cast to mmgr_endian_width below rests on it.
  *       args->out is written only on EMBED_TRUE, and a span too short to answer is a fact about the
  *       input and not a wrong program - see byteio_take.
  */
@@ -250,7 +250,7 @@ EMBED_INLINE embed_bool byteio_take_be(const ByteioCtx *args)
     }
 
     // Explicit cast narrows the count to the mmgr_endian_width the reversal takes. The 1 to 8 bound
-    // on args->bytes is what keeps it inside that type
+    // on args->bytes keeps it inside that type
     *args->out = EMBED_CALL(magna_extremitas.rev, EndianCfg, .val = gathered, .width = (mmgr_endian_width)args->bytes);
     return EMBED_TRUE;
 }

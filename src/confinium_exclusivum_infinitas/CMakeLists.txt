@@ -5,7 +5,7 @@
 # consumer compiles against no layout at all and <stdatomic.h> stays this file's problem. LTO is
 # what folds a call back into its caller across that boundary, and so the separation costs nothing at
 # link time. No DEPS: the span mover, the bit index and the span type are all defined in the .c,
-# so the module reaches nothing outside config.
+# and the module reaches nothing outside config.
 mmgr_add_module(confinium_exclusivum_infinitas
   SOURCES confinium_exclusivum_infinitas.c
   DEPS

@@ -16,7 +16,7 @@
  * @note Nothing here stops the build. Every unset knob takes its default, raises a warning naming
  *       itself and the value it took, and leaves a flag behind. praet_iudex.h reads those
  *       flags at the end and stops once, listing what to go fix.
- * @note That order is the whole point. An #error halts its translation unit where it stands. A
+ * @note That order is essential. An #error halts its translation unit where it stands. A
  *       build missing four knobs reports one, gets fixed, and reports the next - four rounds to learn
  *       four facts that were all known on the first. Warning here and stopping at the end hands the
  *       whole basket over at once.

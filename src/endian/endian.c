@@ -41,7 +41,7 @@ typedef struct
  *
  * @param[in,out] args Destination, value and width [BORROWS].
  * @note Dispatches to proxim.put16, put32 or put64 on the width.
- * @note The labels are the byte counts themselves, which is what the mmgr_endian_width enumerators are.
+ * @note The labels are the byte counts themselves, the values of the mmgr_endian_width enumerators.
  * @warning Any width other than 2 or 4 takes the default branch and writes eight bytes.
  * @warning args->dst must be writable for args->width bytes. Nothing checks it here, and nothing checks
  *          it in proximus_operor either, where the store is a plain dereference.
@@ -68,7 +68,7 @@ EMBED_INLINE void endian_put(const EndianCtx *args)
  * @param[in] args Source and width [BORROWS].
  * @return         The value read, in the low bytes of the result.
  * @note Dispatches to proxim.load16, load32 or load64 on the width.
- * @note The labels are the byte counts themselves, which is what the mmgr_endian_width enumerators are.
+ * @note The labels are the byte counts themselves, the values of the mmgr_endian_width enumerators.
  * @warning Any width other than 2 or 4 takes the default branch and reads eight bytes.
  * @warning args->src must be readable for args->width bytes. Nothing checks it here, and nothing checks
  *          it in proximus_operor either, where the load is a plain dereference.
@@ -175,8 +175,8 @@ EMBED_INLINE uint64_t endian_rd_be(const EndianCtx *args)
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_ and endian_ prefixes, which the two share.
  * @param[in] ...         Initializers for the EndianCtx literal, written from args.
- * @note The public prefix is mmgr_ on its own, and so these four are named mmgr_wr_le and its kin rather
- *       than mmgr_endian_ anything. ENDIAN_REV_ENTRY carries the longer prefix for the one that needs it.
+ * @note The public prefix is mmgr_ on its own, and so these four are named mmgr_wr_le and its kin instead
+ *       of mmgr_endian_ anything. ENDIAN_REV_ENTRY carries the longer prefix for the one that needs it.
  */
 #define ENDIAN_ENTRY(ReturnType_, name_, ...)                                                                          \
     EMBED_ENTRY(mmgr_, endian_, EndianCtx, EndianCfg, ReturnType_, name_, __VA_ARGS__)
@@ -198,7 +198,7 @@ EMBED_INLINE uint64_t endian_rd_be(const EndianCtx *args)
  *
  * @note Each is documented at its declaration in endian.h.
  * @note args->width is forwarded as it stands. EndianCfg and EndianCtx both declare it mmgr_endian_width,
- *       so there is no conversion to make.
+ *       and there is no conversion to make.
  * @note The four wr and rd lines pass args->dst or args->src through as they stand [BORROWS]. EMBED_CALL
  *       builds its literal inside the emitted function, and so the literal lives for that call alone and the
  *       buffer has to outlive it. Nothing here copies the buffer or frees it.

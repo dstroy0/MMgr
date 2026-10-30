@@ -35,7 +35,7 @@ void tearDown(void)
 /**
  * @brief Checks clz.lead against the known count at all 64 single-bit positions.
  *
- * @note Each position is measured twice. The second value sets every bit below the highest one, and so
+ * @note Each position is measured twice. The second value sets every bit below the highest one, and therefore
  *       an implementation that reads anything but the highest set bit fails here.
  */
 void test_the_leading_zero_count_at_every_position(void)
@@ -60,7 +60,7 @@ void test_the_leading_zero_count_at_every_position(void)
 /**
  * @brief Checks clz.trail against the known count at all 64 single-bit positions.
  *
- * @note Each position is measured twice. The second value sets every bit above the lowest one, and so
+ * @note Each position is measured twice. The second value sets every bit above the lowest one, and therefore
  *       an implementation that reads anything but the lowest set bit fails here.
  */
 void test_the_trailing_zero_count_at_every_position(void)

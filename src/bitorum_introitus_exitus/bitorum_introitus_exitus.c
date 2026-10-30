@@ -24,7 +24,7 @@
 /**
  * @brief Argument type built by EMBED_CALL in the three entry points.
  *
- * @note Fields match BitorumCfg, without its const qualifiers. The const on the public type is what
+ * @note Fields match BitorumCfg, without its const qualifiers. The const on the public type
  *       stops an entry writing through its own arguments. The backend needs no such promise.
  * @note bitor_init reads out and cap. bitor_put reads writer, val and bit_count. bitor_align reads
  *       writer alone.

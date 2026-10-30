@@ -12,12 +12,12 @@ keepouts.
 ## What it composes with
 
 It moves what @ref mod_confin_guide handed out. The segment view passes whole buffers **by index**,
-so nothing is copied across the boundary.
+and nothing is copied across the boundary.
 
 ## Three things over the same bytes
 
 **A byte ring.** `available`, `vacant`, `put`, `read`, `read_byte`, `peek`, `consume`. Capacity must
-be a power of two: the wrap is a mask and not a modulo.
+be a power of two: the wrap is a mask instead of a modulo.
 
 **A segment view.** `seg_next`, `seg_publish`, `seg_front`, `seg_release`, `seg_at`, `seg_inflight`.
 The producer fills a segment and publishes its index; the consumer reads that index and releases it
@@ -25,7 +25,7 @@ when done. The bytes never move.
 
 **Loculi.** `loculus_ready`, `loculus_next`, `loculus_hold`, `loculus_keepout`, `loculus_drop`,
 `loculus_mark`. A numbered hold that records a region to keep out of, for a reader walking bytes in
-place. Their free and held masks are one machine word each, and so `MMGR_RING_LOCULI_MAX` is
+place. Their free and pinned masks are one machine word each, and so `MMGR_RING_LOCULI_MAX` is
 `EMBED_WORD_BITS`. `MMGR_RING_LOCULI` is the build knob under that ceiling, and a static assert names
 it if it is set higher; a build with no use for them sets it to `0` and gets the keepout storage back.
 
@@ -71,14 +71,14 @@ if (EMBED_CALL(anularis.seg_front, AnularisCfg, .ring = &ring, .out_index = &seg
 }
 ```
 
-`seg_next` and `seg_front` answer whether there is one and write the index through `.out_index`, and so
+`seg_next` and `seg_front` answer whether there is one and write the index through `.out_index`, and therefore
 a caller never needs a sentinel index to mean "none".
 
 ## Gotchas
 
 **SPSC only.** Two producers on one ring is a broken program and not a slow one. There is no check and
-no assert: exactly one producer advances `head` and exactly one consumer advances `tail`, and that
-is the whole reason acquire and release ordering is enough and no entry on those two needs a
+no assert: exactly one producer advances `head` and exactly one consumer advances `tail`. For that reason alone
+acquire and release ordering is enough and no entry on those two needs a
 read-modify-write.
 
 **`put` is all or nothing.** It checks the whole span against `vacant` first. A partial write
@@ -86,7 +86,7 @@ never happens and a half span is never visible. It answers `EMBED_FALSE` instead
 fits.
 
 **`peek` copies what you ask for regardless of whether it arrived.** Read `available` first. A count above
-the ring's capacity is held there, since one lap is all two runs can express.
+the ring's capacity is clamped there, since one lap is all two runs can express.
 
 **Nothing is ever zeroed.** A loculus keeps its bytes after a drop. A restream can run again over
 the same region. Bytes read are not scrubbed behind the cursor either.

@@ -235,7 +235,7 @@ Done: a channel declared over a pool, and `MMGR_PRAET_CHANNELS` removed, as `Pra
 
 These were tried and rejected. Each is recorded so it is not proposed again.
 
-**A claim flag held at run time.** A `claimed` member in a pool struct records that something took
+**A claim flag kept at run time.** A `claimed` member in a pool struct records that something took
 the pool and stops nothing, and it puts run-time state in a library that settles this before the
 program runs. The compile-time literal does the same work for no bytes.
 

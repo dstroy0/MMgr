@@ -94,7 +94,7 @@ EMBED_STATIC_ASSERT(MMGR_ACCURACY_DOWN_ENTRIES == MMGR_ACCURACY_UP_ENTRIES,
                     "mmgr_pow5_down does not hold one reciprocal per mmgr_pow5_up entry");
 
 /**
- * @brief A 1024-bit unsigned integer, held as MMGR_ACCURACY_LIMBS limbs of MMGR_ACCURACY_LIMB_BITS
+ * @brief A 1024-bit unsigned integer, stored as MMGR_ACCURACY_LIMBS limbs of MMGR_ACCURACY_LIMB_BITS
  *        bits each.
  *
  * @note Exists so this suite can compute a power of five exactly. 5^256 is 595 bits, which no scalar
@@ -215,7 +215,7 @@ static void big_set_bit(BigNumber *number, int position)
  *
  * @param[in] number Value to measure [BORROWS].
  * @return           Number of significant bits, 1 for a value of one and 0 for a value of zero.
- * @note The count is a width and not an index. big_top_128 subtracts 1 from it to reach the
+ * @note The count is a width instead of an index. big_top_128 subtracts 1 from it to reach the
  *       highest set bit, and the reciprocal cases add 127 to it to place a numerator.
  */
 static int big_bit_length(const BigNumber *number)
@@ -245,7 +245,7 @@ static int big_bit_length(const BigNumber *number)
  * @note The top-bit shift is derived from MMGR_ACCURACY_LIMB_BITS and not written as 31. A change
  *       to the limb width cannot then leave this reading the wrong bit.
  * @warning A carry out of the top limb is dropped. big_divide is the only caller and it shifts a
- *          remainder held below its denominator, and so the widest value reaching here is 5^256 at 595
+ *          remainder kept below its denominator, and so the widest value reaching here is 5^256 at 595
  *          bits and the shift never reaches the top limb.
  */
 static void big_shift_left_one(BigNumber *number)
@@ -353,8 +353,8 @@ static void big_divide(const BigNumber *numerator, const BigNumber *denominator,
  * @param[in]  length Bit count the read starts under, as big_bit_length returns it.
  * @param[out] high   Receives bits length-1 down to length-64 [BORROWS].
  * @param[out] low    Receives bits length-65 down to length-128 [BORROWS].
- * @note Handing this big_bit_length of the value puts the highest set bit at the top of high, which
- *       is the normalized form both pow5 tables store their significands in.
+ * @note Handing this big_bit_length of the value puts the highest set bit at the top of high:
+ *       the normalized form both pow5 tables store their significands in.
  */
 static void big_top_128(const BigNumber *number, int length, uint64_t *high, uint64_t *low)
 {
@@ -364,13 +364,13 @@ static void big_top_128(const BigNumber *number, int length, uint64_t *high, uin
     for (int offset = 0; offset < 64; offset++)
     {
         // Explicit cast widens the 0 or 1 big_get_bit returns to the width of the accumulator it is
-        // combined with, so the line carries no unstated conversion
+        // combined with, and the line carries no unstated conversion
         high_part = (high_part << 1) | (uint64_t)big_get_bit(number, length - 1 - offset);
     }
     for (int offset = 64; offset < 128; offset++)
     {
         // Explicit cast widens the 0 or 1 big_get_bit returns to the width of the accumulator it is
-        // combined with, so the line carries no unstated conversion
+        // combined with, and the line carries no unstated conversion
         low_part = (low_part << 1) | (uint64_t)big_get_bit(number, length - 1 - offset);
     }
     *high = high_part;
@@ -508,7 +508,7 @@ void test_the_first_six_positive_powers_lose_no_bits_at_all(void)
  *        zero.
  *
  * @note A power of five is odd, and so bit 0 is set in every one. Once the value passes 128 bits, bit 0
- *       falls among the dropped ones, which makes the discarded remainder nonzero and the stored
+ *       falls among the dropped ones; the discarded remainder is then nonzero and the stored
  *       significand strictly below the exact value.
  */
 void test_the_last_three_positive_powers_drop_bits_and_drop_them_downward(void)

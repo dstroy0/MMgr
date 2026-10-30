@@ -38,7 +38,7 @@ EMBED_BEGIN_DECLS
 typedef int (*VerbaLineaFlush)(void *context, const char *bytes, size_t size);
 
 /**
- * @brief A flush's answer where it moved the line into a larger room, what the line held kept at the
+ * @brief A flush's answer where it moved the line into a larger room, what the line contained kept at the
  *        same offsets.
  */
 #define MMGR_LINE_GROWN 2

@@ -259,7 +259,7 @@ embed_word mmgr_scrut_eq(const ScrutLaneCfg *args);
  *
  * @param[in] args The two words and the case flag [BORROWS].
  * @return         A word whose lanes are zero exactly where the two agreed.
- * @note Takes a whole word in args->val, and so the caller broadcasts a byte itself if that is what it wants.
+ * @note Takes a whole word in args->val, and so the caller broadcasts a byte itself if it wants that.
  * @note With args->ci set, the case bit is cleared on letter lanes, and so the two cases of a letter agree.
  * @note Pass the result to mmgr_scrut_has_zero to turn it into a lane mask.
  */
@@ -305,8 +305,8 @@ embed_word mmgr_scrut_any_digit(const ScrutLaneCfg *args);
  * @return         A lane mask holding the letter lanes.
  * @note Reads args->word alone, and byte, val, fam and ci take no part.
  * @note A byte at 0x80 or above is never marked, and so this is exact where mmgr_scrut_any_upper is not.
- *       What mmgr_scrut_any_digit marks beyond the ten digits is the six symbols after the nine,
- *       not a high byte.
+ *       Beyond the ten digits mmgr_scrut_any_digit marks only the six symbols after the nine
+ *       and never a high byte.
  */
 embed_word mmgr_scrut_alpha(const ScrutLaneCfg *args);
 

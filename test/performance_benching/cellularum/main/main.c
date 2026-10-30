@@ -140,7 +140,7 @@ static inline embed_word bench_alpha_narrowed(embed_word word)
  *       same mask as bench_alpha_narrowed reaches by complementing. What differs is the width the
  *       complement is taken at: LOW7 is built from MMGR_SWAR_ONES and stays an embed_word, where
  *       ~MMGR_VERBUM_SCRUTOR_HIGH promotes to int first and is narrowed on the way back.
- * @note alpha_masks_agree is what says the two produce the same mask. Without that the row below
+ * @note alpha_masks_agree checks that the two produce the same mask. Without that the row below
  *       would be timing two different functions.
  */
 static inline embed_word bench_alpha_low7(embed_word word)
@@ -163,7 +163,7 @@ static inline embed_word bench_alpha_low7(embed_word word)
 static inline embed_word bench_alpha_cast(embed_word word)
 {
     const embed_word lowered = word | (MMGR_SWAR_ONES * 0x20u);
-    // Explicit cast takes the complement back to the embed_word the lanes are held at. The value is
+    // Explicit cast takes the complement back to the embed_word the lanes are stored in. The value is
     // the low seven bits of every lane either way
     const embed_word in_range = lowered & (embed_word)~MMGR_VERBUM_SCRUTOR_HIGH;
 
@@ -174,8 +174,8 @@ static inline embed_word bench_alpha_cast(embed_word word)
  * @brief Counts the words the two narrowing forms disagree on.
  *
  * @return The disagreement count, which is expected to be zero.
- * @note Walks a fixed recurrence, which makes a failure reproduce, and covers every lane pattern the walk
- *       reaches and not the one word the timing row uses.
+ * @note Walks a fixed recurrence, and a failure reproduces, and covers every lane pattern the walk
+ *       reaches and not only the word the timing row uses.
  */
 static uint32_t alpha_masks_agree(void)
 {

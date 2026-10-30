@@ -160,8 +160,8 @@ EMBED_INLINE size_t numer_abandon(const NumerCtx *args)
  *
  * @param[in] args Buffer, capacity and the offset reached [BORROWS].
  * @return         The length verba.finish reported, which is args->at, or 0 when args->at reached args->cap.
- * @note Writes no terminator of its own. A 0 return is the caller's to act on, and the caller is the
- *       one that knows where the write began.
+ * @note Writes no terminator of its own. A 0 return is the caller's to act on, and only the caller
+ *       knows where the write began.
  */
 EMBED_INLINE size_t numer_finish(const NumerCtx *args)
 {

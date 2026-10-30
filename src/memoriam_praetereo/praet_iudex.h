@@ -6,7 +6,7 @@
  */
 /**
  * @file praet_iudex.h
- * @brief Read after every knob has reported, and the one place a configuration stops the build.
+ * @brief Read after every knob has reported, and the single place a configuration stops the build.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *

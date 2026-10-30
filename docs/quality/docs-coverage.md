@@ -37,8 +37,8 @@ each loculus, or to accept the gap and let the reader follow the pointer.
 
 ## Why the build does not fail on it
 
-`WARN_AS_ERROR` is `NO`. Failing the docs build today would block every deploy for a backlog rather
-than for a regression, which trains everyone to ignore the gate, the failure mode a gate exists to
+`WARN_AS_ERROR` is `NO`. Failing the docs build today would block every deploy for a backlog instead
+of for a regression, which trains everyone to ignore the gate, the failure mode a gate exists to
 prevent.
 
 The intended end state is one line in `docs/Doxyfile`:

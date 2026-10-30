@@ -132,7 +132,7 @@ static void fill_skewed(uint8_t *corpus, size_t length)
     size_t filled = 0u;
     uint8_t symbol = 0u;
 
-    /* Each symbol takes half the remaining table, floored at one slot, which is a geometric
+    /* Each symbol takes half the remaining table, floored at one entry, which is a geometric
      * weighting written without any floating point in the bench. */
     while ((filled < sizeof table) && (symbol < 27u))
     {
@@ -210,7 +210,7 @@ static size_t search_naive(const uint8_t *corpus, size_t corpus_len, const uint8
  * @param[in] needle_len  How many.
  * @return                How many alignments match exactly.
  * @note The arm to beat, and the one whose next shift depends on the byte just read. That dependency
- *       is the whole of what the sift arms trade away.
+ *       is all the sift arms trade away.
  */
 static size_t search_horspool(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle, size_t needle_len)
 {

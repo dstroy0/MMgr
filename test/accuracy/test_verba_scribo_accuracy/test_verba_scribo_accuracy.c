@@ -73,7 +73,7 @@ static uint64_t accuracy_bits_of(double value)
  * @note Every case writes its fields and then finishes, and doing that in one place keeps the cases
  *       reading as the values and widths they are checking.
  * @warning The capacity is fixed at MMGR_ACCURACY_VERBA_BUFFER here, and so out must be a buffer of that
- *          size. The one case that uses a smaller buffer terminates it itself.
+ *          size. The single case that uses a smaller buffer terminates it itself.
  */
 static size_t accuracy_finish_at(char *out, size_t at)
 {
@@ -333,7 +333,7 @@ void test_the_padded_and_based_entries_match_the_reference(void)
  *       that comes back through strtod has to carry the same bits. A single wrong digit anywhere in
  *       the run gives a different double.
  * @note Nothing here compares against a reference rendering, and so the module is free to write the digits
- *       in whatever form it picks. What is checked is that the number those digits stand for is the
+ *       in whatever form it picks. The check is that the number those digits stand for is the
  *       number that went in.
  * @note The values straddle both form boundaries in both directions, cover both signs, and include
  *       the extremes a binary64 carries along with a subnormal.
@@ -503,7 +503,7 @@ void test_the_fixed_form_matches_the_reference(void)
  *       standard leaves the rule open and a library is free to pick either.
  * @note At no decimals every half moves to the next integer. That separates this from the
  *       tie-to-even rule it replaced, which took a half down to an even neighbor half the time.
- * @note All the values are exact in binary, and so each one really is a tie and not a value that merely
+ * @note All the values are exact in binary, and so each one really is a tie, and no value here merely
  *       prints like one.
  * @note The negative ties are what show the direction. The sign is written ahead of the magnitude and
  *       the magnitude is what rounds up. A negative half moves away from zero.
@@ -586,7 +586,7 @@ void test_the_text_entries_write_the_bytes_they_are_documented_to(void)
                                                   .cap = sizeof produced, .at = 0u, .text = NULL));
     TEST_ASSERT_EQUAL_STRING_MESSAGE("", produced, "a null string did not write nothing through the XML entry");
 
-    // A capacity of eight leaves seven bytes for text once the terminator is held back
+    // A capacity of eight leaves seven bytes for text once the terminator is reserved
     char small[8];
     const size_t clipped = EMBED_CALL(verba_textus.put_clip, VerbaTextusCfg, .out = small, .cap = sizeof small,
                                       .at = 0u, .text = "0123456789");
@@ -598,7 +598,7 @@ void test_the_text_entries_write_the_bytes_they_are_documented_to(void)
 /**
  * @brief Checks the words written for an infinity and a NaN, and the three predicates.
  *
- * @note Neither form is a number, and so nothing reads them back. What is checked is the exact text the
+ * @note Neither form is a number, and so nothing reads them back. The check is on the exact text the
  *       header names, lower case and unquoted.
  * @note The sign is documented to reach the infinity and not the NaN, and both are checked, since a
  *       sign written on a NaN would be neither valid nor what the header states.

@@ -1033,8 +1033,8 @@ static uint64_t bench_to_u64_up(const BenchWide *w)
     return whole;
 }
 
-// muto_scale_to_u64's own shape: seat, apply the power of ten, round. The exact power path is the
-// one verba_fixed reaches, since MMGR_FIXED_MAX_DECIMALS is eighteen.
+// muto_scale_to_u64's own shape: seat, apply the power of ten, round. verba_fixed reaches the exact power path
+// alone, since MMGR_FIXED_MAX_DECIMALS is eighteen.
 static void bench_scale_parts(BenchWide *w, uint64_t rem, int32_t e2, unsigned decimals)
 {
     bench_seat(w, rem, e2, 0u);
@@ -1699,8 +1699,8 @@ static void bench_tie_load(BenchFixedParts parts, uint8_t decimals)
     g_tie_int = parts.int_part;
 }
 
-// Both cost arms walk the same local scale and differ only in the tie rule, and so what the row reports
-// is the rule and not the path to it.
+// Both cost arms walk the same local scale and differ only in the tie rule, and so the row reports
+// the tie rule's cost alone.
 static uint64_t bench_tie_even(void)
 {
     BenchWide wide;

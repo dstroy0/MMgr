@@ -42,7 +42,7 @@ extern void test_a_refused_attach_does_not_start_the_timer(void);
 extern void test_polling_the_port_keeps_the_watchdog_fed(void);
 extern void test_detach_waits_for_the_transfer_under_it(void);
 extern void test_the_interrupt_can_raise_set_any_number_of_times(void);
-extern void test_a_nested_service_declines_while_the_lock_is_held(void);
+extern void test_a_nested_service_declines_while_the_lock_is_taken(void);
 extern void test_the_region_descriptor_survives_a_transfer(void);
 extern void test_the_two_arms_are_not_the_same_engine(void);
 extern void test_a_one_shot_descriptor_ends(void);
@@ -149,7 +149,7 @@ int main(void)
   run_test(test_polling_the_port_keeps_the_watchdog_fed, "test_polling_the_port_keeps_the_watchdog_fed", 1455);
   run_test(test_detach_waits_for_the_transfer_under_it, "test_detach_waits_for_the_transfer_under_it", 1493);
   run_test(test_the_interrupt_can_raise_set_any_number_of_times, "test_the_interrupt_can_raise_set_any_number_of_times", 1519);
-  run_test(test_a_nested_service_declines_while_the_lock_is_held, "test_a_nested_service_declines_while_the_lock_is_held", 1546);
+  run_test(test_a_nested_service_declines_while_the_lock_is_taken, "test_a_nested_service_declines_while_the_lock_is_taken", 1546);
   run_test(test_the_region_descriptor_survives_a_transfer, "test_the_region_descriptor_survives_a_transfer", 1575);
   run_test(test_the_two_arms_are_not_the_same_engine, "test_the_two_arms_are_not_the_same_engine", 1601);
   run_test(test_a_one_shot_descriptor_ends, "test_a_one_shot_descriptor_ends", 1672);

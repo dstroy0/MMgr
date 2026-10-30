@@ -72,7 +72,7 @@ write the first byte they did not consume to `.end`. Equal to `.src` means nothi
 **`to_long` and `to_ulong` return `embed_iword` and `embed_word`,** so they parse to the target's own
 word width. On a 16-bit build `to_ulong` saturates at 65535 and not at 4294967295.
 
-**The cap is a cap and not a length.** `len` with `.cap = 64` returns at most 64 regardless of whether a
+**The cap is a cap instead of a length.** `len` with `.cap = 64` returns at most 64 regardless of whether a
 terminator was found. If you need to know which happened, compare against the cap.
 
 **`find` anchors on the rarest byte of the needle**, using @ref mod_anchor_guide. For that reason it is
@@ -124,7 +124,7 @@ Searching for `"Content-Length:"` by scanning for `'C'` finds a candidate on nea
 English text, and each one costs a full comparison. Scanning for `'-'`, or whichever byte is rarest
 in the expected input, finds far fewer candidates and rejects them sooner.
 
-The table says how common each byte is, and so the search can pick.
+The table records how common each byte is, and so the search can pick.
 
 ## Profiles
 

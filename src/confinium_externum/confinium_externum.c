@@ -153,7 +153,7 @@ MMGR_INLINE uint8_t exter_pingpong_swap(const ExterCtx *c)
  *
  * @param[in] ret  Return type of the entry point.
  * @param[in] name Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
- * @note A second macro and not one, because these entries are named mmgr_pingpong_ rather than
+ * @note A second macro and not one, because these entries are named mmgr_pingpong_ instead of
  *       mmgr_exter_. GENERIC_ENTRY pastes one prefix onto one name, and so the pair differs and not the form.
  */
 #define PINGPONG_ENTRY(ret, name, ...)                                                                                 \

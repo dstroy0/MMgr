@@ -37,12 +37,12 @@ in the module is built on it.
 Read it a lane at a time:
 
 - `w & LOW7` drops the top bit of every lane, and so no lane can carry into its neighbor.
-- `+ LOW7` adds `0x7F` to each. A lane whose low seven bits held anything at all carries into bit 7;
-  a lane that held zero in those bits does not.
+- `+ LOW7` adds `0x7F` to each. A lane whose low seven bits contained anything at all carries into bit 7;
+  a lane that contained zero in those bits does not.
 - `| w` puts the top bits back, and so bit 7 of each lane is now set exactly when the lane was nonzero,
   either because the add carried, or because the byte was `0x80` or above to begin with.
-- `~` inverts it, and `& HIGH` keeps one bit per lane. What is left is the answer: a set bit for
-  every lane that held zero.
+- `~` inverts it, and `& HIGH` keeps one bit per lane. The result is the answer: a set bit for
+  every lane that contained zero.
 
 No branch, no loop, eight bytes answered. `strlen` over a long string becomes one of these per word
 plus a tail.
@@ -52,7 +52,7 @@ _Bit Twiddling Hacks_ and Henry S. Warren Jr.'s _Hacker's Delight_ chapter 6 bot
 
 The `mask` table on top of it turns "some lane matched" into "which lane": `lane.count` says how
 many, `lane.first` and `lane.last` say where, `mask.drop_first` and `mask.drop_last` walk them in
-order, and `mask.tail` trims the last word to the caller's length. That is what a `find` needs.
+order, and `mask.tail` trims the last word to the caller's length. A `find` needs exactly this.
 
 Called through the table:
 
@@ -102,8 +102,8 @@ scanner is not allowed to add to it.
 
 ## What it is worth
 
-Measured on gcc 13.2 `-O2`, x86-64. `cycles_per_byte` is `cycles_per_call / MMGR_SWAR_BYTES`, which
-is the column the design claim lives in: a wider carrier answers for more bytes per register
+Measured on gcc 13.2 `-O2`, x86-64. `cycles_per_byte` is `cycles_per_call / MMGR_SWAR_BYTES`, the
+column the design claim lives in: a wider carrier answers for more bytes per register
 operation, and so cycles-per-byte should fall as the carrier widens.
 
 | case       | 16-bit | 32-bit | 64-bit | 16 → 64 |

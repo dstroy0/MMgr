@@ -8,12 +8,12 @@ never need arithmetic - they are the exponent field of the result, and putting o
 The fives are what has to be carried, and they are the same handful of numbers on every call, and so
 they belong in a table and not in a loop that rebuilds them.
 
-Each entry is five to a power of two, held as a 128 bit fraction with the top bit set and its own
+Each entry is five to a power of two, stored as a 128 bit fraction with the top bit set and its own
 binary exponent. Any exponent up to 511 is the product of at most nine of them. The reciprocals
 are here too, as keeps a negative exponent a multiply instead of a division.
 
 Truncated and not rounded, deliberately. A truncated entry is never larger than the true power,
-so the product is never larger than the true product, and the sticky bit that decides a tie is
+and so the product is never larger than the true product, and the sticky bit that decides a tie is
 never wrongly clear. Rounding the entries would put an error either side of the true value and the
 tie would stop being decidable from the bits that are there.
 
@@ -77,7 +77,7 @@ def entries(recip):
 def rows(items):
     """`items` laid out two per line, padded the way clang-format aligns a braced initializer list.
 
-    Two per line because that is what fits the column limit, and the first of each pair is padded so
+    Two per line because two fit the column limit, and the first of each pair is padded so
     the second starts at the same column on every row. Emitting one per line and leaving the
     formatter to do this works, but then the generator's own output is not what is on disk until
     something else has run, and `harness.py generated` reads that as a dirty tree.
@@ -162,7 +162,7 @@ typedef struct
  * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED keeps a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
  * @warning transformo settles a positive exponent from its exact powers of ten and returns before the walk,
- *          so the only exponent reaching this table there is zero, which sets no bit.
+ *          and the only exponent reaching this table there is zero, which sets no bit.
  */
 static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
 %(up)s

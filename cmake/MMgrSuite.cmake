@@ -49,8 +49,8 @@ function(mmgr_add_suite suite_name)
 
     # One runner per suite and not per environment: the cases are the same source either way.
     #
-    # The custom command is wrapped in a target, and the executables depend on the TARGET rather
-    # than each listing the OUTPUT. With the Makefile generator, an OUTPUT consumed by several
+    # The custom command is wrapped in a target, and the executables depend on the TARGET instead
+    # of each listing the OUTPUT. With the Makefile generator, an OUTPUT consumed by several
     # targets is emitted as a rule in each of their build.make files - so the environment builds of
     # one suite race to write the same unity_runner.c, and a target that links it mid-write gets a
     # file with no main(). That surfaced as `undefined reference to WinMain`, because the linker

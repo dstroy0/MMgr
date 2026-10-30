@@ -20,7 +20,7 @@ def eq(name, got, want):
 s = 'f(a, ")", b)'
 eq("literal paren", s[2 : N.close_paren(s, 2) - 1], 'a, ")", b')
 
-# 2. a ',' inside a literal is not an argument separator
+# 2. a ',' inside a literal separates no arguments
 eq("literal comma", N.split_args('a, "x,y", b'), ["a", '"x,y"', "b"])
 
 # 3. a nested call keeps its own parens

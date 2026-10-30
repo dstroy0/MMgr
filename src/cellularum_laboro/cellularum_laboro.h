@@ -70,7 +70,7 @@ EMBED_BEGIN_DECLS
  *           RISC-V sieve 219     680   17059
  *
  *       The chain wins at every length on both parts, and so the default is no limit. The knob
- *       is kept because that is a measurement and not a proof, and a part or a workload that
+ *       is kept because that is a measurement instead of a proof, and a part or a workload that
  *       disagrees should be able to say so without editing the walk.
  * @warning Taken only when MMGR_FIND_CHAIN_MAX is not already defined. A build may supply its own.
  *          Zero sends every needle through the sieve.
@@ -130,8 +130,8 @@ typedef struct
  *
  * @note EMBED_TABLE_LAYOUT asserts the seventeen members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
  * nothing else.
- * @note Byte and wire verbs are not here. rd_str and mpint_fixed read a length off the wire rather
- *       than out of a string, and so they belong to the byteio module and act on its spans.
+ * @note Byte and wire verbs are not here. rd_str and mpint_fixed read a length off the wire instead
+ *       of out of a string, and so they belong to the byteio module and act on its spans.
  */
 typedef struct
 {
@@ -237,7 +237,7 @@ embed_bool mmgr_cellul_has(const CatenaFinitaCfg *args);
  * @return         Address inside src, or NULL when the byte does not occur [BORROWS].
  * @note A byte of 0 returns the terminator's own address, or src plus cap when no terminator is in range.
  * @warning src must be readable for cap bytes. The last partial word is loaded whole and masked after,
- *          so up to MMGR_SWAR_BYTES - 1 bytes past cap are read.
+ *          and up to MMGR_SWAR_BYTES - 1 bytes past cap are read.
  */
 const char *mmgr_cellul_chr(const CatenaFinitaCfg *args);
 

@@ -83,7 +83,7 @@ typedef enum
  * @brief Channel selector meaning every channel holding a due completion.
  *
  * @note A poll reaction carrying this releases them lowest channel first. A poll naming one channel
- *       releases that one and leaves the rest held.
+ *       releases that one and leaves the rest deferred.
  */
 #define PRAET_RELEASE_EVERY_CHANNEL 0xFFu
 
@@ -157,7 +157,7 @@ typedef struct
  * @param expect_completions Completion callbacks the case must receive.
  * @param expect_moved       Sum of the bytes those completions report.
  * @param expect_settling    Submits the engine must refuse because the channel had not settled.
- * @param expect_held        Completions still held when the program ends. Not always zero: a
+ * @param expect_deferred    Completions still deferred when the program ends. Not always zero: a
  *                           software arm the case never polls, and a transfer whose cycle has not
  *                           elapsed, both legitimately leave one waiting.
  * @param expect_order       Logical channels of those completions, in the order they must arrive
@@ -181,7 +181,7 @@ typedef struct
     uint16_t expect_completions;
     uint32_t expect_moved;
     uint16_t expect_settling;
-    uint16_t expect_held;
+    uint16_t expect_deferred;
     const uint8_t *expect_order;
     uint16_t expect_order_count;
 } PraetScenario;
@@ -190,7 +190,7 @@ typedef struct
  * @brief What a run of one scenario actually produced, from the engine's side.
  *
  * @param completions Completions the engine emitted.
- * @param held        Completions still held against a channel when the program ended.
+ * @param deferred    Completions still deferred on a channel when the program ended.
  * @param settling    Submits the engine refused because the channel had not settled.
  * @param overrun     Hook calls the script had no reaction for, which is a script shorter than the
  *                    program or out of step with it.
@@ -200,7 +200,7 @@ typedef struct
 typedef struct
 {
     uint16_t completions;
-    uint16_t held;
+    uint16_t deferred;
     uint16_t settling;
     uint16_t overrun;
 } PraetEngineTally;
@@ -230,7 +230,7 @@ PraetEngineTally praet_engine_tally(void);
  * @return            Bytes moved so far, or 0 for a channel outside the fixture's table.
  * @note What a port reads off a controller's remaining count, and what it feeds a watchdog with. The
  *       library has no entry for it, and so the application asks the port and passes the answer to
- *       praet_ordo_efficere. That is the shape a real integration takes until the library grows one.
+ *       praet_ordo_efficere. A real integration takes the same shape while the library lacks one.
  * @note Set by a poll reaction carrying a progress figure, and set to the reported count when a
  *       transfer completes. A channel nothing has reported on holds its last figure.
  */

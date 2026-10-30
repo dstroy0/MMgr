@@ -81,18 +81,18 @@ typedef struct
  * @param c Reads `buf` and `cap`.
  * @return The span, by value.
  *
- * @slot{0}
+ * @position{0}
  * @warning Does not check that `buf` is non-NULL.
  */
 mmgr_span mmgr_spat_from(const SpatiumCfg *c);
 ```
 
-`@slot{n}` is the entry's position in the dispatch table, `@ns{name}` names the table, and
+`@position{n}` is the entry's position in the dispatch table, `@ns{name}` names the table, and
 `[BORROWS]`, `[TAKES OWNERSHIP]` and `[RETURNS OWNERSHIP]` mark who owns a pointer. Everything is
 a borrow here, and so `[BORROWS]` is what you will write.
 
 Doxygen takes one branch of a `#if`. Put the doc block on the branch it takes, not above the
-`#if`, or the entity comes out undocumented - `docs/Doxyfile` sets `PREDEFINED` and that is what
+`#if`, or the entity comes out undocumented - `docs/Doxyfile` sets `PREDEFINED` and that setting
 decides which branch that is.
 
 Run `doxygen docs/Doxyfile` before committing. `WARN_IF_UNDOCUMENTED` is on. Anything you added

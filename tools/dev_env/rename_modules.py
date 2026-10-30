@@ -156,12 +156,12 @@ def mode_types(go):
     of those is also something else in this tree: `mem` is the struct member holding pool storage,
     `span` and `raw` are function-pointer member names inside the very structs being renamed, and
     `secure` appears inside an MMGR_ASSERT message. Rewriting the bare identifier corrupts all four,
-    so only two forms are touched:
+    and so only two forms are touched:
 
         const <OldNs> <oldinstance>     the declaration
         <oldinstance>.                  member access, the only way an instance is read
 
-    A member-access match is additionally required NOT to be preceded by `->` or `.`, and so
+    A member-access match must also NOT be preceded by `->` or `.`, and so
     `ctx->store->mem` is left alone while `mem.cpy(...)` is rewritten.
     """
     _m, _i, _v, types, namespaces = load_table()

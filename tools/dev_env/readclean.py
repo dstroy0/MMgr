@@ -244,7 +244,7 @@ ATTRS = {
 }
 # --- this project's prefixes -------------------------------------------------
 # The single place a fork of this tool has to be edited. Every rule below that names a project prefix
-# builds its regex from here instead of form the prefix inline. Adding a second spelling is
+# builds its regex from here instead of forming the prefix inline. Adding a second prefix is
 # one edit instead of four. If one is ever added, order it longest first: a shorter alternative
 # that matches first leaves the tail of the longer form behind as the stem.
 PREFIX_UPPER = ("MMGR",)
@@ -439,10 +439,10 @@ class Blinder(object):
             if mask[e.start()] and nm not in self.table and nm not in SAFE and nm not in self.keep:
                 self.table[nm] = self._next("e")
 
-        # A REGION MACRO is named for its region by its BODY, not by its own form: sha256.c
+        # A REGION MACRO is named for the region its BODY reads, whatever its own form: sha256.c
         # writes `SHA256_FS(w)` over `SHA256_OFF_STATE`. Reading the letter off the macro's suffix
-        # filed FS as a region of its own, and so the cast and the offset it reads came out as X1_C and
-        # X1_OFF_B - and whether each cast reads the offset it belongs to is the whole question.
+        # files FS as a region of its own, and so the cast and the offset it reads come out as X1_C and
+        # X1_OFF_B - and whether each cast reads the offset it belongs to is the question.
         for d in REGION_MACRO.finditer(text):
             nm, body = d.group(1), d.group(2)
             if not mask[d.start()] or nm in self.table or nm in SAFE or nm in self.keep:

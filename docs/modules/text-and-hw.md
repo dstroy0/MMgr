@@ -4,7 +4,7 @@ Text out, without `printf` and without a heap.
 
 ## When to reach for it
 
-Any time you would reach for `snprintf` and would rather not link a formatter, or cannot afford one.
+Any time you would reach for `snprintf` and prefer not to link a formatter, or cannot afford one.
 
 ## Worked example
 
@@ -66,7 +66,7 @@ const size_t len = mmgr_line_finish(&line);
 
 A line with no flush behaves as the writers above do: a write that does not fit leaves it full and
 `finish` reports zero. A line with a flush hands what it holds to the flush as it fills and goes on,
-so a text of any length passes through a buffer of any size. A flush answers 1 where it took the
+and a text of any length passes through a buffer of any size. A flush answers 1 where it took the
 bytes, `MMGR_LINE_GROWN` where it moved the line into a larger buffer holding them still, and 0
 where it refused, which leaves the line full. `mmgr_line_put` reads its text a room at a time and
 never past the terminator, and so it needs no bound on the text's length.
@@ -197,7 +197,7 @@ Without an override they are present and refuse every request, as lets
 ## Gotchas
 
 **A submitted buffer must stay valid until the transfer completes** [BORROWS]. The module does not
-copy it and cannot tell when the controller is done: that is what `poll` and the completion
+copy it and cannot tell when the controller is done: `poll` and the completion
 callback report. Everywhere else in MMgr a lifetime ends at a mark you control; here it ends when
 the hardware says so.
 

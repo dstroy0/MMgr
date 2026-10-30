@@ -44,8 +44,8 @@ https://github.com/dstroy0/MMgr
 
 ## If the terms do not suit you
 
-Ask. The copyright is held by one person, which means dual licensing is a conversation and not a
-policy question: <dquigg123@gmail.com>.
+Ask. The copyright is owned by one person, and so dual licensing is arranged directly
+by email: <dquigg123@gmail.com>.
 
 Saying so here is deliberate. A project that offers no route other than the AGPL gets silently passed
 over by people who would otherwise have used it and contributed back.

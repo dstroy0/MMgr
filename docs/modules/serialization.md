@@ -30,7 +30,7 @@ Fields sit `bytes` apart, and the span carries the cursor, and so nothing here n
 
 ## Gotchas
 
-**The appends answer nothing and the takes all answer.** That is the whole failure model. An append
+**The appends answer nothing and the takes all answer.** This is the complete failure model. An append
 that does not fit is a build failure: what a writer emits and how big its buffer is are both fixed
 before the build, and so it asserts, stores nothing, and latches the span's `overflow` to keep a wrong
 program off the end. A short read is a runtime fact about whatever sent the bytes, and so it sets `err`,
@@ -73,7 +73,7 @@ The writer is yours to hold and the cfg points at it. `init` fills it in; every 
 updates it through `writer`.
 
 **`align` is how a stream ends, and leaving it out loses the tail.** `put` writes whole bytes only,
-so bits that do not fill one stay in `residue` and are never stored on their own. Any stream whose
+and bits that do not fill one stay in `residue` and are never stored on their own. Any stream whose
 length is not a multiple of eight needs `align` before its buffer is read. It pads with zeros above
 the bits it holds, and does nothing when the residue is empty, and so calling it on a stream that
 happened to end on a byte, or calling it twice, costs nothing.
@@ -109,8 +109,8 @@ EMBED_CALL(magna_extremitas.wr, EndianCfg, .dst = p, .val = v, .width = MMGR_END
 const uint64_t v16 = EMBED_CALL(magna_extremitas.rd, EndianCfg, .src = p, .width = MMGR_ENDIAN_16);
 ```
 
-`parva_extremitas` is little end first, `magna_extremitas` is big. The width is an argument rather
-than part of the entry name, and `mmgr_endian_width`'s values are the byte counts, and so the same
+`parva_extremitas` is little end first, `magna_extremitas` is big. The width is an argument instead
+of part of the entry name, and `mmgr_endian_width`'s values are the byte counts, and so the same
 number advances your cursor.
 
 **There is no `host` variant, deliberately.** A wire format has a byte order. The host's order is an
@@ -147,8 +147,8 @@ the entries do not cover is not forced to re-derive them.
 ## When to reach for it
 
 Formatting a float without `printf`, as @ref mod_verba_guide's `g` and `fixed` entries do.
-Classifying a value as infinite or NaN without a library call. Anything that needs the fields rather
-than the number.
+Classifying a value as infinite or NaN without a library call. Anything that needs the fields instead
+of the number.
 
 ## Gotchas
 

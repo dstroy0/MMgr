@@ -106,7 +106,7 @@
  * @brief Bytes in the largest plaintext confinium this build will declare.
  *
  * @note Allocates nothing and sizes no pool. A pool's extent is an argument to mmgr_carcer_init, and
- *       nothing in carceribus reads this. What it does is feed MMGR_CARCER_MAX below, which is a
+ *       nothing in carceribus reads this. It feeds MMGR_CARCER_MAX below, which is a
  *       bound other modules size their worst case against - so it is a statement of intent about the
  *       regions you are going to declare, and it wants raising if you declare a bigger one.
  */
@@ -127,9 +127,9 @@
  * @brief Bytes in the larger of the two confinia, bounding the worst case a scan or a read must cover.
  *
  * @note verbum_scrutor.h derives MMGR_SCAN_MAX_WORDS from this, and mmgr_string_shim.h uses it as MMGR_STR_MAX.
- * @note The reason the bound exists is that these modules size a worst case at compile time rather
- *       than testing a length at run time. A string cannot be longer than the confinium holding it,
- *       so the confinium is the cap, and the scanner can be told how many words that is before it
+ * @note The reason the bound exists is that these modules size a worst case at compile time instead
+ *       of testing a length at run time. A string cannot be longer than the confinium holding it,
+ *       and the confinium is the cap, and the scanner can be told how many words that is before it
  *       ever runs.
  * @warning Declare a region larger than both knobs and this bound is under-stated. The static asserts
  *          in verbum_scrutor.h check that the word count covers this value, not that this value

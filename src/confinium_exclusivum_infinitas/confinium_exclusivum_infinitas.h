@@ -185,7 +185,7 @@ size_t mmgr_infin_vacant(const InfinCfg *c);
  * @param[in] c Ring and the destination byte [BORROWS].
  * @return      MMGR_TRUE when a byte was taken, MMGR_FALSE when the ring was empty.
  * @note Writes through c->dst only when it returns MMGR_TRUE.
- * @note One byte per call, and so what this costs is the call and not the move; a caller drawing a
+ * @note One byte per call, and so the cost lies in the call; a caller drawing a
  *       run of bytes wants mmgr_infin_read, which moves them a word at a time under one tail store.
  */
 mmgr_bool mmgr_infin_read_byte(const InfinCfg *c);

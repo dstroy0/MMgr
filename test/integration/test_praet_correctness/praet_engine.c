@@ -13,7 +13,7 @@
  * @note Every symbol the library declares weak is defined here strongly, and so the linker takes these
  *       over the refusing defaults in memoriam_praetereo.c. That is the same seam a board support
  *       file uses, and it holds with link-time optimization on.
- * @note One engine schedules every logical channel. A completion is held against the channel that
+ * @note One engine schedules every logical channel. A completion is deferred on the channel that
  *       earned it and comes out when its cycle has elapsed and the arm lets it, and so the order
  *       completions arrive in is the scenario's to choose and need not match the order submitted.
  * @note One hook call is one tick. Settling and cycle time are both counted in them, which keeps the
@@ -51,7 +51,7 @@ static PraetEngineTally s_tally;
 /**
  * @brief Completion callback the last accepted open registered.
  *
- * @note Held and never copied, as mmgr_praet_open documents. The case owns the binding and keeps
+ * @note Kept by pointer and never copied, as mmgr_praet_open documents. The case owns the binding and keeps
  *       it alive for the whole scenario [BORROWS].
  */
 static const PraetCallbackCfg *s_binding;
@@ -64,15 +64,15 @@ static uint16_t s_settled_at[PRAET_ENGINE_CHANNELS];
 /**
  * @brief Completions waiting against each logical channel.
  */
-static uint8_t s_held_completions[PRAET_ENGINE_CHANNELS];
+static uint8_t s_deferred_completions[PRAET_ENGINE_CHANNELS];
 
 /**
- * @brief Bytes each held completion reports, per logical channel.
+ * @brief Bytes each deferred completion reports, per logical channel.
  */
-static uint16_t s_held_moved[PRAET_ENGINE_CHANNELS];
+static uint16_t s_deferred_moved[PRAET_ENGINE_CHANNELS];
 
 /**
- * @brief Tick at which each channel's held completions come due.
+ * @brief Tick at which each channel's deferred completions come due.
  */
 static uint16_t s_due_at[PRAET_ENGINE_CHANNELS];
 
@@ -95,14 +95,14 @@ void praet_engine_arm(const PraetScenario *scenario)
     for (uint8_t channel = 0u; channel < PRAET_ENGINE_CHANNELS; channel++)
     {
         s_settled_at[channel] = 0u;
-        s_held_completions[channel] = 0u;
-        s_held_moved[channel] = 0u;
+        s_deferred_completions[channel] = 0u;
+        s_deferred_moved[channel] = 0u;
         s_due_at[channel] = 0u;
         s_progress[channel] = 0u;
     }
 
     s_tally.completions = 0u;
-    s_tally.held = 0u;
+    s_tally.deferred = 0u;
     s_tally.settling = 0u;
     s_tally.overrun = 0u;
 }
@@ -111,10 +111,10 @@ PraetEngineTally praet_engine_tally(void)
 {
     PraetEngineTally out = s_tally;
 
-    out.held = 0u;
+    out.deferred = 0u;
     for (uint8_t channel = 0u; channel < PRAET_ENGINE_CHANNELS; channel++)
     {
-        out.held = (uint16_t)(out.held + s_held_completions[channel]);
+        out.deferred = (uint16_t)(out.deferred + s_deferred_completions[channel]);
     }
     return out;
 }
@@ -188,7 +188,7 @@ static void praet_engine_report(uint8_t channel, uint16_t moved)
     s_tally.completions++;
 
     // A finished transfer moved what it reported, and so the progress figure ends where the completion
-    // says it does. Written before the callback runs, since the callback is what reads it
+    // says it does. Written before the callback runs, since the callback reads it
     if (channel < PRAET_ENGINE_CHANNELS)
     {
         s_progress[channel] = moved;
@@ -214,11 +214,11 @@ static void praet_engine_report(uint8_t channel, uint16_t moved)
 }
 
 /**
- * @brief Releases the completions held against one channel, where they are due.
+ * @brief Releases the completions deferred on one channel, where they are due.
  *
  * @param[in] channel Channel to release.
- * @note A channel whose cycle has not elapsed keeps its completions. That is what a busy timer
- *       reports when the transfer is still running.
+ * @note A channel whose cycle has not elapsed keeps its completions. A busy timer reports this
+ *       when the transfer is still running.
  */
 static void praet_engine_release_one(uint8_t channel)
 {
@@ -226,10 +226,10 @@ static void praet_engine_release_one(uint8_t channel)
     {
         return;
     }
-    while (s_held_completions[channel] != 0u)
+    while (s_deferred_completions[channel] != 0u)
     {
-        s_held_completions[channel]--;
-        praet_engine_report(channel, s_held_moved[channel]);
+        s_deferred_completions[channel]--;
+        praet_engine_report(channel, s_deferred_moved[channel]);
     }
 }
 
@@ -253,13 +253,13 @@ static void praet_engine_service_interrupt(void)
 }
 
 /**
- * @brief Runs a reaction's completions, either now or held against its channel.
+ * @brief Runs a reaction's completions, either now or deferred on its channel.
  *
  * @param[in] step    Reaction that was accepted [BORROWS].
  * @param[in] channel Logical channel the call named.
  * @note A refused reaction never reaches this. Refusing and reporting a completion is not a state
  *       hardware produces, and so the engine does not offer it.
- * @note A channel at or above PRAET_ENGINE_CHANNELS has nowhere to be held, and so it raises overrun.
+ * @note A channel at or above PRAET_ENGINE_CHANNELS has nowhere to be deferred, and so it raises overrun.
  *       The scenario named a channel the fixture cannot schedule.
  */
 static void praet_engine_schedule(const PraetEngineStep *step, uint8_t channel)
@@ -285,14 +285,14 @@ static void praet_engine_schedule(const PraetEngineStep *step, uint8_t channel)
 
     // One byte count and one due tick per channel. A second hold against a channel that is still
     // holding would silently restate the first one's. The scenario releases before it holds again
-    if (s_held_completions[channel] != 0u)
+    if (s_deferred_completions[channel] != 0u)
     {
         s_tally.overrun++;
         return;
     }
 
-    s_held_completions[channel] = step->completions;
-    s_held_moved[channel] = step->moved;
+    s_deferred_completions[channel] = step->completions;
+    s_deferred_moved[channel] = step->moved;
     s_due_at[channel] = (uint16_t)(s_tick + step->cycle_ticks);
 }
 

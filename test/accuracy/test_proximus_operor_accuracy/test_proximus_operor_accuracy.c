@@ -14,7 +14,7 @@
  * @note The reference assembles a value one byte at a time, placing each at the position the host's
  *       byte order gives it. The compiler states that order in __BYTE_ORDER__, and so nothing here works
  *       it out and nothing reads the library's own idea of it.
- * @note Every unaligned entry is offered every offset from a word boundary. That is the whole point
+ * @note Every unaligned entry is offered every offset from a word boundary, the purpose
  *       of the unaligned family, and an entry that quietly required alignment would still pass at
  *       offset zero.
  * @note The four aligned entries are offered only aligned addresses, as they document. What
@@ -167,7 +167,7 @@ void tearDown(void)
  * @note Exists to catch a defect in the reference as itself. A reference that placed the bytes in the
  *       other order would report every entry as wrong, and the module would be blamed for it.
  * @note The expectations are built from the same order the compiler states, and so they read the same on
- *       a host of either order. What is checked is that the two helpers are each other's inverse and
+ *       hosts of either byte order. The checks are that the two helpers are each other's inverse and
  *       that a run of distinct bytes assembles to a value with those bytes in it.
  * @note The lowest addressed byte is checked directly against the order, the one fact every
  *       other expectation in this file rests on.
@@ -212,7 +212,7 @@ void test_the_byte_order_arithmetic_this_suite_relies_on_is_itself_right(void)
  * @brief Checks every load against the reference at every offset from a word boundary.
  *
  * @note This is the case the file exists for. The unaligned family lets a caller read at any address,
- *       and an entry that read the right bytes only at offset zero is exactly what it is meant to
+ *       and an entry that read the right bytes only at offset zero is the defect it is meant to
  *       prevent.
  * @note The word-width load is included alongside the fixed widths, and so the environments that carry a
  *       narrower embed_word check it at their own width.

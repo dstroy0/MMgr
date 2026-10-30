@@ -12,7 +12,7 @@
  *
  * @note PlatformIO's Unity package is built with UNITY_INCLUDE_CONFIG_H set, and so unity_internals.h
  *       includes this file and the build fails without it. Measured, on the first build here.
- * @note This is where the output hook belongs. Passing it as a define on the command line reaches
+ * @note The output hook belongs here. Passing it as a define on the command line reaches
  *       the suite but not Unity's own translation unit, and Unity is what calls it.
  */
 #ifndef MMGR_TEST_UNITY_CONFIG_H

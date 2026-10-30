@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note The map is ours, which is exactly why it needs checking. Nothing outside this library assigns
+ * @note The map is ours, and for that reason it needs checking. Nothing outside this library assigns
  *       these bits. A status added at the wrong offset or a region moved one byte down is a change
  *       no compiler would question and no test would necessarily reach. Placing one status on top of
  *       the region descriptor already happened once here.
@@ -208,8 +208,8 @@ EMBED_BEGIN_DECLS
  * @brief First bit of the region descriptor.
  *
  * @note A byte on a byte boundary. The descriptor is a number derived from the address space that
- *       the region is inferred from, and so nothing here stores an address. Placing it at a byte edge is
- *       what lets a build that wants to compress it to eight bits do so without moving a status.
+ *       the region is inferred from, and so nothing here stores an address. Placing it at a byte edge
+ *       lets a build that wants to compress it to eight bits do so without moving a status.
  * @note The third byte and not the second. Statuses grow upward from the core and the region has to
  *       start above all of them - at bit 8 it shared a bit with PRAET_SCRUBBED, which reads as a
  *       region whose low bit flips when a transfer is scrubbed.

@@ -14,7 +14,7 @@
  *       which of the machine's states and transitions any case walked through. A four state core with
  *       eight statuses has more paths than a suite this size can cover by accident, and so the ones it
  *       misses are worth knowing before any of it reaches a part.
- * @note Reports and never gates. A transition nothing reached is a hole in the cases, and whether it
+ * @note Reports and does not gate. A transition nothing reached is a hole in the cases, and whether it
  *       is worth filling is a reading of the report and not a build failure. The optimization arm is
  *       this same instrument carrying timings.
  * @note Off unless PRAET_PROCURATOR is 1, and every entry is then a macro expanding to nothing. A
@@ -36,13 +36,13 @@
 /**
  * @brief Whether a run records the work it did, on top of the states it reached.
  *
- * @note The optimization arm, and it is the examination arm carrying more counters. What it records
- *       is work: entries called, channels walked, times the poll short circuited, times the port was
+ * @note The optimization arm, and it is the examination arm carrying more counters. It records
+ *       work: entries called, channels walked, times the poll short circuited, times the port was
  *       asked anything, and the bytes of state a context costs.
  * @note No times, and none deliberately. A count of work is the same on every run of one build, and so it
  *       is a fact a host can state. What that work costs is a property of a part, and a number taken
  *       here would be a number about this machine dressed as a number about the library.
- * @note Reports and never gates, the same as the examination arm. A count that grew is worth reading
+ * @note Reports and does not gate, the same as the examination arm. A count that grew is worth reading
  *       and is not a build failure, because whether it matters is measured somewhere else.
  */
 #ifndef PRAET_OPTIMIZE

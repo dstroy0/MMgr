@@ -15,8 +15,8 @@
  * @note The neighboring lanes are 0x00 and 0xFF alternating, the pair a borrow or a carry
  *       has the furthest to travel between. A lane arithmetic defect shows up against those before
  *       it shows up against anything else.
- * @note The reference is a plain loop over the bytes, written here. It shares no shift, no mask and
- *       no constant with the word arithmetic under test.
+ * @note The reference is a plain loop over the bytes, written here. It shares no shift, mask or
+ *       constant with the word arithmetic under test.
  * @note Words and lane masks are assembled through a union of an embed_word and its bytes. A lane
  *       index then means the same position here as it does to a load. Nothing is taken from
  *       MMGR_VERBUM_SCRUTOR_HIGH or the other lane constants, which are part of what is being
@@ -224,7 +224,7 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
  *
  * @note The lane under test and the threshold are swept over the seven bit range, and the neighbors
  *       are 0x00 and 0xFF. verbum_scrutor.h states both entries compare bytes as unsigned with 0x80
- *       and above the largest values, and that is what this asserts.
+ *       and above the largest values, and this asserts it.
  * @note le fails here today. The borrow that keeps lanes apart is the lane's own high bit, and a
  *       neighbor at 0x80 or above has that bit spoken for as data, and so it takes a borrow out of the
  *       lane under test even when that lane is itself inside the seven bit range. Narrowing the
@@ -309,7 +309,7 @@ void test_both_candidates_answer_for_every_lane_under_a_low_threshold(void)
 }
 
 /**
- * @brief Expands to 4, the boundary values one lane takes in the exhaustive word sweep.
+ * @brief Expands to 4, the boundary values one lane takes in the full word sweep.
  *
  * @note 0x00, 0x7F, 0x80 and 0xFF: the two ends of each half of the byte. A borrow either escapes at
  *       one of those or it does not escape at all, and four values keep the whole-word sweep to
@@ -318,7 +318,7 @@ void test_both_candidates_answer_for_every_lane_under_a_low_threshold(void)
 #define MMGR_ACCURACY_EDGE_VALUES 4u
 
 /**
- * @brief The four boundary bytes the exhaustive word sweep draws its lanes from.
+ * @brief The four boundary bytes the full word sweep draws its lanes from.
  *
  * @note Ordered low to high. An index into this is also an ordering of the values.
  */

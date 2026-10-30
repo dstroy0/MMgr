@@ -71,7 +71,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief The two answers a declaration may give about the boundary word check.
  *
- * @note Spelled at length deliberately. This is not a knob that rides along with recovery being on - it
+ * @note Written at length deliberately. This is not a knob that rides along with recovery being on - it
  *       is its own deliberate yes or no, made once per context, and the name is meant to be
  *       impossible to skim past in a declaration.
  * @note Real enumerators. A mistyped token is an undeclared identifier at the
@@ -256,8 +256,8 @@ typedef PRAET_DENUNTIATIO_ATTR(
  *                           settling is the engine coming up and not a property of a channel.
  * @param praet_set_bitflag  Raised by the interrupt, and by anything that changes what a service call
  *                           would find. Volatile, and so it is not cached across the preemption.
- * @param praet_busy_bitflag The reader/setter's lock. Volatile, and held while it updates, which is
- *                           what makes it ignore the interrupt for that span.
+ * @param praet_busy_bitflag The reader/setter's lock. Volatile, and set while it updates, and that
+ *                           makes it ignore the interrupt for that span.
  * @param elapsed_micros     Microseconds elapsed, as the caller advances them.
  * @note Both volatiles carry the module prefix. `set` and `busy` are words a caller is entitled to
  *       have taken for a macro of their own, and a macro over a member name breaks the struct at
@@ -406,7 +406,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
  * @param channel_ Channel number, as a literal.
  * @param pool_    Pool the caller believes the channel is over.
  * @note Reads the enumerator PraetChannel emitted. Nothing is computed from it, and the reference is
- *       the whole point: a triple nobody declared names an identifier that does not exist.
+ *       the purpose: a triple nobody declared names an identifier that does not exist.
  */
 #define PRAET_ALVEUS_SUPERARE(context_, channel_, pool_) ((void)context_##_channel##channel_##_is_over_##pool_)
 
@@ -433,7 +433,7 @@ void praet_ordo_separare(PraetOrdo *context, embed_word channel);
  * @param[in]     length  Bytes it was asked to move.
  * @return                EMBED_TRUE where the channel took it.
  * @note Takes no pointer. The address came from the pool named at the attach. An offset and a
- *       length are the whole of what a transfer adds. Handing an address here would let a caller
+ *       length are all a transfer adds. Handing an address here would let a caller
  *       state one that has nothing to do with what the channel is attached over.
  * @note Start, length and position are what make a backout possible. Without the three, a stalled
  *       transfer leaves a buffer nobody can say anything about, and so this is the form
@@ -484,7 +484,7 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word
  *       same event, and so one call carries both.
  * @note Pushes the keepalive window out and clears a stall that had been recorded, because a channel
  *       that is moving again is not stalled.
- * @note Says nothing about the transfer being finished. That is what praet_ordo_completed is.
+ * @note Says nothing about the transfer being finished. praet_ordo_completed reports that.
  */
 void praet_ordo_efficere(PraetOrdo *context, embed_word channel, embed_word position);
 
@@ -495,7 +495,7 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel, embed_word posi
  * @param[in] channel Channel to read.
  * @return            Bytes moved so far.
  * @note With the start and length the caller submitted, this is the whole picture: the bytes at
- *       [start, start + position) were written and the rest were not. That is what a caller needs to
+ *       [start, start + position) were written and the rest were not. A caller needs exactly this to
  *       back a stalled transfer out, or to zero exactly what was touched instead of the whole buffer.
  */
 embed_word praet_ordo_situs(const PraetOrdo *context, embed_word channel);
@@ -523,7 +523,7 @@ embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel)
  * @note Read PRAET_MEASURED first. Zero is a legal checksum, and so the value alone does not say whether
  *       a word was measured.
  * @note The caller makes this useful. This library holds the destination and never the
- *       source, and so it can say what the boundary word now contains and not whether that is what was
+ *       source, and so it can say what the boundary word now contains and not whether that matches what was
  *       meant to be there. Comparing the two is the caller's, the only place both are known.
  */
 uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel);
@@ -584,8 +584,8 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel);
  * @param offset_  Bytes into that pool the transfer starts at.
  * @param length_  Bytes it moves.
  * @return         What praet_ordo_relatio answered.
- * @note The submit surface on a buffer, and the counterpart of PraetAttach. Naming the pool again is
- *       what gives the bound something to compare against, since the extent lives with the
+ * @note The submit surface on a buffer, and the counterpart of PraetAttach. Naming the pool again
+ *       gives the bound something to compare against, since the extent lives with the
  *       declaration and not with the channel.
  * @note The bound is checked here and never inside the entry. Sizes and spans are settled while
  *       compiling. A test at run time would be paying for a question that was already answered.
@@ -653,7 +653,7 @@ void praet_ordo_advance(PraetOrdo *context, embed_word micros);
  *       The scaling is one compile-time constant. A build whose clock runs at a whole megahertz
  *       pays a multiply and a shift for it.
  * @warning Ticks short of a whole microsecond are dropped, and nothing carries them over. A port
- *          feeding this one tick at a time on a fast clock never advances anything, which is why a
+ *          feeding this one tick at a time on a fast clock never advances anything, and for that reason a
  *          port reads the counter and passes the difference instead of counting calls.
  */
 void praet_ordo_advance_ticks(PraetOrdo *context, embed_word ticks);
@@ -683,10 +683,10 @@ void praet_ordo_raise(PraetOrdo *context);
  *       the above, then unsets both volatiles. Taking busy makes it ignore the interrupt for
  *       that span, and the interrupt may keep raising set throughout without anything being lost,
  *       because this recomputes every channel from what it can see and consumes no event.
- * @note Does nothing where set was not raised, and where busy was already held. A nested call while
+ * @note Does nothing where set was not raised, and where busy was already set. A nested call while
  *       the lock is out is the re-entry case, and it declines, leaving the outer call's half-done
  *       state untouched.
- * @note Every state change a channel undergoes goes through here, as puts the whole of the
+ * @note Every state change a channel undergoes goes through here, as puts all of the
  *       access control in one function. That fell out of the lock: one reader means one place.
  */
 void praet_ordo_poll(PraetOrdo *context);

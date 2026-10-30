@@ -132,8 +132,8 @@ static uint8_t g_pattern[POOL_BYTES];
  *
  * @param[out] at    First byte to fill [BORROWS].
  * @param[in]  bytes Bytes to write.
- * @note Mixed from the offset, which makes a byte copied from the wrong place visible as itself, not merely
- *       as a mismatch. A run of one repeated value would hide a move that overlapped itself.
+ * @note Mixed from the offset, and therefore a byte copied from the wrong place shows as itself as well as
+ *       a mismatch. A run of one repeated value would hide a move that overlapped itself.
  */
 static void praet_fill_pattern(uint8_t *at, size_t bytes)
 {

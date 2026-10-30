@@ -243,7 +243,7 @@ typedef struct
  * @brief Arguments for the four numer calls.
  *
  * @note build and append read all six members. emit and emit_append leave spec alone.
- * @note at is the cursor, as in verba. build and emit begin there and return where they finished, and so
+ * @note at is the cursor, as in verba. build and emit begin there and return where they finished, and therefore
  *       a run of writes threads the cursor instead of measuring the text again between each. Leave
  *       it unset and a call starts at the first byte, as a single write wants.
  */

@@ -16,7 +16,7 @@
  *       instead of reading the wrong bits.
  * @note FractioCfg carries no pointer, and so no call here follows one into a caller's buffer. The whole
  *       module is field arithmetic on the one value it is handed.
- * @warning args is the single one pointer the six entry points take, and none of them tests it. The bodies
+ * @warning args is the single one pointer the six entry points take, and not one of them tests it. The bodies
  *          EMBED_ENTRY writes read its members straight through. A null args is dereferenced.
  */
 #ifndef MMGR_FRACTIO_H

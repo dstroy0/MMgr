@@ -13,8 +13,8 @@
  * @note Class membership as a bitmap lookup and not a chain of range compares. One shift, one
  *       mask and one test answer any class, and the cost does not grow with how many ranges the
  *       class covers.
- * @note Covers code points 0 to 127 only. A byte of 0x80 or above is in no class here, which is
- *       what keeps the table sixteen bytes and not thirty-two.
+ * @note Covers code points 0 to 127 only. A byte of 0x80 or above is in no class here, and
+ *       that keeps the table sixteen bytes and not thirty-two.
  */
 #ifndef MMGR_ASCII_PERSONA_BITORUM_H
 #define MMGR_ASCII_PERSONA_BITORUM_H

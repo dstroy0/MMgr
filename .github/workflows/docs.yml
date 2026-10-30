@@ -4,7 +4,7 @@ name: Docs
 # deploy action: the artifact goes straight from the build job to the Pages service over OIDC, and so
 # nothing needs a long-lived token and the site's history is not a second copy of this repo.
 #
-# TWO JOBS ON PURPOSE. `build` runs the doc toolchain and holds contents:read, alone.
+# TWO JOBS, DELIBERATELY. `build` runs the doc toolchain and holds contents:read, alone.
 # `deploy` holds pages:write and id-token:write and runs none of our code - it consumes an artifact.
 # One job holding all three scopes would mean every apt install and every doxygen run in this file
 # executes with a token that can publish. A pull request therefore gets the full build. A broken

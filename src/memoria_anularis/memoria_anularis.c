@@ -107,7 +107,7 @@ typedef embed_u16 ring_raw_u16 RING_RAW;
  * @warning offset_ appears four times in the expansion. An argument with a side effect is
  *          evaluated four times.
  * @warning Both offsets must lie inside the words dest_word and src_word walk over, and nothing here
- *          bounds them. ring_move is what holds them there, by taking a rung only when the remaining
+ *          bounds them. ring_move keeps them there by taking a rung only when the remaining
  *          word count has that bit set.
  */
 #define RING_COPY_2(offset_)                                                                                           \
@@ -352,7 +352,7 @@ typedef struct
  * @return         The state laid into it [BORROWS].
  * @note The cast goes through void *. mmgr_ring aligns opaque to size_t.
  * @warning The state is only valid after mmgr_anular_init has returned EMBED_TRUE for this ring.
- * @warning That alignment is size_t and no more, and so the cast holds only while no member of RingState
+ * @warning That alignment is size_t at most, and so the cast holds only while no member of RingState
  *          needs a stricter one. The assertion below the type checks its size, and nothing checks
  *          this.
  */
@@ -447,7 +447,7 @@ EMBED_INLINE RingRun ring_run(const RingState *state, size_t offset, size_t want
  *       twice. Two copies of it made this entry too large to inline well, which cost far more than
  *       the loop does.
  * @warning dst must hold wanted bytes, or the capacity of them when wanted is larger, and must not
- *          lie inside the ring's own bytes, which is the non-overlap ring_move requires. Neither is
+ *          lie inside the ring's own bytes, the non-overlap ring_move requires. Neither is
  *          checked.
  */
 EMBED_INLINE size_t ring_move_out(RingState *state, size_t offset, uint8_t *dst, size_t wanted)
@@ -478,7 +478,7 @@ EMBED_INLINE size_t ring_move_out(RingState *state, size_t offset, uint8_t *dst,
  * @return               The offset one past what was moved, wrapped.
  * @note The mirror of ring_move_out, and the reason a fill and a drain cost the same per byte.
  * @warning src must hold wanted bytes, or the capacity of them when wanted is larger, and must not
- *          lie inside the ring's own bytes, which is the non-overlap ring_move requires. Neither is
+ *          lie inside the ring's own bytes, the non-overlap ring_move requires. Neither is
  *          checked.
  */
 EMBED_INLINE size_t ring_move_in(RingState *state, size_t offset, const uint8_t *src, size_t wanted)
@@ -600,8 +600,8 @@ EMBED_INLINE size_t anular_read(const AnularisCtx *args)
  *
  * @param[in,out] args Ring, destination, byte count and starting offset [BORROWS].
  * @warning Copies args->bytes regardless of whether that many are available.
- * @warning ring_run holds the count at the capacity. A request above it copies the capacity and
- *          no more.
+ * @warning ring_run holds the count at the capacity. A request above it copies the capacity
+ *          alone.
  * @warning args->dst must be writable for the bytes copied, and nothing here checks it.
  */
 EMBED_INLINE void anular_peek(const AnularisCtx *args)

@@ -18,7 +18,7 @@ The corpus is Salishan speech, written down, and it belongs to the people who sp
 | was here                  | is now                                                       |
 | ------------------------- | ------------------------------------------------------------ |
 | `pure_corpus/`            | the twenty hand extractions, speaker first                   |
-| `refs.md`                 | every source, held or cited, with addresses                  |
+| `refs.md`                 | every source, stored or cited, with addresses                  |
 | `corpus-derivation.md`    | how wrong the corpus could be, and what that number rests on |
 | `anchor-sift-salishan.md` | what happens when the method is fed these papers             |
 

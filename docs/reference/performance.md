@@ -20,7 +20,7 @@ Benches are off by default and are added independently of `MMGR_BUILD_TESTS`, an
 `-DMMGR_BUILD_BENCH=ON` alone is enough. They are always compiled `-O2` regardless of
 `CMAKE_BUILD_TYPE`: measuring a debug build tells you about the debug build.
 
-One binary per bench **per environment**, because the reading that matters is the comparison
+One binary per bench **per environment**, because the important reading is the comparison
 _between_ environments. A SWAR bench built only at the host's carrier width cannot show what
 widening the carrier bought.
 
@@ -30,7 +30,7 @@ widening the carrier bought.
 another compiler, or a machine that was doing something else at the time.
 
 **The `nop` row is the harness.** It runs the loop, the index derivation and the barrier and calls no
-module entry, and so it is the cost of measuring. A row that is not clearly above `nop` is noise, not a
+module entry, and so it is the cost of measuring. A row that is not clearly above `nop` is noise and reports no
 result.
 
 **`cycles_per_byte` is the column the design claim lives in.** It is `cycles_per_call / MMGR_SWAR_BYTES`.

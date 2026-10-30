@@ -46,7 +46,7 @@ typedef struct
  */
 EMBED_INLINE embed_bool exter_dram_fits(const ExterCtx *args)
 {
-    // Two tests in order: the first makes the subtraction in the second safe, since && stops
+    // Two tests in order: the first guards the subtraction in the second, since && stops
     // at the first that fails and a size past free_dram would otherwise wrap it
     return (args->size <= args->free_dram) && ((args->free_dram - args->size) >= args->dram_reserve);
 }
@@ -198,7 +198,7 @@ EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
  * @param[in] ...         Initializers for the ExterCtx literal, written from args.
- * @note A second macro and not one, because these entries are named mmgr_pingpong_ rather than
+ * @note A second macro and not one, because these entries are named mmgr_pingpong_ instead of
  *       mmgr_extern_. EMBED_ENTRY pastes one prefix onto one name, and so the pair differs and not the form.
  */
 #define PINGPONG_ENTRY(ReturnType_, name_, ...)                                                                        \

@@ -253,7 +253,7 @@ void test_every_class_holds_exactly_the_code_points_its_declaration_names(void)
  * @brief Checks that every byte at or above 0x80 is in no class at all.
  *
  * @note The sweep above already covers these, and this case states the rule on its own because it is
- *       the one property that holds for all ten classes at once. A bitmap grown to thirty-two bytes
+ *       the single property that holds for all ten classes at once. A bitmap grown to thirty-two bytes
  *       would fail here first and with a message naming the reason.
  * @note 128 code points at 10 classes. A single class that started reading past its sixteen bytes
  *       would report membership out of whatever followed it in memory.
@@ -274,7 +274,7 @@ void test_no_byte_at_or_above_the_ascii_limit_belongs_to_any_class(void)
 }
 
 /**
- * @brief Checks that each class holds the number of code points its runs add up to.
+ * @brief Checks that each class holds the number of code points its runs total.
  *
  * @note A second statement about the same bitmap, and one a reader can check by hand: 26 letters in
  *       a case, 10 digits, 95 printable characters. The range sweep and this count fail on different
@@ -313,7 +313,7 @@ void test_each_class_holds_the_number_of_code_points_its_runs_add_up_to(void)
  *       far end. '/' and '0' bracket the digits, '@' and 'A' the upper case letters, and '`' and 'a'
  *       the lower case ones, which are the three joins where the runs sit next to each other.
  * @note 'F' and 'G' and 'f' and 'g' bracket the hexadecimal letters, the one run that stops
- *       partway through a letter range and the one place a bitmap copied from its neighbor shows up.
+ *       partway through a letter range and the single place a bitmap copied from its neighbor shows up.
  */
 void test_the_byte_on_each_side_of_every_run_falls_on_the_right_side_of_it(void)
 {

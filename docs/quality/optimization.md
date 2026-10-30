@@ -76,7 +76,7 @@ before paying it.
 
 @note That ordering is the reason this page is measured on the targets. The host row is in the table
 only to show the disagreement: it puts -O1 under -O2, which reads as a sensible ladder and is not the
-one any shipping target walks. Three instruction sets agree with each other and none of them agrees
+one any shipping target walks. Three instruction sets agree with each other and not one of them agrees
 with the desktop.
 
 Two units carry most of it. `verba_scribo` and `cellularum_laboro` are half the total at every level,
@@ -105,11 +105,11 @@ be reproduced.
 
 ## Speed
 
-There is no speed table on this page any more, and that is deliberate.
+There is no speed table on this page, by design.
 
-The one that used to be here was a host measurement, taken on x86-64, and it is what sent an entire
-round of optimization work down the wrong road: it made the scans look within a few percent of libc,
-so nobody looked, while on the parts this library ships to they were three to sixteen times off. A
+A host measurement, taken on x86-64, does not belong here, because it misleads every
+round of optimization work: it puts the scans within a few percent of libc,
+while on the parts this library ships to they are three to sixteen times off. A
 desktop libc answers `strlen`, `memcmp` and `memchr` with SSE or AVX, reading 16 to 48 bytes per
 instruction. No target in the list has anything of the kind. A comparison drawn on the host measures
 the vector unit and reports it as a fact about this library.
@@ -171,7 +171,7 @@ in @ref ref_performance - `cellul.len` at 0.28 against ROM `strnlen`, `memor.chr
 the target, not a fact, and it is the number on this page most worth arguing with.
 
 Every entry on both sides is bounded, and so the libc column names `strnlen` and `strncmp`
-and not their unbounded twins, and `snprintf` and `vsnprintf` rather than `printf`. A bounded
+and not their unbounded twins, and `snprintf` and `vsnprintf` instead of `printf`. A bounded
 string constructor is what `verba` is; comparing it against something that writes until it is
 finished would be comparing two different jobs.
 
@@ -188,7 +188,7 @@ an arbitrary-precision bignum. It is exact for every input by carrying however m
 needs. This library is exact for every input by carrying 128 bits and never growing, because 128
 bits is enough to decide a rounding and the rest of the expansion is never looked at. That is a
 real difference in approach and not a trick of accounting, and so the obvious question is why the other
-side does not do the same. Three answers, and the third is the single one that matters here.
+side does not do the same. Three answers, and the third matters here.
 
 **The result is newer than the code.** newlib's is David Gay's `dtoa` and `mprec`, which date from
 1990 and are the reference implementation everyone inherited. That a fixed-width intermediate always
@@ -210,7 +210,7 @@ also be smaller. See @ref qa_numeric.
 Rendering is 2.92x and the `FILE` members are counted, which needs saying plainly: newlib's
 `snprintf` is built on its `FILE` machinery. It constructs a fake stream over the caller's buffer
 and goes through `vfprintf`, and so linking `snprintf` links `fvwrite`, `findfp`, `fflush`, `makebuf`
-and `wsetup` regardless of whether a stream is ever opened. That is what a caller pays for the entry they
+and `wsetup` regardless of whether a stream is ever opened. A caller pays this for the entry they
 called, and so it is counted - not because printing to a stream is a wider job. The rest of the gap is
 the format string: newlib parses one at run time, and `verba` has none, because a call names the
 entry it wants.

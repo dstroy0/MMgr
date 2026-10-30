@@ -15,7 +15,7 @@ One answer is given at the declaration instead, as a token passed to `PraetOrdoC
 
 Several facts are derived from the architecture and are not answerable at all. `praet_platform_detection.h` reads what the compiler predefines and settles which family this is, how wide its register is, and whether it defines a cycle counter. One of those decides what an unanswered clock source falls back to (`praet_horologiorum_custos.h:71-82`).
 
-`MMGR_ACCEPT_DEFAULTS` is the last piece. It changes nothing about which value a knob takes. What it changes is whether an incomplete configuration stops the build (`praet_iudex.h:30-37`).
+`MMGR_ACCEPT_DEFAULTS` is the last piece. It changes nothing about which value a knob takes. It changes whether an incomplete configuration stops the build (`praet_iudex.h:30-37`).
 
 ## How an unanswered knob reports
 
@@ -73,7 +73,7 @@ and `word_boundary_crc` (`praet_ordo.h:273-280`), and six entries exist that do 
 
 With it off, `praet_ordo_relatio` takes no span and `praet_ordo_efficere` takes no position
 (`praet_ordo.h:531-576`). A call site written for the other form fails to compile. The watchdog
-still runs. A channel still reads stalled; what is gone is any statement about which bytes were
+still runs. A channel still reads stalled; nothing states which bytes were
 touched.
 
 ### PRAET_CLOCK_HZ
@@ -82,7 +82,7 @@ Ticks the clock counts in one second. Every deadline in this module is microseco
 
 Two conditions hold at compile time. The frequency divides evenly into microseconds, and it is at least one megahertz (`praet_horologiorum_custos.h:147-152`). Every part this library targets runs at a whole number of megahertz, and a clock below one megahertz cannot resolve a microsecond.
 
-Default 1000000, with a warning (`praet_horologiorum_custos.h:54-59`). That default reads a tick as a microsecond. It is not an estimate of any part's frequency, because an estimate would make every deadline wrong by however much it missed by.
+Default 1000000, with a warning (`praet_horologiorum_custos.h:54-59`). That default reads a tick as a microsecond. It estimates no part's frequency, because an estimate would make every deadline wrong by however much it missed by.
 
 ### PRAET_CLOCK_SOURCE
 
@@ -112,7 +112,7 @@ Three things are refused. A mistyped token fails on an unknown type name carryin
 
 ## The attach surface
 
-A channel reaches memory through a pool, by name, and the name is the whole of what is checked.
+A channel reaches memory through a pool, by name, and the name is all that is checked.
 
 ```c
 ParsMemoriaeInternae(frame_pool, 4096);
@@ -143,21 +143,21 @@ surface settles it before anything runs.
 
 `PraetAttach` hands the entry `mmgr_pars_storage_##pool_` and `pool_##_bytes` (`praet_ordo.h:368-371`).
 Both are emitted by `ParsMemoriaeInternae` and `ParsMemoriaeExternum` and by nothing else, and both
-have internal linkage. A translation unit that did not declare the pool cannot reach either. What
-that tests is not who owns the bytes. It is whether whoever hands them over can answer everything
+have internal linkage. A translation unit that did not declare the pool cannot reach either. The
+test leaves ownership aside and asks whether whoever hands them over can answer everything
 about them: the address, the extent, and which channel is over them. A caller with all three has said
 the bytes are legal to touch.
 
 Attaching does not claim the pool. `MMGR_PARS_CLAIMED_ONCE` exists because a cellblock and a ring both
 write their own records into the bytes they dress, and two of those over one pool would each believe
-they owned it. A channel writes no records into the pool. A ring can be a DMA destination, which is
+they owned it. A channel writes no records into the pool. A ring can be a DMA destination,
 the arrangement the module is for. The cost is that two channels may target one pool and nothing
 reports it, which reads the same as two channels on one peripheral: it can collide, and this library
 does not have the caller's plan.
 
 `praet_ordo_relatio` takes no pointer (`praet_ordo.h:449`). The address came from the pool named
 at the attach. A transfer adds an offset and a length. `PraetSubmit` compares that span against
-`sizeof(mmgr_pars_storage_##pool_)` while compiling (`praet_ordo.h:469-475`). That is what the
+`sizeof(mmgr_pars_storage_##pool_)` while compiling (`praet_ordo.h:469-475`). The comparison uses the size the
 compiler laid down, and not the count the declaration was handed. A span that does not fit gives a
 negative bitfield width, and the member's name is the diagnostic. Measured at `-O0` and at `-O2`: a
 span that fits reports nothing at either, and one that does not fails at both.
@@ -209,7 +209,7 @@ own unit. The library object carries the weak default, and the strong definition
 
 ## What the architecture decides
 
-`praet_platform_detection.h` names no part, no vendor and no board. A list of parts covers the ones known on the day it was written and misses every part released afterwards, and so what is tested is the architecture level that every member of a family defines. An ATSAMD21 answers the ARMv6-M question the way every other Cortex-M0+ does.
+`praet_platform_detection.h` names no part, vendor or board. A list of parts covers the ones known on the day it was written and misses every part released afterwards, and so the test is on the architecture level that every member of a family defines. An ATSAMD21 answers the ARMv6-M question the way every other Cortex-M0+ does.
 
 The family comes from `__arm__` or `__aarch64__` or `__thumb__`, from `__riscv`, and from `__XTENSA__` or `__xtensa__`. Anything else is a host build. Exactly one of the four is selected, and an assertion says so.
 

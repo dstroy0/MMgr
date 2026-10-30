@@ -78,7 +78,7 @@ a message that names the cause, instead of producing a binary whose struct offse
 
 The dispatch tables are addressed by offset. A positional initializer mis-wires silently when a
 member moves. `EMBED_TABLE_LAYOUT(Table_, ...)` expands to a chain of static assertions pinning each
-named member to its own slot, in order, and pinning `sizeof(Table_)` to exactly that many pointers.
+named member to its own position, in order, and pinning `sizeof(Table_)` to exactly that many pointers.
 
 It is variadic up to 24 members via `EMBED_NARG` and `EMBED_TABLE_SLOTS_1`…`EMBED_TABLE_SLOTS_24`.
 That 24 is also the ceiling on a dispatch table: `verbum_scrutor` splits into three tables partly
@@ -101,8 +101,8 @@ It is never there for a caller to ask for "whatever this machine does". Wire for
 ## Weak hardware hooks
 
 The DMA module's hardware entries are `EMBED_WEAK`. A board support file overrides them by
-defining the same symbol. Without an override they are present and refuse every request, which is
-what lets `memoriam_praetereo` build and its tests link on a host with no DMA controller.
+defining the same symbol. Without an override they are present and refuse every request, and so
+`memoriam_praetereo` builds and its tests link on a host with no DMA controller.
 
 ## Adding a toolchain
 

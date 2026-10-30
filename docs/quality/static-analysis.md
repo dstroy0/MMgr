@@ -5,7 +5,7 @@ Four tools run on every push and pull request, each answering a different questi
 ## The warning set
 
 Before any analyzer, the compiler. `mmgr_flags` is one interface target carrying the whole set, and so
-the library, the tests and the benches are all held to the same standard:
+the library, the tests and the benches all meet the same standard:
 
 ```
 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion

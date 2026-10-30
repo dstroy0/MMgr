@@ -91,7 +91,7 @@ EMBED_INLINE uint32_t mmgr_sha256_big_sigma1(uint32_t x)
  *
  * @param[in] x Word to mix.
  * @return      The mixed word.
- * @note The third term is a shift and not a rotate, the entirety of difference between this and
+ * @note The third term is a shift where the others rotate, the sole difference between this and
  *       the upper case form.
  */
 EMBED_INLINE uint32_t mmgr_sha256_small_sigma0(uint32_t x)
@@ -318,7 +318,7 @@ void mmgr_sha256_bits(const uint8_t *bytes, uint64_t bit_length, uint8_t digest[
 {
     MmgrSha256 running;
 
-    // Whole bytes go in the ordinary way. What is left is under eight bits, sitting in the high end
+    // Whole bytes go in the ordinary way. The remainder is under eight bits, sitting in the high end
     // of one more byte, and that is how the standard writes a partial final byte and how CAVP's bit
     // oriented vectors are packed
     const size_t whole = (size_t)(bit_length / 8u);
@@ -434,7 +434,7 @@ typedef struct
 } MmgrSha256Vector;
 
 /**
- * @brief The vectors this implementation is held to, and how many times each message repeats.
+ * @brief The vectors this implementation is checked against, and how many times each message repeats.
  *
  * @note RFC 6234 section 8.5 picks these to sit on the padding boundaries. "abc" is one block with
  *       room to spare. The 56 octet message leaves under eight bytes after its marker, and so the length
@@ -479,7 +479,7 @@ static const MmgrSha256Vector s_vectors[4] = {
  * @brief The digest of one million 'a', which RFC 6234 section 8.5 gives as TEST3.
  *
  * @note Its own entry because the message is a megabyte and no table holds one. The length field
- *       lands past 2^23 bits over 15,625 compressions, which nothing else here reaches.
+ *       lands past 2^23 bits over 15,625 compressions, a length no other vector here reaches.
  */
 static const uint8_t s_million_a_digest[MMGR_SHA256_BYTES] = {
     0xcdu, 0xc7u, 0x6eu, 0x5cu, 0x99u, 0x14u, 0xfbu, 0x92u, 0x81u, 0xa1u, 0xc7u, 0xe2u, 0x84u, 0xd7u, 0x3eu, 0x67u,

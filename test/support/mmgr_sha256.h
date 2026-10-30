@@ -69,7 +69,7 @@ void mmgr_sha256_begin(MmgrSha256 *running);
  * @param[in,out] running Context taking the bytes [BORROWS].
  * @param[in]     bytes   First byte to take [BORROWS].
  * @param[in]     length  How many. Zero takes nothing and is legal.
- * @note Any split gives the same answer as any other. That is what the streaming case proves, and it
+ * @note Any split gives the same answer as any other. The streaming case proves this, and it
  *       is why one vector below is fed in pieces that do not line up with the block.
  */
 void mmgr_sha256_take(MmgrSha256 *running, const uint8_t *bytes, size_t length);
@@ -137,9 +137,9 @@ void mmgr_hmac_sha256(const uint8_t *key, size_t key_len, const uint8_t *bytes, 
  * @param[in] length Bytes to compare.
  * @return           The offset that disagrees, or @p length where every byte matches.
  * @note Reports where and not whether. A transfer that stopped part way names the byte it stopped at,
- *       and that number is what tells a stall from a wrong direction from a short count.
+ *       and that number tells a stall from a wrong direction from a short count.
  * @note Byte exact and cheaper than hashing. Reach for the digest where one side is a fingerprint
- *       and not a region, and for this where both regions are in front of you.
+ *       with no region behind it, and for this where both regions are in front of you.
  */
 size_t mmgr_sha256_first_difference(const uint8_t *left, const uint8_t *right, size_t length);
 
@@ -167,7 +167,7 @@ unsigned mmgr_sha256_first_bit_difference(uint8_t left, uint8_t right);
  *       function, the big endian length and the padding rule at once.
  * @note The empty message is the fifth, which RFC 8448 section 3 prints.
  * @warning The million byte vector is streamed in kilobyte pieces, and so this needs about a kilobyte of
- *          stack and no more. Hashing it whole would want a megabyte and no part here has one.
+ *          stack. Hashing it whole would want a megabyte and no part here has one.
  */
 int mmgr_sha256_self_test(void);
 

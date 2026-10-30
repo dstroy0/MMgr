@@ -165,7 +165,7 @@ void tearDown(void)
  *       surface as a module mismatch, and the module would be blamed for it.
  * @note The expectations are values a reader can check. 0xFF has 56 zeros above it and none below.
  *       A single bit at the top has none above and 63 below.
- * @note Zero is checked to give 64 from both scans, the true count and the one place the
+ * @note Zero is checked to give 64 from both scans, the true count and the single place the
  *       reference and the module are documented to differ.
  */
 void test_the_exact_bit_scans_this_suite_relies_on_are_themselves_right(void)

@@ -74,8 +74,8 @@ def split_args(txt):
 def has_statement_separator(txt):
     """True when txt holds a ';' that is real syntax and not text inside a literal.
 
-    An HTML entity in a string ("a&lt;b") carries a ';' that is not a statement separator, which is
-    why this steps over literals instead of searching the raw text.
+    An HTML entity in a string ("a&lt;b") carries a ';' that is not a statement separator, and for that reason
+    this steps over literals instead of searching the raw text.
     """
     i = 0
     while i < len(txt):
@@ -145,8 +145,8 @@ def statement_start(s, pos, mask=None):
 
     Walks back to the nearest ';', '{', '}', ':' or preprocessor directive line at nesting depth
     zero, stepping over any '(' or '[' that opened before pos (a call or macro argument list the
-    position sits inside - the statement began before it). Comment and literal bytes are text, not
-    syntax: an apostrophe in "Setter's" is not a char literal and parens in prose do not nest, and so
+    position sits inside - the statement began before it). Comment and literal bytes are plain text
+    with no syntax: an apostrophe in "Setter's" is not a char literal and parens in prose do not nest, and so
     both are skipped.
     """
     if mask is None:

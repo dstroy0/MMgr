@@ -131,8 +131,8 @@ EMBED_STATIC_ASSERT(((64u * 1233u) >> 12u) <= MMGR_VERBA_POW10_MAX,
 /**
  * @brief Expands to the largest 64-bit value divisible by five, over five.
  *
- * @note A value times MMGR_VERBA_INV5 lands at or below this exactly when five divides it, which is
- *       what makes the one product a divisibility test as well as a divider.
+ * @note A value times MMGR_VERBA_INV5 lands at or below this exactly when five divides it, and that
+ *       makes the one product a divisibility test as well as a divider.
  */
 #define MMGR_VERBA_FIFTH_MAX 0x3333333333333333ull
 

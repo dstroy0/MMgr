@@ -515,7 +515,7 @@ EMBED_INLINE embed_word cellul_diff_lanes(embed_word diff)
  *       once, after the loop has found the word that does. Which lane it is cannot matter until a
  *       word differs, and no word differs on all but one iteration of a scan.
  * @warning A terminator does not end the scan. cap is the only bound. Both src and other must be
- *          readable for cap bytes, and the last short word is loaded whole and masked after, so up
+ *          readable for cap bytes, and the last short word is loaded whole and masked after, and up
  *          to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
 EMBED_INLINE size_t cellul_diff_cs(const CellulCtx *args)
@@ -579,12 +579,12 @@ EMBED_INLINE size_t cellul_diff_cs(const CellulCtx *args)
  * @param[in] args Bytes src and other, with the extent cap [BORROWS].
  * @return         Offset of the first difference, or cap when the two agree throughout.
  * @note Takes the difference through lane.xor_ with ci set. The fold has to happen before the test,
- *       so the walk tests the folded word against zero and not the two words against each other,
+ *       and the walk tests the folded word against zero and not the two words against each other,
  *       and resolves the lane once on the way out.
  * @note Carries no aligned run: where cellul_diff_cs lifts a boundary test out and walks matched
  *       addresses through the aligned load, every word here goes through the unaligned one.
  * @warning A terminator does not end the scan. cap is the only bound. Both src and other must be
- *          readable for cap bytes, and the last short word is loaded whole and masked after, so up
+ *          readable for cap bytes, and the last short word is loaded whole and masked after, and up
  *          to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
  */
 EMBED_INLINE size_t cellul_diff_ci(const CellulCtx *args)
@@ -1274,7 +1274,7 @@ EMBED_INLINE size_t cellul_copy(const CellulCtx *args)
  * @note When end is not NULL it is set past the last digit, or back to src when no digit was read.
  * @warning The digit accumulator is embed_word wide and wraps on a longer run.
  * @warning src carries no bound. The read runs until the first byte that is not part of the number,
- *          so the caller owes one inside readable storage. A terminator is the usual one.
+ *          and the caller owes one inside readable storage. A terminator is the usual one.
  */
 EMBED_INLINE embed_iword cellul_to_long(const CellulCtx *args)
 {
@@ -1324,7 +1324,7 @@ EMBED_INLINE embed_iword cellul_to_long(const CellulCtx *args)
  * @note When end is not NULL it is set past the last digit, or back to src when no digit was read.
  * @warning The digit accumulator is embed_word wide and wraps on a longer run.
  * @warning src carries no bound. The read runs until the first byte that is not part of the number,
- *          so the caller owes one inside readable storage. A terminator is the usual one.
+ *          and the caller owes one inside readable storage. A terminator is the usual one.
  */
 EMBED_INLINE embed_word cellul_to_ulong(const CellulCtx *args)
 {
@@ -1409,7 +1409,7 @@ EMBED_INLINE void cellul_expo(const CellulCtx *args)
  * @note An exponent is read only when at least one digit was seen before it.
  * @note When end is not NULL it is set past the number, or back to src when no digit was read.
  * @warning src carries no bound. The read runs until the first byte that is not part of the number,
- *          so the caller owes one inside readable storage. A terminator is the usual one.
+ *          and the caller owes one inside readable storage. A terminator is the usual one.
  */
 EMBED_INLINE double cellul_to_double(const CellulCtx *args)
 {

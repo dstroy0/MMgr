@@ -181,7 +181,7 @@ ENUM_VALUES_PER_LINE   = 1
 
 # Repo-specific commands. A comment can be terse and the output stays consistent.
 ALIASES                = "ns{1}=@par Namespace^^`\1`" \
-                         "slot{1}=@par Dispatch slot^^\1" \
+                         "position{1}=@par Dispatch position^^\1" \
                          "borrows=@par Borrows^^Does not allocate. Writes only into storage the caller supplied." \
                          "bounded{1}=@par Bounded^^Reads at most \1 bytes and stops." \
                          "widthdep=@par Width^^Behavior follows EMBED_WORD_BITS. See @ref ref_environments."

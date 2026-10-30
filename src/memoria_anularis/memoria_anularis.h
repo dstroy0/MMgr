@@ -246,7 +246,7 @@ size_t mmgr_anular_vacant(const AnularisCfg *args);
  * @param[in,out] args Ring and the destination byte [BORROWS].
  * @return             EMBED_TRUE when a byte was taken, EMBED_FALSE when the ring was empty.
  * @note Writes through args->dst only when it returns EMBED_TRUE.
- * @note One byte per call, and so the cost is the call and not the move. A caller drawing a run of bytes
+ * @note One byte per call, and so the cost is the call. A caller drawing a run of bytes
  *       wants mmgr_anular_read, which moves them a word at a time under one tail store.
  * @warning args->dst must be writable for one byte.
  */
@@ -270,7 +270,7 @@ size_t mmgr_anular_read(const AnularisCfg *args);
  * @param[in,out] args Ring, destination, byte count and starting offset [BORROWS].
  * @note Moves the bytes in at most two runs, the same way mmgr_anular_read does.
  * @warning Copies args->bytes regardless of whether that many have arrived. Read mmgr_anular_available first.
- * @warning An args->bytes above the ring's capacity is clamped there. Two runs cover one lap and no more.
+ * @warning An args->bytes above the ring's capacity is clamped there. Two runs cover one lap at most.
  * @warning args->dst must be writable for args->bytes.
  */
 void mmgr_anular_peek(const AnularisCfg *args);

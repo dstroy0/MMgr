@@ -206,7 +206,7 @@ void test_a_small_request_that_fits_neither_fails(void)
 }
 
 /**
- * @brief Checks that the internal reserve is held back, at the exact byte where a request begins to
+ * @brief Checks that the internal reserve is withheld, at the exact byte where a request begins to
  *        eat into it.
  *
  * @note The two sizes sit one byte apart at 800 and 801 against 1000 free with 200 reserved, and so the
@@ -248,7 +248,7 @@ void test_the_reserve_does_not_bound_external_placement(void)
  *        subtraction that bounds it.
  *
  * @note Asks 2000 bytes of 1000 free. A policy subtracting the size from free space in unsigned
- *       arithmetic would wrap to an enormous remainder and place the request.
+ *       arithmetic would wrap to a remainder near SIZE_MAX and place the request.
  */
 void test_a_size_past_free_internal_memory_does_not_wrap(void)
 {

@@ -216,7 +216,7 @@ void test_a_negative_exponent_that_ends_in_binary_is_exact(void)
  * @brief Checks that the sign is applied to the value and changes nothing else about it.
  *
  * @note Compares against the negation of the positive result, which holds whatever the magnitude
- *       rounds to. What it pins is that the sign bit is the single one bit differing between the two.
+ *       rounds to. It pins the sign bit as the single bit differing between the two.
  */
 void test_the_sign_changes_one_bit_and_nothing_else(void)
 {
@@ -239,7 +239,7 @@ void test_the_sign_changes_one_bit_and_nothing_else(void)
  * @note The expectation is the same repeated multiplication the case above uses, and so nothing about
  *       the answer comes from the powers of ten or the pow5 entries the entry applies.
  * @note A binary exponent of zero is left unset, which the compound literal zeroes. The mantissa
- *       reaches the entry as a plain integer, and the product is the whole of what is checked.
+ *       reaches the entry as a plain integer, and the check covers the product alone.
  */
 void test_the_integer_entry_returns_the_exact_product(void)
 {

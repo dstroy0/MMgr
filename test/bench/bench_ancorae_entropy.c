@@ -25,7 +25,7 @@
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
-// Drawing sources from this makes a run reproduce exactly. Held to RFC 6234's vectors by its own
+// Drawing sources from this makes a run reproduce exactly. Checked against RFC 6234's vectors by its own
 // self test
 #include "mmgr_sha256.h"
 
@@ -176,7 +176,7 @@ static double true_collision(const Source *source)
  * @param[in]  length How many symbols.
  * @param[in]  salt   Which stream to draw from, and so trials differ.
  * @note Inverse transform sampling on a uniform built from four bytes of SHA-256 counter mode output.
- *       The generator is the single one held to published vectors elsewhere in this tree. A source that
+ *       The generator is the single one checked against published vectors elsewhere in this tree. A source that
  *       comes out wrong is a defect here and not in the randomness.
  */
 static void draw_from(const Source *source, uint8_t *into, size_t length, uint64_t salt)
@@ -247,7 +247,7 @@ static void tally(const uint8_t *corpus, size_t length, uint32_t *counts)
  * @brief The plug in estimate of the collision probability.
  *
  * @param[in] counts One counter per symbol [BORROWS].
- * @param[in] length How many symbols the corpus held.
+ * @param[in] length How many symbols the corpus contains.
  * @return           The sum of the squared empirical frequencies.
  * @note The maximum likelihood estimator, and the obvious one. Its expectation is the true collision
  *       probability plus (1 - true) / length, and so it is biased upward and the bias is largest on a
@@ -270,7 +270,7 @@ static double estimate_plug_in(const uint32_t *counts, size_t length)
  * @brief The unbiased estimate of the collision probability.
  *
  * @param[in] counts One counter per symbol [BORROWS].
- * @param[in] length How many symbols the corpus held.
+ * @param[in] length How many symbols the corpus contains.
  * @return           The proportion of ordered pairs of distinct positions that agree.
  * @note The standard U statistic. Counting pairs of distinct positions instead of squaring
  *       frequencies removes the plug in estimator's bias exactly, since a position is never paired
@@ -302,7 +302,7 @@ static double estimate_unbiased(const uint32_t *counts, size_t length)
  *       same symbol is counted, and the count is divided by the corpus length. No histogram is built
  *       and the alphabet is never enumerated, and so this is the only estimator here that a domain with
  *       an unenumerable alphabet admits.
- * @note Averaged over every position this is algebraically the plug in estimator, and so it inherits that
+ * @note Averaged over every position this is algebraically the plug in estimator, and so it carries that
  *       estimator's upward bias exactly. Sampling fewer positions leaves the bias where it is and
  *       adds variance.
  */
@@ -368,7 +368,7 @@ static double estimate_probe_without_self(const uint8_t *corpus, size_t length, 
  * @brief The most common value estimate of min entropy.
  *
  * @param[in] counts One counter per symbol [BORROWS].
- * @param[in] length How many symbols the corpus held.
+ * @param[in] length How many symbols the corpus contains.
  * @return           A lower confidence bound on min entropy, in bits.
  * @note NIST SP 800-90B section 6.3.1, the most common value estimate, with the same upper confidence
  *       bound on the modal probability the specification uses. It is here as context and is not
@@ -400,7 +400,7 @@ static double estimate_min_entropy(const uint32_t *counts, size_t length)
  * @brief The highest Renyi order the ladder reaches.
  *
  * @note Five. The correction shrinks with every order and the question is where it stops mattering,
- *       so the ladder needs enough rungs to show the trend and no more.
+ *       and so the ladder needs only enough rungs to show the trend.
  */
 #define MAX_ORDER 5u
 
@@ -428,11 +428,11 @@ static double true_renyi(const Source *source, unsigned order)
  * @brief The plug in estimate of the sum of the @p order th powers.
  *
  * @param[in] counts One counter per symbol [BORROWS].
- * @param[in] length How many symbols the corpus held.
+ * @param[in] length How many symbols the corpus contains.
  * @param[in] order  Which power.
  * @return           The sum of the empirical frequencies raised to that power.
- * @note The uncorrected form at every order. It counts a position as coinciding with itself, which is
- *       what the correction below removes.
+ * @note The uncorrected form at every order. It counts a position as coinciding with itself, and
+ *       the correction below removes that.
  */
 static double plug_in_power(const uint32_t *counts, size_t length, unsigned order)
 {
@@ -449,7 +449,7 @@ static double plug_in_power(const uint32_t *counts, size_t length, unsigned orde
  * @brief The unbiased estimate of the sum of the @p order th powers.
  *
  * @param[in] counts One counter per symbol [BORROWS].
- * @param[in] length How many symbols the corpus held.
+ * @param[in] length How many symbols the corpus contains.
  * @param[in] order  Which power.
  * @return           The proportion of ordered tuples of distinct positions that all agree.
  * @note The same correction as the second order one, applied @p order deep. Where the pair estimator
@@ -457,7 +457,7 @@ static double plug_in_power(const uint32_t *counts, size_t length, unsigned orde
  *       coincide, the falling factorial in both the numerator and the denominator. Applying
  *       the correction recursively is what climbing this ladder means.
  * @note Doubles carry the factorials because the numerator reaches roughly length to the fifth, past
- *       what 64 bits holds. What the ratio needs is relative precision and a double has sixteen
+ *       what 64 bits holds. The ratio needs relative precision and a double has sixteen
  *       digits of it.
  */
 static double unbiased_power(const uint32_t *counts, size_t length, unsigned order)

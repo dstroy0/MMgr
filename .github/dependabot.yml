@@ -12,8 +12,8 @@ updates:
       prefix: "ci"
 
   # Node-based dev/CI tooling declared in package.json (prettier). The library itself has no runtime
-  # npm dependencies - this exists so the formatter used by CI is a tracked, bumpable version rather
-  # than whatever the runner happened to have.
+  # npm dependencies - this exists so the formatter used by CI is a tracked, bumpable version instead
+  # of whatever the runner happened to have.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:

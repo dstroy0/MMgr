@@ -31,7 +31,7 @@ idf_component_register(
 # translation unit can inline them on its own, and the moves this bench times reach them.
 #
 # ESP-IDF appends -fno-lto to the link unconditionally, and appending -flto after it is not enough,
-# so the flag is taken back out and replaced. Only this component's objects carry LTO IR, and so the
+# and so the flag is taken back out and replaced. Only this component's objects carry LTO IR, and so the
 # plugin has nothing to reorder in any IDF component.
 target_compile_options(${COMPONENT_LIB} PRIVATE -flto=auto -ffat-lto-objects)
 idf_build_get_property(_link_opts LINK_OPTIONS)

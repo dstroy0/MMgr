@@ -39,8 +39,8 @@ sys.dont_write_bytecode = True
 
 from bench_table import lock_acquire, lock_release, read_table, splice_after, splice_replace, write_verified
 
-# The harness owns where anything a build produces is written. Imported for that one answer rather
-# than recomputing the container here, which would be a second place the path lives and would drift
+# The harness owns where anything a build produces is written. Imported for that one answer instead
+# of recomputing the container here, which would be a second place the path lives and would drift
 # from the first the moment either moved.
 import harness
 
@@ -315,7 +315,7 @@ def _siblings_of(header):
 
     One module is not always one .c: exc_decoder.h is served by exc_decoder.c and exc_coredump.c,
     and the namespace one defines points at calls the other holds. Naming the header makes
-    such a file part of the module, so that is the test - a .c in the same directory that does not
+    such a file part of the module, and so the test is the include - a .c in the same directory that does not
     include the header is a different module and is not taken.
     """
     d = os.path.dirname(header)

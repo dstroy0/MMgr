@@ -6,7 +6,7 @@
 newlib is the comparison because it is the libc an embedded target actually ships, it is a static
 archive with one object per entry, which lets a single function be weighed, and it is built by the same
 compiler family. Both sides are compiled for the same core at the same optimization level, and so the
-difference is the code and not the toolchain.
+difference lies in the code alone.
 
 Only .text is counted. An archive member also carries relocations and symbol tables that never
 reach flash, and the linker pulls whole members. A member is the unit regardless of whether every entry

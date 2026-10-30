@@ -12,7 +12,7 @@
  *       a different walk depending on whether both operands are aligned. That makes the length and
  *       the two alignments the three axes a defect hides along, and so every case below sweeps all three
  *       instead of testing a convenient size.
- * @note The references are single byte loops. They share no word load, no lane mask and no tail
+ * @note The references are single byte loops. They share neither a word load, a lane mask nor a tail
  *       handling with the module, the entirety of reason they can disagree with it.
  * @note Every destination is checked past the bytes it was given. A copy that wrote one byte too many
  *       lands on a guard,, alone in a passing result would show it.
@@ -197,7 +197,7 @@ void test_the_helpers_this_suite_relies_on_are_themselves_right(void)
  * @note The destination is checked over its whole extent every time. A copy that wrote one byte past
  *       its count fails at the guard instead of passing.
  * @note A length of zero is included. A loop written with a do-while runs once for a count of none,
- *       and this is where that shows.
+ *       and that shows here.
  */
 void test_the_forward_copy_lands_every_byte_at_every_alignment(void)
 {

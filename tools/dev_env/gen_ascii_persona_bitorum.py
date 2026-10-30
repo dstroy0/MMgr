@@ -36,7 +36,7 @@ including the column the enum comments sit in.
 ascii_persona_bitorum.c is NOT ignored, and so clang-format owns its layout and the generator emits a
 plain table and runs the formatter over it. Without that the output differs from what is on disk
 until something else has run, and `harness.py generated` reads that as a dirty tree. A missing
-clang-format is a refusal and not a warning.
+clang-format stops the run with an error.
 """
 
 import pathlib
@@ -111,7 +111,7 @@ CLASSES = [
 ]
 
 # The enumerator count closes the enum. It is not a class and passing it is out of range.
-COUNT = ("CLASSES", "Enumerator count, not a class.")
+COUNT = ("CLASSES", "Enumerator count and not a class.")
 
 
 def bytes_of(pred):
@@ -176,8 +176,8 @@ HDR = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.c
  * @note Class membership as a bitmap lookup and not a chain of range compares. One shift, one
  *       mask and one test answer any class, and the cost does not grow with how many ranges the
  *       class covers.
- * @note Covers code points 0 to 127 only. A byte of 0x80 or above is in no class here, which is
- *       what keeps the table sixteen bytes and not thirty-two.
+ * @note Covers code points 0 to 127 only. A byte of 0x80 or above is in no class here, and
+ *       that keeps the table sixteen bytes and not thirty-two.
  */
 #ifndef MMGR_ASCII_PERSONA_BITORUM_H
 #define MMGR_ASCII_PERSONA_BITORUM_H

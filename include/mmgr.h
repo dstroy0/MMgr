@@ -81,7 +81,7 @@
  *
  * @param[in] msg_ Text the diagnostic reports, as a string literal.
  * @note Reported at the site that referenced the declaration, and so the message names what a caller did.
- *       The linker can only say what it found. That is the whole reason to reach for it over a token: the
+ *       The linker can only say what it found. This is the reason to reach for it over a token: the
  *       linker names a symbol, this names the mistake.
  * @warning The diagnostic arrives only where a reference survives to the end of compilation, and so what
  *          this marks has to be something nothing legitimately calls.
@@ -137,7 +137,7 @@
  *       compiler prints the identifier, and so the identifier reads as the reason and names no
  *       mechanism.
  * @note Two pools of one name would sit at unique addresses and the language would take them. The
- *       name is the whole of what a consumer is handed. A name meaning internal memory in one
+ *       name is all a consumer is handed. A name meaning internal memory in one
  *       place and external in another leaves the placement out of reach of the line that uses it,
  *       and those two differ in what a DMA engine can address and in settling time.
  * @warning One translation unit is as far as this guard reaches. The enumerator is settled while a
@@ -159,7 +159,7 @@
  *       is the pool's and not a dresser's, and a copy in each would let the next dresser be written
  *       without one.
  * @note Keyed on the pool alone, with no dresser's name in it. Every other symbol a site emits
- *       carries the site's name, and so two sites over one pool collide on nothing else and each would
+ *       carries the site's name, and so two sites over one pool collide only there and each would
  *       lay its own records over the same bytes while holding that it owned them.
  * @note Costs nothing. An enumerator emits no storage and is settled while the unit compiles.
  * @warning Says a pool is dressed once. It says nothing about the bytes being reached directly,
@@ -228,7 +228,7 @@
  * @note An expectation the library asserts is one a correct caller cannot break, and so the form here
  *       pays nothing for it. It expands to a sizeof, which type checks cond_ and never evaluates it.
  * @note A build wanting a failed expectation to report and stop defines its own ahead of this
- *       header, and the guard below stands down. That is what test/support/mmgr_host_traps.h does
+ *       header, and the guard below stands down. test/support/mmgr_host_traps.h does this
  *       for the checks environment, and it is where the stdio and stdlib that reporting needs live.
  * @warning Not a runtime check and cannot be read as one. A failed expectation produces no
  *          diagnostic and no trap in this form.
@@ -251,7 +251,7 @@
  *       and on a maximum security cellblock a quiet return would leave bytes unzeroed that the
  *       caller believes were wiped.
  * @note Does not return. Every call site is written on that basis and carries no fallback after it.
- * @note What is unconditional is the stop and not the diagnostic. The form here halts and names nothing,
+ * @note The stop is unconditional and the diagnostic is not. The form here halts and names nothing,
  *       as keeps this header free of libc.
  * @warning A build may define its own before including this header, and the form below is then not
  *          used. A target reporting a fault through its own handler wants that, and so does a test
