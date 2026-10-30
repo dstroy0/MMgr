@@ -1227,6 +1227,23 @@ void mmgr_temporary_buf_reset(CarcerCellBlock *cellblock)
     mmgr_temporary_buf_release(cellblock, cellblock->size);
 }
 
+CellOwner *mmgr_owner_of_buf(const CarcerCellBlock *cellblock, const void *prisoner)
+{
+    if ((prisoner == NULL) || !mmgr_who_owns_buf(cellblock, prisoner))
+    {
+        return NULL;
+    }
+    const size_t off = carcer_off_of(cellblock, prisoner);
+    const embed_atomic_usize_value word = embed_atomic_usize_load(carcer_word_at(cellblock, off));
+    const size_t size = carcer_word_size(word);
+
+    if ((carcer_word_state(word) != CARCER_BUSY) || (carcer_end_of(off, size) > cellblock->size))
+    {
+        return NULL;
+    }
+    return carcer_owner_found(embed_atomic_usize_load(carcer_word_at(cellblock, carcer_foot_of(off, size))));
+}
+
 embed_bool mmgr_who_owns_buf(const CarcerCellBlock *cellblock, const void *at)
 {
     // Explicit casts to uintptr_t let one unsigned compare cover both ends: below base wraps high

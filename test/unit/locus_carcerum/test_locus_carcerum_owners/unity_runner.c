@@ -26,6 +26,7 @@ extern void test_a_temporary_cell_given_back_alone_counts_off_its_owner(void);
 extern void test_a_give_naming_another_owner_is_refused_and_told(void);
 extern void test_a_maximum_security_give_naming_another_owner_zeroes_nothing(void);
 extern void test_a_growth_naming_another_owner_is_refused_and_told(void);
+extern void test_a_cell_answers_the_owner_it_counts_to(void);
 extern void test_a_cell_given_back_twice_counts_off_once_and_tells_nothing(void);
 extern void test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner(void);
 extern void test_a_lifetime_outside_its_range_is_refused(void);
@@ -116,16 +117,17 @@ int main(void)
   run_test(test_a_give_naming_another_owner_is_refused_and_told, "test_a_give_naming_another_owner_is_refused_and_told", 286);
   run_test(test_a_maximum_security_give_naming_another_owner_zeroes_nothing, "test_a_maximum_security_give_naming_another_owner_zeroes_nothing", 310);
   run_test(test_a_growth_naming_another_owner_is_refused_and_told, "test_a_growth_naming_another_owner_is_refused_and_told", 322);
-  run_test(test_a_cell_given_back_twice_counts_off_once_and_tells_nothing, "test_a_cell_given_back_twice_counts_off_once_and_tells_nothing", 333);
-  run_test(test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner, "test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner", 346);
-  run_test(test_a_lifetime_outside_its_range_is_refused, "test_a_lifetime_outside_its_range_is_refused", 359);
-  run_test(test_a_cell_in_its_lifetime_is_left_to_its_holder, "test_a_cell_in_its_lifetime_is_left_to_its_holder", 370);
-  run_test(test_a_cell_past_its_lifetime_is_given_back_by_the_next_take_and_told, "test_a_cell_past_its_lifetime_is_given_back_by_the_next_take_and_told", 380);
-  run_test(test_every_lapsed_cell_at_the_top_is_given_back_in_turn, "test_every_lapsed_cell_at_the_top_is_given_back_in_turn", 398);
-  run_test(test_a_lapsed_cell_under_one_in_its_lifetime_waits, "test_a_lapsed_cell_under_one_in_its_lifetime_waits", 414);
-  run_test(test_a_lifetime_holds_across_the_clock_wrapping, "test_a_lifetime_holds_across_the_clock_wrapping", 426);
-  run_test(test_a_persistent_take_the_gap_cannot_meet_gives_lapsed_cells_back_and_tries_again, "test_a_persistent_take_the_gap_cannot_meet_gives_lapsed_cells_back_and_tries_again", 443);
-  run_test(test_a_maximum_security_cell_past_its_lifetime_is_given_back_too, "test_a_maximum_security_cell_past_its_lifetime_is_given_back_too", 454);
+  run_test(test_a_cell_answers_the_owner_it_counts_to, "test_a_cell_answers_the_owner_it_counts_to", 333);
+  run_test(test_a_cell_given_back_twice_counts_off_once_and_tells_nothing, "test_a_cell_given_back_twice_counts_off_once_and_tells_nothing", 348);
+  run_test(test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner, "test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner", 361);
+  run_test(test_a_lifetime_outside_its_range_is_refused, "test_a_lifetime_outside_its_range_is_refused", 374);
+  run_test(test_a_cell_in_its_lifetime_is_left_to_its_holder, "test_a_cell_in_its_lifetime_is_left_to_its_holder", 385);
+  run_test(test_a_cell_past_its_lifetime_is_given_back_by_the_next_take_and_told, "test_a_cell_past_its_lifetime_is_given_back_by_the_next_take_and_told", 395);
+  run_test(test_every_lapsed_cell_at_the_top_is_given_back_in_turn, "test_every_lapsed_cell_at_the_top_is_given_back_in_turn", 413);
+  run_test(test_a_lapsed_cell_under_one_in_its_lifetime_waits, "test_a_lapsed_cell_under_one_in_its_lifetime_waits", 429);
+  run_test(test_a_lifetime_holds_across_the_clock_wrapping, "test_a_lifetime_holds_across_the_clock_wrapping", 441);
+  run_test(test_a_persistent_take_the_gap_cannot_meet_gives_lapsed_cells_back_and_tries_again, "test_a_persistent_take_the_gap_cannot_meet_gives_lapsed_cells_back_and_tries_again", 458);
+  run_test(test_a_maximum_security_cell_past_its_lifetime_is_given_back_too, "test_a_maximum_security_cell_past_its_lifetime_is_given_back_too", 469);
 
   return UNITY_END();
 }

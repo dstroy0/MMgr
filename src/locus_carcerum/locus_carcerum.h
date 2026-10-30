@@ -980,6 +980,21 @@ void mmgr_temporary_buf_reset(CarcerCellBlock *cellblock);
 embed_bool mmgr_who_owns_buf(const CarcerCellBlock *cellblock, const void *at);
 
 /**
+ * @brief The owner a cell counts to, read off the word behind its payload.
+ *
+ * @param[in] cellblock Cellblock the prisoner came from [BORROWS].
+ * @param[in] prisoner  First byte of the cell [BORROWS].
+ * @return              The registered owner the cell's owner word names, or NULL where prisoner is NULL, lies
+ *                      outside the cellblock, is a cell no context holds, or its word names no registered owner
+ *                      [BORROWS].
+ * @note A holder that grows or gives back a cell another part of the program took, a line that grows in the
+ *       hands of whoever is writing it, names the owner this answers.
+ * @warning The bound is the cellblock's storage and never a cell boundary, as for a release: an address
+ *          inside these bytes that is not the first byte of a cell is read as a cell's word.
+ */
+CellOwner *mmgr_owner_of_buf(const CarcerCellBlock *cellblock, const void *prisoner);
+
+/**
  * @brief The bytes lying between the two tiers.
  *
  * @param[in] cellblock Cellblock to read [BORROWS].

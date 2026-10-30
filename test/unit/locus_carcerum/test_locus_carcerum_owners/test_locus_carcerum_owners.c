@@ -330,6 +330,21 @@ void test_a_growth_naming_another_owner_is_refused_and_told(void)
     TEST_ASSERT_EQUAL_size_t(64u, in_use_of(&writer));
 }
 
+void test_a_cell_answers_the_owner_it_counts_to(void)
+{
+    void *const kept = counted.plain.persistent_buf_alloc(32u, &writer);
+    void *const scratched = counted.wiped.temporary_buf_alloc(16u, &scratch, 100u);
+
+    TEST_ASSERT_EQUAL_PTR(&writer, mmgr_owner_of_buf(&counted_plain_ctx, kept));
+    TEST_ASSERT_EQUAL_PTR(&scratch, mmgr_owner_of_buf(&counted_wiped_ctx, scratched));
+    TEST_ASSERT_NULL_MESSAGE(mmgr_owner_of_buf(&counted_wiped_ctx, kept), "a cell of another cellblock answers none");
+    TEST_ASSERT_NULL(mmgr_owner_of_buf(&counted_plain_ctx, NULL));
+    counted.plain.persistent_buf_release(kept, mmgr_owner_of_buf(&counted_plain_ctx, kept));
+    TEST_ASSERT_EQUAL_size_t(0u, in_use_of(&writer));
+    TEST_ASSERT_NULL_MESSAGE(mmgr_owner_of_buf(&counted_plain_ctx, kept), "a cell given back answers none");
+    counted.wiped.temporary_buf_reset();
+}
+
 void test_a_cell_given_back_twice_counts_off_once_and_tells_nothing(void)
 {
     void *const prisoner = counted.plain.persistent_buf_alloc(32u, &writer);
