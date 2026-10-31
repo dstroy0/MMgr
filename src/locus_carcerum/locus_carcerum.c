@@ -23,7 +23,7 @@
  *       and the one below through the tail just ahead of the cell, and merges with each that reads
  *       free. A cell at a tier's boundary then goes back to the gap by one swap on the tiers word,
  *       marked dead, and any other goes free. A tier has one moving bit, and the context whose swap
- *       takes it is the one that merges, returns, grows or fits; a give that finds it held frees its
+ *       takes it merges, returns, grows or fits; a give that finds it taken frees its
  *       cell and has the holder read the boundary again, and nothing waits on it. No byte outside the
  *       tiers reads as a free cell. A persistent take the gap cannot meet takes a free
  *       cell that fits, split where the remainder holds another cell.
@@ -203,7 +203,7 @@ EMBED_INLINE size_t carcer_tail_of(size_t off, size_t size)
  *
  * @param[in] off The cell's offset.
  * @return        The offset in a cell's word's shape, in the dead state.
- * @note A later cell can lay its word ahead on bytes that held a tail, and those bytes are read before
+ * @note A later cell can lay its word ahead on bytes that carried a tail, and those bytes are read before
  *       the take's words stand. An offset as it is reads as a free word, its low bits being zero, with a
  *       size a cell could have. In this shape it reads dead.
  */
@@ -660,7 +660,7 @@ EMBED_INLINE embed_bool carcer_free_read(const CarcerCellBlock *cellblock, size_
 }
 
 /**
- * @brief Merges a held cell with the free cells beside it, each read once.
+ * @brief Merges a busy cell with the free cells beside it, each read once.
  *
  * @param[in,out] cellblock Cellblock the cell sits in [BORROWS].
  * @param[in]     tier      The cell's tier.
@@ -669,7 +669,7 @@ EMBED_INLINE embed_bool carcer_free_read(const CarcerCellBlock *cellblock, size_
  * @note The give holds the tier's moving bit and the cell busy through this, and no other context
  *       touches its word. The word
  *       ahead of the cell above and the tail ahead of this cell's word are words while it stands: the
- *       boundary at either end of a held cell does not move, and whatever is laid against it lays its
+ *       boundary at either end of a busy cell does not move, and whatever is laid against it lays its
  *       word or its tail there.
  * @note The cell above goes from free to dead and the cell below from free to busy, one swap each, and
  *       the merged cell is laid behind that swap: its tail, then its word. A swap that does not land is
@@ -735,7 +735,7 @@ EMBED_INLINE embed_bool carcer_at_boundary(embed_atomic_usize_value tiers, embed
 }
 
 /**
- * @brief Returns a held cell at its tier's boundary to the gap, and frees it where it does not stand there.
+ * @brief Returns a busy cell at its tier's boundary to the gap, and frees it where it does not stand there.
  *
  * @param[in,out] cellblock  Cellblock the cell sits in [BORROWS].
  * @param[in]     persistent EMBED_TRUE for the persistent tier.
@@ -745,7 +745,7 @@ EMBED_INLINE embed_bool carcer_at_boundary(embed_atomic_usize_value tiers, embed
  *       boundary the word goes dead and the boundary moves past the cell by one swap on the tiers word.
  *       Where a take has moved that boundary, or the cell does not stand there, the word goes free.
  * @note The next cell is read once the boundary stands on it, and returned too where it reads free, as a
- *       cell freed while another context held the bit does. It is read with the bit held, and it stands
+ *       cell freed while another context had the bit does. It is read with the bit taken, and it stands
  *       where it stood: a take lays its cell on the gap's side of the boundary.
  */
 EMBED_INLINE void carcer_returned(CarcerCellBlock *cellblock, embed_bool persistent, size_t off, size_t size)
@@ -930,7 +930,7 @@ EMBED_INLINE void carcer_boundary_swept(CarcerCellBlock *cellblock, embed_bool p
 }
 
 /**
- * @brief Lets a tier's moving bit go, reading the boundary again first for each give that found it held.
+ * @brief Lets a tier's moving bit go, reading the boundary again first for each give that found it taken.
  *
  * @param[in,out] cellblock  Cellblock the tier is in [BORROWS].
  * @param[in]     persistent EMBED_TRUE for the persistent tier.
@@ -963,7 +963,7 @@ EMBED_INLINE void carcer_moving_let_go(CarcerCellBlock *cellblock, embed_bool pe
  *                          bit [RETURNS OWNERSHIP].
  * @note Reached only where the gap cannot meet the take, and the take would otherwise be refused. First
  *       fit: a best fit would read the whole tier to save slack the split already recovers.
- * @note With the bit held no cell in the tier moves: a give frees its cell and merges nothing, and a
+ * @note With the bit taken no cell in the tier moves: a give frees its cell and merges nothing, and a
  *       growth is refused. A take out of the gap goes on, landing past the tier as it stands, and a word
  *       it has not laid yet, dead or no cell at all, ends the search.
  * @warning A tier holding many cells costs their number, in the case the gap is spent.

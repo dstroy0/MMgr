@@ -254,8 +254,8 @@ EMBED_INLINE size_t mmgr_tiers_temporary_top(embed_atomic_usize_value tiers)
  *       the word read; a swap that fails is a take whose room another context took first, and it
  *       reads the word again and decides over what it says now. The tiers cannot cross, since every
  *       move of either is one swap on the word that names both.
- * @note Each tier has a moving bit, and the context whose swap takes it is the one that merges cells,
- *       returns them to the gap, grows a cell or fits a take. A give that finds it held frees its cell
+ * @note Each tier has a moving bit, and the context whose swap takes it merges cells,
+ *       returns them to the gap, grows a cell or fits a take. A give that finds it taken frees its cell
  *       and has the holder read the boundary again, and nothing waits on it.
  * @note The persistent end bounds that tier and does not count what is in use. A freed cell inside
  *       the tier merges with its free neighbors and stays in it for a take the gap cannot meet.
