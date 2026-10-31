@@ -254,6 +254,9 @@ EMBED_INLINE size_t mmgr_tiers_temporary_top(embed_atomic_usize_value tiers)
  *       the word read; a swap that fails is a take whose room another context took first, and it
  *       reads the word again and decides over what it says now. The tiers cannot cross, since every
  *       move of either is one swap on the word that names both.
+ * @note Each tier has a moving bit, and the context whose swap takes it is the one that merges cells,
+ *       returns them to the gap, grows a cell or fits a take. A give that finds it held frees its cell
+ *       and has the holder read the boundary again, and nothing waits on it.
  * @note The persistent end bounds that tier and does not count what is in use. A freed cell inside
  *       the tier merges with its free neighbors and stays in it for a take the gap cannot meet.
  */
@@ -262,6 +265,8 @@ typedef struct
     uint8_t *const base;     /**< First byte of the cellblock [BORROWS]. */
     const size_t size;       /**< Bytes in the cellblock. */
     embed_atomic_usize tiers; /**< Both boundaries, MMGR_CARCER_TIERS's way: the persistent end low, the temporary top high. */
+    embed_atomic_usize persistent_moving; /**< The persistent tier's moving bit. */
+    embed_atomic_usize temporary_moving;  /**< The temporary tier's moving bit. */
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
     embed_atomic_usize persistent_hw; /**< Running maximum of persistent_end. */
     embed_atomic_usize temporary_hw;  /**< Running maximum of the bytes taken from the top. */
@@ -284,7 +289,8 @@ typedef struct
  */
 #define MMGR_CARCER_STATE(base_, bytes_)                                                                               \
     {                                                                                                                  \
-        (base_), (bytes_), EMBED_ATOMIC_INIT(MMGR_CARCER_TIERS(0u, bytes_)) MMGR_CARCER_STATE_HW                        \
+        (base_), (bytes_), EMBED_ATOMIC_INIT(MMGR_CARCER_TIERS(0u, bytes_)),                                       \
+            EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u) MMGR_CARCER_STATE_HW                                          \
     }
 
 /**
@@ -736,7 +742,8 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  *       and raises owner's hw to it. A refused take counts nothing.
  * @note The take is one swap on the tiers word, which moves the persistent end up by the cell. Where
  *       the gap cannot meet it, the take reads the tier for the first free cell that fits, split where
- *       the remainder holds another cell, and only then is refused.
+ *       the remainder holds another cell, and only then is refused. That read holds the tier's moving
+ *       bit, and where another context holds it the take is refused at once.
  * @warning The bytes are not zeroed, and a cell laid over bytes a prisoner occupied before still
  *          carries what that prisoner left. A cellblock declared MMGR_MAXIMUM_SECURITY zeroes, and it
  *          zeroes on release.
