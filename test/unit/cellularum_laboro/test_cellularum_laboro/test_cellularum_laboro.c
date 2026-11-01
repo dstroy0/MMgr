@@ -18,6 +18,16 @@ static const char *mmgr_cellul_nowhere;
 static const long WORD_LONG_MAX = (long)((embed_word) ~(embed_word)0 >> 1);
 static const unsigned long WORD_ULONG_MAX = (unsigned long)(embed_word) ~(embed_word)0;
 
+static int same_double(double want, double got)
+{
+    return memcmp(&want, &got, sizeof want) == 0;
+}
+
+static int same_float(float want, float got)
+{
+    return memcmp(&want, &got, sizeof want) == 0;
+}
+
 static const char *find_at(const char *hay, const char *needle, embed_bool ci)
 {
     return EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = hay, .cap = CAP, .other = needle, .other_cap = CAP,
@@ -271,7 +281,7 @@ void test_to_double_matches_strtod(void)
 
         char msg[128];
         snprintf(msg, sizeof msg, "to_double(\"%s\")", cases[i]);
-        TEST_ASSERT_TRUE_MESSAGE(want == got, msg);
+        TEST_ASSERT_TRUE_MESSAGE(same_double(want, got), msg);
         TEST_ASSERT_EQUAL_PTR_MESSAGE(lend, mend, msg);
     }
 }
@@ -279,21 +289,70 @@ void test_to_double_matches_strtod(void)
 void test_to_double_handles_an_exponent(void)
 {
     const char *end = NULL;
-    TEST_ASSERT_TRUE_MESSAGE(strtod("1e3", NULL) ==
-                                 EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e3", .end = &end),
-                             "to_double(\"1e3\")");
-    TEST_ASSERT_TRUE_MESSAGE(strtod("1E3", NULL) ==
-                                 EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1E3", .end = &end),
-                             "to_double(\"1E3\")");
-    TEST_ASSERT_TRUE_MESSAGE(strtod("1e-3", NULL) ==
-                                 EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-3", .end = &end),
-                             "to_double(\"1e-3\")");
-    TEST_ASSERT_TRUE_MESSAGE(strtod("1e+3", NULL) ==
-                                 EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e+3", .end = &end),
-                             "to_double(\"1e+3\")");
-    TEST_ASSERT_TRUE_MESSAGE(strtod("2.5e2", NULL) ==
-                                 EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "2.5e2", .end = &end),
-                             "to_double(\"2.5e2\")");
+    TEST_ASSERT_TRUE_MESSAGE(
+        same_double(strtod("1e3", NULL), EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e3", .end = &end)),
+        "to_double(\"1e3\")");
+    TEST_ASSERT_TRUE_MESSAGE(
+        same_double(strtod("1E3", NULL), EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1E3", .end = &end)),
+        "to_double(\"1E3\")");
+    TEST_ASSERT_TRUE_MESSAGE(
+        same_double(strtod("1e-3", NULL), EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-3", .end = &end)),
+        "to_double(\"1e-3\")");
+    TEST_ASSERT_TRUE_MESSAGE(
+        same_double(strtod("1e+3", NULL), EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e+3", .end = &end)),
+        "to_double(\"1e+3\")");
+    TEST_ASSERT_TRUE_MESSAGE(
+        same_double(strtod("2.5e2", NULL), EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "2.5e2", .end = &end)),
+        "to_double(\"2.5e2\")");
+}
+
+void test_to_double_counts_digits_past_what_the_mantissa_holds(void)
+{
+    static const char *cases[] = {"12345678901234567890100000", "12345678901234567890000000"};
+
+    for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++)
+    {
+        const char *end = NULL;
+
+        TEST_ASSERT_TRUE_MESSAGE(same_double(strtod(cases[i], NULL), EMBED_CALL(cellul.to_double, TransfiguroCfg,
+                                                                                .src = cases[i], .end = &end)),
+                                 cases[i]);
+    }
+}
+
+void test_eq_ends_at_a_terminator_both_level_words_hold(void)
+{
+    static EMBED_ALIGN(16) char left[32] = "same";
+    static EMBED_ALIGN(16) char right[32] = "same";
+
+    TEST_ASSERT_TRUE(
+        EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = left, .other = right, .cap = sizeof left, .ci = EMBED_FALSE));
+}
+
+void test_find_ends_at_a_terminator_ahead_of_the_first_word_boundary(void)
+{
+    static EMBED_ALIGN(16) char hay[32];
+
+    memset(hay, 'x', sizeof hay);
+    hay[1] = '\0';
+    TEST_ASSERT_NULL(
+        EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = hay + 1, .cap = 16u, .other = "y", .other_cap = 2u));
+}
+
+void test_find_takes_a_needle_length_the_caller_knows(void)
+{
+    static const char hay[] = "abcd";
+
+    TEST_ASSERT_EQUAL_PTR(hay + 1, EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = hay, .cap = sizeof hay,
+                                              .other = "bc", .other_cap = 3u, .other_len = 2u));
+}
+
+void test_init_hands_back_its_arguments(void)
+{
+    const CatenaFinitaCfg made = EMBED_CALL(cellul.init, CatenaFinitaCfg, .src = "a", .cap = 2u);
+
+    TEST_ASSERT_EQUAL_size_t(2u, made.cap);
+    TEST_ASSERT_EQUAL_STRING("a", made.src);
 }
 
 void test_to_float_matches_to_double(void)
@@ -302,8 +361,8 @@ void test_to_float_matches_to_double(void)
     for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++)
     {
         const char *end = NULL;
-        TEST_ASSERT_TRUE_MESSAGE((float)strtod(cases[i], NULL) ==
-                                     EMBED_CALL(cellul.to_float, TransfiguroCfg, .src = cases[i], .end = &end),
+        TEST_ASSERT_TRUE_MESSAGE(same_float((float)strtod(cases[i], NULL),
+                                            EMBED_CALL(cellul.to_float, TransfiguroCfg, .src = cases[i], .end = &end)),
                                  cases[i]);
     }
 }

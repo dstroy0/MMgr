@@ -92,6 +92,25 @@ void test_emit_append_builds_on_what_is_there(void)
     TEST_ASSERT_EQUAL_STRING("head:tail", b);
 }
 
+void test_emit_append_starts_at_a_cursor_the_caller_threads(void)
+{
+    char b[32] = "head and more";
+    const mmgr_fval tail[] = {MMGR_VSTR(":tail")};
+
+    TEST_ASSERT_EQUAL_size_t(
+        9u, EMBED_CALL(numer.emit_append, NumerosCfg, .out = b, .cap = sizeof b, .at = 4u, .vals = tail, .nvals = 1u));
+    TEST_ASSERT_EQUAL_STRING("head:tail", b);
+}
+
+void test_emit_refuses_a_value_of_a_kind_with_nothing_to_format(void)
+{
+    char b[16];
+    const mmgr_fval fields[] = {{.kind = MMGR_FK_LIT}};
+
+    TEST_ASSERT_EQUAL_size_t(
+        0u, EMBED_CALL(numer.emit, NumerosCfg, .out = b, .cap = sizeof b, .vals = fields, .nvals = 1u));
+}
+
 void test_emit_escapes(void)
 {
     char b[64];

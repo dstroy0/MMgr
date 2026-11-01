@@ -450,7 +450,7 @@ EMBED_INLINE RingRun ring_run(const RingState *state, size_t offset, size_t want
  *          lie inside the ring's own bytes, the non-overlap ring_move requires. Neither is
  *          checked.
  */
-EMBED_INLINE size_t ring_move_out(RingState *state, size_t offset, uint8_t *dst, size_t wanted)
+EMBED_INLINE size_t ring_move_out(const RingState *state, size_t offset, uint8_t *dst, size_t wanted)
 {
     const RingRun run = ring_run(state, offset, wanted);
     size_t done = 0u;

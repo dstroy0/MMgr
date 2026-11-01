@@ -232,25 +232,25 @@ EMBED_INLINE void muto_mul_pow5(MutoCtx *args)
  *       exponent is within the table and otherwise in chunks of the largest, instead of walking
  *       the pow5 tables a set bit at a time.
  */
-static const embed_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {1ull,
-                                                                         10ull,
-                                                                         100ull,
-                                                                         1000ull,
-                                                                         10000ull,
-                                                                         100000ull,
-                                                                         1000000ull,
-                                                                         10000000ull,
-                                                                         100000000ull,
-                                                                         1000000000ull,
-                                                                         10000000000ull,
-                                                                         100000000000ull,
-                                                                         1000000000000ull,
-                                                                         10000000000000ull,
-                                                                         100000000000000ull,
-                                                                         1000000000000000ull,
-                                                                         10000000000000000ull,
-                                                                         100000000000000000ull,
-                                                                         1000000000000000000ull};
+static const embed_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {1ULL,
+                                                                         10ULL,
+                                                                         100ULL,
+                                                                         1000ULL,
+                                                                         10000ULL,
+                                                                         100000ULL,
+                                                                         1000000ULL,
+                                                                         10000000ULL,
+                                                                         100000000ULL,
+                                                                         1000000000ULL,
+                                                                         10000000000ULL,
+                                                                         100000000000ULL,
+                                                                         1000000000000ULL,
+                                                                         10000000000000ULL,
+                                                                         100000000000000ULL,
+                                                                         1000000000000000ULL,
+                                                                         10000000000000000ULL,
+                                                                         100000000000000000ULL,
+                                                                         1000000000000000000ULL};
 
 /**
  * @brief Multiplies the 128-bit significand by one exact 64-bit power of ten, then renormalizes.
@@ -300,8 +300,7 @@ EMBED_INLINE void muto_mul_pow10(MutoCtx *args)
  * @note A positive exponent takes exact powers of ten, one outright within the table's reach and
  *       otherwise in chunks of the largest, and returns without touching the pow5 tables.
  * @note Everything else walks the bits of the magnitude of args->ex and applies one pow5 entry for
- *       each bit that is set, from mmgr_pow5_down when args->ex is negative and mmgr_pow5_up when it
- *       is not.
+ *       each bit that is set, from mmgr_pow5_down.
  * @note Adding args->ex to args->fe2 at the end of that walk supplies the two raised to args->ex half
  *       of ten raised to args->ex. The exact power path needs no such addition, since it applies the
  *       whole power.
@@ -340,16 +339,19 @@ EMBED_INLINE void muto_apply_pow10(MutoCtx *args)
     // Explicit cast holds the negated exponent at the embed_iword the walk counts down in
     embed_iword magnitude = (args->ex < 0) ? (embed_iword)(-args->ex) : args->ex;
 
+    embed_iword step = 0;
+
     // Two bounds: the step count keeps an exponent past the tables from reading off the end, and the
     // emptied magnitude ends the walk once no bits are left to apply
-    for (embed_iword step = 0; (step < MMGR_POW5_STEPS) && (magnitude != 0); ++step)
+    while ((step < MMGR_POW5_STEPS) && (magnitude != 0))
     {
         if ((magnitude & 1) != 0)
         {
-            args->pow = (args->ex < 0) ? &mmgr_pow5_down[step] : &mmgr_pow5_up[step];
+            args->pow = &mmgr_pow5_down[step];
             muto_mul_pow5(args);
         }
         magnitude >>= 1;
+        ++step;
     }
     args->fe2 += args->ex;
 }

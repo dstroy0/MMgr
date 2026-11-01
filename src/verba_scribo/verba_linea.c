@@ -70,15 +70,11 @@ EMBED_INLINE void linea_filled(VerbaLinea *line)
  *
  * @param[in,out] line    The line [BORROWS].
  * @param[in]     digits  The number's own buffer, LINEA_DIGITS bytes [BORROWS].
- * @param[in]     written Where verba's writing ended, LINEA_DIGITS where it did not fit.
+ * @param[in]     written Where verba's writing ended. LINEA_DIGITS holds the widest number, which
+ *                        LINEA_LEAST_MOST bounds, and so it always fit.
  */
 EMBED_INLINE void linea_number(VerbaLinea *line, const char *digits, size_t written)
 {
-    if (written >= LINEA_DIGITS)
-    {
-        linea_filled(line);
-        return;
-    }
     (void)mmgr_line_put_n(line, digits, written);
 }
 

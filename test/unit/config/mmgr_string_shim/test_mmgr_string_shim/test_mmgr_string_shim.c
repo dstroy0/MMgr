@@ -60,6 +60,12 @@ void test_shim_memmove_handles_overlap(void)
     TEST_ASSERT_EQUAL_CHAR('a', d[0]);
     TEST_ASSERT_EQUAL_CHAR('a', d[1]);
     TEST_ASSERT_EQUAL_CHAR('e', d[5]);
+
+    memcpy(d, "abcdef", 7u);
+    memmove(d, d + 1, 5u);
+    TEST_ASSERT_EQUAL_CHAR('b', d[0]);
+    TEST_ASSERT_EQUAL_CHAR('f', d[4]);
+    TEST_ASSERT_EQUAL_CHAR('f', d[5]);
 }
 
 void test_shim_strchr_finds_the_terminator(void)

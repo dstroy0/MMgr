@@ -115,7 +115,7 @@ EMBED_INLINE embed_word scrut_smear(const ScrutMaskCtx *args)
 EMBED_INLINE embed_word scrut_ge(const ScrutLaneCtx *args)
 {
     return (args->word & MMGR_VERBUM_SCRUTOR_HIGH) |
-           ((((args->word | MMGR_VERBUM_SCRUTOR_HIGH) - MMGR_SWAR_ONES * args->byte) & MMGR_VERBUM_SCRUTOR_HIGH));
+           (((args->word | MMGR_VERBUM_SCRUTOR_HIGH) - MMGR_SWAR_ONES * args->byte) & MMGR_VERBUM_SCRUTOR_HIGH);
 }
 
 /**

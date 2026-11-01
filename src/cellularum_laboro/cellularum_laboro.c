@@ -621,6 +621,23 @@ EMBED_INLINE size_t cellul_diff_ci(const CellulCtx *args)
 }
 
 /**
+ * @brief Settles which came first, the terminator or the difference, from the lanes of each.
+ *
+ * @param[in] term     Lanes holding a terminator, which may be none.
+ * @param[in] diff     Lanes that differ, which may be none.
+ * @param[in] end_wins Whether a terminator in the same lane as the difference counts as a match.
+ * @return             Whether the two agree up to and including where they end.
+ */
+EMBED_INLINE embed_bool cellul_agree_lanes(embed_word term, embed_word diff, embed_bool end_wins)
+{
+    const size_t end_lane = (term != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = term) : MMGR_SWAR_BYTES;
+    const size_t diff_lane = (diff != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = diff) : MMGR_SWAR_BYTES;
+
+    // Explicit cast narrows the lane comparison into the embed_bool container
+    return (embed_bool)(end_wins ? (end_lane <= diff_lane) : (end_lane < diff_lane));
+}
+
+/**
  * @brief Settles a pair of words that differ: which came first, the terminator or the difference.
  *
  * @param[in] word_left  Word from the first string.
@@ -633,13 +650,8 @@ EMBED_INLINE size_t cellul_diff_ci(const CellulCtx *args)
  */
 static embed_bool cellul_agree_at(embed_word word_left, embed_word word_right, embed_bool end_wins)
 {
-    const embed_word term = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = word_left);
-    const embed_word diff = cellul_diff_lanes(word_left ^ word_right);
-    const size_t end_lane = (term != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = term) : MMGR_SWAR_BYTES;
-    const size_t diff_lane = (diff != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = diff) : MMGR_SWAR_BYTES;
-
-    // Explicit cast narrows the lane comparison into the embed_bool container
-    return (embed_bool)(end_wins ? (end_lane <= diff_lane) : (end_lane < diff_lane));
+    return cellul_agree_lanes(EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = word_left),
+                              cellul_diff_lanes(word_left ^ word_right), end_wins);
 }
 
 /**
@@ -700,12 +712,7 @@ EMBED_INLINE embed_bool cellul_agree_cs(const CellulCtx *args)
 
         if ((term != 0u) || (src_word != other_word))
         {
-            const embed_word diff = cellul_diff_lanes(src_word ^ other_word);
-            const size_t end_lane = (term != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = term) : MMGR_SWAR_BYTES;
-            const size_t diff_lane =
-                (diff != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = diff) : MMGR_SWAR_BYTES;
-            // Explicit cast narrows the lane comparison into the embed_bool container
-            return (embed_bool)(args->end_wins ? (end_lane <= diff_lane) : (end_lane < diff_lane));
+            return cellul_agree_lanes(term, cellul_diff_lanes(src_word ^ other_word), args->end_wins);
         }
         // Advance separated from the test above so the loop body carries no side effect
         at += MMGR_SWAR_BYTES;
@@ -721,11 +728,7 @@ EMBED_INLINE embed_bool cellul_agree_cs(const CellulCtx *args)
 
         if ((diff | term) != 0u)
         {
-            const size_t end_lane = (term != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = term) : MMGR_SWAR_BYTES;
-            const size_t diff_lane =
-                (diff != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = diff) : MMGR_SWAR_BYTES;
-            // Explicit cast narrows the lane comparison into the embed_bool container
-            return (embed_bool)(args->end_wins ? (end_lane <= diff_lane) : (end_lane < diff_lane));
+            return cellul_agree_lanes(term, diff, args->end_wins);
         }
     }
     return args->end_wins;
@@ -761,12 +764,7 @@ EMBED_INLINE embed_bool cellul_agree_ci(const CellulCtx *args)
 
         if ((term | fold) != 0u)
         {
-            const embed_word diff = cellul_diff_lanes(fold);
-            const size_t end_lane = (term != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = term) : MMGR_SWAR_BYTES;
-            const size_t diff_lane =
-                (diff != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = diff) : MMGR_SWAR_BYTES;
-            // Explicit cast narrows the lane comparison into the embed_bool container
-            return (embed_bool)(args->end_wins ? (end_lane <= diff_lane) : (end_lane < diff_lane));
+            return cellul_agree_lanes(term, cellul_diff_lanes(fold), args->end_wins);
         }
         // Advance separated from the test above so the loop body carries no side effect
         at += MMGR_SWAR_BYTES;
@@ -784,11 +782,7 @@ EMBED_INLINE embed_bool cellul_agree_ci(const CellulCtx *args)
 
         if ((diff | term) != 0u)
         {
-            const size_t end_lane = (term != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = term) : MMGR_SWAR_BYTES;
-            const size_t diff_lane =
-                (diff != 0u) ? EMBED_CALL(lane.first, ScrutLaneCfg, .mask = diff) : MMGR_SWAR_BYTES;
-            // Explicit cast narrows the lane comparison into the embed_bool container
-            return (embed_bool)(args->end_wins ? (end_lane <= diff_lane) : (end_lane < diff_lane));
+            return cellul_agree_lanes(term, diff, args->end_wins);
         }
     }
     return args->end_wins;
@@ -862,15 +856,14 @@ EMBED_INLINE size_t cellul_pick_rows(const CellulCtx *args)
         {
             size_t taken = 0;
 
+#if MMGR_SIEVE_ROWS > 1u
             // Only rows 0 through row - 1 have been chosen so far, and so the scan for an offset already
             // taken stops at row
             for (size_t prior = 0; prior < row; ++prior)
             {
-                if (args->rows[prior] == offset)
-                {
-                    taken = 1;
-                }
+                taken |= (args->rows[prior] == offset) ? 1u : 0u;
             }
+#endif
 
             const uint8_t cost = EMBED_CALL(ancorae.impensa, AncoraeCfg,
                                             .byte = cellul_ancorae_fold(&(CellulCtx){
@@ -913,6 +906,23 @@ EMBED_INLINE embed_word cellul_word_next(embed_word current, uint8_t next)
 #endif
 
 /**
+ * @brief Reports whether a needle of one or two bytes starts at an address.
+ *
+ * @param[in] at     Haystack address, whose byte is not the terminator [BORROWS].
+ * @param[in] needle Needle, of length nlen [BORROWS].
+ * @param[in] nlen   Needle length, 1 or 2.
+ * @return           Whether the first byte matches, and for a two-byte needle so does the one after it.
+ * @note The nlen test is fixed for the whole call and is there only to skip the second compare.
+ */
+EMBED_INLINE embed_bool cellul_short_hit(const char *at, const char *needle, size_t nlen)
+{
+    // Explicit casts read every byte as unsigned, and neither test depends on char's signedness, and the
+    // result narrows into the embed_bool container
+    return (embed_bool)(((uint8_t)at[0] == (uint8_t)needle[0]) &&
+                        ((nlen == 1u) || ((uint8_t)at[1] == (uint8_t)needle[1])));
+}
+
+/**
  * @brief Finds a needle of one or two bytes, case sensitively.
  *
  * @param[in] hay      Haystack [BORROWS].
@@ -950,16 +960,11 @@ EMBED_INLINE const char *cellul_find_short(const char *hay, const char *needle, 
 
     for (size_t start = 0; start < lead; ++start)
     {
-        // Explicit casts read both bytes as unsigned, and neither test depends on char's signedness
-        const uint8_t here = (uint8_t)hay[start];
-
-        if (here == 0u)
+        if (hay[start] == '\0')
         {
             return NULL;
         }
-        // The first byte has to match, and for a two-byte needle so does the one after it. The nlen
-        // test is fixed for the whole call and is there only to skip the second compare
-        if ((here == (uint8_t)needle[0]) && ((nlen == 1u) || ((uint8_t)hay[start + 1u] == (uint8_t)needle[1])))
+        if (cellul_short_hit(hay + start, needle, nlen))
         {
             return hay + start;
         }
@@ -1001,21 +1006,152 @@ EMBED_INLINE const char *cellul_find_short(const char *hay, const char *needle, 
 
     for (size_t start = lead + (word_count * MMGR_SWAR_BYTES); start < starts; ++start)
     {
-        // Explicit casts read both bytes as unsigned, and neither test depends on char's signedness
-        const uint8_t here = (uint8_t)hay[start];
-
-        if (here == 0u)
+        if (hay[start] == '\0')
         {
             return NULL;
         }
-        // The first byte has to match, and for a two-byte needle so does the one after it. The nlen
-        // test is fixed for the whole call and is there only to skip the second compare
-        if ((here == (uint8_t)needle[0]) && ((nlen == 1u) || ((uint8_t)hay[start + 1u] == (uint8_t)needle[1])))
+        if (cellul_short_hit(hay + start, needle, nlen))
         {
             return hay + start;
         }
     }
     return NULL;
+}
+
+/**
+ * @brief What the sieve walk reads of a needle, settled once ahead of the walk.
+ */
+typedef struct
+{
+    const char *needle;                /**< Needle, of length nlen [BORROWS]. */
+    size_t nlen;                       /**< Needle length. */
+    size_t take;                       /**< Needle bytes nword holds, at most one word. */
+    embed_word nword;                  /**< The first take needle bytes, folded where ci is set. */
+    embed_word nmask;                  /**< Keeps the lanes of the first take bytes. */
+    size_t rows[MMGR_SIEVE_ROWS];      /**< Needle offsets the sieve tests. */
+    embed_word bcast[MMGR_SIEVE_ROWS]; /**< The byte at each of those offsets, repeated in every lane. */
+    size_t nrows;                      /**< Entries in rows and bcast. */
+    embed_bool ci;                     /**< Fold case while matching. */
+} CellulSieve;
+
+/**
+ * @brief Verifies in full a start the sieve kept.
+ *
+ * @param[in] sieve The needle [BORROWS].
+ * @param[in] start Haystack address of the candidate [BORROWS].
+ * @return          Whether the whole needle matches at start.
+ */
+EMBED_INLINE embed_bool cellul_sieve_verify(const CellulSieve *sieve, const char *start)
+{
+    const embed_word candidate_word = EMBED_CALL(word.load, ScrutWordCfg, .at = start);
+
+    // A plain xor answers whenever there is no case to fold - either the caller did not ask
+    // for it, or the candidate word carries no upper case - and the folding xor is reached
+    // only when there is
+    const embed_word diff =
+        ((!sieve->ci || (EMBED_CALL(lane.any_upper, ScrutLaneCfg, .word = candidate_word) == 0))
+             ? (candidate_word ^ sieve->nword)
+             : EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = candidate_word, .val = sieve->nword, .ci = EMBED_TRUE)) &
+        sieve->nmask;
+
+    if (diff != 0u)
+    {
+        return EMBED_FALSE;
+    }
+    if (sieve->take == sieve->nlen)
+    {
+        return EMBED_TRUE;
+    }
+
+    const CellulCtx rest = {
+        .src = start + sieve->take, .other = sieve->needle + sieve->take, .cap = sieve->nlen - sieve->take};
+    const size_t agreed = sieve->ci ? cellul_diff_ci(&rest) : cellul_diff_cs(&rest);
+
+    // Explicit cast narrows the comparison into the embed_bool container
+    return (embed_bool)(agreed == (sieve->nlen - sieve->take));
+}
+
+/**
+ * @brief Tests every start in one haystack word.
+ *
+ * @param[in]  sieve The needle [BORROWS].
+ * @param[in]  at    Haystack address of the word [BORROWS].
+ * @param[out] found The match, where there is one [BORROWS].
+ * @return           Whether the word settled the search, by a match or by a terminator.
+ */
+EMBED_INLINE embed_bool cellul_sieve_word(const CellulSieve *sieve, const char *at, const char **found)
+{
+    const embed_word end =
+        EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = EMBED_CALL(word.load, ScrutWordCfg, .at = at));
+    embed_word survivors = cellul_sieve_hit(at + sieve->rows[0], sieve->bcast[0], sieve->ci);
+
+#if MMGR_SIEVE_ROWS > 1u
+    for (size_t row = 1; row < sieve->nrows; ++row)
+    {
+        survivors &= cellul_sieve_hit(at + sieve->rows[row], sieve->bcast[row], sieve->ci);
+    }
+#endif
+
+    if (end != 0)
+    {
+        survivors &= EMBED_CALL(mask.before, ScrutMaskCfg, .mask = end);
+    }
+
+    while (survivors != 0)
+    {
+        const char *const start = at + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = survivors);
+
+        if (cellul_sieve_verify(sieve, start))
+        {
+            *found = start;
+            return EMBED_TRUE;
+        }
+        survivors = EMBED_CALL(mask.drop_first, ScrutMaskCfg, .mask = survivors);
+    }
+    // Explicit cast narrows the comparison into the embed_bool container
+    return (embed_bool)(end != 0);
+}
+
+/**
+ * @brief Compares a whole needle against an address, a byte at a time.
+ *
+ * @param[in] at     Haystack address [BORROWS].
+ * @param[in] needle Needle, of length nlen [BORROWS].
+ * @param[in] nlen   Needle length.
+ * @param[in] ci     Fold case while matching.
+ * @return           Whether the whole needle matches before the terminator.
+ */
+EMBED_INLINE embed_bool cellul_matched_at(const char *at, const char *needle, size_t nlen, embed_bool ci)
+{
+    for (size_t matched = 0u; matched < nlen; ++matched)
+    {
+        // Explicit casts read both bytes as unsigned, matching CellulCtx::byte_left and ::byte_right
+        const uint8_t here = (uint8_t)at[matched];
+        const uint8_t want = (uint8_t)needle[matched];
+
+        if (here == 0u)
+        {
+            return EMBED_FALSE;
+        }
+        // The case-sensitive step is a byte compare once the terminator is out of the way, and so it
+        // is written as one. This walk covers the starts the word loop could not reach, which on
+        // a short haystack is most of them, and reaching cellul_step_byte_cs through a CellulCtx
+        // for every byte of every start is what made find cost twice libc at eight bytes.
+        if (ci)
+        {
+            const CellulCtx pair = {.byte_left = want, .byte_right = here, .end_wins = EMBED_FALSE};
+
+            if (cellul_step_byte_ci(&pair) == MMGR_SWAR_NO)
+            {
+                return EMBED_FALSE;
+            }
+        }
+        else if (here != want)
+        {
+            return EMBED_FALSE;
+        }
+    }
+    return EMBED_TRUE;
 }
 
 /**
@@ -1069,97 +1205,52 @@ EMBED_INLINE const char *cellul_find_core(const CellulCtx *args, embed_bool ci)
         (nlen > take) ? (EMBED_CALL(word.count, ScrutWordCfg, .bytes = nlen - take) * MMGR_SWAR_BYTES) : 0u;
     const size_t verify_reach = (MMGR_SWAR_BYTES - 1u) + take + tail;
 
-    size_t rows[MMGR_SIEVE_ROWS];
-    const size_t nrows = cellul_pick_rows(&(CellulCtx){.other = needle, .needle_len = nlen, .rows = rows, .ci = ci});
+    CellulSieve sieve = {.needle = needle, .nlen = nlen, .take = take, .ci = ci};
 
-    const embed_word nmask = EMBED_CALL(mask.bytes_below, ScrutMaskCfg, .bytes = take);
-    const embed_word nraw = EMBED_CALL(word.load, ScrutWordCfg, .at = needle) & nmask;
-    const embed_word nword = ci ? (EMBED_CALL(word.fold_lower, ScrutWordCfg, .word = nraw) & nmask) : nraw;
+    sieve.nrows = cellul_pick_rows(&(CellulCtx){.other = needle, .needle_len = nlen, .rows = sieve.rows, .ci = ci});
+    sieve.nmask = EMBED_CALL(mask.bytes_below, ScrutMaskCfg, .bytes = take);
 
-    size_t maxrow = rows[0];
+    const embed_word nraw = EMBED_CALL(word.load, ScrutWordCfg, .at = needle) & sieve.nmask;
 
-    for (size_t row = 1; row < nrows; ++row)
+    sieve.nword = ci ? (EMBED_CALL(word.fold_lower, ScrutWordCfg, .word = nraw) & sieve.nmask) : nraw;
+
+    size_t maxrow = sieve.rows[0];
+
+#if MMGR_SIEVE_ROWS > 1u
+    for (size_t row = 1; row < sieve.nrows; ++row)
     {
-        if (rows[row] > maxrow)
-        {
-            maxrow = rows[row];
-        }
+        maxrow = (sieve.rows[row] > maxrow) ? sieve.rows[row] : maxrow;
     }
+#endif
 
     const size_t ancorae_reach = maxrow + MMGR_SWAR_BYTES;
     const size_t reach = (ancorae_reach > verify_reach) ? ancorae_reach : verify_reach;
 
-    size_t safe = (read_cap >= reach) ? ((read_cap - reach) + 1u) : 0u;
-
-    if (safe > starts)
-    {
-        safe = starts;
-    }
-
+    // verify_reach is at least nlen, and so safe never passes starts
+    const size_t safe = (read_cap >= reach) ? ((read_cap - reach) + 1u) : 0u;
     const size_t word_count = safe / MMGR_SWAR_BYTES;
 
     // The sieve's bytes broadcast once, ahead of the walk. They depend only on the needle, which
     // does not move, and rebuilding a broadcast is a multiply that would otherwise land on every
     // haystack word.
-    embed_word bcast[MMGR_SIEVE_ROWS];
+    // Explicit casts read the needle byte as unsigned, then widen it into the lane it fills
+    sieve.bcast[0] = MMGR_SWAR_ONES * (embed_word)(uint8_t)needle[sieve.rows[0]];
 
-    for (size_t row = 0; row < nrows; ++row)
+#if MMGR_SIEVE_ROWS > 1u
+    for (size_t row = 1; row < sieve.nrows; ++row)
     {
         // Explicit casts read the needle byte as unsigned, then widen it into the lane it fills
-        bcast[row] = MMGR_SWAR_ONES * (embed_word)(uint8_t)needle[rows[row]];
+        sieve.bcast[row] = MMGR_SWAR_ONES * (embed_word)(uint8_t)needle[sieve.rows[row]];
     }
+#endif
 
     for (size_t word_index = 0; word_index < word_count; ++word_index)
     {
-        const size_t at = word_index * MMGR_SWAR_BYTES;
-        const embed_word end =
-            EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = EMBED_CALL(word.load, ScrutWordCfg, .at = hay + at));
-        embed_word survivors = cellul_sieve_hit(hay + at + rows[0], bcast[0], ci);
+        const char *found = NULL;
 
-        for (size_t row = 1; row < nrows; ++row)
+        if (cellul_sieve_word(&sieve, hay + (word_index * MMGR_SWAR_BYTES), &found))
         {
-            survivors &= cellul_sieve_hit(hay + at + rows[row], bcast[row], ci);
-        }
-
-        if (end != 0)
-        {
-            survivors &= EMBED_CALL(mask.before, ScrutMaskCfg, .mask = end);
-        }
-
-        while (survivors != 0)
-        {
-            const size_t start = at + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = survivors);
-            const embed_word candidate_word = EMBED_CALL(word.load, ScrutWordCfg, .at = hay + start);
-
-            // A plain xor answers whenever there is no case to fold - either the caller did not ask
-            // for it, or the candidate word carries no upper case - and the folding xor is reached
-            // only when there is
-            const embed_word diff =
-                ((!ci || (EMBED_CALL(lane.any_upper, ScrutLaneCfg, .word = candidate_word) == 0))
-                     ? (candidate_word ^ nword)
-                     : EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = candidate_word, .val = nword, .ci = EMBED_TRUE)) &
-                nmask;
-
-            if (diff == 0)
-            {
-                if (take == nlen)
-                {
-                    return hay + start;
-                }
-
-                const CellulCtx rest = {.src = hay + start + take, .other = needle + take, .cap = nlen - take};
-                const size_t agreed = ci ? cellul_diff_ci(&rest) : cellul_diff_cs(&rest);
-
-                if (agreed == (nlen - take))
-                {
-                    return hay + start;
-                }
-            }
-            survivors = EMBED_CALL(mask.drop_first, ScrutMaskCfg, .mask = survivors);
-        }
-        if (end != 0)
-        {
-            return NULL;
+            return found;
         }
     }
 
@@ -1169,39 +1260,7 @@ EMBED_INLINE const char *cellul_find_core(const CellulCtx *args, embed_bool ci)
         {
             return NULL;
         }
-
-        size_t matched = 0;
-        while (matched < nlen)
-        {
-            // Explicit casts read both bytes as unsigned, matching CellulCtx::byte_left and ::byte_right
-            const uint8_t here = (uint8_t)hay[start + matched];
-            const uint8_t want = (uint8_t)needle[matched];
-
-            if (here == 0u)
-            {
-                break;
-            }
-            // The case-sensitive step is a byte compare once the terminator is out of the way, and so it
-            // is written as one. This walk covers the starts the word loop could not reach, which on
-            // a short haystack is most of them, and reaching cellul_step_byte_cs through a CellulCtx
-            // for every byte of every start is what made find cost twice libc at eight bytes.
-            if (ci)
-            {
-                const CellulCtx pair = {.byte_left = want, .byte_right = here, .end_wins = EMBED_FALSE};
-
-                if (cellul_step_byte_ci(&pair) == MMGR_SWAR_NO)
-                {
-                    break;
-                }
-            }
-            else if (here != want)
-            {
-                break;
-            }
-            // Advance separated from the tests above so the loop body carries no side effect
-            ++matched;
-        }
-        if (matched == nlen)
+        if (cellul_matched_at(hay + start, needle, nlen, ci))
         {
             return hay + start;
         }
@@ -1400,6 +1459,34 @@ EMBED_INLINE void cellul_expo(const CellulCtx *args)
 }
 
 /**
+ * @brief Takes the digits after a point into the mantissa.
+ *
+ * @param[in]     at   The first byte after the point [BORROWS].
+ * @param[in,out] mant The mantissa so far [BORROWS].
+ * @param[in,out] drop Digits the mantissa took, each one decimal place down [BORROWS].
+ * @param[in,out] lost Set where a non-zero digit no longer fit the mantissa [BORROWS].
+ * @return             The first byte that is not a digit [BORROWS].
+ */
+EMBED_INLINE const char *cellul_fraction(const char *at, embed_u64 *mant, embed_iword *drop, embed_iword *lost)
+{
+    const char *cursor = at;
+
+    while (cellul_is_digit(*cursor))
+    {
+        if (EMBED_CALL(muto.take, TransformoCfg, .mant = mant, .digit = *cursor))
+        {
+            ++*drop;
+        }
+        else
+        {
+            *lost |= (*cursor != '0') ? 1 : 0;
+        }
+        ++cursor;
+    }
+    return cursor;
+}
+
+/**
  * @brief Reads a decimal floating point number from src.
  *
  * @param[in,out] args Text src, and the optional end target [BORROWS].
@@ -1447,19 +1534,8 @@ EMBED_INLINE double cellul_to_double(const CellulCtx *args)
     if (*cursor == '.')
     {
         ++cursor;
-        while (cellul_is_digit(*cursor))
-        {
-            if (EMBED_CALL(muto.take, TransformoCfg, .mant = &mant, .digit = *cursor))
-            {
-                ++drop;
-            }
-            else
-            {
-                lost |= (*cursor != '0') ? 1 : 0;
-            }
-            any = EMBED_TRUE;
-            ++cursor;
-        }
+        any = (embed_bool)(any || cellul_is_digit(*cursor));
+        cursor = cellul_fraction(cursor, &mant, &drop, &lost);
     }
 
     embed_iword ex = 0;

@@ -150,6 +150,35 @@ void test_move_of_regions_that_end_exactly_where_the_other_starts(void)
     same("move, adjacent");
 }
 
+void test_cmp_orders_a_whole_word_where_the_two_addresses_are_not_level(void)
+{
+    static EMBED_ALIGN(16) uint8_t left[40];
+    static EMBED_ALIGN(16) uint8_t right[40];
+
+    memset(left, 'a', sizeof left);
+    memset(right, 'a', sizeof right);
+    left[4] = 'b';
+    TEST_ASSERT_GREATER_THAN_INT(0,
+                                 EMBED_CALL(memor.cmp, MemoriaCfg, .src = left + 1, .other = right + 2, .bytes = 24u));
+    TEST_ASSERT_LESS_THAN_INT(0, EMBED_CALL(memor.cmp, MemoriaCfg, .src = right + 2, .other = left + 1, .bytes = 24u));
+
+    // Past a whole vector, the difference is the word walk's to find and not the vector walk's
+    left[4] = 'a';
+    left[19] = 'b';
+    TEST_ASSERT_GREATER_THAN_INT(0,
+                                 EMBED_CALL(memor.cmp, MemoriaCfg, .src = left + 1, .other = right + 2, .bytes = 24u));
+}
+
+void test_chr_finds_a_byte_ahead_of_the_first_word_boundary(void)
+{
+    static EMBED_ALIGN(16) uint8_t bytes[40];
+
+    memset(bytes, 'a', sizeof bytes);
+    bytes[1] = 'z';
+    TEST_ASSERT_EQUAL_PTR(bytes + 1,
+                          EMBED_CALL(memor.chr, MemoriaCfg, .src = bytes + 1, .val = (uint8_t)'z', .bytes = 24u));
+}
+
 void test_cmp_agrees_with_memcmp_on_the_sign(void)
 {
     static const unsigned char a[8] = {1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u};

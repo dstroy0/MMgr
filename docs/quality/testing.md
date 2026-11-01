@@ -1,6 +1,6 @@
 # The test suite {#qa_testing}
 
-265 CTest targets covering every compile-time width, at 100% of lines, branches and functions,
+275 CTest targets covering every compile-time width, at 100% of lines, branches and functions,
 green against this library and against libc.
 
 ## Running it

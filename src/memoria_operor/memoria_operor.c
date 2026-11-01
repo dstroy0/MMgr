@@ -258,7 +258,7 @@ EMBED_INLINE embed_word memor_diff_lanes(embed_word difference)
  * @warning Both args->src and args->other must be readable for args->bytes rounded up to a whole word.
  *          The tail goes through word.load, which takes MMGR_SWAR_BYTES whatever the count leaves.
  */
-EMBED_INLINE embed_iword memor_cmp(MemorScanCtx *args)
+EMBED_INLINE embed_iword memor_cmp(const MemorScanCtx *args)
 {
     const size_t full = (args->bytes / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
     const size_t rest = args->bytes - full;
@@ -365,7 +365,7 @@ EMBED_INLINE embed_iword memor_cmp(MemorScanCtx *args)
  * @warning args->src must be readable for args->bytes rounded up to a whole word. The tail goes
  *          through word.load, which takes MMGR_SWAR_BYTES whatever the count leaves.
  */
-EMBED_INLINE const void *memor_chr(MemorScanCtx *args)
+EMBED_INLINE const void *memor_chr(const MemorScanCtx *args)
 {
     // Bytes to the first word boundary, and so the walk below reads through the aligned load. Normally
     // none, since this library is built for memory that arrives aligned. The unaligned load is not

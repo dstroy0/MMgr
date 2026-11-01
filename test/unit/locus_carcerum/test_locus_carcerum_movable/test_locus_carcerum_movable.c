@@ -98,9 +98,9 @@ static embed_bool script_wait(uint32_t milliseconds)
     return EMBED_TRUE;
 }
 
-static void script_moving(embed_bool moving)
+static void script_moving(embed_bool is_moving)
 {
-    if (moving)
+    if (is_moving)
     {
         s_moving_told += 1u;
     }

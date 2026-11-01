@@ -20,6 +20,8 @@ extern void test_move_matches_memmove_overlapping_backwards(void);
 extern void test_move_onto_itself_changes_nothing(void);
 extern void test_move_of_nothing_touches_nothing(void);
 extern void test_move_of_regions_that_end_exactly_where_the_other_starts(void);
+extern void test_cmp_orders_a_whole_word_where_the_two_addresses_are_not_level(void);
+extern void test_chr_finds_a_byte_ahead_of_the_first_word_boundary(void);
 extern void test_cmp_agrees_with_memcmp_on_the_sign(void);
 extern void test_cmp_finds_a_difference_at_every_position(void);
 extern void test_cmp_of_nothing_is_equal(void);
@@ -92,7 +94,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/memoria_operor/test_memoria_operor\\test_memoria_operor.c");
+  UnityBegin("test/unit/memoria_operor/test_memoria_operor/test_memoria_operor.c");
   run_test(test_memor_header_is_self_contained, "test_memor_header_is_self_contained", 49);
   run_test(test_memor_namespace_is_wired, "test_memor_namespace_is_wired", 54);
   run_test(test_cpy_matches_memcpy_at_every_length, "test_cpy_matches_memcpy_at_every_length", 62);
@@ -104,18 +106,20 @@ int main(void)
   run_test(test_move_onto_itself_changes_nothing, "test_move_onto_itself_changes_nothing", 134);
   run_test(test_move_of_nothing_touches_nothing, "test_move_of_nothing_touches_nothing", 140);
   run_test(test_move_of_regions_that_end_exactly_where_the_other_starts, "test_move_of_regions_that_end_exactly_where_the_other_starts", 146);
-  run_test(test_cmp_agrees_with_memcmp_on_the_sign, "test_cmp_agrees_with_memcmp_on_the_sign", 153);
-  run_test(test_cmp_finds_a_difference_at_every_position, "test_cmp_finds_a_difference_at_every_position", 169);
-  run_test(test_cmp_of_nothing_is_equal, "test_cmp_of_nothing_is_equal", 186);
-  run_test(test_cmp_reads_no_further_than_it_was_told, "test_cmp_reads_no_further_than_it_was_told", 191);
-  run_test(test_chr_matches_memchr_at_every_position, "test_chr_matches_memchr_at_every_position", 200);
-  run_test(test_chr_of_a_byte_that_is_not_there, "test_chr_of_a_byte_that_is_not_there", 221);
-  run_test(test_chr_of_nothing_finds_nothing, "test_chr_of_nothing_finds_nothing", 238);
-  run_test(test_chr_finds_a_zero_byte, "test_chr_finds_a_zero_byte", 243);
-  run_test(test_set_matches_memset_at_every_length, "test_set_matches_memset_at_every_length", 250);
-  run_test(test_set_matches_memset_at_every_offset, "test_set_matches_memset_at_every_offset", 261);
-  run_test(test_set_keeps_only_the_low_byte_of_its_value, "test_set_keeps_only_the_low_byte_of_its_value", 272);
-  run_test(test_zero_is_set_of_zero, "test_zero_is_set_of_zero", 279);
+  run_test(test_cmp_orders_a_whole_word_where_the_two_addresses_are_not_level, "test_cmp_orders_a_whole_word_where_the_two_addresses_are_not_level", 153);
+  run_test(test_chr_finds_a_byte_ahead_of_the_first_word_boundary, "test_chr_finds_a_byte_ahead_of_the_first_word_boundary", 170);
+  run_test(test_cmp_agrees_with_memcmp_on_the_sign, "test_cmp_agrees_with_memcmp_on_the_sign", 179);
+  run_test(test_cmp_finds_a_difference_at_every_position, "test_cmp_finds_a_difference_at_every_position", 195);
+  run_test(test_cmp_of_nothing_is_equal, "test_cmp_of_nothing_is_equal", 212);
+  run_test(test_cmp_reads_no_further_than_it_was_told, "test_cmp_reads_no_further_than_it_was_told", 217);
+  run_test(test_chr_matches_memchr_at_every_position, "test_chr_matches_memchr_at_every_position", 226);
+  run_test(test_chr_of_a_byte_that_is_not_there, "test_chr_of_a_byte_that_is_not_there", 247);
+  run_test(test_chr_of_nothing_finds_nothing, "test_chr_of_nothing_finds_nothing", 264);
+  run_test(test_chr_finds_a_zero_byte, "test_chr_finds_a_zero_byte", 269);
+  run_test(test_set_matches_memset_at_every_length, "test_set_matches_memset_at_every_length", 276);
+  run_test(test_set_matches_memset_at_every_offset, "test_set_matches_memset_at_every_offset", 287);
+  run_test(test_set_keeps_only_the_low_byte_of_its_value, "test_set_keeps_only_the_low_byte_of_its_value", 298);
+  run_test(test_zero_is_set_of_zero, "test_zero_is_set_of_zero", 305);
 
   return UNITY_END();
 }

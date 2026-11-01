@@ -63,24 +63,24 @@ typedef embed_lane_mask MmgrVectorMask;
 /**
  * @brief The index of the first byte set in a mask.
  *
- * @param[in] mask A mask with at least one byte set.
- * @return         The byte, counted from the first.
+ * @param[in] lanes A mask with at least one byte set.
+ * @return          The byte, counted from the first.
  */
-EMBED_INLINE size_t mmgr_vector_mask_first(MmgrVectorMask mask)
+EMBED_INLINE size_t mmgr_vector_mask_first(MmgrVectorMask lanes)
 {
     // Explicit cast widens the lane's byte index to the offset it is used as
-    return (size_t)embed_lane_mask_first(mask);
+    return (size_t)embed_lane_mask_first(lanes);
 }
 
 /**
  * @brief The bytes before the first byte set in a mask, every byte where none is set.
  *
- * @param[in] mask Bytes that end a walk.
- * @return         The bytes a match counts in.
+ * @param[in] lanes Bytes that end a walk.
+ * @return          The bytes a match counts in.
  */
-EMBED_INLINE MmgrVectorMask mmgr_vector_mask_before(MmgrVectorMask mask)
+EMBED_INLINE MmgrVectorMask mmgr_vector_mask_before(MmgrVectorMask lanes)
 {
-    return (mask == 0u) ? EMBED_LANE_MASK_ALL : ((mask & (0u - mask)) - 1u);
+    return (lanes == 0u) ? EMBED_LANE_MASK_ALL : ((lanes & (0u - lanes)) - 1u);
 }
 
 #if MMGR_VECTOR_BYTES != 0u
