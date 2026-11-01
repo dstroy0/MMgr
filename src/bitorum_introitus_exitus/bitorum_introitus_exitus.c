@@ -106,7 +106,8 @@ EMBED_INLINE void bitor_put(const BitorCtx *args)
             // Explicit cast narrows the masked byte to the uint8_t the buffer holds
             to[index] = (uint8_t)(work & 0xFFu);
             work >>= 8u;
-            left -= 8u;
+            // Explicit cast holds the count at embed_word, because the subtraction promotes away from it
+            left = (embed_word)(left - 8u);
         }
     }
 
