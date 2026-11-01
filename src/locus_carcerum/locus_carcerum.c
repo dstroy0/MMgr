@@ -762,8 +762,8 @@ EMBED_INLINE embed_bool carcer_at_boundary(embed_atomic_usize_value tiers, embed
  * @param[out]    held       The next cell's payload size, where one is taken [BORROWS].
  * @return                   EMBED_TRUE where the next cell now reads busy for this context.
  */
-EMBED_INLINE embed_bool carcer_next_taken(CarcerCellBlock *cellblock, embed_bool persistent, size_t end, size_t *at,
-                                          size_t *held)
+EMBED_INLINE embed_bool carcer_next_taken(const CarcerCellBlock *cellblock, embed_bool persistent, size_t end,
+                                          size_t *at, size_t *held)
 {
     size_t next = end;
 

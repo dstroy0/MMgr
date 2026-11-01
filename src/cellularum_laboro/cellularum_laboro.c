@@ -1233,11 +1233,16 @@ EMBED_INLINE const char *cellul_find_core(const CellulCtx *args, embed_bool ci)
     // The sieve's bytes broadcast once, ahead of the walk. They depend only on the needle, which
     // does not move, and rebuilding a broadcast is a multiply that would otherwise land on every
     // haystack word.
-    for (size_t row = 0; row < sieve.nrows; ++row)
+    // Explicit casts read the needle byte as unsigned, then widen it into the lane it fills
+    sieve.bcast[0] = MMGR_SWAR_ONES * (embed_word)(uint8_t)needle[sieve.rows[0]];
+
+#if MMGR_SIEVE_ROWS > 1u
+    for (size_t row = 1; row < sieve.nrows; ++row)
     {
         // Explicit casts read the needle byte as unsigned, then widen it into the lane it fills
         sieve.bcast[row] = MMGR_SWAR_ONES * (embed_word)(uint8_t)needle[sieve.rows[row]];
     }
+#endif
 
     for (size_t word_index = 0; word_index < word_count; ++word_index)
     {
