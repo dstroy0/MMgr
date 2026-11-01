@@ -3,5 +3,6 @@
 
 add_subdirectory(test_locus_carcerum)
 add_subdirectory(test_locus_carcerum_shared)
+add_subdirectory(test_locus_carcerum_movable)
 add_subdirectory(test_locus_carcerum_owner_list)
 add_subdirectory(test_locus_carcerum_owners)

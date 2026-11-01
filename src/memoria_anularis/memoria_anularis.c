@@ -303,13 +303,13 @@ typedef struct
     uint8_t *buf;              /**< Ring bytes [BORROWS]. */
     size_t capacity;           /**< Bytes at buf, always a power of two. */
     size_t segment_count;      /**< Segments the ring is divided into, a power of two. */
-    size_t segment_bytes;      /**< Bytes per segment, capacity divided by segment_count. */
+    size_t segment_bytes;      /**< Bytes per segment, as given or capacity divided by segment_count. */
     _Atomic size_t head;       /**< Write position, advanced by the producer. */
     _Atomic size_t tail;       /**< Read position, advanced by the consumer. */
     _Atomic size_t claimed;    /**< Segments the producer has filled, counting up. */
     _Atomic size_t released;   /**< Segments the consumer has released, counting up. */
     _Atomic embed_word gratis; /**< One bit per loculus, set while that loculus is free to take. */
-    _Atomic embed_word pinned;   /**< One bit per loculus, set while it still owns bytes in flight. */
+    _Atomic embed_word pinned; /**< One bit per loculus, set while it still owns bytes in flight. */
     /**
      * @brief Region each pinned loculus keeps out, recorded at the hold.
      *
@@ -761,8 +761,8 @@ EMBED_INLINE void anular_seg_release(const AnularisCtx *args)
  *
  * @param[in] args Ring and the segment index [BORROWS].
  * @return         Its first byte inside the ring buffer [BORROWS].
- * @note The span runs for segment_bytes, which mmgr_anular_init set to the capacity divided by the
- *       segment_count it was given.
+ * @note The span runs for segment_bytes, which mmgr_anular_init set to the size it was given, or else to
+ *       the capacity divided by the segment_count it was given.
  * @warning args->index is not checked against segment_count here or anywhere below. An index at or
  *          past that count multiplies past the buffer and the pointer returned lies outside the
  *          ring's bytes.
@@ -921,8 +921,9 @@ embed_bool mmgr_anular_init(const AnularisCfg *args)
     MMGR_ASSERT(args->buf != NULL, "a ring needs a buffer");
 
     // Two tests because MMGR_RING_POW2 reports true for a capacity of 0 as well, and so the empty buffer
-    // is refused on its own. The power of two lets every wrap here be a mask, not a divide
-    if ((args->capacity == 0u) || !MMGR_RING_POW2(args->capacity))
+    // is refused on its own. The power of two lets every wrap here be a mask, not a divide, and a ring given
+    // its segment size streams no bytes, which leaves nothing to wrap
+    if ((args->capacity == 0u) || ((args->segment_bytes == 0u) && !MMGR_RING_POW2(args->capacity)))
     {
         return EMBED_FALSE;
     }
@@ -932,13 +933,20 @@ embed_bool mmgr_anular_init(const AnularisCfg *args)
     {
         return EMBED_FALSE;
     }
+    // Segments of the size given lie inside the capacity, which the divide reads with no product to wrap
+    if (args->segment_bytes > (args->capacity / args->segment_count))
+    {
+        return EMBED_FALSE;
+    }
 
     RingState *const state = ring_of(args->ring);
 
     state->buf = args->buf;
-    state->capacity = args->capacity;
+    // A capacity of one byte holds nothing, the one byte being the one always reserved: a ring given its segment
+    // size has no byte stream for a call to reach, and the bytes it lays out are the segments' alone
+    state->capacity = (args->segment_bytes != 0u) ? 1u : args->capacity;
     state->segment_count = args->segment_count;
-    state->segment_bytes = args->capacity / args->segment_count;
+    state->segment_bytes = (args->segment_bytes != 0u) ? args->segment_bytes : (args->capacity / args->segment_count);
     atomic_init(&state->head, 0u);
     atomic_init(&state->tail, 0u);
     atomic_init(&state->claimed, 0u);

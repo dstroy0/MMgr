@@ -45,6 +45,11 @@ EMBED_CALL(anularis.init, AnularisCfg, .ring = &ring, .buf = mmgr_pars_storage_r
 bytes being dressed a second time, as a cellblock, or as another ring, which would put two sets of
 records over one region with nothing at run time to report it.
 
+`.segment_bytes` gives the segments their size where the capacity divided by the count is not the size wanted. The
+capacity can then be any size that holds them, since a segment's place is its index times its size and the segment
+counters wrap by the count, which stays a power of two. Such a ring has no byte stream: `vacant` reads 0, `put` is
+refused and `read` takes nothing.
+
 Filling and draining:
 
 ```c

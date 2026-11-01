@@ -147,16 +147,17 @@ typedef struct
 /**
  * @brief Arguments for every mmgr_anular_ entry, each reading only the members it needs.
  *
- * @note Every entry but mmgr_anular_loculus_next reads ring. mmgr_anular_init reads buf, capacity and
- *       segment_count on top of it.
+ * @note Every entry but mmgr_anular_loculus_next reads ring. mmgr_anular_init reads buf, capacity,
+ *       segment_count and segment_bytes on top of it.
  * @note Members left unset are zero, and the entries that ignore them never read them.
  */
 typedef struct
 {
     mmgr_ring *const ring;      /**< Ring to act on [BORROWS]. */
     uint8_t *const buf;         /**< Ring bytes, taken by mmgr_anular_init [BORROWS]. */
-    const size_t capacity;      /**< Bytes at buf, a non-zero power of two. */
+    const size_t capacity;      /**< Bytes at buf, non-zero, a power of two where segment_bytes is unset. */
     const size_t segment_count; /**< Segments to divide the ring into, a power of two no larger than capacity. */
+    const size_t segment_bytes; /**< Bytes per segment where set, else capacity divided by segment_count. */
     uint8_t *const dst;         /**< Destination for read, read_byte and peek [BORROWS]. */
     const uint8_t *const src;   /**< Bytes put writes, or the region loculus_hold records [BORROWS]. */
     const size_t bytes;         /**< Byte count the call moves or records. */
@@ -209,6 +210,10 @@ EMBED_TABLE_LAYOUT(MemoriaAnularisNs, init, available, vacant, read_byte, read, 
  * @return             EMBED_TRUE when the ring is ready, EMBED_FALSE when a size was rejected.
  * @note Refuses a capacity or a segment_count that is 0 or not a power of two, and a segment_count
  *       above capacity.
+ * @note Given args->segment_bytes, the capacity may be any size that holds segment_count segments of it,
+ *       and the ring has segments and loculi and no byte stream: the vacant bytes read 0, a put is refused
+ *       and a read takes nothing. The segments' counters wrap by segment_count, and a segment's place is its
+ *       index times its size, and so no size needs to be a power of two.
  * @note Marks every loculus free and none pinned, and clears the recorded keepouts.
  * @warning args->ring and args->buf are both the caller's, and args->buf is kept by the ring [BORROWS].
  * @warning Neither may be null, and nothing holds them there outside a MMGR_DEBUG_CHECKS build. A null
@@ -360,7 +365,8 @@ void mmgr_anular_seg_release(const AnularisCfg *args);
  *
  * @param[in] args Ring and the segment index [BORROWS].
  * @return         Its first byte inside the ring buffer [BORROWS].
- * @note The span runs for the capacity divided by the segment_count mmgr_anular_init was given.
+ * @note The span runs for the segment size mmgr_anular_init was given, or else for the capacity divided
+ *       by the segment_count it was given.
  * @warning args->index is not checked against the segment count, and no assertion covers it. An index
  *          at or past that count returns a pointer outside the ring's bytes.
  */

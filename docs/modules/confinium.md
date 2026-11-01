@@ -68,8 +68,60 @@ and what that buys you:
 The persistent end holds what outlives a call: key material, a runtime seed, a constant a run works
 out once. The interim end holds what a call needs while it runs. A take at either end is one move of
 the boundary. A release merges the block with its free neighbors and returns a free block at the
-boundary to the free middle. A persistent take the middle cannot meet reads the chain for a free block
+boundary to the free middle. A take the middle cannot meet reads its own end's chain for a free block
 that fits.
+
+## Cells that move
+
+Movable cells are an option a program assigns once, through its guard's `movable_init`. A cellblock with no
+option takes and gives as it always does, each entry testing one word, and its `movable_buf_alloc` answers
+`NULL`. The call hands over storage for the option, the sizes, and the calls of the thread the mover runs on.
+The storage lies outside the prison, so nothing of the option pins a tier, and a pool declared at compile time
+gives it a link-time address. `MMGR_MOVABLE_STORAGE_BYTES` states what it takes.
+
+An assigned option also says the cellblock serves threads, and that makes it one room. A take the gap cannot meet
+waits its turn at the tier's moving bit in place of being refused, and reads the other tier for a free cell before it
+is refused. A persistent take can so lie in the temporary tier, where a rewind past it drops it, so a program assigning
+the option gives its cells back one at a time. A cellblock with no option refuses at once and keeps each take to its own
+tier, since the context taking may be an interrupt over the bit's holder.
+
+`movable_buf_alloc` answers a const pointer to the cell's slot in the translation table. The slot is the mutable
+word: it names where the cell stands now, with the moving bit in its low bit, and it is MMgr's alone. The pointer
+is the caller's identity for the cell, and it stands for the cell's life however often the cell moves. Nothing
+hands out the cell's address. `movable_buf_read`, `movable_buf_write`, `movable_buf_compare` and
+`movable_buf_measure` take the identity and an offset, check the span against the cell, and do the work
+themselves, and so every touch of the cell passes through MMgr. A span past the cell's end is refused.
+
+Each call goes through a turnstile. There are as many as the width the program states, which the system's
+logical processors bound, one to a cache line, and a thread starts at the one its id hashes to. A call writes the
+slot it is reaching into its turnstile, orders that ahead of its reads, reads the slot and tests the moving bit.
+A move sets the moving bit, orders that ahead of its reads, and reads every turnstile. Whichever runs second sees
+the other's write, so a cell never moves under a call. A call that finds its cell moving, or every turnstile busy,
+waits in the queue behind them, and a move is one copy long. A call is atomic against a move and not against
+another writer: two contexts writing the same bytes order themselves.
+
+Every entry that changes the cellblock passes a turnstile too, which is what makes occupancy a reading of the
+whole cellblock. A take or a give never waits for one. Where none is free it goes on, and that counts as pressure.
+
+The mover runs on the thread the program gave. Each reading compares `mmgr_cellblock_fragmentation`, the bytes the
+tiers occupy that no cell's payload holds as a percentage of the bytes they occupy, against
+`MMGR_MOVABLE_SETTLE_PERCENT`. Over it, `MMGR_MOVABLE_QUIET_READINGS` in a row must find at most half the turnstiles
+occupied. The mover then locks turnstiles one at a time, up to half of them, watching the queue at the rest. If each
+lock leaves that steady it moves cells, the highest first, each into the first free cell below it, reading the queue
+between moves. If removing a turnstile raises the pressure, it lets every lock go and doubles its wait. A sort that
+ends with nothing left to move is remembered, and is not run again until the reading rises past what it left or
+falls under the threshold first.
+
+`mmgr_movable_buf_move` is the mover's step, for a caller with no thread to give. With one turnstile there is none
+to lock while leaving one open, and occupancy decides alone.
+
+A cellblock keeps its own running total in `in_use`, counted where each owner's is. An owner's counts span every
+cellblock it takes from, and bytes that lie in no cellblock, a ring's among them, reach an owner's through
+`mmgr_owner_bytes_taken`. A thread's touches are a telemetry row, summed after the fact from turnstiles nobody
+occupies and read with `mmgr_movable_touches`; nothing decides on them.
+
+A pointer inside a movable cell to the cell's own bytes goes stale when it moves, and a cell that moves addresses
+its own bytes by offset. A host site with the option assigned is not made anew, since the mover reads its block.
 
 ## Worked example
 

@@ -18,7 +18,7 @@ include(FetchContent)
 FetchContent_Declare(
   embedded_types
   GIT_REPOSITORY https://github.com/dstroy0/embedded_types.git
-  GIT_TAG 937259ab331f714999e710dc7bb4e30306e1b341
+  GIT_TAG 557f19ddf9d3663744d9a694c08667887c92b609
   # GIT_SHALLOW with a commit hash needs the remote to serve a reachable SHA to `fetch --depth 1`.
   # github.com/dstroy0/embedded_types does, measured against this SHA. The depth stays.
   GIT_SHALLOW TRUE

@@ -1,5 +1,6 @@
 #include "verba_scribo/verba_linea.h"
 
+#include "guard_page.h"
 #include "unity.h"
 
 #include <stdint.h>
@@ -7,8 +8,6 @@
 static char s_out[300];
 static char s_handed[512];
 static size_t s_handed_size;
-static char s_small[8];
-static char s_large[64];
 
 void setUp(void)
 {
@@ -47,24 +46,6 @@ static int line_refused(void *context, const char *bytes, size_t size)
     (void)bytes;
     (void)size;
     return 0;
-}
-
-// Moves the line it is handed from s_small into s_large, what it holds kept, and refuses once there
-static int line_grown(void *context, const char *bytes, size_t size)
-{
-    VerbaLinea *const line = (VerbaLinea *)context;
-
-    if (line->out == s_large)
-    {
-        return 0;
-    }
-    for (size_t at = 0u; at < size; at++)
-    {
-        s_large[at] = bytes[at];
-    }
-    line->out = s_large;
-    line->capacity = sizeof s_large;
-    return MMGR_LINE_GROWN;
 }
 
 void test_put_n_writes_the_bytes_and_finish_terminates_them(void)
@@ -315,30 +296,297 @@ void test_a_refusing_flush_leaves_the_line_full(void)
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_line_finish(&line));
 }
 
-void test_a_grown_line_keeps_what_it_holds_and_goes_on(void)
+void test_a_write_answers_the_bytes_the_line_took(void)
 {
-    VerbaLinea line = {s_small, sizeof s_small, 0u, line_grown, NULL, 0u};
+    VerbaLinea line = line_of(8u);
 
-    line.context = &line;
-    mmgr_line_put(&line, "0123456789abcdef");
-    TEST_ASSERT_TRUE(mmgr_line_ok(&line));
-    TEST_ASSERT_EQUAL_PTR(s_large, line.out);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, line.flushed, "a grown line handed nothing on");
-    TEST_ASSERT_EQUAL_size_t(16u, mmgr_line_finish(&line));
-    TEST_ASSERT_EQUAL_STRING("0123456789abcdef", s_large);
+    TEST_ASSERT_EQUAL_size_t(2u, mmgr_line_put_n(&line, "ab", 2u));
+    TEST_ASSERT_EQUAL_size_t(1u, mmgr_line_put(&line, "c"));
+    TEST_ASSERT_EQUAL_size_t(1u, mmgr_line_put_most(&line, "de", 1u));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_line_put(&line, ""));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(3u, mmgr_line_put_n(&line, "wxyz", 4u), "the three bytes left of the room");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_line_put(&line, "more"), "a full line takes none");
+    TEST_ASSERT_EQUAL_STRING("abcdwxy", s_out);
 }
 
-void test_a_grown_line_that_cannot_grow_again_is_full(void)
+void test_a_caller_offsets_by_the_answer_and_rereads_a_chunk_into_the_same_room(void)
 {
-    VerbaLinea line = {s_small, sizeof s_small, 0u, line_grown, NULL, 0u};
-    char text[80];
+    const char *const text = "0123456789abcdef";
+    const size_t length = 16u;
+    VerbaLinea line = line_of(8u);
+    size_t done = 0u;
 
-    for (size_t at = 0u; at < (sizeof text - 1u); at++)
+    while (done < length)
     {
-        text[at] = 'z';
+        done += mmgr_line_put_n(&line, text + done, length - done);
+        for (size_t at = 0u; s_out[at] != '\0'; at++)
+        {
+            s_handed[s_handed_size] = s_out[at];
+            s_handed_size += 1u;
+        }
+        line.at = 0u;
     }
-    text[sizeof text - 1u] = '\0';
-    line.context = &line;
-    mmgr_line_put(&line, text);
+    TEST_ASSERT_EQUAL_size_t(length, s_handed_size);
+    TEST_ASSERT_EQUAL_STRING_LEN(text, s_handed, length);
+}
+
+void test_a_refused_flush_answers_the_bytes_the_line_holds(void)
+{
+    VerbaLinea line = {s_out, 4u, 0u, line_refused, NULL, 0u};
+
+    TEST_ASSERT_EQUAL_size_t(3u, mmgr_line_put(&line, "more than four"));
+    TEST_ASSERT_EQUAL_STRING("mor", s_out);
+}
+
+void test_a_flush_takes_the_whole_of_a_text_and_answers_all_of_it(void)
+{
+    VerbaLinea line = {s_out, 8u, 0u, line_handed, NULL, 0u};
+
+    TEST_ASSERT_EQUAL_size_t(53u, mmgr_line_put(&line, "a text far longer than the eight bytes the line holds"));
+    TEST_ASSERT_TRUE(mmgr_line_ok(&line));
+}
+
+void test_every_write_leaves_the_line_terminated(void)
+{
+    VerbaLinea line = line_of(32u);
+
+    mmgr_line_put(&line, "ab");
+    TEST_ASSERT_EQUAL_STRING("ab", s_out);
+    mmgr_line_put_n(&line, "cdef", 1u);
+    TEST_ASSERT_EQUAL_STRING("abc", s_out);
+    mmgr_line_ch(&line, 'd');
+    TEST_ASSERT_EQUAL_STRING("abcd", s_out);
+    mmgr_line_decimal(&line, 5u, 1u);
+    TEST_ASSERT_EQUAL_STRING("abcd5", s_out);
+    mmgr_line_hex(&line, 15u, 1u);
+    TEST_ASSERT_EQUAL_STRING("abcd5f", s_out);
+    mmgr_line_decimal_signed(&line, -1);
+    TEST_ASSERT_EQUAL_STRING("abcd5f-1", s_out);
+    mmgr_line_put_columns(&line, "x", 2u);
+    TEST_ASSERT_EQUAL_STRING("abcd5f-1x ", s_out);
+    mmgr_line_decimal_columns(&line, 7u, 2u);
+    TEST_ASSERT_EQUAL_STRING("abcd5f-1x  7", s_out);
+    mmgr_line_put_most(&line, "yz", 1u);
+    TEST_ASSERT_EQUAL_STRING("abcd5f-1x  7y", s_out);
+}
+
+void test_a_write_of_nothing_terminates_the_line(void)
+{
+    VerbaLinea line = line_of(8u);
+
+    mmgr_line_put_n(&line, "x", 0u);
+    TEST_ASSERT_EQUAL_STRING("", s_out);
+    s_out[0] = 0x7F;
+    mmgr_line_put(&line, "");
+    TEST_ASSERT_EQUAL_STRING("", s_out);
+}
+
+void test_a_text_that_fills_the_room_exactly_is_terminated_inside_the_line(void)
+{
+    VerbaLinea line = line_of(8u);
+
+    mmgr_line_put(&line, "1234567");
+    TEST_ASSERT_TRUE(mmgr_line_ok(&line));
+    TEST_ASSERT_EQUAL_STRING("1234567", s_out);
+    TEST_ASSERT_EQUAL_CHAR(0x7F, s_out[8]);
+}
+
+void test_a_text_past_the_room_keeps_what_fits_terminated(void)
+{
+    VerbaLinea line = line_of(8u);
+
+    mmgr_line_put(&line, "abc");
+    mmgr_line_put(&line, "defghij");
+    TEST_ASSERT_EQUAL_STRING("abcdefg", s_out);
+    TEST_ASSERT_EQUAL_CHAR(0x7F, s_out[8]);
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_line_ok(&line), "a truncated line reads as full");
+    TEST_ASSERT_EQUAL_size_t(8u, line.at);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_line_finish(&line), "a truncated line finishes at no length");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("abcdefg", s_out, "and its finish leaves it as it was");
+}
+
+void test_bytes_past_the_room_keep_what_fits_terminated(void)
+{
+    VerbaLinea line = line_of(8u);
+
+    mmgr_line_put_n(&line, "abcdefghij", 10u);
+    TEST_ASSERT_EQUAL_STRING("abcdefg", s_out);
+    TEST_ASSERT_EQUAL_CHAR(0x7F, s_out[8]);
     TEST_ASSERT_FALSE(mmgr_line_ok(&line));
+}
+
+void test_a_number_past_the_room_keeps_what_fits_terminated(void)
+{
+    VerbaLinea line = line_of(4u);
+
+    mmgr_line_decimal(&line, 12345u, 1u);
+    TEST_ASSERT_EQUAL_STRING("123", s_out);
+    TEST_ASSERT_EQUAL_CHAR(0x7F, s_out[4]);
+    TEST_ASSERT_FALSE(mmgr_line_ok(&line));
+}
+
+void test_a_full_line_stays_as_it_filled(void)
+{
+    VerbaLinea line = line_of(4u);
+
+    mmgr_line_put(&line, "toolong");
+    mmgr_line_ch(&line, 'x');
+    mmgr_line_decimal(&line, 7u, 1u);
+    mmgr_line_put_n(&line, "yz", 2u);
+    TEST_ASSERT_EQUAL_STRING("too", s_out);
+    TEST_ASSERT_EQUAL_size_t(4u, line.at);
+}
+
+void test_a_line_of_one_byte_holds_the_terminator_alone(void)
+{
+    VerbaLinea line = line_of(1u);
+
+    mmgr_line_put(&line, "a");
+    TEST_ASSERT_EQUAL_CHAR('\0', s_out[0]);
+    TEST_ASSERT_EQUAL_CHAR(0x7F, s_out[1]);
+    TEST_ASSERT_FALSE(mmgr_line_ok(&line));
+}
+
+void test_a_line_of_no_bytes_stores_nothing(void)
+{
+    VerbaLinea line = {NULL, 0u, 0u, NULL, NULL, 0u};
+
+    mmgr_line_put(&line, "a");
+    mmgr_line_put_n(&line, "b", 1u);
+    mmgr_line_ch(&line, 'c');
+    mmgr_line_decimal(&line, 7u, 1u);
+    TEST_ASSERT_FALSE(mmgr_line_ok(&line));
+    TEST_ASSERT_EQUAL_size_t(0u, line.at);
+}
+
+void test_a_line_with_a_flush_stays_terminated_as_it_hands_on(void)
+{
+    VerbaLinea line = {s_out, 8u, 0u, line_handed, NULL, 0u};
+
+    mmgr_line_put(&line, "a text far longer than the eight bytes the line holds");
+    TEST_ASSERT_TRUE(mmgr_line_ok(&line));
+    TEST_ASSERT_EQUAL_CHAR('\0', s_out[line.at]);
+    TEST_ASSERT_TRUE(mmgr_line_flush(&line));
+    TEST_ASSERT_EQUAL_size_t(0u, line.at);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("", s_out, "a line flushed empty reads as empty");
+}
+
+void test_a_refusing_flush_leaves_the_line_terminated(void)
+{
+    VerbaLinea line = {s_out, 4u, 0u, line_refused, NULL, 0u};
+
+    mmgr_line_put(&line, "more than four");
+    TEST_ASSERT_EQUAL_STRING("mor", s_out);
+    TEST_ASSERT_EQUAL_CHAR(0x7F, s_out[4]);
+    TEST_ASSERT_FALSE(mmgr_line_ok(&line));
+}
+
+// Whether capacity bytes of s_out hold a terminator and the byte past them is as setUp left it
+static int line_terminated_within(size_t capacity)
+{
+    int terminated = 0;
+
+    for (size_t at = 0u; (at < capacity) && !terminated; at++)
+    {
+        terminated = (s_out[at] == '\0');
+    }
+    return terminated && (s_out[capacity] == 0x7F);
+}
+
+// The entry of the place named written over the line, twice, with more than any line below holds
+static void line_entry_written(VerbaLinea *line, unsigned int place)
+{
+    static const char s_long[] = "a text longer than the most bytes any line below holds";
+
+    for (unsigned int round = 0u; round < 2u; round++)
+    {
+        switch (place)
+        {
+        case 0u:
+            mmgr_line_put(line, s_long);
+            break;
+        case 1u:
+            mmgr_line_put_n(line, s_long, sizeof s_long - 1u);
+            break;
+        case 2u:
+            mmgr_line_put_most(line, s_long, sizeof s_long);
+            break;
+        case 3u:
+            mmgr_line_put_columns(line, s_long, 80u);
+            break;
+        case 4u:
+            mmgr_line_decimal(line, UINT64_MAX, 40u);
+            break;
+        case 5u:
+            mmgr_line_decimal_columns(line, UINT64_MAX, 40u);
+            break;
+        case 6u:
+            mmgr_line_decimal_signed(line, INT64_MIN);
+            break;
+        case 7u:
+            mmgr_line_hex(line, UINT64_MAX, 40u);
+            break;
+        default:
+            for (unsigned int count = 0u; count < 40u; count++)
+            {
+                mmgr_line_ch(line, 'x');
+            }
+            break;
+        }
+    }
+}
+
+void test_no_entry_leaves_a_line_of_any_capacity_unterminated(void)
+{
+    for (size_t capacity = 1u; capacity <= 32u; capacity++)
+    {
+        for (unsigned int place = 0u; place < 9u; place++)
+        {
+            setUp();
+            VerbaLinea line = line_of(capacity);
+
+            line_entry_written(&line, place);
+            TEST_ASSERT_TRUE_MESSAGE(line_terminated_within(capacity),
+                                     "a line holds a terminator inside its capacity and stores nothing past it");
+        }
+    }
+}
+
+void test_a_line_over_a_buffer_writes_into_it(void)
+{
+    char out[8] = "";
+    VerbaLinea line = mmgr_line_over(out, sizeof out);
+
+    TEST_ASSERT_EQUAL_size_t(sizeof out, line.capacity);
+    TEST_ASSERT_EQUAL_size_t(3u, mmgr_line_put(&line, "abc"));
+    TEST_ASSERT_EQUAL_size_t(3u, mmgr_line_finish(&line));
+    TEST_ASSERT_EQUAL_STRING("abc", out);
+}
+
+void test_a_line_over_no_buffer_has_no_capacity_and_stores_nothing(void)
+{
+    VerbaLinea line = mmgr_line_over(NULL, 64u);
+
+    TEST_ASSERT_EQUAL_size_t(0u, line.capacity);
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_line_put(&line, "abc"));
+    mmgr_line_ch(&line, 'x');
+    mmgr_line_decimal(&line, 7u, 1u);
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_line_finish(&line));
+}
+
+void test_a_full_line_at_the_end_of_a_page_stores_nothing_past_it(void)
+{
+    if (!mmgr_guard_available())
+    {
+        TEST_IGNORE_MESSAGE("no guard page on this host");
+    }
+    char *const out = (char *)mmgr_guard_run() + mmgr_guard_page_size() - 8u;
+    VerbaLinea line = {out, 8u, 0u, NULL, NULL, 0u};
+
+    mmgr_line_put(&line, "far past the eight bytes the end of the page holds");
+    mmgr_line_ch(&line, 'x');
+    mmgr_line_decimal(&line, 7u, 1u);
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_line_finish(&line));
+    TEST_ASSERT_EQUAL_CHAR('\0', out[7]);
+    TEST_ASSERT_EQUAL_STRING("far pas", out);
 }

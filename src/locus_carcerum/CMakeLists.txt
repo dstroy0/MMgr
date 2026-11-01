@@ -6,4 +6,6 @@
 
 mmgr_add_module(locus_carcerum
   SOURCES locus_carcerum.c
+  DEPS
+    memoria_operor
 )

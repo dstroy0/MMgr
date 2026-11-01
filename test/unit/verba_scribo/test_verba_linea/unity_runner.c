@@ -3,6 +3,7 @@
 /*=======Automagically Detected Files To Include=====*/
 #include "unity.h"
 #include "verba_scribo/verba_linea.h"
+#include "guard_page.h"
 #include <stdint.h>
 
 /*=======External Functions This Runner Calls=====*/
@@ -31,8 +32,25 @@ extern void test_a_line_with_a_flush_hands_a_long_text_on_as_it_fills(void);
 extern void test_numbers_and_padding_cross_a_flush(void);
 extern void test_a_line_of_one_byte_with_a_flush_fills_rather_than_handing_nothing_on(void);
 extern void test_a_refusing_flush_leaves_the_line_full(void);
-extern void test_a_grown_line_keeps_what_it_holds_and_goes_on(void);
-extern void test_a_grown_line_that_cannot_grow_again_is_full(void);
+extern void test_a_write_answers_the_bytes_the_line_took(void);
+extern void test_a_caller_offsets_by_the_answer_and_rereads_a_chunk_into_the_same_room(void);
+extern void test_a_refused_flush_answers_the_bytes_the_line_holds(void);
+extern void test_a_flush_takes_the_whole_of_a_text_and_answers_all_of_it(void);
+extern void test_every_write_leaves_the_line_terminated(void);
+extern void test_a_write_of_nothing_terminates_the_line(void);
+extern void test_a_text_that_fills_the_room_exactly_is_terminated_inside_the_line(void);
+extern void test_a_text_past_the_room_keeps_what_fits_terminated(void);
+extern void test_bytes_past_the_room_keep_what_fits_terminated(void);
+extern void test_a_number_past_the_room_keeps_what_fits_terminated(void);
+extern void test_a_full_line_stays_as_it_filled(void);
+extern void test_a_line_of_one_byte_holds_the_terminator_alone(void);
+extern void test_a_line_of_no_bytes_stores_nothing(void);
+extern void test_a_line_with_a_flush_stays_terminated_as_it_hands_on(void);
+extern void test_a_refusing_flush_leaves_the_line_terminated(void);
+extern void test_no_entry_leaves_a_line_of_any_capacity_unterminated(void);
+extern void test_a_line_over_a_buffer_writes_into_it(void);
+extern void test_a_line_over_no_buffer_has_no_capacity_and_stores_nothing(void);
+extern void test_a_full_line_at_the_end_of_a_page_stores_nothing_past_it(void);
 
 
 /*=======Mock Management=====*/
@@ -94,31 +112,48 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("test/unit/verba_scribo/test_verba_linea\\test_verba_linea.c");
-  run_test(test_put_n_writes_the_bytes_and_finish_terminates_them, "test_put_n_writes_the_bytes_and_finish_terminates_them", 70);
-  run_test(test_a_byte_is_held_back_for_the_terminator, "test_a_byte_is_held_back_for_the_terminator", 80);
-  run_test(test_a_write_past_the_room_fills_a_line_with_no_flush, "test_a_write_past_the_room_fills_a_line_with_no_flush", 91);
-  run_test(test_a_full_line_takes_no_more, "test_a_full_line_takes_no_more", 102);
-  run_test(test_put_measures_a_terminated_text, "test_put_measures_a_terminated_text", 113);
-  run_test(test_put_most_writes_at_most_its_count, "test_put_most_writes_at_most_its_count", 123);
-  run_test(test_put_columns_pads_with_spaces_after_the_text, "test_put_columns_pads_with_spaces_after_the_text", 133);
-  run_test(test_put_columns_pads_past_one_run_of_spaces, "test_put_columns_pads_past_one_run_of_spaces", 144);
-  run_test(test_ch_writes_one_character, "test_ch_writes_one_character", 159);
-  run_test(test_decimal_pads_with_zeros_to_its_fewest_digits, "test_decimal_pads_with_zeros_to_its_fewest_digits", 168);
-  run_test(test_decimal_holds_its_fewest_digits_at_255, "test_decimal_holds_its_fewest_digits_at_255", 181);
-  run_test(test_decimal_columns_aligns_right_with_spaces, "test_decimal_columns_aligns_right_with_spaces", 191);
-  run_test(test_decimal_columns_holds_its_columns_at_255, "test_decimal_columns_holds_its_columns_at_255", 202);
-  run_test(test_decimal_signed_writes_the_sign_and_the_magnitude, "test_decimal_signed_writes_the_sign_and_the_magnitude", 212);
-  run_test(test_hex_writes_lower_case_padded_to_its_fewest_digits, "test_hex_writes_lower_case_padded_to_its_fewest_digits", 225);
-  run_test(test_a_number_that_does_not_fit_fills_the_line, "test_a_number_that_does_not_fit_fills_the_line", 238);
-  run_test(test_flush_on_a_line_with_no_flush_refuses, "test_flush_on_a_line_with_no_flush_refuses", 246);
-  run_test(test_flush_hands_what_the_line_holds_and_empties_it, "test_flush_hands_what_the_line_holds_and_empties_it", 255);
-  run_test(test_flush_on_a_full_line_refuses, "test_flush_on_a_full_line_refuses", 267);
-  run_test(test_a_line_with_a_flush_hands_a_long_text_on_as_it_fills, "test_a_line_with_a_flush_hands_a_long_text_on_as_it_fills", 275);
-  run_test(test_numbers_and_padding_cross_a_flush, "test_numbers_and_padding_cross_a_flush", 288);
-  run_test(test_a_line_of_one_byte_with_a_flush_fills_rather_than_handing_nothing_on, "test_a_line_of_one_byte_with_a_flush_fills_rather_than_handing_nothing_on", 300);
-  run_test(test_a_refusing_flush_leaves_the_line_full, "test_a_refusing_flush_leaves_the_line_full", 309);
-  run_test(test_a_grown_line_keeps_what_it_holds_and_goes_on, "test_a_grown_line_keeps_what_it_holds_and_goes_on", 318);
-  run_test(test_a_grown_line_that_cannot_grow_again_is_full, "test_a_grown_line_that_cannot_grow_again_is_full", 331);
+  run_test(test_put_n_writes_the_bytes_and_finish_terminates_them, "test_put_n_writes_the_bytes_and_finish_terminates_them", 51);
+  run_test(test_a_byte_is_held_back_for_the_terminator, "test_a_byte_is_held_back_for_the_terminator", 61);
+  run_test(test_a_write_past_the_room_fills_a_line_with_no_flush, "test_a_write_past_the_room_fills_a_line_with_no_flush", 72);
+  run_test(test_a_full_line_takes_no_more, "test_a_full_line_takes_no_more", 83);
+  run_test(test_put_measures_a_terminated_text, "test_put_measures_a_terminated_text", 94);
+  run_test(test_put_most_writes_at_most_its_count, "test_put_most_writes_at_most_its_count", 104);
+  run_test(test_put_columns_pads_with_spaces_after_the_text, "test_put_columns_pads_with_spaces_after_the_text", 114);
+  run_test(test_put_columns_pads_past_one_run_of_spaces, "test_put_columns_pads_past_one_run_of_spaces", 125);
+  run_test(test_ch_writes_one_character, "test_ch_writes_one_character", 140);
+  run_test(test_decimal_pads_with_zeros_to_its_fewest_digits, "test_decimal_pads_with_zeros_to_its_fewest_digits", 149);
+  run_test(test_decimal_holds_its_fewest_digits_at_255, "test_decimal_holds_its_fewest_digits_at_255", 162);
+  run_test(test_decimal_columns_aligns_right_with_spaces, "test_decimal_columns_aligns_right_with_spaces", 172);
+  run_test(test_decimal_columns_holds_its_columns_at_255, "test_decimal_columns_holds_its_columns_at_255", 183);
+  run_test(test_decimal_signed_writes_the_sign_and_the_magnitude, "test_decimal_signed_writes_the_sign_and_the_magnitude", 193);
+  run_test(test_hex_writes_lower_case_padded_to_its_fewest_digits, "test_hex_writes_lower_case_padded_to_its_fewest_digits", 206);
+  run_test(test_a_number_that_does_not_fit_fills_the_line, "test_a_number_that_does_not_fit_fills_the_line", 219);
+  run_test(test_flush_on_a_line_with_no_flush_refuses, "test_flush_on_a_line_with_no_flush_refuses", 227);
+  run_test(test_flush_hands_what_the_line_holds_and_empties_it, "test_flush_hands_what_the_line_holds_and_empties_it", 236);
+  run_test(test_flush_on_a_full_line_refuses, "test_flush_on_a_full_line_refuses", 248);
+  run_test(test_a_line_with_a_flush_hands_a_long_text_on_as_it_fills, "test_a_line_with_a_flush_hands_a_long_text_on_as_it_fills", 256);
+  run_test(test_numbers_and_padding_cross_a_flush, "test_numbers_and_padding_cross_a_flush", 269);
+  run_test(test_a_line_of_one_byte_with_a_flush_fills_rather_than_handing_nothing_on, "test_a_line_of_one_byte_with_a_flush_fills_rather_than_handing_nothing_on", 281);
+  run_test(test_a_refusing_flush_leaves_the_line_full, "test_a_refusing_flush_leaves_the_line_full", 290);
+  run_test(test_a_write_answers_the_bytes_the_line_took, "test_a_write_answers_the_bytes_the_line_took", 299);
+  run_test(test_a_caller_offsets_by_the_answer_and_rereads_a_chunk_into_the_same_room, "test_a_caller_offsets_by_the_answer_and_rereads_a_chunk_into_the_same_room", 312);
+  run_test(test_a_refused_flush_answers_the_bytes_the_line_holds, "test_a_refused_flush_answers_the_bytes_the_line_holds", 333);
+  run_test(test_a_flush_takes_the_whole_of_a_text_and_answers_all_of_it, "test_a_flush_takes_the_whole_of_a_text_and_answers_all_of_it", 341);
+  run_test(test_every_write_leaves_the_line_terminated, "test_every_write_leaves_the_line_terminated", 349);
+  run_test(test_a_write_of_nothing_terminates_the_line, "test_a_write_of_nothing_terminates_the_line", 373);
+  run_test(test_a_text_that_fills_the_room_exactly_is_terminated_inside_the_line, "test_a_text_that_fills_the_room_exactly_is_terminated_inside_the_line", 384);
+  run_test(test_a_text_past_the_room_keeps_what_fits_terminated, "test_a_text_past_the_room_keeps_what_fits_terminated", 394);
+  run_test(test_bytes_past_the_room_keep_what_fits_terminated, "test_bytes_past_the_room_keep_what_fits_terminated", 408);
+  run_test(test_a_number_past_the_room_keeps_what_fits_terminated, "test_a_number_past_the_room_keeps_what_fits_terminated", 418);
+  run_test(test_a_full_line_stays_as_it_filled, "test_a_full_line_stays_as_it_filled", 428);
+  run_test(test_a_line_of_one_byte_holds_the_terminator_alone, "test_a_line_of_one_byte_holds_the_terminator_alone", 440);
+  run_test(test_a_line_of_no_bytes_stores_nothing, "test_a_line_of_no_bytes_stores_nothing", 450);
+  run_test(test_a_line_with_a_flush_stays_terminated_as_it_hands_on, "test_a_line_with_a_flush_stays_terminated_as_it_hands_on", 462);
+  run_test(test_a_refusing_flush_leaves_the_line_terminated, "test_a_refusing_flush_leaves_the_line_terminated", 474);
+  run_test(test_no_entry_leaves_a_line_of_any_capacity_unterminated, "test_no_entry_leaves_a_line_of_any_capacity_unterminated", 539);
+  run_test(test_a_line_over_a_buffer_writes_into_it, "test_a_line_over_a_buffer_writes_into_it", 555);
+  run_test(test_a_line_over_no_buffer_has_no_capacity_and_stores_nothing, "test_a_line_over_no_buffer_has_no_capacity_and_stores_nothing", 566);
+  run_test(test_a_full_line_at_the_end_of_a_page_stores_nothing_past_it, "test_a_full_line_at_the_end_of_a_page_stores_nothing_past_it", 577);
 
   return UNITY_END();
 }

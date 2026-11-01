@@ -22,6 +22,10 @@ extern void test_hold_takes_a_loculus_and_drop_returns_it(void);
 extern void test_hold_refuses_a_loculus_that_does_not_exist(void);
 extern void test_segments_publish_and_release_in_order(void);
 extern void test_seg_at_walks_the_buffer(void);
+extern void test_a_ring_over_a_pool_the_system_gives_hands_its_two_segments_back_and_forth(void);
+extern void test_a_ring_given_its_segment_size_hands_out_segments_of_that_size(void);
+extern void test_a_ring_given_its_segment_size_streams_no_bytes(void);
+extern void test_a_segment_size_the_capacity_cannot_hold_is_refused(void);
 
 
 /*=======Mock Management=====*/
@@ -104,6 +108,10 @@ int main(void)
   run_test(test_hold_refuses_a_loculus_that_does_not_exist, "test_hold_refuses_a_loculus_that_does_not_exist", 232);
   run_test(test_segments_publish_and_release_in_order, "test_segments_publish_and_release_in_order", 241);
   run_test(test_seg_at_walks_the_buffer, "test_seg_at_walks_the_buffer", 268);
+  run_test(test_a_ring_over_a_pool_the_system_gives_hands_its_two_segments_back_and_forth, "test_a_ring_over_a_pool_the_system_gives_hands_its_two_segments_back_and_forth", 285);
+  run_test(test_a_ring_given_its_segment_size_hands_out_segments_of_that_size, "test_a_ring_given_its_segment_size_hands_out_segments_of_that_size", 307);
+  run_test(test_a_ring_given_its_segment_size_streams_no_bytes, "test_a_ring_given_its_segment_size_streams_no_bytes", 331);
+  run_test(test_a_segment_size_the_capacity_cannot_hold_is_refused, "test_a_segment_size_the_capacity_cannot_hold_is_refused", 347);
 
   return UNITY_END();
 }

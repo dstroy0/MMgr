@@ -13,6 +13,8 @@
  * @note Every write comes down to mmgr_line_put_n, which places each piece through verba_textus.put_n
  *       and hands the line to its flush between pieces. A number is written into a buffer of its own
  *       first, and so its digits cross a flush the way a text does.
+ * @note Every write ends by storing the terminator, one store it pays for on every call, and so a
+ *       written line's buffer is always a terminated text.
  */
 #include "verba_scribo/verba_linea.h"
 #include "cellularum_laboro/cellularum_laboro.h"
@@ -39,6 +41,31 @@
 static const char s_linea_spaces[LINEA_SPACES + 1u] = "                                ";
 
 /**
+ * @brief Stores the terminator: at at while the line has room, in its last byte once a write did not fit.
+ *
+ * @param[in] line The line [BORROWS].
+ * @note A line of no bytes has nowhere to store one.
+ */
+EMBED_INLINE void linea_terminated(const VerbaLinea *line)
+{
+    if (line->capacity > 0u)
+    {
+        line->out[(line->at < line->capacity) ? line->at : (line->capacity - 1u)] = '\0';
+    }
+}
+
+/**
+ * @brief Marks the line full, what it holds terminated in its last byte.
+ *
+ * @param[in,out] line The line [BORROWS].
+ */
+EMBED_INLINE void linea_filled(VerbaLinea *line)
+{
+    line->at = line->capacity;
+    linea_terminated(line);
+}
+
+/**
  * @brief Puts the written digits of a number on the line.
  *
  * @param[in,out] line    The line [BORROWS].
@@ -49,10 +76,10 @@ EMBED_INLINE void linea_number(VerbaLinea *line, const char *digits, size_t writ
 {
     if (written >= LINEA_DIGITS)
     {
-        line->at = line->capacity;
+        linea_filled(line);
         return;
     }
-    mmgr_line_put_n(line, digits, written);
+    (void)mmgr_line_put_n(line, digits, written);
 }
 
 /**
@@ -67,6 +94,12 @@ EMBED_INLINE uint8_t linea_least(unsigned int count)
     return (uint8_t)((count < LINEA_LEAST_MOST) ? count : LINEA_LEAST_MOST);
 }
 
+VerbaLinea mmgr_line_over(char *out, size_t capacity)
+{
+    const VerbaLinea line = {out, (out != NULL) ? capacity : 0u, 0u, NULL, NULL, 0u};
+    return line;
+}
+
 embed_bool mmgr_line_flush(VerbaLinea *line)
 {
     if ((line->flush == NULL) || (line->at >= line->capacity))
@@ -77,24 +110,22 @@ embed_bool mmgr_line_flush(VerbaLinea *line)
 
     if (handed == 0)
     {
-        line->at = line->capacity;
+        linea_filled(line);
         return EMBED_FALSE;
     }
-    if (handed != MMGR_LINE_GROWN)
-    {
-        line->flushed += line->at;
-        line->at = 0u;
-    }
+    line->flushed += line->at;
+    line->at = 0u;
+    linea_terminated(line);
     return EMBED_TRUE;
 }
 
-void mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
+size_t mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
 {
     // A line of fewer than two bytes holds none past its terminator, and a flush could never empty it into room
     if ((length > 0u) && (line->capacity < 2u))
     {
-        line->at = line->capacity;
-        return;
+        linea_filled(line);
+        return 0u;
     }
     size_t done = 0u;
 
@@ -103,22 +134,23 @@ void mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
         // A byte of the line is reserved for the terminator, as verba holds it
         const size_t room = (line->at < line->capacity) ? (line->capacity - line->at - 1u) : 0u;
         const size_t left = length - done;
-
-        if ((left > room) && (line->flush == NULL))
-        {
-            line->at = line->capacity;
-            return;
-        }
         const size_t piece = (left < room) ? left : room;
 
         line->at = EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = line->out, .cap = line->capacity,
                               .at = line->at, .text = text + done, .text_len = piece);
         done += piece;
+        if ((done < length) && (line->flush == NULL))
+        {
+            linea_filled(line);
+            return done;
+        }
         if ((done < length) && !mmgr_line_flush(line))
         {
-            return;
+            return done;
         }
     }
+    linea_terminated(line);
+    return done;
 }
 
 /**
@@ -126,15 +158,14 @@ void mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
  *
  * @param[in,out] line The line [BORROWS].
  * @param[in]     text Terminated text [BORROWS].
- * @return             Bytes of text written, 0 where the line filled.
+ * @return             Bytes of text the line took, handed on included.
  * @note Each piece is measured as far as one byte past what the room takes, and so the text is read no
  *       further than its terminator or the room, whichever comes first, and needs no bound of its own.
  * @note A piece reaching the room's last byte goes on a line with a flush and is handed on before the
- *       next is measured. On a line with none it fills the line.
+ *       next is measured. On a line with none it fills the line, what fits written.
  */
 EMBED_INLINE size_t linea_streamed(VerbaLinea *line, const char *text)
 {
-    const size_t start = line->flushed + line->at;
     size_t done = 0u;
 
     for (;;)
@@ -143,38 +174,36 @@ EMBED_INLINE size_t linea_streamed(VerbaLinea *line, const char *text)
 
         if (room == 0u)
         {
-            return 0u;
+            return done;
         }
         const size_t length = EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = text + done, .cap = room);
 
         if (length < room)
         {
-            mmgr_line_put_n(line, text + done, length);
-            return (line->flushed + line->at) - start;
+            return done + mmgr_line_put_n(line, text + done, length);
         }
         // The rest runs to the room's last byte or past it, and that byte is the terminator's
         if ((line->flush == NULL) || (line->capacity < 2u))
         {
-            line->at = line->capacity;
-            return 0u;
+            return done + mmgr_line_put_n(line, text + done, room);
         }
-        mmgr_line_put_n(line, text + done, room - 1u);
+        (void)mmgr_line_put_n(line, text + done, room - 1u);
         done += room - 1u;
         if (!mmgr_line_flush(line))
         {
-            return 0u;
+            return done;
         }
     }
 }
 
-void mmgr_line_put(VerbaLinea *line, const char *text)
+size_t mmgr_line_put(VerbaLinea *line, const char *text)
 {
-    (void)linea_streamed(line, text);
+    return linea_streamed(line, text);
 }
 
-void mmgr_line_put_most(VerbaLinea *line, const char *text, size_t most)
+size_t mmgr_line_put_most(VerbaLinea *line, const char *text, size_t most)
 {
-    mmgr_line_put_n(line, text, EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = text, .cap = most));
+    return mmgr_line_put_n(line, text, EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = text, .cap = most));
 }
 
 void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int columns)
@@ -185,14 +214,14 @@ void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int colu
     {
         const size_t run = (pad < LINEA_SPACES) ? pad : LINEA_SPACES;
 
-        mmgr_line_put_n(line, s_linea_spaces, run);
+        (void)mmgr_line_put_n(line, s_linea_spaces, run);
         pad -= run;
     }
 }
 
 void mmgr_line_ch(VerbaLinea *line, char character)
 {
-    mmgr_line_put_n(line, &character, 1u);
+    (void)mmgr_line_put_n(line, &character, 1u);
 }
 
 void mmgr_line_decimal(VerbaLinea *line, uint64_t value, unsigned int digits_least)

@@ -197,6 +197,20 @@
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) == name_##_bytes, #name_ " is not the size it was declared")
 
 /**
+ * @brief Declares a pool whose bytes the system gives at run time: its name, with no storage and no size.
+ *
+ * @param[in] name_ Name the pool is reached by.
+ * @note The program asks the system for the bytes once, at the size it finds it needs, and hands them to the
+ *       dresser. MemoriaAnularis over this pool gives a ring whose address the linker settles, whose state
+ *       names the bytes wherever the system put them.
+ * @note For bytes that must come from the system: a graphics device placing a buffer over them opens the
+ *       allocation they are, which an array in the program's image is not.
+ */
+#define ParsMemoriaeHospes(name_)                                                                                      \
+    MMGR_PARS_DECLARED_ONCE(name_);                                                                                    \
+    MMGR_PARS_TOKEN(name_)
+
+/**
  * @brief Declares a pool of bytes in external memory.
  *
  * @param[in] name_  Name the pool is reached by, which is also the array.

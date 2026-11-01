@@ -64,18 +64,23 @@ mmgr_line_hex(&line, addr, 8u);
 const size_t len = mmgr_line_finish(&line);
 ```
 
-A line with no flush behaves as the writers above do: a write that does not fit leaves it full and
-`finish` reports zero. A line with a flush hands what it holds to the flush as it fills and goes on,
-and a text of any length passes through a buffer of any size. A flush answers 1 where it took the
-bytes, `MMGR_LINE_GROWN` where it moved the line into a larger buffer holding them still, and 0
-where it refused, which leaves the line full. `mmgr_line_put` reads its text a room at a time and
-never past the terminator, and so it needs no bound on the text's length.
+Every write leaves the buffer terminated, one store paid on every call, and so a written line whose
+buffer holds no terminator has been corrupted by something other than the line. A line with no flush
+behaves as `snprintf` does: a write that does not fit keeps what fits, terminated in the last byte,
+leaves the line full, and `finish` reports zero. `mmgr_line_put`, `mmgr_line_put_n` and
+`mmgr_line_put_most` answer the bytes of the text the line took, and so a caller that sees fewer than
+the text holds goes on from `text + taken`, in the same buffer with `at` set to zero once those bytes are read. A line with a flush hands what it
+holds to the flush as it fills and goes on, and a text of any length passes through a buffer of any
+size. A flush answers 1 where it took the bytes and 0 where it refused, which leaves the line full. `mmgr_line_put`
+reads its text a room at a time and never past the terminator, and so it needs no bound on the
+text's length.
 
 | job       | entries                                                                  |
 | --------- | ------------------------------------------------------------------------ |
 | raw text  | `mmgr_line_put`, `mmgr_line_put_n`, `mmgr_line_put_most`, `mmgr_line_ch` |
 | columns   | `mmgr_line_put_columns`, `mmgr_line_decimal_columns`                     |
 | numbers   | `mmgr_line_decimal`, `mmgr_line_decimal_signed`, `mmgr_line_hex`         |
+| making    | `mmgr_line_over`                                                         |
 | finishing | `mmgr_line_flush`, `mmgr_line_finish`, `mmgr_line_ok`                    |
 
 ## Gotchas

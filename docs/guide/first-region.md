@@ -27,9 +27,9 @@ share a name.
 `MMGR_MINIMUM_SECURITY` and `MMGR_MAXIMUM_SECURITY` pick which guards hold a cellblock, and the
 choice is settled at the declaration: "The warden is const, so nothing after the declaration can
 change the level a cellblock runs at" (`src/locus_carcerum/locus_carcerum.h:24`). The two guard types
-declare the same nine entries under different behavior, and `prison.keys` has no unzeroed release to
+declare the same sixteen entries under different behavior, and `prison.keys` has no unzeroed release to
 reach for and `prison.work` has no zeroing one
-(`src/locus_carcerum/locus_carcerum.h:115`, `src/locus_carcerum/locus_carcerum.h:139`).
+(`src/locus_carcerum/locus_carcerum.h:436`, `src/locus_carcerum/locus_carcerum.h:477`).
 
 ## Two tiers
 
@@ -52,8 +52,8 @@ through `prison.work.persistent_buf_release`; the temporary tier takes a whole r
 - **temporary** is the working space for one operation. Give the cell back when the operation ends.
   See @ref concept_ownership.
 
-The two tiers grow toward each other out of the same gap, and a request the gap cannot meet returns
-`NULL`: "Fails closed. A request the gap cannot meet moves no boundary at all"
+The two tiers grow toward each other out of the same gap, and a request neither the gap nor a free
+cell of its tier can meet returns `NULL`: "Fails closed. A request the gap cannot meet moves no boundary at all"
 (`src/locus_carcerum/locus_carcerum.c:384`).
 
 ```c

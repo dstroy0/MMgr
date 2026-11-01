@@ -5,7 +5,7 @@ Zero-heap memory manager in C11.
 You declare a pool: a block of bytes, whose placement is settled by which declaration you write.
 `LocusCarcerum` dresses a pool as a cellblock, and a cellblock hands out cells from both ends. The
 persistent tier grows up from base, the temporary tier grows down from size, and the gap between them
-is what either can still take. An allocation the gap cannot meet returns NULL and moves no boundary.
+is what either can still take. An allocation neither the gap nor a free cell of its tier can meet returns NULL and moves no boundary.
 Spans are bounded views over cells, and rings move bytes between one producer and one consumer.
 
 Nothing calls `malloc`. Every size is fixed before the program runs. The footprint is a number you
