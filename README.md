@@ -84,8 +84,8 @@ Latin names, because they were carved out of a larger tree and the short English
 
 ## Building it
 
-The first configure reaches the network: it fetches `embedded_types` into `deps/` at the SHA pinned
-in `deps/CMakeLists.txt:19`. Name a generator and a compiler, because the default on Windows is MSVC
+The first configure reaches the network: it fetches `embedded_types` into `deps/` at `main`
+in `deps/CMakeLists.txt:14`. Name a generator and a compiler, because the default on Windows is MSVC
 and MSVC does not build the whole tree: `src/memoria_anularis` includes `<stdatomic.h>`, which MSVC's
 C enables only under `/experimental:c11atomics`. Every other module builds there. GCC and Clang build
 it all.

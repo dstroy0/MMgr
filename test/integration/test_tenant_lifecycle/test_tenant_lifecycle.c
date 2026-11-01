@@ -88,7 +88,8 @@ void test_each_cellblock_tracks_its_own_fill(void)
 
     (void)ram.secret.persistent_buf_alloc((size_t)64, &cells);
     TEST_ASSERT_TRUE(mmgr_cellblock_persistent_end(&ram_secret_ctx) >= 64u);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_persistent_end(&ram_plain_ctx), "one cellblock filling must not move the other");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_persistent_end(&ram_plain_ctx),
+                                     "one cellblock filling must not move the other");
 
     const size_t secret_was = mmgr_cellblock_persistent_end(&ram_secret_ctx);
 

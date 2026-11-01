@@ -253,7 +253,7 @@ typedef struct
     _Atomic size_t claim;     /**< Segments the producer has filled, counting up. */
     _Atomic size_t rel;       /**< Segments the consumer has released, counting up. */
     _Atomic mmgr_word gratis; /**< Bit i set while loculus i is free to take. */
-    _Atomic mmgr_word pinned;   /**< Bit i set while loculus i still owns bytes in flight. */
+    _Atomic mmgr_word pinned; /**< Bit i set while loculus i still owns bytes in flight. */
     /**
      * @brief Region each pinned loculus keeps out, recorded at the hold.
      *

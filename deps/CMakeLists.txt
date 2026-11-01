@@ -5,11 +5,6 @@
 # assertions and the entry point macros are not MMgr's. They are the same boilerplate every library
 # here carries. They are declared once in their own repository and this one names them as they
 # come. There is no alias layer: src/ writes EMBED_ directly.
-#
-# Pinned to an explicit SHA. The two repositories move together: when the widths change, the code
-# and the tests here change with them, and embedded_types carries its own suite for its own half.
-# Moving to a newer one is a deliberate edit of GIT_TAG below, never a fetch that drifts. A
-# floating ref is a defect.
 include(FetchContent)
 
 # SOURCE_DIR puts the library at deps/embedded_types. Without it the checkout goes to
@@ -18,9 +13,7 @@ include(FetchContent)
 FetchContent_Declare(
   embedded_types
   GIT_REPOSITORY https://github.com/dstroy0/embedded_types.git
-  GIT_TAG 557f19ddf9d3663744d9a694c08667887c92b609
-  # GIT_SHALLOW with a commit hash needs the remote to serve a reachable SHA to `fetch --depth 1`.
-  # github.com/dstroy0/embedded_types does, measured against this SHA. The depth stays.
+  GIT_TAG main
   GIT_SHALLOW TRUE
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/embedded_types")
 
