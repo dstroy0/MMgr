@@ -582,6 +582,48 @@ void test_fragmentation_reads_the_bytes_occupied_that_no_payload_holds(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_fragmentation(&plain_moving_ctx), "and the tier is gone");
 }
 
+void test_the_temporary_tier_reads_no_fragmentation(void)
+{
+    void *const persistent = plain.moving.persistent_buf_alloc(512u, &s_mover);
+    const size_t whole = mmgr_cellblock_fragmentation(&plain_moving_ctx);
+    void *const hole = plain.moving.temporary_buf_alloc(1024u, &s_mover);
+    void *const below = plain.moving.temporary_buf_alloc(16u, &s_mover);
+
+    TEST_ASSERT_NOT_NULL(hole);
+    TEST_ASSERT_NOT_NULL(below);
+    plain.moving.persistent_buf_release(hole, &s_mover);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(whole, mmgr_cellblock_fragmentation(&plain_moving_ctx),
+                                     "a hole in the temporary tier is no work for a sort");
+    plain.moving.persistent_buf_release(below, &s_mover);
+    plain.moving.persistent_buf_release(persistent, &s_mover);
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_fragmentation(&plain_moving_ctx));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use),
+                                     "every persistent cell is counted back");
+}
+
+void test_a_cell_counts_to_the_tier_it_lies_in(void)
+{
+    uint8_t *const hole = plain.moving.temporary_buf_alloc(1024u, &s_mover);
+
+    TEST_ASSERT_NOT_NULL(hole);
+    TEST_ASSERT_NOT_NULL(plain.moving.temporary_buf_alloc(64u, &s_mover));
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use));
+    while (plain.moving.persistent_buf_alloc(64u, &s_mover) != NULL)
+    {
+    }
+    const size_t persistent = (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use);
+
+    TEST_ASSERT_TRUE(persistent != 0u);
+    plain.moving.persistent_buf_release(hole, &s_mover);
+    uint8_t *const reached = plain.moving.persistent_buf_alloc(512u, &s_mover);
+
+    TEST_ASSERT_NOT_NULL(reached);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(persistent, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use),
+                                     "a persistent take lying in the temporary tier counts to the temporary tier");
+    plain.moving.persistent_buf_release(reached, &s_mover);
+    TEST_ASSERT_EQUAL_size_t(persistent, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use));
+}
+
 void test_each_cellblock_keeps_its_own_running_total(void)
 {
     void *const here = plain.moving.persistent_buf_alloc(512u, &s_mover);

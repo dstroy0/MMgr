@@ -288,16 +288,21 @@ EMBED_INLINE void carcer_owner_gave(CellOwner *owner, size_t bytes)
 }
 
 /**
- * @brief Counts a cell's payload to its owner and to the cellblock's running total.
+ * @brief Counts a cell's payload to its owner and to the cellblock's running totals.
  *
- * @param[in,out] cellblock Cellblock the cell is in [BORROWS].
- * @param[in,out] owner     The owner [BORROWS].
- * @param[in]     bytes     The cell's payload bytes.
+ * @param[in,out] cellblock  Cellblock the cell is in [BORROWS].
+ * @param[in,out] owner      The owner [BORROWS].
+ * @param[in]     bytes      The cell's payload bytes.
+ * @param[in]     persistent EMBED_TRUE where the cell lies in the persistent tier.
  */
-EMBED_INLINE void carcer_cell_counted(CarcerCellBlock *cellblock, CellOwner *owner, size_t bytes)
+EMBED_INLINE void carcer_cell_counted(CarcerCellBlock *cellblock, CellOwner *owner, size_t bytes, embed_bool persistent)
 {
     carcer_owner_took(owner, bytes);
     (void)embed_atomic_usize_fetch_add(&cellblock->in_use, bytes);
+    if (persistent)
+    {
+        (void)embed_atomic_usize_fetch_add(&cellblock->persistent_in_use, bytes);
+    }
 }
 
 /** @brief The owner queue: every registered owner, as the integer of its address, in the order it registered. */
@@ -441,15 +446,16 @@ EMBED_WEAK void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner 
 /**
  * @brief Takes a cell's bytes off the owner its owner word names, once.
  *
- * @param[in,out] cellblock Cellblock the cell sits in [BORROWS].
- * @param[in]     off       The cell's offset.
- * @param[in]     size      Its payload size.
+ * @param[in,out] cellblock  Cellblock the cell sits in [BORROWS].
+ * @param[in]     off        The cell's offset.
+ * @param[in]     size       Its payload size.
+ * @param[in]     persistent EMBED_TRUE where the cell lies in the persistent tier.
  * @note The owner word is swapped from the owner read to none, and the context whose swap lands
  *       takes the bytes off that owner. A give and a rewind reaching the same cell at once both come
  *       here, and the bytes come off once between them. A word that reads none names no owner and is
  *       left as it is.
  */
-EMBED_INLINE void carcer_foot_claimed(CarcerCellBlock *cellblock, size_t off, size_t size)
+EMBED_INLINE void carcer_foot_claimed(CarcerCellBlock *cellblock, size_t off, size_t size, embed_bool persistent)
 {
     const size_t foot = carcer_foot_of(off, size);
     const embed_atomic_usize_value named = embed_atomic_usize_load(carcer_word_at(cellblock, foot));
@@ -459,6 +465,10 @@ EMBED_INLINE void carcer_foot_claimed(CarcerCellBlock *cellblock, size_t off, si
         // Explicit casts read the owner word's integer back as the address it holds
         carcer_owner_gave((CellOwner *)(uintptr_t)named, size);
         (void)embed_atomic_usize_fetch_sub(&cellblock->in_use, size);
+        if (persistent)
+        {
+            (void)embed_atomic_usize_fetch_sub(&cellblock->persistent_in_use, size);
+        }
     }
 }
 
@@ -488,7 +498,7 @@ EMBED_INLINE void carcer_dropped(CarcerCellBlock *cellblock, size_t off, size_t 
         {
             return;
         }
-        carcer_foot_claimed(cellblock, off, size);
+        carcer_foot_claimed(cellblock, off, size, EMBED_FALSE);
         off = carcer_end_of(off, size);
     }
 }
@@ -574,7 +584,7 @@ EMBED_INLINE void *carcer_grow(CarcerCellBlock *cellblock, size_t want, embed_bo
     {
         return NULL;
     }
-    carcer_cell_counted(cellblock, owner, want);
+    carcer_cell_counted(cellblock, owner, want, (embed_bool)!down);
     if (down)
     {
         CARCER_HW(cellblock, temporary_hw, cellblock->size - off);
@@ -827,7 +837,8 @@ EMBED_INLINE void carcer_returned(CarcerCellBlock *cellblock, embed_bool persist
  *       keeps the whole cell and its slack. The remainder's word is laid ahead of the tail that names
  *       it, and its owner word reads none as the free cell's did.
  */
-EMBED_INLINE void *carcer_split(CarcerCellBlock *cellblock, size_t off, size_t size, size_t want, CellOwner *owner)
+EMBED_INLINE void *carcer_split(CarcerCellBlock *cellblock, size_t off, size_t size, size_t want, CellOwner *owner,
+                                embed_bool persistent)
 {
     // Split only when the tail left over can carry its own words and a whole word behind them
     const embed_bool splits = (embed_bool)(size >= (want + CARCER_HDR + MMGR_CARCER_ALIGN));
@@ -848,7 +859,7 @@ EMBED_INLINE void *carcer_split(CarcerCellBlock *cellblock, size_t off, size_t s
                              (embed_atomic_usize_value)(uintptr_t)owner);
     embed_atomic_usize_store(carcer_word_at(cellblock, carcer_tail_of(off, kept)), carcer_tail_word(off));
     embed_atomic_usize_store(carcer_word_at(cellblock, off), carcer_word(kept, CARCER_BUSY));
-    carcer_cell_counted(cellblock, owner, kept);
+    carcer_cell_counted(cellblock, owner, kept, persistent);
     return cellblock->base + off + CARCER_WORD;
 }
 
@@ -1000,7 +1011,7 @@ EMBED_INLINE void *carcer_fit_held(CarcerCellBlock *cellblock, size_t want, Cell
         if ((size >= want) && carcer_free_read(cellblock, off, tier.hi, &found) && (found == word) &&
             carcer_swapped(cellblock, off, word, carcer_word(size, CARCER_BUSY)))
         {
-            prisoner = carcer_split(cellblock, off, size, want, owner);
+            prisoner = carcer_split(cellblock, off, size, want, owner, persistent);
         }
         off = carcer_end_of(off, size);
     }
@@ -1095,7 +1106,7 @@ EMBED_INLINE void *carcer_grown(CarcerCellBlock *cellblock, size_t off, size_t c
         {
             mmgr_zero_buf(cellblock->base + carcer_foot_of(off, carried), extra);
         }
-        carcer_cell_counted(cellblock, owner, extra);
+        carcer_cell_counted(cellblock, owner, extra, EMBED_TRUE);
         CARCER_HW(cellblock, persistent_hw, carcer_end_of(off, want));
         return cellblock->base + off + CARCER_WORD;
     }
@@ -1115,7 +1126,7 @@ EMBED_INLINE void *carcer_grown(CarcerCellBlock *cellblock, size_t off, size_t c
     if (named != 0u)
     {
         // Explicit casts read the owner word's integer back as the owner's address
-        carcer_cell_counted(cellblock, (CellOwner *)(uintptr_t)named, extra);
+        carcer_cell_counted(cellblock, (CellOwner *)(uintptr_t)named, extra, EMBED_FALSE);
     }
     CARCER_HW(cellblock, temporary_hw, cellblock->size - at);
     const size_t top = mmgr_cellblock_temporary_top(cellblock);
@@ -1632,7 +1643,7 @@ EMBED_INLINE void carcer_given(CarcerCellBlock *cellblock, void *prisoner, const
     {
         mmgr_zero_buf(prisoner, size);
     }
-    carcer_foot_claimed(cellblock, off, size);
+    carcer_foot_claimed(cellblock, off, size, persistent);
     // A word that is not busy is a cell given back already, or dropped, and the give ends here
     if (carcer_word_state(embed_atomic_usize_load(carcer_word_at(cellblock, off))) != CARCER_BUSY)
     {
@@ -2252,10 +2263,9 @@ void mmgr_owner_bytes_given(CellOwner *owner, size_t bytes)
 
 size_t mmgr_cellblock_fragmentation(const CarcerCellBlock *cellblock)
 {
-    const embed_atomic_usize_value tiers = embed_atomic_usize_load(&cellblock->tiers);
-    const size_t occupied = mmgr_tiers_persistent_end(tiers) + (cellblock->size - mmgr_tiers_temporary_top(tiers));
+    const size_t occupied = mmgr_cellblock_persistent_end(cellblock);
     // Explicit cast reads the word as the bytes it counts
-    const size_t in_use = (size_t)embed_atomic_usize_load(&cellblock->in_use);
+    const size_t in_use = (size_t)embed_atomic_usize_load(&cellblock->persistent_in_use);
     const size_t holes = (occupied > in_use) ? (occupied - in_use) : 0u;
 
     // The hundredth of the bytes occupied divides, since a product of the holes and a hundred can pass what a
@@ -2644,6 +2654,7 @@ void mmgr_cellblock_emptied(CarcerCellBlock *cellblock)
     }
     embed_atomic_usize_store(&cellblock->tiers, MMGR_CARCER_TIERS(0u, cellblock->size));
     embed_atomic_usize_store(&cellblock->in_use, 0u);
+    embed_atomic_usize_store(&cellblock->persistent_in_use, 0u);
     embed_atomic_uptr_store(&cellblock->movable, 0u);
 }
 

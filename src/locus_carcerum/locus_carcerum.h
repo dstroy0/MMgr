@@ -65,7 +65,7 @@ EMBED_BEGIN_DECLS
 
 /**
  * @brief The fragmentation at which a cellblock's mover sorts its movable cells, as a percentage of the
- *        bytes its tiers occupy.
+ *        bytes its persistent tier occupies.
  *
  * @note mmgr_cellblock_fragmentation reads what the build compares against this.
  */
@@ -324,7 +324,8 @@ EMBED_INLINE size_t mmgr_tiers_temporary_top(embed_atomic_usize_value tiers)
  * @note The persistent end bounds that tier and does not count what is in use. A freed cell inside
  *       the tier merges with its free neighbors and stays in it for a take the gap cannot meet.
  * @note in_use is this cellblock's running total, counted where each owner's is. An owner's counts span
- *       every cellblock it takes from, and only this word says what one cellblock holds.
+ *       every cellblock it takes from, and only this word says what one cellblock holds. persistent_in_use
+ *       is the part of it lying in the persistent tier, which is what a sort reads.
  * @note movable is the option mmgr_movable_init assigns, and reads zero without it.
  */
 typedef struct
@@ -336,6 +337,7 @@ typedef struct
     embed_atomic_usize persistent_moving; /**< The persistent tier's moving bit. */
     embed_atomic_usize temporary_moving;  /**< The temporary tier's moving bit. */
     embed_atomic_usize in_use;            /**< Payload bytes of the cells taken and not given back. */
+    embed_atomic_usize persistent_in_use; /**< The part of in_use lying in the persistent tier. */
     embed_atomic_uptr movable;            /**< The movable option's state, as an integer, zero without it. */
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
     embed_atomic_usize persistent_hw; /**< Running maximum of persistent_end. */
@@ -1456,15 +1458,16 @@ void mmgr_owner_bytes_taken(CellOwner *owner, size_t bytes);
 void mmgr_owner_bytes_given(CellOwner *owner, size_t bytes);
 
 /**
- * @brief A cellblock's fragmentation: the bytes its tiers occupy and no cell's payload holds, as a
- *        percentage of the bytes they occupy.
+ * @brief A cellblock's fragmentation: the bytes its persistent tier occupies and no cell's payload holds, as
+ *        a percentage of the bytes it occupies.
  *
  * @param[in] cellblock Cellblock to read [BORROWS].
  * @return              The percentage, 0 below a hundred bytes occupied.
- * @note Read off the tiers word and the running total, with no walk. Each cell's words count among the
- *       bytes no payload holds, and so a tier of small cells reads some fragmentation with no free cell.
- * @note The temporary tier's free cells count too, and a mover can do nothing about those: a sort that
- *       finds nothing to move is remembered, and not run again until the reading rises.
+ * @note Read off the tiers word and the tier's running total, with no walk. Each cell's words count among
+ *       the bytes no payload holds, and so a tier of small cells reads some fragmentation with no free cell.
+ * @note The temporary tier reads nothing: its cells last one call, and its top comes back as they end. A
+ *       free cell no movable cell stands above is no work for a mover either: a sort that finds nothing to
+ *       move is remembered, and not run again until the reading rises.
  */
 size_t mmgr_cellblock_fragmentation(const CarcerCellBlock *cellblock);
 

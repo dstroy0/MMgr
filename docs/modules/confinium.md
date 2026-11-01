@@ -104,8 +104,9 @@ Every entry that changes the cellblock passes a turnstile too, which is what mak
 whole cellblock. A take or a give never waits for one. Where none is free it goes on, and that counts as pressure.
 
 The mover runs on the thread the program gave. Each reading compares `mmgr_cellblock_fragmentation`, the bytes the
-tiers occupy that no cell's payload holds as a percentage of the bytes they occupy, against
-`MMGR_MOVABLE_SETTLE_PERCENT`. Over it, `MMGR_MOVABLE_QUIET_READINGS` in a row must find at most half the turnstiles
+persistent tier occupies that no cell's payload holds as a percentage of the bytes it occupies, against
+`MMGR_MOVABLE_SETTLE_PERCENT`. The temporary tier reads nothing, since its cells last one call and its top comes back
+as they end. Over it, `MMGR_MOVABLE_QUIET_READINGS` in a row must find at most half the turnstiles
 occupied. The mover then locks turnstiles one at a time, up to half of them, watching the queue at the rest. If each
 lock leaves that steady it moves cells, the highest first, each into the first free cell below it, reading the queue
 between moves. If removing a turnstile raises the pressure, it lets every lock go and doubles its wait. A sort that
