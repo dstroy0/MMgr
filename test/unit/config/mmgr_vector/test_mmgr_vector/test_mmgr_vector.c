@@ -146,15 +146,18 @@ void test_equal_lanes_answer_the_byte_loop_at_every_position(void)
         const MmgrVectorMask got = mmgr_vector_equal_lanes(mmgr_vector_load(s_bytes), mmgr_vector_load(changed));
         TEST_ASSERT_EQUAL_HEX64_MESSAGE((embed_u64)equal_by_bytes(s_bytes, changed), (embed_u64)got,
                                         "the equal bytes are the bits set");
-        TEST_ASSERT_EQUAL_HEX64_MESSAGE((embed_u64)((MmgrVectorMask)1 << flipped),
-                                        (embed_u64)mmgr_vector_differ_lanes(mmgr_vector_load(s_bytes), mmgr_vector_load(changed)),
-                                        "the one byte changed is the one bit differing");
+        TEST_ASSERT_EQUAL_HEX64_MESSAGE(
+            (embed_u64)((MmgrVectorMask)1 << flipped),
+            (embed_u64)mmgr_vector_differ_lanes(mmgr_vector_load(s_bytes), mmgr_vector_load(changed)),
+            "the one byte changed is the one bit differing");
     }
-    TEST_ASSERT_EQUAL_HEX64_MESSAGE((embed_u64)EMBED_LANE_MASK_ALL,
-                                    (embed_u64)mmgr_vector_equal_lanes(mmgr_vector_load(s_bytes), mmgr_vector_load(s_bytes)),
-                                    "a vector equals itself in every byte");
-    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0u, (embed_u64)mmgr_vector_differ_lanes(mmgr_vector_load(s_bytes), mmgr_vector_load(s_bytes)),
-                                    "a vector differs from itself nowhere");
+    TEST_ASSERT_EQUAL_HEX64_MESSAGE(
+        (embed_u64)EMBED_LANE_MASK_ALL,
+        (embed_u64)mmgr_vector_equal_lanes(mmgr_vector_load(s_bytes), mmgr_vector_load(s_bytes)),
+        "a vector equals itself in every byte");
+    TEST_ASSERT_EQUAL_HEX64_MESSAGE(
+        0u, (embed_u64)mmgr_vector_differ_lanes(mmgr_vector_load(s_bytes), mmgr_vector_load(s_bytes)),
+        "a vector differs from itself nowhere");
 #endif
 }
 
@@ -171,10 +174,12 @@ void test_zero_lanes_find_each_zero_byte_and_the_first_is_the_lowest(void)
         }
         text[ended] = 0u;
         const MmgrVectorMask zeros = mmgr_vector_zero_lanes(mmgr_vector_load(text));
-        TEST_ASSERT_EQUAL_HEX64_MESSAGE((embed_u64)((MmgrVectorMask)1 << ended), (embed_u64)zeros, "the zero byte is the bit set");
+        TEST_ASSERT_EQUAL_HEX64_MESSAGE((embed_u64)((MmgrVectorMask)1 << ended), (embed_u64)zeros,
+                                        "the zero byte is the bit set");
         TEST_ASSERT_EQUAL_size_t_MESSAGE(ended, mmgr_vector_mask_first(zeros), "the first byte set is the zero");
     }
-    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0u, (embed_u64)mmgr_vector_zero_lanes(mmgr_vector_load(s_bytes)), "no zero byte, no bit");
+    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0u, (embed_u64)mmgr_vector_zero_lanes(mmgr_vector_load(s_bytes)),
+                                    "no zero byte, no bit");
 #endif
 }
 
@@ -183,10 +188,12 @@ void test_the_bytes_before_a_terminator_are_the_bytes_a_match_counts_in(void)
     TEST_ASSERT_EQUAL_HEX64_MESSAGE((embed_u64)EMBED_LANE_MASK_ALL, (embed_u64)mmgr_vector_mask_before(0u),
                                     "no terminator, every byte counts");
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(0u, (embed_u64)mmgr_vector_mask_before(1u), "a terminator first, nothing counts");
-    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0x1fu, (embed_u64)mmgr_vector_mask_before((MmgrVectorMask)0x20u | (MmgrVectorMask)0x80u),
+    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0x1fu,
+                                    (embed_u64)mmgr_vector_mask_before((MmgrVectorMask)0x20u | (MmgrVectorMask)0x80u),
                                     "the bytes before the first terminator count, the later one is behind it");
     // the settle a walk makes: a match behind the terminator is no match
     const MmgrVectorMask hit = (MmgrVectorMask)0x44u;
     const MmgrVectorMask end = (MmgrVectorMask)0x10u;
-    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0x4u, (embed_u64)(hit & mmgr_vector_mask_before(end)), "only the match before the end lives");
+    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0x4u, (embed_u64)(hit & mmgr_vector_mask_before(end)),
+                                    "only the match before the end lives");
 }

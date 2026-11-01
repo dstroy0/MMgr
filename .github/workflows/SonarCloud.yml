@@ -56,7 +56,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Debug
           -DMMGR_BUILD_TESTS=ON
           -DMMGR_LTO=OFF
-          -DCMAKE_C_FLAGS="--coverage -O0 -g -include ${{ github.workspace }}/test/support/coverage_inline.h"
+          -DCMAKE_C_FLAGS="--coverage -fprofile-update=atomic -O0 -g -include ${{ github.workspace }}/test/support/coverage_inline.h"
           -DCMAKE_EXE_LINKER_FLAGS="--coverage"
 
       - name: Build (wrapped)

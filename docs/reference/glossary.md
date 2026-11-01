@@ -24,8 +24,8 @@ rename anything again.
 
 The stem is the name of the module's dispatch table, and a call site reads it.
 
-| Latin                      | stem                                   | in English                                      |
-| -------------------------- | -------------------------------------- | ----------------------------------------------- |
+| Latin                      | stem                                   | in English                                     |
+| -------------------------- | -------------------------------------- | ---------------------------------------------- |
 | `memoria_anularis`         | `anularis`                             | ring memory, the lock-free SPSC ring           |
 | `memoria_externa`          | `exter`                                | external memory, the PSRAM pool                |
 | `locus_carcerum`           |                                        | place of prisons, the region and both its ends |
@@ -40,12 +40,12 @@ The stem is the name of the module's dispatch table, and a call site reads it.
 | `fractio`                  | `fract`                                | a breaking, IEEE-754 field access              |
 | `bitorum_introitus_exitus` | `bitio`                                | entry and exit of bits, the bit writer         |
 | `octetus_introitus_exitus` | `byteio`                               | entry and exit of octets, byte transfers       |
-| `endian`                   | `parva_extremitas`, `magna_extremitas` | _(English)_ byte order. small end, large end    |
+| `endian`                   | `parva_extremitas`, `magna_extremitas` | _(English)_ byte order. small end, large end   |
 | `ascii_persona_bitorum`    | `ascii`                                | character masks of bits, the class bitmaps     |
 | `impensa_ancorae_acus`     | `ancorae`                              | cost of an anchor point, the frequency tables  |
 | `memoriam_praetereo`       | `praet`                                | I pass memory by, DMA transfer submission      |
-| `clz`                      | `clz`                                  | _(English)_ count leading zeros                 |
-| `pow5`                     |                                        | _(English)_ powers of five for decimal work     |
+| `clz`                      | `clz`                                  | _(English)_ count leading zeros                |
+| `pow5`                     |                                        | _(English)_ powers of five for decimal work    |
 
 ## Verbs
 
@@ -66,12 +66,12 @@ So `persistent_buf_alloc` is lifetime//buf/alloc, and `persistent_max_security_b
 all four. `max_security_buf_return` drops the lifetime part, because `return` restores a mark and
 only the temporary tier has one.
 
-| entry           | means                   | why not the English                                                            |
-| --------------- | ----------------------- | ------------------------------------------------------------------------------ |
-| `buf_available` | bytes at hand           | `free_bytes` reads as a verb, as though it frees something. It reports a count |
+| entry           | means                              | why not the English                                                                                                       |
+| --------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `buf_available` | bytes at hand                      | `free_bytes` reads as a verb, as though it frees something. It reports a count                                            |
 | `buf_grow`      | a cell made larger where it stands | `realloc` moves a cell and reuses holes. This moves no other cell, and answers no where the cell is not its tier's newest |
-| `mark`          | a position to rewind to |                                                                                |
-| `reset`         | return to empty         |                                                                                |
+| `mark`          | a position to rewind to            |                                                                                                                           |
+| `reset`         | return to empty                    |                                                                                                                           |
 
 `temporary_buf_alloc` takes a cell from the temporary tier. `persistent_buf_release` takes **the cell
 itself** and gives it back, in any order, because the cell's own header carries its extent, and the

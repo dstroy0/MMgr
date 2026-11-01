@@ -220,7 +220,8 @@ void test_threads_taking_and_giving_at_once_never_share_a_cell(void)
     // a take refused while sixteen threads hold cells is the pool's size, and the case holds what the
     // tier promises: no cell handed to two
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MOST));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten), "a cell was handed to two threads at once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
+                                     "a cell was handed to two threads at once");
 }
 
 void test_threads_taking_and_giving_at_once_leave_the_cellblock_whole(void)
@@ -236,7 +237,8 @@ void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(v
     // a take refused once the gap is spent is the pool's size, and the case holds what the tier promises:
     // no cell handed to two, and the tier whole once it is reset
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary, MMGR_HOST_THREADS_MOST));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten), "a temporary cell was handed to two threads at once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
+                                     "a temporary cell was handed to two threads at once");
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_persistent_end(&crowded_shared_ctx));
     crowded.shared.temporary_buf_reset();
     TEST_ASSERT_EQUAL_size_t_MESSAGE(SHARED_BYTES, mmgr_cellblock_temporary_top(&crowded_shared_ctx),
@@ -247,7 +249,8 @@ void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(v
 void test_an_owner_shared_by_every_thread_is_counted_back_to_nothing(void)
 {
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MOST));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_crowd.in_use), "a take or give was counted twice or not at all");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_crowd.in_use),
+                                     "a take or give was counted twice or not at all");
     TEST_ASSERT_TRUE(embed_atomic_usize_load(&s_crowd.hw) > 0u);
     TEST_ASSERT_TRUE(embed_atomic_usize_load(&s_crowd.hw) <= SHARED_BYTES);
 }
@@ -269,7 +272,8 @@ void test_owners_registering_at_once_are_each_queued_once(void)
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_registration, MMGR_HOST_THREADS_MOST));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, (size_t)embed_atomic_usize_load(&s_registered),
                                      "one owner tried by every thread at once registers once");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_refused), "each thread's own owner registers");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_refused),
+                                     "each thread's own owner registers");
     TEST_ASSERT_EQUAL_size_t(before + 1u + MMGR_HOST_THREADS_MOST, mmgr_owner_count());
     for (size_t at = 0u; at < mmgr_owner_count(); at++)
     {
@@ -302,21 +306,27 @@ void test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_not
     // every temporary take counts to the owner it names, and the single give counts the cell off the
     // owner its footer names whatever owner the give is handed
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_shared_owner, MMGR_HOST_THREADS_MOST));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten), "a temporary cell was handed to two threads at once");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_crowd.in_use), "a temporary take or give was counted twice or not at all");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
+                                     "a temporary cell was handed to two threads at once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_crowd.in_use),
+                                     "a temporary take or give was counted twice or not at all");
     TEST_ASSERT_TRUE(embed_atomic_usize_load(&s_crowd.hw) > 0u);
     crowded.shared.temporary_buf_reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_crowd.in_use), "the reset found a cell still counted");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_crowd.in_use),
+                                     "the reset found a cell still counted");
 }
 
 void test_a_reset_counts_every_temporary_cell_off_its_owner(void)
 {
     // the threads keep every cell they are handed, and the reset alone counts them off
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_kept, MMGR_HOST_THREADS_MOST));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten), "a temporary cell was handed to two threads at once");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE((size_t)embed_atomic_usize_load(&s_kept), (size_t)embed_atomic_usize_load(&s_crowd.in_use),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
+                                     "a temporary cell was handed to two threads at once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE((size_t)embed_atomic_usize_load(&s_kept),
+                                     (size_t)embed_atomic_usize_load(&s_crowd.in_use),
                                      "the owner counts every payload the tier holds");
     crowded.shared.temporary_buf_reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_crowd.in_use), "the reset left a cell counted");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_crowd.in_use),
+                                     "the reset left a cell counted");
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
 }

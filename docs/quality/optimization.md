@@ -127,11 +127,11 @@ command line is the single one that counts, and so nothing has to be removed for
 
 Costs below are Xtensa, with ARM in parentheses where the two disagree enough to matter.
 
-| module            | level | why                                                                                                                                              |
-| ----------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `verba_scribo`    | -O2   | -O3 costs 3888 bytes, 43% more than the whole module at -O2, and 5700 on ARM, which is 75%. The digit loops are short and already shaped.        |
-| `transformo`      | -O2   | -O3 costs 2142 bytes, 56% more than the module. On ARM it costs nothing at all, the clearest case on this page for deciding per target. |
-| `proximus_operor` | -O2   | -O3 adds 122 bytes to 492 for entries that are single loads and stores, already one instruction each. Proportionally worse on ARM, 188 to 308.   |
+| module            | level | why                                                                                                                                            |
+| ----------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verba_scribo`    | -O2   | -O3 costs 3888 bytes, 43% more than the whole module at -O2, and 5700 on ARM, which is 75%. The digit loops are short and already shaped.      |
+| `transformo`      | -O2   | -O3 costs 2142 bytes, 56% more than the module. On ARM it costs nothing at all, the clearest case on this page for deciding per target.        |
+| `proximus_operor` | -O2   | -O3 adds 122 bytes to 492 for entries that are single loads and stores, already one instruction each. Proportionally worse on ARM, 188 to 308. |
 
 `cellularum_laboro` is left at the build's level: -O3 costs it 780 bytes on Xtensa and 356 on ARM,
 against a module of 8550 and 7760, which is not enough either way to override the build.

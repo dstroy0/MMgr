@@ -59,8 +59,8 @@ library's own duplication and complexity numbers.
 
 Three, one per language, each owning its own files:
 
-| tool         | files                                 | config            |
-| ------------ | ------------------------------------- | ----------------- |
+| tool         | files                                | config            |
+| ------------ | ------------------------------------ | ----------------- |
 | clang-format | `src/`, `test/`: `.c` `.h`           | `.clang-format`   |
 | black        | `tools/`: `.py`                      | `pyproject.toml`  |
 | prettier     | everywhere: md, json, yml, css, html | `.prettierignore` |
