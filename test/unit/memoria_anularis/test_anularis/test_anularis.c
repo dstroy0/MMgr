@@ -229,6 +229,17 @@ void test_hold_takes_a_loculus_and_drop_returns_it(void)
                            (unsigned)EMBED_CALL(anularis.loculus_ready, AnularisCfg, .ring = &g_ring));
 }
 
+void test_mark_leaves_a_ring_it_was_laid_down_on_as_it_was(void)
+{
+    fresh();
+
+    const unsigned before = (unsigned)EMBED_CALL(anularis.loculus_ready, AnularisCfg, .ring = &g_ring);
+
+    EMBED_CALL(anularis.loculus_mark, AnularisCfg, .ring = &g_ring, .index = 0u);
+    EMBED_CALL(anularis.loculus_mark, AnularisCfg, .ring = &g_ring, .index = MMGR_RING_LOCULI);
+    TEST_ASSERT_EQUAL_UINT(before, (unsigned)EMBED_CALL(anularis.loculus_ready, AnularisCfg, .ring = &g_ring));
+}
+
 void test_hold_refuses_a_loculus_that_does_not_exist(void)
 {
     fresh();

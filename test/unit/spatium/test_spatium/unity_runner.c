@@ -12,6 +12,7 @@ extern void test_the_namespace_is_wired(void);
 extern void test_a_span_covers_the_buffer_it_was_given(void);
 extern void test_a_read_span_covers_the_buffer_it_was_given(void);
 extern void test_a_span_with_no_storage_is_not_ok(void);
+extern void test_what_follows_a_span_with_no_buffer_has_no_buffer(void);
 extern void test_a_narrowing_past_the_end_fails_rather_than_shortening(void);
 extern void test_a_narrowing_keeps_the_bytes_it_names(void);
 extern void test_a_narrowing_carries_the_cursor(void);
@@ -78,18 +79,19 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/spatium/test_spatium\\test_spatium.c");
+  UnityBegin("test/unit/spatium/test_spatium/test_spatium.c");
   run_test(test_spatium_header_is_self_contained, "test_spatium_header_is_self_contained", 19);
   run_test(test_the_namespace_is_wired, "test_the_namespace_is_wired", 24);
   run_test(test_a_span_covers_the_buffer_it_was_given, "test_a_span_covers_the_buffer_it_was_given", 31);
   run_test(test_a_read_span_covers_the_buffer_it_was_given, "test_a_read_span_covers_the_buffer_it_was_given", 43);
   run_test(test_a_span_with_no_storage_is_not_ok, "test_a_span_with_no_storage_is_not_ok", 53);
-  run_test(test_a_narrowing_past_the_end_fails_rather_than_shortening, "test_a_narrowing_past_the_end_fails_rather_than_shortening", 66);
-  run_test(test_a_narrowing_keeps_the_bytes_it_names, "test_a_narrowing_keeps_the_bytes_it_names", 84);
-  run_test(test_a_narrowing_carries_the_cursor, "test_a_narrowing_carries_the_cursor", 95);
-  run_test(test_reset_clears_the_sticky_overflow, "test_reset_clears_the_sticky_overflow", 109);
-  run_test(test_a_read_span_reports_what_was_written, "test_a_read_span_reports_what_was_written", 124);
-  run_test(test_a_read_span_carries_the_fill_spans_failure, "test_a_read_span_carries_the_fill_spans_failure", 144);
+  run_test(test_what_follows_a_span_with_no_buffer_has_no_buffer, "test_what_follows_a_span_with_no_buffer_has_no_buffer", 66);
+  run_test(test_a_narrowing_past_the_end_fails_rather_than_shortening, "test_a_narrowing_past_the_end_fails_rather_than_shortening", 75);
+  run_test(test_a_narrowing_keeps_the_bytes_it_names, "test_a_narrowing_keeps_the_bytes_it_names", 93);
+  run_test(test_a_narrowing_carries_the_cursor, "test_a_narrowing_carries_the_cursor", 104);
+  run_test(test_reset_clears_the_sticky_overflow, "test_reset_clears_the_sticky_overflow", 118);
+  run_test(test_a_read_span_reports_what_was_written, "test_a_read_span_reports_what_was_written", 133);
+  run_test(test_a_read_span_carries_the_fill_spans_failure, "test_a_read_span_carries_the_fill_spans_failure", 153);
 
   return UNITY_END();
 }

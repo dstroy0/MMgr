@@ -224,6 +224,25 @@ void test_a_number_that_does_not_fit_fills_the_line(void)
     TEST_ASSERT_FALSE(mmgr_line_ok(&line));
 }
 
+void test_a_put_stops_where_the_flush_refuses(void)
+{
+    VerbaLinea line = {s_out, 4u, 0u, line_refused, NULL, 0u};
+
+    TEST_ASSERT_EQUAL_size_t(3u, mmgr_line_put_n(&line, "abcdefgh", 8u));
+}
+
+void test_a_put_on_a_line_with_no_room_left_takes_nothing(void)
+{
+    VerbaLinea line = line_of(4u);
+
+    mmgr_line_put(&line, "abcdefgh");
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_line_put(&line, "x"));
+
+    VerbaLinea none = line_of(0u);
+
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_line_put(&none, "x"));
+}
+
 void test_flush_on_a_line_with_no_flush_refuses(void)
 {
     VerbaLinea line = line_of(16u);

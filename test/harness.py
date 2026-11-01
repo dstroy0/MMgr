@@ -646,6 +646,7 @@ TREES = {
         "what": "instrumented, with always_inline and link time optimisation off",
         "args": [
             "-DMMGR_LTO=OFF",
+            "-DMMGR_MODULE_OPTIMIZE=OFF",
             "-DCMAKE_C_FLAGS=--coverage -fprofile-update=atomic -O0 -g -include "
             + os.path.join(ROOT, "test", "support", "coverage_inline.h"),
             "-DCMAKE_EXE_LINKER_FLAGS=--coverage",
@@ -1188,10 +1189,13 @@ def cmd_coverage(a):
     # cannot be reached: the tool rules on what does not have to be covered - and it rules
     # it from the compiler's records and never from the source. A branch this report does not print is a
     # branch nobody looked at. Anything genuinely unreachable is established by reading it and
-    # written down, not silently dropped from the denominator.
+    # written down, not silently dropped from the denominator. A failing MMGR_ASSERT stops the program,
+    # and so its failure arm is no branch a passing suite runs. Its condition is still evaluated in the
+    # checks environment.
     r = run(
         [
             sys.executable, "-m", "gcovr", "--root", ".", "--filter", "src/",
+            "--exclude-branches-by-pattern", ".*MMGR_ASSERT.*",
             "--print-summary", "--txt-metric", "branch",
             "--csv", "-o", out, "--json", js, tree_path(tree),
         ]

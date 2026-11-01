@@ -56,6 +56,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=Debug
           -DMMGR_BUILD_TESTS=ON
           -DMMGR_LTO=OFF
+          -DMMGR_MODULE_OPTIMIZE=OFF
           -DCMAKE_C_FLAGS="--coverage -fprofile-update=atomic -O0 -g -include ${{ github.workspace }}/test/support/coverage_inline.h"
           -DCMAKE_EXE_LINKER_FLAGS="--coverage"
 
@@ -67,11 +68,14 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+      # A failing MMGR_ASSERT stops the program, and so its failure arm is no branch a passing suite runs.
+      # The condition is still evaluated in the checks environment.
       - name: Coverage report
         run: >
           gcovr --root . --sonarqube coverage.xml
           --exclude 'test/'
           --exclude 'build/'
+          --exclude-branches-by-pattern '.*MMGR_ASSERT.*'
           --print-summary
 
       - name: SonarQube Scan

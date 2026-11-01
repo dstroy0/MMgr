@@ -56,7 +56,7 @@ function(mmgr_add_module name)
       set(scope PUBLIC)
       target_link_libraries(${target} PRIVATE mmgr_flags)
 
-      if(ARG_OPTIMIZE)
+      if(ARG_OPTIMIZE AND MMGR_MODULE_OPTIMIZE)
         # After mmgr_flags, and so this is the last -O on the line and the one that counts.
         target_compile_options(${target} PRIVATE ${ARG_OPTIMIZE})
       endif()

@@ -17,29 +17,31 @@
 
 EMBED_BEGIN_DECLS
 
-EMBED_INLINE void mmgr_oracle_cpy(void *dst, const void *src, size_t n)
+EMBED_INLINE void mmgr_oracle_cpy(const MemoriaCfg *args)
 {
-    memcpy(dst, src, n);
+    memcpy(args->dst, args->src, args->bytes);
 }
 
-EMBED_INLINE void mmgr_oracle_move(void *dst, const void *src, size_t n)
+EMBED_INLINE void mmgr_oracle_move(const MemoriaCfg *args)
 {
-    memmove(dst, src, n);
+    memmove(args->dst, args->src, args->bytes);
 }
 
-EMBED_INLINE const void *mmgr_oracle_chr(const void *p, size_t n, uint8_t c)
+EMBED_INLINE embed_iword mmgr_oracle_cmp(const MemoriaCfg *args)
 {
-    return memchr(p, (int)c, n);
+    const int order = memcmp(args->src, args->other, args->bytes);
+
+    return (order < 0) ? -1 : ((order > 0) ? 1 : 0);
 }
 
-EMBED_INLINE void mmgr_oracle_set(void *dst, unsigned char v, size_t n)
+EMBED_INLINE const void *mmgr_oracle_chr(const MemoriaCfg *args)
 {
-    memset(dst, (int)v, n);
+    return memchr(args->src, (int)args->val, args->bytes);
 }
 
-EMBED_INLINE void mmgr_oracle_zero(void *dst, size_t n)
+EMBED_INLINE void mmgr_oracle_set(const MemoriaCfg *args)
 {
-    memset(dst, 0, n);
+    memset(args->dst, (int)args->val, args->bytes);
 }
 
 EMBED_INLINE size_t mmgr_oracle_len_raw(const char *s, size_t nul_cap)
@@ -216,67 +218,67 @@ EMBED_INLINE CatenaFinitaCfg mmgr_oracle_init(const CatenaFinitaCfg *c)
 
 EMBED_INLINE size_t mmgr_oracle_len(const CatenaFinitaCfg *c)
 {
-    return mmgr_oracle_len_raw(c->s + c->at, c->cap - c->at);
+    return mmgr_oracle_len_raw(c->src + c->at, c->cap - c->at);
 }
 
 EMBED_INLINE const char *mmgr_oracle_find(const CatenaFinitaCfg *c)
 {
-    return mmgr_oracle_find_raw(c->s, c->cap, c->t, c->t_cap, c->ci);
+    return mmgr_oracle_find_raw(c->src, c->cap, c->other, c->other_cap, c->ci);
 }
 
 EMBED_INLINE embed_bool mmgr_oracle_has(const CatenaFinitaCfg *c)
 {
-    return mmgr_oracle_has_raw(c->s, c->cap, c->t, c->t_cap, c->ci);
+    return mmgr_oracle_has_raw(c->src, c->cap, c->other, c->other_cap, c->ci);
 }
 
 EMBED_INLINE embed_bool mmgr_oracle_eq(const CatenaFinitaCfg *c)
 {
-    return mmgr_oracle_eq_raw(c->s, c->t, c->cap, c->ci);
+    return mmgr_oracle_eq_raw(c->src, c->other, c->cap, c->ci);
 }
 
 EMBED_INLINE embed_bool mmgr_oracle_starts(const CatenaFinitaCfg *c)
 {
-    return mmgr_oracle_starts_raw(c->s, c->t, c->cap, c->ci);
+    return mmgr_oracle_starts_raw(c->src, c->other, c->cap, c->ci);
 }
 
 EMBED_INLINE const char *mmgr_oracle_strchr(const CatenaFinitaCfg *c)
 {
-    return mmgr_oracle_strchr_raw(c->s, c->cap, c->byte);
+    return mmgr_oracle_strchr_raw(c->src, c->cap, c->byte);
 }
 
 EMBED_INLINE size_t mmgr_oracle_copy(const CatenaFinitaCfg *c)
 {
-    return mmgr_oracle_copy_raw(c->dst, c->s, c->cap);
+    return mmgr_oracle_copy_raw(c->dst, c->src, c->cap);
 }
 
 EMBED_INLINE embed_bool mmgr_oracle_ws(const CatenaFinitaCfg *c)
 {
-    return mmgr_oracle_ws_raw(c->s[c->at]);
+    return mmgr_oracle_ws_raw(c->src[c->at]);
 }
 
 EMBED_INLINE embed_bool mmgr_oracle_digit(const CatenaFinitaCfg *c)
 {
-    return mmgr_oracle_digit_raw(c->s[c->at]);
+    return mmgr_oracle_digit_raw(c->src[c->at]);
 }
 
 EMBED_INLINE long mmgr_oracle_to_long(const TransfiguroCfg *c)
 {
-    return mmgr_oracle_to_long_raw(c->s, c->end);
+    return mmgr_oracle_to_long_raw(c->src, c->end);
 }
 
 EMBED_INLINE unsigned long mmgr_oracle_to_ulong(const TransfiguroCfg *c)
 {
-    return mmgr_oracle_to_ulong_raw(c->s, c->end);
+    return mmgr_oracle_to_ulong_raw(c->src, c->end);
 }
 
 EMBED_INLINE double mmgr_oracle_to_double(const TransfiguroCfg *c)
 {
-    return mmgr_oracle_to_double_raw(c->s, c->end);
+    return mmgr_oracle_to_double_raw(c->src, c->end);
 }
 
 EMBED_INLINE float mmgr_oracle_to_float(const TransfiguroCfg *c)
 {
-    return mmgr_oracle_to_float_raw(c->s, c->end);
+    return mmgr_oracle_to_float_raw(c->src, c->end);
 }
 
 EMBED_END_DECLS
@@ -284,53 +286,43 @@ EMBED_END_DECLS
 #include <math.h>
 #include <stdio.h>
 
-EMBED_INLINE void mmgr_oracle_verba_g(mmgr_verba *b, double v, unsigned sig)
+EMBED_INLINE size_t mmgr_oracle_verba_written(const VerbaFractioCfg *args, const char *text, int length)
 {
-    char tmp[64];
-    if (sig == 0u)
-    {
-        sig = 1u;
-    }
-    if (sig > MMGR_G_MAX_SIG)
-    {
-        sig = MMGR_G_MAX_SIG;
-    }
-    const int n = snprintf(tmp, sizeof tmp, "%.*g", (int)sig, v);
-    if (n > 0)
-    {
-        mmgr_verba_put_n(b, tmp, (size_t)n);
-    }
+    return EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
+                      .text = text, .text_len = (size_t)length);
 }
 
-EMBED_INLINE void mmgr_oracle_verba_fixed(mmgr_verba *b, double v, unsigned decimals)
+EMBED_INLINE size_t mmgr_oracle_verba_g(const VerbaFractioCfg *args)
 {
-    char tmp[64];
-    if (decimals > MMGR_FIXED_MAX_DECIMALS)
-    {
-        decimals = MMGR_FIXED_MAX_DECIMALS;
-    }
-    const int n = snprintf(tmp, sizeof tmp, "%.*f", (int)decimals, v);
-    if (n > 0)
-    {
-        mmgr_verba_put_n(b, tmp, (size_t)n);
-    }
+    char tmp[512];
+    const unsigned sig = (args->sig == 0u) ? 1u : ((args->sig > MMGR_G_MAX_SIG) ? MMGR_G_MAX_SIG : args->sig);
+
+    return mmgr_oracle_verba_written(args, tmp, snprintf(tmp, sizeof tmp, "%.*g", (int)sig, args->real));
+}
+
+EMBED_INLINE size_t mmgr_oracle_verba_fixed(const VerbaFractioCfg *args)
+{
+    char tmp[512];
+    const unsigned decimals = (args->decimals > MMGR_FIXED_MAX_DECIMALS) ? MMGR_FIXED_MAX_DECIMALS : args->decimals;
+
+    return mmgr_oracle_verba_written(args, tmp, snprintf(tmp, sizeof tmp, "%.*f", (int)decimals, args->real));
 }
 
 MMGR_DIAG_PUSH
 MMGR_DIAG_IGNORE("-Wfloat-conversion")
-EMBED_INLINE embed_bool mmgr_oracle_signbit(double v)
+EMBED_INLINE embed_bool mmgr_oracle_signbit(const VerbaFractioCfg *args)
 {
-    return (embed_bool)(signbit(v) != 0);
+    return (embed_bool)(signbit(args->real) != 0);
 }
 
-EMBED_INLINE embed_bool mmgr_oracle_isinf(double v)
+EMBED_INLINE embed_bool mmgr_oracle_isinf(const VerbaFractioCfg *args)
 {
-    return (embed_bool)(isinf(v) != 0);
+    return (embed_bool)(isinf(args->real) != 0);
 }
 
-EMBED_INLINE embed_bool mmgr_oracle_isnan(double v)
+EMBED_INLINE embed_bool mmgr_oracle_isnan(const VerbaFractioCfg *args)
 {
-    return (embed_bool)(isnan(v) != 0);
+    return (embed_bool)(isnan(args->real) != 0);
 }
 
 MMGR_DIAG_POP
@@ -357,35 +349,23 @@ EMBED_TABLE_STORAGE CellularumLaboroNs cellul_oracle EMBED_UNUSED = {
 
 EMBED_TABLE_STORAGE MemoriaOperorNs memor_oracle EMBED_UNUSED = {
     .cpy = mmgr_oracle_cpy,
-    .move = mmgr_oracle_move,
-    .cmp = memcmp,
+    .move_down = mmgr_oracle_move,
+    .move_up = mmgr_oracle_move,
+    .cmp = mmgr_oracle_cmp,
     .chr = mmgr_oracle_chr,
     .set = mmgr_oracle_set,
-    .zero = mmgr_oracle_zero,
 };
 
-EMBED_TABLE_STORAGE VerbaScriboNs verba_oracle EMBED_UNUSED = {.put_n = mmgr_verba_put_n,
-                                                               .put = mmgr_verba_put,
-                                                               .put_clip = mmgr_verba_put_clip,
-                                                               .u64_clip = mmgr_verba_u64_clip,
-                                                               .xml = mmgr_verba_xml,
-                                                               .ch = mmgr_verba_ch,
-                                                               .uint = mmgr_verba_uint,
-                                                               .u32w = mmgr_verba_u32w,
-                                                               .hex = mmgr_verba_hex,
-                                                               .u32 = mmgr_verba_u32,
-                                                               .u64 = mmgr_verba_u64,
-                                                               .i64 = mmgr_verba_i64,
-                                                               .sign_bit = mmgr_oracle_signbit,
-                                                               .is_inf = mmgr_oracle_isinf,
-                                                               .is_nan = mmgr_oracle_isnan,
-                                                               .g = mmgr_oracle_verba_g,
-                                                               .fixed = mmgr_oracle_verba_fixed,
-                                                               .json = mmgr_verba_json,
-                                                               .finish = mmgr_verba_finish};
+EMBED_TABLE_STORAGE VerbaScriboFractioNs verba_fractio_oracle EMBED_UNUSED = {
+    .g = mmgr_oracle_verba_g,
+    .fixed = mmgr_oracle_verba_fixed,
+    .sign_bit = mmgr_oracle_signbit,
+    .is_inf = mmgr_oracle_isinf,
+    .is_nan = mmgr_oracle_isnan,
+};
 
 #define cellul cellul_oracle
 #define memor memor_oracle
-#define verba verba_oracle
+#define verba_fractio verba_fractio_oracle
 
 #endif

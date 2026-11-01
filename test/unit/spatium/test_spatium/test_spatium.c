@@ -63,6 +63,15 @@ void test_a_span_with_no_storage_is_not_ok(void)
     TEST_ASSERT_FALSE(EMBED_CALL(spat.has_storage, SpatiumCfg, .span = span));
 }
 
+void test_what_follows_a_span_with_no_buffer_has_no_buffer(void)
+{
+    const mmgr_span none = {.buf = NULL, .cap = 4u, .pos = 0u, .overflow = EMBED_FALSE};
+    const mmgr_span rest = EMBED_CALL(spat.after, SpatiumCfg, .span = none, .count = 2u);
+
+    TEST_ASSERT_NULL(rest.buf);
+    TEST_ASSERT_EQUAL_size_t(2u, rest.cap);
+}
+
 void test_a_narrowing_past_the_end_fails_rather_than_shortening(void)
 {
     const mmgr_span span = EMBED_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = sizeof buf);

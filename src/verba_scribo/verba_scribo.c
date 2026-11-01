@@ -822,7 +822,8 @@ EMBED_INLINE uint8_t verba_g_trim(embed_u64 *mant, uint8_t digits)
  * @note A args->sig of 0 is taken as 1, and anything above MMGR_G_MAX_SIG is clamped there.
  * @note An exponent field of all ones goes to verba_non_finite, and a zero value writes a single 0.
  * @note The decimal exponent is first estimated by multiplying the binary one by 78913 and shifting right 18,
- *       which is 0.30103 to five places, then corrected by muto.scale_to_u64 in at most four passes.
+ *       which is 0.30102997, below log10(2), and so it never lands above the true exponent. Each pass of
+ *       muto.scale_to_u64 that reaches the limit corrects it up by one.
  * @note Trailing zeros are dropped from the digits before any of the four forms is chosen.
  * @note The four forms are exponential, digits with trailing zeros, digits with the point inside, and 0. with
  *       leading zeros, picked on where the decimal exponent falls against the digit count.
@@ -871,25 +872,13 @@ EMBED_INLINE size_t verba_g(const VerbaCtx *args)
     embed_iword exponent =
         (embed_iword)(((embed_i64)(63 - EMBED_CALL(clz.lead, ClzCfg, .val = mantissa) + scale) * 78913) >> 18);
     embed_iword cursor = (embed_iword)((embed_iword)sig - 1 - exponent);
-    embed_u64 mant = 0U;
+    embed_u64 mant = EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &mantissa, .e2 = scale, .ex = cursor);
 
-    for (uint8_t guard = 0; guard < 4U; guard++)
+    while (mant >= limit)
     {
+        exponent++;
+        cursor--;
         mant = EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &mantissa, .e2 = scale, .ex = cursor);
-        if (mant >= limit)
-        {
-            exponent++;
-            cursor--;
-        }
-        else if ((sig > 1U) && (mant < (limit / 10U)))
-        {
-            exponent--;
-            cursor++;
-        }
-        else
-        {
-            break;
-        }
     }
 
     const uint8_t digits = verba_g_trim(&mant, sig);

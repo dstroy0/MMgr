@@ -238,9 +238,9 @@ PROFILES = [
         "Byte cost table with no floor at 1, where every byte value carries a cost.",
         [
             "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
-            "255 marks the NUL and the space, so neither is ever chosen as a sieve offset.",
-            "Bytes 128 through 255 all carry 107, so no high byte is preferred over another.",
-            "The entries carry no U suffix. Each is within 0 to 255, so the initializer stores it as a\n"
+            "255 marks the NUL and the space, and so neither is ever chosen as a sieve offset.",
+            "Bytes 128 through 255 all carry 107, and so no high byte is preferred over another.",
+            "The entries carry no U suffix. Each is within 0 to 255, and so the initializer stores it as a\n"
             " *       uint8_t unchanged.",
         ],
         "The cost, %d through %d in this table.",
@@ -251,7 +251,7 @@ PROFILES = [
         "Byte cost table weighted for English text.",
         [
             "Lower means rarer in this corpus, and cellul_pick_rows keeps the lowest cost it finds.",
-            "The floor is 1. The ceiling 255 sits on the NUL and the space, so neither is ever chosen as a\n"
+            "The floor is 1. The ceiling 255 sits on the NUL and the space, and so neither is ever chosen as a\n"
             " *       sieve offset.",
         ],
         "The cost, %d through %d.",
@@ -262,9 +262,9 @@ PROFILES = [
         "Byte cost table scoring letters, digits and URI punctuation.",
         [
             "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
-            "255 marks the NUL and the slash, so neither is ever chosen as a sieve offset.",
+            "255 marks the NUL and the slash, and so neither is ever chosen as a sieve offset.",
             "The space sits at 1 here, where the two text tables give it 255.",
-            "Every initializer is a plain int constant from 1 to 255, so narrowing to the uint8_t element"
+            "Every initializer is a plain int constant from 1 to 255, and so narrowing to the uint8_t element"
             " keeps its value.",
         ],
         "The cost, %d through %d.",
@@ -275,7 +275,7 @@ PROFILES = [
         "Byte cost table scoring only the characters an address is built from.",
         [
             "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
-            "255 marks the NUL and the colon, so neither is ever chosen as a sieve offset.",
+            "255 marks the NUL and the colon, and so neither is ever chosen as a sieve offset.",
             "Also above 1: the digits, 'a' to 'f', 'A' to 'F', and 37 '%', 46 '.', 47 '/', 91 '[', 93 ']'.",
         ],
         "The cost, %d through %d.",
@@ -286,7 +286,7 @@ PROFILES = [
         "Byte cost table scoring letters, digits and path punctuation.",
         [
             "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
-            "255 marks the NUL and the slash, so neither is ever chosen as a sieve offset.",
+            "255 marks the NUL and the slash, and so neither is ever chosen as a sieve offset.",
             "The braces at 123 and 125 carry a cost, where most punctuation sits at 1.",
         ],
         "The cost, %d through %d.",

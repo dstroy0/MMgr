@@ -22,6 +22,50 @@ static mmgr_span fill(void)
     return EMBED_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = sizeof buf);
 }
 
+void test_an_append_with_no_buffer_or_past_the_end_latches_the_overflow(void)
+{
+#if MMGR_DEBUG_CHECKS
+    TEST_IGNORE_MESSAGE("the checks environment traps on this call");
+#else
+    mmgr_span empty = fill();
+    mmgr_span past = fill();
+
+    empty.buf = NULL;
+    past.pos = past.cap + 1u;
+    EMBED_CALL(byteio.raw, OctetusCfg, .write_span = &empty, .src = (const uint8_t *)"x", .bytes = (size_t)1);
+    EMBED_CALL(byteio.raw, OctetusCfg, .write_span = &past, .src = (const uint8_t *)"x", .bytes = (size_t)1);
+    TEST_ASSERT_TRUE(empty.overflow);
+    TEST_ASSERT_TRUE(past.overflow);
+#endif
+}
+
+void test_a_take_with_no_buffer_or_past_the_end_latches_the_error(void)
+{
+    mmgr_cspan empty = {.buf = NULL, .len = 4u, .pos = 0u, .err = EMBED_FALSE};
+    mmgr_cspan past = {.buf = buf, .len = 2u, .pos = 3u, .err = EMBED_FALSE};
+    uint64_t value = 0u;
+
+    TEST_ASSERT_FALSE(EMBED_CALL(byteio.take_be, OctetusCfg, .read_span = &empty, .out = &value, .bytes = 1u));
+    TEST_ASSERT_FALSE(EMBED_CALL(byteio.take_be, OctetusCfg, .read_span = &past, .out = &value, .bytes = 1u));
+    TEST_ASSERT_TRUE(empty.err);
+    TEST_ASSERT_TRUE(past.err);
+
+    mmgr_cspan latched = {.buf = buf, .len = sizeof buf, .pos = 0u, .err = EMBED_TRUE};
+
+    TEST_ASSERT_FALSE(EMBED_CALL(byteio.take_be, OctetusCfg, .read_span = &latched, .out = &value, .bytes = 1u));
+}
+
+void test_mpint_fixed_with_no_buffer_stores_nothing(void)
+{
+    static const uint8_t magnitude[] = {0x12u, 0x34u};
+    mmgr_span field = fill();
+
+    field.buf = NULL;
+    TEST_ASSERT_FALSE(
+        EMBED_CALL(byteio.mpint_fixed, OctetusCfg, .write_span = &field, .src = magnitude, .bytes = sizeof magnitude));
+    TEST_ASSERT_TRUE(field.overflow);
+}
+
 void test_byteio_header_is_self_contained(void)
 {
     TEST_PASS_MESSAGE("byteio.h compiled with no header before it");

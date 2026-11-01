@@ -16,6 +16,7 @@ option(MMGR_BUILD_TESTS "Build the unit tests" ON)
 option(MMGR_BUILD_BENCH "Build the benchmarks" OFF)
 option(MMGR_WERROR "Treat warnings as errors" OFF)
 option(MMGR_LTO "Link-time optimization" ON)
+option(MMGR_MODULE_OPTIMIZE "Take the optimization level a module names, off for a coverage build" ON)
 
 # Capabilities. Each one says the part has something - an engine, external memory, somewhere to
 # defer work to - and a build for a part without it must not carry the code that would use it.

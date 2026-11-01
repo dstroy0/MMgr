@@ -346,7 +346,8 @@ EMBED_INLINE CellOwner *carcer_owner_found(embed_atomic_usize_value named)
     // Explicit cast reads the count, size_t's width, as the entries it counts
     const size_t count = (size_t)embed_atomic_usize_load(&s_owner_count);
 
-    for (size_t at = 0u; (at < count) && (at < MMGR_CARCER_OWNERS); at += 1u)
+    // mmgr_owner_register holds the count at MMGR_CARCER_OWNERS, and so at stays inside the queue
+    for (size_t at = 0u; at < count; at += 1u)
     {
         // Explicit cast widens the owner word's integer to the queue entry's to compare the two
         if (embed_atomic_uptr_load(&s_owner_queue[at]) == (embed_atomic_uptr_value)named)

@@ -33,6 +33,16 @@ static void put_n(const char *text, size_t len)
         EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text, .text_len = len);
 }
 
+void test_put_takes_a_length_the_caller_knows(void)
+{
+    char written[8];
+    const size_t end = EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = written, .cap = sizeof written, .at = 0u,
+                                  .text = "abc", .text_len = 2u);
+
+    TEST_ASSERT_EQUAL_size_t(2u, end);
+    TEST_ASSERT_EQUAL_MEMORY("ab", written, 2u);
+}
+
 static void put_clip(const char *text)
 {
     at = EMBED_CALL(verba_textus.put_clip, VerbaTextusCfg, .out = buf, .cap = cap, .at = at, .text = text);
@@ -362,6 +372,7 @@ void test_fixed_matches_printf(void)
 
 void test_fixed_rounds_a_tie_up(void)
 {
+    MMGR_SKIP_ON_ORACLE("C leaves the tie to the implementation and the two disagree, which is the point");
     fresh(sizeof buf);
     fixed(1.5, 0u);
     finish();

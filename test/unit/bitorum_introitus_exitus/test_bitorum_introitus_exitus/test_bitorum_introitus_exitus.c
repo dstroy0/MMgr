@@ -37,6 +37,19 @@ void test_init_hands_back_an_empty_writer(void)
     TEST_ASSERT_FALSE(w.overflow);
 }
 
+void test_align_after_an_overflow_writes_nothing(void)
+{
+    w = EMBED_CALL(bitio.init, BitorumCfg, .out = out, .cap = 1u);
+    put_bits(0xFFu, 8u);
+    put_bits(0x1u, 8u);
+    TEST_ASSERT_TRUE(w.overflow);
+
+    EMBED_CALL(bitio.align, BitorumCfg, .writer = &w);
+    TEST_ASSERT_TRUE(w.overflow);
+    TEST_ASSERT_EQUAL_size_t(1u, w.bytes_written);
+    TEST_ASSERT_EQUAL_HEX8(0xAAu, out[1]);
+}
+
 void test_a_whole_byte_lands_as_that_byte(void)
 {
     put_bits(0xC3u, 8);
