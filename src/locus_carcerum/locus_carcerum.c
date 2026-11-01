@@ -375,12 +375,15 @@ embed_bool mmgr_owner_register(CellOwner *owner)
     const size_t count = (size_t)embed_atomic_usize_load(&s_owner_count);
     embed_bool refused = (embed_bool)((count >= MMGR_CARCER_OWNERS) || (embed_atomic_usize_load(&owner->place) != 0u));
 
-    for (size_t at = 0u; !refused && (at < count); at += 1u)
+    size_t at = 0u;
+
+    while (!refused && (at < count))
     {
         // Explicit casts read the entry's integer back as the address it holds
         const CellOwner *const listed = (const CellOwner *)(uintptr_t)embed_atomic_uptr_load(&s_owner_queue[at]);
 
         refused = carcer_names_same(listed->name, owner->name);
+        at += 1u;
     }
     if (!refused)
     {
@@ -750,6 +753,48 @@ EMBED_INLINE embed_bool carcer_at_boundary(embed_atomic_usize_value tiers, embed
 }
 
 /**
+ * @brief Takes the next cell a returned cell left at the boundary, where it reads free.
+ *
+ * @param[in,out] cellblock  Cellblock the cell sits in [BORROWS].
+ * @param[in]     persistent EMBED_TRUE for the persistent tier.
+ * @param[in]     end        The offset just past the cell returned.
+ * @param[in,out] at         The returned cell's offset, moved to the next cell's where one is taken [BORROWS].
+ * @param[out]    held       The next cell's payload size, where one is taken [BORROWS].
+ * @return                   EMBED_TRUE where the next cell now reads busy for this context.
+ */
+EMBED_INLINE embed_bool carcer_next_taken(CarcerCellBlock *cellblock, embed_bool persistent, size_t end, size_t *at,
+                                          size_t *held)
+{
+    size_t next = end;
+
+    if (persistent)
+    {
+        if (*at < (CARCER_HDR + MMGR_CARCER_ALIGN))
+        {
+            return EMBED_FALSE;
+        }
+        const embed_atomic_usize_value tail = embed_atomic_usize_load(carcer_word_at(cellblock, *at - CARCER_WORD));
+
+        next = carcer_word_size(tail);
+        if ((carcer_word_state(tail) != CARCER_DEAD) || (next >= *at) || ((next & (MMGR_CARCER_ALIGN - 1u)) != 0u))
+        {
+            return EMBED_FALSE;
+        }
+    }
+    embed_atomic_usize_value word;
+
+    if (!carcer_free_read(cellblock, next, persistent ? *at : cellblock->size, &word) ||
+        (persistent && (carcer_end_of(next, carcer_word_size(word)) != *at)) ||
+        !carcer_swapped(cellblock, next, word, carcer_word(carcer_word_size(word), CARCER_BUSY)))
+    {
+        return EMBED_FALSE;
+    }
+    *at = next;
+    *held = carcer_word_size(word);
+    return EMBED_TRUE;
+}
+
+/**
  * @brief Returns a busy cell at its tier's boundary to the gap, and frees it where it does not stand there.
  *
  * @param[in,out] cellblock  Cellblock the cell sits in [BORROWS].
@@ -767,8 +812,9 @@ EMBED_INLINE void carcer_returned(CarcerCellBlock *cellblock, embed_bool persist
 {
     size_t at = off;
     size_t held = size;
+    embed_bool more = EMBED_TRUE;
 
-    for (;;)
+    while (more)
     {
         const size_t end = carcer_end_of(at, held);
         embed_atomic_usize_value tiers = embed_atomic_usize_load(&cellblock->tiers);
@@ -794,32 +840,7 @@ EMBED_INLINE void carcer_returned(CarcerCellBlock *cellblock, embed_bool persist
             (void)carcer_swapped(cellblock, at, carcer_word(held, state), carcer_word(held, CARCER_FREE));
             return;
         }
-        size_t next = end;
-
-        if (persistent)
-        {
-            if (at < (CARCER_HDR + MMGR_CARCER_ALIGN))
-            {
-                return;
-            }
-            const embed_atomic_usize_value tail = embed_atomic_usize_load(carcer_word_at(cellblock, at - CARCER_WORD));
-
-            next = carcer_word_size(tail);
-            if ((carcer_word_state(tail) != CARCER_DEAD) || (next >= at) || ((next & (MMGR_CARCER_ALIGN - 1u)) != 0u))
-            {
-                return;
-            }
-        }
-        embed_atomic_usize_value word;
-
-        if (!carcer_free_read(cellblock, next, persistent ? at : cellblock->size, &word) ||
-            (persistent && (carcer_end_of(next, carcer_word_size(word)) != at)) ||
-            !carcer_swapped(cellblock, next, word, carcer_word(carcer_word_size(word), CARCER_BUSY)))
-        {
-            return;
-        }
-        at = next;
-        held = carcer_word_size(word);
+        more = carcer_next_taken(cellblock, persistent, end, &at, &held);
     }
 }
 
@@ -1694,12 +1715,12 @@ EMBED_INLINE void carcer_release_passed(CarcerCellBlock *cellblock, void *prison
     carcer_passed(turnstile);
 }
 
-void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner)
+void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, const CellOwner *owner)
 {
     carcer_release_passed(cellblock, prisoner, owner, EMBED_FALSE);
 }
 
-void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner)
+void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *prisoner, const CellOwner *owner)
 {
     carcer_release_passed(cellblock, prisoner, owner, EMBED_TRUE);
 }
@@ -2177,8 +2198,9 @@ EMBED_INLINE embed_bool carcer_pressure_steady(const CarcerMovable *movable, siz
 EMBED_INLINE void carcer_turnstiles_opened(const CarcerMovable *movable, size_t locked)
 {
     size_t left = locked;
+    size_t place = movable->width;
 
-    for (size_t place = movable->width; (place > 0u) && (left > 0u); place -= 1u)
+    while ((place > 0u) && (left > 0u))
     {
         CarcerTurnstile *const turnstile = &movable->turnstile[place - 1u];
 
@@ -2187,6 +2209,7 @@ EMBED_INLINE void carcer_turnstiles_opened(const CarcerMovable *movable, size_t 
             embed_atomic_uptr_store(&turnstile->inside, 0u);
             left -= 1u;
         }
+        place -= 1u;
     }
 }
 
@@ -2206,8 +2229,9 @@ EMBED_INLINE embed_bool carcer_mover_sorted(CarcerCellBlock *cellblock, CarcerMo
     size_t locked = 0u;
     embed_bool steady = EMBED_TRUE;
     embed_bool finished = EMBED_FALSE;
+    size_t place = movable->width;
 
-    for (size_t place = movable->width; steady && (place > 0u) && (locked < most); place -= 1u)
+    while (steady && (place > 0u) && (locked < most))
     {
         embed_atomic_uptr_value found = 0u;
 
@@ -2220,6 +2244,7 @@ EMBED_INLINE embed_bool carcer_mover_sorted(CarcerCellBlock *cellblock, CarcerMo
             steady = (embed_bool)(movable->thread_wait(MMGR_MOVABLE_READ_MS) &&
                                   carcer_pressure_steady(movable, depth, passed));
         }
+        place -= 1u;
     }
     while (steady && !finished)
     {
@@ -2354,7 +2379,7 @@ const CarcerMovableSlot *mmgr_movable_buf_alloc(CarcerCellBlock *cellblock, size
     return named;
 }
 
-embed_bool mmgr_movable_buf_release(CarcerCellBlock *cellblock, const CarcerMovableSlot *cell, CellOwner *owner)
+embed_bool mmgr_movable_buf_release(CarcerCellBlock *cellblock, const CarcerMovableSlot *cell, const CellOwner *owner)
 {
     if (cell == NULL)
     {
@@ -2399,11 +2424,12 @@ embed_bool mmgr_movable_buf_release(CarcerCellBlock *cellblock, const CarcerMova
     // A swap that fails reads lowest again, and a start at or below this slot stands
     while ((place < lowest) && !embed_atomic_usize_swap_if(&movable->lowest, &lowest, place))
     {
+        // The swap in the test is the whole step
     }
     return EMBED_TRUE;
 }
 
-embed_bool mmgr_movable_buf_read(CarcerCellBlock *cellblock, const CarcerMovableCfg *args)
+embed_bool mmgr_movable_buf_read(const CarcerCellBlock *cellblock, const CarcerMovableCfg *args)
 {
     embed_atomic_usize_value word = 0u;
     CarcerTurnstile *const turnstile = carcer_cell_entered(carcer_movable_of(cellblock), args->cell, NULL, &word, NULL);
@@ -2433,7 +2459,7 @@ embed_bool mmgr_movable_buf_write(CarcerCellBlock *cellblock, const CarcerMovabl
     return fits;
 }
 
-embed_iword mmgr_movable_buf_compare(CarcerCellBlock *cellblock, const CarcerMovableCfg *args)
+embed_iword mmgr_movable_buf_compare(const CarcerCellBlock *cellblock, const CarcerMovableCfg *args)
 {
     embed_atomic_usize_value word = 0u;
     embed_atomic_usize_value other_word = 0u;
@@ -2459,7 +2485,7 @@ embed_iword mmgr_movable_buf_compare(CarcerCellBlock *cellblock, const CarcerMov
     return order;
 }
 
-size_t mmgr_movable_buf_measure(CarcerCellBlock *cellblock, const CarcerMovableCfg *args)
+size_t mmgr_movable_buf_measure(const CarcerCellBlock *cellblock, const CarcerMovableCfg *args)
 {
     embed_atomic_usize_value word = 0u;
     CarcerTurnstile *const turnstile = carcer_cell_entered(carcer_movable_of(cellblock), args->cell, NULL, &word, NULL);
@@ -2480,7 +2506,7 @@ size_t mmgr_movable_buf_measure(CarcerCellBlock *cellblock, const CarcerMovableC
 
 embed_bool mmgr_movable_buf_move(CarcerCellBlock *cellblock)
 {
-    CarcerMovable *const movable = carcer_movable_of(cellblock);
+    const CarcerMovable *const movable = carcer_movable_of(cellblock);
 
     if (movable == NULL)
     {
@@ -2568,7 +2594,7 @@ size_t mmgr_movable_queue_depth(const CarcerCellBlock *cellblock)
     return (movable != NULL) ? carcer_queue_depth(movable) : 0u;
 }
 
-embed_bool mmgr_movable_touches(CarcerCellBlock *cellblock, size_t at, size_t *id, size_t *touches)
+embed_bool mmgr_movable_touches(const CarcerCellBlock *cellblock, size_t at, size_t *id, size_t *touches)
 {
     CarcerMovable *const movable = carcer_movable_of(cellblock);
 

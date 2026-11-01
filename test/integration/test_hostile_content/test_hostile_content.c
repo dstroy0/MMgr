@@ -374,10 +374,6 @@ void test_a_write_of_every_length_into_a_fixed_buffer(void)
         for (int delta = -1; delta <= 1; delta++)
         {
             const size_t cap = (size_t)((long)len + 1 + delta);
-            if (cap == 0u)
-            {
-                continue;
-            }
             unsigned char *p = fresh();
             char *const out = (char *)p;
             const size_t at =

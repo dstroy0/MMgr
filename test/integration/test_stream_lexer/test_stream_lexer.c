@@ -97,7 +97,7 @@ static size_t lex(uint8_t curr, uint8_t next)
     const uint32_t ex_s = s_mode & quote;
     const uint32_t ex_c = c_mode & tick;
 
-    const uint32_t write = (n_mode | s_mode | c_mode | ex_l) & (!to_b & !to_l & !ex_b);
+    const uint32_t write = (n_mode | s_mode | c_mode | ex_l) & ((to_b | to_l | ex_b) ^ 1u);
 
     const uint32_t clear =
         ~((to_b | to_l | to_s | to_c)

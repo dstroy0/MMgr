@@ -1051,7 +1051,7 @@ void *mmgr_persistent_max_security_buf_alloc(CarcerCellBlock *cellblock, size_t 
  * @warning The bound is the cellblock's storage and never a cell boundary. An address inside these
  *          bytes that is not the first byte of a cell is still read as a cell's word.
  */
-void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner);
+void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, const CellOwner *owner);
 
 /**
  * @brief Zeroes a cell, then releases the prisoner.
@@ -1072,7 +1072,7 @@ void mmgr_persistent_buf_release(CarcerCellBlock *cellblock, void *prisoner, Cel
  *          bytes that is not the first byte of a cell still has its extent read from the bytes ahead
  *          of it, and is zeroed for whatever length those hold.
  */
-void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *prisoner, CellOwner *owner);
+void mmgr_persistent_max_security_buf_release(CarcerCellBlock *cellblock, void *prisoner, const CellOwner *owner);
 
 /**
  * @brief Grows a cell to size payload bytes in place, where it is the newest cell of its tier.
@@ -1513,7 +1513,7 @@ const CarcerMovableSlot *mmgr_movable_buf_alloc(CarcerCellBlock *cellblock, size
  *                          owner is not the cell's, which mmgr_carcer_hw_misnamed is told of, nothing changed.
  * @note Waits for any context in the cell to come out and any move of it to end. Each is one call long.
  */
-embed_bool mmgr_movable_buf_release(CarcerCellBlock *cellblock, const CarcerMovableSlot *cell, CellOwner *owner);
+embed_bool mmgr_movable_buf_release(CarcerCellBlock *cellblock, const CarcerMovableSlot *cell, const CellOwner *owner);
 
 /**
  * @brief Copies args->bytes from args->offset of a movable cell to args->dst.
@@ -1525,7 +1525,7 @@ embed_bool mmgr_movable_buf_release(CarcerCellBlock *cellblock, const CarcerMova
  * @note Thin: a turnstile takes the cell's slot, the slot's word is read and its moving bit tested, the
  *       bytes are copied, and the turnstile is let go. A cell moving waits in the queue until it stands.
  */
-embed_bool mmgr_movable_buf_read(CarcerCellBlock *cellblock, const CarcerMovableCfg *args);
+embed_bool mmgr_movable_buf_read(const CarcerCellBlock *cellblock, const CarcerMovableCfg *args);
 
 /**
  * @brief Copies args->bytes from args->src to args->offset of a movable cell.
@@ -1548,7 +1548,7 @@ embed_bool mmgr_movable_buf_write(CarcerCellBlock *cellblock, const CarcerMovabl
  *                          free.
  * @note Two cells are the most one call reaches, and the turnstile names both.
  */
-embed_iword mmgr_movable_buf_compare(CarcerCellBlock *cellblock, const CarcerMovableCfg *args);
+embed_iword mmgr_movable_buf_compare(const CarcerCellBlock *cellblock, const CarcerMovableCfg *args);
 
 /**
  * @brief The bytes from args->offset of a movable cell to the next zero byte.
@@ -1557,7 +1557,7 @@ embed_iword mmgr_movable_buf_compare(CarcerCellBlock *cellblock, const CarcerMov
  * @param[in]     args      The cell and offset [BORROWS].
  * @return                  The bytes, or the bytes to the cell's end where no zero stands before it.
  */
-size_t mmgr_movable_buf_measure(CarcerCellBlock *cellblock, const CarcerMovableCfg *args);
+size_t mmgr_movable_buf_measure(const CarcerCellBlock *cellblock, const CarcerMovableCfg *args);
 
 /**
  * @brief Moves one movable cell into the first free cell below it, highest cell first.
@@ -1619,7 +1619,7 @@ size_t mmgr_movable_queue_depth(const CarcerCellBlock *cellblock);
  *       when another thread takes that turnstile or this call finds it unoccupied, and nothing decides on
  *       it. The option's last row sums every thread past the rest, and answers an id of SIZE_MAX.
  */
-embed_bool mmgr_movable_touches(CarcerCellBlock *cellblock, size_t at, size_t *id, size_t *touches);
+embed_bool mmgr_movable_touches(const CarcerCellBlock *cellblock, size_t at, size_t *id, size_t *touches);
 
 EMBED_END_DECLS
 

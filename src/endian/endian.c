@@ -102,8 +102,8 @@ EMBED_INLINE uint64_t endian_rev(const EndianCtx *args)
     uint64_t reversed = args->val;
 
     // Suffixed constants keep each mask at uint64_t, matching the value being swapped
-    reversed = ((reversed & 0x00FF00FF00FF00FFull) << 8) | ((reversed >> 8) & 0x00FF00FF00FF00FFull);
-    reversed = ((reversed & 0x0000FFFF0000FFFFull) << 16) | ((reversed >> 16) & 0x0000FFFF0000FFFFull);
+    reversed = ((reversed & 0x00FF00FF00FF00FFULL) << 8) | ((reversed >> 8) & 0x00FF00FF00FF00FFULL);
+    reversed = ((reversed & 0x0000FFFF0000FFFFULL) << 16) | ((reversed >> 16) & 0x0000FFFF0000FFFFULL);
     reversed = (reversed << 32) | (reversed >> 32);
     return reversed >> (8u * (8u - args->width));
 }

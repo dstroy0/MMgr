@@ -646,7 +646,8 @@ TREES = {
         "what": "instrumented, with always_inline and link time optimisation off",
         "args": [
             "-DMMGR_LTO=OFF",
-            "-DCMAKE_C_FLAGS=--coverage -O0 -g -include " + os.path.join(ROOT, "test", "support", "coverage_inline.h"),
+            "-DCMAKE_C_FLAGS=--coverage -fprofile-update=atomic -O0 -g -include "
+            + os.path.join(ROOT, "test", "support", "coverage_inline.h"),
             "-DCMAKE_EXE_LINKER_FLAGS=--coverage",
         ],
     },

@@ -53,26 +53,26 @@ static const char JSON_CTRL_ESC[32] = {0, 0, 0, 0, 0, 0, 0, 0, 'b', 't', 'n', 0,
  * @note The digit counters compare against these to find how many decimal digits a value needs.
  * @note verba_g and verba_fixed also use them as the scale for a given number of significant digits or decimals.
  */
-static const uint64_t mmgr_verba_pow10[MMGR_VERBA_POW10_MAX + 1u] = {1ull,
-                                                                     10ull,
-                                                                     100ull,
-                                                                     1000ull,
-                                                                     10000ull,
-                                                                     100000ull,
-                                                                     1000000ull,
-                                                                     10000000ull,
-                                                                     100000000ull,
-                                                                     1000000000ull,
-                                                                     10000000000ull,
-                                                                     100000000000ull,
-                                                                     1000000000000ull,
-                                                                     10000000000000ull,
-                                                                     100000000000000ull,
-                                                                     1000000000000000ull,
-                                                                     10000000000000000ull,
-                                                                     100000000000000000ull,
-                                                                     1000000000000000000ull,
-                                                                     10000000000000000000ull};
+static const uint64_t mmgr_verba_pow10[MMGR_VERBA_POW10_MAX + 1u] = {1ULL,
+                                                                     10ULL,
+                                                                     100ULL,
+                                                                     1000ULL,
+                                                                     10000ULL,
+                                                                     100000ULL,
+                                                                     1000000ULL,
+                                                                     10000000ULL,
+                                                                     100000000ULL,
+                                                                     1000000000ULL,
+                                                                     10000000000ULL,
+                                                                     100000000000ULL,
+                                                                     1000000000000ULL,
+                                                                     10000000000000ULL,
+                                                                     100000000000000ULL,
+                                                                     1000000000000000ULL,
+                                                                     10000000000000000ULL,
+                                                                     100000000000000000ULL,
+                                                                     1000000000000000000ULL,
+                                                                     10000000000000000000ULL};
 
 /**
  * @brief Every two digit combination. A pair costs one table read and not two divides.
@@ -467,7 +467,8 @@ EMBED_INLINE size_t verba_u64_clip(const VerbaCtx *args)
 EMBED_INLINE size_t verba_uint(const VerbaCtx *args)
 {
     uint64_t value = args->val;
-    const embed_word bits_per_digit = (args->base == 16) ? 4U : ((args->base == 8) ? 3U : 0U);
+    const embed_word octal_bits = (args->base == 8) ? 3U : 0U;
+    const embed_word bits_per_digit = (args->base == 16) ? 4U : octal_bits;
     const embed_bool power_of_two = bits_per_digit != 0;
     const uint64_t digit_mask = power_of_two ? ((1ULL << bits_per_digit) - 1U) : 0U;
 
@@ -786,6 +787,34 @@ EMBED_INLINE size_t verba_non_finite(const VerbaCtx *args)
 }
 
 /**
+ * @brief Drops trailing zeros from a mantissa of a given digit count.
+ *
+ * @param[in,out] mant   The digits, as one value [BORROWS].
+ * @param[in]     digits How many digits it holds.
+ * @return                How many digits it holds after the zeros are dropped, at least one.
+ */
+EMBED_INLINE uint8_t verba_g_trim(embed_u64 *mant, uint8_t digits)
+{
+    uint8_t left = digits;
+
+    // Ten is two times five, and the low bit answers the two before anything is multiplied
+    while ((left > 1u) && ((*mant & 1u) == 0u))
+    {
+        const embed_u64 fifth = (*mant >> 1) * MMGR_VERBA_INV5;
+
+        // The product is the divisibility test and the quotient at once: at or below the bound five
+        // divided the value, and the product is what dividing by ten would have given
+        if (fifth > MMGR_VERBA_FIFTH_MAX)
+        {
+            return left;
+        }
+        *mant = fifth;
+        left--;
+    }
+    return left;
+}
+
+/**
  * @brief Writes args->real at args->at in the shorter of a plain or an exponential form, to args->sig digits.
  *
  * @param[in] args Buffer, capacity, offset, the value and the significant digit count [BORROWS].
@@ -863,27 +892,7 @@ EMBED_INLINE size_t verba_g(const VerbaCtx *args)
         }
     }
 
-    uint8_t digits = sig;
-
-    while (digits > 1u)
-    {
-        // Ten is two times five, and the low bit answers the two before anything is multiplied
-        if ((mant & 1u) != 0u)
-        {
-            break;
-        }
-
-        const embed_u64 fifth = (mant >> 1) * MMGR_VERBA_INV5;
-
-        // The product is the divisibility test and the quotient at once: at or below the bound five
-        // divided the value, and the product is what dividing by ten would have given
-        if (fifth > MMGR_VERBA_FIFTH_MAX)
-        {
-            break;
-        }
-        mant = fifth;
-        digits--;
-    }
+    const uint8_t digits = verba_g_trim(&mant, sig);
 
     if ((exponent < -4) || (exponent >= (embed_i32)sig))
     {
