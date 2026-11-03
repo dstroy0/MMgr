@@ -368,7 +368,9 @@ void test_a_cell_given_back_below_the_end_waits_for_the_cells_above_it(void)
 
     void *const r = ram.a.persistent_buf_alloc(64u, &cells);
 
-    TEST_ASSERT_TRUE_MESSAGE(r != p, "a take the gap can meet comes from the gap");
+    TEST_ASSERT_TRUE_MESSAGE(r == p, "a free cell that fits is taken before the end moves");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(end_with_both, mmgr_cellblock_persistent_end(&ram_a_ctx),
+                                     "the take leaves the end where it stood");
     ram.a.persistent_buf_release(r, &cells);
     ram.a.persistent_buf_release(q, &cells);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_persistent_end(&ram_a_ctx),

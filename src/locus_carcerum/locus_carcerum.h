@@ -322,7 +322,7 @@ EMBED_INLINE size_t mmgr_tiers_temporary_top(embed_atomic_usize_value tiers)
  *       returns them to the gap, grows a cell or fits a take. A give that finds it taken frees its cell
  *       and has the holder read the boundary again, and nothing waits on it.
  * @note The persistent end bounds that tier and does not count what is in use. A freed cell inside
- *       the tier merges with its free neighbors and stays in it for a take the gap cannot meet.
+ *       the tier merges with its free neighbors and stays in it for the next persistent take it fits.
  * @note in_use is this cellblock's running total, counted where each owner's is. An owner's counts span
  *       every cellblock it takes from, and only this word says what one cellblock holds. persistent_in_use
  *       is the part of it lying in the persistent tier, which is what a sort reads.
@@ -1009,10 +1009,11 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @note A persistent cell stands until the same cellblock's persistent_buf_release takes it.
  * @note A cell handed out adds its payload bytes, the request rounded to a word, to owner's in_use
  *       and raises owner's hw to it. A refused take counts nothing.
- * @note The take is one swap on the tiers word, which moves the persistent end up by the cell. Where
- *       the gap cannot meet it, the take reads the tier for the first free cell that fits, split where
- *       the remainder holds another cell, and only then is refused. That read holds the tier's moving
- *       bit, and where another context holds it the take is refused at once.
+ * @note The take first reads the tier for the first free cell that fits, split where the remainder
+ *       holds another cell, where no other context has the tier's moving bit. Where none fits, the take
+ *       is one swap on the tiers word, which moves the persistent end up by the cell. Where the gap
+ *       cannot meet that, the tier is read once more for a free cell, and only then is the take refused;
+ *       where another context has the bit, it is refused at once.
  * @note With the movable option assigned the cellblock serves threads, and is one room: the take waits its
  *       turn at the bit, and a take its own tier cannot meet reads the other tier for a free cell.
  * @warning The bytes are not zeroed, and a cell laid over bytes a prisoner occupied before still

@@ -25,8 +25,9 @@
  *       marked dead, and any other goes free. A tier has one moving bit, and the context whose swap
  *       takes it merges, returns, grows or fits; a give that finds it taken frees its
  *       cell and has the holder read the boundary again, and nothing waits on it. No byte outside the
- *       tiers reads as a free cell. A take the gap cannot meet takes a free cell of its own tier
- *       that fits, split where the remainder holds another cell.
+ *       tiers reads as a free cell. A persistent take takes a free cell of its tier that fits before it
+ *       moves the end, and a temporary take one only where the gap cannot meet it, split where the
+ *       remainder holds another cell.
  * @note A take lays its words after the swap that gave it the bytes, by a swap from the word it reads
  *       there once they are its own, the word ahead of the payload last. A header another context has
  *       laid since is refused and never written over.
@@ -1002,14 +1003,16 @@ EMBED_INLINE void carcer_moving_let_go(CarcerCellBlock *cellblock, embed_bool pe
  * @param[in]     below      The offset a cell found lies below: the cellblock's size where any will do.
  * @return                  The cell, or NULL when no cell fits [RETURNS OWNERSHIP].
  * @pre The context holds the tier's moving bit, which this lets go.
- * @note Reached only where the gap cannot meet the take, and the take would otherwise be refused. First
- *       fit: a best fit would read the whole tier to save slack the split already recovers.
+ * @note Reached ahead of the gap on the persistent tier, and on either tier where the gap cannot meet
+ *       the take. First fit: a best fit would read the whole tier to save slack the split already
+ *       recovers.
  * @note With the bit taken no cell in the tier moves: a give frees its cell and merges nothing, and a
  *       growth is refused. A take out of the gap goes on, landing past the tier as it stands, and a word
  *       it has not laid yet, dead or no cell at all, ends the search.
  * @note A temporary cell is read against the top once it is counted, as a take out of the gap is: a top
  *       above the cell is a rewind that dropped it, and the take answers NULL.
- * @warning A tier holding many cells costs their number, in the case the gap is spent.
+ * @warning A tier holding many cells with none fitting costs their number: on the persistent tier on
+ *          every such take, on the temporary tier once the gap is spent.
  */
 EMBED_INLINE void *carcer_fit_held(CarcerCellBlock *cellblock, size_t want, CellOwner *owner, embed_bool persistent,
                                    size_t below)
@@ -1501,14 +1504,23 @@ EMBED_INLINE void *carcer_fit_turned(CarcerCellBlock *cellblock, const CarcerMov
 }
 
 /**
- * @brief The take both tiers and both security levels share: the owner tested, then the take out of the
- *        gap, and on the persistent tier a free cell looked for where the gap cannot meet it.
+ * @brief The take both tiers and both security levels share: the owner tested, then on the persistent
+ *        tier a free cell of its own that fits, then the take out of the gap, and a free cell looked for
+ *        where the gap cannot meet it.
  *
  * @param[in,out] cellblock Cellblock to take from [BORROWS].
  * @param[in]     size      Bytes wanted.
  * @param[in,out] owner     The owner named [BORROWS].
  * @param[in]     down      EMBED_TRUE for the tier that grows down.
  * @return                  The cell, or NULL [RETURNS OWNERSHIP].
+ * @note A persistent take reuses a free cell below the end before it moves the end: a cell freed under a
+ *       newer one is taken again, and the end climbs only for what no free cell meets. The search runs only
+ *       while the tier's moving bit is free; a bit another context has sends the take to the gap, and
+ *       nothing waits.
+ * @note A temporary take goes to the gap first. A rewind drops the cells below its mark, and a free cell
+ *       found above the mark would stand past the rewind.
+ * @warning A persistent take reads the tier's cells from its lowest up to the first free one that fits. A
+ *          tier of many cells with none fitting costs their number on every take.
  */
 EMBED_INLINE void *carcer_take(CarcerCellBlock *cellblock, size_t size, CellOwner *owner, embed_bool down)
 {
@@ -1517,6 +1529,12 @@ EMBED_INLINE void *carcer_take(CarcerCellBlock *cellblock, size_t size, CellOwne
         return NULL;
     }
     const size_t want = carcer_want(size);
+    void *const reused = down ? NULL : carcer_fit(cellblock, want, owner, EMBED_TRUE, cellblock->size);
+
+    if (reused != NULL)
+    {
+        return reused;
+    }
     void *const prisoner = carcer_grow(cellblock, want, down, owner);
 
     if (prisoner != NULL)

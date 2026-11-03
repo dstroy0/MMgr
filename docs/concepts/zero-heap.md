@@ -63,8 +63,9 @@ tracks the bytes taken from the top. It is off by default. A workload run withou
 at zero. Read the field, add whatever margin your failure policy wants, then size the pool.
 
 **You give up a heap's reach.** A release merges a cell with its free neighbors and returns a free cell
-at a tier's boundary to the gap, and a take the gap cannot meet reuses a free cell of its own tier that
-fits; the temporary tier also releases by mark, or resets whole. If your data structure genuinely
+at a tier's boundary to the gap. A persistent take reuses a free cell of its tier that fits before it
+moves the end, and a temporary take reuses one only where the gap cannot meet it; the temporary tier
+also releases by mark, or resets whole. If your data structure genuinely
 needs arbitrary-order release of arbitrary-size objects with a long tail of lifetimes, this library is
 the wrong shape and no amount of configuration will change that.
 
