@@ -18,8 +18,8 @@
  *       The linker resolves it. No call computes a cellblock's address from a site and an index,
  *       and which memory a cellblock sits in was settled where its pool was declared.
  * @note A cellblock has two tiers. The persistent tier runs up from base and the temporary tier runs
- *       down from size, each boundary one atomic word a take moves by one fetch-add, through the
- *       cellblock's turnstiles.
+ *       down from size. Both boundaries are the two halves of one atomic word, and a take moves its own
+ *       half by one fetch-add whose old value carries the other, through the cellblock's turnstiles.
  * @note A cellblock's declaration picks its security level. MMGR_MINIMUM_SECURITY leaves a cell's
  *       bytes as they are on release. MMGR_MAXIMUM_SECURITY zeroes them. The warden is const:
  *       nothing after the declaration can change the level a cellblock runs at.
