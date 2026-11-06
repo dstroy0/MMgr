@@ -12,6 +12,10 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-05
  */
+#if !defined(_WIN32)
+/* the futex call and the monotonic clock are declared under the GNU feature set */
+#define _GNU_SOURCE
+#endif
 #include "host_wait.h"
 
 #include "embed_turnstile.h"

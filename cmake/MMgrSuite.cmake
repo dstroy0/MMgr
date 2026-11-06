@@ -65,13 +65,15 @@ function(mmgr_add_suite suite_name)
     add_custom_target(${suite_name}_runner DEPENDS "${runner}")
     set_source_files_properties("${runner}" PROPERTIES GENERATED TRUE)
 
-    # guard_page.c sets the POSIX feature macros ahead of its first include, and that is too late
-    # where an environment forces a header in first: checks does, and its <stdio.h> settles glibc's
-    # feature set as strict C11, which leaves sigjmp_buf and sigaction undeclared. On the command
-    # line they are in place before any header is read.
+    # guard_page.c and host_wait.c set the POSIX feature macros ahead of their first include, and that
+    # is too late where an environment forces a header in first: checks does, and its <stdio.h> settles
+    # glibc's feature set as strict C11, which leaves sigjmp_buf, sigaction, the futex call and the
+    # monotonic clock undeclared. On the command line they are in place before any header is read.
     if(NOT WIN32)
         set_source_files_properties("${MMGR_TEST_ROOT}/support/guard_page.c" PROPERTIES
             COMPILE_DEFINITIONS "_POSIX_C_SOURCE=200809L;_DEFAULT_SOURCE=1")
+        set_source_files_properties("${MMGR_TEST_ROOT}/support/host_wait.c" PROPERTIES
+            COMPILE_DEFINITIONS "_GNU_SOURCE=1")
     endif()
 
     foreach(entry IN LISTS MMGR_ENVIRONMENTS)

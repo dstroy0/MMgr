@@ -82,8 +82,8 @@ int main(void)
   run_test(test_an_aligned_load_reads_the_aligned_bytes, "test_an_aligned_load_reads_the_aligned_bytes", 106);
   run_test(test_a_fill_repeats_the_byte_into_every_lane, "test_a_fill_repeats_the_byte_into_every_lane", 121);
   run_test(test_equal_lanes_answer_the_byte_loop_at_every_position, "test_equal_lanes_answer_the_byte_loop_at_every_position", 134);
-  run_test(test_zero_lanes_find_each_zero_byte_and_the_first_is_the_lowest, "test_zero_lanes_find_each_zero_byte_and_the_first_is_the_lowest", 161);
-  run_test(test_the_bytes_before_a_terminator_are_the_bytes_a_match_counts_in, "test_the_bytes_before_a_terminator_are_the_bytes_a_match_counts_in", 181);
+  run_test(test_zero_lanes_find_each_zero_byte_and_the_first_is_the_lowest, "test_zero_lanes_find_each_zero_byte_and_the_first_is_the_lowest", 164);
+  run_test(test_the_bytes_before_a_terminator_are_the_bytes_a_match_counts_in, "test_the_bytes_before_a_terminator_are_the_bytes_a_match_counts_in", 186);
 
   return UNITY_END();
 }

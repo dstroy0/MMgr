@@ -32,13 +32,27 @@ $$
 Each operation is a function $\Sigma \to \Sigma \times \{\bot\} \cup \mathbb{N}$. Operations of §3.1 and §3.2 may
 interleave with one another; operations of §3.3 execute with no other operation in progress.
 
+$E$ and $T$ are the two halves of one atomic word of $2H$ bits, $W = T \cdot 2^H + E$. Every read of a boundary
+reads $W$, and every move of a boundary is one read-modify-write on $W$ whose old value carries both halves. Two
+caps keep a move within its half:
+
+$$
+S \le 2^{H-1},\qquad n \le h + 2^{H-8}
+$$
+
+A bump up whose request exceeds the second cap, or that reads $E > 2^{H-1}$ before its read-modify-write, adds
+nothing and answers $\bot$ without touching the overrun; the request goes to the exclusive path. Hence $E$ never
+exceeds $2^{H-1} + L\,(h + 2^{H-8})$, with $L$ the bumps in flight at once, and never carries into $T$'s half
+while $2^{H-1} + L\,(h + 2^{H-8}) < 2^H$: up to 127 in flight at $H = 32$, up to 120 at $H = 16$. A bump down
+subtracts $n \cdot 2^H$: $E$'s half is untouched, and a borrow out of $T$'s half leaves the word.
+
 ### 3.1 Bump up, need $n$ ($n = h + p$, $8 \mid p$)
 
 $$
-w := E,\quad E := E + n
+(w, T_w) := (E, T),\quad W := W + n
 $$
 $$
-\tau \equiv (w + n \le T) \wedge (w + n \ge w) \wedge (T \le S)
+\tau \equiv (w + n \le T_w) \wedge (w + n \ge w) \wedge (T_w \le S)
 $$
 $$
 \tau \Rightarrow P := P \cdot (w, p),\ \text{answer } w + 8
@@ -47,15 +61,16 @@ $$
 \neg\tau \Rightarrow O_E := O_E + n,\ \text{answer } \bot
 $$
 
-The first line is one atomic read-modify-write. The fourth is one atomic add. Nothing subtracts from $E$.
+The first line is one atomic read-modify-write on $W$, and $w$ and $T_w$ are its two halves before the add. The
+fourth is one atomic add. Nothing subtracts from $E$.
 
 ### 3.2 Bump down, need $n$
 
 $$
-w := T,\quad T := T - n
+(E_w, w) := (E, T),\quad W := W - n \cdot 2^H
 $$
 $$
-\tau \equiv (w - n \ge E) \wedge (w - n \le w) \wedge (w - n \le S)
+\tau \equiv (w - n \ge E_w) \wedge (w - n \le w) \wedge (w - n \le S)
 $$
 $$
 \tau \Rightarrow Q := (w - n, p) \cdot Q,\ \text{answer } w - n + 8
@@ -108,11 +123,15 @@ does otherwise. $\square$
 read-modify-write follows $B_1$'s is refused.
 
 *Proof.* $B_1$ refused and not wrapped means $w_1 + n_1 > T_1$ where $T_1$ is $T$ as $B_1$ read it. By Lemma 1,
-$w_2 \ge w_1 + n_1 > T_1 \ge T_2$. Hence $w_2 + n_2 > T_2$ and $\tau_2$ is false. If $B_1$ was refused for a wrap,
-$w_1 + n_1 < w_1$, then $E$ has passed $2^{64} - n_1$, and $w_2 \ge w_1 + n_1$ modulo $2^{64}$ is either wrapped,
-refused by the second conjunct, or exceeds $S$ since $T_2 \le S$, refused by the first. $\square$
+$w_2 \ge w_1 + n_1 > T_1 \ge T_2$, where $T_1 \ge T_2$ stands because $B_2$ reads $T$ in the same atomic step as
+its read-modify-write, which follows $B_1$'s. Hence $w_2 + n_2 > T_2$ and $\tau_2$ is false. If $B_1$ was refused
+for a wrap, $w_1 + n_1 < w_1$, then $E$ has passed $2^{64} - n_1$, and $w_2 \ge w_1 + n_1$ modulo $2^{64}$ is
+either wrapped, refused by the second conjunct, or exceeds $S$ since $T_2 \le S$, refused by the first. $\square$
 
 The mirror holds for bumps down with $E$ in place of $T$.
+
+The step $T_1 \ge T_2$ is the whole of Lemma 2, and it needs §3.1's first line to be one atomic step over
+both $E$ and $T$: one word carries both boundaries. §6.2 states what two words admit.
 
 **Lemma 3** (taken bumps are contiguous). Within a round, let $B_1, \dots, B_k$ be the taken bumps up in
 read-modify-write order. Then $o_1 = e_P$ at the round's start and $o_{i+1} = o_i + n_i$.
@@ -144,7 +163,9 @@ operation of §3.5 to §3.7 maps a chain to a chain and leaves $E = e_P$, $T = t
 round's start. Disjointness: taken cells are consecutive in a chain (Lemma 3) and $e_P \le t_Q$ separates $P$
 from $Q$. $\square$
 
-## 6. The undo
+## 6. Two ways Lemma 2 fails
+
+### 6.1 The undo
 
 Replace §3.1's refused branch by $E := E - n$. Then $E$ is not monotone within a round and Lemma 2 fails:
 
@@ -160,3 +181,37 @@ D\ \text{undo} & E \to 6120 &
 $$
 
 $X$ is taken at $o = 6112$ with $e_P = 6088$: the chain is broken, and $X$'s cell lies past $E$.
+
+### 6.2 Two words
+
+**Lemma 6** (two words are not absorbing). Let $E$ and $T$ be two atomic words, so that a bump is two steps: the
+read-modify-write $w := E,\ E := E + n$, and later the read of $T$ that decides $\tau$. Then Lemma 2 fails: a
+bump $A$ whose read-modify-write precedes $B$'s can be refused while $B$ is taken, and $I$ fails after the round.
+
+*Proof.* The witness is an interleaving with $S = 2^{20}$ and the round starting at rest
+with $E = e_P = \mathtt{fd4c0}$, $T = t_Q = \mathtt{fd868}$:
+
+$$
+\begin{array}{llll}
+A:\ w_A = \mathtt{fd4c0},\ n_A = \mathtt{1e8} & E \to \mathtt{fd6a8} & & \\
+B:\ w_B = \mathtt{fd6a8},\ n_B = \mathtt{a8} & E \to \mathtt{fd750} & & \\
+B\ \text{reads}\ T = \mathtt{fd868} & & \mathtt{fd750} \le \mathtt{fd868} & \tau_B,\ P := P \cdot (\mathtt{fd6a8}, \mathtt{98}) \\
+C:\ w_C = \mathtt{fd868},\ n_C = \mathtt{210} & T \to \mathtt{fd658} & & \\
+A\ \text{reads}\ T = \mathtt{fd658} & & \mathtt{fd6a8} > \mathtt{fd658} & \neg\tau_A,\ O_E := \mathtt{1e8} \\
+C\ \text{reads}\ E = \mathtt{fd750} & & \mathtt{fd658} < \mathtt{fd750} & \neg\tau_C,\ O_T := \mathtt{210}
+\end{array}
+$$
+
+$B$'s read of $T$ came before $C$'s move, $A$'s after it: $T_B > T_A$ although $A$'s read-modify-write preceded
+$B$'s, which is where Lemma 2's $T_1 \ge T_2$ fails. After the round $E - O_E = \mathtt{fd568} < e_P = \mathtt{fd750}$:
+$A$'s refused bytes lie below $B$'s cell, and Settle subtracts them from the top, putting $E$ inside the gap below a
+laid cell. The next bump up is taken over $B$'s cell. $\square$
+
+Hence the two boundaries must be one word, and §3.1's and §3.2's first line one read-modify-write on it. With $E$
+and $T$ each half of the word, a bump up adds $n$ to the low half and reads the high half in the same step, and
+$T_1 \ge T_2$ stands by the word's own order.
+
+Both models are checked in Lean under `theory/locus_carcerum`: `LocusCarcerum/Packed.lean` proves Lemmas 1 to 5
+and the theorem for one word; `LocusCarcerum/Split.lean` states the two-word steps and checks the witness above;
+`LocusCarcerum/Word.lean` proves §3's word arithmetic, a bump up without a carry under the caps, a bump down's
+borrow leaving the low half untouched, the in-flight bound, and the two widths' counts.

@@ -67,7 +67,7 @@ static void owner_ready(const CellOwner *owner)
 
 void setUp(void)
 {
-    mmgr_cellblock_emptied(&crowded_shared_ctx);
+    mmgr_series_cellularum_emptied(&crowded_shared_ctx);
     embed_atomic_u32_store(&s_next_index, 0u);
     embed_atomic_usize_store(&s_refused, 0u);
     embed_atomic_usize_store(&s_overwritten, 0u);
@@ -83,8 +83,8 @@ void tearDown(void)
 /** @brief The bytes both tiers hold, read off the two boundaries. */
 static size_t tiers_held(void)
 {
-    return mmgr_cellblock_persistent_end(&crowded_shared_ctx) +
-           (SHARED_BYTES - mmgr_cellblock_temporary_top(&crowded_shared_ctx));
+    return mmgr_series_cellularum_persistent_end(&crowded_shared_ctx) +
+           (SHARED_BYTES - mmgr_series_cellularum_temporary_top(&crowded_shared_ctx));
 }
 
 static unsigned int contend_index_taken(void)
@@ -225,10 +225,10 @@ void test_threads_taking_and_giving_at_once_never_share_a_cell(void)
                                      "a cell was handed to two threads at once");
 }
 
-void test_threads_taking_and_giving_at_once_leave_the_cellblock_whole(void)
+void test_threads_taking_and_giving_at_once_leave_the_series_cellularum_whole(void)
 {
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MOST));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_persistent_end(&crowded_shared_ctx),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_persistent_end(&crowded_shared_ctx),
                                      "every cell given back returns the tier to the gap");
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
 }
@@ -240,9 +240,9 @@ void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(v
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary, MMGR_HOST_THREADS_MOST));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
                                      "a temporary cell was handed to two threads at once");
-    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_persistent_end(&crowded_shared_ctx));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(&crowded_shared_ctx));
     crowded.shared.temporary_buf_reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(SHARED_BYTES, mmgr_cellblock_temporary_top(&crowded_shared_ctx),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(SHARED_BYTES, mmgr_series_cellularum_temporary_top(&crowded_shared_ctx),
                                      "the reset gives the whole tier back");
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
 }

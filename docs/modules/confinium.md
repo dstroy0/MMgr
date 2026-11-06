@@ -101,7 +101,7 @@ atomic against a move and not against another writer: two contexts writing the s
 Every take passes the turnstiles too, and the option counts the passes, which is what makes pressure a reading
 of the whole cellblock. A give passes none: the cell's words are its holder's alone.
 
-The mover runs on the thread the program gave. Each reading compares `mmgr_cellblock_fragmentation`, the bytes the
+The mover runs on the thread the program gave. Each reading compares `mmgr_series_cellularum_fragmentation`, the bytes the
 persistent tier occupies that no cell's payload holds as a percentage of the bytes it occupies, against
 `MMGR_MOVABLE_SETTLE_PERCENT`. The temporary tier reads nothing, since its cells last one call and its top comes back
 as they end. Over it, `MMGR_MOVABLE_QUIET_READINGS` in a row must find the cellblock quiet: no pass since the
@@ -119,7 +119,7 @@ cellblock it takes from, and bytes that lie in no cellblock, a ring's among them
 last badge's id beside them and read with `mmgr_movable_touches`; nothing decides on them.
 
 A pointer inside a movable cell to the cell's own bytes goes stale when it moves, and a cell that moves addresses
-its own bytes by offset. A host site with the option assigned is not made anew, since the mover reads its block.
+its own bytes by offset.
 
 ## Worked example
 
@@ -207,12 +207,12 @@ the pointer is live.
 
 ```c
 const size_t left  = prison.work.buf_available();
-const size_t grown = mmgr_cellblock_persistent_end(pool);  /* how far the bottom has reached */
+const size_t grown = mmgr_series_cellularum_persistent_end(pool);  /* how far the bottom has reached */
 const size_t peak  = pool->persistent_hw;                  /* MMGR_ENABLE_HW_MEM_CAPACITY_CB only */
 ```
 
 A pool's peaks are its own state, read as members. The two boundaries share one atomic word, and
-`mmgr_cellblock_persistent_end` and `mmgr_cellblock_temporary_top` read each off it.
+`mmgr_series_cellularum_persistent_end` and `mmgr_series_cellularum_temporary_top` read each off it.
 
 The persistent end bounds the block chain and counts nothing of what is busy: a freed block inside the
 chain merges with its free neighbors and stays in it for a take the middle cannot meet.

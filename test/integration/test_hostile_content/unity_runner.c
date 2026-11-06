@@ -126,14 +126,14 @@ int main(void)
   run_test(test_a_builder_at_every_capacity_stays_inside_it, "test_a_builder_at_every_capacity_stays_inside_it", 323);
   run_test(test_a_builder_with_no_room_for_a_terminator, "test_a_builder_with_no_room_for_a_terminator", 354);
   run_test(test_a_write_of_every_length_into_a_fixed_buffer, "test_a_write_of_every_length_into_a_fixed_buffer", 366);
-  run_test(test_a_record_at_every_capacity_stays_inside_it, "test_a_record_at_every_capacity_stays_inside_it", 401);
-  run_test(test_appending_to_a_record_until_it_stops_fitting, "test_appending_to_a_record_until_it_stops_fitting", 418);
-  run_test(test_the_parsers_against_content_that_never_terminates, "test_the_parsers_against_content_that_never_terminates", 439);
-  run_test(test_the_parsers_agree_with_libc_on_rubbish, "test_the_parsers_agree_with_libc_on_rubbish", 451);
-  run_test(test_the_parser_takes_decimal_and_stops_at_anything_else, "test_the_parser_takes_decimal_and_stops_at_anything_else", 488);
-  run_test(test_an_exponent_with_no_digits_after_it, "test_an_exponent_with_no_digits_after_it", 505);
-  run_test(test_an_exponent_that_is_real_is_still_taken, "test_an_exponent_that_is_real_is_still_taken", 529);
-  run_test(test_a_number_made_entirely_of_leading_zeros, "test_a_number_made_entirely_of_leading_zeros", 540);
+  run_test(test_a_record_at_every_capacity_stays_inside_it, "test_a_record_at_every_capacity_stays_inside_it", 397);
+  run_test(test_appending_to_a_record_until_it_stops_fitting, "test_appending_to_a_record_until_it_stops_fitting", 414);
+  run_test(test_the_parsers_against_content_that_never_terminates, "test_the_parsers_against_content_that_never_terminates", 435);
+  run_test(test_the_parsers_agree_with_libc_on_rubbish, "test_the_parsers_agree_with_libc_on_rubbish", 447);
+  run_test(test_the_parser_takes_decimal_and_stops_at_anything_else, "test_the_parser_takes_decimal_and_stops_at_anything_else", 484);
+  run_test(test_an_exponent_with_no_digits_after_it, "test_an_exponent_with_no_digits_after_it", 501);
+  run_test(test_an_exponent_that_is_real_is_still_taken, "test_an_exponent_that_is_real_is_still_taken", 525);
+  run_test(test_a_number_made_entirely_of_leading_zeros, "test_a_number_made_entirely_of_leading_zeros", 536);
 
   return UNITY_END();
 }

@@ -19,7 +19,7 @@ extern void test_a_give_naming_no_owner_gives_nothing_back(void);
 extern void test_a_growth_naming_no_owner_is_refused(void);
 extern void test_two_owners_are_counted_apart(void);
 extern void test_a_maximum_security_give_counts_like_a_plain_one(void);
-extern void test_one_owner_counts_across_cellblocks(void);
+extern void test_one_owner_counts_across_series_cellularum(void);
 extern void test_a_temporary_take_counts_the_cell_to_its_owner(void);
 extern void test_a_rewind_counts_the_dropped_cells_off_their_owners(void);
 extern void test_a_temporary_cell_given_back_alone_counts_off_its_owner(void);
@@ -102,7 +102,7 @@ int main(void)
   run_test(test_a_growth_naming_no_owner_is_refused, "test_a_growth_naming_no_owner_is_refused", 175);
   run_test(test_two_owners_are_counted_apart, "test_two_owners_are_counted_apart", 185);
   run_test(test_a_maximum_security_give_counts_like_a_plain_one, "test_a_maximum_security_give_counts_like_a_plain_one", 198);
-  run_test(test_one_owner_counts_across_cellblocks, "test_one_owner_counts_across_cellblocks", 208);
+  run_test(test_one_owner_counts_across_series_cellularum, "test_one_owner_counts_across_series_cellularum", 208);
   run_test(test_a_temporary_take_counts_the_cell_to_its_owner, "test_a_temporary_take_counts_the_cell_to_its_owner", 220);
   run_test(test_a_rewind_counts_the_dropped_cells_off_their_owners, "test_a_rewind_counts_the_dropped_cells_off_their_owners", 230);
   run_test(test_a_temporary_cell_given_back_alone_counts_off_its_owner, "test_a_temporary_cell_given_back_alone_counts_off_its_owner", 248);

@@ -217,8 +217,8 @@ fails closed in place of letting the two ends run into each other, but no alloca
 more. The counters exist for exactly this: run the real workload under the `checks` environment,
 read them, then size the region.
 
-`mmgr_cellblock_persistent_end(pool)` is how far the bottom has reached and
-`mmgr_cellblock_temporary_top(pool)` how far the top has, both read off the one atomic word that holds
+`mmgr_series_cellularum_persistent_end(pool)` is how far the bottom has reached and
+`mmgr_series_cellularum_temporary_top(pool)` how far the top has, both read off the one atomic word that holds
 the two boundaries. `buf_available` reports the gap between them.
 
 For the peak in place of the current value, turn on `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Each end then

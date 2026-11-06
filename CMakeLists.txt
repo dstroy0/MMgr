@@ -14,6 +14,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(MMGR_BUILD_TESTS "Build the unit tests" ON)
 option(MMGR_BUILD_BENCH "Build the benchmarks" OFF)
+option(MMGR_FUZZ "Build the libFuzzer harness, which needs clang" OFF)
 option(MMGR_WERROR "Treat warnings as errors" OFF)
 option(MMGR_LTO "Link-time optimization" ON)
 option(MMGR_MODULE_OPTIMIZE "Take the optimization level a module names, off for a coverage build" ON)

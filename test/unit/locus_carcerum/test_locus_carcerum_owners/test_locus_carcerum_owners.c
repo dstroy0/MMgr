@@ -48,8 +48,8 @@ static size_t hw_of(const CellOwner *owner)
 
 void setUp(void)
 {
-    mmgr_cellblock_emptied(&counted_plain_ctx);
-    mmgr_cellblock_emptied(&counted_wiped_ctx);
+    mmgr_series_cellularum_emptied(&counted_plain_ctx);
+    mmgr_series_cellularum_emptied(&counted_wiped_ctx);
     owner_ready(reader);
     owner_ready(writer);
     owner_ready(scratch);
@@ -205,7 +205,7 @@ void test_a_maximum_security_give_counts_like_a_plain_one(void)
     TEST_ASSERT_EQUAL_size_t(24u, hw_of(keys));
 }
 
-void test_one_owner_counts_across_cellblocks(void)
+void test_one_owner_counts_across_series_cellularum(void)
 {
     void *const plain_cell = counted.plain.persistent_buf_alloc(16u, reader);
     void *const wiped_cell = counted.wiped.persistent_buf_alloc(16u, reader);

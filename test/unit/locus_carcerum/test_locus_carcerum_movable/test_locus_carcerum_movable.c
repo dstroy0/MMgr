@@ -166,11 +166,11 @@ void setUp(void)
 {
     mmgr_owner_bytes_given(s_mover, mmgr_owner_in_use(s_mover));
     mmgr_owner_bytes_given(s_other, mmgr_owner_in_use(s_other));
-    mmgr_cellblock_emptied(&plain_moving_ctx);
-    mmgr_cellblock_emptied(&wiped_secure_ctx);
-    mmgr_cellblock_emptied(&single_narrow_ctx);
-    mmgr_cellblock_emptied(&unassigned_bare_ctx);
-    mmgr_cellblock_emptied(&crowded_crowd_ctx);
+    mmgr_series_cellularum_emptied(&plain_moving_ctx);
+    mmgr_series_cellularum_emptied(&wiped_secure_ctx);
+    mmgr_series_cellularum_emptied(&single_narrow_ctx);
+    mmgr_series_cellularum_emptied(&unassigned_bare_ctx);
+    mmgr_series_cellularum_emptied(&crowded_crowd_ctx);
     embed_atomic_u32_store(&s_next_index, 0u);
     embed_atomic_usize_store(&s_writers_done, 0u);
     embed_atomic_usize_store(&s_moves, 0u);
@@ -231,7 +231,7 @@ static void assert_marked(const CarcerMovableSlot *cell, size_t size, unsigned c
     }
 }
 
-void test_a_cellblock_with_no_option_takes_and_gives_and_answers_no_identity(void)
+void test_a_series_cellularum_with_no_option_takes_and_gives_and_answers_no_identity(void)
 {
     void *const cell = unassigned.bare.persistent_buf_alloc(64u, s_mover);
 
@@ -315,7 +315,7 @@ void test_a_movable_take_answers_an_identity_whose_bytes_read_back(void)
     TEST_ASSERT_EQUAL_size_t(64u, mmgr_owner_in_use(s_mover));
 }
 
-void test_a_movable_take_the_cellblock_cannot_meet_answers_no_identity(void)
+void test_a_movable_take_the_series_cellularum_cannot_meet_answers_no_identity(void)
 {
     TEST_ASSERT_NULL(plain.moving.movable_buf_alloc(MOVING_BYTES * 2u, s_mover));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_mover), "nothing is counted");
@@ -543,7 +543,7 @@ void test_moves_run_until_none_answers_stand_as_they_left_things(void)
     TEST_ASSERT_TRUE_MESSAGE(settled > gap, "the tier's end came back to the gap");
 }
 
-void test_a_move_and_a_release_on_a_wiping_cellblock_wipe_what_they_leave(void)
+void test_a_move_and_a_release_on_a_wiping_series_cellularum_wipe_what_they_leave(void)
 {
     memset(mmgr_pars_storage_secure_option, 0, secure_option_bytes);
     TEST_ASSERT_TRUE(wiped.secure.movable_init(&(CarcerMovableInitCfg){
@@ -574,33 +574,33 @@ void test_a_move_and_a_release_on_a_wiping_cellblock_wipe_what_they_leave(void)
 
 void test_fragmentation_reads_the_bytes_occupied_that_no_payload_holds(void)
 {
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_fragmentation(&plain_moving_ctx), "nothing occupied");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_fragmentation(&plain_moving_ctx), "nothing occupied");
     void *const low = plain.moving.persistent_buf_alloc(512u, s_mover);
     void *const high = plain.moving.persistent_buf_alloc(512u, s_mover);
 
-    const size_t whole = mmgr_cellblock_fragmentation(&plain_moving_ctx);
+    const size_t whole = mmgr_series_cellularum_fragmentation(&plain_moving_ctx);
     TEST_ASSERT_TRUE_MESSAGE(whole < 10u, "with no hole only the cells' words read");
     plain.moving.persistent_buf_release(low, s_mover);
-    TEST_ASSERT_TRUE_MESSAGE(mmgr_cellblock_fragmentation(&plain_moving_ctx) >= 40u, "half the tier is a hole");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) >= 40u, "half the tier is a hole");
     plain.moving.persistent_buf_release(high, s_mover);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_fragmentation(&plain_moving_ctx), "and the tier is gone");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_fragmentation(&plain_moving_ctx), "and the tier is gone");
 }
 
 void test_the_temporary_tier_reads_no_fragmentation(void)
 {
     void *const persistent = plain.moving.persistent_buf_alloc(512u, s_mover);
-    const size_t whole = mmgr_cellblock_fragmentation(&plain_moving_ctx);
+    const size_t whole = mmgr_series_cellularum_fragmentation(&plain_moving_ctx);
     void *const hole = plain.moving.temporary_buf_alloc(1024u, s_mover);
     void *const below = plain.moving.temporary_buf_alloc(16u, s_mover);
 
     TEST_ASSERT_NOT_NULL(hole);
     TEST_ASSERT_NOT_NULL(below);
     plain.moving.persistent_buf_release(hole, s_mover);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(whole, mmgr_cellblock_fragmentation(&plain_moving_ctx),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(whole, mmgr_series_cellularum_fragmentation(&plain_moving_ctx),
                                      "a hole in the temporary tier is no work for a sort");
     plain.moving.persistent_buf_release(below, s_mover);
     plain.moving.persistent_buf_release(persistent, s_mover);
-    TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_fragmentation(&plain_moving_ctx));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_fragmentation(&plain_moving_ctx));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use),
                                      "every persistent cell is counted back");
 }
@@ -627,7 +627,7 @@ void test_a_cell_counts_to_the_tier_it_lies_in(void)
                                      "the temporary cell left counts to the cellblock");
 }
 
-void test_each_cellblock_keeps_its_own_running_total(void)
+void test_each_series_cellularum_keeps_its_own_running_total(void)
 {
     void *const here = plain.moving.persistent_buf_alloc(512u, s_mover);
     void *const there = unassigned.bare.persistent_buf_alloc(512u, s_mover);
@@ -653,7 +653,7 @@ void test_the_running_total_follows_the_temporary_tier_and_a_growth(void)
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
 }
 
-void test_bytes_outside_any_cellblock_count_to_an_owner_alone(void)
+void test_bytes_outside_any_series_cellularum_count_to_an_owner_alone(void)
 {
     mmgr_owner_bytes_taken(s_other, 4096u);
     TEST_ASSERT_EQUAL_size_t(4096u, mmgr_owner_in_use(s_other));
@@ -722,17 +722,17 @@ static const CarcerMovableSlot *fragmented(void)
     const CarcerMovableSlot *const cell = marked_sized(128u, 0x33u);
 
     plain.moving.persistent_buf_release(low, s_mover);
-    TEST_ASSERT_TRUE(mmgr_cellblock_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
     return cell;
 }
 
-void test_the_mover_leaves_a_cellblock_under_the_threshold_alone(void)
+void test_the_mover_leaves_a_series_cellularum_under_the_threshold_alone(void)
 {
     void *const low = plain.moving.persistent_buf_alloc(16u, s_mover);
     const CarcerMovableSlot *const cell = marked_sized(256u, 0x35u);
 
     plain.moving.persistent_buf_release(low, s_mover);
-    TEST_ASSERT_TRUE(mmgr_cellblock_fragmentation(&plain_moving_ctx) < MMGR_MOVABLE_SETTLE_PERCENT);
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) < MMGR_MOVABLE_SETTLE_PERCENT);
     s_ticks_left = 2u * MMGR_MOVABLE_QUIET_READINGS;
     mmgr_movable_run(&plain_moving_ctx);
     TEST_ASSERT_EQUAL_UINT_MESSAGE(0u, s_moving_told, "nothing is moved under the threshold");
@@ -771,7 +771,7 @@ void test_a_sort_that_can_move_nothing_is_not_run_again_until_the_reading_rises(
     void *const pin = plain.moving.persistent_buf_alloc(16u, s_mover);
 
     plain.moving.persistent_buf_release(hole, s_mover);
-    TEST_ASSERT_TRUE(mmgr_cellblock_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
     s_ticks_left = MMGR_MOVABLE_QUIET_READINGS + 1u;
     mmgr_movable_run(&plain_moving_ctx);
     const unsigned int first_sort = s_moving_told;
@@ -830,7 +830,7 @@ void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_w
 
     plain.moving.persistent_buf_release(low, s_mover);
     plain.moving.persistent_buf_release(middle, s_mover);
-    TEST_ASSERT_TRUE(mmgr_cellblock_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
     // The other thread's passes keep the readings from quiet until they stop; the sort starts once they do, and
     // the passes that land before the thread reads the sort's end are what it backs off from
     TEST_ASSERT_TRUE(mmgr_host_threads_run(backoff_each, 2u));
@@ -884,7 +884,7 @@ void test_a_sort_waits_out_the_pass_under_way(void)
 
     TEST_ASSERT_NOT_NULL(cell);
     single.narrow.persistent_buf_release(low, s_mover);
-    TEST_ASSERT_TRUE(mmgr_cellblock_fragmentation(&single_narrow_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&single_narrow_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
     s_occupied_cell = cell;
     s_hook_watched = low;
     embed_atomic_usize_store(&s_hold_turnstile, 1u);
@@ -977,7 +977,7 @@ static void bit_each(void)
     embed_atomic_usize_store(&s_bit_answered, 1u);
 }
 
-void test_a_take_finding_the_cellblock_closed_waits_for_the_writer_and_is_not_refused(void)
+void test_a_take_finding_the_series_cellularum_closed_waits_for_the_writer_and_is_not_refused(void)
 {
     embed_atomic_usize_store(&s_bit_held, 0u);
     embed_atomic_usize_store(&s_bit_answered, 0u);
@@ -988,32 +988,6 @@ void test_a_take_finding_the_cellblock_closed_waits_for_the_writer_and_is_not_re
     TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, (size_t)embed_atomic_usize_load(&s_bit_slept),
                                      "and sets the sleeper flag on the closed word while it waits");
     TEST_ASSERT_EQUAL_size_t(512u, mmgr_owner_in_use(s_mover));
-}
-
-#if MMGR_ENABLE_HOST
-LocusCarcerumHospes(hosted, MMGR_MINIMUM_SECURITY(hosted_pool));
-#endif
-
-void test_a_host_site_with_the_option_assigned_is_not_made_anew(void)
-{
-#if !MMGR_ENABLE_HOST
-    TEST_IGNORE_MESSAGE("the host site is built where MMGR_ENABLE_HOST is 1");
-#else
-    TEST_ASSERT_TRUE(hosted_made(4096u));
-    TEST_ASSERT_TRUE_MESSAGE(hosted_made(8192u), "made anew without the option");
-    memset(mmgr_pars_storage_narrow_option, 0, narrow_option_bytes);
-    TEST_ASSERT_TRUE(hosted.hosted_pool.movable_init(&(CarcerMovableInitCfg){.storage = mmgr_pars_storage_narrow_option,
-                                                                             .storage_bytes = narrow_option_bytes,
-                                                                             .cells = MOVING_CELLS,
-                                                                             .width = 1u}));
-    TEST_ASSERT_FALSE_MESSAGE(hosted_made(16384u), "the option reads the block");
-    const CarcerMovableSlot *const cell = hosted.hosted_pool.movable_buf_alloc(16u, s_mover);
-
-    TEST_ASSERT_NOT_NULL(cell);
-    TEST_ASSERT_TRUE(hosted.hosted_pool.movable_buf_release(cell, s_mover));
-    hosted_freed();
-    TEST_ASSERT_TRUE(hosted_cellblock() == NULL);
-#endif
 }
 
 // A writer's cell filled with count

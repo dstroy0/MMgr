@@ -77,12 +77,15 @@ uint8_t *p = prison.work.persistent_buf_alloc(256, reader);
 ```
 
 An allocation does not name an alignment, because there is only one. Every cell comes back aligned to
-`MMGR_CARCER_ALIGN`, which is `sizeof(embed_word)`, derived from the width instead of written as a
-number. A build at another width gets the alignment that width needs.
+`MMGR_CARCER_ALIGN`, the larger of `sizeof(embed_word)` and the alignment of the atomic size word,
+derived from the two types instead of written as a number. Every cell carries an atomic size word at its
+header and at its foot, so a grain narrower than that word would put the foot off its alignment. At a
+16-bit or 32-bit word the grain is the atomic word's; at a 64-bit word the two are the same.
 
 `locus_carcerum.h` asserts that `MMGR_CARCER_ALIGN` is a power of two, since an offset rounds by
-masking and masking lands on a multiple only for a power of two. `mmgr.h` asserts the same of
-`MMGR_ALIGN_BYTES`, the alignment a pool declaration puts on its storage. Both stop the build.
+masking and masking lands on a multiple only for a power of two, and that `MMGR_ALIGN_BYTES`, the
+alignment a pool declaration puts on its storage, is a multiple of it. `mmgr.h` asserts that
+`MMGR_ALIGN_BYTES` is a power of two. All three stop the build.
 
 The width costs bytes twice over. A request rounds up to a whole word before it is carved, and every
 cell carries three words beside its payload, each rounded to the same alignment: its size ahead of

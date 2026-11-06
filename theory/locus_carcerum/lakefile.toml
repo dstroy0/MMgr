@@ -1,0 +1,5 @@
+name = "LocusCarcerum"
+defaultTargets = ["LocusCarcerum"]
+
+[[lean_lib]]
+name = "LocusCarcerum"

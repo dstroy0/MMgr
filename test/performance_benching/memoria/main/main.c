@@ -917,7 +917,7 @@ static uintptr_t ring_round_hand(void)
     return (uintptr_t)hand_read(g_ring_out, RING_SPAN);
 }
 
-static uintptr_t cellblock_persistent_alloc_release(void)
+static uintptr_t series_cellularum_persistent_alloc_release(void)
 {
     void *const held = ram.general.persistent_buf_alloc(g_take, cells);
 
@@ -933,7 +933,7 @@ static uintptr_t heap_take_give(void)
     return (uintptr_t)held;
 }
 
-static uintptr_t cellblock_temporary_mark_run(void)
+static uintptr_t series_cellularum_temporary_mark_run(void)
 {
     const size_t mark = ram.general.temporary_buf_mark();
     uintptr_t seen = 0u;
@@ -1190,10 +1190,10 @@ void dbench_run(void)
         {
             const uint32_t iters = 5000u;
 
-            DBENCH_AB("cellblock_persistent", iters, 64u, DBENCH_KEEP(cellblock_persistent_alloc_release()),
+            DBENCH_AB("series_cellularum_persistent", iters, 64u, DBENCH_KEEP(series_cellularum_persistent_alloc_release()),
                       DBENCH_KEEP(heap_take_give()));
 
-            DBENCH_AB("cellblock_temporary", iters, 64u, DBENCH_KEEP(cellblock_temporary_mark_run()),
+            DBENCH_AB("series_cellularum_temporary", iters, 64u, DBENCH_KEEP(series_cellularum_temporary_mark_run()),
                       DBENCH_KEEP(heap_run_free()));
         }
 
@@ -1250,10 +1250,10 @@ void dbench_run(void)
                       DBENCH_KEEP(EMBED_CALL(spat.ok, SpatiumCfg,
                                              .span = EMBED_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP))));
 
-            DBENCH_OP("cellblock_who_owns_buf", iters,
+            DBENCH_OP("series_cellularum_who_owns_buf", iters,
                       DBENCH_KEEP(ram.general.who_owns_buf((const void *)(g_d + g_swap_off))));
 
-            DBENCH_OP("cellblock_buf_available", iters, DBENCH_KEEP(ram.general.buf_available()));
+            DBENCH_OP("series_cellularum_buf_available", iters, DBENCH_KEEP(ram.general.buf_available()));
         }
 
         {

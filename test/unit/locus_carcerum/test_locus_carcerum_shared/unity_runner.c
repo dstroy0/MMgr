@@ -11,7 +11,7 @@ extern void setUp(void);
 extern void tearDown(void);
 extern void test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave(void);
 extern void test_threads_taking_and_giving_at_once_never_share_a_cell(void);
-extern void test_threads_taking_and_giving_at_once_leave_the_cellblock_whole(void);
+extern void test_threads_taking_and_giving_at_once_leave_the_series_cellularum_whole(void);
 extern void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(void);
 extern void test_an_owner_shared_by_every_thread_is_counted_back_to_nothing(void);
 extern void test_an_owner_for_each_thread_is_counted_back_to_nothing(void);
@@ -80,7 +80,7 @@ int main(void)
   UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_shared\\test_locus_carcerum_shared.c");
   run_test(test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave, "test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave", 200);
   run_test(test_threads_taking_and_giving_at_once_never_share_a_cell, "test_threads_taking_and_giving_at_once_never_share_a_cell", 219);
-  run_test(test_threads_taking_and_giving_at_once_leave_the_cellblock_whole, "test_threads_taking_and_giving_at_once_leave_the_cellblock_whole", 228);
+  run_test(test_threads_taking_and_giving_at_once_leave_the_series_cellularum_whole, "test_threads_taking_and_giving_at_once_leave_the_series_cellularum_whole", 228);
   run_test(test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell, "test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell", 236);
   run_test(test_an_owner_shared_by_every_thread_is_counted_back_to_nothing, "test_an_owner_shared_by_every_thread_is_counted_back_to_nothing", 250);
   run_test(test_an_owner_for_each_thread_is_counted_back_to_nothing, "test_an_owner_for_each_thread_is_counted_back_to_nothing", 259);

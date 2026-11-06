@@ -81,7 +81,7 @@ release does not have to be told which one it is or when it was taken.
 
 | type              | is                                                                      |
 | ----------------- | ----------------------------------------------------------------------- |
-| `CarcerCellBlock` | a cellblock's state: the pool it covers, its extent, and both tier ends |
+| `SeriesCellularum` | a cellblock's state: the pool it covers, its extent, and both tier ends |
 | `CarcerCell`      | one cell's header: the payload behind it, and whether it is busy        |
 | `mmgr_span`       | a buffer, its capacity and a cursor. `pos` is how much was written      |
 | `mmgr_cspan`      | the read counterpart. `len` is the extent, `err` latches a short read   |

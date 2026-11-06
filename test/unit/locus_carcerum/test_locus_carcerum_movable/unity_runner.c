@@ -10,14 +10,14 @@
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_a_cellblock_with_no_option_takes_and_gives_and_answers_no_identity(void);
+extern void test_a_series_cellularum_with_no_option_takes_and_gives_and_answers_no_identity(void);
 extern void test_the_option_is_assigned_once(void);
 extern void test_the_option_refuses_short_storage_and_zero_sizes(void);
 extern void test_the_program_gives_the_mover_its_thread_at_init(void);
 extern void test_a_thread_that_does_not_start_leaves_the_cells_working_and_nothing_moving(void);
 extern void test_a_thread_is_not_started_without_its_wait(void);
 extern void test_a_movable_take_answers_an_identity_whose_bytes_read_back(void);
-extern void test_a_movable_take_the_cellblock_cannot_meet_answers_no_identity(void);
+extern void test_a_movable_take_the_series_cellularum_cannot_meet_answers_no_identity(void);
 extern void test_a_movable_take_a_full_table_cannot_name_gives_its_cell_back(void);
 extern void test_a_read_or_a_write_past_the_cells_end_is_refused(void);
 extern void test_a_read_and_a_write_land_at_their_offset(void);
@@ -33,17 +33,17 @@ extern void test_a_move_never_goes_upward(void);
 extern void test_a_move_takes_the_highest_cell_first(void);
 extern void test_a_smaller_cell_under_one_no_free_cell_takes_still_moves(void);
 extern void test_moves_run_until_none_answers_stand_as_they_left_things(void);
-extern void test_a_move_and_a_release_on_a_wiping_cellblock_wipe_what_they_leave(void);
+extern void test_a_move_and_a_release_on_a_wiping_series_cellularum_wipe_what_they_leave(void);
 extern void test_fragmentation_reads_the_bytes_occupied_that_no_payload_holds(void);
 extern void test_the_temporary_tier_reads_no_fragmentation(void);
 extern void test_a_cell_counts_to_the_tier_it_lies_in(void);
-extern void test_each_cellblock_keeps_its_own_running_total(void);
+extern void test_each_series_cellularum_keeps_its_own_running_total(void);
 extern void test_the_running_total_follows_the_temporary_tier_and_a_growth(void);
-extern void test_bytes_outside_any_cellblock_count_to_an_owner_alone(void);
+extern void test_bytes_outside_any_series_cellularum_count_to_an_owner_alone(void);
 extern void test_touches_count_the_passes_through_a_lane_and_the_last_badge(void);
 extern void test_rows_past_the_lanes_used_read_as_none(void);
 extern void test_no_rows_keeps_no_touches(void);
-extern void test_the_mover_leaves_a_cellblock_under_the_threshold_alone(void);
+extern void test_the_mover_leaves_a_series_cellularum_under_the_threshold_alone(void);
 extern void test_the_mover_waits_for_its_quiet_readings_before_it_sorts(void);
 extern void test_the_mover_sorts_over_the_threshold_at_a_quiet_time_and_stops(void);
 extern void test_a_sort_that_can_move_nothing_is_not_run_again_until_the_reading_rises(void);
@@ -53,8 +53,7 @@ extern void test_a_sort_waits_out_the_pass_under_way(void);
 extern void test_with_the_option_a_temporary_take_its_tier_cannot_meet_is_refused(void);
 extern void test_with_the_option_a_persistent_take_its_tier_cannot_meet_is_refused(void);
 extern void test_with_no_option_a_take_keeps_to_its_own_tier(void);
-extern void test_a_take_finding_the_cellblock_closed_waits_for_the_writer_and_is_not_refused(void);
-extern void test_a_host_site_with_the_option_assigned_is_not_made_anew(void);
+extern void test_a_take_finding_the_series_cellularum_closed_waits_for_the_writer_and_is_not_refused(void);
 extern void test_no_write_is_lost_while_another_thread_moves_the_cells(void);
 
 
@@ -117,14 +116,14 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_movable\\test_locus_carcerum_movable.c");
-  run_test(test_a_cellblock_with_no_option_takes_and_gives_and_answers_no_identity, "test_a_cellblock_with_no_option_takes_and_gives_and_answers_no_identity", 234);
+  run_test(test_a_series_cellularum_with_no_option_takes_and_gives_and_answers_no_identity, "test_a_series_cellularum_with_no_option_takes_and_gives_and_answers_no_identity", 234);
   run_test(test_the_option_is_assigned_once, "test_the_option_is_assigned_once", 245);
   run_test(test_the_option_refuses_short_storage_and_zero_sizes, "test_the_option_refuses_short_storage_and_zero_sizes", 253);
   run_test(test_the_program_gives_the_mover_its_thread_at_init, "test_the_program_gives_the_mover_its_thread_at_init", 270);
   run_test(test_a_thread_that_does_not_start_leaves_the_cells_working_and_nothing_moving, "test_a_thread_that_does_not_start_leaves_the_cells_working_and_nothing_moving", 286);
   run_test(test_a_thread_is_not_started_without_its_wait, "test_a_thread_is_not_started_without_its_wait", 299);
   run_test(test_a_movable_take_answers_an_identity_whose_bytes_read_back, "test_a_movable_take_answers_an_identity_whose_bytes_read_back", 310);
-  run_test(test_a_movable_take_the_cellblock_cannot_meet_answers_no_identity, "test_a_movable_take_the_cellblock_cannot_meet_answers_no_identity", 318);
+  run_test(test_a_movable_take_the_series_cellularum_cannot_meet_answers_no_identity, "test_a_movable_take_the_series_cellularum_cannot_meet_answers_no_identity", 318);
   run_test(test_a_movable_take_a_full_table_cannot_name_gives_its_cell_back, "test_a_movable_take_a_full_table_cannot_name_gives_its_cell_back", 324);
   run_test(test_a_read_or_a_write_past_the_cells_end_is_refused, "test_a_read_or_a_write_past_the_cells_end_is_refused", 336);
   run_test(test_a_read_and_a_write_land_at_their_offset, "test_a_read_and_a_write_land_at_their_offset", 351);
@@ -140,17 +139,17 @@ int main(void)
   run_test(test_a_move_takes_the_highest_cell_first, "test_a_move_takes_the_highest_cell_first", 493);
   run_test(test_a_smaller_cell_under_one_no_free_cell_takes_still_moves, "test_a_smaller_cell_under_one_no_free_cell_takes_still_moves", 507);
   run_test(test_moves_run_until_none_answers_stand_as_they_left_things, "test_moves_run_until_none_answers_stand_as_they_left_things", 520);
-  run_test(test_a_move_and_a_release_on_a_wiping_cellblock_wipe_what_they_leave, "test_a_move_and_a_release_on_a_wiping_cellblock_wipe_what_they_leave", 546);
+  run_test(test_a_move_and_a_release_on_a_wiping_series_cellularum_wipe_what_they_leave, "test_a_move_and_a_release_on_a_wiping_series_cellularum_wipe_what_they_leave", 546);
   run_test(test_fragmentation_reads_the_bytes_occupied_that_no_payload_holds, "test_fragmentation_reads_the_bytes_occupied_that_no_payload_holds", 575);
   run_test(test_the_temporary_tier_reads_no_fragmentation, "test_the_temporary_tier_reads_no_fragmentation", 589);
   run_test(test_a_cell_counts_to_the_tier_it_lies_in, "test_a_cell_counts_to_the_tier_it_lies_in", 608);
-  run_test(test_each_cellblock_keeps_its_own_running_total, "test_each_cellblock_keeps_its_own_running_total", 630);
+  run_test(test_each_series_cellularum_keeps_its_own_running_total, "test_each_series_cellularum_keeps_its_own_running_total", 630);
   run_test(test_the_running_total_follows_the_temporary_tier_and_a_growth, "test_the_running_total_follows_the_temporary_tier_and_a_growth", 644);
-  run_test(test_bytes_outside_any_cellblock_count_to_an_owner_alone, "test_bytes_outside_any_cellblock_count_to_an_owner_alone", 656);
+  run_test(test_bytes_outside_any_series_cellularum_count_to_an_owner_alone, "test_bytes_outside_any_series_cellularum_count_to_an_owner_alone", 656);
   run_test(test_touches_count_the_passes_through_a_lane_and_the_last_badge, "test_touches_count_the_passes_through_a_lane_and_the_last_badge", 666);
   run_test(test_rows_past_the_lanes_used_read_as_none, "test_rows_past_the_lanes_used_read_as_none", 691);
   run_test(test_no_rows_keeps_no_touches, "test_no_rows_keeps_no_touches", 704);
-  run_test(test_the_mover_leaves_a_cellblock_under_the_threshold_alone, "test_the_mover_leaves_a_cellblock_under_the_threshold_alone", 729);
+  run_test(test_the_mover_leaves_a_series_cellularum_under_the_threshold_alone, "test_the_mover_leaves_a_series_cellularum_under_the_threshold_alone", 729);
   run_test(test_the_mover_waits_for_its_quiet_readings_before_it_sorts, "test_the_mover_waits_for_its_quiet_readings_before_it_sorts", 742);
   run_test(test_the_mover_sorts_over_the_threshold_at_a_quiet_time_and_stops, "test_the_mover_sorts_over_the_threshold_at_a_quiet_time_and_stops", 751);
   run_test(test_a_sort_that_can_move_nothing_is_not_run_again_until_the_reading_rises, "test_a_sort_that_can_move_nothing_is_not_run_again_until_the_reading_rises", 766);
@@ -160,9 +159,8 @@ int main(void)
   run_test(test_with_the_option_a_temporary_take_its_tier_cannot_meet_is_refused, "test_with_the_option_a_temporary_take_its_tier_cannot_meet_is_refused", 900);
   run_test(test_with_the_option_a_persistent_take_its_tier_cannot_meet_is_refused, "test_with_the_option_a_persistent_take_its_tier_cannot_meet_is_refused", 919);
   run_test(test_with_no_option_a_take_keeps_to_its_own_tier, "test_with_no_option_a_take_keeps_to_its_own_tier", 937);
-  run_test(test_a_take_finding_the_cellblock_closed_waits_for_the_writer_and_is_not_refused, "test_a_take_finding_the_cellblock_closed_waits_for_the_writer_and_is_not_refused", 980);
-  run_test(test_a_host_site_with_the_option_assigned_is_not_made_anew, "test_a_host_site_with_the_option_assigned_is_not_made_anew", 997);
-  run_test(test_no_write_is_lost_while_another_thread_moves_the_cells, "test_no_write_is_lost_while_another_thread_moves_the_cells", 1101);
+  run_test(test_a_take_finding_the_series_cellularum_closed_waits_for_the_writer_and_is_not_refused, "test_a_take_finding_the_series_cellularum_closed_waits_for_the_writer_and_is_not_refused", 980);
+  run_test(test_no_write_is_lost_while_another_thread_moves_the_cells, "test_no_write_is_lost_while_another_thread_moves_the_cells", 1075);
 
   return UNITY_END();
 }

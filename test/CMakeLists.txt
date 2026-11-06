@@ -41,6 +41,8 @@ add_subdirectory(accuracy)
 add_subdirectory(environment)
 add_subdirectory(integration)
 add_subdirectory(interop)
+add_subdirectory(stress)
+add_subdirectory(fuzz)
 
 get_property(MMGR_BUILT GLOBAL PROPERTY MMGR_SUITES_BUILT)
 get_property(MMGR_SKIPPED GLOBAL PROPERTY MMGR_SUITES_SKIPPED)

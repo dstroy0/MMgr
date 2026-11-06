@@ -15,7 +15,7 @@ MMGR_OWNERS(ROLL_OWNERS)
 
 void setUp(void)
 {
-    mmgr_cellblock_emptied(&roll_listed_ctx);
+    mmgr_series_cellularum_emptied(&roll_listed_ctx);
 }
 
 void tearDown(void)
