@@ -28,7 +28,7 @@ cell dies when that cell is released even though the span was never told.
 
 ```c
 const size_t mark = prison.work.temporary_buf_mark();
-void *const cell = prison.work.temporary_buf_alloc(256u, &reader);
+void *const cell = prison.work.temporary_buf_alloc(256u, reader);
 
 /* ... use cell ... */
 
@@ -83,30 +83,34 @@ check. See @ref mod_confin_guide.
 ## A take names its owner
 
 The caller says who a cell is for. Every `persistent_buf_alloc`, `temporary_buf_alloc`,
-`persistent_buf_release` and `buf_grow` takes a `CellOwner *` beside its size or its prisoner, and
-none takes `NULL`. An owner registers once, before its first take:
+`persistent_buf_release` and `buf_grow` takes a `const CellOwner *` beside its size or its prisoner,
+and none takes `NULL`. The owner is the library's, and it is data: the program lists its owners once,
+`MMGR_OWNERS` lays the table of their records and defines each owner's const pointer into it, and the
+linker resolves the pointer. Nothing registers at run time, and nothing runs before the first take:
 
 ```c
-static CellOwner reader = MMGR_CELL_OWNER("reader");
+#define PROGRAM_OWNERS(owner_) owner_(reader, "reader")
+MMGR_OWNERS(PROGRAM_OWNERS)
 
-mmgr_owner_register(&reader);
-
-void *const cell = prison.work.persistent_buf_alloc(256u, &reader);
+void *const cell = prison.work.persistent_buf_alloc(256u, reader);
 /* ... */
-prison.work.persistent_buf_release(cell, &reader);
+prison.work.persistent_buf_release(cell, reader);
 
 const size_t mark = prison.work.temporary_buf_mark();
-void *const scratch = prison.work.temporary_buf_alloc(256u, &reader);
+void *const scratch = prison.work.temporary_buf_alloc(256u, reader);
 /* ... */
 prison.work.temporary_buf_release(mark);
 ```
 
-`mmgr_owner_register` puts the owner at the back of the library's owner queue and gives it its key:
-its place in the queue, counted from 1, and the time it registered, in milliseconds on
-`mmgr_carcer_hw_clock_ms`. It refuses `NULL`, an owner with no name, an owner registered already, a
-second owner of a name already registered, and a queue holding `MMGR_CARCER_OWNERS` owners. A take
-naming an owner that is not registered is refused as a take the gap cannot meet is.
-`mmgr_owner_count` and `mmgr_owner_at` read the queue in the order the owners registered.
+The list is a macro that applies one macro to each owner, `owner_(name_, text_)`: `name_` is the
+identity the owner's module names, `text_` the name a reader prints. `MMGR_OWNERS` expands it three
+ways in the one translation unit that owns the program's memory: an enumeration giving each owner its
+place, `mmgr_owner_table` holding one record for each in that order with `mmgr_owner_table_count`
+beside it, and `const CellOwner *const name_` for each, pointing at its record. A list longer than
+`MMGR_CARCER_OWNERS` fails the build. A take naming a pointer that is none of the table's is refused as
+a take the gap cannot meet is: one unsigned subtract puts the pointer inside the records laid, and one
+remainder puts it on a record's first byte; `mmgr_owner_listed` asks the same question. A reader walks
+the table by its count, and `mmgr_owner_in_use` and `mmgr_owner_hw` read a record's counts.
 
 A persistent cell stands until its release. A temporary cell stands until its holder gives it back, by
 a rewind to a mark or by a single release.
@@ -119,20 +123,18 @@ it; the release takes the same bytes off. Every cell keeps its owner in the word
 A release, a growth and a rewind each count the cell's bytes off that owner. A release
 or a growth must name it: one naming another owner is refused, changes nothing, the payload of a
 maximum security cell included, and calls `mmgr_carcer_hw_misnamed` with the owner named, the owner
-the cell counts to and its bytes. The owner is the caller's storage: the cellblock still does not ask
-which context reached it.
-
-@warning An owner must outlive every cell counted to it: the queue holds its address, and a release or
-a rewind writes the count through the pointer the cell kept.
+the cell counts to and its bytes. The owner's record is the table's storage, written through the const
+pointer the caller holds as a movable slot is: the cellblock still does not ask which context reached
+it.
 
 ## Concurrency
 
-A cellblock is shared by every context that reaches it. Each tier's boundary, each cell's claim, the
-reservation that holds the two tiers apart, and every owner's count is an atomic word, and every move
-of one is a single step: a cell is claimed by one compare-and-swap, a boundary moves by one fetch-add,
-a count by one add. No context waits for another, and the one wait in the library is two takes landing
-in the same instant publishing their cells in order, the second after the first's one header store.
-One build serves a host thread, a part's task and a GPU thread.
+A cellblock is shared by every context that reaches it. Each tier's boundary, each cell's owner word
+and every owner's count is an atomic word, and every move of one is a single step: a take bumps its
+boundary by one fetch-add through the cellblock's turnstiles, a give sets the owner word's completion bit
+by one fetch-or, a count moves by one add. No take or give waits for another; a rewind, a compaction, a
+growth and a move close the cellblock, wait out the passes under way, and work alone. One build serves a
+host thread, a part's task and a GPU thread.
 
 Sharing a cellblock does not make a temporary mark one caller took good against a release by another:
 a rewind drops every temporary cell taken since the mark, whoever took it.

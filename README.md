@@ -34,12 +34,15 @@ ParsMemoriaeInternae(keys, 2048);
    change either, and a cellblock is reached by the name of the pool it was built over. */
 LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work), MMGR_MAXIMUM_SECURITY(keys));
 
-/* Every cell is counted to an owner, registered once with mmgr_owner_register before its first take. */
-static CellOwner framer = MMGR_CELL_OWNER("framer");
+/* Every cell is counted to an owner. The program's owners are declared once, as data: the table of their
+   records and each owner's const pointer into it, which the linker resolves and the caller names on every
+   take and give. */
+#define FRAMING_OWNERS(owner_) owner_(framer, "framer")
+MMGR_OWNERS(FRAMING_OWNERS)
 
 void frame(void)
 {
-    void *const cell = prison.work.persistent_buf_alloc(256u, &framer);
+    void *const cell = prison.work.persistent_buf_alloc(256u, framer);
     mmgr_span span = EMBED_CALL(spat.from, SpatiumCfg, .buf = cell, .cap = 256u);
 
     EMBED_CALL(byteio.put_be, OctetusCfg, .write_span = &span, .value = 0xDEADBEEFu, .bytes = 4u);
@@ -121,6 +124,7 @@ characters down cannot build in place (`test/harness.py:27-34`).
 - **Every width is a compile-time knob, and all of them are built.** [Width and order](docs/concepts/width-and-order.md)
 - **The scans are SWAR, in plain C, with no intrinsics.** [SWAR](docs/concepts/swar.md)
 - **The namespace idiom devirtualizes.** [The ns idiom](docs/concepts/ns-idiom.md)
+- **A take is one fetch-add on a boundary.** [LocusCarcerum: the algorithm](docs/concepts/locus-carcerum-algorithm.md)
 - **`to_double`, `verba.g` and `verba.fixed` are exact. `to_float` rounds twice and can land on the wrong neighbor.** [Numbers, and how far they can be trusted](docs/quality/numeric-accuracy.md)
 - **240 targets, 100% of `src/` lines and branches, green against libc as well.** [The test suite](docs/quality/testing.md)
 - **What each optimization level costs.** [Optimization](docs/quality/optimization.md)

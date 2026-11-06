@@ -18,12 +18,12 @@ can check against a budget before the program starts.
 ParsMemoriaeInternae(work, 4096);
 LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work));
 
-/* The owner a cell is counted to, registered once before its first take. */
-static CellOwner writer = MMGR_CELL_OWNER("writer");
+/* The owner a cell is counted to, declared as data with the pool: its record in the program's owner table
+   and the const pointer `writer` into it. */
+#define PROGRAM_OWNERS(owner_) owner_(writer, "writer")
+MMGR_OWNERS(PROGRAM_OWNERS)
 
-mmgr_owner_register(&writer);
-
-char *const buf = prison.work.persistent_buf_alloc(256u, &writer);
+char *const buf = prison.work.persistent_buf_alloc(256u, writer);
 
 size_t at = 0;
 at = EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = 256u, .at = at, .text = "id=");
@@ -37,8 +37,8 @@ const size_t len = EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = buf, .ca
 Each of these is a claim the documentation has to answer for, and each links to the page that does.
 
 - **Nothing allocates.** Storage is borrowed, never owned. @ref concept_zero_heap
-- **One region, two tiers.** Persist grows up and interim grows down, and one atomic word holds both
-  boundaries. @ref concept_architecture
+- **One region, two tiers.** Persist grows up and interim grows down, each boundary one atomic word a
+  take bumps by one fetch-add. @ref concept_architecture
 - **Scanning is SWAR, and the carrier is the machine word.** The benches measure it. @ref concept_swar
 - **The width is a compile-time knob, and every width is built.** Five environments, one build.
   @ref ref_environments

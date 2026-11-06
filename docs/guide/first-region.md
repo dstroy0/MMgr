@@ -34,16 +34,15 @@ reach for and `prison.work` has no zeroing one
 ## Two tiers
 
 ```c
-static CellOwner reader = MMGR_CELL_OWNER("reader");
+#define PROGRAM_OWNERS(owner_) owner_(reader, "reader")
+MMGR_OWNERS(PROGRAM_OWNERS)
 
-mmgr_owner_register(&reader);
-
-uint8_t *config = prison.work.persistent_buf_alloc(128, &reader);
-uint8_t *working = prison.work.temporary_buf_alloc(512, &reader);
+uint8_t *config = prison.work.persistent_buf_alloc(128, reader);
+uint8_t *working = prison.work.temporary_buf_alloc(512, reader);
 ```
 
-Every take names the owner its bytes are counted to, and an owner registers once before its first
-take. Both return the first byte of a cell `[RETURNS OWNERSHIP]`. The persistent tier takes it back
+Every take names the owner its bytes are counted to, a const pointer into the program's owner table that
+MMGR_OWNERS declares once, as data, beside the pools. Both return the first byte of a cell `[RETURNS OWNERSHIP]`. The persistent tier takes it back
 through `prison.work.persistent_buf_release`; the temporary tier takes a whole run back through
 `prison.work.temporary_buf_release` or `prison.work.temporary_buf_reset`.
 
@@ -53,8 +52,8 @@ through `prison.work.persistent_buf_release`; the temporary tier takes a whole r
   See @ref concept_ownership.
 
 The two tiers grow toward each other out of the same gap, and a request neither the gap nor a free
-cell of its tier can meet returns `NULL`: "Fails closed. A request the gap cannot meet moves no boundary at all"
-(`src/locus_carcerum/locus_carcerum.c:384`).
+run of the persistent tier can meet returns `NULL`: a bump the gap cannot meet records its bytes as the tier's overrun, which the exclusive
+path that follows moves no boundary either.
 
 ```c
 if (config == NULL || working == NULL) {
@@ -71,8 +70,8 @@ Interim is a stack. You do not free a pointer, you rewind to a mark.
 
 ```c
 size_t m = prison.work.temporary_buf_mark();
-uint8_t *a = prison.work.temporary_buf_alloc(256, &reader);
-uint8_t *b = prison.work.temporary_buf_alloc(256, &reader);
+uint8_t *a = prison.work.temporary_buf_alloc(256, reader);
+uint8_t *b = prison.work.temporary_buf_alloc(256, reader);
 
 prison.work.temporary_buf_release(m);
 ```
@@ -121,7 +120,7 @@ static embed_bool handle(const uint8_t *msg, size_t len)
 {
     const size_t mark = prison.work.temporary_buf_mark();
 
-    uint8_t *const buf = prison.work.temporary_buf_alloc(len, &reader);
+    uint8_t *const buf = prison.work.temporary_buf_alloc(len, reader);
     if (buf == NULL) {
         return EMBED_FALSE;
     }

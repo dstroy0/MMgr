@@ -91,8 +91,10 @@ ParsMemoriaeInternae(meeting_cells, MMGR_ACCURACY_CARCER_ROW);
 
 LocusCarcerum(accuracy_meeting_site, MMGR_MINIMUM_SECURITY(meeting_cells));
 
-/** @brief The one owner every case takes its cells for. */
-static CellOwner cells = MMGR_CELL_OWNER("cells");
+/** @brief The one owner every case takes its cells for, handed out to the first setUp. */
+// The owners every case takes for, declared with the cellblocks as the program's table
+#define ACCURACY_OWNERS(owner_) owner_(cells, "cells")
+MMGR_OWNERS(ACCURACY_OWNERS)
 
 /**
  * @brief One live cell, as this file recorded it when the allocation returned.
@@ -199,10 +201,6 @@ static void accuracy_expect_all_intact(const AccuracyLiveCell *live, unsigned co
  */
 void setUp(void)
 {
-    if (embed_atomic_usize_load(&cells.place) == 0u)
-    {
-        TEST_ASSERT_TRUE(mmgr_owner_register(&cells));
-    }
 }
 
 /**
@@ -266,7 +264,7 @@ void test_persistent_cells_never_share_a_byte(void)
     for (unsigned index = 0u; index < MMGR_ACCURACY_CARCER_CELLS; index++)
     {
         const size_t size = (size_t)((index % 7u) + 1u) * 5u;
-        uint8_t *const at = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(size, &cells);
+        uint8_t *const at = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(size, cells);
         char label[96];
 
         if (at == NULL)
@@ -294,7 +292,7 @@ void test_persistent_cells_never_share_a_byte(void)
 
     for (unsigned index = 0u; index < count; index++)
     {
-        accuracy_site.plain_cells.persistent_buf_release(live[index].at, &cells);
+        accuracy_site.plain_cells.persistent_buf_release(live[index].at, cells);
     }
 }
 
@@ -315,7 +313,7 @@ void test_a_reused_cell_does_not_disturb_its_neighbors(void)
 
     for (unsigned index = 0u; index < 16u; index++)
     {
-        uint8_t *const at = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(24u, &cells);
+        uint8_t *const at = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(24u, cells);
 
         TEST_ASSERT_NOT_NULL_MESSAGE(at, "the cellblock could not meet sixteen small requests");
         live[count].at = at;
@@ -330,14 +328,14 @@ void test_a_reused_cell_does_not_disturb_its_neighbors(void)
     // Release the middle four, leaving live cells above and below the run they leave behind
     for (unsigned index = 6u; index < 10u; index++)
     {
-        accuracy_site.plain_cells.persistent_buf_release(live[index].at, &cells);
+        accuracy_site.plain_cells.persistent_buf_release(live[index].at, cells);
         live[index].size = 0u;
     }
     accuracy_expect_all_intact(live, count, "after releasing the middle four");
 
     for (unsigned round = 0u; round < 4u; round++)
     {
-        uint8_t *const at = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(24u, &cells);
+        uint8_t *const at = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(24u, cells);
         char label[96];
 
         TEST_ASSERT_NOT_NULL_MESSAGE(at, "the released cells were not handed out again");
@@ -355,7 +353,7 @@ void test_a_reused_cell_does_not_disturb_its_neighbors(void)
 
     for (unsigned index = 0u; index < count; index++)
     {
-        accuracy_site.plain_cells.persistent_buf_release(live[index].at, &cells);
+        accuracy_site.plain_cells.persistent_buf_release(live[index].at, cells);
     }
 }
 
@@ -380,8 +378,8 @@ void test_the_two_tiers_never_hand_out_the_same_byte(void)
 
     while (count < (MMGR_ACCURACY_CARCER_CELLS - 1u))
     {
-        uint8_t *const from_bottom = (uint8_t *)accuracy_meeting_site.meeting_cells.persistent_buf_alloc(96u, &cells);
-        uint8_t *const from_top = (uint8_t *)accuracy_meeting_site.meeting_cells.temporary_buf_alloc(96u, &cells);
+        uint8_t *const from_bottom = (uint8_t *)accuracy_meeting_site.meeting_cells.persistent_buf_alloc(96u, cells);
+        uint8_t *const from_top = (uint8_t *)accuracy_meeting_site.meeting_cells.temporary_buf_alloc(96u, cells);
         char label[96];
 
         if ((from_bottom == NULL) && (from_top == NULL))
@@ -432,7 +430,7 @@ void test_the_two_tiers_never_hand_out_the_same_byte(void)
 void test_a_maximum_security_release_leaves_zeros(void)
 {
     const size_t size = 48u;
-    AccuracyLiveCell cell = {(uint8_t *)accuracy_site.secure_cells.persistent_buf_alloc(size, &cells), size, 9u};
+    AccuracyLiveCell cell = {(uint8_t *)accuracy_site.secure_cells.persistent_buf_alloc(size, cells), size, 9u};
 
     TEST_ASSERT_NOT_NULL_MESSAGE(cell.at, "the secure cellblock refused a small request");
     accuracy_fill_cell(&cell);
@@ -440,9 +438,9 @@ void test_a_maximum_security_release_leaves_zeros(void)
 
     uint8_t *const was_at = cell.at;
 
-    accuracy_site.secure_cells.persistent_buf_release(cell.at, &cells);
+    accuracy_site.secure_cells.persistent_buf_release(cell.at, cells);
 
-    uint8_t *const again = (uint8_t *)accuracy_site.secure_cells.persistent_buf_alloc(size, &cells);
+    uint8_t *const again = (uint8_t *)accuracy_site.secure_cells.persistent_buf_alloc(size, cells);
 
     TEST_ASSERT_EQUAL_PTR_MESSAGE(was_at, again, "the released cell was not the one handed out again");
     for (size_t offset = 0u; offset < size; offset++)
@@ -452,7 +450,7 @@ void test_a_maximum_security_release_leaves_zeros(void)
         (void)snprintf(message, sizeof message, "byte %u survived a maximum security release", (unsigned)offset);
         TEST_ASSERT_EQUAL_HEX8_MESSAGE(0u, again[offset], message);
     }
-    accuracy_site.secure_cells.persistent_buf_release(again, &cells);
+    accuracy_site.secure_cells.persistent_buf_release(again, cells);
 }
 
 /**
@@ -472,7 +470,7 @@ void test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark(void)
 
     for (unsigned index = 0u; index < 3u; index++)
     {
-        live[index].at = (uint8_t *)accuracy_site.secure_cells.temporary_buf_alloc(size, &cells);
+        live[index].at = (uint8_t *)accuracy_site.secure_cells.temporary_buf_alloc(size, cells);
         live[index].size = size;
         // Explicit cast narrows the loop counter to the byte the pattern is tagged with
         live[index].tag = (uint8_t)(index + 20u);
@@ -519,7 +517,7 @@ void test_a_rewind_to_a_mark_gives_back_every_byte_taken_since_it(void)
 
     for (unsigned index = 0u; index < 8u; index++)
     {
-        TEST_ASSERT_NOT_NULL_MESSAGE(accuracy_site.plain_cells.temporary_buf_alloc(24u, &cells),
+        TEST_ASSERT_NOT_NULL_MESSAGE(accuracy_site.plain_cells.temporary_buf_alloc(24u, cells),
                                      "the cellblock refused a temporary request");
     }
     TEST_ASSERT_TRUE_MESSAGE(accuracy_site.plain_cells.buf_available() < before, "eight allocations took no bytes");
@@ -550,8 +548,8 @@ void test_two_prison_sites_hold_no_byte_in_common(void)
 
     for (unsigned index = 0u; index < 12u; index++)
     {
-        uint8_t *const from_first = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(32u, &cells);
-        uint8_t *const from_second = (uint8_t *)accuracy_other_site.other_cells.persistent_buf_alloc(32u, &cells);
+        uint8_t *const from_first = (uint8_t *)accuracy_site.plain_cells.persistent_buf_alloc(32u, cells);
+        uint8_t *const from_second = (uint8_t *)accuracy_other_site.other_cells.persistent_buf_alloc(32u, cells);
         char label[96];
 
         TEST_ASSERT_NOT_NULL_MESSAGE(from_first, "the first site refused a small request");
@@ -586,8 +584,8 @@ void test_two_prison_sites_hold_no_byte_in_common(void)
 
     for (unsigned index = 0u; index < count; index += 2u)
     {
-        accuracy_site.plain_cells.persistent_buf_release(live[index].at, &cells);
-        accuracy_other_site.other_cells.persistent_buf_release(live[index + 1u].at, &cells);
+        accuracy_site.plain_cells.persistent_buf_release(live[index].at, cells);
+        accuracy_other_site.other_cells.persistent_buf_release(live[index + 1u].at, cells);
     }
 }
 

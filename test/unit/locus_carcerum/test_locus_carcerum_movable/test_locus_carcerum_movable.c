@@ -17,6 +17,8 @@
  *       as the count before it, and the number of such reads is what the threaded case holds at zero.
  * @note The mover's cases run mmgr_movable_run on the test's own thread, with a thread_wait that plays a
  *       script and answers EMBED_FALSE at its end, so each reading lands where the case says it does.
+ * @note The misnamed hook is the case's way into a pass: a movable release naming the wrong owner reaches it
+ *       with the release's lane claimed, and the hook stands there as long as the case says.
  */
 #include "locus_carcerum/locus_carcerum.h"
 
@@ -53,8 +55,9 @@ LocusCarcerum(single, MMGR_MINIMUM_SECURITY(narrow));
 LocusCarcerum(unassigned, MMGR_MINIMUM_SECURITY(bare));
 LocusCarcerum(crowded, MMGR_MINIMUM_SECURITY(crowd));
 
-static CellOwner s_mover = MMGR_CELL_OWNER("mover");
-static CellOwner s_other = MMGR_CELL_OWNER("other");
+// The owners every case takes for, declared with the cellblocks as the program's table
+#define MOVING_OWNERS(owner_) owner_(s_mover, "mover") owner_(s_other, "other")
+MMGR_OWNERS(MOVING_OWNERS)
 static embed_atomic_u32 s_next_index = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_writers_done = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_moves = EMBED_ATOMIC_INIT(0u);
@@ -123,8 +126,11 @@ static size_t script_id(void)
     return s_thread_id;
 }
 
-// Told of a give naming the wrong owner, from inside the give's turnstile. On the case's say-so it stands there until
-// told to go, or takes a cell of its own while the turnstile stands taken
+// Told of a give naming the wrong owner: from inside the release's pass for a movable release. On the case's say-so
+// it stands there until told to go, and reads whether the free cell below has been taken by a move meanwhile
+static void *s_hook_watched;
+static embed_atomic_usize s_moved_under_pass = EMBED_ATOMIC_INIT(0u);
+
 void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes)
 {
     (void)named;
@@ -135,9 +141,10 @@ void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner
     while (embed_atomic_usize_load(&s_hold_turnstile) != 0u)
     {
     }
-    if (s_take_when_misnamed != NULL)
+    if (s_hook_watched != NULL)
     {
-        s_take_when_misnamed = plain.moving.persistent_buf_alloc(16u, &s_mover);
+        embed_atomic_usize_store(&s_moved_under_pass,
+                                 (mmgr_owner_of_buf(&single_narrow_ctx, s_hook_watched) != NULL) ? 1u : 0u);
     }
 }
 
@@ -157,13 +164,8 @@ static void option_assigned(void)
 
 void setUp(void)
 {
-    if (embed_atomic_usize_load(&s_mover.place) == 0u)
-    {
-        TEST_ASSERT_TRUE(mmgr_owner_register(&s_mover));
-        TEST_ASSERT_TRUE(mmgr_owner_register(&s_other));
-    }
-    embed_atomic_usize_store(&s_mover.in_use, 0u);
-    embed_atomic_usize_store(&s_other.in_use, 0u);
+    mmgr_owner_bytes_given(s_mover, mmgr_owner_in_use(s_mover));
+    mmgr_owner_bytes_given(s_other, mmgr_owner_in_use(s_other));
     mmgr_cellblock_emptied(&plain_moving_ctx);
     mmgr_cellblock_emptied(&wiped_secure_ctx);
     mmgr_cellblock_emptied(&single_narrow_ctx);
@@ -190,6 +192,8 @@ void setUp(void)
     s_started_context = NULL;
     s_thread_id = 0u;
     s_take_when_misnamed = NULL;
+    s_hook_watched = NULL;
+    embed_atomic_usize_store(&s_moved_under_pass, 0u);
     s_misnamed = 0u;
     option_assigned();
 }
@@ -202,7 +206,7 @@ void tearDown(void)
 static const CarcerMovableSlot *marked_sized(size_t size, unsigned char mark)
 {
     static unsigned char s_bytes[512];
-    const CarcerMovableSlot *const cell = plain.moving.movable_buf_alloc(size, &s_mover);
+    const CarcerMovableSlot *const cell = plain.moving.movable_buf_alloc(size, s_mover);
 
     TEST_ASSERT_NOT_NULL(cell);
     memset(s_bytes, mark, size);
@@ -229,11 +233,11 @@ static void assert_marked(const CarcerMovableSlot *cell, size_t size, unsigned c
 
 void test_a_cellblock_with_no_option_takes_and_gives_and_answers_no_identity(void)
 {
-    void *const cell = unassigned.bare.persistent_buf_alloc(64u, &s_mover);
+    void *const cell = unassigned.bare.persistent_buf_alloc(64u, s_mover);
 
     TEST_ASSERT_NOT_NULL(cell);
-    unassigned.bare.persistent_buf_release(cell, &s_mover);
-    TEST_ASSERT_NULL(unassigned.bare.movable_buf_alloc(64u, &s_mover));
+    unassigned.bare.persistent_buf_release(cell, s_mover);
+    TEST_ASSERT_NULL(unassigned.bare.movable_buf_alloc(64u, s_mover));
     TEST_ASSERT_FALSE_MESSAGE(mmgr_movable_buf_move(&unassigned_bare_ctx), "nothing moves without the option");
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_movable_queue_depth(&unassigned_bare_ctx));
 }
@@ -260,7 +264,7 @@ void test_the_option_refuses_short_storage_and_zero_sizes(void)
                                                                          .width = 0u}));
     TEST_ASSERT_FALSE(single.narrow.movable_init(&(CarcerMovableInitCfg){
         .storage = NULL, .storage_bytes = narrow_option_bytes, .cells = MOVING_CELLS, .width = 1u}));
-    TEST_ASSERT_NULL_MESSAGE(single.narrow.movable_buf_alloc(64u, &s_mover), "a refused init assigns nothing");
+    TEST_ASSERT_NULL_MESSAGE(single.narrow.movable_buf_alloc(64u, s_mover), "a refused init assigns nothing");
 }
 
 void test_the_program_gives_the_mover_its_thread_at_init(void)
@@ -289,7 +293,7 @@ void test_a_thread_that_does_not_start_leaves_the_cells_working_and_nothing_movi
                                                                          .width = 1u,
                                                                          .thread_started = script_started,
                                                                          .thread_wait = script_wait}));
-    TEST_ASSERT_NOT_NULL(single.narrow.movable_buf_alloc(64u, &s_mover));
+    TEST_ASSERT_NOT_NULL(single.narrow.movable_buf_alloc(64u, s_mover));
 }
 
 void test_a_thread_is_not_started_without_its_wait(void)
@@ -308,25 +312,25 @@ void test_a_movable_take_answers_an_identity_whose_bytes_read_back(void)
     const CarcerMovableSlot *const cell = marked(0x5Au);
 
     assert_marked(cell, 64u, 0x5Au);
-    TEST_ASSERT_EQUAL_size_t(64u, (size_t)embed_atomic_usize_load(&s_mover.in_use));
+    TEST_ASSERT_EQUAL_size_t(64u, mmgr_owner_in_use(s_mover));
 }
 
 void test_a_movable_take_the_cellblock_cannot_meet_answers_no_identity(void)
 {
-    TEST_ASSERT_NULL(plain.moving.movable_buf_alloc(MOVING_BYTES * 2u, &s_mover));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_mover.in_use), "nothing is counted");
+    TEST_ASSERT_NULL(plain.moving.movable_buf_alloc(MOVING_BYTES * 2u, s_mover));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_mover), "nothing is counted");
 }
 
 void test_a_movable_take_a_full_table_cannot_name_gives_its_cell_back(void)
 {
     for (unsigned int at = 0u; at < MOVING_CELLS; at += 1u)
     {
-        TEST_ASSERT_NOT_NULL(plain.moving.movable_buf_alloc(64u, &s_mover));
+        TEST_ASSERT_NOT_NULL(plain.moving.movable_buf_alloc(64u, s_mover));
     }
-    const size_t counted = (size_t)embed_atomic_usize_load(&s_mover.in_use);
+    const size_t counted = mmgr_owner_in_use(s_mover);
 
-    TEST_ASSERT_NULL(plain.moving.movable_buf_alloc(64u, &s_mover));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(counted, (size_t)embed_atomic_usize_load(&s_mover.in_use), "the cell went back");
+    TEST_ASSERT_NULL(plain.moving.movable_buf_alloc(64u, s_mover));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(counted, mmgr_owner_in_use(s_mover), "the cell went back");
 }
 
 void test_a_read_or_a_write_past_the_cells_end_is_refused(void)
@@ -403,21 +407,21 @@ void test_a_released_identity_reads_nothing(void)
     const CarcerMovableSlot *const cell = marked(0x09u);
     unsigned char byte = 0u;
 
-    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cell, &s_mover));
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&s_mover.in_use));
+    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cell, s_mover));
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_in_use(s_mover));
     TEST_ASSERT_FALSE(plain.moving.movable_buf_read(&(CarcerMovableCfg){.cell = cell, .dst = &byte, .bytes = 1u}));
-    TEST_ASSERT_FALSE_MESSAGE(plain.moving.movable_buf_release(cell, &s_mover), "a second release finds it free");
-    TEST_ASSERT_FALSE_MESSAGE(plain.moving.movable_buf_release(NULL, &s_mover), "and no identity releases nothing");
+    TEST_ASSERT_FALSE_MESSAGE(plain.moving.movable_buf_release(cell, s_mover), "a second release finds it free");
+    TEST_ASSERT_FALSE_MESSAGE(plain.moving.movable_buf_release(NULL, s_mover), "and no identity releases nothing");
 }
 
 void test_release_naming_another_owner_changes_nothing_and_is_told(void)
 {
     const CarcerMovableSlot *const cell = marked(0x0Au);
 
-    TEST_ASSERT_FALSE(plain.moving.movable_buf_release(cell, &s_other));
+    TEST_ASSERT_FALSE(plain.moving.movable_buf_release(cell, s_other));
     TEST_ASSERT_EQUAL_UINT(1u, s_misnamed);
     assert_marked(cell, 64u, 0x0Au);
-    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cell, &s_mover));
+    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cell, s_mover));
 }
 
 void test_a_released_place_in_the_table_is_taken_again_lowest_first(void)
@@ -426,8 +430,8 @@ void test_a_released_place_in_the_table_is_taken_again_lowest_first(void)
     const CarcerMovableSlot *const second = marked(0x0Du);
     const CarcerMovableSlot *const third = marked(0x0Eu);
 
-    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(second, &s_mover));
-    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(first, &s_mover));
+    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(second, s_mover));
+    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(first, s_mover));
     TEST_ASSERT_TRUE_MESSAGE(marked(0x0Fu) == first, "the lowest free place");
     TEST_ASSERT_TRUE_MESSAGE(marked(0x10u) == second, "and the next");
     TEST_ASSERT_TRUE_MESSAGE(marked(0x12u) > third, "then past the ones taken");
@@ -439,30 +443,30 @@ void test_a_take_wraps_and_finds_a_place_its_search_start_has_passed(void)
 
     for (unsigned int at = 0u; at < MOVING_CELLS; at += 1u)
     {
-        cells[at] = plain.moving.movable_buf_alloc(16u, &s_mover);
+        cells[at] = plain.moving.movable_buf_alloc(16u, s_mover);
         TEST_ASSERT_NOT_NULL(cells[at]);
     }
-    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cells[MOVING_CELLS - 1u], &s_mover));
-    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cells[0], &s_mover));
+    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cells[MOVING_CELLS - 1u], s_mover));
+    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cells[0], s_mover));
     // The start stands at the first release's place until a later take raises it past the second
-    TEST_ASSERT_TRUE(plain.moving.movable_buf_alloc(16u, &s_mover) == cells[0]);
-    TEST_ASSERT_TRUE_MESSAGE(plain.moving.movable_buf_alloc(16u, &s_mover) == cells[MOVING_CELLS - 1u],
+    TEST_ASSERT_TRUE(plain.moving.movable_buf_alloc(16u, s_mover) == cells[0]);
+    TEST_ASSERT_TRUE_MESSAGE(plain.moving.movable_buf_alloc(16u, s_mover) == cells[MOVING_CELLS - 1u],
                              "the search reads every place before it refuses");
 }
 
 void test_a_move_takes_the_free_cell_below_and_the_identity_stands(void)
 {
-    void *const low = plain.moving.persistent_buf_alloc(64u, &s_mover);
+    void *const low = plain.moving.persistent_buf_alloc(64u, s_mover);
     const CarcerMovableSlot *const cell = marked(0x22u);
     const size_t gap = plain.moving.buf_available();
 
-    plain.moving.persistent_buf_release(low, &s_mover);
+    plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE_MESSAGE(mmgr_movable_buf_move(&plain_moving_ctx), "a free cell stands below it");
     assert_marked(cell, 64u, 0x22u);
-    TEST_ASSERT_TRUE_MESSAGE(mmgr_owner_of_buf(&plain_moving_ctx, low) == &s_mover, "the free cell is taken");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_owner_of_buf(&plain_moving_ctx, low) == s_mover, "the free cell is taken");
     TEST_ASSERT_TRUE_MESSAGE(plain.moving.buf_available() > gap, "the tier's end comes back to the gap");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(64u, (size_t)embed_atomic_usize_load(&s_mover.in_use), "one cell is counted");
-    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cell, &s_mover));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(64u, mmgr_owner_in_use(s_mover), "one cell is counted");
+    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cell, s_mover));
     TEST_ASSERT_EQUAL_size_t(MOVING_BYTES, plain.moving.buf_available());
 }
 
@@ -477,10 +481,10 @@ void test_a_move_finds_nothing_where_no_free_cell_stands_below(void)
 void test_a_move_never_goes_upward(void)
 {
     const CarcerMovableSlot *const cell = marked(0x45u);
-    void *const above = plain.moving.persistent_buf_alloc(64u, &s_mover);
-    void *const held = plain.moving.persistent_buf_alloc(64u, &s_mover);
+    void *const above = plain.moving.persistent_buf_alloc(64u, s_mover);
+    void *const held = plain.moving.persistent_buf_alloc(64u, s_mover);
 
-    plain.moving.persistent_buf_release(above, &s_mover);
+    plain.moving.persistent_buf_release(above, s_mover);
     TEST_ASSERT_FALSE_MESSAGE(mmgr_movable_buf_move(&plain_moving_ctx), "the only free cell stands above it");
     assert_marked(cell, 64u, 0x45u);
     TEST_ASSERT_NOT_NULL(held);
@@ -488,12 +492,12 @@ void test_a_move_never_goes_upward(void)
 
 void test_a_move_takes_the_highest_cell_first(void)
 {
-    void *const low = plain.moving.persistent_buf_alloc(64u, &s_mover);
+    void *const low = plain.moving.persistent_buf_alloc(64u, s_mover);
     const CarcerMovableSlot *const lower = marked(0x55u);
     const CarcerMovableSlot *const higher = marked(0x66u);
     const size_t gap = plain.moving.buf_available();
 
-    plain.moving.persistent_buf_release(low, &s_mover);
+    plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE(mmgr_movable_buf_move(&plain_moving_ctx));
     TEST_ASSERT_TRUE_MESSAGE(plain.moving.buf_available() > gap, "only the highest going gives the end back");
     assert_marked(lower, 64u, 0x55u);
@@ -502,27 +506,27 @@ void test_a_move_takes_the_highest_cell_first(void)
 
 void test_a_smaller_cell_under_one_no_free_cell_takes_still_moves(void)
 {
-    void *const low = plain.moving.persistent_buf_alloc(64u, &s_mover);
+    void *const low = plain.moving.persistent_buf_alloc(64u, s_mover);
     const CarcerMovableSlot *const small = marked_sized(32u, 0x61u);
     const CarcerMovableSlot *const large = marked_sized(256u, 0x62u);
 
-    plain.moving.persistent_buf_release(low, &s_mover);
+    plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE_MESSAGE(mmgr_movable_buf_move(&plain_moving_ctx), "the smaller cell fits the free cell");
-    TEST_ASSERT_TRUE_MESSAGE(mmgr_owner_of_buf(&plain_moving_ctx, low) == &s_mover, "and takes it");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_owner_of_buf(&plain_moving_ctx, low) == s_mover, "and takes it");
     assert_marked(small, 32u, 0x61u);
     assert_marked(large, 256u, 0x62u);
 }
 
 void test_moves_run_until_none_answers_stand_as_they_left_things(void)
 {
-    void *const first = plain.moving.persistent_buf_alloc(64u, &s_mover);
+    void *const first = plain.moving.persistent_buf_alloc(64u, s_mover);
     const CarcerMovableSlot *const one = marked(0x71u);
-    void *const second = plain.moving.persistent_buf_alloc(64u, &s_mover);
+    void *const second = plain.moving.persistent_buf_alloc(64u, s_mover);
     const CarcerMovableSlot *const two = marked(0x72u);
     const size_t gap = plain.moving.buf_available();
 
-    plain.moving.persistent_buf_release(first, &s_mover);
-    plain.moving.persistent_buf_release(second, &s_mover);
+    plain.moving.persistent_buf_release(first, s_mover);
+    plain.moving.persistent_buf_release(second, s_mover);
     unsigned int moved = 0u;
 
     while (mmgr_movable_buf_move(&plain_moving_ctx) && (moved < 16u))
@@ -544,9 +548,9 @@ void test_a_move_and_a_release_on_a_wiping_cellblock_wipe_what_they_leave(void)
     memset(mmgr_pars_storage_secure_option, 0, secure_option_bytes);
     TEST_ASSERT_TRUE(wiped.secure.movable_init(&(CarcerMovableInitCfg){
         .storage = mmgr_pars_storage_secure_option, .storage_bytes = secure_option_bytes, .cells = 2u, .width = 1u}));
-    unsigned char *const low = wiped.secure.persistent_buf_alloc(64u, &s_mover);
-    const CarcerMovableSlot *const cell = wiped.secure.movable_buf_alloc(64u, &s_mover);
-    unsigned char *const next = wiped.secure.persistent_buf_alloc(64u, &s_mover);
+    unsigned char *const low = wiped.secure.persistent_buf_alloc(64u, s_mover);
+    const CarcerMovableSlot *const cell = wiped.secure.movable_buf_alloc(64u, s_mover);
+    unsigned char *const next = wiped.secure.persistent_buf_alloc(64u, s_mover);
     // Three cells of one size stand side by side, and the movable one is the middle one
     unsigned char *const left = low + ((size_t)(next - low) / 2u);
     unsigned char bytes[64];
@@ -554,14 +558,14 @@ void test_a_move_and_a_release_on_a_wiping_cellblock_wipe_what_they_leave(void)
     memset(bytes, 0x7E, sizeof(bytes));
     TEST_ASSERT_TRUE(wiped.secure.movable_buf_write(&(CarcerMovableCfg){.cell = cell, .src = bytes, .bytes = 64u}));
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(0x7Eu, left[0], "the case reads where the cell stands");
-    wiped.secure.persistent_buf_release(low, &s_mover);
+    wiped.secure.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE(mmgr_movable_buf_move(&wiped_secure_ctx));
     for (unsigned int at = 0u; at < 64u; at += 1u)
     {
         TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, left[at], "the copy left behind is wiped");
         TEST_ASSERT_EQUAL_UINT8_MESSAGE(0x7Eu, low[at], "and the bytes stand in the cell it moved to");
     }
-    TEST_ASSERT_TRUE(wiped.secure.movable_buf_release(cell, &s_mover));
+    TEST_ASSERT_TRUE(wiped.secure.movable_buf_release(cell, s_mover));
     for (unsigned int at = 0u; at < 64u; at += 1u)
     {
         TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, low[at], "a release wipes the cell it gives back");
@@ -571,31 +575,31 @@ void test_a_move_and_a_release_on_a_wiping_cellblock_wipe_what_they_leave(void)
 void test_fragmentation_reads_the_bytes_occupied_that_no_payload_holds(void)
 {
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_fragmentation(&plain_moving_ctx), "nothing occupied");
-    void *const low = plain.moving.persistent_buf_alloc(512u, &s_mover);
-    void *const high = plain.moving.persistent_buf_alloc(512u, &s_mover);
+    void *const low = plain.moving.persistent_buf_alloc(512u, s_mover);
+    void *const high = plain.moving.persistent_buf_alloc(512u, s_mover);
 
     const size_t whole = mmgr_cellblock_fragmentation(&plain_moving_ctx);
     TEST_ASSERT_TRUE_MESSAGE(whole < 10u, "with no hole only the cells' words read");
-    plain.moving.persistent_buf_release(low, &s_mover);
+    plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE_MESSAGE(mmgr_cellblock_fragmentation(&plain_moving_ctx) >= 40u, "half the tier is a hole");
-    plain.moving.persistent_buf_release(high, &s_mover);
+    plain.moving.persistent_buf_release(high, s_mover);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_cellblock_fragmentation(&plain_moving_ctx), "and the tier is gone");
 }
 
 void test_the_temporary_tier_reads_no_fragmentation(void)
 {
-    void *const persistent = plain.moving.persistent_buf_alloc(512u, &s_mover);
+    void *const persistent = plain.moving.persistent_buf_alloc(512u, s_mover);
     const size_t whole = mmgr_cellblock_fragmentation(&plain_moving_ctx);
-    void *const hole = plain.moving.temporary_buf_alloc(1024u, &s_mover);
-    void *const below = plain.moving.temporary_buf_alloc(16u, &s_mover);
+    void *const hole = plain.moving.temporary_buf_alloc(1024u, s_mover);
+    void *const below = plain.moving.temporary_buf_alloc(16u, s_mover);
 
     TEST_ASSERT_NOT_NULL(hole);
     TEST_ASSERT_NOT_NULL(below);
-    plain.moving.persistent_buf_release(hole, &s_mover);
+    plain.moving.persistent_buf_release(hole, s_mover);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(whole, mmgr_cellblock_fragmentation(&plain_moving_ctx),
                                      "a hole in the temporary tier is no work for a sort");
-    plain.moving.persistent_buf_release(below, &s_mover);
-    plain.moving.persistent_buf_release(persistent, &s_mover);
+    plain.moving.persistent_buf_release(below, s_mover);
+    plain.moving.persistent_buf_release(persistent, s_mover);
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_cellblock_fragmentation(&plain_moving_ctx));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use),
                                      "every persistent cell is counted back");
@@ -603,48 +607,47 @@ void test_the_temporary_tier_reads_no_fragmentation(void)
 
 void test_a_cell_counts_to_the_tier_it_lies_in(void)
 {
-    uint8_t *const hole = plain.moving.temporary_buf_alloc(1024u, &s_mover);
+    uint8_t *const hole = plain.moving.temporary_buf_alloc(1024u, s_mover);
 
     TEST_ASSERT_NOT_NULL(hole);
-    TEST_ASSERT_NOT_NULL(plain.moving.temporary_buf_alloc(64u, &s_mover));
+    TEST_ASSERT_NOT_NULL(plain.moving.temporary_buf_alloc(64u, s_mover));
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use));
-    while (plain.moving.persistent_buf_alloc(64u, &s_mover) != NULL)
+    while (plain.moving.persistent_buf_alloc(64u, s_mover) != NULL)
     {
     }
     const size_t persistent = (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use);
 
     TEST_ASSERT_TRUE(persistent != 0u);
-    plain.moving.persistent_buf_release(hole, &s_mover);
-    uint8_t *const reached = plain.moving.persistent_buf_alloc(512u, &s_mover);
-
-    TEST_ASSERT_NOT_NULL(reached);
+    plain.moving.persistent_buf_release(hole, s_mover);
+    TEST_ASSERT_NULL_MESSAGE(plain.moving.persistent_buf_alloc(512u, s_mover),
+                             "a persistent take keeps to its tier: the free temporary cell is a rewind's");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(persistent, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use),
-                                     "a persistent take lying in the temporary tier counts to the temporary tier");
-    plain.moving.persistent_buf_release(reached, &s_mover);
-    TEST_ASSERT_EQUAL_size_t(persistent, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use));
+                                     "nothing counted to the persistent tier");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(persistent + 64u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use),
+                                     "the temporary cell left counts to the cellblock");
 }
 
 void test_each_cellblock_keeps_its_own_running_total(void)
 {
-    void *const here = plain.moving.persistent_buf_alloc(512u, &s_mover);
-    void *const there = unassigned.bare.persistent_buf_alloc(512u, &s_mover);
+    void *const here = plain.moving.persistent_buf_alloc(512u, s_mover);
+    void *const there = unassigned.bare.persistent_buf_alloc(512u, s_mover);
 
     TEST_ASSERT_EQUAL_size_t(512u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
     TEST_ASSERT_EQUAL_size_t(512u, (size_t)embed_atomic_usize_load(&unassigned_bare_ctx.in_use));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(1024u, (size_t)embed_atomic_usize_load(&s_mover.in_use), "the owner spans both");
-    plain.moving.persistent_buf_release(here, &s_mover);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1024u, mmgr_owner_in_use(s_mover), "the owner spans both");
+    plain.moving.persistent_buf_release(here, s_mover);
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
     TEST_ASSERT_EQUAL_size_t(512u, (size_t)embed_atomic_usize_load(&unassigned_bare_ctx.in_use));
-    unassigned.bare.persistent_buf_release(there, &s_mover);
+    unassigned.bare.persistent_buf_release(there, s_mover);
 }
 
 void test_the_running_total_follows_the_temporary_tier_and_a_growth(void)
 {
     const size_t mark = plain.moving.temporary_buf_mark();
-    void *const cell = plain.moving.temporary_buf_alloc(64u, &s_mover);
+    void *const cell = plain.moving.temporary_buf_alloc(64u, s_mover);
 
     TEST_ASSERT_EQUAL_size_t(64u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
-    TEST_ASSERT_NOT_NULL(plain.moving.buf_grow(cell, 128u, &s_mover));
+    TEST_ASSERT_NOT_NULL(plain.moving.buf_grow(cell, 128u, s_mover));
     TEST_ASSERT_EQUAL_size_t(128u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
     plain.moving.temporary_buf_release(mark);
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
@@ -652,50 +655,49 @@ void test_the_running_total_follows_the_temporary_tier_and_a_growth(void)
 
 void test_bytes_outside_any_cellblock_count_to_an_owner_alone(void)
 {
-    mmgr_owner_bytes_taken(&s_other, 4096u);
-    TEST_ASSERT_EQUAL_size_t(4096u, (size_t)embed_atomic_usize_load(&s_other.in_use));
-    TEST_ASSERT_EQUAL_size_t(4096u, (size_t)embed_atomic_usize_load(&s_other.hw) >= 4096u ? 4096u : 0u);
+    mmgr_owner_bytes_taken(s_other, 4096u);
+    TEST_ASSERT_EQUAL_size_t(4096u, mmgr_owner_in_use(s_other));
+    TEST_ASSERT_TRUE(mmgr_owner_hw(s_other) >= 4096u);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use), "no cellblock's");
-    mmgr_owner_bytes_given(&s_other, 4096u);
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&s_other.in_use));
+    mmgr_owner_bytes_given(s_other, 4096u);
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_in_use(s_other));
 }
 
-void test_touches_sum_per_thread_after_the_fact(void)
+void test_touches_count_the_passes_through_a_lane_and_the_last_badge(void)
+{
+    size_t id = 0u;
+    size_t touches = 0u;
+    void *const one = plain.moving.persistent_buf_alloc(16u, s_mover);
+    void *const two = plain.moving.persistent_buf_alloc(16u, s_other);
+
+    TEST_ASSERT_TRUE(mmgr_movable_touches(&plain_moving_ctx, 0u, &id, &touches));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(s_other->place, id, "the last pass through the lane badged the owner's place");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(2u, touches, "one thread passes through one lane");
+    plain.moving.persistent_buf_release(one, s_mover);
+    plain.moving.persistent_buf_release(two, s_other);
+    TEST_ASSERT_TRUE(mmgr_movable_touches(&plain_moving_ctx, 0u, &id, &touches));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(2u, touches, "a give passes no lane");
+    const CarcerMovableSlot *const cell = marked(0x07u);
+
+    TEST_ASSERT_TRUE(mmgr_movable_touches(&plain_moving_ctx, 0u, &id, &touches));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(4u, touches, "a movable take and its write pass once each");
+    s_thread_id = 7u;
+    assert_marked(cell, 64u, 0x07u);
+    TEST_ASSERT_TRUE(mmgr_movable_touches(&plain_moving_ctx, 0u, &id, &touches));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(8u, id, "a read badges the thread's id plus one");
+    TEST_ASSERT_EQUAL_size_t(5u, touches);
+}
+
+void test_rows_past_the_lanes_used_read_as_none(void)
 {
     size_t id = 0u;
     size_t touches = 0u;
 
-    s_thread_id = 7u;
-    void *const one = plain.moving.persistent_buf_alloc(16u, &s_mover);
-    void *const two = plain.moving.persistent_buf_alloc(16u, &s_mover);
-
-    TEST_ASSERT_TRUE(mmgr_movable_touches(&plain_moving_ctx, 0u, &id, &touches));
-    TEST_ASSERT_EQUAL_size_t(7u, id);
-    TEST_ASSERT_EQUAL_size_t(2u, touches);
-    s_thread_id = 8u;
-    plain.moving.persistent_buf_release(one, &s_mover);
-    TEST_ASSERT_TRUE(mmgr_movable_touches(&plain_moving_ctx, 1u, &id, &touches));
-    TEST_ASSERT_EQUAL_size_t(8u, id);
-    TEST_ASSERT_EQUAL_size_t(1u, touches);
-    s_thread_id = 7u;
-    plain.moving.persistent_buf_release(two, &s_mover);
-    TEST_ASSERT_TRUE(mmgr_movable_touches(&plain_moving_ctx, 0u, &id, &touches));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(3u, touches, "a thread comes back to its row");
-}
-
-void test_the_last_row_sums_every_thread_past_the_rest(void)
-{
-    size_t id = 0u;
-    size_t touches = 0u;
-
-    for (size_t thread = 10u; thread < 14u; thread += 1u)
-    {
-        s_thread_id = thread;
-        plain.moving.persistent_buf_release(plain.moving.persistent_buf_alloc(16u, &s_mover), &s_mover);
-    }
-    TEST_ASSERT_TRUE(mmgr_movable_touches(&plain_moving_ctx, MOVING_ROWS - 1u, &id, &touches));
-    TEST_ASSERT_EQUAL_size_t(SIZE_MAX, id);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(4u, touches, "the two threads past the first two");
+    plain.moving.persistent_buf_release(plain.moving.persistent_buf_alloc(16u, s_mover), s_mover);
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_movable_touches(&plain_moving_ctx, 1u, &id, &touches),
+                              "one thread opens one lane, and the second row counts none");
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_movable_touches(&plain_moving_ctx, MOVING_ROWS - 1u, &id, &touches),
+                              "the last row counts the lanes past the rows, and none is open");
     TEST_ASSERT_FALSE_MESSAGE(mmgr_movable_touches(&plain_moving_ctx, MOVING_ROWS, &id, &touches), "past the rows");
 }
 
@@ -709,27 +711,27 @@ void test_no_rows_keeps_no_touches(void)
                                                                         .storage_bytes = narrow_option_bytes,
                                                                         .cells = MOVING_CELLS,
                                                                         .width = 1u}));
-    single.narrow.persistent_buf_release(single.narrow.persistent_buf_alloc(16u, &s_mover), &s_mover);
+    single.narrow.persistent_buf_release(single.narrow.persistent_buf_alloc(16u, s_mover), s_mover);
     TEST_ASSERT_FALSE(mmgr_movable_touches(&single_narrow_ctx, 0u, &id, &touches));
 }
 
 // A hole below a movable cell large enough to read over the threshold, and the cell that would fill it
 static const CarcerMovableSlot *fragmented(void)
 {
-    void *const low = plain.moving.persistent_buf_alloc(512u, &s_mover);
+    void *const low = plain.moving.persistent_buf_alloc(512u, s_mover);
     const CarcerMovableSlot *const cell = marked_sized(128u, 0x33u);
 
-    plain.moving.persistent_buf_release(low, &s_mover);
+    plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE(mmgr_cellblock_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
     return cell;
 }
 
 void test_the_mover_leaves_a_cellblock_under_the_threshold_alone(void)
 {
-    void *const low = plain.moving.persistent_buf_alloc(16u, &s_mover);
+    void *const low = plain.moving.persistent_buf_alloc(16u, s_mover);
     const CarcerMovableSlot *const cell = marked_sized(256u, 0x35u);
 
-    plain.moving.persistent_buf_release(low, &s_mover);
+    plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE(mmgr_cellblock_fragmentation(&plain_moving_ctx) < MMGR_MOVABLE_SETTLE_PERCENT);
     s_ticks_left = 2u * MMGR_MOVABLE_QUIET_READINGS;
     mmgr_movable_run(&plain_moving_ctx);
@@ -765,10 +767,10 @@ void test_a_sort_that_can_move_nothing_is_not_run_again_until_the_reading_rises(
 {
     // A hole above the only movable cell: over the threshold with nothing to move
     const CarcerMovableSlot *const cell = marked_sized(128u, 0x36u);
-    void *const hole = plain.moving.persistent_buf_alloc(512u, &s_mover);
-    void *const pin = plain.moving.persistent_buf_alloc(16u, &s_mover);
+    void *const hole = plain.moving.persistent_buf_alloc(512u, s_mover);
+    void *const pin = plain.moving.persistent_buf_alloc(16u, s_mover);
 
-    plain.moving.persistent_buf_release(hole, &s_mover);
+    plain.moving.persistent_buf_release(hole, s_mover);
     TEST_ASSERT_TRUE(mmgr_cellblock_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
     s_ticks_left = MMGR_MOVABLE_QUIET_READINGS + 1u;
     mmgr_movable_run(&plain_moving_ctx);
@@ -779,72 +781,96 @@ void test_a_sort_that_can_move_nothing_is_not_run_again_until_the_reading_rises(
     TEST_ASSERT_NOT_NULL(pin);
 }
 
-// Inside a give's turnstile, with the mover's lock on the other, a take finds no turnstile free
+// A pass between two of the mover's readings: a take, given back
 static void pressure_raised(void)
 {
-    void *const cell = plain.moving.persistent_buf_alloc(16u, &s_mover);
-
-    s_take_when_misnamed = (void *)&s_mover;
-    plain.moving.persistent_buf_release(cell, &s_other);
+    plain.moving.persistent_buf_release(plain.moving.persistent_buf_alloc(16u, s_mover), s_mover);
 }
 
-void test_the_mover_backs_off_where_a_locked_turnstile_raises_the_pressure(void)
+void test_a_pass_between_readings_is_not_a_quiet_reading(void)
 {
     (void)fragmented();
-    // The quiet readings, then the lock's wait, inside which the pressure rises
+    // The pass lands ahead of the reading that would have been the last quiet one, and the count starts over
     s_turn = pressure_raised;
-    s_turn_on_tick = MMGR_MOVABLE_QUIET_READINGS + 1u;
-    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS + 2u;
+    s_turn_on_tick = MMGR_MOVABLE_QUIET_READINGS;
+    s_ticks_left = (2u * MMGR_MOVABLE_QUIET_READINGS) - 1u;
     mmgr_movable_run(&plain_moving_ctx);
-    TEST_ASSERT_EQUAL_UINT_MESSAGE(1u, s_misnamed, "the case's give reached its hook");
     TEST_ASSERT_EQUAL_UINT_MESSAGE(0u, s_moving_told, "nothing moved");
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(2u * MMGR_MOVABLE_READ_MS, s_last_wait, "and the wait doubled");
-    // Every lock let go: a take passes a turnstile again and goes on counting to its thread
-    size_t id = 0u;
-    size_t touches = 0u;
-
-    s_thread_id = 99u;
-    plain.moving.persistent_buf_release(plain.moving.persistent_buf_alloc(16u, &s_mover), &s_mover);
-    TEST_ASSERT_TRUE(mmgr_movable_touches(&plain_moving_ctx, 1u, &id, &touches));
-    TEST_ASSERT_EQUAL_size_t(99u, id);
-}
-
-void test_a_wait_ending_the_mover_inside_a_lock_lets_the_lock_go(void)
-{
-    (void)fragmented();
-    // Ended at the lock's wait
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(MMGR_MOVABLE_READ_MS, s_last_wait, "and the wait stands");
+    // a run counts its quiet readings from its start: the readings reached with no pass between them, the sort runs
     s_ticks_left = MMGR_MOVABLE_QUIET_READINGS;
     mmgr_movable_run(&plain_moving_ctx);
-    TEST_ASSERT_EQUAL_UINT(0u, s_moving_told);
-    size_t id = 0u;
-    size_t touches = 0u;
-
-    s_thread_id = 5u;
-    plain.moving.persistent_buf_release(plain.moving.persistent_buf_alloc(16u, &s_mover), &s_mover);
-    TEST_ASSERT_TRUE_MESSAGE(mmgr_movable_touches(&plain_moving_ctx, 1u, &id, &touches), "the turnstile opened again");
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(1u, s_moving_told, "the quiet readings reached, the sort runs");
 }
 
-// The thread that gives with the wrong owner and stands in its turnstile, and the thread that runs the mover over a
-// one-turnstile option while it does
+// The two threads of the backoff's case: the first passes through the cellblock until the sort has backed off,
+// the second runs the mover, whose sort finds a pass between its moves and backs off
+static void backoff_each(void)
+{
+    if (embed_atomic_u32_fetch_add(&s_next_index, 1u) == 0u)
+    {
+        while (embed_atomic_usize_load(&s_moves) == 0u)
+        {
+            plain.moving.persistent_buf_release(plain.moving.persistent_buf_alloc(16u, s_mover), s_mover);
+        }
+        return;
+    }
+    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS + 1u;
+    mmgr_movable_run(&plain_moving_ctx);
+    embed_atomic_usize_store(&s_moves, 1u);
+}
+
+void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_wait(void)
+{
+    // Two holes under two movable cells: the first move leaves a second to make, and a pass lands between them
+    void *const low = plain.moving.persistent_buf_alloc(512u, s_mover);
+    const CarcerMovableSlot *const one = marked_sized(128u, 0x31u);
+    void *const middle = plain.moving.persistent_buf_alloc(512u, s_mover);
+    const CarcerMovableSlot *const two = marked_sized(128u, 0x32u);
+
+    plain.moving.persistent_buf_release(low, s_mover);
+    plain.moving.persistent_buf_release(middle, s_mover);
+    TEST_ASSERT_TRUE(mmgr_cellblock_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
+    // The other thread's passes keep the readings from quiet until they stop; the sort starts once they do, and
+    // the passes that land before the thread reads the sort's end are what it backs off from
+    TEST_ASSERT_TRUE(mmgr_host_threads_run(backoff_each, 2u));
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(s_moving_told, s_moving_ended, "each sort told at both ends");
+    TEST_ASSERT_TRUE_MESSAGE((s_moving_told == 0u) || (s_most_wait >= MMGR_MOVABLE_READ_MS), "the wait stands or doubled");
+    assert_marked(one, 128u, 0x31u);
+    assert_marked(two, 128u, 0x32u);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_word_load(&plain_moving_ctx.closed),
+                                     "the cellblock stands open once the mover ends");
+}
+
+// The thread that releases a movable cell with the wrong owner and stands in its pass until the mover has told of a
+// sort, and the thread that runs the mover: the sort's move waits for the pass to end
+static const CarcerMovableSlot *s_occupied_cell;
+
 static void occupied_each(void)
 {
     if (embed_atomic_u32_fetch_add(&s_next_index, 1u) == 0u)
     {
-        void *const cell = single.narrow.persistent_buf_alloc(16u, &s_mover);
-
-        single.narrow.persistent_buf_release(cell, &s_other);
+        (void)single.narrow.movable_buf_release(s_occupied_cell, s_other);
         return;
     }
     while (embed_atomic_usize_load(&s_turnstile_taken) == 0u)
     {
     }
-    s_ticks_left = 2u * MMGR_MOVABLE_QUIET_READINGS;
+    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS;
     mmgr_movable_run(&single_narrow_ctx);
-    embed_atomic_usize_store(&s_moves, s_moving_told);
-    embed_atomic_usize_store(&s_hold_turnstile, 0u);
 }
 
-void test_occupied_turnstiles_keep_the_mover_from_sorting(void)
+// Told of a sort's start: the pass standing in the hook may go, and the move waits for it
+static void occupied_moving(embed_bool is_moving)
+{
+    script_moving(is_moving);
+    if (is_moving)
+    {
+        embed_atomic_usize_store(&s_hold_turnstile, 0u);
+    }
+}
+
+void test_a_sort_waits_out_the_pass_under_way(void)
 {
     memset(mmgr_pars_storage_narrow_option, 0, narrow_option_bytes);
     TEST_ASSERT_TRUE(single.narrow.movable_init(&(CarcerMovableInitCfg){.storage = mmgr_pars_storage_narrow_option,
@@ -852,134 +878,116 @@ void test_occupied_turnstiles_keep_the_mover_from_sorting(void)
                                                                         .cells = MOVING_CELLS,
                                                                         .width = 1u,
                                                                         .thread_wait = script_wait,
-                                                                        .thread_moving = script_moving}));
-    void *const low = single.narrow.persistent_buf_alloc(512u, &s_mover);
-    const CarcerMovableSlot *const cell = single.narrow.movable_buf_alloc(128u, &s_mover);
+                                                                        .thread_moving = occupied_moving}));
+    void *const low = single.narrow.persistent_buf_alloc(512u, s_mover);
+    const CarcerMovableSlot *const cell = single.narrow.movable_buf_alloc(128u, s_mover);
 
     TEST_ASSERT_NOT_NULL(cell);
-    single.narrow.persistent_buf_release(low, &s_mover);
+    single.narrow.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE(mmgr_cellblock_fragmentation(&single_narrow_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
+    s_occupied_cell = cell;
+    s_hook_watched = low;
     embed_atomic_usize_store(&s_hold_turnstile, 1u);
     TEST_ASSERT_TRUE(mmgr_host_threads_run(occupied_each, 2u));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_moves), "no move while it stands occupied");
-    // With it free and one turnstile, there is none to lock, and occupancy decides alone
-    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS;
-    mmgr_movable_run(&single_narrow_ctx);
-    TEST_ASSERT_TRUE_MESSAGE(s_moving_told >= 1u, "and it sorts once it reads quiet");
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(1u, s_misnamed, "the release reached the hook inside its pass");
+    TEST_ASSERT_TRUE_MESSAGE(s_moving_told >= 1u, "the sort started while the pass stood");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_moved_under_pass),
+                                     "no move landed while the pass stood");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_owner_of_buf(&single_narrow_ctx, low) == s_mover, "and the move landed after it");
+    TEST_ASSERT_TRUE(single.narrow.movable_buf_release(cell, s_mover));
 }
 
-void test_with_the_option_a_temporary_take_its_tier_cannot_meet_lands_in_a_free_persistent_cell(void)
+void test_with_the_option_a_temporary_take_its_tier_cannot_meet_is_refused(void)
 {
-    uint8_t *const hole = plain.moving.persistent_buf_alloc(1024u, &s_mover);
-    uint8_t *const above = plain.moving.persistent_buf_alloc(64u, &s_mover);
+    uint8_t *const hole = plain.moving.persistent_buf_alloc(1024u, s_mover);
+    uint8_t *const above = plain.moving.persistent_buf_alloc(64u, s_mover);
 
     TEST_ASSERT_NOT_NULL(hole);
     TEST_ASSERT_NOT_NULL(above);
-    while (plain.moving.temporary_buf_alloc(64u, &s_mover) != NULL)
+    while (plain.moving.temporary_buf_alloc(64u, s_mover) != NULL)
     {
     }
-    plain.moving.persistent_buf_release(hole, &s_mover);
-    const size_t before = mmgr_owner_in_use(&s_mover);
-    uint8_t *const taken = plain.moving.temporary_buf_alloc(512u, &s_mover);
+    plain.moving.persistent_buf_release(hole, s_mover);
+    const size_t before = mmgr_owner_in_use(s_mover);
 
-    TEST_ASSERT_NOT_NULL_MESSAGE(taken, "1024 bytes stand free in the cellblock");
-    TEST_ASSERT_TRUE_MESSAGE((taken >= hole) && (taken < above), "the free cell of the other tier takes it");
-    TEST_ASSERT_EQUAL_size_t(before + 512u, mmgr_owner_in_use(&s_mover));
-    plain.moving.persistent_buf_release(taken, &s_mover);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, mmgr_owner_in_use(&s_mover), "it is given back as any cell");
+    TEST_ASSERT_NULL_MESSAGE(plain.moving.temporary_buf_alloc(512u, s_mover),
+                             "the free cell of the other tier is that tier's");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, mmgr_owner_in_use(s_mover), "nothing is counted");
+    TEST_ASSERT_TRUE_MESSAGE(plain.moving.persistent_buf_alloc(512u, s_mover) == hole, "its own tier's take fits it");
 }
 
-void test_with_the_option_a_persistent_take_its_tier_cannot_meet_lands_in_a_free_temporary_cell(void)
+void test_with_the_option_a_persistent_take_its_tier_cannot_meet_is_refused(void)
 {
-    uint8_t *const hole = plain.moving.temporary_buf_alloc(1024u, &s_mover);
-    uint8_t *const below = plain.moving.temporary_buf_alloc(64u, &s_mover);
+    uint8_t *const hole = plain.moving.temporary_buf_alloc(1024u, s_mover);
+    uint8_t *const below = plain.moving.temporary_buf_alloc(64u, s_mover);
 
     TEST_ASSERT_NOT_NULL(hole);
     TEST_ASSERT_NOT_NULL(below);
-    while (plain.moving.persistent_buf_alloc(64u, &s_mover) != NULL)
+    while (plain.moving.persistent_buf_alloc(64u, s_mover) != NULL)
     {
     }
-    plain.moving.persistent_buf_release(hole, &s_mover);
-    const size_t before = mmgr_owner_in_use(&s_mover);
-    uint8_t *const taken = plain.moving.persistent_buf_alloc(512u, &s_mover);
+    plain.moving.persistent_buf_release(hole, s_mover);
+    const size_t before = mmgr_owner_in_use(s_mover);
 
-    TEST_ASSERT_NOT_NULL_MESSAGE(taken, "1024 bytes stand free in the cellblock");
-    TEST_ASSERT_TRUE_MESSAGE((taken > below) && (taken < (hole + 1024)), "the free cell of the other tier takes it");
-    plain.moving.persistent_buf_release(taken, &s_mover);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, mmgr_owner_in_use(&s_mover), "it is given back as any cell");
+    TEST_ASSERT_NULL_MESSAGE(plain.moving.persistent_buf_alloc(512u, s_mover),
+                             "the free cell of the other tier is a rewind's to return");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(before, mmgr_owner_in_use(s_mover), "nothing is counted");
 }
 
 void test_with_no_option_a_take_keeps_to_its_own_tier(void)
 {
-    uint8_t *const hole = unassigned.bare.persistent_buf_alloc(256u, &s_mover);
+    uint8_t *const hole = unassigned.bare.persistent_buf_alloc(256u, s_mover);
 
     TEST_ASSERT_NOT_NULL(hole);
-    TEST_ASSERT_NOT_NULL(unassigned.bare.persistent_buf_alloc(32u, &s_mover));
-    while (unassigned.bare.temporary_buf_alloc(32u, &s_mover) != NULL)
+    TEST_ASSERT_NOT_NULL(unassigned.bare.persistent_buf_alloc(32u, s_mover));
+    while (unassigned.bare.temporary_buf_alloc(32u, s_mover) != NULL)
     {
     }
-    unassigned.bare.persistent_buf_release(hole, &s_mover);
-    TEST_ASSERT_NULL_MESSAGE(unassigned.bare.temporary_buf_alloc(128u, &s_mover), "a rewind's tier stays its own");
-    TEST_ASSERT_NOT_NULL_MESSAGE(unassigned.bare.persistent_buf_alloc(128u, &s_mover), "the tier's own take fits");
+    unassigned.bare.persistent_buf_release(hole, s_mover);
+    TEST_ASSERT_NULL_MESSAGE(unassigned.bare.temporary_buf_alloc(128u, s_mover), "a rewind's tier stays its own");
+    TEST_ASSERT_NOT_NULL_MESSAGE(unassigned.bare.persistent_buf_alloc(128u, s_mover), "the tier's own take fits");
 }
 
-// The two threads of the moving bit's case: the first holds the bit, the second takes, and the first lets the bit go
-// once the take has yielded to it or has answered without
+// The two threads of the closed word's case: the first closes the cellblock as a writer does and stands until a
+// take has set the word's sleeper flag or answered, then opens it and wakes; the second takes
 static embed_atomic_usize s_bit_held = EMBED_ATOMIC_INIT(0u);
-static embed_atomic_usize s_bit_yields = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_bit_answered = EMBED_ATOMIC_INIT(0u);
+static embed_atomic_usize s_bit_slept = EMBED_ATOMIC_INIT(0u);
 static void *s_bit_taken;
-
-static void bit_yielded(void)
-{
-    (void)embed_atomic_usize_fetch_add(&s_bit_yields, 1u);
-}
 
 static void bit_each(void)
 {
     if (embed_atomic_u32_fetch_add(&s_next_index, 1u) == 0u)
     {
-        embed_atomic_usize_store(&plain_moving_ctx.temporary_moving, 1u);
+        (void)embed_atomic_word_fetch_or(&plain_moving_ctx.closed, 1u);
         embed_atomic_usize_store(&s_bit_held, 1u);
-        while ((embed_atomic_usize_load(&s_bit_yields) == 0u) && (embed_atomic_usize_load(&s_bit_answered) == 0u))
+        while (((embed_atomic_word_load(&plain_moving_ctx.closed) & 2u) == 0u) &&
+               (embed_atomic_usize_load(&s_bit_answered) == 0u))
         {
         }
-        embed_atomic_usize_store(&plain_moving_ctx.temporary_moving, 0u);
+        embed_atomic_usize_store(&s_bit_slept, (embed_atomic_word_load(&plain_moving_ctx.closed) >> 1u) & 1u);
+        (void)embed_atomic_word_fetch_and(&plain_moving_ctx.closed, ~(embed_atomic_word_value)3u);
+        embed_word_wake(&plain_moving_ctx.closed);
         return;
     }
     while (embed_atomic_usize_load(&s_bit_held) == 0u)
     {
     }
-    s_bit_taken = plain.moving.temporary_buf_alloc(512u, &s_mover);
+    s_bit_taken = plain.moving.temporary_buf_alloc(512u, s_mover);
     embed_atomic_usize_store(&s_bit_answered, 1u);
 }
 
-void test_with_the_option_a_take_waits_its_turn_at_the_moving_bit_and_is_not_refused(void)
+void test_a_take_finding_the_cellblock_closed_waits_for_the_writer_and_is_not_refused(void)
 {
-    mmgr_cellblock_emptied(&plain_moving_ctx);
-    memset(mmgr_pars_storage_moving_option, 0, moving_option_bytes);
-    TEST_ASSERT_TRUE(plain.moving.movable_init(&(CarcerMovableInitCfg){.storage = mmgr_pars_storage_moving_option,
-                                                                       .storage_bytes = moving_option_bytes,
-                                                                       .cells = MOVING_CELLS,
-                                                                       .width = MOVING_WIDTH,
-                                                                       .rows = MOVING_ROWS,
-                                                                       .thread_id = script_id,
-                                                                       .thread_yield = bit_yielded}));
-    uint8_t *const hole = plain.moving.temporary_buf_alloc(1024u, &s_mover);
-
-    TEST_ASSERT_NOT_NULL(hole);
-    TEST_ASSERT_NOT_NULL(plain.moving.temporary_buf_alloc(64u, &s_mover));
-    while (plain.moving.persistent_buf_alloc(64u, &s_mover) != NULL)
-    {
-    }
-    plain.moving.persistent_buf_release(hole, &s_mover);
     embed_atomic_usize_store(&s_bit_held, 0u);
-    embed_atomic_usize_store(&s_bit_yields, 0u);
     embed_atomic_usize_store(&s_bit_answered, 0u);
+    embed_atomic_usize_store(&s_bit_slept, 0u);
     s_bit_taken = NULL;
     TEST_ASSERT_TRUE(mmgr_host_threads_run(bit_each, 2u));
-    TEST_ASSERT_NOT_NULL_MESSAGE(s_bit_taken, "a free cell stands in the tier: the take waits for the bit");
-    TEST_ASSERT_TRUE_MESSAGE((size_t)embed_atomic_usize_load(&s_bit_yields) > 0u, "and yields while it waits");
+    TEST_ASSERT_NOT_NULL_MESSAGE(s_bit_taken, "the gap holds the take: the take waits for the writer");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, (size_t)embed_atomic_usize_load(&s_bit_slept),
+                                     "and sets the sleeper flag on the closed word while it waits");
+    TEST_ASSERT_EQUAL_size_t(512u, mmgr_owner_in_use(s_mover));
 }
 
 #if MMGR_ENABLE_HOST
@@ -999,10 +1007,10 @@ void test_a_host_site_with_the_option_assigned_is_not_made_anew(void)
                                                                              .cells = MOVING_CELLS,
                                                                              .width = 1u}));
     TEST_ASSERT_FALSE_MESSAGE(hosted_made(16384u), "the option reads the block");
-    const CarcerMovableSlot *const cell = hosted.hosted_pool.movable_buf_alloc(16u, &s_mover);
+    const CarcerMovableSlot *const cell = hosted.hosted_pool.movable_buf_alloc(16u, s_mover);
 
     TEST_ASSERT_NOT_NULL(cell);
-    TEST_ASSERT_TRUE(hosted.hosted_pool.movable_buf_release(cell, &s_mover));
+    TEST_ASSERT_TRUE(hosted.hosted_pool.movable_buf_release(cell, s_mover));
     hosted_freed();
     TEST_ASSERT_TRUE(hosted_cellblock() == NULL);
 #endif
@@ -1041,7 +1049,7 @@ static void crowd_written(void)
     {
         if (cell == NULL)
         {
-            cell = crowded.crowd.movable_buf_alloc(sizeof(words), &s_mover);
+            cell = crowded.crowd.movable_buf_alloc(sizeof(words), s_mover);
             if (cell == NULL)
             {
                 (void)embed_atomic_usize_fetch_add(&s_refused, 1u);
@@ -1062,13 +1070,13 @@ static void crowd_written(void)
         (void)crowded.crowd.movable_buf_write(&(CarcerMovableCfg){.cell = cell, .src = words, .bytes = sizeof(words)});
         if ((round % 10u) == 9u)
         {
-            (void)crowded.crowd.movable_buf_release(cell, &s_mover);
+            (void)crowded.crowd.movable_buf_release(cell, s_mover);
             cell = NULL;
         }
     }
     if (cell != NULL)
     {
-        (void)crowded.crowd.movable_buf_release(cell, &s_mover);
+        (void)crowded.crowd.movable_buf_release(cell, s_mover);
     }
     (void)embed_atomic_usize_fetch_add(&s_writers_done, 1u);
 }
@@ -1102,9 +1110,12 @@ void test_no_write_is_lost_while_another_thread_moves_the_cells(void)
                                      "a write landed in a copy left behind");
     TEST_ASSERT_TRUE_MESSAGE((size_t)embed_atomic_usize_load(&s_moves) > 0u,
                              "the case has to move cells to mean anything");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_mover.in_use),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_mover),
                                      "every cell is counted back");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&crowded_crowd_ctx.in_use),
                                      "by the cellblock too");
+    // a give at the end while a move held the closed bit left its cell free in the tier: one give at the end with
+    // no writer about trims every free cell below it
+    crowded.crowd.persistent_buf_release(crowded.crowd.persistent_buf_alloc(16u, s_mover), s_mover);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(CROWD_BYTES, crowded.crowd.buf_available(), "and the cellblock stands whole");
 }

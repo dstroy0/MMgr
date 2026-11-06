@@ -21,7 +21,9 @@ ParsMemoriaeInternae(general, ARENA_BYTES);
 
 LocusCarcerum(ram, MMGR_MINIMUM_SECURITY(general));
 
-static CellOwner cells = MMGR_CELL_OWNER("cells");
+// The owners every case takes for, declared with the cellblocks as the program's table
+#define MEMORIA_OWNERS(owner_) owner_(cells, "cells")
+MMGR_OWNERS(MEMORIA_OWNERS)
 
 static volatile size_t g_take = 64u;
 
@@ -917,9 +919,9 @@ static uintptr_t ring_round_hand(void)
 
 static uintptr_t cellblock_persistent_alloc_release(void)
 {
-    void *const held = ram.general.persistent_buf_alloc(g_take, &cells);
+    void *const held = ram.general.persistent_buf_alloc(g_take, cells);
 
-    ram.general.persistent_buf_release(held, &cells);
+    ram.general.persistent_buf_release(held, cells);
     return (uintptr_t)held;
 }
 
@@ -938,7 +940,7 @@ static uintptr_t cellblock_temporary_mark_run(void)
 
     for (unsigned index = 0; index < 8u; index++)
     {
-        seen |= (uintptr_t)ram.general.temporary_buf_alloc(g_take, &cells);
+        seen |= (uintptr_t)ram.general.temporary_buf_alloc(g_take, cells);
     }
     ram.general.temporary_buf_release(mark);
     return seen;
@@ -975,7 +977,6 @@ void dbench_run(void)
 {
     static const size_t lens[] = {8u, 16u, 32u, 64u, 128u, 512u, 2048u};
 
-    (void)mmgr_owner_register(&cells);
     for (;;)
     {
         DBENCH_BANNER("memoria vs libc");

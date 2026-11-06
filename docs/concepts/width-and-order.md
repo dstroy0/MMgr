@@ -73,7 +73,7 @@ machine does".
 ## Alignment of an allocation
 
 ```c
-uint8_t *p = prison.work.persistent_buf_alloc(256, &reader);
+uint8_t *p = prison.work.persistent_buf_alloc(256, reader);
 ```
 
 An allocation does not name an alignment, because there is only one. Every cell comes back aligned to

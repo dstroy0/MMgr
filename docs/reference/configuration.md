@@ -49,7 +49,7 @@ for reading the high-water marks.
 
 | knob                           | default | what it changes                                                    |
 | ------------------------------ | ------: | ------------------------------------------------------------------ |
-| `MMGR_CARCER_OWNERS`           |   `128` | the most owners the owner queue holds                              |
+| `MMGR_CARCER_OWNERS`           |   `128` | the most owners a program's owner table holds                      |
 | `MMGR_MOVABLE_SETTLE_PERCENT`  |    `25` | the fragmentation at which a cellblock's mover sorts               |
 | `MMGR_MOVABLE_READ_MS`         |   `100` | the milliseconds between the mover's readings                      |
 | `MMGR_MOVABLE_QUIET_READINGS`  |     `3` | the readings in a row of low occupancy before it locks a turnstile |
@@ -59,10 +59,10 @@ A cellblock is shared by every context that reaches it, with no switch and no lo
 every cell's claim and every count is an atomic word from `embedded_types`, moved in one step each, and
 no context waits for another. The same build serves a host thread, a part's task and a GPU thread.
 
-An owner's own counts, its bytes in use and its peak, are kept in the `CellOwner` the caller registers
-once and names on every take, give and growth. The library keeps one queue of the registered owners,
-`MMGR_CARCER_OWNERS` words and a count, and a registration past its room is refused. See
-@ref concept_ownership.
+An owner's own counts, its bytes in use and its peak, are kept in the `CellOwner` record the program's
+owner table holds. `MMGR_OWNERS` lays the table once, as data, from the program's list of owners, and
+defines each owner's const pointer into it, which the owner's module names on every take, give and growth.
+A list longer than `MMGR_CARCER_OWNERS` fails the build. See @ref concept_ownership.
 
 ## Debug
 

@@ -66,10 +66,14 @@ and what that buys you:
 | a take costs | a carve                             | a carve                   |
 
 The persistent end holds what outlives a call: key material, a runtime seed, a constant a run works
-out once. The interim end holds what a call needs while it runs. A take at either end is one move of
-the boundary. A release merges the block with its free neighbors and returns a free block at the
-boundary to the free middle. A take the middle cannot meet reads its own end's chain for a free block
-that fits.
+out once. The interim end holds what a call needs while it runs. A take at either end is one pass through
+the cellblock's turnstiles and one fetch-add on the boundary. A release sets the block's header free and,
+where the block stood at the boundary, trims the boundary back over the free blocks there. A persistent take
+the middle cannot meet closes the cellblock, waits out the passes under way, and walks its end alone: every
+run of free blocks merged into one, the first run that fits taken, the free run reaching the boundary
+returned to the middle. The interim end is a stack: a take the middle cannot meet closes the cellblock, trims the
+boundary over the free blocks at it and reads the middle exactly, and only then is refused; a rewind returns its
+blocks.
 
 ## Cells that move
 
@@ -79,47 +83,40 @@ option takes and gives as it always does, each entry testing one word, and its `
 The storage lies outside the prison, so nothing of the option pins a tier, and a pool declared at compile time
 gives it a link-time address. `MMGR_MOVABLE_STORAGE_BYTES` states what it takes.
 
-An assigned option also says the cellblock serves threads, and that makes it one room. A take the gap cannot meet
-waits its turn at the tier's moving bit in place of being refused, and reads the other tier for a free cell before it
-is refused. A persistent take can so lie in the temporary tier, where a rewind past it drops it, so a program assigning
-the option gives its cells back one at a time. A cellblock with no option refuses at once and keeps each take to its own
-tier, since the context taking may be an interrupt over the bit's holder.
-
 `movable_buf_alloc` answers a const pointer to the cell's slot in the translation table. The slot is the mutable
-word: it names where the cell stands now, with the moving bit in its low bit, and it is MMgr's alone. The pointer
-is the caller's identity for the cell, and it stands for the cell's life however often the cell moves. Nothing
-hands out the cell's address. `movable_buf_read`, `movable_buf_write`, `movable_buf_compare` and
-`movable_buf_measure` take the identity and an offset, check the span against the cell, and do the work
-themselves, and so every touch of the cell passes through MMgr. A span past the cell's end is refused.
+word: it names where the cell stands now, and it is MMgr's alone. The pointer is the caller's identity for the
+cell, and it stands for the cell's life however often the cell moves. Nothing hands out the cell's address.
+`movable_buf_read`, `movable_buf_write`, `movable_buf_compare` and `movable_buf_measure` take the identity and
+an offset, check the span against the cell, and do the work themselves, and so every touch of the cell passes
+through MMgr. A span past the cell's end is refused. A slot is claimed by one fetch-or on the table's claim bits,
+the lowest free bit nearest the last claim.
 
-Each call goes through a turnstile. There are as many as the width the program states, which the system's
-logical processors bound, one to a cache line, and a thread starts at the one its id hashes to. A call writes the
-slot it is reaching into its turnstile, orders that ahead of its reads, reads the slot and tests the moving bit.
-A move sets the moving bit, orders that ahead of its reads, and reads every turnstile. Whichever runs second sees
-the other's write, so a cell never moves under a call. A call that finds its cell moving, or every turnstile busy,
-waits in the queue behind them, and a move is one copy long. A call is atomic against a move and not against
-another writer: two contexts writing the same bytes order themselves.
+Each call is one pass through the cellblock's turnstiles, badged with the calling thread's id: the lane claimed
+by one fetch-or, the slot's word read, the bytes copied, the lane let go. A move is a writer: it sets the
+cellblock's closed bit, waits out every pass under way, copies the cell, flips the slot to the copy, sets the
+cell left behind free and opens the cellblock. A call that finds the closed bit touches nothing, backs off one
+step on the bit and tries once more, so a cell never moves under a call, and a move is one copy long. A call is
+atomic against a move and not against another writer: two contexts writing the same bytes order themselves.
 
-Every entry that changes the cellblock passes a turnstile too, which is what makes occupancy a reading of the
-whole cellblock. A take or a give never waits for one. Where none is free it goes on, and that counts as pressure.
+Every take passes the turnstiles too, and the option counts the passes, which is what makes pressure a reading
+of the whole cellblock. A give passes none: the cell's words are its holder's alone.
 
 The mover runs on the thread the program gave. Each reading compares `mmgr_cellblock_fragmentation`, the bytes the
 persistent tier occupies that no cell's payload holds as a percentage of the bytes it occupies, against
 `MMGR_MOVABLE_SETTLE_PERCENT`. The temporary tier reads nothing, since its cells last one call and its top comes back
-as they end. Over it, `MMGR_MOVABLE_QUIET_READINGS` in a row must find at most half the turnstiles
-occupied. The mover then locks turnstiles one at a time, up to half of them, watching the queue at the rest. If each
-lock leaves that steady it moves cells, the highest first, each into the first free cell below it, reading the queue
-between moves. If removing a turnstile raises the pressure, it lets every lock go and doubles its wait. A sort that
-ends with nothing left to move is remembered, and is not run again until the reading rises past what it left or
-falls under the threshold first.
+as they end. Over it, `MMGR_MOVABLE_QUIET_READINGS` in a row must find the cellblock quiet: no pass since the
+last reading, and twice the lanes the turnstiles have open at or under the option's width plus one. The mover
+then moves cells one at a time, the highest first, each into the first free run below it, with the cellblock open
+and the processor yielded between moves, reading the same after each. A pass between moves says the moves meet
+pressure, and it backs off and doubles its wait. A sort that ends with nothing left to move is remembered, and is
+not run again until the reading rises past what it left or falls under the threshold first.
 
-`mmgr_movable_buf_move` is the mover's step, for a caller with no thread to give. With one turnstile there is none
-to lock while leaving one open, and occupancy decides alone.
+`mmgr_movable_buf_move` is the mover's step, for a caller with no thread to give.
 
 A cellblock keeps its own running total in `in_use`, counted where each owner's is. An owner's counts span every
 cellblock it takes from, and bytes that lie in no cellblock, a ring's among them, reach an owner's through
-`mmgr_owner_bytes_taken`. A thread's touches are a telemetry row, summed after the fact from turnstiles nobody
-occupies and read with `mmgr_movable_touches`; nothing decides on them.
+`mmgr_owner_bytes_taken`. A lane's touches are a telemetry row, counted as passes go through the lane with the
+last badge's id beside them and read with `mmgr_movable_touches`; nothing decides on them.
 
 A pointer inside a movable cell to the cell's own bytes goes stale when it moves, and a cell that moves addresses
 its own bytes by offset. A host site with the option assigned is not made anew, since the mover reads its block.
@@ -127,18 +124,18 @@ its own bytes by offset. A host site with the option assigned is not made anew, 
 ## Worked example
 
 ```c
-char *const table = prison.work.persistent_buf_alloc(512, &reader);
+char *const table = prison.work.persistent_buf_alloc(512, reader);
 if (table == NULL) {
     return -1;                       /* the region is full; nothing moved */
 }
 
 const size_t mark = prison.work.temporary_buf_mark();
-char *const  buf  = prison.work.temporary_buf_alloc(256, &reader);
+char *const  buf  = prison.work.temporary_buf_alloc(256, reader);
 
 /* ... use buf ... */
 
 prison.work.temporary_buf_release(mark);
-prison.work.persistent_buf_release(table, &reader);
+prison.work.persistent_buf_release(table, reader);
 ```
 
 @ref ref_glossary decodes the Latin the module names are built from.
@@ -152,8 +149,8 @@ because the block's own header carries its size.
 One call gives a persistent tenancy back, and what it does depends on which pool it is:
 
 ```c
-prison.work.persistent_buf_release(table, &reader);   /* minimum security: the bytes are left as they are */
-prison.keys.persistent_buf_release(secret, &reader);  /* maximum security: they are cleared first */
+prison.work.persistent_buf_release(table, reader);   /* minimum security: the bytes are left as they are */
+prison.keys.persistent_buf_release(secret, reader);  /* maximum security: they are cleared first */
 ```
 
 The guarantee is in the declaration, never in a flag or a second call. A caller cannot ask

@@ -52,7 +52,7 @@ fit, and both `persistent_buf_alloc` and
 reports the gap still between them. It is not a release; it answers _how much is left_.
 
 `persistent_buf_release` takes the cell itself, `void (*persistent_buf_release)(void *prisoner,
-CellOwner *owner)`, because the block's own word carries its size, and
+const CellOwner *owner)`, because the block's own word carries its size, and
 the release does not have to be told. A block freed mid-chain stays in the chain until a release
 reaches the boundary: the bottom end does not recover on every free. That is the trade the whole
 library is built on: giving up free-anything-anytime makes the footprint decidable.
@@ -63,7 +63,7 @@ Interim is a stack.
 
 ```c
 const size_t mark = prison.work.temporary_buf_mark();
-uint8_t *buf = prison.work.temporary_buf_alloc(512, &reader);
+uint8_t *buf = prison.work.temporary_buf_alloc(512, reader);
 /* ... use it ... */
 prison.work.temporary_buf_reset();
 ```

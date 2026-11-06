@@ -39,16 +39,14 @@ Storage comes from you. This is the whole shape of the library in twenty lines.
 ParsMemoriaeInternae(work, 4096);
 LocusCarcerum(prison, MMGR_MINIMUM_SECURITY(work));
 
-/* The owner every cell is counted to, registered once before its first take. */
-static CellOwner report = MMGR_CELL_OWNER("report");
+/* The owner every cell is counted to, declared as data: the program's owner table and the const pointer
+   `report` into it, both settled at compile time. */
+#define PROGRAM_OWNERS(owner_) owner_(report, "report")
+MMGR_OWNERS(PROGRAM_OWNERS)
 
 int main(void)
 {
-    if (!mmgr_owner_register(&report)) {
-        return 1;
-    }
-
-    char *const store = prison.work.persistent_buf_alloc(256, &report);
+    char *const store = prison.work.persistent_buf_alloc(256, report);
     if (store == NULL) {
         return 1;
     }
@@ -78,8 +76,8 @@ Three things in that listing are the library's whole personality:
   runs at startup.
 - **`persistent_buf_alloc` borrows.** It allocates nothing from the heap: it hands back part of the
   cellblock's own storage and moves a boundary, and what it returns dies when that tier unwinds. Its
-  second argument is the registered `CellOwner` the cell's bytes are counted to, and a take naming
-  `NULL` or an owner not registered is refused. See @ref concept_ownership.
+  second argument is the `CellOwner` the cell's bytes are counted to, one of the table MMGR_OWNERS lays,
+  and a take naming `NULL` or a pointer that is none of the table's is refused. See @ref concept_ownership.
 - **The error check is at the end**, not after every write, because a writer with no room returns
   `cap` and every later writer does the same, and `finish` reports it. See @ref ref_error_handling.
 

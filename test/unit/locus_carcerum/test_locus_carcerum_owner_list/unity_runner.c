@@ -7,14 +7,11 @@
 /*=======External Functions This Runner Calls=====*/
 extern void setUp(void);
 extern void tearDown(void);
-extern void test_no_owner_is_registered_before_the_first_registers(void);
-extern void test_an_owner_not_registered_takes_nothing(void);
-extern void test_the_first_registration_is_the_first_place_at_the_time_it_lands(void);
-extern void test_owners_are_queued_in_the_order_they_register(void);
-extern void test_an_owner_registers_once(void);
-extern void test_a_second_owner_of_a_registered_name_is_refused(void);
-extern void test_no_owner_and_an_owner_with_no_name_are_refused(void);
-extern void test_the_queue_takes_owners_up_to_its_room_and_refuses_the_next(void);
+extern void test_the_table_counts_the_owners_declared(void);
+extern void test_each_owner_is_its_record_in_the_table_at_its_place(void);
+extern void test_a_declared_owner_takes_and_the_cell_answers_it(void);
+extern void test_a_record_of_the_callers_own_is_unlisted_and_takes_nothing(void);
+extern void test_an_address_between_two_records_is_none_of_the_tables(void);
 
 
 /*=======Mock Management=====*/
@@ -76,14 +73,11 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 int main(void)
 {
   UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_owner_list\\test_locus_carcerum_owner_list.c");
-  run_test(test_no_owner_is_registered_before_the_first_registers, "test_no_owner_is_registered_before_the_first_registers", 44);
-  run_test(test_an_owner_not_registered_takes_nothing, "test_an_owner_not_registered_takes_nothing", 50);
-  run_test(test_the_first_registration_is_the_first_place_at_the_time_it_lands, "test_the_first_registration_is_the_first_place_at_the_time_it_lands", 58);
-  run_test(test_owners_are_queued_in_the_order_they_register, "test_owners_are_queued_in_the_order_they_register", 69);
-  run_test(test_an_owner_registers_once, "test_an_owner_registers_once", 80);
-  run_test(test_a_second_owner_of_a_registered_name_is_refused, "test_a_second_owner_of_a_registered_name_is_refused", 89);
-  run_test(test_no_owner_and_an_owner_with_no_name_are_refused, "test_no_owner_and_an_owner_with_no_name_are_refused", 97);
-  run_test(test_the_queue_takes_owners_up_to_its_room_and_refuses_the_next, "test_the_queue_takes_owners_up_to_its_room_and_refuses_the_next", 105);
+  run_test(test_the_table_counts_the_owners_declared, "test_the_table_counts_the_owners_declared", 25);
+  run_test(test_each_owner_is_its_record_in_the_table_at_its_place, "test_each_owner_is_its_record_in_the_table_at_its_place", 30);
+  run_test(test_a_declared_owner_takes_and_the_cell_answers_it, "test_a_declared_owner_takes_and_the_cell_answers_it", 42);
+  run_test(test_a_record_of_the_callers_own_is_unlisted_and_takes_nothing, "test_a_record_of_the_callers_own_is_unlisted_and_takes_nothing", 52);
+  run_test(test_an_address_between_two_records_is_none_of_the_tables, "test_an_address_between_two_records_is_none_of_the_tables", 64);
 
   return UNITY_END();
 }

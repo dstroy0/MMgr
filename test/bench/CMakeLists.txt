@@ -60,7 +60,14 @@ foreach(bench_src ${MMGR_BENCH_SOURCES})
         set(target ${bench_name}_${env})
 
         if(bench_name STREQUAL "bench_carcer_ab")
-            add_executable(${target} "${bench_src}" ${MMGR_PROTOCORE_SOURCES})
+            # LocusCarcerum's turnstiles sleep and wake through the host's address wait, which the bench takes
+            # from the suites' support
+            add_executable(${target} "${bench_src}" ${MMGR_PROTOCORE_SOURCES}
+                "${MMgr_SOURCE_DIR}/test/support/host_wait.c")
+            target_include_directories(${target} PRIVATE "${MMgr_SOURCE_DIR}/test/support")
+            if(WIN32)
+                target_link_libraries(${target} PRIVATE synchronization)
+            endif()
             # ProtoCore's own three roots: its sources, its vendor detect, and the host answers that
             # detect selects. It is compiled under its own warning set, not this library's.
             target_include_directories(${target} PRIVATE

@@ -31,8 +31,8 @@ An address the caller supplies is used as given.
 mark and never by pointer. Nothing is reallocated and nothing moves. A pointer handed out after a mark
 is dead the moment that mark is released - and it still points at readable memory.
 
-**A cellblock is shared on atomic words.** Both boundaries are one atomic word, a take is one swap on
-it, a give is one and on the cell's own word, every count is an atomic word, and no entry takes a
+**A cellblock is shared on atomic words.** Each boundary is one atomic word, a take is one fetch-add on
+it through the cellblock's turnstiles, a give is one fetch-or on the cell's owner word, every count is an atomic word, and no entry takes a
 lock. A cell is never handed to two contexts, and every byte given back comes off the tiers once the
 cells above it are given back; a temporary mark is still good only to the caller that took it, since
 a rewind drops every temporary cell taken since the mark whoever took it. The ring in
