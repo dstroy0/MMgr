@@ -7,8 +7,8 @@
   harness.py test [--tree T] [--filter RE]    build, then run the suites
   harness.py fuzz [--seconds S] [--filter RE] build the fuzz harnesses, then run them as tests or S seconds each
   harness.py verify [--module M] [--tag T]    every toolchain's build of a module: behavior, IR, lowering, disasm
-  harness.py prove [--harness H] [--arm A]    each proof harness held on the C by CBMC and on the machine code
-  harness.py ste [--show [DOC ...]] [--lower] every technical document held to ASD-STE100 against the ratchet
+  harness.py prove [--harness H] [--arm A]    each proof harness proved on the C by CBMC and on the machine code
+  harness.py ste [--show [DOC ...]] [--lower] every technical document checked against ASD-STE100 with the ratchet
   harness.py ab                               both sides of the A/B, one after the other
   harness.py coverage [--worst N] [--gaps]    build, run and report what src/ the suites reached
   harness.py trees                            which build trees exist and which one each name uses
@@ -1180,7 +1180,7 @@ def cmd_ste(a):
 
     test/ste_check.py is the checker, the same file in orior, MMgr and embedded_types. --show lists the findings
     of the documents named, or of the tree; --lower writes each count into the ratchet, lowered and never raised.
-    The pre-commit hook and the ste test in the suite run the ratchet, so the check is part of every commit and
+    The pre-commit hook and the ste test in the suite run the ratchet, and the check is part of every commit and
     every suite run. Vocabulary is orior's banned-word check's to hold, and this check reads no word list.
     """
     if a.show is not None:
@@ -2296,12 +2296,12 @@ def main():
     p.add_argument("--no-ghidra", action="store_true", help="leave out Ghidra's decompile")
     p.set_defaults(fn=cmd_verify)
 
-    p = sub.add_parser("prove", help="each proof harness held on the C with CBMC and on each toolchain's machine code")
+    p = sub.add_parser("prove", help="each proof harness proved on the C with CBMC and on each toolchain's machine code")
     p.add_argument("--harness", action="append", help="a harness by name, without _prove.c, any number of times")
     p.add_argument("--arm", action="append", choices=["cbmc", "machine"], help="one prover only, any number of times")
     p.set_defaults(fn=cmd_prove)
 
-    p = sub.add_parser("ste", help="every technical document held to ASD-STE100 against the ratchet")
+    p = sub.add_parser("ste", help="every technical document checked against ASD-STE100 with the ratchet")
     p.add_argument("--show", nargs="*", help="list the findings of these documents, or of the tree")
     p.add_argument("--lower", action="store_true", help="write each document's count into the ratchet, never raised")
     p.set_defaults(fn=cmd_ste)

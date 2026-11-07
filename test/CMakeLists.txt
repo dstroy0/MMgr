@@ -44,7 +44,7 @@ add_subdirectory(interop)
 add_subdirectory(stress)
 add_subdirectory(fuzz)
 
-# Every technical document held to ASD-STE100 against test/ste_ratchet.tsv, in every suite run as in the hook
+# Every technical document checked against ASD-STE100 with test/ste_ratchet.tsv, in every suite run as in the hook
 add_test(NAME ste COMMAND "${Python3_EXECUTABLE}" "${MMGR_HARNESS}" ste WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 set_tests_properties(ste PROPERTIES LABELS "docs")
 

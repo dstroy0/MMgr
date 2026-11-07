@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
-"""The ASD-STE100 check: every technical document held to the Simplified Technical English writing rules.
+"""The ASD-STE100 check: every technical document checked against the Simplified Technical English writing rules.
 
 One file, the same in orior, MMgr and embedded_types; orior's harness holds the three copies byte for byte.
 
@@ -13,9 +13,9 @@ One file, the same in orior, MMgr and embedded_types; orior's harness holds the 
 
 A technical document is a Markdown file of the tree's prose: the README, the contributing and security notes and
 everything under docs/, but not in a folder that is a repository of its own. A code block, an inline span of code, a table, a heading, a link target, an HTML comment
-and a licence section are not prose and are not read.
+and a license section are not prose and are not read.
 
-The rules held, with their numbers in ASD-STE100 Issue 9:
+The rules checked, with their numbers in ASD-STE100 Issue 9:
 
   sentence     a procedural sentence, a numbered step, has 20 words at most (Rule 5.1); a descriptive sentence
                25 at most (Rule 6.2)
@@ -65,7 +65,7 @@ def documents(paths):
             found.append(root)
             continue
         for here, folders, files in os.walk(root):
-            # A folder with a .git of its own is another repository, held by its own ratchet
+            # A folder with a .git of its own is another repository, checked against its own ratchet
             folders[:] = [f for f in folders if f not in SKIPPED_FOLDERS and not f.startswith(".")
                           and not os.path.exists(os.path.join(here, f, ".git"))]
             rel = os.path.relpath(here, root).replace("\\", "/")
@@ -77,7 +77,7 @@ def documents(paths):
 
 
 def prose_lines(text):
-    """(line number, prose) for every line of prose: code, tables, headings, comments and licence sections out."""
+    """(line number, prose) for every line of prose: code, tables, headings, comments and license sections out."""
     out = []
     fenced = False
     comment = False
