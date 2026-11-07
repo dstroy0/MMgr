@@ -84,6 +84,13 @@ add_library(mmgr_flags INTERFACE)
 # Carried on mmgr_flags so every module, suite and bench that takes the flags also takes the include
 # directory. A target reaching include/mmgr.h needs the three embed headers behind it.
 target_link_libraries(mmgr_flags INTERFACE embedded_types::embedded_types)
+
+# GNU ld on PE-COFF keeps a weak default's offset in its section as an addend on every reference to it, and so a
+# program's definition that replaces the default is reached that many bytes off. A section for each definition puts
+# every default at offset 0, where the addend is nothing
+if(MINGW AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(mmgr_flags INTERFACE -ffunction-sections -fdata-sections)
+endif()
 target_compile_options(mmgr_flags INTERFACE
   $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wconversion;-Wsign-conversion;-Wcast-align;-Wcast-qual;-Wstrict-prototypes;-Wmissing-prototypes;-Wpointer-arith;-Wvla>
   $<$<AND:$<BOOL:${MMGR_WERROR}>,$<C_COMPILER_ID:GNU,Clang>>:-Werror>

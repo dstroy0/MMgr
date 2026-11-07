@@ -29,7 +29,7 @@
  * @warning Either half expands to nothing where its attribute is unavailable. ring_move's accesses
  *          are ordinary ones then, which a target that traps unaligned loads will fault on.
  */
-#define RING_RAW EMBED_ALIGN(1) EMBED_ALIAS
+#define RING_RAW EMBED_RAW
 
 /**
  * @brief Bytes the mover steps at a time: 8 at EMBED_WORD_BITS 64 or more, 4 at 32 or more, 2 otherwise.
@@ -692,9 +692,10 @@ EMBED_INLINE embed_bool ring_seg_pick(const AnularisCtx *args, size_t cursor, em
 EMBED_INLINE embed_bool anular_seg_next(const AnularisCtx *args)
 {
     const size_t claimed = MMGR_ATOMIC_LOAD(&args->state->claimed);
+    // Read into a local and not inside the call: cl's C11 atomics misparse a load passed as a _Bool argument
+    const size_t released = MMGR_ATOMIC_LOAD(&args->state->released);
 
-    return ring_seg_pick(args, claimed,
-                         (claimed - MMGR_ATOMIC_LOAD(&args->state->released)) < args->state->segment_count);
+    return ring_seg_pick(args, claimed, (claimed - released) < args->state->segment_count);
 }
 
 /**
@@ -737,8 +738,10 @@ EMBED_INLINE void anular_seg_publish(const AnularisCtx *args)
 EMBED_INLINE embed_bool anular_seg_front(const AnularisCtx *args)
 {
     const size_t released = MMGR_ATOMIC_LOAD(&args->state->released);
+    // Read into a local and not inside the call: cl's C11 atomics misparse a load passed as a _Bool argument
+    const size_t claimed = MMGR_ATOMIC_LOAD(&args->state->claimed);
 
-    return ring_seg_pick(args, released, MMGR_ATOMIC_LOAD(&args->state->claimed) != released);
+    return ring_seg_pick(args, released, claimed != released);
 }
 
 /**

@@ -139,7 +139,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/verba_scribo/test_verba_scribo/test_verba_scribo.c");
+  UnityBegin("test/unit/verba_scribo/test_verba_scribo\\test_verba_scribo.c");
   run_test(test_put_takes_a_length_the_caller_knows, "test_put_takes_a_length_the_caller_knows", 36);
   run_test(test_verba_header_is_self_contained, "test_verba_header_is_self_contained", 156);
   run_test(test_put_and_put_n, "test_put_and_put_n", 161);

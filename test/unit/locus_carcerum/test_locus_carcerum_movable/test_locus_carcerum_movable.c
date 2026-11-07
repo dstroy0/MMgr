@@ -470,6 +470,19 @@ void test_a_move_takes_the_free_cell_below_and_the_identity_stands(void)
     TEST_ASSERT_EQUAL_size_t(MOVING_BYTES, plain.moving.buf_available());
 }
 
+void test_a_move_into_a_run_kept_whole_counts_the_run_and_its_release_counts_it_back(void)
+{
+    void *const low = plain.moving.persistent_buf_alloc(64u + MMGR_CARCER_ALIGN, s_mover);
+    const CarcerMovableSlot *const cell = marked(0x23u);
+
+    plain.moving.persistent_buf_release(low, s_mover);
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_movable_buf_move(&plain_moving_ctx), "the run below holds the cell");
+    assert_marked(cell, 64u, 0x23u);
+    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cell, s_mover));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_mover), "the release counts off what the move counted on");
+    TEST_ASSERT_EQUAL_size_t(MOVING_BYTES, plain.moving.buf_available());
+}
+
 void test_a_move_finds_nothing_where_no_free_cell_stands_below(void)
 {
     const CarcerMovableSlot *const cell = marked(0x44u);
@@ -584,6 +597,21 @@ void test_fragmentation_reads_the_bytes_occupied_that_no_payload_holds(void)
     TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) >= 40u, "half the tier is a hole");
     plain.moving.persistent_buf_release(high, s_mover);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_fragmentation(&plain_moving_ctx), "and the tier is gone");
+}
+
+void test_fragmentation_of_a_tier_under_two_hundred_bytes_reads_at_most_a_hundred(void)
+{
+    void *const low = plain.moving.persistent_buf_alloc(120u, s_mover);
+    void *const high = plain.moving.persistent_buf_alloc(8u, s_mover);
+
+    TEST_ASSERT_NOT_NULL(low);
+    TEST_ASSERT_NOT_NULL(high);
+    plain.moving.persistent_buf_release(low, s_mover);
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_persistent_end(&plain_moving_ctx) < 200u,
+                             "the tier is between one and two hundred bytes");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) <= 100u,
+                             "fragmentation reads as a percent");
+    plain.moving.persistent_buf_release(high, s_mover);
 }
 
 void test_the_temporary_tier_reads_no_fragmentation(void)

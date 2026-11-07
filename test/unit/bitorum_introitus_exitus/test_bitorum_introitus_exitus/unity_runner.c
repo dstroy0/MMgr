@@ -91,7 +91,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/bitorum_introitus_exitus/test_bitorum_introitus_exitus/test_bitorum_introitus_exitus.c");
+  UnityBegin("test/unit/bitorum_introitus_exitus/test_bitorum_introitus_exitus\\test_bitorum_introitus_exitus.c");
   run_test(test_bitio_header_is_self_contained, "test_bitio_header_is_self_contained", 26);
   run_test(test_init_hands_back_an_empty_writer, "test_init_hands_back_an_empty_writer", 31);
   run_test(test_align_after_an_overflow_writes_nothing, "test_align_after_an_overflow_writes_nothing", 40);

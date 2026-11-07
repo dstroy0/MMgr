@@ -211,6 +211,8 @@ EMBED_TABLE_LAYOUT(ScrutWordNs, load, load_al, fold_lower, count);
  * @param[in] args The word and the byte to compare against [BORROWS].
  * @return         A lane mask holding those lanes.
  * @note Compares bytes as unsigned, and 0x80 and above are the largest values.
+ * @warning args->byte must be under 0x80. At or above it the lanes under 0x80 come out wrong and nothing
+ *          diagnoses it.
  */
 embed_word mmgr_scrut_ge(const ScrutLaneCfg *args);
 
@@ -220,6 +222,7 @@ embed_word mmgr_scrut_ge(const ScrutLaneCfg *args);
  * @param[in] args The word and the byte to compare against [BORROWS].
  * @return         A lane mask holding those lanes.
  * @note Compares bytes as unsigned, and 0x80 and above are the largest values.
+ * @warning args->byte must be under 0x80, for the reason given on mmgr_scrut_ge.
  * @note And this with mmgr_scrut_ge to get a range test, as mmgr_scrut_alpha does.
  */
 embed_word mmgr_scrut_le(const ScrutLaneCfg *args);
@@ -231,6 +234,8 @@ embed_word mmgr_scrut_le(const ScrutLaneCfg *args);
  * @return         The seven low bits of each lane's difference, every lane's high bit clear.
  * @note Yields values and not a lane mask, unlike every other lane entry but count, first and last.
  * @warning A lane below args->byte wraps, and so its seven bits are the difference taken modulo 128.
+ * @warning args->byte must be under 0x80, for the reason given on mmgr_scrut_ge: at or above it a borrow reaches
+ *          the next lane.
  */
 embed_word mmgr_scrut_sub7(const ScrutLaneCfg *args);
 

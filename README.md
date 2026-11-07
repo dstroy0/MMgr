@@ -1,27 +1,31 @@
 # MMgr
 
-Zero-heap memory manager in C11. A pool is a block of bytes you declare, `ParsMemoriaeInternae`, or
-`ParsMemoriaeExternum` where the part has external RAM and `MMGR_ENABLE_EXTRAM` is set. Which memory
-a pool sits in is settled where it is declared, and nothing afterwards inspects an address to find
-out.
+MMgr is a memory manager in C11 that uses no heap. A pool is a block of bytes that you declare. Use
+`ParsMemoriaeInternae` for internal memory. Use `ParsMemoriaeExternum` for external RAM, where the part
+has external RAM and you set `MMGR_ENABLE_EXTRAM`. The declaration of a pool sets the memory that the
+pool is in. No later step reads an address to find the memory.
 
-`LocusCarcerum` dresses pools as a prison site. Each cellblock is bound to the pool it was declared
-over, the warden is the const struct emitted under the site's name that holds those cellblocks as its
-members and that every call goes through, all of it is initialized data, and nothing runs at startup.
-The footprint is a number you can check against a budget.
+`LocusCarcerum` makes pools into a prison site. Each cellblock uses the pool that its declaration names.
+The warden is a const struct with the name of the site. The warden holds the cellblocks as its members,
+and each call goes through the warden.
 
-A pool name stands for one region. Declaring it twice in a translation unit fails to compile, in two
-units fails to link, and dressing one pool twice fails to compile, each with a diagnostic naming
-what went wrong.
+The compiler initializes the warden and the cellblocks as data. Nothing runs at startup. The footprint
+is a number that you can compare with a budget.
 
-A cellblock hands out from both ends. The persistent tier runs up from base. The temporary tier runs
-down from size. The gap between them is what either can still take. Both boundaries are the two
-halves of one atomic word, and a take moves its own half by one fetch-add whose old value carries the
-other (`src/locus_carcerum/locus_carcerum.h:20-22`). A cell from the persistent tier is the caller's
-[RETURNS OWNERSHIP] until it goes back through that same cellblock's `persistent_buf_release`
-[TAKES OWNERSHIP], and a request the cellblock cannot meet returns NULL
-(`src/locus_carcerum/locus_carcerum.h:1066-1067`). Spans bound a view over storage the caller owns
-[BORROWS], and rings carry bytes between one producer and one consumer.
+A pool name identifies one region. Two declarations of one name in one translation unit do not compile.
+Two declarations in two units do not link. Two dresses of one pool do not compile. Each of these
+failures gives a diagnostic that identifies the error.
+
+A cellblock gives cells from its two ends. The persistent tier goes up from the base. The temporary tier
+goes down from the size. The gap between the two tiers is the space that the two tiers can still take.
+The two boundaries are the two halves of one atomic word. A take moves its own half with one fetch-add,
+and the old value of that fetch-add holds the other half (`src/locus_carcerum/locus_carcerum.h:20-22`).
+
+A cell from the persistent tier is the property of the caller [RETURNS OWNERSHIP]. The caller gives the
+cell back through `persistent_buf_release` of the same cellblock [TAKES OWNERSHIP]. A request that the
+cellblock cannot satisfy returns NULL (`src/locus_carcerum/locus_carcerum.h:1066-1067`). A span is a view
+with limits over storage that the caller owns [BORROWS]. A ring moves bytes from one producer to one
+consumer.
 
 ```c
 #include "mmgr.h"
@@ -50,34 +54,57 @@ void frame(void)
 }
 ```
 
-## Why a take never lands on a cell
+## Why a take does not land on a cell
 
-A take that the gap cannot meet fails, and its bytes are added to an overrun word while the
-boundary stays where the bump moved it. The writer that next closes the cellblock settles each boundary by its
-overrun. The invariant is that each boundary is its chain's end displaced by its overrun, and that the
-two chains never cross. The proof rests on one step: once a bump fails, every later bump of that
-tier fails too until the next settle. That step needs a bump's move of its own boundary and its read of
-the other to be one atomic step, and so the two boundaries share one word. With two words a
-bump can fail while a later one above it is taken, and the settle then pulls the boundary below
-a laid cell.
+A take fails when the gap cannot hold it. The take then adds its bytes to an overrun word, and the
+boundary stays where the bump moved it. The next writer that closes the cellblock settles each boundary
+by its overrun.
 
-[LocusCarcerum: the algorithm](docs/concepts/locus-carcerum-algorithm.md) states the state, the
-operations, the invariant, Lemmas 1 to 6 and the theorem, and the order of steps that breaks the
-form with two words. The same model is checked in Lean 4 under
-[`theory/locus_carcerum`](theory/locus_carcerum), with the core library alone:
+The invariant has two parts. Each boundary is the end of its chain, moved by its overrun. The two chains
+do not cross. The proof uses one step: after a bump fails, each later bump of that tier also fails until
+the next settle.
 
-| file | what it checks |
+That step needs one atomic step for two actions of a bump: the move of its own boundary and the read of
+the other boundary. Thus the two boundaries share one word. With two words, a bump can fail while a later
+bump above it succeeds. The settle then moves the boundary below a laid cell.
+
+[LocusCarcerum: the algorithm](docs/concepts/locus-carcerum-algorithm.md) gives the state, the
+operations, the invariant, Lemmas 1 to 6 and the theorem. It also gives the order of steps that breaks
+the form with two words.
+
+## The proofs
+
+Lean 4 checks the models in [`theory/locus_carcerum`](theory/locus_carcerum). The models use the core
+library only.
+
+| file | what it proves |
 | ---- | -------------- |
-| `LocusCarcerum/Packed.lean` | Lemmas 1 to 5 and the theorem, with both boundaries read in one step |
-| `LocusCarcerum/Split.lean` | the steps with two words, and the order of steps that breaks the invariant, by `decide` |
-| `LocusCarcerum/Word.lean` | the word's arithmetic: a bump up never carries into the top's half under the two caps, a bump down's borrow leaves the end's half alone, and the bound on the bumps in flight at a 64-bit and a 32-bit word |
+| `Packed.lean` | Lemmas 1 to 5 and the theorem, with the two boundaries read in one step |
+| `Split.lean` | the steps with two words, and the order of steps that breaks the invariant |
+| `Word.lean` | the arithmetic of the word, the request guard, and the limit on the bumps in progress |
+| `Layout.lean` | the sweep keeps the bytes, the busy cells and the count of each owner |
+| `Take.lean` | a take over a free run, and the count that the mover keeps |
+| `Spill.lean` | the spill, the bump at the end, and the two growths |
+| `Give.lean` | a cell goes off the count of its owner one time |
+| `Rewind.lean` | a rewind stops on a cell boundary, at or after the mark |
+| `Fragment.lean` | the fragmentation value is 100 or less |
+| `Bounds.lean` | the span test, the pointer test and the high-water marks |
+| `Slot.lean` | two contexts do not name one movable slot |
+| `Pass.lean` | a pass does not work on the cellblock while a writer works alone |
+| `Trim.lean` | an open cellblock with no give in progress owes no trim |
+| `Order.lean` | the C11 orders that the closed word and the drain use |
 
 ```sh
 cd theory/locus_carcerum
 lake build
 ```
 
-`lean-toolchain` pins the Lean version, and `elan` fetches it on the first build.
+`lean-toolchain` sets the Lean version. `elan` gets that version on the first build.
+
+`python test/harness.py prove` holds the C to the same theorems. Each harness in `test/prove` states one
+theorem with inputs, assumptions and assertions. CBMC proves each harness on the C source. A symbolic
+executor proves each harness on the machine code that GCC and Clang make at `-O0` and `-O2`. Each prover
+must also reach the end of each harness, so a harness with no possible path cannot pass.
 
 ## Where things are
 
@@ -88,15 +115,17 @@ lake build
 | [`deps/embedded_types/`](deps/embedded_types) | the widths, the word, the attribute wrappers and the dispatch macros every module builds on      |
 | [`test/`](test)                               | `unit` per translation unit, `integration` and `interop` across modules, `environment` per width |
 | [`test/stress/`](test/stress)                 | threads on one cellblock, every cell's bytes checked before it goes back                         |
-| [`test/fuzz/`](test/fuzz)                     | the libFuzzer harness over LocusCarcerum's entries, checked against a model of the cells         |
-| [`test/harness.py`](test/harness.py)          | build, run, the A/B, coverage, and the suite and generator checks                                |
+| [`test/fuzz/`](test/fuzz)                     | a libFuzzer harness for every module, each held to a model, and the replay every toolchain runs  |
+| [`test/verify/`](test/verify)                 | every toolchain's build of a module: behavior, IR, lowering, disassembly and Ghidra              |
+| [`test/prove/`](test/prove)                   | the proof harnesses that CBMC and the symbolic executor hold                                     |
+| [`test/harness.py`](test/harness.py)          | build, run, fuzz, verify, prove, the A/B, coverage, and the suite and generator checks           |
 | [`tools/dev_env/`](tools/dev_env)             | the generators for `src/`'s tables, the size sweep, the source rewriters                         |
-| [`theory/`](theory)                           | the Lean proofs of LocusCarcerum's algorithm                                                     |
+| [`theory/`](theory)                           | the Lean proofs of LocusCarcerum                                                                 |
 | [`docs/`](docs)                               | the prose, and the Doxygen configuration that renders it                                         |
 
 ### The modules
 
-Each module carries a Latin name. The entries and guards a caller reaches carry plain English ones.
+Each module has a Latin name. The entries and the guards that a caller uses have English names.
 
 | module                                                                                                      | what it is                                                 |
 | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -118,18 +147,16 @@ Each module carries a Latin name. The entries and guards a caller reaches carry 
 | [`memoria_externa`](src/memoria_externa)                                                                    | internal or external placement; `MMGR_ENABLE_EXTRAM`       |
 | [`memoriam_praetereo`](src/memoriam_praetereo)                                                              | DMA channels over weak port hooks; `MMGR_ENABLE_DMA`       |
 
-## Building it
+## How to build it
 
-The first configure reaches the network: it fetches `embedded_types` into `deps/` at its `main`
-branch, in `deps/CMakeLists.txt:13-18`. Name a generator and a compiler, because the default on
-Windows is MSVC and MSVC does not build the whole tree: `src/memoria_anularis` includes
-`<stdatomic.h>`, which MSVC's C enables only under `/experimental:c11atomics`. Every other module
-builds there. GCC and Clang build it all.
+The first configure uses the network. It gets `embedded_types` into `deps/` at its `main` branch
+(`deps/CMakeLists.txt:13-18`). Give a generator and a compiler. GCC and Clang build all of the tree. MSVC
+builds all of the tree with `/experimental:c11atomics`, because `src/memoria_anularis` uses
+`<stdatomic.h>`.
 
-To build without the network, put `embedded_types` at `deps/embedded_types` yourself and add
-`-DFETCHCONTENT_FULLY_DISCONNECTED=ON`. That skips the fetch and uses what is on disk. It is for a
-rebuild on a machine that already has the dependency and never for a first clone: disconnected mode
-with an empty `deps/` has nothing to use.
+To build without the network, put `embedded_types` at `deps/embedded_types` and add
+`-DFETCHCONTENT_FULLY_DISCONNECTED=ON`. The build then uses the files on the disk. Use this only on a
+machine that already has the dependency. With an empty `deps/`, this mode has nothing to use.
 
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=gcc -DMMGR_BUILD_TESTS=ON
@@ -137,56 +164,59 @@ cmake --build build
 ctest --test-dir build
 ```
 
-Or through the harness, which carries the flags each build tree needs:
+The harness gives each build tree the flags that it needs:
 
 ```sh
 python test/harness.py test        # build and run the suites
+python test/harness.py fuzz        # build the fuzz harnesses and run each one
+python test/harness.py verify      # each toolchain's build of each module, compared
+python test/harness.py prove       # each proof harness, on the C and on the machine code
 python test/harness.py ab          # this library, then the same suites against libc
-python test/harness.py coverage    # what of src/ the suites reached
+python test/harness.py coverage    # the parts of src/ that the suites reached
 ```
 
-Two environment variables matter on a first build, because there is no earlier tree to read them
-off. `MMGR_CMAKE_ARGS` carries the generator and the compiler. `MMGR_BUILD_ROOT` moves the build
-trees, which Windows makes necessary. A full object path is capped at 250 characters there and the
-deepest object here sits about 180 below its build directory. A checkout more than about 60
-characters down cannot build in place (`test/harness.py:56-57`).
+Two environment variables are necessary on a first build, because no earlier tree gives their values.
+`MMGR_CMAKE_ARGS` holds the generator and the compiler. `MMGR_BUILD_ROOT` moves the build trees.
+
+Windows needs `MMGR_BUILD_ROOT`, because Windows limits a full object path to 250 characters. The deepest
+object here is approximately 180 characters below its build directory. Thus a checkout more than
+approximately 60 characters down cannot build in place (`test/harness.py:56-57`).
 
 ## Stress and fuzz
 
-`ctest` runs the stress program short. Run long, it takes its thread count, rounds, cellblock bytes,
-runs and seed in that order:
+`ctest` runs the stress program for a short time. For a long run, give the program these values in this
+order: threads, rounds, cellblock bytes, runs and seed.
 
 ```sh
 build/test/host/locus_carcerum_stress_host 16 200000 1048576 1 777
 ```
 
-Each thread takes and releases cells on an owner of its own, fills every cell with its mark and reads
-the mark back before the release. The cellblock must read idle once every thread has ended, and a run
-that ends otherwise returns nonzero.
+Each thread takes and gives back cells on an owner of its own. Each thread fills each cell with its mark,
+and reads the mark before it gives the cell back. After all the threads stop, the cellblock must be idle.
+A run that stops in a different state returns a value that is not zero.
 
-The fuzz harness needs clang and `-DMMGR_FUZZ=ON`, and runs under libFuzzer's own arguments:
+Each module has a libFuzzer harness, and a model in the harness examines each result. The harnesses need
+Clang and `-DMMGR_FUZZ=ON`. `python test/harness.py fuzz` builds them and runs each one in the suite.
 
 ```sh
-cmake -S . -B build-fuzz -G Ninja -DCMAKE_C_COMPILER=clang -DMMGR_BUILD_TESTS=ON -DMMGR_FUZZ=ON
-cmake --build build-fuzz --target locus_carcerum_fuzz_host
-build-fuzz/test/host/locus_carcerum_fuzz_host corpus/
+python test/harness.py fuzz --seconds 60 --filter locus_carcerum
 ```
 
-## What it claims, and where that is answered
+## What MMgr claims, and where the proof is
 
 - **Nothing allocates.** [Zero heap](docs/concepts/zero-heap.md)
-- **Every width is a compile-time knob, and all of them are built.** [Width and order](docs/concepts/width-and-order.md)
+- **Each width is a compile-time knob, and the tree builds all of them.** [Width and order](docs/concepts/width-and-order.md)
 - **The scans are SWAR, in plain C, with no intrinsics.** [SWAR](docs/concepts/swar.md)
-- **The namespace idiom devirtualizes.** [The ns idiom](docs/concepts/ns-idiom.md)
-- **A take is one fetch-add on the word both boundaries share, and no take lands on a laid cell.** [LocusCarcerum: the algorithm](docs/concepts/locus-carcerum-algorithm.md), checked in [Lean](theory/locus_carcerum)
-- **`to_double`, `verba.g` and `verba.fixed` are exact. `to_float` rounds twice and can land on the wrong neighbor.** [Numbers, and how far they can be trusted](docs/quality/numeric-accuracy.md)
-- **Every compile-time width covered, green against this library and against libc.** [The test suite](docs/quality/testing.md)
-- **What each optimization level costs.** [Optimization](docs/quality/optimization.md)
+- **The namespace idiom removes the indirect calls.** [The ns idiom](docs/concepts/ns-idiom.md)
+- **A take is one fetch-add on the word that the two boundaries share, and no take lands on a laid cell.** [LocusCarcerum: the algorithm](docs/concepts/locus-carcerum-algorithm.md), proved in [Lean](theory/locus_carcerum)
+- **`to_double`, `verba.g` and `verba.fixed` are exact. `to_float` rounds two times and can give the wrong neighbor.** [Numbers, and their accuracy](docs/quality/numeric-accuracy.md)
+- **The suites cover each compile-time width, and they pass against this library and against libc.** [The test suite](docs/quality/testing.md)
+- **The cost of each optimization level.** [Optimization](docs/quality/optimization.md)
 
 ## Status
 
-0.1.0, pre-1.0: the API may change. The numbers in
-[`docs/quality/`](docs/quality) come out of tools in this repository and can be rerun.
+The version is 0.1.0, before 1.0, and the API can change. The tools in this repository make the numbers
+in [`docs/quality/`](docs/quality), and you can run them again.
 
 ## Licensing - This library is dual licensed.
 

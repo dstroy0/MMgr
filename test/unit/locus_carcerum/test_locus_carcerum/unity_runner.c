@@ -53,10 +53,13 @@ extern void test_a_temporary_take_the_gap_cannot_meet_is_refused_though_a_free_c
 extern void test_each_take_stays_on_its_own_tier_when_the_gap_is_spent(void);
 extern void test_a_temporary_cell_given_back_alone_goes_back_with_the_rest_at_a_rewind(void);
 extern void test_a_rewind_passes_a_temporary_cell_given_back_alone_and_counts_it_once(void);
+extern void test_a_rewind_to_a_mark_inside_a_cell_stops_at_the_cell_boundary(void);
 extern void test_the_top_temporary_cell_grows_by_moving_down(void);
 extern void test_a_temporary_cell_below_the_top_does_not_grow(void);
 extern void test_a_growth_the_gap_cannot_meet_is_refused(void);
 extern void test_a_cell_carrying_the_size_asked_is_answered_as_it_stands(void);
+extern void test_a_request_over_the_cellblock_is_refused_on_both_tiers(void);
+extern void test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell(void);
 
 
 /*=======Mock Management=====*/
@@ -163,10 +166,13 @@ int main(void)
   run_test(test_each_take_stays_on_its_own_tier_when_the_gap_is_spent, "test_each_take_stays_on_its_own_tier_when_the_gap_is_spent", 622);
   run_test(test_a_temporary_cell_given_back_alone_goes_back_with_the_rest_at_a_rewind, "test_a_temporary_cell_given_back_alone_goes_back_with_the_rest_at_a_rewind", 642);
   run_test(test_a_rewind_passes_a_temporary_cell_given_back_alone_and_counts_it_once, "test_a_rewind_passes_a_temporary_cell_given_back_alone_and_counts_it_once", 657);
-  run_test(test_the_top_temporary_cell_grows_by_moving_down, "test_the_top_temporary_cell_grows_by_moving_down", 673);
-  run_test(test_a_temporary_cell_below_the_top_does_not_grow, "test_a_temporary_cell_below_the_top_does_not_grow", 703);
-  run_test(test_a_growth_the_gap_cannot_meet_is_refused, "test_a_growth_the_gap_cannot_meet_is_refused", 715);
-  run_test(test_a_cell_carrying_the_size_asked_is_answered_as_it_stands, "test_a_cell_carrying_the_size_asked_is_answered_as_it_stands", 725);
+  run_test(test_a_rewind_to_a_mark_inside_a_cell_stops_at_the_cell_boundary, "test_a_rewind_to_a_mark_inside_a_cell_stops_at_the_cell_boundary", 673);
+  run_test(test_the_top_temporary_cell_grows_by_moving_down, "test_the_top_temporary_cell_grows_by_moving_down", 692);
+  run_test(test_a_temporary_cell_below_the_top_does_not_grow, "test_a_temporary_cell_below_the_top_does_not_grow", 722);
+  run_test(test_a_growth_the_gap_cannot_meet_is_refused, "test_a_growth_the_gap_cannot_meet_is_refused", 734);
+  run_test(test_a_cell_carrying_the_size_asked_is_answered_as_it_stands, "test_a_cell_carrying_the_size_asked_is_answered_as_it_stands", 744);
+  run_test(test_a_request_over_the_cellblock_is_refused_on_both_tiers, "test_a_request_over_the_cellblock_is_refused_on_both_tiers", 759);
+  run_test(test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell, "test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell", 782);
 
   return UNITY_END();
 }

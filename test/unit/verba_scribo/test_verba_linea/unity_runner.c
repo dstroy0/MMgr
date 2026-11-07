@@ -113,7 +113,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/verba_scribo/test_verba_linea/test_verba_linea.c");
+  UnityBegin("test/unit/verba_scribo/test_verba_linea\\test_verba_linea.c");
   run_test(test_put_n_writes_the_bytes_and_finish_terminates_them, "test_put_n_writes_the_bytes_and_finish_terminates_them", 51);
   run_test(test_a_byte_is_held_back_for_the_terminator, "test_a_byte_is_held_back_for_the_terminator", 61);
   run_test(test_a_write_past_the_room_fills_a_line_with_no_flush, "test_a_write_past_the_room_fills_a_line_with_no_flush", 72);

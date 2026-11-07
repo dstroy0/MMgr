@@ -49,11 +49,12 @@ typedef struct
  *
  * @param[in] args Channel, peripheral and completion callback [BORROWS].
  * @return         EMBED_FALSE always.
- * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. An application
- *       definition replaces it.
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero, and EMBED_WEAK_DEFAULT
+ *       names it the linker's alternate under MSVC. An application definition replaces it.
  * @note The (void)args discards the argument, since this body reads nothing.
  */
-EMBED_WEAK embed_bool mmgr_praet_hw_open(const PraetCfg *args)
+EMBED_WEAK_DEFAULT(mmgr_praet_hw_open)
+EMBED_WEAK embed_bool EMBED_WEAK_NAME(mmgr_praet_hw_open)(const PraetCfg *args)
 {
     (void)args;
     return EMBED_FALSE;
@@ -64,11 +65,12 @@ EMBED_WEAK embed_bool mmgr_praet_hw_open(const PraetCfg *args)
  *
  * @param[in] args Channel, buffer and byte count [BORROWS].
  * @return         EMBED_FALSE always.
- * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. An application
- *       definition replaces it.
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero, and EMBED_WEAK_DEFAULT
+ *       names it the linker's alternate under MSVC. An application definition replaces it.
  * @note The (void)args discards the argument, since this body reads nothing.
  */
-EMBED_WEAK embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args)
+EMBED_WEAK_DEFAULT(mmgr_praet_hw_tx_submit)
+EMBED_WEAK embed_bool EMBED_WEAK_NAME(mmgr_praet_hw_tx_submit)(const PraetTransferCfg *args)
 {
     (void)args;
     return EMBED_FALSE;
@@ -78,11 +80,12 @@ EMBED_WEAK embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args)
  * @brief Weak default for closing a channel, which does nothing.
  *
  * @param[in] args Channel to close [BORROWS].
- * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. An application
- *       definition replaces it.
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero, and EMBED_WEAK_DEFAULT
+ *       names it the linker's alternate under MSVC. An application definition replaces it.
  * @note The (void)args discards the argument, since this body reads nothing.
  */
-EMBED_WEAK void mmgr_praet_hw_close(const PraetTransferCfg *args)
+EMBED_WEAK_DEFAULT(mmgr_praet_hw_close)
+EMBED_WEAK void EMBED_WEAK_NAME(mmgr_praet_hw_close)(const PraetTransferCfg *args)
 {
     (void)args;
 }
@@ -91,11 +94,12 @@ EMBED_WEAK void mmgr_praet_hw_close(const PraetTransferCfg *args)
  * @brief Weak default for the poll hook, which does nothing.
  *
  * @param[in] args Channel to poll [BORROWS].
- * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. An application
- *       definition replaces it.
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero, and EMBED_WEAK_DEFAULT
+ *       names it the linker's alternate under MSVC. An application definition replaces it.
  * @note The (void)args discards the argument, since this body reads nothing.
  */
-EMBED_WEAK void mmgr_praet_hw_poll(const PraetCfg *args)
+EMBED_WEAK_DEFAULT(mmgr_praet_hw_poll)
+EMBED_WEAK void EMBED_WEAK_NAME(mmgr_praet_hw_poll)(const PraetCfg *args)
 {
     (void)args;
 }

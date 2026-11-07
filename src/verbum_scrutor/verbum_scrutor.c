@@ -147,6 +147,7 @@ EMBED_INLINE embed_word scrut_le(const ScrutLaneCtx *args)
  * @return         The seven low bits of each lane's difference, with every lane's high bit clear.
  * @note Runs the same subtraction as scrut_ge but keeps MMGR_SWAR_LOW7, and so this yields values and not a mask.
  * @note A lane below args->byte wraps, and so its seven bits are the difference taken modulo 128.
+ * @warning args->byte must be under 0x80, for the reason given on scrut_ge.
  */
 EMBED_INLINE embed_word scrut_sub7(const ScrutLaneCtx *args)
 {

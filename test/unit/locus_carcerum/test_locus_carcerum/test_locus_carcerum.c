@@ -670,6 +670,25 @@ void test_a_rewind_passes_a_temporary_cell_given_back_alone_and_counts_it_once(v
     TEST_ASSERT_NOT_NULL(below);
 }
 
+void test_a_rewind_to_a_mark_inside_a_cell_stops_at_the_cell_boundary(void)
+{
+    void *const passed = ram.a.temporary_buf_alloc(64u, grower);
+    const size_t mark = ram.a.temporary_buf_mark();
+
+    ram.a.persistent_buf_release(passed, grower);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram.a.buf_available(), "the give trims the top past the mark");
+    void *const spanning = ram.a.temporary_buf_alloc(256u, grower);
+
+    TEST_ASSERT_NOT_NULL(spanning);
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_temporary_top(&ram_a_ctx) < mark, "the new cell lies across the mark");
+    ram.a.temporary_buf_release(mark);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(ram_a_ctx.size, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
+                                     "the top stops at the end of the cell the mark lies in");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(grower), "the cell is counted off once");
+    ram.a.temporary_buf_reset();
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram.a.buf_available(), "a reset after it walks whole cells");
+}
+
 void test_the_top_temporary_cell_grows_by_moving_down(void)
 {
     uint8_t *const cell = ram.b.temporary_buf_alloc(32u, grower);
@@ -731,4 +750,48 @@ void test_a_cell_carrying_the_size_asked_is_answered_as_it_stands(void)
     TEST_ASSERT_EQUAL_size_t(end_before, mmgr_series_cellularum_persistent_end(&ram_a_ctx));
     TEST_ASSERT_NULL(ram.a.buf_grow(NULL, 16u, cells));
     ram.a.persistent_buf_release(cell, cells);
+}
+
+// the requests over the cellblock: one that rounds past SIZE_MAX to 0, one whose header added to it wraps, and the
+// first byte past the cellblock
+static const size_t s_over[4] = {SIZE_MAX, SIZE_MAX - 7u, SIZE_MAX - 20u, A_BYTES + 1u};
+
+void test_a_request_over_the_cellblock_is_refused_on_both_tiers(void)
+{
+    const size_t in_use_before = mmgr_owner_in_use(cells);
+
+    for (unsigned int at = 0u; at < 4u; at += 1u)
+    {
+        TEST_ASSERT_NULL_MESSAGE(ram.a.persistent_buf_alloc(s_over[at], cells), "a persistent take over the cellblock");
+        TEST_ASSERT_NULL_MESSAGE(ram.a.temporary_buf_alloc(s_over[at], cells), "a temporary take over the cellblock");
+        TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_persistent_end(&ram_a_ctx),
+                                         "a refused take leaves the end where it stood");
+        TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
+                                         "a refused take leaves the top where it stood");
+        TEST_ASSERT_EQUAL_size_t_MESSAGE(in_use_before, mmgr_owner_in_use(cells), "a refused take counts nothing");
+    }
+    void *const low = ram.a.persistent_buf_alloc(8u, cells);
+    void *const high = ram.a.temporary_buf_alloc(8u, cells);
+
+    TEST_ASSERT_NOT_NULL_MESSAGE(low, "a take after the refusals is met");
+    TEST_ASSERT_NOT_NULL_MESSAGE(high, "and so is one of the other tier");
+    TEST_ASSERT_TRUE_MESSAGE((uint8_t *)low + mmgr_align_up_buf(8u) <= (uint8_t *)high, "the two cells do not overlap");
+    ram.a.persistent_buf_release(low, cells);
+}
+
+void test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell(void)
+{
+    uint8_t *const cell = ram.b.persistent_buf_alloc(32u, grower);
+    const size_t end_before = mmgr_series_cellularum_persistent_end(&ram_b_ctx);
+
+    TEST_ASSERT_NOT_NULL(cell);
+    for (unsigned int at = 0u; at < 4u; at += 1u)
+    {
+        TEST_ASSERT_NULL_MESSAGE(ram.b.buf_grow(cell, s_over[at], grower), "a growth over the cellblock");
+        TEST_ASSERT_EQUAL_size_t_MESSAGE(end_before, mmgr_series_cellularum_persistent_end(&ram_b_ctx),
+                                         "a refused growth leaves the end where it stood");
+        TEST_ASSERT_EQUAL_size_t_MESSAGE(mmgr_align_up_buf(32u), mmgr_owner_in_use(grower),
+                                         "a refused growth leaves the cell its size");
+    }
+    ram.b.persistent_buf_release(cell, grower);
 }

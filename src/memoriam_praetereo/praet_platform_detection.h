@@ -295,10 +295,17 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 /**
  * @brief Bits in this architecture's general purpose register.
  *
- * @note Off the pointer size, which GCC and clang both predefine everywhere. A host is whatever the
- *       machine running the suites is, and so there is nothing else to read it from.
+ * @note Off the pointer's width, read from UINTPTR_MAX, which <stdint.h> gives every C11 compiler as a
+ *       constant the preprocessor compares. A host is whatever the machine running the suites is, and so
+ *       there is nothing else to read it from.
  */
-#define PRAET_PLATFORM_XLEN (__SIZEOF_POINTER__ * 8u)
+#if UINTPTR_MAX > 0xFFFFFFFFu
+#define PRAET_PLATFORM_XLEN 64u
+#elif UINTPTR_MAX > 0xFFFFu
+#define PRAET_PLATFORM_XLEN 32u
+#else
+#define PRAET_PLATFORM_XLEN 16u
+#endif
 
 /**
  * @brief Set where the architecture loads and stores at an address that is not aligned to the size.

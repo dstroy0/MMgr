@@ -410,11 +410,12 @@ void praet_ordo_raise(PraetOrdo *context)
  *
  * @param[in] channel Channel to ask about.
  * @return            0 always, which praet_ordo_take_progress reads as no movement.
- * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero. An application
- *       definition replaces it.
+ * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero, and EMBED_WEAK_DEFAULT
+ *       names it the linker's alternate under MSVC. An application definition replaces it.
  * @note The (void)channel discards the argument, since this body reads nothing.
  */
-EMBED_WEAK uint16_t praet_hw_progress(embed_word channel)
+EMBED_WEAK_DEFAULT(praet_hw_progress)
+EMBED_WEAK uint16_t EMBED_WEAK_NAME(praet_hw_progress)(embed_word channel)
 {
     (void)channel;
     return 0u;

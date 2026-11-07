@@ -5,6 +5,10 @@
 
   harness.py build [--tree T] [--fresh]       configure if needed, then build
   harness.py test [--tree T] [--filter RE]    build, then run the suites
+  harness.py fuzz [--seconds S] [--filter RE] build the fuzz harnesses, then run them as tests or S seconds each
+  harness.py verify [--module M] [--tag T]    every toolchain's build of a module: behavior, IR, lowering, disasm
+  harness.py prove [--harness H] [--arm A]    each proof harness held on the C by CBMC and on the machine code
+  harness.py ste [--show [DOC ...]] [--lower] every technical document held to ASD-STE100 against the ratchet
   harness.py ab                               both sides of the A/B, one after the other
   harness.py coverage [--worst N] [--gaps]    build, run and report what src/ the suites reached
   harness.py trees                            which build trees exist and which one each name uses
@@ -29,7 +33,7 @@ one costs a full configure and a full compile every time; --fresh forces a new o
 changed target or a changed toolchain needs. The newest three per name are kept and older ones are
 removed on the way in.
 
-There are six host trees and each one is a different question: each carries its own flags here
+There are seven host trees and each one is a different question: each carries its own flags here
 instead of in somebody's shell history:
 
   build           the library, as it ships
@@ -38,6 +42,7 @@ instead of in somebody's shell history:
   build-dma       DMA on, with recovery, the boundary word check and a settle window
   build-dma-lean  DMA on, with recovery and the settle window off
   build-extram    external memory on
+  build-fuzz      the libFuzzer harnesses, one for each module, under the address and undefined behavior sanitizers
 
 The device benches are ESP-IDF projects, which is a second build system with its own toolchain and
 environment. Reaching it needs a shell: the shell script is written out from here, run, and
@@ -668,6 +673,11 @@ TREES = {
         "what": "external memory on",
         "args": ["-DMMGR_ENABLE_EXTRAM=ON"],
     },
+    "build-fuzz": {
+        "what": "the libFuzzer harnesses, one for each module, under the address and undefined behavior sanitizers",
+        "args": ["-DMMGR_FUZZ=ON", "-DMMGR_LTO=OFF", "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+                 "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded"],
+    },
 }
 
 
@@ -1143,6 +1153,96 @@ def cmd_test(a):
     if build(a.tree, a.jobs, a.fresh) != 0:
         return 1
     return 1 if ctest(a.tree, a.filter) != 0 else 0
+
+
+def cmd_verify(a):
+    """Build each module chosen with every toolchain here, and compare their behavior, IR, lowering and disassembly.
+
+    test/verify/verify.py does the work and its docstring says what each part compares. The run lands under the
+    build container as verify-<stamp>, beside the trees.
+    """
+    sys.path.insert(0, os.path.join(ROOT, "test", "verify"))
+    import verify  # noqa: PLC0415  the module is only importable once its folder is on the path
+    objdump = shutil.which("llvm-objdump")
+    if objdump is None:
+        print("verify: llvm-objdump not found on PATH - install LLVM")
+        return 1
+    run_root = os.path.join(BUILD_CONTAINER, "verify-" + build_stamp())
+    return verify.verify(ROOT, run_root, a.module, a.tag, a.runs, a.seed, not a.no_ghidra, objdump)
+
+
+STE_CHECK = os.path.join(ROOT, "test", "ste_check.py")
+STE_RATCHET = os.path.join(ROOT, "test", "ste_ratchet.tsv")
+
+
+def cmd_ste(a):
+    """Hold every technical document to ASD-STE100: no document carries more findings than test/ste_ratchet.tsv.
+
+    test/ste_check.py is the checker, the same file in orior, MMgr and embedded_types. --show lists the findings
+    of the documents named, or of the tree; --lower writes each count into the ratchet, lowered and never raised.
+    The pre-commit hook and the ste test in the suite run the ratchet, so the check is part of every commit and
+    every suite run. Vocabulary is orior's banned-word check's to hold, and this check reads no word list.
+    """
+    if a.show is not None:
+        return subprocess.run([sys.executable, STE_CHECK] + (a.show or ["."]), cwd=ROOT).returncode
+    if a.lower:
+        return subprocess.run([sys.executable, STE_CHECK, "--ratchet-write", STE_RATCHET, "."], cwd=ROOT).returncode
+    return subprocess.run([sys.executable, STE_CHECK, "--ratchet", STE_RATCHET, "."], cwd=ROOT).returncode
+
+
+def cmd_prove(a):
+    """Hold each proof harness under test/prove on the C source with CBMC and on each toolchain's machine code.
+
+    test/prove/prove.py does the work and its docstring says what each arm holds. The run lands under the build
+    container as prove-<stamp>, beside the trees.
+    """
+    sys.path.insert(0, os.path.join(ROOT, "test", "prove"))
+    import prove  # noqa: PLC0415  the module is only importable once its folder is on the path
+    run_root = os.path.join(BUILD_CONTAINER, "prove-" + build_stamp())
+    return prove.prove(ROOT, run_root, a.harness, a.arm or ["cbmc", "machine"])
+
+
+def cmd_fuzz(a):
+    """Build the fuzz tree, then run its harnesses: as the suite runs them, or for a time each over a corpus.
+
+    With no --seconds every harness runs its fixed seed and count as a test. With --seconds each runs that long
+    over a corpus kept under the tree at fuzz/<name>, which grows with what libFuzzer finds between runs, and a
+    failing input is written beside it as crash-*, the file to hand back to the harness to see it again.
+    """
+    tree = "build-fuzz"
+    if build(tree, a.jobs, a.fresh) != 0:
+        return 1
+    if not a.seconds:
+        pattern = "_fuzz$" if not a.filter else "(%s).*_fuzz$" % a.filter
+        return 1 if ctest(tree, pattern) != 0 else 0
+
+    host = os.path.join(tree_path(tree), "test", "host")
+    suffix = ".exe" if os.name == "nt" else ""
+    names = sorted(entry[: -len("_fuzz_host" + suffix)] for entry in os.listdir(host)
+                   if entry.endswith("_fuzz_host" + suffix))
+    if a.filter:
+        names = [name for name in names if re.search(a.filter, name)]
+    if not names:
+        print("no fuzz harness matches")
+        return 1
+    failed = []
+    for name in names:
+        corpus = os.path.join(tree_path(tree), "fuzz", name)
+        os.makedirs(corpus, exist_ok=True)
+        cmd = [os.path.join(host, name + "_fuzz_host" + suffix), "-max_total_time=%d" % a.seconds,
+               "-max_len=4096", "-artifact_prefix=" + corpus + os.sep, corpus]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        tail = [line for line in r.stderr.splitlines() if line.startswith(("#", "fuzz:", "==", "SUMMARY"))]
+        print("%-34s %s" % (name, "ok" if r.returncode == 0 else "FAILED"))
+        if r.returncode != 0:
+            failed.append(name)
+            for line in tail[-12:]:
+                print("    " + line)
+    if failed:
+        print("%d of %d harnesses failed: %s" % (len(failed), len(names), ", ".join(failed)))
+        return 1
+    print("%d harnesses ran %d s each" % (len(names), a.seconds))
+    return 0
 
 
 def cmd_ab(a):
@@ -2180,6 +2280,31 @@ def main():
     p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
     p.add_argument("--fresh", action="store_true", help=fresh_help)
     p.set_defaults(fn=cmd_test)
+
+    p = sub.add_parser("fuzz", help="build the fuzz harnesses, then run them as tests or for a time each")
+    p.add_argument("--seconds", type=int, default=0, help="seconds each harness runs over its corpus, 0 for the tests")
+    p.add_argument("--filter", help="only harnesses matching this regex")
+    p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.add_argument("--fresh", action="store_true", help=fresh_help)
+    p.set_defaults(fn=cmd_fuzz)
+
+    p = sub.add_parser("verify", help="each module built by every toolchain here: behavior, IR, lowering, disassembly")
+    p.add_argument("--module", action="append", help="a module to verify, any number of times")
+    p.add_argument("--tag", action="append", help="a tag of modules to verify: memory, text, number, stream")
+    p.add_argument("--runs", type=int, default=2000, help="inputs each behavior run draws")
+    p.add_argument("--seed", type=int, default=1, help="the seed every toolchain's inputs are drawn from")
+    p.add_argument("--no-ghidra", action="store_true", help="leave out Ghidra's decompile")
+    p.set_defaults(fn=cmd_verify)
+
+    p = sub.add_parser("prove", help="each proof harness held on the C with CBMC and on each toolchain's machine code")
+    p.add_argument("--harness", action="append", help="a harness by name, without _prove.c, any number of times")
+    p.add_argument("--arm", action="append", choices=["cbmc", "machine"], help="one prover only, any number of times")
+    p.set_defaults(fn=cmd_prove)
+
+    p = sub.add_parser("ste", help="every technical document held to ASD-STE100 against the ratchet")
+    p.add_argument("--show", nargs="*", help="list the findings of these documents, or of the tree")
+    p.add_argument("--lower", action="store_true", help="write each document's count into the ratchet, never raised")
+    p.set_defaults(fn=cmd_ste)
 
     p = sub.add_parser("ab", help="both sides of the A/B, one after the other")
     p.add_argument("--filter", help="only suites matching this regex")

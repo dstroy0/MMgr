@@ -1372,7 +1372,8 @@ void mmgr_owner_bytes_given(const CellOwner *owner, size_t bytes);
  *        a percentage of the bytes it occupies.
  *
  * @param[in] series Cellblock to read [BORROWS].
- * @return           The percentage, 0 below a hundred bytes occupied.
+ * @return           The percentage, 0 to 100, read against the hundredth of the bytes occupied rounded up, and 0
+ *                   below a hundred bytes occupied.
  * @note Read off the persistent end and the tier's running total, with no walk. Each cell's words count among
  *       the bytes no payload holds, and so a tier of small cells reads some fragmentation with no free cell.
  * @note The temporary tier reads nothing: its cells last one call, and its top comes back as they end. A

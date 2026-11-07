@@ -50,12 +50,26 @@ A bump up does not add to $W$ and returns $\bot$ if one of these conditions is t
 
 This bump does not change the overrun. The exclusive path does the request.
 
+A take or a growth with a request of more than $S$ bytes returns $\bot$ before it rounds the request. It does not
+change the state. Thus the rounding of a request to a multiple of 8 does not wrap, and $h + p$ does not wrap. The
+cell that a take returns is never smaller than its request.
+
 Thus $E$ is never more than $2^{H-1} + L\,(h + 2^{H-8})$, where $L$ is the number of bumps in progress at the same
 time. $E$ does not carry into the half of $T$ while $2^{H-1} + L\,(h + 2^{H-8}) < 2^H$. This permits up to 127 bumps
 in progress at $H = 32$, and up to 120 at $H = 16$.
 
+Each bump uses one lane of the turnstiles, and no other bump uses that lane at the same time. Thus $L$ is not more
+than the number of lanes. There are 63 lanes at $H = 32$ and 31 lanes at $H = 16$. A static assert in the C stops
+the build if $S + L\,(h + 2^{H-8}) \ge 2^H$ for this number of lanes.
+
 A bump down subtracts $n \cdot 2^H$. It does not change the half of $E$. A borrow out of the half of $T$ goes out of
 the word.
+
+A bump down does not read $E$ before its read-modify-write. Thus the limit on bumps down in progress is the number
+of lanes only. The bumps down in progress subtract not more than $L\,(h + 2^{H-8})$ from $T$. If they move $T$ below
+0, the half of $T$ wraps to a value of more than $2^H - L\,(h + 2^{H-8})$. This value is more than $S$, because
+$S + L\,(h + 2^{H-8}) < 2^H$. Thus the condition $w - n \le S$ of §3.2 rejects each bump that reads the wrapped top,
+and no cell is put below 0.
 
 ### 3.1 Bump up, need $n$ ($n = h + p$, $8 \mid p$)
 
@@ -103,6 +117,17 @@ While an exclusive operation runs, no operation of §3.1 or §3.2 is in progress
 
 The operation sets the state bit of the cell to free. $P$, $Q$, $E$ and $T$ do not change. If a free cell is at the
 edge of $e_P$ or at the edge of $t_Q$, a Trim follows.
+
+The free operation does not wait for an exclusive operation. One read-modify-write sets the closed bit and the trim
+bit of the tier of the cell. If the closed bit was clear, the free operation does the Trim. If the closed bit was
+set, the operation stops, and the trim bit stays set. Each exclusive operation ends with an open loop:
+
+1. Clear the trim bits with one read-modify-write, and Trim each tier whose bit was set.
+2. Clear the closed bit with one compare-exchange, only from a word with no trim bit set.
+3. If the compare-exchange fails, go to step 1.
+
+Thus, when the cellblock is open and no free operation is in progress, no free cell is at the edge of $e_P$ or
+at the edge of $t_Q$.
 
 ### 3.5 Trim (exclusive)
 
@@ -251,10 +276,41 @@ Thus the two boundaries must be one word. The first line of §3.1 and the first 
 read-modify-write on this word. $E$ is the low half of the word, and $T$ is the high half. A bump up adds $n$ to the
 low half and reads the high half in the same step. Because of the order of the word, $T_1 \ge T_2$ is true.
 
-Lean checks the two models in `theory/locus_carcerum`:
+Lean checks the models in `theory/locus_carcerum`:
 
 - `LocusCarcerum/Packed.lean` proves Lemmas 1 to 5 and the theorem for one word.
 - `LocusCarcerum/Split.lean` writes the two-word steps and checks the example above.
+- `LocusCarcerum/Layout.lean` writes the persistent tier as its cells. It proves that the sweep keeps every byte
+  laid, the busy cells in order and the count of each owner, that no two free cells stand together after the merge,
+  that no free cell is at the end after the trim, and that the end does not rise.
+- `LocusCarcerum/Take.lean` proves that a take over a free run keeps the bytes of the run, that the cell carries at
+  least the request and less than the request, a header and the alignment more, and that the count of the owner
+  rises by what the cell carries. It proves that the mover keeps the count of each owner equal to the count the
+  layout holds, and checks the move that a count without the difference takes below 0.
+- `LocusCarcerum/Spill.lean` proves the spill over the first free run, the bump at the end, and both growths: the
+  bytes laid and the count of each owner after each, and that a temporary growth keeps the owner word in its place.
+- `LocusCarcerum/Give.lean` proves that a cell is counted off its owner once over any sequence of gives and rewinds,
+  and not at all by gives that name another owner.
+- `LocusCarcerum/Rewind.lean` proves that a rewind stops on a cell boundary, at or past the mark, after it drops
+  each cell that starts below the mark, and that a mark on a boundary is where it stops. It checks the mark of the
+  stress run, which a rewind that stored the mark put inside a cell.
+- `LocusCarcerum/Fragment.lean` proves that the fragmentation reading is at most 100, and checks the reading of
+  152 that a divisor rounded down gave.
+- `LocusCarcerum/Bounds.lean` proves that a span the test passes lies inside its cell and a span it refuses does
+  not, the test of a pointer, and that a high-water mark is at or past each count it was raised to.
+- `LocusCarcerum/Slot.lean` proves that no two contexts name one movable slot, and the bytes a give zeroes.
+- `LocusCarcerum/Pass.lean` proves that no pass works on the cellblock while a writer works alone.
+- `LocusCarcerum/Order.lean` carries `Pass.lean` and `Trim.lean` to C11: the writes to the closed word are
+  read-modify-writes in one modification order, and the two sequentially consistent fences of a pass and a drain
+  give the drain its disjunction under the fence rule of the standard.
+- `LocusCarcerum/Trim.lean` writes the steps of §3.4 on the closed word for any number of contexts. It proves that
+  when the cellblock is open and no free operation is in progress, no tier has a free cell at its edge. It also
+  checks one interleaving of a protocol without trim bits, where a free cell stays at the edge.
 - `LocusCarcerum/Word.lean` proves the word arithmetic of §3. It proves that a bump up does not carry under the
   limits. It proves that the borrow of a bump down does not change the low half. It also proves the limit on bumps
   in progress and the counts for the two widths.
+- `LocusCarcerum/Word.lean` also proves the request guard of §3. Without the guard, the largest request rounds to
+  0 bytes. With the guard, the rounding does not wrap, the cell is not smaller than the request, and $h + p$ does
+  not wrap.
+- `LocusCarcerum/Word.lean` also proves the limit on bumps down in progress. A top that wraps below 0 is more than
+  $S$, and §3.2 rejects it. It proves this limit for 63 lanes at $H = 32$ and for 31 lanes at $H = 16$.

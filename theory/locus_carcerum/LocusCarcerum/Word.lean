@@ -96,4 +96,69 @@ theorem caps_64 : 2 ^ 31 + (126 + 1) * (16 + 2 ^ 24) < 2 ^ 32 := by decide
 up to 119 bumps in flight beside the one deciding. -/
 theorem caps_32 : 2 ^ 15 + (119 + 1) * (16 + 2 ^ 8) < 2 ^ 16 := by decide
 
+/-! ## The request guard
+
+The rounding of the C adds `A - 1` to a request and clears the low bits, modulo the word `2 ^ W`. A request near
+the top of the word wraps to a small cell. Every take and every growth refuses a request over the cellblock's
+size `S` before it rounds, so the rounding and the header added to it stay below the word. -/
+
+/-- The rounding of the C: `s` up to a multiple of `A`, modulo the word `W`. -/
+def round (W A s : Nat) : Nat := (s + (A - 1)) % W / A * A
+
+/-- Without the guard the rounding wraps: on a 64-bit word with an alignment of 8, the largest request rounds to
+a cell of 0 bytes. -/
+theorem round_wraps_unguarded : round (2 ^ 64) 8 (2 ^ 64 - 1) = 0 := by decide
+
+/-- With the guard, `s ≤ S` and `S + A ≤ W`: the rounding does not wrap, and the cell is at least the request. -/
+theorem round_guarded (W A S s : Nat) (hA : 0 < A) (hs : s ≤ S) (hW : S + A ≤ W) :
+    s ≤ round W A s ∧ round W A s < s + A := by
+  unfold round
+  rw [Nat.mod_eq_of_lt (by omega)]
+  have hd := Nat.div_add_mod (s + (A - 1)) A
+  have hm := Nat.mod_lt (s + (A - 1)) hA
+  rw [Nat.mul_comm] at hd
+  constructor <;> omega
+
+/-- With the guard and `S + A + h ≤ W`: the header `h` added to the rounded request does not wrap, so the cell's
+need is its size and its header exactly. -/
+theorem need_guarded (W A S s h : Nat) (hA : 0 < A) (hs : s ≤ S) (hW : S + A + h ≤ W) :
+    h + round W A s < W := by
+  have hr := (round_guarded W A S s hA hs (by omega)).2
+  omega
+
+/-- The C's guard on a 64-bit word: the most bytes `2 ^ 31`, an alignment of 8 and a header of 16 stay below the
+word. -/
+theorem guard_64 : 2 ^ 31 + 8 + 16 ≤ 2 ^ 64 := by decide
+
+/-- The C's guard on a 32-bit word: the most bytes `2 ^ 15`, an alignment of 8 and a header of 16 stay below the
+word. -/
+theorem guard_32 : 2 ^ 15 + 8 + 16 ≤ 2 ^ 32 := by decide
+
+/-! ## The bump down in flight
+
+A bump down subtracts its need from the top with no read of the end before it. The bumps down in flight are at
+most the turnstiles' lanes `L`, each of at most `m`. A top that the bumps in flight take below zero wraps modulo
+the half `M`, and the wrapped top reads past the cellblock's size `S`, so the check after the bump refuses it.
+The bound `S + L * m < M` is the static assert of the C. -/
+
+/-- A top `T` that the bumps in flight take below zero, `T < d ≤ L * m`: the wrapped top is above `S`. -/
+theorem bumpDown_wrap_refused (M S L m T d : Nat) (hT : T < d) (hd : d ≤ L * m) (hcap : S + L * m < M) :
+    S < (T + M - d) % M := by
+  rw [Nat.mod_eq_of_lt (by omega)]
+  omega
+
+/-- A top that the bumps in flight leave at or above zero, `d ≤ T ≤ S`: the top is `T - d`, within the
+cellblock. -/
+theorem bumpDown_in_flight_within (M S T d : Nat) (hd : d ≤ T) (hT : T ≤ S) (hS : S < M) :
+    (T + M - d) % M = T - d ∧ T - d ≤ S :=
+  ⟨bumpDown_within M T d (by omega) hd, by omega⟩
+
+/-- The lanes of the C on a 64-bit word: 63 lanes, the most bytes `2 ^ 31` and the most need `16 + 2 ^ 24`
+stay below the half of `2 ^ 32`. -/
+theorem lanes_64 : 2 ^ 31 + 63 * (16 + 2 ^ 24) < 2 ^ 32 := by decide
+
+/-- The lanes of the C on a 32-bit word: 31 lanes, the most bytes `2 ^ 15` and the most need `16 + 2 ^ 8` stay
+below the half of `2 ^ 16`. -/
+theorem lanes_32 : 2 ^ 15 + 31 * (16 + 2 ^ 8) < 2 ^ 16 := by decide
+
 end LocusCarcerum.Word
