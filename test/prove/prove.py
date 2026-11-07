@@ -59,7 +59,7 @@ GENMC_SOURCE = "https://github.com/MPI-SWS/genmc.git"
 # The release the clients use. Each host builds this tag. Thus, each host runs the same checker.
 GENMC_TAG = "v0.20.0"
 # The packages GenMC builds against, LLVM 20 among those its source supports
-GENMC_PACKAGES = "cmake llvm-20-dev libffi-dev zlib1g-dev libedit-dev bc g++-14 libzstd-dev libxml2-dev"
+GENMC_PACKAGES = "cmake llvm-20-dev clang-20 libffi-dev zlib1g-dev libedit-dev bc g++-14 libzstd-dev libxml2-dev"
 
 
 def library_sources(root):
@@ -135,7 +135,7 @@ def genmc_ready(root):
         "mkdir -p ~/src",
         "test -d ~/src/genmc/.git || git clone --depth 1 --branch %s %s ~/src/genmc" % (GENMC_TAG, GENMC_SOURCE),
         "cd ~/src/genmc && CC=gcc-14 CXX=g++-14 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo "
-        "-DLLVM_DIR=/usr/lib/llvm-20/lib/cmake/llvm -DCMAKE_INSTALL_PREFIX=$HOME/.local -B RelWithDebInfo -S .",
+        "-DCMAKE_PREFIX_PATH=/usr/lib/llvm-20 -DCMAKE_INSTALL_PREFIX=$HOME/.local -B RelWithDebInfo -S .",
         "cd ~/src/genmc && cmake --build RelWithDebInfo -j 8 && cmake --install RelWithDebInfo",
     ]
     for step in steps:
