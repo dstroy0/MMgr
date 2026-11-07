@@ -79,16 +79,16 @@ release does not have to be told which one it is or when it was taken.
 
 ## Types
 
-| type              | is                                                                      |
-| ----------------- | ----------------------------------------------------------------------- |
+| type               | is                                                                      |
+| ------------------ | ----------------------------------------------------------------------- |
 | `SeriesCellularum` | a cellblock's state: the pool it covers, its extent, and both tier ends |
-| `CarcerCell`      | one cell's header: the payload behind it, and whether it is busy        |
-| `mmgr_span`       | a buffer, its capacity and a cursor. `pos` is how much was written      |
-| `mmgr_cspan`      | the read counterpart. `len` is the extent, `err` latches a short read   |
-| `mmgr_ring`       | opaque storage a caller declares for one ring                           |
-| `embed_word`      | the machine word, unsigned. The SWAR carrier                            |
-| `embed_iword`     | the machine word, signed. The same register as `embed_word`             |
-| `embed_bool`      | `EMBED_TRUE` or `EMBED_FALSE`                                           |
+| `CarcerCell`       | one cell's header: the payload behind it, and whether it is busy        |
+| `mmgr_span`        | a buffer, its capacity and a cursor. `pos` is how much was written      |
+| `mmgr_cspan`       | the read counterpart. `len` is the extent, `err` latches a short read   |
+| `mmgr_ring`        | opaque storage a caller declares for one ring                           |
+| `embed_word`       | the machine word, unsigned. The SWAR carrier                            |
+| `embed_iword`      | the machine word, signed. The same register as `embed_word`             |
+| `embed_bool`       | `EMBED_TRUE` or `EMBED_FALSE`                                           |
 
 The `embed_` types come from `embedded_types`, a separate library MMgr consumes. See
 @ref ref_compiler_support.
