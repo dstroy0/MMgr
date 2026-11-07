@@ -1190,8 +1190,8 @@ void dbench_run(void)
         {
             const uint32_t iters = 5000u;
 
-            DBENCH_AB("series_cellularum_persistent", iters, 64u, DBENCH_KEEP(series_cellularum_persistent_alloc_release()),
-                      DBENCH_KEEP(heap_take_give()));
+            DBENCH_AB("series_cellularum_persistent", iters, 64u,
+                      DBENCH_KEEP(series_cellularum_persistent_alloc_release()), DBENCH_KEEP(heap_take_give()));
 
             DBENCH_AB("series_cellularum_temporary", iters, 64u, DBENCH_KEEP(series_cellularum_temporary_mark_run()),
                       DBENCH_KEEP(heap_run_free()));

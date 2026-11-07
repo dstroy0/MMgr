@@ -1196,6 +1196,10 @@ def cmd_prove(a):
     test/prove/prove.py does the work and its docstring says what each arm holds. The run lands under the build
     container as prove-<stamp>, beside the trees.
     """
+    # The provers read the headers of embedded_types from deps/. The configure of a tree puts them there, and a
+    # fresh clone has no tree yet.
+    if not os.path.isdir(os.path.join(ROOT, "deps", "embedded_types", "include")) and configure("build") != 0:
+        return 1
     sys.path.insert(0, os.path.join(ROOT, "test", "prove"))
     import prove  # noqa: PLC0415  the module is only importable once its folder is on the path
     run_root = os.path.join(BUILD_CONTAINER, "prove-" + build_stamp())

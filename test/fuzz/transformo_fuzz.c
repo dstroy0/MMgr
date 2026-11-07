@@ -65,7 +65,8 @@ static void scaled(FuzzInput *input)
     embed_u64 mant = drawn_mant(input);
     const int ex = (int)(fuzz_below(input, 1400u)) - 700;
     const int neg = (fuzz_byte(input) & 1u) != 0u;
-    const double exact = EMBED_CALL(muto.scale, TransformoCfg, .mant = &mant, .ex = (embed_iword)ex, .neg = (embed_bool)neg);
+    const double exact =
+        EMBED_CALL(muto.scale, TransformoCfg, .mant = &mant, .ex = (embed_iword)ex, .neg = (embed_bool)neg);
 
     if (mant == 0u)
     {

@@ -59,7 +59,8 @@ static int laid(FuzzInput *input)
         const embed_bool ready = EMBED_CALL(anularis.init, AnularisCfg, .ring = &s_ring, .buf = s_buf,
                                             .capacity = capacity, .segment_count = segment_count);
         const int expected = power_of_two(capacity) && power_of_two(segment_count) && (segment_count <= capacity);
-        fuzz_check((ready != 0) == expected, "init refuses a size that is zero, not a power of two, or too many segments");
+        fuzz_check((ready != 0) == expected,
+                   "init refuses a size that is zero, not a power of two, or too many segments");
         s_model.capacity = capacity;
         s_model.stream = 1;
         s_model.segment_count = segment_count;
@@ -68,7 +69,8 @@ static int laid(FuzzInput *input)
     }
     const size_t segment_count = (size_t)1u << (fuzz_byte(input) % 5u);
     const size_t segment_bytes = 1u + fuzz_below(input, FUZZ_CAP_MOST / segment_count);
-    const size_t capacity = segment_count * segment_bytes + fuzz_below(input, FUZZ_CAP_MOST - segment_count * segment_bytes + 1u);
+    const size_t capacity =
+        segment_count * segment_bytes + fuzz_below(input, FUZZ_CAP_MOST - segment_count * segment_bytes + 1u);
     const embed_bool ready = EMBED_CALL(anularis.init, AnularisCfg, .ring = &s_ring, .buf = s_buf, .capacity = capacity,
                                         .segment_count = segment_count, .segment_bytes = segment_bytes);
     fuzz_check(ready != 0, "init with a segment size takes any capacity that holds the segments");
@@ -89,8 +91,7 @@ static void bytes_step(FuzzInput *input, uint8_t op)
     uint8_t moved[FUZZ_CAP_MOST + 8u];
     switch (op % 5u)
     {
-    case 0:
-    {
+    case 0: {
         const size_t bytes = fuzz_below(input, FUZZ_CAP_MOST);
         for (size_t at = 0u; at < bytes; at += 1u)
         {
@@ -106,8 +107,7 @@ static void bytes_step(FuzzInput *input, uint8_t op)
         }
         break;
     }
-    case 1:
-    {
+    case 1: {
         const size_t bytes = fuzz_below(input, FUZZ_CAP_MOST);
         memset(moved, 0xA5, sizeof moved);
         const size_t taken = EMBED_CALL(anularis.read, AnularisCfg, .ring = &s_ring, .dst = moved, .bytes = bytes);
@@ -119,8 +119,7 @@ static void bytes_step(FuzzInput *input, uint8_t op)
         s_model.queued -= expected;
         break;
     }
-    case 2:
-    {
+    case 2: {
         uint8_t byte = 0x5Au;
         const embed_bool taken = EMBED_CALL(anularis.read_byte, AnularisCfg, .ring = &s_ring, .dst = &byte);
         fuzz_check((taken != 0) == (s_model.queued != 0u), "read_byte takes a byte when one is there");
@@ -136,8 +135,7 @@ static void bytes_step(FuzzInput *input, uint8_t op)
         }
         break;
     }
-    case 3:
-    {
+    case 3: {
         const size_t offset = fuzz_below(input, s_model.queued + 1u);
         const size_t bytes = fuzz_below(input, s_model.queued - offset + 1u);
         memset(moved, 0xA5, sizeof moved);
@@ -145,8 +143,7 @@ static void bytes_step(FuzzInput *input, uint8_t op)
         fuzz_check(memcmp(moved, s_model.queue + offset, bytes) == 0, "peek copies the bytes ahead of the tail");
         break;
     }
-    default:
-    {
+    default: {
         const size_t bytes = fuzz_below(input, s_model.queued + 1u);
         EMBED_CALL(anularis.consume, AnularisCfg, .ring = &s_ring, .bytes = bytes);
         memmove(s_model.queue, s_model.queue + bytes, s_model.queued - bytes);
@@ -166,13 +163,13 @@ static void segments_step(FuzzInput *input, uint8_t op)
     const size_t inflight = s_model.claimed - s_model.released;
     switch (op % 4u)
     {
-    case 0:
-    {
+    case 0: {
         const embed_bool open = EMBED_CALL(anularis.seg_next, AnularisCfg, .ring = &s_ring, .out_index = &index);
         fuzz_check((open != 0) == (inflight < s_model.segment_count), "seg_next opens a segment while one is free");
         if (open)
         {
-            fuzz_check(index == s_model.claimed % s_model.segment_count, "seg_next names the segment after the claimed");
+            fuzz_check(index == s_model.claimed % s_model.segment_count,
+                       "seg_next names the segment after the claimed");
             s_model.claim_open = 1;
         }
         else
@@ -189,8 +186,7 @@ static void segments_step(FuzzInput *input, uint8_t op)
             s_model.claim_open = 0;
         }
         break;
-    case 2:
-    {
+    case 2: {
         const embed_bool front = EMBED_CALL(anularis.seg_front, AnularisCfg, .ring = &s_ring, .out_index = &index);
         fuzz_check((front != 0) == (inflight != 0u), "seg_front names a segment while one is in flight");
         if (front)
@@ -210,23 +206,23 @@ static void segments_step(FuzzInput *input, uint8_t op)
     fuzz_check(EMBED_CALL(anularis.seg_inflight, AnularisCfg, .ring = &s_ring) == s_model.claimed - s_model.released,
                "seg_inflight is the claimed less the released");
     const size_t at = fuzz_below(input, s_model.segment_count);
-    fuzz_check(EMBED_CALL(anularis.seg_at, AnularisCfg, .ring = &s_ring, .index = at) == s_buf + at * s_model.segment_bytes,
+    fuzz_check(EMBED_CALL(anularis.seg_at, AnularisCfg, .ring = &s_ring, .index = at) ==
+                   s_buf + at * s_model.segment_bytes,
                "a segment sits at its index times its size");
 }
 
 static void loculi_step(FuzzInput *input, uint8_t op)
 {
     const size_t index = fuzz_below(input, MMGR_RING_LOCULI + 2u);
-    const embed_word all = (MMGR_RING_LOCULI == EMBED_WORD_BITS) ? ~(embed_word)0
-                                                                  : (((embed_word)1 << MMGR_RING_LOCULI) - 1u);
+    const embed_word all =
+        (MMGR_RING_LOCULI == EMBED_WORD_BITS) ? ~(embed_word)0 : (((embed_word)1 << MMGR_RING_LOCULI) - 1u);
     switch (op % 4u)
     {
-    case 0:
-    {
+    case 0: {
         const uint8_t *const region = s_buf + fuzz_below(input, FUZZ_CAP_MOST);
         const size_t bytes = fuzz_below(input, 64u);
-        const embed_bool taken =
-            EMBED_CALL(anularis.loculus_hold, AnularisCfg, .ring = &s_ring, .index = index, .src = region, .bytes = bytes);
+        const embed_bool taken = EMBED_CALL(anularis.loculus_hold, AnularisCfg, .ring = &s_ring, .index = index,
+                                            .src = region, .bytes = bytes);
         const int expected = (index < MMGR_RING_LOCULI) && (((s_model.pinned >> index) & 1u) == 0u);
         fuzz_check((taken != 0) == expected, "a hold takes a loculus in range that is not pinned");
         if (expected)
@@ -247,8 +243,7 @@ static void loculi_step(FuzzInput *input, uint8_t op)
     case 2:
         EMBED_CALL(anularis.loculus_mark, AnularisCfg, .ring = &s_ring, .index = index);
         break;
-    default:
-    {
+    default: {
         const embed_word mask = (embed_word)fuzz_edge_word(input);
         embed_iword lowest = -1;
         for (unsigned int bit = 0u; bit < EMBED_WORD_BITS; bit += 1u)
@@ -266,7 +261,8 @@ static void loculi_step(FuzzInput *input, uint8_t op)
     }
     fuzz_check(EMBED_CALL(anularis.loculus_ready, AnularisCfg, .ring = &s_ring) == (all & ~s_model.pinned),
                "the ready loculi are the free ones not pinned");
-    const mmgr_ring_span *const kept = EMBED_CALL(anularis.loculus_keepout, AnularisCfg, .ring = &s_ring, .index = index);
+    const mmgr_ring_span *const kept =
+        EMBED_CALL(anularis.loculus_keepout, AnularisCfg, .ring = &s_ring, .index = index);
     if (index >= MMGR_RING_LOCULI)
     {
         fuzz_check(kept == NULL, "a keepout out of range is NULL");

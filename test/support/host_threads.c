@@ -39,8 +39,19 @@ int mmgr_host_threads_run(void (*each)(void), unsigned int count)
     }
     return started;
 }
+
+void mmgr_host_threads_yield(void)
+{
+    (void)SwitchToThread();
+}
 #else
 #include <pthread.h>
+#include <sched.h>
+
+void mmgr_host_threads_yield(void)
+{
+    (void)sched_yield();
+}
 
 static void *host_threads_entry(void *unused)
 {

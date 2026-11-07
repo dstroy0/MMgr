@@ -258,7 +258,7 @@ it writes the name of each harness that it does not run. The `locus_carcerum_mov
 
 ## Status
 
-The version is 0.1.0, before 1.0, and the API can change. The tools in this repository make the numbers
+The version is 0.1.1, before 1.0, and the API can change. The tools in this repository make the numbers
 in [`docs/quality/`](docs/quality), and you can run them again.
 
 ## Licensing - This library is dual licensed.

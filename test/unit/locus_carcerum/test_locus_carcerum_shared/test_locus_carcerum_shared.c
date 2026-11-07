@@ -35,28 +35,25 @@ static embed_atomic_usize s_refused = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_overwritten = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_kept = EMBED_ATOMIC_INIT(0u);
 // The owners every case takes for, declared with the cellblocks as the program's table
-#define CROWDED_OWNERS(owner_) owner_(s_crowd, "crowd") owner_(s_scratch, "scratch") owner_(own_0, "own00") owner_(own_1, "own01") owner_(own_2, "own02") owner_(own_3, "own03") owner_(own_4, "own04") owner_(own_5, "own05") owner_(own_6, "own06") owner_(own_7, "own07") owner_(own_8, "own08") owner_(own_9, "own09") owner_(own_10, "own10") owner_(own_11, "own11") owner_(own_12, "own12") owner_(own_13, "own13") owner_(own_14, "own14") owner_(own_15, "own15")
+#define CROWDED_OWNERS(owner_)                                                                                         \
+    owner_(s_crowd, "crowd") owner_(s_scratch, "scratch") owner_(own_0, "own00") owner_(own_1, "own01")                \
+        owner_(own_2, "own02") owner_(own_3, "own03") owner_(own_4, "own04") owner_(own_5, "own05")                    \
+            owner_(own_6, "own06") owner_(own_7, "own07") owner_(own_8, "own08") owner_(own_9, "own09")                \
+                owner_(own_10, "own10") owner_(own_11, "own11") owner_(own_12, "own12") owner_(own_13, "own13")        \
+                    owner_(own_14, "own14") owner_(own_15, "own15")
 MMGR_OWNERS(CROWDED_OWNERS)
 
 // the threads' own owners, one each, as the table holds them
 EMBED_STATIC_ASSERT(MMGR_HOST_THREADS_MOST == 16u, "the table declares one owner for each of sixteen threads");
 static const CellOwner *const s_own[MMGR_HOST_THREADS_MOST] = {
-    &mmgr_owner_table[mmgr_owner_place_own_0],
-    &mmgr_owner_table[mmgr_owner_place_own_1],
-    &mmgr_owner_table[mmgr_owner_place_own_2],
-    &mmgr_owner_table[mmgr_owner_place_own_3],
-    &mmgr_owner_table[mmgr_owner_place_own_4],
-    &mmgr_owner_table[mmgr_owner_place_own_5],
-    &mmgr_owner_table[mmgr_owner_place_own_6],
-    &mmgr_owner_table[mmgr_owner_place_own_7],
-    &mmgr_owner_table[mmgr_owner_place_own_8],
-    &mmgr_owner_table[mmgr_owner_place_own_9],
-    &mmgr_owner_table[mmgr_owner_place_own_10],
-    &mmgr_owner_table[mmgr_owner_place_own_11],
-    &mmgr_owner_table[mmgr_owner_place_own_12],
-    &mmgr_owner_table[mmgr_owner_place_own_13],
-    &mmgr_owner_table[mmgr_owner_place_own_14],
-    &mmgr_owner_table[mmgr_owner_place_own_15],
+    &mmgr_owner_table[mmgr_owner_place_own_0],  &mmgr_owner_table[mmgr_owner_place_own_1],
+    &mmgr_owner_table[mmgr_owner_place_own_2],  &mmgr_owner_table[mmgr_owner_place_own_3],
+    &mmgr_owner_table[mmgr_owner_place_own_4],  &mmgr_owner_table[mmgr_owner_place_own_5],
+    &mmgr_owner_table[mmgr_owner_place_own_6],  &mmgr_owner_table[mmgr_owner_place_own_7],
+    &mmgr_owner_table[mmgr_owner_place_own_8],  &mmgr_owner_table[mmgr_owner_place_own_9],
+    &mmgr_owner_table[mmgr_owner_place_own_10], &mmgr_owner_table[mmgr_owner_place_own_11],
+    &mmgr_owner_table[mmgr_owner_place_own_12], &mmgr_owner_table[mmgr_owner_place_own_13],
+    &mmgr_owner_table[mmgr_owner_place_own_14], &mmgr_owner_table[mmgr_owner_place_own_15],
 };
 
 // An owner's counts put back to nothing for the case
@@ -250,8 +247,7 @@ void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(v
 void test_an_owner_shared_by_every_thread_is_counted_back_to_nothing(void)
 {
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MOST));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd),
-                                     "a take or give was counted twice or not at all");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd), "a take or give was counted twice or not at all");
     TEST_ASSERT_TRUE(mmgr_owner_hw(s_crowd) > 0u);
     TEST_ASSERT_TRUE(mmgr_owner_hw(s_crowd) <= SHARED_BYTES);
 }
@@ -286,8 +282,7 @@ void test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_not
                                      "a temporary take or give was counted twice or not at all");
     TEST_ASSERT_TRUE(mmgr_owner_hw(s_crowd) > 0u);
     crowded.shared.temporary_buf_reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd),
-                                     "the reset found a cell still counted");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd), "the reset found a cell still counted");
 }
 
 void test_a_reset_counts_every_temporary_cell_off_its_owner(void)
@@ -296,11 +291,9 @@ void test_a_reset_counts_every_temporary_cell_off_its_owner(void)
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_kept, MMGR_HOST_THREADS_MOST));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
                                      "a temporary cell was handed to two threads at once");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE((size_t)embed_atomic_usize_load(&s_kept),
-                                     mmgr_owner_in_use(s_crowd),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE((size_t)embed_atomic_usize_load(&s_kept), mmgr_owner_in_use(s_crowd),
                                      "the owner counts every payload the tier holds");
     crowded.shared.temporary_buf_reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd),
-                                     "the reset left a cell counted");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd), "the reset left a cell counted");
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
 }

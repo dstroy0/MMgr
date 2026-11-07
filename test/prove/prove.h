@@ -71,7 +71,7 @@ void prove_failed(const char *what);
  *        is a failure.
  */
 #define PROVE_NO_MISNAMED()                                                                                            \
-    void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes)                   \
+    void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes)                    \
     {                                                                                                                  \
         (void)named;                                                                                                   \
         (void)cell_owner;                                                                                              \

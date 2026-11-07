@@ -140,6 +140,7 @@ void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner
     embed_atomic_usize_store(&s_turnstile_taken, 1u);
     while (embed_atomic_usize_load(&s_hold_turnstile) != 0u)
     {
+        mmgr_host_threads_yield();
     }
     if (s_hook_watched != NULL)
     {
@@ -596,7 +597,8 @@ void test_fragmentation_reads_the_bytes_occupied_that_no_payload_holds(void)
     plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) >= 40u, "half the tier is a hole");
     plain.moving.persistent_buf_release(high, s_mover);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_fragmentation(&plain_moving_ctx), "and the tier is gone");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_fragmentation(&plain_moving_ctx),
+                                     "and the tier is gone");
 }
 
 void test_fragmentation_of_a_tier_under_two_hundred_bytes_reads_at_most_a_hundred(void)
@@ -863,7 +865,8 @@ void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_w
     // the passes that land before the thread reads the sort's end are what it backs off from
     TEST_ASSERT_TRUE(mmgr_host_threads_run(backoff_each, 2u));
     TEST_ASSERT_EQUAL_UINT_MESSAGE(s_moving_told, s_moving_ended, "each sort told at both ends");
-    TEST_ASSERT_TRUE_MESSAGE((s_moving_told == 0u) || (s_most_wait >= MMGR_MOVABLE_READ_MS), "the wait stands or doubled");
+    TEST_ASSERT_TRUE_MESSAGE((s_moving_told == 0u) || (s_most_wait >= MMGR_MOVABLE_READ_MS),
+                             "the wait stands or doubled");
     assert_marked(one, 128u, 0x31u);
     assert_marked(two, 128u, 0x32u);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_word_load(&plain_moving_ctx.closed),
@@ -883,6 +886,7 @@ static void occupied_each(void)
     }
     while (embed_atomic_usize_load(&s_turnstile_taken) == 0u)
     {
+        mmgr_host_threads_yield();
     }
     s_ticks_left = MMGR_MOVABLE_QUIET_READINGS;
     mmgr_movable_run(&single_narrow_ctx);
@@ -992,6 +996,7 @@ static void bit_each(void)
         while (((embed_atomic_word_load(&plain_moving_ctx.closed) & 2u) == 0u) &&
                (embed_atomic_usize_load(&s_bit_answered) == 0u))
         {
+            mmgr_host_threads_yield();
         }
         embed_atomic_usize_store(&s_bit_slept, (embed_atomic_word_load(&plain_moving_ctx.closed) >> 1u) & 1u);
         (void)embed_atomic_word_fetch_and(&plain_moving_ctx.closed, ~(embed_atomic_word_value)3u);
@@ -1000,6 +1005,7 @@ static void bit_each(void)
     }
     while (embed_atomic_usize_load(&s_bit_held) == 0u)
     {
+        mmgr_host_threads_yield();
     }
     s_bit_taken = plain.moving.temporary_buf_alloc(512u, s_mover);
     embed_atomic_usize_store(&s_bit_answered, 1u);
@@ -1097,6 +1103,7 @@ static void crowd_each(void)
         {
             (void)embed_atomic_usize_fetch_add(&s_moves, 1u);
         }
+        mmgr_host_threads_yield();
     }
 }
 
@@ -1112,8 +1119,7 @@ void test_no_write_is_lost_while_another_thread_moves_the_cells(void)
                                      "a write landed in a copy left behind");
     TEST_ASSERT_TRUE_MESSAGE((size_t)embed_atomic_usize_load(&s_moves) > 0u,
                              "the case has to move cells to mean anything");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_mover),
-                                     "every cell is counted back");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_mover), "every cell is counted back");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&crowded_crowd_ctx.in_use),
                                      "by the cellblock too");
     // a give at the end while a move had the cellblock closed left its cell free in the tier: one give at the end with

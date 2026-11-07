@@ -141,7 +141,11 @@ def genmc_ready(root):
     for step in steps:
         r = linux(root, step)
         if r.returncode != 0:
-            return "its build stopped at `%s`: %s" % (step.split("&&")[-1].strip(), (r.stdout + r.stderr).strip()[-200:])
+            # The compiler's own error lines name the cause. The last lines are only make's summary of them.
+            text = r.stdout + r.stderr
+            errors = [line.strip() for line in text.splitlines() if "error:" in line][:5]
+            return "its build stopped at `%s`: %s" % (step.split("&&")[-1].strip(),
+                                                     " | ".join(errors) if errors else text.strip()[-600:])
     return None
 
 

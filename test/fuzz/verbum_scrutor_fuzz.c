@@ -85,7 +85,8 @@ static void lane_entries(FuzzInput *input)
     {
         marked[at_lane] = lanes[at_lane] <= bounded;
     }
-    fuzz_check(EMBED_CALL(lane.le, ScrutLaneCfg, .word = tested, .byte = bounded) == mask_of(marked), "le is lane <= byte");
+    fuzz_check(EMBED_CALL(lane.le, ScrutLaneCfg, .word = tested, .byte = bounded) == mask_of(marked),
+               "le is lane <= byte");
     for (size_t at_lane = 0u; at_lane < LANES; at_lane += 1u)
     {
         made[at_lane] = (uint8_t)((uint8_t)(lanes[at_lane] - bounded) & 0x7Fu);
@@ -99,7 +100,8 @@ static void lane_entries(FuzzInput *input)
     fuzz_check(EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = tested) == mask_of(marked), "has_zero marks zero lanes");
     for (size_t at_lane = 0u; at_lane < LANES; at_lane += 1u)
     {
-        marked[at_lane] = (lanes[at_lane] == byte) || (ci && letter(lanes[at_lane]) && ((uint8_t)(lanes[at_lane] ^ 0x20u) == byte));
+        marked[at_lane] =
+            (lanes[at_lane] == byte) || (ci && letter(lanes[at_lane]) && ((uint8_t)(lanes[at_lane] ^ 0x20u) == byte));
     }
     fuzz_check(EMBED_CALL(lane.eq, ScrutLaneCfg, .word = tested, .byte = byte, .ci = (embed_bool)ci) == mask_of(marked),
                "eq marks the lanes equal to the byte, a letter of either case with ci");
@@ -126,7 +128,8 @@ static void lane_entries(FuzzInput *input)
     {
         marked[at_lane] = (lanes[at_lane] & 0xF0u) == 0x30u;
     }
-    fuzz_check(EMBED_CALL(lane.any_digit, ScrutLaneCfg, .word = tested) == mask_of(marked), "any_digit marks 0x30 to 0x3F");
+    fuzz_check(EMBED_CALL(lane.any_digit, ScrutLaneCfg, .word = tested) == mask_of(marked),
+               "any_digit marks 0x30 to 0x3F");
     for (size_t at_lane = 0u; at_lane < LANES; at_lane += 1u)
     {
         marked[at_lane] = letter(lanes[at_lane]);
@@ -149,7 +152,8 @@ static void lane_entries(FuzzInput *input)
         }
     }
     fuzz_check(EMBED_CALL(lane.count, ScrutLaneCfg, .mask = lane_mask) == count, "count is the set lanes");
-    fuzz_check(EMBED_CALL(lane.first, ScrutLaneCfg, .mask = lane_mask) == first, "first is the first set lane in memory");
+    fuzz_check(EMBED_CALL(lane.first, ScrutLaneCfg, .mask = lane_mask) == first,
+               "first is the first set lane in memory");
     fuzz_check(EMBED_CALL(lane.last, ScrutLaneCfg, .mask = lane_mask) == last, "last is the last set lane in memory");
 }
 
@@ -167,7 +171,8 @@ static void mask_entries(FuzzInput *input)
     {
         made[at_lane] = (lanes[at_lane] != 0u) ? 0xFFu : 0u;
     }
-    fuzz_check(EMBED_CALL(mask.spread, ScrutMaskCfg, .mask = lane_mask) == word_of(made), "spread widens set lanes to bytes");
+    fuzz_check(EMBED_CALL(mask.spread, ScrutMaskCfg, .mask = lane_mask) == word_of(made),
+               "spread widens set lanes to bytes");
 
     size_t first = LANES;
     size_t last = LANES;
@@ -184,27 +189,32 @@ static void mask_entries(FuzzInput *input)
     {
         made[first] = 0u;
     }
-    fuzz_check(EMBED_CALL(mask.drop_first, ScrutMaskCfg, .mask = lane_mask) == word_of(made), "drop_first clears the first lane");
+    fuzz_check(EMBED_CALL(mask.drop_first, ScrutMaskCfg, .mask = lane_mask) == word_of(made),
+               "drop_first clears the first lane");
     memcpy(made, lanes, LANES);
     if (last != LANES)
     {
         made[last] = 0u;
     }
-    fuzz_check(EMBED_CALL(mask.drop_last, ScrutMaskCfg, .mask = lane_mask) == word_of(made), "drop_last clears the last lane");
+    fuzz_check(EMBED_CALL(mask.drop_last, ScrutMaskCfg, .mask = lane_mask) == word_of(made),
+               "drop_last clears the last lane");
 
     for (size_t at_lane = 0u; at_lane < LANES; at_lane += 1u)
     {
         made[at_lane] = (at_lane < bytes) ? 0xFFu : 0u;
         marked[at_lane] = at_lane < bytes;
     }
-    fuzz_check(EMBED_CALL(mask.bytes_below, ScrutMaskCfg, .bytes = bytes) == word_of(made), "bytes_below covers the first bytes");
-    fuzz_check(EMBED_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = bytes) == mask_of(marked), "lanes_below covers the first lanes");
+    fuzz_check(EMBED_CALL(mask.bytes_below, ScrutMaskCfg, .bytes = bytes) == word_of(made),
+               "bytes_below covers the first bytes");
+    fuzz_check(EMBED_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = bytes) == mask_of(marked),
+               "lanes_below covers the first lanes");
 
     for (size_t at_lane = 0u; at_lane < LANES; at_lane += 1u)
     {
         marked[at_lane] = at_lane < first;
     }
-    fuzz_check(EMBED_CALL(mask.before, ScrutMaskCfg, .mask = lane_mask) == mask_of(marked), "before is the lanes ahead of the first");
+    fuzz_check(EMBED_CALL(mask.before, ScrutMaskCfg, .mask = lane_mask) == mask_of(marked),
+               "before is the lanes ahead of the first");
 
     const size_t covered = wi * LANES;
     const size_t wanted = (bytes > covered) ? (bytes - covered) : 0u;
@@ -237,8 +247,7 @@ static void mask_entries(FuzzInput *input)
 
 static void word_entries(FuzzInput *input)
 {
-    static union
-    {
+    static union {
         embed_word aligned;
         uint8_t bytes[LANES * 3u];
     } s_area;
@@ -258,7 +267,8 @@ static void word_entries(FuzzInput *input)
     lanes_of(expected, lanes);
     for (size_t at_lane = 0u; at_lane < LANES; at_lane += 1u)
     {
-        lanes[at_lane] = ((lanes[at_lane] >= 'A') && (lanes[at_lane] <= 'Z')) ? (uint8_t)(lanes[at_lane] + 32u) : lanes[at_lane];
+        lanes[at_lane] =
+            ((lanes[at_lane] >= 'A') && (lanes[at_lane] <= 'Z')) ? (uint8_t)(lanes[at_lane] + 32u) : lanes[at_lane];
     }
     fuzz_check(EMBED_CALL(word.fold_lower, ScrutWordCfg, .word = expected) == word_of(lanes),
                "fold_lower lowers the capitals and nothing else");

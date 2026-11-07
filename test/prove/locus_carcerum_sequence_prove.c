@@ -26,7 +26,6 @@
 #define PROVE_LIVE_MOST 4u
 #define PROVE_MARKS_MOST 2u
 
-
 #define PROVE_OWNERS(owner_) owner_(s_p0, "p0") owner_(s_p1, "p1")
 MMGR_OWNERS(PROVE_OWNERS)
 PROVE_NO_MISNAMED()

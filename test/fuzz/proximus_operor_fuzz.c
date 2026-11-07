@@ -20,8 +20,7 @@
 
 #define FUZZ_BYTES 128u
 
-static union
-{
+static union {
     uint64_t aligned;
     uint8_t bytes[FUZZ_BYTES];
 } s_area, s_source, s_expected;
@@ -43,36 +42,31 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
         switch (op % 13u)
         {
-        case 0:
-        {
+        case 0: {
             uint16_t expected;
             memcpy(&expected, s_area.bytes + at, sizeof expected);
             fuzz_check(EMBED_CALL(proxim.load16, ProximusCfg, .at = s_area.bytes + at) == expected, "load16 is memcpy");
             break;
         }
-        case 1:
-        {
+        case 1: {
             uint32_t expected;
             memcpy(&expected, s_area.bytes + at, sizeof expected);
             fuzz_check(EMBED_CALL(proxim.load32, ProximusCfg, .at = s_area.bytes + at) == expected, "load32 is memcpy");
             break;
         }
-        case 2:
-        {
+        case 2: {
             uint64_t expected;
             memcpy(&expected, s_area.bytes + at, sizeof expected);
             fuzz_check(EMBED_CALL(proxim.load64, ProximusCfg, .at = s_area.bytes + at) == expected, "load64 is memcpy");
             break;
         }
-        case 3:
-        {
+        case 3: {
             const uint16_t low = (uint16_t)val;
             EMBED_CALL(proxim.put16, ProximusCfg, .dst = s_area.bytes + at, .val = val);
             memcpy(s_expected.bytes + at, &low, sizeof low);
             break;
         }
-        case 4:
-        {
+        case 4: {
             const uint32_t low = (uint32_t)val;
             EMBED_CALL(proxim.put32, ProximusCfg, .dst = s_area.bytes + at, .val = val);
             memcpy(s_expected.bytes + at, &low, sizeof low);
@@ -82,22 +76,19 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             EMBED_CALL(proxim.put64, ProximusCfg, .dst = s_area.bytes + at, .val = val);
             memcpy(s_expected.bytes + at, &val, sizeof val);
             break;
-        case 6:
-        {
+        case 6: {
             embed_word expected;
             memcpy(&expected, s_area.bytes + at, sizeof expected);
             fuzz_check(EMBED_CALL(proxim.load, ProximusCfg, .at = s_area.bytes + at) == expected, "load is memcpy");
             break;
         }
-        case 7:
-        {
+        case 7: {
             const embed_word low = (embed_word)val;
             EMBED_CALL(proxim.put, ProximusCfg, .dst = s_area.bytes + at, .val = val);
             memcpy(s_expected.bytes + at, &low, sizeof low);
             break;
         }
-        case 8:
-        {
+        case 8: {
             at -= at % sizeof(embed_word);
             embed_word expected;
             memcpy(&expected, s_area.bytes + at, sizeof expected);
@@ -105,16 +96,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                        "al_load is memcpy at an aligned address");
             break;
         }
-        case 9:
-        {
+        case 9: {
             at -= at % sizeof(embed_word);
             const embed_word low = (embed_word)val;
             EMBED_CALL(proxim.al_put, ProximusCfg, .dst = s_area.bytes + at, .val = val);
             memcpy(s_expected.bytes + at, &low, sizeof low);
             break;
         }
-        case 10:
-        {
+        case 10: {
             at -= at % 8u;
             uint64_t expected;
             memcpy(&expected, s_area.bytes + at, sizeof expected);
@@ -127,8 +116,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             EMBED_CALL(proxim.al_put64, ProximusCfg, .dst = s_area.bytes + at, .val = val);
             memcpy(s_expected.bytes + at, &val, sizeof val);
             break;
-        default:
-        {
+        default: {
             const size_t from = fuzz_below(&input, FUZZ_BYTES);
             const size_t bytes = fuzz_below(&input, FUZZ_BYTES - ((from > at) ? from : at) + 1u);
             for (size_t step = 0u; step < FUZZ_BYTES; step += 1u)

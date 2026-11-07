@@ -112,16 +112,15 @@ static void walks(FuzzInput *input)
             break;
         }
     }
-    fuzz_check(EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = s_src, .other = s_other, .cap = cap, .ci = (embed_bool)ci) ==
-                   differs,
+    fuzz_check(EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = s_src, .other = s_other, .cap = cap,
+                          .ci = (embed_bool)ci) == differs,
                "diff answers the first differing offset");
-    fuzz_check((EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = s_src, .other = s_other, .cap = cap, .ci = (embed_bool)ci) !=
-                0) == agreed(s_src, s_other, cap, ci, 0),
+    fuzz_check((EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = s_src, .other = s_other, .cap = cap,
+                           .ci = (embed_bool)ci) != 0) == agreed(s_src, s_other, cap, ci, 0),
                "eq is both ending together with no difference");
-    fuzz_check(
-        (EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = s_src, .other = s_other, .cap = cap, .ci = (embed_bool)ci) !=
-         0) == agreed(s_other, s_src, cap, ci, 1),
-        "starts is other's terminator before the first difference");
+    fuzz_check((EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = s_src, .other = s_other, .cap = cap,
+                           .ci = (embed_bool)ci) != 0) == agreed(s_other, s_src, cap, ci, 1),
+               "starts is other's terminator before the first difference");
 
     const uint8_t byte = fuzz_byte(input);
     const size_t hay = bounded_len(s_src, cap);
@@ -219,7 +218,8 @@ static void finds(FuzzInput *input)
                                          .other_cap = needle_cap, .other_len = told, .ci = (embed_bool)ci);
     fuzz_check(found == expected, "find answers the first match before the haystack's terminator");
     fuzz_check((EMBED_CALL(cellul.has, CatenaFinitaCfg, .src = s_src, .cap = cap, .other = s_other,
-                           .other_cap = needle_cap, .other_len = told, .ci = (embed_bool)ci) != 0) == (expected != NULL),
+                           .other_cap = needle_cap, .other_len = told, .ci = (embed_bool)ci) != 0) ==
+                   (expected != NULL),
                "has is whether find matches");
 }
 
@@ -234,8 +234,8 @@ static void steps(FuzzInput *input)
     drawn_text(input, (char *)right + fuzz_below(input, sizeof right), 1u);
 
     fuzz_check(EMBED_CALL(cellul.step_byte, VerboProgrediorCfg, .byte_left = left[0], .byte_right = right[0],
-                          .ci = (embed_bool)ci, .end_wins = (embed_bool)end_wins) ==
-                   step_of(left[0], right[0], ci, end_wins),
+                          .ci = (embed_bool)ci,
+                          .end_wins = (embed_bool)end_wins) == step_of(left[0], right[0], ci, end_wins),
                "step_byte answers go, yes or no as the byte walk does");
 
     embed_word word_left;
@@ -316,7 +316,8 @@ static void conversions(FuzzInput *input)
     fuzz_check(memcmp(&converted, &library, sizeof converted) == 0, "to_double is strtod's value");
     if (end != library_end)
     {
-        fprintf(stderr, "to_double \"%s\" ended at %d, strtod at %d\n", text, (int)(end - text), (int)(library_end - text));
+        fprintf(stderr, "to_double \"%s\" ended at %d, strtod at %d\n", text, (int)(end - text),
+                (int)(library_end - text));
     }
     fuzz_check(end == library_end, "to_double ends where strtod does");
     const float narrowed = (float)library;

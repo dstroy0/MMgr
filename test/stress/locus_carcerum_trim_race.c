@@ -46,6 +46,7 @@ static void reached(embed_atomic_u32 *word, uint32_t want)
 {
     while (embed_atomic_u32_load(word) < want)
     {
+        mmgr_host_threads_yield();
     }
 }
 

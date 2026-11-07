@@ -14,8 +14,8 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */
-#include "verba_scribo/verba_scribo.h"
 #include "verba_scribo/verba_linea.h"
+#include "verba_scribo/verba_scribo.h"
 
 #include "fuzz_input.h"
 #include "fuzz_wide.h"
@@ -57,7 +57,8 @@ static void model_piece(ModelWriter *writer, const char *piece, size_t bytes)
 
 static void drawn_text(FuzzInput *input, char *text, size_t bytes)
 {
-    static const char alphabet[16] = {'a', 'Z', '&', '<', '>', '"', '\\', '\n', '\t', '\x01', '\x1f', '\'', ' ', '7', '\x7f', 'q'};
+    static const char alphabet[16] = {'a',  'Z',    '&',    '<',  '>', '"', '\\',   '\n',
+                                      '\t', '\x01', '\x1f', '\'', ' ', '7', '\x7f', 'q'};
     for (size_t at = 0u; at < bytes; at += 1u)
     {
         const uint8_t pick = fuzz_byte(input);
@@ -102,8 +103,7 @@ static void texts(FuzzInput *input)
                         EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = s_out, .cap = cap, .at = at, .text = text),
                         "put writes the string whole or answers the cap");
         break;
-    case 2:
-    {
+    case 2: {
         const size_t room = (at < cap) ? (cap - at - 1u) : 0u;
         const size_t fits = (strlen(text) < room) ? strlen(text) : room;
         if (at < cap)
@@ -111,9 +111,10 @@ static void texts(FuzzInput *input)
             memcpy(s_expected + at, text, fits);
         }
         writer.at = (at < cap) ? (at + fits) : at;
-        compare_written(&writer,
-                        EMBED_CALL(verba_textus.put_clip, VerbaTextusCfg, .out = s_out, .cap = cap, .at = at, .text = text),
-                        "put_clip writes what fits and answers past it");
+        compare_written(
+            &writer,
+            EMBED_CALL(verba_textus.put_clip, VerbaTextusCfg, .out = s_out, .cap = cap, .at = at, .text = text),
+            "put_clip writes what fits and answers past it");
         break;
     }
     case 3:
@@ -184,9 +185,10 @@ static void texts(FuzzInput *input)
         model_piece(&writer, text, (bytes != 0u) ? 1u : 0u);
         if (bytes != 0u)
         {
-            compare_written(&writer,
-                            EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = s_out, .cap = cap, .at = at, .ch = text[0]),
-                            "ch writes one byte or answers the cap");
+            compare_written(
+                &writer,
+                EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = s_out, .cap = cap, .at = at, .ch = text[0]),
+                "ch writes one byte or answers the cap");
         }
         break;
     }
@@ -265,8 +267,8 @@ static void integers(FuzzInput *input)
             writer.at = at;
         }
         compare_written(&writer,
-                        EMBED_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = s_out, .cap = cap, .at = at, .val = val,
-                                   .columns = columns),
+                        EMBED_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = s_out, .cap = cap, .at = at,
+                                   .val = val, .columns = columns),
                         "u64_clip writes the value right aligned, or answers where it began");
         break;
     }
@@ -277,15 +279,13 @@ static double drawn_real(FuzzInput *input)
     const uint8_t kind = fuzz_byte(input);
     switch (kind & 3u)
     {
-    case 0:
-    {
+    case 0: {
         const int64_t whole = (int64_t)(fuzz_word(input) % 2000001u) - 1000000;
         return (double)whole / (double)(1u + (fuzz_byte(input) % 200u));
     }
     case 1:
         return ldexp((double)(fuzz_word(input) >> 11), (int)(fuzz_byte(input) % 140u) - 120);
-    default:
-    {
+    default: {
         uint64_t bits = fuzz_edge_word(input);
         double real;
         memcpy(&real, &bits, sizeof real);
@@ -369,16 +369,18 @@ static void reals(FuzzInput *input)
 
     fuzz_check((EMBED_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = real) != 0) == ((bits >> 63) != 0u),
                "sign_bit reads the sign bit");
-    fuzz_check((EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = real) != 0) == inf, "is_inf is an all-ones exponent, zero mantissa");
-    fuzz_check((EMBED_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = real) != 0) == nan, "is_nan is an all-ones exponent, nonzero mantissa");
+    fuzz_check((EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = real) != 0) == inf,
+               "is_inf is an all-ones exponent, zero mantissa");
+    fuzz_check((EMBED_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = real) != 0) == nan,
+               "is_nan is an all-ones exponent, nonzero mantissa");
 
     memset(s_out, 0, sizeof s_out);
     if ((fuzz_byte(input) & 1u) == 0u)
     {
         const uint8_t decimals = (uint8_t)(fuzz_byte(input) % 22u);
         const unsigned int kept = (decimals > MMGR_FIXED_MAX_DECIMALS) ? MMGR_FIXED_MAX_DECIMALS : decimals;
-        const size_t end =
-            EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = s_out, .cap = FUZZ_CAP_MOST, .real = real, .decimals = decimals);
+        const size_t end = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = s_out, .cap = FUZZ_CAP_MOST,
+                                      .real = real, .decimals = decimals);
         if (nan || inf || (fabs(real) >= 18446744073709551616.0))
         {
             return;
@@ -399,7 +401,8 @@ static void reals(FuzzInput *input)
     }
     const uint8_t sig = (uint8_t)(fuzz_byte(input) % 22u);
     const unsigned int kept = (sig == 0u) ? 1u : ((sig > MMGR_G_MAX_SIG) ? MMGR_G_MAX_SIG : sig);
-    const size_t end = EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = s_out, .cap = FUZZ_CAP_MOST, .real = real, .sig = sig);
+    const size_t end =
+        EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = s_out, .cap = FUZZ_CAP_MOST, .real = real, .sig = sig);
     fuzz_check(end < FUZZ_CAP_MOST, "g fits a double in the buffer");
     s_out[end] = '\0';
     if (nan)
@@ -440,8 +443,10 @@ static void ends(FuzzInput *input)
     memset(s_out, '.', sizeof s_out);
     const size_t length = EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = s_out, .cap = cap, .at = at);
     fuzz_check(length == ((at < cap) ? at : 0u), "finish answers the offset, or 0 past the cap");
-    fuzz_check((at < cap) ? (s_out[at] == '\0') : (s_out[at] == '.'), "finish stores the terminator only within the cap");
-    fuzz_check((EMBED_CALL(verba_finis.ok, VerbaFinisCfg, .cap = cap, .at = at) != 0) == (at < cap), "ok is the offset below the cap");
+    fuzz_check((at < cap) ? (s_out[at] == '\0') : (s_out[at] == '.'),
+               "finish stores the terminator only within the cap");
+    fuzz_check((EMBED_CALL(verba_finis.ok, VerbaFinisCfg, .cap = cap, .at = at) != 0) == (at < cap),
+               "ok is the offset below the cap");
 }
 
 /** @brief Where a line's flush hands its bytes: what it took, and how many more it takes before it refuses. */
@@ -515,8 +520,7 @@ static void verba_linea_fuzzed(FuzzInput *input)
             took = mmgr_line_put(&line, text);
             piece_bytes = (size_t)snprintf(piece, sizeof piece, "%s", text);
             break;
-        case 2:
-        {
+        case 2: {
             const size_t most = fuzz_below(input, sizeof text);
             took = mmgr_line_put_most(&line, text, most);
             piece_bytes = (strlen(text) < most) ? strlen(text) : most;
@@ -581,7 +585,8 @@ static void verba_linea_fuzzed(FuzzInput *input)
                "the bytes handed on are the stream in order");
     if (!refused_take && (sink.bytes < whole))
     {
-        fuzz_check(memcmp(buffer, stream + sink.bytes, whole - sink.bytes) == 0, "the line holds the rest of the stream");
+        fuzz_check(memcmp(buffer, stream + sink.bytes, whole - sink.bytes) == 0,
+                   "the line holds the rest of the stream");
     }
     const size_t length = mmgr_line_finish(&line);
     if (mmgr_line_ok(&line))

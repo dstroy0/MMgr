@@ -11,7 +11,8 @@ ParsMemoriaeInternae(wiped, WIPED_BYTES);
 LocusCarcerum(counted, MMGR_MINIMUM_SECURITY(plain), MMGR_MAXIMUM_SECURITY(wiped));
 
 // The owners every case takes for, declared with the cellblocks as the program's table
-#define COUNTED_OWNERS(owner_) owner_(reader, "reader") owner_(writer, "writer") owner_(scratch, "scratch") owner_(keys, "keys")
+#define COUNTED_OWNERS(owner_)                                                                                         \
+    owner_(reader, "reader") owner_(writer, "writer") owner_(scratch, "scratch") owner_(keys, "keys")
 MMGR_OWNERS(COUNTED_OWNERS)
 
 // What a give or growth naming the wrong owner told: how many, and the last one's two owners and bytes

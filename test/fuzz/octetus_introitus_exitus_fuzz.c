@@ -50,8 +50,7 @@ static void appends(FuzzInput *input, mmgr_span *span, SpanModel *model)
         const uint8_t op = fuzz_byte(input);
         switch (op % 3u)
         {
-        case 0:
-        {
+        case 0: {
             const uint8_t byte = fuzz_byte(input);
             EMBED_CALL(byteio.put, OctetusCfg, .write_span = span, .byte = byte);
             uint8_t *const at = model_claim(model, 1u);
@@ -61,8 +60,7 @@ static void appends(FuzzInput *input, mmgr_span *span, SpanModel *model)
             }
             break;
         }
-        case 1:
-        {
+        case 1: {
             const size_t bytes = 1u + (size_t)(fuzz_byte(input) % 8u);
             const uint64_t value = fuzz_edge_word(input);
             EMBED_CALL(byteio.put_be, OctetusCfg, .write_span = span, .value = value, .bytes = bytes);
@@ -76,8 +74,7 @@ static void appends(FuzzInput *input, mmgr_span *span, SpanModel *model)
             }
             break;
         }
-        default:
-        {
+        default: {
             uint8_t run[32];
             const size_t bytes = fuzz_below(input, sizeof run + 1u);
             for (size_t step = 0u; step < bytes; step += 1u)
@@ -112,7 +109,8 @@ static void reads(FuzzInput *input, const uint8_t *bytes, size_t len)
         {
             const size_t width = 1u + (size_t)(fuzz_byte(input) % 8u);
             uint64_t out = 0x5A5A5A5A5A5A5A5Au;
-            const embed_bool taken = EMBED_CALL(byteio.take_be, OctetusCfg, .read_span = &span, .out = &out, .bytes = width);
+            const embed_bool taken =
+                EMBED_CALL(byteio.take_be, OctetusCfg, .read_span = &span, .out = &out, .bytes = width);
             const int fits = !err && (pos <= len) && (width <= len - pos);
             fuzz_check((taken != 0) == fits, "take_be reads where the bytes are there");
             if (fits)
@@ -135,8 +133,8 @@ static void reads(FuzzInput *input, const uint8_t *bytes, size_t len)
         {
             const uint8_t *blob = NULL;
             size_t blob_bytes = 0u;
-            const embed_bool found = EMBED_CALL(byteio.rd_str, OctetusCfg, .read_span = &span, .blob = &blob,
-                                                .blob_bytes = &blob_bytes);
+            const embed_bool found =
+                EMBED_CALL(byteio.rd_str, OctetusCfg, .read_span = &span, .blob = &blob, .blob_bytes = &blob_bytes);
             int fits = !err && (pos <= len) && (4u <= len - pos);
             size_t run = 0u;
             if (fits)
@@ -148,7 +146,8 @@ static void reads(FuzzInput *input, const uint8_t *bytes, size_t len)
             fuzz_check((found != 0) == fits, "rd_str finds a run that lies within the span");
             if (fits)
             {
-                fuzz_check((blob == bytes + pos + 4u) && (blob_bytes == run), "rd_str points at the run behind its length");
+                fuzz_check((blob == bytes + pos + 4u) && (blob_bytes == run),
+                           "rd_str points at the run behind its length");
                 pos += 4u + run;
             }
             else
@@ -182,7 +181,8 @@ static void fixed(FuzzInput *input)
     const size_t value = bytes - lead;
     memset(field, 0xA5, sizeof field);
     mmgr_span span = {field, cap, 0u, EMBED_FALSE};
-    const embed_bool fits = EMBED_CALL(byteio.mpint_fixed, OctetusCfg, .write_span = &span, .src = integer, .bytes = bytes);
+    const embed_bool fits =
+        EMBED_CALL(byteio.mpint_fixed, OctetusCfg, .write_span = &span, .src = integer, .bytes = bytes);
 
     fuzz_check((fits != 0) == (value <= cap), "mpint_fixed fits an integer no wider than its field");
     if (value <= cap)

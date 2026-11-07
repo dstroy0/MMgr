@@ -32,7 +32,8 @@ int main(void)
 
     PROVE_ASSUME(end <= series->size);
     PROVE_ASSUME(in_use <= end);
-    embed_atomic_usize_store(&series->bounds, (((embed_atomic_usize_value)series->size << MMGR_CARCER_HALF_BITS) | end));
+    embed_atomic_usize_store(&series->bounds,
+                             (((embed_atomic_usize_value)series->size << MMGR_CARCER_HALF_BITS) | end));
     embed_atomic_usize_store(&series->persistent_in_use, in_use);
     PROVE_ASSERT(mmgr_series_cellularum_persistent_end(series) == end, "the harness lays the end it means");
     const size_t reading = mmgr_series_cellularum_fragmentation(series);

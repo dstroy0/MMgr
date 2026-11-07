@@ -17,8 +17,8 @@ authors:
 repository-code: "https://github.com/dstroy0/MMgr"
 url: "https://github.com/dstroy0/MMgr"
 license: AGPL-3.0-or-later
-version: 0.1.0
-date-released: "2026-08-20"
+version: 0.1.1
+date-released: "2026-11-07"
 keywords:
   - memory
   - allocator

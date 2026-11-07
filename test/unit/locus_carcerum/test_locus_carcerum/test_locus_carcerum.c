@@ -274,8 +274,7 @@ void test_a_cell_given_back_below_the_end_waits_for_the_cells_above_it(void)
     ram.a.persistent_buf_release(q, cells);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_persistent_end(&ram_a_ctx),
                                      "the held cell given back trims every free cell below it");
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(p, ram.a.persistent_buf_alloc(64u, cells),
-                                  "the next take lands where the first did");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(p, ram.a.persistent_buf_alloc(64u, cells), "the next take lands where the first did");
 }
 
 void test_the_persistent_tier_releases_out_of_order(void)
@@ -413,7 +412,8 @@ void test_marks_nest_because_the_caller_holds_them(void)
     (void)ram.a.temporary_buf_alloc(32u, cells);
 
     ram.a.temporary_buf_release(inner);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(inner, mmgr_series_cellularum_temporary_top(&ram_a_ctx), "the inner savepoint comes back");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(inner, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
+                                     "the inner savepoint comes back");
 
     ram.a.temporary_buf_release(outer);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(outer, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
@@ -680,7 +680,8 @@ void test_a_rewind_to_a_mark_inside_a_cell_stops_at_the_cell_boundary(void)
     void *const spanning = ram.a.temporary_buf_alloc(256u, grower);
 
     TEST_ASSERT_NOT_NULL(spanning);
-    TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_temporary_top(&ram_a_ctx) < mark, "the new cell lies across the mark");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_temporary_top(&ram_a_ctx) < mark,
+                             "the new cell lies across the mark");
     ram.a.temporary_buf_release(mark);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(ram_a_ctx.size, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
                                      "the top stops at the end of the cell the mark lies in");

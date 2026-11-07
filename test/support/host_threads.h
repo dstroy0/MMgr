@@ -11,4 +11,9 @@
 // started and ended, 0 where the system refused one or count passed MMGR_HOST_THREADS_MOST.
 int mmgr_host_threads_run(void (*each)(void), unsigned int count);
 
+// Gives the rest of this thread's time slice to another thread. A wait loop calls it on each turn. Thus a
+// thread that waits does not keep a core from the thread that it waits for, on a host with fewer cores than
+// threads.
+void mmgr_host_threads_yield(void);
+
 #endif

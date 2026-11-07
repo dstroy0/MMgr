@@ -37,7 +37,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         const embed_u64 wide_sign = fuzz_edge_word(&input);
         const embed_u64 wide_exp = fuzz_edge_word(&input);
         const embed_u64 wide_mant = fuzz_edge_word(&input);
-        const embed_u64 masked = ((wide_sign & 1u) << 63) | ((wide_exp & 0x7FFu) << 52) | (wide_mant & 0x000FFFFFFFFFFFFFull);
+        const embed_u64 masked =
+            ((wide_sign & 1u) << 63) | ((wide_exp & 0x7FFu) << 52) | (wide_mant & 0x000FFFFFFFFFFFFFull);
         fuzz_check(EMBED_CALL(fract.merge, FractioCfg, .sign = wide_sign, .exp = wide_exp, .mant = wide_mant) == masked,
                    "merge keeps each field to its own width");
 

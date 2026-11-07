@@ -30,7 +30,7 @@ PraetOrdoContext(s_ordo, AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE);
 
 #define FUZZ_POOL_BYTES 256u
 #define FUZZ_CHANNELS_TRIED (PRAET_CHANNELS + 2u)
-#define WITHOUT(bits_) ((uint32_t) ~(uint32_t)(bits_))
+#define WITHOUT(bits_) ((uint32_t)~(uint32_t)(bits_))
 #define TRANSFER_STATUSES (PRAET_ERROR | PRAET_STALLED | PRAET_ABANDONED | PRAET_SCRUBBED | PRAET_MEASURED)
 
 static EMBED_ALIGN(sizeof(embed_word)) uint8_t s_pool[FUZZ_POOL_BYTES];
@@ -109,7 +109,8 @@ static void model_submit(embed_word channel, embed_word length, embed_bool answe
     {
         return;
     }
-    s_model.flags[channel] = (s_model.flags[channel] & WITHOUT(PRAET_CORE_MASK | TRANSFER_STATUSES)) | (uint32_t)PRAET_BUSY;
+    s_model.flags[channel] =
+        (s_model.flags[channel] & WITHOUT(PRAET_CORE_MASK | TRANSFER_STATUSES)) | (uint32_t)PRAET_BUSY;
     s_model.keepalive[channel] = s_model.elapsed + (embed_word)PRAET_KEEPALIVE_MICROS;
     s_model.length[channel] = length;
     s_model.position[channel] = 0u;
@@ -163,7 +164,8 @@ static void model_resolve(embed_word channel, embed_word recovery, embed_bool an
     uint32_t now = (s_model.flags[channel] & WITHOUT(PRAET_CORE_MASK | PRAET_STALLED)) | (uint32_t)PRAET_ADNEXUS;
     now |= (recovery == (embed_word)PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE) ? (uint32_t)PRAET_SCRUBBED
                                                                              : (uint32_t)PRAET_ABANDONED;
-    if ((s_ordo.word_boundary_crc != EMBED_FALSE) && ((s_model.position[channel] % (embed_word)sizeof(embed_word)) != 0u))
+    if ((s_ordo.word_boundary_crc != EMBED_FALSE) &&
+        ((s_model.position[channel] % (embed_word)sizeof(embed_word)) != 0u))
     {
         now |= (uint32_t)PRAET_MEASURED;
     }
@@ -242,7 +244,8 @@ static void compared(void)
                        ((flags & (uint32_t)PRAET_SEPARANS) != 0u),
                    "only a running channel reads stalled");
 #if PRAET_RECOVERY
-        fuzz_check(praet_ordo_situs(&s_ordo, channel) == s_model.position[channel], "a channel's position is the model's");
+        fuzz_check(praet_ordo_situs(&s_ordo, channel) == s_model.position[channel],
+                   "a channel's position is the model's");
         const embed_word moved = praet_ordo_commotus_est(&s_ordo, channel);
         fuzz_check(moved <= s_model.length[channel], "the bytes to scrub never pass the length");
         fuzz_check(moved >= s_model.position[channel], "the bytes to scrub cover the position");
@@ -250,7 +253,8 @@ static void compared(void)
                    "the bytes to scrub are whole words or the whole length");
         if (core_of(flags) == PRAET_SEPARATUS)
         {
-            fuzz_check(praet_ordo_boundary_crc(&s_ordo, channel) == 0u, "a detached channel carries no boundary checksum");
+            fuzz_check(praet_ordo_boundary_crc(&s_ordo, channel) == 0u,
+                       "a detached channel carries no boundary checksum");
         }
 #endif
     }
@@ -278,7 +282,8 @@ static void descriptors(FuzzInput *input)
             walk = walk->next;
         }
     }
-    fuzz_check(praet_descriptor_chain_length(&chain[0], limit) == expected, "the chain walk counts to the end, the start or the limit");
+    fuzz_check(praet_descriptor_chain_length(&chain[0], limit) == expected,
+               "the chain walk counts to the end, the start or the limit");
     fuzz_check(praet_descriptor_chain_length(NULL, limit) == 0u, "no chain counts nothing");
 }
 
@@ -315,8 +320,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         const embed_word channel = (embed_word)(fuzz_byte(&input) % FUZZ_CHANNELS_TRIED);
         switch (op % 12u)
         {
-        case 0:
-        {
+        case 0: {
             const embed_word region = (embed_word)(fuzz_byte(&input) % (PRAET_REGION_ID_HIGHEST + 1u));
             const embed_bool answered = praet_ordo_adnectere(&s_ordo, channel, s_pool, FUZZ_POOL_BYTES, region);
             model_attach(channel, region, answered);
@@ -327,8 +331,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             model_detach(channel);
             break;
         case 2:
-        case 3:
-        {
+        case 3: {
 #if PRAET_RECOVERY
             const embed_word offset = (embed_word)fuzz_below(&input, FUZZ_POOL_BYTES);
             const embed_word length = (embed_word)fuzz_below(&input, FUZZ_POOL_BYTES - offset + 1u);
@@ -340,8 +343,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 #endif
             break;
         }
-        case 4:
-        {
+        case 4: {
 #if PRAET_RECOVERY
             const embed_word position = (embed_word)fuzz_below(&input, FUZZ_POOL_BYTES + 8u);
             praet_ordo_efficere(&s_ordo, channel, position);
@@ -352,15 +354,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 #endif
             break;
         }
-        case 5:
-        {
+        case 5: {
             const int failed = (fuzz_byte(&input) & 1u) != 0u;
             praet_ordo_completed(&s_ordo, channel, (embed_bool)failed);
             model_completed(channel, failed);
             break;
         }
-        case 6:
-        {
+        case 6: {
 #if PRAET_RECOVERY
             const embed_word recovery = (embed_word)(fuzz_byte(&input) % 3u);
             const embed_bool answered = praet_ordo_resolve(&s_ordo, channel, recovery);
@@ -368,16 +368,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 #endif
             break;
         }
-        case 7:
-        {
+        case 7: {
             const embed_word micros = (embed_word)fuzz_below(&input, 2u * PRAET_KEEPALIVE_MICROS + 2u);
             praet_ordo_advance(&s_ordo, micros);
             s_model.elapsed += micros;
             s_model.raised = 1;
             break;
         }
-        case 8:
-        {
+        case 8: {
             const embed_word ticks = (embed_word)fuzz_below(&input, 60000u);
             praet_ordo_advance_ticks(&s_ordo, ticks);
             s_model.elapsed += ticks / (embed_word)PRAET_TICKS_PER_MICRO;

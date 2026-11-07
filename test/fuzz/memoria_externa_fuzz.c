@@ -67,9 +67,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             const size_t free_psram = drawn_size(&input);
             const size_t threshold = drawn_size(&input);
             const size_t reserve = drawn_size(&input);
-            const mmgr_place placed =
-                EMBED_CALL(exter.place, ExternaCfg, .size = request, .dma_required = (embed_bool)dma, .free_dram = free_dram,
-                           .free_psram = free_psram, .psram_threshold = threshold, .dram_reserve = reserve);
+            const mmgr_place placed = EMBED_CALL(
+                exter.place, ExternaCfg, .size = request, .dma_required = (embed_bool)dma, .free_dram = free_dram,
+                .free_psram = free_psram, .psram_threshold = threshold, .dram_reserve = reserve);
             fuzz_check(placed == stated(request, dma, free_dram, free_psram, threshold, reserve),
                        "a request is placed where the header states");
         }
@@ -84,7 +84,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             EMBED_CALL(exter.pingpong_init, ExternaCfg, .pingpong = &pair);
             fill = 0u;
         }
-        fuzz_check(EMBED_CALL(exter.pingpong_fill, ExternaCfg, .pingpong = &pair) == fill, "the fill index is the model's");
+        fuzz_check(EMBED_CALL(exter.pingpong_fill, ExternaCfg, .pingpong = &pair) == fill,
+                   "the fill index is the model's");
         fuzz_check(EMBED_CALL(exter.pingpong_drain, ExternaCfg, .pingpong = &pair) == (uint8_t)(fill ^ 1u),
                    "the drain index is the other one");
     }

@@ -55,34 +55,41 @@ static size_t written_one(const mmgr_fval *value, uint8_t width, size_t cap, siz
     switch (value->kind)
     {
     case MMGR_FK_STR:
-        return EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = s_expected, .cap = cap, .at = at, .text = value->as.text);
+        return EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = s_expected, .cap = cap, .at = at,
+                          .text = value->as.text);
     case MMGR_FK_U32:
-        return EMBED_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at, .val = value->as.u32);
+        return EMBED_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at,
+                          .val = value->as.u32);
     case MMGR_FK_U64:
-        return EMBED_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at, .val = value->as.u64);
+        return EMBED_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at,
+                          .val = value->as.u64);
     case MMGR_FK_I64:
-        return EMBED_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at, .sval = value->as.i64);
+        return EMBED_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at,
+                          .sval = value->as.i64);
     case MMGR_FK_DEC:
-        return EMBED_CALL(verba_numerus.u32w, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at, .val = value->as.u32,
-                          .min = taken);
+        return EMBED_CALL(verba_numerus.u32w, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at,
+                          .val = value->as.u32, .min = taken);
     case MMGR_FK_HEX:
-        return EMBED_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at, .val = value->as.u64,
-                          .min = taken);
+        return EMBED_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at,
+                          .val = value->as.u64, .min = taken);
     case MMGR_FK_OCT:
-        return EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at, .val = value->as.u64,
-                          .base = 8u, .min = taken);
+        return EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = s_expected, .cap = cap, .at = at,
+                          .val = value->as.u64, .base = 8u, .min = taken);
     case MMGR_FK_G:
-        return EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = s_expected, .cap = cap, .at = at, .real = value->as.real,
-                          .sig = taken);
+        return EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = s_expected, .cap = cap, .at = at,
+                          .real = value->as.real, .sig = taken);
     case MMGR_FK_FIX:
         return EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = s_expected, .cap = cap, .at = at,
                           .real = value->as.real, .decimals = taken);
     case MMGR_FK_CH:
-        return EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = s_expected, .cap = cap, .at = at, .ch = value->as.character);
+        return EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = s_expected, .cap = cap, .at = at,
+                          .ch = value->as.character);
     case MMGR_FK_JSON:
-        return EMBED_CALL(verba_textus.json, VerbaTextusCfg, .out = s_expected, .cap = cap, .at = at, .text = value->as.text);
+        return EMBED_CALL(verba_textus.json, VerbaTextusCfg, .out = s_expected, .cap = cap, .at = at,
+                          .text = value->as.text);
     case MMGR_FK_XML:
-        return EMBED_CALL(verba_textus.xml, VerbaTextusCfg, .out = s_expected, .cap = cap, .at = at, .text = value->as.text);
+        return EMBED_CALL(verba_textus.xml, VerbaTextusCfg, .out = s_expected, .cap = cap, .at = at,
+                          .text = value->as.text);
     default:
         return cap;
     }
@@ -98,8 +105,7 @@ static mmgr_fval drawn_value(FuzzInput *input, mmgr_fk kind, unsigned int slot)
     {
     case MMGR_FK_STR:
     case MMGR_FK_JSON:
-    case MMGR_FK_XML:
-    {
+    case MMGR_FK_XML: {
         static const char alphabet[8] = {'a', '&', '"', '<', '\n', 'Q', '\\', ' '};
         const size_t bytes = fuzz_below(input, sizeof s_texts[0]);
         for (size_t at = 0u; at < bytes; at += 1u)
@@ -214,13 +220,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         size_t answered;
         if (appending)
         {
-            answered = EMBED_CALL(numer.append, NumerosCfg, .out = s_out, .cap = cap, .at = told, .spec = spec, .vals = vals,
-                                  .nvals = handed);
+            answered = EMBED_CALL(numer.append, NumerosCfg, .out = s_out, .cap = cap, .at = told, .spec = spec,
+                                  .vals = vals, .nvals = handed);
         }
         else
         {
-            answered = EMBED_CALL(numer.build, NumerosCfg, .out = s_out, .cap = cap, .at = start, .spec = spec, .vals = vals,
-                                  .nvals = handed);
+            answered = EMBED_CALL(numer.build, NumerosCfg, .out = s_out, .cap = cap, .at = start, .spec = spec,
+                                  .vals = vals, .nvals = handed);
         }
 
         if (cap == 0u)
@@ -272,11 +278,14 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             {
                 at = written_one(&vals[each], vals[each].width, cap, at);
             }
-            const size_t emit_finished = EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = s_expected, .cap = cap, .at = at);
-            fuzz_check(emitted == emit_finished, "emit answers the length the verba writers reach with each value's width");
+            const size_t emit_finished =
+                EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = s_expected, .cap = cap, .at = at);
+            fuzz_check(emitted == emit_finished,
+                       "emit answers the length the verba writers reach with each value's width");
             if (emit_finished != 0u)
             {
-                fuzz_check(memcmp(s_out, s_expected, emit_finished + 1u) == 0, "emit writes what the verba writers write");
+                fuzz_check(memcmp(s_out, s_expected, emit_finished + 1u) == 0,
+                           "emit writes what the verba writers write");
             }
         }
     }

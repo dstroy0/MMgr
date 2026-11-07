@@ -15,7 +15,7 @@
 # -------------------------------------------------------------------------------------------------
 PROJECT_NAME           = "MMgr"
 PROJECT_BRIEF          = "Zero-heap memory manager in C11. One borrowed buffer, carved by asserted offset."
-PROJECT_NUMBER         = "v0.1.0"
+PROJECT_NUMBER         = "v0.1.1"
 PROJECT_LOGO           = docs/assets/mark.svg
 OUTPUT_DIRECTORY       = docs
 CREATE_SUBDIRS         = NO

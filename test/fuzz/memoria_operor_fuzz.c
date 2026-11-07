@@ -57,8 +57,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             memcpy(s_expected + to, s_other + from, bytes);
             fuzz_check(memcmp(s_area, s_expected, sizeof s_area) == 0, "cpy copies the bytes and only those");
             break;
-        case 1:
-        {
+        case 1: {
             const size_t low = (from < to) ? from : to;
             const size_t high = (from < to) ? to : from;
             EMBED_CALL(memor.move_down, MemoriaCfg, .dst = s_area + low, .src = s_area + high, .bytes = bytes);
@@ -66,8 +65,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             fuzz_check(memcmp(s_area, s_expected, sizeof s_area) == 0, "move_down moves to a lower destination");
             break;
         }
-        case 2:
-        {
+        case 2: {
             const size_t low = (from < to) ? from : to;
             const size_t high = (from < to) ? to : from;
             EMBED_CALL(memor.move_up, MemoriaCfg, .dst = s_area + high, .src = s_area + low, .bytes = bytes);
@@ -75,8 +73,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             fuzz_check(memcmp(s_area, s_expected, sizeof s_area) == 0, "move_up moves to a higher destination");
             break;
         }
-        case 3:
-        {
+        case 3: {
             memcpy(s_other, s_area, sizeof s_area);
             const size_t differ = fuzz_below(&input, FUZZ_BYTES);
             if ((fuzz_byte(&input) & 1u) != 0u)
@@ -97,9 +94,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             fuzz_check((int)compared == expected, "cmp answers the difference of the first unequal pair");
             break;
         }
-        case 4:
-        {
-            const void *const found = EMBED_CALL(memor.chr, MemoriaCfg, .src = s_area + from, .bytes = bytes, .val = val);
+        case 4: {
+            const void *const found =
+                EMBED_CALL(memor.chr, MemoriaCfg, .src = s_area + from, .bytes = bytes, .val = val);
             const void *const expected = memchr(s_area + from, val, bytes);
             fuzz_check(found == expected, "chr finds the first byte equal to val");
             break;

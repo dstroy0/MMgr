@@ -164,7 +164,8 @@ void test_a_bump_the_gap_cannot_meet_leaves_the_boundary_moved_records_the_overr
     TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)answer);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES, mmgr_series_cellularum_persistent_end(BLOCK),
                                      "the end stands where the bump moved it");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES, (size_t)embed_atomic_usize_load(&BLOCK->persistent_overrun),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES,
+                                     (size_t)embed_atomic_usize_load(&BLOCK->persistent_overrun),
                                      "the overrun records the bump's bytes");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, 0u)),
                                      "no header was laid");
@@ -175,11 +176,14 @@ void test_a_bump_the_gap_cannot_meet_leaves_the_boundary_moved_records_the_overr
     TEST_ASSERT_EQUAL_size_t_MESSAGE(((size_t)RACED_BYTES - (CARCER_HDR + RACED_BYTES)) & (size_t)MMGR_CARCER_HALF_MASK,
                                      mmgr_series_cellularum_temporary_top(BLOCK),
                                      "the top stands where the bump moved it, below zero within its half");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES, (size_t)embed_atomic_usize_load(&BLOCK->temporary_overrun),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES,
+                                     (size_t)embed_atomic_usize_load(&BLOCK->temporary_overrun),
                                      "the overrun records the bump's bytes");
     carcer_settled(BLOCK);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_persistent_end(BLOCK), "the settle takes the overrun back");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(RACED_BYTES, mmgr_series_cellularum_temporary_top(BLOCK), "the settle takes the overrun back");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_persistent_end(BLOCK),
+                                     "the settle takes the overrun back");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(RACED_BYTES, mmgr_series_cellularum_temporary_top(BLOCK),
+                                     "the settle takes the overrun back");
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&BLOCK->persistent_overrun));
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&BLOCK->temporary_overrun));
 }
@@ -218,7 +222,8 @@ void test_a_bump_that_lands_lays_its_header_and_owner_word_and_counts(void)
 
     TEST_ASSERT_EQUAL_PTR(BLOCK->base + CARCER_WORD, (void *)answer);
     TEST_ASSERT_EQUAL_size_t(carcer_end_of(0u, PAYLOAD), mmgr_series_cellularum_persistent_end(BLOCK));
-    TEST_ASSERT_EQUAL_size_t(carcer_word(PAYLOAD, CARCER_BUSY), (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, 0u)));
+    TEST_ASSERT_EQUAL_size_t(carcer_word(PAYLOAD, CARCER_BUSY),
+                             (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, 0u)));
     TEST_ASSERT_EQUAL_PTR(s_two, mmgr_owner_of_buf(BLOCK, (void *)answer));
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, mmgr_owner_in_use(s_two));
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, (size_t)embed_atomic_usize_load(&BLOCK->persistent_in_use));
@@ -233,8 +238,8 @@ void test_a_pass_that_finds_the_series_cellularum_closed_misses_and_touches_noth
     TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_attempted(BLOCK, s_one->place, carcer_bumped, &take, &missed));
     TEST_ASSERT_EQUAL_size_t(SIZE_MAX, missed);
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(BLOCK));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_word_load(&BLOCK->turnstiles.busy) & EMBED_TURNSTILE_LANE_BITS,
-                                     "the lane is let go");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u, (size_t)embed_atomic_word_load(&BLOCK->turnstiles.busy) & EMBED_TURNSTILE_LANE_BITS, "the lane is let go");
     (void)embed_atomic_word_fetch_and(&BLOCK->closed, ~CARCER_CLOSED);
     TEST_ASSERT_NOT_EQUAL(0u, (uint64_t)carcer_attempted(BLOCK, s_one->place, carcer_bumped, &take, &missed));
     TEST_ASSERT_EQUAL_size_t(0u, missed);
@@ -281,7 +286,8 @@ void test_the_sweep_merges_free_runs_takes_the_first_that_fits_and_trims_the_end
     TEST_ASSERT_EQUAL_size_t_MESSAGE(SIZE_MAX, sweep.found, "the merged run below the held cell holds the take");
     TEST_ASSERT_EQUAL_size_t(carcer_off_of(BLOCK, one), sweep.at);
     TEST_ASSERT_EQUAL_size_t((2u * PAYLOAD) + CARCER_HDR, sweep.size);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_off_of(BLOCK, three), sweep.end, "the run reaching the end goes to the gap");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_off_of(BLOCK, three), sweep.end,
+                                     "the run reaching the end goes to the gap");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_word((2u * PAYLOAD) + CARCER_HDR, CARCER_FREE),
                                      (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, sweep.at)),
                                      "the run is laid as one free cell");
@@ -353,7 +359,8 @@ void test_a_give_answers_the_boundary_and_the_tier_the_cell_stood_at(void)
     uint8_t *const high = cells.raced.persistent_buf_alloc(PAYLOAD, s_one);
     uint8_t *const temporary = cells.raced.temporary_buf_alloc(PAYLOAD, s_one);
 
-    TEST_ASSERT_EQUAL_size_t(CARCER_GIVEN_BACK | CARCER_GIVEN_PERSISTENT, carcer_given(BLOCK, low, s_one, 0u, carcer_all(1)));
+    TEST_ASSERT_EQUAL_size_t(CARCER_GIVEN_BACK | CARCER_GIVEN_PERSISTENT,
+                             carcer_given(BLOCK, low, s_one, 0u, carcer_all(1)));
     TEST_ASSERT_EQUAL_size_t(CARCER_GIVEN_BACK | CARCER_GIVEN_PERSISTENT | CARCER_GIVEN_AT_BOUNDARY,
                              carcer_given(BLOCK, high, s_one, 0u, carcer_all(1)));
     TEST_ASSERT_EQUAL_size_t(CARCER_GIVEN_BACK | CARCER_GIVEN_AT_BOUNDARY,
@@ -433,7 +440,8 @@ void test_a_claim_sets_the_lowest_free_bit_and_a_full_table_claims_nothing(void)
     // the bits past the cells in the last word are set for good
     const embed_atomic_usize_value past = embed_atomic_usize_load(&movable->claimed[words - 1u]);
 
-    TEST_ASSERT_EQUAL_size_t(RACED_CELLS - ((words - 1u) * MMGR_MOVABLE_CLAIM_BITS), (size_t)embed_turnstile_lowest(past));
+    TEST_ASSERT_EQUAL_size_t(RACED_CELLS - ((words - 1u) * MMGR_MOVABLE_CLAIM_BITS),
+                             (size_t)embed_turnstile_lowest(past));
     for (size_t at = 0u; at < RACED_CELLS; at += 1u)
     {
         TEST_ASSERT_EQUAL_PTR(&movable->entry[at], carcer_entry_claimed(movable, CARCER_WORD, carcer_all(1)));
@@ -509,7 +517,8 @@ void test_a_span_past_a_cell_or_of_a_free_entry_does_not_fit(void)
     TEST_ASSERT_EQUAL_size_t(SIZE_MAX, inside.fits);
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, inside.room);
     TEST_ASSERT_EQUAL_size_t(0u, past.fits);
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(BLOCK->base, past.at, "a span that does not fit starts at the cellblock's first byte");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(BLOCK->base, past.at,
+                                  "a span that does not fit starts at the cellblock's first byte");
     TEST_ASSERT_EQUAL_size_t(0u, none.fits);
     TEST_ASSERT_EQUAL_size_t(0u, refused.fits);
 }
