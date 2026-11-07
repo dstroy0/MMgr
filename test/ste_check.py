@@ -12,7 +12,7 @@ One file, the same in orior, MMgr and embedded_types; orior's harness holds the 
                                             column; a word outside every list is a finding
 
 A technical document is a Markdown file of the tree's prose: the README, the contributing and security notes and
-everything under docs/. A code block, an inline span of code, a table, a heading, a link target, an HTML comment
+everything under docs/, but not in a folder that is a repository of its own. A code block, an inline span of code, a table, a heading, a link target, an HTML comment
 and a licence section are not prose and are not read.
 
 The rules held, with their numbers in ASD-STE100 Issue 9:
@@ -65,7 +65,9 @@ def documents(paths):
             found.append(root)
             continue
         for here, folders, files in os.walk(root):
-            folders[:] = [f for f in folders if f not in SKIPPED_FOLDERS and not f.startswith(".")]
+            # A folder with a .git of its own is another repository, held by its own ratchet
+            folders[:] = [f for f in folders if f not in SKIPPED_FOLDERS and not f.startswith(".")
+                          and not os.path.exists(os.path.join(here, f, ".git"))]
             rel = os.path.relpath(here, root).replace("\\", "/")
             inside = rel == "." or rel.split("/")[0] in DOCUMENT_FOLDERS
             for name in files:
@@ -204,6 +206,8 @@ def ratchet_read(path):
 
 
 def main(argv):
+    # A finding quotes the document, and a console's code page may hold none of its characters
+    sys.stdout.reconfigure(errors="replace")
     args = list(argv[1:])
     ratchet = None
     write = None
