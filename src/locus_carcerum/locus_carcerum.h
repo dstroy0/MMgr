@@ -280,7 +280,7 @@ extern const size_t mmgr_owner_table_count;
         list_(MMGR_OWNER_PLACE) mmgr_owner_table_laid                                                                  \
     };                                                                                                                 \
     EMBED_STATIC_ASSERT((size_t)mmgr_owner_table_laid <= (size_t)MMGR_CARCER_OWNERS,                                   \
-                        "more owners are declared than MMGR_CARCER_OWNERS allows");                                     \
+                        "more owners are declared than MMGR_CARCER_OWNERS allows");                                    \
     CellOwner mmgr_owner_table[(size_t)mmgr_owner_table_laid] = {list_(MMGR_OWNER_RECORD)};                            \
     const size_t mmgr_owner_table_count = (size_t)mmgr_owner_table_laid;                                               \
     list_(MMGR_OWNER_POINTER)
@@ -380,10 +380,11 @@ void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner
  */
 typedef struct
 {
-    uint8_t *const base;                  /**< First byte of the cellblock [BORROWS]. */
-    const size_t size;                    /**< Bytes in the cellblock. */
-    embed_atomic_usize bounds;            /**< The persistent end in the low half, the temporary top in the high. */
-    embed_atomic_usize persistent_overrun; /**< Bytes refused takes moved the persistent end by since the last writer. */
+    uint8_t *const base;       /**< First byte of the cellblock [BORROWS]. */
+    const size_t size;         /**< Bytes in the cellblock. */
+    embed_atomic_usize bounds; /**< The persistent end in the low half, the temporary top in the high. */
+    embed_atomic_usize
+        persistent_overrun;               /**< Bytes refused takes moved the persistent end by since the last writer. */
     embed_atomic_usize temporary_overrun; /**< Bytes refused takes moved the temporary top by since the last writer. */
     embed_atomic_usize in_use;            /**< Payload bytes of the cells taken and not given back. */
     embed_atomic_usize persistent_in_use; /**< The part of in_use lying in the persistent tier. */
@@ -462,7 +463,7 @@ typedef struct
     embed_bool (*const thread_started)(void (*run)(void *context), void *context); /**< Starts the mover. */
     size_t (*const thread_id)(void);                        /**< The calling thread's id, for a pass naming no owner. */
     embed_bool (*const thread_wait)(uint32_t milliseconds); /**< Sleeps the mover, EMBED_FALSE to end it. */
-    void (*const thread_yield)(void); /**< Gives up the processor between a sort's moves, where set. */
+    void (*const thread_yield)(void);               /**< Gives up the processor between a sort's moves, where set. */
     void (*const thread_moving)(embed_bool moving); /**< Told as each move starts and ends, where set. */
 } CarcerMovableInitCfg;
 
@@ -475,11 +476,11 @@ typedef struct
 {
     const CarcerMovableEntry *const cell;       /**< The cell [BORROWS]. */
     const CarcerMovableEntry *const other_cell; /**< The cell compare orders it against, NULL for src. */
-    const size_t offset;                       /**< Where in the cell the call starts. */
-    const size_t other_offset;                 /**< Where in other_cell compare starts. */
-    void *const dst;                           /**< Where read copies to [BORROWS]. */
-    const void *const src;                     /**< What write copies from and compare orders against [BORROWS]. */
-    const size_t bytes;                        /**< Bytes the call covers. */
+    const size_t offset;                        /**< Where in the cell the call starts. */
+    const size_t other_offset;                  /**< Where in other_cell compare starts. */
+    void *const dst;                            /**< Where read copies to [BORROWS]. */
+    const void *const src;                      /**< What write copies from and compare orders against [BORROWS]. */
+    const size_t bytes;                         /**< Bytes the call covers. */
 } CarcerMovableCfg;
 
 /** @brief Bytes of the option's state ahead of its turnstiles, which locus_carcerum.c asserts it fits. */
@@ -507,6 +508,8 @@ typedef struct
  *
  * @param[in] series Cellblock to read [BORROWS].
  * @return           The persistent end, in bytes.
+ * @note The end as the word holds it. A trim a give left owed on the open word does not run here;
+ *       mmgr_buf_available and the next take run it.
  */
 EMBED_INLINE size_t mmgr_series_cellularum_persistent_end(const SeriesCellularum *series)
 {
@@ -519,6 +522,8 @@ EMBED_INLINE size_t mmgr_series_cellularum_persistent_end(const SeriesCellularum
  *
  * @param[in] series Cellblock to read [BORROWS].
  * @return           The temporary top, in bytes.
+ * @note The top as the word holds it. A trim a give left owed on the open word does not run here;
+ *       mmgr_buf_available and the next take run it.
  */
 EMBED_INLINE size_t mmgr_series_cellularum_temporary_top(const SeriesCellularum *series)
 {
@@ -589,21 +594,24 @@ typedef struct
         size_t size,
         const CellOwner *owner); /**< Takes size bytes from the bottom for owner, unzeroed [RETURNS OWNERSHIP]. */
     void (*persistent_buf_release)(
-        void *prisoner, const CellOwner *owner); /**< Releases owner's prisoner, cell left as it is [TAKES OWNERSHIP]. */
+        void *prisoner,
+        const CellOwner *owner); /**< Releases owner's prisoner, cell left as it is [TAKES OWNERSHIP]. */
     void *(*temporary_buf_alloc)(
-        size_t size, const CellOwner *owner); /**< Takes size bytes from the top for owner, unzeroed [RETURNS OWNERSHIP]. */
+        size_t size,
+        const CellOwner *owner);        /**< Takes size bytes from the top for owner, unzeroed [RETURNS OWNERSHIP]. */
     size_t (*temporary_buf_mark)(void); /**< The current top, for temporary_buf_release. */
     void (*temporary_buf_release)(size_t mark); /**< Restores the top a mark reported, zeroing nothing. */
     void (*temporary_buf_reset)(void);          /**< Releases the whole temporary tier at once. */
     embed_bool (*who_owns_buf)(const void *at); /**< Whether at lies in this cellblock's bytes [BORROWS]. */
     size_t (*buf_available)(void);              /**< Bytes between the two tiers. */
-    void *(*buf_grow)(void *prisoner, size_t size,
-                      const CellOwner *owner); /**< Grows the newest cell of its tier to size bytes in place, unzeroed. */
+    void *(*buf_grow)(
+        void *prisoner, size_t size,
+        const CellOwner *owner); /**< Grows the newest cell of its tier to size bytes in place, unzeroed. */
     embed_bool (*movable_init)(const CarcerMovableInitCfg *args); /**< Assigns the movable option, once. */
     const CarcerMovableEntry *(*movable_buf_alloc)(
         size_t size, const CellOwner *owner); /**< Takes a cell a move may move: its identity, NULL where refused. */
     embed_bool (*movable_buf_release)(const CarcerMovableEntry *cell,
-                                      const CellOwner *owner);           /**< Releases owner's movable cell, left as it is. */
+                                      const CellOwner *owner);     /**< Releases owner's movable cell, left as it is. */
     embed_bool (*movable_buf_read)(const CarcerMovableCfg *args);  /**< Copies out of a movable cell. */
     embed_bool (*movable_buf_write)(const CarcerMovableCfg *args); /**< Copies into a movable cell. */
     embed_iword (*movable_buf_compare)(const CarcerMovableCfg *args); /**< Orders a movable cell's bytes. */
@@ -628,23 +636,23 @@ typedef struct
 {
     void *(*persistent_buf_alloc)(
         size_t size, const CellOwner *owner); /**< Takes size bytes from the bottom for owner [RETURNS OWNERSHIP]. */
-    void (*persistent_buf_release)(void *prisoner,
-                                   const CellOwner *owner); /**< Zeroes owner's cell, then releases it [TAKES OWNERSHIP]. */
-    void *(*temporary_buf_alloc)(size_t size,
-                                 const CellOwner *owner); /**< Takes size bytes from the top for owner [RETURNS OWNERSHIP]. */
-    size_t (*temporary_buf_mark)(void);             /**< The current top, for temporary_buf_release. */
-    void (*temporary_buf_release)(size_t mark);     /**< Zeroes back to the mark, then restores the top. */
-    void (*temporary_buf_reset)(void);              /**< Zeroes the whole temporary tier, then releases it. */
-    embed_bool (*who_owns_buf)(const void *at);     /**< Whether at lies in this cellblock's bytes [BORROWS]. */
-    size_t (*buf_available)(void);                  /**< Bytes between the two tiers. */
-    void *(*buf_grow)(
-        void *prisoner, size_t size,
-        const CellOwner *owner); /**< Grows the newest cell of its tier to size bytes in place, the added bytes zeroed. */
+    void (*persistent_buf_release)(
+        void *prisoner, const CellOwner *owner); /**< Zeroes owner's cell, then releases it [TAKES OWNERSHIP]. */
+    void *(*temporary_buf_alloc)(
+        size_t size, const CellOwner *owner);   /**< Takes size bytes from the top for owner [RETURNS OWNERSHIP]. */
+    size_t (*temporary_buf_mark)(void);         /**< The current top, for temporary_buf_release. */
+    void (*temporary_buf_release)(size_t mark); /**< Zeroes back to the mark, then restores the top. */
+    void (*temporary_buf_reset)(void);          /**< Zeroes the whole temporary tier, then releases it. */
+    embed_bool (*who_owns_buf)(const void *at); /**< Whether at lies in this cellblock's bytes [BORROWS]. */
+    size_t (*buf_available)(void);              /**< Bytes between the two tiers. */
+    void *(*buf_grow)(void *prisoner, size_t size,
+                      const CellOwner *owner); /**< Grows the newest cell of its tier to size bytes in place, the added
+                                                  bytes zeroed. */
     embed_bool (*movable_init)(const CarcerMovableInitCfg *args); /**< Assigns the movable option, once. */
     const CarcerMovableEntry *(*movable_buf_alloc)(
         size_t size, const CellOwner *owner); /**< Takes a cell a move may move: its identity, NULL where refused. */
     embed_bool (*movable_buf_release)(const CarcerMovableEntry *cell,
-                                      const CellOwner *owner);          /**< Zeroes owner's movable cell, then releases it. */
+                                      const CellOwner *owner);    /**< Zeroes owner's movable cell, then releases it. */
     embed_bool (*movable_buf_read)(const CarcerMovableCfg *args); /**< Copies out of a movable cell. */
     embed_bool (*movable_buf_write)(const CarcerMovableCfg *args);    /**< Copies into a movable cell. */
     embed_iword (*movable_buf_compare)(const CarcerMovableCfg *args); /**< Orders a movable cell's bytes. */
@@ -663,34 +671,35 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] wipe_to_zero_on_release_ Security flag, which the option keeps for its releases and moves.
  * @param[in] series_cellularum_  The cellblock's record, as a pointer expression.
  */
-#define MMGR_CARCER_MOVABLE_ENTRIES(prisonsite_, name_, wipe_to_zero_on_release_, series_cellularum_)                          \
+#define MMGR_CARCER_MOVABLE_ENTRIES(prisonsite_, name_, wipe_to_zero_on_release_, series_cellularum_)                  \
     static embed_bool prisonsite_##_##name_##_movable_init(const CarcerMovableInitCfg *args)                           \
     {                                                                                                                  \
-        return mmgr_movable_init((series_cellularum_), args, (wipe_to_zero_on_release_));                                      \
+        return mmgr_movable_init((series_cellularum_), args, (wipe_to_zero_on_release_));                              \
     }                                                                                                                  \
-    static const CarcerMovableEntry *prisonsite_##_##name_##_movable_buf_alloc(size_t size, const CellOwner *owner)           \
+    static const CarcerMovableEntry *prisonsite_##_##name_##_movable_buf_alloc(size_t size, const CellOwner *owner)    \
     {                                                                                                                  \
-        return mmgr_movable_buf_alloc((series_cellularum_), size, owner);                                                      \
+        return mmgr_movable_buf_alloc((series_cellularum_), size, owner);                                              \
     }                                                                                                                  \
-    static embed_bool prisonsite_##_##name_##_movable_buf_release(const CarcerMovableEntry *cell, const CellOwner *owner)     \
+    static embed_bool prisonsite_##_##name_##_movable_buf_release(const CarcerMovableEntry *cell,                      \
+                                                                  const CellOwner *owner)                              \
     {                                                                                                                  \
-        return mmgr_movable_buf_release((series_cellularum_), cell, owner);                                                    \
+        return mmgr_movable_buf_release((series_cellularum_), cell, owner);                                            \
     }                                                                                                                  \
     static embed_bool prisonsite_##_##name_##_movable_buf_read(const CarcerMovableCfg *args)                           \
     {                                                                                                                  \
-        return mmgr_movable_buf_read((series_cellularum_), args);                                                              \
+        return mmgr_movable_buf_read((series_cellularum_), args);                                                      \
     }                                                                                                                  \
     static embed_bool prisonsite_##_##name_##_movable_buf_write(const CarcerMovableCfg *args)                          \
     {                                                                                                                  \
-        return mmgr_movable_buf_write((series_cellularum_), args);                                                             \
+        return mmgr_movable_buf_write((series_cellularum_), args);                                                     \
     }                                                                                                                  \
     static embed_iword prisonsite_##_##name_##_movable_buf_compare(const CarcerMovableCfg *args)                       \
     {                                                                                                                  \
-        return mmgr_movable_buf_compare((series_cellularum_), args);                                                           \
+        return mmgr_movable_buf_compare((series_cellularum_), args);                                                   \
     }                                                                                                                  \
     static size_t prisonsite_##_##name_##_movable_buf_measure(const CarcerMovableCfg *args)                            \
     {                                                                                                                  \
-        return mmgr_movable_buf_measure((series_cellularum_), args);                                                           \
+        return mmgr_movable_buf_measure((series_cellularum_), args);                                                   \
     }
 
 /**
@@ -721,8 +730,8 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
                         #prisonsite_ "." #name_ " is too small for one cell");                                         \
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) <= MMGR_CARCER_BYTES_MOST,                                   \
                         #prisonsite_ "." #name_ " is larger than a tier boundary's half word can name");               \
-    static SeriesCellularum prisonsite_##_##name_##_ctx = MMGR_CARCER_STATE(mmgr_pars_storage_##name_, name_##_bytes);  \
-    MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size, const CellOwner *owner)        \
+    static SeriesCellularum prisonsite_##_##name_##_ctx = MMGR_CARCER_STATE(mmgr_pars_storage_##name_, name_##_bytes); \
+    MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size, const CellOwner *owner)  \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
@@ -730,7 +739,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
         }                                                                                                              \
         return mmgr_persistent_buf_alloc(&prisonsite_##_##name_##_ctx, size, owner);                                   \
     }                                                                                                                  \
-    static void prisonsite_##_##name_##_persistent_buf_release(void *prisoner, const CellOwner *owner)                       \
+    static void prisonsite_##_##name_##_persistent_buf_release(void *prisoner, const CellOwner *owner)                 \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
@@ -742,7 +751,7 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
         }                                                                                                              \
     }                                                                                                                  \
     MMGR_ALLOC_SIZE(1)                                                                                                 \
-    static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size, const CellOwner *owner)                            \
+    static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size, const CellOwner *owner)                      \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
@@ -779,7 +788,8 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
         const size_t available = mmgr_buf_available(&prisonsite_##_##name_##_ctx);                                     \
         return available;                                                                                              \
     }                                                                                                                  \
-    MMGR_ALLOC_SIZE(2) static void *prisonsite_##_##name_##_buf_grow(void *prisoner, size_t size, const CellOwner *owner)    \
+    MMGR_ALLOC_SIZE(2)                                                                                                 \
+    static void *prisonsite_##_##name_##_buf_grow(void *prisoner, size_t size, const CellOwner *owner)                 \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
@@ -910,8 +920,8 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  *       more. The preprocessor cannot step through a list: each cellblock count needs a line of its
  *       own.
  */
-#define MMGR_CARCER_W2(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_)                                                   \
-    MMGR_CARCER_W1(what_, prisonsite_, SeriesCellularum1_)                                                                    \
+#define MMGR_CARCER_W2(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_)                                     \
+    MMGR_CARCER_W1(what_, prisonsite_, SeriesCellularum1_)                                                             \
     MMGR_CARCER_APPLY(what_, prisonsite_, SeriesCellularum2_)
 
 /**
@@ -924,8 +934,8 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] SeriesCellularum3_ Third cellblock's tuple, applied after MMGR_CARCER_W2 expands the first two.
  * @note MMGR_CARCER_WALK selects this line for a site declaring three cellblocks.
  */
-#define MMGR_CARCER_W3(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_)                                      \
-    MMGR_CARCER_W2(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_)                                                       \
+#define MMGR_CARCER_W3(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_)                 \
+    MMGR_CARCER_W2(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_)                                         \
     MMGR_CARCER_APPLY(what_, prisonsite_, SeriesCellularum3_)
 
 /**
@@ -939,8 +949,9 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] SeriesCellularum4_ Fourth cellblock's tuple, applied after MMGR_CARCER_W3 expands the first three.
  * @note MMGR_CARCER_WALK selects this line for a site declaring four cellblocks.
  */
-#define MMGR_CARCER_W4(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_)                         \
-    MMGR_CARCER_W3(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_)                                          \
+#define MMGR_CARCER_W4(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_,                 \
+                       SeriesCellularum4_)                                                                             \
+    MMGR_CARCER_W3(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_)                     \
     MMGR_CARCER_APPLY(what_, prisonsite_, SeriesCellularum4_)
 
 /**
@@ -955,8 +966,9 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] SeriesCellularum5_ Fifth cellblock's tuple, applied after MMGR_CARCER_W4 expands the first four.
  * @note MMGR_CARCER_WALK selects this line for a site declaring five cellblocks.
  */
-#define MMGR_CARCER_W5(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_, SeriesCellularum5_)            \
-    MMGR_CARCER_W4(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_)                             \
+#define MMGR_CARCER_W5(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_,                 \
+                       SeriesCellularum4_, SeriesCellularum5_)                                                         \
+    MMGR_CARCER_W4(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_) \
     MMGR_CARCER_APPLY(what_, prisonsite_, SeriesCellularum5_)
 
 /**
@@ -972,9 +984,10 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] SeriesCellularum6_ Sixth cellblock's tuple, applied after MMGR_CARCER_W5 expands the first five.
  * @note MMGR_CARCER_WALK selects this line for a site declaring six cellblocks.
  */
-#define MMGR_CARCER_W6(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_, SeriesCellularum5_,            \
-                       SeriesCellularum6_)                                                                                    \
-    MMGR_CARCER_W5(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_, SeriesCellularum5_)                \
+#define MMGR_CARCER_W6(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_,                 \
+                       SeriesCellularum4_, SeriesCellularum5_, SeriesCellularum6_)                                     \
+    MMGR_CARCER_W5(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_, \
+                   SeriesCellularum5_)                                                                                 \
     MMGR_CARCER_APPLY(what_, prisonsite_, SeriesCellularum6_)
 
 /**
@@ -991,9 +1004,10 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  * @param[in] SeriesCellularum7_ Seventh cellblock's tuple, applied after MMGR_CARCER_W6 expands the first six.
  * @note MMGR_CARCER_WALK selects this line for a site declaring seven cellblocks.
  */
-#define MMGR_CARCER_W7(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_, SeriesCellularum5_,            \
-                       SeriesCellularum6_, SeriesCellularum7_)                                                                       \
-    MMGR_CARCER_W6(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_, SeriesCellularum5_, SeriesCellularum6_)   \
+#define MMGR_CARCER_W7(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_,                 \
+                       SeriesCellularum4_, SeriesCellularum5_, SeriesCellularum6_, SeriesCellularum7_)                 \
+    MMGR_CARCER_W6(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_, \
+                   SeriesCellularum5_, SeriesCellularum6_)                                                             \
     MMGR_CARCER_APPLY(what_, prisonsite_, SeriesCellularum7_)
 
 /**
@@ -1014,10 +1028,11 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  *          not exist. Writing that line is the whole fix. Nothing else changes and no configured
  *          ceiling is involved.
  */
-#define MMGR_CARCER_W8(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_, SeriesCellularum5_,            \
-                       SeriesCellularum6_, SeriesCellularum7_, SeriesCellularum8_)                                                          \
-    MMGR_CARCER_W7(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_, SeriesCellularum5_, SeriesCellularum6_,   \
-                   SeriesCellularum7_)                                                                                        \
+#define MMGR_CARCER_W8(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_,                 \
+                       SeriesCellularum4_, SeriesCellularum5_, SeriesCellularum6_, SeriesCellularum7_,                 \
+                       SeriesCellularum8_)                                                                             \
+    MMGR_CARCER_W7(what_, prisonsite_, SeriesCellularum1_, SeriesCellularum2_, SeriesCellularum3_, SeriesCellularum4_, \
+                   SeriesCellularum5_, SeriesCellularum6_, SeriesCellularum7_)                                         \
     MMGR_CARCER_APPLY(what_, prisonsite_, SeriesCellularum8_)
 
 /**
@@ -1071,10 +1086,10 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  *       and raises owner's hw to it. A refused take counts nothing.
  * @note The take is one pass through the cellblock's turnstiles and one fetch-add on the persistent end: the
  *       cell is the bytes the bump covered, and its header and owner word are laid once the room is read off the
- *       top. A bump the gap cannot meet adds its bytes to the tier's overrun and the take closes the cellblock, drains the turnstiles and
- *       walks the tier alone: every run of free cells merged into one, the first run that holds the take taken
- *       and split where its rest holds a cell, the free run reaching the end returned to the gap, and the gap
- *       bumped where no run fits. Only then is the take refused. No path branches on what another context did.
+ *       top. A bump the gap cannot meet adds its bytes to the tier's overrun and the take closes the cellblock, drains
+ * the turnstiles and walks the tier alone: every run of free cells merged into one, the first run that holds the take
+ * taken and split where its rest holds a cell, the free run reaching the end returned to the gap, and the gap bumped
+ * where no run fits. Only then is the take refused. No path branches on what another context did.
  * @warning The bytes are not zeroed, and a cell laid over bytes a prisoner occupied before still
  *          carries what that prisoner left. A cellblock declared MMGR_MAXIMUM_SECURITY zeroes, and it
  *          zeroes on release.
@@ -1192,10 +1207,10 @@ void *mmgr_max_security_buf_grow(SeriesCellularum *series, void *prisoner, size_
  *       The cell carries owner in the word behind its payload.
  * @note The take is one pass through the cellblock's turnstiles and one fetch-add on the temporary top, which
  *       moves it down by the cell; the room is read off the persistent end, and a bump that crosses it adds
- *       its bytes to the tier's overrun. The take then closes the cellblock, drains the turnstiles, trims the top up over the free cells at
- *       it and reads the gap exactly, and only then is refused. The tier is a stack: a free cell inside it is a
- *       rewind's to return, and one at the top goes back to the gap with the next give at the top or the next take
- *       the gap cannot meet.
+ *       its bytes to the tier's overrun. The take then closes the cellblock, drains the turnstiles, trims the top up
+ * over the free cells at it and reads the gap exactly, and only then is refused. The tier is a stack: a free cell
+ * inside it is a rewind's to return, and one at the top goes back to the gap with the next give at the top or the next
+ * take the gap cannot meet.
  * @note A single release through mmgr_persistent_buf_release counts the cell off its owner and frees its
  *       header, and the rewind that passes it steps over it.
  * @warning The bytes are not zeroed, and an allocation returns whatever the last prisoner left. A
@@ -1303,14 +1318,15 @@ const CellOwner *mmgr_owner_of_buf(const SeriesCellularum *series, const void *p
 /**
  * @brief The bytes lying between the two tiers.
  *
- * @param[in] series Cellblock to read [BORROWS].
- * @return           The temporary top less the persistent end, read off one word.
+ * @param[in,out] series Cellblock to read [BORROWS].
+ * @return               The temporary top less the persistent end, read off one word.
  * @note An allocation out of that gap needs a cell header from the same bytes, and the request is
  *       rounded up to a whole word first. A request of exactly this many bytes cannot be met.
+ * @note The trims a give left owed on the open word run first, and the gap read has every owed trim run.
  * @warning The answer is a snapshot. Any allocation at all leaves it stale before the caller can act
  *          on it.
  */
-size_t mmgr_buf_available(const SeriesCellularum *series);
+size_t mmgr_buf_available(SeriesCellularum *series);
 
 /**
  * @brief Zeroes size bytes at prisoner, releasing nothing.

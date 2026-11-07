@@ -679,33 +679,56 @@ EMBED_INLINE void carcer_shut(SeriesCellularum *series)
 static void carcer_owed_trimmed(SeriesCellularum *series, embed_atomic_word_value owed);
 
 /**
- * @brief The cellblock opened to passes again: every trim a give left owed run, then the closed bit and the
- *        sleeper flag cleared with one compare-exchange, and the sleepers on the word woken where the flag was set.
+ * @brief The cellblock opened to passes again: the trims the word owes taken with one fetch-and and run, then the
+ *        closed bit and the sleeper flag cleared with a second fetch-and, and the sleepers on the word woken where
+ *        the flag was set.
  *
  * @param[in,out] series Cellblock to open, its closed bit this context's [BORROWS].
  * @note A give that finds the cellblock closed sets its tier's trim bit and leaves; the writer holding the bit runs
- *       the trim here, before it opens. The exchange opens only a word with no trim owed, and a give that set
- *       its bit after the trims ran fails the exchange and the loop runs that trim too. A give that finds the bit
- *       clear holds the cellblock itself. Every cell given back is trimmed past by the time the cellblock opens.
+ *       the trim here. A give that sets its bit after the first fetch-and leaves it on the open word, and the next
+ *       take or reading of the gap runs it (carcer_owed_serviced). The open is one pass with no retry: no stream
+ *       of gives holds a writer back. A give that finds the bit clear holds the cellblock itself.
  */
 EMBED_INLINE void carcer_opened(SeriesCellularum *series)
 {
     static void (*const wakes[2])(embed_atomic_word *) = {carcer_wake_none, embed_word_wake};
-    embed_atomic_word_value was = 0u;
-    embed_bool opened = EMBED_FALSE;
+    const embed_atomic_word_value taken = embed_atomic_word_fetch_and(&series->closed, ~CARCER_TRIM_PENDING);
 
-    while (!opened)
-    {
-        const embed_atomic_word_value taken = embed_atomic_word_fetch_and(&series->closed, ~CARCER_TRIM_PENDING);
-
-        // A full fence between the trim bits taken and the headers the trim reads, as in carcer_shut
-        EMBED_ATOMIC_ORDERED();
-        carcer_owed_trimmed(series, taken & CARCER_TRIM_PENDING);
-        was = taken & ~CARCER_TRIM_PENDING;
-        embed_atomic_word_value expected = was;
-        opened = embed_atomic_word_swap_if(&series->closed, &expected, was & ~(CARCER_CLOSED | CARCER_CLOSED_SLEEPERS));
-    }
+    // A full fence between the trim bits taken and the headers the trim reads, as in carcer_shut
+    EMBED_ATOMIC_ORDERED();
+    carcer_owed_trimmed(series, taken & CARCER_TRIM_PENDING);
+    const embed_atomic_word_value was =
+        embed_atomic_word_fetch_and(&series->closed, ~(CARCER_CLOSED | CARCER_CLOSED_SLEEPERS));
     wakes[(was >> 1u) & 1u](&series->closed);
+}
+
+/** @brief A run of nothing, the row of the service table a word with no trim owed takes. */
+static void carcer_owed_none(SeriesCellularum *series)
+{
+    (void)series;
+}
+
+/** @brief The trims a word owes, run: the cellblock shut and opened, and the open takes the trim bits and runs them. */
+static void carcer_owed_run(SeriesCellularum *series)
+{
+    carcer_shut(series);
+    carcer_opened(series);
+}
+
+/**
+ * @brief The trims owed on the closed word run before a take or a reading of the gap.
+ *
+ * @param[in,out] series Cellblock to serve [BORROWS].
+ * @note A give that sets its trim bit after a writer took the bits leaves it on the open word. The next context
+ *       through runs that trim here, and every take reads a boundary with every owed trim run. One load where
+ *       nothing is owed. A bit set while a writer holds the cellblock waits for that writer's open first.
+ */
+EMBED_INLINE void carcer_owed_serviced(SeriesCellularum *series)
+{
+    static void (*const runs[2])(SeriesCellularum *) = {carcer_owed_none, carcer_owed_run};
+    const embed_atomic_word_value word = embed_atomic_word_load(&series->closed);
+
+    runs[(unsigned int)((word & CARCER_TRIM_PENDING) != 0u)](series);
 }
 
 /**
@@ -909,8 +932,8 @@ static uintptr_t carcer_attempted(SeriesCellularum *series, embed_atomic_word_va
  * @return                The work's answer.
  * @note The hot path is a single pass. A miss is the cellblock closed to a writer or no lane free, and the reader
  *       badges in again after a backoff step: a pause for the first steps, then a sleep on the closed word that
- *       doubles to EMBED_TURNSTILE_BACKOFF_MOST_MS, which the writer's open wakes. Every repeat is a pass that
- *       found the cellblock closed.
+ *       doubles to EMBED_TURNSTILE_BACKOFF_MOST_MS, which the writer's open wakes. The sleep comes only where the
+ *       word read is closed; a miss on an open word is a pause alone.
  */
 EMBED_INLINE uintptr_t carcer_passed(SeriesCellularum *series, embed_atomic_word_value id, CarcerWork work,
                                      const void *context)
@@ -921,8 +944,11 @@ EMBED_INLINE uintptr_t carcer_passed(SeriesCellularum *series, embed_atomic_word
 
     while (missed != 0u)
     {
-        step = embed_turnstile_backed_off(&series->closed, embed_atomic_word_load(&series->closed),
-                                          CARCER_CLOSED_SLEEPERS, step, 1u);
+        // The sleep needs the closed bit in the value read: a writer's open wakes only a word it closed, and a value
+        // read open has no writer to wake it (Sleep.lean). A miss on an open word pauses and tries again.
+        const embed_atomic_word_value read = embed_atomic_word_load(&series->closed);
+        step = embed_turnstile_backed_off(&series->closed, read, CARCER_CLOSED_SLEEPERS, step,
+                                          (unsigned int)((read & CARCER_CLOSED) != 0u));
         answer = carcer_attempted(series, id, work, context, &missed);
     }
     return answer;
@@ -1219,6 +1245,8 @@ EMBED_INLINE void *carcer_taken(SeriesCellularum *series, size_t size, const Cel
     const size_t listed = permit & carcer_all(mmgr_owner_listed(owner)) & carcer_all(size <= series->size);
     const CellOwner *const safe = carcer_pick_at(listed, carcer_owner_record(owner), &carcer_owner_none);
     const CarcerTakeCtx take = {carcer_want(size), safe, down, listed};
+
+    carcer_owed_serviced(series);
     // Explicit cast carries the owner's place as the badge's id
     const uintptr_t bumped = carcer_passed(series, (embed_atomic_word_value)safe->place, carcer_bumped, &take);
     const size_t spilled = listed & carcer_all(bumped == 0u);
@@ -2330,8 +2358,9 @@ embed_bool mmgr_who_owns_buf(const SeriesCellularum *series, const void *at)
     return (embed_bool)(((uintptr_t)at - (uintptr_t)series->base) < series->size);
 }
 
-size_t mmgr_buf_available(const SeriesCellularum *series)
+size_t mmgr_buf_available(SeriesCellularum *series)
 {
+    carcer_owed_serviced(series);
     const embed_atomic_usize_value word = embed_atomic_usize_load(&series->bounds);
     const size_t end = carcer_bounds_end(word);
     const size_t top = carcer_bounds_top(word);

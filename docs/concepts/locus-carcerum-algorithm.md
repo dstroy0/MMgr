@@ -76,12 +76,15 @@ and no cell is put below 0.
 $$
 (w, T_w) := (E, T),\quad W := W + n
 $$
+
 $$
 \tau \equiv (w + n \le T_w) \wedge (w + n \ge w) \wedge (T_w \le S)
 $$
+
 $$
 \tau \Rightarrow P := P \cdot (w, p),\ \text{answer } w + 8
 $$
+
 $$
 \neg\tau \Rightarrow O_E := O_E + n,\ \text{answer } \bot
 $$
@@ -94,12 +97,15 @@ fourth line is one atomic add. No operation subtracts from $E$.
 $$
 (E_w, w) := (E, T),\quad W := W - n \cdot 2^H
 $$
+
 $$
 \tau \equiv (w - n \ge E_w) \wedge (w - n \le w) \wedge (w - n \le S)
 $$
+
 $$
 \tau \Rightarrow Q := (w - n, p) \cdot Q,\ \text{answer } w - n + 8
 $$
+
 $$
 \neg\tau \Rightarrow O_T := O_T + n,\ \text{answer } \bot
 $$
@@ -122,14 +128,16 @@ the cell as free, or stores an edge that this read sees.
 
 The free operation does not wait for an exclusive operation. One read-modify-write sets the closed bit and the trim
 bit of the tier of the cell. If the closed bit was clear, the free operation does the Trim. If the closed bit was
-set, the operation stops, and the trim bit stays set. Each exclusive operation ends with an open loop:
+set, the operation stops, and the trim bit stays set. Each exclusive operation ends with one open pass:
 
 1. Clear the trim bits with one read-modify-write, and Trim each tier whose bit was set.
-2. Clear the closed bit with one compare-exchange, only from a word with no trim bit set.
-3. If the compare-exchange fails, go to step 1.
+2. Clear the closed bit and the sleeper bit with one read-modify-write. A trim bit that a free sets between the
+   two steps stays set.
+3. If the word had the sleeper bit before step 2, wake the sleepers on the word.
 
-Thus, when the cellblock is open and no free operation is in progress, no free cell is at the edge of $e_P$ or
-at the edge of $t_Q$.
+Each take and each read of the gap starts with a check of the trim bits. If the word holds a trim bit, the
+operation sets the closed bit, does the open pass, and then continues. Thus, assume that the word holds no trim bit
+and that no free operation is in progress. Then no free cell is at the edge of $e_P$ or at the edge of $t_Q$.
 
 ### 3.5 Trim (exclusive)
 
@@ -161,13 +169,13 @@ and §3.4 run.
 
 **Lemma 1** (monotone in a round). In a round, $E$ does not decrease and $T$ does not increase.
 
-*Proof.* §3.1 adds $n > 0$ to $E$. §3.2 subtracts $n > 0$ from $T$. §3.4 does not change $E$ or $T$. No other
+_Proof._ §3.1 adds $n > 0$ to $E$. §3.2 subtracts $n > 0$ from $T$. §3.4 does not change $E$ or $T$. No other
 operation of the round changes them. $\square$
 
 **Lemma 2** (a rejection is absorbing). In a round, a bump up $B_1$ is rejected. Then each bump up $B_2$ whose
 read-modify-write follows the read-modify-write of $B_1$ is also rejected.
 
-*Proof.* If $B_1$ is rejected and does not wrap, then $w_1 + n_1 > T_1$. $T_1$ is the value of $T$ that $B_1$
+_Proof._ If $B_1$ is rejected and does not wrap, then $w_1 + n_1 > T_1$. $T_1$ is the value of $T$ that $B_1$
 read. From Lemma 1, $w_2 \ge w_1 + n_1 > T_1 \ge T_2$.
 
 $T_1 \ge T_2$ is true because $B_2$ reads $T$ in the same atomic step as its read-modify-write. This
@@ -187,7 +195,7 @@ and $T$ together. Thus one word must contain the two boundaries. §6.2 shows the
 **Lemma 3** (accepted bumps are contiguous). In a round, $B_1, \dots, B_k$ are the accepted bumps up, in
 read-modify-write order. Then $o_1 = e_P$ at the start of the round, and $o_{i+1} = o_i + n_i$.
 
-*Proof.* From Lemma 2, each accepted bump is before each rejected bump in read-modify-write order. Thus nothing
+_Proof._ From Lemma 2, each accepted bump is before each rejected bump in read-modify-write order. Thus nothing
 changes $E$ between two consecutive accepted bumps, and $w_{i+1} = w_i + n_i$. The first accepted bump reads the
 value of $E$ at the end of the previous round. Because $R$ is true at the start of the round, this value is $e_P$.
 $\square$
@@ -195,7 +203,7 @@ $\square$
 **Lemma 4** ($I$ stays true in a round). $R(\sigma)$ is true at the start of a round. Then $I(\sigma)$ is true for
 all of the round, after the two atomic operations of each bump are complete.
 
-*Proof.* From Lemma 3, the accepted bumps extend $P$ without gaps. Thus $e_P$ increases by exactly the needs of the
+_Proof._ From Lemma 3, the accepted bumps extend $P$ without gaps. Thus $e_P$ increases by exactly the needs of the
 accepted bumps. $E$ increases by each need, accepted or rejected. $O_E$ increases by each rejected need. Thus
 $E - O_E = e_P$. The mirror is true for $T$.
 
@@ -205,7 +213,7 @@ a bump down. $\square$
 **Lemma 5** (Settle puts the state at rest). If $I(\sigma)$ is true and no bump is in progress, Settle causes
 $R(\sigma)$.
 
-*Proof.* From $I$, $E - O_E = e_P$ and $T + O_T = t_Q$. Settle writes these values and sets the overruns to zero.
+_Proof._ From $I$, $E - O_E = e_P$ and $T + O_T = t_Q$. Settle writes these values and sets the overruns to zero.
 $\square$
 
 ## 5. Theorem
@@ -216,7 +224,7 @@ Then these two statements are true:
 1. Each exclusive operation finds $R(\sigma)$ after its Settle.
 2. Each returned address $o + 8$ is in a cell of $P \cup Q$, and this cell does not overlap other cells.
 
-*Proof.* $R(\sigma_0)$ is true. Use induction on rounds. If $R$ is true at the start of a round, $I$ is true for all
+_Proof._ $R(\sigma_0)$ is true. Use induction on rounds. If $R$ is true at the start of a round, $I$ is true for all
 of the round (Lemma 4). The exclusive operation at the end of the round finds no bump in progress, and its Settle
 causes $R$ (Lemma 5).
 
@@ -253,7 +261,7 @@ read-modify-write $w := E,\ E := E + n$, and later the read of $T$ that decides 
 Then Lemma 2 fails. A bump $A$ can be rejected while a bump $B$ is accepted, although the read-modify-write of $A$ is
 before the read-modify-write of $B$. After the round, $I$ is false.
 
-*Proof.* The example is an interleaving with $S = 2^{20}$. The round starts at rest with
+_Proof._ The example is an interleaving with $S = 2^{20}$. The round starts at rest with
 $E = e_P = \mathtt{fd4c0}$ and $T = t_Q = \mathtt{fd868}$:
 
 $$
@@ -302,17 +310,25 @@ Lean checks the models in `theory/locus_carcerum`:
   not, the test of a pointer, and that a high-water mark is at or past each count it was raised to.
 - `LocusCarcerum/Entry.lean` proves that no two contexts name one movable entry, and the bytes a give zeroes.
 - `LocusCarcerum/Boundary.lean` writes the free of §3.4 and the Trim of §3.5 on the cells of one tier. The walk
-  reads one header at a time and stores the edge after it stops. It proves that an open cellblock with no operation
-  in progress has no free cell at its edge. It also checks one order of steps where a free reads the edge before
-  its store and a free cell stays at the edge.
+  reads one header at a time and stores the edge after it stops. It proves that a cellblock has no free cell at its edge
+  when its word holds no trim bit and no operation is in progress. It proves that the next open pass walks from the
+  edge when the word holds a trim bit. It also checks one order of steps where a free reads the edge before its store and a free
+  cell stays at the edge.
+- `LocusCarcerum/Futex.lean` writes the futex contract and the address wait that GenMC runs. It proves that the
+  model reaches each state of the contract and no other state. It proves that a wait on the whole word has no state
+  that the 32-bit wait of Linux does not have. It also checks that a wake of one waiter leaves a second waiter
+  asleep.
 - `LocusCarcerum/Pass.lean` proves that no pass works on the cellblock while a writer works alone.
 - `LocusCarcerum/Order.lean` carries `Pass.lean` and `Trim.lean` to C11: the writes to the closed word are
   read-modify-writes in one modification order, and the two sequentially consistent fences of a pass and a drain
   give the drain its disjunction under the fence rule of the standard. The fences of a free and a writer give the
   free the same disjunction. The free reads the closed bit set, or the walk reads the header free.
+- `LocusCarcerum/Sleep.lean` writes the sleeper bit on the closed word for one writer and one pass. It proves that
+  a pass sleeps only on a closed word, and that the open pass wakes each sleep. It also checks that a pass without
+  this rule sleeps on an open word with no wake to come.
 - `LocusCarcerum/Trim.lean` writes the steps of §3.4 on the closed word for any number of contexts. It proves that
-  when the cellblock is open and no free operation is in progress, no tier has a free cell at its edge. It also
-  checks one interleaving of a protocol without trim bits, where a free cell stays at the edge.
+  no tier has a free cell at its edge when the word holds no trim bit and no free operation is in progress. It
+  proves that after the first step of an open pass, each free cell at an edge has a free operation in progress. It also checks one interleaving of a protocol without trim bits, where a free cell stays at the edge.
 - `LocusCarcerum/Word.lean` proves the word arithmetic of §3. It proves that a bump up does not carry under the
   limits. It proves that the borrow of a bump down does not change the low half. It also proves the limit on bumps
   in progress and the counts for the two widths.

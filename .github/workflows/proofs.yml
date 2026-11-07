@@ -1,0 +1,108 @@
+name: Proofs
+
+# The checks the suite does not run: the fuzz harnesses, the Lean proofs, CBMC and the machine arm on each proof
+# harness, and GenMC on each thread client. test/harness.py runs each one, with the flags it keeps. A flag that
+# this file also writes is a second copy of that flag.
+#
+# A hosted runner has 16 GB of memory. prove --hosted does not run a harness whose bound needs more, and the run
+# names each harness that it does not run.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proofs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: Fuzz
+    runs-on: ubuntu-24.04
+    env:
+      # libFuzzer comes with clang. The fuzz tree uses the compiler that CMake finds from these two names.
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and run the fuzz harnesses
+        run: python3 test/harness.py fuzz
+
+  lean:
+    name: Lean
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: theory/locus_carcerum
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install elan
+        # elan installs the toolchain that lean-toolchain names, at the first lake command.
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Build the proofs
+        run: lake build
+
+      - name: No proof is open
+        # lake build passes a theorem that sorry closes, and only shows a warning. This step fails on it.
+        run: |
+          if grep -rn --include='*.lean' -w sorry LocusCarcerum LocusCarcerum.lean; then
+            echo "::error title=sorry::a proof is open"
+            exit 1
+          fi
+
+  prove:
+    name: CBMC and machine code
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install CBMC
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq cbmc
+
+      - name: Install the symbolic executor
+        # prove.py runs symbolic.py from this virtual environment. This is the version that the proofs use on a
+        # workstation.
+        run: |
+          python3 -m venv ~/.venvs/angr
+          ~/.venvs/angr/bin/pip install -q angr==10.0.5
+
+      - name: Prove
+        run: python3 test/harness.py prove --arm cbmc --arm machine --hosted
+
+      - name: Keep the run
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: prove-${{ github.run_id }}
+          path: build/prove-*
+          if-no-files-found: ignore
+
+  genmc:
+    name: GenMC
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run each thread client under each memory model
+        # The first run on a host installs the packages of GenMC, then builds and installs the tag that prove.py
+        # names.
+        run: python3 test/harness.py prove --arm genmc --hosted
+
+      - name: Keep the run
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: genmc-${{ github.run_id }}
+          path: build/prove-*
+          if-no-files-found: ignore

@@ -41,7 +41,7 @@
 
 #define STRESS_OWNERS(owner_)                                                                                          \
     owner_(s_o0, "o0") owner_(s_o1, "o1") owner_(s_o2, "o2") owner_(s_o3, "o3") owner_(s_o4, "o4") owner_(s_o5, "o5")  \
-        owner_(s_o6, "o6") owner_(s_o7, "o7") owner_(s_o8, "o8") owner_(s_o9, "o9") owner_(s_o10, "o10")            \
+        owner_(s_o6, "o6") owner_(s_o7, "o7") owner_(s_o8, "o8") owner_(s_o9, "o9") owner_(s_o10, "o10")               \
             owner_(s_o11, "o11") owner_(s_o12, "o12") owner_(s_o13, "o13") owner_(s_o14, "o14") owner_(s_o15, "o15")
 MMGR_OWNERS(STRESS_OWNERS)
 
@@ -206,7 +206,8 @@ static int header_fits(uint64_t word, size_t bytes)
     return ((word & 3u) == 1u) && (size >= rounded) && (size <= s_block->size);
 }
 
-/** @brief A broken cell found: the record, the cell and the trace's steps near it printed once, then the program ends. */
+/** @brief A broken cell found: the record, the cell and the trace's steps near it printed once, then the program ends.
+ */
 static void dumped(unsigned int thread, const StressHeld *held, uint64_t word)
 {
     if (embed_atomic_u32_fetch_add(&s_broken, 1u) != 0u)
@@ -220,21 +221,26 @@ static void dumped(unsigned int thread, const StressHeld *held, uint64_t word)
     const uint32_t from = (now > STRESS_TRACE_SHOWN) ? (now - STRESS_TRACE_SHOWN) : 0u;
     static const char *const names[8] = {"?", "P", "T", "R", "p!", "t!", "p?", "t?"};
 
-    fprintf(stderr, "BROKEN thread %u cell off=%#x bytes=%zu tier=%s header=%#llx end=%#zx top=%#zx over_end=%#zx over_top=%#zx\n",
-            thread, off, held->bytes, held->temporary ? "temporary" : "persistent", (unsigned long long)word,
-            (size_t)mmgr_series_cellularum_persistent_end(s_block), (size_t)mmgr_series_cellularum_temporary_top(s_block),
-            (size_t)embed_atomic_usize_load(&s_block->persistent_overrun), (size_t)embed_atomic_usize_load(&s_block->temporary_overrun));
+    fprintf(
+        stderr,
+        "BROKEN thread %u cell off=%#x bytes=%zu tier=%s header=%#llx end=%#zx top=%#zx over_end=%#zx over_top=%#zx\n",
+        thread, off, held->bytes, held->temporary ? "temporary" : "persistent", (unsigned long long)word,
+        (size_t)mmgr_series_cellularum_persistent_end(s_block), (size_t)mmgr_series_cellularum_temporary_top(s_block),
+        (size_t)embed_atomic_usize_load(&s_block->persistent_overrun),
+        (size_t)embed_atomic_usize_load(&s_block->temporary_overrun));
     for (uint32_t seq = from; seq < now; seq += 1u)
     {
         const StressTrace *const step = &s_trace[seq & (STRESS_TRACE_MOST - 1u)];
-        const int nearby = (step->off != STRESS_OFF_NONE) && (step->off + STRESS_TRACE_NEAR >= off) && (step->off <= off + STRESS_TRACE_NEAR);
+        const int nearby = (step->off != STRESS_OFF_NONE) && (step->off + STRESS_TRACE_NEAR >= off) &&
+                           (step->off <= off + STRESS_TRACE_NEAR);
         const int refused = (step->op == STRESS_OP_REFUSED_PERSISTENT) || (step->op == STRESS_OP_REFUSED_TEMPORARY);
         const int last = (seq + STRESS_TRACE_WHOLE) >= now;
 
         if ((step->seq == seq) && (nearby || refused || last))
         {
             fprintf(stderr, "%u t%u %s off=%#x size=%u end=%#x top=%#x over_end=%#x over_top=%#x\n", seq, step->thread,
-                    names[step->op < 8u ? step->op : 0u], step->off, step->size, step->end, step->top, step->over_end, step->over_top);
+                    names[step->op < 8u ? step->op : 0u], step->off, step->size, step->end, step->top, step->over_end,
+                    step->over_top);
         }
     }
     fflush(stderr);
@@ -255,9 +261,12 @@ static void overlapped(unsigned int thread, uint32_t seq, uint32_t off, size_t b
     const uint32_t from = (other > oldest) ? other : oldest;
     static const char *const names[8] = {"?", "P", "T", "R", "p!", "t!", "p?", "t?"};
 
-    fprintf(stderr, "OVERLAP thread %u step %u cell off=%#x bytes=%zu lands on the cell of step %u; end=%#zx top=%#zx over_end=%#zx over_top=%#zx\n",
+    fprintf(stderr,
+            "OVERLAP thread %u step %u cell off=%#x bytes=%zu lands on the cell of step %u; end=%#zx top=%#zx "
+            "over_end=%#zx over_top=%#zx\n",
             thread, seq, off, bytes, other, (size_t)mmgr_series_cellularum_persistent_end(s_block),
-            (size_t)mmgr_series_cellularum_temporary_top(s_block), (size_t)embed_atomic_usize_load(&s_block->persistent_overrun),
+            (size_t)mmgr_series_cellularum_temporary_top(s_block),
+            (size_t)embed_atomic_usize_load(&s_block->persistent_overrun),
             (size_t)embed_atomic_usize_load(&s_block->temporary_overrun));
     for (uint32_t at = from; at < now; at += 1u)
     {
@@ -266,7 +275,8 @@ static void overlapped(unsigned int thread, uint32_t seq, uint32_t off, size_t b
         if (step->seq == at)
         {
             fprintf(stderr, "%u t%u %s off=%#x size=%u end=%#x top=%#x over_end=%#x over_top=%#x\n", at, step->thread,
-                    names[step->op < 8u ? step->op : 0u], step->off, step->size, step->end, step->top, step->over_end, step->over_top);
+                    names[step->op < 8u ? step->op : 0u], step->off, step->size, step->end, step->top, step->over_end,
+                    step->over_top);
         }
     }
     fflush(stderr);
@@ -294,7 +304,6 @@ static void shadowed(unsigned int thread, uint32_t seq, uint32_t off, size_t byt
         }
     }
 }
-
 
 /** @brief The words of a cell about to go back cleared. */
 static void unshadowed(uint32_t off, size_t bytes)
@@ -327,7 +336,8 @@ static void checked_all(unsigned int thread, const StressHeld *held, unsigned in
     }
 }
 
-static void given(unsigned int thread, StressHeld *held, unsigned int *count, unsigned int at, const CellOwner *owner, uint8_t mark)
+static void given(unsigned int thread, StressHeld *held, unsigned int *count, unsigned int at, const CellOwner *owner,
+                  uint8_t mark)
 {
     const uint64_t word = header_of(held[at].payload);
 
@@ -419,7 +429,8 @@ int main(int argc, char **argv)
     s_seed = (argc > 5) ? strtoull(argv[5], NULL, 10) : 0x0123456789ABCDEFull;
     if ((threads == 0u) || (threads > STRESS_THREADS_MOST) || (bytes < 1024u))
     {
-        fprintf(stderr, "locus_carcerum_stress [threads<=%u] [rounds] [bytes>=1024] [runs] [seed]\n", STRESS_THREADS_MOST);
+        fprintf(stderr, "locus_carcerum_stress [threads<=%u] [rounds] [bytes>=1024] [runs] [seed]\n",
+                STRESS_THREADS_MOST);
         return 2;
     }
     const CellOwner *const owners[STRESS_THREADS_MOST] = {s_o0, s_o1, s_o2,  s_o3,  s_o4,  s_o5,  s_o6,  s_o7,
@@ -433,7 +444,8 @@ int main(int argc, char **argv)
         return 2;
     }
     // the state laid at the highest 64-aligned place of its page, and its last word stands against the fault page
-    s_block = (SeriesCellularum *)(void *)(state_page + ((sizeof(SeriesCellularum) + 64u - sizeof(SeriesCellularum)) & ~(size_t)63u));
+    s_block = (SeriesCellularum *)(void *)(state_page + ((sizeof(SeriesCellularum) + 64u - sizeof(SeriesCellularum)) &
+                                                         ~(size_t)63u));
     const SeriesCellularum made = MMGR_CARCER_STATE(storage, bytes);
     memcpy(s_block, &made, sizeof(made));
     int failed = 0;
@@ -454,15 +466,19 @@ int main(int argc, char **argv)
         {
             standing += mmgr_owner_in_use(s_own[at]);
         }
+        // the gap, read first, runs every trim a give left owed on the open word, and the boundaries after it owe none
+        const size_t available = mmgr_buf_available(s_block);
         const size_t end = mmgr_series_cellularum_persistent_end(s_block);
         const size_t top = mmgr_series_cellularum_temporary_top(s_block);
-        const size_t available = mmgr_buf_available(s_block);
         const int clean = (standing == 0u) && (end == 0u) && (top == bytes) && (available == bytes) &&
                           (embed_atomic_usize_load(&s_damaged) == 0u) && (embed_atomic_usize_load(&s_misnamed) == 0u);
-        printf("run %u: taken=%llu refused=%llu damaged=%llu misnamed=%llu standing=%llu end=%llu top=%llu available=%llu %s\n",
-               run, (unsigned long long)embed_atomic_usize_load(&s_taken), (unsigned long long)embed_atomic_usize_load(&s_refused),
-               (unsigned long long)embed_atomic_usize_load(&s_damaged), (unsigned long long)embed_atomic_usize_load(&s_misnamed),
-               (unsigned long long)standing, (unsigned long long)end, (unsigned long long)top, (unsigned long long)available,
+        printf("run %u: taken=%llu refused=%llu damaged=%llu misnamed=%llu standing=%llu end=%llu top=%llu "
+               "available=%llu %s\n",
+               run, (unsigned long long)embed_atomic_usize_load(&s_taken),
+               (unsigned long long)embed_atomic_usize_load(&s_refused),
+               (unsigned long long)embed_atomic_usize_load(&s_damaged),
+               (unsigned long long)embed_atomic_usize_load(&s_misnamed), (unsigned long long)standing,
+               (unsigned long long)end, (unsigned long long)top, (unsigned long long)available,
                clean ? "clean" : "BROKEN");
         fflush(stdout);
         failed = failed || !clean;

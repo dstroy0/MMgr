@@ -77,23 +77,25 @@ the form with two words.
 Lean 4 checks the models in [`theory/locus_carcerum`](theory/locus_carcerum). The models use the core
 library only.
 
-| file | what it proves |
-| ---- | -------------- |
-| `Packed.lean` | Lemmas 1 to 5 and the theorem, with the two boundaries read in one step |
-| `Split.lean` | the steps with two words, and the order of steps that breaks the invariant |
-| `Word.lean` | the arithmetic of the word, the request guard, and the limit on the bumps in progress |
-| `Layout.lean` | the sweep keeps the bytes, the busy cells and the count of each owner |
-| `Take.lean` | a take over a free run, and the count that the mover keeps |
-| `Spill.lean` | the spill, the bump at the end, and the two growths |
-| `Give.lean` | a cell goes off the count of its owner one time |
-| `Rewind.lean` | a rewind stops on a cell boundary, at or after the mark |
-| `Fragment.lean` | the fragmentation value is 100 or less |
-| `Bounds.lean` | the span test, the pointer test and the high-water marks |
-| `Entry.lean` | two contexts do not name one movable entry |
-| `Boundary.lean` | a free cell does not stay at the edge of an open cellblock |
-| `Pass.lean` | a pass does not work on the cellblock while a writer works alone |
-| `Trim.lean` | an open cellblock with no give in progress owes no trim |
-| `Order.lean` | the C11 orders that the closed word, the drain and the free use |
+| file            | what it proves                                                                        |
+| --------------- | ------------------------------------------------------------------------------------- |
+| `Packed.lean`   | Lemmas 1 to 5 and the theorem, with the two boundaries read in one step               |
+| `Split.lean`    | the steps with two words, and the order of steps that breaks the invariant            |
+| `Word.lean`     | the arithmetic of the word, the request guard, and the limit on the bumps in progress |
+| `Layout.lean`   | the sweep keeps the bytes, the busy cells and the count of each owner                 |
+| `Take.lean`     | a take over a free run, and the count that the mover keeps                            |
+| `Spill.lean`    | the spill, the bump at the end, and the two growths                                   |
+| `Give.lean`     | a cell goes off the count of its owner one time                                       |
+| `Rewind.lean`   | a rewind stops on a cell boundary, at or after the mark                               |
+| `Fragment.lean` | the fragmentation value is 100 or less                                                |
+| `Futex.lean`    | the address wait that GenMC runs has the behavior of the futex contract and no other  |
+| `Bounds.lean`   | the span test, the pointer test and the high-water marks                              |
+| `Entry.lean`    | two contexts do not name one movable entry                                            |
+| `Boundary.lean` | a free cell stays at the edge only while its trim bit is set                          |
+| `Pass.lean`     | a pass does not work on the cellblock while a writer works alone                      |
+| `Sleep.lean`    | a pass that sleeps on the closed word wakes when the writer opens                     |
+| `Trim.lean`     | a cellblock with no trim bit set and no give in progress owes no trim                 |
+| `Order.lean`    | the C11 orders that the closed word, the drain and the free use                       |
 
 ```sh
 cd theory/locus_carcerum
@@ -107,22 +109,27 @@ theorem with inputs, assumptions and assertions. CBMC proves each harness on the
 executor proves each harness on the machine code that GCC and Clang make at `-O0` and `-O2`. Each prover
 must also reach the end of each harness, and a harness with no possible path cannot pass.
 
+GenMC holds the threads. Each client in `test/prove` named `*_genmc.c` runs two or three threads on the C. GenMC
+runs each client under SC, TSO, RC11, IMM and ARMv8, and it explores each execution that the model allows. A
+client fails on a broken assertion, a data race, or a thread that sleeps with no wake to come. The address wait
+that the clients use is the model in `Futex.lean`.
+
 ## Where things are
 
-|                                               |                                                                                                  |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| [`src/`](src)                                 | the library, one directory per module                                                            |
-| [`include/mmgr.h`](include/mmgr.h)            | the header a consumer includes: pool declarations, the name guards, the assert hook              |
-| [`deps/embedded_types/`](deps/embedded_types) | the widths, the word, the attribute wrappers and the dispatch macros every module builds on      |
-| [`test/`](test)                               | `unit` per translation unit, `integration` and `interop` across modules, `environment` per width |
-| [`test/stress/`](test/stress)                 | threads on one cellblock, every cell's bytes checked before it goes back                         |
-| [`test/fuzz/`](test/fuzz)                     | a libFuzzer harness for every module, each checked against a model, and the replay every toolchain runs  |
-| [`test/verify/`](test/verify)                 | every toolchain's build of a module: behavior, IR, lowering, disassembly and Ghidra              |
-| [`test/prove/`](test/prove)                   | the proof harnesses that CBMC and the symbolic executor hold                                     |
-| [`test/harness.py`](test/harness.py)          | build, run, fuzz, verify, prove, the A/B, coverage, and the suite and generator checks           |
-| [`tools/dev_env/`](tools/dev_env)             | the generators for `src/`'s tables, the size sweep, the source rewriters                         |
-| [`theory/`](theory)                           | the Lean proofs of LocusCarcerum                                                                 |
-| [`docs/`](docs)                               | the prose, and the Doxygen configuration that renders it                                         |
+|                                               |                                                                                                         |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| [`src/`](src)                                 | the library, one directory per module                                                                   |
+| [`include/mmgr.h`](include/mmgr.h)            | the header a consumer includes: pool declarations, the name guards, the assert hook                     |
+| [`deps/embedded_types/`](deps/embedded_types) | the widths, the word, the attribute wrappers and the dispatch macros every module builds on             |
+| [`test/`](test)                               | `unit` per translation unit, `integration` and `interop` across modules, `environment` per width        |
+| [`test/stress/`](test/stress)                 | threads on one cellblock, every cell's bytes checked before it goes back                                |
+| [`test/fuzz/`](test/fuzz)                     | a libFuzzer harness for every module, each checked against a model, and the replay every toolchain runs |
+| [`test/verify/`](test/verify)                 | every toolchain's build of a module: behavior, IR, lowering, disassembly and Ghidra                     |
+| [`test/prove/`](test/prove)                   | the proof harnesses that CBMC and the symbolic executor hold                                            |
+| [`test/harness.py`](test/harness.py)          | build, run, fuzz, verify, prove, the A/B, coverage, and the suite and generator checks                  |
+| [`tools/dev_env/`](tools/dev_env)             | the generators for `src/`'s tables, the size sweep, the source rewriters                                |
+| [`theory/`](theory)                           | the Lean proofs of LocusCarcerum                                                                        |
+| [`docs/`](docs)                               | the prose, and the Doxygen configuration that renders it                                                |
 
 ### The modules
 
@@ -202,6 +209,41 @@ Clang and `-DMMGR_FUZZ=ON`. `python test/harness.py fuzz` builds them and runs e
 ```sh
 python test/harness.py fuzz --seconds 60 --filter locus_carcerum
 ```
+
+## How each change is verified
+
+The checks run in this order, from the commit on a workstation to the jobs on GitHub. A check that fails stops
+the change.
+
+1. **The commit.** The pre-commit hook in `.githooks` runs `python test/harness.py ste`. This check compares
+   each technical document with ASD-STE100. A document can have no more findings than `test/ste_ratchet.tsv`
+   permits, and a new document can have none. To use the hook, run `git config core.hooksPath .githooks` one
+   time in each clone.
+2. **The suite.** `python test/harness.py test` builds the tree, and `ctest` runs each suite. These are the
+   unit, integration, interop and environment suites, the stress programs, the trim race test and the
+   ASD-STE100 check.
+3. **The fuzz harnesses.** `python test/harness.py fuzz` builds each libFuzzer harness with Clang, with the
+   address and undefined behavior sanitizers. A model in each harness examines each result.
+4. **The Lean proofs.** `lake build` in `theory/locus_carcerum` checks each model. A theorem that `sorry`
+   closes has no proof. Lean does not stop on it, but the CI job fails.
+5. **The proof harnesses.** `python test/harness.py prove` runs three provers. CBMC proves each harness on the
+   C source. A symbolic executor proves each harness on the machine code that GCC and Clang make at `-O0` and
+   `-O2`. GenMC runs each thread client under each of the five memory models.
+
+On GitHub, each push to `main` and each pull request starts these workflows:
+
+| workflow           | what it does                                                                                               | what makes it fail                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `SonarCloud.yml`   | builds the default tree with coverage, runs `ctest`, and sends the analysis and the coverage to SonarCloud | a build error or a test that fails                                 |
+| `capabilities.yml` | runs the suite on `build-dma`, `build-dma-lean` and `build-extram`, the trees with DMA or external RAM     | a build error or a test that fails                                 |
+| `proofs.yml`       | runs the fuzz harnesses, the Lean proofs, CBMC and the machine arm, and GenMC                              | a fuzz error, a Lean error, a `sorry`, or a harness with no proof  |
+| `codeql.yml`       | analyzes the C and the workflows with the `security-and-quality` queries                                   | the code scanning check that the branch ruleset of `main` requires |
+| `format-code.yml`  | checks the C with clang-format, the Python in `tools` with black, and the markup and data with prettier    | a file that the formatter changes                                  |
+| `docs.yml`         | makes the Doxygen pages, counts the warnings, and puts the pages on GitHub Pages from `main`               | Doxygen does not run                                               |
+
+A hosted runner has 16 GB of memory. `prove --hosted` does not run a harness whose bound needs more memory, and
+it writes the name of each harness that it does not run. The `locus_carcerum_movable` harness needs more than
+27 GB under CBMC. Thus, this harness runs only on a workstation with `python test/harness.py prove`.
 
 ## What MMgr claims, and where the proof is
 

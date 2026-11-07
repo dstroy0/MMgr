@@ -1199,7 +1199,7 @@ def cmd_prove(a):
     sys.path.insert(0, os.path.join(ROOT, "test", "prove"))
     import prove  # noqa: PLC0415  the module is only importable once its folder is on the path
     run_root = os.path.join(BUILD_CONTAINER, "prove-" + build_stamp())
-    return prove.prove(ROOT, run_root, a.harness, a.arm or ["cbmc", "machine"])
+    return prove.prove(ROOT, run_root, a.harness, a.arm or ["cbmc", "machine", "genmc"], a.hosted)
 
 
 def cmd_fuzz(a):
@@ -2296,9 +2296,10 @@ def main():
     p.add_argument("--no-ghidra", action="store_true", help="leave out Ghidra's decompile")
     p.set_defaults(fn=cmd_verify)
 
-    p = sub.add_parser("prove", help="each proof harness proved on the C with CBMC and on each toolchain's machine code")
+    p = sub.add_parser("prove", help="each proof harness proved on the C with CBMC and on each toolchain's machine code, and each thread client under every memory model with GenMC")
     p.add_argument("--harness", action="append", help="a harness by name, without _prove.c, any number of times")
-    p.add_argument("--arm", action="append", choices=["cbmc", "machine"], help="one prover only, any number of times")
+    p.add_argument("--arm", action="append", choices=["cbmc", "machine", "genmc"], help="one prover only, any number of times")
+    p.add_argument("--hosted", action="store_true", help="leave out each harness whose bound needs more memory than a hosted runner has")
     p.set_defaults(fn=cmd_prove)
 
     p = sub.add_parser("ste", help="every technical document checked against ASD-STE100 with the ratchet")

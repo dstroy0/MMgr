@@ -66,6 +66,8 @@ static void raced(unsigned int index)
         reached(&s_done, 2u * (round + 1u));
         if (index == 0u)
         {
+            // the gap, read first, runs any trim a give left owed on the open word
+            (void)mmgr_buf_available(RACE_BLOCK);
             const size_t top = mmgr_series_cellularum_temporary_top(RACE_BLOCK);
             if (top != RACE_BYTES)
             {

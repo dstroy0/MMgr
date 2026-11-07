@@ -3,17 +3,19 @@
 
 The closed word as the writers and the gives share it. A writer holds the closed bit while it works alone. A give
 sets its cell's header free, then sets the closed bit and its tier's trim bit with one fetch-or: where the closed
-bit was clear the give holds the cellblock, and where another holds it the give leaves. A holder opens in a loop:
-one fetch-and takes the trim bits and the tiers they name are trimmed, then one compare-exchange clears the closed
-bit, and only from a word with no trim bit set.
+bit was clear the give holds the cellblock, and where another holds it the give leaves. A holder opens in one
+pass: one fetch-and takes the trim bits and the tiers they name are trimmed, then a second fetch-and clears the
+closed bit whatever trim bits stand. A trim bit a give sets between the two stays on the open word, and the next
+take, or the next read of the gap, holds the bit and runs it before its own pass.
 
 A tier is `dirty` while a cell given back at its boundary stands untrimmed. The invariant: a dirty tier has its
-trim bit set, or a give of that tier stands between its store and its fetch-or. A trim bit set means the closed
-bit is held. The theorem: a cellblock open with no give in flight has no dirty tier.
+trim bit set, or a give of that tier stands between its store and its fetch-or. The theorems: a cellblock with
+no trim bit set and no give in flight has no dirty tier, and the take that a holder runs first leaves no tier
+dirty except through a give in flight.
 
 `take` is the fetch-and and the walk as one step. In the C the walk follows the fetch-and with the closed bit
 still held, and a give between the two either stored its header before the walk, which then trims past it, or
-sets its trim bit again with its fetch-or, which the compare-exchange then refuses to open past.
+sets its trim bit again with its fetch-or, which stays owed on the word for the next holder.
 
 The give of the earlier protocol set the closed bit alone and left where another held it, and a holder trimmed
 only the tier it worked in. `old_loses` is the interleaving the stress run read: a persistent writer holds the
@@ -64,8 +66,8 @@ inductive Step : State → State → Prop where
   /-- The open's fetch-and: the trim bits taken and the tiers they name trimmed. -/
   | take {s : State} (i : Nat) (h : s.place i = .holding) :
       Step s { s with owed := fun _ => false, dirty := fun t => s.dirty t && !s.owed t }
-  /-- The open's compare-exchange: the closed bit cleared, only from a word with no trim bit set. -/
-  | release {s : State} (i : Nat) (h : s.place i = .holding) (ho : ∀ t, s.owed t = false) :
+  /-- The open's second fetch-and: the closed bit cleared, the trim bits left as they stand. -/
+  | release {s : State} (i : Nat) (h : s.place i = .holding) :
       Step s { s with held := false, place := moved s.place i .idle }
 
 /-- The cellblock as it is laid out: open, nothing owed, nothing dirty, every context at rest. -/
@@ -76,17 +78,15 @@ inductive Reach : State → Prop where
   | start : Reach start
   | step {s s' : State} : Reach s → Step s s' → Reach s'
 
-/-- The invariant: a dirty tier is owed a trim or has a give in flight; a trim owed means the bit is held; a
-holder means the bit is held; and one context holds at a time. -/
+/-- The invariant: a dirty tier is owed a trim or has a give in flight; a holder means the bit is held; and one
+context holds at a time. -/
 structure Inv (s : State) : Prop where
   dirtyCovered : ∀ t, s.dirty t = true → s.owed t = true ∨ ∃ i, s.place i = .stored t
-  owedHeld : ∀ t, s.owed t = true → s.held = true
   holderHeld : ∀ i, s.place i = .holding → s.held = true
   oneHolder : ∀ i j, s.place i = .holding → s.place j = .holding → i = j
 
 theorem inv_start : Inv start where
   dirtyCovered := by intro t h; simp [start] at h
-  owedHeld := by intro t h; simp [start] at h
   holderHeld := by intro i h; simp [start] at h
   oneHolder := by intro i j h; simp [start] at h
 
@@ -110,7 +110,6 @@ theorem inv_step {s s' : State} (hs : Inv s) (st : Step s s') : Inv s' := by
         · refine Or.inr ⟨j, ?_⟩
           have hji : j ≠ i := by intro e; subst e; rw [h] at hj; cases hj
           simpa [moved_other _ _ _ _ hji] using hj
-    · exact hs.owedHeld
     · intro j hj
       by_cases hji : j = i
       · subst hji; simp [moved] at hj
@@ -131,7 +130,6 @@ theorem inv_step {s s' : State} (hs : Inv s) (st : Step s s') : Inv s' := by
           have hji : j ≠ i := by
             intro e; subst e; rw [h] at hj; cases hj; exact hut rfl
           simpa [moved_other _ _ _ _ hji] using hj
-    · intro _ _; rfl
     · intro _ _; rfl
     · intro a b ha hb
       cases hheld : s.held with
@@ -159,7 +157,6 @@ theorem inv_step {s s' : State} (hs : Inv s) (st : Step s s') : Inv s' := by
         have hji : j ≠ i := by intro e; subst e; rw [h] at hj; cases hj
         simpa [moved_other _ _ _ _ hji] using hj
     · intro _ _; rfl
-    · intro _ _; rfl
     · intro a b ha hb
       have none : ∀ k, k ≠ i → moved s.place i .holding k = .holding → False := by
         intro k hki hk
@@ -178,18 +175,16 @@ theorem inv_step {s s' : State} (hs : Inv s) (st : Step s s') : Inv s' := by
       rcases hs.dirtyCovered u hd with ho | hj
       · rw [hno] at ho; cases ho
       · exact Or.inr hj
-    · intro _ hu; simp at hu
     · exact hs.holderHeld
     · exact hs.oneHolder
-  | release i h ho =>
+  | release i h =>
     constructor
     · intro u hu
       rcases hs.dirtyCovered u hu with hou | ⟨j, hj⟩
-      · rw [ho u] at hou; cases hou
+      · exact Or.inl hou
       · refine Or.inr ⟨j, ?_⟩
         have hji : j ≠ i := by intro e; subst e; rw [h] at hj; cases hj
         simpa [moved_other _ _ _ _ hji] using hj
-    · intro u hu; rw [ho u] at hu; cases hu
     · intro j hj
       have hji : j ≠ i := by intro e; subst e; simp [moved] at hj
       have := hs.oneHolder i j h (by simpa [moved_other _ _ _ _ hji] using hj)
@@ -205,18 +200,30 @@ theorem inv_reach {s : State} (h : Reach s) : Inv s := by
   | start => exact inv_start
   | step _ st ih => exact inv_step ih st
 
-/-- A cellblock open with no give in flight has no tier dirty: every cell given back at a boundary is trimmed
-past by the time the closed bit clears. -/
-theorem open_trimmed {s : State} (h : Reach s) (hopen : s.held = false) (hquiet : ∀ i t, s.place i ≠ .stored t) :
-    ∀ t, s.dirty t = false := by
+/-- A cellblock has no dirty tier when its word holds no trim bit and no give is in flight. A trim walks past
+each cell that a give frees at a boundary, or the word keeps the trim bit of its tier. -/
+theorem open_trimmed {s : State} (h : Reach s) (hno : ∀ t, s.owed t = false)
+    (hquiet : ∀ i t, s.place i ≠ .stored t) : ∀ t, s.dirty t = false := by
   intro t
   have hi := inv_reach h
   cases hd : s.dirty t with
   | false => rfl
   | true =>
     rcases hi.dirtyCovered t hd with ho | ⟨i, hit⟩
-    · have := hi.owedHeld t ho; rw [hopen] at this; cases this
+    · rw [hno t] at ho; cases ho
     · exact (hquiet i t hit).elim
+
+/-- A holder runs the take first. After the take, each dirty tier has a give in flight. Thus the walk after the
+take runs each trim that the word kept. -/
+theorem taken_trimmed {s s' : State} (h : Reach s) (i : Nat) (hi : s.place i = .holding)
+    (hs' : s' = { s with owed := fun _ => false, dirty := fun t => s.dirty t && !s.owed t }) :
+    ∀ t, s'.dirty t = true → ∃ j, s'.place j = .stored t := by
+  intro t hd
+  have hinv := inv_step (inv_reach h) (Step.take i hi)
+  rw [← hs'] at hinv
+  rcases hinv.dirtyCovered t hd with ho | hj
+  · rw [hs'] at ho; simp at ho
+  · exact hj
 
 /-- The words of the earlier protocol: the closed bit and the two dirty tiers. -/
 structure OldState where
@@ -242,7 +249,7 @@ def oldAfter : OldState := oldPersistentOpen (oldTemporaryGive (oldShut ⟨false
 theorem old_loses : oldAfter = ⟨false, false, true⟩ := by decide
 
 /-- The same interleaving in this protocol: the writer acquires, the give stores and its fetch-or finds the bit
-held, the writer's open takes the temporary trim bit and trims, and the compare-exchange opens. -/
+held, the writer's open takes the temporary trim bit and trims, and the second fetch-and opens. -/
 def newAfter : State :=
   let s0 := start
   let s1 : State := { s0 with held := true, place := moved s0.place 0 .holding }

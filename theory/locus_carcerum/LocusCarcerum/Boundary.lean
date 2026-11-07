@@ -6,8 +6,9 @@ live, and `free k` says whether the cell at `k` is given back. A writer's trim w
 time, stops at the first busy cell or at `size`, and only then stores the place it stopped at as the new `top`.
 
 A give stores its cell's header free, then reads the closed bit and `top`, and goes on to the fetch-or of
-`Trim.lean` where the closed bit is set or its cell stands at `top`. The theorem: a cellblock open with every
-context at rest has no free cell at its top.
+`Trim.lean` where the closed bit is set or its cell stands at `top`. The open takes the trim bit once, walks, and
+clears the closed bit whatever trim bit stands. The theorems: a cellblock with no trim owed and every context at
+rest has no free cell at its top, and the next holder's take walks from `top` where a trim stands owed.
 
 The give of the earlier protocol read `top` before its store. `old_loses` is the interleaving the race program
 read: the give of the cell above the top reads `top` while the cell below still stands, the give of that cell
@@ -73,8 +74,8 @@ inductive Step : State → State → Prop where
   /-- A writer's shut: the closed bit taken where it was clear. -/
   | acquire {s : State} (i : Nat) (h : s.place i = .idle) (hc : s.held = false) :
       Step s { s with held := true, place := moved s.place i .holding }
-  /-- The open's fetch-and: the trim bit taken, and the walk begun at `top` where it was set. -/
-  | take {s : State} (i : Nat) (h : s.place i = .holding ∨ s.place i = .published) :
+  /-- The open's first fetch-and, once a pass: the trim bit taken, and the walk begun at `top` where it was set. -/
+  | take {s : State} (i : Nat) (h : s.place i = .holding) :
       Step s { s with owed := false, place := moved s.place i (if s.owed then .walking s.top else .published) }
   /-- The walk reads a free header and steps past it. -/
   | advance {s : State} (i k : Nat) (h : s.place i = .walking k) (hf : s.free k = true) (hk : k < size) :
@@ -85,8 +86,8 @@ inductive Step : State → State → Prop where
   /-- The walk's place stored as `top`. -/
   | publish {s : State} (i k : Nat) (h : s.place i = .stopped k) :
       Step s { s with top := k, place := moved s.place i .published }
-  /-- The open's compare-exchange: the closed bit cleared, only where no trim is owed. -/
-  | release {s : State} (i : Nat) (h : s.place i = .published) (ho : s.owed = false) :
+  /-- The open's second fetch-and: the closed bit cleared, the trim bit left as it stands. -/
+  | release {s : State} (i : Nat) (h : s.place i = .published) :
       Step s { s with held := false, place := moved s.place i .idle }
   /-- A take through a pass: a busy cell laid below `top`, which moves down to it. A pass begun before the closed bit
   is set can still bump until the writer's drain, and the drain ends before any walk begins; a bump lays a busy
@@ -102,11 +103,10 @@ inductive Reach : State → Prop where
   | start : Reach (start size)
   | step {s s' : State} : Reach s → Step size s s' → Reach s'
 
-/-- The invariant. A trim owed means the bit is held, and so does a writer; one writer at a time. A walk stands
+/-- The invariant. A writer means the bit is held; one writer at a time. A walk stands
 at or above `top` with every cell it passed free. A stop at a live cell that is free again since has a give of it
 in flight or its trim owed. A free cell at `top` has its trim owed, a give in flight, or a writer at its walk. -/
 structure Inv (s : State) : Prop where
-  owedHeld : s.owed = true → s.held = true
   writerHeld : ∀ i, Writer (s.place i) → s.held = true
   oneWriter : ∀ i j, Writer (s.place i) → Writer (s.place j) → i = j
   walked : ∀ i k, s.place i = .walking k → s.top ≤ k ∧ ∀ j, s.top ≤ j → j < k → s.free j = true
@@ -126,7 +126,6 @@ theorem moved_other (place : Nat → Place) (i j : Nat) (p : Place) (h : j ≠ i
   simp [moved, h]
 
 theorem inv_start (size : Nat) : Inv size (start size) where
-  owedHeld := by intro h; simp [start] at h
   writerHeld := by intro i h; simp [start, Writer] at h
   oneWriter := by intro i j h; simp [start, Writer] at h
   walked := by intro i k h; simp [start] at h
@@ -149,7 +148,7 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
   cases st with
   | store i c h hl hc hb =>
     have hnw : ¬ Writer (Place.stored c) := by simp [Writer]
-    refine ⟨hs.owedHeld, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
     · intro j hj; exact hs.writerHeld j (writer_before hnw hj).2
     · intro a b ha hb'
       exact hs.oneWriter a b (writer_before hnw ha).2 (writer_before hnw hb').2
@@ -186,7 +185,7 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
   | read i c h =>
     have hnw : ¬ Writer (if s.held || decide (s.top = c) then Place.fetching else Place.idle) := by
       split <;> simp [Writer]
-    refine ⟨hs.owedHeld, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
     · intro j hj; exact hs.writerHeld j (writer_before hnw hj).2
     · intro a b ha hb'
       exact hs.oneWriter a b (writer_before hnw ha).2 (writer_before hnw hb').2
@@ -220,7 +219,7 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
       · exact Or.inr (Or.inr (Or.inr (Or.inl ⟨m, k, by simp [moved, hmi, hm]⟩)))
       · exact Or.inr (Or.inr (Or.inr (Or.inr ⟨m, k, by simp [moved, hmi, hm]⟩)))
   | fetchOr i h =>
-    refine ⟨fun _ => rfl, fun _ _ => rfl, ?_, ?_, ?_, ?_⟩
+    refine ⟨fun _ _ => rfl, ?_, ?_, ?_, ?_⟩
     · intro a b ha hb'
       cases hheld : s.held with
       | true =>
@@ -242,7 +241,7 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
     · intro _ _ _ _ _; exact Or.inl rfl
     · intro _ _; exact Or.inl rfl
   | acquire i h hc =>
-    refine ⟨fun _ => rfl, fun _ _ => rfl, ?_, ?_, ?_, ?_⟩
+    refine ⟨fun _ _ => rfl, ?_, ?_, ?_, ?_⟩
     · intro a b ha hb'
       have none : ∀ k, k ≠ i → Writer (moved s.place i .holding k) → False := by
         intro k hki hk
@@ -274,11 +273,11 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
       · exact Or.inr (Or.inr (Or.inr (Or.inl ⟨m, k, by simp [moved, hmi, hm]⟩)))
       · exact Or.inr (Or.inr (Or.inr (Or.inr ⟨m, k, by simp [moved, hmi, hm]⟩)))
   | take i h =>
-    have hiw : Writer (s.place i) := by rcases h with h | h <;> rw [h] <;> trivial
+    have hiw : Writer (s.place i) := by rw [h]; trivial
     have hheld : s.held = true := hs.writerHeld i hiw
     have only : ∀ j, j ≠ i → ¬ Writer (s.place j) := fun j hji hj => hji (hs.oneWriter j i hj hiw)
     have hnew : Writer (if s.owed then Place.walking s.top else Place.published) := by split <;> trivial
-    refine ⟨(fun h => by cases h), ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
     · intro _ _; exact hheld
     · intro a b ha hb'
       have : ∀ k, Writer (moved s.place i (if s.owed then .walking s.top else .published) k) → k = i := by
@@ -310,14 +309,14 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
           exact Or.inr (Or.inr (Or.inl ⟨m, by simp [moved, hmi, hm]⟩))
         · have hmi : m = i :=
             Classical.byContradiction fun hmi => only m hmi (by rw [hm]; trivial)
-          subst hmi; rcases h with h | h <;> rw [h] at hm <;> cases hm
+          subst hmi; rw [h] at hm; cases hm
         · have hmi : m = i :=
             Classical.byContradiction fun hmi => only m hmi (by rw [hm]; trivial)
-          subst hmi; rcases h with h | h <;> rw [h] at hm <;> cases hm
+          subst hmi; rw [h] at hm; cases hm
   | advance i k h hf hk =>
     have hiw : Writer (s.place i) := by rw [h]; trivial
     have only : ∀ j, j ≠ i → ¬ Writer (s.place j) := fun j hji hj => hji (hs.oneWriter j i hj hiw)
-    refine ⟨hs.owedHeld, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
     · intro _ _; exact hs.writerHeld i hiw
     · intro a b ha hb'
       have : ∀ m, Writer (moved s.place i (.walking (k + 1)) m) → m = i := by
@@ -344,7 +343,7 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
   | stop i k h hb =>
     have hiw : Writer (s.place i) := by rw [h]; trivial
     have only : ∀ j, j ≠ i → ¬ Writer (s.place j) := fun j hji hj => hji (hs.oneWriter j i hj hiw)
-    refine ⟨hs.owedHeld, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
     · intro _ _; exact hs.writerHeld i hiw
     · intro a b ha hb'
       have : ∀ m, Writer (moved s.place i (.stopped k) m) → m = i := by
@@ -369,7 +368,7 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
   | publish i k h =>
     have hiw : Writer (s.place i) := by rw [h]; trivial
     have only : ∀ j, j ≠ i → ¬ Writer (s.place j) := fun j hji hj => hji (hs.oneWriter j i hj hiw)
-    refine ⟨hs.owedHeld, ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
     · intro _ _; exact hs.writerHeld i hiw
     · intro a b ha hb'
       have : ∀ m, Writer (moved s.place i .published m) → m = i := by
@@ -393,11 +392,11 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
         exact Or.inr (Or.inl ⟨m, by simp [moved, hmi, hm]⟩)
       · have hmi : m ≠ i := by intro e; subst e; rw [h] at hm; cases hm
         exact Or.inr (Or.inr (Or.inl ⟨m, by simp [moved, hmi, hm]⟩))
-  | release i h ho =>
+  | release i h =>
     have hiw : Writer (s.place i) := by rw [h]; trivial
     have only : ∀ j, j ≠ i → ¬ Writer (s.place j) := fun j hji hj => hji (hs.oneWriter j i hj hiw)
     have hnw : ¬ Writer Place.idle := by simp [Writer]
-    refine ⟨(fun h' => by rw [ho] at h'; cases h'), ?_, ?_, ?_, ?_, ?_⟩
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
     · intro j hj
       obtain ⟨hji, hjw⟩ := writer_before hnw hj
       exact (only j hji hjw).elim
@@ -412,7 +411,7 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
       exact (only j hji (by rw [kept hj hji]; trivial)).elim
     · intro ht hf
       rcases hs.topCovered ht hf with hso | ⟨m, hm⟩ | ⟨m, hm⟩ | ⟨m, k, hm⟩ | ⟨m, k, hm⟩
-      · rw [ho] at hso; cases hso
+      · exact Or.inl hso
       · have hmi : m ≠ i := by intro e; subst e; rw [h] at hm; cases hm
         exact Or.inr (Or.inl ⟨m, by simp [moved, hmi, hm]⟩)
       · have hmi : m ≠ i := by intro e; subst e; rw [h] at hm; cases hm
@@ -424,7 +423,7 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
   | bump i h hc ht =>
     have none : ∀ j, ¬ Writer (s.place j) := fun j hj => by
       have := hs.writerHeld j hj; rw [hc] at this; cases this
-    refine ⟨hs.owedHeld, hs.writerHeld, hs.oneWriter, ?_, ?_, ?_⟩
+    refine ⟨hs.writerHeld, hs.oneWriter, ?_, ?_, ?_⟩
     · intro j k hj; exact (none j (by rw [hj]; trivial)).elim
     · intro j k hj; exact (none j (by rw [hj]; trivial)).elim
     · intro _ hf; simp [marked] at hf
@@ -434,17 +433,25 @@ theorem inv_reach {size : Nat} {s : State} (h : Reach size s) : Inv size s := by
   | start => exact inv_start size
   | step _ st ih => exact inv_step ih st
 
-/-- A cellblock open with every context at rest has no free cell at its top: every cell given back at the
-boundary, or found there by a trim, is trimmed past by the time the closed bit clears. -/
-theorem open_trimmed {size : Nat} {s : State} (h : Reach size s) (hopen : s.held = false)
+/-- A cellblock has no free cell at its top when its word holds no trim bit and each context is at rest. A trim
+walks past each free cell at the boundary, or the word keeps the trim bit. -/
+theorem open_trimmed {size : Nat} {s : State} (h : Reach size s) (hno : s.owed = false)
     (hrest : ∀ i, s.place i = .idle) (ht : s.top < size) : s.free s.top = false := by
   have hi := inv_reach h
   cases hf : s.free s.top with
   | false => rfl
   | true =>
     rcases hi.topCovered ht hf with ho | ⟨m, hm⟩ | ⟨m, hm⟩ | ⟨m, k, hm⟩ | ⟨m, k, hm⟩
-    · have := hi.owedHeld ho; rw [hopen] at this; cases this
+    · rw [hno] at ho; cases ho
     all_goals rw [hrest m] at hm; cases hm
+
+/-- The next holder runs the trim that the open word keeps. Its take starts the walk at `top`, and the walk goes
+past the free cell there. -/
+theorem owed_walked {size : Nat} {s : State} (i : Nat) (h : s.place i = .holding) (ho : s.owed = true) :
+    Step size s { s with owed := false, place := moved s.place i (.walking s.top) } := by
+  have st := Step.take (size := size) i h
+  rw [ho] at st
+  exact st
 
 /-- Two live cells, both busy: cell 0 at the top and cell 1 above it, the cellblock open. -/
 def twoCells : State := ⟨false, false, 0, fun _ => false, fun _ => .idle⟩
