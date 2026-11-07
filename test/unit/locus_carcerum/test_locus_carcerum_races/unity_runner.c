@@ -38,7 +38,7 @@ extern void test_a_claim_not_permitted_names_nothing(void);
 extern void test_a_claim_lost_to_another_context_names_nothing_and_the_take_tries_once_more(void);
 extern void test_the_highest_named_cell_below_a_bound_and_under_a_size(void);
 extern void test_with_no_option_there_is_no_line_and_no_row(void);
-extern void test_a_span_past_a_cell_or_of_a_free_slot_does_not_fit(void);
+extern void test_a_span_past_a_cell_or_of_a_free_entry_does_not_fit(void);
 extern void test_emptying_puts_the_record_back_at_rest(void);
 
 
@@ -129,7 +129,7 @@ int main(void)
   run_test(test_a_claim_lost_to_another_context_names_nothing_and_the_take_tries_once_more, "test_a_claim_lost_to_another_context_names_nothing_and_the_take_tries_once_more", 455);
   run_test(test_the_highest_named_cell_below_a_bound_and_under_a_size, "test_the_highest_named_cell_below_a_bound_and_under_a_size", 468);
   run_test(test_with_no_option_there_is_no_line_and_no_row, "test_with_no_option_there_is_no_line_and_no_row", 485);
-  run_test(test_a_span_past_a_cell_or_of_a_free_slot_does_not_fit, "test_a_span_past_a_cell_or_of_a_free_slot_does_not_fit", 500);
+  run_test(test_a_span_past_a_cell_or_of_a_free_entry_does_not_fit, "test_a_span_past_a_cell_or_of_a_free_entry_does_not_fit", 500);
   run_test(test_emptying_puts_the_record_back_at_rest, "test_emptying_puts_the_record_back_at_rest", 517);
 
   return UNITY_END();

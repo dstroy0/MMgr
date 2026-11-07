@@ -7,7 +7,7 @@
 /**
  * @file transformo_fuzz.c
  * @brief A libFuzzer harness over the decimal conversions: take against the multiply and add it states, scale
- *        against the C library's correctly rounded strtod, scale with dropped digits between the two neighbours
+ *        against the C library's correctly rounded strtod, scale with dropped digits between the two neighbors
  *        it lies between, and scale_to_u64 against the exact rational rounded half up in a wide integer.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06

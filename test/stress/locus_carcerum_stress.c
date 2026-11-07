@@ -141,7 +141,7 @@ static uint8_t *guarded(size_t bytes)
     (void)mprotect(base, page, PROT_NONE);
     (void)mprotect(base + page + inner, page, PROT_NONE);
 #endif
-    // the storage ends against the page that follows, so a write past its last byte faults
+    // the storage ends against the page that follows, and a write past its last byte faults
     return base + page + (inner - bytes);
 }
 
@@ -313,7 +313,7 @@ static void unshadowed(uint32_t off, size_t bytes)
     }
 }
 
-/** @brief Every held cell's header read: a header that is not a busy cell's of its bytes is a broken cell. */
+/** @brief Every taken cell's header read: a header that is not a busy cell's of its bytes is a broken cell. */
 static void checked_all(unsigned int thread, const StressHeld *held, unsigned int count)
 {
     for (unsigned int at = 0u; at < count; at += 1u)
@@ -432,7 +432,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "no guarded storage\n");
         return 2;
     }
-    // the state laid at the highest 64-aligned place of its page, so its last word stands against the fault page
+    // the state laid at the highest 64-aligned place of its page, and its last word stands against the fault page
     s_block = (SeriesCellularum *)(void *)(state_page + ((sizeof(SeriesCellularum) + 64u - sizeof(SeriesCellularum)) & ~(size_t)63u));
     const SeriesCellularum made = MMGR_CARCER_STATE(storage, bytes);
     memcpy(s_block, &made, sizeof(made));

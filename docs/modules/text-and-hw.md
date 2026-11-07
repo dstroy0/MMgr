@@ -64,11 +64,11 @@ mmgr_line_hex(&line, addr, 8u);
 const size_t len = mmgr_line_finish(&line);
 ```
 
-Every write leaves the buffer terminated, one store paid on every call, and so a written line whose
+Every write leaves the buffer terminated, one store paid on every call, and a written line whose
 buffer holds no terminator has been corrupted by something other than the line. A line with no flush
 behaves as `snprintf` does: a write that does not fit keeps what fits, terminated in the last byte,
 leaves the line full, and `finish` reports zero. `mmgr_line_put`, `mmgr_line_put_n` and
-`mmgr_line_put_most` answer the bytes of the text the line took, and so a caller that sees fewer than
+`mmgr_line_put_most` answer the bytes of the text the line took, and a caller that sees fewer than
 the text holds goes on from `text + taken`, in the same buffer with `at` set to zero once those bytes are read. A line with a flush hands what it
 holds to the flush as it fills and goes on, and a text of any length passes through a buffer of any
 size. A flush answers 1 where it took the bytes and 0 where it refused, which leaves the line full. `mmgr_line_put`

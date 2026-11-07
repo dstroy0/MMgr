@@ -56,7 +56,7 @@ typedef struct
 /** @brief One movable cell the model stands: its identity, its bytes and a copy of what they hold. */
 typedef struct
 {
-    const CarcerMovableSlot *slot;
+    const CarcerMovableEntry *entry;
     size_t bytes;
     unsigned int owner;
     uint8_t copy[FUZZ_MOVING_MOST];
@@ -367,7 +367,7 @@ static size_t movable_capacity(const FuzzMovable *cell)
 
     for (size_t bytes = least; bytes <= least + FUZZ_CELL_WORDS + MMGR_CARCER_ALIGN; bytes += 1u)
     {
-        if (mmgr_movable_buf_read(MOVING, &(CarcerMovableCfg){.cell = cell->slot, .dst = probe, .bytes = bytes}))
+        if (mmgr_movable_buf_read(MOVING, &(CarcerMovableCfg){.cell = cell->entry, .dst = probe, .bytes = bytes}))
         {
             carried = bytes;
         }
@@ -385,18 +385,18 @@ static void movable_step(FuzzInput *input, uint8_t op, unsigned int owner)
         if (s_movable_count < FUZZ_MOVING_CELLS)
         {
             const size_t bytes = 1u + fuzz_below(input, FUZZ_MOVING_MOST);
-            const CarcerMovableSlot *const slot = mmgr_movable_buf_alloc(MOVING, bytes, s_owner[owner]);
-            if (slot != NULL)
+            const CarcerMovableEntry *const entry = mmgr_movable_buf_alloc(MOVING, bytes, s_owner[owner]);
+            if (entry != NULL)
             {
                 FuzzMovable *const cell = &s_movable[s_movable_count];
-                cell->slot = slot;
+                cell->entry = entry;
                 cell->bytes = bytes;
                 cell->owner = owner;
                 for (size_t at = 0u; at < bytes; at += 1u)
                 {
                     cell->copy[at] = (uint8_t)(0x5Au ^ (at * 7u) ^ s_movable_count);
                 }
-                fuzz_check(mmgr_movable_buf_write(MOVING, &(CarcerMovableCfg){.cell = slot, .src = cell->copy, .bytes = bytes}),
+                fuzz_check(mmgr_movable_buf_write(MOVING, &(CarcerMovableCfg){.cell = entry, .src = cell->copy, .bytes = bytes}),
                            "a movable cell takes its whole span");
                 s_movable_count += 1u;
             }
@@ -407,7 +407,7 @@ static void movable_step(FuzzInput *input, uint8_t op, unsigned int owner)
         {
             const unsigned int which = (unsigned int)fuzz_below(input, s_movable_count);
             FuzzMovable *const cell = &s_movable[which];
-            fuzz_check(mmgr_movable_buf_release(MOVING, cell->slot, s_owner[cell->owner]) != 0, "a movable cell goes back");
+            fuzz_check(mmgr_movable_buf_release(MOVING, cell->entry, s_owner[cell->owner]) != 0, "a movable cell goes back");
             s_movable[which] = s_movable[s_movable_count - 1u];
             s_movable_count -= 1u;
         }
@@ -426,7 +426,7 @@ static void movable_step(FuzzInput *input, uint8_t op, unsigned int owner)
             {
                 memset(span, 0xC3, sizeof span);
                 const embed_bool copied = mmgr_movable_buf_read(
-                    MOVING, &(CarcerMovableCfg){.cell = cell->slot, .offset = offset, .dst = span, .bytes = bytes});
+                    MOVING, &(CarcerMovableCfg){.cell = cell->entry, .offset = offset, .dst = span, .bytes = bytes});
                 if (inside)
                 {
                     fuzz_check(copied && (memcmp(span, cell->copy + offset, bytes) == 0), "a read copies the cell's bytes");
@@ -443,7 +443,7 @@ static void movable_step(FuzzInput *input, uint8_t op, unsigned int owner)
                     span[at] = fuzz_byte(input);
                 }
                 const embed_bool copied = mmgr_movable_buf_write(
-                    MOVING, &(CarcerMovableCfg){.cell = cell->slot, .offset = offset, .src = span, .bytes = bytes});
+                    MOVING, &(CarcerMovableCfg){.cell = cell->entry, .offset = offset, .src = span, .bytes = bytes});
                 if (inside)
                 {
                     fuzz_check(copied != 0, "a write inside the cell is taken");
@@ -470,12 +470,12 @@ static void movable_step(FuzzInput *input, uint8_t op, unsigned int owner)
             const size_t shortest = (one->bytes < two->bytes) ? one->bytes : two->bytes;
             const size_t bytes = fuzz_below(input, shortest + 1u);
             const embed_iword order = mmgr_movable_buf_compare(
-                MOVING, &(CarcerMovableCfg){.cell = one->slot, .other_cell = two->slot, .bytes = bytes});
+                MOVING, &(CarcerMovableCfg){.cell = one->entry, .other_cell = two->entry, .bytes = bytes});
             const int expected = memcmp(one->copy, two->copy, bytes);
             fuzz_check(((order < 0) == (expected < 0)) && ((order > 0) == (expected > 0)),
                        "compare orders two cells as their bytes do");
             const size_t offset = fuzz_below(input, one->bytes);
-            const size_t measured = mmgr_movable_buf_measure(MOVING, &(CarcerMovableCfg){.cell = one->slot, .offset = offset});
+            const size_t measured = mmgr_movable_buf_measure(MOVING, &(CarcerMovableCfg){.cell = one->entry, .offset = offset});
             const uint8_t *const zero = memchr(one->copy + offset, 0, one->bytes - offset);
             if (zero != NULL)
             {
@@ -499,7 +499,7 @@ static void movable_step(FuzzInput *input, uint8_t op, unsigned int owner)
     for (unsigned int each = 0u; each < s_movable_count; each += 1u)
     {
         uint8_t span[FUZZ_MOVING_MOST];
-        fuzz_check(mmgr_movable_buf_read(MOVING, &(CarcerMovableCfg){.cell = s_movable[each].slot, .dst = span,
+        fuzz_check(mmgr_movable_buf_read(MOVING, &(CarcerMovableCfg){.cell = s_movable[each].entry, .dst = span,
                                                                      .bytes = s_movable[each].bytes}) != 0,
                    "a standing movable cell reads whole");
         fuzz_check(memcmp(span, s_movable[each].copy, s_movable[each].bytes) == 0,
@@ -592,7 +592,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     while (s_movable_count != 0u)
     {
         FuzzMovable *const cell = &s_movable[s_movable_count - 1u];
-        fuzz_check(mmgr_movable_buf_release(MOVING, cell->slot, s_owner[cell->owner]) != 0, "a movable cell goes back");
+        fuzz_check(mmgr_movable_buf_release(MOVING, cell->entry, s_owner[cell->owner]) != 0, "a movable cell goes back");
         s_movable_count -= 1u;
     }
     mmgr_temporary_buf_reset(BLOCK);

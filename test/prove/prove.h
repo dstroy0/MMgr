@@ -16,7 +16,7 @@
  *       whose name begins nondet_ answers any value, and __CPROVER_assume and __CPROVER_assert bound and check
  *       the C. Compiled by a toolchain, the words are calls to functions no unit defines; `harness.py prove`'s
  *       machine-code arm hooks each in the symbolic executor, an input a fresh symbol, an assumption a constraint
- *       and an assertion a path to prove unreachable, so the same property is held over the object code each
+ *       and an assertion a path to prove unreachable, and the same property is proved over the object code each
  *       compiler lowered.
  */
 #ifndef MMGR_PROVE_H
@@ -67,7 +67,7 @@ void prove_failed(const char *what);
 
 /**
  * @brief LocusCarcerum's report of a give or growth that names another owner, defined by the harness that
- *        includes this after locus_carcerum.h: every give a harness makes names the cell's own owner, so the report
+ *        includes this after locus_carcerum.h: every give a harness makes names the cell's own owner, and the report
  *        is a failure.
  */
 #define PROVE_NO_MISNAMED()                                                                                            \

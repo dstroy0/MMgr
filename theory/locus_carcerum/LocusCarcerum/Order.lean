@@ -53,4 +53,33 @@ def storeBuffered : Unfenced := ⟨false, false⟩
 
 theorem unfenced_admits : storeBuffered.passReadsClosed = false ∧ storeBuffered.drainReadsLane = false := by decide
 
+/-! The give and the walk. A give stores its cell's header free, then a sequentially consistent fence, then loads
+the closed word and the boundary (`carcer_given`). A writer fetch-ors the closed bit or fetch-ands the trim bits,
+then a sequentially consistent fence, then reads the headers of its walk (`carcer_shut`, `carcer_opened`). The fence
+rule gives the disjunction `Boundary.lean` takes as whole: the give reads the closed bit set, or the walk reads the
+header free. Where the give reads the closed bit clear after a writer opened, its acquire load reads the open's
+release, and its load of the boundary after it reads the boundary the writer stored before its open. -/
+
+/-- One give and one writer as the fences order them. -/
+structure GiveExec where
+  /-- The places of the give's fence and the writer's fence in `S`. -/
+  giveFence : Nat
+  writerFence : Nat
+  distinct : giveFence ≠ writerFence
+  /-- The give's load of the closed word reads the writer's write to it, or a later write. -/
+  giveReadsClosed : Bool
+  /-- The walk's load of the header reads the give's store of it free, or a later write. -/
+  walkReadsFree : Bool
+  /-- The fence rule, the give's fence first: the store before it, the walk's load after the writer's. -/
+  giveFirst : giveFence < writerFence → walkReadsFree = true
+  /-- The fence rule, the writer's fence first: its write to the closed word before it, the give's load after. -/
+  writerFirst : writerFence < giveFence → giveReadsClosed = true
+
+/-- The give reads the closed bit set and leaves the trim to the writer, or the walk reads the header free and
+trims past the cell. -/
+theorem give_or_walk (e : GiveExec) : e.giveReadsClosed = true ∨ e.walkReadsFree = true := by
+  rcases Nat.lt_or_gt_of_ne e.distinct with h | h
+  · exact Or.inr (e.giveFirst h)
+  · exact Or.inl (e.writerFirst h)
+
 end LocusCarcerum.Order

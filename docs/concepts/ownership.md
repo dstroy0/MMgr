@@ -124,7 +124,7 @@ A release, a growth and a rewind each count the cell's bytes off that owner. A r
 or a growth must name it: one naming another owner is refused, changes nothing, the payload of a
 maximum security cell included, and calls `mmgr_carcer_hw_misnamed` with the owner named, the owner
 the cell counts to and its bytes. The owner's record is the table's storage, written through the const
-pointer the caller holds as a movable slot is: the cellblock still does not ask which context reached
+pointer the caller holds as a movable entry is: the cellblock still does not ask which context reached
 it.
 
 ## Concurrency

@@ -6,7 +6,7 @@
  */
 /**
  * @file locus_carcerum_fragmentation_prove.c
- * @brief Fragment.lean's reading_le held on the C: for every persistent end and every running total at or below
+ * @brief Fragment.lean's reading_le proved on the C: for every persistent end and every running total at or below
  *        it, mmgr_series_cellularum_fragmentation reads at most 100, and 0 below a hundred bytes.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07

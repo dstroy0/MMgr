@@ -8,7 +8,7 @@
  * @file impensa_ancorae_acus_fuzz.c
  * @brief A libFuzzer harness over the needle cost tables, built once for each of the five with that table's source:
  *        every byte's cost from 1 through 255, the same on every lookup, and 255 on the NUL and on the second byte
- *        the table names, FUZZ_ANCORAE_BARRED, so neither is ever chosen as a sieve offset.
+ *        the table names, FUZZ_ANCORAE_BARRED, and neither is ever chosen as a sieve offset.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

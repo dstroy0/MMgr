@@ -89,10 +89,11 @@ library only.
 | `Rewind.lean` | a rewind stops on a cell boundary, at or after the mark |
 | `Fragment.lean` | the fragmentation value is 100 or less |
 | `Bounds.lean` | the span test, the pointer test and the high-water marks |
-| `Slot.lean` | two contexts do not name one movable slot |
+| `Entry.lean` | two contexts do not name one movable entry |
+| `Boundary.lean` | a free cell does not stay at the edge of an open cellblock |
 | `Pass.lean` | a pass does not work on the cellblock while a writer works alone |
 | `Trim.lean` | an open cellblock with no give in progress owes no trim |
-| `Order.lean` | the C11 orders that the closed word and the drain use |
+| `Order.lean` | the C11 orders that the closed word, the drain and the free use |
 
 ```sh
 cd theory/locus_carcerum
@@ -104,7 +105,7 @@ lake build
 `python test/harness.py prove` holds the C to the same theorems. Each harness in `test/prove` states one
 theorem with inputs, assumptions and assertions. CBMC proves each harness on the C source. A symbolic
 executor proves each harness on the machine code that GCC and Clang make at `-O0` and `-O2`. Each prover
-must also reach the end of each harness, so a harness with no possible path cannot pass.
+must also reach the end of each harness, and a harness with no possible path cannot pass.
 
 ## Where things are
 
@@ -115,7 +116,7 @@ must also reach the end of each harness, so a harness with no possible path cann
 | [`deps/embedded_types/`](deps/embedded_types) | the widths, the word, the attribute wrappers and the dispatch macros every module builds on      |
 | [`test/`](test)                               | `unit` per translation unit, `integration` and `interop` across modules, `environment` per width |
 | [`test/stress/`](test/stress)                 | threads on one cellblock, every cell's bytes checked before it goes back                         |
-| [`test/fuzz/`](test/fuzz)                     | a libFuzzer harness for every module, each held to a model, and the replay every toolchain runs  |
+| [`test/fuzz/`](test/fuzz)                     | a libFuzzer harness for every module, each checked against a model, and the replay every toolchain runs  |
 | [`test/verify/`](test/verify)                 | every toolchain's build of a module: behavior, IR, lowering, disassembly and Ghidra              |
 | [`test/prove/`](test/prove)                   | the proof harnesses that CBMC and the symbolic executor hold                                     |
 | [`test/harness.py`](test/harness.py)          | build, run, fuzz, verify, prove, the A/B, coverage, and the suite and generator checks           |

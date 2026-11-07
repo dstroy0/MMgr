@@ -8,7 +8,7 @@
  * @file fuzz_wide.h
  * @brief The exact unsigned integer the numeric harnesses compute their oracles in: WIDE_LIMBS limbs of 32 bits,
  *        multiplied and divided by a small factor, shifted, compared, subtracted and divided by another wide
- *        integer one bit at a time. Slow and plainly right, which is what an oracle is for.
+ *        integer one bit at a time. Slow and plainly right, as an oracle must be.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

@@ -33,7 +33,7 @@ static uint8_t folded(uint8_t byte, int ci)
     return (ci && (byte >= 'A') && (byte <= 'Z')) ? (uint8_t)(byte + 32u) : byte;
 }
 
-/** @brief A text of @p bytes drawn from a small alphabet, so matches and case pairs are common. */
+/** @brief A text of @p bytes drawn from a small alphabet: matches and case pairs are common. */
 static void drawn_text(FuzzInput *input, char *text, size_t bytes)
 {
     static const char alphabet[16] = {'a', 'b', 'A', 'B', 'c', 'C', '0', '9', ' ', '\t', '-', '+', '.', 'e', '\0', 'z'};

@@ -9,14 +9,14 @@
  * @file test_locus_carcerum_races.c
  * @brief What LocusCarcerum's branch-free paths do at each mask's edge, on demand and not by luck: the masks and
  *        picks, a bump the gap cannot meet, a pass that finds the cellblock closed, the sweep's merging and
- *        trimming, the owner word's completion bit, the slot table's claim bits and the option's none record.
+ *        trimming, the owner word's completion bit, the entry table's claim bits and the option's none record.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-05
  *
  * @note Compiles the translation unit in, and so file-local entries are callable and the sink, the closed word
  *       and the claim bits are the suite's to set.
  * @note MMGR_FATAL jumps back to the case here. A prisoner from another cellblock has nothing to carry on from,
- *       and the jump is what lets a case read that it stopped.
+ *       and the jump lets a case read that it stopped.
  */
 #include "locus_carcerum/locus_carcerum.h"
 
@@ -245,7 +245,7 @@ void test_a_pass_through_a_closed_series_cellularum_opened_meanwhile_lands_on_it
     const CarcerTakeCtx take = {PAYLOAD, s_one, 0u, carcer_all(1)};
 
     // the first attempt reads the closed bit; the writer opens before the backoff's wait, with no sleeper to wake,
-    // and the second attempt lands. The weak wait answers at once, which is the host's answer where nothing sleeps
+    // and the second attempt lands. The weak wait answers at once: the host's answer where nothing sleeps
     (void)embed_atomic_word_fetch_or(&BLOCK->closed, CARCER_CLOSED);
     (void)embed_atomic_word_fetch_and(&BLOCK->closed, ~CARCER_CLOSED);
     TEST_ASSERT_NOT_EQUAL(0u, (uint64_t)carcer_passed(BLOCK, s_one->place, carcer_bumped, &take));
@@ -271,7 +271,7 @@ void test_the_sweep_merges_free_runs_takes_the_first_that_fits_and_trims_the_end
     uint8_t *const three = cells.raced.persistent_buf_alloc(PAYLOAD, s_one);
     const size_t end_with_four = mmgr_series_cellularum_persistent_end(BLOCK);
 
-    // the two below the held cell and the one above it set free by their headers alone: no trim runs
+    // the two below the taken cell and the one above it set free by their headers alone: no trim runs
     (void)carcer_given(BLOCK, one, s_one, 0u, carcer_all(1));
     (void)carcer_given(BLOCK, two, s_one, 0u, carcer_all(1));
     (void)carcer_given(BLOCK, three, s_one, 0u, carcer_all(1));
@@ -436,9 +436,9 @@ void test_a_claim_sets_the_lowest_free_bit_and_a_full_table_claims_nothing(void)
     TEST_ASSERT_EQUAL_size_t(RACED_CELLS - ((words - 1u) * MMGR_MOVABLE_CLAIM_BITS), (size_t)embed_turnstile_lowest(past));
     for (size_t at = 0u; at < RACED_CELLS; at += 1u)
     {
-        TEST_ASSERT_EQUAL_PTR(&movable->slot[at], carcer_slot_claimed(movable, CARCER_WORD, carcer_all(1)));
+        TEST_ASSERT_EQUAL_PTR(&movable->entry[at], carcer_entry_claimed(movable, CARCER_WORD, carcer_all(1)));
     }
-    TEST_ASSERT_NULL_MESSAGE(carcer_slot_claimed(movable, CARCER_WORD, carcer_all(1)), "every slot is named");
+    TEST_ASSERT_NULL_MESSAGE(carcer_entry_claimed(movable, CARCER_WORD, carcer_all(1)), "every entry is named");
     TEST_ASSERT_EQUAL_size_t(RACED_CELLS, (size_t)embed_atomic_usize_load(&movable->named));
 }
 
@@ -447,7 +447,7 @@ void test_a_claim_not_permitted_names_nothing(void)
     option_assigned();
     CarcerMovable *const movable = carcer_movable_of(BLOCK);
 
-    TEST_ASSERT_NULL(carcer_slot_claimed(movable, CARCER_WORD, carcer_all(0)));
+    TEST_ASSERT_NULL(carcer_entry_claimed(movable, CARCER_WORD, carcer_all(0)));
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&movable->claimed[0]));
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&movable->named));
 }
@@ -459,9 +459,9 @@ void test_a_claim_lost_to_another_context_names_nothing_and_the_take_tries_once_
 
     // every bit of the first word set as another context's claims would set them: the search finds the second word
     embed_atomic_usize_store(&movable->claimed[0], ~(embed_atomic_usize_value)0u);
-    CarcerMovableSlot *const slot = carcer_slot_claimed(movable, CARCER_WORD, carcer_all(1));
+    CarcerMovableEntry *const entry = carcer_entry_claimed(movable, CARCER_WORD, carcer_all(1));
 
-    TEST_ASSERT_EQUAL_PTR(&movable->slot[MMGR_MOVABLE_CLAIM_BITS], slot);
+    TEST_ASSERT_EQUAL_PTR(&movable->entry[MMGR_MOVABLE_CLAIM_BITS], entry);
     TEST_ASSERT_EQUAL_size_t(1u, (size_t)embed_atomic_usize_load(&movable->lowest));
 }
 
@@ -469,15 +469,15 @@ void test_the_highest_named_cell_below_a_bound_and_under_a_size(void)
 {
     option_assigned();
     const CarcerMovable *const movable = carcer_movable_of(BLOCK);
-    const CarcerMovableSlot *const low = cells.raced.movable_buf_alloc(PAYLOAD, s_one);
-    const CarcerMovableSlot *const high = cells.raced.movable_buf_alloc(2u * PAYLOAD, s_one);
+    const CarcerMovableEntry *const low = cells.raced.movable_buf_alloc(PAYLOAD, s_one);
+    const CarcerMovableEntry *const high = cells.raced.movable_buf_alloc(2u * PAYLOAD, s_one);
     size_t payload = 0u;
 
-    TEST_ASSERT_EQUAL_PTR(high, carcer_slot_highest(movable, BLOCK, RACED_BYTES, RACED_BYTES, &payload));
+    TEST_ASSERT_EQUAL_PTR(high, carcer_entry_highest(movable, BLOCK, RACED_BYTES, RACED_BYTES, &payload));
     TEST_ASSERT_EQUAL_size_t((size_t)embed_atomic_usize_load(&high->word), payload);
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(low, carcer_slot_highest(movable, BLOCK, RACED_BYTES, 2u * PAYLOAD, &payload),
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(low, carcer_entry_highest(movable, BLOCK, RACED_BYTES, 2u * PAYLOAD, &payload),
                                   "a cell at the size refused is passed over");
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(&carcer_slot_none, carcer_slot_highest(movable, BLOCK, 0u, RACED_BYTES, &payload),
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(&carcer_entry_none, carcer_entry_highest(movable, BLOCK, 0u, RACED_BYTES, &payload),
                                   "nothing lies below the first byte");
     TEST_ASSERT_EQUAL_size_t(0u, payload);
 }
@@ -493,17 +493,17 @@ void test_with_no_option_there_is_no_line_and_no_row(void)
     TEST_ASSERT_EQUAL_size_t(0u, touches);
     TEST_ASSERT_FALSE(mmgr_movable_buf_move(BLOCK));
     TEST_ASSERT_NULL(cells.raced.movable_buf_alloc(PAYLOAD, s_one));
-    TEST_ASSERT_FALSE(cells.raced.movable_buf_release(&carcer_slot_none, s_one));
+    TEST_ASSERT_FALSE(cells.raced.movable_buf_release(&carcer_entry_none, s_one));
     TEST_ASSERT_EQUAL_INT(1, (int)cells.raced.movable_buf_compare(&(CarcerMovableCfg){.cell = NULL, .bytes = 1u}));
 }
 
-void test_a_span_past_a_cell_or_of_a_free_slot_does_not_fit(void)
+void test_a_span_past_a_cell_or_of_a_free_entry_does_not_fit(void)
 {
     option_assigned();
-    const CarcerMovableSlot *const cell = cells.raced.movable_buf_alloc(PAYLOAD, s_one);
+    const CarcerMovableEntry *const cell = cells.raced.movable_buf_alloc(PAYLOAD, s_one);
     const CarcerSpan inside = carcer_span_read(BLOCK, cell, 0u, PAYLOAD, carcer_all(1));
     const CarcerSpan past = carcer_span_read(BLOCK, cell, 1u, PAYLOAD, carcer_all(1));
-    const CarcerSpan none = carcer_span_read(BLOCK, &carcer_slot_none, 0u, 0u, carcer_all(1));
+    const CarcerSpan none = carcer_span_read(BLOCK, &carcer_entry_none, 0u, 0u, carcer_all(1));
     const CarcerSpan refused = carcer_span_read(BLOCK, cell, 0u, PAYLOAD, carcer_all(0));
 
     TEST_ASSERT_EQUAL_size_t(SIZE_MAX, inside.fits);

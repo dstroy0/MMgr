@@ -13,7 +13,7 @@
  * @note Every write comes down to mmgr_line_put_n, which places each piece through verba_textus.put_n
  *       and hands the line to its flush between pieces. A number is written into a buffer of its own
  *       first, and so its digits cross a flush the way a text does.
- * @note Every write ends by storing the terminator, one store it pays for on every call, and so a
+ * @note Every write ends by storing the terminator, one store it pays for on every call, and a
  *       written line's buffer is always a terminated text.
  */
 #include "verba_scribo/verba_linea.h"

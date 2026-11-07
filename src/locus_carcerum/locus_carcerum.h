@@ -99,7 +99,7 @@ EMBED_BEGIN_DECLS
  *        that is wider.
  *
  * @note Derived from the two types in place of a number. Every cell carries an atomic size word at its header
- *       and at its foot, and a cell's offset and payload are whole multiples of this, so each of those words
+ *       and at its foot, and a cell's offset and payload are whole multiples of this, and each of those words
  *       lands at its own alignment at every width.
  * @note LocusCarcerum() puts this alignment on the storage it declares. This rounds only
  *       running offsets inside a cellblock.
@@ -120,7 +120,7 @@ EMBED_STATIC_ASSERT((MMGR_CARCER_ALIGN & (MMGR_CARCER_ALIGN - 1u)) == 0u,
 /**
  * @brief Asserts the storage a pool declaration aligns is aligned to the cell grain.
  *
- * @note A cell's words lie at whole grains from the storage's first byte, so they stand at their alignment only
+ * @note A cell's words lie at whole grains from the storage's first byte, and they stand at their alignment only
  *       where that byte does.
  */
 EMBED_STATIC_ASSERT((MMGR_ALIGN_BYTES % MMGR_CARCER_ALIGN) == 0u,
@@ -130,10 +130,10 @@ EMBED_STATIC_ASSERT((MMGR_ALIGN_BYTES % MMGR_CARCER_ALIGN) == 0u,
  * @brief One owner of cells: its name, its key, the payload bytes of the cells it has now on both
  *        tiers, and the most it had at once.
  *
- * @note The library's storage, laid at compile time. The owner table is an array of these records
+ * @note The library's storage, laid at compile time. The owner table is the list of these records
  *       MMGR_OWNERS declares in the program's one translation unit for it, and the same declaration
  *       defines each owner's identity: a const pointer into the table the linker resolves, which the
- *       owner's module names on every take, give and growth, as a movable cell's slot is named. Nothing
+ *       owner's module names on every take, give and growth, as a movable cell's entry is named. Nothing
  *       registers at run time. The pointer's const says only that the holder does not write; the
  *       record is MMgr's to write. Every entry refuses NULL in place of an owner, and every take
  *       refuses a pointer that is not one of the table's.
@@ -167,7 +167,7 @@ typedef struct
  *       step each. The timestamp is what the cell's take read on mmgr_carcer_hw_clock_ns, in the bits left,
  *       and a reader of lifetimes takes it as rolling.
  * @note The place field is sized from MMGR_CARCER_OWNERS, the fewest bits every owner's place fits, from 4 to
- *       16; then 1 completion bit, 3 signaling bits, and the timestamp in the bits left, which is the word's
+ *       16; then 1 completion bit, 3 signaling bits, and the timestamp in the bits left, the word's
  *       width less those: 1024 owners on a 64-bit word leave 49 timestamp bits, on a 32-bit word 17, rolling
  *       every 131 microseconds, and on a 16-bit word 1. The layout fails the build where no timestamp bit is left.
  */
@@ -361,8 +361,8 @@ void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner
  *       the cellblock's own storage, and nothing derives an address from a site and an index.
  * @note bounds is the two boundaries in one word: its low half the offset just past the last persistent cell,
  *       its high half the offset of the lowest temporary cell, each in bytes. A take bumps its tier's half by one
- *       fetch-add on the word, whose old value carries the other boundary as it stood at that same instant, which
- *       is the room the take reads. A bump the gap cannot meet leaves the boundary where it moved it and adds its
+ *       fetch-add on the word, whose old value carries the other boundary as it stood at that same instant: the
+ *       room the take reads. A bump the gap cannot meet leaves the boundary where it moved it and adds its
  *       bytes to the tier's overrun, persistent_overrun or temporary_overrun; every later bump of either tier is
  *       refused, since the boundaries only move toward each other between writers and every bump reads them as
  *       one word, and the next writer takes the overrun back off the boundary before it reads the tier. Between a
@@ -425,14 +425,14 @@ typedef struct
      {0}}
 
 /**
- * @brief The identity a movable cell's taker holds: a const pointer to the cell's slot in the
+ * @brief The identity a movable cell's taker holds: a const pointer to the cell's entry in the
  *        cellblock's translation table.
  *
- * @note The slot is the mutable word, and it is MMgr's alone: it names where the cell stands now, and a
+ * @note The entry is the mutable word, and it is MMgr's alone: it names where the cell stands now, and a
  *       move changes it. The pointer the caller holds never changes while the cell lives, however often
  *       the cell moves, and the layout is declared nowhere a caller can reach.
  */
-typedef struct CarcerMovableSlot CarcerMovableSlot;
+typedef struct CarcerMovableEntry CarcerMovableEntry;
 
 /**
  * @brief What a program gives a cellblock for the movable option, once, through its guard's movable_init.
@@ -473,8 +473,8 @@ typedef struct
  */
 typedef struct
 {
-    const CarcerMovableSlot *const cell;       /**< The cell [BORROWS]. */
-    const CarcerMovableSlot *const other_cell; /**< The cell compare orders it against, NULL for src. */
+    const CarcerMovableEntry *const cell;       /**< The cell [BORROWS]. */
+    const CarcerMovableEntry *const other_cell; /**< The cell compare orders it against, NULL for src. */
     const size_t offset;                       /**< Where in the cell the call starts. */
     const size_t other_offset;                 /**< Where in other_cell compare starts. */
     void *const dst;                           /**< Where read copies to [BORROWS]. */
@@ -485,17 +485,17 @@ typedef struct
 /** @brief Bytes of the option's state ahead of its turnstiles, which locus_carcerum.c asserts it fits. */
 #define MMGR_MOVABLE_HEAD_BYTES 192u
 
-/** @brief The bits of one word of the option's claim bits: one a slot. */
+/** @brief The bits of one word of the option's claim bits: one an entry. */
 #define MMGR_MOVABLE_CLAIM_BITS ((size_t)(8u * sizeof(embed_atomic_usize)))
 
 /**
- * @brief The storage the movable option takes for a table of cells_ slots and rows_ rows of touches.
+ * @brief The storage the movable option takes for a table of cells_ entries and rows_ rows of touches.
  *
  * @param[in] cells_ Movable cells the table can name at once.
  * @param[in] width_ The lanes open bound the mover reads quiet under, which takes no storage.
  * @param[in] rows_  Rows of touches.
- * @note A constant expression, so that a pool can be declared at this size: the state, one word a slot, one
- *       claim bit a slot in whole words, and two words a row.
+ * @note A constant expression, so that a pool can be declared at this size: the state, one word an entry, one
+ *       claim bit an entry in whole words, and two words a row.
  */
 #define MMGR_MOVABLE_STORAGE_BYTES(cells_, width_, rows_)                                                              \
     (MMGR_MOVABLE_HEAD_BYTES +                                                                                         \
@@ -600,9 +600,9 @@ typedef struct
     void *(*buf_grow)(void *prisoner, size_t size,
                       const CellOwner *owner); /**< Grows the newest cell of its tier to size bytes in place, unzeroed. */
     embed_bool (*movable_init)(const CarcerMovableInitCfg *args); /**< Assigns the movable option, once. */
-    const CarcerMovableSlot *(*movable_buf_alloc)(
+    const CarcerMovableEntry *(*movable_buf_alloc)(
         size_t size, const CellOwner *owner); /**< Takes a cell a move may move: its identity, NULL where refused. */
-    embed_bool (*movable_buf_release)(const CarcerMovableSlot *cell,
+    embed_bool (*movable_buf_release)(const CarcerMovableEntry *cell,
                                       const CellOwner *owner);           /**< Releases owner's movable cell, left as it is. */
     embed_bool (*movable_buf_read)(const CarcerMovableCfg *args);  /**< Copies out of a movable cell. */
     embed_bool (*movable_buf_write)(const CarcerMovableCfg *args); /**< Copies into a movable cell. */
@@ -641,9 +641,9 @@ typedef struct
         void *prisoner, size_t size,
         const CellOwner *owner); /**< Grows the newest cell of its tier to size bytes in place, the added bytes zeroed. */
     embed_bool (*movable_init)(const CarcerMovableInitCfg *args); /**< Assigns the movable option, once. */
-    const CarcerMovableSlot *(*movable_buf_alloc)(
+    const CarcerMovableEntry *(*movable_buf_alloc)(
         size_t size, const CellOwner *owner); /**< Takes a cell a move may move: its identity, NULL where refused. */
-    embed_bool (*movable_buf_release)(const CarcerMovableSlot *cell,
+    embed_bool (*movable_buf_release)(const CarcerMovableEntry *cell,
                                       const CellOwner *owner);          /**< Zeroes owner's movable cell, then releases it. */
     embed_bool (*movable_buf_read)(const CarcerMovableCfg *args); /**< Copies out of a movable cell. */
     embed_bool (*movable_buf_write)(const CarcerMovableCfg *args);    /**< Copies into a movable cell. */
@@ -668,11 +668,11 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
     {                                                                                                                  \
         return mmgr_movable_init((series_cellularum_), args, (wipe_to_zero_on_release_));                                      \
     }                                                                                                                  \
-    static const CarcerMovableSlot *prisonsite_##_##name_##_movable_buf_alloc(size_t size, const CellOwner *owner)           \
+    static const CarcerMovableEntry *prisonsite_##_##name_##_movable_buf_alloc(size_t size, const CellOwner *owner)           \
     {                                                                                                                  \
         return mmgr_movable_buf_alloc((series_cellularum_), size, owner);                                                      \
     }                                                                                                                  \
-    static embed_bool prisonsite_##_##name_##_movable_buf_release(const CarcerMovableSlot *cell, const CellOwner *owner)     \
+    static embed_bool prisonsite_##_##name_##_movable_buf_release(const CarcerMovableEntry *cell, const CellOwner *owner)     \
     {                                                                                                                  \
         return mmgr_movable_buf_release((series_cellularum_), cell, owner);                                                    \
     }                                                                                                                  \
@@ -1375,7 +1375,7 @@ void mmgr_owner_bytes_given(const CellOwner *owner, size_t bytes);
  * @return           The percentage, 0 to 100, read against the hundredth of the bytes occupied rounded up, and 0
  *                   below a hundred bytes occupied.
  * @note Read off the persistent end and the tier's running total, with no walk. Each cell's words count among
- *       the bytes no payload holds, and so a tier of small cells reads some fragmentation with no free cell.
+ *       the bytes no payload holds, and a tier of small cells reads some fragmentation with no free cell.
  * @note The temporary tier reads nothing: its cells last one call, and its top comes back as they end. A
  *       free cell no movable cell stands above is no work for a mover either: a sort that finds nothing to
  *       move is remembered, and not run again until the reading rises.
@@ -1405,26 +1405,26 @@ embed_bool mmgr_movable_init(SeriesCellularum *series, const CarcerMovableInitCf
  * @param[in]     size   Bytes wanted.
  * @param[in]     owner  The registered owner the cell is counted to [BORROWS].
  * @return               The cell's identity, or NULL where the option is not assigned, the cellblock
- *                       cannot meet the take or the table has no free slot, nothing counted.
- * @note The identity is a const pointer to the cell's slot. It stands for the cell's life whatever moves
+ *                       cannot meet the take or the table has no free entry, nothing counted.
+ * @note The identity is a const pointer to the cell's entry. It stands for the cell's life whatever moves
  *       the cell, and the movable_buf_ calls are the only way from it to the bytes.
- * @warning A pointer kept past mmgr_movable_buf_release names a slot a later take may reuse.
+ * @warning A pointer kept past mmgr_movable_buf_release names an entry a later take may reuse.
  */
-const CarcerMovableSlot *mmgr_movable_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner);
+const CarcerMovableEntry *mmgr_movable_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner);
 
 /**
- * @brief Gives a movable cell back and frees its slot.
+ * @brief Gives a movable cell back and frees its entry.
  *
  * @param[in,out] series Cellblock the cell is in [BORROWS].
  * @param[in]     cell   The cell [BORROWS].
  * @param[in]     owner  The owner the cell is counted to [BORROWS].
- * @return               EMBED_TRUE where it went back. EMBED_FALSE where cell is NULL, the slot is free or
+ * @return               EMBED_TRUE where it went back. EMBED_FALSE where cell is NULL, the entry is free or
  *                       owner is not the cell's, which mmgr_carcer_hw_misnamed is told of, nothing changed.
- * @note One pass through the cellblock's turnstiles: the slot read, the cell given back as a release gives it,
- *       the slot's word and its claim bit cleared. A move is a writer, which drains the passes before it and
- *       closes the cellblock to those after: the two never reach the slot at once.
+ * @note One pass through the cellblock's turnstiles: the entry read, the cell given back as a release gives it,
+ *       the entry's word and its claim bit cleared. A move is a writer, which drains the passes before it and
+ *       closes the cellblock to those after: the two never reach the entry at once.
  */
-embed_bool mmgr_movable_buf_release(SeriesCellularum *series, const CarcerMovableSlot *cell, const CellOwner *owner);
+embed_bool mmgr_movable_buf_release(SeriesCellularum *series, const CarcerMovableEntry *cell, const CellOwner *owner);
 
 /**
  * @brief Copies args->bytes from args->offset of a movable cell to args->dst.
@@ -1432,8 +1432,8 @@ embed_bool mmgr_movable_buf_release(SeriesCellularum *series, const CarcerMovabl
  * @param[in,out] series Cellblock the cell is in [BORROWS].
  * @param[in]     args   The cell, offset, dst and bytes [BORROWS].
  * @return               EMBED_TRUE where copied, EMBED_FALSE where the span passes the cell's end or
- *                       the slot is free, nothing copied.
- * @note Thin: one pass through the cellblock's turnstiles, badged with the calling thread's id, the slot's
+ *                       the entry is free, nothing copied.
+ * @note Thin: one pass through the cellblock's turnstiles, badged with the calling thread's id, the entry's
  *       word read, the bytes copied, and the lane let go. A pass that finds the cellblock closed to a move
  *       backs off one step and tries once more.
  */
@@ -1456,7 +1456,7 @@ embed_bool mmgr_movable_buf_write(SeriesCellularum *series, const CarcerMovableC
  *
  * @param[in,out] series Cellblock the cell is in [BORROWS].
  * @param[in]     args   The cell, offset, and src or other_cell and other_offset, and bytes [BORROWS].
- * @return               As memor.cmp orders them, and 1 where a span passes its cell's end or a slot is
+ * @return               As memor.cmp orders them, and 1 where a span passes its cell's end or an entry is
  *                       free.
  * @note Two cells are the most one call reaches, both read under the one pass.
  */
@@ -1479,7 +1479,7 @@ size_t mmgr_movable_buf_measure(const SeriesCellularum *series, const CarcerMova
  *                       free run fits below any of them.
  * @note The mover's step, a writer's: the cellblock closed and the turnstiles drained, the highest named cell
  *       read, the persistent tier walked below it for the first free run that holds it, the cell copied, its
- *       owner word carried over, the slot flipped to the copy, the cell left behind set free, and the cellblock
+ *       owner word carried over, the entry flipped to the copy, the cell left behind set free, and the cellblock
  *       opened. The same state moves the same cell to the same place.
  * @note Called until it answers EMBED_FALSE, the cells stand as low as the free runs let them, and the free run
  *       reaching the tier's end returns to the gap with each walk.

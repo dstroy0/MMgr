@@ -6,11 +6,11 @@
  */
 /**
  * @file locus_carcerum_movable_prove.c
- * @brief Take.lean's mover count, Bounds.lean's span test and Slot.lean held on the C: every sequence of
+ * @brief Take.lean's mover count, Bounds.lean's span test and Entry.lean proved on the C: every sequence of
  *        PROVE_STEPS operations on a cellblock with the movable option, each a movable take at any of four sizes, a
  *        persistent take and give that leave a run below, a read or a write at any offset and length, a move, or a
  *        release. A span the module takes lies inside its cell and one it refuses runs past it; every cell keeps
- *        its bytes through every move; no two cells share a slot; and once every cell goes back the owner's count
+ *        its bytes through every move; no two cells share an entry; and once every cell goes back the owner's count
  *        is 0 and the cellblock whole.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
@@ -39,7 +39,7 @@ LocusCarcerum(prove, MMGR_MINIMUM_SECURITY(moving));
 
 typedef struct
 {
-    const CarcerMovableSlot *slot;
+    const CarcerMovableEntry *entry;
     size_t bytes;
     uint8_t first;
 } ProveMovable;
@@ -52,12 +52,12 @@ static void checked(void)
     for (unsigned int at = 0u; at < s_count; at += 1u)
     {
         uint8_t first = 0u;
-        PROVE_ASSERT(mmgr_movable_buf_read(BLOCK, &(CarcerMovableCfg){.cell = s_cell[at].slot, .dst = &first, .bytes = 1u}),
+        PROVE_ASSERT(mmgr_movable_buf_read(BLOCK, &(CarcerMovableCfg){.cell = s_cell[at].entry, .dst = &first, .bytes = 1u}),
                      "a standing movable cell reads");
         PROVE_ASSERT(first == s_cell[at].first, "a movable cell keeps its bytes through every move");
         for (unsigned int other = at + 1u; other < s_count; other += 1u)
         {
-            PROVE_ASSERT(s_cell[at].slot != s_cell[other].slot, "no two cells name one slot");
+            PROVE_ASSERT(s_cell[at].entry != s_cell[other].entry, "no two cells name one entry");
         }
     }
 }
@@ -75,7 +75,7 @@ static void spanned(uint8_t choice)
     PROVE_ASSUME(offset <= PROVE_SPAN_MOST);
     uint8_t span[PROVE_SPAN_MOST];
     const size_t carried = mmgr_align_up_buf(cell->bytes);
-    const embed_bool fits = mmgr_movable_buf_read(BLOCK, &(CarcerMovableCfg){.cell = cell->slot, .offset = offset,
+    const embed_bool fits = mmgr_movable_buf_read(BLOCK, &(CarcerMovableCfg){.cell = cell->entry, .offset = offset,
                                                                               .dst = span, .bytes = bytes});
     // the cell carries its rounded request, and a header and an owner word more where a move kept a run whole
     PROVE_ASSERT(!fits || (offset + bytes <= carried + 2u * PROVE_CELL_HEADER),
@@ -102,13 +102,13 @@ int main(void)
             if (s_count < PROVE_CELLS)
             {
                 const size_t bytes = 8u * (size_t)(1u + ((choice >> 2) & 3u));
-                const CarcerMovableSlot *const slot = mmgr_movable_buf_alloc(BLOCK, bytes, s_mover);
-                if (slot != NULL)
+                const CarcerMovableEntry *const entry = mmgr_movable_buf_alloc(BLOCK, bytes, s_mover);
+                if (entry != NULL)
                 {
                     const uint8_t first = (uint8_t)(0x30u + s_count);
-                    PROVE_ASSERT(mmgr_movable_buf_write(BLOCK, &(CarcerMovableCfg){.cell = slot, .src = &first, .bytes = 1u}),
+                    PROVE_ASSERT(mmgr_movable_buf_write(BLOCK, &(CarcerMovableCfg){.cell = entry, .src = &first, .bytes = 1u}),
                                  "a movable cell takes a write at its start");
-                    s_cell[s_count] = (ProveMovable){slot, bytes, first};
+                    s_cell[s_count] = (ProveMovable){entry, bytes, first};
                     s_count += 1u;
                 }
             }
@@ -117,7 +117,7 @@ int main(void)
             if (s_count != 0u)
             {
                 const unsigned int at = (unsigned int)((choice >> 2) % s_count);
-                PROVE_ASSERT(mmgr_movable_buf_release(BLOCK, s_cell[at].slot, s_mover) != 0, "a movable cell goes back");
+                PROVE_ASSERT(mmgr_movable_buf_release(BLOCK, s_cell[at].entry, s_mover) != 0, "a movable cell goes back");
                 s_cell[at] = s_cell[s_count - 1u];
                 s_count -= 1u;
             }
@@ -141,7 +141,7 @@ int main(void)
     }
     while (s_count != 0u)
     {
-        PROVE_ASSERT(mmgr_movable_buf_release(BLOCK, s_cell[s_count - 1u].slot, s_mover) != 0, "a movable cell goes back");
+        PROVE_ASSERT(mmgr_movable_buf_release(BLOCK, s_cell[s_count - 1u].entry, s_mover) != 0, "a movable cell goes back");
         s_count -= 1u;
     }
     PROVE_ASSERT(mmgr_owner_in_use(s_mover) == 0u, "the owner's count returns to 0 through every move");

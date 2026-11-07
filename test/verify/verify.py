@@ -6,14 +6,14 @@ For each module chosen, by name or by tag, and each toolchain present:
 
   behavior   the module's fuzz harness linked with test/fuzz/fuzz_replay.c and the library that toolchain built,
              run on the same inputs drawn from one seed; the harness's oracle judges every build on the same bytes
-  ir         clang only: the library emitted as LLVM IR and lowered from it, its objects' instructions held to the
+  ir         clang only: the library emitted as LLVM IR and lowered from it, its objects' instructions compared with the
              direct compile's function by function, and the behavior run again on the build lowered from the IR
   gimple     gcc only: the optimized GIMPLE of the module's sources, kept beside the disassembly
   disasm     every object disassembled with llvm-objdump, a listing per function and its instruction count
   ghidra     every object of the module analyzed and decompiled by Ghidra headless in WSL, a .c per function
 
 Everything lands in one run under build/, verify-<stamp>/<module>/<toolchain>/, with functions.tsv there holding
-each function's instruction count under every toolchain and Ghidra's count beside it, so a function one toolchain
+each function's instruction count under every toolchain and Ghidra's count beside it, and a function one toolchain
 inlined or lowered differently reads off one table.
 """
 
@@ -110,7 +110,7 @@ def msvc_env():
 def toolchains():
     chains = [
         Toolchain("clang", "clang", "gnu", []),
-        # GNU ld on PE-COFF keeps a weak default's offset in its section as an addend on every reference, and so a
+        # GNU ld on PE-COFF keeps a weak default's offset in its section as an addend on every reference, and a
         # definition that replaces the default is reached that many bytes off. A section for each definition puts
         # every default at offset 0
         Toolchain("gcc", "gcc", "gnu", ["-ffunction-sections", "-fdata-sections"] if os.name == "nt" else []),

@@ -1,21 +1,21 @@
 /-!
-# LocusCarcerum, the movable option's slots and the zeroing
+# LocusCarcerum, the movable option's entries and the zeroing
 
-A movable take claims a slot (`carcer_slot_claimed`) by setting its bit of `claimed` with one fetch-or, and the take
-whose fetch-or found the bit clear names the slot; a release (`carcer_slot_given`) clears the bit of the slot it
-named. The theorem: no two contexts name one slot.
+A movable take claims an entry (`carcer_entry_claimed`) by setting its bit of `claimed` with one fetch-or, and the take
+whose fetch-or found the bit clear names the entry; a release (`carcer_entry_given`) clears the bit of the entry it
+named. The theorem: no two contexts name one entry.
 
 The zeroing. A give zeroes the payload, `size & zeroing & proceeds` bytes, and so the whole payload where both
 masks are set and nothing otherwise. A zeroing rewind zeroes from the top to where its walk stops, which
 `Rewind.walk_boundary` makes the footprints of the cells it drops, every byte of them.
 -/
 
-namespace LocusCarcerum.Slot
+namespace LocusCarcerum.Entry
 
-/-- A context: at rest, or naming a slot. -/
+/-- A context: at rest, or naming an entry. -/
 inductive At where
   | idle
-  | names (slot : Nat)
+  | names (entry : Nat)
   deriving DecidableEq, Repr
 
 structure State where
@@ -26,11 +26,11 @@ def setCtx (f : Nat → At) (i : Nat) (a : At) : Nat → At := fun j => if j = i
 def setBit (f : Nat → Bool) (k : Nat) (b : Bool) : Nat → Bool := fun j => if j = k then b else f j
 
 inductive Step : State → State → Prop where
-  /-- A claim's fetch-or: the slot named where the bit was clear, nothing where it was set. -/
+  /-- A claim's fetch-or: the entry named where the bit was clear, nothing where it was set. -/
   | claim {s : State} (i k : Nat) (h : s.ctx i = .idle) :
       Step s { claimed := setBit s.claimed k true,
                ctx := setCtx s.ctx i (if s.claimed k then .idle else .names k) }
-  /-- A release: the bit of the slot named cleared. -/
+  /-- A release: the bit of the entry named cleared. -/
   | release {s : State} (i k : Nat) (h : s.ctx i = .names k) :
       Step s { claimed := setBit s.claimed k false, ctx := setCtx s.ctx i .idle }
 
@@ -100,7 +100,7 @@ theorem inv_reach {s : State} (h : Reach s) : Inv s := by
   | start => exact ⟨by intro i k h; simp [start] at h, by intro i j k h; simp [start] at h⟩
   | step _ st ih => exact inv_step ih st
 
-/-- No two contexts name one slot. -/
+/-- No two contexts name one entry. -/
 theorem one_name {s : State} (h : Reach s) (i j k : Nat) (hi : s.ctx i = .names k) (hj : s.ctx j = .names k) :
     i = j := (inv_reach h).oneName i j k hi hj
 
@@ -111,4 +111,4 @@ theorem zeroed_whole (size : Nat) : zeroed size true true = size := rfl
 theorem zeroed_none (size : Nat) (z p : Bool) (h : z = false ∨ p = false) : zeroed size z p = 0 := by
   rcases h with h | h <;> simp [zeroed, h]
 
-end LocusCarcerum.Slot
+end LocusCarcerum.Entry

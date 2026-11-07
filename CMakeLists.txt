@@ -85,7 +85,7 @@ add_library(mmgr_flags INTERFACE)
 # directory. A target reaching include/mmgr.h needs the three embed headers behind it.
 target_link_libraries(mmgr_flags INTERFACE embedded_types::embedded_types)
 
-# GNU ld on PE-COFF keeps a weak default's offset in its section as an addend on every reference to it, and so a
+# GNU ld on PE-COFF keeps a weak default's offset in its section as an addend on every reference to it, and a
 # program's definition that replaces the default is reached that many bytes off. A section for each definition puts
 # every default at offset 0, where the addend is nothing
 if(MINGW AND CMAKE_C_COMPILER_ID STREQUAL "GNU")

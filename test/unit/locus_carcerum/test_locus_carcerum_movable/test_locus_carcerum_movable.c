@@ -16,7 +16,7 @@
  *       count back on the next round. A write that landed in the copy a move left behind reads back
  *       as the count before it, and the number of such reads is what the threaded case holds at zero.
  * @note The mover's cases run mmgr_movable_run on the test's own thread, with a thread_wait that plays a
- *       script and answers EMBED_FALSE at its end, so each reading lands where the case says it does.
+ *       script and answers EMBED_FALSE at its end, and each reading lands where the case says it does.
  * @note The misnamed hook is the case's way into a pass: a movable release naming the wrong owner reaches it
  *       with the release's lane claimed, and the hook stands there as long as the case says.
  */
@@ -203,10 +203,10 @@ void tearDown(void)
 }
 
 // A movable cell of size bytes, every byte of it mark
-static const CarcerMovableSlot *marked_sized(size_t size, unsigned char mark)
+static const CarcerMovableEntry *marked_sized(size_t size, unsigned char mark)
 {
     static unsigned char s_bytes[512];
-    const CarcerMovableSlot *const cell = plain.moving.movable_buf_alloc(size, s_mover);
+    const CarcerMovableEntry *const cell = plain.moving.movable_buf_alloc(size, s_mover);
 
     TEST_ASSERT_NOT_NULL(cell);
     memset(s_bytes, mark, size);
@@ -214,12 +214,12 @@ static const CarcerMovableSlot *marked_sized(size_t size, unsigned char mark)
     return cell;
 }
 
-static const CarcerMovableSlot *marked(unsigned char mark)
+static const CarcerMovableEntry *marked(unsigned char mark)
 {
     return marked_sized(64u, mark);
 }
 
-static void assert_marked(const CarcerMovableSlot *cell, size_t size, unsigned char mark)
+static void assert_marked(const CarcerMovableEntry *cell, size_t size, unsigned char mark)
 {
     static unsigned char s_bytes[512];
 
@@ -309,7 +309,7 @@ void test_a_thread_is_not_started_without_its_wait(void)
 
 void test_a_movable_take_answers_an_identity_whose_bytes_read_back(void)
 {
-    const CarcerMovableSlot *const cell = marked(0x5Au);
+    const CarcerMovableEntry *const cell = marked(0x5Au);
 
     assert_marked(cell, 64u, 0x5Au);
     TEST_ASSERT_EQUAL_size_t(64u, mmgr_owner_in_use(s_mover));
@@ -335,7 +335,7 @@ void test_a_movable_take_a_full_table_cannot_name_gives_its_cell_back(void)
 
 void test_a_read_or_a_write_past_the_cells_end_is_refused(void)
 {
-    const CarcerMovableSlot *const cell = marked(0x21u);
+    const CarcerMovableEntry *const cell = marked(0x21u);
     unsigned char bytes[128];
 
     memset(bytes, 0x77, sizeof(bytes));
@@ -350,7 +350,7 @@ void test_a_read_or_a_write_past_the_cells_end_is_refused(void)
 
 void test_a_read_and_a_write_land_at_their_offset(void)
 {
-    const CarcerMovableSlot *const cell = marked(0x31u);
+    const CarcerMovableEntry *const cell = marked(0x31u);
     const unsigned char two[2] = {0xA1u, 0xA2u};
     unsigned char back[4] = {0u, 0u, 0u, 0u};
 
@@ -365,8 +365,8 @@ void test_a_read_and_a_write_land_at_their_offset(void)
 
 void test_compare_orders_a_cell_against_bytes_and_against_another_cell(void)
 {
-    const CarcerMovableSlot *const low = marked(0x10u);
-    const CarcerMovableSlot *const high = marked(0x20u);
+    const CarcerMovableEntry *const low = marked(0x10u);
+    const CarcerMovableEntry *const high = marked(0x20u);
     unsigned char bytes[64];
 
     memset(bytes, 0x10, sizeof(bytes));
@@ -389,7 +389,7 @@ void test_compare_orders_a_cell_against_bytes_and_against_another_cell(void)
 
 void test_measure_answers_the_bytes_to_the_next_zero_or_the_end(void)
 {
-    const CarcerMovableSlot *const cell = marked(0x41u);
+    const CarcerMovableEntry *const cell = marked(0x41u);
     const unsigned char zero = 0u;
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(64u, plain.moving.movable_buf_measure(&(CarcerMovableCfg){.cell = cell}),
@@ -404,7 +404,7 @@ void test_measure_answers_the_bytes_to_the_next_zero_or_the_end(void)
 
 void test_a_released_identity_reads_nothing(void)
 {
-    const CarcerMovableSlot *const cell = marked(0x09u);
+    const CarcerMovableEntry *const cell = marked(0x09u);
     unsigned char byte = 0u;
 
     TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cell, s_mover));
@@ -416,7 +416,7 @@ void test_a_released_identity_reads_nothing(void)
 
 void test_release_naming_another_owner_changes_nothing_and_is_told(void)
 {
-    const CarcerMovableSlot *const cell = marked(0x0Au);
+    const CarcerMovableEntry *const cell = marked(0x0Au);
 
     TEST_ASSERT_FALSE(plain.moving.movable_buf_release(cell, s_other));
     TEST_ASSERT_EQUAL_UINT(1u, s_misnamed);
@@ -426,9 +426,9 @@ void test_release_naming_another_owner_changes_nothing_and_is_told(void)
 
 void test_a_released_place_in_the_table_is_taken_again_lowest_first(void)
 {
-    const CarcerMovableSlot *const first = marked(0x0Cu);
-    const CarcerMovableSlot *const second = marked(0x0Du);
-    const CarcerMovableSlot *const third = marked(0x0Eu);
+    const CarcerMovableEntry *const first = marked(0x0Cu);
+    const CarcerMovableEntry *const second = marked(0x0Du);
+    const CarcerMovableEntry *const third = marked(0x0Eu);
 
     TEST_ASSERT_TRUE(plain.moving.movable_buf_release(second, s_mover));
     TEST_ASSERT_TRUE(plain.moving.movable_buf_release(first, s_mover));
@@ -439,7 +439,7 @@ void test_a_released_place_in_the_table_is_taken_again_lowest_first(void)
 
 void test_a_take_wraps_and_finds_a_place_its_search_start_has_passed(void)
 {
-    const CarcerMovableSlot *cells[MOVING_CELLS];
+    const CarcerMovableEntry *cells[MOVING_CELLS];
 
     for (unsigned int at = 0u; at < MOVING_CELLS; at += 1u)
     {
@@ -457,7 +457,7 @@ void test_a_take_wraps_and_finds_a_place_its_search_start_has_passed(void)
 void test_a_move_takes_the_free_cell_below_and_the_identity_stands(void)
 {
     void *const low = plain.moving.persistent_buf_alloc(64u, s_mover);
-    const CarcerMovableSlot *const cell = marked(0x22u);
+    const CarcerMovableEntry *const cell = marked(0x22u);
     const size_t gap = plain.moving.buf_available();
 
     plain.moving.persistent_buf_release(low, s_mover);
@@ -473,7 +473,7 @@ void test_a_move_takes_the_free_cell_below_and_the_identity_stands(void)
 void test_a_move_into_a_run_kept_whole_counts_the_run_and_its_release_counts_it_back(void)
 {
     void *const low = plain.moving.persistent_buf_alloc(64u + MMGR_CARCER_ALIGN, s_mover);
-    const CarcerMovableSlot *const cell = marked(0x23u);
+    const CarcerMovableEntry *const cell = marked(0x23u);
 
     plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE_MESSAGE(mmgr_movable_buf_move(&plain_moving_ctx), "the run below holds the cell");
@@ -485,7 +485,7 @@ void test_a_move_into_a_run_kept_whole_counts_the_run_and_its_release_counts_it_
 
 void test_a_move_finds_nothing_where_no_free_cell_stands_below(void)
 {
-    const CarcerMovableSlot *const cell = marked(0x44u);
+    const CarcerMovableEntry *const cell = marked(0x44u);
 
     TEST_ASSERT_FALSE(mmgr_movable_buf_move(&plain_moving_ctx));
     assert_marked(cell, 64u, 0x44u);
@@ -493,7 +493,7 @@ void test_a_move_finds_nothing_where_no_free_cell_stands_below(void)
 
 void test_a_move_never_goes_upward(void)
 {
-    const CarcerMovableSlot *const cell = marked(0x45u);
+    const CarcerMovableEntry *const cell = marked(0x45u);
     void *const above = plain.moving.persistent_buf_alloc(64u, s_mover);
     void *const held = plain.moving.persistent_buf_alloc(64u, s_mover);
 
@@ -506,8 +506,8 @@ void test_a_move_never_goes_upward(void)
 void test_a_move_takes_the_highest_cell_first(void)
 {
     void *const low = plain.moving.persistent_buf_alloc(64u, s_mover);
-    const CarcerMovableSlot *const lower = marked(0x55u);
-    const CarcerMovableSlot *const higher = marked(0x66u);
+    const CarcerMovableEntry *const lower = marked(0x55u);
+    const CarcerMovableEntry *const higher = marked(0x66u);
     const size_t gap = plain.moving.buf_available();
 
     plain.moving.persistent_buf_release(low, s_mover);
@@ -520,8 +520,8 @@ void test_a_move_takes_the_highest_cell_first(void)
 void test_a_smaller_cell_under_one_no_free_cell_takes_still_moves(void)
 {
     void *const low = plain.moving.persistent_buf_alloc(64u, s_mover);
-    const CarcerMovableSlot *const small = marked_sized(32u, 0x61u);
-    const CarcerMovableSlot *const large = marked_sized(256u, 0x62u);
+    const CarcerMovableEntry *const small = marked_sized(32u, 0x61u);
+    const CarcerMovableEntry *const large = marked_sized(256u, 0x62u);
 
     plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE_MESSAGE(mmgr_movable_buf_move(&plain_moving_ctx), "the smaller cell fits the free cell");
@@ -533,9 +533,9 @@ void test_a_smaller_cell_under_one_no_free_cell_takes_still_moves(void)
 void test_moves_run_until_none_answers_stand_as_they_left_things(void)
 {
     void *const first = plain.moving.persistent_buf_alloc(64u, s_mover);
-    const CarcerMovableSlot *const one = marked(0x71u);
+    const CarcerMovableEntry *const one = marked(0x71u);
     void *const second = plain.moving.persistent_buf_alloc(64u, s_mover);
-    const CarcerMovableSlot *const two = marked(0x72u);
+    const CarcerMovableEntry *const two = marked(0x72u);
     const size_t gap = plain.moving.buf_available();
 
     plain.moving.persistent_buf_release(first, s_mover);
@@ -562,7 +562,7 @@ void test_a_move_and_a_release_on_a_wiping_series_cellularum_wipe_what_they_leav
     TEST_ASSERT_TRUE(wiped.secure.movable_init(&(CarcerMovableInitCfg){
         .storage = mmgr_pars_storage_secure_option, .storage_bytes = secure_option_bytes, .cells = 2u, .width = 1u}));
     unsigned char *const low = wiped.secure.persistent_buf_alloc(64u, s_mover);
-    const CarcerMovableSlot *const cell = wiped.secure.movable_buf_alloc(64u, s_mover);
+    const CarcerMovableEntry *const cell = wiped.secure.movable_buf_alloc(64u, s_mover);
     unsigned char *const next = wiped.secure.persistent_buf_alloc(64u, s_mover);
     // Three cells of one size stand side by side, and the movable one is the middle one
     unsigned char *const left = low + ((size_t)(next - low) / 2u);
@@ -705,7 +705,7 @@ void test_touches_count_the_passes_through_a_lane_and_the_last_badge(void)
     plain.moving.persistent_buf_release(two, s_other);
     TEST_ASSERT_TRUE(mmgr_movable_touches(&plain_moving_ctx, 0u, &id, &touches));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(2u, touches, "a give passes no lane");
-    const CarcerMovableSlot *const cell = marked(0x07u);
+    const CarcerMovableEntry *const cell = marked(0x07u);
 
     TEST_ASSERT_TRUE(mmgr_movable_touches(&plain_moving_ctx, 0u, &id, &touches));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(4u, touches, "a movable take and its write pass once each");
@@ -744,10 +744,10 @@ void test_no_rows_keeps_no_touches(void)
 }
 
 // A hole below a movable cell large enough to read over the threshold, and the cell that would fill it
-static const CarcerMovableSlot *fragmented(void)
+static const CarcerMovableEntry *fragmented(void)
 {
     void *const low = plain.moving.persistent_buf_alloc(512u, s_mover);
-    const CarcerMovableSlot *const cell = marked_sized(128u, 0x33u);
+    const CarcerMovableEntry *const cell = marked_sized(128u, 0x33u);
 
     plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
@@ -757,7 +757,7 @@ static const CarcerMovableSlot *fragmented(void)
 void test_the_mover_leaves_a_series_cellularum_under_the_threshold_alone(void)
 {
     void *const low = plain.moving.persistent_buf_alloc(16u, s_mover);
-    const CarcerMovableSlot *const cell = marked_sized(256u, 0x35u);
+    const CarcerMovableEntry *const cell = marked_sized(256u, 0x35u);
 
     plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) < MMGR_MOVABLE_SETTLE_PERCENT);
@@ -778,7 +778,7 @@ void test_the_mover_waits_for_its_quiet_readings_before_it_sorts(void)
 
 void test_the_mover_sorts_over_the_threshold_at_a_quiet_time_and_stops(void)
 {
-    const CarcerMovableSlot *const cell = fragmented();
+    const CarcerMovableEntry *const cell = fragmented();
     const size_t gap = plain.moving.buf_available();
 
     // The readings, the one lock's wait, and one more to see the sort is not run again
@@ -794,7 +794,7 @@ void test_the_mover_sorts_over_the_threshold_at_a_quiet_time_and_stops(void)
 void test_a_sort_that_can_move_nothing_is_not_run_again_until_the_reading_rises(void)
 {
     // A hole above the only movable cell: over the threshold with nothing to move
-    const CarcerMovableSlot *const cell = marked_sized(128u, 0x36u);
+    const CarcerMovableEntry *const cell = marked_sized(128u, 0x36u);
     void *const hole = plain.moving.persistent_buf_alloc(512u, s_mover);
     void *const pin = plain.moving.persistent_buf_alloc(16u, s_mover);
 
@@ -852,9 +852,9 @@ void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_w
 {
     // Two holes under two movable cells: the first move leaves a second to make, and a pass lands between them
     void *const low = plain.moving.persistent_buf_alloc(512u, s_mover);
-    const CarcerMovableSlot *const one = marked_sized(128u, 0x31u);
+    const CarcerMovableEntry *const one = marked_sized(128u, 0x31u);
     void *const middle = plain.moving.persistent_buf_alloc(512u, s_mover);
-    const CarcerMovableSlot *const two = marked_sized(128u, 0x32u);
+    const CarcerMovableEntry *const two = marked_sized(128u, 0x32u);
 
     plain.moving.persistent_buf_release(low, s_mover);
     plain.moving.persistent_buf_release(middle, s_mover);
@@ -872,7 +872,7 @@ void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_w
 
 // The thread that releases a movable cell with the wrong owner and stands in its pass until the mover has told of a
 // sort, and the thread that runs the mover: the sort's move waits for the pass to end
-static const CarcerMovableSlot *s_occupied_cell;
+static const CarcerMovableEntry *s_occupied_cell;
 
 static void occupied_each(void)
 {
@@ -908,7 +908,7 @@ void test_a_sort_waits_out_the_pass_under_way(void)
                                                                         .thread_wait = script_wait,
                                                                         .thread_moving = occupied_moving}));
     void *const low = single.narrow.persistent_buf_alloc(512u, s_mover);
-    const CarcerMovableSlot *const cell = single.narrow.movable_buf_alloc(128u, s_mover);
+    const CarcerMovableEntry *const cell = single.narrow.movable_buf_alloc(128u, s_mover);
 
     TEST_ASSERT_NOT_NULL(cell);
     single.narrow.persistent_buf_release(low, s_mover);
@@ -1043,7 +1043,7 @@ static embed_bool crowd_holds(const embed_word *words, embed_word count)
 // tenth round it gives the cell back and takes another, the hole it leaves what the mover fills
 static void crowd_written(void)
 {
-    const CarcerMovableSlot *cell = NULL;
+    const CarcerMovableEntry *cell = NULL;
     embed_word count = 0u;
     embed_word words[CROWD_CELL_WORDS];
 
@@ -1116,7 +1116,7 @@ void test_no_write_is_lost_while_another_thread_moves_the_cells(void)
                                      "every cell is counted back");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&crowded_crowd_ctx.in_use),
                                      "by the cellblock too");
-    // a give at the end while a move held the closed bit left its cell free in the tier: one give at the end with
+    // a give at the end while a move had the cellblock closed left its cell free in the tier: one give at the end with
     // no writer about trims every free cell below it
     crowded.crowd.persistent_buf_release(crowded.crowd.persistent_buf_alloc(16u, s_mover), s_mover);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(CROWD_BYTES, crowded.crowd.buf_available(), "and the cellblock stands whole");

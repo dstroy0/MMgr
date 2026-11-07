@@ -39,7 +39,7 @@ class Assume(angr.SimProcedure):
 
 
 class ClockRead(angr.SimProcedure):
-    """clock_gettime of any clock: the seconds and nanoseconds fresh symbols, so a proof holds for every reading."""
+    """clock_gettime of any clock: the seconds and nanoseconds fresh symbols, and a proof holds for every reading."""
 
     def run(self, clock, spec):
         self.state.memory.store(spec, self.state.solver.BVS("clock_s", SIZE_BITS), endness=self.arch.memory_endness)

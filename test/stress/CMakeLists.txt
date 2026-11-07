@@ -23,3 +23,17 @@ endif()
 set_target_properties(locus_carcerum_stress_host PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test/host")
 
 add_test(NAME locus_carcerum_stress_host COMMAND locus_carcerum_stress_host 16 2000 65536 2)
+
+# The two cells at the temporary top given by two threads at one instant, round after round
+add_executable(locus_carcerum_trim_race_host
+    "${CMAKE_CURRENT_SOURCE_DIR}/locus_carcerum_trim_race.c"
+    "${MMGR_TEST_ROOT}/support/host_threads.c"
+    "${MMGR_TEST_ROOT}/support/host_wait.c")
+target_include_directories(locus_carcerum_trim_race_host PRIVATE "${MMGR_TEST_ROOT}/support")
+target_link_libraries(locus_carcerum_trim_race_host PRIVATE mmgr_host Threads::Threads)
+if(WIN32)
+    target_link_libraries(locus_carcerum_trim_race_host PRIVATE synchronization)
+endif()
+set_target_properties(locus_carcerum_trim_race_host PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test/host")
+
+add_test(NAME locus_carcerum_trim_race_host COMMAND locus_carcerum_trim_race_host 200000)

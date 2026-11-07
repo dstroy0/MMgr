@@ -115,8 +115,10 @@ While an exclusive operation runs, no operation of §3.1 or §3.2 is in progress
 
 ### 3.4 Free, cell $(o,p) \in P \cup Q$
 
-The operation sets the state bit of the cell to free. $P$, $Q$, $E$ and $T$ do not change. If a free cell is at the
-edge of $e_P$ or at the edge of $t_Q$, a Trim follows.
+The operation sets the state bit of the cell to free. $P$, $Q$, $E$ and $T$ do not change. Then a full fence
+follows, and the operation reads the closed bit and the two edges. If the cell is at the edge of $e_P$ or at the
+edge of $t_Q$ after this read, or if the closed bit is 1, a Trim follows. A Trim that starts before the free reads
+the cell as free, or stores an edge that this read sees.
 
 The free operation does not wait for an exclusive operation. One read-modify-write sets the closed bit and the trim
 bit of the tier of the cell. If the closed bit was clear, the free operation does the Trim. If the closed bit was
@@ -298,11 +300,16 @@ Lean checks the models in `theory/locus_carcerum`:
   152 that a divisor rounded down gave.
 - `LocusCarcerum/Bounds.lean` proves that a span the test passes lies inside its cell and a span it refuses does
   not, the test of a pointer, and that a high-water mark is at or past each count it was raised to.
-- `LocusCarcerum/Slot.lean` proves that no two contexts name one movable slot, and the bytes a give zeroes.
+- `LocusCarcerum/Entry.lean` proves that no two contexts name one movable entry, and the bytes a give zeroes.
+- `LocusCarcerum/Boundary.lean` writes the free of §3.4 and the Trim of §3.5 on the cells of one tier. The walk
+  reads one header at a time and stores the edge after it stops. It proves that an open cellblock with no operation
+  in progress has no free cell at its edge. It also checks one order of steps where a free reads the edge before
+  its store and a free cell stays at the edge.
 - `LocusCarcerum/Pass.lean` proves that no pass works on the cellblock while a writer works alone.
 - `LocusCarcerum/Order.lean` carries `Pass.lean` and `Trim.lean` to C11: the writes to the closed word are
   read-modify-writes in one modification order, and the two sequentially consistent fences of a pass and a drain
-  give the drain its disjunction under the fence rule of the standard.
+  give the drain its disjunction under the fence rule of the standard. The fences of a free and a writer give the
+  free the same disjunction. The free reads the closed bit set, or the walk reads the header free.
 - `LocusCarcerum/Trim.lean` writes the steps of §3.4 on the closed word for any number of contexts. It proves that
   when the cellblock is open and no free operation is in progress, no tier has a free cell at its edge. It also
   checks one interleaving of a protocol without trim bits, where a free cell stays at the edge.

@@ -6,7 +6,7 @@
  */
 /**
  * @file locus_carcerum_sequence_prove.c
- * @brief Layout, Take, Spill, Give and Rewind of the Lean theory held on the C: every sequence of PROVE_STEPS
+ * @brief Layout, Take, Spill, Give and Rewind of the Lean theory proved on the C: every sequence of PROVE_STEPS
  *        operations on a small cellblock, each a take of either tier at any of four sizes, a give of any cell
  *        standing plain or zeroing, a mark, or a rewind plain or zeroing. After each step every cell standing keeps
  *        its bytes and counts to its owner and the gap is the top less the end; once every cell is given back and

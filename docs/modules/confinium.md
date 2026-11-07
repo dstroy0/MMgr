@@ -80,25 +80,25 @@ blocks.
 Movable cells are an option a program assigns once, through its guard's `movable_init`. A cellblock with no
 option takes and gives as it always does, each entry testing one word, and its `movable_buf_alloc` answers
 `NULL`. The call hands over storage for the option, the sizes, and the calls of the thread the mover runs on.
-The storage lies outside the prison, so nothing of the option pins a tier, and a pool declared at compile time
+The storage lies outside the prison, and nothing of the option pins a tier, and a pool declared at compile time
 gives it a link-time address. `MMGR_MOVABLE_STORAGE_BYTES` states what it takes.
 
-`movable_buf_alloc` answers a const pointer to the cell's slot in the translation table. The slot is the mutable
+`movable_buf_alloc` answers a const pointer to the cell's entry in the translation table. The entry is the mutable
 word: it names where the cell stands now, and it is MMgr's alone. The pointer is the caller's identity for the
 cell, and it stands for the cell's life however often the cell moves. Nothing hands out the cell's address.
 `movable_buf_read`, `movable_buf_write`, `movable_buf_compare` and `movable_buf_measure` take the identity and
 an offset, check the span against the cell, and do the work themselves, and so every touch of the cell passes
-through MMgr. A span past the cell's end is refused. A slot is claimed by one fetch-or on the table's claim bits,
+through MMgr. A span past the cell's end is refused. An entry is claimed by one fetch-or on the table's claim bits,
 the lowest free bit nearest the last claim.
 
 Each call is one pass through the cellblock's turnstiles, badged with the calling thread's id: the lane claimed
-by one fetch-or, the slot's word read, the bytes copied, the lane let go. A move is a writer: it sets the
-cellblock's closed bit, waits out every pass under way, copies the cell, flips the slot to the copy, sets the
+by one fetch-or, the entry's word read, the bytes copied, the lane let go. A move is a writer: it sets the
+cellblock's closed bit, waits out every pass under way, copies the cell, flips the entry to the copy, sets the
 cell left behind free and opens the cellblock. A call that finds the closed bit touches nothing, backs off one
-step on the bit and tries once more, so a cell never moves under a call, and a move is one copy long. A call is
+step on the bit and tries once more, and a cell never moves under a call, and a move is one copy long. A call is
 atomic against a move and not against another writer: two contexts writing the same bytes order themselves.
 
-Every take passes the turnstiles too, and the option counts the passes, which is what makes pressure a reading
+Every take passes the turnstiles too, and the option counts the passes: that count makes pressure a reading
 of the whole cellblock. A give passes none: the cell's words are its holder's alone.
 
 The mover runs on the thread the program gave. Each reading compares `mmgr_series_cellularum_fragmentation`, the bytes the

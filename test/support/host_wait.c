@@ -45,7 +45,7 @@ embed_u64 embed_clock_ns(void)
 
     QueryPerformanceFrequency(&frequency);
     QueryPerformanceCounter(&count);
-    // the count's seconds and its rest scaled apart, so the product stays within 64 bits
+    // the count's seconds and its rest scaled apart, and the product stays within 64 bits
     return ((embed_u64)(count.QuadPart / frequency.QuadPart) * 1000000000ull) +
            (((embed_u64)(count.QuadPart % frequency.QuadPart) * 1000000000ull) / (embed_u64)frequency.QuadPart);
 }

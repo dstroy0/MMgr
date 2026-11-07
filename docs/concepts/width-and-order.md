@@ -79,7 +79,7 @@ uint8_t *p = prison.work.persistent_buf_alloc(256, reader);
 An allocation does not name an alignment, because there is only one. Every cell comes back aligned to
 `MMGR_CARCER_ALIGN`, the larger of `sizeof(embed_word)` and the alignment of the atomic size word,
 derived from the two types instead of written as a number. Every cell carries an atomic size word at its
-header and at its foot, so a grain narrower than that word would put the foot off its alignment. At a
+header and at its foot, and a grain narrower than that word would put the foot off its alignment. At a
 16-bit or 32-bit word the grain is the atomic word's; at a 64-bit word the two are the same.
 
 `locus_carcerum.h` asserts that `MMGR_CARCER_ALIGN` is a power of two, since an offset rounds by

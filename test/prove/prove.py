@@ -1,16 +1,16 @@
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
-"""harness.py prove: each proof harness under test/prove held on the C source and on the machine code compilers lower.
+"""harness.py prove: each proof harness under test/prove proved on the C source and on the machine code compilers lower.
 
 A harness is a C program of inputs, assumptions and assertions (prove.h) that states a theorem of
 theory/locus_carcerum on the real functions. Two provers hold it:
 
   cbmc      the C source, with every source the library links, unwound to the harness's bound with unwinding
-            assertions, so a bound too small for a loop fails rather than passes. A second run with PROVE_REACH
+            assertions, and a bound too small for a loop fails and does not pass. A second run with PROVE_REACH
             must fail: it asserts the end of the harness unreachable, and a harness whose assumptions leave no path
             would pass every assertion and prove nothing.
   machine   the harness built by each toolchain here at each optimization level and run from main by the symbolic
-            executor (symbolic.py) with every input a symbol, every path to its end; the property is held on the
+            executor (symbolic.py) with every input a symbol, every path to its end; the property is proved on the
             instructions the compiler emitted.
 
 Both run in WSL on a Windows host and directly on Linux. CBMC comes from the distribution; the executor from a
@@ -29,7 +29,7 @@ BOUNDS = {
     "locus_carcerum_movable": {"defines": ["PROVE_STEPS=2u"], "unwind": 12},
 }
 
-# The toolchains of the machine arm and the levels each is held at.
+# The toolchains of the machine arm and the levels each is proved at.
 MACHINE = [("gcc", "-O0"), ("gcc", "-O2"), ("clang", "-O0"), ("clang", "-O2")]
 
 DEFINES = ["MMGR_ENABLE_DMA=0", "MMGR_ENABLE_EXTRAM=0", "MMGR_CARCER_OWNERS=1024u"]

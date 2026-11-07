@@ -1,5 +1,5 @@
 # The libFuzzer harnesses, one for each module, built where MMGR_FUZZ is on and the compiler is clang, which carries
-# the fuzzer runtime. Each one is also a test: a fixed seed and MMGR_FUZZ_RUNS inputs, so the suite runs every
+# the fuzzer runtime. Each one is also a test: a fixed seed and MMGR_FUZZ_RUNS inputs, and the suite runs every
 # harness; harness.py fuzz runs them for as long as it is asked, over a corpus under build/.
 #
 # Most harnesses link the host library. Three build their module in themselves, with the switches the host library
