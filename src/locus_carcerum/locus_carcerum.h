@@ -1524,7 +1524,8 @@ embed_bool mmgr_movable_buf_move(SeriesCellularum *series);
 void mmgr_movable_run(SeriesCellularum *series);
 
 /**
- * @brief The contexts queued at the cellblock's turnstiles now: between their badge-in and their lane.
+ * @brief The contexts queued at the cellblock's turnstiles now: those that found every open lane busy and wait for
+ *        a lane.
  *
  * @param[in] series Cellblock to read [BORROWS].
  * @return           The queued contexts, 0 without the option.

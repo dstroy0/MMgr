@@ -9,9 +9,10 @@ the compare-exchange of an open. C11 gives the writes to one object one modifica
 reads the last value before its own write in it ([atomics.order], the read-modify-write rule). The steps of
 `Trim.lean` on the closed word are therefore one order of whole steps, as the model takes them.
 
-The drain. A pass claims its lane with a fetch-or on `busy`, then a sequentially consistent fence, then loads the
-closed bit (`embed_turnstile_enter`, `carcer_attempted`). A writer fetch-ors the closed bit, then a sequentially
-consistent fence, then loads `busy` (`carcer_shut`, `embed_turnstiles_drain`). The fences stand in one total order
+The drain. A pass claims its lane with a fetch-or on the lane word, then a sequentially consistent fence, then loads
+the closed bit (`embed_turnstile_enter`, `carcer_attempted`). A writer fetch-ors the closed bit, then a sequentially
+consistent fence, then loads `open` and each open lane word (`carcer_shut`, `embed_turnstiles_drain`). The lanes of
+passes are below `open`, as embedded_types' `Manifold.Open.passes_below_open` proves. The fences stand in one total order
 `S`. C11's fence rule ([atomics.order], the rule for two seq_cst fences): where write `A` is sequenced before fence
 `X`, fence `Y` before read `B`, and `X` precedes `Y` in `S`, `B` reads `A` or a later write. An execution below
 carries the rule as its two hypotheses, one for each order of the two fences, and the theorem is the disjunction

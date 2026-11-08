@@ -76,6 +76,31 @@ void tearDown(void)
 {
 }
 
+// The open lanes of the cellblock's turnstiles that a pass or a contraction holds
+static size_t lanes_busy(void)
+{
+    const unsigned int count = embed_turnstile_lanes(&BLOCK->turnstiles);
+    size_t busy = 0u;
+
+    for (unsigned int at = 0u; at < count; at += 1u)
+    {
+        busy += (size_t)((embed_atomic_word_load(&BLOCK->turnstiles.lane[at].word) & EMBED_TURNSTILE_BUSY) != 0u);
+    }
+    return busy;
+}
+
+// The place of the lowest bit set in a word that has a bit set
+static size_t lowest_set(embed_atomic_usize_value word)
+{
+    size_t place = 0u;
+
+    while ((word & ((embed_atomic_usize_value)1u << place)) == 0u)
+    {
+        place += 1u;
+    }
+    return place;
+}
+
 // The option assigned over its storage, zeroed
 static void option_assigned(void)
 {
@@ -239,7 +264,7 @@ void test_a_pass_that_finds_the_series_cellularum_closed_misses_and_touches_noth
     TEST_ASSERT_EQUAL_size_t(SIZE_MAX, missed);
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(BLOCK));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(
-        0u, (size_t)embed_atomic_word_load(&BLOCK->turnstiles.busy) & EMBED_TURNSTILE_LANE_BITS, "the lane is let go");
+        0u, lanes_busy(), "the lane is let go");
     (void)embed_atomic_word_fetch_and(&BLOCK->closed, ~CARCER_CLOSED);
     TEST_ASSERT_NOT_EQUAL(0u, (uint64_t)carcer_attempted(BLOCK, s_one->place, carcer_bumped, &take, &missed));
     TEST_ASSERT_EQUAL_size_t(0u, missed);
@@ -441,7 +466,7 @@ void test_a_claim_sets_the_lowest_free_bit_and_a_full_table_claims_nothing(void)
     const embed_atomic_usize_value past = embed_atomic_usize_load(&movable->claimed[words - 1u]);
 
     TEST_ASSERT_EQUAL_size_t(RACED_CELLS - ((words - 1u) * MMGR_MOVABLE_CLAIM_BITS),
-                             (size_t)embed_turnstile_lowest(past));
+                             lowest_set(past));
     for (size_t at = 0u; at < RACED_CELLS; at += 1u)
     {
         TEST_ASSERT_EQUAL_PTR(&movable->entry[at], carcer_entry_claimed(movable, CARCER_WORD, carcer_all(1)));
@@ -532,7 +557,8 @@ void test_emptying_puts_the_record_back_at_rest(void)
     mmgr_series_cellularum_emptied(BLOCK);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_idle(BLOCK));
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_word_load(&BLOCK->closed));
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_word_load(&BLOCK->turnstiles.busy));
+    TEST_ASSERT_EQUAL_size_t(0u, lanes_busy());
+    TEST_ASSERT_EQUAL_UINT32(0u, embed_atomic_u32_load(&BLOCK->turnstiles.queue));
     TEST_ASSERT_EQUAL_size_t(1u, (size_t)embed_turnstile_lanes(&BLOCK->turnstiles));
     TEST_ASSERT_NULL(carcer_movable_of(BLOCK));
 }

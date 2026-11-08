@@ -20,13 +20,12 @@
  * @note Every choice on a hot path is a mask, a select, or a row of a two-row table of entries: a take that the
  *       gap cannot meet lays its words on the cellblock's sink word, adds its bump to the tier's overrun, and answers
  *       NULL through the same stores a take that lands makes. No path branches on what another context did.
- * @note A reader's pass is a badge-in at the cellblock's turnstiles: the lane claimed with one fetch-or, the badge
- *       written with the owner's place and the clock's reading, the work, and the lane let go. The turnstiles' host
- *       hooks, embed_word_wait, embed_word_wake and embed_clock_ns, are the program's to define, as embed_turnstile.h
- *       says: a build with none fails at the link, naming them. A writer sets the
- *       cellblock's closed bit with one fetch-or, drains the lanes, and works with no pass under way: the rewind,
- *       the compaction that merges free runs and trims the end, the growth and the move. A pass that finds the
- *       closed bit backs off one step on it and tries once more; a pass that finds no lane does the same.
+ * @note A reader's pass is an entry at the cellblock's turnstiles: a lane taken with one fetch-or, the work, and the
+ *       lane let go with one fetch-add. The turnstiles' host hooks, embed_word_wait, embed_word_wake and
+ *       embed_clock_ns, are the program's to define, as embed_turnstile.h says: a build with none fails at the link,
+ *       naming them. A writer sets the cellblock's closed bit with one fetch-or, drains the lanes, and works with no
+ *       pass under way: the rewind, the compaction that merges free runs and trims the end, the growth and the move.
+ *       A pass that finds the closed bit backs off one step on it and tries once more.
  * @note Every take, give and growth names an owner of the table MMGR_OWNERS lays. A cell counts to the owner its
  *       owner word names, and a give or a growth naming another owner is refused and told to the port. The
  *       completion bit of the owner word is set once, by one fetch-or, and the cell's bytes come off its owner
@@ -60,9 +59,6 @@
 /** @brief Both trim bits. */
 #define CARCER_TRIM_PENDING (CARCER_TRIM_PERSISTENT | CARCER_TRIM_TEMPORARY)
 
-/** @brief The first backoff step: a pause with no sleep, the sleeps reached as the steps double. */
-#define CARCER_STEP_FIRST 1u
-
 /**
  * @brief Bytes one of a cell's two words occupies, rounded up so the payload between them stays aligned.
  *
@@ -84,7 +80,7 @@
 // docs/concepts/locus-carcerum-algorithm.md §3 states the bound and theory/locus_carcerum/LocusCarcerum/Word.lean
 // proves it
 EMBED_STATIC_ASSERT(MMGR_CARCER_BYTES_MOST +
-                            ((size_t)EMBED_TURNSTILE_LANES_MOST * (CARCER_HDR + MMGR_CARCER_WANT_MOST)) <
+                            ((size_t)EMBED_TURNSTILE_LANES * (CARCER_HDR + MMGR_CARCER_WANT_MOST)) <
                         ((size_t)1u << MMGR_CARCER_HALF_BITS),
                     "the bumps the turnstiles' lanes put in flight can move a boundary past its half");
 
@@ -661,12 +657,13 @@ EMBED_INLINE void carcer_settled(SeriesCellularum *series)
  */
 EMBED_INLINE void carcer_shut(SeriesCellularum *series)
 {
-    unsigned int step = CARCER_STEP_FIRST;
+    EmbedTurnstileBackoff backoff;
     embed_atomic_word_value was = embed_atomic_word_fetch_or(&series->closed, CARCER_CLOSED);
 
+    embed_turnstile_backoff_begin(&backoff);
     while ((was & CARCER_CLOSED) != 0u)
     {
-        step = embed_turnstile_backed_off(&series->closed, was, CARCER_CLOSED_SLEEPERS, step, 1u);
+        embed_turnstile_backed_off(&series->closed, was, CARCER_CLOSED_SLEEPERS, &backoff, 1u);
         was = embed_atomic_word_fetch_or(&series->closed, CARCER_CLOSED);
     }
     // A full fence between the closed bit taken and the headers the writer reads: a give that stores a header free
@@ -741,13 +738,6 @@ EMBED_INLINE void carcer_owed_serviced(SeriesCellularum *series)
  * @return                The work's answer as an integer, 0 where the permit was none.
  */
 typedef uintptr_t (*CarcerWork)(SeriesCellularum *series, const void *context, size_t permit);
-
-/** @brief A leave of nothing, the row of the leave table a pass with no lane takes. */
-static void carcer_leave_none(EmbedTurnstiles *set, unsigned int at)
-{
-    (void)set;
-    (void)at;
-}
 
 /** @brief One row of touches, counted to a lane: its key and its touches. */
 typedef struct
@@ -883,30 +873,30 @@ static void carcer_pass_counted_none(CarcerMovable *movable)
 }
 
 /**
- * @brief One pass: a badge-in by id, the closed bit read, the work done with the permit the lane and the bit
- *        allow, and the lane let go.
+ * @brief One pass: an entry at the lane of the caller's address, the closed bit read, the work done with the permit
+ *        the bit allows, and the lane let go.
  *
  * @param[in,out] series  Cellblock the pass is through [BORROWS].
- * @param[in]     id      The badge's id: an owner's place, or a thread's id.
+ * @param[in]     id      The pass's id for the movable option's touch rows: an owner's place, or a thread's id.
  * @param[in]     work    The work [BORROWS].
  * @param[in]     context Its arguments [BORROWS].
- * @param[out]    missed  Every bit set where the pass found the cellblock closed or no lane [BORROWS].
+ * @param[out]    missed  Every bit set where the pass found the cellblock closed [BORROWS].
  * @return                The work's answer, 0 where the pass missed.
- * @note The permit is one mask: the lane's claim and the closed bit as read after the badge-in. A pass that badged
- *       in before a writer's drain read the lanes is waited on by that drain; one that badged in after reads the
- *       closed bit. The leave is a row of a two-row table, the row whether a lane was claimed.
+ * @note The entry's address is `missed`, a word on the caller's stack. Each thread's stack has its own place, so the
+ *       threads start at lanes of their own, and the entry spills where a lane is busy.
+ * @note The permit is the closed bit as read after the entry. A pass that entered before a writer's drain read the
+ *       lanes is waited on by that drain; one that entered after reads the closed bit.
  */
 static uintptr_t carcer_attempted(SeriesCellularum *series, embed_atomic_word_value id, CarcerWork work,
                                   const void *context, size_t *missed)
 {
-    static void (*const leaves[2])(EmbedTurnstiles *, unsigned int) = {embed_turnstile_leave, carcer_leave_none};
     static void (*const touches[2])(CarcerMovable *, unsigned int, embed_atomic_word_value) = {carcer_touched_none,
                                                                                                carcer_touched};
     static void (*const counts[2])(CarcerMovable *) = {carcer_pass_counted_none, carcer_pass_counted};
-    const unsigned int at = embed_turnstile_enter(&series->turnstiles, id);
-    const size_t none = carcer_all(at == EMBED_TURNSTILE_NONE);
+    // Explicit cast carries the address of the caller's word as the entry's integer
+    const unsigned int at = embed_turnstile_enter(&series->turnstiles, (embed_atomic_uptr_value)(uintptr_t)missed);
     const size_t closed = carcer_all((embed_atomic_word_load(&series->closed) & CARCER_CLOSED) != 0u);
-    const size_t permit = ~(none | closed);
+    const size_t permit = ~closed;
     CarcerMovable *const movable = carcer_movable_of(series);
     const size_t has = permit & carcer_all(movable != NULL);
     CarcerMovable *const option = carcer_pick_at(has, movable, &carcer_movable_none);
@@ -916,39 +906,40 @@ static uintptr_t carcer_attempted(SeriesCellularum *series, embed_atomic_word_va
     touches[has_rows & 1u](option, at, id);
     const uintptr_t answer = work(series, context, permit);
 
-    leaves[none & 1u](&series->turnstiles, at);
+    embed_turnstile_leave(&series->turnstiles, at);
     *missed = ~permit;
     return answer;
 }
 
 /**
  * @brief Work carried through the turnstiles: one pass, and for a pass that missed a backoff step on the closed
- *        word and the badge-in again, until a pass lands.
+ *        word and the entry again, until a pass lands.
  *
  * @param[in,out] series  Cellblock the work is on [BORROWS].
- * @param[in]     id      The badge's id.
+ * @param[in]     id      The pass's id for the touch rows.
  * @param[in]     work    The work [BORROWS].
  * @param[in]     context Its arguments [BORROWS].
  * @return                The work's answer.
- * @note The hot path is a single pass. A miss is the cellblock closed to a writer or no lane free, and the reader
- *       badges in again after a backoff step: a pause for the first steps, then a sleep on the closed word that
- *       doubles to EMBED_TURNSTILE_BACKOFF_MOST_MS, which the writer's open wakes. The sleep comes only where the
- *       word read is closed; a miss on an open word is a pause alone.
+ * @note The hot path is a single pass. A miss is the cellblock closed to a writer, and the reader enters again after
+ *       a backoff step: a pause inside the first unit, then a sleep on the closed word that doubles to its ceiling,
+ *       which the writer's open wakes. The sleep comes only where the word read is closed; a miss on an open word is
+ *       a pause alone.
  */
 EMBED_INLINE uintptr_t carcer_passed(SeriesCellularum *series, embed_atomic_word_value id, CarcerWork work,
                                      const void *context)
 {
-    unsigned int step = CARCER_STEP_FIRST;
+    EmbedTurnstileBackoff backoff;
     size_t missed = 0u;
     uintptr_t answer = carcer_attempted(series, id, work, context, &missed);
 
+    embed_turnstile_backoff_begin(&backoff);
     while (missed != 0u)
     {
         // The sleep needs the closed bit in the value read: a writer's open wakes only a word it closed, and a value
         // read open has no writer to wake it (Sleep.lean). A miss on an open word pauses and tries again.
         const embed_atomic_word_value read = embed_atomic_word_load(&series->closed);
-        step = embed_turnstile_backed_off(&series->closed, read, CARCER_CLOSED_SLEEPERS, step,
-                                          (unsigned int)((read & CARCER_CLOSED) != 0u));
+        embed_turnstile_backed_off(&series->closed, read, CARCER_CLOSED_SLEEPERS, &backoff,
+                                   (unsigned int)((read & CARCER_CLOSED) != 0u));
         answer = carcer_attempted(series, id, work, context, &missed);
     }
     return answer;
@@ -2330,7 +2321,7 @@ size_t mmgr_movable_queue_depth(const SeriesCellularum *series)
     const CarcerMovable *const movable = carcer_movable_of(series);
 
     // Explicit cast reads the readers queued as the count it is
-    return (size_t)embed_atomic_u32_load(&series->turnstiles.waiting) & carcer_all(movable != NULL);
+    return (size_t)embed_atomic_u32_load(&series->turnstiles.queue) & carcer_all(movable != NULL);
 }
 
 embed_bool mmgr_movable_touches(const SeriesCellularum *series, size_t at, size_t *id, size_t *touches)

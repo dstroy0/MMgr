@@ -153,12 +153,12 @@ theorem bumpDown_in_flight_within (M S T d : Nat) (hd : d ≤ T) (hT : T ≤ S) 
     (T + M - d) % M = T - d ∧ T - d ≤ S :=
   ⟨bumpDown_within M T d (by omega) hd, by omega⟩
 
-/-- The lanes of the C on a 64-bit word: 63 lanes, the most bytes `2 ^ 31` and the most need `16 + 2 ^ 24`
-stay below the half of `2 ^ 32`. -/
-theorem lanes_64 : 2 ^ 31 + 63 * (16 + 2 ^ 24) < 2 ^ 32 := by decide
+/-- The lanes of the C on a 64-bit word: `EMBED_TURNSTILE_LANES`, 64 lanes, the most bytes `2 ^ 31` and the most
+need `16 + 2 ^ 24` stay below the half of `2 ^ 32`. -/
+theorem lanes_64 : 2 ^ 31 + 64 * (16 + 2 ^ 24) < 2 ^ 32 := by decide
 
-/-- The lanes of the C on a 32-bit word: 31 lanes, the most bytes `2 ^ 15` and the most need `16 + 2 ^ 8` stay
-below the half of `2 ^ 16`. -/
-theorem lanes_32 : 2 ^ 15 + 31 * (16 + 2 ^ 8) < 2 ^ 16 := by decide
+/-- The lanes of the C on a 32-bit word: `EMBED_TURNSTILE_LANES`, 64 lanes, the most bytes `2 ^ 15` and the most
+need `16 + 2 ^ 8` stay below the half of `2 ^ 16`. -/
+theorem lanes_32 : 2 ^ 15 + 64 * (16 + 2 ^ 8) < 2 ^ 16 := by decide
 
 end LocusCarcerum.Word

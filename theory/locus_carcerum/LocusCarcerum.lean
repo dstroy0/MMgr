@@ -15,3 +15,4 @@ import LocusCarcerum.Split
 import LocusCarcerum.Take
 import LocusCarcerum.Trim
 import LocusCarcerum.Word
+import LocusCarcerum.OwnerWord

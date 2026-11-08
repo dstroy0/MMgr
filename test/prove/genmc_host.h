@@ -37,7 +37,7 @@
 /** @brief The wakes issued, every word's. */
 static embed_atomic_word s_genmc_wakes;
 
-int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value seen, embed_u32 milliseconds)
+int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value seen, embed_u64 nanoseconds)
 {
     const embed_atomic_word_value epoch = embed_atomic_word_load(&s_genmc_wakes);
 
@@ -46,7 +46,7 @@ int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value seen, embed
     {
         return 1;
     }
-    if (milliseconds != EMBED_WAIT_FOREVER)
+    if (nanoseconds != EMBED_WAIT_FOREVER)
     {
         return 0;
     }
