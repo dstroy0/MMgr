@@ -17,7 +17,7 @@ authors:
 repository-code: "https://github.com/dstroy0/MMgr"
 url: "https://github.com/dstroy0/MMgr"
 license: AGPL-3.0-or-later
-version: 0.1.1
+version: 0.1.2
 date-released: "2026-11-07"
 keywords:
   - memory

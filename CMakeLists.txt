@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(MMgr VERSION 0.1.1 LANGUAGES C)
+project(MMgr VERSION 0.1.2 LANGUAGES C)
 
 # Everything here is host-buildable and host-testable by design. There is no cross-toolchain step
 # and no board in the loop: the widths that make a target different are compile-time knobs. A
