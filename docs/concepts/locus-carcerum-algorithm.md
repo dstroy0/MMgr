@@ -323,6 +323,10 @@ Lean checks the models in `theory/locus_carcerum`:
   read-modify-writes in one modification order, and the two sequentially consistent fences of a pass and a drain
   give the drain its disjunction under the fence rule of the standard. The fences of a free and a writer give the
   free the same disjunction. The free reads the closed bit set, or the walk reads the header free.
+- `LocusCarcerum/OwnerWord.lean` writes the owner word as its fields: the owner's place, the completion bit, the
+  signaling bits and the owner's sequence. It proves that the fields do not overlap and fill the word at 64 and 32
+  bits, that a word built from a place and a sequence gives both back, and that an undo of one owner's takes after
+  a sequence point gives back those takes alone and commutes with another owner's undo.
 - `LocusCarcerum/Sleep.lean` writes the sleeper bit on the closed word for one writer and one pass. It proves that
   a pass sleeps only on a closed word, and that the open pass wakes each sleep. It also checks that a pass without
   this rule sleeps on an open word with no wake to come.

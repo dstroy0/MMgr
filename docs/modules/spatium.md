@@ -115,7 +115,7 @@ a length you have to measure by overrunning a buffer at run time is a length you
 you wrote the code, and the assert fires long before you get to read it.
 
 **A span does not know when its target dies.** It holds a pointer the caller gave it. Returning a
-span over temporary-tier storage from a function that rewinds its own mark is a use-after-free, and
+span over temporary-tier storage from a function that gives the cell back is a use-after-free, and
 no field in the span can tell you.
 
 **Spans are values.** Copy them, pass them, return them. Nothing in the library holds a pointer to

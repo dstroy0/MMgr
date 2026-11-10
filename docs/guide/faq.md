@@ -14,9 +14,8 @@ observation about one run. The long answer, including what it costs you, is @ref
 ## Is it thread-safe?
 
 Yes, with no switch. A cellblock's boundaries, claims and counts are atomic words, each moved in one
-step, and every context that reaches a cellblock reaches it at once without waiting for another. A
-temporary mark is still good only to the caller that took it: a rewind drops every temporary cell taken
-since the mark, whoever took it.
+step, and every context that reaches a cellblock reaches it at once without waiting for another. A cell
+of either tier is given back by the one that holds it, in any order.
 
 The one genuinely concurrent module is `memoria_anularis`, which is single-producer
 single-consumer only. Two producers on one ring is broken, and never merely slow. See @ref concept_ownership.
@@ -71,11 +70,11 @@ The peaks are `persistent_hw` and `temporary_hw`, one per tier, and they only ex
 a default build means nothing. Build the `checks` environment with it on, run your real workload,
 read them, and size to the peak plus margin. @ref guide_first_region has the procedure.
 
-## Why does my span still work after I released the mark?
+## Why does my span still work after I released the cell?
 
-Because nothing was scrubbed. The memory is readable and holds whatever was there; the next take
-will hand it to someone else. A pointer that outlives its mark is the sharpest edge in this library
-and nothing can detect it for you. @ref concept_ownership.
+Because nothing was scrubbed on a minimum security pool. The memory is readable and holds whatever was
+there; the next take will hand it to someone else. A pointer that outlives its release is the sharpest
+edge in this library and nothing can detect it for you. @ref concept_ownership.
 
 ## Why is there no `strcpy` in the string shim?
 

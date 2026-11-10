@@ -96,6 +96,7 @@ library only.
 | `Sleep.lean`    | a pass that sleeps on the closed word wakes when the writer opens                     |
 | `Trim.lean`     | a cellblock with no trim bit set and no give in progress owes no trim                 |
 | `Order.lean`    | the C11 orders that the closed word, the drain and the free use                       |
+| `OwnerWord.lean` | the owner word's fields, and the undo of one owner's takes after a sequence point   |
 
 ```sh
 cd theory/locus_carcerum

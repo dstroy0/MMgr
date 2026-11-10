@@ -85,6 +85,6 @@ cspell over the prose. See @ref qa_docs_coverage.
 
 ## What none of this catches
 
-Static analysis does not know that a pointer outlived its mark. That is the single one real hazard in this
+Static analysis does not know that a pointer outlived its cell's release. That is the single one real hazard in this
 library's model, it is invisible to the compiler and to every tool above, and the only defense is the
 discipline in @ref concept_ownership.

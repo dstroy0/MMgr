@@ -84,9 +84,6 @@ INFIX	worker	worker
 #
 VERB	scratch_alloc_aligned	temporary_buf_alloc_aligned
 VERB	scratch_alloc	temporary_buf_alloc
-VERB	scratch_release	temporary_buf_release
-VERB	scratch_reset	temporary_buf_reset
-VERB	scratch_mark	temporary_buf_mark
 VERB	scratch_used	temporary_buf_used
 VERB	persist_alloc	persistent_buf_alloc
 VERB	persist_free	persistent_buf_release
