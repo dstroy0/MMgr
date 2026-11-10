@@ -1,3 +1,5 @@
+import EmbeddedTypes.Manifold.Drain
+
 /-!
 # LocusCarcerum, passes and the writer's drain
 
@@ -8,9 +10,22 @@ works alone, and opens.
 
 The theorem: while a writer works alone, no pass works on the cellblock. A pass badged in before the shut is
 waited out by the drain; a pass badged in after reads the closed bit set.
+
+The `drained` step takes every pass idle as its hypothesis. That is what the turnstiles' own proof gives: a pass
+that held a lane at the drain's fence has ended once the drain reads its lane over, `drained_lane`, which is
+embedded_types' `Manifold.Drain.drain_lane_complete`.
 -/
 
 namespace LocusCarcerum.Pass
+
+open EmbeddedTypes.Manifold
+
+/-- The drain's hypothesis for one lane: the pass that held it at the fence has ended once the drain is through
+with the lane. -/
+theorem drained_lane {s t u : Drain.State} (p : Nat) (i : Drain.Inv s) (hp : s.holder = some p)
+    (ft : Drain.Follows s t) (fu : Drain.Follows t u)
+    (hdone : t.busy = false ∨ t.closed = true ∨ Drain.over t u = true) : u.ended p = true :=
+  Drain.drain_lane_complete p i hp ft fu hdone
 
 /-- A pass: at rest, badged in before its read, working on the cellblock, or working on the sink. -/
 inductive PassAt where

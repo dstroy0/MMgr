@@ -332,6 +332,9 @@ static void movable_assigned(void)
     s_option_assigned = 1;
 }
 
+/** @brief A cell's header word, as the module lays it: a word rounded up to the alignment, ahead of the payload. */
+#define FUZZ_CELL_HEADER ((sizeof(embed_atomic_usize) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
+
 /** @brief A cell's header and owner word, as the module lays them: two words each rounded up to the alignment. */
 #define FUZZ_CELL_WORDS (2u * FUZZ_CELL_HEADER)
 

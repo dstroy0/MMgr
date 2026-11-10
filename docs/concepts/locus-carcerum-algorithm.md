@@ -286,7 +286,10 @@ Thus the two boundaries must be one word. The first line of §3.1 and the first 
 read-modify-write on this word. $E$ is the low half of the word, and $T$ is the high half. A bump up adds $n$ to the
 low half and reads the high half in the same step. Because of the order of the word, $T_1 \ge T_2$ is true.
 
-Lean checks the models in `theory/locus_carcerum`:
+Lean checks the models in `theory/locus_carcerum`. The theory requires embedded_types' theory, and the files on the
+turnstile import its Manifold proofs: `Order.lean` carries `Manifold.Open.passes_below_open` and
+`Manifold.Drain.drain_lane_complete`, `Pass.lean` carries the drain's completion, and `Sleep.lean` carries
+`Manifold.Backoff.limit_fits`.
 
 - `LocusCarcerum/Packed.lean` proves Lemmas 1 to 5 and the theorem for one word.
 - `LocusCarcerum/Split.lean` writes the two-word steps and checks the example above.

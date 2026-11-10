@@ -1,8 +1,14 @@
-{
-  "version": "1.3.0",
-  "packagesDir": ".lake/packages",
-  "packages": [],
-  "name": "LocusCarcerum",
-  "lakeDir": ".lake",
-  "fixedToolchain": false
-}
+{"version": "1.3.0",
+ "packagesDir": ".lake/packages",
+ "packages":
+ [{"type": "path",
+   "scope": "",
+   "name": "EmbeddedTypes",
+   "manifestFile": "lake-manifest.json",
+   "inherited": false,
+   "dir": "../../deps/embedded_types/theory/embedded_types",
+   "copy": false,
+   "configFile": "lakefile.toml"}],
+ "name": "LocusCarcerum",
+ "lakeDir": ".lake",
+ "fixedToolchain": false}

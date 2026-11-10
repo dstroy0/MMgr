@@ -1,5 +1,9 @@
 name = "LocusCarcerum"
 defaultTargets = ["LocusCarcerum"]
 
+[[require]]
+name = "EmbeddedTypes"
+path = "../../deps/embedded_types/theory/embedded_types"
+
 [[lean_lib]]
 name = "LocusCarcerum"

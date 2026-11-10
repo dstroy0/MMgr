@@ -1,8 +1,12 @@
+import EmbeddedTypes.Manifold.Open
+import EmbeddedTypes.Manifold.Drain
+
 /-!
 # LocusCarcerum, the orderings the drain rests on
 
 `Pass.lean` and `Trim.lean` interleave whole steps. Under C11 the steps are atomic operations with orderings, and
-two facts carry those proofs over.
+two facts carry those proofs over. The turnstiles themselves are embedded_types', and so are their proofs: this file
+imports `EmbeddedTypes.Manifold.Open` and `EmbeddedTypes.Manifold.Drain` and builds on them.
 
 The closed word. Every write to it is a read-modify-write: the fetch-or of a shut and of a give, the fetch-and and
 the compare-exchange of an open. C11 gives the writes to one object one modification order, and a read-modify-write
@@ -12,7 +16,9 @@ reads the last value before its own write in it ([atomics.order], the read-modif
 The drain. A pass claims its lane with a fetch-or on the lane word, then a sequentially consistent fence, then loads
 the closed bit (`embed_turnstile_enter`, `carcer_attempted`). A writer fetch-ors the closed bit, then a sequentially
 consistent fence, then loads `open` and each open lane word (`carcer_shut`, `embed_turnstiles_drain`). The lanes of
-passes are below `open`, as embedded_types' `Manifold.Open.passes_below_open` proves. The fences stand in one total order
+passes are below `open`: `Manifold.Open.passes_below_open`, carried here as `pass_lane_below_open`, and the drain's
+wait on one such lane ends with the pass ended: `Manifold.Drain.drain_lane_complete`, carried here as
+`drain_ends_pass`. The fences stand in one total order
 `S`. C11's fence rule ([atomics.order], the rule for two seq_cst fences): where write `A` is sequenced before fence
 `X`, fence `Y` before read `B`, and `X` precedes `Y` in `S`, `B` reads `A` or a later write. An execution below
 carries the rule as its two hypotheses, one for each order of the two fences, and the theorem is the disjunction
@@ -21,6 +27,21 @@ the step `Pass.lean` takes as whole.
 -/
 
 namespace LocusCarcerum.Order
+
+open EmbeddedTypes.Manifold
+
+/-- A pass's lane is below the open count the drain reads: the drain's loop over the lanes below `open` reaches
+every lane a pass holds. -/
+theorem pass_lane_below_open (most : Nat) (h : 1 ≤ most) {s : Open.State} (r : Open.Reach most s) (l : Nat)
+    (hl : s.lane l = .pass) : l < s.count :=
+  (Open.passes_below_open most h r).1 l hl
+
+/-- The drain's wait on a lane a pass held at the fence ends with that pass ended: the lane read free or closed,
+or read until it is over. -/
+theorem drain_ends_pass {s t u : Drain.State} (p : Nat) (i : Drain.Inv s) (hp : s.holder = some p)
+    (ft : Drain.Follows s t) (fu : Drain.Follows t u)
+    (hdone : t.busy = false ∨ t.closed = true ∨ Drain.over t u = true) : u.ended p = true :=
+  Drain.drain_lane_complete p i hp ft fu hdone
 
 /-- One pass and one writer as the fences order them. -/
 structure Exec where

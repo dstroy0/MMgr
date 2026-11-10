@@ -75,7 +75,9 @@ the form with two words.
 ## The proofs
 
 Lean 4 checks the models in [`theory/locus_carcerum`](theory/locus_carcerum). The models use the core
-library only.
+library and embedded_types' theory, which `lakefile.toml` requires from `deps/embedded_types/theory`.
+That theory holds the turnstile proofs for the passes and the drain. `Pass.lean`, `Order.lean` and
+`Sleep.lean` import its Manifold proofs and build on them.
 
 | file            | what it proves                                                                        |
 | --------------- | ------------------------------------------------------------------------------------- |

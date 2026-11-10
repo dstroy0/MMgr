@@ -1,3 +1,5 @@
+import EmbeddedTypes.Manifold.Backoff
+
 /-!
 # LocusCarcerum, the sleeper bit on the closed word
 
@@ -6,6 +8,9 @@ and waits on the word for the value it read with that bit set (`embed_turnstile_
 contract of `Futex.lean`: the kernel compares and sleeps in one step. A writer opens with one fetch-and that takes
 the trim bits, then a second fetch-and that clears the closed bit and the sleeper bit, and wakes the word where
 the value the second fetch-and returned had the sleeper bit (`carcer_opened`).
+
+The backoff step is embedded_types', and its bound comes from its proof: each wait lasts at most
+`Manifold.Backoff.limitNs`, which `wait_bounded` carries here from `Manifold.Backoff.limit_fits`.
 
 One writer and one sleeper on the word's two bits. The writer shuts, takes the word, opens, and wakes. The sleeper
 reads, sets the bit, and either sleeps or returns at the futex's compare. The `gated` sleeper sleeps only where the
@@ -22,6 +27,14 @@ The model is sequentially consistent, as `Trim.lean` is.
 -/
 
 namespace LocusCarcerum.Sleep
+
+open EmbeddedTypes.Manifold
+
+/-- A sleep on the closed word lasts at most the backoff's limit for its shift and exponent, which fits a
+nanosecond count of 2^30 and so every host wait's argument. -/
+theorem wait_bounded (s k : Nat) (hs : s ≤ Backoff.shiftMost) (hk : k ≤ Backoff.kMost) :
+    Backoff.limitNs s k ≤ 2 ^ 30 :=
+  (Backoff.limit_fits s k hs hk).1
 
 /-- The closed word's two bits. -/
 structure Word where
