@@ -38,7 +38,7 @@ it.
 `CITATION.cff` is machine-readable, and GitHub renders a "Cite this repository" control from it.
 
 ```
-Quigg, Douglas (dstroy0). MMgr, version 0.1.2. 2026.
+Quigg, Douglas (dstroy0). MMgr, version 0.2.0. 2026.
 https://github.com/dstroy0/MMgr
 ```
 

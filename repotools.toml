@@ -9,8 +9,8 @@
 
 [project]
 name = "MMgr"
-# CMakeLists.txt project(MMgr VERSION 0.1.2), library.json and library.properties all agree.
-version = "0.1.2"
+# CMakeLists.txt project(MMgr VERSION 0.2.0), library.json and library.properties all agree.
+version = "0.2.0"
 # The expression the source files actually carry. library.json records the bare "AGPL-3.0-or-later"
 # for the package registries, which is the AGPL arm alone; the file headers state all three arms and
 # a generated file has to match the files beside it.
