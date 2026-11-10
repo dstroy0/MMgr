@@ -62,12 +62,11 @@ the cellblock's own state, one per tier: `persistent_hw` tracks the persistent e
 tracks the bytes taken from the top. It is off by default. A workload run without it leaves both
 at zero. Read the field, add whatever margin your failure policy wants, then size the pool.
 
-**You give up a heap's reach.** A release merges a cell with its free neighbors and returns a free cell
-at a tier's boundary to the gap. A persistent take reuses a free cell of its tier that fits before it
-moves the end, and a temporary take reuses one only where the gap cannot meet it; the temporary tier
-also releases by mark, or resets whole. If your data structure genuinely
-needs arbitrary-order release of arbitrary-size objects with a long tail of lifetimes, this library is
-the wrong shape and no amount of configuration will change that.
+**A cell goes back in any order, on either tier.** A release frees a cell and returns a free cell at a tier's
+boundary to the gap. A take of either tier bumps its boundary while the gap holds it. Where the gap cannot, the
+take merges the tier's free cells and reuses the one that fits farthest from the gap. A cell released below its
+tier's boundary stays laid, with its owner word and its take's nanosecond. It stays until a take reuses it or the
+boundary comes back over it.
 
 **A cellblock can no longer be lied to about its extent.** It takes the count from the pool's own
 declaration, and the pool asserts that count against its `sizeof`: the two cannot disagree. What is

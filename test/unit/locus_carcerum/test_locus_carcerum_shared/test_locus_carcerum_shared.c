@@ -136,7 +136,7 @@ static void contend_own_owner(void)
 
 // Each thread takes temporary cells for owner, fills and reads them back as the persistent case does,
 // and where giving is set gives each back one at a time through the release that reads the tier off
-// the address; otherwise the cells stay for the rewind
+// the address; otherwise the cells stay, counted to their owner, for the case to read
 static void contend_temporary_with(const CellOwner *owner, embed_bool giving)
 {
     const unsigned int index = contend_index_taken();
@@ -201,14 +201,11 @@ void test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave(void)
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
     crowded.shared.persistent_buf_release(prisoner, s_crowd);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
-    const size_t mark = crowded.shared.temporary_buf_mark();
     void *const scratch = crowded.shared.temporary_buf_alloc(16u, s_scratch);
     TEST_ASSERT_NOT_NULL(scratch);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
-    crowded.shared.temporary_buf_release(mark);
+    crowded.shared.persistent_buf_release(scratch, s_scratch);
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES - tiers_held(), crowded.shared.buf_available());
-    (void)crowded.shared.temporary_buf_alloc(16u, s_scratch);
-    crowded.shared.temporary_buf_reset();
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, tiers_held(), "nothing held, nothing in either tier");
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
 }
@@ -233,14 +230,13 @@ void test_threads_taking_and_giving_at_once_leave_the_series_cellularum_whole(vo
 void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(void)
 {
     // a take refused once the gap is spent is the pool's size, and the case holds what the tier promises:
-    // no cell handed to two, and the tier whole once it is reset
+    // no cell handed to two, and the tier whole once every cell is given back
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary, MMGR_HOST_THREADS_MOST));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
                                      "a temporary cell was handed to two threads at once");
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(&crowded_shared_ctx));
-    crowded.shared.temporary_buf_reset();
     TEST_ASSERT_EQUAL_size_t_MESSAGE(SHARED_BYTES, mmgr_series_cellularum_temporary_top(&crowded_shared_ctx),
-                                     "the reset gives the whole tier back");
+                                     "the gives return the whole tier");
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
 }
 
@@ -281,19 +277,18 @@ void test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_not
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd),
                                      "a temporary take or give was counted twice or not at all");
     TEST_ASSERT_TRUE(mmgr_owner_hw(s_crowd) > 0u);
-    crowded.shared.temporary_buf_reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd), "the reset found a cell still counted");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(SHARED_BYTES, crowded.shared.buf_available(), "every cell returned to the gap");
 }
 
-void test_a_reset_counts_every_temporary_cell_off_its_owner(void)
+void test_temporary_cells_kept_across_threads_count_to_their_owner(void)
 {
-    // the threads keep every cell they are handed, and the reset alone counts them off
+    // the threads keep every cell they are handed, and the owner counts each payload the tier holds
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_kept, MMGR_HOST_THREADS_MOST));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
                                      "a temporary cell was handed to two threads at once");
     TEST_ASSERT_EQUAL_size_t_MESSAGE((size_t)embed_atomic_usize_load(&s_kept), mmgr_owner_in_use(s_crowd),
                                      "the owner counts every payload the tier holds");
-    crowded.shared.temporary_buf_reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd), "the reset left a cell counted");
-    TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
+    TEST_ASSERT_TRUE_MESSAGE(SHARED_BYTES - mmgr_series_cellularum_temporary_top(&crowded_shared_ctx) >=
+                                 (size_t)embed_atomic_usize_load(&s_kept),
+                             "the tier holds the kept payloads and their words");
 }

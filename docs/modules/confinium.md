@@ -58,22 +58,21 @@ Both ends are the same block allocator. Each keeps a chain of blocks, each block
 header, and each carves from the free middle. All that differs is which way the boundary moves,
 and what that buys you:
 
-|              | persist                             | interim                   |
-| ------------ | ----------------------------------- | ------------------------- |
-| grows        | up, from the base                   | down, from the top        |
-| lifetime     | as long as it likes                 | one call                  |
-| given back   | one tenancy at a time, in any order | by mark, or one at a time |
-| a take costs | a carve                             | a carve                   |
+|              | persist                             | interim                             |
+| ------------ | ----------------------------------- | ----------------------------------- |
+| grows        | up, from the base                   | down, from the top                  |
+| lifetime     | as long as it likes                 | one call                            |
+| given back   | one tenancy at a time, in any order | one tenancy at a time, in any order |
+| a take costs | a carve                             | a carve                             |
 
 The persistent end holds what outlives a call: key material, a runtime seed, a constant a run works
-out once. The interim end holds what a call needs while it runs. A take at either end is one pass through
-the cellblock's turnstiles and one fetch-add on the boundary. A release sets the block's header free and,
-where the block stood at the boundary, trims the boundary back over the free blocks there. A persistent take
-the middle cannot meet closes the cellblock, waits out the passes under way, and walks its end alone: every
-run of free blocks merged into one, the first run that fits taken, the free run reaching the boundary
-returned to the middle. The interim end is a stack: a take the middle cannot meet closes the cellblock, trims the
-boundary over the free blocks at it and reads the middle exactly, and only then is refused; a rewind returns its
-blocks.
+out once. The interim end holds what a call needs while it runs. The two ends are one algorithm with the base at
+opposite sides of the pool. A take at either end is one pass through the cellblock's turnstiles and one fetch-add
+on the boundary. A release sets the block's header free and, where the block stood at the boundary, trims the
+boundary back over the free blocks there. A take the middle cannot meet closes the cellblock, waits out the passes
+under way, and walks its own end alone: every run of free blocks merged into one, the fitting run farthest from the
+middle taken and split where its rest holds a block, the free run at the boundary returned to the middle, and the
+boundary bumped where no run fits. Only then is the take refused.
 
 ## Cells that move
 
@@ -129,20 +128,18 @@ if (table == NULL) {
     return -1;                       /* the region is full; nothing moved */
 }
 
-const size_t mark = prison.work.temporary_buf_mark();
-char *const  buf  = prison.work.temporary_buf_alloc(256, reader);
+char *const buf = prison.work.temporary_buf_alloc(256, reader);
 
 /* ... use buf ... */
 
-prison.work.temporary_buf_release(mark);
+prison.work.persistent_buf_release(buf, reader);
 prison.work.persistent_buf_release(table, reader);
 ```
 
 @ref ref_glossary decodes the Latin the module names are built from.
 
-Note what each release is given. The temporary one takes a **mark**, a value `temporary_buf_mark`
-handed back, and drops everything carved since. The persistent one takes the **cell itself**,
-because the block's own header carries its size.
+Both releases are given the **cell itself**, because the block's own header carries its size and its offset says
+which end it came from. One release serves both ends.
 
 ## Giving back a secret
 
@@ -171,22 +168,6 @@ occupant from reading it.
 the optimizer afterwards, and it handles a length or an address that is not a whole number of words
 through byte edges.
 
-## Marks nest
-
-`temporary_buf_mark` returns a value and stores nothing. A caller may hold two at once:
-
-```c
-const size_t outer = prison.work.temporary_buf_mark();
-/* ... */
-const size_t inner = prison.work.temporary_buf_mark();
-/* ... */
-prison.work.temporary_buf_release(inner);  /* inner run back */
-prison.work.temporary_buf_release(outer);  /* and the rest */
-```
-
-`temporary_buf_reset` is the same step against the pool's own size, named because it is what the end
-of a dispatch does.
-
 ## Gotchas
 
 **A take that does not fit returns NULL and moves nothing.** Both ends fail closed in place of
@@ -196,9 +177,9 @@ crossing into each other. Test the return; that is the check.
 of it: the gap is not the largest request that will succeed. Ask for what you want and test the
 answer in place of predicting it from this.
 
-**A pointer that outlives its mark is dead and still readable.** Nothing moves and nothing is
-scrubbed by an interim rollback: it dereferences fine and returns whatever the next take put
-there. Keep a mark and its release in the same function.
+**A pointer that outlives its release is dead and still readable.** Nothing moves and nothing is
+scrubbed on a minimum security pool: it dereferences fine and returns whatever the next take put
+there.
 
 **`who_owns_buf` is for asserts.** It says a pointer is inside the pool's storage. It does not say
 the pointer is live.

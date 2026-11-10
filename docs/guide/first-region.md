@@ -1,7 +1,7 @@
 # Your first prison site {#guide_first_region}
 
-**Purpose:** Declare a prison site, allocate from both tiers of one of its cellblocks, and release
-the temporary tier by mark.
+**Purpose:** Declare a prison site, allocate from both tiers of one of its cellblocks, and give each
+cell back.
 **Scope:** `include/mmgr.h`, `src/locus_carcerum/locus_carcerum.h`, `src/locus_carcerum/locus_carcerum.c`
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
 **Date:** 2026-08-29
@@ -42,9 +42,8 @@ uint8_t *working = prison.work.temporary_buf_alloc(512, reader);
 ```
 
 Every take names the owner its bytes are counted to, a const pointer into the program's owner table that
-MMGR_OWNERS declares once, as data, beside the pools. Both return the first byte of a cell `[RETURNS OWNERSHIP]`. The persistent tier takes it back
-through `prison.work.persistent_buf_release`; the temporary tier takes a whole run back through
-`prison.work.temporary_buf_release` or `prison.work.temporary_buf_reset`.
+MMGR_OWNERS declares once, as data, beside the pools. Both return the first byte of a cell `[RETURNS OWNERSHIP]`.
+Either tier takes it back through `prison.work.persistent_buf_release`: the cell's offset says which tier it lies in.
 
 - **persistent** is for what lives as long as the cellblock: configuration, tables, buffers you fill
   once.
@@ -64,24 +63,25 @@ if (config == NULL || working == NULL) {
 "The public entries are English and the internals are Latin, this filename included"
 (`src/locus_carcerum/locus_carcerum.h:25`). @ref ref_glossary decodes the Latin you will meet inside.
 
-## Releasing interim, by mark
+## Releasing interim
 
-Interim is a stack. You do not free a pointer, you rewind to a mark.
+Interim is persist with its base at the top. A cell is given back by itself, in any order.
 
 ```c
-size_t m = prison.work.temporary_buf_mark();
 uint8_t *a = prison.work.temporary_buf_alloc(256, reader);
 uint8_t *b = prison.work.temporary_buf_alloc(256, reader);
 
-prison.work.temporary_buf_release(m);
+prison.work.persistent_buf_release(a, reader);
+prison.work.persistent_buf_release(b, reader);
 ```
 
-This is the pattern for any bounded operation: mark on the way in, `reddo` on the way out, and the
-interim cost of the operation is zero afterwards no matter how many takes it made.
+This is the pattern for any bounded operation: take on the way in, release on the way out. The interim
+cost of the operation is zero afterwards no matter how many takes it made. A cell released below the top
+stays free in the tier. It stays until the top comes back over it or a take the gap cannot meet merges it.
 
 @warning Nothing is reallocated and nothing moves, and `a` and `b` still point at readable memory
-after the `reddo`. They are dead all the same, and the next `temporary_buf_alloc` will hand that same
-memory to someone else. A pointer that outlives its mark is the sharpest edge in this library.
+after their release. They are dead all the same, and the next `temporary_buf_alloc` will hand that same
+memory to someone else.
 
 ## How much is left
 
@@ -118,8 +118,6 @@ argues why this is the bill worth paying.
 ```c
 static embed_bool handle(const uint8_t *msg, size_t len)
 {
-    const size_t mark = prison.work.temporary_buf_mark();
-
     uint8_t *const buf = prison.work.temporary_buf_alloc(len, reader);
     if (buf == NULL) {
         return EMBED_FALSE;
@@ -129,12 +127,11 @@ static embed_bool handle(const uint8_t *msg, size_t len)
 
     /* ... use buf ... */
 
-    prison.work.temporary_buf_release(mark);
+    prison.work.persistent_buf_release(buf, reader);
     return EMBED_TRUE;
 }
 ```
 
-Every exit path either returns before taking anything or rewinds to the mark. There is no
-free-per-allocation to forget, which is most of the point.
+Every exit path either returns before taking anything or gives back what it took.
 
 Next: @ref concept_architecture for how pools, spans and rings sit on top of this.

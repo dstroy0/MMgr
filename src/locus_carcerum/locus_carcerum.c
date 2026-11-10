@@ -16,7 +16,10 @@
  * @note A cellblock is a run of bytes with a word ahead of each cell and one behind it: the header, the cell's
  *       payload size in the busy or the free state, and the owner word, the owner's place with the nanosecond of
  *       the take. The persistent tier allocates upward from base and the temporary tier downward from size, and
- *       the gap between the two boundaries is what either can still take.
+ *       the gap between the two boundaries is what either can still take. The two tiers are one algorithm with
+ *       the base at opposite ends: a take bumps the boundary, a give frees the header, and a take the gap cannot
+ *       meet merges the tier's free runs, takes the fitting run farthest from the gap, and returns the free run at
+ *       the boundary to the gap.
  * @note Every choice on a hot path is a mask, a select, or a row of a two-row table of entries: a take that the
  *       gap cannot meet lays its words on the cellblock's sink word, adds its bump to the tier's overrun, and answers
  *       NULL through the same stores a take that lands makes. No path branches on what another context did.
@@ -24,7 +27,8 @@
  *       lane let go with one fetch-add. The turnstiles' host hooks, embed_word_wait, embed_word_wake and
  *       embed_clock_ns, are the program's to define, as embed_turnstile.h says: a build with none fails at the link,
  *       naming them. A writer sets the cellblock's closed bit with one fetch-or, drains the lanes, and works with no
- *       pass under way: the rewind, the compaction that merges free runs and trims the end, the growth and the move.
+ *       pass under way: the compaction that merges a tier's free runs and trims its boundary, the growth and the
+ *       move.
  *       A pass that finds the closed bit backs off one step on it and tries once more.
  * @note Every take, give and growth names an owner of the table MMGR_OWNERS lays. A cell counts to the owner its
  *       owner word names, and a give or a growth naming another owner is refused and told to the port. The
@@ -596,8 +600,8 @@ static void carcer_count_none(SeriesCellularum *series, const CellOwner *owner, 
  * @param[in]     persistent Every bit set where the cell lies in the persistent tier.
  * @param[in]     permit     Every bit set for a claim, none for a claim that touches nothing.
  * @note One fetch-or sets the completion bit on the owner word, on the sink where the claim is not permitted,
- *       and the context whose fetch-or found the bit clear counts the cell off: a give and a rewind reaching the
- *       same cell count it off once between them. A word naming no owner counts off the record counted by none.
+ *       and the context whose fetch-or found the bit clear counts the cell off: two gives reaching the same cell
+ *       count it off once between them. A word naming no owner counts off the record counted by none.
  */
 EMBED_INLINE void carcer_foot_claimed(SeriesCellularum *series, size_t off, size_t size, size_t persistent,
                                       size_t permit)
@@ -1047,39 +1051,50 @@ static uintptr_t carcer_bumped(SeriesCellularum *series, const void *context, si
     return carcer_laid(series, taken, off, take->want, take->owner, up);
 }
 
-/** @brief What one walk of the persistent tier found: a free run that holds the take, and the end it left. */
+/**
+ * @brief What one walk of a tier found: a free run that holds the take, and the tier's boundary after the walk.
+ */
 typedef struct
 {
-    size_t found; /**< Every bit set where a run was taken. */
-    size_t at;    /**< The run's offset. */
-    size_t size;  /**< The run's payload size, its cells merged. */
-    size_t end;   /**< The persistent end after the walk: the trailing free run returned to the gap. */
+    size_t found;    /**< Every bit set where a run was taken. */
+    size_t at;       /**< The run's offset. */
+    size_t size;     /**< The run's payload size, its cells merged. */
+    size_t boundary; /**< The tier's boundary after the walk: the free run at it returned to the gap. */
 } CarcerSweep;
 
 /**
- * @brief One walk of the persistent tier with the cellblock closed: every run of free cells merged into one free
- *        cell, the first run that holds want and lies below an offset taken, and the free run reaching the end
- *        returned to the gap.
+ * @brief One walk of a tier with the cellblock closed: every run of free cells merged into one free cell, the run
+ *        that holds want farthest from the gap and lies below an offset taken, and the free run at the tier's
+ *        boundary returned to the gap.
  *
  * @param[in,out] series Cellblock to walk [BORROWS].
  * @param[in]     want   Payload wanted, rounded.
  * @param[in]     below  The offset the run taken must end at or below.
+ * @param[in]     down   Every bit set for the tier that grows down, none for the tier that grows up.
  * @param[in]     permit Every bit set for the walk, none for a walk that reads nothing and takes nothing.
  * @return               What the walk found.
  * @note The writer's path, with no pass under way: every header read is a laid cell's, and every store is plain.
- *       The loop steps a cell at a time and its body holds no branch: a busy cell closes the run before it, the
- *       run is laid as one free cell on its own offset or on the sink, and the take is the first closed run that
- *       fits. A run that reaches the end is not laid: the end moves down to its offset.
- * @warning Costs the tier's cells. Reached only where the gap could not meet a take, and by the mover.
+ *       The two tiers are one algorithm with the base at opposite ends. The persistent tier lies from offset 0 to
+ *       the end, its base at 0: the take is the first run that fits, and the free run reaching the end is not laid,
+ *       the end moving down to its offset. The temporary tier lies from the top to the cellblock's size, its base at
+ *       the size: the take is the last run that fits, and the free run starting at the top is not laid, the top
+ *       moving up to its end. The loop steps a cell at a time and its body holds no branch: a busy cell closes the
+ *       run before it, and the run is laid as one free cell on its own offset or on the sink.
+ *       theory/locus_carcerum/LocusCarcerum/Layout.lean and Temporary.lean prove the two walks.
+ * @warning Costs the tier's cells. Reached only where the gap could not meet a take, by a trim a give owes, and by
+ *          the mover.
  */
-EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series, size_t want, size_t below, size_t permit)
+EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series, size_t want, size_t below, size_t down,
+                                      size_t permit)
 {
-    const size_t end = carcer_bounds_end(embed_atomic_usize_load(&series->bounds));
-    const size_t walked = end & permit;
-    size_t off = 0u;
+    const embed_atomic_usize_value bounds = embed_atomic_usize_load(&series->bounds);
+    const size_t from = carcer_pick(down, carcer_bounds_top(bounds), 0u);
+    const size_t to = carcer_pick(down, series->size, carcer_bounds_end(bounds));
+    const size_t walked = to & permit;
+    size_t off = from;
     size_t run_at = 0u;
     size_t run_size = 0u;
-    CarcerSweep sweep = {0u, 0u, 0u, end};
+    CarcerSweep sweep = {0u, 0u, 0u, from | (to & ~down)};
 
     while (off < walked)
     {
@@ -1088,49 +1103,42 @@ EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series, size_t want, siz
         const size_t free = carcer_all(carcer_word_state(word) == CARCER_FREE);
         const size_t open = carcer_all(run_size != 0u);
         const size_t closes = ~free & open;
-        const size_t takes = closes & ~sweep.found & carcer_all(run_size >= want) & carcer_all(off <= below);
+        // a closed run at the tier's boundary, the downward tier's run from the top, returns to the gap: the boundary
+        // moves to the busy cell that closed it. Any other closed run is laid as one free cell
+        const size_t returns = closes & down & carcer_all(run_at == from);
+        const size_t lays = closes & ~returns;
+        const size_t takes = lays & (down | ~sweep.found) & carcer_all(run_size >= want) & carcer_all(off <= below);
 
-        embed_atomic_usize_store(carcer_word_picked(series, closes, carcer_foot_of(run_at, run_size)), 0u);
-        embed_atomic_usize_store(carcer_word_picked(series, closes, run_at), carcer_word(run_size, CARCER_FREE));
+        embed_atomic_usize_store(carcer_word_picked(series, lays, carcer_foot_of(run_at, run_size)), 0u);
+        embed_atomic_usize_store(carcer_word_picked(series, lays, run_at), carcer_word(run_size, CARCER_FREE));
         sweep.at = carcer_pick(takes, run_at, sweep.at);
         sweep.size = carcer_pick(takes, run_size, sweep.size);
         sweep.found |= takes;
+        sweep.boundary = carcer_pick(returns, off, sweep.boundary);
         run_at = carcer_pick(free & ~open, off, run_at);
         run_size = (run_size + size + (CARCER_HDR & open)) & free;
         off = carcer_end_of(off, size);
     }
-    sweep.end = carcer_pick(carcer_all(run_size != 0u), run_at, end);
+    // the run open at the walk's end reaches the tier's far side: it returns to the gap where that side is the
+    // boundary, the upward tier's end or the downward tier's whole run from the top, and is laid where it is the
+    // base, the downward tier's run nearest the cellblock's size, which the take falls on where it fits
+    const size_t open_end = carcer_all(run_size != 0u);
+    const size_t returns_end = open_end & (~down | carcer_all(run_at == from));
+    const size_t lays_end = open_end & ~returns_end;
+    const size_t takes_end = lays_end & carcer_all(run_size >= want) & carcer_all(to <= below);
+
+    embed_atomic_usize_store(carcer_word_picked(series, lays_end, carcer_foot_of(run_at, run_size)), 0u);
+    embed_atomic_usize_store(carcer_word_picked(series, lays_end, run_at), carcer_word(run_size, CARCER_FREE));
+    sweep.at = carcer_pick(takes_end, run_at, sweep.at);
+    sweep.size = carcer_pick(takes_end, run_size, sweep.size);
+    sweep.found |= takes_end;
+    sweep.boundary = carcer_pick(returns_end, carcer_pick(down, to, run_at), sweep.boundary);
     return sweep;
 }
 
 /**
- * @brief The temporary top walked up over the free cells at it, with the cellblock closed.
- *
- * @param[in] series Cellblock to read [BORROWS].
- * @param[in] permit Every bit set for the walk, none for a walk that answers the top as it stands.
- * @return           The offset of the first busy cell above the top, or the cellblock's size where none stands.
- * @note The writer's path: every header above the top is a laid cell's. The loop steps a free cell at a time and
- *       its body holds no branch.
- */
-EMBED_INLINE size_t carcer_top_walked(const SeriesCellularum *series, size_t permit)
-{
-    size_t at = carcer_bounds_top(embed_atomic_usize_load(&series->bounds));
-    size_t more = permit & carcer_all(at < series->size);
-
-    while (more != 0u)
-    {
-        const embed_atomic_usize_value word = embed_atomic_usize_load(carcer_word_at(series, at));
-        const size_t free = carcer_all(carcer_word_state(word) == CARCER_FREE);
-
-        at += carcer_end_of(0u, carcer_word_size(word)) & free;
-        more &= free & carcer_all(at < series->size);
-    }
-    return at;
-}
-
-/**
- * @brief The trims a give left owed, with the cellblock closed: the persistent tier swept where its bit is set, the
- *        temporary top walked up where its bit is set, and both boundaries stored.
+ * @brief The trims a give left owed, with the cellblock closed: each tier swept where its bit is set, and both
+ *        boundaries stored.
  *
  * @param[in,out] series Cellblock to trim, its closed bit this context's [BORROWS].
  * @param[in]     owed   The trim bits taken off the closed word.
@@ -1139,47 +1147,58 @@ EMBED_INLINE size_t carcer_top_walked(const SeriesCellularum *series, size_t per
  */
 static void carcer_owed_trimmed(SeriesCellularum *series, embed_atomic_word_value owed)
 {
-    const CarcerSweep sweep =
-        carcer_swept(series, SIZE_MAX, series->size, carcer_all((owed & CARCER_TRIM_PERSISTENT) != 0u));
-    const size_t top = carcer_top_walked(series, carcer_all((owed & CARCER_TRIM_TEMPORARY) != 0u));
+    const CarcerSweep up =
+        carcer_swept(series, SIZE_MAX, series->size, 0u, carcer_all((owed & CARCER_TRIM_PERSISTENT) != 0u));
+    const CarcerSweep down = carcer_swept(series, SIZE_MAX, series->size, carcer_all(1),
+                                          carcer_all((owed & CARCER_TRIM_TEMPORARY) != 0u));
 
-    embed_atomic_usize_store(&series->bounds, carcer_bounds(sweep.end, top));
+    embed_atomic_usize_store(&series->bounds, carcer_bounds(up.boundary, down.boundary));
 }
 
+/** @brief Where a take lies over the run it was found in, and the payload it carries. */
+typedef struct
+{
+    size_t at;   /**< The cell's offset: the run's offset, or past the rest in the downward tier. */
+    size_t size; /**< The payload the take carries: want where the run splits, the whole run where it does not. */
+} CarcerPlaced;
+
 /**
- * @brief Lays a take over a free run it was found in: the run split where its rest holds a cell of its own.
+ * @brief Lays a take over a free run it was found in: the run split where its rest holds a cell of its own, the
+ *        cell at the run's end away from the gap and the rest left free facing the gap.
  *
  * @param[in,out] series Cellblock the run lies in [BORROWS].
  * @param[in]     sweep  The run, found or not.
  * @param[in]     want   Payload wanted, rounded.
- * @return               The payload the take carries: want where the run splits, the whole run where it does not,
- *                       and want where no run was found.
- * @note The rest is laid as a free cell behind the take, its header and its owner word of none, on the sink where
- *       the run does not split.
+ * @param[in]     down   Every bit set for the tier that grows down.
+ * @return               Where the cell lies and what it carries: want where the run splits, the whole run where it
+ *                       does not, and want at the run's offset where no run was found.
+ * @note The rest is laid as a free cell, its header and its owner word of none, on the sink where the run does not
+ *       split: above the cell in the upward tier, below it in the downward one.
  */
-EMBED_INLINE size_t carcer_split(SeriesCellularum *series, CarcerSweep sweep, size_t want)
+EMBED_INLINE CarcerPlaced carcer_split(SeriesCellularum *series, CarcerSweep sweep, size_t want, size_t down)
 {
     const size_t splits = sweep.found & carcer_all(sweep.size >= (want + CARCER_HDR + MMGR_CARCER_ALIGN));
-    const size_t rest_at = carcer_end_of(sweep.at, want);
     const size_t rest_size = (sweep.size - want - CARCER_HDR) & splits;
+    const size_t rest_at = carcer_pick(down, sweep.at, carcer_end_of(sweep.at, want));
+    const size_t cell_at = carcer_pick(splits & down, sweep.at + sweep.size - want, sweep.at);
+    const CarcerPlaced placed = {cell_at, carcer_pick(sweep.found & ~splits, sweep.size, want)};
 
     embed_atomic_usize_store(carcer_word_picked(series, splits, carcer_foot_of(rest_at, rest_size)), 0u);
     embed_atomic_usize_store(carcer_word_picked(series, splits, rest_at), carcer_word(rest_size, CARCER_FREE));
-    return carcer_pick(sweep.found & ~splits, sweep.size, want);
+    return placed;
 }
 
 /**
- * @brief A take the gap could not meet, with the cellblock closed: for a persistent take the tier walked for a free
- *        run and the end trimmed of its trailing free run, for a temporary take the top trimmed up over the free
- *        cells at it, and the gap read exactly and bumped where it holds the take.
+ * @brief A take the gap could not meet, with the cellblock closed: its tier swept for a free run and its boundary
+ *        trimmed of the free run at it, and the gap read exactly and bumped where it holds the take.
  *
  * @param[in,out] series Cellblock to take from [BORROWS].
  * @param[in]     want   Payload wanted, rounded.
  * @param[in]     owner  The owner the cell counts to [BORROWS].
  * @param[in]     down   Every bit set for the tier that grows down.
  * @return               The payload's address as an integer, 0 where no free run and no gap holds the take.
- * @note The writer's path. Both boundaries are stored plain: no pass is under way. The free cells a give left at
- *       the top while another writer had the cellblock closed are returned to the gap here.
+ * @note The writer's path, the same for both tiers. Both boundaries are stored plain: no pass is under way. The
+ *       other tier's boundary stands as the settle left it; the trims it is owed run as the cellblock opens.
  */
 static uintptr_t carcer_spilled(SeriesCellularum *series, size_t want, const CellOwner *owner, size_t down)
 {
@@ -1187,17 +1206,19 @@ static uintptr_t carcer_spilled(SeriesCellularum *series, size_t want, const Cel
     const size_t need = CARCER_HDR + want;
 
     carcer_shut(series);
-    const CarcerSweep sweep = carcer_swept(series, want, series->size, up);
-    const size_t top = carcer_top_walked(series, down);
-    const size_t room = carcer_all(top >= sweep.end) & carcer_all((top - sweep.end) >= need) & ~sweep.found;
-    const size_t end = sweep.end + (need & room & up);
+    const CarcerSweep sweep = carcer_swept(series, want, series->size, down, carcer_all(1));
+    const embed_atomic_usize_value bounds = embed_atomic_usize_load(&series->bounds);
+    const size_t end = carcer_pick(down, carcer_bounds_end(bounds), sweep.boundary);
+    const size_t top = carcer_pick(down, sweep.boundary, carcer_bounds_top(bounds));
+    const size_t room = carcer_all(top >= end) & carcer_all((top - end) >= need) & ~sweep.found;
+    const size_t end_after = end + (need & room & up);
     const size_t top_after = top - (need & room & down);
-    const size_t off = carcer_pick(sweep.found, sweep.at, carcer_pick(down, top_after, sweep.end));
-    const size_t kept = carcer_split(series, sweep, want);
+    const CarcerPlaced placed = carcer_split(series, sweep, want, down);
+    const size_t off = carcer_pick(sweep.found, placed.at, carcer_pick(down, top_after, end));
 
-    embed_atomic_usize_store(&series->bounds, carcer_bounds(end, top_after));
-    carcer_marked(series, end, top_after);
-    const uintptr_t prisoner = carcer_laid(series, sweep.found | room, off, kept, owner, up);
+    embed_atomic_usize_store(&series->bounds, carcer_bounds(end_after, top_after));
+    carcer_marked(series, end_after, top_after);
+    const uintptr_t prisoner = carcer_laid(series, sweep.found | room, off, placed.size, owner, up);
 
     carcer_opened(series);
     return prisoner;
@@ -1567,63 +1588,6 @@ void *mmgr_buf_grow(SeriesCellularum *series, void *prisoner, size_t size, const
 void *mmgr_max_security_buf_grow(SeriesCellularum *series, void *prisoner, size_t size, const CellOwner *owner)
 {
     return carcer_grown(series, prisoner, size, owner, carcer_all(1));
-}
-
-size_t mmgr_temporary_buf_mark(const SeriesCellularum *series)
-{
-    return mmgr_series_cellularum_temporary_top(series);
-}
-
-/**
- * @brief Rewinds the temporary tier to mark with the cellblock closed: every cell from the top to mark counted off
- *        its owner, the dropped bytes zeroed where asked, and the top stored at mark.
- *
- * @param[in,out] series  Cellblock to rewind [BORROWS].
- * @param[in]     mark    Top to restore, as mmgr_temporary_buf_mark reported it.
- * @param[in]     zeroing Every bit set where the dropped bytes are zeroed.
- * @note The writer's path. A mark at or below the top as it stands, or past the cellblock's size, is one this
- *       cellblock never handed out, and the rewind stops at the top: the walk is empty and the store puts the top
- *       where it was. The walk steps a cell at a time, every cell laid, and counts each off through its owner
- *       word's completion bit, once.
- * @note The top is stored where the walk stops, the first cell boundary at or past mark, and never inside a cell.
- *       A mark the top was trimmed past by gives, and that later takes laid a cell across, lies inside that cell:
- *       the cell goes with the rewind, whole, and every walk after it reads headers. A mark standing as it was
- *       handed out is a boundary, and the walk stops on it.
- */
-static void carcer_rewound(SeriesCellularum *series, size_t mark, size_t zeroing)
-{
-    carcer_shut(series);
-    const embed_atomic_usize_value word = embed_atomic_usize_load(&series->bounds);
-    const size_t top = carcer_bounds_top(word);
-    const size_t valid = carcer_all(mark <= series->size) & carcer_all(mark > top);
-    const size_t to = carcer_pick(valid, mark, top);
-    size_t off = top;
-
-    while (off < to)
-    {
-        const size_t size = carcer_size_at(series, off);
-
-        carcer_foot_claimed(series, off, size, 0u, carcer_all(1));
-        off = carcer_end_of(off, size);
-    }
-    mmgr_zero_buf(series->base + top, (off - top) & zeroing);
-    embed_atomic_usize_store(&series->bounds, carcer_bounds(carcer_bounds_end(word), off));
-    carcer_opened(series);
-}
-
-void mmgr_temporary_buf_release(SeriesCellularum *series, size_t mark)
-{
-    carcer_rewound(series, mark, 0u);
-}
-
-void mmgr_max_security_buf_return(SeriesCellularum *series, size_t mark)
-{
-    carcer_rewound(series, mark, carcer_all(1));
-}
-
-void mmgr_temporary_buf_reset(SeriesCellularum *series)
-{
-    mmgr_temporary_buf_release(series, series->size);
 }
 
 const CellOwner *mmgr_owner_of_buf(const SeriesCellularum *series, const void *prisoner)
@@ -2079,15 +2043,15 @@ embed_bool mmgr_movable_buf_move(SeriesCellularum *series)
         const size_t off = (payload - CARCER_WORD) & stands;
         const size_t size = carcer_size_at(series, off);
         // the first free run below the cell that holds it, the tier merged and trimmed on the way
-        const CarcerSweep sweep = carcer_swept(series, size, off, stands);
-        const size_t kept = carcer_split(series, sweep, size);
+        const CarcerSweep sweep = carcer_swept(series, size, off, 0u, stands);
+        const size_t kept = carcer_split(series, sweep, size, 0u).size;
         const size_t wipes = carcer_all(option->wipes != 0u);
 
         // the end after the move: the cell's offset where the cell stood at the end, the walk's end elsewhere
-        const size_t at_end = sweep.found & carcer_all(carcer_end_of(off, size) == sweep.end);
+        const size_t at_end = sweep.found & carcer_all(carcer_end_of(off, size) == sweep.boundary);
 
         embed_atomic_usize_store(&series->bounds,
-                                 carcer_bounds(carcer_pick(at_end, off, sweep.end),
+                                 carcer_bounds(carcer_pick(at_end, off, sweep.boundary),
                                                carcer_bounds_top(embed_atomic_usize_load(&series->bounds))));
         memor.cpy(
             &(MemoriaCfg){.dst = carcer_pick_at(sweep.found, series->base + sweep.at + CARCER_WORD, &series->sink),

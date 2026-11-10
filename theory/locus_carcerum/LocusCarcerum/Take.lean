@@ -12,8 +12,7 @@ header and `A` more; and the owner's count rises by what the cell carries.
 The mover (`mmgr_movable_buf_move`) lays a busy cell over the first free run below it the same way and frees the
 place it stood. A run kept whole carries more than the cell did, and the module's running count for the owner
 rises by the difference: the theorem is that the running count stays the count the layout holds, so the release,
-which counts off what the header says, takes the owner back to what it was. `old_short` is the count without the
-difference, which a release takes below zero.
+which counts off what the header says, takes the owner back to what it was.
 -/
 
 namespace LocusCarcerum.Take
@@ -73,9 +72,5 @@ theorem move_count (low mid high : List Cell) (run cell : Cell) (o : Nat)
   rw [laid_count H A cell.size cell.owner o run hrun]
   have hc : cell.size ≤ carried H A cell.size run := carried_least H A cell.size run hfits
   by_cases ho : cell.owner = o <;> simp [count, count_append, hrun, hcell, ho] <;> omega
-
-/-- The stress run's move: a 64-byte cell over a 72-byte run, which a header of 16 and `A` of 8 keep whole. The
-cell carries 72; a running count without the difference reads 64, and the release counts off 72. -/
-theorem old_short : carried 16 8 64 ⟨72, false, 0⟩ = 72 ∧ ((64 : Int) - 72 = -8) := by decide
 
 end LocusCarcerum.Take

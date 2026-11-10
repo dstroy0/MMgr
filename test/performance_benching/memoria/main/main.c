@@ -933,16 +933,20 @@ static uintptr_t heap_take_give(void)
     return (uintptr_t)held;
 }
 
-static uintptr_t series_cellularum_temporary_mark_run(void)
+static uintptr_t series_cellularum_temporary_run(void)
 {
-    const size_t mark = ram.general.temporary_buf_mark();
+    void *held[8];
     uintptr_t seen = 0u;
 
     for (unsigned index = 0; index < 8u; index++)
     {
-        seen |= (uintptr_t)ram.general.temporary_buf_alloc(g_take, cells);
+        held[index] = ram.general.temporary_buf_alloc(g_take, cells);
+        seen |= (uintptr_t)held[index];
     }
-    ram.general.temporary_buf_release(mark);
+    for (unsigned index = 0; index < 8u; index++)
+    {
+        ram.general.persistent_buf_release(held[index], cells);
+    }
     return seen;
 }
 
@@ -1193,7 +1197,7 @@ void dbench_run(void)
             DBENCH_AB("series_cellularum_persistent", iters, 64u,
                       DBENCH_KEEP(series_cellularum_persistent_alloc_release()), DBENCH_KEEP(heap_take_give()));
 
-            DBENCH_AB("series_cellularum_temporary", iters, 64u, DBENCH_KEEP(series_cellularum_temporary_mark_run()),
+            DBENCH_AB("series_cellularum_temporary", iters, 64u, DBENCH_KEEP(series_cellularum_temporary_run()),
                       DBENCH_KEEP(heap_run_free()));
         }
 

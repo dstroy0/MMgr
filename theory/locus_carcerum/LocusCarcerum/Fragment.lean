@@ -5,8 +5,7 @@
 holes, against the hundredth of the bytes it occupies, rounded up, and reads 0 below a hundred bytes. The divisor
 is a hundredth rather than the holes times a hundred, since that product can pass what a narrow word counts.
 
-The theorem: the holes being at most the bytes occupied, the reading is at most 100. `old_over` is the reading
-against the hundredth rounded down, which a tier of 199 bytes reads as 152.
+The theorem: the holes being at most the bytes occupied, the reading is at most 100.
 -/
 
 namespace LocusCarcerum.Fragment
@@ -37,11 +36,5 @@ theorem reading_le (occupied holes : Nat) (h : holes ≤ occupied) : reading occ
     rw [Nat.mul_comm] at this
     omega
   · exact Nat.zero_le _
-
-/-- The reading against the hundredth rounded down. -/
-def oldReading (occupied holes : Nat) : Nat := if 100 ≤ occupied then holes / (occupied / 100) else 0
-
-/-- A tier of 199 bytes with 152 of them holes read 152 against the rounded-down hundredth. -/
-theorem old_over : oldReading 199 152 = 152 ∧ reading 199 152 ≤ 100 := by decide
 
 end LocusCarcerum.Fragment

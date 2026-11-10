@@ -6,11 +6,11 @@
  */
 /**
  * @file locus_carcerum_sequence_prove.c
- * @brief Layout, Take, Spill, Give and Rewind of the Lean theory proved on the C: every sequence of PROVE_STEPS
- *        operations on a small cellblock, each a take of either tier at any of four sizes, a give of any cell
- *        standing plain or zeroing, a mark, or a rewind plain or zeroing. After each step every cell standing keeps
- *        its bytes and counts to its owner and the gap is the top less the end; once every cell is given back and
- *        the tier reset, both boundaries are where they started and every count is 0.
+ * @brief Layout, Take, Spill, Give and Temporary of the Lean theory proved on the C: every sequence of PROVE_STEPS
+ *        operations on a small cellblock, each a take of either tier at any of four sizes or a give of any cell
+ *        standing, plain or zeroing. After each step every cell standing keeps its bytes and counts to its owner and
+ *        the gap is the top less the end; once every cell is given back, both boundaries are where they started and
+ *        every count is 0.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
  */
@@ -24,7 +24,6 @@
 
 #define PROVE_BYTES 512u
 #define PROVE_LIVE_MOST 4u
-#define PROVE_MARKS_MOST 2u
 
 #define PROVE_OWNERS(owner_) owner_(s_p0, "p0") owner_(s_p1, "p1")
 MMGR_OWNERS(PROVE_OWNERS)
@@ -45,8 +44,6 @@ typedef struct
 
 static ProveLive s_live[PROVE_LIVE_MOST];
 static unsigned int s_count;
-static size_t s_marks[PROVE_MARKS_MOST];
-static unsigned int s_mark_count;
 
 static const CellOwner *owner_at(unsigned int which)
 {
@@ -117,58 +114,18 @@ static void given(uint8_t choice)
     dropped(at);
 }
 
-static void rewound(uint8_t choice)
-{
-    if (s_mark_count == 0u)
-    {
-        return;
-    }
-    s_mark_count -= 1u;
-    const size_t mark = s_marks[s_mark_count];
-    for (unsigned int at = 0u; at < s_count;)
-    {
-        const size_t off = (size_t)(s_live[at].payload - BLOCK->base);
-        // a cell whose header lies below the mark goes with the rewind, as Rewind.walk_left_past states
-        if (s_live[at].temporary && ((off - PROVE_CELL_HEADER) < mark))
-        {
-            dropped(at);
-            continue;
-        }
-        at += 1u;
-    }
-    if ((choice & 0x40u) != 0u)
-    {
-        mmgr_max_security_buf_return(BLOCK, mark);
-    }
-    else
-    {
-        mmgr_temporary_buf_release(BLOCK, mark);
-    }
-}
-
 int main(void)
 {
     for (unsigned int step = 0u; step < PROVE_STEPS; step += 1u)
     {
         const uint8_t choice = nondet_byte();
-        switch (choice & 3u)
+        if ((choice & 1u) == 0u)
         {
-        case 0:
             taken(choice);
-            break;
-        case 1:
+        }
+        else
+        {
             given(choice);
-            break;
-        case 2:
-            if (s_mark_count < PROVE_MARKS_MOST)
-            {
-                s_marks[s_mark_count] = mmgr_temporary_buf_mark(BLOCK);
-                s_mark_count += 1u;
-            }
-            break;
-        default:
-            rewound(choice);
-            break;
         }
         checked();
     }
@@ -177,9 +134,8 @@ int main(void)
         mmgr_persistent_buf_release(BLOCK, s_live[s_count - 1u].payload, owner_at(s_live[s_count - 1u].owner));
         s_count -= 1u;
     }
-    mmgr_temporary_buf_reset(BLOCK);
     PROVE_ASSERT(mmgr_series_cellularum_persistent_end(BLOCK) == 0u, "every give returns the persistent end to 0");
-    PROVE_ASSERT(mmgr_series_cellularum_temporary_top(BLOCK) == PROVE_BYTES, "the reset returns the top to the size");
+    PROVE_ASSERT(mmgr_series_cellularum_temporary_top(BLOCK) == PROVE_BYTES, "every give returns the top to the size");
     PROVE_ASSERT(mmgr_owner_in_use(s_p0) == 0u, "the first owner's count returns to 0");
     PROVE_ASSERT(mmgr_owner_in_use(s_p1) == 0u, "the second owner's count returns to 0");
     PROVE_ASSERT(mmgr_series_cellularum_idle(BLOCK) != 0, "the emptied cellblock reads idle");

@@ -28,8 +28,8 @@ def reserveDown (n : Nat) (s : State) : Nat × State := (s.T, { s with T := s.T 
 def decideDown (w n : Nat) (s : State) : State :=
   if s.E ≤ w - n then { s with tQ := w - n } else { s with OT := s.OT + n }
 
-/-- The state a stress run stood in before the interleaving below, read off the cellblock's words:
-a mebibyte of storage, the persistent end at 0xfd4c0, the temporary top at 0xfd868, nothing overrun. -/
+/-- A state the interleaving below starts from: a mebibyte of storage, the persistent end at 0xfd4c0, the
+temporary top at 0xfd868, nothing overrun. -/
 def before : State := ⟨0x100000, 0xfd4c0, 0xfd868, 0, 0, 0xfd4c0, 0xfd868⟩
 
 theorem inv_before : Packed.Inv before := by

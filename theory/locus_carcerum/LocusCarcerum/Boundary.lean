@@ -10,10 +10,6 @@ A give stores its cell's header free, then reads the closed bit and `top`, and g
 clears the closed bit whatever trim bit stands. The theorems: a cellblock with no trim owed and every context at
 rest has no free cell at its top, and the next holder's take walks from `top` where a trim stands owed.
 
-The give of the earlier protocol read `top` before its store. `old_loses` is the interleaving the race program
-read: the give of the cell above the top reads `top` while the cell below still stands, the give of that cell
-trims, its walk stops at the first cell still busy, and the first give then stores that cell free and leaves.
-
 The model is sequentially consistent. In the C a full fence stands between a give's store and its reads, and
 between a writer's fetch on the closed word and the headers it reads, and each read sees every store before it.
 The tier modelled is the temporary one; the persistent tier is the same with the walk running down.
@@ -452,30 +448,5 @@ theorem owed_walked {size : Nat} {s : State} (i : Nat) (h : s.place i = .holding
   have st := Step.take (size := size) i h
   rw [ho] at st
   exact st
-
-/-- Two live cells, both busy: cell 0 at the top and cell 1 above it, the cellblock open. -/
-def twoCells : State := ⟨false, false, 0, fun _ => false, fun _ => .idle⟩
-
-/-- The earlier protocol's interleaving from `twoCells`, as the states it passes through. The give of cell 1 reads
-`top` first and finds 0 there, not its cell. The give of cell 0 stores its header free and holds with its fetch-or;
-its open takes the trim bit, walks past cell 0, stops at cell 1 still busy, stores 1 as the top and opens. The give
-of cell 1 then stores its header free and leaves on the `top` it read. -/
-def oldAfter : State :=
-  let s1 : State := { twoCells with free := marked twoCells.free 0 true }
-  let s2 : State := { s1 with held := true, owed := true }
-  let s3 : State := { s2 with owed := false, top := 1 }
-  let s4 : State := { s3 with held := false }
-  { s4 with free := marked s4.free 1 true }
-
-/-- The read the earlier give of cell 1 made: `top` was not its cell. -/
-theorem old_read : twoCells.top ≠ 1 := by decide
-
-/-- The earlier protocol leaves the cellblock open, nothing owed and the free cell 1 at its top. -/
-theorem old_loses : oldAfter.held = false ∧ oldAfter.owed = false ∧ oldAfter.top = 1 ∧ oldAfter.free 1 = true := by
-  decide
-
-/-- In this protocol the give of cell 1 reads `top` after its store, finds its own cell there, and goes on to its
-fetch-or: it holds, and its trim walks past cell 1. -/
-theorem new_reads : oldAfter.top = 1 := by decide
 
 end LocusCarcerum.Boundary

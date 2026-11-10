@@ -59,23 +59,20 @@ it is]_[action]`, with each part spent only where it disambiguates.
 | ---------- | ---------------------------- | --------------------------------------------------------------------- |
 | lifetime   | `persistent`, `temporary`    | the sentence. How long the prisoner holds the cell                    |
 | security   | `max_security`               | present only where the zeroing form has to be told from the plain one |
-| what it is | `buf`                        | bytes, as against a mark or a count                                   |
-| action     | `alloc`, `release`, `return` | what the entry does to them                                           |
+| what it is | `buf`                        | bytes, as against a count                                             |
+| action     | `alloc`, `release`           | what the entry does to them                                           |
 
 So `persistent_buf_alloc` is lifetime//buf/alloc, and `persistent_max_security_buf_release` fills
-all four. `max_security_buf_return` drops the lifetime part, because `return` restores a mark and
-only the temporary tier has one.
+all four.
 
 | entry           | means                              | why not the English                                                                                                       |
 | --------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `buf_available` | bytes at hand                      | `free_bytes` reads as a verb, as though it frees something. It reports a count                                            |
 | `buf_grow`      | a cell made larger where it stands | `realloc` moves a cell and reuses holes. This moves no other cell, and answers no where the cell is not its tier's newest |
-| `mark`          | a position to rewind to            |                                                                                                                           |
-| `reset`         | return to empty                    |                                                                                                                           |
 
 `temporary_buf_alloc` takes a cell from the temporary tier. `persistent_buf_release` takes **the cell
-itself** and gives it back, in any order, because the cell's own header carries its extent, and the
-release does not have to be told which one it is or when it was taken.
+itself**, of either tier, and gives it back, in any order, because the cell's own header carries its extent and its
+offset says which tier it lies in, and the release does not have to be told which one it is or when it was taken.
 
 ## Types
 

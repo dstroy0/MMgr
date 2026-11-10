@@ -20,7 +20,7 @@ mmgr_<infix>_<tail>
 | `mmgr_cellul_len`     | `cellul` | `cellularum_laboro` |
 
 `locus_carcerum` is the exception. Its public entries are named for what they do and not for the
-module, `mmgr_persistent_buf_alloc`, `mmgr_temporary_buf_mark`, `mmgr_buf_available`, and so there is
+module, `mmgr_persistent_buf_alloc`, `mmgr_temporary_buf_alloc`, `mmgr_buf_available`, and so there is
 no `carcer` infix to read a module off. Reach them through a declared region's pools instead
 (`prison.work.persistent_buf_alloc`), and that is how the header presents them.
 

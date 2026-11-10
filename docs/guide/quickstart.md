@@ -96,6 +96,6 @@ Arduino, and why there are no `install()` rules.
 
 ## Where to go from here
 
-- @ref guide_first_region: persist against interim, and releasing by mark
+- @ref guide_first_region: persist against interim, and giving a cell back
 - @ref concept_architecture: how a region becomes pools, spans and rings
 - @ref nav_modules: the module you actually need

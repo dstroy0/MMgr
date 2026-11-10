@@ -44,7 +44,6 @@ static void report(const char *impl, const char *name, size_t bytes, double cycl
 static void carcer_fresh(void)
 {
     mmgr_series_cellularum_emptied(&ram_general_ctx);
-    ram.general.temporary_buf_reset();
 }
 
 static void proto_fresh(void)
@@ -90,12 +89,16 @@ static void proto_fresh(void)
                                                                                                                        \
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
-            const size_t m_ = ram.general.temporary_buf_mark();                                                        \
+            void *held_[CHAIN];                                                                                        \
             for (unsigned k_ = 0; k_ < CHAIN; k_++)                                                                    \
             {                                                                                                          \
-                BENCH_KEEP(ram.general.temporary_buf_alloc((N), cells) != NULL);                                       \
+                held_[k_] = ram.general.temporary_buf_alloc((N), cells);                                               \
+                BENCH_KEEP(held_[k_] != NULL);                                                                         \
             }                                                                                                          \
-            ram.general.temporary_buf_release(m_);                                                                     \
+            for (unsigned k_ = 0; k_ < CHAIN; k_++)                                                                    \
+            {                                                                                                          \
+                ram.general.persistent_buf_release(held_[k_], cells);                                                  \
+            }                                                                                                          \
         });                                                                                                            \
         report("locus_carcerum", "transient run+release", (N) * CHAIN, cy_);                                           \
     } while (0)

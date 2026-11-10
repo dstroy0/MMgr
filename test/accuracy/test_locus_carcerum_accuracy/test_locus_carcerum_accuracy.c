@@ -23,8 +23,8 @@
  * @note Two cellblocks are declared here, one at each security level, because the zeroing release
  *       exists only at the maximum level and the plain release exists only at the minimum one. No
  *       call reaches both.
- * @note Contract checks on a NULL prisoner, a foreign prisoner, and a mark the cellblock never
- *       reported live in test_locus_carcerum. This file asks whether the bytes stay the prisoner's.
+ * @note Contract checks on a NULL prisoner and a foreign prisoner live in test_locus_carcerum. This file asks
+ *       whether the bytes stay the prisoner's.
  */
 #include <stdint.h>
 #include <stdio.h>
@@ -454,18 +454,15 @@ void test_a_maximum_security_release_leaves_zeros(void)
 }
 
 /**
- * @brief Checks that a maximum security rewind zeros every byte taken since the mark.
+ * @brief Checks that a maximum security give of a temporary cell zeros every byte of it.
  *
- * @note A rewind releases a run of cells at once, and the zeroing covers the whole run and not one
- *       cell's header extent. A rewind that zeroed only the cell at the top leaves the rest of the
- *       run readable, the defect this looks for.
- * @note Three cells are taken above the mark and all three are filled, and the run has something in
- *       every part of it. The bytes are read back through a fresh allocation covering the same span.
+ * @note The zeroing covers the cell's whole payload, read off its header. Three cells are taken and all three are
+ *       filled, so that a give that zeroed a neighbor's bytes or fewer than its own shows.
  */
-void test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark(void)
+void test_a_maximum_security_give_of_a_temporary_cell_zeros_every_byte_of_it(void)
 {
     const size_t size = 32u;
-    const size_t mark = accuracy_site.secure_cells.temporary_buf_mark();
+    const size_t top = mmgr_series_cellularum_temporary_top(&accuracy_site_secure_cells_ctx);
     AccuracyLiveCell live[3];
 
     for (unsigned index = 0u; index < 3u; index++)
@@ -481,9 +478,12 @@ void test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark(void)
 
     uint8_t *const lowest = live[2].at;
 
-    accuracy_site.secure_cells.temporary_buf_release(mark);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(mark, accuracy_site.secure_cells.temporary_buf_mark(),
-                                     "the rewind did not restore the mark it was given");
+    for (unsigned index = 0u; index < 3u; index++)
+    {
+        accuracy_site.secure_cells.persistent_buf_release(live[index].at, cells);
+    }
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(top, mmgr_series_cellularum_temporary_top(&accuracy_site_secure_cells_ctx),
+                                     "the gives did not return the top to where it stood");
 
     for (unsigned index = 0u; index < 3u; index++)
     {
@@ -491,7 +491,7 @@ void test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark(void)
         {
             char message[128];
 
-            (void)snprintf(message, sizeof message, "byte %u of the cell at %u survived the rewind", (unsigned)offset,
+            (void)snprintf(message, sizeof message, "byte %u of the cell at %u survived the give", (unsigned)offset,
                            index);
             TEST_ASSERT_EQUAL_HEX8_MESSAGE(0u, live[index].at[offset], message);
         }
@@ -501,30 +501,30 @@ void test_a_maximum_security_rewind_zeros_everything_taken_since_the_mark(void)
 }
 
 /**
- * @brief Checks that a rewind to a mark restores the bytes the mark reported.
+ * @brief Checks that temporary cells given back give back every byte they took.
  *
- * @note The mark is a byte count the caller holds across a run of allocations, and the accuracy claim
- *       is that rewinding to it gives back exactly what was taken since. A rewind giving back less
- *       leaks the difference for the life of the cellblock.
- * @note The free gap is read before the mark and again after the rewind. Those two are the same
- *       number when every byte came back, and no part of that comes from the cellblock's own idea of
- *       what it holds.
+ * @note The free gap is read before the takes and again after the gives. Those two are the same number when every
+ *       byte came back, and no part of that comes from the cellblock's own idea of what it holds. A give returning
+ *       less leaks the difference for the life of the cellblock.
  */
-void test_a_rewind_to_a_mark_gives_back_every_byte_taken_since_it(void)
+void test_temporary_cells_given_back_give_back_every_byte_they_took(void)
 {
     const size_t before = accuracy_site.plain_cells.buf_available();
-    const size_t mark = accuracy_site.plain_cells.temporary_buf_mark();
+    void *held[8];
 
     for (unsigned index = 0u; index < 8u; index++)
     {
-        TEST_ASSERT_NOT_NULL_MESSAGE(accuracy_site.plain_cells.temporary_buf_alloc(24u, cells),
-                                     "the cellblock refused a temporary request");
+        held[index] = accuracy_site.plain_cells.temporary_buf_alloc(24u, cells);
+        TEST_ASSERT_NOT_NULL_MESSAGE(held[index], "the cellblock refused a temporary request");
     }
     TEST_ASSERT_TRUE_MESSAGE(accuracy_site.plain_cells.buf_available() < before, "eight allocations took no bytes");
 
-    accuracy_site.plain_cells.temporary_buf_release(mark);
+    for (unsigned index = 0u; index < 8u; index++)
+    {
+        accuracy_site.plain_cells.persistent_buf_release(held[index], cells);
+    }
     TEST_ASSERT_EQUAL_size_t_MESSAGE(before, accuracy_site.plain_cells.buf_available(),
-                                     "the rewind did not give back every byte taken since the mark");
+                                     "the gives did not give back every byte taken");
 }
 
 /**

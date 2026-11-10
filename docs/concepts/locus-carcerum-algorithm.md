@@ -116,7 +116,7 @@ $$
 E := E - O_E,\quad O_E := 0,\quad T := T + O_T,\quad O_T := 0
 $$
 
-Each exclusive operation starts with Settle. The exclusive operations are spill, trim, growth, rewind and sort.
+Each exclusive operation starts with Settle. The exclusive operations are spill, trim, growth and sort.
 While an exclusive operation runs, no operation of §3.1 or §3.2 is in progress, and no such operation starts.
 
 ### 3.4 Free, cell $(o,p) \in P \cup Q$
@@ -296,24 +296,24 @@ Lean checks the models in `theory/locus_carcerum`:
 - `LocusCarcerum/Take.lean` proves that a take over a free run keeps the bytes of the run, that the cell carries at
   least the request and less than the request, a header and the alignment more, and that the count of the owner
   rises by what the cell carries. It proves that the mover keeps the count of each owner equal to the count the
-  layout holds, and checks the move that a count without the difference takes below 0.
+  layout holds.
 - `LocusCarcerum/Spill.lean` proves the spill over the first free run, the bump at the end, and both growths: the
   bytes laid and the count of each owner after each, and that a temporary growth keeps the owner word in its place.
-- `LocusCarcerum/Give.lean` proves that a cell is counted off its owner once over any sequence of gives and rewinds,
-  and not at all by gives that name another owner.
-- `LocusCarcerum/Rewind.lean` proves that a rewind stops on a cell boundary, at or past the mark, after it drops
-  each cell that starts below the mark, and that a mark on a boundary is where it stops. It checks the mark of the
-  stress run, which a rewind that stored the mark put inside a cell.
-- `LocusCarcerum/Fragment.lean` proves that the fragmentation reading is at most 100, and checks the reading of
-  152 that a divisor rounded down gave.
+- `LocusCarcerum/Give.lean` proves that a cell is counted off its owner once over any sequence of gives, and not at
+  all by gives that name another owner.
+- `LocusCarcerum/Temporary.lean` writes the temporary tier as the persistent tier mirrored, its base at the
+  cellblock's size. It proves that the sweep keeps the busy cells and the counts, does not raise the tier's bytes and
+  leaves no free cell at the top; that the last fitting run is free, holds the take and has no fitting run nearer the
+  base; that a take laid at the run's high end keeps the tier's bytes and raises its owner's count alone; and that
+  the laying is the persistent tier's reversed.
+- `LocusCarcerum/Fragment.lean` proves that the fragmentation reading is at most 100.
 - `LocusCarcerum/Bounds.lean` proves that a span the test passes lies inside its cell and a span it refuses does
   not, the test of a pointer, and that a high-water mark is at or past each count it was raised to.
 - `LocusCarcerum/Entry.lean` proves that no two contexts name one movable entry, and the bytes a give zeroes.
 - `LocusCarcerum/Boundary.lean` writes the free of §3.4 and the Trim of §3.5 on the cells of one tier. The walk
   reads one header at a time and stores the edge after it stops. It proves that a cellblock has no free cell at its edge
   when its word holds no trim bit and no operation is in progress. It proves that the next open pass walks from the
-  edge when the word holds a trim bit. It also checks one order of steps where a free reads the edge before its store and a free
-  cell stays at the edge.
+  edge when the word holds a trim bit.
 - `LocusCarcerum/Futex.lean` writes the futex contract and the address wait that GenMC runs. It proves that the
   model reaches each state of the contract and no other state. It proves that a wait on the whole word has no state
   that the 32-bit wait of Linux does not have. It also checks that a wake of one waiter leaves a second waiter

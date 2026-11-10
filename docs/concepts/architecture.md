@@ -13,13 +13,13 @@ for memory and never gives any back, because it was never holding any.
     │                     locus carcerum region                    │
     │  persist ──────────►                    ◄────────── interim  │
     │  ┌────────┬────────┐                    ┌────────┬────────┐  │
-    │  │ tenant │ tenant │      free          │  mark  │  mark  │  │
+    │  │ tenant │ tenant │      free          │ tenant │ tenant │  │
     │  └────────┴────────┘                    └────────┴────────┘  │
     └──────────────────────────────────────────────────────────────┘
          │            │                            │
          ▼            ▼                            ▼
-       span         span                     released as a
-      (a view)     (a view)                  stack, newest first
+       span         span                     released one cell
+      (a view)     (a view)                  at a time, any order
 ```
 
 Five things, in the order a byte meets them. The first four are one path:
@@ -57,28 +57,24 @@ the release does not have to be told. A block freed mid-chain stays in the chain
 reaches the boundary: the bottom end does not recover on every free. That is the trade the whole
 library is built on: giving up free-anything-anytime makes the footprint decidable.
 
-## 2. Interim is released by mark, not by pointer
+## 2. Interim is persist with the base at the top
 
-Interim is a stack.
+Interim is the same algorithm as persist with the arithmetic mirrored: its base is the pool's size, its boundary
+the top, and it grows down.
 
 ```c
-const size_t mark = prison.work.temporary_buf_mark();
 uint8_t *buf = prison.work.temporary_buf_alloc(512, reader);
 /* ... use it ... */
-prison.work.temporary_buf_reset();
+prison.work.persistent_buf_release(buf, reader);
 ```
 
-`temporary_buf_mark` reports the current top. `temporary_buf_reset` assigns the top the pool's size, releasing
-every interim take at once.
+A take bumps the top down. A release frees the cell's header and, where the cell stood at the top, trims the top
+back up over the free cells there. A take the gap cannot meet walks the tier alone: every run of free cells merged
+into one, the fitting run nearest the pool's size taken, the free run at the top returned to the gap. One release
+serves both tiers, since a cell's offset says which tier it lies in.
 
-`temporary_buf_release` winds back to one mark alone, and takes that mark as `.mark`. The
-caller holds it, and savepoints nest: an inner mark and its rollback leave an outer one standing.
-`temporary_buf_reset` is the same step against the pool's own size.
-
-Nothing is reallocated and nothing moves: `work` still points at readable memory after a reset.
-It is dead all the same. A pointer handed out after a mark is invalid the moment that mark is
-released, and the library cannot tell you that you kept it. This is the sharpest edge in MMgr and it
-is worth reading twice.
+Nothing is reallocated and nothing moves: `buf` still points at readable memory after its release.
+It is dead all the same, and the library cannot tell you that you kept it.
 
 ## 3. A cell is given back by one call, and the pool decides what that costs
 
@@ -192,7 +188,7 @@ declared nowhere a consumer can reach.
 | caller's buffer | the caller              | the caller                          | outlives everything below |
 | pool            | nothing                 | nothing                             | the region's              |
 | persist take    | a block from the middle | `persistent_buf_release` by address | as long as it likes       |
-| interim take    | a block from the middle | a mark, or `temporary_buf_reset`    | until that mark           |
+| interim take    | a block from the middle | `persistent_buf_release` by address | one call                  |
 | span            | nothing                 | nothing                             | its target's              |
 | ring segment    | a counter step          | `seg_release`                       | until released            |
 | loculus         | a bit in a mask         | `loculus_drop`                      | until dropped             |

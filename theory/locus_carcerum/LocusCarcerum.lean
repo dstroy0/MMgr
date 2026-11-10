@@ -7,12 +7,12 @@ import LocusCarcerum.Layout
 import LocusCarcerum.Order
 import LocusCarcerum.Packed
 import LocusCarcerum.Pass
-import LocusCarcerum.Rewind
 import LocusCarcerum.Entry
 import LocusCarcerum.Sleep
 import LocusCarcerum.Spill
 import LocusCarcerum.Split
 import LocusCarcerum.Take
+import LocusCarcerum.Temporary
 import LocusCarcerum.Trim
 import LocusCarcerum.Word
 import LocusCarcerum.OwnerWord

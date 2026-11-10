@@ -18,8 +18,6 @@ void setUp(void)
 {
     mmgr_series_cellularum_emptied(&ram_secret_ctx);
     mmgr_series_cellularum_emptied(&ram_plain_ctx);
-    ram.secret.temporary_buf_reset();
-    ram.plain.temporary_buf_reset();
 }
 
 void tearDown(void)

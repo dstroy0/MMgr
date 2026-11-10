@@ -7,8 +7,8 @@
 /**
  * @file locus_carcerum_fuzz.c
  * @brief A libFuzzer harness over every LocusCarcerum entry. On one cellblock: takes of both tiers at any size,
- *        a size past the cellblock's among them, gives plain and zeroing, growths plain and zeroing, gives and
- *        growths that name the wrong owner, marks, rewinds plain and zeroing, and resets, against a model of the
+ *        a size past the cellblock's among them, gives plain and zeroing, growths plain and zeroing, and gives and
+ *        growths that name the wrong owner, against a model of the
  *        cells standing, every payload filled with its cell's mark and read back before it goes; the owner
  *        lookups, the gap, the fragmentation, the rounding and the zeroing beside them. On a second cellblock
  *        with the movable option: movable takes, writes, reads, compares, measures, gives and moves against a
@@ -65,8 +65,6 @@ typedef struct
 static const CellOwner *s_owner[4];
 static FuzzLive s_live[FUZZ_LIVE_MOST];
 static unsigned int s_count;
-static size_t s_marks[8];
-static unsigned int s_mark_count;
 static FuzzMovable s_movable[FUZZ_MOVING_CELLS];
 static unsigned int s_movable_count;
 static int s_option_assigned;
@@ -123,28 +121,6 @@ static void gone(unsigned int at, int wiping)
         mmgr_persistent_buf_release(BLOCK, live->payload, s_owner[live->owner]);
     }
     removed(at);
-}
-
-/** @brief A cell's header word, as the module lays it: a word rounded up to the alignment, ahead of the payload. */
-#define FUZZ_CELL_HEADER ((sizeof(embed_atomic_usize) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
-
-/**
- * @brief Every temporary cell whose header the model stands below `mark` dropped from the model: the rewind took
- *        them, the cell a mark lies inside included, as the rewind walks whole cells.
- */
-static void rewound(size_t mark)
-{
-    for (unsigned int at = 0u; at < s_count;)
-    {
-        const size_t off = (size_t)(s_live[at].payload - BLOCK->base) - FUZZ_CELL_HEADER;
-        if (s_live[at].temporary && (off < mark))
-        {
-            checked(&s_live[at]);
-            removed(at);
-            continue;
-        }
-        at += 1u;
-    }
 }
 
 /** @brief A request size: mostly a fit, sometimes zero, sometimes past the cellblock's. */
@@ -524,7 +500,6 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     s_owner[2] = s_f2;
     s_owner[3] = s_f3;
     s_count = 0u;
-    s_mark_count = 0u;
     s_movable_count = 0u;
     movable_assigned();
     while (fuzz_left(&input))
@@ -533,7 +508,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         const uint8_t arg = fuzz_byte(&input);
         const unsigned int owner = op & 3u;
         const uint8_t mark = (uint8_t)(0x11u * (owner + 1u) + arg + 1u);
-        switch ((op >> 2) % 10u)
+        switch ((op >> 2) % 8u)
         {
         case 0:
         case 1:
@@ -549,41 +524,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             grown(&input, op, arg, owner);
             break;
         case 4:
-            if (s_mark_count < 8u)
-            {
-                s_marks[s_mark_count] = mmgr_temporary_buf_mark(BLOCK);
-                s_mark_count += 1u;
-            }
-            break;
-        case 5:
-            if (s_mark_count != 0u)
-            {
-                s_mark_count -= 1u;
-                const size_t top = mmgr_series_cellularum_temporary_top(BLOCK);
-                const int wiping = (op & 0x40u) != 0u;
-                rewound(s_marks[s_mark_count]);
-                if (wiping)
-                {
-                    mmgr_max_security_buf_return(BLOCK, s_marks[s_mark_count]);
-                    if (s_marks[s_mark_count] > top)
-                    {
-                        fuzz_check(zeroed(BLOCK->base + top, s_marks[s_mark_count] - top),
-                                   "a zeroing rewind zeroes what it returns");
-                    }
-                }
-                else
-                {
-                    mmgr_temporary_buf_release(BLOCK, s_marks[s_mark_count]);
-                }
-            }
-            break;
-        case 6:
             if (s_count != 0u)
             {
                 misnamed_give(arg % s_count, op);
             }
             break;
-        case 7:
+        case 5:
             lookups(&input);
             break;
         default:
@@ -606,10 +552,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
                    "a movable cell goes back");
         s_movable_count -= 1u;
     }
-    mmgr_temporary_buf_reset(BLOCK);
     fuzz_check(mmgr_series_cellularum_persistent_end(BLOCK) == 0u, "every give leaves the persistent end at 0");
     fuzz_check(mmgr_series_cellularum_temporary_top(BLOCK) == FUZZ_BYTES,
-               "a reset leaves the temporary top at the size");
+               "every give leaves the temporary top at the size");
     fuzz_check(mmgr_buf_available(BLOCK) == FUZZ_BYTES, "an emptied cellblock has every byte between its tiers");
     fuzz_check(mmgr_series_cellularum_idle(BLOCK) != 0, "an emptied cellblock reads idle");
     for (unsigned int each = 0u; each < 4u; each += 1u)

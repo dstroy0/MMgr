@@ -47,8 +47,6 @@ void setUp(void)
     mmgr_owner_bytes_given(grower, mmgr_owner_in_use(grower));
     mmgr_series_cellularum_emptied(&ram_a_ctx);
     mmgr_series_cellularum_emptied(&ram_b_ctx);
-    ram.a.temporary_buf_reset();
-    ram.b.temporary_buf_reset();
 }
 
 void tearDown(void)
@@ -151,7 +149,7 @@ void test_a_fresh_series_cellularum_is_empty_and_whole(void)
 {
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(&ram_a_ctx));
     TEST_ASSERT_EQUAL_size_t(A_BYTES, ram.a.buf_available());
-    TEST_ASSERT_EQUAL_size_t(A_BYTES, ram.a.temporary_buf_mark());
+    TEST_ASSERT_EQUAL_size_t(A_BYTES, mmgr_series_cellularum_temporary_top(&ram_a_ctx));
 }
 
 void test_the_owner_readers_answer_what_an_owner_counts(void)
@@ -388,44 +386,31 @@ void test_the_zeroing_clears_exactly_what_it_was_given(void)
     }
 }
 
-void test_a_mark_releases_everything_taken_after_it(void)
+void test_temporary_cells_given_back_in_order_return_the_top_to_where_it_stood(void)
 {
-    const size_t before = ram.a.temporary_buf_mark();
+    const size_t before = mmgr_series_cellularum_temporary_top(&ram_a_ctx);
+    void *const first = ram.a.temporary_buf_alloc(64u, cells);
+    void *const second = ram.a.temporary_buf_alloc(128u, cells);
 
-    (void)ram.a.temporary_buf_alloc(64u, cells);
-    (void)ram.a.temporary_buf_alloc(128u, cells);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_temporary_top(&ram_a_ctx) < before);
-
-    ram.a.temporary_buf_release(before);
+    ram.a.persistent_buf_release(second, cells);
+    ram.a.persistent_buf_release(first, cells);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(before, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
-                                     "the top must come back to where it was marked");
+                                     "the top must come back to where it stood");
 }
 
-void test_marks_nest_because_the_caller_holds_them(void)
+void test_a_temporary_cell_given_back_under_the_top_waits_for_the_cell_above_it(void)
 {
-    const size_t outer = ram.a.temporary_buf_mark();
+    void *const outer = ram.a.temporary_buf_alloc(64u, cells);
+    const size_t between = mmgr_series_cellularum_temporary_top(&ram_a_ctx);
+    void *const inner = ram.a.temporary_buf_alloc(32u, cells);
 
-    (void)ram.a.temporary_buf_alloc(64u, cells);
-
-    const size_t inner = ram.a.temporary_buf_mark();
-
-    (void)ram.a.temporary_buf_alloc(32u, cells);
-
-    ram.a.temporary_buf_release(inner);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(inner, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
-                                     "the inner savepoint comes back");
-
-    ram.a.temporary_buf_release(outer);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(outer, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
-                                     "and the outer one still stands behind it");
-}
-
-void test_reset_releases_the_whole_temporary_tier(void)
-{
-    (void)ram.a.temporary_buf_alloc(128u, cells);
-    ram.a.temporary_buf_reset();
-
-    TEST_ASSERT_EQUAL_size_t(ram_a_ctx.size, mmgr_series_cellularum_temporary_top(&ram_a_ctx));
+    ram.a.persistent_buf_release(inner, cells);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(between, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
+                                     "the top comes back over the cell at it");
+    ram.a.persistent_buf_release(outer, cells);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(ram_a_ctx.size, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
+                                     "and over the one under it once that goes");
 }
 
 void test_who_owns_buf_tells_a_series_cellularum_from_its_neighbor(void)
@@ -599,24 +584,68 @@ static void temporary_gap_spent(void)
     }
 }
 
-void test_a_temporary_take_the_gap_cannot_meet_is_refused_though_a_free_cell_of_its_tier_stands(void)
+void test_a_temporary_take_the_gap_cannot_meet_reuses_a_free_cell_of_its_tier(void)
 {
     void *const above = ram.a.temporary_buf_alloc(64u, grower);
     void *const freed = ram.a.temporary_buf_alloc(64u, grower);
     void *const below = ram.a.temporary_buf_alloc(64u, grower);
 
     temporary_gap_spent();
-    TEST_ASSERT_NULL_MESSAGE(ram.a.temporary_buf_alloc(64u, grower), "the gap is spent");
+    TEST_ASSERT_NULL_MESSAGE(ram.a.temporary_buf_alloc(64u, grower), "the gap is spent and no cell is free");
     ram.a.persistent_buf_release(freed, grower);
     const size_t counted = mmgr_owner_in_use(grower);
 
-    TEST_ASSERT_NULL_MESSAGE(ram.a.temporary_buf_alloc(64u, grower),
-                             "the tier is a stack: a free cell inside it is a rewind's to return");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(counted, mmgr_owner_in_use(grower), "nothing is counted");
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.temporary_buf_alloc(64u, grower) == freed, "the free cell is reused");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(counted + 64u, mmgr_owner_in_use(grower), "and counted to its owner");
     TEST_ASSERT_NOT_NULL(above);
     TEST_ASSERT_NOT_NULL(below);
-    ram.a.temporary_buf_reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(grower), "the reset counts the rest off");
+}
+
+void test_a_reused_temporary_cell_splits_what_it_does_not_need_toward_the_gap(void)
+{
+    uint8_t *const large = ram.a.temporary_buf_alloc(256u, grower);
+    void *const held = ram.a.temporary_buf_alloc(64u, grower);
+
+    temporary_gap_spent();
+    ram.a.persistent_buf_release(large, grower);
+
+    uint8_t *const first = ram.a.temporary_buf_alloc(64u, grower);
+    uint8_t *const second = ram.a.temporary_buf_alloc(64u, grower);
+
+    TEST_ASSERT_TRUE_MESSAGE(first == large + 192u, "the first take lands at the free cell's end away from the gap");
+    TEST_ASSERT_TRUE_MESSAGE(second < first, "the second lands below it, on what the split left");
+    TEST_ASSERT_TRUE_MESSAGE(second >= large, "inside the free cell");
+    TEST_ASSERT_NOT_NULL(held);
+}
+
+void test_a_temporary_cell_given_back_merges_with_its_free_neighbors(void)
+{
+    void *const one = ram.a.temporary_buf_alloc(64u, grower);
+    void *const two = ram.a.temporary_buf_alloc(64u, grower);
+    void *const held = ram.a.temporary_buf_alloc(64u, grower);
+
+    temporary_gap_spent();
+    ram.a.persistent_buf_release(one, grower);
+    ram.a.persistent_buf_release(two, grower);
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.temporary_buf_alloc(128u, grower) == two, "two neighbors carry what neither does");
+    TEST_ASSERT_NOT_NULL(held);
+}
+
+void test_the_temporary_tier_takes_the_fitting_cell_nearest_its_base(void)
+{
+    void *const high = ram.a.temporary_buf_alloc(64u, grower);
+    void *const middle = ram.a.temporary_buf_alloc(64u, grower);
+    void *const low = ram.a.temporary_buf_alloc(64u, grower);
+    void *const held = ram.a.temporary_buf_alloc(64u, grower);
+
+    temporary_gap_spent();
+    ram.a.persistent_buf_release(high, grower);
+    ram.a.persistent_buf_release(low, grower);
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.temporary_buf_alloc(64u, grower) == high,
+                             "of two free cells the one nearest the cellblock's size is taken");
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.temporary_buf_alloc(64u, grower) == low, "then the other");
+    TEST_ASSERT_NOT_NULL(middle);
+    TEST_ASSERT_NOT_NULL(held);
 }
 
 void test_each_take_stays_on_its_own_tier_when_the_gap_is_spent(void)
@@ -630,6 +659,8 @@ void test_each_take_stays_on_its_own_tier_when_the_gap_is_spent(void)
     temporary_gap_spent();
     ram.a.persistent_buf_release(temporary, grower);
     TEST_ASSERT_NULL_MESSAGE(ram.a.persistent_buf_alloc(64u, grower), "a persistent take leaves a temporary cell");
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.temporary_buf_alloc(64u, grower) == temporary,
+                             "the temporary tier's own take reuses its free cell");
     ram.a.persistent_buf_release(persistent, grower);
     TEST_ASSERT_NULL_MESSAGE(ram.a.temporary_buf_alloc(64u, grower), "a temporary take leaves a persistent cell");
     TEST_ASSERT_TRUE_MESSAGE(ram.a.persistent_buf_alloc(64u, grower) == persistent,
@@ -639,55 +670,21 @@ void test_each_take_stays_on_its_own_tier_when_the_gap_is_spent(void)
     TEST_ASSERT_NOT_NULL(temporary_below);
 }
 
-void test_a_temporary_cell_given_back_alone_goes_back_with_the_rest_at_a_rewind(void)
+void test_a_temporary_cell_given_back_under_the_top_returns_to_the_gap_as_the_cells_above_it_go(void)
 {
     void *const above = ram.a.temporary_buf_alloc(64u, grower);
     void *const freed = ram.a.temporary_buf_alloc(64u, grower);
     void *const below = ram.a.temporary_buf_alloc(64u, grower);
+    const size_t held = ram.a.buf_available();
 
     ram.a.persistent_buf_release(freed, grower);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(128u, mmgr_owner_in_use(grower), "the give takes its bytes off");
-    ram.a.temporary_buf_reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram.a.buf_available(), "the rewind returns the whole tier");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(grower), "and counts the given cell off no second time");
-    TEST_ASSERT_NOT_NULL(above);
-    TEST_ASSERT_NOT_NULL(below);
-}
-
-void test_a_rewind_passes_a_temporary_cell_given_back_alone_and_counts_it_once(void)
-{
-    void *const above = ram.a.temporary_buf_alloc(64u, grower);
-    const size_t mark = ram.a.temporary_buf_mark();
-    void *const freed = ram.a.temporary_buf_alloc(64u, grower);
-    void *const below = ram.a.temporary_buf_alloc(64u, grower);
-
-    ram.a.persistent_buf_release(freed, grower);
-    TEST_ASSERT_EQUAL_size_t(128u, mmgr_owner_in_use(grower));
-    ram.a.temporary_buf_release(mark);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(64u, mmgr_owner_in_use(grower), "the rewind drops the cell below the mark once");
-    TEST_ASSERT_EQUAL_size_t(mark, mmgr_series_cellularum_temporary_top(&ram_a_ctx));
-    TEST_ASSERT_NOT_NULL(above);
-    TEST_ASSERT_NOT_NULL(below);
-}
-
-void test_a_rewind_to_a_mark_inside_a_cell_stops_at_the_cell_boundary(void)
-{
-    void *const passed = ram.a.temporary_buf_alloc(64u, grower);
-    const size_t mark = ram.a.temporary_buf_mark();
-
-    ram.a.persistent_buf_release(passed, grower);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram.a.buf_available(), "the give trims the top past the mark");
-    void *const spanning = ram.a.temporary_buf_alloc(256u, grower);
-
-    TEST_ASSERT_NOT_NULL(spanning);
-    TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_temporary_top(&ram_a_ctx) < mark,
-                             "the new cell lies across the mark");
-    ram.a.temporary_buf_release(mark);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(ram_a_ctx.size, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
-                                     "the top stops at the end of the cell the mark lies in");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(grower), "the cell is counted off once");
-    ram.a.temporary_buf_reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram.a.buf_available(), "a reset after it walks whole cells");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(held, ram.a.buf_available(), "the cell at the top still holds the tier");
+    ram.a.persistent_buf_release(below, grower);
+    TEST_ASSERT_TRUE_MESSAGE(ram.a.buf_available() > held, "the top comes back over the free cells at it");
+    ram.a.persistent_buf_release(above, grower);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, ram.a.buf_available(), "and the whole tier returns to the gap");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(grower), "each cell counted off once");
 }
 
 void test_the_top_temporary_cell_grows_by_moving_down(void)
@@ -716,7 +713,7 @@ void test_the_top_temporary_cell_grows_by_moving_down(void)
     }
     TEST_ASSERT_EQUAL_size_t_MESSAGE(mmgr_align_up_buf(96u), mmgr_owner_in_use(grower),
                                      "the growth counts to the owner the cell names");
-    ram.b.temporary_buf_reset();
+    ram.b.persistent_buf_release(grown, grower);
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_in_use(grower));
 }
 
@@ -729,7 +726,8 @@ void test_a_temporary_cell_below_the_top_does_not_grow(void)
     TEST_ASSERT_NOT_NULL(second);
     TEST_ASSERT_NULL_MESSAGE(ram.a.buf_grow(first, 96u, cells), "a cell under the top is not the newest");
     TEST_ASSERT_EQUAL_size_t(top_before, mmgr_series_cellularum_temporary_top(&ram_a_ctx));
-    ram.a.temporary_buf_reset();
+    ram.a.persistent_buf_release(second, cells);
+    ram.a.persistent_buf_release(first, cells);
 }
 
 void test_a_growth_the_gap_cannot_meet_is_refused(void)

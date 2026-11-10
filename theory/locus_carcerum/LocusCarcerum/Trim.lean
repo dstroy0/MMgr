@@ -16,11 +16,6 @@ dirty except through a give in flight.
 `take` is the fetch-and and the walk as one step. In the C the walk follows the fetch-and with the closed bit
 still held, and a give between the two either stored its header before the walk, which then trims past it, or
 sets its trim bit again with its fetch-or, which stays owed on the word for the next holder.
-
-The give of the earlier protocol set the closed bit alone and left where another held it, and a holder trimmed
-only the tier it worked in. `old_loses` is the interleaving the stress run read: a persistent writer holds the
-bit, a temporary give finds it held and leaves, the writer opens, and the temporary tier stands dirty with the
-cellblock open and nothing in flight.
 -/
 
 namespace LocusCarcerum.Trim
@@ -224,42 +219,5 @@ theorem taken_trimmed {s s' : State} (h : Reach s) (i : Nat) (hi : s.place i = .
   rcases hinv.dirtyCovered t hd with ho | hj
   · rw [hs'] at ho; simp at ho
   · exact hj
-
-/-- The words of the earlier protocol: the closed bit and the two dirty tiers. -/
-structure OldState where
-  held : Bool
-  dirtyPersistent : Bool
-  dirtyTemporary : Bool
-  deriving DecidableEq, Repr
-
-/-- A persistent writer's shut and its open after a walk of the persistent tier alone. -/
-def oldShut (s : OldState) : OldState := { s with held := true }
-def oldPersistentOpen (s : OldState) : OldState := { s with held := false, dirtyPersistent := false }
-
-/-- A temporary give: the store, then the fetch-or of the closed bit alone, which trims where it was clear and
-leaves where it was held. -/
-def oldTemporaryGive (s : OldState) : OldState :=
-  let stored := { s with dirtyTemporary := true }
-  if stored.held then stored else { stored with dirtyTemporary := false }
-
-/-- The writer holds the bit, the temporary give finds it held and leaves, the writer opens. -/
-def oldAfter : OldState := oldPersistentOpen (oldTemporaryGive (oldShut ⟨false, false, false⟩))
-
-/-- The earlier protocol loses the trim: the cellblock open, nothing in flight, the temporary tier dirty. -/
-theorem old_loses : oldAfter = ⟨false, false, true⟩ := by decide
-
-/-- The same interleaving in this protocol: the writer acquires, the give stores and its fetch-or finds the bit
-held, the writer's open takes the temporary trim bit and trims, and the second fetch-and opens. -/
-def newAfter : State :=
-  let s0 := start
-  let s1 : State := { s0 with held := true, place := moved s0.place 0 .holding }
-  let s2 : State := { s1 with dirty := marked s1.dirty .temporary true, place := moved s1.place 1 (.stored .temporary) }
-  let s3 : State := { s2 with held := true, owed := marked s2.owed .temporary true,
-                              place := moved s2.place 1 (if s2.held then .idle else .holding) }
-  let s4 : State := { s3 with owed := fun _ => false, dirty := fun t => s3.dirty t && !s3.owed t }
-  { s4 with held := false, place := moved s4.place 0 .idle }
-
-theorem new_trims : newAfter.held = false ∧ newAfter.dirty .temporary = false ∧ newAfter.dirty .persistent = false := by
-  decide
 
 end LocusCarcerum.Trim

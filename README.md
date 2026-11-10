@@ -86,12 +86,12 @@ library only.
 | `Take.lean`     | a take over a free run, and the count that the mover keeps                            |
 | `Spill.lean`    | the spill, the bump at the end, and the two growths                                   |
 | `Give.lean`     | a cell goes off the count of its owner one time                                       |
-| `Rewind.lean`   | a rewind stops on a cell boundary, at or after the mark                               |
+| `Temporary.lean` | the temporary tier is the persistent tier mirrored: its sweep, its last fit and its laying |
+| `Boundary.lean` | a free cell stays at the edge only while its trim bit is set                          |
 | `Fragment.lean` | the fragmentation value is 100 or less                                                |
 | `Futex.lean`    | the address wait that GenMC runs has the behavior of the futex contract and no other  |
 | `Bounds.lean`   | the span test, the pointer test and the high-water marks                              |
 | `Entry.lean`    | two contexts do not name one movable entry                                            |
-| `Boundary.lean` | a free cell stays at the edge only while its trim bit is set                          |
 | `Pass.lean`     | a pass does not work on the cellblock while a writer works alone                      |
 | `Sleep.lean`    | a pass that sleeps on the closed word wakes when the writer opens                     |
 | `Trim.lean`     | a cellblock with no trim bit set and no give in progress owes no trim                 |

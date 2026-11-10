@@ -6,8 +6,7 @@ whose fetch-or found the bit clear names the entry; a release (`carcer_entry_giv
 named. The theorem: no two contexts name one entry.
 
 The zeroing. A give zeroes the payload, `size & zeroing & proceeds` bytes, and so the whole payload where both
-masks are set and nothing otherwise. A zeroing rewind zeroes from the top to where its walk stops, which
-`Rewind.walk_boundary` makes the footprints of the cells it drops, every byte of them.
+masks are set and nothing otherwise.
 -/
 
 namespace LocusCarcerum.Entry

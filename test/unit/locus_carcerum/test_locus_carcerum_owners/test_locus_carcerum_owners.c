@@ -220,41 +220,44 @@ void test_one_owner_counts_across_series_cellularum(void)
 
 void test_a_temporary_take_counts_the_cell_to_its_owner(void)
 {
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(33u, scratch));
+    void *const cell = counted.plain.temporary_buf_alloc(33u, scratch);
+
+    TEST_ASSERT_NOT_NULL(cell);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(mmgr_align_up_buf(33u), in_use_of(scratch),
                                      "the cell's payload is what is counted");
     TEST_ASSERT_EQUAL_size_t(in_use_of(scratch), hw_of(scratch));
-    counted.plain.temporary_buf_reset();
+    counted.plain.persistent_buf_release(cell, scratch);
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(scratch));
 }
 
-void test_a_rewind_counts_the_dropped_cells_off_their_owners(void)
+void test_temporary_cells_given_back_count_off_their_owners(void)
 {
     void *const kept = counted.plain.temporary_buf_alloc(16u, reader);
-    const size_t mark = counted.plain.temporary_buf_mark();
+    void *const read = counted.plain.temporary_buf_alloc(24u, reader);
+    void *const written = counted.plain.temporary_buf_alloc(40u, writer);
 
     TEST_ASSERT_NOT_NULL(kept);
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(24u, reader));
-    TEST_ASSERT_NOT_NULL(counted.plain.temporary_buf_alloc(40u, writer));
+    TEST_ASSERT_NOT_NULL(read);
+    TEST_ASSERT_NOT_NULL(written);
     TEST_ASSERT_EQUAL_size_t(40u, in_use_of(reader));
     TEST_ASSERT_EQUAL_size_t(40u, in_use_of(writer));
-    counted.plain.temporary_buf_release(mark);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(16u, in_use_of(reader), "the cell below the mark stays counted");
+    counted.plain.persistent_buf_release(read, reader);
+    counted.plain.persistent_buf_release(written, writer);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(16u, in_use_of(reader), "the cell still held stays counted");
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(writer));
-    counted.plain.temporary_buf_reset();
+    counted.plain.persistent_buf_release(kept, reader);
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(reader));
     TEST_ASSERT_EQUAL_size_t(40u, hw_of(reader));
 }
 
-void test_a_temporary_cell_given_back_alone_counts_off_its_owner(void)
+void test_a_temporary_cell_given_back_twice_counts_off_once(void)
 {
     void *const prisoner = counted.plain.temporary_buf_alloc(32u, scratch);
 
     counted.plain.persistent_buf_release(prisoner, scratch);
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(scratch));
-    counted.plain.temporary_buf_reset();
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, in_use_of(scratch),
-                                     "the reset counts a cell given back once already off no owner");
+    counted.plain.persistent_buf_release(prisoner, scratch);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, in_use_of(scratch), "a second give of the same cell counts off no owner");
 }
 
 void test_a_give_naming_another_owner_is_refused_and_told(void)
@@ -316,7 +319,7 @@ void test_a_cell_answers_the_owner_it_counts_to(void)
     counted.plain.persistent_buf_release(kept, mmgr_owner_of_buf(&counted_plain_ctx, kept));
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(writer));
     TEST_ASSERT_NULL_MESSAGE(mmgr_owner_of_buf(&counted_plain_ctx, kept), "a cell given back answers none");
-    counted.wiped.temporary_buf_reset();
+    counted.wiped.persistent_buf_release(scratched, scratch);
 }
 
 void test_a_cell_given_back_twice_counts_off_once_and_tells_nothing(void)
@@ -332,15 +335,14 @@ void test_a_cell_given_back_twice_counts_off_once_and_tells_nothing(void)
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(writer));
 }
 
-void test_a_maximum_security_rewind_counts_the_dropped_cells_off_their_owner(void)
+void test_a_maximum_security_temporary_give_zeroes_the_cell_and_counts_it_off(void)
 {
-    const size_t mark = counted.wiped.temporary_buf_mark();
     uint8_t *const prisoner = (uint8_t *)counted.wiped.temporary_buf_alloc(24u, keys);
 
     TEST_ASSERT_NOT_NULL(prisoner);
     prisoner[0] = 0xA5u;
     TEST_ASSERT_EQUAL_size_t(24u, in_use_of(keys));
-    counted.wiped.temporary_buf_release(mark);
+    counted.wiped.persistent_buf_release(prisoner, keys);
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(keys));
     TEST_ASSERT_EQUAL_UINT8(0u, prisoner[0]);
 }

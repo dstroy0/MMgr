@@ -650,7 +650,7 @@ void test_a_cell_counts_to_the_tier_it_lies_in(void)
     TEST_ASSERT_TRUE(persistent != 0u);
     plain.moving.persistent_buf_release(hole, s_mover);
     TEST_ASSERT_NULL_MESSAGE(plain.moving.persistent_buf_alloc(512u, s_mover),
-                             "a persistent take keeps to its tier: the free temporary cell is a rewind's");
+                             "a persistent take keeps to its tier: the free temporary cell is the other tier's");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(persistent, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use),
                                      "nothing counted to the persistent tier");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(persistent + 64u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use),
@@ -673,13 +673,14 @@ void test_each_series_cellularum_keeps_its_own_running_total(void)
 
 void test_the_running_total_follows_the_temporary_tier_and_a_growth(void)
 {
-    const size_t mark = plain.moving.temporary_buf_mark();
     void *const cell = plain.moving.temporary_buf_alloc(64u, s_mover);
 
     TEST_ASSERT_EQUAL_size_t(64u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
-    TEST_ASSERT_NOT_NULL(plain.moving.buf_grow(cell, 128u, s_mover));
+    void *const grown = plain.moving.buf_grow(cell, 128u, s_mover);
+
+    TEST_ASSERT_NOT_NULL(grown);
     TEST_ASSERT_EQUAL_size_t(128u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
-    plain.moving.temporary_buf_release(mark);
+    plain.moving.persistent_buf_release(grown, s_mover);
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
 }
 
@@ -962,7 +963,7 @@ void test_with_the_option_a_persistent_take_its_tier_cannot_meet_is_refused(void
     const size_t before = mmgr_owner_in_use(s_mover);
 
     TEST_ASSERT_NULL_MESSAGE(plain.moving.persistent_buf_alloc(512u, s_mover),
-                             "the free cell of the other tier is a rewind's to return");
+                             "the free cell of the other tier is that tier's to reuse");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(before, mmgr_owner_in_use(s_mover), "nothing is counted");
 }
 
@@ -976,7 +977,7 @@ void test_with_no_option_a_take_keeps_to_its_own_tier(void)
     {
     }
     unassigned.bare.persistent_buf_release(hole, s_mover);
-    TEST_ASSERT_NULL_MESSAGE(unassigned.bare.temporary_buf_alloc(128u, s_mover), "a rewind's tier stays its own");
+    TEST_ASSERT_NULL_MESSAGE(unassigned.bare.temporary_buf_alloc(128u, s_mover), "the other tier's free cell stays its own");
     TEST_ASSERT_NOT_NULL_MESSAGE(unassigned.bare.persistent_buf_alloc(128u, s_mover), "the tier's own take fits");
 }
 
