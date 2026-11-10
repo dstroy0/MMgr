@@ -63,7 +63,6 @@ library whose whole claim is bounded, predictable cost, and there is none.
 
 ## Versioning
 
-Pre-1.0: the API may change. It is currently 0.2.0 in five places:
-`CMakeLists.txt`, `library.json`, `library.properties`, `CITATION.cff` and
-`sonar-project.properties`, with nothing keeping them in step. That wants a generator before it
-wants a 1.0.
+The version is 1.0.0 and the API is stable. It stands in five places: `CMakeLists.txt`,
+`library.json`, `library.properties`, `CITATION.cff` and `sonar-project.properties`, with nothing
+to keep them in step. A generator for them is open work.
