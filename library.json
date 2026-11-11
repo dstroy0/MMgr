@@ -1,6 +1,6 @@
 {
   "name": "MMgr",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Zero-heap memory manager in C11. Confinia, pools, spans and rings carved out of a single borrowed region by asserted offset, with SWAR-accelerated scanning. Every translation unit is host-buildable and host-testable; the only headers it reaches for are stddef, stdint and stdatomic.",
   "keywords": [
     "memory",

@@ -63,6 +63,6 @@ library whose whole claim is bounded, predictable cost, and there is none.
 
 ## Versioning
 
-The version is 1.0.0 and the API is stable. It stands in five places: `CMakeLists.txt`,
+The version is 1.1.0 and the API is stable. It stands in five places: `CMakeLists.txt`,
 `library.json`, `library.properties`, `CITATION.cff` and `sonar-project.properties`, with nothing
 to keep them in step. A generator for them is open work.
