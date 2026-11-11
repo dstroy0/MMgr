@@ -33,11 +33,11 @@ Storage is decided at compile time and carved at run time by bumping a pointer.
   arriving from somewhere else in the program.
 - There is no free list: a release merges a cell with its free neighbors.
 
-The library reaches for `stddef`, `stdint` and `stdatomic` alone. There is no `stdlib.h`
-anywhere in `src/`, which is a property you can check in place of a claim you have to trust:
+The library reaches for no standard header. Its types, attributes and atomics come from embedded_types,
+and there is no standard include anywhere in `src/`, which is a property you can check in place of a claim you have to trust:
 
 ```sh
-grep -rn 'include <stdlib' src/    # no matches
+grep -rn '^#include <' src/    # no matches
 ```
 
 ## The bill

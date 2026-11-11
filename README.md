@@ -162,8 +162,8 @@ Each module has a Latin name. The entries and the guards that a caller uses have
 
 The first configure uses the network. It gets `embedded_types` into `deps/` at its `main` branch
 (`deps/CMakeLists.txt:13-18`). Give a generator and a compiler. GCC and Clang build all of the tree. MSVC
-builds all of the tree with `/experimental:c11atomics`, because `src/memoria_anularis` uses
-`<stdatomic.h>`.
+builds all of the tree with `/experimental:c11atomics`, because the atomics of embedded_types take
+their C11 arm there.
 
 To build without the network, put `embedded_types` at `deps/embedded_types` and add
 `-DFETCHCONTENT_FULLY_DISCONNECTED=ON`. The build then uses the files on the disk. Use this only on a

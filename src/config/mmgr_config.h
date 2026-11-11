@@ -9,7 +9,7 @@
 /** @addtogroup mod_config
  *  @{ */
 
-#include <stdint.h>
+#include "embed_types.h"
 
 #include "config/mmgr_compiler_directives.h"
 
@@ -86,20 +86,26 @@
  *       it. The checks build evaluates it instead and stops on the spot. A caller that broke one
  *       fails a test and does not carry on with the damage done.
  * @note A build may define its own before it includes this header, and neither form below then applies.
- *       A target with no stderr and no abort wants that.
+ *       A test harness wants that. The form here halts and names nothing, and a harness that reports
+ *       the case defines its own with the report in it.
  * @warning With MMGR_DEBUG_CHECKS at 0, a failed expectation produces no diagnostic and no trap. It
  *          is not a runtime check and cannot stand as one.
  */
 #ifndef MMGR_ASSERT
 #if MMGR_DEBUG_CHECKS
-#include <stdio.h>
-#include <stdlib.h>
-// fflush(NULL) before the trap. Otherwise a harness that buffers its progress on stdout loses every
-// line of it to the abort, and the failure report names no case
+// No libc here, and so the trap is a halt, as MMGR_FATAL in mmgr.h is. The spin is what a debugger
+// catches, and the message is the string in the source beside it
 #define MMGR_ASSERT(cond, msg)                                                                                         \
-    ((cond) ? (void)0                                                                                                  \
-            : (void)(fprintf(stderr, "MMGR_ASSERT failed: %s\n  %s:%d\n", (msg), __FILE__, __LINE__), fflush(NULL),    \
-                     abort()))
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if (!(cond))                                                                                                   \
+        {                                                                                                              \
+            (void)(msg);                                                                                               \
+            for (;;)                                                                                                   \
+            {                                                                                                          \
+            }                                                                                                          \
+        }                                                                                                              \
+    } while (0)
 #else
 #define MMGR_ASSERT(cond, msg) ((void)sizeof((cond) ? 1 : 0), (void)0)
 #endif

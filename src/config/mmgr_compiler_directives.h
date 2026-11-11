@@ -7,7 +7,7 @@
 /** @addtogroup mod_config
  *  @{ */
 
-#include <stddef.h>
+#include "embed_compiler_directives.h"
 
 /**
  * @brief Set to 1 when the compiler defines __clang__, 0 otherwise.

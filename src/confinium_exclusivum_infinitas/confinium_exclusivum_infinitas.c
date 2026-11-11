@@ -9,7 +9,7 @@
  */
 #include "confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"
 
-#include <stdatomic.h>
+#include "embed_atomic.h"
 
 /**
  * @brief The attributes that make an access at an arbitrary address legal.

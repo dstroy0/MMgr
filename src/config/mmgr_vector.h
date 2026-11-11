@@ -34,8 +34,7 @@
 /** @addtogroup mod_config
  *  @{ */
 
-#include <stddef.h>
-#include <stdint.h>
+#include "embed_types.h"
 
 #include "embed_lane.h"
 

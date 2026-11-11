@@ -42,8 +42,8 @@ Each of these is a claim the documentation has to answer for, and each links to 
 - **Scanning is SWAR, and the carrier is the machine word.** The benches measure it. @ref concept_swar
 - **The width is a compile-time knob, and every width is built.** Five environments, one build.
   @ref ref_environments
-- **Host-buildable and host-testable.** The only headers it reaches for are `stddef`, `stdint` and
-  `stdatomic`. @ref qa_testing
+- **Host-buildable and host-testable.** It reaches for no standard header. Its types, attributes and
+  atomics come from embedded_types. @ref qa_testing
 
 ## Where to go next
 

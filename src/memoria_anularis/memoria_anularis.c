@@ -19,7 +19,7 @@
  */
 #include "memoria_anularis/memoria_anularis.h"
 
-#include <stdatomic.h>
+#include "embed_atomic.h"
 
 /**
  * @brief The attributes that make an access at an arbitrary address legal.

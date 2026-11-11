@@ -104,7 +104,7 @@ the same region. Bytes read are not scrubbed behind the cursor either.
 see @ref concept_swar.
 
 **Self-contained.** It reaches nothing outside `config`: the span mover, the bit index and the span
-type it records are all defined in its own `.c`, which is also where `<stdatomic.h>` stays.
+type it records are all defined in its own `.c`, which is also where the atomics of embedded_types stay.
 
 ## Reference
 
