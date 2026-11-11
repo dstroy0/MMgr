@@ -17,6 +17,7 @@ PROJECT_NAME           = "MMgr"
 PROJECT_BRIEF          = "Zero-heap memory manager in C11. One borrowed buffer, carved by asserted offset."
 PROJECT_NUMBER         = "v1.0.0"
 PROJECT_LOGO           = docs/assets/mark.svg
+PROJECT_ICON           = docs/assets/favicon.ico
 OUTPUT_DIRECTORY       = docs
 CREATE_SUBDIRS         = NO
 
@@ -236,6 +237,7 @@ GENERATE_MAN           = NO
 HTML_HEADER            = docs/header.html
 HTML_FOOTER            = docs/footer.html
 HTML_EXTRA_STYLESHEET  = docs/mmgr.css
+HTML_EXTRA_FILES       = docs/assets/favicon.svg docs/assets/apple-touch-icon.png
 LAYOUT_FILE            = docs/DoxygenLayout.xml
 
 # TOGGLE gives the reader a light/dark switch. The HUE/SAT/GAMMA below only tint doxygen's own

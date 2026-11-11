@@ -1,17 +1,37 @@
+/*
+  MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+  SPDX-License-Identifier: AGPL-3.0-or-later
+
+  The theme of the documentation site, over doxygen's own stylesheet.
+
+  The palette comes from the mark in docs/assets/mark.svg: the blue of the two tiers is the link
+  and accent color, and the gold of the boundary line is the color of a label, a cost and the rule
+  under a page title. The surfaces are cool greys, light and dark. IBM Plex Sans and IBM Plex Mono
+  are one family drawn together, so an identifier inside a sentence keeps the sentence's color and
+  weight and does not look pasted in.
+
+  Prose has a measure: a paragraph, a list and a note stop at --mg-prose. A table, a code fragment
+  and a member block may run to --mg-track, since a line of C or a row of numbers is not read as a
+  sentence is. Below 768px the sidebar leaves and the content takes the whole width; the top menu
+  is the navigation there, and doxygen folds it into a button on its own.
+*/
+
 html {
-    --mg-surface: #edf0f2;
-    --mg-raised: #e1e6ea;
-    --mg-recessed: #e6eaee;
-    --mg-rule: #d3dae0;
-    --mg-rule-2: #b9c3cc;
-    --mg-ink: #1f2933;
-    --mg-bright: #0e161d;
-    --mg-dim: #5a6875;
-    --mg-dim-soft: #68757f;
-    --mg-accent: #b4552d;
-    --mg-accent-dim: #8f4122;
-    --mg-accent-bright: #d1774d;
-    --mg-accent-wash: #dfe6ec;
+    --mg-surface: #f2f3f5;
+    --mg-raised: #e7eaee;
+    --mg-recessed: #e9ecf0;
+    --mg-rule: #d5dae1;
+    --mg-rule-2: #b7c0ca;
+    --mg-ink: #1d2731;
+    --mg-bright: #0c141b;
+    --mg-dim: #5b6874;
+    --mg-dim-soft: #6b7883;
+
+    --mg-accent: #4a5fa6;
+    --mg-accent-dim: #3a4c88;
+    --mg-accent-bright: #6c80be;
+    --mg-accent-wash: #e3e8f5;
+
     --mg-state: #3f7a6b;
     --mg-state-wash: #e4efec;
 
@@ -22,7 +42,7 @@ html {
     --mg-error: #9e3b3b;
     --mg-error-wash: #f6e7e7;
 
-    --mg-code-bg: #e7ecf0;
+    --mg-code-bg: #e9ecf0;
     --mg-code-fg: #232d36;
 
     --mg-syn-keyword: #7a4a86;
@@ -32,8 +52,8 @@ html {
     --mg-syn-preproc: #8a6d2f;
     --mg-syn-comment: #77828b;
 
-    --mg-shadow: rgba(31, 41, 51, 0.1);
-    --mg-scrollbar: #b9c3cc;
+    --mg-shadow: rgba(29, 39, 49, 0.12);
+    --mg-scrollbar: #b7c0ca;
 
     --mg-sans:
         "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
@@ -44,43 +64,45 @@ html {
 
     --mg-t-body: 1rem;
     --mg-t-small: 0.875rem;
-    --mg-t-micro: 0.75rem;
-    --mg-t-h3: 1.15rem;
-    --mg-t-h2: 1.55rem;
-    --mg-t-h1: 2.25rem;
+    --mg-t-micro: 0.78rem;
+    --mg-t-h3: 1.12rem;
+    --mg-t-h2: 1.4rem;
+    --mg-t-h1: 1.9rem;
+    --mg-t-title: 1.7rem;
 
     --mg-s1: 0.35rem;
     --mg-s2: 0.7rem;
     --mg-s3: 1.15rem;
     --mg-s4: 1.9rem;
-    --mg-s5: 3rem;
+    --mg-s5: 2.8rem;
 
-    --mg-prose: min(72ch, 100%);
+    --mg-prose: 76ch;
     --mg-track: 1080px;
     --mg-radius: 3px;
 }
 
 html.dark-mode {
-    --mg-surface: #171c22;
-    --mg-raised: #1f262e;
-    --mg-recessed: #12171c;
-    --mg-rule: #2b333c;
-    --mg-rule-2: #3d4750;
+    --mg-surface: #161b21;
+    --mg-raised: #1e252d;
+    --mg-recessed: #12161b;
+    --mg-rule: #2a323b;
+    --mg-rule-2: #3c4650;
 
-    --mg-ink: #c6cdd4;
-    --mg-bright: #e9eef2;
-    --mg-dim: #8b97a3;
-    --mg-dim-soft: #75818c;
+    --mg-ink: #c8cfd6;
+    --mg-bright: #eaeef2;
+    --mg-dim: #8c98a4;
+    --mg-dim-soft: #76828d;
 
-    --mg-accent: #e08a5c;
-    --mg-accent-dim: #c4744a;
-    --mg-accent-bright: #eeab84;
-    --mg-accent-wash: #1e2833;
+    --mg-accent: #93a6e0;
+    --mg-accent-dim: #7a8fd0;
+    --mg-accent-bright: #adbcea;
+    --mg-accent-wash: #1d2638;
+
     --mg-state: #6fb3a2;
     --mg-state-wash: #14251f;
 
-    --mg-cost: #cfa863;
-    --mg-cost-ink: #cfa863;
+    --mg-cost: #d9b56b;
+    --mg-cost-ink: #d9b56b;
     --mg-cost-wash: #241f13;
 
     --mg-error: #d97b7b;
@@ -93,11 +115,11 @@ html.dark-mode {
     --mg-syn-flow: #cf94a6;
     --mg-syn-type: #77b3c1;
     --mg-syn-string: #8ec7b6;
-    --mg-syn-preproc: #cfa863;
+    --mg-syn-preproc: #d9b56b;
     --mg-syn-comment: #727f8a;
 
-    --mg-shadow: rgba(0, 0, 0, 0.4);
-    --mg-scrollbar: #3d4750;
+    --mg-shadow: rgba(0, 0, 0, 0.45);
+    --mg-scrollbar: #3c4650;
 }
 
 html,
@@ -287,7 +309,6 @@ div.contents,
 .memdoc,
 div.fragment,
 div.toc,
-#mg-footer,
 dl.note,
 dl.warning,
 dl.attention,
@@ -309,7 +330,7 @@ body {
     color: var(--mg-ink);
     font-family: var(--mg-sans);
     font-size: var(--mg-t-body);
-    line-height: 1.7;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
 }
@@ -325,7 +346,6 @@ code,
 kbd,
 samp,
 pre,
-tt,
 .fragment,
 div.line,
 .lineno,
@@ -334,8 +354,11 @@ div.line,
 .paramname,
 .paramtype,
 .mlabel,
-table.memberdecls td,
-#nav-tree,
+table.memberdecls td.memItemLeft,
+table.memberdecls td.memItemRight,
+table.memberdecls td.memTemplItemLeft,
+table.memberdecls td.memTemplItemRight,
+table.memberdecls td.memTemplParams,
 .navpath li,
 #MSearchField {
     font-family: var(--mg-mono);
@@ -353,19 +376,48 @@ div.title,
     color: var(--mg-bright);
     font-weight: 600;
     line-height: 1.25;
-    letter-spacing: -0.008em;
+    letter-spacing: -0.01em;
     text-wrap: balance;
+}
+
+/* The page title. The dashed rule under it is the boundary line of the mark, the one place the
+   figure of the library is drawn on the page. */
+div.header {
+    background-image: none;
+    background-color: var(--mg-surface);
+    border-bottom: 0;
+}
+
+div.header .headertitle {
+    padding: var(--mg-s4) var(--mg-s4) 0;
+    max-width: var(--mg-track);
 }
 
 div.title,
 .headertitle .title {
-    font-family: var(--mg-mono);
-    font-size: 1.55rem;
+    font-family: var(--mg-sans);
+    font-size: var(--mg-t-title);
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.055em;
+    text-transform: none;
+    letter-spacing: -0.012em;
     color: var(--mg-bright);
-    margin: 0 0 var(--mg-s2);
+    margin: 0;
+    padding-bottom: var(--mg-s2);
+    border-bottom: 1.5px dashed var(--mg-cost);
+}
+
+div.header .summary {
+    font-size: var(--mg-t-micro);
+    padding: var(--mg-s3) var(--mg-s4) 0 0;
+}
+
+div.header .summary a {
+    color: var(--mg-dim);
+}
+
+div.contents {
+    padding: var(--mg-s3) var(--mg-s4) var(--mg-s5);
+    max-width: var(--mg-track);
 }
 
 div.contents h1 {
@@ -373,7 +425,8 @@ div.contents h1 {
     margin: var(--mg-s5) 0 var(--mg-s2);
 }
 
-h2 {
+h2,
+h2.groupheader {
     font-size: var(--mg-t-h2);
     margin: var(--mg-s5) 0 var(--mg-s2);
     padding-bottom: var(--mg-s1);
@@ -387,8 +440,18 @@ h3 {
 
 div.contents .textblock > p,
 div.contents .textblock > ul,
-div.contents .textblock > ol {
+div.contents .textblock > ol,
+div.contents .textblock > dl,
+.memdoc > p,
+.memdoc > ul,
+.memdoc > dl {
     margin: 0 0 var(--mg-s3);
+    max-width: var(--mg-prose);
+}
+
+div.contents .textblock > h2,
+div.contents .textblock > h3 {
+    max-width: var(--mg-prose);
 }
 
 div.contents .textblock > ul,
@@ -411,6 +474,10 @@ a:hover {
     text-underline-offset: 2px;
 }
 
+a.el {
+    font-weight: 500;
+}
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -427,10 +494,12 @@ hr {
     margin: 2em 0;
 }
 
+/* The title area over the sidebar: the mark, the name, the version and the one line of what the
+   library is, then the search. */
 #titlearea {
     background-color: var(--mg-recessed);
     border-bottom: 1px solid var(--mg-rule-2);
-    padding: 1.15rem 1.1rem 0.95rem;
+    padding: 1rem 1rem 0.85rem;
     width: 100%;
 }
 
@@ -440,33 +509,32 @@ hr {
 }
 
 #projectlogo img {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
 }
 
 #projectname {
     font-family: var(--mg-mono);
-    font-size: 1.05rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: var(--mg-bright);
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    line-height: 1.1;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
     white-space: nowrap;
 }
 
 #projectnumber {
     display: inline-block;
-    margin-left: 0.4rem;
-    padding: 0.05rem 0.36rem;
+    margin-left: 0.45rem;
+    padding: 0.02rem 0.4rem;
     border: 1px solid var(--mg-rule-2);
-    border-radius: 3px;
+    border-radius: 999px;
     font-family: var(--mg-mono);
-    font-size: 0.66rem;
-    line-height: 1.5;
+    font-size: 0.68rem;
+    line-height: 1.6;
     color: var(--mg-dim);
     font-weight: 500;
-    vertical-align: 0.18em;
+    vertical-align: 0.14em;
 }
 
 #projectbrief {
@@ -477,7 +545,7 @@ hr {
     font-weight: 400;
     white-space: normal;
     overflow-wrap: break-word;
-    margin-top: 0.45rem;
+    margin-top: 0.4rem;
 }
 
 #side-nav {
@@ -510,10 +578,6 @@ hr {
     font-weight: 600;
 }
 
-div.header {
-    background-image: none;
-}
-
 #main-nav,
 .tabs,
 .tabs2,
@@ -543,8 +607,12 @@ div.header {
 .tablist li.current a {
     color: var(--mg-bright);
     background-image: none;
-    font-weight: 700;
+    font-weight: 600;
     text-shadow: none;
+}
+
+.sm-dox a span.sub-arrow {
+    border-color: var(--mg-dim) transparent transparent;
 }
 
 .navpath ul {
@@ -577,8 +645,7 @@ pre.fragment {
     line-height: 1.55;
 }
 
-code,
-tt {
+code {
     background-color: var(--mg-raised);
     border: 1px solid var(--mg-rule);
     border-radius: 3px;
@@ -590,7 +657,8 @@ h1 code,
 h2 code,
 h3 code,
 a code,
-.memproto code {
+.memproto code,
+div.title code {
     background: none;
     border: 0;
     padding: 0;
@@ -642,6 +710,8 @@ table.doxtable {
     max-width: 100%;
 }
 
+/* Notes and warnings. The left rule carries the color of the kind; the word is set as a sentence
+   and not as a label. */
 dl.note,
 dl.warning,
 dl.attention,
@@ -677,29 +747,49 @@ dl.remark dt,
 dl.pre dt,
 dl.post dt {
     font-family: var(--mg-sans);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    margin-bottom: 0.2em;
+    font-size: var(--mg-t-small);
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    margin-bottom: 0.15em;
 }
 
 dl.section.user dt,
 dl.par dt {
     font-family: var(--mg-sans);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--mg-dim);
+    font-size: var(--mg-t-small);
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--mg-bright);
 }
 
+/* A documented member: its prototype on the raised surface, its text on the page. */
 .memitem {
     border: 1px solid var(--mg-rule);
     border-radius: var(--mg-radius);
     margin: 1.4em 0;
     box-shadow: none;
     overflow: hidden;
+    max-width: var(--mg-track);
+}
+
+.memtitle {
+    background-image: none;
+    background-color: var(--mg-raised);
+    border: 1px solid var(--mg-rule);
+    border-bottom: 0;
+    border-radius: var(--mg-radius) var(--mg-radius) 0 0;
+    font-family: var(--mg-mono);
+    font-weight: 600;
+    color: var(--mg-bright);
+    padding: 6px 13px;
+    margin-top: 1.4em;
+}
+
+.memtitle + .memitem {
+    margin-top: 0;
+    border-radius: 0 0 var(--mg-radius) var(--mg-radius);
 }
 
 .memproto,
@@ -747,32 +837,77 @@ span.mlabel {
     border: 1px solid var(--mg-cost);
     border-radius: 3px;
     padding: 0 5px;
-    font-family: var(--mg-sans);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    font-family: var(--mg-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 table.memberdecls .heading {
     padding-top: 1.6em;
 }
 
+table.memberdecls {
+    max-width: var(--mg-track);
+}
+
 .groupheader {
     font-family: var(--mg-sans);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
+    font-size: var(--mg-t-small);
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
     color: var(--mg-dim);
     border-bottom: 1px solid var(--mg-rule);
-    margin-top: 2.4em;
-    padding-bottom: 0.35em;
+    margin-top: 2.2em;
+    padding-bottom: 0.3em;
 }
 
 .memSeparator {
     border-bottom: 1px solid var(--mg-rule);
     line-height: 1px;
+}
+
+.memItemLeft,
+.memItemRight,
+.memTemplItemLeft,
+.memTemplItemRight {
+    padding: 4px 8px;
+}
+
+.mdescLeft,
+.mdescRight {
+    color: var(--mg-dim);
+    font-family: var(--mg-sans);
+    padding: 0 8px 6px;
+}
+
+/* The directory and topic lists: one row per entry, a rule between rows and no striping. */
+table.directory {
+    font-size: var(--mg-t-small);
+    max-width: var(--mg-track);
+}
+
+table.directory tr.even,
+table.directory tr.odd,
+.directory tr.even {
+    background-color: transparent;
+}
+
+table.directory td {
+    border-bottom: 1px solid var(--mg-rule);
+    padding: 7px 8px;
+}
+
+table.directory td.entry a.el {
+    font-family: var(--mg-sans);
+    font-weight: 500;
+}
+
+table.directory td.desc {
+    color: var(--mg-dim);
+    border-left: 0;
 }
 
 div.toc {
@@ -786,10 +921,10 @@ div.toc {
 
 div.toc h3 {
     font-family: var(--mg-sans);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    font-size: var(--mg-t-small);
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
     color: var(--mg-dim);
     margin: 0 0 0.5em;
 }
@@ -798,6 +933,14 @@ div.toc li {
     font-size: 0.88rem;
     padding-left: 0;
     background-image: none;
+}
+
+#page-nav {
+    border-left: 1px solid var(--mg-rule);
+}
+
+#page-nav-tree {
+    font-size: var(--mg-t-small);
 }
 
 #MSearchBox {
@@ -820,50 +963,30 @@ div.toc li {
     box-shadow: 0 4px 14px var(--mg-shadow);
 }
 
+/* The footer: the version, the source, the license and the generator, as four items spaced apart. */
 li.mg-colophon {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3em 1.4em;
+    align-items: baseline;
     color: var(--mg-dim);
-    font-family: var(--mg-mono);
-    font-size: 0.72rem;
+    font-family: var(--mg-sans);
+    font-size: var(--mg-t-micro);
+    padding: 0.5em 1em;
 }
 
-li.mg-colophon .mg-sep {
-    margin: 0 0.45em;
-    color: var(--mg-rule-2);
+li.mg-colophon .mg-project {
+    font-family: var(--mg-mono);
+    color: var(--mg-ink);
 }
 
 li.mg-colophon .mg-gen {
     color: var(--mg-dim-soft);
+    margin-left: auto;
 }
 
 .navpath li.footer {
     color: var(--mg-dim);
-}
-
-.contents ul.mg-hub {
-    list-style: none;
-    padding: 0;
-    margin: 1.4em 0;
-    display: grid;
-    gap: 10px;
-    max-width: var(--mg-bleed);
-}
-
-@media (min-width: 900px) {
-    .contents ul.mg-hub {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
-.contents ul.mg-hub li {
-    border: 1px solid var(--mg-rule);
-    border-radius: var(--mg-radius);
-    padding: 11px 14px;
-    background-color: var(--mg-surface);
-}
-
-.contents ul.mg-hub li:hover {
-    border-color: var(--mg-accent-bright);
-    background-color: var(--mg-accent-wash);
 }
 
 @media (max-width: 767px) {
@@ -871,13 +994,37 @@ li.mg-colophon .mg-gen {
         font-size: 15px;
     }
 
+    /* The sidebar leaves and the content takes the width. navtree.js writes these margins inline
+       on every resize, so the rule has to win over an inline style. */
+    #side-nav {
+        display: none !important;
+    }
+
+    #doc-content,
+    #nav-path,
+    #main-nav {
+        margin-left: 0 !important;
+    }
+
+    #page-nav {
+        display: none !important;
+    }
+
+    div.header .headertitle {
+        padding: var(--mg-s3) var(--mg-s3) 0;
+    }
+
     div.contents {
-        padding: 0 12px 3em;
+        padding: var(--mg-s2) var(--mg-s3) 3em;
     }
 
     div.title,
     h1 {
         font-size: 1.35rem;
+    }
+
+    li.mg-colophon .mg-gen {
+        margin-left: 0;
     }
 }
 
@@ -887,7 +1034,7 @@ li.mg-colophon .mg-gen {
     .tablist,
     #MSearchBox,
     .navpath,
-    .mg-footer-gen,
+    #page-nav,
     dark-mode-toggle {
         display: none;
     }

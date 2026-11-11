@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="MMgr">
+  <!--
+    MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
+    SPDX-License-Identifier: AGPL-3.0-or-later
+
+    The mark at tab size. One region on a slate tile, the persistent tier as the block that grows up
+    from the base, the temporary tier as the block that grows down from the top, and the dashed line
+    as the boundary a take does not cross. The outline of the region is dropped: at 16 pixels a one
+    pixel frame reads as noise. The tile carries its own colors so the icon reads on any tab bar.
+    build/favicon.py draws the same geometry into favicon.ico and apple-touch-icon.png.
+  -->
+  <rect width="32" height="32" rx="7" fill="#1f262e"/>
+  <rect x="6" y="7" width="9" height="8" fill="#8fa2dc"/>
+  <rect x="6" y="17" width="5" height="3" fill="#8fa2dc" opacity="0.55"/>
+  <rect x="17" y="17" width="9" height="8" fill="#8fa2dc"/>
+  <rect x="21" y="12" width="5" height="3" fill="#8fa2dc" opacity="0.55"/>
+  <line x1="16" y1="6" x2="16" y2="26" stroke="#d9b56b" stroke-width="1.5" stroke-dasharray="2 2"/>
+</svg>
