@@ -2,20 +2,54 @@
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 #
-# Holds every technical document to ASD-STE100 before a commit is written: a document may carry no more findings
-# than test/ste_ratchet.tsv allows it, and a new document none. Turn it on once per clone:
+# Holds every technical document to ASD-STE100 before git writes a commit. A document can carry no more findings
+# than test/ste_ratchet.tsv allows it, and a new document none. Then it builds each research paper under
+# theory/papers/ that the commit touches, and stages the PDF and the chapters of each one. A paper that fails or
+# drops a glyph stops the commit. Turn the hook on one time in each clone:
 #
 #     git config core.hooksPath .githooks
 #
-# To see the findings:         python test/harness.py ste --show [DOC ...]
+# To see the findings:                 python test/harness.py ste --show [DOC ...]
 # To lower the ratchet after a repair: python test/harness.py ste --lower
 
 root=$(git rev-parse --show-toplevel) || exit 1
 cd "$root" || exit 1
-for python in python3 python; do
-    if command -v "$python" >/dev/null 2>&1; then
-        exec "$python" test/harness.py ste
+python=""
+for candidate in python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+        python=$candidate
+        break
     fi
 done
-echo "pre-commit: no python to run the ASD-STE100 check" >&2
-exit 1
+if [ -z "$python" ]; then
+    echo "pre-commit: no python to run the ASD-STE100 check" >&2
+    exit 1
+fi
+
+status=0
+"$python" test/harness.py ste || status=1
+
+# A paper is the nearest directory above a staged path that holds a main.tex. The PDF of the paper itself does
+# not count as a change to the paper.
+papers=$(git diff --cached --name-only -- theory/papers | while read -r path; do
+    dir=$(dirname "$path")
+    [ "$(basename "$path")" = "$(basename "$dir").pdf" ] && continue
+    while [ "$dir" != "theory" ] && [ "$dir" != "." ]; do
+        if [ -f "$root/$dir/main.tex" ]; then
+            echo "${dir#theory/}"
+            break
+        fi
+        dir=$(dirname "$dir")
+    done
+done | sort -u)
+if [ -n "$papers" ]; then
+    if sh maint/texbuild/build_theory.sh $papers; then
+        for paper in $papers; do
+            git add -- "theory/$paper/$(basename "$paper").pdf" "theory/$paper/chapters"
+        done
+    else
+        status=1
+    fi
+fi
+
+exit $status

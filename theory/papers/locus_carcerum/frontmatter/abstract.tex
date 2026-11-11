@@ -1,0 +1,23 @@
+\pdfbookmark[1]{Abstract}{Abstract}
+\thispagestyle{empty}
+\begin{center}
+  \rule{\textwidth}{0.4pt}\\[0.9em]
+  {\Large\spacedallcaps{Abstract}}\\[0.7em]
+  \rule{\textwidth}{0.4pt}
+\end{center}
+\bigskip
+
+\noindent An embedded program has no system allocator, and its memory manager can be smaller for
+that reason. We present the cellblock of MMgr: a pool fixed at compile time, with a persistent tier
+that grows up from the base and a temporary tier that grows down from the size. The two boundaries
+are the two halves of one atomic word. A take is one fetch-add on that word, which moves its own
+boundary and reads the other in one atomic step. A take that lands past the other boundary adds its
+bytes to an overrun that the next writer settles. A give is one store and one fetch-or. Writers hold
+the cellblock alone behind a drain of the turnstiles of embedded\_types.
+
+The Lean~4 model proves the invariant of the word through every interleaving of a round, that a
+refused take is final, and that two words or an undo break it. It proves the layout of both tiers,
+the spill, the trim and the owner word. CBMC, symbolic execution of the machine code at
+\texttt{-O0} and \texttt{-O2}, and GenMC under five memory models prove the C against the model.
+The manager is 778 bytes of Xtensa at \texttt{-Os}. Four axioms are named.
+\cleardoublepage
