@@ -6,34 +6,35 @@
  */
 /**
  * @file locus_carcerum.c
- * @brief LocusCarcerum's two tiers over the caller's bytes: a take is one pass through the cellblock's turnstiles
- *        and one fetch-add on its tier's boundary, a give is one fetch-or on the cell's owner word and one store on
- *        its header, and everything that moves a boundary any other way closes the cellblock, drains the turnstiles
+ * @brief LocusCarcerum's two tiers over the caller's bytes. A take is one pass through the cellblock's turnstiles
+ *        and one fetch-add on its tier's boundary. A give is one fetch-or on the cell's owner word and one store on
+ *        its header. Everything that moves a boundary any other way closes the cellblock, drains the turnstiles
  *        and works alone.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-05
  *
- * @note A cellblock is a run of bytes with a word ahead of each cell and one behind it: the header, the cell's
- *       payload size in the busy or the free state, and the owner word, the owner's place with the nanosecond of
- *       the take. The persistent tier allocates upward from base and the temporary tier downward from size, and
- *       the gap between the two boundaries is what either can still take. The two tiers are one algorithm with
- *       the base at opposite ends: a take bumps the boundary, a give frees the header, and a take the gap cannot
- *       meet merges the tier's free runs, takes the fitting run farthest from the gap, and returns the free run at
- *       the boundary to the gap.
- * @note Every choice on a hot path is a mask, a select, or a row of a two-row table of entries: a take that the
- *       gap cannot meet lays its words on the cellblock's sink word, adds its bump to the tier's overrun, and answers
- *       NULL through the same stores a take that lands makes. No path branches on what another context did.
- * @note A reader's pass is an entry at the cellblock's turnstiles: a lane taken with one fetch-or, the work, and the
- *       lane let go with one fetch-add. The turnstiles' host hooks, embed_word_wait, embed_word_wake and
- *       embed_clock_ns, are the program's to define, as embed_turnstile.h says: a build with none fails at the link,
- *       naming them. A writer sets the cellblock's closed bit with one fetch-or, drains the lanes, and works with no
- *       pass under way: the compaction that merges a tier's free runs and trims its boundary, the growth and the
- *       move.
- *       A pass that finds the closed bit backs off one step on it and tries once more.
+ * @note A cellblock is a run of bytes with a word ahead of each cell and one behind it. The header is the cell's
+ *       payload size in the busy or the free state. The owner word is the owner's place with the nanosecond of
+ *       the take. The persistent tier allocates upward from base and the temporary tier downward from size.
+ *       The gap between the two boundaries is what either can still take.
+ * @note The two tiers are one algorithm with the base at opposite ends. A take bumps the boundary, and a give
+ *       frees the header. A take the gap cannot meet merges the tier's free runs and takes the run that fits
+ *       farthest from the gap. It then returns the free run at the boundary to the gap.
+ * @note Every choice on a hot path is a mask, a select, or a row of a two-row table of entries. A take that the
+ *       gap cannot meet lays its words on the cellblock's sink word and adds its bump to the tier's overrun. It
+ *       answers NULL through the same stores a take that lands makes. No path branches on what another context
+ *       did.
+ * @note A pass is an entry at the cellblock's turnstiles: a lane taken with one fetch-or, the work, and the lane
+ *       let go with one fetch-add. The turnstiles' host hooks, embed_word_wait, embed_word_wake and
+ *       embed_clock_ns, are the program's to define, as embed_turnstile.h says. A build with none fails at the
+ *       link, and the link names them. A writer sets the cellblock's closed bit with one fetch-or, drains the
+ *       lanes, and works with no pass under way. The writers are the compaction that merges a tier's free runs
+ *       and trims its boundary, the growth and the move.
+ * @note A pass that finds the closed bit backs off one step on it and tries once more.
  * @note Every take, give and growth names an owner of the table MMGR_OWNERS lays. A cell counts to the owner its
- *       owner word names, and a give or a growth naming another owner is refused and told to the port. The
- *       completion bit of the owner word is set once, by one fetch-or, and the cell's bytes come off its owner
- *       in the context whose fetch-or found it clear.
+ *       owner word names. A give or a growth that names another owner fails, and the port hears of it. One
+ *       fetch-or sets the completion bit of the owner word once. The cell's bytes come off its owner in the
+ *       context whose fetch-or found it clear.
  */
 #include "locus_carcerum/locus_carcerum.h"
 
@@ -54,10 +55,10 @@
 /** @brief The bit of the closed word a context sets while it sleeps on the word. */
 #define CARCER_CLOSED_SLEEPERS ((embed_atomic_word_value)2u)
 
-/** @brief The bit of the closed word a give sets where the persistent tier is owed a trim. */
+/** @brief The bit of the closed word a give sets where a trim of the persistent tier is due. */
 #define CARCER_TRIM_PERSISTENT ((embed_atomic_word_value)4u)
 
-/** @brief The bit of the closed word a give sets where the temporary tier is owed a trim. */
+/** @brief The bit of the closed word a give sets where a trim of the temporary tier is due. */
 #define CARCER_TRIM_TEMPORARY ((embed_atomic_word_value)8u)
 
 /** @brief Both trim bits. */
@@ -66,7 +67,7 @@
 /**
  * @brief Bytes one of a cell's two words occupies, rounded up so the payload between them stays aligned.
  *
- * @note The rounding is a mask, and a mask rounds only because MMGR_CARCER_ALIGN is a power of two, which
+ * @note The round is a mask, and a mask rounds only because MMGR_CARCER_ALIGN is a power of two, which
  *       locus_carcerum.h asserts.
  */
 #define CARCER_WORD ((sizeof(embed_atomic_usize) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
@@ -74,14 +75,14 @@
 /**
  * @brief Bytes a cell costs beyond its payload: the header ahead of it and the owner word behind it.
  *
- * @note Charged on top of the payload every time a cell is allocated.
+ * @note Charged on top of the payload every time a cell goes out.
  */
 #define CARCER_HDR (2u * CARCER_WORD)
 
 // The bumps in flight are at most the turnstiles' lanes, each pass on a lane of its own. What they move a boundary by
-// stays below half the word past the cellblock's most bytes: a bump up never carries into the top's half, and a top
-// that bumps down wrap below zero reads past the cellblock's size and is refused.
-// docs/concepts/locus-carcerum-algorithm.md §3 states the bound and theory/locus_carcerum/LocusCarcerum/Word.lean
+// stays below half the word past the cellblock's most bytes. A bump up never carries into the top's half. A top
+// that bumps down wrap below zero reads past the cellblock's size, which fails the bump.
+// The bound is in docs/concepts/locus-carcerum-algorithm.md §3, and theory/locus_carcerum/LocusCarcerum/Word.lean
 // proves it
 EMBED_STATIC_ASSERT(MMGR_CARCER_BYTES_MOST +
                             ((size_t)EMBED_TURNSTILE_LANES * (CARCER_HDR + MMGR_CARCER_WANT_MOST)) <
@@ -95,8 +96,8 @@ EMBED_STATIC_ASSERT(MMGR_CARCER_BYTES_MOST +
  * @param[in] end The persistent end.
  * @param[in] top The temporary top.
  * @return        The word.
- * @note Explicit casts carry each offset into its half; the bits of a top past its half leave the word: the
- *       wrap of a bump down the bumps' tests refuse.
+ * @note Explicit casts carry each offset into its half. The bits of a top past its half leave the word: the
+ *       wrap of a bump down, which the bumps' tests refuse.
  */
 EMBED_INLINE embed_atomic_usize_value carcer_bounds(size_t end, size_t top)
 {
@@ -135,7 +136,7 @@ EMBED_INLINE size_t carcer_bounds_top(embed_atomic_usize_value word)
  * @param[in] member_            Mark to raise, which only exists when the build tracks one.
  * @param[in] used_              Bytes in use by the tier that moved.
  * @warning The two arms do not evaluate the same things. Where the build tracks none, the cellblock and the bytes
- *          are evaluated and discarded and the member is not named, and nothing passed here may carry a side
+ *          are void expressions and the arm names no member. Nothing passed here may carry a side
  *          effect.
  */
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
@@ -153,7 +154,7 @@ EMBED_INLINE size_t carcer_bounds_top(embed_atomic_usize_value word)
  */
 EMBED_INLINE size_t carcer_all(int set)
 {
-    // Explicit cast carries the test's 0 or 1 into the width the mask is taken in
+    // Explicit cast carries the test's 0 or 1 into the width of the mask
     return 0u - (size_t)(set != 0);
 }
 
@@ -161,7 +162,7 @@ EMBED_INLINE size_t carcer_all(int set)
  * @brief One of two counts, by a mask.
  *
  * @param[in] mask       Every bit set for the first, none for the second.
- * @param[in] when_set   The count answered where the mask is set.
+ * @param[in] when_set   The count answered where the mask holds.
  * @param[in] when_clear The count answered where it is clear.
  * @return               The count picked.
  */
@@ -174,10 +175,10 @@ EMBED_INLINE size_t carcer_pick(size_t mask, size_t when_set, size_t when_clear)
  * @brief One of two addresses, by a mask.
  *
  * @param[in] mask       Every bit set for the first, none for the second.
- * @param[in] when_set   The address answered where the mask is set [BORROWS].
+ * @param[in] when_set   The address answered where the mask holds [BORROWS].
  * @param[in] when_clear The address answered where it is clear [BORROWS].
  * @return               The address picked [BORROWS].
- * @note Explicit casts take both addresses to the integer the mask is applied to, and the pick back.
+ * @note Explicit casts take both addresses to the integer the mask works on, and the pick back.
  */
 EMBED_INLINE void *carcer_pick_at(size_t mask, void *when_set, void *when_clear)
 {
@@ -189,9 +190,9 @@ EMBED_INLINE void *carcer_pick_at(size_t mask, void *when_set, void *when_clear)
  *
  * @param[in] want Count to round.
  * @return         want rounded up to a multiple of MMGR_CARCER_ALIGN, and want itself when it already is one.
- * @warning MMGR_CARCER_ALIGN - 1 is added before the mask, and a want within a word of SIZE_MAX wraps to 0. Every
- *          take and growth refuses a request over the cellblock's size before it reaches here, and that size is at
- *          most MMGR_CARCER_BYTES_MOST, and no request they pass wraps.
+ * @warning The round adds MMGR_CARCER_ALIGN - 1 before the mask, and a want within a word of SIZE_MAX wraps to 0.
+ *          Every take and growth refuses a request over the cellblock's size before it reaches here. That size
+ *          is at most MMGR_CARCER_BYTES_MOST, and no request they pass wraps.
  */
 EMBED_INLINE size_t carcer_round(size_t want)
 {
@@ -210,13 +211,13 @@ EMBED_INLINE size_t carcer_want(size_t want)
 }
 
 /**
- * @brief Zeroes want bytes at *walk, advancing the pointer and taking them off *left.
+ * @brief Zeroes want bytes at *walk, advances the pointer and takes them off *left.
  *
- * @param[in,out] walk Walking pointer, left one past the last byte cleared [BORROWS].
+ * @param[in,out] walk Walk pointer, left one past the last byte cleared [BORROWS].
  * @param[in,out] left Bytes still to clear, reduced by want [BORROWS].
  * @param[in]     want Bytes to clear now.
- * @note The stores are volatile. Clearing bytes nothing reads afterwards is not dropped as dead work.
- * @warning want comes off *left with no test. Both call sites hold want at or below what is left.
+ * @note The stores are volatile. Nothing drops a clear of bytes nothing reads afterwards as dead work.
+ * @warning want comes off *left with no test. Both call sites hold want at or below what *left holds.
  */
 EMBED_INLINE void carcer_zero_bytes(volatile uint8_t **walk, size_t *left, size_t want)
 {
@@ -224,7 +225,7 @@ EMBED_INLINE void carcer_zero_bytes(volatile uint8_t **walk, size_t *left, size_
 
     while (index < want)
     {
-        // Store, pointer advance and count advance are separate statements. Folding them into
+        // Store, pointer advance and count advance are separate statements. A fold into
         // *(*walk)++ = 0u would put an increment inside the volatile store
         **walk = 0u;
         (*walk)++;
@@ -239,8 +240,8 @@ EMBED_INLINE void carcer_zero_bytes(volatile uint8_t **walk, size_t *left, size_
  * @param[in] series Cellblock to look in [BORROWS].
  * @param[in] off    Offset of the word, a multiple of MMGR_CARCER_ALIGN.
  * @return           The word [BORROWS].
- * @note The cast goes through void *. base is aligned by the site macro and every offset here is a whole number
- *       of words, and the word is always correctly aligned.
+ * @note The cast goes through void *. The site macro puts base on a boundary and every offset here is a whole
+ *       number of words. So the word is always at its alignment.
  */
 EMBED_INLINE embed_atomic_usize *carcer_word_at(const SeriesCellularum *series, size_t off)
 {
@@ -248,15 +249,15 @@ EMBED_INLINE embed_atomic_usize *carcer_word_at(const SeriesCellularum *series, 
 }
 
 /**
- * @brief The word at off where a mask is set, and the cellblock's sink word where it is clear.
+ * @brief The word at off where a mask holds, and the cellblock's sink word where it is clear.
  *
  * @param[in] series Cellblock to look in [BORROWS].
  * @param[in] mask   Every bit set for the word at off.
  * @param[in] off    Offset of the word.
  * @return           The word a store lands on [BORROWS].
  * @note A store that must not land writes the sink: the store stands on every path and no path branches on it.
- * @note The offset is masked first: where the mask is clear, the word read is the cellblock's first, never one past
- *       its bytes, which a refused bump's offset is.
+ * @note The mask applies to the offset first. Where the mask is clear, the word read is the cellblock's first,
+ *       never one past its bytes, which a refused bump's offset is.
  */
 EMBED_INLINE embed_atomic_usize *carcer_word_picked(SeriesCellularum *series, size_t mask, size_t off)
 {
@@ -329,14 +330,14 @@ EMBED_INLINE size_t carcer_end_of(size_t off, size_t size)
  * @param[in] series Cellblock the cell came from [BORROWS].
  * @param[in] at     First byte of the payload [BORROWS].
  * @return           Offset of the header in the cellblock.
- * @warning at is taken to be a cell of this cellblock. Every caller bounds it with mmgr_who_owns_buf first, and
- *          an address inside the cellblock but off a cell boundary still yields an offset reading bytes which
- *          are not a cell's header.
+ * @warning at must be a cell of this cellblock. Every caller bounds it with mmgr_who_owns_buf first. An
+ *          address inside the cellblock but off a cell boundary still yields an offset whose bytes are not a
+ *          cell's header.
  */
 EMBED_INLINE size_t carcer_off_of(const SeriesCellularum *series, const void *at)
 {
     // Explicit casts take at to a byte pointer so the difference is in bytes, then that ptrdiff_t to the size_t
-    // the offset is carried in
+    // that carries the offset
     return (size_t)((const uint8_t *)at - series->base) - CARCER_WORD;
 }
 
@@ -352,13 +353,13 @@ EMBED_INLINE size_t carcer_size_at(const SeriesCellularum *series, size_t off)
     return carcer_word_size(embed_atomic_usize_load(carcer_word_at(series, off)));
 }
 
-/** @brief The owner a count lands on where no owner is named: a record outside the table, counted and read by none. */
+/** @brief The owner a count lands on where nothing names an owner: a record outside the table, counted and read by none. */
 static CellOwner carcer_owner_none = {"", 0u, EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u)};
 
 /** @brief Bytes of the cellblock a call handed none reads: one cell's words and a word of payload, zero. */
 static EMBED_ALIGN(64) uint8_t carcer_bytes_none[4u * sizeof(embed_atomic_usize)];
 
-/** @brief The cellblock a give or a growth handed none reads in its place: over carcer_bytes_none, taking nothing. */
+/** @brief The cellblock a give or a growth handed none reads in its place: over carcer_bytes_none, with nothing to take. */
 static SeriesCellularum carcer_block_none = MMGR_CARCER_STATE(carcer_bytes_none, sizeof(carcer_bytes_none));
 
 /**
@@ -414,8 +415,8 @@ EMBED_INLINE CellOwner *carcer_owner_found(embed_atomic_usize_value named)
 }
 
 /**
- * @brief The owner word a take writes behind the cell for an owner: its place, no completion, no signal, and
- *        the nanosecond read now in the timestamp's bits.
+ * @brief The owner word a take writes behind the cell for an owner. It holds its place, no completion, no signal,
+ *        and the nanosecond read now in the timestamp's bits.
  *
  * @param[in] owner The owner [BORROWS].
  * @return          The word.
@@ -443,11 +444,11 @@ EMBED_INLINE size_t carcer_owner_is(embed_atomic_usize_value named, const CellOw
 
 embed_bool mmgr_owner_listed(const CellOwner *owner)
 {
-    // Explicit casts read the two addresses as the integers the table's span is measured in: the answer is read
-    // off the address alone, and no record is read, and an address past the table or between two records is safe
+    // Explicit casts read the two addresses as the integers that measure the table's span. The answer comes off
+    // the address alone, and no record read: an address past the table or between two records is safe
     const uintptr_t off = (uintptr_t)owner - (uintptr_t)&mmgr_owner_table[0];
     const uintptr_t span = (uintptr_t)mmgr_owner_table_count * (uintptr_t)sizeof(CellOwner);
-    // an address below the table wraps off past the span and is refused with the rest
+    // an address below the table wraps off past the span and fails with the rest
     const size_t within = carcer_all(off < span) & carcer_all((off % (uintptr_t)sizeof(CellOwner)) == 0u);
 
     // Explicit cast narrows the mask's low bit to the embed_bool container
@@ -468,13 +469,13 @@ EMBED_WEAK uint64_t EMBED_WEAK_NAME(mmgr_carcer_hw_clock_ns)(void)
 }
 
 /**
- * @brief Weak default for a program that declares no owners: a table of none, so that every take is refused.
+ * @brief Weak default for a program that declares no owners: a table of none, so that every take fails.
  *
  * @note EMBED_WEAK marks these weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero, and EMBED_WEAK_DEFAULT names
  *       them the linker's alternates under MSVC. MMGR_OWNERS defines both names in the program's one translation
- *       unit for its owners, and these stand only where it is not expanded. A translation unit that expands
- *       MMGR_OWNERS and includes this source defines MMGR_OWNERS_IN_THIS_UNIT ahead of the include and these are
- *       left out.
+ *       unit for its owners, and these stand only where no unit expands it. A translation unit that expands
+ *       MMGR_OWNERS and includes this source defines MMGR_OWNERS_IN_THIS_UNIT ahead of the include, and these
+ *       stay out.
  */
 #if !defined(MMGR_OWNERS_IN_THIS_UNIT)
 EMBED_WEAK_DEFAULT(mmgr_owner_table)
@@ -484,7 +485,7 @@ EMBED_WEAK const size_t EMBED_WEAK_NAME(mmgr_owner_table_count) = 0u;
 #endif
 
 /**
- * @brief Weak default for the report of a give or a growth naming an owner other than the cell's, which does
+ * @brief Weak default for the report of a give or a growth that names an owner other than the cell's, which does
  *        nothing.
  *
  * @param[in] named      The owner the give or the growth named [BORROWS].
@@ -492,8 +493,8 @@ EMBED_WEAK const size_t EMBED_WEAK_NAME(mmgr_owner_table_count) = 0u;
  * @param[in] bytes      The cell's payload bytes.
  * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero, and EMBED_WEAK_DEFAULT names it
  *       the linker's alternate under MSVC. A port defines the name to replace it. A translation unit that defines
- *       the name and includes this source defines MMGR_MISNAMED_IN_THIS_UNIT ahead of the include and this is
- *       left out.
+ *       the name and includes this source defines MMGR_MISNAMED_IN_THIS_UNIT ahead of the include, and this
+ *       stays out.
  */
 #if !defined(MMGR_MISNAMED_IN_THIS_UNIT)
 EMBED_WEAK_DEFAULT(mmgr_carcer_hw_misnamed)
@@ -506,7 +507,7 @@ EMBED_WEAK void EMBED_WEAK_NAME(mmgr_carcer_hw_misnamed)(const CellOwner *named,
 }
 #endif
 
-/** @brief The row of the report table a give naming the cell's own owner takes: nothing told. */
+/** @brief The row of the report table a give that names the cell's own owner takes: nothing told. */
 static void carcer_told_none(const CellOwner *named, const CellOwner *cell_owner, size_t bytes)
 {
     (void)named;
@@ -515,7 +516,7 @@ static void carcer_told_none(const CellOwner *named, const CellOwner *cell_owner
 }
 
 /**
- * @brief Counts a cell's payload to the persistent tier's running total.
+ * @brief Counts a cell's payload to the persistent tier's total.
  *
  * @param[in,out] series Cellblock the cell is in [BORROWS].
  * @param[in]     bytes  The payload bytes.
@@ -526,7 +527,7 @@ static void carcer_tier_counted(SeriesCellularum *series, size_t bytes)
 }
 
 /**
- * @brief Takes a cell's payload off the persistent tier's running total.
+ * @brief Takes a cell's payload off the persistent tier's total.
  *
  * @param[in,out] series Cellblock the cell is in [BORROWS].
  * @param[in]     bytes  The payload bytes.
@@ -544,13 +545,13 @@ static void carcer_tier_none(SeriesCellularum *series, size_t bytes)
 }
 
 /**
- * @brief Counts a cell's payload to its owner and to the cellblock's running totals.
+ * @brief Counts a cell's payload to its owner and to the cellblock's totals.
  *
  * @param[in,out] series  Cellblock the cell is in [BORROWS].
  * @param[in]     owner      The owner [BORROWS].
  * @param[in]     bytes      The payload bytes.
  * @param[in]     persistent Every bit set where the cell lies in the persistent tier.
- * @note The owner's peak is raised to its count after the add. The persistent total is a row of a two-row
+ * @note The owner's peak rises to its count after the add. The persistent total is a row of a two-row
  *       table, the row the tier.
  */
 static void carcer_counted(SeriesCellularum *series, const CellOwner *owner, size_t bytes, size_t persistent)
@@ -566,7 +567,7 @@ static void carcer_counted(SeriesCellularum *series, const CellOwner *owner, siz
 }
 
 /**
- * @brief Takes a cell's payload off its owner and the cellblock's running totals.
+ * @brief Takes a cell's payload off its owner and the cellblock's totals.
  *
  * @param[in,out] series  Cellblock the cell is in [BORROWS].
  * @param[in]     owner      The owner [BORROWS].
@@ -599,9 +600,9 @@ static void carcer_count_none(SeriesCellularum *series, const CellOwner *owner, 
  * @param[in]     size       Its payload size.
  * @param[in]     persistent Every bit set where the cell lies in the persistent tier.
  * @param[in]     permit     Every bit set for a claim, none for a claim that touches nothing.
- * @note One fetch-or sets the completion bit on the owner word, on the sink where the claim is not permitted,
- *       and the context whose fetch-or found the bit clear counts the cell off: two gives reaching the same cell
- *       count it off once between them. A word naming no owner counts off the record counted by none.
+ * @note One fetch-or sets the completion bit on the owner word, or on the sink where the claim has no permit.
+ *       The context whose fetch-or found the bit clear counts the cell off: two gives that reach the same cell
+ *       count it off once between them. A word that names no owner counts off the record counted by none.
  */
 EMBED_INLINE void carcer_foot_claimed(SeriesCellularum *series, size_t off, size_t size, size_t persistent,
                                       size_t permit)
@@ -632,9 +633,10 @@ static void carcer_wake_none(embed_atomic_word *word)
  *
  * @param[in,out] series Cellblock to settle [BORROWS].
  * @note The writer's path, the first step of every exclusive section. With every pass drained, the persistent end
- *       is the chain's end plus the bytes of every bump the gap refused since the last settle: the
- *       persistent overrun; the temporary top is the chain's start less the temporary overrun. The stores put each
- *       boundary at its chain. docs/concepts/locus-carcerum-algorithm.md states the invariant and its proof.
+ *       is the chain's end plus the persistent overrun. The overrun is the bytes of every bump the gap refused
+ *       since the last settle. The temporary top is the chain's start less the temporary overrun. The stores put
+ *       each boundary
+ *       at its chain, and docs/concepts/locus-carcerum-algorithm.md states the invariant and its proof.
  */
 EMBED_INLINE void carcer_settled(SeriesCellularum *series)
 {
@@ -651,13 +653,13 @@ EMBED_INLINE void carcer_settled(SeriesCellularum *series)
 }
 
 /**
- * @brief The cellblock closed to passes: the closed bit taken with one fetch-or, a backoff step on the word for
- *        each fetch-or that found it taken, and every pass begun before the drain waited out.
+ * @brief The cellblock closed to passes. The closed bit taken with one fetch-or, and a backoff step on the word for
+ *        each fetch-or that found it taken. Every pass begun before the drain waited out.
  *
  * @param[in,out] series Cellblock to close [BORROWS].
- * @note The writer's path. A pass that badges in after this reads the closed bit and touches nothing; a pass that
- *       badged in before is waited on by the drain. Two writers take turns on the bit. The boundaries are settled
- *       once the drain is over, and every exclusive section reads each at its chain.
+ * @note The writer's path. A pass that badges in after this reads the closed bit and touches nothing. The drain
+ *       waits on a pass that badged in before. Two writers take turns on the bit. The boundaries settle once
+ *       the drain is over, and every exclusive section reads each at its chain.
  */
 EMBED_INLINE void carcer_shut(SeriesCellularum *series)
 {
@@ -670,8 +672,8 @@ EMBED_INLINE void carcer_shut(SeriesCellularum *series)
         embed_turnstile_backed_off(&series->closed, was, CARCER_CLOSED_SLEEPERS, &backoff, 1u);
         was = embed_atomic_word_fetch_or(&series->closed, CARCER_CLOSED);
     }
-    // A full fence between the closed bit taken and the headers the writer reads: a give that stores a header free
-    // and then reads the closed bit clear has its store seen by every walk after this
+    // A full fence between the closed bit taken and the headers the writer reads. A give that stores a header free
+    // and then reads the closed bit clear has its store visible to every walk after this
     EMBED_ATOMIC_ORDERED();
     embed_turnstiles_drain(&series->turnstiles);
     carcer_settled(series);
@@ -680,13 +682,13 @@ EMBED_INLINE void carcer_shut(SeriesCellularum *series)
 static void carcer_owed_trimmed(SeriesCellularum *series, embed_atomic_word_value owed);
 
 /**
- * @brief The cellblock opened to passes again: the trims the word owes taken with one fetch-and and run, then the
- *        closed bit and the sleeper flag cleared with a second fetch-and, and the sleepers on the word woken where
- *        the flag was set.
+ * @brief The cellblock opened to passes again. The trims the word owes taken with one fetch-and and run, then the
+ *        closed bit and the sleeper flag cleared with a second fetch-and. The sleepers on the word woken where
+ *        the flag stood.
  *
  * @param[in,out] series Cellblock to open, its closed bit this context's [BORROWS].
- * @note A give that finds the cellblock closed sets its tier's trim bit and leaves; the writer holding the bit runs
- *       the trim here. A give that sets its bit after the first fetch-and leaves it on the open word, and the next
+ * @note A give that finds the cellblock closed sets its tier's trim bit and leaves; the writer with the bit runs
+ *       the trim here. A give that sets its bit after the first fetch-and leaves it on the open word. The next
  *       take or reading of the gap runs it (carcer_owed_serviced). The open is one pass with no retry: no stream
  *       of gives holds a writer back. A give that finds the bit clear holds the cellblock itself.
  */
@@ -722,7 +724,7 @@ static void carcer_owed_run(SeriesCellularum *series)
  * @param[in,out] series Cellblock to serve [BORROWS].
  * @note A give that sets its trim bit after a writer took the bits leaves it on the open word. The next context
  *       through runs that trim here, and every take reads a boundary with every owed trim run. One load where
- *       nothing is owed. A bit set while a writer holds the cellblock waits for that writer's open first.
+ *       no trim is due. A bit set while a writer holds the cellblock waits for that writer's open first.
  */
 EMBED_INLINE void carcer_owed_serviced(SeriesCellularum *series)
 {
@@ -733,8 +735,8 @@ EMBED_INLINE void carcer_owed_serviced(SeriesCellularum *series)
 }
 
 /**
- * @brief The work a pass does, once its lane is claimed: its arguments, and a permit mask that is every bit set
- *        where the work may touch the cellblock and none where it lays its words on the sink.
+ * @brief The work a pass does, once it holds its lane. Its arguments, and a permit mask. The mask is every bit
+ *        set where the work may touch the cellblock and none where it lays its words on the sink.
  *
  * @param[in,out] series  Cellblock the pass is through [BORROWS].
  * @param[in]     context The work's arguments [BORROWS].
@@ -772,9 +774,9 @@ EMBED_STATIC_ASSERT(sizeof(CarcerTouchRow) == (2u * sizeof(embed_atomic_usize)),
 /**
  * @brief The movable option's state, at the start of the storage the program gave.
  *
- * @note claimed is one bit an entry, set while the entry names a cell; the bits past cells in its last word are set
- *       for good. lowest is the word of claimed a claim's search starts at, lowered by each release. named is one
- *       past the highest entry named, which bounds the mover's reads.
+ * @note claimed is one bit an entry, set while the entry names a cell. The bits past cells in its last word stay
+ *       set for good. The member lowest is the word of claimed a claim's search starts at, lowered by each
+ *       release. The member named is one past the highest entry named, which bounds the mover's reads.
  */
 typedef struct
 {
@@ -788,8 +790,8 @@ typedef struct
     size_t rows;                         /**< Rows at row. */
     size_t width;                        /**< The lanes open bound the mover reads the cellblock quiet under. */
     embed_atomic_usize passes;           /**< Passes through the turnstiles, which the mover reads as pressure. */
-    embed_bool wipes;                    /**< Whether a cell left behind is zeroed first. */
-    size_t (*thread_id)(void);           /**< The calling thread's id, for the badge of a pass with no owner. */
+    embed_bool wipes;                    /**< Whether a cell left behind gets a zero fill first. */
+    size_t (*thread_id)(void);           /**< The id of the thread that calls, for the badge of a pass with no owner. */
     embed_bool (*thread_wait)(uint32_t); /**< The mover's sleep. */
     void (*thread_yield)(void);          /**< What the mover calls between moves. */
     void (*thread_moving)(embed_bool);   /**< Told as a sort's moves start and end. */
@@ -812,9 +814,9 @@ static embed_atomic_usize carcer_claimed_none = EMBED_ATOMIC_INIT(0u);
 static CarcerTouchRow carcer_row_none = {EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u)};
 
 /**
- * @brief The option a cellblock with none reads: the entry of none and the claim word of none as its table, and the
- *        row of none as its rows, so that a release with no cell and a reader of the rows index an object, a width of
- *        none, and calls of nothing.
+ * @brief The option a cellblock with none reads. Its table is the entry of none and the claim word of none, and
+ *        its rows the row of none. So a release with no cell and a reader of the rows index an object, with a
+ *        width of none and calls of nothing.
  */
 static CarcerMovable carcer_movable_none = {&carcer_entry_none,
                                             0u,
@@ -878,7 +880,7 @@ static void carcer_pass_counted_none(CarcerMovable *movable)
 
 /**
  * @brief One pass: an entry at the lane of the caller's address, the closed bit read, the work done with the permit
- *        the bit allows, and the lane let go.
+ *        the bit allows. Then the lane let go.
  *
  * @param[in,out] series  Cellblock the pass is through [BORROWS].
  * @param[in]     id      The pass's id for the movable option's touch rows: an owner's place, or a thread's id.
@@ -888,8 +890,8 @@ static void carcer_pass_counted_none(CarcerMovable *movable)
  * @return                The work's answer, 0 where the pass missed.
  * @note The entry's address is `missed`, a word on the caller's stack. Each thread's stack has its own place, so the
  *       threads start at lanes of their own, and the entry spills where a lane is busy.
- * @note The permit is the closed bit as read after the entry. A pass that entered before a writer's drain read the
- *       lanes is waited on by that drain; one that entered after reads the closed bit.
+ * @note The permit is the closed bit as read after the entry. That drain waits on a pass that entered before it
+ *       read the lanes; one that entered after reads the closed bit.
  */
 static uintptr_t carcer_attempted(SeriesCellularum *series, embed_atomic_word_value id, CarcerWork work,
                                   const void *context, size_t *missed)
@@ -916,18 +918,18 @@ static uintptr_t carcer_attempted(SeriesCellularum *series, embed_atomic_word_va
 }
 
 /**
- * @brief Work carried through the turnstiles: one pass, and for a pass that missed a backoff step on the closed
- *        word and the entry again, until a pass lands.
+ * @brief Work carried through the turnstiles: one pass, and for a pass that missed, a backoff step on the closed
+ *        word and the entry again. That repeats until a pass lands.
  *
  * @param[in,out] series  Cellblock the work is on [BORROWS].
  * @param[in]     id      The pass's id for the touch rows.
  * @param[in]     work    The work [BORROWS].
  * @param[in]     context Its arguments [BORROWS].
  * @return                The work's answer.
- * @note The hot path is a single pass. A miss is the cellblock closed to a writer, and the reader enters again after
- *       a backoff step: a pause inside the first unit, then a sleep on the closed word that doubles to its ceiling,
- *       which the writer's open wakes. The sleep comes only where the word read is closed; a miss on an open word is
- *       a pause alone.
+ * @note The hot path is a single pass. A miss is a cellblock closed to a writer, and the reader enters again after
+ *       a backoff step. The step is a pause inside the first unit, then a sleep on the closed word that doubles to
+ *       its ceiling. The writer's open wakes the sleep. The sleep comes only where the word read holds the closed bit;
+ *       a miss on an open word is a pause alone.
  */
 EMBED_INLINE uintptr_t carcer_passed(SeriesCellularum *series, embed_atomic_word_value id, CarcerWork work,
                                      const void *context)
@@ -939,7 +941,7 @@ EMBED_INLINE uintptr_t carcer_passed(SeriesCellularum *series, embed_atomic_word
     embed_turnstile_backoff_begin(&backoff);
     while (missed != 0u)
     {
-        // The sleep needs the closed bit in the value read: a writer's open wakes only a word it closed, and a value
+        // The sleep needs the closed bit in the value read. A writer's open wakes only a word it closed, and a value
         // read open has no writer to wake it (Sleep.lean). A miss on an open word pauses and tries again.
         const embed_atomic_word_value read = embed_atomic_word_load(&series->closed);
         embed_turnstile_backed_off(&series->closed, read, CARCER_CLOSED_SLEEPERS, &backoff,
@@ -959,7 +961,7 @@ typedef struct
 } CarcerTakeCtx;
 
 /**
- * @brief Lays a cell's two words and counts it, where a mask is set; on the sink and to nothing where it is clear.
+ * @brief Lays a cell's two words and counts it, where a mask holds; on the sink and to nothing where it is clear.
  *
  * @param[in,out] series  Cellblock the cell lies in [BORROWS].
  * @param[in]     taken      Every bit set for a cell.
@@ -978,7 +980,7 @@ EMBED_INLINE uintptr_t carcer_laid(SeriesCellularum *series, size_t taken, size_
     embed_atomic_usize_store(carcer_word_picked(series, taken, carcer_foot_of(off, size)), carcer_owner_word(owner));
     embed_atomic_usize_store(carcer_word_picked(series, taken, off), carcer_word(size, CARCER_BUSY));
     counts[taken & 1u](series, owner, size, persistent);
-    // Explicit cast carries the base as the integer the offset is added to and the mask is applied to: a refused bump's
+    // Explicit cast carries the base as the integer the offset adds to and the mask works on. A refused bump's
     // offset lies past the cellblock, and the sum is an integer's, never a pointer's
     return ((uintptr_t)series->base + off + CARCER_WORD) & (uintptr_t)taken;
 }
@@ -997,39 +999,39 @@ EMBED_INLINE void carcer_marked(SeriesCellularum *series, size_t end, size_t top
 }
 
 /**
- * @brief A take out of the gap, the work of a pass: the tier's boundary bumped by one fetch-add, the room read off
- *        the other boundary, the bump's bytes added to the tier's overrun where the gap could not meet it, and
- *        the cell's words laid.
+ * @brief A take out of the gap, the work of a pass. The tier's boundary bumped by one fetch-add, and the room read
+ *        off the other boundary. The bump's bytes added to the tier's overrun where the gap could not meet it,
+ *        and the cell's words laid.
  *
  * @param[in,out] series  Cellblock to take from [BORROWS].
  * @param[in]     context The take's arguments [BORROWS].
  * @param[in]     permit  Every bit set for the take, none for a pass that lays its words on the sink.
  * @return                The payload's address as an integer, 0 where the gap could not meet the take.
  * @note The upward tier's end moves by the cell's bytes and the downward tier's top by their negation, one
- *       fetch-add either way, and the cell is the bytes the bump covered: from the old end upward, or from the
- *       new top upward. The room is the other boundary as read after the bump: a cell that crosses it, a bump
- *       that wrapped below the cellblock, or a boundary read past the cellblock's size, which is another tier's
- *       bump wrapped, answers 0. A refused bump moves nothing back: the boundary stays where the bump moved it and
- *       the bytes go on the tier's overrun by one more fetch-add, 0 for a bump that landed. Between writers a
- *       boundary only moves toward the other, and every bump of the tier after a refused one is refused too, and
- *       the writer the refused take goes on to settles the boundary first. docs/concepts/locus-carcerum-algorithm.md
- *       states the invariant and its proof.
+ *       fetch-add either way. The cell is the bytes the bump covered: from the old end upward, or from the new
+ *       top upward. A refused bump moves nothing back: the boundary stays where the bump moved it. The bytes go
+ *       on the tier's overrun by one more fetch-add, 0 for a bump that landed.
+ * @note The room is the other boundary as read after the bump. A cell that crosses it answers 0, as does a bump
+ *       that wrapped below the cellblock. So does a boundary read past the cellblock's size, which is another
+ *       tier's bump wrapped. Between writers a boundary only moves toward the other, and every bump of the tier
+ *       after a refused one fails too. The writer the refused take goes on to settles the boundary first.
+ *       docs/concepts/locus-carcerum-algorithm.md states the invariant and its proof.
  */
 static uintptr_t carcer_bumped(SeriesCellularum *series, const void *context, size_t permit)
 {
     const CarcerTakeCtx *const take = context;
     const size_t down = take->down;
     const size_t up = ~down;
-    // the word read ahead: a bump up whose half already stands past the cellblock's most bytes moves nothing, and the
-    // bumps a round refuses move the end into the half's headroom and never carry into the top's half; a want past
+    // The word read ahead. A bump up whose half already stands past the cellblock's most bytes moves nothing. The
+    // bumps a round refuses move the end into the half's headroom and never carry into the top's half. A want past
     // MMGR_CARCER_WANT_MOST goes to the writer's path unmoved, which bounds what the bumps in flight add
     const embed_atomic_usize_value ahead = embed_atomic_usize_load(&series->bounds);
     const size_t within = carcer_all(take->want <= MMGR_CARCER_WANT_MOST) &
                           (down | carcer_all(carcer_bounds_end(ahead) <= MMGR_CARCER_BYTES_MOST));
     const size_t allowed = permit & take->permit & within;
     const size_t need = (CARCER_HDR + take->want) & allowed;
-    // Explicit casts carry the need into the word: added to the low half for a bump up, taken off the high half for
-    // a bump down, where a borrow leaves the word and the low half stands
+    // Explicit casts carry the need into the word. A bump up adds it to the low half. A bump down takes it off the
+    // high half, where a borrow leaves the word and the low half stands
     const embed_atomic_usize_value moved =
         (embed_atomic_usize_value)carcer_pick(down, (0u - need) << MMGR_CARCER_HALF_BITS, need);
     embed_atomic_usize *const overrun = carcer_pick_at(down, &series->temporary_overrun, &series->persistent_overrun);
@@ -1056,15 +1058,15 @@ static uintptr_t carcer_bumped(SeriesCellularum *series, const void *context, si
  */
 typedef struct
 {
-    size_t found;    /**< Every bit set where a run was taken. */
+    size_t found;    /**< Every bit set where a run went to the take. */
     size_t at;       /**< The run's offset. */
     size_t size;     /**< The run's payload size, its cells merged. */
     size_t boundary; /**< The tier's boundary after the walk: the free run at it returned to the gap. */
 } CarcerSweep;
 
 /**
- * @brief One walk of a tier with the cellblock closed: every run of free cells merged into one free cell, the run
- *        that holds want farthest from the gap and lies below an offset taken, and the free run at the tier's
+ * @brief One walk of a tier with the cellblock closed. Every run of free cells merged into one free cell. The run
+ *        that holds want farthest from the gap and lies below an offset taken. The free run at the tier's
  *        boundary returned to the gap.
  *
  * @param[in,out] series Cellblock to walk [BORROWS].
@@ -1074,13 +1076,14 @@ typedef struct
  * @param[in]     permit Every bit set for the walk, none for a walk that reads nothing and takes nothing.
  * @return               What the walk found.
  * @note The writer's path, with no pass under way: every header read is a laid cell's, and every store is plain.
- *       The two tiers are one algorithm with the base at opposite ends. The persistent tier lies from offset 0 to
- *       the end, its base at 0: the take is the first run that fits, and the free run reaching the end is not laid,
- *       the end moving down to its offset. The temporary tier lies from the top to the cellblock's size, its base at
- *       the size: the take is the last run that fits, and the free run starting at the top is not laid, the top
- *       moving up to its end. The loop steps a cell at a time and its body holds no branch: a busy cell closes the
- *       run before it, and the run is laid as one free cell on its own offset or on the sink.
- *       theory/locus_carcerum/LocusCarcerum/Layout.lean and Temporary.lean prove the two walks.
+ *       The two tiers are one algorithm with the base at opposite ends.
+ * @note The persistent tier lies from offset 0 to the end, its base at 0. Its take is the first run that fits,
+ *       and the free run that reaches the end goes back to the gap. The end moves down to its offset.
+ * @note The temporary tier lies from the top to the cellblock's size, its base at the size. Its take is the last
+ *       run that fits, and the free run that starts at the top goes back to the gap. The top moves up to its end.
+ * @note The loop steps a cell at a time and its body holds no branch. A busy cell closes the run before it, and
+ *       the run goes down as one free cell on its own offset or on the sink. Both walks have proofs in
+ *       theory/locus_carcerum/LocusCarcerum/Layout.lean and Temporary.lean.
  * @warning Costs the tier's cells. Reached only where the gap could not meet a take, by a trim a give owes, and by
  *          the mover.
  */
@@ -1103,8 +1106,8 @@ EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series, size_t want, siz
         const size_t free = carcer_all(carcer_word_state(word) == CARCER_FREE);
         const size_t open = carcer_all(run_size != 0u);
         const size_t closes = ~free & open;
-        // a closed run at the tier's boundary, the downward tier's run from the top, returns to the gap: the boundary
-        // moves to the busy cell that closed it. Any other closed run is laid as one free cell
+        // a closed run at the tier's boundary, the downward tier's run from the top, returns to the gap. The boundary
+        // moves to the busy cell that closed it. Any other closed run goes down as one free cell
         const size_t returns = closes & down & carcer_all(run_at == from);
         const size_t lays = closes & ~returns;
         const size_t takes = lays & (down | ~sweep.found) & carcer_all(run_size >= want) & carcer_all(off <= below);
@@ -1119,9 +1122,9 @@ EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series, size_t want, siz
         run_size = (run_size + size + (CARCER_HDR & open)) & free;
         off = carcer_end_of(off, size);
     }
-    // the run open at the walk's end reaches the tier's far side: it returns to the gap where that side is the
-    // boundary, the upward tier's end or the downward tier's whole run from the top, and is laid where it is the
-    // base, the downward tier's run nearest the cellblock's size, which the take falls on where it fits
+    // the run open at the walk's end reaches the tier's far side. It returns to the gap where that side is the
+    // boundary: the upward tier's end, or the downward tier's whole run from the top. It goes down where that
+    // side is the base, the downward tier's run nearest the cellblock's size, which the take falls on where it fits
     const size_t open_end = carcer_all(run_size != 0u);
     const size_t returns_end = open_end & (~down | carcer_all(run_at == from));
     const size_t lays_end = open_end & ~returns_end;
@@ -1137,7 +1140,7 @@ EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series, size_t want, siz
 }
 
 /**
- * @brief The trims a give left owed, with the cellblock closed: each tier swept where its bit is set, and both
+ * @brief The trims a give left owed, with the cellblock closed: each tier swept where its bit holds, and both
  *        boundaries stored.
  *
  * @param[in,out] series Cellblock to trim, its closed bit this context's [BORROWS].
@@ -1155,7 +1158,7 @@ static void carcer_owed_trimmed(SeriesCellularum *series, embed_atomic_word_valu
     embed_atomic_usize_store(&series->bounds, carcer_bounds(up.boundary, down.boundary));
 }
 
-/** @brief Where a take lies over the run it was found in, and the payload it carries. */
+/** @brief Where a take lies over the run the walk found for it, and the payload it carries. */
 typedef struct
 {
     size_t at;   /**< The cell's offset: the run's offset, or past the rest in the downward tier. */
@@ -1163,17 +1166,17 @@ typedef struct
 } CarcerPlaced;
 
 /**
- * @brief Lays a take over a free run it was found in: the run split where its rest holds a cell of its own, the
- *        cell at the run's end away from the gap and the rest left free facing the gap.
+ * @brief Lays a take over a free run the walk found for it. The run splits where its rest holds a cell of its
+ *        own. The cell sits at the run's end away from the gap, and the rest stays free toward the gap.
  *
  * @param[in,out] series Cellblock the run lies in [BORROWS].
  * @param[in]     sweep  The run, found or not.
  * @param[in]     want   Payload wanted, rounded.
  * @param[in]     down   Every bit set for the tier that grows down.
- * @return               Where the cell lies and what it carries: want where the run splits, the whole run where it
- *                       does not, and want at the run's offset where no run was found.
- * @note The rest is laid as a free cell, its header and its owner word of none, on the sink where the run does not
- *       split: above the cell in the upward tier, below it in the downward one.
+ * @return               Where the cell lies and what it carries. That is want where the run splits, or the whole
+ *                       run where it does not. Where the walk found no run, it is want at the run's offset.
+ * @note The rest goes down as a free cell, its header and its owner word of none. It lands on the sink where the
+ *       run does not split: above the cell in the upward tier, below it in the downward one.
  */
 EMBED_INLINE CarcerPlaced carcer_split(SeriesCellularum *series, CarcerSweep sweep, size_t want, size_t down)
 {
@@ -1189,16 +1192,16 @@ EMBED_INLINE CarcerPlaced carcer_split(SeriesCellularum *series, CarcerSweep swe
 }
 
 /**
- * @brief A take the gap could not meet, with the cellblock closed: its tier swept for a free run and its boundary
- *        trimmed of the free run at it, and the gap read exactly and bumped where it holds the take.
+ * @brief A take the gap could not meet, with the cellblock closed. Its tier swept for a free run, and its boundary
+ *        trimmed of the free run at it. The gap read exactly, and bumped where it holds the take.
  *
  * @param[in,out] series Cellblock to take from [BORROWS].
  * @param[in]     want   Payload wanted, rounded.
  * @param[in]     owner  The owner the cell counts to [BORROWS].
  * @param[in]     down   Every bit set for the tier that grows down.
  * @return               The payload's address as an integer, 0 where no free run and no gap holds the take.
- * @note The writer's path, the same for both tiers. Both boundaries are stored plain: no pass is under way. The
- *       other tier's boundary stands as the settle left it; the trims it is owed run as the cellblock opens.
+ * @note The writer's path, the same for both tiers. Both boundaries get plain stores: no pass is under way. The
+ *       other tier's boundary stands as the settle left it; the trims due to it run as the cellblock opens.
  */
 static uintptr_t carcer_spilled(SeriesCellularum *series, size_t want, const CellOwner *owner, size_t down)
 {
@@ -1235,7 +1238,7 @@ static uintptr_t carcer_spilled_none(SeriesCellularum *series, size_t want, cons
 }
 
 /**
- * @brief The take both tiers and both security levels share: the owner tested, the bump through the turnstiles,
+ * @brief The take both tiers and both security levels share. The owner tested, the bump through the turnstiles,
  *        and the exclusive path where the gap could not meet it.
  *
  * @param[in,out] series Cellblock to take from [BORROWS].
@@ -1245,8 +1248,8 @@ static uintptr_t carcer_spilled_none(SeriesCellularum *series, size_t want, cons
  * @param[in]     permit Every bit set for a take, none for one refused ahead of this.
  * @return               The cell, or NULL [RETURNS OWNERSHIP].
  * @note An owner not of the table permits nothing, and the pass runs on the record counted by none. A request over
- *       the cellblock's size permits nothing the same way, before it is rounded: the size is at most
- *       MMGR_CARCER_BYTES_MOST, and the rounding and the header added to it never wrap. The exclusive path is a row of
+ *       the cellblock's size permits nothing the same way, before the round. The size is at most
+ *       MMGR_CARCER_BYTES_MOST, and the round and the header added to it never wrap. The exclusive path is a row of
  *       a two-row table, the row whether the bump answered a cell.
  */
 EMBED_INLINE void *carcer_taken(SeriesCellularum *series, size_t size, const CellOwner *owner, size_t down,
@@ -1295,8 +1298,8 @@ void mmgr_zero_buf(void *prisoner, size_t size)
     // Explicit cast takes the prisoner to a volatile byte pointer, the scope the edge walks use
     volatile uint8_t *walk = (volatile uint8_t *)prisoner;
     size_t left = size;
-    // Explicit casts take walk to uintptr_t for the alignment test, then that result to the size_t edge is
-    // carried in
+    // Explicit casts take walk to uintptr_t for the alignment test, then that result to the size_t that
+    // carries edge
     size_t edge = (size_t)(((uintptr_t)walk) & (width - 1u));
 
     // Head: bytes up to the first word boundary, where the run below starts aligned
@@ -1338,7 +1341,7 @@ static void carcer_stopped_none(void)
  *
  * @param[in] series   Cellblock to read [BORROWS].
  * @param[in] prisoner The prisoner, or NULL [BORROWS].
- * @param[in] given    Every bit set where a prisoner was given.
+ * @param[in] given    Every bit set where the call gave a prisoner.
  * @note A prisoner of another cellblock has no state to carry on from, and the stop is a row of a two-row table.
  */
 EMBED_INLINE void carcer_owned(const SeriesCellularum *series, const void *prisoner, size_t given)
@@ -1360,15 +1363,15 @@ typedef struct
 } CarcerCell;
 
 /**
- * @brief Reads a prisoner's cell for a give or a growth naming an owner.
+ * @brief Reads a prisoner's cell for a give or a growth that names an owner.
  *
  * @param[in] series   Cellblock the prisoner came from [BORROWS].
  * @param[in] prisoner First byte of the payload, a cell of this cellblock [BORROWS].
  * @param[in] owner    The owner named [BORROWS].
  * @param[in] permit   Every bit set for the call.
- * @return             The cell, proceeding where its owner word names owner and is not complete.
- * @note A word counted off already names no owner any more and nothing is told. A word naming another listed owner
- *       is told to the port through mmgr_carcer_hw_misnamed, a row of a two-row table.
+ * @return             The cell, which proceeds where its owner word names owner and is not complete.
+ * @note A word counted off already names no owner any more and nothing hears. A word that names another listed
+ *       owner goes to the port through mmgr_carcer_hw_misnamed, a row of a two-row table.
  */
 EMBED_INLINE CarcerCell carcer_cell_read(const SeriesCellularum *series, const void *prisoner, const CellOwner *owner,
                                          size_t permit)
@@ -1389,14 +1392,14 @@ EMBED_INLINE CarcerCell carcer_cell_read(const SeriesCellularum *series, const v
 }
 
 /**
- * @brief A tier's boundary trimmed with the cellblock closed: the persistent end down to the first free run
- *        reaching it, the temporary top up over the free cells at it.
+ * @brief A tier's boundary trimmed with the cellblock closed. The persistent end down to the first free run
+ *        that reaches it, the temporary top up over the free cells at it.
  *
  * @param[in,out] series  Cellblock to trim, its closed bit this context's [BORROWS].
  * @param[in]     persistent Every bit set for the persistent tier, none for the temporary one.
- * @note The writer's path, reached by a give of the cell at its tier's boundary, once the give has set the
- *       header free and its tier's trim bit with the closed bit: the open runs the trim the bit owes, and every
- *       trim another give left owed while this one had the bit set. The tier winds back as its newest cells go, and a
+ * @note The writer's path, reached by a give of the cell at its tier's boundary. The give first set the header
+ *       free and its tier's trim bit with the closed bit. The open runs the trim the bit owes, and every trim
+ *       another give left due while this one had the bit set. The tier winds back as its newest cells go, and a
  *       cellblock whose every cell went back reads idle. The persistent tier's walk merges every free run on the way.
  */
 static void carcer_trimmed_held(SeriesCellularum *series, size_t persistent)
@@ -1416,13 +1419,13 @@ static void carcer_trimmed_none(SeriesCellularum *series, size_t persistent)
 }
 
 /**
- * @brief A tier's boundary trimmed where the closed bit is free to take: one fetch-or of the closed bit and the
+ * @brief A tier's boundary trimmed where the closed bit is free to take. One fetch-or of the closed bit and the
  *        tier's trim bit, and the trim where the closed bit was clear.
  *
  * @param[in,out] series  Cellblock to trim [BORROWS].
  * @param[in]     persistent Every bit set for the persistent tier, none for the temporary one.
- * @note A give waits for no writer: where another holds the closed bit, the fetch-or leaves the tier's trim bit
- *       set, and the writer holding the closed bit runs the trim as it opens.
+ * @note A give waits for no writer. Where another holds the closed bit, the fetch-or leaves the tier's trim bit
+ *       set. The writer with the closed bit runs the trim as it opens.
  */
 static void carcer_trimmed(SeriesCellularum *series, size_t persistent)
 {
@@ -1433,34 +1436,34 @@ static void carcer_trimmed(SeriesCellularum *series, size_t persistent)
     trims[(unsigned int)((was & CARCER_CLOSED) == 0u)](series, persistent);
 }
 
-/** @brief The bit of a give's answer that is set where the cell went back. */
+/** @brief The bit of a give's answer that holds where the cell went back. */
 #define CARCER_GIVEN_BACK ((size_t)1u)
 
-/** @brief The bit of a give's answer set where the cell stands at its tier's boundary once free, or the cellblock is
- * closed. */
+/** @brief The bit of a give's answer set where the cell stands at its tier's boundary once free, or the cellblock
+ * holds the closed bit. */
 #define CARCER_GIVEN_AT_BOUNDARY ((size_t)2u)
 
-/** @brief The bit of a give's answer that is set where the cell lay in the persistent tier. */
+/** @brief The bit of a give's answer that holds where the cell lay in the persistent tier. */
 #define CARCER_GIVEN_PERSISTENT ((size_t)4u)
 
 /**
- * @brief The give both security levels share: the cell read, the payload zeroed where asked, the owner word
+ * @brief The give both security levels share. The cell read, the payload zeroed where asked, the owner word
  *        claimed and the bytes counted off, and the header set free.
  *
  * @param[in,out] site      Cellblock the prisoner came from, NULL where there is none [BORROWS].
  * @param[in]     prisoner  First byte of the payload, or NULL [TAKES OWNERSHIP].
  * @param[in]     owner     The owner named, or NULL [BORROWS].
- * @param[in]     zeroing   Every bit set where the payload is zeroed before the give.
+ * @param[in]     zeroing   Every bit set where the payload gets a zero fill before the give.
  * @param[in]     permit    Every bit set for the give.
- * @return                  CARCER_GIVEN_BACK where the cell went back, with CARCER_GIVEN_AT_BOUNDARY where it stands
+ * @return                  CARCER_GIVEN_BACK where the cell went back. With CARCER_GIVEN_AT_BOUNDARY where it stands
  *                          at its tier's boundary once free or finds the cellblock closed, and CARCER_GIVEN_PERSISTENT
- * where it lay in the persistent tier.
+ *                          where it lay in the persistent tier.
  * @note No pass: a busy cell's words are its holder's alone, and the compaction reads a header free only after
- *       this store, which comes last. The tier is read off the end: a persistent cell lies below it. The caller
+ *       this store, which comes last. The end says the tier: a persistent cell lies below it. The caller
  *       trims the boundary a cell stood at, outside any pass of its own.
- * @note A give naming another owner, or a cell given back already, changes nothing, the payload included: every
- *       store lands on the sink and every count is a row of none. A give with no cellblock, no prisoner or no owner
- *       reads the record over bytes of none and changes nothing.
+ * @note A give that names another owner, or a cell given back already, changes nothing, the payload included.
+ *       Every store lands on the sink and every count is a row of none. A give with no cellblock, no prisoner or
+ *       no owner reads the record over bytes of none and changes nothing.
  */
 EMBED_INLINE size_t carcer_given(SeriesCellularum *site, void *prisoner, const CellOwner *owner, size_t zeroing,
                                  size_t permit)
@@ -1477,9 +1480,9 @@ EMBED_INLINE size_t carcer_given(SeriesCellularum *site, void *prisoner, const C
     mmgr_zero_buf(safe, cell.size & zeroing & cell.proceeds);
     carcer_foot_claimed(series, cell.off, cell.size, persistent, cell.proceeds);
     embed_atomic_usize_store(carcer_word_picked(series, cell.proceeds, cell.off), carcer_word(cell.size, CARCER_FREE));
-    // The boundary is read after the header is free, a full fence between the store and the reads. A writer whose
-    // walk read the header busy holds the closed bit still, and the give leaves it the trim, or has stored the
-    // boundary it walked to, and this read sees that boundary.
+    // The read of the boundary comes after the header is free, with a full fence between the store and the reads.
+    // A writer whose walk read the header busy still holds the closed bit, and the give leaves it the trim. Or the
+    // writer stored the boundary it walked to, and this read sees that boundary.
     EMBED_ATOMIC_ORDERED();
     const size_t closed = carcer_all((embed_atomic_word_load(&series->closed) & CARCER_CLOSED) != 0u);
     const embed_atomic_usize_value word = embed_atomic_usize_load(&series->bounds);
@@ -1496,7 +1499,7 @@ EMBED_INLINE size_t carcer_given(SeriesCellularum *site, void *prisoner, const C
  * @param[in,out] series   Cellblock the prisoner came from [BORROWS].
  * @param[in]     prisoner First byte of the payload, or NULL [TAKES OWNERSHIP].
  * @param[in]     owner    The owner named, or NULL [BORROWS].
- * @param[in]     zeroing  Every bit set where the payload is zeroed before the give.
+ * @param[in]     zeroing  Every bit set where the payload gets a zero fill before the give.
  * @note The trim is a row of a two-row table, the row the give's boundary bit.
  */
 EMBED_INLINE void carcer_released(SeriesCellularum *series, void *prisoner, const CellOwner *owner, size_t zeroing)
@@ -1518,21 +1521,21 @@ void mmgr_persistent_max_security_buf_release(SeriesCellularum *series, void *pr
 }
 
 /**
- * @brief The growth both grow entries share, with the cellblock closed: the newest cell of its tier grown in
+ * @brief The growth both grow entries share, with the cellblock closed. The newest cell of its tier grown in
  *        place, the persistent end up or the temporary top down, by plain stores.
  *
  * @param[in,out] site      Cellblock the prisoner came from, NULL where there is none [BORROWS].
  * @param[in,out] prisoner  First byte of the payload, or NULL [BORROWS].
  * @param[in]     size      Payload bytes the cell is to carry.
  * @param[in]     owner     The owner the cell's owner word names, or NULL [BORROWS].
- * @param[in]     zeroing   Every bit set where the bytes the growth adds are zeroed.
+ * @param[in]     zeroing   Every bit set where the bytes the growth adds get a zero fill.
  * @return                  The cell after the growth, moved for a temporary cell; the prisoner itself where it
  *                          carries size already; or NULL with nothing changed.
  * @note The writer's path. A persistent cell is the newest where the end stands at its end, a temporary cell where
- *       the top stands at its header; the gap is read exactly with no pass under way. A persistent cell keeps its
- *       address, its owner word written past the growth and its header with the new size. A temporary cell moves
- *       down by the growth: its header written at the new top, its payload moved down, its owner word standing
- *       where it stood. The bytes the growth adds are zeroed where asked.
+ *       the top stands at its header. The growth reads the gap exactly with no pass under way.
+ * @note A persistent cell keeps its address, its owner word written past the growth and its header with the new
+ *       size. A temporary cell moves down by the growth. Its header goes at the new top, its payload moves down,
+ *       and its owner word stays where it stood. The bytes the growth adds get a zero fill where asked.
  */
 static void *carcer_grown(SeriesCellularum *site, void *prisoner, size_t size, const CellOwner *owner, size_t zeroing)
 {
@@ -1546,7 +1549,7 @@ static void *carcer_grown(SeriesCellularum *site, void *prisoner, size_t size, c
     carcer_owned(series, prisoner, given);
     carcer_shut(series);
     const CarcerCell cell = carcer_cell_read(series, safe, named, given);
-    // a size over the cellblock's is refused before it is rounded, and the rounding never wraps
+    // a size over the cellblock's fails before the round, and the round never wraps
     const size_t fits = carcer_all(size <= series->size);
     const size_t want = carcer_want(size);
     const size_t grows = cell.proceeds & fits & carcer_all(want > cell.size);
@@ -1575,7 +1578,7 @@ static void *carcer_grown(SeriesCellularum *site, void *prisoner, size_t size, c
     counts[(moving & 1u)](series, named, extra, up);
     carcer_marked(series, end + (extra & moving & up), top - (extra & moving & ~up));
     carcer_opened(series);
-    // Explicit cast carries the payload's address as the integer the mask is applied to, and back
+    // Explicit cast carries the payload's address as the integer the mask works on, and back
     return (void *)((uintptr_t)(series->base + at + CARCER_WORD) &
                     (uintptr_t)(moving | (cell.proceeds & fits & ~grows)));
 }
@@ -1626,9 +1629,9 @@ size_t mmgr_series_cellularum_fragmentation(const SeriesCellularum *series)
     const size_t holes = (occupied - in_use) & carcer_all(occupied > in_use);
     const size_t measured = carcer_all(occupied >= 100u);
 
-    // The hundredth of the bytes occupied divides, since a product of the holes and a hundred can pass what a
-    // size_t counts on a narrow word. The hundredth is rounded up, so that a hundred of it are at least the bytes
-    // occupied and the holes, never more than those, read at most 100; a tier under a hundred bytes answers 0
+    // The hundredth of the bytes occupied divides. A product of the holes and a hundred can pass what a size_t
+    // counts on a narrow word. The hundredth rounds up, so that a hundred of it are at least the bytes occupied.
+    // The holes, never more than those, read at most 100; a tier under a hundred bytes answers 0
     return (holes /
             carcer_pick(measured, (occupied / 100u) + carcer_pick(carcer_all((occupied % 100u) != 0u), 1u, 0u), 1u)) &
            measured;
@@ -1642,8 +1645,8 @@ size_t mmgr_series_cellularum_fragmentation(const SeriesCellularum *series)
  */
 EMBED_INLINE size_t carcer_lowest(embed_atomic_usize_value bits)
 {
-    // Explicit casts widen the word to the count's operand, which is as wide as any claim word, every bit set
-    // standing in for a word of none; the lowest bit isolated and placed by six masked steps
+    // Explicit casts widen the word to the count's operand, which is as wide as any claim word. Every bit set
+    // stands in for a word of none; six masked steps isolate and place the lowest bit
     const unsigned long long whole = (unsigned long long)bits | (0ull - (unsigned long long)(bits == 0u));
     const unsigned long long low = whole & (0ull - whole);
     size_t place = 0u;
@@ -1658,15 +1661,15 @@ EMBED_INLINE size_t carcer_lowest(embed_atomic_usize_value bits)
 }
 
 /**
- * @brief One claim on the table: the word of claimed with a free bit nearest the search's start found, its lowest
- *        free bit set with one fetch-or, and the entry named where the fetch-or found the bit clear.
+ * @brief One claim on the table. The word of claimed with a free bit nearest the search's start found, and its
+ *        lowest free bit set with one fetch-or. The entry named where the fetch-or found the bit clear.
  *
  * @param[in,out] movable The option [BORROWS].
  * @param[in]     payload The payload offset the entry is to hold.
  * @param[in]     permit  Every bit set for a claim, none for one that takes nothing.
- * @return                The entry, or NULL where every entry is named or another claim set the same bit first.
- * @note The loop steps every word of claimed from the start, wrapping, and its body holds no branch: the first
- *       word with a free bit is picked by mask. The start moves to the word claimed.
+ * @return                The entry, or NULL where every entry has a name or another claim set the same bit first.
+ * @note The loop steps every word of claimed from the start and wraps, and its body holds no branch. A mask
+ *       picks the first word with a free bit. The start moves to the word claimed.
  */
 static CarcerMovableEntry *carcer_entry_claimed(CarcerMovable *movable, size_t payload, size_t permit)
 {
@@ -1751,13 +1754,13 @@ const CarcerMovableEntry *mmgr_movable_buf_alloc(SeriesCellularum *series, size_
 typedef struct
 {
     CarcerMovable *movable;    /**< The option, the none option for a cellblock without one [BORROWS]. */
-    CarcerMovableEntry *entry; /**< The entry, the one naming no cell for a NULL identity [BORROWS]. */
+    CarcerMovableEntry *entry; /**< The entry, the one that names no cell for a NULL identity [BORROWS]. */
     const CellOwner *owner;    /**< The owner named [BORROWS]. */
 } CarcerEntryGiveCtx;
 
 /**
- * @brief A movable release, the work of a pass: the entry read, the cell given back where the owner is its own, the
- *        entry's word and its bit of claimed cleared, and the search's start lowered to its word.
+ * @brief A movable release, the work of a pass. The entry read, and the cell given back where the owner is its own.
+ *        The entry's word and its bit of claimed cleared, and the search's start lowered to its word.
  *
  * @param[in,out] series  Cellblock the cell is in [BORROWS].
  * @param[in]     context The release's arguments [BORROWS].
@@ -1844,7 +1847,7 @@ typedef struct
  * @brief Reads an entry and places a span in its cell.
  *
  * @param[in] series Cellblock the cell is in [BORROWS].
- * @param[in] entry   The entry, the one naming no cell for a NULL identity [BORROWS].
+ * @param[in] entry   The entry, the one that names no cell for a NULL identity [BORROWS].
  * @param[in] offset Where in the cell the span starts.
  * @param[in] bytes  The span's bytes.
  * @param[in] permit Every bit set for the call.
@@ -1867,8 +1870,8 @@ EMBED_INLINE CarcerSpan carcer_span_read(const SeriesCellularum *series, const C
 typedef struct
 {
     const CarcerMovableCfg *args;    /**< The caller's arguments [BORROWS]. */
-    const CarcerMovableEntry *cell;  /**< The cell's entry, the one naming no cell for NULL [BORROWS]. */
-    const CarcerMovableEntry *other; /**< The other cell's entry, the one naming no cell for NULL [BORROWS]. */
+    const CarcerMovableEntry *cell;  /**< The cell's entry, the one that names no cell for NULL [BORROWS]. */
+    const CarcerMovableEntry *other; /**< The other cell's entry, the one that names no cell for NULL [BORROWS]. */
     uint8_t *sink;                   /**< Where a copy of nothing lands [BORROWS]. */
 } CarcerSpanCtx;
 
@@ -1897,8 +1900,8 @@ static uintptr_t carcer_span_written(SeriesCellularum *series, const void *conte
 }
 
 /**
- * @brief A compare, the work of a pass: the cell's span ordered against args->src, or against the other cell's
- *        span where one is named; 1 where a span does not fit.
+ * @brief A compare, the work of a pass. The cell's span ordered against args->src, or against the other cell's
+ *        span where args names one; 1 where a span does not fit.
  *
  * @note The answer is an embed_iword carried in the pass's integer: the caller reads it back as such.
  */
@@ -1934,7 +1937,7 @@ static uintptr_t carcer_span_measured(SeriesCellularum *series, const void *cont
 }
 
 /**
- * @brief A call on a movable cell carried through the turnstiles, badged with the calling thread's id.
+ * @brief A call on a movable cell carried through the turnstiles, badged with the id of the thread that calls.
  *
  * @param[in,out] series Cellblock the cell is in [BORROWS].
  * @param[in]     args   The caller's arguments [BORROWS].
@@ -1943,7 +1946,7 @@ static uintptr_t carcer_span_measured(SeriesCellularum *series, const void *cont
  */
 EMBED_INLINE uintptr_t carcer_span_passed(const SeriesCellularum *series, const CarcerMovableCfg *args, CarcerWork work)
 {
-    // Explicit cast takes the const off the cellblock: a pass writes its turnstiles, and the caller's const says
+    // Explicit cast takes the const off the cellblock. A pass writes its turnstiles, and the caller's const says
     // only that the caller does not write the cells
     SeriesCellularum *const passed = (SeriesCellularum *)(uintptr_t)series;
     CarcerMovable *const movable = carcer_movable_of(series);
@@ -1994,8 +1997,8 @@ size_t mmgr_movable_buf_measure(const SeriesCellularum *series, const CarcerMova
  * @param[in]  below   The offset the cell's payload lies below.
  * @param[in]  refused The size the cell is smaller than.
  * @param[out] payload The cell's payload offset, 0 where none is [BORROWS].
- * @return             Its entry, the one naming no cell where none is [BORROWS].
- * @note The loop steps every named entry and its body holds no branch: the highest that qualifies is picked by mask.
+ * @return             Its entry, the one that names no cell where none is [BORROWS].
+ * @note The loop steps every named entry and its body holds no branch: a mask picks the highest that qualifies.
  */
 EMBED_INLINE CarcerMovableEntry *carcer_entry_highest(const CarcerMovable *movable, const SeriesCellularum *series,
                                                       size_t below, size_t refused, size_t *payload)
@@ -2062,8 +2065,8 @@ embed_bool mmgr_movable_buf_move(SeriesCellularum *series)
                                  embed_atomic_usize_load(carcer_word_at(series, carcer_foot_of(off, size))));
         embed_atomic_usize_store(carcer_word_picked(series, sweep.found, sweep.at), carcer_word(kept, CARCER_BUSY));
         embed_atomic_usize_store(carcer_pick_at(sweep.found, &entry->word, &series->sink), sweep.at + CARCER_WORD);
-        // a run too short to split is kept whole, and the bytes it carries past the cell's are counted to the cell's
-        // owner, since the release counts off what the header says
+        // a run too short to split stays whole. The bytes it carries past the cell's count to the cell's owner,
+        // since the release counts off what the header says
         counts[(sweep.found & carcer_all(kept > size)) & 1u](
             series, carcer_owner_found(embed_atomic_usize_load(carcer_word_at(series, carcer_foot_of(off, size)))),
             kept - size, carcer_all(1));
@@ -2081,8 +2084,8 @@ embed_bool mmgr_movable_buf_move(SeriesCellularum *series)
 }
 
 /**
- * @brief Whether the mover reads the cellblock quiet: twice the lanes open at or under the option's width plus
- *        one, and no pass since the last reading.
+ * @brief Whether the mover reads the cellblock quiet. Quiet is twice the lanes open at or under the option's
+ *        width plus one, and no pass since the last reading.
  *
  * @param[in]     series  Cellblock to read [BORROWS].
  * @param[in]     movable The option [BORROWS].
@@ -2100,8 +2103,8 @@ EMBED_INLINE size_t carcer_quiet(const SeriesCellularum *series, const CarcerMov
 }
 
 /**
- * @brief One sort: cells moved one at a time, the cellblock opened between moves and the processor yielded, until
- *        no cell moves or the lanes open rise past quiet.
+ * @brief One sort. Cells moved one at a time, the cellblock opened between moves and the processor yielded. It
+ *        ends when no cell moves or the lanes open rise past quiet.
  *
  * @param[in,out] series  Cellblock whose cells to move [BORROWS].
  * @param[in,out] movable The option [BORROWS].
@@ -2168,8 +2171,8 @@ static void carcer_sort_none(SeriesCellularum *series, CarcerMovable *movable, u
  * @param[in,out] quiet   The readings in a row that found the cellblock quiet [BORROWS].
  * @param[in,out] passes  The passes at the last reading [BORROWS].
  * @note A reading under the threshold settles everything. One over it waits for MMGR_MOVABLE_QUIET_READINGS quiet
- *       readings in a row, then sorts; a sort that backed off doubles the wait up to MMGR_MOVABLE_BACKOFF_MOST_MS,
- *       and one that finished records what it left, which a reading no higher than it waits on.
+ *       readings in a row, then sorts. A sort that backed off doubles the wait up to MMGR_MOVABLE_BACKOFF_MOST_MS.
+ *       One that finished records what it left, which a reading no higher than it waits on.
  */
 EMBED_INLINE void carcer_mover_read(SeriesCellularum *series, CarcerMovable *movable, uint32_t *wait, size_t *left,
                                     size_t *quiet, size_t *passes)
@@ -2219,13 +2222,13 @@ static void carcer_yield_none(void)
 {
 }
 
-/** @brief A moving report of nothing, for a program that gave no thread_moving. */
+/** @brief A move report of nothing, for a program that gave no thread_moving. */
 static void carcer_moving_none(embed_bool moving)
 {
     (void)moving;
 }
 
-/** @brief A thread start of nothing, for a program that gave no thread or no wait: the option assigned, nothing moving.
+/** @brief A thread start of nothing, for a program that gave no thread or no wait: the option on, nothing to move a cell.
  */
 static embed_bool carcer_started_none(void (*run)(void *context), void *context)
 {
@@ -2266,7 +2269,7 @@ embed_bool mmgr_movable_init(SeriesCellularum *series, const CarcerMovableInitCf
     movable->thread_wait = args->thread_wait;
     movable->thread_yield = (args->thread_yield != NULL) ? args->thread_yield : carcer_yield_none;
     movable->thread_moving = (args->thread_moving != NULL) ? args->thread_moving : carcer_moving_none;
-    // the bits past the cells in the last word of claimed are set for good: no claim lands on them
+    // the bits past the cells in the last word of claimed stay set for good: no claim lands on them
     const size_t spare = (words * MMGR_MOVABLE_CLAIM_BITS) - args->cells;
     const embed_atomic_usize_value past = ~(((embed_atomic_usize_value)1u << (MMGR_MOVABLE_CLAIM_BITS - spare)) - 1u) &
                                           (0u - (embed_atomic_usize_value)(spare != 0u));

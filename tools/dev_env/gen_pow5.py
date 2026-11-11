@@ -4,31 +4,31 @@
 """Write src/pow5/pow5.h: the powers of five a decimal conversion needs,, alone.
 
 A decimal value is mant * 10^ex, and ten to the ex is five to the ex times two to the ex. The twos
-never need arithmetic - they are the exponent field of the result, and putting one there is an add.
-The fives are what has to be carried, and they are the same handful of numbers on every call, and so
-they belong in a table and not in a loop that rebuilds them.
+never need arithmetic - they are the exponent field of the result, and to put one there is an add.
+The fives are what has to travel. They are the same handful of numbers on every call. So
+they belong in a table and not in a loop that builds them again.
 
 Each entry is five to a power of two, stored as a 128 bit fraction with the top bit set and its own
 binary exponent. Any exponent up to 511 is the product of at most nine of them. The reciprocals
 are here too, as keeps a negative exponent a multiply instead of a division.
 
 Truncated and not rounded, deliberately. A truncated entry is never larger than the true power,
-and so the product is never larger than the true product, and the sticky bit that decides a tie is
-never wrongly clear. Rounding the entries would put an error either side of the true value and the
-tie would stop being decidable from the bits that are there.
+and so the product is never larger than the true product. The sticky bit that decides a tie is
+never wrongly clear. Rounded entries would put an error either side of the true value, and the
+bits there could no longer decide the tie.
 
 WHAT THIS FILE OWES THE HEADER IT WRITES
 
 The output is ordinary documented source: the license block, an @file block, and a Doxygen comment
-on every macro, the struct and both tables. It is written here and not by hand because the
-significands cannot be checked by eye, and the prose around them describes THIS configuration.
+on every macro, the struct and both tables. It comes from here and not from hand because nobody
+can check the significands by eye, and the prose around them describes THIS configuration.
 
 That prose names nine steps, 128 bit significands, an exponent reach of 511 and an e2 of -722 at
-the widest. Those are statements about STEPS and BITS, and so the two are asserted below and not
-left to be quietly contradicted. A generator that emits prose describing a shape it no longer
-produces is the defect this file was rewritten to remove.
+the widest. Those are statements about STEPS and BITS, and so an assertion below holds each of the
+two and no quiet contradiction can stand. A generator that emits prose about a shape it does not
+produce is the defect the assertion prevents.
 
-The layout matches what clang-format produces. A formatter run over the output is a no-op and a
+The layout matches what clang-format produces. A formatter run over the output is a no-op. A
 header that comes back from the formatter changed reads as one somebody edited by hand.
 """
 
@@ -40,8 +40,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / "src" / "pow5" / "pow5.h"
 
 # The prose below states nine entries, 128 bit significands, a reach of 511 and a widest e2 of -722.
-# Every one of those is a claim about these two numbers, and so changing either makes the generated
-# documentation false. Refusing here is cheaper than shipping a header that describes itself wrongly.
+# Every one of those is a claim about these two numbers, and so a change to either makes the generated
+# notes false. A stop here is cheaper than a header that describes itself wrongly.
 if STEPS != 9 or BITS != 128:
     raise SystemExit(
         "gen_pow5: the generated prose describes STEPS 9 and BITS %d. STEPS is %d and BITS is %d, so "
@@ -77,10 +77,10 @@ def entries(recip):
 def rows(items):
     """`items` laid out two per line, padded the way clang-format aligns a braced initializer list.
 
-    Two per line because two fit the column limit, and the first of each pair is padded so
-    the second starts at the same column on every row. Emitting one per line and leaving the
-    formatter to do this works, but then the generator's own output is not what is on disk until
-    something else has run, and `harness.py generated` reads that as a dirty tree.
+    Two per line because two fit the column limit. The first of each pair has spaces after it so
+    the second starts at the same column on every row. One per line with the formatter left to do
+    this works too. But then the generator's own output is not what is on disk until
+    something else runs, and `harness.py generated` reads that as a dirty tree.
     """
     width = max(len(one) for one in items)
     out = []

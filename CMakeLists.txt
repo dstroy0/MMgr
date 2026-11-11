@@ -3,7 +3,7 @@ project(MMgr VERSION 1.0.0 LANGUAGES C)
 
 # Everything here is host-buildable and host-testable by design. There is no cross-toolchain step
 # and no board in the loop: the widths that make a target different are compile-time knobs. A
-# 16-bit SWAR lane is exercised on this machine by defining it, with no need to own the hardware.
+# 16-bit SWAR lane runs on this machine through one define, with no need to own the hardware.
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -19,12 +19,12 @@ option(MMGR_WERROR "Treat warnings as errors" OFF)
 option(MMGR_LTO "Link-time optimization" ON)
 option(MMGR_MODULE_OPTIMIZE "Take the optimization level a module names, off for a coverage build" ON)
 
-# Capabilities. Each one says the part has something - an engine, external memory, somewhere to
-# defer work to - and a build for a part without it must not carry the code that would use it.
+# Capabilities. Each one says the part has something: an engine, external memory, somewhere to
+# defer work to. A build for a part without it must not carry the code that would use it.
 #
-# Named here in one list because every module target gets every capability as a definition, and the
-# library and the suites that exercise it can never disagree about which are present. Gating only
-# which suites are built decides what is tested and not what is compiled, the wrong half.
+# Named here in one list because every module target gets every capability as a definition. The
+# library and the suites that exercise it can never disagree about which are present. A gate only
+# on which suites build decides what runs under test and not what goes into the build, the wrong half.
 set(MMGR_CAPABILITIES DMA EXTRAM)
 
 option(MMGR_ENABLE_DMA "The part has a DMA engine" OFF)
@@ -33,17 +33,17 @@ option(MMGR_ENABLE_EXTRAM "The part has external RAM" OFF)
 # The DMA schedule's knobs, as NAME=value pairs separated by semicolons: PRAET_CHANNELS,
 # PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS, PRAET_RECOVERY, PRAET_CLOCK_HZ and PRAET_CLOCK_SOURCE,
 # with PRAET_CLOCK_CORE where the clock source reads one. Empty by default, because none of them has
-# a value that is right for every part. An unset knob is named in a warning and
+# a value that is right for every part. An unset knob gets its name in a warning and
 # src/memoriam_praetereo/praet_iudex.h stops the build, unless MMGR_ACCEPT_DEFAULTS is in the list.
 # Read only where MMGR_ENABLE_DMA is on.
 set(MMGR_PRAET_KNOBS "" CACHE STRING "DMA schedule knobs, NAME=value pairs separated by semicolons")
 
-# Test only. Points every namespace entry that has a libc equivalent at libc: the whole suite
-# runs against libc unchanged and any disagreement is a finding. libc is the oracle: a str or mem
-# entry that has shipped for decades has been beaten on harder than anything written here.
+# Test only. Points every namespace entry that has a libc equivalent at libc. The whole suite
+# runs against libc unchanged and any disagreement is a finding. The libc is the oracle. A str or
+# mem entry with decades in the field took harder blows than anything written here.
 #
-# It is the only thing that makes src/ include a header outside the budget, and for that reason it is a
-# separate option and never a default - the library exists to give a target with no libc these
+# It is the only thing that makes src/ include a header outside the budget. For that reason it is a
+# separate option and never a default. The library exists to give a target with no libc these
 # entries.
 
 # ------------------------------------------------------------------------------------------------
@@ -64,9 +64,9 @@ if(MMGR_LTO)
   endif()
 endif()
 
-# MinSizeRel is -Os by default, and -Os is the wrong trade for this library: it declines to inline
-# the small branch-free entries that ARE the library, and the calls it saves space on are the calls
-# that cost the most. An embedded build reaching for MinSizeRel wants small, not slow-and-small.
+# MinSizeRel is -Os by default, and -Os is the wrong trade for this library. It declines to inline
+# the small branch-free entries that ARE the library. The calls it saves space on are the calls
+# that cost the most. An embedded build that reaches for MinSizeRel wants small, not slow-and-small.
 foreach(_lang C)
   string(REPLACE "-Os" "-O2" CMAKE_${_lang}_FLAGS_MINSIZEREL "${CMAKE_${_lang}_FLAGS_MINSIZEREL}")
 endforeach()
@@ -78,15 +78,15 @@ endforeach()
 # mmgr_flags below, which links embedded_types::embedded_types.
 add_subdirectory(deps)
 
-# One place. A warning worth having is on for the library, the tests and the benches alike.
+# One place. A warning worth its cost is on for the library, the tests and the benches alike.
 add_library(mmgr_flags INTERFACE)
 
 # Carried on mmgr_flags so every module, suite and bench that takes the flags also takes the include
-# directory. A target reaching include/mmgr.h needs the three embed headers behind it.
+# directory. A target that reaches include/mmgr.h needs the three embed headers behind it.
 target_link_libraries(mmgr_flags INTERFACE embedded_types::embedded_types)
 
-# GNU ld on PE-COFF keeps a weak default's offset in its section as an addend on every reference to it, and a
-# program's definition that replaces the default is reached that many bytes off. A section for each definition puts
+# GNU ld on PE-COFF keeps a weak default's offset in its section as an addend on every reference to
+# it. A program's definition that replaces the default then lands that many bytes off. A section for each definition puts
 # every default at offset 0, where the addend is nothing
 if(MINGW AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
   target_compile_options(mmgr_flags INTERFACE -ffunction-sections -fdata-sections)
@@ -99,12 +99,12 @@ target_compile_options(mmgr_flags INTERFACE
 # ------------------------------------------------------------------------------------------------
 # Environments
 # ------------------------------------------------------------------------------------------------
-# An "environment" is one set of compile-time widths. The whole library and the whole test suite are
-# built once per environment. A change that only breaks the 16-bit SWAR lane fails a build here,
+# An "environment" is one set of compile-time widths. The whole library and the whole test suite
+# build once per environment. A change that only breaks the 16-bit SWAR lane fails a build here,
 # with no wait for someone to own that hardware.
 #
 # Each entry is  name|definitions  with definitions separated by semicolons escaped as commas below,
-# because a CMake list cannot nest. As a flat list, adding an environment is one line.
+# because a CMake list cannot nest. As a flat list, a new environment is one line.
 #
 #   host      whatever this machine is: EMBED_WORD_BITS derives from UINTPTR_MAX. The default build.
 #   word32    a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.
@@ -126,8 +126,8 @@ set(MMGR_ENVIRONMENTS
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(MMgrModule)
 
-# No list of modules here. Each directory declares itself with mmgr_add_module(). Adding one is
-# a new directory plus a line in src/mmgr/CMakeLists.txt, and nothing central has to be kept in step.
+# No list of modules here. Each directory declares itself with mmgr_add_module(). A new one is
+# a new directory plus a line in src/mmgr/CMakeLists.txt, and nothing central has to stay in step.
 add_subdirectory(src)
 
 if(MMGR_BUILD_TESTS)
@@ -135,7 +135,7 @@ if(MMGR_BUILD_TESTS)
   add_subdirectory(test)
 endif()
 
-# Added here and not from test/CMakeLists.txt: it does not depend on the tests being on.
+# Added here and not from test/CMakeLists.txt: it does not depend on the tests, on or off.
 # Nested under MMGR_BUILD_TESTS it silently produced nothing for -DMMGR_BUILD_BENCH=ON alone, which
 # is exactly how a bench gets measured against a build nobody meant to measure.
 if(MMGR_BUILD_BENCH)

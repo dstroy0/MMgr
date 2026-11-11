@@ -12,8 +12,8 @@
  * @date 2026-08-29
  *
  * @note The one header a caller includes. praet_ordo.h and praet_descriptor.h come in at the end,
- *       and the knobs they read are set on the build line, before this is reached.
- * @warning Everything below is declared only when MMGR_ENABLE_DMA is set.
+ *       and the knobs they read come from the build line, before the include reaches this.
+ * @warning Everything below exists only when MMGR_ENABLE_DMA holds.
  */
 #ifndef MMGR_MEMORIAM_PRAETEREO_H
 #define MMGR_MEMORIAM_PRAETEREO_H
@@ -37,7 +37,7 @@ typedef struct
     uint16_t bytes;         /**< Bytes in data. */
     uint16_t sequence;      /**< Sequence number the port layer assigns. */
     uint8_t channel;        /**< Channel the transfer ran on. */
-    uint8_t peripheral;     /**< Peripheral the channel is wired to. */
+    uint8_t peripheral;     /**< Peripheral the channel serves. */
     uint8_t direction;      /**< Direction of the transfer. */
 } mmgr_praet_event;
 
@@ -56,7 +56,7 @@ typedef void (*mmgr_praet_callback)(const mmgr_praet_event *event, void *user);
 /**
  * @brief A completion callback and the pointer handed back to it.
  *
- * @warning mmgr_praet_open forwards the pointer to this struct unchanged and keeps no copy, and so it
+ * @warning mmgr_praet_open forwards the pointer to this struct unchanged and keeps no copy. So it
  *          must stay valid for as long as the channel is open [BORROWS].
  */
 typedef struct
@@ -66,7 +66,7 @@ typedef struct
 } PraetCallbackCfg;
 
 /**
- * @brief Arguments for opening a channel, and for polling one.
+ * @brief Arguments for a channel open, and for a poll of one.
  *
  * @note mmgr_praet_open reads all four members. mmgr_praet_poll passes the whole struct to the port
  *       layer.
@@ -74,13 +74,13 @@ typedef struct
 typedef struct
 {
     const uint8_t channel;                     /**< Channel to act on. */
-    const uint8_t peripheral;                  /**< Peripheral the channel is wired to. */
+    const uint8_t peripheral;                  /**< Peripheral the channel serves. */
     const embed_bool loopback;                 /**< Open the channel looped back on itself. */
     const PraetCallbackCfg *const on_complete; /**< Called when a transfer finishes [BORROWS]. */
 } PraetCfg;
 
 /**
- * @brief Arguments for submitting a transfer, and for closing a channel.
+ * @brief Arguments for a transfer submit, and for a channel close.
  *
  * @note mmgr_praet_tx_submit reads all three. mmgr_praet_close reads channel alone.
  */
@@ -131,7 +131,7 @@ embed_bool mmgr_praet_tx_submit(const PraetTransferCfg *args);
  * @brief Closes args->channel.
  *
  * @param[in] args Channel to close [BORROWS].
- * @note Only args->channel is read. buf and bytes take no part.
+ * @note It reads only args->channel. buf and bytes take no part.
  * @warning args->channel must be below PRAET_CHANNELS.
  */
 void mmgr_praet_close(const PraetTransferCfg *args);
@@ -178,19 +178,19 @@ embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args);
  * @note The default in memoriam_praetereo.c does nothing. A build links without a port.
  * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
- * @note Only args->channel is forwarded. buf and bytes take no part.
+ * @note It forwards only args->channel. buf and bytes take no part.
  * @warning Reached through mmgr_praet_close, which asserts the channel first.
  */
 void mmgr_praet_hw_close(const PraetTransferCfg *args);
 
 /**
- * @brief Advances whatever polling the port layer needs.
+ * @brief Advances whatever poll work the port layer needs.
  *
  * @param[in] args Channel to poll, exactly as the caller gave it [BORROWS].
  * @note The default in memoriam_praetereo.c does nothing. A build links without a port.
  * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
- * @warning mmgr_praet_poll calls this directly, with no checking call in between. args and
+ * @warning mmgr_praet_poll calls this directly, with no check call in between. args and
  *          args->channel arrive exactly as the caller wrote them, unasserted.
  */
 void mmgr_praet_hw_poll(const PraetCfg *args);
@@ -198,7 +198,7 @@ void mmgr_praet_hw_poll(const PraetCfg *args);
 /**
  * @brief Dispatch table instance named praet.
  *
- * @note Each member calls the matching mmgr_praet_ function, one to one. No member is pointed at
+ * @note Each member calls the mmgr_praet_ function of the same name, one to one. No member points at
  *       another's function, which is where this differs from the memor table.
  */
 EMBED_TABLE_STORAGE MemoriamPraetereoNs praet EMBED_UNUSED = {
@@ -211,7 +211,7 @@ EMBED_TABLE_STORAGE MemoriamPraetereoNs praet EMBED_UNUSED = {
 EMBED_END_DECLS
 
 // The descriptors, and the schedule they ride on with its knobs and its flag word. Both need the
-// knobs this build set, and neither is reached where MMGR_ENABLE_DMA is off
+// knobs this build set, and neither comes in where MMGR_ENABLE_DMA is off
 #include "memoriam_praetereo/praet_descriptor.h"
 #include "memoriam_praetereo/praet_ordo.h"
 

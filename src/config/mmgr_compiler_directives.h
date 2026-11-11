@@ -7,7 +7,7 @@
 #include <stddef.h>
 
 /**
- * @brief Set to 1 when __clang__ is defined, 0 otherwise.
+ * @brief Set to 1 when the compiler defines __clang__, 0 otherwise.
  *
  * @note Defined on both branches, and so #ifdef MMGR_CC_CLANG is always true.
  */
@@ -19,7 +19,7 @@
 #endif
 
 /**
- * @brief Set to 1 when __GNUC__ is defined and __clang__ is not, 0 otherwise.
+ * @brief Set to 1 when the compiler defines __GNUC__ and not __clang__, 0 otherwise.
  */
 #if defined(__GNUC__) && !defined(__clang__)
 #define MMGR_CC_GNU 1
@@ -29,7 +29,7 @@
 #endif
 
 /**
- * @brief Set to 1 when __GNUC__ or __clang__ is defined, 0 otherwise.
+ * @brief Set to 1 when the compiler defines __GNUC__ or __clang__, 0 otherwise.
  *
  * @note Used as the fallback value of MMGR_HAS_ATTRIBUTE.
  */
@@ -41,11 +41,11 @@
 #endif
 
 /**
- * @brief Expands to __has_attribute(x) where __has_attribute is defined.
+ * @brief Expands to __has_attribute(x) where the compiler defines __has_attribute.
  *
  * @param[in] x Attribute name, as passed to __has_attribute.
  * @return      The value __has_attribute gives for x.
- * @warning Expands to MMGR_CC_GNU_ATTRS where __has_attribute is undefined, ignoring x.
+ * @warning Expands to MMGR_CC_GNU_ATTRS where the compiler has no __has_attribute, and x plays no part.
  */
 #if defined(__has_attribute)
 #define MMGR_HAS_ATTRIBUTE(x) __has_attribute(x)
@@ -55,11 +55,11 @@
 #endif
 
 /**
- * @brief Expands to __has_builtin(x) where __has_builtin is defined.
+ * @brief Expands to __has_builtin(x) where the compiler defines __has_builtin.
  *
  * @param[in] x Builtin name, as passed to __has_builtin.
  * @return      The value __has_builtin gives for x.
- * @warning Expands to 0 where __has_builtin is undefined, ignoring x.
+ * @warning Expands to 0 where the compiler has no __has_builtin, and x plays no part.
  */
 #if defined(__has_builtin)
 #define MMGR_HAS_BUILTIN(x) __has_builtin(x)
@@ -73,7 +73,7 @@
  *
  * @param[in] cond Constant expression passed through unchanged.
  * @param[in] msg  Message operand passed through unchanged.
- * @note static_assert where __cplusplus is defined or __STDC_VERSION__ >= 202311L.
+ * @note static_assert where the compiler defines __cplusplus or __STDC_VERSION__ >= 202311L.
  * @note _Static_assert otherwise.
  */
 #if defined(__cplusplus)
@@ -86,23 +86,23 @@
 #endif
 
 /**
- * @brief Expands to extern "C" { where __cplusplus is defined.
+ * @brief Expands to extern "C" { where the compiler defines __cplusplus.
  *
  * @warning The expansion contains an open {; MMGR_FINIS_DECLS supplies the }.
- * @note Expands to nothing where __cplusplus is undefined.
+ * @note Expands to nothing where the compiler has no __cplusplus.
  */
 #ifdef __cplusplus
 #define MMGR_INCIPE_DECLS                                                                                              \
     extern "C"                                                                                                         \
     {
 
-/** @brief Expands to } where __cplusplus is defined, closing MMGR_INCIPE_DECLS. */
+/** @brief Expands to } where the compiler defines __cplusplus, the close of MMGR_INCIPE_DECLS. */
 #define MMGR_FINIS_DECLS }
 #else
 
 #define MMGR_INCIPE_DECLS
 
-/** @brief Expands to nothing where __cplusplus is undefined. */
+/** @brief Expands to nothing where the compiler has no __cplusplus. */
 #define MMGR_FINIS_DECLS
 #endif
 
@@ -111,7 +111,7 @@
  *
  * @param[in] a Left operand of ##.
  * @param[in] b Right operand of ##.
- * @return      The single token formed by joining a and b.
+ * @return      The single token made of a and b.
  * @note Called by MMGR_CAT.
  */
 #define MMGR_CAT_(a, b) a##b
@@ -121,7 +121,7 @@
  *
  * @param[in] a Left operand, forwarded to MMGR_CAT_.
  * @param[in] b Right operand, forwarded to MMGR_CAT_.
- * @return      The single token formed by joining a and b.
+ * @return      The single token made of a and b.
  * @note Builds a macro name from a count, as in MMGR_NS_LAYOUT and mmgr_carcer_init.
  */
 #define MMGR_CAT(a, b) MMGR_CAT_(a, b)
@@ -181,7 +181,7 @@
  * @param[in] T       Struct type passed to offsetof.
  * @param[in] member  Member name passed to offsetof.
  * @param[in] loculus Index, cast to size_t and multiplied by MMGR_FP_SIZE.
- * @note T, member and loculus are stringized into the assertion message.
+ * @note The assertion message holds T, member and loculus as strings.
  */
 #define MMGR_NS_LOCULUS(T, member, loculus)                                                                            \
     MMGR_STATIC_ASSERT(offsetof(T, member) == (size_t)(loculus) * MMGR_FP_SIZE,                                        \
@@ -235,7 +235,7 @@
     MMGR_NS_L23(T, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) MMGR_NS_LOCULUS(T, x, 23);
 
 /**
- * @brief Expands the matching MMGR_NS_L, then asserts sizeof(T) equals the member count times MMGR_FP_SIZE.
+ * @brief Expands the MMGR_NS_L that matches, then asserts sizeof(T) equals the member count times MMGR_FP_SIZE.
  *
  * @param[in] T   Struct type forwarded to MMGR_NS_L and to sizeof.
  * @param[in] ... Member names in loculus order, one to twenty-four.
@@ -258,14 +258,14 @@
  * @brief Expands to __attribute__((flatten)) where MMGR_HAS_ATTRIBUTE(flatten) is non-zero.
  *
  * @note For a caller and not for the library. It asks the compiler to inline everything the function it
- *       marks calls, which reaches an entry body that the inliner would otherwise leave out of line
- *       on size. The entries are large enough that it does leave them: measured on an ESP32-S3, a
- *       cellul.len over eight bytes costs 112 cycles called and 80 inlined, and so the call is 32 of
- *       them - a third of the work at that length, and it is paid on every entry.
+ *       marks calls. That reaches an entry body that the inliner would otherwise leave out of line
+ *       on size. The entries are large enough that it does leave them. On an ESP32-S3 a cellul.len
+ *       over eight bytes costs 112 cycles called and 80 inlined. So the call is 32 of them, a third
+ *       of the work at that length, and every entry pays it.
  * @note Worth it where an extent is short and settled before the build, as this library
  *       is for. A long scan amortizes the call and will not notice: the same measurement at 64 bytes
  *       is 253 against 240.
- * @note Costs the walk's code at every site that takes it, and so it belongs on the one hot function a
+ * @note Costs the walk's code at every site that takes it. So it belongs on the one hot function a
  *       caller cares about and not on a translation unit.
  * @warning Needs the entry body visible. A build without link-time optimization gets nothing from
  *          it. See MMGR_LTO.
@@ -281,10 +281,10 @@
 
 /**
  * @brief Expands to __attribute__((packed)) where MMGR_HAS_ATTRIBUTE(packed) is non-zero, and to the
- *        fixed underlying type `: unsigned char` for a C++ compiler without it.
+ *        fixed base type `: unsigned char` for a C++ compiler without it.
  *
- * @note The C++ arm is nvcc over MSVC, which a .cu reaching MMgr on Windows compiles under. C++11 made
- *       the fixed underlying type standard.
+ * @note The C++ arm is nvcc over MSVC, which a .cu that reaches MMgr on Windows compiles under. C++11 made
+ *       the fixed base type standard.
  * @warning On the C++ arm the width is one byte whatever the range, and therefore an enumerator past 255 or below
  *          0 fails the build there.
  * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(packed) is 0 in C.
@@ -303,7 +303,7 @@
  * @brief Expands to __attribute__((aligned(n))) where MMGR_HAS_ATTRIBUTE(aligned) is non-zero.
  *
  * @param[in] n Alignment operand passed to the attribute.
- * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(aligned) is 0, ignoring n.
+ * @warning Expands to nothing where MMGR_HAS_ATTRIBUTE(aligned) is 0, and n plays no part.
  */
 #if MMGR_HAS_ATTRIBUTE(aligned)
 #define MMGR_ALIGN(n) __attribute__((aligned(n)))
@@ -352,7 +352,7 @@
  * @brief Expands to static inline __attribute__((always_inline)).
  *
  * @note Expands to static inline where MMGR_HAS_ATTRIBUTE(always_inline) is 0.
- * @warning Neither definition is made when MMGR_INLINE is already defined.
+ * @warning Neither definition appears when MMGR_INLINE already exists.
  */
 #ifndef MMGR_INLINE
 #if MMGR_HAS_ATTRIBUTE(always_inline)
@@ -366,7 +366,7 @@
  * @brief Expands to _Pragma(#directive) where MMGR_CC_GNU is non-zero.
  *
  * @param[in] directive Pragma text, stringized by #.
- * @warning Expands to nothing where MMGR_CC_GNU is 0, ignoring directive.
+ * @warning Expands to nothing where MMGR_CC_GNU is 0, and directive plays no part.
  */
 #if MMGR_CC_GNU
 #define MMGR_TU_PRAGMA(directive) _Pragma(#directive)
@@ -383,17 +383,17 @@
 #define MMGR_OPTIMIZE_O2 MMGR_TU_PRAGMA(GCC optimize("O2"))
 
 #if defined(__clang__)
-/** @brief Expands to _Pragma("clang diagnostic push") where __clang__ is defined. */
+/** @brief Expands to _Pragma("clang diagnostic push") where the compiler defines __clang__. */
 #define MMGR_DIAG_PUSH _Pragma("clang diagnostic push")
 
-/** @brief Expands to _Pragma("clang diagnostic pop") where __clang__ is defined. */
+/** @brief Expands to _Pragma("clang diagnostic pop") where the compiler defines __clang__. */
 #define MMGR_DIAG_POP _Pragma("clang diagnostic pop")
 
 /**
- * @brief Expands to _Pragma(MMGR_DIAG_STR(clang diagnostic ignored w)) where __clang__ is defined.
+ * @brief Expands to _Pragma(MMGR_DIAG_STR(clang diagnostic ignored w)) where the compiler defines __clang__.
  *
  * @param[in] w Warning name as a string literal, such as "-Wpadded".
- * @note MMGR_DIAG_STR stringizes the whole pragma text, including w.
+ * @note MMGR_DIAG_STR stringizes the whole pragma text, with w in it.
  */
 #define MMGR_DIAG_IGNORE(w) _Pragma(MMGR_DIAG_STR(clang diagnostic ignored w))
 
@@ -406,10 +406,10 @@
  */
 #define MMGR_DIAG_STR(x) #x
 #elif defined(__GNUC__)
-/** @brief Expands to _Pragma("GCC diagnostic push") where __GNUC__ is defined and __clang__ is not. */
+/** @brief Expands to _Pragma("GCC diagnostic push") where the compiler defines __GNUC__ and not __clang__. */
 #define MMGR_DIAG_PUSH _Pragma("GCC diagnostic push")
 
-/** @brief Expands to _Pragma("GCC diagnostic pop") where __GNUC__ is defined and __clang__ is not. */
+/** @brief Expands to _Pragma("GCC diagnostic pop") where the compiler defines __GNUC__ and not __clang__. */
 #define MMGR_DIAG_POP _Pragma("GCC diagnostic pop")
 
 /**
@@ -425,8 +425,8 @@
  * @brief Expands to _Pragma(MMGR_DIAG_STR(GCC diagnostic ignored w)).
  *
  * @param[in] w Warning name as a string literal, such as "-Wpadded".
- * @note Selected where __GNUC__ is defined and __clang__ is not.
- * @note MMGR_DIAG_STR stringizes the whole pragma text, including w.
+ * @note Selected where the compiler defines __GNUC__ and not __clang__.
+ * @note MMGR_DIAG_STR stringizes the whole pragma text, with w in it.
  */
 #define MMGR_DIAG_IGNORE(w) _Pragma(MMGR_DIAG_STR(GCC diagnostic ignored w))
 #else
@@ -448,7 +448,7 @@
 /**
  * @brief Set to 1 when __BYTE_ORDER__ and __ORDER_BIG_ENDIAN__ are both defined and equal, 0 otherwise.
  *
- * @warning Neither definition is made when MMGR_HW_BIG_ENDIAN is already defined.
+ * @warning Neither definition appears when MMGR_HW_BIG_ENDIAN already exists.
  */
 #ifndef MMGR_HW_BIG_ENDIAN
 #if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
@@ -467,11 +467,11 @@
  *       compiler assembles it out of byte loads and shifts. Measured on one such load: ARMv7-M emits
  *       a single ldr, Xtensa twelve instructions and RISC-V eleven.
  * @note The difference decides which of two shapes is faster in a scan that needs the word at an
- *       offset of one. Where a load is a single instruction, take it; where it is a dozen, derive
+ *       offset of one. Where a load is a single instruction, take it. Where it is a dozen, derive
  *       the word from the one already in hand and a byte.
- * @note __ARM_FEATURE_UNALIGNED is the compiler's own answer for ARM, and is switched off by
- *       -mno-unaligned-access. x86 is stated directly, having no equivalent macro.
- * @warning Neither definition is made when MMGR_HW_FAST_UNALIGNED is already defined.
+ * @note __ARM_FEATURE_UNALIGNED is the compiler's own answer for ARM, and -mno-unaligned-access
+ *       switches it off. The x86 case has no equivalent macro, and so the list states it directly.
+ * @warning Neither definition appears when MMGR_HW_FAST_UNALIGNED already exists.
  */
 #ifndef MMGR_HW_FAST_UNALIGNED
 #if defined(__ARM_FEATURE_UNALIGNED) || defined(__x86_64__) || defined(__i386__)

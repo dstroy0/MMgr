@@ -51,17 +51,17 @@ typedef struct
 EMBED_TABLE_LAYOUT(MemoriaOperorNs, cpy, move_down, move_up, cmp, chr, set);
 
 /**
- * @brief Copies args->bytes from args->src to args->dst, walking upward.
+ * @brief Copies args->bytes from args->src to args->dst, on an upward walk.
  *
  * @param[in] args Destination, source and count [BORROWS].
- * @note Moves whole words first, then the remaining bytes one at a time.
+ * @note Moves whole words first, then the rest of the bytes one at a time.
  * @warning The backend's argument type qualifies both pointers restrict, and so the regions must not overlap.
  * @warning args->dst must be writable and args->src readable for args->bytes.
  */
 void mmgr_memor_cpy(const MemoriaCfg *args);
 
 /**
- * @brief Copies args->bytes from args->src to args->dst, walking downward from the far end.
+ * @brief Copies args->bytes from args->src to args->dst, on a downward walk from the far end.
  *
  * @param[in] args Destination, source and count [BORROWS].
  * @note Works back from the end. An args->dst above args->src is safe even when the regions overlap.
@@ -74,9 +74,9 @@ void mmgr_memor_move_up(const MemoriaCfg *args);
  *
  * @param[in] args The two regions and the count [BORROWS].
  * @return         The difference of the first unequal byte pair, or 0 when every byte matches.
- * @note The sign follows the differing bytes, and so the result orders the two regions.
- * @warning Both regions must be readable for args->bytes rounded up to a whole word, since a count that
- *          does not fill the last one is still read a whole word at a time.
+ * @note The sign follows the bytes that differ, and so the result orders the two regions.
+ * @warning Both regions must be readable for args->bytes rounded up to a whole word. A count that
+ *          does not fill the last one still reads a whole word at a time.
  */
 embed_iword mmgr_memor_cmp(const MemoriaCfg *args);
 
@@ -85,9 +85,9 @@ embed_iword mmgr_memor_cmp(const MemoriaCfg *args);
  *
  * @param[in] args Region, count and the byte sought [BORROWS].
  * @return         Address of the match, or NULL when the byte does not occur [BORROWS].
- * @note A terminator is not special. All args->bytes are searched.
- * @warning args->src must be readable for args->bytes rounded up to a whole word, since a count that
- *          does not fill the last one is still read a whole word at a time.
+ * @note A terminator is not special. The search covers all args->bytes.
+ * @warning args->src must be readable for args->bytes rounded up to a whole word. A count that
+ *          does not fill the last one still reads a whole word at a time.
  */
 const void *mmgr_memor_chr(const MemoriaCfg *args);
 
@@ -104,8 +104,8 @@ void mmgr_memor_set(const MemoriaCfg *args);
  * @brief Dispatch table instance named memor.
  *
  * @note cpy and move_down both point at mmgr_memor_cpy. Every other member has its own function.
- * @note mmgr_memor_move_down is not declared. A destination below the source is what the upward walk
- *       already handles, and so the table names that walk twice instead of carrying a second copy of it.
+ * @note There is no mmgr_memor_move_down. A destination below the source is what the upward walk
+ *       already handles. So the table names that walk twice and carries no second copy of it.
  */
 EMBED_TABLE_STORAGE MemoriaOperorNs memor EMBED_UNUSED = {
     .cpy = mmgr_memor_cpy,

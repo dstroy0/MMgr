@@ -45,7 +45,7 @@
  * @brief Expands to 16u, the bytes the storage every span here points at holds.
  *
  * @note Twice the largest extent. A span that ran past its own cap still lands inside the object, and
- *       the case then reports a wrong extent instead of faulting.
+ *       the case then reports a wrong extent instead of a fault.
  */
 #define MMGR_ACCURACY_SPAT_BUFFER 16u
 
@@ -54,21 +54,21 @@
  *
  * @note File scope, because the grid compares addresses derived from it and a case-local array would
  *       give each case a different base. Nothing in the grid reads or writes through it; the
- *       addresses alone are what the walks are checked on.
+ *       addresses alone are what the checks on the walks use.
  */
 static uint8_t s_storage[MMGR_ACCURACY_SPAT_BUFFER];
 
 /**
- * @brief Checks a fill span against the four numbers it is expected to carry.
+ * @brief Checks a fill span against the four numbers it has to carry.
  *
  * @param[in] produced The span the module returned.
  * @param[in] buf      Address it should start at [BORROWS].
  * @param[in] cap      Extent it should cover.
  * @param[in] pos      Cursor it should carry.
  * @param[in] overflow Flag it should carry.
- * @param[in] label    Text naming the case, printed when a member disagrees.
- * @note All four are checked every time. A walk that got the extent right and the cursor wrong hands
- *       back a span that writes in the right place and reports the wrong amount written.
+ * @param[in] label    Text that names the case, printed when a member disagrees.
+ * @note All four get a check every time. A walk that got the extent right and the cursor wrong hands
+ *       back a span that writes in the right place. It then reports the wrong amount written.
  */
 static void accuracy_expect_span(mmgr_span produced, const uint8_t *buf, size_t cap, size_t pos, embed_bool overflow,
                                  const char *label)
@@ -86,14 +86,14 @@ static void accuracy_expect_span(mmgr_span produced, const uint8_t *buf, size_t 
 }
 
 /**
- * @brief Checks a read span against the four numbers it is expected to carry.
+ * @brief Checks a read span against the four numbers it has to carry.
  *
  * @param[in] produced The span the module returned.
  * @param[in] buf      Address it should start at [BORROWS].
  * @param[in] len      Extent it should cover.
  * @param[in] pos      Cursor it should carry.
  * @param[in] err      Flag it should carry.
- * @param[in] label    Text naming the case, printed when a member disagrees.
+ * @param[in] label    Text that names the case, printed when a member disagrees.
  * @note The read side of accuracy_expect_span. The two cannot share a body, because a read span names
  *       its extent len and a fill span names it cap.
  */
@@ -134,14 +134,14 @@ void tearDown(void)
 }
 
 /**
- * @brief Checks the two constructors against the spans they are documented to build.
+ * @brief Checks the two constructors against the spans the header says they build.
  *
  * @note The constructors are what every other case starts from. A constructor that set a member
- *       wrongly would be read as a walk defect everywhere else.
- * @note A fresh span starts at the buffer it was given, covers the extent it was given, rests at zero
- *       and carries no flag. All four are checked.
- * @note The read constructor is offered a null buffer and a zero extent, which it is documented to
- *       accept where the fill constructor asserts. What reports those unusable is cok, checked below.
+ *       wrongly would look like a walk defect everywhere else.
+ * @note A fresh span starts at the buffer it received, covers the extent it received, rests at zero
+ *       and carries no flag. All four get a check.
+ * @note The read constructor gets a null buffer and a zero extent, which the header says it accepts
+ *       where the fill constructor asserts. What reports those unusable is cok, checked below.
  */
 void test_the_constructors_build_the_spans_they_are_documented_to(void)
 {
@@ -154,15 +154,15 @@ void test_the_constructors_build_the_spans_they_are_documented_to(void)
 }
 
 /**
- * @brief Checks the span beginning a given number of bytes in, over the whole grid.
+ * @brief Checks the span that begins a given number of bytes in, over the whole grid.
  *
- * @note The rules are the header's: the start moves forward by the count, the extent shrinks by it,
- *       the cursor is rebased and rests at zero once the skip has passed it, and the flag comes
- *       forward unchanged. Each is written out separately here.
- * @note A count of exactly the extent is documented to give an empty span that has not failed, and a
- *       count past it is documented to fail. Both boundaries are in the grid, and they are one apart.
- * @note Every cursor from zero to the extent is offered at every extent, with the flag both ways, and so
- *       the rebasing rule is checked on both sides of the skip.
+ * @note The rules are the header's. The start moves forward by the count and the extent shrinks by
+ *       it. The cursor moves back by the count and rests at zero once the skip passes it. The flag
+ *       comes forward unchanged. Each rule stands on its own here.
+ * @note The header says a count of exactly the extent gives an empty span with no failure. A count
+ *       past it fails. Both boundaries are in the grid, and they are one apart.
+ * @note The grid offers every cursor from zero to the extent at every extent, with the flag both ways.
+ *       So the cursor rule gets a check on both sides of the skip.
  */
 void test_the_span_beginning_a_count_in_names_the_right_bytes(void)
 {
@@ -199,13 +199,13 @@ void test_the_span_beginning_a_count_in_names_the_right_bytes(void)
 }
 
 /**
- * @brief Checks the span covering only the first bytes, over the whole grid.
+ * @brief Checks the span that covers only the first bytes, over the whole grid.
  *
- * @note The rules are the header's: the start does not move, the extent becomes the count, the cursor
- *       is clamped to the shorter extent, and the flag comes forward unchanged.
- * @note Holding the cursor down is the rule a narrowing gets wrong most quietly. A span whose cursor
+ * @note The rules are the header's. The start does not move and the extent becomes the count. The
+ *       cursor stays at or below the shorter extent, and the flag comes forward unchanged.
+ * @note The cursor held down is the rule a shorter span gets wrong most quietly. A span whose cursor
  *       sat past the new extent would report more written than it covers.
- * @note A count past the extent is documented to fail, and that boundary sits one past a count of
+ * @note The header says a count past the extent fails, and that boundary sits one past a count of
  *       exactly the extent, which succeeds.
  */
 void test_the_span_covering_the_first_count_names_the_right_bytes(void)
@@ -242,15 +242,15 @@ void test_the_span_covering_the_first_count_names_the_right_bytes(void)
 }
 
 /**
- * @brief Checks the read span over what was written, over the whole grid.
+ * @brief Checks the read span over the bytes written so far, over the whole grid.
  *
- * @note The rules are the header's: the view starts where the fill span does, covers the smaller of
- *       the count and the cursor, rests at zero, and is marked in error when the fill span overflowed
- *       or when more was asked for than was written.
+ * @note The rules are the header's. The view starts where the fill span does and covers the smaller
+ *       of the count and the cursor. It rests at zero. It carries the error mark when the fill span
+ *       overflowed or when the count passes the cursor.
  * @note The error rule has two independent causes, and the grid offers both separately and together.
  *       A view that reported only one of them looks correct on half the grid.
- * @note A count equal to the cursor is the boundary between asking for what is there and asking for
- *       more, and it sits one below a count that fails.
+ * @note A count equal to the cursor is the boundary between what is there and more than that. It
+ *       sits one below a count that fails.
  */
 void test_the_read_span_over_what_was_written_covers_the_right_bytes(void)
 {
@@ -283,9 +283,9 @@ void test_the_read_span_over_what_was_written_covers_the_right_bytes(void)
  * @brief Checks that the read span over everything written covers exactly the cursor's bytes.
  *
  * @note Documented as the same step against the span's own cursor, the one count that cannot
- *       ask for more than was written. Its error flag is the fill span's overflow alone.
- * @note Checked directly against the rule and not against the other entry, which keeps the two from
- *       being measured against each other.
+ *       exceed the bytes written. Its error flag is the fill span's overflow alone.
+ * @note Checked directly against the rule and not against the other entry, which keeps the two
+ *       apart from each other.
  */
 void test_the_read_span_over_everything_written_covers_the_cursor(void)
 {
@@ -310,14 +310,14 @@ void test_the_read_span_over_everything_written_covers_the_cursor(void)
 }
 
 /**
- * @brief Checks the three predicates against the conditions they are documented to test.
+ * @brief Checks the three predicates against the conditions the header says they test.
  *
- * @note Each is a combination of two or three conditions, and a predicate that dropped one of them
- *       agrees with the rule on most of the grid. Every combination is offered.
- * @note The two usability predicates differ in the member they read, as keeps a read span
- *       from being handed where a fill span belongs, and so both are swept separately.
- * @note A null buffer and a zero extent are each offered on their own as well as together, since a
- *       predicate testing only one of them passes whenever both hold.
+ * @note Each is a combination of two or three conditions. A predicate that dropped one of them
+ *       agrees with the rule on most of the grid. The grid offers every combination.
+ * @note The two usability predicates differ in the member they read. That keeps a read span out
+ *       of a place where a fill span belongs, and so both get a sweep of their own.
+ * @note A null buffer and a zero extent each appear on their own as well as together. A
+ *       predicate that tests only one of them passes whenever both hold.
  */
 void test_the_predicates_test_what_they_are_documented_to(void)
 {
@@ -352,13 +352,13 @@ void test_the_predicates_test_what_they_are_documented_to(void)
 /**
  * @brief Checks that a derived span is a second view of the same bytes and not a copy of them.
  *
- * @note The header states a write through either view is seen by both, and numbers alone cannot show
+ * @note The header states a write through either view shows in both, and numbers alone cannot show
  *       that. This case writes through the derived span and reads the parent's own storage back.
- * @note Both narrowings are covered. The span beginning a count in starts further along the same
- *       buffer, and the span covering the first bytes starts on the same byte with a shorter extent,
- *       and so the two are checked at different addresses.
- * @note The bytes outside the derived span are checked to be untouched, as shows the view
- *       is bounded and not merely offset.
+ * @note Both derived spans get a check. The span that begins a count in starts further along the
+ *       same buffer. The span that covers the first bytes starts on the same byte with a shorter
+ *       extent. So the two checks land at different addresses.
+ * @note The bytes outside the derived span have to stay untouched. That shows the view has a
+ *       bound and not merely an offset.
  */
 void test_a_derived_span_is_a_second_view_of_the_same_bytes(void)
 {
@@ -409,14 +409,14 @@ void test_a_derived_span_is_a_second_view_of_the_same_bytes(void)
 }
 
 /**
- * @brief Checks that a rewind returns the cursor and clears the flag, leaving the bytes alone.
+ * @brief Checks that a rewind returns the cursor and clears the flag, and leaves the bytes alone.
  *
  * @note The one entry that changes a span, and the only one that clears the flag, which is otherwise
  *       sticky for the span's whole life.
- * @note The bytes are checked to survive, since the header states a reset span hands out storage that
+ * @note The bytes have to survive, since the header states a reset span hands out storage that
  *       still holds whatever the last fill wrote. A rewind that cleared them would be a different
  *       operation with the same name.
- * @note The extent and the start are checked to be unchanged as well, and so the rewind changes only the
+ * @note The extent and the start have to stay unchanged as well. So the rewind changes only the
  *       two members it names, alone.
  */
 void test_a_rewind_returns_the_cursor_and_leaves_the_bytes(void)

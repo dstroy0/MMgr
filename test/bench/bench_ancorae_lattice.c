@@ -6,28 +6,28 @@
  */
 /**
  * @file bench_ancorae_lattice.c
- * @brief Whether an anchor still refutes when the positions are not on a line, the alphabet cannot be
- *        enumerated, and no measure over it exists.
+ * @brief Whether an anchor still refutes when the positions are not on a line and the alphabet has no
+ *        list and no measure.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
  * @note What this exists to settle. The soundness argument for an anchor uses only that a position is
- *       a position: an anchor is a condition copied out of the pattern. Anything holding the whole
+ *       a position: an anchor is a condition copied out of the pattern. Anything with the whole
  *       pattern holds that condition. Nothing in it names a dimension, an order on positions, or a
- *       symbol. The sift bench measures byte strings and cannot tell whether that generality is real
- *       or whether the argument quietly leans on the line it was written over.
+ *       symbol. The sift bench measures byte strings and cannot tell whether that generality is real.
+ *       The argument could quietly lean on the line behind it.
  * @note How it settles it. The core below takes a list of valid base positions, a list of
- *       displacements, and a callback answering whether two positions carry the same symbol. It never
+ *       displacements, and a callback. The callback answers whether two positions carry the same symbol. It never
  *       learns how many dimensions there are, because the geometry is entirely inside the base list
  *       the caller built. It never learns what a symbol is, because it only ever asks whether two of
  *       them agree. A core that cannot see either one cannot depend on either one.
  * @note Counts and not cycles. Every number here is a property of the data and the geometry, identical on
- *       every part, and so nothing needs a board and nothing here is a timing claim.
+ *       every part. So nothing needs a board and nothing here is a timing claim.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
-// Drawing the domains and the anchor shuffles from this makes a run reproduce. Checked against RFC 6234's
-// vectors by its own self test
+// Domains and anchor shuffles drawn from this make a run reproduce. Its own self test checks it against
+// RFC 6234's vectors
 #include "mmgr_sha256.h"
 
 #include <complex.h>
@@ -41,7 +41,7 @@
  * @brief Points in every pattern this bench uses.
  *
  * @note One value across every domain. A row from a volume and a row from a line are comparable.
- *       Eight points over a two symbol alphabet puts the pattern at one position in 256, which leaves
+ *       Eight points over a two symbol alphabet puts the pattern at one position in 256. That leaves
  *       real occurrences to lose in a domain of roughly four thousand positions. A pattern rare enough
  *       to occur once would make the invariant check a test of one sample.
  */
@@ -56,13 +56,13 @@
  * @brief Distinct symbols in every domain here.
  *
  * @note Two. The alphabet is deliberately at the bottom of its range, where a pattern recurs often enough
- *       for a lost occurrence to have somewhere to hide. The alphabet's cost is measured in the
- *       sift bench; what it is made of is the question here, and two of anything is enough for that.
+ *       for a lost occurrence to have somewhere to hide. The sift bench measures the alphabet's cost.
+ *       What it consists of is the question here, and two of anything is enough for that.
  */
 #define SYMBOL_LEVELS 2u
 
 /**
- * @brief How many patterns are drawn from each domain.
+ * @brief How many patterns the bench draws from each domain.
  */
 #define PATTERN_SAMPLES 64u
 
@@ -83,8 +83,8 @@ typedef embed_bool (*SameSymbol)(const void *domain, size_t left, size_t right);
  * @brief One domain, its geometry, and how to compare two of its positions.
  *
  * @note The geometry lives in @c bases and @c displacements and nowhere else. A grid, a volume and a
- *       line differ here only in which integers those two arrays hold, as lets one core
- *       serve all three without a dimension parameter.
+ *       line differ here only in which integers those two arrays hold. So one core serves all
+ *       three with no dimension parameter.
  */
 typedef struct
 {
@@ -100,8 +100,8 @@ typedef struct
 /**
  * @brief How an anchor subset gets chosen from a pattern's points.
  *
- * @note All three are uninformed. There is no cost table in this file and there cannot be one, since
- *       a domain whose alphabet cannot be enumerated has no frequencies to weigh. That is the setting
+ * @note All three know nothing. There is no cost table in this file and there cannot be one. A
+ *       domain with no list of its alphabet has no frequencies to weigh. That is the condition
  *       the claim has to survive, and so the rules here differ from each other and no rule looks at
  *       the data.
  */
@@ -113,10 +113,10 @@ typedef enum
 } LatticeRule;
 
 /**
- * @brief Names a rule for the row it is printed on.
+ * @brief Names a rule for the row it appears on.
  *
  * @param[in] rule Which selection rule.
- * @return         Text naming it [BORROWS].
+ * @return         Text that names it [BORROWS].
  */
 static const char *rule_name(LatticeRule rule)
 {
@@ -179,7 +179,7 @@ static void draw_bytes(uint8_t *into, size_t length, uint64_t salt)
  * @param[in] base_count    How many.
  * @param[in] pattern_base  Where the pattern itself sits.
  * @param[in] displacements Offsets from a base to each of the pattern's points [BORROWS].
- * @param[in] anchors       Which displacements are being used as anchors [BORROWS].
+ * @param[in] anchors       Which displacements serve as anchors [BORROWS].
  * @param[in] anchor_count  How many.
  * @return                  Positions that survive every anchor.
  * @note The core, and the whole point of the file. It has no dimension parameter because the geometry
@@ -196,7 +196,7 @@ static uint32_t candidates_lattice(SameSymbol same, const void *domain, const si
     for (size_t index = 0u; index < base_count; index++)
     {
         // Signed arithmetic on the way in, because a displacement can reach backward from its base and
-        // an unsigned intermediate would wrap instead of subtracting
+        // an unsigned intermediate would wrap instead of a subtraction
         const ptrdiff_t base = (ptrdiff_t)bases[index];
         unsigned matched = 0u;
 
@@ -224,13 +224,13 @@ static uint32_t candidates_lattice(SameSymbol same, const void *domain, const si
  * @param[in]  pattern_base  Where the pattern itself sits.
  * @param[in]  displacements Offsets from a base to each of the pattern's points [BORROWS].
  * @param[in]  point_count   How many points the whole pattern has.
- * @param[in]  anchors       Which displacements are being used as anchors [BORROWS].
+ * @param[in]  anchors       Which displacements serve as anchors [BORROWS].
  * @param[in]  anchor_count  How many.
  * @param[out] found         Receives how many true occurrences the domain holds [BORROWS].
  * @return                   How many of those an anchor rejected.
  * @note The same obligation the sift bench checks over byte strings, asked here where the positions
- *       are not on a line and the symbols may not be readable. An anchor is one of the pattern's own
- *       points. Anything matching every point matches that one. A nonzero return is a defect in
+ *       are not on a line. The symbols may not be readable either. An anchor is one of the pattern's own
+ *       points. Anything that matches every point matches that one. A nonzero return is a defect in
  *       this file and never a property of a geometry.
  */
 static uint32_t refused_lattice(SameSymbol same, const void *domain, const size_t *bases, size_t base_count,
@@ -280,10 +280,10 @@ static uint32_t refused_lattice(SameSymbol same, const void *domain, const size_
  * @param[in]  want        How many anchors to choose.
  * @param[out] anchors     Receives the chosen indices [BORROWS].
  * @param[in]  salt        Varies the shuffled rule between samples.
- * @return                 How many were chosen, short of want only when the pattern has fewer points.
+ * @return                 How many it chose, short of want only when the pattern has fewer points.
  * @note Three rules that share nothing. Leading takes the first points, spread walks them at an even
  *       stride, and shuffled draws a permutation from SHA-256. If the choice mattered to correctness,
- *       three rules disagreeing this much would show it.
+ *       three rules in this much disagreement would show it.
  */
 static unsigned pick_lattice_anchors(LatticeRule rule, unsigned point_count, unsigned want, unsigned *anchors,
                                      uint64_t salt)
@@ -339,11 +339,11 @@ static unsigned pick_lattice_anchors(LatticeRule rule, unsigned point_count, uns
 }
 
 /**
- * @brief Sweeps rules and anchor counts over one case, reporting refusals and candidates.
+ * @brief Sweeps rules and anchor counts over one case, and reports refusals and candidates.
  *
  * @param[in] shape Which domain, geometry and comparison to sweep [BORROWS].
- * @note Two columns per row and they are graded differently. Refused is a correctness claim and has
- *       one acceptable value. Candidates is a cost measurement and is expected to move with the rule,
+ * @note Two columns per row and they have different grades. Refused is a correctness claim and has
+ *       one acceptable value. Candidates is a cost measurement and should move with the rule,
  *       the count and the geometry.
  */
 static void report_lattice(const LatticeCase *shape)
@@ -415,7 +415,7 @@ static void report_lattice(const LatticeCase *shape)
 #define FIELD_LENGTH 4096u
 
 /**
- * @brief The window a scattered two dimensional pattern is drawn inside.
+ * @brief The window a scattered two dimensional pattern comes from.
  */
 #define SCATTER_SIDE 5u
 
@@ -427,8 +427,8 @@ static uint8_t s_cube[CUBE_SIDE * CUBE_SIDE * CUBE_SIDE];
  * @brief A domain whose symbols are complex numbers with irrational parts.
  *
  * @note Here to make one point concretely. Nothing below ever reads one of these values, compares
- *       their magnitudes, or orders them. The comparison is over their storage. A symbol that
- *       cannot be written down exactly, or interpreted at all, is handled the same as a byte.
+ *       their magnitudes, or orders them. The comparison is over their storage. A symbol with no
+ *       exact written form, or no interpretation at all, gets the same treatment as a byte.
  */
 static double _Complex s_field[FIELD_LENGTH];
 
@@ -466,8 +466,8 @@ static embed_bool same_byte(const void *domain, size_t left, size_t right)
  * @param[in] right  The other.
  * @return           EMBED_TRUE when the two symbols agree.
  * @note Compared over their storage and not with the equality operator. An irrational value has no
- *       exact decimal form and a reader has no way to say what it is, and neither fact matters: the
- *       question asked is whether two of them are the same symbol, which their bytes answer.
+ *       exact decimal form and a reader has no way to say what it is. Neither fact matters: the
+ *       question is whether two of them are the same symbol, which their bytes answer.
  */
 static embed_bool same_field(const void *domain, size_t left, size_t right)
 {
@@ -496,10 +496,10 @@ static void fill_levels(uint8_t *into, size_t length, uint64_t salt)
 /**
  * @brief Fills the complex domain with symbols drawn from a small set of irrational values.
  *
- * @note The values are built from square roots of primes so no member of the set has an exact
- *       representation. Which one a position holds is drawn from the same generator everything else
- *       here uses, and so the domain has the same statistics as the byte domains and differs only in what
- *       a symbol is made of.
+ * @note The values come from square roots of primes so no member of the set has an exact
+ *       representation. Which one a position holds comes from the same generator everything else
+ *       here uses. So the domain has the same statistics as the byte domains and differs only in what
+ *       a symbol consists of.
  */
 static void fill_field(void)
 {
@@ -525,7 +525,7 @@ static void fill_field(void)
 /**
  * @brief Builds the one dimensional geometry: contiguous points, every start that fits.
  *
- * @return How many bases were written.
+ * @return How many bases it wrote.
  */
 static size_t build_line(void)
 {
@@ -546,9 +546,9 @@ static size_t build_line(void)
 /**
  * @brief Builds the complex domain's geometry, the line's geometry over other symbols.
  *
- * @return How many bases were written.
- * @note Deliberately identical in shape to the line. Holding the geometry fixed and changing only
- *       what a symbol is made of is what isolates the alphabet as the variable.
+ * @return How many bases it wrote.
+ * @note Deliberately identical in shape to the line. The same geometry with a change only in what
+ *       a symbol consists of is what leaves the alphabet as the one variable.
  */
 static size_t build_field(void)
 {
@@ -565,17 +565,17 @@ static size_t build_field(void)
 /**
  * @brief Builds the two dimensional geometries: a box, a scatter, and that scatter turned a quarter.
  *
- * @return How many bases were written, shared by all three.
+ * @return How many bases it wrote, shared by all three.
  * @note The box is a 2 by 4 rectangle. The scatter is eight points placed inside a 5 by 5 window with
  *       no row or column filled, the case a rectangle cannot stand in for. The turned set is
- *       the scatter under (row, column) going to (column, 4 - row), and so it is the same eight points
- *       rotated a quarter turn. A rotation permutes displacements and does nothing else, and the three
- *       sharing one base list makes that visible in the rows.
+ *       the scatter under (row, column) to (column, 4 - row), and so it is the same eight points
+ *       rotated a quarter turn. A rotation permutes displacements and does nothing else, and one base
+ *       list for the three makes that visible in the rows.
  */
 static size_t build_grid(void)
 {
     // Eight points inside a 5 by 5 window, listed as row then column. No row and no column holds more
-    // than two of them, and so nothing about the set can be read as a run
+    // than two of them, and so nothing about the set reads as a run
     static const unsigned scatter[PATTERN_POINTS][2] = {{0u, 0u}, {0u, 3u}, {1u, 1u}, {2u, 4u},
                                                         {3u, 0u}, {3u, 2u}, {4u, 1u}, {4u, 4u}};
     size_t count = 0u;
@@ -605,7 +605,7 @@ static size_t build_grid(void)
 /**
  * @brief Builds the three dimensional geometry: a 2 by 2 by 2 block inside a cube.
  *
- * @return How many bases were written.
+ * @return How many bases it wrote.
  */
 static size_t build_cube(void)
 {
@@ -654,22 +654,23 @@ static ptrdiff_t s_hypercube_points[PATTERN_POINTS];
  * @param[in]  dimension How many axes.
  * @param[in]  side      Positions along each axis.
  * @param[out] cells     Receives how many positions the domain holds [BORROWS].
- * @return               How many bases were written.
+ * @return               How many bases it wrote.
  * @note The pattern is a star. One point sits at the origin and each of the rest sits one step out
- *       along the next axis, going a further step out once the axes run out. On a line that is eight
- *       contiguous cells, on a plane a cross, and above that a figure touching a new axis for every
- *       point it has. Filling a corner of a hypercube instead would have placed all eight points
- *       inside three axes at every dimension above three, which would have measured a three
- *       dimensional pattern in a larger space and reported it as a higher dimensional result.
+ *       along the next axis. Once the axes run out, the next point goes a further step out. On a
+ *       line that is eight contiguous cells, and on a plane a cross. Above that it is a figure that
+ *       touches a new axis for every point it has.
+ * @note A corner of a hypercube instead would place all eight points inside three axes at every
+ *       dimension above three. That would measure a three dimensional pattern in a larger space and
+ *       report it as a higher dimensional result.
  * @note Seven points off the origin can touch at most seven axes. At dimension eight the pattern
- *       spans seven of them. Every dimension up to seven is spanned completely.
+ *       spans seven of them. It spans every dimension up to seven completely.
  * @note Bases are every position where the whole pattern stays in bounds, the geometry the
  *       core reads. Nothing about the dimension reaches the core by any other route.
  */
 static size_t build_hypercube(unsigned dimension, unsigned side, size_t *cells)
 {
-    // The furthest step any point takes, and that is how far the last point reaches once the axes have
-    // been cycled through
+    // The furthest step any point takes, and that is how far the last point reaches once every axis
+    // had its turn
     const unsigned extent = 2u + ((PATTERN_POINTS - 2u) / dimension);
 
     size_t stride[MAX_DIMENSION];

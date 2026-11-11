@@ -6,11 +6,11 @@
  */
 /**
  * @file locus_carcerum_sequence_prove.c
- * @brief Layout, Take, Spill, Give and Temporary of the Lean theory proved on the C: every sequence of PROVE_STEPS
- *        operations on a small cellblock, each a take of either tier at any of four sizes or a give of any cell
- *        standing, plain or zeroing. After each step every cell standing keeps its bytes and counts to its owner and
- *        the gap is the top less the end; once every cell is given back, both boundaries are where they started and
- *        every count is 0.
+ * @brief Layout, Take, Spill, Give and Temporary of the Lean theory proved on the C. Every sequence of PROVE_STEPS
+ *        operations on a small cellblock. Each step is a take of either tier at any of four sizes, or a give of
+ *        any cell in place. A give is plain or with a zero fill. After each step every cell in place keeps its bytes and
+ *        counts to its owner, and the gap is the top less the end. Once every cell goes back, both boundaries are
+ *        where they started and every count is 0.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
  */

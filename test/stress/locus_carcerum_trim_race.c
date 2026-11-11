@@ -6,13 +6,13 @@
  */
 /**
  * @file locus_carcerum_trim_race.c
- * @brief Two threads giving the two cells at the temporary top at one instant, round after round: the cell at the
+ * @brief Two threads that give the two cells at the temporary top at one instant, round after round. The cell at the
  *        top and the one above it. Whichever give comes second finds the other's trim begun or done, and every round
  *        ends with the top wound back over both, the cellblock idle.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
  *
- * @note A round that ends with a free cell left standing at the top counts as lost, and the cellblock is emptied
+ * @note A round that ends with a free cell left at the top counts as lost, and the cellblock goes empty
  *       for the next round. Any round lost fails the program.
  */
 #include "locus_carcerum/locus_carcerum.h"

@@ -16,17 +16,17 @@
 #include "proximus_operor/proximus_operor.h"
 
 /**
- * @brief The sixteen-bit access type, carrying EMBED_RAW, which lets a read or write take any address.
+ * @brief The sixteen-bit access type, with EMBED_RAW, which lets a read or write take any address.
  */
 typedef uint16_t mmgr_proxim_u16_t EMBED_RAW;
 
 /**
- * @brief The thirty-two-bit access type, carrying EMBED_RAW, which lets a read or write take any address.
+ * @brief The thirty-two-bit access type, with EMBED_RAW, which lets a read or write take any address.
  */
 typedef uint32_t mmgr_proxim_u32_t EMBED_RAW;
 
 /**
- * @brief The sixty-four-bit access type, carrying EMBED_RAW, which lets a read or write take any address.
+ * @brief The sixty-four-bit access type, with EMBED_RAW, which lets a read or write take any address.
  */
 typedef uint64_t mmgr_proxim_u64_t EMBED_RAW;
 
@@ -39,7 +39,7 @@ typedef uint64_t mmgr_proxim_u64_t EMBED_RAW;
 typedef uint64_t mmgr_aequus_u64_t EMBED_ALIAS;
 
 /**
- * @brief The word-width access type, carrying EMBED_RAW, which lets a read or write take any address.
+ * @brief The word-width access type, with EMBED_RAW, which lets a read or write take any address.
  */
 typedef embed_word mmgr_proxim_word_t EMBED_RAW;
 
@@ -61,7 +61,7 @@ typedef struct
 /**
  * @brief Arguments for every store, aligned or not.
  *
- * @note val is carried at sixty-four bits whatever the store's width, and each backend casts it down.
+ * @note val travels at sixty-four bits whatever the store's width, and each backend casts it down.
  */
 typedef struct
 {
@@ -72,7 +72,7 @@ typedef struct
 /**
  * @brief Arguments for the byte copy.
  *
- * @note The three stages take this by non-const pointer and advance dst and src while drawing bytes down.
+ * @note The three stages take this by non-const pointer and advance dst and src as they draw bytes down.
  */
 typedef struct
 {
@@ -190,7 +190,7 @@ EMBED_INLINE void proxim_put32(const ProximPutCtx *args)
  *
  * @param[in] args Destination and value [BORROWS].
  * @note Writes through mmgr_proxim_u64_t. args->dst needs no particular alignment.
- * @note No cast is needed here, since args->val is already a uint64_t.
+ * @note No cast is necessary here, since args->val is already a uint64_t.
  * @warning args->dst must be writable for eight bytes.
  */
 EMBED_INLINE void proxim_put64(const ProximPutCtx *args)
@@ -229,7 +229,7 @@ EMBED_INLINE void aequus_put(const ProximPutCtx *args)
  *
  * @param[in] args Destination and value [BORROWS].
  * @note Writes through mmgr_aequus_u64_t, which keeps uint64_t's alignment, unlike proxim_put64.
- * @note No cast is needed here, since args->val is already a uint64_t.
+ * @note No cast is necessary here, since args->val is already a uint64_t.
  * @warning args->dst must be writable for eight bytes and aligned for a uint64_t.
  */
 EMBED_INLINE void aequus_put64(const ProximPutCtx *args)
@@ -244,7 +244,7 @@ EMBED_INLINE void aequus_put64(const ProximPutCtx *args)
  * @note skew is the distance from args->dst up to the next boundary. It copies that many, or args->bytes if fewer.
  * @note Returns at once when args->dst already sits on a boundary, or when args->bytes is 0.
  * @note Advances args->dst and args->src past what it copied and draws that count off args->bytes.
- * @note Both pointers step in the copy statement itself, and remaining counts down in the while test.
+ * @note Both pointers step in the copy statement itself, and the rest count goes down in the while test.
  */
 EMBED_INLINE void proxim_head(ProximReadCtx *args)
 {
@@ -265,31 +265,31 @@ EMBED_INLINE void proxim_head(ProximReadCtx *args)
 }
 
 /**
- * @brief Copies whole sizeof(embed_word) words, leaving fewer than one word for proxim_tail.
+ * @brief Copies whole sizeof(embed_word) words, and leaves fewer than one word for proxim_tail.
  *
  * @param[in,out] args Destination, source and the count still to copy [BORROWS].
  * @note Stores through mmgr_aequus_word_t always, since proxim_head is what put args->dst on a boundary.
  * @note Loads through mmgr_aequus_word_t as well when args->src came to rest on a boundary too, and
  *       through mmgr_proxim_word_t when it did not. Two addresses that started the copy at the same
- *       offset within a word reach the aligned run, which is one load an instruction and not the
+ *       offset within a word reach the aligned run. That run is one load an instruction and not the
  *       byte sequence the unaligned type compiles to on a target with no unaligned load.
  * @note The test is one mask and one compare for the whole run and not one per word.
  * @note Advances both pointers and draws the whole words off args->bytes.
- * @note The aligned load is what this shape is for: thirty bytes took 143 cycles on an ESP32-S3
- *       before it and 91 after. Seven other shapes were measured against that 91 and every one lost
- *       or tied - four words an iteration 98, eight byte chunks 95, two words an iteration 1.01,
- *       both addresses walked in locals 1.00, a counted loop over a word index 70 against 67, one
- *       function with the head, word and tail counts settled up front 126, and eight words taken as
- *       a single dispatch into straight line moves 97 against 96.
- * @note The loop is not what costs. This run copies thirty bytes in 68 cycles and the memcpy it is
- *       measured against copies the whole thirty in 73. The twenty five cycles proxim_read carries
- *       over it are the entry, the head test and the tail. Removing every per word branch, which the
- *       dispatch row did, moved nothing.
- * @warning Depends on proxim_head having run, as puts args->dst on a boundary.
+ * @note The aligned load is what this shape is for: thirty bytes cost 143 cycles on an ESP32-S3
+ *       with no aligned run and 91 with it. Seven other shapes lose or tie against that 91. Four
+ *       words an iteration costs 98, eight byte chunks 95, two words an iteration 1.01, both
+ *       addresses in locals 1.00. A counted loop over a word index costs 70 against 67. One
+ *       function with the head, word and tail counts settled up front costs 126. Eight words as a
+ *       single dispatch into straight line moves costs 97 against 96.
+ * @note The loop is not what costs. This run copies thirty bytes in 68 cycles and the memcpy it
+ *       measures against copies the whole thirty in 73. The twenty five cycles proxim_read carries
+ *       over it are the entry, the head test and the tail. The dispatch row has no per word branch
+ *       at all and moves nothing.
+ * @warning Depends on a prior proxim_head, which puts args->dst on a boundary.
  */
 EMBED_INLINE void proxim_words(ProximReadCtx *args)
 {
-    // Explicit cast holds the mask at size_t, matching the byte count whose low bits it clears
+    // Explicit cast holds the mask at size_t, as the byte count whose low bits it clears
     size_t word_bytes = args->bytes & ~(size_t)(sizeof(embed_word) - 1u);
     if (word_bytes == 0u)
     {
@@ -320,12 +320,12 @@ EMBED_INLINE void proxim_words(ProximReadCtx *args)
 }
 
 /**
- * @brief Copies whatever args->bytes is left, one byte at a time.
+ * @brief Copies the rest of args->bytes, one byte at a time.
  *
  * @param[in,out] args Destination, source and the count still to copy [BORROWS].
- * @note Returns at once when nothing is left.
+ * @note Returns at once when nothing remains.
  * @note Advances args->dst and args->src, but leaves args->bytes as it found it, unlike the two stages before it.
- * @note Both pointers step in the copy statement itself, and the local remaining counts down in the while test.
+ * @note Both pointers step in the copy statement itself, and the local rest count goes down in the while test.
  */
 EMBED_INLINE void proxim_tail(ProximReadCtx *args)
 {
@@ -343,7 +343,7 @@ EMBED_INLINE void proxim_tail(ProximReadCtx *args)
 }
 
 /**
- * @brief Copies args->bytes from args->src to args->dst, aligning the destination before the word run.
+ * @brief Copies args->bytes from args->src to args->dst, and puts the destination on a boundary before the word run.
  *
  * @param[in,out] args Destination, source and count [BORROWS].
  * @note Runs proxim_head, then proxim_words, then proxim_tail.
@@ -363,8 +363,8 @@ EMBED_INLINE void proxim_read(ProximReadCtx *args)
  * @param[in] CtxType_    Context type this entry's backend takes.
  * @param[in] name_       Name after the mmgr_proxim_ and proxim_ prefixes, which the two share.
  * @param[in] ...         Initializers for the CtxType_ literal, written from args.
- * @note CtxType_ is a parameter because a load carries an address, a put carries an address and a
- *       value, and a read carries two addresses and a count.
+ * @note CtxType_ is a parameter because the three differ. A load carries an address, a put carries an
+ *       address and a value, and a read carries two addresses and a count.
  */
 #define PROXIM_ENTRY(ReturnType_, CtxType_, name_, ...)                                                                \
     EMBED_ENTRY(mmgr_proxim_, proxim_, CtxType_, ProximusCfg, ReturnType_, name_, __VA_ARGS__)
@@ -386,8 +386,8 @@ EMBED_INLINE void proxim_read(ProximReadCtx *args)
  * @param[in] CtxType_    Context type this entry's backend takes.
  * @param[in] name_       Name after the mmgr_aequus_ and aequus_ prefixes.
  * @param[in] ...         Initializers for the CtxType_ literal, written from args.
- * @note A separate pair because the aligned strategy is a separate name and not a flag. Merging the two
- *       would emit an aligned access for an address that may not be aligned, which faults on some
+ * @note A separate pair because the aligned strategy is a separate name and not a flag. The two as
+ *       one would emit an aligned access for an address with no alignment. That faults on some
  *       machines and silently reads wrong on others.
  */
 #define AEQUUS_ENTRY(ReturnType_, CtxType_, name_, ...)                                                                \
@@ -406,7 +406,7 @@ EMBED_INLINE void proxim_read(ProximReadCtx *args)
 /**
  * @brief The public surface, one line per entry point.
  *
- * @note Each is documented at its declaration in proximus_operor.h.
+ * @note proximus_operor.h describes each at its declaration.
  * @note read is the only entry that reads args->size. Every other one leaves that member alone.
  */
 PROXIM_ENTRY(uint16_t, ProximLoadCtx, load16, .at = args->at)

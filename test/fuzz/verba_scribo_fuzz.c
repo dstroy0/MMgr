@@ -6,11 +6,12 @@
  */
 /**
  * @file verba_scribo_fuzz.c
- * @brief A libFuzzer harness over the writers: every text, character and integer writer at every offset and cap
- *        against a model that writes a piece whole while a byte stays for the terminator and answers the cap
- *        once one does not fit, the integers against snprintf, fixed against the value rounded half away from zero
- *        in a wide integer, g against the value rounded to its digits as strtod reads both back, the three
- *        predicates against the bits, and finish and ok against the offset. The line writer has its own section.
+ * @brief A libFuzzer harness over the writers. Every text, character and integer writer runs at every offset and
+ *        cap against a model. The model writes a piece whole while a byte stays for the terminator and answers
+ *        the cap once one does not fit. The integers run against snprintf, and fixed against the value rounded
+ *        half away from zero in a wide integer. The g writer runs against the value rounded to its digits as strtod reads
+ *        both back. The three predicates run against the bits, finish and ok against the offset, and the line
+ *        writer has its own section.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */
@@ -414,8 +415,8 @@ static void reals(FuzzInput *input)
     snprintf(rounded, sizeof rounded, "%.*e", (int)kept - 1, real);
     const double read_back = strtod(s_out, NULL);
     double expected = strtod(rounded, NULL);
-    // A value lying exactly on a half at the digit kept may round either way, as the header states no rule for g:
-    // the value one step away from zero rounds the half away, and either answer is the value rounded to its digits
+    // A value exactly on a half at the digit kept may round either way, as the header states no rule for g.
+    // The value one step away from zero rounds the half away, and either answer is the value rounded to its digits
     char exact[96];
     snprintf(exact, sizeof exact, "%.*e", (int)kept + 40, real);
     const char *const beyond = strchr(exact, '.') != NULL ? strchr(exact, '.') + kept : NULL;
@@ -471,9 +472,9 @@ static int line_sink(void *context, const char *bytes, size_t size)
 }
 
 /**
- * @brief Any sequence of line writes against the stream of what each write formats: with a flush that takes
- *        everything, the bytes handed on and the bytes the line holds are the stream; with no flush, or one that
- *        refuses, they are the stream as far as the last write that went whole, and a line that ran out of room
+ * @brief Any sequence of line writes against the stream of what each write formats. With a flush that takes
+ *        everything, the bytes handed on and the bytes the line holds are the stream. With no flush, or one that
+ *        refuses, they are the stream as far as the last write that went whole. A line that ran out of room
  *        stands full.
  */
 static void verba_linea_fuzzed(FuzzInput *input)

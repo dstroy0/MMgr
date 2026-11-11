@@ -7,10 +7,10 @@
 /**
  * @file memoriam_praetereo_fuzz.c
  * @brief A libFuzzer harness over the DMA layer, built with DMA on and the module compiled in, once with recovery
- *        and once lean: any sequence of attaches, detaches, submits, kicks, completions, resolves, clock advances,
- *        raises and polls on any channel against a model of every channel's flag word, keepalive deadline and
- *        position, with the port's progress answered by the input; the descriptor chain walk against a walk of
- *        its own; and the public entries refusing while no port replaces the hooks.
+ *        and once lean. Any sequence of attaches, detaches, submits, kicks, completions, resolves, clock advances,
+ *        raises and polls runs on any channel. The model holds every channel's flag word, keepalive deadline and
+ *        position, with the port's progress from the input. The descriptor chain walk runs against a walk of
+ *        its own, and the public entries refuse while no port replaces the hooks.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

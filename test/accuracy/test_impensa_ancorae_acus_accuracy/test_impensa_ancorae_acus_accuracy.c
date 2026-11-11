@@ -31,7 +31,7 @@
 #include "unity.h"
 
 /**
- * @brief Expands to 256u, the byte values the table is indexed by and the width of every sweep here.
+ * @brief Expands to 256u, the byte values that index the table and the width of every sweep here.
  *
  * @note The table holds one entry per byte value. Every case walks all of them, since a table is
  *       exactly 256 independent numbers and a sample covers none of the others.
@@ -41,9 +41,9 @@
 /**
  * @brief Expands to 255u, the cost every table gives the NUL.
  *
- * @note All five tables document the NUL at the ceiling. It terminates the strings the sieve walks,
- *       and a NUL that could be chosen as the offset would anchor the search on the one byte that is
- *       present in every string exactly once and at the end.
+ * @note All five tables document the NUL at the ceiling. It terminates the strings the sieve walks.
+ *       A NUL open to choice as the offset would anchor the search on one byte. That byte is present
+ *       in every string exactly once and at the end.
  */
 #define MMGR_ACCURACY_ANCORAE_CEILING 255u
 
@@ -53,7 +53,7 @@
  * @param[in] byte Byte value to look up.
  * @return         The cost the table holds for it.
  * @note Wraps the call so every case below reads as a lookup. The entry takes its argument through a
- *       compound literal, and repeating that at every site would bury what the cases are checking.
+ *       compound literal, and a repeat of that at every site would bury what the cases check.
  */
 static uint8_t accuracy_cost_of(unsigned byte)
 {
@@ -66,7 +66,7 @@ static uint8_t accuracy_cost_of(unsigned byte)
  * @brief Runs before each Unity test case.
  *
  * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
- * @note The table is initialized data and no case writes anything, and so there is no state to prepare.
+ * @note The table is constant data and no case writes anything, and so there is no state to prepare.
  */
 void setUp(void)
 {
@@ -86,10 +86,10 @@ void tearDown(void)
  * @brief Checks that no byte costs nothing.
  *
  * @note This is the case the file exists for. A cost of 0 wins every comparison cellul_pick_rows
- *       makes, so that byte becomes the sieve offset for every string it appears in, whatever the
+ *       makes. That byte then becomes the sieve offset for every string it appears in, whatever the
  *       corpus said about it.
  * @note The defect this catches is an initializer one entry short. C fills the rest of the array
- *       with zeros and the compiler reports nothing, and the tail of a hand-written 256 entry table
+ *       with zeros and the compiler reports nothing. The tail of a hand-written 256 entry table
  *       is exactly where a miscount lands.
  * @note Walks every byte value, since a zero-filled tail starts wherever the count ran out.
  */
@@ -108,10 +108,10 @@ void test_no_byte_costs_nothing(void)
  * @brief Checks that the NUL sits at the ceiling.
  *
  * @note All five tables document the NUL at 255, the one byte-specific fact they agree on.
- *       It terminates the strings the sieve walks, and one that could be chosen anchors the search
- *       on a byte that is present exactly once and at the end of every string.
- * @note Checked against the ceiling and not merely against a high value, since the ceiling
- *       keeps it from ever being the lowest cost in a set that contains anything else.
+ *       It terminates the strings the sieve walks. One open to choice anchors the search
+ *       on a byte present exactly once and at the end of every string.
+ * @note Checked against the ceiling and not merely against a high value. The ceiling
+ *       keeps it from the lowest cost in any set that contains anything else.
  */
 void test_the_terminator_sits_at_the_ceiling(void)
 {
@@ -120,15 +120,15 @@ void test_the_terminator_sits_at_the_ceiling(void)
 }
 
 /**
- * @brief Checks that the table ranks bytes instead of scoring them all the same.
+ * @brief Checks that the table ranks bytes and does not score them all the same.
  *
- * @note A table holding one value everywhere passes every case above and ranks nothing. The offset
- *       the sieve picks out of it is whichever byte the walk reached first, and the weighting buys
+ * @note A table with one value everywhere passes every case above and ranks nothing. The offset
+ *       the sieve picks out of it is whichever byte the walk reached first, and the weight buys
  *       nothing at all.
- * @note Two counts are taken. The distinct value count states the table has a range, and the count
- *       of bytes below the ceiling states there is something for the ceiling to be above.
- * @note The threshold is deliberately low. This case is looking for a table that is degenerate, not
- *       one that is coarse, and a table with a handful of tiers is a legitimate weighting.
+ * @note Two counts. The distinct value count states the table has a range. The count of bytes
+ *       below the ceiling states there is something for the ceiling to be above.
+ * @note The threshold is deliberately low. This case looks for a table that is degenerate, not
+ *       one that is coarse. A table with a handful of tiers is a legitimate weight.
  */
 void test_the_table_ranks_bytes_instead_of_scoring_them_alike(void)
 {
@@ -159,9 +159,9 @@ void test_the_table_ranks_bytes_instead_of_scoring_them_alike(void)
  * @brief Checks that a lookup depends on its own byte, alone.
  *
  * @note The sieve looks a byte up once per candidate row, in whatever order the walk reaches them.
- *       A lookup that carried state between calls would rank the same string differently depending
- *       on what was parsed before it.
- * @note Every byte is read three times: once in a forward walk, once in a backward walk, and once
+ *       A lookup that carried state between calls would rank the same string differently by what
+ *       came before it.
+ * @note Every byte has three reads. One comes in a forward walk, one in a backward walk, and one
  *       interleaved with a lookup of a different byte. A cost that changed between the three would
  *       show up as a mismatch against the first reading.
  */
@@ -194,15 +194,15 @@ void test_a_lookup_depends_on_its_own_byte_and_nothing_else(void)
 }
 
 /**
- * @brief Checks that the byte the table is indexed by is the byte that was asked for.
+ * @brief Checks that the byte that indexes the table is the byte the caller gave.
  *
- * @note An index that dropped a bit or took the byte as signed returns a real cost from a real entry
- *       and looks correct at every case above. What separates the two is whether two different bytes
- *       can be made to return the same reading in a pattern that a wrong index would produce.
- * @note Bytes 0 through 127 are read against 128 through 255. A lookup that masked the high bit off
+ * @note An index that dropped a bit or took the byte as signed returns a real cost from a real entry.
+ *       It looks correct at every case above. What separates the two is whether two different bytes
+ *       return the same reading in a pattern that a wrong index would produce.
+ * @note Bytes 0 through 127 read against 128 through 255. A lookup that masked the high bit off
  *       returns the low half's costs for both halves, and this fails as soon as one pair differs.
- * @note A table where a pair legitimately holds the same cost is fine. The case is looking for every
- *       pair matching, as a dropped bit produces and what a real weighting does not.
+ * @note A table where a pair legitimately holds the same cost is fine. The case looks for a match in
+ *       every pair, which a dropped bit produces and a real weight does not.
  */
 void test_the_high_half_is_not_the_low_half_read_twice(void)
 {

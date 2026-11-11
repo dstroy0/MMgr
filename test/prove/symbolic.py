@@ -4,10 +4,10 @@
 
 Run with angr's interpreter: `symbolic.py <program> [--steps N]`. nondet_size and nondet_byte answer fresh symbols,
 prove_assume adds its argument's truth to the path's constraints, and prove_failed ends the path as a counterexample.
-Every path is explored to its end. The answer is one line: `proved` where no satisfiable path reaches prove_failed
-and every path ended and at least one satisfiable path reached prove_reached, `counterexample <what> <inputs>`
-where one reaches prove_failed, or `incomplete <reason>` where the exploration hit a path it could not finish or no
-path reached the end, which is never read as a proof.
+Every path runs to its end, and the answer is one line. It is `proved` where no satisfiable path reaches prove_failed,
+every path ended and at least one satisfiable path reached prove_reached. It is `counterexample <what> <inputs>`
+where one reaches prove_failed. It is `incomplete <reason>` where the run hit a path it could not finish or no
+path reached the end, and that never counts as a proof.
 """
 
 import sys

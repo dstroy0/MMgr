@@ -6,9 +6,9 @@
  */
 /**
  * @file memoria_externa_fuzz.c
- * @brief A libFuzzer harness over external memory placement: every request size, DMA requirement, pair of free
- *        figures, threshold and reserve against the placement the header states, and the ping-pong pair through
- *        any sequence of swaps against one bit. Built with external memory on and the module compiled in.
+ * @brief A libFuzzer harness over external memory placement. Every request size, DMA requirement, pair of free
+ *        figures, threshold and reserve runs against the placement the header states. The ping-pong pair runs
+ *        through any sequence of swaps against one bit. Built with external memory on and the module compiled in.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

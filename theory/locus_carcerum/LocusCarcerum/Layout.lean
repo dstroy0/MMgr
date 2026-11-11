@@ -1,13 +1,13 @@
 /-!
 # LocusCarcerum, the persistent tier as its cells
 
-The persistent tier is its cells laid end to end from offset 0: each cell a header, its payload and its owner
-word, `H` the bytes of the header and the owner word together. A cell is busy or free, and a busy cell counts
+The persistent tier is its cells laid end to end from offset 0. Each cell is a header, its payload and its owner
+word, with `H` the bytes of the header and the owner word together. A cell is busy or free, and a busy cell counts
 its payload to its owner. The end is the sum of the cells' footprints.
 
-The sweep (`carcer_swept`) merges every run of free cells into one free cell, the run's footprints summed, and
-returns a free run at the end to the gap. The theorems: the merge keeps every byte laid, the busy cells in
-order and every owner's count; after the merge no two free cells stand together; the trim leaves no free cell
+The sweep (`carcer_swept`) joins every run of free cells into one free cell, the run's footprints summed. It
+returns a free run at the end to the gap. The theorems: the join keeps every byte laid, the busy cells in
+order and every owner's count. After the join no two free cells stand together. The trim leaves no free cell
 at the end, keeps the busy cells and the counts, and the end never rises.
 -/
 
@@ -133,7 +133,7 @@ theorem merge_separated (l : List Cell) : separated (merge H l) := by
       rw [h] at ih
       split
       · next hf =>
-        -- the joined cell is free, and what follows it was separated from the free d
+        -- the joined cell is free, and what follows it stood apart from the free d
         simp at hf
         cases tail with
         | nil => trivial

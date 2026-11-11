@@ -42,7 +42,7 @@ typedef _Bool mmgr_bool;
 #define MMGR_FALSE ((mmgr_bool)0)
 
 /**
- * @brief Stops the build when this header is reached without the widths already chosen.
+ * @brief Stops the build when the include reaches this header without the widths already chosen.
  *
  * @note mmgr_config.h sets both, then includes this file.
  */
@@ -103,7 +103,7 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_idx) <= sizeof(mmgr_word), "an index must fit the
 /**
  * @brief A one-byte enum used only to prove MMGR_ENUM_PACKED reaches the compiler.
  *
- * @note Its range needs a single byte, and so the assertion below fails exactly when packing is ignored.
+ * @note Its range needs a single byte, and so the assertion below fails exactly when the packed attribute has no effect.
  * @warning A failure means MMGR_ENUM_PACKED expanded to nothing; the assertion message states the consequence.
  */
 typedef enum MMGR_ENUM_PACKED

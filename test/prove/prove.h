@@ -6,18 +6,17 @@
  */
 /**
  * @file prove.h
- * @brief The three words a proof harness is written in: an input of any value, an assumption that bounds it, and
+ * @brief The three words of a proof harness. An input of any value, an assumption that bounds it, and
  *        an assertion that must hold on every input the assumptions leave.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
  *
- * @note One harness serves two provers. Under CBMC, which `harness.py prove` runs with PROVE_CBMC defined, the
- *       words are CBMC's own: an undefined function
- *       whose name begins nondet_ answers any value, and __CPROVER_assume and __CPROVER_assert bound and check
- *       the C. Compiled by a toolchain, the words are calls to functions no unit defines; `harness.py prove`'s
- *       machine-code arm hooks each in the symbolic executor, an input a fresh symbol, an assumption a constraint
- *       and an assertion a path to prove unreachable, and the same property is proved over the object code each
- *       compiler lowered.
+ * @note One harness serves two provers, and under CBMC, which `harness.py prove` runs with PROVE_CBMC defined,
+ *       the words are CBMC's own. An undefined function whose name begins nondet_ answers any value, and
+ *       __CPROVER_assume and __CPROVER_assert bound and check the C. Compiled by a toolchain, the words are
+ *       calls to functions no unit defines. The machine-code arm of `harness.py prove` hooks each in the
+ *       symbolic executor. An input is a fresh symbol, an assumption a constraint and an assertion a path to
+ *       prove unreachable. The same property then holds over the object code each compiler lowered.
  */
 #ifndef MMGR_PROVE_H
 #define MMGR_PROVE_H
@@ -66,9 +65,9 @@ void prove_failed(const char *what);
 #define PROVE_CELL_HEADER ((sizeof(embed_atomic_usize) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
 
 /**
- * @brief LocusCarcerum's report of a give or growth that names another owner, defined by the harness that
- *        includes this after locus_carcerum.h: every give a harness makes names the cell's own owner, and the report
- *        is a failure.
+ * @brief LocusCarcerum's report of a give or growth that names another owner, which the harness that includes
+ *        this after locus_carcerum.h defines. Every give a harness makes names the cell's own owner, and the
+ *        report is a failure.
  */
 #define PROVE_NO_MISNAMED()                                                                                            \
     void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes)                    \

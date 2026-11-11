@@ -6,36 +6,33 @@
 Bitmaps and not range chains: one shift and one and answers any class, and every class costs the same.
 
 Sixteen bytes and not two uint64, because this library builds at EMBED_WORD_BITS 16 as well as
-64 and a 64-bit shift is a called routine there. Indexing bytes is the same one load, one shift, one
+64 and a 64-bit shift is a called routine there. A byte index is the same one load, one shift, one
 and on every width, and needs no per-width form of the constants.
 
-A class is named by an index and answered by the .c that holds the masks. The masks used to be ten
-static const objects in the header, which is a hundred and sixty bytes of them in every translation
-unit that wanted to ask one question, and their initializer macros stayed in the header after the
-storage moved out - ten names in the global preprocessor namespace of every consumer, for the
-benefit of one file. Both now live in the .c, the only thing that reads them.
+An index names a class and the .c that holds the masks answers it. The masks and their initializer
+macros live in the .c, the only thing that reads them. In the header they would cost a hundred and
+sixty bytes in every translation unit that asks one question. They would also put ten names in the
+global preprocessor namespace of every consumer, for the benefit of one file.
 
-WHAT IS GENERATED AND WHAT IS NOT
+WHAT THE GENERATOR WRITES AND WHAT IT DOES NOT
 
-The masks are generated from the predicates below, because they are exactly the constants nobody
-can check by eye: the first three written out by hand had 'Z' missing from ALPHA, and space, DEL
-and 0x1F wrongly in PUNCT. The enum is generated with them. A class can never be numbered
-differently from the row it indexes.
+The masks come from the predicates below, because they are exactly the constants nobody can check
+by eye. A mask written by hand can lose 'Z' from ALPHA, or put space, DEL and 0x1F in PUNCT. The enum
+comes out with them. A class can never have a number different from the row it indexes.
 
-Everything else in the two files is prose and structure that describes THIS module, and it is
-written out here in full and not left to a hand pass over the output. A generated file that is
-then documented by hand loses the documentation the next time the generator runs, as
-happened to all three of this tree's generators.
+Everything else in the two files is prose and structure that describes THIS module. It is here in
+full and not left to a hand pass over the output. A generated file with notes added by hand loses
+the notes the next time the generator runs.
 
-FORMATTING, AND WHY THE TWO FILES ARE TREATED DIFFERENTLY
+FORMAT, AND WHY THE TWO FILES DIFFER
 
-ascii_persona_bitorum.h is listed in .clang-format-ignore: the formatter and this generator disagree
-about the mask table, and the generator wins. So the header is emitted byte for byte as it must land,
-including the column the enum comments sit in.
+ascii_persona_bitorum.h is in .clang-format-ignore. The formatter and this generator disagree
+about the mask table, and the generator wins. So the header comes out byte for byte as it must land,
+with the column the enum comments sit in.
 
-ascii_persona_bitorum.c is NOT ignored, and so clang-format owns its layout and the generator emits a
-plain table and runs the formatter over it. Without that the output differs from what is on disk
-until something else has run, and `harness.py generated` reads that as a dirty tree. A missing
+ascii_persona_bitorum.c is NOT in that list, and so clang-format owns its layout. The generator
+emits a plain table and runs the formatter over it. Without that the output differs from what is on
+disk until something else runs, and `harness.py generated` reads that as a dirty tree. An absent
 clang-format stops the run with an error.
 """
 
@@ -92,7 +89,7 @@ def ctrl(c):
     return c < 0x20 or c == 0x7F
 
 
-# In enum order. These are the values of MmgrAsciiClass, and so this list is API: reordering it
+# In enum order. These are the values of MmgrAsciiClass, and so this list is API. A new order
 # renumbers the classes under every caller that already compiled against them.
 #
 # The third column is the enumerator's own Doxygen line in the header. It states the code points the
@@ -110,7 +107,7 @@ CLASSES = [
     ("PRINT", prnt, "32 to 126."),
 ]
 
-# The enumerator count closes the enum. It is not a class and passing it is out of range.
+# The enumerator count closes the enum. It is not a class and as an argument it is out of range.
 COUNT = ("CLASSES", "Enumerator count and not a class.")
 
 
@@ -124,20 +121,19 @@ def bytes_of(pred):
 
 # The column the enumerator comments start in, measured from the end of the four space indent.
 #
-# The header is listed in .clang-format-ignore, and so the formatter never sees it and this alignment is
+# The header is in .clang-format-ignore, and so the formatter never sees it and this alignment is
 # the generator's to hold. The width is two wider than the longest entry plus the one space
-# SpacesBeforeTrailingComments asks for, the column the header has carried since before the
-# masks moved out of it. It is reproduced and not normalized: closing the gap would rewrite
-# eleven lines of a generated file to no effect anybody reads.
+# SpacesBeforeTrailingComments asks for. That is the column the header carries, and it stays as
+# it is. A narrower gap would rewrite eleven lines of a generated file to no effect anybody reads.
 ENUM_COMMENT_WIDTH = 22
 
 
 def enum_block():
     """The enumerator lines, with every Doxygen comment in one column.
 
-    Refuses instead of overflowing the column, because a single long enumerator would push its own
-    comment out and leave the other ten where they are, which reads as ten misaligned lines instead
-    of one long one.
+    Refuses and does not run past the column. A single long enumerator would push its own
+    comment out and leave the other ten where they are. That reads as ten misaligned lines and not
+    one long one.
     """
     entries = [("MMGR_ASCII_%s = 0," % CLASSES[0][0], CLASSES[0][2])]
     entries += [("MMGR_ASCII_%s," % name, doc) for name, _pred, doc in CLASSES[1:]]
@@ -386,7 +382,7 @@ def main():
     source.write_text(SRC % {"rows": mask_rows()}, encoding="utf-8", newline="\n")
     cmake.write_text(CMAKE, encoding="utf-8", newline="\n")
 
-    # The header is in .clang-format-ignore and is emitted as it must land. Only the .c is formatted.
+    # The header is in .clang-format-ignore and comes out as it must land. Only the .c goes through the formatter.
     subprocess.run([clang, "-i", str(source)], check=True)
 
     for path in (header, source, cmake):

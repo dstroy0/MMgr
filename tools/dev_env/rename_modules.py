@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Move the modules from the names they arrived under onto this library's Latin category names.
 
-Driven entirely by tools/dev_env/names.tsv. Nothing about the naming lives in this file. A change
+Driven entirely by tools/dev_env/names.tsv. Nothing about the names lives in this file. A change
 of mind is an edit to the table and not to the code.
 
     rename_modules.py symbols   mmgr_<infix>_<tail>, and the verbs inside the tail
@@ -14,15 +14,15 @@ of mind is an edit to the table and not to the code.
 
 Dry run by default; --go writes.
 
-WHY IT CHECKS BEFORE IT WRITES. Several old names map onto one new one by design - bw and br both
-become byteio - so the map is many-to-one, and a many-to-one map can merge two distinct identifiers
+WHY IT CHECKS BEFORE IT WRITES. Several old names map onto one new one by design. Both bw and br
+become byteio, so the map is many-to-one. A many-to-one map can fold two distinct identifiers
 into a single name. That is a miscompile no rename tool reports afterwards: the build still
 succeeds, it just calls the wrong function. Every mode below computes its whole map first, refuses
 on a collision, and only then writes.
 
 The verb pass runs on the TAIL only, never on the whole symbol. A module whose stem happens to
-contain a verb is not rewritten by accident. Verbs are applied longest-first, or scratch_alloc is
-eaten by alloc and leaves scratch_capio behind.
+contain a verb does not change by accident. Verbs go longest-first, or alloc takes scratch_alloc
+and leaves scratch_capio behind.
 """
 
 import io
@@ -55,7 +55,7 @@ def load_table():
             types[parts[1]] = parts[2]
         elif kind == "NS":
             namespaces.append({"otype": parts[1], "oinst": parts[2], "ntype": parts[3], "ninst": parts[4]})
-    # Longest first: scratch_alloc must be tried before alloc, or alloc matches inside it.
+    # Longest first: scratch_alloc must come before alloc, or alloc matches inside it.
     verbs.sort(key=lambda kv: -len(kv[0]))
     return modules, infixes, verbs, types, namespaces
 
@@ -82,7 +82,7 @@ def mode_symbols(go):
     modules, infixes, verbs, _t, _n = load_table()
     SYM = re.compile(r"\bmmgr_([a-z0-9]+)_([a-z0-9_]+)\b")
 
-    # Whole-tree map first. A collision is found before a single file is touched.
+    # Whole-tree map first. A collision shows before a single file changes.
     mapping = {}
     for p in sources(SRC):
         text = io.open(p, encoding="utf-8", errors="replace").read()
@@ -152,17 +152,17 @@ def mode_headers(go):
 def mode_types(go):
     """Data typedefs, the Ns type, and the Ns instance.
 
-    The instance is the delicate one. It is a bare lowercase word - mem, span, raw, bytes - and each
-    of those is also something else in this tree: `mem` is the struct member holding pool storage,
-    `span` and `raw` are function-pointer member names inside the very structs being renamed, and
-    `secure` appears inside an MMGR_ASSERT message. Rewriting the bare identifier corrupts all four,
-    and so only two forms are touched:
+    The instance is the delicate one. It is a bare lowercase word, mem, span, raw, bytes, and each
+    of those is also something else in this tree. `mem` is the struct member that holds pool storage.
+    `span` and `raw` are function-pointer member names inside the very structs under rename, and
+    `secure` appears inside an MMGR_ASSERT message. A rewrite of the bare identifier corrupts all four,
+    and so only two forms change:
 
         const <OldNs> <oldinstance>     the declaration
         <oldinstance>.                  member access, the only way an instance is read
 
-    A member-access match must also NOT be preceded by `->` or `.`, and so
-    `ctx->store->mem` is left alone while `mem.cpy(...)` is rewritten.
+    A member-access match must also NOT have `->` or `.` before it, and so
+    `ctx->store->mem` stays as it is while `mem.cpy(...)` changes.
     """
     _m, _i, _v, types, namespaces = load_table()
 
@@ -215,9 +215,9 @@ def mode_files(go):
                 dst = os.path.join(SRC, latin, latin + fn[len(old) :])
             else:
                 dst = os.path.join(SRC, latin, fn)
-            # bitio, dma and endian are already their own category name, and so every file in them maps
-            # to itself. git mv refuses that ("cannot move directory into itself") and not
-            # treating it as a no-op, and so the no-ops are dropped here instead.
+            # The bitio, dma and endian directories are already their own category name, and so every
+            # file in them maps to itself. A git mv refuses that ("cannot move directory into itself")
+            # and does not treat it as a no-op. So the no-ops drop out here instead.
             if os.path.abspath(src) != os.path.abspath(dst):
                 moves.append((src, dst))
 

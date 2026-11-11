@@ -6,9 +6,9 @@
  */
 /**
  * @file bitorum_introitus_exitus_fuzz.c
- * @brief A libFuzzer harness over the bit writer: puts and aligns of any width on a buffer of any capacity, against
- *        a model that appends one bit at a time low bit first, refuses a put whose whole bytes pass the capacity and
- *        stops every write after it.
+ * @brief A libFuzzer harness over the bit writer. Puts and aligns of any width run on a buffer of any capacity,
+ *        against a model. The model appends one bit at a time low bit first. It refuses a put whose whole bytes
+ *        pass the capacity and stops every write after it.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */
@@ -20,7 +20,7 @@
 
 #define FUZZ_CAP_MOST 64u
 
-/** @brief The model of a writer: the bytes it wrote, its pending bits and whether it overflowed. */
+/** @brief The model of a writer: the bytes it wrote, its residue bits and whether it overflowed. */
 typedef struct
 {
     uint8_t out[FUZZ_CAP_MOST];

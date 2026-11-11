@@ -6,9 +6,10 @@
  */
 /**
  * @file memoria_anularis_fuzz.c
- * @brief A libFuzzer harness over the ring: init with any sizes against the refusals it states, then any sequence
- *        of puts, reads, single byte reads, peeks and consumes against a byte queue that keeps one byte reserved,
- *        the segment view against a claim and a release counter, and the loculi against a free and a pinned mask.
+ * @brief A libFuzzer harness over the ring. init with any sizes runs against the refusals it states. Then any
+ *        sequence of puts, reads, single byte reads, peeks and consumes runs against a byte queue that keeps one
+ *        byte reserved. The segment view runs against a claim and a release counter, and the loculi against a free
+ *        and a pinned mask.
  *        A ring laid with a segment size carries no byte stream, and the model checks that too.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06

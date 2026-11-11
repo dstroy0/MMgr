@@ -9,7 +9,7 @@ The sequence is the old value of a `fetch_add` on a counter of the owner, one fo
 owner have sequences one after the other, in the order the counter gives them.
 
 The pair (place, sequence) names each take. An undo of one owner's work back to a mark gives back the owner's cells
-whose sequence is after the mark, and keeps each other cell. Which cells those are depends on the cells alone, and
+whose sequence is after the mark. It keeps each other cell. Which cells those are depends on the cells alone, and
 on no time or schedule.
 
 The sequence rolls in its field of b bits. A cell is after the mark where its distance from the mark, modulo 2^b,
@@ -20,7 +20,7 @@ The theorems:
 
 - `fields_64` and `fields_32`: the fields at 1024 owners, ten place bits, do not overlap and fill the word.
 - `word_fields_64` and `word_fields_32`: a word built from a place and a sequence gives both back.
-- `after_exact` and `before_exact`: a take d steps after the mark, d below 2^(b - 1), reads after it, and a take at
+- `after_exact` and `before_exact`: a take d steps after the mark, d below 2^(b - 1), reads after it. A take at
   or before the mark reads not after it.
 - `undo_keeps_others`, `undo_removes`: the undo keeps each cell of another owner and each cell of the owner at or
   before the mark, and gives back each other cell.

@@ -6,9 +6,9 @@
  */
 /**
  * @file locus_carcerum_writers_genmc.c
- * @brief Two writers on one closed bit, every execution the memory model allows: a temporary take only a spill
+ * @brief Two writers on one closed bit, every execution the memory model allows. A temporary take only a spill
  *        can meet, against the give of the cell at the temporary top. Whichever holds the bit first, the other
- *        backs off and sleeps on the closed word or leaves its trim owed, and once both join and every cell goes
+ *        backs off and sleeps on the closed word or leaves its trim owed. Once both join and every cell goes
  *        back the cellblock is idle, nothing owed, every owner at zero.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
@@ -75,7 +75,7 @@ int main(void)
     s_temporary[0] = mmgr_temporary_buf_alloc(GENMC_BLOCK, GENMC_PAYLOAD, s_writer);
     s_temporary[1] = mmgr_temporary_buf_alloc(GENMC_BLOCK, GENMC_PAYLOAD, s_writer);
     assert((s_temporary[0] != NULL) && (s_temporary[1] != NULL));
-    // persistent cells until a take is refused: the gap left holds no cell
+    // persistent cells until a take fails: the gap left holds no cell
     while (s_persistent_count < GENMC_PERSISTENT_MOST)
     {
         void *const cell = mmgr_persistent_buf_alloc(GENMC_BLOCK, GENMC_PAYLOAD, s_writer);
@@ -93,7 +93,7 @@ int main(void)
     (void)pthread_join(threads[0], NULL);
     (void)pthread_join(threads[1], NULL);
 
-    // the spill met its take where the give's cell was trimmed past before its walk, and nowhere else
+    // the spill met its take where the trim passed the give's cell before its walk, and nowhere else
     assert((s_spilled == NULL) || (s_spilled == s_temporary[1]));
 
     if (s_spilled != NULL)

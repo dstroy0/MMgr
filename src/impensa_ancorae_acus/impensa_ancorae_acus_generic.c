@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note One of five files defining mmgr_ancorae_impensa. A build links exactly one of them.
+ * @note One of five files that define mmgr_ancorae_impensa. A build links exactly one of them.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
@@ -19,7 +19,7 @@
  *
  * @note Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.
  * @note 255 marks the NUL and the space, and so neither is ever chosen as a sieve offset.
- * @note Bytes 128 through 255 all carry 107, and so no high byte is preferred over another.
+ * @note Bytes 128 through 255 all carry 107, and so no high byte ranks over another.
  * @note The entries carry no U suffix. Each is within 0 to 255, and so the initializer stores it as a
  *       uint8_t unchanged.
  */

@@ -1,4 +1,4 @@
-"""Shared call-rewriting primitives, correct about the three things my ad-hoc converters got wrong:
+"""Shared primitives for a call rewrite, correct about three things an ad-hoc tool gets wrong:
 
 1. String and character literals. A '(' or ',' inside "a\"b" or ')' is not syntax, and so every scan
    here steps over literals instead of counting their characters.
@@ -6,7 +6,7 @@
    statements, and so they belong above the whole enclosing STATEMENT - never at the start of the line
    the call happens to sit on, which inside a multi-line macro argument list is between the macro's
    arguments and does not compile.
-3. Loop conditions. `while ((n = f(x)) > 0)` re-evaluates the call every iteration; hoisting it
+3. Loop conditions. `while ((n = f(x)) > 0)` re-evaluates the call every iteration. A lift
    above the loop calls it once and spins forever. The tool cannot rewrite that faithfully, and so it
    refuses and reports instead of guessing.
 """
@@ -17,7 +17,7 @@ from codemask import code_mask
 
 
 def _skip_literal(s, i):
-    """i indexes the opening quote; returns the index just past the closing one."""
+    """i indexes the open quote; returns the index just past the close quote."""
     q = s[i]
     i += 1
     while i < len(s):
@@ -31,7 +31,7 @@ def _skip_literal(s, i):
 
 
 def close_paren(s, open_after):
-    """open_after indexes just past a '('; returns the index just past its matching ')'."""
+    """open_after indexes just past a '('; returns the index just past the ')' that matches it."""
     i, depth = open_after, 1
     while i < len(s) and depth:
         c = s[i]
@@ -74,8 +74,8 @@ def split_args(txt):
 def has_statement_separator(txt):
     """True when txt holds a ';' that is real syntax and not text inside a literal.
 
-    An HTML entity in a string ("a&lt;b") carries a ';' that is not a statement separator, and for that reason
-    this steps over literals instead of searching the raw text.
+    An HTML entity in a string ("a&lt;b") carries a ';' that is not a statement separator. For that
+    reason this steps over literals instead of a search of the raw text.
     """
     i = 0
     while i < len(txt):
@@ -100,10 +100,10 @@ def _brace_is_compound_literal(s, brace, mask):
     """True when s[brace] == '{' opens a compound literal and not a block.
 
     `(T[]){...}`, `if (x) {` and `void f(void) {` all put a ')' before the brace, and so the ')' decides
-    nothing. What separates them is the character immediately before the '(' that ')' closes: an
+    nothing. What separates them is the character immediately before the '(' that ')' closes. An
     identifier character means a call, a definition or a control statement, and so the brace opens a
-    block; anything else (a comma, an '=', an open paren, the start of a statement) means the parens
-    were a cast, and so the brace opens an initializer.
+    block. Anything else (a comma, an '=', an open paren, the start of a statement) means the parens
+    were a cast. So the brace opens an initializer.
     """
     j = brace - 1
     while j > 0 and (not mask[j] or s[j] in " \t\r\n"):
@@ -127,7 +127,7 @@ def _brace_is_compound_literal(s, brace, mask):
 
 
 def _line_is_directive(s, nl):
-    """True when the line ending at the newline `nl` is a preprocessor directive.
+    """True when the line that ends at the newline `nl` is a preprocessor directive.
 
     A directive continued with a trailing backslash carries the whole run, and so the first line of the
     run is the single one tested.
@@ -141,13 +141,13 @@ def _line_is_directive(s, nl):
 
 
 def statement_start(s, pos, mask=None):
-    """Index of the first non-space character of the statement containing pos.
+    """Index of the first non-space character of the statement that holds pos.
 
-    Walks back to the nearest ';', '{', '}', ':' or preprocessor directive line at nesting depth
-    zero, stepping over any '(' or '[' that opened before pos (a call or macro argument list the
-    position sits inside - the statement began before it). Comment and literal bytes are plain text
-    with no syntax: an apostrophe in "Setter's" is not a char literal and parens in prose do not nest, and so
-    both are skipped.
+    Walks back to the nearest ';', '{', '}', ':' or preprocessor directive line at nest depth
+    zero. It steps over any '(' or '[' that opened before pos, a call or macro argument list the
+    position sits inside. The statement began before it. Comment and literal bytes are plain text
+    with no syntax. An apostrophe in "Setter's" is not a char literal and parens in prose do not
+    nest, and so the walk passes over both.
     """
     if mask is None:
         mask = code_mask(s)
@@ -171,7 +171,7 @@ def statement_start(s, pos, mask=None):
                 break  # a complete block precedes us: it ended the previous statement
             depth += 1
         elif c == "{":
-            # `(T[]){ ... }` is a compound literal and not a block: stopping at its brace put the
+            # `(T[]){ ... }` is a compound literal and not a block. A stop at its brace puts the
             # staging inside the initializer. `if (x) {` looks the same until you read past the '('.
             if depth:
                 depth -= 1
@@ -184,8 +184,8 @@ def statement_start(s, pos, mask=None):
             break
         i -= 1
     # Forward to the statement's own first character. A comment between the separator and the
-    # statement is text, and so it is stepped over: stopping on it puts the statement start on the
-    # PREVIOUS line, and the staging hoisted there lands above the statement before this one.
+    # statement is text, and so the step passes over it. A stop on it puts the statement start on
+    # the PREVIOUS line. The staging lifted there lands above the statement before this one.
     while i < len(s):
         if s[i] in " \t\r\n":
             i += 1
@@ -207,15 +207,15 @@ LOOP = re.compile(r"\b(while|for)\s*\($")
 def after_short_circuit(s, pos, mask=None):
     """True when the call at pos sits to the right of an `&&`, `||`, `?` or `:` in the same statement.
 
-    Hoisting it above the statement runs it before the operand that gates it, and unconditionally.
+    A lift above the statement runs it before the operand that gates it, and unconditionally.
     `if (!r8(REG, &irq) || !data_ready(irq))` is the shape: r8 fills irq and the right operand reads
     it. A hoisted data_ready sees the value from before the read - and runs even when r8 already
     decided the answer.
 
-    A conditional operator gates its branches the same way, and it is worse when it is missed: the
-    staging for the second branch was hoisted INTO the middle of the expression and not above
-    it. smb_client's `return algo == CMAC ? verify_cmac(...) : verify(...)` came out as a syntax
-    error, and the half of it that did parse ran verify_cmac unconditionally.
+    A conditional operator gates its branches the same way, and a miss there is worse. The
+    staging for the second branch lands INTO the middle of the expression and not above
+    it. `return algo == CMAC ? verify_cmac(...) : verify(...)` comes out as a syntax
+    error, and the half of it that does parse runs verify_cmac unconditionally.
     """
     if mask is None:
         mask = code_mask(s)
@@ -236,7 +236,7 @@ def after_short_circuit(s, pos, mask=None):
             return True
         elif depth == 0 and c == "?":
             return True
-        # `:` also ends a label, a bitfield width and a `case`; only the one belonging to a `?`
+        # `:` also ends a label, a bitfield width and a `case`; only the one that belongs to a `?`
         # already scanned past on this statement gates a branch.
         elif depth == 0 and c == ":" and s[i - 1 : i] != ":" and s[i + 1 : i + 2] != ":":
             return "?" in _statement_before(s, i, mask)
@@ -255,11 +255,11 @@ def _statement_before(s, pos, mask):
     return "".join(reversed(out))
 
 
-# Macros that evaluate an argument more than once. Hoisting a call out of one of these is the
-# loop-condition mistake wearing a macro: DBENCH_OP(label, n, expr) runs expr n times to time it.
-# A call lifted above it is measured once and the benchmark then times an addition. DBENCH_BULK
-# hands its expr to the same DBENCH_CYCLES loop and was missed, and that is how one bench came out
-# timing `sink += Ns.n`.
+# Macros that evaluate an argument more than once. A call lifted out of one of these is the
+# loop-condition mistake in a macro: DBENCH_OP(label, n, expr) runs expr n times to time it.
+# A call lifted above it runs once and the benchmark then times an addition. DBENCH_BULK
+# hands its expr to the same DBENCH_CYCLES loop, and a bench with that call lifted would time
+# `sink += Ns.n`.
 REPEATING = ("DBENCH_OP", "DBENCH_BULK", "DBENCH_CYCLES")
 
 
@@ -289,7 +289,7 @@ def in_repeating_macro(s, pos, mask=None):
 
 
 def in_loop_condition(s, pos, mask=None):
-    """True when the call at pos sits inside a while/for controlling expression."""
+    """True when the call at pos sits inside a while/for control expression."""
     st = statement_start(s, pos, mask)
     head = s[st:pos]
     if re.match(r"\s*(while|for)\s*\(", head):
@@ -303,10 +303,10 @@ def unbraced_body_head(s, st, mask=None):
 
     `if (x) f(a);`, an `else` with no brace, a one-line `for` or `while`: the body is one statement.
     A rewrite turns that statement into several, and only the first stays in the body while the rest
-    run unconditionally. dtls_conn's `else` around the X.509 Certificate was this - it compiled, and
-    the RawPublicKey branch's result was overwritten by the arm that was supposed to be skipped.
+    run unconditionally. An `else` with a call in its body is this. The build passes, and the arm
+    that should not run writes over the result of the branch before it.
 
-    Reads backwards from `st` over space, comments and directive lines: a `)` that closes an
+    Reads backwards from `st` over space, comments and directive lines. A `)` that closes an
     `if` / `for` / `while` head, or the keyword `else` or `do`, is a head with no brace after it.
     """
     if mask is None:
@@ -361,7 +361,7 @@ def _skip_fluff(s, i):
 def body_after_head(s, st, call_start):
     """When the statement at `st` is a control head, where its unbraced body starts.
 
-    `if (x) n = f(a);` is ONE statement to statement_start, and so hoisting the staging above it runs
+    `if (x) n = f(a);` is ONE statement to statement_start, and so a lift of the staging above it runs
     the call whatever the condition said - the same defect `after_short_circuit` refuses for
     `&&`. Returns None when `st` is not a head, when the call sits in the head's own condition, or
     when the body already has a brace.
@@ -392,7 +392,7 @@ def body_after_head(s, st, call_start):
 
 
 def statement_end(s, pos, mask=None):
-    """Index just past the `;` that ends the statement containing pos."""
+    """Index just past the `;` that ends the statement that holds pos."""
     if mask is None:
         mask = code_mask(s)
     depth, i = 0, pos
@@ -410,7 +410,7 @@ def statement_end(s, pos, mask=None):
 
 
 def _open_paren(s, close, mask):
-    """Index of the `(` matching the `)` at `close`, or -1."""
+    """Index of the `(` that matches the `)` at `close`, or -1."""
     depth, i = 0, close
     while i >= 0:
         if mask[i]:
@@ -433,7 +433,7 @@ def indent_of(s, pos):
 
 
 def calls_in_statement(s, pos, pattern, mask=None):
-    """How many calls matching `pattern` share the statement containing pos."""
+    """How many calls that match `pattern` share the statement that holds pos."""
     if mask is None:
         mask = code_mask(s)
     st = statement_start(s, pos, mask)
@@ -453,13 +453,13 @@ def calls_in_statement(s, pos, pattern, mask=None):
         elif c == ";" and depth == 0:
             break
         end += 1
-    # count only matches that are code: a bench label like "mmgr_config_get_str (trunc)"
+    # count only matches that are code. A bench label like "mmgr_config_get_str (trunc)"
     # names the entry inside a string literal, and that is text and not a second call.
     return sum(1 for m in pattern.finditer(s, st, end + 1) if mask[m.start()])
 
 
 def rewrite(s, call_start, call_end, staging, value, pattern=None, mask=None):
-    """Replace s[call_start:call_end] with `value`, hoisting `staging` above the statement.
+    """Replace s[call_start:call_end] with `value`, and lift `staging` above the statement.
 
     When the call was the whole statement (its value unused) the statement and its ';' go away and
     only the staging remains. Raises when the call is a loop condition: see the module docstring.
@@ -475,16 +475,16 @@ def rewrite(s, call_start, call_end, staging, value, pattern=None, mask=None):
             "call is the right operand of && or ||; hoisting runs it before the operand "
             "that gates it, and unconditionally. Rewrite it by hand"
         )
-    # Two calls to the same namespace in one statement cannot both be hoisted: the namespace has one
-    # result member, and so the first value is overwritten by the second and both reads see the last.
-    # memcmp(f(0)->h, f(1)->h, n) would silently compare a value with itself.
+    # Two calls to the same namespace in one statement cannot both lift. The namespace has one
+    # result member. So the second value writes over the first and both reads see the last.
+    # A `memcmp(f(0)->h, f(1)->h, n)` would silently compare a value with itself.
     if pattern is not None and calls_in_statement(s, call_start, pattern, mask) > 1:
         raise ValueError(
             "two calls to this namespace share one statement; capture the first result "
             "into a local and rewrite by hand"
         )
     st = statement_start(s, call_start, mask)
-    # One statement becomes several. A control head with no brace has to gain one: without it the
+    # One statement becomes several. A control head with no brace has to gain one. Without it the
     # call runs whatever the condition said, and only the first staging line stays in the body.
     brace = unbraced_body_head(s, st, mask)
     if not brace:
@@ -506,6 +506,6 @@ def rewrite(s, call_start, call_end, staging, value, pattern=None, mask=None):
             return s[:ls] + open_b + body + close_b + s[j + 1 :]
     if not brace:
         return s[:ls] + body + "\n" + lead + value + s[call_end:]
-    # The `;` still sits past the call, and so the closing brace goes after the whole statement.
+    # The `;` still sits past the call, and so the close brace goes after the whole statement.
     end = statement_end(s, call_end, mask)
     return s[:ls] + open_b + body + "\n" + lead + value + s[call_end:end] + close_b + s[end:]

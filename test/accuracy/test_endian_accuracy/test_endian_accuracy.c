@@ -32,12 +32,12 @@
  * @brief Expands to 8, the widest endian move and the size of the staging buffers below.
  *
  * @note MMGR_ENDIAN_64 is the widest enumerator. The buffers carry a guard byte past it. A write
- *       that ran long is caught at the byte after the one it was allowed.
+ *       that ran long fails at the byte after the last one it may touch.
  */
 #define MMGR_ACCURACY_ENDIAN_MAX 8u
 
 /**
- * @brief Expands to 0xA5, the byte every staging buffer is filled with before a write.
+ * @brief Expands to 0xA5, the byte every staging buffer holds before a write.
  *
  * @note Neither 0x00 nor 0xFF, and not a byte of any test value. A byte left untouched is then
  *       distinguishable from one the call wrote.
@@ -48,12 +48,12 @@
  * @brief Set to 1 where this host puts a value's least significant byte at the lowest address.
  *
  * @note The compiler states the order in __BYTE_ORDER__, and so nothing here works it out. That is the
- *       toolchain's answer and not the library's, as keeps it usable as a reference:
- *       MMGR_HW_BIG_ENDIAN is what the module branches on, and reading it would put the same answer
+ *       toolchain's answer and not the library's, which keeps it usable as a reference.
+ *       MMGR_HW_BIG_ENDIAN is what the module branches on, and a read of it would put the same answer
  *       on both sides of every comparison below.
  * @note A compile-time constant, and so every expectation below folds and no case carries a run-time
  *       branch on the order.
- * @warning The #error arm fires on a toolchain that predefines neither. Guessing an order there
+ * @warning The #error arm fires on a toolchain that predefines neither. A guess at the order there
  *          would make every placement check pass against whatever this file assumed.
  */
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
@@ -63,12 +63,12 @@
 #endif
 
 /**
- * @brief Returns the byte a value carries at a given position, counting from its least significant.
+ * @brief Returns the byte a value carries at a given position, from its least significant up.
  *
  * @param[in] value    Value to take a byte out of.
- * @param[in] position Byte position, 0 being the least significant.
+ * @param[in] position Byte position, where 0 is the least significant.
  * @return             That byte.
- * @note One shift and one mask. This is the complete reference every expectation is built from.
+ * @note One shift and one mask. This is the complete reference every expectation comes from.
  */
 static uint8_t accuracy_byte_at(uint64_t value, unsigned position)
 {
@@ -117,9 +117,9 @@ void tearDown(void)
  * @brief Checks the byte extraction this suite rests on.
  *
  * @note Exists to catch a defect in the helper as itself. Without this case a broken
- *       accuracy_byte_at would surface as an endian mismatch, and the module would be blamed.
+ *       accuracy_byte_at would surface as an endian mismatch, and the module would look wrong.
  * @note The expectations are literals a reader can check. 0x0123456789ABCDEF holds 0xEF at position
- *       0 and 0x01 at position 7, counting from the least significant byte.
+ *       0 and 0x01 at position 7, from the least significant byte up.
  */
 void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
 {
@@ -134,10 +134,10 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
  * @brief Checks that the host-order write puts each byte of the value where the host puts it.
  *
  * @note parva_extremitas moves bytes as they lie. On a little endian host the byte at the lowest
- *       address is the value's least significant, and on a big endian host it is the most
- *       significant of the width being written.
- * @note The guard byte past the width is checked on every case. A write that moved eight bytes for a
- *       width of two is caught there.
+ *       address is the value's least significant. On a big endian host it is the most
+ *       significant of the width under write.
+ * @note Every case checks the guard byte past the width. A write that moved eight bytes for a
+ *       width of two fails there.
  */
 void test_the_host_order_write_places_every_byte(void)
 {
@@ -177,9 +177,9 @@ void test_the_host_order_write_places_every_byte(void)
 /**
  * @brief Checks that the reversed write is the host-order write with its bytes turned around.
  *
- * @note magna_extremitas is documented as the reverse of the host's order. The expectation is built
+ * @note The notes on magna_extremitas give it as the reverse of the host's order. The expectation comes
  *       from the same byte extraction with the position mirrored across the width.
- * @note Comparing against the mirrored reference and not against the other table keeps this
+ * @note A compare against the mirrored reference and not against the other table keeps this
  *       independent of whether parva_extremitas is itself correct.
  */
 void test_the_reversed_write_places_every_byte(void)
@@ -219,9 +219,9 @@ void test_the_reversed_write_places_every_byte(void)
 /**
  * @brief Checks that each read returns the value its bytes stand for under that table's order.
  *
- * @note The bytes are laid out here one at a time and the expectation is assembled from them with
- *       shifts, and so nothing about the answer comes from the module's own loads.
- * @note Both tables are read from the same buffer. The two answers are the value and its reversal at
+ * @note The bytes go down here one at a time and shifts build the expectation from them. So
+ *       nothing about the answer comes from the module's own loads.
+ * @note Both tables read from the same buffer. The two answers are the value and its reversal at
  *       that width, and that leaves a read that ignored its order visible.
  */
 void test_each_read_returns_the_value_its_bytes_stand_for(void)
@@ -239,7 +239,7 @@ void test_each_read_returns_the_value_its_bytes_stand_for(void)
 
         for (unsigned position = 0u; position < width; position++)
         {
-            // Explicit casts widen each byte to the uint64_t the expectation is assembled in. The
+            // Explicit casts widen each byte to the uint64_t that holds the expectation. The
             // shift places it at the position that order gives it
             const unsigned host_shift = MMGR_ACCURACY_HOST_LITTLE ? position : (width - 1u - position);
             const unsigned reverse_shift = MMGR_ACCURACY_HOST_LITTLE ? (width - 1u - position) : position;
@@ -258,12 +258,12 @@ void test_each_read_returns_the_value_its_bytes_stand_for(void)
 }
 
 /**
- * @brief Checks that the reversal moves each byte to the position mirroring it across the width.
+ * @brief Checks that the reversal moves each byte to its mirror position across the width.
  *
- * @note rev takes no buffer and reads no memory, and so the expectation is built from the value alone.
+ * @note rev takes no buffer and reads no memory, and so the expectation comes from the value alone.
  *       Byte at position i of the result is byte at width minus one minus i of the input.
- * @note The result is right-aligned into the low width bytes, and so the positions above the width are
- *       checked to be zero.
+ * @note The result sits right-aligned in the low width bytes, and so the positions above the width
+ *       have to be zero.
  */
 void test_the_reversal_mirrors_every_byte_across_the_width(void)
 {
@@ -284,7 +284,7 @@ void test_the_reversal_mirrors_every_byte_across_the_width(void)
 
             for (unsigned position = 0u; position < width; position++)
             {
-                // Explicit cast widens the mirrored byte to the uint64_t the expectation is built in
+                // Explicit cast widens the mirrored byte to the uint64_t that holds the expectation
                 expected |= (uint64_t)accuracy_byte_at(value_of[value_index], width - 1u - position) << (position * 8u);
             }
             TEST_ASSERT_EQUAL_HEX64_MESSAGE(expected, produced, "the reversal put a byte at the wrong position");
@@ -293,12 +293,12 @@ void test_the_reversal_mirrors_every_byte_across_the_width(void)
 }
 
 /**
- * @brief Checks that a write followed by a read of the same order returns what was written.
+ * @brief Checks that a write followed by a read of the same order returns the value written.
  *
- * @note A round trip through one table holds regardless of whether that table's order is the single one intended,
- *       and so this alone proves nothing about placement. It is here because a pair that disagreed with
+ * @note A round trip through one table holds whatever that table's order is. So this alone proves
+ *       nothing about placement. It is here because a pair that disagreed with
  *       each other would pass every placement check above and still lose a caller's value.
- * @note The value is masked to the width first. Only the low width bytes survive a write of that
+ * @note The width cuts the value first. Only the low width bytes survive a write of that
  *       width, and the rest are not part of what comes back.
  */
 void test_a_write_then_a_read_of_the_same_order_returns_the_value(void)
@@ -314,8 +314,8 @@ void test_a_write_then_a_read_of_the_same_order_returns_the_value(void)
         for (unsigned width_index = 0u; width_index < width_count; width_index++)
         {
             const unsigned width = (unsigned)width_of[width_index];
-            // A width of eight would shift a 64-bit value by 64, which C leaves undefined, and so the
-            // full-width mask is written out instead of computed
+            // A width of eight would shift a 64-bit value by 64, which C leaves undefined. So the
+            // full-width mask is a constant and not a computation
             const uint64_t mask =
                 (width == MMGR_ACCURACY_ENDIAN_MAX) ? 0xFFFFFFFFFFFFFFFFull : ((1ull << (width * 8u)) - 1ull);
             const uint64_t expected = value_of[value_index] & mask;

@@ -2,8 +2,8 @@
 
 #include "unity.h"
 
-// The owner table as MMGR_OWNERS lays it: the owners declared stand in it in their order, each at its place from 1,
-// and a record of the caller's own is none of the table's and takes nothing
+// The owner table as MMGR_OWNERS lays it. The owners declared stand in it in their order, each at its place from 1.
+// A record of the caller's own is none of the table's and takes nothing
 #define ROLL_BYTES 256u
 
 ParsMemoriaeInternae(listed, ROLL_BYTES);

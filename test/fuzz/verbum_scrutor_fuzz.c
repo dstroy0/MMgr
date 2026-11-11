@@ -6,9 +6,9 @@
  */
 /**
  * @file verbum_scrutor_fuzz.c
- * @brief A libFuzzer harness over the word lanes: every lane, mask and word entry on any word, byte, family, mask
- *        and count, each against the same question asked one lane at a time in memory order, with a lane mask
- *        built as the high bit of each answering lane.
+ * @brief A libFuzzer harness over the word lanes. Every lane, mask and word entry runs on any word, byte, family,
+ *        mask and count. Each runs against the same question asked one lane at a time in memory order. The
+ *        lane mask there is the high bit of each lane that answers.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

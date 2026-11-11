@@ -3,10 +3,10 @@ import EmbeddedTypes.Manifold.Backoff
 /-!
 # LocusCarcerum, the sleeper bit on the closed word
 
-A pass that finds the cellblock closed backs off: it reads the closed word, sets the sleeper bit with one fetch-or,
-and waits on the word for the value it read with that bit set (`embed_turnstile_backed_off`). The wait is the futex
+A pass that finds the cellblock closed backs off. It reads the closed word and sets the sleeper bit with one
+fetch-or. Then it waits on the word for the value it read with that bit set (`embed_turnstile_backed_off`). The wait is the futex
 contract of `Futex.lean`: the kernel compares and sleeps in one step. A writer opens with one fetch-and that takes
-the trim bits, then a second fetch-and that clears the closed bit and the sleeper bit, and wakes the word where
+the trim bits, then a second fetch-and that clears the closed bit and the sleeper bit. It wakes the word where
 the value the second fetch-and returned had the sleeper bit (`carcer_opened`).
 
 The backoff step is embedded_types', and its bound comes from its proof: each wait lasts at most
@@ -30,7 +30,7 @@ namespace LocusCarcerum.Sleep
 
 open EmbeddedTypes.Manifold
 
-/-- A sleep on the closed word lasts at most the backoff's limit for its shift and exponent, which fits a
+/-- A sleep on the closed word lasts at most the backoff's limit for its shift and exponent. That fits a
 nanosecond count of 2^30 and so every host wait's argument. -/
 theorem wait_bounded (s k : Nat) (hs : s ≤ Backoff.shiftMost) (hk : k ≤ Backoff.kMost) :
     Backoff.limitNs s k ≤ 2 ^ 30 :=
@@ -42,7 +42,7 @@ structure Word where
   sleepers : Bool
   deriving DecidableEq, Repr
 
-/-- The writer: at rest, holding the closed bit, holding with the trim bits taken, or opened with a wake to make. -/
+/-- The writer: at rest, with the closed bit in hand, with the bit and the trim bits taken, or opened with a wake to make. -/
 inductive Writer where
   | rest
   | holding
@@ -79,7 +79,7 @@ inductive Step : State → State → Prop where
   bit. -/
   | open_ {s : State} (hw : s.writer = .took) :
       Step s { s with word := ⟨false, false⟩, writer := .waking s.word.sleepers }
-  /-- The wake: every sleep on the word ends where one is owed. -/
+  /-- The wake: every sleep on the word ends where a wake stands owed. -/
   | wake {s : State} {w : Bool} (hw : s.writer = .waking w) :
       Step s { s with writer := .rest,
                       sleeper := if w && s.sleeper = .asleep then .done else s.sleeper }
@@ -104,7 +104,7 @@ end
 /-- The writer holds the closed bit: shut, or with the word taken. -/
 def Holds (w : Writer) : Prop := w = .holding ∨ w = .took
 
-/-- The invariant with the gate. A sleeper with the word read holds a closed value. The closed bit is set exactly
+/-- The invariant with the gate. A sleeper with the word read holds a closed value. The closed bit holds exactly
 while the writer holds it. An asleep sleeper has both bits set on the word, or a wake owed to it. -/
 structure Inv (s : State) : Prop where
   readClosed : ∀ r, (s.sleeper = .read r ∨ s.sleeper = .flagged r) → r.closed = true

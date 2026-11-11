@@ -2,7 +2,7 @@
 # C, and nothing under src/ or test/ is Python.
 #
 # line-length matches ColumnLimit in .clang-format and max_line_length in .editorconfig, so C and
-# Python wrap at the same width and a side-by-side diff of a tool and the code it rewrites lines up.
+# Python wrap at the same width. A side-by-side diff of a tool and the code it rewrites then lines up.
 [tool.black]
 line-length = 120
 target-version = ["py38"]

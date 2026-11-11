@@ -2,5 +2,5 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 
 # No CAPABILITY. The suite drives the ingestion path and the consumer side, neither of which is
-# behind a gate; drains are the keepout's business and this suite works none.
+# behind a gate. Drains are the keepout's business and this suite works none.
 mmgr_add_suite(test_stream_lexer)

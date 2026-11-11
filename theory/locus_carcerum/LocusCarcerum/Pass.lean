@@ -3,16 +3,16 @@ import EmbeddedTypes.Manifold.Drain
 /-!
 # LocusCarcerum, passes and the writer's drain
 
-A pass (`carcer_passed`) badges in through the turnstiles, then reads the closed bit: clear, it works on the
-cellblock; set, it works on the sink and touches nothing. It badges out when its work is done. A writer
-(`carcer_shut`) takes the closed bit, then drains the turnstiles: it waits until no pass is badged in. It then
+A pass (`carcer_passed`) badges in through the turnstiles, then reads the closed bit. Clear, it works on the
+cellblock; set, it works on the sink and touches nothing. It badges out when its work ends. A writer
+(`carcer_shut`) takes the closed bit, then drains the turnstiles: it waits until no pass has a badge in. It then
 works alone, and opens.
 
-The theorem: while a writer works alone, no pass works on the cellblock. A pass badged in before the shut is
-waited out by the drain; a pass badged in after reads the closed bit set.
+The theorem: while a writer works alone, no pass works on the cellblock. The drain waits out a pass badged in
+before the shut; a pass badged in after reads the closed bit set.
 
-The `drained` step takes every pass idle as its hypothesis. That is what the turnstiles' own proof gives: a pass
-that held a lane at the drain's fence has ended once the drain reads its lane over, `drained_lane`, which is
+The `drained` step takes every pass idle as its hypothesis. That is what the turnstiles' own proof gives. A pass
+that held a lane at the drain's fence is over once the drain reads its lane over, `drained_lane`, which is
 embedded_types' `Manifold.Drain.drain_lane_complete`.
 -/
 
@@ -20,14 +20,14 @@ namespace LocusCarcerum.Pass
 
 open EmbeddedTypes.Manifold
 
-/-- The drain's hypothesis for one lane: the pass that held it at the fence has ended once the drain is through
+/-- The drain's hypothesis for one lane: the pass that held it at the fence is over once the drain is through
 with the lane. -/
 theorem drained_lane {s t u : Drain.State} (p : Nat) (i : Drain.Inv s) (hp : s.holder = some p)
     (ft : Drain.Follows s t) (fu : Drain.Follows t u)
     (hdone : t.busy = false ∨ t.closed = true ∨ Drain.over t u = true) : u.ended p = true :=
   Drain.drain_lane_complete p i hp ft fu hdone
 
-/-- A pass: at rest, badged in before its read, working on the cellblock, or working on the sink. -/
+/-- A pass: at rest, badged in before its read, at work on the cellblock, or at work on the sink. -/
 inductive PassAt where
   | idle
   | badged
@@ -35,7 +35,7 @@ inductive PassAt where
   | sink
   deriving DecidableEq, Repr
 
-/-- A writer: at rest, holding the bit and draining, or working alone. -/
+/-- A writer: at rest, with the bit in hand and the drain under way, or at work alone. -/
 inductive WriterAt where
   | idle
   | draining

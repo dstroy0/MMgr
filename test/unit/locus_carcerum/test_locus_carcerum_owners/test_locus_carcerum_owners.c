@@ -15,7 +15,7 @@ LocusCarcerum(counted, MMGR_MINIMUM_SECURITY(plain), MMGR_MAXIMUM_SECURITY(wiped
     owner_(reader, "reader") owner_(writer, "writer") owner_(scratch, "scratch") owner_(keys, "keys")
 MMGR_OWNERS(COUNTED_OWNERS)
 
-// What a give or growth naming the wrong owner told: how many, and the last one's two owners and bytes
+// What a give or growth that names the wrong owner told: how many, and the last one's two owners and bytes
 static size_t s_misnamed_count;
 static const CellOwner *s_misnamed_named;
 static const CellOwner *s_misnamed_cell_owner;
@@ -29,7 +29,7 @@ void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner
     s_misnamed_bytes = bytes;
 }
 
-// An owner's counts put back to nothing for the case, its peak among them: the record is MMgr's to write, and the
+// An owner's counts put back to nothing for the case, its peak among them. The record is MMgr's to write, and the
 // identity's const says only that a holder does not
 static void owner_ready(const CellOwner *owner)
 {
@@ -117,8 +117,8 @@ void test_a_cell_given_back_below_the_end_counts_off_at_once(void)
     void *const wide = counted.plain.persistent_buf_alloc(64u, reader);
     void *const pin = counted.plain.persistent_buf_alloc(8u, reader);
 
-    // the wide cell waits in the tier under the pin, and its bytes come off the owner the moment it is
-    // given back, not when the trim reaches it
+    // the wide cell waits in the tier under the pin. Its bytes come off the owner the moment it goes
+    // back, not when the trim reaches it
     counted.plain.persistent_buf_release(wide, reader);
     TEST_ASSERT_EQUAL_size_t(8u, in_use_of(reader));
     counted.plain.persistent_buf_release(pin, reader);

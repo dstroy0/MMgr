@@ -6,12 +6,14 @@
  */
 /**
  * @file locus_carcerum_movable_prove.c
- * @brief Take.lean's mover count, Bounds.lean's span test and Entry.lean proved on the C: every sequence of
- *        PROVE_STEPS operations on a cellblock with the movable option, each a movable take at any of four sizes, a
- *        persistent take and give that leave a run below, a read or a write at any offset and length, a move, or a
- *        release. A span the module takes lies inside its cell and one it refuses runs past it; every cell keeps
- *        its bytes through every move; no two cells share an entry; and once every cell goes back the owner's count
- *        is 0 and the cellblock whole.
+ * @brief Take.lean's mover count, Bounds.lean's span test and Entry.lean proved on the C. Every sequence of
+ *        PROVE_STEPS operations on a cellblock with the movable option runs.
+ *
+ * @note Each step is a movable take at any of four sizes, or a persistent take and give that leave a run
+ *       below. Or it is a read or a write at any offset and length, a move, or a release.
+ * @note A span the module takes lies inside its cell and one it refuses runs past it. Every cell keeps its
+ *       bytes through every move, and no two cells share an entry. Once every cell goes back the owner's
+ *       count is 0 and the cellblock whole.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
  */

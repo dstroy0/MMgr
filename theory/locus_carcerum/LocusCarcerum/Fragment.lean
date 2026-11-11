@@ -2,10 +2,10 @@
 # LocusCarcerum, the fragmentation reading
 
 `mmgr_series_cellularum_fragmentation` reads the bytes the persistent tier occupies that no payload holds, the
-holes, against the hundredth of the bytes it occupies, rounded up, and reads 0 below a hundred bytes. The divisor
+holes, against the hundredth of the bytes it occupies, rounded up. It reads 0 below a hundred bytes. The divisor
 is a hundredth rather than the holes times a hundred, since that product can pass what a narrow word counts.
 
-The theorem: the holes being at most the bytes occupied, the reading is at most 100.
+The theorem: with the holes at most the bytes occupied, the reading is at most 100.
 -/
 
 namespace LocusCarcerum.Fragment

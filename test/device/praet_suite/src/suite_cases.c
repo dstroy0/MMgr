@@ -6,12 +6,12 @@
  */
 /**
  * @file suite_cases.c
- * @brief Pulls the praet cases into this project without copying them.
+ * @brief Pulls the praet cases into this project with no copy of them.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
  * @note PlatformIO compiles what is under src and refuses a build_src_filter that climbs out of it
- *       with ../, which it reports as "Source directory cannot be under variant directory". A file
+ *       with ../. It reports that as "Source directory cannot be under variant directory". A file
  *       that includes the real one is how the sources stay where they live.
  * @note The part runs the same file the host does. A copy would pass here and drift there.
  */

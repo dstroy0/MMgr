@@ -41,9 +41,9 @@ EMBED_ENUM_BYTE(mmgr_endian_width, MMGR_ENDIAN_16 = 2, /**< Two bytes. */
  * @brief Arguments for the endian calls, where each call reads only the members it needs.
  *
  * @note wr reads dst, val and width. rd reads src and width. rev reads val and width.
- * @note width is what bounds both pointers. wr and rd touch that many bytes of the one they use, or
- *       eight when width is not one of the mmgr_endian_width enumerators. rev reads neither pointer.
- * @warning Neither pointer is checked. endian.c passes them straight to proximus_operor, which
+ * @note width is what bounds both pointers. The wr and rd entries touch that many bytes of the one they
+ *       use, or eight when width is not one of the mmgr_endian_width enumerators. The rev entry reads neither pointer.
+ * @warning Neither pointer has a check. endian.c passes them straight to proximus_operor, which
  *          dereferences them with no test and no assertion.
  */
 typedef struct
@@ -61,7 +61,7 @@ typedef struct
  * nothing else.
  * @note Two instances share this type, one per byte order. Which one a call goes through is what sets
  *       the order, and no member takes it as an argument.
- * @note wr hands back args->width as it was given. The other two return the value they produced.
+ * @note wr hands back args->width as it came. The other two return the value they produced.
  */
 typedef struct
 {
@@ -72,7 +72,7 @@ typedef struct
 EMBED_TABLE_LAYOUT(EndianNs, wr, rd, rev);
 
 /**
- * @brief Writes args->width bytes of args->val to args->dst without reversing them.
+ * @brief Writes args->width bytes of args->val to args->dst and does not reverse them.
  *
  * @param[in,out] args Destination, value and width [BORROWS].
  * @return             args->width.
@@ -84,7 +84,7 @@ EMBED_TABLE_LAYOUT(EndianNs, wr, rd, rev);
 size_t mmgr_wr_le(const EndianCfg *args);
 
 /**
- * @brief Reads args->width bytes from args->src without reversing them.
+ * @brief Reads args->width bytes from args->src and does not reverse them.
  *
  * @param[in] args Source and width [BORROWS].
  * @return         The value read, in the low args->width bytes.
@@ -104,7 +104,7 @@ uint64_t mmgr_rd_le(const EndianCfg *args);
  *          proxim.put16, put32 or put64, each of which stores through it with no test.
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value writes eight
  *          bytes. One above eight wraps the reversal's shift count, and a width of 0 shifts by 64,
- *          which is undefined.
+ *          which has no definition.
  */
 size_t mmgr_wr_be(const EndianCfg *args);
 
@@ -117,7 +117,7 @@ size_t mmgr_wr_be(const EndianCfg *args);
  *          proxim.load16, load32 or load64, each of which reads through it with no test.
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value reads eight
  *          bytes. One above eight wraps the reversal's shift count, and a width of 0 shifts by 64,
- *          which is undefined.
+ *          which has no definition.
  */
 uint64_t mmgr_rd_be(const EndianCfg *args);
 
@@ -128,11 +128,11 @@ uint64_t mmgr_rd_be(const EndianCfg *args);
  * @return         The reversed value, right-aligned into the low args->width bytes.
  * @note Reads args->val and args->width, alone, and so it touches no buffer and dst and src take
  *       no part.
- * @note Both tables point rev at this one function, which reverses whatever it is given without
+ * @note Both tables point rev at this one function, which reverses whatever it receives with no
  *       reference to either order.
- * @warning args->width must be one of the mmgr_endian_width enumerators. 8 minus it is unsigned. A
- *          width above eight wraps into a very large shift count, and a width of 0 shifts a 64-bit
- *          value by 64, which is undefined.
+ * @warning args->width must be one of the mmgr_endian_width enumerators. 8 minus it wraps as unsigned
+ *          arithmetic does. A width above eight wraps into a very large shift count, and a width of 0
+ *          shifts a 64-bit value by 64, which has no definition.
  */
 uint64_t mmgr_endian_rev(const EndianCfg *args);
 
@@ -140,7 +140,7 @@ uint64_t mmgr_endian_rev(const EndianCfg *args);
  * @brief Dispatch table instance named parva_extremitas, the little endian order.
  *
  * @note wr and rd move bytes as they lie, and so they land in the host's own order. This module never
- *       consults MMGR_HW_BIG_ENDIAN, and so the name holds on a little endian host and this table writes
+ *       consults MMGR_HW_BIG_ENDIAN. So the name holds on a little endian host and this table writes
  *       big endian bytes on a big endian one.
  * @note rev is the same function both tables use.
  */
@@ -153,10 +153,10 @@ EMBED_TABLE_STORAGE EndianNs parva_extremitas EMBED_UNUSED = {
 /**
  * @brief Dispatch table instance named magna_extremitas, the big endian order.
  *
- * @note wr reverses before writing and rd reverses after reading, and so the bytes land in the reverse of
+ * @note wr reverses before its write and rd reverses after its read, and so the bytes land in the reverse of
  *       the host's own order. That is big endian on a little endian host, as the name
  *       records, and little endian on a big endian one.
- * @note rev is shared with parva_extremitas.
+ * @note rev is the same function as in parva_extremitas.
  */
 EMBED_TABLE_STORAGE EndianNs magna_extremitas EMBED_UNUSED = {
     .wr = mmgr_wr_be,

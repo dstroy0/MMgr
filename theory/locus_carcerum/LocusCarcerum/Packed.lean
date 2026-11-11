@@ -2,15 +2,15 @@
 # LocusCarcerum, the two tiers as one word
 
 The state of a cellblock's two boundaries, the overruns and the two chains' ends, and the bumps as single
-atomic steps: a bump's read-modify-write on its own boundary and its read of the other boundary are one step,
-which is what one word carrying both boundaries is. Under that model the invariant stands through a round,
-refusal is absorbing, taken bumps are contiguous and the settle restores rest.
+atomic steps. A bump's read-modify-write on its own boundary and its read of the other boundary are one
+step. That is what one word with both boundaries is. Under that model the invariant stands through a
+round, refusal is final, taken bumps are contiguous and the settle restores rest.
 -/
 
 namespace LocusCarcerum.Packed
 
-/-- The cellblock's state. `eP` is the end of the persistent chain and `tQ` the start of the temporary chain:
-the chains themselves are abstracted to their ends, since every lemma about the cells reads off those. -/
+/-- The cellblock's state. `eP` is the end of the persistent chain and `tQ` the start of the temporary chain.
+The chains themselves reduce to their ends, since every lemma about the cells reads off those. -/
 structure State where
   S  : Nat
   E  : Nat
@@ -21,14 +21,14 @@ structure State where
   tQ : Nat
 deriving Repr, DecidableEq
 
-/-- The invariant of a round: the boundaries are the chain ends displaced by the overruns, the chains do not
-cross, the top is within the storage, and an overrun standing means the boundaries have crossed. The last
-two conjuncts are the absorbing refusal. -/
+/-- The invariant of a round. The boundaries are the chain ends displaced by the overruns, the chains do not
+cross, and the top is within the storage. An overrun in place means the boundaries crossed. The last
+two conjuncts are the final refusal. -/
 def Inv (s : State) : Prop :=
   s.E = s.eP + s.OE ∧ s.T + s.OT = s.tQ ∧ s.eP ≤ s.tQ ∧ s.tQ ≤ s.S ∧
   (0 < s.OE → s.T < s.E) ∧ (0 < s.OT → s.T < s.E)
 
-/-- Rest: the invariant with no overrun standing, so the boundaries are the chain ends. -/
+/-- Rest: the invariant with no overrun in place, so the boundaries are the chain ends. -/
 def Rest (s : State) : Prop := Inv s ∧ s.OE = 0 ∧ s.OT = 0
 
 /-- The initial state over `S` bytes. -/
@@ -37,7 +37,7 @@ def initial (S : Nat) : State := ⟨S, 0, S, 0, 0, 0, S⟩
 theorem rest_initial (S : Nat) : Rest (initial S) := by
   simp [Rest, Inv, initial]
 
-/-- A bump up of need `n`: one atomic step reads `E` and `T`, moves `E`, and either lays the cell at the old
+/-- A bump up of need `n`. One atomic step reads `E` and `T`, moves `E`, and either lays the cell at the old
 `E` or adds the need to the overrun. -/
 def bumpUp (n : Nat) (s : State) : State :=
   if s.E + n ≤ s.T then
@@ -56,15 +56,15 @@ def bumpDown (n : Nat) (s : State) : State :=
 def settle (s : State) : State :=
   { s with E := s.E - s.OE, T := s.T + s.OT, OE := 0, OT := 0 }
 
-/-- Lemma 2 (refusal is absorbing), in the form the invariant carries: an overrun standing means every later
-bump of either tier in the round is refused, since the boundaries have crossed and a bump only widens the
-crossing. -/
+/-- Lemma 2 (refusal is final), in the form the invariant carries. An overrun in place means every later
+bump of either tier in the round fails. The boundaries crossed and a bump only widens the
+gap. -/
 theorem crossed_refuses_up (s : State) (n : Nat) (h : s.T < s.E) : ¬ (s.E + n ≤ s.T) := by omega
 
 theorem crossed_refuses_down (s : State) (n : Nat) (h : s.T < s.E) : ¬ (s.E ≤ s.T - n) := by omega
 
-/-- Lemma 3 (taken bumps are contiguous): a bump up that is taken reads `E` at the chain's end, with no overrun
-standing on either tier. -/
+/-- Lemma 3 (taken bumps are contiguous): a bump up that goes through reads `E` at the chain's end, with no overrun
+in place on either tier. -/
 theorem taken_up_at_end (s : State) (n : Nat) (hI : Inv s) (hτ : s.E + n ≤ s.T) :
     s.OE = 0 ∧ s.OT = 0 ∧ s.E = s.eP := by
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hI
@@ -144,8 +144,8 @@ theorem settle_ends (s : State) (hI : Inv s) : (settle s).E = s.eP ∧ (settle s
   simp only [settle]
   omega
 
-/-- The theorem: from rest, a round of bumps and then a settle is at rest again, and the chains never cross,
-which is the disjointness of every persistent cell from every temporary one. -/
+/-- The theorem. From rest, a round of bumps and then a settle is at rest again, and the chains never cross.
+That is the disjointness of every persistent cell from every temporary one. -/
 theorem round_then_settle (s s' : State) (hR : Rest s) (h : Round s s') :
     Rest (settle s') ∧ s'.eP ≤ s'.tQ := by
   have hI := inv_round s s' hR.1 h

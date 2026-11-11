@@ -12,9 +12,9 @@
  *
  * @note Holds no storage of its own, and every entry returns by value and not through a pointer.
  * @note A span only points at the caller's bytes [BORROWS]. Every span cut from a buffer, and every
- *       span cut from that one, is good for exactly as long as the buffer is, and not one of them frees
+ *       span cut from that one, is good for exactly as long as the buffer is. Not one of them frees
  *       it.
- * @note A span travels inside the argument pack instead of being pointed at. A walk reads the
+ * @note A span travels inside the argument pack and not behind a pointer. A walk reads the
  *       caller's span and cannot change it. reset is the exception and takes args->at.
  * @note Reaches nothing outside config.
  */
@@ -41,8 +41,8 @@ typedef struct
  *
  * @param[in] args Buffer buf and its extent cap [BORROWS].
  * @return         The span, by value, still aimed at args->buf [BORROWS].
- * @warning cap is taken as given: the caller promises cap writable bytes at buf, and the two asserts
- *          only catch a null buffer and an empty one. A cap larger than the buffer is not caught here
+ * @warning cap stands as given. The caller promises cap writable bytes at buf, and the two asserts
+ *          only catch a null buffer and an empty one. A cap larger than the buffer passes here
  *          and the walks will hand out spans past its end.
  */
 EMBED_INLINE mmgr_span spat_from(const SpatiumCtx *args)
@@ -66,7 +66,7 @@ EMBED_INLINE mmgr_span spat_from(const SpatiumCtx *args)
  * @return         The span, by value, still aimed at args->cbuf [BORROWS].
  * @warning Takes cbuf and cap exactly as handed over, with none of the asserts spat_from makes. A
  *          null cbuf or a zero cap still builds, and it is cok that later reports it unusable. A cap
- *          reaching past the end of the buffer is the single one cok cannot see, and it reads as usable.
+ *          that reaches past the end of the buffer is the single one cok cannot see, and it reads as usable.
  */
 EMBED_INLINE mmgr_cspan spat_cfrom(const SpatiumCtx *args)
 {
@@ -107,9 +107,9 @@ EMBED_INLINE embed_bool spat_ok(const SpatiumCtx *args)
  * @brief Returns whether args->cspan is still usable.
  *
  * @param[in] args Read span to test, as args->cspan [BORROWS].
- * @return         EMBED_TRUE when the span has storage and has recorded no error.
- * @note The read side of spat_ok. The two cannot share a body, because a read span names its extent
- *       len and a fill span names it cap, as keeps the two from being mixed up.
+ * @return         EMBED_TRUE when the span has storage and recorded no error.
+ * @note The read side of spat_ok. The two cannot share a body. A read span names its extent
+ *       len and a fill span names it cap, which keeps the two apart.
  */
 EMBED_INLINE embed_bool spat_cok(const SpatiumCtx *args)
 {
@@ -121,9 +121,9 @@ EMBED_INLINE embed_bool spat_cok(const SpatiumCtx *args)
  * @brief Returns the span at args->at to its start and clears its overflow.
  *
  * @param[in,out] args Span to rewind, as args->at [BORROWS].
- * @warning at is written through with no check of its own, and so it has to point at a live span. The
+ * @warning The write through at has no check of its own, and so it has to point at a live span. The
  *          const on the pack covers the pack, not the span at the far end of at.
- * @note Rewinds the span only. The bytes it covers are left exactly as they were. A reset span
+ * @note Rewinds the span only. The bytes it covers stay exactly as they were. A reset span
  *       hands out storage that still holds whatever the last fill wrote.
  */
 EMBED_INLINE void spat_reset(const SpatiumCtx *args)
@@ -133,10 +133,10 @@ EMBED_INLINE void spat_reset(const SpatiumCtx *args)
 }
 
 /**
- * @brief Returns a span that has already failed, for a narrowing that ran past the storage.
+ * @brief Returns a span that has already failed, for a cut that ran past the storage.
  *
  * @return An empty span with overflow set.
- * @note Both narrowings answer a request past the end this way and not with a shorter span: a
+ * @note Both cuts answer a count past the end this way and not with a shorter span. A
  *       caller that asked for bytes that are not there has a bug, and a span that looked whole
  *       would hide it.
  */
@@ -152,14 +152,14 @@ EMBED_INLINE mmgr_span spat_failed(void)
 }
 
 /**
- * @brief Returns the span beginning args->count bytes into args->span.
+ * @brief Returns the span that begins args->count bytes into args->span.
  *
  * @param[in] args Span to walk, as args->span, and the bytes to skip as args->count [BORROWS].
- * @return         A span over what is left, or a failed span when args->count is past cap.
+ * @return         A span over the rest, or a failed span when args->count is past cap.
  * @note The span that comes back starts inside the same buffer args->span covers [BORROWS]. It is a
- *       second view of those bytes, not a copy of them, and writes through either one are seen by
- *       both. pos comes forward with it, rebased to the new start and resting at 0 once the skip
- *       has passed it.
+ *       second view of those bytes, not a copy of them. Writes through either one show in both.
+ *       The pos comes forward with it, moved back to the new start, and rests at 0 once the skip
+ *       passes it.
  */
 EMBED_INLINE mmgr_span spat_after(const SpatiumCtx *args)
 {
@@ -177,13 +177,13 @@ EMBED_INLINE mmgr_span spat_after(const SpatiumCtx *args)
 }
 
 /**
- * @brief Returns the span covering only the first args->count bytes of args->span.
+ * @brief Returns the span that covers only the first args->count bytes of args->span.
  *
  * @param[in] args Span to narrow, as args->span, and the bytes to keep as args->count [BORROWS].
  * @return         A span over those bytes, or a failed span when args->count is past cap.
- * @note The span that comes back starts on the same byte args->span starts on [BORROWS], holding a
- *       shorter cap over the same storage. Both cover the opening bytes. A fill through one is
- *       read by the other. pos comes forward, clamped down to the shorter cap when it sat past it.
+ * @note The span that comes back starts on the same byte args->span starts on [BORROWS], with a
+ *       shorter cap over the same storage. Both cover the first bytes. A fill through one shows in
+ *       a read through the other. The pos comes forward, held down to the shorter cap when it sat past it.
  */
 EMBED_INLINE mmgr_span spat_first(const SpatiumCtx *args)
 {
@@ -204,9 +204,9 @@ EMBED_INLINE mmgr_span spat_first(const SpatiumCtx *args)
  * @brief Returns a read span over the first args->count bytes written into args->span.
  *
  * @param[in] args Span to read back, as args->span, and the bytes to cover as args->count [BORROWS].
- * @return         A read span over them, marked err when args->count is past what was written.
+ * @return         A read span over them, marked err when args->count is past the bytes written.
  * @warning The read span points at the fill span's own bytes [BORROWS], and the const on it binds
- *          this view and not the storage. Filling args->span again moves what the reader sees, and so read
+ *          this view and not the storage. A second fill of args->span moves what the reader sees, and so read
  *          it back before the next fill or copy the bytes out.
  */
 EMBED_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
@@ -216,8 +216,8 @@ EMBED_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
     view.buf = args->span.buf;
     view.len = (args->count < args->span.pos) ? args->count : args->span.pos;
     view.pos = 0u;
-    // A span that overflowed produced fewer bytes than were asked of it, and the read side is told
-    // so instead of being handed a shorter span that looks whole
+    // A span that overflowed produced fewer bytes than the count asked. The read side hears so and
+    // does not get a shorter span that looks whole
     // Explicit cast narrows the combined test into the embed_bool container
     view.err = (embed_bool)(args->span.overflow || (args->count > args->span.pos));
     return view;
@@ -227,7 +227,7 @@ EMBED_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
  * @brief Returns a read span over everything written into args->span.
  *
  * @param[in] args Span to read back, as args->span [BORROWS].
- * @return         A read span over its first pos bytes, carrying span's overflow as its err.
+ * @return         A read span over its first pos bytes, with span's overflow as its err.
  * @warning Hands back spat_read's span, and so it points at args->span's own bytes [BORROWS] and the
  *          same caution holds. It covers whatever the next fill leaves there.
  */
@@ -248,7 +248,7 @@ EMBED_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
     EMBED_ENTRY(mmgr_spat_, spat_, SpatiumCtx, SpatiumCfg, ReturnType_, name_, __VA_ARGS__)
 
 /**
- * @brief Binds this module's four fixed arguments to EMBED_ENTRY_V, for an entry returning nothing.
+ * @brief Binds this module's four fixed arguments to EMBED_ENTRY_V, for an entry that returns nothing.
  *
  * @param[in] name_ Name after the mmgr_spat_ and spat_ prefixes.
  * @param[in] ...   The same initializers SPAT_ENTRY takes, with no return type, since the entry this
@@ -259,9 +259,9 @@ EMBED_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
 /**
  * @brief The public surface, one line per entry point.
  *
- * @note Each is documented at its declaration in spatium.h.
+ * @note spatium.h describes each at its declaration.
  * @note The fields each line forwards are the ones that entry reads; EMBED_CALL zeroes the rest.
- * @note from forwards buf and cfrom forwards cbuf. A buffer that may not be written cannot reach
+ * @note from forwards buf and cfrom forwards cbuf. A buffer closed to writes cannot reach
  *       the fill constructor. Both take their extent from cap.
  */
 SPAT_ENTRY(mmgr_span, from, .buf = args->buf, .cap = args->cap)

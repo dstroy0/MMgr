@@ -1,11 +1,11 @@
 # The libFuzzer harnesses, one for each module, built where MMGR_FUZZ is on and the compiler is clang, which carries
 # the fuzzer runtime. Each one is also a test: a fixed seed and MMGR_FUZZ_RUNS inputs, and the suite runs every
-# harness; harness.py fuzz runs them for as long as it is asked, over a corpus under build/.
+# harness. The fuzz command of harness.py runs them for as long as the command line says, over a corpus under build/.
 #
 # Most harnesses link the host library. Three build their module in themselves, with the switches the host library
-# is built without: memoria_externa with external memory on, memoriam_praetereo with DMA on and its knobs, once
-# with recovery and once lean, and impensa_ancorae_acus once for each of its five cost tables, of which a build
-# links one.
+# does without. The memoria_externa one builds with external memory on. The memoriam_praetereo one builds with
+# DMA on and its knobs, once with recovery and once lean. The impensa_ancorae_acus one builds once for each of
+# its five cost tables, of which a build links one.
 if(NOT MMGR_FUZZ)
     return()
 endif()
@@ -22,8 +22,8 @@ if(WIN32)
     list(APPEND MMGR_FUZZ_SANITIZERS -fno-sanitize-coverage=stack-depth)
 endif()
 
-# The address sanitizer's runtime DLL is placed beside the programs, where Windows looks first: a Visual Studio
-# folder on the PATH carries an older copy, and a program loading it stops at once on an entry point it lacks
+# The address sanitizer's runtime DLL goes beside the programs, where Windows looks first. A Visual Studio
+# folder on the PATH carries an older copy. A program that takes that one stops at once on an entry point it does not have
 set(MMGR_FUZZ_RUNTIME "")
 if(WIN32)
     execute_process(COMMAND "${CMAKE_C_COMPILER}" -print-resource-dir OUTPUT_VARIABLE resource OUTPUT_STRIP_TRAILING_WHITESPACE)

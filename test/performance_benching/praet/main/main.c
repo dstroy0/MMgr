@@ -1,26 +1,26 @@
-/* What it costs to pick a move direction from the two addresses, instead of being told.
+/* What it costs to pick a move direction from the two addresses, against a direction the caller states.
  *
- * memoria_operor has two moves and the caller picks: move_up when the destination is above the
- * source, move_down when it is below, and the table points move_down at mmgr_memor_cpy because
- * copying forward is already safe that way. Nothing inspects the two addresses and chooses.
+ * memoria_operor has two moves and the caller picks. move_up serves a destination above the
+ * source and move_down one below it. The table points move_down at mmgr_memor_cpy because
+ * a forward copy is already safe that way. Nothing inspects the two addresses and chooses.
  *
- * A DMA submit cannot be told. Both endpoints arrive as addresses, and so something has to decide, and
- * this measures what the deciding costs against being handed the answer.
+ * A DMA submit gets no direction. Both endpoints arrive as addresses, and so something has to decide.
+ * This measures what the decision costs against an answer in hand.
  *
- * Three arms, all reaching the same two entries the same way:
+ * Three arms, all of which reach the same two entries the same way:
  *
- *   known    the direction is settled at the call site. The floor, not a competitor - it does less
- *            work deliberately, and its number is what the other two are paying against.
- *   branch   compares the two addresses and branches.
- *   mask     builds a mask from the same compare and indexes a two entry table, and so nothing predicts.
+ *   known    the direction stands at the call site. The floor, not a competitor. It does less
+ *            work deliberately, and its number is what the other two pay against.
+ *   Branch   compares the two addresses and branches.
+ *   Mask     builds a mask from the same compare and indexes a two entry table, and so nothing predicts.
  *
  * Three cases, because a branch is only expensive when it is wrong:
  *
  *   up       destination above source, every call. Perfectly predicted.
  *   down     destination below source, every call. Perfectly predicted.
- *   mixed    alternating, every call. Predicted no better than a coin.
+ *   mixed    one then the other, every call. Predicted no better than a coin.
  *
- * Every offset and length is read from a volatile inside the arm. Read outside, the whole expression
+ * Every offset and length comes from a volatile inside the arm. Read outside, the whole expression
  * is loop invariant and both arms report the harness floor.
  */
 #include <stddef.h>
@@ -32,11 +32,11 @@
 
 #define POOL_BYTES 8192u
 
-/* One pool. Both endpoints live in it, as an overlapping move means. */
+/* One pool. Both endpoints live in it, as a move with overlap means. */
 static EMBED_ALIGN(16) uint8_t g_pool[POOL_BYTES];
 
-/* Volatile so the addresses cannot be folded and the direction cannot be settled at compile time.
- * Without this the compiler knows which way every move goes and the deciding arms measure nothing. */
+/* Volatile so the addresses cannot fold and the direction cannot settle at compile time.
+ * Without this the compiler knows which way every move goes and the decision arms measure nothing. */
 static volatile size_t g_src_off = 0u;
 static volatile size_t g_dst_off = 64u;
 static volatile size_t g_len = 64u;
@@ -46,11 +46,11 @@ static volatile unsigned g_alternate;
 
 typedef void (*MoveFn)(const MemoriaCfg *args);
 
-/* The two directions, reached through the dispatch table exactly as a caller reaches them. cpy is
- * what the table points move_down at, and so this pair is the real one.
+/* The two directions, reached through the dispatch table exactly as a caller reaches them. The
+ * table points move_down at cpy, and so this pair is the real one.
  *
  * Not const, and filled at run time. A member read of memor is not a constant expression, and so this
- * cannot be initialized statically. Declaring it const and casting that away to write it puts the
+ * cannot start with a static value. Const on it with a cast away for the write puts the
  * table in read-only memory and the first store faults. */
 static MoveFn g_move_table[2];
 
@@ -61,7 +61,7 @@ static MoveFn g_move_table[2];
  * @param[in]     src Source [BORROWS].
  * @param[in]     bytes Bytes to move.
  * @param[in]     up  Non-zero where the destination is above the source.
- * @note The floor. It is handed the answer, and so what it costs is the move, alone.
+ * @note The floor. It has the answer in hand, and so what it costs is the move, alone.
  */
 static void dir_known(uint8_t *dst, const uint8_t *src, size_t bytes, unsigned up)
 {
@@ -76,18 +76,18 @@ static void dir_known(uint8_t *dst, const uint8_t *src, size_t bytes, unsigned u
 }
 
 /**
- * @brief Moves the bytes, choosing the direction by comparing the two addresses.
+ * @brief Moves the bytes, and chooses the direction from a compare of the two addresses.
  *
  * @param[in,out] dst Destination [BORROWS].
  * @param[in]     src Source [BORROWS].
  * @param[in]     bytes Bytes to move.
- * @note Both addresses are read as uintptr_t, as mmgr_who_owns_buf does, and so the comparison is
+ * @note Both addresses read as uintptr_t, as mmgr_who_owns_buf does, and so the comparison is
  *       ordinary unsigned arithmetic and never a comparison of pointers into different objects.
  */
 static void dir_branch(uint8_t *dst, const uint8_t *src, size_t bytes)
 {
-    // Explicit casts read both addresses as integers. Comparing them as pointers would only be
-    // defined within one object, and the compare below has to hold for any two the caller supplies
+    // Explicit casts read both addresses as integers. A compare of them as pointers has a definition
+    // only within one object. The compare below has to hold for any two the caller supplies
     if ((uintptr_t)dst > (uintptr_t)src)
     {
         EMBED_CALL(memor.move_up, MemoriaCfg, .dst = dst, .src = src, .bytes = bytes);
@@ -99,13 +99,13 @@ static void dir_branch(uint8_t *dst, const uint8_t *src, size_t bytes)
 }
 
 /**
- * @brief Moves the bytes, selecting the direction with a mask and no branch.
+ * @brief Moves the bytes, and selects the direction with a mask and no branch.
  *
  * @param[in,out] dst Destination [BORROWS].
  * @param[in]     src Source [BORROWS].
  * @param[in]     bytes Bytes to move.
- * @note The same compare as dir_branch, turned into an index. carcer_hw selects branchlessly the
- *       same way, building a mask from a comparison and choosing between two values with it.
+ * @note The same compare as dir_branch, turned into an index. carcer_hw selects with no branch the
+ *       same way. It builds a mask from a comparison and chooses between two values with it.
  */
 static void dir_mask(uint8_t *dst, const uint8_t *src, size_t bytes)
 {
@@ -118,9 +118,9 @@ static void dir_mask(uint8_t *dst, const uint8_t *src, size_t bytes)
 
 /* ---- correctness, before any timing ----------------------------------------------------------
  *
- * A fast arm that picks the wrong direction still produces a number, and a wrong direction on an
- * overlapping move is the exact defect this bench exists to weigh. So every direction function is
- * checked against a reference first, and the reference is a byte walk written here and not
+ * A fast arm that picks the wrong direction still produces a number. A wrong direction on a
+ * move with overlap is the exact defect this bench exists to weigh. So every direction function has
+ * a check against a reference first. The reference is a byte walk written here and not
  * anything from the library. An expectation taken from the code under test proves nothing.
  */
 
@@ -146,13 +146,13 @@ static void praet_fill_pattern(uint8_t *at, size_t bytes)
 }
 
 /**
- * @brief Moves bytes one at a time, walking whichever way the overlap requires.
+ * @brief Moves bytes one at a time, in whichever direction the overlap requires.
  *
  * @param[in,out] dst   Destination [BORROWS].
  * @param[in]     src   Source [BORROWS].
  * @param[in]     bytes Bytes to move.
- * @note The oracle. A byte loop with the direction chosen from the two addresses, as the
- *       three arms are checked against. Nothing here reaches memoria_operor.
+ * @note The oracle. A byte loop with the direction chosen from the two addresses, which the
+ *       three arms check against. Nothing here reaches memoria_operor.
  */
 static void praet_reference_move(uint8_t *dst, const uint8_t *src, size_t bytes)
 {
@@ -202,7 +202,7 @@ static size_t praet_first_difference(const uint8_t *left, const uint8_t *right, 
 /**
  * @brief Runs one direction function over one overlap and reports whether it matched the reference.
  *
- * @param[in] label     Text naming the case, printed on a mismatch.
+ * @param[in] label     Text that names the case, printed on a mismatch.
  * @param[in] which     0 for the branch form, 1 for the mask form, 2 for the form told the answer.
  * @param[in] dst_off   Destination offset into the pool.
  * @param[in] src_off   Source offset into the pool.
@@ -316,7 +316,7 @@ static void arm_mask_down(void)
     dir_mask(g_pool + g_src_off, g_pool + g_dst_off, g_len);
 }
 
-/* The mixed arms swap the two endpoints every call, and so the direction alternates and a branch
+/* The mixed arms swap the two endpoints every call. So the direction alternates and a branch
  * predictor has nothing to learn from the last one. */
 
 static void arm_branch_mixed(void)
@@ -359,7 +359,7 @@ void dbench_run(void)
     g_move_table[1] = memor.move_up;
 
     /* Correctness before timing. A form that moves the wrong bytes still produces a number, and the
-     * number reads as a result, and so the run stops here instead of reporting one. */
+     * number reads as a result. So the run stops here and reports none. */
     if (praet_check() == 0)
     {
         DBENCH_PRINTF("DB ==== CHECK FAILED, no timings taken ====\n");
@@ -377,13 +377,13 @@ void dbench_run(void)
         g_src_off = 0u;
         g_dst_off = bytes;
 
-        /* The floor for each case, and so the two deciding arms have something to be read against. */
+        /* The floor for each case, and so the two decision arms have something to read against. */
         DBENCH_OP("dir_known_up", iters, arm_known_up());
         DBENCH_OP("dir_known_down", iters, arm_known_down());
 
         /* Head to head, the row that answers the question. Run both orders: on the C6 the
-         * arm that runs second has measured about 1.1 cycles more whatever it is. A small split
-         * that follows the position instead of the code is visible only by swapping. */
+         * arm that runs second costs about 1.1 cycles more whatever it is. A small split
+         * that follows the position and not the code is visible only through a swap. */
         DBENCH_AB("dir_up", iters, bytes, arm_branch_up(), arm_mask_up());
         DBENCH_AB("dir_up_swapped", iters, bytes, arm_mask_up(), arm_branch_up());
 

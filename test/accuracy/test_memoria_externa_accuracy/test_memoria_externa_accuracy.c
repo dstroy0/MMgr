@@ -46,17 +46,17 @@
  * @param[in] dma_required Whether the bytes must be reachable by DMA.
  * @param[in] free_dram    Bytes free in internal memory.
  * @param[in] free_psram   Bytes free in external memory.
- * @param[in] threshold    Size at or above which external memory is tried first.
+ * @param[in] threshold    Size at or above which external memory comes first.
  * @param[in] reserve      Internal bytes that must remain free afterwards.
  * @return                 PLACE_DRAM, PLACE_PSRAM or PLACE_FAIL.
- * @note Transcribed from the four rules memoria_externa.h states on mmgr_extern_place: a size of 0
- *       gives PLACE_FAIL, a DMA request gives PLACE_DRAM or PLACE_FAIL and never external memory, at
- *       or above the threshold external memory is preferred, and below it internal memory is.
+ * @note Transcribed from the four rules memoria_externa.h states on mmgr_extern_place. A size of 0
+ *       gives PLACE_FAIL. A DMA request gives PLACE_DRAM or PLACE_FAIL and never external memory. At
+ *       or above the threshold external memory comes first, and below it internal memory does.
  * @note The two fit tests differ, which the header calls out. Internal has to leave the reserve free
  *       afterwards, and external is a size comparison on its own.
- * @note The internal test is written as an addition, where the module subtracts. Both express the
- *       same rule and neither can wrap at the values this file sweeps, and so the two arrive at the same
- *       decision without sharing the arithmetic that reaches it.
+ * @note The internal test here is an addition, where the module subtracts. Both express the
+ *       same rule and neither can wrap at the values this file sweeps. So the two arrive at the same
+ *       decision and share no arithmetic on the way.
  */
 static mmgr_place accuracy_policy_place(size_t size, embed_bool dma_required, size_t free_dram, size_t free_psram,
                                         size_t threshold, size_t reserve)
@@ -92,7 +92,7 @@ static mmgr_place accuracy_policy_place(size_t size, embed_bool dma_required, si
  *
  * @param[in] place Placement to name.
  * @return          The enumerator's name [BORROWS].
- * @note A failing sweep reports two placements, and their numbers are 0, 1 and 2. The names are what
+ * @note A sweep that fails reports two placements, and their numbers are 0, 1 and 2. The names are what
  *       make the message readable without a lookup.
  */
 static const char *accuracy_place_name(mmgr_place place)
@@ -137,12 +137,12 @@ void tearDown(void)
  *
  * @note Exists to catch a defect in the reference as itself. A reference that agreed with the module
  *       while both departed from the header would pass the sweep below and prove nothing.
- * @note Each expectation names one rule from the header. A size of zero is refused whatever fits, a
- *       DMA request never reaches external memory even when it would fit there, the threshold sends
- *       a large request to external memory first, and below it a request goes to internal memory
+ * @note Each expectation names one rule from the header. A size of zero fails whatever fits. A
+ *       DMA request never reaches external memory even when it would fit there. The threshold sends
+ *       a large request to external memory first. Below it a request goes to internal memory
  *       first even when both would take it.
- * @note The reserve is checked at the boundary the header describes: a reserve equal to the free
- *       internal bytes admits only a size of 0, which is refused for being zero.
+ * @note The reserve has its check at the boundary the header describes. A reserve equal to the free
+ *       internal bytes admits only a size of 0, which fails because it is zero.
  */
 void test_the_reference_policy_this_suite_relies_on_is_itself_right(void)
 {
@@ -169,12 +169,12 @@ void test_the_reference_policy_this_suite_relies_on_is_itself_right(void)
 /**
  * @brief Checks the placement against the documented policy over every combination of six inputs.
  *
- * @note This is the case the file exists for. Every ordering of the size against the two free
- *       figures, the threshold and the reserve is visited, with the DMA flag taken both ways.
+ * @note This is the case the file exists for. The sweep covers every ordering of the size against
+ *       the two free figures, the threshold and the reserve, with the DMA flag both ways.
  * @note The failure message names all six inputs and both placements. A disagreement is reproducible
  *       from the message alone, with no part of the grid to narrow down by hand.
- * @note The sweep is 118098 decisions and each one is a handful of comparisons, and so the
- *       whole grid is walked instead of a sample of it.
+ * @note The sweep is 118098 decisions and each one is a handful of comparisons. So the
+ *       walk covers the whole grid and not a sample of it.
  */
 void test_every_placement_decision_matches_the_documented_policy(void)
 {
@@ -220,16 +220,16 @@ void test_every_placement_decision_matches_the_documented_policy(void)
 }
 
 /**
- * @brief Checks that a request larger than the free internal bytes is refused at the top of the range.
+ * @brief Checks that a request larger than the free internal bytes fails at the top of the range.
  *
  * @note The internal test subtracts the size from the free bytes and compares the remainder against
  *       the reserve. A subtraction taken before its guard wraps to a very large remainder, and the
- *       request is then admitted to memory that cannot hold it.
+ *       request then lands in memory that cannot hold it.
  * @note The figures sit near the top of a size_t, where a wrap produces a number larger than any
  *       reserve. At small values a wrapped remainder can still fall below a reserve by chance, and for that reason
- *       the case is written up here.
- * @note External memory is given nothing to offer in the arms that expect a refusal, and so the refusal
- *       is the internal test's and not a fallback that happened to fail as well.
+ *       the case sits up here.
+ * @note External memory has nothing to offer in the arms that expect a refusal. So the refusal
+ *       is the internal test's and not a second choice that happened to fail as well.
  */
 void test_a_request_larger_than_the_free_bytes_is_refused_at_the_top_of_the_range(void)
 {
@@ -254,13 +254,13 @@ void test_a_request_larger_than_the_free_bytes_is_refused_at_the_top_of_the_rang
  * @brief Checks that the two buffer indexes are always each other's complement.
  *
  * @note The pair keeps one member and derives the other, and the claim is that the two never name the
- *       same buffer. A producer and a consumer holding the same index write and read the same bytes
+ *       same buffer. A producer and a consumer with the same index write and read the same bytes
  *       at once, the failure the whole arrangement exists to prevent.
- * @note Checked after the initial state and after every swap in a long run, which tests the property
- *       at both values many times over instead of at whichever one a single swap lands on.
- * @note The swap's return is checked against a separate read of the fill index, since a swap that
- *       flipped the member and returned the old value would leave a caller acting on the buffer it
- *       just stopped filling.
+ * @note Checked after the initial state and after every swap in a long run. That tests the property
+ *       at both values many times over and not at whichever one a single swap lands on.
+ * @note The swap's return has a check against a separate read of the fill index. A swap that
+ *       flipped the member and returned the old value would leave a caller at work on the buffer it
+ *       just left.
  */
 void test_the_two_buffer_indexes_are_always_each_others_complement(void)
 {
@@ -284,8 +284,8 @@ void test_the_two_buffer_indexes_are_always_each_others_complement(void)
         TEST_ASSERT_TRUE_MESSAGE(fill <= 1u, "the fill index left the pair of buffers");
         TEST_ASSERT_TRUE_MESSAGE(drain <= 1u, "the drain index left the pair of buffers");
         TEST_ASSERT_NOT_EQUAL_MESSAGE(fill, drain, message);
-        // A pair started at zero is filling the buffer the swap count's parity names. That count is
-        // kept here, and so the expectation reaches this line without reading the pair at all
+        // A pair started at zero fills the buffer the swap count's parity names. That count lives
+        // here, and so the expectation reaches this line with no read of the pair at all
         TEST_ASSERT_EQUAL_UINT8_MESSAGE((uint8_t)((step + 1u) & 1u), fill, message);
     }
 }

@@ -20,9 +20,9 @@ A third prover holds the threads:
             reports a failed assertion, a data race, or a thread blocked in a sleep no wake ends (genmc_host.h). A
             client that passes under one model and fails under another names the ordering the code needs.
 
-All three run in WSL on a Windows host and directly on Linux. CBMC comes from the distribution; the executor from a
-virtual environment at ~/.venvs/angr; GenMC from its source at ~/src/genmc, built and installed to ~/.local by the
-first run that needs it. Everything a run builds lands in one folder under the build container.
+All three run in WSL on a Windows host and directly on Linux. CBMC comes from the distribution and the executor
+from a virtual environment at ~/.venvs/angr. GenMC comes from its source at ~/src/genmc, which the first run that
+needs it builds and puts in ~/.local. Everything a run builds lands in one folder under the build container.
 """
 
 import glob
@@ -30,7 +30,7 @@ import os
 import shlex
 import subprocess
 
-# Each harness's bound: the steps its sequence runs, and the loop unwinding CBMC holds it to. A bound with hosted
+# Each harness's bound: the steps its sequence runs, and the loop unwind CBMC holds it to. A bound with hosted
 # False needs more memory than a hosted runner has, and prove --hosted names it and does not run it. The movable
 # harness uses more than 27 GB under CBMC, and a hosted runner has 16 GB.
 BOUNDS = {
@@ -39,7 +39,7 @@ BOUNDS = {
     "locus_carcerum_movable": {"defines": ["PROVE_STEPS=2u"], "unwind": 12, "hosted": False},
 }
 
-# The toolchains of the machine arm and the levels each is proved at.
+# The toolchains of the machine arm and the levels each one runs at.
 MACHINE = [("gcc", "-O0"), ("gcc", "-O2"), ("clang", "-O0"), ("clang", "-O2")]
 
 DEFINES = ["MMGR_ENABLE_DMA=0", "MMGR_ENABLE_EXTRAM=0", "MMGR_CARCER_OWNERS=1024u"]
@@ -49,9 +49,9 @@ EXECUTOR = "~/.venvs/angr/bin/python"
 # The memory models of the genmc arm: sequential consistency, x86, C11, the hardware model under C11, and Armv8.
 GENMC = "~/.local/bin/genmc"
 GENMC_MODELS = ["--sc", "--tso", "--rc11", "--imm", "--arm8"]
-# GenMC's load annotation, spin-assume and loop jump threading read each address in a loop's condition, and stop on
-# a constant address other than NULL, the sink a branch-free pick names. With the three off, every loop runs to the
-# unroll bound, which covers the clients' loops whole, and a spin's end is not proved.
+# GenMC's load annotation, spin-assume and loop jump threading read each address in a loop's condition. They stop
+# on a constant address other than NULL, the sink a branch-free pick names. With the three off, every loop runs to
+# the unroll bound, which covers the clients' loops whole, and a spin's end has no proof.
 GENMC_FLAGS = ["--disable-estimation", "--unroll=8", "--disable-load-annotation", "--disable-spin-assume",
                "--disable-loop-jump-threading"]
 GENMC_DEFINES = ["MMGR_ENABLE_DMA=0", "MMGR_ENABLE_EXTRAM=0", "MMGR_CARCER_OWNERS=8u"]
@@ -123,7 +123,7 @@ def linux_root(root, command):
 
 
 def genmc_ready(root):
-    """None where GenMC runs, after a build where it is missing: its packages, its source, its install. The reason
+    """None where GenMC runs, after a build where it is absent: its packages, its source, its install. The reason
     where a step failed."""
     if linux(root, "test -x %s" % GENMC).returncode == 0:
         return None

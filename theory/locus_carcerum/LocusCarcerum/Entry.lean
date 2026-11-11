@@ -1,17 +1,17 @@
 /-!
 # LocusCarcerum, the movable option's entries and the zeroing
 
-A movable take claims an entry (`carcer_entry_claimed`) by setting its bit of `claimed` with one fetch-or, and the take
-whose fetch-or found the bit clear names the entry; a release (`carcer_entry_given`) clears the bit of the entry it
+A movable take claims an entry (`carcer_entry_claimed`) with one fetch-or that sets its bit of `claimed`. The take
+whose fetch-or found the bit clear names the entry. A release (`carcer_entry_given`) clears the bit of the entry it
 named. The theorem: no two contexts name one entry.
 
-The zeroing. A give zeroes the payload, `size & zeroing & proceeds` bytes, and so the whole payload where both
-masks are set and nothing otherwise.
+The zero fill. A give zeroes the payload, `size & zeroing & proceeds` bytes, and so the whole payload where both
+masks hold and nothing otherwise.
 -/
 
 namespace LocusCarcerum.Entry
 
-/-- A context: at rest, or naming an entry. -/
+/-- A context: at rest, or with an entry named. -/
 inductive At where
   | idle
   | names (entry : Nat)
@@ -25,7 +25,7 @@ def setCtx (f : Nat → At) (i : Nat) (a : At) : Nat → At := fun j => if j = i
 def setBit (f : Nat → Bool) (k : Nat) (b : Bool) : Nat → Bool := fun j => if j = k then b else f j
 
 inductive Step : State → State → Prop where
-  /-- A claim's fetch-or: the entry named where the bit was clear, nothing where it was set. -/
+  /-- A claim's fetch-or: the entry named where the bit was clear, nothing where it held. -/
   | claim {s : State} (i k : Nat) (h : s.ctx i = .idle) :
       Step s { claimed := setBit s.claimed k true,
                ctx := setCtx s.ctx i (if s.claimed k then .idle else .names k) }

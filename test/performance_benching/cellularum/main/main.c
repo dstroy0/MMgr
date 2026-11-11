@@ -10,17 +10,17 @@
 #include "verbum_scrutor/verbum_scrutor.h"
 
 /**
- * @brief Threshold the two lane comparison arms are given, read out of a volatile.
+ * @brief Threshold the two lane comparison arms take, read out of a volatile.
  *
  * @note Volatile so neither arm can fold its broadcast into a constant. A folded broadcast measures
- *       a multiply that the shipping code performs and the candidate would too.
+ *       a multiply that the module performs and the candidate would too.
  */
 static volatile uint8_t g_scrut_threshold = 0x7Au;
 
 /**
- * @brief Word the letter test arms are given, read out of a volatile.
+ * @brief Word the letter test arms take, read out of a volatile.
  *
- * @note Volatile so the whole test cannot be hoisted out of the timing loop. Both arms take the word
+ * @note Volatile so the optimizer cannot lift the whole test out of the timing loop. Both arms take the word
  *      , alone, and a loop invariant one would let the optimizer compute each result once
  *       and measure an empty loop.
  * @note The lanes alternate a letter with a byte at or above 0x80, the shape the two arms
@@ -32,10 +32,10 @@ static volatile embed_word g_scrut_word = (embed_word)0xFF7AFF7Aul;
  * @brief The seven bit lane comparison the module ships, written out here for the A and B arms.
  *
  * @param[in] word Lanes to compare.
- * @param[in] byte Byte every lane is compared against.
- * @return         A lane mask holding the lanes at or above byte, for lanes under 0x80.
+ * @param[in] byte Byte every lane compares against.
+ * @return         A lane mask with the lanes at or above byte, for lanes under 0x80.
  * @note The same three operations scrut_ge performs, copied so both arms sit in this translation
- *       unit and neither is reached through a call the other avoids.
+ *       unit and neither sits behind a call the other avoids.
  */
 static inline embed_word bench_ge_seven_bit(embed_word word, uint8_t byte)
 {
@@ -46,19 +46,20 @@ static inline embed_word bench_ge_seven_bit(embed_word word, uint8_t byte)
  * @brief The eight bit candidate, correct over the whole 0 to 255 range.
  *
  * @param[in] word Lanes to compare.
- * @param[in] byte Byte every lane is compared against.
- * @return         A lane mask holding the lanes at or above byte.
- * @note Splits each lane at its high bit: a lane is at or above the byte when its high bit is set
- *       and the byte's is not, or when the two agree and the low seven bits are at or above.
- * @note Proved against a byte-at-a-time reference over all 65536 pairs in
- *       test/accuracy/test_verbum_scrutor_accuracy before it was brought here.
+ * @param[in] byte Byte every lane compares against.
+ * @return         A lane mask with the lanes at or above byte.
+ * @note Splits each lane at its high bit. A lane is at or above the byte when its high bit holds
+ *       and the byte's does not. It is also at or above when the two agree and the low seven bits
+ *       are at or above.
+ * @note test/accuracy/test_verbum_scrutor_accuracy proves it against a byte-at-a-time reference over
+ *       all 65536 pairs.
  */
 /**
  * @brief The seven bit at-or-below the module ships, written out here for the arms below.
  *
  * @param[in] word Lanes to compare.
- * @param[in] byte Byte every lane is compared against.
- * @return         A lane mask holding the lanes at or below byte, for lanes under 0x80.
+ * @param[in] byte Byte every lane compares against.
+ * @return         A lane mask with the lanes at or below byte, for lanes under 0x80.
  */
 static inline embed_word bench_le_seven_bit(embed_word word, uint8_t byte)
 {
@@ -66,15 +67,15 @@ static inline embed_word bench_le_seven_bit(embed_word word, uint8_t byte)
 }
 
 /**
- * @brief Candidate at-or-above: the shipping subtraction with the word's own high bits or-ed in.
+ * @brief Candidate at-or-above: the subtraction the module ships with the word's own high bits or-ed in.
  *
  * @param[in] word Lanes to compare.
- * @param[in] byte Byte every lane is compared against, under 0x80.
- * @return         A lane mask holding the lanes at or above byte, over the whole 0 to 255 range.
+ * @param[in] byte Byte every lane compares against, under 0x80.
+ * @return         A lane mask with the lanes at or above byte, over the whole 0 to 255 range.
  * @note A lane at or above 0x80 is above any threshold under 0x80, and its own high bit carries
- *       that. No lane can borrow out, and so the neighbor is untouched either way.
- * @note Proved against a byte-at-a-time reference over every lane value and every threshold under
- *       0x80 in test/accuracy/test_verbum_scrutor_accuracy before it was brought here.
+ *       that. No lane can borrow out, and so the neighbor stays untouched either way.
+ * @note test/accuracy/test_verbum_scrutor_accuracy proves it against a byte-at-a-time reference over
+ *       every lane value and every threshold under 0x80.
  */
 static inline embed_word bench_ge_or_high(embed_word word, uint8_t byte)
 {
@@ -83,15 +84,15 @@ static inline embed_word bench_ge_or_high(embed_word word, uint8_t byte)
 }
 
 /**
- * @brief Candidate at-or-below: the shipping subtraction with the word narrowed and its high lanes
+ * @brief Candidate at-or-below: the subtraction the module ships with the word narrowed and its high lanes
  *        removed.
  *
  * @param[in] word Lanes to compare.
- * @param[in] byte Byte every lane is compared against, under 0x80.
- * @return         A lane mask holding the lanes at or below byte, over the whole 0 to 255 range.
+ * @param[in] byte Byte every lane compares against, under 0x80.
+ * @return         A lane mask with the lanes at or below byte, over the whole 0 to 255 range.
  * @note The mirror of bench_ge_or_high and not symmetric with it. A lane at or above 0x80 is never
  *       at or below a threshold under 0x80, and so those lanes come out of the result.
- * @note Proved over the same range as bench_ge_or_high before it was brought here.
+ * @note The same suite proves it over the same range as bench_ge_or_high.
  */
 static inline embed_word bench_le_mask_high(embed_word word, uint8_t byte)
 {
@@ -103,7 +104,7 @@ static inline embed_word bench_le_mask_high(embed_word word, uint8_t byte)
  * @brief The letter test the module ships.
  *
  * @param[in] word Lanes to test.
- * @return         A lane mask holding the lanes that carry an ASCII letter.
+ * @return         A lane mask with the lanes that carry an ASCII letter.
  * @note The same operations scrut_alpha performs, copied so both arms sit in this translation unit.
  */
 static inline embed_word bench_alpha_current(embed_word word)
@@ -117,10 +118,10 @@ static inline embed_word bench_alpha_current(embed_word word)
  * @brief The same letter test with the lanes narrowed to seven bits before the range compares.
  *
  * @param[in] word Lanes to test.
- * @return         A lane mask holding the lanes that carry an ASCII letter.
- * @note One and more than bench_alpha_current. It puts the lanes in the quadrant where the shipping
- *       comparison is exact, which the accuracy suite measures at 0 wrong out of 16384 pairs.
- * @note The closing and is against the unmasked word. A lane that carried the high bit is still
+ * @return         A lane mask with the lanes that carry an ASCII letter.
+ * @note One and more than bench_alpha_current. It puts the lanes in the quadrant where the comparison
+ *       the module ships is exact, which the accuracy suite measures at 0 wrong out of 16384 pairs.
+ * @note The final and is against the unmasked word. A lane that carried the high bit is still
  *       thrown out and no byte at 0x80 or above can pass as a letter.
  */
 static inline embed_word bench_alpha_narrowed(embed_word word)
@@ -132,14 +133,14 @@ static inline embed_word bench_alpha_narrowed(embed_word word)
 }
 
 /**
- * @brief The same test again, taking the narrowing mask from MMGR_SWAR_LOW7.
+ * @brief The same test again, with the narrow mask from MMGR_SWAR_LOW7.
  *
  * @param[in] word Lanes to test.
- * @return         A lane mask holding the lanes that carry an ASCII letter.
+ * @return         A lane mask with the lanes that carry an ASCII letter.
  * @note The header names MMGR_SWAR_LOW7 the complement of MMGR_VERBUM_SCRUTOR_HIGH, and so this is the
- *       same mask as bench_alpha_narrowed reaches by complementing. What differs is the width the
- *       complement is taken at: LOW7 is built from MMGR_SWAR_ONES and stays an embed_word, where
- *       ~MMGR_VERBUM_SCRUTOR_HIGH promotes to int first and is narrowed on the way back.
+ *       same mask as bench_alpha_narrowed reaches through a complement. What differs is the width of
+ *       the complement. LOW7 comes from MMGR_SWAR_ONES and stays an embed_word, where
+ *       ~MMGR_VERBUM_SCRUTOR_HIGH promotes to int first and comes back narrow after.
  * @note alpha_masks_agree checks that the two produce the same mask. Without that the row below
  *       would be timing two different functions.
  */
@@ -152,18 +153,18 @@ static inline embed_word bench_alpha_low7(embed_word word)
 }
 
 /**
- * @brief The same test again, keeping the complement and stating the narrowing with a cast.
+ * @brief The same test again, with the complement kept and the narrow width stated with a cast.
  *
  * @param[in] word Lanes to test.
- * @return         A lane mask holding the lanes that carry an ASCII letter.
- * @note The third form the two above are priced against. It leaves the expression exactly as the
- *       module writes it and only names the width the result is taken at, where bench_alpha_low7
+ * @return         A lane mask with the lanes that carry an ASCII letter.
+ * @note The third form the two above price against. It leaves the expression exactly as the
+ *       module writes it and only names the width of the result. bench_alpha_low7
  *       reaches the same mask through a different constant.
  */
 static inline embed_word bench_alpha_cast(embed_word word)
 {
     const embed_word lowered = word | (MMGR_SWAR_ONES * 0x20u);
-    // Explicit cast takes the complement back to the embed_word the lanes are stored in. The value is
+    // Explicit cast takes the complement back to the embed_word that holds the lanes. The value is
     // the low seven bits of every lane either way
     const embed_word in_range = lowered & (embed_word)~MMGR_VERBUM_SCRUTOR_HIGH;
 
@@ -171,9 +172,9 @@ static inline embed_word bench_alpha_cast(embed_word word)
 }
 
 /**
- * @brief Counts the words the two narrowing forms disagree on.
+ * @brief Counts the words the two narrow forms disagree on.
  *
- * @return The disagreement count, which is expected to be zero.
+ * @return The disagreement count, which has to be zero.
  * @note Walks a fixed recurrence, and a failure reproduces, and covers every lane pattern the walk
  *       reaches and not only the word the timing row uses.
  */
@@ -190,7 +191,7 @@ static uint32_t alpha_masks_agree(void)
         {
             bad++;
         }
-        // Explicit cast narrows the recurrence to the word the lanes are read from
+        // Explicit cast narrows the recurrence to the word that holds the lanes
         walk = (embed_word)((walk * 6364136223846793005ull) + 1442695040888963407ull);
     }
     return bad;
@@ -1342,14 +1343,14 @@ void dbench_run(void)
         }
 
         // The letter test the module ships against the same test with its lanes narrowed first. Both
-        // arms are static inline in this translation unit over the same volatile word, and so neither is
-        // privileged by a call the other pays or an inlining the other does not get, and neither can
-        // be hoisted out of the loop.
+        // arms are static inline in this translation unit over the same volatile word. So neither
+        // pays a call the other avoids or gets an inline the other does not. Neither can leave the
+        // loop.
         DBENCH_AB("alpha_now_vs_narrow", 20000u, 4u, DBENCH_KEEP(bench_alpha_current(g_scrut_word)),
                   DBENCH_KEEP(bench_alpha_narrowed(g_scrut_word)));
 
-        // The shipping narrowing against the same mask taken from MMGR_SWAR_LOW7. The two are the
-        // same value, and so this row prices the width the complement is taken at, alone.
+        // The narrow form the module ships against the same mask from MMGR_SWAR_LOW7. The two are the
+        // same value, and so this row prices the width of the complement, alone.
         DBENCH_PRINTF("DB alpha_mask_check disagreements=%u\n", (unsigned)alpha_masks_agree());
 
         DBENCH_AB("alpha_notHIGH_vs_LOW7", 20000u, 4u, DBENCH_KEEP(bench_alpha_narrowed(g_scrut_word)),
@@ -1358,12 +1359,12 @@ void dbench_run(void)
         DBENCH_AB("alpha_notHIGH_vs_cast", 20000u, 4u, DBENCH_KEEP(bench_alpha_narrowed(g_scrut_word)),
                   DBENCH_KEEP(bench_alpha_cast(g_scrut_word)));
 
-        // The two candidates against each other, and so the pair is priced without the shipping form in
-        // between and a one cycle move on one part can be read against a second row and not alone
+        // The two candidates against each other. So the pair prices with no module form in between.
+        // A one cycle move on one part reads against a second row and not alone
         DBENCH_AB("alpha_LOW7_vs_cast", 20000u, 4u, DBENCH_KEEP(bench_alpha_low7(g_scrut_word)),
                   DBENCH_KEEP(bench_alpha_cast(g_scrut_word)));
 
-        // The shipping comparisons against the two candidates that answer over the whole byte range.
+        // The comparisons the module ships against the two candidates that answer over the whole byte range.
         // Same shape as the row above: both arms static inline here, both operands out of volatiles
         DBENCH_AB("ge_now_vs_or_high", 20000u, 4u, DBENCH_KEEP(bench_ge_seven_bit(g_scrut_word, g_scrut_threshold)),
                   DBENCH_KEEP(bench_ge_or_high(g_scrut_word, g_scrut_threshold)));

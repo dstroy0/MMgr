@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Generate the anchor cost profiles.
 
-Cost is "how common", and so the picker takes the minimum and a byte that cannot occur in the profile's
-grammar scores best - if a needle contains one, it is the most selective anchor available.
+Cost is "how common", and so the picker takes the minimum. A byte that cannot occur in the profile's
+grammar scores best. If a needle contains one, it is the most selective anchor available.
 
 Sources:
   english   practicalcryptography.com monograms, 4.5e9 characters from Wortschatz. Space is taken
@@ -20,20 +20,20 @@ Sources:
 WHAT EACH PROFILE CARRIES BESIDES ITS FREQUENCIES
 
 The generated file is ordinary documented source, and so every profile also carries the prose that
-describes ITS table: the @brief, the notes about which bytes were pinned, and the range the entry
-point returns. Those are observations about one table and cannot be derived from another, and so they
-sit beside the frequency function and not in the template.
+describes ITS table. That is the @brief, the notes about which bytes sit at the ceiling, and the
+range the entry point returns. Those are observations about one table and no other table can supply
+them. So they sit beside the frequency function and not in the template.
 
-The two numbers in the @return line ARE derived, from the table that was just computed, so that
+The two numbers in the @return line DO come from the table just computed. So that
 line cannot come to disagree with the data above it.
 
 FORMATTING
 
-The tables are laid out by clang-format, which aligns each column to the widest entry in it. That
-alignment is not reproducible by hand in any way worth maintaining, and so the generator emits a plain
+clang-format lays the tables out, and it aligns each column to the widest entry in it. That
+alignment is not reproducible by hand in any way worth the effort. So the generator emits a plain
 sixteen-per-row table and then runs the formatter over it. Without that step the output differs
-from what is on disk until something else has run, and `harness.py generated` reads that as a dirty
-tree. A missing clang-format stops the run with an error.
+from what is on disk until something else runs, and `harness.py generated` reads that as a dirty
+tree. An absent clang-format stops the run with an error.
 """
 
 import math
@@ -205,7 +205,7 @@ def route():
 
 
 def generic():
-    """No grammar. Only the shape of byte data: printable ASCII is what strings are made of."""
+    """No grammar. Only the shape of byte data: printable ASCII is what strings consist of."""
     f = {}
     f[ord(" ")] = 12.0
     for c, p in MONO.items():
@@ -224,14 +224,14 @@ def generic():
     return f
 
 
-# name, the @brief for the file, the notes on the table, the @return phrasing, the frequency source.
+# name, the @brief for the file, the notes on the table, the @return words, the frequency source.
 #
-# `notes` are observations about the table this profile produces - which bytes were pinned to the
+# `notes` are observations about the table this profile produces - which bytes sit at the
 # ceiling, where the floor sits, which bytes are unexpectedly above it. They are per profile because
 # they are true of one table and false of the next.
 #
-# `returns` takes the lowest and highest entry of the computed table, and so the range it states is read
-# off the data and not remembered.
+# `returns` takes the lowest and highest entry of the computed table, and so the range it states comes
+# off the data and not from memory.
 PROFILES = [
     (
         "generic",

@@ -12,18 +12,18 @@
  *
  * @note The examination arm. The correctness arm says every case passed, and that says nothing about
  *       which of the machine's states and transitions any case walked through. A four state core with
- *       eight statuses has more paths than a suite this size can cover by accident, and so the ones it
- *       misses are worth knowing before any of it reaches a part.
- * @note Reports and does not gate. A transition nothing reached is a hole in the cases, and whether it
- *       is worth filling is a reading of the report and not a build failure. The optimization arm is
- *       this same instrument carrying timings.
- * @note Off unless PRAET_PROCURATOR is 1, and every entry is then a macro expanding to nothing. A
+ *       eight statuses has more paths than a suite this size can cover by accident. So the ones it
+ *       misses are worth a look before any of it reaches a part.
+ * @note Reports and does not gate. A transition nothing reached is a hole in the cases. Whether it
+ *       is worth a case is a reading of the report and not a build failure. The optimization arm is
+ *       this same instrument with timings.
+ * @note Off unless PRAET_PROCURATOR is 1, and every entry is then a macro that expands to nothing. A
  *       build that did not ask for it carries no counter and no call.
- * @note Declared here and defined in the suite. The one function that writes a flag word calls these,
- *       and the counters and the table they print belong to a run of the suite, at
+ * @note Declared here and defined in the suite. The one function that writes a flag word calls these.
+ *       The counters and the table they print belong to a run of the suite, at
  *       test/integration/test_praet_correctness/praet_procurator.c.
- * @warning A build setting PRAET_PROCURATOR to 1 links against those definitions and fails to link
- *          without them. A shipping image has no reason to set it.
+ * @warning A build with PRAET_PROCURATOR at 1 links against those definitions and fails to link
+ *          without them. An image for a part has no reason to set it.
  * @warning Not a knob praet_iudex.h asks about. Every knob there describes the image a
  *          caller ships; this describes a run of the suite, the harness's business and not
  *          the caller's.
@@ -36,14 +36,14 @@
 /**
  * @brief Whether a run records the work it did, on top of the states it reached.
  *
- * @note The optimization arm, and it is the examination arm carrying more counters. It records
- *       work: entries called, channels walked, times the poll short circuited, times the port was
- *       asked anything, and the bytes of state a context costs.
+ * @note The optimization arm, and it is the examination arm with more counters. It records
+ *       work. Entries called, channels walked, times the poll short circuited, times the port heard
+ *       a question, and the bytes of state a context costs.
  * @note No times, and none deliberately. A count of work is the same on every run of one build, and so it
- *       is a fact a host can state. What that work costs is a property of a part, and a number taken
+ *       is a fact a host can state. What that work costs is a property of a part. A number taken
  *       here would be a number about this machine dressed as a number about the library.
  * @note Reports and does not gate, the same as the examination arm. A count that grew is worth reading
- *       and is not a build failure, because whether it matters is measured somewhere else.
+ *       and is not a build failure, because the measure of whether it matters lives somewhere else.
  */
 #ifndef PRAET_OPTIMIZE
 #define PRAET_OPTIMIZE 0
@@ -56,8 +56,8 @@
 /**
  * @brief Whether a run records the states and transitions it reached.
  *
- * @note Turned on by PRAET_OPTIMIZE as well, since the work counts are read beside the states they
- *       were spent reaching and a report with one half missing says less than either half alone.
+ * @note Turned on by PRAET_OPTIMIZE as well. The work counts read beside the states they bought,
+ *       and a report with one half absent says less than either half alone.
  */
 #ifndef PRAET_PROCURATOR
 #if PRAET_OPTIMIZE
@@ -80,13 +80,13 @@
 EMBED_BEGIN_DECLS
 
 /**
- * @brief Records one channel's flag word changing.
+ * @brief Records one change of a channel's flag word.
  *
  * @param[in] channel Channel whose word changed.
  * @param[in] was     The word before.
  * @param[in] now     The word after.
  * @note Called from the one function that writes a flag word, and that leaves the record complete,
- *       including the sites nobody remembered to instrument.
+ *       with the sites nobody remembered to instrument in it.
  * @note Records the core transition as a pair, and every status bit that came on or went off. A word
  *       that changed only its region descriptor records neither, and nothing here reads the region.
  */
@@ -96,7 +96,7 @@ void praet_procurator_transitus(embed_word channel, uint32_t was, uint32_t now);
  * @brief Prints what the run reached, as a table.
  *
  * @note Written to stdout, because this is a report a person reads and not a result anything asserts
- *       on. A suite that fails still prints it, which is when it is most worth having.
+ *       on. A suite that fails still prints it, which is when it is worth most.
  * @note Prints the work the run did as well, where PRAET_OPTIMIZE is on.
  */
 void praet_procurator_report(void);
@@ -111,8 +111,8 @@ EMBED_END_DECLS
  * @param channel_ Channel whose word changed, discarded.
  * @param was_     The word before, discarded.
  * @param now_     The word after, discarded.
- * @note Casts each argument to void, which keeps a build without the instrument from warning about the values
- *       it was handed.
+ * @note Casts each argument to void, which keeps a build without the instrument from a warning about the values
+ *       it received.
  */
 #define praet_procurator_transitus(channel_, was_, now_) ((void)(channel_), (void)(was_), (void)(now_))
 
@@ -130,7 +130,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief The pieces of work an optimization run counts.
  *
- * @note One id per entry a caller can reach, plus the two things the poll does that are worth telling
+ * @note One id per entry a caller can reach, plus the two things the poll does that are worth a split
  *       apart. Dense from zero, because the counters are an array indexed by these.
  */
 typedef enum
@@ -145,14 +145,14 @@ typedef enum
     PRAET_OPUS_POLL_SHORT = 7, /**< A poll that found nothing to do and returned. */
     PRAET_OPUS_POLL_WALK = 8,  /**< A poll that walked every channel. */
     PRAET_OPUS_ALVEUS = 9,     /**< One channel visited inside a walk. */
-    PRAET_OPUS_PROGRESS = 10,  /**< The port was asked how far a channel had got. */
-    PRAET_OPUS_KINDS = 11      /**< How many kinds there are, as the counters are sized by. */
+    PRAET_OPUS_PROGRESS = 10,  /**< The port heard a question about how far a channel got. */
+    PRAET_OPUS_KINDS = 11      /**< How many kinds there are, which sizes the counters. */
 } PraetOpus;
 
 /**
  * @brief Counts one piece of work.
  *
- * @param[in] kind What was done, as a PraetOpus.
+ * @param[in] kind The work done, as a PraetOpus.
  */
 void praet_procurator_opus(unsigned kind);
 
@@ -163,7 +163,7 @@ EMBED_END_DECLS
 /**
  * @brief Expands to nothing where PRAET_OPTIMIZE is 0.
  *
- * @param kind_ What was done, discarded.
+ * @param kind_ The work done, dropped.
  */
 #define praet_procurator_opus(kind_) ((void)0)
 

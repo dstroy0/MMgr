@@ -6,9 +6,9 @@
  */
 /**
  * @file fuzz_replay.c
- * @brief The main a fuzz harness is linked with where there is no libFuzzer: on gcc, on MSVC, on any toolchain.
- *        It hands the harness every file named after the count and the seed, then the count of inputs drawn
- *        from the seed, the same inputs on every toolchain, and a harness's oracle judges each toolchain's
+ * @brief The main a fuzz harness links with where there is no libFuzzer: on gcc, on MSVC, on any toolchain.
+ *        It hands the harness every file named after the count and the seed. Then it hands the count of inputs
+ *        drawn from the seed, the same inputs on every toolchain. A harness's oracle judges each toolchain's
  *        build of the module on the same bytes. A disagreement stops in the harness, which names it.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06

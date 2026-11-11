@@ -3,14 +3,14 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Per-translation-unit .text at each optimization level, for the targets the library ships to.
 
-The counterpart to sizes.py, and the one whose numbers decide anything. sizes.py reads its compiler
-options out of build/compile_commands.json, the desktop build, and so every figure it prints is
-x86-64 code size. That is the wrong instruction set for a library whose targets are 32-bit Xtensa,
-RISC-V and ARM, and they do not merely differ from the host by a constant: on all three -O1 is LARGER
-than -O2, and on the host it is smaller. A level chosen off the host table is chosen off the wrong
+The counterpart to sizes.py, and the one whose numbers decide anything, because sizes.py measures
+the host. The desktop tool reads its compiler options out of build/compile_commands.json, and so every
+figure it prints is x86-64 code size. That is the wrong instruction set for a library whose targets are 32-bit
+Xtensa, RISC-V and ARM. They do not merely differ from the host by a constant. On all three -O1 is
+LARGER than -O2, and on the host it is smaller. A level chosen off the host table comes off the wrong
 measurement.
 
-Each unit is compiled on its own, no LTO and no link. A row is that unit alone:
+Each unit builds on its own, no LTO and no link. A row is that unit alone:
 
     <target>-gcc -std=c11 -I src -O<level> -c <unit>.c -o <unit>.o && <target>-size <unit>.o
 
@@ -34,10 +34,10 @@ SRC = os.path.join(ROOT, "src")
 
 LEVELS = ("-O0", "-O1", "-Os", "-O2", "-O3")
 
-# Where an ESP-IDF or PlatformIO install puts them. A different toolchain is named with --bin.
+# Where an ESP-IDF or PlatformIO install puts them. Name a different toolchain with --bin.
 #
-# arm carries -mcpu, because arm-none-eabi-gcc defaults to a core nothing in the target list is:
-# Cortex-M4 with the Thumb-2 encoding is the shape this library is built for there, and the default
+# arm carries -mcpu, because arm-none-eabi-gcc defaults to a core nothing in the target list is.
+# Cortex-M4 with the Thumb-2 encoding is the shape this library builds for there. The default
 # ARM encoding would report a code size no target flashes.
 TARGETS = {
     "xtensa": (r"C:\Espressif\tools\xtensa-esp-elf\esp-14.2.0_20260121\xtensa-esp-elf\bin", "xtensa-esp32s3-elf", []),
@@ -49,8 +49,8 @@ TARGETS = {
     ),
 }
 
-# The five cost tables are alternatives, not additions - they all define the same symbol and a build
-# links exactly one, and so only the selected one is counted.
+# The five cost tables are alternatives, not additions. They all define the same symbol and a build
+# links exactly one, and so only the chosen one counts.
 SKIP = re.compile(r"impensa_ancorae_acus_(english|inet|route|uri)\.c$")
 
 

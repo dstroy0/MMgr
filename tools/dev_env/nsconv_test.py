@@ -44,7 +44,7 @@ eq(
     "TEST_ASSERT_EQUAL_HEX16(TLS_VERSION_1_3,",
 )
 
-# 6. rewriting that call hoists staging ABOVE the assert and leaves the value inside it
+# 6. a rewrite of that call lifts staging ABOVE the assert and leaves the value inside it
 end = N.close_paren(src, pos + len("old_call("))
 out = N.rewrite(src, pos, end, ["Ns.args.a = a;", "Ns.args.b = b;", "Ns.entry(w);"], "Ns.value")
 eq(
@@ -80,8 +80,8 @@ try:
 except ValueError:
     eq("loop condition refused", "refused", "refused")
 
-# 9. a trailing comment on the PREVIOUS statement is text: the statement start is the call's own
-# line, and so the staging does not land above the statement before it
+# 9. a trailing comment on the PREVIOUS statement is text. The statement start is the call's own
+# line. The staging does not land above the statement before it
 src4 = "void t(void)\n{\n    fill(1); // the oldest loculus\n\n    old_call(a);\n}\n"
 pos4 = src4.index("old_call")
 end4 = N.close_paren(src4, pos4 + len("old_call("))
@@ -91,7 +91,7 @@ eq(
     "void t(void)\n{\n    fill(1); // the oldest loculus\n\n    Ns.args.a = a;\n    Ns.entry(w);\n}\n",
 )
 
-# 10. and neither does a block comment sitting between the two statements
+# 10. and neither does a block comment between the two statements
 src5 = "void t(void)\n{\n    fill(1);\n    /* the oldest loculus */\n    old_call(a);\n}\n"
 pos5 = src5.index("old_call")
 end5 = N.close_paren(src5, pos5 + len("old_call("))
@@ -101,7 +101,7 @@ eq(
     "void t(void)\n{\n    fill(1);\n    /* the oldest loculus */\n    Ns.entry(w);\n}\n",
 )
 
-# 11. a call inside a macro that re-evaluates its argument is refused: hoisting it above DBENCH_OP
+# 11. a call inside a macro that re-evaluates its argument fails. A lift above DBENCH_OP
 # would time an addition and call the entry once
 src6 = 'void t(void)\n{\n    DBENCH_OP("x", 200000, sink += old_call(a));\n}\n'
 pos6 = src6.index("old_call")
@@ -112,8 +112,8 @@ try:
 except ValueError:
     eq("repeating macro refused", "refused", "refused")
 
-# 11a. the right operand of || is refused: `if (!r8(REG, &irq) || !old_call(irq))` fills irq in the
-# left operand and reads it in the right. A hoisted call sees the value from before the read
+# 11a. the right operand of || fails. `if (!r8(REG, &irq) || !old_call(irq))` fills irq in the
+# left operand and reads it in the right. A lifted call sees the value from before the read
 src6a = "void t(void)\n{\n    if (!r8(REG, &irq) || !old_call(irq))\n    {\n        return;\n    }\n}\n"
 pos6a = src6a.index("old_call")
 end6a = N.close_paren(src6a, pos6a + len("old_call("))
@@ -133,7 +133,7 @@ try:
 except ValueError:
     eq("short-circuit && right operand refused", "refused", "refused")
 
-# 11a3. but the LEFT operand has nothing before it to be gated by, and so it still converts
+# 11a3. but the LEFT operand has no gate before it, and so it still converts
 src6d = "void t(void)\n{\n    if (old_call(a) || fallback())\n    {\n        return;\n    }\n}\n"
 pos6d = src6d.index("old_call")
 end6d = N.close_paren(src6d, pos6d + len("old_call("))
@@ -143,10 +143,10 @@ eq(
     "void t(void)\n{\n    Ns.entry(w);\n    if (Ns.ok || fallback())\n    {\n        return;\n    }\n}\n",
 )
 
-# 11a4. a conditional operator gates its branches too, and missing it is worse than missing `&&`:
-# the staging for the second branch was hoisted INTO the middle of the expression. smb_client's
-# `return algo == CMAC ? verify_cmac(...) : verify(...)` came out a syntax error, and the half that
-# parsed ran verify_cmac unconditionally.
+# 11a4. a conditional operator gates its branches too, and a miss there is worse than a miss of `&&`.
+# The staging for the second branch would land INTO the middle of the expression.
+# `return algo == CMAC ? verify_cmac(...) : verify(...)` would come out a syntax error. The half that
+# parsed would run verify_cmac unconditionally.
 for label, src6e in (
     ("ternary true branch refused", "void t(void)\n{\n    return c ? old_call(a) : other(a);\n}\n"),
     ("ternary false branch refused", "void t(void)\n{\n    return c ? other(a) : old_call(a);\n}\n"),
@@ -169,8 +169,8 @@ eq(
     "void t(void)\n{\n    goto done;\ndone:\n    Ns.entry(w);\n}\n",
 )
 
-# 11b. DBENCH_BULK hands its expr to the same DBENCH_CYCLES loop, and was missed once: a bench came
-# out with the entry hoisted above it, timing `sink += Ns.n`
+# 11b. DBENCH_BULK hands its expr to the same DBENCH_CYCLES loop. A bench with the entry lifted
+# above it would time `sink += Ns.n`
 src6b = 'void t(void)\n{\n    DBENCH_BULK("x", 50000, 21, sink += old_call(a));\n}\n'
 pos6b = src6b.index("old_call")
 end6b = N.close_paren(src6b, pos6b + len("old_call("))
@@ -190,8 +190,8 @@ eq(
     "void t(void)\n{\n    Ns.entry(w);\n    TEST_ASSERT_EQUAL_INT(3, Ns.n);\n}\n",
 )
 
-# 13. a `#if` / `#endif` bounds the arm. The walk back used to run past both and land the staging in
-# the PREVIOUS arm, and so the call ran under another capability's gate and the read ran under none.
+# 13. a `#if` / `#endif` bounds the arm. A walk back past both would land the staging in
+# the PREVIOUS arm. The call would then run under another capability's gate and the read under none.
 src8 = (
     "void t(void)\n" "{\n" "#if A\n" "    reg(one());\n" "#endif\n" "#if B\n" "    reg(old_call());\n" "#endif\n" "}\n"
 )
@@ -225,8 +225,8 @@ eq(
 )
 
 # 14. one statement becomes several. A braceless control head has to gain a brace. Without it
-# dtls_conn's `else` kept only the first staging line and ran the other five unconditionally, which
-# overwrote the RawPublicKey Certificate with the X.509 one.
+# an `else` keeps only the first staging line and runs the rest unconditionally. The second arm
+# then writes over the first arm's result.
 src9 = "void t(void)\n{\n    if (rpk)\n    {\n        x = 1;\n    }\n    else\n        n = old_call(a);\n}\n"
 pos9 = src9.index("old_call")
 end9 = N.close_paren(src9, pos9 + len("old_call("))
@@ -248,8 +248,8 @@ eq(
     "        Ns.entry(w);\n        n = Ns.n;\n        }\n}\n",
 )
 
-# 14b. a braceless `if` body is one statement to statement_start, and so the staging used to land ABOVE
-# the head and the call ran whatever the condition said.
+# 14b. a braceless `if` body is one statement to statement_start. Staging ABOVE the head would
+# run the call whatever the condition said.
 src9b = "void t(void)\n{\n    if (ok)\n        n = old_call(a);\n    next();\n}\n"
 pos9b = src9b.index("old_call")
 end9b = N.close_paren(src9b, pos9b + len("old_call("))
@@ -280,7 +280,7 @@ eq(
     "void t(void)\n{\n    if (ok)\n    {\n        Ns.args.a = a;\n        Ns.entry(w);\n        n = Ns.n;\n    }\n}\n",
 )
 
-# 14e. a call in the head's own condition is not a body, and the plain statement is untouched
+# 14e. a call in the head's own condition is not a body, and the plain statement stays as it is
 src9e = "void t(void)\n{\n    if (old_call(a))\n    {\n        step();\n    }\n}\n"
 pos9e = src9e.index("old_call")
 end9e = N.close_paren(src9e, pos9e + len("old_call("))

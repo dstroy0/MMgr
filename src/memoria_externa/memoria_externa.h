@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @warning Everything below is declared only when MMGR_ENABLE_EXTRAM is set.
+ * @warning Everything below exists only when MMGR_ENABLE_EXTRAM holds.
  */
 #ifndef MMGR_MEMORIA_EXTERNA_H
 #define MMGR_MEMORIA_EXTERNA_H
@@ -22,7 +22,7 @@
 EMBED_BEGIN_DECLS
 
 /**
- * @brief Where a request should be placed.
+ * @brief Where a request should go.
  *
  * @note One byte on every compiler, through EMBED_ENUM_BYTE.
  */
@@ -32,24 +32,24 @@ EMBED_ENUM_BYTE(mmgr_place, PLACE_DRAM = 0, /**< Internal memory. */
 );
 
 /**
- * @brief A pair of buffers, one being filled while the other is drained.
+ * @brief A pair of buffers, one under fill while the other is under drain.
  *
- * @note fill_index is the only member. The buffers it indexes are stored elsewhere.
+ * @note fill_index is the only member. The buffers it indexes live elsewhere.
  * @note The two roles are one bit. The drain index is this one's complement. A swap is a flip and
  *       there is no second member to keep in step.
- * @warning What holds fill_index to 0 or 1 is mmgr_pingpong_init setting it and mmgr_pingpong_swap
- *          flipping it. A pair that has not been through mmgr_pingpong_init carries whatever its
+ * @warning What holds fill_index to 0 or 1 is the set in mmgr_pingpong_init and the flip in
+ *          mmgr_pingpong_swap. A pair that did not go through mmgr_pingpong_init carries whatever its
  *          storage contained, and no call here tests the value.
  */
 typedef struct
 {
-    uint8_t fill_index; /**< Index of the buffer being filled, 0 or 1. */
+    uint8_t fill_index; /**< Index of the buffer under fill, 0 or 1. */
 } PingPong;
 
 /**
  * @brief Arguments for every exter call, where each call reads only the members it needs.
  *
- * @note free_dram and free_psram are supplied by the caller and used as given.
+ * @note The caller supplies free_dram and free_psram and they stand as given.
  * @note place reads the six figures. The pingpong entries read pingpong alone.
  */
 typedef struct
@@ -58,7 +58,7 @@ typedef struct
     const embed_bool dma_required; /**< The bytes must be reachable by DMA. */
     const size_t free_dram;        /**< Bytes still free in internal memory. */
     const size_t free_psram;       /**< Bytes still free in external memory. */
-    const size_t psram_threshold;  /**< Size at or above which external memory is tried first. */
+    const size_t psram_threshold;  /**< Size at or above which external memory comes first. */
     const size_t dram_reserve;     /**< Internal bytes that must remain free afterwards. */
     PingPong *const pingpong;      /**< Pair the pingpong entries act on [BORROWS]. */
 } ExternaCfg;
@@ -74,8 +74,8 @@ typedef struct
 {
     mmgr_place (*place)(const ExternaCfg *args);       /**< Decides where a request goes. */
     void (*pingpong_init)(const ExternaCfg *args);     /**< Points the pair at buffer 0. */
-    uint8_t (*pingpong_fill)(const ExternaCfg *args);  /**< Index being filled. */
-    uint8_t (*pingpong_drain)(const ExternaCfg *args); /**< Index being drained. */
+    uint8_t (*pingpong_fill)(const ExternaCfg *args);  /**< Index under fill. */
+    uint8_t (*pingpong_drain)(const ExternaCfg *args); /**< Index under drain. */
     uint8_t (*pingpong_swap)(const ExternaCfg *args);  /**< Swaps the two roles. */
 } MemoriaExternaNs;
 EMBED_TABLE_LAYOUT(MemoriaExternaNs, place, pingpong_init, pingpong_fill, pingpong_drain, pingpong_swap);
@@ -87,7 +87,7 @@ EMBED_TABLE_LAYOUT(MemoriaExternaNs, place, pingpong_init, pingpong_fill, pingpo
  * @return         PLACE_DRAM, PLACE_PSRAM, or PLACE_FAIL when neither will take it.
  * @note A size of 0 gives PLACE_FAIL.
  * @note A DMA request only ever gives PLACE_DRAM or PLACE_FAIL, never external memory.
- * @note At or above psram_threshold external memory is preferred, below it internal is.
+ * @note At or above psram_threshold external memory comes first, below it internal does.
  * @warning The two tests are not the same shape. Internal placement must also leave dram_reserve
  *          free, where the external one is a size comparison alone.
  */
@@ -97,14 +97,14 @@ mmgr_place mmgr_extern_place(const ExternaCfg *args);
  * @brief Points the pair at buffer 0.
  *
  * @param[in,out] args Pair to reset, as args->pingpong [BORROWS].
- * @note The other three pingpong entries read a pair this call has set.
+ * @note The other three pingpong entries read a pair this call set.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it, and this
  *          call writes through it at once.
  */
 void mmgr_pingpong_init(const ExternaCfg *args);
 
 /**
- * @brief Returns the index of the buffer being filled.
+ * @brief Returns the index of the buffer under fill.
  *
  * @param[in] args Pair to read, as args->pingpong [BORROWS].
  * @return         0 or 1.
@@ -116,7 +116,7 @@ void mmgr_pingpong_init(const ExternaCfg *args);
 uint8_t mmgr_pingpong_fill_index(const ExternaCfg *args);
 
 /**
- * @brief Returns the index of the buffer being drained.
+ * @brief Returns the index of the buffer under drain.
  *
  * @param[in] args Pair to read, as args->pingpong [BORROWS].
  * @return         The other index, 0 or 1.
@@ -129,14 +129,14 @@ uint8_t mmgr_pingpong_fill_index(const ExternaCfg *args);
 uint8_t mmgr_pingpong_drain_index(const ExternaCfg *args);
 
 /**
- * @brief Swaps which buffer is filled and which is drained.
+ * @brief Swaps which buffer takes the fill and which the drain.
  *
  * @param[in,out] args Pair to flip, as args->pingpong [BORROWS].
- * @return             The index now being filled, 0 or 1.
+ * @return             The index now under fill, 0 or 1.
  * @note Flips the low bit. A swap of a swap is where it started.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning One caller at a time. The flip and the read that follows it are two steps on a plain byte,
- *          with no atomic and no lock, and so two callers swapping the same pair can come away holding
+ *          with no atomic and no lock. So two callers that swap the same pair can come away with
  *          the same index.
  */
 uint8_t mmgr_pingpong_swap(const ExternaCfg *args);

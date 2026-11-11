@@ -12,8 +12,8 @@ For each module chosen, by name or by tag, and each toolchain present:
   disasm     every object disassembled with llvm-objdump, a listing per function and its instruction count
   ghidra     every object of the module analyzed and decompiled by Ghidra headless in WSL, a .c per function
 
-Everything lands in one run under build/, verify-<stamp>/<module>/<toolchain>/, with functions.tsv there holding
-each function's instruction count under every toolchain and Ghidra's count beside it, and a function one toolchain
+Everything lands in one run under build/, verify-<stamp>/<module>/<toolchain>/. The functions.tsv there holds
+each function's instruction count under every toolchain and Ghidra's count beside it. A function one toolchain
 inlined or lowered differently reads off one table.
 """
 
@@ -52,7 +52,7 @@ VCVARS = r"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Aux
 
 
 class Toolchain:
-    """One compiler: how it is called, how it names an object and a program, and how it links."""
+    """One compiler: how to call it, how it names an object and a program, and how it links."""
 
     def __init__(self, name, cc, style, extra):
         self.name = name
@@ -110,8 +110,8 @@ def msvc_env():
 def toolchains():
     chains = [
         Toolchain("clang", "clang", "gnu", []),
-        # GNU ld on PE-COFF keeps a weak default's offset in its section as an addend on every reference, and a
-        # definition that replaces the default is reached that many bytes off. A section for each definition puts
+        # GNU ld on PE-COFF keeps a weak default's offset in its section as an addend on every reference. A
+        # definition that replaces the default then lands that many bytes off. A section for each definition puts
         # every default at offset 0
         Toolchain("gcc", "gcc", "gnu", ["-ffunction-sections", "-fdata-sections"] if os.name == "nt" else []),
         Toolchain("clang-cl", "clang-cl", "msvc", ["/clang:-std=c11"]),
@@ -244,7 +244,7 @@ def verify(root, run_root, names, tags, runs, seed, use_ghidra, objdump):
             # by default
             clang.compile(root, source, ll, DEFINES, ["-S", "-emit-llvm", "-Xclang", "-emit-llvm-uselists"])
             lowered = os.path.join(ir_folder, stem + ".o")
-            # The IR is the optimizer's output already, and so the lowering runs the code generator alone: the
+            # The IR is the optimizer's output already, and so the lowering runs the code generator alone. The
             # middle end run a second time over it is a different program from the direct compile's
             run_tool(["clang", "-c", "-O2", "-g", "-Xclang", "-disable-llvm-passes", ll, "-o", lowered])
             clang.ir_library.append(lowered)
@@ -304,7 +304,7 @@ def verify(root, run_root, names, tags, runs, seed, use_ghidra, objdump):
                                                                             played.returncode)[:200]))
 
             for source in module_sources:
-                # A module the library skips is built with the harness, its switches its own, in the module's folder
+                # A module the library skips builds with the harness, its switches its own, in the module's folder
                 obj = object_name(chain, folder if module in LIBRARY_SKIPPED else
                                   os.path.join(run_root, "library", chain.name), source)
                 if chain.name == "gcc":
@@ -333,7 +333,7 @@ def verify(root, run_root, names, tags, runs, seed, use_ghidra, objdump):
             for source in module_sources:
                 stem = os.path.splitext(os.path.basename(source))[0]
                 if module in LIBRARY_SKIPPED:
-                    # The library holds no IR of a module it skips: it is lowered here, with the module's switches
+                    # The library holds no IR of a module it skips: the lowering happens here, with the module's switches
                     os.makedirs(own_ir, exist_ok=True)
                     ll = os.path.join(own_ir, stem + ".ll")
                     clang.compile(root, source, ll, DEFINES + extra_defines,

@@ -13,16 +13,16 @@
  * @note Every entry takes the line and the value it writes as plain arguments, and therefore a C++ translation
  *       unit calls them as they are. This header includes mmgr.h alone and defines no table, which
  *       keeps it free of the designated initializers verba_scribo.h carries.
- * @note A write that does not fit a line with no flush writes what fits and leaves at at capacity, and
- *       every later write then finds no room. A line with a flush hands what it holds to the flush as it
+ * @note A write that does not fit a line with no flush writes what fits and leaves at at capacity.
+ *       Every later write then finds no room. A line with a flush hands what it holds to the flush as it
  *       fills and goes on.
  * @note Every write leaves the buffer terminated: at at while the line has room, in its last byte once a
- *       write did not fit. A written line whose buffer holds no terminator has been corrupted by
- *       something other than the line. A line no write has reached has what its buffer contained until
+ *       write did not fit. A written line whose buffer holds no terminator took damage from
+ *       something other than the line. A line no write reached yet has what its buffer contained until
  *       mmgr_line_finish runs.
- * @note A text entry answers the bytes of the text the line took. Where that is fewer than the text holds
- *       the line filled, and text plus the answer is where the caller goes on from, in the same room with
- *       at set to zero once those bytes are read.
+ * @note A text entry answers the bytes of the text the line took. Where that is fewer than the text holds,
+ *       the line filled. Text plus the answer is where the caller goes on from, in the same room with
+ *       at set to zero once those bytes are out.
  */
 #ifndef MMGR_VERBA_LINEA_H
 #define MMGR_VERBA_LINEA_H
@@ -44,9 +44,9 @@ typedef int (*VerbaLineaFlush)(void *context, const char *bytes, size_t size);
 /**
  * @brief A line written into out, at bytes so far, and handed to flush as it fills.
  *
- * @note A byte of out is reserved for the terminator, and every write stores it. A write that did not
+ * @note One byte of out stays reserved for the terminator, and every write stores it. A write that did not
  *       fit leaves at at capacity, with capacity minus one bytes written.
- * @note flushed counts the bytes the line has handed on.
+ * @note flushed counts the bytes the line handed on.
  * @warning out must be writable for capacity bytes.
  */
 typedef struct
@@ -62,7 +62,7 @@ typedef struct
 /**
  * @brief Makes a line over a buffer, of no capacity where the buffer is NULL.
  *
- * @param[in] out      The line's buffer, or NULL where its take was refused [BORROWS].
+ * @param[in] out      The line's buffer, or NULL where its take failed [BORROWS].
  * @param[in] capacity Bytes in out.
  * @return             The line, nothing written and no flush.
  * @note A line over a refused take stores nothing and mmgr_line_finish answers 0, and therefore a
@@ -87,7 +87,7 @@ embed_bool mmgr_line_flush(VerbaLinea *line);
  * @param[in]     text   Bytes to write [BORROWS].
  * @param[in]     length Bytes of text.
  * @return               Bytes of text the line took, handed on included: length where every byte went.
- * @note A text past the room left is handed on in pieces where the line has a flush, and fills the
+ * @note A text past the room left goes on in pieces where the line has a flush. It fills the
  *       line where it has none, what fits written.
  * @note A line of fewer than two bytes holds none past its terminator, and so any text fills it.
  * @warning text must be readable for length bytes.
@@ -100,9 +100,9 @@ size_t mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length);
  * @param[in,out] line The line [BORROWS].
  * @param[in]     text Terminated text to write [BORROWS].
  * @return             Bytes of text the line took, handed on included.
- * @note The text is read a piece the size of the room left at a time, never past its terminator, and therefore a
- *       line with a flush takes a text of any length and needs no bound on it. A line with none is
- *       filled by a text longer than its room, what fits written.
+ * @note The read of the text goes a piece the size of the room left at a time, never past its terminator. So a
+ *       line with a flush takes a text of any length and needs no bound on it. A text longer than its
+ *       room fills a line with none, what fits written.
  */
 size_t mmgr_line_put(VerbaLinea *line, const char *text);
 
@@ -122,7 +122,7 @@ size_t mmgr_line_put_most(VerbaLinea *line, const char *text, size_t most);
  * @param[in,out] line    The line [BORROWS].
  * @param[in]     text    Terminated text to write [BORROWS].
  * @param[in]     columns Bytes the text and its spaces fill. A longer text gets no spaces.
- * @note The text is read as mmgr_line_put reads it.
+ * @note The read of the text goes as mmgr_line_put reads it.
  */
 void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int columns);
 
@@ -156,7 +156,7 @@ void mmgr_line_decimal_columns(VerbaLinea *line, uint64_t value, unsigned int co
  * @brief Writes a signed value in base ten, a minus sign before a negative one.
  *
  * @param[in,out] line  The line [BORROWS].
- * @param[in]     value The value. INT64_MIN is written whole.
+ * @param[in]     value The value. INT64_MIN goes out whole.
  */
 void mmgr_line_decimal_signed(VerbaLinea *line, int64_t value);
 
@@ -170,7 +170,7 @@ void mmgr_line_decimal_signed(VerbaLinea *line, int64_t value);
 void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least);
 
 /**
- * @brief Stores the terminator, the one store a line no write has reached still needs.
+ * @brief Stores the terminator, the one store a line no write reached yet still needs.
  *
  * @param[in,out] line The line [BORROWS].
  * @return             The length the line holds, or 0 where it is full.

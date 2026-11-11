@@ -7,7 +7,7 @@
 /**
  * @file clz_fuzz.c
  * @brief A libFuzzer harness over the zero counts: each word's leading and trailing counts against a bit walk,
- *        with 0 answering 63 as the header states.
+ *        with 0 at 63 as the header states.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

@@ -6,8 +6,8 @@
  */
 /**
  * @file fuzz_input.h
- * @brief The reader every fuzz harness takes its input through: bytes, words and lengths drawn off the front of
- *        libFuzzer's input, zeros once it runs out, and the stop a harness calls when its oracle disagrees.
+ * @brief The reader every fuzz harness takes its input through. Bytes, words and lengths drawn off the front of
+ *        libFuzzer's input, and zeros once it runs out. Also the stop a harness calls when its oracle disagrees.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */
@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/** @brief The input a harness reads: its bytes, how many there are and how many are read. */
+/** @brief The input a harness reads: its bytes, how many there are and how many came out. */
 typedef struct
 {
     const uint8_t *data;
@@ -33,13 +33,13 @@ static inline FuzzInput fuzz_input(const uint8_t *data, size_t size)
     return (FuzzInput){data, size, 0u};
 }
 
-/** @brief Whether bytes are left to read. */
+/** @brief Whether bytes remain to read. */
 static inline int fuzz_left(const FuzzInput *input)
 {
     return input->at < input->size;
 }
 
-/** @brief The next byte, or 0 once the input is read. */
+/** @brief The next byte, or 0 once the input runs out. */
 static inline uint8_t fuzz_byte(FuzzInput *input)
 {
     if (input->at >= input->size)

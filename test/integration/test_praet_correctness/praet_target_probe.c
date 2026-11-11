@@ -12,12 +12,12 @@
  * @date 2026-09-01
  *
  * @note Nothing here runs. `harness.py targets` compiles it once per part, with the expectations
- *       arriving as EXPECT_ defines from that table.
- * @note The expectations are not read out of the header. A header that decided something else
- *       fails a row instead of agreeing with itself.
+ *       as EXPECT_ defines from that table.
+ * @note The expectations do not come out of the header. A header that decided something else
+ *       fails a row and does not agree with itself.
  * @note Carries no cases, and so Unity's generator walks past it and mmgr_add_suite does not build it.
  */
-// The module header reaches the schedule and the descriptors both, where MMGR_ENABLE_DMA is set.
+// The module header reaches the schedule and the descriptors both, where MMGR_ENABLE_DMA holds.
 // `harness.py targets` sets it
 #include "memoriam_praetereo/memoriam_praetereo.h"
 
@@ -49,7 +49,7 @@ PraetChannel(s_probe_context, 0, s_probe_pool);
 ParsMemoriaeInternae(s_probe_source, 256);
 
 /**
- * @brief A register standing in for one a part would name.
+ * @brief A register in place of one a part would name.
  */
 static volatile uint8_t s_probe_register;
 
@@ -59,7 +59,7 @@ static volatile uint8_t s_probe_register;
 PraetPeripheralDeclare(s_probe_peripheral, &s_probe_register);
 
 /**
- * @brief One memory to memory transfer, and so the ordinary descriptor path is compiled here too.
+ * @brief One memory to memory transfer, and so the ordinary descriptor path builds here too.
  */
 PraetOneShot(s_probe_one_shot, s_probe_source, 0u, s_probe_pool, 0u, 64u, PRAET_MENSURA_VERBUM);
 
@@ -67,9 +67,9 @@ PraetOneShot(s_probe_one_shot, s_probe_source, 0u, s_probe_pool, 0u, 64u, PRAET_
  * @brief One transfer that drains a pool into a register.
  *
  * @note Here because a static initializer that reads a const object is not a constant expression in
- *       C, and a compiler that folds it anyway hides that. GCC 13 accepts these two; GCC 5.4.1
- *       refuses them, as the old toolchain rows are for. Measured, on a Cortex-M7 build
- *       of the suite that reported "initializer element is not constant" and named these lines.
+ *       C. A compiler that folds it anyway hides that. GCC 13 accepts these two and GCC 5.4.1
+ *       refuses them with "initializer element is not constant", which the old toolchain rows
+ *       are for.
  */
 PraetToPeripheral(s_probe_drain, s_probe_source, 0u, s_probe_peripheral, &s_probe_register, 0u, 64u,
                   PRAET_MENSURA_VERBUM, NULL);
@@ -81,7 +81,7 @@ PraetFromPeripheral(s_probe_fill, s_probe_peripheral, &s_probe_register, 0u, s_p
                     PRAET_MENSURA_VERBUM, NULL);
 
 /**
- * @brief Reaches the attach and submit surfaces, and so both declarators are compiled for this target.
+ * @brief Reaches the attach and submit surfaces, and so both declarators build for this target.
  *
  * @return The channel's flag word, as an int.
  * @note Never called. It exists to make the compiler expand and generate code for the macros, which

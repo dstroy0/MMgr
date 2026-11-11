@@ -37,15 +37,15 @@
  * @brief Expands to 4096u, the bytes each cellblock declared here holds.
  *
  * @note A power of two, which MMGR_CARCER_BODY asserts. Large enough that the cases below allocate
- *       dozens of cells before the gap closes, and small enough that closing it is reachable.
+ *       dozens of cells before the gap closes, and small enough that a case can close it.
  */
 #define MMGR_ACCURACY_CARCER_ROW 4096u
 
 /**
  * @brief Expands to 64u, the most live cells any case here tracks at one time.
  *
- * @note Bounds the reference table. The smallest cell a case takes is one word plus a header, and a
- *       4096 byte cellblock holds more than this many, which leaves the table running out first.
+ * @note Bounds the reference table. The smallest cell a case takes is one word plus a header. A
+ *       4096 byte cellblock holds more than this many, and so the table runs out first.
  */
 #define MMGR_ACCURACY_CARCER_CELLS 64u
 
@@ -55,9 +55,9 @@
  * @note Declared at file scope because LocusCarcerum emits static storage, and a declaration inside a
  *       case would give that case a site of its own.
  * @note plain_cells is minimum security and its releases leave the bytes as they are. secure_cells is
- *       maximum security and its releases zero the cell first. Both are needed, since a cellblock has
- *       one release of the two.
- * @note Each cellblock is declared over its own pool, and a cellblock is reached by that pool's name.
+ *       maximum security and its releases zero the cell first. The cases need both, since a cellblock
+ *       has one release of the two.
+ * @note Each cellblock stands over its own pool, and that pool's name is the cellblock's name.
  *       Pool names are unique, and no two sites in this file can name a cellblock the same thing.
  */
 ParsMemoriaeInternae(plain_cells, MMGR_ACCURACY_CARCER_ROW);
@@ -68,11 +68,11 @@ LocusCarcerum(accuracy_site, MMGR_MINIMUM_SECURITY(plain_cells), MMGR_MAXIMUM_SE
 /**
  * @brief A second prison site, declared to prove two sites hold no byte in common.
  *
- * @note Carries its own pool, since a pool name stands for one region and cannot be reused. The two
+ * @note Carries its own pool, since a pool name stands for one region and serves no second one. The two
  *       pools make the two sites' cellblocks separate objects, with no convention about names.
- * @note A cellblock is identified by the address of the pool it was declared over, which the linker
- *       resolved and which nothing after the declaration can change. Two pools are two arrays, and no
- *       address in one lies in the other.
+ * @note The address of the pool under a cellblock is its identity. The linker resolved it, and nothing
+ *       after the declaration can change it. Two pools are two arrays, and no address in one lies in
+ *       the other.
  */
 ParsMemoriaeInternae(other_cells, MMGR_ACCURACY_CARCER_ROW);
 
@@ -82,10 +82,10 @@ LocusCarcerum(accuracy_other_site, MMGR_MINIMUM_SECURITY(other_cells));
  * @brief A third prison site, used only by the case that drives the two tiers into each other.
  *
  * @note That case fills its cellblock by design and the persistent tier has no reset. A case
- *       sharing a site with it would start from whatever it left, and its own site keeps the order
- *       the cases run in from mattering.
- * @note A failing assertion leaves a Unity case immediately. A case that fills a shared cellblock
- *       cannot be relied on to release what it took.
+ *       with a site in common with it would start from whatever it left. Its own site makes the order
+ *       the cases run in irrelevant.
+ * @note A failed assertion leaves a Unity case immediately. Nobody can rely on a case that fills a
+ *       shared cellblock to release what it took.
  */
 ParsMemoriaeInternae(meeting_cells, MMGR_ACCURACY_CARCER_ROW);
 
@@ -99,9 +99,9 @@ MMGR_OWNERS(ACCURACY_OWNERS)
 /**
  * @brief One live cell, as this file recorded it when the allocation returned.
  *
- * @note Holds what the caller was given and nothing the cellblock keeps. The size is the bytes asked
- *       for and not the payload the cell carries, since a reused cell keeps slack the caller never
- *       named and has no claim on.
+ * @note Holds what the caller received and nothing the cellblock keeps. The size is the bytes asked
+ *       for and not the payload the cell carries. A reused cell keeps slack the caller never named
+ *       and has no claim on.
  */
 typedef struct
 {
@@ -113,24 +113,24 @@ typedef struct
 /**
  * @brief Returns the byte a given cell carries at a given offset.
  *
- * @param[in] tag    Value identifying the cell.
+ * @param[in] tag    Value that identifies the cell.
  * @param[in] offset Position within the cell.
  * @return           The byte that position holds while the cell is intact.
  * @note Mixes the two, and a byte then names both the cell it belongs to and where in it it sits.
  *       A pattern built from the tag alone survives a run copied from one offset to another within a
- *       cell, and one built from the offset alone survives a run copied between cells.
- * @note Never zero. The zeroing cases read for zeros, and a pattern byte that could be zero would
- *       pass one of those without the release having run.
+ *       cell. One built from the offset alone survives a run copied between cells.
+ * @note Never zero. The zero fill cases read for zeros. A pattern byte that could be zero would
+ *       pass one of those with no release run at all.
  */
 static uint8_t accuracy_pattern_byte(uint8_t tag, size_t offset)
 {
     // Explicit cast narrows the mixed value to the byte a cell holds. The or with 1 keeps it away
-    // from zero, which the zeroing cases read for
+    // from zero, which the zero fill cases read for
     return (uint8_t)((((unsigned)tag * 31u) + ((unsigned)offset * 7u)) | 1u);
 }
 
 /**
- * @brief Writes a cell's pattern over the bytes it was given.
+ * @brief Writes a cell's pattern over the bytes it received.
  *
  * @param[out] cell Cell to fill [BORROWS].
  * @note Writes every byte the caller asked for and not one more. A write past the request would
@@ -169,9 +169,9 @@ static size_t accuracy_first_damaged_byte(const AccuracyLiveCell *cell)
  *
  * @param[in] live  Table of live cells [BORROWS].
  * @param[in] count How many of them are live.
- * @param[in] label Text naming the operation that just ran, printed when a byte disagrees.
- * @note Called after every allocation and every release. A cell handed out twice is caught the first
- *       time the second holder writes, and running this after each step is what pins the failure to
+ * @param[in] label Text that names the operation that just ran, printed when a byte disagrees.
+ * @note Called after every allocation and every release. A cell handed out twice shows the first
+ *       time the second holder writes. A run of this after each step is what pins the failure to
  *       the operation that caused it.
  */
 static void accuracy_expect_all_intact(const AccuracyLiveCell *live, unsigned count, const char *label)
@@ -195,8 +195,8 @@ static void accuracy_expect_all_intact(const AccuracyLiveCell *live, unsigned co
  * @brief Runs before each Unity test case.
  *
  * @note Unity calls this around every case, and the symbol has to exist even when it does nothing.
- * @note Both cellblocks are file scope and every case leaves them wound back. The one owner every
- *       case takes for is registered by the first setUp, since the owner queue lives as long as the
+ * @note Both cellblocks are file scope and every case leaves them wound back. The first setUp
+ *       puts in place the one owner every case takes for, since the owner queue lives as long as the
  *       program does.
  */
 void setUp(void)
@@ -217,12 +217,12 @@ void tearDown(void)
  * @brief Checks the pattern helpers this suite rests on against damage introduced by design.
  *
  * @note Exists to catch a defect in the reference as itself. A fill and a check that agreed with each
- *       other while reading the wrong bytes would report every allocator as correct, and every case
- *       below rests on this pair.
- * @note A byte is changed by hand and the check is expected to name that exact offset. A checker that
+ *       other over the wrong bytes would report every allocator as correct. Every case below rests
+ *       on this pair.
+ * @note The case changes a byte by hand and expects the check to name that exact offset. A checker that
  *       returned the size unconditionally passes every case in this file and finds nothing.
- * @note The pattern is checked to separate two cells at the same offset and two offsets in the same
- *       cell, which are the two ways a cell can be handed out twice.
+ * @note The case checks that the pattern separates two cells at the same offset and two offsets in
+ *       the same cell. Those are the two ways a cell can go out twice.
  */
 void test_the_pattern_helpers_this_suite_relies_on_are_themselves_right(void)
 {
@@ -248,13 +248,13 @@ void test_the_pattern_helpers_this_suite_relies_on_are_themselves_right(void)
 /**
  * @brief Checks that persistent cells never share a byte, across many sizes.
  *
- * @note This is the case the file exists for. Every allocation is filled and then every live cell is
- *       read back, which catches a cell handed out on top of another at the allocation that did it.
+ * @note This is the case the file exists for. The case fills every allocation and then reads every
+ *       live cell back. That catches a cell handed out on top of another at the allocation that did it.
  * @note The sizes cycle through values that are not multiples of the alignment. A run of aligned
- *       sizes never exercises the rounding, and the bytes between a request and the payload it was
- *       rounded up to are exactly where a neighbor gets reached.
- * @note Every pointer is checked to lie in the cellblock and to be aligned, since a cell that fails
- *       either is not one the caller can use whatever its bytes hold.
+ *       sizes never exercises the round. The bytes between a request and its rounded payload are
+ *       exactly where a neighbor gets reached.
+ * @note The case checks that every pointer lies in the cellblock and on the alignment. A cell that
+ *       fails either is not one the caller can use whatever its bytes hold.
  */
 void test_persistent_cells_never_share_a_byte(void)
 {
@@ -277,7 +277,7 @@ void test_persistent_cells_never_share_a_byte(void)
                                  "a cell was handed out from outside the block");
         TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, ((uintptr_t)at) % MMGR_CARCER_ALIGN, "a cell was not word aligned");
 
-        // Explicit cast narrows the loop counter to the byte the pattern is tagged with. The table
+        // Explicit cast narrows the loop counter to the byte that tags the pattern. The table
         // holds fewer than 256 cells, and no two live cells share a tag
         live[count].at = at;
         live[count].size = size;
@@ -297,14 +297,14 @@ void test_persistent_cells_never_share_a_byte(void)
 }
 
 /**
- * @brief Checks that a released cell is handed out again without disturbing its neighbors.
+ * @brief Checks that a released cell goes out again and leaves its neighbors as they are.
  *
  * @note Reuse is where an allocator writes a header over bytes it already gave away. The cells on
- *       either side of the released one are kept and read after every step, and the neighbor above
+ *       either side of the released one stay and get a read after every step. The neighbor above
  *       catches a split that put its second header one word out.
- * @note The cells are released from the middle outward, which leaves the tier holding a run of empty
+ * @note The releases run from the middle outward, which leaves the tier with a run of empty
  *       cells with live ones on both sides. That run is what the merge walks, and a merge that
- *       swallowed a live cell shows up as that cell losing its pattern.
+ *       swallowed a live cell shows up as a lost pattern in that cell.
  */
 void test_a_reused_cell_does_not_disturb_its_neighbors(void)
 {
@@ -318,14 +318,14 @@ void test_a_reused_cell_does_not_disturb_its_neighbors(void)
         TEST_ASSERT_NOT_NULL_MESSAGE(at, "the cellblock could not meet sixteen small requests");
         live[count].at = at;
         live[count].size = 24u;
-        // Explicit cast narrows the loop counter to the byte the pattern is tagged with
+        // Explicit cast narrows the loop counter to the byte that tags the pattern
         live[count].tag = (uint8_t)(index + 1u);
         accuracy_fill_cell(&live[count]);
         count++;
     }
     accuracy_expect_all_intact(live, count, "after sixteen allocations");
 
-    // Release the middle four, leaving live cells above and below the run they leave behind
+    // Release the middle four, which leaves live cells above and below the run they leave behind
     for (unsigned index = 6u; index < 10u; index++)
     {
         accuracy_site.plain_cells.persistent_buf_release(live[index].at, cells);
@@ -341,9 +341,9 @@ void test_a_reused_cell_does_not_disturb_its_neighbors(void)
         TEST_ASSERT_NOT_NULL_MESSAGE(at, "the released cells were not handed out again");
         live[6u + round].at = at;
         live[6u + round].size = 24u;
-        // Explicit cast narrows the round counter to the byte the pattern is tagged with. The tags
-        // start above the sixteen already used, which keeps a stale neighbor from matching a fresh
-        // cell
+        // Explicit cast narrows the round counter to the byte that tags the pattern. The tags
+        // start above the sixteen already used, which keeps a stale neighbor from a match with a
+        // fresh cell
         live[6u + round].tag = (uint8_t)(100u + round);
         accuracy_fill_cell(&live[6u + round]);
 
@@ -361,13 +361,13 @@ void test_a_reused_cell_does_not_disturb_its_neighbors(void)
  * @brief Checks that the two tiers never hand out the same byte.
  *
  * @note The tiers grow toward each other out of one gap. They are the two callers that can reach the
- *       same byte from opposite directions, and the failure is not a wrong pointer but two correct
+ *       same byte from opposite directions. The failure is not a wrong pointer but two correct
  *       ones that meet.
- * @note Allocations alternate between the tiers until one refuses, driving them into each other.
- *       Stopping earlier leaves the gap open and tests nothing about where they meet.
- * @note The refusal itself is checked: once the gap closes, both tiers refuse instead of overrunning.
+ * @note Allocations alternate between the tiers until one refuses, which drives them into each other.
+ *       An earlier stop leaves the gap open and tests nothing about where they meet.
+ * @note The case checks the refusal itself: once the gap closes, both tiers refuse and do not run past.
  * @note Runs against its own site, since it fills a cellblock and the persistent tier has no reset.
- * @note The cells are sized so the gap closes well inside the reference table. A smaller cell runs
+ * @note The cell size is such that the gap closes well inside the reference table. A smaller cell runs
  *       the table out first, and the case then reports that the tiers never met.
  */
 void test_the_two_tiers_never_hand_out_the_same_byte(void)
@@ -392,7 +392,7 @@ void test_the_two_tiers_never_hand_out_the_same_byte(void)
         {
             live[count].at = from_bottom;
             live[count].size = 96u;
-            // Explicit cast narrows the running count to the byte the pattern is tagged with
+            // Explicit cast narrows the current count to the byte that tags the pattern
             live[count].tag = (uint8_t)(count + 1u);
             accuracy_fill_cell(&live[count]);
             count++;
@@ -401,7 +401,7 @@ void test_the_two_tiers_never_hand_out_the_same_byte(void)
         {
             live[count].at = from_top;
             live[count].size = 96u;
-            // Explicit cast narrows the running count to the byte the pattern is tagged with
+            // Explicit cast narrows the current count to the byte that tags the pattern
             live[count].tag = (uint8_t)(count + 1u);
             accuracy_fill_cell(&live[count]);
             count++;
@@ -419,13 +419,13 @@ void test_the_two_tiers_never_hand_out_the_same_byte(void)
 /**
  * @brief Checks that a maximum security release leaves zeros where the prisoner's bytes were.
  *
- * @note The zeroing is everything the security level buys, and it is the property that cannot be
- *       seen from the released pointer. The next prisoner of those bytes finding them clear shows
- *       it.
- * @note The cell is filled with a pattern that holds no zero byte, and every zero read afterwards
+ * @note The zero fill is everything the security level buys, and it is the property nobody can see
+ *       from the released pointer. The next prisoner of those bytes shows it when it finds them
+ *       clear.
+ * @note The case fills the cell with a pattern that holds no zero byte, and every zero read afterwards
  *       came from the release.
- * @note The same size is asked for again, and the take lands on the cell just released, where the
- *       bytes read are the ones that were wiped.
+ * @note The case asks for the same size again, and the take lands on the cell just released. The
+ *       bytes read there are the wiped ones.
  */
 void test_a_maximum_security_release_leaves_zeros(void)
 {
@@ -456,8 +456,8 @@ void test_a_maximum_security_release_leaves_zeros(void)
 /**
  * @brief Checks that a maximum security give of a temporary cell zeros every byte of it.
  *
- * @note The zeroing covers the cell's whole payload, read off its header. Three cells are taken and all three are
- *       filled, so that a give that zeroed a neighbor's bytes or fewer than its own shows.
+ * @note The zero fill covers the cell's whole payload, read off its header. The case takes three cells and
+ *       fills all three, so that a give that zeroed a neighbor's bytes or fewer than its own shows.
  */
 void test_a_maximum_security_give_of_a_temporary_cell_zeros_every_byte_of_it(void)
 {
@@ -469,7 +469,7 @@ void test_a_maximum_security_give_of_a_temporary_cell_zeros_every_byte_of_it(voi
     {
         live[index].at = (uint8_t *)accuracy_site.secure_cells.temporary_buf_alloc(size, cells);
         live[index].size = size;
-        // Explicit cast narrows the loop counter to the byte the pattern is tagged with
+        // Explicit cast narrows the loop counter to the byte that tags the pattern
         live[index].tag = (uint8_t)(index + 20u);
         TEST_ASSERT_NOT_NULL_MESSAGE(live[index].at, "the secure cellblock refused a temporary request");
         accuracy_fill_cell(&live[index]);
@@ -503,9 +503,9 @@ void test_a_maximum_security_give_of_a_temporary_cell_zeros_every_byte_of_it(voi
 /**
  * @brief Checks that temporary cells given back give back every byte they took.
  *
- * @note The free gap is read before the takes and again after the gives. Those two are the same number when every
- *       byte came back, and no part of that comes from the cellblock's own idea of what it holds. A give returning
- *       less leaks the difference for the life of the cellblock.
+ * @note The case reads the free gap before the takes and again after the gives. Those two are the same number
+ *       when every byte came back. No part of that comes from the cellblock's own idea of what it holds. A give
+ *       that returns less leaks the difference for the life of the cellblock.
  */
 void test_temporary_cells_given_back_give_back_every_byte_they_took(void)
 {
@@ -530,14 +530,14 @@ void test_temporary_cells_given_back_give_back_every_byte_they_took(void)
 /**
  * @brief Checks that two prison sites hold no byte in common and know their own by address.
  *
- * @note Every cellblock is identified by the address of its own storage. Two sites are two arrays the
- *       linker placed separately, and the claim under test is that neither one ever reports an
- *       address belonging to the other.
- * @note Cells are taken from both sites at once and every one of them is offered to both. A cellblock
+ * @note The address of its own storage is every cellblock's identity. Two sites are two arrays the
+ *       linker placed apart. The claim under test is that neither one ever reports an address that
+ *       belongs to the other.
+ * @note The case takes cells from both sites at once and offers every one of them to both. A cellblock
  *       that answered on a size and an offset instead of its own base would claim its neighbor's
- *       cells as soon as the two arrays landed near each other.
- * @note Both sites are filled with patterns and read back together. A site that reached into the
- *       other's bytes is caught the same way a cell handed out twice is.
+ *       cells. That would happen as soon as the two arrays landed near each other.
+ * @note The case fills both sites with patterns and reads them back together. A site that reached
+ *       into the other's bytes shows the same way a cell handed out twice does.
  * @note Each site holds its own pool. Two pools are two arrays the linker placed separately, and no
  *       address in one lies in the other.
  */
@@ -566,14 +566,14 @@ void test_two_prison_sites_hold_no_byte_in_common(void)
 
         live[count].at = from_first;
         live[count].size = 32u;
-        // Explicit cast narrows the running count to the byte the pattern is tagged with
+        // Explicit cast narrows the current count to the byte that tags the pattern
         live[count].tag = (uint8_t)(count + 1u);
         accuracy_fill_cell(&live[count]);
         count++;
 
         live[count].at = from_second;
         live[count].size = 32u;
-        // Explicit cast narrows the running count to the byte the pattern is tagged with
+        // Explicit cast narrows the current count to the byte that tags the pattern
         live[count].tag = (uint8_t)(count + 1u);
         accuracy_fill_cell(&live[count]);
         count++;
@@ -590,12 +590,12 @@ void test_two_prison_sites_hold_no_byte_in_common(void)
 }
 
 /**
- * @brief Checks the rounding against a reference built from the alignment itself.
+ * @brief Checks the round against a reference built from the alignment itself.
  *
- * @note The rounding is exact arithmetic with a documented result, and the reference is the smallest
- *       multiple of the alignment at or above the input, worked out by counting up.
- * @note Every size from 0 to four words is covered, which reaches every remainder more than once.
- *       A size already on a boundary returns itself, and that is the case a rounding written with
+ * @note The round is exact arithmetic with a documented result. The reference is the smallest
+ *       multiple of the alignment at or above the input, from a count up.
+ * @note The case covers every size from 0 to four words, which reaches every remainder more than once.
+ *       A size already on a boundary returns itself, and that is the case a round written with
  *       the wrong constant still gets right.
  */
 void test_the_rounding_lands_on_the_next_whole_word(void)

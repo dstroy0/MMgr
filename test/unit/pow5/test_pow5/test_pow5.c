@@ -27,7 +27,7 @@
  * @brief Expands to the number of entries mmgr_pow5_up actually holds.
  *
  * @note Sized from the array and not from MMGR_POW5_STEPS. A table that gained or lost an
- *       entry is walked in full without an edit here. Taking the count from the library would let
+ *       entry gets a full walk with no edit here. A count from the library would let
  *       the library decide how much of itself this suite reads.
  * @note The cast takes the sizeof quotient from size_t into the int a loop counter carries. The
  *       assertion below holds the count at 9, which is positive and far inside int.
@@ -60,9 +60,9 @@ EMBED_STATIC_ASSERT(MMGR_POW5_DOWN_ENTRIES == MMGR_POW5_UP_ENTRIES,
                     "mmgr_pow5_down does not hold one reciprocal per mmgr_pow5_up entry");
 
 /**
- * @brief Asserts the tables still hold the nine entries this suite was written against.
+ * @brief Asserts the tables still hold the nine entries this suite expects.
  *
- * @note Nine is checked against a literal and not against MMGR_POW5_STEPS, which would compare
+ * @note Nine compares against a literal and not against MMGR_POW5_STEPS, which would compare
  *       the constant with itself. The counts above are what tie the arrays to the constant.
  */
 EMBED_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == 9, "the pow5 tables changed length; this suite expects nine entries");
@@ -71,7 +71,7 @@ EMBED_STATIC_ASSERT(MMGR_POW5_UP_ENTRIES == 9, "the pow5 tables changed length; 
  * @brief Asserts MMGR_POW5_MAX expands to 511.
  *
  * @note pow5.h asserts the same constant is at least 511. This pins the exact value. A change to
- *       the expansion that still cleared that floor is caught here.
+ *       the expansion that still cleared that floor fails here.
  */
 EMBED_STATIC_ASSERT(MMGR_POW5_MAX == 511, "MMGR_POW5_MAX no longer expands to 511");
 
@@ -96,21 +96,21 @@ void tearDown(void)
 }
 
 /**
- * @brief Checks that the top bit of hi is set in every entry of both tables.
+ * @brief Checks that the top bit of hi holds in every entry of both tables.
  *
- * @note pow5.h documents hi as always carrying its top bit set. A denormalized entry would still
+ * @note pow5.h documents hi as a value with its top bit always set. A denormalized entry would still
  *       scale by its own e2 and multiply in at the wrong magnitude.
  */
 void test_every_significand_is_normalized(void)
 {
     for (int step = 0; step < MMGR_POW5_UP_ENTRIES; step++)
     {
-        // Explicit cast widens the literal to embed_u64 before the shift. Shifting a plain int by 63
-        // is undefined where int is 32 bits, and the cast makes the mask well defined
+        // Explicit cast widens the literal to embed_u64 before the shift. A shift of a plain int by 63
+        // has no definition where int is 32 bits, and the cast makes the mask well defined
         TEST_ASSERT_TRUE_MESSAGE((mmgr_pow5_up[step].hi & (embed_u64)1 << 63) != 0u,
                                  "an up entry whose top bit is clear is not normalized");
-        // Explicit cast widens the literal to embed_u64 before the shift. Shifting a plain int by 63
-        // is undefined where int is 32 bits, and the cast makes the mask well defined
+        // Explicit cast widens the literal to embed_u64 before the shift. A shift of a plain int by 63
+        // has no definition where int is 32 bits, and the cast makes the mask well defined
         TEST_ASSERT_TRUE_MESSAGE((mmgr_pow5_down[step].hi & (embed_u64)1 << 63) != 0u,
                                  "a down entry whose top bit is clear is not normalized");
     }
@@ -121,7 +121,7 @@ void test_every_significand_is_normalized(void)
  *
  * @note 5^32 at index 5 needs 75 bits, and the three entries above it need more than 128. All four
  *       store digits below the high half.
- * @note An entry that lost its low half would still be normalized and would multiply in short by up
+ * @note An entry that lost its low half would still look normalized and would multiply in short by up
  *       to a full word.
  */
 void test_the_wide_powers_carry_a_low_half(void)
@@ -136,7 +136,7 @@ void test_the_wide_powers_carry_a_low_half(void)
 /**
  * @brief Checks that mmgr_pow5_down holds each negative power of five truncated toward zero.
  *
- * @note 5^-1 repeats in binary, and so both halves of entry 0 are 0xCCCCCCCCCCCCCCCC. Rounding to
+ * @note 5^-1 repeats in binary, and so both halves of entry 0 are 0xCCCCCCCCCCCCCCCC. A round to
  *       nearest would end the low half in D.
  * @note No negative power of five terminates in binary, and so every entry in the table carries a
  *       nonzero low half.
@@ -159,7 +159,7 @@ void test_the_negative_powers_truncate_toward_zero(void)
  * @brief Checks that the binary exponent runs monotonically through both tables.
  *
  * @note e2 rises from -125 to 467 across mmgr_pow5_up and falls from -130 to -722 across
- *       mmgr_pow5_down. A repeated or reversed step would mean an entry was normalized against the
+ *       mmgr_pow5_down. A repeated or reversed step would mean an entry normalized against the
  *       wrong power.
  */
 void test_the_binary_exponents_run_monotonically_in_both_tables(void)
@@ -167,12 +167,12 @@ void test_the_binary_exponents_run_monotonically_in_both_tables(void)
     for (int step = 1; step < MMGR_POW5_UP_ENTRIES; step++)
     {
         // Explicit casts take both exponents from embed_iword into the int Unity's integer comparison
-        // works in. pow5.h bounds e2 between -722 and 467, which fits int on every environment this
+        // works in. The bound pow5.h puts on e2 is -722 to 467, which fits int on every environment this
         // suite builds for
         TEST_ASSERT_GREATER_THAN_INT_MESSAGE((int)mmgr_pow5_up[step - 1].e2, (int)mmgr_pow5_up[step].e2,
                                              "a larger power of five needs a larger binary exponent");
         // Explicit casts take both exponents from embed_iword into the int Unity's integer comparison
-        // works in. pow5.h bounds e2 between -722 and 467, which fits int on every environment this
+        // works in. The bound pow5.h puts on e2 is -722 to 467, which fits int on every environment this
         // suite builds for
         TEST_ASSERT_LESS_THAN_INT_MESSAGE((int)mmgr_pow5_down[step - 1].e2, (int)mmgr_pow5_down[step].e2,
                                           "a smaller power of five needs a smaller binary exponent");
@@ -201,12 +201,12 @@ void test_the_widest_exponent_fits_the_narrowest_word(void)
 }
 
 /**
- * @brief Checks that walking one entry per set bit reaches a decimal exponent of 511.
+ * @brief Checks that a walk of one entry per set bit reaches a decimal exponent of 511.
  *
- * @note 511 is written as a literal and not as MMGR_POW5_MAX. That constant expands to
- *       ((1 << MMGR_POW5_STEPS) - 1), as this loop computes, and so comparing the two would
+ * @note 511 appears as a literal and not as MMGR_POW5_MAX. That constant expands to
+ *       ((1 << MMGR_POW5_STEPS) - 1), as this loop computes. So a compare of the two would
  *       assert a value against itself and hold for any entry count.
- * @note pow5.h states that a double's decimal exponent stays well inside 511. A walk reaching it
+ * @note pow5.h states that a double's decimal exponent stays well inside 511. A walk that reaches it
  *       covers every value one can hold.
  */
 void test_the_table_walk_reaches_the_exponent_range_a_double_needs(void)

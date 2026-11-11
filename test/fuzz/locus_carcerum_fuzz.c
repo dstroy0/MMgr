@@ -6,13 +6,13 @@
  */
 /**
  * @file locus_carcerum_fuzz.c
- * @brief A libFuzzer harness over every LocusCarcerum entry. On one cellblock: takes of both tiers at any size,
- *        a size past the cellblock's among them, gives plain and zeroing, growths plain and zeroing, and gives and
- *        growths that name the wrong owner, against a model of the
- *        cells standing, every payload filled with its cell's mark and read back before it goes; the owner
- *        lookups, the gap, the fragmentation, the rounding and the zeroing beside them. On a second cellblock
- *        with the movable option: movable takes, writes, reads, compares, measures, gives and moves against a
- *        copy of each cell's bytes. Each cellblock read idle once every cell is given back.
+ * @brief A libFuzzer harness over every LocusCarcerum entry, on one cellblock: takes of both tiers at any size,
+ *        a size past the cellblock's among them. Gives plain and with a zero fill, growths plain and with a
+ *        zero fill, and gives and growths that name the wrong owner. All run against a model of the cells in
+ *        place, every payload filled with its cell's mark and read back before it goes. The owner lookups, the
+ *        gap, the fragmentation, the round and the zero fill run beside them. On a second cellblock with the
+ *        movable option: movable takes, writes, reads, compares, measures, gives and moves against a copy of
+ *        each cell's bytes. Each cellblock reads idle once every cell goes back.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */
@@ -71,7 +71,7 @@ static int s_option_assigned;
 static int s_misnamed_expected;
 static unsigned int s_misnamed_told;
 
-/** @brief Told of a give or growth naming the wrong owner: expected where the harness named one, a stop where not. */
+/** @brief Told of a give or growth that names the wrong owner: expected where the harness named one, a stop where not. */
 void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes)
 {
     (void)bytes;
@@ -339,8 +339,8 @@ static void movable_assigned(void)
 #define FUZZ_CELL_WORDS (2u * FUZZ_CELL_HEADER)
 
 /**
- * @brief The bytes a movable cell carries, read off the longest span a read from its start takes: its request
- *        rounded to the alignment, and up to a header and an owner word more where the take kept a free run whole.
+ * @brief The bytes a movable cell carries, read off the longest span a read from its start takes. That is its
+ *        request rounded to the alignment. Up to a header and an owner word more comes where the take kept a free run whole.
  */
 static size_t movable_capacity(const FuzzMovable *cell)
 {
@@ -434,7 +434,7 @@ static void movable_step(FuzzInput *input, uint8_t op, unsigned int owner)
                 {
                     fuzz_check(copied != 0, "a write inside the cell is taken");
                 }
-                // A write the cell takes may reach into the word its request was rounded to; the bytes of it that
+                // A write the cell takes may reach into the word of its rounded request. The bytes of it that
                 // lie within the request are the copy's
                 if (copied && (offset < cell->bytes))
                 {

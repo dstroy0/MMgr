@@ -3,14 +3,14 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """How much of a target this library costs against the libc it would replace.
 
-newlib is the comparison because it is the libc an embedded target actually ships, it is a static
-archive with one object per entry, which lets a single function be weighed, and it is built by the same
-compiler family. Both sides are compiled for the same core at the same optimization level, and so the
-difference lies in the code alone.
+newlib is the comparison for three reasons. It is the libc an embedded target actually ships. It is a
+static archive with one object per entry, which lets a single function stand on the scale. The same
+compiler family builds it. Both sides build for the same core at the same optimization level, and
+so the difference lies in the code alone.
 
-Only .text is counted. An archive member also carries relocations and symbol tables that never
+Only .text counts. An archive member also carries relocations and symbol tables that never
 reach flash, and the linker pulls whole members. A member is the unit regardless of whether every entry
-in it is called.
+in it sees a call.
 
     python tools/dev_env/against_libc.py
     python tools/dev_env/against_libc.py --cpu cortex-m0 --level -Os
@@ -28,14 +28,14 @@ TOOLCHAIN = pathlib.Path.home() / ".platformio" / "packages" / "toolchain-gccarm
 
 # What this library's modules stand in for.
 #
-# The two sides do not divide the work the same way, and so the families are drawn where the code
-# actually is and not where the header names suggest. cellularum_laboro holds the bounded
-# scans and the decimal parser in one translation unit, which on the newlib side is str* plus the
-# whole strtod, dtoa and mprec apparatus. pow5 is header only, and so its table lands in whoever
-# includes it, which is cellularum_laboro.
+# The two sides do not divide the work the same way. So the families follow where the code
+# actually is and not where the header names suggest. The cellularum_laboro unit holds the bounded
+# scans and the decimal parser in one translation unit. On the newlib side that is str* plus the
+# whole strtod, dtoa and mprec apparatus. The table in pow5 lands in whoever includes it, which is
+# cellularum_laboro, because pow5 is header only.
 #
-# Every newlib member is named once across all the families. dtoa and mprec serve both parsing and
-# printing there, and counting them twice would flatter this library by six kilobytes.
+# Every newlib member appears once across all the families. The dtoa and mprec members serve both the
+# parse and the print there, and a double count would flatter this library by six kilobytes.
 FAMILIES = (
     (
         "moving and comparing bytes",
@@ -130,9 +130,9 @@ def tool(name):
 def archive_text(lib, wanted, ar, objdump, tmp):
     """.text of each named member of an archive, and which names were not there.
 
-    Members are extracted into the working directory and not read from a pipe: an object is
-    binary and a text pipe will not carry it. newlib prefixes some members with lib_a-, which is a
-    build artifact and not part of the name, and so it is taken off before matching.
+    Members land in the work directory and do not come through a pipe. An object is
+    binary and a text pipe will not carry it. The newlib archive prefixes some members with lib_a-, which is a
+    build artifact and not part of the name. So it comes off before the match.
     """
     by_stem = {}
     for m in run([ar, "t", str(lib)]).stdout.split():

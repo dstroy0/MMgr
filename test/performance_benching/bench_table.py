@@ -1,11 +1,10 @@
-"""Matrix-table helpers for bench.py: locking, text splicing and verified writes.
+"""Matrix-table helpers for bench.py: the lock, text cuts and verified writes.
 
-Lifted from ProtoCore's test/harness.py, which carries the same machinery for its own matrices.
 They sit beside bench.py and not in MMgr's test/harness.py because bench.py is the only
-caller, and that file has a different job.
+caller. That file has a different job.
 
-The table is edited as text and not reserialized. A write is a minimal diff and a desc
-that took an hour to word is not reflowed by a tool that only changed a flag.
+The table changes as text and nothing writes it out whole again. A write is a minimal diff. A
+tool that only changed a flag leaves a desc that took an hour to word as it is.
 """
 
 import errno
@@ -51,8 +50,8 @@ def lock_release(lock):
 
 
 def env_span(text, name):
-    """(pad, key_start, close) for an env: the indent it sits at, the index of its opening quote,
-    and the index of its object's matching close brace.
+    """(pad, key_start, close) for an env. The indent it sits at, the index of its open quote,
+    and the index of the close brace of its object.
 
     The brace scan steps over string literals. A desc is free text and several carry a lone brace
     ("'[' vs '{'"), which a counter that reads every character would take for structure.
@@ -84,7 +83,7 @@ def reindent(block, pad):
 
 
 def splice_after(text, anchor, name, entry):
-    """Insert entry as text directly after the anchor env's closing brace."""
+    """Insert entry as text directly after the anchor env's close brace."""
     pad, _, close = env_span(text, anchor)
     block = json.dumps({name: entry}, indent=2)[1:-1].rstrip()
     return text[: close + 1] + ",\n" + reindent(block, pad) + text[close + 1 :]
@@ -93,8 +92,8 @@ def splice_after(text, anchor, name, entry):
 def splice_replace(text, name, entry):
     """Replace an env's whole `"name": {...}` in place, rendered at the indent it already sits at.
 
-    The same render as splice_after. An updated env and a new one are indented identically. The
-    leading pad is dropped because the text kept ahead of key_start already carries it.
+    The same render as splice_after. An updated env and a new one have the same indent. The
+    leading pad goes because the text kept ahead of key_start already carries it.
     """
     pad, key_start, close = env_span(text, name)
     block = json.dumps({name: entry}, indent=2)[1:-1].rstrip()
@@ -102,10 +101,10 @@ def splice_replace(text, name, entry):
 
 
 def splice_remove(text, name):
-    """Cut an env's whole `"name": {...}` out, taking the one comma that joined it to its neighbors.
+    """Cut an env's whole `"name": {...}` out, with the one comma that joined it to its neighbors.
 
     The comma sits after the close brace for every env but the last, where it sits before the key.
-    Removing the wrong one, or neither, leaves the table unparseable.
+    The wrong one out, or neither, leaves the table unparseable.
     """
     _, key_start, close = env_span(text, name)
     end = close + 1
@@ -132,7 +131,7 @@ def read_table(path):
 
 
 def write_verified(path, text, before, changed, expect):
-    """Write only if the reparsed table matches `expect` for `changed` and is untouched elsewhere."""
+    """Write only if the reparsed table matches `expect` for `changed` and stays the same elsewhere."""
     after = json.loads(text)
     for name, want in expect.items():
         if after["envs"].get(name) != want:

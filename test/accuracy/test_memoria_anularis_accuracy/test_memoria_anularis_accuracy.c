@@ -38,7 +38,7 @@
 #define MMGR_ACCURACY_RING_CAPACITY 64u
 
 /**
- * @brief Expands to 8u, the segments the ring is divided into.
+ * @brief Expands to 8u, the segments in the ring.
  *
  * @note A power of two no larger than the capacity, which mmgr_anular_init requires. Eight segments
  *       of eight bytes divide the buffer exactly.
@@ -46,32 +46,32 @@
 #define MMGR_ACCURACY_RING_SEGMENTS 8u
 
 /**
- * @brief Expands to the bytes one segment covers, worked out from the two numbers init was given.
+ * @brief Expands to the bytes one segment covers, worked out from the two numbers init received.
  *
  * @note Computed here from what this file passed to mmgr_anular_init, not read back from the ring.
- *       The ring's own segment_bytes is the quantity the segment cases are checking.
+ *       The ring's own segment_bytes is the quantity the segment cases check.
  */
 #define MMGR_ACCURACY_RING_SEGMENT_BYTES (MMGR_ACCURACY_RING_CAPACITY / MMGR_ACCURACY_RING_SEGMENTS)
 
 /**
- * @brief Expands to 0xA5, the byte a destination is filled with before a read.
+ * @brief Expands to 0xA5, the byte that fills a destination before a read.
  *
- * @note A byte the module never writes on its own. A destination position left holding it is one the
- *       read did not reach, and that is how a short move is told from a wrong one.
+ * @note A byte the module never writes on its own. A destination position still with it is one the
+ *       read did not reach. That is how a short move and a wrong one differ.
  */
 #define MMGR_ACCURACY_RING_GUARD 0xA5u
 
 /**
  * @brief A byte queue that holds its contents in order, with no wrap of any kind.
  *
- * @note The whole reference. Bytes go on at the end and come off the front, and removing shifts the
+ * @note The whole reference. Bytes go on at the end and come off the front, and a pop shifts the
  *       rest down. That shift is what a ring exists to avoid, and for that reason it is the right
  *       construction to check a ring against.
  */
 typedef struct
 {
     uint8_t byte[MMGR_ACCURACY_RING_CAPACITY]; /**< Bytes stored, oldest first. */
-    size_t count;                              /**< How many of them are stored. */
+    size_t count;                              /**< How many of them it holds. */
 } AccuracyQueue;
 
 /**
@@ -93,12 +93,12 @@ static void accuracy_queue_push(AccuracyQueue *queue, const uint8_t *src, size_t
 }
 
 /**
- * @brief Removes bytes from the front of the queue, copying them out.
+ * @brief Removes bytes from the front of the queue, and copies them out.
  *
  * @param[in,out] queue Queue to remove from [BORROWS].
  * @param[out]    dst   Where the removed bytes go, or NULL to discard them [BORROWS].
  * @param[in]     bytes How many to remove.
- * @note Shifts the rest down one position at a time. The cost is beside the point here; the property under test
+ * @note Shifts the rest down one position at a time. The cost is beside the point here. The property under test
  *       is that the order the bytes come off in is a property of the array and of nothing else.
  * @warning The caller keeps bytes at or below the count stored. Nothing here bounds it.
  */
@@ -119,13 +119,13 @@ static void accuracy_queue_pop(AccuracyQueue *queue, uint8_t *dst, size_t bytes)
 }
 
 /**
- * @brief Copies bytes out of the queue without removing them.
+ * @brief Copies bytes out of the queue and leaves them in it.
  *
  * @param[in]  queue  Queue to read [BORROWS].
  * @param[out] dst    Where the bytes go [BORROWS].
  * @param[in]  offset How far past the front to start.
  * @param[in]  bytes  How many to copy.
- * @note The mirror of what peek is documented to do, built as a plain array read.
+ * @note The mirror of what the contract says peek does, built as a plain array read.
  * @warning The caller keeps offset plus bytes at or below the count stored. Nothing here bounds it.
  */
 static void accuracy_queue_peek(const AccuracyQueue *queue, uint8_t *dst, size_t offset, size_t bytes)
@@ -142,10 +142,10 @@ static void accuracy_queue_peek(const AccuracyQueue *queue, uint8_t *dst, size_t
  * @param[in,out] state Generator state [BORROWS].
  * @return              The advanced state.
  * @note A fixed recurrence. A failure reproduces on the next run with the same values in the same
- *       order, and nothing here is seeded from the clock.
+ *       order, and nothing here starts from the clock.
  * @note The multiplier and increment are the ones Knuth gives for a 64-bit linear congruential
- *       sequence. The values only have to be varied and repeatable, and no statistical property of
- *       them is relied on.
+ *       sequence. The values only have to vary and repeat, and nothing rests on a statistical
+ *       property of them.
  */
 static uint64_t accuracy_next_pattern(uint64_t *state)
 {
@@ -165,7 +165,7 @@ static int accuracy_lowest_set_bit(embed_word mask)
 {
     for (unsigned position = 0u; position < EMBED_WORD_BITS; position++)
     {
-        // Explicit cast builds the probe bit at the width the mask is carried in
+        // Explicit cast builds the probe bit at the width that carries the mask
         if ((mask & (embed_word)((embed_word)1 << position)) != 0u)
         {
             return (int)position;
@@ -199,11 +199,11 @@ void tearDown(void)
  * @brief Checks the reference queue this suite rests on against sequences worked out by hand.
  *
  * @note Exists to catch a defect in the reference as itself. A queue that dropped a byte on the shift
- *       would report the ring as wrong at the first wrap, and the ring would be blamed for it.
- * @note Push, pop and peek are each checked to move the bytes the operation names and to leave the
+ *       would report the ring as wrong at the first wrap. The ring would then look wrong.
+ * @note The case checks that push, pop and peek each move the bytes the operation names and leave the
  *       count where it belongs.
- * @note The shift is checked with a pop from the middle of a filled queue, the step that
- *       reorders bytes when it is written wrongly.
+ * @note The shift check is a pop from the middle of a filled queue, the step that reorders bytes
+ *       when it is wrong.
  */
 void test_the_reference_queue_this_suite_relies_on_is_itself_right(void)
 {
@@ -230,15 +230,13 @@ void test_the_reference_queue_this_suite_relies_on_is_itself_right(void)
 /**
  * @brief Checks that a long run of writes and reads delivers every byte in the order it went in.
  *
- * @note This is the case the file exists for. The counts and the byte order are both checked after
- *       every operation, which catches a wrap that divided a move wrongly at the operation that did
+ * @note This is the case the file exists for. The case checks the counts and the byte order after
+ *       every operation. That catches a wrap that divided a move wrongly at the operation that did
  *       it and not thousands of bytes later.
- * @note The sizes are drawn from a repeatable pattern and are bounded only by the room the ring
- *       reports, as walks the head and the tail into every alignment against the end of
- *       the buffer.
- * @note The destination is filled with a guard byte before every read. A read that reported more
- *       bytes than it moved leaves the guard standing, which the comparison against the queue then
- *       reports.
+ * @note The sizes come from a repeatable pattern, and only the room the ring reports bounds them.
+ *       That walks the head and the tail into every alignment against the end of the buffer.
+ * @note A guard byte fills the destination before every read. A read that reported more bytes than
+ *       it moved leaves the guard in place, which the comparison against the queue then reports.
  */
 void test_a_long_run_of_writes_and_reads_delivers_every_byte_in_order(void)
 {
@@ -267,7 +265,7 @@ void test_a_long_run_of_writes_and_reads_delivers_every_byte_in_order(void)
         {
             uint8_t written[MMGR_ACCURACY_RING_CAPACITY];
             // Explicit cast narrows the pattern to the count a write moves. The modulus holds it at
-            // the vacant bytes, as the ring is documented to accept
+            // the vacant bytes, which the ring accepts by its contract
             const size_t bytes = (vacant == 0u) ? 0u : (size_t)(accuracy_next_pattern(&state) % (vacant + 1u));
 
             for (size_t index = 0u; index < bytes; index++)
@@ -285,7 +283,7 @@ void test_a_long_run_of_writes_and_reads_delivers_every_byte_in_order(void)
             uint8_t taken[MMGR_ACCURACY_RING_CAPACITY];
             uint8_t expected[MMGR_ACCURACY_RING_CAPACITY];
             // Explicit cast narrows the pattern to the count a read asks for. It may exceed what is
-            // available, the case the read is documented to shorten
+            // available, the case where the read stops short by its contract
             const size_t asked = (size_t)(accuracy_next_pattern(&state) % (MMGR_ACCURACY_RING_CAPACITY + 1u));
             const size_t should_take = (asked < queue.count) ? asked : queue.count;
 
@@ -366,10 +364,10 @@ void test_a_byte_at_a_time_comes_out_in_the_order_it_went_in(void)
  *
  * @note peek is the single one read that moves no cursor. The property under test is that it is a window on
  *       the same bytes and not a second reader with a position of its own.
- * @note The peek is taken at every offset into the stored bytes and at every length that fits, which
+ * @note The peek runs at every offset into the stored bytes and at every length that fits. That
  *       walks the window across the end of the buffer at both of its ends.
- * @note The bytes are read again with a real read afterwards, and they are the same ones, and that
- *       shows the peek moved nothing.
+ * @note A real read afterwards gets the bytes again, and they are the same ones. That shows the
+ *       peek moved nothing.
  */
 void test_a_peek_returns_what_a_read_would_and_moves_nothing(void)
 {
@@ -387,7 +385,7 @@ void test_a_peek_returns_what_a_read_would_and_moves_nothing(void)
         AccuracyQueue queue = {{0u}, 0u};
         const size_t held = MMGR_ACCURACY_RING_CAPACITY - 1u;
 
-        // Walk the cursors to a fresh position before each pass, and so the peek below starts at a
+        // Walk the cursors to a fresh position before each pass. So the peek below starts at a
         // different distance from the end of the buffer every time
         for (unsigned index = 0u; index < start; index++)
         {
@@ -428,15 +426,15 @@ void test_a_peek_returns_what_a_read_would_and_moves_nothing(void)
 }
 
 /**
- * @brief Checks that a span too large for the vacant bytes is refused whole.
+ * @brief Checks that a span too large for the vacant bytes fails whole.
  *
  * @note A partial write is worse than a refusal, since the consumer then reads a span that was never
  *       complete and nothing reports it. The claim is that the head does not move at all.
- * @note The ring is filled to every level, and at each one a span one byte too large is offered. The
- *       readable count is checked before and after, and the bytes already stored are read back to show
- *       none of them was overwritten.
- * @note One byte is reserved always, and so the largest span an empty ring takes is the capacity less
- *       one. The refusal is offered at exactly one byte past what is vacant.
+ * @note The case fills the ring to every level, and at each one it offers a span one byte too large. It
+ *       checks the readable count before and after, and reads the bytes already in the ring back to
+ *       show none of them changed.
+ * @note One byte always stays back, and so the largest span an empty ring takes is the capacity less
+ *       one. The offer that fails is exactly one byte past what is vacant.
  */
 void test_a_span_too_large_is_refused_whole(void)
 {
@@ -495,14 +493,14 @@ void test_a_span_too_large_is_refused_whole(void)
 }
 
 /**
- * @brief Checks that segments come back in the order they were claimed and cover the buffer exactly.
+ * @brief Checks that segments come back in the order of their claims and cover the buffer exactly.
  *
  * @note The segment view is a second reading of the same bytes, and its accuracy claim is that the
- *       spans tile the buffer: each one starts where the last ended, none overlaps another, and
+ *       spans tile the buffer. Each one starts where the last ended, none overlaps another, and
  *       together they reach the whole capacity and no further.
- * @note The indices are checked to cycle through every segment in turn and to come back to the first,
- *       as a counter wrapped by mask is expected to do and what an off-by-one in that mask
- *       breaks at the wrap and nowhere else.
+ * @note The case checks that the indices cycle through every segment in turn and come back to the
+ *       first. A counter wrapped by mask does that, and an off-by-one in that mask breaks it at
+ *       the wrap and nowhere else.
  * @note Publishes and releases run in step for more laps than there are segments, and so the counters
  *       pass their own wrap several times.
  */
@@ -525,8 +523,8 @@ void test_segments_come_back_in_order_and_tile_the_buffer(void)
         TEST_ASSERT_EQUAL_PTR_MESSAGE(&buffer[index * MMGR_ACCURACY_RING_SEGMENT_BYTES], at, message);
     }
 
-    // The last segment's own span is what reaches the end. seg_at is documented not to bound its
-    // index, and so the byte past the last segment is worked out here instead of asked for
+    // The last segment's own span is what reaches the end. The contract says seg_at does not bound its
+    // index, and so the byte past the last segment comes from arithmetic here and not from a call
     TEST_ASSERT_EQUAL_PTR_MESSAGE(
         &buffer[MMGR_ACCURACY_RING_CAPACITY],
         EMBED_CALL(anularis.seg_at, AnularisCfg, .ring = &ring, .index = MMGR_ACCURACY_RING_SEGMENTS - 1u) +
@@ -565,12 +563,12 @@ void test_segments_come_back_in_order_and_tile_the_buffer(void)
 }
 
 /**
- * @brief Checks that the producer is refused once every segment is in flight.
+ * @brief Checks that the producer fails once every segment is in flight.
  *
  * @note The bound is the segment count, and a producer that could claim past it would hand out a
  *       segment the consumer has not released. The refusal makes the view safe to fill.
- * @note Every segment is claimed and published without a release, and the claim after the last one is
- *       expected to fail. A single release then lets exactly one more through.
+ * @note The case claims and publishes every segment with no release, and the claim after the last one
+ *       must fail. A single release then lets exactly one more through.
  */
 void test_the_producer_is_refused_once_every_segment_is_in_flight(void)
 {
@@ -606,11 +604,11 @@ void test_the_producer_is_refused_once_every_segment_is_in_flight(void)
  *
  * @note A loculus is takeable only while it is free and not pinned, and the ready mask is that pair of
  *       conditions as one word. The reference keeps the two conditions as separate arrays and builds
- *       the mask a bit at a time, and so it shares no masking with the module.
- * @note Every loculus is pinned and dropped in turn, and the mask is compared after each step. A hold
- *       that set the wrong bit shows up as two loculi disagreeing at once.
- * @note A second hold of a loculus already pinned is expected to be refused, as keeps two
- *       callers from recording keepouts over each other.
+ *       the mask a bit at a time. So it shares no mask arithmetic with the module.
+ * @note The case pins and drops every loculus in turn, and compares the mask after each step. A hold
+ *       that set the wrong bit shows up as two loculi in disagreement at once.
+ * @note A second hold of a loculus already pinned must fail, which keeps two callers from
+ *       keepouts over each other.
  */
 void test_the_loculus_masks_match_a_bitset_kept_alongside(void)
 {
@@ -646,7 +644,7 @@ void test_the_loculus_masks_match_a_bitset_kept_alongside(void)
         {
             if (!held_by_us[probe])
             {
-                // Explicit cast builds the reference bit at the width the mask is carried in
+                // Explicit cast builds the reference bit at the width that carries the mask
                 expected |= (embed_word)((embed_word)1 << probe);
             }
         }
@@ -667,7 +665,7 @@ void test_the_loculus_masks_match_a_bitset_kept_alongside(void)
         {
             if (!held_by_us[probe])
             {
-                // Explicit cast builds the reference bit at the width the mask is carried in
+                // Explicit cast builds the reference bit at the width that carries the mask
                 expected |= (embed_word)((embed_word)1 << probe);
             }
         }
@@ -681,10 +679,10 @@ void test_the_loculus_masks_match_a_bitset_kept_alongside(void)
  * @brief Checks the lowest set bit against a bit-at-a-time scan, over every single bit and many masks.
  *
  * @note The module folds a population count to reach the index. The reference tests one bit at a time
- *       from the bottom, and so the two arrive at the same number by arithmetic with nothing in common.
- * @note Every single-bit mask is covered, which pins the index at each position. A fold that lost a
+ *       from the bottom. So the two arrive at the same number by arithmetic with nothing in common.
+ * @note The case covers every single-bit mask, which pins the index at each position. A fold that lost a
  *       step is off by that step's width at half the positions.
- * @note An empty mask is checked to give -1, the one input the fold is documented not to
+ * @note The case checks that an empty mask gives -1, the one input the contract says the fold does not
  *       handle on its own.
  */
 void test_the_lowest_set_bit_matches_a_bit_at_a_time_scan(void)
@@ -707,7 +705,7 @@ void test_the_lowest_set_bit_matches_a_bit_at_a_time_scan(void)
 
     for (unsigned step = 0u; step < 4096u; step++)
     {
-        // Explicit cast narrows the pattern to the width the mask is carried in
+        // Explicit cast narrows the pattern to the width that carries the mask
         const embed_word mask = (embed_word)accuracy_next_pattern(&state);
         char message[96];
 
@@ -718,13 +716,13 @@ void test_the_lowest_set_bit_matches_a_bit_at_a_time_scan(void)
 }
 
 /**
- * @brief Checks that a pinned loculus hands back the region it was given.
+ * @brief Checks that a pinned loculus hands back the region it received.
  *
- * @note The keepout is what a reader walks in place, and the claim is that the span comes back naming
- *       the same bytes the hold recorded. A span that came back short leaves a reader walking past
- *       the region it was told to keep out of.
- * @note The read offset is checked to start at zero, since a fresh hold has had no reader walk it.
- * @note The record is checked again after the drop, which leaves it standing for a restream.
+ * @note The keepout is what a reader walks in place, and the claim is that the span comes back with
+ *       the same bytes the hold recorded. A span that came back short leaves a reader on a walk past
+ *       the region it had to keep out of.
+ * @note The case checks that the read offset starts at zero, since no reader walked a fresh hold.
+ * @note The case checks the record again after the drop, which leaves it in place for a restream.
  */
 void test_a_held_loculus_hands_back_the_region_it_was_given(void)
 {

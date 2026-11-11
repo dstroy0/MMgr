@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Compiled only where PRAET_PROCURATOR is 1. The header turns every entry into a macro expanding
+ * @note Compiled only where PRAET_PROCURATOR is 1. The header turns every entry into a macro that expands
  *       to nothing otherwise. A build that did not ask for this carries none of it.
  * @note Stays in the suite. The library calls these from the one function that writes a flag word,
  *       and a build that turns them on links this in beside it.
@@ -24,12 +24,12 @@
 #include <stdio.h>
 
 /**
- * @brief How many core states there are, as the transition table is squared over.
+ * @brief How many core states there are, the side of the square transition table.
  */
 #define PRAET_PROCURATOR_CORES (PRAET_CORE_MASK + 1u)
 
 /**
- * @brief Times each core transition was taken, indexed by the state before and the state after.
+ * @brief Times each core transition ran, indexed by the state before and the state after.
  *
  * @note The diagonal stays zero. The one writer skips a word that did not change. A transition to
  *       the state a channel was already in never reaches this.
@@ -55,15 +55,15 @@ static unsigned long s_status_cleared[PRAET_STATUS_COUNT];
 static unsigned long s_writes;
 
 /**
- * @brief What each core state is called in the report.
+ * @brief The name the report uses for each core state.
  *
- * @note Indexed by the state's own value, and that leaves the table read in the order the states
- *       are numbered, whatever order somebody listed them in.
+ * @note Indexed by the state's own value, and that leaves the table read in the order of the state
+ *       numbers, whatever order somebody listed them in.
  */
 static const char *const s_core_names[PRAET_PROCURATOR_CORES] = {"detached", "attached", "busy", "ok"};
 
 /**
- * @brief What each status is called in the report, indexed by token id.
+ * @brief The name the report uses for each status, indexed by token id.
  *
  * @note One name per id, in id order. A status added to the map without a name here reads as a blank
  *       column, and so the assertion below counts them.
@@ -78,12 +78,12 @@ EMBED_STATIC_ASSERT((sizeof s_status_names / sizeof s_status_names[0]) == PRAET_
 #if PRAET_OPTIMIZE
 
 /**
- * @brief Times each piece of work was done, indexed by its PraetOpus id.
+ * @brief Times each piece of work ran, indexed by its PraetOpus id.
  */
 static unsigned long s_work[PRAET_OPUS_KINDS];
 
 /**
- * @brief What each piece of work is called in the report, indexed by its id.
+ * @brief The name the report uses for each piece of work, indexed by its id.
  */
 static const char *const s_work_names[PRAET_OPUS_KINDS] = {
     "attach",
@@ -113,11 +113,11 @@ void praet_procurator_opus(unsigned kind)
 /**
  * @brief Prints one figure derived from two counts, where the divisor is not zero.
  *
- * @param[in] label   What the figure is called [BORROWS].
- * @param[in] top     The count being spread.
+ * @param[in] label   The name of the figure [BORROWS].
+ * @param[in] top     The count to spread.
  * @param[in] bottom  The count it is spread over.
- * @note Printed as a whole number and a remainder in hundredths, because this file reaches no floating
- *       point and a ratio is easier to read than the two counts it came from.
+ * @note Printed as a whole number and a remainder in hundredths. This file reaches no floating
+ *       point, and a ratio is easier to read than the two counts it came from.
  */
 static void praet_procurator_ratio(const char *label, unsigned long top, unsigned long bottom)
 {
@@ -133,8 +133,8 @@ static void praet_procurator_ratio(const char *label, unsigned long top, unsigne
  * @brief Prints the work the run did, and what a context costs in state.
  *
  * @note No times here. A count of work is the same on every run of one build and is a fact this host
- *       can state; what that work costs is a property of a part, and a number taken on this machine
- *       would be a number about this machine wearing the library's name.
+ *       can state. What that work costs is a property of a part. A number taken on this machine
+ *       would be a number about this machine under the library's name.
  */
 static void praet_procurator_opus_report(void)
 {
@@ -151,8 +151,8 @@ static void praet_procurator_opus_report(void)
     praet_procurator_ratio("flag writes per submit", s_writes, s_work[PRAET_OPUS_RELATIO]);
 
     // What the short circuit is worth on this run, as a count out of a hundred. A suite drives the
-    // machine and then looks at it, and so nearly every poll here has something waiting. A program polling
-    // a channel that is doing nothing is the other case entirely, and this number is where that shows
+    // machine and then looks at it, and so nearly every poll here has something in wait. A program that
+    // polls an idle channel is the other case entirely, and this number is where that shows
     praet_procurator_ratio("polls short circuited in 100", s_work[PRAET_OPUS_POLL_SHORT] * 100uL,
                            s_work[PRAET_OPUS_POLL]);
 
@@ -160,9 +160,9 @@ static void praet_procurator_opus_report(void)
     printf("%-30s %10u\n", "channels", (unsigned)PRAET_CHANNELS);
     printf("%-30s %10u\n", "bytes in a context", (unsigned)sizeof(PraetOrdo));
 
-    // Spread over the channels, and the context wide members are in the number. It is named that way
-    // because it is no per channel cost: the settle deadline, the two
-    // volatiles and the elapsed count are carried once however many channels there are
+    // Spread over the channels, and the context wide members are in the number. The name says context
+    // wide because it is no per channel cost. The settle deadline, the two
+    // volatiles and the elapsed count travel once however many channels there are
     printf("%-30s %10u\n", "bytes per channel, all in", (unsigned)(sizeof(PraetOrdo) / PRAET_CHANNELS));
 
     printf("\nno times are reported here. what this work costs is a property of a part\n");
@@ -185,7 +185,7 @@ void praet_procurator_transitus(embed_word channel, uint32_t was, uint32_t now)
     }
 
     // Only the bits that changed, and each counted on the side it moved to. A status that was already
-    // on and stayed on says nothing about a path being walked
+    // on and stayed on says nothing about a walk of a path
     const uint32_t turned = (was ^ now) & PRAET_STATUS_MASK;
 
     for (unsigned id = 0u; id < PRAET_STATUS_COUNT; id++)

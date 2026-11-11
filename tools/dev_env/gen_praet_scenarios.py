@@ -4,24 +4,24 @@
 """Emit the DMA correctness scenarios as a C table.
 
 Python decides what the scenarios are. C decides what happens when one runs. The moment the
-engine's behavior lives here, the port stops being a port.
+engine's behavior lives here, the port is no longer a port.
 
 A scenario carries two lists. The program is what the case calls into the library. The script is
-what the engine answers, one reaction per call. Both are the fixture, because what the library is
-asked to do decides as much of the outcome as what the engine answers.
+what the engine answers, one reaction per call. Both are the fixture, because what the case asks
+of the library decides as much of the outcome as what the engine answers.
 
-Every scenario is emitted twice, once per arm. The interrupt arm reports at the first hook call at
-or after a transfer is due; the software arm reports only when a poll selects the channel and it is
-due. Same fixture, one difference. A divergence in outcome is the arm alone, and that
-decides the question of falling back to a busy timer where there is no vector to spare.
+Every scenario comes out twice, once per arm. The interrupt arm reports at the first hook call at
+or after a transfer is due. The software arm reports only when a poll selects the channel and it is
+due. Same fixture, one difference. A divergence in outcome is the arm alone. That
+decides whether a busy timer can stand in where there is no vector to spare.
 
-The expectations are computed here by walking the program against the script. They are never derived
-by the engine or by the library. An expectation computed apart from the run, and agreeing with it,
-is evidence. That includes the order completions arrive in, which a total count cannot express: two
+The expectations come from a walk of the program against the script here. The engine and the
+library never derive them. An expectation computed apart from the run, and in agreement with it,
+is evidence. That includes the order completions arrive in, which a total count cannot express. Two
 completions on the wrong channels sum to the same number as two on the right ones.
 
 DMA owns no bytes and no buffer. A transfer names the caller's storage and its extent. Nothing here
-configures a size for the engine, and channels are logical - one engine schedules all of them, as
+configures a size for the engine, and channels are logical. One engine schedules all of them, as
 a part with fewer channels than a program wants actually does.
 """
 
@@ -31,24 +31,24 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_OUT = os.path.join(ROOT, "test", "integration", "test_praet_correctness", "praet_scenarios.h")
 
-# Hook identifiers, matching PraetHook in praet_engine.h. Written out by hand, because the C header
+# Hook identifiers, the same as PraetHook in praet_engine.h. Written out by hand, because the C header
 # is the interface, and a mismatch there has to fail the compile.
 OPEN = 0
 SUBMIT = 1
 CLOSE = 2
 POLL = 3
 
-# Completion timings, matching PraetCompleteWhen in praet_engine.h.
+# Completion timings, the same as PraetCompleteWhen in praet_engine.h.
 NEVER = 0
 INSIDE_CALL = 1
 WHEN_DUE = 2
 
-# Arms, matching PraetEngineArm in praet_engine.h.
+# Arms, the same as PraetEngineArm in praet_engine.h.
 INTERRUPT = 0
 SOFTWARE = 1
 ARM_NAMES = {INTERRUPT: "interrupt", SOFTWARE: "software"}
 
-# Matching PRAET_RELEASE_EVERY_CHANNEL and PRAET_ENGINE_CHANNELS in praet_engine.h.
+# The same as PRAET_RELEASE_EVERY_CHANNEL and PRAET_ENGINE_CHANNELS in praet_engine.h.
 EVERY_CHANNEL = 0xFF
 ENGINE_CHANNELS = 8
 
@@ -62,12 +62,12 @@ def call(hook, channel=0, byte_count=0):
 
 
 def react(hook, channel=0, accepted=ACCEPT, when=NEVER, completions=0, moved=0, settle=0, cycle=0, progress=0):
-    """One scripted reaction. @p channel is read by a poll reaction alone, as the release selector.
+    """One scripted reaction. A poll reaction alone reads @p channel, as the release selector.
 
-    @p progress is read by a poll reaction, and is how far the polled channel has got by then, as a
-    controller's remaining count would say. Zero reports nothing and leaves the last figure standing,
-    as every scenario here does: the correctness arm reads completions and their order, and
-    what a partial report does to a schedule is driven by the cases that join the two.
+    A poll reaction reads @p progress, how far the polled channel got by then, as a controller's
+    rest count would say. Zero reports nothing and leaves the last figure in place, as every
+    scenario here does. The correctness arm reads completions and their order. What a partial
+    report does to a schedule belongs to the cases that join the two.
     """
     return {
         "hook": hook,
@@ -85,9 +85,9 @@ def react(hook, channel=0, accepted=ACCEPT, when=NEVER, completions=0, moved=0, 
 def oracle(program, script, arm):
     """What a run of @p program against @p script on @p arm must produce.
 
-    Mirrors the engine's rules: one hook call is one tick; an accepted open starts the channel
-    settling; a submit to a settling channel is refused whatever the script said; an accepted
-    reaction holds its completions against the channel until the cycle has elapsed. The interrupt arm
+    Mirrors the engine's rules. One hook call is one tick. An accepted open starts the settle of the
+    channel. A submit to a channel in its settle fails whatever the script said. An accepted
+    reaction holds its completions against the channel until the cycle elapses. The interrupt arm
     releases every due channel at the end of each call, the software arm only on a poll that selects
     one.
     """
@@ -190,7 +190,7 @@ def scenarios():
     """Every correctness scenario, control first.
 
     The control is the single one case that must come out clean on both arms. If it ever fails, nothing else
-    in this table can be read, because whatever broke it is in the harness, ahead of the library.
+    in this table means anything, because whatever broke it is in the harness, ahead of the library.
     """
     out = []
 
@@ -285,15 +285,15 @@ def scenarios():
     script += [react(POLL, channel=EVERY_CHANNEL)]
     add("eight_logical_channels_on_one_engine", program, script)
 
-    # The channel is still settling when the transfer arrives. The engine refuses it whatever the
-    # script answered, because the settling rule overrides any reaction.
+    # The channel is still in its settle when the transfer arrives. The engine refuses it whatever the
+    # script answered, because the settle rule overrides any reaction.
     add(
         "submit_before_the_channel_has_settled",
         [call(OPEN), call(SUBMIT, byte_count=64), call(POLL), call(CLOSE)],
         [react(OPEN, settle=3), react(SUBMIT, when=WHEN_DUE, completions=1, moved=64), react(POLL), react(CLOSE)],
     )
 
-    # The same settle, waited out. Two polls burn the ticks, and the transfer is then taken.
+    # The same settle, waited out. Two polls burn the ticks, and the transfer then goes through.
     add(
         "submit_after_the_channel_has_settled",
         [call(OPEN), call(POLL), call(POLL), call(SUBMIT, byte_count=64), call(POLL), call(CLOSE)],
@@ -316,9 +316,9 @@ def scenarios():
     )
 
     # Out of order driven by cycle time instead of by poll selection. The poll-selected version above
-    # reaches it on the software arm alone: with every transfer due at once the interrupt drains in
-    # channel order and hands back the submission order, so that row proves nothing on that arm. Here
-    # channel 1 is submitted first and takes longer, and so both arms must report 3 before 1.
+    # reaches it on the software arm alone. With every transfer due at once the interrupt drains in
+    # channel order and hands back the submission order. So that row proves nothing on that arm. Here
+    # channel 1 goes in first and takes longer, and so both arms must report 3 before 1.
     add(
         "the_shorter_transfer_finishes_first",
         [

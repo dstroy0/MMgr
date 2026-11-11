@@ -7,13 +7,13 @@
  */
 /**
  * @file test_locus_carcerum_races.c
- * @brief What LocusCarcerum's branch-free paths do at each mask's edge, on demand and not by luck: the masks and
- *        picks, a bump the gap cannot meet, a pass that finds the cellblock closed, the sweep's merging and
- *        trimming, the owner word's completion bit, the entry table's claim bits and the option's none record.
+ * @brief What LocusCarcerum's branch-free paths do at each mask's edge, on demand and not by luck. The masks and
+ *        picks, a bump the gap cannot meet, a pass that finds the cellblock closed, and the sweep's join and
+ *        trim. The owner word's completion bit, the entry table's claim bits and the option's none record.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-05
  *
- * @note Compiles the translation unit in, and so file-local entries are callable and the sink, the closed word
+ * @note Compiles the translation unit in. So file-local entries are callable, and the sink, the closed word
  *       and the claim bits are the suite's to set.
  * @note MMGR_FATAL jumps back to the case here. A prisoner from another cellblock has nothing to carry on from,
  *       and the jump lets a case read that it stopped.
@@ -31,7 +31,7 @@ static jmp_buf s_fatal;
 #undef MMGR_FATAL
 #define MMGR_FATAL(msg_) longjmp(s_fatal, 1)
 
-// the owners and the misnamed hook are defined in this unit, below: the source leaves its table of none and its
+// the owners and the misnamed hook have their definitions in this unit, below: the source leaves its table of none and its
 // weak hook out
 #define MMGR_OWNERS_IN_THIS_UNIT 1
 #define MMGR_MISNAMED_IN_THIS_UNIT 1
@@ -483,7 +483,7 @@ void test_a_claim_sets_the_lowest_free_bit_and_a_full_table_claims_nothing(void)
     const size_t words = (RACED_CELLS + MMGR_MOVABLE_CLAIM_BITS - 1u) / MMGR_MOVABLE_CLAIM_BITS;
 
     TEST_ASSERT_EQUAL_size_t(words, movable->claimed_words);
-    // the bits past the cells in the last word are set for good
+    // the bits past the cells in the last word stay set for good
     const embed_atomic_usize_value past = embed_atomic_usize_load(&movable->claimed[words - 1u]);
 
     TEST_ASSERT_EQUAL_size_t(RACED_CELLS - ((words - 1u) * MMGR_MOVABLE_CLAIM_BITS),

@@ -3,15 +3,15 @@ import LocusCarcerum.Layout
 /-!
 # LocusCarcerum, a take laid over a free run, and the mover
 
-A take that finds a free run lays its cell over it (`carcer_split`): the run split where its rest holds a cell of
-its own, a header and at least `A` bytes, and kept whole where it does not. The cell counts what it carries.
+A take that finds a free run lays its cell over it (`carcer_split`). The run splits where its rest holds a cell of
+its own, a header and at least `A` bytes, and stays whole where it does not. The cell counts what it carries.
 
-The theorems: the run's bytes stay laid; the cell carries at least the request and less than the request and a
-header and `A` more; and the owner's count rises by what the cell carries.
+The theorems: the run's bytes stay laid. The cell carries at least the request and less than the request and a
+header and `A` more. The owner's count rises by what the cell carries.
 
 The mover (`mmgr_movable_buf_move`) lays a busy cell over the first free run below it the same way and frees the
 place it stood. A run kept whole carries more than the cell did, and the module's running count for the owner
-rises by the difference: the theorem is that the running count stays the count the layout holds, so the release,
+rises by the difference. The theorem is that the running count stays the count the layout holds. So the release,
 which counts off what the header says, takes the owner back to what it was.
 -/
 

@@ -10,12 +10,12 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note Nothing of the implementation is written here. mmgr_ring is a run of opaque bytes, and the
- *       state laid into it is declared nowhere a consumer can reach. That lets the layout
- *       change without a consumer recompiling against a different struct.
+ * @note Nothing of the implementation appears here. mmgr_ring is a run of opaque bytes, and no header
+ *       a consumer can reach declares the state laid into it. That lets the layout change with no
+ *       recompile of a consumer against a different struct.
  * @note The caller declares the ring and supplies the bytes; every index, mask and span is the ring's.
- * @note Exactly one producer advances head and exactly one consumer advances tail, and so ordering is
- *       all that is needed and no entry takes a lock or a read-modify-write on those two.
+ * @note Exactly one producer advances head and exactly one consumer advances tail. So ordering is
+ *       all it takes, and no entry takes a lock or a read-modify-write on those two.
  * @note No byte of the ring is ever scrubbed, and a drop leaves the loculus record alone. A
  *       restream can run again. Only mmgr_anular_init clears those records.
  */
@@ -27,7 +27,7 @@
 EMBED_BEGIN_DECLS
 
 /**
- * @brief A byte region a pinned loculus keeps out: the storage, its extent, and how far a reader has gone.
+ * @brief A byte region a pinned loculus keeps out: the storage, its extent, and how far a reader got.
  *
  * @note Carried here and not taken from spatium, and so this module reaches nothing outside config.
  */
@@ -35,18 +35,18 @@ typedef struct
 {
     uint8_t *buf;       /**< First byte of the region [BORROWS]. */
     size_t bytes;       /**< Bytes at buf. */
-    size_t read_offset; /**< How far a reader has walked it, counted in bytes from buf. */
+    size_t read_offset; /**< How far a reader walked it, counted in bytes from buf. */
 } mmgr_ring_span;
 
 /**
  * @brief Size of the ring storage a caller declares, counted in size_t units.
  *
  * @note The implementation asserts its state fits inside this. A change there fails a build
- *       instead of overrunning a caller's object.
- * @note Most of the state is the keepout array, and so raising MMGR_RING_LOCULI grows it and may leave
+ *       and does not run past a caller's object.
+ * @note Most of the state is the keepout array, and so a raise of MMGR_RING_LOCULI grows it and may leave
  *       this short. The assertion below RingState in memoria_anularis.c is the single one that
  *       fails then.
- * @note A build sets this before including this header, the same way it sets the loculus count.
+ * @note A build sets this before it includes this header, the same way it sets the loculus count.
  */
 #ifndef MMGR_RING_WORDS
 
@@ -56,17 +56,17 @@ typedef struct
 /**
  * @brief Loculi a mask can address, which is one bit per loculus in a machine word.
  *
- * @warning A build declaring more loculi than this has no bit left to name them. Widening the two
- *          masks or replacing them with a scan is what raises the ceiling. The assertion below fails
- *          until one of those happens.
+ * @warning A build that declares more loculi than this has no bit left to name them. Wider masks, or
+ *          a scan in their place, is what raises the ceiling. The assertion below fails until one of
+ *          those happens.
  */
 #define MMGR_RING_LOCULI_MAX EMBED_WORD_BITS
 
 /**
- * @brief Loculi this build reserves, which a build may set before including this header.
+ * @brief Loculi this build reserves, which a build may set before it includes this header.
  *
  * @note The keepout spans are most of the ring's state. A build with no use for the loculus view
- *       sets this to 0 and can then lower MMGR_RING_WORDS. Setting this alone shrinks the state. The
+ *       sets this to 0 and can then lower MMGR_RING_WORDS. This alone shrinks the state. The
  *       storage a caller declares follows MMGR_RING_WORDS alone.
  * @note At 0, mmgr_anular_loculus_ready reports an empty mask, mmgr_anular_loculus_hold refuses every
  *       index, and mmgr_anular_loculus_keepout returns NULL. mmgr_anular_loculus_drop and
@@ -82,7 +82,7 @@ typedef struct
  *
  * @note The free and pinned masks are each one embed_word, one bit per loculus. A count past
  *       MMGR_RING_LOCULI_MAX has no bit to sit in. ring_loculus_bit in memoria_anularis.c
- *       builds that bit by shifting, and this bound keeps the shift inside the word.
+ *       builds that bit with a shift, and this bound keeps the shift inside the word.
  */
 EMBED_STATIC_ASSERT(
     MMGR_RING_LOCULI <= MMGR_RING_LOCULI_MAX,
@@ -94,14 +94,14 @@ EMBED_STATIC_ASSERT(
  * @param[in] count_ Count to test, either a byte capacity or a segment count.
  * @return           Non-zero when count_ has at most one bit set.
  * @warning Also reports non-zero for a count_ of 0. mmgr_anular_init tests for 0 on a line of its own.
- * @warning count_ appears twice in the expansion. An argument with a side effect is evaluated twice.
+ * @warning count_ appears twice in the expansion. An argument with a side effect runs twice.
  */
 #define MMGR_RING_POW2(count_) (((count_) & ((count_) - 1u)) == 0u)
 
 /**
  * @brief Wraps a ring offset back into a ring of capacity_ bytes.
  *
- * @param[in] index_    Offset to wrap, which may have run past the end of the buffer.
+ * @param[in] index_    Offset to wrap, which can lie past the end of the buffer.
  * @param[in] capacity_ Ring size in bytes, a power of two.
  * @return              index_ masked into the range 0 through capacity_ minus one.
  * @warning Correct only because capacity_ is a power of two, which mmgr_anular_init enforces.
@@ -112,9 +112,9 @@ EMBED_STATIC_ASSERT(
  * @brief Storage a caller declares for one ring, whose contents belong to the implementation.
  *
  * @note EMBED_ALIGN aligns opaque to size_t.
- * @note From mmgr_anular_init onward these bytes hold the buffer that call was given, which must
+ * @note From mmgr_anular_init onward these bytes hold the buffer that call received, which must
  *       outlive the ring [BORROWS].
- * @warning The bytes carry no layout a consumer can reach. RingState is defined in
+ * @warning The bytes carry no layout a consumer can reach. The definition of RingState is in
  *          memoria_anularis.c and nowhere else, and so the mmgr_anular_ entries are the
  *          only way into them.
  */
@@ -124,20 +124,20 @@ typedef struct
 } mmgr_ring;
 
 /**
- * @brief Declares a ring's storage and claims the pool it is laid over.
+ * @brief Declares a ring's storage and claims the pool under it.
  *
- * @param[in] name_ Name the ring is reached by.
+ * @param[in] name_ Name of the ring.
  * @param[in] pool_ Pool the ring covers, as ParsMemoriaeInternae or ParsMemoriaeExternum declared it
  *                  [BORROWS].
- * @note The claim keeps one pool from being dressed twice. A pool already holding a cellblock
- *       and then laid out as a ring carries two sets of records over the same bytes, each written
- *       without regard to the other, and nothing at run time reports it.
+ * @note The claim keeps one pool from two sets of records. A pool with a cellblock on it and then a ring
+ *       laid out over it carries two sets of records over the same bytes. Each writes with no regard
+ *       to the other, and nothing at run time reports it.
  * @note A declaration, because MMGR_PARS_CLAIMED_ONCE emits an enumerator and an enumerator inside a
  *       function body is block scoped. Put at the mmgr_anular_init call it would shadow the
  *       cellblock's and never collide.
  * @note Emits the storage and nothing in it. mmgr_anular_init lays the state into those bytes and
- *       still has to run, since the sizes it is handed can be refused.
- * @warning The pool is named here and named again at mmgr_anular_init. Nothing holds those two to the
+ *       still has to run, since it can refuse the sizes it receives.
+ * @warning The pool appears here and again at mmgr_anular_init. Nothing holds those two to the
  *          same pool. A ring declared over one pool and initialized over another compiles.
  */
 #define MemoriaAnularis(name_, pool_)                                                                                  \
@@ -179,11 +179,11 @@ typedef struct
 typedef struct
 {
     embed_bool (*init)(const AnularisCfg *args);          /**< Lays a fresh ring into the caller's storage. */
-    size_t (*available)(const AnularisCfg *args);         /**< Bytes waiting to be read. */
+    size_t (*available)(const AnularisCfg *args);         /**< Bytes ready for a read. */
     size_t (*vacant)(const AnularisCfg *args);            /**< Bytes still free to write. */
     embed_bool (*read_byte)(const AnularisCfg *args);     /**< Takes one byte and advances the tail. */
     size_t (*read)(const AnularisCfg *args);              /**< Takes up to bytes and advances the tail once. */
-    void (*peek)(const AnularisCfg *args);                /**< Copies bytes out without advancing the tail. */
+    void (*peek)(const AnularisCfg *args);                /**< Copies bytes out and leaves the tail in place. */
     void (*consume)(const AnularisCfg *args);             /**< Advances the tail past bytes. */
     embed_bool (*put)(const AnularisCfg *args);           /**< Writes a whole span, or refuses it entire. */
     size_t (*seg_inflight)(const AnularisCfg *args);      /**< Segments filled and not yet released. */
@@ -196,7 +196,7 @@ typedef struct
     embed_iword (*loculus_next)(const AnularisCfg *args); /**< Lowest set bit of a mask, or -1. */
     embed_bool (*loculus_hold)(const AnularisCfg *args);  /**< Takes a loculus and records its keepout. */
     const mmgr_ring_span *(*loculus_keepout)(const AnularisCfg *args); /**< The region a pinned loculus keeps out. */
-    void (*loculus_drop)(const AnularisCfg *args); /**< Gives a loculus back, leaving its bytes alone. */
+    void (*loculus_drop)(const AnularisCfg *args); /**< Gives a loculus back and leaves its bytes alone. */
     void (*loculus_mark)(const AnularisCfg *args); /**< Marks a loculus free. */
 } MemoriaAnularisNs;
 EMBED_TABLE_LAYOUT(MemoriaAnularisNs, init, available, vacant, read_byte, read, peek, consume, put, seg_inflight,
@@ -207,17 +207,17 @@ EMBED_TABLE_LAYOUT(MemoriaAnularisNs, init, available, vacant, read_byte, read, 
  * @brief Lays a fresh ring into args->ring, over the bytes at args->buf.
  *
  * @param[in,out] args Storage, bytes, capacity and segment count [BORROWS].
- * @return             EMBED_TRUE when the ring is ready, EMBED_FALSE when a size was rejected.
+ * @return             EMBED_TRUE when the ring is ready, EMBED_FALSE when it refused a size.
  * @note Refuses a capacity or a segment_count that is 0 or not a power of two, and a segment_count
  *       above capacity.
- * @note Given args->segment_bytes, the capacity may be any size that holds segment_count segments of it,
- *       and the ring has segments and loculi and no byte stream: the vacant bytes read 0, a put is refused
- *       and a read takes nothing. The segments' counters wrap by segment_count, and a segment's place is its
- *       index times its size, and so no size needs to be a power of two.
+ * @note Given args->segment_bytes, the capacity may be any size that holds segment_count segments of it.
+ *       The ring then has segments and loculi and no byte stream: the vacant bytes read 0, a put fails
+ *       and a read takes nothing. The segments' counters wrap by segment_count, and a segment's place is
+ *       its index times its size. So no size needs to be a power of two.
  * @note Marks every loculus free and none pinned, and clears the recorded keepouts.
- * @warning args->ring and args->buf are both the caller's, and args->buf is kept by the ring [BORROWS].
- * @warning Neither may be null, and nothing holds them there outside a MMGR_DEBUG_CHECKS build. A null
- *          ring is written through as soon as the sizes pass, and a null buf is taken and not noticed
+ * @warning args->ring and args->buf are both the caller's, and the ring keeps args->buf [BORROWS].
+ * @warning Neither may be null, and nothing holds them there outside a MMGR_DEBUG_CHECKS build. A write
+ *          goes through a null ring as soon as the sizes pass. A null buf goes in with no notice
  *          until the first move.
  * @warning args->buf must carry the alignment the caller's own accesses need. This call does not
  *          align it.
@@ -225,7 +225,7 @@ EMBED_TABLE_LAYOUT(MemoriaAnularisNs, init, available, vacant, read_byte, read, 
 embed_bool mmgr_anular_init(const AnularisCfg *args);
 
 /**
- * @brief Returns the bytes waiting to be read.
+ * @brief Returns the bytes ready for a read.
  *
  * @param[in] args Ring to inspect [BORROWS].
  * @return         Distance from the tail to the head, wrapped into the ring.
@@ -238,8 +238,8 @@ size_t mmgr_anular_available(const AnularisCfg *args);
  * @brief Returns the bytes still free to write.
  *
  * @param[in] args Ring to inspect [BORROWS].
- * @return         The capacity mmgr_anular_init was given, less one, less the readable bytes.
- * @note One byte is reserved always, as keeps a full ring apart from an empty one.
+ * @return         The capacity mmgr_anular_init received, less one, less the readable bytes.
+ * @note One byte always stays back, which keeps a full ring apart from an empty one.
  * @warning The answer is only a snapshot. A concurrent consumer may free more before the caller acts
  *          on it.
  */
@@ -249,9 +249,9 @@ size_t mmgr_anular_vacant(const AnularisCfg *args);
  * @brief Takes one byte into args->dst and advances the tail past it.
  *
  * @param[in,out] args Ring and the destination byte [BORROWS].
- * @return             EMBED_TRUE when a byte was taken, EMBED_FALSE when the ring was empty.
+ * @return             EMBED_TRUE when a byte came out, EMBED_FALSE when the ring was empty.
  * @note Writes through args->dst only when it returns EMBED_TRUE.
- * @note One byte per call, and so the cost is the call. A caller drawing a run of bytes
+ * @note One byte per call, and so the cost is the call. A caller that draws a run of bytes
  *       wants mmgr_anular_read, which moves them a word at a time under one tail store.
  * @warning args->dst must be writable for one byte.
  */
@@ -269,13 +269,13 @@ embed_bool mmgr_anular_read_byte(const AnularisCfg *args);
 size_t mmgr_anular_read(const AnularisCfg *args);
 
 /**
- * @brief Copies args->bytes starting args->offset ahead of the tail into args->dst, leaving the tail
+ * @brief Copies args->bytes from args->offset ahead of the tail into args->dst, and leaves the tail
  *        alone.
  *
- * @param[in,out] args Ring, destination, byte count and starting offset [BORROWS].
+ * @param[in,out] args Ring, destination, byte count and start offset [BORROWS].
  * @note Moves the bytes in at most two runs, the same way mmgr_anular_read does.
- * @warning Copies args->bytes regardless of whether that many have arrived. Read mmgr_anular_available first.
- * @warning An args->bytes above the ring's capacity is clamped there. Two runs cover one lap at most.
+ * @warning Copies args->bytes whether or not that many arrived. Read mmgr_anular_available first.
+ * @warning An args->bytes above the ring's capacity stops there. Two runs cover one lap at most.
  * @warning args->dst must be writable for args->bytes.
  */
 void mmgr_anular_peek(const AnularisCfg *args);
@@ -284,7 +284,7 @@ void mmgr_anular_peek(const AnularisCfg *args);
  * @brief Advances the tail past args->bytes.
  *
  * @param[in,out] args Ring and the byte count to drop [BORROWS].
- * @warning Advances regardless of whether that many have arrived. Read mmgr_anular_available first.
+ * @warning Advances whether or not that many arrived. Read mmgr_anular_available first.
  */
 void mmgr_anular_consume(const AnularisCfg *args);
 
@@ -292,7 +292,7 @@ void mmgr_anular_consume(const AnularisCfg *args);
  * @brief Writes args->bytes of args->src into the ring, or refuses the whole span.
  *
  * @param[in,out] args Ring, the bytes to write and their count [BORROWS].
- * @return             EMBED_TRUE when the span was written, EMBED_FALSE when it would not fit.
+ * @return             EMBED_TRUE when the span went in, EMBED_FALSE when it would not fit.
  * @note Checks the whole span against the vacant bytes first. A partial write never happens.
  * @note Advances a local head across the wrap and publishes it once, and so no half span is ever visible.
  * @warning args->src must be readable for args->bytes.
@@ -304,7 +304,7 @@ embed_bool mmgr_anular_put(const AnularisCfg *args);
  *
  * @param[in] args Ring to inspect [BORROWS].
  * @return         The distance between the claim and release counters.
- * @warning The two counters are read one after the other, and so the answer is only a snapshot. A publish
+ * @warning The reads of the two counters come one after the other, and so the answer is only a snapshot. A publish
  *          or a release may land between the reads, or after both.
  */
 size_t mmgr_anular_seg_inflight(const AnularisCfg *args);
@@ -316,7 +316,7 @@ size_t mmgr_anular_seg_inflight(const AnularisCfg *args);
  * @return             EMBED_TRUE with the index in args->out_index, EMBED_FALSE when every segment is
  *                     in flight.
  * @note Writes through args->out_index only when it returns EMBED_TRUE.
- * @note Publishing is separate. A half-filled segment is never visible to the consumer.
+ * @note The publish is separate. A half-filled segment is never visible to the consumer.
  * @note A EMBED_FALSE can go stale the moment the consumer releases a segment. A EMBED_TRUE cannot,
  *       since releases only make room.
  * @warning args->out_index must be writable.
@@ -327,10 +327,10 @@ embed_bool mmgr_anular_seg_next(const AnularisCfg *args);
  * @brief Makes the filled segment visible to the consumer.
  *
  * @param[in,out] args Ring to advance [BORROWS].
- * @note Only the producer calls this. The counter is read and written as two steps, which needs no
+ * @note Only the producer calls this. The read and the write of the counter are two steps, which needs no
  *       atomicity between them only because one side owns it.
- * @warning Advances regardless of whether a segment was filled. A publish with no matching
- *          mmgr_anular_seg_next puts more in flight than the ring holds, and that call then refuses
+ * @warning Advances whether or not a segment filled. A publish with no mmgr_anular_seg_next to
+ *          match puts more in flight than the ring holds, and that call then refuses
  *          until releases catch up.
  */
 void mmgr_anular_seg_publish(const AnularisCfg *args);
@@ -351,12 +351,12 @@ embed_bool mmgr_anular_seg_front(const AnularisCfg *args);
  * @brief Frees the front segment.
  *
  * @param[in,out] args Ring to advance [BORROWS].
- * @note Segments release in the order they were claimed.
- * @note Only the consumer calls this. The counter is read and written as two steps, which needs no
+ * @note Segments release in the order of their claims.
+ * @note Only the consumer calls this. The read and the write of the counter are two steps, which needs no
  *       atomicity between them only because one side owns it.
- * @warning Advances regardless of whether a segment was in flight. A release past what has been published
- *          wraps the in-flight count and leaves mmgr_anular_seg_front handing out a segment that was
- *          never filled.
+ * @warning Advances whether or not a segment was in flight. A release past the published count wraps
+ *          the in-flight count and leaves mmgr_anular_seg_front with a segment on offer that never
+ *          filled.
  */
 void mmgr_anular_seg_release(const AnularisCfg *args);
 
@@ -365,9 +365,9 @@ void mmgr_anular_seg_release(const AnularisCfg *args);
  *
  * @param[in] args Ring and the segment index [BORROWS].
  * @return         Its first byte inside the ring buffer [BORROWS].
- * @note The span runs for the segment size mmgr_anular_init was given, or else for the capacity divided
- *       by the segment_count it was given.
- * @warning args->index is not checked against the segment count, and no assertion covers it. An index
+ * @note The span runs for the segment size mmgr_anular_init received, or else for the capacity divided
+ *       by the segment_count it received.
+ * @warning Nothing checks args->index against the segment count, and no assertion covers it. An index
  *          at or past that count returns a pointer outside the ring's bytes.
  */
 uint8_t *mmgr_anular_seg_at(const AnularisCfg *args);
@@ -378,9 +378,9 @@ uint8_t *mmgr_anular_seg_at(const AnularisCfg *args);
  * @param[in] args Ring to inspect [BORROWS].
  * @return         The free mask with the pinned ones cleared, bounded to MMGR_RING_LOCULI.
  * @note A loculus is takeable only when it is free and not pinned, and that leaves reuse safe.
- * @warning The answer is only a snapshot. The two masks are read one after the other, and a hold or a
- *          drop may land before the caller acts on it. mmgr_anular_loculus_hold settles that race,
- *          refusing a loculus another caller took first.
+ * @warning The answer is only a snapshot. The reads of the two masks come one after the other, and a hold
+ *          or a drop may land before the caller acts on it. mmgr_anular_loculus_hold settles that race,
+ *          and refuses a loculus another caller took first.
  */
 embed_word mmgr_anular_loculus_ready(const AnularisCfg *args);
 
@@ -390,8 +390,8 @@ embed_word mmgr_anular_loculus_ready(const AnularisCfg *args);
  * @param[in] args The mask to pick from [BORROWS].
  * @return         The index, or -1 when args->mask is empty.
  * @note Counts and not scans, and branches on nothing but the empty mask.
- * @note Only args->mask is read. This is the single one entry that never reaches the ring.
- * @warning The mask is taken as given. A bit at or above MMGR_RING_LOCULI comes back as its index,
+ * @note This reads only args->mask. This is the single one entry that never reaches the ring.
+ * @warning The mask passes as given. A bit at or above MMGR_RING_LOCULI comes back as its index,
  *          and that index names no loculus, and so mmgr_anular_loculus_hold refuses it.
  */
 embed_iword mmgr_anular_loculus_next(const AnularisCfg *args);
@@ -404,20 +404,20 @@ embed_iword mmgr_anular_loculus_next(const AnularisCfg *args);
  *                     another caller already holds it.
  * @note The recorded region stays valid until mmgr_anular_loculus_drop. A reader walks it in place.
  * @warning An out-of-range args->index names nothing, and so it reads as pinned and is never handed out.
- * @warning args->src is kept by the ring and handed back by mmgr_anular_loculus_keepout, and so it must
+ * @warning The ring keeps args->src and mmgr_anular_loculus_keepout hands it back, and so it must
  *          outlive the hold [BORROWS].
  */
 embed_bool mmgr_anular_loculus_hold(const AnularisCfg *args);
 
 /**
- * @brief Returns the region loculus args->index is keeping out.
+ * @brief Returns the region loculus args->index keeps out.
  *
  * @param[in] args Ring and the loculus [BORROWS].
  * @return         The recorded span, or NULL when args->index is out of range [BORROWS].
- * @note Handed back const. A reader walks it without moving the ring's own record.
+ * @note Handed back const. A reader walks it and leaves the ring's own record in place.
  * @warning The const covers the span and not the bytes it names. buf is reachable as a writable
  *          pointer, though the region reached mmgr_anular_loculus_hold as const.
- * @warning The record comes back for any loculus in range, pinned or not. A drop leaves it standing, and so
+ * @warning The record comes back for any loculus in range, pinned or not. A drop leaves it in place, and so
  *          afterwards it still names the last region that loculus recorded [BORROWS].
  */
 const mmgr_ring_span *mmgr_anular_loculus_keepout(const AnularisCfg *args);
@@ -427,8 +427,8 @@ const mmgr_ring_span *mmgr_anular_loculus_keepout(const AnularisCfg *args);
  *
  * @param[in,out] args Ring and the loculus [BORROWS].
  * @note Leaves the recorded span and the bytes alone. A restream can run again.
- * @note An out-of-range args->index names no bit and clears nothing, and dropping a loculus that is
- *       not pinned does nothing.
+ * @note An out-of-range args->index names no bit and clears nothing, and a drop of a loculus with
+ *       no pin does nothing.
  */
 void mmgr_anular_loculus_drop(const AnularisCfg *args);
 
@@ -439,7 +439,7 @@ void mmgr_anular_loculus_drop(const AnularisCfg *args);
  * @note Sets the free bit. The pinned bit is mmgr_anular_loculus_drop's to clear, and a loculus is
  *       takeable only when it is free and not pinned.
  * @note mmgr_anular_init sets the free bit for every loculus and no entry clears it, and so on a ring that
- *       call has laid down this changes nothing.
+ *       call laid down this changes nothing.
  * @note An out-of-range args->index names no bit and sets nothing.
  */
 void mmgr_anular_loculus_mark(const AnularisCfg *args);

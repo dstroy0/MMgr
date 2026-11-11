@@ -15,12 +15,12 @@
  *       mean does.
  * @note Defines the usual <string.h> include guards. A later #include <string.h> contributes
  *       nothing and the real declarations never arrive to conflict with these.
- * @note Not reached from mmgr.h. Including this changes what the <string.h> names mean, which is a
+ * @note Not reached from mmgr.h. An include of this changes what the <string.h> names mean, which is a
  *       decision a consumer makes for itself.
  * @warning strcmp, strcasecmp, strncmp and strncasecmp report equality only and never order. Code
  *          that sorts with them is wrong here and compiles anyway.
- * @warning Including this header changes the meaning of those names for the whole translation unit,
- *          including in headers it includes afterwards.
+ * @warning An include of this header changes what those names mean for the whole translation unit,
+ *          and in headers it includes afterwards too.
  * @warning The six names bounded by MMGR_STR_MAX need the build to define it. Nothing here supplies
  *          a default, because the caller is what states how much storage there is.
  */
@@ -35,7 +35,7 @@
 /**
  * @brief Claims the include guards several C libraries use for <string.h>.
  *
- * @note A later #include <string.h> then expands to nothing, leaving these macros in place.
+ * @note A later #include <string.h> then expands to nothing, and leaves these macros in place.
  * @warning A library whose guard is not among these five will still declare the real functions.
  */
 #ifndef _STRING_H
@@ -73,19 +73,19 @@ EMBED_INLINE void *mmgr_shim_cpy(void *dest, const void *source, size_t bytes)
 }
 
 /**
- * @brief Copies bytes from source to dest, tolerating overlap, and returns dest.
+ * @brief Copies bytes from source to dest, with overlap allowed, and returns dest.
  *
  * @param[out] dest   Destination to write [BORROWS].
  * @param[in]  source Bytes to read [BORROWS].
  * @param[in]  bytes  Number of bytes to copy.
  * @return            dest [BORROWS].
- * @note Compares the two addresses and walks upwards or downwards so overlapping bytes are read
- *       before they are written.
+ * @note Compares the two addresses and walks upwards or downwards so a read of each shared byte
+ *       comes before the write to it.
  * @warning dest must be writable for bytes and source readable for the same.
  */
 EMBED_INLINE void *mmgr_shim_move(void *dest, const void *source, size_t bytes)
 {
-    // Explicit casts to a byte address, because a relational test wants both sides pointing at a
+    // Explicit casts to a byte address, because a relational test wants both sides to point at a
     // complete object type and void is not one. The comparison picks which way the copy walks
     if ((const uint8_t *)dest <= (const uint8_t *)source)
     {
@@ -102,10 +102,10 @@ EMBED_INLINE void *mmgr_shim_move(void *dest, const void *source, size_t bytes)
  * @brief Fills bytes of dest with the low byte of value and returns dest.
  *
  * @param[out] dest  Destination to write [BORROWS].
- * @param[in]  value Fill value, of which only the low eight bits are used.
+ * @param[in]  value Fill value, of which only the low eight bits count.
  * @param[in]  bytes Number of bytes to write.
  * @return           dest [BORROWS].
- * @note Explicit cast narrows value to uint8_t, matching the byte the fill writes.
+ * @note Explicit cast narrows value to uint8_t, the byte the fill writes.
  * @warning dest must be writable for bytes.
  */
 EMBED_INLINE void *mmgr_shim_set(void *dest, embed_iword value, size_t bytes)
@@ -121,7 +121,7 @@ EMBED_INLINE void *mmgr_shim_set(void *dest, embed_iword value, size_t bytes)
  * @param[in] right Second region [BORROWS].
  * @param[in] bytes Number of bytes to compare.
  * @return          Difference of the first unequal byte pair, or 0 when all bytes match.
- * @note Unlike the strcmp shims, this one does order: the sign follows the differing bytes.
+ * @note Unlike the strcmp shims, this one does order: the sign follows the bytes that differ.
  * @warning Both left and right must be readable for bytes.
  */
 EMBED_INLINE embed_iword mmgr_shim_cmp(const void *left, const void *right, size_t bytes)
@@ -133,10 +133,10 @@ EMBED_INLINE embed_iword mmgr_shim_cmp(const void *left, const void *right, size
  * @brief Finds the first byte in region equal to the low byte of value.
  *
  * @param[in] region Bytes to search [BORROWS].
- * @param[in] value  Byte sought, of which only the low eight bits are used.
+ * @param[in] value  Byte sought, of which only the low eight bits count.
  * @param[in] bytes  Number of bytes to search.
  * @return           Address of the match, or NULL when the byte does not occur [BORROWS].
- * @note The cast through size_t drops the const the backend returns, matching the memchr signature.
+ * @note The cast through size_t drops the const the backend returns, as the memchr signature requires.
  * @warning region must be readable for bytes.
  */
 EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t bytes)
@@ -147,21 +147,21 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces memcpy with mmgr_shim_cpy.
  *
- * @note Every argument is parenthesized. Any expression may be passed.
+ * @note Every argument sits in parentheses. Any expression may go in.
  */
 #define memcpy(dest, source, bytes) mmgr_shim_cpy((dest), (source), (bytes))
 
 /**
  * @brief Replaces memmove with mmgr_shim_move.
  *
- * @note Every argument is parenthesized, as in the memcpy shim.
+ * @note Every argument sits in parentheses, as in the memcpy shim.
  */
 #define memmove(dest, source, bytes) mmgr_shim_move((dest), (source), (bytes))
 
 /**
  * @brief Replaces memset with mmgr_shim_set.
  *
- * @note value reaches mmgr_shim_set as embed_iword and is narrowed there, the signature the
+ * @note value reaches mmgr_shim_set as embed_iword and narrows there, the signature the
  *       real memset has and the reason the shim takes a word and not a byte.
  */
 #define memset(dest, value, bytes) mmgr_shim_set((dest), (value), (bytes))
@@ -169,15 +169,15 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces memcmp with mmgr_shim_cmp.
  *
- * @note Keeps the ordering the standard requires. The sign follows the first differing byte pair.
+ * @note Keeps the ordering the standard requires. The sign follows the first byte pair that differs.
  */
 #define memcmp(left, right, bytes) mmgr_shim_cmp((left), (right), (bytes))
 
 /**
  * @brief Replaces memchr with mmgr_shim_chr.
  *
- * @note The only one of the five mem shims that is bounded by its own argument and not by a
- *       terminator, and so it needs no MMGR_STR_MAX and cannot stop short of what it was asked for.
+ * @note The only one of the five mem shims with its own argument as its bound and not a
+ *       terminator. So it needs no MMGR_STR_MAX and cannot stop short of the count.
  */
 #define memchr(region, value, bytes) mmgr_shim_chr((region), (value), (bytes))
 
@@ -185,7 +185,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @brief Replaces strlen with a scan bounded at MMGR_STR_MAX.
  *
  * @return Bytes before the terminator, at most MMGR_STR_MAX.
- * @warning Returns MMGR_STR_MAX when no terminator appears within it, instead of scanning further.
+ * @warning Returns MMGR_STR_MAX when no terminator appears within it, and scans no further.
  * @warning text must be readable until its terminator, or for MMGR_STR_MAX bytes when it has none,
  *          with the tail word read whole as mmgr_cellul_len describes.
  */
@@ -205,8 +205,8 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @brief Replaces strstr with a case-sensitive search bounded at MMGR_STR_MAX.
  *
  * @return Address inside haystack where needle begins, or NULL when it does not occur [BORROWS].
- * @note The cast through size_t drops the const the backend returns, matching the strstr signature.
- * @warning Both operands must be terminated within MMGR_STR_MAX. Without a terminator the search
+ * @note The cast through size_t drops the const the backend returns, as the strstr signature requires.
+ * @warning Both operands must have a terminator within MMGR_STR_MAX. Without a terminator the search
  *          reads that many bytes from them.
  */
 #define strstr(haystack, needle)                                                                                       \
@@ -217,8 +217,8 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @brief Replaces strcasestr with a case-folded search bounded at MMGR_STR_MAX.
  *
  * @return Address inside haystack where needle begins, or NULL when it does not occur [BORROWS].
- * @note Differs from the strstr shim only in passing ci as EMBED_TRUE.
- * @warning Both operands must be terminated within MMGR_STR_MAX. Without a terminator the search
+ * @note Differs from the strstr shim only in that it passes ci as EMBED_TRUE.
+ * @warning Both operands must have a terminator within MMGR_STR_MAX. Without a terminator the search
  *          reads that many bytes from them.
  */
 #define strcasestr(haystack, needle)                                                                                   \
@@ -230,8 +230,8 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  *
  * @return 0 when left and right hold the same string, 1 when they differ.
  * @note Both == 0 and ! therefore test equality, as they do with the real strcmp.
- * @warning Never negative and never above 1: it cannot be used to order strings.
- * @warning Both operands must be terminated within MMGR_STR_MAX. Without a terminator the compare
+ * @warning Never negative and never above 1: it cannot order strings.
+ * @warning Both operands must have a terminator within MMGR_STR_MAX. Without a terminator the compare
  *          reads that many bytes from them.
  */
 #define strcmp(left, right)                                                                                            \
@@ -240,9 +240,9 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces strcasecmp with a case-folded equality test bounded at MMGR_STR_MAX.
  *
- * @return 0 when left and right hold the same string ignoring case, 1 when they differ.
- * @warning Never negative and never above 1: it cannot be used to order strings.
- * @warning Both operands must be terminated within MMGR_STR_MAX. Without a terminator the compare
+ * @return 0 when left and right hold the same string whatever the case, 1 when they differ.
+ * @warning Never negative and never above 1: it cannot order strings.
+ * @warning Both operands must have a terminator within MMGR_STR_MAX. Without a terminator the compare
  *          reads that many bytes from them.
  */
 #define strcasecmp(left, right)                                                                                        \
@@ -252,10 +252,10 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @brief Replaces strncmp with an equality test over at most limit bytes.
  *
  * @return 0 when left and right agree through limit bytes, 1 when they differ before it.
- * @warning Never negative and never above 1: it cannot be used to order strings.
+ * @warning Never negative and never above 1: it cannot order strings.
  * @warning A terminator does not end the comparison. All limit bytes must be readable in both
  *          operands, with the tail word read whole as mmgr_cellul_diff describes.
- * @warning limit appears twice in the expansion. An argument with a side effect is evaluated twice.
+ * @warning limit appears twice in the expansion. An argument with a side effect runs twice.
  */
 #define strncmp(left, right, limit)                                                                                    \
     (EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = EMBED_FALSE) <    \
@@ -264,11 +264,11 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces strncasecmp with a case-folded equality test over at most limit bytes.
  *
- * @return 0 when left and right agree through limit bytes ignoring case, 1 when they differ before it.
- * @warning Never negative and never above 1: it cannot be used to order strings.
+ * @return 0 when left and right agree through limit bytes whatever the case, 1 when they differ before it.
+ * @warning Never negative and never above 1: it cannot order strings.
  * @warning A terminator does not end the comparison. All limit bytes must be readable in both
  *          operands, with the tail word read whole as mmgr_cellul_diff describes.
- * @warning limit appears twice in the expansion. An argument with a side effect is evaluated twice.
+ * @warning limit appears twice in the expansion. An argument with a side effect runs twice.
  */
 #define strncasecmp(left, right, limit)                                                                                \
     (EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = EMBED_TRUE) <     \
@@ -277,9 +277,9 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces strlcpy with a bounded copy that always terminates unless limit is 0.
  *
- * @return Bytes copied and not counting the terminator.
- * @warning Not the source length the real strlcpy returns. A caller cannot detect truncation by
- *          comparing the result against limit.
+ * @return Bytes copied, with the terminator not in the count.
+ * @warning Not the source length the real strlcpy returns. A caller cannot detect truncation from
+ *          a compare of the result against limit.
  * @warning dest must be writable for limit bytes and source readable for limit minus one.
  */
 #define strlcpy(dest, source, limit)                                                                                   \
@@ -290,9 +290,9 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  *
  * @return Address inside text where the byte occurs, or NULL when it does not [BORROWS].
  * @note A value of 0 returns the address of the terminator, as strchr does.
- * @note The cast through size_t drops the const the backend returns, matching the strchr signature,
- *       and value is narrowed to uint8_t, the byte the search compares against.
- * @warning text must be terminated within MMGR_STR_MAX. Without a terminator the search reads that
+ * @note The cast through size_t drops the const the backend returns, as the strchr signature requires,
+ *       and value narrows to uint8_t, the byte the search compares against.
+ * @warning text must have a terminator within MMGR_STR_MAX. Without a terminator the search reads that
  *          many bytes from it.
  */
 #define strchr(text, value)                                                                                            \

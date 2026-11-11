@@ -5,21 +5,23 @@ import LocusCarcerum.Spill
 /-!
 # LocusCarcerum, the temporary tier as the persistent tier mirrored
 
-The temporary tier is its cells laid end to end from the top up to the cellblock's size, the same cells as the
-persistent tier's, read in the same order. The two tiers differ in where their base stands: the persistent tier's at
-offset 0, its boundary the end of its last cell; the temporary tier's at the cellblock's size, its boundary the start
-of its first cell. Every operation of the persistent tier is an operation of the temporary tier with that one change.
+The temporary tier is its cells laid end to end from the top up to the cellblock's size. They are the same cells
+as the persistent tier's, read in the same order. The two tiers differ in where their base stands. The persistent
+tier's base is at offset 0, and its boundary the end of its last cell. The temporary tier's base is at the
+cellblock's size, and its boundary the start of its first cell. Every operation of the persistent tier is an
+operation of the temporary tier with that one change.
 
-The sweep merges every run of free cells into one free cell, as `Layout.merge` does for both tiers, and returns the
-free run at the boundary to the gap: the run reaching the end for the persistent tier (`Layout.trimEnd`), the run
-starting at the top for the temporary tier (`trimStart`). A take the gap cannot meet lays its cell over the fitting
-free run farthest from the gap: the first from offset 0 for the persistent tier (`Spill.firstFit`), the last before
-the size for the temporary tier (`lastFit`). The cell is laid at the run's end away from the gap and the rest left
-free facing it: `Take.laid` for the persistent tier, `laidHigh` for the temporary tier, which is `Take.laid` reversed.
+The sweep joins every run of free cells into one, as `Layout.merge` does for both tiers, and returns the free run
+at the boundary. That is the run that reaches the end for the persistent tier (`Layout.trimEnd`), and the run that
+starts at the top for the temporary tier (`trimStart`). A take the gap cannot meet lays its cell over the free run
+that holds it farthest from the gap. That is the first from offset 0 for the persistent tier (`Spill.firstFit`), and
+the last before the size for the temporary tier (`lastFit`). The cell lands at the run's end away from the gap and
+the rest stays free toward it. That is `Take.laid` for the persistent tier, and `laidHigh` for the temporary tier,
+which is `Take.laid` reversed.
 
-The theorems are the persistent tier's, mirrored: the sweep keeps every busy cell in order and every owner's count,
-never raises the tier's bytes, and leaves no free cell at the boundary; the run `lastFit` finds is free, holds the
-take, and no run nearer the base holds it; a take laid over the run keeps the tier's bytes and raises its owner's
+The theorems are the persistent tier's, mirrored. The sweep keeps every busy cell in order and every owner's count,
+never raises the tier's bytes, and leaves no free cell at the boundary. The run `lastFit` finds is free, holds the
+take, and no run nearer the base holds it. A take laid over the run keeps the tier's bytes and raises its owner's
 count by what the cell carries, and no other owner's.
 -/
 
@@ -91,7 +93,7 @@ def holds (want : Nat) (c : Cell) : Prop := c.busy = false ∧ want ≤ c.size
 
 instance (want : Nat) (c : Cell) : Decidable (holds want c) := by unfold holds; infer_instance
 
-/-- The last free run holding `want`, the one nearest the tier's base at the size: the cells below it, the run, and
+/-- The last free run that holds `want`, the one nearest the tier's base at the size. The cells below it, the run, and
 the cells above it. -/
 def lastFit (want : Nat) : List Cell → Option (List Cell × Cell × List Cell)
   | [] => none
@@ -153,13 +155,13 @@ theorem lastFit_nearest (want : Nat) (l low high : List Cell) (run : Cell)
         exact lastFit_none want rest hr
       · simp at h
 
-/-- A take of `want` by `owner` laid over the free run `run` at its end away from the gap, the rest free facing the
+/-- A take of `want` by `owner` laid over the free run `run` at its end away from the gap, the rest free toward the
 gap. -/
 def laidHigh (want owner : Nat) (run : Cell) : List Cell :=
   if want + H + A ≤ run.size then [⟨run.size - want - H, false, 0⟩, ⟨want, true, owner⟩]
   else [⟨run.size, true, owner⟩]
 
-/-- The temporary tier's laying is the persistent tier's, reversed. -/
+/-- The temporary tier lays a cell as the persistent tier does, reversed. -/
 theorem laidHigh_reverse (want owner : Nat) (run : Cell) :
     laidHigh H A want owner run = (laid H A want owner run).reverse := by
   unfold laidHigh laid
@@ -174,7 +176,7 @@ theorem laidHigh_count (want owner o : Nat) (run : Cell) (hfree : run.busy = fal
   unfold laidHigh carried
   split <;> by_cases ho : owner = o <;> simp [count, hfree, ho]
 
-/-- A spill over the last fitting run of the swept temporary tier. -/
+/-- A spill over the last run that fits in the swept temporary tier. -/
 def spilledDown (want owner : Nat) (low : List Cell) (run : Cell) (high : List Cell) : List Cell :=
   low ++ laidHigh H A want owner run ++ high
 

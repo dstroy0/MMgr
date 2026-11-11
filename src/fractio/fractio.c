@@ -17,7 +17,7 @@
  * @brief Arguments for every fract backend, grouped by the calls that read them.
  *
  * @note Mirrors FractioCfg without its const qualifiers, union included.
- * @note val and bits share storage, and so writing one and reading the other reinterprets the same bytes.
+ * @note val and bits share storage, and so a write of one and a read of the other reinterprets the same bytes.
  */
 typedef struct
 {
@@ -69,7 +69,7 @@ EMBED_INLINE embed_u64 fract_mant(const FractioCtx *args)
  *
  * @param[in] args The three fields to pack [BORROWS].
  * @return         The assembled bit pattern.
- * @note Each field is masked to its own width first. A wide input cannot reach a neighbor.
+ * @note Each field cuts to its own width first. A wide input cannot reach a neighbor.
  */
 EMBED_INLINE embed_u64 fract_merge(const FractioCtx *args)
 {
@@ -80,7 +80,7 @@ EMBED_INLINE embed_u64 fract_merge(const FractioCtx *args)
 /**
  * @brief Reads the union as a double after the caller filled its bits member.
  *
- * @param[in] args Union holding the pattern [BORROWS].
+ * @param[in] args Union with the pattern [BORROWS].
  * @return         The same storage read as a double.
  */
 EMBED_INLINE double fract_from_bits(const FractioCtx *args)
@@ -91,7 +91,7 @@ EMBED_INLINE double fract_from_bits(const FractioCtx *args)
 /**
  * @brief Reads the union as a bit pattern after the caller filled its val member.
  *
- * @param[in] args Union holding the value [BORROWS].
+ * @param[in] args Union with the value [BORROWS].
  * @return         The same storage read as a bit pattern.
  */
 EMBED_INLINE embed_u64 fract_to_bits(const FractioCtx *args)
@@ -106,7 +106,7 @@ EMBED_INLINE embed_u64 fract_to_bits(const FractioCtx *args)
  * @param[in] name_       Name after the mmgr_fract_ and fract_ prefixes, which the two share.
  * @param[in] ...         Initializers for the FractioCtx literal, written through args.
  * @note The six entries differ only in what they forward, and so the prefixes and the two structure types
- *       are named once here and the table below states only what each entry reads.
+ *       appear once here. The table below states only what each entry reads.
  */
 #define FRACT_ENTRY(ReturnType_, name_, ...)                                                                           \
     EMBED_ENTRY(mmgr_fract_, fract_, FractioCtx, FractioCfg, ReturnType_, name_, __VA_ARGS__)
@@ -114,9 +114,9 @@ EMBED_INLINE embed_u64 fract_to_bits(const FractioCtx *args)
 /**
  * @brief The public surface, one line per entry point.
  *
- * @note Each is documented at its declaration in fractio.h.
+ * @note fractio.h describes each at its declaration.
  * @note The five union lines forward the member the caller filled. merge forwards its three fields
- *       instead. from_bits is given bits and reads val, to_bits is given val and reads bits:
+ *       instead. from_bits takes bits and reads val, to_bits takes val and reads bits:
  *       the reinterpretation both exist for.
  */
 FRACT_ENTRY(embed_u64, sign, .bits = args->bits)

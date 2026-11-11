@@ -1,5 +1,5 @@
 /**
- * @brief Build-time settings: widths, region sizes, feature switches and the region carving macros.
+ * @brief Build-time settings: widths, region sizes, feature switches and the region cut macros.
  *
  * @note Each tunable sits behind #ifndef, which lets a build set it first; MMGR_SWAR_BITS is the exception.
  */
@@ -29,9 +29,9 @@
 #endif
 
 /**
- * @brief Width in bits of mmgr_idx, the type every offset and length is carried in.
+ * @brief Width in bits of mmgr_idx, the type that carries every offset and length.
  *
- * @note Follows MMGR_WORD_BITS below 32, and is capped at 32 above that.
+ * @note Follows MMGR_WORD_BITS below 32, and stops at 32 above that.
  * @warning mmgr_types.h accepts only 16 or 32, and asserts mmgr_idx fits inside mmgr_word.
  */
 #ifndef MMGR_INDEX_BITS
@@ -57,7 +57,7 @@
 /**
  * @brief Width in bits of one SWAR word, always equal to MMGR_WORD_BITS.
  *
- * @warning Any earlier definition is discarded. A build cannot set the two widths apart.
+ * @warning This replaces any earlier definition. A build cannot set the two widths apart.
  */
 #ifdef MMGR_SWAR_BITS
 #undef MMGR_SWAR_BITS
@@ -77,22 +77,22 @@
  * @brief Runtime assertion hook: a trap under MMGR_DEBUG_CHECKS, inert otherwise.
  *
  * @param[in] cond Condition the caller expects to hold.
- * @param[in] msg  String literal describing the expectation.
- * @note An expectation the library asserts is one a correct caller cannot break, and so the shipping
- *       form pays nothing for it: it expands to a sizeof, which type checks cond and never evaluates
+ * @param[in] msg  String literal that describes the expectation.
+ * @note An expectation the library asserts is one a correct caller cannot break, and so the plain
+ *       build pays nothing for it. It expands to a sizeof, which type checks cond and never evaluates
  *       it. The checks build evaluates it instead and stops on the spot. A caller that broke one
- *       fails a test instead of carrying on with the damage done.
- * @note A build may define its own before including this header, and neither form below is then used.
+ *       fails a test and does not carry on with the damage done.
+ * @note A build may define its own before it includes this header, and neither form below then applies.
  *       A target with no stderr and no abort wants that.
  * @warning With MMGR_DEBUG_CHECKS at 0, a failed expectation produces no diagnostic and no trap. It
- *          is not a runtime check and cannot be read as one.
+ *          is not a runtime check and cannot stand as one.
  */
 #ifndef MMGR_ASSERT
 #if MMGR_DEBUG_CHECKS
 #include <stdio.h>
 #include <stdlib.h>
-// fflush(NULL) before the trap, or a harness that buffers its progress on stdout loses every line of
-// it to the abort and reports the failure with nothing naming which case reached it
+// fflush(NULL) before the trap. Otherwise a harness that buffers its progress on stdout loses every
+// line of it to the abort, and the failure report names no case
 #define MMGR_ASSERT(cond, msg)                                                                                         \
     ((cond) ? (void)0                                                                                                  \
             : (void)(fprintf(stderr, "MMGR_ASSERT failed: %s\n  %s:%d\n", (msg), __FILE__, __LINE__), fflush(NULL),    \
@@ -107,8 +107,8 @@
  *
  * @note Allocates nothing and sizes no pool. A pool's extent is an argument to mmgr_carcer_init, and
  *       nothing in carceribus reads this. It feeds MMGR_CARCER_MAX below, which is a
- *       bound other modules size their worst case against - so it is a statement of intent about the
- *       regions you are going to declare, and it wants raising if you declare a bigger one.
+ *       bound other modules size their worst case against. So it is a statement of intent about the
+ *       regions you will declare, and it must rise if you declare a bigger one.
  */
 #ifndef MMGR_PLAINTEXT_CONFIN_SIZE
 #define MMGR_PLAINTEXT_CONFIN_SIZE 4096u
@@ -124,14 +124,14 @@
 #endif
 
 /**
- * @brief Bytes in the larger of the two confinia, bounding the worst case a scan or a read must cover.
+ * @brief Bytes in the larger of the two confinia, the bound on the worst case a scan or a read must cover.
  *
  * @note verbum_scrutor.h derives MMGR_SCAN_MAX_WORDS from this, and mmgr_string_shim.h uses it as MMGR_STR_MAX.
- * @note The reason the bound exists is that these modules size a worst case at compile time instead
- *       of testing a length at run time. A string cannot be longer than the confinium holding it,
- *       and the confinium is the cap, and the scanner can be told how many words that is before it
+ * @note The bound exists because these modules size a worst case at compile time and test no
+ *       length at run time. A string cannot be longer than the confinium that holds it, and the
+ *       confinium is the cap. So the scanner can know how many words that is before it
  *       ever runs.
- * @warning Declare a region larger than both knobs and this bound is under-stated. The static asserts
+ * @warning Declare a region larger than both knobs and this bound falls short. The static asserts
  *          in verbum_scrutor.h check that the word count covers this value, not that this value
  *          covers your regions, which nothing here can see.
  */
@@ -146,7 +146,7 @@
 /**
  * @brief Set to 1 to build the memoriam_praetereo DMA path.
  *
- * @note mmgr.h includes memoriam_praetereo.h only when this is set. The schedule's knobs are read in
+ * @note mmgr.h includes memoriam_praetereo.h only when this holds. The schedule's knobs have their reads in
  *       memoriam_praetereo/praet_praefinitum.h and memoriam_praetereo/praet_horologiorum_custos.h.
  */
 #ifndef MMGR_ENABLE_DMA
@@ -155,7 +155,7 @@
 /**
  * @brief Set to 1 to build the confinium_externum external memory path.
  *
- * @note mmgr.h includes confinium_externum.h only when this is set.
+ * @note mmgr.h includes confinium_externum.h only when this holds.
  */
 #ifndef MMGR_ENABLE_EXTRAM
 
@@ -165,16 +165,16 @@
 /**
  * @brief Set to 1 to build the time-based ring behavior.
  *
- * @note MMGR_RING_ATTACH_US exists only when this is set.
+ * @note MMGR_RING_ATTACH_US exists only when this holds.
  */
 #ifndef MMGR_ENABLE_CLOCK
 #define MMGR_ENABLE_CLOCK 0
 #endif
 
 /**
- * @brief Microseconds a ring waits before attaching.
+ * @brief Microseconds a ring waits before its attach.
  *
- * @warning Defined only when MMGR_ENABLE_CLOCK is set.
+ * @warning Defined only when MMGR_ENABLE_CLOCK holds.
  */
 #if MMGR_ENABLE_CLOCK
 #ifndef MMGR_RING_ATTACH_US
@@ -185,7 +185,7 @@
 /**
  * @brief Fails the build unless x_ has type size_t.
  *
- * @param[in] x_ Expression whose type is checked.
+ * @param[in] x_ Expression under a type check.
  * @note Evaluates to void; the _Generic association list admits size_t only.
  */
 #define MMGR_MEMOR_IS_SIZE(x_) ((void)_Generic((x_), size_t: 0))
@@ -193,13 +193,13 @@
 /**
  * @brief Fails the build unless x_ has type uint8_t.
  *
- * @param[in] x_ Expression whose type is checked.
+ * @param[in] x_ Expression under a type check.
  * @note Evaluates to void; the _Generic association list admits uint8_t only.
  */
 #define MMGR_MEMOR_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
 
 /**
- * @brief Defines a value-returning entry point that forwards an argument pack.
+ * @brief Defines an entry point with a return value that forwards an argument pack.
  *
  * @param PREFIX     The public entry point prefix (e.g., mmgr_infin_)
  * @param BACKEND    The backend function prefix (e.g., infin_)

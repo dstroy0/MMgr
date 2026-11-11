@@ -6,11 +6,12 @@
  */
 /**
  * @file cellularum_laboro_fuzz.c
- * @brief A libFuzzer harness over the string walks: len, diff, eq, starts, find, has, chr, copy, ws, digit and the
- *        two step compares on text of any bytes, case and terminator place at every offset and cap, each against a
- *        byte loop of what the header states; and the four conversions against a byte loop for the integers and
- *        the C library's strtod for the floating values. Every buffer is padded past its cap by the word the
- *        header allows the walks to read there.
+ * @brief A libFuzzer harness over the string walks. The walks len, diff, eq, starts, find, has, chr, copy, ws, digit
+ *        and the two step compares run on text of any bytes. The text has any case and terminator place, at every
+ *        offset and cap. Each runs
+ *        against a byte loop of what the header states. The four conversions run against a byte loop for the
+ *        integers and the C library's strtod for the floating values. Every buffer extends past its cap by the
+ *        word the header allows the walks to read there.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */
@@ -256,7 +257,7 @@ static void conversions(FuzzInput *input)
 {
     char text[48];
     const size_t bytes = fuzz_below(input, sizeof text);
-    // Decimal text only: strtod also reads a hexadecimal float, which the conversions do not, and so no x is drawn
+    // Decimal text only: strtod also reads a hexadecimal float, which the conversions do not, and so no x comes out
     static const char alphabet[16] = {'0', '1', '5', '9', '0', '7', ' ', '\t', '-', '+', '.', 'e', 'E', ',', '3', '8'};
     for (size_t at = 0u; at < bytes; at += 1u)
     {

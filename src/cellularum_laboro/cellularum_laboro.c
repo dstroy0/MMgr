@@ -6,16 +6,16 @@
  */
 /**
  * @file cellularum_laboro.c
- * @brief Bounded string work over SWAR words, covering length, compare, search, copy and conversion.
+ * @brief Bounded string work over SWAR words: length, compare, search, copy and conversion.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
  * @note Strings only. Lengths that arrive off a wire belong to byteio, which is where rd_str and
  *       mpint_fixed live.
- * @note The CatenaFinitaCfg calls are bounded by a cap the caller states, and so no walk runs past it even
- *       when the bytes carry no terminator. Several settle the last partial word by loading it whole
- *       and masking after, which touches bytes past cap. cellularum_laboro.h gives the extent for each.
- * @note ws and digit read src at at without consulting cap, and the conversions carry no bound at all.
+ * @note A cap the caller states bounds the CatenaFinitaCfg calls, and so no walk runs past it even
+ *       when the bytes carry no terminator. Several settle the last partial word with a whole load
+ *       and a mask after, which touches bytes past cap. cellularum_laboro.h gives the extent for each.
+ * @note ws and digit read src at at and leave cap alone, and the conversions carry no bound at all.
  */
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "config/mmgr_vector.h"
@@ -26,7 +26,7 @@
 /**
  * @brief Arguments for every cellul backend, grouped by the calls that read them.
  *
- * @note Each backend reads one group, and EMBED_CALL zeroes the members it is not given.
+ * @note Each backend reads one group, and EMBED_CALL zeroes the members the caller omits.
  */
 typedef struct
 {
@@ -37,7 +37,7 @@ typedef struct
     char *const dst;           /**< Destination for copy [BORROWS]. */
     const size_t at;           /**< Offset into src where the call starts. */
     const uint8_t byte;        /**< Byte sought by chr. */
-    const embed_bool ci;       /**< Fold case while comparing. */
+    const embed_bool ci;       /**< Fold case in the compare. */
     const embed_bool end_wins; /**< A terminator in the same lane counts as a match. */
 
     const embed_word word_left;  /**< First word for step_word. */
@@ -49,7 +49,7 @@ typedef struct
     size_t *const rows;         /**< Needle offsets chosen by pick_rows [BORROWS]. */
     const size_t needle_offset; /**< Needle offset read by ancorae_fold. */
 
-    const char **const end; /**< Set by the to_ calls past the number, or back to src when none was read [BORROWS]. */
+    const char **const end; /**< Set by the to_ calls past the number, or back to src when they read none [BORROWS]. */
     const char **const cur; /**< Cursor advanced by expo [BORROWS]. */
     embed_iword *const exp; /**< Set by expo to the signed exponent [BORROWS]. */
 } CellulCtx;
@@ -60,7 +60,7 @@ typedef struct
  * @param[in] args Words word_left and word_right, with end_wins [BORROWS].
  * @return         MMGR_SWAR_GO when the words agree and carry no terminator, MMGR_SWAR_YES or
  *                 MMGR_SWAR_NO otherwise.
- * @note MMGR_SWAR_YES when the terminator lane precedes the first differing lane, or ties it when end_wins.
+ * @note MMGR_SWAR_YES when the terminator lane precedes the first lane that differs, or ties it when end_wins.
  */
 EMBED_INLINE embed_iword cellul_step_word_cs(const CellulCtx *args)
 {
@@ -97,7 +97,7 @@ EMBED_INLINE embed_iword cellul_step_word_cs(const CellulCtx *args)
  * @param[in] args Words word_left and word_right, with end_wins [BORROWS].
  * @return         MMGR_SWAR_GO when the words agree and carry no terminator, MMGR_SWAR_YES or
  *                 MMGR_SWAR_NO otherwise.
- * @note Differs from cellul_step_word_cs only in taking the difference through lane.xor_ with ci set.
+ * @note Differs from cellul_step_word_cs only in that it takes the difference through lane.xor_ with ci set.
  */
 EMBED_INLINE embed_iword cellul_step_word_ci(const CellulCtx *args)
 {
@@ -135,8 +135,8 @@ EMBED_INLINE embed_iword cellul_step_word_ci(const CellulCtx *args)
  * @param[in] args Bytes byte_left and byte_right, with end_wins [BORROWS].
  * @return         MMGR_SWAR_GO when the bytes match and byte_left is not the terminator,
  *                 MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
- * @note A terminating byte_left gives MMGR_SWAR_YES when byte_right also terminates, or when
- *       end_wins is set.
+ * @note A byte_left that terminates gives MMGR_SWAR_YES when byte_right also terminates, or when
+ *       end_wins holds.
  */
 EMBED_INLINE embed_iword cellul_step_byte_cs(const CellulCtx *args)
 {
@@ -161,7 +161,7 @@ EMBED_INLINE embed_iword cellul_step_byte_cs(const CellulCtx *args)
  * @param[in] args Bytes byte_left and byte_right, with end_wins [BORROWS].
  * @return         MMGR_SWAR_GO when the bytes match and byte_left is not the terminator,
  *                 MMGR_SWAR_YES or MMGR_SWAR_NO otherwise.
- * @note Takes the difference through lane.xor_ with ci set, and so only the folded result is tested.
+ * @note Takes the difference through lane.xor_ with ci set, and so the test sees only the folded result.
  */
 EMBED_INLINE embed_iword cellul_step_byte_ci(const CellulCtx *args)
 {
@@ -193,14 +193,13 @@ EMBED_INLINE embed_iword cellul_step_byte_ci(const CellulCtx *args)
 EMBED_INLINE embed_bool cellul_is_ws(char ch)
 {
     // Explicit cast reads the byte unsigned before the subtraction. Anything below tab wraps high
-    // and fails the range instead of passing it as a negative
+    // and fails the range instead of a pass as a negative
     const unsigned code = (unsigned)(unsigned char)ch;
 
     // Tab, newline, vertical tab, form feed and carriage return are 9 through 13 with nothing else
-    // between them, and so one unsigned range takes all five and space is the only test left. The six
-    // comparisons this replaces were joined by short circuits. A byte that is not whitespace -
-    // which is most of them - ran and failed every one. Measured 2.16x on an ESP32-S3 over a buffer
-    // holding none
+    // between them. So one unsigned range takes all five and space is the only test left. Six
+    // comparisons with short circuits would run and fail every one on a byte that is not whitespace,
+    // which is most of them. One range is about twice as fast on an ESP32-S3 over a buffer with none
     // Explicit cast narrows the range test into the embed_bool container
     return (embed_bool)(((code - 9u) <= 4u) || (code == 32u));
 }
@@ -221,19 +220,20 @@ EMBED_INLINE embed_bool cellul_is_digit(char ch)
  *
  * @param[in] start Address a walk is about to start from [BORROWS].
  * @param[in] cap   Bytes readable at start, which the answer never exceeds.
- * @return          Bytes to step one at a time before whole aligned words can be read.
- * @note Normally zero. This library is built for memory that arrives aligned, and an aligned address
- *       is already on a boundary. It is computed and not assumed because the entries are also
- *       reached on interior pointers - find verifies a candidate at hay + k, which is any address.
+ * @return          Bytes to step one at a time before the walk can read whole aligned words.
+ * @note Normally zero. This library serves memory that arrives aligned, and an aligned address is
+ *       already on a boundary. The walk computes the count and does not assume it, because the
+ *       entries also run on interior pointers. The call find verifies a candidate at hay + k, which
+ *       is any address.
  * @note The aligned load is one instruction on every target. The unaligned one is ten on Xtensa and
- *       eleven on RISC-V, because neither has the instruction and the compiler assembles the word
- *       out of byte loads and shifts, in the middle of the walk.
+ *       eleven on RISC-V. Neither has the instruction, and the compiler assembles the word out of
+ *       byte loads and shifts, in the middle of the walk.
  */
 EMBED_INLINE size_t cellul_head_bytes(const char *start, size_t cap)
 {
-    // Explicit casts read the address and the mask as one integer type so the low bits can be tested,
-    // and narrow the result into the size_t the offsets are counted in. The address is never
-    // dereferenced through the integer and never converted back
+    // Explicit casts read the address and the mask as one integer type so a test can reach the low
+    // bits. They narrow the result into the size_t that counts the offsets. No read goes
+    // through the integer and no conversion back
     const size_t off = (size_t)((uintptr_t)start & (uintptr_t)(MMGR_SWAR_BYTES - 1u));
     const size_t need = (off == 0u) ? 0u : (MMGR_SWAR_BYTES - off);
 
@@ -246,17 +246,17 @@ EMBED_INLINE size_t cellul_head_bytes(const char *start, size_t cap)
  * @param[in] args Bytes src and the readable extent cap [BORROWS].
  * @return         Bytes before the terminator, at most cap.
  * @note Scans whole words with no mask at all, then masks the one short word at the end. The bound
- *       is known before the loop, and so the lanes past cap can only ever fall in that last word, and
- *       building mask.tail per word costs six instructions an iteration to change nothing.
- * @warning src must be readable for cap bytes. That last short word is loaded whole and masked
- *          after, and up to MMGR_SWAR_BYTES - 1 bytes past cap are read.
+ *       stands before the loop, and so the lanes past cap can only ever fall in that last word. A
+ *       mask.tail per word would cost six instructions an iteration to change nothing.
+ * @warning src must be readable for cap bytes. The load of that last short word is whole with a mask
+ *          after, and the read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap.
  */
 EMBED_INLINE size_t cellul_len(const CellulCtx *args)
 {
-    // Bytes between src and the first word boundary at or after it. Normally none: this library is
-    // built for memory that arrives aligned. It is walked and not assumed because an entry is
-    // also reached on an interior pointer - find verifies a candidate at hay + k - and the body
-    // below reads through the aligned load, which is one instruction where the unaligned one is ten.
+    // Bytes between src and the first word boundary at or after it. Normally none: this library
+    // serves memory that arrives aligned. The walk counts them and does not assume them, because an
+    // entry also runs on an interior pointer: find verifies a candidate at hay + k. The body below
+    // reads through the aligned load, which is one instruction where the unaligned one is ten.
     const size_t lead = cellul_head_bytes(args->src, args->cap);
     const size_t full = lead + (((args->cap - lead) / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES);
     const size_t rest = args->cap - full;
@@ -273,9 +273,9 @@ EMBED_INLINE size_t cellul_len(const CellulCtx *args)
     }
 
 #if MMGR_VECTOR_BYTES != 0u
-    // A word a pass up to the first aligned vector, as the word walk below steps, then an aligned
-    // vector a pass while a whole one remains within cap, the lanes holding zero read off the vector
-    // comparison; the word walks below take the rest
+    // A word a pass up to the first aligned vector, as the word walk below steps. Then an aligned
+    // vector a pass while a whole one remains within cap, with the lanes that hold zero read off the
+    // vector comparison. The word walks below take the rest
     while ((at != full) && ((((uintptr_t)args->src + at) & (MMGR_VECTOR_BYTES - 1u)) != 0u))
     {
         const embed_word zero_lanes = EMBED_CALL(lane.has_zero, ScrutLaneCfg,
@@ -302,8 +302,8 @@ EMBED_INLINE size_t cellul_len(const CellulCtx *args)
     }
 #endif
     // Two words a pass while two remain. The load and the arithmetic that reads it are a dependent
-    // pair, and neither part issues them back to back without stalling. Taking two lets the second
-    // load be in flight while the first word is examined. The single-word loop below finishes the
+    // pair, and neither part issues them back to back with no stall. Two at a time lets the second
+    // load be in flight while the first word gets its test. The single-word loop below finishes the
     // odd word.
     while ((full - at) >= (2u * MMGR_SWAR_BYTES))
     {
@@ -352,17 +352,17 @@ EMBED_INLINE size_t cellul_len(const CellulCtx *args)
 /**
  * @brief Settles one word that carried a match, a terminator, or both.
  *
- * @param[in] at  Address the word was read from [BORROWS].
- * @param[in] end Lanes holding a terminator.
- * @param[in] hit Lanes holding the sought byte.
+ * @param[in] at  Address the word came from [BORROWS].
+ * @param[in] end Lanes with a terminator.
+ * @param[in] hit Lanes with the sought byte.
  * @return        Address of the match, or NULL when no match precedes the terminator [BORROWS].
- * @note mask.before drops lanes at or past the terminator. A match beginning after the run ends
- *       is not reported. Of an empty terminator mask it keeps every lane.
- * @note Takes the address and not a CellulCtx: the walk reaches it on an interior pointer, and
+ * @note mask.before drops lanes at or past the terminator. A match that begins after the run ends
+ *       does not report. Of an empty terminator mask it keeps every lane.
+ * @note Takes the address and not a CellulCtx. The walk reaches it on an interior pointer, and
  *       the point of it is that the loop body does not carry this arithmetic.
  * @note Plain static and not EMBED_INLINE. It runs once per call - the walk reaches it on the word that
- *       ended the scan and not before. A call costs nothing measurable, while forcing it inline
- *       puts mask.before and lane.first in the loop body and cost 6% at 2048 bytes.
+ *       ended the scan and not before. A call costs nothing measurable, while a forced inline
+ *       puts mask.before and lane.first in the loop body and costs 6% at 2048 bytes.
  */
 static const char *cellul_chr_settle(const char *at, embed_word end, embed_word hit)
 {
@@ -372,19 +372,19 @@ static const char *cellul_chr_settle(const char *at, embed_word end, embed_word 
 }
 
 /**
- * @brief Finds the first occurrence of byte in src, stopping at the terminator.
+ * @brief Finds the first occurrence of byte in src, and stops at the terminator.
  *
  * @param[in] args Bytes src, the extent cap and the byte sought [BORROWS].
  * @return         Address of the match, or NULL when none precedes the terminator [BORROWS].
  * @note A byte of 0 returns src plus cellul_len: the terminator's own address, or src plus cap when
  *       no terminator is in range.
- * @note mask.before drops lanes at or past the terminator. A later match is not reported. It is
- *       applied once, on the word that carried a hit or a terminator: until one of those turns up
+ * @note mask.before drops lanes at or past the terminator. A later match does not report. The mask
+ *       applies once, on the word that carried a hit or a terminator. Until one of those turns up
  *       there is nothing for it to drop, and mask.before of an empty terminator mask is every lane.
- * @note Whole words carry no extent mask. cap can only cut the last word short, and that word is
- *       walked once below the loop.
- * @warning src must be readable for cap bytes. That last short word is loaded whole and masked
- *          after, and up to MMGR_SWAR_BYTES - 1 bytes past cap are read.
+ * @note Whole words carry no extent mask. cap can only cut the last word short, and that word gets
+ *       one walk below the loop.
+ * @warning src must be readable for cap bytes. The load of that last short word is whole with a mask
+ *          after, and the read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap.
  */
 EMBED_INLINE const char *cellul_chr(const CellulCtx *args)
 {
@@ -398,16 +398,16 @@ EMBED_INLINE const char *cellul_chr(const CellulCtx *args)
     const size_t lead = cellul_head_bytes(args->src, args->cap);
     const size_t full = lead + (((args->cap - lead) / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES);
     const size_t rest = args->cap - full;
-    // The sought byte repeated into every lane, once, ahead of the walk. lane.eq answers the same
-    // question but rebuilds the broadcast from a byte on every call, and it is large enough that the
-    // inliner drops it back out of line as this function grows - which cost 2.5x when it happened.
+    // The sought byte repeated into every lane, once, ahead of the walk. The entry lane.eq answers the
+    // same question but rebuilds the broadcast from a byte on every call. It is large enough that the
+    // inliner drops it back out of line as this function grows, which costs more than twice the time.
     // Explicit cast widens the byte to embed_word so the multiply fills every lane
     const embed_word bcast = MMGR_SWAR_ONES * (embed_word)args->byte;
     size_t at = 0u;
 
     while (at != lead)
     {
-        // Explicit cast reads the byte as unsigned, matching CellulCtx::byte
+        // Explicit cast reads the byte as unsigned, as CellulCtx::byte does
         const uint8_t here = (uint8_t)args->src[at];
 
         if (here == 0u)
@@ -424,8 +424,8 @@ EMBED_INLINE const char *cellul_chr(const CellulCtx *args)
 
 #if MMGR_VECTOR_BYTES != 0u
     // A vector a pass while a whole one remains within cap, the sought byte repeated into every lane
-    // once ahead of the walk; a vector holding a terminator or a match settles the walk, a match
-    // counting only before the terminator, as cellul_chr_settle settles a word
+    // once ahead of the walk. A vector with a terminator or a match settles the walk. A match counts
+    // only before the terminator, as cellul_chr_settle settles a word
     const MmgrVector sought = mmgr_vector_fill(args->byte);
 
     // A word a pass up to the first aligned vector, as the word walk below steps
@@ -459,10 +459,10 @@ EMBED_INLINE const char *cellul_chr(const CellulCtx *args)
         at += MMGR_VECTOR_BYTES;
     }
 #endif
-    // One word a pass, deliberately. Unrolling this the way cellul_len is unrolled was measured and
-    // lost: 8261 cycles to 8277 at 2048 bytes, and 98 to 114 at eight. len has one has_zero in its
-    // body and stalls waiting for the load. This has two, which is already enough work to cover the
-    // load. A second word buys nothing and the extra prologue costs.
+    // One word a pass, deliberately. The two-word form cellul_len takes loses here: 8261 cycles to 8277
+    // at 2048 bytes, and 98 to 114 at eight. len has one has_zero in its body and stalls on the
+    // load. This has two, which is already enough work to cover the load. A second word buys nothing
+    // and the extra prologue costs.
     while (at != full)
     {
         const embed_word loaded = EMBED_CALL(word.load_al, ScrutWordCfg, .at = args->src + at);
@@ -497,7 +497,7 @@ EMBED_INLINE const char *cellul_chr(const CellulCtx *args)
  * @brief Turns a lane-wise difference word into the mask of lanes that differ.
  *
  * @param[in] diff Difference word, zero in every lane where the two sides agreed.
- * @return         One high bit per differing lane.
+ * @return         One high bit per lane that differs.
  * @note Takes the word and not a CellulCtx. It is an expression the four compare walks share,
  *       not an entry anything dispatches to.
  */
@@ -512,11 +512,11 @@ EMBED_INLINE embed_word cellul_diff_lanes(embed_word diff)
  * @param[in] args Bytes src and other, with the extent cap [BORROWS].
  * @return         Offset of the first difference, or cap when the two agree throughout.
  * @note Compares whole words with nothing but an inequality test, and resolves which lane differs
- *       once, after the loop has found the word that does. Which lane it is cannot matter until a
+ *       once, after the loop finds the word that does. Which lane it is cannot matter until a
  *       word differs, and no word differs on all but one iteration of a scan.
  * @warning A terminator does not end the scan. cap is the only bound. Both src and other must be
- *          readable for cap bytes, and the last short word is loaded whole and masked after, and up
- *          to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
+ *          readable for cap bytes. The load of the last short word is whole with a mask after, and
+ *          the read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap in each.
  */
 EMBED_INLINE size_t cellul_diff_cs(const CellulCtx *args)
 {
@@ -526,9 +526,9 @@ EMBED_INLINE size_t cellul_diff_cs(const CellulCtx *args)
 
     // Explicit casts read both addresses as integers so one mask answers for both. When the two
     // arrived on a boundary the run goes through the aligned load, which is one instruction where
-    // the unaligned one is a sequence. The test is lifted out and not carried in the body: as a
-    // choice inside the loop the compiler keeps the branch per word and the run costs what the
-    // unaligned one costs. memor_cmp took 6.27 cycles a byte to 2.02 on an ESP32-C6 this way
+    // the unaligned one is a sequence. The test sits outside the body. As a choice inside the loop
+    // the compiler keeps the branch per word, and the run costs what the unaligned one costs. This
+    // shape takes memor_cmp from 6.27 cycles a byte to 2.02 on an ESP32-C6
     // Explicit cast narrows the boundary test into the embed_bool container
     const embed_bool level =
         (embed_bool)(((((uintptr_t)args->src) | ((uintptr_t)args->other)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
@@ -578,14 +578,14 @@ EMBED_INLINE size_t cellul_diff_cs(const CellulCtx *args)
  *
  * @param[in] args Bytes src and other, with the extent cap [BORROWS].
  * @return         Offset of the first difference, or cap when the two agree throughout.
- * @note Takes the difference through lane.xor_ with ci set. The fold has to happen before the test,
- *       and the walk tests the folded word against zero and not the two words against each other,
+ * @note Takes the difference through lane.xor_ with ci set. The fold has to happen before the test.
+ *       The walk tests the folded word against zero and not the two words against each other,
  *       and resolves the lane once on the way out.
- * @note Carries no aligned run: where cellul_diff_cs lifts a boundary test out and walks matched
+ * @note Carries no aligned run. Where cellul_diff_cs lifts a boundary test out and walks matched
  *       addresses through the aligned load, every word here goes through the unaligned one.
  * @warning A terminator does not end the scan. cap is the only bound. Both src and other must be
- *          readable for cap bytes, and the last short word is loaded whole and masked after, and up
- *          to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
+ *          readable for cap bytes. The load of the last short word is whole with a mask after, and
+ *          the read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap in each.
  */
 EMBED_INLINE size_t cellul_diff_ci(const CellulCtx *args)
 {
@@ -623,10 +623,10 @@ EMBED_INLINE size_t cellul_diff_ci(const CellulCtx *args)
 /**
  * @brief Settles which came first, the terminator or the difference, from the lanes of each.
  *
- * @param[in] term     Lanes holding a terminator, which may be none.
+ * @param[in] term     Lanes with a terminator, which may be none.
  * @param[in] diff     Lanes that differ, which may be none.
  * @param[in] end_wins Whether a terminator in the same lane as the difference counts as a match.
- * @return             Whether the two agree up to and including where they end.
+ * @return             Whether the two agree up to where they end, that point included.
  */
 EMBED_INLINE embed_bool cellul_agree_lanes(embed_word term, embed_word diff, embed_bool end_wins)
 {
@@ -643,9 +643,9 @@ EMBED_INLINE embed_bool cellul_agree_lanes(embed_word term, embed_word diff, emb
  * @param[in] word_left  Word from the first string.
  * @param[in] word_right Word from the second, which differs from word_left.
  * @param[in] end_wins   Whether a terminator in the same lane as the difference counts as a match.
- * @return               Whether the two agree up to and including where they end.
- * @note Kept out of the walk deliberately. Left inline the loop carries it regardless of whether it runs, and
- *       the walk measured 4.56 cycles a byte with it there against 2.52 without - the hot path is
+ * @return               Whether the two agree up to where they end, that point included.
+ * @note Kept out of the walk deliberately. Left inline, the loop carries it whether or not it runs, and
+ *       the walk measures 4.56 cycles a byte with it there against 2.52 without. The hot path is
  *       two loads, a compare and a terminator test, and it stays that only while this is elsewhere.
  */
 static embed_bool cellul_agree_at(embed_word word_left, embed_word word_right, embed_bool end_wins)
@@ -655,14 +655,14 @@ static embed_bool cellul_agree_at(embed_word word_left, embed_word word_right, e
 }
 
 /**
- * @brief Reports whether src reaches its terminator without differing from other, case sensitively.
+ * @brief Reports whether src reaches its terminator with no difference from other, case sensitively.
  *
  * @param[in] args Bytes src and other, the extent cap, and end_wins [BORROWS].
- * @return         EMBED_TRUE when src's terminator precedes the first differing byte.
+ * @return         EMBED_TRUE when src's terminator precedes the first byte that differs.
  * @note end_wins makes a terminator in the same lane as the difference count as agreement.
- * @note Reaching cap with neither a terminator nor a difference returns end_wins.
- * @warning Both src and other must be readable for cap bytes. The last short word is loaded whole
- *          and masked after, and up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
+ * @note A walk that reaches cap with neither a terminator nor a difference returns end_wins.
+ * @warning Both src and other must be readable for cap bytes. The load of the last short word is whole
+ *          with a mask after, and the read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap in each.
  */
 EMBED_INLINE embed_bool cellul_agree_cs(const CellulCtx *args)
 {
@@ -670,15 +670,15 @@ EMBED_INLINE embed_bool cellul_agree_cs(const CellulCtx *args)
     const size_t rest = args->cap - full;
     size_t at = 0u;
 
-    // Explicit casts read both addresses as integers so one mask answers for both, and the aligned
-    // run is lifted into its own loop and not chosen inside the body - as a choice per word the
-    // compiler keeps the branch and the run costs what the unaligned one costs. The same shape took
+    // Explicit casts read both addresses as integers so one mask answers for both. The aligned run
+    // sits in its own loop and is not a choice inside the body. As a choice per word the compiler
+    // keeps the branch, and the run costs what the unaligned one costs. The same shape takes
     // memor_cmp from 6.27 cycles a byte to 2.02 on an ESP32-C6
     // Explicit cast narrows the boundary test into the embed_bool container
     const embed_bool level =
         (embed_bool)(((((uintptr_t)args->src) | ((uintptr_t)args->other)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u);
 
-    // level is fixed before the loop. A false one skips this run whole and leaves every word to
+    // level stands before the loop. A false one skips this run whole and leaves every word to
     // the unaligned loop below
     while (level && (at != full))
     {
@@ -686,10 +686,10 @@ EMBED_INLINE embed_bool cellul_agree_cs(const CellulCtx *args)
         const embed_word other_word = EMBED_CALL(word.load_al, ScrutWordCfg, .at = args->other + at);
 
         // The difference test comes first and the terminator test only runs when the two words
-        // agree. Both still run on a word that agrees, which is every word of a matching pair, and so
-        // this is not short circuiting anything - it is that the terminator test is four operations
-        // on a dependency chain and taking it off the front lets the compare issue against it.
-        // Measured 4.32 cycles a byte to 2.52 on an ESP32-S3 over two thousand bytes, which is 1.68x
+        // agree. Both still run on a word that agrees, which is every word of a pair that matches. So
+        // this is no short circuit. The terminator test is four operations on a dependency chain, and
+        // off the front it lets the compare issue against it. That takes 4.32 cycles a byte to 2.52
+        // on an ESP32-S3 over two thousand bytes, which is 1.68x
         if (src_word != other_word)
         {
             return cellul_agree_at(src_word, other_word, args->end_wins);
@@ -735,18 +735,18 @@ EMBED_INLINE embed_bool cellul_agree_cs(const CellulCtx *args)
 }
 
 /**
- * @brief Reports whether src reaches its terminator without differing from other, case folded.
+ * @brief Reports whether src reaches its terminator with no difference from other, case folded.
  *
  * @param[in] args Bytes src and other, the extent cap, and end_wins [BORROWS].
- * @return         EMBED_TRUE when src's terminator precedes the first differing byte.
+ * @return         EMBED_TRUE when src's terminator precedes the first byte that differs.
  * @note Folds the two words through lane.xor_ with ci set and tests the folded result. A
- *       terminator and a difference are settled together on the word that carried either.
- * @note Carries no aligned run: where cellul_agree_cs lifts a boundary test out and walks matched
- *       addresses through the aligned load and cellul_agree_at, every word here goes through the
- *       unaligned load and resolves in place.
- * @note Reaching cap with neither a terminator nor a difference returns end_wins.
- * @warning Both src and other must be readable for cap bytes. The last short word is loaded whole
- *          and masked after, and up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
+ *       terminator and a difference settle together on the word that carried either.
+ * @note Carries no aligned run. Where cellul_agree_cs lifts a boundary test out and walks matched
+ *       addresses through the aligned load and cellul_agree_at, every word here takes the unaligned
+ *       load. Each resolves in place.
+ * @note A walk that reaches cap with neither a terminator nor a difference returns end_wins.
+ * @warning Both src and other must be readable for cap bytes. The load of the last short word is whole
+ *          with a mask after, and the read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap in each.
  */
 EMBED_INLINE embed_bool cellul_agree_ci(const CellulCtx *args)
 {
@@ -789,10 +789,10 @@ EMBED_INLINE embed_bool cellul_agree_ci(const CellulCtx *args)
 }
 
 /**
- * @brief Reads other[needle_offset] and folds it to lower case when ci is set.
+ * @brief Reads other[needle_offset] and folds it to lower case when ci holds.
  *
  * @param[in] args Needle bytes other, the offset needle_offset, and ci [BORROWS].
- * @return         The byte, with 'A' to 'Z' mapped to 'a' to 'z' when ci is set.
+ * @return         The byte, with 'A' to 'Z' mapped to 'a' to 'z' when ci holds.
  * @warning other must be readable at needle_offset. Nothing here bounds the index, and so the caller states it.
  */
 EMBED_INLINE uint8_t cellul_ancorae_fold(const CellulCtx *args)
@@ -809,17 +809,17 @@ EMBED_INLINE uint8_t cellul_ancorae_fold(const CellulCtx *args)
 }
 
 /**
- * @brief Returns the lanes of the word read from at that match the byte filling broadcast.
+ * @brief Returns the lanes of the word read from at that match the byte that fills broadcast.
  *
- * @param[in] at        Haystack address the candidate word is read from [BORROWS].
+ * @param[in] at        Haystack address the candidate word comes from [BORROWS].
  * @param[in] broadcast The sought byte, repeated in every lane.
- * @param[in] ci        Fold case while comparing.
+ * @param[in] ci        Fold case in the compare.
  * @return              One high bit per lane that matched.
- * @note Takes its arguments directly and not a CellulCtx. lane.eq answers the same question,
- *       but it rebuilds the broadcast from a byte on every call, and the sieve's byte is fixed for
- *       the whole walk, and passing the broadcast in lets it be built once.
+ * @note Takes its arguments directly and not a CellulCtx. The entry lane.eq answers the same
+ *       question, but it rebuilds the broadcast from a byte on every call. The sieve's byte stands
+ *       for the whole walk, and a broadcast passed in needs one build.
  * @warning at must be readable for MMGR_SWAR_BYTES bytes. The load takes a whole word however few
- *          are wanted, and so the caller places at where that many remain.
+ *          the caller wants, and so the caller places at where that many remain.
  */
 EMBED_INLINE embed_word cellul_sieve_hit(const char *at, embed_word broadcast, embed_bool ci)
 {
@@ -835,10 +835,10 @@ EMBED_INLINE embed_word cellul_sieve_hit(const char *at, embed_word broadcast, e
  *
  * @param[in,out] args Needle other, its needle_len, ci, and the rows array to fill [BORROWS].
  * @return             Number of offsets written to args->rows, at most MMGR_SIEVE_ROWS.
- * @note Only the first MMGR_SWAR_BYTES of the needle are candidates, since one word is tested at a time.
- * @note Cost comes from ancorae.impensa, and so rarer bytes are preferred.
- * @warning other must be readable for needle_len bytes, of which at most MMGR_SWAR_BYTES are read, and
- *          rows must hold MMGR_SIEVE_ROWS entries. Neither is checked here.
+ * @note Only the first MMGR_SWAR_BYTES of the needle are candidates, since the test takes one word at a time.
+ * @note Cost comes from ancorae.impensa, and so rarer bytes win.
+ * @warning other must be readable for needle_len bytes, of which the read takes at most MMGR_SWAR_BYTES,
+ *          and rows must hold MMGR_SIEVE_ROWS entries. Nothing here checks either.
  */
 EMBED_INLINE size_t cellul_pick_rows(const CellulCtx *args)
 {
@@ -848,7 +848,7 @@ EMBED_INLINE size_t cellul_pick_rows(const CellulCtx *args)
     for (size_t row = 0; row < want; ++row)
     {
         size_t best = 0;
-        // 255 is the largest cost a uint8_t holds, and so it acts as the no-row-chosen sentinel and any
+        // 255 is the largest cost a uint8_t holds. So it acts as the no-row-chosen sentinel and any
         // real cost from ancorae.impensa compares below it
         uint8_t best_cost = 255;
 
@@ -857,7 +857,7 @@ EMBED_INLINE size_t cellul_pick_rows(const CellulCtx *args)
             size_t taken = 0;
 
 #if MMGR_SIEVE_ROWS > 1u
-            // Only rows 0 through row - 1 have been chosen so far, and so the scan for an offset already
+            // Only rows 0 through row - 1 hold a choice so far, and so the scan for an offset already
             // taken stops at row
             for (size_t prior = 0; prior < row; ++prior)
             {
@@ -884,22 +884,22 @@ EMBED_INLINE size_t cellul_pick_rows(const CellulCtx *args)
  *
  * @param[in] current The word at some offset.
  * @param[in] next    The byte at that offset plus MMGR_SWAR_BYTES.
- * @return            The word the load at that offset plus one would have returned.
- * @note A word load at an odd address goes through mmgr_proxim_word_t, which carries EMBED_ALIGN(1),
- *       and neither Xtensa nor RISC-V has an unaligned word load - the compiler assembles one out of
- *       MMGR_SWAR_BYTES byte loads and shifts. Deriving it costs one byte load, one shift and an or.
+ * @return            The word a load at that offset plus one would return.
+ * @note A word load at an odd address goes through mmgr_proxim_word_t, which carries EMBED_ALIGN(1).
+ *       Neither Xtensa nor RISC-V has an unaligned word load, so the compiler assembles one out of
+ *       MMGR_SWAR_BYTES byte loads and shifts. The derivation costs one byte load, one shift and an or.
  * @note Branches on MMGR_HW_BIG_ENDIAN because this is lane order and not wire order: which end of the
  *       word byte zero sits at. verbum_scrutor decides the same question the same way. The endian
- *       module answers a different one - what order a value is written in - and does not apply.
+ *       module answers a different one, the order of the bytes of a value on the wire, and does not apply.
  */
 #if !MMGR_HW_FAST_UNALIGNED
 EMBED_INLINE embed_word cellul_word_next(embed_word current, uint8_t next)
 {
 #if MMGR_HW_BIG_ENDIAN
-    // Explicit casts hold the shifted word and the byte entering the low lane at embed_word width
+    // Explicit casts hold the shifted word and the byte that enters the low lane at embed_word width
     return (embed_word)((current << 8u) | (embed_word)next);
 #else
-    // Explicit casts hold the shifted word and the byte entering the high lane at embed_word width
+    // Explicit casts hold the shifted word and the byte that enters the high lane at embed_word width
     return (embed_word)((current >> 8u) | ((embed_word)next << (EMBED_WORD_BITS - 8u)));
 #endif
 }
@@ -912,7 +912,7 @@ EMBED_INLINE embed_word cellul_word_next(embed_word current, uint8_t next)
  * @param[in] needle Needle, of length nlen [BORROWS].
  * @param[in] nlen   Needle length, 1 or 2.
  * @return           Whether the first byte matches, and for a two-byte needle so does the one after it.
- * @note The nlen test is fixed for the whole call and is there only to skip the second compare.
+ * @note The nlen test stands for the whole call and is there only to skip the second compare.
  */
 EMBED_INLINE embed_bool cellul_short_hit(const char *at, const char *needle, size_t nlen)
 {
@@ -931,19 +931,19 @@ EMBED_INLINE embed_bool cellul_short_hit(const char *at, const char *needle, siz
  * @param[in] read_cap Bytes readable at hay.
  * @param[in] starts   Start positions to consider, one past the last.
  * @return             Address of the match, or NULL when none precedes the terminator [BORROWS].
- * @note One broadcast per needle byte settles every start in a word at once: a lane matches when its
+ * @note One broadcast per needle byte settles every start in a word at once. A lane matches when its
  *       byte equals the first and the byte after it equals the second. There is no anchor to choose
- *       and nothing to verify afterwards, the entirety of of what the sieve does.
+ *       and nothing to verify afterwards, the entirety of what the sieve does.
  * @note Self-contained and not folded into the sieve walk, tail and all. The two walks answer to
- *       different bounds - this one reads nlen - 1 bytes past its word, the sieve reads a whole
- *       verify span - and every previous attempt to share their structure cost more than it saved.
- * @warning Lanes at or past the terminator are dropped through mask.before. A match that begins
- *          after the run ends is not reported.
+ *       different bounds: this one reads nlen - 1 bytes past its word, the sieve reads a whole
+ *       verify span. A shared structure costs more than it saves.
+ * @warning mask.before drops lanes at or past the terminator. A match that begins after the run
+ *          ends does not report.
  */
 EMBED_INLINE const char *cellul_find_short(const char *hay, const char *needle, size_t nlen, size_t read_cap,
                                            size_t starts)
 {
-    // Explicit casts read the needle bytes as unsigned before they are repeated into every lane
+    // Explicit casts read the needle bytes as unsigned before the repeat into every lane
     const embed_word bcast_first = MMGR_SWAR_ONES * (embed_word)(uint8_t)needle[0];
     const embed_word bcast_second = (nlen == 2u) ? (MMGR_SWAR_ONES * (embed_word)(uint8_t)needle[1]) : 0u;
 
@@ -954,7 +954,7 @@ EMBED_INLINE const char *cellul_find_short(const char *hay, const char *needle, 
     const size_t reach = (safe > starts) ? starts : safe;
 
     // Bytes to the first word boundary, and the walk below reads through the aligned load. See
-    // cellul_head_bytes. Normally none, and the starts it covers are taken one at a time first.
+    // cellul_head_bytes. Normally none, and the starts it covers go one at a time first.
     const size_t lead = cellul_head_bytes(hay, reach);
     const size_t word_count = (reach - lead) / MMGR_SWAR_BYTES;
 
@@ -980,12 +980,12 @@ EMBED_INLINE const char *cellul_find_short(const char *hay, const char *needle, 
         if (nlen == 2u)
         {
             // Where the hardware loads a word from any address in one instruction, that is cheaper
-            // than deriving it. Where it does not, the load is a dozen instructions and deriving it
+            // than a derivation. Where it does not, the load is a dozen instructions and a derivation
             // from the word already in hand costs three.
 #if MMGR_HW_FAST_UNALIGNED
             const embed_word loaded_next = EMBED_CALL(word.load, ScrutWordCfg, .at = hay + at + 1u);
 #else
-            // Explicit cast reads the byte past this word as unsigned, matching the lane it fills
+            // Explicit cast reads the byte past this word as unsigned, as the lane it fills does
             const embed_word loaded_next = cellul_word_next(loaded, (uint8_t)hay[at + MMGR_SWAR_BYTES]);
 #endif
             starts_here &= EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = loaded_next ^ bcast_second);
@@ -1026,12 +1026,12 @@ typedef struct
     const char *needle;                /**< Needle, of length nlen [BORROWS]. */
     size_t nlen;                       /**< Needle length. */
     size_t take;                       /**< Needle bytes nword holds, at most one word. */
-    embed_word nword;                  /**< The first take needle bytes, folded where ci is set. */
+    embed_word nword;                  /**< The first take needle bytes, folded where ci holds. */
     embed_word nmask;                  /**< Keeps the lanes of the first take bytes. */
     size_t rows[MMGR_SIEVE_ROWS];      /**< Needle offsets the sieve tests. */
     embed_word bcast[MMGR_SIEVE_ROWS]; /**< The byte at each of those offsets, repeated in every lane. */
     size_t nrows;                      /**< Entries in rows and bcast. */
-    embed_bool ci;                     /**< Fold case while matching. */
+    embed_bool ci;                     /**< Fold case in the match. */
 } CellulSieve;
 
 /**
@@ -1045,9 +1045,9 @@ EMBED_INLINE embed_bool cellul_sieve_verify(const CellulSieve *sieve, const char
 {
     const embed_word candidate_word = EMBED_CALL(word.load, ScrutWordCfg, .at = start);
 
-    // A plain xor answers whenever there is no case to fold - either the caller did not ask
-    // for it, or the candidate word carries no upper case - and the folding xor is reached
-    // only when there is
+    // A plain xor answers whenever there is no case to fold. Either the caller did not ask
+    // for it, or the candidate word carries no upper case. The fold xor runs only when
+    // there is
     const embed_word diff =
         ((!sieve->ci || (EMBED_CALL(lane.any_upper, ScrutLaneCfg, .word = candidate_word) == 0))
              ? (candidate_word ^ sieve->nword)
@@ -1118,14 +1118,14 @@ EMBED_INLINE embed_bool cellul_sieve_word(const CellulSieve *sieve, const char *
  * @param[in] at     Haystack address [BORROWS].
  * @param[in] needle Needle, of length nlen [BORROWS].
  * @param[in] nlen   Needle length.
- * @param[in] ci     Fold case while matching.
+ * @param[in] ci     Fold case in the match.
  * @return           Whether the whole needle matches before the terminator.
  */
 EMBED_INLINE embed_bool cellul_matched_at(const char *at, const char *needle, size_t nlen, embed_bool ci)
 {
     for (size_t matched = 0u; matched < nlen; ++matched)
     {
-        // Explicit casts read both bytes as unsigned, matching CellulCtx::byte_left and ::byte_right
+        // Explicit casts read both bytes as unsigned, as CellulCtx::byte_left and ::byte_right do
         const uint8_t here = (uint8_t)at[matched];
         const uint8_t want = (uint8_t)needle[matched];
 
@@ -1134,9 +1134,9 @@ EMBED_INLINE embed_bool cellul_matched_at(const char *at, const char *needle, si
             return EMBED_FALSE;
         }
         // The case-sensitive step is a byte compare once the terminator is out of the way, and so it
-        // is written as one. This walk covers the starts the word loop could not reach, which on
-        // a short haystack is most of them, and reaching cellul_step_byte_cs through a CellulCtx
-        // for every byte of every start is what made find cost twice libc at eight bytes.
+        // reads as one. This walk covers the starts the word loop could not reach, which on a short
+        // haystack is most of them. A CellulCtx call for every byte of every start would make find
+        // cost twice libc at eight bytes.
         if (ci)
         {
             const CellulCtx pair = {.byte_left = want, .byte_right = here, .end_wins = EMBED_FALSE};
@@ -1158,18 +1158,18 @@ EMBED_INLINE embed_bool cellul_matched_at(const char *at, const char *needle, si
  * @brief Finds the first occurrence of the needle inside the haystack.
  *
  * @param[in] args Haystack src with cap, and needle other with other_cap [BORROWS].
- * @param[in] ci   Fold case while matching.
+ * @param[in] ci   Fold case in the match.
  * @return         Address of the match, or NULL when there is none [BORROWS].
  * @note An empty needle returns the haystack start. A needle longer than cap returns NULL.
- * @note Candidate words are sieved on the cheapest needle offsets, then verified in full.
- * @note Word scanning covers only the starts that stay in bounds. The rest are walked one byte at a
+ * @note The sieve tests candidate words on the cheapest needle offsets, then verifies them in full.
+ * @note The word scan covers only the starts that stay in bounds. The rest go one byte at a
  *       time.
  * @note args->needle_len when the caller knows the needle's length, and only otherwise a measure of it. A
- *       needle is nearly always a literal, and so its length is settled before the build and measuring it
- *       on every call is work the caller already did.
- * @warning src must be readable for cap bytes and other for other_cap bytes. The needle is loaded a
- *          whole word at a time and masked after, and so up to MMGR_SWAR_BYTES - 1 bytes past other_cap
- *          are read. The haystack walk holds itself inside cap.
+ *       needle is nearly always a literal, and so its length stands before the build. A measure on
+ *       every call is work the caller already did.
+ * @warning src must be readable for cap bytes and other for other_cap bytes. The needle loads a
+ *          whole word at a time with a mask after, and so the read reaches up to MMGR_SWAR_BYTES - 1
+ *          bytes past other_cap. The haystack walk holds itself inside cap.
  */
 EMBED_INLINE const char *cellul_find_core(const CellulCtx *args, embed_bool ci)
 {
@@ -1192,8 +1192,8 @@ EMBED_INLINE const char *cellul_find_core(const CellulCtx *args, embed_bool ci)
     const size_t take = (nlen > MMGR_SWAR_BYTES) ? MMGR_SWAR_BYTES : nlen;
     const size_t starts = read_cap - nlen + 1u;
 
-    // A needle this short is settled by a mask chain, with no anchor to choose and nothing to verify.
-    // The sieve below earns its prologue by finding a rare byte in a long needle and proving the rest
+    // A mask chain settles a needle this short, with no anchor to choose and nothing to verify.
+    // The sieve below earns its prologue when it finds a rare byte in a long needle and proves the rest
     // once. Over one or two bytes there is no rare byte to find and no rest to prove, and the
     // prologue is most of the call.
     if ((nlen <= 2u) && !ci && (read_cap <= MMGR_FIND_CHAIN_MAX))
@@ -1231,7 +1231,7 @@ EMBED_INLINE const char *cellul_find_core(const CellulCtx *args, embed_bool ci)
     const size_t word_count = safe / MMGR_SWAR_BYTES;
 
     // The sieve's bytes broadcast once, ahead of the walk. They depend only on the needle, which
-    // does not move, and rebuilding a broadcast is a multiply that would otherwise land on every
+    // does not move. A broadcast built again is a multiply that would otherwise land on every
     // haystack word.
     // Explicit casts read the needle byte as unsigned, then widen it into the lane it fills
     sieve.bcast[0] = MMGR_SWAR_ONES * (embed_word)(uint8_t)needle[sieve.rows[0]];
@@ -1269,12 +1269,12 @@ EMBED_INLINE const char *cellul_find_core(const CellulCtx *args, embed_bool ci)
 }
 
 /**
- * @brief Copies src into dst and terminates it, writing at most cap bytes in total.
+ * @brief Copies src into dst and terminates it, and writes at most cap bytes in total.
  *
  * @param[in,out] args Source src, destination dst, and the destination extent cap [BORROWS].
- * @return             Bytes copied and not counting the terminator.
+ * @return             Bytes copied, the terminator not counted.
  * @note A cap of 0 copies nothing and writes no terminator.
- * @note The source is measured against cap minus one, leaving room for the terminator.
+ * @note The measure of the source runs against cap minus one, which leaves room for the terminator.
  * @warning dst must be writable for cap bytes, and src readable until its terminator or cap minus
  *          one bytes, whichever comes first.
  */
@@ -1288,10 +1288,10 @@ EMBED_INLINE size_t cellul_copy(const CellulCtx *args)
     const size_t limit = args->cap - 1u;
     size_t at = 0u;
 
-    // One walk and not two. Measuring with cellul_len and then copying with proxim.read reads
-    // every byte twice. A word that holds no terminator is one this can store as it goes. Measured
-    // 1.46x to 1.66x on an ESP32-S3, which also takes it past the strncpy it is compared with.
-    // Explicit casts read both addresses as integers so one mask answers for both: the store is as
+    // One walk and not two. A measure with cellul_len and then a copy with proxim.read reads
+    // every byte twice. A word that holds no terminator is one this can store as it goes. That is
+    // 1.46x to 1.66x on an ESP32-S3, which also takes it past the strncpy it compares with.
+    // Explicit casts read both addresses as integers so one mask answers for both. The store is as
     // wide as the load, and so the word run needs the two on a boundary together
     if (((((uintptr_t)args->dst) | ((uintptr_t)args->src)) & (uintptr_t)(MMGR_SWAR_BYTES - 1u)) == 0u)
     {
@@ -1312,8 +1312,8 @@ EMBED_INLINE size_t cellul_copy(const CellulCtx *args)
         }
     }
 
-    // Whatever the word run did not take, the tail of a run that met a terminator, the
-    // bytes below a boundary the two did not share, or the whole string when they never did
+    // Whatever the word run did not take. That is the tail of a run that met a terminator, or the
+    // bytes below a boundary the two did not share. Or the whole string when they never did
     while ((at != limit) && (args->src[at] != '\0'))
     {
         args->dst[at] = args->src[at];
@@ -1328,9 +1328,9 @@ EMBED_INLINE size_t cellul_copy(const CellulCtx *args)
  * @brief Reads an optionally signed decimal integer from src.
  *
  * @param[in,out] args Text src, and the optional end target [BORROWS].
- * @return             The value, negated when a minus sign was read.
- * @note Leading whitespace is skipped, then one optional '+' or '-'.
- * @note When end is not NULL it is set past the last digit, or back to src when no digit was read.
+ * @return             The value, negated after a minus sign.
+ * @note The read skips leading whitespace, then one optional '+' or '-'.
+ * @note When end is not NULL it points past the last digit, or back to src when the read found no digit.
  * @warning The digit accumulator is embed_word wide and wraps on a longer run.
  * @warning src carries no bound. The read runs until the first byte that is not part of the number,
  *          and the caller owes one inside readable storage. A terminator is the usual one.
@@ -1354,7 +1354,7 @@ EMBED_INLINE embed_iword cellul_to_long(const CellulCtx *args)
     embed_word value = 0;
     while (cellul_is_digit(*cursor))
     {
-        // Explicit casts hold the running value and the digit at embed_word width
+        // Explicit casts hold the current value and the digit at embed_word width
         // The cursor++ belongs on a line of its own. An increment folded into this expression is the
         // side effect the standard bans, and the cursor advance does not depend on the arithmetic
         value = (embed_word)(value * 10u) + (embed_word)(*cursor++ - '0');
@@ -1379,8 +1379,8 @@ EMBED_INLINE embed_iword cellul_to_long(const CellulCtx *args)
  *
  * @param[in,out] args Text src, and the optional end target [BORROWS].
  * @return             The accumulated value.
- * @note Leading whitespace is skipped, then one optional '+'. A '-' is not accepted and stops the read.
- * @note When end is not NULL it is set past the last digit, or back to src when no digit was read.
+ * @note The read skips leading whitespace, then one optional '+'. A '-' stops the read.
+ * @note When end is not NULL it points past the last digit, or back to src when the read found no digit.
  * @warning The digit accumulator is embed_word wide and wraps on a longer run.
  * @warning src carries no bound. The read runs until the first byte that is not part of the number,
  *          and the caller owes one inside readable storage. A terminator is the usual one.
@@ -1402,7 +1402,7 @@ EMBED_INLINE embed_word cellul_to_ulong(const CellulCtx *args)
     embed_word value = 0;
     while (cellul_is_digit(*cursor))
     {
-        // Explicit casts hold the running value and the digit at embed_word width
+        // Explicit casts hold the current value and the digit at embed_word width
         // The cursor++ belongs on a line of its own. An increment folded into this expression is the
         // side effect the standard bans, and the cursor advance does not depend on the arithmetic
         value = (embed_word)(value * 10u) + (embed_word)(*cursor++ - '0');
@@ -1416,12 +1416,12 @@ EMBED_INLINE embed_word cellul_to_ulong(const CellulCtx *args)
 }
 
 /**
- * @brief Reads a signed decimal exponent, advancing the cursor past it.
+ * @brief Reads a signed decimal exponent, and advances the cursor past it.
  *
  * @param[in,out] args Cursor cur and the exponent target exp [BORROWS].
- * @note The cursor sits on the 'e' or 'E', which is consumed first.
- * @note When no digit follows, the cursor is put back where it started and exp is left alone.
- * @note Digits beyond MMGR_MUTO_EXP_LIMIT are consumed but stop changing the value.
+ * @note The cursor sits on the 'e' or 'E', which it reads first.
+ * @note When no digit follows, the cursor goes back where it started and exp stays as it is.
+ * @note The read goes past digits beyond MMGR_MUTO_EXP_LIMIT, and the value stands.
  * @warning The walk carries no bound. It stops at the first byte that is not a digit, which the
  *          caller owes inside readable storage.
  */
@@ -1434,8 +1434,8 @@ EMBED_INLINE void cellul_expo(const CellulCtx *args)
     embed_bool eneg = EMBED_FALSE;
     if ((**args->cur == '+') || (**args->cur == '-'))
     {
-        // The increment belongs on a line of its own, as in cellul_to_long and cellul_to_ulong:
-        // folded through the double indirection and into an assignment, it is the side effect the
+        // The increment belongs on a line of its own, as in cellul_to_long and cellul_to_ulong.
+        // Folded through the double indirection and into an assignment, it is the side effect the
         // standard bans
         eneg = (*(*args->cur)++ == '-');
     }
@@ -1493,8 +1493,8 @@ EMBED_INLINE const char *cellul_fraction(const char *at, embed_u64 *mant, embed_
  * @return             The value assembled by muto.scale from the mantissa and exponent.
  * @note Accepts leading whitespace, one optional sign, digits, one optional point, then an optional exponent.
  * @note Digits that no longer fit the mantissa advance the exponent instead, and a non-zero one sets the sticky rest.
- * @note An exponent is read only when at least one digit was seen before it.
- * @note When end is not NULL it is set past the number, or back to src when no digit was read.
+ * @note The read takes an exponent only after at least one digit.
+ * @note When end is not NULL it points past the number, or back to src when the read found no digit.
  * @warning src carries no bound. The read runs until the first byte that is not part of the number,
  *          and the caller owes one inside readable storage. A terminator is the usual one.
  */
@@ -1544,8 +1544,8 @@ EMBED_INLINE double cellul_to_double(const CellulCtx *args)
         cellul_expo(&(CellulCtx){.cur = &cursor, .exp = &ex});
     }
 
-    // Explicit cast holds the combined exponent in embed_iword, ex from the suffix and over and drop from the mantissa
-    // The sign counts only where a digit was read: a sign with no number after it reads as a plain zero, as strtod
+    // Explicit cast holds the combined exponent in embed_iword, ex from the suffix and over and drop from the mantissa.
+    // The sign counts only where the read found a digit. A sign with no number after it reads as a plain zero, as strtod
     // reads it
     const double val = EMBED_CALL(muto.scale, TransformoCfg, .mant = &mant, .ex = (embed_iword)(ex + over - drop),
                                   .rest = lost, .neg = (embed_bool)(neg && any));
@@ -1562,7 +1562,7 @@ EMBED_INLINE double cellul_to_double(const CellulCtx *args)
  *
  * @param[in,out] args Text src, and the optional end target [BORROWS].
  * @return             The value from cellul_to_double, narrowed to float.
- * @note Rounding happens once, on the narrowing. The parse itself is done at double width.
+ * @note The round happens once, at the narrow to float. The parse itself runs at double width.
  * @warning src carries no bound, exactly as cellul_to_double describes.
  */
 EMBED_INLINE float cellul_to_float(const CellulCtx *args)
@@ -1576,8 +1576,8 @@ EMBED_INLINE float cellul_to_float(const CellulCtx *args)
  *
  * @param[in] args Bytes src and other, the extent cap, and ci [BORROWS].
  * @return         Offset of the first difference, or cap when the two agree.
- * @warning Both src and other must be readable for cap bytes. The last short word is loaded whole
- *          and masked after, and up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
+ * @warning Both src and other must be readable for cap bytes. The load of the last short word is whole
+ *          with a mask after, and the read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap in each.
  */
 EMBED_INLINE size_t cellul_diff(const CellulCtx *args)
 {
@@ -1590,8 +1590,8 @@ EMBED_INLINE size_t cellul_diff(const CellulCtx *args)
  * @param[in] args Bytes src and other, the extent cap, ci and end_wins [BORROWS].
  * @return         EMBED_TRUE when src's terminator precedes the first difference.
  * @note The caller sets end_wins. It is clear for eq, and so both must end together, and set for starts.
- * @warning Both src and other must be readable for cap bytes. The last short word is loaded whole
- *          and masked after, and up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
+ * @warning Both src and other must be readable for cap bytes. The load of the last short word is whole
+ *          with a mask after, and the read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap in each.
  */
 EMBED_INLINE embed_bool cellul_eq(const CellulCtx *args)
 {
@@ -1604,8 +1604,8 @@ EMBED_INLINE embed_bool cellul_eq(const CellulCtx *args)
  * @param[in] args Bytes src and other, the extent cap, ci and end_wins [BORROWS].
  * @return         EMBED_TRUE when src's terminator precedes the first difference.
  * @note starts swaps the operands and sets end_wins in its entry line, and so the walk is the same one.
- * @warning Both src and other must be readable for cap bytes. The last short word is loaded whole
- *          and masked after, and up to MMGR_SWAR_BYTES - 1 bytes past cap are read from each.
+ * @warning Both src and other must be readable for cap bytes. The load of the last short word is whole
+ *          with a mask after, and the read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap in each.
  */
 EMBED_INLINE embed_bool cellul_starts(const CellulCtx *args)
 {
@@ -1613,13 +1613,13 @@ EMBED_INLINE embed_bool cellul_starts(const CellulCtx *args)
 }
 
 /**
- * @brief Searches src for other, folding case on args->ci.
+ * @brief Searches src for other, and folds case on args->ci.
  *
  * @param[in] args Haystack src with cap, needle other with other_cap, and ci [BORROWS].
  * @return         Address of the match, or NULL when there is none [BORROWS].
  * @note Plain static, not EMBED_INLINE, and it is the only backend here that is. EMBED_INLINE carries
- *       always_inline, and cellul_has calls this one, and so forcing it would emit the whole sieve search
- *       a second time inside has. Measured at 2880 bytes duplicated at -O2.
+ *       always_inline, and cellul_has calls this one, and so a forced inline would emit the whole sieve
+ *       search a second time inside has. That is 2880 bytes twice over at -O2.
  * @warning src must be readable for cap bytes and other for other_cap bytes, with the needle read
  *          past other_cap exactly as cellul_find_core describes.
  */
@@ -1646,7 +1646,7 @@ EMBED_INLINE embed_bool cellul_has(const CellulCtx *args)
  *
  * @param[in] args Bytes src and the offset at [BORROWS].
  * @return         EMBED_TRUE for one of the six whitespace characters.
- * @warning src must be readable at at. cap is not consulted here.
+ * @warning src must be readable at at. cap plays no part here.
  */
 EMBED_INLINE embed_bool cellul_ws(const CellulCtx *args)
 {
@@ -1658,7 +1658,7 @@ EMBED_INLINE embed_bool cellul_ws(const CellulCtx *args)
  *
  * @param[in] args Bytes src and the offset at [BORROWS].
  * @return         EMBED_TRUE for '0' through '9'.
- * @warning src must be readable at at. cap is not consulted here.
+ * @warning src must be readable at at. cap plays no part here.
  */
 EMBED_INLINE embed_bool cellul_digit(const CellulCtx *args)
 {
@@ -1690,9 +1690,9 @@ EMBED_INLINE embed_iword cellul_step_byte(const CellulCtx *args)
 /**
  * @brief Returns a copy of the argument struct.
  *
- * @note Hand-rolled and not an entry line, as mmgr_anular_init is: it returns a CatenaFinitaCfg
- *       instead of forwarding one, and so there is no argument pack for EMBED_ENTRY to build.
- * @note The parentheses around the name stop a like-named macro from mmgr_string_shim.h expanding here.
+ * @note Hand-rolled and not an entry line, as mmgr_anular_init is. It returns a CatenaFinitaCfg
+ *       instead of a forward of one, and so there is no argument pack for EMBED_ENTRY to build.
+ * @note The parentheses around the name stop the expansion of a like-named macro from mmgr_string_shim.h here.
  * @note Documented at the declaration in cellularum_laboro.h.
  */
 CatenaFinitaCfg(mmgr_cellul_init)(const CatenaFinitaCfg *args)
@@ -1701,7 +1701,7 @@ CatenaFinitaCfg(mmgr_cellul_init)(const CatenaFinitaCfg *args)
 }
 
 /**
- * @brief Binds the string calls to the entry shape, keeping the parenthesized name.
+ * @brief Binds the string calls to the entry shape, and keeps the parenthesized name.
  *
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_cellul_ and cellul_ prefixes, which the two share.
@@ -1746,10 +1746,10 @@ CatenaFinitaCfg(mmgr_cellul_init)(const CatenaFinitaCfg *args)
 /**
  * @brief The public surface, one line per entry point.
  *
- * @note Each is documented at its declaration in cellularum_laboro.h.
+ * @note The declaration of each in cellularum_laboro.h describes it.
  * @note The fields each line forwards are the ones that entry reads; EMBED_CALL zeroes the rest.
- * @note eq and starts reach the same backend. starts swaps src and other and sets end_wins, and so it is
- *       other that is measured for its terminator and the prefix may end early.
+ * @note eq and starts reach the same backend. starts swaps src and other and sets end_wins. So the
+ *       measure for a terminator runs on other, and the prefix may end early.
  */
 CELLUL_ENTRY(size_t, len, .src = args->src + args->at, .cap = args->cap - args->at)
 CELLUL_ENTRY(size_t, diff, .src = args->src, .other = args->other, .cap = args->cap, .ci = args->ci)

@@ -6,10 +6,10 @@
  */
 /**
  * @file locus_carcerum_stress.c
- * @brief Threads hammering one cellblock through LocusCarcerum's entries, each on an owner of its own, with the
- *        cellblock's storage and its state each laid between pages that fault on any touch: a write that leaves its
- *        cell or its word faults at once instead of landing on a neighbor. Every payload is filled with its holder's
- *        mark and read back before its give, and the cellblock is read idle once every thread has ended.
+ * @brief Threads that hammer one cellblock through LocusCarcerum's entries, each on an owner of its own. The
+ *        cellblock's storage and its state each lie between pages that fault on any touch. A write that leaves its
+ *        cell or its word faults at once and does not land on a neighbor. Every payload holds its holder's mark
+ *        and reads back before its give, and the cellblock reads idle once every thread ends.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

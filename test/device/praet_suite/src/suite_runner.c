@@ -6,14 +6,14 @@
  */
 /**
  * @file suite_runner.c
- * @brief Pulls in the generated Unity runner, whose main is renamed to praet_suite_main.
+ * @brief Pulls in the generated Unity runner, whose main takes the name praet_suite_main.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note The runner is generated from the case names in the suite source. A case added there is
- *       registered here without anything being written by hand. Regenerate it with harness.py build.
- * @warning A stale runner registers the cases that existed when it was written and the rest never
- *          run, while the suite still reports green. harness.py remote regenerates before it sends
- *          for exactly that reason, and a device build has to be given a current one.
+ * @note The runner comes from the case names in the suite source. A case added there registers
+ *       here with nothing written by hand. Regenerate it with harness.py build.
+ * @warning A stale runner registers only the cases from its own time and the rest never
+ *          run, while the suite still reports green. For exactly that reason harness.py remote
+ *          regenerates before it sends, and a device build has to receive a current one.
  */
 #include "../../../integration/test_praet_correctness/unity_runner.c"

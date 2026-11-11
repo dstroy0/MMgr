@@ -6,19 +6,19 @@
  */
 /**
  * @file praet_iudex.h
- * @brief Read after every knob has reported, and the single place a configuration stops the build.
+ * @brief Read after every knob reported, and the single place a configuration stops the build.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Included last, after praet_praefinitum.h and praet_horologiorum_custos.h have both had their say. Each of them
- *       gives every unset knob a default, a warning naming it, and a flag. This reads the flags.
+ * @note Included last, after praet_praefinitum.h and praet_horologiorum_custos.h both had their say. Each of them
+ *       gives every unset knob a default, a warning that names it, and a flag. This reads the flags.
  * @note Why the stop is here and not at each knob: an #error halts its translation unit where it
- *       stands. A build missing four knobs would report the first, get it fixed, then report the
- *       second - four rounds to learn four facts that were all knowable on the first. Warning at each
- *       knob and stopping once at the end hands the whole list over together.
+ *       stands. A build with four knobs unset would report the first, get a fix, then report the
+ *       second. That is four rounds to learn four facts that were all knowable on the first. A warning
+ *       at each knob and one stop at the end hands the whole list over together.
  * @note There is no list in the message below, and there cannot be. The preprocessor has no way to
  *       assemble one. The warnings above are the list, one line each, and this says to go read them.
- * @warning Skipped entirely where MMGR_ACCEPT_DEFAULTS is defined. The warnings still stand and are
+ * @warning Out entirely where MMGR_ACCEPT_DEFAULTS exists. The warnings still stand and are
  *          still the report; what the define changes is whether the build continues past it.
  */
 #ifndef MMGR_PRAET_IUDEX_H

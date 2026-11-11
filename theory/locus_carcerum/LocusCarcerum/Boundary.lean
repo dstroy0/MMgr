@@ -1,24 +1,24 @@
 /-!
 # LocusCarcerum, the boundary a give reads
 
-One tier's cells by place: the cell at `top` stands at the tier's boundary, every cell from `top` up to `size` is
-live, and `free k` says whether the cell at `k` is given back. A writer's trim walks up from `top` one header at a
-time, stops at the first busy cell or at `size`, and only then stores the place it stopped at as the new `top`.
+One tier's cells by place. The cell at `top` stands at the tier's boundary, every cell from `top` up to `size` is
+live, and `free k` says whether the cell at `k` went back. A writer's trim walks up from `top` one header at a
+time and stops at the first busy cell or at `size`. Only then does it store the place it stopped at as the new `top`.
 
-A give stores its cell's header free, then reads the closed bit and `top`, and goes on to the fetch-or of
-`Trim.lean` where the closed bit is set or its cell stands at `top`. The open takes the trim bit once, walks, and
+A give stores its cell's header free, then reads the closed bit and `top`. It goes on to the fetch-or of
+`Trim.lean` where the closed bit holds or its cell stands at `top`. The open takes the trim bit once, walks, and
 clears the closed bit whatever trim bit stands. The theorems: a cellblock with no trim owed and every context at
-rest has no free cell at its top, and the next holder's take walks from `top` where a trim stands owed.
+rest has no free cell at its top. The next holder's take walks from `top` where a trim stands owed.
 
-The model is sequentially consistent. In the C a full fence stands between a give's store and its reads, and
-between a writer's fetch on the closed word and the headers it reads, and each read sees every store before it.
+The model is sequentially consistent. In the C a full fence stands between a give's store and its reads. One
+also stands between a writer's fetch on the closed word and the headers it reads. Each read sees every store before it.
 The tier modelled is the temporary one; the persistent tier is the same with the walk running down.
 -/
 
 namespace LocusCarcerum.Boundary
 
-/-- Where a context stands: at rest, a give between its store and its read, a give bound for its fetch-or, or a
-writer: holding the bit, walking at a place, stopped at a place, or done with its walk. -/
+/-- Where a context stands. At rest, a give between its store and its read, or a give bound for its fetch-or. Or a
+writer: with the bit in hand, on its walk at a place, stopped at a place, or done with its walk. -/
 inductive Place where
   | idle
   | stored (c : Nat)
@@ -60,7 +60,7 @@ inductive Step : State → State → Prop where
   /-- A give stores its live cell's header free. -/
   | store {s : State} (i c : Nat) (h : s.place i = .idle) (hl : s.top ≤ c) (hc : c < size) (hb : s.free c = false) :
       Step s { s with free := marked s.free c true, place := moved s.place i (.stored c) }
-  /-- The give reads the closed bit and `top` after its store, and goes to its fetch-or where the bit is set or its
+  /-- The give reads the closed bit and `top` after its store, and goes to its fetch-or where the bit holds or its
   cell stands at `top`. -/
   | read {s : State} (i c : Nat) (h : s.place i = .stored c) :
       Step s { s with place := moved s.place i (if s.held || decide (s.top = c) then .fetching else .idle) }
@@ -70,7 +70,7 @@ inductive Step : State → State → Prop where
   /-- A writer's shut: the closed bit taken where it was clear. -/
   | acquire {s : State} (i : Nat) (h : s.place i = .idle) (hc : s.held = false) :
       Step s { s with held := true, place := moved s.place i .holding }
-  /-- The open's first fetch-and, once a pass: the trim bit taken, and the walk begun at `top` where it was set. -/
+  /-- The open's first fetch-and, once a pass: the trim bit taken, and the walk begun at `top` where the bit held. -/
   | take {s : State} (i : Nat) (h : s.place i = .holding) :
       Step s { s with owed := false, place := moved s.place i (if s.owed then .walking s.top else .published) }
   /-- The walk reads a free header and steps past it. -/
@@ -86,12 +86,12 @@ inductive Step : State → State → Prop where
   | release {s : State} (i : Nat) (h : s.place i = .published) :
       Step s { s with held := false, place := moved s.place i .idle }
   /-- A take through a pass: a busy cell laid below `top`, which moves down to it. A pass begun before the closed bit
-  is set can still bump until the writer's drain, and the drain ends before any walk begins; a bump lays a busy
+  holds can still bump until the writer's drain, and the drain ends before any walk begins. A bump lays a busy
   cell at `top` and leaves no free one there, and the model lets bumps run while the cellblock is open. -/
   | bump {s : State} (i : Nat) (h : s.place i = .idle) (hc : s.held = false) (ht : 0 < s.top) :
       Step s { s with top := s.top - 1, free := marked s.free (s.top - 1) false }
 
-/-- The cellblock as it is laid out: open, nothing owed, every cell taken, every context at rest. -/
+/-- The cellblock as it starts: open, nothing owed, every cell taken, every context at rest. -/
 def start : State := ⟨false, false, size, fun _ => false, fun _ => .idle⟩
 
 /-- The states the steps reach from the start. -/
@@ -99,7 +99,7 @@ inductive Reach : State → Prop where
   | start : Reach (start size)
   | step {s s' : State} : Reach s → Step size s s' → Reach s'
 
-/-- The invariant. A writer means the bit is held; one writer at a time. A walk stands
+/-- The invariant. A writer means someone holds the bit; one writer at a time. A walk stands
 at or above `top` with every cell it passed free. A stop at a live cell that is free again since has a give of it
 in flight or its trim owed. A free cell at `top` has its trim owed, a give in flight, or a writer at its walk. -/
 structure Inv (s : State) : Prop where
@@ -128,12 +128,12 @@ theorem inv_start (size : Nat) : Inv size (start size) where
   stoppedCovered := by intro i k h; simp [start] at h
   topCovered := by intro h; simp [start] at h
 
-/-- A context other than the stepping one keeps its place. -/
+/-- A context other than the one that steps keeps its place. -/
 theorem kept {place : Nat → Place} {i j : Nat} {p q : Place} (hj : moved place i p j = q) (hji : j ≠ i) :
     place j = q := by
   rwa [moved_other _ _ _ _ hji] at hj
 
-/-- Where the stepping context's new place is no writer, every writer after the step was one before. -/
+/-- Where the new place of the context that steps is no writer, every writer after the step was one before. -/
 theorem writer_before {place : Nat → Place} {i j : Nat} {p : Place} (hp : ¬ Writer p)
     (hj : Writer (moved place i p j)) : j ≠ i ∧ Writer (place j) := by
   by_cases hji : j = i

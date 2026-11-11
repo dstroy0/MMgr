@@ -7,14 +7,14 @@
  */
 /**
  * @file test_locus_carcerum_shared.c
- * @brief One cellblock reached from many threads at once: no cell handed to two, every count exact,
- *        and the cellblock whole once every thread has given back what it took.
+ * @brief One cellblock reached from many threads at once. No cell handed to two, every count exact,
+ *        and the cellblock whole once every thread gave back what it took.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-10-29
  *
- * @note Each thread fills every cell it holds with its own mark and reads the mark back before giving
- *       the cell up. A cell handed to two threads at once carries the other thread's mark on that
- *       read, and the count of such reads is what the cases hold at zero.
+ * @note Each thread fills every cell it holds with its own mark and reads the mark back before it
+ *       gives the cell up. A cell handed to two threads at once carries the other thread's mark on
+ *       that read. The count of such reads is what the cases hold at zero.
  * @note The suite's own counts are atomic words too, added to by every thread and read once they end.
  */
 #include "locus_carcerum/locus_carcerum.h"
@@ -90,7 +90,7 @@ static unsigned int contend_index_taken(void)
 }
 
 // Each thread fills every persistent cell it holds with its own mark and reads the mark back before
-// giving the cell up
+// it gives the cell up
 static void contend_with(const CellOwner *owner, unsigned int index)
 {
     const uint8_t mark = (uint8_t)(index + 1u);
@@ -134,9 +134,9 @@ static void contend_own_owner(void)
     contend_with(s_own[index], index);
 }
 
-// Each thread takes temporary cells for owner, fills and reads them back as the persistent case does,
-// and where giving is set gives each back one at a time through the release that reads the tier off
-// the address; otherwise the cells stay, counted to their owner, for the case to read
+// Each thread takes temporary cells for owner, fills and reads them back as the persistent case does.
+// Where giving holds it gives each back one at a time through the release that reads the
+// tier off the address. Otherwise the cells stay, counted to their owner, for the case to read
 static void contend_temporary_with(const CellOwner *owner, embed_bool giving)
 {
     const unsigned int index = contend_index_taken();
@@ -229,8 +229,8 @@ void test_threads_taking_and_giving_at_once_leave_the_series_cellularum_whole(vo
 
 void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(void)
 {
-    // a take refused once the gap is spent is the pool's size, and the case holds what the tier promises:
-    // no cell handed to two, and the tier whole once every cell is given back
+    // a take refused once the gap runs out is the pool's size. The case holds what the tier promises:
+    // no cell handed to two, and the tier whole once every cell goes back
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary, MMGR_HOST_THREADS_MOST));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
                                      "a temporary cell was handed to two threads at once");
@@ -269,8 +269,8 @@ void test_an_owner_for_each_thread_is_counted_back_to_nothing(void)
 
 void test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing(void)
 {
-    // every temporary take counts to the owner it names, and the single give counts the cell off the
-    // owner its footer names whatever owner the give is handed
+    // every temporary take counts to the owner it names. The single give counts the cell off the
+    // owner its footer names whatever owner the give carries
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_shared_owner, MMGR_HOST_THREADS_MOST));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
                                      "a temporary cell was handed to two threads at once");
@@ -282,7 +282,7 @@ void test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_not
 
 void test_temporary_cells_kept_across_threads_count_to_their_owner(void)
 {
-    // the threads keep every cell they are handed, and the owner counts each payload the tier holds
+    // the threads keep every cell they receive, and the owner counts each payload the tier holds
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_kept, MMGR_HOST_THREADS_MOST));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
                                      "a temporary cell was handed to two threads at once");

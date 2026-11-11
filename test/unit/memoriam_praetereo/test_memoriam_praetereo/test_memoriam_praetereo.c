@@ -23,11 +23,11 @@
 static int s_completion_count;
 
 /**
- * @brief Counts one completion, standing in for an application's completion handler.
+ * @brief Counts one completion, in place of an application's completion handler.
  *
  * @param[in] event Completion the port layer reports [BORROWS].
  * @param[in] user  Pointer registered alongside this callback [BORROWS].
- * @note Never runs in this suite. The refusing hardware defaults accept no transfer, and so nothing
+ * @note Never runs in this suite. The hardware defaults refuse and accept no transfer, and so nothing
  *       reaches a completion, as test_an_unported_build_reports_no_completion asserts.
  */
 static void count_one_completion(const mmgr_praet_event *event, void *user)
@@ -60,7 +60,7 @@ ParsMemoriaeInternae(s_transfer_pool, 64);
 /**
  * @brief Binds channel zero of that context to the pool.
  *
- * @note A literal, because the channel is pasted into the binding's name.
+ * @note A literal, because the channel goes into the binding's name.
  */
 PraetChannel(s_schedule, 0, s_transfer_pool);
 
@@ -97,8 +97,8 @@ void test_dma_header_is_self_contained(void)
 /**
  * @brief Checks that every praet member points at a function.
  *
- * @note A null member would fault at the first call, long after the declaration, and so the table is
- *       read before any case calls through it.
+ * @note A null member would fault at the first call, long after the declaration. So the check
+ *       reads the table before any case calls through it.
  */
 void test_every_praet_entry_is_reachable(void)
 {
@@ -111,8 +111,8 @@ void test_every_praet_entry_is_reachable(void)
 /**
  * @brief Checks that no two praet members share one function.
  *
- * @note The header states each member calls the matching mmgr_praet_ function one to one, which is
- *       where this table differs from memor. Two members sharing a pointer would satisfy every
+ * @note The header states each member calls the mmgr_praet_ function of the same name one to one, which is
+ *       where this table differs from memor. Two members with one pointer would satisfy every
  *       return-value case here and still be wrong.
  */
 void test_no_two_praet_entries_share_a_function(void)
@@ -124,10 +124,10 @@ void test_no_two_praet_entries_share_a_function(void)
 }
 
 /**
- * @brief Checks that opening a channel fails while the hardware hook keeps its default.
+ * @brief Checks that a channel open fails while the hardware hook keeps its default.
  *
  * @note A port layer replaces mmgr_praet_hw_open through weak linkage. This suite links no port, and so
- *       the refusing default stands and an unported build fails visibly instead of appearing to work.
+ *       the default that refuses stands and an unported build fails visibly and does not appear to work.
  */
 void test_an_unported_build_refuses_to_open_a_channel(void)
 {
@@ -137,7 +137,7 @@ void test_an_unported_build_refuses_to_open_a_channel(void)
 }
 
 /**
- * @brief Checks that submitting a transfer fails while the hardware hook keeps its default.
+ * @brief Checks that a transfer submit fails while the hardware hook keeps its default.
  *
  * @note Submitted against a channel that never opened, the state an unported build is
  *       always in.
@@ -152,9 +152,9 @@ void test_an_unported_build_refuses_a_transfer(void)
 }
 
 /**
- * @brief Checks that a transfer of no bytes is refused the same way as any other.
+ * @brief Checks that a transfer of no bytes fails the same way as any other.
  *
- * @note The refusing default reads neither the buffer nor the count. An empty transfer takes the
+ * @note The default that refuses reads neither the buffer nor the count. An empty transfer takes the
  *       same path as a full one and must answer the same.
  */
 void test_an_empty_transfer_is_refused_as_well(void)
@@ -165,9 +165,9 @@ void test_an_empty_transfer_is_refused_as_well(void)
 }
 
 /**
- * @brief Checks that closing a channel that never opened does nothing and returns.
+ * @brief Checks that a close of a channel that never opened does nothing and returns.
  *
- * @note The default mmgr_praet_hw_close does nothing, and so this case fails by faulting, with no
+ * @note The default mmgr_praet_hw_close does nothing, and so this case fails through a fault, with no
  *       assertion to report it.
  */
 void test_closing_a_channel_that_never_opened_returns(void)
@@ -177,7 +177,7 @@ void test_closing_a_channel_that_never_opened_returns(void)
 }
 
 /**
- * @brief Checks that polling an unported build does nothing and returns.
+ * @brief Checks that a poll of an unported build does nothing and returns.
  *
  * @note mmgr_praet_poll forwards to the hook with no assertion in between, and so this reaches the
  *       default hook exactly as written here.
@@ -207,7 +207,7 @@ void test_an_unported_build_reports_no_completion(void)
  * @brief Checks that the progress hook's default reports no movement, and a running channel stalls.
  *
  * @note praet_hw_progress keeps its weak default here, as the four mmgr_praet_hw_ hooks do. It
- *       answers zero, and any channel nothing moves is marked stalled once its keepalive window passes,
+ *       answers zero, and any channel nothing moves reads stalled once its keepalive window passes,
  *       with its position where the submit left it.
  * @note Reached through praet_ordo_poll, which calls the hook from the unit that defines the default.
  *       That is the call a build with no port makes.

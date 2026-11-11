@@ -86,8 +86,8 @@ int main(void)
   run_test(test_a_raw_append_copies_its_bytes_unchanged, "test_a_raw_append_copies_its_bytes_unchanged", 312);
   run_test(test_a_length_prefixed_read_points_at_the_run_and_advances_past_both, "test_a_length_prefixed_read_points_at_the_run_and_advances_past_both", 358);
   run_test(test_a_run_reaching_past_the_end_leaves_the_cursor_where_it_started, "test_a_run_reaching_past_the_end_leaves_the_cursor_where_it_started", 411);
-  run_test(test_a_fixed_field_right_aligns_its_integer_and_zero_fills_ahead, "test_a_fixed_field_right_aligns_its_integer_and_zero_fills_ahead", 453);
-  run_test(test_an_integer_too_wide_for_the_field_is_refused_without_writing, "test_an_integer_too_wide_for_the_field_is_refused_without_writing", 498);
+  run_test(test_a_fixed_field_right_aligns_its_integer_and_zero_fills_ahead, "test_a_fixed_field_right_aligns_its_integer_and_zero_fills_ahead", 452);
+  run_test(test_an_integer_too_wide_for_the_field_is_refused_without_writing, "test_an_integer_too_wide_for_the_field_is_refused_without_writing", 497);
 
   return UNITY_END();
 }

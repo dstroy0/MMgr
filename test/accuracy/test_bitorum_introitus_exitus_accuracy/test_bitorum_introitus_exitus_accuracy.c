@@ -38,13 +38,13 @@
 /**
  * @brief Expands to 512u, the bytes MMGR_ACCURACY_BITOR_MAX_BITS pack into.
  *
- * @note Every buffer here carries a guard byte past this. A write that ran long is caught at the
- *       byte after the one it was allowed.
+ * @note Every buffer here carries a guard byte past this. A write that ran long fails at the
+ *       byte after the last one it may touch.
  */
 #define MMGR_ACCURACY_BITOR_MAX_BYTES (MMGR_ACCURACY_BITOR_MAX_BITS / 8u)
 
 /**
- * @brief Expands to 0xA5, the byte every destination is filled with before a write.
+ * @brief Expands to 0xA5, the byte every destination holds before a write.
  *
  * @note Neither 0x00 nor 0xFF. A byte the writer left alone is then distinguishable from one it
  *       wrote, and that leaves the untouched tail checkable.
@@ -52,7 +52,7 @@
 #define MMGR_ACCURACY_BITOR_GUARD 0xA5u
 
 /**
- * @brief A stream of single bits, in the order they were appended.
+ * @brief A stream of single bits, in append order.
  *
  * @note One array element per bit is the point. Nothing here packs until the comparison, and so the
  *       reference never forms a byte and cannot share a byte-boundary defect with the module.
@@ -67,18 +67,18 @@ typedef struct
  * @brief Appends the low width bits of a value to a bit stream, least significant first.
  *
  * @param[in,out] stream Stream to append to [BORROWS].
- * @param[in]     value  Value whose low bits are appended.
+ * @param[in]     value  Value whose low bits go on the stream.
  * @param[in]     width  How many of its bits to append, 0 through 64.
  * @note This is the whole reference for what a put contributes. The header states least significant
  *       first, and that ordering is the loop below, alone.
- * @note A width of 0 appends nothing, as a put of no bits is meant to do.
+ * @note A width of 0 appends nothing, as a put of no bits has to.
  * @warning The caller keeps the total under MMGR_ACCURACY_BITOR_MAX_BITS. Nothing here bounds it.
  */
 static void accuracy_stream_append(AccuracyBitStream *stream, uint64_t value, unsigned width)
 {
     for (unsigned position = 0u; position < width; position++)
     {
-        // Explicit cast narrows the extracted bit to the uint8_t element holding it. The mask keeps
+        // Explicit cast narrows the extracted bit to the uint8_t element that holds it. The mask keeps
         // one bit, as the element carries
         stream->bit[stream->count] = (uint8_t)((value >> position) & 1u);
         stream->count++;
@@ -86,15 +86,15 @@ static void accuracy_stream_append(AccuracyBitStream *stream, uint64_t value, un
 }
 
 /**
- * @brief Packs a bit stream into bytes, the first bit appended landing at the low bit of byte zero.
+ * @brief Packs a bit stream into bytes, with the first bit at the low bit of byte zero.
  *
  * @param[in]  stream Stream to pack [BORROWS].
  * @param[out] packed Destination for the packed bytes [BORROWS].
- * @return            Bytes written, counting a partial last byte as one.
+ * @return            Bytes written, with a partial last byte as one.
  * @note The layout is the single one the header describes: bit n of the stream is bit n modulo 8 of byte n
- *       over 8. A partial last byte is padded with zeros above its bits, as align writes.
- * @note Called after every stream is complete. Packing at the end keeps the reference from
- *       carrying the residue the module carries.
+ *       over 8. A partial last byte carries zeros above its bits, as align writes.
+ * @note Called after every stream is complete. A pack at the end keeps the residue the module
+ *       carries out of the reference.
  * @warning packed must be writable for the byte count this returns.
  */
 static size_t accuracy_stream_pack(const AccuracyBitStream *stream, uint8_t *packed)
@@ -114,12 +114,12 @@ static size_t accuracy_stream_pack(const AccuracyBitStream *stream, uint8_t *pac
 }
 
 /**
- * @brief Returns the whole bytes a stream has filled, leaving any partial byte out.
+ * @brief Returns the whole bytes a stream filled, and leaves any partial byte out.
  *
  * @param[in] stream Stream to measure [BORROWS].
  * @return           Bits appended, over eight.
- * @note This is what bytes_written is expected to hold before align runs. put writes whole bytes only,
- *       and the bits past the last whole byte are the residue.
+ * @note This is what bytes_written has to hold before align runs. The put entry writes whole bytes
+ *       only, and the bits past the last whole byte are the residue.
  */
 static size_t accuracy_stream_whole_bytes(const AccuracyBitStream *stream)
 {
@@ -132,10 +132,10 @@ static size_t accuracy_stream_whole_bytes(const AccuracyBitStream *stream)
  * @param[in,out] state Generator state [BORROWS].
  * @return              The advanced state.
  * @note A fixed recurrence. A failure reproduces on the next run with the same values in the same
- *       order, and nothing here is seeded from the clock.
+ *       order, and nothing here reads the clock.
  * @note The multiplier and increment are the ones Knuth gives for a 64-bit linear congruential
- *       sequence. The values only have to be varied and repeatable, and no statistical property of
- *       them is relied on.
+ *       sequence. The values only have to vary and repeat, and nothing rests on a statistical
+ *       property of them.
  */
 static uint64_t accuracy_next_pattern(uint64_t *state)
 {
@@ -165,8 +165,8 @@ static void accuracy_fill_guard(uint8_t *buffer, size_t bytes)
  * @param[in] produced Bytes the module wrote [BORROWS].
  * @param[in] expected Bytes the reference packed [BORROWS].
  * @param[in] bytes    How many to compare.
- * @param[in] label    Text naming the case, printed when a byte disagrees.
- * @note Reports the first byte that disagrees along with both values, since a bit order defect moves
+ * @param[in] label    Text that names the case, printed when a byte disagrees.
+ * @note Reports the first byte that disagrees along with both values. A bit order defect moves
  *       every byte and a single mismatch is enough to name it.
  */
 static void accuracy_expect_bytes(const uint8_t *produced, const uint8_t *expected, size_t bytes, const char *label)
@@ -202,15 +202,15 @@ void tearDown(void)
 }
 
 /**
- * @brief Checks the packing this suite rests on against bytes worked out by hand.
+ * @brief Checks the pack this suite rests on against bytes worked out by hand.
  *
  * @note Exists to catch a defect in the reference as itself. Without this case a broken
  *       accuracy_stream_append or accuracy_stream_pack would surface as a writer mismatch, and the
- *       module would be blamed for it.
+ *       module would look wrong.
  * @note Three appends of 3 and 2 bits give the bits 1, 0, 1, 1, 1 in order. Packed least significant
  *       first that is 1 + 4 + 8 + 16, which is 0x1D.
  * @note A twelve bit value spans two bytes. 0xABC packs as 0xBC then 0x0A, with the high nibble of
- *       the second byte left zero, and those two bytes are the padding align is meant to produce.
+ *       the second byte left zero. Those two bytes are the fill align has to produce.
  */
 void test_the_exact_packing_this_suite_relies_on_is_itself_right(void)
 {
@@ -235,13 +235,13 @@ void test_the_exact_packing_this_suite_relies_on_is_itself_right(void)
 /**
  * @brief Checks a single put of every width from 1 to 64 against the packed reference.
  *
- * @note Each width is written twice, once from an all ones value and once from a pattern whose bits
+ * @note Each width goes out twice, once from an all ones value and once from a pattern whose bits
  *       differ along its length. An all ones value passes a writer that reversed a byte, and the
  *       pattern is what catches that.
- * @note The value is masked to the width before the reference sees it, since put is documented to
- *       take the low bits and the bits above the width are not part of what was written.
- * @note bytes_written is checked before align and again after, and so the whole byte count and the
- *       residue are both accounted for.
+ * @note A mask cuts the value to the width before the reference sees it. The header says put takes
+ *       the low bits, and the bits above the width are not part of the output.
+ * @note The check reads bytes_written before align and again after. So the whole byte count and the
+ *       residue both count.
  */
 void test_a_single_put_of_every_width_lands_where_the_reference_puts_it(void)
 {
@@ -254,8 +254,8 @@ void test_a_single_put_of_every_width_lands_where_the_reference_puts_it(void)
     {
         for (unsigned width = 1u; width <= 64u; width++)
         {
-            // A width of 64 would shift a 64-bit value by its full width, which C leaves undefined,
-            // and so the all ones mask is written out instead of computed
+            // A width of 64 would shift a 64-bit value by its full width, which C leaves undefined.
+            // So the all ones mask is a constant and not a computation
             const uint64_t mask = (width == 64u) ? UINT64_MAX : ((UINT64_C(1) << width) - 1u);
             const uint64_t value = source_of[source_index] & mask;
             AccuracyBitStream stream = {{0u}, 0u};
@@ -292,12 +292,12 @@ void test_a_single_put_of_every_width_lands_where_the_reference_puts_it(void)
 /**
  * @brief Checks long runs of puts at widths that leave a residue against the packed reference.
  *
- * @note This is the case the file exists for. A bit that crosses a byte boundary is merged by the
- *       module out of a residue and a fresh value, and that merge is the single one piece of arithmetic
+ * @note This is the case the file exists for. The module joins a bit that crosses a byte boundary
+ *       out of a residue and a fresh value. That join is the single one piece of arithmetic
  *       no other case here exercises.
  * @note The widths run 1 through 17 and repeat, which never settles on a multiple of eight. A run of
  *       widths that all divide eight keeps the residue empty and the merge unused.
- * @note Sixty four appends a run and thirty two runs, and so the merge is exercised at every residue
+ * @note Sixty four appends a run and thirty two runs. So the join runs at every residue
  *       length from 0 to 7 many times over, at values that differ every time.
  */
 void test_a_run_of_puts_across_byte_boundaries_lands_where_the_reference_puts_it(void)
@@ -343,13 +343,13 @@ void test_a_run_of_puts_across_byte_boundaries_lands_where_the_reference_puts_it
 }
 
 /**
- * @brief Checks that the bits read back out of the buffer are the values that were written.
+ * @brief Checks that the bits read back out of the buffer are the values the case wrote.
  *
- * @note The cases above compare packed bytes. This one goes the other way and takes the buffer apart
- *       a bit at a time to rebuild each value, as a reader of this format would do.
- * @note A pair of defects that cancel in the packing comparison, such as a reversal applied on the
- *       way in and undone by the reference, still fails here, because the values are the ones the
- *       case handed the writer and nothing derived them again.
+ * @note The cases above compare packed bytes. This one goes the other way. It takes the buffer apart
+ *       a bit at a time to build each value again, as a reader of this format would do.
+ * @note A pair of defects that cancel in the pack comparison still fails here. One such pair is a
+ *       reversal on the way in that the reference undoes. The values are the ones the case handed
+ *       the writer and nothing derived them again.
  */
 void test_the_bits_read_back_out_rebuild_the_values_that_were_written(void)
 {
@@ -381,8 +381,8 @@ void test_the_bits_read_back_out_rebuild_the_values_that_were_written(void)
 
         for (unsigned bit = 0u; bit < width_of[index]; bit++)
         {
-            // Explicit cast widens the extracted bit to the uint64_t the value is rebuilt in, and
-            // the shift puts it back at the position it was written from
+            // Explicit cast widens the extracted bit to the uint64_t that holds the value. The
+            // shift puts it back at its position
             rebuilt |= (uint64_t)((produced[position / 8u] >> (position % 8u)) & 1u) << bit;
             position++;
         }
@@ -395,11 +395,11 @@ void test_the_bits_read_back_out_rebuild_the_values_that_were_written(void)
 /**
  * @brief Checks that align pads above the residue with zeros and writes nothing on a second call.
  *
- * @note The padding is the single one part of the output no caller supplied, and a writer that padded with
+ * @note The fill is the single one part of the output no caller supplied. A writer that filled with
  *       ones produces a byte a reader cannot tell from data.
- * @note Every residue length from 1 to 7 is covered by writing that many one bits. All ones below
- *       the padding makes a padding bit that leaked through visible as a set bit above them.
- * @note The second align is checked to move nothing, since a stream that called it twice would
+ * @note Every residue length from 1 to 7 comes from a write of that many one bits. All ones below
+ *       the fill makes a fill bit that leaked through visible as a set bit above them.
+ * @note The second align has to move nothing, since a stream that called it twice would
  *       otherwise gain a byte of zeros.
  */
 void test_align_pads_the_last_byte_with_zeros_above_the_bits_written(void)
@@ -407,7 +407,7 @@ void test_align_pads_the_last_byte_with_zeros_above_the_bits_written(void)
     for (unsigned held = 1u; held < 8u; held++)
     {
         const uint64_t all_ones = (UINT64_C(1) << held) - 1u;
-        // The bits written are all ones, and so the byte has exactly the low pending bits set and the rest
+        // The bits written are all ones, and so the byte has exactly the low residue bits set and the rest
         // clear. Explicit cast narrows that to the uint8_t the buffer holds
         const uint8_t expected = (uint8_t)all_ones;
         uint8_t produced[MMGR_ACCURACY_BITOR_MAX_BYTES];
@@ -437,10 +437,10 @@ void test_align_pads_the_last_byte_with_zeros_above_the_bits_written(void)
 /**
  * @brief Checks that a put of no bits moves nothing.
  *
- * @note A width of 0 is the boundary of the append loop, and a writer that treated it as one bit
+ * @note A width of 0 is the boundary of the append loop. A writer that treated it as one bit
  *       would shift every value after it by a position. Every later byte then differs, and that makes
  *       this the cheapest case here and one of the more destructive defects.
- * @note Checked from an empty writer and again from one holding a residue, since the two take
+ * @note Checked from an empty writer and again from one with a residue, since the two take
  *       different paths through the byte count.
  */
 void test_a_put_of_no_bits_moves_nothing(void)

@@ -7,18 +7,18 @@
  */
 /**
  * @file test_locus_carcerum_movable.c
- * @brief Cells named by a const identity and reached only through the guard: what the calls answer, what a
- *        move and the mover do, and no write lost while another thread moves the cells written to.
+ * @brief Cells named by a const identity and reached only through the guard. What the calls answer, what a
+ *        move and the mover do, and no write lost while another thread moves the cells under write.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-10-31
  *
- * @note Each writing thread owns one cell, fills it with a count it raises every round and reads the
+ * @note Each writer thread owns one cell, fills it with a count it raises every round and reads the
  *       count back on the next round. A write that landed in the copy a move left behind reads back
- *       as the count before it, and the number of such reads is what the threaded case holds at zero.
+ *       as the count before it. The number of such reads is what the threaded case holds at zero.
  * @note The mover's cases run mmgr_movable_run on the test's own thread, with a thread_wait that plays a
- *       script and answers EMBED_FALSE at its end, and each reading lands where the case says it does.
- * @note The misnamed hook is the case's way into a pass: a movable release naming the wrong owner reaches it
- *       with the release's lane claimed, and the hook stands there as long as the case says.
+ *       script and answers EMBED_FALSE at its end. Each reading lands where the case says it does.
+ * @note The misnamed hook is the case's way into a pass. A movable release that names the wrong owner reaches
+ *       it with the release's lane claimed. The hook stands there as long as the case says.
  */
 #include "locus_carcerum/locus_carcerum.h"
 
@@ -65,7 +65,7 @@ static embed_atomic_usize s_lost = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_refused = EMBED_ATOMIC_INIT(0u);
 
 // What the scripted thread_wait plays: the ticks it answers EMBED_TRUE to, what it runs on one of them, and every
-// wait it was asked for
+// wait it heard
 static unsigned int s_ticks_left;
 static unsigned int s_tick;
 static unsigned int s_turn_on_tick;
@@ -126,8 +126,8 @@ static size_t script_id(void)
     return s_thread_id;
 }
 
-// Told of a give naming the wrong owner: from inside the release's pass for a movable release. On the case's say-so
-// it stands there until told to go, and reads whether the free cell below has been taken by a move meanwhile
+// Told of a give that names the wrong owner, from inside the release's pass for a movable release. On the case's
+// say-so it stands there until told to go, and reads whether a move took the free cell below meanwhile
 static void *s_hook_watched;
 static embed_atomic_usize s_moved_under_pass = EMBED_ATOMIC_INIT(0u);
 
@@ -784,7 +784,7 @@ void test_the_mover_sorts_over_the_threshold_at_a_quiet_time_and_stops(void)
     const CarcerMovableEntry *const cell = fragmented();
     const size_t gap = plain.moving.buf_available();
 
-    // The readings, the one lock's wait, and one more to see the sort is not run again
+    // The readings, the one lock's wait, and one more to see the sort does not run again
     s_ticks_left = MMGR_MOVABLE_QUIET_READINGS + 2u;
     mmgr_movable_run(&plain_moving_ctx);
     TEST_ASSERT_TRUE_MESSAGE(s_moving_told >= 1u, "cells moved");
@@ -821,7 +821,7 @@ static void pressure_raised(void)
 void test_a_pass_between_readings_is_not_a_quiet_reading(void)
 {
     (void)fragmented();
-    // The pass lands ahead of the reading that would have been the last quiet one, and the count starts over
+    // The pass lands ahead of the reading that would otherwise be the last quiet one, and the count starts over
     s_turn = pressure_raised;
     s_turn_on_tick = MMGR_MOVABLE_QUIET_READINGS;
     s_ticks_left = (2u * MMGR_MOVABLE_QUIET_READINGS) - 1u;
@@ -834,8 +834,8 @@ void test_a_pass_between_readings_is_not_a_quiet_reading(void)
     TEST_ASSERT_EQUAL_UINT_MESSAGE(1u, s_moving_told, "the quiet readings reached, the sort runs");
 }
 
-// The two threads of the backoff's case: the first passes through the cellblock until the sort has backed off,
-// the second runs the mover, whose sort finds a pass between its moves and backs off
+// The two threads of the backoff's case. The first passes through the cellblock until the sort backs off.
+// The second runs the mover, whose sort finds a pass between its moves and backs off
 static void backoff_each(void)
 {
     if (embed_atomic_u32_fetch_add(&s_next_index, 1u) == 0u)
@@ -862,8 +862,8 @@ void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_w
     plain.moving.persistent_buf_release(low, s_mover);
     plain.moving.persistent_buf_release(middle, s_mover);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
-    // The other thread's passes keep the readings from quiet until they stop; the sort starts once they do, and
-    // the passes that land before the thread reads the sort's end are what it backs off from
+    // The other thread's passes keep the readings from quiet until they stop, and the sort starts once they do.
+    // The passes that land before the thread reads the sort's end are what it backs off from
     TEST_ASSERT_TRUE(mmgr_host_threads_run(backoff_each, 2u));
     TEST_ASSERT_EQUAL_UINT_MESSAGE(s_moving_told, s_moving_ended, "each sort told at both ends");
     TEST_ASSERT_TRUE_MESSAGE((s_moving_told == 0u) || (s_most_wait >= MMGR_MOVABLE_READ_MS),
@@ -874,8 +874,8 @@ void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_w
                                      "the cellblock stands open once the mover ends");
 }
 
-// The thread that releases a movable cell with the wrong owner and stands in its pass until the mover has told of a
-// sort, and the thread that runs the mover: the sort's move waits for the pass to end
+// The thread that releases a movable cell with the wrong owner and stands in its pass until the mover tells of a
+// sort. The thread that runs the mover: the sort's move waits for the pass to end
 static const CarcerMovableEntry *s_occupied_cell;
 
 static void occupied_each(void)
@@ -893,7 +893,7 @@ static void occupied_each(void)
     mmgr_movable_run(&single_narrow_ctx);
 }
 
-// Told of a sort's start: the pass standing in the hook may go, and the move waits for it
+// Told of a sort's start: the pass that stands in the hook may go, and the move waits for it
 static void occupied_moving(embed_bool is_moving)
 {
     script_moving(is_moving);
@@ -981,8 +981,8 @@ void test_with_no_option_a_take_keeps_to_its_own_tier(void)
     TEST_ASSERT_NOT_NULL_MESSAGE(unassigned.bare.persistent_buf_alloc(128u, s_mover), "the tier's own take fits");
 }
 
-// The two threads of the closed word's case: the first closes the cellblock as a writer does and stands until a
-// take has set the word's sleeper flag or answered, then opens it and wakes; the second takes
+// The two threads of the closed word's case. The first closes the cellblock as a writer does and stands until a
+// take sets the word's sleeper flag or answers. Then it opens the cellblock and wakes the sleeper. The second takes
 static embed_atomic_usize s_bit_held = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_bit_answered = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_bit_slept = EMBED_ATOMIC_INIT(0u);
@@ -1090,7 +1090,7 @@ static void crowd_written(void)
     (void)embed_atomic_usize_fetch_add(&s_writers_done, 1u);
 }
 
-// The first thread moves cells until every writer has finished, the others write
+// The first thread moves cells until the last writer stops, the others write
 static void crowd_each(void)
 {
     if (embed_atomic_u32_fetch_add(&s_next_index, 1u) != 0u)
@@ -1123,7 +1123,7 @@ void test_no_write_is_lost_while_another_thread_moves_the_cells(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_mover), "every cell is counted back");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&crowded_crowd_ctx.in_use),
                                      "by the cellblock too");
-    // a give at the end while a move had the cellblock closed left its cell free in the tier: one give at the end with
+    // a give at the end while a move had the cellblock closed left its cell free in the tier. One give at the end with
     // no writer about trims every free cell below it
     crowded.crowd.persistent_buf_release(crowded.crowd.persistent_buf_alloc(16u, s_mover), s_mover);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(CROWD_BYTES, crowded.crowd.buf_available(), "and the cellblock stands whole");

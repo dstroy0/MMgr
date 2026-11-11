@@ -1,10 +1,10 @@
 name: Proofs
 
-# The checks the suite does not run: the fuzz harnesses, the Lean proofs, CBMC and the machine arm on each proof
-# harness, and GenMC on each thread client. test/harness.py runs each one, with the flags it keeps. A flag that
+# The checks the suite does not run. The fuzz harnesses, the Lean proofs, CBMC and the machine arm on each proof
+# harness, and GenMC on each thread client. The harness test/harness.py runs each one, with the flags it keeps. A flag that
 # this file also writes is a second copy of that flag.
 #
-# A hosted runner has 16 GB of memory. prove --hosted does not run a harness whose bound needs more, and the run
+# A hosted runner has 16 GB of memory. The prove --hosted command does not run a harness whose bound needs more, and the run
 # names each harness that it does not run.
 
 on:

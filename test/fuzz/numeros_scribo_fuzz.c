@@ -6,11 +6,11 @@
  */
 /**
  * @file numeros_scribo_fuzz.c
- * @brief A libFuzzer harness over the spec writer: any spec of literals and fields with any values, against the
- *        same text written field by field through the verba writer each kind names, with its default width where
- *        none is given; a value missing, a kind that differs or a value left over answering 0 with the text before
- *        the write left whole; the appends against the same write after the text already there; and emit against
- *        the values written with their own widths.
+ * @brief A libFuzzer harness over the spec writer. Any spec of literals and fields with any values runs against
+ *        the same text written field by field through the verba writer each kind names. The default width applies
+ *        where none comes. A value absent, a kind that differs or a value left over answers 0 with the text before
+ *        the write left whole. The appends run against the same write after the text already there, and emit
+ *        against the values written with their own widths.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

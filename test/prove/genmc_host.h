@@ -6,22 +6,22 @@
  */
 /**
  * @file genmc_host.h
- * @brief The host a GenMC client runs on: no processor pause, a clock that stands still, and the address wait and
+ * @brief The host a GenMC client runs on. No processor pause, a clock that stands still, and the address wait and
  *        wake as theory/locus_carcerum/LocusCarcerum/Futex.lean models them.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
  *
  * @note Included first in a client, before any MMgr or embedded_types header, and once.
  * @note The wait is the model of Futex.lean, step for step. It reads the count of wakes, then the word, and returns
- *       where the low 32 bits of the word moved. A timed wait returns at once. A wait with no end returns at once
- *       on one branch, the spurious return, and on the other waits until the count moves past the one it read.
+ *       where the low 32 bits of the word moved. A timed wait returns at once, and a wait with no end returns at
+ *       once on one branch, the spurious return. On the other it waits until the count moves past the one it read.
  *       Futex.lean proves the model reaches every state the futex contract reaches and no other. A blocked
  *       execution is a sleep a real waiter can stay in forever: a lost wake.
  * @note The compare reads 32 bits, the bits the Linux futex compares. Futex.lean proves a wait that compares the
  *       whole word, as WaitOnAddress and the 64-bit compare-and-wait do, reaches no state the 32-bit wait does
  *       not. The one model holds every host.
- * @note A wake adds one to the count, and every wait the count moves past ends: a wake that ends every sleep, as
- *       the host's wakes do. One count serves every word, a spurious wake the contract allows.
+ * @note A wake adds one to the count, and every wait the count moves past ends. That is a wake that ends every
+ *       sleep, as the host's wakes do. One count serves every word, a spurious wake the contract allows.
  */
 #ifndef MMGR_TEST_GENMC_HOST_H
 #define MMGR_TEST_GENMC_HOST_H

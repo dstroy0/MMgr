@@ -6,10 +6,10 @@
  */
 /**
  * @file octetus_introitus_exitus_fuzz.c
- * @brief A libFuzzer harness over the octet stream: appends of a byte, a big endian value and a run on a span of
- *        any capacity against a model that stores nothing past the cap and latches the overflow, then the bytes
- *        written read back through take_be and rd_str against the same model, and mpint_fixed against a field
- *        filled by hand.
+ * @brief A libFuzzer harness over the octet stream. Appends of a byte, a big endian value and a run on a span of
+ *        any capacity run against a model. The model stores nothing past the cap and latches the overflow. Then the
+ *        bytes written read back through take_be and rd_str against the same model, and mpint_fixed runs against
+ *        a field filled by hand.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

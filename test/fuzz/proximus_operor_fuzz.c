@@ -6,9 +6,9 @@
  */
 /**
  * @file proximus_operor_fuzz.c
- * @brief A libFuzzer harness over the near loads and stores: every width at every offset, aligned where the entry
- *        asks it, each against memcpy in the target's own order, the bytes around each store checked untouched,
- *        and the aligning read against memcpy at every offset and length.
+ * @brief A libFuzzer harness over the near loads and stores. Every width runs at every offset, aligned where the
+ *        entry asks it, each against memcpy in the target's own order. The bytes around each store stay untouched,
+ *        and the read with its target on a boundary runs against memcpy at every offset and length.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

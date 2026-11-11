@@ -930,7 +930,7 @@ static void bench_seat(BenchWide *w, uint64_t mant, int32_t e2, uint32_t dropped
     bench_norm(w);
 }
 
-// muto_to_u64's tie test as it stands: round up on a half only when something is left below it or
+// muto_to_u64's tie test as it stands. Round up on a half only when something remains below it or
 // the low bit says so, with above exclusive-ored in. That is ties to even at above 0.
 static uint64_t bench_to_u64_even(const BenchWide *w, uint32_t above)
 {
@@ -1647,7 +1647,7 @@ static BenchFixedParts bench_fixed_parts(double value)
     return parts;
 }
 
-// What the shipped entry produces, as the report is checked against.
+// What the shipped entry produces, which the report checks against.
 static embed_u64 bench_fixed_frac(BenchFixedParts parts, uint8_t decimals)
 {
     embed_u64 rem = parts.rem;
@@ -1655,7 +1655,7 @@ static embed_u64 bench_fixed_frac(BenchFixedParts parts, uint8_t decimals)
     return EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &rem, .e2 = parts.e2, .ex = (embed_iword)decimals);
 }
 
-// The local copy of the scale, rounded by whichever of the two tie rules is asked for. The library
+// The local copy of the scale, rounded by whichever of the two tie rules the row names. The library
 // entry is not on this path, and so both rules stay measurable whichever one the module carries.
 static uint64_t bench_local_frac(BenchFixedParts parts, uint8_t decimals, embed_word above, int take_tie_up)
 {
@@ -1682,9 +1682,9 @@ static BenchFixedParts g_tie_half;
 static BenchFixedParts g_tie_eighth;
 static BenchFixedParts g_tie_pi;
 
-// The cost rows read every operand through these, and so neither arm can be folded to a constant and
-// both pay the same load. The only difference left between the arms is how `above` is arrived at,
-// the change being measured.
+// The cost rows read every operand through these, and so neither arm can fold to a constant and
+// both pay the same load. The only difference left between the arms is how `above` comes about,
+// the change under measure.
 static volatile uint64_t g_tie_rem;
 static volatile int32_t g_tie_e2;
 static volatile uint8_t g_tie_dec;

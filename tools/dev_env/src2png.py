@@ -1,4 +1,4 @@
-"""Render source files to numbered PNG pages, for surveying at image density.
+"""Render source files to numbered PNG pages, for a survey at image density.
 
     src2png.py <file> <out_stem> [lines_per_page] [pt] [start] [end]
     src2png.py <dir> <dest> [kb_per_page] [pt]
@@ -44,7 +44,7 @@ def by_lines(lines, lines_per_page):
 
 
 def by_bytes(lines, kb_per_page):
-    """Chunks holding at most kb_per_page kilobytes, split only between lines."""
+    """Chunks of at most kb_per_page kilobytes, split only between lines."""
     limit = kb_per_page * 1024
     p0 = 0
     used = 0

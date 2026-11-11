@@ -26,8 +26,8 @@
 # asked. MinGW folds them into its C runtime, and so the Windows host links without this.
 find_library(MMGR_LIBM m)
 
-# support/host_threads.c starts the threads a contention case runs on. pthreads is a library of its
-# own on older glibc, and Threads::Threads names it there and nothing on Windows.
+# support/host_threads.c starts the threads a contention case runs on. On older glibc pthreads is a
+# library of its own, and Threads::Threads names it there and nothing on Windows.
 find_package(Threads REQUIRED)
 
 function(mmgr_add_suite suite_name)
@@ -49,12 +49,12 @@ function(mmgr_add_suite suite_name)
 
     # One runner per suite and not per environment: the cases are the same source either way.
     #
-    # The custom command is wrapped in a target, and the executables depend on the TARGET instead
-    # of each listing the OUTPUT. With the Makefile generator, an OUTPUT consumed by several
-    # targets is emitted as a rule in each of their build.make files - so the environment builds of
-    # one suite race to write the same unity_runner.c, and a target that links it mid-write gets a
-    # file with no main(). That surfaced as `undefined reference to WinMain`, because the linker
-    # falls back to looking for an entry point when main() is absent.
+    # A target holds the custom command, and the executables depend on the TARGET and not each on
+    # the OUTPUT. With the Makefile generator, an OUTPUT that several targets consume becomes a rule
+    # in each of their build.make files. So the environment builds of one suite race to write the
+    # same unity_runner.c. A target that links it mid-write gets a file with no main(). That shows
+    # as `undefined reference to WinMain`, because the linker looks for another entry point when
+    # main() is absent.
     add_custom_command(
         OUTPUT "${runner}"
         COMMAND ${Python3_EXECUTABLE} "${MMGR_HARNESS}" runners gen "${suite_dir}" --unity "${MMGR_UNITY_RB}"
@@ -65,10 +65,11 @@ function(mmgr_add_suite suite_name)
     add_custom_target(${suite_name}_runner DEPENDS "${runner}")
     set_source_files_properties("${runner}" PROPERTIES GENERATED TRUE)
 
-    # guard_page.c and host_wait.c set the POSIX feature macros ahead of their first include, and that
-    # is too late where an environment forces a header in first: checks does, and its <stdio.h> settles
-    # glibc's feature set as strict C11, which leaves sigjmp_buf, sigaction, the futex call and the
-    # monotonic clock undeclared. On the command line they are in place before any header is read.
+    # guard_page.c and host_wait.c set the POSIX feature macros ahead of their first include. That
+    # is too late where an environment forces a header in first. The checks environment does, and
+    # its <stdio.h> settles glibc's feature set as strict C11. That leaves sigjmp_buf, sigaction, the
+    # futex call and the monotonic clock out of scope. On the command line they are in place
+    # before any header comes in.
     if(NOT WIN32)
         set_source_files_properties("${MMGR_TEST_ROOT}/support/guard_page.c" PROPERTIES
             COMPILE_DEFINITIONS "_POSIX_C_SOURCE=200809L;_DEFAULT_SOURCE=1")
@@ -84,18 +85,18 @@ function(mmgr_add_suite suite_name)
 
         set(target ${suite_name}_${env})
 
-        # support/guard_page.c arms a no-access page either side of a buffer, the only
-        # instrument that catches a read past a bound - a read leaves nothing behind for a poison
-        # pattern to notice. Linked into every suite for the same reason platform_host.c is: which
-        # suites want it is their business, and where nothing calls it the linker drops it.
+        # support/guard_page.c arms a no-access page either side of a buffer. It is the only
+        # instrument that catches a read past a bound, since a read leaves nothing behind for a
+        # poison pattern to notice. Linked into every suite for the same reason platform_host.c is.
+        # Which suites want it is their business, and where nothing calls it the linker drops it.
         #
         # support/platform_host.c supplies mmgr_platform_context_id(), which the library declares
-        # and does not define. Linked into every suite and not only the ones that need it: which
-        # environments call it is MMGR_NEEDS_CONTEXT_ID's business, and a suite list that has to
-        # track that condition is a second copy of it waiting to disagree. Where nothing calls it,
+        # and does not define. Linked into every suite and not only the ones that need it. Which
+        # environments call it is MMGR_NEEDS_CONTEXT_ID's business. A suite list that has to
+        # track that condition is a second copy of it, ready to disagree. Where nothing calls it,
         # the linker drops it.
         #
-        # support/host_threads.c and support/host_wait.c are linked the same way and for the same reason.
+        # support/host_threads.c and support/host_wait.c link the same way and for the same reason.
         add_executable(${target}
             "${suite_src}"
             "${runner}"
@@ -110,12 +111,12 @@ function(mmgr_add_suite suite_name)
             "${MMGR_TEST_ROOT}"
             "${MMGR_TEST_ROOT}/support"
         )
-        # mmgr_<env> carries this environment's definitions and its include root, and so the suite is
-        # compiled with exactly the widths the library under it was compiled with. mmgr_flags is
+        # mmgr_<env> carries this environment's definitions and its include root. So the suite
+        # compiles with exactly the widths the library under it has. mmgr_flags is
         # deliberately not linked: test/ is exempt from the src/ warning set, and Unity's assertion
         # macros do not survive -Wconversion.
-        # Unity compiles its float and double assertions out unless asked. unity.c is built into
-        # each suite target and not shared, and so defining it here reaches both the cases and the
+        # Unity compiles its float and double assertions out unless asked. The unity.c file builds
+        # into each suite target and no two suites share it. So a define here reaches both the cases and the
         # assertion bodies they call.
         target_compile_definitions(${target} PRIVATE UNITY_INCLUDE_DOUBLE UNITY_INCLUDE_FLOAT)
         # On C11 Unity reaches for <stdnoreturn.h>, whose `noreturn` macro turns the Windows CRT's

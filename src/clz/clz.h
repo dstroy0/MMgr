@@ -11,13 +11,13 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note A zero count is how a scan turns a lane mask into a lane index, and so these sit under the SWAR
- *       walks instead of being a general utility.
+ * @note A zero count is how a scan turns a lane mask into a lane index. So these sit under the SWAR
+ *       walks and not among the general tools.
  * @note Both run branchless and in a fixed number of steps. A caller pays the same whatever the
- *       value is. That is the ground on which they are written out and not reached through a builtin,
- *       which is absent on some targets and a call on others.
+ *       value is. That is the ground on which they appear in plain code and not through a builtin. A
+ *       builtin is absent on some targets and a call on others.
  * @warning Neither distinguishes a value of 0 from a value with one bit set at the end it counts
- *          from. A caller that can be handed 0 tests for it first.
+ *          from. A caller that can receive 0 tests for it first.
  */
 #ifndef MMGR_CLZ_H
 #define MMGR_CLZ_H
@@ -31,7 +31,7 @@ EMBED_BEGIN_DECLS
  */
 typedef struct
 {
-    const embed_u64 val; /**< Value whose leading or trailing zeros are counted. */
+    const embed_u64 val; /**< Value whose leading or trailing zeros the count covers. */
 } ClzCfg;
 
 /**

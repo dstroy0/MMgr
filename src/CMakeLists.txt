@@ -4,11 +4,11 @@
 # Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
 # negotiated commercial licensing contract or an educator's license issued to you personally.
 
-# src/ is the include root: a module header is reached as <module>/<module>.h. include/ is the other
-# one a consumer adds, and it carries mmgr.h, which every module header includes.
+# src/ is the include root: a module header has the path <module>/<module>.h. The include/ directory
+# is the other one a consumer adds, and it carries mmgr.h, which every module header includes.
 set(MMGR_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "include root")
 
-# One directory per module, each declaring only what it is and what it needs.
+# One directory per module, each of which states only what it is and what it needs.
 # Ordered with each dependency defined before whatever links it.
 add_subdirectory(clz)
 add_subdirectory(impensa_ancorae_acus)
@@ -31,8 +31,8 @@ add_subdirectory(fractio)
 add_subdirectory(verba_scribo)
 add_subdirectory(numeros_scribo)
 
-# One aggregate per environment. A test or a consumer links `mmgr_<env>` instead of naming
-# seventeen modules and getting the list wrong.
+# One aggregate per environment. A test or a consumer links `mmgr_<env>` and does not name
+# seventeen modules and get the list wrong.
 foreach(entry IN LISTS MMGR_ENVIRONMENTS)
   mmgr_env_name("${entry}" env defs)
   get_property(_mods GLOBAL PROPERTY MMGR_TARGETS_${env})

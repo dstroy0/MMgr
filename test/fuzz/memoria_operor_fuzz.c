@@ -6,9 +6,9 @@
  */
 /**
  * @file memoria_operor_fuzz.c
- * @brief A libFuzzer harness over the memory operations: copies, both moves over overlapping regions, the compare,
- *        the search and the fill at every offset and length, each against a byte loop, with the bytes around the
- *        region checked untouched.
+ * @brief A libFuzzer harness over the memory operations. Copies, both moves over regions that overlap, the compare,
+ *        the search and the fill run at every offset and length, each against a byte loop. The bytes around the
+ *        region stay untouched.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

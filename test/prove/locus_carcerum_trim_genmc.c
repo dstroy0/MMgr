@@ -6,13 +6,13 @@
  */
 /**
  * @file locus_carcerum_trim_genmc.c
- * @brief The two cells at the temporary top given by two threads at once, every execution the memory model allows:
- *        once both threads join, the top stands at the cellblock's end and nothing is left owed.
+ * @brief The two cells at the temporary top given by two threads at once, every execution the memory model allows.
+ *        Once both threads join, the top stands at the cellblock's end and nothing remains owed.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
  *
  * @note A client for GenMC, which runs it under RC11, IMM and ARMv8 through harness.py prove --arm genmc. The
- *       translation unit is compiled in whole, as the race suite compiles it.
+ *       translation unit comes in whole, as the race suite compiles it.
  */
 #include "genmc_host.h"
 

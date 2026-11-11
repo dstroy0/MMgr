@@ -1,11 +1,11 @@
 /-!
 # LocusCarcerum, the bounds the lookups and the spans test
 
-A span of a movable cell (`carcer_span_read`) fits where its offset is at most the cell's size and its bytes at most
-the size less the offset: the test never forms `offset + bytes`, which can wrap, and the theorem is that a span it
+A span of a movable cell (`carcer_span_read`) fits under two conditions. Its offset is at most the cell's size, and
+its bytes at most the size less the offset. The test never forms `offset + bytes`, which can wrap. The theorem is that a span it
 passes lies inside the cell. A pointer is the cellblock's (`mmgr_who_owns_buf`) where it lies at or past the base and
 below the base and the size. A high-water mark (`embed_atomic_usize_raise`) only rises, and stands at or past every
-count it was raised to.
+count it reached.
 -/
 
 namespace LocusCarcerum.Bounds

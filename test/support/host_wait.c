@@ -13,7 +13,7 @@
  * @date 2026-11-05
  */
 #if !defined(_WIN32)
-/* the futex call and the monotonic clock are declared under the GNU feature set */
+/* the futex call and the monotonic clock exist under the GNU feature set */
 #define _GNU_SOURCE
 #endif
 #include "host_wait.h"
@@ -32,7 +32,7 @@ int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value seen, embed
     {
         return embed_atomic_word_load(word) != seen;
     }
-    // WaitOnAddress takes whole milliseconds: the limit is rounded up, so a wait below one millisecond waits one.
+    // WaitOnAddress takes whole milliseconds: the limit comes up to a whole one, so a wait below one millisecond waits one.
     // Explicit cast narrows the milliseconds, which Backoff.lean bounds at 1074 for each limit below forever.
     const DWORD waited =
         (nanoseconds == EMBED_WAIT_FOREVER) ? INFINITE : (DWORD)((nanoseconds + 999999u) / 1000000u);
@@ -86,17 +86,17 @@ int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value seen, embed
         return embed_atomic_word_load(word) != seen;
     }
 #if defined(__linux__)
-    // The futex compares 32 bits: on this little-endian host the low half of the word, where the lane word's state
-    // bits and the low bits of its generation lie. The sleeper tests the whole word again on waking. The system call
-    // takes the address of an atomic word as a plain pointer, and the address goes through uintptr_t so that no
-    // cast removes the qualifier.
+    // The futex compares 32 bits. On this little-endian host that is the low half of the word. The lane word's
+    // state bits and the low bits of its generation lie there. The sleeper tests the whole word again when it wakes. The
+    // system call takes the address of an atomic word as a plain pointer. The address goes through uintptr_t so
+    // that no cast removes the qualifier.
     struct timespec span;
     span.tv_sec = (time_t)(nanoseconds / 1000000000u);
     span.tv_nsec = (long)(nanoseconds % 1000000000u);
     (void)syscall(SYS_futex, (void *)(uintptr_t)&word->value, FUTEX_WAIT_PRIVATE, (unsigned int)seen,
                   (nanoseconds == EMBED_WAIT_FOREVER) ? NULL : &span, NULL, 0);
 #elif defined(__APPLE__)
-    // __ulock_wait takes microseconds in 32 bits, 0 for no end: the limit is rounded up, and Backoff.lean bounds it
+    // __ulock_wait takes microseconds in 32 bits, 0 for no end: the limit comes up to a whole one, and Backoff.lean bounds it
     const uint32_t timeout =
         (nanoseconds == EMBED_WAIT_FOREVER) ? 0u : (uint32_t)((nanoseconds + 999u) / 1000u);
     (void)__ulock_wait((sizeof(seen) == 8u ? HOST_ULOCK_COMPARE_AND_WAIT64 : HOST_ULOCK_COMPARE_AND_WAIT) |

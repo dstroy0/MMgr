@@ -6,7 +6,7 @@
  */
 /**
  * @file fuzz_wide.h
- * @brief The exact unsigned integer the numeric harnesses compute their oracles in: WIDE_LIMBS limbs of 32 bits,
+ * @brief The exact unsigned integer the numeric harnesses compute their oracles in. WIDE_LIMBS limbs of 32 bits,
  *        multiplied and divided by a small factor, shifted, compared, subtracted and divided by another wide
  *        integer one bit at a time. Slow and plainly right, as an oracle must be.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
@@ -26,7 +26,7 @@ typedef struct
     uint32_t limb[WIDE_LIMBS];
 } Wide;
 
-/** @brief The wide integer holding @p value. */
+/** @brief The wide integer with @p value in it. */
 static inline Wide wide_of(uint64_t value)
 {
     Wide wide;
@@ -73,7 +73,7 @@ static inline void wide_times(Wide *wide, uint32_t factor)
     }
 }
 
-/** @brief @p wide floored by the small @p divisor, in place. Flooring twice is flooring by the product. */
+/** @brief @p wide floored by the small @p divisor, in place. Two floor steps in a row are a floor by the product. */
 static inline void wide_over(Wide *wide, uint32_t divisor)
 {
     uint64_t remainder = 0u;

@@ -10,14 +10,14 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note Each call has two arms. Where the compiler offers the builtin it is taken, and where it
- *       does not the count is written out. Both arms answer the same for every input including
- *       zero, as lets the choice be a build detail and not a behavior difference.
+ * @note Each call has two arms. Where the compiler offers the builtin the arm takes it, and where it
+ *       does not the count comes out in plain code. Both arms answer the same for every input, zero
+ *       among them, which leaves the choice a build detail and not a behavior difference.
  * @note Reaches nothing outside config.
  * @note Both folds are Henry S. Warren Jr., Hacker's Delight, 2nd edition: the leading-zero binary
  *       search is section 5-3 and the trailing-zero isolate is section 5-4. ISBN 978-0-321-84268-8.
- *       Neither is a de Bruijn sequence index. The arm below halves the search five times instead
- *       of multiplying by a de Bruijn constant and reading a table. A de Bruijn citation here
+ *       Neither is a de Bruijn sequence index. The arm below halves the search five times and does
+ *       not multiply by a de Bruijn constant and read a table. A de Bruijn citation here
  *       would name the wrong technique.
  */
 #include "clz/clz.h"
@@ -30,7 +30,7 @@
  */
 typedef struct
 {
-    embed_u64 val; /**< Value whose leading or trailing zeros are counted. */
+    embed_u64 val; /**< Value whose leading or trailing zeros the count covers. */
 } ClzCtx;
 
 /**
@@ -45,9 +45,9 @@ typedef struct
 EMBED_INLINE embed_iword clz_lead(const ClzCtx *args)
 {
 #if EMBED_HAS_BUILTIN(__builtin_clzll)
-    // Setting the low bit cannot move the highest set one, and it turns the zero the builtin leaves
+    // The low bit set cannot move the highest set one. It turns the zero the builtin leaves
     // undefined into a one, whose count is the 63 the fold below answers with. So this is the same
-    // function for every input, including that one, and it carries no branch to say so.
+    // function for every input, that one among them, and it carries no branch to say so.
     // Explicit casts put the value in the unsigned long long the ll builtin counts, then take its int
     // result into the embed_iword the entry returns
     return (embed_iword)__builtin_clzll((unsigned long long)(args->val | 1u));
@@ -57,8 +57,8 @@ EMBED_INLINE embed_iword clz_lead(const ClzCtx *args)
     embed_iword zeros = 0;
 
     // Each step: the comparison gives 0 or 1, cast to embed_u64 so the shift builds 32, 16, 8, 4 or 2.
-    // A step that finds the top half empty shifts it away and adds that half's width to the count,
-    // and five halvings narrow the search to one bit. Explicit cast converts each step into the
+    // A step that finds the top half empty shifts it away and adds that half's width to the count.
+    // Five such steps narrow the search to one bit. Explicit cast converts each step into the
     // signed embed_iword total
     shift = (embed_u64)((remaining >> 32) == 0u) << 5;
     remaining <<= shift;
@@ -88,7 +88,7 @@ EMBED_INLINE embed_iword clz_lead(const ClzCtx *args)
  * @return         Trailing zero count, 0 through 63.
  * @note The arm without the builtin isolates the lowest set bit, whose leading zero count is 63 minus
  *       its index.
- * @note Or-ing in the top bit gives a zero value a bit to find, and so no step branches on the data.
+ * @note An or of the top bit gives a zero value a bit to find, and so no step branches on the data.
  * @warning An args->val of 0 returns 63, the same answer as an args->val of 2^63.
  */
 EMBED_INLINE embed_iword clz_trail(const ClzCtx *args)
@@ -97,13 +97,14 @@ EMBED_INLINE embed_iword clz_trail(const ClzCtx *args)
     const embed_u64 with_floor = args->val | ((embed_u64)1 << 63);
 
 #if EMBED_HAS_BUILTIN(__builtin_ctzll)
-    // The top bit set above makes this defined for a value of zero, and 63 is the answer the
-    // isolate and count below reaches for that input, and so the two agree on every input
+    // The top bit set above gives this a definition for a value of zero. For that input the isolate
+    // and count below reaches 63, and so the two agree on every input
+
     // Explicit casts put the value in the unsigned long long the ll builtin counts, then take its int
     // result into the embed_iword the entry returns
     return (embed_iword)__builtin_ctzll((unsigned long long)with_floor);
 #else
-    // Explicit cast keeps the two's complement negation at embed_u64, isolating the lowest set bit
+    // Explicit cast keeps the two's complement negation at embed_u64, which isolates the lowest set bit
     const embed_u64 lowest_bit = with_floor & (embed_u64)(0u - with_floor);
 
     // Explicit cast keeps the subtraction in embed_iword, as clz_lead reports in
@@ -117,7 +118,7 @@ EMBED_INLINE embed_iword clz_trail(const ClzCtx *args)
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_clz_ and clz_ prefixes, which the two share.
  * @param[in] ...         Initializers for the ClzCtx literal, written through args.
- * @note Four of EMBED_ENTRY's six arguments are the same at both entries here, and so they are bound
+ * @note Four of EMBED_ENTRY's six arguments are the same at both entries here. So they bind
  *       once and each entry below states only what differs.
  */
 #define CLZ_ENTRY(ReturnType_, name_, ...) EMBED_ENTRY(mmgr_clz_, clz_, ClzCtx, ClzCfg, ReturnType_, name_, __VA_ARGS__)
@@ -125,7 +126,7 @@ EMBED_INLINE embed_iword clz_trail(const ClzCtx *args)
 /**
  * @brief The public surface, one line per entry point.
  *
- * @note Each is documented at its declaration in clz.h.
+ * @note clz.h describes each at its declaration.
  */
 CLZ_ENTRY(embed_iword, lead, .val = args->val)
 CLZ_ENTRY(embed_iword, trail, .val = args->val)

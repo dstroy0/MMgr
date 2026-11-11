@@ -7,7 +7,7 @@
 
 #define MMGR_HOST_THREADS_MOST 16u
 
-// Runs count threads, each calling each once, and waits for every one to end. 1 where every thread
+// Runs count threads, each with one call of each, and waits for every one to end. 1 where every thread
 // started and ended, 0 where the system refused one or count passed MMGR_HOST_THREADS_MOST.
 int mmgr_host_threads_run(void (*each)(void), unsigned int count);
 

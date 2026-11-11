@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note A spec is an mmgr_field array ending at MMGR_FK_END. Every field but MMGR_FK_LIT takes one
+ * @note A spec is an mmgr_field array with MMGR_FK_END at its end. Every field but MMGR_FK_LIT takes one
  *       mmgr_fval.
  * @note Includes verba_scribo.h, which is where mmgr_config.h and the verba table come from.
  */
@@ -36,7 +36,7 @@ EMBED_ENUM_BYTE(mmgr_fk, MMGR_FK_END = 0, /**< Ends a spec. numer_build stops at
                 MMGR_FK_DEC,              /**< Unsigned 32-bit from as.u32, base 10, through mmgr_verba_u32w. */
                 MMGR_FK_HEX,              /**< Unsigned 64-bit from as.u64, base 16, through mmgr_verba_hex. */
                 MMGR_FK_OCT,              /**< Unsigned 64-bit from as.u64, base 8, through mmgr_verba_uint. */
-                MMGR_FK_G,    /**< Double from as.d, through mmgr_verba_g, defaulting to six significant digits. */
+                MMGR_FK_G,    /**< Double from as.d, through mmgr_verba_g, with six significant digits by default. */
                 MMGR_FK_FIX,  /**< Double from as.d, through mmgr_verba_fixed. */
                 MMGR_FK_CH,   /**< Single character from as.c, through mmgr_verba_ch. */
                 MMGR_FK_JSON, /**< String from as.s, through mmgr_verba_json. */
@@ -90,7 +90,7 @@ typedef struct
  * @note numer_build requires kind to equal the field's kind, and abandons the whole write when it does not.
  * @note numer_emit takes width from here, where numer_build takes it from the field.
  * @warning numer_emit_one reads the arm that kind names and no other. A value whose kind and
- *          filled arm disagree formats what that arm was left holding.
+ *          filled arm disagree formats whatever that arm holds.
  */
 typedef struct
 {
@@ -243,16 +243,17 @@ typedef struct
  * @brief Arguments for the four numer calls.
  *
  * @note build and append read all six members. emit and emit_append leave spec alone.
- * @note at is the cursor, as in verba. build and emit begin there and return where they finished, and therefore
- *       a run of writes threads the cursor instead of measuring the text again between each. Leave
+ * @note at is the cursor, as in verba. The build and emit entries begin there and return where they
+ *       finished. So a run of writes passes the cursor along and does not measure the text again
+ *       between each. Leave
  *       it unset and a call starts at the first byte, as a single write wants.
  */
 typedef struct
 {
     char *const out;              /**< Destination buffer [BORROWS]. */
     const size_t cap;             /**< Bytes available in out. */
-    const size_t at;              /**< Offset to begin writing at; 0 for the first write. */
-    const mmgr_field *const spec; /**< Field list, ending at MMGR_FK_END [BORROWS]. */
+    const size_t at;              /**< Offset where the write begins; 0 for the first write. */
+    const mmgr_field *const spec; /**< Field list, with MMGR_FK_END at its end [BORROWS]. */
     const mmgr_fval *const vals;  /**< Values to place into the fields [BORROWS]. */
     const size_t nvals;           /**< Values in vals. */
 } NumerosCfg;
@@ -275,15 +276,15 @@ typedef struct
 EMBED_TABLE_LAYOUT(NumerosScriboNs, build, append, emit, emit_append);
 
 /**
- * @brief Writes args->spec and args->vals into args->out, starting at args->at.
+ * @brief Writes args->spec and args->vals into args->out, from args->at on.
  *
  * @param[in] args Buffer, capacity, the field list and the values [BORROWS].
- * @return         Length of the whole string in args->out, not counting its terminator, or 0 when
- *                 nothing was written.
+ * @return         Length of the whole string in args->out, with its terminator not in the count, or 0
+ *                 when nothing went in.
  * @note An MMGR_FK_LIT field writes its own text. Every other field consumes the next value in
  *       args->vals.
- * @note Returns 0 and puts the terminator back at args->at when a value is missing, when a kind differs,
- *       or when values are left over, which leaves the text written before this call whole.
+ * @note Returns 0 and puts the terminator back at args->at when a value is absent, when a kind differs,
+ *       or when values remain. That leaves the text written before this call whole.
  * @warning args->spec must reach an MMGR_FK_END field, and args->vals must hold args->nvals values.
  */
 size_t mmgr_numer_build(const NumerosCfg *args);
@@ -292,23 +293,23 @@ size_t mmgr_numer_build(const NumerosCfg *args);
  * @brief Writes args->spec and args->vals into args->out after the string already there.
  *
  * @param[in] args Buffer, capacity, the field list and the values [BORROWS].
- * @return         Length of the whole string in args->out, or 0 when nothing was added.
+ * @return         Length of the whole string in args->out, or 0 when nothing went in.
  * @note Carries on at args->at when the caller threaded one, and measures the existing string with
  *       cellul.len only when args->at is 0. Either way the build gets the whole of args->cap and
  *       that offset.
  * @note Puts the terminator back at the offset it began from and returns 0 when the build writes nothing.
- * @warning args->spec must reach an MMGR_FK_END field, and args->out must hold a terminated string when
- *          args->at is 0, since that is the only time the length is measured.
+ * @warning args->spec must reach an MMGR_FK_END field. The args->out buffer must hold a terminated
+ *          string when args->at is 0, since that is the only time the call measures the length.
  */
 size_t mmgr_numer_append(const NumerosCfg *args);
 
 /**
- * @brief Writes args->vals into args->out, starting at args->at and reading no field list.
+ * @brief Writes args->vals into args->out, from args->at on and with no field list.
  *
  * @param[in] args Buffer, capacity and the values [BORROWS].
- * @return         Length of the whole string in args->out, not counting its terminator, or 0 when
- *                 nothing was written.
- * @note Each value carries its own width, and no kind is matched, since there are no fields to match against.
+ * @return         Length of the whole string in args->out, with its terminator not in the count, or 0
+ *                 when nothing went in.
+ * @note Each value carries its own width, and no kind check runs, since there are no fields to match against.
  * @warning args->vals must hold args->nvals values.
  * @warning A value of kind MMGR_FK_END or MMGR_FK_LIT formats nothing, which abandons the write and returns 0.
  */
@@ -318,20 +319,20 @@ size_t mmgr_numer_emit(const NumerosCfg *args);
  * @brief Writes args->vals into args->out after the string already there, reading no field list.
  *
  * @param[in] args Buffer, capacity and the values [BORROWS].
- * @return         Length of the whole string in args->out, or 0 when nothing was added.
+ * @return         Length of the whole string in args->out, or 0 when nothing went in.
  * @note Carries on at args->at when the caller threaded one, and measures the existing string with
  *       cellul.len only when args->at is 0. Either way the emit gets the whole of args->cap and
  *       that offset.
  * @note Puts the terminator back at the offset it began from and returns 0 when the emit writes nothing.
- * @warning args->vals must hold args->nvals values, and args->out must hold a terminated string when
- *          args->at is 0, since that is the only time the length is measured.
+ * @warning args->vals must hold args->nvals values. The args->out buffer must hold a terminated
+ *          string when args->at is 0, since that is the only time the call measures the length.
  */
 size_t mmgr_numer_emit_append(const NumerosCfg *args);
 
 /**
  * @brief Dispatch table instance named numer.
  *
- * @note Each member calls the matching mmgr_numer_ function, one to one.
+ * @note Each member calls the mmgr_numer_ function of the same name, one to one.
  * @note mmgr_numer_append reaches build through this table, and mmgr_numer_emit_append reaches emit.
  */
 EMBED_TABLE_STORAGE NumerosScriboNs numer EMBED_UNUSED = {

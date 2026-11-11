@@ -33,22 +33,21 @@ import sys
 DISPLAY = re.compile(r"\$\$(.+?)\$\$", re.DOTALL)
 INLINE = re.compile(r"(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)")
 
-# Each rule is written to fire only where the character actually breaks. A checker that reports a
-# working formula gets ignored, and then it reports nothing. The first pass of this file flagged
-# every \mathbb{E} and \mathbb{Z} in the tree, which are exactly what \mathbb accepts, and 17 of its
-# 26 hits were formulas that render correctly.
+# Each rule fires only where the character actually breaks. A checker that reports a
+# good formula gets ignored, and then it reports nothing. A rule that caught
+# every \mathbb{E} and \mathbb{Z} in the tree would catch exactly what \mathbb accepts.
 CHECKS = (
     (re.compile(r"\\operatorname"), "\\operatorname is missing from some builds, use \\mathrm"),
-    # Only a single uppercase letter is supported. \mathbb{1} and \mathbb{ab} throw.
+    # Only a single uppercase letter works. \mathbb{1} and \mathbb{ab} throw.
     (
         re.compile(r"\\mathbb\{(?![A-Z]\})[^}]*\}"),
         "\\mathbb takes one uppercase letter, this argument is something else",
     ),
     (re.compile(r"\\mathfrak"), "\\mathfrak needs a font that is often not shipped, use \\mathcal"),
     (re.compile(r"(?<!\\)\*"), "a literal asterisk is read as emphasis, use \\ast"),
-    # A tag opener is < followed by a letter or a slash. A < with space around it is arithmetic.
+    # A tag opener is < with a letter or a slash after it. A < with space around it is arithmetic.
     (re.compile(r"(?<!\\)<[A-Za-z/]"), "< followed by a letter is read as a tag opener, use \\lt"),
-    # A > only takes on a meaning at the start of a line, where it opens a blockquote
+    # A > only counts at the start of a line, where it opens a blockquote
     (re.compile(r"^\s*>", re.MULTILINE), "> at the start of a line opens a blockquote, use \\gt or move it"),
     # KaTeX has no align environment. aligned works inside a display block.
     (
@@ -63,8 +62,8 @@ CHECKS = (
 def odd_inline_dollars(line):
     """Whether a line leaves an inline formula unclosed.
 
-    The display delimiters are removed first. A display block legitimately opens on one line and
-    closes on another, and so counting every dollar sign reports each of those as unclosed.
+    The display delimiters come out first. A display block legitimately opens on one line and
+    closes on another. So a count of every dollar sign reports each of those as unclosed.
     """
     without_display = line.replace("$$", "")
     return (len(re.findall(r"(?<!\\)\$", without_display)) % 2) == 1

@@ -9,7 +9,7 @@ two facts carry those proofs over. The turnstiles themselves are embedded_types'
 imports `EmbeddedTypes.Manifold.Open` and `EmbeddedTypes.Manifold.Drain` and builds on them.
 
 The closed word. Every write to it is a read-modify-write: the fetch-or of a shut and of a give, the fetch-and and
-the compare-exchange of an open. C11 gives the writes to one object one modification order, and a read-modify-write
+the compare-exchange of an open. C11 gives the writes to one object one modification order. A read-modify-write
 reads the last value before its own write in it ([atomics.order], the read-modify-write rule). The steps of
 `Trim.lean` on the closed word are therefore one order of whole steps, as the model takes them.
 
@@ -18,12 +18,15 @@ the closed bit (`embed_turnstile_enter`, `carcer_attempted`). A writer fetch-ors
 consistent fence, then loads `open` and each open lane word (`carcer_shut`, `embed_turnstiles_drain`). The lanes of
 passes are below `open`: `Manifold.Open.passes_below_open`, carried here as `pass_lane_below_open`, and the drain's
 wait on one such lane ends with the pass ended: `Manifold.Drain.drain_lane_complete`, carried here as
-`drain_ends_pass`. The fences stand in one total order
-`S`. C11's fence rule ([atomics.order], the rule for two seq_cst fences): where write `A` is sequenced before fence
-`X`, fence `Y` before read `B`, and `X` precedes `Y` in `S`, `B` reads `A` or a later write. An execution below
-carries the rule as its two hypotheses, one for each order of the two fences, and the theorem is the disjunction
-the drain needs: the pass reads the closed bit set, or the drain reads the pass's lane busy and waits it out. That is
-the step `Pass.lean` takes as whole.
+`drain_ends_pass`.
+
+The fences stand in one total order `S`. C11's fence rule ([atomics.order], the rule for two seq_cst fences). Take
+a write `A` before fence `X` in its thread, and a fence `Y` before read `B` in another. Where `X` precedes `Y` in
+`S`, `B` reads `A` or a later write.
+
+An execution below carries the rule as its two hypotheses, one for each order of the two fences. The theorem is
+the disjunction the drain needs. The pass reads the closed bit set, or the drain reads the pass's lane busy and
+waits it out. That is the step `Pass.lean` takes as whole.
 -/
 
 namespace LocusCarcerum.Order
@@ -36,8 +39,8 @@ theorem pass_lane_below_open (most : Nat) (h : 1 ≤ most) {s : Open.State} (r :
     (hl : s.lane l = .pass) : l < s.count :=
   (Open.passes_below_open most h r).1 l hl
 
-/-- The drain's wait on a lane a pass held at the fence ends with that pass ended: the lane read free or closed,
-or read until it is over. -/
+/-- The drain's wait on a lane a pass held at the fence ends with that pass over. The lane reads free or closed,
+or the drain reads it until the pass is over. -/
 theorem drain_ends_pass {s t u : Drain.State} (p : Nat) (i : Drain.Inv s) (hp : s.holder = some p)
     (ft : Drain.Follows s t) (fu : Drain.Follows t u)
     (hdone : t.busy = false ∨ t.closed = true ∨ Drain.over t u = true) : u.ended p = true :=
@@ -69,8 +72,8 @@ structure Unfenced where
   passReadsClosed : Bool
   drainReadsLane : Bool
 
-/-- The store-buffering outcome the fences forbid, which nothing in an unfenced execution rules out: the pass works
-on the cellblock while the writer, its drain having missed the pass, works alone. -/
+/-- The outcome the fences forbid, which nothing in an unfenced execution rules out. The pass works
+on the cellblock while the writer, whose drain missed the pass, works alone. -/
 def storeBuffered : Unfenced := ⟨false, false⟩
 
 theorem unfenced_admits : storeBuffered.passReadsClosed = false ∧ storeBuffered.drainReadsLane = false := by decide
@@ -80,7 +83,7 @@ the closed word and the boundary (`carcer_given`). A writer fetch-ors the closed
 then a sequentially consistent fence, then reads the headers of its walk (`carcer_shut`, `carcer_opened`). The fence
 rule gives the disjunction `Boundary.lean` takes as whole: the give reads the closed bit set, or the walk reads the
 header free. Where the give reads the closed bit clear after a writer opened, its acquire load reads the open's
-release, and its load of the boundary after it reads the boundary the writer stored before its open. -/
+release. Its load of the boundary after it reads the boundary the writer stored before its open. -/
 
 /-- One give and one writer as the fences order them. -/
 structure GiveExec where
@@ -98,7 +101,7 @@ structure GiveExec where
   writerFirst : writerFence < giveFence → giveReadsClosed = true
 
 /-- The give reads the closed bit set and leaves the trim to the writer, or the walk reads the header free and
-trims past the cell. -/
+trims the cell. -/
 theorem give_or_walk (e : GiveExec) : e.giveReadsClosed = true ∨ e.walkReadsFree = true := by
   rcases Nat.lt_or_gt_of_ne e.distinct with h | h
   · exact Or.inr (e.giveFirst h)

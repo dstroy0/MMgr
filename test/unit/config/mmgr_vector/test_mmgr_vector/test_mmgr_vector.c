@@ -7,17 +7,17 @@
  */
 /**
  * @file test_mmgr_vector.c
- * @brief Holds the vector layer to the lane it is built on and to the scalar answer, at the width
+ * @brief Holds the vector layer to the lane under it and to the scalar answer, at the width
  *        and on the arm the build takes.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-10-29
  *
- * @note The walks of memoria_operor and cellularum_laboro ask three things of a vector: which bytes
- *       hold zero, which bytes two vectors differ in, and the first byte set in a mask. Each is
- *       checked here against a byte loop, over every byte position, at whatever width the lane
+ * @note The walks of memoria_operor and cellularum_laboro ask three things of a vector. Which bytes
+ *       hold zero, which bytes two vectors differ in, and the first byte set in a mask. Each has
+ *       a check here against a byte loop, over every byte position, at whatever width the lane
  *       derived.
- * @note Every case is registered on every build. Where MMGR_VECTOR_OFF is 1 the layer declares no
- *       vector, and each case that needs one is ignored and says why, never left out of the runner.
+ * @note Every case is in the runner on every build. Where MMGR_VECTOR_OFF is 1 the layer declares no
+ *       vector, and each case that needs one steps aside and says why, never left out of the runner.
  */
 #include "config/mmgr_vector.h"
 

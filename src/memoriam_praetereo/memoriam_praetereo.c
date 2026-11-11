@@ -6,18 +6,18 @@
  */
 /**
  * @file memoriam_praetereo.c
- * @brief DMA channel handling, over a weak port layer an application replaces.
+ * @brief DMA channel control, over a weak port layer an application replaces.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @warning The whole file is compiled only when MMGR_ENABLE_DMA is set.
+ * @warning The whole file exists only when MMGR_ENABLE_DMA holds.
  */
 #include "memoriam_praetereo/memoriam_praetereo.h"
 
 #if MMGR_ENABLE_DMA
 
 /**
- * @brief Arguments for opening a channel.
+ * @brief Arguments for a channel open.
  *
  * @note Mirrors PraetCfg without its top-level const qualifiers. on_complete still points at a const
  *       PraetCallbackCfg.
@@ -25,13 +25,13 @@
 typedef struct
 {
     uint8_t channel;                     /**< Channel to open. */
-    uint8_t peripheral;                  /**< Peripheral the channel is wired to. */
+    uint8_t peripheral;                  /**< Peripheral the channel serves. */
     embed_bool loopback;                 /**< Open the channel looped back on itself. */
     const PraetCallbackCfg *on_complete; /**< Called when a transfer finishes [BORROWS]. */
 } PraetOpenCtx;
 
 /**
- * @brief Arguments for submitting a transfer, and for closing a channel.
+ * @brief Arguments for a transfer submit, and for a channel close.
  *
  * @note Mirrors PraetTransferCfg without its top-level const qualifiers. buf still points at const
  *       uint8_t.
@@ -45,7 +45,7 @@ typedef struct
 } PraetTransferCtx;
 
 /**
- * @brief Weak default for opening a channel, which refuses every request.
+ * @brief Weak default for a channel open, which refuses every request.
  *
  * @param[in] args Channel, peripheral and completion callback [BORROWS].
  * @return         EMBED_FALSE always.
@@ -61,7 +61,7 @@ EMBED_WEAK embed_bool EMBED_WEAK_NAME(mmgr_praet_hw_open)(const PraetCfg *args)
 }
 
 /**
- * @brief Weak default for submitting a transfer, which refuses every request.
+ * @brief Weak default for a transfer submit, which refuses every request.
  *
  * @param[in] args Channel, buffer and byte count [BORROWS].
  * @return         EMBED_FALSE always.
@@ -77,7 +77,7 @@ EMBED_WEAK embed_bool EMBED_WEAK_NAME(mmgr_praet_hw_tx_submit)(const PraetTransf
 }
 
 /**
- * @brief Weak default for closing a channel, which does nothing.
+ * @brief Weak default for a channel close, which does nothing.
  *
  * @param[in] args Channel to close [BORROWS].
  * @note EMBED_WEAK marks this weak where EMBED_HAS_ATTRIBUTE(weak) is non-zero, and EMBED_WEAK_DEFAULT
@@ -125,7 +125,7 @@ EMBED_INLINE embed_bool praet_open(const PraetOpenCtx *args)
  *
  * @param[in] args Channel, buffer and byte count [BORROWS].
  * @return         Whatever mmgr_praet_hw_tx_submit returns.
- * @note No byte bound is asserted here. A span the schedule runs is bounded where PraetSubmit
+ * @note No byte bound assertion here. PraetSubmit bounds a span the schedule runs where it
  *       declares it, and a port bounds what it accepts.
  * @warning args->channel must be below PRAET_CHANNELS.
  */
@@ -159,8 +159,8 @@ EMBED_INLINE void praet_close(const PraetTransferCtx *args)
  * @param[in] CfgType_    Argument type the caller passes.
  * @param[in] name_       Name after the mmgr_praet_ and praet_ prefixes, which the two share.
  * @param[in] ...         Initializers for the CtxType_ literal, written through the CfgType_ the
- *                        entry was handed.
- * @note Both types are parameters here. Opening a channel and moving bytes on one take different
+ *                        entry received.
+ * @note Both types are parameters here. A channel open and a byte move on one take different
  *       arguments, and so the module carries two of each.
  */
 #define PRAET_ENTRY(ReturnType_, CtxType_, CfgType_, name_, ...)                                                       \
@@ -173,7 +173,7 @@ EMBED_INLINE void praet_close(const PraetTransferCtx *args)
  * @param[in] CfgType_ Argument type the caller passes.
  * @param[in] name_    Name after the mmgr_praet_ and praet_ prefixes.
  * @param[in] ...      Initializers for the CtxType_ literal, written through the CfgType_ the
- *                     entry was handed.
+ *                     entry received.
  */
 #define PRAET_ENTRY_V(CtxType_, CfgType_, name_, ...)                                                                  \
     EMBED_ENTRY_V(mmgr_praet_, praet_, CtxType_, CfgType_, name_, __VA_ARGS__)
@@ -181,8 +181,8 @@ EMBED_INLINE void praet_close(const PraetTransferCtx *args)
 /**
  * @brief The public surface, one line per entry point.
  *
- * @note Each is documented at its declaration in memoriam_praetereo.h.
- * @note mmgr_praet_close forwards args->channel alone. The rest of its argument type is not read.
+ * @note memoriam_praetereo.h describes each at its declaration.
+ * @note mmgr_praet_close forwards args->channel alone. It reads no other member of its argument type.
  */
 PRAET_ENTRY(embed_bool, PraetOpenCtx, PraetCfg, open, .channel = args->channel, .peripheral = args->peripheral,
             .loopback = args->loopback, .on_complete = args->on_complete)
@@ -195,7 +195,7 @@ PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = args->channe
  *
  * @param[in] args Channel to poll [BORROWS].
  * @note Hand-rolled, as mmgr_anular_init is, with no entry line. It hands args to the weak hook
- *       unchanged, with no checking call in between, and so there is no argument pack to build and no
+ *       unchanged, with no check call in between. So there is no argument pack to build and no
  *       praet_ backend for EMBED_ENTRY to name.
  * @note Documented at the declaration in memoriam_praetereo.h.
  */

@@ -108,9 +108,9 @@ void test_move_wraps_in_order(void)
 }
 
 /**
- * @brief Every start offset and every odd length, and so the wrap and the narrowing tail both run.
+ * @brief Every start offset and every odd length, and so the wrap and the narrow tail both run.
  *
- * @note A guard byte past the request catches a tail that carries more than it was given.
+ * @note A guard byte past the request catches a tail that carries more than it received.
  */
 void test_move_carries_every_length_at_every_offset(void)
 {

@@ -6,8 +6,8 @@
  */
 /**
  * @file endian_fuzz.c
- * @brief A libFuzzer harness over the byte orders: each write against bytes laid out one shift at a time, each read
- *        against the same, every write read back, and the reversal against the low bytes taken in reverse.
+ * @brief A libFuzzer harness over the byte orders. Each write runs against bytes laid out one shift at a time, and
+ *        each read against the same. Every write reads back, and the reversal runs against the low bytes taken in reverse.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

@@ -1,6 +1,6 @@
 name: Format
 
-# Three formatters, one per language, each owning its own files, alone:
+# Three formatters, one per language, each with its own files, alone:
 #
 #   clang-format  src/ test/   .c .h        style in .clang-format
 #   black         tools/       .py          line-length in pyproject.toml
@@ -10,7 +10,7 @@ name: Format
 # side-by-side diff.
 #
 # This job CHECKS, it does not write. A formatter that rewrites on CI produces commits nobody
-# reviewed and races the author's own push; the fix belongs in the working tree. Every step reports
+# reviewed and races the author's own push; the fix belongs in the work tree. Every step reports
 # the exact command that fixes it locally.
 
 on:
@@ -32,14 +32,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # continue-on-error on each step so one failure does not hide the other two: three separate
-      # red steps tell you everything that needs fixing in one run, where a hard fail on the first
+      # continue-on-error on each step so one failure does not hide the other two. Three separate
+      # red steps tell you everything to fix in one run. A hard fail on the first
       # would send you round again for the second.
-      # Pinned and not whatever the runner ships. .clang-format uses keys that only exist from
-      # clang-format 20 (AlignFunctionDeclarations among them), and ubuntu-latest is older - the
-      # check failed on `unknown key` and not on any actual formatting. Pinning also means CI
-      # and a developer's machine agree about what formatted means, which an unpinned formatter
-      # cannot promise across versions.
+
+      # Pinned and not whatever the runner ships. The .clang-format file uses keys that only exist
+      # from clang-format 20 (AlignFunctionDeclarations among them), and ubuntu-latest is older. On
+      # the older one the check fails on `unknown key` and not on any actual format. A pin also
+      # means CI and a developer's machine agree about what formatted means, which a formatter with
+      # no pin cannot promise across versions.
       - name: clang-format (C)
         id: clang
         continue-on-error: true

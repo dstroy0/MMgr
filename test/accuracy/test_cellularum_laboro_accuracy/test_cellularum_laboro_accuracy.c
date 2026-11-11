@@ -31,21 +31,21 @@
 #include "unity.h"
 
 /**
- * @brief Reads the bits of a double without going through the library.
+ * @brief Reads the bits of a double and does not go through the library.
  *
  * @note fractio performs this same reinterpretation, and mmgr_cellul_to_double assembles its result
- *       through it. Declaring the union here keeps the comparison independent of both.
+ *       through it. The union declared here keeps the comparison independent of both.
  */
 typedef union {
-    double value;  /**< The double being read. */
+    double value;  /**< The double to read. */
     uint64_t bits; /**< The same storage as an integer. */
 } AccuracyDoubleBits;
 
 /**
  * @brief One decimal and the value a correctly rounded conversion gives for it.
  *
- * @note expected carries the compiler's reading of the same digits text holds. The two are written
- *       side by side in every row below, as lets a reader check that they say the same
+ * @note expected carries the compiler's reading of the same digits text holds. The two sit
+ *       side by side in every row below. That lets a reader check that they say the same
  *       number.
  */
 typedef struct
@@ -58,8 +58,8 @@ typedef struct
  * @brief Decimals a double holds with nothing rounded.
  *
  * @note Every value here is a fraction whose denominator is a power of two, or an integer under
- *       2^53. A conversion has one correct answer for each and no rounding to get wrong, and that
- *       separates a placement defect from a rounding defect.
+ *       2^53. A conversion has one correct answer for each and no round to get wrong. That
+ *       separates a placement defect from a round defect.
  * @note The exponent forms are here to check they reach the same value as the plain ones. 1e2 and
  *       100 and 0.01e4 are one number written three ways.
  */
@@ -82,10 +82,10 @@ static const AccuracyDecimal accuracy_exact_of[] = {
 /**
  * @brief Decimals no double holds, where the answer is the correctly rounded one.
  *
- * @note A tenth and a fifth are repeating binary fractions. Pi to fourteen places and the two powers
- *       of ten at the ends of the exact range each need rounding as well.
+ * @note A tenth and a fifth are binary fractions that repeat. Pi to fourteen places and the two powers
+ *       of ten at the ends of the exact range each need a round as well.
  * @note 1e22 is the last power of ten a double holds outright and 1e23 is the first it does not.
- *       That pair is where a converter taking a shortcut through repeated multiplication parts
+ *       That pair is where a converter that takes a shortcut through repeated multiplication parts
  *       company with a correctly rounded one.
  */
 static const AccuracyDecimal accuracy_rounded_of[] = {
@@ -120,7 +120,7 @@ static uint64_t accuracy_bits_of(double value)
  *
  * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Every value this suite uses is either a file-scope constant or has automatic storage inside
- *       the case that builds it, and there is no shared state to prepare here.
+ *       the case that builds it. There is no shared state to prepare here.
  */
 void setUp(void)
 {
@@ -140,8 +140,8 @@ void tearDown(void)
  * @brief Checks the bit reader this suite rests on against values worked out by hand.
  *
  * @note Exists to catch a defect in the helper as itself. Without this case a broken
- *       accuracy_bits_of would surface as a conversion mismatch, and cellularum_laboro would be
- *       blamed for it.
+ *       accuracy_bits_of would surface as a conversion mismatch, and cellularum_laboro would
+ *       look wrong.
  * @note A double of 1.0 is a biased exponent of 1023 over a zero significand, which is
  *       0x3FF0000000000000. A negative zero is the sign bit, alone.
  */
@@ -157,9 +157,9 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
  * @brief Checks that a signed decimal integer comes back as the integer it names.
  *
  * @note The expectations are literals. A run of digits under the accumulator's width has one value
- *       and no rounding, and that makes the comparison exact.
- * @note Leading whitespace and an explicit sign are included because the entry documents accepting
- *       both, and a value that survives them is the value the digits name.
+ *       and no round, and that makes the comparison exact.
+ * @note Leading whitespace and an explicit sign are in the set because the entry documents both as
+ *       accepted. A value that survives them is the value the digits name.
  */
 void test_a_signed_integer_comes_back_as_the_integer_it_names(void)
 {
@@ -176,8 +176,8 @@ void test_a_signed_integer_comes_back_as_the_integer_it_names(void)
 /**
  * @brief Checks that an unsigned decimal integer comes back as the integer it names.
  *
- * @note The largest value here is the widest run of digits that fits every environment's accumulator,
- *       since the entry documents that accumulator as embed_word wide and that width changes between
+ * @note The largest value here is the widest run of digits that fits every environment's accumulator.
+ *       The entry documents that accumulator as embed_word wide and that width changes between
  *       builds.
  */
 void test_an_unsigned_integer_comes_back_as_the_integer_it_names(void)
@@ -192,15 +192,15 @@ void test_an_unsigned_integer_comes_back_as_the_integer_it_names(void)
 /**
  * @brief Checks that a decimal a double holds outright comes back exactly.
  *
- * @note These rows have one correct answer and no rounding to get wrong. A failure here is a
- *       misplaced digit or a mishandled exponent, and not a rounding that went the wrong way.
- * @note The three ways of writing one hundred are in the table together, and each is compared
+ * @note These rows have one correct answer and no round to get wrong. A failure here is a
+ *       misplaced digit or a mishandled exponent, and not a round that went the wrong way.
+ * @note The three ways to write one hundred are in the table together, and each compares
  *       against the same literal.
  */
 void test_a_decimal_a_double_holds_outright_comes_back_exactly(void)
 {
     // Explicit cast narrows the size_t sizeof quotient to the unsigned the loop counts in. The table
-    // holds thirteen rows, which is far inside what an unsigned carries on any conforming target
+    // holds thirteen rows, which is far inside what an unsigned carries on any standard target
     const unsigned row_count = (unsigned)(sizeof accuracy_exact_of / sizeof accuracy_exact_of[0]);
 
     for (unsigned row = 0u; row < row_count; row++)
@@ -215,8 +215,8 @@ void test_a_decimal_a_double_holds_outright_comes_back_exactly(void)
 /**
  * @brief Checks that a decimal no double holds comes back as the correctly rounded value.
  *
- * @note This is the case the file exists for. Every row needs rounding, and a converter that is one
- *       unit in the last place out fails here while passing every exact row above.
+ * @note This is the case the file exists for. Every row needs a round, and a converter that is one
+ *       unit in the last place out fails here and passes every exact row above.
  * @note The expectation is the compiler's reading of the same digits, which is a second
  *       implementation of the conversion and shares no table with this one.
  */
@@ -238,10 +238,10 @@ void test_a_decimal_no_double_holds_comes_back_correctly_rounded(void)
 /**
  * @brief Checks that the float entry gives the double entry's value narrowed to float.
  *
- * @note The expectation is the double entry's own result put through the same narrowing the C
- *       conversion performs, as the entry documents itself as doing.
+ * @note The expectation is the double entry's own result put through the same narrow cast the C
+ *       conversion performs, as the entry documents of itself.
  * @note Compared as floats through TEST_ASSERT_EQUAL_FLOAT's exact form for equal values. A float
- *       carries twenty four significand bits, and two values agreeing there agree in every bit.
+ *       carries twenty four significand bits, and two values that agree there agree in every bit.
  */
 void test_the_float_entry_is_the_double_entry_narrowed(void)
 {
@@ -265,17 +265,17 @@ void test_the_float_entry_is_the_double_entry_narrowed(void)
  * @brief Checks a case-insensitive compare of the same word typed two ways, where the word carries
  *        an accent.
  *
- * @note This is what a caller does with a case-insensitive compare. Two ways of writing one word, from
- *       a form field or a header, matched without caring which case the user typed.
+ * @note This is what a caller does with a case-insensitive compare. Two ways to write one word, from
+ *       a form field or a header, matched whatever case the user typed.
  * @note The accented letter is identical in both strings and takes no part in what the answer should
- *       be. Only the ASCII letters around it differ in case, and a case-insensitive compare is
- *       defined to call the two equal.
- * @note The bytes are written as escapes so the answer does not depend on what encoding this file is
- *       saved in. Latin-1 is what a legacy protocol, an older filesystem or a serial device hands a
+ *       be. Only the ASCII letters around it differ in case, and a case-insensitive compare has
+ *       to call the two equal.
+ * @note The bytes appear as escapes so the answer does not depend on the encoding of this file.
+ *       Latin-1 is what a legacy protocol, an older filesystem or a serial device hands a
  *       caller, and 0xFC is its lowercase u with a diaeresis.
- * @note The plain ASCII pair is checked first. It is the same comparison with the accent removed,
+ * @note The plain ASCII pair comes first. It is the same comparison with the accent removed,
  *       and it is what shows the difference is the accent, while the comparison is the same.
- * @note The buffers are padded past the terminator because the compare reads a whole word at a time,
+ * @note The buffers run past the terminator because the compare reads a whole word at a time,
  *       which its own warning states.
  */
 void test_a_case_insensitive_compare_holds_on_an_accented_word(void)
@@ -296,9 +296,9 @@ void test_a_case_insensitive_compare_holds_on_an_accented_word(void)
                                         .cap = 31u, .ci = EMBED_TRUE),
                              "the same two words stopped matching once the e carried an accent");
 
-    // "yuz" and "YUZ" with the u carrying a diaeresis, as Latin-5. That is the Turkish word for a
+    // "yuz" and "YUZ" with a diaeresis on the u, as Latin-5. That is the Turkish word for a
     // face or a hundred, and it puts a z directly after the accented byte. The range test in
-    // scrut_alpha lands on exactly the high bit for a lane holding z, and the borrow the accented
+    // scrut_alpha lands on exactly the high bit for a lane with z. The borrow the accented
     // byte takes out of that lane costs it exactly the one bit the answer rests on
     static const char turkish_lower[32] = {'y', '\xFC', 'z', '\0'};
     static const char turkish_upper[32] = {'Y', '\xFC', 'Z', '\0'};
@@ -311,15 +311,15 @@ void test_a_case_insensitive_compare_holds_on_an_accented_word(void)
 /**
  * @brief Checks a case-insensitive search for a word that follows an accented one.
  *
- * @note The other thing a caller does with these entries: find a word in a line of text without
- *       caring about its case. The line here is a Latin-1 name of the kind a directory listing or a
+ * @note The other thing a caller does with these entries: find a word in a line of text whatever
+ *       its case. The line here is a Latin-1 name of the kind a directory list or a
  *       contact record carries.
  * @note The needle is entirely ASCII, and so nothing about the search itself involves a byte at or above
  *       0x80. What differs from the plain line is only that the text around the needle carries one.
  */
 void test_a_case_insensitive_search_finds_a_word_after_an_accented_one(void)
 {
-    // "Muller Str" and the same with the u carrying a diaeresis, as Latin-1
+    // "Muller Str" and the same with a diaeresis on the u, as Latin-1
     static const char plain_line[32] = {'M', 'u', 'l', 'l', 'e', 'r', ' ', 'S', 't', 'r', '\0'};
     static const char accented_line[32] = {'M', '\xFC', 'l', 'l', 'e', 'r', ' ', 'S', 't', 'r', '\0'};
     static const char needle[8] = {'l', 'l', 'e', 'r', '\0'};
@@ -334,13 +334,13 @@ void test_a_case_insensitive_search_finds_a_word_after_an_accented_one(void)
 }
 
 /**
- * @brief Sweeps every byte at every position to find where a case-insensitive compare stops folding.
+ * @brief Sweeps every byte at every position to find where a case-insensitive compare stops its fold.
  *
- * @note Builds two strings holding the same bytes, one lowercase and one uppercase in its ASCII
- *       letters, with one non-letter byte planted at a chosen position in both. A case-insensitive
- *       compare is defined to call every such pair equal, whatever the planted byte is.
- * @note Reports the first pair that disagrees, naming the byte and the position, and so the domain the
- *       lane comparison actually holds over is measured and not guessed at.
+ * @note Builds two strings with the same bytes, one lowercase and one uppercase in its ASCII
+ *       letters. One non-letter byte sits at a chosen position in both. A case-insensitive
+ *       compare has to call every such pair equal, whatever the planted byte is.
+ * @note Reports the first pair that disagrees, with the byte and the position. So the domain the
+ *       lane comparison actually holds over comes from a measurement and not a guess.
  */
 void test_a_case_insensitive_compare_holds_for_every_planted_byte(void)
 {
@@ -364,9 +364,9 @@ void test_a_case_insensitive_compare_holds_for_every_planted_byte(void)
             lower_of[length] = '\0';
             upper_of[length] = '\0';
 
-            // The planted byte and the string length are folded into the reported value. A failure
-            // then names both without needing a formatted message: the low byte is the planted
-            // value and the next byte up is the length the string was built at
+            // The reported value folds in the planted byte and the string length. A failure
+            // then names both with no formatted message. The low byte is the planted
+            // value and the next byte up is the length of the string
             const unsigned planted_and_position = planted | (length << 8);
             const unsigned matched =
                 EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = lower_of, .other = upper_of, .cap = 31u, .ci = EMBED_TRUE)
@@ -383,8 +383,8 @@ void test_a_case_insensitive_compare_holds_for_every_planted_byte(void)
 /**
  * @brief Checks that a sign in the text reaches the value it belongs to.
  *
- * @note A negative zero is included because it is the single one value where the sign is the only bit that
- *       carries it, and a conversion that dropped the sign would return a positive zero that
+ * @note A negative zero is in the set because it is the single one value where the sign is the only
+ *       bit that carries it. A conversion that dropped the sign would return a positive zero. That
  *       compares equal to it under every test but this one.
  */
 void test_a_sign_in_the_text_reaches_the_value(void)

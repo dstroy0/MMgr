@@ -3,10 +3,10 @@
 
 The persistent end in the low half of one word and the temporary top in the high half, `M` the size of a half.
 A bump up adds its need to the word; a bump down subtracts its need shifted into the high half, modulo the
-word. Under the two caps the C states, a bump up never carries into the top's half, and a bump down's borrow
-leaves the word without touching the end's half. The in-flight bound: every bump up reads the end at or below
-the most bytes a cellblock may hold before its read-modify-write, and the bumps that move the end between that
-read and the read-modify-write are at most the lanes in flight, so the end stays within its half.
+word. Under the two caps the C states, a bump up never carries into the top's half. A bump down's borrow
+leaves the word and does not touch the end's half. The in-flight bound: every bump up reads the end at or
+below the most bytes a cellblock may hold before its read-modify-write. Between that read and its
+read-modify-write at most the lanes in flight move the end, so the end stays in its half.
 -/
 
 namespace LocusCarcerum.Word
@@ -29,7 +29,7 @@ theorem high_encode (M E T : Nat) (hE : E < M) : high M (encode M E T) = T := by
   have hM : 0 < M := Nat.lt_of_le_of_lt (Nat.zero_le E) hE
   rw [Nat.mul_comm, Nat.mul_add_div hM, Nat.div_eq_of_lt hE, Nat.add_zero]
 
-/-- A bump up of need `n` with `E + n` within the half: the end moves by `n` and the top is untouched. -/
+/-- A bump up of need `n` with `E + n` within the half: the end moves by `n` and the top stays as it is. -/
 theorem bumpUp_no_carry (M E T n : Nat) (h : E + n < M) :
     low M (encode M E T + n) = E + n ∧ high M (encode M E T + n) = T := by
   have hw : encode M E T + n = encode M (E + n) T := by
@@ -59,7 +59,7 @@ theorem encode_mod_square (M E T : Nat) (hE : E < M) :
     omega
   rw [hsplit, Nat.mul_add_mod, Nat.mod_eq_of_lt hsmall]
 
-/-- A bump down of need `n ≤ M`: the word takes `n` shifted into the high half away, modulo the word; the
+/-- A bump down of need `n ≤ M`. The word takes `n` shifted into the high half away, modulo the word. The
 borrow leaves the word, the end stands, and the top is `T - n` within its half. -/
 theorem bumpDown_borrow_leaves (M E T n : Nat) (hE : E < M) (hn : n ≤ M) :
     low M ((encode M E T + (M * M - n * M)) % (M * M)) = E ∧
@@ -73,14 +73,14 @@ theorem bumpDown_borrow_leaves (M E T n : Nat) (hE : E < M) (hn : n ≤ M) :
   rw [hw, encode_mod_square M E (T + M - n) hE]
   exact ⟨low_encode M E ((T + M - n) % M) hE, high_encode M E ((T + M - n) % M) hE⟩
 
-/-- A bump down that is taken, `n ≤ T`: the top is `T - n` exactly. -/
+/-- A bump down that goes through, `n ≤ T`: the top is `T - n` exactly. -/
 theorem bumpDown_within (M T n : Nat) (hT : T < M) (hn : n ≤ T) : (T + M - n) % M = T - n := by
   have h : T + M - n = (T - n) + M := by omega
   rw [h, Nat.add_mod_right, Nat.mod_eq_of_lt (by omega)]
 
-/-- The in-flight bound. A bump up reads the end at `pre ≤ most` before its read-modify-write; the bumps that
+/-- The in-flight bound. A bump up reads the end at `pre ≤ most` before its read-modify-write. The bumps that
 add to the end between that read and the read-modify-write are at most `lanes` in flight, each of at most
-`most_need`; the bump's own need is at most `most_need`. With `most + (lanes + 1) * most_need < M` the end after
+`most_need`. The bump's own need is at most `most_need`. With `most + (lanes + 1) * most_need < M` the end after
 the read-modify-write is within the half. -/
 theorem in_flight_within (M most most_need lanes pre between n : Nat) (hpre : pre ≤ most)
     (hbetween : between ≤ lanes * most_need) (hn : n ≤ most_need)
@@ -88,28 +88,28 @@ theorem in_flight_within (M most most_need lanes pre between n : Nat) (hpre : pr
   rw [Nat.succ_mul] at hcap
   omega
 
-/-- The C's caps on a 64-bit word: a half of 32 bits, the most bytes `2 ^ 31`, the most need `16 + 2 ^ 24`, and
-up to 126 bumps in flight beside the one deciding. -/
+/-- The C's caps on a 64-bit word. A half of 32 bits, the most bytes `2 ^ 31`, the most need `16 + 2 ^ 24`, and
+up to 126 bumps in flight beside the one that decides. -/
 theorem caps_64 : 2 ^ 31 + (126 + 1) * (16 + 2 ^ 24) < 2 ^ 32 := by decide
 
-/-- The C's caps on a 32-bit word: a half of 16 bits, the most bytes `2 ^ 15`, the most need `16 + 2 ^ 8`, and
-up to 119 bumps in flight beside the one deciding. -/
+/-- The C's caps on a 32-bit word. A half of 16 bits, the most bytes `2 ^ 15`, the most need `16 + 2 ^ 8`, and
+up to 119 bumps in flight beside the one that decides. -/
 theorem caps_32 : 2 ^ 15 + (119 + 1) * (16 + 2 ^ 8) < 2 ^ 16 := by decide
 
 /-! ## The request guard
 
-The rounding of the C adds `A - 1` to a request and clears the low bits, modulo the word `2 ^ W`. A request near
+The round of the C adds `A - 1` to a request and clears the low bits, modulo the word `2 ^ W`. A request near
 the top of the word wraps to a small cell. Every take and every growth refuses a request over the cellblock's
-size `S` before it rounds, so the rounding and the header added to it stay below the word. -/
+size `S` before it rounds. So the round and the header added to it stay below the word. -/
 
-/-- The rounding of the C: `s` up to a multiple of `A`, modulo the word `W`. -/
+/-- The round of the C: `s` up to a multiple of `A`, modulo the word `W`. -/
 def round (W A s : Nat) : Nat := (s + (A - 1)) % W / A * A
 
-/-- Without the guard the rounding wraps: on a 64-bit word with an alignment of 8, the largest request rounds to
+/-- Without the guard the round wraps: on a 64-bit word with an alignment of 8, the largest request rounds to
 a cell of 0 bytes. -/
 theorem round_wraps_unguarded : round (2 ^ 64) 8 (2 ^ 64 - 1) = 0 := by decide
 
-/-- With the guard, `s ≤ S` and `S + A ≤ W`: the rounding does not wrap, and the cell is at least the request. -/
+/-- With the guard, `s ≤ S` and `S + A ≤ W`: the round does not wrap, and the cell is at least the request. -/
 theorem round_guarded (W A S s : Nat) (hA : 0 < A) (hs : s ≤ S) (hW : S + A ≤ W) :
     s ≤ round W A s ∧ round W A s < s + A := by
   unfold round
@@ -138,7 +138,7 @@ theorem guard_32 : 2 ^ 15 + 8 + 16 ≤ 2 ^ 32 := by decide
 
 A bump down subtracts its need from the top with no read of the end before it. The bumps down in flight are at
 most the turnstiles' lanes `L`, each of at most `m`. A top that the bumps in flight take below zero wraps modulo
-the half `M`, and the wrapped top reads past the cellblock's size `S`, so the check after the bump refuses it.
+the half `M`. The wrapped top reads past the cellblock's size `S`, so the check after the bump refuses it.
 The bound `S + L * m < M` is the static assert of the C. -/
 
 /-- A top `T` that the bumps in flight take below zero, `T < d ≤ L * m`: the wrapped top is above `S`. -/

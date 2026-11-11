@@ -36,7 +36,7 @@ LocusCarcerum(octo, MMGR_MINIMUM_SECURITY(o0), MMGR_MINIMUM_SECURITY(o1), MMGR_M
               MMGR_MINIMUM_SECURITY(o3), MMGR_MINIMUM_SECURITY(o4), MMGR_MINIMUM_SECURITY(o5),
               MMGR_MINIMUM_SECURITY(o6), MMGR_MINIMUM_SECURITY(o7));
 
-// The owners the cases take for, handed out by the queue to the first setUp: the owner queue lives as long
+// The owners the cases take for, which the queue hands out to the first setUp. The owner queue lives as long
 // as the program does
 // The owners every case takes for, declared with the cellblocks as the program's table
 #define RAM_OWNERS(owner_) owner_(cells, "cells") owner_(grower, "grower")
@@ -350,7 +350,7 @@ void test_a_maximum_security_release_zeroes_the_whole_cell(void)
 {
     uint8_t *const p = (uint8_t *)ram.b.persistent_buf_alloc(33u, cells);
     const size_t held = mmgr_align_up_buf(33u);
-    // The take's alloc_size bounds p at the 33 bytes asked for: the slack past them is reached
+    // The take's alloc_size bounds p at the 33 bytes asked for. The slack past them comes
     // through the cellblock's storage, which holds it: the same address, derived from the base
     uint8_t *const cell = ram_b_ctx.base + (size_t)(p - ram_b_ctx.base);
 

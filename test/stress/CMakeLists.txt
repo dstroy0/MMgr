@@ -1,5 +1,5 @@
-# The thread stress of LocusCarcerum on the host environment: one program, run short by ctest and long by hand with
-# its thread count, rounds, cellblock bytes, runs and seed on the command line.
+# The thread stress of LocusCarcerum on the host environment: one program, run short by ctest and long by hand.
+# The thread count, rounds, cellblock bytes, runs and seed come on the command line.
 find_package(Threads REQUIRED)
 
 set(MMGR_STRESS_SOURCES
@@ -7,8 +7,8 @@ set(MMGR_STRESS_SOURCES
     "${MMGR_TEST_ROOT}/support/host_threads.c"
     "${MMGR_TEST_ROOT}/support/host_wait.c")
 
-# host_wait.c sets the GNU feature set ahead of its first include, which is too late where an environment forces a
-# header in first: on the command line it is in place before any header is read
+# host_wait.c sets the GNU feature set ahead of its first include. That is too late where an environment forces a
+# header in first. On the command line it is in place before any header comes in
 if(NOT WIN32)
     set_source_files_properties("${MMGR_TEST_ROOT}/support/host_wait.c" PROPERTIES COMPILE_DEFINITIONS "_GNU_SOURCE=1")
 endif()

@@ -35,8 +35,8 @@
 /**
  * @brief Expands to 512u, the bytes every destination buffer here holds.
  *
- * @note Far past the longest string any case writes, which keeps a short buffer from ever being the
- *       reason a case fails.
+ * @note Far past the longest string any case writes, so that a short buffer is never the reason a
+ *       case fails.
  */
 #define MMGR_ACCURACY_VERBA_BUFFER 512u
 
@@ -44,7 +44,7 @@
  * @brief Expands to 17u, the significant digits that name a double exactly.
  *
  * @note A binary64 value written at this many decimal digits and read back reaches the same bits. At
- *       sixteen two values can share a rendering, and at eighteen the extra digit carries nothing.
+ *       sixteen two values can share a text, and at eighteen the extra digit carries nothing.
  */
 #define MMGR_ACCURACY_VERBA_EXACT_DIGITS 17u
 
@@ -53,8 +53,8 @@
  *
  * @param[in] value Value to take apart.
  * @return          Its eight bytes as a uint64_t.
- * @note Goes through memcpy and not a union or a pointer cast, which keeps this independent of how
- *       the library reads a double's bits and bends no aliasing rule to do it.
+ * @note Goes through memcpy and not a union or a pointer cast. That keeps this independent of how
+ *       the library reads a double's bits, and breaks no type rule to do it.
  */
 static uint64_t accuracy_bits_of(double value)
 {
@@ -69,10 +69,10 @@ static uint64_t accuracy_bits_of(double value)
  *
  * @param[out] out Destination buffer [BORROWS].
  * @param[in]  at  Offset the last entry reported.
- * @return         The length the terminator was stored at.
- * @note Every case writes its fields and then finishes, and doing that in one place keeps the cases
- *       reading as the values and widths they are checking.
- * @warning The capacity is fixed at MMGR_ACCURACY_VERBA_BUFFER here, and so out must be a buffer of that
+ * @return         The length the terminator landed at.
+ * @note Every case writes its fields and then finishes. One place for that keeps the cases as a
+ *       plain read of the values and widths they check.
+ * @warning The capacity is MMGR_ACCURACY_VERBA_BUFFER here, and so out must be a buffer of that
  *          size. The single case that uses a smaller buffer terminates it itself.
  */
 static size_t accuracy_finish_at(char *out, size_t at)
@@ -85,9 +85,9 @@ static size_t accuracy_finish_at(char *out, size_t at)
  *
  * @param[in] exponent Power to raise ten to, 0 through 17.
  * @return             The result.
- * @note Multiplied out and not taken from a library call, which leaves the error bound below resting
- *       on nothing this file did not compute. Every power in that range is exact in a binary64, since
- *       the odd part of ten to the seventeenth is still under two to the fifty-third.
+ * @note Multiplied out and not taken from a library call, so that the error bound below rests
+ *       on nothing this file did not compute. Every power in that range is exact in a binary64.
+ *       The odd part of ten to the seventeenth is still under two to the fifty-third.
  */
 static double accuracy_power_of_ten(unsigned exponent)
 {
@@ -103,15 +103,15 @@ static double accuracy_power_of_ten(unsigned exponent)
 /**
  * @brief Returns whether a value sits exactly halfway between two renderings at a decimal count.
  *
- * @param[in] value    Value being written.
+ * @param[in] value    Value to write.
  * @param[in] decimals Digits after the point.
  * @return             1 when the value is an exact tie at that count, 0 otherwise.
- * @note A tie is the single one input the two rounding rules disagree about, and which rule a C library
- *       applies is not fixed by the standard. This module takes a half away from zero, printf on MinGW
+ * @note A tie is the single one input the two round rules disagree about. The standard does not fix
+ *       which rule a C library applies. This module takes a half away from zero, printf on MinGW
  *       does the same, and printf on glibc rounds a tie to even. A comparison at a tie would then
  *       report a difference of convention as a defect on one host or the other.
- * @note Ties are checked directly against the documented rule in their own case below, and so nothing is
- *       lost by leaving them out of the comparison against the reference.
+ * @note Their own case below checks ties directly against the documented rule. So their absence from
+ *       the comparison against the reference loses nothing.
  * @warning Only meaningful where the scaled value is small enough to carry a fractional part. A
  *          magnitude past two to the fifty-third has no fraction left and reports no tie, which is
  *          correct: there is nothing there to round.
@@ -145,15 +145,15 @@ void tearDown(void)
 }
 
 /**
- * @brief Checks that the reference formatting and the round trip behave as the cases assume.
+ * @brief Checks that the reference output and the round trip behave as the cases assume.
  *
  * @note Exists to catch a wrong assumption about the references as themselves. The cases lean on
- *       snprintf zero padding and on strtod reading back what snprintf wrote, and a platform that did
+ *       snprintf zero padding and on a strtod read of what snprintf wrote. A platform that did
  *       either differently would report the module as wrong everywhere.
- * @note The round trip is checked on the C library alone: a value written by snprintf at seventeen
- *       digits and read back by strtod has to give the same bits, or the round trip cases below prove
+ * @note The round trip check runs on the C library alone. A value from snprintf at seventeen digits
+ *       and back through strtod has to give the same bits. Otherwise the round trip cases below prove
  *       nothing about the module.
- * @note The bit reader is checked against values whose patterns are known, since every floating point
+ * @note The bit reader has its check against values with known patterns, since every floating point
  *       comparison here goes through it.
  */
 void test_the_references_this_suite_relies_on_behave_as_assumed(void)
@@ -191,11 +191,11 @@ void test_the_references_this_suite_relies_on_behave_as_assumed(void)
 /**
  * @brief Checks the unsigned and signed base ten entries against snprintf.
  *
- * @note The extremes of both types are included. The most negative signed value is the single one input with
- *       no positive counterpart, and a magnitude taken by negating it wraps back to itself.
+ * @note The extremes of both types are in the set. The most negative signed value is the single one input with
+ *       no positive counterpart, and a magnitude from its sign flip wraps back to itself.
  * @note Four entries write base ten and differ in what they pad with and where the width comes from.
- *       Each is checked separately, since a table that pointed two of them at one function would pass
- *       whichever case it was written for.
+ *       Each has its own check, since a table that pointed two of them at one function would pass
+ *       whichever case fits it.
  */
 void test_the_base_ten_entries_match_the_reference(void)
 {
@@ -266,12 +266,12 @@ void test_the_base_ten_entries_match_the_reference(void)
 /**
  * @brief Checks the padded and based entries against snprintf at every width.
  *
- * @note The padding rules are where these entries differ from each other, and a width narrower than
- *       the value is checked to widen the field and not to cut the value.
- * @note Base sixteen is checked to come out lower case, which the header states and which a reference
- *       written with the upper case conversion would disagree with at every letter digit.
- * @note Base eight is included, since the entry that takes a base is documented to write ten for
- *       anything other than eight or sixteen, and a base that fell through to ten silently would look
+ * @note The padding rules are where these entries differ from each other. The case checks that a
+ *       width narrower than the value makes the field wider and does not cut the value.
+ * @note The case checks that base sixteen comes out lower case, which the header states. A reference
+ *       from the upper case conversion would disagree at every letter digit.
+ * @note Base eight is in the set. The entry that takes a base writes ten for anything other
+ *       than eight or sixteen by its own rule. A base that fell through to ten silently would look
  *       correct for every value below eight.
  */
 void test_the_padded_and_based_entries_match_the_reference(void)
@@ -332,7 +332,7 @@ void test_the_padded_and_based_entries_match_the_reference(void)
  * @note This is the case the file exists for. Seventeen digits name a binary64 exactly, and so the value
  *       that comes back through strtod has to carry the same bits. A single wrong digit anywhere in
  *       the run gives a different double.
- * @note Nothing here compares against a reference rendering, and so the module is free to write the digits
+ * @note Nothing here compares against a reference text, and so the module is free to write the digits
  *       in whatever form it picks. The check is that the number those digits stand for is the
  *       number that went in.
  * @note The values straddle both form boundaries in both directions, cover both signs, and include
@@ -385,14 +385,14 @@ void test_a_double_written_at_seventeen_digits_reads_back_the_same(void)
  * @brief Checks that a double written at fewer digits stays inside the error that count allows.
  *
  * @note Below seventeen digits the round trip cannot be exact, and so the claim is the weaker one that
- *       holds at every width: the value read back differs from the original by no more than half a
+ *       holds at every width. The value read back differs from the original by no more than half a
  *       unit in the last digit written.
- * @note Every significant digit count from one to seventeen is offered on every value, and so the bound
- *       is checked as it tightens instead of at one convenient width.
+ * @note The case offers every significant digit count from one to seventeen on every value. So the
+ *       check follows the bound as it tightens instead of one convenient width.
  * @note A form that dropped a digit, or rounded away from the nearest, lands outside the bound at the
- *       width where it did so and stays outside at every width past it.
- * @note Zero is left out of the ratio, since a relative error has no meaning there. It is covered by
- *       the exact case above.
+ *       width where it did so. It stays outside at every width past it.
+ * @note Zero stays out of the ratio, since a relative error means nothing there. The exact case above
+ *       covers it.
  */
 void test_a_double_written_at_fewer_digits_stays_inside_the_allowed_error(void)
 {
@@ -432,8 +432,8 @@ void test_a_double_written_at_fewer_digits_stays_inside_the_allowed_error(void)
             const double original = value_of[index];
 
             // A value near the top of the range rounds up out of it at a small digit count. The
-            // largest double written to one digit is 2e+308, which no double carries, and so the reading
-            // back overflows and there is no error to measure. That is the digits being right
+            // largest double written to one digit is 2e+308, which no double carries. So the read
+            // back overflows and there is no error to measure. That is the digits as they should be
             if (!isfinite(parsed))
             {
                 continue;
@@ -454,13 +454,13 @@ void test_a_double_written_at_fewer_digits_stays_inside_the_allowed_error(void)
 /**
  * @brief Checks the fixed form against snprintf at every decimal count.
  *
- * @note The fixed form and the printf conversion agree on what they mean, and so this is a direct
+ * @note The fixed form and the printf conversion agree on what they mean. So this is a direct
  *       comparison at every input that is not an exact tie.
- * @note A decimal count of zero is documented to write no point at all, the boundary a count
- *       taken as one-based would get wrong, and the reference writes it the same way.
- * @note Exact ties are left out. The module takes a half up on the magnitude and writes the sign
- *       separately, which is away from zero, and which way printf breaks a tie depends on the C
- *       library. The case below pins the rule with no formatter in it.
+ * @note A decimal count of zero writes no point at all by its own rule, the boundary a count
+ *       taken as one-based would get wrong. The reference writes it the same way.
+ * @note Exact ties stay out. The module takes a half up on the magnitude and writes the sign
+ *       apart, which is away from zero. Which way printf breaks a tie depends on the C library. The
+ *       case below pins the rule with no formatter in it.
  */
 void test_the_fixed_form_matches_the_reference(void)
 {
@@ -499,22 +499,22 @@ void test_the_fixed_form_matches_the_reference(void)
  * @brief Checks that an exact tie rounds up.
  *
  * @note The header states a half rounds up, and this is the case that holds it to that. Every
- *       expectation is written out by hand from the rule, with no formatter consulted, since the C
- *       standard leaves the rule open and a library is free to pick either.
+ *       expectation comes by hand from the rule, with no formatter in it. The C standard leaves the
+ *       rule open and a library is free to pick either.
  * @note At no decimals every half moves to the next integer. That separates this from the
  *       tie-to-even rule it replaced, which took a half down to an even neighbor half the time.
  * @note All the values are exact in binary, and so each one really is a tie, and no value here merely
  *       prints like one.
- * @note The negative ties are what show the direction. The sign is written ahead of the magnitude and
+ * @note The negative ties are what show the direction. The sign comes ahead of the magnitude and
  *       the magnitude is what rounds up. A negative half moves away from zero.
  */
 void test_an_exact_tie_rounds_up(void)
 {
     static const struct
     {
-        double value;         /**< The tie being written. */
+        double value;         /**< The tie to write. */
         uint8_t decimals;     /**< Digits after the point. */
-        const char *expected; /**< What rounding the half up gives [BORROWS]. */
+        const char *expected; /**< What a round of the half up gives [BORROWS]. */
     } tie_of[] = {
         {0.5, 0u, "1"},      {1.5, 0u, "2"},    {2.5, 0u, "3"},      {3.5, 0u, "4"},        {-0.5, 0u, "-1"},
         {-1.5, 0u, "-2"},    {-2.5, 0u, "-3"},  {0.125, 2u, "0.13"}, {0.375, 2u, "0.38"},   {0.625, 2u, "0.63"},
@@ -541,14 +541,14 @@ void test_an_exact_tie_rounds_up(void)
 }
 
 /**
- * @brief Checks the text entries against the bytes they are documented to write.
+ * @brief Checks the text entries against the bytes their notes say they write.
  *
- * @note The escaping entries differ from the plain one in exactly which bytes they replace, and the
- *       expected strings are written out by hand from the two formats' rules.
- * @note The counted write is offered a length shorter than the string it points at, as
- *       shows the count is read and the terminator is not.
- * @note The clipping write is offered a buffer too small for its text, the one text entry
- *       documented to write what fits instead of refusing.
+ * @note The escape entries differ from the plain one in exactly which bytes they replace. The
+ *       expected strings come by hand from the two formats' rules.
+ * @note The counted write gets a length shorter than the string it points at, which shows the
+ *       count counts and the terminator does not.
+ * @note The clip write gets a buffer too small for its text. It is the one text entry whose
+ *       notes say it writes what fits and does not refuse.
  */
 void test_the_text_entries_write_the_bytes_they_are_documented_to(void)
 {
@@ -586,7 +586,7 @@ void test_the_text_entries_write_the_bytes_they_are_documented_to(void)
                                                   .cap = sizeof produced, .at = 0u, .text = NULL));
     TEST_ASSERT_EQUAL_STRING_MESSAGE("", produced, "a null string did not write nothing through the XML entry");
 
-    // A capacity of eight leaves seven bytes for text once the terminator is reserved
+    // A capacity of eight leaves seven bytes for text once the terminator has its byte
     char small[8];
     const size_t clipped = EMBED_CALL(verba_textus.put_clip, VerbaTextusCfg, .out = small, .cap = sizeof small,
                                       .at = 0u, .text = "0123456789");
@@ -600,10 +600,10 @@ void test_the_text_entries_write_the_bytes_they_are_documented_to(void)
  *
  * @note Neither form is a number, and so nothing reads them back. The check is on the exact text the
  *       header names, lower case and unquoted.
- * @note The sign is documented to reach the infinity and not the NaN, and both are checked, since a
- *       sign written on a NaN would be neither valid nor what the header states.
- * @note The predicates are checked against the same values, including a negative zero, which the
- *       header states reports as signed because the bit is read instead of the value compared.
+ * @note The sign reaches the infinity and not the NaN by its own rule, and the case checks
+ *       both. A sign on a NaN would be neither valid nor what the header states.
+ * @note The predicates have their checks against the same values, a negative zero among them. The
+ *       header states that one reports as signed because the test reads the bit and not the value.
  */
 void test_the_non_finite_forms_and_the_predicates(void)
 {
@@ -648,14 +648,14 @@ void test_the_non_finite_forms_and_the_predicates(void)
 }
 
 /**
- * @brief Checks that a run of entries writing in turn lands each field where the last one ended.
+ * @brief Checks that a run of entries that write in turn lands each field where the last one ended.
  *
- * @note Every writing entry takes the offset to write at and reports the offset past what it wrote,
+ * @note Every entry that writes takes the offset to write at and reports the offset past what it wrote,
  *       as lets a caller chain them. A cursor off by one shows up as a lost or a doubled
  *       character at every join and nowhere else.
- * @note The run mixes text, a character and three numeric forms, and so the threading is checked across
+ * @note The run mixes text, a character and three numeric forms, and so the chain check runs across
  *       entries in different tables instead of within one.
- * @note The reference is assembled by snprintf in the same order, and so the comparison is between two
+ * @note snprintf builds the reference in the same order, and so the comparison is between two
  *       whole strings.
  */
 void test_a_run_of_entries_threads_the_cursor(void)

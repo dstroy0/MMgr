@@ -6,11 +6,11 @@
  */
 /**
  * @file impensa_ancorae_acus_uri.c
- * @brief Byte cost table scoring letters, digits and URI punctuation.
+ * @brief Byte cost table that scores letters, digits and URI punctuation.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note One of five files defining mmgr_ancorae_impensa. A build links exactly one of them.
+ * @note One of five files that define mmgr_ancorae_impensa. A build links exactly one of them.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
@@ -20,7 +20,7 @@
  * @note Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.
  * @note 255 marks the NUL and the slash, and so neither is ever chosen as a sieve offset.
  * @note The space sits at 1 here, where the two text tables give it 255.
- * @note Every initializer is a plain int constant from 1 to 255, and so narrowing to the uint8_t element keeps its
+ * @note Every initializer is a plain int constant from 1 to 255, and so the narrow cast to the uint8_t element keeps its
  * value.
  */
 static const uint8_t s_impensa[256] = {

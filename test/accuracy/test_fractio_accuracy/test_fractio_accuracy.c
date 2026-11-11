@@ -31,8 +31,8 @@
 /**
  * @brief Expands to 63, the bit the binary64 sign occupies.
  *
- * @note Written from the format. fractio.h states the same position as MMGR_DBL_SIGN_SHIFT, and the
- *       point of repeating it here is that the two are then checkable against each other.
+ * @note Written from the format. The file fractio.h states the same position as MMGR_DBL_SIGN_SHIFT.
+ *       The point of a second copy here is that the two are then checkable against each other.
  */
 #define MMGR_ACCURACY_SIGN_SHIFT 63u
 
@@ -58,20 +58,20 @@
 #define MMGR_ACCURACY_MANTISSA_MASK 0x000FFFFFFFFFFFFFULL
 
 /**
- * @brief Reads the bits of a double without going through the library.
+ * @brief Reads the bits of a double and does not go through the library.
  *
  * @note A union is the reinterpretation this suite needs and the one fractio performs internally.
- *       Declaring it here keeps the comparison independent of the module whose output it reads.
+ *       The union declared here keeps the comparison independent of the module whose output it reads.
  */
 typedef union {
-    double value;  /**< The double being read. */
+    double value;  /**< The double to read. */
     uint64_t bits; /**< The same storage as an integer. */
 } AccuracyDoubleBits;
 
 /**
  * @brief One pattern and the three fields the binary64 format puts in it.
  *
- * @note Every row below is worked out from the format by hand, as lets a row stand as an
+ * @note Every row below comes from the format by hand, which lets a row stand as an
  *       expectation on its own.
  */
 typedef struct
@@ -80,7 +80,7 @@ typedef struct
     uint64_t sign;         /**< Bit 63, as 0 or 1. */
     uint64_t exponent;     /**< The biased exponent, 0 through 2047. */
     uint64_t mantissa;     /**< The fifty-two stored bits. */
-    const char *describes; /**< What class of value the row is, for a failing assertion to name. */
+    const char *describes; /**< What class of value the row is, for a failed assertion to name. */
 } AccuracyPattern;
 
 /**
@@ -88,11 +88,11 @@ typedef struct
  *
  * @note 1.0 is a biased exponent of 1023 over a zero mantissa. 3.0 is 1.5 times two, the
  *       same exponent plus one over a mantissa of a half, and a half of 2^52 is 0x8000000000000.
- * @note The smallest subnormal is a single low bit with an exponent field of zero, and the largest
+ * @note The smallest subnormal is a single low bit with an exponent field of zero. The largest
  *       finite value is the highest exponent short of the all-ones one over a full mantissa.
- * @note An infinity is the all-ones exponent over a zero mantissa. No NaN row appears here: a
- *       signaling one can be quieted by passing through a double return, and the all-ones exponent
- *       is already covered.
+ * @note An infinity is the all-ones exponent over a zero mantissa. No NaN row appears here. A
+ *       pass through a double return can quiet a signaling one, and the all-ones exponent
+ *       already has a row.
  */
 static const AccuracyPattern accuracy_pattern_of[] = {
     {0x3FF0000000000000ULL, 0ULL, 1023ULL, 0x0000000000000ULL, "one"},
@@ -149,7 +149,7 @@ static double accuracy_double_of(uint64_t bits)
  * @return             The three fields placed where the binary64 format puts them.
  * @note Built from the shifts declared at the top of this file, and that leaves it usable as an
  *       expectation for mmgr_fract_merge.
- * @note Each field is masked before it is shifted, matching what the format allows a field to hold.
+ * @note Each field has its mask before its shift, as the format allows a field to hold.
  *       A caller here passes values already inside those bounds.
  */
 static uint64_t accuracy_pattern_from(uint64_t sign, uint64_t exponent, uint64_t mantissa)
@@ -164,7 +164,7 @@ static uint64_t accuracy_pattern_from(uint64_t sign, uint64_t exponent, uint64_t
  *
  * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
  * @note Every value this suite uses is either a file-scope constant or has automatic storage inside
- *       the case that builds it, and there is no shared state to prepare here.
+ *       the case that builds it. There is no shared state to prepare here.
  */
 void setUp(void)
 {
@@ -185,8 +185,8 @@ void tearDown(void)
  *        worked out by hand.
  *
  * @note Exists to catch a defect in the helpers as itself. Without this case a broken
- *       accuracy_pattern_from would surface as a merge mismatch, and fractio would be blamed for it.
- * @note The last check walks the whole table and reassembles each row from its own three fields, and therefore
+ *       accuracy_pattern_from would surface as a merge mismatch, and fractio would look wrong.
+ * @note The last check walks the whole table and reassembles each row from its own three fields. So
  *       a row whose fields do not add back up to its pattern fails here and not in a later case.
  */
 void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
@@ -203,7 +203,7 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
                                     "the assembly does not place the sign at bit 63");
 
     // Explicit cast narrows the size_t sizeof quotient to the unsigned the loop counts in. The table
-    // holds eleven rows, which is far inside what an unsigned carries on any conforming target
+    // holds eleven rows, which is far inside what an unsigned carries on any standard target
     const unsigned row_count = (unsigned)(sizeof accuracy_pattern_of / sizeof accuracy_pattern_of[0]);
 
     for (unsigned row = 0u; row < row_count; row++)
@@ -219,10 +219,10 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
  * @brief Checks that each of the three field entries returns the field the format puts at that
  *        position, across every class a double can be.
  *
- * @note The expectations come from the table, whose rows are worked out from the format. Nothing
+ * @note The expectations come from the table, whose rows come from the format. Nothing
  *       about them depends on the masks fractio declares.
  * @note A zero, a subnormal and an infinity are each in the table because the three entries read
- *       fields without interpreting them, and a defect that only shows on one class would otherwise
+ *       fields and do not interpret them. A defect that only shows on one class would otherwise
  *       go unseen.
  */
 void test_every_field_comes_out_of_the_place_the_format_puts_it(void)
@@ -252,7 +252,7 @@ void test_every_field_comes_out_of_the_place_the_format_puts_it(void)
  * @note Reads the fields through the module and reassembles them here. A split that dropped a bit or
  *       placed a field one position off fails even where each field looks plausible on its own.
  * @note Covers the whole word between them. The three fields tile all sixty-four bits, and a
- *       reassembly matching the original is what shows nothing fell between them.
+ *       reassembly that matches the original is what shows nothing fell between them.
  */
 void test_the_three_fields_put_back_together_are_the_pattern_they_came_from(void)
 {
@@ -297,11 +297,11 @@ void test_merge_places_the_fields_where_the_format_puts_them(void)
 }
 
 /**
- * @brief Checks that the two reinterpretation entries move a value between its two readings without
- *        changing a bit.
+ * @brief Checks that the two reinterpretation entries move a value between its two readings and
+ *        change no bit.
  *
- * @note Each is compared against this file's own union on the same storage. A defect in either
- *       direction shows up on its own, without the other covering for it.
+ * @note Each compares against this file's own union on the same storage. A defect in either
+ *       direction shows up on its own, with no cover from the other.
  * @note Compared as patterns in both directions. A double comparison would report two NaN patterns
  *       unequal and two zero patterns equal, and this case asks for neither.
  */

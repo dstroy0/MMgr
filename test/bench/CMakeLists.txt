@@ -22,13 +22,13 @@
 # it - .text comes out at the -O3 figure and not the -O2 one - and -O3 measures
 # slower on put and read while inflating .text by a third.
 
-# The A/B benches build against ProtoCore's own sources and not a copy of them, and so what they
+# The A/B benches build against ProtoCore's own sources and not a copy of them. So what they
 # measure is its code and not a transcription. It is a sibling checkout and not a dependency: when
-# it is not there, those benches are skipped and the rest still build.
+# it is not there, those benches drop out and the rest still build.
 set(MMGR_PROTOCORE_DIR "${MMgr_SOURCE_DIR}/../../ProtoCore" CACHE PATH "ProtoCore checkout for the A/B benches")
 
 # The four under test, plus what they call: protomem for the moves, swar for the lane work under
-# it, and the host HAL for the context id the worker entries are keyed on.
+# it, and the host HAL. The HAL supplies the context id that keys the worker entries.
 set(MMGR_PROTOCORE_SOURCES
     "${MMGR_PROTOCORE_DIR}/src/mmgr/arena/arena.c"
     "${MMGR_PROTOCORE_DIR}/src/mmgr/span/span.c"
@@ -69,15 +69,15 @@ foreach(bench_src ${MMGR_BENCH_SOURCES})
                 target_link_libraries(${target} PRIVATE synchronization)
             endif()
             # ProtoCore's own three roots: its sources, its vendor detect, and the host answers that
-            # detect selects. It is compiled under its own warning set, not this library's.
+            # detect selects. It builds under its own warning set, not this library's.
             target_include_directories(${target} PRIVATE
                 "${MMGR_PROTOCORE_DIR}/src"
                 "${MMGR_PROTOCORE_DIR}"
                 "${MMGR_PROTOCORE_DIR}/test/core_setup/hal/host")
         elseif(bench_name MATCHES "^bench_ancorae_")
-            # All three draw their corpora from SHA-256 in counter mode, and every independence and
-            # entropy number is read against those corpora having the statistics they are supposed to.
-            # They compile the implementation the suites hold to the published vectors, and so the corpora
+            # All three draw their corpora from SHA-256 in counter mode. Every independence and
+            # entropy number reads against corpora with the statistics the design expects.
+            # They compile the implementation the suites hold to the published vectors. So the corpora
             # and the vectors are the same code and not two copies of it.
             add_executable(${target} "${bench_src}" "${MMgr_SOURCE_DIR}/test/support/mmgr_sha256.c")
             target_include_directories(${target} PRIVATE "${MMgr_SOURCE_DIR}/test/support")

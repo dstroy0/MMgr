@@ -6,15 +6,15 @@
  */
 /**
  * @file praet_platform_detection.h
- * @brief Which architecture this is being built for, and what that architecture gives a clock.
+ * @brief Which architecture the build is for, and what that architecture gives a clock.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
  * @note Nothing below names a part, a vendor or a board, and nothing should. A list of parts covers
  *       the ones somebody thought of on the day they wrote it and silently misses every part released
- *       afterwards. What is tested here is the architecture level, which every member of a family
- *       defines - an ATSAMD21 answers the ARMv6-M question the same way every other Cortex-M0+ does,
- *       and a part nobody here has heard of answers it too.
+ *       afterwards. The test here is the architecture level, which every member of a family
+ *       defines. An ATSAMD21 answers the ARMv6-M question the same way every other Cortex-M0+ does,
+ *       and a part nobody here knows answers it too.
  * @note The three families are the ones this library targets: ARM, RISC-V and Xtensa, all through
  *       GCC or clang. A build that is none of them is a host build, which is where the suites run.
  * @note The architecture tests below exist for the clock. embedded_types answers the compiler and
@@ -34,7 +34,7 @@
  * @brief Set where this is an ARM build, in either execution state.
  *
  * @note __arm__ covers every 32-bit ARM back to ARMv4, and __aarch64__ covers the 64-bit state. ACLE
- *       leaves both in place, and so testing the pair catches every ARM subfamily without naming one.
+ *       leaves both in place, and so a test of the pair catches every ARM subfamily and names none.
  */
 #if defined(__arm__) || defined(__aarch64__) || defined(__thumb__)
 #define PRAET_PLATFORM_ARM 1
@@ -57,8 +57,8 @@
 /**
  * @brief Set where this is an Xtensa build.
  *
- * @note GCC predefines both names unconditionally for Xtensa. Both are tested because a clang
- *       build for Xtensa is a separate front end and there is no reason to depend on it agreeing
+ * @note GCC predefines both names unconditionally for Xtensa. Both get a test because a clang
+ *       build for Xtensa is a separate front end. There is no reason to depend on its agreement
  *       about which one to emit.
  */
 #if defined(__XTENSA__) || defined(__xtensa__)
@@ -82,7 +82,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #if PRAET_PLATFORM_ARM
 
 /*
- * ARM subfamilies, by architecture level and profile. No part is named.
+ * ARM subfamilies, by architecture level and profile. It names no part.
  *
  * __ARM_ARCH is the architecture level as an integer and __ARM_ARCH_PROFILE is the profile as a
  * character constant, 'A', 'R' or 'M'. Between them they name every Cortex subfamily, and a
@@ -118,15 +118,15 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #endif
 
 /**
- * @brief Set where the architecture defines a counter the port can read without the caller running
- *        one.
+ * @brief Set where the architecture defines a counter the port can read, so the caller runs
+ *        none.
  *
  * @note ARMv7-M and up carry the DWT, whose cycle counter is what a port reads. ARMv6-M does not have
  *       one at all. A Cortex-M0 or M0+ has nothing here and the caller has to supply the clock.
  * @note The application and real-time profiles have the generic timer and the performance monitors,
  *       either of which a port can read.
  * @warning Says the architecture defines one, and never that this part implemented it. DWT_CYCCNT is
- *          optional even where the DWT is present, and reading it can be disabled. Whether it is
+ *          optional even where the DWT is present, and a read of it can be off. Whether it is
  *          really there is the port's to find out, and this only decides which default to take.
  */
 #if defined(__ARM_ARCH_PROFILE) && (__ARM_ARCH_PROFILE == 'M')
@@ -152,7 +152,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #endif
 
 /**
- * @brief Set where the architecture loads and stores at an address that is not aligned to the size.
+ * @brief Set where the architecture loads and stores at an address with no alignment to the size.
  *
  * @note ACLE defines __ARM_FEATURE_UNALIGNED where the hardware does it. A Cortex-M0 and an M7 answer
  *       this differently, and both are ARM.
@@ -170,8 +170,8 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 /*
  * RISC-V subfamilies, by register width and register file.
  *
- * __riscv_xlen is 32, 64 or 128. The embedded profiles cut the register file to sixteen and are
- * reported by __riscv_32e, __riscv_64e, or __riscv_abi_rve where the ABI is the embedded one.
+ * __riscv_xlen is 32, 64 or 128. The embedded profiles cut the register file to sixteen, and
+ * __riscv_32e, __riscv_64e, or __riscv_abi_rve report them where the ABI is the embedded one.
  */
 #if defined(__riscv_32e) || defined(__riscv_64e) || defined(__riscv_abi_rve)
 
@@ -192,13 +192,13 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #endif
 
 /**
- * @brief Set where the architecture defines a counter the port can read without the caller running
- *        one.
+ * @brief Set where the architecture defines a counter the port can read, so the caller runs
+ *        none.
  *
  * @note The cycle counter is the Zicntr CSR, which every profile carries. A port reads it with rdcycle
  *       or from mcycle where it runs in machine mode.
- * @warning Says the architecture defines one, and never that this build can reach it. Reading cycle
- *          from a lower privilege level is gated by mcounteren, and a platform may leave it closed.
+ * @warning Says the architecture defines one, and never that this build can reach it. The mcounteren
+ *          register gates a read of cycle from a lower privilege level, and a platform may leave it closed.
  */
 #define PRAET_PLATFORM_HAS_CYCLE_COUNTER 1
 
@@ -210,10 +210,10 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #define PRAET_PLATFORM_XLEN __riscv_xlen
 
 /**
- * @brief Set where the architecture loads and stores at an address that is not aligned to the size.
+ * @brief Set where the architecture loads and stores at an address with no alignment to the size.
  *
  * @note The three __riscv_misaligned_ macros arrived in GCC 14. An older toolchain defines none of
- *       them and this reads as strict. That is the fail-closed answer: a build described as strict on
+ *       them and this reads as strict. That is the fail-closed answer. A build described as strict on
  *       a part that is not loses nothing, and the reverse is a fault at run time.
  */
 #if defined(__riscv_misaligned_fast)
@@ -225,11 +225,11 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #elif PRAET_PLATFORM_XTENSA
 
 /*
- * Xtensa subfamilies, by calling convention.
+ * Xtensa subfamilies, by call convention.
  *
  * GCC predefines exactly one of __XTENSA_WINDOWED_ABI__ and __XTENSA_CALL0_ABI__ for every Xtensa
- * configuration. The register windows are the difference that shows up in anything reaching the
- * stack, and so it is the split worth naming.
+ * configuration. The register windows are the difference that shows up in anything that reaches the
+ * stack, and so it is the split worth a name.
  */
 #if defined(__XTENSA_WINDOWED_ABI__)
 
@@ -244,12 +244,12 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #endif
 
 /**
- * @brief Set where the architecture defines a counter the port can read without the caller running
- *        one.
+ * @brief Set where the architecture defines a counter the port can read, so the caller runs
+ *        none.
  *
  * @note CCOUNT, the cycle count special register. A port reads it with rsr.
- * @warning Says the architecture defines one, and never that this core was configured with it. An
- *          Xtensa core is configurable and the timer option can be left out, the port's to
+ * @warning Says the architecture defines one, and never that this core has it. An
+ *          Xtensa core is configurable and the timer option can be absent, which is the port's to
  *          find out.
  */
 #define PRAET_PLATFORM_HAS_CYCLE_COUNTER 1
@@ -263,11 +263,11 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #define PRAET_PLATFORM_XLEN 32u
 
 /**
- * @brief Set where the architecture loads and stores at an address that is not aligned to the size.
+ * @brief Set where the architecture loads and stores at an address with no alignment to the size.
  *
- * @note Zero, the fail-closed answer and was not measured. The base ISA raises a load
+ * @note Zero, the fail-closed answer and not a measurement. The base ISA raises a load
  *       or store alignment exception, the unaligned option is a core configuration choice, and GCC
- *       predefines nothing that reports it. A core that does support it is described conservatively
+ *       predefines nothing that reports it. A core that does support it gets the conservative answer
  *       here and loses nothing by it.
  */
 #define PRAET_PLATFORM_UNALIGNED_LOADS 0
@@ -283,12 +283,12 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #define PRAET_PLATFORM_NAME "this host"
 
 /**
- * @brief Set where the architecture defines a counter the port can read without the caller running
- *        one.
+ * @brief Set where the architecture defines a counter the port can read, so the caller runs
+ *        none.
  *
  * @note Zero, and not because a host has no counter. A host build has no core to pin a timer to and
- *       no architectural register to read, and so the clock is the caller's - and that leaves a host
- *       build take the same arm a Cortex-M0 does, for the same reason.
+ *       no architectural register to read. So the clock is the caller's, and a host build takes the
+ *       same arm a Cortex-M0 does, for the same reason.
  */
 #define PRAET_PLATFORM_HAS_CYCLE_COUNTER 0
 
@@ -296,7 +296,7 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
  * @brief Bits in this architecture's general purpose register.
  *
  * @note Off the pointer's width, read from UINTPTR_MAX, which <stdint.h> gives every C11 compiler as a
- *       constant the preprocessor compares. A host is whatever the machine running the suites is, and so
+ *       constant the preprocessor compares. A host is whatever machine runs the suites, and so
  *       there is nothing else to read it from.
  */
 #if UINTPTR_MAX > 0xFFFFFFFFu
@@ -308,14 +308,14 @@ EMBED_STATIC_ASSERT((PRAET_PLATFORM_ARM + PRAET_PLATFORM_RISCV + PRAET_PLATFORM_
 #endif
 
 /**
- * @brief Set where the architecture loads and stores at an address that is not aligned to the size.
+ * @brief Set where the architecture loads and stores at an address with no alignment to the size.
  */
 #define PRAET_PLATFORM_UNALIGNED_LOADS 1
 
 #endif
 
-// A word wider than the register it is carried in. The environments build this at 16 and 32 bits on a
-// 64-bit host deliberately, and so narrower is expected and only the other direction is wrong
+// A word wider than the register that carries it. The environments build this at 16 and 32 bits on a
+// 64-bit host deliberately, and so narrower is normal and only the other direction is wrong
 EMBED_STATIC_ASSERT(EMBED_WORD_BITS <= PRAET_PLATFORM_XLEN,
                     "EMBED_WORD_BITS is wider than this architecture's register");
 

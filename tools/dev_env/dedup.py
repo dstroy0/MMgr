@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
-"""Find the same code written twice, when it was written twice under different names.
+"""Find the same code written twice under different names.
 
   dedup.py fns   [PATH ...]   whole functions that share a shape
   dedup.py block [PATH ...]   runs of statements inside functions that share a shape
   dedup.py shape [PATH ...]   the shapes themselves, largest group first: the reusable patterns
   dedup.py show  <shape-id>   one shape in full, canonical form and every site that has it
 
-A textual diff cannot see this. Two units that both walk a table looking for a match write the same
-five statements with `i`/`n`/`e` in one and `loculus`/`count`/`ent` in the other, and a hash of the text
-puts them in different buckets. So the text is not what is hashed. Comments are blanked first by
-`mask_comments` below - literal-aware, not a regex, and blanking in place and not deleting, which keeps a
-reported line number equal to the real one - the result is tokenized, and every identifier is replaced
-by the position at which it was first seen. Two blocks that differ only in what things are called
-then reduce to the same token string and land in one bucket.
+A textual diff cannot see this. Two units that both walk a table for a match write the same five
+statements. One has `i`/`n`/`e` and the other `loculus`/`count`/`ent`, and a hash of the text puts
+them in different buckets. So the hash is not over the text.
 
-Three renaming strengths, because they answer different questions:
+`mask_comments` below sets the comments to spaces first. It is literal-aware, not a regex, and it
+works in place and deletes nothing, which keeps a reported line number equal to the real one. The
+result then becomes tokens, and the position of its first appearance replaces every identifier. Two blocks that
+differ only in their names then reduce to the same token string and land in one bucket.
+
+Three rename strengths, because they answer different questions:
 
   --rename all     every identifier goes, types and callees included. Answers "is this the same
                    shape", as finds one idiom written out forty-eight times.
@@ -27,10 +28,10 @@ Three renaming strengths, because they answer different questions:
                    against: a group that appears under `vars` and not under `none` is one the eye
                    would have to have caught by name.
 
-Statement order is not required to match. Every unit carries two hashes: the token sequence, and the
-multiset of its statements with each statement hashed on its own. Two blocks holding the same
-statements in a different order collide on the second and not the first, and are reported as a
-reorder and not a copy - the case a sequence hash silently misses.
+Statement order need not match. Every unit carries two hashes: the token sequence, and the
+multiset of its statements with each statement hashed on its own. Two blocks with the same
+statements in a different order collide on the second and not the first. The report calls that a
+reorder and not a copy, the case a sequence hash silently misses.
 
   --min N      the fewest tokens a unit may hold to be reported (default 24 for fns, 12 for block)
   --win N      statements in a block window (default 4)
@@ -67,9 +68,9 @@ TOKEN = re.compile(
 
 
 def tokenize(text, first_line=1):
-    """The code as (kind, text, line) triples. Comments are gone; whitespace never survives.
+    """The code as (kind, text, line) triples. No comment and no whitespace survives.
 
-    The line travels with the token, which lets a hit be reported where it is, and not only as a
+    The line travels with the token, which lets a hit report where it is, and not only as a
     shape. Nothing downstream reads past the second element. A shape does not see it.
     """
     out = []
@@ -81,12 +82,13 @@ def tokenize(text, first_line=1):
 
 
 def mask_comments(text):
-    """Replace every comment byte with a space, leaving literals and every newline where they are.
+    """Replace every comment byte with a space, and leave literals and every newline where they are.
 
     strip_comments.rewrite, which readclean reads a file through, deletes comment lines outright.
-    That is right for reading and wrong for reporting: a hit at token line 137 of the stripped text
-    is not line 137 of the file, and the two drift further apart the more prose a file carries. Blanking in place keeps every offset. A
-    line number is the line number. Literals survive, and so "http://x" is still one token and not a
+    That is right for a read and wrong for a report. A hit at token line 137 of the stripped text
+    is not line 137 of the file. The two drift further apart the more prose a file carries. A blank
+    in place keeps every offset, and a line number is the line number. Literals survive, and so
+    "http://x" is still one token and not a
     comment, the same reason readclean does not use a regex.
     """
     out = []
@@ -126,12 +128,12 @@ def mask_comments(text):
 
 
 def split_pp(text):
-    """Separate the preprocessor directives from the code, keeping each directive whole.
+    """Separate the preprocessor directives from the code, with each directive whole.
 
-    A directive is not a statement and its parenthesis is not a call: walking back from a `{` over
-    `#define MMGR_CONFIN_IO(w) ...` finds a name that belongs to a macro and reads the struct behind
-    it as that macro's body. So the directive lines are lifted out first, and the remainder is code
-    with the directives blanked to spaces - the offsets do not move, and neither does any line.
+    A directive is not a statement and its parenthesis is not a call. A walk back from a `{` over
+    `#define MMGR_CONFIN_IO(w) ...` finds a name that belongs to a macro. It then reads the struct
+    behind it as that macro's body. So the directive lines come out first, and the rest is code
+    with the directives blanked to spaces. The offsets do not move, and neither does any line.
 
     A directive continues while its line ends in a backslash (C11 sec 5.1.1.2), and so the continuation
     lines belong to it too.
@@ -157,10 +159,10 @@ def split_pp(text):
 def canon(tokens, rename, fold_nums):
     """Rewrite the token list so that only its shape survives.
 
-    An identifier becomes I<k>, where k is how many distinct renameable identifiers were seen before
-    it. First appearance is what fixes k, and so the same shape reaches the same string no matter what
-    the names were, and two different shapes cannot reach it by accident: a name reused later in the
-    block still maps to the k it was given.
+    An identifier becomes I<k>, where k is how many distinct renameable identifiers came before
+    it. First appearance is what fixes k, and so the same shape reaches the same string whatever
+    the names. Two different shapes cannot reach it by accident. A name that appears again later in
+    the block still maps to the k it has.
     """
     seen = {}
     out = []
@@ -172,7 +174,7 @@ def canon(tokens, rename, fold_nums):
                 continue
             if rename == "vars":
                 nxt = tokens[i + 1][1] if i + 1 < len(tokens) else ""
-                # A callee and a macro are what the block is made OF, not what it is made about.
+                # A callee and a macro are what the block consists OF, not what it is about.
                 if nxt == "(" or (txt.isupper() and len(txt) > 2):
                     out.append(txt)
                     continue
@@ -220,21 +222,21 @@ def bag_digest(stmts, rename, fold_nums):
     """A hash of the statements as a set and not a sequence.
 
     Each statement canonicalizes on its own. A name introduced in one statement does not fix the
-    numbering of the next. That leaves the hash blind to order.
+    numbers of the next. That leaves the hash blind to order.
     """
     parts = sorted(digest(canon(s, rename, fold_nums)) for s in stmts)
     return digest(parts)
 
 
-# --- carving the source into units -------------------------------------------
+# --- the cut of the source into units ----------------------------------------
 
 
 def functions(tokens):
     """Every function body in a token list, as (name, tokens-of-body-with-signature).
 
     A definition is an identifier followed by a parenthesis that closes, and then a `{`, all at brace
-    depth 0. A declaration reaches the `;` instead and is walked past. A `struct ... { }` initializer
-    does not open at depth 0 behind a closing parenthesis, and so it is not mistaken for one.
+    depth 0. A declaration reaches the `;` instead and the walk passes it. A `struct ... { }` initializer
+    does not open at depth 0 behind a close parenthesis, and so it cannot pass for one.
     """
     out = []
     i, n, depth = 0, len(tokens), 0
@@ -317,9 +319,9 @@ def collect_fns(files, rename, fold_nums, min_tokens):
     units = []
     for p in files:
         toks, directives = load(p)
-        # A function-like macro is a unit of its own: the borrow maps in this tree are written as
-        # macros, and a shape written twenty times as a macro is duplicated exactly as much as one
-        # written twenty times as a function.
+        # A function-like macro is a unit of its own. The borrow maps in this tree are macros. A
+        # shape written twenty times as a macro is as much a copy as one written twenty times as
+        # a function.
         for ln, d in directives:
             if len(d) < min_tokens:
                 continue

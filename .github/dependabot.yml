@@ -11,9 +11,9 @@ updates:
     commit-message:
       prefix: "ci"
 
-  # Node-based dev/CI tooling declared in package.json (prettier). The library itself has no runtime
-  # npm dependencies - this exists so the formatter used by CI is a tracked, bumpable version instead
-  # of whatever the runner happened to have.
+  # Node-based dev/CI tools in package.json (prettier). The library itself has no runtime
+  # npm dependencies. This exists so the formatter CI uses is a tracked, bumpable version and
+  # not whatever the runner happened to have.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -24,7 +24,7 @@ updates:
     commit-message:
       prefix: "chore"
 
-  # Python tooling (black) used by format-code and by tools/dev_env.
+  # Python tools (black) for format-code and tools/dev_env.
   - package-ecosystem: "pip"
     directory: "/"
     schedule:

@@ -5,7 +5,7 @@ comment is one position here and two or more bytes in the file. They coincide fo
 a caller that seeks in the file by one of these indexes has to convert first.
 
 A converter that rewrites call sites must not rewrite a call that appears inside a /** doc block */
-or a // line comment: the text there describes the API, it does not invoke it. Rewriting it injects
+or a // line comment. The text there describes the API, it does not invoke it. A rewrite there injects
 statements into the middle of a comment and silently corrupts the file.
 """
 

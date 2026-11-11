@@ -10,15 +10,15 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note Packs bit fields of any width into a byte buffer without a bit ever crossing a call. The
+ * @note Packs bit fields of any width into a byte buffer and no bit ever crosses a call. The
  *       writer holds the partial byte. A caller states widths and values and never does its own
- *       shifting or masking.
+ *       shifts or masks.
  * @note The writer is a value the caller owns and not state this module keeps. Two streams are two
- *       writers, and neither module state nor a lock is involved.
- * @warning put writes whole bytes only, and so bits that do not fill one stay in the writer's residue
+ *       writers, and neither module state nor a lock comes into it.
+ * @warning put writes whole bytes only. So bits that do not fill one stay in the writer's residue
  *          and align puts that last partial byte out. A stream whose length is not a
- *          multiple of eight and that never calls align ends one byte short, with no flag raised
- *          and nothing to notice at the call.
+ *          multiple of eight and that never calls align ends one byte short. No flag rises
+ *          and nothing shows at the call.
  */
 #ifndef MMGR_BITORUM_INTROITUS_EXITUS_H
 #define MMGR_BITORUM_INTROITUS_EXITUS_H
@@ -28,7 +28,7 @@
 EMBED_BEGIN_DECLS
 
 /**
- * @brief Bit writer state: the buffer, how much is written, and the partial byte.
+ * @brief Bit writer state: the buffer, how much went out, and the partial byte.
  *
  * @note Built by mmgr_bitor_init, advanced by mmgr_bitor_put, and finished by mmgr_bitor_align.
  */
@@ -47,8 +47,8 @@ typedef struct
  *
  * @note mmgr_bitor_init reads out and cap. mmgr_bitor_put reads writer, val and bit_count.
  *       mmgr_bitor_align reads writer alone.
- * @note One argument type for all three entries, and so every call has the same shape and an unnamed
- *       member is zeroed and not left undefined.
+ * @note One argument type for all three entries, and so every call has the same shape. An unnamed
+ *       member reads zero and not an undefined value.
  */
 typedef struct
 {
@@ -68,8 +68,8 @@ typedef struct
 typedef struct
 {
     mmgr_bitor (*init)(const BitorumCfg *args); /**< Builds a writer over a buffer. */
-    void (*put)(const BitorumCfg *args);        /**< Appends bits, writing whole bytes only. */
-    void (*align)(const BitorumCfg *args);      /**< Writes the partial byte still pending. */
+    void (*put)(const BitorumCfg *args);        /**< Appends bits, and writes whole bytes only. */
+    void (*align)(const BitorumCfg *args);      /**< Writes the partial byte still in the residue. */
 } BitorumIntroitusExitusNs;
 EMBED_TABLE_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
 
@@ -79,8 +79,8 @@ EMBED_TABLE_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
  * @param[in] args Buffer and capacity [BORROWS].
  * @return         A writer with no bytes written and no residue.
  * @note The returned writer keeps args->out, which must outlive it [BORROWS].
- * @warning args->out must not be null and args->cap must not be zero. Neither is checked outside a
- *          MMGR_DEBUG_CHECKS build, and a null out is not noticed here: mmgr_bitor_put writes
+ * @warning args->out must not be null and args->cap must not be zero. Neither has a check outside a
+ *          MMGR_DEBUG_CHECKS build, and a null out passes here. mmgr_bitor_put writes
  *          through it on the first whole byte.
  */
 mmgr_bitor mmgr_bitor_init(const BitorumCfg *args);
@@ -106,7 +106,7 @@ void mmgr_bitor_put(const BitorumCfg *args);
  * @note mmgr_bitor_put writes whole bytes only. Without this call the residue is never written.
  * @note Does nothing when the residue is empty. A second call writes nothing.
  * @note Does nothing when the writer's overflow is already set.
- * @note Only args->writer is read.
+ * @note It reads only args->writer.
  * @warning Sets the writer's overflow when the byte would pass its cap.
  */
 void mmgr_bitor_align(const BitorumCfg *args);

@@ -21,14 +21,14 @@
 
 #include "praet_scenarios.h"
 
-// The engine is compiled in instead of linked. mmgr_add_suite builds the one suite source and the
-// shared files under test/support, and these hooks must not reach any other suite -
+// The engine compiles in instead of a link. mmgr_add_suite builds the one suite source and the
+// shared files under test/support. These hooks must not reach any other suite:
 // test_memoriam_praetereo exists to prove the weak defaults refuse
 #include "praet_engine.c"
 
-// No knob is set in this file. The schedule is compiled into the library, and a context declared
-// here has to be the size the library walks, and so every knob arrives on the build line through
-// MMGR_PRAET_KNOBS and reaches both. harness.py builds two arms: build-dma with recovery on and a
+// This file sets no knob. The schedule compiles into the library, and a context declared here has
+// to be the size the library walks. So every knob arrives on the build line through
+// MMGR_PRAET_KNOBS and reaches both. The harness builds two arms: build-dma with recovery on and a
 // settle window, build-dma-lean with both off. The cases gate on the knobs and hold on either
 
 // The examination arm's counters. Every entry compiles out where PRAET_PROCURATOR is 0. A build that
@@ -36,11 +36,11 @@
 #include "praet_procurator.c"
 
 /**
- * @brief The schedule context every scheduling case runs against.
+ * @brief The schedule context every schedule case runs against.
  *
  * @note File scope and never copied. The context's address is its identity, and every write into it
  *       is an offset from that address.
- * @note The token is the declaration answering the boundary word question, and it reports whichever
+ * @note The token is the declaration that answers the boundary word question, and it reports whichever
  *       way it goes. Every build of this suite carries that line, as the token is for.
  * @note build-dma-lean sets PRAET_SUITE_CRC_CHOICE to the DISABLE token, because a context answers
  *       this once and the other arm needs its own compile.
@@ -52,18 +52,18 @@
 PraetOrdoContext(s_schedule, PRAET_SUITE_CRC_CHOICE);
 
 /**
- * @brief Region descriptor the scheduling cases attach with.
+ * @brief Region descriptor the schedule cases attach with.
  *
  * @note Any byte will do. What the cases check is that it survives every state change, since nothing
- *       but an attach has business setting it.
+ *       but an attach has business with it.
  */
 #define PRAET_CASE_REGION PRAET_REGION_EXTERNAL
 
 /**
- * @brief Completions one case may receive before the recorder stops keeping their order.
+ * @brief Completions one case may receive before the recorder loses their order.
  *
- * @note A case that overruns this is recorded as a mismatch on the count, and so nothing is lost
- *       silently.
+ * @note A case that overruns this records as a mismatch on the count, and so nothing goes silently
+ *       lost.
  */
 #define PRAET_ORDER_MAX 32u
 
@@ -128,7 +128,7 @@ static const PraetCallbackCfg s_completion_binding = {
  *       channel is no longer busy from the same event. Nothing else can tell it: praet_ordo.c
  *       predicts no duration. A completion arrives here or it does not arrive.
  * @note This is the application's half. The library holds the schedule and the port layer, and joins
- *       neither to the other, and so what wires the port's events to the schedule is the code that
+ *       neither to the other. So what wires the port's events to the schedule is the code that
  *       registered the callback, as a real integration writes.
  * @note An event carries no failure flag, and so every completion the engine reports is a clean one. A
  *       port that distinguishes them has somewhere to say so and this does not invent one.
@@ -250,7 +250,7 @@ static void praet_check_one(const PraetScenario *scenario)
 /**
  * @brief Checks that the control scenario comes out clean.
  *
- * @note The first row, and the one that has to pass before any other can be read. A harness that
+ * @note The first row, and the one that has to pass before any other means anything. A harness that
  *       cannot produce a clean column has not shown it can tell the columns apart.
  */
 void test_the_control_is_clean(void)
@@ -275,10 +275,10 @@ void test_every_scenario_matches_its_oracle(void)
 }
 
 /**
- * @brief The pool the scheduling cases attach a channel over.
+ * @brief The pool the schedule cases attach a channel over.
  *
- * @note A pool declared the way any caller declares one. PraetAttach takes one, and taking it
- *       by name lets the address and the extent come from the same declaration.
+ * @note A pool declared the way any caller declares one. PraetAttach takes one, and the name
+ *       lets the address and the extent come from the same declaration.
  * @note Declared on both arms. A build with no recovery records nothing about a transfer, and the
  *       attach still names a pool and the compiler still proves it exists.
  */
@@ -287,9 +287,9 @@ ParsMemoriaeInternae(s_case_pool, 128);
 /**
  * @brief Which pool each channel these cases use is over.
  *
- * @note One per channel, and the channel number is a literal because it is pasted into the symbol.
- *       PraetAttach and PraetSubmit both name that symbol, and so either of them reaching for a pool a
- *       channel is not over fails on an identifier nobody declared.
+ * @note One per channel, and the channel number is a literal because it becomes part of the symbol.
+ *       PraetAttach and PraetSubmit both name that symbol. So a reach by either for a pool a channel
+ *       is not over fails on an identifier nobody declared.
  * @note Every one of them is over the same pool here. Two contexts, or two channels over two pools,
  *       collide on nothing, because the context and the channel are both in the name.
  */
@@ -303,14 +303,14 @@ PraetChannel(s_schedule, 4, s_case_pool);
  * @brief Attaches a channel and waits out whatever settle the part's knob asks for.
  *
  * @param[in] channel Channel to attach.
- * @note Every case but the settling one wants a channel it can submit on. How long that takes is
+ * @note Every case but the settle one wants a channel it can submit on. How long that takes is
  *       PRAET_SETTLE_MICROS, which is per part and arrives at compile time. A case cannot pick a
  *       convenient number for itself.
  */
 static void praet_case_attach_and_settle(embed_word channel)
 {
     // Reaches praet_ordo_adnectere directly, past PraetAttach. The channel arrives here as a
-    // parameter, and the surface pastes the channel number into the symbol that carries the binding,
+    // parameter. The surface pastes the channel number into the symbol that carries the binding,
     // and so it needs a literal. The cases that drive the surface itself write one
     TEST_ASSERT_TRUE_MESSAGE(praet_ordo_adnectere(&s_schedule, channel, mmgr_pars_storage_s_case_pool,
                                                   (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
@@ -332,7 +332,7 @@ static void praet_case_attach_and_settle(embed_word channel)
  */
 static embed_bool praet_case_submit(embed_word channel, embed_word length)
 {
-    // Not PraetSubmit, because that bounds a span whose length is known while compiling and this takes
+    // Not PraetSubmit, because that bounds a span whose length stands at compile time and this takes
     // one as an argument. The cases that check the bound call PraetSubmit with literals
     (void)length;
 #if PRAET_RECOVERY
@@ -364,13 +364,13 @@ static void praet_case_kick(embed_word channel, embed_word position)
  * @brief Polls one channel through the library, then feeds the schedule what the port reported.
  *
  * @param[in] channel Channel to poll.
- * @note Two calls, and both are the caller's. praet.poll drives the port through the library, and
- *       praet_ordo_poll is what turns whatever that produced into current flag words. The order
+ * @note Two calls, and both are the caller's. The call praet.poll drives the port through the library,
+ *       and praet_ordo_poll is what turns whatever that produced into current flag words. The order
  *       matters: the port runs first so the orchestrator reads what this poll learned.
  * @note Nothing here reads a byte count or feeds a watchdog. The orchestrator asks the port itself,
  *       through praet_hw_progress, and so this is two calls and not a driver.
- * @note What a caller does with the result is read the flag word. Nothing is reported back to them
- *       from either call.
+ * @note A caller's one move with the result is to read the flag word. Neither call reports anything
+ *       back to them.
  */
 static void praet_joined_poll(embed_word channel)
 {
@@ -394,14 +394,13 @@ static void praet_joined_poll(embed_word channel)
  * @brief Runs the schedule for @p micros microseconds, one microsecond at a time.
  *
  * @param[in] micros Microseconds to run.
- * @note The pump. Advancing a whole window and servicing once leaves two observations and nothing
- *       between them, and a flag that went up early and came back down looks identical to one that
+ * @note The pump. A jump over a whole window and one service leaves two observations and nothing
+ *       between them. A flag that went up early and came back down then looks identical to one that
  *       never went up. This services at every microsecond, and so no edge falls between two calls.
- * @note Every microsecond advanced raises the set volatile, because time passing changes what a
- *       service call would find. Every poll here therefore walks. The short circuit is reached less
- *       often than it was before this existed, and the optimization arm puts it at 0.11 in 100
- *       against the 1.56 the jump-driven cases gave. Reaching it takes a loop that polls faster than
- *       the clock moves, which is a different fixture from this one.
+ * @note Every microsecond advanced raises the set volatile, because the passage of time changes what
+ *       a service call would find. Every poll here therefore walks, and the short circuit is rare. A
+ *       loop that polls faster than the clock moves reaches it, which is a different fixture from
+ *       this one.
  */
 static void praet_pump(embed_word micros)
 {
@@ -413,22 +412,22 @@ static void praet_pump(embed_word micros)
 }
 
 /**
- * @brief Pumps until every bit in @p mask is raised or cleared on @p channel, and says when.
+ * @brief Pumps until every bit in @p mask goes up or clears on @p channel, and says when.
  *
  * @param[in] channel      Channel to watch.
  * @param[in] mask         Bits the wait is about. Every one of them has to hold.
  * @param[in] until_raised EMBED_TRUE to wait for them to come up, EMBED_FALSE for them to go down.
- * @param[in] limit        Microseconds to pump before giving up.
+ * @param[in] limit        Microseconds to pump before the pump stops.
  * @return                 Microseconds pumped when the bits first matched, or PRAET_PUMP_NEVER.
- * @note Gives back the first microsecond the bits matched, the difference between timing
- *       a deadline and noticing one went by. A window honored a microsecond early and one honored on
+ * @note Gives back the first microsecond the bits matched, the difference between a measure of
+ *       a deadline and a notice that one went by. A window honored a microsecond early and one honored on
  *       time both finish with the flag set, and only the microsecond separates them.
  * @note One entry with the direction as an argument and not two entries. Every case passes a literal, and so
  *       the comparison folds and the two waits cannot drift apart.
- * @note Tests the flag word before pumping anything. A state that already holds reports zero.
+ * @note Tests the flag word before it pumps anything. A state that already holds reports zero.
  * @note The same shape as the thing it times. A limit, a sign of life, and a verdict when the limit
- *       goes by is what the keepalive is, and PRAET_PUMP_NEVER is this one's PRAET_STALLED. That was
- *       not planned and it costs nothing, as long as the next note holds.
+ *       goes by is what the keepalive is, and PRAET_PUMP_NEVER is this one's PRAET_STALLED. It
+ *       costs nothing, as long as the next note holds.
  * @warning The limit comes from PRAET_KEEPALIVE_MICROS or PRAET_SETTLE_MICROS, which are numbers the
  *          caller declared. Reading it out of context->keepalive_deadline or context->settle_deadline
  *          would make every case here agree with the schedule by construction and pass forever,
@@ -456,7 +455,7 @@ static embed_word praet_pump_until(embed_word channel, uint32_t mask, embed_bool
 }
 
 /**
- * @brief Checks that a fresh context has every channel detached and holding nothing.
+ * @brief Checks that a fresh context has every channel detached and empty.
  */
 void test_a_channel_starts_detached(void)
 {
@@ -471,7 +470,7 @@ void test_a_channel_starts_detached(void)
 /**
  * @brief Checks that attach claims the vector and a completed detach releases it.
  *
- * @note The claim is the reason a vector is not reserved for a mover with nothing to move. A channel
+ * @note The claim is the reason no vector stays reserved for a mover with nothing to move. A channel
  *       that came back detached while still claimed would be the defect this case exists for.
  */
 void test_attach_claims_the_vector_and_detach_releases_it(void)
@@ -494,8 +493,8 @@ void test_attach_claims_the_vector_and_detach_releases_it(void)
  * @brief Checks what PRAET_SETTLE_MICROS actually buys, at whatever value this build set it to.
  *
  * @note The two arms are not two behaviors, they are one behavior at two settings. A part whose
- *       engine is up at once has nothing to wait for and the channel is usable immediately; a part
- *       whose engine takes time refuses until it has elapsed. Both have to hold, and a build only
+ *       engine is up at once has nothing to wait for and the channel is usable immediately. A part
+ *       whose engine takes time refuses until that time elapsed. Both have to hold, and a build only
  *       ever compiles one of them, and so the sweep is what covers the other.
  */
 void test_a_settling_channel_takes_no_transfer(void)
@@ -512,7 +511,7 @@ void test_a_settling_channel_takes_no_transfer(void)
                              "the channel never reported settling");
     TEST_ASSERT_FALSE_MESSAGE(praet_case_submit(0u, 16u), "a settling channel took a transfer");
 
-    // One microsecond short of the deadline. This proves the wait is the length it was asked for, and
+    // One microsecond short of the deadline. This proves the wait is the length the knob asks for, and
     // that the first service call that happens along does not clear it
     praet_ordo_advance(&s_schedule, (embed_word)PRAET_SETTLE_MICROS - 1u);
     praet_ordo_poll(&s_schedule);
@@ -531,7 +530,7 @@ void test_a_settling_channel_takes_no_transfer(void)
  * @brief Checks that a transfer reads busy until the port says it finished.
  *
  * @note No timer decides this. How long a transfer runs is not something the library can know. A
- *       clock that promoted busy to ok would be it guessing at hardware.
+ *       clock that promoted busy to ok would be its guess at hardware.
  */
 void test_a_transfer_reports_ok_when_the_port_says_so(void)
 {
@@ -561,11 +560,11 @@ void test_a_transfer_reports_ok_when_the_port_says_so(void)
 /**
  * @brief Checks that a transfer the port says failed reports an error and keeps what it moved.
  *
- * @note Found by the examination arm. PRAET_ERROR was never set and never cleared across the whole
- *       suite, which said the failing half of praet_ordo_completed had no case at all.
- * @note A failed transfer does not account for the length it was asked for. Everything the port
- *       reported is still true and the rest never happened, and so the position stays where the last
- *       report left it and a caller can still say which bytes were written.
+ * @note The case of the failed half of praet_ordo_completed. It sets PRAET_ERROR and clears it, which
+ *       no other case does.
+ * @note A failed transfer does not account for the length of its submit. Everything the port
+ *       reported is still true and the rest never happened. So the position stays where the last
+ *       report left it and a caller can still say which bytes hold writes.
  */
 void test_a_failed_completion_reports_an_error(void)
 {
@@ -590,12 +589,11 @@ void test_a_failed_completion_reports_an_error(void)
 /**
  * @brief Checks that a channel which finished takes another transfer, and starts clean.
  *
- * @note Found by the examination arm. The ok to busy transition was never reached, which said nothing
- *       ever submitted twice on one channel even though praet_ordo_relatio accepts a channel whose
- *       last transfer finished.
+ * @note The case of the ok to busy transition: a second submit on one channel, which
+ *       praet_ordo_relatio accepts once the last transfer finished.
  * @note The second submit clears what the first one left. An error, a stall or a recovery from the
- *       last transfer carried into the next one would have a caller reading a verdict that belongs to
- *       a transfer that is over.
+ *       last transfer could carry into the next one. A caller would then read a verdict that
+ *       belongs to a transfer that is over.
  */
 void test_a_finished_channel_takes_another_transfer(void)
 {
@@ -620,12 +618,12 @@ void test_a_finished_channel_takes_another_transfer(void)
 }
 
 /**
- * @brief Checks that a recovery's record is cleared by the next transfer.
+ * @brief Checks that the next transfer clears a recovery's record.
  *
- * @note Found by the examination arm. PRAET_ABANDONED, PRAET_SCRUBBED and PRAET_MEASURED were each
- *       set and never cleared, which said no case ran a transfer on a channel that had been recovered.
- * @note A caller reading a backout that belongs to the transfer before last would act on it. The
- *       statuses a transfer leaves are cleared where the next one starts, and this is the case that
+ * @note The case that runs a transfer on a recovered channel, which clears PRAET_ABANDONED,
+ *       PRAET_SCRUBBED and PRAET_MEASURED.
+ * @note A caller that reads a backout from the transfer before last would act on it. The next
+ *       transfer clears the statuses the last one left where it starts, and this is the case that
  *       walks that path.
  */
 void test_a_recovery_is_cleared_by_the_next_transfer(void)
@@ -654,10 +652,10 @@ void test_a_recovery_is_cleared_by_the_next_transfer(void)
 }
 
 /**
- * @brief Checks that a running channel nobody kicks reads stalled, and stays busy.
+ * @brief Checks that an active channel nobody kicks reads stalled, and stays busy.
  *
- * @note Stalled says the engine stopped moving. It never says the transfer finished, and so the core has
- *       to stay busy - the caller is the single one who decides what to do about bytes whose state is now
+ * @note Stalled says the engine stopped. It never says the transfer finished, and so the core has to
+ *       stay busy. The caller is the single one who decides what to do about bytes whose state is now
  *       unknown.
  */
 void test_the_watchdog_marks_a_stalled_channel(void)
@@ -683,8 +681,8 @@ void test_the_watchdog_marks_a_stalled_channel(void)
 /**
  * @brief Checks that a kick clears a stall and pushes the window out again.
  *
- * @note A channel that is moving again is not stalled, and the same call that says so is the single one
- *       that reports how far it got.
+ * @note A channel that moves again has no stall. The same call that says so is the single one that
+ *       reports how far it got.
  */
 void test_a_kick_clears_a_stall_and_pushes_the_window(void)
 {
@@ -707,13 +705,13 @@ void test_a_kick_clears_a_stall_and_pushes_the_window(void)
 }
 
 /**
- * @brief Checks that the settle clears on the microsecond it was asked for.
+ * @brief Checks that the settle clears on the microsecond the knob names.
  *
  * @note What the pump is for. The jump-driven case proves the flag is up at one point and down at
- *       another; this walks every microsecond in between and reports the first one where it cleared.
+ *       another. This walks every microsecond in between and reports the first one where it cleared.
  *       A settle that ended early passes that case and fails this one.
  * @note Ignored where PRAET_SETTLE_MICROS is zero. A channel with nothing to wait for never reports
- *       settling, and there is no edge to time.
+ *       a settle, and there is no edge to time.
  */
 void test_the_settle_clears_on_the_microsecond_it_was_asked_for(void)
 {
@@ -736,9 +734,9 @@ void test_the_settle_clears_on_the_microsecond_it_was_asked_for(void)
 /**
  * @brief Checks that the watchdog fires on the microsecond its window closes.
  *
- * @note The keepalive window is a number a caller sets against their own part, and what they are
- *       entitled to is that it means exactly what it says. One microsecond early is a transfer
- *       called dead while it was still moving.
+ * @note The keepalive window is a number a caller sets against their own part. Their due is that it
+ *       means exactly what it says. One microsecond early is a transfer called dead while it still
+ *       moved.
  */
 void test_the_watchdog_fires_on_the_microsecond_the_window_closes(void)
 {
@@ -756,11 +754,11 @@ void test_the_watchdog_fires_on_the_microsecond_the_window_closes(void)
 /**
  * @brief Checks that a kick re-arms the window to a full length.
  *
- * @note The dead time after a sign of life. A kick arriving one microsecond before a window closes
- *       has to buy another whole window, and an implementation that pushed the deadline by whatever
- *       was left would stall a healthy channel a microsecond later.
- * @note The case the jumps could not make. Proving the new window is a full one means timing it from
- *       the kick, at one microsecond of resolution.
+ * @note The dead time after a sign of life. A kick that arrives one microsecond before a window closes
+ *       has to buy another whole window. An implementation that pushed the deadline by the remainder
+ *       would stall a healthy channel a microsecond later.
+ * @note The case the jumps could not make. A proof that the new window is a full one means a measure
+ *       from the kick, at one microsecond of resolution.
  */
 void test_a_kick_rearms_the_window_to_a_full_length(void)
 {
@@ -782,12 +780,12 @@ void test_a_kick_rearms_the_window_to_a_full_length(void)
 }
 
 /**
- * @brief Checks that a kick reporting less than the last one does not shrink the recorded extent.
+ * @brief Checks that a kick that reports less than the last one does not shrink the recorded extent.
  *
- * @note A position that went backwards is the port reporting nonsense, and taking it would shrink the
- *       extent a backout has to cover. Bytes that were written stay written whatever the engine says
- *       afterwards, and so the high water mark is the only reading that is safe to keep.
- * @note Reports as ignored where PRAET_RECOVERY is off, because no extent is recorded on that build.
+ * @note A position that went backwards is nonsense from the port, and to take it would shrink the
+ *       extent a backout has to cover. Bytes with writes in them keep them whatever the engine says
+ *       afterwards. So the high water mark is the only reading that is safe to keep.
+ * @note Reports as ignored where PRAET_RECOVERY is off, because that build records no extent.
  *       A case that quietly passed instead would make the run look like it covered the same ground.
  */
 void test_a_kick_that_goes_backwards_does_not_shrink_the_extent(void)
@@ -808,10 +806,10 @@ void test_a_kick_that_goes_backwards_does_not_shrink_the_extent(void)
 }
 
 /**
- * @brief Checks that backing a stalled transfer out records the extent and leaves the bytes alone.
+ * @brief Checks that a backout of a stalled transfer records the extent and leaves the bytes alone.
  *
- * @note Reports as ignored where PRAET_RECOVERY is off, since praet_ordo_resolve is not declared
- *       on that build.
+ * @note Reports as ignored where PRAET_RECOVERY is off, since praet_ordo_resolve does not exist on
+ *       that build.
  */
 void test_backing_out_records_what_was_touched(void)
 {
@@ -840,13 +838,13 @@ void test_backing_out_records_what_was_touched(void)
 }
 
 /**
- * @brief Checks that the zeroing recovery records that the bytes were treated as unsafe.
+ * @brief Checks that the recovery that zeroes records that the bytes counted as unsafe.
  *
  * @note Nothing in the schedule writes the caller's storage, since it holds no pointer a write could
  *       go through. The flag records the decision and the caller zeroes its own bytes.
  * @note Reads the region byte back too. PRAET_SCRUBBED is the highest status and the region starts
- *       above it. A region placed one byte too low overlaps this one flag, alone - a
- *       scrub would then flip the low bit of a descriptor that has no business changing.
+ *       above it. A region placed one byte too low overlaps this one flag, alone. A scrub would
+ *       then flip the low bit of a descriptor that has no business with change.
  */
 void test_zeroing_records_that_the_bytes_were_scrubbed(void)
 {
@@ -872,10 +870,10 @@ void test_zeroing_records_that_the_bytes_were_scrubbed(void)
 }
 
 /**
- * @brief Checks that a healthy channel refuses to be resolved.
+ * @brief Checks that a healthy channel refuses a resolution.
  *
- * @note State is only ever unknown after the watchdog said so. Resolving a channel that is still
- *       moving would discard a live transfer.
+ * @note State is only ever unknown after the watchdog said so. A resolution of a channel that still
+ *       moves would throw a live transfer away.
  */
 void test_a_healthy_channel_refuses_to_be_resolved(void)
 {
@@ -896,9 +894,9 @@ void test_a_healthy_channel_refuses_to_be_resolved(void)
 /**
  * @brief Checks that the touched extent rounds up to the word the engine was in the middle of.
  *
- * @note The position is sampled every few poll ticks, and so it is exact to word granularity and can sit
- *       up to one word behind what was actually written. Scrubbing only as far as the sample would
- *       leave a partial word, and so the rounding is here and not in the caller.
+ * @note The poll samples the position every few ticks, and so it is exact to word granularity. It can
+ *       sit up to one word behind the writes. A scrub only as far as the sample would leave a partial
+ *       word, and so the round is here and not in the caller.
  */
 void test_touched_rounds_up_to_the_word(void)
 {
@@ -928,17 +926,17 @@ void test_touched_rounds_up_to_the_word(void)
 }
 
 /**
- * @brief Checks that rounding the touched extent up does not wrap at the top of the word.
+ * @brief Checks that the round of the touched extent up does not wrap at the top of the word.
  *
- * @note A length within one word of the largest a word holds is a 64 KB region on a 16-bit part, and
- *       it is where rounding up runs off the end of the type. Rounding first and clamping afterwards
- *       reads the wrapped value as a small number, which tells a caller almost none of its buffer was
- *       touched at the exact moment nearly all of it was.
+ * @note A length within one word of the largest a word holds is a 64 KB region on a 16-bit part. It
+ *       is where a round up runs off the end of the type. A round first and a clamp afterwards reads
+ *       the wrapped value as a small number. That tells a caller almost none of its buffer has
+ *       writes at the exact moment nearly all of it has.
  * @note Reaches praet_ordo_relatio directly, past PraetSubmit. A length this large cannot come
  *       through the surface, because PraetSubmit compares it against the pool's own extent before
  *       anything runs. What is under test here is the entry's arithmetic, which is still reachable by
  *       anyone who calls it with numbers nobody checked.
- * @note Nothing runs this transfer. The context never writes through the pointer it was given, and so the
+ * @note Nothing runs this transfer. The context never writes through the pointer it received. So the
  *       length is the sole subject of this case and no storage of that size has to exist.
  */
 void test_the_touched_extent_does_not_wrap_at_the_top_of_the_word(void)
@@ -965,9 +963,9 @@ void test_the_touched_extent_does_not_wrap_at_the_top_of_the_word(void)
  * @brief Checks that the boundary word check measures the word the engine was inside, and says so.
  *
  * @note What the check buys is a statement about one word. The library holds the destination and not
- *       the source, and so it reports what that word now contains and the caller compares it against what
- *       was meant to be there. The contract here ends there.
- * @note The checksum is taken over the word the sample landed inside. A case that changes only a
+ *       the source. So it reports what that word now contains, and the caller compares it against the
+ *       intent. The contract here ends there.
+ * @note The checksum covers the word the sample landed inside. A case that changes only a
  *       byte in that word has to move it. A case that changes a byte outside it must not.
  */
 void test_the_boundary_word_check_measures_one_word(void)
@@ -978,8 +976,8 @@ void test_the_boundary_word_check_measures_one_word(void)
     // A sample one byte into a word, and so the engine stopped mid-word and there is something to measure
     const embed_word sampled = word_bytes + 1u;
 
-    // The pool's storage, where the pool's own name would not do. The name is a const view and this is
-    // standing in for the engine writing the bytes
+    // The pool's storage, where the pool's own name would not do. The name is a const view and this
+    // stands in for the engine as it writes the bytes
     for (embed_word walk = 0u; walk < s_case_pool_bytes; walk++)
     {
         mmgr_pars_storage_s_case_pool[walk] = (uint8_t)walk;
@@ -1035,7 +1033,7 @@ void test_the_boundary_word_check_measures_one_word(void)
  * @brief Checks that a sample already on a word boundary reports no measurement.
  *
  * @note There is no partial word under it, and so the word boundary was already the exact answer and
- *       there is nothing a checksum could add. Reporting PRAET_MEASURED there would hand a caller a
+ *       there is nothing a checksum could add. A report of PRAET_MEASURED there would hand a caller a
  *       number that means nothing.
  */
 void test_a_sample_on_a_boundary_measures_nothing(void)
@@ -1087,9 +1085,9 @@ void test_a_context_that_said_no_measures_nothing(void)
 /**
  * @brief Checks that a build without recovery still detects a stall and records no recovery.
  *
- * @note The other half of the capability. Turning recovery off takes away what can be said about the
- *       bytes; it does not take away knowing the engine stopped, because the watchdog is the keepalive
- *       and that is there either way.
+ * @note The other half of the capability. Recovery off takes away what anyone can say about the
+ *       bytes. It does not take away the knowledge that the engine stopped, because the watchdog is
+ *       the keepalive and that is there either way.
  * @note The two recovery statuses keep their bits on every build, and so this reads them on a build that
  *       has no way to set them. A flag word means one thing everywhere or it means nothing.
  */
@@ -1117,10 +1115,10 @@ void test_a_build_without_recovery_still_stalls_and_records_none(void)
 /**
  * @brief Checks that ticks off the declared clock scale into the microseconds the deadlines are in.
  *
- * @note The whole point of declaring a frequency. A port reads a counter and hands over ticks; every
+ * @note The whole point of a declared frequency. A port reads a counter and hands over ticks. Every
  *       deadline in this module is microseconds, and this is the single one place the two meet.
- * @note Driven against the watchdog, with no counter read back, because the property under test is that
- *       a window measured in microseconds closes after the right number of ticks.
+ * @note Driven against the watchdog, with no counter read back. The property under test is that a
+ *       window measured in microseconds closes after the right number of ticks.
  */
 void test_ticks_scale_into_microseconds(void)
 {
@@ -1149,11 +1147,11 @@ void test_ticks_scale_into_microseconds(void)
 }
 
 /**
- * @brief Checks that the declared frequency is what the scaling actually uses.
+ * @brief Checks that the declared frequency is what the scale actually uses.
  *
  * @note A conversion that ignored the frequency would still pass the case above at one megahertz,
- *       where a tick is a microsecond. This states the relationship against the number that was
- *       declared, and so the two cannot agree by coincidence.
+ *       where a tick is a microsecond. This states the relationship against the declared number,
+ *       and so the two cannot agree by coincidence.
  */
 void test_the_scaling_uses_the_declared_frequency(void)
 {
@@ -1174,7 +1172,7 @@ void test_the_scaling_uses_the_declared_frequency(void)
  *       attach and the offset came from the submit. A transfer starts at a place neither call
  *       stated on its own.
  * @note The pool is 128 bytes and this submits 32 at offset 64, which PRAET_SPAN_FITS settled before
- *       anything ran. A span that did not fit would not have compiled, and so no case here
+ *       anything ran. A span that did not fit would not compile, and so no case here
  *       submits one.
  */
 void test_a_span_lands_where_the_pool_puts_it(void)
@@ -1286,7 +1284,7 @@ static const PraetScenario s_joined_scenario = {
  * @brief Checks that a transfer the engine finishes is what moves the channel out of busy.
  *
  * @note The join, end to end. The schedule marks a channel busy on a submit and has no way to learn
- *       it finished, because nothing here predicts how long a transfer runs. The port's completion
+ *       it finished. Nothing here predicts how long a transfer runs. The port's completion
  *       callback is the only thing that can say so, and this drives it through the real hooks.
  * @note Both halves run on logical channel one, and that leaves them the same channel. The engine
  *       schedules every logical channel over itself, and so the shared number alone ties the two halves together.
@@ -1324,10 +1322,10 @@ void test_a_port_completion_moves_the_channel_out_of_busy(void)
 }
 
 /**
- * @brief Checks that the schedule stays busy while the engine is holding the transfer.
+ * @brief Checks that the schedule stays busy while the engine holds the transfer.
  *
- * @note The other side of the join. A poll that releases nothing leaves the channel where it was, and so
- *       the schedule reads busy for exactly as long as the engine has not finished.
+ * @note The other side of the join. A poll that releases nothing leaves the channel where it was. So
+ *       the schedule reads busy for exactly as long as the engine still works.
  * @note The script is the same one, and this case stops before the poll that releases. It proves
  *       that the completion changed the state, and not the submit or the passage of hook
  *       calls.
@@ -1355,10 +1353,10 @@ void test_the_schedule_stays_busy_while_the_engine_holds_it(void)
 /**
  * @brief Checks that what a poll reports is what the schedule records as moved.
  *
- * @note The figure a backout is built on. Everything before the position was written and the rest was
+ * @note The figure a backout rests on. Everything before the position holds writes and the rest does
  *       not, and so where it comes from decides whether that statement is worth anything. It comes from
  *       the port, the only thing that can see a controller's count.
- * @note Two polls before the transfer is due, each reporting further along, then the one that
+ * @note Two polls before the transfer is due, each one further along, then the one that
  *       finishes it. The recorded position follows the port at every step.
  */
 void test_the_recorded_position_comes_from_the_port(void)
@@ -1398,13 +1396,13 @@ void test_the_recorded_position_comes_from_the_port(void)
 }
 
 /**
- * @brief Checks that a stalled transfer is backed out over the extent the port last reported.
+ * @brief Checks that a backout of a stalled transfer covers the extent the port last reported.
  *
- * @note The whole point of the reporting. The engine stops after saying it reached 20 bytes, the
- *       watchdog notices, and what a caller is handed is an extent that came off the controller.
+ * @note The whole point of the reports. The engine stops after it says it reached 20 bytes, the
+ *       watchdog notices, and what a caller gets is an extent that came off the controller.
  *       This library made none of it up.
- * @note The touched extent rounds that sample up to a whole word, because the sample is exact to word
- *       granularity and the engine may have been part way into the next one.
+ * @note The touched extent rounds that sample up to a whole word. The sample is exact to word
+ *       granularity and the engine can be part way into the next one.
  */
 void test_a_backout_covers_what_the_port_last_reported(void)
 {
@@ -1445,8 +1443,8 @@ void test_a_backout_covers_what_the_port_last_reported(void)
 /**
  * @brief Checks that a refused attach leaves the settle timer where it was.
  *
- * @note A successful attach is what starts the engine settling, because the attach is the moment the channel
- *       is told to get to work. An attach that was refused told it nothing, and moving the deadline
+ * @note A successful attach is what starts the settle of the engine, because the attach is the moment
+ *       the channel gets its order to work. A refused attach told it nothing. A move of the deadline
  *       there would hold off every other channel on the strength of a call that did nothing.
  */
 void test_a_refused_attach_does_not_start_the_timer(void)
@@ -1458,14 +1456,14 @@ void test_a_refused_attach_does_not_start_the_timer(void)
 
     praet_ordo_advance(&s_schedule, 100u);
 
-    // Channel one is already attached, and so this is refused
+    // Channel one is already attached, and so this fails
     TEST_ASSERT_FALSE_MESSAGE(praet_ordo_adnectere(&s_schedule, 1u, mmgr_pars_storage_s_case_pool,
                                                    (embed_word)s_case_pool_bytes, PRAET_CASE_REGION),
                               "a channel that was already attached took a second attach");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(settled_at, s_schedule.settle_deadline,
                                      "a refused attach started the settle timer");
 
-    // And one past the end, which is refused before anything is read
+    // And one past the end, which fails before any read
     TEST_ASSERT_FALSE(praet_ordo_adnectere(&s_schedule, PRAET_CHANNELS, mmgr_pars_storage_s_case_pool,
                                            (embed_word)s_case_pool_bytes, PRAET_CASE_REGION));
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(settled_at, s_schedule.settle_deadline,
@@ -1473,9 +1471,9 @@ void test_a_refused_attach_does_not_start_the_timer(void)
 }
 
 /**
- * @brief Checks that polling the port keeps a running channel off the watchdog.
+ * @brief Checks that a poll of the port keeps an active channel off the watchdog.
  *
- * @note A poll is the port saying the engine is alive, and the kick is what the schedule does with
+ * @note A poll is the port's word that the engine is alive, and the kick is what the schedule does with
  *       that. A channel polled inside its window never stalls, and the same channel left alone for
  *       one window does.
  * @note The engine holds the transfer throughout. What is under test is the watchdog against the
@@ -1514,10 +1512,10 @@ void test_polling_the_port_keeps_the_watchdog_fed(void)
 }
 
 /**
- * @brief Checks that a detach asked for mid-transfer waits until that transfer is done.
+ * @brief Checks that a detach asked for mid-transfer waits until that transfer ends.
  *
- * @note Tearing down while the engine is still moving bytes would leave it writing into storage the
- *       caller believes is released.
+ * @note A teardown while the engine still moves bytes would leave it with writes into storage the
+ *       caller believes is free.
  */
 void test_detach_waits_for_the_transfer_under_it(void)
 {
@@ -1542,7 +1540,7 @@ void test_detach_waits_for_the_transfer_under_it(void)
 /**
  * @brief Checks that the interrupt may raise set any number of times without loss or accumulation.
  *
- * @note One reader means the raises collapse. Nothing is counted and nothing is queued. A hundred
+ * @note One reader means the raises collapse. Nothing counts and nothing waits in line. A hundred
  *       raises and one raise reach the same state.
  */
 void test_the_interrupt_can_raise_set_any_number_of_times(void)
@@ -1566,10 +1564,10 @@ void test_the_interrupt_can_raise_set_any_number_of_times(void)
 }
 
 /**
- * @brief Checks that a service call arriving while the lock is taken declines and changes nothing.
+ * @brief Checks that a service call that arrives while the lock is out declines and changes nothing.
  *
- * @note The re-entry case. The lock is set directly here, the state an interrupt landing
- *       mid-update would find, and the nested call must not rework state the outer one is partway
+ * @note The re-entry case. This takes the lock directly, the state an interrupt that lands
+ *       mid-update would find. The nested call must not rework state the outer one is partway
  *       through.
  */
 void test_a_nested_service_declines_while_the_lock_is_taken(void)
@@ -1598,8 +1596,8 @@ void test_a_nested_service_declines_while_the_lock_is_taken(void)
 /**
  * @brief Checks that the region descriptor an attach set survives every state change after it.
  *
- * @note Which memory a channel reaches was settled where the pool was declared. Nothing but an attach
- *       has business writing it, and a submit that clobbered it would be silent.
+ * @note The pool's declaration settles which memory a channel reaches. Nothing but an attach has
+ *       business with a write to it, and a submit that clobbered it would be silent.
  */
 void test_the_region_descriptor_survives_a_transfer(void)
 {
@@ -1623,8 +1621,8 @@ void test_the_region_descriptor_survives_a_transfer(void)
 /**
  * @brief Checks that the two arms are not the same engine.
  *
- * @note Each scenario is emitted twice, interrupt then software. If the arm selection ever broke and
- *       both ran the same way, every row would still pass and half the table would be measuring
+ * @note Each scenario comes out twice, interrupt then software. If the arm selection ever broke and
+ *       both ran the same way, every row would still pass and half the table would measure
  *       nothing. This is the case that notices.
  */
 void test_the_two_arms_are_not_the_same_engine(void)
@@ -1655,8 +1653,8 @@ void test_the_two_arms_are_not_the_same_engine(void)
 /**
  * @brief A second pool. A descriptor has somewhere to read from and somewhere else to write to.
  *
- * @note Two pools, where two halves of one would not do. A descriptor names both ends and each is
- *       proved against its own declaration. One pool would prove the same span twice.
+ * @note Two pools, where two halves of one would not do. A descriptor names both ends and each has
+ *       its proof against its own declaration. One pool would prove the same span twice.
  */
 ParsMemoriaeInternae(s_case_source, 128);
 
@@ -1671,19 +1669,19 @@ PraetOneShot(s_one_shot, s_case_source, 0u, s_case_pool, 0u, 64u, PRAET_MENSURA_
 PraetCircular(s_circular, s_case_source, 0u, s_case_pool, 0u, 32u, PRAET_MENSURA_VERBUM);
 
 /**
- * @brief Two transfers that hand off to each other, writing alternate halves.
+ * @brief Two transfers that hand off to each other, and write alternate halves.
  */
 PraetPingPong(s_ping, s_pong, s_case_source, s_case_pool, 0u, 0u, 64u, 64u, 64u, PRAET_MENSURA_VERBUM);
 
 /**
- * @brief A transfer inside one pool, writing upward over its own source.
+ * @brief A transfer inside one pool, with writes upward over its own source.
  *
- * @note The overlapping case, and the direction is worked out from the offsets while compiling.
+ * @note The overlap case, and the direction comes from the offsets at compile time.
  */
 PraetDescriptorWithin(s_shift_up, s_case_pool, 0u, 32u, 64u, PRAET_MENSURA_VERBUM, NULL);
 
 /**
- * @brief A transfer inside one pool, writing downward over its own source.
+ * @brief A transfer inside one pool, with writes downward over its own source.
  */
 PraetDescriptorWithin(s_shift_down, s_case_pool, 32u, 0u, 64u, PRAET_MENSURA_VERBUM, NULL);
 
@@ -1695,8 +1693,8 @@ PraetDescriptorWithin(s_no_overlap, s_case_pool, 0u, 64u, 32u, PRAET_MENSURA_VER
 /**
  * @brief Checks that a one shot descriptor says where it reads, where it writes, and that it ends.
  *
- * @note What a descriptor is. Everything except who holds it was settled where it was declared, and so
- *       this reads the object the declaration emitted and nothing ran to produce it.
+ * @note What a descriptor is. Its declaration settles everything except who holds it. So this reads
+ *       the object the declaration emitted, and nothing ran to produce it.
  */
 void test_a_one_shot_descriptor_ends(void)
 {
@@ -1735,9 +1733,9 @@ void test_a_circular_descriptor_points_at_itself(void)
 /**
  * @brief Checks that a ping-pong pair hands off in both directions and writes different halves.
  *
- * @note Ping-pong, and it is two descriptors whose next point at each other. What makes it double
- *       buffering is that the two write different halves, the offsets the declaration was
- *       given and not anything the library decided.
+ * @note Ping-pong, and it is two descriptors whose next point at each other. What makes it a double
+ *       buffer is that the two write different halves, the offsets of the declaration and not
+ *       anything the library decided.
  */
 void test_a_ping_pong_pair_hands_off_both_ways(void)
 {
@@ -1754,7 +1752,7 @@ void test_a_ping_pong_pair_hands_off_both_ways(void)
 }
 
 /**
- * @brief A register standing in for one a part would name.
+ * @brief A register that stands in for one a part would name.
  *
  * @note A host has no peripherals, and so this is a byte of this file's own with a volatile view taken of
  *       it. What a real caller writes is the name out of their vendor's header, which the compiler has
@@ -1782,8 +1780,8 @@ PraetFromPeripheral(s_fill, s_case_peripheral, &s_case_register, 0u, s_case_pool
  *
  * @note The one fact memcpy never needs. A peripheral is an address that does not move, and which
  *       side does not move alone makes a transfer a read or a write.
- * @note Neither way to walk either end, because a pool and a register are not the same object and a
- *       transfer between them cannot read what it has already written.
+ * @note Neither way to walk either end. A pool and a register are not the same object, and a
+ *       transfer between them cannot read what it already wrote.
  */
 void test_a_peripheral_end_does_not_advance(void)
 {
@@ -1809,12 +1807,12 @@ void test_a_peripheral_end_does_not_advance(void)
 /**
  * @brief Checks that a transfer inside one pool works out which way to walk its bytes.
  *
- * @note What memor already answers for a copy, and for the same reason: where the two ends overlap,
- *       one direction reads bytes the other has written over. Settled once, before anything runs, and
+ * @note What memor already answers for a copy, and for the same reason. Where the two ends overlap,
+ *       one direction reads bytes the other wrote over. Settled once, before anything runs, and
  *       never asked again.
- * @note Both ends are offsets into one declared object, the entirety of reason the question can be
- *       answered while compiling. Two pointers could not be ordered here, and comparing pointers into
- *       separate objects is not something the language defines.
+ * @note Both ends are offsets into one declared object, the entirety of reason the question has an
+ *       answer at compile time. Two pointers would have no order here, and the language does not
+ *       define a compare of pointers into separate objects.
  */
 void test_a_transfer_inside_one_pool_picks_its_direction(void)
 {
@@ -1831,7 +1829,7 @@ void test_a_transfer_inside_one_pool_picks_its_direction(void)
  *
  * @note Two pools are two separately declared objects, and so they cannot overlap and neither direction
  *       is wrong. That is a fact about the declarations and not something measured, and so the
- *       answer is settled without either address being looked at.
+ *       answer settles with no look at either address.
  */
 void test_a_transfer_between_two_pools_needs_no_direction(void)
 {
@@ -1842,10 +1840,10 @@ void test_a_transfer_between_two_pools_needs_no_direction(void)
 }
 
 /**
- * @brief Checks that a chain longer than the walk is allowed to follow reports the limit.
+ * @brief Checks that a chain longer than the walk may follow reports the limit.
  *
- * @note The walk names a cycle by returning to the head. A chain that closes further along cannot
- *       be told from one that never ends. Reporting the limit is the honest answer for a walk that
+ * @note The walk names a cycle when it returns to the head. A chain that closes further along looks
+ *       the same as one that never ends. A report of the limit is the honest answer for a walk that
  *       cannot see where it is.
  */
 void test_a_chain_walk_stops_at_the_limit(void)
@@ -1861,9 +1859,9 @@ void test_a_chain_walk_stops_at_the_limit(void)
  * @brief Prints which states and transitions this run reached.
  *
  * @note The examination arm, and it asserts nothing. A transition no case walked through is a hole in
- *       the cases, and whether that hole is worth filling is a reading of the report. Failing here
- *       would make the suite refuse to build over a judgment nobody has made yet.
- * @note Last in the file, because the generated runner registers cases in the order they are written
+ *       the cases. Whether that hole is worth a case is a reading of the report. A failure here
+ *       would make the suite refuse to build over a judgment nobody made yet.
+ * @note Last in the file, because the generated runner registers cases in the order of the file
  *       and this reports on everything ahead of it.
  * @note Ignored where PRAET_PROCURATOR is 0. A run that did not ask for the instrument says so, and
  *       prints no empty table.

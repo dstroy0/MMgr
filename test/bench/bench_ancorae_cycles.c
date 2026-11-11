@@ -6,20 +6,20 @@
  */
 /**
  * @file bench_ancorae_cycles.c
- * @brief Cycles per search for four arrangements, and so the crossover between them can be read.
+ * @brief Cycles per search for four arrangements, and so the crossover between them is readable.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-04
  *
  * @note The other ancorae benches count reads. Reads are the right unit for a bound and the wrong
- *       one for a dispatch decision, because a read the machine issues in parallel with three others
+ *       one for a dispatch decision. A read the machine issues in parallel with three others
  *       does not cost what a read that everything waits on costs. This one counts cycles so the two
- *       can be compared on the same rows.
+ *       compare on the same rows.
  * @note What it exists to answer: where each arrangement wins, and by how much. The anchor sift has a
- *       dependency depth of two and no carried state, which a superscalar machine can overlap, while
+ *       dependency depth of two and no carried state, which a superscalar machine can overlap.
  *       Horspool's next shift depends on the byte it just read. Whether that overlap pays is a
- *       measurement and it has never been taken here.
- * @note Corpora are SHA-256 in counter mode, mapped where a skewed distribution is wanted, and so the
- *       bytes are reproducible from the seed and no corpus file is needed.
+ *       measurement, and this bench takes it.
+ * @note Corpora are SHA-256 in counter mode, mapped where the row wants a skewed distribution. So the
+ *       bytes reproduce from the seed and no corpus file is necessary.
  * @warning Cycle counts are host figures and belong to the machine that produced them. A ratio
  *          between two arms on one machine is the portable part; the absolute count is not.
  */
@@ -45,10 +45,10 @@
 /** @brief Needle lengths swept, chosen as powers of two around the effective alphabet. */
 static const size_t NEEDLE_LENGTHS[] = {4u, 8u, 16u, 32u, 64u, 128u, 256u};
 
-/** @brief How many needles are drawn per row. Each is taken from the corpus, and so each has a match. */
+/** @brief How many needles each row draws. Each comes from the corpus, and so each has a match. */
 #define NEEDLES_PER_ROW 64u
 
-/** @brief How many times one row is timed. The smallest of these is reported. */
+/** @brief How many times one row runs under the clock. The smallest of these is the report. */
 #define TIMED_TRIALS 7u
 
 /** @brief Anchors placed by the sift arms. Section 4.4's depth is log2(N)/H2, near five here. */
@@ -64,8 +64,8 @@ static const size_t NEEDLE_LENGTHS[] = {4u, 8u, 16u, 32u, 64u, 128u, 256u};
 static uint64_t cycles_now(void)
 {
 #if MMGR_CYCLES_ARE_REAL
-    /* Ordering deviation: __rdtsc may be reordered against the work being timed. The compiler
-     * barrier below keeps the loads and stores of one arm from crossing it, and that leaves
+    /* Ordering deviation: __rdtsc may move against the work under the clock. The compiler
+     * barrier below keeps the loads and stores of one arm on their side of it. That leaves
      * the difference between two reads attributable to that arm. */
     __asm__ __volatile__("" ::: "memory");
     const uint64_t taken = (uint64_t)__rdtsc();
@@ -81,11 +81,11 @@ static uint64_t cycles_now(void)
 /**
  * @brief Fills a corpus with SHA-256 in counter mode.
  *
- * @param[out] corpus Where the bytes are written [BORROWS].
+ * @param[out] corpus Where the bytes go [BORROWS].
  * @param[in]  length How many to write.
  * @param[in]  seed   Counter start, which selects the corpus.
  * @note Uniform over the byte range by construction, the memoryless control every other
- *       reading here is measured against.
+ *       reading here measures against.
  */
 static void fill_uniform(uint8_t *corpus, size_t length, uint32_t seed)
 {
@@ -118,11 +118,11 @@ static void fill_uniform(uint8_t *corpus, size_t length, uint32_t seed)
 }
 
 /**
- * @brief Maps a uniform corpus onto a skewed alphabet, giving collision entropy near English.
+ * @brief Maps a uniform corpus onto a skewed alphabet, with collision entropy near English.
  *
  * @param[in,out] corpus Bytes to remap in place [BORROWS].
  * @param[in]     length How many.
- * @note The table is a geometric weighting over 27 symbols, which lands H2 in the 3.7 to 3.9 band the
+ * @note The table is a geometric weight over 27 symbols, which lands H2 in the 3.7 to 3.9 band the
  *       ledger records for English. It is a distribution and carries no arrangement. An arm that
  *       reads only the histogram cannot tell it from English and an arm that reads position can.
  */
@@ -132,8 +132,8 @@ static void fill_skewed(uint8_t *corpus, size_t length)
     size_t filled = 0u;
     uint8_t symbol = 0u;
 
-    /* Each symbol takes half the remaining table, floored at one entry, which is a geometric
-     * weighting written without any floating point in the bench. */
+    /* Each symbol takes half the rest of the table, floored at one entry. That is a geometric
+     * weight written with no floating point in the bench. */
     while ((filled < sizeof table) && (symbol < 27u))
     {
         size_t width = (sizeof table - filled) / 2u;
@@ -164,10 +164,10 @@ static void fill_skewed(uint8_t *corpus, size_t length)
 /**
  * @brief Fills a corpus with a period of sixteen.
  *
- * @param[out] corpus Where the bytes are written [BORROWS].
+ * @param[out] corpus Where the bytes go [BORROWS].
  * @param[in]  length How many to write.
- * @note The one corpus here whose arrangement is known exactly, and that leaves it the row that
- *       says whether an arm is reading structure or reading its own placement.
+ * @note The one corpus here with an exactly known arrangement. That leaves it the row that
+ *       says whether an arm reads structure or reads its own placement.
  */
 static void fill_periodic(uint8_t *corpus, size_t length)
 {
@@ -178,7 +178,7 @@ static void fill_periodic(uint8_t *corpus, size_t length)
 }
 
 /**
- * @brief Counts occurrences of a needle by comparing at every alignment.
+ * @brief Counts occurrences of a needle with a compare at every alignment.
  *
  * @param[in] corpus      Bytes to search [BORROWS].
  * @param[in] corpus_len  How many.
@@ -202,7 +202,7 @@ static size_t search_naive(const uint8_t *corpus, size_t corpus_len, const uint8
 }
 
 /**
- * @brief Counts occurrences using Boyer-Moore-Horspool's bad character shift.
+ * @brief Counts occurrences with Boyer-Moore-Horspool's bad character shift.
  *
  * @param[in] corpus      Bytes to search [BORROWS].
  * @param[in] corpus_len  How many.
@@ -241,11 +241,11 @@ static size_t search_horspool(const uint8_t *corpus, size_t corpus_len, const ui
 /**
  * @brief Chooses anchor offsets, one drawn inside each evenly sized cell of the needle.
  *
- * @param[out] offsets    Where the chosen offsets are written [BORROWS].
+ * @param[out] offsets    Where the chosen offsets go [BORROWS].
  * @param[in]  wanted     How many to choose.
  * @param[in]  needle_len Length of the needle they index.
- * @note One draw per cell keeps the spread without giving the anchor set a period of its own, which
- *       the ledger records as better sized than an even comb on both corpora it was measured on.
+ * @note One draw per cell keeps the spread and gives the anchor set no period of its own. The
+ *       ledger records that as better sized than an even comb on both corpora.
  */
 static void choose_offsets(size_t *offsets, size_t wanted, size_t needle_len)
 {
@@ -254,7 +254,7 @@ static void choose_offsets(size_t *offsets, size_t wanted, size_t needle_len)
     for (size_t slot = 0u; slot < wanted; slot += 1u)
     {
         /* A fixed position inside the cell, and so the set is reproducible between arms and between
-         * runs. Jitter belongs to the sizing question and this bench is timing and not sizing. */
+         * runs. Jitter belongs to the size question and this bench measures time and not size. */
         const size_t inside = (cell > 1u) ? ((slot * 7u) % cell) : 0u;
         offsets[slot] = (slot * cell) + inside;
         if (offsets[slot] >= needle_len)
@@ -265,14 +265,14 @@ static void choose_offsets(size_t *offsets, size_t wanted, size_t needle_len)
 }
 
 /**
- * @brief Counts occurrences by testing anchors in order and stopping at the first that refutes.
+ * @brief Counts occurrences with a test of anchors in order and a stop at the first that refutes.
  *
  * @param[in] corpus      Bytes to search [BORROWS].
  * @param[in] corpus_len  How many.
  * @param[in] needle      Bytes to find [BORROWS].
  * @param[in] needle_len  How many.
  * @return                How many alignments match exactly.
- * @note Short circuiting makes each probe depend on the one before it, the arrangement a
+ * @note The short circuit makes each probe depend on the one before it, the arrangement a
  *       branch predictor handles and an issue window cannot overlap.
  */
 static size_t search_anchor_inorder(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle, size_t needle_len)
@@ -305,7 +305,7 @@ static size_t search_anchor_inorder(const uint8_t *corpus, size_t corpus_len, co
 }
 
 /**
- * @brief Counts occurrences by testing every anchor unconditionally and combining the results.
+ * @brief Counts occurrences with a test of every anchor unconditionally and a fold of the results.
  *
  * @param[in] corpus      Bytes to search [BORROWS].
  * @param[in] corpus_len  How many.
@@ -330,8 +330,8 @@ static size_t search_anchor_free(const uint8_t *corpus, size_t corpus_len, const
 
     for (size_t at = 0u; (at + needle_len) <= corpus_len; at += 1u)
     {
-        /* No short circuit. All four loads are issued, the comparisons are folded together, and the
-         * branch is taken once on the combined result. */
+        /* No short circuit. All four loads issue, the comparisons fold together, and the
+         * branch runs once on the combined result. */
         const unsigned agree =
             (unsigned)(corpus[at + offsets[0]] == wanted[0]) & (unsigned)(corpus[at + offsets[1]] == wanted[1]) &
             (unsigned)(corpus[at + offsets[2]] == wanted[2]) & (unsigned)(corpus[at + offsets[3]] == wanted[3]);
@@ -353,7 +353,7 @@ typedef struct
     size_t (*run)(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle, size_t needle_len);
 } Arm;
 
-/** @brief One corpus under test: what to call it and how it is filled. */
+/** @brief One corpus under test: what to call it and how to fill it. */
 typedef struct
 {
     const char *name;
@@ -380,7 +380,7 @@ static void corpus_periodic(uint8_t *corpus, size_t length)
  * @brief Times every arm on every corpus at every needle length and writes the rows.
  *
  * @return 0 where every arm agreed with the reference on every row, 1 where any disagreed.
- * @note A disagreeing arm voids its row, because a timing for an arm that returns the wrong answer
+ * @note An arm that disagrees voids its row, because a timing for an arm that returns the wrong answer
  *       is a measurement of the wrong program.
  */
 int main(void)
@@ -414,9 +414,9 @@ int main(void)
             size_t expected[NEEDLES_PER_ROW];
             size_t starts[NEEDLES_PER_ROW];
 
-            /* Every needle is drawn from the corpus, and so every search confirms one genuine occurrence
+            /* Every needle comes from the corpus, and so every search confirms one genuine occurrence
              * and pays the needle_len read verification floor. That floor is why the arms converge as
-             * the needle grows, and the ledger records it as the term an earlier derivation omitted. */
+             * the needle grows, and the ledger records it as a term the derivation must carry. */
             for (size_t pick = 0u; pick < NEEDLES_PER_ROW; pick += 1u)
             {
                 starts[pick] = (pick * 977u) % (CORPUS_BYTES - needle_len);

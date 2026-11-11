@@ -54,7 +54,7 @@ typedef struct
     void (*al_put)(const ProximusCfg *args);        /**< Writes one word to an aligned address. */
     uint64_t (*al_load64)(const ProximusCfg *args); /**< Reads eight bytes from an aligned address. */
     void (*al_put64)(const ProximusCfg *args);      /**< Writes eight bytes to an aligned address. */
-    void (*read)(const ProximusCfg *args);          /**< Copies size bytes, aligning the destination first. */
+    void (*read)(const ProximusCfg *args);          /**< Copies size bytes, with the destination on a boundary first. */
 } ProximusOperorNs;
 EMBED_TABLE_LAYOUT(ProximusOperorNs, load16, load32, load64, put16, put32, put64, load, put, al_load, al_put, al_load64,
                    al_put64, read);

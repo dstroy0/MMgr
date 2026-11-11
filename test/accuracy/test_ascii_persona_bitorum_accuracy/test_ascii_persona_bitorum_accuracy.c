@@ -44,7 +44,7 @@
 /**
  * @brief One class, its name for a failure message, and how many code points it holds.
  *
- * @note The count is a second statement about the same bitmap, arrived at by adding up the lengths
+ * @note The count is a second statement about the same bitmap, the sum of the lengths
  *       of the runs in the header. A bitmap with one extra bit set matches every range test that
  *       looks at the bytes the class names and still fails the count.
  */
@@ -56,7 +56,7 @@ typedef struct
 } AccuracyClassRow;
 
 /**
- * @brief Every class, in enumerator order, with the population each one is expected to hold.
+ * @brief Every class, in enumerator order, with the population each one has to hold.
  *
  * @note MMGR_ASCII_CLASSES is absent. It counts the enumerators and is not a class.
  * @note The populations are the run lengths added up: 10 digits, 26 letters a case, 15 + 7 + 6 + 4
@@ -80,9 +80,9 @@ static const AccuracyClassRow accuracy_class_of[] = {
 /**
  * @brief Asserts there is one row per class enumerator.
  *
- * @note A class added to MmgrAsciiClass without a row here would go untested, and every sweep below
- *       would keep passing while covering one class fewer than the module ships.
- * @note Both sides are known at compile time, and so the build refuses the mismatch and no case has to
+ * @note A class added to MmgrAsciiClass without a row here would go untested. Every sweep below
+ *       would still pass and cover one class fewer than the module ships.
+ * @note Both sides are constants at compile time, and so the build refuses the mismatch and no case has to
  *       run to find it.
  */
 EMBED_STATIC_ASSERT(MMGR_ACCURACY_ASCII_ROWS == (size_t)MMGR_ASCII_CLASSES,
@@ -95,7 +95,7 @@ EMBED_STATIC_ASSERT(MMGR_ACCURACY_ASCII_ROWS == (size_t)MMGR_ASCII_CLASSES,
  * @param[in] first Lowest code point in the range.
  * @param[in] last  Highest code point in the range, included.
  * @return          1 inside the range, 0 outside it.
- * @note Both ends are included, and that is how every run in the header is written.
+ * @note Both ends are in the range, and that is how every run in the header reads.
  */
 static int accuracy_range_holds_code(unsigned code, unsigned first, unsigned last)
 {
@@ -109,8 +109,8 @@ static int accuracy_range_holds_code(unsigned code, unsigned first, unsigned las
  * @param[in] code Code point to look up, 0 through 255.
  * @return         1 when the class covers the code point, 0 when it does not.
  * @note This is the whole reference. Each arm is the header's run list written as ASCII numbers, and
- *       no arm consults another: MMGR_ASCII_ALNUM lists its three runs out in full instead of
- *       reaching for the digit and letter arms, and so one wrong bitmap cannot hide behind another.
+ *       no arm consults another. MMGR_ASCII_ALNUM lists its three runs out in full and does not
+ *       reach for the digit and letter arms. So one wrong bitmap cannot hide behind another.
  * @note Code points at or above MMGR_ACCURACY_ASCII_LIMIT return 0 for every class, the
  *       coverage the header states.
  * @warning A kind of MMGR_ASCII_CLASSES returns 0. Nothing here passes it, and the module documents
@@ -175,7 +175,7 @@ static int accuracy_module_membership(MmgrAsciiClass kind, unsigned code)
  * @brief Runs before each Unity test case.
  *
  * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
- * @note The bitmaps are initialized data and no case writes anything, and so there is no state to
+ * @note The bitmaps are constant data and no case writes anything, and so there is no state to
  *       prepare.
  */
 void setUp(void)
@@ -196,12 +196,12 @@ void tearDown(void)
  * @brief Checks that the numbers this suite tests with are the characters the header names.
  *
  * @note Exists to catch a defect in the reference as itself. Every range in accuracy_class_holds_code is
- *       written as a number, and the header describes the same runs as characters. On a host whose
- *       execution character set is not ASCII those two descriptions part company, and every case
+ *       a number, and the header describes the same runs as characters. On a host whose
+ *       execution character set is not ASCII those two descriptions part company. Every case
  *       below would then compare the module against ranges nobody meant.
- * @note Each run is pinned at both ends. A character set that moved a range without resizing it is
- *       caught here as well as one that resized it.
- * @note The count of letters is checked against the endpoints. A set that spaced the letters out
+ * @note Each run has a pin at both ends. A character set that moved a range and kept its size fails
+ *       here as well as one that changed the size.
+ * @note The count of letters has a check against the endpoints. A set that spaced the letters out
  *       would keep 'A' at 65 and 'Z' somewhere above 90.
  */
 void test_the_code_points_this_suite_tests_with_are_the_characters_the_header_names(void)
@@ -230,8 +230,8 @@ void test_the_code_points_this_suite_tests_with_are_the_characters_the_header_na
  *
  * @note This is the case the file exists for. 10 classes at 256 bytes is 2560 memberships, and every
  *       one of them is a separate bit in the data the module ships.
- * @note The failure message carries the class name and the code point. A wrong bit is located from
- *       the message alone, with nothing to narrow down by hand.
+ * @note The failure message carries the class name and the code point. The message alone locates a
+ *       wrong bit, with nothing to narrow down by hand.
  */
 void test_every_class_holds_exactly_the_code_points_its_declaration_names(void)
 {
@@ -252,9 +252,9 @@ void test_every_class_holds_exactly_the_code_points_its_declaration_names(void)
 /**
  * @brief Checks that every byte at or above 0x80 is in no class at all.
  *
- * @note The sweep above already covers these, and this case states the rule on its own because it is
+ * @note The sweep above already covers these. This case states the rule on its own because it is
  *       the single property that holds for all ten classes at once. A bitmap grown to thirty-two bytes
- *       would fail here first and with a message naming the reason.
+ *       would fail here first and with a message that names the reason.
  * @note 128 code points at 10 classes. A single class that started reading past its sixteen bytes
  *       would report membership out of whatever followed it in memory.
  */
@@ -278,7 +278,7 @@ void test_no_byte_at_or_above_the_ascii_limit_belongs_to_any_class(void)
  *
  * @note A second statement about the same bitmap, and one a reader can check by hand: 26 letters in
  *       a case, 10 digits, 95 printable characters. The range sweep and this count fail on different
- *       defects, since a bit set at a code point the class never mentions passes every range compare
+ *       defects. A bit set at a code point the class never mentions passes every range compare
  *       written for the runs it does mention.
  * @note Counted over all 256 byte values. A bit set above 0x7F raises the total.
  */
@@ -290,8 +290,8 @@ void test_each_class_holds_the_number_of_code_points_its_runs_add_up_to(void)
 
         for (unsigned code = 0u; code < MMGR_ACCURACY_ASCII_BYTES; code++)
         {
-            // Explicit widening of the 0 or 1 membership into the running total. Nothing else is
-            // added here, and so the total is the population
+            // Explicit cast takes the 0 or 1 membership up to the running total. Nothing else goes
+            // in here, and so the total is the population
             counted += (unsigned)accuracy_module_membership(accuracy_class_of[row].kind, code);
         }
 
@@ -306,19 +306,20 @@ void test_each_class_holds_the_number_of_code_points_its_runs_add_up_to(void)
 /**
  * @brief Checks the byte on each side of every run named in the header.
  *
- * @note The sweep covers these already. They are written out again because an off-by-one at a run's
- *       end is the defect a hand-built bitmap actually acquires, and a case that names the character
- *       reports it as itself instead of as one code point out of 2560.
+ * @note The sweep covers these already. They appear again because an off-by-one at a run's
+ *       end is the defect a hand-built bitmap actually acquires. A case that names the character
+ *       reports it as itself and not as one code point out of 2560.
  * @note Each pair is the last character outside a run and the first inside it, or the reverse at the
- *       far end. '/' and '0' bracket the digits, '@' and 'A' the upper case letters, and '`' and 'a'
- *       the lower case ones, which are the three joins where the runs sit next to each other.
- * @note 'F' and 'G' and 'f' and 'g' bracket the hexadecimal letters, the one run that stops
- *       partway through a letter range and the single place a bitmap copied from its neighbor shows up.
+ *       far end. The pair '/' and '0' brackets the digits, '@' and 'A' the upper case letters, and
+ *       '`' and 'a' the lower case ones. Those are the three joins where the runs sit next to each other.
+ * @note The pairs 'F' and 'G' and 'f' and 'g' bracket the hexadecimal letters. That is the one run
+ *       that stops partway through a letter range and the single place a bitmap copied from its
+ *       neighbor shows up.
  */
 void test_the_byte_on_each_side_of_every_run_falls_on_the_right_side_of_it(void)
 {
     // Explicit casts take each character literal from the int the language gives it to the unsigned
-    // the helper counts in. Every one is a code point below 128, and so no value changes crossing over
+    // the helper counts in. Every one is a code point below 128, and so no value changes on the way over
     TEST_ASSERT_EQUAL_INT_MESSAGE(0, accuracy_module_membership(MMGR_ASCII_NUM, (unsigned)'/'), "'/' is not a digit");
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, accuracy_module_membership(MMGR_ASCII_NUM, (unsigned)'0'), "'0' is a digit");
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, accuracy_module_membership(MMGR_ASCII_NUM, (unsigned)'9'), "'9' is a digit");

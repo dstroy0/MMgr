@@ -1,19 +1,19 @@
 name: "CodeQL Advanced"
 
-# Advanced setup and not GitHub default setup, because C has to be analyzed from a real compile.
+# Advanced setup and not GitHub default setup, because the C analysis needs a real compile.
 # CodeQL extracts what the traced compiler actually did. A translation unit is in the database
-# only if something below compiled it - and so the manual build configures the whole project
+# only if something below compiled it. So the manual build configures the whole project
 # and not a hand-picked subset.
 #
-# Two languages are analyzed:
+# Two languages under analysis:
 #   c-cpp    the library. build-mode manual: cmake, traced.
 #   actions  the workflows in this directory. build-mode none: nothing to compile.
 #            Worth having precisely because this repo auto-merges Dependabot PRs - the actions
 #            scanner is what flags an injectable ${{ }} expansion or an unpinned third-party action.
 #
-# The analyze step publishes a code-scanning check per language. Require them in the branch ruleset
-# for main. If GitHub default code scanning is also enabled for C/C++, turn it off under
-# Settings -> Code security -> Code scanning, or this workflow will not run.
+# The analyze step publishes a code scan check per language. Require them in the branch ruleset
+# for main. If GitHub default code scanning is also on for C/C++, turn it off. It sits under
+# Settings -> Code security -> Code scanning, and with it on this workflow will not run.
 
 on:
   push:

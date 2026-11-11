@@ -32,27 +32,27 @@
  * @brief Expands to the first integer a double can no longer hold exactly, which is two to the 53.
  *
  * @note A double carries a 53-bit significand. Every integer below this converts with nothing
- *       rounded, as lets the conversion stand as an expectation. The cases below assert a
- *       product is under this before comparing against it.
+ *       rounded, which lets the conversion stand as an expectation. The cases below assert a
+ *       product is under this before the compare against it.
  */
 #define MMGR_ACCURACY_DOUBLE_EXACT_MAX (1ULL << 53)
 
 /**
  * @brief Expands to 19, one past the largest power of ten accuracy_ten_to_the will raise.
  *
- * @note Ten to the nineteenth passes what a uint64_t holds. Stopping at eighteen keeps every power
+ * @note Ten to the nineteenth passes what a uint64_t holds. A stop at eighteen keeps every power
  *       this file builds exact.
  */
 #define MMGR_ACCURACY_TEN_STEPS 19
 
 /**
- * @brief Reads the bits of a double without going through the library.
+ * @brief Reads the bits of a double and does not go through the library.
  *
  * @note A union is the reinterpretation this suite needs and the one fractio performs internally.
- *       Declaring it here keeps the comparison independent of the module whose output it reads.
+ *       The union declared here keeps the comparison independent of the module whose output it reads.
  */
 typedef union {
-    double value;  /**< The double being read. */
+    double value;  /**< The double to read. */
     uint64_t bits; /**< The same storage as an integer. */
 } AccuracyDoubleBits;
 
@@ -121,11 +121,11 @@ void tearDown(void)
  *        hand.
  *
  * @note Exists to catch a defect in the helpers as itself. Without this case a broken
- *       accuracy_bits_of would surface as a conversion mismatch, and transformo would be blamed for
- *       it.
- * @note Every expectation here is a literal a reader can check without running anything. A double of
- *       1.0 is a biased exponent of 1023 over a zero significand, which is 0x3FF0000000000000, and
- *       each doubling or halving moves that exponent by one.
+ *       accuracy_bits_of would surface as a conversion mismatch, and transformo would look
+ *       wrong.
+ * @note Every expectation here is a literal a reader can check with no run of anything. A double of
+ *       1.0 is a biased exponent of 1023 over a zero significand, which is 0x3FF0000000000000. Each
+ *       factor of two up or down moves that exponent by one.
  */
 void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
 {
@@ -147,9 +147,9 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
  *        wherever a double holds that product outright.
  *
  * @note The expectation is the integer product converted by the compiler, which the language makes
- *       exact below MMGR_ACCURACY_DOUBLE_EXACT_MAX. Nothing this library does is involved in it.
+ *       exact below MMGR_ACCURACY_DOUBLE_EXACT_MAX. Nothing this library does takes part in it.
  * @note The pairs span both routes muto_scale takes. An exponent at or under twenty-two with a small
- *       mantissa is settled in double arithmetic, and the last pair passes that bound and goes
+ *       mantissa settles in double arithmetic. The last pair passes that bound and goes
  *       through the 128-bit path, and so one expectation covers both.
  */
 void test_a_product_a_double_holds_exactly_comes_back_exactly(void)
@@ -157,7 +157,7 @@ void test_a_product_a_double_holds_exactly_comes_back_exactly(void)
     static const uint64_t mantissa_of[] = {1ULL, 123ULL, 7ULL, 999999ULL, 4503599627370495ULL, 2ULL};
     static const unsigned exponent_of[] = {0u, 2u, 6u, 3u, 0u, 15u};
     // Explicit cast narrows the size_t sizeof quotient to the unsigned the loop counts in. The array
-    // holds six entries, which is far inside what an unsigned carries on any conforming target
+    // holds six entries, which is far inside what an unsigned carries on any standard target
     const unsigned pair_count = (unsigned)(sizeof mantissa_of / sizeof mantissa_of[0]);
 
     for (unsigned pair = 0u; pair < pair_count; pair++)
@@ -167,7 +167,7 @@ void test_a_product_a_double_holds_exactly_comes_back_exactly(void)
         TEST_ASSERT_LESS_THAN_UINT64_MESSAGE(MMGR_ACCURACY_DOUBLE_EXACT_MAX, product,
                                              "this case only holds where a double carries the product outright");
 
-        // Explicit cast converts the exact integer product to the double it is compared against. The
+        // Explicit cast converts the exact integer product to the double it compares against. The
         // assertion above holds it under 2^53, where the conversion rounds nothing
         const double expected = (double)product;
         embed_u64 mantissa = mantissa_of[pair];
@@ -185,12 +185,12 @@ void test_a_product_a_double_holds_exactly_comes_back_exactly(void)
  * @brief Checks the negative exponents whose value ends in binary, where the exact answer is a
  *        literal.
  *
- * @note Five over ten, twenty five over a hundred and so on are each a half of a power of two, which
- *       a double holds with nothing rounded. An entry that reached these through a
- *       reciprocal would land one unit low, and comparing bits is what shows that.
- * @note These are the only negative exponents this file can pin without exact rational arithmetic.
- *       Every other one, a tenth included, is a repeating binary fraction whose correct rounding is
- *       not a literal anyone can write by hand.
+ * @note Five over ten, twenty five over a hundred and so on are each a half of a power of two. A
+ *       double holds those with nothing rounded. An entry that reached these through a
+ *       reciprocal would land one unit low, and a bit compare is what shows that.
+ * @note These are the only negative exponents this file can pin with no exact rational arithmetic.
+ *       Every other one, a tenth included, is a binary fraction that repeats, and its correct round
+ *       is not a literal anyone can write by hand.
  */
 void test_a_negative_exponent_that_ends_in_binary_is_exact(void)
 {
@@ -213,10 +213,10 @@ void test_a_negative_exponent_that_ends_in_binary_is_exact(void)
 }
 
 /**
- * @brief Checks that the sign is applied to the value and changes nothing else about it.
+ * @brief Checks that the sign goes onto the value and changes nothing else about it.
  *
  * @note Compares against the negation of the positive result, which holds whatever the magnitude
- *       rounds to. It pins the sign bit as the single bit differing between the two.
+ *       rounds to. It pins the sign bit as the single bit that differs between the two.
  */
 void test_the_sign_changes_one_bit_and_nothing_else(void)
 {
@@ -236,9 +236,9 @@ void test_the_sign_changes_one_bit_and_nothing_else(void)
  * @brief Checks that the integer entry returns the exact product wherever that product fits a
  *        64-bit integer.
  *
- * @note The expectation is the same repeated multiplication the case above uses, and so nothing about
+ * @note The expectation is the same repeated multiplication the case above uses. So nothing about
  *       the answer comes from the powers of ten or the pow5 entries the entry applies.
- * @note A binary exponent of zero is left unset, which the compound literal zeroes. The mantissa
+ * @note A binary exponent of zero stays unset, which the compound literal zeroes. The mantissa
  *       reaches the entry as a plain integer, and the check covers the product alone.
  */
 void test_the_integer_entry_returns_the_exact_product(void)
@@ -267,7 +267,7 @@ void test_the_integer_entry_returns_the_exact_product(void)
  *
  * @note Reads args->e2, which the double entry leaves at zero. That is the single one input the two entries
  *       do not share.
- * @note The expectation is a shift, which is exact for every case here. A scaling that lost or
+ * @note The expectation is a shift, which is exact for every case here. A scale step that lost or
  *       gained a bit shows up as a wrong integer.
  */
 void test_a_binary_exponent_shifts_the_integer_result(void)

@@ -15,7 +15,7 @@
 /**
  * @brief Prepares the fixture Unity runs before each case in this suite.
  *
- * @note Empty because clz.lead and clz.trail declare no static storage and read only args->val, and so
+ * @note Empty because clz.lead and clz.trail declare no static storage and read only args->val. So
  *       nothing carries from one case into the next.
  */
 void setUp(void)
@@ -35,7 +35,7 @@ void tearDown(void)
 /**
  * @brief Checks clz.lead against the known count at all 64 single-bit positions.
  *
- * @note Each position is measured twice. The second value sets every bit below the highest one, and therefore
+ * @note Each position gets two measurements. The second value sets every bit below the highest one, and therefore
  *       an implementation that reads anything but the highest set bit fails here.
  */
 void test_the_leading_zero_count_at_every_position(void)
@@ -45,14 +45,14 @@ void test_the_leading_zero_count_at_every_position(void)
         const embed_u64 single = (embed_u64)1 << bit;
 
         // Explicit cast takes the unsigned loop counter into the int the subtraction and Unity's
-        // integer assertion both work in, and bit is bounded to 63 so the value survives it
+        // integer assertion both work in. The bound of 63 on bit means the value survives it
         TEST_ASSERT_EQUAL_INT_MESSAGE(63 - (int)bit, EMBED_CALL(clz.lead, ClzCfg, .val = single),
                                       "wrong count for a single set bit");
 
         const embed_u64 noisy = single | (single - 1u);
 
         // Explicit cast takes the unsigned loop counter into the int the subtraction and Unity's
-        // integer assertion both work in, and bit is bounded to 63 so the value survives it
+        // integer assertion both work in. The bound of 63 on bit means the value survives it
         TEST_ASSERT_EQUAL_INT(63 - (int)bit, EMBED_CALL(clz.lead, ClzCfg, .val = noisy));
     }
 }
@@ -60,7 +60,7 @@ void test_the_leading_zero_count_at_every_position(void)
 /**
  * @brief Checks clz.trail against the known count at all 64 single-bit positions.
  *
- * @note Each position is measured twice. The second value sets every bit above the lowest one, and therefore
+ * @note Each position gets two measurements. The second value sets every bit above the lowest one, and therefore
  *       an implementation that reads anything but the lowest set bit fails here.
  */
 void test_the_trailing_zero_count_at_every_position(void)
@@ -70,14 +70,14 @@ void test_the_trailing_zero_count_at_every_position(void)
         const embed_u64 single = (embed_u64)1 << bit;
 
         // Explicit cast takes the unsigned loop counter into the int Unity's integer assertion
-        // compares in, and bit is bounded to 63 so the value survives it
+        // compares in. The bound of 63 on bit means the value survives it
         TEST_ASSERT_EQUAL_INT_MESSAGE((int)bit, EMBED_CALL(clz.trail, ClzCfg, .val = single),
                                       "wrong count for a single set bit");
 
         const embed_u64 noisy = ~(embed_u64)0 << bit;
 
         // Explicit cast takes the unsigned loop counter into the int Unity's integer assertion
-        // compares in, and bit is bounded to 63 so the value survives it
+        // compares in. The bound of 63 on bit means the value survives it
         TEST_ASSERT_EQUAL_INT_MESSAGE((int)bit, EMBED_CALL(clz.trail, ClzCfg, .val = noisy),
                                       "only the lowest set bit decides a trailing count");
     }
@@ -96,7 +96,7 @@ void test_the_leading_count_reads_the_highest_set_bit_alone(void)
         const embed_u64 highest = (embed_u64)1 << bit;
 
         // Explicit cast takes the unsigned loop counter into the int the subtraction and Unity's
-        // integer assertion both work in, and bit is bounded to 63 so the value survives it
+        // integer assertion both work in. The bound of 63 on bit means the value survives it
         TEST_ASSERT_EQUAL_INT_MESSAGE(63 - (int)bit, EMBED_CALL(clz.lead, ClzCfg, .val = highest | 1u),
                                       "a bit set at the bottom must not move the leading count");
     }
@@ -116,7 +116,7 @@ void test_the_trailing_count_reads_the_lowest_set_bit_alone(void)
         const embed_u64 top = (embed_u64)1 << 63;
 
         // Explicit cast takes the unsigned loop counter into the int Unity's integer assertion
-        // compares in, and bit is bounded to 62 here so the value survives it
+        // compares in. The bound of 62 on bit here means the value survives it
         TEST_ASSERT_EQUAL_INT_MESSAGE((int)bit, EMBED_CALL(clz.trail, ClzCfg, .val = lowest | top),
                                       "a bit set at the top must not move the trailing count");
     }
@@ -137,7 +137,7 @@ void test_the_two_counts_bracket_a_single_set_bit(void)
         const embed_iword trail = EMBED_CALL(clz.trail, ClzCfg, .val = single);
 
         // Explicit casts take both counts from embed_iword into the int Unity's integer assertion
-        // compares in. clz.h documents each count as 0 through 63, and so the sum stays at 63 and fits
+        // compares in. The clz.h notes give each count as 0 through 63. So the sum stays at 63 and fits
         // whichever of the two types is narrower
         TEST_ASSERT_EQUAL_INT_MESSAGE(63, (int)lead + (int)trail,
                                       "one set bit leaves 63 zeros split between the two ends");
@@ -162,8 +162,8 @@ void test_a_full_word_counts_no_zeros_at_either_end(void)
  * @brief Checks that both counts answer 63 for a value of zero.
  *
  * @note clz.h warns that clz.lead gives 0 the same answer as 1, and that clz.trail gives 0 the same
- *       answer as 2^63. This pins both warnings. A caller that can be handed zero knows it has to
- *       test for zero before calling.
+ *       answer as 2^63. This pins both warnings. A caller that can receive zero knows it has to
+ *       test for zero before the call.
  */
 void test_zero_is_not_told_apart_from_the_single_bit_at_the_end_each_counts_from(void)
 {
@@ -180,7 +180,7 @@ void test_zero_is_not_told_apart_from_the_single_bit_at_the_end_each_counts_from
 }
 
 /**
- * @brief Checks that both counts stay within 0 through 63 across a widening run of set bits.
+ * @brief Checks that both counts stay within 0 through 63 across a run of set bits that grows.
  *
  * @note The loop shifts a set bit in on each step, and so it measures the 64 values of the form 2^n
  *       minus 1. A count outside the documented range would index past a lane table at any caller
@@ -196,11 +196,11 @@ void test_both_counts_stay_inside_the_documented_range(void)
         const embed_iword trail = EMBED_CALL(clz.trail, ClzCfg, .val = walk);
 
         // Explicit casts take the count from embed_iword into int so both halves of the range test
-        // compare in one type. The two halves are combined because a count is in range only when
+        // compare in one type. The two halves join because a count is in range only when
         // both hold, and neither half carries a side effect
         TEST_ASSERT_TRUE_MESSAGE((int)lead >= 0 && (int)lead <= 63, "a leading count outside 0 through 63");
         // Explicit casts take the count from embed_iword into int so both halves of the range test
-        // compare in one type. The two halves are combined because a count is in range only when
+        // compare in one type. The two halves join because a count is in range only when
         // both hold, and neither half carries a side effect
         TEST_ASSERT_TRUE_MESSAGE((int)trail >= 0 && (int)trail <= 63, "a trailing count outside 0 through 63");
         walk = (walk << 1) | 1u;

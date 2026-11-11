@@ -6,8 +6,8 @@
  */
 /**
  * @file spatium_fuzz.c
- * @brief A libFuzzer harness over the spans: every entry on spans of any storage, cap, position and overflow, each
- *        answer against its contract computed field by field.
+ * @brief A libFuzzer harness over the spans. Every entry runs on spans of any storage, cap, position and overflow,
+ *        each answer against its contract computed field by field.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

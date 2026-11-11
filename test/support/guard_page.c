@@ -151,7 +151,7 @@ int mmgr_guard_traps_on(const unsigned char *p)
     s_armed = 1;
     if (MMGR_GUARD_SETJMP(s_trap) == 0)
     {
-        // nothing reads s_touched, and therefore an optimizer may drop the store and the load with it; a
+        // nothing reads s_touched, and therefore an optimizer may drop the store and the load with it. A
         // volatile read is the single one access no build can remove, and it is what has to touch the page
         s_touched = *(const volatile unsigned char *)p;
     }

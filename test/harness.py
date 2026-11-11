@@ -26,12 +26,12 @@
 This is the only entry point. Everything else here is a module, and a build reached any other way is
 a build whose flags nobody wrote down.
 
-Every tree lives under one container, build/, named for what it is and stamped with when it was
-made: build/build-20260831-181500. Two builds can then never share objects, and a tree can be kept
-and compared against in place of overwritten. A tree is reused between invocations, because a fresh
-one costs a full configure and a full compile every time; --fresh forces a new one, the thing a
-changed target or a changed toolchain needs. The newest three per name are kept and older ones are
-removed on the way in.
+Every tree lives under one container, build/, named for what it is and stamped with its date and
+time: build/build-20260831-181500. Two builds can then never share objects, and a tree can stay
+for a later comparison in place of a loss. A build keeps its tree between invocations,
+because a fresh one costs a full configure and a full compile every time. The --fresh option forces
+a new one, the thing a changed target or a changed toolchain needs. The newest three per name stay and
+the older ones go on the way in.
 
 There are seven host trees and each one is a different question: each carries its own flags here
 instead of in somebody's shell history:
@@ -45,16 +45,16 @@ instead of in somebody's shell history:
   build-fuzz      the libFuzzer harnesses, one for each module, under the address and undefined behavior sanitizers
 
 The device benches are ESP-IDF projects, which is a second build system with its own toolchain and
-environment. Reaching it needs a shell: the shell script is written out from here, run, and
-removed when it succeeds. A script kept in the tree is a second place the paths live and it drifts
-from what this file computes; one generated from the paths this file just resolved cannot. A failing
-script is left behind with its path printed, because a build that failed is exactly when the command
-that ran is worth reading.
+environment. To reach it needs a shell: this file writes the shell script out, runs it, and
+removes it when it succeeds. A script kept in the tree is a second place the paths live, and it
+drifts from what this file computes. One generated from the paths this file just resolved cannot.
+A script that fails stays behind with its path printed. A build that failed is exactly when the
+command that ran is worth a read.
 
-The last two matter. always_inline is honored at -O0, and without turning it off every call site of
-a header entry gets its own copy of that entry's branch records and the report counts optimizer
+The last two matter. The compiler honors always_inline at -O0. With it on, every call site of a
+header entry gets its own copy of that entry's branch records. The report then counts optimizer
 copies instead of source branches. Link time optimization rewrites the code across translation
-units before the counters are read, which measures something that is not what anyone wrote.
+units before the read of the counters, which measures something that is not what anyone wrote.
 
 Two environment variables, because a first build has nothing to infer them from:
 
@@ -72,24 +72,24 @@ The mechanisms here are generic; the names, the paths and the two patterns that 
 idiom are this tree's.
 
 A capability is a set of translation units the config selects. A suite whose capabilities are off
-is not built at all:
+does not build at all:
 
   cmake -S . -B build -DMMGR_ENABLE_DMA=OFF
 
-The capabilities each suite needs are test/CMakeLists.txt's map, the one `suites` reads: a
-suite naming a capability it never drives, or driving one it does not name, is how a reduced build
-fails while the full one passes.
+The capabilities each suite needs are test/CMakeLists.txt's map, the one `suites` reads. A
+suite that names a capability it never drives, or drives one it does not name, is a defect. That
+is how a reduced build fails while the full one passes.
 
-A case Unity's generator does not collect is not an error to the generator: it is simply never
-registered, and the suite passes while the case never ran. `cases` and `runners gen` both break that
-silence by naming the near misses.
+A case Unity's generator does not collect is not an error to the generator. The runner never
+registers it, and the suite passes while the case never ran. `cases` and `runners gen` both break
+that silence and name the near misses.
 
-Some of src/ is generated and never written by hand, because it is tables nobody can check by eye - the
-ASCII class bitmaps, the anchor cost profiles and the powers of five. Editing any of it by hand is
-silently undone the next time anyone runs the generator: `generated` compares what is on disk
-against what the generators emit and says which is which. It covers whole modules and never only
-headers: the ASCII module's .c and its CMakeLists.txt come out of the same generator as its header,
-and a profile is a .c.
+Generators write some of src/, and nobody writes it by hand. It is tables nobody can check by
+eye: the ASCII class bitmaps, the anchor cost profiles and the powers of five. The next run of
+the generator quietly undoes any edit by hand. `generated` compares what is on disk against what
+the generators emit and says which is which. It covers whole modules and never only headers. The
+ASCII module's .c and its CMakeLists.txt come out of the same generator as its header, and a
+profile is a .c.
 """
 
 import argparse
@@ -107,8 +107,8 @@ import sys
 import time
 
 # No __pycache__ beside the source. This process imports bench.py out of the bench tree, and the
-# interpreter writes bytecode next to whatever it imports - a generated directory in the checkout,
-# left by the one tool whose job is keeping generated things in a single place.
+# interpreter writes bytecode next to whatever it imports. That is a generated directory in the
+# checkout, left by the one tool whose job is to keep generated things in a single place.
 sys.dont_write_bytecode = True
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -120,10 +120,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD_ROOT = os.path.abspath(os.environ.get("MMGR_BUILD_ROOT", ROOT))
 
 # Extra configure arguments, split like a shell would. borrowed_toolchain() reads the generator and
-# the compiler off a tree that already built, which answers the question everywhere there is such a
-# tree - and nowhere there is not, which is any fresh clone or worktree whose first build is this
-# one. cmake's default generator is not always one that works on a given machine. A first build
-# with nothing to borrow from needs somewhere to be told.
+# the compiler off a tree that already built. That answers the question everywhere there is such a
+# tree, and nowhere there is not. A fresh clone or worktree whose first build is this one has no
+# such tree. The default cmake generator is not always one that works on a given machine. A first
+# build with nothing to borrow from needs somewhere to hear the answer.
 CMAKE_ARGS = os.environ.get("MMGR_CMAKE_ARGS", "")
 
 
@@ -131,12 +131,12 @@ CMAKE_ARGS = os.environ.get("MMGR_CMAKE_ARGS", "")
 # into whatever directory a command happened to run from, is how two builds come to share objects.
 BUILD_CONTAINER = os.path.join(BUILD_ROOT, "build")
 
-# Which directory each tree is currently using. Written here in place of inferred from the newest
-# timestamp on disk. A run that was interrupted does not silently hand the next one a half
+# Which directory each tree uses now. Written here in place of inferred from the newest
+# timestamp on disk. A run cut short does not silently hand the next one a half
 # configured tree.
 BUILD_POINTER = os.path.join(BUILD_CONTAINER, "current.json")
 
-# Trees kept per name before the oldest is removed. Small by design: an instrumented tree is
+# Trees kept per name before the oldest goes. Small by design: an instrumented tree is
 # hundreds of megabytes, and what anyone wants is the last few and never the last month.
 BUILD_KEEP = 3
 
@@ -147,7 +147,7 @@ def build_stamp():
 
 
 def read_pointer():
-    """Which directory each tree is currently using, as the pointer records it."""
+    """Which directory each tree uses now, as the pointer records it."""
     try:
         with open(BUILD_POINTER, encoding="utf-8") as fh:
             return json.load(fh)
@@ -156,17 +156,17 @@ def read_pointer():
 
 
 def write_pointer(current):
-    """Record which directory each tree is using."""
+    """Record which directory each tree uses."""
     os.makedirs(BUILD_CONTAINER, exist_ok=True)
     with open(BUILD_POINTER, "w", encoding="utf-8") as fh:
         json.dump(current, fh, indent=2, sort_keys=True)
 
 
-# Where the last working toolchain is kept in the pointer. Underscored so the tree lookups can tell
+# Where the pointer keeps the last good toolchain. Underscored so the tree lookups can tell
 # it from a tree name without a list of exceptions.
 REMEMBERED_TOOLCHAIN = "_toolchain"
 
-# What a cache has to say for a tree to be worth borrowing from, and the flag each answer becomes.
+# What a cache has to say for a tree to be worth a borrow, and the flag each answer becomes.
 TOOLCHAIN_KEYS = {
     "CMAKE_GENERATOR": "-G",
     "CMAKE_C_COMPILER": "-DCMAKE_C_COMPILER=",
@@ -193,9 +193,9 @@ def toolchain_from_cache(cache):
 def remember_toolchain(path):
     """Record the toolchain a tree configured with: it outlives that tree.
 
-    Trees rotate. Without this, a machine that has built a hundred times arrives at the same place a
-    fresh clone does the moment the last tree is removed, and the generator cmake picks by default is
-    not one that works here.
+    Trees rotate. Without this, a machine with a hundred builds behind it arrives at the same place
+    as a fresh clone. That happens the moment the rotation removes the last tree. The generator
+    cmake picks by default is not one that works here.
     """
     args = toolchain_from_cache(os.path.join(path, "CMakeCache.txt"))
     if not args:
@@ -207,12 +207,12 @@ def remember_toolchain(path):
 
 
 def tree_dirs(tree):
-    """Directories under the container belonging to @p tree, oldest first.
+    """Directories under the container that belong to @p tree, oldest first.
 
     Matched against the whole name and not its prefix. "build" is a prefix of "build-oracle". A
     prefix test would let a rotation of one name remove another's trees. The stamp is part of the
-    pattern for the same reason: anything under the container that is not a tree this made is left
-    alone.
+    pattern for the same reason. Anything under the container that is not a tree this made stays as
+    it is.
     """
     if not os.path.isdir(BUILD_CONTAINER):
         return []
@@ -230,11 +230,11 @@ _DEFENDER_RT = "unasked"
 
 
 def defender_state():
-    """Real time protection, and the paths excluded from it. (None, []) where it cannot be told.
+    """Real time protection, and the paths excluded from it. (None, []) where nothing can tell.
 
-    None is an answer, no failure. The query needs the Defender module, which a machine
-    running a different anti-virus does not have, and calling that "off" would send the reader after
-    the wrong thing.
+    None is an answer, no failure. The query needs the Defender module, which a machine with a
+    different anti-virus does not have. To call that "off" would send the reader after the wrong
+    thing.
     """
     global _DEFENDER_RT  # noqa: PLW0603  asked once and cached, which is the point of it
     if _DEFENDER_RT != "unasked":
@@ -254,10 +254,10 @@ def defender_state():
         try:
             answer = json.loads(r.stdout.strip())
             raw = [p for p in answer["ex"] if p]
-            # Unelevated, Get-MpPreference answers the exclusion query with a sentence about needing
-            # to be an administrator and never with paths. Comparing the tree against a sentence
-            # finds no match and reports "not excluded", which is an assertion this cannot make, and
-            # an answer holding no path at all becomes None: not knowable from here.
+            # Unelevated, Get-MpPreference answers the exclusion query with a sentence about the
+            # administrator it wants and never with paths. A compare of the tree against a sentence
+            # finds no match and reports "not excluded", which is an assertion this cannot make. So
+            # an answer with no path at all becomes None: not knowable from here.
             paths = [p for p in raw if os.path.isabs(p)]
             _DEFENDER_RT = (bool(answer["rt"]), paths if paths or not raw else None)
         except (ValueError, KeyError, TypeError):
@@ -266,23 +266,23 @@ def defender_state():
 
 
 def defender_covers(path):
-    """True when real time protection is on and @p path is not excluded from it.
+    """True when real time protection is on and no exclusion covers @p path.
 
-    The exclusion decides and the setting does not. Protection being on says nothing about this
-    tree if the tree is already excluded, and a warning that fires anyway is one that gets ignored
-    the one time it was right.
+    The exclusion decides and the switch does not. Protection on says nothing about this tree if an
+    exclusion already covers the tree. A warning that fires anyway is one that everyone ignores the
+    one time it is right.
     """
     realtime, excluded = defender_state()
     if not realtime:
         return False
     if excluded is None:
-        # Protection is on and the exclusions cannot be read from here. Worth raising, and the note
-        # says which half is known.
+        # Protection is on and the exclusions are out of reach from here. Worth a report, and the note
+        # says which half it knows.
         return True
     target = os.path.normcase(os.path.abspath(path))
     for entry in excluded:
         # An exclusion covers a directory and everything under it: the separator matters, without
-        # it "C:\\build" would read as excluding "C:\\build-oracle" too.
+        # it "C:\\build" would read as an exclusion of "C:\\build-oracle" too.
         covered = os.path.normcase(os.path.abspath(entry))
         if target == covered or target.startswith(covered + os.sep):
             return False
@@ -292,9 +292,9 @@ def defender_covers(path):
 def report_defender():
     """Print the Defender note where it is a likely explanation. A no-op anywhere it is not.
 
-    Printed on failures and never on every command. On a working build it is noise, and the
-    symptoms it explains - a tree that will not delete, a link step failing on a file nothing else
-    holds, a rebuild slower than the last one - all arrive as a failure that names no cause.
+    Printed on failures and never on every command. On a good build it is noise. The symptoms it
+    explains all arrive as a failure that names no cause. A tree that will not delete, a link step
+    that fails on a file nothing else holds, a rebuild slower than the last one.
     """
     if not defender_covers(BUILD_CONTAINER):
         return
@@ -327,30 +327,30 @@ def report_defender():
 def remove_tree(path):
     """Remove a build tree, and say whether it actually went.
 
-    Every read-only bit under the tree is cleared first. FetchContent clones Unity into _deps with
+    This clears every read-only bit under the tree first. FetchContent clones Unity into _deps with
     its .git intact, and git holds pack files at 0444, which Windows will not unlink. A plain
     rmtree of any fully built tree stops partway and leaves a directory with most of its contents
-    gone. That husk still matches the tree pattern: it is counted by the rotation, listed by
-    `trees`, and never removed on any later run either.
+    gone. That husk still matches the tree pattern: the rotation counts it, `trees` lists it, and
+    no later run removes it either.
     """
     for base, dirs, files in os.walk(path):
         for name in dirs + files:
             try:
                 os.chmod(os.path.join(base, name), stat.S_IWRITE)
             except OSError:
-                # Already gone, or not ours to change. Whatever genuinely blocks the removal is
-                # reported by the caller reading the return and never guessed at here.
+                # Already gone, or not ours to change. The caller that reads the return reports
+                # whatever genuinely blocks the removal, and nothing here guesses at it.
                 pass
     shutil.rmtree(path, ignore_errors=True)
     return not os.path.exists(path)
 
 
 def rotate_trees(tree, keep=BUILD_KEEP):
-    """Remove all but the newest @p keep directories belonging to @p tree.
+    """Remove all but the newest @p keep directories that belong to @p tree.
 
-    The name carries the stamp: sorting the names sorts them by age without stat-ing anything.
-    The one the pointer names is kept whatever its position, since a rotation that removes the tree
-    a build is about to use has removed the wrong thing.
+    The name carries the stamp: a sort of the names sorts them by age with no stat of anything.
+    The one the pointer names stays whatever its position. A rotation that removes the tree a
+    build is about to use removes the wrong thing.
     """
     live = read_pointer().get(tree)
     mine = tree_dirs(tree)
@@ -358,19 +358,19 @@ def rotate_trees(tree, keep=BUILD_KEEP):
         if name == live:
             continue
         # Said out loud. A rotation that cannot remove what it selected leaves the container one
-        # tree larger every time, and silence turns that into a directory nobody can account for.
+        # tree larger every time. Silence turns that into a directory nobody can account for.
         if not remove_tree(os.path.join(BUILD_CONTAINER, name)):
             print("rotation could not remove %s, and it is still counted" % name)
             report_defender()
 
 
 def tree_path(tree, fresh=False):
-    """Absolute path of build tree @p tree, making a new one where @p fresh or none is current.
+    """Absolute path of build tree @p tree, with a new one where @p fresh or none is current.
 
-    A tree is reused between invocations, because a fresh one means a full configure and a full
-    compile every time and the common command is run constantly. What fresh buys is the case where
-    reuse would be wrong: a different target, a different toolchain, anything that leaves a cache
-    describing a build nobody asked for.
+    A build keeps its tree between invocations, because a fresh one means a full configure and a
+    full compile every time. The common command runs constantly. What fresh buys is the case
+    where reuse would be wrong. A different target, a different toolchain, anything that leaves a
+    cache that describes a build nobody asked for.
     """
     current = read_pointer()
     name = current.get(tree)
@@ -381,12 +381,12 @@ def tree_path(tree, fresh=False):
     current[tree] = name
     write_pointer(current)
     # One fewer than the count kept, because the tree named above is not on disk yet - cmake makes it
-    # on the way through configure. Rotating to BUILD_KEEP here leaves that many behind and then adds
+    # on the way through configure. A rotation to BUILD_KEEP here leaves that many behind and then adds
     # one, and the container settles at one more than this file says it keeps.
     rotate_trees(tree, BUILD_KEEP - 1)
     return os.path.join(BUILD_CONTAINER, name)
 
-# A five-way split. A suite is a directory holding exactly one .c
+# A five-way split. A suite is a directory with exactly one .c
 # with cases, and its generated runner sits beside it.
 #
 #   unit/<module>/test_<name>/     one per translation unit, mirroring src/<module>/
@@ -398,7 +398,7 @@ def tree_path(tree, fresh=False):
 #   interop/test_<name>/           this library's output against another implementation's
 #
 # accuracy is separate from unit by design. A unit suite asks whether an entry keeps the contract
-# its header states, which a table-driven module can satisfy with a table that is internally
+# its header states. A table-driven module can satisfy that with a table that is internally
 # consistent and numerically wrong. An accuracy suite asks what the number actually is.
 UNIT = os.path.join(ROOT, "test", "unit")
 ACCURACY = os.path.join(ROOT, "test", "accuracy")
@@ -407,7 +407,7 @@ INTEGRATION = os.path.join(ROOT, "test", "integration")
 INTEROP = os.path.join(ROOT, "test", "interop")
 GENERATED_RUNNER = "unity_runner.c"
 
-# What Unity's generate_test_runner.rb collects, and the shape a case has to have to be collected.
+# What Unity's generate_test_runner.rb collects, and the shape a case has to have for the generator to collect it.
 UNITY_CASE = re.compile(r"^[ \t]*void[ \t]+(test_\w+)[ \t]*\([ \t]*(?:void)?[ \t]*\)", re.M)
 NEAR_MISS = re.compile(r"^[ \t]*void[ \t]+(\w+)[ \t]*\([ \t]*(?:void)?[ \t]*\)[ \t]*\r?\n[ \t]*\{", re.M)
 NOT_A_CASE = ("setUp", "tearDown", "main", "suiteSetUp", "suiteTearDown")
@@ -426,9 +426,9 @@ def guarded_cases(path):
     """Each registered case in @p path, with the capabilities whose #if it sits inside.
 
     Unity's generator reads the case names out of the source text and does not see a preprocessor
-    conditional. A case inside a capability's #if is still declared and called by the runner. With
-    that capability off the definition is gone and the suite fails to LINK, and that makes this
-    the same finding as a capability the map does not name.
+    conditional. The runner still declares and calls a case inside a capability's #if. With that
+    capability off the definition does not exist and the suite fails to LINK. That makes this the
+    same finding as a capability the map does not name.
     """
     with open(path, encoding="utf-8") as fh:
         lines = fh.read().splitlines()
@@ -482,7 +482,7 @@ def suite_source(suite_dir):
 
 
 def discover():
-    """Every suite directory, which is any dir holding a .c with a collectable case."""
+    """Every suite directory, which is any dir with a .c that has a collectable case."""
     out = []
     for base in (UNIT, ACCURACY, ENVIRONMENT, INTEGRATION, INTEROP):
         if not os.path.isdir(base):
@@ -495,7 +495,7 @@ def discover():
 
 
 def find_ruby():
-    """Ruby runs Unity's generator. A missing one is an error, never a silent skip."""
+    """Ruby runs Unity's generator. No Ruby is an error, never a silent skip."""
     return shutil.which("ruby")
 
 
@@ -516,8 +516,8 @@ def generate_runner(suite_dir, unity_rb):
                     % (os.path.relpath(os.path.join(suite_dir, f), ROOT), ", ".join(missed))
                 )
         raise SystemExit("runners: no test case found in %s" % os.path.relpath(suite_dir, ROOT))
-    # The generator takes one input file and emits one main(): cases spread across several
-    # sources cannot be registered from any single one of them.
+    # The generator takes one input file and emits one main(): no single source can register
+    # cases spread across several of them.
     if len(sources) > 1:
         raise SystemExit(
             "runners: %s holds test cases in %d sources (%s).\n"
@@ -533,31 +533,28 @@ def generate_runner(suite_dir, unity_rb):
     src = os.path.join(suite_dir, sources[0])
     out = os.path.join(suite_dir, GENERATED_RUNNER)
     subprocess.run([ruby, unity_rb, src, out], check=True)
-    # Unity's generator opens its output in text mode, and on Windows every line lands CRLF while
-    # .gitattributes holds this tree at "LF in the repository and LF in the working copy". The runner
-    # is tracked, so that difference shows as a modified file after every build that regenerates one.
-    # git normalizes the content it stores either way, and nothing was ever committed wrong; rewriting
-    # the bytes here is what leaves the working copy as the build found it, on every platform. A
-    # no-op where the generator already wrote LF.
+    # Unity's generator opens its output in text mode, and on Windows every line lands CRLF. This
+    # tree's .gitattributes holds it at LF in the repository and LF in the work tree. The runner is
+    # under version control. So that difference shows as a modified file after every build that
+    # regenerates one. git normalizes the content it stores either way. The rewrite here leaves the
+    # work tree as the build found it on every platform, a no-op where the generator already wrote LF.
     with open(out, "rb") as fh:
         written = fh.read()
     fixed = written.replace(b"\r\n", b"\n")
-    # Unity writes the source path it was handed into UnityBegin, and the caller hands this function
-    # an absolute one. The same argument as the line endings above applies to it and is worse: an
-    # absolute path in a tracked generated file names the machine that produced it, and rewrites
-    # itself on every checkout at a different location. 60 of these were committed carrying
-    # "C:/Users/<name>/Desktop/git_project/mmgrwork/MMgr/...", a layout that no longer exists, and
-    # every build since the tree moved has reported all 60 as modified and each diff reads as
-    # authored work until somebody opens it. Stripping the root here leaves the same bytes on every
-    # machine. Both separators are tried: Unity normalizes the directory it was given to forward
-    # slashes and joins the file name with a backslash of its own.
+    # Unity writes the source path it receives into UnityBegin, and the caller hands this function
+    # an absolute one. The same argument as the line endings above applies, and it is worse. An
+    # absolute path in a generated file under version control names the machine that produced it.
+    # It rewrites itself on every checkout at a different location, and each diff reads as authored
+    # work until somebody opens it. The cut of the root here leaves the same bytes on every machine.
+    # The cut tries both separators: Unity normalizes the directory it receives to forward slashes
+    # and joins the file name with a backslash of its own.
     root_forward = ROOT.replace("\\", "/").encode()
     root_backward = ROOT.replace("/", "\\").encode()
     fixed = fixed.replace(root_forward + b"/", b"").replace(root_backward + b"\\", b"")
     if fixed != written:
         with open(out, "wb") as fh:
             fh.write(fixed)
-    # Report the near misses even on success: the runner is written, and these still never ran.
+    # Report the near misses even on success: the runner exists, and these still never ran.
     _, missed = runner_cases(src)
     if missed:
         print(
@@ -570,18 +567,18 @@ def generate_runner(suite_dir, unity_rb):
 
 # A suite that borrows a region and never drives it looks covered and is not.
 #
-# This tree's shape is the golden one: operands go into <Mod>V.<entry>_args and the entry is then
-# called with the borrow. So the pattern matched is the assignment into an Args record, and "driven"
-# means the borrow is named somewhere that is not its declaration, its assignment, or a clear.
+# This tree's shape is the golden one: operands go into <Mod>V.<entry>_args and the call of the
+# entry then takes the borrow. So the pattern to match is the assignment into an Args record. The
+# word "driven" means some line names the borrow that is not its declaration, its assignment, or a clear.
 BIND_DEP = re.compile(r"(\w+)V\.\w*_?args\.(\w+)\s*=\s*(\w+_work)\b")
 
 
 def _is_setup_use(line, mem):
     """True when this line only declares, binds, or clears the borrow.
 
-    Those three are how a dependency is made ready, not how it is exercised, and a suite that does
-    only them has bound a unit it never asks anything of. Where the setup lives does not matter, and
-    this keys on the line and never on the enclosing function.
+    Those three make a dependency ready and do not exercise it. A suite that does only them binds
+    a unit it never asks anything of. Where the setup lives does not matter, and this keys on the
+    line and never on the function around it.
     """
     esc = re.escape(mem)
     if re.search(r"\b(static|uint8_t)\b.*\b" + esc + r"\b\s*\[", line):
@@ -594,7 +591,7 @@ def _is_setup_use(line, mem):
 
 
 def undriven_deps(path):
-    """Dependencies a suite binds that no line exercises beyond declaring, binding and clearing."""
+    """Dependencies a suite binds that no line exercises beyond a declaration, a bind and a clear."""
     with open(path, encoding="utf-8") as fh:
         lines = fh.read().split("\n")
     text = "\n".join(lines)
@@ -611,7 +608,7 @@ def undriven_deps(path):
 # ------------------------------------------------------------------------------------------------
 # The DMA schedule's knobs, answered the way a host build answers them. A host defines no counter to
 # pin a timer to: the clock is the caller's. The two DMA trees, the target probe and the remote
-# columns all start from these, and each replaces a knob by name where it asks a different question.
+# columns all start from these. Each replaces a knob by name where it asks a different question.
 PRAET_KNOBS = (
     "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u", "PRAET_KEEPALIVE_MICROS=250u",
     "PRAET_RECOVERY=1", "PRAET_CLOCK_HZ=240000000u", "PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER",
@@ -619,9 +616,9 @@ PRAET_KNOBS = (
 
 
 def praet_knobs(replaced):
-    """PRAET_KNOBS as NAME=value, with each knob @p replaced names taking the value it gives there.
+    """PRAET_KNOBS as NAME=value, where each knob @p replaced names takes the value it gives there.
 
-    A replaced knob is left out of the base instead of repeated after it. A second definition of one
+    A replaced knob stays out of the base instead of a repeat after it. A second definition of one
     name is a redefinition warning on every build that sets it, and the suites count warnings.
     """
     names = {knob.split("=", 1)[0] for knob in replaced}
@@ -629,11 +626,11 @@ def praet_knobs(replaced):
 
 
 # The boundary word answer the lean arm declares its context with. Test side, the same way the oracle
-# is: the library reads no such knob, and the suite needs it on the arm where recovery is off, since
-# asking for the check without recovery is refused.
+# is: the library reads no such knob. The suite needs it on the arm where recovery is off, since
+# the library refuses the check without recovery.
 CRC_OFF = "-DPRAET_SUITE_CRC_CHOICE=AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE"
 
-# Each tree is a question, and the flags are the question. Written down here so that running one is
+# Each tree is a question, and the flags are the question. Written down here so that a run of one is
 # a command instead of a remembered incantation.
 TREES = {
     "build": {
@@ -642,9 +639,9 @@ TREES = {
     },
     "build-oracle": {
         "what": "every entry with a libc equivalent replaced by that equivalent",
-        # Test side. The library has no oracle in it and no option to turn one on - the define
+        # Test side. The library has no oracle in it and no option to turn one on. The define
         # reaches test/support/oracle_divergence.h, which pulls in the substitution for the suites
-        # that include it. Nothing in src is compiled differently.
+        # that include it. Nothing in src compiles differently.
         "args": ["-DCMAKE_C_FLAGS=-DMMGR_TEST_ORACLE=1"],
     },
     "build-cov": {
@@ -684,8 +681,8 @@ TREES = {
 def run(cmd, quiet=True, stdin=None):
     """Run a command from the repository root and hand back its completed process.
 
-    @p stdin feeds text in. cmd_vectors drives a helper that reads a message per line, and writing
-    those to a file first would put a temporary beside whatever directory it ran from.
+    @p stdin feeds text in. cmd_vectors drives a helper that reads a message per line. A file of
+    those would put a temporary beside whatever directory it ran from.
     """
     if quiet:
         return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, input=stdin)
@@ -695,23 +692,22 @@ def run(cmd, quiet=True, stdin=None):
 def borrowed_toolchain(skip_path):
     """Generator and compiler taken from whichever tree is already configured.
 
-    cmake's default generator is not always the one that works on a given machine, and a tree that
+    cmake's default generator is not always the one that works on a given machine. A tree that
     already built is proof of one that does. Beats a second place to keep a toolchain path.
 
-    @p skip_path is the directory being configured, and it is the only one passed over. Skipping the
-    whole tree NAME instead is what this did when each name had one directory, and under stamped
-    trees that reads as "never borrow from a tree of the kind you are building", the kind
-    most likely to have one.
+    @p skip_path is the directory under configuration, and it is the only one this passes over. A
+    skip of the whole tree NAME would read as "never borrow from a tree of the kind you build". That
+    kind is the one most likely to have one.
     """
     # Read off the directories and never through tree_path. That function makes a directory and
-    # rotates when a tree has none, and probing for a toolchain must not create anything.
+    # rotates when a tree has none, and a probe for a toolchain must not create anything.
     #
-    # Every tree on disk is considered, newest first, not only the ones the pointer names. A tree
-    # that configured successfully still proves a toolchain that works even after another build took
-    # the name, and skipping it would send a machine that has built many times back to the answer a
-    # fresh clone gets.
-    # The remembered one first. It is written only after a configure succeeded, where a tree on disk
-    # may be the wreck of one that did not.
+    # This considers every tree on disk, newest first, not only the ones the pointer names. A tree
+    # that configured still proves a toolchain that works even after another build took the name.
+    # A skip of it would send a machine with many builds behind it back to the answer a fresh clone
+    # gets.
+    # The remembered one first. The pointer is a record of a configure that succeeded, where a tree
+    # on disk may be the wreck of one that did not.
     current = read_pointer()
     remembered = current.get(REMEMBERED_TOOLCHAIN, [])
     if remembered:
@@ -730,8 +726,8 @@ def borrowed_toolchain(skip_path):
 
 def configure(tree, fresh=False):
     """Configure @p tree if it is not there yet."""
-    # Taken before the path, because tree_path writes the pointer when it makes a new tree and a
-    # failed configure has to put back what was there in place of leaving the name unset.
+    # Taken before the path, because tree_path writes the pointer when it makes a new tree. A
+    # failed configure has to put back what was there in place of a name left unset.
     was = read_pointer().get(tree)
 
     path = tree_path(tree, fresh)
@@ -744,14 +740,14 @@ def configure(tree, fresh=False):
         sys.stderr.write(r.stdout[-3000:] + r.stderr[-3000:])
         print("configure of %s failed" % tree)
         report_defender()
-        # A configure that failed still leaves a cache, and that cache holds whatever cmake settled
-        # on before it stopped - a generator nobody asked for, or a compiler it could not find. The
-        # next run sees a cache, treats the tree as configured, and builds against it. Removing it
-        # makes a failed configure fail again in place of half-succeeding.
+        # A configure that failed still leaves a cache. That cache holds whatever cmake settled on
+        # before it stopped: a generator nobody asked for, or a compiler it could not find. The
+        # next run sees a cache, treats the tree as configured, and builds against it. Its removal
+        # makes a failed configure fail again in place of a half success.
         remove_tree(path)
         current = read_pointer()
-        # Put back whatever the name pointed at before. A failed --fresh leaves the working tree
-        # in place instead of unsetting the name and stranding a tree that is still on disk.
+        # Put back whatever the name pointed at before. A failed --fresh leaves the current tree
+        # in place. It does not unset the name and leave a tree that is still on disk with no name.
         if was and os.path.isdir(os.path.join(BUILD_CONTAINER, was)):
             current[tree] = was
         else:
@@ -764,7 +760,7 @@ def configure(tree, fresh=False):
 
 
 def build(tree, jobs, fresh=False):
-    """Build @p tree, reporting only what went wrong."""
+    """Build @p tree, and report only what went wrong."""
     if configure(tree, fresh) != 0:
         return 1
     r = run(["cmake", "--build", tree_path(tree), "-j", str(jobs)])
@@ -799,19 +795,19 @@ def ctest(tree, pattern):
 # Device benches
 # ------------------------------------------------------------------------------------------------
 # The on-device benches are ESP-IDF projects, which is a second build system with its own toolchain
-# and its own environment. Reaching it needs a shell, and a shell script kept in the tree is a second
-# place the paths live: it drifts from what this file computes and is wrong exactly when nobody
-# checks. So the script is written out from here, run, and removed on success.
+# and its own environment. To reach it needs a shell. A shell script kept in the tree is a second
+# place the paths live. It drifts from what this file computes and is wrong exactly when nobody
+# checks. So this file writes the script out, runs it, and removes it on success.
 #
 # Left behind on failure, with its path printed. A build that failed is when the exact command that
-# ran is worth reading, and reconstructing it from a script that deleted itself is guesswork.
+# ran is worth a read. To work it out again from a script that deleted itself is guesswork.
 BENCH_ROOT = os.path.join(ROOT, "test", "performance_benching")
 
 # Where an emitted script goes. Under the container with the build trees: one directory holds
 # everything a build makes and nothing lands beside the source.
 SANDBOX = os.path.join(BUILD_CONTAINER, "sandbox")
 
-# The IDF install this machine carries. Read from the environment where it is set. A different
+# The IDF install this machine carries. Read from the environment where that holds it. A different
 # install needs no edit here.
 IDF_PATH = os.environ.get("IDF_PATH", r"C:\Espressif\frameworks\esp-idf-v5.5.5")
 IDF_TOOLS_PATH = os.environ.get("IDF_TOOLS_PATH", r"C:\Espressif")
@@ -828,7 +824,7 @@ def emit_script(name, body):
 
 
 def run_script(path, quiet=False):
-    """Run an emitted script, removing it on success and leaving it on failure."""
+    """Run an emitted script, remove it on success and leave it on failure."""
     r = subprocess.run(
         ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", path],
         cwd=ROOT,
@@ -849,9 +845,9 @@ IDF_PREAMBLE = """\
 $ErrorActionPreference = "Stop"
 
 # idf.py refuses to run under MSys/Mingw and stops before it configures anything. Those variables
-# are inherited from whichever shell started the harness, and a POSIX shell on this machine sets
+# come down from whichever shell started the harness, and a POSIX shell on this machine sets
 # them. A device build reached from one dies on a message about the environment and never
-# about the build. Clearing them here makes an emitted script run the same way whichever shell got here.
+# about the build. Cleared here, an emitted script runs the same way whichever shell got here.
 foreach ($name in "MSYSTEM", "MSYSTEM_PREFIX", "MINGW_PREFIX", "MSYS", "MSYS2_PATH_TYPE") {{
     Remove-Item -Path ("env:" + $name) -ErrorAction SilentlyContinue
 }}
@@ -889,28 +885,28 @@ def cmd_device_build(a):
         return 1
 
     proj = os.path.join(BENCH_ROOT, a.bench)
-    # Always a new tree. An IDF tree carries the target it was configured for, and reusing one across
-    # targets is the case that reports success for a part the image was not built for.
+    # Always a new tree. An IDF tree carries the target of its configure. Reuse of one across
+    # targets is the case that reports success for a part the image does not fit.
     tree = tree_path("%s-%s" % (a.bench, a.target), fresh=True)
 
     body = IDF_PREAMBLE.format(idf_path=IDF_PATH, idf_tools=IDF_TOOLS_PATH, idf_python=IDF_PYTHON)
     body += '\nSet-Location "{root}"\n'.format(root=ROOT)
-    # sdkconfig into the tree and never beside the source. idf.py writes it into the project directory by
-    # default, which leaves generated config in the checkout and leaves it there after the tree it
-    # describes is gone - and the name it writes, plain "sdkconfig", is not what .gitignore covers.
-    # In the tree it is made with the tree, removed with it, and regenerated from sdkconfig.defaults
-    # for the next one. Forward slashes because the value reaches cmake, which reads a backslash in
-    # a -D as an escape.
+    # sdkconfig into the tree and never beside the source. By default idf.py writes it into the
+    # project directory. That leaves generated config in the checkout, and leaves it there after the
+    # loss of the tree it describes. The name it writes, plain "sdkconfig", is not what .gitignore
+    # covers. In the tree the file comes with the tree, goes with it, and comes again from
+    # sdkconfig.defaults for the next one. Forward slashes because the value reaches cmake, which
+    # reads a backslash in a -D as an escape.
     sdkconfig = os.path.join(tree, "sdkconfig").replace("\\", "/")
     body += '& $idfPython $idfPy -C "{proj}" -B "{tree}" -D SDKCONFIG="{sdkconfig}" set-target {target}\n'.format(
         proj=proj, tree=tree, sdkconfig=sdkconfig, target=a.target
     )
-    # Single braces, and an explicit exit in place of a throw. This line is concatenated and never
-    # formatted. A doubled brace is not an escape here - it emits a scriptblock wrapped in a
-    # scriptblock, which PowerShell prints instead of running. The guard then never fires and the
+    # Single braces, and an explicit exit in place of a throw. This line is a plain join and never
+    # a format. A doubled brace is not an escape here: it emits a scriptblock wrapped in a
+    # scriptblock, which PowerShell prints instead of runs. The guard then never fires and the
     # step reports success no matter what it did.
     body += 'if ($LASTEXITCODE -ne 0) { Write-Error "set-target failed"; exit 1 }\n'
-    # Job count capped: ninja defaults to cores + 2, and a full IDF tree at that width has taken this
+    # Job count capped: ninja defaults to cores + 2, and a full IDF tree at that width takes this
     # machine down.
     body += 'ninja -C "{tree}" -j {jobs}\n'.format(tree=tree, jobs=a.jobs)
     body += 'if ($LASTEXITCODE -ne 0) { Write-Error "build failed"; exit 1 }\n'
@@ -922,8 +918,8 @@ def cmd_device_build(a):
         print("device build of %s for %s failed" % (a.bench, a.target))
         return 1
     # An exit code is one witness, the image on disk is a second and an independent one. This command
-    # has already once reported a part built while nothing was compiled, and what flash needs is
-    # checked for here in place of found missing later by a flash that cannot say why.
+    # can report a part built while nothing compiled. So this checks for what flash needs here, in
+    # place of a flash that finds it absent later and cannot say why.
     if not os.path.isfile(os.path.join(tree, "flash_args")):
         print(
             "device build of %s for %s exited clean and produced no image in %s - treat the exit\n"
@@ -963,10 +959,10 @@ def cmd_device_flash(a):
 def cmd_device_monitor(a):
     """Reset a part and print its console until it goes quiet.
 
-    A bench prints its rows once at startup and then stops. idf.py monitor is built for a person
-    watching a log and never returns on its own, and a fixed-duration read either truncates a slow
-    bench or waits out a fast one. So this resets the part, captures from the first line, and stops
-    once it has been silent for --quiet, with --seconds as the ceiling for a part stuck in a loop.
+    A bench prints its rows once at startup and then stops. The idf.py monitor serves a person at a
+    log and never returns on its own. A fixed-duration read either truncates a slow bench or waits
+    out a fast one. So this resets the part, captures from the first line, and stops after --quiet
+    of silence. The --seconds value is the ceiling for a part stuck in a loop.
     """
     try:
         import serial  # noqa: PLC0415  only this command needs it, and it is not in the stdlib
@@ -981,8 +977,8 @@ def cmd_device_monitor(a):
         return 1
 
     with port:
-        # The bridge drives EN from DTR/RTS, and that makes a capture start at the bench's
-        # first line in place of partway through whatever it had already printed.
+        # The bridge drives EN from DTR/RTS. That makes a capture start at the bench's first line
+        # in place of partway through whatever it already printed.
         port.dtr = False
         port.rts = True
         time.sleep(0.1)
@@ -996,10 +992,10 @@ def cmd_device_monitor(a):
             if chunk:
                 said += chunk
                 last = time.time()
-                # Written as bytes. A part coming out of reset emits its ROM banner at a different
-                # rate: the first chunk is always noise, and decoding it produces replacement
-                # characters that a cp1252 console then cannot encode - which crashes the capture
-                # before the bench has said anything.
+                # Written as bytes. A part out of reset emits its ROM banner at a different rate, and
+                # the first chunk is always noise. As text it produces replacement characters
+                # that a cp1252 console then cannot encode, which crashes the capture before the
+                # bench says anything.
                 sys.stdout.buffer.write(chunk)
                 sys.stdout.buffer.flush()
             elif said and (time.time() - last) > a.quiet:
@@ -1014,8 +1010,8 @@ def cmd_device_monitor(a):
 def cmd_bench(a):
     """Forward to the matrix module, which does not run on its own.
 
-    bench.py owns bench_matrix.json and every mutation of it. Those commands are still worth
-    reaching: they are reached through here in place of being reimplemented in a second place.
+    bench.py owns bench_matrix.json and every mutation of it. Those commands are still worth a
+    reach: this reaches them in place of a second copy of them here.
     """
     sys.path.insert(0, BENCH_ROOT)
     try:
@@ -1023,7 +1019,7 @@ def cmd_bench(a):
     except ImportError as exc:
         print("cannot reach the matrix module: %s" % exc)
         return 1
-    # bench.py resolves the matrix beside itself: it is run from its own directory.
+    # bench.py resolves the matrix beside itself: it runs from its own directory.
     here = os.getcwd()
     os.chdir(BENCH_ROOT)
     try:
@@ -1033,7 +1029,7 @@ def cmd_bench(a):
 
 
 def cmd_device_list(a):
-    """Which bench projects exist, and which trees have been built for them."""
+    """Which bench projects exist, and which trees exist for them."""
     del a
     names = bench_names()
     if not names:
@@ -1047,7 +1043,7 @@ def cmd_device_list(a):
 
 
 def cmd_trees(a):
-    """What is under the container, and which directory each name is currently using."""
+    """What is under the container, and which directory each name uses now."""
     del a
     current = read_pointer()
     if not os.path.isdir(BUILD_CONTAINER):
@@ -1070,11 +1066,11 @@ def cmd_trees(a):
 
 
 # What build output looks like when it turns up somewhere it does not belong. Each carries what it
-# is, because a path on its own does not tell the reader why it was named.
+# is, because a path on its own does not tell the reader why it is on the list.
 #
-# The names here are deliberately narrow. sdkconfig.defaults is a source file that is meant to be in
-# the tree and sdkconfig is a generated one that is not: this matches the second and not the
-# first: a check that cries wolf on a real source file is one that gets run once.
+# The names here are deliberately narrow. A source file that belongs in the tree is
+# sdkconfig.defaults, and sdkconfig is a generated one that does not. This matches the second and
+# not the first. A check that cries wolf on a real source file is one that runs once.
 STRAY_DIRS = (
     ("__pycache__", "python bytecode, written beside an imported module"),
     (".pio", "PlatformIO build tree"),
@@ -1102,18 +1098,17 @@ STRAY_FILES = (
 def cmd_stray(a):
     """Everything outside the container that looks like something a build produced.
 
-    The container rule is only worth having if breaking it is visible. Left to be noticed by hand,
-    a stray tree is found by whoever goes looking, days later, and by then there are several and
-    nobody knows which tool made which - so this makes a dirty tree one line of output instead of
-    an afternoon of going through directories.
+    The container rule is only worth its keep if a break of it is visible. Left to the eye, a stray
+    tree turns up days later, and by then there are several and nobody knows which tool made which.
+    So this makes a dirty tree one line of output instead of an afternoon in the directories.
 
     Reports and removes nothing. What disappears from a checkout is the reader's call, not a tool's.
     """
     container = os.path.abspath(BUILD_CONTAINER)
     hits = []
     for base, dirs, files in os.walk(ROOT):
-        # Never descend into .git, and never into the container: the container is where every one of
-        # these belongs: naming its contents would report the rule working as if it were broken.
+        # Never descend into .git, and never into the container. The container is where every one of
+        # these belongs, and a report of its contents would present the rule at work as a break.
         dirs[:] = [
             d for d in dirs if d != ".git" and os.path.abspath(os.path.join(base, d)) != container
         ]
@@ -1178,8 +1173,9 @@ STE_RATCHET = os.path.join(ROOT, "test", "ste_ratchet.tsv")
 def cmd_ste(a):
     """Hold every technical document to ASD-STE100: no document carries more findings than test/ste_ratchet.tsv.
 
-    test/ste_check.py is the checker, the same file in orior, MMgr and embedded_types. --show lists the findings
-    of the documents named, or of the tree; --lower writes each count into the ratchet, lowered and never raised.
+    The checker is test/ste_check.py, the same file in orior, MMgr and embedded_types. The --show option lists
+    the findings of the documents named, or of the tree. The --lower option writes each count into the ratchet,
+    lowered and never raised.
     The pre-commit hook and the ste test in the suite run the ratchet, and the check is part of every commit and
     every suite run. Vocabulary is orior's banned-word check's to hold, and this check reads no word list.
     """
@@ -1210,8 +1206,8 @@ def cmd_fuzz(a):
     """Build the fuzz tree, then run its harnesses: as the suite runs them, or for a time each over a corpus.
 
     With no --seconds every harness runs its fixed seed and count as a test. With --seconds each runs that long
-    over a corpus kept under the tree at fuzz/<name>, which grows with what libFuzzer finds between runs, and a
-    failing input is written beside it as crash-*, the file to hand back to the harness to see it again.
+    over a corpus kept under the tree at fuzz/<name>, which grows with what libFuzzer finds between runs. An
+    input that fails lands beside it as crash-*, the file to hand back to the harness to see it again.
     """
     tree = "build-fuzz"
     if build(tree, a.jobs, a.fresh) != 0:
@@ -1269,10 +1265,10 @@ def cmd_ab(a):
 def cmd_coverage(a):
     """Build, run and report what of src/ the suites reached.
 
-    The counters carry a stamp from the .gcno they were built beside: last run's are cleared
-    after the build and before the run: a report always describes the binaries that produced it.
-    Every environment runs, not just host, because which arm of a width conditional is compiled
-    all is MMGR_ENVIRONMENTS' business and only the whole set describes the library.
+    The counters carry a stamp from the .gcno beside them at build time. The last run's counters go
+    after the build and before the run, so a report always describes the binaries that produced it.
+    Every environment runs, not just host. Which arm of a width conditional compiles is
+    MMGR_ENVIRONMENTS' business, and only the whole set describes the library.
     """
     tree = "build-cov"
     if not a.no_build and build(tree, a.jobs, a.fresh) != 0:
@@ -1290,12 +1286,13 @@ def cmd_coverage(a):
     out = os.path.join(tree_path(tree), "coverage.csv")
     js = os.path.join(tree_path(tree), "coverage.json")
     # No --exclude-unreachable-branches. It drops branches gcov attributes to a line gcovr believes
-    # cannot be reached: the tool rules on what does not have to be covered - and it rules
-    # it from the compiler's records and never from the source. A branch this report does not print is a
-    # branch nobody looked at. Anything genuinely unreachable is established by reading it and
-    # written down, not silently dropped from the denominator. A failing MMGR_ASSERT stops the program,
-    # and so its failure arm is no branch a passing suite runs. Its condition is still evaluated in the
-    # checks environment.
+    # nothing can reach. The tool rules on what needs no coverage, and it rules from the compiler's
+    # records and never from the source. A branch this report does not print is a branch nobody
+    # looked at. A reader establishes anything truly unreachable and writes it down, and the
+    # denominator keeps it.
+    #
+    # A failed MMGR_ASSERT stops the program, and so its failure arm is no branch a green suite
+    # runs. The checks environment still tests its condition.
     r = run(
         [
             sys.executable, "-m", "gcovr", "--root", ".", "--filter", "src/",
@@ -1367,15 +1364,15 @@ def src_line(path, n):
 
 
 def report_gaps(js):
-    """Name every unreached line and branch, with the source that is not being reached.
+    """Name every unreached line and branch, with the source that nothing reaches.
 
-    gcovr's JSON carries one entry per line per translation unit that compiled it, and this library
-    compiles every source once per environment - so the same physical line arrives five times. They
-    are merged before anything is counted: a line is covered if any environment reached it, and a
-    branch if any environment took it. Summing them instead counts an untested line once per
-    environment and reports a gap five times its real size.
+    gcovr's JSON carries one entry per line per translation unit that compiled it. This library
+    compiles every source once per environment, so the same physical line arrives five times. They
+    combine before any count: a line has coverage if any environment reached it, and a branch if
+    any environment took it. A sum instead counts an untested line once per environment and
+    reports a gap five times its real size.
 
-    Lines and branches fail in different places and both are printed. A function no case calls has
+    Lines and branches fail in different places and the report prints both. A function no case calls has
     no unreached branch - it has no *covered* branch either, and a branch-only report calls
     it clean.
     """
@@ -1566,8 +1563,8 @@ def cmd_generated(a):
             p = os.path.join(ROOT, rel)
             after = open(p, "rb").read() if os.path.exists(p) else None
             if after is None:
-                # The generator no longer emits something this table says it owns. Reporting that
-                # as "created" is how a dropped output passes a green check: the file is absent
+                # The generator does not emit something this table says it owns. A report of that
+                # as "created" is how a dropped output passes a green check. The file is absent
                 # before and after, and nothing compares absent to absent.
                 missing.append("%s (no output from %s)" % (rel, tool))
                 print("  ABSENT   %s" % rel)
@@ -1627,14 +1624,14 @@ ARM = os.environ.get("MMGR_ARM_GCC",
 ARM_OLD = os.environ.get("MMGR_ARM_GCC_OLD",
                          os.path.expanduser(r"~\.platformio\packages\toolchain-gccarmnoneeabi\bin\arm-none-eabi-gcc.exe"))
 
-# A compiler targeting the 64 bit state, which arm-none-eabi is not. The wsl: prefix routes the row
+# A compiler that targets the 64 bit state, which arm-none-eabi is not. The wsl: prefix routes the row
 # through WSL and translates every path on the way.
 AARCH64 = "wsl:aarch64-linux-gnu-gcc"
 
 HOST_GCC = os.environ.get("MMGR_HOST_GCC", r"C:\Strawberry\c\bin\gcc.exe")
 
-# A target with a counter pins its own timer. One without has to be handed a clock, and asking it to
-# pin one is the refusal row.
+# A target with a counter pins its own timer. One without needs a clock from the caller, and to
+# ask it to pin one is the refusal row.
 CLOCK_OWN = ["-DPRAET_CLOCK_SOURCE=PRAET_CLOCK_OWN", "-DPRAET_CLOCK_CORE=0u"]
 CLOCK_CALLER = ["-DPRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"]
 
@@ -1660,7 +1657,7 @@ TARGETS = (
     # The same two parts on the 2016 compiler. Nine years of GCC must change nothing here.
     ("teensy41  m7 gcc5", ARM_OLD, ["-mcpu=cortex-m7", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
     ("atsamd51  m4 gcc5", ARM_OLD, ["-mcpu=cortex-m4", "-mthumb"], (1, 0, 0, 32, 1), CLOCK_OWN, True, None),
-    # ARMv6-M has no DWT. The derivation has to see that, and pinning a timer there has to be refused.
+    # ARMv6-M has no DWT. The derivation has to see that and refuse to pin a timer there.
     ("cortex-m0+  v6m", ARM, ["-mcpu=cortex-m0plus", "-mthumb"], (1, 0, 0, 32, 0), CLOCK_CALLER, True, None),
     ("cortex-m0+  pinned REFUSAL", ARM, ["-mcpu=cortex-m0plus", "-mthumb"], (1, 0, 0, 32, 0), CLOCK_OWN, False,
      "defines no cycle counter"),
@@ -1668,7 +1665,7 @@ TARGETS = (
 )
 
 # Every knob the probe reads that is not this table's subject. A row only fails for its own reason.
-# The clock source is each row's own: it is left out here.
+# The clock source is each row's own: it stays out here.
 TARGET_KNOBS = ["-DMMGR_ENABLE_DMA=1", "-DMMGR_ENABLE_EXTRAM=0"] + [
     "-D" + knob for knob in PRAET_KNOBS if not knob.startswith("PRAET_CLOCK_SOURCE=")]
 
@@ -1789,9 +1786,8 @@ def cmd_remote(a):
         print("no unity at %s - run: harness.py build" % unity)
         return 1
 
-    # Regenerate the runner from the source that is about to be sent. Shipping whatever runner was
-    # last committed runs the cases that existed then: caught here reporting 43 of 46, green, with
-    # three cases that never ran.
+    # Regenerate the runner from the source about to go over. A stale runner runs the cases that
+    # existed when somebody last generated it, green, with the newer cases never run.
     generate_runner(PRAET_SUITE, os.path.join(os.path.dirname(unity), "auto", "generate_test_runner.rb"))
     found, _missed = runner_cases(os.path.join(PRAET_SUITE, "test_praet_correctness.c"))
     print("%d cases" % len(found))
@@ -1811,7 +1807,7 @@ def cmd_remote(a):
         return 1
 
     # src and include go over whole. The suite reaches other modules' headers through them, and a
-    # list of which would be a second copy of that fact waiting to drift.
+    # list of which would be a second copy of that fact, free to drift.
     for source, into in ((PRAET_SUITE, "suite"), (os.path.join(ROOT, "src"), "src"),
                          (os.path.join(ROOT, "include"), "include"),
                          (os.path.join(ROOT, "deps", "embedded_types", "include"), "embed"),
@@ -1867,7 +1863,7 @@ def cmd_remote(a):
 # ------------------------------------------------------------------------------------------------
 # Published vectors
 # ------------------------------------------------------------------------------------------------
-# Everything published for SHA-256 that this tree can reach, run offline against the bytes vendored
+# Everything published for SHA-256 that this tree can reach, run offline. The bytes sit vendored
 # under test/vectors with their sources and digests in MANIFEST.json.
 #
 #   CAVP ShortMsg/LongMsg   the normative one shot tables
@@ -1877,8 +1873,8 @@ def cmd_remote(a):
 #   splits                  every way of cutting one message across take() must reach one digest
 #   differential            against a second implementation over boundary and random lengths
 #
-# The last two need no vector file. They are invariants, and they cover the streaming code the
-# published tables cannot reach because those tables only ever hash a message in one call.
+# The last two need no vector file. They are invariants. They cover the stream path that the
+# published tables cannot reach, because those tables only ever hash a message in one call.
 
 VECTORS_DIR = os.path.join(ROOT, "test", "vectors")
 
@@ -2075,7 +2071,7 @@ def parse_rsp(text):
 
 
 def cmd_vectors(a):
-    """Run every published SHA-256 vector this tree carries, plus the streaming invariants."""
+    """Run every published SHA-256 vector this tree carries, plus the stream invariants."""
     import hashlib  # noqa: PLC0415  only this command needs a reference implementation
 
     manifest_path = os.path.join(VECTORS_DIR, "MANIFEST.json")
@@ -2086,7 +2082,7 @@ def cmd_vectors(a):
     with open(manifest_path, encoding="utf-8") as fh:
         manifest = json.load(fh)
 
-    # The vectors are evidence: what they hash to is checked before anything is read from them
+    # The vectors are evidence: a check of their hash comes before any read of them
     drifted = 0
     for entry in manifest["files"]:
         path = os.path.join(VECTORS_DIR, entry["file"])
@@ -2197,7 +2193,7 @@ def cmd_vectors(a):
     wrong = 0
     for case, have in zip(cases, got):
         matched = have.lower() == case["tag"].lower()
-        # An invalid vector is a modified tag: reproducing it would mean a forgery verifies
+        # An invalid vector is a modified tag: a match on it would mean a forgery verifies
         if (case["result"] == "valid") != matched:
             wrong += 1
     valid = sum(1 for c in cases if c["result"] == "valid")
@@ -2206,7 +2202,7 @@ def cmd_vectors(a):
     bad += wrong
 
     # Every cut of a message must reach one digest. The published tables hash in a single call and
-    # cannot reach the streaming path: this is the only thing testing it.
+    # cannot reach the stream path: this is the only test of it.
     import random  # noqa: PLC0415  only this command needs it
     rng = random.Random(20260901)
     bodies = []
@@ -2228,9 +2224,9 @@ def cmd_vectors(a):
     print("%-22s %4d messages, %d disagreed" % ("differential", len(trials), wrong))
     bad += wrong
 
-    # The chain past where NIST stops. CAVP's hundred checkpoints are the anchored part; beyond them
-    # the construction is still valid and a second implementation supplies the expectation, and the
-    # volume is bounded by patience and never by what anyone published.
+    # The chain past where NIST stops. CAVP's hundred checkpoints are the anchored part. Beyond them
+    # the construction is still valid and a second implementation supplies the expectation, and
+    # patience bounds the volume and never what anyone published.
     if a.soak > 0:
         checkpoints = a.soak
         got = [ln.strip() for ln in

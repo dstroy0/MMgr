@@ -10,23 +10,23 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Every symbol the library declares weak is defined here strongly, and so the linker takes these
- *       over the refusing defaults in memoriam_praetereo.c. That is the same seam a board support
+ * @note Every symbol the library declares weak has a strong definition here, and so the linker takes
+ *       these over the defaults in memoriam_praetereo.c that refuse. That is the same seam a board support
  *       file uses, and it holds with link-time optimization on.
- * @note One engine schedules every logical channel. A completion is deferred on the channel that
- *       earned it and comes out when its cycle has elapsed and the arm lets it, and so the order
+ * @note One engine schedules every logical channel. A completion waits on the channel that
+ *       earned it. It comes out when its cycle elapses and the arm lets it. So the order
  *       completions arrive in is the scenario's to choose and need not match the order submitted.
- * @note One hook call is one tick. Settling and cycle time are both counted in them, which keeps the
+ * @note One hook call is one tick. Settle time and cycle time both count in them, which keeps the
  *       whole fixture deterministic and free of a clock.
  * @warning Included by test_praet_correctness.c and never compiled on its own. mmgr_add_suite
- *          compiles the one suite source and the shared files under test/support, and these hooks
- *          must not reach any other suite - test_memoriam_praetereo exists to prove the weak
- *          defaults refuse, and a strong definition linked into it would answer for them.
+ *          compiles the one suite source and the shared files under test/support. These hooks
+ *          must not reach any other suite, since test_memoriam_praetereo exists to prove the weak
+ *          defaults refuse. A strong definition linked into it would answer for them.
  */
 #include "praet_engine.h"
 
 /**
- * @brief Scenario the engine is currently running.
+ * @brief Scenario the engine runs now.
  *
  * @note Null until praet_engine_arm runs. Every hook refuses against a null scenario, as
  *       an unarmed engine should look like.
@@ -39,12 +39,12 @@ static const PraetScenario *s_scenario;
 static uint16_t s_step_index;
 
 /**
- * @brief Hook calls made since the scenario was armed.
+ * @brief Hook calls since the arm of the scenario.
  */
 static uint16_t s_tick;
 
 /**
- * @brief What the run has produced so far.
+ * @brief What the run produced so far.
  */
 static PraetEngineTally s_tally;
 
@@ -57,12 +57,12 @@ static PraetEngineTally s_tally;
 static const PraetCallbackCfg *s_binding;
 
 /**
- * @brief Tick at which each channel finishes settling.
+ * @brief Tick at which each channel finishes its settle.
  */
 static uint16_t s_settled_at[PRAET_ENGINE_CHANNELS];
 
 /**
- * @brief Completions waiting against each logical channel.
+ * @brief Completions that wait against each logical channel.
  */
 static uint8_t s_deferred_completions[PRAET_ENGINE_CHANNELS];
 
@@ -77,11 +77,11 @@ static uint16_t s_deferred_moved[PRAET_ENGINE_CHANNELS];
 static uint16_t s_due_at[PRAET_ENGINE_CHANNELS];
 
 /**
- * @brief Bytes each channel has moved, as the engine last reported them.
+ * @brief Bytes each channel moved, as the engine last reported them.
  *
- * @note What a controller's remaining count stands for here. A poll reaction carrying a progress
+ * @note What a controller's rest count stands for here. A poll reaction with a progress
  *       figure writes it, and a completion writes the count it reported. A finished transfer reads
- *       as having moved everything it said it did.
+ *       as one that moved everything it said it did.
  */
 static uint16_t s_progress[PRAET_ENGINE_CHANNELS];
 
@@ -133,7 +133,7 @@ uint16_t praet_engine_progress(uint8_t channel)
  *
  * @param[in] channel Channel to read.
  * @return            Bytes moved so far, as the script last reported them.
- * @note praet_ordo.h declares this and the orchestrator calls it. Defining it here makes
+ * @note praet_ordo.h declares this and the orchestrator calls it. Its definition here makes
  *       this file the port for that hook as well as for the four in memoriam_praetereo.h.
  */
 uint16_t praet_hw_progress(embed_word channel)
@@ -142,14 +142,14 @@ uint16_t praet_hw_progress(embed_word channel)
 }
 
 /**
- * @brief Takes the reaction answering @p hook, or NULL where the script has run out.
+ * @brief Takes the reaction that answers @p hook, or NULL where the script ran out.
  *
- * @param[in] hook Hook being answered, as a PraetHook.
- * @return         The reaction, or NULL where the script is spent or answers a different hook.
+ * @param[in] hook Hook under answer, as a PraetHook.
+ * @return         The reaction, or NULL where the script ran out or answers a different hook.
  * @note Advances the tick, because every hook call is one regardless of whether the script had an answer.
- * @note A reaction scripted for another hook comes back NULL and raises overrun. A script that has
- *       drifted out of step with the program is a defect in the fixture, and reading it as a refusal
- *       would hide that.
+ * @note A reaction scripted for another hook comes back NULL and raises overrun. A script out of
+ *       step with the program is a defect in the fixture. A read of it as a refusal would hide
+ *       that.
  */
 static const PraetEngineStep *praet_engine_take(uint8_t hook)
 {
@@ -179,8 +179,8 @@ static const PraetEngineStep *praet_engine_take(uint8_t hook)
  * @param[in] moved   Bytes the completion reports.
  * @note Counted here, outside the callback. A case whose callback does nothing still
  *       produces a tally.
- * @note data is left null. The correctness arm reads the counts and the channel order, and a pointer
- *       into the engine's own storage would be a fact about this engine instead of about the
+ * @note data stays null. The correctness arm reads the counts and the channel order. A pointer
+ *       into the engine's own storage would be a fact about this engine and not about the
  *       library.
  */
 static void praet_engine_report(uint8_t channel, uint16_t moved)
@@ -217,8 +217,8 @@ static void praet_engine_report(uint8_t channel, uint16_t moved)
  * @brief Releases the completions deferred on one channel, where they are due.
  *
  * @param[in] channel Channel to release.
- * @note A channel whose cycle has not elapsed keeps its completions. A busy timer reports this
- *       when the transfer is still running.
+ * @note A channel whose cycle did not elapse keeps its completions. A busy timer reports this
+ *       while the transfer is still active.
  */
 static void praet_engine_release_one(uint8_t channel)
 {
@@ -236,8 +236,8 @@ static void praet_engine_release_one(uint8_t channel)
 /**
  * @brief Delivers every due completion, on the interrupt arm alone.
  *
- * @note Runs at the end of every hook call. The interrupt arm reports without being asked. A
- *       completion coming due during a close or during a submit on another channel arrives there.
+ * @note Runs at the end of every hook call. The interrupt arm reports with no poll. A
+ *       completion that comes due during a close or during a submit on another channel arrives there.
  *       The software arm has no vector and reports only when polled.
  */
 static void praet_engine_service_interrupt(void)
@@ -255,11 +255,11 @@ static void praet_engine_service_interrupt(void)
 /**
  * @brief Runs a reaction's completions, either now or deferred on its channel.
  *
- * @param[in] step    Reaction that was accepted [BORROWS].
+ * @param[in] step    Reaction the engine accepted [BORROWS].
  * @param[in] channel Logical channel the call named.
- * @note A refused reaction never reaches this. Refusing and reporting a completion is not a state
+ * @note A refused reaction never reaches this. A refusal with a completion report is not a state
  *       hardware produces, and so the engine does not offer it.
- * @note A channel at or above PRAET_ENGINE_CHANNELS has nowhere to be deferred, and so it raises overrun.
+ * @note A channel at or above PRAET_ENGINE_CHANNELS has nowhere to wait, and so it raises overrun.
  *       The scenario named a channel the fixture cannot schedule.
  */
 static void praet_engine_schedule(const PraetEngineStep *step, uint8_t channel)
@@ -284,7 +284,7 @@ static void praet_engine_schedule(const PraetEngineStep *step, uint8_t channel)
     }
 
     // One byte count and one due tick per channel. A second hold against a channel that is still
-    // holding would silently restate the first one's. The scenario releases before it holds again
+    // holds one would silently restate the first one's. The scenario releases before it holds again
     if (s_deferred_completions[channel] != 0u)
     {
         s_tally.overrun++;
@@ -351,7 +351,7 @@ embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args)
         return EMBED_FALSE;
     }
 
-    // A channel still settling takes no transfer, whatever the script answered. Settling is a rule
+    // A channel still in its settle takes no transfer, whatever the script answered. The settle is a rule
     // the engine enforces up front, the same way a burst constraint would be
     if ((args->channel < PRAET_ENGINE_CHANNELS) && (s_tick < s_settled_at[args->channel]))
     {
@@ -385,9 +385,9 @@ void mmgr_praet_hw_poll(const PraetCfg *args)
         praet_engine_service_interrupt();
         return;
     }
-    // How far the polled channel has got, as a controller's remaining count would say. Written before
-    // any completion is released. A poll that both reports progress and finishes the transfer
-    // leaves the completion's own count standing
+    // How far the polled channel got, as a controller's rest count would say. Written before
+    // any completion comes out. A poll that both reports progress and finishes the transfer
+    // leaves the completion's own count in place
     if ((step->progress != 0u) && (args->channel < PRAET_ENGINE_CHANNELS))
     {
         s_progress[args->channel] = step->progress;

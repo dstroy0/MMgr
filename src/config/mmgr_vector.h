@@ -14,19 +14,19 @@
  *
  * @note A walk steps a word at a time through verbum_scrutor's lanes. The same walk first takes
  *       whole lanes, MMGR_VECTOR_BYTES at a step, and leaves the word walk the rest. The questions a
- *       walk asks of a word are the ones asked here of a lane: which bytes hold zero, which bytes two
+ *       walk asks of a word are the ones here of a lane. Which bytes hold zero, which bytes two
  *       lanes differ in, and the first byte set in a mask.
- * @note The lane is embed_lane, the target's widest vector register, derived by embedded_types as
- *       the word is: 512 bits under AVX-512, 256 under AVX2, 128 under SSE2 or NEON, the word's
- *       width where the target has no vector unit. MMGR_VECTOR_BYTES is EMBED_LANE_BYTES, and 0
- *       where MMGR_VECTOR_OFF is 1, which leaves the word walks alone. A wider register in a later
- *       build widens every walk here with no edit. Every arm of every gate is defined. A mask holds
- *       one bit a byte, the first byte lowest.
- * @warning mmgr_vector_load and mmgr_vector_put are unaligned, for a walk over bytes it was given a
- *          count of, which keeps every read within them. A walk over text ended by a zero, whose cap
- *          may reach far past the text, loads through mmgr_vector_load_aligned alone, at an address
- *          a multiple of MMGR_VECTOR_BYTES: an aligned lane never crosses a page, and a read past
- *          the text's end stays in the page the text ends in, as the word walk's does.
+ * @note The lane is embed_lane, the target's widest vector register, which embedded_types derives
+ *       as it does the word. That is 512 bits under AVX-512, 256 under AVX2, 128 under SSE2 or
+ *       NEON, and the word's width where the target has no vector unit. MMGR_VECTOR_BYTES is
+ *       EMBED_LANE_BYTES, and 0 where MMGR_VECTOR_OFF is 1, which leaves the word walks alone. A
+ *       wider register in a later build widens every walk here with no edit. Every arm of every gate
+ *       has a definition. A mask holds one bit a byte, the first byte lowest.
+ * @warning mmgr_vector_load and mmgr_vector_put take any address, for a walk over bytes with a
+ *          count, which keeps every read within them. A walk over text ended by a zero, whose cap
+ *          may reach far past the text, loads through mmgr_vector_load_aligned alone. That load
+ *          takes an address a multiple of MMGR_VECTOR_BYTES. An aligned lane never crosses a page.
+ *          A read past the text's end stays in the page the text ends in, as the word walk's does.
  */
 #ifndef MMGR_VECTOR_H
 #define MMGR_VECTOR_H
@@ -68,12 +68,12 @@ typedef embed_lane_mask MmgrVectorMask;
  */
 EMBED_INLINE size_t mmgr_vector_mask_first(MmgrVectorMask lanes)
 {
-    // Explicit cast widens the lane's byte index to the offset it is used as
+    // Explicit cast widens the lane's byte index to the offset it serves as
     return (size_t)embed_lane_mask_first(lanes);
 }
 
 /**
- * @brief The bytes before the first byte set in a mask, every byte where none is set.
+ * @brief The bytes before the first byte set in a mask, every byte where none holds.
  *
  * @param[in] lanes Bytes that end a walk.
  * @return          The bytes a match counts in.

@@ -11,9 +11,9 @@
  * @date 2026-10-23
  *
  * @note Every write comes down to mmgr_line_put_n, which places each piece through verba_textus.put_n
- *       and hands the line to its flush between pieces. A number is written into a buffer of its own
+ *       and hands the line to its flush between pieces. A number goes into a buffer of its own
  *       first, and so its digits cross a flush the way a text does.
- * @note Every write ends by storing the terminator, one store it pays for on every call, and a
+ * @note Every write ends with the store of the terminator, one store it pays for on every call. A
  *       written line's buffer is always a terminated text.
  */
 #include "verba_scribo/verba_linea.h"
@@ -21,12 +21,12 @@
 #include "verba_scribo/verba_scribo.h"
 
 /**
- * @brief Bytes a number is written into before it goes on a line: its most digits at 255 and more.
+ * @brief Bytes a number occupies before it goes on a line: its most digits at 255 and more.
  */
 #define LINEA_DIGITS 280u
 
 /**
- * @brief The most digits or columns a number entry is asked for, the most a byte of verba's arguments holds.
+ * @brief The most digits or columns a number entry can take, the most a byte of verba's arguments holds.
  */
 #define LINEA_LEAST_MOST 255u
 
@@ -70,7 +70,7 @@ EMBED_INLINE void linea_filled(VerbaLinea *line)
  *
  * @param[in,out] line    The line [BORROWS].
  * @param[in]     digits  The number's own buffer, LINEA_DIGITS bytes [BORROWS].
- * @param[in]     written Where verba's writing ended. LINEA_DIGITS holds the widest number, which
+ * @param[in]     written Where verba's write ended. LINEA_DIGITS holds the widest number, which
  *                        LINEA_LEAST_MOST bounds, and so it always fit.
  */
 EMBED_INLINE void linea_number(VerbaLinea *line, const char *digits, size_t written)
@@ -127,7 +127,7 @@ size_t mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
 
     while (done < length)
     {
-        // A byte of the line is reserved for the terminator, as verba holds it
+        // One byte of the line stays reserved for the terminator, as verba holds it
         const size_t room = (line->at < line->capacity) ? (line->capacity - line->at - 1u) : 0u;
         const size_t left = length - done;
         const size_t piece = (left < room) ? left : room;
@@ -155,10 +155,11 @@ size_t mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
  * @param[in,out] line The line [BORROWS].
  * @param[in]     text Terminated text [BORROWS].
  * @return             Bytes of text the line took, handed on included.
- * @note Each piece is measured as far as one byte past what the room takes, and so the text is read no
- *       further than its terminator or the room, whichever comes first, and needs no bound of its own.
- * @note A piece reaching the room's last byte goes on a line with a flush and is handed on before the
- *       next is measured. On a line with none it fills the line, what fits written.
+ * @note The measure of each piece goes as far as one byte past what the room takes. So the read of the
+ *       text goes no further than its terminator or the room, whichever comes first. It needs no
+ *       bound of its own.
+ * @note A piece that reaches the room's last byte goes on a line with a flush and goes out before the
+ *       measure of the next. On a line with none it fills the line, what fits written.
  */
 EMBED_INLINE size_t linea_streamed(VerbaLinea *line, const char *text)
 {

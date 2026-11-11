@@ -6,27 +6,27 @@
  */
 /**
  * @file bench_ancorae_entropy.c
- * @brief What the candidate count estimator is, measured against published estimators of the same
- *        quantity on sources whose answer is known in advance.
+ * @brief What the candidate count estimator is, against published estimators of the same
+ *        quantity on sources with a known answer in advance.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
  * @note The claim under test. A candidate count divided by the number of positions estimates the
- *       collision probability, and so the negative log of it estimates Renyi entropy of order two. That
- *       was measured against corpora whose entropy was computed from their own histograms, which
- *       shows the arithmetic is consistent and says nothing about whether the estimator is any good.
- *       Here the sources are generated from distributions written down first, and so the true value is
- *       known before the data exists and every estimator can be scored against it.
- * @note What is being compared. Three published estimators of the collision probability and the two
- *       forms of the candidate count estimator, all of them estimating the same number, all scored
- *       by bias and root mean square error over repeated trials. A fourth quantity, min entropy, is
- *       reported separately because it is a different property and cannot be scored on this scale.
- * @note Counts and not cycles. Nothing here is timed and no row is a performance claim.
+ *       collision probability. So the negative log of it estimates Renyi entropy of order two. A
+ *       measure against corpora whose entropy comes from their histograms shows the arithmetic is
+ *       consistent and says nothing about whether the estimator is any good. Here the sources come
+ *       from distributions written down first. So the true value stands before the data exists, and
+ *       every estimator can take a score against it.
+ * @note The comparison. Three published estimators of the collision probability and the two forms
+ *       of the candidate count estimator, all of them estimates of the same number. All take a score
+ *       by bias and root mean square error over repeated trials. A fourth quantity, min entropy,
+ *       reports apart because it is a different property and cannot take a score on this scale.
+ * @note Counts and not cycles. Nothing here measures time and no row is a performance claim.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
-// Drawing sources from this makes a run reproduce exactly. Checked against RFC 6234's vectors by its own
-// self test
+// Sources drawn from this make a run reproduce exactly. Its own self test checks it against RFC 6234's
+// vectors
 #include "mmgr_sha256.h"
 
 #include <math.h>
@@ -56,7 +56,7 @@
 /**
  * @brief How many positions the subsampled estimators look at.
  *
- * @note Sixty four, matching the needle sample count the sift bench uses, and so the variance reported
+ * @note Sixty four, the needle sample count the sift bench uses, and so the variance reported
  *       here is the variance that bench actually runs at.
  */
 #ifndef PROBE_SAMPLES
@@ -66,10 +66,10 @@
 /**
  * @brief One source, as a distribution written down before any data exists.
  *
- * @note The point of naming the distribution instead of measuring a corpus. An estimator scored
- *       against a histogram of the same corpus it was computed from is scored against itself, and
- *       every estimator here would pass. Scored against the distribution that generated the corpus,
- *       an estimator can be wrong, the only condition under which the score means anything.
+ * @note The point of a named distribution instead of a measured corpus. An estimator scored against
+ *       a histogram of the same corpus it came from has its score against itself, and every
+ *       estimator here would pass. Scored against the distribution that generated the corpus, an
+ *       estimator can be wrong, the only condition under which the score means anything.
  */
 typedef struct
 {
@@ -82,7 +82,7 @@ typedef struct
  * @brief Builds a source that is uniform over the first @p levels symbols.
  *
  * @param[out] source Receives the distribution [BORROWS].
- * @param[in]  name   Text naming it [BORROWS].
+ * @param[in]  name   Text that names it [BORROWS].
  * @param[in]  levels How many symbols carry weight.
  * @note Collision probability is exactly one over levels here, and so the true answer is log2(levels)
  *       bits with no approximation anywhere in it.
@@ -102,11 +102,11 @@ static void source_uniform(Source *source, const char *name, unsigned levels)
  * @brief Builds a Zipf source over the whole alphabet at exponent @p exponent.
  *
  * @param[out] source   Receives the distribution [BORROWS].
- * @param[in]  name     Text naming it [BORROWS].
+ * @param[in]  name     Text that names it [BORROWS].
  * @param[in]  exponent The Zipf exponent, where larger concentrates more weight on rank one.
- * @note The regime the cost tables were built for. A Zipf source has a long tail and a heavy head,
- *       which is where a plug in estimator's bias is largest, and so it is the case that separates the
- *       estimators and not the one that flatters them.
+ * @note The regime the cost tables serve. A Zipf source has a long tail and a heavy head, which is
+ *       where a plug in estimator's bias is largest. So it is the case that separates the estimators
+ *       and not the one that flatters them.
  */
 static void source_zipf(Source *source, const char *name, double exponent)
 {
@@ -130,11 +130,10 @@ static void source_zipf(Source *source, const char *name, double exponent)
  * @brief Builds a two symbol source where the first carries @p heavy of the weight.
  *
  * @param[out] source Receives the distribution [BORROWS].
- * @param[in]  name   Text naming it [BORROWS].
+ * @param[in]  name   Text that names it [BORROWS].
  * @param[in]  heavy  Probability of the first symbol.
  * @note The low entropy end. At heavy = 0.99 the collision probability is above 0.98 and every
- *       estimator is squeezed against the ceiling, which is where the candidate count estimator was
- *       predicted to saturate.
+ *       estimator sits against the ceiling. That is where the candidate count estimator should saturate.
  */
 static void source_two_point(Source *source, const char *name, double heavy)
 {
@@ -154,7 +153,7 @@ static void source_two_point(Source *source, const char *name, double heavy)
  *
  * @param[in] source The distribution [BORROWS].
  * @return           The sum of the squared probabilities.
- * @note The truth every estimator below is scored against. It is computed from the weights and never
+ * @note The truth every estimator below takes its score against. It comes from the weights and never
  *       from a corpus, and so no corpus can flatter it.
  */
 static double true_collision(const Source *source)
@@ -175,7 +174,7 @@ static double true_collision(const Source *source)
  * @param[out] into   Storage to fill [BORROWS].
  * @param[in]  length How many symbols.
  * @param[in]  salt   Which stream to draw from, and so trials differ.
- * @note Inverse transform sampling on a uniform built from four bytes of SHA-256 counter mode output.
+ * @note An inverse transform sample on a uniform built from four bytes of SHA-256 counter mode output.
  *       The generator is the single one checked against published vectors elsewhere in this tree. A source that
  *       comes out wrong is a defect here and not in the randomness.
  */
@@ -250,8 +249,8 @@ static void tally(const uint8_t *corpus, size_t length, uint32_t *counts)
  * @param[in] length How many symbols the corpus contains.
  * @return           The sum of the squared empirical frequencies.
  * @note The maximum likelihood estimator, and the obvious one. Its expectation is the true collision
- *       probability plus (1 - true) / length, and so it is biased upward and the bias is largest on a
- *       short corpus over a flat source. It needs a histogram, which needs the alphabet enumerated.
+ *       probability plus (1 - true) / length. So its bias points upward and is largest on a short
+ *       corpus over a flat source. It needs a histogram, which needs the alphabet enumerated.
  */
 static double estimate_plug_in(const uint32_t *counts, size_t length)
 {
@@ -272,10 +271,10 @@ static double estimate_plug_in(const uint32_t *counts, size_t length)
  * @param[in] counts One counter per symbol [BORROWS].
  * @param[in] length How many symbols the corpus contains.
  * @return           The proportion of ordered pairs of distinct positions that agree.
- * @note The standard U statistic. Counting pairs of distinct positions instead of squaring
- *       frequencies removes the plug in estimator's bias exactly, since a position is never paired
- *       with itself. Solving the plug in estimator's known bias for the true value gives the same
- *       expression, and so the first order bias correction and the U statistic are one estimator and not
+ * @note The standard U statistic. A count of pairs of distinct positions instead of squared
+ *       frequencies removes the plug in estimator's bias exactly, since a position never pairs
+ *       with itself. The plug in estimator's known bias, solved for the true value, gives the same
+ *       expression. So the first order bias correction and the U statistic are one estimator and not
  *       two.
  */
 static double estimate_unbiased(const uint32_t *counts, size_t length)
@@ -292,18 +291,18 @@ static double estimate_unbiased(const uint32_t *counts, size_t length)
 }
 
 /**
- * @brief The candidate count estimate, counting the probe position's own match.
+ * @brief The candidate count estimate, with the probe position's own match in the count.
  *
  * @param[in] corpus  Symbols to probe [BORROWS].
  * @param[in] length  How many.
  * @param[in] samples How many probe positions to average over.
  * @return            The mean candidate count over the corpus length.
- * @note What a one point anchor measures. A probe position is chosen, every position carrying the
- *       same symbol is counted, and the count is divided by the corpus length. No histogram is built
- *       and the alphabet is never enumerated, and so this is the only estimator here that a domain with
- *       an unenumerable alphabet admits.
+ * @note What a one point anchor measures. It picks a probe position, counts every position with the
+ *       same symbol, and divides the count by the corpus length. It builds no histogram and never
+ *       lists the alphabet. So this is the only estimator here that a domain with an unenumerable
+ *       alphabet admits.
  * @note Averaged over every position this is algebraically the plug in estimator, and so it carries that
- *       estimator's upward bias exactly. Sampling fewer positions leaves the bias where it is and
+ *       estimator's upward bias exactly. A sample of fewer positions leaves the bias where it is and
  *       adds variance.
  */
 static double estimate_probe_with_self(const uint8_t *corpus, size_t length, size_t samples)
@@ -330,16 +329,16 @@ static double estimate_probe_with_self(const uint8_t *corpus, size_t length, siz
 }
 
 /**
- * @brief The candidate count estimate, excluding the probe position's own match.
+ * @brief The candidate count estimate, with the probe position's own match left out.
  *
  * @param[in] corpus  Symbols to probe [BORROWS].
  * @param[in] length  How many.
  * @param[in] samples How many probe positions to average over.
- * @return            The mean candidate count, less the probe's own hit, over the remaining positions.
+ * @return            The mean candidate count, less the probe's own hit, over the other positions.
  * @note The same probe with one subtraction, and the subtraction is the whole difference between a
  *       biased estimator and an unbiased one. Averaged over every position this is algebraically the
- *       U statistic. The sift bench subtracts the needle's own occurrence for a reason recorded there
- *       as a measurement error, and that correction and this one are the same correction.
+ *       U statistic. The sift bench subtracts the needle's own occurrence for a reason recorded there.
+ *       That correction and this one are the same correction.
  */
 static double estimate_probe_without_self(const uint8_t *corpus, size_t length, size_t samples)
 {
@@ -371,10 +370,10 @@ static double estimate_probe_without_self(const uint8_t *corpus, size_t length, 
  * @param[in] length How many symbols the corpus contains.
  * @return           A lower confidence bound on min entropy, in bits.
  * @note NIST SP 800-90B section 6.3.1, the most common value estimate, with the same upper confidence
- *       bound on the modal probability the specification uses. It is here as context and is not
- *       scored against the collision entropy column, because min entropy is the negative log of the
- *       largest probability and collision entropy is the negative log of a sum of squares. Two
- *       estimators of two different properties cannot be ranked against one truth.
+ *       bound on the modal probability the specification uses. It is here as context and takes no
+ *       score against the collision entropy column. Min entropy is the negative log of the largest
+ *       probability and collision entropy is the negative log of a sum of squares. Two estimators of
+ *       two different properties have no rank against one truth.
  */
 static double estimate_min_entropy(const uint32_t *counts, size_t length)
 {
@@ -399,8 +398,8 @@ static double estimate_min_entropy(const uint32_t *counts, size_t length)
 /**
  * @brief The highest Renyi order the ladder reaches.
  *
- * @note Five. The correction shrinks with every order and the question is where it stops mattering,
- *       and so the ladder needs only enough rungs to show the trend.
+ * @note Five. The correction shrinks with every order and the question is where it stops to matter.
+ *       So the ladder needs only enough rungs to show the trend.
  */
 #define MAX_ORDER 5u
 
@@ -411,7 +410,7 @@ static double estimate_min_entropy(const uint32_t *counts, size_t length)
  * @param[in] order  Which Renyi order, two or greater.
  * @return           The entropy in bits.
  * @note Computed from the weights and never from a corpus, and so it is the truth the estimators below
- *       are scored against at every order.
+ *       take their score against at every order.
  */
 static double true_renyi(const Source *source, unsigned order)
 {
@@ -431,7 +430,7 @@ static double true_renyi(const Source *source, unsigned order)
  * @param[in] length How many symbols the corpus contains.
  * @param[in] order  Which power.
  * @return           The sum of the empirical frequencies raised to that power.
- * @note The uncorrected form at every order. It counts a position as coinciding with itself, and
+ * @note The uncorrected form at every order. It counts a position as a coincidence with itself, and
  *       the correction below removes that.
  */
 static double plug_in_power(const uint32_t *counts, size_t length, unsigned order)
@@ -454,8 +453,8 @@ static double plug_in_power(const uint32_t *counts, size_t length, unsigned orde
  * @return           The proportion of ordered tuples of distinct positions that all agree.
  * @note The same correction as the second order one, applied @p order deep. Where the pair estimator
  *       refuses to pair a position with itself, this refuses every tuple in which any two indices
- *       coincide, the falling factorial in both the numerator and the denominator. Applying
- *       the correction recursively is what climbing this ladder means.
+ *       coincide. That is the factorial power in both the numerator and the denominator. The
+ *       correction applied again at each rung is what a climb of this ladder means.
  * @note Doubles carry the factorials because the numerator reaches roughly length to the fifth, past
  *       what 64 bits holds. The ratio needs relative precision and a double has sixteen
  *       digits of it.
@@ -473,8 +472,8 @@ static double unbiased_power(const uint32_t *counts, size_t length, unsigned ord
         {
             falling *= (double)counts[symbol] - (double)step;
         }
-        // A symbol appearing fewer times than the order contributes no tuple of distinct positions,
-        // and the falling factorial goes negative there instead of to zero
+        // A symbol that appears fewer times than the order contributes no tuple of distinct positions.
+        // The factorial power goes negative there instead of to zero
         if (falling > 0.0)
         {
             tuples += falling;
@@ -492,10 +491,10 @@ static double unbiased_power(const uint32_t *counts, size_t length, unsigned ord
  *
  * @param[in] source The distribution to draw from [BORROWS].
  * @param[in] length How many symbols each trial's corpus holds.
- * @note The question this answers. The correction removes coincident indices, and applying it deeper
- *       removes coincident tuples, and so it can be climbed. What the correction is worth at each rung,
- *       and whether there is a source on which it is worth nothing at any rung, is measured here
- *       instead of argued.
+ * @note The question this answers. The correction removes coincident indices, and at a deeper order
+ *       it removes coincident tuples, and so it is a ladder. What the correction is worth at each
+ *       rung is a measurement here and not an argument. So is whether there is a source on which it
+ *       is worth nothing at any rung.
  */
 static void score_ladder(const Source *source, size_t length)
 {
@@ -534,7 +533,7 @@ static void score_ladder(const Source *source, size_t length)
  * @param[in] source The distribution to draw from [BORROWS].
  * @param[in] length How many symbols each trial's corpus holds.
  * @note Bias is the mean signed error in bits and root mean square error is the spread around the
- *       truth. Both are reported because an estimator can be unbiased and useless, and an estimator
+ *       truth. Both appear because an estimator can have no bias and no use, and an estimator
  *       can be tightly wrong.
  */
 static void score(const Source *source, size_t length)
@@ -583,7 +582,7 @@ int main(void)
     Source sources[10];
     unsigned made = 0u;
 
-    // One symbol carrying all the weight. Every power of the distribution sums to one, and so every Renyi
+    // One symbol with all the weight. Every power of the distribution sums to one, and so every Renyi
     // order is zero and there are no distinct positions to exclude. It is here to be the case where
     // the correction has nothing to act on
     source_uniform(&sources[made], "point1", 1u);

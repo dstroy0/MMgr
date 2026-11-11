@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note One of five files defining mmgr_ancorae_impensa. A build links exactly one of them.
+ * @note One of five files that define mmgr_ancorae_impensa. A build links exactly one of them.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 

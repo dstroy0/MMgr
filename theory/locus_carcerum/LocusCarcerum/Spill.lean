@@ -4,10 +4,10 @@ import LocusCarcerum.Take
 /-!
 # LocusCarcerum, the spill and the growths
 
-A persistent take the gap cannot meet (`carcer_spilled`) sweeps the tier, then lays the take over the first free
-run that holds it, or bumps it at the end where none does and the gap has room. The theorems: a take laid over a
-run keeps the tier's bytes and raises the owner's count by what the cell carries; a bump at the end lays the cell's
-footprint past the end and raises the count by the request; the other owners' counts do not move.
+A persistent take the gap cannot meet (`carcer_spilled`) sweeps the tier. Then it lays the take over the first free
+run that holds it. Where none does and the gap has room, it bumps the take at the end. The theorems: a take laid over a
+run keeps the tier's bytes and raises the owner's count by what the cell carries. A bump at the end lays the cell's
+footprint past the end and raises the count by the request. The other owners' counts do not move.
 
 A growth (`carcer_grown`) grows the newest cell of its tier. A persistent cell grows in place: the end rises by
 the bytes added and the owner's count by the same. A temporary cell moves down: its header at the new top, its
@@ -21,7 +21,7 @@ open LocusCarcerum.Take
 
 variable (H A : Nat)
 
-/-- The first free run holding `want`: the cells below it, the run, and the cells above it. -/
+/-- The first free run that holds `want`: the cells below it, the run, and the cells above it. -/
 def firstFit (want : Nat) : List Cell → Option (List Cell × Cell × List Cell)
   | [] => none
   | c :: rest =>
@@ -52,7 +52,7 @@ theorem len_append (a b : List Cell) : len H (a ++ b) = len H a + len H b := by
   | nil => simp [len]
   | cons c rest ih => simp [len, ih]; omega
 
-/-- A spill over the first fitting run of the swept tier. -/
+/-- A spill over the first run that fits in the swept tier. -/
 def spilled (want owner : Nat) (low : List Cell) (run : Cell) (high : List Cell) : List Cell :=
   low ++ laid H A want owner run ++ high
 

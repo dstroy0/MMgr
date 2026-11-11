@@ -2,15 +2,15 @@
 """Move one or more line ranges from one source file into another.
 
 Cuts the named ranges out of --src and splices them into --dst, either before or
-after a regex anchor or appended at the end. Line endings and encoding are
-preserved (LF, UTF-8 without BOM). A move produces no spurious whitespace diff.
+after a regex anchor or appended at the end. Line endings and encoding stay as
+they are (LF, UTF-8 without BOM). A move produces no spurious whitespace diff.
 
-Ranges are 1-indexed and inclusive, and are read from the ORIGINAL numbering, and so
-several --range flags can be given at once without the earlier cuts shifting the
-later ones. The moved text is concatenated in the order the flags appear.
+Ranges start at 1 and include both ends, and they refer to the ORIGINAL line numbers. So
+several --range flags can go together and the earlier cuts do not shift the
+later ones. The moved text joins in the order the flags appear.
 
-Guards are regexes checked against the first and last line of each range before
-anything is written; a failed guard aborts with a non-zero exit and no change.
+Guards are regexes. The check runs them against the first and last line of each range
+before any write. A failed guard aborts with a non-zero exit and no change.
 
 Examples
 --------
@@ -24,7 +24,7 @@ Move several spans and append them:
 
     move_code.py --src a.c --dst b.c --range 100-160 --range 300-355 --append
 
-Preview without writing:
+Preview with no write:
 
     move_code.py --src a.c --dst b.c --range 10-20 --append --dry-run
 """

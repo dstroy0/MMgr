@@ -7,10 +7,10 @@
 /**
  * @file prove_hooks.c
  * @brief The machine-code arm's three words as functions of their own, which the symbolic executor replaces by
- *        name: their bodies never run under it, and a program built with them runs as a plain program otherwise.
+ *        name. Their bodies never run under it, and a program built with them runs as a plain program otherwise.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
- * @note Each is kept out of line, so that the compiler leaves a call the executor can hook in the harness's code.
+ * @note Each stays out of line, so that the compiler leaves a call the executor can hook in the harness's code.
  */
 #include "prove.h"
 

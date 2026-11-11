@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @warning The whole file is compiled only when MMGR_ENABLE_EXTRAM is set.
+ * @warning The whole file exists only when MMGR_ENABLE_EXTRAM holds.
  */
 #include "memoria_externa/memoria_externa.h"
 
@@ -22,7 +22,7 @@
  * @note Fields match ExternaCfg, without the const on its six figures and the one on its pingpong
  *       pointer.
  * @note exter_place reads the six figures. The four pingpong backends read pingpong alone, and
- *       EMBED_CALL zeroes the members an entry is not given.
+ *       EMBED_CALL zeroes the members an entry does not receive.
  */
 typedef struct
 {
@@ -30,7 +30,7 @@ typedef struct
     embed_bool dma_required; /**< The bytes must be reachable by DMA. */
     size_t free_dram;        /**< Bytes still free in internal memory. */
     size_t free_psram;       /**< Bytes still free in external memory. */
-    size_t psram_threshold;  /**< Size at or above which external memory is tried first. */
+    size_t psram_threshold;  /**< Size at or above which external memory comes first. */
     size_t dram_reserve;     /**< Internal bytes that must remain free after the placement. */
     PingPong *pingpong;      /**< Pair the pingpong backends act on [BORROWS]. */
 } ExterCtx;
@@ -41,12 +41,12 @@ typedef struct
  * @param[in] args Request size and the internal memory figures [BORROWS].
  * @return         EMBED_TRUE when the bytes fit and dram_reserve would still be free afterwards.
  * @note Tests the size first, and so the subtraction that follows cannot wrap.
- * @note dram_reserve is taken as given. A reserve above free_dram refuses every request, size 0
+ * @note dram_reserve stands as given. A reserve above free_dram refuses every request, size 0
  *       included. A reserve equal to it admits only a size of 0.
  */
 EMBED_INLINE embed_bool exter_dram_fits(const ExterCtx *args)
 {
-    // Two tests in order: the first guards the subtraction in the second, since && stops
+    // Two tests in order. The first guards the subtraction in the second, since && stops
     // at the first that fails and a size past free_dram would otherwise wrap it
     return (args->size <= args->free_dram) && ((args->free_dram - args->size) >= args->dram_reserve);
 }
@@ -64,16 +64,16 @@ EMBED_INLINE embed_bool exter_psram_fits(const ExterCtx *args)
 }
 
 /**
- * @brief Decides where a request should be placed.
+ * @brief Decides where a request should go.
  *
  * @param[in] args Request size, the DMA requirement and both memory figures [BORROWS].
  * @return         PLACE_DRAM, PLACE_PSRAM, or PLACE_FAIL when neither will take it.
- * @note A size of 0 is refused outright.
- * @note A DMA request only ever goes to internal memory, and fails instead of falling back.
- * @note At or above psram_threshold external memory is tried first, below it internal is. On both
- *       paths the other is tried second. A non-zero request without the DMA requirement reaches
+ * @note A size of 0 fails outright.
+ * @note A DMA request only ever goes to internal memory, and fails with no second choice.
+ * @note At or above psram_threshold external memory comes first, below it internal does. On both
+ *       paths the other comes second. A non-zero request without the DMA requirement reaches
  *       PLACE_FAIL only when it fits neither.
- * @note Both fit tests are taken once, above the branches, and so no arm evaluates one twice.
+ * @note Both fit tests run once, above the branches, and so no arm evaluates one twice.
  * @warning The two tests are not the same shape. Internal placement must also leave dram_reserve
  *          free, where the external one is a size comparison alone.
  */
@@ -131,13 +131,13 @@ EMBED_INLINE void exter_pingpong_init(const ExterCtx *args)
 }
 
 /**
- * @brief Returns the index of the buffer currently being filled.
+ * @brief Returns the index of the buffer now under fill.
  *
  * @param[in] args Pair to read, as args->pingpong [BORROWS].
  * @return         0 or 1.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
- * @warning Hands back fill_index as it stands. It is 0 or 1 on a pair exter_pingpong_init has set,
- *          and whatever the storage contained on one that has not been.
+ * @warning Hands back fill_index as it stands. It is 0 or 1 on a pair exter_pingpong_init set,
+ *          and whatever the storage contained on one it did not.
  */
 EMBED_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
 {
@@ -145,11 +145,11 @@ EMBED_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
 }
 
 /**
- * @brief Returns the index of the buffer currently being drained.
+ * @brief Returns the index of the buffer now under drain.
  *
  * @param[in] args Pair to read, as args->pingpong [BORROWS].
  * @return         The other index, 0 or 1.
- * @note Flips the low bit of fill_index instead of keeping a second member, and so the two indexes
+ * @note Flips the low bit of fill_index and keeps no second member, and so the two indexes
  *       cannot drift apart.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning The answer is an index only while fill_index is 0 or 1. On a pair exter_pingpong_init has
@@ -165,16 +165,16 @@ EMBED_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
  * @brief Swaps the two roles and returns the new fill index.
  *
  * @param[in,out] args Pair to flip, as args->pingpong [BORROWS].
- * @return             The index now being filled, 0 or 1.
+ * @return             The index now under fill, 0 or 1.
  * @note Flips the low bit. A swap of a swap is where it started.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning One caller at a time. The flip and the read below it are two steps on a plain byte, with
- *          no atomic and no lock, and so two callers swapping the same pair can come away holding the
+ *          no atomic and no lock. So two callers that swap the same pair can come away with the
  *          same index.
  */
 EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
 {
-    // The flip stands on its own line and the answer is read back on the next, and so neither is a side
+    // The flip stands on its own line and the read of the answer comes on the next. So neither is a side
     // effect inside the other. That second read is a fresh load, which is where a concurrent swap
     // would show up
     args->pingpong->fill_index ^= 1u;
@@ -198,7 +198,7 @@ EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  * @param[in] ReturnType_ Return type of the entry point.
  * @param[in] name_       Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
  * @param[in] ...         Initializers for the ExterCtx literal, written from args.
- * @note A second macro and not one, because these entries are named mmgr_pingpong_ instead of
+ * @note A second macro and not one, because these entries have the name mmgr_pingpong_ instead of
  *       mmgr_extern_. EMBED_ENTRY pastes one prefix onto one name, and so the pair differs and not the form.
  */
 #define PINGPONG_ENTRY(ReturnType_, name_, ...)                                                                        \
@@ -209,8 +209,8 @@ EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  *
  * @param[in] name_ Name after the mmgr_pingpong_ and exter_pingpong_ prefixes.
  * @param[in] ...   Initializers for the ExterCtx literal, written through args.
- * @note Separate from PINGPONG_ENTRY because a return with an expression is not allowed in a void
- *       function, and so the two cannot share one body.
+ * @note Separate from PINGPONG_ENTRY because a void function cannot return an expression, and so
+ *       the two cannot share one body.
  * @note init is the only entry that reaches it. The other three pingpong entries hand back an index.
  */
 #define PINGPONG_ENTRY_V(name_, ...)                                                                                   \
@@ -219,7 +219,7 @@ EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
 /**
  * @brief The public surface, one line per entry point.
  *
- * @note Each is documented at its declaration in memoria_externa.h.
+ * @note memoria_externa.h describes each at its declaration.
  * @note The fields each line forwards are the ones that entry reads, and EMBED_CALL zeroes the rest.
  * @note The four pingpong lines pass args->pingpong through as it stands [BORROWS]. EMBED_CALL builds
  *       its literal inside the emitted function, and so the literal lives for that call alone and the

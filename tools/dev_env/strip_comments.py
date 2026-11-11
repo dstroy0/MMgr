@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
-"""Strip C comments from a file or tree, leaving the code and the license header.
+"""Strip C comments from a file or tree, and leave the code and the license header.
 
-An API conversion is driven by patterns over source lines, and prose is what those patterns trip
-over: a line-anchored rewrite cannot tell a call from a sentence naming the same call, and a match
-that crosses a comment boundary splices the sentence into the code. Removing the comments first
-makes the rewrite mechanical.
+Patterns over source lines drive an API conversion, and prose is what those patterns trip
+over. A line-anchored rewrite cannot tell a call from a sentence that names the same call. A match
+that crosses a comment boundary puts the sentence into the code. With the comments gone first
+the rewrite is mechanical.
 
-What is preserved:
+What stays:
   - the leading copyright / SPDX block, which states a license instead of describing code
   - string and character literals, including escapes, and so "http://x" is not read as a comment
   - the line count of block comments. A compiler error still points at the right line

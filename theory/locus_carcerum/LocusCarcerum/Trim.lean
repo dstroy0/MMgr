@@ -2,20 +2,21 @@
 # LocusCarcerum, the trims a give leaves owed
 
 The closed word as the writers and the gives share it. A writer holds the closed bit while it works alone. A give
-sets its cell's header free, then sets the closed bit and its tier's trim bit with one fetch-or: where the closed
-bit was clear the give holds the cellblock, and where another holds it the give leaves. A holder opens in one
-pass: one fetch-and takes the trim bits and the tiers they name are trimmed, then a second fetch-and clears the
-closed bit whatever trim bits stand. A trim bit a give sets between the two stays on the open word, and the next
-take, or the next read of the gap, holds the bit and runs it before its own pass.
+sets its cell's header free, then sets the closed bit and its tier's trim bit with one fetch-or. Where the closed
+bit was clear the give holds the cellblock, and where another holds it the give leaves.
+
+A holder opens in one pass. One fetch-and takes the trim bits and the holder trims the tiers they name. Then a
+second fetch-and clears the closed bit whatever trim bits stand. A trim bit a give sets between the two stays on
+the open word. The next take, or the next read of the gap, holds the bit and runs it before its own pass.
 
 A tier is `dirty` while a cell given back at its boundary stands untrimmed. The invariant: a dirty tier has its
 trim bit set, or a give of that tier stands between its store and its fetch-or. The theorems: a cellblock with
-no trim bit set and no give in flight has no dirty tier, and the take that a holder runs first leaves no tier
+no trim bit set and no give in flight has no dirty tier. The take that a holder runs first leaves no tier
 dirty except through a give in flight.
 
 `take` is the fetch-and and the walk as one step. In the C the walk follows the fetch-and with the closed bit
-still held, and a give between the two either stored its header before the walk, which then trims past it, or
-sets its trim bit again with its fetch-or, which stays owed on the word for the next holder.
+still held. A give between the two either stored its header before the walk, which then trims past it, or
+sets its trim bit again. It sets the bit with its fetch-or, and that bit stays owed on the word for the next holder.
 -/
 
 namespace LocusCarcerum.Trim
@@ -26,7 +27,7 @@ inductive Tier where
   | temporary
   deriving DecidableEq, Repr
 
-/-- Where a context stands: at rest, a give of a tier between its store and its fetch-or, or holding the bit. -/
+/-- Where a context stands: at rest, a give of a tier between its store and its fetch-or, or with the bit in hand. -/
 inductive Place where
   | idle
   | stored (t : Tier)
@@ -65,7 +66,7 @@ inductive Step : State → State → Prop where
   | release {s : State} (i : Nat) (h : s.place i = .holding) :
       Step s { s with held := false, place := moved s.place i .idle }
 
-/-- The cellblock as it is laid out: open, nothing owed, nothing dirty, every context at rest. -/
+/-- The cellblock as it starts: open, nothing owed, nothing dirty, every context at rest. -/
 def start : State := ⟨false, fun _ => false, fun _ => false, fun _ => .idle⟩
 
 /-- The states the steps reach from the start. -/
@@ -73,8 +74,8 @@ inductive Reach : State → Prop where
   | start : Reach start
   | step {s s' : State} : Reach s → Step s s' → Reach s'
 
-/-- The invariant: a dirty tier is owed a trim or has a give in flight; a holder means the bit is held; and one
-context holds at a time. -/
+/-- The invariant. A dirty tier has a trim owed or a give in flight. A holder means someone holds the bit, and
+one context holds at a time. -/
 structure Inv (s : State) : Prop where
   dirtyCovered : ∀ t, s.dirty t = true → s.owed t = true ∨ ∃ i, s.place i = .stored t
   holderHeld : ∀ i, s.place i = .holding → s.held = true

@@ -6,9 +6,9 @@
  */
 /**
  * @file fractio_fuzz.c
- * @brief A libFuzzer harness over the binary64 fields: every pattern split into its sign, exponent and mantissa
- *        against shifts and masks, merged back to itself, merge of wide fields against each field masked, and the
- *        two reinterpretations against memcpy.
+ * @brief A libFuzzer harness over the binary64 fields. Every pattern splits into its sign, exponent and mantissa
+ *        against shifts and masks, and joins back to itself. The merge of wide fields runs against each field
+ *        masked, and the two reinterpretations against memcpy.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

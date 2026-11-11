@@ -1,7 +1,7 @@
 /**
  * @brief Placement between internal and external memory, and a two-buffer index.
  *
- * @warning Everything below is declared only when MMGR_ENABLE_EXTRAM is set.
+ * @warning Everything below exists only when MMGR_ENABLE_EXTRAM holds.
  */
 #ifndef MMGR_CONFINIUM_EXTERNUM_H
 #define MMGR_CONFINIUM_EXTERNUM_H
@@ -13,9 +13,9 @@
 MMGR_INCIPE_DECLS
 
 /**
- * @brief Where a request should be placed.
+ * @brief Where a request should go.
  *
- * @note Packed to one byte; mmgr_types.h asserts that packing reaches the compiler.
+ * @note Packed to one byte; mmgr_types.h asserts that the pack reaches the compiler.
  */
 typedef enum MMGR_ENUM_PACKED
 {
@@ -25,19 +25,19 @@ typedef enum MMGR_ENUM_PACKED
 } mmgr_place;
 
 /**
- * @brief A pair of buffers, one being filled while the other is drained.
+ * @brief A pair of buffers, one under fill while the other is under drain.
  *
- * @note fill_idx is the only member; the buffers it indexes are stored elsewhere.
+ * @note fill_idx is the only member; the buffers it indexes live elsewhere.
  */
 typedef struct
 {
-    uint8_t fill_idx; /**< Index of the buffer being filled, 0 or 1. */
+    uint8_t fill_idx; /**< Index of the buffer under fill, 0 or 1. */
 } PingPong;
 
 /**
  * @brief Arguments for every exter call; each reads only what it needs.
  *
- * @note free_dram and free_psram are supplied by the caller and used as given.
+ * @note The caller supplies free_dram and free_psram and they stand as given.
  * @note place reads the six figures; the pingpong entries read pp alone.
  */
 typedef struct
@@ -46,7 +46,7 @@ typedef struct
     const mmgr_bool dma_required; /**< The bytes must be reachable by DMA. */
     const size_t free_dram;       /**< Bytes still free in internal memory. */
     const size_t free_psram;      /**< Bytes still free in external memory. */
-    const size_t psram_threshold; /**< Size at or above which external memory is tried first. */
+    const size_t psram_threshold; /**< Size at or above which external memory comes first. */
     const size_t dram_reserve;    /**< Internal bytes that must remain free afterwards. */
     PingPong *const pp;           /**< Pair the pingpong entries act on [BORROWS]. */
 } ExternumCfg;
@@ -61,8 +61,8 @@ typedef struct
 {
     mmgr_place (*place)(const ExternumCfg *c);       /**< Decides where a request goes. */
     void (*pingpong_init)(const ExternumCfg *c);     /**< Points the pair at buffer 0. */
-    uint8_t (*pingpong_fill)(const ExternumCfg *c);  /**< Index being filled. */
-    uint8_t (*pingpong_drain)(const ExternumCfg *c); /**< Index being drained. */
+    uint8_t (*pingpong_fill)(const ExternumCfg *c);  /**< Index under fill. */
+    uint8_t (*pingpong_drain)(const ExternumCfg *c); /**< Index under drain. */
     uint8_t (*pingpong_swap)(const ExternumCfg *c);  /**< Swaps the two roles. */
 } ConfiniumExternumNs;
 MMGR_NS_LAYOUT(ConfiniumExternumNs, place, pingpong_init, pingpong_fill, pingpong_drain, pingpong_swap);
@@ -74,7 +74,7 @@ MMGR_NS_LAYOUT(ConfiniumExternumNs, place, pingpong_init, pingpong_fill, pingpon
  * @return      PLACE_DRAM, PLACE_PSRAM, or PLACE_FAIL when neither will take it.
  * @note A size of 0 gives PLACE_FAIL.
  * @note A DMA request only ever gives PLACE_DRAM or PLACE_FAIL, never external memory.
- * @note At or above psram_threshold external memory is preferred, below it internal is.
+ * @note At or above psram_threshold external memory comes first, below it internal does.
  * @warning Internal placement must also leave dram_reserve free; the external test is a size comparison alone.
  */
 mmgr_place mmgr_exter_place(const ExternumCfg *c);
@@ -88,7 +88,7 @@ mmgr_place mmgr_exter_place(const ExternumCfg *c);
 void mmgr_pingpong_init(const ExternumCfg *c);
 
 /**
- * @brief Returns the index of the buffer being filled.
+ * @brief Returns the index of the buffer under fill.
  *
  * @param[in] c Pair to read, as c->pp [BORROWS].
  * @return      0 or 1.
@@ -98,7 +98,7 @@ void mmgr_pingpong_init(const ExternumCfg *c);
 uint8_t mmgr_pingpong_fill_index(const ExternumCfg *c);
 
 /**
- * @brief Returns the index of the buffer being drained.
+ * @brief Returns the index of the buffer under drain.
  *
  * @param[in] c Pair to read, as c->pp [BORROWS].
  * @return      The other index, 0 or 1.
@@ -108,10 +108,10 @@ uint8_t mmgr_pingpong_fill_index(const ExternumCfg *c);
 uint8_t mmgr_pingpong_drain_index(const ExternumCfg *c);
 
 /**
- * @brief Swaps which buffer is filled and which is drained.
+ * @brief Swaps which buffer takes the fill and which the drain.
  *
  * @param[in,out] c Pair to flip, as c->pp [BORROWS].
- * @return          The index now being filled, 0 or 1.
+ * @return          The index now under fill, 0 or 1.
  * @warning c->pp must not be null.
  */
 uint8_t mmgr_pingpong_swap(const ExternumCfg *c);

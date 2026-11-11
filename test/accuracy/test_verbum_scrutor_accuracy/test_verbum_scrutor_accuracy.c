@@ -33,17 +33,17 @@
 /**
  * @brief Expands to 0x80, the bit a lane mask sets in a lane that matched.
  *
- * @note Written from what a lane mask is, and not taken from MMGR_VERBUM_SCRUTOR_HIGH. That constant
- *       is built by the module and would supply both sides of every comparison below.
+ * @note Written from what a lane mask is, and not taken from MMGR_VERBUM_SCRUTOR_HIGH. The module
+ *       builds that constant, and it would supply both sides of every comparison below.
  */
 #define MMGR_ACCURACY_LANE_HIGH_BIT 0x80u
 
 /**
  * @brief A word and its bytes over the same storage.
  *
- * @note Writing the bytes and reading the word puts a lane at the position a load would put it,
- *       whichever end of the word the target starts from. That keeps every expectation here in
- *       memory order without naming an endianness.
+ * @note A write of the bytes and a read of the word puts a lane where a load would put it. That
+ *       holds whichever end of the word the target starts from. So every expectation here stays in
+ *       memory order and names no endianness.
  */
 typedef union {
     embed_word word;                  /**< The assembled word. */
@@ -72,9 +72,9 @@ static embed_word accuracy_word_from(const uint8_t *lane_byte_of)
  * @brief Builds the lane mask a set of per-lane verdicts calls for.
  *
  * @param[in] lane_matched_of Non-zero for each lane that matched, lane 0 first in memory [BORROWS].
- * @return                    A word holding the high bit in each matching lane and zero elsewhere.
- * @note This is the shape every lane predicate returns. It is assembled from the byte positions.
- *       The module's own mask constants take no part in building it.
+ * @return                    A word with the high bit in each lane that matches and zero elsewhere.
+ * @note This is the shape every lane predicate returns. It comes from the byte positions.
+ *       The module's own mask constants take no part in it.
  */
 static embed_word accuracy_mask_from(const uint8_t *lane_matched_of)
 {
@@ -93,34 +93,34 @@ static embed_word accuracy_mask_from(const uint8_t *lane_matched_of)
  * @brief Fills a lane byte array with a pattern whose neighbors are as far apart as bytes get.
  *
  * @param[out] lane_byte_of Bytes to fill, lane 0 first in memory [BORROWS].
- * @param[in]  under_test   Byte placed in the lane the sweep is examining.
+ * @param[in]  under_test   Byte placed in the lane under the sweep.
  * @param[in]  at_lane      Lane the byte under test goes in.
- * @note Every other lane alternates 0x00 and 0xFF. A borrow leaving the lane under test lands in a
+ * @note Every other lane alternates 0x00 and 0xFF. A borrow that leaves the lane under test lands in a
  *       neighbor whose own result is already settled, and that leaves the leak visible.
  */
 static void accuracy_fill_contrasting(uint8_t *lane_byte_of, uint8_t under_test, size_t at_lane)
 {
     for (size_t lane_index = 0u; lane_index < sizeof(embed_word); lane_index++)
     {
-        // Explicit cast narrows the alternating selector to the byte one lane holds
+        // Explicit cast narrows the alternate selector to the byte one lane holds
         lane_byte_of[lane_index] = (uint8_t)(((lane_index % 2u) == 0u) ? 0x00u : 0xFFu);
     }
     lane_byte_of[at_lane] = under_test;
 }
 
 /**
- * @brief Candidate at-or-above: the shipping subtraction with the word's own high bits or-ed in.
+ * @brief Candidate at-or-above: the subtraction the module ships with the word's own high bits or-ed in.
  *
  * @param[in] word Lanes to compare.
- * @param[in] byte Byte every lane is compared against, under 0x80.
- * @return         A lane mask holding the lanes at or above byte.
+ * @param[in] byte Byte every lane compares against, under 0x80.
+ * @return         A lane mask with the lanes at or above byte.
  * @note A lane at or above 0x80 is above any threshold under 0x80 whatever its low bits say, and its
- *       own high bit already carries that. Or-ing it into the result covers those lanes without a
+ *       own high bit already carries that. An or of it into the result covers those lanes with no
  *       second comparison.
  * @note No lane can borrow out here. A lane under 0x80 has the or supply its reserve, and one at or
- *       above 0x80 is already larger than the threshold, and so the subtraction stays non-negative in
- *       both cases and the neighbor is untouched.
- * @warning The threshold must be under 0x80. Above it the minuend's reserve is gone and this is no
+ *       above 0x80 is already larger than the threshold. So the subtraction stays non-negative in
+ *       both cases and the neighbor stays untouched.
+ * @warning The threshold must be under 0x80. Above it there is no reserve and this is no
  *          better than what it replaces. Every call inside the library passes a literal under it.
  */
 static embed_word accuracy_candidate_ge_or(embed_word word, uint8_t byte)
@@ -132,17 +132,17 @@ static embed_word accuracy_candidate_ge_or(embed_word word, uint8_t byte)
 }
 
 /**
- * @brief Candidate at-or-below: the shipping subtraction with the word narrowed and its high lanes
+ * @brief Candidate at-or-below: the subtraction the module ships with the word narrowed and its high lanes
  *        removed.
  *
  * @param[in] word Lanes to compare.
- * @param[in] byte Byte every lane is compared against, under 0x80.
- * @return         A lane mask holding the lanes at or below byte.
+ * @param[in] byte Byte every lane compares against, under 0x80.
+ * @return         A lane mask with the lanes at or below byte.
  * @note The mirror of accuracy_candidate_ge_or and not symmetric with it. A lane at or above 0x80 is
- *       never at or below a threshold under 0x80, and so those lanes are taken out of the result instead
- *       of put into it.
- * @note Narrowing the subtrahend stops the underflow. The lanes it changes are exactly the
- *       ones the final and-not removes, and so nothing else is disturbed.
+ *       never at or below a threshold under 0x80. So those lanes come out of the result and do not
+ *       go into it.
+ * @note The narrow subtrahend stops the underflow. The lanes it changes are exactly the
+ *       ones the final and-not removes, and so nothing else moves.
  * @warning The threshold must be under 0x80, for the reason given on accuracy_candidate_ge_or.
  */
 static embed_word accuracy_candidate_le_mask(embed_word word, uint8_t byte)
@@ -178,9 +178,9 @@ void tearDown(void)
  * @brief Checks the word and mask assembly this suite rests on against values worked out by hand.
  *
  * @note Exists to catch a defect in the helpers as itself. Without this case a broken
- *       accuracy_mask_from would surface as a predicate mismatch, and verbum_scrutor would be blamed
- *       for it.
- * @note A word of all zero bytes is zero whichever end the target starts from, and a word whose
+ *       accuracy_mask_from would surface as a predicate mismatch, and verbum_scrutor would look
+ *       wrong.
+ * @note A word of all zero bytes is zero whichever end the target starts from. A word whose
  *       every lane matched is the high bit repeated. Neither depends on byte order.
  */
 void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
@@ -225,10 +225,10 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
  * @note The lane under test and the threshold are swept over the seven bit range, and the neighbors
  *       are 0x00 and 0xFF. verbum_scrutor.h states both entries compare bytes as unsigned with 0x80
  *       and above the largest values, and this asserts it.
- * @note le fails here today. The borrow that keeps lanes apart is the lane's own high bit, and a
- *       neighbor at 0x80 or above has that bit spoken for as data, and so it takes a borrow out of the
- *       lane under test even when that lane is itself inside the seven bit range. Narrowing the
- *       neighbors to 0x7F makes this pass and measures nothing, and so they are not narrowed.
+ * @note le fails here. The borrow that keeps lanes apart is the lane's own high bit. A neighbor at
+ *       0x80 or above has that bit spoken for as data. So it takes a borrow out of the lane under
+ *       test even when that lane is itself inside the seven bit range. Neighbors narrowed to 0x7F
+ *       make this pass and measure nothing, and so they stay as they are.
  * @note The reference compares the two bytes with the C operators.
  */
 void test_ge_and_le_answer_per_lane_with_contrasting_neighbors(void)
@@ -270,9 +270,9 @@ void test_ge_and_le_answer_per_lane_with_contrasting_neighbors(void)
  * @brief Checks both candidates over every lane value against every threshold under 0x80.
  *
  * @note The lane values run the whole 0 to 255 range with 0x00 and 0xFF neighbors, which is where
- *       the shipping pair fails. The thresholds run 0 to 0x7F, the bound both candidates
+ *       the pair the module ships fails. The thresholds run 0 to 0x7F, the bound both candidates
  *       state and which every call inside the library satisfies.
- * @note A candidate that has not passed this has no business being benched.
+ * @note A candidate that did not pass this has no business on the bench.
  */
 void test_both_candidates_answer_for_every_lane_under_a_low_threshold(void)
 {
@@ -312,8 +312,8 @@ void test_both_candidates_answer_for_every_lane_under_a_low_threshold(void)
  * @brief Expands to 4, the boundary values one lane takes in the full word sweep.
  *
  * @note 0x00, 0x7F, 0x80 and 0xFF: the two ends of each half of the byte. A borrow either escapes at
- *       one of those or it does not escape at all, and four values keep the whole-word sweep to
- *       4 raised to the lane count, which is 65536 on an eight lane word and 16 on a two lane one.
+ *       one of those or it does not escape at all. Four values keep the whole-word sweep to
+ *       4 raised to the lane count. That is 65536 on an eight lane word and 16 on a two lane one.
  */
 #define MMGR_ACCURACY_EDGE_VALUES 4u
 
@@ -372,9 +372,9 @@ void test_both_candidates_answer_with_the_byte_in_every_lane(void)
  * @brief Checks both candidates over every whole-word arrangement of the four boundary bytes.
  *
  * @note The per-lane sweeps hold every other lane at one of two values. This one lets every lane
- *       take any of the four boundaries independently, and so two high lanes side by side, high lanes at
- *       both ends and a word of nothing but high lanes all appear. A borrow chain crossing more than
- *       one boundary is only reachable here.
+ *       take any of the four boundaries independently. So two high lanes side by side, high lanes at
+ *       both ends and a word of nothing but high lanes all appear. A borrow chain that crosses more
+ *       than one boundary is only reachable here.
  * @note 4 raised to the lane count: 65536 arrangements on an eight lane word, 256 on a four lane one
  *       and 16 on a two lane one. Every environment sweeps its own width in full.
  * @note The thresholds are the four boundaries themselves. All 128 of them would keep the pass well
@@ -407,7 +407,7 @@ void test_both_candidates_answer_over_every_boundary_word(void)
         {
             const uint8_t threshold = accuracy_edge_of[edge];
 
-            // 0x80 and 0xFF are past the bound both candidates state, and so they are not asked for
+            // 0x80 and 0xFF are past the bound both candidates state, and so the sweep leaves them out
             if (threshold >= 0x80u)
             {
                 continue;
@@ -432,10 +432,10 @@ void test_both_candidates_answer_over_every_boundary_word(void)
 }
 
 /**
- * @brief Checks eq for every byte value against every sought byte, with contrasting neighbors.
+ * @brief Checks eq for every byte value against every sought byte, with neighbors that contrast.
  *
  * @note The neighbors are 0x00 and 0xFF. A sought byte of either one makes several lanes match at
- *       once, the case where a mask built from a subtraction can set a lane its own byte
+ *       once. That is the case where a mask built from a subtraction can set a lane its own byte
  *       never earned.
  */
 void test_eq_answers_per_lane_with_contrasting_neighbors(void)
@@ -465,10 +465,10 @@ void test_eq_answers_per_lane_with_contrasting_neighbors(void)
 }
 
 /**
- * @brief Checks has_zero for a zero placed in each lane in turn, with the rest holding 0xFF.
+ * @brief Checks has_zero for a zero placed in each lane in turn, with the rest at 0xFF.
  *
- * @note A zero lane beside a full one is the hardest case for a test built on a subtraction, since
- *       the neighbor is the value most able to lend a borrow.
+ * @note A zero lane beside a full one is the hardest case for a test built on a subtraction. The
+ *       neighbor is the value most able to lend a borrow.
  * @note Also covers the word with no zero lane at all, where the answer is an empty mask.
  */
 void test_has_zero_finds_the_zero_lane_and_no_other(void)
@@ -504,10 +504,10 @@ void test_has_zero_finds_the_zero_lane_and_no_other(void)
 /**
  * @brief Checks alpha, any_upper and any_digit for every byte value, in every lane position.
  *
- * @note The reference is the byte range each entry documents. alpha is the two letter runs, any_upper
- *       is the 0x40 block with bit seven disregarded, and any_digit is the 0x30 block.
- * @note Sweeping the lane position as well as the value separates a predicate that is right
- *       from one that is right only in the lane the constants happen to favor.
+ * @note The reference is the byte range each entry documents. For alpha it is the two letter runs.
+ *       For any_upper it is the 0x40 block with bit seven disregarded, and for any_digit the 0x30 block.
+ * @note A sweep of the lane position as well as the value separates two predicates. One is right,
+ *       and the other is right only in the lane the constants happen to favor.
  */
 void test_the_character_predicates_answer_per_lane_for_every_byte(void)
 {
@@ -580,8 +580,8 @@ void test_fold_lower_changes_the_letters_and_leaves_every_other_byte(void)
             {
                 const uint8_t held = lane_byte_of[lane_index];
 
-                // Explicit cast narrows the lowered value to the byte a lane holds. Setting bit five
-                // moves a capital to its lowercase and is applied to nothing else
+                // Explicit cast narrows the lowered value to the byte a lane holds. Bit five set
+                // moves a capital to its lowercase, and nothing else gets it
                 lane_folded_of[lane_index] =
                     (uint8_t)(((held >= 0x41u) && (held <= 0x5Au)) ? (uint8_t)(held | 0x20u) : held);
             }

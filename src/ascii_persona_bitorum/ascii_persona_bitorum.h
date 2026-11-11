@@ -24,9 +24,9 @@
 EMBED_BEGIN_DECLS
 
 /**
- * @brief Sixteen bytes holding one bit for each of the code points 0 to 127.
+ * @brief Sixteen bytes with one bit for each of the code points 0 to 127.
  *
- * @note A code point is located by shift and mask and not by search. Code point n is bit
+ * @note A shift and a mask locate a code point, not a search. Code point n is bit
  *       (n & 7) of bits[n >> 3]. Any class answers in the same three operations.
  */
 typedef struct
@@ -47,7 +47,7 @@ EMBED_STATIC_ASSERT(sizeof(MmgrAsciiMask) == 16u, "an ASCII class mask is exactl
 /**
  * @brief Character class selector, numbered from 0.
  *
- * @note MMGR_ASCII_CLASSES is the enumerator count and not a class. Passing it is out of range.
+ * @note MMGR_ASCII_CLASSES is the enumerator count and not a class. As an argument it is out of range.
  */
 typedef enum
 {
@@ -88,16 +88,16 @@ EMBED_TABLE_LAYOUT(AsciiPersonaBitorumNs, in);
  * @brief Returns whether args->byte has its bit set in the kind bitmap.
  *
  * @param[in] args Class and byte to test [BORROWS].
- * @return         EMBED_TRUE when the bit is set, EMBED_FALSE otherwise.
+ * @return         EMBED_TRUE when the bit holds, EMBED_FALSE otherwise.
  * @note Bytes 0x80 and above return EMBED_FALSE.
  * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
- *          MMGR_DEBUG_CHECKS build: the bitmap is indexed by it. A byte under 0x80 then reads
+ *          MMGR_DEBUG_CHECKS build. It indexes the bitmap, and a byte under 0x80 then reads
  *          past the table.
  */
 embed_bool mmgr_ascii_in(const AsciiCfg *args);
 
 /**
- * @brief Dispatch table instance named ascii, whose in member is set to mmgr_ascii_in.
+ * @brief Dispatch table instance named ascii, whose in member holds mmgr_ascii_in.
  */
 EMBED_TABLE_STORAGE AsciiPersonaBitorumNs ascii EMBED_UNUSED = {
     .in = mmgr_ascii_in,

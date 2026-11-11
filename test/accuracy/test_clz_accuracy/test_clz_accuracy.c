@@ -28,9 +28,9 @@
 #include "unity.h"
 
 /**
- * @brief Expands to 64u, the bits in the value both counts are taken over.
+ * @brief Expands to 64u, the bits in the value both counts cover.
  *
- * @note The argument is an embed_u64 whatever the machine word is, and so this is 64 in every build
+ * @note The argument is an embed_u64 whatever the machine word is. So this is 64 in every build
  *       environment and not a width that moves with the target.
  */
 #define MMGR_ACCURACY_CLZ_BITS 64u
@@ -48,10 +48,10 @@
  *
  * @param[in] value Value to measure.
  * @return          Leading zero count, 0 through 64, with 64 for a value of zero.
- * @note One test per bit from the top down, stopping at the first set bit. This is the whole
+ * @note One test per bit from the top down, with a stop at the first set bit. This is the whole
  *       reference for the leading count.
- * @note A value of zero falls out of the loop having counted all 64, the true count and not
- *       what the module returns. The case covering zero handles that difference in the open.
+ * @note A value of zero falls out of the loop with a count of all 64, the true count and not
+ *       what the module returns. The case that covers zero handles that difference in the open.
  */
 static int accuracy_leading_zeros(uint64_t value)
 {
@@ -73,7 +73,7 @@ static int accuracy_leading_zeros(uint64_t value)
  *
  * @param[in] value Value to measure.
  * @return          Trailing zero count, 0 through 64, with 64 for a value of zero.
- * @note One test per bit from the bottom up, stopping at the first set bit. This is the whole
+ * @note One test per bit from the bottom up, with a stop at the first set bit. This is the whole
  *       reference for the trailing count.
  * @note A value of zero counts all 64 here, for the reason given on accuracy_leading_zeros.
  */
@@ -126,10 +126,10 @@ static int accuracy_module_trailing(uint64_t value)
  * @param[in,out] state Generator state [BORROWS].
  * @return              The advanced state.
  * @note A fixed recurrence. A failure reproduces on the next run with the same values in the same
- *       order, and nothing here is seeded from the clock.
+ *       order, and nothing here reads the clock.
  * @note The multiplier and increment are the ones Knuth gives for a 64-bit linear congruential
- *       sequence. The values only have to be varied and repeatable, and no statistical property of
- *       them is relied on.
+ *       sequence. The values only have to vary and repeat, and nothing rests on a statistical
+ *       property of them.
  */
 static uint64_t accuracy_next_pattern(uint64_t *state)
 {
@@ -162,11 +162,11 @@ void tearDown(void)
  * @brief Checks the bit scans this suite rests on against counts worked out by hand.
  *
  * @note Exists to catch a defect in the reference as itself. Without this case a broken scan would
- *       surface as a module mismatch, and the module would be blamed for it.
+ *       surface as a module mismatch, and the module would look wrong.
  * @note The expectations are values a reader can check. 0xFF has 56 zeros above it and none below.
  *       A single bit at the top has none above and 63 below.
- * @note Zero is checked to give 64 from both scans, the true count and the single place the
- *       reference and the module are documented to differ.
+ * @note Zero has to give 64 from both scans, the true count and the single place the header says
+ *       the reference and the module differ.
  */
 void test_the_exact_bit_scans_this_suite_relies_on_are_themselves_right(void)
 {
@@ -188,9 +188,9 @@ void test_the_exact_bit_scans_this_suite_relies_on_are_themselves_right(void)
  * @brief Checks both counts at every one of the 64 single-bit values.
  *
  * @note One set bit is the case that pins the whole index. A leading count of 63 minus the position
- *       and a trailing count of the position hold for every one of them, and a fold that lost a step
+ *       and a trailing count of the position hold for every one of them. A fold that lost a step
  *       is off by that step's width at half the positions.
- * @note The two counts are checked against each other as well: for a single bit they add to 63, and
+ * @note The two counts check against each other as well. For a single bit they add to 63, and
  *       an arm that agreed with the reference on one end and not the other still fails that.
  */
 void test_both_counts_are_right_at_every_single_bit_value(void)
@@ -214,11 +214,11 @@ void test_both_counts_are_right_at_every_single_bit_value(void)
 /**
  * @brief Checks both counts at every value with exactly two bits set.
  *
- * @note The leading count is fixed by the highest set bit and the trailing count by the lowest, and
- *       a value with two set bits is the smallest one where those are different bits. 64 positions
+ * @note The highest set bit fixes the leading count and the lowest fixes the trailing count. A
+ *       value with two set bits is the smallest one where those are different bits. 64 positions
  *       against 64 gives 4096 values, which covers every ordered pair of ends.
- * @note The bits between the two ends stay clear here deliberately. A fold that read a bit it should
- *       have shifted past reaches the wrong end without anything in the middle to hide behind.
+ * @note The bits between the two ends stay clear here deliberately. A fold that read a bit past its
+ *       shift reaches the wrong end without anything in the middle to hide behind.
  */
 void test_both_counts_are_right_at_every_pair_of_set_bits(void)
 {
@@ -242,17 +242,17 @@ void test_both_counts_are_right_at_every_pair_of_set_bits(void)
  * @brief Checks both counts across the run masks at every length.
  *
  * @note Three families, each 64 values: the low bits set, the high bits set, and one run of ones
- *       sitting in the middle. A run fills the bits a single-bit value leaves clear, which is where
- *       a halving step that tested the wrong half of the remainder shows up.
+ *       in the middle. A run fills the bits a single-bit value leaves clear. That is where
+ *       a half step that tested the wrong half of the rest shows up.
  * @note The middle runs are the ones that move both ends at once. Every other family here pins one
- *       end at a boundary, and a defect that only moves the end it is not looking at survives them.
+ *       end at a boundary, and a defect that only moves the other end survives them.
  */
 void test_both_counts_are_right_across_the_run_masks(void)
 {
     for (unsigned length = 1u; length <= MMGR_ACCURACY_CLZ_BITS; length++)
     {
-        // A length of 64 would shift a 64-bit value by its full width, which C leaves undefined, and so
-        // the all ones mask is written out instead of computed
+        // A length of 64 would shift a 64-bit value by its full width, which C leaves undefined. So
+        // the all ones mask is a constant and not a computation
         const uint64_t low_run = (length == MMGR_ACCURACY_CLZ_BITS) ? UINT64_MAX : ((UINT64_C(1) << length) - 1u);
         const uint64_t high_run = low_run << (MMGR_ACCURACY_CLZ_BITS - length);
         const uint64_t middle_run = low_run << ((MMGR_ACCURACY_CLZ_BITS - length) / 2u);
@@ -281,9 +281,9 @@ void test_both_counts_are_right_across_the_run_masks(void)
  * @brief Checks both counts over a long deterministic sweep of arbitrary values.
  *
  * @note The cases above are all built values with structure. This one covers values with none, where
- *       the bits between the two ends are whatever the pattern gave, and 65536 of them is enough to
+ *       the bits between the two ends are whatever the pattern gave. A set of 65536 is enough to
  *       reach every leading and trailing count many times.
- * @note Every value is masked down through the widths as well, and so the sweep reaches small values and
+ * @note Every value also narrows down through the widths. So the sweep reaches small values and
  *       not only ones with a bit near the top. An unmasked 64-bit pattern has a leading count of 0
  *       or 1 almost every time.
  */
@@ -295,8 +295,8 @@ void test_both_counts_are_right_over_a_long_sweep_of_arbitrary_values(void)
     {
         const uint64_t pattern = accuracy_next_pattern(&state);
         const unsigned width = (step % MMGR_ACCURACY_CLZ_BITS) + 1u;
-        // A width of 64 would shift a 64-bit value by its full width, which C leaves undefined, and so
-        // the all ones mask is written out instead of computed
+        // A width of 64 would shift a 64-bit value by its full width, which C leaves undefined. So
+        // the all ones mask is a constant and not a computation
         const uint64_t mask = (width == MMGR_ACCURACY_CLZ_BITS) ? UINT64_MAX : ((UINT64_C(1) << width) - 1u);
         const uint64_t value = pattern & mask;
 
@@ -320,9 +320,9 @@ void test_both_counts_are_right_over_a_long_sweep_of_arbitrary_values(void)
  *
  * @note Zero has no set bit, and the header documents 63 from both calls, the same count a
  *       single bit at the counted end gives. The reference counts 64 for it, and this case states
- *       the documented value directly instead of teaching the reference an exception.
+ *       the documented value directly and does not teach the reference an exception.
  * @note Pinned here because the two arms reach it differently. One sets a bit the builtin needs and
- *       the other folds to it, and an arm that dropped that step returns whatever the builtin does
+ *       the other folds to it. An arm that dropped that step returns whatever the builtin does
  *       with an input it leaves undefined.
  */
 void test_a_value_of_zero_gives_the_documented_count_from_both_calls(void)

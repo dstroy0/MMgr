@@ -5,8 +5,8 @@
 
 A header that includes another header hands every consumer a dependency it never asked for and hides
 what a translation unit actually needs. This takes the includes out of the header and puts them in
-each .c that reaches it, immediately before that file's own include of the header, and so what a TU
-compiles against is stated in the TU.
+each .c that reaches it. They go immediately before that file's own include of the header. So the
+TU states what it compiles against.
 
 Dry run by default; --go rewrites in place.
 
@@ -24,14 +24,14 @@ What it refuses, and why each refusal is right:
 
 WHY --go REFUSES TODAY
 
-Yanking an include does not remove the dependency, it moves it: the manifest records what each
+A yank of an include does not remove the dependency, it moves it. The manifest records what each
 consumer now owes, and something has to turn that into a forced include on that one source file.
 The note this tool writes into the manifest names tools/ci_tooling/build/gen_cmake.py as the thing
 that does it. That file does not exist, and neither does tools/ci_tooling.
 
 So nothing consumes the manifest. A --go run would strip includes out of the headers, write a
-record nobody reads, and leave a tree that does not compile. The dry run is still worth having --
-it reports what would move and what each consumer would owe -- so the report stays and only the
+record nobody reads, and leave a tree that does not compile. The dry run is still worth its cost.
+It reports what would move and what each consumer would owe, so the report stays and only the
 write refuses.
 """
 
@@ -45,28 +45,27 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 MANIFEST = os.path.join(ROOT, "test", "yanked_includes.json")
 
-# What has to read the manifest for a yank to be finished: it turns each recorded entry into a
-# forced include on the one source file that owes it. Checked at run time and not assumed,
+# What has to read the manifest for a yank to complete. It turns each recorded entry into a
+# forced include on the one source file that owes it. A run time check and not an assumption,
 # because --go without it strips headers and records the debt somewhere nothing collects.
 CONSUMER = os.path.join(ROOT, "tools", "ci_tooling", "build", "gen_cmake.py")
 
-# The assembly chain: this exists to be included by everything, and so its includes are the point.
+# The assembly chain: everything includes this, and so its includes are the point.
 #
-# This named src/config/mmgr_config.h and src/config/mmgr_types.h, and neither path exists. The
-# width and decls vocabulary moved out to the embedded_types dependency under deps/, and what every
-# module header includes now is include/mmgr.h. A KEEP set naming absent files protects nothing.
+# The width and decls vocabulary lives in the embedded_types dependency under deps/, and what every
+# module header includes is include/mmgr.h. A KEEP set that names absent files protects nothing.
 KEEP = {
     "include/mmgr.h",
 }
 
-# Never yanked, whoever includes it. It carries the vocabulary a header DECLARES in, and a
-# declaration needs its typedefs before it is parsed: an entry taking embed_u32 cannot wait for a
-# consumer's include, because that arrives after the header has already been read. A header that
-# needs this needs it in the header.
+# Never yanked, whoever includes it. It carries the vocabulary a header DECLARES in. A
+# declaration needs its typedefs before the read reaches it. An entry that takes embed_u32 cannot
+# wait for a consumer's include, because that arrives after the read is through the header. A
+# header that needs this needs it in the header.
 #
 # Keyed on the form a consumer writes, which is `#include "mmgr.h"` in every module header in
-# the tree. The two names here before, mmgr_config.h and mmgr_types.h, are written nowhere, and so the
-# guard was off and a run over src/ would have pulled the one include it exists to protect.
+# the tree. A name no consumer writes leaves the guard off, and a run over src/ then pulls the one
+# include it exists to protect.
 NEVER_YANK = {
     "mmgr.h",
 }
@@ -105,7 +104,7 @@ def write(p, lines):
 def header_includes(lines, take_conditional):
     """(index, text) of every include to yank, and the include-guard depth map.
 
-    The file's own include guard is depth 1 for the whole body, and so it is discounted: an include at
+    The file's own include guard is depth 1 for the whole body, and so it does not count. An include at
     guard depth is top level and not conditional.
     """
     out = []
@@ -143,7 +142,7 @@ _INDEX = None
 def build_index():
     """basename -> [(file, line, what it named)], read once.
 
-    One pass over the tree and not one per header: the walk is the cost, and a sweep over src/
+    One pass over the tree and not one per header. The walk is the cost, and a sweep over src/
     asks the same question a few hundred times.
     """
     global _INDEX
@@ -195,8 +194,8 @@ def apply(plan, go, manifest):
     """Take the includes out of the header and record what each consumer now owes.
 
     The dependency does not vanish with the line: a TU that reached the header for those types still
-    needs them. It is recorded per consumer in the manifest, which gen_cmake.py turns into a forced
-    include on exactly that source file, and so the build states the dependency instead of the header.
+    needs them. The manifest records it per consumer, and gen_cmake.py turns that into a forced
+    include on exactly that source file. So the build states the dependency and not the header.
     """
     header, lines, yanks, cons = plan["header"], plan["lines"], plan["yanks"], plan["consumers"]
     hrel = rel(header)
@@ -237,7 +236,7 @@ def main():
     ap.add_argument("--orphan", action="store_true", help="yank even when no file includes the header")
     a = ap.parse_args()
 
-    # Fail closed. The manifest is only half the move; without the thing that reads it, a write
+    # Fail closed. The manifest is only half the move. Without the thing that reads it, a write
     # leaves headers stripped of includes their declarations need and a build that does not link.
     if a.go and not os.path.isfile(CONSUMER):
         print(

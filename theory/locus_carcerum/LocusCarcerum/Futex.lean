@@ -3,8 +3,8 @@
 
 The futex contract, on one word and one waiter, against the wait `genmc_host.h` gives GenMC.
 
-The real wait. The kernel reads the bits of the word it compares and puts the waiter to sleep in one step, where
-those bits hold the bits of the value the waiter saw; where they do not, the wait returns. A wake ends every sleep.
+The real wait. The kernel reads the bits of the word it compares and puts the waiter to sleep in one step. That
+holds where those bits hold the bits of the value the waiter saw. Where they do not, the wait returns. A wake ends every sleep.
 A sleep may also return with no wake: a timeout, a signal, a spurious wake.
 
 The bits compared are `bits`. Windows' WaitOnAddress and macOS's 64-bit compare-and-wait compare the whole word; the
@@ -20,9 +20,9 @@ Every other thread is the environment: a store to the word, or a wake. A wake ad
 The theorems:
 
 - `real_in_model` and `model_in_real`: for any compared bits, every state the real wait reaches the model reaches
-  with the same word, count and phase of the waiter, and every state the model reaches the real wait reaches. The
+  with the same word, count and phase of the waiter. Every state the model reaches the real wait reaches. The
   phase is `running` before the wait returns or sleeps, `sleeping` asleep with no wake since, and `done` once the
-  wait returned or a wake ended it. The model has every behavior of the contract and no other, and a model
+  wait returned or a wake ended it. The model has every behavior of the contract and no other. A model
   execution blocked asleep is one a real waiter can sleep forever in.
 - `whole_in_low`: every state the whole-word wait reaches, the wait that compares fewer bits reaches too. A model
   run on the 32-bit compare holds every host.
@@ -57,7 +57,7 @@ structure Real where
   waiter : RealWaiter
   deriving DecidableEq, Repr
 
-/-- The model's waiter: before its wait, with the count read, waiting on the count it read, or returned. -/
+/-- The model's waiter: before its wait, with the count read, in wait on the count it read, or returned. -/
 inductive ModelWaiter where
   | ready
   | read (epoch : Nat)
@@ -128,7 +128,7 @@ def Real.phase (s : Real) : Phase :=
   | .asleep => .sleeping
   | .done => .done
 
-/-- The model waiter's phase: a wait whose count moved already is ended, though its last step is still to run. -/
+/-- The model waiter's phase: a wait whose count moved already is over, though its last step is still to run. -/
 def Model.phase (s : Model) : Phase :=
   match s.waiter with
   | .ready => .running
@@ -136,15 +136,15 @@ def Model.phase (s : Model) : Phase :=
   | .waiting e => if s.wakes = e then .sleeping else .done
   | .done => .done
 
-/-- The model state a real state maps to: asleep is waiting on the count as it stands. -/
+/-- The model state a real state maps to: asleep is in wait on the count as it stands. -/
 def toModel (s : Real) : Model :=
   ⟨s.word, s.wakes, match s.waiter with
     | .ready => .ready
     | .asleep => .waiting s.wakes
     | .done => .done⟩
 
-/-- The real state a model state maps to: a wait with the count read is still before the kernel's check, and a
-wait whose count moved is ended. -/
+/-- The real state a model state maps to. A wait with the count read is still before the kernel's check, and a
+wait whose count moved is over. -/
 def toReal (s : Model) : Real :=
   ⟨s.word, s.wakes, match s.waiter with
     | .ready => .ready
@@ -181,7 +181,7 @@ theorem epoch_le {bits : Nat → Nat} {seen first : Nat} {s : Model} (h : ModelR
     | early _ => intro e he; simp at he
     | atOnce _ => intro e he; simp at he
 
-/-- Every real state is reached by the model, through the map. -/
+/-- The model reaches every real state, through the map. -/
 theorem real_in_model {bits : Nat → Nat} {seen first : Nat} {s : Real} (h : RealReach bits seen first s) :
     ModelReach bits seen first (toModel s) := by
   induction h with
@@ -213,7 +213,7 @@ theorem real_in_model {bits : Nat → Nat} {seen first : Nat} {s : Real} (h : Re
         (ModelStep.early (bits := bits) (seen := seen) (e := r.wakes) (by simp [toModel, hr]))
       simpa [toModel] using this
 
-/-- Every model state is reached by the real wait, through the map. -/
+/-- The real wait reaches every model state, through the map. -/
 theorem model_in_real {bits : Nat → Nat} {seen first : Nat} {s : Model} (h : ModelReach bits seen first s) :
     RealReach bits seen first (toReal s) := by
   induction h with
@@ -262,7 +262,7 @@ theorem model_in_real {bits : Nat → Nat} {seen first : Nat} {s : Model} (h : M
 /-- Where the compared bits of two words match, the whole words may not: the compare that reads fewer bits. -/
 def Coarser (fewer whole : Nat → Nat) : Prop := ∀ a b, whole a = whole b → fewer a = fewer b
 
-/-- Every state the wait on `whole` reaches, the wait on fewer bits reaches: it sleeps where the other sleeps, and
+/-- Every state the wait on `whole` reaches, the wait on fewer bits reaches. It sleeps where the other sleeps, and
 where it sleeps alone an early return brings it to where the other returned. -/
 theorem whole_in_low {fewer whole : Nat → Nat} (hc : Coarser fewer whole) {seen first : Nat} {s : Real}
     (h : RealReach whole seen first s) : RealReach fewer seen first s := by
@@ -313,7 +313,7 @@ def wakeOne (s : TwoSleepers) : TwoSleepers :=
   else if s.second = .asleep then { s with second := .done } else s
 
 /-- Both asleep on word 0; the waker stores 1 and wakes once. The second sleeper is still asleep, the word moved, and
-no wake is left to come. -/
+no wake remains to come. -/
 theorem one_wake_loses :
     wakeOne { word := 1, first := .asleep, second := .asleep } = { word := 1, first := .done, second := .asleep } := by
   decide

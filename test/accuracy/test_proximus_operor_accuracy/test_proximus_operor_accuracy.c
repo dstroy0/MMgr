@@ -30,15 +30,15 @@
 #include "unity.h"
 
 /**
- * @brief Expands to 8u, the offsets from a word boundary each unaligned entry is offered.
+ * @brief Expands to 8u, the offsets from a word boundary each unaligned entry gets.
  *
- * @note One more than the widest word any environment uses, and so every offset is reached whatever
- *       embed_word is on this build.
+ * @note One more than the widest word any environment uses, and so the sweep reaches every offset
+ *       whatever embed_word is on this build.
  */
 #define MMGR_ACCURACY_PROXIM_OFFSETS 8u
 
 /**
- * @brief Expands to 96u, the bytes each working buffer holds.
+ * @brief Expands to 96u, the bytes each work buffer holds.
  *
  * @note The longest copy any case makes, plus the largest offset it can start at, plus room for the
  *       guard bytes past it.
@@ -46,10 +46,10 @@
 #define MMGR_ACCURACY_PROXIM_BUFFER 96u
 
 /**
- * @brief Expands to 0xA5, the byte a buffer is filled with before a store.
+ * @brief Expands to 0xA5, the byte a buffer holds before a store.
  *
- * @note A byte no case stores deliberately. A position still holding it is one the store did not
- *       reach, and a position past the width holding anything else is a store that ran long.
+ * @note A byte no case stores deliberately. A position that still holds it is one the store did not
+ *       reach. A position past the width with anything else is a store that ran long.
  */
 #define MMGR_ACCURACY_PROXIM_GUARD 0xA5u
 
@@ -60,7 +60,7 @@
  *       library's own idea of the order would put one value on both sides of every comparison.
  * @note A compile-time constant, and so every expectation below folds and no case carries a run-time
  *       branch on the order.
- * @warning The #error arm fires on a toolchain that predefines neither. Guessing an order there would
+ * @warning The #error arm fires on a toolchain that predefines neither. A guess at the order there would
  *          make every case pass against whatever this file assumed.
  */
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
@@ -76,7 +76,7 @@
  * @param[in] width Bytes in the run.
  * @return          The value those bytes carry.
  * @note One shift per byte. On a little endian host the byte at the lowest address is the least
- *       significant, and on a big endian host it is the most significant of the width being read.
+ *       significant. On a big endian host it is the most significant of the width under read.
  * @note This is the whole reference for every load below.
  */
 static uint64_t accuracy_host_value(const uint8_t *at, unsigned width)
@@ -87,7 +87,7 @@ static uint64_t accuracy_host_value(const uint8_t *at, unsigned width)
     {
         const unsigned position = MMGR_ACCURACY_PROXIM_HOST_LITTLE ? index : (width - 1u - index);
 
-        // Explicit cast widens each byte to the uint64_t the value is assembled in before the shift
+        // Explicit cast widens each byte to the uint64_t that holds the value before the shift
         value |= (uint64_t)at[index] << (8u * position);
     }
     return value;
@@ -96,7 +96,7 @@ static uint64_t accuracy_host_value(const uint8_t *at, unsigned width)
 /**
  * @brief Returns the byte a value carries at a given address offset under the host's own byte order.
  *
- * @param[in] value  Value being stored.
+ * @param[in] value  Value to store.
  * @param[in] width  Bytes the store writes.
  * @param[in] offset Offset from the store's first byte.
  * @return           The byte that offset receives.
@@ -165,11 +165,11 @@ void tearDown(void)
  * @brief Checks the byte order arithmetic this suite rests on against values worked out by hand.
  *
  * @note Exists to catch a defect in the reference as itself. A reference that placed the bytes in the
- *       other order would report every entry as wrong, and the module would be blamed for it.
- * @note The expectations are built from the same order the compiler states, and so they read the same on
- *       hosts of either byte order. The checks are that the two helpers are each other's inverse and
- *       that a run of distinct bytes assembles to a value with those bytes in it.
- * @note The lowest addressed byte is checked directly against the order, the one fact every
+ *       other order would report every entry as wrong, and the module would look wrong.
+ * @note The expectations come from the same order the compiler states, and so they read the same on
+ *       hosts of either byte order. The checks are that the two helpers are each other's inverse. A
+ *       run of distinct bytes has to come out as a value with those bytes in it.
+ * @note The lowest addressed byte has a direct check against the order, the one fact every
  *       other expectation in this file rests on.
  */
 void test_the_byte_order_arithmetic_this_suite_relies_on_is_itself_right(void)
@@ -211,10 +211,10 @@ void test_the_byte_order_arithmetic_this_suite_relies_on_is_itself_right(void)
 /**
  * @brief Checks every load against the reference at every offset from a word boundary.
  *
- * @note This is the case the file exists for. The unaligned family lets a caller read at any address,
- *       and an entry that read the right bytes only at offset zero is the defect it is meant to
+ * @note This is the case the file exists for. The unaligned family lets a caller read at any address.
+ *       An entry that read the right bytes only at offset zero is the defect it exists to
  *       prevent.
- * @note The word-width load is included alongside the fixed widths, and so the environments that carry a
+ * @note The word-width load sits alongside the fixed widths, and so the environments that carry a
  *       narrower embed_word check it at their own width.
  * @note The bytes differ along the run. A load that read one byte early or late then arrives at a
  *       different number instead of the same one.
@@ -250,13 +250,13 @@ void test_every_load_reads_the_bytes_at_its_address(void)
 /**
  * @brief Checks every store against the reference at every offset from a word boundary.
  *
- * @note Each store is checked byte by byte over the whole buffer. A store that wrote one byte too
- *       many lands on a guard, and one that wrote a byte too few leaves a guard standing where a
+ * @note Each store gets a byte by byte check over the whole buffer. A store that wrote one byte too
+ *       many lands on a guard. One that wrote a byte too few leaves a guard where a
  *       value byte belongs.
  * @note The values carry different bytes in every position. A store that placed its bytes in the
  *       wrong order is then visible as the wrong byte at a named offset.
  * @note The upper bytes of the value take no part in the narrower stores, which the header states.
- *       The same value is offered to all four widths, and each is checked to write only its own.
+ *       The same value goes to all four widths, and each has to write only its own.
  */
 void test_every_store_writes_its_bytes_at_its_address(void)
 {
@@ -330,10 +330,10 @@ void test_every_store_writes_its_bytes_at_its_address(void)
  *
  * @note The aligned family exists to emit a single instruction where the unaligned one compiles to a
  *       sequence. The claim is that the two are the same access and differ only in what the compiler
- *       is allowed to assume. A value stored through one is read back by the other.
- * @note Only aligned addresses are offered, as these entries document. The buffer is
- *       declared with the alignment MMGR_ALIGN_BYTES states, and the offsets step by whole words.
- * @note Both directions are checked at both widths. An aligned store read by an unaligned load and
+ *       may assume. The other reads back a value stored through one.
+ * @note Only aligned addresses appear, as these entries document. The buffer has the alignment
+ *       MMGR_ALIGN_BYTES states, and the offsets step by whole words.
+ * @note Both directions get a check at both widths. An aligned store read by an unaligned load and
  *       an unaligned store read by an aligned load both have to agree.
  */
 void test_the_aligned_entries_reach_the_same_bytes_as_the_unaligned_ones(void)
@@ -380,9 +380,9 @@ void test_the_aligned_entries_reach_the_same_bytes_as_the_unaligned_ones(void)
  *
  * @note The two cases above pin each direction against the reference. This one puts them together,
  *       because a pair that disagreed with each other would still lose a caller's value.
- * @note The value is masked to the width first, since only the low bytes of it are stored.
- * @note Every offset from a word boundary is covered, and so the round trip is exercised on the paths a
- *       machine with no unaligned access assembles out of byte moves.
+ * @note Only the low bytes of the value go out, and so the width cuts it first.
+ * @note The sweep covers every offset from a word boundary. So the round trip runs on the paths a
+ *       machine with no unaligned access builds out of byte moves.
  */
 void test_a_value_stored_and_loaded_at_the_same_width_comes_back(void)
 {
@@ -427,16 +427,16 @@ void test_a_value_stored_and_loaded_at_the_same_width_comes_back(void)
 }
 
 /**
- * @brief Checks that the copy moves every byte at every pairing of source and destination alignment.
+ * @brief Checks that the copy moves every byte at every pair of source and destination alignments.
  *
- * @note The copy walks bytes up to a destination boundary, then whole words, then the odd bytes left,
- *       and it picks a different load depending on whether the source came to rest on a boundary too.
- * @note Both alignments and the length are the three axes those branches divide on, and every case
- *       below sweeps all three instead of testing a convenient size.
- * @note The destination is checked over its whole extent. A copy that wrote one byte too many lands
- *       on a guard.
- * @note A length of zero is included, since each of the three stages is written as a do-while behind
- *       its own test and a missing test runs the body once.
+ * @note The copy walks bytes up to a destination boundary, then whole words, then the odd bytes left.
+ *       It picks a different load when the source came to rest on a boundary too.
+ * @note Both alignments and the length are the three axes those branches divide on. Every case
+ *       below sweeps all three and does not test one convenient size.
+ * @note The check covers the destination over its whole extent. A copy that wrote one byte too many
+ *       lands on a guard.
+ * @note A length of zero is in the sweep. Each of the three stages is a do-while behind its own
+ *       test, and an absent test runs the body once.
  */
 void test_the_copy_moves_every_byte_at_every_alignment(void)
 {

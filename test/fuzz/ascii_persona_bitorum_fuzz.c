@@ -6,7 +6,7 @@
  */
 /**
  * @file ascii_persona_bitorum_fuzz.c
- * @brief A libFuzzer harness over the ASCII classes: every byte in every class against the ranges the header
+ * @brief A libFuzzer harness over the ASCII classes. Every byte in every class runs against the ranges the header
  *        states for that class, with 0x80 and above in none.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06

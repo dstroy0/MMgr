@@ -79,7 +79,7 @@ int main(void)
   run_test(test_every_class_holds_exactly_the_code_points_its_declaration_names, "test_every_class_holds_exactly_the_code_points_its_declaration_names", 236);
   run_test(test_no_byte_at_or_above_the_ascii_limit_belongs_to_any_class, "test_no_byte_at_or_above_the_ascii_limit_belongs_to_any_class", 261);
   run_test(test_each_class_holds_the_number_of_code_points_its_runs_add_up_to, "test_each_class_holds_the_number_of_code_points_its_runs_add_up_to", 285);
-  run_test(test_the_byte_on_each_side_of_every_run_falls_on_the_right_side_of_it, "test_the_byte_on_each_side_of_every_run_falls_on_the_right_side_of_it", 318);
+  run_test(test_the_byte_on_each_side_of_every_run_falls_on_the_right_side_of_it, "test_the_byte_on_each_side_of_every_run_falls_on_the_right_side_of_it", 319);
 
   return UNITY_END();
 }
