@@ -344,3 +344,9 @@ turnstile import its Manifold proofs: `Order.lean` carries `Manifold.Open.passes
   not wrap.
 - `LocusCarcerum/Word.lean` also proves the limit on bumps down in progress. A top that wraps below 0 is more than
   $S$, and §3.2 rejects it. It proves this limit for 63 lanes at $H = 32$ and for 31 lanes at $H = 16$.
+- `LocusCarcerum/Ticket.lean` states the cellblock over the ticket ring of embedded_types. The completion bit of
+  the owner word is a transition of the flag matrix, which lands once and keeps every other field. A sequence of
+  gives on one cell is a sequence of claims on one slot, and the bytes come off once at the most. The sequence of
+  an owner is a ticket: two takes fewer than $2^b$ apart have sequences of their own. A roll at 32 bits keeps the
+  field, and the claim bit of a movable entry is the push of a slot. The release of a movable cell inside a pass
+  is a claim that the drain of a move waits for.
