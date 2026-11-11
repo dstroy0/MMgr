@@ -22,6 +22,9 @@
 #ifndef MMGR_PRAET_TABULA_VEXILLORUM_H
 #define MMGR_PRAET_TABULA_VEXILLORUM_H
 
+/** @addtogroup mod_praet
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -323,5 +326,7 @@ EMBED_STATIC_ASSERT((uint32_t)PRAET_REGION_ID_HIGHEST <= PRAET_REGION_MAX,
                     "there are more region token ids than the region descriptor field can hold");
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

@@ -4,6 +4,9 @@
 #ifndef MMGR_COMPILER_DIRECTIVES_H
 #define MMGR_COMPILER_DIRECTIVES_H
 
+/** @addtogroup mod_config
+ *  @{ */
+
 #include <stddef.h>
 
 /**
@@ -481,5 +484,7 @@
 #define MMGR_HW_FAST_UNALIGNED 0
 #endif
 #endif
+
+/** @} */
 
 #endif

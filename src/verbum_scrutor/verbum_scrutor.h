@@ -18,6 +18,9 @@
 #ifndef MMGR_VERBUM_SCRUTOR_H
 #define MMGR_VERBUM_SCRUTOR_H
 
+/** @addtogroup mod_scrut
+ *  @{ */
+
 #include "proximus_operor/proximus_operor.h"
 
 #include "mmgr.h"
@@ -545,5 +548,7 @@ EMBED_TABLE_STORAGE ScrutWordNs word EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

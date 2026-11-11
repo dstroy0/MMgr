@@ -6,6 +6,9 @@
 #ifndef MMGR_CONFIG_H
 #define MMGR_CONFIG_H
 
+/** @addtogroup mod_config
+ *  @{ */
+
 #include <stdint.h>
 
 #include "config/mmgr_compiler_directives.h"
@@ -223,5 +226,7 @@
     {                                                                                                                  \
         MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__);                                                               \
     }
+
+/** @} */
 
 #endif

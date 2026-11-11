@@ -28,6 +28,9 @@
 #ifndef MMGR_PRAET_PLATFORM_DETECTION_H
 #define MMGR_PRAET_PLATFORM_DETECTION_H
 
+/** @addtogroup mod_praet
+ *  @{ */
+
 #include "mmgr.h"
 
 /**
@@ -328,5 +331,7 @@ EMBED_STATIC_ASSERT(EMBED_WORD_BITS <= PRAET_PLATFORM_XLEN,
  *       say it.
  */
 #define PRAET_PLATFORM_CLOCK_CORE 0u
+
+/** @} */
 
 #endif

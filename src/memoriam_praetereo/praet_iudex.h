@@ -24,6 +24,9 @@
 #ifndef MMGR_PRAET_IUDEX_H
 #define MMGR_PRAET_IUDEX_H
 
+/** @addtogroup mod_praet
+ *  @{ */
+
 #include "memoriam_praetereo/praet_horologiorum_custos.h"
 #include "memoriam_praetereo/praet_praefinitum.h"
 
@@ -37,5 +40,7 @@
 #endif
 
 #endif
+
+/** @} */
 
 #endif

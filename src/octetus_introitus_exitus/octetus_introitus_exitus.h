@@ -29,6 +29,9 @@
 #ifndef MMGR_OCTETUS_INTROITUS_EXITUS_H
 #define MMGR_OCTETUS_INTROITUS_EXITUS_H
 
+/** @addtogroup mod_byteio
+ *  @{ */
+
 #include "spatium/spatium.h"
 
 #include "mmgr.h"
@@ -165,5 +168,7 @@ EMBED_TABLE_STORAGE OctetusIntroitusExitusNs byteio EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

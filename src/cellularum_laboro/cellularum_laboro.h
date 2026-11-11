@@ -27,6 +27,9 @@
 #ifndef MMGR_CELLULARUM_LABORO_H
 #define MMGR_CELLULARUM_LABORO_H
 
+/** @addtogroup mod_cellul
+ *  @{ */
+
 #include "verbum_scrutor/verbum_scrutor.h"
 
 #include "mmgr.h"
@@ -359,5 +362,7 @@ EMBED_TABLE_STORAGE CellularumLaboroNs cellul EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

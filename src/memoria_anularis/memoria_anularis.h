@@ -22,6 +22,9 @@
 #ifndef MMGR_MEMORIA_ANULARIS_H
 #define MMGR_MEMORIA_ANULARIS_H
 
+/** @addtogroup mod_anular
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -471,5 +474,7 @@ EMBED_TABLE_STORAGE MemoriaAnularisNs anularis EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

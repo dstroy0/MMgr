@@ -8,6 +8,9 @@
 #ifndef MMGR_STRING_SHIM_H
 #define MMGR_STRING_SHIM_H
 
+/** @addtogroup mod_config
+ *  @{ */
+
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "config/mmgr_config.h"
 #include "memoria_operor/memoria_operor.h"
@@ -251,5 +254,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
                                .byte = (uint8_t)(value)))
 
 MMGR_FINIS_DECLS
+
+/** @} */
 
 #endif

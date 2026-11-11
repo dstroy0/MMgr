@@ -20,6 +20,9 @@
 #ifndef MMGR_ENDIAN_H
 #define MMGR_ENDIAN_H
 
+/** @addtogroup mod_endian
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -165,5 +168,7 @@ EMBED_TABLE_STORAGE EndianNs magna_extremitas EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

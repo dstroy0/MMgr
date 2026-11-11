@@ -15,6 +15,9 @@
 #ifndef MMGR_IMPENSA_ANCORAE_ACUS_H
 #define MMGR_IMPENSA_ANCORAE_ACUS_H
 
+/** @addtogroup mod_anchor
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -58,5 +61,7 @@ EMBED_TABLE_STORAGE ImpensaAncoraeAcusNs ancorae EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

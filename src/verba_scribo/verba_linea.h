@@ -27,6 +27,9 @@
 #ifndef MMGR_VERBA_LINEA_H
 #define MMGR_VERBA_LINEA_H
 
+/** @addtogroup mod_verba
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -187,5 +190,7 @@ size_t mmgr_line_finish(VerbaLinea *line);
 embed_bool mmgr_line_ok(const VerbaLinea *line);
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

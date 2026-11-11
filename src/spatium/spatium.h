@@ -28,6 +28,9 @@
 #ifndef MMGR_SPATIUM_H
 #define MMGR_SPATIUM_H
 
+/** @addtogroup mod_spat
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -230,5 +233,7 @@ EMBED_TABLE_STORAGE SpatiumNs spat EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

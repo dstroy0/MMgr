@@ -16,6 +16,9 @@
 #ifndef MMGR_PROXIMUS_OPEROR_H
 #define MMGR_PROXIMUS_OPEROR_H
 
+/** @addtogroup mod_proxim
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -200,5 +203,7 @@ EMBED_TABLE_STORAGE ProximusOperorNs proxim EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

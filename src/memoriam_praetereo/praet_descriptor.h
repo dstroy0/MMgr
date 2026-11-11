@@ -28,6 +28,9 @@
 #ifndef MMGR_PRAET_DESCRIPTOR_H
 #define MMGR_PRAET_DESCRIPTOR_H
 
+/** @addtogroup mod_praet
+ *  @{ */
+
 #include "memoriam_praetereo/praet_ordo.h"
 
 EMBED_BEGIN_DECLS
@@ -453,5 +456,7 @@ struct PraetDescriptor
 embed_word praet_descriptor_chain_length(const PraetDescriptor *first, embed_word limit);
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

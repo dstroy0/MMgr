@@ -18,6 +18,9 @@
 #ifndef MMGR_MEMORIAM_PRAETEREO_H
 #define MMGR_MEMORIAM_PRAETEREO_H
 
+/** @addtogroup mod_praet
+ *  @{ */
+
 #include "mmgr.h"
 
 #if MMGR_ENABLE_DMA
@@ -216,5 +219,7 @@ EMBED_END_DECLS
 #include "memoriam_praetereo/praet_ordo.h"
 
 #endif
+
+/** @} */
 
 #endif

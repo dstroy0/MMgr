@@ -31,6 +31,9 @@
 #ifndef MMGR_PRAET_PROCURATOR_H
 #define MMGR_PRAET_PROCURATOR_H
 
+/** @addtogroup mod_praet
+ *  @{ */
+
 #include "memoriam_praetereo/praet_tabula_vexillorum.h"
 
 /**
@@ -168,5 +171,7 @@ EMBED_END_DECLS
 #define praet_procurator_opus(kind_) ((void)0)
 
 #endif
+
+/** @} */
 
 #endif

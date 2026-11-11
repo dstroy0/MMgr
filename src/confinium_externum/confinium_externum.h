@@ -6,6 +6,9 @@
 #ifndef MMGR_CONFINIUM_EXTERNUM_H
 #define MMGR_CONFINIUM_EXTERNUM_H
 
+/** @addtogroup mod_externum
+ *  @{ */
+
 #include "config/mmgr_config.h"
 
 #if MMGR_ENABLE_EXTRAM
@@ -132,5 +135,7 @@ MMGR_NS ConfiniumExternumNs exter MMGR_UNUSED = {
 MMGR_FINIS_DECLS
 
 #endif
+
+/** @} */
 
 #endif

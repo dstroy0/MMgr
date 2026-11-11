@@ -22,6 +22,9 @@
 #ifndef MMGR_FRACTIO_H
 #define MMGR_FRACTIO_H
 
+/** @addtogroup mod_fract
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -207,9 +210,8 @@ embed_u64 mmgr_fract_to_bits(const FractioCfg *args);
 /**
  * @brief Dispatch table instance named fract, whose members are the mmgr_fract_ entries.
  *
- * @note EMBED_TABLE_STORAGE is static const, and so every translation unit that includes this header holds a copy of its
- *       own and the addresses differ between them. The six functions it points at are the one shared
- *       definition.
+ * @note EMBED_TABLE_STORAGE is static const, and so every translation unit that includes this header holds a copy of
+ * its own and the addresses differ between them. The six functions it points at are the one shared definition.
  * @note EMBED_UNUSED keeps a translation unit that includes the header and never calls through the
  *       table from a warning about it. It expands to nothing where the unused attribute is unavailable.
  */
@@ -223,5 +225,7 @@ EMBED_TABLE_STORAGE FractioNs fract EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

@@ -20,6 +20,9 @@
 #ifndef MMGR_VERBA_SCRIBO_H
 #define MMGR_VERBA_SCRIBO_H
 
+/** @addtogroup mod_verba
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -459,5 +462,7 @@ EMBED_TABLE_STORAGE VerbaScriboFinisNs verba_finis EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

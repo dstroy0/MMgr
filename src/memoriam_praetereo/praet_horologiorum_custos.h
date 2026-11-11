@@ -21,6 +21,9 @@
 #ifndef MMGR_PRAET_HOROLOGIORUM_CUSTOS_H
 #define MMGR_PRAET_HOROLOGIORUM_CUSTOS_H
 
+/** @addtogroup mod_praet
+ *  @{ */
+
 // EMBED_STATIC_ASSERT and embed_word, for the scale below. Reached the same way every other file
 // here reaches them, and so this header stands on its own instead of on what included it
 #include "mmgr.h"
@@ -150,5 +153,7 @@ EMBED_STATIC_ASSERT((PRAET_CLOCK_HZ % 1000000u) == 0u,
 EMBED_STATIC_ASSERT(PRAET_TICKS_PER_MICRO >= 1u,
                     "PRAET_CLOCK_HZ is below one megahertz, which cannot resolve the microsecond deadlines this "
                     "module is written in");
+
+/** @} */
 
 #endif

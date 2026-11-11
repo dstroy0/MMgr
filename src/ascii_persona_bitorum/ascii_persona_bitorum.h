@@ -19,6 +19,9 @@
 #ifndef MMGR_ASCII_PERSONA_BITORUM_H
 #define MMGR_ASCII_PERSONA_BITORUM_H
 
+/** @addtogroup mod_ascii
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -57,7 +60,7 @@ typedef enum
     MMGR_ASCII_UPPER,     /**< 'A' to 'Z'. */
     MMGR_ASCII_LOWER,     /**< 'a' to 'z'. */
     MMGR_ASCII_HEX,       /**< '0' to '9', 'A' to 'F' and 'a' to 'f'. */
-    MMGR_ASCII_PUNCT,     /**< '!' to '/', ':' to '@', '[' to '`' and '{' to '~'. */
+    MMGR_ASCII_PUNCT,     /**< '!' to '/', ':' to '@', '[' to '\`' and '{' to '~'. */
     MMGR_ASCII_SPACE,     /**< 9 to 13, and 32. */
     MMGR_ASCII_CTRL,      /**< 0 to 31, and 127. */
     MMGR_ASCII_PRINT,     /**< 32 to 126. */
@@ -104,5 +107,7 @@ EMBED_TABLE_STORAGE AsciiPersonaBitorumNs ascii EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

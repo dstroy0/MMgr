@@ -16,6 +16,9 @@
 #ifndef MMGR_TRANSFORMO_H
 #define MMGR_TRANSFORMO_H
 
+/** @addtogroup mod_muto
+ *  @{ */
+
 #include "fractio/fractio.h"
 #include "mmgr.h"
 #include "pow5/pow5.h"
@@ -127,5 +130,7 @@ EMBED_TABLE_STORAGE TransformoNs muto EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

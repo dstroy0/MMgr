@@ -18,6 +18,9 @@
 #ifndef MMGR_POW5_H
 #define MMGR_POW5_H
 
+/** @addtogroup mod_pow5
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -106,5 +109,7 @@ static const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {
 EMBED_STATIC_ASSERT(MMGR_POW5_MAX >= 511, "the tables do not reach the exponents a double can carry");
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

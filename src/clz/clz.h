@@ -22,6 +22,9 @@
 #ifndef MMGR_CLZ_H
 #define MMGR_CLZ_H
 
+/** @addtogroup mod_clz
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -76,5 +79,7 @@ EMBED_TABLE_STORAGE ClzNs clz EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

@@ -6,16 +6,17 @@
  * @brief Reference groups, one per module.
  *
  * Each guide in docs/modules ends with a link to the generated reference for the module it covers.
- * These are those targets. A module header joins one with `@ingroup`, and its entries are then
- * collected under it.
+ * These are those targets. A module header opens one with `@addtogroup` after its include guard and
+ * closes it before the guard ends, and its entries are then collected under it.
  *
  * A group is named `mod_` plus the module's stem. The guide page for the same module is anchored
  * with that name plus `_guide` in its own markdown, so the two link to each other.
  */
 
 /** @defgroup mod_config  config — widths, types, attributes and the call idiom */
-/** @defgroup mod_carcer  locus_carcerum — the region and its pools */
-/** @defgroup mod_confin  locus_carcerum - the region (referenced as mod_confin by the guides) */
+/** @defgroup mod_confin  locus_carcerum — the region and its pools */
+/** @defgroup mod_infinitas  confinium_exclusivum_infinitas — the byte ring, its segment view and the keepouts */
+/** @defgroup mod_externum  confinium_externum — placement between internal and external memory */
 /** @defgroup mod_anular  memoria_anularis — the ring */
 /** @defgroup mod_exter   memoria_externa — external memory */
 /** @defgroup mod_proxim  proximus_operor — unaligned loads and stores */

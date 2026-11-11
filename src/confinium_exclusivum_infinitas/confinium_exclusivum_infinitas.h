@@ -11,6 +11,9 @@
 #ifndef MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H
 #define MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H
 
+/** @addtogroup mod_infinitas
+ *  @{ */
+
 #include "config/mmgr_config.h"
 
 MMGR_INCIPE_DECLS
@@ -141,8 +144,8 @@ typedef struct
     mmgr_iword (*loculus_next)(const InfinCfg *c); /**< Lowest set bit of a mask, or -1. */
     mmgr_bool (*loculus_hold)(const InfinCfg *c);  /**< Takes a loculus and records its keepout. */
     const mmgr_ring_span *(*loculus_keepout)(const InfinCfg *c); /**< The region a pinned loculus keeps out. */
-    void (*loculus_drop)(const InfinCfg *c);                     /**< Gives a loculus back, and leaves its bytes alone. */
-    void (*loculus_mark)(const InfinCfg *c);                     /**< Marks a loculus free. */
+    void (*loculus_drop)(const InfinCfg *c); /**< Gives a loculus back, and leaves its bytes alone. */
+    void (*loculus_mark)(const InfinCfg *c); /**< Marks a loculus free. */
 } InfinitasNs;
 MMGR_NS_LAYOUT(InfinitasNs, init, available, vacant, read_byte, read, peek, consume, put, seg_inflight, seg_next,
                seg_publish, seg_front, seg_release, seg_at, loculus_ready, loculus_next, loculus_hold, loculus_keepout,
@@ -354,5 +357,7 @@ MMGR_NS InfinitasNs iteratio_infinita MMGR_UNUSED = {
 };
 
 MMGR_FINIS_DECLS
+
+/** @} */
 
 #endif

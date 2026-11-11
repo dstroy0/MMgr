@@ -6,6 +6,9 @@
 #ifndef MMGR_TYPES_H
 #define MMGR_TYPES_H
 
+/** @addtogroup mod_config
+ *  @{ */
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -103,7 +106,8 @@ MMGR_STATIC_ASSERT(sizeof(mmgr_idx) <= sizeof(mmgr_word), "an index must fit the
 /**
  * @brief A one-byte enum used only to prove MMGR_ENUM_PACKED reaches the compiler.
  *
- * @note Its range needs a single byte, and so the assertion below fails exactly when the packed attribute has no effect.
+ * @note Its range needs a single byte, and so the assertion below fails exactly when the packed attribute has no
+ * effect.
  * @warning A failure means MMGR_ENUM_PACKED expanded to nothing; the assertion message states the consequence.
  */
 typedef enum MMGR_ENUM_PACKED
@@ -114,5 +118,7 @@ typedef enum MMGR_ENUM_PACKED
 MMGR_STATIC_ASSERT(sizeof(MmgrEnumProbe) == 1,
                    "MMGR_ENUM_PACKED is not honored here, so no enum keeps its declared width and every "
                    "borrow offset computed from a struct containing one is wrong (TI: pass --small_enum)");
+
+/** @} */
 
 #endif

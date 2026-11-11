@@ -15,6 +15,9 @@
 #ifndef MMGR_MEMORIA_EXTERNA_H
 #define MMGR_MEMORIA_EXTERNA_H
 
+/** @addtogroup mod_exter
+ *  @{ */
+
 #include "mmgr.h"
 
 #if MMGR_ENABLE_EXTRAM
@@ -157,5 +160,7 @@ EMBED_TABLE_STORAGE MemoriaExternaNs exter EMBED_UNUSED = {
 EMBED_END_DECLS
 
 #endif
+
+/** @} */
 
 #endif

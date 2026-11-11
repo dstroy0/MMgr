@@ -40,6 +40,9 @@
 #ifndef MMGR_PRAET_PRAEFINITUM_H
 #define MMGR_PRAET_PRAEFINITUM_H
 
+/** @addtogroup mod_praet
+ *  @{ */
+
 /**
  * @brief Logical channels one context carries.
  *
@@ -119,5 +122,7 @@
 #error                                                                                                                 \
     "PRAET_RECOVERY_CRC is not a build knob. The boundary word check is answered per context, in the declaration: PraetOrdoContext(name, AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE) or the DISABLE token."
 #endif
+
+/** @} */
 
 #endif

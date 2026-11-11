@@ -21,6 +21,9 @@
 #ifndef MMGR_PRAET_ORDO_H
 #define MMGR_PRAET_ORDO_H
 
+/** @addtogroup mod_praet
+ *  @{ */
+
 #include "mmgr.h"
 
 // PRAET_CHANNELS, PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS and PRAET_RECOVERY come from here. None
@@ -700,5 +703,7 @@ void praet_ordo_poll(PraetOrdo *context);
 uint32_t praet_ordo_flags(const PraetOrdo *context, embed_word channel);
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

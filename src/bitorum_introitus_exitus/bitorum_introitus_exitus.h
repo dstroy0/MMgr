@@ -23,6 +23,9 @@
 #ifndef MMGR_BITORUM_INTROITUS_EXITUS_H
 #define MMGR_BITORUM_INTROITUS_EXITUS_H
 
+/** @addtogroup mod_bitio
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -121,5 +124,7 @@ EMBED_TABLE_STORAGE BitorumIntroitusExitusNs bitio EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

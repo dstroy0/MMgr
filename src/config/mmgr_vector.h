@@ -31,6 +31,9 @@
 #ifndef MMGR_VECTOR_H
 #define MMGR_VECTOR_H
 
+/** @addtogroup mod_config
+ *  @{ */
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -126,5 +129,7 @@ EMBED_INLINE MmgrVectorMask mmgr_vector_differ_lanes(MmgrVector one, MmgrVector 
 }
 
 #endif
+
+/** @} */
 
 #endif

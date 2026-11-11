@@ -29,6 +29,9 @@
 #ifndef MMGR_LOCUS_CARCERUM_H
 #define MMGR_LOCUS_CARCERUM_H
 
+/** @addtogroup mod_confin
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -465,7 +468,7 @@ typedef struct
     const size_t width;         /**< The lanes open bound the mover reads quiet under, one at the fewest. */
     const size_t rows;          /**< Rows of touches, one a lane, the last shared by the lanes past it. */
     embed_bool (*const thread_started)(void (*run)(void *context), void *context); /**< Starts the mover. */
-    size_t (*const thread_id)(void);                        /**< The id of the thread that calls, for a pass that names no owner. */
+    size_t (*const thread_id)(void); /**< The id of the thread that calls, for a pass that names no owner. */
     embed_bool (*const thread_wait)(uint32_t milliseconds); /**< Sleeps the mover, EMBED_FALSE to end it. */
     void (*const thread_yield)(void);               /**< Gives up the processor between a sort's moves, where set. */
     void (*const thread_moving)(embed_bool moving); /**< Told as each move starts and ends, where set. */
@@ -604,7 +607,7 @@ typedef struct
         const CellOwner *owner); /**< Releases owner's prisoner of either tier, cell left as it is [TAKES OWNERSHIP]. */
     void *(*temporary_buf_alloc)(
         size_t size,
-        const CellOwner *owner);        /**< Takes size bytes from the top for owner, unzeroed [RETURNS OWNERSHIP]. */
+        const CellOwner *owner); /**< Takes size bytes from the top for owner, unzeroed [RETURNS OWNERSHIP]. */
     embed_bool (*who_owns_buf)(const void *at); /**< Whether at lies in this cellblock's bytes [BORROWS]. */
     size_t (*buf_available)(void);              /**< Bytes between the two tiers. */
     void *(*buf_grow)(
@@ -799,18 +802,12 @@ EMBED_TABLE_LAYOUT(MaximumSecurityGuard, persistent_buf_alloc, persistent_buf_re
  *       order. One initializer serves either level.
  */
 #define MMGR_CARCER_SEAT(prisonsite_, type_, name_, wipe_to_zero_on_release_)                                          \
-    {prisonsite_##_##name_##_persistent_buf_alloc,                                                                     \
-     prisonsite_##_##name_##_persistent_buf_release,                                                                   \
-     prisonsite_##_##name_##_temporary_buf_alloc,                                                                      \
-     prisonsite_##_##name_##_who_owns_buf,                                                                             \
-     prisonsite_##_##name_##_buf_available,                                                                            \
-     prisonsite_##_##name_##_buf_grow,                                                                                 \
-     prisonsite_##_##name_##_movable_init,                                                                             \
-     prisonsite_##_##name_##_movable_buf_alloc,                                                                        \
-     prisonsite_##_##name_##_movable_buf_release,                                                                      \
-     prisonsite_##_##name_##_movable_buf_read,                                                                         \
-     prisonsite_##_##name_##_movable_buf_write,                                                                        \
-     prisonsite_##_##name_##_movable_buf_compare,                                                                      \
+    {prisonsite_##_##name_##_persistent_buf_alloc, prisonsite_##_##name_##_persistent_buf_release,                     \
+     prisonsite_##_##name_##_temporary_buf_alloc,  prisonsite_##_##name_##_who_owns_buf,                               \
+     prisonsite_##_##name_##_buf_available,        prisonsite_##_##name_##_buf_grow,                                   \
+     prisonsite_##_##name_##_movable_init,         prisonsite_##_##name_##_movable_buf_alloc,                          \
+     prisonsite_##_##name_##_movable_buf_release,  prisonsite_##_##name_##_movable_buf_read,                           \
+     prisonsite_##_##name_##_movable_buf_write,    prisonsite_##_##name_##_movable_buf_compare,                        \
      prisonsite_##_##name_##_movable_buf_measure},
 
 /**
@@ -1467,5 +1464,7 @@ size_t mmgr_movable_queue_depth(const SeriesCellularum *series);
 embed_bool mmgr_movable_touches(const SeriesCellularum *series, size_t at, size_t *id, size_t *touches);
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

@@ -13,6 +13,9 @@
 #ifndef MMGR_MEMORIA_OPEROR_H
 #define MMGR_MEMORIA_OPEROR_H
 
+/** @addtogroup mod_memor
+ *  @{ */
+
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -117,5 +120,7 @@ EMBED_TABLE_STORAGE MemoriaOperorNs memor EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif

@@ -17,6 +17,9 @@
 #ifndef MMGR_NUMEROS_SCRIBO_H
 #define MMGR_NUMEROS_SCRIBO_H
 
+/** @addtogroup mod_numer
+ *  @{ */
+
 #include "verba_scribo/verba_scribo.h"
 
 EMBED_BEGIN_DECLS
@@ -343,5 +346,7 @@ EMBED_TABLE_STORAGE NumerosScriboNs numer EMBED_UNUSED = {
 };
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif
